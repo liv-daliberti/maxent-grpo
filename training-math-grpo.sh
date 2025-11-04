@@ -36,7 +36,6 @@ export NLTK_DATA="$(pwd)/.cache/nltk_data"
 
 
 # provide the new token
-export HUGGING_FACE_HUB_TOKEN="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"
 export TORCH_LOAD_WEIGHTS_ONLY=0
 
 
