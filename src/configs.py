@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import trl
 
@@ -132,7 +132,7 @@ class ScriptArguments(trl.ScriptArguments):
                     )
 
 
-# TODO: add the shared options with a mixin to reduce code duplication
+# NOTE: Shared options could be added with a mixin to reduce code duplication
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
     """

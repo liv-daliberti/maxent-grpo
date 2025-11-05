@@ -18,8 +18,15 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 
 ## Quickstart
 
-### 1) Environment
-- Create and activate: `conda env create -f environment.yml && conda activate openr1`
+### 1) Environment (local-only installs)
+- Recommended: `scripts/bootstrap_env.sh` ensures Conda env, pip cache, and temp dirs live under the repo.
+  - Run: `bash scripts/bootstrap_env.sh` then `conda activate ./openr1`
+- If you prefer manual steps, export these before creating the env so pip/conda stay local:
+  - `export CONDARC=$PWD/.condarc`
+  - `export CONDA_PKGS_DIRS=$PWD/.conda_pkgs CONDA_ENVS_DIRS=$PWD/.conda_envs`
+  - `export PIP_CACHE_DIR=$PWD/.pip_cache PIP_CONFIG_FILE=$PWD/.pip/pip.conf`
+  - `export TMPDIR=$PWD/.tmp`
+  - Then: `conda env create -p $PWD/openr1 -f environment.yml && conda activate $PWD/openr1`
 - Install PyTorch (pick one):
   - GPU (Conda): `conda install -c pytorch -c nvidia pytorch pytorch-cuda=12.4`
   - GPU (pip, CUDA 12.4): `pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0`

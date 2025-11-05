@@ -123,6 +123,7 @@ export PYTHONUSERBASE="$ROOT_DIR/.local"
 export CONDARC="$ROOT_DIR/.condarc"
 export PIP_CACHE_DIR="$ROOT_DIR/.pip_cache"
 export PIP_CONFIG_FILE="$ROOT_DIR/.pip/pip.conf"
+export PIP_DISABLE_PIP_VERSION_CHECK=1
 
 mkdir -p "$CONDA_PKGS_DIRS" "$CONDA_ENVS_DIRS" "$CONDA_CACHEDIR" "$PIP_CACHE_DIR" "$ROOT_DIR/.pip"
 

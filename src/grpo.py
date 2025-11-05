@@ -54,7 +54,7 @@ def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str 
         prompt = tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         # Fallback: flat join
         prompt = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages) + "\nASSISTANT:"
 
@@ -100,7 +100,7 @@ def main(script_args, training_args, model_args):
         model.config.pad_token_id = tokenizer.pad_token_id
     try:
         tokenizer.padding_side = "left"
-    except Exception:
+    except AttributeError:
         pass
 
     # Map dataset → prompt text + gold answer
@@ -178,5 +178,5 @@ def main(script_args, training_args, model_args):
 
 if __name__ == "__main__":
     parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
-    script_args, training_args, model_args = parser.parse_args_and_config()
-    main(script_args, training_args, model_args)
+    cli_script_args, cli_training_args, cli_model_args = parser.parse_args_and_config()
+    main(cli_script_args, cli_training_args, cli_model_args)

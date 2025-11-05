@@ -71,7 +71,7 @@ def _canon_math(s: str) -> str:
 def pure_accuracy_reward_math(
     completions: List[Any],
     answer: List[str],
-    **kw,
+    **_kwargs,
 ) -> List[float]:
     """Binary reward: exact match of canonicalized math answers inside the tag template."""
     outs: List[float] = []
@@ -92,8 +92,8 @@ def pure_accuracy_reward_math(
 
 def get_reward_funcs(
     script_args,
-    ref_model: transformers.PreTrainedModel,
-    tokenizer: transformers.PreTrainedTokenizerBase,
+    _ref_model: transformers.PreTrainedModel | None = None,
+    _tokenizer: transformers.PreTrainedTokenizerBase | None = None,
 ) -> List[Callable]:
     registry = {
         "pure_accuracy_math": pure_accuracy_reward_math,
