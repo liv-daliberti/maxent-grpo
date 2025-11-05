@@ -37,12 +37,30 @@ from transformers.trainer_utils import get_last_checkpoint
 
 from trl import GRPOTrainer, ModelConfig, TrlParser, get_peft_config
 
-from configs import GRPOConfig, GRPOScriptArguments
+from configs import GRPOConfig, ScriptArguments
 from rewards import get_reward_funcs
 from utils import get_dataset, get_model, get_tokenizer
 
 
 def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str | None) -> Dict:
+    """Convert a dataset row to a single prompt/answer pair.
+
+    Builds a minimal chat conversation with an optional system message and a
+    single user turn extracted from ``prompt_column`` (fallback to ``prompt``).
+    The tokenizer's chat template is applied if available to produce the final
+    prompt string.
+
+    :param example: One dataset item (row) containing the prompt/answer fields.
+    :type example: dict
+    :param tokenizer: Tokenizer with an optional chat template.
+    :type tokenizer: Any
+    :param prompt_column: Column name to read the user prompt from.
+    :type prompt_column: str
+    :param system_prompt: Optional system prompt to prepend.
+    :type system_prompt: str | None
+    :returns: Mapping with ``prompt`` and ``answer`` keys.
+    :rtype: dict
+    """
     # Build minimal chat: optional system + user(prompt)
     user = str(example.get(prompt_column, example.get("prompt", "")))
     messages = []
@@ -56,7 +74,12 @@ def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str 
         )
     except (AttributeError, TypeError, ValueError):
         # Fallback: flat join
-        prompt = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages) + "\nASSISTANT:"
+        prompt = (
+            "\n".join(
+                f"{m['role'].upper()}: {m['content']}" for m in messages
+            )
+            + "\nASSISTANT:"
+        )
 
     out = {
         "prompt": prompt,
@@ -65,7 +88,21 @@ def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str 
     return out
 
 
-def main(script_args, training_args, model_args):
+def main(script_args: ScriptArguments, training_args, model_args):
+    """Entrypoint that loads data/model, builds trainer, and runs GRPO.
+
+    The function also performs a small eval subsample for speed if
+    ``training_args.do_eval`` is enabled and an eval split exists.
+
+    :param script_args: Script configuration including dataset and rewards.
+    :type script_args: configs.ScriptArguments
+    :param training_args: GRPO trainer arguments from TRL.
+    :type training_args: trl.GRPOConfig
+    :param model_args: Model configuration for TRL/transformers.
+    :type model_args: trl.ModelConfig
+    :returns: None
+    :rtype: None
+    """
     set_seed(training_args.seed)
     if not getattr(training_args, "return_reward", False):
         training_args.return_reward = True
@@ -123,7 +160,11 @@ def main(script_args, training_args, model_args):
     test_split = getattr(script_args, "dataset_test_split", None)
     if test_split is None:
         # prefer 'validation' then 'test' if present
-        test_split = "validation" if "validation" in dataset.keys() else ("test" if "test" in dataset.keys() else None)
+        test_split = (
+            "validation"
+            if "validation" in dataset.keys()
+            else ("test" if "test" in dataset.keys() else None)
+        )
 
     train_ds = dataset[train_split]
     eval_ds = None
@@ -151,7 +192,14 @@ def main(script_args, training_args, model_args):
     # Train
     last_ckpt = (
         training_args.resume_from_checkpoint
-        or (get_last_checkpoint(training_args.output_dir) if getattr(training_args, "output_dir", None) and os.path.isdir(training_args.output_dir) else None)
+        or (
+            get_last_checkpoint(training_args.output_dir)
+            if (
+                getattr(training_args, "output_dir", None)
+                and os.path.isdir(training_args.output_dir)
+            )
+            else None
+        )
     )
     train_result = trainer.train(resume_from_checkpoint=last_ckpt)
     trainer.log_metrics("train", train_result.metrics)

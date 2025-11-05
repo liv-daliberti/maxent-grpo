@@ -30,13 +30,16 @@ from huggingface_hub import (
     repo_exists,
     upload_folder,
 )
+from huggingface_hub.utils import HfHubHTTPError
 from trl import GRPOConfig, SFTConfig
 
 
 logger = logging.getLogger(__name__)
 
 
-def push_to_hub_revision(training_args: SFTConfig | GRPOConfig, extra_ignore_patterns=[]) -> Future:
+def push_to_hub_revision(
+    training_args: SFTConfig | GRPOConfig, extra_ignore_patterns: list[str] | None = None
+) -> Future:
     """Pushes the model to branch on a Hub repo."""
 
     # Create a repo if it doesn't exist yet
@@ -50,10 +53,13 @@ def push_to_hub_revision(training_args: SFTConfig | GRPOConfig, extra_ignore_pat
         revision=initial_commit.commit_id,
         exist_ok=True,
     )
-    logger.info(f"Created target repo at {repo_url}")
-    logger.info(f"Pushing to the Hub revision {training_args.hub_model_revision}...")
+    logger.info("Created target repo at %s", repo_url)
+    logger.info(
+        "Pushing to the Hub revision %s...", training_args.hub_model_revision
+    )
     ignore_patterns = ["checkpoint-*", "*.pth"]
-    ignore_patterns.extend(extra_ignore_patterns)
+    if extra_ignore_patterns:
+        ignore_patterns.extend(extra_ignore_patterns)
     future = upload_folder(
         repo_id=training_args.hub_model_id,
         folder_path=training_args.output_dir,
@@ -62,7 +68,11 @@ def push_to_hub_revision(training_args: SFTConfig | GRPOConfig, extra_ignore_pat
         ignore_patterns=ignore_patterns,
         run_as_future=True,
     )
-    logger.info(f"Pushed to {repo_url} revision {training_args.hub_model_revision} successfully!")
+    logger.info(
+        "Pushed to %s revision %s successfully!",
+        repo_url,
+        training_args.hub_model_revision,
+    )
 
     return future
 
@@ -87,17 +97,21 @@ def check_hub_revision_exists(training_args: SFTConfig | GRPOConfig):
 
 
 def get_param_count_from_repo_id(repo_id: str) -> int:
-    """Function to get model param counts from safetensors metadata or find patterns like 42m, 1.5b, 0.5m or products like 8x7b in a repo ID."""
+    """Return parameter count from Hub metadata or repo-id pattern.
+
+    Tries safetensors metadata first; if unavailable, extracts sizes from the
+    repo id, matching values like 42m, 1.5b or products like 8x7b.
+    """
     try:
         metadata = get_safetensors_metadata(repo_id)
         return list(metadata.parameter_count.values())[0]
-    except Exception:
+    except (HfHubHTTPError, ValueError, KeyError):
         # Pattern to match products (like 8x7b) and single values (like 42m)
         pattern = r"((\d+(\.\d+)?)(x(\d+(\.\d+)?))?)([bm])"
         matches = re.findall(pattern, repo_id.lower())
 
         param_counts = []
-        for full_match, number1, _, _, number2, _, unit in matches:
+        for _full_match, number1, _, _, number2, _, unit in matches:
             if number2:  # If there's a second number, it's a product
                 number = float(number1) * float(number2)
             else:  # Otherwise, it's a single value
@@ -118,15 +132,23 @@ def get_param_count_from_repo_id(repo_id: str) -> int:
             return -1
 
 
-def get_gpu_count_for_vllm(model_name: str, revision: str = "main", num_gpus: int = 8) -> int:
-    """vLLM enforces a constraint that the number of attention heads must be divisible by the number of GPUs and 64 must be divisible by the number of GPUs.
-    This function calculates the number of GPUs to use for decoding based on the number of attention heads in the model.
+def get_gpu_count_for_vllm(
+    model_name: str, revision: str = "main", num_gpus: int = 8
+) -> int:
+    """Compute a valid GPU count for vLLM.
+
+    The number of attention heads and 64 must each be divisible by the GPU
+    count; this reduces ``num_gpus`` until the constraint is satisfied.
     """
     config = AutoConfig.from_pretrained(model_name, revision=revision, trust_remote_code=True)
     # Get number of attention heads
     num_heads = config.num_attention_heads
     # Reduce num_gpus so that num_heads is divisible by num_gpus and 64 is divisible by num_gpus
     while num_heads % num_gpus != 0 or 64 % num_gpus != 0:
-        logger.info(f"Reducing num_gpus from {num_gpus} to {num_gpus - 1} to make num_heads divisible by num_gpus")
+        logger.info(
+            "Reducing num_gpus from %d to %d to make num_heads divisible by num_gpus",
+            num_gpus,
+            num_gpus - 1,
+        )
         num_gpus -= 1
     return num_gpus

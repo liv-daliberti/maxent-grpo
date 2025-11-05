@@ -2,8 +2,4 @@ channels:
   - conda-forge
   - pytorch
   - nvidia
-envs_dirs:
-  - ./.conda_envs
-pkgs_dirs:
-  - ./.conda_pkgs
 auto_activate_base: false

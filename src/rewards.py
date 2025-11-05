@@ -34,7 +34,16 @@ _answer_pat = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
 
 
 def _extract_content(comp: Any) -> str:
-    """Extract assistant text from common completion shapes."""
+    """Extract assistant text from common completion shapes.
+
+    Accepts a variety of shapes typically returned by APIs, e.g. a bare string
+    or a list with an object containing a ``content`` field.
+
+    :param comp: Completion object or string to normalize.
+    :type comp: Any
+    :returns: Extracted text content (may be empty).
+    :rtype: str
+    """
     if comp is None:
         return ""
     if isinstance(comp, str):
@@ -45,7 +54,16 @@ def _extract_content(comp: Any) -> str:
 
 
 def _canon_math(s: str) -> str:
-    """Canonicalize simple math answers for exact-match comparison."""
+    """Canonicalize simple math answers for exact‑match comparison.
+
+    Heuristics remove superficial wrappers like braces/parentheses, spaces, and
+    normalize signed zeros and integer forms (e.g. ``3.0`` → ``3``).
+
+    :param s: Raw answer string.
+    :type s: str
+    :returns: Canonicalized answer string.
+    :rtype: str
+    """
     if s is None:
         return ""
     s = s.strip()
@@ -73,7 +91,19 @@ def pure_accuracy_reward_math(
     answer: List[str],
     **_kwargs,
 ) -> List[float]:
-    """Binary reward: exact match of canonicalized math answers inside the tag template."""
+    """Binary reward for exact match on a tagged math template.
+
+    Expects completions formatted with ``<think>...</think><answer>...</answer>``.
+    Extracts the ``<answer>`` payload and computes an exact match against the
+    canonicalized gold ``answer`` list.
+
+    :param completions: Generated completions (strings or provider objects).
+    :type completions: list[Any]
+    :param answer: Gold answers aligned with ``completions``.
+    :type answer: list[str]
+    :returns: Per‑completion rewards in {0.0, 1.0}.
+    :rtype: list[float]
+    """
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
@@ -95,6 +125,18 @@ def get_reward_funcs(
     _ref_model: transformers.PreTrainedModel | None = None,
     _tokenizer: transformers.PreTrainedTokenizerBase | None = None,
 ) -> List[Callable]:
+    """Resolve reward function callables from names.
+
+    :param script_args: Script/config args providing ``reward_funcs`` names.
+    :type script_args: Any
+    :param _ref_model: Optional reference model (unused placeholder).
+    :type _ref_model: transformers.PreTrainedModel | None
+    :param _tokenizer: Optional tokenizer (unused placeholder).
+    :type _tokenizer: transformers.PreTrainedTokenizerBase | None
+    :returns: List of reward callables.
+    :rtype: list[Callable]
+    :raises KeyError: If an unknown reward name is requested.
+    """
     registry = {
         "pure_accuracy_math": pure_accuracy_reward_math,
     }

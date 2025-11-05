@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Configuration dataclasses used across training and data loading.
+
+These types extend TRL's config classes and add higher-level knobs used in this
+repository (e.g., dataset mixtures, benchmark lists, chat template).
+"""
+
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -21,7 +27,21 @@ import trl
 
 @dataclass
 class DatasetConfig:
-    """Configuration for a dataset in a mixture."""
+    """Configuration for a dataset inside a mixture.
+
+    :ivar id: Dataset repository ID on the Hub (e.g., "org/name").
+    :vartype id: str
+    :ivar config: Optional dataset configuration name.
+    :vartype config: str | None
+    :ivar split: Split to load, defaults to "train".
+    :vartype split: str
+    :ivar columns: Optional list of column names to keep; if provided all
+        datasets in the mixture must share the same set of columns.
+    :vartype columns: list[str] | None
+    :ivar weight: Optional sampling weight in (0, 1]; when specified, a
+        subsample of that proportion is taken from the split.
+    :vartype weight: float | None
+    """
 
     id: str
     config: Optional[str] = None
@@ -32,7 +52,16 @@ class DatasetConfig:
 
 @dataclass
 class DatasetMixtureConfig:
-    """Configuration for a mixture of datasets."""
+    """Configuration for a mixture of datasets.
+
+    :ivar datasets: List of constituent dataset configurations.
+    :vartype datasets: list[DatasetConfig]
+    :ivar seed: RNG seed used for shuffling and subsampling.
+    :vartype seed: int
+    :ivar test_split_size: Optional fraction in (0, 1) to create a train/test
+        split after mixing; when ``None`` only a train split is returned.
+    :vartype test_split_size: float | None
+    """
 
     datasets: list[DatasetConfig]
     seed: int = 0
@@ -41,29 +70,29 @@ class DatasetMixtureConfig:
 
 @dataclass
 class ScriptArguments(trl.ScriptArguments):
-    """
-    Extended version of ScriptArguments with support for dataset mixtures.
+    """Extended TRL ScriptArguments with dataset mixture support.
 
-    Args:
-        dataset_mixture (`dict[str, Any]` or `None`, *optional*, defaults to `None`):
-            Configuration for creating dataset mixtures with advanced options.
-            Format:
-              dataset_mixture:
-                datasets:
-                  - id: dataset_id1
-                    config: config_name
-                    columns:
-                      - col1
-                      - col2
-                    weight: 0.5
-                  - id: dataset_id2
-                    config: config_name
-                    columns:
-                      - col1
-                      - col2
-                    weight: 0.5
-                seed: 42
-                test_split_size: 0.1
+    :param dataset_name: Optional dataset name when not using mixtures.
+    :type dataset_name: str | None
+    :param dataset_mixture: Optional configuration for creating a dataset
+        mixture with optional subsampling and column selection. Example schema::
+
+          dataset_mixture:
+            datasets:
+              - id: dataset_id1
+                config: config_name
+                columns: [col1, col2]
+                weight: 0.5
+              - id: dataset_id2
+                config: config_name
+                columns: [col1, col2]
+                weight: 0.5
+            seed: 42
+            test_split_size: 0.1
+
+    :type dataset_mixture: dict[str, Any] | None
+    :raises ValueError: If neither ``dataset_name`` nor ``dataset_mixture`` are
+        provided, or if the mixture has inconsistent column sets.
     """
 
     # Override the dataset_name to make it optional
@@ -81,6 +110,11 @@ class ScriptArguments(trl.ScriptArguments):
     )
 
     def __post_init__(self):
+        """Validate and normalize ``dataset_mixture`` into dataclasses.
+
+        :raises ValueError: If the mixture payload is malformed or columns are
+            inconsistent across datasets.
+        """
         if self.dataset_name is None and self.dataset_mixture is None:
             raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
 
@@ -135,8 +169,32 @@ class ScriptArguments(trl.ScriptArguments):
 # NOTE: Shared options could be added with a mixin to reduce code duplication
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
-    """
-    args for callbacks, benchmarks etc
+    """Additional knobs for GRPO runs (callbacks, benchmarks, etc).
+
+    :ivar benchmarks: Benchmark names (LightEval/extended) to run post‑training.
+    :vartype benchmarks: list[str]
+    :ivar callbacks: Callback identifiers to enable during training.
+    :vartype callbacks: list[str]
+    :ivar chat_template: Optional tokenizer chat template override.
+    :vartype chat_template: str | None
+    :ivar hub_model_revision: Target branch/revision to push to on the Hub.
+    :vartype hub_model_revision: str | None
+    :ivar num_completions_to_print: Number of completions to print for debug.
+    :vartype num_completions_to_print: int
+    :ivar overwrite_hub_revision: Whether to force‑overwrite an existing branch.
+    :vartype overwrite_hub_revision: bool
+    :ivar push_to_hub_revision: Whether to push to a non‑default branch.
+    :vartype push_to_hub_revision: bool
+    :ivar system_prompt: Optional system prompt used in benchmarking.
+    :vartype system_prompt: str | None
+    :ivar wandb_log_unique_prompts: Log unique prompts as separate W&B runs.
+    :vartype wandb_log_unique_prompts: bool
+    :ivar wandb_entity: Optional W&B entity.
+    :vartype wandb_entity: str | None
+    :ivar wandb_project: Optional W&B project.
+    :vartype wandb_project: str | None
+    :ivar wandb_run_group: Optional W&B run group.
+    :vartype wandb_run_group: str | None
     """
 
     benchmarks: list[str] = field(
@@ -194,9 +252,7 @@ class GRPOConfig(trl.GRPOConfig):
 
 @dataclass
 class SFTConfig(trl.SFTConfig):
-    """
-    args for callbacks, benchmarks etc
-    """
+    """Additional knobs for SFT runs (callbacks, benchmarks, etc)."
 
     benchmarks: list[str] = field(
         default_factory=lambda: [],

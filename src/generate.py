@@ -45,41 +45,41 @@ class DistilabelPipelineConfig:
     retries: int = 0
 
 
-def build_distilabel_pipeline(config: DistilabelPipelineConfig) -> Pipeline:
+def build_distilabel_pipeline(cfg: DistilabelPipelineConfig) -> Pipeline:
     """Create and return a distilabel Pipeline based on ``config``.
 
     The returned pipeline performs text generation using an OpenAI-compatible
     endpoint. It groups generations and supports simple batching.
     """
 
-    generation_kwargs = {"max_new_tokens": config.max_new_tokens}
+    generation_kwargs = {"max_new_tokens": cfg.max_new_tokens}
 
-    if config.temperature is not None:
-        generation_kwargs["temperature"] = config.temperature
+    if cfg.temperature is not None:
+        generation_kwargs["temperature"] = cfg.temperature
 
-    if config.top_p is not None:
-        generation_kwargs["top_p"] = config.top_p
+    if cfg.top_p is not None:
+        generation_kwargs["top_p"] = cfg.top_p
 
     with Pipeline().ray() as pipe:  # avoid shadowing outer-scope name
         TextGeneration(
             llm=OpenAILLM(
-                base_url=config.base_url,
+                base_url=cfg.base_url,
                 api_key="something",
-                model=config.model,
-                timeout=config.timeout,
-                max_retries=config.retries,
+                model=cfg.model,
+                timeout=cfg.timeout,
+                max_retries=cfg.retries,
                 generation_kwargs=generation_kwargs,
             ),
-            template=config.prompt_template,
+            template=cfg.prompt_template,
             input_mappings=(
-                {"instruction": config.prompt_column}
-                if config.prompt_column is not None
+                {"instruction": cfg.prompt_column}
+                if cfg.prompt_column is not None
                 else {}
             ),
-            input_batch_size=config.input_batch_size,
-            num_generations=config.num_generations,
+            input_batch_size=cfg.input_batch_size,
+            num_generations=cfg.num_generations,
             group_generations=True,
-            resources=StepResources(replicas=config.client_replicas),
+            resources=StepResources(replicas=cfg.client_replicas),
         )
 
     return pipe
