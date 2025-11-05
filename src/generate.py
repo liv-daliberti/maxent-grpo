@@ -33,7 +33,11 @@ limitations under the License.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # distilabel is an optional runtime dependency; expose the Pipeline type for static checking
+    from distilabel.pipeline import Pipeline  # type: ignore
 
 @dataclass
 class DistilabelPipelineConfig:

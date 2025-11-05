@@ -51,7 +51,7 @@ VLLM_SLURM_PREFIX: List[str] = [
     "-i",
     "bash",
     "-c",
-    f"for f in /etc/profile.d/*.sh; do source $f; done; export HOME={user_home_directory}; sbatch ",
+    f"for f in /etc/profile.d/*.sh; do source $f; done; export HOME={user_home_directory}; mkdir -p logs; sbatch ",
 ]
 
 # Type aliases for task configuration
@@ -132,7 +132,7 @@ def _build_slurm_gpu_flag(num_gpus: int) -> List[str]:
 
 
 def run_lighteval_job(
-    benchmark: str,
+    benchmark: TaskName,
     training_args: "GRPOConfig",
     model_args: "ModelConfig",
 ) -> None:

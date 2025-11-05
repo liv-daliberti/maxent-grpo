@@ -126,7 +126,7 @@ def push_to_hub_revision(
     return future
 
 
-def check_hub_revision_exists(training_args: 'GRPOConfig'):
+def check_hub_revision_exists(training_args: 'GRPOConfig') -> None:
     """Validate whether a target Hub revision exists and is safe to write.
 
     :param training_args: Training config with Hub identifiers and flags.
@@ -136,7 +136,6 @@ def check_hub_revision_exists(training_args: 'GRPOConfig'):
     :raises ValueError: If the revision exists and appears non‑empty without
         setting ``overwrite_hub_revision``.
     """
-def check_hub_revision_exists(training_args: 'GRPOConfig') -> None:
     if repo_exists(training_args.hub_model_id):
         if training_args.push_to_hub_revision is True:
             # First check if the revision exists

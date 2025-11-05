@@ -128,6 +128,9 @@ def main(
     :returns: None
     :rtype: None
     """
+    # Ensure logs directory exists for any file redirections by launchers
+    os.makedirs(os.environ.get("LOG_DIR", "logs"), exist_ok=True)
+
     # Import selected pieces lazily to keep module import light-weight
     from transformers import set_seed
     from transformers.trainer_utils import get_last_checkpoint
@@ -179,7 +182,7 @@ def main(
     pc = getattr(script_args, "dataset_prompt_column", "problem")
     sc = getattr(script_args, "dataset_solution_column", "answer")
 
-    def _map_fn(ex):
+    def _map_fn(ex: Dict[str, Any]) -> Dict[str, str]:
         out = _to_prompt(ex, tokenizer, pc, training_args.system_prompt)
         # Ensure answer is present from the configured column
         out["answer"] = str(ex.get(sc, out.get("answer", "")))

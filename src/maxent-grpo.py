@@ -224,6 +224,9 @@ def main(
     training_args: GRPOConfig,
     model_args: Any  # from transformers.ModelArguments
 ) -> None:
+    # Ensure logs directory exists for any file redirections by launchers
+    os.makedirs(os.environ.get("LOG_DIR", "logs"), exist_ok=True)
+
     # Seed and logging
     from transformers import set_seed
     set_seed(training_args.seed)
@@ -281,7 +284,7 @@ def main(
     pc = getattr(script_args, "dataset_prompt_column", "problem")
     sc = getattr(script_args, "dataset_solution_column", "answer")
 
-    def _map_fn(ex):
+    def _map_fn(ex: Dict[str, Any]) -> Dict[str, str]:
         out = _to_prompt(ex, tokenizer, pc, training_args.system_prompt)
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out

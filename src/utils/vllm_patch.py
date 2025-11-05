@@ -46,7 +46,6 @@ from typing import (
     Dict,
     List,
     Optional,
-    TypeVar,
     Protocol,
     runtime_checkable,
 )

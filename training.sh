@@ -31,8 +31,11 @@ set -euo pipefail
 #SBATCH --gres=gpu:8
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=256G
-#SBATCH --time=04:00:00
+#SBATCH --time=00:59:00
+# Ensure logs/ exists before sbatch; otherwise Slurm falls back to slurm-%j.out in CWD.
+# Use scripts/sbatch_training.sh to create logs/ before submission.
 #SBATCH --output=logs/slurm_%j.out
+#SBATCH --error=logs/slurm_%j.err
 #SBATCH --account=mltheory
 
 # ----------------------------
@@ -114,19 +117,25 @@ python --version
 
 # Ensure pip uses this env and local cache; keep installs local to repo
 python -m pip install --upgrade pip
-# Do not override project pin (<1.0) for huggingface-hub; install yq only
+# Ensure huggingface-hub is in the compatible range for transformers (<1.0)
+python -m pip install 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0'
+# yq for YAML edit convenience
 python -m pip install --upgrade 'yq>=3.4,<4'
+# TRL CLI imports rich.markdown which depends on markdown-it-py; ensure present
+python -m pip install 'markdown-it-py>=3,<4' 'rich>=13,<14'
 
 # ─── Environment Identifiers ────────────────────────────────────────────
 export RUN_NAME="Qwen1.5B-GRPO-Finetune"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+# Anchor log directory to this repository to avoid picking up cluster-wide LOG_DIR
+export LOG_DIR="$ROOT_DIR/logs"
 export CONFIG="recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml"
 export CONFIG_FILE="recipes/accelerate_configs/zero3.yaml"
-export SERVER_LOG="logs/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
-export TRAINING_LOG="logs/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
+export SERVER_LOG="$LOG_DIR/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
+export TRAINING_LOG="$LOG_DIR/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
 
 # Ensure log directory exists for file redirections and Slurm output path
-mkdir -p logs
+mkdir -p "$LOG_DIR"
 
 # Update accelerate config so that num_processes = num_training_gpus
 cp "${CONFIG_FILE}" "${CONFIG_FILE}.bak"
@@ -169,14 +178,10 @@ export TRANSFORMERS_NO_FLASH_ATTN=1
 export WANDB_DATA_DIR=/n/fs/similarity/open-r1/wandb
 
 # -----------------------------------
-# Launch vLLM + trainer in one srun
+# Inline: launch vLLM (GPU 0) + trainer (remaining GPUs)
 # -----------------------------------
-srun --cpus-per-task=64 bash -c '
-set -euo pipefail
 
-############################
 # 1) vLLM on GPU-0
-############################
 export CUDA_VISIBLE_DEVICES=0
 echo "Launching vLLM on GPU 0…"
 
@@ -184,10 +189,11 @@ trl vllm-serve \
   --model Qwen/Qwen2.5-1.5B-Instruct \
   --dtype float16 \
   --port 8000 \
+  --device cuda \
   --tensor-parallel-size 1 \
   --max-model-len 2048 \
   --gpu-memory-utilization 0.90 \
-  > "'"$SERVER_LOG"'" 2>&1 &
+  > "$SERVER_LOG" 2>&1 &
 
 VLLM_PID=$!
 
@@ -198,19 +204,17 @@ until curl -sf http://localhost:8000/health > /dev/null; do
 done
 echo "✅ vLLM is healthy"
 
-############################
-# 2) Training on GPU 1-7
-############################
-export CUDA_VISIBLE_DEVICES=$(echo "'"$ALL_GPUS"'" | cut -d"," -f2-)
+# 2) Training on remaining GPUs (exclude GPU-0)
+export CUDA_VISIBLE_DEVICES=$(echo "$ALL_GPUS" | cut -d"," -f2-)
 echo "🚀 Launching training on GPUs $CUDA_VISIBLE_DEVICES"
 
 accelerate launch \
   --main_process_port 29504 \
-  --config_file "'"$CONFIG_FILE"'" \
+  --config_file "$CONFIG_FILE" \
   src/grpo.py \
-  --config "'"$CONFIG"'" \
+  --config "$CONFIG" \
   --use_vllm \
-  --run_name "'"${RUN_NAME}-${TIMESTAMP}"'" \
+  --run_name "${RUN_NAME}-${TIMESTAMP}" \
   --ignore_data_skip \
   --overwrite_output_dir false \
   --resume_from_checkpoint /n/fs/similarity/open-r1/data/Qwen2.5-1.5B-Open-R1-GRPO-math-v1/checkpoint-850 \
@@ -219,4 +223,3 @@ accelerate launch \
 
 # Wait for vLLM to exit after training finishes
 wait $VLLM_PID
-'

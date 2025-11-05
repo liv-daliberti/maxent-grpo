@@ -42,7 +42,7 @@ class ChatMessage(TypedDict):
 
 def get_tokenizer(
     model_args: ModelConfig, training_args: GRPOConfig
-) -> PreTrainedTokenizer:
+) -> PreTrainedTokenizer | Any:
     """Load and optionally customize the tokenizer.
 
     :param model_args: Model configuration (name, revision, trust flags).
