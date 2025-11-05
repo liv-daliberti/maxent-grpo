@@ -30,13 +30,31 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.githubpages',
 ]
 
 autosummary_generate = True
 # Avoid evaluating typing annotations (safer with mocked deps)
 autodoc_typehints = 'none'
+autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True,
+    'show-inheritance': True,
+}
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
+napoleon_use_param = True
+napoleon_use_rtype = True
+
+# Cross-project links to popular libraries
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', {}),
+    'sphinx': ('https://www.sphinx-doc.org/en/master/', {}),
+}
 
 # Mock heavy deps so RTD builds without GPU stacks
 autodoc_mock_imports = [
@@ -47,25 +65,71 @@ autodoc_mock_imports = [
 templates_path = ['_templates']
 exclude_patterns = []
 
-html_theme = 'sphinx_rtd_theme'
+
+def _choose_theme():
+    """Prefer a modern theme with graceful fallback.
+
+    Order: Furo → PyData → RTD → Alabaster.
+    """
+    try:
+        import furo  # noqa: F401
+        return 'furo', {
+            'light_css_variables': {
+                'color-brand-primary': '#7c4dff',
+                'color-brand-content': '#7c4dff',
+                'font-stack': "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",
+                'font-stack--monospace': "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+            },
+            'dark_css_variables': {
+                'color-brand-primary': '#b388ff',
+                'color-brand-content': '#b388ff',
+            },
+        }
+    except Exception:
+        try:
+            import pydata_sphinx_theme  # noqa: F401
+            return 'pydata_sphinx_theme', {
+                'logo': {
+                    'text': project,
+                },
+                'navbar_center': ['navbar-nav'],
+                'header_links_before_dropdown': 6,
+                'use_edit_page_button': False,
+                'primary_color': 'indigo',
+                'secondary_color': 'purple',
+            }
+        except Exception:
+            try:
+                import sphinx_rtd_theme  # noqa: F401
+                return 'sphinx_rtd_theme', {
+                    'style_nav_header_background': '#7c4dff',
+                    'collapse_navigation': False,
+                }
+            except Exception:
+                return 'alabaster', {
+                    'description': 'Clean baseline docs',
+                    'page_width': '980px',
+                    'fixed_sidebar': True,
+                }
+
+
+html_theme, html_theme_options = _choose_theme()
+
+html_title = f"{project} · Developer Docs"
 html_static_path = ['_static']
+html_css_files = ['custom.css']
+pygments_style = 'friendly'
+pygments_dark_style = 'monokai'
 
 # Silence autosummary import noise for optional modules
 suppress_warnings = [
     'autodoc.import_object',
 ]
-"""
-Copyright 2025 Liv d'Aliberti
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+# Make TODOs visible in the rendered docs (fun callouts)
+todo_include_todos = True
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+# Default to dark mode when available (for Furo)
+html_context = {
+    'default_mode': 'dark',
+}

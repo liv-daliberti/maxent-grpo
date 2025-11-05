@@ -1,0 +1,43 @@
+/*
+  Custom tweaks to make the docs feel modern and fun.
+  - Brand accent: deep purple
+  - Rounded corners on cards/code
+  - Slightly larger headings with a subtle gradient
+  - Monospace font tuned for readability
+*/
+
+:root {
+  /* Furo variables (if used) */
+  --color-brand-primary: #7c4dff;
+  --color-brand-content: #7c4dff;
+}
+
+/* Headings with a soft gradient accent */
+h1, h2, h3 {
+  background: linear-gradient(90deg, #7c4dff 0%, #00d4ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Card-like blocks */
+div.admonition, .note, .warning, .tip, .seealso, .important, .hint {
+  border-radius: 10px;
+}
+
+/* Code blocks */
+pre, code, .highlight {
+  border-radius: 8px !important;
+}
+
+/* Improve link visibility */
+a {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* Tweak overall spacing for readability */
+body {
+  line-height: 1.6;
+}
+
