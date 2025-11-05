@@ -6,7 +6,7 @@ A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑lev
 ## Quick Start
 
 1) Environment (kept local to the repo)
-- One‑liner (recommended): `bash scripts/bootstrap_env.sh && conda activate ./openr1`
+- One‑liner (recommended): `make conda-local && conda activate ./openr1`
 - Manual alternative:
   - `conda env create -p ./openr1 -f environment.yml && conda activate ./openr1`
   - Install PyTorch for your setup, e.g.:

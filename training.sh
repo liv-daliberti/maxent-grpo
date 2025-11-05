@@ -91,14 +91,21 @@ export PIP_DISABLE_PIP_VERSION_CHECK=1
 
 mkdir -p "$CONDA_PKGS_DIRS" "$CONDA_ENVS_DIRS" "$CONDA_CACHEDIR" "$PIP_CACHE_DIR" "$ROOT_DIR/.pip"
 
+# Create local env if missing (kept under repo)
+if [ ! -x "$ENV_DIR/bin/python" ]; then
+  echo "⚙️  Creating local conda env at $ENV_DIR from environment.yml…"
+  conda env create -p "$ENV_DIR" -f "$ROOT_DIR/environment.yml"
+fi
+
 # ─── Activate Environment ───────────────────────────────────────────────
 conda activate "$ENV_DIR"
 echo "✅ Conda env active at: $(which python)"
 python --version
 
-pip uninstall huggingface-hub -y
-pip install huggingface-hub
-python -m pip install yq
+# Ensure pip uses this env and local cache; keep installs local to repo
+python -m pip install --upgrade pip
+python -m pip uninstall -y huggingface-hub || true
+python -m pip install --upgrade huggingface-hub yq
 
 # ─── Environment Identifiers ────────────────────────────────────────────
 export RUN_NAME="Qwen1.5B-GRPO-Finetune"
