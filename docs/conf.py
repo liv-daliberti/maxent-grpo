@@ -18,8 +18,10 @@ import os
 import sys
 from datetime import datetime
 
-# Ensure project package is importable (for autodoc)
-sys.path.insert(0, os.path.abspath(os.path.join('..', 'src')))
+# Ensure project package is importable (for autodoc),
+# independent of the current working directory used to invoke Sphinx.
+_HERE = os.path.dirname(__file__)
+sys.path.insert(0, os.path.abspath(os.path.join(_HERE, '..', 'src')))
 
 project = 'Open R1'
 author = 'Hugging Face + Liv d\'Aliberti'
