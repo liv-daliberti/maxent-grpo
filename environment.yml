@@ -1,0 +1,16 @@
+name: openr1
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.11
+  - pip
+  - git
+  - cmake
+  - ninja
+  - pkg-config
+  - pip:
+      # Install this repository in editable mode (minimal core deps via setup.py)
+      - -e .
+

@@ -28,3 +28,4 @@ _morph_available = _is_package_available("morphcloud")
 
 def is_morph_available() -> bool:
     return _morph_available
+

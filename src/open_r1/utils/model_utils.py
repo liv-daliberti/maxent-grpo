@@ -40,3 +40,4 @@ def get_model(model_args: ModelConfig, training_args: SFTConfig | GRPOConfig) ->
         **model_kwargs,
     )
     return model
+
