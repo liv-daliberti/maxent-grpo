@@ -29,7 +29,33 @@ from distilabel.steps.tasks import TextGeneration
 
 @dataclass
 class DistilabelPipelineConfig:
-    """Configuration for building a distilabel generation pipeline."""
+    """Configuration for building a distilabel generation pipeline.
+
+    :ivar model: Model name to forward to the OpenAI-compatible endpoint.
+    :vartype model: str
+    :ivar base_url: Base URL of the server, defaults to ``http://localhost:8000/v1``.
+    :vartype base_url: str
+    :ivar prompt_column: Optional dataset column to map into the template.
+    :vartype prompt_column: str | None
+    :ivar prompt_template: Jinja template string used by the generation step.
+    :vartype prompt_template: str
+    :ivar temperature: Optional temperature override.
+    :vartype temperature: float | None
+    :ivar top_p: Optional nucleus sampling p.
+    :vartype top_p: float | None
+    :ivar max_new_tokens: Maximum tokens per generation.
+    :vartype max_new_tokens: int
+    :ivar num_generations: Number of completions per input example.
+    :vartype num_generations: int
+    :ivar input_batch_size: Distilabel input batch size.
+    :vartype input_batch_size: int
+    :ivar client_replicas: Number of parallel client replicas.
+    :vartype client_replicas: int
+    :ivar timeout: Request timeout in seconds.
+    :vartype timeout: int
+    :ivar retries: Number of HTTP retries per request.
+    :vartype retries: int
+    """
 
     model: str
     base_url: str = "http://localhost:8000/v1"
@@ -46,10 +72,15 @@ class DistilabelPipelineConfig:
 
 
 def build_distilabel_pipeline(cfg: DistilabelPipelineConfig) -> Pipeline:
-    """Create and return a distilabel Pipeline based on ``config``.
+    """Create and return a distilabel Pipeline based on ``cfg``.
 
     The returned pipeline performs text generation using an OpenAI-compatible
     endpoint. It groups generations and supports simple batching.
+
+    :param cfg: Pipeline configuration parameters.
+    :type cfg: DistilabelPipelineConfig
+    :returns: A configured distilabel ``Pipeline``.
+    :rtype: distilabel.pipeline.Pipeline
     """
 
     generation_kwargs = {"max_new_tokens": cfg.max_new_tokens}

@@ -40,7 +40,15 @@ logger = logging.getLogger(__name__)
 def push_to_hub_revision(
     training_args: SFTConfig | GRPOConfig, extra_ignore_patterns: list[str] | None = None
 ) -> Future:
-    """Pushes the model to branch on a Hub repo."""
+    """Push a checkpoint directory to a branch on the Hub.
+
+    :param training_args: Training config with Hub identifiers and output dir.
+    :type training_args: SFTConfig | GRPOConfig
+    :param extra_ignore_patterns: Additional filename patterns to ignore during upload.
+    :type extra_ignore_patterns: list[str] | None
+    :returns: Future that completes when the upload finishes.
+    :rtype: concurrent.futures.Future
+    """
 
     # Create a repo if it doesn't exist yet
     repo_url = create_repo(repo_id=training_args.hub_model_id, private=True, exist_ok=True)
@@ -78,7 +86,15 @@ def push_to_hub_revision(
 
 
 def check_hub_revision_exists(training_args: SFTConfig | GRPOConfig):
-    """Checks if a given Hub revision exists."""
+    """Validate whether a target Hub revision exists and is safe to write.
+
+    :param training_args: Training config with Hub identifiers and flags.
+    :type training_args: SFTConfig | GRPOConfig
+    :returns: None
+    :rtype: None
+    :raises ValueError: If the revision exists and appears non‑empty without
+        setting ``overwrite_hub_revision``.
+    """
     if repo_exists(training_args.hub_model_id):
         if training_args.push_to_hub_revision is True:
             # First check if the revision exists
@@ -97,10 +113,15 @@ def check_hub_revision_exists(training_args: SFTConfig | GRPOConfig):
 
 
 def get_param_count_from_repo_id(repo_id: str) -> int:
-    """Return parameter count from Hub metadata or repo-id pattern.
+    """Infer parameter count from Hub metadata or naming conventions.
 
-    Tries safetensors metadata first; if unavailable, extracts sizes from the
-    repo id, matching values like 42m, 1.5b or products like 8x7b.
+    Attempts to read safetensors metadata; if unavailable, falls back to
+    parsing strings like ``42m``, ``1.5b`` or products like ``8x7b``.
+
+    :param repo_id: Hub repository ID.
+    :type repo_id: str
+    :returns: Best guess of total parameter count, or ``-1`` if unknown.
+    :rtype: int
     """
     try:
         metadata = get_safetensors_metadata(repo_id)
@@ -135,10 +156,20 @@ def get_param_count_from_repo_id(repo_id: str) -> int:
 def get_gpu_count_for_vllm(
     model_name: str, revision: str = "main", num_gpus: int = 8
 ) -> int:
-    """Compute a valid GPU count for vLLM.
+    """Choose a valid GPU count for vLLM tensor parallelism.
 
-    The number of attention heads and 64 must each be divisible by the GPU
-    count; this reduces ``num_gpus`` until the constraint is satisfied.
+    vLLM requires that the number of attention heads and 64 are divisible by
+    the tensor parallel size. This function decrements ``num_gpus`` until the
+    constraints are satisfied.
+
+    :param model_name: Model repository ID.
+    :type model_name: str
+    :param revision: Repo revision/branch.
+    :type revision: str
+    :param num_gpus: Starting number of GPUs available.
+    :type num_gpus: int
+    :returns: A compatible number of GPUs for vLLM.
+    :rtype: int
     """
     config = AutoConfig.from_pretrained(model_name, revision=revision, trust_remote_code=True)
     # Get number of attention heads

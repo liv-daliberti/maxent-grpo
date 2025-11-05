@@ -48,18 +48,23 @@ def register_lighteval_task(
     task_list: str,
     num_fewshot: int = 0,
 ):
-    """Registers a LightEval task configuration.
+    """Register a LightEval task configuration in ``configs``.
 
-    - Core tasks can be added from this table: https://github.com/huggingface/lighteval/blob/main/src/lighteval/tasks/tasks_table.jsonl
-    - Custom tasks that require their own metrics / scripts, should be stored in scripts/evaluation/extended_lighteval_tasks
+    - Core tasks table: https://github.com/huggingface/lighteval/blob/main/src/lighteval/tasks/tasks_table.jsonl
+    - Custom tasks should live under your project (scripts/evaluation/...).
 
-    Args:
-        configs (Dict[str, str]): The dictionary to store the task configuration.
-        eval_suite (str, optional): The evaluation suite.
-        task_name (str): The name of the task.
-        task_list (str): The comma-separated list of tasks in the format "extended|{task_name}|{num_fewshot}|0" or "lighteval|{task_name}|{num_fewshot}|0".
-        num_fewshot (int, optional): The number of few-shot examples. Defaults to 0.
-        is_custom_task (bool, optional): Whether the task is a custom task. Defaults to False.
+    :param configs: Mapping where the serialized task spec is stored.
+    :type configs: dict[str, str]
+    :param eval_suite: Suite prefix, e.g. ``"lighteval"`` or ``"extended"``.
+    :type eval_suite: str
+    :param task_name: Key to store the task under.
+    :type task_name: str
+    :param task_list: Comma‑separated list of tasks, without suite prefix.
+    :type task_list: str
+    :param num_fewshot: Number of few‑shot examples per task.
+    :type num_fewshot: int
+    :returns: None
+    :rtype: None
     """
     # Format task list in lighteval format
     task_list = ",".join(f"{eval_suite}|{task}|{num_fewshot}|0" for task in task_list.split(","))
@@ -77,6 +82,11 @@ register_lighteval_task(LIGHTEVAL_TASKS, "extended", "lcb_v4", "lcb:codegenerati
 
 
 def get_lighteval_tasks():
+    """Return the list of registered LightEval task names.
+
+    :returns: Available benchmark keys.
+    :rtype: list[str]
+    """
     return list(LIGHTEVAL_TASKS.keys())
 
 
@@ -88,6 +98,17 @@ def run_lighteval_job(
     training_args: Union["SFTConfig", "GRPOConfig"],
     model_args: "ModelConfig",
 ) -> None:
+    """Launch a LightEval job under Slurm with vLLM decoding.
+
+    :param benchmark: Registered benchmark key.
+    :type benchmark: str
+    :param training_args: Training configuration containing Hub model info.
+    :type training_args: SFTConfig | GRPOConfig
+    :param model_args: Model configuration (trust flags).
+    :type model_args: ModelConfig
+    :returns: None
+    :rtype: None
+    """
     task_list = LIGHTEVAL_TASKS[benchmark]
     model_name = training_args.hub_model_id
     model_revision = training_args.hub_model_revision
@@ -121,6 +142,16 @@ def run_lighteval_job(
 
 
 def run_benchmark_jobs(training_args: Union["SFTConfig", "GRPOConfig"], model_args: "ModelConfig") -> None:
+    """Launch one or more benchmarks as Slurm jobs.
+
+    :param training_args: Training configuration (reads ``benchmarks`` list).
+    :type training_args: SFTConfig | GRPOConfig
+    :param model_args: Model configuration.
+    :type model_args: ModelConfig
+    :returns: None
+    :rtype: None
+    :raises ValueError: If an unknown benchmark name is supplied.
+    """
     benchmarks = training_args.benchmarks
     if len(benchmarks) == 1 and benchmarks[0] == "all":
         benchmarks = get_lighteval_tasks()

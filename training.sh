@@ -39,6 +39,8 @@ set -euo pipefail
 # ----------------------------
 #module load cudatoolkit/12.4
 export PATH="$HOME/.local/bin:$PATH"
+# Avoid conda alias conflicts injected by cluster environment
+unset CONDA_ENVS_PATH  # prefer CONDA_ENVS_DIRS
 pip install --upgrade huggingface_hub
 
 # ----------------------------

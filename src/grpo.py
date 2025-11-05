@@ -225,6 +225,6 @@ def main(script_args: ScriptArguments, training_args, model_args):
 
 
 if __name__ == "__main__":
-    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
+    parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
     cli_script_args, cli_training_args, cli_model_args = parser.parse_args_and_config()
     main(cli_script_args, cli_training_args, cli_model_args)

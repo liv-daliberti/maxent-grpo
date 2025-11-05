@@ -25,7 +25,15 @@ from configs import GRPOConfig, SFTConfig
 def get_tokenizer(
     model_args: ModelConfig, training_args: SFTConfig | GRPOConfig
 ) -> PreTrainedTokenizer:
-    """Get the tokenizer for the model."""
+    """Load and optionally customize the tokenizer.
+
+    :param model_args: Model configuration (name, revision, trust flags).
+    :type model_args: trl.ModelConfig
+    :param training_args: Training configuration (used for ``chat_template``).
+    :type training_args: SFTConfig | GRPOConfig
+    :returns: A pre‑trained tokenizer instance.
+    :rtype: transformers.PreTrainedTokenizer
+    """
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
         revision=model_args.model_revision,
@@ -41,7 +49,17 @@ def get_tokenizer(
 def get_model(
     model_args: ModelConfig, training_args: SFTConfig | GRPOConfig
 ) -> AutoModelForCausalLM:
-    """Construct and return the causal LM with optional quantization."""
+    """Construct the causal LM with optional quantization and device map.
+
+    :param model_args: Model configuration (quantization, dtype, attn impl,
+        revision, trust settings).
+    :type model_args: trl.ModelConfig
+    :param training_args: Training configuration (used for ``use_cache`` and
+        gradient checkpointing compatibility).
+    :type training_args: SFTConfig | GRPOConfig
+    :returns: A loaded ``AutoModelForCausalLM`` instance.
+    :rtype: transformers.AutoModelForCausalLM
+    """
     torch_dtype = (
         model_args.torch_dtype
         if model_args.torch_dtype in ["auto", None]

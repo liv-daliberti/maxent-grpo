@@ -16,8 +16,16 @@ import os
 
 
 def init_wandb_training(training_args):
-    """
-    Helper function for setting up Weights & Biases logging tools.
+    """Initialize Weights & Biases environment variables for a run.
+
+    Exposes entity/project/group from ``training_args`` to the W&B backend via
+    ``WANDB_*`` environment variables.
+
+    :param training_args: Training configuration providing ``wandb_entity``,
+        ``wandb_project``, and ``wandb_run_group`` fields.
+    :type training_args: Any
+    :returns: None
+    :rtype: None
     """
     if training_args.wandb_entity is not None:
         os.environ["WANDB_ENTITY"] = training_args.wandb_entity

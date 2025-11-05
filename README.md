@@ -2,8 +2,6 @@
 
 This repo contains a maximum-entropy variant of Group-Relative Policy Optimization (GRPO) at the sequence (candidate) level. We work with a listwise target distribution over ranked candidates and a reference policy, derive a closed-form per-context optimizer that blends the two via a tempered geometric mean, and show a soft improvement guarantee for a regularized potential.
 
-- Paper title: MaxEnt-GRPO: Maximum-Entropy Group-Relative Policy Optimization
-- Focus: Concave, per-context sequence-level program with an explicit Shannon-entropy term and reverse-KL trust region; closed-form optimizer and soft improvement lemma.
 
 
 ## Code Layout
@@ -58,6 +56,7 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 
 
 ## Documentation
+- Online docs: https://maxent-grpo.readthedocs.io/en/latest/
 - Build locally: `pip install -r docs/requirements.txt && sphinx-build -b html docs _build/html`
 - Read the Docs is configured via `.readthedocs.yaml` (Sphinx autodoc with heavy deps mocked).
 - Make convenience: `make docs` (see `Makefile` for more targets)

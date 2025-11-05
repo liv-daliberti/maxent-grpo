@@ -26,7 +26,11 @@ _e2b_available = _is_package_available("e2b")
 
 
 def is_e2b_available() -> bool:
-    """Return True if the optional 'e2b' package is available."""
+    """Return whether the optional ``e2b`` package is importable.
+
+    :returns: ``True`` if available, else ``False``.
+    :rtype: bool
+    """
     return _e2b_available
 
 
@@ -34,5 +38,9 @@ _morph_available = _is_package_available("morphcloud")
 
 
 def is_morph_available() -> bool:
-    """Return True if the optional 'morphcloud' package is available."""
+    """Return whether the optional ``morphcloud`` package is importable.
+
+    :returns: ``True`` if available, else ``False``.
+    :rtype: bool
+    """
     return _morph_available

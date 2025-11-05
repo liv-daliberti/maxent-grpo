@@ -40,12 +40,21 @@ def _is_full_example(x: Any) -> bool:
 
 
 class ReplayBuffer:
-    """
-    Bandit / UCB replay buffer with stable UIDs and optional exploit/explore mixing.
+    """Bandit/UCB‑style replay buffer with stable UIDs.
 
-    * add_group(...) -> uid (>=0) on success, -1 on failure
-    * sample_uid(...) returns a uid you can feed back into trainer._inject_one_replay_group
-    * update_priority_by_uid updates μ / priority using a stable uid (safe for DDP)
+    Maintains running means/variances per entry and supports:
+
+    - :py:meth:`add_group` to insert a group under one UID
+    - :py:meth:`sample` to draw uniform samples
+    - :py:meth:`sample_uid` to draw a single UID
+    - :py:meth:`update_priority_by_uid` to update stats using a stable UID
+
+    :param capacity: Maximum number of entries to retain.
+    :type capacity: int
+    :param C: Exploration coefficient (reserved for UCB variants).
+    :type C: float
+    :param debug_steps: If > 0, print debug messages.
+    :type debug_steps: int
     """
 
     def __init__(self, capacity: int = 4000, C: float = 1.0, debug_steps: int = 0):
@@ -70,20 +79,43 @@ class ReplayBuffer:
         self._last_error: Optional[dict] = None
 
     def last_error(self):
+        """Return the last error context, if any.
+
+        :returns: A dict describing the last failed operation or ``None``.
+        :rtype: dict | None
+        """
         return self._last_error
 
     def _set_err(self, **kw):
+        """Internal helper to store the last error context."""
         self._last_error = kw
         
 
     def __len__(self) -> int:
+        """Return the number of stored entries."""
         return len(self._buf)
 
     # ----------------- stats utils -----------------
     def _init_stats(self, r: float) -> tuple[float, float, int]:
+        """Initialize online mean/variance counters.
+
+        :param r: Initial reward/score.
+        :type r: float
+        :returns: Tuple ``(mean, M2, n)`` for Welford updates.
+        :rtype: tuple[float, float, int]
+        """
         return float(r), 0.0, 1
 
     def _update_stats(self, idx: int, r: float):
+        """Update running stats at ``idx`` with a new reward ``r``.
+
+        :param idx: Internal index in the buffer.
+        :type idx: int
+        :param r: New observed reward.
+        :type r: float
+        :returns: None
+        :rtype: None
+        """
         mu, M2, n = self._mean[idx], self._M2[idx], self._n[idx]
         n += 1
         delta = r - mu
@@ -94,6 +126,17 @@ class ReplayBuffer:
 
     # ----------------- helpers -----------------
     def _key_for_sample(self, sample: Any):
+        """Generate a stable deduplication key for ``sample``.
+
+        For full examples with a ``prompt`` field, deduplicates by message
+        content; for groups, keys each element and aggregates; otherwise uses
+        ``repr(sample)``.
+
+        :param sample: Arbitrary sample object to store.
+        :type sample: Any
+        :returns: Hashable key used for deduplication.
+        :rtype: Any
+        """
         # Deduplicate on prompt content
         if _is_full_example(sample):
             return _prompt_key(sample["prompt"])
@@ -109,9 +152,17 @@ class ReplayBuffer:
 
     # ----------------- mutation -----------------
     def add(self, sample: Any, reward: float) -> tuple[bool, int]:
-        """
-        Add (sample, reward). If full, replace the worst-μ entry only if reward is higher.
-        Returns (inserted?, uid). On failure, returns (False, -1).
+        """Insert a single sample with its reward.
+
+        If the buffer is full, the lowest‑mean entry may be replaced only if the
+        new reward is strictly higher. Deduplication prevents duplicate prompts.
+
+        :param sample: Sample to store (dict/group or any object).
+        :type sample: Any
+        :param reward: Reward/priority for this sample.
+        :type reward: float
+        :returns: Tuple ``(inserted, uid)`` where ``uid`` is ``-1`` if not inserted.
+        :rtype: tuple[bool, int]
         """
         if self.capacity <= 0:
             print("[RB][WARN] capacity <= 0; refusing to add")
@@ -176,9 +227,17 @@ class ReplayBuffer:
         *,
         verbose: bool = False,
     ) -> int:
-        """
-        Store a *group* (list) of examples under a single uid.
-        Returns the uid (or the same uid if it was deduped and not inserted).
+        """Store a list of examples under a single UID.
+
+        :param group: List of full examples (each with ``prompt``/``answer``/... ).
+        :type group: list[dict[str, Any]]
+        :param reward: Optional group reward; if ``None`` the mean of present
+            ``reward`` fields is used with a default of 0.0 per element.
+        :type reward: float | None
+        :param verbose: Print debug information.
+        :type verbose: bool
+        :returns: The assigned UID (or the existing UID if deduplicated).
+        :rtype: int
         """
         # compute a safe local reward
         if reward is None:
@@ -203,6 +262,15 @@ class ReplayBuffer:
         return uid
 
     def update_priority_by_uid(self, uid: int, reward: float):
+        """Update stats for an entry addressed by its UID.
+
+        :param uid: Stable UID returned from :py:meth:`add`/``add_group``.
+        :type uid: int
+        :param reward: New reward observation.
+        :type reward: float
+        :returns: None
+        :rtype: None
+        """
         reward = _finite_float(reward, 0.0)
         with self._lock:
             idx = self._uid2idx.get(uid, None)
@@ -214,11 +282,25 @@ class ReplayBuffer:
 
     # Legacy (index-based) — keep if you use it elsewhere
     def update_priority(self, idx: int, reward: float):
+        """Legacy index‑based update of stats.
+
+        :param idx: Internal index in the buffer.
+        :type idx: int
+        :param reward: New reward observation.
+        :type reward: float
+        :returns: None
+        :rtype: None
+        """
         with self._lock:
             if 0 <= idx < len(self._buf):
                 self._update_stats(idx, _finite_float(reward, 0.0))
 
     def debug_state(self):
+        """Return a small snapshot of tail statistics for debugging.
+
+        :returns: Dict with ``len``, ``capacity``, ``next_uid`` and tail stats.
+        :rtype: dict
+        """
         with self._lock:
             tail = slice(max(0, len(self._buf) - 5), len(self._buf))
             return {
@@ -236,12 +318,17 @@ class ReplayBuffer:
         batch_size: int = 1,
         *_, **__,
     ) -> Tuple[List[Any], List[int], List[int], np.ndarray]:
-        """
-        Uniformly sample `batch_size` distinct entries from the buffer.
+        """Uniformly sample ``batch_size`` distinct entries from the buffer.
 
-        • Ignores μ, n, C, and mix_exploit_ratio.
-        • Still returns (samples, idxs, uids, isw) so the rest of your
-          training loop remains untouched.  `isw` stays all‑ones.
+        Ignores any UCB/exploration knobs. Returns the tuple that typical
+        training loops expect.
+
+        :param batch_size: Number of distinct samples to draw.
+        :type batch_size: int
+        :returns: Tuple ``(samples, idxs, uids, isw)`` where ``isw`` is a
+            vector of ones (importance sampling weights).
+        :rtype: tuple[list[Any], list[int], list[int], numpy.ndarray]
+        :raises ValueError: If the buffer is empty.
         """
         with self._lock:
             if not self._buf:
@@ -263,16 +350,24 @@ class ReplayBuffer:
             return samples, idxs, uids, isw
 
     def sample_uid(self, *_, **__) -> Optional[int]:
+        """Return a single UID chosen uniformly at random.
+
+        :returns: A UID or ``None`` if the buffer is empty.
+        :rtype: int | None
         """
-        Convenience: return a single UID chosen uniformly at random.
-        """
-        print("SAMPLING!")
         with self._lock:
             if not self._buf:
                 return None
             return np.random.choice(self._uids).item()
 
     def get_group(self, uid: int) -> List[dict[str, Any]]:
+        """Retrieve a deep‑copied group by UID.
+
+        :param uid: Stable UID returned when the group was inserted.
+        :type uid: int
+        :returns: A list of group elements; empty if UID not found.
+        :rtype: list[dict[str, Any]]
+        """
         with self._lock:
             idx = self._uid2idx.get(uid, None)
             if idx is None:

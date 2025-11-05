@@ -30,6 +30,22 @@ import requests
 
 # ─────────────────── generic GET helper ──────────────────────────────────────
 def safe_request(url: str, max_retries: int = 3, backoff: float = 1.0, timeout: float = 10.0):
+    """GET JSON with basic retry/backoff.
+
+    :param url: Endpoint to query.
+    :type url: str
+    :param max_retries: Number of attempts before surfacing the error.
+    :type max_retries: int
+    :param backoff: Base backoff in seconds; exponential across attempts.
+    :type backoff: float
+    :param timeout: Per‑request timeout in seconds.
+    :type timeout: float
+    :returns: Parsed JSON payload.
+    :rtype: dict
+    :raises RuntimeError: If a non‑200 response is received.
+    :raises requests.ConnectionError: On connection errors after retries.
+    :raises requests.Timeout: On timeouts after retries.
+    """
     for attempt in range(max_retries):
         try:
             r = requests.get(url, timeout=timeout)
@@ -45,6 +61,21 @@ def safe_request(url: str, max_retries: int = 3, backoff: float = 1.0, timeout: 
 
 # ─────────────────── helper to parse non-stream JSON ─────────────────────────
 def _parse_nonstream_json(data: dict, tokenizer=None) -> List[List[str]]:
+    """Normalize non‑streaming vLLM JSON response into grouped texts.
+
+    Supports OpenAI-compatible schema (``choices``), newer vLLM ``results``,
+    batched ``text`` lists, and legacy ``completion_ids`` which require a
+    tokenizer to decode.
+
+    :param data: Raw JSON response.
+    :type data: dict
+    :param tokenizer: Optional tokenizer to decode token ID arrays.
+    :type tokenizer: Any
+    :returns: List of per‑prompt lists of texts (shape: ``[B][N]``).
+    :rtype: list[list[str]]
+    :raises RuntimeError: If an unknown schema is encountered or decoding is
+        required but no tokenizer is supplied.
+    """
     # OpenAI route
     if "choices" in data:
         return [[c["text"] for c in data["choices"]]]
@@ -79,7 +110,35 @@ def safe_generate(
     backoff: float = 1.0,
     timeout: float = 30.0,
 ) -> List[List[str]]:
-    """Robust call to /generate with retry + schema-agnostic decoding."""
+    """Robust POST to ``/generate`` with retry + schema‑agnostic decoding.
+
+    :param prompts: Input prompts (batch) to generate from.
+    :type prompts: list[str]
+    :param url: Base URL to the ``/generate`` route.
+    :type url: str
+    :param max_tokens: Maximum tokens to generate per completion.
+    :type max_tokens: int
+    :param temperature: Sampling temperature.
+    :type temperature: float
+    :param top_p: Nucleus sampling p.
+    :type top_p: float
+    :param n: Number of completions per prompt.
+    :type n: int
+    :param stream: Whether to use chunked streaming responses.
+    :type stream: bool
+    :param tokenizer: Optional tokenizer to decode token ID arrays.
+    :type tokenizer: Any
+    :param max_retries: Number of attempts before surfacing the error.
+    :type max_retries: int
+    :param backoff: Base backoff in seconds; exponential across attempts.
+    :type backoff: float
+    :param timeout: Per‑request timeout in seconds.
+    :type timeout: float
+    :returns: List of per‑prompt lists of texts.
+    :rtype: list[list[str]]
+    :raises RuntimeError: When the server returns a non‑200 response or after
+        exhausting retries.
+    """
     payload = dict(
         prompts=prompts, temperature=temperature, top_p=top_p,
         n=n, max_tokens=max_tokens, stream=stream,
@@ -101,7 +160,15 @@ def safe_generate(
 
 
 def _collect_stream_texts(response, num_prompts: int) -> List[List[str]]:
-    """Collect and join streaming response chunks per prompt index."""
+    """Collect and join streaming response chunks per prompt index.
+
+    :param response: Requests response object streaming chunked JSON lines.
+    :type response: requests.Response
+    :param num_prompts: Number of prompts in the input batch.
+    :type num_prompts: int
+    :returns: One concatenated text per prompt.
+    :rtype: list[list[str]]
+    """
     texts: List[List[str]] = [[] for _ in range(num_prompts)]
     for line in response.iter_lines():
         if not line:
