@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 """Build and run a distilabel text-generation pipeline.
 
 This module provides a small CLI and a helper to configure and run a

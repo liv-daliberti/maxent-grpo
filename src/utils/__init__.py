@@ -16,6 +16,15 @@ limitations under the License.
 
 from .data import get_dataset
 from .model_utils import get_model, get_tokenizer
+from . import evaluation, hub, vllm_patch, wandb_logging
 
 
-__all__ = ["get_tokenizer", "get_model", "get_dataset"]
+__all__ = [
+    "get_tokenizer",
+    "get_model",
+    "get_dataset",
+    "evaluation",
+    "hub",
+    "vllm_patch",
+    "wandb_logging",
+]
