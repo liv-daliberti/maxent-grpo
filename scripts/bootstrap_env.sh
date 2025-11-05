@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Create a local-only conda env using caches and dirs under the repo
 
-ROOT_DIR="$(cd "$(dirname \"${BASH_SOURCE[0]}\")/.." && pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
 unset CONDA_ENVS_PATH  # prefer CONDA_ENVS_DIRS to avoid alias conflict
 export CONDARC="$ROOT_DIR/.condarc"
 export CONDA_PKGS_DIRS="$ROOT_DIR/.conda_pkgs"

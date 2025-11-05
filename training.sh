@@ -41,29 +41,8 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 # Avoid conda alias conflicts injected by cluster environment
 unset CONDA_ENVS_PATH  # prefer CONDA_ENVS_DIRS
-pip install --upgrade huggingface_hub
 
-# ----------------------------
-# Setup
-# ----------------------------
-export RUN_NAME="Qwen1.5B-GRPO-Finetune"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-export CONFIG="recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml"
-export CONFIG_FILE="recipes/accelerate_configs/zero3.yaml"
-export SERVER_LOG="logs/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
-export TRAINING_LOG="logs/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
-
-# ensure old HF_TOKEN does not take precedence
-unset HF_TOKEN
-
-# configure HF cache locations before login
-export HF_HOME="$(pwd)/.hf_cache"
-export XDG_CACHE_HOME="$(pwd)/.cache"
-mkdir -p "$HF_HOME" "$XDG_CACHE_HOME"
-export NLTK_DATA="$(pwd)/.cache/nltk_data"
-
-# provide the new token
-export TORCH_LOAD_WEIGHTS_ONLY=0
+# (setup moved below after activating conda and defining ROOT_DIR)
 
 # ----------------------------
 # Determine number of training GPUs (total GPUs – 1 for vLLM)
@@ -91,24 +70,7 @@ export WANDB_CONFIG_DIR=/n/fs/similarity/wandb-offload/config
 #mkdir -p /n/fs/similarity/wandb-offload/{tmp,artifacts,cache,config}
 #mkdir -p logs .cache .hf_cache .tmp .torchinductor .triton
 
-# ----------------------------
-# HF + Cache (local workspace)
-# ----------------------------
-export TRANSFORMERS_CACHE="$(pwd)/.cache/huggingface/transformers"
-export HF_DATASETS_CACHE="$(pwd)/.cache/huggingface/datasets"
-export TMPDIR="$(pwd)/.tmp"
-export VLLM_API_KEY="dummy"
-export TORCHINDUCTOR_CACHE_DIR="$(pwd)/.torchinductor"
-export TRITON_CACHE_DIR="$(pwd)/.triton"
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-
-mkdir -p "$TRANSFORMERS_CACHE" "$HF_DATASETS_CACHE" "$TMPDIR" "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR"
-
-# ✅ Force full state loading in PyTorch (not just weights)
-export TORCH_LOAD_WEIGHTS_ONLY=0
-
-# W&B Online Mode
-export WANDB_MODE=online
+# (local cache paths defined later using ROOT_DIR)
 
 # ─── Load modules and conda ─────────────────────────────────────────────
 source /usr/local/anaconda3/2024.02/etc/profile.d/conda.sh
@@ -138,11 +100,6 @@ pip uninstall huggingface-hub -y
 pip install huggingface-hub
 python -m pip install yq
 
-# Update accelerate config so that num_processes = num_training_gpus
-cp "${CONFIG_FILE}" "${CONFIG_FILE}.bak"
-python -m yq -y --in-place ".num_processes = $NUM_TRAINING" "$CONFIG_FILE"
-echo "→ Set accelerate num_processes to $NUM_TRAINING (total GPUs: $NUM_TOTAL)"
-
 # ─── Environment Identifiers ────────────────────────────────────────────
 export RUN_NAME="Qwen1.5B-GRPO-Finetune"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -151,7 +108,14 @@ export CONFIG_FILE="recipes/accelerate_configs/zero3.yaml"
 export SERVER_LOG="logs/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
 export TRAINING_LOG="logs/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
 
+# Update accelerate config so that num_processes = num_training_gpus
+cp "${CONFIG_FILE}" "${CONFIG_FILE}.bak"
+python -m yq -y --in-place ".num_processes = $NUM_TRAINING" "$CONFIG_FILE"
+echo "→ Set accelerate num_processes to $NUM_TRAINING (total GPUs: $NUM_TOTAL)"
+
 # ─── Local cache + logging paths ────────────────────────────────────────
+# ensure old HF_TOKEN does not take precedence
+unset HF_TOKEN
 export HF_HOME="$ROOT_DIR/.hf_cache"
 export HF_DATASETS_CACHE="$ROOT_DIR/.cache/huggingface/datasets"
 export TRANSFORMERS_CACHE="$ROOT_DIR/.cache/huggingface/transformers"
@@ -159,9 +123,6 @@ export XDG_CACHE_HOME="$ROOT_DIR/.cache"
 export TMPDIR="$ROOT_DIR/.tmp"
 export TORCHINDUCTOR_CACHE_DIR="$ROOT_DIR/.torchinductor"
 export TRITON_CACHE_DIR="$ROOT_DIR/.triton"
-export WANDB_DIR="$ROOT_DIR/.wandb"
-export WANDB_CACHE_DIR="$ROOT_DIR/.wandb_cache"
-export WANDB_MODE="online"
 export TORCH_LOAD_WEIGHTS_ONLY=0
 
 # ─── Optional: disable vLLM usage stats ────────────────────────────────
@@ -176,20 +137,7 @@ echo "Config:     $CONFIG"
 echo "Log Files:  $SERVER_LOG, $TRAINING_LOG"
 echo "CUDA_VISIBLE_DEVICES: $ALL_GPUS (using $NUM_TRAINING for training)"
 
-# ----------------------------
-# WandB cache and artifact dirs on /n/fs (again, if needed)
-# ----------------------------
-export WANDB_DIR=/n/fs/similarity/wandb-offload/tmp
-export WANDB_ARTIFACT_DIR=/n/fs/similarity/wandb-offload/artifacts
-export WANDB_CACHE_DIR=/n/fs/similarity/wandb-offload/cache
-export VLLM_USAGE_STATS_PATH=/n/fs/similarity/vllm/usage_stats.json
-export TMPDIR=/n/fs/similarity/wandb-offload/tmp
-
-# Optional: Set WANDB_CONFIG_DIR if needed (e.g. wandb/settings)
-export WANDB_CONFIG_DIR=/n/fs/similarity/wandb-offload/config
-
-# W&B Online Mode
-export WANDB_MODE=online
+# (WANDB /n/fs offload paths already set above; avoid re-defining here)
 
 # -----------------------------------
 # 1) Launch vLLM server on GPU 0

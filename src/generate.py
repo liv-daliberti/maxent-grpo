@@ -71,17 +71,23 @@ class DistilabelPipelineConfig:
     retries: int = 0
 
 
-def build_distilabel_pipeline(cfg: DistilabelPipelineConfig) -> Pipeline:
+def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwargs) -> Pipeline:
     """Create and return a distilabel Pipeline based on ``cfg``.
 
     The returned pipeline performs text generation using an OpenAI-compatible
     endpoint. It groups generations and supports simple batching.
 
-    :param cfg: Pipeline configuration parameters.
-    :type cfg: DistilabelPipelineConfig
+    :param cfg: Pipeline configuration parameters. If ``None``, any keyword
+        arguments are used to construct :class:`DistilabelPipelineConfig`.
+    :type cfg: DistilabelPipelineConfig | None
+    :param kwargs: Optional fields used when ``cfg`` is ``None``.
+    :type kwargs: Any
     :returns: A configured distilabel ``Pipeline``.
     :rtype: distilabel.pipeline.Pipeline
     """
+
+    if cfg is None:
+        cfg = DistilabelPipelineConfig(**kwargs)
 
     generation_kwargs = {"max_new_tokens": cfg.max_new_tokens}
 

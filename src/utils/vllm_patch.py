@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Helpers for talking to an external `trl vllm-serve` instance.
 
@@ -22,6 +20,7 @@ Notes
     {"completion_ids": [[ids...]], "prompt_ids": [[ids...]]}
   This module detects that schema and decodes it if a tokenizer is provided.
 """
+from __future__ import annotations
 import json
 import time
 from typing import List
@@ -174,6 +173,8 @@ def _collect_stream_texts(response, num_prompts: int) -> List[List[str]]:
         if not line:
             continue
         row = json.loads(line.decode())
-        idx = row.get("prompt_index", 0)
-        texts[idx].append(row["text"])
+        idx = int(row.get("prompt_index", 0))
+        if 0 <= idx < num_prompts:
+            texts[idx].append(row.get("text", ""))
+        # else: ignore malformed index
     return [["".join(parts)] for parts in texts]

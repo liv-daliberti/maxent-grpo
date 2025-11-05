@@ -1,4 +1,4 @@
-.PHONY: help install-dev install-local ensure-path venv install-venv lint format test precommit docs docs-clean
+.PHONY: help install-dev install-local ensure-path venv install-venv lint format test precommit docs docs-clean clean-local
 
 help:
 	@echo "Targets:"
@@ -13,6 +13,7 @@ help:
 	@echo "  precommit    - pre-commit run -a"
 	@echo "  docs         - build Sphinx HTML to _build/html"
 	@echo "  docs-clean   - remove _build"
+	@echo "  clean-local  - remove local envs/caches in this repo"
 
 install-dev:
 	pip install -e .[dev]
@@ -52,3 +53,6 @@ docs:
 
 docs-clean:
 	rm -rf _build
+
+clean-local:
+	rm -rf openr1 .venv .local .conda_envs .conda_pkgs .pip_cache .tmp .torchinductor .triton .wandb .wandb_cache logs docs/_build _build

@@ -61,8 +61,6 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 - Read the Docs is configured via `.readthedocs.yaml` (Sphinx autodoc with heavy deps mocked).
 - Make convenience: `make docs` (see `Makefile` for more targets)
 
-## 
-
 ## Recipes → Parameters
 - All training/runtime parameters come from the selected recipe YAML via TRL’s parser (`GRPOScriptArguments`, `GRPOConfig`, `ModelConfig`).
 - The entrypoint `src/grpo.py` does not hardcode training knobs; it only:

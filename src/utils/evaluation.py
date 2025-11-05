@@ -16,13 +16,13 @@ limitations under the License.
 
 
 import subprocess
-from typing import TYPE_CHECKING, Dict, Union
+from typing import TYPE_CHECKING, Dict
 
 from .hub import get_gpu_count_for_vllm, get_param_count_from_repo_id
 
 
 if TYPE_CHECKING:
-    from trl import GRPOConfig, SFTConfig, ModelConfig
+    from trl import GRPOConfig, ModelConfig
 
 import base64
 import os
@@ -95,7 +95,7 @@ SUPPORTED_BENCHMARKS = get_lighteval_tasks()
 
 def run_lighteval_job(
     benchmark: str,
-    training_args: Union["SFTConfig", "GRPOConfig"],
+    training_args: "GRPOConfig",
     model_args: "ModelConfig",
 ) -> None:
     """Launch a LightEval job under Slurm with vLLM decoding.
@@ -103,7 +103,7 @@ def run_lighteval_job(
     :param benchmark: Registered benchmark key.
     :type benchmark: str
     :param training_args: Training configuration containing Hub model info.
-    :type training_args: SFTConfig | GRPOConfig
+    :type training_args: GRPOConfig
     :param model_args: Model configuration (trust flags).
     :type model_args: ModelConfig
     :returns: None
@@ -141,11 +141,11 @@ def run_lighteval_job(
     subprocess.run(cmd, check=True)
 
 
-def run_benchmark_jobs(training_args: Union["SFTConfig", "GRPOConfig"], model_args: "ModelConfig") -> None:
+def run_benchmark_jobs(training_args: "GRPOConfig", model_args: "ModelConfig") -> None:
     """Launch one or more benchmarks as Slurm jobs.
 
     :param training_args: Training configuration (reads ``benchmarks`` list).
-    :type training_args: SFTConfig | GRPOConfig
+    :type training_args: GRPOConfig
     :param model_args: Model configuration.
     :type model_args: ModelConfig
     :returns: None

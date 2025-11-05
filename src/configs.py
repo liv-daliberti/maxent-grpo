@@ -250,75 +250,12 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={"help": ("The group to store runs under.")},
     )
 
-@dataclass
-class SFTConfig(trl.SFTConfig):
-    """Additional knobs for SFT runs (callbacks, benchmarks, etc)."
-
-    benchmarks: list[str] = field(
-        default_factory=lambda: [],
-        metadata={"help": "The benchmarks to run after training."},
-    )
-    callbacks: list[str] = field(
-        default_factory=lambda: [],
-        metadata={"help": "The callbacks to run during training."},
-    )
-    chat_template: Optional[str] = field(
-        default=None,
-        metadata={"help": "The chat template to use."},
-    )
-    system_prompt: Optional[str] = field(
-        default=None,
-        metadata={"help": "The optional system prompt to use for benchmarking."},
-    )
-    hub_model_revision: Optional[str] = field(
-        default="main",
-        metadata={"help": "The Hub model branch to push the model to."},
-    )
-    overwrite_hub_revision: bool = field(
-        default=False,
-        metadata={"help": "Whether to overwrite the Hub revision."},
-    )
-    push_to_hub_revision: bool = field(
-        default=False,
-        metadata={"help": "Whether to push to a Hub revision/branch."},
-    )
-    wandb_entity: Optional[str] = field(
-        default=None,
-        metadata={"help": ("The entity to store runs under.")},
-    )
-    wandb_project: Optional[str] = field(
-        default=None,
-        metadata={"help": ("The project to store runs under.")},
-    )
-    wandb_run_group: Optional[str] = field(
-        default=None,
-        metadata={"help": ("The group to store runs under.")},
-    )
+## Removed SFTConfig for GRPO-only workflow
 
 
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
-    """
-    Script arguments for the GRPO training script.
-
-    Args:
-        reward_funcs (`list[str]`):
-            List of reward functions. Allowed: 'pure_accuracy_math' only.
-        cosine_min_value_wrong (`float`):
-            Minimum reward for cosine scaling for wrong answers.
-        cosine_max_value_wrong (`float`):
-            Maximum reward for cosine scaling for wrong answers.
-        cosine_min_value_correct (`float`):
-            Minimum reward for cosine scaling for correct answers.
-        cosine_max_value_correct (`float`):
-            Maximum reward for cosine scaling for correct answers.
-        cosine_max_len (`int`):
-            Maximum length for cosine scaling.
-        max_completion_len (`int`):
-            Maximum number of tokens in completion.
-        soft_punish_cache (`int`):
-            Minimum number of tokens in completion.
-    """
+    """Script arguments for the GRPO training script."""
 
     reward_funcs: list[str] = field(
         default_factory=lambda: ["pure_accuracy_math"],

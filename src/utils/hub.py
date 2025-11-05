@@ -31,19 +31,19 @@ from huggingface_hub import (
     upload_folder,
 )
 from huggingface_hub.utils import HfHubHTTPError
-from trl import GRPOConfig, SFTConfig
+from trl import GRPOConfig
 
 
 logger = logging.getLogger(__name__)
 
 
 def push_to_hub_revision(
-    training_args: SFTConfig | GRPOConfig, extra_ignore_patterns: list[str] | None = None
+    training_args: GRPOConfig, extra_ignore_patterns: list[str] | None = None
 ) -> Future:
     """Push a checkpoint directory to a branch on the Hub.
 
     :param training_args: Training config with Hub identifiers and output dir.
-    :type training_args: SFTConfig | GRPOConfig
+    :type training_args: GRPOConfig
     :param extra_ignore_patterns: Additional filename patterns to ignore during upload.
     :type extra_ignore_patterns: list[str] | None
     :returns: Future that completes when the upload finishes.
@@ -52,13 +52,18 @@ def push_to_hub_revision(
 
     # Create a repo if it doesn't exist yet
     repo_url = create_repo(repo_id=training_args.hub_model_id, private=True, exist_ok=True)
-    # Get initial commit to branch from
-    initial_commit = list_repo_commits(training_args.hub_model_id)[-1]
+    # Get initial commit to branch from (repo may be empty on first push)
+    try:
+        initial_commit = list_repo_commits(training_args.hub_model_id)[-1]
+        base_rev = initial_commit.commit_id
+    except (IndexError, HfHubHTTPError):
+        # Fall back to default branch tip
+        base_rev = None
     # Now create the branch we'll be pushing to
     create_branch(
         repo_id=training_args.hub_model_id,
         branch=training_args.hub_model_revision,
-        revision=initial_commit.commit_id,
+        revision=base_rev,
         exist_ok=True,
     )
     logger.info("Created target repo at %s", repo_url)
@@ -85,11 +90,11 @@ def push_to_hub_revision(
     return future
 
 
-def check_hub_revision_exists(training_args: SFTConfig | GRPOConfig):
+def check_hub_revision_exists(training_args: GRPOConfig):
     """Validate whether a target Hub revision exists and is safe to write.
 
     :param training_args: Training config with Hub identifiers and flags.
-    :type training_args: SFTConfig | GRPOConfig
+    :type training_args: GRPOConfig
     :returns: None
     :rtype: None
     :raises ValueError: If the revision exists and appears non‑empty without

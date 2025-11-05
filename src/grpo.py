@@ -176,7 +176,7 @@ def main(script_args: ScriptArguments, training_args, model_args):
         eval_ds = full_eval.shuffle(seed=training_args.seed).select(range(n_keep))
 
     # Rewards
-    reward_funcs = get_reward_funcs(script_args, ref_model=None, tokenizer=tokenizer)
+    reward_funcs = get_reward_funcs(script_args, None, tokenizer)
 
     # Trainer
     trainer = GRPOTrainer(
