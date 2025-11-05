@@ -1,81 +1,66 @@
-# MaxEnt-GRPO: Maximum-Entropy Group-Relative Policy Optimization
+# MaxEnt-GRPO: Maximum‑Entropy Group‑Relative Policy Optimization
 
-This repo contains a maximum-entropy variant of Group-Relative Policy Optimization (GRPO) at the sequence (candidate) level. We work with a listwise target distribution over ranked candidates and a reference policy, derive a closed-form per-context optimizer that blends the two via a tempered geometric mean, and show a soft improvement guarantee for a regularized potential.
-
-
-
-## Code Layout
-- `src/`: core training code (entrypoint `grpo.py`, utilities, rewards)
-- `recipes/`: model- and task-specific YAML configs
-- `recipes/accelerate_configs/`: DeepSpeed / Accelerate configs
-- `training.sh`: launcher script
-- `environment.yml`: minimal Conda environment
-- `setup.py`: package metadata and dependencies
+A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑level) learning. We form a listwise target distribution over ranked candidates, blend it with a reference policy via a tempered geometric mean, and obtain a closed‑form per‑context optimizer with a soft improvement guarantee for a regularized potential.
 
 
+## Quick Start
 
-## Quickstart
+1) Environment (kept local to the repo)
+- One‑liner (recommended): `bash scripts/bootstrap_env.sh && conda activate ./openr1`
+- Manual alternative:
+  - `conda env create -p ./openr1 -f environment.yml && conda activate ./openr1`
+  - Install PyTorch for your setup, e.g.:
+    - GPU (conda): `conda install -c pytorch -c nvidia pytorch pytorch-cuda=12.4`
+    - GPU (pip, CUDA 12.4): `pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0`
+    - CPU only: `pip install torch==2.6.0`
 
-### 1) Environment (local-only installs)
-- Recommended: `scripts/bootstrap_env.sh` ensures Conda env, pip cache, and temp dirs live under the repo.
-  - Run: `bash scripts/bootstrap_env.sh` then `conda activate ./openr1`
-- If you prefer manual steps, export these before creating the env so pip/conda stay local:
-  - `export CONDARC=$PWD/.condarc`
-  - `export CONDA_PKGS_DIRS=$PWD/.conda_pkgs CONDA_ENVS_DIRS=$PWD/.conda_envs`
-  - `export PIP_CACHE_DIR=$PWD/.pip_cache PIP_CONFIG_FILE=$PWD/.pip/pip.conf`
-  - `export TMPDIR=$PWD/.tmp`
-  - Then: `conda env create -p $PWD/openr1 -f environment.yml && conda activate $PWD/openr1`
-- Install PyTorch (pick one):
-  - GPU (Conda): `conda install -c pytorch -c nvidia pytorch pytorch-cuda=12.4`
-  - GPU (pip, CUDA 12.4): `pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0`
-  - CPU only: `pip install torch==2.6.0`
+2) Install package
+- Core: `pip install -e .`
+- Dev extras: `pip install -e .[dev]` (ruff, pylint, pytest, docs)
 
+3) Train
+- Default (SLURM + multi‑GPU + vLLM): `./training.sh`
+  - The script launches a vLLM server on GPU 0 and Accelerate on the remaining GPUs, and updates the Accelerate config to match available GPUs.
+  - Adjust the recipe via `CONFIG` inside `training.sh` (defaults to `recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`).
+- Local/single‑GPU: set `use_vllm: false` in your recipe or run vLLM separately, and use `accelerate launch` with a 1‑process config.
 
-### 2) Install the package
-- Standard: `pip install -e .`
-- Dev setup: `pip install -e .[dev]` (includes pytest, pylint, Sphinx)
-- Local-only install under repo (no user dirs):
-  - With local user base: `make install-local` then add `export PATH="$PWD/.local/bin:$PATH"`
-  - With local venv: `make install-venv` then `source .venv/bin/activate`
-  - Auto-append PATH to your shell rc: `make ensure-path`
-
-### 2.1) Commit hooks (ruff + pylint + pytest)
-- Enable hooks: `pre-commit install`
-- Run manually on all files: `pre-commit run -a`
-- Hooks run: `ruff check .`, `pylint` (via `.pylintrc`) on `src/`, and `pytest -q`.
+Evaluation sampler (optional)
+- If `do_eval: true` and an eval split exists, evaluation runs on a small subsample for speed: 10% up to 1,000 examples (min 1), shuffled by the run seed. See `src/grpo.py`.
 
 
-### 3) Configure and train
-- Pick a recipe (e.g., `recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`) and an Accelerate config (e.g., `recipes/accelerate_configs/zero3.yaml`).
-- Launch training: `./training.sh`
-- To change the model, dataset, or hyperparameters, edit the selected recipe YAML.
+## Configuration
+- All knobs live in the selected YAML recipe and are parsed by TRL (`GRPOScriptArguments`, `GRPOConfig`, `ModelConfig`). Start from:
+  - `recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`
+- Typical fields to adapt:
+  - `model_name_or_path`, `model_revision`
+  - `dataset_name` and prompt/solution columns
+  - `use_vllm`, batch sizes, steps, KL settings
+  - `output_dir`, `hub_model_id`, `push_to_hub`
 
-### Eval Sampler
-- If `do_eval: true` and a test/validation split is available, the trainer evaluates on a subsample of the eval split for speed: 10% of examples up to 1,000 (min 1), shuffled with the run seed.
-- This behavior is in `src/grpo.py` and does not override any other YAML parameters.
+
+## Repository Layout
+- `src/` — core code: `grpo.py` (entrypoint), configs, utils, rewards
+- `recipes/` — task/model YAMLs; `recipes/accelerate_configs/` for Accelerate/DeepSpeed
+- `training.sh` — SLURM‑friendly launcher (vLLM + Accelerate)
+- `environment.yml` — minimal conda spec (installs this package editable)
+- `setup.py` — package metadata and dependencies
+
+
+## Development
+- Optional commit hooks (ruff + pylint + pytest):
+  - `pre-commit install`
+  - Run on demand: `pre-commit run -a`
 
 
 ## Documentation
-- Online docs: https://maxent-grpo.readthedocs.io/en/latest/
-- Build locally: `pip install -r docs/requirements.txt && sphinx-build -b html docs _build/html`
-- Read the Docs is configured via `.readthedocs.yaml` (Sphinx autodoc with heavy deps mocked).
-- Make convenience: `make docs` (see `Makefile` for more targets)
-
-## Recipes → Parameters
-- All training/runtime parameters come from the selected recipe YAML via TRL’s parser (`GRPOScriptArguments`, `GRPOConfig`, `ModelConfig`).
-- The entrypoint `src/grpo.py` does not hardcode training knobs; it only:
-  - builds prompts from `dataset_prompt_column` with the optional `system_prompt`,
-  - ensures PAD token behavior is sane for causal LMs,
-  - enables `return_reward` if it isn’t already set (so rewards are logged/available),
-  - applies the small eval subsampler described above.
+- Online: https://maxent-grpo.readthedocs.io/en/latest/
+- Local build: `pip install -r docs/requirements.txt && sphinx-build -b html docs _build/html`
 
 
-## Citation (informal)
-If you use this code or ideas, please cite as “MaxEnt-GRPO: Maximum-Entropy Group-Relative Policy Optimization (2025)”.
+## Citation
+If you use this work, please cite: “MaxEnt‑GRPO: Maximum‑Entropy Group‑Relative Policy Optimization (2025).”
 
-## BibTeX
-Author: Liv d'Aliberti.
-
+BibTeX
 ```
 @misc{MaxEntGRPO2025,
   title        = {MaxEnt-GRPO: Maximum-Entropy Group-Relative Policy Optimization},
@@ -88,4 +73,4 @@ Author: Liv d'Aliberti.
 
 
 ## License
-Apache License 2.0. See `LICENSE` for the full text.
+Apache 2.0 — see `LICENSE`.
