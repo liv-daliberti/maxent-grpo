@@ -1,4 +1,18 @@
 """
+Build and run a distilabel text‑generation pipeline.
+
+This module provides:
+- ``DistilabelPipelineConfig``: A minimal configuration object for a
+  distilabel pipeline backed by an OpenAI‑compatible endpoint (e.g., vLLM).
+- ``build_distilabel_pipeline``: A helper that assembles a single‑step
+  ``TextGeneration`` pipeline with grouping and batching.
+- A small CLI (``python -m src.generate``) to run generation over a HF dataset
+  and optionally push results back to the Hub.
+
+The imports of distilabel are intentionally lazy so the file can be imported in
+environments where distilabel is not installed (e.g., CI/test stubs).
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +28,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# Build and run a distilabel text-generation pipeline.
-#
-# This module provides a small CLI and a helper to configure and run a
-# distilabel Pipeline backed by an OpenAI-compatible endpoint (e.g., vLLM).
+# See the module docstring above for a quick overview of contents and usage.
 
 from __future__ import annotations
 

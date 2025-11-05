@@ -1,4 +1,18 @@
 """
+Reward functions and a small name→callable registry.
+
+This module focuses on simple, dependency‑light rewards for GRPO and
+MaxEnt‑GRPO experiments. At the moment it implements a strict correctness
+reward for math problems where completions are formatted as
+``<think>...</think><answer>...</answer>``. The registry helper returns a list
+of functions matching names provided in script/config arguments.
+
+Key functions
+- ``pure_accuracy_reward_math``: Binary exact‑match on canonicalized
+  ``<answer>`` vs. gold.
+- ``get_reward_funcs``: Resolve a list of reward callables from names.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,14 +24,11 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the specific language governing permissions and
 limitations under the License.
 """
 
-# Reward functions and registry.
-#
-# Currently exposes `pure_accuracy_math` and a minimal `get_reward_funcs` helper
-# that returns callables based on names provided in the config.
+# See the module docstring above for a quick overview and current contents.
 
 from __future__ import annotations
 # coding=utf-8

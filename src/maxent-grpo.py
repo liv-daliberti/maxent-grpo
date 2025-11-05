@@ -1,4 +1,31 @@
 """
+MaxEnt‑GRPO: sequence‑level maximum‑entropy variant of GRPO.
+
+This training entrypoint implements a lightweight loop that realizes the
+per‑context maximum‑entropy update at the sequence level. For each prompt we:
+1) Generate ``K`` completions (via vLLM ``/generate`` when enabled, or local
+   ``model.generate``).
+2) Convert per‑sequence utilities (rewards) into a listwise distribution ``q``
+   using a temperature and epsilon floor for full support.
+3) Compute sequence log‑probs under a frozen reference model.
+4) Form per‑sequence weights ``w_i ∝ q_i^{1/(τ+β)} · π_ref(i)^{β/(τ+β)}`` and
+   normalize within each prompt group.
+5) Apply a weighted MLE update (no explicit KL term required).
+
+Key pieces
+- ``_to_prompt``: Local copy of the prompt builder to avoid circular imports.
+- ``MaxEntOptions``: Environment‑driven knobs (τ, q temperature/epsilon, length
+  normalization) for convenience.
+- ``_group_softmax``, ``_prepare_labels_for_ce``, ``_sequence_logprobs``,
+  ``_batch_tokenize_pairs``: Helpers for weighting and scoring sequences.
+- ``main``: End‑to‑end training loop using ``utils.*`` helpers and
+  ``utils.vllm_patch.safe_generate`` when vLLM is enabled.
+
+This is intentionally minimal for readability and prototyping. For production
+features (controllers, schedulers, DDP), prefer the TRL trainer path in
+``src/grpo.py`` and extend it.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,32 +41,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# MaxEnt‑GRPO training entrypoint (sequence‑level maximum‑entropy variant).
-#
-# This script implements a lightweight, self‑contained training loop that
-# realizes the per‑context MaxEnt update described in the idea document:
-#   max_pi  E_pi[log q] + tau * H(pi) - beta * KL(pi || pi_ref)
-# whose unique maximizer is
-#   pi* ∝ q^{1/(tau+beta)} * pi_ref^{beta/(tau+beta)}
-#
-# We operationalize this at candidate (sequence) level by:
-# 1) Generating K completions per prompt (via vLLM server if enabled, else
-#    using the local model's .generate()).
-# 2) Computing listwise q from per‑candidate utilities (rewards), with a small
-#    epsilon floor for full support.
-# 3) Computing sequence log‑probabilities under a frozen reference model.
-# 4) Building per‑candidate weights w_i ∝ q_i^{1/(tau+beta)} * pi_ref_i^{beta/(tau+beta)}
-#    in log‑space and normalizing within each prompt group.
-# 5) Performing a weighted MLE update on the current model with those weights
-#    (no extra KL term is required since the pi_ref factor is in w_i).
-#
-# Notes
-# - This is intentionally minimal to keep the code readable and dependency‑
-#   light. It does not attempt to replicate all bells/whistles of TRL's
-#   GRPOTrainer (e.g., KL controllers, schedulers, DDP, etc.). It is a
-#   reference implementation meant for single‑process training or prototyping.
-# - The same dataset/model utilities and reward functions from this repo are
-#   reused for consistency with src/grpo.py.
+# See the module docstring above for a detailed overview.
 
 from __future__ import annotations
 

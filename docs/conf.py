@@ -36,9 +36,15 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.ifconfig',
     'sphinx.ext.githubpages',
+    # Quality-of-life extensions
+    'sphinx.ext.autosectionlabel',
+    'myst_parser',
+    'sphinx_copybutton',
+    'sphinx_design',
 ]
 
 autosummary_generate = True
+autosummary_generate_overwrite = True
 # Avoid evaluating typing annotations (safer with mocked deps)
 autodoc_typehints = 'none'
 autodoc_member_order = 'bysource'
@@ -52,12 +58,32 @@ napoleon_numpy_docstring = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 
+# MyST / Markdown configuration
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+myst_enable_extensions = [
+    'colon_fence',
+    'linkify',
+]
+myst_heading_anchors = 3
+
+# Allow section labels across files without collisions
+autosectionlabel_prefix_document = True
+
 # Cross-project links to popular libraries
 intersphinx_mapping = {
     # For Sphinx >= 8, the second item must be a string or None
     'python': ('https://docs.python.org/3', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
 }
+# Avoid network lookups during local/pre-commit builds; enable online on RTD or when explicitly requested
+_ONLINE_DOCS = (os.environ.get('READTHEDOCS', '').lower() in {'true', '1'}) or (
+    os.environ.get('SPHINX_ONLINE', '').lower() in {'true', '1'}
+)
+if not _ONLINE_DOCS:
+    intersphinx_mapping = {}
 
 # Mock heavy deps so RTD builds without GPU stacks
 autodoc_mock_imports = [
@@ -98,8 +124,6 @@ def _choose_theme():
                 'navbar_center': ['navbar-nav'],
                 'header_links_before_dropdown': 6,
                 'use_edit_page_button': False,
-                'primary_color': 'indigo',
-                'secondary_color': 'purple',
             }
         except Exception:
             try:
@@ -136,3 +160,6 @@ todo_include_todos = True
 html_context = {
     'default_mode': 'dark',
 }
+
+# Keep the landing page snappy on RTD by limiting autosummary depth in nav
+html_theme_options.setdefault('navigation_with_keys', True)

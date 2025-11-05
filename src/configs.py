@@ -1,4 +1,24 @@
 """
+Configuration dataclasses used across training and data loading.
+
+This module centralizes the configuration types consumed by the training
+scripts. It extends TRL's base configs with higher‑level knobs used in this
+repository (dataset mixtures, benchmarks, chat templates, W&B, and optional
+MaxEnt‑GRPO settings). The classes here are designed to be parsed by TRL's
+``TrlParser`` from CLI flags or YAML recipes.
+
+Key classes
+- ``DatasetConfig``: One dataset in a mixture (id/config/split/columns/weight).
+- ``DatasetMixtureConfig``: A set of datasets with shuffle/seed and optional
+  train/test split creation.
+- ``ScriptArguments``: Extends ``trl.ScriptArguments`` to accept a single
+  dataset or a declarative dataset mixture.
+- ``GRPOConfig``: Adds benchmarking, callbacks, Hub/W&B options, and optional
+  MaxEnt‑GRPO generation/weighting knobs on top of ``trl.GRPOConfig``.
+- ``GRPOScriptArguments``: Script‑specific arguments for GRPO training
+  (reward selection and dataset column mapping).
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +34,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# Configuration dataclasses used across training and data loading.
-#
-# These types extend TRL's config classes and add higher-level knobs used in this
-# repository (e.g., dataset mixtures, benchmark lists, chat template).
+# The dataclasses below intentionally mirror TRL's structure so recipes can be
+# shared and parsed with TrlParser while enabling richer workflows here.
 
 from dataclasses import dataclass, field
 from typing import Any, Optional

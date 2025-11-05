@@ -1,4 +1,21 @@
 """
+Minimal GRPO training entrypoint built on TRL.
+
+This script wires up a standard ``trl.GRPOTrainer`` with:
+- Dataset loading via ``utils.data.get_dataset``
+- Simple chat‑templated prompts built from a dataset column
+- A small registry of reward functions from ``src.rewards``
+
+It aims to be a clean baseline without experimental features (e.g., replay
+buffers, schedulers, or custom trainers). Use together with
+``configs.ScriptArguments``/``configs.GRPOConfig`` and TRL's ``TrlParser``.
+
+Key functions
+- ``_to_prompt``: Convert a dataset row to a chat prompt + gold answer.
+- ``main``: Load data/model, construct ``GRPOTrainer``, train/eval, and handle
+  Hub push and model card creation.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +31,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# Minimal, clean GRPO training entrypoint.
-#
-# This script intentionally avoids experimental features (replay buffers,
-# mixing schedules, task routers, custom trainers). It wires up a standard TRL
-# GRPOTrainer with:
-#
-# - dataset loading via `utils.get_dataset`
-# - simple chat-templated prompts from `dataset_prompt_column`
-# - rewards selected by `rewards.get_reward_funcs`
+# The module is import‑light: heavy libs are imported lazily inside functions.
 
 from __future__ import annotations
 
