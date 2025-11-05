@@ -54,8 +54,9 @@ napoleon_use_rtype = True
 
 # Cross-project links to popular libraries
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', {}),
-    'sphinx': ('https://www.sphinx-doc.org/en/master/', {}),
+    # For Sphinx >= 8, the second item must be a string or None
+    'python': ('https://docs.python.org/3', None),
+    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
 }
 
 # Mock heavy deps so RTD builds without GPU stacks

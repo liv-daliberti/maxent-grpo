@@ -17,7 +17,6 @@ limitations under the License.
 from types import SimpleNamespace
 
 import utils.model_utils as MU
-from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 def test_get_tokenizer_applies_chat_template():

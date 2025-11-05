@@ -37,15 +37,24 @@ MaxEnt‑GRPO
 
 
 ## Repository Layout
-- `src/` — core code: `grpo.py` (GRPO entrypoint), `maxent-grpo.py` (MaxEnt‑GRPO entrypoint), configs, utils, rewards
-- `recipes/` — task/model YAMLs; `recipes/accelerate_configs/` for Accelerate/DeepSpeed
-- `training.sh` — SLURM‑friendly launcher (vLLM + Accelerate)
-- `environment.yml` — minimal conda spec (installs this package editable)
-- `setup.py` — package metadata and dependencies
+```
+.
+├─ src/                         # core code
+│  ├─ grpo.py                   # GRPO entrypoint
+│  ├─ maxent-grpo.py            # MaxEnt‑GRPO entrypoint
+│  ├─ configs.py                # configuration helpers
+│  ├─ utils/                    # utilities
+│  └─ rewards.py                # reward shaping / scoring
+├─ recipes/                     # task/model YAMLs
+│  └─ accelerate_configs/       # Accelerate/DeepSpeed configs
+├─ training.sh                  # SLURM‑friendly launcher (vLLM + Accelerate)
+├─ environment.yml              # minimal conda spec (installs this package editable)
+└─ setup.py                     # package metadata and dependencies
+```
 
 
 ## Development
-- Optional commit hooks (ruff + pylint + pytest):
+- Optional commit hooks (ruff + pylint + pytest + sphinx docs):
   - `pre-commit install`
   - Run on demand: `pre-commit run -a`
 

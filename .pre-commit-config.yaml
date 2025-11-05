@@ -24,3 +24,9 @@ repos:
         args:
           - -lc
           - 'PYTHONPATH=src pytest -q'
+      - id: sphinx-build
+        name: sphinx docs build
+        entry: python -m sphinx -b html docs _build/html
+        language: system
+        pass_filenames: false
+        always_run: true

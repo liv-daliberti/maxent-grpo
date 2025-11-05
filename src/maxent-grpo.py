@@ -204,9 +204,12 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
     transformers.utils.logging.enable_explicit_format()
 
     # Options
-    maxent = MaxEntOptions()
+    # Read MaxEnt knobs from YAML (training_args), with env fallback for convenience
     beta = float(getattr(training_args, "init_kl_coeff", 0.0))
-    tau = float(maxent.tau)
+    tau = float(getattr(training_args, "maxent_tau", os.environ.get("MAXENT_TAU", 0.2)))
+    q_temp = float(getattr(training_args, "maxent_q_temperature", os.environ.get("MAXENT_Q_TEMPERATURE", 1.0)))
+    q_eps = float(getattr(training_args, "maxent_q_epsilon", os.environ.get("MAXENT_Q_EPS", 1e-6)))
+    len_norm_ref = bool(getattr(training_args, "maxent_length_normalize_ref", os.environ.get("MAXENT_LENGTH_NORM_REF", "1") not in {"0", "false", "False"}))
     denom = tau + beta if (tau + beta) > 0 else 1.0
 
     # Data / model / tokenizer
@@ -227,7 +230,9 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
         model.config.pad_token_id = tokenizer.pad_token_id
     try:
         tokenizer.padding_side = "left"
-    except Exception:
+    except AttributeError:
+        # Some tokenizers expose padding_side as a property-less attribute
+        # or do not support setting it; ignore in that case.
         pass
 
     # Reference model (frozen)
@@ -262,7 +267,9 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
     max_completion_len = int(getattr(training_args, "max_completion_length", 256))
     num_generations = int(getattr(training_args, "num_generations", 4))
     use_vllm = bool(getattr(training_args, "use_vllm", False))
-    vllm_url = os.environ.get("VLLM_URL", "http://localhost:8000/generate")
+    gen_temperature = float(getattr(training_args, "gen_temperature", 0.8))
+    gen_top_p = float(getattr(training_args, "gen_top_p", 0.9))
+    vllm_url = str(getattr(training_args, "vllm_url", os.environ.get("VLLM_URL", "http://localhost:8000/generate")))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -274,6 +281,9 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
 
     # Reward function(s)
     reward_funcs = get_reward_funcs(script_args, None, tokenizer)
+    reward_weights = getattr(training_args, "reward_weights", None)
+    if reward_weights is None or len(reward_weights) != len(reward_funcs):
+        reward_weights = [1.0 for _ in range(len(reward_funcs))]
     if not reward_funcs:
         raise RuntimeError("No reward functions resolved for MaxEnt‑GRPO training.")
 
@@ -297,8 +307,8 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
                     prompts=prompts,
                     url=vllm_url,
                     max_tokens=max_completion_len,
-                    temperature=0.8,
-                    top_p=0.9,
+                    temperature=gen_temperature,
+                    top_p=gen_top_p,
                     n=num_generations,
                     stream=False,
                     tokenizer=tokenizer,
@@ -314,8 +324,8 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
                         gen_out = model.generate(
                             **enc,
                             do_sample=True,
-                            temperature=0.8,
-                            top_p=0.9,
+                            temperature=gen_temperature,
+                            top_p=gen_top_p,
                             max_new_tokens=max_completion_len,
                             num_return_sequences=num_generations,
                         )
@@ -334,8 +344,10 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
 
             # Combine multiple reward functions additively (weights default to 1)
             total_utils = [0.0] * len(flat_comps)
-            for rf in reward_funcs:
+            for w, rf in zip(reward_weights, reward_funcs):
                 rs = rf(flat_comps, flat_answers)
+                if w != 1.0:
+                    rs = [float(w) * float(r) for r in rs]
                 total_utils = [u + float(r) for u, r in zip(total_utils, rs)]
 
             # Group utilities per prompt and turn into q via softmax
@@ -343,7 +355,7 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
             for i in range(0, len(total_utils), num_generations):
                 utils_grouped.append(total_utils[i : i + num_generations])
             q_grouped: List[List[float]] = [
-                _group_softmax(us, temperature=maxent.q_temperature, eps=maxent.q_epsilon)
+                _group_softmax(us, temperature=q_temp, eps=q_eps)
                 for us in utils_grouped
             ]
 
@@ -381,7 +393,7 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
                     ref_model, input_ids=input_ids, attention_mask=attention_mask, labels=labels
                 )
             # Optional length normalization to reduce bias towards shorter completions
-            if maxent.length_normalize_ref:
+            if len_norm_ref:
                 ref_logp_sum = ref_logp_sum / ref_tok_counts.clamp(min=1).to(ref_logp_sum.dtype)
 
             # Regroup ref log‑probs per prompt
@@ -409,7 +421,7 @@ def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
             optim.zero_grad(set_to_none=True)
 
             # Compute model log‑probs for the same sequences
-            cur_logp_sum, cur_tok_counts = _sequence_logprobs(
+            cur_logp_sum, _ = _sequence_logprobs(
                 model, input_ids=input_ids, attention_mask=attention_mask, labels=labels
             )
             # Negative log‑likelihood sums per sequence
@@ -454,8 +466,11 @@ if __name__ == "__main__":
     # Keep the same CLI as src/grpo.py for compatibility with recipes
     try:
         from trl import ModelConfig, TrlParser
-    except Exception as e:  # pragma: no cover - CLI import guard for docs/CI
-        print("This script requires TRL installed to parse configs (pip install trl).", file=sys.stderr)
+    except (ImportError, ModuleNotFoundError):  # pragma: no cover - CLI import guard for docs/CI
+        print(
+            "This script requires TRL installed to parse configs (pip install trl).",
+            file=sys.stderr,
+        )
         raise
 
     parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))

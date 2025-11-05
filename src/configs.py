@@ -250,6 +250,49 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={"help": ("The group to store runs under.")},
     )
 
+    # MaxEnt‑GRPO specific knobs (used by src/maxent-grpo.py). If unused, they
+    # are harmless for standard GRPO runs.
+    maxent_tau: float = field(
+        default=0.2,
+        metadata={"help": "Sequence‑level entropy weight τ for MaxEnt‑GRPO."},
+    )
+    maxent_q_temperature: float = field(
+        default=1.0,
+        metadata={
+            "help": (
+                "Temperature applied when turning utilities into listwise q via softmax."
+            )
+        },
+    )
+    maxent_q_epsilon: float = field(
+        default=1e-6,
+        metadata={
+            "help": "Epsilon floor added to q for full support before normalization.",
+        },
+    )
+    maxent_length_normalize_ref: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "Whether to length‑normalize reference log‑probs when computing weights."
+            )
+        },
+    )
+
+    # Sampling knobs for candidate generation
+    gen_temperature: float = field(
+        default=0.8,
+        metadata={"help": "Sampling temperature used for candidate generation."},
+    )
+    gen_top_p: float = field(
+        default=0.9,
+        metadata={"help": "Top‑p used for candidate generation."},
+    )
+    vllm_url: Optional[str] = field(
+        default="http://localhost:8000/generate",
+        metadata={"help": "Base URL for vLLM /generate when use_vllm is true."},
+    )
+
 ## Removed SFTConfig for GRPO-only workflow
 
 
