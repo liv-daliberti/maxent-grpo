@@ -1,8 +1,11 @@
-.PHONY: help install-dev lint format test precommit docs docs-clean
+.PHONY: help install-dev install-local venv install-venv lint format test precommit docs docs-clean
 
 help:
 	@echo "Targets:"
 	@echo "  install-dev  - pip install -e .[dev]"
+	@echo "  install-local- user base under $(PWD)/.local"
+	@echo "  venv         - create .venv in repo"
+	@echo "  install-venv - install project into .venv"
 	@echo "  lint         - ruff check . && pylint src/open_r1"
 	@echo "  format       - ruff check --fix . && isort ."
 	@echo "  test         - pytest -q"
@@ -12,6 +15,19 @@ help:
 
 install-dev:
 	pip install -e .[dev]
+
+install-local:
+	export PYTHONUSERBASE=$(PWD)/.local; \
+	  python -m pip install --upgrade pip; \
+	  pip install --user -e .[dev]
+	@echo "Add to PATH for local scripts: export PATH=\"$(PWD)/.local/bin:$$PATH\""
+
+venv:
+	python -m venv .venv
+	@echo "Activate with: source .venv/bin/activate"
+
+install-venv: venv
+	. .venv/bin/activate && pip install -e .[dev]
 
 lint:
 	ruff check .
@@ -32,4 +48,3 @@ docs:
 
 docs-clean:
 	rm -rf _build
-

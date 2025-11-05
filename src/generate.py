@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Build and run a distilabel text-generation pipeline.
+
+This module provides a small CLI and a helper to configure and run a
+distilabel Pipeline backed by an OpenAI-compatible endpoint (e.g., vLLM).
+"""
+
+from dataclasses import dataclass
 from typing import Optional
 
 from distilabel.llms import OpenAILLM
@@ -20,47 +27,62 @@ from distilabel.steps import StepResources
 from distilabel.steps.tasks import TextGeneration
 
 
-def build_distilabel_pipeline(
-    model: str,
-    base_url: str = "http://localhost:8000/v1",
-    prompt_column: Optional[str] = None,
-    prompt_template: str = "{{ instruction }}",
-    temperature: Optional[float] = None,
-    top_p: Optional[float] = None,
-    max_new_tokens: int = 8192,
-    num_generations: int = 1,
-    input_batch_size: int = 64,
-    client_replicas: int = 1,
-    timeout: int = 900,
-    retries: int = 0,
-) -> Pipeline:
-    generation_kwargs = {"max_new_tokens": max_new_tokens}
+@dataclass
+class DistilabelPipelineConfig:
+    """Configuration for building a distilabel generation pipeline."""
 
-    if temperature is not None:
-        generation_kwargs["temperature"] = temperature
+    model: str
+    base_url: str = "http://localhost:8000/v1"
+    prompt_column: Optional[str] = None
+    prompt_template: str = "{{ instruction }}"
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
+    max_new_tokens: int = 8192
+    num_generations: int = 1
+    input_batch_size: int = 64
+    client_replicas: int = 1
+    timeout: int = 900
+    retries: int = 0
 
-    if top_p is not None:
-        generation_kwargs["top_p"] = top_p
 
-    with Pipeline().ray() as pipeline:
+def build_distilabel_pipeline(config: DistilabelPipelineConfig) -> Pipeline:
+    """Create and return a distilabel Pipeline based on ``config``.
+
+    The returned pipeline performs text generation using an OpenAI-compatible
+    endpoint. It groups generations and supports simple batching.
+    """
+
+    generation_kwargs = {"max_new_tokens": config.max_new_tokens}
+
+    if config.temperature is not None:
+        generation_kwargs["temperature"] = config.temperature
+
+    if config.top_p is not None:
+        generation_kwargs["top_p"] = config.top_p
+
+    with Pipeline().ray() as pipe:  # avoid shadowing outer-scope name
         TextGeneration(
             llm=OpenAILLM(
-                base_url=base_url,
+                base_url=config.base_url,
                 api_key="something",
-                model=model,
-                timeout=timeout,
-                max_retries=retries,
+                model=config.model,
+                timeout=config.timeout,
+                max_retries=config.retries,
                 generation_kwargs=generation_kwargs,
             ),
-            template=prompt_template,
-            input_mappings=({"instruction": prompt_column} if prompt_column is not None else {}),
-            input_batch_size=input_batch_size,
-            num_generations=num_generations,
+            template=config.prompt_template,
+            input_mappings=(
+                {"instruction": config.prompt_column}
+                if config.prompt_column is not None
+                else {}
+            ),
+            input_batch_size=config.input_batch_size,
+            num_generations=config.num_generations,
             group_generations=True,
-            resources=StepResources(replicas=client_replicas),
+            resources=StepResources(replicas=config.client_replicas),
         )
 
-    return pipeline
+    return pipe
 
 
 if __name__ == "__main__":
@@ -68,7 +90,11 @@ if __name__ == "__main__":
 
     from datasets import load_dataset
 
-    parser = argparse.ArgumentParser(description="Run distilabel pipeline for generating responses with DeepSeek R1")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run distilabel pipeline for generating responses with DeepSeek R1"
+        )
+    )
     parser.add_argument(
         "--hf-dataset",
         type=str,
@@ -175,11 +201,16 @@ if __name__ == "__main__":
         print(f"  {arg}: {value}")
     print()
 
-    print(f"Loading '{args.hf_dataset}' (config: {args.hf_dataset_config}, split: {args.hf_dataset_split}) dataset...")
+    print(
+        (
+            f"Loading '{args.hf_dataset}' (config: {args.hf_dataset_config}, "
+            f"split: {args.hf_dataset_split}) dataset..."
+        )
+    )
     dataset = load_dataset(args.hf_dataset, args.hf_dataset_config, split=args.hf_dataset_split)
     print("Dataset loaded!")
 
-    pipeline = build_distilabel_pipeline(
+    config = DistilabelPipelineConfig(
         model=args.model,
         base_url=args.vllm_server_url,
         prompt_template=args.prompt_template,
@@ -193,6 +224,8 @@ if __name__ == "__main__":
         timeout=args.timeout,
         retries=args.retries,
     )
+
+    pipeline = build_distilabel_pipeline(config)
 
     print("Running generation pipeline...")
     distiset = pipeline.run(

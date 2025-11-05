@@ -1,4 +1,4 @@
-from src.utils.replay_dataset import ReplayMixDataset, replay_collate
+from utils.replay_dataset import ReplayMixDataset, replay_collate
 
 
 def test_replay_collate_marks_not_replay_and_keeps_accuracy():
@@ -16,4 +16,3 @@ def test_replay_mix_dataset_sets_is_replay_zero():
     ds = ReplayMixDataset(base, tok=type("T", (), {"decode": lambda self, x: ""})())
     item = ds[0]
     assert item["is_replay"] == 0
-

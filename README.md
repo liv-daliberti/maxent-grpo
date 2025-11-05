@@ -29,6 +29,9 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 ### 2) Install the package
 - Standard: `pip install -e .`
 - Dev setup: `pip install -e .[dev]` (includes pytest, pylint, Sphinx)
+- Local-only install under repo (no user dirs):
+  - With local user base: `make install-local` then add `export PATH="$PWD/.local/bin:$PATH"`
+  - With local venv: `make install-venv` then `source .venv/bin/activate`
 
 ### 2.1) Commit hooks (ruff + pylint + pytest)
 - Enable hooks: `pre-commit install`

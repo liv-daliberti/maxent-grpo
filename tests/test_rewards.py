@@ -1,4 +1,4 @@
-from src import rewards as R
+import rewards as R
 
 
 def test_canon_math_strips_wrappers_and_spaces():
@@ -22,4 +22,3 @@ def test_pure_accuracy_reward_requires_format_tags():
     # Missing tags yields 0.0
     out = R.pure_accuracy_reward_math(["no tags here"], ["anything"])
     assert out == [0.0]
-

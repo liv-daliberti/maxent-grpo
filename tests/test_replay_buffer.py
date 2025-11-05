@@ -1,4 +1,4 @@
-from src.utils.replay_buffer import ReplayBuffer
+from utils.replay_buffer import ReplayBuffer
 
 
 def make_group(msg: str, reward: float):
@@ -32,4 +32,3 @@ def test_update_priority_by_uid_increments_count():
     # Update twice; n should increase though it is internal, so check no error raised
     rb.update_priority_by_uid(uid, 1.0)
     rb.update_priority_by_uid(uid, 0.0)
-

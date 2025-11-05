@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import src.utils.hub as H
+import utils.hub as H
 
 
 def test_param_count_parsing_single_and_product():
@@ -21,4 +21,3 @@ def test_gpu_count_divisible_by_heads_and_64(monkeypatch):
 
     monkeypatch.setattr(H.AutoConfig, "from_pretrained", fake_from_pretrained)
     assert H.get_gpu_count_for_vllm("any") == 2
-

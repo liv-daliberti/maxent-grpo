@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-import src.utils.evaluation as E
+import utils.evaluation as E
 
 
 def test_register_lighteval_task_formats_list():
@@ -25,4 +25,3 @@ def test_run_benchmark_jobs_invokes_subprocess(monkeypatch):
     model_args = SimpleNamespace(trust_remote_code=True)
     E.run_benchmark_jobs(training_args, model_args)
     assert "cmd" in calls
-

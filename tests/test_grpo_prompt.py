@@ -1,7 +1,7 @@
 import types
 from importlib import reload
 
-import src.grpo as grpo
+import grpo as grpo
 
 
 class DummyTok:
@@ -28,4 +28,3 @@ def test_to_prompt_fallback_string_format():
     # Fallback prefixes USER:/ASSISTANT:
     assert "USER: q\nASSISTANT:" in out["prompt"]
     assert out["answer"] == "a"
-

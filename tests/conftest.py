@@ -1,5 +1,6 @@
 import sys
 import types
+from pathlib import Path
 
 
 def _ensure_module(name: str):
@@ -9,6 +10,11 @@ def _ensure_module(name: str):
 
 
 def pytest_configure(config):
+    # Ensure the src/ directory is importable (src-layout project)
+    repo_root = Path(__file__).resolve().parents[1]
+    src_dir = repo_root / "src"
+    if str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
     # Stub minimal trl API used by the codebase
     trl = _ensure_module("trl")
     if not hasattr(trl, "ScriptArguments"):
@@ -143,3 +149,43 @@ def pytest_configure(config):
         hfh.repo_exists = repo_exists
         hfh.get_safetensors_metadata = get_safetensors_metadata
 
+    # Minimal distilabel API to import src/generate.py
+    disti = _ensure_module("distilabel")
+    if not hasattr(disti, "pipeline"):
+        # Pipeline context manager with .ray()
+        class _Pipe:
+            def __init__(self):
+                self._ray = False
+            def ray(self):
+                self._ray = True
+                return self
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc, tb):
+                return False
+        pipe_mod = types.ModuleType("distilabel.pipeline")
+        pipe_mod.Pipeline = _Pipe
+        disti.pipeline = pipe_mod
+
+        # Steps and resources
+        steps_mod = types.ModuleType("distilabel.steps")
+        class StepResources:
+            def __init__(self, replicas=1):
+                self.replicas = replicas
+        steps_mod.StepResources = StepResources
+
+        tasks_mod = types.ModuleType("distilabel.steps.tasks")
+        class TextGeneration:
+            def __init__(self, *a, **k):
+                pass
+        tasks_mod.TextGeneration = TextGeneration
+        disti.steps = steps_mod
+        disti.steps.tasks = tasks_mod
+
+        # LLMs
+        llms_mod = types.ModuleType("distilabel.llms")
+        class OpenAILLM:
+            def __init__(self, *a, **k):
+                pass
+        llms_mod.OpenAILLM = OpenAILLM
+        disti.llms = llms_mod

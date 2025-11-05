@@ -1,7 +1,7 @@
 import os
 from types import SimpleNamespace
 
-from src.utils.wandb_logging import init_wandb_training
+from utils.wandb_logging import init_wandb_training
 
 
 def test_init_wandb_training_sets_env(monkeypatch):
@@ -12,4 +12,3 @@ def test_init_wandb_training_sets_env(monkeypatch):
     assert os.environ["WANDB_ENTITY"] == "ent"
     assert os.environ["WANDB_PROJECT"] == "proj"
     assert os.environ["WANDB_RUN_GROUP"] == "grp"
-
