@@ -181,15 +181,14 @@ export WANDB_DATA_DIR=/n/fs/similarity/open-r1/wandb
 # Inline: launch vLLM (GPU 0) + trainer (remaining GPUs)
 # -----------------------------------
 
-# 1) vLLM on GPU-0
-export CUDA_VISIBLE_DEVICES=0
-echo "Launching vLLM on GPU 0…"
+# 1) vLLM on first allocated GPU (from Slurm mapping)
+export CUDA_VISIBLE_DEVICES=$(echo "$ALL_GPUS" | cut -d"," -f1)
+echo "Launching vLLM on GPU $CUDA_VISIBLE_DEVICES…"
 
 trl vllm-serve \
   --model Qwen/Qwen2.5-1.5B-Instruct \
   --dtype float16 \
   --port 8000 \
-  --device cuda \
   --tensor-parallel-size 1 \
   --max-model-len 2048 \
   --gpu-memory-utilization 0.90 \
