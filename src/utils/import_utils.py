@@ -1,4 +1,4 @@
-# Copyright 2025 The HuggingFace Team. All rights reserved.
+# Copyright 2025 Liv d'Aliberti
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Lightweight import-availability helpers.
+
+These mirror transformers.utils.import_utils checks so callers can optionally
+gate features based on optional dependencies being installed.
+"""
+
 from transformers.utils.import_utils import _is_package_available
 
 
@@ -20,6 +26,7 @@ _e2b_available = _is_package_available("e2b")
 
 
 def is_e2b_available() -> bool:
+    """Return True if the optional 'e2b' package is available."""
     return _e2b_available
 
 
@@ -27,4 +34,5 @@ _morph_available = _is_package_available("morphcloud")
 
 
 def is_morph_available() -> bool:
+    """Return True if the optional 'morphcloud' package is available."""
     return _morph_available

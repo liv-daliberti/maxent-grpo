@@ -5,5 +5,8 @@ API Reference
    :toctree: _autosummary
    :recursive:
 
-   open_r1
-
+   configs
+   grpo
+   rewards
+   utils
+   generate

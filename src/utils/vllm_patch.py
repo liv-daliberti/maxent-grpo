@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 """
+Helpers for talking to an external `trl vllm-serve` instance.
+
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,20 +16,15 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-"""
 
-"""
-Helpers for talking to an external `trl vllm-serve` instance.
-
-vLLM ≤ 0.8.5 returns *token IDs* by default:
+Notes
+- vLLM ≤ 0.8.5 sometimes returns token IDs by default:
     {"completion_ids": [[ids...]], "prompt_ids": [[ids...]]}
-
-This helper now detects that schema and decodes it if a tokenizer is passed.
+  This module detects that schema and decodes it if a tokenizer is provided.
 """
-
-from __future__ import annotations
-import json, time
-from typing import List, Optional
+import json
+import time
+from typing import List
 import requests
 
 
@@ -91,18 +90,23 @@ def safe_generate(
             r = requests.post(url, json=payload, timeout=timeout, stream=stream)
             if r.status_code == 200:
                 if stream:
-                    texts = [[] for _ in prompts]
-                    for line in r.iter_lines():
-                        if line:
-                            row = json.loads(line.decode())
-                            idx = row.get("prompt_index", 0)
-                            texts[idx].append(row["text"])
-                    return [["".join(parts)] for parts in texts]
-                else:
-                    return _parse_nonstream_json(r.json(), tokenizer)
+                    return _collect_stream_texts(r, len(prompts))
+                return _parse_nonstream_json(r.json(), tokenizer)
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:120]}")
-        except (requests.ConnectionError, requests.Timeout, RuntimeError) as e:
+        except (requests.ConnectionError, requests.Timeout, RuntimeError) as err:
             if attempt < max_retries - 1:
                 time.sleep(backoff * (2**attempt))
             else:
-                raise RuntimeError(f"safe_generate failed: {e}") from e
+                raise RuntimeError(f"safe_generate failed: {err}") from err
+
+
+def _collect_stream_texts(response, num_prompts: int) -> List[List[str]]:
+    """Collect and join streaming response chunks per prompt index."""
+    texts: List[List[str]] = [[] for _ in range(num_prompts)]
+    for line in response.iter_lines():
+        if not line:
+            continue
+        row = json.loads(line.decode())
+        idx = row.get("prompt_index", 0)
+        texts[idx].append(row["text"])
+    return [["".join(parts)] for parts in texts]

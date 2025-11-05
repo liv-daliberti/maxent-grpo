@@ -57,7 +57,7 @@ unset HF_TOKEN
 # configure HF cache locations before login
 export HF_HOME="$(pwd)/.hf_cache"
 export XDG_CACHE_HOME="$(pwd)/.cache"
-#mkdir -p "$HF_HOME" "$XDG_CACHE_HOME"
+mkdir -p "$HF_HOME" "$XDG_CACHE_HOME"
 export NLTK_DATA="$(pwd)/.cache/nltk_data"
 
 # provide the new token
@@ -100,7 +100,7 @@ export TORCHINDUCTOR_CACHE_DIR="$(pwd)/.torchinductor"
 export TRITON_CACHE_DIR="$(pwd)/.triton"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-#mkdir -p "$TRANSFORMERS_CACHE" "$HF_DATASETS_CACHE" "$TMPDIR" "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR"
+mkdir -p "$TRANSFORMERS_CACHE" "$HF_DATASETS_CACHE" "$TMPDIR" "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR"
 
 # ✅ Force full state loading in PyTorch (not just weights)
 export TORCH_LOAD_WEIGHTS_ONLY=0
@@ -122,8 +122,9 @@ export CONDA_CACHEDIR="$ROOT_DIR/.conda_cache"
 export PYTHONUSERBASE="$ROOT_DIR/.local"
 export CONDARC="$ROOT_DIR/.condarc"
 export PIP_CACHE_DIR="$ROOT_DIR/.pip_cache"
+export PIP_CONFIG_FILE="$ROOT_DIR/.pip/pip.conf"
 
-#mkdir -p "$CONDA_PKGS_DIRS" "$CONDA_ENVS_DIRS" "$CONDA_CACHEDIR" "$PIP_CACHE_DIR"
+mkdir -p "$CONDA_PKGS_DIRS" "$CONDA_ENVS_DIRS" "$CONDA_CACHEDIR" "$PIP_CACHE_DIR" "$ROOT_DIR/.pip"
 
 # ─── Activate Environment ───────────────────────────────────────────────
 conda activate "$ENV_DIR"

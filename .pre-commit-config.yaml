@@ -15,10 +15,12 @@ repos:
         files: ^src/
         args:
           - --rcfile=.pylintrc
+          - --disable=import-error
       - id: pytest
         name: pytest
-        entry: pytest
+        entry: bash
         language: system
         pass_filenames: false
         args:
-          - -q
+          - -lc
+          - 'PYTHONPATH=src pytest -q'

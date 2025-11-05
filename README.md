@@ -32,6 +32,7 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 - Local-only install under repo (no user dirs):
   - With local user base: `make install-local` then add `export PATH="$PWD/.local/bin:$PATH"`
   - With local venv: `make install-venv` then `source .venv/bin/activate`
+  - Auto-append PATH to your shell rc: `make ensure-path`
 
 ### 2.1) Commit hooks (ruff + pylint + pytest)
 - Enable hooks: `pre-commit install`
@@ -46,7 +47,7 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 
 ### Eval Sampler
 - If `do_eval: true` and a test/validation split is available, the trainer evaluates on a subsample of the eval split for speed: 10% of examples up to 1,000 (min 1), shuffled with the run seed.
-- This behavior is in `src/open_r1/grpo.py` and does not override any other YAML parameters.
+- This behavior is in `src/grpo.py` and does not override any other YAML parameters.
 
 
 ## Documentation
@@ -58,7 +59,7 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 
 ## Recipes → Parameters
 - All training/runtime parameters come from the selected recipe YAML via TRL’s parser (`GRPOScriptArguments`, `GRPOConfig`, `ModelConfig`).
-- The entrypoint `src/open_r1/grpo.py` does not hardcode training knobs; it only:
+- The entrypoint `src/grpo.py` does not hardcode training knobs; it only:
   - builds prompts from `dataset_prompt_column` with the optional `system_prompt`,
   - ensures PAD token behavior is sane for causal LMs,
   - enables `return_reward` if it isn’t already set (so rewards are logged/available),
