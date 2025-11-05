@@ -41,6 +41,8 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 # Avoid conda alias conflicts injected by cluster environment
 unset CONDA_ENVS_PATH  # prefer CONDA_ENVS_DIRS
+unset PYTHONHOME PYTHONPATH  # ensure stdlib is resolved from the env
+export PYTHONNOUSERSITE=1
 
 # (setup moved below after activating conda and defining ROOT_DIR)
 
@@ -99,6 +101,13 @@ fi
 
 # ─── Activate Environment ───────────────────────────────────────────────
 conda activate "$ENV_DIR"
+# If stdlib looks corrupted (encodings missing), recreate the env once
+if [ ! -d "$ENV_DIR/lib/python3.11/encodings" ]; then
+  echo "⚠️  Python stdlib appears incomplete (missing encodings). Recreating env…"
+  conda env remove -p "$ENV_DIR" -y || true
+  conda env create -p "$ENV_DIR" -f "$ROOT_DIR/environment.yml"
+  conda activate "$ENV_DIR"
+fi
 echo "✅ Conda env active at: $(which python)"
 python --version
 

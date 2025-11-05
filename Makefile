@@ -74,7 +74,7 @@ precommit:
 	pre-commit run -a
 
 docs:
-	sphinx-build -b html docs _build/html
+	python -m sphinx -b html docs _build/html
 
 docs-clean:
 	rm -rf _build
