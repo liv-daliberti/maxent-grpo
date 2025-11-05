@@ -1,12 +1,26 @@
+# Copyright 2025 Liv d'Aliberti
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Minimal, clean GRPO training entrypoint.
 
 This script intentionally avoids experimental features (replay buffers,
 mixing schedules, task routers, custom trainers). It wires up a standard TRL
 GRPOTrainer with:
 
-- dataset loading via `open_r1.utils.get_dataset`
+- dataset loading via `utils.get_dataset`
 - simple chat-templated prompts from `dataset_prompt_column`
-- rewards selected by `open_r1.rewards.get_reward_funcs`
+- rewards selected by `rewards.get_reward_funcs`
 """
 
 from __future__ import annotations
@@ -23,9 +37,9 @@ from transformers.trainer_utils import get_last_checkpoint
 
 from trl import GRPOTrainer, ModelConfig, TrlParser, get_peft_config
 
-from open_r1.configs import GRPOConfig, GRPOScriptArguments
-from open_r1.rewards import get_reward_funcs
-from open_r1.utils import get_dataset, get_model, get_tokenizer
+from configs import GRPOConfig, GRPOScriptArguments
+from rewards import get_reward_funcs
+from utils import get_dataset, get_model, get_tokenizer
 
 
 def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str | None) -> Dict:

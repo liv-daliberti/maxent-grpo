@@ -54,6 +54,8 @@ _deps = [
     "e2b-code-interpreter>=1.0.5",
     "einops>=0.8.0",
     "flake8>=6.0.0",
+    "pylint>=3.2.0",
+    "pre-commit>=3.8.0",
     "hf_transfer>=0.1.4",
     "huggingface-hub[cli,hf_xet]>=0.30.2,<1.0",
     "isort>=5.12.0",
@@ -103,7 +105,7 @@ def deps_list(*pkgs):
 extras = {}
 extras["tests"] = deps_list("pytest", "parameterized", "math-verify", "jieba")
 extras["torch"] = deps_list("torch")
-extras["quality"] = deps_list("ruff", "isort", "flake8")
+extras["quality"] = deps_list("ruff", "isort", "flake8", "pylint", "pre-commit")
 extras["code"] = deps_list(
     "e2b-code-interpreter", "python-dotenv", "morphcloud", "jieba", "pandas", "aiofiles"
 )
