@@ -150,7 +150,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords="llm inference-time compute reasoning",
-    license="Apache",
+    license="Apache-2.0",
     url="https://github.com/huggingface/open-r1",
     package_dir={"": "src"},
     packages=find_packages("src"),
@@ -170,4 +170,3 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
 )
-

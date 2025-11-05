@@ -69,4 +69,4 @@ Author: Liv d'Aliberti.
 
 
 ## License
-Apache 2.0. See headers and `setup.py` for details.
+Apache License 2.0. See `LICENSE` for the full text.
