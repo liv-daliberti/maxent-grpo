@@ -17,7 +17,7 @@ Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
@@ -33,20 +33,28 @@ limitations under the License.
 from __future__ import annotations
 # coding=utf-8
 
-from typing import Any, Callable, List
+from typing import (
+    Any, Callable, Dict, List, Optional, Union,
+    Protocol, runtime_checkable,
+)
 import re
+from re import Pattern as RePattern
 import transformers
+
+RewardFunction = Callable[[str, str], float]
 
 
 # -------------------------------
 # Core reward implementations
 # -------------------------------
 
-_format_pat = re.compile(r"(?si)<think>.*?</think>.*?<answer>.*?</answer>")
-_answer_pat = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
+_format_pat: RePattern[str] = re.compile(r"(?si)<think>.*?</think>.*?<answer>.*?</answer>")
+_answer_pat: RePattern[str] = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
 
 
-def _extract_content(comp: Any) -> str:
+CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
+
+def _extract_content(comp: CompletionType) -> str:
     """Extract assistant text from common completion shapes.
 
     Accepts a variety of shapes typically returned by APIs, e.g. a bare string
@@ -100,9 +108,9 @@ def _canon_math(s: str) -> str:
 
 
 def pure_accuracy_reward_math(
-    completions: List[Any],
+    completions: List[CompletionType],
     answer: List[str],
-    **_kwargs,
+    **_kwargs: Any
 ) -> List[float]:
     """Binary reward for exact match on a tagged math template.
 
@@ -133,11 +141,16 @@ def pure_accuracy_reward_math(
     return outs
 
 
+@runtime_checkable
+class RewardConfig(Protocol):
+    """Protocol for objects with reward function configuration."""
+    reward_funcs: List[str]
+
 def get_reward_funcs(
-    script_args,
-    _ref_model: transformers.PreTrainedModel | None = None,
-    _tokenizer: transformers.PreTrainedTokenizerBase | None = None,
-) -> List[Callable]:
+    script_args: RewardConfig,
+    _ref_model: Optional[transformers.PreTrainedModel] = None,
+    _tokenizer: Optional[transformers.PreTrainedTokenizerBase] = None,
+) -> List[RewardFunction]:
     """Resolve reward function callables from names.
 
     :param script_args: Script/config args providing ``reward_funcs`` names.

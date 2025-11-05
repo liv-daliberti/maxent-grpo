@@ -16,7 +16,7 @@ Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
@@ -28,8 +28,12 @@ limitations under the License.
 """
 
 
+from __future__ import annotations
+
+import base64
+import os
 import subprocess
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, List, Literal
 
 from .hub import get_gpu_count_for_vllm, get_param_count_from_repo_id
 
@@ -37,15 +41,12 @@ from .hub import get_gpu_count_for_vllm, get_param_count_from_repo_id
 if TYPE_CHECKING:
     from trl import GRPOConfig, ModelConfig
 
-import base64
-import os
-
 
 # We need a special environment setup to launch vLLM from within Slurm training jobs.
 # - Reference code: https://github.com/huggingface/brrr/blob/c55ba3505686d690de24c7ace6487a5c1426c0fd/brrr/lighteval/one_job_runner.py#L105
 # - Slack thread: https://huggingface.slack.com/archives/C043JTYE1MJ/p1726566494958269
-user_home_directory = os.path.expanduser("~")
-VLLM_SLURM_PREFIX = [
+user_home_directory: str = os.path.expanduser("~")
+VLLM_SLURM_PREFIX: List[str] = [
     "env",
     "-i",
     "bash",
@@ -53,14 +54,22 @@ VLLM_SLURM_PREFIX = [
     f"for f in /etc/profile.d/*.sh; do source $f; done; export HOME={user_home_directory}; sbatch ",
 ]
 
+# Type aliases for task configuration
+TaskSpec = str  # e.g. "lighteval|math_500|0|0"
+TaskName = str  # e.g. "math_500"
+TaskName = str
+TaskSpec = str
+TaskSuite = Literal["lighteval", "extended"]
+BenchmarkKey = Literal["bbh", "mt-bench", "TruthfulQA"]
+
 
 def register_lighteval_task(
-    configs: Dict[str, str],
-    eval_suite: str,
-    task_name: str,
+    configs: Dict[TaskName, TaskSpec],
+    eval_suite: TaskSuite,
+    task_name: TaskName,
     task_list: str,
-    num_fewshot: int = 0,
-):
+    num_fewshot: int = 0
+) -> None:
     """Register a LightEval task configuration in ``configs``.
 
     - Core tasks table: https://github.com/huggingface/lighteval/blob/main/src/lighteval/tasks/tasks_table.jsonl
@@ -84,7 +93,7 @@ def register_lighteval_task(
     configs[task_name] = task_list
 
 
-LIGHTEVAL_TASKS = {}
+LIGHTEVAL_TASKS: Dict[TaskName, TaskSpec] = {}
 
 register_lighteval_task(LIGHTEVAL_TASKS, "lighteval", "math_500", "math_500", 0)
 register_lighteval_task(LIGHTEVAL_TASKS, "lighteval", "aime24", "aime24", 0)
@@ -94,9 +103,9 @@ register_lighteval_task(LIGHTEVAL_TASKS, "extended", "lcb", "lcb:codegeneration"
 register_lighteval_task(LIGHTEVAL_TASKS, "extended", "lcb_v4", "lcb:codegeneration_v4", 0)
 
 
-def get_lighteval_tasks():
+def get_lighteval_tasks() -> List[TaskName]:
     """Return the list of registered LightEval task names.
-
+    
     :returns: Available benchmark keys.
     :rtype: list[str]
     """
@@ -104,6 +113,22 @@ def get_lighteval_tasks():
 
 
 SUPPORTED_BENCHMARKS = get_lighteval_tasks()
+
+
+def _build_slurm_gpu_flag(num_gpus: int) -> List[str]:
+    """Return sbatch GPU flag(s) based on env policy.
+
+    Controlled by ``SLURM_GPU_FLAG_STYLE``:
+    - "none" (default): do not pass a GPU flag; rely on script headers.
+    - "gpus": use ``--gpus={num_gpus}``.
+    - "gres": use ``--gres=gpu:{num_gpus}``.
+    """
+    style = os.getenv("SLURM_GPU_FLAG_STYLE", "none").lower()
+    if style == "gpus":
+        return [f"--gpus={num_gpus}"]
+    if style == "gres":
+        return [f"--gres=gpu:{num_gpus}"]
+    return []
 
 
 def run_lighteval_job(
@@ -134,8 +159,9 @@ def run_lighteval_job(
         tensor_parallel = False
 
     cmd = VLLM_SLURM_PREFIX.copy()
+    gpu_flags = _build_slurm_gpu_flag(num_gpus)
     cmd_args = [
-        f"--gres=gpu:{num_gpus}",
+        *gpu_flags,
         f"--job-name=or1_{benchmark}_{model_name.split('/')[-1]}_{model_revision}",
         "slurm/evaluate.slurm",
         benchmark,

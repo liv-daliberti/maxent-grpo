@@ -85,6 +85,11 @@ _deps = [
     "pandas>=2.2.3",
     "sphinx>=7.2",
     "sphinx-rtd-theme>=1.3",
+    "myst-parser",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "linkify-it-py",
+    "mdurl",
 ]
 
 # this is a lookup table with items like:

@@ -36,6 +36,7 @@ author = 'Hugging Face + Liv d\'Aliberti'
 copyright = f"{datetime.now().year}, {author}"
 
 extensions = [
+    # Core Sphinx features we rely on
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
@@ -44,12 +45,25 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.ifconfig',
     'sphinx.ext.githubpages',
-    # Quality-of-life extensions
     'sphinx.ext.autosectionlabel',
+]
+
+# Optional, nicer extensions. Import-guard them so a lightweight pre-commit
+# environment without optional packages doesn't hard-fail the docs build.
+_optional_exts = [
     'myst_parser',
     'sphinx_copybutton',
     'sphinx_design',
 ]
+for _ext in _optional_exts:
+    try:
+        import importlib
+
+        importlib.import_module(_ext)
+        extensions.append(_ext)
+    except Exception:
+        # Missing optional dependency; skip enabling the extension.
+        pass
 
 autosummary_generate = True
 autosummary_generate_overwrite = True
@@ -76,6 +90,17 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 3
 
+# Enable MyST linkify only when its runtime deps are available (linkify-it-py + mdurl).
+try:
+    import importlib
+
+    importlib.import_module('linkify_it')
+    importlib.import_module('mdurl')
+    myst_enable_extensions.append('linkify')
+except Exception:
+    # Leave linkify disabled in minimal environments.
+    pass
+
 # Allow section labels across files without collisions
 autosectionlabel_prefix_document = True
 
@@ -96,6 +121,8 @@ if not _ONLINE_DOCS:
 autodoc_mock_imports = [
     'torch', 'transformers', 'trl', 'accelerate', 'datasets', 'peft', 'deepspeed',
     'bitsandbytes', 'vllm', 'wandb', 'numpy', 'requests', 'distilabel', 'huggingface_hub',
+    # Silence autosummary warnings for non-existent optional helper modules
+    'utils.replay_buffer',
 ]
 
 templates_path = ['_templates']

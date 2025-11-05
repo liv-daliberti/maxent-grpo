@@ -15,7 +15,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,11 +25,19 @@ limitations under the License.
 """
 
 import torch
+from typing import Dict, List, Optional, Union, Any, TypedDict
+from torch import dtype as TorchDType
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
 
 from trl import ModelConfig, get_kbit_device_map, get_quantization_config
 
 from configs import GRPOConfig
+
+
+class ChatMessage(TypedDict):
+    """Type definition for chat message format."""
+    role: str
+    content: str
 
 
 def get_tokenizer(
@@ -52,11 +60,16 @@ def get_tokenizer(
         )
     except (OSError, ValueError, RuntimeError):  # pragma: no cover - offline/CI fallback
         class _FallbackTok:  # minimal surface for tests/docs
-            chat_template = None
-            eos_token_id = None
-            pad_token_id = None
+            chat_template: Optional[str] = None
+            eos_token_id: Optional[int] = None
+            pad_token_id: Optional[int] = None
 
-            def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
+            def apply_chat_template(
+                self,
+                messages: List[ChatMessage],
+                tokenize: bool = False,
+                add_generation_prompt: bool = True
+            ) -> Union[str, List[int]]:
                 text = "\n".join(
                     f"{m['role'].upper()}: {m['content']}" for m in messages
                 )
@@ -92,16 +105,17 @@ def get_model(
     :rtype: transformers.AutoModelForCausalLM
     """
     # Accept strings ("float16"), special values ("auto"/None), or actual torch.dtype
-    if getattr(model_args, "torch_dtype", None) in ["auto", None]:
+    torch_dtype: Union[str, TorchDType, None] = getattr(model_args, "torch_dtype", None)
+    if torch_dtype in ["auto", None]:
         torch_dtype = model_args.torch_dtype
     elif isinstance(model_args.torch_dtype, str):
         torch_dtype = getattr(torch, model_args.torch_dtype)
     else:
         torch_dtype = model_args.torch_dtype
-    quantization_config = get_quantization_config(model_args)
-    device_map = get_kbit_device_map() if quantization_config is not None else None
+    quantization_config: Optional[Any] = get_quantization_config(model_args)
+    device_map: Optional[Dict[str, Any]] = get_kbit_device_map() if quantization_config is not None else None
 
-    model_kwargs = {
+    model_kwargs: Dict[str, Any] = {
         "revision": model_args.model_revision,
         "trust_remote_code": model_args.trust_remote_code,
         "attn_implementation": model_args.attn_implementation,

@@ -22,9 +22,18 @@ limitations under the License.
 """
 
 import os
+from typing import Protocol, runtime_checkable, Optional
 
 
-def init_wandb_training(training_args):
+@runtime_checkable
+class WandbConfig(Protocol):
+    """Protocol for objects with W&B configuration attributes."""
+    wandb_entity: Optional[str]
+    wandb_project: Optional[str]
+    wandb_run_group: Optional[str]
+
+
+def init_wandb_training(training_args: WandbConfig) -> None:
     """Initialize Weights & Biases environment variables for a run.
 
     Exposes entity/project/group from ``training_args`` to the W&B backend via

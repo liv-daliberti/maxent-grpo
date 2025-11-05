@@ -17,7 +17,7 @@ Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
@@ -33,8 +33,7 @@ limitations under the License.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
-
+from typing import Any, Optional
 
 @dataclass
 class DistilabelPipelineConfig:
@@ -80,7 +79,10 @@ class DistilabelPipelineConfig:
     retries: int = 0
 
 
-def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwargs):
+def build_distilabel_pipeline(
+    cfg: Optional[DistilabelPipelineConfig] = None,
+    **kwargs: Any
+) -> "Pipeline":
     """Create and return a distilabel Pipeline based on ``cfg``.
 
     The returned pipeline performs text generation using an OpenAI-compatible
@@ -110,16 +112,16 @@ def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwa
     try:  # pragma: no cover - exercised via tests with stubs
         import importlib
         _disti = importlib.import_module("distilabel")
-        Pipeline = _disti.pipeline.Pipeline
-        StepResources = _disti.steps.StepResources
-        TextGeneration = _disti.steps.tasks.TextGeneration
-        OpenAILLM = _disti.llms.OpenAILLM
+        DL_Pipeline = _disti.pipeline.Pipeline
+        DL_StepResources = _disti.steps.StepResources
+        DL_TextGeneration = _disti.steps.tasks.TextGeneration
+        DL_OpenAILLM = _disti.llms.OpenAILLM
     except (ImportError, AttributeError) as exc:  # pragma: no cover
         raise RuntimeError("distilabel is required to build the pipeline") from exc
 
-    with Pipeline().ray() as pipe:  # avoid shadowing outer-scope name
-        TextGeneration(
-            llm=OpenAILLM(
+    with DL_Pipeline().ray() as pipe:
+        DL_TextGeneration(
+            llm=DL_OpenAILLM(
                 base_url=cfg.base_url,
                 api_key="something",
                 model=cfg.model,
@@ -136,7 +138,7 @@ def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwa
             input_batch_size=cfg.input_batch_size,
             num_generations=cfg.num_generations,
             group_generations=True,
-            resources=StepResources(replicas=cfg.client_replicas),
+            resources=DL_StepResources(replicas=cfg.client_replicas),
         )
 
     return pipe

@@ -31,8 +31,9 @@ set -euo pipefail
 #SBATCH --gres=gpu:8
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=256G
-#SBATCH --time=00:59:00
+#SBATCH --time=04:00:00
 #SBATCH --output=logs/slurm_%j.out
+#SBATCH --account=mltheory
 
 # ----------------------------
 # MODULES & PYTHON ENVIRONMENT
@@ -113,8 +114,8 @@ python --version
 
 # Ensure pip uses this env and local cache; keep installs local to repo
 python -m pip install --upgrade pip
-python -m pip uninstall -y huggingface-hub || true
-python -m pip install --upgrade huggingface-hub yq
+# Do not override project pin (<1.0) for huggingface-hub; install yq only
+python -m pip install --upgrade 'yq>=3.4,<4'
 
 # ─── Environment Identifiers ────────────────────────────────────────────
 export RUN_NAME="Qwen1.5B-GRPO-Finetune"
@@ -123,6 +124,9 @@ export CONFIG="recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml"
 export CONFIG_FILE="recipes/accelerate_configs/zero3.yaml"
 export SERVER_LOG="logs/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
 export TRAINING_LOG="logs/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
+
+# Ensure log directory exists for file redirections and Slurm output path
+mkdir -p logs
 
 # Update accelerate config so that num_processes = num_training_gpus
 cp "${CONFIG_FILE}" "${CONFIG_FILE}.bak"
@@ -167,7 +171,7 @@ export WANDB_DATA_DIR=/n/fs/similarity/open-r1/wandb
 # -----------------------------------
 # Launch vLLM + trainer in one srun
 # -----------------------------------
-srun --gres=gpu:8 --cpus-per-task=64 bash -c '
+srun --cpus-per-task=64 bash -c '
 set -euo pipefail
 
 ############################

@@ -50,14 +50,18 @@ import os
 import sys
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Any, Union, Protocol, runtime_checkable
 
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from torch import Tensor
 
 import transformers
-from transformers import AutoModelForCausalLM
+from transformers import (
+    PreTrainedModel,
+    PreTrainedTokenizer,
+)
 
 from configs import GRPOConfig, ScriptArguments
 from rewards import get_reward_funcs
@@ -70,7 +74,22 @@ from utils.vllm_patch import safe_generate
 # Helpers
 # -------------------------------
 
-def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str | None) -> Dict:
+@runtime_checkable
+class ChatTokenizer(Protocol):
+    """Protocol for tokenizers with chat template capabilities."""
+    def apply_chat_template(
+        self, 
+        conversation: List[Dict[str, str]], 
+        tokenize: bool = True,
+        add_generation_prompt: bool = True
+    ) -> Union[str, List[int]]: ...
+
+def _to_prompt(
+    example: Dict[str, Any],
+    tokenizer: Union[PreTrainedTokenizer, ChatTokenizer],
+    prompt_column: str,
+    system_prompt: Optional[str]
+) -> Dict[str, str]:
     """Light copy of src/grpo.py:_to_prompt (kept local to avoid circular import).
 
     Builds a minimal chat conversation with an optional system message and a
@@ -117,7 +136,11 @@ class MaxEntOptions:
     )
 
 
-def _group_softmax(xs: List[float], temperature: float = 1.0, eps: float = 1e-6) -> List[float]:
+def _group_softmax(
+    xs: List[float],
+    temperature: float = 1.0,
+    eps: float = 1e-6
+) -> List[float]:
     """Numerically stable softmax with optional temperature and epsilon floor."""
     if len(xs) == 0:
         return []
@@ -130,7 +153,10 @@ def _group_softmax(xs: List[float], temperature: float = 1.0, eps: float = 1e-6)
     return probs.tolist()
 
 
-def _prepare_labels_for_ce(input_ids: torch.Tensor, prompt_lengths: List[int]) -> torch.Tensor:
+def _prepare_labels_for_ce(
+    input_ids: Tensor,
+    prompt_lengths: List[int]
+) -> Tensor:
     """Create labels tensor with prompt tokens masked as -100 for CE.
 
     :param input_ids: LongTensor [B, T]
@@ -145,11 +171,11 @@ def _prepare_labels_for_ce(input_ids: torch.Tensor, prompt_lengths: List[int]) -
 
 @torch.no_grad()
 def _sequence_logprobs(
-    model: AutoModelForCausalLM,
-    input_ids: torch.Tensor,
-    attention_mask: torch.Tensor,
-    labels: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    model: PreTrainedModel,
+    input_ids: Tensor,
+    attention_mask: Tensor,
+    labels: Tensor,
+) -> Tuple[Tensor, Tensor]:
     """Compute per‑sequence (completion) log‑prob sums and token counts.
 
     Uses teacher forcing on the full prompt+completion with labels masked to
@@ -172,7 +198,11 @@ def _sequence_logprobs(
     return seq_logp, seq_counts
 
 
-def _batch_tokenize_pairs(tokenizer, prompts: List[str], completions: List[str]) -> Tuple[torch.Tensor, torch.Tensor, List[int]]:
+def _batch_tokenize_pairs(
+    tokenizer: PreTrainedTokenizer,
+    prompts: List[str],
+    completions: List[str]
+) -> Tuple[Tensor, Tensor, List[int]]:
     """Tokenize prompt+completion pairs and return tensors + prompt lengths."""
     pairs = [p + c for p, c in zip(prompts, completions)]
     # Compute prompt lengths with tokenize=True for chat template fallback
@@ -189,7 +219,11 @@ def _batch_tokenize_pairs(tokenizer, prompts: List[str], completions: List[str])
     return input_ids, attn, prompt_lengths
 
 
-def main(script_args: ScriptArguments, training_args: GRPOConfig, model_args):
+def main(
+    script_args: ScriptArguments,
+    training_args: GRPOConfig,
+    model_args: Any  # from transformers.ModelArguments
+) -> None:
     # Seed and logging
     from transformers import set_seed
     set_seed(training_args.seed)

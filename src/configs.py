@@ -23,7 +23,7 @@ Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
@@ -38,9 +38,11 @@ limitations under the License.
 # shared and parsed with TrlParser while enabling richer workflows here.
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import List, Optional
 
 import trl
+
+ 
 
 
 @dataclass
@@ -81,9 +83,13 @@ class DatasetMixtureConfig:
     :vartype test_split_size: float | None
     """
 
-    datasets: list[DatasetConfig]
-    seed: int = 0
-    test_split_size: Optional[float] = None
+    datasets: List[DatasetConfig]
+    seed: int = field(default=0)
+    test_split_size: Optional[float] = field(default=None)
+
+    def __post_init__(self) -> None:
+        if self.test_split_size is not None and not 0 < self.test_split_size < 1:
+            raise ValueError("test_split_size must be between 0 and 1")
 
 
 @dataclass
@@ -115,9 +121,10 @@ class ScriptArguments(trl.ScriptArguments):
 
     # Override the dataset_name to make it optional
     dataset_name: Optional[str] = field(
-        default=None, metadata={"help": "Dataset name. Can be omitted if using dataset_mixture."}
+        default=None, 
+        metadata={"help": "Dataset name. Can be omitted if using dataset_mixture."}
     )
-    dataset_mixture: Optional[dict[str, Any]] = field(
+    dataset_mixture: Optional[DatasetMixtureConfig] = field(
         default=None,
         metadata={
             "help": (
@@ -126,13 +133,18 @@ class ScriptArguments(trl.ScriptArguments):
             )
         },
     )
+    dataset_config: Optional[str] = field(
+        default=None,
+        metadata={"help": "Dataset config name when using dataset_name"}
+    )
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate and normalize ``dataset_mixture`` into dataclasses.
 
         :raises ValueError: If the mixture payload is malformed or columns are
             inconsistent across datasets.
         """
+        super().__post_init__()
         if self.dataset_name is None and self.dataset_mixture is None:
             raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
 

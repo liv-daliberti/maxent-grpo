@@ -19,7 +19,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,14 +38,39 @@ limitations under the License.
 #
 #   This module detects that schema and decodes it if a tokenizer is provided.
 from __future__ import annotations
+
 import json
 import time
-from typing import List
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    TypeVar,
+    Protocol,
+    runtime_checkable,
+)
 import requests
+
+# Type aliases for JSON responses
+JsonDict = Dict[str, Any]
+GenerationResults = List[List[str]]
+
+@runtime_checkable
+class TokenizerLike(Protocol):
+    """Protocol for objects that can decode token IDs to text."""
+    def decode(self, token_ids: List[int], **kwargs: Any) -> str: ...
+
+# (no generic TypeVar needed here) tokenizer is typed as Optional[TokenizerLike]
 
 
 # ─────────────────── generic GET helper ──────────────────────────────────────
-def safe_request(url: str, max_retries: int = 3, backoff: float = 1.0, timeout: float = 10.0):
+def safe_request(
+    url: str,
+    max_retries: int = 3,
+    backoff: float = 1.0,
+    timeout: float = 10.0
+) -> JsonDict:
     """GET JSON with basic retry/backoff.
 
     :param url: Endpoint to query.
@@ -76,7 +101,10 @@ def safe_request(url: str, max_retries: int = 3, backoff: float = 1.0, timeout: 
 
 
 # ─────────────────── helper to parse non-stream JSON ─────────────────────────
-def _parse_nonstream_json(data: dict, tokenizer=None) -> List[List[str]]:
+def _parse_nonstream_json(
+    data: JsonDict,
+    tokenizer: Optional[TokenizerLike] = None
+) -> GenerationResults:
     """Normalize non‑streaming vLLM JSON response into grouped texts.
 
     Supports OpenAI-compatible schema (``choices``), newer vLLM ``results``,
@@ -84,9 +112,9 @@ def _parse_nonstream_json(data: dict, tokenizer=None) -> List[List[str]]:
     tokenizer to decode.
 
     :param data: Raw JSON response.
-    :type data: dict
+    :type data: JsonDict
     :param tokenizer: Optional tokenizer to decode token ID arrays.
-    :type tokenizer: Any
+    :type tokenizer: TokenizerLike | None
     :returns: List of per‑prompt lists of texts (shape: ``[B][N]``).
     :rtype: list[list[str]]
     :raises RuntimeError: If an unknown schema is encountered or decoding is
@@ -121,7 +149,7 @@ def safe_generate(
     top_p: float = 0.9,
     n: int = 1,
     stream: bool = False,
-    tokenizer=None,                 # ← new optional arg
+    tokenizer: Optional[TokenizerLike] = None,                 # optional tokenizer for decoding ids
     max_retries: int = 3,
     backoff: float = 1.0,
     timeout: float = 30.0,
@@ -175,7 +203,7 @@ def safe_generate(
                 raise RuntimeError(f"safe_generate failed: {err}") from err
 
 
-def _collect_stream_texts(response, num_prompts: int) -> List[List[str]]:
+def _collect_stream_texts(response: requests.Response, num_prompts: int) -> List[List[str]]:
     """Collect and join streaming response chunks per prompt index.
 
     :param response: Requests response object streaming chunked JSON lines.
@@ -195,4 +223,3 @@ def _collect_stream_texts(response, num_prompts: int) -> List[List[str]]:
             texts[idx].append(row.get("text", ""))
         # else: ignore malformed index
     return [["".join(parts)] for parts in texts]
-

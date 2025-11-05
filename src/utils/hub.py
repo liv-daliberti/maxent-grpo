@@ -18,7 +18,7 @@ Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
@@ -34,6 +34,7 @@ from __future__ import annotations
 import logging
 import re
 from concurrent.futures import Future
+from typing import List, Optional, Any, TYPE_CHECKING
 
 from transformers import AutoConfig
 
@@ -46,22 +47,28 @@ from huggingface_hub import (
     list_repo_refs,
     repo_exists,
     upload_folder,
+    CommitInfo,
 )
 # Optional: guard HfHubHTTPError import for environments with minimal stubs
 try:  # pragma: no cover - exercised via tests with stubs
     from huggingface_hub.utils import HfHubHTTPError  # type: ignore
 except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover
     class HfHubHTTPError(Exception):
-        pass
-from trl import GRPOConfig
+        status_code: int
+        response: Any
 
 
 logger = logging.getLogger(__name__)
 
 
+if TYPE_CHECKING:  # only for type checking; avoids runtime dependency
+    from configs import GRPOConfig
+
+
 def push_to_hub_revision(
-    training_args: GRPOConfig, extra_ignore_patterns: list[str] | None = None
-) -> Future:
+    training_args: 'GRPOConfig',
+    extra_ignore_patterns: Optional[List[str]] = None
+) -> Future[str]:
     """Push a checkpoint directory to a branch on the Hub.
 
     :param training_args: Training config with Hub identifiers and output dir.
@@ -69,15 +76,22 @@ def push_to_hub_revision(
     :param extra_ignore_patterns: Additional filename patterns to ignore during upload.
     :type extra_ignore_patterns: list[str] | None
     :returns: Future that completes when the upload finishes.
-    :rtype: concurrent.futures.Future
+    :rtype: concurrent.futures.Future[str]
+    :raises ValueError: If hub_model_id is not set in training_args
     """
+    if not training_args.hub_model_id:
+        raise ValueError("hub_model_id must be set in training_args")
 
     # Create a repo if it doesn't exist yet
-    repo_url = create_repo(repo_id=training_args.hub_model_id, private=True, exist_ok=True)
+    repo_url: str = create_repo(
+        repo_id=training_args.hub_model_id,
+        private=True,
+        exist_ok=True
+    )
     # Get initial commit to branch from (repo may be empty on first push)
     try:
-        initial_commit = list_repo_commits(training_args.hub_model_id)[-1]
-        base_rev = initial_commit.commit_id
+        initial_commit: CommitInfo = list_repo_commits(training_args.hub_model_id)[-1]
+        base_rev: Optional[str] = initial_commit.commit_id
     except (IndexError, HfHubHTTPError):
         # Fall back to default branch tip
         base_rev = None
@@ -92,10 +106,10 @@ def push_to_hub_revision(
     logger.info(
         "Pushing to the Hub revision %s...", training_args.hub_model_revision
     )
-    ignore_patterns = ["checkpoint-*", "*.pth"]
+    ignore_patterns: List[str] = ["checkpoint-*", "*.pth"]
     if extra_ignore_patterns:
         ignore_patterns.extend(extra_ignore_patterns)
-    future = upload_folder(
+    future: Future[str] = upload_folder(
         repo_id=training_args.hub_model_id,
         folder_path=training_args.output_dir,
         revision=training_args.hub_model_revision,
@@ -112,7 +126,7 @@ def push_to_hub_revision(
     return future
 
 
-def check_hub_revision_exists(training_args: GRPOConfig):
+def check_hub_revision_exists(training_args: 'GRPOConfig'):
     """Validate whether a target Hub revision exists and is safe to write.
 
     :param training_args: Training config with Hub identifiers and flags.
@@ -122,6 +136,7 @@ def check_hub_revision_exists(training_args: GRPOConfig):
     :raises ValueError: If the revision exists and appears non‑empty without
         setting ``overwrite_hub_revision``.
     """
+def check_hub_revision_exists(training_args: 'GRPOConfig') -> None:
     if repo_exists(training_args.hub_model_id):
         if training_args.push_to_hub_revision is True:
             # First check if the revision exists

@@ -27,21 +27,31 @@ See the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import Dict, List, Optional, Sequence, TypeVar, cast
 
 # Optional dependency: datasets. Keep imports lazy/guarded so that importing
 # this module does not fail in environments without HF datasets. Tests monkey‑
 # patch the module‑level symbols below.
 try:  # pragma: no cover - exercised indirectly via monkeypatch in tests
-    import datasets  # type: ignore
-    from datasets import DatasetDict, concatenate_datasets  # type: ignore
+    import datasets
+    from datasets import DatasetDict, Dataset, concatenate_datasets
 except (ImportError, ModuleNotFoundError):
-    datasets = None  # type: ignore[assignment]
+    datasets = None
 
-    class DatasetDict(dict):  # minimal placeholder for type hints
+    T = TypeVar('T')
+    class DatasetDict(Dict[str, T]):  # minimal placeholder for type hints
         pass
 
-    def concatenate_datasets(_list):  # pragma: no cover
+    class Dataset:  # minimal placeholder for type hints
+        def __len__(self) -> int: ...
+        def shuffle(self, _seed: Optional[int] = None) -> "Dataset": ...
+        def select(self, _indices: Sequence[int]) -> "Dataset": ...
+        def select_columns(self, _column_names: Sequence[str]) -> "Dataset": ...
+
+    def concatenate_datasets(datasets_list: Sequence[Dataset]) -> Dataset:  # pragma: no cover
         raise ImportError(
             "datasets library is not installed; provide a concatenate_datasets"
         )
@@ -52,25 +62,29 @@ from configs import ScriptArguments
 logger = logging.getLogger(__name__)
 
 
-def get_dataset(args: ScriptArguments) -> DatasetDict:
+def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
     """Load a dataset or a mixture of datasets.
 
     :param args: Script arguments containing dataset configuration.
     :type args: configs.ScriptArguments
     :returns: A dataset dictionary with ``train`` and optionally ``test``.
-    :rtype: datasets.DatasetDict
+    :rtype: DatasetDict[Dataset]
     :raises ValueError: If no dataset information is provided or the mixture is empty.
+    :raises ImportError: If datasets library is not installed.
     """
+    if not datasets:
+        raise ImportError("datasets library required but not installed")
+
     if args.dataset_name and not args.dataset_mixture:
         logger.info("Loading dataset: %s", args.dataset_name)
-        return datasets.load_dataset(args.dataset_name, args.dataset_config)
+        return cast(DatasetDict[Dataset], datasets.load_dataset(args.dataset_name, args.dataset_config))
     elif args.dataset_mixture:
         logger.info(
             "Creating dataset mixture with %d datasets",
             len(args.dataset_mixture.datasets),
         )
-        seed = args.dataset_mixture.seed
-        datasets_list = []
+        seed: int = args.dataset_mixture.seed
+        datasets_list: List[Dataset] = []
 
         for dataset_config in args.dataset_mixture.datasets:
             logger.info(
@@ -120,4 +134,3 @@ def get_dataset(args: ScriptArguments) -> DatasetDict:
 
     else:
         raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
-

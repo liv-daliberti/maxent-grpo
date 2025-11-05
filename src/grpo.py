@@ -38,16 +38,32 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Dict
+from typing import Dict, Optional, Any, List, Union, Protocol, runtime_checkable
 import transformers
+from transformers import PreTrainedTokenizer
 
 from configs import GRPOConfig, ScriptArguments
 from rewards import get_reward_funcs
 from utils.data import get_dataset
 from utils.model_utils import get_model, get_tokenizer
 
+@runtime_checkable
+class ChatTemplate(Protocol):
+    """Protocol for objects with chat templating capabilities."""
+    def apply_chat_template(
+        self, 
+        conversation: List[Dict[str, str]], 
+        tokenize: bool = True,
+        add_generation_prompt: bool = True
+    ) -> Union[str, List[int]]: ...
 
-def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str | None) -> Dict:
+
+def _to_prompt(
+    example: Dict[str, Any], 
+    tokenizer: Union[PreTrainedTokenizer, ChatTemplate], 
+    prompt_column: str,
+    system_prompt: Optional[str]
+) -> Dict[str, str]:
     """Convert a dataset row to a single prompt/answer pair.
 
     Builds a minimal chat conversation with an optional system message and a
@@ -93,7 +109,11 @@ def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str 
     return out
 
 
-def main(script_args: ScriptArguments, training_args, model_args):
+def main(
+    script_args: ScriptArguments, 
+    training_args: Any,  # from transformers.TrainingArguments
+    model_args: Any  # from transformers.ModelArguments
+) -> None:
     """Entrypoint that loads data/model, builds trainer, and runs GRPO.
 
     The function also performs a small eval subsample for speed if
