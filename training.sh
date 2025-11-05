@@ -124,6 +124,24 @@ python -m pip install --upgrade 'yq>=3.4,<4'
 # TRL CLI imports rich.markdown which depends on markdown-it-py; ensure present
 python -m pip install 'markdown-it-py>=3,<4' 'rich>=13,<14'
 
+# Ensure Torch has CUDA support; fail fast with clear instructions if not
+python - <<'PY'
+import torch, sys
+ok = torch.cuda.is_available()
+print(f"TORCH_CUDA_AVAILABLE={ok}")
+sys.exit(0 if ok else 1)
+PY
+if [ $? -ne 0 ]; then
+  echo "❌ CUDA is not available in the current env ($ENV_DIR)." >&2
+  echo "Please fix the environment on a login/interactive node, then re-run:" >&2
+  echo "  conda activate $ENV_DIR" >&2
+  echo "  pip uninstall -y torch triton torchtriton pytorch-triton || true" >&2
+  echo "  conda remove -y pytorch pytorch-cuda torchtriton triton || true" >&2
+  echo "  conda clean -a -y" >&2
+  echo "  pip install --index-url https://download.pytorch.org/whl/cu124 'torch==2.6.0' 'torchvision==0.21.0' 'torchaudio==2.6.0'" >&2
+  exit 2
+fi
+
 # ─── Environment Identifiers ────────────────────────────────────────────
 export RUN_NAME="Qwen1.5B-GRPO-Finetune"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
