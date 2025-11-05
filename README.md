@@ -28,12 +28,12 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 
 ### 2) Install the package
 - Standard: `pip install -e .`
-- Dev setup: `pip install -e .[dev]` (includes pytest and pylint)
+- Dev setup: `pip install -e .[dev]` (includes pytest, pylint, Sphinx)
 
-### 2.1) Commit hooks (pylint + pytest)
+### 2.1) Commit hooks (ruff + pylint + pytest)
 - Enable hooks: `pre-commit install`
 - Run manually on all files: `pre-commit run -a`
-- Hooks run: `pylint` (with `--disable=import-error`) on `src/`, and `pytest -q`.
+- Hooks run: `ruff check .`, `pylint` (via `.pylintrc`) on `src/`, and `pytest -q`.
 
 
 ### 3) Configure and train
@@ -43,14 +43,19 @@ This repo contains a maximum-entropy variant of Group-Relative Policy Optimizati
 
 ### Eval Sampler
 - If `do_eval: true` and a test/validation split is available, the trainer evaluates on a subsample of the eval split for speed: 10% of examples up to 1,000 (min 1), shuffled with the run seed.
-- This behavior is in `src/grpo.py` and does not override any other YAML parameters.
+- This behavior is in `src/open_r1/grpo.py` and does not override any other YAML parameters.
 
+
+## Documentation
+- Build locally: `pip install -r docs/requirements.txt && sphinx-build -b html docs _build/html`
+- Read the Docs is configured via `.readthedocs.yaml` (Sphinx autodoc with heavy deps mocked).
+- Make convenience: `make docs` (see `Makefile` for more targets)
 
 ## 
 
 ## Recipes → Parameters
 - All training/runtime parameters come from the selected recipe YAML via TRL’s parser (`GRPOScriptArguments`, `GRPOConfig`, `ModelConfig`).
-- The entrypoint `src/grpo.py` does not hardcode training knobs; it only:
+- The entrypoint `src/open_r1/grpo.py` does not hardcode training knobs; it only:
   - builds prompts from `dataset_prompt_column` with the optional `system_prompt`,
   - ensures PAD token behavior is sane for causal LMs,
   - enables `return_reward` if it isn’t already set (so rewards are logged/available),

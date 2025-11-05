@@ -81,6 +81,8 @@ _deps = [
     "async-lru>=2.0.5",
     "aiofiles>=24.1.0",
     "pandas>=2.2.3",
+    "sphinx>=7.2",
+    "sphinx-rtd-theme>=1.3",
 ]
 
 # this is a lookup table with items like:
@@ -106,11 +108,12 @@ extras = {}
 extras["tests"] = deps_list("pytest", "parameterized", "math-verify", "jieba")
 extras["torch"] = deps_list("torch")
 extras["quality"] = deps_list("ruff", "isort", "flake8", "pylint", "pre-commit")
+extras["docs"] = deps_list("sphinx", "sphinx-rtd-theme")
 extras["code"] = deps_list(
     "e2b-code-interpreter", "python-dotenv", "morphcloud", "jieba", "pandas", "aiofiles"
 )
 extras["eval"] = deps_list("lighteval", "math-verify")
-extras["dev"] = extras["quality"] + extras["tests"] + extras["eval"] + extras["code"]
+extras["dev"] = extras["quality"] + extras["tests"] + extras["eval"] + extras["code"] + extras["docs"]
 
 # core dependencies shared across the whole project - keep this to a bare minimum :)
 install_requires = [
