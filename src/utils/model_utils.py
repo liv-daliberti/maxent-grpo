@@ -1,4 +1,14 @@
 """
+Tokenizer/model loading helpers for training scripts.
+
+This module exposes two utilities:
+- ``get_tokenizer``: Load a tokenizer with optional chat template override.
+  A minimal fallback tokenizer is provided for offline/CI environments.
+- ``get_model``: Load an ``AutoModelForCausalLM`` with optional quantization
+  and device map resolution via TRL helpers, respecting attention impl/dtype
+  choices and gradient checkpointing compatibility.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,7 +20,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the specific language governing permissions and
 limitations under the License.
 """
 
@@ -106,3 +116,4 @@ def get_model(
         **model_kwargs,
     )
     return model
+

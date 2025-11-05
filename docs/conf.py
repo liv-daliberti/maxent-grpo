@@ -1,4 +1,12 @@
 """
+Sphinx configuration for the project documentation.
+
+This configuration keeps imports light and mocks heavy optional dependencies so
+docs build without GPU stacks. It prefers modern themes (Furo/PyData) with
+graceful fallback, enables autosummary/autodoc with Google/NumPy style parsing,
+and adds a few quality‑of‑life tweaks for rendering and navigation.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,7 +18,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the specific language governing permissions and
 limitations under the License.
 """
 
@@ -46,7 +54,10 @@ extensions = [
 autosummary_generate = True
 autosummary_generate_overwrite = True
 # Avoid evaluating typing annotations (safer with mocked deps)
-autodoc_typehints = 'none'
+# Render type hints in the description (cleaner signatures on RTD)
+autodoc_typehints = 'description'
+autodoc_typehints_format = 'short'
+python_use_unqualified_type_names = True
 autodoc_member_order = 'bysource'
 autodoc_default_options = {
     'members': True,

@@ -1,4 +1,17 @@
 """
+Dataset loading utilities with support for mixtures.
+
+This module wraps HF ``datasets.load_dataset`` to handle either a single
+dataset (``dataset_name``) or a declarative mixture of datasets with optional
+column selection, subsampling via weights, shuffling, and an optional
+train/test split. It returns a ``DatasetDict`` compatible with downstream
+training/evaluation code.
+
+The import of ``datasets`` is guarded so this module can be imported in
+environments where the library is unavailable; tests monkey‑patch the missing
+symbols when needed.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,7 +23,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the specific language governing permissions and
 limitations under the License.
 """
 
@@ -107,3 +120,4 @@ def get_dataset(args: ScriptArguments) -> DatasetDict:
 
     else:
         raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
+

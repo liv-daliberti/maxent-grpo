@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 """
+Helpers for working with the Hugging Face Hub.
+
+This module provides:
+- Upload utilities to push a training output directory to a dedicated branch
+  (revision) with basic safety checks.
+- Small metadata helpers such as parameter count inference from a repo ID
+  (via naming conventions or safetensors metadata) and choosing a valid GPU
+  count for vLLM tensor parallelism.
+
+Imports from ``huggingface_hub`` are guarded for environments where the full
+stack is unavailable; a minimal ``HfHubHTTPError`` shim preserves error types
+for tests.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,7 +25,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the specific language governing permissions and
 limitations under the License.
 """
 

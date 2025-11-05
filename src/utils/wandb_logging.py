@@ -1,4 +1,11 @@
 """
+Minimal Weights & Biases environment setup helpers.
+
+The helpers here expose the W&B entity/project/group stored in training
+arguments as ``WANDB_*`` environment variables so any downstream code that
+initializes W&B picks them up automatically.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,7 +17,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the specific language governing permissions and
 limitations under the License.
 """
 
@@ -35,3 +42,4 @@ def init_wandb_training(training_args):
         os.environ["WANDB_PROJECT"] = training_args.wandb_project
     if training_args.wandb_run_group is not None:
         os.environ["WANDB_RUN_GROUP"] = training_args.wandb_run_group
+

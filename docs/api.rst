@@ -1,6 +1,9 @@
 API Reference
 =============
 
+Core Modules
+------------
+
 .. autosummary::
    :toctree: _autosummary
    :recursive:
@@ -8,5 +11,20 @@ API Reference
    configs
    grpo
    rewards
-   utils
    generate
+
+Utilities
+---------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   utils
+   utils.data
+   utils.model_utils
+   utils.evaluation
+   utils.replay_buffer
+   utils.hub
+   utils.wandb_logging
+   utils.vllm_patch

@@ -1,4 +1,17 @@
 """
+LightEval task registration and Slurm launch utilities.
+
+This module provides helpers to:
+- Define a compact string specification per benchmark task and register common
+  tasks in a dictionary consumable by launchers.
+- Compute the proper vLLM Slurm submission command and spawn evaluations as
+  jobs using ``subprocess.run``.
+
+It also exposes ``SUPPORTED_BENCHMARKS`` and convenience functions to list
+registered tasks. vLLM launch on Slurm requires a specific environment
+bootstrap (see ``VLLM_SLURM_PREFIX``) to source system profiles and set ``$HOME``.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,7 +23,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the specific language governing permissions and
 limitations under the License.
 """
 

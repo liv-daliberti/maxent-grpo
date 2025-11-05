@@ -114,7 +114,7 @@ def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwa
         StepResources = _disti.steps.StepResources
         TextGeneration = _disti.steps.tasks.TextGeneration
         OpenAILLM = _disti.llms.OpenAILLM
-    except Exception as exc:  # pragma: no cover
+    except (ImportError, AttributeError) as exc:  # pragma: no cover
         raise RuntimeError("distilabel is required to build the pipeline") from exc
 
     with Pipeline().ray() as pipe:  # avoid shadowing outer-scope name
