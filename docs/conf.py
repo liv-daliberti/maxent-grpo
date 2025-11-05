@@ -69,14 +69,10 @@ napoleon_numpy_docstring = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 
-# MyST / Markdown configuration
-source_suffix = {
-    '.rst': 'restructuredtext',
-    '.md': 'markdown',
-}
 myst_enable_extensions = [
+    # Keep lightweight: only enable extensions we ship and don't require
+    # optional linkify dependencies in the pre-commit environment.
     'colon_fence',
-    'linkify',
 ]
 myst_heading_anchors = 3
 
