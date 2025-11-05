@@ -37,6 +37,9 @@ install-venv: venv
 
 conda-local:
 	@set -euo pipefail; \
+	# Avoid alias conflict between CONDA_ENVS_DIRS and CONDA_ENVS_PATH (cluster sets PATH);
+	# conda 24+ errors if both are present. Prefer CONDA_ENVS_DIRS.
+	unset CONDA_ENVS_PATH; \
 	ROOT_DIR="$(PWD)"; \
 	echo "Creating local conda env under $$ROOT_DIR/openr1"; \
 	CONDARC="$$ROOT_DIR/.condarc"; \

@@ -1,6 +1,23 @@
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import sys
 import types
 from pathlib import Path
+import pytest
 
 
 def _ensure_module(name: str):
@@ -189,3 +206,15 @@ def pytest_configure(config):
                 pass
         llms_mod.OpenAILLM = OpenAILLM
         disti.llms = llms_mod
+
+
+def pytest_collection_modifyitems(config, items):
+    """Ensure every test has at least one standard mark.
+
+    If a test has none of the recognized marks (unit/integration/slow), we add
+    the 'unit' mark by default so that all tests can be filtered via -m.
+    """
+    for item in items:
+        existing = {m.name for m in item.iter_markers()}
+        if not existing.intersection({"unit", "integration", "slow"}):
+            item.add_marker(pytest.mark.unit)

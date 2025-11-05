@@ -1,32 +1,28 @@
-# Copyright 2025 Liv d'Aliberti
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+# Build and run a distilabel text-generation pipeline.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This module provides a small CLI and a helper to configure and run a
+# distilabel Pipeline backed by an OpenAI-compatible endpoint (e.g., vLLM).
 
 from __future__ import annotations
 
-"""Build and run a distilabel text-generation pipeline.
-
-This module provides a small CLI and a helper to configure and run a
-distilabel Pipeline backed by an OpenAI-compatible endpoint (e.g., vLLM).
-"""
-
 from dataclasses import dataclass
 from typing import Optional
-
-from distilabel.llms import OpenAILLM
-from distilabel.pipeline import Pipeline
-from distilabel.steps import StepResources
-from distilabel.steps.tasks import TextGeneration
 
 
 @dataclass
@@ -73,7 +69,7 @@ class DistilabelPipelineConfig:
     retries: int = 0
 
 
-def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwargs) -> Pipeline:
+def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwargs):
     """Create and return a distilabel Pipeline based on ``cfg``.
 
     The returned pipeline performs text generation using an OpenAI-compatible
@@ -98,6 +94,17 @@ def build_distilabel_pipeline(cfg: DistilabelPipelineConfig | None = None, **kwa
 
     if cfg.top_p is not None:
         generation_kwargs["top_p"] = cfg.top_p
+
+    # Import distilabel components lazily to play nicely with test stubs
+    try:  # pragma: no cover - exercised via tests with stubs
+        import importlib
+        _disti = importlib.import_module("distilabel")
+        Pipeline = _disti.pipeline.Pipeline
+        StepResources = _disti.steps.StepResources
+        TextGeneration = _disti.steps.tasks.TextGeneration
+        OpenAILLM = _disti.llms.OpenAILLM
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError("distilabel is required to build the pipeline") from exc
 
     with Pipeline().ray() as pipe:  # avoid shadowing outer-scope name
         TextGeneration(

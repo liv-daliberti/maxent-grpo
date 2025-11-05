@@ -5,27 +5,16 @@ A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑lev
 
 ## Quick Start
 
-1) Environment (kept local to the repo)
-- One‑liner (recommended): `make conda-local && conda activate ./openr1`
-- Manual alternative:
-  - `conda env create -p ./openr1 -f environment.yml && conda activate ./openr1`
-  - Install PyTorch for your setup, e.g.:
-    - GPU (conda): `conda install -c pytorch -c nvidia pytorch pytorch-cuda=12.4`
-    - GPU (pip, CUDA 12.4): `pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0`
-    - CPU only: `pip install torch==2.6.0`
+- Environment: `make conda-local && conda activate ./openr1`
+- Install (core): `pip install -e .`
+- Install (dev): `pip install -e .[dev]`
+- Train (SLURM + vLLM): `./training.sh`
+- Evaluation (quick): set `do_eval: true` in your recipe to run a fast subsample eval (see `src/grpo.py`).
 
-2) Install package
-- Core: `pip install -e .`
-- Dev extras: `pip install -e .[dev]` (ruff, pylint, pytest, docs)
-
-3) Train
-- Default (SLURM + multi‑GPU + vLLM): `./training.sh`
-  - The script launches a vLLM server on GPU 0 and Accelerate on the remaining GPUs, and updates the Accelerate config to match available GPUs.
-  - Adjust the recipe via `CONFIG` inside `training.sh` (defaults to `recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`).
-- Local/single‑GPU: set `use_vllm: false` in your recipe or run vLLM separately, and use `accelerate launch` with a 1‑process config.
-
-Evaluation sampler (optional)
-- If `do_eval: true` and an eval split exists, evaluation runs on a small subsample for speed: 10% up to 1,000 examples (min 1), shuffled by the run seed. See `src/grpo.py`.
+Notes
+- The one‑liner keeps conda/pip caches and the env under this repo (no writes to $HOME).
+- Adjust the recipe via `CONFIG` in `training.sh` (default: `recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`).
+- For LightEval benchmarks via vLLM/Slurm, see `src/utils/evaluation.py` (benchmarks list and launcher helper).
 
 
 ## Configuration

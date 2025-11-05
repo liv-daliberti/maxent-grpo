@@ -1,19 +1,21 @@
-from __future__ import annotations
 #!/usr/bin/env python
-# coding=utf-8
-# Copyright 2025 Liv d'Aliberti
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+from __future__ import annotations
 
 import logging
 import re
@@ -31,7 +33,12 @@ from huggingface_hub import (
     repo_exists,
     upload_folder,
 )
-from huggingface_hub.utils import HfHubHTTPError
+# Optional: guard HfHubHTTPError import for environments with minimal stubs
+try:  # pragma: no cover - exercised via tests with stubs
+    from huggingface_hub.utils import HfHubHTTPError  # type: ignore
+except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover
+    class HfHubHTTPError(Exception):
+        pass
 from trl import GRPOConfig
 
 
@@ -119,44 +126,45 @@ def check_hub_revision_exists(training_args: GRPOConfig):
 
 
 def get_param_count_from_repo_id(repo_id: str) -> int:
-    """Infer parameter count from Hub metadata or naming conventions.
+    """Infer parameter count from naming conventions or Hub metadata.
 
-    Attempts to read safetensors metadata; if unavailable, falls back to
-    parsing strings like ``42m``, ``1.5b`` or products like ``8x7b``.
+    Prefers parsing strings like ``42m``, ``1.5b`` or products like ``8x7b``
+    from the repo ID. Falls back to safetensors metadata when no pattern is
+    found.
 
     :param repo_id: Hub repository ID.
     :type repo_id: str
     :returns: Best guess of total parameter count, or ``-1`` if unknown.
     :rtype: int
     """
-    try:
+    # Pattern to match products (like 8x7b) and single values (like 42m)
+    pattern = r"((\d+(\.\d+)?)(x(\d+(\.\d+)?))?)([bm])"
+    matches = re.findall(pattern, repo_id.lower())
+
+    param_counts = []
+    for _full_match, number1, _, _, number2, _, unit in matches:
+        if number2:  # If there's a second number, it's a product
+            number = float(number1) * float(number2)
+        else:  # Otherwise, it's a single value
+            number = float(number1)
+
+        if unit == "b":
+            number *= 1_000_000_000  # Convert to billion
+        elif unit == "m":
+            number *= 1_000_000  # Convert to million
+
+        param_counts.append(number)
+
+    if len(param_counts) > 0:
+        # Return the largest number from the string pattern
+        return int(max(param_counts))
+
+    # Fallback: try to read from Hub metadata
+    try:  # pragma: no cover - behavior depends on environment
         metadata = get_safetensors_metadata(repo_id)
-        return list(metadata.parameter_count.values())[0]
-    except (HfHubHTTPError, ValueError, KeyError):
-        # Pattern to match products (like 8x7b) and single values (like 42m)
-        pattern = r"((\d+(\.\d+)?)(x(\d+(\.\d+)?))?)([bm])"
-        matches = re.findall(pattern, repo_id.lower())
-
-        param_counts = []
-        for _full_match, number1, _, _, number2, _, unit in matches:
-            if number2:  # If there's a second number, it's a product
-                number = float(number1) * float(number2)
-            else:  # Otherwise, it's a single value
-                number = float(number1)
-
-            if unit == "b":
-                number *= 1_000_000_000  # Convert to billion
-            elif unit == "m":
-                number *= 1_000_000  # Convert to million
-
-            param_counts.append(number)
-
-        if len(param_counts) > 0:
-            # Return the largest number
-            return int(max(param_counts))
-        else:
-            # Return -1 if no match found
-            return -1
+        return int(list(metadata.parameter_count.values())[0])
+    except (HfHubHTTPError, ValueError, KeyError, TypeError):
+        return -1
 
 
 def get_gpu_count_for_vllm(

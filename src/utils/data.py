@@ -16,8 +16,22 @@ limitations under the License.
 
 import logging
 
-import datasets
-from datasets import DatasetDict, concatenate_datasets
+# Optional dependency: datasets. Keep imports lazy/guarded so that importing
+# this module does not fail in environments without HF datasets. Tests monkey‑
+# patch the module‑level symbols below.
+try:  # pragma: no cover - exercised indirectly via monkeypatch in tests
+    import datasets  # type: ignore
+    from datasets import DatasetDict, concatenate_datasets  # type: ignore
+except (ImportError, ModuleNotFoundError):
+    datasets = None  # type: ignore[assignment]
+
+    class DatasetDict(dict):  # minimal placeholder for type hints
+        pass
+
+    def concatenate_datasets(_list):  # pragma: no cover
+        raise ImportError(
+            "datasets library is not installed; provide a concatenate_datasets"
+        )
 
 from configs import ScriptArguments
 

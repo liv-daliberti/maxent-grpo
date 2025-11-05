@@ -1,25 +1,26 @@
-# Copyright 2025 Liv d'Aliberti
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+# Reward functions and registry.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Currently exposes `pure_accuracy_math` and a minimal `get_reward_funcs` helper
+# that returns callables based on names provided in the config.
 
 from __future__ import annotations
 # coding=utf-8
-
-"""Reward functions and registry.
-
-Currently exposes `pure_accuracy_math` and a minimal `get_reward_funcs` helper
-that returns callables based on names provided in the config.
-"""
 
 from typing import Any, Callable, List
 import re

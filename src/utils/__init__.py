@@ -14,17 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from .data import get_dataset
-from .model_utils import get_model, get_tokenizer
-from . import evaluation, hub, vllm_patch, wandb_logging
+# Lightweight utils package initializer.
+#
+# Avoid importing heavy optional dependencies at package import time to keep
+# test collection and simple module imports fast and robust in minimal
+# environments. Submodules should be imported directly, e.g. ``import
+# utils.model_utils as MU``.
 
-
+# Expose submodules via __all__ without importing them eagerly.
 __all__ = [
-    "get_tokenizer",
-    "get_model",
-    "get_dataset",
+    "data",
     "evaluation",
     "hub",
+    "model_utils",
     "vllm_patch",
     "wandb_logging",
 ]

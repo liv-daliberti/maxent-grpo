@@ -1,27 +1,28 @@
-# Copyright 2025 Liv d'Aliberti
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""Minimal, clean GRPO training entrypoint.
-
-This script intentionally avoids experimental features (replay buffers,
-mixing schedules, task routers, custom trainers). It wires up a standard TRL
-GRPOTrainer with:
-
-- dataset loading via `utils.get_dataset`
-- simple chat-templated prompts from `dataset_prompt_column`
-- rewards selected by `rewards.get_reward_funcs`
 """
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+# Minimal, clean GRPO training entrypoint.
+#
+# This script intentionally avoids experimental features (replay buffers,
+# mixing schedules, task routers, custom trainers). It wires up a standard TRL
+# GRPOTrainer with:
+#
+# - dataset loading via `utils.get_dataset`
+# - simple chat-templated prompts from `dataset_prompt_column`
+# - rewards selected by `rewards.get_reward_funcs`
 
 from __future__ import annotations
 
@@ -29,17 +30,12 @@ import logging
 import os
 import sys
 from typing import Dict
-
-import datasets
 import transformers
-from transformers import set_seed
-from transformers.trainer_utils import get_last_checkpoint
-
-from trl import GRPOTrainer, ModelConfig, TrlParser, get_peft_config
 
 from configs import GRPOConfig, ScriptArguments
 from rewards import get_reward_funcs
-from utils import get_dataset, get_model, get_tokenizer
+from utils.data import get_dataset
+from utils.model_utils import get_model, get_tokenizer
 
 
 def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str | None) -> Dict:
@@ -72,7 +68,7 @@ def _to_prompt(example: Dict, tokenizer, prompt_column: str, system_prompt: str 
         prompt = tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
-    except (AttributeError, TypeError, ValueError):
+    except (AttributeError, TypeError, ValueError, RuntimeError):
         # Fallback: flat join
         prompt = (
             "\n".join(
@@ -103,6 +99,11 @@ def main(script_args: ScriptArguments, training_args, model_args):
     :returns: None
     :rtype: None
     """
+    # Import selected pieces lazily to keep module import light-weight
+    from transformers import set_seed
+    from transformers.trainer_utils import get_last_checkpoint
+    from trl import GRPOTrainer, get_peft_config
+
     set_seed(training_args.seed)
     if not getattr(training_args, "return_reward", False):
         training_args.return_reward = True
@@ -115,7 +116,12 @@ def main(script_args: ScriptArguments, training_args, model_args):
     )
     log_level = training_args.get_process_log_level()
     logging.getLogger(__name__).setLevel(log_level)
-    datasets.utils.logging.set_verbosity(log_level)
+    # Optional: datasets logging if available
+    try:  # pragma: no cover - environment dependent
+        import datasets as _hf_datasets  # type: ignore
+        _hf_datasets.utils.logging.set_verbosity(log_level)
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        pass
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()
@@ -225,6 +231,7 @@ def main(script_args: ScriptArguments, training_args, model_args):
 
 
 if __name__ == "__main__":
+    from trl import ModelConfig, TrlParser
     parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
     cli_script_args, cli_training_args, cli_model_args = parser.parse_args_and_config()
     main(cli_script_args, cli_training_args, cli_model_args)
