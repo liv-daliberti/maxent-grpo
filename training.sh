@@ -55,7 +55,6 @@ export TRAINING_LOG="$LOG_DIR/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
 
 # ensure old HF_TOKEN does not take precedence
 unset HF_TOKEN
-export HF_TOKEN="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"
 
 # configure HF cache locations before login
 export HF_HOME="$(pwd)/.hf_cache"
@@ -235,6 +234,7 @@ export WANDB_DATA_DIR=/n/fs/similarity/maxent-grpo/wandb
 # -----------------------------------
 srun --gres=gpu:7 --cpus-per-task=64 bash -c '
 set -euo pipefail
+export PYTHONUNBUFFERED=1
 
 ############################
 # 1) vLLM on GPU-0
