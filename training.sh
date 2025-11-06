@@ -266,62 +266,54 @@ export TRANSFORMERS_NO_FLASH_ATTN=1
 export WANDB_DATA_DIR=/n/fs/similarity/open-r1/wandb
 
 # -----------------------------------
-# Single srun step (7 GPUs): vLLM on GPU0 + training on GPU1-6
+# Launch vLLM + trainer in one srun
 # -----------------------------------
 
-log "Launching vLLM and training inline (no srun)"
+srun --gres=gpu:7 --cpus-per-task=64 bash -c '
+set -euo pipefail
 
-# 1) vLLM on GPU-0 (inline)
+############################
+# 1) vLLM on GPU-0
+############################
 export CUDA_VISIBLE_DEVICES=0
-log "Launching vLLM on GPU $CUDA_VISIBLE_DEVICES (server log: $SERVER_LOG)"
-stdbuf -oL -eL trl vllm-serve \
-  --model Qwen/Qwen2.5-1.5B-Instruct \
+echo "Launching vLLM on GPU 0…"
+
+CUDA_VISIBLE_DEVICES=0 trl vllm-serve \
+  --model ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct} \
   --dtype float16 \
-  --port 8000 \
-  --tensor-parallel-size 1 \
-  --max-model-len 2048 \
-  --gpu-memory-utilization 0.90 \
-  >> "$SERVER_LOG" 2>&1 &
+  --port ${VLLM_PORT:-8000} \
+  --tensor-parallel-size ${VLLM_TP_SIZE:-1} \
+  --max-model-len ${VLLM_MAX_LEN:-2048} \
+  --gpu-memory-utilization ${VLLM_MEM_UTIL:-0.90} \
+  > '"$SERVER_LOG"' 2>&1 &
 
 VLLM_PID=$!
-log "vLLM PID: $VLLM_PID"
 
 # Health-check loop
-attempt=0
-until curl -sf http://localhost:8000/health > /dev/null; do
-  attempt=$((attempt+1))
-  log "Waiting for vLLM… (attempt $attempt)"
-  if ! kill -0 $VLLM_PID 2>/dev/null; then
-    log "vLLM process exited early. Tailing server log:"
-    tail -n 200 "$SERVER_LOG" || true
-    exit 3
-  fi
-  if [ $attempt -ge 90 ]; then
-    log "vLLM health check timed out. Tailing server log:"
-    tail -n 200 "$SERVER_LOG" || true
-    exit 3
-  fi
+until curl -sf http://localhost:${VLLM_PORT:-8000}/health > /dev/null; do
+  echo "Waiting for vLLM…"
   sleep 2
 done
-log "vLLM is healthy"
+echo "✅ vLLM is healthy"
 
+############################
+# 2) Training on GPU 1–N
+############################
+export CUDA_VISIBLE_DEVICES=$(seq -s, 1 ${TRAIN_GPUS:-6})
+echo "🚀 Launching training on GPUs $CUDA_VISIBLE_DEVICES"
 
-# 2) Training on GPU 1–6 (inline)
-export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6
-log "Launching training on GPUs $CUDA_VISIBLE_DEVICES (training log: $TRAINING_LOG)"
 accelerate launch \
-  --main_process_port 29525 \
-  --config_file "$CONFIG_FILE" \
+  --main_process_port ${ACCEL_PORT:-29525} \
+  --config_file '"$CONFIG_FILE"' \
   src/grpo.py \
-  --config "$CONFIG" \
+  --config '"$CONFIG"' \
   --use_vllm \
-  --run_name "${RUN_NAME}-${TIMESTAMP}" \
+  --run_name '"${RUN_NAME}-${TIMESTAMP}"' \
   --ignore_data_skip \
   --overwrite_output_dir false \
-  --resume_from_checkpoint /n/fs/similarity/open-r1/data/Qwen2.5-1.5B-Open-R1-GRPO-math-v1/checkpoint-850 \
   --seed 42 \
-  > "$TRAINING_LOG" 2>&1
+  > '"$TRAINING_LOG"' 2>&1
 
 # Wait for vLLM to exit after training finishes
-wait $VLLM_PID || true
-log "vLLM exited"
+wait $VLLM_PID
+'
