@@ -269,7 +269,9 @@ export WANDB_DATA_DIR=/n/fs/similarity/open-r1/wandb
 # Launch vLLM + trainer in one srun
 # -----------------------------------
 
-srun --gres=gpu:7 --cpus-per-task=64 bash -c '
+# Some clusters forbid step‑level --gres; inherit GPUs from SBATCH header by default.
+# You can pass extra srun flags via SRUN_EXTRA_ARGS and override CPUs via SRUN_CPUS_PER_TASK.
+srun ${SRUN_EXTRA_ARGS:-} --cpus-per-task=${SRUN_CPUS_PER_TASK:-64} bash -c '
 set -euo pipefail
 
 ############################
