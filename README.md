@@ -8,8 +8,10 @@ A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑lev
 - Environment: `make conda-local && conda activate ./openr1`
 - Install (core): `pip install -e .`
 - Install (dev): `pip install -e .[dev]`
-- Train on Slurm (recommended): `bash scripts/sbatch_training.sh`
-  - Pass extra sbatch args as needed, e.g. `bash scripts/sbatch_training.sh --time=04:00:00`
+- Train on Slurm: `sbatch training.sh`
+  - Adjust the SBATCH header in `training.sh` (account/partition/GRES) for your cluster.
+  - Switch trainer entrypoint: `MAXENT=1 sbatch training.sh` (uses `src/maxent-grpo.py`), or set `TRAIN_ENTRYPOINT=src/grpo.py`/`src/maxent-grpo.py` explicitly.
+  - Change served model without editing the script: `VLLM_MODEL="meta-llama/Meta-Llama-3.1-8B-Instruct" sbatch training.sh`.
 - Evaluation (quick): set `do_eval: true` in your recipe to run a fast subsample eval (see `src/grpo.py`).
 
 Notes
@@ -20,38 +22,29 @@ Notes
 
 ## Slurm Usage & Logging
 
-- Submit via `scripts/sbatch_training.sh`. This wrapper:
-  - Ensures `logs/` exists before submission.
-  - Sets `--chdir` to the repo so relative paths resolve.
-  - Forces Slurm stdout/err to `logs/slurm_%j.out` and `logs/slurm_%j.err`.
-- All application logs are anchored to the repo at `logs/`:
-  - vLLM server: `logs/liv_vllm_<RUN>_<TIMESTAMP>.log`
-  - Trainer:     `logs/liv_train_<RUN>_<TIMESTAMP>.log`
-- The training script runs vLLM on the first allocated GPU and trains on the remaining GPUs. No nested `srun` is used to avoid “step creation temporarily disabled” throttling on busy clusters.
+- Submit the batch script directly: `sbatch training.sh`.
+- The script requests `--gres=gpu:a100:7` on `--partition=mltheory` and runs a single `srun` step that:
+  - Starts vLLM bound to GPU 0
+  - Health‑checks `http://localhost:8000/health`
+  - Launches training via Accelerate on GPUs 1–6
+- All logs live in `logs/`:
+  - Slurm stdout: `logs/slurm_%j.out`
+  - vLLM server:  `logs/liv_vllm_<RUN>_<TIMESTAMP>.log`
+  - Trainer:      `logs/liv_train_<RUN>_<TIMESTAMP>.log`
 
 
 ## Environment Notes
 
 - Transformers/TRL require `huggingface-hub < 1.0`. The launcher repins Hub into a compatible range and installs small CLI deps (`yq`, `rich`, `markdown-it-py`).
-- vLLM requires a CUDA‑enabled PyTorch. The launcher checks `torch.cuda.is_available()` and fails fast if CUDA is not available. To fix the env on a login/interactive node:
-  1) `conda activate /path/to/repo/openr1`
-  2) Remove conflicting CPU torch/triton: `pip uninstall -y torch triton torchtriton pytorch-triton || true` and `conda remove -y pytorch pytorch-cuda torchtriton triton || true`
-  3) Clean caches: `conda clean -a -y`
-  4) Install CUDA wheels for the pinned Torch: `pip install --index-url https://download.pytorch.org/whl/cu124 'torch==2.6.0' 'torchvision==0.21.0' 'torchaudio==2.6.0'`
-  5) Verify: `python -c "import torch; print('cuda?', torch.cuda.is_available(), 'n=', torch.cuda.device_count())"`
+- vLLM requires a CUDA‑enabled PyTorch. The launcher provisions a matching CUDA stack inside the repo‑local env.
 
 
 ## Troubleshooting
 
-- Slurm logs not under `logs/`:
-  - Always submit with `bash scripts/sbatch_training.sh`. Submitting `training.sh` directly may cause Slurm to create `slurm-%j.out` in the submit CWD if `logs/` didn’t exist at submission.
-
-- “step creation temporarily disabled” from `srun`:
-  - The script does not use nested `srun`; everything runs in the main batch step. If you re‑enable `srun`, you may hit throttling on busy nodes.
-
-- vLLM “Device string must not be empty” or “UnspecifiedPlatform”:
-  - Ensure the CUDA PyTorch build is installed (see Environment Notes) and that `CUDA_VISIBLE_DEVICES` is set by Slurm. The launcher binds vLLM to the first GPU in the job’s mapping and training to the remainder.
-
+- vLLM not healthy / empty server log:
+  - Check `logs/slurm_%j.out` for `nvidia-smi -L`. If it prints “No devices found”, update the SBATCH partition/GRES to match your site.
+- “Invalid generic resource (gres) specification”:
+  - Ensure your cluster supports `--gres=gpu:a100:7`. If not, change GRES to your GPU type or switch to `#SBATCH --gpus=7`.
 - Transformers complaining about `huggingface-hub==1.1.1`:
   - The launcher repins Hub to `<1.0`. If you installed Hub 1.x outside the launcher, run: `pip install 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0'` inside the env.
 

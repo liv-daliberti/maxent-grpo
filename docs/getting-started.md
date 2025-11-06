@@ -16,10 +16,10 @@ Quickstart
 1) Create the local environment and launch training:
 
 ```bash
-./training.sh
+sbatch training.sh
 ```
 
-The script provisions a local conda env under the repo, installs deps from `environment.yml`, and launches GRPO. It is Slurm‑aware but also works locally.
+The script provisions a local conda env under the repo, installs deps from `environment.yml`, and launches GRPO. It includes an SBATCH header (account/partition/GRES) you may need to adapt for your cluster. For local smoke tests, you can also run `bash training.sh`.
 
 2) Evaluate or generate with your model:
 

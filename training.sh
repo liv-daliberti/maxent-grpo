@@ -1,79 +1,81 @@
 #!/bin/bash
-##
-# Copyright 2025 Liv d'Aliberti
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-##
-
-#
-# Unified training launcher (vLLM + GRPO via Accelerate/DeepSpeed)
-# This consolidates the logic from training-math-grpo.sh so that README
-# can simply instruct: ./training.sh
-#
-
-set -euo pipefail
-set -E
-
-# Simple timestamped logging helpers
-ts() { date +%Y-%m-%dT%H:%M:%S; }
-log() { echo "[$(ts)] $*"; }
-trap 'echo "[$(ts)] ERR at line $LINENO: $BASH_COMMAND" >&2' ERR
-if [ "${DEBUG:-0}" = "1" ]; then set -x; fi
-
-# ----------------------------
-# SLURM (optional) headers
-# ----------------------------
 #SBATCH --job-name=OpenR1_GRPO
+#SBATCH --account=mltheory
+#SBATCH --partition=mltheory
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:7
-#SBATCH --partition=gpu
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=256G
 #SBATCH --time=00:59:00
 #SBATCH --output=logs/slurm_%j.out
-#SBATCH --error=logs/slurm_%j.err
-#SBATCH --account=mltheory
 #SBATCH --exclusive
+
+echo "Node(s): $SLURM_NODELIST"
+nvidia-smi -L
+
+set -euo pipefail
 
 # ----------------------------
 # MODULES & PYTHON ENVIRONMENT
-# ----------------------------
+# --------------------------
 #module load cudatoolkit/12.4
-export PATH="$HOME/.local/bin:$PATH"
-# Avoid conda alias conflicts injected by cluster environment
-unset CONDA_ENVS_PATH  # prefer CONDA_ENVS_DIRS
-unset PYTHONHOME PYTHONPATH  # ensure stdlib is resolved from the env
-export PYTHONNOUSERSITE=1
+export PATH="$HOME/.local/bin:$PATH"	
+# ----------------------------
+# Setup
+# ----------------------------
+export RUN_NAME="Qwen2.5-1.5B-GRPO-Finetune"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+export CONFIG="recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml"
+export CONFIG_FILE="recipes/accelerate_configs/zero3.yaml"
 
-# (setup moved below after activating conda and defining ROOT_DIR)
+# Training entrypoint (switch between standard and MaxEnt)
+# - Set MAXENT=1 to use src/maxent-grpo.py, or override TRAIN_ENTRYPOINT directly
+export TRAIN_ENTRYPOINT="${TRAIN_ENTRYPOINT:-src/grpo.py}"
+if [ "${MAXENT:-0}" = "1" ]; then
+  TRAIN_ENTRYPOINT="src/maxent-grpo.py"
+fi
+
+# vLLM parameters (override via env as needed)
+export VLLM_MODEL="${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}"
+export VLLM_PORT="${VLLM_PORT:-8000}"
+export VLLM_TP_SIZE="${VLLM_TP_SIZE:-1}"
+export VLLM_MAX_LEN="${VLLM_MAX_LEN:-2048}"
+export VLLM_MEM_UTIL="${VLLM_MEM_UTIL:-0.90}"
+
+# Log files
+export LOG_DIR="$PWD/logs"
+mkdir -p "$LOG_DIR"
+
+# Relative log paths (for display) and absolute paths (for redirection)
+export REL_SERVER_LOG="logs/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
+export REL_TRAINING_LOG="logs/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
+export SERVER_LOG="$LOG_DIR/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
+export TRAINING_LOG="$LOG_DIR/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
+
+# ensure old HF_TOKEN does not take precedence
+unset HF_TOKEN
+export HF_TOKEN="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"
+
+# configure HF cache locations before login
+export HF_HOME="$(pwd)/.hf_cache"
+export XDG_CACHE_HOME="$(pwd)/.cache"
+#mkdir -p "$HF_HOME" "$XDG_CACHE_HOME"
+export NLTK_DATA="$(pwd)/.cache/nltk_data"
+
+
+# provide the new token
+export HUGGING_FACE_HUB_TOKEN="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"
+export TORCH_LOAD_WEIGHTS_ONLY=0
+
 
 # ----------------------------
-# GPU parameterization
+# Determine number of training GPUs (total GPUs – 1 for vLLM)
 # ----------------------------
-# Allow overriding the GPU split via env:
-#  - GPUS_PER_JOB: total GPUs requested in the allocation (default 7)
-#  - VLLM_GPUS:    GPUs for vLLM server (default 1)
-#  - TRAIN_GPUS:   GPUs for training (default GPUS_PER_JOB - VLLM_GPUS)
-export GPUS_PER_JOB=${GPUS_PER_JOB:-7}
-export VLLM_GPUS=${VLLM_GPUS:-1}
-if [ "$VLLM_GPUS" -lt 1 ]; then VLLM_GPUS=1; fi
-MAX_TRAIN=$(( GPUS_PER_JOB - VLLM_GPUS ))
-if [ "$MAX_TRAIN" -lt 1 ]; then MAX_TRAIN=1; fi
-export TRAIN_GPUS=${TRAIN_GPUS:-$MAX_TRAIN}
-# Accelerate processes = training GPUs
-NUM_TOTAL=$GPUS_PER_JOB
-NUM_TRAINING=$TRAIN_GPUS
+# Slurm will set CUDA_VISIBLE_DEVICES to something like "0,1,2,3,4,5,6"
+ALL_GPUS="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6}"
+NUM_TOTAL=$(echo "$ALL_GPUS" | tr ',' '\n' | wc -l)
+NUM_TRAINING=6
 
 # ----------------------------
 # WandB cache and artifact dirs on /n/fs
@@ -93,146 +95,86 @@ export WANDB_CONFIG_DIR=/n/fs/similarity/wandb-offload/config
 #mkdir -p /n/fs/similarity/wandb-offload/{tmp,artifacts,cache,config}
 #mkdir -p logs .cache .hf_cache .tmp .torchinductor .triton
 
-# (local cache paths defined later using ROOT_DIR)
+# ----------------------------
+# HF + Cache (local workspace)
+# ----------------------------
+# Prefer HF_HOME; avoid deprecated TRANSFORMERS_CACHE to reduce warnings
+unset TRANSFORMERS_CACHE
+export HF_DATASETS_CACHE="$(pwd)/.cache/huggingface/datasets"
+export TMPDIR="$(pwd)/.tmp"
+export VLLM_API_KEY="dummy"
+export TORCHINDUCTOR_CACHE_DIR="$(pwd)/.torchinductor"
+export TRITON_CACHE_DIR="$(pwd)/.triton"
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+#mkdir -p "$TRANSFORMERS_CACHE" "$HF_DATASETS_CACHE" "$TMPDIR" "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR"
+
+# ✅ Force full state loading in PyTorch (not just weights)
+export TORCH_LOAD_WEIGHTS_ONLY=0
+
+# (Optional) prevent Triton cache slowdown warnings
+#export TRITON_CACHE_DIR="/tmp/$USER/triton"
+#mkdir -p "$TRITON_CACHE_DIR"
+
+# W&B Online Mode
+export WANDB_MODE=online
+#export WANDB_PROJECT=your_project_name
+#export WANDB_ENTITY=your_entity
+#export WANDB_API_KEY=your_token_here  # or ensure ~/.netrc has token
 
 # ─── Load modules and conda ─────────────────────────────────────────────
-log "Sourcing conda profile script"
+#module load cudatoolkit/12.4
 source /usr/local/anaconda3/2024.02/etc/profile.d/conda.sh
 
 # ─── Localized Conda + Pip Setup ───────────────────────────────────────
 export ROOT_DIR="$PWD"
-log "ROOT_DIR=$ROOT_DIR"
-# Brief node + GPU summary at start to mirror prior script behavior
-log "Node(s): ${SLURM_NODELIST:-unknown}"
-if command -v nvidia-smi >/dev/null 2>&1; then nvidia-smi -L || true; fi
 export ENV_NAME="openr1"
 export ENV_DIR="$ROOT_DIR/$ENV_NAME"
 
 export CONDA_PKGS_DIRS="$ROOT_DIR/.conda_pkgs"
 export CONDA_ENVS_DIRS="$ROOT_DIR/.conda_envs"
+export CONDA_ENVS_DIRS="$ROOT_DIR/.conda_envs"
 export CONDA_CACHEDIR="$ROOT_DIR/.conda_cache"
 export PYTHONUSERBASE="$ROOT_DIR/.local"
 export CONDARC="$ROOT_DIR/.condarc"
 export PIP_CACHE_DIR="$ROOT_DIR/.pip_cache"
-export PIP_CONFIG_FILE="$ROOT_DIR/.pip/pip.conf"
-export PIP_DISABLE_PIP_VERSION_CHECK=1
 
-mkdir -p "$CONDA_PKGS_DIRS" "$CONDA_ENVS_DIRS" "$CONDA_CACHEDIR" "$PIP_CACHE_DIR" "$ROOT_DIR/.pip"
-
-# Create local env if missing (kept under repo)
-if [ ! -x "$ENV_DIR/bin/python" ]; then
-  log "Creating local conda env at $ENV_DIR from environment.yml…"
-  conda env create -p "$ENV_DIR" -f "$ROOT_DIR/environment.yml"
-fi
+#mkdir -p "$CONDA_PKGS_DIRS" "$CONDA_ENVS_DIRS" "$CONDA_CACHEDIR" "$PIP_CACHE_DIR"
 
 # ─── Activate Environment ───────────────────────────────────────────────
-log "Activating env: $ENV_DIR"
 conda activate "$ENV_DIR"
-# If stdlib looks corrupted (encodings missing), recreate the env once
-if [ ! -d "$ENV_DIR/lib/python3.11/encodings" ]; then
-  log "Python stdlib appears incomplete (missing encodings). Recreating env…"
-  conda env remove -p "$ENV_DIR" -y || true
-  conda env create -p "$ENV_DIR" -f "$ROOT_DIR/environment.yml"
-  conda activate "$ENV_DIR"
-fi
-
-# Ensure PyTorch stack matches vLLM/xformers requirements; install only if mismatched.
-TORCH_VER=2.7.0
-VISION_VER=0.22.0
-AUDIO_VER=2.7.0
-if ! python - <<PY
-import sys
-ok=False
-try:
-  import torch, torchvision, torchaudio
-  ok = torch.__version__.startswith('${TORCH_VER}') and \
-       torchvision.__version__.startswith('${VISION_VER}') and \
-       torchaudio.__version__.startswith('${AUDIO_VER}')
-except Exception:
-  ok=False
-print('PY TORCH_MATCH =', ok, ' torch=', globals().get('torch', type('x',(),{})()).__dict__.get('__version__','n/a'))
-sys.exit(0 if ok else 1)
-PY
-then
-  log "Upgrading PyTorch stack to ${TORCH_VER}/${VISION_VER}/${AUDIO_VER}"
-  python -m pip uninstall -y torch torchvision torchaudio triton torchtriton pytorch-triton || true
-  conda remove -y -p "$ENV_DIR" pytorch pytorch-cuda torchtriton triton || true
-  conda clean -a -y
-  STREAM_CANDIDATES=""
-  if [ -n "${TORCH_CUDA_STREAM:-}" ]; then STREAM_CANDIDATES+=" ${TORCH_CUDA_STREAM}"; fi
-  if command -v nvidia-smi >/dev/null 2>&1; then
-    CUDA_VER="$(nvidia-smi 2>/dev/null | sed -n 's/.*CUDA Version: \([0-9]*\)\.\([0-9]*\).*/\1.\2/p' | head -n1 || true)"
-    case "$CUDA_VER" in
-      12.6) STREAM_CANDIDATES+=" cu126" ;;
-      12.4) STREAM_CANDIDATES+=" cu124" ;;
-      12.1) STREAM_CANDIDATES+=" cu121" ;;
-    esac
-  fi
-  STREAM_CANDIDATES+=" cu126 cu124 cu121"
-  INSTALL_OK=0
-  for S in $STREAM_CANDIDATES; do
-    [ "${LAST_TRIED:-}" = "$S" ] && continue
-    LAST_TRIED="$S"
-    log "Trying PyTorch CUDA wheels stream: $S (torch==$TORCH_VER, torchvision==$VISION_VER, torchaudio==$AUDIO_VER)"
-    set +e
-    python -m pip install --index-url https://download.pytorch.org/whl/${S} \
-      "torch==${TORCH_VER}" "torchvision==${VISION_VER}" "torchaudio==${AUDIO_VER}"
-    STATUS=$?
-    set -e
-    if [ $STATUS -eq 0 ]; then INSTALL_OK=1; break; fi
-  done
-  if [ $INSTALL_OK -ne 1 ]; then
-    echo "[$(date +%Y-%m-%dT%H:%M:%S)] ERROR: Failed to install CUDA PyTorch ${TORCH_VER}. Tried:${STREAM_CANDIDATES}" >&2
-    exit 2
-  fi
-else
-  log "PyTorch stack already matches ${TORCH_VER}/${VISION_VER}/${AUDIO_VER}; skipping install"
-fi
-
-
-log "Conda env active at: $(which python)"
+echo "✅ Conda env active at: $(which python)"
 python --version
 
-# Ensure pip uses this env and local cache; keep installs local to repo
-log "Upgrading pip"
-python -m pip install --upgrade pip
-# Ensure huggingface-hub is in the compatible range for transformers (<1.0)
-log "Ensuring huggingface-hub pinned to <1.0"
+# Ensure huggingface-hub is pinned to a Transformers-compatible range (<1.0)
+python -m pip uninstall -y huggingface-hub || true
 python -m pip install 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0'
-# yq for YAML edit convenience
-log "Installing yq"
-python -m pip install --upgrade 'yq>=3.4,<4'
-# TRL CLI imports rich.markdown which depends on markdown-it-py; ensure present
-log "Installing rich + markdown-it-py for TRL CLI"
-python -m pip install 'markdown-it-py>=3,<4' 'rich>=13,<14'
-
-# Ensure Torch has CUDA support; auto-repair with pip CUDA wheels if missing.
-# Use `if ! ...; then` form so set -e doesn't abort the script on non-zero.
-# Removed redundant CUDA availability check; torch CUDA wheels are installed above.
-
-# ─── Environment Identifiers ────────────────────────────────────────────
-export RUN_NAME="Qwen1.5B-GRPO-Finetune"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-# Anchor log directory to this repository to avoid picking up cluster-wide LOG_DIR
-export LOG_DIR="$ROOT_DIR/logs"
-export CONFIG="recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml"
-export CONFIG_FILE="recipes/accelerate_configs/zero3.yaml"
-export SERVER_LOG="$LOG_DIR/liv_vllm_${RUN_NAME}_${TIMESTAMP}.log"
-export TRAINING_LOG="$LOG_DIR/liv_train_${RUN_NAME}_${TIMESTAMP}.log"
-
-# Ensure log directory exists for file redirections and Slurm output path
-mkdir -p "$LOG_DIR"
-log "Logs directory: $LOG_DIR"
+# Utilities for YAML edits and TRL CLI rendering
+python -m pip install -U yq 'markdown-it-py>=3,<4' 'rich>=13,<14'
 
 # Update accelerate config so that num_processes = num_training_gpus
-log "Patching accelerate config: num_processes -> $NUM_TRAINING"
 cp "${CONFIG_FILE}" "${CONFIG_FILE}.bak"
 python -m yq -y --in-place ".num_processes = $NUM_TRAINING" "$CONFIG_FILE"
-log "Set accelerate num_processes to $NUM_TRAINING (total GPUs: $NUM_TOTAL)"
+echo "→ Set accelerate num_processes to $NUM_TRAINING (total GPUs: $NUM_TOTAL)"
+# ----------------------------
+# Log in to Hugging Face (first time)
+# ----------------------------
+#python -m huggingface-cli login --token "$HUGGING_FACE_HUB_TOKEN" --add-to-git-credential
+#echo "✅ Logged into Hugging Face (step 1)"
+
+# ─── (Optional) Second Hugging Face Authentication ─────────────────────
+# If you need to switch to a different HF token later, unset HF_TOKEN again:
+# unset HF_TOKEN
+# export HUGGING_FACE_HUB_TOKEN="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"
+# huggingface-cli login --token "$HUGGING_FACE_HUB_TOKEN" --add-to-git-credential
+# echo "✅ Logged into Hugging Face (step 2)"
+
+# ─── Environment Identifiers ────────────────────────────────────────────
+# Keep RUN_NAME/TIMESTAMP from earlier to avoid log name drift
+export RUN_NAME="Qwen2.5-1.5B-GRPO-Finetune"
+export CONFIG_FILE="recipes/accelerate_configs/zero3.yaml"
 
 # ─── Local cache + logging paths ────────────────────────────────────────
-# ensure old HF_TOKEN does not take precedence
-unset HF_TOKEN
 export HF_HOME="$ROOT_DIR/.hf_cache"
 export HF_DATASETS_CACHE="$ROOT_DIR/.cache/huggingface/datasets"
 # Prefer HF_HOME; avoid deprecated TRANSFORMERS_CACHE to reduce warnings
@@ -241,6 +183,9 @@ export XDG_CACHE_HOME="$ROOT_DIR/.cache"
 export TMPDIR="$ROOT_DIR/.tmp"
 export TORCHINDUCTOR_CACHE_DIR="$ROOT_DIR/.torchinductor"
 export TRITON_CACHE_DIR="$ROOT_DIR/.triton"
+export WANDB_DIR="$ROOT_DIR/.wandb"
+export WANDB_CACHE_DIR="$ROOT_DIR/.wandb_cache"
+export WANDB_MODE="online"
 export TORCH_LOAD_WEIGHTS_ONLY=0
 
 # ─── Optional: disable vLLM usage stats ────────────────────────────────
@@ -249,12 +194,32 @@ export VLLM_ATTENTION_BACKEND="xformers"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # ─── Log summary ────────────────────────────────────────────────────────
-log "Setup complete. Ready to run GRPO."
-log "Env:        $ENV_DIR"
-log "Config:     $CONFIG"
-log "Log Files:  $SERVER_LOG, $TRAINING_LOG"
+echo "🟢 Setup complete. Ready to run GRPO."
+echo "Env:        $ENV_DIR"
+echo "Config:     $CONFIG"
+echo "Log Files:  $REL_SERVER_LOG, $REL_TRAINING_LOG"
+echo "Abs Paths:  $SERVER_LOG, $TRAINING_LOG"
+echo "Entrypoint: $TRAIN_ENTRYPOINT"
+echo "vLLM:       $VLLM_MODEL (port=$VLLM_PORT, tp=$VLLM_TP_SIZE, max_len=$VLLM_MAX_LEN)"
+echo "CUDA_VISIBLE_DEVICES: $ALL_GPUS (using $NUM_TRAINING for training)"
 
-# (WANDB /n/fs offload paths already set above; avoid re-defining here)
+# ----------------------------
+# WandB cache and artifact dirs on /n/fs (again, if needed)
+# ----------------------------
+export WANDB_DIR=/n/fs/similarity/wandb-offload/tmp
+export WANDB_ARTIFACT_DIR=/n/fs/similarity/wandb-offload/artifacts
+export WANDB_CACHE_DIR=/n/fs/similarity/wandb-offload/cache
+export VLLM_USAGE_STATS_PATH=/n/fs/similarity/vllm/usage_stats.json
+export TMPDIR=/n/fs/similarity/wandb-offload/tmp
+
+#mkdir -p /n/fs/similarity/vllm
+#mkdir -p "$WANDB_DIR" "$WANDB_ARTIFACT_DIR" "$WANDB_CACHE_DIR" "$TMPDIR"
+
+# Optional: Set WANDB_CONFIG_DIR if needed (e.g. wandb/settings)
+export WANDB_CONFIG_DIR=/n/fs/similarity/wandb-offload/config
+
+# W&B Online Mode
+export WANDB_MODE=online
 
 # -----------------------------------
 # 1) Launch vLLM server on GPU 0
@@ -263,15 +228,12 @@ export VLLM_ATTENTION_BACKEND=xformers
 export TORCH_FORCE_FULL_STATE_DICT=1
 export FLASH_ATTENTION_FORCE_DISABLED=1
 export TRANSFORMERS_NO_FLASH_ATTN=1
-export WANDB_DATA_DIR=/n/fs/similarity/open-r1/wandb
+export WANDB_DATA_DIR=/n/fs/similarity/maxent-grpo/wandb
 
 # -----------------------------------
 # Launch vLLM + trainer in one srun
 # -----------------------------------
-
-# Some clusters forbid step‑level --gres; inherit GPUs from SBATCH header by default.
-# You can pass extra srun flags via SRUN_EXTRA_ARGS and override CPUs via SRUN_CPUS_PER_TASK.
-srun ${SRUN_EXTRA_ARGS:-} --cpus-per-task=${SRUN_CPUS_PER_TASK:-64} bash -c '
+srun --gres=gpu:7 --cpus-per-task=64 bash -c '
 set -euo pipefail
 
 ############################
@@ -281,40 +243,41 @@ export CUDA_VISIBLE_DEVICES=0
 echo "Launching vLLM on GPU 0…"
 
 CUDA_VISIBLE_DEVICES=0 trl vllm-serve \
-  --model ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct} \
+  --model "$VLLM_MODEL" \
   --dtype float16 \
-  --port ${VLLM_PORT:-8000} \
-  --tensor-parallel-size ${VLLM_TP_SIZE:-1} \
-  --max-model-len ${VLLM_MAX_LEN:-2048} \
-  --gpu-memory-utilization ${VLLM_MEM_UTIL:-0.90} \
-  > '"$SERVER_LOG"' 2>&1 &
+  --port "$VLLM_PORT" \
+  --tensor-parallel-size "$VLLM_TP_SIZE" \
+  --max-model-len "$VLLM_MAX_LEN" \
+  --gpu-memory-utilization "$VLLM_MEM_UTIL" \
+  --enforce-eager false \
+  > "$SERVER_LOG" 2>&1 &
 
 VLLM_PID=$!
 
 # Health-check loop
-until curl -sf http://localhost:${VLLM_PORT:-8000}/health > /dev/null; do
+until curl -sf http://localhost:$VLLM_PORT/health > /dev/null; do
   echo "Waiting for vLLM…"
   sleep 2
 done
 echo "✅ vLLM is healthy"
 
 ############################
-# 2) Training on GPU 1–N
+# 2) Training on GPU 1-7
 ############################
-export CUDA_VISIBLE_DEVICES=$(seq -s, 1 ${TRAIN_GPUS:-6})
+export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6
 echo "🚀 Launching training on GPUs $CUDA_VISIBLE_DEVICES"
 
 accelerate launch \
-  --main_process_port ${ACCEL_PORT:-29525} \
-  --config_file '"$CONFIG_FILE"' \
-  src/grpo.py \
-  --config '"$CONFIG"' \
+  --main_process_port 29525 \
+  --config_file "$CONFIG_FILE" \
+  "$TRAIN_ENTRYPOINT" \
+  --config "$CONFIG" \
   --use_vllm \
-  --run_name '"${RUN_NAME}-${TIMESTAMP}"' \
+  --run_name "${RUN_NAME}-${TIMESTAMP}" \
   --ignore_data_skip \
   --overwrite_output_dir false \
   --seed 42 \
-  > '"$TRAINING_LOG"' 2>&1
+  > "$TRAINING_LOG" 2>&1
 
 # Wait for vLLM to exit after training finishes
 wait $VLLM_PID
