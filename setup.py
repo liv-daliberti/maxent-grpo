@@ -22,6 +22,73 @@ import shutil
 from pathlib import Path
 
 from setuptools import find_packages, setup
+from setuptools.command.install import install as _install
+from setuptools.command.develop import develop as _develop
+import importlib
+import sys
+
+
+def _patch_trl_vllm_serve():
+    """
+    Ensure TRL's vllm_serve.py passes use_tqdm_on_load=True to vLLM.LLM.
+
+    We locate trl.scripts.vllm_serve, and if the LLM(...) call does not
+    already include use_tqdm_on_load, we insert it after enforce_eager.
+    """
+    try:
+        trl_mod = importlib.import_module("trl.scripts.vllm_serve")
+        path = Path(trl_mod.__file__)
+    except Exception as e:
+        print(f"[open-r1 setup] Skipping TRL patch (import failed): {e}")
+        return
+
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"[open-r1 setup] Skipping TRL patch (read failed): {e}")
+        return
+
+    if "use_tqdm_on_load=True" in text:
+        print("[open-r1 setup] TRL vllm_serve already patched (use_tqdm_on_load=True).")
+        return
+
+    # Preferred anchor to insert after
+    anchor = "enforce_eager=script_args.enforce_eager,"
+    insertion = "\n        use_tqdm_on_load=True,"
+
+    if anchor in text:
+        new_text = text.replace(anchor, anchor + insertion)
+    else:
+        # Fallback: try to place after dtype assignment
+        alt_anchor = "dtype=script_args.dtype,"
+        if alt_anchor in text:
+            new_text = text.replace(alt_anchor, alt_anchor + insertion)
+        else:
+            # Last resort: after the opening of the LLM call
+            llm_call = "llm = LLM("
+            if llm_call in text:
+                new_text = text.replace(llm_call, llm_call + insertion + "\n")
+            else:
+                print("[open-r1 setup] Could not find insertion point in TRL vllm_serve; skipping patch.")
+                return
+
+    try:
+        path.write_text(new_text, encoding="utf-8")
+        print(f"[open-r1 setup] Patched TRL vllm_serve at: {path}")
+    except Exception as e:
+        print(f"[open-r1 setup] Failed to write TRL patch: {e}")
+
+
+class install(_install):
+    def run(self):
+        super().run()
+        _patch_trl_vllm_serve()
+
+
+class develop(_develop):
+    def run(self):
+        super().run()
+        _patch_trl_vllm_serve()
 
 
 # Remove stale open_r1.egg-info directories to avoid https://github.com/pypa/pip/issues/5466
@@ -167,6 +234,10 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
+    cmdclass={
+        "install": install,
+        "develop": develop,
+    },
     extras_require=extras,
     python_requires=">=3.10.9",
     install_requires=install_requires,

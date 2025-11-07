@@ -27,6 +27,8 @@ openr1/
 .hf_cache/
 .tmp/
 .torchinductor/
+# TorchInductor spill directories (user-specific names)
+torchinductor_*/
 .triton/
 .wandb/
 .wandb_cache/

@@ -1,0 +1,343 @@
+#!/bin/bash
+# Multi-node Open‑R1 trainer with optional vLLM server on a dedicated node
+#
+# Example:
+#   sbatch --nodes=2 slurm/train.slurm \
+#     --model Qwen2.5-1.5B-Instruct \
+#     --task grpo \
+#     --config math \
+#     --accelerator zero3 \
+#     --dp 8 \
+#     --tp 1 \
+#     --args "--run_name demo"
+
+#SBATCH --job-name=open_r1
+#SBATCH --ntasks-per-node=1
+#SBATCH --exclusive
+#SBATCH --nodes=1                 # Default: single node
+#SBATCH --gres=gpu:8              # Default: 8 GPUs on the node
+#SBATCH --partition=mltheory      # Adjust for your cluster (e.g., hopper-prod)
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
+#SBATCH --requeue
+#SBATCH --time=00:59:00
+
+set -euo pipefail
+set -x
+
+mkdir -p logs
+
+# ---- Environment bootstrap (configure for your cluster) ----
+# Choose how to activate your environment on all nodes.
+# - For Conda: set ENV_MODE=conda, CONDA_SH to conda.sh, CONDA_ENV to env path or name
+# - For venv:  set ENV_MODE=venv and ENV_ACTIVATE to the venv's activate script path
+export ENV_MODE="${ENV_MODE:-conda}"
+export CONDA_SH="${CONDA_SH:-/usr/local/anaconda3/2024.02/etc/profile.d/conda.sh}"
+export CONDA_ENV="${CONDA_ENV:-$PWD/openr1}"
+export ENV_ACTIVATE="${ENV_ACTIVATE:-$PWD/openr1/bin/activate}"
+
+# Activate once in submission shell (best-effort); srun subshells will also activate.
+if [[ "$ENV_MODE" == "conda" ]]; then
+  if [[ -f "$CONDA_SH" ]]; then source "$CONDA_SH"; fi
+  conda activate "$CONDA_ENV" || echo "[warn] submit-shell: failed to conda activate $CONDA_ENV"
+elif [[ -f "$ENV_ACTIVATE" ]]; then
+  # shellcheck disable=SC1090
+  source "$ENV_ACTIVATE" || echo "[warn] submit-shell: failed to source $ENV_ACTIVATE"
+else
+  echo "[warn] No environment activation performed (ENV_MODE=$ENV_MODE)."
+fi
+# Avoid picking up user-site packages (~/.local) that can conflict (e.g., httpx)
+export PYTHONNOUSERSITE=1
+
+# Route all caches and temp dirs into the current working directory
+export ROOT_DIR="$PWD"
+export HF_HOME="$ROOT_DIR/.hf_cache"
+export XDG_CACHE_HOME="$ROOT_DIR/.cache"
+export HUGGINGFACE_HUB_CACHE="$ROOT_DIR/.cache/huggingface/hub"
+export HF_DATASETS_CACHE="$ROOT_DIR/.cache/huggingface/datasets"
+export PIP_CACHE_DIR="$ROOT_DIR/.pip_cache"
+export TORCHINDUCTOR_CACHE_DIR="$ROOT_DIR/.torchinductor"
+export TRITON_CACHE_DIR="$ROOT_DIR/.triton"
+export WANDB_DIR="$ROOT_DIR/.wandb"
+export TMPDIR="$ROOT_DIR/.tmp"
+export VLLM_USAGE_STATS_PATH="$ROOT_DIR/.cache/vllm/usage_stats.json"
+export HF_HUB_ENABLE_HF_TRANSFER=1
+export HF_HUB_ENABLE_PROGRESS_BARS=1
+mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
+         "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
+         "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \
+         "$(dirname "$VLLM_USAGE_STATS_PATH")"
+echo "Preflight: pin hub + httpx for compatibility"
+# Pin once in the submission shell to avoid concurrent pip on multiple nodes
+python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
+
+if [[ "$*" == *"--help"* ]]; then
+  echo "Usage: sbatch slurm/train.slurm [options]"
+  echo "Options:"
+  echo "  --model MODEL            Recipe model directory under recipes/ (e.g., Qwen2.5-1.5B-Instruct)"
+  echo "  --task TASK              Task name: grpo | maxent"
+  echo "  --config SUFFIX          Config suffix in recipes/<model>/<task>/config_<SUFFIX>.yaml (e.g., math)"
+  echo "  --accelerator NAME       Accelerate config in recipes/accelerate_configs/<NAME>.yaml (e.g., zero3)"
+  echo "  --dp N                   vLLM data parallel size on the server node (default: 1)"
+  echo "  --tp N                   vLLM tensor parallel size on the server node (default: 1)"
+  echo "  --vllm-port PORT         vLLM server port (default: 8000)"
+  echo "  --args \"ARGS\"          Extra args to pass to the training entrypoint"
+  exit 0
+fi
+
+# Defaults (so `sbatch slurm/train.slurm` just works)
+# - Single node, 8 GPUs; vLLM on 1 GPU and GRPO training on remaining 7 GPUs
+# - Qwen 1.5B GRPO math with accelerate zero3
+MODEL="${MODEL:-Qwen2.5-1.5B-Instruct}"
+TASK="${TASK:-grpo}"
+CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
+ACCELERATOR="${ACCELERATOR:-zero3}"
+DP=${DP:-1}
+TP=${TP:-1}
+VLLM_PORT=${VLLM_PORT:-8000}
+OPTIONAL_ARGS="${OPTIONAL_ARGS:-}"
+
+# Parse CLI
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --model)        MODEL="$2"; shift 2;;
+    --task)         TASK="$2"; shift 2;;
+    --config)       CONFIG_SUFFIX="$2"; shift 2;;
+    --accelerator)  ACCELERATOR="$2"; shift 2;;
+    --dp)           DP="$2"; shift 2;;
+    --tp)           TP="$2"; shift 2;;
+    --vllm-port)    VLLM_PORT="$2"; shift 2;;
+    --args)         OPTIONAL_ARGS="$2"; shift 2;;
+    *) echo "Unknown option: $1"; exit 1;;
+  esac
+done
+
+# Validate
+if [[ -z "$MODEL" || -z "$TASK" || -z "$CONFIG_SUFFIX" || -z "$ACCELERATOR" ]]; then
+  echo "Error: --model, --task, --config, --accelerator are required" >&2
+  exit 1
+fi
+
+CONFIG_FILE="recipes/${MODEL}/${TASK}/config_${CONFIG_SUFFIX}.yaml"
+ACCEL_FILE="recipes/accelerate_configs/${ACCELERATOR}.yaml"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "Config not found: $CONFIG_FILE" >&2
+  exit 1
+fi
+if [[ ! -f "$ACCEL_FILE" ]]; then
+  echo "Accelerate config not found: $ACCEL_FILE" >&2
+  exit 1
+fi
+
+# Resolve training entrypoint for this repo
+case "$TASK" in
+  grpo)   TRAIN_ENTRYPOINT="src/grpo.py";;
+  maxent) TRAIN_ENTRYPOINT="src/maxent-grpo.py";;
+  *) echo "Unsupported --task: $TASK (use: grpo | maxent)" >&2; exit 1;;
+esac
+
+# Extract model + revision for vLLM from YAML (best-effort)
+MODEL_ID=$(grep -E "^[[:space:]]*model_name_or_path:" "$CONFIG_FILE" | awk '{print $2}' || true)
+REVISION=$(grep -E "^[[:space:]]*model_revision:" "$CONFIG_FILE" | head -n1 | awk '{print $2}' || true)
+VLLM_MODEL="${VLLM_MODEL:-${MODEL_ID:-$MODEL}}"
+
+# Extract grad_acc override from optional args if present; otherwise from YAML
+GRAD_ACC_STEPS=$(grep -E "^[[:space:]]*gradient_accumulation_steps:" "$CONFIG_FILE" | awk '{print $2}' || echo 1)
+IFS=' ' read -ra ARG_ARR <<< "$OPTIONAL_ARGS"
+for arg in "${ARG_ARR[@]:-}"; do
+  if [[ "$arg" == --gradient_accumulation_steps=* ]]; then
+    GRAD_ACC_STEPS="${arg#*=}"
+    break
+  fi
+done
+echo "gradient_accumulation_steps = $GRAD_ACC_STEPS"
+
+# Detect whether this config wants vLLM server mode
+USE_VLLM=false
+if grep -qE '^[[:space:]]*use_vllm:[[:space:]]*true' "$CONFIG_FILE"; then
+  USE_VLLM=true
+fi
+
+# SLURM topology
+NUM_NODES=${SLURM_NNODES}
+GPUS_PER_NODE=${GPUS_PER_NODE:-8}
+WORLD_SIZE=$(( NUM_NODES * GPUS_PER_NODE ))
+readarray -t NODELIST < <(scontrol show hostnames "$SLURM_JOB_NODELIST")
+MASTER_ADDR=${NODELIST[0]}
+MASTER_PORT=${MASTER_PORT:-6000}
+
+TRAIN_NODES=("${NODELIST[@]}")
+VLLM_NODE=""
+
+SINGLE_NODE=false
+if (( NUM_NODES == 1 )); then SINGLE_NODE=true; fi
+INLINE_VLLM=false
+
+if $USE_VLLM; then
+  if ! $SINGLE_NODE; then
+    # Reserve last node for vLLM server
+    VLLM_NODE=${NODELIST[-1]}
+    TRAIN_NODES=("${NODELIST[@]:0:$((NUM_NODES-1))}")
+    NUM_NODES=$(( NUM_NODES - 1 ))
+    WORLD_SIZE=$(( WORLD_SIZE - GPUS_PER_NODE ))
+  else
+    # Single-node: run vLLM and training in the same srun step; server uses 1 GPU
+    VLLM_NODE=${NODELIST[0]}
+    INLINE_VLLM=true
+  fi
+fi
+
+echo "SLURM nodes: ${NODELIST[*]}"
+echo "Train nodes: ${TRAIN_NODES[*]}"
+if $USE_VLLM; then
+  echo "vLLM node:   $VLLM_NODE (dp=$DP, tp=$TP, port=$VLLM_PORT)"
+fi
+
+# Robust NCCL settings
+export NCCL_ASYNC_ERROR_HANDLING=1
+# export NCCL_DEBUG=INFO
+
+# Start vLLM server if requested (multi-node only; single-node handled inline below)
+if $USE_VLLM && ! $SINGLE_NODE; then
+  # Ensure DP does not exceed GPUs on the vLLM head node
+  if (( DP > GPUS_PER_NODE )); then
+    echo "[warn] --dp ($DP) > GPUs on head ($GPUS_PER_NODE); clamping to $GPUS_PER_NODE"
+    DP=$GPUS_PER_NODE
+  fi
+  # Prefer model from YAML; fallback to --model
+  VLLM_MODEL="${MODEL_ID:-$MODEL}"
+  echo "Launching vLLM server: $VLLM_MODEL (rev=${REVISION:-none})"
+  # In single-node mode, allocate 1 GPU to the vLLM step; multi-node head gets all on that node
+  if $SINGLE_NODE; then VLLM_GRES=1; else VLLM_GRES=$GPUS_PER_NODE; fi
+  srun --nodes=1 --ntasks=1 --gres=gpu:${VLLM_GRES} --nodelist="$VLLM_NODE" \
+    bash -lc "set -euo pipefail; \
+    if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
+    elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
+    export PYTHONNOUSERSITE=1; \
+    echo 'vLLM node uses python:'; which python || true; python --version || true; \
+    # Route caches to PWD on the node
+    export ROOT_DIR=\"\$(pwd)\"; \
+    export HF_HOME=\"$HF_HOME\"; export XDG_CACHE_HOME=\"$XDG_CACHE_HOME\"; \
+    export HUGGINGFACE_HUB_CACHE=\"$HUGGINGFACE_HUB_CACHE\"; \
+    export HF_DATASETS_CACHE=\"$HF_DATASETS_CACHE\"; \
+    export PIP_CACHE_DIR=\"$PIP_CACHE_DIR\"; export TORCHINDUCTOR_CACHE_DIR=\"$TORCHINDUCTOR_CACHE_DIR\"; \
+    export TRITON_CACHE_DIR=\"$TRITON_CACHE_DIR\"; export WANDB_DIR=\"$WANDB_DIR\"; export TMPDIR=\"$TMPDIR\"; \
+    export VLLM_USAGE_STATS_PATH=\"$VLLM_USAGE_STATS_PATH\"; \
+    mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
+    mkdir -p \"$(dirname "$VLLM_USAGE_STATS_PATH")\"; \
+    export NCCL_DEBUG=WARN; \
+    python -m trl.scripts.vllm_serve \
+      --model "$VLLM_MODEL" \
+      ${REVISION:+--revision $REVISION} \
+      --tensor_parallel_size $TP \
+      --data_parallel_size $DP \
+      --port $VLLM_PORT \
+      --dtype float16 \
+      --gpu_memory_utilization 0.90 \
+      --enforce_eager false" \
+    > logs/vllm-${SLURM_JOB_ID}.out 2>&1 &
+
+  # Wait for health
+  echo "Waiting for vLLM health at http://$VLLM_NODE:$VLLM_PORT/health …"
+  for i in $(seq 1 180); do
+    if curl -sf "http://$VLLM_NODE:$VLLM_PORT/health" >/dev/null 2>&1; then
+      echo "vLLM is healthy."
+      break
+    fi
+    sleep 2
+  done
+fi
+
+# Build Accelerate launcher and training command
+NODELIST_CSV=$(IFS=,; echo "${TRAIN_NODES[*]}")
+export CMD="${TRAIN_ENTRYPOINT} --config ${CONFIG_FILE} ${OPTIONAL_ARGS}"
+
+# For single-node with vLLM server, use remaining GPUs for training
+if $SINGLE_NODE && $USE_VLLM; then
+  TRAIN_PROCS=$(( GPUS_PER_NODE - 1 ))
+  TRAIN_NUM_MACHINES=1
+  # Train step gets remaining GPUs; Slurm will allocate around the vLLM step
+else
+  TRAIN_PROCS=${WORLD_SIZE}
+  TRAIN_NUM_MACHINES=${NUM_NODES}
+fi
+
+export ACC_TEE=${ACC_TEE:-0}
+export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info accelerate launch \
+  --config_file ${ACCEL_FILE} \
+  --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
+  --num_machines ${TRAIN_NUM_MACHINES} \
+  --num_processes ${TRAIN_PROCS} \
+  --main_process_ip ${MASTER_ADDR} \
+  --main_process_port ${MASTER_PORT} \
+  --machine_rank ${SLURM_PROCID} \
+  --rdzv_backend=c10d \
+  --max_restarts 1 \
+  --tee ${ACC_TEE}"
+
+# If vLLM server is used, forward host/port to trainer unless already set in OPTIONAL_ARGS
+if $USE_VLLM; then
+  if [[ "$OPTIONAL_ARGS" != *"--vllm_server_base_url="* && "$OPTIONAL_ARGS" != *"--vllm_server_host="* ]]; then
+    export CMD+=" --vllm_server_host ${VLLM_NODE} --vllm_server_port ${VLLM_PORT}"
+  fi
+fi
+
+if $SINGLE_NODE; then
+  # Request only the training GPUs for the train step when colocated with server
+  SRUN_ARGS=(
+    --wait=60
+    --kill-on-bad-exit=1
+    --nodes=1
+    --ntasks=1
+    --gres=gpu:${TRAIN_PROCS}
+    --nodelist="${MASTER_ADDR}"
+  )
+else
+  SRUN_ARGS=(
+    --wait=60
+    --kill-on-bad-exit=1
+    --nodes=${NUM_NODES}
+    --ntasks=${NUM_NODES}
+    --nodelist="${NODELIST_CSV}"
+  )
+fi
+
+echo "Launching training across nodes…"
+srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; \
+  if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
+  elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
+  export PYTHONNOUSERSITE=1; \
+  echo 'Trainer node uses python:'; which python || true; python --version || true; \
+  # Route caches to PWD on the node
+  export ROOT_DIR=\"\$(pwd)\"; \
+  export HF_HOME=\"$HF_HOME\"; export XDG_CACHE_HOME=\"$XDG_CACHE_HOME\"; \
+  export HUGGINGFACE_HUB_CACHE=\"$HUGGINGFACE_HUB_CACHE\"; \
+  export HF_DATASETS_CACHE=\"$HF_DATASETS_CACHE\"; \
+  export PIP_CACHE_DIR=\"$PIP_CACHE_DIR\"; export TORCHINDUCTOR_CACHE_DIR=\"$TORCHINDUCTOR_CACHE_DIR\"; \
+  export TRITON_CACHE_DIR=\"$TRITON_CACHE_DIR\"; export WANDB_DIR=\"$WANDB_DIR\"; export TMPDIR=\"$TMPDIR\"; \
+  mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
+  if [ "${INLINE_VLLM}" = "true" ]; then \
+    echo 'Starting inline vLLM server on GPU 0…'; \
+    VLLM_LOG=\"$ROOT_DIR/logs/vllm-${SLURM_JOB_ID}.out\"; \
+    CUDA_VISIBLE_DEVICES=0 python -m trl.scripts.vllm_serve \
+      --model "$VLLM_MODEL" ${REVISION:+--revision $REVISION} \
+      --tensor_parallel_size $TP --data_parallel_size $DP \
+      --port $VLLM_PORT --dtype float16 --gpu_memory_utilization 0.90 \
+      --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
+    VLLM_PID=\$!; \
+    echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \
+    until curl -sf http://localhost:$VLLM_PORT/health >/dev/null; do sleep 2; done; \
+    echo 'Inline vLLM is healthy.'; \
+  fi; \
+  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; \
+  TRAINING_LOG=\"$ROOT_DIR/logs/train_${SLURM_JOB_ID}.log\"; \
+  mkdir -p \"$ROOT_DIR/logs\"; \
+  : > \"$TRAINING_LOG\"; \
+  tail -n +1 -F \"$TRAINING_LOG\" & TRAIN_TAIL_PID=$!; \
+  echo \"Tee training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \
+  # Restrict training to remaining GPUs in single-node inline mode \
+  if [ "${INLINE_VLLM}" = "true" ]; then export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7; fi; \
+  $LAUNCHER $CMD | tee -a \"\$TRAINING_LOG\"; \
+  if [ "${INLINE_VLLM}" = "true" ]; then echo 'Stopping inline vLLM…'; kill \$VLLM_PID || true; fi;"
+
+echo "Done."
