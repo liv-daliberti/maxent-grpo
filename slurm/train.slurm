@@ -53,6 +53,7 @@ export PYTHONNOUSERSITE=1
 export ROOT_DIR="$PWD"
 export HF_HOME="$ROOT_DIR/.hf_cache"
 export XDG_CACHE_HOME="$ROOT_DIR/.cache"
+export XDG_CONFIG_HOME="$ROOT_DIR/.config"
 export HUGGINGFACE_HUB_CACHE="$ROOT_DIR/.cache/huggingface/hub"
 export HF_DATASETS_CACHE="$ROOT_DIR/.cache/huggingface/datasets"
 export PIP_CACHE_DIR="$ROOT_DIR/.pip_cache"
@@ -61,6 +62,7 @@ export TRITON_CACHE_DIR="$ROOT_DIR/.triton"
 export WANDB_DIR="$ROOT_DIR/.wandb"
 export TMPDIR="$ROOT_DIR/.tmp"
 export VLLM_USAGE_STATS_PATH="$ROOT_DIR/.cache/vllm/usage_stats.json"
+export VLLM_NO_USAGE_STATS=1
 export HF_HUB_ENABLE_HF_TRANSFER=1
 export HF_HUB_ENABLE_PROGRESS_BARS=1
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
@@ -217,12 +219,12 @@ if $USE_VLLM && ! $SINGLE_NODE; then
     echo 'vLLM node uses python:'; which python || true; python --version || true; \
     # Route caches to PWD on the node
     export ROOT_DIR=\"\$(pwd)\"; \
-    export HF_HOME=\"$HF_HOME\"; export XDG_CACHE_HOME=\"$XDG_CACHE_HOME\"; \
+    export HF_HOME=\"$HF_HOME\"; export XDG_CACHE_HOME=\"$XDG_CACHE_HOME\"; export XDG_CONFIG_HOME=\"$XDG_CONFIG_HOME\"; \
     export HUGGINGFACE_HUB_CACHE=\"$HUGGINGFACE_HUB_CACHE\"; \
     export HF_DATASETS_CACHE=\"$HF_DATASETS_CACHE\"; \
     export PIP_CACHE_DIR=\"$PIP_CACHE_DIR\"; export TORCHINDUCTOR_CACHE_DIR=\"$TORCHINDUCTOR_CACHE_DIR\"; \
     export TRITON_CACHE_DIR=\"$TRITON_CACHE_DIR\"; export WANDB_DIR=\"$WANDB_DIR\"; export TMPDIR=\"$TMPDIR\"; \
-    export VLLM_USAGE_STATS_PATH=\"$VLLM_USAGE_STATS_PATH\"; \
+    export VLLM_USAGE_STATS_PATH=\"$VLLM_USAGE_STATS_PATH\"; export VLLM_NO_USAGE_STATS=1; \
     mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
     mkdir -p \"$(dirname "$VLLM_USAGE_STATS_PATH")\"; \
     export NCCL_DEBUG=WARN; \
@@ -262,18 +264,19 @@ else
   TRAIN_NUM_MACHINES=${NUM_NODES}
 fi
 
-export ACC_TEE=${ACC_TEE:-0}
+export ACC_TEE=${ACC_TEE:-3}
+export TRAIN_SEED=${TRAIN_SEED:-42}
 export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info accelerate launch \
   --config_file ${ACCEL_FILE} \
   --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
   --num_machines ${TRAIN_NUM_MACHINES} \
   --num_processes ${TRAIN_PROCS} \
-  --main_process_ip ${MASTER_ADDR} \
   --main_process_port ${MASTER_PORT} \
   --machine_rank ${SLURM_PROCID} \
-  --rdzv_backend=c10d \
-  --max_restarts 1 \
   --tee ${ACC_TEE}"
+
+CMD+=" --seed ${TRAIN_SEED}"
+export CMD
 
 # If vLLM server is used, forward host/port to trainer unless already set in OPTIONAL_ARGS
 if $USE_VLLM; then
@@ -303,11 +306,26 @@ else
 fi
 
 echo "Launching training across nodes…"
-srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; \
+
+# Predefine trainer log path in the outer shell (avoid set -u issues)
+export TRAINING_LOG="${TRAINING_LOG:-$PWD/logs/train_${SLURM_JOB_ID}.log}"
+mkdir -p "$(dirname "$TRAINING_LOG")"
+: > "$TRAINING_LOG"
+
+srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; set -x; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
   elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
   export PYTHONNOUSERSITE=1; \
   echo 'Trainer node uses python:'; which python || true; python --version || true; \
+  echo 'Trainer node has accelerate:'; which accelerate || true; python - <<'PY'
+import sys
+try:
+    import accelerate
+    print(getattr(accelerate, '__version__', 'unknown'))
+except Exception as e:
+    print(f'could not import accelerate: {e}', file=sys.stderr)
+PY
+  true; \
   # Route caches to PWD on the node
   export ROOT_DIR=\"\$(pwd)\"; \
   export HF_HOME=\"$HF_HOME\"; export XDG_CACHE_HOME=\"$XDG_CACHE_HOME\"; \
@@ -330,14 +348,26 @@ srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; \
     echo 'Inline vLLM is healthy.'; \
   fi; \
   export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; \
-  TRAINING_LOG=\"$ROOT_DIR/logs/train_${SLURM_JOB_ID}.log\"; \
-  mkdir -p \"$ROOT_DIR/logs\"; \
-  : > \"$TRAINING_LOG\"; \
-  tail -n +1 -F \"$TRAINING_LOG\" & TRAIN_TAIL_PID=$!; \
-  echo \"Tee training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \
-  # Restrict training to remaining GPUs in single-node inline mode \
+  export TRAINING_LOG=\"$ROOT_DIR/logs/train_${SLURM_JOB_ID}.log\"; \
+  mkdir -p \"$ROOT_DIR/logs\"; : > \"$TRAINING_LOG\"; \
+  echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \
+  echo 'Launch command:'; echo \"$LAUNCHER $CMD\"; echo 'About to start accelerate launch'; date; \
+  echo 'Restricting training GPUs when inline vLLM is enabled'; \
   if [ "${INLINE_VLLM}" = "true" ]; then export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7; fi; \
-  $LAUNCHER $CMD | tee -a \"\$TRAINING_LOG\"; \
-  if [ "${INLINE_VLLM}" = "true" ]; then echo 'Stopping inline vLLM…'; kill \$VLLM_PID || true; fi;"
+  echo 'Spawning accelerate launcher'; \
+  set +e; \
+  $LAUNCHER $CMD 2>&1 | tee -a \"\$TRAINING_LOG\"; \
+  TRAIN_STATUS=\${PIPESTATUS[0]}; \
+  set -e; \
+  echo 'Accelerate launch finished'; date; \
+  echo \"Training finished with exit code: \$TRAIN_STATUS\" | tee -a \"\$TRAINING_LOG\"; \
+  if [ "${INLINE_VLLM}" = "true" ]; then echo 'Stopping inline vLLM…'; kill \$VLLM_PID || true; fi; \
+  exit \$TRAIN_STATUS;"
 
-echo "Done."
+SRUN_STATUS=$?
+echo "srun finished with exit code: ${SRUN_STATUS}"
+if [[ ${SRUN_STATUS} -eq 0 ]]; then
+  echo "Done."
+else
+  echo "Done (with errors)."
+fi

@@ -144,7 +144,9 @@ class ScriptArguments(trl.ScriptArguments):
         :raises ValueError: If the mixture payload is malformed or columns are
             inconsistent across datasets.
         """
-        super().__post_init__()
+        parent_post_init = getattr(super(), "__post_init__", None)
+        if callable(parent_post_init):
+            parent_post_init()
         if self.dataset_name is None and self.dataset_mixture is None:
             raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
 
@@ -322,6 +324,11 @@ class GRPOConfig(trl.GRPOConfig):
         default="http://localhost:8000/generate",
         metadata={"help": "Base URL for vLLM /generate when use_vllm is true."},
     )
+
+    def __post_init__(self) -> None:
+        parent_post_init = getattr(super(), "__post_init__", None)
+        if callable(parent_post_init):
+            parent_post_init()
 
 ## Removed SFTConfig for GRPO-only workflow
 
