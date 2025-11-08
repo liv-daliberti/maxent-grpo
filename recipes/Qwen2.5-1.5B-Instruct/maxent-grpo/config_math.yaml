@@ -22,6 +22,10 @@ attn_implementation: sdpa
 # Data training arguments
 dataset_name: open-r1/OpenR1-Math-220k
 dataset_prompt_column: problem
+eval_dataset_name: HuggingFaceH4/MATH-500
+eval_dataset_split: test
+eval_dataset_prompt_column: problem
+eval_dataset_solution_column: answer
 system_prompt: "You are an expert *mathematics problem-solver*.
 
   Every time you receive a problem you must:
@@ -68,7 +72,7 @@ maxent_length_normalize_ref: true
 bf16: true
 use_vllm: true
 vllm_mode: colocate
-do_eval: false
+do_eval: true
 gradient_accumulation_steps: 64
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
@@ -111,7 +115,8 @@ init_kl_coeff: 3.00
 max_grad_norm: 0.15
 save_strategy: steps
 save_steps: 50
-evaluation_strategy: "no"
+evaluation_strategy: steps
+eval_steps: 25
 save_total_limit: 1000
 seed: 42
 warmup_ratio: 0.2

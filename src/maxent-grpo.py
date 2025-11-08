@@ -65,7 +65,7 @@ from transformers import (
 
 from configs import GRPOConfig, GRPOScriptArguments
 from rewards import get_reward_funcs
-from utils.data import get_dataset
+from utils.data import get_dataset, load_dataset_split
 from utils.model_utils import get_model, get_tokenizer
 from utils.trl_patches import ensure_vllm_group_port
 from utils.vllm_patch import safe_generate
@@ -75,8 +75,8 @@ from utils.vllm_patch import safe_generate
 ensure_vllm_group_port()
 
 LOG = logging.getLogger(__name__)
-_TRUNC_WARNED = False
 PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))
+_TRUNC_STATE = {"warned": False}
 
 # -------------------------------
 # Helpers
@@ -94,16 +94,15 @@ class ChatTokenizer(Protocol):
 
 def _truncate_prompt(prompt: str) -> str:
     """Clamp prompt strings to a safe length for vLLM/http payloads."""
-    global _TRUNC_WARNED
     if PROMPT_CHAR_LIMIT <= 0 or len(prompt) <= PROMPT_CHAR_LIMIT:
         return prompt
-    if not _TRUNC_WARNED:
+    if not _TRUNC_STATE["warned"]:
         LOG.warning(
             "Prompt length exceeded %d characters; truncating. "
             "Override via MAX_PROMPT_CHARS if needed.",
             PROMPT_CHAR_LIMIT,
         )
-        _TRUNC_WARNED = True
+        _TRUNC_STATE["warned"] = True
     return prompt[:PROMPT_CHAR_LIMIT]
 
 
@@ -358,6 +357,109 @@ def main(
 
     train_loader = DataLoader(train_ds, batch_size=bsz, shuffle=True, collate_fn=_collate)
 
+    # Optional dedicated eval dataset (e.g., MATH-500)
+    eval_dataset_name = getattr(script_args, "eval_dataset_name", None)
+    eval_prompt_col = getattr(script_args, "eval_dataset_prompt_column", None) or pc
+    eval_solution_col = getattr(script_args, "eval_dataset_solution_column", None) or sc
+    eval_split = getattr(script_args, "eval_dataset_split", "validation")
+    eval_rows: List[Dict[str, str]] = []
+    eval_enabled = bool(getattr(training_args, "do_eval", False))
+    eval_every = int(getattr(training_args, "eval_steps", 0))
+    eval_every = eval_every if eval_every > 0 else None
+    eval_bsz = int(getattr(training_args, "per_device_eval_batch_size", bsz))
+
+    if eval_enabled and eval_dataset_name:
+        eval_raw = load_dataset_split(
+            eval_dataset_name,
+            getattr(script_args, "eval_dataset_config", None),
+            eval_split,
+        )
+
+        def _map_eval_fn(ex: Dict[str, Any]) -> Dict[str, str]:
+            out = _to_prompt(ex, tokenizer, eval_prompt_col, training_args.system_prompt)
+            out["answer"] = str(ex.get(eval_solution_col, out.get("answer", "")))
+            return out
+
+        eval_processed = eval_raw.map(_map_eval_fn)
+        if "messages" in eval_processed.column_names:
+            eval_processed = eval_processed.remove_columns("messages")
+        eval_rows = eval_processed.to_list()
+        if not eval_rows:
+            eval_enabled = False
+    else:
+        eval_enabled = False
+
+    def _generate_completions(prompts: List[str], n: int) -> List[List[str]]:
+        """Shared helper to produce n completions per prompt."""
+        if not prompts:
+            return []
+        if use_vllm:
+            return safe_generate(
+                prompts=prompts,
+                url=vllm_url,
+                max_tokens=max_completion_len,
+                temperature=gen_temperature,
+                top_p=gen_top_p,
+                n=n,
+                stream=False,
+                tokenizer=tokenizer,
+            )
+        grouped: List[List[str]] = []
+        for p in prompts:
+            enc = tokenizer(
+                p,
+                return_tensors="pt",
+                truncation=True,
+                max_length=max_prompt_len,
+            ).to(device)
+            outs: List[str] = []
+            with torch.no_grad():
+                gen_out = model.generate(
+                    **enc,
+                    do_sample=True,
+                    temperature=gen_temperature,
+                    top_p=gen_top_p,
+                    max_new_tokens=max_completion_len,
+                    num_return_sequences=n,
+                )
+            for i in range(gen_out.shape[0]):
+                text = tokenizer.decode(gen_out[i], skip_special_tokens=True)
+                outs.append(text[len(p):])
+            grouped.append(outs)
+        return grouped
+
+    def _run_validation(step: int) -> None:
+        """Generate single completions on the eval set and log mean reward."""
+        if not eval_enabled or not eval_rows:
+            return
+        prev_mode = model.training
+        model.eval()
+        eval_scores: List[float] = []
+        for idx in range(0, len(eval_rows), eval_bsz):
+            batch = eval_rows[idx : idx + eval_bsz]
+            prompts = [row["prompt"] for row in batch]
+            answers = [row.get("answer", "") for row in batch]
+            if not prompts:
+                continue
+            grouped = _generate_completions(prompts, 1)
+            completions = [grp[0] if grp else "" for grp in grouped]
+            total_utils = [0.0] * len(completions)
+            for w, rf in zip(reward_weights, reward_funcs):
+                rs = rf(completions, answers)
+                if w != 1.0:
+                    rs = [float(w) * float(r) for r in rs]
+                total_utils = [u + float(r) for u, r in zip(total_utils, rs)]
+            eval_scores.extend(total_utils)
+        mean_reward = float(sum(eval_scores) / max(len(eval_scores), 1))
+        logging.getLogger(__name__).info(
+            "eval step %d | mean_reward=%.4f | samples=%d",
+            step,
+            mean_reward,
+            len(eval_scores),
+        )
+        if prev_mode:
+            model.train()
+
     global_step = 0
     for epoch in range(num_epochs):
         for batch in train_loader:
@@ -365,38 +467,7 @@ def main(
             answers: List[str] = batch["answer"]
 
             # 1) Generate K candidates per prompt
-            if use_vllm:
-                grouped_comps = safe_generate(
-                    prompts=prompts,
-                    url=vllm_url,
-                    max_tokens=max_completion_len,
-                    temperature=gen_temperature,
-                    top_p=gen_top_p,
-                    n=num_generations,
-                    stream=False,
-                    tokenizer=tokenizer,
-                )
-            else:
-                # Local generation fallback (simple loop to avoid large VRAM use)
-                grouped_comps = []
-                for p in prompts:
-                    # Encode prompt
-                    enc = tokenizer(p, return_tensors="pt", truncation=True, max_length=max_prompt_len).to(device)
-                    outs: List[str] = []
-                    with torch.no_grad():
-                        gen_out = model.generate(
-                            **enc,
-                            do_sample=True,
-                            temperature=gen_temperature,
-                            top_p=gen_top_p,
-                            max_new_tokens=max_completion_len,
-                            num_return_sequences=num_generations,
-                        )
-                    for i in range(gen_out.shape[0]):
-                        text = tokenizer.decode(gen_out[i], skip_special_tokens=True)
-                        # Strip the prompt prefix to approximate the completion
-                        outs.append(text[len(p):])
-                    grouped_comps.append(outs)
+            grouped_comps = _generate_completions(prompts, num_generations)
 
             # 2) Rewards → listwise q per prompt
             # Flatten for reward functions, then regroup
@@ -516,6 +587,8 @@ def main(
                     tau,
                     beta,
                 )
+            if eval_enabled and eval_every and (global_step % eval_every == 0):
+                _run_validation(global_step)
 
     # Save final model
     out_dir = getattr(training_args, "output_dir", "./maxent-grpo-out")

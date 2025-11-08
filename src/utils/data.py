@@ -134,3 +134,27 @@ def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
 
     else:
         raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
+
+
+def load_dataset_split(
+    dataset_name: str,
+    dataset_config: Optional[str] = None,
+    split: str = "validation",
+) -> Dataset:
+    """Load a single split from a dataset independent of ScriptArguments.
+
+    :param dataset_name: Dataset repository ID on the Hub.
+    :type dataset_name: str
+    :param dataset_config: Optional dataset config name.
+    :type dataset_config: str | None
+    :param split: Split to load (e.g., \"train\", \"validation\", \"test\").
+    :type split: str
+    :returns: The requested dataset split.
+    :rtype: Dataset
+    :raises ImportError: If the datasets library is unavailable.
+    """
+    if not datasets:
+        raise ImportError("datasets library required but not installed")
+    if not split:
+        raise ValueError("split must be provided when loading an eval dataset")
+    return cast(Dataset, datasets.load_dataset(dataset_name, dataset_config, split=split))

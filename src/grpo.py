@@ -44,13 +44,13 @@ from transformers import PreTrainedTokenizer
 
 from configs import GRPOConfig, GRPOScriptArguments
 from rewards import get_reward_funcs
-from utils.data import get_dataset
+from utils.data import get_dataset, load_dataset_split
 from utils.model_utils import get_model, get_tokenizer
 from utils.trl_patches import ensure_vllm_group_port
 
 LOG = logging.getLogger(__name__)
-_TRUNC_WARNED = False
 PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))
+_TRUNC_STATE = {"warned": False}
 
 @runtime_checkable
 class ChatTemplate(Protocol):
@@ -65,18 +65,17 @@ class ChatTemplate(Protocol):
 
 def _truncate_prompt(prompt: str) -> str:
     """Cap prompt length to avoid vLLM payload failures."""
-    global _TRUNC_WARNED
     if PROMPT_CHAR_LIMIT <= 0:
         return prompt
     if len(prompt) <= PROMPT_CHAR_LIMIT:
         return prompt
-    if not _TRUNC_WARNED:
+    if not _TRUNC_STATE["warned"]:
         LOG.warning(
             "Prompt exceeds %d characters; truncating to avoid server errors. "
             "Set MAX_PROMPT_CHARS to adjust the limit.",
             PROMPT_CHAR_LIMIT,
         )
-        _TRUNC_WARNED = True
+        _TRUNC_STATE["warned"] = True
     return prompt[:PROMPT_CHAR_LIMIT]
 
 
@@ -233,12 +232,33 @@ def main(
 
     train_ds = dataset[train_split]
     eval_ds = None
-    if training_args.do_eval and test_split is not None and test_split in dataset:
-        full_eval = dataset[test_split]
-        n_total = len(full_eval)
-        # Simple sampler: take 10% up to 1000 items (at least 1)
-        n_keep = min(1000, max(1, int(0.1 * n_total)))
-        eval_ds = full_eval.shuffle(seed=training_args.seed).select(range(n_keep))
+    eval_dataset_name = getattr(script_args, "eval_dataset_name", None)
+    eval_prompt_col = getattr(script_args, "eval_dataset_prompt_column", None) or pc
+    eval_solution_col = getattr(script_args, "eval_dataset_solution_column", None) or sc
+
+    if training_args.do_eval:
+        if eval_dataset_name:
+            eval_split = getattr(script_args, "eval_dataset_split", "validation")
+            eval_ds_raw = load_dataset_split(
+                eval_dataset_name,
+                getattr(script_args, "eval_dataset_config", None),
+                eval_split,
+            )
+
+            def _map_eval_fn(ex: Dict[str, Any]) -> Dict[str, str]:
+                out = _to_prompt(ex, tokenizer, eval_prompt_col, training_args.system_prompt)
+                out["answer"] = str(ex.get(eval_solution_col, out.get("answer", "")))
+                return out
+
+            eval_ds = eval_ds_raw.map(_map_eval_fn)
+            if "messages" in eval_ds.column_names:
+                eval_ds = eval_ds.remove_columns("messages")
+        elif test_split is not None and test_split in dataset:
+            full_eval = dataset[test_split]
+            n_total = len(full_eval)
+            # Simple sampler: take 10% up to 1000 items (at least 1)
+            n_keep = min(1000, max(1, int(0.1 * n_total)))
+            eval_ds = full_eval.shuffle(seed=training_args.seed).select(range(n_keep))
 
     # Rewards
     reward_funcs = get_reward_funcs(script_args, None, tokenizer)

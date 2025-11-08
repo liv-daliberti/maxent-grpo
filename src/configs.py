@@ -384,6 +384,30 @@ class GRPOScriptArguments(ScriptArguments):
         default="answer",
         metadata={"help": "Column to use as the gold solution/answer for training."},
     )
+    eval_dataset_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Optional dataset to use exclusively for evaluation."},
+    )
+    eval_dataset_config: Optional[str] = field(
+        default=None,
+        metadata={"help": "Config name for the evaluation dataset when applicable."},
+    )
+    eval_dataset_split: str = field(
+        default="validation",
+        metadata={"help": "Split to load from the evaluation dataset."},
+    )
+    eval_dataset_prompt_column: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Prompt column for the evaluation dataset (defaults to training column)."
+        },
+    )
+    eval_dataset_solution_column: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Answer column for the evaluation dataset (defaults to training column)."
+        },
+    )
 
     # Removed: e2b/morph router URLs and provider settings (code execution removed)
 
