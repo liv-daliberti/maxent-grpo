@@ -42,7 +42,7 @@ from typing import Dict, Optional, Any, List, Union, Protocol, runtime_checkable
 import transformers
 from transformers import PreTrainedTokenizer
 
-from configs import GRPOConfig, ScriptArguments
+from configs import GRPOConfig, GRPOScriptArguments
 from rewards import get_reward_funcs
 from utils.data import get_dataset
 from utils.model_utils import get_model, get_tokenizer
@@ -110,7 +110,7 @@ def _to_prompt(
 
 
 def main(
-    script_args: ScriptArguments, 
+    script_args: GRPOScriptArguments, 
     training_args: Any,  # from transformers.TrainingArguments
     model_args: Any  # from transformers.ModelArguments
 ) -> None:
@@ -264,6 +264,6 @@ def main(
 
 if __name__ == "__main__":
     from trl import ModelConfig, TrlParser
-    parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
+    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
     cli_script_args, cli_training_args, cli_model_args = parser.parse_args_and_config()
     main(cli_script_args, cli_training_args, cli_model_args)

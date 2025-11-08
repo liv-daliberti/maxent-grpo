@@ -63,7 +63,7 @@ from transformers import (
     PreTrainedTokenizer,
 )
 
-from configs import GRPOConfig, ScriptArguments
+from configs import GRPOConfig, GRPOScriptArguments
 from rewards import get_reward_funcs
 from utils.data import get_dataset
 from utils.model_utils import get_model, get_tokenizer
@@ -220,7 +220,7 @@ def _batch_tokenize_pairs(
 
 
 def main(
-    script_args: ScriptArguments,
+    script_args: GRPOScriptArguments,
     training_args: GRPOConfig,
     model_args: Any  # from transformers.ModelArguments
 ) -> None:
@@ -512,6 +512,6 @@ if __name__ == "__main__":
         )
         raise
 
-    parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
+    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
     cli_script_args, cli_training_args, cli_model_args = parser.parse_args_and_config()
     main(cli_script_args, cli_training_args, cli_model_args)
