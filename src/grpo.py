@@ -228,17 +228,37 @@ def main(
     )
 
     # Train
-    last_ckpt = (
-        training_args.resume_from_checkpoint
-        or (
-            get_last_checkpoint(training_args.output_dir)
-            if (
-                getattr(training_args, "output_dir", None)
-                and os.path.isdir(training_args.output_dir)
+    logger = logging.getLogger(__name__)
+    resume_request = getattr(training_args, "resume_from_checkpoint", None)
+    last_ckpt: Optional[str] = None
+    if isinstance(resume_request, str) and resume_request:
+        if os.path.isdir(resume_request):
+            last_ckpt = resume_request
+        else:
+            logger.warning(
+                "resume_from_checkpoint=%s was provided but the path does not exist; "
+                "starting from scratch.",
+                resume_request,
             )
-            else None
-        )
-    )
+    elif resume_request:
+        output_dir = getattr(training_args, "output_dir", None)
+        if output_dir and os.path.isdir(output_dir):
+            last_ckpt = get_last_checkpoint(output_dir)
+        if last_ckpt is None:
+            logger.warning(
+                "resume_from_checkpoint was requested but no checkpoint was found under %s; "
+                "starting from scratch.",
+                output_dir or "<unspecified>",
+            )
+    else:
+        output_dir = getattr(training_args, "output_dir", None)
+        if output_dir and os.path.isdir(output_dir):
+            last_ckpt = get_last_checkpoint(output_dir)
+
+    if last_ckpt is not None:
+        training_args.resume_from_checkpoint = last_ckpt
+    else:
+        training_args.resume_from_checkpoint = False
     train_result = trainer.train(resume_from_checkpoint=last_ckpt)
     trainer.log_metrics("train", train_result.metrics)
     trainer.save_metrics("train", train_result.metrics)

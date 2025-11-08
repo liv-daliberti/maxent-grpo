@@ -20,7 +20,9 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
 #SBATCH --requeue
-#SBATCH --time=00:59:00
+#SBATCH --time=128:00:00
+#SBATCH --account=mltheory      # Adjust for your cluster (e.g., hopper-prod)
+
 
 set -euo pipefail
 set -x
@@ -35,6 +37,17 @@ export ENV_MODE="${ENV_MODE:-conda}"
 export CONDA_SH="${CONDA_SH:-/usr/local/anaconda3/2024.02/etc/profile.d/conda.sh}"
 export CONDA_ENV="${CONDA_ENV:-$PWD/openr1}"
 export ENV_ACTIVATE="${ENV_ACTIVATE:-$PWD/openr1/bin/activate}"
+
+# Ensure CUDA toolkit matches the PyTorch build (torch 2.7.0 was compiled with CUDA 12.6)
+if command -v module &>/dev/null; then
+  module unload cuda || true
+  module load cuda/12.6 || {
+    echo "[warn] Failed to load cuda/12.6 module; ensure CUDA_HOME already points to a 12.6 toolkit." >&2
+  }
+fi
+export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda-12.6}"
+export PATH="$CUDA_HOME/bin:${PATH:-}"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 # Activate once in submission shell (best-effort); srun subshells will also activate.
 if [[ "$ENV_MODE" == "conda" ]]; then
@@ -51,6 +64,7 @@ export PYTHONNOUSERSITE=1
 
 # Route all caches and temp dirs into the current working directory
 export ROOT_DIR="$PWD"
+export HF_TOKEN="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"
 export HF_HOME="$ROOT_DIR/.hf_cache"
 export XDG_CACHE_HOME="$ROOT_DIR/.cache"
 export XDG_CONFIG_HOME="$ROOT_DIR/.config"
