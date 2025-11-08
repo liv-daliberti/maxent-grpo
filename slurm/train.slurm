@@ -286,13 +286,18 @@ if $USE_VLLM; then
 fi
 
 if $SINGLE_NODE; then
-  # Request only the training GPUs for the train step when colocated with server
+  # Inline vLLM needs the full GPU set even though training only uses TRAIN_PROCS
+  if $INLINE_VLLM; then
+    SINGLE_NODE_GRES=${GPUS_PER_NODE}
+  else
+    SINGLE_NODE_GRES=${TRAIN_PROCS}
+  fi
   SRUN_ARGS=(
     --wait=60
     --kill-on-bad-exit=1
     --nodes=1
     --ntasks=1
-    --gres=gpu:${TRAIN_PROCS}
+    --gres=gpu:${SINGLE_NODE_GRES}
     --nodelist="${MASTER_ADDR}"
   )
 else
@@ -311,6 +316,7 @@ echo "Launching training across nodes…"
 export TRAINING_LOG="${TRAINING_LOG:-$PWD/logs/train_${SLURM_JOB_ID}.log}"
 mkdir -p "$(dirname "$TRAINING_LOG")"
 : > "$TRAINING_LOG"
+export INLINE_VLLM_FALLBACK_GPUS="$(seq -s, 0 $((GPUS_PER_NODE - 1)))"
 
 srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; set -x; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
@@ -335,16 +341,54 @@ PY
   export TRITON_CACHE_DIR=\"$TRITON_CACHE_DIR\"; export WANDB_DIR=\"$WANDB_DIR\"; export TMPDIR=\"$TMPDIR\"; \
   mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
   if [ "${INLINE_VLLM}" = "true" ]; then \
-    echo 'Starting inline vLLM server on GPU 0…'; \
+    ORIGINAL_CUDA_VISIBLE_DEVICES=\"\${CUDA_VISIBLE_DEVICES:-}\"; \
+    if [ -z \"\$ORIGINAL_CUDA_VISIBLE_DEVICES\" ]; then \
+      ORIGINAL_CUDA_VISIBLE_DEVICES=\"${INLINE_VLLM_FALLBACK_GPUS}\"; \
+    fi; \
+    IFS=, read -ra ALL_GPU_IDS <<< \"\$ORIGINAL_CUDA_VISIBLE_DEVICES\"; \
+    if [ \"\${#ALL_GPU_IDS[@]}\" -lt 2 ]; then \
+      echo \"Inline vLLM requires at least 2 GPUs, saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
+    fi; \
+    INLINE_VLLM_GPU_ID=\"\${ALL_GPU_IDS[0]}\"; \
+    TRAIN_GPU_IDS=(\"\${ALL_GPU_IDS[@]:1}\"); \
+    INLINE_VLLM_TRAIN_GPUS=\"\${TRAIN_GPU_IDS[*]}\"; \
+    INLINE_VLLM_TRAIN_GPUS=\"\${INLINE_VLLM_TRAIN_GPUS// /,}\"; \
+    export INLINE_VLLM_GPU_ID INLINE_VLLM_TRAIN_GPUS; \
+    echo \"Starting inline vLLM server on GPU \$INLINE_VLLM_GPU_ID…\"; \
+    echo \"Trainer GPUs: \$INLINE_VLLM_TRAIN_GPUS\"; \
     VLLM_LOG=\"$ROOT_DIR/logs/vllm-${SLURM_JOB_ID}.out\"; \
-    CUDA_VISIBLE_DEVICES=0 python -m trl.scripts.vllm_serve \
+    mkdir -p \"\$(dirname \"\$VLLM_LOG\")\"; \
+    : > \"\$VLLM_LOG\"; \
+    tail -n +1 -F \"\$VLLM_LOG\" & \
+    VLLM_TAIL_PID=\$!; \
+    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID python -m trl.scripts.vllm_serve \
       --model "$VLLM_MODEL" ${REVISION:+--revision $REVISION} \
       --tensor_parallel_size $TP --data_parallel_size $DP \
       --port $VLLM_PORT --dtype float16 --gpu_memory_utilization 0.90 \
       --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
     VLLM_PID=\$!; \
     echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \
-    until curl -sf http://localhost:$VLLM_PORT/health >/dev/null; do sleep 2; done; \
+    INLINE_VLLM_READY=false; \
+    INLINE_VLLM_FAILURE_REASON=\"timeout\"; \
+    for attempt in \$(seq 1 180); do \
+      if curl -sf http://localhost:$VLLM_PORT/health >/dev/null 2>&1; then \
+        INLINE_VLLM_READY=true; \
+        break; \
+      fi; \
+      if ! kill -0 \$VLLM_PID 2>/dev/null; then \
+        INLINE_VLLM_FAILURE_REASON=\"crashed\"; \
+        break; \
+      fi; \
+      sleep 2; \
+    done; \
+    if [ \"\$INLINE_VLLM_READY\" != \"true\" ]; then \
+      echo \"Inline vLLM failed to become healthy (reason: \$INLINE_VLLM_FAILURE_REASON).\" >&2; \
+      tail -n 200 \"\$VLLM_LOG\" || true; \
+      kill \$VLLM_PID || true; \
+      wait \$VLLM_PID || true; \
+      if [ -n \"\${VLLM_TAIL_PID:-}\" ]; then kill \$VLLM_TAIL_PID || true; fi; \
+      exit 1; \
+    fi; \
     echo 'Inline vLLM is healthy.'; \
   fi; \
   export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; \
@@ -353,7 +397,7 @@ PY
   echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \
   echo 'Launch command:'; echo \"$LAUNCHER $CMD\"; echo 'About to start accelerate launch'; date; \
   echo 'Restricting training GPUs when inline vLLM is enabled'; \
-  if [ "${INLINE_VLLM}" = "true" ]; then export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7; fi; \
+  if [ "${INLINE_VLLM}" = "true" ]; then export CUDA_VISIBLE_DEVICES=\"\$INLINE_VLLM_TRAIN_GPUS\"; fi; \
   echo 'Spawning accelerate launcher'; \
   set +e; \
   $LAUNCHER $CMD 2>&1 | tee -a \"\$TRAINING_LOG\"; \
@@ -361,7 +405,15 @@ PY
   set -e; \
   echo 'Accelerate launch finished'; date; \
   echo \"Training finished with exit code: \$TRAIN_STATUS\" | tee -a \"\$TRAINING_LOG\"; \
-  if [ "${INLINE_VLLM}" = "true" ]; then echo 'Stopping inline vLLM…'; kill \$VLLM_PID || true; fi; \
+  if [ "${INLINE_VLLM}" = "true" ]; then \
+    echo 'Stopping inline vLLM…'; \
+    kill \$VLLM_PID || true; \
+    wait \$VLLM_PID || true; \
+    if [ -n \"\${VLLM_TAIL_PID:-}\" ]; then \
+      kill \$VLLM_TAIL_PID || true; \
+      wait \$VLLM_TAIL_PID 2>/dev/null || true; \
+    fi; \
+  fi; \
   exit \$TRAIN_STATUS;"
 
 SRUN_STATUS=$?
