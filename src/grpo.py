@@ -48,6 +48,10 @@ from utils.data import get_dataset
 from utils.model_utils import get_model, get_tokenizer
 from utils.trl_patches import ensure_vllm_group_port
 
+LOG = logging.getLogger(__name__)
+_TRUNC_WARNED = False
+PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))
+
 @runtime_checkable
 class ChatTemplate(Protocol):
     """Protocol for objects with chat templating capabilities."""
@@ -57,6 +61,23 @@ class ChatTemplate(Protocol):
         tokenize: bool = True,
         add_generation_prompt: bool = True
     ) -> Union[str, List[int]]: ...
+
+
+def _truncate_prompt(prompt: str) -> str:
+    """Cap prompt length to avoid vLLM payload failures."""
+    global _TRUNC_WARNED
+    if PROMPT_CHAR_LIMIT <= 0:
+        return prompt
+    if len(prompt) <= PROMPT_CHAR_LIMIT:
+        return prompt
+    if not _TRUNC_WARNED:
+        LOG.warning(
+            "Prompt exceeds %d characters; truncating to avoid server errors. "
+            "Set MAX_PROMPT_CHARS to adjust the limit.",
+            PROMPT_CHAR_LIMIT,
+        )
+        _TRUNC_WARNED = True
+    return prompt[:PROMPT_CHAR_LIMIT]
 
 
 def _to_prompt(
@@ -103,6 +124,7 @@ def _to_prompt(
             + "\nASSISTANT:"
         )
 
+    prompt = _truncate_prompt(prompt)
     out = {
         "prompt": prompt,
         "answer": str(example.get("answer", example.get("solution", ""))),

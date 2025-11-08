@@ -74,6 +74,9 @@ from utils.vllm_patch import safe_generate
 # inherits the environment-driven group_port override.
 ensure_vllm_group_port()
 
+LOG = logging.getLogger(__name__)
+_TRUNC_WARNED = False
+PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))
 
 # -------------------------------
 # Helpers
@@ -88,6 +91,21 @@ class ChatTokenizer(Protocol):
         tokenize: bool = True,
         add_generation_prompt: bool = True
     ) -> Union[str, List[int]]: ...
+
+def _truncate_prompt(prompt: str) -> str:
+    """Clamp prompt strings to a safe length for vLLM/http payloads."""
+    global _TRUNC_WARNED
+    if PROMPT_CHAR_LIMIT <= 0 or len(prompt) <= PROMPT_CHAR_LIMIT:
+        return prompt
+    if not _TRUNC_WARNED:
+        LOG.warning(
+            "Prompt length exceeded %d characters; truncating. "
+            "Override via MAX_PROMPT_CHARS if needed.",
+            PROMPT_CHAR_LIMIT,
+        )
+        _TRUNC_WARNED = True
+    return prompt[:PROMPT_CHAR_LIMIT]
+
 
 def _to_prompt(
     example: Dict[str, Any],
@@ -117,6 +135,7 @@ def _to_prompt(
             "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
             + "\nASSISTANT:"
         )
+    prompt = _truncate_prompt(prompt)
     return {
         "prompt": prompt,
         "answer": str(example.get("answer", example.get("solution", ""))),

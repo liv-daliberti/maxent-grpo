@@ -8,29 +8,54 @@ A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑lev
 - Environment: `make conda-local && conda activate ./openr1`
 - Install (core): `pip install -e .`
 - Install (dev): `pip install -e .[dev]`
-- Train on Slurm: `sbatch training.sh`
-  - Adjust the SBATCH header in `training.sh` (account/partition/GRES) for your cluster.
-  - Switch trainer entrypoint: `MAXENT=1 sbatch training.sh` (uses `src/maxent-grpo.py`), or set `TRAIN_ENTRYPOINT=src/grpo.py`/`src/maxent-grpo.py` explicitly.
-  - Change served model without editing the script: `VLLM_MODEL="meta-llama/Meta-Llama-3.1-8B-Instruct" sbatch training.sh`.
+- Authenticate with Hugging Face (`huggingface-cli login` or `export HF_TOKEN=…`) so gated models/datasets can be pulled inside the Slurm job.
+- Train on Slurm (recommended):  
+  `sbatch slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3`
+  - Use `--task maxent` to launch `src/maxent-grpo.py`.
+  - Pass extra trainer flags via `--args "--run_name demo --report_to wandb"`.
+  - Inspect `sbatch slurm/train.slurm --help` for all knobs (dp/tp, ports, accelerator config).
 - Evaluation (quick): set `do_eval: true` in your recipe to run a fast subsample eval (see `src/grpo.py`).
 
 Notes
 - The one‑liner keeps conda/pip caches and the env under this repo (no writes to $HOME).
-- Adjust the recipe via `CONFIG` in `training.sh` (default: `recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`).
+- Adjust the recipe via the `--config` flag (default: `recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`).
 - For LightEval benchmarks via vLLM/Slurm, see `src/utils/evaluation.py` (benchmarks list and launcher helper).
 
 
-## Slurm Usage & Logging
+## Training via Slurm Launcher
 
-- Submit the batch script directly: `sbatch training.sh`.
-- The script requests `--gres=gpu:a100:7` on `--partition=mltheory` and runs a single `srun` step that:
-  - Starts vLLM bound to GPU 0
-  - Health‑checks `http://localhost:8000/health`
-  - Launches training via Accelerate on GPUs 1–6
-- All logs live in `logs/`:
-  - Slurm stdout: `logs/slurm_%j.out`
-  - vLLM server:  `logs/liv_vllm_<RUN>_<TIMESTAMP>.log`
-  - Trainer:      `logs/liv_train_<RUN>_<TIMESTAMP>.log`
+- Entry point: `slurm/train.slurm` (multi‑node aware, optional dedicated vLLM head node).
+- Minimal command:
+
+  ```bash
+  sbatch slurm/train.slurm \
+    --model Qwen2.5-1.5B-Instruct \
+    --task grpo \
+    --config math \
+    --accelerator zero3 \
+    --args "--run_name math-demo --report_to wandb"
+  ```
+
+- Key arguments:
+  - `--model` maps to `recipes/<model>/…` (e.g., `Qwen2.5-1.5B-Instruct`).
+  - `--task` selects `src/grpo.py` (`grpo`) or `src/maxent-grpo.py` (`maxent`).
+  - `--config` picks `recipes/<model>/<task>/config_<name>.yaml`.
+  - `--accelerator` selects an Accelerate/DeepSpeed config from `recipes/accelerate_configs/`.
+  - `--dp/--tp`, `--vllm-port`, `--vllm-group-port` tune vLLM server topology.
+  - `--args` passes raw flags to the training script (quoted string).
+- What the launcher does:
+  - Boots your conda or venv (configurable via `ENV_MODE`, `CONDA_ENV`, `ENV_ACTIVATE`).
+  - Pins CUDA/toolkit modules and redirects all HF/pip caches into the repo.
+  - Parses your recipe to detect `use_vllm`; if enabled it either dedicates GPU 0 (single node) or a full node (multi‑node) to `trl.scripts.vllm_serve`.
+  - Derives Accelerate world size from `#SBATCH --nodes/--gres`, including inline vLLM layouts (training uses remaining GPUs).
+  - Injects vLLM server host/port back into the trainer unless you override it.
+- Logs in `logs/`:
+  - Slurm stdout/err: `logs/<job-name>-<jobid>.out|err` (defaults to `open_r1`).
+  - Training stream: `logs/train_<jobid>.log`.
+  - vLLM server: `logs/vllm-<jobid>.out` (or inline server tails in the Slurm log).
+- Prompts longer than 2,048 characters are automatically truncated before sending requests to vLLM; override via `MAX_PROMPT_CHARS` if you need a different limit.
+- Customise the SBATCH header at the top of `slurm/train.slurm` for your cluster (account, partition, GPU type/count, walltime).
+- Run `sbatch slurm/train.slurm --help` to see every flag and the expected directory layout.
 
 
 ## Environment Notes
@@ -79,7 +104,8 @@ MaxEnt‑GRPO
 │  └─ rewards.py                # reward shaping / scoring
 ├─ recipes/                     # task/model YAMLs
 │  └─ accelerate_configs/       # Accelerate/DeepSpeed configs
-├─ training.sh                  # SLURM‑friendly launcher (vLLM + Accelerate)
+├─ slurm/
+│  └─ train.slurm               # multi-node SLURM launcher (env bootstrap + vLLM + Accelerate)
 ├─ environment.yml              # minimal conda spec (installs this package editable)
 └─ setup.py                     # package metadata and dependencies
 ```
