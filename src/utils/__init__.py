@@ -38,6 +38,7 @@ __all__ = [
     "evaluation",
     "hub",
     "model_utils",
+    "trl_patches",
     "vllm_patch",
     "wandb_logging",
 ]

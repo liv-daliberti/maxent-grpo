@@ -44,6 +44,7 @@ system_prompt: "You are an expert *mathematics problem-solver*.\nEvery time you 
   \ </answer> "
 bf16: true
 use_vllm: true
+vllm_mode: colocate
 do_eval: false
 gradient_accumulation_steps: 32
 gradient_checkpointing: true

@@ -47,8 +47,12 @@ from huggingface_hub import (
     list_repo_refs,
     repo_exists,
     upload_folder,
-    CommitInfo,
 )
+# CommitInfo was introduced in newer huggingface_hub versions; fall back to Any
+try:  # pragma: no cover - import surface varies across environments
+    from huggingface_hub import CommitInfo  # type: ignore
+except (ImportError, AttributeError):
+    CommitInfo = Any  # type: ignore[misc,assignment]
 # Optional: guard HfHubHTTPError import for environments with minimal stubs
 try:  # pragma: no cover - exercised via tests with stubs
     from huggingface_hub.utils import HfHubHTTPError  # type: ignore

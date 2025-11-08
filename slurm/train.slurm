@@ -96,6 +96,7 @@ if [[ "$*" == *"--help"* ]]; then
   echo "  --dp N                   vLLM data parallel size on the server node (default: 1)"
   echo "  --tp N                   vLLM tensor parallel size on the server node (default: 1)"
   echo "  --vllm-port PORT         vLLM server port (default: 8000)"
+  echo "  --vllm-group-port PORT   NCCL group port for weight sync RPCs (default: 29535)"
   echo "  --args \"ARGS\"          Extra args to pass to the training entrypoint"
   exit 0
 fi
@@ -109,7 +110,8 @@ CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
 ACCELERATOR="${ACCELERATOR:-zero3}"
 DP=${DP:-1}
 TP=${TP:-1}
-VLLM_PORT=${VLLM_PORT:-8000}
+VLLM_PORT=${VLLM_PORT:-29525}
+VLLM_GROUP_PORT=${VLLM_GROUP_PORT:-29535}
 OPTIONAL_ARGS="${OPTIONAL_ARGS:-}"
 
 # Parse CLI
@@ -122,10 +124,14 @@ while [[ $# -gt 0 ]]; do
     --dp)           DP="$2"; shift 2;;
     --tp)           TP="$2"; shift 2;;
     --vllm-port)    VLLM_PORT="$2"; shift 2;;
+    --vllm-group-port) VLLM_GROUP_PORT="$2"; shift 2;;
     --args)         OPTIONAL_ARGS="$2"; shift 2;;
     *) echo "Unknown option: $1"; exit 1;;
   esac
 done
+
+export VLLM_GROUP_PORT
+export PORT_FOR_COMMUNICATION="${PORT_FOR_COMMUNICATION:-$VLLM_GROUP_PORT}"
 
 # Validate
 if [[ -z "$MODEL" || -z "$TASK" || -z "$CONFIG_SUFFIX" || -z "$ACCELERATOR" ]]; then
@@ -173,6 +179,18 @@ if grep -qE '^[[:space:]]*use_vllm:[[:space:]]*true' "$CONFIG_FILE"; then
   USE_VLLM=true
 fi
 
+VLLM_MODE=$(grep -E "^[[:space:]]*vllm_mode:" "$CONFIG_FILE" | head -n1 | awk '{print $2}' | tr -d '"' | tr '[:upper:]' '[:lower:]')
+if [[ -z "$VLLM_MODE" ]]; then
+  VLLM_MODE="server"
+fi
+export VLLM_MODE
+
+USE_VLLM_SERVER=false
+if $USE_VLLM && [[ "$VLLM_MODE" == "server" ]]; then
+  USE_VLLM_SERVER=true
+fi
+export USE_VLLM_SERVER
+
 # SLURM topology
 NUM_NODES=${SLURM_NNODES}
 GPUS_PER_NODE=${GPUS_PER_NODE:-8}
@@ -186,9 +204,10 @@ VLLM_NODE=""
 
 SINGLE_NODE=false
 if (( NUM_NODES == 1 )); then SINGLE_NODE=true; fi
+SINGLE_NODE_VLLM=false
 INLINE_VLLM=false
 
-if $USE_VLLM; then
+if $USE_VLLM_SERVER; then
   if ! $SINGLE_NODE; then
     # Reserve last node for vLLM server
     VLLM_NODE=${NODELIST[-1]}
@@ -196,24 +215,41 @@ if $USE_VLLM; then
     NUM_NODES=$(( NUM_NODES - 1 ))
     WORLD_SIZE=$(( WORLD_SIZE - GPUS_PER_NODE ))
   else
-    # Single-node: run vLLM and training in the same srun step; server uses 1 GPU
+    # Single-node: dedicate 1 GPU on the lone node to the vLLM server
     VLLM_NODE=${NODELIST[0]}
+    SINGLE_NODE_VLLM=true
     INLINE_VLLM=true
   fi
 fi
+export INLINE_VLLM
 
 echo "SLURM nodes: ${NODELIST[*]}"
 echo "Train nodes: ${TRAIN_NODES[*]}"
-if $USE_VLLM; then
-  echo "vLLM node:   $VLLM_NODE (dp=$DP, tp=$TP, port=$VLLM_PORT)"
+if $USE_VLLM_SERVER; then
+  echo "vLLM node:   $VLLM_NODE (dp=$DP, tp=$TP, port=$VLLM_PORT, group_port=$VLLM_GROUP_PORT)"
 fi
+
+if $SINGLE_NODE_VLLM && (( GPUS_PER_NODE < 2 )); then
+  echo "Inline vLLM requires at least 2 GPUs on the node; detected $GPUS_PER_NODE" >&2
+  exit 1
+fi
+
+VLLM_GROUP_PORT_FLAG=""
+if $USE_VLLM; then
+  if python -m trl.scripts.vllm_serve --help 2>&1 | grep -q -- "--group-port"; then
+    VLLM_GROUP_PORT_FLAG="--group-port ${VLLM_GROUP_PORT}"
+  else
+    echo "[info] trl.scripts.vllm_serve does not advertise --group-port; relying on env overrides only."
+  fi
+fi
+export VLLM_GROUP_PORT_FLAG
 
 # Robust NCCL settings
 export NCCL_ASYNC_ERROR_HANDLING=1
 # export NCCL_DEBUG=INFO
 
-# Start vLLM server if requested (multi-node only; single-node handled inline below)
-if $USE_VLLM && ! $SINGLE_NODE; then
+# Start vLLM server if requested (multi-node or dedicated node scenarios)
+if $USE_VLLM_SERVER && ! $INLINE_VLLM; then
   # Ensure DP does not exceed GPUs on the vLLM head node
   if (( DP > GPUS_PER_NODE )); then
     echo "[warn] --dp ($DP) > GPUs on head ($GPUS_PER_NODE); clamping to $GPUS_PER_NODE"
@@ -222,7 +258,6 @@ if $USE_VLLM && ! $SINGLE_NODE; then
   # Prefer model from YAML; fallback to --model
   VLLM_MODEL="${MODEL_ID:-$MODEL}"
   echo "Launching vLLM server: $VLLM_MODEL (rev=${REVISION:-none})"
-  # In single-node mode, allocate 1 GPU to the vLLM step; multi-node head gets all on that node
   if $SINGLE_NODE; then VLLM_GRES=1; else VLLM_GRES=$GPUS_PER_NODE; fi
   srun --nodes=1 --ntasks=1 --gres=gpu:${VLLM_GRES} --nodelist="$VLLM_NODE" \
     bash -lc "set -euo pipefail; \
@@ -241,12 +276,14 @@ if $USE_VLLM && ! $SINGLE_NODE; then
     mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
     mkdir -p \"$(dirname "$VLLM_USAGE_STATS_PATH")\"; \
     export NCCL_DEBUG=WARN; \
+    PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
+    VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
     python -m trl.scripts.vllm_serve \
       --model "$VLLM_MODEL" \
       ${REVISION:+--revision $REVISION} \
       --tensor_parallel_size $TP \
       --data_parallel_size $DP \
-      --port $VLLM_PORT \
+      --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
       --dtype float16 \
       --gpu_memory_utilization 0.90 \
       --enforce_eager false" \
@@ -292,18 +329,22 @@ CMD+=" --seed ${TRAIN_SEED}"
 export CMD
 
 # If vLLM server is used, forward host/port to trainer unless already set in OPTIONAL_ARGS
-if $USE_VLLM; then
+if $USE_VLLM_SERVER; then
   if [[ "$OPTIONAL_ARGS" != *"--vllm_server_base_url="* && "$OPTIONAL_ARGS" != *"--vllm_server_host="* ]]; then
-    export CMD+=" --vllm_server_host ${VLLM_NODE} --vllm_server_port ${VLLM_PORT}"
+    if $INLINE_VLLM; then
+      VLLM_CLIENT_HOST="localhost"
+    else
+      VLLM_CLIENT_HOST="${VLLM_NODE}"
+    fi
+    export CMD+=" --vllm_server_host ${VLLM_CLIENT_HOST} --vllm_server_port ${VLLM_PORT}"
   fi
 fi
 
 if $SINGLE_NODE; then
-  # Inline vLLM needs the full GPU set even though training only uses TRAIN_PROCS
-  if $INLINE_VLLM; then
+  if $SINGLE_NODE_VLLM; then
     SINGLE_NODE_GRES=${GPUS_PER_NODE}
   else
-    SINGLE_NODE_GRES=${TRAIN_PROCS}
+    SINGLE_NODE_GRES=${GPUS_PER_NODE}
   fi
   SRUN_ARGS=(
     --wait=60
@@ -353,7 +394,7 @@ PY
   export PIP_CACHE_DIR=\"$PIP_CACHE_DIR\"; export TORCHINDUCTOR_CACHE_DIR=\"$TORCHINDUCTOR_CACHE_DIR\"; \
   export TRITON_CACHE_DIR=\"$TRITON_CACHE_DIR\"; export WANDB_DIR=\"$WANDB_DIR\"; export TMPDIR=\"$TMPDIR\"; \
   mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
-  if [ "${INLINE_VLLM}" = "true" ]; then \
+  if [ \"${INLINE_VLLM}\" = \"true\" ]; then \
     ORIGINAL_CUDA_VISIBLE_DEVICES=\"\${CUDA_VISIBLE_DEVICES:-}\"; \
     if [ -z \"\$ORIGINAL_CUDA_VISIBLE_DEVICES\" ]; then \
       ORIGINAL_CUDA_VISIBLE_DEVICES=\"${INLINE_VLLM_FALLBACK_GPUS}\"; \
@@ -374,10 +415,14 @@ PY
     : > \"\$VLLM_LOG\"; \
     tail -n +1 -F \"\$VLLM_LOG\" & \
     VLLM_TAIL_PID=\$!; \
-    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID python -m trl.scripts.vllm_serve \
+    PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
+    VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
+    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID \
+    python -m trl.scripts.vllm_serve \
       --model "$VLLM_MODEL" ${REVISION:+--revision $REVISION} \
       --tensor_parallel_size $TP --data_parallel_size $DP \
-      --port $VLLM_PORT --dtype float16 --gpu_memory_utilization 0.90 \
+      --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
+      --dtype float16 --gpu_memory_utilization 0.90 \
       --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
     VLLM_PID=\$!; \
     echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \

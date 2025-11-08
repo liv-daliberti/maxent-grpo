@@ -46,6 +46,7 @@ from configs import GRPOConfig, GRPOScriptArguments
 from rewards import get_reward_funcs
 from utils.data import get_dataset
 from utils.model_utils import get_model, get_tokenizer
+from utils.trl_patches import ensure_vllm_group_port
 
 @runtime_checkable
 class ChatTemplate(Protocol):
@@ -135,6 +136,10 @@ def main(
     from transformers import set_seed
     from transformers.trainer_utils import get_last_checkpoint
     from trl import GRPOTrainer, get_peft_config
+
+    # Ensure TRL's VLLM client honours distributed port overrides before
+    # the trainer instantiates it.
+    ensure_vllm_group_port()
 
     set_seed(training_args.seed)
     if not getattr(training_args, "return_reward", False):

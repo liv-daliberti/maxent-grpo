@@ -144,9 +144,10 @@ class ScriptArguments(trl.ScriptArguments):
         :raises ValueError: If the mixture payload is malformed or columns are
             inconsistent across datasets.
         """
-        parent_post_init = getattr(super(), "__post_init__", None)
-        if callable(parent_post_init):
-            parent_post_init()
+        try:
+            super().__post_init__()
+        except AttributeError:
+            pass
         if self.dataset_name is None and self.dataset_mixture is None:
             raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
 
@@ -326,9 +327,10 @@ class GRPOConfig(trl.GRPOConfig):
     )
 
     def __post_init__(self) -> None:
-        parent_post_init = getattr(super(), "__post_init__", None)
-        if callable(parent_post_init):
-            parent_post_init()
+        try:
+            super().__post_init__()
+        except AttributeError:
+            pass
 
 ## Removed SFTConfig for GRPO-only workflow
 

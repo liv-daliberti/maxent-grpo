@@ -24,14 +24,20 @@ See the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import annotations
+
 import torch
-from typing import Dict, List, Optional, Union, Any, TypedDict
-from torch import dtype as TorchDType
+from typing import Any, Dict, List, Optional, TypedDict, TYPE_CHECKING, Union
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
 
 from trl import ModelConfig, get_kbit_device_map, get_quantization_config
 
 from configs import GRPOConfig
+
+if TYPE_CHECKING:
+    from torch import dtype as TorchDType  # pragma: no cover
+else:  # pragma: no cover - runtime fallback when torch.dtype is missing
+    TorchDType = getattr(torch, "dtype", Any)  # type: ignore[assignment]
 
 
 class ChatMessage(TypedDict):
@@ -130,4 +136,3 @@ def get_model(
         **model_kwargs,
     )
     return model
-

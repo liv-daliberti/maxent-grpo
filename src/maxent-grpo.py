@@ -67,7 +67,12 @@ from configs import GRPOConfig, GRPOScriptArguments
 from rewards import get_reward_funcs
 from utils.data import get_dataset
 from utils.model_utils import get_model, get_tokenizer
+from utils.trl_patches import ensure_vllm_group_port
 from utils.vllm_patch import safe_generate
+
+# Apply TRL compatibility patch eagerly so any downstream usage of VLLMClient
+# inherits the environment-driven group_port override.
+ensure_vllm_group_port()
 
 
 # -------------------------------

@@ -67,6 +67,7 @@ maxent_length_normalize_ref: true
 # Training/eval & logging
 bf16: true
 use_vllm: true
+vllm_mode: colocate
 do_eval: false
 gradient_accumulation_steps: 64
 gradient_checkpointing: true
