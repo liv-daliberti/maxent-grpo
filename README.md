@@ -14,6 +14,7 @@ A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑lev
   - Use `--task maxent` to launch `src/maxent-grpo.py`.
   - Pass extra trainer flags via `--args "--run_name demo --report_to wandb"`.
   - Inspect `sbatch slurm/train.slurm --help` for all knobs (dp/tp, ports, accelerator config).
+- Training telemetry / proof of work: public run stats at [wandb.ai ↗](https://api.wandb.ai/links/ogd3-princeton-university/aw6ecc9b).
 - Evaluation (quick): set `do_eval: true` in your recipe to run a fast subsample eval (see `src/grpo.py`).
 
 Notes
