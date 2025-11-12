@@ -65,7 +65,7 @@ export PYTHONNOUSERSITE=1
 
 # Route all caches and temp dirs into the current working directory
 export ROOT_DIR="$PWD"
-export HF_TOKEN="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"
+export HF_TOKEN="<ENTER THIS>"
 export HF_HOME="$ROOT_DIR/.hf_cache"
 export XDG_CACHE_HOME="$ROOT_DIR/.cache"
 export XDG_CONFIG_HOME="$ROOT_DIR/.config"
