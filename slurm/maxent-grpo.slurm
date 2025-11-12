@@ -1,17 +1,16 @@
 #!/bin/bash
-# Multi-node Open‑R1 trainer with optional vLLM server on a dedicated node
+# Multi-node Open‑R1 MaxEnt‑GRPO trainer with optional vLLM server on a dedicated node
 #
 # Example:
-#   sbatch --nodes=2 slurm/train.slurm \
+#   sbatch --nodes=2 slurm/maxent-grpo.slurm \
 #     --model Qwen2.5-1.5B-Instruct \
-#     --task grpo \
 #     --config math \
 #     --accelerator zero3 \
 #     --dp 8 \
 #     --tp 1 \
 #     --args "--run_name demo"
 
-#SBATCH --job-name=open_r1
+#SBATCH --job-name=open_r1_maxent
 #SBATCH --ntasks-per-node=1
 #SBATCH --exclusive
 #SBATCH --nodes=1                 # Default: single node
@@ -89,25 +88,25 @@ echo "Preflight: pin hub + httpx for compatibility"
 python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
 
 if [[ "$*" == *"--help"* ]]; then
-  echo "Usage: sbatch slurm/train.slurm [options]"
+  echo "Usage: sbatch slurm/maxent-grpo.slurm [options]"
   echo "Options:"
   echo "  --model MODEL            Recipe model directory under recipes/ (e.g., Qwen2.5-1.5B-Instruct)"
-  echo "  --task TASK              Task name: grpo | maxent"
-  echo "  --config SUFFIX          Config suffix in recipes/<model>/<task>/config_<SUFFIX>.yaml (e.g., math)"
+  echo "  --config SUFFIX          Config suffix in recipes/<model>/maxent-grpo/config_<SUFFIX>.yaml (e.g., math)"
   echo "  --accelerator NAME       Accelerate config in recipes/accelerate_configs/<NAME>.yaml (e.g., zero3)"
   echo "  --dp N                   vLLM data parallel size on the server node (default: 1)"
   echo "  --tp N                   vLLM tensor parallel size on the server node (default: 1)"
   echo "  --vllm-port PORT         vLLM server port (default: 8000)"
   echo "  --vllm-group-port PORT   NCCL group port for weight sync RPCs (default: 29535)"
   echo "  --args \"ARGS\"          Extra args to pass to the training entrypoint"
+  echo ""
+  echo "This script always launches src/maxent-grpo.py with recipes/<model>/maxent-grpo configs."
   exit 0
 fi
 
-# Defaults (so `sbatch slurm/train.slurm` just works)
-# - Single node, 8 GPUs; vLLM on 1 GPU and GRPO training on remaining 7 GPUs
-# - Qwen 1.5B GRPO math with accelerate zero3
+# Defaults (so `sbatch slurm/maxent-grpo.slurm` just works)
+# - Single node, 8 GPUs; vLLM on 1 GPU and MaxEnt-GRPO training on remaining 7 GPUs
+# - Qwen 1.5B MaxEnt-GRPO math with accelerate zero3
 MODEL="${MODEL:-Qwen2.5-1.5B-Instruct}"
-TASK="${TASK:-grpo}"
 CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
 ACCELERATOR="${ACCELERATOR:-zero3}"
 DP=${DP:-1}
@@ -120,7 +119,6 @@ OPTIONAL_ARGS="${OPTIONAL_ARGS:-}"
 while [[ $# -gt 0 ]]; do
   case $1 in
     --model)        MODEL="$2"; shift 2;;
-    --task)         TASK="$2"; shift 2;;
     --config)       CONFIG_SUFFIX="$2"; shift 2;;
     --accelerator)  ACCELERATOR="$2"; shift 2;;
     --dp)           DP="$2"; shift 2;;
@@ -136,12 +134,13 @@ export VLLM_GROUP_PORT
 export PORT_FOR_COMMUNICATION="${PORT_FOR_COMMUNICATION:-$VLLM_GROUP_PORT}"
 
 # Validate
-if [[ -z "$MODEL" || -z "$TASK" || -z "$CONFIG_SUFFIX" || -z "$ACCELERATOR" ]]; then
-  echo "Error: --model, --task, --config, --accelerator are required" >&2
+if [[ -z "$MODEL" || -z "$CONFIG_SUFFIX" || -z "$ACCELERATOR" ]]; then
+  echo "Error: --model, --config, --accelerator are required" >&2
   exit 1
 fi
 
-CONFIG_FILE="recipes/${MODEL}/${TASK}/config_${CONFIG_SUFFIX}.yaml"
+TASK_SUBDIR="maxent-grpo"
+CONFIG_FILE="recipes/${MODEL}/${TASK_SUBDIR}/config_${CONFIG_SUFFIX}.yaml"
 ACCEL_FILE="recipes/accelerate_configs/${ACCELERATOR}.yaml"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "Config not found: $CONFIG_FILE" >&2
@@ -152,12 +151,7 @@ if [[ ! -f "$ACCEL_FILE" ]]; then
   exit 1
 fi
 
-# Resolve training entrypoint for this repo
-case "$TASK" in
-  grpo)   TRAIN_ENTRYPOINT="src/grpo.py";;
-  maxent) TRAIN_ENTRYPOINT="src/maxent-grpo.py";;
-  *) echo "Unsupported --task: $TASK (use: grpo | maxent)" >&2; exit 1;;
-esac
+TRAIN_ENTRYPOINT="src/maxent-grpo.py"
 
 # Extract model + revision for vLLM from YAML (best-effort)
 MODEL_ID=$(grep -E "^[[:space:]]*model_name_or_path:" "$CONFIG_FILE" | awk '{print $2}' || true)
@@ -224,7 +218,7 @@ if $USE_VLLM_SERVER; then
   fi
 elif $USE_VLLM && [[ "$VLLM_MODE" == "colocate" ]]; then
   if ! $SINGLE_NODE; then
-    echo "vLLM colocate mode requires a single node job (nodes=${NUM_NODES})." >&2
+    echo "vLLM colocate mode requires running on a single node (got ${NUM_NODES})." >&2
     exit 1
   fi
   VLLM_NODE=${NODELIST[0]}

@@ -19,6 +19,7 @@ build/
 .venv/
 .local/
 openr1/
+data/
 .conda_envs/
 .conda_pkgs/
 .pip_cache/

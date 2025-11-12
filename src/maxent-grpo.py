@@ -45,30 +45,44 @@ limitations under the License.
 
 from __future__ import annotations
 
+import logging
 import math
 import os
 import sys
-import logging
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional, Any, Union, Protocol, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, Sequence, Tuple, Union, runtime_checkable
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 from torch import Tensor
+from torch.utils.data import DataLoader
 
 import transformers
-from transformers import (
-    PreTrainedModel,
-    PreTrainedTokenizer,
-)
+from transformers import PreTrainedModel, PreTrainedTokenizer
+from accelerate import Accelerator
+from accelerate.utils import DeepSpeedPlugin
+
+try:  # Optional dependency for reading accelerate config files
+    import yaml  # type: ignore
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional
+    yaml = None
 
 from configs import GRPOConfig, GRPOScriptArguments
 from rewards import get_reward_funcs
 from utils.data import get_dataset, load_dataset_split
 from utils.model_utils import get_model, get_tokenizer
 from utils.trl_patches import ensure_vllm_group_port
+from utils.wandb_logging import init_wandb_training
 from utils.vllm_patch import safe_generate
+
+try:  # Optional dependency when running under DeepSpeed ZeRO
+    from deepspeed import zero as ds_zero  # type: ignore
+    from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus  # type: ignore
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - environment dependent
+    ds_zero = None
+    ZeroParamStatus = None  # type: ignore
 
 # Apply TRL compatibility patch eagerly so any downstream usage of VLLMClient
 # inherits the environment-driven group_port override.
@@ -81,6 +95,137 @@ _TRUNC_STATE = {"warned": False}
 # -------------------------------
 # Helpers
 # -------------------------------
+
+@contextmanager
+def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]):
+    """Gather ZeRO-sharded embedding weights before a forward pass."""
+    if ds_zero is None or ZeroParamStatus is None or model is None:
+        yield
+        return
+    base_model = getattr(model, "module", model)
+    embedding = getattr(base_model, "get_input_embeddings", lambda: None)()
+    weight = getattr(embedding, "weight", None) if embedding is not None else None
+    if weight is None:
+        yield
+        return
+    if getattr(weight, "ndim", 2) == 2:
+        yield
+        return
+    status = getattr(weight, "ds_status", None)
+    if status is not None and status != ZeroParamStatus.NOT_AVAILABLE:
+        yield
+        return
+    with ds_zero.GatheredParameters([weight], modifier_rank=None):  # type: ignore[union-attr]
+        yield
+
+
+def _zero_param_list(model: Optional[nn.Module]) -> List[nn.Parameter]:
+    """Return a parameter list for ZeRO-gather contexts, unwrapping DeepSpeed engines."""
+    if model is None:
+        return []
+    base_model = getattr(model, "module", model)
+    if not hasattr(base_model, "parameters"):
+        return []
+    try:
+        return list(base_model.parameters())
+    except TypeError:
+        return []
+
+
+def _report_to_contains(report_to: Union[str, Sequence[str], None], target: str) -> bool:
+    """Case-insensitive membership check for TrainingArguments.report_to."""
+    if report_to is None:
+        return False
+    if isinstance(report_to, str):
+        entries = [report_to]
+    else:
+        entries = list(report_to)
+    target = target.lower()
+    return any(str(item).lower() == target for item in entries)
+
+
+def _maybe_init_wandb_run(
+    accelerator: Accelerator,
+    training_args: GRPOConfig,
+    wandb_config: Dict[str, Any],
+) -> Optional[Any]:
+    """Initialize a W&B run when report_to includes wandb."""
+    if not _report_to_contains(getattr(training_args, "report_to", None), "wandb"):
+        return None
+    init_wandb_training(training_args)
+    if not accelerator.is_main_process:
+        os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
+        return None
+    try:
+        import wandb  # type: ignore
+    except (ImportError, ModuleNotFoundError):
+        LOG.warning("report_to includes wandb but the wandb package is not installed; skipping logging.")
+        return None
+
+    run_name = getattr(training_args, "run_name", None)
+    wandb_kwargs: Dict[str, Any] = {
+        "config": wandb_config,
+        "reinit": True,
+        "dir": os.environ.get("WANDB_DIR") or os.getcwd(),
+    }
+    if run_name:
+        wandb_kwargs["name"] = run_name
+    project = os.environ.get("WANDB_PROJECT")
+    if project:
+        wandb_kwargs["project"] = project
+    entity = os.environ.get("WANDB_ENTITY")
+    if entity:
+        wandb_kwargs["entity"] = entity
+    group = os.environ.get("WANDB_RUN_GROUP")
+    if group:
+        wandb_kwargs["group"] = group
+    return wandb.init(**wandb_kwargs)
+
+
+def _log_wandb(run: Optional[Any], metrics: Dict[str, Any], step: int) -> None:
+    """Safely log metrics to a W&B run."""
+    if run is None or not metrics:
+        return
+    try:
+        run.log(metrics, step=step)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        LOG.warning("Failed to log metrics to W&B: %s", exc)
+
+
+def _maybe_create_deepspeed_plugin() -> Optional[DeepSpeedPlugin]:
+    """Construct a DeepSpeedPlugin from Accelerate env/config when available."""
+    if os.environ.get("ACCELERATE_USE_DEEPSPEED", "false").lower() != "true":
+        return None
+
+    ds_cfg: Dict[str, Any] = {}
+    cfg_path = os.environ.get("ACCELERATE_CONFIG_FILE")
+    if cfg_path and yaml is not None and os.path.isfile(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as fh:
+                raw = yaml.safe_load(fh) or {}
+            ds_cfg = raw.get("deepspeed_config") or {}
+        except Exception:
+            ds_cfg = {}
+
+    # Defaults match recipes/accelerate_configs/zero3.yaml
+    zero_stage = int(ds_cfg.get("zero_stage", 3))
+    offload_param = ds_cfg.get("offload_param_device")
+    offload_optim = ds_cfg.get("offload_optimizer_device")
+    zero3_init_flag = ds_cfg.get("zero3_init_flag")
+    zero3_save = ds_cfg.get("zero3_save_16bit_model")
+
+    kwargs = {
+        "zero_stage": zero_stage,
+        "offload_param_device": offload_param,
+        "offload_optimizer_device": offload_optim,
+        "zero3_init_flag": zero3_init_flag,
+        "zero3_save_16bit_model": zero3_save,
+    }
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}
+    if not kwargs:
+        return None
+    return DeepSpeedPlugin(**kwargs)
+
 
 @runtime_checkable
 class ChatTokenizer(Protocol):
@@ -192,7 +337,6 @@ def _prepare_labels_for_ce(
     return labels
 
 
-@torch.no_grad()
 def _sequence_logprobs(
     model: PreTrainedModel,
     input_ids: Tensor,
@@ -205,7 +349,14 @@ def _sequence_logprobs(
     only score completion tokens. Returns the sum of log‑probs per sequence and
     the number of scored tokens per sequence.
     """
-    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+    params_ctx = nullcontext()
+    if ds_zero is not None and model is not None:
+        params = _zero_param_list(model)
+        if params:
+            params_ctx = ds_zero.GatheredParameters(params, modifier_rank=None)
+    with params_ctx:
+        with _maybe_zero_gather_embedding(model):
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
     logits = outputs.logits  # [B, T, V]
     shift_logits = logits[:, :-1].contiguous()
     shift_labels = labels[:, 1:].contiguous()
@@ -247,6 +398,8 @@ def main(
     training_args: GRPOConfig,
     model_args: Any  # from transformers.ModelArguments
 ) -> None:
+    ds_plugin = _maybe_create_deepspeed_plugin()
+    accelerator = Accelerator(deepspeed_plugin=ds_plugin)
     # Ensure logs directory exists for any file redirections by launchers
     os.makedirs(os.environ.get("LOG_DIR", "logs"), exist_ok=True)
 
@@ -333,9 +486,7 @@ def main(
     gen_top_p = float(getattr(training_args, "gen_top_p", 0.9))
     vllm_url = str(getattr(training_args, "vllm_url", os.environ.get("VLLM_URL", "http://localhost:8000/generate")))
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    ref_model.to(device)
+    device = accelerator.device
 
     # Optimizer (no schedulers/weight decay to keep simple)
     optim = torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.99), eps=1e-6)
@@ -356,6 +507,32 @@ def main(
         return {"prompt": prompts, "answer": answers}
 
     train_loader = DataLoader(train_ds, batch_size=bsz, shuffle=True, collate_fn=_collate)
+
+    # Wrap with Accelerate/DeepSpeed (ZeRO-aware)
+    model, optim, train_loader = accelerator.prepare(model, optim, train_loader)
+    ref_model = accelerator.prepare_model(ref_model, evaluation_mode=True)
+
+    wandb_base_config: Dict[str, Any] = {
+        "script": "maxent-grpo",
+        "model_name_or_path": getattr(model_args, "model_name_or_path", None),
+        "dataset_name": getattr(script_args, "dataset_name", None),
+        "per_device_train_batch_size": bsz,
+        "learning_rate": lr,
+        "num_generations": num_generations,
+        "max_prompt_length": max_prompt_len,
+        "max_completion_length": max_completion_len,
+        "tau": tau,
+        "beta": beta,
+        "q_temperature": q_temp,
+        "q_epsilon": q_eps,
+        "length_norm_ref": len_norm_ref,
+        "use_vllm": use_vllm,
+        "seed": getattr(training_args, "seed", None),
+    }
+    wandb_run = _maybe_init_wandb_run(accelerator, training_args, wandb_base_config)
+
+    def _log_metrics(metrics: Dict[str, Any], step: int) -> None:
+        _log_wandb(wandb_run, metrics, step)
 
     # Optional dedicated eval dataset (e.g., MATH-500)
     eval_dataset_name = getattr(script_args, "eval_dataset_name", None)
@@ -405,6 +582,7 @@ def main(
                 tokenizer=tokenizer,
             )
         grouped: List[List[str]] = []
+        gen_model = accelerator.unwrap_model(model)
         for p in prompts:
             enc = tokenizer(
                 p,
@@ -414,7 +592,7 @@ def main(
             ).to(device)
             outs: List[str] = []
             with torch.no_grad():
-                gen_out = model.generate(
+                gen_out = gen_model.generate(
                     **enc,
                     do_sample=True,
                     temperature=gen_temperature,
@@ -431,6 +609,8 @@ def main(
     def _run_validation(step: int) -> None:
         """Generate single completions on the eval set and log mean reward."""
         if not eval_enabled or not eval_rows:
+            return
+        if not accelerator.is_main_process:
             return
         prev_mode = model.training
         model.eval()
@@ -457,145 +637,189 @@ def main(
             mean_reward,
             len(eval_scores),
         )
+        if accelerator.is_main_process:
+            _log_metrics({"eval/mean_reward": mean_reward}, step)
         if prev_mode:
             model.train()
 
     global_step = 0
-    for epoch in range(num_epochs):
-        for batch in train_loader:
-            prompts: List[str] = batch["prompt"]
-            answers: List[str] = batch["answer"]
+    try:
+        for epoch in range(num_epochs):
+            for batch in train_loader:
+                prompts: List[str] = batch["prompt"]
+                answers: List[str] = batch["answer"]
 
-            # 1) Generate K candidates per prompt
-            grouped_comps = _generate_completions(prompts, num_generations)
+                # 1) Generate K candidates per prompt
+                grouped_comps = _generate_completions(prompts, num_generations)
 
-            # 2) Rewards → listwise q per prompt
-            # Flatten for reward functions, then regroup
-            flat_comps: List[str] = [c for group in grouped_comps for c in group]
-            flat_answers: List[str] = []
-            for a in answers:
-                flat_answers.extend([a] * num_generations)
+                # 2) Rewards → listwise q per prompt
+                # Flatten for reward functions, then regroup
+                flat_comps: List[str] = [c for group in grouped_comps for c in group]
+                flat_answers: List[str] = []
+                for a in answers:
+                    flat_answers.extend([a] * num_generations)
 
-            # Combine multiple reward functions additively (weights default to 1)
-            total_utils = [0.0] * len(flat_comps)
-            for w, rf in zip(reward_weights, reward_funcs):
-                rs = rf(flat_comps, flat_answers)
-                if w != 1.0:
-                    rs = [float(w) * float(r) for r in rs]
-                total_utils = [u + float(r) for u, r in zip(total_utils, rs)]
-
-            # Group utilities per prompt and turn into q via softmax
-            utils_grouped: List[List[float]] = []
-            for i in range(0, len(total_utils), num_generations):
-                utils_grouped.append(total_utils[i : i + num_generations])
-            q_grouped: List[List[float]] = [
-                _group_softmax(us, temperature=q_temp, eps=q_eps)
-                for us in utils_grouped
-            ]
-
-            # 3) Sequence log‑probs under reference (per completion)
-            # Build tokenized prompt+completion tensors batch‑wise for efficiency
-            # To keep memory bounded, process in mini‑batches of up to bsz*num_generations
-            prompt_batch: List[str] = []
-            comp_batch: List[str] = []
-            for p, comps in zip(prompts, grouped_comps):
-                for c in comps:
-                    prompt_batch.append(p)
-                    comp_batch.append(c)
-
-            # Tokenize
-            enc_pairs = tokenizer(
-                [p + c for p, c in zip(prompt_batch, comp_batch)],
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=max_prompt_len + max_completion_len + 8,
-            )
-            # Compute per‑row prompt lengths by re‑encoding each pair's prompt part
-            prompt_lengths: List[int] = []
-            for p in prompt_batch:
-                prompt_lengths.append(
-                    tokenizer(p, return_tensors="pt", truncation=True, max_length=max_prompt_len)["input_ids"].shape[-1]
+                # Combine multiple reward functions additively (weights default to 1)
+                total_utils = [0.0] * len(flat_comps)
+                for w, rf in zip(reward_weights, reward_funcs):
+                    rs = rf(flat_comps, flat_answers)
+                    if w != 1.0:
+                        rs = [float(w) * float(r) for r in rs]
+                    total_utils = [u + float(r) for u, r in zip(total_utils, rs)]
+                utils_tensor = torch.tensor(
+                    total_utils,
+                    dtype=torch.float32,
+                    device=device if device.type != "cpu" else torch.device("cpu"),
                 )
+                train_reward_mean = float(utils_tensor.mean().item())
+                train_reward_std = float(utils_tensor.std(unbiased=False).item()) if utils_tensor.numel() > 1 else 0.0
 
-            input_ids = enc_pairs["input_ids"].to(device)
-            attention_mask = enc_pairs["attention_mask"].to(device)
-            labels = _prepare_labels_for_ce(input_ids.clone(), prompt_lengths).to(device)
+                # Group utilities per prompt and turn into q via softmax
+                utils_grouped: List[List[float]] = []
+                for i in range(0, len(total_utils), num_generations):
+                    utils_grouped.append(total_utils[i : i + num_generations])
+                q_grouped: List[List[float]] = [
+                    _group_softmax(us, temperature=q_temp, eps=q_eps)
+                    for us in utils_grouped
+                ]
 
-            with torch.no_grad():
-                ref_logp_sum, ref_tok_counts = _sequence_logprobs(
-                    ref_model, input_ids=input_ids, attention_mask=attention_mask, labels=labels
+                # 3) Sequence log‑probs under reference (per completion)
+                # Build tokenized prompt+completion tensors batch‑wise for efficiency
+                # To keep memory bounded, process in mini‑batches of up to bsz*num_generations
+                prompt_batch: List[str] = []
+                comp_batch: List[str] = []
+                for p, comps in zip(prompts, grouped_comps):
+                    for c in comps:
+                        prompt_batch.append(p)
+                        comp_batch.append(c)
+
+                # Tokenize
+                enc_pairs = tokenizer(
+                    [p + c for p, c in zip(prompt_batch, comp_batch)],
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=max_prompt_len + max_completion_len + 8,
                 )
-            # Optional length normalization to reduce bias towards shorter completions
-            if len_norm_ref:
-                ref_logp_sum = ref_logp_sum / ref_tok_counts.clamp(min=1).to(ref_logp_sum.dtype)
+                # Compute per‑row prompt lengths by re‑encoding each pair's prompt part
+                prompt_lengths: List[int] = []
+                for p in prompt_batch:
+                    prompt_lengths.append(
+                        tokenizer(p, return_tensors="pt", truncation=True, max_length=max_prompt_len)["input_ids"].shape[-1]
+                    )
 
-            # Regroup ref log‑probs per prompt
-            ref_logp_grouped: List[List[float]] = []
-            idx = 0
-            for _ in prompts:
-                vals = ref_logp_sum[idx : idx + num_generations].tolist()
-                ref_logp_grouped.append(vals)
-                idx += num_generations
+                input_ids = enc_pairs["input_ids"].to(device)
+                attention_mask = enc_pairs["attention_mask"].to(device)
+                labels = _prepare_labels_for_ce(input_ids.clone(), prompt_lengths).to(device)
 
-            # 4) Build MaxEnt weights per prompt in log‑space and normalize
-            weights_grouped: List[List[float]] = []
-            for q_i, logp_i in zip(q_grouped, ref_logp_grouped):
-                # log w_i = (1/(tau+beta)) * log q_i + (beta/(tau+beta)) * log pi_ref_i
-                logw = []
-                for qi, lpi in zip(q_i, logp_i):
-                    lq = math.log(max(qi, 1e-12))
-                    logw.append((lq / denom) + (beta / denom) * lpi)
-                # normalize
-                w = torch.softmax(torch.tensor(logw, dtype=torch.float32), dim=0).tolist()
-                weights_grouped.append(w)
+                with torch.no_grad():
+                    ref_logp_sum, ref_tok_counts = _sequence_logprobs(
+                        ref_model, input_ids=input_ids, attention_mask=attention_mask, labels=labels
+                    )
+                # Optional length normalization to reduce bias towards shorter completions
+                if len_norm_ref:
+                    ref_logp_sum = ref_logp_sum / ref_tok_counts.clamp(min=1).to(ref_logp_sum.dtype)
+                ref_logp_mean = float(ref_logp_sum.mean().detach().cpu())
+                avg_completion_tokens = float(ref_tok_counts.float().mean().detach().cpu())
 
-            # 5) Weighted MLE update on current model
-            model.train()
-            optim.zero_grad(set_to_none=True)
+                # Regroup ref log‑probs per prompt
+                ref_logp_grouped: List[List[float]] = []
+                idx = 0
+                for _ in prompts:
+                    vals = ref_logp_sum[idx : idx + num_generations].tolist()
+                    ref_logp_grouped.append(vals)
+                    idx += num_generations
 
-            # Compute model log‑probs for the same sequences
-            cur_logp_sum, _ = _sequence_logprobs(
-                model, input_ids=input_ids, attention_mask=attention_mask, labels=labels
-            )
-            # Negative log‑likelihood sums per sequence
-            nll_sums = -cur_logp_sum  # [B*K]
+                # 4) Build MaxEnt weights per prompt in log‑space and normalize
+                weights_grouped: List[List[float]] = []
+                for q_i, logp_i in zip(q_grouped, ref_logp_grouped):
+                    # log w_i = (1/(tau+beta)) * log q_i + (beta/(tau+beta)) * log pi_ref_i
+                    logw = []
+                    for qi, lpi in zip(q_i, logp_i):
+                        lq = math.log(max(qi, 1e-12))
+                        logw.append((lq / denom) + (beta / denom) * lpi)
+                    # normalize
+                    w = torch.softmax(torch.tensor(logw, dtype=torch.float32), dim=0).tolist()
+                    weights_grouped.append(w)
+                weight_entropy = 0.0
+                if weights_grouped:
+                    for w in weights_grouped:
+                        w_t = torch.tensor(w, dtype=torch.float32)
+                        weight_entropy += float((-w_t.clamp(min=1e-12).log() * w_t).sum().item())
+                    weight_entropy = weight_entropy / len(weights_grouped)
 
-            # Aggregate by group with weights
-            loss = torch.tensor(0.0, device=device)
-            idx = 0
-            for w in weights_grouped:
-                group_nll = nll_sums[idx : idx + num_generations]
-                w_t = torch.tensor(w, device=device, dtype=group_nll.dtype)
-                # Weighted average NLL per group
-                loss = loss + (w_t * group_nll).sum()
-                idx += num_generations
+                # 5) Weighted MLE update on current model
+                model.train()
+                optim.zero_grad(set_to_none=True)
 
-            # Normalize by number of groups to keep loss scale stable
-            loss = loss / max(1, len(prompts))
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
-            optim.step()
-
-            global_step += 1
-            if global_step % 10 == 0:
-                logging.getLogger(__name__).info(
-                    "step %d | epoch %d | loss=%.4f | tau=%.3f beta=%.3f",
-                    global_step,
-                    epoch,
-                    float(loss.detach().cpu()),
-                    tau,
-                    beta,
+                # Compute model log‑probs for the same sequences
+                cur_logp_sum, _ = _sequence_logprobs(
+                    model, input_ids=input_ids, attention_mask=attention_mask, labels=labels
                 )
-            if eval_enabled and eval_every and (global_step % eval_every == 0):
-                _run_validation(global_step)
+                # Negative log‑likelihood sums per sequence
+                nll_sums = -cur_logp_sum  # [B*K]
+
+                # Aggregate by group with weights
+                loss = torch.tensor(0.0, device=device)
+                idx = 0
+                for w in weights_grouped:
+                    group_nll = nll_sums[idx : idx + num_generations]
+                    w_t = torch.tensor(w, device=device, dtype=group_nll.dtype)
+                    # Weighted average NLL per group
+                    loss = loss + (w_t * group_nll).sum()
+                    idx += num_generations
+
+                # Normalize by number of groups to keep loss scale stable
+                loss = loss / max(1, len(prompts))
+                loss_scalar = float(loss.detach().float().cpu())
+                accelerator.backward(loss)
+                accelerator.clip_grad_norm_(model.parameters(), max_grad_norm)
+                optim.step()
+
+                global_step += 1
+                if global_step % 10 == 0 and accelerator.is_main_process:
+                    logging.getLogger(__name__).info(
+                        "step %d | epoch %d | loss=%.4f | tau=%.3f beta=%.3f",
+                        global_step,
+                        epoch,
+                        loss_scalar,
+                        tau,
+                        beta,
+                    )
+                if wandb_run is not None and accelerator.is_main_process:
+                    current_lr = float(optim.param_groups[0].get("lr", lr))
+                    _log_metrics(
+                        {
+                            "train/loss": loss_scalar,
+                            "train/mean_reward": train_reward_mean,
+                            "train/reward_std": train_reward_std,
+                            "train/lr": current_lr,
+                            "train/beta": beta,
+                            "train/tau": tau,
+                            "train/ref_logp_mean": ref_logp_mean,
+                            "train/weight_entropy": weight_entropy,
+                            "train/avg_completion_tokens": avg_completion_tokens,
+                        },
+                        global_step,
+                    )
+                if eval_enabled and eval_every and (global_step % eval_every == 0):
+                    _run_validation(global_step)
+    finally:
+        if wandb_run is not None and accelerator.is_main_process:
+            try:
+                wandb_run.finish()
+            except Exception as exc:  # pragma: no cover - defensive logging
+                LOG.warning("Failed to close W&B run cleanly: %s", exc)
 
     # Save final model
-    out_dir = getattr(training_args, "output_dir", "./maxent-grpo-out")
-    os.makedirs(out_dir, exist_ok=True)
-    model.save_pretrained(out_dir)
-    if hasattr(tokenizer, "save_pretrained"):
-        tokenizer.save_pretrained(out_dir)
+    accelerator.wait_for_everyone()
+    if accelerator.is_main_process:
+        out_dir = getattr(training_args, "output_dir", "./maxent-grpo-out")
+        os.makedirs(out_dir, exist_ok=True)
+        unwrapped = accelerator.unwrap_model(model)
+        unwrapped.save_pretrained(out_dir)
+        if hasattr(tokenizer, "save_pretrained"):
+            tokenizer.save_pretrained(out_dir)
 
 
 if __name__ == "__main__":

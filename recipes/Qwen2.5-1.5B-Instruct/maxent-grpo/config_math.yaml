@@ -79,7 +79,7 @@ gradient_checkpointing_kwargs:
   use_reentrant: false
 gen_temperature: 0.8
 gen_top_p: 0.9
-vllm_url: http://localhost:8000/generate
+vllm_url: http://localhost:29525/generate
 hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1
 hub_strategy: every_save
 learning_rate: 5e-6
