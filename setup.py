@@ -25,7 +25,6 @@ from setuptools import find_packages, setup
 from setuptools.command.install import install as _install
 from setuptools.command.develop import develop as _develop
 import importlib
-import sys
 
 
 def _patch_trl_vllm_serve():

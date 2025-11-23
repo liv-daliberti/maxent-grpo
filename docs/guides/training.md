@@ -126,6 +126,29 @@ Logging & Checkpoints
 - Trainer logs to `logs/train_<jobid>.log`.
 - Weights & Biases integration is available via `wandb_*` fields.
 - Checkpoints are handled by TRL’s GRPOConfig as usual.
+- When DeepSpeed is enabled we default to DeepSpeed’s native `save_checkpoint`
+  (mirroring HF Trainer) and fall back to Accelerate’s `save_state` only when
+  explicitly allowed. Set `MAXENT_SKIP_DEEPSPEED_STATE_SAVE=true` to skip both,
+  or `MAXENT_ALLOW_DEEPSPEED_STATE_SAVE=true` if you want to allow the fallback
+  `accelerator.save_state` path after a DeepSpeed failure. To bypass DeepSpeed
+  entirely and always use Accelerate, set
+  `MAXENT_PREFER_ACCELERATE_STATE_SAVE=true`.
+- Periodic checkpoints in the Slurm recipe default to a *shallow* HF-style mode
+  that writes DeepSpeed ZeRO shards plus small HF metadata and copies static
+  config/tokenizer files from a base directory, but skips `save_pretrained`
+  on the model/tokenizer at every save. This avoids rewriting large
+  `model.safetensors` files on each checkpoint and relies primarily on
+  DeepSpeed + `zero_to_fp32.py` for weights. If you prefer standard HF/TRL
+  behavior where each `checkpoint-N` is a standalone HF checkpoint, set
+  `MAXENT_CHECKPOINT_METADATA_MODE=full`. In shallow mode, periodic checkpoints:
+  - still call the DeepSpeed/Accelerate state save, but
+  - skip `save_pretrained` on the model/tokenizer and instead copy small static
+    files (config/tokenizer/merges) from a base snapshot directory. By default
+    this is inferred from `output_dir` (e.g., replacing `MaxEnt-GRPO` with
+    `GRPO` for the sibling Open‑R1 GRPO run), but you can override it via
+    `MAXENT_CHECKPOINT_METADATA_SOURCE`.
+  The final checkpoint always performs a full `save_pretrained` regardless of
+  this setting.
 
 Common Flags
 ------------
@@ -135,7 +158,26 @@ Common Flags
 - `--num_generations` and `--max_completion_length` for candidate sampling
 - `--init_kl_coeff`, `--kl_target`, `--kl_horizon` for trust region
 - `--report_to wandb` plus `wandb_*` fields for logging
-- MaxEnt extras (when using `src/maxent-grpo.py`): `--maxent_tau`, `--maxent_q_temperature`, `--maxent_q_epsilon`, `--maxent_length_normalize_ref`
+- MaxEnt extras (when using `src/maxent-grpo.py`): `--maxent_tau`, `--maxent_q_temperature`, `--maxent_q_epsilon`, `--maxent_length_normalize_ref`, plus optional controllers below.
+
+Adaptive Controllers (MaxEnt)
+-----------------------------
+
+- **β (reverse KL) controller**: `init_kl_coeff` is the starting β. `kl_target`,
+  `kl_horizon`, and `kl_ctl_step_size` enable the TRL-style multiplicative
+  controller that increases β when measured KL exceeds the target and decreases
+  otherwise. Leave the target/horizon at zero to disable adaptation.
+
+- **τ (weight entropy) controller**: `maxent_target_weight_entropy` activates
+  τ adaptation. `maxent_tau_lr`, `maxent_tau_min`, `maxent_tau_max`, and
+  `maxent_tau_warmup_steps` control the log-space optimizer, ensuring τ stays
+  within bounds after an optional warmup. Omit `maxent_target_weight_entropy`
+  (or set it to null) to keep τ fixed.
+
+- Controller persistence: β/τ values are stored in
+  `<output_dir>/controller_state.json`. When resuming via
+  `--resume_from_checkpoint`, the trainer restores that snapshot; otherwise the
+  controllers restart from the recipe defaults.
 
 Troubleshooting
 ---------------

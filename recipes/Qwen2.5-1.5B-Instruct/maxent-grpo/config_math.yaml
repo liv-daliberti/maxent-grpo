@@ -15,7 +15,7 @@
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
-resume_from_checkpoint: true
+resume_from_checkpoint: false
 torch_dtype: bfloat16
 attn_implementation: sdpa
 
@@ -26,6 +26,7 @@ eval_dataset_name: HuggingFaceH4/MATH-500
 eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
+disable_distributed_sampler: true
 system_prompt: "You are an expert *mathematics problem-solver*.
 
   Every time you receive a problem you must:
@@ -63,22 +64,41 @@ system_prompt: "You are an expert *mathematics problem-solver*.
   "
 
 # MaxEnt‑GRPO specific knobs (used by src/maxent-grpo.py)
-maxent_tau: 0.2                 # sequence‑level entropy weight τ
-maxent_q_temperature: 1.0       # softmax temperature to turn utilities into listwise q
+# Enable MaxEnt weighting (set train_grpo_objective=false) with a modest tau and adaptive entropy target.
+maxent_tau: 0.001
+maxent_q_temperature: 0.9       # soften/sharpen listwise q if rewards are flat/noisy
 maxent_q_epsilon: 1.0e-6        # epsilon floor on q for full support
 maxent_length_normalize_ref: true
+maxent_logprob_chunk_size: 0    # 0 disables chunking (full-sequence ref scoring)
+maxent_target_weight_entropy: 1.4  # ~70% of log(8) to keep weights spread but not uniform
+maxent_tau_lr: 0.05
+maxent_tau_min: 0.05
+maxent_tau_max: 2.0
+maxent_tau_warmup_steps: 200    # roughly match LR warmup so tau stays steady early on
+maxent_use_clip_objective: true
+maxent_clip_objective_coef: 1.0
+maxent_clip_adv_baseline: 0.125   # 1/num_generations (8) for a gentler clip objective
+train_grpo_objective: false
 
 # Training/eval & logging
 bf16: true
 use_vllm: true
 vllm_mode: colocate
+vllm_return_logprobs: true
 do_eval: true
-gradient_accumulation_steps: 64
+gradient_accumulation_steps: 128    # match TRL defaults for faster logging feedback
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-gen_temperature: 0.8
-gen_top_p: 0.9
+gen_temperature: 0.7
+gen_top_p: 0.8
+gen_top_k: 32
+gen_best_of: 1
+vllm_stop_sequences:
+  - "</answer>"
+  - "</answer>\n"
+  - "</assistant>"
+vllm_request_timeout: 600
 vllm_url: http://localhost:29525/generate
 hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1
 hub_strategy: every_save
@@ -91,32 +111,39 @@ logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
-max_prompt_length: 512
-max_completion_length: 750
-max_steps: -1
-num_generations: 4
-num_train_epochs: 3
+max_prompt_length: 2500      # trim prompt window to ease ref scoring memory
+max_completion_length: 800   # shorter completions to reduce activation + ref costs
+max_steps: 320
+# GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
+num_generations: 4          # reduce scoring footprint while satisfying GRPO minimum
+num_train_epochs: 5
 output_dir: data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1
 overwrite_output_dir: true
-per_device_eval_batch_size: 8
-per_device_train_batch_size: 8
+per_device_eval_batch_size: 4
+per_device_train_batch_size: 1
 push_to_hub: true
 report_to:
 - wandb
+wandb_project: huggingface
+wandb_entity: ogd3-princeton-university
 reward_funcs:
 - pure_accuracy_math
 reward_weights:
 - 1
 
 # Reverse‑KL weight β used inside MaxEnt update
-init_kl_coeff: 3.00
+init_kl_coeff: 1.00
+kl_target:        0.07
+kl_horizon:       5000 
+kl_ctl_step_size: 0.25
 
 # Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.15
+clip_range: 0.05
 save_strategy: steps
 save_steps: 50
 evaluation_strategy: steps
-eval_steps: 25
+eval_steps: 10000
 save_total_limit: 1000
 seed: 42
 warmup_ratio: 0.2

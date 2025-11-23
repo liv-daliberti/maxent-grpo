@@ -64,7 +64,14 @@ class ChatTemplate(Protocol):
 
 
 def _truncate_prompt(prompt: str) -> str:
-    """Cap prompt length to avoid vLLM payload failures."""
+    """Cap prompt length to avoid vLLM payload failures.
+
+    :param prompt: Prompt string produced by the tokenizer/template.
+    :type prompt: str
+    :returns: Either the original prompt (when under the limit) or a truncated
+        prefix capped by ``PROMPT_CHAR_LIMIT``.
+    :rtype: str
+    """
     if PROMPT_CHAR_LIMIT <= 0:
         return prompt
     if len(prompt) <= PROMPT_CHAR_LIMIT:

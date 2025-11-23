@@ -16,7 +16,7 @@
 #SBATCH --nodes=1                 # Default: single node
 #SBATCH --gres=gpu:8              # Default: 8 GPUs on the node
 #SBATCH --partition=mltheory      # Adjust for your cluster (e.g., hopper-prod)
-#SBATCH --exclude=node915,node916,node917 # Avoid flaky nodes; adjust as needed
+#SBATCH --exclude=node915,node916,node917,node105 # Avoid flaky nodes; adjust as needed
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
 #SBATCH --requeue
@@ -41,11 +41,20 @@ export ENV_ACTIVATE="${ENV_ACTIVATE:-$PWD/openr1/bin/activate}"
 # Ensure CUDA toolkit matches the PyTorch build (torch 2.7.0 was compiled with CUDA 12.6)
 if command -v module &>/dev/null; then
   module unload cuda || true
-  module load cuda/12.6 || {
-    echo "[warn] Failed to load cuda/12.6 module; ensure CUDA_HOME already points to a 12.6 toolkit." >&2
-  }
+  echo "[info] Available CUDA-related modulefiles (if any):"
+  module avail cuda 2>&1 | sed -n '1,40p' || true
+  if module load cuda/12.4 >/dev/null 2>&1 || module load cudatoolkit/12.4 >/dev/null 2>&1; then
+    CUDA_MODULE_VERSION="12.4"
+    echo "[info] Loaded CUDA 12.4 via environment modules."
+  elif module load cuda/12.6 >/dev/null 2>&1 || module load cudatoolkit/12.6 >/dev/null 2>&1; then
+    CUDA_MODULE_VERSION="12.6"
+    echo "[info] Loaded CUDA 12.6 via environment modules."
+  else
+    echo "[warn] No cuda modulefiles could be loaded; defaulting to system installation under /usr/local." >&2
+  fi
 fi
-export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda-12.6}"
+CUDA_DEFAULT_VERSION="${CUDA_MODULE_VERSION:-12.6}"
+export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda-${CUDA_DEFAULT_VERSION}}"
 export PATH="$CUDA_HOME/bin:${PATH:-}"
 export LD_LIBRARY_PATH="$CUDA_HOME/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
@@ -85,6 +94,10 @@ mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
 echo "Preflight: pin hub + httpx for compatibility"
 # Pin once in the submission shell to avoid concurrent pip on multiple nodes
 python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
+# Ensure the local repo (with recent edits) is installed in editable mode for worker nodes.
+python -m pip install -q -e "$ROOT_DIR" || {
+  echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
+}
 
 if [[ "$*" == *"--help"* ]]; then
   echo "Usage: sbatch slurm/maxent-grpo.slurm [options]"
@@ -150,6 +163,26 @@ if [[ ! -f "$ACCEL_FILE" ]]; then
   exit 1
 fi
 
+export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
+if grep -qi '^[[:space:]]*distributed_type:[[:space:]]*deepspeed' "$ACCEL_FILE"; then
+  export ACCELERATE_USE_DEEPSPEED="true"
+  # Default to DeepSpeed's native save_checkpoint; allow opting into
+  # Accelerate-only state saves per job if needed.
+  export MAXENT_PREFER_ACCELERATE_STATE_SAVE="${MAXENT_PREFER_ACCELERATE_STATE_SAVE:-false}"
+else
+  export ACCELERATE_USE_DEEPSPEED="${ACCELERATE_USE_DEEPSPEED:-false}"
+fi
+# Optional: skip accelerator.save_state when DeepSpeed is active to avoid heavy shard saves.
+export MAXENT_SKIP_DEEPSPEED_STATE_SAVE="${MAXENT_SKIP_DEEPSPEED_STATE_SAVE:-false}"
+export MAXENT_ALLOW_DEEPSPEED_STATE_SAVE="${MAXENT_ALLOW_DEEPSPEED_STATE_SAVE:-false}"
+# Default to shallow HF metadata on periodic checkpoints to avoid rewriting
+# large model.safetensors files each time. Set MAXENT_CHECKPOINT_METADATA_MODE=full
+# if you specifically want save_pretrained at every save.
+export MAXENT_CHECKPOINT_METADATA_MODE="${MAXENT_CHECKPOINT_METADATA_MODE:-shallow}"
+# Optional: base directory to copy static HF metadata from when using shallow
+# checkpoints. Leave empty to default to the training output_dir.
+export MAXENT_CHECKPOINT_METADATA_SOURCE="${MAXENT_CHECKPOINT_METADATA_SOURCE:-}"
+
 TRAIN_ENTRYPOINT="src/maxent-grpo.py"
 
 # Extract model + revision for vLLM from YAML (best-effort)
@@ -189,9 +222,7 @@ export USE_VLLM_SERVER
 # SLURM topology
 NUM_NODES=${SLURM_NNODES}
 GPUS_PER_NODE=${GPUS_PER_NODE:-8}
-WORLD_SIZE=$(( NUM_NODES * GPUS_PER_NODE ))
 readarray -t NODELIST < <(scontrol show hostnames "$SLURM_JOB_NODELIST")
-MASTER_ADDR=${NODELIST[0]}
 MASTER_PORT=${MASTER_PORT:-6000}
 
 TRAIN_NODES=("${NODELIST[@]}")
@@ -208,7 +239,6 @@ if $USE_VLLM_SERVER; then
     VLLM_NODE=${NODELIST[-1]}
     TRAIN_NODES=("${NODELIST[@]:0:$((NUM_NODES-1))}")
     NUM_NODES=$(( NUM_NODES - 1 ))
-    WORLD_SIZE=$(( WORLD_SIZE - GPUS_PER_NODE ))
   else
     # Single-node: dedicate 1 GPU on the lone node to the vLLM server
     VLLM_NODE=${NODELIST[0]}
@@ -226,6 +256,13 @@ elif $USE_VLLM && [[ "$VLLM_MODE" == "colocate" ]]; then
 fi
 export INLINE_VLLM
 
+MASTER_ADDR=${TRAIN_NODES[0]}
+TRAIN_NUM_MACHINES=${#TRAIN_NODES[@]}
+if (( TRAIN_NUM_MACHINES <= 0 )); then
+  echo "No training nodes detected after vLLM allocation." >&2
+  exit 1
+fi
+
 echo "SLURM nodes: ${NODELIST[*]}"
 echo "Train nodes: ${TRAIN_NODES[*]}"
 if $USE_VLLM_SERVER; then
@@ -236,6 +273,16 @@ if $SINGLE_NODE_VLLM && (( GPUS_PER_NODE < 2 )); then
   echo "Inline vLLM requires at least 2 GPUs on the node; detected $GPUS_PER_NODE" >&2
   exit 1
 fi
+
+TRAIN_LOCAL_PROCS=$GPUS_PER_NODE
+if $SINGLE_NODE && $USE_VLLM; then
+  TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 1 ))
+fi
+if (( TRAIN_LOCAL_PROCS <= 0 )); then
+  echo "Training GPU count per node must be positive (computed $TRAIN_LOCAL_PROCS)." >&2
+  exit 1
+fi
+WORLD_SIZE=$(( TRAIN_LOCAL_PROCS * TRAIN_NUM_MACHINES ))
 
 VLLM_GROUP_PORT_FLAG=""
 if $USE_VLLM; then
@@ -307,23 +354,16 @@ fi
 NODELIST_CSV=$(IFS=,; echo "${TRAIN_NODES[*]}")
 export CMD="${TRAIN_ENTRYPOINT} --config ${CONFIG_FILE} ${OPTIONAL_ARGS}"
 
-# For single-node with vLLM server, use remaining GPUs for training
-if $SINGLE_NODE && $USE_VLLM; then
-  TRAIN_PROCS=$(( GPUS_PER_NODE - 1 ))
-  TRAIN_NUM_MACHINES=1
-  # Train step gets remaining GPUs; Slurm will allocate around the vLLM step
-else
-  TRAIN_PROCS=${WORLD_SIZE}
-  TRAIN_NUM_MACHINES=${NUM_NODES}
-fi
+TRAIN_PROCS=${TRAIN_LOCAL_PROCS}
 
 export ACC_TEE=${ACC_TEE:-3}
 export TRAIN_SEED=${TRAIN_SEED:-42}
-export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info accelerate launch \
+export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info NCCL_DEBUG=INFO TORCH_NCCL_ASYNC_ERROR_HANDLING=1 accelerate launch \
   --config_file ${ACCEL_FILE} \
   --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
   --num_machines ${TRAIN_NUM_MACHINES} \
   --num_processes ${TRAIN_PROCS} \
+  --main_process_ip ${MASTER_ADDR} \
   --main_process_port ${MASTER_PORT} \
   --machine_rank ${SLURM_PROCID} \
   --tee ${ACC_TEE}"

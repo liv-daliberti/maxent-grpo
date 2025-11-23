@@ -80,6 +80,9 @@ export VLLM_USAGE_STATS_PATH="$ROOT_DIR/.cache/vllm/usage_stats.json"
 export VLLM_NO_USAGE_STATS=1
 export HF_HUB_ENABLE_HF_TRANSFER=1
 export HF_HUB_ENABLE_PROGRESS_BARS=1
+# Ensure each rank sees the full dataset and enable vLLM prompt dedup unless overridden.
+export MAXENT_DISABLE_DISTRIBUTED_SAMPLER="${MAXENT_DISABLE_DISTRIBUTED_SAMPLER:-1}"
+export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
          "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
          "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \

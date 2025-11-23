@@ -1,31 +1,50 @@
+# Copyright 2025 Liv d'Aliberti
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
-Reward functions and a small name→callable registry.
+Reward helpers for lightweight GRPO/MaxEnt-GRPO experiments.
 
-This module focuses on simple, dependency‑light rewards for GRPO and
-MaxEnt‑GRPO experiments. At the moment it implements a strict correctness
-reward for math problems where completions are formatted as
-``<think>...</think><answer>...</answer>``. The registry helper returns a list
-of functions matching names provided in script/config arguments.
+The module intentionally keeps dependencies small so that reward shaping can be
+tested quickly in standalone unit tests or notebooks.  Most consumers interact
+with two entry points:
 
-Key functions
-- ``pure_accuracy_reward_math``: Binary exact‑match on canonicalized
-  ``<answer>`` vs. gold.
-- ``get_reward_funcs``: Resolve a list of reward callables from names.
+``pure_accuracy_reward_math``
+    Implements a binary reward that evaluates math completions formatted as
+    ``<think>...</think><answer>...</answer>``.  The helper trims decorator
+    tokens, canonicalizes simple numeric expressions, and emits ``1.0`` for
+    exact matches and ``0.0`` otherwise.
 
-License
-Copyright 2025 Liv d'Aliberti
+``get_reward_funcs``
+    Resolve a list of reward callables from configuration supplied through CLI
+    arguments or recipe YAML files.  The registry is intentionally tiny; it is
+    expected that research experiments will register their own functions in the
+    future.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Examples
+--------
 
-http://www.apache.org/licenses/LICENSE-2.0
+Creating a reward function from a training config::
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the specific language governing permissions and
-limitations under the License.
+    >>> from rewards import get_reward_funcs
+    >>> cfg = SimpleNamespace(reward_funcs=[\"pure_accuracy_math\"])
+    >>> reward_fn = get_reward_funcs(cfg)[0]
+    >>> completions = [\"<think/> <answer>42</answer>\"]
+    >>> reward_fn(completions, [\"42\"])
+    [1.0]
+
+The module is licensed under the Apache License, Version 2.0.  See the
+repository's LICENSE file for the full text.
 """
 
 # See the module docstring above for a quick overview and current contents.
@@ -33,14 +52,12 @@ limitations under the License.
 from __future__ import annotations
 # coding=utf-8
 
-from typing import (
-    Any, Callable, Dict, List, Optional, Union,
-    Protocol, runtime_checkable,
-)
+from typing import Any, Callable, Dict, List, Optional, Union, Protocol, runtime_checkable
 import re
 from re import Pattern as RePattern
 import transformers
 
+# Reward functions accept a single completion string and a reference answer.
 RewardFunction = Callable[[str, str], float]
 
 
@@ -57,13 +74,18 @@ CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
 def _extract_content(comp: CompletionType) -> str:
     """Extract assistant text from common completion shapes.
 
-    Accepts a variety of shapes typically returned by APIs, e.g. a bare string
-    or a list with an object containing a ``content`` field.
+    Parameters
+    ----------
+    comp:
+        Completion object or string to normalize.  The helper understands the
+        shapes returned by most hosted inference APIs, including bare strings
+        and OpenAI-style ``[{\"content\": ...}]`` payloads.
 
-    :param comp: Completion object or string to normalize.
-    :type comp: Any
-    :returns: Extracted text content (may be empty).
-    :rtype: str
+    Returns
+    -------
+    str
+        Extracted text content (may be empty when no recognized payload is
+        present).
     """
     if comp is None:
         return ""
@@ -75,15 +97,22 @@ def _extract_content(comp: CompletionType) -> str:
 
 
 def _canon_math(s: str) -> str:
-    """Canonicalize simple math answers for exact‑match comparison.
+    """Canonicalize simple math answers for exact-match comparison.
 
-    Heuristics remove superficial wrappers like braces/parentheses, spaces, and
-    normalize signed zeros and integer forms (e.g. ``3.0`` → ``3``).
+    The helper aggressively removes superficial wrappers such as braces,
+    parentheses around lone numbers, whitespace, signed zeros, and trailing
+    ``.0`` patterns.  The goal is to normalize cosmetic variance without
+    attempting to symbolically simplify expressions.
 
-    :param s: Raw answer string.
-    :type s: str
-    :returns: Canonicalized answer string.
-    :rtype: str
+    Parameters
+    ----------
+    s:
+        Raw answer string extracted from a completion.
+
+    Returns
+    -------
+    str
+        Canonicalized answer string suitable for exact-match comparison.
     """
     if s is None:
         return ""
@@ -114,16 +143,22 @@ def pure_accuracy_reward_math(
 ) -> List[float]:
     """Binary reward for exact match on a tagged math template.
 
-    Expects completions formatted with ``<think>...</think><answer>...</answer>``.
-    Extracts the ``<answer>`` payload and computes an exact match against the
-    canonicalized gold ``answer`` list.
+    Parameters
+    ----------
+    completions:
+        Generated completions (strings or provider objects).  Each entry must
+        contain ``<think>``/``<answer>`` tags for the reward to consider it a
+        valid candidate.
+    answer:
+        Gold answers aligned with ``completions``.
+    **_kwargs:
+        Unused keyword arguments; accepted for compatibility with more complex
+        registry signatures.
 
-    :param completions: Generated completions (strings or provider objects).
-    :type completions: list[Any]
-    :param answer: Gold answers aligned with ``completions``.
-    :type answer: list[str]
-    :returns: Per‑completion rewards in {0.0, 1.0}.
-    :rtype: list[float]
+    Returns
+    -------
+    list[float]
+        Per-completion rewards in ``{0.0, 1.0}``.
     """
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
@@ -143,7 +178,14 @@ def pure_accuracy_reward_math(
 
 @runtime_checkable
 class RewardConfig(Protocol):
-    """Protocol for objects with reward function configuration."""
+    """Protocol describing the reward configuration consumed by :func:`get_reward_funcs`.
+
+    Attributes
+    ----------
+    reward_funcs:
+        List of string identifiers that should be resolved to callables via the
+        registry.
+    """
     reward_funcs: List[str]
 
 def get_reward_funcs(
@@ -153,15 +195,26 @@ def get_reward_funcs(
 ) -> List[RewardFunction]:
     """Resolve reward function callables from names.
 
-    :param script_args: Script/config args providing ``reward_funcs`` names.
-    :type script_args: Any
-    :param _ref_model: Optional reference model (unused placeholder).
-    :type _ref_model: transformers.PreTrainedModel | None
-    :param _tokenizer: Optional tokenizer (unused placeholder).
-    :type _tokenizer: transformers.PreTrainedTokenizerBase | None
-    :returns: List of reward callables.
-    :rtype: list[Callable]
-    :raises KeyError: If an unknown reward name is requested.
+    Parameters
+    ----------
+    script_args:
+        Script/config args providing ``reward_funcs`` names.  The object must
+        satisfy :class:`RewardConfig`.
+    _ref_model:
+        Optional reference model.  Present for forward compatibility with
+        reward functions that may need to score relative to a baseline model.
+    _tokenizer:
+        Optional tokenizer that may be consumed by more advanced rewards.
+
+    Returns
+    -------
+    list[RewardFunction]
+        Resolved callables ready to be invoked by the training loop.
+
+    Raises
+    ------
+    KeyError
+        If an unknown reward name is requested.
     """
     registry = {
         "pure_accuracy_math": pure_accuracy_reward_math,

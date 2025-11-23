@@ -6,6 +6,7 @@ num_machines: 1
 num_processes: 7
 machine_rank: 0
 same_network: true
+split_batches: false
 rdzv_backend: static
 tpu_use_cluster: false
 tpu_use_sudo: false
@@ -15,10 +16,19 @@ downcast_bf16: 'no'
 main_training_function: main
 deepspeed_config:
   deepspeed_multinode_launcher: standard
+  # Explicit ZeRO config block to satisfy Accelerate/DeepSpeed
+  zero_optimization:
+    stage: 3
+    # Keep params/optimizer shards on GPU to avoid CPU stalls
+    offload_param:
+      device: none
+    offload_optimizer:
+      device: none
+    stage3_param_persistence_threshold: 0
+    overlap_comm: true
+    # Smaller buckets to make ZeRO-3 all-gathers finish more reliably
+    reduce_bucket_size: 2e7
+    allgather_bucket_size: 2e7
   zero_stage: 3
   zero3_init_flag: true
   zero3_save_16bit_model: true
-  offload_param_device: cpu
-  offload_optimizer_device: cpu
-  stage3_param_persistence_threshold: 0
-  overlap_comm: true

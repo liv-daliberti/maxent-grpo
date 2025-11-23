@@ -286,7 +286,7 @@ class GRPOConfig(trl.GRPOConfig):
     # MaxEnt‑GRPO specific knobs (used by src/maxent-grpo.py). If unused, they
     # are harmless for standard GRPO runs.
     maxent_tau: float = field(
-        default=0.2,
+        default=0.0,
         metadata={"help": "Sequence‑level entropy weight τ for MaxEnt‑GRPO."},
     )
     maxent_q_temperature: float = field(
@@ -311,6 +311,131 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    maxent_logprob_chunk_size: int = field(
+        default=0,
+        metadata={
+            "help": (
+                "If >0, score reference/policy log-probs in mini-batches of this size "
+                "to reduce activation memory."
+            )
+        },
+    )
+    maxent_target_weight_entropy: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "If set, automatically tune the MaxEnt entropy weight τ to keep the "
+                "average per-prompt weight entropy near this target."
+            )
+        },
+    )
+    maxent_tau_lr: float = field(
+        default=0.0,
+        metadata={
+            "help": "Learning rate used for automatic τ tuning (log-space).",
+        },
+    )
+    maxent_tau_min: float = field(
+        default=0.0,
+        metadata={"help": "Lower bound for the learned sequence-level entropy weight τ."},
+    )
+    maxent_tau_max: float = field(
+        default=0.0,
+        metadata={"help": "Upper bound for the learned sequence-level entropy weight τ."},
+    )
+    maxent_tau_warmup_steps: int = field(
+        default=-1,
+        metadata={
+            "help": (
+                "Number of steps to keep τ on a warmup schedule before enabling automatic tuning. "
+                "Set to a non-negative value to override, or -1 to match the learning-rate warmup."
+            )
+        },
+    )
+    maxent_use_clip_objective: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Whether to blend in a PPO-style clipped objective on top of the MaxEnt loss."
+            )
+        },
+    )
+    maxent_clip_objective_coef: float = field(
+        default=1.0,
+        metadata={"help": "Scaling applied to the PPO-style clipped objective when enabled."},
+    )
+    maxent_clip_adv_baseline: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional baseline (e.g., 1/K) subtracted from the MaxEnt advantages before clipping."
+            )
+        },
+    )
+    train_grpo_objective: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, disable the MaxEnt reference weighting term and train with the standard GRPO objective."
+            )
+        },
+    )
+    maxent_clip_range: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "If set, override the PPO clip range specifically for the MaxEnt objective (falls back to clip_range)."
+            )
+        },
+    )
+    init_kl_coeff: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": "Legacy alias for the reverse-KL coefficient β to keep recipes compatible.",
+        },
+    )
+    init_kl_coef: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": "Single-f alias for init_kl_coeff used in some downstream tooling.",
+        },
+    )
+    kl_target: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Target KL value for the β controller. Leave at zero to disable automatic adjustment."
+            )
+        },
+    )
+    kl_horizon: int = field(
+        default=0,
+        metadata={
+            "help": "Horizon (in optimizer steps) for the β controller. Zero disables the controller.",
+        },
+    )
+    kl_ctl_step_size: float = field(
+        default=0.0,
+        metadata={
+            "help": "Maximum fractional change allowed per β controller update. Zero disables adaptation.",
+        },
+    )
+    clip_range: float = field(
+        default=0.2,
+        metadata={
+            "help": (
+                "Legacy PPO clip range knob kept for compatibility; superseded by ppo_clip_range."
+            )
+        },
+    )
+    evaluation_strategy: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Alias for eval_strategy to remain compatible with standard transformers TrainingArguments."
+            )
+        },
+    )
 
     # Sampling knobs for candidate generation
     gen_temperature: float = field(
@@ -325,12 +450,84 @@ class GRPOConfig(trl.GRPOConfig):
         default="http://localhost:8000/generate",
         metadata={"help": "Base URL for vLLM /generate when use_vllm is true."},
     )
+    vllm_max_completion_rounds: int = field(
+        default=0,
+        metadata={
+            "help": (
+                "Maximum number of vLLM /generate attempts to top off missing "
+                "completions. Set to 0 to match the requested num_generations."
+            )
+        },
+    )
+    vllm_retry_sleep: float = field(
+        default=0.5,
+        metadata={
+            "help": "Seconds to sleep between vLLM completion retries when n outputs are missing."
+        },
+    )
+    vllm_backfill_with_model: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "Whether to fall back to the local HF model.generate() to fill missing "
+                "completions after exhausting vLLM retries."
+            )
+        },
+    )
+    vllm_return_logprobs: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "Request per-token logprobs from vLLM so the frozen reference model "
+                "does not need to rescore completions."
+            )
+        },
+    )
+    vllm_best_of: Optional[int] = field(
+        default=None,
+        metadata={"help": "Optional best_of parameter forwarded to vLLM (matches TRL)."},
+    )
+    vllm_frequency_penalty: float = field(
+        default=0.0,
+        metadata={"help": "Frequency penalty applied during sampling (matches TRL)."},
+    )
+    vllm_presence_penalty: float = field(
+        default=0.0,
+        metadata={"help": "Presence penalty applied during sampling (matches TRL)."},
+    )
+    vllm_top_k: Optional[int] = field(
+        default=None,
+        metadata={"help": "Top-k sampling parameter forwarded to vLLM (matches TRL)."},
+    )
+    vllm_stop_sequences: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Stop sequences for vLLM; accepts JSON list or '||'-delimited string "
+                "to match TRL's CLI."
+            )
+        },
+    )
 
     def __post_init__(self) -> None:
+        """Normalize evaluation strategy aliases to ``eval_strategy``.
+
+        :raises ValueError: If converting the evaluation strategy enum fails
+            due to an unsupported value.
+        """
         try:
             super().__post_init__()
         except AttributeError:
             pass
+        eval_alias = getattr(self, "evaluation_strategy", None)
+        if eval_alias not in (None, ""):
+            try:
+                from transformers.training_args import IntervalStrategy  # type: ignore
+
+                eval_value = eval_alias if isinstance(eval_alias, IntervalStrategy) else IntervalStrategy(str(eval_alias))
+            except (ImportError, ModuleNotFoundError, ValueError):
+                eval_value = eval_alias
+            setattr(self, "eval_strategy", eval_value)
 
 ## Removed SFTConfig for GRPO-only workflow
 

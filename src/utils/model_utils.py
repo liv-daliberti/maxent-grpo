@@ -135,4 +135,15 @@ def get_model(
         model_args.model_name_or_path,
         **model_kwargs,
     )
+    if getattr(training_args, "gradient_checkpointing", False):
+        enable_fn = getattr(model, "gradient_checkpointing_enable", None)
+        if callable(enable_fn):
+            gc_kwargs = getattr(training_args, "gradient_checkpointing_kwargs", None)
+            try:
+                if isinstance(gc_kwargs, dict):
+                    enable_fn(**gc_kwargs)
+                else:
+                    enable_fn()
+            except TypeError:
+                enable_fn()
     return model
