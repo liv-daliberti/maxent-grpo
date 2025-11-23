@@ -19,6 +19,17 @@ def test_training_init_run_maxent_grpo_raises(training_stubs):
     assert "run_maxent_grpo" in exported
 
 
+def test_training_init_provides_wandb_stub(monkeypatch, training_stubs):
+    import training
+
+    monkeypatch.delitem(sys.modules, "wandb", raising=False)
+    training = importlib.reload(training)
+    wandb_stub = sys.modules["wandb"]
+
+    assert getattr(wandb_stub.errors, "Error") is RuntimeError
+    assert "run_maxent_grpo" in dir(training)
+
+
 def test_training_cli_reexports_parse_grpo_args(training_stubs):
     import training.cli as cli_pkg
     import training.cli.trl as cli_trl
@@ -92,6 +103,22 @@ def test_iter_eval_batches_and_compute_rewards(monkeypatch, training_stubs):
     assert rewards == [2.5, 3.5]
 
 
+def test_iter_eval_batches_skips_empty_slices(training_stubs):
+    from training.eval import _iter_eval_batches
+
+    class _EmptyRows:
+        def __len__(self):
+            return 2
+
+        def __getitem__(self, item):
+            if isinstance(item, slice):
+                return []
+            raise AssertionError(f"Unexpected index {item}")
+
+    batches = list(_iter_eval_batches(_EmptyRows(), batch_size=1))
+    assert batches == []
+
+
 def test_run_validation_step_logs_and_restores_model(monkeypatch, training_stubs, caplog):
     from training.eval import run_validation_step
     from training.types import RewardSpec, EvaluationSettings, ValidationContext
@@ -140,3 +167,23 @@ def test_run_validation_step_logs_and_restores_model(monkeypatch, training_stubs
     run_validation_step(step=1, ctx=ctx)
     assert model.eval_called is True
     assert model.training is True  # restored to previous state
+
+
+def test_run_validation_step_returns_when_disabled(training_stubs):
+    from training.eval import run_validation_step
+    from training.types import EvaluationSettings, ValidationContext
+
+    class _Exploding:
+        def __getattr__(self, name):
+            raise AssertionError(f"attribute {name} should not be accessed")
+
+    ctx = ValidationContext(
+        evaluation=EvaluationSettings(enabled=False, rows=[], batch_size=1, every_n_steps=None),
+        accelerator=_Exploding(),
+        model=_Exploding(),
+        reward=_Exploding(),
+        generator=_Exploding(),
+        logging=_Exploding(),
+    )
+
+    run_validation_step(step=99, ctx=ctx)

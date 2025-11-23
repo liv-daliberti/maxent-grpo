@@ -42,9 +42,19 @@ def test_pure_accuracy_reward_math_checks_tags_and_canon():
         "<think>...</think><answer> 42 </answer>",
         "<think>no</think><answer>-0</answer>",
         "missing tags",
+        "<think>no answer tag</think>",
     ]
-    rewards = pure_accuracy_reward_math(comps, ["42", "0", "0"])
-    assert rewards == [1.0, 1.0, 0.0]
+    rewards = pure_accuracy_reward_math(comps, ["42", "0", "0", "x"])
+    assert rewards == [1.0, 1.0, 0.0, 0.0]
+
+
+def test_pure_accuracy_reward_math_handles_multiple_rewards():
+    completions = [
+        "<think>t</think><answer>1</answer>",
+        "<think>t</think><answer>2</answer>",
+    ]
+    rewards = pure_accuracy_reward_math(completions, ["1", "3"])
+    assert rewards == [1.0, 0.0]
 
 
 def test_get_reward_funcs_resolves_known_names():

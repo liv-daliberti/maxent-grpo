@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from dataclasses import dataclass
 
+import pytest
+
+import maxent_grpo.config.recipes as recipes_mod
 from maxent_grpo.config.dataset import ScriptArguments
 from maxent_grpo.config.grpo import GRPOConfig
 from maxent_grpo.config.recipes import (
@@ -54,3 +58,51 @@ def test_load_grpo_recipe_builds_dataclasses(tmp_path):
     assert script_args.dataset_name == "demo/ds"
     assert training_args.benchmarks == ["math"]
     assert model_cfg.foo == 5
+
+
+def test_load_grpo_recipe_falls_back_to_yaml(tmp_path, monkeypatch):
+    recipe_path = tmp_path / "recipe.yaml"
+    recipe_path.write_text("foo: 7\ndataset_name: demo\nbenchmarks: [math]\n", encoding="utf-8")
+    monkeypatch.setattr(recipes_mod, "OmegaConf", None)
+    called = {}
+
+    def _safe_load(handle):
+        called["loaded"] = handle.name
+        return {"foo": 7, "dataset_name": "demo", "benchmarks": ["math"]}
+
+    monkeypatch.setattr(recipes_mod, "yaml", SimpleNamespace(safe_load=_safe_load))
+    script_args, training_args, model_cfg = load_grpo_recipe(
+        str(recipe_path), model_config_cls=_DummyModelConfig
+    )
+    assert called["loaded"] == str(recipe_path)
+    assert script_args.dataset_name == "demo"
+    assert training_args.benchmarks == ["math"]
+    assert model_cfg.foo == 7
+
+
+def test_load_grpo_recipe_validates_mapping(tmp_path, monkeypatch):
+    recipe_path = tmp_path / "recipe.yaml"
+    recipe_path.write_text("ignored: true\n", encoding="utf-8")
+
+    class _OmegaStub:
+        @staticmethod
+        def load(path):
+            return ["not", "a", "dict"]
+
+        @staticmethod
+        def to_container(cfg, resolve=True):
+            return cfg
+
+    monkeypatch.setattr(recipes_mod, "OmegaConf", _OmegaStub)
+    with pytest.raises(ValueError):
+        load_grpo_recipe(str(recipe_path), model_config_cls=_DummyModelConfig)
+
+
+def test_load_grpo_recipe_requires_loader(tmp_path, monkeypatch):
+    recipe_path = tmp_path / "recipe.yaml"
+    recipe_path.write_text("foo: 1\n", encoding="utf-8")
+    monkeypatch.setattr(recipes_mod, "OmegaConf", None)
+    monkeypatch.setattr(recipes_mod, "yaml", None)
+
+    with pytest.raises(ImportError):
+        load_grpo_recipe(str(recipe_path), model_config_cls=_DummyModelConfig)

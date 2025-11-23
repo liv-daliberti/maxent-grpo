@@ -89,6 +89,17 @@ def test_maybe_clear_stale_controller_state_removes_file(tmp_path):
     assert accel.wait_calls == 1
 
 
+def test_maybe_clear_stale_controller_state_returns_when_missing_file(tmp_path):
+    controller_cfg = SimpleNamespace(
+        resume_from=None,
+        overwrite_existing=True,
+        state_path=str(tmp_path / "nope.bin"),
+    )
+    accel = _Accel()
+    maybe_clear_stale_controller_state(accel, controller_cfg)
+    assert accel.wait_calls == 0  # early return before synchronization
+
+
 def test_load_controller_state_chain_prefers_resume(monkeypatch, tmp_path):
     state_dir = tmp_path / "resume"
     state_dir.mkdir()
@@ -127,6 +138,40 @@ def test_load_controller_file_logs_failure(monkeypatch, caplog):
     weighting_cfg = SimpleNamespace(beta=0.0, tau=0.0)
     loaded = load_controller_state_chain(controller_cfg, accel, weighting_cfg)
     assert loaded is False
+
+
+def test__load_controller_file_logs_success(monkeypatch, caplog):
+    caplog.set_level("INFO")
+    accel = _Accel()
+    weighting_cfg = SimpleNamespace(beta=0.1, tau=0.2)
+    monkeypatch.setattr("training.state.load_controller_state", lambda *_: True)
+    from training import state as state_mod
+
+    loaded = state_mod._load_controller_file("path.bin", accel, weighting_cfg)
+    assert loaded is True
+    assert "Loaded controller state from path.bin" in caplog.text
+
+
+def test_load_controller_state_chain_marks_resume_even_when_missing(monkeypatch, tmp_path):
+    state_dir = tmp_path / "resume"
+    state_dir.mkdir()
+    controller_cfg = SimpleNamespace(
+        resume_from=str(state_dir),
+        overwrite_existing=False,
+        state_path=str(tmp_path / "current.bin"),
+    )
+    accel = _Accel()
+    weighting_cfg = SimpleNamespace(beta=0.0, tau=0.0)
+    calls = []
+
+    def _fake_load(path, *_args):
+        calls.append(path)
+        return False
+
+    monkeypatch.setattr("training.state._load_controller_file", _fake_load)
+    loaded = load_controller_state_chain(controller_cfg, accel, weighting_cfg)
+    assert loaded is True  # resume path preferred even when load returns False
+    assert len(calls) == 1  # current state path skipped because flag set
 
 
 def test_maybe_load_accelerator_state_invokes_load(tmp_path):
@@ -187,6 +232,24 @@ def test_maybe_checkpoint_zero_save_steps_logs_once(monkeypatch, caplog):
     maybe_checkpoint(cfg, accel, global_step=2)
     msgs = [rec.message for rec in caplog.records if "save_steps<=0" in rec.message]
     assert len(msgs) == 1
+
+
+def test_maybe_checkpoint_normalizes_prefixed_strategy():
+    saves = []
+
+    class _Cfg:
+        def __init__(self):
+            self.save_strategy = "SaveStrategy.steps"
+            self.save_steps = 1
+
+        def save_checkpoint(self, name: str):
+            saves.append(name)
+
+    accel = _Accel()
+    maybe_checkpoint(_Cfg(), accel, global_step=1)
+    assert saves == ["checkpoint-1"]
+    # wait_for_everyone called before and after save
+    assert accel.wait_calls == 2
 
 
 def test_check_stop_condition_sets_flag():

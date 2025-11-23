@@ -37,7 +37,10 @@ def test_get_dataset_mixture_subsampling(monkeypatch):
             return self
 
         def select(self, indices):
-            return _FakeDS([self._rows[i] for i in indices])
+            new_ds = _FakeDS([self._rows[i] for i in indices])
+            new_ds.selected = self.selected
+            new_ds.shuffled = self.shuffled
+            return new_ds
 
     def _load_dataset(name, config=None, split=None):
         return _FakeDS(list(range(10)))
@@ -45,6 +48,7 @@ def test_get_dataset_mixture_subsampling(monkeypatch):
     monkeypatch.setattr(
         data, "datasets", SimpleNamespace(load_dataset=_load_dataset, concatenate_datasets=lambda seq: seq[0])
     )
+    monkeypatch.setattr(data, "concatenate_datasets", lambda seq: seq[0])
     mixture = {
         "datasets": [{"id": "a", "config": None, "split": "train", "columns": ["x"], "weight": 0.5}],
         "seed": 0,

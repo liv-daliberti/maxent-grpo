@@ -126,3 +126,20 @@ def test_grpo_config_rejects_negative_kl_and_tau_lr():
         GRPOConfig(kl_target=-0.1)
     with pytest.raises(ValueError):
         GRPOConfig(maxent_tau_lr=-0.01)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"maxent_tau_warmup_steps": -2},
+        {"maxent_q_temperature": 0.0},
+        {"maxent_logprob_chunk_size": -1},
+        {"maxent_clip_objective_coef": -0.5},
+        {"maxent_clip_range": -0.1},
+        {"kl_horizon": -1},
+        {"kl_ctl_step_size": -0.2},
+    ],
+)
+def test_grpo_config_rejects_other_negative_maxent_and_kl_knobs(kwargs):
+    with pytest.raises(ValueError):
+        GRPOConfig(**kwargs)

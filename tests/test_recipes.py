@@ -31,7 +31,10 @@ def test_split_recipe_payload_routes_fields():
 
 def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):
     path = tmp_path / "recipe.yaml"
-    path.write_text("reward_funcs: ['r1']\nbeta: 0.3\ndataset_name: ds\nmodel_name_or_path: repo/model\n", encoding="utf-8")
+    path.write_text(
+        "reward_funcs: ['r1']\nmaxent_tau: 0.3\ndataset_name: ds\nmodel_name_or_path: repo/model\n",
+        encoding="utf-8",
+    )
 
     class _ModelCfg:
         def __init__(self, **kwargs):
@@ -42,5 +45,5 @@ def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):
     assert isinstance(cfg, GRPOConfig)
     assert isinstance(model_cfg, _ModelCfg)
     assert args.reward_funcs == ["r1"]
-    assert cfg.beta == 0.3
+    assert cfg.maxent_tau == 0.3
     assert model_cfg.kwargs["model_name_or_path"] == "repo/model"

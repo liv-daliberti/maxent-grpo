@@ -140,6 +140,13 @@ def test_get_dataset_empty_mixture(monkeypatch):
         D.get_dataset(args)
 
 
+def test_get_dataset_import_guard(monkeypatch):
+    monkeypatch.setattr(D, "datasets", None)
+    args = SimpleNamespace(dataset_name="ds/name", dataset_config=None, dataset_mixture=None)
+    with pytest.raises(ImportError):
+        D.get_dataset(args)
+
+
 def test_load_dataset_split_guards(monkeypatch):
     """load_dataset_split raises for missing deps or split."""
     monkeypatch.setattr(D, "datasets", None)

@@ -22,6 +22,10 @@ from pipelines.inference.math500 import (  # noqa: E402 - after stub injection
     InferenceModelSpec,
     Math500EvalConfig,
     Math500InferenceResult,
+    TransformersPromptRunner,
+    _normalize_dtype,
+    _resolve_default_device,
+    load_math500_dataset,
     run_math500_inference,
 )
 
@@ -95,6 +99,128 @@ def test_collect_generations_captures_raw_outputs() -> None:
     generated = results[0].generations
     assert generated is not None
     assert generated == ["<think></think><answer>101</answer>"]
+
+
+def test_inference_requires_model_specs() -> None:
+    with pytest.raises(ValueError):
+        run_math500_inference([], dataset=[{"problem": "1", "answer": "1"}])
+
+
+def test_runner_mismatch_counts_raise(monkeypatch):
+    dataset = [{"problem": "p", "answer": "a"}]
+    spec = InferenceModelSpec(model_name_or_path="stub/model", batch_size=1)
+
+    class _Runner:
+        def __init__(self, _spec):
+            pass
+
+        def generate(self, probs):
+            return []  # wrong length
+
+        def close(self):
+            pass
+
+    with pytest.raises(RuntimeError):
+        run_math500_inference(
+            [spec], dataset=dataset, runner_factory=lambda _s: _Runner(_s)
+        )
+
+
+def test_default_device_prefers_cuda_then_mps(monkeypatch):
+    class _Torch:
+        class _Backends:
+            class _MPS:
+                def is_available(self):
+                    return True
+
+        def __init__(self):
+            self.cuda = types.SimpleNamespace(is_available=lambda: False)
+            self.backends = types.SimpleNamespace(mps=self._Backends._MPS())
+
+        class device:
+            def __init__(self, name):
+                self.type = name
+
+    torch_stub = _Torch()
+    monkeypatch.setattr("pipelines.inference.math500.torch", torch_stub)
+    dev = _resolve_default_device(None)
+    assert isinstance(dev, _Torch.device)
+    assert dev.type == "mps"
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (None, None),
+        ("auto", "auto"),
+        (" float16 ", "float16"),
+        ("unknown", "unknown"),
+    ],
+)
+def test_normalize_dtype_handles_strings(value, expected, monkeypatch):
+    class _Torch:
+        class dtype:  # sentinel for isinstance checks
+            pass
+
+        float16 = "float16"
+
+    monkeypatch.setattr("pipelines.inference.math500.torch", _Torch)
+    assert _normalize_dtype(value) == expected
+
+
+def test_transformers_runner_builds_prompt_with_template(monkeypatch):
+    class _Tok:
+        def __init__(self):
+            self.pad_token_id = 1
+            self.eos_token_id = 2
+            self.pad_token = "<pad>"
+            self.chat_template = None
+
+        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
+            return f"TEMPLATE:{messages[0]['content']}"
+
+        def __call__(self, prompts, **_kwargs):
+            return {"input_ids": types.SimpleNamespace(to=lambda *_: [0]), "attention_mask": [2, 2]}
+
+        def decode(self, _ids, **_kwargs):
+            return "decoded"
+
+    class _Model:
+        def to(self, device):
+            self.device = device
+
+        def eval(self):
+            pass
+
+        def generate(self, **_kwargs):
+            return [[0, 1, 2]]
+
+    monkeypatch.setattr(
+        "pipelines.inference.math500.AutoTokenizer", types.SimpleNamespace(from_pretrained=lambda *_a, **_k: _Tok())
+    )
+    monkeypatch.setattr(
+        "pipelines.inference.math500.AutoModelForCausalLM",
+        types.SimpleNamespace(from_pretrained=lambda *_a, **_k: _Model()),
+    )
+    torch_stub = types.SimpleNamespace(
+        no_grad=lambda: types.SimpleNamespace(__enter__=lambda *_: None, __exit__=lambda *_: None),
+        cuda=types.SimpleNamespace(is_available=lambda: False),
+        backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: False)),
+        device=lambda name: types.SimpleNamespace(type=name),
+        dtype=type("dtype", (), {}),
+    )
+    monkeypatch.setattr("pipelines.inference.math500.torch", torch_stub)
+
+    spec = InferenceModelSpec(model_name_or_path="stub", chat_template="<<template>>")
+    runner = TransformersPromptRunner(spec)
+    prompt = runner._build_prompt("abc")
+    assert prompt.startswith("TEMPLATE:")
+
+
+def test_load_math500_dataset_requires_datasets(monkeypatch):
+    monkeypatch.setattr("pipelines.inference.math500.load_dataset", None)
+    with pytest.raises(ImportError):
+        load_math500_dataset(Math500EvalConfig())
 
 
 def test_missing_columns_raise_friendly_error() -> None:
