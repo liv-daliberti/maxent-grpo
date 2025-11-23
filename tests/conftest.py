@@ -1,220 +1,143 @@
-"""
-Copyright 2025 Liv d'Aliberti
+"""Shared pytest fixtures for maxent helpers."""
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+from __future__ import annotations
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-
-import sys
-import types
 from pathlib import Path
+from fnmatch import fnmatch
+from types import ModuleType, SimpleNamespace
+import sys
+import importlib.util
+
 import pytest
 
+from .helpers.run_setup_stubs import build_framework_handles, load_run_setup
 
-def _ensure_module(name: str):
-    if name not in sys.modules:
-        sys.modules[name] = types.ModuleType(name)
-    return sys.modules[name]
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_SRC_ROOT = _PROJECT_ROOT / "src"
+if str(_SRC_ROOT) not in sys.path:
+    # Make the src-layout packages importable without installing the project.
+    sys.path.insert(0, str(_SRC_ROOT))
+
+_DEFAULT_TEST_MARKER = "core"
+_GROUP_MARKER_PATTERNS = {
+    "training": [
+        "test_run_training*.py",
+        "test_run_helpers.py",
+        "test_run_logging.py",
+        "test_run_entrypoint.py",
+        "test_run_checkpoint.py",
+        "test_run_setup_training.py",
+    ],
+    "generation": [
+        "test_run_generation*.py",
+        "test_generate.py",
+        "test_grpo_prompt.py",
+    ],
+    "setup": [
+        "test_run_setup_*.py",
+        "test_run_entrypoint.py",
+        "test_run_checkpoint.py",
+    ],
+    "logging": [
+        "test_run_logging.py",
+        "test_wandb_logging.py",
+    ],
+    "rewards": [
+        "test_rewards.py",
+        "test_run_training_rewards.py",
+        "test_run_training_weighting.py",
+    ],
+    "vllm": [
+        "test_run_generation_vllm.py",
+        "test_vllm_patch.py",
+    ],
+}
 
 
-def pytest_configure(config):
-    # Ensure the src/ directory is importable (src-layout project)
-    repo_root = Path(__file__).resolve().parents[1]
-    src_dir = repo_root / "src"
-    if str(src_dir) not in sys.path:
-        sys.path.insert(0, str(src_dir))
-    # Stub minimal trl API used by the codebase
-    trl = _ensure_module("trl")
-    if not hasattr(trl, "ScriptArguments"):
-        class ScriptArguments:  # minimal base
-            pass
-        class GRPOConfig:
-            pass
-        class SFTConfig:
-            pass
-        class ModelConfig:
-            pass
-        def get_kbit_device_map():
+_ORIG_FIND_SPEC = importlib.util.find_spec
+
+
+def _patched_find_spec(name: str, package: str | None = None):
+    """Shield importlib when torch stubs lack __spec__."""
+    if name == "torch":
+        return None
+    try:
+        return _ORIG_FIND_SPEC(name, package)
+    except ValueError:
+        if name == "torch":
             return None
-        def get_quantization_config(*_a, **_k):
-            return None
-        trl.ScriptArguments = ScriptArguments
-        trl.GRPOConfig = GRPOConfig
-        trl.SFTConfig = SFTConfig
-        trl.ModelConfig = ModelConfig
-        trl.get_kbit_device_map = get_kbit_device_map
-        trl.get_quantization_config = get_quantization_config
+        raise
 
-    # Stub minimal transformers API used by the codebase
-    tf = _ensure_module("transformers")
-    if not hasattr(tf, "set_seed"):
-        def set_seed(_):
-            return None
-        tf.set_seed = set_seed
-    # trainer_utils.get_last_checkpoint
-    tu = _ensure_module("transformers.trainer_utils")
-    if not hasattr(tu, "get_last_checkpoint"):
-        def get_last_checkpoint(_):
-            return None
-        tu.get_last_checkpoint = get_last_checkpoint
-    # Attach submodule back to parent
-    setattr(tf, "trainer_utils", tu)
 
-    # Tokenizer/model/config stubs
-    if not hasattr(tf, "AutoTokenizer"):
-        class _Tok:
-            def __init__(self):
-                self.chat_template = None
-            def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=False):
-                return "".join(m.get("content", "") for m in messages) + ("<GEN>" if add_generation_prompt else "")
-        class AutoTokenizer:
-            @classmethod
-            def from_pretrained(cls, *a, **k):
-                return _Tok()
-        tf.AutoTokenizer = AutoTokenizer
-    if not hasattr(tf, "PreTrainedTokenizer"):
-        class PreTrainedTokenizer:  # only for typing
-            pass
-        tf.PreTrainedTokenizer = PreTrainedTokenizer
-    if not hasattr(tf, "AutoModelForCausalLM"):
-        class _Model:
-            def __init__(self):
-                self.config = types.SimpleNamespace()
-        class AutoModelForCausalLM:
-            last_call = None
-            @classmethod
-            def from_pretrained(cls, model_name_or_path, **kwargs):
-                cls.last_call = (model_name_or_path, kwargs)
-                return _Model()
-        tf.AutoModelForCausalLM = AutoModelForCausalLM
-    if not hasattr(tf, "AutoConfig"):
-        class AutoConfig:
-            @classmethod
-            def from_pretrained(cls, *a, **k):
-                obj = types.SimpleNamespace()
-                obj.num_attention_heads = 64
-                return obj
-        tf.AutoConfig = AutoConfig
+importlib.util.find_spec = _patched_find_spec
 
-    # transformers.utils.import_utils for is_package_available
-    tf_utils = _ensure_module("transformers.utils")
-    tf_import_utils = _ensure_module("transformers.utils.import_utils")
-    if not hasattr(tf_import_utils, "_is_package_available"):
-        def _is_package_available(_pkg):
-            return False
-        tf_import_utils._is_package_available = _is_package_available
-    setattr(tf_utils, "import_utils", tf_import_utils)
-    setattr(tf, "utils", tf_utils)
 
-    # Minimal torch with torch.distributed and torch.utils.data.Dataset
-    torch = _ensure_module("torch")
-    if not hasattr(torch, "float16"):
-        # Provide a few dtype attrs used by getattr(torch, name)
-        torch.float16 = object()
-        torch.bfloat16 = object()
-        torch.float32 = object()
-    td = _ensure_module("torch.distributed")
-    setattr(torch, "distributed", td)
-    tutils = _ensure_module("torch.utils")
-    tdata = _ensure_module("torch.utils.data")
-    if not hasattr(tdata, "Dataset"):
-        class Dataset:
-            def __len__(self):
-                return 0
-            def __getitem__(self, idx):
-                raise IndexError
-        tdata.Dataset = Dataset
-    setattr(tutils, "data", tdata)
-    setattr(torch, "utils", tutils)
+def _install_transformers_stub() -> None:
+    """Provide a minimal transformers stub for tests lacking the package."""
+    if "transformers" in sys.modules:
+        return
+    tf_module = ModuleType("transformers")
+    tf_module.__spec__ = SimpleNamespace()
+    tf_module.__path__ = []
+    trainer_utils = ModuleType("transformers.trainer_utils")
+    trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
+    utils_module = ModuleType("transformers.utils")
+    utils_module.logging = SimpleNamespace(
+        set_verbosity=lambda *args, **kwargs: None,
+        enable_default_handler=lambda *args, **kwargs: None,
+        enable_explicit_format=lambda *args, **kwargs: None,
+    )
 
-    # Minimal huggingface_hub API used by utils.hub
-    hfh = _ensure_module("huggingface_hub")
-    if not hasattr(hfh, "create_repo"):
-        def create_repo(repo_id, private=True, exist_ok=True):
-            return f"https://hub/{repo_id}"
-        def list_repo_commits(repo_id):
-            return [types.SimpleNamespace(commit_id="init")]
-        def create_branch(repo_id, branch, revision, exist_ok=True):
-            return None
-        def upload_folder(**kwargs):
-            return types.SimpleNamespace(done=True)
-        def list_repo_refs(repo_id):
-            return types.SimpleNamespace(branches=[types.SimpleNamespace(name="main")])
-        def list_repo_files(repo_id, revision=None):
-            return []
-        def repo_exists(repo_id):
-            return True
-        def get_safetensors_metadata(repo_id):
-            class _Meta:
-                parameter_count = {"model": 1000}
-            return _Meta()
-        hfh.create_repo = create_repo
-        hfh.list_repo_commits = list_repo_commits
-        hfh.create_branch = create_branch
-        hfh.upload_folder = upload_folder
-        hfh.list_repo_refs = list_repo_refs
-        hfh.list_repo_files = list_repo_files
-        hfh.repo_exists = repo_exists
-        hfh.get_safetensors_metadata = get_safetensors_metadata
+    class _AutoConfig:
+        @classmethod
+        def from_pretrained(cls, *_args, **_kwargs):
+            return SimpleNamespace(num_attention_heads=8)
 
-    # Minimal distilabel API to import src/generate.py
-    disti = _ensure_module("distilabel")
-    if not hasattr(disti, "pipeline"):
-        # Pipeline context manager with .ray()
-        class _Pipe:
-            def __init__(self):
-                self._ray = False
-            def ray(self):
-                self._ray = True
-                return self
-            def __enter__(self):
-                return self
-            def __exit__(self, exc_type, exc, tb):
-                return False
-        pipe_mod = types.ModuleType("distilabel.pipeline")
-        pipe_mod.Pipeline = _Pipe
-        disti.pipeline = pipe_mod
+    tf_module.trainer_utils = trainer_utils
+    tf_module.utils = utils_module
+    tf_module.set_seed = lambda *_args, **_kwargs: None
+    tf_module.PreTrainedModel = type("PreTrainedModel", (), {})
+    tf_module.PreTrainedTokenizer = type("PreTrainedTokenizer", (), {})
+    tf_module.AutoConfig = _AutoConfig
+    sys.modules["transformers"] = tf_module
+    sys.modules["transformers.trainer_utils"] = trainer_utils
+    sys.modules["transformers.utils"] = utils_module
 
-        # Steps and resources
-        steps_mod = types.ModuleType("distilabel.steps")
-        class StepResources:
-            def __init__(self, replicas=1):
-                self.replicas = replicas
-        steps_mod.StepResources = StepResources
 
-        tasks_mod = types.ModuleType("distilabel.steps.tasks")
-        class TextGeneration:
-            def __init__(self, *a, **k):
-                pass
-        tasks_mod.TextGeneration = TextGeneration
-        disti.steps = steps_mod
-        disti.steps.tasks = tasks_mod
+_install_transformers_stub()
 
-        # LLMs
-        llms_mod = types.ModuleType("distilabel.llms")
-        class OpenAILLM:
-            def __init__(self, *a, **k):
-                pass
-        llms_mod.OpenAILLM = OpenAILLM
-        disti.llms = llms_mod
+
+def _markers_for_path(path: Path) -> set[str]:
+    filename = path.name
+    matched = {
+        marker
+        for marker, patterns in _GROUP_MARKER_PATTERNS.items()
+        if any(fnmatch(filename, pattern) for pattern in patterns)
+    }
+    if not matched:
+        matched.add(_DEFAULT_TEST_MARKER)
+    return matched
 
 
 def pytest_collection_modifyitems(config, items):
-    """Ensure every test has at least one standard mark.
-
-    If a test has none of the recognized marks (unit/integration/slow), we add
-    the 'unit' mark by default so that all tests can be filtered via -m.
-    """
+    """Tag every test with unit+group markers so pytest -m selection works."""
     for item in items:
-        existing = {m.name for m in item.iter_markers()}
-        if not existing.intersection({"unit", "integration", "slow"}):
-            item.add_marker(pytest.mark.unit)
+        item.add_marker("unit")
+        for marker in _markers_for_path(Path(item.fspath)):
+            item.add_marker(marker)
+
+
+@pytest.fixture
+def run_setup_fixtures(monkeypatch):
+    """Provide run_setup module, stub frameworks, env config, and accelerator."""
+    run_setup = load_run_setup(monkeypatch)
+    frameworks = build_framework_handles(run_setup)
+    env_config = run_setup.EnvironmentConfig.capture()
+    accelerator, helpers = run_setup.bootstrap_for_tests(frameworks, env_config)
+    return SimpleNamespace(
+        module=run_setup,
+        frameworks=frameworks,
+        env_config=env_config,
+        accelerator=accelerator,
+        helpers=helpers,
+    )

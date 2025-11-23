@@ -9,7 +9,7 @@ One‑Command Training
 Slurm (recommended):
 
 ```bash
-sbatch slurm/train.slurm \
+sbatch ops/slurm/train.slurm \
   --model Qwen2.5-1.5B-Instruct \
   --task grpo \
   --config math \
@@ -24,40 +24,41 @@ Quick flags:
 - `--vllm-port` / `--vllm-group-port` override RPC ports when needed.
 - `--args "…" ` passes raw CLI to the trainer (quote the entire string).
 - Authenticate with Hugging Face ahead of time (`huggingface-cli login` or `export HF_TOKEN=...`); the launcher forwards `HF_TOKEN` to every node for gated repos.
-- See every option via `sbatch slurm/train.slurm --help`.
+- See every option via `sbatch ops/slurm/train.slurm --help`.
 
-Local smoke tests (no Slurm) can invoke the trainer directly. Example:
+Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
 
 ```bash
-accelerate launch \
-  --config_file recipes/accelerate_configs/zero1.yaml \
-  src/grpo.py \
-  --config recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml \
-  --max_steps 5 --overwrite_output_dir true
+# Baseline GRPO with inline overrides
+maxent-grpo-baseline command=train-baseline training.output_dir=var/data/out
+
+# MaxEnt-GRPO using a YAML recipe
+GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml \
+  maxent-grpo-maxent
 ```
 
 What the Slurm launcher does
 ----------------------------
 
-`slurm/train.slurm` is the orchestrator. It:
+`ops/slurm/train.slurm` is the orchestrator. It:
 
-- Boots a conda env (default `./openr1`) or arbitrary venv depending on `ENV_MODE`.
+- Boots a conda env (default `./var/openr1`) or arbitrary venv depending on `ENV_MODE`.
 - Loads CUDA 12.6 modules (editable) and exports `CUDA_HOME`, `PATH`, `LD_LIBRARY_PATH`.
-- Redirects all Hugging Face / pip / torch caches into the repository so jobs stay self‑contained.
+- Redirects all Hugging Face / pip / torch caches into `var/` so jobs stay self‑contained.
 - Parses your YAML recipe to discover `use_vllm`, the model ID, gradient accumulation, and vLLM mode.
 - Splits nodes between training and vLLM automatically:
   - single node → GPU 0 hosts vLLM, remaining GPUs run Accelerate.
   - multi‑node → reserves the last node for vLLM (data/tensor parallel controlled by `--dp/--tp`).
 - Launches `trl.scripts.vllm_serve` with health checks, then fans out `accelerate launch` across remaining nodes/GPUs.
 - Auto‑wires `--vllm_server_host/port` into the trainer if you did not pass them manually.
-- Streams logs to `logs/train_<jobid>.log` and `logs/vllm-<jobid>.out` alongside the Slurm stdout/err files.
+- Streams logs to `var/logs/train_<jobid>.log` and `var/logs/vllm-<jobid>.out` alongside the Slurm stdout/err files.
 
 Entrypoint and vLLM parameters
 ------------------------------
 
 - `--task grpo|maxent` toggles the trainer file (`src/grpo.py` vs `src/maxent-grpo.py`).
-- `--model/--config` pair selects the YAML under `recipes/<model>/<task>/config_<suffix>.yaml`.
-- `--accelerator` chooses the Accelerate config under `recipes/accelerate_configs/`.
+- `--model/--config` pair selects the YAML under `configs/recipes/<model>/<task>/config_<suffix>.yaml`.
+- `--accelerator` chooses the Accelerate config under `configs/recipes/accelerate_configs/`.
 - `--args` lets you append any CLI flag supported by the trainer.
 - vLLM knobs:
   - `--dp`, `--tp` set data/tensor parallel width on the server node.
@@ -68,7 +69,7 @@ Entrypoint and vLLM parameters
 Slurm specifics
 ---------------
 
-`slurm/train.slurm` ships with a conservative SBATCH header. Update account, partition, GPU type/count, and walltime for your site.
+`ops/slurm/train.slurm` ships with a conservative SBATCH header. Update account, partition, GPU type/count, and walltime for your site.
 
 ```bash
 #SBATCH --job-name=open_r1
@@ -79,8 +80,8 @@ Slurm specifics
 #SBATCH --ntasks-per-node=1
 #SBATCH --exclusive
 #SBATCH --time=128:00:00
-#SBATCH --output=logs/%x-%j.out
-#SBATCH --error=logs/%x-%j.err
+#SBATCH --output=var/logs/%x-%j.out
+#SBATCH --error=var/logs/%x-%j.err
 ```
 
 On submission the script:
@@ -93,15 +94,15 @@ Key Files
 ---------
 
 - `src/grpo.py` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
-- `src/configs.py` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
-- `recipes/` — ready‑to‑use YAML configs; see the Recipes page
+- `src/maxent_grpo/config/` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
+- `configs/recipes/` — ready‑to‑use YAML configs; see the Recipes page
 
 Datasets
 --------
 
 You can train from a single dataset or a mixture. The mixture form lets you blend multiple sources with explicit columns and weights.
 
-See: `src/configs.py:ScriptArguments` and `src/configs.py:DatasetMixtureConfig`.
+See: `src/maxent_grpo/config/dataset.py:ScriptArguments` and `src/maxent_grpo/config/dataset.py:DatasetMixtureConfig`.
 
 Prompts longer than 2,048 characters are clipped before requests are sent to vLLM to avoid HTTP payload failures. Override the limit with `MAX_PROMPT_CHARS` if your setup requires more context.
 
@@ -116,14 +117,14 @@ CLI / YAML Config
 Most options can be provided by CLI via TRL’s `TrlParser` or by a YAML recipe.
 
 - Example knobs: `--system_prompt`, `--chat_template`, `--benchmarks`, W&B and Hub settings, MaxEnt controls (`--maxent_tau`, …)
-- See API Reference → `configs` for all fields.
+- See API Reference → `maxent_grpo.config` for all fields.
 
 Logging & Checkpoints
 ---------------------
 
-- Slurm stdout/err live in `logs/<job-name>-<jobid>.out|err`.
-- vLLM server logs to `logs/vllm-<jobid>.out` (or inline when sharing a node).
-- Trainer logs to `logs/train_<jobid>.log`.
+- Slurm stdout/err live in `var/logs/<job-name>-<jobid>.out|err`.
+- vLLM server logs to `var/logs/vllm-<jobid>.out` (or inline when sharing a node).
+- Trainer logs to `var/logs/train_<jobid>.log`.
 - Weights & Biases integration is available via `wandb_*` fields.
 - Checkpoints are handled by TRL’s GRPOConfig as usual.
 - When DeepSpeed is enabled we default to DeepSpeed’s native `save_checkpoint`

@@ -8,20 +8,20 @@ from types import SimpleNamespace
 
 import pytest
 
-from test_run_setup_reference import _load_run_setup
+from tests.test_run_setup_reference import _load_run_setup
 
 
 @pytest.fixture
 def rtl(monkeypatch):
-    """Load run_training_loop with torch/accelerate stubs applied."""
+    """Load training.loop with torch/accelerate stubs applied."""
     _load_run_setup(monkeypatch)
-    module = reload(import_module("maxent_helpers.run_training_loop"))
+    module = reload(import_module("training.loop"))
     return module
 
 
 def test_collect_batch_stats_prefers_vllm_metadata(monkeypatch, rtl):
     """When vLLM metadata covers all sequences we should skip local rescoring."""
-    pipeline = reload(import_module("maxent_helpers.run_training_pipeline"))
+    pipeline = reload(import_module("training.pipeline"))
 
     reward_comp = SimpleNamespace(
         ref_logprob_meta=[
@@ -58,7 +58,9 @@ def test_collect_batch_stats_prefers_vllm_metadata(monkeypatch, rtl):
 
     monkeypatch.setattr(pipeline, "build_score_batch", lambda *_a, **_k: _ScoreBatch())
     monkeypatch.setattr(
-        pipeline, "compute_weight_stats", lambda *_a, **_k: SimpleNamespace(flat_weights=[1])
+        pipeline,
+        "compute_weight_stats",
+        lambda *_a, **_k: SimpleNamespace(flat_weights=[1]),
     )
     monkeypatch.setattr(
         pipeline,
@@ -96,7 +98,7 @@ def test_log_sample_table_logs_to_wandb(monkeypatch, rtl):
         )
     )
     monkeypatch.setitem(sys.modules, "wandb", fake_wandb)
-    metrics = reload(import_module("maxent_helpers.run_training_metrics"))
+    metrics = reload(import_module("training.metrics"))
 
     class _Accelerator:
         is_main_process = True
@@ -118,13 +120,19 @@ def test_log_sample_table_logs_to_wandb(monkeypatch, rtl):
     assert rows_logged["step"] == 5
     assert "completions" in rows_logged["data"]
     table_kwargs = rows_logged["kwargs"]
-    assert table_kwargs["columns"] == ["step", "prompt", "completion", "advantage", "reward/accuracy"]
+    assert table_kwargs["columns"] == [
+        "step",
+        "prompt",
+        "completion",
+        "advantage",
+        "reward/accuracy",
+    ]
     assert len(table_kwargs["rows"]) == 2
 
 
 def test_clear_stale_controller_state_removes_file(monkeypatch, rtl):
     """overwrite_output_dir should delete old controller snapshots before training."""
-    state_mod = reload(import_module("maxent_helpers.run_training_state"))
+    state_mod = reload(import_module("training.state"))
 
     removed = {}
     waited = {}
@@ -142,7 +150,9 @@ def test_clear_stale_controller_state_removes_file(monkeypatch, rtl):
         state_path="/tmp/controller_state.json",
     )
 
-    monkeypatch.setattr(state_mod.os.path, "isfile", lambda path: path == controller.state_path)
+    monkeypatch.setattr(
+        state_mod.os.path, "isfile", lambda path: path == controller.state_path
+    )
 
     def _fake_remove(path):
         removed["path"] = path
@@ -156,8 +166,12 @@ def test_clear_stale_controller_state_removes_file(monkeypatch, rtl):
 
 def test_maybe_checkpoint_calls_save_on_all_ranks(monkeypatch, rtl):
     """DeepSpeed checkpoints must be invoked by every rank, not just rank 0."""
-    state_mod = reload(import_module("maxent_helpers.run_training_state"))
-    state_mod._checkpoint_log_once = {"config": False, "strategy": False, "steps": False}
+    state_mod = reload(import_module("training.state"))
+    state_mod._checkpoint_log_once = {
+        "config": False,
+        "strategy": False,
+        "steps": False,
+    }
     calls = []
     current_rank = {"rank": None}
 
@@ -193,6 +207,7 @@ def test_maybe_checkpoint_calls_save_on_all_ranks(monkeypatch, rtl):
 
 def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
     """The train step should propagate KL stats into controller updates and checkpoints."""
+
     class _Accelerator:
         is_main_process = True
         sync_gradients = True
@@ -239,7 +254,9 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
         generation=SimpleNamespace(),
     )
     state = rtl.TrainingLoopState()
-    resources = rtl.StepResources(generator=lambda *_a, **_k: None, validation_ctx=object())
+    resources = rtl.StepResources(
+        generator=lambda *_a, **_k: None, validation_ctx=object()
+    )
     step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={"prompt": ["p"]})
     prepared = SimpleNamespace(
         grouped_completions=[["one"]],
@@ -263,9 +280,13 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
     )
     monkeypatch.setattr(rtl, "_scheduled_learning_rate", lambda *_a, **_k: 0.001)
     monkeypatch.setattr(rtl, "_epoch_progress", lambda *_a, **_k: 0.5)
-    monkeypatch.setattr(rtl, "log_local_step", lambda *_a, **_k: recorded.setdefault("log_local", True))
     monkeypatch.setattr(
-        rtl, "log_training_step", lambda *_a, **_k: recorded.setdefault("log_training", True)
+        rtl, "log_local_step", lambda *_a, **_k: recorded.setdefault("log_local", True)
+    )
+    monkeypatch.setattr(
+        rtl,
+        "log_training_step",
+        lambda *_a, **_k: recorded.setdefault("log_training", True),
     )
 
     def _fake_opt_step(_ctx, loop_state, current_lr):
@@ -302,7 +323,9 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
     monkeypatch.setattr(
         rtl,
         "check_stop_condition",
-        lambda schedule, loop_state: recorded.setdefault("checked", loop_state.global_step),
+        lambda schedule, loop_state: recorded.setdefault(
+            "checked", loop_state.global_step
+        ),
     )
 
     result = rtl._train_step(ctx, state, step_info, resources)

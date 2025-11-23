@@ -7,17 +7,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from test_run_setup_reference import _load_run_setup
+from tests.test_run_setup_reference import _load_run_setup
 
 
 @pytest.fixture
 def weighting_mod(monkeypatch):
-    """Load run_training_weighting with torch/accelerate stubs applied."""
+    """Load training.weighting with torch/accelerate stubs applied."""
 
     _load_run_setup(monkeypatch)
-    module = reload(import_module("maxent_helpers.run_training_weighting"))
-    types_mod = import_module("maxent_helpers.run_training_types")
-    return SimpleNamespace(module=module, types=types_mod)
+    module = reload(import_module("training.weighting"))
+    return SimpleNamespace(module=module, types=module)
 
 
 def _build_weighting(
@@ -32,7 +31,9 @@ def _build_weighting(
 ):
     types = weighting_mod.types
     normalization = types.WeightNormalizationSettings(
-        denom=1.0 if train_grpo_objective else (beta + tau if (beta + tau) > 0 else 1.0),
+        denom=(
+            1.0 if train_grpo_objective else (beta + tau if (beta + tau) > 0 else 1.0)
+        ),
         len_norm_ref=True,
     )
     return types.WeightingSettings(

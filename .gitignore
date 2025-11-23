@@ -18,27 +18,25 @@ build/
 # Local environments and caches (kept inside repo)
 .venv/
 .local/
-openr1/
-data/
-.conda_envs/
+var/
+.cache/
 .conda_pkgs/
 .pip_cache/
-.pip/
-.cache/
-.hf_cache/
 .tmp/
-.torchinductor/
-# TorchInductor spill directories (user-specific names)
-torchinductor_*/
-.triton/
-.wandb/
-.wandb_cache/
-logs/
+var/tmp/
+data/*
+!data/README.md
 
 # Sphinx docs build
 _build/
 docs/_build/
 docs/_autosummary/
+
+# Legacy spill directories (should be rare)
+torchinductor_*/
+
+# Python bytecode caches
+__pycache__/
 
 # Generated files
 condaenv.*.requirements.txt

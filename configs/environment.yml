@@ -1,0 +1,41 @@
+# Copyright 2025 Liv d'Aliberti
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: openr1
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.11
+  - pip
+  - git
+  - cmake
+  - ninja
+  - pkg-config
+  - pip:
+      - -c constraints.txt
+      # Requirements needing extras/direct refs that cannot live in constraints.txt
+      - distilabel[vllm,ray,openai]>=1.5.2
+      - huggingface-hub[cli,hf_xet]>=0.30.2,<1.0
+      - trl[vllm]==0.18.0
+      - lighteval @ git+https://github.com/huggingface/lighteval.git@d3da6b9bbf38104c8b5e1acc86f83541f9a502d1
+      # Install this repository in editable mode (minimal core deps via setup.py)
+      - ruff==0.14.6
+      - pyright==1.1.381
+      - pytest>=6.2
+      - requests>=2.31
+      - isort>=5.12
+      - pylint>=3.2
+      - -e ..

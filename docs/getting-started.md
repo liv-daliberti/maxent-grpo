@@ -16,10 +16,21 @@ Quickstart
 1) Create the local environment and launch training:
 
 ```bash
-sbatch training.sh
+make conda-local && conda activate ./var/openr1
+pip install -c configs/constraints.txt -e .[dev]
+sbatch ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3
 ```
 
-The script provisions a local conda env under the repo, installs deps from `environment.yml`, and launches GRPO. It includes an SBATCH header (account/partition/GRES) you may need to adapt for your cluster. For local smoke tests, you can also run `bash training.sh`.
+`ops/slurm/train.slurm` provisions the repo-local env via `configs/environment.yml`, configures caches under `./var/`, and dispatches training/inference processes. For a no-Slurm smoke test, use the Hydra console scripts instead:
+
+```bash
+# Baseline GRPO with inline overrides
+maxent-grpo-baseline command=train-baseline training.output_dir=var/data/out
+
+# MaxEnt-GRPO using a YAML recipe
+GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml \
+  maxent-grpo-maxent
+```
 
 2) Evaluate or generate with your model:
 
@@ -30,16 +41,18 @@ What’s Inside
 =============
 
 - `src/grpo.py`: Minimal GRPO training entrypoint
-- `src/configs.py`: Dataclasses for all runtime configuration
+- `src/maxent_grpo/config/`: Dataclasses for all runtime configuration
 - `src/rewards.py`: Reward functions and registry
 - `src/generate.py`: Distilabel pipeline + CLI for batch generation
-- `recipes/…`: Example YAML recipes
+- `configs/recipes/…`: Example YAML recipes
 
 Quick Links
 ===========
 
 :::{grid} 1 1 2 3
 :gutter: 2
+
+:::{grid-row}
 
 :::{grid-item-card} Training Guide
 :link: guides/training.html
@@ -61,4 +74,5 @@ Run LightEval benchmarks with vLLM and Slurm helpers.
 Browse modules and configuration dataclasses.
 :::
 
+:::
 :::

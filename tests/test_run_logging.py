@@ -4,21 +4,34 @@ from __future__ import annotations
 
 from importlib import import_module, reload
 from types import SimpleNamespace
+from typing import Dict, Any
 
 import pytest
 
-from test_run_setup_reference import _load_run_setup
+from tests.test_run_setup_reference import _load_run_setup
+
+
+class _StubMetricWriter:
+    def __init__(self, capture: Dict[str, Any]):
+        self.capture = capture
+        self.flushed = False
+
+    def log(self, metrics, step):
+        self.capture.setdefault("metrics", metrics)
+
+    def flush(self):
+        self.flushed = True
 
 
 @pytest.fixture
 def logging_mod(monkeypatch):
     """Load logging helpers with torch/accelerate stubs."""
     _load_run_setup(monkeypatch)
-    return reload(import_module("maxent_helpers.run_logging"))
+    return reload(import_module("training.run_logging"))
 
 
 def test_log_training_metrics_emits_only_scalars(logging_mod):
-    from maxent_helpers.run_training_types import (
+    from training.types import (
         BatchDiagnostics,
         LengthStats,
         LoggingConfigView,
@@ -31,10 +44,11 @@ def test_log_training_metrics_emits_only_scalars(logging_mod):
         WeightLoggingView,
     )
 
-    captured = {}
+    captured: Dict[str, Any] = {}
+    writer = _StubMetricWriter(captured)
 
     logging_cfg = LoggingHandles(
-        log_metrics=lambda metrics, step: captured.setdefault("metrics", metrics),
+        metric_writer=writer,
         save_checkpoint=lambda *_args, **_kwargs: None,
         save_strategy="no",
         save_steps=0,
@@ -110,8 +124,46 @@ def test_log_training_metrics_emits_only_scalars(logging_mod):
         ),
     )
 
-    metrics = logging_mod.log_training_metrics(logging_cfg, global_step=10, payload=payload)
+    metrics = logging_mod.log_training_metrics(
+        logging_cfg, global_step=10, payload=payload
+    )
     metrics = captured["metrics"]
     assert metrics, "No metrics were emitted"
     assert all(not isinstance(val, list) for val in metrics.values())
     assert metrics == logging_mod.build_training_metrics_dict(payload, 10)
+    assert writer.flushed is True
+
+
+def test_logging_handles_proxy_methods(logging_mod):
+    from training.types import LoggingHandles
+
+    captured: Dict[str, Any] = {}
+    writer = _StubMetricWriter(captured)
+    handles = LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="no",
+        save_steps=0,
+        wandb_run=None,
+    )
+    handles.log_metrics({"foo": 1}, step=2)
+    assert captured["metrics"]["foo"] == 1
+    handles.flush_metrics()
+    assert writer.flushed is True
+
+    class _WriterNoFlush:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((metrics, step))
+
+    wf = _WriterNoFlush()
+    handles_no_flush = LoggingHandles(
+        metric_writer=wf,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="no",
+        save_steps=0,
+        wandb_run=None,
+    )
+    handles_no_flush.flush_metrics()  # should not raise

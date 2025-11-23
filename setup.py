@@ -68,7 +68,9 @@ def _patch_trl_vllm_serve():
             if llm_call in text:
                 new_text = text.replace(llm_call, llm_call + insertion + "\n")
             else:
-                print("[open-r1 setup] Could not find insertion point in TRL vllm_serve; skipping patch.")
+                print(
+                    "[open-r1 setup] Could not find insertion point in TRL vllm_serve; skipping patch."
+                )
                 return
 
     try:
@@ -129,10 +131,8 @@ _deps = [
     "isort>=5.12.0",
     "jieba",  # Needed for Chinese language support
     "langdetect",  # Needed for LightEval's extended tasks
-    "latex2sympy2_extended>=1.0.6",
     "liger-kernel>=0.5.10",
     "lighteval @ git+https://github.com/huggingface/lighteval.git@d3da6b9bbf38104c8b5e1acc86f83541f9a502d1",  # Critical bug fix for tokenizer revisions
-    "math-verify==0.5.2",  # Used for math verification in grpo
     "morphcloud==0.1.67",
     "packaging>=23.0",
     "parameterized>=0.9.0",
@@ -156,6 +156,9 @@ _deps = [
     "sphinx-design",
     "linkify-it-py",
     "mdurl",
+    "omegaconf>=2.3.0",
+    "hydra-core>=1.3.2",
+    "typer>=0.12.5",
 ]
 
 # this is a lookup table with items like:
@@ -178,15 +181,21 @@ def deps_list(*pkgs):
 
 
 extras = {}
-extras["tests"] = deps_list("pytest", "parameterized", "math-verify", "jieba")
+extras["tests"] = deps_list("pytest", "parameterized", "jieba")
 extras["torch"] = deps_list("torch")
 extras["quality"] = deps_list("ruff", "isort", "flake8", "pylint", "pre-commit")
 extras["docs"] = deps_list("sphinx", "sphinx-rtd-theme")
 extras["code"] = deps_list(
     "e2b-code-interpreter", "python-dotenv", "morphcloud", "jieba", "pandas", "aiofiles"
 )
-extras["eval"] = deps_list("lighteval", "math-verify")
-extras["dev"] = extras["quality"] + extras["tests"] + extras["eval"] + extras["code"] + extras["docs"]
+extras["eval"] = deps_list("lighteval")
+extras["dev"] = (
+    extras["quality"]
+    + extras["tests"]
+    + extras["eval"]
+    + extras["code"]
+    + extras["docs"]
+)
 
 # core dependencies shared across the whole project - keep this to a bare minimum :)
 install_requires = [
@@ -198,8 +207,6 @@ install_requires = [
     deps["hf_transfer"],
     deps["huggingface-hub"],
     deps["langdetect"],
-    deps["latex2sympy2_extended"],
-    deps["math-verify"],
     deps["liger-kernel"],
     deps["packaging"],  # utilities from PyPA to e.g., compare versions
     deps["safetensors"],
@@ -208,6 +215,9 @@ install_requires = [
     deps["trl"],
     deps["wandb"],
     deps["async-lru"],
+    deps["typer"],
+    deps["omegaconf"],
+    deps["hydra-core"],
 ]
 
 
@@ -240,6 +250,15 @@ setup(
     extras_require=extras,
     python_requires=">=3.10.9",
     install_requires=install_requires,
+    entry_points={
+        "console_scripts": [
+            "maxent-grpo=cli.hydra_cli:hydra_entry",
+            "maxent-grpo-baseline=cli.hydra_cli:baseline_entry",
+            "maxent-grpo-maxent=cli.hydra_cli:maxent_entry",
+            "maxent-grpo-generate=cli.hydra_cli:generate_entry",
+            "maxent-grpo-inference=cli.hydra_cli:inference_entry",
+        ],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",

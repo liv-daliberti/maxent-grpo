@@ -1,0 +1,12 @@
+-c constraints.txt
+# Developer tooling and CI dependencies
+ruff==0.14.6
+pyright==1.1.381
+pytest>=6.2
+pytest-cov>=4.1
+black>=24.8
+pip-audit>=2.7
+bandit>=1.7
+requests>=2.31
+isort>=5.12
+pylint>=3.2

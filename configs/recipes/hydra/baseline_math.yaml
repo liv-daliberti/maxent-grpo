@@ -1,0 +1,3 @@
+command: train-baseline
+baseline:
+  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml

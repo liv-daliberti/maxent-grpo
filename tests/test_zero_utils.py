@@ -4,9 +4,17 @@ from __future__ import annotations
 
 import importlib
 import sys
-from types import SimpleNamespace
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
 
-torch_stub = sys.modules.setdefault("torch", SimpleNamespace())
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = PROJECT_ROOT / "src"
+if str(SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(SRC_PATH))
+
+torch_stub = sys.modules.setdefault("torch", ModuleType("torch"))
+torch_stub.__spec__ = getattr(torch_stub, "__spec__", SimpleNamespace())
+torch_stub.__path__ = getattr(torch_stub, "__path__", [])
 torch_stub.Tensor = getattr(torch_stub, "Tensor", type("Tensor", (), {}))
 torch_stub.cuda = getattr(
     torch_stub,
@@ -16,35 +24,73 @@ torch_stub.cuda = getattr(
 torch_utils = getattr(torch_stub, "utils", SimpleNamespace())
 torch_data = getattr(torch_utils, "data", SimpleNamespace())
 if not hasattr(torch_data, "DataLoader"):
+
     class _DataLoader:  # minimal stub
         pass
 
     torch_data.DataLoader = _DataLoader
-torch_utils.data = torch_data
-torch_stub.utils = torch_utils
+if not hasattr(torch_data, "Sampler"):
 
-torch_nn = sys.modules.setdefault("torch.nn", SimpleNamespace())
+    class _Sampler:
+        pass
+
+    torch_data.Sampler = _Sampler
+torch_utils_module = sys.modules.setdefault("torch.utils", ModuleType("torch.utils"))
+torch_utils_module.__spec__ = getattr(torch_utils_module, "__spec__", SimpleNamespace())
+torch_utils_module.__path__ = getattr(torch_utils_module, "__path__", [])
+torch_utils_module.data = torch_data
+torch_data_module = sys.modules.setdefault(
+    "torch.utils.data", ModuleType("torch.utils.data")
+)
+torch_data_module.__spec__ = getattr(torch_data_module, "__spec__", SimpleNamespace())
+torch_data_module.__path__ = getattr(torch_data_module, "__path__", [])
+torch_data_module.DataLoader = torch_data.DataLoader
+torch_data_module.Sampler = torch_data.Sampler
+torch_stub.utils = torch_utils_module
+torch_utils_module.data = torch_data_module
+
+torch_nn = sys.modules.setdefault("torch.nn", ModuleType("torch.nn"))
+torch_nn.__spec__ = getattr(torch_nn, "__spec__", SimpleNamespace())
 if not hasattr(torch_nn, "Module"):
+
     class _Module:
         pass
 
     torch_nn.Module = _Module
-torch_nn_functional = sys.modules.setdefault("torch.nn.functional", SimpleNamespace())
+torch_nn_functional = sys.modules.setdefault(
+    "torch.nn.functional", ModuleType("torch.nn.functional")
+)
+torch_nn_functional.__spec__ = getattr(
+    torch_nn_functional, "__spec__", SimpleNamespace()
+)
 if not hasattr(torch_nn_functional, "log_softmax"):
+
     def _log_softmax(*_args, **_kwargs):
         raise NotImplementedError
 
     torch_nn_functional.log_softmax = _log_softmax
 
-accelerate_mod = sys.modules.setdefault("accelerate", SimpleNamespace())
+torch_optim = sys.modules.setdefault("torch.optim", ModuleType("torch.optim"))
+torch_optim.__spec__ = getattr(torch_optim, "__spec__", SimpleNamespace())
+if not hasattr(torch_optim, "Optimizer"):
+
+    class _Optimizer:
+        pass
+
+    torch_optim.Optimizer = _Optimizer
+
+accelerate_mod = sys.modules.setdefault("accelerate", ModuleType("accelerate"))
+accelerate_mod.__spec__ = getattr(accelerate_mod, "__spec__", SimpleNamespace())
 if not hasattr(accelerate_mod, "Accelerator"):
+
     class _Accel:
         def __init__(self, **_kwargs):
             pass
 
     accelerate_mod.Accelerator = _Accel
 
-transformers_mod = sys.modules.setdefault("transformers", SimpleNamespace())
+transformers_mod = sys.modules.setdefault("transformers", ModuleType("transformers"))
+transformers_mod.__spec__ = getattr(transformers_mod, "__spec__", SimpleNamespace())
 transformers_mod.PreTrainedModel = getattr(transformers_mod, "PreTrainedModel", object)
 transformers_mod.PreTrainedTokenizer = getattr(
     transformers_mod,
@@ -52,13 +98,17 @@ transformers_mod.PreTrainedTokenizer = getattr(
     object,
 )
 
-zero_utils = importlib.import_module("maxent_helpers.zero_utils")
+zero_utils = importlib.import_module("training.zero_utils")
+zero_utils._DEEPSPEED_READY = True
+zero_utils.ZeroParamStatus = object()
 
 
 class _FakeGather:
     """Lightweight context manager that records gathered params."""
 
-    def __init__(self, params, modifier_rank=None):  # noqa: D401 - signature mirrors DS API
+    def __init__(
+        self, params, modifier_rank=None
+    ):  # noqa: D401 - signature mirrors DS API
         self.params = list(params)
         self.entered = False
 
@@ -201,11 +251,15 @@ def test_zero_no_sync_patch_replaces_context(monkeypatch):
         pass
     with engine.no_sync():
         pass
-    assert engine.original_calls == 0, "Patched context should skip original while partitioning"
+    assert (
+        engine.original_calls == 0
+    ), "Patched context should skip original while partitioning"
     assert len(recorder.messages) == 1
 
     engine._partition = False
     with engine.no_sync():
         pass
-    assert engine.original_calls == 1, "Once partitioning stops we delegate to the real context"
+    assert (
+        engine.original_calls == 1
+    ), "Once partitioning stops we delegate to the real context"
     assert zero_utils._maybe_patch_zero_no_sync(engine) is False

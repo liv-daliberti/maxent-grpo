@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from types import SimpleNamespace
+import sys
+from types import SimpleNamespace, ModuleType
 from importlib import import_module, reload
 
 import pytest
 
-from test_run_setup_reference import _load_run_setup
+from tests.helpers.run_setup_stubs import (
+    TORCH_STUB,
+    ACCELERATE_MODULE,
+    ACCELERATE_STATE,
+    TRANSFORMERS_STUB,
+)
 
 
 class _DummyModel:
@@ -48,9 +54,29 @@ class _DummyAccelerator:
 
 @pytest.fixture
 def checkpoint_modules(monkeypatch, tmp_path):
-    _load_run_setup(monkeypatch)
-    ckpt_mod = reload(import_module("maxent_helpers.run_checkpoint"))
-    types_mod = reload(import_module("maxent_helpers.run_types"))
+    monkeypatch.setitem(sys.modules, "torch", TORCH_STUB)
+    monkeypatch.setitem(sys.modules, "torch.utils", TORCH_STUB.utils)
+    monkeypatch.setitem(sys.modules, "torch.utils.data", TORCH_STUB.utils.data)
+    monkeypatch.setitem(sys.modules, "torch.nn", TORCH_STUB.nn)
+    monkeypatch.setitem(sys.modules, "torch.nn.functional", TORCH_STUB.nn.functional)
+    optim_mod = ModuleType("torch.optim")
+    optim_mod.Optimizer = type("Optimizer", (), {})
+    monkeypatch.setitem(sys.modules, "torch.optim", optim_mod)
+    numpy_stub = SimpleNamespace(
+        random=SimpleNamespace(get_state=lambda: None, set_state=lambda *_: None)
+    )
+    monkeypatch.setitem(sys.modules, "numpy", numpy_stub)
+    accel_utils = ModuleType("accelerate.utils")
+    accel_utils.DistributedType = SimpleNamespace(DEEPSPEED="deepspeed")
+    monkeypatch.setitem(sys.modules, "accelerate", ACCELERATE_MODULE)
+    monkeypatch.setitem(sys.modules, "accelerate.state", ACCELERATE_STATE)
+    monkeypatch.setitem(sys.modules, "accelerate.utils", accel_utils)
+    requests_stub = ModuleType("requests")
+    requests_stub.RequestException = Exception
+    monkeypatch.setitem(sys.modules, "requests", requests_stub)
+    monkeypatch.setitem(sys.modules, "transformers", TRANSFORMERS_STUB)
+    ckpt_mod = reload(import_module("training.run_checkpoint"))
+    types_mod = reload(import_module("training.run_types"))
     return ckpt_mod, types_mod, tmp_path
 
 
@@ -74,7 +100,9 @@ def test_checkpoint_manager_save_applies_barriers_main_rank(checkpoint_modules):
     accel = _DummyAccelerator(is_main=True, output_root=str(tmp_path))
     model = _DummyModel()
     tok = _DummyTokenizer()
-    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path))
+    mgr = _checkpoint_manager(
+        ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path)
+    )
     mgr.save("checkpoint-1")
 
     assert accel.events[:4] == [
@@ -92,7 +120,9 @@ def test_checkpoint_manager_save_applies_barriers_non_main(checkpoint_modules):
     accel = _DummyAccelerator(is_main=False, output_root=str(tmp_path))
     model = _DummyModel()
     tok = _DummyTokenizer()
-    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path))
+    mgr = _checkpoint_manager(
+        ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path)
+    )
     mgr.save("checkpoint-2")
 
     assert accel.events == [
@@ -105,7 +135,9 @@ def test_checkpoint_manager_save_applies_barriers_non_main(checkpoint_modules):
     assert tok.saved == []
 
 
-def test_checkpoint_manager_shallow_save_skips_model_and_tokenizer(monkeypatch, checkpoint_modules):
+def test_checkpoint_manager_shallow_save_skips_model_and_tokenizer(
+    monkeypatch, checkpoint_modules
+):
     ckpt_mod, types_mod, tmp_path = checkpoint_modules
     # Prepare a base directory with static metadata to copy from.
     base_dir = tmp_path / "base"
@@ -137,7 +169,9 @@ def test_checkpoint_manager_shallow_save_skips_model_and_tokenizer(monkeypatch, 
     assert (ckpt_dir / "config.json").is_file()
 
 
-def test_copy_initial_model_snapshot_uses_metadata_source(monkeypatch, checkpoint_modules):
+def test_copy_initial_model_snapshot_uses_metadata_source(
+    monkeypatch, checkpoint_modules
+):
     ckpt_mod, _, tmp_path = checkpoint_modules
     base_dir = tmp_path / "base"
     base_dir.mkdir()
@@ -154,7 +188,9 @@ def test_copy_initial_model_snapshot_uses_metadata_source(monkeypatch, checkpoin
     assert (target_dir / "model.safetensors").is_file()
 
 
-def test_copy_initial_model_snapshot_infers_grpo_base_dir(monkeypatch, checkpoint_modules):
+def test_copy_initial_model_snapshot_infers_grpo_base_dir(
+    monkeypatch, checkpoint_modules
+):
     ckpt_mod, _, tmp_path = checkpoint_modules
     # Simulate MaxEnt output and sibling GRPO directory under the same root.
     root = tmp_path / "data"
@@ -211,7 +247,9 @@ def test_finalize_training_applies_barriers_non_main(checkpoint_modules):
     assert tok.saved == []
 
 
-def test_skip_deepspeed_state_save_honored_with_deepspeed(monkeypatch, checkpoint_modules):
+def test_skip_deepspeed_state_save_honored_with_deepspeed(
+    monkeypatch, checkpoint_modules
+):
     ckpt_mod, _, _ = checkpoint_modules
     monkeypatch.setenv("MAXENT_SKIP_DEEPSPEED_STATE_SAVE", "true")
     accel = SimpleNamespace(
@@ -256,7 +294,9 @@ def test_save_wraps_zero_gather_params(monkeypatch, checkpoint_modules):
     accel = _DummyAccelerator(is_main=True, output_root=str(tmp_path))
     model = _DummyModel()
     tok = _DummyTokenizer()
-    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path))
+    mgr = _checkpoint_manager(
+        ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path)
+    )
     mgr.save("checkpoint-ctx")
     assert calls and calls[0][0] is model and calls[0][1] is True
 
@@ -297,7 +337,9 @@ def test_save_prefers_deepspeed_checkpoint(monkeypatch, checkpoint_modules):
     accel.deepspeed_engine = engine
     model = _DummyModel()
     tok = _DummyTokenizer()
-    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path))
+    mgr = _checkpoint_manager(
+        ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path)
+    )
     mgr.save("checkpoint-ds")
 
     assert engine_calls == [os.path.join(str(tmp_path), "checkpoint-ds")]
@@ -323,11 +365,75 @@ def test_skip_env_disables_deepspeed_checkpoint(monkeypatch, checkpoint_modules)
     model = _DummyModel()
     tok = _DummyTokenizer()
     monkeypatch.setenv("MAXENT_SKIP_DEEPSPEED_STATE_SAVE", "true")
-    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path))
+    mgr = _checkpoint_manager(
+        ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path)
+    )
     mgr.save("checkpoint-ds-skip")
 
     assert engine_calls == []
     assert all(not evt.startswith("save_state:") for evt in accel.events)
+
+
+def test_shallow_save_copies_static_metadata(monkeypatch, checkpoint_modules):
+    ckpt_mod, types_mod, tmp_path = checkpoint_modules
+    monkeypatch.setenv("MAXENT_CHECKPOINT_METADATA_MODE", "shallow")
+    copy_calls = []
+    train_calls = []
+    monkeypatch.setattr(
+        ckpt_mod,
+        "_copy_static_checkpoint_files",
+        lambda src, dst: copy_calls.append((src, dst)),
+    )
+    monkeypatch.setattr(
+        ckpt_mod,
+        "_save_training_args",
+        lambda output_dir, args: train_calls.append((output_dir, args)),
+    )
+    monkeypatch.setattr(
+        ckpt_mod, "_save_state_or_deepspeed_checkpoint", lambda *_a, **_k: None
+    )
+    monkeypatch.setattr(ckpt_mod, "_save_trainer_state_like_hf", lambda **_k: None)
+    accel = _DummyAccelerator(is_main=True, output_root=str(tmp_path))
+    model = _DummyModel()
+    tok = _DummyTokenizer()
+    cfg = _checkpoint_cfg(types_mod, tmp_path)
+    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, cfg)
+    mgr._state.training_args = SimpleNamespace(foo="bar")
+    mgr.save("checkpoint-shallow")
+    assert copy_calls and copy_calls[0][0] == cfg.output_dir
+    assert train_calls and train_calls[0][0].endswith("checkpoint-shallow")
+    assert model.saved == []
+    assert tok.saved == []
+
+
+def test_prunes_old_checkpoints(monkeypatch, checkpoint_modules):
+    ckpt_mod, types_mod, tmp_path = checkpoint_modules
+    monkeypatch.setenv("MAXENT_CHECKPOINT_METADATA_MODE", "shallow")
+    monkeypatch.setattr(ckpt_mod, "_copy_static_checkpoint_files", lambda *_: None)
+    monkeypatch.setattr(ckpt_mod, "_save_training_args", lambda *_: None)
+
+    def _stub_save_state(accel, model, path):
+        os.makedirs(path, exist_ok=True)
+
+    monkeypatch.setattr(
+        ckpt_mod, "_save_state_or_deepspeed_checkpoint", _stub_save_state
+    )
+    monkeypatch.setattr(ckpt_mod, "_save_trainer_state_like_hf", lambda **_k: None)
+    accel = _DummyAccelerator(is_main=True, output_root=str(tmp_path))
+    model = _DummyModel()
+    tok = _DummyTokenizer()
+    cfg = types_mod.CheckpointConfig(
+        output_dir=str(tmp_path),
+        save_strategy="steps",
+        save_steps=1,
+        save_total_limit=1,
+        hub=types_mod.HubPushConfig(enabled=False, model_id=None, token=None),
+    )
+    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, cfg)
+    mgr.save("checkpoint-1")
+    mgr.save("checkpoint-2")
+    assert not (tmp_path / "checkpoint-1").exists()
+    assert (tmp_path / "checkpoint-2").exists()
 
 
 def test_prefer_accelerate_state_save_with_deepspeed(monkeypatch, checkpoint_modules):
@@ -349,7 +455,9 @@ def test_prefer_accelerate_state_save_with_deepspeed(monkeypatch, checkpoint_mod
     model = _DummyModel()
     tok = _DummyTokenizer()
     monkeypatch.setenv("MAXENT_PREFER_ACCELERATE_STATE_SAVE", "true")
-    mgr = _checkpoint_manager(ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path))
+    mgr = _checkpoint_manager(
+        ckpt_mod, accel, model, tok, _checkpoint_cfg(types_mod, tmp_path)
+    )
     mgr.save("checkpoint-ds-prefer")
 
     assert engine_calls == []

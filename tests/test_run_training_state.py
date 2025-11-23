@@ -1,8 +1,7 @@
-"""Tests for run_training_state helpers using lightweight stubs."""
+"""Tests for :mod:`training.state` helpers using lightweight stubs."""
 
 from __future__ import annotations
 
-import os
 import sys
 import types
 from types import SimpleNamespace
@@ -19,6 +18,7 @@ torch_utils = types.ModuleType("torch.utils")
 sys.modules["torch.utils"] = torch_utils
 torch_utils_data = types.ModuleType("torch.utils.data")
 torch_utils_data.DataLoader = type("DataLoader", (object,), {})
+torch_utils_data.Sampler = type("Sampler", (object,), {})
 sys.modules["torch.utils.data"] = torch_utils_data
 torch_nn = types.ModuleType("torch.nn")
 torch_nn.functional = types.ModuleType("torch.nn.functional")
@@ -28,12 +28,19 @@ sys.modules["torch.nn.functional"] = torch_nn.functional
 accelerate_stub = types.ModuleType("accelerate")
 accelerate_stub.Accelerator = type("Accelerator", (object,), {})
 sys.modules["accelerate"] = accelerate_stub
+torch_optim = types.ModuleType("torch.optim")
+torch_optim.Optimizer = type("Optimizer", (object,), {})
+sys.modules["torch.optim"] = torch_optim
 transformers_stub = types.ModuleType("transformers")
 transformers_stub.PreTrainedModel = type("PreTrainedModel", (object,), {})
 transformers_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (object,), {})
 sys.modules["transformers"] = transformers_stub
+trl_stub = types.ModuleType("trl")
+trl_stub.ScriptArguments = type("ScriptArguments", (object,), {})
+trl_stub.GRPOConfig = type("GRPOConfig", (object,), {})
+sys.modules["trl"] = trl_stub
 
-from maxent_helpers.run_training_state import (  # noqa: E402  import after stubs
+from training.state import (  # noqa: E402  import after stubs
     check_stop_condition,
     load_controller_state_chain,
     maybe_checkpoint,
@@ -41,7 +48,7 @@ from maxent_helpers.run_training_state import (  # noqa: E402  import after stub
     maybe_load_accelerator_state,
     _checkpoint_log_once,
 )
-from maxent_helpers.run_training_weighting import CONTROLLER_STATE_FILENAME  # noqa: E402
+from training.weighting import CONTROLLER_STATE_FILENAME  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -100,13 +107,26 @@ def test_load_controller_state_chain_prefers_resume(monkeypatch, tmp_path):
         load_calls.append(path)
         return path == str(resume_state)
 
-    monkeypatch.setattr(
-        "maxent_helpers.run_training_state._load_controller_file",
-        _fake_load,
-    )
+    monkeypatch.setattr("training.state._load_controller_file", _fake_load)
     loaded = load_controller_state_chain(controller_cfg, accel, weighting_cfg)
     assert loaded is True
     assert load_calls[0].endswith(CONTROLLER_STATE_FILENAME)
+
+
+def test_load_controller_file_logs_failure(monkeypatch, caplog):
+    caplog.set_level("INFO")
+    controller_cfg = SimpleNamespace(
+        state_path="missing.bin",
+        resume_from=None,
+    )
+    accel = _Accel()
+
+    monkeypatch.setattr(
+        "training.state.load_controller_state", lambda path, weighting: False
+    )
+    weighting_cfg = SimpleNamespace(beta=0.0, tau=0.0)
+    loaded = load_controller_state_chain(controller_cfg, accel, weighting_cfg)
+    assert loaded is False
 
 
 def test_maybe_load_accelerator_state_invokes_load(tmp_path):

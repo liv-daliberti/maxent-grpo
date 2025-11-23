@@ -1,8 +1,12 @@
 Open R1 / MaxEnt‑GRPO
 =====================
 
-.. mdinclude:: ../README.md
-   :start-line: 3
+MaxEnt‑GRPO is a clean GRPO training stack with optional maximum entropy
+weighting. It targets practical math training and evaluation while keeping
+the implementation approachable for production use. See the README_ on GitHub
+for the full project overview and quick start instructions.
+
+.. _README: https://github.com/huggingface/open-r1#readme
 
 Get Started
 -----------
@@ -20,8 +24,10 @@ Guides
    :maxdepth: 2
    :caption: Guides
 
+   architecture
    guides/training
    guides/generation
+   guides/evaluation
    recipes
 
 Reference

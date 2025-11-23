@@ -50,12 +50,25 @@ repository's LICENSE file for the full text.
 # See the module docstring above for a quick overview and current contents.
 
 from __future__ import annotations
+
 # coding=utf-8
 
-from typing import Any, Callable, Dict, List, Optional, Union, Protocol, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    TYPE_CHECKING,
+    Union,
+    runtime_checkable,
+)
 import re
 from re import Pattern as RePattern
-import transformers
+
+if TYPE_CHECKING:
+    from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 # Reward functions accept a single completion string and a reference answer.
 RewardFunction = Callable[[str, str], float]
@@ -65,27 +78,25 @@ RewardFunction = Callable[[str, str], float]
 # Core reward implementations
 # -------------------------------
 
-_format_pat: RePattern[str] = re.compile(r"(?si)<think>.*?</think>.*?<answer>.*?</answer>")
+_format_pat: RePattern[str] = re.compile(
+    r"(?si)<think>.*?</think>.*?<answer>.*?</answer>"
+)
 _answer_pat: RePattern[str] = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
 
 
 CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
 
+
 def _extract_content(comp: CompletionType) -> str:
     """Extract assistant text from common completion shapes.
 
-    Parameters
-    ----------
-    comp:
-        Completion object or string to normalize.  The helper understands the
-        shapes returned by most hosted inference APIs, including bare strings
-        and OpenAI-style ``[{\"content\": ...}]`` payloads.
-
-    Returns
-    -------
-    str
-        Extracted text content (may be empty when no recognized payload is
+    :param comp: Completion object or string to normalize. The helper understands
+        shapes returned by most hosted inference APIs, including bare strings and
+        OpenAI-style ``[{\"content\": ...}]`` payloads.
+    :type comp: CompletionType
+    :returns: Extracted text content (may be empty when no recognized payload is
         present).
+    :rtype: str
     """
     if comp is None:
         return ""
@@ -101,18 +112,13 @@ def _canon_math(s: str) -> str:
 
     The helper aggressively removes superficial wrappers such as braces,
     parentheses around lone numbers, whitespace, signed zeros, and trailing
-    ``.0`` patterns.  The goal is to normalize cosmetic variance without
+    ``.0`` patterns. The goal is to normalize cosmetic variance without
     attempting to symbolically simplify expressions.
 
-    Parameters
-    ----------
-    s:
-        Raw answer string extracted from a completion.
-
-    Returns
-    -------
-    str
-        Canonicalized answer string suitable for exact-match comparison.
+    :param s: Raw answer string extracted from a completion.
+    :type s: str
+    :returns: Canonicalized answer string suitable for exact-match comparison.
+    :rtype: str
     """
     if s is None:
         return ""
@@ -137,28 +143,21 @@ def _canon_math(s: str) -> str:
 
 
 def pure_accuracy_reward_math(
-    completions: List[CompletionType],
-    answer: List[str],
-    **_kwargs: Any
+    completions: List[CompletionType], answer: List[str], **_kwargs: Any
 ) -> List[float]:
     """Binary reward for exact match on a tagged math template.
 
-    Parameters
-    ----------
-    completions:
-        Generated completions (strings or provider objects).  Each entry must
-        contain ``<think>``/``<answer>`` tags for the reward to consider it a
-        valid candidate.
-    answer:
-        Gold answers aligned with ``completions``.
-    **_kwargs:
-        Unused keyword arguments; accepted for compatibility with more complex
-        registry signatures.
-
-    Returns
-    -------
-    list[float]
-        Per-completion rewards in ``{0.0, 1.0}``.
+    :param completions: Generated completions (strings or provider objects).
+        Each entry must contain ``<think>``/``<answer>`` tags for the reward to
+        consider it a valid candidate.
+    :type completions: list[CompletionType]
+    :param answer: Gold answers aligned with ``completions``.
+    :type answer: list[str]
+    :param _kwargs: Unused keyword arguments; accepted for compatibility with
+        more complex registry signatures.
+    :type _kwargs: Any
+    :returns: Per-completion rewards in ``{0.0, 1.0}``.
+    :rtype: list[float]
     """
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
@@ -171,50 +170,36 @@ def pure_accuracy_reward_math(
             outs.append(0.0)
             continue
         pred = m.group(1)
-        ok = (_canon_math(pred) == _canon_math(gold))
+        ok = _canon_math(pred) == _canon_math(gold)
         outs.append(1.0 if ok else 0.0)
     return outs
 
 
 @runtime_checkable
 class RewardConfig(Protocol):
-    """Protocol describing the reward configuration consumed by :func:`get_reward_funcs`.
+    """Minimal protocol describing the reward configuration interface."""
 
-    Attributes
-    ----------
-    reward_funcs:
-        List of string identifiers that should be resolved to callables via the
-        registry.
-    """
     reward_funcs: List[str]
+
 
 def get_reward_funcs(
     script_args: RewardConfig,
-    _ref_model: Optional[transformers.PreTrainedModel] = None,
-    _tokenizer: Optional[transformers.PreTrainedTokenizerBase] = None,
+    _ref_model: Optional[PreTrainedModel] = None,
+    _tokenizer: Optional[PreTrainedTokenizerBase] = None,
 ) -> List[RewardFunction]:
     """Resolve reward function callables from names.
 
-    Parameters
-    ----------
-    script_args:
-        Script/config args providing ``reward_funcs`` names.  The object must
-        satisfy :class:`RewardConfig`.
-    _ref_model:
-        Optional reference model.  Present for forward compatibility with
-        reward functions that may need to score relative to a baseline model.
-    _tokenizer:
-        Optional tokenizer that may be consumed by more advanced rewards.
-
-    Returns
-    -------
-    list[RewardFunction]
-        Resolved callables ready to be invoked by the training loop.
-
-    Raises
-    ------
-    KeyError
-        If an unknown reward name is requested.
+    :param script_args: Script/config args providing ``reward_funcs`` names. The
+        object must satisfy :class:`RewardConfig`.
+    :type script_args: RewardConfig
+    :param _ref_model: Optional reference model, present for forward compatibility
+        with reward functions that may need to score relative to a baseline model.
+    :type _ref_model: transformers.PreTrainedModel | None
+    :param _tokenizer: Optional tokenizer consumed by more advanced rewards.
+    :type _tokenizer: transformers.PreTrainedTokenizerBase | None
+    :returns: Resolved callables ready to be invoked by the training loop.
+    :rtype: list[RewardFunction]
+    :raises KeyError: If an unknown reward name is requested.
     """
     registry = {
         "pure_accuracy_math": pure_accuracy_reward_math,

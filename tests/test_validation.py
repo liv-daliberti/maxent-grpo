@@ -19,7 +19,8 @@ import sys
 import logging
 
 import grpo
-import utils.data as data_utils
+from pipelines.training import baseline
+import core.data as data_utils
 import transformers.trainer_utils as trainer_utils
 
 
@@ -183,26 +184,34 @@ def test_grpo_main_prefers_dedicated_eval_dataset(monkeypatch):
         eval_calls["args"] = (name, config, split)
         return FakeSplit([{"problem": "eval question", "answer": "7"}])
 
-    monkeypatch.setattr(grpo, "get_dataset", fake_get_dataset)
-    monkeypatch.setattr(grpo, "load_dataset_split", fake_load_eval)
-    monkeypatch.setattr(grpo, "get_tokenizer", lambda *args, **kwargs: DummyTokenizer())
-    monkeypatch.setattr(grpo, "get_model", lambda *args, **kwargs: DummyModel())
+    monkeypatch.setattr(baseline, "get_dataset", fake_get_dataset)
+    monkeypatch.setattr(baseline, "load_dataset_split", fake_load_eval)
     monkeypatch.setattr(
-        grpo, "get_reward_funcs", lambda *args, **kwargs: [lambda comps, answers: [1.0] * len(comps)]
+        baseline, "get_tokenizer", lambda *args, **kwargs: DummyTokenizer()
     )
-    monkeypatch.setattr(grpo, "ensure_vllm_group_port", lambda: None)
-    monkeypatch.setattr(grpo.transformers, "set_seed", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(baseline, "get_model", lambda *args, **kwargs: DummyModel())
+    monkeypatch.setattr(
+        baseline,
+        "get_reward_funcs",
+        lambda *args, **kwargs: [lambda comps, answers: [1.0] * len(comps)],
+    )
+    monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
+    monkeypatch.setattr(
+        baseline.transformers, "set_seed", lambda *_args, **_kwargs: None
+    )
     dummy_tf_logging = SimpleNamespace(
         set_verbosity=lambda *args, **kwargs: None,
         enable_default_handler=lambda *args, **kwargs: None,
         enable_explicit_format=lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
-        grpo.transformers,
+        baseline.transformers,
         "utils",
         SimpleNamespace(logging=dummy_tf_logging),
     )
-    monkeypatch.setattr(trainer_utils, "get_last_checkpoint", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        trainer_utils, "get_last_checkpoint", lambda *_args, **_kwargs: None
+    )
     dummy_trl = SimpleNamespace(
         GRPOTrainer=DummyTrainer,
         get_peft_config=lambda *args, **kwargs: None,

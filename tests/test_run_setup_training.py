@@ -8,7 +8,8 @@ from typing import Tuple
 
 import pytest
 
-from test_run_setup_reference import _load_run_setup
+from tests.test_run_setup_reference import _load_run_setup
+
 
 class _FakeLoader:
     """Minimal loader exposing __len__ for step count inference."""
@@ -29,8 +30,8 @@ def run_setup(monkeypatch):
 @pytest.fixture
 def bundle_classes(run_setup) -> Tuple[type, type, type]:
     """Return TrainDataBundle, PromptIOConfig, and PromptCacheEntry."""
-    from maxent_helpers.run_types import PromptIOConfig, TrainDataBundle
-    from maxent_helpers.run_training_types import PromptCacheEntry
+    from training.run_types import PromptIOConfig, TrainDataBundle
+    from training.types import PromptCacheEntry
 
     return TrainDataBundle, PromptIOConfig, PromptCacheEntry
 
@@ -193,6 +194,30 @@ def test_weighting_settings_fallback_to_beta_attr(run_setup):
     assert weighting.beta == pytest.approx(2.5)
 
 
+def test_weighting_settings_use_env_config_defaults(run_setup):
+    """EnvironmentConfig overrides should remove the need for os.environ patching."""
+
+    env = run_setup.EnvironmentConfig(
+        values={
+            "MAXENT_TAU": "0.75",
+            "MAXENT_Q_TEMPERATURE": "0.5",
+            "MAXENT_Q_EPS": "0.25",
+            "MAXENT_LENGTH_NORM_REF": "0",
+        }
+    )
+    args = _default_weight_args(
+        maxent_tau=None,
+        maxent_q_temperature=None,
+        maxent_q_epsilon=None,
+        maxent_length_normalize_ref=None,
+    )
+    weighting = run_setup._resolve_weighting_settings(args, env_config=env)
+    assert weighting.tau == pytest.approx(0.75)
+    assert weighting.q_distribution.temperature == pytest.approx(0.5)
+    assert weighting.q_distribution.epsilon == pytest.approx(0.25)
+    assert weighting.normalization.len_norm_ref is False
+
+
 def test_weighting_settings_propagate_kl_controller_fields(run_setup):
     args = _default_weight_args(
         kl_target=0.07,
@@ -228,6 +253,35 @@ def test_build_checkpoint_config_handles_enum_like_strategy(run_setup, tmp_path)
     assert cfg.save_strategy == "steps"
     assert cfg.save_steps == 5
     assert cfg.output_dir.endswith("out")
+
+
+def test_build_checkpoint_config_can_skip_output_dir_creation(run_setup, tmp_path):
+    args = SimpleNamespace(
+        output_dir=str(tmp_path / "out"),
+        save_strategy="no",
+        save_steps=0,
+        save_total_limit=0,
+        push_to_hub=False,
+        hub_model_id=None,
+        hub_token=None,
+    )
+    calls = {}
+
+    def _mkdir(path, exist_ok=False):
+        calls.setdefault("entries", []).append((path, exist_ok))
+
+    run_setup.build_checkpoint_config(
+        args,
+        ensure_output_dir=False,
+        makedirs=_mkdir,
+    )
+    assert "entries" not in calls
+    run_setup.build_checkpoint_config(
+        args,
+        ensure_output_dir=True,
+        makedirs=_mkdir,
+    )
+    assert calls["entries"][0] == (args.output_dir, True)
 
 
 def test_q_distribution_neutralized_for_grpo(run_setup):

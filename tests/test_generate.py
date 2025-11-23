@@ -1,45 +1,43 @@
-"""
-Copyright 2025 Liv d'Aliberti
+"""Unit tests for the thin ``src/generate`` CLI wrapper."""
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+from __future__ import annotations
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+from argparse import Namespace
 
 import generate
 
 
-def test_build_distilabel_pipeline_smoke():
-    pipe = generate.build_distilabel_pipeline(
-        model="x",
-        base_url="http://localhost:8000/v1",
-        prompt_column="prompt",
-        prompt_template="{{ instruction }}",
-        max_new_tokens=16,
-        num_generations=1,
-        input_batch_size=2,
+def test_run_cli_builds_config_and_executes_job(monkeypatch):
+    captured = {}
+
+    class _Cfg:
+        def __init__(self, ns):
+            self.namespace = ns
+
+        @classmethod
+        def from_namespace(cls, ns):
+            captured["ns"] = ns
+            return cls(ns)
+
+    monkeypatch.setattr(generate, "DistilabelGenerationConfig", _Cfg)
+    monkeypatch.setattr(
+        generate,
+        "run_generation_job",
+        lambda cfg, **kwargs: captured.setdefault("cfg", cfg),
     )
-    assert pipe is not None
-"""
-Copyright 2025 Liv d'Aliberti
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+    args = Namespace(model="demo")
+    generate.run_cli(args)
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    assert captured["ns"] is args
+    assert isinstance(captured["cfg"], _Cfg)
+    assert captured["cfg"].namespace is args
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+
+def test_main_invokes_typer_app(monkeypatch):
+    called = {}
+    monkeypatch.setattr(
+        generate, "generate_cli_app", lambda: called.setdefault("invoked", True)
+    )
+    generate.main()
+    assert called["invoked"] is True

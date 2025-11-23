@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 from types import SimpleNamespace
-import utils.evaluation as E
+import core.evaluation as E
 
 
 def test_register_lighteval_task_formats_list():
@@ -33,14 +33,23 @@ def test_run_benchmark_jobs_invokes_subprocess(monkeypatch):
     calls = {}
     monkeypatch.setattr(E, "get_gpu_count_for_vllm", lambda *a, **k: 2)
     monkeypatch.setattr(E, "get_param_count_from_repo_id", lambda *a, **k: 1_000_000)
+
     def fake_run(cmd, check):
         calls["cmd"] = cmd
+
     monkeypatch.setattr(E.subprocess, "run", fake_run)
 
-    training_args = SimpleNamespace(benchmarks=["tiny"], hub_model_id="org/model", hub_model_revision="main", system_prompt=None)
+    training_args = SimpleNamespace(
+        benchmarks=["tiny"],
+        hub_model_id="org/model",
+        hub_model_revision="main",
+        system_prompt=None,
+    )
     model_args = SimpleNamespace(trust_remote_code=True)
     E.run_benchmark_jobs(training_args, model_args)
     assert "cmd" in calls
+
+
 """
 Copyright 2025 Liv d'Aliberti
 

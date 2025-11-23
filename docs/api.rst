@@ -12,19 +12,21 @@ Core Modules
    grpo
    rewards
    generate
+   training.loop
+   training.pipeline
+   training.metrics
+   training.state
+   training.weighting.loss
+   training.rewards
+   training.generation
 
-Utilities
----------
+Supporting Packages
+-------------------
 
 .. autosummary::
    :toctree: _autosummary
    :recursive:
 
-   utils
-   utils.data
-   utils.model_utils
-   utils.evaluation
-   utils.replay_buffer
-   utils.hub
-   utils.wandb_logging
-   utils.vllm_patch
+   core
+   patches
+   telemetry

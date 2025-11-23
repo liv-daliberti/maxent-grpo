@@ -1,34 +1,67 @@
-"""Unit tests for helpers in maxent_helpers.run_generation."""
+"""Unit tests for helpers in :mod:`training.generation.helpers`."""
 
 import sys
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
 
-torch_module = sys.modules.setdefault("torch", SimpleNamespace())
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = PROJECT_ROOT / "src"
+if str(SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(SRC_PATH))
+
+torch_module = sys.modules.setdefault("torch", ModuleType("torch"))
+torch_module.__spec__ = getattr(torch_module, "__spec__", SimpleNamespace())
+torch_module.__path__ = getattr(torch_module, "__path__", [])
 if not hasattr(torch_module, "Tensor"):
     torch_module.Tensor = type("Tensor", (), {})
-torch_utils = getattr(torch_module, "utils", SimpleNamespace())
-torch_data = getattr(torch_utils, "data", SimpleNamespace())
-if not hasattr(torch_data, "DataLoader"):
+torch_utils_module = sys.modules.setdefault("torch.utils", ModuleType("torch.utils"))
+torch_utils_module.__spec__ = getattr(torch_utils_module, "__spec__", SimpleNamespace())
+torch_utils_module.__path__ = getattr(torch_utils_module, "__path__", [])
+torch_data_module = sys.modules.setdefault(
+    "torch.utils.data", ModuleType("torch.utils.data")
+)
+torch_data_module.__spec__ = getattr(torch_data_module, "__spec__", SimpleNamespace())
+torch_data_module.__path__ = getattr(torch_data_module, "__path__", [])
+if not hasattr(torch_data_module, "DataLoader"):
+
     class _DataLoader:  # minimal stub
         pass
-    torch_data.DataLoader = _DataLoader
-torch_utils.data = torch_data
-torch_module.utils = torch_utils
+
+    torch_data_module.DataLoader = _DataLoader
+if not hasattr(torch_data_module, "Sampler"):
+
+    class _Sampler:
+        pass
+
+    torch_data_module.Sampler = _Sampler
+torch_utils_module.data = torch_data_module
+torch_module.utils = torch_utils_module
+torch_optim_module = sys.modules.setdefault("torch.optim", ModuleType("torch.optim"))
+torch_optim_module.__spec__ = getattr(torch_optim_module, "__spec__", SimpleNamespace())
+torch_optim_module.Optimizer = type("Optimizer", (), {})
+torch_module.optim = torch_optim_module
 torch_nn_module = sys.modules.setdefault("torch.nn", ModuleType("torch.nn"))
+torch_nn_module.__spec__ = getattr(torch_nn_module, "__spec__", SimpleNamespace())
 torch_nn_functional = sys.modules.setdefault(
     "torch.nn.functional",
     ModuleType("torch.nn.functional"),
 )
+torch_nn_functional.__spec__ = getattr(
+    torch_nn_functional, "__spec__", SimpleNamespace()
+)
 if not hasattr(torch_nn_functional, "log_softmax"):
+
     def _log_softmax(*_args, **_kwargs):
         raise NotImplementedError  # should never run in these unit tests
 
     torch_nn_functional.log_softmax = _log_softmax
 
-accelerate_module = sys.modules.setdefault("accelerate", SimpleNamespace())
+accelerate_module = sys.modules.setdefault("accelerate", ModuleType("accelerate"))
+accelerate_module.__spec__ = getattr(accelerate_module, "__spec__", SimpleNamespace())
 if not hasattr(accelerate_module, "Accelerator"):
+
     class _Accel:
         def __init__(self, **_kwargs):
             self.is_main_process = True
@@ -36,8 +69,12 @@ if not hasattr(accelerate_module, "Accelerator"):
 
     accelerate_module.Accelerator = _Accel
 
-transformers_module = sys.modules.setdefault("transformers", SimpleNamespace())
+transformers_module = sys.modules.setdefault("transformers", ModuleType("transformers"))
+transformers_module.__spec__ = getattr(
+    transformers_module, "__spec__", SimpleNamespace()
+)
 if not hasattr(transformers_module, "PreTrainedModel"):
+
     class _PreTrainedModel:
         pass
 
@@ -47,7 +84,7 @@ if not hasattr(transformers_module, "PreTrainedModel"):
     transformers_module.PreTrainedModel = _PreTrainedModel
     transformers_module.PreTrainedTokenizer = _PreTrainedTokenizer
 
-from maxent_helpers.run_generation import (  # noqa: E402  import after torch stub
+from training.generation.helpers import (  # noqa: E402  import after torch stub
     CompletionGenerator,
     _broadcast_object_list,
     _gather_object_list,
@@ -123,7 +160,7 @@ def _dist_stub():
 def test_gather_object_list_falls_back_to_dist(monkeypatch, dist_stub):
     accelerator = SimpleNamespace()  # lacks gather_object
     monkeypatch.setattr(
-        "maxent_helpers.run_generation.dist",
+        "training.generation.helpers.dist",
         dist_stub,
         raising=False,
     )
@@ -135,7 +172,7 @@ def test_gather_object_list_falls_back_to_dist(monkeypatch, dist_stub):
 def test_broadcast_object_list_falls_back_to_dist(monkeypatch, dist_stub):
     accelerator = SimpleNamespace()
     monkeypatch.setattr(
-        "maxent_helpers.run_generation.dist",
+        "training.generation.helpers.dist",
         dist_stub,
         raising=False,
     )
@@ -155,6 +192,8 @@ def test_resolve_local_counts_validates_overrides():
 def test_merge_group_chunk_merges_text_and_meta():
     chunk = [["a"], ["b"]]
     meta_chunk = [[SimpleNamespace(score=1.0)], [SimpleNamespace(score=2.0)]]
-    merged, merged_meta = CompletionGenerator._merge_group_chunk(chunk, meta_chunk, requested_n=2)
+    merged, merged_meta = CompletionGenerator._merge_group_chunk(
+        chunk, meta_chunk, requested_n=2
+    )
     assert merged == ["a", "b"]
     assert merged_meta == [SimpleNamespace(score=1.0), SimpleNamespace(score=2.0)]

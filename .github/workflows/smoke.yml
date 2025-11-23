@@ -1,0 +1,54 @@
+name: Smoke
+
+on:
+  push:
+    branches: [ main, master, develop, dev, '**' ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install project (no deps)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . --no-deps
+
+      - name: Run CLI smoke
+        run: python tools/smoke_cli.py
+
+      - name: Validate training logs (if present)
+        run: python tools/validate_training_logs.py --allow-missing
+
+      - name: Capture smoke artifacts
+        run: |
+          mkdir -p artifacts
+          python - <<'PY'
+from pathlib import Path
+parts = []
+for rel in ["configs/requirements-dev.txt", "configs/pyrightconfig.json", "tools/perf_baseline.json"]:
+    p = Path(rel)
+    if p.exists():
+        parts.append(f"== {rel} ==\n{p.read_text()}\n")
+out = Path("artifacts") / "config_snapshot.txt"
+out.write_text("\n".join(parts))
+PY
+
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-artifacts
+          path: artifacts
+          if-no-files-found: ignore

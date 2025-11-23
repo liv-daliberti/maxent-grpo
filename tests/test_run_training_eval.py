@@ -3,18 +3,31 @@
 from __future__ import annotations
 
 from importlib import import_module, reload
+from types import SimpleNamespace
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
-from test_run_setup_reference import _load_run_setup
+from tests.test_run_setup_reference import _load_run_setup
+
+
+class _StubMetricWriter:
+    def __init__(self):
+        self.logged: List[Tuple[Dict[str, Any], int]] = []
+
+    def log(self, metrics: Dict[str, Any], step: int) -> None:
+        self.logged.append((metrics, step))
+
+    def flush(self) -> None:
+        return None
 
 
 @pytest.fixture
 def rte(monkeypatch):
-    """Load run_training_eval with dependency stubs."""
+    """Load training.eval with dependency stubs."""
     _load_run_setup(monkeypatch)
-    eval_mod = reload(import_module("maxent_helpers.run_training_eval"))
-    types_mod = reload(import_module("maxent_helpers.run_training_types"))
+    eval_mod = reload(import_module("training.eval"))
+    types_mod = reload(import_module("training.types"))
     return eval_mod, types_mod
 
 
@@ -37,7 +50,7 @@ def test_run_validation_step_uses_per_prompt_counts(rte):
         every_n_steps=None,
     )
     logging_handles = rtt.LoggingHandles(
-        log_metrics=lambda *_args, **_kwargs: None,
+        metric_writer=_StubMetricWriter(),
         save_checkpoint=lambda *_a, **_k: None,
         save_strategy="no",
         save_steps=0,
@@ -96,7 +109,7 @@ def test_run_validation_step_synchronizes_all_ranks(rte):
         every_n_steps=None,
     )
     logging_handles = rtt.LoggingHandles(
-        log_metrics=lambda *_args, **_kwargs: None,
+        metric_writer=_StubMetricWriter(),
         save_checkpoint=lambda *_a, **_k: None,
         save_strategy="no",
         save_steps=0,
@@ -158,14 +171,10 @@ def test_run_validation_step_aggregates_rewards_across_ranks(rte):
         batch_size=2,
         every_n_steps=None,
     )
-    logged = {}
-
-    def _log_metrics(metrics, step):
-        logged["metrics"] = metrics
-        logged["step"] = step
+    writer = _StubMetricWriter()
 
     logging_handles = rtt.LoggingHandles(
-        log_metrics=_log_metrics,
+        metric_writer=writer,
         save_checkpoint=lambda *_a, **_k: None,
         save_strategy="no",
         save_steps=0,
@@ -204,6 +213,63 @@ def test_run_validation_step_aggregates_rewards_across_ranks(rte):
         logging=logging_handles,
     )
     run_training_eval.run_validation_step(3, ctx)
-    assert logged["metrics"]["eval/mean_reward"] == 1.0
-    assert logged["step"] == 3
+    assert writer.logged
+    metrics, step = writer.logged[-1]
+    assert metrics["eval/mean_reward"] == 1.0
+    assert step == 3
     assert calls == [["p1"]]
+
+
+def test_log_eval_start_only_logs_on_main_rank(rte, caplog):
+    run_training_eval, _ = rte
+    caplog.set_level("INFO")
+    shard_non_main = run_training_eval._EvalShardInfo(
+        rows=[],
+        total_rows=10,
+        shard_total=5,
+        world_size=2,
+        log_every=1,
+        is_main=False,
+    )
+    run_training_eval._log_eval_start(5, shard_non_main, batch_size=4)
+    assert "eval step" not in caplog.text
+
+    caplog.clear()
+    shard_main = run_training_eval._EvalShardInfo(
+        rows=[],
+        total_rows=12,
+        shard_total=6,
+        world_size=2,
+        log_every=1,
+        is_main=True,
+    )
+    run_training_eval._log_eval_start(6, shard_main, batch_size=8)
+    assert "eval step 6" in caplog.text
+
+
+def test_gather_eval_stats_falls_back_to_local_sum(rte):
+    run_training_eval, _ = rte
+    accelerator = SimpleNamespace(gather_object=None)
+    total_sum, total_count = run_training_eval._gather_eval_stats(
+        accelerator, [1.0, 2.0]
+    )
+    assert total_sum == pytest.approx(3.0)
+    assert total_count == pytest.approx(2.0)
+
+
+def test_gather_eval_stats_uses_gather_when_available(rte):
+    run_training_eval, _ = rte
+
+    class _Accel:
+        def __init__(self):
+            self.calls = 0
+
+        def gather_object(self, payload):
+            self.calls += 1
+            return [payload, (5.0, 3.0)]
+
+    accel = _Accel()
+    total_sum, total_count = run_training_eval._gather_eval_stats(accel, [2.0])
+    assert accel.calls == 1
+    assert total_sum == pytest.approx(7.0)
+    assert total_count == pytest.approx(4.0)

@@ -38,6 +38,8 @@ def test_pure_accuracy_reward_requires_format_tags():
     # Missing tags yields 0.0
     out = R.pure_accuracy_reward_math(["no tags here"], ["anything"])
     assert out == [0.0]
+
+
 """
 Copyright 2025 Liv d'Aliberti
 

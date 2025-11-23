@@ -1,12 +1,19 @@
 repos:
   - repo: local
     hooks:
+      - id: black
+        name: black
+        entry: black
+        language: system
+        types: [python]
       - id: ruff
         name: ruff
         entry: ruff
         language: system
         types: [python]
         args: ["check", "."]
+        env:
+          RUFF_CACHE_DIR: var/cache/ruff
       - id: pylint
         name: pylint
         entry: pylint
@@ -16,6 +23,14 @@ repos:
         args:
           - --rcfile=.pylintrc
           - --disable=import-error
+      - id: pyright
+        name: pyright
+        entry: pyright
+        language: system
+        pass_filenames: false
+        args:
+          - --project
+          - configs/pyrightconfig.json
       - id: pytest
         name: pytest
         entry: bash
@@ -23,10 +38,64 @@ repos:
         pass_filenames: false
         args:
           - -lc
-          - 'PYTHONPATH=src pytest -q'
+          - 'PYTHONPATH=src pytest -q --cov=src --cov-report=term-missing --cov-report=xml -c configs/pytest.ini'
+      - id: pip-audit
+        name: pip-audit
+        entry: pip-audit
+        language: system
+        pass_filenames: false
+        args:
+          - --progress-spinner
+          - off
+          - -r
+          - configs/constraints.txt
+          - -r
+          - configs/requirements-dev.txt
+      - id: bandit
+        name: bandit
+        entry: bandit
+        language: system
+        pass_filenames: false
+        args:
+          - -q
+          - -r
+          - src/utils
+          - src/pipelines
+      - id: validate-logs
+        name: validate-training-logs
+        entry: python tools/validate_training_logs.py --allow-missing
+        language: system
+        pass_filenames: false
+      - id: perf-microbench
+        name: perf-microbench
+        entry: python tools/perf_microbench.py --baseline-file tools/perf_baseline.json --iterations 200 --tolerance 0.5
+        language: system
+        pass_filenames: false
       - id: sphinx-build
         name: sphinx docs build
-        entry: python -m sphinx -b html docs _build/html
+        entry: python -m sphinx -b html docs var/docs/_build/html
         language: system
         pass_filenames: false
         always_run: true
+      - id: prune-pyc
+        name: Remove __pycache__ directories
+        entry: bash -c "find . -type d -name '__pycache__' -prune -exec rm -rf {} +"
+        language: system
+        pass_filenames: false
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: debug-statements
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: name-tests-test
+      - id: check-yaml
+      - id: check-json
+      - id: mixed-line-ending
+      - id: detect-private-key
+      - id: forbid-submodules
+      - id: no-commit-to-branch
+      - id: sort-simple-yaml

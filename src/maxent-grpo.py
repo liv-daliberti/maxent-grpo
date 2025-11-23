@@ -16,8 +16,8 @@
 Thin CLI wrapper for the MaxEnt-GRPO training loop.
 
 This script simply parses the TRL configs (matching ``src/grpo.py``) and
-hands control to ``maxent_helpers.run_maxent_grpo`` where the actual training
-logic lives. Keeping the heavy implementation in ``maxent_helpers`` keeps this
+hands control to ``training.run_maxent_grpo`` where the actual training
+logic lives. Keeping the heavy implementation in ``training`` keeps this
 entrypoint short and mirrors the layout of ``grpo.py`` for readability.
 """
 
@@ -25,29 +25,22 @@ from __future__ import annotations
 
 import sys
 
-from configs import GRPOConfig, GRPOScriptArguments
-from maxent_helpers import run_maxent_grpo
+from training.cli import parse_grpo_args
+from training import run_maxent_grpo
 
 
 def main() -> None:
     """Parse GRPO configs via TRL and hand control to ``run_maxent_grpo``.
 
-    The function mirrors :mod:`src.grpo` by delegating argument parsing to
-    ``TrlParser`` and then invoking the shared MaxEnt-GRPO entrypoint.
-
-    :raises ImportError: If TRL is not installed in the current environment.
+    :returns: ``None``. The function hands execution to
+        :func:`training.run_maxent_grpo`.
+    :rtype: None
     """
     try:
-        from trl import ModelConfig, TrlParser
-    except (ImportError, ModuleNotFoundError):  # pragma: no cover
-        print(
-            "This script requires TRL installed to parse configs (pip install trl).",
-            file=sys.stderr,
-        )
+        script_args, training_args, model_args = parse_grpo_args()
+    except ImportError as exc:  # pragma: no cover - CLI guard
+        print(str(exc), file=sys.stderr)
         raise
-
-    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
-    script_args, training_args, model_args = parser.parse_args_and_config()
     run_maxent_grpo(script_args, training_args, model_args)
 
 

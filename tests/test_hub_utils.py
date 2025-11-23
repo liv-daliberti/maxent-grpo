@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import utils.hub as H
+import core.hub as H
 
 
 def test_param_count_parsing_single_and_product():
