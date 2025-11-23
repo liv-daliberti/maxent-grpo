@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 
 import pytest
 
-spec = importlib.util.find_spec("torch")
-if spec is None:
-    pytest.skip("torch is required for training loss tests", allow_module_level=True)
-
-import torch
+torch = pytest.importorskip(
+    "torch",
+    reason="torch is required for training loss tests",
+)
 
 if not hasattr(torch, "tensor"):
     pytest.skip("torch tensor operations unavailable", allow_module_level=True)
 
-from maxent_helpers.run_training_loss import RatioContext, SequenceScores, _kl_terms
+_loss_mod = importlib.import_module("maxent_helpers.run_training_loss")
+RatioContext = _loss_mod.RatioContext
+SequenceScores = _loss_mod.SequenceScores
+_kl_terms = _loss_mod._kl_terms
 
 
 def _make_ratio_ctx(beta: float = 0.5, len_norm_ref: bool = True) -> RatioContext:

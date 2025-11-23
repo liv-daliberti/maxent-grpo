@@ -33,6 +33,7 @@ from typing import (
     Tuple,
     Union,
     runtime_checkable,
+    TYPE_CHECKING,
 )
 
 from configs import GRPOConfig
@@ -47,6 +48,16 @@ LOG = logging.getLogger(__name__)
 PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))
 _TRUNC_STATE = {"warned": False}
 _FIRST_WANDB_LOGGED_RUNS: Set[Any] = set()
+
+if TYPE_CHECKING:
+    from transformers import PreTrainedTokenizer as _HFPreTrainedTokenizer
+    import torch as _torch
+
+    Tensor = _torch.Tensor
+    PreTrainedTokenizer = _HFPreTrainedTokenizer
+else:  # pragma: no cover - typing convenience
+    PreTrainedTokenizer = Any  # type: ignore[assignment]
+    Tensor = Any  # type: ignore[assignment]
 
 
 @lru_cache(maxsize=None)

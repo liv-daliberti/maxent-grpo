@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import sys
 from types import SimpleNamespace
 
@@ -51,7 +52,7 @@ transformers_mod.PreTrainedTokenizer = getattr(
     object,
 )
 
-from maxent_helpers import zero_utils
+zero_utils = importlib.import_module("maxent_helpers.zero_utils")
 
 
 class _FakeGather:
