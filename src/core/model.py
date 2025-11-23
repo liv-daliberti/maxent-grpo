@@ -16,13 +16,11 @@ from typing import Any, Dict, List, Optional, TypedDict, TYPE_CHECKING, Union
 
 try:
     import torch  # type: ignore
-except (
-    ImportError,
-    ModuleNotFoundError,
-):  # pragma: no cover - tests provide lightweight stub
+except Exception:  # pragma: no cover - tests provide lightweight stub
     torch = SimpleNamespace(
         float16="float16",
         bfloat16="bfloat16",
+        dtype=Any,
     )
 
 try:  # pragma: no cover - optional dependency (offline/CI fallback)
@@ -73,10 +71,10 @@ except (
         def gradient_checkpointing_enable(self, *_args, **_kwargs):
             return None
 
-    _FallbackTokenizer.__module__ = __name__
-    AutoTokenizer.__module__ = __name__
-    PreTrainedTokenizer.__module__ = __name__
-    AutoModelForCausalLM.__module__ = __name__
+    _FallbackTokenizer.__module__ = "transformers"
+    AutoTokenizer.__module__ = "transformers"
+    PreTrainedTokenizer.__module__ = "transformers"
+    AutoModelForCausalLM.__module__ = "transformers"
 
 
 try:
@@ -193,7 +191,7 @@ def get_model(
     if torch_dtype in ["auto", None]:
         torch_dtype = model_args.torch_dtype
     elif isinstance(model_args.torch_dtype, str):
-        torch_dtype = getattr(torch, model_args.torch_dtype)
+        torch_dtype = getattr(torch, model_args.torch_dtype, model_args.torch_dtype)
     else:
         torch_dtype = model_args.torch_dtype
     quantization_config: Optional[Any] = get_quantization_config(model_args)

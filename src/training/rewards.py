@@ -167,7 +167,17 @@ def prepare_generation_batch(
         len(prompts),
         expected_generations,
     )
-    grouped_comps, grouped_meta = generator(prompts, expected_generations)
+    gen_result = generator(prompts, expected_generations)
+    if gen_result is None:
+        return None
+    if isinstance(gen_result, GenerationBatch):
+        grouped_comps = gen_result.grouped_completions
+        grouped_meta = getattr(gen_result, "grouped_ref_meta", None)
+    elif hasattr(gen_result, "grouped_completions"):
+        grouped_comps = getattr(gen_result, "grouped_completions")
+        grouped_meta = getattr(gen_result, "grouped_ref_meta", None)
+    else:
+        grouped_comps, grouped_meta = gen_result
     LOG.debug(
         "Generation finished | prompts=%d | groups_returned=%d",
         len(prompts),

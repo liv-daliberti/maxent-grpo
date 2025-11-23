@@ -186,6 +186,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
+    "sphinx.ext.coverage",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
@@ -223,6 +224,7 @@ autodoc_default_options = {
     "members": True,
     "undoc-members": True,
     "show-inheritance": True,
+    "exclude-members": "AutoModelForCausalLM,AutoTokenizer,PreTrainedTokenizer",
 }
 autodoc_type_aliases = {
     "CompletionType": "rewards.CompletionType",

@@ -56,6 +56,7 @@ from rewards import get_reward_funcs
 from core.data import get_dataset, load_dataset_split
 from core.model import get_model, get_tokenizer
 from patches.trl import ensure_vllm_group_port
+from training.run_helpers import PROMPT_CHAR_LIMIT, truncate_prompt
 
 if TYPE_CHECKING:
     from trl import ModelConfig
@@ -96,8 +97,6 @@ if not hasattr(transformers, "utils"):
     )
 
 LOG = logging.getLogger(__name__)
-PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))
-_TRUNC_STATE = {"warned": False}
 
 GRPOTrainerOverride: Optional[type] = None
 get_peft_config_override: Optional[Any] = (
@@ -134,29 +133,6 @@ class ChatTemplate(Protocol):
         :returns: The templated conversation as text or token IDs.
         :rtype: str | list[int]
         """
-
-
-def _truncate_prompt(prompt: str) -> str:
-    """Cap prompt length to avoid vLLM payload failures.
-
-    :param prompt: Prompt string produced by the tokenizer/template.
-    :type prompt: str
-    :returns: Either the original prompt (when under the limit) or a truncated
-        prefix capped by ``PROMPT_CHAR_LIMIT``.
-    :rtype: str
-    """
-    if PROMPT_CHAR_LIMIT <= 0:
-        return prompt
-    if len(prompt) <= PROMPT_CHAR_LIMIT:
-        return prompt
-    if not _TRUNC_STATE["warned"]:
-        LOG.warning(
-            "Prompt exceeds %d characters; truncating to avoid server errors. "
-            "Set MAX_PROMPT_CHARS to adjust the limit.",
-            PROMPT_CHAR_LIMIT,
-        )
-        _TRUNC_STATE["warned"] = True
-    return prompt[:PROMPT_CHAR_LIMIT]
 
 
 def _to_prompt(
@@ -201,7 +177,7 @@ def _to_prompt(
             + "\nASSISTANT:"
         )
 
-    prompt = _truncate_prompt(prompt)
+    prompt = truncate_prompt(prompt)
     out = {
         "prompt": prompt,
         "answer": str(example.get("answer", example.get("solution", ""))),

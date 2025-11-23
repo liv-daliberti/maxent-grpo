@@ -27,7 +27,7 @@ class _StubMetricWriter:
 def logging_mod(monkeypatch):
     """Load logging helpers with torch/accelerate stubs."""
     _load_run_setup(monkeypatch)
-    return reload(import_module("training.run_logging"))
+    return reload(import_module("training.metrics"))
 
 
 def test_log_training_metrics_emits_only_scalars(logging_mod):

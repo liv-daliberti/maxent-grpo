@@ -115,18 +115,18 @@ __all__: List[str] = [
 
 
 def run_maxent_grpo(*args: Any, **kwargs: Any) -> Any:
-    """Lazy shim that defers importing heavy training dependencies.
+    """Compatibility wrapper for callers still importing ``training.run_maxent_grpo``.
 
-    :param args: Positional arguments forwarded to ``training.run.run_maxent_grpo``.
-    :type args: Any
-    :param kwargs: Keyword arguments forwarded to ``training.run.run_maxent_grpo``.
-    :type kwargs: Any
-    :returns: Result returned by the actual ``run_maxent_grpo`` implementation.
-    :rtype: Any
+    The legacy shim modules have been removed. To launch training, invoke the
+    Hydra CLI entrypoint (``maxent-grpo-maxent``) or compose your own runner
+    using the building blocks in ``training.loop``, ``training.pipeline``, and
+    ``training.run_helpers``.
     """
-    from .run import run_maxent_grpo as _run  # pylint: disable=import-error
-
-    return _run(*args, **kwargs)
+    raise NotImplementedError(
+        "training.run_maxent_grpo is no longer provided. Use the Hydra CLI "
+        "entrypoint (maxent-grpo-maxent) or build a runner with training.loop/"
+        "training.pipeline."
+    )
 
 
 def __dir__():

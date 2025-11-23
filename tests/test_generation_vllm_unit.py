@@ -148,7 +148,7 @@ def test_import_vllm_client_cls(monkeypatch):
     assert module._import_vllm_client_cls() is None
 
 
-def test_vllm_generation_state_pending_and_trim(monkeypatch):
+def test_vllm_generation_state_pending_and_trim_single_prompt(monkeypatch):
     module = _load_vllm(monkeypatch)
     state = module._VLLMGenerationState(
         prompts=["p1", "p2"],
@@ -196,6 +196,44 @@ def test_resolve_round_limit_and_expand_dedup(monkeypatch):
     grouped, meta = helper._expand_dedup_results([["x"]], None, [0, 0])
     assert grouped == [["x"], ["x"]]
     assert meta is None
+
+
+def test_vllm_generation_state_pending_and_trim(monkeypatch):
+    module = _load_vllm(monkeypatch)
+    state = module._VLLMGenerationState(
+        prompts=["p1", "p2"],
+        target_counts=[2, 1],
+        requested_n=2,
+        round_limit=2,
+        track_logprobs=True,
+    )
+    state.aggregated[0].append("a")
+    state.aggregated_meta[0].append("meta_a")
+    assert state.pending_indices() == [0, 1]
+    assert state.remaining_counts([0, 1]) == [1, 1]
+    trimmed, trimmed_meta = state.trim()
+    assert trimmed[0] == ["a"] and trimmed[1] == []
+    assert trimmed_meta[0] == ["meta_a"] and trimmed_meta[1] == []
+    state.drop_meta()
+    assert state.aggregated_meta is None
+
+
+def test_vllm_base_url_and_client_callable(monkeypatch):
+    module = _load_vllm(monkeypatch)
+    helper = module.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))
+    assert helper._vllm_base_url("http://host:8000/generate") == "http://host:8000"
+    helper._vllm_client = SimpleNamespace(update_named_param=lambda *_a, **_k: "ok")
+    wrapped = helper._client_callable("update_named_param")
+    assert callable(wrapped) and wrapped("n", None) == "ok"
+    assert helper._client_callable("missing") is None
+
+
+def test_ensure_vllm_client_handles_missing(monkeypatch):
+    module = _load_vllm(monkeypatch)
+    ctx = _ctx(vllm_sync_weights=True)
+    helper = module.VLLMGenerationHelper(ctx, lambda *_: ([], None))
+    # Missing VLLMClient should return False and not raise.
+    assert helper._ensure_vllm_client() is False
 
 
 def test_coalesce_grouped_outputs_merges_chunks(monkeypatch):
@@ -262,12 +300,12 @@ def test_collective_gather_and_scatter_helpers(monkeypatch):
         out[0] = val
         out[1] = ["peer"]
 
-    dist = SimpleNamespace(
-        is_available=lambda: True,
-        is_initialized=lambda: True,
-        get_world_size=lambda: 2,
-        all_gather_object=_all_gather_object,
-    )
+    dist = ModuleType("torch.distributed")
+    dist.__spec__ = SimpleNamespace(name="torch.distributed", has_location=False)
+    dist.is_available = lambda: True
+    dist.is_initialized = lambda: True
+    dist.get_world_size = lambda: 2
+    dist.all_gather_object = _all_gather_object
     monkeypatch.setattr(module.torch, "distributed", dist)  # type: ignore[attr-defined]
     gathered = module._gather_object_list(SimpleNamespace(), ["x"])
     assert len(gathered) == 2

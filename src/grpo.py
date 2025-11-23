@@ -29,5 +29,5 @@ def cli() -> None:
     main(script_args, training_args, model_args)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - CLI entrypoint
     cli()

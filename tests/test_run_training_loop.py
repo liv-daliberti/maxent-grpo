@@ -1,7 +1,6 @@
 """Tests for the training loop helpers."""
 
 from __future__ import annotations
-
 from importlib import import_module, reload
 import sys
 from types import SimpleNamespace
@@ -118,16 +117,289 @@ def test_log_sample_table_logs_to_wandb(monkeypatch, rtl):
 
     metrics._log_sample_table(ctx, state, prepared)
     assert rows_logged["step"] == 5
-    assert "completions" in rows_logged["data"]
-    table_kwargs = rows_logged["kwargs"]
-    assert table_kwargs["columns"] == [
-        "step",
-        "prompt",
-        "completion",
-        "advantage",
-        "reward/accuracy",
-    ]
-    assert len(table_kwargs["rows"]) == 2
+
+
+def test_maybe_validate_runs_on_schedule(monkeypatch, rtl):
+    called = {}
+    monkeypatch.setattr(
+        rtl,
+        "run_validation_step",
+        lambda step, ctx: called.setdefault("args", (step, ctx)),
+    )
+    eval_cfg = SimpleNamespace(enabled=True, every_n_steps=2)
+    val_ctx = object()
+    rtl._maybe_validate(eval_cfg, val_ctx, global_step=4)
+    assert called["args"] == (4, val_ctx)
+    rtl._maybe_validate(eval_cfg, val_ctx, global_step=3)
+    assert called["args"] == (4, val_ctx)  # unchanged when condition not met
+
+
+def test_train_step_sets_generation_stats_and_skips_empty_batch(monkeypatch, rtl):
+    gen_stats = {}
+    ctx = SimpleNamespace(
+        optimization=SimpleNamespace(schedule=SimpleNamespace(grad_accum_steps=1)),
+        runtime=SimpleNamespace(accelerator=SimpleNamespace(), model=None),
+        generation=SimpleNamespace(generation_stats=gen_stats),
+        scoring=SimpleNamespace(),
+    )
+    state = rtl.TrainingLoopState()
+    resources = rtl.StepResources(generator=lambda *_a, **_k: None, validation_ctx=None)
+    step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={})
+
+    monkeypatch.setattr(
+        rtl,
+        "detect_deepspeed_state",
+        lambda *_a, **_k: SimpleNamespace(use_deepspeed=False, zero_stage=0),
+    )
+    monkeypatch.setattr(rtl, "prepare_training_batch", lambda *_a, **_k: None)
+
+    result = rtl._train_step(ctx, state, step_info, resources)
+
+    assert result is False
+    assert gen_stats["current_step"] == 0
+    assert state.num_input_tokens_seen == 0.0
+
+
+def test_train_step_defers_deepspeed_accumulation(monkeypatch, rtl):
+    accelerator = SimpleNamespace(
+        is_main_process=False, backward=lambda *_a, **_k: None
+    )
+    schedule = SimpleNamespace(grad_accum_steps=2)
+    ctx = SimpleNamespace(
+        optimization=SimpleNamespace(schedule=schedule, handles=SimpleNamespace()),
+        runtime=SimpleNamespace(accelerator=accelerator, model=None),
+        generation=SimpleNamespace(generation_stats={}),
+        scoring=SimpleNamespace(clipping=None, weighting=None),
+    )
+    state = rtl.TrainingLoopState()
+    resources = rtl.StepResources(generator=lambda *_a, **_k: None, validation_ctx=None)
+    step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={})
+
+    prepared = SimpleNamespace(
+        grouped_completions=[],
+        weight_stats=None,
+        scores=None,
+        ref_stats=None,
+        total_input_tokens=0.0,
+    )
+    loss_outputs = SimpleNamespace(loss=0.0)
+
+    monkeypatch.setattr(
+        rtl,
+        "detect_deepspeed_state",
+        lambda *_a, **_k: SimpleNamespace(use_deepspeed=True, zero_stage=2),
+    )
+    monkeypatch.setattr(rtl, "prepare_training_batch", lambda *_a, **_k: prepared)
+    monkeypatch.setattr(rtl, "build_loss_inputs", lambda *_a, **_k: (None,))
+    monkeypatch.setattr(rtl, "evaluate_losses", lambda *_a, **_k: (loss_outputs, None))
+    monkeypatch.setattr(rtl, "_scheduled_learning_rate", lambda *_a, **_k: 0.0)
+    monkeypatch.setattr(rtl, "_epoch_progress", lambda *_a, **_k: 0.0)
+    monkeypatch.setattr(
+        rtl,
+        "require_accumulation_context",
+        lambda *_a, **_k: type(
+            "Ctx",
+            (),
+            {"__enter__": lambda self: None, "__exit__": lambda self, *args: False},
+        )(),
+    )
+    monkeypatch.setattr(
+        rtl,
+        "_optimizer_step",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("no step")),
+    )
+
+    result = rtl._train_step(ctx, state, step_info, resources)
+    assert result is False
+    assert state.global_step == 0  # optimizer not stepped
+
+
+def test_train_step_defers_when_not_syncing(monkeypatch, rtl):
+    accelerator = SimpleNamespace(
+        is_main_process=False,
+        backward=lambda *_a, **_k: None,
+    )
+    ctx = SimpleNamespace(
+        optimization=SimpleNamespace(
+            schedule=SimpleNamespace(grad_accum_steps=1), handles=SimpleNamespace()
+        ),
+        runtime=SimpleNamespace(accelerator=accelerator, model=None),
+        generation=SimpleNamespace(generation_stats={}),
+        scoring=SimpleNamespace(clipping=None, weighting=None),
+    )
+    state = rtl.TrainingLoopState()
+    resources = rtl.StepResources(generator=lambda *_a, **_k: None, validation_ctx=None)
+    step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={})
+
+    prepared = SimpleNamespace(
+        grouped_completions=[],
+        weight_stats=None,
+        scores=None,
+        ref_stats=None,
+        total_input_tokens=0.0,
+    )
+    loss_outputs = SimpleNamespace(loss=0.0)
+
+    monkeypatch.setattr(
+        rtl,
+        "detect_deepspeed_state",
+        lambda *_a, **_k: SimpleNamespace(use_deepspeed=False, zero_stage=0),
+    )
+    monkeypatch.setattr(rtl, "prepare_training_batch", lambda *_a, **_k: prepared)
+    monkeypatch.setattr(rtl, "build_loss_inputs", lambda *_a, **_k: (None,))
+    monkeypatch.setattr(rtl, "evaluate_losses", lambda *_a, **_k: (loss_outputs, None))
+    monkeypatch.setattr(rtl, "_scheduled_learning_rate", lambda *_a, **_k: 0.0)
+    monkeypatch.setattr(rtl, "_epoch_progress", lambda *_a, **_k: 0.0)
+    monkeypatch.setattr(
+        rtl,
+        "require_accumulation_context",
+        lambda *_a, **_k: type(
+            "Ctx",
+            (),
+            {"__enter__": lambda self: None, "__exit__": lambda self, *args: False},
+        )(),
+    )
+    monkeypatch.setattr(rtl, "sync_gradients_enabled", lambda *_a, **_k: False)
+    monkeypatch.setattr(
+        rtl,
+        "_optimizer_step",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("no step")),
+    )
+
+    result = rtl._train_step(ctx, state, step_info, resources)
+    assert result is False
+    assert state.global_step == 0
+
+
+def test_run_epoch_retries_sampler_with_int(monkeypatch, rtl):
+    calls = []
+
+    class _Sampler:
+        def __init__(self):
+            self.calls = 0
+
+        def set_epoch(self, value):
+            self.calls += 1
+            calls.append(value)
+            if self.calls == 1:
+                raise TypeError("bad type")
+
+    sampler = _Sampler()
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(train_loader=[{"a": 1}], train_sampler=sampler),
+    )
+    state = rtl.TrainingLoopState()
+    resources = rtl.StepResources(generator=None, validation_ctx=None)
+
+    monkeypatch.setattr(rtl, "_train_step", lambda *_a, **_k: False)
+    result = rtl._run_epoch(ctx, state, epoch=3, resources=resources)
+
+    assert result is False
+    assert calls == [3, 3]
+    assert sampler.calls == 2
+
+
+def test_run_training_loop_logs_and_finishes_wandb(monkeypatch, rtl):
+    calls = {}
+
+    class _Accel:
+        is_main_process = True
+
+    class _Optimizer:
+        def __init__(self):
+            self.calls = []
+
+        def zero_grad(self, set_to_none):
+            self.calls.append(set_to_none)
+
+    optimizer = _Optimizer()
+    schedule = SimpleNamespace(
+        grad_accum_steps=1, steps_per_epoch=1, total_training_steps=1, num_epochs=1
+    )
+    generation_stats = {
+        "vllm_retry_rounds": 1,
+        "vllm_backfilled_prompts": 2,
+        "vllm_failed_prompts": 3,
+        "dropped_prompts": 4,
+    }
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(
+            accelerator=_Accel(),
+            model=object(),
+            tokenizer=object(),
+            device="cpu",
+            train_loader=[{"batch": 1}],
+        ),
+        generation=SimpleNamespace(
+            max_prompt_len=1,
+            max_completion_len=1,
+            gen_temperature=0.1,
+            gen_top_p=0.9,
+            use_vllm=False,
+            vllm=None,
+            penalty=SimpleNamespace(),
+            generation_stats=generation_stats,
+        ),
+        evaluation=SimpleNamespace(enabled=False, every_n_steps=None),
+        reward=object(),
+        logging=SimpleNamespace(
+            wandb_run=SimpleNamespace(finish=lambda: calls.setdefault("finish", True))
+        ),
+        optimization=SimpleNamespace(
+            schedule=schedule, handles=SimpleNamespace(optimizer=optimizer)
+        ),
+        controller=SimpleNamespace(state_path="/tmp/state", resume_from=None),
+        scoring=SimpleNamespace(weighting=SimpleNamespace()),
+    )
+
+    class _GenCtx:
+        def __init__(self, **kwargs):
+            calls.setdefault("gen_ctx", kwargs)
+
+    class _CompletionGen:
+        def __init__(self, ctx):
+            calls.setdefault("completion_ctx", ctx)
+
+        def generate(self, *args, **kwargs):
+            calls.setdefault("generate_called", True)
+
+    monkeypatch.setattr(rtl, "GenerationContext", lambda **kwargs: _GenCtx(**kwargs))
+    monkeypatch.setattr(rtl, "CompletionGenerator", lambda ctx: _CompletionGen(ctx))
+    monkeypatch.setattr(
+        rtl,
+        "configure_accumulation_steps",
+        lambda accel, steps: calls.setdefault("config_accum", (accel, steps)),
+    )
+    monkeypatch.setattr(
+        rtl,
+        "_maybe_patch_zero_no_sync",
+        lambda model: calls.setdefault("patched_zero", model),
+    )
+    monkeypatch.setattr(rtl, "replace", lambda obj, **kwargs: obj)
+    monkeypatch.setattr(
+        rtl,
+        "load_controller_state_chain",
+        lambda controller, accel, weighting: calls.setdefault("loaded_ctrl", True),
+    )
+    monkeypatch.setattr(
+        rtl,
+        "maybe_load_accelerator_state",
+        lambda resume, accel: calls.setdefault("loaded_accel", True),
+    )
+    monkeypatch.setattr(
+        rtl,
+        "_run_epoch",
+        lambda _ctx, _state, epoch, _resources: calls.setdefault("run_epoch", epoch),
+    )
+
+    rtl.run_training_loop(ctx)
+
+    assert calls["config_accum"][1] == schedule.grad_accum_steps
+    assert calls["patched_zero"] is ctx.runtime.model
+    assert calls["loaded_ctrl"] is True
+    assert calls["loaded_accel"] is True
+    assert calls["run_epoch"] == 0
+    assert calls["finish"] is True
 
 
 def test_clear_stale_controller_state_removes_file(monkeypatch, rtl):

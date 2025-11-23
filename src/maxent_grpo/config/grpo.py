@@ -311,6 +311,28 @@ class GRPOConfig(trl.GRPOConfig):
             except (ImportError, ModuleNotFoundError, ValueError):
                 eval_value = eval_alias
             setattr(self, "eval_strategy", eval_value)
+        if self.maxent_tau_min < 0.0:
+            raise ValueError("maxent_tau_min must be non-negative")
+        if self.maxent_tau_max < self.maxent_tau_min:
+            raise ValueError("maxent_tau_max must be >= maxent_tau_min")
+        if self.maxent_tau_lr < 0.0:
+            raise ValueError("maxent_tau_lr must be non-negative")
+        if self.maxent_tau_warmup_steps is not None and self.maxent_tau_warmup_steps < -1:
+            raise ValueError("maxent_tau_warmup_steps must be >= -1")
+        if self.maxent_q_epsilon <= 0.0:
+            raise ValueError("maxent_q_epsilon must be > 0 to avoid zero weights")
+        if self.maxent_q_temperature <= 0.0:
+            raise ValueError("maxent_q_temperature must be > 0")
+        if self.maxent_logprob_chunk_size < 0:
+            raise ValueError("maxent_logprob_chunk_size must be non-negative")
+        if self.maxent_clip_objective_coef < 0.0:
+            raise ValueError("maxent_clip_objective_coef must be non-negative")
+        if self.maxent_clip_range is not None and self.maxent_clip_range < 0.0:
+            raise ValueError("maxent_clip_range must be non-negative when set")
+        for name in ("kl_target", "kl_horizon", "kl_ctl_step_size"):
+            value = getattr(self, name, None)
+            if value is not None and value < 0:
+                raise ValueError(f"{name} must be non-negative")
 
 
 @dataclass

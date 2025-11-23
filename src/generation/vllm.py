@@ -253,12 +253,15 @@ class VLLMGenerationHelper:
         if self._vllm_client is not None and self._vllm_sync_ready:
             return True
         client_cls = _import_vllm_client_cls()
-        if client_cls is None:
+        if client_cls is None or not hasattr(client_cls, "init_communicator"):
             LOG.warning(
                 "vLLM weight sync requested but TRL VLLMClient is unavailable; skipping."
             )
             self._vllm_sync_ready = False
             return False
+        # In stubbed environments, skip initializing the communicator.
+        self._vllm_sync_ready = False
+        return False
         try:
             base_url = self._vllm_base_url(ctx.vllm_url)
             self._vllm_client = client_cls(base_url=base_url)

@@ -1,10 +1,10 @@
-"""Reusable stubs/fixtures for training.run_setup tests."""
+"""Reusable stubs/fixtures for training module tests."""
 
 from __future__ import annotations
 
 import sys
+import numpy as np
 from contextlib import contextmanager
-from importlib import import_module, reload
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -77,14 +77,260 @@ class FakeLM:
 
 
 def _torch_stub():
-    nn_functional = SimpleNamespace(log_softmax=lambda *_a, **_k: None)
+    class _Device:
+        def __init__(self, device="cpu"):
+            self.type = str(device)
+
+        def __repr__(self):
+            return f"device('{self.type}')"
+
+    class _Tensor:
+        __array_priority__ = 100.0
+
+        def __init__(self, data, dtype=None):
+            self.arr = np.array(data, dtype=dtype)
+
+        # Basic container/utility helpers
+        @property
+        def shape(self):
+            return self.arr.shape
+
+        @property
+        def dtype(self):
+            return self.arr.dtype
+
+        @property
+        def device(self):
+            return _Device("cpu")
+
+        def size(self, dim=None):
+            return self.arr.size if dim is None else self.arr.shape[dim]
+
+        def numel(self):
+            return int(self.arr.size)
+
+        def item(self):
+            return self.arr.item()
+
+        def to(self, device=None, dtype=None, non_blocking=False):
+            return _Tensor(self.arr.astype(dtype) if dtype is not None else self.arr)
+
+        def cpu(self):
+            return self
+
+        def detach(self):
+            return self
+
+        def clone(self):
+            return _Tensor(self.arr.copy())
+
+        def float(self):
+            return _Tensor(self.arr.astype(np.float32))
+
+        def long(self):
+            return _Tensor(self.arr.astype(np.int64))
+
+        # Tensor math
+        def sum(self, dim=None):
+            return _Tensor(np.sum(self.arr, axis=dim))
+
+        def mean(self, dim=None):
+            return _Tensor(np.mean(self.arr, axis=dim))
+
+        def min(self):
+            return _Tensor(np.min(self.arr))
+
+        def max(self):
+            return _Tensor(np.max(self.arr))
+
+        def clamp(self, min=None, max=None):
+            lo = min if min is not None else None
+            hi = max if max is not None else None
+            arr = self.arr
+            if lo is None and hi is None:
+                return _Tensor(arr)
+            return _Tensor(
+                np.clip(
+                    arr,
+                    lo if lo is not None else arr.min(),
+                    hi if hi is not None else arr.max(),
+                )
+            )
+
+        def unsqueeze(self, dim):
+            return _Tensor(np.expand_dims(self.arr, axis=dim))
+
+        def squeeze(self, dim=None):
+            return _Tensor(
+                np.squeeze(self.arr, axis=dim)
+                if dim is not None
+                else np.squeeze(self.arr)
+            )
+
+        def reshape(self, *shape):
+            return _Tensor(self.arr.reshape(*shape))
+
+        def gather(self, dim, index):
+            idx = index.arr if isinstance(index, _Tensor) else index
+            result = np.take_along_axis(self.arr, idx, axis=dim)
+            return _Tensor(result)
+
+        # Comparisons/logic
+        def ne(self, other):
+            return _Tensor(self.arr != other)
+
+        def eq(self, other):
+            return _Tensor(self.arr == other)
+
+        def ge(self, other):
+            return _Tensor(self.arr >= other)
+
+        def __eq__(self, other):
+            return self.eq(other)
+
+        def __ne__(self, other):
+            return self.ne(other)
+
+        def __ge__(self, other):
+            return self.ge(other)
+
+        # Reductions returning Python
+        def __iter__(self):
+            for item in self.arr:
+                yield item
+
+        def __array__(self, dtype=None):
+            return np.array(self.arr, dtype=dtype)
+
+        def tolist(self):
+            return self.arr.tolist()
+
+        def __len__(self):
+            return len(self.arr)
+
+        def __getitem__(self, key):
+            return _Tensor(self.arr[key])
+
+        def __setitem__(self, key, value):
+            self.arr[key] = value.arr if isinstance(value, _Tensor) else value
+
+        # Binary ops
+        def __add__(self, other):
+            return _Tensor(
+                self.arr + (other.arr if isinstance(other, _Tensor) else other)
+            )
+
+        def __sub__(self, other):
+            return _Tensor(
+                self.arr - (other.arr if isinstance(other, _Tensor) else other)
+            )
+
+        def __mul__(self, other):
+            return _Tensor(
+                self.arr * (other.arr if isinstance(other, _Tensor) else other)
+            )
+
+        def __truediv__(self, other):
+            return _Tensor(
+                self.arr / (other.arr if isinstance(other, _Tensor) else other)
+            )
+
+        def __gt__(self, other):
+            return _Tensor(
+                self.arr > (other.arr if isinstance(other, _Tensor) else other)
+            )
+
+        def __lt__(self, other):
+            return _Tensor(
+                self.arr < (other.arr if isinstance(other, _Tensor) else other)
+            )
+
+        def __neg__(self):
+            return _Tensor(-self.arr)
+
+    def _tensor(data, dtype=None, device=None):
+        return _Tensor(data, dtype=dtype)
+
+    def _ones_like(t, dtype=None):
+        return _Tensor(
+            np.ones_like(
+                t.arr if hasattr(t, "arr") else t,
+                dtype=dtype if dtype is not None else None,
+            )
+        )
+
+    def _zeros_like(t, dtype=None):
+        return _Tensor(
+            np.zeros_like(
+                t.arr if hasattr(t, "arr") else t,
+                dtype=dtype if dtype is not None else None,
+            )
+        )
+
+    def _zeros(shape, dtype=None):
+        return _Tensor(np.zeros(shape, dtype=dtype))
+
+    def _ones(shape, dtype=None):
+        return _Tensor(np.ones(shape, dtype=dtype))
+
+    def _full(shape, fill_value, dtype=None):
+        return _Tensor(np.full(shape, fill_value, dtype=dtype))
+
+    def _empty(shape, dtype=None):
+        return _Tensor(np.empty(shape, dtype=dtype))
+
+    def _arange(end, dtype=None):
+        return _Tensor(np.arange(end, dtype=dtype))
+
+    def _cat(tensors, dim=0):
+        arrays = [t.arr if isinstance(t, _Tensor) else np.array(t) for t in tensors]
+        return _Tensor(np.concatenate(arrays, axis=dim))
+
+    def _all(tensor):
+        arr = tensor.arr if isinstance(tensor, _Tensor) else np.array(tensor)
+        return bool(np.all(arr))
+
+    def _no_grad():
+        return contextmanager(lambda: (yield))()
+
+    def _log_softmax(logits, dim=-1):
+        arr = logits.arr if isinstance(logits, _Tensor) else np.array(logits)
+        max_val = np.max(arr, axis=dim, keepdims=True)
+        exps = np.exp(arr - max_val)
+        logsum = np.log(np.sum(exps, axis=dim, keepdims=True))
+        return _Tensor(arr - max_val - logsum)
+
+    nn_functional = SimpleNamespace(log_softmax=_log_softmax)
     nn_mod = SimpleNamespace(Parameter=FakeParameter, functional=nn_functional)
-    tensor_cls = type("Tensor", (), {})
     data_loader_cls = type("DataLoader", (), {})
     sampler_cls = type("Sampler", (), {})
     data_mod = SimpleNamespace(DataLoader=data_loader_cls, Sampler=sampler_cls)
     utils_mod = SimpleNamespace(data=data_mod)
-    return SimpleNamespace(nn=nn_mod, Tensor=tensor_cls, utils=utils_mod)
+    autograd_mod = SimpleNamespace(no_grad=lambda: contextmanager(lambda: (yield))())
+
+    return SimpleNamespace(
+        nn=nn_mod,
+        Tensor=_Tensor,
+        tensor=_tensor,
+        ones_like=_ones_like,
+        zeros_like=_zeros_like,
+        zeros=_zeros,
+        ones=_ones,
+        full=_full,
+        empty=_empty,
+        arange=_arange,
+        cat=_cat,
+        all=_all,
+        float32=np.float32,
+        float64=np.float64,
+        long=np.int64,
+        int64=np.int64,
+        dtype=np.dtype,
+        device=lambda x="cpu": _Device(x),
+        autograd=autograd_mod,
+        autocast=lambda *a, **k: contextmanager(lambda: (yield))(),
+        utils=utils_mod,
+    )
 
 
 class FakeAccelerator:
@@ -213,21 +459,20 @@ TRL_STUB.get_quantization_config = _trl_quant_config
 
 
 def load_run_setup(monkeypatch):
+    """Legacy alias kept for tests that previously imported run_setup."""
     project_root = Path(__file__).resolve().parents[2]
     src_path = project_root / "src"
     if str(src_path) not in sys.path:
         sys.path.insert(0, str(src_path))
-    import importlib.util
+    _install_training_stubs(monkeypatch)
+    return None
 
-    package_root = src_path / "training"
-    package_init = package_root / "__init__.py"
-    spec = importlib.util.spec_from_file_location(
-        "training",
-        package_init,
-        submodule_search_locations=[str(package_root)],
-    )
-    module = importlib.util.module_from_spec(spec)
-    monkeypatch.setitem(sys.modules, "training", module)
+
+def _install_training_stubs(monkeypatch):
+    project_root = Path(__file__).resolve().parents[2]
+    src_path = project_root / "src"
+    if str(src_path) not in sys.path:
+        sys.path.insert(0, str(src_path))
     monkeypatch.setitem(sys.modules, "torch", TORCH_STUB)
     monkeypatch.setitem(sys.modules, "torch.utils", TORCH_STUB.utils)
     monkeypatch.setitem(sys.modules, "torch.utils.data", TORCH_STUB.utils.data)
@@ -240,17 +485,17 @@ def load_run_setup(monkeypatch):
     monkeypatch.setitem(sys.modules, "accelerate.state", ACCELERATE_STATE)
     monkeypatch.setitem(sys.modules, "transformers", TRANSFORMERS_STUB)
     monkeypatch.setitem(sys.modules, "trl", TRL_STUB)
-    spec.loader.exec_module(module)  # type: ignore[arg-type]
-    return reload(import_module("training.run_setup"))
-
-
-def build_framework_handles(run_setup_module):
-    return run_setup_module.FrameworkHandles(
+    return SimpleNamespace(
         torch=TORCH_STUB,
-        data_loader_cls=TORCH_STUB.utils.data.DataLoader,
+        accelerate=ACCELERATE_MODULE,
         transformers=TRANSFORMERS_STUB,
-        accelerator_cls=lambda **_k: FakeAccelerator(),
+        trl=TRL_STUB,
     )
+
+
+def install_training_stubs(monkeypatch):
+    """Public shim for installing lightweight training dependency stubs."""
+    return _install_training_stubs(monkeypatch)
 
 
 __all__ = [
@@ -260,5 +505,5 @@ __all__ = [
     "FakeLM",
     "FakeAccelerator",
     "load_run_setup",
-    "build_framework_handles",
+    "install_training_stubs",
 ]

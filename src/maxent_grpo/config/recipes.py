@@ -12,6 +12,10 @@ try:  # pragma: no cover - optional dependency
     from omegaconf import OmegaConf
 except ImportError:  # pragma: no cover
     OmegaConf = None  # type: ignore[assignment]
+try:
+    import yaml  # type: ignore
+except ImportError:  # pragma: no cover
+    yaml = None
 
 
 def _dataclass_field_names(cls: Type[Any]) -> set[str]:
@@ -56,13 +60,15 @@ def load_grpo_recipe(
     :param model_config_cls: TRL ``ModelConfig`` class used for model kwargs.
     """
 
-    if OmegaConf is None:
-        raise ImportError(
-            "OmegaConf is required to load recipe YAMLs. "
-            "Install it via `pip install omegaconf` or use CLI args directly."
-        )
     resolved_path = os.path.expanduser(recipe_path)
-    cfg = OmegaConf.to_container(OmegaConf.load(resolved_path), resolve=True)
+    if OmegaConf is not None:
+        cfg = OmegaConf.to_container(OmegaConf.load(resolved_path), resolve=True)
+    elif yaml is not None:
+        with open(resolved_path, "r", encoding="utf-8") as handle:
+            cfg = yaml.safe_load(handle)
+    else:
+        raise ImportError("OmegaConf or PyYAML is required to load recipe YAMLs.")
+
     if not isinstance(cfg, dict):
         raise ValueError(f"Recipe {recipe_path} did not resolve to a mapping.")
 

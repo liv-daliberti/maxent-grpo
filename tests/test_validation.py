@@ -14,14 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 import sys
 import logging
 
 import grpo
 from pipelines.training import baseline
 import core.data as data_utils
-import transformers.trainer_utils as trainer_utils
+try:
+    import transformers.trainer_utils as trainer_utils  # type: ignore
+except ModuleNotFoundError:
+    # Provide a lightweight stub when transformers is not installed
+    transformers_mod = sys.modules.setdefault("transformers", ModuleType("transformers"))
+    trainer_utils = ModuleType("transformers.trainer_utils")
+    trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
+    sys.modules["transformers.trainer_utils"] = trainer_utils
+    transformers_mod.trainer_utils = trainer_utils
 
 
 class FakeSplit:

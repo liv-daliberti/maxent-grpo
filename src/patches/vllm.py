@@ -48,7 +48,27 @@ import logging
 import os
 import uuid
 from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
-import requests
+
+try:
+    import requests
+except ImportError:  # pragma: no cover - optional dependency
+
+    class _RequestsStub:
+        """Minimal stub to avoid hard dependency when vLLM is unused."""
+
+        class ConnectionError(RuntimeError):
+            pass
+
+        class Timeout(RuntimeError):
+            pass
+
+        def _raise(self, *_args, **_kwargs):
+            raise ImportError("requests is required for vLLM helpers")
+
+        get = _raise
+        post = _raise
+
+    requests = _RequestsStub()  # type: ignore[assignment]
 
 # Type aliases for JSON responses
 JsonDict = Dict[str, Any]

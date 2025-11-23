@@ -121,9 +121,8 @@ def _build_grpo_configs(
     )
 
 
-@hydra.main(version_base=None, config_name=None)
-def hydra_main(cfg: Optional[DictConfig] = None) -> None:
-    """Dispatch hydra-configured subcommands."""
+def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
+    """Dispatch hydra-configured subcommands (direct-call friendly)."""
 
     # When hydra is monkeypatched to a stub (tests), delegate to it directly.
     if not isinstance(hydra, types.ModuleType):
@@ -155,7 +154,14 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> None:
         from training import run_maxent_grpo
 
         script_args, training_args, model_args = _build_grpo_configs(root.maxent)
-        run_maxent_grpo(script_args, training_args, model_args)
+        try:
+            run_maxent_grpo(script_args, training_args, model_args)
+        except NotImplementedError as exc:
+            raise RuntimeError(
+                "MaxEnt training entrypoint is no longer provided via "
+                "training.run_maxent_grpo. Compose a runner using training.loop "
+                "or switch to the baseline GRPO pipeline."
+            ) from exc
     elif cmd == "generate":
         gen_args = (
             root.generate.args if hasattr(root.generate, "args") else root.generate
@@ -183,24 +189,32 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> None:
 
 
 def hydra_entry() -> None:
-    hydra_main()
+    _invoke_hydra_cli()
 
 
 def baseline_entry() -> None:
     _maybe_insert_command("train-baseline")
-    hydra_main()
+    _invoke_hydra_cli()
 
 
 def maxent_entry() -> None:
     _maybe_insert_command("train-maxent")
-    hydra_main()
+    _invoke_hydra_cli()
 
 
 def generate_entry() -> None:
     _maybe_insert_command("generate")
-    hydra_main()
+    _invoke_hydra_cli()
 
 
 def inference_entry() -> None:
     _maybe_insert_command("inference")
-    hydra_main()
+    _invoke_hydra_cli()
+
+
+def _invoke_hydra_cli() -> Any:
+    """Invoke hydra_main through Hydra's decorator wrapper for CLI use."""
+    if not isinstance(hydra, types.ModuleType):
+        return hydra_main()
+    decorated = hydra.main(version_base=None, config_name=None)(hydra_main)
+    return decorated()

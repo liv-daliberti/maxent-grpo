@@ -26,10 +26,10 @@ Flow Diagram
       (``training.weighting.loss`` + ``training.loop``)
          │                    │
          │                    └──► Checkpointing / Controllers
-         │                         (``run_checkpoint``, ``training.state``)
+         │                         (``training.state``, ``training.zero_utils``)
          ▼
       Metrics & Logging
-      (``training.metrics``, ``run_logging``)
+      (``training.metrics``)
 
 
 Stage Breakdown

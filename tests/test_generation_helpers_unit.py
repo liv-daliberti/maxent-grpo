@@ -153,6 +153,18 @@ def test_build_distilabel_pipeline_applies_sampling_knobs(monkeypatch):
     assert llm_kwargs["generation_kwargs"]["top_p"] == 0.9
 
 
+def test_build_distilabel_pipeline_uses_kwargs_when_cfg_missing(monkeypatch):
+    distilabel_mod = _install_distilabel_stub(monkeypatch)
+    pipe = helpers.build_distilabel_pipeline(model="demo")
+
+    assert isinstance(pipe, distilabel_mod.pipeline.Pipeline)
+    text_kwargs = distilabel_mod.steps.tasks.TextGeneration.last_kwargs
+    assert text_kwargs["input_mappings"] == {}
+    llm_kwargs = text_kwargs["llm"].kwargs
+    assert llm_kwargs["generation_kwargs"]["max_new_tokens"] == 8192
+    assert text_kwargs["num_generations"] == 1
+
+
 def test_run_distilabel_cli_raises_when_push_missing(monkeypatch):
     dataset = object()
     datasets_mod = ModuleType("datasets")
@@ -185,3 +197,49 @@ def test_run_distilabel_cli_raises_when_push_missing(monkeypatch):
 
     with pytest.raises(RuntimeError, match="does not expose push_to_hub"):
         helpers.run_distilabel_cli(args, pipeline_builder=lambda _cfg: _Pipeline())
+
+
+def test_run_distilabel_cli_pushes_when_available(monkeypatch):
+    dataset = object()
+    datasets_mod = ModuleType("datasets")
+    datasets_mod.load_dataset = lambda *_args, **_kwargs: dataset
+    monkeypatch.setitem(sys.modules, "datasets", datasets_mod)
+
+    pushes: list[tuple[str, bool]] = []
+
+    class _Pipeline:
+        def __init__(self):
+            self.run_called_with = None
+
+        def run(self, **kwargs):
+            self.run_called_with = kwargs
+            return self
+
+        def push_to_hub(self, repo, private):
+            pushes.append((repo, private))
+
+    args = Namespace(
+        hf_dataset="org/repo",
+        hf_dataset_config="config",
+        hf_dataset_split="train",
+        prompt_column=None,
+        prompt_template="{{ instruction }}",
+        model="demo",
+        vllm_server_url="http://localhost",
+        temperature=0.1,
+        top_p=0.9,
+        max_new_tokens=16,
+        num_generations=2,
+        input_batch_size=3,
+        client_replicas=2,
+        timeout=10,
+        retries=1,
+        hf_output_dataset="dest/repo",
+        private=True,
+    )
+
+    pipe = _Pipeline()
+    helpers.run_distilabel_cli(args, pipeline_builder=lambda _cfg: pipe)
+
+    assert pipe.run_called_with is not None
+    assert pushes == [("dest/repo", True)]

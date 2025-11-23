@@ -19,14 +19,41 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from .runtime import (
-    Accelerator,
-    GenerationFn,
-    PreTrainedModel,
-    RewardSpec,
-    Tensor,
-    torch,
-)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .runtime import (
+        Accelerator,
+        EvaluationSettings,
+        GenerationFn,
+        PreTrainedModel,
+        Tensor,
+        torch,
+    )
+    from .logging import LoggingHandles
+    from .runtime import RewardSpec
+else:  # pragma: no cover - runtime imports are deferred in generation.helpers
+    Accelerator = Any  # type: ignore
+    EvaluationSettings = Any  # type: ignore
+    GenerationFn = Any  # type: ignore
+    PreTrainedModel = Any  # type: ignore
+    Tensor = Any  # type: ignore
+    logging_stub = None
+    try:
+        from .runtime import torch  # type: ignore
+        from .runtime import RewardSpec  # type: ignore
+    except (
+        ImportError,
+        ModuleNotFoundError,
+    ):  # pragma: no cover - fallback when runtime not ready
+        torch = Any  # type: ignore
+        RewardSpec = Any  # type: ignore
+    try:
+        from .logging import LoggingHandles  # type: ignore
+    except (ImportError, ModuleNotFoundError):
+
+        class LoggingHandles:  # type: ignore
+            pass
 
 
 @dataclass
@@ -241,10 +268,10 @@ class ValidationContext:
     """Handles required for the optional evaluation loop."""
 
     evaluation: "EvaluationSettings"
-    accelerator: Accelerator
-    model: PreTrainedModel
+    accelerator: "Accelerator"
+    model: "PreTrainedModel"
     reward: RewardSpec
-    generator: GenerationFn
+    generator: "GenerationFn"
     logging: "LoggingHandles"
 
 

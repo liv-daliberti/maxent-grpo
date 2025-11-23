@@ -19,12 +19,29 @@ limitations under the License.
 
 import re
 import shutil
+import sys
 from pathlib import Path
 
 from setuptools import find_packages, setup
 from setuptools.command.install import install as _install
 from setuptools.command.develop import develop as _develop
 import importlib
+import importlib.metadata as importlib_metadata
+
+_EXPECTED_TRL_VERSION_PREFIX = "0.18."
+
+
+def _trl_version_hint() -> str:
+    """Return the installed TRL version if available."""
+    try:
+        return importlib_metadata.version("trl")
+    except Exception:
+        return "unknown"
+
+
+def _warn(msg: str) -> None:
+    """Emit a loud setup-time warning to stderr."""
+    print(f"[open-r1 setup] {msg}", file=sys.stderr)
 
 
 def _patch_trl_vllm_serve():
@@ -34,27 +51,38 @@ def _patch_trl_vllm_serve():
     We locate trl.scripts.vllm_serve, and if the LLM(...) call does not
     already include use_tqdm_on_load, we insert it after enforce_eager.
     """
+    trl_version = _trl_version_hint()
+    if trl_version not in ("unknown",) and not str(trl_version).startswith(
+        _EXPECTED_TRL_VERSION_PREFIX
+    ):
+        _warn(
+            f"trl=={trl_version} differs from expected {_EXPECTED_TRL_VERSION_PREFIX}*; "
+            "vllm_serve patch may fail."
+        )
     try:
         trl_mod = importlib.import_module("trl.scripts.vllm_serve")
         path = Path(trl_mod.__file__)
     except Exception as e:
-        print(f"[open-r1 setup] Skipping TRL patch (import failed): {e}")
-        return
+        _warn(
+            f"Skipping TRL patch (import failed; trl=={trl_version}): {e}"
+        )
+        return False
 
     try:
         text = path.read_text(encoding="utf-8")
     except Exception as e:
-        print(f"[open-r1 setup] Skipping TRL patch (read failed): {e}")
-        return
+        _warn(f"Skipping TRL patch (read failed at {path}): {e}")
+        return False
 
     if "use_tqdm_on_load=True" in text:
         print("[open-r1 setup] TRL vllm_serve already patched (use_tqdm_on_load=True).")
-        return
+        return True
 
     # Preferred anchor to insert after
     anchor = "enforce_eager=script_args.enforce_eager,"
     insertion = "\n        use_tqdm_on_load=True,"
 
+    new_text = None
     if anchor in text:
         new_text = text.replace(anchor, anchor + insertion)
     else:
@@ -67,17 +95,20 @@ def _patch_trl_vllm_serve():
             llm_call = "llm = LLM("
             if llm_call in text:
                 new_text = text.replace(llm_call, llm_call + insertion + "\n")
-            else:
-                print(
-                    "[open-r1 setup] Could not find insertion point in TRL vllm_serve; skipping patch."
-                )
-                return
+    if new_text is None:
+        raise RuntimeError(
+            f"[open-r1 setup] Could not find insertion point in TRL vllm_serve "
+            f"(trl=={trl_version}, path={path}). Update the patch to match the "
+            "current TRL release."
+        )
 
     try:
         path.write_text(new_text, encoding="utf-8")
         print(f"[open-r1 setup] Patched TRL vllm_serve at: {path}")
     except Exception as e:
-        print(f"[open-r1 setup] Failed to write TRL patch: {e}")
+        _warn(f"Failed to write TRL patch at {path}: {e}")
+        return False
+    return True
 
 
 class install(_install):
@@ -184,7 +215,15 @@ extras = {}
 extras["tests"] = deps_list("pytest", "parameterized", "jieba")
 extras["torch"] = deps_list("torch")
 extras["quality"] = deps_list("ruff", "isort", "flake8", "pylint", "pre-commit")
-extras["docs"] = deps_list("sphinx", "sphinx-rtd-theme")
+extras["docs"] = deps_list(
+    "sphinx",
+    "sphinx-rtd-theme",
+    "myst-parser",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "linkify-it-py",
+    "mdurl",
+)
 extras["code"] = deps_list(
     "e2b-code-interpreter", "python-dotenv", "morphcloud", "jieba", "pandas", "aiofiles"
 )

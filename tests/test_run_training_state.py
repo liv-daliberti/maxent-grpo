@@ -142,8 +142,9 @@ def test_maybe_checkpoint_triggers_save(monkeypatch):
     saves = []
 
     class _LoggingCfg:
-        save_strategy = "steps"
-        save_steps = 2
+        def __init__(self, strategy="steps", save_steps=2):
+            self.save_strategy = strategy
+            self.save_steps = save_steps
 
         @staticmethod
         def save_checkpoint(name: str):
@@ -154,6 +155,38 @@ def test_maybe_checkpoint_triggers_save(monkeypatch):
     assert not saves
     maybe_checkpoint(_LoggingCfg(), accel, global_step=2)
     assert saves == ["checkpoint-2"]
+
+
+def test_maybe_checkpoint_non_step_strategy_logs_once(monkeypatch, caplog):
+    caplog.set_level("INFO")
+    accel = _Accel()
+    cfg = type(
+        "_Cfg",
+        (),
+        {"save_strategy": "epoch", "save_steps": 0, "save_checkpoint": lambda *_: None},
+    )()
+    maybe_checkpoint(cfg, accel, global_step=1)
+    maybe_checkpoint(cfg, accel, global_step=2)
+    assert accel.wait_calls == 4  # before/after each call
+    # Only one strategy log should be emitted
+    msgs = [
+        rec.message for rec in caplog.records if "Skipping checkpoint" in rec.message
+    ]
+    assert len(msgs) == 1
+
+
+def test_maybe_checkpoint_zero_save_steps_logs_once(monkeypatch, caplog):
+    caplog.set_level("INFO")
+    accel = _Accel()
+    cfg = type(
+        "_Cfg",
+        (),
+        {"save_strategy": "steps", "save_steps": 0, "save_checkpoint": lambda *_: None},
+    )()
+    maybe_checkpoint(cfg, accel, global_step=1)
+    maybe_checkpoint(cfg, accel, global_step=2)
+    msgs = [rec.message for rec in caplog.records if "save_steps<=0" in rec.message]
+    assert len(msgs) == 1
 
 
 def test_check_stop_condition_sets_flag():

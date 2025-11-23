@@ -6,6 +6,8 @@ import sys
 import types
 from typing import Sequence
 
+import pytest
+
 # Provide a tiny stub for `transformers` so importing `rewards` succeeds even in
 # CI environments without the dependency installed.
 if "transformers" not in sys.modules:  # pragma: no cover - import-time shim
@@ -16,7 +18,7 @@ if "transformers" not in sys.modules:  # pragma: no cover - import-time shim
     )
     sys.modules["transformers"] = fake_tf  # type: ignore[assignment]
 
-from inference.math500 import (  # noqa: E402 - after stub injection
+from pipelines.inference.math500 import (  # noqa: E402 - after stub injection
     InferenceModelSpec,
     Math500EvalConfig,
     Math500InferenceResult,
@@ -93,3 +95,37 @@ def test_collect_generations_captures_raw_outputs() -> None:
     generated = results[0].generations
     assert generated is not None
     assert generated == ["<think></think><answer>101</answer>"]
+
+
+def test_missing_columns_raise_friendly_error() -> None:
+    """Surface readable errors when dataset columns are absent."""
+
+    dataset = [{"prompt": "x=1"}]  # missing problem/answer
+    spec = InferenceModelSpec(model_name_or_path="stub/model", batch_size=1)
+    cfg = Math500EvalConfig(prompt_column="problem", solution_column="answer")
+    with pytest.raises(ValueError) as excinfo:
+        run_math500_inference(
+            [spec],
+            eval_cfg=cfg,
+            dataset=dataset,
+            runner_factory=lambda _spec: DummyRunner(_spec),
+        )
+    msg = str(excinfo.value)
+    assert "missing required column 'problem'" in msg
+    assert "available: ['prompt']" in msg
+
+
+def test_empty_dataset_raises_friendly_error() -> None:
+    """Ensure empty datasets raise a descriptive failure."""
+
+    dataset: list[dict[str, str]] = []
+    spec = InferenceModelSpec(model_name_or_path="stub/model", batch_size=1)
+    cfg = Math500EvalConfig(prompt_column="problem", solution_column="answer")
+    with pytest.raises(ValueError) as excinfo:
+        run_math500_inference(
+            [spec],
+            eval_cfg=cfg,
+            dataset=dataset,
+            runner_factory=lambda _spec: DummyRunner(_spec),
+        )
+    assert "contained no usable rows" in str(excinfo.value)

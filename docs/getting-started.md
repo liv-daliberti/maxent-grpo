@@ -49,30 +49,7 @@ What’s Inside
 Quick Links
 ===========
 
-:::{grid} 1 1 2 3
-:gutter: 2
-
-:::{grid-row}
-
-:::{grid-item-card} Training Guide
-:link: guides/training.html
-How to launch training, shape rewards, and configure datasets.
-:::
-
-:::{grid-item-card} Generation Guide
-:link: guides/generation.html
-Use vLLM + Distilabel for batch inference and dataset creation.
-:::
-
-:::{grid-item-card} Evaluation
-:link: guides/evaluation.html
-Run LightEval benchmarks with vLLM and Slurm helpers.
-:::
-
-:::{grid-item-card} API Reference
-:link: api.html
-Browse modules and configuration dataclasses.
-:::
-
-:::
-:::
+- [Training Guide](guides/training.html) — launch training, shape rewards, configure datasets.
+- [Generation Guide](guides/generation.html) — vLLM + Distilabel for batch inference and dataset creation.
+- [Evaluation](guides/evaluation.html) — run LightEval benchmarks with vLLM and Slurm helpers.
+- [API Reference](api.html) — browse modules and configuration dataclasses.

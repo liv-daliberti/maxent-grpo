@@ -41,8 +41,14 @@ def main() -> None:
     except ImportError as exc:  # pragma: no cover - CLI guard
         print(str(exc), file=sys.stderr)
         raise
-    run_maxent_grpo(script_args, training_args, model_args)
+    try:
+        run_maxent_grpo(script_args, training_args, model_args)
+    except NotImplementedError as exc:  # pragma: no cover - forward guidance
+        raise SystemExit(
+            "MaxEnt training entrypoint has been removed. Use the Hydra "
+            "pipelines or compose a runner with training.loop/training.pipeline."
+        ) from exc
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - CLI entrypoint
     main()

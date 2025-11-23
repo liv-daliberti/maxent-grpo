@@ -119,7 +119,7 @@ MaxEnt‑GRPO
 1. **Generation** – `CompletionGenerator` (local HF model or vLLM) produces grouped completions per prompt using the knobs in `GenerationSettings`.
 2. **Rewards & Reference Scoring** – `training.pipeline.prepare_training_batch` computes reward statistics, gathers reference log-probs, and builds policy scores.
 3. **Loss / Optimizer** – `training.weighting.loss` turns the sequence scores into weighted objectives; `training.loop` applies gradient accumulation, controllers, and optimizer/scheduler steps.
-4. **Logging & Checkpointing** – Metrics flow through `training.metrics`/`run_logging` while controller state + HF/DeepSpeed checkpoints are managed via `run_checkpoint`.
+4. **Logging & Checkpointing** – Metrics flow through `training.metrics` while controller state + HF/DeepSpeed checkpoints are managed via `training.state` + `training.zero_utils`.
 
 ```
 Prompts/Dataloader
@@ -133,8 +133,8 @@ Reward & Reference Prep (pipeline.prepare_training_batch)
        ▼
 Loss / Optimizer (training.weighting.loss + training.loop)
        │
-       ├──► Logging (training.metrics/run_logging)
-       └──► Checkpoints (run_checkpoint/training.state)
+       ├──► Logging (training.metrics)
+       └──► Checkpoints (training.state/zero_utils)
 ```
 
 See ``docs/architecture`` for a more detailed breakdown and module references.

@@ -17,22 +17,39 @@
 from __future__ import annotations
 
 import logging
+import importlib.machinery
+import importlib.util
+import sys
 from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any, Callable, ContextManager, List, Optional, cast
 
 from .run_helpers import require_deepspeed
 
+if (
+    __spec__ is None or getattr(__spec__, "loader", None) is None
+):  # pragma: no cover - defensive reload support
+    __spec__ = importlib.util.spec_from_loader(
+        __name__, importlib.machinery.SourceFileLoader(__name__, __file__)
+    )
+sys.modules.setdefault(__name__, sys.modules.get(__name__, None))  # type: ignore[arg-type]
+if __spec__ is not None:
+    sys.modules.setdefault(__spec__.name, sys.modules[__name__])
+
 try:  # Optional dependency when running under DeepSpeed ZeRO
     import torch
     from torch import nn
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - environment dependent
+except (ImportError, ModuleNotFoundError, RuntimeError):  # pragma: no cover - environment dependent
     torch = None  # type: ignore[assignment]
     nn = None  # type: ignore[assignment]
 
 
 def _ensure_cuda_fallback() -> Any:
-    """Return a cuda namespace exposing ``is_available`` and ``empty_cache``."""
+    """Return a cuda namespace exposing ``is_available`` and ``empty_cache``.
+
+    :returns: Namespace exposing ``is_available`` and ``empty_cache`` placeholders.
+    :rtype: types.SimpleNamespace
+    """
 
     def _cuda_is_available() -> bool:
         return False
@@ -63,7 +80,11 @@ _DEEPSPEED_READY: Optional[bool] = None
 
 
 def _ensure_deepspeed_ready() -> bool:
-    """Best-effort initialization of DeepSpeed helpers when installed."""
+    """Best-effort initialization of DeepSpeed helpers when installed.
+
+    :returns: ``True`` when DeepSpeed zero helpers are available; ``False`` otherwise.
+    :rtype: bool
+    """
     global ds_zero, ZeroParamStatus, _DEEPSPEED_READY  # pylint: disable=global-statement
     if _DEEPSPEED_READY is True:
         return True
@@ -92,7 +113,13 @@ _NO_SYNC_WARN_ATTR = "_maxent_zero_no_sync_warned"
 
 
 def _zero_stage(model: Optional[nn.Module]) -> int:
-    """Return the DeepSpeed ZeRO stage for a model when available."""
+    """Return the DeepSpeed ZeRO stage for a model when available.
+
+    :param model: Model or engine exposing ``zero_optimization_stage``.
+    :type model: torch.nn.Module | None
+    :returns: ZeRO stage (0 when unavailable).
+    :rtype: int
+    """
     if model is None:
         return 0
     stage_attr = getattr(model, "zero_optimization_stage", 0)
@@ -108,7 +135,13 @@ def _zero_stage(model: Optional[nn.Module]) -> int:
 
 
 def _zero_partitioning_gradients(model: Optional[nn.Module]) -> bool:
-    """Return True when the model partitions gradients (ZeRO-3)."""
+    """Return whether the model partitions gradients (ZeRO-3).
+
+    :param model: Model or engine potentially partitioning gradients.
+    :type model: torch.nn.Module | None
+    :returns: ``True`` when gradients are partitioned, else ``False``.
+    :rtype: bool
+    """
     if model is None:
         return False
     partition_fn = getattr(model, "zero_optimization_partition_gradients", None)
@@ -129,7 +162,13 @@ def _zero_partitioning_gradients(model: Optional[nn.Module]) -> bool:
 
 
 def _maybe_patch_zero_no_sync(model: Optional[nn.Module]) -> bool:
-    """Patch DeepSpeedEngine.no_sync to a no-op when gradients are partitioned."""
+    """Patch DeepSpeedEngine.no_sync to a no-op when gradients are partitioned.
+
+    :param model: DeepSpeed engine or wrapped model.
+    :type model: torch.nn.Module | None
+    :returns: ``True`` if the patch was applied; ``False`` otherwise.
+    :rtype: bool
+    """
     if model is None or getattr(model, _NO_SYNC_PATCH_ATTR, False):
         return False
     if _zero_stage(model) < 3:
@@ -162,7 +201,13 @@ def _maybe_patch_zero_no_sync(model: Optional[nn.Module]) -> bool:
 
 
 def _embedding_weight_needing_gather(model: Optional[PreTrainedModel]) -> Optional[Any]:
-    """Return the embedding weight tensor when ZeRO gathering is required."""
+    """Return the embedding weight tensor when ZeRO gathering is required.
+
+    :param model: Model potentially wrapping ZeRO-managed embeddings.
+    :type model: transformers.PreTrainedModel | None
+    :returns: Embedding weight requiring gather, or ``None``.
+    :rtype: torch.Tensor | None
+    """
     if not _ensure_deepspeed_ready() or model is None:
         return None
     base_model = getattr(model, "module", model)

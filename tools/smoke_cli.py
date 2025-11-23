@@ -114,17 +114,13 @@ def _install_transformers_stub() -> None:
     sys.modules["transformers.utils"] = utils_mod
 
 
-def _install_training_run_stub() -> None:
-    """Provide a stubbed training.run module so maxent CLI can import."""
-    run_mod = ModuleType("training.run")
-
-    def _run_maxent_grpo(script_args, training_args, model_args):
-        # Simple marker to prove invocation occurred.
-        run_mod.last_invocation = (script_args, training_args, model_args)
-        return None
-
-    run_mod.run_maxent_grpo = _run_maxent_grpo
-    sys.modules["training.run"] = run_mod
+def _install_training_stub() -> None:
+    """Provide a stubbed training package so maxent CLI can import."""
+    training_mod = ModuleType("training")
+    training_mod.run_maxent_grpo = lambda *args: setattr(
+        training_mod, "last_invocation", args
+    )
+    sys.modules["training"] = training_mod
 
 
 class _DummyDataset:
@@ -251,14 +247,11 @@ def _run_maxent_smoke() -> None:
     maxent_grpo.parse_grpo_args = lambda: (script_args, training_args, model_args)
     import training
 
-    training.run_maxent_grpo = lambda *args: setattr(training, "last_maxent_args", args)
+    captured = {}
+    training.run_maxent_grpo = lambda *args: captured.setdefault("args", args)
     maxent_grpo.run_maxent_grpo = training.run_maxent_grpo
     maxent_grpo.main()
-    assert getattr(training, "last_maxent_args", None) == (
-        script_args,
-        training_args,
-        model_args,
-    )
+    assert captured.get("args") == (script_args, training_args, model_args)
 
 
 def _run_inference_smoke() -> None:
@@ -294,7 +287,7 @@ def _run_inference_smoke() -> None:
 def main() -> None:
     _install_trl_stub()
     _install_transformers_stub()
-    _install_training_run_stub()
+    _install_training_stub()
     _run_grpo_smoke()
     _run_maxent_smoke()
     _run_inference_smoke()

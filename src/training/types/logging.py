@@ -18,7 +18,20 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Protocol, Callable
+from typing import Any, Dict, Optional, Protocol, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .rewards import LossOutputs, BatchDiagnostics, LengthStats
+    from ..weighting.types import WeightingSettings, WeightLoggingView
+    from .runtime import ClipSettings, OptimizationSchedule
+else:  # pragma: no cover - typing fallbacks
+    LossOutputs = Any  # type: ignore[assignment]
+    BatchDiagnostics = Any  # type: ignore[assignment]
+    LengthStats = Any  # type: ignore[assignment]
+    WeightLoggingView = Any  # type: ignore[assignment]
+    WeightingSettings = Any  # type: ignore[assignment]
+    ClipSettings = Any  # type: ignore[assignment]
+    OptimizationSchedule = Any  # type: ignore[assignment]
 
 
 class MetricWriter(Protocol):

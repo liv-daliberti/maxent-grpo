@@ -20,7 +20,7 @@ if not hasattr(trl, "ScriptArguments"):  # pragma: no cover - test fallback
 
     trl.ScriptArguments = _BaseScriptArgs  # type: ignore[attr-defined]
 else:
-    _BaseScriptArgs = trl.ScriptArguments  # type: ignore[attr-defined]
+    _BaseScriptArgs = trl.ScriptArguments  # type: ignore[attr-defined]  # pragma: no cover
 
 if not hasattr(trl, "GRPOConfig"):  # pragma: no cover - used by sibling module
 

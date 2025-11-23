@@ -75,6 +75,15 @@ def test_cli_parse_grpo_args_wrapper(monkeypatch):
     assert cli.parse_grpo_args() == ("stub_script", "stub_train", "stub_model")
 
 
+def test_grpo_cli_invokes_main(monkeypatch):
+    module = importlib.reload(importlib.import_module("grpo"))
+    calls = {}
+    monkeypatch.setattr(module, "parse_grpo_args", lambda: ("s", "t", "m"))
+    monkeypatch.setattr(module, "main", lambda *args: calls.setdefault("args", args))
+    module.cli()
+    assert calls["args"] == ("s", "t", "m")
+
+
 def test_maxent_entrypoint_calls_training_runner(monkeypatch):
     training_pkg = ModuleType("training")
     training_pkg.run_maxent_grpo = lambda *_args: None

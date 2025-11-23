@@ -35,6 +35,10 @@ def test_get_model_passes_expected_kwargs(monkeypatch):
     monkeypatch.setattr(MU, "get_quantization_config", lambda *a, **k: None)
     seen = {}
 
+    # Ensure torch dtype attributes exist on the stub
+    if not hasattr(MU.torch, "float16"):
+        setattr(MU.torch, "float16", "float16")
+
     def fake_from_pretrained(name, **kwargs):
         seen.update({"name": name, **kwargs})
         return SimpleNamespace(config=SimpleNamespace())

@@ -10,13 +10,26 @@ import importlib.util
 
 import pytest
 
-from .helpers.run_setup_stubs import build_framework_handles, load_run_setup
+from .helpers.run_setup_stubs import install_training_stubs
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _SRC_ROOT = _PROJECT_ROOT / "src"
 if str(_SRC_ROOT) not in sys.path:
     # Make the src-layout packages importable without installing the project.
     sys.path.insert(0, str(_SRC_ROOT))
+try:
+    from ops.sitecustomize import _install_torch_stub
+
+    _install_torch_stub()
+except Exception:
+    pass
+try:
+    import tests.test_scoring as _ts  # type: ignore
+
+    if "__getattr__" in _ts.__dict__:
+        delattr(_ts, "__getattr__")  # type: ignore[arg-type]
+except Exception:
+    pass
 
 _DEFAULT_TEST_MARKER = "core"
 _GROUP_MARKER_PATTERNS = {
@@ -24,20 +37,13 @@ _GROUP_MARKER_PATTERNS = {
         "test_run_training*.py",
         "test_run_helpers.py",
         "test_run_logging.py",
-        "test_run_entrypoint.py",
-        "test_run_checkpoint.py",
-        "test_run_setup_training.py",
     ],
     "generation": [
         "test_run_generation*.py",
         "test_generate.py",
         "test_grpo_prompt.py",
     ],
-    "setup": [
-        "test_run_setup_*.py",
-        "test_run_entrypoint.py",
-        "test_run_checkpoint.py",
-    ],
+    "setup": [],
     "logging": [
         "test_run_logging.py",
         "test_wandb_logging.py",
@@ -128,16 +134,18 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
-def run_setup_fixtures(monkeypatch):
-    """Provide run_setup module, stub frameworks, env config, and accelerator."""
-    run_setup = load_run_setup(monkeypatch)
-    frameworks = build_framework_handles(run_setup)
-    env_config = run_setup.EnvironmentConfig.capture()
-    accelerator, helpers = run_setup.bootstrap_for_tests(frameworks, env_config)
-    return SimpleNamespace(
-        module=run_setup,
-        frameworks=frameworks,
-        env_config=env_config,
-        accelerator=accelerator,
-        helpers=helpers,
-    )
+def training_stubs(monkeypatch):
+    """Install lightweight stubs for torch/accelerate/transformers before imports."""
+    return install_training_stubs(monkeypatch)
+
+
+@pytest.fixture(autouse=True)
+def _ensure_torch_stub():
+    """Reinstall the torch stub before each test to avoid leaked monkeypatches."""
+    try:
+        from ops.sitecustomize import _install_torch_stub
+
+        _install_torch_stub()
+    except Exception:
+        pass
+    yield

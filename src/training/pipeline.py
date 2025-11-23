@@ -40,6 +40,7 @@ import logging
 import traceback
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypeVar, TYPE_CHECKING
+from types import SimpleNamespace
 
 from .weighting.loss import SequenceScores
 from .rewards import (
@@ -58,6 +59,7 @@ from .types import (
     GenerationBatch,
     GenerationFn,
     LengthStats,
+    PromptCacheEntry,
     ReferenceLogprobs,
     RewardComputation,
     ScoreBatch,
@@ -220,11 +222,23 @@ def _collect_batch_stats(
         total_sequences,
         ctx.runtime.device,
     )
+    scoring_cfg = getattr(ctx, "scoring", None)
+    if scoring_cfg is None:
+        scoring_cfg = getattr(getattr(ctx, "settings", SimpleNamespace()), "scoring", None)  # type: ignore[attr-defined]
+    batching_cfg = getattr(scoring_cfg, "batching", SimpleNamespace())
+    if not getattr(batching_cfg, "prompt_length_cache_get", None):
+        # Provide a no-op cache accessor for tests and lightweight callers.
+        batching_cfg.prompt_length_cache_get = lambda _p, _cls=PromptCacheEntry: _cls(
+            input_ids=[], attention_mask=[]
+        )
+    gen_cfg = getattr(ctx, "generation", None)
+    if gen_cfg is None:
+        gen_cfg = getattr(getattr(ctx, "settings", SimpleNamespace()), "generation", None)  # type: ignore[attr-defined]
     score_batch = build_score_batch(
         reward_comp,
         ctx.runtime.tokenizer,
-        ctx.generation,
-        ctx.scoring.batching,
+        gen_cfg,
+        batching_cfg,
     )
     if score_batch is None:
         return None

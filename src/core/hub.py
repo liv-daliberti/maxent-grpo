@@ -45,6 +45,10 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback for do
         def __init__(self, **_kwargs):
             self.model_type = None
 
+        @classmethod
+        def from_pretrained(cls, *args, **kwargs):
+            return cls()
+
     AutoConfig.__module__ = __name__
 else:  # pragma: no cover - ensure Sphinx autodoc sees the local module
     try:

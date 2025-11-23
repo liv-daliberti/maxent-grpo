@@ -173,13 +173,29 @@ def _prepare_examples(
     examples: List[Tuple[str, str]] = []
     effective_limit = limit if limit is not None else cfg.limit
     for idx, row in enumerate(dataset):
-        prompt_val = row[cfg.prompt_column]
-        answer_val = row[cfg.solution_column]
+        try:
+            prompt_val = row[cfg.prompt_column]
+        except KeyError as exc:
+            available = sorted(row.keys()) if hasattr(row, "keys") else []
+            raise ValueError(
+                f"math_500 row {idx} missing required column "
+                f"'{cfg.prompt_column}' (available: {available})"
+            ) from exc
+        try:
+            answer_val = row[cfg.solution_column]
+        except KeyError as exc:
+            available = sorted(row.keys()) if hasattr(row, "keys") else []
+            raise ValueError(
+                f"math_500 row {idx} missing required column "
+                f"'{cfg.solution_column}' (available: {available})"
+            ) from exc
         examples.append((str(prompt_val), str(answer_val)))
         if effective_limit is not None and (idx + 1) >= effective_limit:
             break
     if not examples:
-        raise ValueError("math_500 dataset contained no usable rows")
+        raise ValueError(
+            "math_500 dataset contained no usable rows; check dataset split and columns."
+        )
     LOG.info("Prepared %d math_500 examples for inference", len(examples))
     return examples
 

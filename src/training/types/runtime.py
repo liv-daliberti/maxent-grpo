@@ -77,6 +77,7 @@ else:  # pragma: no cover - runtime dependency loading
     except (
         ImportError,
         ModuleNotFoundError,
+        RuntimeError,
     ):  # pragma: no cover - optional stub fallback
         TorchOptimizer = Any  # type: ignore[assignment]
 
@@ -90,6 +91,7 @@ else:  # pragma: no cover - runtime dependency loading
     except (
         ImportError,
         ModuleNotFoundError,
+        RuntimeError,
     ):  # pragma: no cover - optional stub fallback
         TorchSampler = Any  # type: ignore[assignment]
 

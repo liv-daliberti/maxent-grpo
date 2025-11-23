@@ -60,11 +60,25 @@ transformers_stub.PreTrainedModel = type("PreTrainedModel", (), {})
 transformers_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (), {})
 sys.modules.setdefault("transformers", transformers_stub)
 
-from training.generation.helpers import (
+
+def _import_under_test():
+    from training.generation.helpers import CompletionGenerator, GenerationContext
+    from training.run_helpers import GenerationPenaltyConfig, VLLMClientConfig
+
+    return (
+        CompletionGenerator,
+        GenerationContext,
+        GenerationPenaltyConfig,
+        VLLMClientConfig,
+    )
+
+
+(
     CompletionGenerator,
     GenerationContext,
-)  # noqa: E402
-from training.run_helpers import GenerationPenaltyConfig, VLLMClientConfig  # noqa: E402
+    GenerationPenaltyConfig,
+    VLLMClientConfig,
+) = _import_under_test()
 
 
 class _DummyClient:

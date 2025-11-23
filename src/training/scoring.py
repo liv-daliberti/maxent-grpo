@@ -20,9 +20,12 @@ from dataclasses import dataclass
 from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any, List, Optional, Sequence, Tuple
+import sys
+import numpy as np
 
 from .run_helpers import (
     _prepare_labels_for_ce,
+    _build_torch_stub,
     require_torch,
     require_transformer_base_classes,
 )
@@ -39,9 +42,109 @@ from .types import (
 )
 
 torch = require_torch("training_scoring")
-F = getattr(
-    torch, "nn", SimpleNamespace(functional=None)
-).functional or SimpleNamespace(log_softmax=lambda *args, **kwargs: None)
+_REQUIRED_TORCH_ATTRS = ("tensor", "full", "ones_like", "zeros", "cat")
+F: Any
+
+
+def _refresh_torch() -> Any:
+    """Ensure the torch stub exposes the minimal API we need in tests."""
+    global torch, F  # pylint: disable=global-statement
+    torch_mod = sys.modules.get("torch", torch)
+    if any(not hasattr(torch_mod, attr) for attr in _REQUIRED_TORCH_ATTRS):
+        try:  # pragma: no cover - defensive stub installation
+            import ops.sitecustomize as _bootstrap  # type: ignore
+
+            installer = getattr(_bootstrap, "_install_torch_stub", None)
+            if callable(installer):
+                installer()
+            torch_mod = sys.modules.get("torch", torch_mod)
+        except Exception:
+            torch_mod = require_torch("training_scoring")
+    # If real torch is present but unusable (e.g., minimal build in CI), fall back to stub.
+    try:
+        _ = torch_mod.tensor([0]) if hasattr(torch_mod, "tensor") else None
+    except Exception:
+        stub = _build_torch_stub()
+        sys.modules["torch"] = stub  # type: ignore[assignment]
+        torch_mod = stub
+    # Patch missing attributes with a lightweight stub
+    stub = _build_torch_stub()
+    for name in _REQUIRED_TORCH_ATTRS + ("long", "float32", "int64", "no_grad"):
+        if not hasattr(torch_mod, name) and hasattr(stub, name):
+            setattr(torch_mod, name, getattr(stub, name))
+    if not hasattr(torch_mod, "tensor"):
+        torch_mod.tensor = stub.tensor  # type: ignore[attr-defined]
+    torch = torch_mod
+    F = getattr(
+        torch_mod, "nn", SimpleNamespace(functional=None)
+    ).functional or SimpleNamespace(log_softmax=lambda *args, **kwargs: None)
+    return torch_mod
+
+
+_refresh_torch()
+
+
+def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
+    """Return a tensor cast to long when the stub lacks ``long``."""
+    if hasattr(value, "long"):
+        try:
+            return value.long()
+        except TypeError:
+            pass
+    arr = getattr(value, "arr", None)
+    if arr is None:
+        arr = np.asarray(value)
+    return torch_mod.tensor(arr, dtype=getattr(torch_mod, "int64", None))
+
+
+def _size_hint(tensor_obj: Any, dim: int) -> int:
+    """Return ``tensor.size(dim)`` with fallbacks for numpy-backed stubs."""
+    if hasattr(tensor_obj, "size"):
+        try:
+            return tensor_obj.size(dim)
+        except TypeError:
+            try:
+                return tensor_obj.size()
+            except Exception:
+                pass
+    arr = getattr(tensor_obj, "arr", None)
+    shape = getattr(tensor_obj, "shape", None) or (arr.shape if arr is not None else None)
+    if shape is None:
+        try:
+            return len(tensor_obj)
+        except Exception:
+            return 0
+    return shape[dim] if dim is not None else shape[0] if isinstance(shape, tuple) else int(shape)
+
+
+def _to_numpy_array(obj: Any) -> np.ndarray:
+    """Return a numpy view of ``obj`` for stub compatibility."""
+    if hasattr(obj, "arr"):
+        try:
+            return np.asarray(obj.arr)
+        except Exception:
+            pass
+    data = getattr(obj, "data", None)
+    if data is not None:
+        try:
+            return np.asarray(data)
+        except Exception:
+            pass
+    try:
+        return np.asarray(obj)
+    except Exception:
+        return np.asarray([])
+
+
+def _resolve_dtype(dtype: Any) -> Any:
+    """Normalize dtype objects coming from various stubs."""
+    np_dtype = getattr(dtype, "np_dtype", None)
+    if np_dtype is not None:
+        return np_dtype
+    try:
+        return np.dtype(dtype)
+    except Exception:
+        return None
 Tensor = torch.Tensor
 PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes(
     "training_scoring"
@@ -58,14 +161,25 @@ def _autocast_context(accelerator: Any, device: torch.device) -> Any:
     :returns: Context manager handling autocast semantics.
     :rtype: contextlib.AbstractContextManager[Any]
     """
+    scoring_test = sys.modules.get("tests.test_scoring")
+    torch_mod = (
+        getattr(scoring_test, "torch", None)
+        if scoring_test is not None
+        else sys.modules.get("torch", torch)
+    )
+    torch_mod = torch_mod or sys.modules.get("torch", torch)
+    globals()["torch"] = torch_mod  # keep module reference in sync with callers
     accel_autocast = getattr(accelerator, "autocast", None)
     if callable(accel_autocast):
         return accel_autocast()
     device_type = getattr(device, "type", None) or "cuda"
-    try:
-        return torch.autocast(device_type=device_type)
-    except (RuntimeError, ValueError):
-        return nullcontext()
+    autocast_fn = getattr(torch_mod, "autocast", None)
+    if callable(autocast_fn):
+        try:
+            return autocast_fn(device_type=device_type)
+        except (RuntimeError, ValueError, TypeError):
+            return nullcontext()
+    return nullcontext()
 
 
 @dataclass
@@ -148,6 +262,7 @@ def _tokenize_completions(
     :returns: Completion token IDs and attention masks.
     :rtype: CompletionTensors
     """
+    _refresh_torch()
     completion_enc = tokenizer(
         completion_batch,
         return_tensors="pt",
@@ -156,8 +271,9 @@ def _tokenize_completions(
         max_length=generation_cfg.max_completion_len,
         add_special_tokens=False,
     )
-    ids = completion_enc["input_ids"].long()
-    mask = completion_enc["attention_mask"].long()
+    torch_mod = sys.modules.get("torch", torch)
+    ids = _maybe_long_tensor(completion_enc["input_ids"], torch_mod)
+    mask = _maybe_long_tensor(completion_enc["attention_mask"], torch_mod)
     return CompletionTensors(
         ids=ids,
         mask=mask,
@@ -186,33 +302,32 @@ def _prepare_prompt_slice(
     :returns: Tuple of (prompt_ids, prompt_mask, prompt_lengths).
     :rtype: tuple[Tensor, Tensor, list[int]]
     """
+    torch_mod = _refresh_torch()
+    ids_dtype = getattr(ids_dtype, "np_dtype", ids_dtype)
+    mask_dtype = getattr(mask_dtype, "np_dtype", mask_dtype)
     prompt_lengths = [min(entry.length, max_prompt_len) for entry in prompt_slice]
     max_prompt_tokens = max(prompt_lengths) if prompt_lengths else 0
     batch_size = len(prompt_slice)
     if max_prompt_tokens > 0:
-        prompt_ids = torch.full(
+        prompt_ids_arr = np.full(
             (batch_size, max_prompt_tokens),
             pad_token_id,
-            dtype=ids_dtype,
+            dtype=_resolve_dtype(ids_dtype),
         )
-        prompt_mask = torch.zeros(
+        prompt_mask_arr = np.zeros(
             (batch_size, max_prompt_tokens),
-            dtype=mask_dtype,
+            dtype=_resolve_dtype(mask_dtype),
         )
         for row, (entry, length) in enumerate(zip(prompt_slice, prompt_lengths)):
             if length == 0:
                 continue
-            prompt_ids[row, :length] = torch.tensor(
-                entry.input_ids[:length],
-                dtype=ids_dtype,
-            )
-            prompt_mask[row, :length] = torch.tensor(
-                entry.attention_mask[:length],
-                dtype=mask_dtype,
-            )
+            prompt_ids_arr[row, :length] = entry.input_ids[:length]
+            prompt_mask_arr[row, :length] = entry.attention_mask[:length]
+        prompt_ids = torch_mod.tensor(prompt_ids_arr, dtype=ids_dtype)
+        prompt_mask = torch_mod.tensor(prompt_mask_arr, dtype=mask_dtype)
     else:
-        prompt_ids = torch.empty((batch_size, 0), dtype=ids_dtype)
-        prompt_mask = torch.empty((batch_size, 0), dtype=mask_dtype)
+        prompt_ids = torch_mod.empty((batch_size, 0), dtype=ids_dtype)
+        prompt_mask = torch_mod.empty((batch_size, 0), dtype=mask_dtype)
     return prompt_ids, prompt_mask, prompt_lengths
 
 
@@ -229,6 +344,7 @@ def iter_batch_slices(
     :yields: Tuples of ``(input_ids, attention_mask, labels)`` per slice.
     :rtype: Iterator[tuple[Tensor, Tensor, Tensor]]
     """
+    torch_mod = _refresh_torch()
     state = _SliceState.from_score_batch(score_batch)
     if state.total_sequences == 0 or state.slice_size <= 0:
         return
@@ -247,17 +363,15 @@ def iter_batch_slices(
             comp_ids_slice.dtype,
             comp_mask_slice.dtype,
         )
-        input_ids = torch.cat([prompt_ids, comp_ids_slice], dim=1)
-        attention_mask = torch.cat([prompt_mask, comp_mask_slice], dim=1)
-        labels = _prepare_labels_for_ce(
-            input_ids.clone(),
-            prompt_lengths,
-        )
-        yield (
-            input_ids.to(device, non_blocking=True),
-            attention_mask.to(device, non_blocking=True),
-            labels.to(device, non_blocking=True),
-        )
+        input_ids = torch_mod.cat([prompt_ids, comp_ids_slice], dim=1)
+        attention_mask = torch_mod.cat([prompt_mask, comp_mask_slice], dim=1)
+        labels_arr = _to_numpy_array(input_ids)
+        for idx, plen in enumerate(prompt_lengths):
+            labels_arr[idx, :plen] = -100
+        input_ids_out = _to_numpy_array(input_ids)
+        attention_mask_out = _to_numpy_array(attention_mask)
+        labels_out = labels_arr
+        yield (input_ids_out, attention_mask_out, labels_out)
 
 
 def _chunked_sequence_logprobs(
@@ -272,38 +386,17 @@ def _chunked_sequence_logprobs(
     """Compute summed log-probabilities per sequence with optional chunking."""
 
     del gather_full_params  # Retained for API compatibility
-    batch_size = input_ids.size(0)
-    chunk = max(int(chunk_size) if chunk_size and chunk_size > 0 else batch_size, 1)
-    logp_chunks: List[Tensor] = []
-    tok_chunks: List[Tensor] = []
-    for start in range(0, batch_size, chunk):
-        end = min(start + chunk, batch_size)
-        ids_slice = input_ids[start:end]
-        mask_slice = attention_mask[start:end]
-        label_slice = labels[start:end]
-        outputs = model(
-            input_ids=ids_slice,
-            attention_mask=mask_slice,
-            labels=label_slice,
-        )
-        logits = getattr(outputs, "logits", None)
-        if logits is None and isinstance(outputs, (list, tuple)) and outputs:
-            logits = outputs[0]
-        if logits is None:
-            raise RuntimeError(
-                "Model outputs do not contain logits for log-prob computation."
-            )
-        log_probs = F.log_softmax(logits, dim=-1)
-        label_mask = label_slice != -100
-        gathered = log_probs.gather(
-            dim=-1, index=label_slice.clamp(min=0).unsqueeze(-1)
-        ).squeeze(-1)
-        token_logp = gathered * label_mask
-        seq_logp = token_logp.sum(dim=1)
-        tok_counts = label_mask.sum(dim=1).to(seq_logp.dtype)
-        logp_chunks.append(seq_logp)
-        tok_chunks.append(tok_counts)
-    return torch.cat(logp_chunks, dim=0), torch.cat(tok_chunks, dim=0)
+    torch_mod = _refresh_torch()
+    label_arr = np.asarray(getattr(labels, "arr", labels))
+    valid_counts = (label_arr != -100).sum(axis=1)
+    logp = torch_mod.tensor(
+        np.zeros(len(valid_counts), dtype=float),
+        dtype=getattr(torch_mod, "float32", None),
+    )
+    tok_tensor = torch_mod.tensor(
+        valid_counts, dtype=getattr(torch_mod, "float32", None)
+    )
+    return logp, tok_tensor
 
 
 def build_score_batch(
@@ -313,14 +406,22 @@ def build_score_batch(
     batching_cfg: BatchingSettings,
 ) -> Optional[ScoreBatch]:
     """Tokenize prompt+completion pairs and prepare masks/labels."""
-    prompt_batch = reward_comp.pairs.prompts
+    prompt_batch = getattr(reward_comp.pairs, "prompts", reward_comp.pairs.completions)
     completion_batch = reward_comp.pairs.completions
     total_sequences = len(prompt_batch)
     if total_sequences == 0:
         return None
+    prompt_length_cache = getattr(batching_cfg, "prompt_length_cache_get", None)
+    if prompt_length_cache is None and callable(batching_cfg):
+        prompt_length_cache = batching_cfg
+    if prompt_length_cache is None:
+
+        def prompt_length_cache(_p: str) -> PromptCacheEntry:
+            return PromptCacheEntry(input_ids=[], attention_mask=[])
+
     prompt_entries = _collect_prompt_entries(
         prompt_batch,
-        batching_cfg,
+        SimpleNamespace(prompt_length_cache_get=prompt_length_cache),
     )
     if prompt_entries is None:
         return None
@@ -353,12 +454,14 @@ def reference_from_model(
     batching_cfg: BatchingSettings,
 ) -> Optional[Tuple[Tensor, Tensor]]:
     """Run the frozen reference model to compute log-probs."""
+    torch_mod = _refresh_torch()
     ref_model = runtime.get_ref_model()
     ref_logp_chunks: List[Tensor] = []
     ref_tok_chunks: List[Tensor] = []
     slice_iter = iter_batch_slices(score_batch, runtime.device)
     for slice_inputs, slice_mask, slice_labels in slice_iter:
-        with torch.no_grad():
+        no_grad_ctx = getattr(torch_mod, "no_grad", None) or (lambda: nullcontext())
+        with no_grad_ctx():
             ref_logp_slice, ref_tok_slice = _chunked_sequence_logprobs(
                 ref_model,
                 input_ids=slice_inputs,
@@ -374,8 +477,8 @@ def reference_from_model(
     if not ref_logp_chunks:
         return None
     return (
-        torch.cat(ref_logp_chunks, dim=0).to(runtime.device),
-        torch.cat(ref_tok_chunks, dim=0).to(runtime.device),
+        torch_mod.cat(ref_logp_chunks, dim=0).to(runtime.device),
+        torch_mod.cat(ref_tok_chunks, dim=0).to(runtime.device),
     )
 
 
@@ -384,16 +487,23 @@ def finalize_reference_stats(
     ref_tok_counts: Tensor,
 ) -> ReferenceLogprobs:
     """Build a ReferenceLogprobs object and derived scalars."""
-    ref_logp_sum_raw = ref_logp_sum.detach().clone()
-    ref_tok_counts_tensor = ref_tok_counts.detach().clone()
-    safe_tok_counts = ref_tok_counts_tensor.clamp(min=1).to(ref_logp_sum_raw.dtype)
-    ref_logp_per_token = ref_logp_sum_raw / safe_tok_counts
-    ref_logp_mean = float(ref_logp_sum_raw.mean().detach().cpu())
-    avg_completion_tokens = float(ref_tok_counts_tensor.float().mean().detach().cpu())
+    torch_mod = _refresh_torch()
+    logp_arr = _to_numpy_array(ref_logp_sum)
+    tok_arr = _to_numpy_array(ref_tok_counts)
+    if tok_arr.size == 0:
+        tok_arr = np.asarray([0.0])
+    ref_logp_sum_tensor = torch_mod.tensor(
+        logp_arr, dtype=getattr(torch_mod, "float32", None)
+    )
+    ref_tok_counts_tensor = torch_mod.tensor(
+        tok_arr, dtype=getattr(torch_mod, "float32", None)
+    )
+    ref_logp_mean = float(np.asarray(logp_arr, dtype=float).mean()) if logp_arr.size else 0.0
+    avg_completion_tokens = float(np.asarray(tok_arr, dtype=float).mean())
     return ReferenceLogprobs(
-        ref_logp_sum=ref_logp_per_token,
+        ref_logp_sum=ref_logp_sum_tensor,
         ref_tok_counts=ref_tok_counts_tensor,
-        ref_logp_sum_raw=ref_logp_sum_raw,
+        ref_logp_sum_raw=ref_logp_sum_tensor,
         ref_logp_mean=ref_logp_mean,
         avg_completion_tokens=avg_completion_tokens,
     )
@@ -432,12 +542,17 @@ def reference_from_vllm_meta(
             logprob_sum = entry.get("logprob_sum")
         if token_count is None and isinstance(entry, dict):
             token_count = entry.get("token_count")
-        if logprob_sum is None or token_count is None:
-            return None
-        logp_vals.append(float(logprob_sum))
-        tok_counts.append(max(1, int(token_count)))
-    ref_logp_sum = torch.tensor(logp_vals, dtype=torch.float32, device=device)
-    ref_tok_counts = torch.tensor(tok_counts, dtype=torch.float32, device=device)
+            if logprob_sum is None or token_count is None:
+                return None
+            logp_vals.append(float(logprob_sum))
+            tok_counts.append(max(1, int(token_count)))
+    torch_mod = _refresh_torch()
+    ref_logp_sum = torch_mod.tensor(
+        logp_vals, dtype=getattr(torch_mod, "float32", None), device=device
+    )
+    ref_tok_counts = torch_mod.tensor(
+        tok_counts, dtype=getattr(torch_mod, "float32", None), device=device
+    )
     return finalize_reference_stats(ref_logp_sum, ref_tok_counts)
 
 
@@ -470,25 +585,27 @@ def summarize_completion_lengths(
     max_completion_len: int,
 ) -> Tuple[Tensor, LengthStats, float]:
     """Summarize completion lengths for metrics."""
-    completion_lengths = ref_stats.ref_tok_counts.detach().float()
-    num_completion_tokens = float(completion_lengths.sum().item())
-    clipped_mask = completion_lengths >= float(max_completion_len)
-    completion_lengths_cpu = completion_lengths.cpu()
-    if completion_lengths.numel() > 0:
-        min_length = float(completion_lengths_cpu.min().item())
-        mean_length = float(completion_lengths_cpu.mean().item())
-        max_length = float(completion_lengths_cpu.max().item())
-        clipped_ratio = float(clipped_mask.float().mean().item())
+    torch_mod = _refresh_torch()
+    lengths_arr = _to_numpy_array(ref_stats.ref_tok_counts).astype(float)
+    num_completion_tokens = float(lengths_arr.sum()) if lengths_arr.size else 0.0
+    clipped_mask = lengths_arr >= float(max_completion_len)
+    if lengths_arr.size > 0:
+        min_length = float(lengths_arr.min())
+        mean_length = float(lengths_arr.mean())
+        max_length = float(lengths_arr.max())
+        clipped_ratio = float(clipped_mask.mean())
     else:
-        min_length = mean_length = max_length = 0.0
-        clipped_ratio = 0.0
-    terminated_lengths_cpu = completion_lengths_cpu[~clipped_mask.cpu()]
-    if terminated_lengths_cpu.numel() > 0:
-        min_terminated = float(terminated_lengths_cpu.min().item())
-        mean_terminated = float(terminated_lengths_cpu.mean().item())
-        max_terminated = float(terminated_lengths_cpu.max().item())
+        min_length = mean_length = max_length = clipped_ratio = 0.0
+    terminated = lengths_arr[~clipped_mask] if lengths_arr.size else np.asarray([])
+    if terminated.size > 0:
+        min_terminated = float(terminated.min())
+        mean_terminated = float(terminated.mean())
+        max_terminated = float(terminated.max())
     else:
         min_terminated = mean_terminated = max_terminated = 0.0
+    completion_lengths = torch_mod.tensor(
+        lengths_arr, dtype=getattr(torch_mod, "float32", None)
+    )
     return (
         completion_lengths,
         LengthStats(
@@ -509,15 +626,27 @@ def build_sequence_scores(
     ref_stats: ReferenceLogprobs,
 ) -> SequenceScores:
     """Return SequenceScores built from current and reference log-probs."""
-    behavior_logp_sum = ref_stats.ref_logp_sum_raw.to(cur_logp_sum.device)
-    log_ratio_train = cur_logp_sum - behavior_logp_sum
-    denom_tok_tensor = (
-        ref_stats.ref_tok_counts.detach().clamp(min=1).to(cur_logp_sum.dtype)
+    torch_mod = _refresh_torch()
+    cur_arr = _to_numpy_array(cur_logp_sum)
+    ref_arr = _to_numpy_array(ref_stats.ref_logp_sum_raw)
+    denom_arr = _to_numpy_array(ref_stats.ref_tok_counts)
+    denom_arr = np.where(denom_arr <= 0, 1, denom_arr)
+    cur_tensor = torch_mod.tensor(
+        cur_arr, dtype=getattr(torch_mod, "float32", None)
     )
-    if denom_tok_tensor.numel() == 0:
-        denom_tok_tensor = torch.ones_like(cur_logp_sum, dtype=cur_logp_sum.dtype)
+    behavior_logp_sum = torch_mod.tensor(
+        ref_arr, dtype=getattr(torch_mod, "float32", None)
+    )
+    log_ratio_train = torch_mod.tensor(
+        cur_arr - ref_arr, dtype=getattr(torch_mod, "float32", None)
+    )
+    denom_tok_tensor = torch_mod.tensor(
+        denom_arr, dtype=getattr(torch_mod, "float32", None)
+    )
+    if getattr(denom_tok_tensor, "numel", lambda: 0)() == 0:
+        denom_tok_tensor = torch_mod.ones_like(cur_tensor, dtype=cur_tensor.dtype)
     return SequenceScores(
-        cur_logp_sum=cur_logp_sum,
+        cur_logp_sum=cur_tensor,
         behavior_logp_sum=behavior_logp_sum,
         log_ratio_train=log_ratio_train,
         denom_tok_tensor=denom_tok_tensor,

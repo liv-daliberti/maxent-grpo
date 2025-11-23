@@ -2,35 +2,67 @@
 
 from __future__ import annotations
 
-import importlib.util
-
 import pytest
 
-spec = importlib.util.find_spec("torch")
-if spec is None:
-    pytest.skip("torch is required for training loss tests", allow_module_level=True)
-
-import torch  # noqa: E402
+try:
+    import torch  # type: ignore
+except Exception as exc:  # pragma: no cover - environment guard
+    pytest.skip(f"torch import failed: {exc}", allow_module_level=True)
 
 if not hasattr(torch, "tensor"):
     pytest.skip("torch tensor operations unavailable", allow_module_level=True)
 
-from training.weighting.loss import (
+
+def _import_training_modules():
+    from training.weighting.loss import (
+        LossInputConfig,
+        SequenceScores,
+        build_loss_inputs,
+        evaluate_losses,
+        _ratio_diagnostics,
+    )
+    from training.types import ClipSettings, ReferenceLogprobs
+    from training.weighting import (
+        KlControllerSettings,
+        QDistributionSettings,
+        TauSchedule,
+        WeightNormalizationSettings,
+        WeightStats,
+        WeightingSettings,
+    )
+
+    return (
+        LossInputConfig,
+        SequenceScores,
+        build_loss_inputs,
+        evaluate_losses,
+        _ratio_diagnostics,
+        ClipSettings,
+        ReferenceLogprobs,
+        KlControllerSettings,
+        QDistributionSettings,
+        TauSchedule,
+        WeightNormalizationSettings,
+        WeightStats,
+        WeightingSettings,
+    )
+
+
+(
     LossInputConfig,
     SequenceScores,
     build_loss_inputs,
     evaluate_losses,
     _ratio_diagnostics,
-)  # noqa: E402
-from training.types import ClipSettings, ReferenceLogprobs  # noqa: E402
-from training.weighting import (
+    ClipSettings,
+    ReferenceLogprobs,
     KlControllerSettings,
     QDistributionSettings,
     TauSchedule,
     WeightNormalizationSettings,
     WeightStats,
     WeightingSettings,
-)  # noqa: E402
+) = _import_training_modules()
 
 
 def _weighting(beta: float, len_norm_ref: bool = True) -> WeightingSettings:

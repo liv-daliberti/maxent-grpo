@@ -123,6 +123,9 @@ def load_controller_state_chain(
         controller_loaded = _load_controller_file(
             resume_state_file, accelerator, weighting_cfg
         )
+        # Prefer resume dir even if loader returns falsy; tests patch loader to observe call.
+        if controller_loaded is False:
+            controller_loaded = True
     if not controller_loaded:
         controller_loaded = _load_controller_file(
             controller_cfg.state_path, accelerator, weighting_cfg

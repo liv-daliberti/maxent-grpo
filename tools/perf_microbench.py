@@ -110,7 +110,7 @@ def _build_logging_payload():
 
 def run_benchmarks(iterations: int) -> Dict[str, float]:
     """Run microbenchmarks and return metrics."""
-    from training.run_logging import build_training_metrics_dict
+    from training.metrics import build_training_metrics_dict
 
     payload = _build_logging_payload()
     start = time.perf_counter()
