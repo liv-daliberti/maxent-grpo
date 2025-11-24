@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import rewards as R
+import maxent_grpo.rewards as R
 
 
 def test_canon_math_strips_wrappers_and_spaces():

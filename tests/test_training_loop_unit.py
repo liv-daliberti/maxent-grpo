@@ -1,12 +1,28 @@
-"""Unit tests for training.loop helpers with lightweight stubs."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Unit tests for training.loop helpers with lightweight stubs.
+"""
 
 from __future__ import annotations
 
 from contextlib import nullcontext
 from types import SimpleNamespace
 
-import training.loop as loop
-from training.types import StepBatchInfo, TrainingLoopState, StepResources
+import maxent_grpo.training.loop as loop
+from maxent_grpo.training.types import StepBatchInfo, TrainingLoopState, StepResources
 
 
 def test_train_step_runs_deepspeed_optimizer(monkeypatch):

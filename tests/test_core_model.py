@@ -1,3 +1,19 @@
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -8,7 +24,7 @@ import sys
 
 
 def test_get_tokenizer_fallback_sets_chat_template(monkeypatch):
-    module = importlib.reload(importlib.import_module("src.core.model"))
+    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
 
     # Force fallback path by raising when attempting to load a pretrained tokenizer.
     def _raise(*_args, **_kwargs):
@@ -33,7 +49,7 @@ def test_get_tokenizer_fallback_sets_chat_template(monkeypatch):
 
 
 def test_get_model_quantization_and_gradient_checkpointing(monkeypatch):
-    module = importlib.reload(importlib.import_module("src.core.model"))
+    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
 
     captured = {}
 
@@ -81,7 +97,7 @@ def test_get_model_quantization_and_gradient_checkpointing(monkeypatch):
 
 
 def test_transformers_import_failure_uses_fallback_stubs(monkeypatch):
-    monkeypatch.delitem(sys.modules, "src.core.model", raising=False)
+    monkeypatch.delitem(sys.modules, "maxent_grpo.core.model", raising=False)
     real_import = builtins.__import__
 
     def _fake_import(name, *args, **kwargs):
@@ -90,7 +106,7 @@ def test_transformers_import_failure_uses_fallback_stubs(monkeypatch):
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", _fake_import)
-    module = importlib.import_module("src.core.model")
+    module = importlib.import_module("maxent_grpo.core.model")
 
     tok = module.PreTrainedTokenizer()
     messages = [{"role": "user", "content": "hi"}]
@@ -109,7 +125,7 @@ def test_transformers_import_failure_uses_fallback_stubs(monkeypatch):
 
 
 def test_get_model_auto_dtype_and_gc_without_kwargs(monkeypatch):
-    module = importlib.reload(importlib.import_module("src.core.model"))
+    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
     captured = {}
 
     class _StubModel:
@@ -153,7 +169,7 @@ def test_get_model_auto_dtype_and_gc_without_kwargs(monkeypatch):
 
 
 def test_get_model_preserves_nonstring_dtype(monkeypatch):
-    module = importlib.reload(importlib.import_module("src.core.model"))
+    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
     dtype_obj = SimpleNamespace(label="dtype")
     captured = {}
 
@@ -188,7 +204,7 @@ def test_get_model_preserves_nonstring_dtype(monkeypatch):
 
 
 def test_trl_import_failure_uses_stubbed_helpers(monkeypatch):
-    monkeypatch.delitem(sys.modules, "src.core.model", raising=False)
+    monkeypatch.delitem(sys.modules, "maxent_grpo.core.model", raising=False)
     real_import = builtins.__import__
 
     def _fake_import(name, *args, **kwargs):
@@ -197,7 +213,7 @@ def test_trl_import_failure_uses_stubbed_helpers(monkeypatch):
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", _fake_import)
-    module = importlib.import_module("src.core.model")
+    module = importlib.import_module("maxent_grpo.core.model")
 
     assert module.get_quantization_config(SimpleNamespace()) is None
     assert module.get_kbit_device_map() is None

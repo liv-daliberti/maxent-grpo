@@ -22,13 +22,20 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
-import cli
+import maxent_grpo.cli as cli
 
 
 def _reload_cli_trl() -> ModuleType:
     """Load training.cli.trl via its source path to avoid heavy package imports."""
-    path = Path(__file__).resolve().parents[1] / "src" / "training" / "cli" / "trl.py"
-    spec = importlib.util.spec_from_file_location("test_training_cli_trl", path)
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "maxent_grpo"
+        / "training"
+        / "cli"
+        / "trl.py"
+    )
+    spec = importlib.util.spec_from_file_location("test_maxent_training_cli_trl", path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)  # type: ignore[union-attr]
@@ -36,10 +43,10 @@ def _reload_cli_trl() -> ModuleType:
 
 
 def _load_maxent_entry_module() -> ModuleType:
-    """Load src/maxent-grpo.py as an importable module for testing."""
+    """Load the MaxEnt GRPO entry module from its source path for testing."""
     root = Path(__file__).resolve().parents[1]
-    path = root / "src" / "maxent-grpo.py"
-    spec = importlib.util.spec_from_file_location("maxent_grpo_entry", path)
+    path = root / "src" / "maxent_grpo" / "maxent_grpo.py"
+    spec = importlib.util.spec_from_file_location("maxent_grpo_entry_module", path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)
@@ -68,40 +75,33 @@ def test_parse_grpo_args_uses_trl_parser(monkeypatch):
 
 
 def test_cli_parse_grpo_args_wrapper(monkeypatch):
-    training_cli = ModuleType("training.cli")
+    training_cli = ModuleType("maxent_grpo.training.cli")
     training_cli.parse_grpo_args = lambda: ("stub_script", "stub_train", "stub_model")
-    monkeypatch.setitem(sys.modules, "training.cli", training_cli)
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.cli", training_cli)
     importlib.reload(cli)
     assert cli.parse_grpo_args() == ("stub_script", "stub_train", "stub_model")
 
 
 def test_grpo_cli_invokes_main(monkeypatch):
-    module = importlib.reload(importlib.import_module("grpo"))
-    calls = {}
-    monkeypatch.setattr(module, "parse_grpo_args", lambda: ("s", "t", "m"))
-    monkeypatch.setattr(module, "main", lambda *args: calls.setdefault("args", args))
-    module.cli()
-    assert calls["args"] == ("s", "t", "m")
+    module = importlib.reload(importlib.import_module("maxent_grpo.grpo"))
+    called = {}
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.baseline.run_baseline_training",
+        lambda *args: called.setdefault("args", args),
+    )
+    module.main("s", "t", "m")
+    assert called.get("args") == ("s", "t", "m")
 
 
 def test_maxent_entrypoint_calls_training_runner(monkeypatch):
-    training_pkg = ModuleType("training")
-    training_pkg.run_maxent_grpo = lambda *_args: None
-    training_cli_mod = ModuleType("training.cli")
-    training_cli_mod.parse_grpo_args = lambda: ("s_args", "t_args", "m_args")
-    setattr(training_pkg, "cli", training_cli_mod)
-    monkeypatch.setitem(sys.modules, "training", training_pkg)
-    monkeypatch.setitem(sys.modules, "training.cli", training_cli_mod)
     module = _load_maxent_entry_module()
-    captured = {}
+    called = {}
     monkeypatch.setattr(
-        module, "parse_grpo_args", lambda: ("s_args", "t_args", "m_args")
+        "maxent_grpo.training.run_maxent_grpo",
+        lambda *args: called.setdefault("args", args),
     )
-    monkeypatch.setattr(
-        module, "run_maxent_grpo", lambda *args: captured.setdefault("args", args)
-    )
-    module.main()
-    assert captured["args"] == ("s_args", "t_args", "m_args")
+    module.main("s_args", "t_args", "m_args")
+    assert called.get("args") == ("s_args", "t_args", "m_args")
 
 
 """

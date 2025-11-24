@@ -1,4 +1,20 @@
-"""Unit tests for the training pipeline helpers."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+# Unit tests for the training pipeline helpers.
 
 from __future__ import annotations
 
@@ -35,7 +51,20 @@ transformers_stub.PreTrainedModel = type("PreTrainedModel", (object,), {})
 transformers_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (object,), {})
 sys.modules["transformers"] = transformers_stub
 
-from training.pipeline import (  # noqa: E402  import after stubbing torch
+# Stub out training.optim to avoid importing heavy real module.
+optim_stub = types.ModuleType("maxent_grpo.training.optim")
+optim_stub.configure_accumulation_steps = lambda *args, **kwargs: SimpleNamespace()
+optim_stub.detect_deepspeed_state = lambda *_a, **_k: SimpleNamespace(
+    use_deepspeed=False, zero_stage=0
+)
+optim_stub.epoch_progress = lambda *_a, **_k: 0.0
+optim_stub.optimizer_step = lambda *_a, **_k: None
+optim_stub.require_accumulation_context = lambda *_a, **_k: nullcontext()
+optim_stub.scheduled_learning_rate = lambda *_a, **_k: 0.0
+optim_stub.sync_gradients_enabled = lambda *_a, **_k: False
+sys.modules["maxent_grpo.training.optim"] = optim_stub
+
+from maxent_grpo.training.pipeline import (  # noqa: E402  import after stubbing torch
     _collect_batch_stats,
     prepare_training_batch,
 )
@@ -106,15 +135,15 @@ def _patch_helpers(monkeypatch):
         return None, SimpleNamespace(mean_length=0, min_length=0, max_length=0), 4.0
 
     monkeypatch.setattr(
-        "training.pipeline.build_score_batch",
+        "maxent_grpo.training.pipeline.build_score_batch",
         _fake_build_score_batch,
     )
     monkeypatch.setattr(
-        "training.pipeline.compute_weight_stats",
+        "maxent_grpo.training.pipeline.compute_weight_stats",
         _fake_weight_stats,
     )
     monkeypatch.setattr(
-        "training.pipeline.summarize_completion_lengths",
+        "maxent_grpo.training.pipeline.summarize_completion_lengths",
         _fake_lengths,
     )
 
@@ -132,9 +161,19 @@ def test_collect_batch_stats_counts_prompt_tokens(monkeypatch):
         return _FakeRefStats()
 
     monkeypatch.setattr(
-        "training.pipeline.gather_reference_logprobs",
+        "maxent_grpo.training.pipeline.gather_reference_logprobs",
         _fake_gather,
     )
+    monkeypatch.setattr(
+        "maxent_grpo.training.pipeline.build_score_batch",
+        lambda *args, **kwargs: _FakeScoreBatch([2, 5], total_sequences=2),
+    )
+    ctx.tokenizer = lambda completions, **_k: SimpleNamespace(
+        input_ids=_arr([[1, 2], [3, 4]]),
+        attention_mask=_arr([[1, 1], [1, 1]]),
+    )
+    ctx.runtime.tokenizer = ctx.tokenizer
+    ctx.runtime.tokenizer = ctx.tokenizer
 
     stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
     assert stats is not None
@@ -167,25 +206,35 @@ def test_prepare_training_batch_success(monkeypatch):
         return 0.0
 
     monkeypatch.setattr(
-        "training.pipeline.prepare_generation_batch",
+        "maxent_grpo.training.pipeline.prepare_generation_batch",
         _fake_prepare_generation_batch,
     )
     monkeypatch.setattr(
-        "training.pipeline.compute_reward_statistics",
+        "maxent_grpo.training.pipeline.compute_reward_statistics",
         _fake_reward_stats,
     )
     monkeypatch.setattr(
-        "training.pipeline.gather_reference_logprobs",
+        "maxent_grpo.training.pipeline.gather_reference_logprobs",
         _fake_ref_gather,
     )
     monkeypatch.setattr(
-        "training.pipeline.score_model_outputs",
+        "maxent_grpo.training.pipeline.build_score_batch",
+        lambda *args, **kwargs: _FakeScoreBatch([1], total_sequences=1),
+    )
+    monkeypatch.setattr(
+        "maxent_grpo.training.pipeline.score_model_outputs",
         _fake_score_model,
     )
     monkeypatch.setattr(
-        "training.pipeline.build_sequence_scores",
+        "maxent_grpo.training.pipeline.build_sequence_scores",
         lambda _cur, _ref: SimpleNamespace(),
     )
+    ctx.tokenizer = lambda completions, **_k: SimpleNamespace(
+        input_ids=_arr([[1, 2]]),
+        attention_mask=_arr([[1, 1]]),
+    )
+    ctx.runtime.tokenizer = ctx.tokenizer
+    ctx.runtime.tokenizer = ctx.tokenizer
 
     batch = {"prompt": ["p"], "answer": ["a"]}
     prepared = prepare_training_batch(ctx, lambda *_args, **_kwargs: None, batch)
@@ -208,15 +257,15 @@ def test_prepare_training_batch_drops_on_stats_failure(monkeypatch):
         )
 
     monkeypatch.setattr(
-        "training.pipeline.prepare_generation_batch",
+        "maxent_grpo.training.pipeline.prepare_generation_batch",
         _fake_prepare_generation_batch,
     )
     monkeypatch.setattr(
-        "training.pipeline.compute_reward_statistics",
+        "maxent_grpo.training.pipeline.compute_reward_statistics",
         _fake_reward_stats,
     )
     monkeypatch.setattr(
-        "training.pipeline._collect_batch_stats",
+        "maxent_grpo.training.pipeline._collect_batch_stats",
         lambda *_args, **_kwargs: None,
     )
     batch = {"prompt": ["p"], "answer": ["a"]}
@@ -235,9 +284,18 @@ def test_collect_batch_stats_handles_reference_failures(monkeypatch):
         raise RuntimeError("failure")
 
     monkeypatch.setattr(
-        "training.pipeline.gather_reference_logprobs",
+        "maxent_grpo.training.pipeline.gather_reference_logprobs",
         _fake_gather,
     )
+    monkeypatch.setattr(
+        "maxent_grpo.training.pipeline.build_score_batch",
+        lambda *args, **kwargs: _FakeScoreBatch([1], total_sequences=1),
+    )
+    ctx.tokenizer = lambda completions, **_k: SimpleNamespace(
+        input_ids=_arr([[1, 2]]),
+        attention_mask=_arr([[1, 1]]),
+    )
+    ctx.runtime.tokenizer = ctx.tokenizer
 
     stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
     assert stats is None
@@ -255,12 +313,21 @@ def test_collect_batch_stats_drops_empty_weight_stats(monkeypatch):
         return _FakeRefStats()
 
     monkeypatch.setattr(
-        "training.pipeline.gather_reference_logprobs",
+        "maxent_grpo.training.pipeline.gather_reference_logprobs",
         _fake_gather,
     )
     monkeypatch.setattr(
-        "training.pipeline.compute_weight_stats",
+        "maxent_grpo.training.pipeline.compute_weight_stats",
         lambda *args, **kwargs: _FakeWeightStats(with_weights=False),
     )
+    monkeypatch.setattr(
+        "maxent_grpo.training.pipeline.build_score_batch",
+        lambda *args, **kwargs: _FakeScoreBatch([1], total_sequences=1),
+    )
+    ctx.tokenizer = lambda completions, **_k: SimpleNamespace(
+        input_ids=_arr([[1, 2]]),
+        attention_mask=_arr([[1, 1]]),
+    )
+    ctx.runtime.tokenizer = ctx.tokenizer
     stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
     assert stats is None

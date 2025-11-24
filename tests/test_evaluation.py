@@ -16,7 +16,7 @@ limitations under the License.
 
 from types import SimpleNamespace
 import pytest
-import core.evaluation as E
+import maxent_grpo.core.evaluation as E
 
 
 def test_register_lighteval_task_formats_list():

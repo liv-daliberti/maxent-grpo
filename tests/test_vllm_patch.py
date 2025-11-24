@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import patches.vllm as VP
+import json
+
+import pytest
+
+import maxent_grpo.patches.vllm as VP
 
 
 class R:
@@ -112,3 +116,234 @@ def test_safe_generate_with_logprobs(monkeypatch):
     assert meta[0][0].token_count == 3
     assert meta[0][0].token_logprobs == [-0.5, -1.0, -1.0]
     assert meta[0][0].raw_output["token_ids"] == [1, 2, 3]
+
+
+def test_tokenizer_protocol_raises():
+    class BareTokenizer(VP.TokenizerLike):
+        pass
+
+    tok = BareTokenizer()
+    with pytest.raises(NotImplementedError):
+        tok.decode([1, 2, 3])
+
+
+def test_safe_request_retries(monkeypatch):
+    calls = []
+
+    def fake_get(url, timeout):
+        calls.append(url)
+        if len(calls) < 3:
+            raise VP.requests.ConnectionError("boom")
+        return R(200, {"ok": True})
+
+    monkeypatch.setattr(VP.requests, "get", fake_get)
+    monkeypatch.setattr(VP.time, "sleep", lambda *_args, **_kwargs: None)
+    out = VP.safe_request("http://retry.test/health", max_retries=3, backoff=0.01)
+    assert out == {"ok": True}
+    assert len(calls) == 3
+
+
+def test_safe_request_http_error(monkeypatch):
+    def fake_get(url, timeout):
+        return R(500, {"err": "nope"})
+
+    monkeypatch.setattr(VP.requests, "get", fake_get)
+    with pytest.raises(RuntimeError):
+        VP.safe_request("http://fail/health", max_retries=1)
+
+
+def test_safe_request_exhausts_connection_retries(monkeypatch):
+    calls = 0
+
+    def fake_get(url, timeout):
+        nonlocal calls
+        calls += 1
+        raise VP.requests.ConnectionError("down")
+
+    monkeypatch.setattr(VP.requests, "get", fake_get)
+    slept = {}
+
+    def _sleep(*_args, **_kwargs):
+        slept["called"] = True
+
+    monkeypatch.setattr(VP.time, "sleep", _sleep)
+    with pytest.raises(VP.requests.ConnectionError):
+        VP.safe_request("http://fail/health", max_retries=2, backoff=0.0)
+    assert calls == 2
+    assert slept.get("called") is True
+
+
+def test_clean_logprob_seq_variants():
+    assert VP._clean_logprob_seq(None) is None
+    assert VP._clean_logprob_seq({"token_logprobs": [-1.0, None]}) == [-1.0]
+    assert VP._clean_logprob_seq({"logprobs": [-0.1, -0.2]}) == [-0.1, -0.2]
+    assert VP._clean_logprob_seq([None]) is None
+    assert VP._clean_logprob_seq("junk") is None
+
+
+def test_infer_token_count_paths():
+    entry_seq = {"text": "one two three"}
+    assert VP._infer_token_count(entry_seq, [0.1, 0.2]) == 2
+    entry_logprobs = {"output_token_logprobs": [-0.1, -0.2, -0.3]}
+    assert VP._infer_token_count(entry_logprobs, None) == 3
+    entry_text = {"text": "hello world"}
+    assert VP._infer_token_count(entry_text, None) == 2
+    assert VP._infer_token_count({}, None) == 1
+
+
+def test_extract_logprob_info_variants():
+    assert VP._extract_logprob_info("not a dict") is None
+    info = VP._extract_logprob_info({"logprobs": {"token_logprobs": [-0.1, None, -0.2]}})
+    assert info is not None
+    assert info.logprob_sum == pytest.approx(-0.3)
+    assert info.token_count == 2
+    assert info.token_logprobs == [-0.1, -0.2]
+
+
+def test_build_vllm_headers_honors_env(monkeypatch):
+    monkeypatch.setenv("VLLM_GROUP_REQUEST_ID", "fixed")
+    monkeypatch.setenv("VLLM_API_KEY", "secret")
+    monkeypatch.setenv("VLLM_EXTRA_HEADERS", '{"X-Extra":"yep"}')
+    headers = VP._build_vllm_headers(["foo"])
+    assert headers["X-VLLM-Group-Request-ID"] == "fixed"
+    assert headers["Authorization"] == "Bearer secret"
+    assert headers["X-Extra"] == "yep"
+    monkeypatch.delenv("VLLM_GROUP_REQUEST_ID")
+    monkeypatch.delenv("VLLM_EXTRA_HEADERS")
+
+
+def test_build_vllm_headers_hashes_prompts(monkeypatch):
+    monkeypatch.delenv("VLLM_GROUP_REQUEST_ID", raising=False)
+    headers = VP._build_vllm_headers(["a", "b"])
+    assert headers["X-VLLM-Group-Request-ID"]
+    assert len(headers["X-VLLM-Group-Request-ID"]) == 64
+
+
+def test_extract_logprob_info_falls_back_to_output_token_logprobs():
+    entry = {"output_token_logprobs": [-1.0, -2.0, -3.0]}
+    info = VP._extract_logprob_info(entry)
+    assert info is not None
+    assert info.token_count == 3
+    assert info.logprob_sum == pytest.approx(-6.0)
+
+
+def test_extract_logprob_info_returns_none_when_missing():
+    assert VP._extract_logprob_info({"text": "no logs"}) is None
+    assert (
+        VP._extract_logprob_info({"logprobs": {"token_logprobs": [None, None]}}) is None
+    )
+
+
+def test_parse_nonstream_json_choices_with_logs():
+    data = {"choices": [{"text": "x", "logprobs": {"token_logprobs": [-0.5]}}]}
+    texts, meta = VP._parse_nonstream_json(data, want_logprobs=True)
+    assert texts == [["x"]]
+    assert meta and meta[0][0].logprob_sum == -0.5
+
+
+def test_parse_nonstream_json_results_variants(monkeypatch):
+    class Tok:
+        def decode(self, ids, skip_special_tokens=True):
+            return "".join(map(str, ids))
+
+    data = {
+        "results": [
+            {"text": "direct"},
+            {"completion_ids": [[1, 2, 3]]},
+            "raw",
+        ]
+    }
+    texts, meta = VP._parse_nonstream_json(data, tokenizer=Tok(), want_logprobs=True)
+    assert texts == [["direct"], ["123"], ["raw"]]
+    assert meta == [[], [], []]
+
+
+def test_parse_nonstream_json_text_list():
+    texts, meta = VP._parse_nonstream_json({"text": ["a", "b"]})
+    assert texts == [["a"], ["b"]]
+    assert meta is None
+
+
+def test_parse_nonstream_json_token_ids_without_tokenizer():
+    with pytest.raises(RuntimeError):
+        VP._parse_nonstream_json({"completion_ids": [[1], [2]]})
+
+
+def test_parse_nonstream_json_unknown():
+    with pytest.raises(RuntimeError):
+        VP._parse_nonstream_json({"unexpected": True})
+
+
+def test_safe_generate_payload_and_request_id(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json, timeout, stream, headers):
+        captured["payload"] = json
+        return R(200, {"choices": [{"text": "ok"}]})
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    texts, meta, _ = VP.safe_generate(
+        prompts=["p"],
+        top_k=5,
+        best_of=2,
+        frequency_penalty=0.2,
+        presence_penalty=0.4,
+        stop=["</s>"],
+        logit_bias={"42": -1.0},
+        guided_json="{}",
+        guided_regex="foo.*",
+        request_id_prefix="pref",
+        max_retries=1,
+    )
+    payload = captured["payload"]
+    assert payload["top_k"] == 5
+    assert payload["sampling_params"]["top_k"] == 5
+    assert payload["best_of"] == 2
+    assert payload["frequency_penalty"] == 0.2
+    assert payload["presence_penalty"] == 0.4
+    assert payload["stop"] == ["</s>"]
+    assert payload["logit_bias"] == {"42": -1.0}
+    assert payload["guided_json"] == "{}"
+    assert payload["guided_regex"] == "foo.*"
+    assert payload["request_id"].startswith("pref-")
+    assert texts == [["ok"]]
+    assert meta is None
+
+
+def test_safe_generate_retries_then_fails(monkeypatch):
+    attempts = []
+
+    def fake_post(url, json, timeout, stream, headers):
+        attempts.append(1)
+        return R(500, {"err": "nope"})
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    monkeypatch.setattr(VP.time, "sleep", lambda *_args, **_kwargs: None)
+    with pytest.raises(RuntimeError):
+        VP.safe_generate(prompts=["p"], max_retries=2, backoff=0.0)
+    assert len(attempts) == 2
+
+
+def test_collect_stream_texts_handles_blanks():
+    resp = R(lines=[b"", b'{"prompt_index": 1, "text": "hi"}', b'{"prompt_index": 9, "text": "skip"}'])
+    out = VP._collect_stream_texts(resp, num_prompts=2)
+    assert out == [[""], ["hi"]]
+
+
+def test_build_headers_env(monkeypatch):
+    monkeypatch.setenv("VLLM_GROUP_REQUEST_ID", "group-123")
+    monkeypatch.setenv("VLLM_API_KEY", "secret")
+    monkeypatch.setenv("VLLM_EXTRA_HEADERS", json.dumps({"X-Test": "1"}))
+    headers = VP._build_vllm_headers(["a"])
+    assert headers["X-VLLM-Group-Request-ID"] == "group-123"
+    assert headers["Authorization"] == "Bearer secret"
+    assert headers["X-Test"] == "1"
+
+
+def test_build_headers_ignores_bad_extra(monkeypatch):
+    monkeypatch.delenv("VLLM_GROUP_REQUEST_ID", raising=False)
+    monkeypatch.delenv("VLLM_API_KEY", raising=False)
+    monkeypatch.setenv("VLLM_EXTRA_HEADERS", "{not-json")
+    headers = VP._build_vllm_headers(["foo"])
+    assert headers["X-VLLM-Group-Request-ID"]
+    assert len(headers) == 1  # only group id when extras fail to parse

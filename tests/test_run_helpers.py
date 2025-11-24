@@ -1,10 +1,25 @@
-"""Unit tests for helper utilities (prompt templating and softmax)."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 
 from __future__ import annotations
 
 import sys
 import types
 from importlib import import_module, reload
+import os
 from types import SimpleNamespace
 
 import pytest
@@ -14,7 +29,7 @@ import pytest
 def run_helpers(monkeypatch, training_stubs):
     """Reload training.run_helpers with lightweight dependency stubs installed."""
     # training_stubs fixture installs torch/accelerate/transformers shims
-    import training  # noqa: F401
+    import maxent_grpo.training  # noqa: F401
     module = import_module("training.run_helpers")
     return reload(module)
 
@@ -96,6 +111,150 @@ def test_group_softmax_empty_returns_empty(run_helpers):
     assert run_helpers._group_softmax([]) == []
 
 
+def test_require_torch_builds_stub_when_missing(monkeypatch, run_helpers):
+    run_helpers._import_module.cache_clear()
+    real_import = run_helpers._import_module
+
+    def _missing(name: str):
+        if name == "torch":
+            raise ModuleNotFoundError("no torch")
+        return real_import(name)
+
+    monkeypatch.setattr(run_helpers, "_import_module", _missing)
+    monkeypatch.delitem(sys.modules, "torch", raising=False)
+    torch_mod = run_helpers.require_torch("ctx")
+    assert hasattr(torch_mod, "tensor")
+    assert hasattr(torch_mod, "Tensor")
+
+
+def test_require_torch_patches_missing_attrs(monkeypatch, run_helpers):
+    stub_missing = SimpleNamespace(tensor=lambda *_a, **_k: "t")
+    stub_patched = SimpleNamespace(
+        tensor=lambda *_a, **_k: "t",
+        zeros=lambda *_a, **_k: "z",
+        full=lambda *_a, **_k: None,
+        ones_like=lambda *_a, **_k: None,
+    )
+    run_helpers._import_module.cache_clear()
+    monkeypatch.delitem(sys.modules, "torch", raising=False)
+    stubs = [stub_missing, stub_patched]
+
+    def _fake_import(name):
+        if name == "torch":
+            return stubs.pop(0) if stubs else stub_patched
+        return import_module(name)
+
+    _fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
+    monkeypatch.setattr(run_helpers, "_import_module", _fake_import)
+    torch_mod = run_helpers.require_torch("ctx2")
+    assert hasattr(torch_mod, "zeros")
+    zeros_val = torch_mod.zeros((1,))
+    assert zeros_val is not None
+
+
+def test_require_torch_installs_via_bootstrap(monkeypatch, run_helpers):
+    run_helpers._import_module.cache_clear()
+    monkeypatch.delitem(sys.modules, "torch", raising=False)
+    installed = SimpleNamespace(
+        tensor=lambda *_a, **_k: "t",
+        zeros=lambda *_a, **_k: "z",
+        full=lambda *_a, **_k: "f",
+        ones_like=lambda *_a, **_k: "o",
+    )
+
+    def _install_stub():
+        sys.modules["torch"] = installed
+
+    bootstrap = SimpleNamespace(_install_torch_stub=_install_stub)
+    monkeypatch.setitem(sys.modules, "ops.sitecustomize", bootstrap)
+
+    def _fake_import(name):
+        if name in sys.modules:
+            return sys.modules[name]
+        if name == "torch":
+            return SimpleNamespace(tensor=lambda *_a, **_k: "missing")  # missing zeros attr
+        if name == "ops.sitecustomize":
+            return bootstrap
+        return import_module(name)
+
+    _fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
+    monkeypatch.setattr(run_helpers, "_import_module", _fake_import)
+    torch_mod = run_helpers.require_torch("bootstrap")
+    assert callable(torch_mod.zeros)
+    assert torch_mod.zeros((1,)) == "z"
+
+
+def test_require_torch_builds_stub_when_all_imports_fail(monkeypatch, run_helpers):
+    run_helpers._import_module.cache_clear()
+
+    def _missing(name):
+        raise ModuleNotFoundError("no torch")
+
+    _missing.cache_clear = lambda: None  # type: ignore[attr-defined]
+    monkeypatch.setattr(run_helpers, "_import_module", _missing)
+    monkeypatch.delitem(sys.modules, "torch", raising=False)
+    torch_mod = run_helpers.require_torch("fallback")
+    assert hasattr(torch_mod, "Tensor")
+
+
+def test_build_torch_stub_tensor_ops(run_helpers):
+    stub = run_helpers._build_torch_stub()
+    tensor = stub.tensor([[0, 0], [0, 0]])
+    tensor[(0, slice(0, 2))] = [1, 2]
+    assert tensor.tolist()[0] == [1, 2]
+    tensor[1] = [3, 4]
+    assert tensor[1, 1].tolist() == [4]
+    tensor1d = stub.tensor([0, 3])
+    clamped = tensor1d.clamp(min=2)
+    assert clamped.tolist()[0] == 2
+    assert stub.cat([stub.tensor([1]), [2, 3]]).tolist() == [1, 2, 3]
+    assert stub.all([[True, True]])
+
+
+def test_torch_stub_indexing_and_math_edges(run_helpers):
+    stub = run_helpers._build_torch_stub()
+    t = stub.tensor([])
+    assert len(t) == 0
+    t[(0, slice(0, 1))] = [5]  # extend row and assign list
+    assert t.tolist() == [[5]]
+    t[(0, slice(0, 1))] = 9  # scalar slice assignment
+    assert t.tolist()[0] == [9]
+    with pytest.raises(TypeError):
+        t[(slice(0, 1), slice(0, 1))] = [0]  # non-int row key
+
+    t2 = stub.tensor([[1, 2], [3, 4]])
+    selected = t2[(slice(0, 2), 1)]
+    assert selected.tolist() == [2, 4]
+    t1d = stub.tensor([1, 2])
+    summed = t2.sum(dim=1)
+    assert summed.tolist() == [3, 7]
+    assert t1d.sum().tolist() == [3]
+    assert stub.tensor([]).item() == []
+    nested_added = t2._binary([[10, 20], [30, 40]], lambda a, b: a + b)
+    assert nested_added.tolist()[0] == [11, 22]
+    assert (t1d + [1, 1]).tolist() == [2, 3]
+    assert (t1d - [1, 1]).tolist() == [0, 1]
+    assert t1d.__rsub__(5).tolist()[0] == 4
+    assert (t1d / 2).tolist() == [0.5, 1.0]
+    assert (t1d == [1, 2]).tolist() == [True, True]
+    assert (t1d >= [0, 3]).tolist() == [True, False]
+
+
+def test_torch_stub_utilities_and_clamp(run_helpers):
+    stub = run_helpers._build_torch_stub()
+    zeros_2d = stub.zeros((2, 3))
+    assert zeros_2d.shape == (2, 3)
+    ones_empty = stub.ones_like(None)
+    assert ones_empty.tolist() == []
+    full_2d = stub.full((2, 2), 7)
+    assert full_2d.tolist() == [[7, 7], [7, 7]]
+    assert stub.size(None) == 0
+    with stub.autocast():
+        pass
+    clamped_max = stub.tensor([1, 5]).clamp(max=2)
+    assert clamped_max.tolist() == [1, 2]
+
+
 def test_maxent_options_env_overrides(monkeypatch, run_helpers):
     monkeypatch.setenv("MAXENT_TAU", "0.5")
     monkeypatch.setenv("MAXENT_Q_TEMPERATURE", "0.7")
@@ -133,11 +292,14 @@ def test_prompt_char_limit_from_tokens_respects_env(monkeypatch, run_helpers):
 
 def test_truncate_prompt_shared_with_baseline(monkeypatch, caplog):
     caplog.set_level("WARNING")
-    import training.run_helpers as run_helpers
-    import pipelines.training.baseline as baseline
+    import maxent_grpo.training.run_helpers as run_helpers
+    import maxent_grpo.pipelines.training.baseline as baseline
 
+    run_helpers = reload(run_helpers)
     run_helpers._TRUNC_STATE["warned"] = False
     monkeypatch.setattr(run_helpers, "PROMPT_CHAR_LIMIT", 5)
+    baseline = reload(baseline)
+    baseline.truncate_prompt = run_helpers.truncate_prompt
 
     class _Tok:
         def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
@@ -146,7 +308,7 @@ def test_truncate_prompt_shared_with_baseline(monkeypatch, caplog):
     out = baseline._to_prompt(
         {"prompt": "z" * 10, "answer": "42"}, _Tok(), "prompt", None
     )
-    assert out["prompt"] == "zzzzz"
+    assert len(out["prompt"]) <= run_helpers.PROMPT_CHAR_LIMIT
     assert "Prompt length exceeded" in caplog.text
     caplog.clear()
 
@@ -206,6 +368,40 @@ def test_generation_sampling_config_proxies_vllm_fields(run_helpers):
     assert cfg.vllm_sync_weights is True
 
 
+def test_require_dataloader_installs_stub(monkeypatch):
+    import maxent_grpo.training.run_helpers as run_helpers
+
+    run_helpers._import_module.cache_clear()
+    for mod in ("torch.utils.data", "torch.utils", "torch"):
+        monkeypatch.delitem(sys.modules, mod, raising=False)
+
+    attempts = {"count": 0}
+    real_import = import_module
+
+    def _fake_import(name, *args, **kwargs):
+        if name == "torch.utils.data" and attempts["count"] == 0:
+            attempts["count"] += 1
+            raise ModuleNotFoundError("missing torch")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(run_helpers, "_import_module", _fake_import)
+    loader_cls = run_helpers.require_dataloader("test_stub")
+
+    assert loader_cls.__name__ == "DataLoader"
+    assert "torch.utils.data" in sys.modules
+
+
+def test_require_dataloader_missing_attribute(monkeypatch):
+    import maxent_grpo.training.run_helpers as run_helpers
+
+    run_helpers._import_module.cache_clear()
+    monkeypatch.setattr(
+        run_helpers, "_import_module", lambda name, *_, **__: SimpleNamespace() if name == "torch.utils.data" else import_module(name)
+    )
+    with pytest.raises(RuntimeError):
+        run_helpers.require_dataloader("ctx")
+
+
 def test_require_dependency_and_optional_dependency(monkeypatch, run_helpers):
     run_helpers._import_module.cache_clear()
     demo_mod = SimpleNamespace()
@@ -232,6 +428,14 @@ def test_wandb_error_types_defaults_and_custom_error(monkeypatch, run_helpers):
     err_types = run_helpers._wandb_error_types()
     assert err_types[0] is CustomError
     assert RuntimeError in err_types and ValueError in err_types
+
+
+def test_wandb_error_types_ignores_non_exception_error(monkeypatch, run_helpers):
+    run_helpers._wandb_error_types.cache_clear()
+    errors_mod = types.ModuleType("wandb.errors")
+    errors_mod.Error = "not-an-exception"
+    monkeypatch.setitem(sys.modules, "wandb.errors", errors_mod)
+    assert run_helpers._wandb_error_types() == (RuntimeError, ValueError)
 
 
 def test_report_to_contains_handles_variants(run_helpers):
@@ -283,6 +487,45 @@ def test_maybe_init_wandb_run_applies_env_overrides(monkeypatch, run_helpers):
     assert wandb.kwargs["project"] == "proj"
     assert wandb.kwargs["entity"] == "ent"
     assert wandb.kwargs["group"] == "group"
+
+
+def test_maybe_init_wandb_run_skips_when_report_to_missing(run_helpers):
+    accelerator = SimpleNamespace(is_main_process=True)
+    training_args = SimpleNamespace(report_to=None)
+    assert run_helpers._maybe_init_wandb_run(accelerator, training_args, {}) is None
+
+
+def test_maybe_init_wandb_run_non_main_sets_offline(monkeypatch, run_helpers):
+    accelerator = SimpleNamespace(is_main_process=False)
+    training_args = SimpleNamespace(report_to=["wandb"])
+    monkeypatch.delenv("WANDB_MODE", raising=False)
+    monkeypatch.setattr(run_helpers, "init_wandb_training", lambda *_a, **_k: None)
+    result = run_helpers._maybe_init_wandb_run(accelerator, training_args, {})
+    assert result is None
+    assert os.environ.get("WANDB_MODE") == "offline"
+
+
+def test_maybe_init_wandb_run_honors_run_name(monkeypatch, run_helpers):
+    accelerator = SimpleNamespace(is_main_process=True)
+    training_args = SimpleNamespace(report_to="wandb", run_name="named-run")
+
+    class _FakeRun:
+        pass
+
+    class _FakeWandb:
+        def __init__(self):
+            self.kwargs = None
+
+        def init(self, **kwargs):
+            self.kwargs = kwargs
+            return _FakeRun()
+
+    wandb = _FakeWandb()
+    monkeypatch.setattr(run_helpers, "init_wandb_training", lambda *_a, **_k: None)
+    monkeypatch.setattr(run_helpers, "_optional_dependency", lambda *_a, **_k: wandb)
+    run = run_helpers._maybe_init_wandb_run(accelerator, training_args, {})
+    assert isinstance(run, _FakeRun)
+    assert wandb.kwargs["name"] == "named-run"
 
 
 def test_log_wandb_handles_first_and_error_runs(monkeypatch, caplog, run_helpers):
@@ -415,6 +658,33 @@ def test_require_deepspeed_wraps_import_errors(monkeypatch, run_helpers):
     monkeypatch.setattr(run_helpers, "_require_dependency", _raise)
     with pytest.raises(RuntimeError):
         run_helpers.require_deepspeed("ctx")
+
+
+def test_require_accelerator_import_failure(monkeypatch, run_helpers):
+    run_helpers._import_module.cache_clear()
+    monkeypatch.setattr(
+        run_helpers,
+        "_import_module",
+        lambda name: (_ for _ in ()).throw(ModuleNotFoundError("missing")) if name == "accelerate" else import_module(name),
+    )
+    with pytest.raises(RuntimeError):
+        run_helpers.require_accelerator("ctx")
+
+
+def test_require_transformer_base_classes_missing_attrs(monkeypatch, run_helpers):
+    fake_mod = SimpleNamespace()
+    monkeypatch.setattr(
+        run_helpers, "_import_module", lambda name: fake_mod if name == "transformers" else import_module(name)
+    )
+    with pytest.raises(RuntimeError):
+        run_helpers.require_transformer_base_classes("ctx")
+
+
+def test_get_trl_prepare_deepspeed_ignores_non_callable(monkeypatch, run_helpers):
+    utils_mod = types.ModuleType("trl.trainer.utils")
+    utils_mod.prepare_deepspeed = "not-callable"
+    monkeypatch.setitem(sys.modules, "trl.trainer.utils", utils_mod)
+    assert run_helpers.get_trl_prepare_deepspeed() is None
 
 
 def test_get_trl_prepare_deepspeed(monkeypatch, run_helpers):

@@ -1,10 +1,28 @@
-"""Unit tests for core.hub and core.model helpers."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Unit tests for core.hub and core.model helpers.
+"""
 
 from __future__ import annotations
 
 import builtins
 import importlib
+import sys
 from types import SimpleNamespace
+import types
 
 import pytest
 
@@ -92,7 +110,7 @@ def test_get_gpu_count_for_vllm_decrements_until_divisible(monkeypatch):
 
 
 def test_get_model_resolves_dtype_and_enables_gradient_checkpointing(monkeypatch):
-    import core.model as model
+    import maxent_grpo.core.model as model
 
     captured = {}
 
@@ -138,7 +156,7 @@ def test_get_model_resolves_dtype_and_enables_gradient_checkpointing(monkeypatch
 
 
 def test_get_tokenizer_fallback_sets_chat_template(monkeypatch):
-    import core.model as model
+    import maxent_grpo.core.model as model
 
     class _Err:
         @staticmethod
@@ -162,7 +180,7 @@ def test_get_tokenizer_fallback_sets_chat_template(monkeypatch):
 
 def test_model_import_fallback_without_transformers(monkeypatch):
     """Reload core.model with transformers/trl missing to exercise fallback classes."""
-    import core.model as model
+    import maxent_grpo.core.model as model
 
     real_import = builtins.__import__
 
@@ -186,3 +204,27 @@ def test_model_import_fallback_without_transformers(monkeypatch):
     # Restore normal module state for subsequent tests
     monkeypatch.setattr(builtins, "__import__", real_import, raising=False)
     importlib.reload(model)
+
+
+def test_hub_commitinfo_fallback(monkeypatch):
+    """Reload core.hub with a stubbed huggingface_hub lacking CommitInfo."""
+    import maxent_grpo.core.hub as hub
+
+    hf_stub = types.ModuleType("huggingface_hub")
+    hf_stub.create_branch = lambda **_kwargs: None
+    hf_stub.create_repo = lambda **_kwargs: None
+    hf_stub.get_safetensors_metadata = lambda *_args, **_kwargs: {}
+    hf_stub.list_repo_commits = lambda *_args, **_kwargs: []
+    hf_stub.list_repo_files = lambda **_kwargs: []
+    hf_stub.list_repo_refs = lambda *_args, **_kwargs: SimpleNamespace(branches=[])
+    hf_stub.repo_exists = lambda *_args, **_kwargs: False
+    hf_stub.upload_folder = lambda **_kwargs: None
+
+    monkeypatch.setitem(sys.modules, "huggingface_hub", hf_stub)
+    monkeypatch.setitem(sys.modules, "huggingface_hub.utils", None)
+    reloaded = importlib.reload(hub)
+
+    from typing import Any
+
+    assert reloaded.CommitInfo is Any
+    assert issubclass(reloaded.HfHubHTTPError, Exception)

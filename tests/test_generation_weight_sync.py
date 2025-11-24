@@ -1,4 +1,18 @@
 """
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 Tests for vLLM weight synchronization in ``training.generation.helpers``.
 """
 
@@ -62,8 +76,8 @@ sys.modules.setdefault("transformers", transformers_stub)
 
 
 def _import_under_test():
-    from training.generation.helpers import CompletionGenerator, GenerationContext
-    from training.run_helpers import GenerationPenaltyConfig, VLLMClientConfig
+    from maxent_grpo.training.generation.helpers import CompletionGenerator, GenerationContext
+    from maxent_grpo.training.run_helpers import GenerationPenaltyConfig, VLLMClientConfig
 
     return (
         CompletionGenerator,
@@ -163,7 +177,7 @@ def test_ensure_vllm_client_inits_client(monkeypatch):
         return lambda base_url: client
 
     monkeypatch.setattr(
-        "training.generation.helpers._import_vllm_client_cls", fake_import
+        "maxent_grpo.training.generation.helpers._import_vllm_client_cls", fake_import
     )
     gen = CompletionGenerator(ctx)
     assert gen._ensure_vllm_client() is True
@@ -174,7 +188,7 @@ def test_sync_standard_params_updates_client(monkeypatch):
     ctx = _generator_ctx(vllm_sync_weights=True)
     client = _DummyClient()
     monkeypatch.setattr(
-        "training.generation.helpers._import_vllm_client_cls",
+        "maxent_grpo.training.generation.helpers._import_vllm_client_cls",
         lambda: lambda **_: client,
     )
     weights = {"layer.weight": SimpleNamespace(data="tensor")}

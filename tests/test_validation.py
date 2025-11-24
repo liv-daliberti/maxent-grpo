@@ -19,8 +19,8 @@ import sys
 import logging
 
 import grpo
-from pipelines.training import baseline
-import core.data as data_utils
+from maxent_grpo.pipelines.training import baseline
+import maxent_grpo.core.data as data_utils
 try:
     import transformers.trainer_utils as trainer_utils  # type: ignore
 except ModuleNotFoundError:
@@ -225,6 +225,8 @@ def test_grpo_main_prefers_dedicated_eval_dataset(monkeypatch):
         get_peft_config=lambda *args, **kwargs: None,
     )
     monkeypatch.setitem(sys.modules, "trl", dummy_trl)
+    # Ensure baseline uses the dummy trainer regardless of previous overrides.
+    baseline.GRPOTrainerOverride = dummy_trl.GRPOTrainer
 
     script_args = SimpleNamespace(
         dataset_name="train/ds",

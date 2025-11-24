@@ -1,4 +1,20 @@
-"""Unit tests for training top-level shims, CLI helpers, and eval helpers."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Unit tests for training top-level shims, CLI helpers, and eval helpers.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +27,7 @@ import pytest
 
 
 def test_training_init_run_maxent_grpo_raises(training_stubs):
-    import training
+    import maxent_grpo.training as training
 
     with pytest.raises(NotImplementedError):
         training.run_maxent_grpo()
@@ -20,7 +36,7 @@ def test_training_init_run_maxent_grpo_raises(training_stubs):
 
 
 def test_training_init_provides_wandb_stub(monkeypatch, training_stubs):
-    import training
+    import maxent_grpo.training as training
 
     monkeypatch.delitem(sys.modules, "wandb", raising=False)
     training = importlib.reload(training)
@@ -31,14 +47,14 @@ def test_training_init_provides_wandb_stub(monkeypatch, training_stubs):
 
 
 def test_training_cli_reexports_parse_grpo_args(training_stubs):
-    import training.cli as cli_pkg
-    import training.cli.trl as cli_trl
+    import maxent_grpo.training.cli as cli_pkg
+    import maxent_grpo.training.cli.trl as cli_trl
 
     assert cli_pkg.parse_grpo_args is cli_trl.parse_grpo_args
 
 
 def test_parse_grpo_args_uses_recipe_when_provided(monkeypatch, training_stubs):
-    import training.cli.trl as cli_trl
+    import maxent_grpo.training.cli.trl as cli_trl
 
     called = {}
 
@@ -62,7 +78,7 @@ def test_parse_grpo_args_uses_recipe_when_provided(monkeypatch, training_stubs):
 
 
 def test_parse_grpo_args_defaults_to_trl_parser(monkeypatch, training_stubs):
-    import training.cli.trl as cli_trl
+    import maxent_grpo.training.cli.trl as cli_trl
     import sys
 
     class _ModelConfig:
@@ -84,8 +100,8 @@ def test_parse_grpo_args_defaults_to_trl_parser(monkeypatch, training_stubs):
 
 
 def test_iter_eval_batches_and_compute_rewards(monkeypatch, training_stubs):
-    from training.eval import _iter_eval_batches, _compute_eval_rewards
-    from training.types import RewardSpec
+    from maxent_grpo.training.eval import _iter_eval_batches, _compute_eval_rewards
+    from maxent_grpo.training.types import RewardSpec
 
     rows = [{"prompt": "p1", "answer": "a1"}, {"prompt": "p2", "answer": "a2"}]
     batches = list(_iter_eval_batches(rows, batch_size=1))
@@ -104,7 +120,7 @@ def test_iter_eval_batches_and_compute_rewards(monkeypatch, training_stubs):
 
 
 def test_iter_eval_batches_skips_empty_slices(training_stubs):
-    from training.eval import _iter_eval_batches
+    from maxent_grpo.training.eval import _iter_eval_batches
 
     class _EmptyRows:
         def __len__(self):
@@ -120,8 +136,8 @@ def test_iter_eval_batches_skips_empty_slices(training_stubs):
 
 
 def test_run_validation_step_logs_and_restores_model(monkeypatch, training_stubs, caplog):
-    from training.eval import run_validation_step
-    from training.types import RewardSpec, EvaluationSettings, ValidationContext
+    from maxent_grpo.training.eval import run_validation_step
+    from maxent_grpo.training.types import RewardSpec, EvaluationSettings, ValidationContext
 
     class _Model:
         def __init__(self):
@@ -170,8 +186,8 @@ def test_run_validation_step_logs_and_restores_model(monkeypatch, training_stubs
 
 
 def test_run_validation_step_returns_when_disabled(training_stubs):
-    from training.eval import run_validation_step
-    from training.types import EvaluationSettings, ValidationContext
+    from maxent_grpo.training.eval import run_validation_step
+    from maxent_grpo.training.types import EvaluationSettings, ValidationContext
 
     class _Exploding:
         def __getattr__(self, name):

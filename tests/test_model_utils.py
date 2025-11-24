@@ -16,7 +16,7 @@ limitations under the License.
 
 from types import SimpleNamespace
 
-import core.model as MU
+import maxent_grpo.core.model as MU
 
 
 def test_get_tokenizer_applies_chat_template():

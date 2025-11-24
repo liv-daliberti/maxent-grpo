@@ -112,7 +112,7 @@ if [[ "$*" == *"--help"* ]]; then
   echo "  --vllm-group-port PORT   NCCL group port for weight sync RPCs (default: 29535)"
   echo "  --args \"ARGS\"          Extra args to pass to the training entrypoint"
   echo ""
-  echo "This script always launches src/maxent-grpo.py with configs/recipes/<model>/maxent-grpo configs."
+  echo "This script always launches src/maxent_grpo/maxent_grpo.py with configs/recipes/<model>/maxent-grpo configs."
   exit 0
 fi
 
@@ -184,7 +184,7 @@ export MAXENT_CHECKPOINT_METADATA_MODE="${MAXENT_CHECKPOINT_METADATA_MODE:-shall
 # checkpoints. Leave empty to default to the training output_dir.
 export MAXENT_CHECKPOINT_METADATA_SOURCE="${MAXENT_CHECKPOINT_METADATA_SOURCE:-}"
 
-TRAIN_ENTRYPOINT="src/maxent-grpo.py"
+TRAIN_ENTRYPOINT="src/maxent_grpo/maxent_grpo.py"
 
 # Extract model + revision for vLLM from YAML (best-effort)
 MODEL_ID=$(grep -E "^[[:space:]]*model_name_or_path:" "$CONFIG_FILE" | awk '{print $2}' || true)

@@ -1,4 +1,20 @@
-"""Integration tests for training loss helpers (requires torch)."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Integration tests for training loss helpers (requires torch).
+"""
 
 from __future__ import annotations
 
@@ -14,15 +30,15 @@ if not hasattr(torch, "tensor"):
 
 
 def _import_training_modules():
-    from training.weighting.loss import (
+    from maxent_grpo.training.weighting.loss import (
         LossInputConfig,
         SequenceScores,
         build_loss_inputs,
         evaluate_losses,
         _ratio_diagnostics,
     )
-    from training.types import ClipSettings, ReferenceLogprobs
-    from training.weighting import (
+    from maxent_grpo.training.types import ClipSettings, ReferenceLogprobs
+    from maxent_grpo.training.weighting import (
         KlControllerSettings,
         QDistributionSettings,
         TauSchedule,

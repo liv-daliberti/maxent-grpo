@@ -40,7 +40,7 @@ GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml \
 What’s Inside
 =============
 
-- `src/grpo.py`: Minimal GRPO training entrypoint
+- `src/maxent_grpo/grpo.py`: Minimal GRPO training entrypoint
 - `src/maxent_grpo/config/`: Dataclasses for all runtime configuration
 - `src/rewards.py`: Reward functions and registry
 - `src/generate.py`: Distilabel pipeline + CLI for batch generation

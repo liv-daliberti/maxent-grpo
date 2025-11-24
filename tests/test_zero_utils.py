@@ -1,4 +1,20 @@
-"""Behavioral tests for zero_utils helpers with stubbed dependencies."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Behavioral tests for zero_utils helpers with stubbed dependencies.
+"""
 
 from __future__ import annotations
 
@@ -13,14 +29,12 @@ from contextlib import contextmanager
 import pytest
 
 # Seed lightweight stubs for optional runtime deps before importing training.*
-torch_stub = sys.modules.setdefault("torch", types.ModuleType("torch"))
-torch_stub.__spec__ = getattr(torch_stub, "__spec__", types.SimpleNamespace())
-torch_stub.Tensor = getattr(torch_stub, "Tensor", type("Tensor", (), {}))
-torch_stub.cuda = getattr(
-    torch_stub,
-    "cuda",
-    types.SimpleNamespace(is_available=lambda: False, empty_cache=lambda: None),
-)
+from maxent_grpo.training.run_helpers import _build_torch_stub
+
+torch_stub = _build_torch_stub()
+torch_stub.__spec__ = types.SimpleNamespace(name="torch")
+sys.modules["torch"] = torch_stub
+
 torch_utils = sys.modules.setdefault("torch.utils", types.ModuleType("torch.utils"))
 torch_utils.__spec__ = getattr(torch_utils, "__spec__", types.SimpleNamespace())
 torch_data = sys.modules.setdefault(
@@ -62,7 +76,7 @@ accelerate_utils.DeepSpeedPlugin = getattr(
 
 
 def _import_zero_utils():
-    import training.zero_utils as zero_utils
+    import maxent_grpo.training.zero_utils as zero_utils
 
     return zero_utils
 
@@ -110,6 +124,12 @@ def test_zero_utils_adds_cuda_fallback_when_missing_attr(monkeypatch):
     monkeypatch.setattr(builtins, "__import__", fake_import)
     mod = importlib.reload(zero_utils)
     assert mod.torch.cuda.is_available() is False
+
+
+def test_cuda_fallback_empty_cache_returns_none():
+    fallback = zero_utils._ensure_cuda_fallback()
+    assert fallback.is_available() is False
+    assert fallback.empty_cache() is None
 
 
 def test_zero_partitioning_gradients_defaults_false():

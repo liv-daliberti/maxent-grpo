@@ -1,4 +1,20 @@
-"""Tests for the vLLM helper utilities with lightweight stubs."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Tests for the vLLM helper utilities with lightweight stubs.
+"""
 
 from __future__ import annotations
 
@@ -69,7 +85,7 @@ sys.modules["trl"] = trl_stub
 sys.modules["trl.extras"] = trl_extras
 sys.modules["trl.extras.vllm_client"] = trl_vllm
 
-from training.generation.vllm import (  # noqa: E402
+from maxent_grpo.training.generation.vllm import (  # noqa: E402
     VLLMGenerationHelper,
     _VLLMGenerationState,
 )

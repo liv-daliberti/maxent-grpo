@@ -1,10 +1,26 @@
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 from __future__ import annotations
 
 import importlib
 import types
 from argparse import Namespace
 def test_run_cli_invokes_pipeline(monkeypatch):
-    module = importlib.import_module("src.cli.generate")
+    module = importlib.import_module("maxent_grpo.cli.generate")
     called = {}
 
     class _Cfg:
@@ -36,7 +52,7 @@ def test_typer_entrypoint_and_app(monkeypatch):
 
     typer_stub.run = _run
     monkeypatch.setitem(importlib.import_module("sys").modules, "typer", typer_stub)
-    module = importlib.reload(importlib.import_module("src.cli.generate"))
+    module = importlib.reload(importlib.import_module("maxent_grpo.cli.generate"))
     called = {}
     monkeypatch.setattr(module, "run_cli", lambda ns: called.setdefault("ns", ns))
 

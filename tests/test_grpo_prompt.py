@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from pipelines.training import baseline
+from maxent_grpo.pipelines.training import baseline
 
 
 class DummyTok:

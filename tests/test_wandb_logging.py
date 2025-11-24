@@ -17,7 +17,7 @@ limitations under the License.
 import os
 from types import SimpleNamespace
 
-from telemetry.wandb import init_wandb_training
+from maxent_grpo.telemetry.wandb import init_wandb_training
 
 
 def test_init_wandb_training_sets_env(monkeypatch):

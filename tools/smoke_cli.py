@@ -1,11 +1,24 @@
-#!/usr/bin/env python
 """
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 Lightweight CLI smoke check for training and inference entrypoints.
 
 This script stubs heavy dependencies (torch/transformers/trl) and exercises:
-- GRPO training entrypoint (src/grpo.py -> pipelines.training.baseline)
-- MaxEnt-GRPO entrypoint (src/maxent-grpo.py)
-- math_500 inference runner (pipelines.inference.math500)
+- GRPO training entrypoint (maxent_grpo.grpo -> pipelines.training.baseline)
+- MaxEnt-GRPO entrypoint (maxent_grpo.maxent_grpo)
+- math_500 inference runner (maxent_grpo.pipelines.inference.math500)
 
 The goal is to catch wiring/packaging breakage without downloading models or
 datasets. It should run quickly on CPU-only CI runners.
@@ -116,11 +129,11 @@ def _install_transformers_stub() -> None:
 
 def _install_training_stub() -> None:
     """Provide a stubbed training package so maxent CLI can import."""
-    training_mod = ModuleType("training")
+    training_mod = ModuleType("maxent_grpo.training")
     training_mod.run_maxent_grpo = lambda *args: setattr(
         training_mod, "last_invocation", args
     )
-    sys.modules["training"] = training_mod
+    sys.modules["maxent_grpo.training"] = training_mod
 
 
 class _DummyDataset:
@@ -183,9 +196,9 @@ def _build_dummy_data() -> _DummyDatasetDict:
 
 def _run_grpo_smoke() -> None:
     """Call the GRPO entrypoint with stubbed data and trainer."""
-    from grpo import main as grpo_main
+    from maxent_grpo.grpo import main as grpo_main
     from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
-    import pipelines.training.baseline as baseline
+    import maxent_grpo.pipelines.training.baseline as baseline
 
     dummy_data = _build_dummy_data()
 
@@ -238,25 +251,25 @@ def _run_grpo_smoke() -> None:
 
 def _run_maxent_smoke() -> None:
     """Ensure the maxent CLI wires args into training.run_maxent_grpo."""
-    import maxent_grpo
+    import maxent_grpo.maxent_grpo as maxent_entry
 
     script_args = SimpleNamespace()
     training_args = SimpleNamespace()
     model_args = SimpleNamespace()
 
-    maxent_grpo.parse_grpo_args = lambda: (script_args, training_args, model_args)
-    import training
+    maxent_entry.parse_grpo_args = lambda: (script_args, training_args, model_args)
+    import maxent_grpo.training as training
 
     captured = {}
     training.run_maxent_grpo = lambda *args: captured.setdefault("args", args)
-    maxent_grpo.run_maxent_grpo = training.run_maxent_grpo
-    maxent_grpo.main()
+    maxent_entry.run_maxent_grpo = training.run_maxent_grpo
+    maxent_entry.main()
     assert captured.get("args") == (script_args, training_args, model_args)
 
 
 def _run_inference_smoke() -> None:
     """Run math_500 inference with a stub runner."""
-    import pipelines.inference.math500 as math500
+    import maxent_grpo.pipelines.inference.math500 as math500
 
     math500.load_math500_dataset = lambda cfg: [
         {cfg.prompt_column: "1+1", cfg.solution_column: "2"},

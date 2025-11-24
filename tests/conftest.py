@@ -1,4 +1,18 @@
-"""Shared pytest fixtures for maxent helpers."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +31,18 @@ _SRC_ROOT = _PROJECT_ROOT / "src"
 if str(_SRC_ROOT) not in sys.path:
     # Make the src-layout packages importable without installing the project.
     sys.path.insert(0, str(_SRC_ROOT))
+_PKG_ROOT = _SRC_ROOT / "maxent_grpo"
+if _PKG_ROOT.exists() and str(_PKG_ROOT) not in sys.path:
+    # Enable legacy imports like ``pipelines`` to resolve to the current package layout.
+    sys.path.append(str(_PKG_ROOT))
+# Alias legacy ``training`` imports to the current package layout.
+try:
+    import importlib
+
+    training_pkg = importlib.import_module("maxent_grpo.training")
+    sys.modules.setdefault("training", training_pkg)
+except Exception:
+    pass
 try:
     from ops.sitecustomize import _install_torch_stub
 
@@ -111,6 +137,79 @@ def _install_transformers_stub() -> None:
 
 
 _install_transformers_stub()
+
+
+def _install_trl_stub() -> None:
+    """Provide a lightweight TRL stub so optional imports don't explode."""
+    if "trl" in sys.modules:
+        # Ensure nested utils module exists when a stub was already injected.
+        trl_mod = sys.modules["trl"]
+        if getattr(trl_mod, "__spec__", None) is None:
+            trl_mod.__spec__ = SimpleNamespace()
+        trainer_mod = sys.modules.get("trl.trainer")
+        utils_mod = sys.modules.get("trl.trainer.utils")
+        if trainer_mod is None:
+            trainer_mod = ModuleType("trl.trainer")
+            trainer_mod.__spec__ = SimpleNamespace()
+            sys.modules["trl.trainer"] = trainer_mod
+        elif getattr(trainer_mod, "__spec__", None) is None:
+            trainer_mod.__spec__ = SimpleNamespace()
+        if utils_mod is None:
+            utils_mod = ModuleType("trl.trainer.utils")
+            utils_mod.__spec__ = SimpleNamespace()
+            utils_mod.prepare_deepspeed = lambda *a, **k: None
+            sys.modules["trl.trainer.utils"] = utils_mod
+        elif getattr(utils_mod, "__spec__", None) is None:
+            utils_mod.__spec__ = SimpleNamespace()
+            if not hasattr(utils_mod, "prepare_deepspeed"):
+                utils_mod.prepare_deepspeed = lambda *a, **k: None
+        setattr(trainer_mod, "utils", utils_mod)
+        setattr(trl_mod, "trainer", trainer_mod)
+        return
+    trl_mod = ModuleType("trl")
+    trl_mod.__spec__ = SimpleNamespace()
+    trl_mod.ScriptArguments = type("ScriptArguments", (), {})
+    trl_mod.GRPOConfig = type("GRPOConfig", (), {})
+    trl_mod.ModelConfig = type("ModelConfig", (), {})
+    trl_mod.get_kbit_device_map = lambda *a, **k: {}
+    trl_mod.get_quantization_config = lambda *a, **k: None
+    trainer_mod = ModuleType("trl.trainer")
+    trainer_mod.__spec__ = SimpleNamespace()
+    utils_mod = ModuleType("trl.trainer.utils")
+    utils_mod.__spec__ = SimpleNamespace()
+    utils_mod.prepare_deepspeed = lambda *a, **k: None
+    trainer_mod.utils = utils_mod
+    trl_mod.trainer = trainer_mod
+    sys.modules["trl"] = trl_mod
+    sys.modules["trl.trainer"] = trainer_mod
+    sys.modules["trl.trainer.utils"] = utils_mod
+
+
+_install_trl_stub()
+
+
+def _install_wandb_stub() -> None:
+    """Register a minimal wandb stub with a __spec__ to satisfy importlib."""
+    if "wandb" in sys.modules:
+        wandb_mod = sys.modules["wandb"]
+        if getattr(wandb_mod, "__spec__", None) is None:
+            wandb_mod.__spec__ = SimpleNamespace()
+        if not hasattr(wandb_mod, "errors"):
+            wandb_mod.errors = SimpleNamespace(Error=RuntimeError)
+    else:
+        wandb_mod = ModuleType("wandb")
+        wandb_mod.__spec__ = SimpleNamespace()
+        wandb_mod.errors = SimpleNamespace(Error=RuntimeError)
+        sys.modules["wandb"] = wandb_mod
+    wandb_errors = sys.modules.get("wandb.errors")
+    if wandb_errors is None:
+        wandb_errors = ModuleType("wandb.errors")
+        wandb_errors.__spec__ = SimpleNamespace()
+        wandb_errors.Error = RuntimeError
+        sys.modules["wandb.errors"] = wandb_errors
+
+
+_install_wandb_stub()
 
 
 def _markers_for_path(path: Path) -> set[str]:

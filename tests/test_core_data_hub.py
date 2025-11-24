@@ -1,4 +1,20 @@
-"""Unit tests for core.data and core.hub helpers."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Unit tests for core.data and core.hub helpers.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +24,7 @@ import pytest
 
 
 def test_load_dataset_split_raises_when_missing_datasets(monkeypatch):
-    import core.data as data
+    import maxent_grpo.core.data as data
 
     monkeypatch.setattr(data, "datasets", None)
     with pytest.raises(ImportError):
@@ -16,7 +32,7 @@ def test_load_dataset_split_raises_when_missing_datasets(monkeypatch):
 
 
 def test_get_dataset_mixture_subsampling(monkeypatch):
-    import core.data as data
+    import maxent_grpo.core.data as data
     from maxent_grpo.config.dataset import DatasetConfig, DatasetMixtureConfig, ScriptArguments
 
     class _FakeDS:
@@ -63,7 +79,7 @@ def test_get_dataset_mixture_subsampling(monkeypatch):
 
 
 def test_get_param_count_from_repo_id_uses_safetensors(monkeypatch):
-    import core.hub as hub
+    import maxent_grpo.core.hub as hub
 
     monkeypatch.setattr(hub, "get_safetensors_metadata", lambda repo: SimpleNamespace(parameter_count={"w": 123}))
     assert hub.get_param_count_from_repo_id("org/unknown") == 123

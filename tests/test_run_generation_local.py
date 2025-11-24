@@ -1,4 +1,20 @@
-"""Unit tests for CompletionGenerator logic not covered elsewhere."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Unit tests for CompletionGenerator logic not covered elsewhere.
+"""
 
 from __future__ import annotations
 
@@ -41,9 +57,9 @@ trl_stub.ScriptArguments = type("ScriptArguments", (object,), {})
 trl_stub.GRPOConfig = type("GRPOConfig", (object,), {})
 sys.modules["trl"] = trl_stub
 
-from training.generation import CompletionGenerator  # noqa: E402
-from training.generation.helpers import _VLLMGenerationState  # noqa: E402
-from training.run_helpers import (  # noqa: E402
+from maxent_grpo.training.generation import CompletionGenerator  # noqa: E402
+from maxent_grpo.training.generation.helpers import _VLLMGenerationState  # noqa: E402
+from maxent_grpo.training.run_helpers import (  # noqa: E402
     GenerationPenaltyConfig,
     GenerationSamplingConfig,
     VLLMClientConfig,

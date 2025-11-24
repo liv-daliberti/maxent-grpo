@@ -1,4 +1,18 @@
-"""Test/bootstrap helper to expose the src/ layout as a top-level package."""
+"""
+Copyright 2025 Liv d'Aliberti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 
 from __future__ import annotations
 
@@ -22,6 +36,14 @@ if _SRC_ROOT.exists():
     src_str = str(_SRC_ROOT)
     if src_str not in sys.path:
         sys.path.insert(0, src_str)
+# Allow legacy top-level imports (e.g., ``training``) to resolve to the
+# current ``maxent_grpo`` package layout without requiring callers to update
+# their PYTHONPATH.
+_PKG_ROOT = _SRC_ROOT / "maxent_grpo"
+if _PKG_ROOT.exists():
+    pkg_str = str(_PKG_ROOT)
+    if pkg_str not in sys.path:
+        sys.path.append(pkg_str)
 
 
 _ORIG_FIND_SPEC = importlib.util.find_spec

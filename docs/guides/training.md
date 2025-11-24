@@ -19,7 +19,7 @@ sbatch ops/slurm/train.slurm \
 
 Quick flags:
 
-- `--task maxent` launches `src/maxent-grpo.py`.
+- `--task maxent` launches `src/maxent_grpo/maxent_grpo.py`.
 - `--dp/--tp` set vLLM data/tensor parallel sizes.
 - `--vllm-port` / `--vllm-group-port` override RPC ports when needed.
 - `--args "…" ` passes raw CLI to the trainer (quote the entire string).
@@ -56,7 +56,7 @@ What the Slurm launcher does
 Entrypoint and vLLM parameters
 ------------------------------
 
-- `--task grpo|maxent` toggles the trainer file (`src/grpo.py` vs `src/maxent-grpo.py`).
+- `--task grpo|maxent` toggles the trainer file (`src/maxent_grpo/grpo.py` vs `src/maxent_grpo/maxent_grpo.py`).
 - `--model/--config` pair selects the YAML under `configs/recipes/<model>/<task>/config_<suffix>.yaml`.
 - `--accelerator` chooses the Accelerate config under `configs/recipes/accelerate_configs/`.
 - `--args` lets you append any CLI flag supported by the trainer.
@@ -93,7 +93,7 @@ On submission the script:
 Key Files
 ---------
 
-- `src/grpo.py` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
+- `src/maxent_grpo/grpo.py` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
 - `src/maxent_grpo/config/` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
 - `configs/recipes/` — ready‑to‑use YAML configs; see the Recipes page
 
@@ -109,7 +109,7 @@ Prompts longer than 2,048 characters are clipped before requests are sent to vLL
 Rewards
 -------
 
-The default reward is exact‑match for math answers found within `<answer>…</answer>` tags. See: `src/rewards.py` for details and extension points.
+The default reward is exact‑match for math answers found within `<answer>…</answer>` tags. See: `src/maxent_grpo/rewards.py` for details and extension points.
 
 CLI / YAML Config
 -----------------
@@ -159,7 +159,7 @@ Common Flags
 - `--num_generations` and `--max_completion_length` for candidate sampling
 - `--init_kl_coeff`, `--kl_target`, `--kl_horizon` for trust region
 - `--report_to wandb` plus `wandb_*` fields for logging
-- MaxEnt extras (when using `src/maxent-grpo.py`): `--maxent_tau`, `--maxent_q_temperature`, `--maxent_q_epsilon`, `--maxent_length_normalize_ref`, plus optional controllers below.
+- MaxEnt extras (when using `src/maxent_grpo/maxent_grpo.py`): `--maxent_tau`, `--maxent_q_temperature`, `--maxent_q_epsilon`, `--maxent_length_normalize_ref`, plus optional controllers below.
 
 Adaptive Controllers (MaxEnt)
 -----------------------------

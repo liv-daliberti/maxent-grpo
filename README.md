@@ -1,178 +1,113 @@
 # MaxEnt-GRPO: Maximum‑Entropy Group‑Relative Policy Optimization
 
-A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑level) learning. We form a listwise target distribution over ranked candidates, blend it with a reference policy via a tempered geometric mean, and obtain a closed‑form per‑context optimizer with a soft improvement guarantee for a regularized potential.
+A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑level) learning. Hydra console scripts, TRL entrypoints, and Slurm launchers are wired to keep environments + caches inside the repo (`./var`).
 
 
 ## Quick Start
 
-- Environment: `make conda-local && conda activate ./var/openr1` (wraps `configs/environment.yml`, pins conda/pip caches + TMPDIR + HF_HOME under `./var/`; if you prefer the raw command, export those env vars first, then `cd configs && conda env create -p ../var/openr1 -f environment.yml`)
-- Install (core): `pip install -c configs/constraints.txt -e .`
-- Install (dev): `pip install -c configs/constraints.txt -e .[dev]`
-- Authenticate with Hugging Face (`huggingface-cli login` or `export HF_TOKEN=…`) so gated models/datasets can be pulled inside the Slurm job.
-- Train on Slurm (recommended):  
-  `sbatch ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3`
-  - Use `--task maxent` to launch `src/maxent-grpo.py`.
-  - Pass extra trainer flags via `--args "--run_name demo --report_to wandb"`.
-  - Inspect `sbatch ops/slurm/train.slurm --help` for all knobs (dp/tp, ports, accelerator config).
+- Bootstrap the repo-local env + caches: `bash ops/scripts/bootstrap_env.sh` (wraps `configs/environment.yml`, writes the env to `./var/openr1` and all caches/tmp under `./var`). Equivalent: `make conda-local`.
+- Activate: `conda activate ./var/openr1`; refresh installs via `pip install -c configs/constraints.txt -e .[dev]`.
+- Authenticate with Hugging Face (`huggingface-cli login` or `export HF_TOKEN=…`) so gated models/datasets can be pulled by vLLM/TRL.
 - Training telemetry / proof of work: public run stats at [wandb.ai ↗](https://api.wandb.ai/links/ogd3-princeton-university/aw6ecc9b).
-- Evaluation (quick): set `do_eval: true` in your recipe to run a fast subsample eval (see `src/grpo.py`).
-- Inference: evaluate trained checkpoints on the `math_500` split locally via `src/inference`. Example:
-  ```python
-  from inference import InferenceModelSpec, run_math500_inference
 
-  specs = [
-      InferenceModelSpec(
-          model_name_or_path="od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1",
-          style="grpo",
-          system_prompt="...",  # reuse the recipe prompt to match training
-      ),
-      InferenceModelSpec(
-          model_name_or_path="od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1",
-          style="maxent",
-          system_prompt="...",
-      ),
-  ]
-  results = run_math500_inference(specs)
-  for res in results:
-      print(res.label, res.accuracy)
-  ```
-
-Notes
-- The one-liner keeps conda/pip caches and the env under `var/` in this repo (no writes to $HOME).
-- Adjust the recipe via the `--config` flag (default: `configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`).
- - For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmarks list and launcher helper).
-
-
-## CLI Entry Points
-
-Hydra CLI console scripts are generated on install:
-
-- `maxent-grpo-baseline command=train-baseline ...`
-- `maxent-grpo-maxent command=train-maxent ...`
-- `maxent-grpo-generate command=generate ...`
-- `maxent-grpo-inference command=inference ...`
-
-Examples (override with Hydra-style dotted keys):
-
+Run the Hydra console scripts from the repo root:
 ```bash
-# Baseline GRPO with inline overrides
-maxent-grpo-baseline command=train-baseline training.output_dir=var/data/out
+# Baseline GRPO using the math recipe
+maxent-grpo-baseline baseline.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
 
-# MaxEnt-GRPO using a YAML recipe
-GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml \
-  maxent-grpo-maxent
+# Inline overrides without a YAML recipe
+maxent-grpo-baseline command=train-baseline \
+  baseline.script.dataset_name=open-r1/OpenR1-Math-220k \
+  baseline.training.output_dir=var/data/out
 
-# Generation
+# Generation + inference helpers
 maxent-grpo-generate command=generate \
   generate.args.hf_dataset=open-r1/OpenR1-Math-220k \
   generate.args.model=Qwen/Qwen2.5-1.5B-Instruct
-
-# Inference (math_500)
 maxent-grpo-inference command=inference \
   inference.models='[ {model_name_or_path: od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1} ]'
 ```
 
-The legacy Slurm launchers (`ops/slurm/train.slurm`, `ops/slurm/maxent-grpo.slurm`) remain available; consider migrating recipes to Hydra configs under `configs/recipes/`.
+The MaxEnt runner is provided as building blocks under `src/maxent_grpo/training/` and a YAML recipe; the convenience CLI (`maxent-grpo-maxent` / `--task maxent`) currently raises until the dedicated launcher is restored.
 
-Hydra recipes:
-- Baseline: `configs/recipes/hydra/baseline_math.yaml`
-- MaxEnt-GRPO: `configs/recipes/hydra/maxent_math.yaml`
+Multi-node training (recommended): `sbatch ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3 --args "--run_name demo --report_to wandb"`.
+- Inspect `sbatch ops/slurm/train.slurm --help` for dp/tp, ports, vLLM mode, and accelerate config knobs. All caches/logs stay under `var/` by default.
 
-You can also set `GRPO_RECIPE=<path>` to point at any YAML recipe under `configs/recipes/...`; the Hydra CLI will load it directly.
+Evaluate checkpoints on `math_500` locally via `src/inference`:
+```python
+from maxent_grpo.inference import InferenceModelSpec, run_math500_inference
+
+specs = [
+    InferenceModelSpec(
+        model_name_or_path="od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1",
+        style="grpo",
+        system_prompt="...",  # match the recipe prompt
+    ),
+    InferenceModelSpec(
+        model_name_or_path="od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1",
+        style="maxent",
+        system_prompt="...",
+    ),
+]
+for res in run_math500_inference(specs):
+    print(res.label, res.accuracy)
+```
+
+Notes
+- Recipes live in `configs/recipes/` (Hydra shortcuts: `configs/recipes/hydra/{baseline,maxent}_math.yaml`).
+- Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
+- For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
+
+
+## Code Organization
+```
+.
+├─ configs/                     # env, constraints, recipes (Hydra shortcuts + TRL YAML + accelerate configs)
+├─ ops/                         # operations toolbox (slurm launchers, env bootstrap, PATH helpers, sitecustomize)
+├─ src/
+│  └─ maxent_grpo/              # all code now lives under the namespaced package
+│     ├─ cli/                   # Hydra console entrypoints (baseline/maxent/generate/inference)
+│     ├─ pipelines/             # end-to-end pipelines (baseline GRPO trainer, distilabel generation, math_500 inference)
+│     ├─ training/              # MaxEnt runner: loop, generation, scoring/weighting, optim/state, types
+│     ├─ generation/            # shared HF + vLLM generation helpers
+│     ├─ core/                  # dataset/model/evaluation utilities
+│     ├─ telemetry/             # wandb logging wrappers
+│     ├─ patches/               # compatibility shims for TRL/vLLM/transformers
+│     ├─ rewards.py             # reward registry used by the baseline trainer
+│     ├─ grpo.py / maxent_grpo.py  # TRL-style entrypoints (baseline GRPO + MaxEnt shim)
+│     └─ inference/             # math_500 inference helpers (re-exported by src/maxent_grpo/inference)
+├─ tools/                       # local utilities (e.g., log validation)
+├─ docs/                        # Sphinx guides + API reference
+├─ var/                         # repo-local env, caches, logs, data outputs (gitignored)
+└─ data/                        # optional staging area for large datasets/checkpoints
+```
+
+
+## Training Flow (MaxEnt Runner)
+1. **Generation** — `training.generation.CompletionGenerator` wraps HF + vLLM; `GenerationContext` carries sampling + accelerator handles.
+2. **Rewards & scoring** — `training.rewards` + `training.pipeline.prepare_training_batch` build grouped completions, reward stats, reference log-probs, and sequence scores.
+3. **Weighting & loss** — `training.weighting.loss` + `training.weighting.logic` compute listwise targets/weights (entropy, KL) and loss scalars.
+4. **Optimization** — `training.loop` drives gradient accumulation and schedules; `training.optim` + `training.state` handle LR schedules, controllers, checkpoints.
+5. **Logging** — `training.metrics` and `telemetry.wandb` report metrics; logs/checkpoints land under `var/` by default.
 
 
 ## Environment Notes
-
-- Transformers/TRL require `huggingface-hub < 1.0`. The launcher repins Hub into a compatible range and installs small CLI deps (`yq`, `rich`, `markdown-it-py`).
-- vLLM requires a CUDA‑enabled PyTorch. The launcher provisions a matching CUDA stack inside the repo‑local env.
+- Transformers/TRL require `huggingface-hub < 1.0`; the launchers repin Hub and small CLI deps (`yq`, `rich`, `markdown-it-py`) inside the repo-local env.
+- vLLM requires a CUDA-enabled PyTorch. The Slurm launcher loads CUDA 12.6 by default and routes all caches/temp dirs into `var/`.
+- The TRL MaxEnt shim (`training.run_maxent_grpo`) is intentionally absent; the MaxEnt CLI currently raises. Compose a runner with `training.loop`/`training.pipeline` until the dedicated launcher returns.
 
 
 ## Troubleshooting
-
-- vLLM not healthy / empty server log:
-- Check `var/logs/slurm_%j.out` for `nvidia-smi -L`. If it prints “No devices found”, update the SBATCH partition/GRES to match your site.
-- “Invalid generic resource (gres) specification”:
-  - Ensure your cluster supports `--gres=gpu:a100:7`. If not, change GRES to your GPU type or switch to `#SBATCH --gpus=7`.
-- Transformers complaining about `huggingface-hub==1.1.1`:
-  - The launcher repins Hub to `<1.0`. If you installed Hub 1.x outside the launcher, run: `pip install 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0'` inside the env.
-
-MaxEnt‑GRPO
-- Use `src/maxent-grpo.py` to run the maximum‑entropy variant that forms the per‑context target `π* ∝ q^{1/(τ+β)}·π_ref^{β/(τ+β)}` and trains via weighted MLE over K candidates.
-- It reuses your existing GRPO recipe. Optional knobs via environment variables:
-  - `MAXENT_TAU` (default 0.2) — sequence‑level entropy weight τ
-  - `MAXENT_Q_TEMPERATURE` (default 1.0) — temperature when turning utilities into listwise q via softmax
-  - `MAXENT_Q_EPS` (default 1e-6) — epsilon floor to ensure full support
-  - `MAXENT_LENGTH_NORM_REF` ("1"/"0", default 1) — length‑normalize reference log‑probs
-  - The trust‑region weight β is taken from `init_kl_coeff` in your recipe.
-
-
-## Configuration
-- All knobs live in the selected YAML recipe and are parsed by TRL (`GRPOScriptArguments`, `GRPOConfig`, `ModelConfig`). Start from:
-  - `configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`
-- Typical fields to adapt:
-  - `model_name_or_path`, `model_revision`
-  - `dataset_name` and prompt/solution columns
-  - `use_vllm`, batch sizes, steps, KL settings
-- `output_dir`, `hub_model_id`, `push_to_hub`
-
-## Training Flow Overview
-1. **Generation** – `CompletionGenerator` (local HF model or vLLM) produces grouped completions per prompt using the knobs in `GenerationSettings`.
-2. **Rewards & Reference Scoring** – `training.pipeline.prepare_training_batch` computes reward statistics, gathers reference log-probs, and builds policy scores.
-3. **Loss / Optimizer** – `training.weighting.loss` turns the sequence scores into weighted objectives; `training.loop` applies gradient accumulation, controllers, and optimizer/scheduler steps.
-4. **Logging & Checkpointing** – Metrics flow through `training.metrics` while controller state + HF/DeepSpeed checkpoints are managed via `training.state` + `training.zero_utils`.
-
-```
-Prompts/Dataloader
-       │
-       ▼
-Generation (CompletionGenerator)
-       │
-       ▼
-Reward & Reference Prep (pipeline.prepare_training_batch)
-       │
-       ▼
-Loss / Optimizer (training.weighting.loss + training.loop)
-       │
-       ├──► Logging (training.metrics)
-       └──► Checkpoints (training.state/zero_utils)
-```
-
-See ``docs/architecture`` for a more detailed breakdown and module references.
-
-
-## Repository Layout
-```
-.
-├─ configs/                     # repo-wide config + recipes (constraints, env, pytest, pyright, YAMLs)
-│  └─ recipes/                  # task/model YAMLs + accelerate configs
-├─ src/                         # core package
-│  ├─ grpo.py                   # GRPO entrypoint
-│  ├─ maxent-grpo.py            # MaxEnt‑GRPO entrypoint
-│  ├─ maxent_grpo/config/       # configuration helpers
-│  ├─ utils/                    # utilities
-│  └─ rewards.py                # reward shaping / scoring
-├─ ops/                         # execution tooling (slurm/, scripts/, tools/, sitecustomize.py)
-│  ├─ slurm/                    # cluster launchers
-│  ├─ scripts/                  # automation helpers (env bootstrap, dataset prep, etc.)
-│  ├─ tools/                    # local shell helpers (PATH management, etc.)
-│  └─ sitecustomize.py          # repo-local sys.path/test shims
-├─ var/                         # runtime artifacts (openr1 env, logs, caches, Sphinx build, datasets)
-│  ├─ openr1/                   # repo-local conda env
-│  ├─ logs/                     # Slurm/stdout, training + vLLM logs
-│  ├─ data/                     # training/eval outputs and checkpoints
-│  └─ _build/                   # Sphinx HTML
-├─ docs/                        # Sphinx sources
-└─ setup.py                     # package metadata (install at repo root)
-```
+- vLLM not healthy / empty server log: inspect `var/logs/slurm_%j.out` for `nvidia-smi -L`. If it prints “No devices found”, adjust SBATCH partition/GRES.
+- “Invalid generic resource (gres) specification”: ensure your cluster supports `--gres=gpu:a100:7` or switch to `#SBATCH --gpus=7`.
+- Transformers complaining about `huggingface-hub==1.1.1`: reinstall inside the env with `pip install 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0'`.
 
 
 ## Development
-- Install dev tooling (ruff, pylint, pytest, etc.) with `pip install -r configs/requirements-dev.txt` (the file already enforces `configs/constraints.txt`).
+- Install dev tooling with `pip install -r configs/requirements-dev.txt` (enforces `configs/constraints.txt`).
 - Run `pytest -q -c configs/pytest.ini` (or `make test`) so the relocated config is picked up.
-- Run `pyright --project configs/pyrightconfig.json` for static type checking.
-- Optional commit hooks (ruff + pylint + pytest + sphinx docs):
-  - `pre-commit install`
-  - Run on demand: `pre-commit run -a`
+- Type check via `pyright --project configs/pyrightconfig.json`.
+- Optional commit hooks: `pre-commit install` then `pre-commit run -a`.
 
 
 ## Documentation
@@ -181,7 +116,7 @@ See ``docs/architecture`` for a more detailed breakdown and module references.
 
 
 ## Citation
-If you use this work, please cite: “MaxEnt‑GRPO: Maximum‑Entropy Group‑Relative Policy Optimization (2025).”
+If you use this work, please cite: “MaxEnt‑GRPO: Maximum-Entropy Group-Relative Policy Optimization (2025).”
 
 BibTeX
 ```

@@ -158,8 +158,8 @@ fi
 
 # Resolve training entrypoint for this repo
 case "$TASK" in
-  grpo)   TRAIN_ENTRYPOINT="src/grpo.py";;
-  maxent) TRAIN_ENTRYPOINT="src/maxent-grpo.py";;
+  grpo)   TRAIN_ENTRYPOINT="src/maxent_grpo/grpo.py";;
+  maxent) TRAIN_ENTRYPOINT="src/maxent_grpo/maxent_grpo.py";;
   *) echo "Unsupported --task: $TASK (use: grpo | maxent)" >&2; exit 1;;
 esac
 

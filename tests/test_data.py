@@ -21,7 +21,7 @@ from pathlib import Path
 import sys
 import pytest
 
-import core.data as D
+import maxent_grpo.core.data as D
 
 
 class FakeDS:

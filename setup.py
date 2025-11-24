@@ -291,11 +291,11 @@ setup(
     install_requires=install_requires,
     entry_points={
         "console_scripts": [
-            "maxent-grpo=cli.hydra_cli:hydra_entry",
-            "maxent-grpo-baseline=cli.hydra_cli:baseline_entry",
-            "maxent-grpo-maxent=cli.hydra_cli:maxent_entry",
-            "maxent-grpo-generate=cli.hydra_cli:generate_entry",
-            "maxent-grpo-inference=cli.hydra_cli:inference_entry",
+            "maxent-grpo=maxent_grpo.cli.hydra_cli:hydra_entry",
+            "maxent-grpo-baseline=maxent_grpo.cli.hydra_cli:baseline_entry",
+            "maxent-grpo-maxent=maxent_grpo.cli.hydra_cli:maxent_entry",
+            "maxent-grpo-generate=maxent_grpo.cli.hydra_cli:generate_entry",
+            "maxent-grpo-inference=maxent_grpo.cli.hydra_cli:inference_entry",
         ],
     },
     classifiers=[
