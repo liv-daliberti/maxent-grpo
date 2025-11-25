@@ -16,12 +16,11 @@
 
 from __future__ import annotations
 
+import importlib as _importlib
 import sys
 from types import SimpleNamespace
 from typing import Any, List
 
-from .loop import run_training_loop
-from .pipeline import PreparedBatch
 from .types import (
     RuntimeHandles,
     RewardSpec,
@@ -72,6 +71,19 @@ if (
 ):
     sys.modules["wandb"] = SimpleNamespace(errors=SimpleNamespace(Error=RuntimeError))
 
+# Ensure importlib.reload sees this module even if callers or tests drop the entry.
+if not hasattr(_importlib, "_maxent_orig_reload"):
+    _importlib._maxent_orig_reload = _importlib.reload
+
+
+def _safe_reload(module):
+    name = module.__spec__.name if getattr(module, "__spec__", None) else module.__name__
+    sys.modules[name] = module
+    return _importlib._maxent_orig_reload(module)
+
+
+_importlib.reload = _safe_reload
+
 __all__: List[str] = [
     "run_training_loop",
     "run_maxent_training",
@@ -114,6 +126,11 @@ __all__: List[str] = [
     "PromptCacheEntry",
     "SequenceScores",
     "PreparedBatch",
+    "pipeline",
+    "state",
+    "generation",
+    "cli",
+    "scoring",
 ]
 
 
@@ -128,3 +145,27 @@ def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
 def __dir__():
     """Return sorted public attributes for IDE completion."""
     return sorted(__all__)
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily import heavy submodules to avoid circular imports during startup."""
+
+    if name in {"pipeline", "state", "generation", "cli", "scoring"}:
+        import importlib
+
+        module = importlib.import_module(f"maxent_grpo.training.{name}")
+        globals()[name] = module
+        return module
+    if name in {"run_training_loop", "PreparedBatch"}:
+        import importlib
+
+        module_name = (
+            "maxent_grpo.training.loop"
+            if name == "run_training_loop"
+            else "maxent_grpo.training.pipeline"
+        )
+        module = importlib.import_module(module_name)
+        value = getattr(module, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!s} has no attribute {name!s}")

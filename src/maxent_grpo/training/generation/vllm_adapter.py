@@ -703,13 +703,19 @@ def _scatter_object(
             src=src,
         )
     if dist is not None and dist.is_available() and dist.is_initialized():
-        output: List[Any] = [None]
-        dist.scatter_object_list(
-            output,
-            input_list if accelerator.process_index == src else None,
-            src=src,
-        )
-        return output[0]
+        scatter_fn = getattr(dist, "scatter_object_list", None)
+        if callable(scatter_fn):
+            output: List[Any] = [None]
+            try:
+                scatter_fn(
+                    output,
+                    input_list if accelerator.process_index == src else None,
+                    src=src,
+                )
+            except Exception:
+                return None
+            return output[0]
+        return None
     # Fallback to best-effort local selection if no distributed backend is initialized.
     if input_list is None:
         return None

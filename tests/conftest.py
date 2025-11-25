@@ -19,6 +19,8 @@ from __future__ import annotations
 from pathlib import Path
 from fnmatch import fnmatch
 from types import ModuleType, SimpleNamespace
+import os
+import random
 import sys
 import importlib.util
 
@@ -230,6 +232,17 @@ def pytest_collection_modifyitems(config, items):
         item.add_marker("unit")
         for marker in _markers_for_path(Path(item.fspath)):
             item.add_marker(marker)
+    seed = getattr(config, "_maxent_random_seed", None)
+    if seed is None:
+        seed_env = os.environ.get("PYTEST_RANDOM_SEED")
+        try:
+            seed = int(seed_env) if seed_env is not None else None
+        except ValueError:
+            seed = None
+        if seed is None:
+            seed = random.randint(0, 2**32 - 1)
+        config._maxent_random_seed = seed
+    random.Random(seed).shuffle(items)
 
 
 @pytest.fixture
@@ -248,3 +261,10 @@ def _ensure_torch_stub():
     except Exception:
         pass
     yield
+
+
+def pytest_report_header(config):
+    seed = getattr(config, "_maxent_random_seed", None)
+    if seed is None:
+        return None
+    return f"test order randomized with PYTEST_RANDOM_SEED={seed}"

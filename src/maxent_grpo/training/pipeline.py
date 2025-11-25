@@ -37,6 +37,7 @@ caller can skip the problematic batch gracefully.
 from __future__ import annotations
 
 import logging
+import sys
 import traceback
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypeVar, TYPE_CHECKING
@@ -382,3 +383,7 @@ def prepare_training_batch(
 
 
 __all__ = ["PreparedBatch", "prepare_training_batch"]
+
+# Preserve a self-reference so monkeypatch paths like ``training.pipeline.pipeline``
+# resolve even after test shuffling or aliasing.
+pipeline = sys.modules[__name__]

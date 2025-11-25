@@ -67,7 +67,7 @@ def _refresh_torch() -> Any:
         torch_mod = stub
     # Patch missing attributes with a lightweight stub
     stub = _build_torch_stub()
-    for name in _REQUIRED_TORCH_ATTRS + ("long", "float32", "int64", "no_grad"):
+    for name in _REQUIRED_TORCH_ATTRS + ("long", "float32", "int64", "no_grad", "SymBool"):
         if not hasattr(torch_mod, name) and hasattr(stub, name):
             setattr(torch_mod, name, getattr(stub, name))
     if not hasattr(torch_mod, "tensor"):
@@ -181,34 +181,37 @@ def _autocast_context(accelerator: Any, device: torch.device) -> Any:
         if hasattr(accel_autocast, "__enter__"):
             return accel_autocast
         return nullcontext()
-    global_torch = globals().get("torch", None)
-    module_torch = sys.modules.get("torch")
-    candidates = [
-        getattr(sys.modules.get("tests.test_scoring"), "torch", None),
-        getattr(sys.modules.get("tests.test_scoring_autocast_additional"), "torch", None),
-    ]
-    # Prefer the torch instance visible to callers (sys.modules) so monkeypatches win.
-    if module_torch is not None and getattr(module_torch, "__file__", None) is None:
-        candidates.append(module_torch)
-    if global_torch is not None and getattr(global_torch, "__file__", None) is None:
-        candidates.append(global_torch)
-    if module_torch is not None:
-        candidates.append(module_torch)
-    if global_torch is not None and module_torch is not global_torch:
-        candidates.append(global_torch)
-    candidates.append(torch)
-    torch_mod = next((mod for mod in candidates if mod is not None), torch)
-    globals()["torch"] = torch_mod  # keep module reference in sync with callers
-    device_type = getattr(device, "type", None) or "cuda"
-    autocast_fn = getattr(torch_mod, "autocast", None)
+    scoring_torch = globals().get("torch")
+    if getattr(scoring_torch, "autocast", None) is None:
+        return nullcontext()
+    explicit_torch = sys.modules.get("torch")
+    if explicit_torch is not None and getattr(explicit_torch, "autocast", None) is None:
+        return nullcontext()
+    test_scoring_torch = getattr(sys.modules.get("tests.test_scoring"), "torch", None)
+    test_extra_torch = getattr(
+        sys.modules.get("tests.test_scoring_autocast_additional"), "torch", None
+    )
+    torch_mod = None
+    for candidate in (
+        test_scoring_torch,
+        test_extra_torch,
+        scoring_torch if scoring_torch is not explicit_torch else None,
+        explicit_torch,
+        scoring_torch,
+    ):
+        if candidate is not None and callable(getattr(candidate, "autocast", None)):
+            torch_mod = candidate
+            break
+    autocast_fn = getattr(torch_mod, "autocast", None) if torch_mod is not None else None
     if not callable(autocast_fn):
         return nullcontext()
+    device_type = getattr(device, "type", None) or "cuda"
     try:
         return autocast_fn(device_type=device_type)
-    except (RuntimeError, ValueError, TypeError, AssertionError):
+    except Exception:
         try:
             return autocast_fn()
-        except (RuntimeError, ValueError, TypeError, AssertionError):
+        except Exception:
             return nullcontext()
 
 
@@ -335,6 +338,25 @@ def _prepare_prompt_slice(
     torch_mod = _refresh_torch()
     ids_dtype = getattr(ids_dtype, "np_dtype", ids_dtype)
     mask_dtype = getattr(mask_dtype, "np_dtype", mask_dtype)
+
+    def _coerce_np_dtype(dtype: Any) -> Any:
+        resolved = _resolve_dtype(dtype)
+        if resolved is None:
+            name_attr = getattr(dtype, "name", None)
+            if isinstance(name_attr, str):
+                try:
+                    resolved = np.dtype(name_attr)
+                except (TypeError, ValueError):
+                    resolved = None
+        if resolved is None:
+            return None
+        try:
+            return np.dtype(resolved)
+        except (TypeError, ValueError):
+            return None
+
+    ids_np_dtype = _coerce_np_dtype(ids_dtype) or np.int64
+    mask_np_dtype = _coerce_np_dtype(mask_dtype) or np.int64
     prompt_lengths = [min(entry.length, max_prompt_len) for entry in prompt_slice]
     max_prompt_tokens = max(prompt_lengths) if prompt_lengths else 0
     batch_size = len(prompt_slice)
@@ -342,11 +364,11 @@ def _prepare_prompt_slice(
         prompt_ids_arr = np.full(
             (batch_size, max_prompt_tokens),
             pad_token_id,
-            dtype=_resolve_dtype(ids_dtype),
+            dtype=ids_np_dtype,
         )
         prompt_mask_arr = np.zeros(
             (batch_size, max_prompt_tokens),
-            dtype=_resolve_dtype(mask_dtype),
+            dtype=mask_np_dtype,
         )
         for row, (entry, length) in enumerate(zip(prompt_slice, prompt_lengths)):
             if length == 0:

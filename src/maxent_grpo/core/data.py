@@ -31,10 +31,37 @@ limitations under the License.
 from __future__ import annotations
 
 import logging
-from typing import List, Optional, cast
+from typing import Any, List, Optional, cast
 
-import datasets
-from datasets import DatasetDict, Dataset, concatenate_datasets
+try:
+    import datasets
+    from datasets import Dataset, DatasetDict, concatenate_datasets
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+
+    class _DatasetsStub:
+        """Lightweight stub so imports succeed when ``datasets`` is absent."""
+
+        def load_dataset(self, *_args: Any, **_kwargs: Any):
+            raise ModuleNotFoundError(
+                "The 'datasets' package is required for dataset loading. "
+                "Install with `pip install datasets`."
+            )
+
+        def __getattr__(self, _name: str) -> Any:
+            raise ModuleNotFoundError(
+                "The 'datasets' package is required for dataset loading. "
+                "Install with `pip install datasets`."
+            )
+
+    datasets = _DatasetsStub()
+    Dataset = Any  # type: ignore[assignment]
+    DatasetDict = dict  # type: ignore[assignment]
+
+    def concatenate_datasets(_datasets: List[Any]) -> Any:
+        raise ModuleNotFoundError(
+            "The 'datasets' package is required for dataset concatenation. "
+            "Install with `pip install datasets`."
+        )
 
 
 from maxent_grpo.config import ScriptArguments

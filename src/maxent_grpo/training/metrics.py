@@ -38,9 +38,8 @@ from __future__ import annotations
 import logging
 import sys
 import math
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
 
-from .pipeline import PreparedBatch
 from .runtime import resolve_run_metadata
 from .types import (
     Accelerator,
@@ -60,6 +59,9 @@ from .types import (
     TokenUsageStats,
 )
 from .weighting import WeightLoggingView, WeightStats
+
+if TYPE_CHECKING:  # Avoid importing heavy pipeline/scoring deps at runtime
+    from .pipeline import PreparedBatch
 
 LOG = logging.getLogger(__name__)
 _WANDB_SAMPLE_ROWS = 4

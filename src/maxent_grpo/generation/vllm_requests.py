@@ -18,6 +18,25 @@ from .vllm_state import _VLLMGenerationState
 LOG = logging.getLogger(__name__)
 
 
+def _resolve_default_limit() -> int:
+    """Return the current default prompt character cap from the environment."""
+
+    try:
+        env_val = os.environ.get("MAX_PROMPT_CHARS")
+        if env_val is not None:
+            return int(env_val)
+    except (TypeError, ValueError):
+        pass
+    try:
+        from maxent_grpo.training.runtime import prompts as prompt_mod
+    except Exception:
+        prompt_mod = None
+    prompt_limit = getattr(prompt_mod, "PROMPT_CHAR_LIMIT", _DEFAULT_PROMPT_CHAR_LIMIT)
+    if _DEFAULT_PROMPT_CHAR_LIMIT <= 0:
+        return _DEFAULT_PROMPT_CHAR_LIMIT
+    return prompt_limit
+
+
 class VLLMRequestMixin:
     """Mix-in that isolates request building, retries, and aggregation."""
 
@@ -304,6 +323,8 @@ class VLLMRequestMixin:
         :returns: Maximum number of characters to send per prompt.
         :rtype: int
         """
+        base_limit = _resolve_default_limit()
+        globals()["_DEFAULT_PROMPT_CHAR_LIMIT"] = base_limit
         limit_override = getattr(self.ctx, "prompt_char_limit", None)
         if isinstance(limit_override, int) and limit_override > 0:
             return limit_override
@@ -315,10 +336,10 @@ class VLLMRequestMixin:
             from maxent_grpo.generation import vllm as _vllm_mod
 
             limit_const = getattr(
-                _vllm_mod, "PROMPT_CHAR_LIMIT", _DEFAULT_PROMPT_CHAR_LIMIT
+                _vllm_mod, "PROMPT_CHAR_LIMIT", base_limit
             )
         except (ImportError, AttributeError):
-            limit_const = _DEFAULT_PROMPT_CHAR_LIMIT
+            limit_const = base_limit
         if limit_const <= 0:
             return approx_chars
         if approx_chars <= 0:

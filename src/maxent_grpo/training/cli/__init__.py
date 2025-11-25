@@ -14,6 +14,20 @@
 
 """Training-specific CLI helpers (TRL argument parsing, etc.)."""
 
-from .trl import parse_grpo_args
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
+    from trl import ModelConfig
 
 __all__ = ["parse_grpo_args"]
+
+
+def __getattr__(name: str):
+    if name == "parse_grpo_args":
+        from . import trl as cli_trl
+
+        value = cli_trl.parse_grpo_args
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__} has no attribute {name}")

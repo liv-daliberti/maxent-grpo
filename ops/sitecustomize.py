@@ -50,19 +50,20 @@ _ORIG_FIND_SPEC = importlib.util.find_spec
 
 
 def _maxent_find_spec(name: str, package: str | None = None):
-    """Treat lightweight stubs (missing files) as absent for optional deps."""
-    if name == "torch":
-        module = sys.modules.get("torch")
-        if isinstance(module, ModuleType) and getattr(module, "__file__", None) is None:
+    """Treat lightweight stubs (missing files/spec) as absent for optional deps."""
+    module = sys.modules.get(name)
+    if isinstance(module, ModuleType):
+        # When a module is stubbed/partially imported, both __file__ and __spec__
+        # may be None; let optional dependency checks treat it as missing.
+        if getattr(module, "__file__", None) is None:
             return None
-        if isinstance(module, ModuleType) and getattr(module, "__spec__", None) is None:
+        if getattr(module, "__spec__", None) is None:
             return None
     try:
         return _ORIG_FIND_SPEC(name, package)
     except ValueError:
-        if name == "torch":
-            return None
-        raise
+        # ValueError is raised when an existing module has an invalid spec.
+        return None
 
 
 importlib.util.find_spec = _maxent_find_spec

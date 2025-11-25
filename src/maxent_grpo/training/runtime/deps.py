@@ -34,6 +34,13 @@ def require_torch(_context: str) -> Any:
 
     existing = sys.modules.get("torch")
     if existing is not None:
+        try:
+            if not hasattr(existing, "SymBool"):
+                sym_cls = getattr(_build_torch_stub(), "SymBool", None)
+                if sym_cls is not None:
+                    existing.SymBool = sym_cls
+        except Exception:
+            pass
         return existing
     try:
         torch_mod = _import_module("torch")
@@ -70,6 +77,14 @@ def require_torch(_context: str) -> Any:
         torch_mod = _build_torch_stub()
     if "torch" not in sys.modules:
         sys.modules["torch"] = torch_mod
+    # Tests may reuse lightweight stubs; patch missing helpers when present.
+    try:
+        if not hasattr(torch_mod, "SymBool"):
+            sym_cls = getattr(_build_torch_stub(), "SymBool", None)
+            if sym_cls is not None:
+                torch_mod.SymBool = sym_cls
+    except Exception:
+        pass
     return torch_mod
 
 

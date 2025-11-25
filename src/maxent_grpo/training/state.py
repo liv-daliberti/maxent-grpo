@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from typing import Optional
 
 from .types import (
@@ -249,3 +250,7 @@ __all__ = [
     "maybe_checkpoint",
     "check_stop_condition",
 ]
+
+# Preserve a self-reference so monkeypatch paths like ``training.state.state`` resolve
+# even after test shuffling or aliasing.
+state = sys.modules[__name__]

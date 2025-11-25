@@ -38,7 +38,13 @@ def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List
     if callable(gather_fn):
         return gather_fn(value)
     dist = getattr(_current_torch(), "distributed", None)
-    if dist is not None and dist.is_available() and dist.is_initialized():
+    if (
+        dist is not None
+        and hasattr(dist, "is_available")
+        and hasattr(dist, "is_initialized")
+        and dist.is_available()
+        and dist.is_initialized()
+    ):
         world_size = dist.get_world_size()
         gathered: List[List[str]] = [[] for _ in range(world_size)]
         dist.all_gather_object(gathered, value)

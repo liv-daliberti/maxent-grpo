@@ -2,6 +2,18 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Allow running this file directly (e.g., accelerate launch src/maxent_grpo/maxent_grpo.py)
+# by ensuring the package root is on sys.path.
+if __package__ is None or __package__ == "":
+    project_src = Path(__file__).resolve().parents[1]
+    project_src_str = str(project_src)
+    if project_src_str in sys.path:
+        sys.path.remove(project_src_str)
+    sys.path.insert(0, project_src_str)
+
 from maxent_grpo.cli import hydra_cli, parse_grpo_args
 
 __all__ = ["main"]
