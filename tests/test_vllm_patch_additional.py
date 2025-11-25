@@ -4,8 +4,6 @@ Additional coverage for the vLLM patch helpers.
 
 import json
 
-import pytest
-
 import maxent_grpo.patches.vllm as VP
 
 

@@ -163,6 +163,7 @@ _deps = [
     "liger-kernel>=0.5.10",
     "lighteval @ git+https://github.com/huggingface/lighteval.git@d3da6b9bbf38104c8b5e1acc86f83541f9a502d1",  # Critical bug fix for tokenizer revisions
     "morphcloud==0.1.67",
+    "numpy>=1.26.4",
     "packaging>=23.0",
     "parameterized>=0.9.0",
     "peft>=0.14.0",
@@ -171,8 +172,8 @@ _deps = [
     "ruff>=0.9.0",
     "safetensors>=0.3.3",
     "sentencepiece>=0.1.99",
-    "torch==2.6.0",
-    "transformers==4.52.3",
+    "torch==2.8.0",
+    "transformers==4.53.0",
     "trl[vllm]==0.18.0",
     "wandb>=0.19.1",
     "async-lru>=2.0.5",
@@ -245,6 +246,7 @@ install_requires = [
     deps["huggingface-hub"],
     deps["langdetect"],
     deps["liger-kernel"],
+    deps["numpy"],
     deps["packaging"],  # utilities from PyPA to e.g., compare versions
     deps["safetensors"],
     deps["sentencepiece"],

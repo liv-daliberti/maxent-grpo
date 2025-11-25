@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
 from maxent_grpo.generation.vllm_weight_sync import VLLMWeightSyncMixin
 
 

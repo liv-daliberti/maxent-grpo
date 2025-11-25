@@ -28,16 +28,102 @@ from __future__ import annotations
 import argparse
 import json
 import time
+import importlib.util
+import sys
+from contextlib import contextmanager
+from types import ModuleType
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict, Iterable, Tuple
 
 
 DEFAULT_BASELINE = Path(__file__).parent / "perf_baseline.json"
+REPO_ROOT = DEFAULT_BASELINE.parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+
+def _install_lightweight_stubs() -> None:
+    """Stub heavy optional deps so the microbench can run on bare runners."""
+
+    accel_loaded = "accelerate" in sys.modules
+    accel_spec = None
+    if not accel_loaded:
+        try:
+            accel_spec = importlib.util.find_spec("accelerate")
+        except ValueError:
+            accel_spec = None
+    if not accel_loaded and accel_spec is None:
+        accel_mod = ModuleType("accelerate")
+
+        class _AccelState(ModuleType):
+            DistributedType = SimpleNamespace(DEEPSPEED="deepspeed")
+
+        class _Accelerator:
+            def __init__(self, *args, **kwargs):
+                self.device = "cpu"
+                self.is_main_process = True
+                self.num_processes = 1
+                self.process_index = 0
+                self.gradient_accumulation_steps = 1
+                self.sync_gradients = True
+
+            def gather(self, obj):
+                return obj
+
+            def gather_object(self, obj):
+                return [obj]
+
+            def log(self, metrics, step=None):
+                return None
+
+            def wait_for_everyone(self):
+                return None
+
+            @contextmanager
+            def accumulate(self, _model):
+                yield
+
+            def backward(self, _loss):
+                return None
+
+            def clip_grad_norm_(self, *_args, **_kwargs):
+                return 0.0
+
+            def unwrap_model(self, model):
+                return model
+
+            def save_state(self, _path):
+                return None
+
+            def load_state(self, _path):
+                return None
+
+        accel_mod.Accelerator = _Accelerator
+        accel_state = _AccelState("accelerate.state")
+        accel_mod.state = accel_state
+        sys.modules["accelerate"] = accel_mod
+        sys.modules["accelerate.state"] = accel_state
+
+    tf_loaded = "transformers" in sys.modules
+    tf_spec = None
+    if not tf_loaded:
+        try:
+            tf_spec = importlib.util.find_spec("transformers")
+        except ValueError:
+            tf_spec = None
+    if not tf_loaded and tf_spec is None:
+        tf_mod = ModuleType("transformers")
+        tf_mod.__spec__ = SimpleNamespace()
+        tf_mod.PreTrainedModel = type("PreTrainedModel", (), {})
+        tf_mod.PreTrainedTokenizer = type("PreTrainedTokenizer", (), {})
+        sys.modules["transformers"] = tf_mod
 
 
 def _build_logging_payload():
     """Construct a representative TrainingMetricsPayload for benchmarking."""
+    _install_lightweight_stubs()
     from maxent_grpo.training.types import (
         BatchDiagnostics,
         LengthStats,
@@ -123,6 +209,7 @@ def _build_logging_payload():
 
 def run_benchmarks(iterations: int) -> Dict[str, float]:
     """Run microbenchmarks and return metrics."""
+    _install_lightweight_stubs()
     from maxent_grpo.training.metrics import build_training_metrics_dict
 
     payload = _build_logging_payload()

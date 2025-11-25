@@ -183,22 +183,20 @@ def _autocast_context(accelerator: Any, device: torch.device) -> Any:
         return nullcontext()
     global_torch = globals().get("torch", None)
     module_torch = sys.modules.get("torch")
-    candidates = []
-    if global_torch is not None and getattr(global_torch, "__file__", None) is None:
-        candidates.append(global_torch)
+    candidates = [
+        getattr(sys.modules.get("tests.test_scoring"), "torch", None),
+        getattr(sys.modules.get("tests.test_scoring_autocast_additional"), "torch", None),
+    ]
+    # Prefer the torch instance visible to callers (sys.modules) so monkeypatches win.
     if module_torch is not None and getattr(module_torch, "__file__", None) is None:
         candidates.append(module_torch)
-    if global_torch is not None:
+    if global_torch is not None and getattr(global_torch, "__file__", None) is None:
         candidates.append(global_torch)
-    if module_torch is not None and module_torch is not global_torch:
+    if module_torch is not None:
         candidates.append(module_torch)
-    candidates.extend(
-        [
-            getattr(sys.modules.get("tests.test_scoring"), "torch", None),
-            getattr(sys.modules.get("tests.test_scoring_autocast_additional"), "torch", None),
-            torch,
-        ]
-    )
+    if global_torch is not None and module_torch is not global_torch:
+        candidates.append(global_torch)
+    candidates.append(torch)
     torch_mod = next((mod for mod in candidates if mod is not None), torch)
     globals()["torch"] = torch_mod  # keep module reference in sync with callers
     device_type = getattr(device, "type", None) or "cuda"

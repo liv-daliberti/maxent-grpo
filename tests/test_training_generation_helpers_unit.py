@@ -196,7 +196,7 @@ def test_generate_vllm_collective_scatter_on_non_main_rank(monkeypatch):
     assert captured["payload"][2] is None and captured["payload"][3] is None
     assert isinstance(result, tuple)
     assert len(result) >= 2
-    grouped_res, meta_res = result[0], result[1]
+    grouped_res, _ = result[0], result[1]
     assert grouped_res is not None
 
 

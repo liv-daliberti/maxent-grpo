@@ -6,7 +6,6 @@ num_machines: 1
 num_processes: 7
 machine_rank: 0
 same_network: true
-split_batches: false
 rdzv_backend: static
 tpu_use_cluster: false
 tpu_use_sudo: false
