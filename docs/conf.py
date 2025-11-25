@@ -32,10 +32,8 @@ from types import ModuleType
 _HERE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "src")))
 
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".md": "markdown",
-}
+_AUTOSUMMARY_DIR = os.path.join(_HERE, "_autosummary")
+os.makedirs(_AUTOSUMMARY_DIR, exist_ok=True)
 
 
 def _ensure_stub(module_name: str) -> ModuleType:
@@ -224,10 +222,13 @@ extensions = [
     "sphinx.ext.autosectionlabel",
 ]
 
+source_suffix = {
+    ".rst": "restructuredtext",
+}
+
 # Optional, nicer extensions. Import-guard them so a lightweight pre-commit
 # environment without optional packages doesn't hard-fail the docs build.
 _optional_exts = [
-    "myst_parser",
     "sphinx_copybutton",
     "sphinx_design",
 ]

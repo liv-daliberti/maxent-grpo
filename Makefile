@@ -106,7 +106,8 @@ precommit:
 
 docs:
 	mkdir -p $(VAR_DIR)/docs/_build
-	python -m sphinx -b html docs $(VAR_DIR)/docs/_build/html
+	mkdir -p docs/_autosummary
+	python -m sphinx -E -b html docs $(VAR_DIR)/docs/_build/html
 
 docs-clean:
 	rm -rf $(VAR_DIR)/docs/_build

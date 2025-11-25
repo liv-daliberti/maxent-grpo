@@ -21,6 +21,7 @@ import time
 
 import maxent_grpo.training.generation.vllm_adapter as _vllm_adapter
 from maxent_grpo.patches.vllm import safe_generate
+from maxent_grpo.generation.vllm import VLLMGenerationHelper
 from maxent_grpo.training.runtime import require_torch
 from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT, _truncate_prompt
 from maxent_grpo.generation.common import (
@@ -100,6 +101,7 @@ class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
 
 
 __all__ = [
+    "VLLMGenerationHelper",
     "CompletionGenerator",
     "GenerationContext",
     "PROMPT_CHAR_LIMIT",
