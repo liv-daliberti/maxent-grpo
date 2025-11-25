@@ -107,6 +107,7 @@ export WANDB_DIR="$VAR_DIR/cache/wandb"
 export TMPDIR="$VAR_DIR/tmp"
 export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
 export VLLM_NO_USAGE_STATS=1
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 export HF_HUB_ENABLE_HF_TRANSFER=1
 export HF_HUB_ENABLE_PROGRESS_BARS=1
 # Enable vLLM prompt dedup unless overridden.

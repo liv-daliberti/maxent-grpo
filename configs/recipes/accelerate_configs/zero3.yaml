@@ -18,16 +18,15 @@ deepspeed_config:
   # Explicit ZeRO config block to satisfy Accelerate/DeepSpeed
   zero_optimization:
     stage: 3
-    # Keep params/optimizer shards on GPU to avoid CPU stalls
     offload_param:
-      device: none
+      device: cpu
     offload_optimizer:
-      device: none
+      device: cpu
     stage3_param_persistence_threshold: 0
     overlap_comm: true
     # Smaller buckets to make ZeRO-3 all-gathers finish more reliably
-    reduce_bucket_size: 2e7
-    allgather_bucket_size: 2e7
+    reduce_bucket_size: 1e7
+    allgather_bucket_size: 1e7
   zero_stage: 3
   zero3_init_flag: true
   zero3_save_16bit_model: true

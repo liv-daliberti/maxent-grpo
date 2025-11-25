@@ -69,7 +69,7 @@ maxent_tau: 0.001
 maxent_q_temperature: 0.9       # soften/sharpen listwise q if rewards are flat/noisy
 maxent_q_epsilon: 1.0e-6        # epsilon floor on q for full support
 maxent_length_normalize_ref: true
-maxent_logprob_chunk_size: 0    # 0 disables chunking (full-sequence ref scoring)
+maxent_logprob_chunk_size: 128  # finer chunking for ref scoring to trim peak memory
 maxent_target_weight_entropy: 1.4  # ~70% of log(8) to keep weights spread but not uniform
 maxent_tau_lr: 0.05
 maxent_tau_min: 0.05
