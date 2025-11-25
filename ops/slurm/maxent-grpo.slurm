@@ -72,6 +72,18 @@ elif [[ -f "$ENV_ACTIVATE" ]]; then
 else
   echo "[warn] No environment activation performed (ENV_MODE=$ENV_MODE)."
 fi
+# Sanity check: confirm python and wandb availability on the submit shell (workers will re-run activation).
+echo "[debug] python after activation: $(which python)"
+python - <<'PY' || echo "[warn] wandb import failed in submit shell"
+import sys, importlib.util
+print("exe", sys.executable)
+print("wandb spec", importlib.util.find_spec("wandb"))
+try:
+    import wandb
+    print("wandb version", wandb.__version__, "file", getattr(wandb, "__file__", None))
+except Exception as e:
+    print("wandb import error:", e)
+PY
 # Avoid picking up user-site packages (~/.local) that can conflict (e.g., httpx)
 export PYTHONNOUSERSITE=1
 
