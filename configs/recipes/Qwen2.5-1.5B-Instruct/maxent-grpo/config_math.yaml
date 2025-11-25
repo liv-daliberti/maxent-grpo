@@ -16,7 +16,7 @@
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
 resume_from_checkpoint: false
-torch_dtype: bfloat16
+torch_dtype: float16
 attn_implementation: sdpa
 
 # Data training arguments
@@ -81,7 +81,7 @@ maxent_clip_adv_baseline: 0.125   # 1/num_generations (8) for a gentler clip obj
 train_grpo_objective: false
 
 # Training/eval & logging
-bf16: true
+bf16: false
 use_vllm: true
 vllm_mode: colocate
 vllm_return_logprobs: true

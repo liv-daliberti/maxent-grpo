@@ -16,7 +16,6 @@
 #SBATCH --nodes=1                 # Default: single node
 #SBATCH --gres=gpu:8              # Default: 8 GPUs on the node
 #SBATCH --partition=mltheory      # Adjust for your cluster (e.g., hopper-prod)
-#SBATCH --exclude=node915,node916,node917,node105 # Avoid flaky nodes; adjust as needed
 #SBATCH --output=var/logs/%x-%j.out
 #SBATCH --error=var/logs/%x-%j.err
 #SBATCH --requeue
@@ -302,7 +301,8 @@ fi
 
 TRAIN_LOCAL_PROCS=$GPUS_PER_NODE
 if $SINGLE_NODE && $USE_VLLM; then
-  TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 1 ))
+  # Reserve 2 GPUs for inline vLLM, leaving the rest for training.
+  TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 2 ))
 fi
 if (( TRAIN_LOCAL_PROCS <= 0 )); then
   echo "Training GPU count per node must be positive (computed $TRAIN_LOCAL_PROCS)." >&2
@@ -469,15 +469,16 @@ PY
       ORIGINAL_CUDA_VISIBLE_DEVICES=\"${INLINE_VLLM_FALLBACK_GPUS}\"; \
     fi; \
     IFS=, read -ra ALL_GPU_IDS <<< \"\$ORIGINAL_CUDA_VISIBLE_DEVICES\"; \
-    if [ \"\${#ALL_GPU_IDS[@]}\" -lt 2 ]; then \
-      echo \"Inline vLLM requires at least 2 GPUs, saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
+    if [ \"\${#ALL_GPU_IDS[@]}\" -lt 3 ]; then \
+      echo \"Inline vLLM (2 GPUs) plus training requires at least 3 GPUs, saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
     fi; \
-    INLINE_VLLM_GPU_ID=\"\${ALL_GPU_IDS[0]}\"; \
-    TRAIN_GPU_IDS=(\"\${ALL_GPU_IDS[@]:1}\"); \
+    INLINE_VLLM_GPU_IDS=(\"\${ALL_GPU_IDS[0]}\" \"\${ALL_GPU_IDS[1]}\"); \
+    TRAIN_GPU_IDS=(\"\${ALL_GPU_IDS[@]:2}\"); \
+    INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_IDS[*]}\"; INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_ID_CSV// /,}\"; \
     INLINE_VLLM_TRAIN_GPUS=\"\${TRAIN_GPU_IDS[*]}\"; \
     INLINE_VLLM_TRAIN_GPUS=\"\${INLINE_VLLM_TRAIN_GPUS// /,}\"; \
-    export INLINE_VLLM_GPU_ID INLINE_VLLM_TRAIN_GPUS; \
-    echo \"Starting inline vLLM server on GPU \$INLINE_VLLM_GPU_ID…\"; \
+    export INLINE_VLLM_GPU_ID_CSV INLINE_VLLM_TRAIN_GPUS; \
+    echo \"Starting inline vLLM server on GPUs \$INLINE_VLLM_GPU_ID_CSV…\"; \
     echo \"Trainer GPUs: \$INLINE_VLLM_TRAIN_GPUS\"; \
     VLLM_LOG=\"$VAR_DIR/logs/vllm-${SLURM_JOB_ID}.out\"; \
     mkdir -p \"\$(dirname \"\$VLLM_LOG\")\"; \
@@ -486,7 +487,7 @@ PY
     VLLM_TAIL_PID=\$!; \
     PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
     VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
-    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID \
+    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID_CSV \
     python -m trl.scripts.vllm_serve \
       --model "$VLLM_MODEL" ${REVISION:+--revision $REVISION} \
       --tensor_parallel_size $TP --data_parallel_size $DP \
