@@ -80,6 +80,14 @@ tf_logging = SimpleNamespace(
     enable_explicit_format=lambda *args, **kwargs: None,
 )
 
+# Ensure trainer_utils is available even when transformers is installed.
+if "trainer_utils" not in locals():
+    try:
+        import transformers.trainer_utils as trainer_utils  # type: ignore
+    except Exception:
+        trainer_utils = ModuleType("transformers.trainer_utils")
+        trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
+
 
 @contextmanager
 def _force_vllm_dtype(training_args: GRPOConfig):

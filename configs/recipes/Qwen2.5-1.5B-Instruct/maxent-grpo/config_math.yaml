@@ -84,7 +84,7 @@ train_grpo_objective: true
 bf16: false
 fp16: true
 use_vllm: true
-vllm_mode: colocate
+vllm_mode: server         # reuse the single vLLM server from the launcher; avoids spawning 6 colocated engines
 vllm_return_logprobs: true
 vllm_gpu_memory_utilization: 0.5
 do_eval: true
