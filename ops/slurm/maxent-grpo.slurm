@@ -496,7 +496,7 @@ PY
       --tensor_parallel_size $TP --data_parallel_size $DP \
       --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
       --max-model-len $VLLM_MAX_MODEL_LEN \
-      --dtype float16 --gpu_memory_utilization 0.50 \
+      --dtype float16 --gpu_memory_utilization 0.90 \
       --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
     VLLM_PID=\$!; \
     echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \
