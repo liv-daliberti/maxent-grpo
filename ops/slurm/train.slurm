@@ -23,6 +23,9 @@
 #SBATCH --requeue
 #SBATCH --time=128:00:00
 #SBATCH --account=mltheory      # Adjust for your cluster (e.g., hopper-prod)
+# Ensure the job sees the project venv by default; override with sbatch --export if needed.
+# NOTE: sbatch processes this line at submit time; absolute paths avoid $PWD expansion issues.
+#SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 
 
 set -euo pipefail
@@ -36,7 +39,8 @@ mkdir -p "$VAR_DIR/logs"
 # Choose how to activate your environment on all nodes.
 # - For Conda: set ENV_MODE=conda, CONDA_SH to conda.sh, CONDA_ENV to env path or name
 # - For venv:  set ENV_MODE=venv and ENV_ACTIVATE to the venv's activate script path
-export ENV_MODE="${ENV_MODE:-conda}"
+# Default to the project venv; override ENV_MODE/ENV_ACTIVATE if you prefer conda.
+export ENV_MODE="${ENV_MODE:-venv}"
 export CONDA_SH="${CONDA_SH:-/usr/local/anaconda3/2024.02/etc/profile.d/conda.sh}"
 export CONDA_ENV="${CONDA_ENV:-$VAR_DIR/openr1}"
 export ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
