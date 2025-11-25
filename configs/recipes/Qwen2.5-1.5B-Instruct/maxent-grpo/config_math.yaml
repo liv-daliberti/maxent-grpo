@@ -78,7 +78,7 @@ maxent_tau_warmup_steps: 200    # roughly match LR warmup so tau stays steady ea
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
 maxent_clip_adv_baseline: 0.125   # 1/num_generations (8) for a gentler clip objective
-train_grpo_objective: true
+train_grpo_objective: false
 
 # Training/eval & logging
 bf16: false
@@ -86,7 +86,7 @@ fp16: true
 use_vllm: true
 vllm_mode: server         # reuse the single vLLM server from the launcher; avoids spawning 6 colocated engines
 vllm_return_logprobs: true
-vllm_gpu_memory_utilization: 0.5
+vllm_gpu_memory_utilization: 0.7
 do_eval: true
 gradient_accumulation_steps: 128    # match TRL defaults for faster logging feedback
 gradient_checkpointing: true
