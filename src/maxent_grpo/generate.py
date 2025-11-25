@@ -19,15 +19,20 @@ CLI entrypoint for the distilabel generation pipeline.
 from __future__ import annotations
 
 from argparse import Namespace
+from typing import Callable, Optional
 
-from maxent_grpo.cli.generate import app as generate_cli_app
-from maxent_grpo.cli.generate import build_generate_parser
+from maxent_grpo.cli.generate import (
+    app as generate_cli_app,
+    build_generate_parser,
+    run_cli,
+)
 from maxent_grpo.pipelines.generation.distilabel import (
     DistilabelGenerationConfig,
     DistilabelPipelineConfig,
     build_distilabel_pipeline,
-    run_generation_job,
+    run_generation_job as _run_generation_job,
 )
+from maxent_grpo.pipelines.base import PipelineResult
 
 __all__ = [
     "DistilabelGenerationConfig",
@@ -39,16 +44,28 @@ __all__ = [
 ]
 
 
-def run_cli(args: Namespace) -> None:
-    """Backward-compatible helper used by tests and programmatic callers."""
-    run_generation_job(
-        DistilabelGenerationConfig.from_namespace(args),
-        builder=build_distilabel_pipeline,
-    )
+def run_generation_job(
+    cfg: DistilabelGenerationConfig | Namespace,
+    builder: Optional[Callable[[DistilabelPipelineConfig], object]] = None,
+) -> PipelineResult:
+    """Run the distilabel generation pipeline for a given configuration.
+
+    :param cfg: Distilabel generation config or argparse namespace produced by the CLI.
+    :param builder: Optional pipeline factory overriding :func:`build_distilabel_pipeline`.
+    :returns: Pipeline execution result containing the job name and status.
+    """
+
+    return _run_generation_job(cfg, builder)
 
 
 def main() -> None:
-    """Entry point for ``python -m maxent_grpo.generate`` (delegates to Typer CLI)."""
+    """Entry point for ``python -m maxent_grpo.generate``.
+
+    Delegates to the Typer CLI declared in :mod:`maxent_grpo.cli.generate`.
+
+    :returns: ``None``.
+    """
+
     generate_cli_app()
 
 

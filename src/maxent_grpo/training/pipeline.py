@@ -224,7 +224,9 @@ def _collect_batch_stats(
     )
     scoring_cfg = getattr(ctx, "scoring", None)
     if scoring_cfg is None:
-        scoring_cfg = getattr(getattr(ctx, "settings", SimpleNamespace()), "scoring", None)
+        scoring_cfg = getattr(
+            getattr(ctx, "settings", SimpleNamespace()), "scoring", None
+        )
     batching_cfg = getattr(scoring_cfg, "batching", SimpleNamespace())
     if not getattr(batching_cfg, "prompt_length_cache_get", None):
         # Provide a no-op cache accessor for tests and lightweight callers.
@@ -233,7 +235,9 @@ def _collect_batch_stats(
         )
     gen_cfg = getattr(ctx, "generation", None)
     if gen_cfg is None:
-        gen_cfg = getattr(getattr(ctx, "settings", SimpleNamespace()), "generation", None)
+        gen_cfg = getattr(
+            getattr(ctx, "settings", SimpleNamespace()), "generation", None
+        )
     score_batch = build_score_batch(
         reward_comp,
         ctx.runtime.tokenizer,
@@ -242,16 +246,16 @@ def _collect_batch_stats(
     )
     if score_batch is None:
         return None
-    if (
-        ref_stats is None
-        and reward_comp.ref_logprob_meta
-        and score_batch.total_sequences != total_sequences
+    if reward_comp.ref_logprob_meta and (
+        ref_stats is None or score_batch.total_sequences != total_sequences
     ):
-        ref_stats = _reference_stats_from_meta(
+        rebuilt_ref = _reference_stats_from_meta(
             reward_comp.ref_logprob_meta,
             score_batch.total_sequences,
             ctx.runtime.device,
         )
+        if rebuilt_ref is not None:
+            ref_stats = rebuilt_ref
     if ref_stats is None:
         try:
             ref_stats = gather_reference_logprobs(
@@ -272,6 +276,15 @@ def _collect_batch_stats(
             return None
     if ref_stats is None:
         return None
+    ref_meta_len = (
+        len(reward_comp.ref_logprob_meta) if reward_comp.ref_logprob_meta else 0
+    )
+    if ref_meta_len and ref_meta_len != score_batch.total_sequences:
+        ref_stats = _reference_stats_from_meta(
+            reward_comp.ref_logprob_meta,
+            score_batch.total_sequences,
+            ctx.runtime.device,
+        )
     prompt_token_count = 0.0
     prompt_entries = score_batch.prompt_entries
     if prompt_entries:

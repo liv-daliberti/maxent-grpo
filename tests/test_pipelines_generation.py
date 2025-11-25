@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 from types import SimpleNamespace
+import sys
 
 
 from maxent_grpo.pipelines.generation import distilabel as distilabel_mod
@@ -36,22 +37,85 @@ def test_generation_config_roundtrip_namespace():
 def test_run_generation_job_uses_custom_builder(monkeypatch):
     captured = {}
 
+    datasets_mod = SimpleNamespace(load_dataset=lambda *a, **k: {"rows": ["ok"]})
+    monkeypatch.setitem(sys.modules, "datasets", datasets_mod)
+
     def fake_builder(cfg):
         captured["cfg"] = cfg
         return SimpleNamespace(
             run=lambda **kwargs: captured.setdefault("run_kwargs", kwargs)
         )
 
-    def fake_cli(args, builder):
-        captured["args"] = args
-        pipeline = builder(args)
-        pipeline.run(dataset="ds", dataset_batch_size=1, use_cache=False)
-
-    monkeypatch.setattr(distilabel_mod, "run_distilabel_cli", fake_cli)
-
     cfg = distilabel_mod.DistilabelGenerationConfig(hf_dataset="x", model="y")
     distilabel_mod.run_generation_job(cfg, builder=fake_builder)
 
-    assert isinstance(captured["args"], Namespace)
-    assert captured["cfg"] == captured["args"]
-    assert captured["run_kwargs"]["dataset_batch_size"] == 1
+    assert isinstance(captured["cfg"], distilabel_mod.DistilabelPipelineConfig)
+    assert captured["run_kwargs"]["dataset"] == {"rows": ["ok"]}
+    assert captured["run_kwargs"]["dataset_batch_size"] == cfg.input_batch_size * 1000
+
+
+def test_run_generation_job_accepts_namespace(monkeypatch):
+    datasets_mod = SimpleNamespace(load_dataset=lambda *a, **k: {"rows": ["ns"]})
+    monkeypatch.setitem(sys.modules, "datasets", datasets_mod)
+    captured = {}
+
+    def _builder(cfg):
+        captured["cfg"] = cfg
+        return SimpleNamespace(run=lambda **kwargs: kwargs)
+
+    args = Namespace(
+        hf_dataset="ds",
+        hf_dataset_config=None,
+        hf_dataset_split="train",
+        model="m",
+        vllm_server_url="http://v",
+        prompt_template=None,
+        prompt_column="col",
+        temperature=0.1,
+        top_p=0.9,
+        max_new_tokens=8,
+        num_generations=1,
+        input_batch_size=2,
+        client_replicas=1,
+        timeout=1,
+        retries=0,
+        hf_output_dataset=None,
+        private=False,
+    )
+    distilabel_mod.run_generation_job(args, builder=_builder)
+    assert isinstance(captured["cfg"], distilabel_mod.DistilabelPipelineConfig)
+    assert captured["cfg"].model == "m"
+
+
+def test_run_generation_job_plain_object(monkeypatch):
+    datasets_mod = SimpleNamespace(load_dataset=lambda *a, **k: {"rows": ["obj"]})
+    monkeypatch.setitem(sys.modules, "datasets", datasets_mod)
+    captured = {}
+
+    class _Cfg:
+        def __init__(self):
+            self.hf_dataset = "ds"
+            self.hf_dataset_config = None
+            self.hf_dataset_split = "test"
+            self.model = "m2"
+            self.vllm_server_url = "http://v2"
+            self.prompt_template = None
+            self.prompt_column = "c2"
+            self.temperature = 0.2
+            self.top_p = 0.8
+            self.max_new_tokens = 16
+            self.num_generations = 3
+            self.input_batch_size = 1
+            self.client_replicas = 1
+            self.timeout = 5
+            self.retries = 0
+            self.hf_output_dataset = None
+            self.private = False
+
+    def _builder(cfg):
+        captured["cfg"] = cfg
+        return SimpleNamespace(run=lambda **kwargs: kwargs)
+
+    distilabel_mod.run_generation_job(_Cfg(), builder=_builder)
+    assert captured["cfg"].base_url == "http://v2"
+    assert captured["cfg"].prompt_column == "c2"

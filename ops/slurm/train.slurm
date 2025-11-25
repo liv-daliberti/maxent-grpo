@@ -44,11 +44,20 @@ export ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
 # Ensure CUDA toolkit matches the PyTorch build (torch 2.7.0 was compiled with CUDA 12.6)
 if command -v module &>/dev/null; then
   module unload cuda || true
-  module load cuda/12.6 || {
-    echo "[warn] Failed to load cuda/12.6 module; ensure CUDA_HOME already points to a 12.6 toolkit." >&2
-  }
+  echo "[info] Available CUDA-related modulefiles (if any):"
+  module avail cuda 2>&1 | sed -n '1,40p' || true
+  if module load cuda/12.4 >/dev/null 2>&1 || module load cudatoolkit/12.4 >/dev/null 2>&1; then
+    CUDA_MODULE_VERSION="12.4"
+    echo "[info] Loaded CUDA 12.4 via environment modules."
+  elif module load cuda/12.6 >/dev/null 2>&1 || module load cudatoolkit/12.6 >/dev/null 2>&1; then
+    CUDA_MODULE_VERSION="12.6"
+    echo "[info] Loaded CUDA 12.6 via environment modules."
+  else
+    echo "[warn] No cuda modulefiles could be loaded; defaulting to system installation under /usr/local." >&2
+  fi
 fi
-export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda-12.6}"
+CUDA_DEFAULT_VERSION="${CUDA_MODULE_VERSION:-12.6}"
+export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda-${CUDA_DEFAULT_VERSION}}"
 export PATH="$CUDA_HOME/bin:${PATH:-}"
 export LD_LIBRARY_PATH="$CUDA_HOME/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
@@ -66,7 +75,11 @@ fi
 export PYTHONNOUSERSITE=1
 
 # Route all caches and temp dirs into var/
-export HF_TOKEN="<ENTER THIS>"
+if [[ -n "${HF_TOKEN:-}" ]]; then
+  export HF_TOKEN
+else
+  echo "[warn] HF_TOKEN not set; gated models/datasets may fail to download." >&2
+fi
 export HF_HOME="$VAR_DIR/cache/hf"
 export XDG_CACHE_HOME="$VAR_DIR/cache/xdg"
 export XDG_CONFIG_HOME="$VAR_DIR/config"
@@ -81,8 +94,7 @@ export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
 export VLLM_NO_USAGE_STATS=1
 export HF_HUB_ENABLE_HF_TRANSFER=1
 export HF_HUB_ENABLE_PROGRESS_BARS=1
-# Ensure each rank sees the full dataset and enable vLLM prompt dedup unless overridden.
-export MAXENT_DISABLE_DISTRIBUTED_SAMPLER="${MAXENT_DISABLE_DISTRIBUTED_SAMPLER:-1}"
+# Enable vLLM prompt dedup unless overridden.
 export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
          "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
@@ -91,17 +103,21 @@ mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
 echo "Preflight: pin hub + httpx for compatibility"
 # Pin once in the submission shell to avoid concurrent pip on multiple nodes
 python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
+# Ensure the local repo (with recent edits) is installed in editable mode for worker nodes.
+python -m pip install -q -e "$ROOT_DIR" || {
+  echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
+}
 
 if [[ "$*" == *"--help"* ]]; then
   echo "Usage: sbatch ops/slurm/train.slurm [options]"
   echo "Options:"
   echo "  --model MODEL            Recipe model directory under configs/recipes/ (e.g., Qwen2.5-1.5B-Instruct)"
-  echo "  --task TASK              Task name: grpo | maxent"
-  echo "  --config SUFFIX          Config suffix in configs/recipes/<model>/<task>/config_<SUFFIX>.yaml (e.g., math)"
+  echo "  --task TASK              Task name: grpo | maxent (alias: maxent-grpo)"
+  echo "  --config SUFFIX          Config suffix in configs/recipes/<model>/<task-dir>/config_<SUFFIX>.yaml (e.g., math)"
   echo "  --accelerator NAME       Accelerate config in configs/recipes/accelerate_configs/<NAME>.yaml (e.g., zero3)"
   echo "  --dp N                   vLLM data parallel size on the server node (default: 1)"
   echo "  --tp N                   vLLM tensor parallel size on the server node (default: 1)"
-  echo "  --vllm-port PORT         vLLM server port (default: 8000)"
+  echo "  --vllm-port PORT         vLLM server port (default: 29525)"
   echo "  --vllm-group-port PORT   NCCL group port for weight sync RPCs (default: 29535)"
   echo "  --args \"ARGS\"          Extra args to pass to the training entrypoint"
   exit 0
@@ -145,7 +161,23 @@ if [[ -z "$MODEL" || -z "$TASK" || -z "$CONFIG_SUFFIX" || -z "$ACCELERATOR" ]]; 
   exit 1
 fi
 
-CONFIG_FILE="configs/recipes/${MODEL}/${TASK}/config_${CONFIG_SUFFIX}.yaml"
+TASK_NORMALIZED=$(echo "$TASK" | tr '[:upper:]' '[:lower:]')
+case "$TASK_NORMALIZED" in
+  grpo)
+    TASK_DIR="grpo"
+    TRAIN_ENTRYPOINT="src/maxent_grpo/grpo.py"
+    ;;
+  maxent|maxent-grpo)
+    TASK_DIR="maxent-grpo"
+    TRAIN_ENTRYPOINT="src/maxent_grpo/maxent_grpo.py"
+    ;;
+  *)
+    echo "Unsupported --task: $TASK (use: grpo | maxent | maxent-grpo)" >&2
+    exit 1
+    ;;
+esac
+
+CONFIG_FILE="configs/recipes/${MODEL}/${TASK_DIR}/config_${CONFIG_SUFFIX}.yaml"
 ACCEL_FILE="configs/recipes/accelerate_configs/${ACCELERATOR}.yaml"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "Config not found: $CONFIG_FILE" >&2
@@ -155,13 +187,26 @@ if [[ ! -f "$ACCEL_FILE" ]]; then
   echo "Accelerate config not found: $ACCEL_FILE" >&2
   exit 1
 fi
-
-# Resolve training entrypoint for this repo
-case "$TASK" in
-  grpo)   TRAIN_ENTRYPOINT="src/maxent_grpo/grpo.py";;
-  maxent) TRAIN_ENTRYPOINT="src/maxent_grpo/maxent_grpo.py";;
-  *) echo "Unsupported --task: $TASK (use: grpo | maxent)" >&2; exit 1;;
-esac
+export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$CONFIG_FILE}"
+export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
+if grep -qi '^[[:space:]]*distributed_type:[[:space:]]*deepspeed' "$ACCEL_FILE"; then
+  export ACCELERATE_USE_DEEPSPEED="true"
+  # Default to DeepSpeed's native save_checkpoint; allow opting into
+  # Accelerate-only state saves per job if needed.
+  export MAXENT_PREFER_ACCELERATE_STATE_SAVE="${MAXENT_PREFER_ACCELERATE_STATE_SAVE:-false}"
+else
+  export ACCELERATE_USE_DEEPSPEED="${ACCELERATE_USE_DEEPSPEED:-false}"
+fi
+# Optional: skip accelerator.save_state when DeepSpeed is active to avoid heavy shard saves.
+export MAXENT_SKIP_DEEPSPEED_STATE_SAVE="${MAXENT_SKIP_DEEPSPEED_STATE_SAVE:-false}"
+export MAXENT_ALLOW_DEEPSPEED_STATE_SAVE="${MAXENT_ALLOW_DEEPSPEED_STATE_SAVE:-false}"
+# Default to shallow HF metadata on periodic checkpoints to avoid rewriting
+# large model.safetensors files each time. Set MAXENT_CHECKPOINT_METADATA_MODE=full
+# if you specifically want save_pretrained at every save.
+export MAXENT_CHECKPOINT_METADATA_MODE="${MAXENT_CHECKPOINT_METADATA_MODE:-shallow}"
+# Optional: base directory to copy static HF metadata from when using shallow
+# checkpoints. Leave empty to default to the training output_dir.
+export MAXENT_CHECKPOINT_METADATA_SOURCE="${MAXENT_CHECKPOINT_METADATA_SOURCE:-}"
 
 # Extract model + revision for vLLM from YAML (best-effort)
 MODEL_ID=$(grep -E "^[[:space:]]*model_name_or_path:" "$CONFIG_FILE" | awk '{print $2}' || true)
@@ -200,9 +245,7 @@ export USE_VLLM_SERVER
 # SLURM topology
 NUM_NODES=${SLURM_NNODES}
 GPUS_PER_NODE=${GPUS_PER_NODE:-8}
-WORLD_SIZE=$(( NUM_NODES * GPUS_PER_NODE ))
 readarray -t NODELIST < <(scontrol show hostnames "$SLURM_JOB_NODELIST")
-MASTER_ADDR=${NODELIST[0]}
 MASTER_PORT=${MASTER_PORT:-6000}
 
 TRAIN_NODES=("${NODELIST[@]}")
@@ -219,7 +262,6 @@ if $USE_VLLM_SERVER; then
     VLLM_NODE=${NODELIST[-1]}
     TRAIN_NODES=("${NODELIST[@]:0:$((NUM_NODES-1))}")
     NUM_NODES=$(( NUM_NODES - 1 ))
-    WORLD_SIZE=$(( WORLD_SIZE - GPUS_PER_NODE ))
   else
     # Single-node: dedicate 1 GPU on the lone node to the vLLM server
     VLLM_NODE=${NODELIST[0]}
@@ -237,6 +279,13 @@ elif $USE_VLLM && [[ "$VLLM_MODE" == "colocate" ]]; then
 fi
 export INLINE_VLLM
 
+MASTER_ADDR=${TRAIN_NODES[0]}
+TRAIN_NUM_MACHINES=${#TRAIN_NODES[@]}
+if (( TRAIN_NUM_MACHINES <= 0 )); then
+  echo "No training nodes detected after vLLM allocation." >&2
+  exit 1
+fi
+
 echo "SLURM nodes: ${NODELIST[*]}"
 echo "Train nodes: ${TRAIN_NODES[*]}"
 if $USE_VLLM_SERVER; then
@@ -247,6 +296,16 @@ if $SINGLE_NODE_VLLM && (( GPUS_PER_NODE < 2 )); then
   echo "Inline vLLM requires at least 2 GPUs on the node; detected $GPUS_PER_NODE" >&2
   exit 1
 fi
+
+TRAIN_LOCAL_PROCS=$GPUS_PER_NODE
+if $SINGLE_NODE && $USE_VLLM; then
+  TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 1 ))
+fi
+if (( TRAIN_LOCAL_PROCS <= 0 )); then
+  echo "Training GPU count per node must be positive (computed $TRAIN_LOCAL_PROCS)." >&2
+  exit 1
+fi
+WORLD_SIZE=$(( TRAIN_LOCAL_PROCS * TRAIN_NUM_MACHINES ))
 
 VLLM_GROUP_PORT_FLAG=""
 if $USE_VLLM; then
@@ -318,15 +377,7 @@ fi
 NODELIST_CSV=$(IFS=,; echo "${TRAIN_NODES[*]}")
 export CMD="${TRAIN_ENTRYPOINT} --config ${CONFIG_FILE} ${OPTIONAL_ARGS}"
 
-# For single-node with vLLM server, use remaining GPUs for training
-if $SINGLE_NODE && $USE_VLLM; then
-  TRAIN_PROCS=$(( GPUS_PER_NODE - 1 ))
-  TRAIN_NUM_MACHINES=1
-  # Train step gets remaining GPUs; Slurm will allocate around the vLLM step
-else
-  TRAIN_PROCS=${WORLD_SIZE}
-  TRAIN_NUM_MACHINES=${NUM_NODES}
-fi
+TRAIN_PROCS=${TRAIN_LOCAL_PROCS}
 
 export ACC_TEE=${ACC_TEE:-3}
 export TRAIN_SEED=${TRAIN_SEED:-42}
@@ -335,6 +386,7 @@ export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info accelerat
   --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
   --num_machines ${TRAIN_NUM_MACHINES} \
   --num_processes ${TRAIN_PROCS} \
+  --main_process_ip ${MASTER_ADDR} \
   --main_process_port ${MASTER_PORT} \
   --machine_rank ${SLURM_PROCID} \
   --tee ${ACC_TEE}"

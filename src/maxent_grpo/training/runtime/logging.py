@@ -1,0 +1,184 @@
+"""Logging utilities (primarily W&B) for the training stack."""
+
+from __future__ import annotations
+
+import logging
+import os
+from functools import lru_cache
+import subprocess
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
+
+from maxent_grpo.config import GRPOConfig
+from maxent_grpo.telemetry.wandb import init_wandb_training
+
+from .setup import _optional_dependency
+import sys
+
+LOG = logging.getLogger(__name__)
+_FIRST_WANDB_LOGGED_RUNS: set[Any] = set()
+_RUN_META_CACHE: Dict[str, str] = {}
+
+
+def _git_sha() -> str:
+    """Return the short git SHA for the current repo if available."""
+
+    env_sha = os.environ.get("MAXENT_GIT_SHA")
+    if env_sha:
+        return env_sha
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return proc.stdout.strip() or "unknown"
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        OSError,
+        ValueError,
+    ):  # pragma: no cover - best-effort metadata
+        return "unknown"
+
+
+def resolve_run_metadata(training_args: Any | None = None) -> Dict[str, str]:
+    """Return run-level metadata (git SHA, recipe path) for logging consistency."""
+
+    if _RUN_META_CACHE:
+        return _RUN_META_CACHE
+    recipe_path = None
+    if training_args is not None:
+        recipe_path = getattr(training_args, "recipe_path", None)
+    recipe_path = (
+        recipe_path
+        or os.environ.get("GRPO_RECIPE_USED")
+        or os.environ.get("GRPO_RECIPE")
+    )
+    _RUN_META_CACHE.update(
+        {
+            "run/git_sha": _git_sha(),
+            "run/recipe_path": recipe_path or "unknown",
+        }
+    )
+    return _RUN_META_CACHE
+
+
+@lru_cache(maxsize=None)
+def _wandb_error_types() -> Tuple[type, ...]:
+    """Return exception types that should be suppressed during W&B logging."""
+
+    base_exceptions: Tuple[type, ...] = (RuntimeError, ValueError)
+    errors_module = sys.modules.get("wandb.errors")
+    if errors_module is None:
+        return base_exceptions
+    wandb_error = getattr(errors_module, "Error", None)
+    if isinstance(wandb_error, type) and issubclass(wandb_error, BaseException):
+        return (wandb_error,) + base_exceptions
+    return base_exceptions
+
+
+def _report_to_contains(
+    report_to: Union[str, Sequence[str], None], target: str
+) -> bool:
+    """Case-insensitive membership check for TrainingArguments.report_to."""
+
+    if report_to is None:
+        return False
+    if isinstance(report_to, str):
+        entries = [report_to]
+    else:
+        entries = list(report_to)
+    target = target.lower()
+    return any(str(item).lower() == target for item in entries)
+
+
+def _maybe_init_wandb_run(
+    accelerator: Any,
+    training_args: GRPOConfig,
+    wandb_config: Dict[str, Any],
+) -> Optional[Any]:
+    """Initialize a W&B run when report_to includes wandb."""
+
+    if not _report_to_contains(getattr(training_args, "report_to", None), "wandb"):
+        return None
+    init_wandb_training(training_args)
+    if not accelerator.is_main_process:
+        os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
+        return None
+    wandb = _optional_dependency("wandb")
+    if wandb is None:
+        LOG.warning(
+            "report_to includes wandb but the wandb package is not installed; skipping logging."
+        )
+        return None
+
+    run_name = getattr(training_args, "run_name", None)
+    run_meta = resolve_run_metadata(training_args)
+    wandb_config = dict(wandb_config)
+    wandb_config.setdefault("run/git_sha", run_meta["run/git_sha"])
+    wandb_config.setdefault("run/recipe_path", run_meta["run/recipe_path"])
+    wandb_kwargs: Dict[str, Any] = {
+        "config": wandb_config,
+        "dir": os.environ.get("WANDB_DIR") or os.getcwd(),
+    }
+    if run_name:
+        wandb_kwargs["name"] = run_name
+    project = os.environ.get("WANDB_PROJECT")
+    if project:
+        wandb_kwargs["project"] = project
+    entity = os.environ.get("WANDB_ENTITY")
+    if entity:
+        wandb_kwargs["entity"] = entity
+    group = os.environ.get("WANDB_RUN_GROUP")
+    if group:
+        wandb_kwargs["group"] = group
+    LOG.info(
+        "W&B run metadata | git_sha=%s | recipe=%s",
+        run_meta["run/git_sha"],
+        run_meta["run/recipe_path"],
+    )
+    return wandb.init(**wandb_kwargs)
+
+
+def log_run_header(training_args: Any | None = None) -> Dict[str, str]:
+    """Log a consistent run header with git SHA and recipe path."""
+
+    meta = resolve_run_metadata(training_args)
+    LOG.info(
+        "Run metadata | git_sha=%s | recipe=%s",
+        meta["run/git_sha"],
+        meta["run/recipe_path"],
+    )
+    return meta
+
+
+def _log_wandb(run: Optional[Any], metrics: Dict[str, Any], step: int) -> None:
+    """Safely log metrics to a W&B run."""
+
+    if run is None or not metrics:
+        return
+    run_key = getattr(run, "id", None) or id(run)
+    if run_key not in _FIRST_WANDB_LOGGED_RUNS:
+        LOG.info(
+            "Logging first metrics to W&B | step=%d | keys=%s",
+            step,
+            ",".join(sorted(metrics.keys())[:5]) if metrics else "",
+        )
+        _FIRST_WANDB_LOGGED_RUNS.add(run_key)
+    error_types = _wandb_error_types()
+    try:
+        run.log(metrics, step=step)
+    except error_types as exc:  # pragma: no cover - defensive logging
+        LOG.warning("Failed to log metrics to W&B: %s", exc)
+
+
+__all__ = [
+    "_FIRST_WANDB_LOGGED_RUNS",
+    "_log_wandb",
+    "_maybe_init_wandb_run",
+    "_report_to_contains",
+    "_wandb_error_types",
+    "log_run_header",
+    "resolve_run_metadata",
+]

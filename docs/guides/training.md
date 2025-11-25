@@ -35,6 +35,14 @@ maxent-grpo-baseline command=train-baseline training.output_dir=var/data/out
 # MaxEnt-GRPO using a YAML recipe
 GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml \
   maxent-grpo-maxent
+
+Recipe pairing (reproducible GRPO_RECIPE runs)
+----------------------------------------------
+
+- The baseline and MaxEnt math recipes are paired to stay comparable: both use `open-r1/OpenR1-Math-220k` for training and `HuggingFaceH4/MATH-500` (`test` split, `problem`/`answer` columns) for evaluation with the same seed (`42`) and eval cadence (`evaluation_strategy=steps`, `eval_steps=25`, `per_device_eval_batch_size=8`).
+- Baseline GRPO recipe: `configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml`
+- MaxEnt-GRPO recipe: `configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml`
+- Hydra console wrappers reference the same pair: `configs/recipes/hydra/baseline_math.yaml` and `configs/recipes/hydra/maxent_math.yaml` so `GRPO_RECIPE=… maxent-grpo-{baseline,maxent}` will read the intended sibling.
 ```
 
 What the Slurm launcher does
@@ -125,6 +133,7 @@ Logging & Checkpoints
 - Slurm stdout/err live in `var/logs/<job-name>-<jobid>.out|err`.
 - vLLM server logs to `var/logs/vllm-<jobid>.out` (or inline when sharing a node).
 - Trainer logs to `var/logs/train_<jobid>.log`.
+- Run headers emit `run/git_sha` and `run/recipe_path` (from `GRPO_RECIPE`/`GRPO_RECIPE_USED`) and the same keys are logged to metrics/W&B so cross-run comparisons stay schema-stable.
 - Weights & Biases integration is available via `wandb_*` fields.
 - Checkpoints are handled by TRL’s GRPOConfig as usual.
 - When DeepSpeed is enabled we default to DeepSpeed’s native `save_checkpoint`

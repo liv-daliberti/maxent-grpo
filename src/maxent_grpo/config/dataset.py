@@ -1,4 +1,13 @@
 """
+Dataset and script argument dataclasses shared across training entrypoints.
+
+These helpers extend TRL's ``ScriptArguments`` to support dataset mixtures,
+including per-dataset column selection, sampling weights, and optional
+train/test splits. TRL is treated as an optional dependency so the config
+objects remain importable in lightweight environments such as doc builds and
+unit tests.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +22,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-# Dataset and script argument dataclasses used across training entrypoints.
 
 from __future__ import annotations
 
@@ -52,6 +59,9 @@ if not hasattr(trl, "GRPOConfig"):  # pragma: no cover - used by sibling module
 class DatasetConfig:
     """Configuration for a dataset inside a mixture.
 
+    This describes one dataset entry pulled from the Hub and optionally
+    filtered/weighted before mixing.
+
     :ivar id: Dataset repository ID on the Hub (e.g., "org/name").
     :ivar config: Optional dataset configuration name.
     :ivar split: Split to load, defaults to "train".
@@ -70,7 +80,13 @@ class DatasetConfig:
 
 @dataclass
 class DatasetMixtureConfig:
-    """Configuration for a mixture of datasets."""
+    """Configuration for a mixture of datasets.
+
+    :ivar datasets: Ordered dataset entries combined into a single iterable.
+    :ivar seed: Seed used for deterministic shuffling and sampling.
+    :ivar test_split_size: Optional fraction moved to a held-out test split.
+    :raises ValueError: If ``test_split_size`` is provided outside ``(0, 1)``.
+    """
 
     datasets: List[DatasetConfig]
     seed: int = field(default=0)
@@ -83,7 +99,19 @@ class DatasetMixtureConfig:
 
 @dataclass
 class ScriptArguments(_BaseScriptArgs):
-    """Extended TRL ScriptArguments with dataset mixture support."""
+    """Extended TRL ScriptArguments with dataset mixture support.
+
+    Accepts either a single dataset via ``dataset_name`` or a declarative
+    mixture provided as a mapping. When a dictionary is supplied the payload is
+    converted into :class:`DatasetMixtureConfig` entries and validated for
+    consistent column naming across datasets.
+
+    :ivar dataset_name: Dataset ID on the Hub when using a single source.
+    :ivar dataset_mixture: Mixture configuration with constituent datasets.
+    :ivar dataset_config: Optional config name associated with ``dataset_name``.
+    :raises ValueError: If neither a dataset nor mixture is provided, or if the
+        mixture payload is malformed.
+    """
 
     dataset_name: Optional[str] = field(
         default=None,

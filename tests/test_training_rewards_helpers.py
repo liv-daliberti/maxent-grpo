@@ -64,9 +64,16 @@ def test_prepare_generation_batch_retries_and_tracks_partials():
 
 
 def test_compute_reward_statistics_none_on_empty_group():
-    gen_batch = GenerationBatch(prompts=[], answers=[], grouped_completions=[], grouped_ref_meta=None)
+    gen_batch = GenerationBatch(
+        prompts=[], answers=[], grouped_completions=[], grouped_ref_meta=None
+    )
     reward_spec = RewardSpec(reward_funcs=[], reward_weights=[])
-    assert rw.compute_reward_statistics(gen_batch, reward_spec, SimpleNamespace(type="cpu"), 1.0, 1e-6) is None
+    assert (
+        rw.compute_reward_statistics(
+            gen_batch, reward_spec, SimpleNamespace(type="cpu"), 1.0, 1e-6
+        )
+        is None
+    )
 
 
 def test_compute_reward_statistics_produces_components(monkeypatch):

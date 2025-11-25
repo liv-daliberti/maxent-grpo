@@ -151,7 +151,12 @@ def build_generate_parser() -> argparse.ArgumentParser:
 
 
 def run_cli(args: Namespace) -> None:
-    """Execute the distilabel generation pipeline for parsed arguments."""
+    """Execute the distilabel generation pipeline for parsed arguments.
+
+    :param args: Parsed CLI namespace produced by :func:`build_generate_parser`
+        or Typer, containing distilabel generation options.
+    :returns: ``None``. The function is executed for side effects only.
+    """
 
     run_generation_job(DistilabelGenerationConfig.from_namespace(args))
 
@@ -224,7 +229,27 @@ if typer is not None:
             is_flag=True,
         ),
     ) -> None:
-        """Typer command hooked to ``console_scripts`` for generation."""
+        """Typer command hooked to ``console_scripts`` for generation.
+
+        :param hf_dataset: HuggingFace dataset to load.
+        :param hf_dataset_config: Optional dataset config to use.
+        :param hf_dataset_split: Dataset split to use (default: ``train``).
+        :param prompt_column: Column containing the prompt/user instruction.
+        :param prompt_template: Jinja template string used to render prompts.
+        :param model: Model name to use for generation.
+        :param vllm_server_url: URL of the vLLM server endpoint.
+        :param temperature: Optional temperature override.
+        :param top_p: Optional top-p / nucleus sampling parameter.
+        :param max_new_tokens: Maximum number of tokens to generate.
+        :param num_generations: Number of completions to generate per prompt.
+        :param input_batch_size: Batch size for input processing.
+        :param client_replicas: Number of distilabel client replicas.
+        :param timeout: Request timeout in seconds.
+        :param retries: Number of retries for failed requests.
+        :param hf_output_dataset: Optional HuggingFace repo to push results to.
+        :param private: Whether to create the Hub dataset as private.
+        :returns: ``None``. Runs the generation job directly.
+        """
 
         run_cli(
             Namespace(
@@ -251,6 +276,12 @@ if typer is not None:
 else:  # pragma: no cover - Typer missing in minimal test envs
 
     def _typer_entrypoint(*_args, **_kwargs) -> None:
+        """Fallback entrypoint that surfaces missing Typer as a runtime error.
+
+        :param _args: Unused positional arguments.
+        :param _kwargs: Unused keyword arguments.
+        :raises RuntimeError: Always raised to indicate Typer is required.
+        """
         raise RuntimeError(
             "The Typer-based CLI requires the `typer` package. "
             "Install it via `pip install typer` to use the command-line interface."
@@ -258,7 +289,11 @@ else:  # pragma: no cover - Typer missing in minimal test envs
 
 
 def app() -> None:
-    """Invoke the Typer CLI (used by ``console_scripts`` + ``python -m``)."""
+    """Invoke the Typer CLI (used by ``console_scripts`` + ``python -m``).
+
+    :raises RuntimeError: If ``typer`` is not installed in the environment.
+    :returns: ``None`` after dispatching to Typer.
+    """
 
     if typer is None:  # pragma: no cover - Typer missing in minimal test envs
         raise RuntimeError(

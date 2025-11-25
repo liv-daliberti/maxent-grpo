@@ -52,17 +52,22 @@ def init_wandb_training(training_args: WandbConfig) -> None:
     """Initialize Weights & Biases environment variables for a run.
 
     Exposes entity/project/group from ``training_args`` to the W&B backend via
-    ``WANDB_*`` environment variables.
+    ``WANDB_*`` environment variables. Values are only set when present on the
+    provided config; missing attributes leave existing environment variables
+    untouched.
 
     :param training_args: Training configuration providing ``wandb_entity``,
         ``wandb_project``, and ``wandb_run_group`` fields.
     :type training_args: WandbConfig
-    :returns: None
+    :returns: ``None``. Environment variables are set as a side effect.
     :rtype: None
     """
-    if training_args.wandb_entity is not None:
-        os.environ["WANDB_ENTITY"] = training_args.wandb_entity
-    if training_args.wandb_project is not None:
-        os.environ["WANDB_PROJECT"] = training_args.wandb_project
-    if training_args.wandb_run_group is not None:
-        os.environ["WANDB_RUN_GROUP"] = training_args.wandb_run_group
+    entity = getattr(training_args, "wandb_entity", None)
+    project = getattr(training_args, "wandb_project", None)
+    run_group = getattr(training_args, "wandb_run_group", None)
+    if entity is not None:
+        os.environ["WANDB_ENTITY"] = entity
+    if project is not None:
+        os.environ["WANDB_PROJECT"] = project
+    if run_group is not None:
+        os.environ["WANDB_RUN_GROUP"] = run_group

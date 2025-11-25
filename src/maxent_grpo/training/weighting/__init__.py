@@ -21,7 +21,7 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Any
 
-from .types import (
+from .types import (  # noqa: F401  # re-exported via __all__
     KlControllerSettings,
     QDistributionSettings,
     TauSchedule,

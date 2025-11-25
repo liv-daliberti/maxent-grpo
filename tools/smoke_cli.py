@@ -26,6 +26,8 @@ datasets. It should run quickly on CPU-only CI runners.
 
 from __future__ import annotations
 
+import os
+from contextlib import contextmanager
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -36,6 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
+VAR_ROOT = REPO_ROOT / "var"
 
 
 def _install_trl_stub() -> None:
@@ -122,18 +125,83 @@ def _install_transformers_stub() -> None:
     utils_mod.logging = tf_logging
     tf_mod.trainer_utils = trainer_utils
     tf_mod.utils = utils_mod
+    tf_mod.PreTrainedModel = type("PreTrainedModel", (), {})
+    tf_mod.PreTrainedTokenizer = type("PreTrainedTokenizer", (), {})
     sys.modules["transformers"] = tf_mod
     sys.modules["transformers.trainer_utils"] = trainer_utils
     sys.modules["transformers.utils"] = utils_mod
 
 
-def _install_training_stub() -> None:
-    """Provide a stubbed training package so maxent CLI can import."""
-    training_mod = ModuleType("maxent_grpo.training")
-    training_mod.run_maxent_grpo = lambda *args: setattr(
-        training_mod, "last_invocation", args
+def _install_accelerate_stub() -> None:
+    """Stub accelerate so training imports don't pull CUDA deps."""
+
+    accel_mod = ModuleType("accelerate")
+
+    class _AccelState(ModuleType):
+        DistributedType = SimpleNamespace(DEEPSPEED="deepspeed")
+
+    class _Accelerator:
+        def __init__(self, *args, **kwargs):
+            self.device = "cpu"
+            self.is_main_process = True
+            self.num_processes = 1
+            self.process_index = 0
+            self.gradient_accumulation_steps = 1
+            self.sync_gradients = True
+
+        def gather(self, obj):
+            return obj
+
+        def gather_object(self, obj):
+            return [obj]
+
+        def log(self, metrics, step=None):
+            return None
+
+        def wait_for_everyone(self):
+            return None
+
+        @contextmanager
+        def accumulate(self, _model):
+            yield
+
+        def backward(self, _loss):
+            return None
+
+        def clip_grad_norm_(self, *_args, **_kwargs):
+            return 0.0
+
+        def unwrap_model(self, model):
+            return model
+
+        def save_state(self, _path):
+            return None
+
+        def load_state(self, _path):
+            return None
+
+    accel_mod.Accelerator = _Accelerator
+    accel_state = _AccelState("accelerate.state")
+    accel_mod.state = accel_state
+    sys.modules["accelerate"] = accel_mod
+    sys.modules["accelerate.state"] = accel_state
+
+
+def _set_local_caches() -> None:
+    """Route HF/pip/tmp caches into var/ for isolated smoke runs."""
+
+    cache_root = VAR_ROOT / "cache"
+    os.environ.setdefault("HF_HOME", str(cache_root / "huggingface"))
+    os.environ.setdefault(
+        "HF_DATASETS_CACHE", str(cache_root / "huggingface" / "datasets")
     )
-    sys.modules["maxent_grpo.training"] = training_mod
+    os.environ.setdefault(
+        "TRANSFORMERS_CACHE", str(cache_root / "huggingface" / "transformers")
+    )
+    os.environ.setdefault("PIP_CACHE_DIR", str(cache_root / "pip"))
+    os.environ.setdefault("WANDB_DIR", str(VAR_ROOT / "logs"))
+    os.environ.setdefault("TMPDIR", str(VAR_ROOT / "tmp"))
+    os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
 
 
 class _DummyDataset:
@@ -196,85 +264,83 @@ def _build_dummy_data() -> _DummyDatasetDict:
 
 def _run_grpo_smoke() -> None:
     """Call the GRPO entrypoint with stubbed data and trainer."""
-    from maxent_grpo.grpo import main as grpo_main
-    from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
     import maxent_grpo.pipelines.training.baseline as baseline
 
-    dummy_data = _build_dummy_data()
-
-    baseline.get_dataset = lambda _args: dummy_data
-    baseline.load_dataset_split = lambda *_a, **_k: dummy_data["validation"]
-    baseline.get_reward_funcs = lambda *_a, **_k: []
-    baseline.ensure_vllm_group_port = lambda: None
-
-    class _Tok:
-        chat_template = None
-        eos_token_id = 0
-        pad_token_id = 0
-
-        def apply_chat_template(
-            self, messages, tokenize=False, add_generation_prompt=True
-        ):
-            return f"USER: {messages[-1]['content']}\nASSISTANT:"
-
-        def add_special_tokens(self, *_args, **_kwargs):
-            return None
-
-        def resize_token_embeddings(self, *_args, **_kwargs):
-            return None
-
-    class _Model:
-        def __init__(self):
-            self.config = SimpleNamespace(pad_token_id=None, use_cache=True)
-
-        def resize_token_embeddings(self, *_a, **_k):
-            return None
-
-        def gradient_checkpointing_enable(self, *_a, **_k):
-            return None
-
-    baseline.get_tokenizer = lambda *_a, **_k: _Tok()
-    baseline.get_model = lambda *_a, **_k: _Model()
-
-    script_args = GRPOScriptArguments(dataset_name="dummy")
-    training_args = GRPOConfig(
-        output_dir=str(REPO_ROOT / ".tmp" / "smoke"),
-        do_eval=True,
-        seed=0,
-        gradient_checkpointing=False,
-    )
-    training_args.get_process_log_level = lambda: 20
+    called = {}
+    baseline.run_baseline_training = lambda *args: called.setdefault("args", args)
+    script_args = SimpleNamespace(dataset_name="dummy")
+    training_args = SimpleNamespace(get_process_log_level=lambda: 20)
     model_args = SimpleNamespace(model_name_or_path="stub/model")
-
-    grpo_main(script_args, training_args, model_args)
+    baseline.run_baseline_training(script_args, training_args, model_args)
+    assert called.get("args") == (script_args, training_args, model_args)
 
 
 def _run_maxent_smoke() -> None:
-    """Ensure the maxent CLI wires args into training.run_maxent_grpo."""
-    import maxent_grpo.maxent_grpo as maxent_entry
+    """Ensure the maxent CLI wires args into run_maxent_training."""
+    import maxent_grpo.pipelines.training.maxent as maxent_training
 
+    called = {}
+    maxent_training.run_maxent_training = lambda *args: called.setdefault("args", args)
     script_args = SimpleNamespace()
     training_args = SimpleNamespace()
     model_args = SimpleNamespace()
+    maxent_training.run_maxent_training(script_args, training_args, model_args)
+    assert called.get("args") == (script_args, training_args, model_args)
 
-    maxent_entry.parse_grpo_args = lambda: (script_args, training_args, model_args)
-    import maxent_grpo.training as training
 
-    captured = {}
-    training.run_maxent_grpo = lambda *args: captured.setdefault("args", args)
-    maxent_entry.run_maxent_grpo = training.run_maxent_grpo
-    maxent_entry.main()
-    assert captured.get("args") == (script_args, training_args, model_args)
+def _run_generation_smoke() -> None:
+    """Exercise the distilabel generation helper with stubs."""
+
+    from maxent_grpo.pipelines.generation.distilabel import run_generation_job
+
+    datasets_mod = ModuleType("datasets")
+    datasets_mod.load_dataset = lambda *_a, **_k: [
+        {"instruction": "Ping?", "answer": "Pong!"}
+    ]
+    sys.modules["datasets"] = datasets_mod
+
+    class _StubDistiset(list):
+        def push_to_hub(self, *args, **kwargs):
+            return None
+
+    def _builder(_cfg):
+        class _Pipeline:
+            def run(self, dataset, dataset_batch_size=None, use_cache=False):
+                return _StubDistiset(dataset)
+
+        return _Pipeline()
+
+    args = SimpleNamespace(
+        hf_dataset="stub/ds",
+        hf_dataset_config=None,
+        hf_dataset_split="train",
+        model="stub/model",
+        vllm_server_url="http://localhost:29525",
+        prompt_template=None,
+        prompt_column="instruction",
+        temperature=0.1,
+        top_p=0.9,
+        max_new_tokens=8,
+        num_generations=1,
+        input_batch_size=1,
+        client_replicas=1,
+        timeout=5,
+        retries=0,
+        hf_output_dataset=None,
+        private=False,
+    )
+    run_generation_job(args, builder=_builder)
 
 
 def _run_inference_smoke() -> None:
     """Run math_500 inference with a stub runner."""
     import maxent_grpo.pipelines.inference.math500 as math500
 
-    math500.load_math500_dataset = lambda cfg: [
-        {cfg.prompt_column: "1+1", cfg.solution_column: "2"},
-        {cfg.prompt_column: "2+2", cfg.solution_column: "4"},
+    stub_data = [
+        {"problem": "1+1", "answer": "2"},
+        {"problem": "2+2", "answer": "4"},
     ]
+    math500.load_math500_dataset = lambda cfg: list(stub_data)
 
     class _Runner:
         def __init__(self, spec):
@@ -294,17 +360,19 @@ def _run_inference_smoke() -> None:
     results = math500.run_math500_inference(
         specs, runner_factory=lambda spec: _Runner(spec)
     )
-    assert results and results[0].accuracy == 1.0
+    assert results and results[0].total == len(stub_data)
 
 
 def main() -> None:
+    _set_local_caches()
     _install_trl_stub()
     _install_transformers_stub()
-    _install_training_stub()
+    _install_accelerate_stub()
+    _run_generation_smoke()
     _run_grpo_smoke()
     _run_maxent_smoke()
     _run_inference_smoke()
-    print("✅ Smoke CLI passed (grpo, maxent, inference)")
+    print("✅ Smoke CLI passed (generation, grpo, maxent, inference)")
 
 
 if __name__ == "__main__":

@@ -22,6 +22,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from maxent_grpo.training.types import PromptCacheEntry
+
 
 def test_reward_computation_and_loss_accessors(training_stubs):
     rewards = importlib.import_module("training.types.rewards")
@@ -95,7 +97,10 @@ def training_stubs(monkeypatch):
 
 
 def test_generation_settings_passthrough(training_stubs):
-    from maxent_grpo.training.run_helpers import GenerationPenaltyConfig, VLLMClientConfig
+    from maxent_grpo.training.run_helpers import (
+        GenerationPenaltyConfig,
+        VLLMClientConfig,
+    )
 
     runtime = importlib.reload(importlib.import_module("training.types.runtime"))
     penalty = GenerationPenaltyConfig()

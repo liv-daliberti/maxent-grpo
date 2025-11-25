@@ -41,6 +41,7 @@ import math
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable
 
 from .pipeline import PreparedBatch
+from .runtime import resolve_run_metadata
 from .types import (
     Accelerator,
     BatchDiagnostics,
@@ -266,6 +267,7 @@ def build_training_metrics_dict(
 ) -> Dict[str, Any]:
     """Return the flattened metrics dictionary for logging."""
     metrics: Dict[str, Any] = {}
+    metrics.update(resolve_run_metadata())
     metrics.update(_base_metric_block(payload, global_step))
     metrics.update(_length_metric_block(payload.length_stats))
     metrics.update(_reward_metric_block(payload))

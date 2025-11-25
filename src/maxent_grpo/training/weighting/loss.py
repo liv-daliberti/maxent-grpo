@@ -20,7 +20,7 @@ import math
 from dataclasses import dataclass
 from typing import Iterator, List, Optional, Tuple
 
-from ..run_helpers import require_torch
+from maxent_grpo.training.runtime import require_torch
 from ..types import (
     BatchDiagnostics,
     ClipSettings,

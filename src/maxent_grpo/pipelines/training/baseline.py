@@ -56,7 +56,8 @@ from maxent_grpo.rewards.basic import get_reward_funcs
 from maxent_grpo.core.data import get_dataset, load_dataset_split
 from maxent_grpo.core.model import get_model, get_tokenizer
 from maxent_grpo.patches.trl import ensure_vllm_group_port
-from maxent_grpo.training.run_helpers import PROMPT_CHAR_LIMIT, truncate_prompt
+from maxent_grpo.training.runtime import log_run_header
+from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT, _to_prompt
 
 if TYPE_CHECKING:
     from trl import ModelConfig
@@ -135,56 +136,6 @@ class ChatTemplate(Protocol):
         """
 
 
-def _to_prompt(
-    example: Dict[str, Any],
-    tokenizer: Union[PreTrainedTokenizer, ChatTemplate],
-    prompt_column: str,
-    system_prompt: Optional[str],
-) -> Dict[str, str]:
-    """Convert a dataset row to a single prompt/answer pair.
-
-    Builds a minimal chat conversation with an optional system message and a
-    single user turn extracted from ``prompt_column`` (fallback to ``prompt``).
-    The tokenizer's chat template is applied if available to produce the final
-    prompt string.
-
-    :param example: One dataset item (row) containing the prompt/answer fields.
-    :type example: dict
-    :param tokenizer: Tokenizer with an optional chat template.
-    :type tokenizer: Any
-    :param prompt_column: Column name to read the user prompt from.
-    :type prompt_column: str
-    :param system_prompt: Optional system prompt to prepend.
-    :type system_prompt: str | None
-    :returns: Mapping with ``prompt`` and ``answer`` keys.
-    :rtype: dict
-    """
-    # Build minimal chat: optional system + user(prompt)
-    user = str(example.get(prompt_column, example.get("prompt", "")))
-    messages = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    messages.append({"role": "user", "content": user})
-
-    try:
-        prompt = tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-    except (AttributeError, TypeError, ValueError, RuntimeError):
-        # Fallback: flat join
-        prompt = (
-            "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
-            + "\nASSISTANT:"
-        )
-
-    prompt = truncate_prompt(prompt)
-    out = {
-        "prompt": prompt,
-        "answer": str(example.get("answer", example.get("solution", ""))),
-    }
-    return out
-
-
 def run_baseline_training(
     script_args: GRPOScriptArguments,
     training_args: GRPOConfig,
@@ -233,6 +184,7 @@ def run_baseline_training(
     )
     log_level = training_args.get_process_log_level()
     logging.getLogger(__name__).setLevel(log_level)
+    log_run_header(training_args)
     # Optional: datasets logging if available
     try:  # pragma: no cover - environment dependent
         import datasets as _hf_datasets

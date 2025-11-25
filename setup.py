@@ -17,16 +17,16 @@ limitations under the License.
 # Adapted from huggingface/transformers: https://github.com/huggingface/transformers/blob/21a2d900eceeded7be9edc445b56877b95eda4ca/setup.py
 
 
+import importlib
+import importlib.metadata as importlib_metadata
 import re
 import shutil
 import sys
 from pathlib import Path
 
 from setuptools import find_packages, setup
-from setuptools.command.install import install as _install
 from setuptools.command.develop import develop as _develop
-import importlib
-import importlib.metadata as importlib_metadata
+from setuptools.command.install import install as _install
 
 _EXPECTED_TRL_VERSION_PREFIX = "0.18."
 
@@ -63,9 +63,7 @@ def _patch_trl_vllm_serve():
         trl_mod = importlib.import_module("trl.scripts.vllm_serve")
         path = Path(trl_mod.__file__)
     except Exception as e:
-        _warn(
-            f"Skipping TRL patch (import failed; trl=={trl_version}): {e}"
-        )
+        _warn(f"Skipping TRL patch (import failed; trl=={trl_version}): {e}")
         return False
 
     try:

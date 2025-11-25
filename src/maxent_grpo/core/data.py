@@ -9,7 +9,7 @@ It returns a mapping compatible with downstream training/evaluation code (a
 during tests).
 
 The import of ``datasets`` is guarded so this module can be imported in
-environments where the library is unavailable; tests monkey‑patch the missing
+environments where the library is unavailable; tests monkey-patch the missing
 symbols when needed.
 
 License
@@ -31,48 +31,10 @@ limitations under the License.
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Sequence, TypeVar, cast
+from typing import List, Optional, cast
 
-# Optional dependency: datasets. Keep imports lazy/guarded so that importing
-# this module does not fail in environments without HF datasets. Tests monkey‑
-# patch the module‑level symbols below.
-try:  # pragma: no cover - exercised indirectly via monkeypatch in tests
-    import datasets
-    from datasets import DatasetDict, Dataset, concatenate_datasets
-except (ImportError, ModuleNotFoundError):
-    datasets = None
-
-    T = TypeVar("T")
-
-    class DatasetDict(Dict[str, T]):  # minimal placeholder for type hints
-        """Simplified mapping used when ``datasets.DatasetDict`` is unavailable."""
-
-    class Dataset:  # minimal placeholder for type hints
-        """Minimal interface used when ``datasets.Dataset`` is unavailable."""
-
-        def __len__(self) -> int:
-            """Return the number of rows (placeholder implementation)."""
-            raise NotImplementedError
-
-        def shuffle(self, _seed: Optional[int] = None) -> "Dataset":
-            """Return a shuffled view of the dataset."""
-            raise NotImplementedError
-
-        def select(self, _indices: Sequence[int]) -> "Dataset":
-            """Return a subset of rows corresponding to ``_indices``."""
-            raise NotImplementedError
-
-        def select_columns(self, _column_names: Sequence[str]) -> "Dataset":
-            """Return a dataset containing only ``_column_names``."""
-            raise NotImplementedError
-
-    def concatenate_datasets(
-        datasets_list: Sequence[Dataset],
-    ) -> Dataset:  # pragma: no cover
-        """Fallback that raises when ``datasets`` is missing."""
-        raise ImportError(
-            "datasets library is not installed; provide a concatenate_datasets"
-        )
+import datasets
+from datasets import DatasetDict, Dataset, concatenate_datasets
 
 
 from maxent_grpo.config import ScriptArguments
@@ -82,18 +44,24 @@ logger = logging.getLogger(__name__)
 
 
 def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
-    """Load a dataset or a mixture of datasets.
+    """Load a dataset or a weighted mixture and return a dictionary.
 
-    :param args: Script arguments containing dataset configuration.
+    The function dispatches to ``datasets.load_dataset`` for simple cases or
+    combines multiple datasets when ``args.dataset_mixture`` is provided. Each
+    dataset in a mixture can specify a subset of columns, a fractional weight
+    to subsample with deterministic shuffling, and an optional global test
+    split on the concatenated result.
+
+    :param args: Parsed script arguments that describe either a single dataset
+        (``dataset_name`` / ``dataset_config``) or a declarative mixture
+        (``dataset_mixture``).
     :type args: maxent_grpo.config.ScriptArguments
-    :returns: A dataset dictionary with ``train`` and optionally ``test``.
+    :returns: Mapping with at least a ``train`` split, and possibly ``test`` if
+        a split size was requested.
     :rtype: datasets.DatasetDict
-    :raises ValueError: If no dataset information is provided or the mixture is empty.
-    :raises ImportError: If datasets library is not installed.
+    :raises ValueError: If neither a dataset name nor mixture is supplied, or
+        when a mixture resolves to zero loaded datasets.
     """
-    if not datasets:
-        raise ImportError("datasets library required but not installed")
-
     if args.dataset_name and not args.dataset_mixture:
         logger.info("Loading dataset: %s", args.dataset_name)
         return cast(
@@ -165,20 +133,25 @@ def load_dataset_split(
     dataset_config: Optional[str] = None,
     split: str = "validation",
 ) -> Dataset:
-    """Load a single split from a dataset independent of ScriptArguments.
+    """Load a single split from a dataset independent of ``ScriptArguments``.
 
-    :param dataset_name: Dataset repository ID on the Hub.
+    This helper is used by evaluation code that cannot rely on the full CLI
+    argument object but still needs consistent column filtering and error
+    handling.
+
+    :param dataset_name: Dataset repository ID on the Hugging Face Hub.
     :type dataset_name: str
-    :param dataset_config: Optional dataset config name.
+    :param dataset_config: Optional dataset configuration name to disambiguate
+        multiple configurations.
     :type dataset_config: str | None
-    :param split: Split to load (e.g., \"train\", \"validation\", \"test\").
+    :param split: Split to load (for example ``\"train\"``, ``\"validation\"``,
+        or ``\"test\"``).
     :type split: str
-    :returns: The requested dataset split.
+    :returns: The requested dataset split as returned by ``datasets.load_dataset``.
     :rtype: datasets.Dataset
-    :raises ImportError: If the datasets library is unavailable.
+    :raises ValueError: If ``split`` is falsy, as evaluation requires an
+        explicit split to avoid loading entire datasets inadvertently.
     """
-    if not datasets:
-        raise ImportError("datasets library required but not installed")
     if not split:
         raise ValueError("split must be provided when loading an eval dataset")
     return cast(

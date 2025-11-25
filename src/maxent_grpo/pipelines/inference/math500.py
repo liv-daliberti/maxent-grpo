@@ -106,7 +106,15 @@ RunnerFactory = Callable[["InferenceModelSpec"], PromptRunner]
 
 @dataclass
 class Math500EvalConfig:
-    """Configuration describing how to fetch the math_500 dataset."""
+    """Configuration describing how to fetch the math_500 dataset.
+
+    :param dataset_name: Hugging Face dataset identifier.
+    :param dataset_config: Optional dataset config name.
+    :param split: Dataset split to evaluate.
+    :param prompt_column: Column containing the problem text.
+    :param solution_column: Column containing the reference answer.
+    :param limit: Optional cap on number of rows to evaluate.
+    """
 
     dataset_name: str = "HuggingFaceH4/MATH-500"
     dataset_config: Optional[str] = None
@@ -118,7 +126,24 @@ class Math500EvalConfig:
 
 @dataclass
 class InferenceModelSpec:
-    """Describe a checkpoint that should be evaluated on math_500."""
+    """Describe a checkpoint that should be evaluated on math_500.
+
+    :param model_name_or_path: HF model id or local path to load.
+    :param label: Optional short label used in results/logs.
+    :param style: Training style identifier (e.g., ``grpo`` or ``maxent``).
+    :param revision: Optional model revision to load.
+    :param system_prompt: Optional system message to prepend.
+    :param chat_template: Optional chat template to override tokenizer defaults.
+    :param max_new_tokens: Maximum tokens to generate per completion.
+    :param temperature: Sampling temperature (``0`` or ``None`` for greedy).
+    :param top_p: Nucleus sampling parameter.
+    :param batch_size: Batch size for prompt generation.
+    :param device: Optional device override (e.g., ``cuda:0``).
+    :param torch_dtype: Optional dtype override or ``\"auto\"``.
+    :param trust_remote_code: Whether to allow custom model code.
+    :param generation_kwargs: Extra kwargs forwarded to ``model.generate``.
+    :param tokenizer_kwargs: Extra kwargs forwarded to the tokenizer.
+    """
 
     model_name_or_path: str
     label: Optional[str] = None
@@ -137,7 +162,10 @@ class InferenceModelSpec:
     tokenizer_kwargs: Dict[str, Any] = field(default_factory=dict)
 
     def resolve_label(self) -> str:
-        """Return a display label for logging/results."""
+        """Return a display label for logging/results.
+
+        :returns: Prefer the explicit ``label`` else a synthesized tail.
+        """
 
         if self.label:
             return self.label
@@ -149,7 +177,16 @@ class InferenceModelSpec:
 
 @dataclass
 class Math500InferenceResult:
-    """Container returned by :func:`run_math500_inference` per evaluated model."""
+    """Container returned by :func:`run_math500_inference` per evaluated model.
+
+    :param model_id: HF id or path evaluated.
+    :param style: Style string from :class:`InferenceModelSpec`.
+    :param total: Number of evaluated examples.
+    :param correct: Count of correct predictions.
+    :param accuracy: Accuracy ratio ``correct / total``.
+    :param label: Human-friendly display label.
+    :param generations: Optional raw generations when requested.
+    """
 
     model_id: str
     style: str
@@ -166,6 +203,7 @@ def load_math500_dataset(cfg: Math500EvalConfig) -> Dataset:
     :param cfg: Dataset configuration.
     :type cfg: Math500EvalConfig
     :raises ImportError: If the datasets library is unavailable.
+    :returns: Loaded :class:`datasets.Dataset` with the requested split/config.
     """
 
     if load_dataset is None:  # pragma: no cover - exercised when datasets missing
@@ -184,7 +222,14 @@ def _prepare_examples(
     cfg: Math500EvalConfig,
     limit: Optional[int],
 ) -> List[Tuple[str, str]]:
-    """Materialize the requested dataset slice as (problem, answer) pairs."""
+    """Materialize the requested dataset slice as (problem, answer) pairs.
+
+    :param dataset: Iterable of rows containing prompt/solution columns.
+    :param cfg: Dataset config specifying column names.
+    :param limit: Optional limit overriding :attr:`Math500EvalConfig.limit`.
+    :returns: List of ``(problem, answer)`` tuples.
+    :raises ValueError: If required columns are missing or no rows are usable.
+    """
 
     examples: List[Tuple[str, str]] = []
     effective_limit = limit if limit is not None else cfg.limit
@@ -217,7 +262,12 @@ def _prepare_examples(
 
 
 def _resolve_default_device(device_override: Optional[str]) -> TorchDevice:
-    """Return a torch.device based on ``device_override`` and CUDA availability."""
+    """Return a torch.device based on ``device_override`` and CUDA availability.
+
+    :param device_override: Optional explicit device string (e.g., ``cuda:0``).
+    :returns: Resolved :class:`torch.device`.
+    :raises ImportError: If torch is not installed.
+    """
 
     if torch is None:
         raise ImportError("torch is required for the default prompt runner")
@@ -231,7 +281,11 @@ def _resolve_default_device(device_override: Optional[str]) -> TorchDevice:
 
 
 def _normalize_dtype(value: TorchDType) -> TorchDType:
-    """Convert string dtype hints to ``torch.dtype`` when possible."""
+    """Convert string dtype hints to ``torch.dtype`` when possible.
+
+    :param value: User-provided dtype string, torch dtype, or ``None``.
+    :returns: Normalized dtype or original value when unrecognized.
+    """
 
     if value is None or isinstance(value, torch.dtype):
         return value
@@ -248,6 +302,11 @@ class TransformersPromptRunner(PromptRunner):
     """Default inference backend powered by ``transformers``."""
 
     def __init__(self, spec: InferenceModelSpec):
+        """Initialize tokenizer/model for prompt generation.
+
+        :param spec: Model specification describing checkpoint and generation params.
+        :raises ImportError: When torch or transformers are unavailable.
+        """
         if torch is None:
             raise ImportError("torch is required for TransformersPromptRunner")
         if AutoTokenizer is None or AutoModelForCausalLM is None:
@@ -288,7 +347,11 @@ class TransformersPromptRunner(PromptRunner):
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
     def _build_prompt(self, problem: str) -> str:
-        """Format a raw math problem using the tokenizer chat template."""
+        """Format a raw math problem using the tokenizer chat template.
+
+        :param problem: Raw problem statement from the dataset.
+        :returns: Chat-formatted prompt string ready for generation.
+        """
 
         messages = [{"role": "user", "content": problem}]
         if self.spec.system_prompt:
@@ -305,7 +368,11 @@ class TransformersPromptRunner(PromptRunner):
         return rendered
 
     def generate(self, problems: Sequence[str]) -> List[str]:
-        """Generate a completion per problem using ``model.generate``."""
+        """Generate a completion per problem using ``model.generate``.
+
+        :param problems: Sequence of math problems to solve.
+        :returns: List of decoded completions matching the input order.
+        """
 
         prompts = [self._build_prompt(problem) for problem in problems]
         encoded = self.tokenizer(
@@ -344,7 +411,10 @@ class TransformersPromptRunner(PromptRunner):
         return outputs
 
     def close(self) -> None:  # pragma: no cover - trivial resource cleanup
-        """Nothing to clean up beyond allowing GC to reclaim the model."""
+        """Nothing to clean up beyond allowing GC to reclaim the model.
+
+        :returns: ``None`` after cleanup.
+        """
         return None
 
 
@@ -378,6 +448,7 @@ def run_math500_inference(
     :type runner_factory: Callable[[InferenceModelSpec], PromptRunner] | None
     :returns: List of per-model inference results.
     :rtype: list[Math500InferenceResult]
+    :raises ValueError: If no model specs are provided or runner outputs mismatch.
     """
 
     if not model_specs:

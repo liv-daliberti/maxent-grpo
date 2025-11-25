@@ -132,6 +132,14 @@ def test_cuda_fallback_empty_cache_returns_none():
     assert fallback.empty_cache() is None
 
 
+def test_maybe_zero_gather_params_skips_when_gather_cls_missing(monkeypatch):
+    mod = importlib.reload(zero_utils)
+    mod.ds_zero = types.SimpleNamespace(GatheredParameters=None)
+    monkeypatch.setattr(mod, "_ensure_deepspeed_ready", lambda: True)
+    with mod._maybe_zero_gather_params(object(), enabled=True):
+        pass
+
+
 def test_zero_partitioning_gradients_defaults_false():
     """Models without ZeRO markers should report no partitioning."""
     assert zero_utils._zero_partitioning_gradients(SimpleNamespace()) is False
@@ -491,3 +499,38 @@ def test_maybe_zero_gather_params_handles_disabled_and_stage(monkeypatch):
     with zero_utils._maybe_zero_gather_params(model_instance, enabled=True):
         pass
     assert calls["params"][0] is model_instance.p
+
+
+def test_maybe_zero_gather_params_handles_changing_callable(monkeypatch):
+    """Even if callable checks disagree, the guard branch should exit safely."""
+
+    sentinel = object()
+    zero_utils.ds_zero = types.SimpleNamespace(GatheredParameters=sentinel)
+    monkeypatch.setattr(zero_utils, "_ensure_deepspeed_ready", lambda: True)
+    monkeypatch.setattr(zero_utils, "_zero_stage", lambda _m: 0)
+    monkeypatch.setattr(
+        zero_utils,
+        "torch",
+        types.SimpleNamespace(cuda=types.SimpleNamespace(is_available=lambda: False)),
+    )
+
+    class Model:
+        def __init__(self):
+            self.param = types.SimpleNamespace(ds_id=1)
+
+        def parameters(self):
+            return [self.param]
+
+    original_callable = builtins.callable
+    call_count = {"seen": 0}
+
+    def _flapping_callable(obj):
+        if obj is sentinel:
+            call_count["seen"] += 1
+            return call_count["seen"] == 1
+        return original_callable(obj)
+
+    monkeypatch.setattr(builtins, "callable", _flapping_callable)
+    with zero_utils._maybe_zero_gather_params(Model(), enabled=True):
+        # The second callable() check returns False and should take the None branch.
+        pass

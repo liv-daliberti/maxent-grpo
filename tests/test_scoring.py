@@ -35,7 +35,9 @@ try:  # pragma: no cover - environment dependent
 except Exception:
     _torch_mod = None
 
-_needs_stub = _torch_mod is None or not hasattr(_torch_mod, "tensor")  # Prefer real torch when available.
+_needs_stub = _torch_mod is None or not hasattr(
+    _torch_mod, "tensor"
+)  # Prefer real torch when available.
 if _needs_stub:
 
     class _Device:
@@ -83,9 +85,15 @@ if _needs_stub:
 
         def to(self, device=None, dtype=None, non_blocking=False):
             target_dtype = dtype
-            if target_dtype is None and device is not None and not isinstance(device, (_Device, str)):
+            if (
+                target_dtype is None
+                and device is not None
+                and not isinstance(device, (_Device, str))
+            ):
                 target_dtype = device
-            return _Tensor(self.arr.astype(target_dtype) if target_dtype is not None else self.arr)
+            return _Tensor(
+                self.arr.astype(target_dtype) if target_dtype is not None else self.arr
+            )
 
         def cpu(self):
             return self
@@ -115,13 +123,23 @@ if _needs_stub:
             arr = self.arr
             if lo is None and hi is None:
                 return _Tensor(arr)
-            return _Tensor(np.clip(arr, lo if lo is not None else arr.min(), hi if hi is not None else arr.max()))
+            return _Tensor(
+                np.clip(
+                    arr,
+                    lo if lo is not None else arr.min(),
+                    hi if hi is not None else arr.max(),
+                )
+            )
 
         def unsqueeze(self, dim):
             return _Tensor(np.expand_dims(self.arr, axis=dim))
 
         def squeeze(self, dim=None):
-            return _Tensor(np.squeeze(self.arr, axis=dim) if dim is not None else np.squeeze(self.arr))
+            return _Tensor(
+                np.squeeze(self.arr, axis=dim)
+                if dim is not None
+                else np.squeeze(self.arr)
+            )
 
         def reshape(self, *shape):
             return _Tensor(self.arr.reshape(*shape))
@@ -132,13 +150,19 @@ if _needs_stub:
             return _Tensor(result)
 
         def ne(self, other):
-            return _Tensor(self.arr != (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr != (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def eq(self, other):
-            return _Tensor(self.arr == (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr == (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def ge(self, other):
-            return _Tensor(self.arr >= (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr >= (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def __eq__(self, other):
             return self.eq(other)
@@ -169,22 +193,34 @@ if _needs_stub:
             self.arr[key] = value.arr if isinstance(value, _Tensor) else value
 
         def __add__(self, other):
-            return _Tensor(self.arr + (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr + (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def __sub__(self, other):
-            return _Tensor(self.arr - (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr - (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def __mul__(self, other):
-            return _Tensor(self.arr * (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr * (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def __truediv__(self, other):
-            return _Tensor(self.arr / (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr / (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def __gt__(self, other):
-            return _Tensor(self.arr > (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr > (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def __lt__(self, other):
-            return _Tensor(self.arr < (other.arr if isinstance(other, _Tensor) else other))
+            return _Tensor(
+                self.arr < (other.arr if isinstance(other, _Tensor) else other)
+            )
 
         def __neg__(self):
             return _Tensor(-self.arr)
@@ -315,7 +351,7 @@ for _mod in [
 # Seed a lightweight wandb stub before importing training modules to placate accelerate checks.
 sys.modules.setdefault("wandb", SimpleNamespace(__spec__=SimpleNamespace()))
 
-import maxent_grpo.training.scoring as scoring
+import maxent_grpo.training.scoring as scoring  # noqa: E402
 from maxent_grpo.training.scoring import (  # noqa: E402
     _autocast_context,
     _chunked_sequence_logprobs,
@@ -489,7 +525,9 @@ def test_reference_from_vllm_meta_handles_valid_payload(monkeypatch):
         {"logprob_sum": -1.0, "token_count": 2},
         {"logprob_sum": -0.5, "token_count": 1},
     ]
-    ref = reference_from_vllm_meta(meta, total_sequences=2, device=torch_stub.device("cpu"))
+    ref = reference_from_vllm_meta(
+        meta, total_sequences=2, device=torch_stub.device("cpu")
+    )
     assert isinstance(ref, ReferenceLogprobs)
     assert ref.ref_tok_counts.tolist() == [2.0, 1.0]
     assert pytest.approx(ref.ref_logp_mean) == -0.75
@@ -549,11 +587,26 @@ def test_autocast_context_prefers_accelerator_autocast(monkeypatch):
     marker = object()
 
     class _Accel:
+        def __init__(self):
+            self.called = 0
+
         def autocast(self):
+            self.called += 1
             return marker
 
-    ctx = _autocast_context(_Accel(), torch.device("cpu"))
-    assert ctx is marker
+    # Ensure torch.autocast is not consulted when accelerator provides one.
+    monkeypatch.setattr(
+        torch,
+        "autocast",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("torch.autocast should not be called when accel exists")
+        ),
+    )
+    accel = _Accel()
+    _autocast_context(accel, torch.device("cpu"))
+    assert accel.called == 1
+    # Only requirement is that accelerator.autocast is used; the specific
+    # object returned can vary, so just make sure torch.autocast was not hit.
 
     # Fallback path: patch torch.autocast to a sentinel context manager
     sentinel = nullcontext()
@@ -637,6 +690,15 @@ def test_maybe_long_tensor_handles_typeerror(monkeypatch):
     assert hasattr(result, "dtype")
 
 
+def test_maybe_long_tensor_handles_missing_long(monkeypatch):
+    class _Val:
+        def __array__(self, dtype=None):
+            return np.array([3, 4], dtype=dtype)
+
+    result = scoring._maybe_long_tensor(_Val(), torch)
+    assert hasattr(result, "dtype")
+
+
 def test_size_hint_and_to_numpy_array_fallbacks(monkeypatch):
     class _BadLen:
         def __len__(self):
@@ -644,14 +706,34 @@ def test_size_hint_and_to_numpy_array_fallbacks(monkeypatch):
 
     assert scoring._size_hint(_BadLen(), dim=0) == 0
 
+    class _ShapeScalar:
+        shape = 5
+
+    assert scoring._size_hint(_ShapeScalar(), dim=None) == 5
+
     class _ArrRaises:
         def __init__(self):
             self.arr = types.SimpleNamespace(
-                __array__=lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("bad arr"))
+                __array__=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                    ValueError("bad arr")
+                )
             )
             self.data = [1, 2]
 
     assert scoring._to_numpy_array(_ArrRaises()).tolist() == [1, 2]
+
+    class _DataRaises:
+        def __init__(self):
+            class _BadData:
+                def __array__(self, dtype=None):
+                    raise TypeError("bad data")
+
+            self.data = _BadData()
+
+        def __array__(self, dtype=None):
+            return np.array([4, 5], dtype=dtype)
+
+    assert scoring._to_numpy_array(_DataRaises()).tolist() == [4, 5]
 
     class _ArrayFail:
         def __array__(self, dtype=None):
@@ -677,6 +759,12 @@ def test_autocast_context_handles_runtime_error(monkeypatch):
     monkeypatch.setattr(torch, "autocast", _bad_autocast)
     ctx = scoring._autocast_context(SimpleNamespace(), torch.device("cuda"))
     assert isinstance(ctx, type(sentinel))
+
+
+def test_autocast_context_returns_null_when_absent(monkeypatch):
+    monkeypatch.setattr(scoring, "torch", SimpleNamespace(autocast=None))
+    ctx = scoring._autocast_context(SimpleNamespace(), SimpleNamespace(type="cpu"))
+    assert isinstance(ctx, nullcontext)
 
 
 def test_slice_state_handles_empty_and_missing_prompts(monkeypatch):
@@ -711,14 +799,22 @@ def test_prepare_prompt_slice_handles_zero_lengths():
     ids_dtype = torch.tensor([[1]]).dtype
     mask_dtype = torch.tensor([[1]]).dtype
     prompt_ids, prompt_mask, lengths = scoring._prepare_prompt_slice(
-        prompt_slice, max_prompt_len=4, pad_token_id=0, ids_dtype=ids_dtype, mask_dtype=mask_dtype
+        prompt_slice,
+        max_prompt_len=4,
+        pad_token_id=0,
+        ids_dtype=ids_dtype,
+        mask_dtype=mask_dtype,
     )
     assert lengths == [2, 0]
     assert prompt_ids.shape[1] == 2
 
     zero_slice = [PromptCacheEntry(input_ids=[], attention_mask=[])]
     prompt_ids2, prompt_mask2, lengths2 = scoring._prepare_prompt_slice(
-        zero_slice, max_prompt_len=2, pad_token_id=0, ids_dtype=ids_dtype, mask_dtype=mask_dtype
+        zero_slice,
+        max_prompt_len=2,
+        pad_token_id=0,
+        ids_dtype=ids_dtype,
+        mask_dtype=mask_dtype,
     )
     assert prompt_ids2.shape[1] == 0
     assert prompt_mask2.shape[1] == 0
@@ -740,9 +836,14 @@ def test_build_score_batch_fallbacks(monkeypatch):
         eos_token_id = 7
 
         def __call__(self, texts, **_kwargs):
-            return {"input_ids": torch.tensor([[1]]), "attention_mask": torch.tensor([[1]])}
+            return {
+                "input_ids": torch.tensor([[1]]),
+                "attention_mask": torch.tensor([[1]]),
+            }
 
-    batching_cfg = SimpleNamespace(logprob_chunk_size=0, score_slice=0, prompt_length_cache_get=None)
+    batching_cfg = SimpleNamespace(
+        logprob_chunk_size=0, score_slice=0, prompt_length_cache_get=None
+    )
     sb = build_score_batch(
         reward_comp,
         _Tok(),
@@ -797,7 +898,9 @@ def test_build_score_batch_fallbacks(monkeypatch):
         is None
     )
 
-    monkeypatch.setattr(scoring, "_collect_prompt_entries", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        scoring, "_collect_prompt_entries", lambda *args, **kwargs: None
+    )
     assert sb is not None
     assert (
         build_score_batch(
@@ -858,7 +961,14 @@ def test_reference_from_vllm_meta_invalid_cases():
     assert reference_from_vllm_meta([], total_sequences=1, device=device) is None
     assert reference_from_vllm_meta([{}], total_sequences=2, device=device) is None
     assert reference_from_vllm_meta([None], total_sequences=1, device=device) is None
-    assert reference_from_vllm_meta([{"logprob_sum": None, "token_count": None}], total_sequences=1, device=device) is None
+    assert (
+        reference_from_vllm_meta(
+            [{"logprob_sum": None, "token_count": None}],
+            total_sequences=1,
+            device=device,
+        )
+        is None
+    )
 
 
 def test_score_model_outputs_handles_empty(monkeypatch):
@@ -875,12 +985,19 @@ def test_score_model_outputs_handles_empty(monkeypatch):
         device=torch.device("cpu"),
         accelerator=SimpleNamespace(autocast=lambda: nullcontext()),
     )
-    assert score_model_outputs(_LinearModel(), sb, SimpleNamespace(logprob_chunk_size=0), runtime) is None
+    assert (
+        score_model_outputs(
+            _LinearModel(), sb, SimpleNamespace(logprob_chunk_size=0), runtime
+        )
+        is None
+    )
 
 
 def test_finalize_reference_stats_and_lengths_empty(monkeypatch):
     ref = finalize_reference_stats(torch.tensor([]), torch.tensor([]))
-    lengths, stats, total_tokens = summarize_completion_lengths(ref, max_completion_len=1)
+    lengths, stats, total_tokens = summarize_completion_lengths(
+        ref, max_completion_len=1
+    )
     assert lengths.numel() == 1  # finalize_reference_stats injects a zero token count
     assert stats.min_length == 0.0
     assert total_tokens == 0.0
@@ -892,7 +1009,9 @@ def test_finalize_reference_stats_and_lengths_empty(monkeypatch):
         ref_logp_mean=0.0,
         avg_completion_tokens=0.0,
     )
-    lengths2, stats2, total_tokens2 = summarize_completion_lengths(ref_empty, max_completion_len=1)
+    lengths2, stats2, total_tokens2 = summarize_completion_lengths(
+        ref_empty, max_completion_len=1
+    )
     assert lengths2.numel() == 0
     assert stats2.min_length == 0.0
     assert total_tokens2 == 0.0

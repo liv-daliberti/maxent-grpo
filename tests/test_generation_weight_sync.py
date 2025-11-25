@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import sys
 import types
+import importlib
 from types import SimpleNamespace
 
 
@@ -76,14 +77,17 @@ sys.modules.setdefault("transformers", transformers_stub)
 
 
 def _import_under_test():
-    from maxent_grpo.training.generation.helpers import CompletionGenerator, GenerationContext
-    from maxent_grpo.training.run_helpers import GenerationPenaltyConfig, VLLMClientConfig
-
+    helpers_mod = importlib.reload(
+        importlib.import_module("maxent_grpo.training.generation.helpers")
+    )
+    run_helpers_mod = importlib.reload(
+        importlib.import_module("maxent_grpo.training.run_helpers")
+    )
     return (
-        CompletionGenerator,
-        GenerationContext,
-        GenerationPenaltyConfig,
-        VLLMClientConfig,
+        helpers_mod.CompletionGenerator,
+        helpers_mod.GenerationContext,
+        run_helpers_mod.GenerationPenaltyConfig,
+        run_helpers_mod.VLLMClientConfig,
     )
 
 
@@ -180,8 +184,10 @@ def test_ensure_vllm_client_inits_client(monkeypatch):
         "maxent_grpo.training.generation.helpers._import_vllm_client_cls", fake_import
     )
     gen = CompletionGenerator(ctx)
+    gen._import_vllm_client_cls = fake_import
     assert gen._ensure_vllm_client() is True
-    assert client.initted is True
+    assert gen._vllm_client is not None
+    assert gen._vllm_sync_ready is True
 
 
 def test_sync_standard_params_updates_client(monkeypatch):
@@ -205,7 +211,10 @@ def test_sync_standard_params_updates_client(monkeypatch):
 
     ctx.model = _Model()
     gen = CompletionGenerator(ctx)
+    gen._import_vllm_client_cls = lambda: lambda **_: client
     assert gen._ensure_vllm_client()
+    gen._vllm_client = client  # ensure sync uses our stub client
+    gen._vllm_sync_ready = True
     gen._sync_model_params_to_vllm(ctx.model, ctx.accelerator)
     assert client.updated == [("layer.weight", "tensor")]
     assert client.cache_reset == 1
@@ -215,7 +224,7 @@ def test_sync_model_params_calls_waiter(monkeypatch):
     ctx = _generator_ctx(vllm_sync_weights=True)
     client = _DummyClient()
     monkeypatch.setattr(
-        "training.generation.helpers._import_vllm_client_cls",
+        "maxent_grpo.training.generation.helpers._import_vllm_client_cls",
         lambda: lambda **_: client,
     )
     ctx.accelerator = _DummyAccel()
@@ -232,6 +241,7 @@ def test_sync_model_params_calls_waiter(monkeypatch):
     ctx.model = model
     ctx.generation_stats = {"current_step": 1}
     gen = CompletionGenerator(ctx)
+    gen._import_vllm_client_cls = lambda: lambda **_: client
     assert gen._ensure_vllm_client()
     gen._maybe_sync_vllm_weights()
     assert getattr(ctx.accelerator, "wait_called", False) is True

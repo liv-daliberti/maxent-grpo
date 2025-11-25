@@ -94,7 +94,7 @@ Notes
 ## Environment Notes
 - Transformers/TRL require `huggingface-hub < 1.0`; the launchers repin Hub and small CLI deps (`yq`, `rich`, `markdown-it-py`) inside the repo-local env.
 - vLLM requires a CUDA-enabled PyTorch. The Slurm launcher loads CUDA 12.6 by default and routes all caches/temp dirs into `var/`.
-- The TRL MaxEnt shim (`training.run_maxent_grpo`) is intentionally absent; the MaxEnt CLI currently raises. Compose a runner with `training.loop`/`training.pipeline` until the dedicated launcher returns.
+- The MaxEnt entrypoint (`training.run_maxent_training`) delegates to `pipelines.training.maxent.run_maxent_training`; compose a custom runner with `training.loop`/`training.pipeline` if you need finer control.
 
 
 ## Troubleshooting
@@ -108,6 +108,7 @@ Notes
 - Run `pytest -q -c configs/pytest.ini` (or `make test`) so the relocated config is picked up.
 - Type check via `pyright --project configs/pyrightconfig.json`.
 - Optional commit hooks: `pre-commit install` then `pre-commit run -a`.
+- Quick offline smoke (generation → training shim → inference) with isolated caches under `var/`: `make smoke`
 
 
 ## Documentation
@@ -117,6 +118,15 @@ Notes
 
 ## Citation
 If you use this work, please cite: “MaxEnt‑GRPO: Maximum-Entropy Group-Relative Policy Optimization (2025).”
+
+Quick eval parity check (shared math_500 pipeline):
+
+```bash
+# stubbed, offline delta comparison between baseline and candidate (math_500 runner)
+make eval-math500-delta  # uses tools/eval_math_delta.py with a fixed seed/dataset
+# real models: swap stub runner for transformers and point at downloaded dataset
+python tools/eval_math_delta.py --baseline /path/to/grpo --candidate /path/to/maxent --runner transformers --dataset /path/to/math_500.jsonl
+```
 
 BibTeX
 ```

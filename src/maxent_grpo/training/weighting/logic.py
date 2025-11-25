@@ -21,7 +21,7 @@ import math
 import os
 from typing import List, Optional, Tuple
 
-from ..run_helpers import require_torch
+from maxent_grpo.training.runtime import require_torch
 from ..types import ReferenceLogprobs, RewardComputation
 from .types import WeightStats, WeightingSettings
 

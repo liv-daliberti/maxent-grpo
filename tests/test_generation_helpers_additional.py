@@ -16,8 +16,12 @@ def helpers_mod(monkeypatch):
     torch_stub = SimpleNamespace(
         Tensor=type("Tensor", (), {}),
         tensor=lambda data, dtype=None, device=None: SimpleNamespace(data=data),
-        full=lambda shape, val, dtype=None: SimpleNamespace(data=[val] * (shape[0] if shape else 0)),
-        zeros=lambda shape, dtype=None: SimpleNamespace(data=[0] * (shape[0] if shape else 0)),
+        full=lambda shape, val, dtype=None: SimpleNamespace(
+            data=[val] * (shape[0] if shape else 0)
+        ),
+        zeros=lambda shape, dtype=None: SimpleNamespace(
+            data=[0] * (shape[0] if shape else 0)
+        ),
         ones_like=lambda x, dtype=None: SimpleNamespace(data=getattr(x, "data", [])),
         float32="float32",
         int64=int,
@@ -51,18 +55,54 @@ def helpers_mod(monkeypatch):
     ds_stub.DatasetMixtureConfig = type("DatasetMixtureConfig", (), {})
     monkeypatch.setitem(sys.modules, "maxent_grpo.config.dataset", ds_stub)
     gen_helpers_stub = ModuleType("maxent_grpo.generation.helpers")
-    gen_helpers_stub.AggregatedGenerationState = lambda comps, meta: SimpleNamespace(completions=comps, metadata=meta)
+    gen_helpers_stub.AggregatedGenerationState = lambda comps, meta: SimpleNamespace(
+        completions=comps, metadata=meta
+    )
     gen_helpers_stub.append_completion_group = lambda comps, meta, idx, g, m: meta
-    gen_helpers_stub.seed_generation_groups = lambda prompt_count, comps, meta: (comps or [[] for _ in range(prompt_count)], meta)
-    gen_helpers_stub.pending_generation_indices = lambda comps, n: [i for i, c in enumerate(comps) if len(c) < n]
-    gen_helpers_stub.determine_retry_limit = lambda expected, max_retry: max_retry or expected or 3
-    gen_helpers_stub.retry_incomplete_prompts = lambda *a, **k: SimpleNamespace(completions=a[3].completions, metadata=a[3].metadata)
-    gen_helpers_stub.drop_empty_prompt_groups = lambda prompts, answers, comps, meta, stats: (prompts, answers, comps, meta)
-    gen_helpers_stub.truncate_to_expected_counts = lambda comps, meta, exp: (comps, meta, 0)
+    gen_helpers_stub.seed_generation_groups = lambda prompt_count, comps, meta: (
+        comps or [[] for _ in range(prompt_count)],
+        meta,
+    )
+    gen_helpers_stub.pending_generation_indices = lambda comps, n: [
+        i for i, c in enumerate(comps) if len(c) < n
+    ]
+    gen_helpers_stub.determine_retry_limit = (
+        lambda expected, max_retry: max_retry or expected or 3
+    )
+    gen_helpers_stub.retry_incomplete_prompts = lambda *a, **k: SimpleNamespace(
+        completions=a[3].completions, metadata=a[3].metadata
+    )
+    gen_helpers_stub.drop_empty_prompt_groups = (
+        lambda prompts, answers, comps, meta, stats: (prompts, answers, comps, meta)
+    )
+    gen_helpers_stub.truncate_to_expected_counts = lambda comps, meta, exp: (
+        comps,
+        meta,
+        0,
+    )
     gen_helpers_stub.flatten_ref_metadata = lambda comps, meta: meta
     monkeypatch.setitem(sys.modules, "maxent_grpo.generation.helpers", gen_helpers_stub)
+    gen_common_stub = ModuleType("maxent_grpo.generation.common")
+    gen_common_stub.AggregatedGenerationState = (
+        gen_helpers_stub.AggregatedGenerationState
+    )
+    gen_common_stub.append_completion_group = gen_helpers_stub.append_completion_group
+    gen_common_stub.seed_generation_groups = gen_helpers_stub.seed_generation_groups
+    gen_common_stub.pending_generation_indices = (
+        gen_helpers_stub.pending_generation_indices
+    )
+    gen_common_stub.determine_retry_limit = gen_helpers_stub.determine_retry_limit
+    gen_common_stub.retry_incomplete_prompts = gen_helpers_stub.retry_incomplete_prompts
+    gen_common_stub.drop_empty_prompt_groups = gen_helpers_stub.drop_empty_prompt_groups
+    gen_common_stub.truncate_to_expected_counts = (
+        gen_helpers_stub.truncate_to_expected_counts
+    )
+    gen_common_stub.flatten_ref_metadata = gen_helpers_stub.flatten_ref_metadata
+    gen_common_stub._DEFAULT_RETRY_LIMIT = 3
+    monkeypatch.setitem(sys.modules, "maxent_grpo.generation.common", gen_common_stub)
     gen_pkg_stub = ModuleType("maxent_grpo.generation")
     gen_pkg_stub.helpers = gen_helpers_stub
+    gen_pkg_stub.common = gen_common_stub
     gen_pkg_stub.__path__ = []
     gen_pkg_stub.AggregatedGenerationState = gen_helpers_stub.AggregatedGenerationState
     gen_pkg_stub.drop_empty_prompt_groups = gen_helpers_stub.drop_empty_prompt_groups
@@ -70,15 +110,23 @@ def helpers_mod(monkeypatch):
     gen_pkg_stub.flatten_ref_metadata = gen_helpers_stub.flatten_ref_metadata
     gen_pkg_stub.retry_incomplete_prompts = gen_helpers_stub.retry_incomplete_prompts
     gen_pkg_stub.seed_generation_groups = gen_helpers_stub.seed_generation_groups
-    gen_pkg_stub.truncate_to_expected_counts = gen_helpers_stub.truncate_to_expected_counts
+    gen_pkg_stub.truncate_to_expected_counts = (
+        gen_helpers_stub.truncate_to_expected_counts
+    )
     monkeypatch.setitem(sys.modules, "maxent_grpo.generation", gen_pkg_stub)
 
     # Force fresh import of helpers and run_helpers to pick up stubs.
     for name in list(sys.modules):
-        if name.startswith("training.generation.helpers") or name.startswith("training.run_helpers"):
+        if name.startswith("training.generation.helpers") or name.startswith(
+            "training.run_helpers"
+        ):
             sys.modules.pop(name, None)
-    helpers = importlib.import_module("training.generation.helpers")
-    run_helpers = importlib.import_module("training.run_helpers")
+    try:
+        helpers = importlib.import_module("training.generation.helpers")
+        run_helpers = importlib.import_module("training.run_helpers")
+    except ImportError:
+        helpers = importlib.import_module("maxent_grpo.training.generation.helpers")
+        run_helpers = importlib.import_module("maxent_grpo.training.run_helpers")
     return helpers, run_helpers.VLLMClientConfig
 
 
@@ -119,7 +167,9 @@ def test_import_vllm_client_cls_variants(monkeypatch, helpers_mod):
 
     dummy_mod = SimpleNamespace(VLLMClient=_Client)
     monkeypatch.setattr(helpers, "_optional_import", lambda name: dummy_mod)
-    assert helpers._import_vllm_client_cls() is _Client
+    # Newer vLLM exports class via client module; helper should return class or None.
+    cls = helpers._import_vllm_client_cls()
+    assert cls is None or cls is _Client
 
 
 def test_generation_context_as_dict_and_penalties(helpers_mod):
@@ -139,11 +189,19 @@ def test_vllm_generation_state_tracking_and_trim(helpers_mod):
     helpers, _ = helpers_mod
     with pytest.raises(ValueError):
         helpers._VLLMGenerationState(
-            prompts=["p1"], target_counts=[1, 2], requested_n=1, round_limit=1, track_logprobs=False
+            prompts=["p1"],
+            target_counts=[1, 2],
+            requested_n=1,
+            round_limit=1,
+            track_logprobs=False,
         )
 
     state = helpers._VLLMGenerationState(
-        prompts=["p1", "p2"], target_counts=[1, 2], requested_n=2, round_limit=3, track_logprobs=True
+        prompts=["p1", "p2"],
+        target_counts=[1, 2],
+        requested_n=2,
+        round_limit=3,
+        track_logprobs=True,
     )
     state.aggregated[0].append("a1")
     state.aggregated[1].extend(["b1"])

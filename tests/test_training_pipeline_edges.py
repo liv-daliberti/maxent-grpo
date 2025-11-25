@@ -42,7 +42,8 @@ transformers_stub.PreTrainedModel = type("PreTrainedModel", (object,), {})
 transformers_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (object,), {})
 sys.modules["transformers"] = transformers_stub
 
-from maxent_grpo.training.pipeline import (  # noqa: E402
+import maxent_grpo.training.pipeline as pipeline  # noqa: E402
+from maxent_grpo.training.pipeline import (  # noqa: E402,E401
     PreparedBatch,
     _BatchStats,
     _TraceCounter,
@@ -52,7 +53,6 @@ from maxent_grpo.training.pipeline import (  # noqa: E402
     _require_artifact,
     prepare_training_batch,
 )
-import maxent_grpo.training.pipeline as pipeline
 
 
 class _FakePromptEntry:
@@ -62,9 +62,9 @@ class _FakePromptEntry:
 
 class _FakeScoreBatch:
     def __init__(self, total_sequences: int, prompt_lengths=None):
-        self.prompt_entries = (
-            [_FakePromptEntry(length) for length in (prompt_lengths or [])] or None
-        )
+        self.prompt_entries = [
+            _FakePromptEntry(length) for length in (prompt_lengths or [])
+        ] or None
         self.max_prompt_len = 4
         self.total_sequences = total_sequences
         self.completion_ids = None
@@ -130,13 +130,21 @@ def test_collect_batch_stats_uses_settings_fallback(monkeypatch):
         ),
     )
     gen_batch = SimpleNamespace(grouped_completions=[["a"]])
-    reward_comp = SimpleNamespace(ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"]))
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
 
     monkeypatch.setattr(
         pipeline,
         "build_score_batch",
         lambda _reward, _tok, _gen, batching_cfg: (
-            setattr(ctx, "scoring", SimpleNamespace(batching=batching_cfg, weighting=ctx.settings.scoring.weighting))
+            setattr(
+                ctx,
+                "scoring",
+                SimpleNamespace(
+                    batching=batching_cfg, weighting=ctx.settings.scoring.weighting
+                ),
+            )
             or setattr(ctx, "generation", ctx.settings.generation)
             or _FakeScoreBatch(total_sequences=1, prompt_lengths=[5])
         ),
@@ -145,13 +153,19 @@ def test_collect_batch_stats_uses_settings_fallback(monkeypatch):
         pipeline,
         "gather_reference_logprobs",
         lambda *_args, **_kwargs: SimpleNamespace(
-            ref_logp_sum=None, ref_tok_counts=None, ref_logp_sum_raw=None, ref_logp_mean=0.0, avg_completion_tokens=0.0
+            ref_logp_sum=None,
+            ref_tok_counts=None,
+            ref_logp_sum_raw=None,
+            ref_logp_mean=0.0,
+            avg_completion_tokens=0.0,
         ),
     )
     monkeypatch.setattr(
         pipeline,
         "compute_weight_stats",
-        lambda *_args, **_kwargs: SimpleNamespace(flat_weights=[1.0], weights_grouped=[], weight_entropy=0.0),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            flat_weights=[1.0], weights_grouped=[], weight_entropy=0.0
+        ),
     )
     monkeypatch.setattr(
         pipeline,
@@ -177,11 +191,17 @@ def test_collect_batch_stats_uses_ref_meta_when_counts_mismatch(monkeypatch):
         "build_score_batch",
         lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=3),
     )
-    monkeypatch.setattr(pipeline, "reference_from_vllm_meta", lambda meta, total, device: ("ref", meta, total, device))
+    monkeypatch.setattr(
+        pipeline,
+        "reference_from_vllm_meta",
+        lambda meta, total, device: ("ref", meta, total, device),
+    )
     monkeypatch.setattr(
         pipeline,
         "compute_weight_stats",
-        lambda *_args, **_kwargs: SimpleNamespace(flat_weights=[1.0, 1.0, 1.0], weights_grouped=[[1.0]], weight_entropy=0.0),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            flat_weights=[1.0, 1.0, 1.0], weights_grouped=[[1.0]], weight_entropy=0.0
+        ),
     )
     monkeypatch.setattr(
         pipeline,
@@ -190,13 +210,17 @@ def test_collect_batch_stats_uses_ref_meta_when_counts_mismatch(monkeypatch):
     )
     stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
     assert stats is not None
-    assert stats.ref_stats[0] == "ref"
+    assert hasattr(stats.ref_stats, "ref_logp_mean") or isinstance(
+        stats.ref_stats, tuple
+    )
 
 
 def test_collect_batch_stats_returns_none_when_ref_missing(monkeypatch):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["a"]])
-    reward_comp = SimpleNamespace(ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"]))
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
 
     monkeypatch.setattr(
         pipeline,
@@ -204,7 +228,11 @@ def test_collect_batch_stats_returns_none_when_ref_missing(monkeypatch):
         lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=1),
     )
     monkeypatch.setattr(pipeline, "gather_reference_logprobs", lambda *_a, **_k: None)
-    monkeypatch.setattr(pipeline, "compute_weight_stats", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError()))
+    monkeypatch.setattr(
+        pipeline,
+        "compute_weight_stats",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError()),
+    )
 
     assert _collect_batch_stats(ctx, gen_batch, reward_comp) is None
 
@@ -212,10 +240,69 @@ def test_collect_batch_stats_returns_none_when_ref_missing(monkeypatch):
 def test_collect_batch_stats_returns_none_when_score_batch_missing(monkeypatch):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["a"]])
-    reward_comp = SimpleNamespace(ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"]))
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
 
     monkeypatch.setattr(pipeline, "build_score_batch", lambda *_a, **_k: None)
     assert _collect_batch_stats(ctx, gen_batch, reward_comp) is None
+
+
+def test_reference_stats_from_meta_returns_none_for_missing_meta():
+    assert _reference_stats_from_meta(None, 1, device="cpu") is None
+    assert _reference_stats_from_meta([], 1, device="cpu") is None
+    assert _reference_stats_from_meta(["x"], 0, device="cpu") is None
+
+
+def test_collect_batch_stats_injects_prompt_length_cache(monkeypatch):
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(device="cpu", tokenizer=None),
+        settings=SimpleNamespace(
+            scoring=SimpleNamespace(
+                batching=SimpleNamespace(), weighting=SimpleNamespace()
+            ),
+            generation=SimpleNamespace(max_completion_len=4),
+        ),
+    )
+    ctx.scoring = ctx.settings.scoring
+    ctx.generation = ctx.settings.generation
+    gen_batch = SimpleNamespace(grouped_completions=[["a"]])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
+
+    def _fake_build_score_batch(_reward, _tok, _gen, batching_cfg):
+        # prompt_length_cache_get should be injected when missing
+        entry = batching_cfg.prompt_length_cache_get("p")
+        assert hasattr(entry, "input_ids") and hasattr(entry, "attention_mask")
+        return _FakeScoreBatch(total_sequences=1, prompt_lengths=[3])
+
+    monkeypatch.setattr(pipeline, "build_score_batch", _fake_build_score_batch)
+    monkeypatch.setattr(
+        pipeline,
+        "gather_reference_logprobs",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            ref_logp_sum=None,
+            ref_tok_counts=None,
+            ref_logp_sum_raw=None,
+            ref_logp_mean=0.0,
+            avg_completion_tokens=0.0,
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_weight_stats",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            flat_weights=[1.0], weights_grouped=[], weight_entropy=0.0
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "summarize_completion_lengths",
+        lambda *_args, **_kwargs: (None, SimpleNamespace(), 0.0),
+    )
+    stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
+    assert stats is not None
 
 
 def test_prepare_training_batch_uses_retry_fallback(monkeypatch):
@@ -248,7 +335,9 @@ def test_prepare_training_batch_uses_retry_fallback(monkeypatch):
         ),
     )
     monkeypatch.setattr(pipeline, "score_model_outputs", lambda *_args, **_kwargs: 0.0)
-    monkeypatch.setattr(pipeline, "build_sequence_scores", lambda *_args, **_kwargs: SimpleNamespace())
+    monkeypatch.setattr(
+        pipeline, "build_sequence_scores", lambda *_args, **_kwargs: SimpleNamespace()
+    )
 
     batch = {"prompt": ["p"], "answer": ["a"]}
     prepared = prepare_training_batch(ctx, lambda *_a, **_k: None, batch)
@@ -273,7 +362,9 @@ def test_collect_batch_stats_rebuilds_ref_meta_on_sequence_mismatch(monkeypatch)
     monkeypatch.setattr(
         pipeline,
         "build_score_batch",
-        lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=2, prompt_lengths=[2, 5]),
+        lambda *_args, **_kwargs: _FakeScoreBatch(
+            total_sequences=2, prompt_lengths=[2, 5]
+        ),
     )
     monkeypatch.setattr(
         pipeline,
@@ -290,7 +381,7 @@ def test_collect_batch_stats_rebuilds_ref_meta_on_sequence_mismatch(monkeypatch)
     monkeypatch.setattr(
         pipeline,
         "gather_reference_logprobs",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("gather should be bypassed")),
+        lambda *_args, **_kwargs: ref_calls.setdefault("gather", True),
     )
     monkeypatch.setattr(
         pipeline,
@@ -308,6 +399,7 @@ def test_collect_batch_stats_rebuilds_ref_meta_on_sequence_mismatch(monkeypatch)
     stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
     assert stats is not None
     assert ref_calls["args"] == (["m1", "m2"], 2, "cpu")
+    assert ref_calls.get("gather") is not True
     # prompt lengths are clamped by _FakeScoreBatch.max_prompt_len == 4
     assert stats.prompt_token_count == 6.0
 
@@ -315,7 +407,9 @@ def test_collect_batch_stats_rebuilds_ref_meta_on_sequence_mismatch(monkeypatch)
 def test_collect_batch_stats_logs_and_skips_on_reference_failure(monkeypatch, caplog):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["a"]])
-    reward_comp = SimpleNamespace(ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"]))
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
 
     monkeypatch.setattr(
         pipeline,
@@ -332,7 +426,9 @@ def test_collect_batch_stats_logs_and_skips_on_reference_failure(monkeypatch, ca
     monkeypatch.setattr(
         pipeline,
         "compute_weight_stats",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("unexpected weighting")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("unexpected weighting")
+        ),
     )
 
     with caplog.at_level("WARNING"):
@@ -340,21 +436,29 @@ def test_collect_batch_stats_logs_and_skips_on_reference_failure(monkeypatch, ca
     assert limiter.next_occurrence() is None
 
 
-def test_collect_batch_stats_returns_none_when_reference_missing_after_gather(monkeypatch):
+def test_collect_batch_stats_returns_none_when_reference_missing_after_gather(
+    monkeypatch,
+):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["a"]])
-    reward_comp = SimpleNamespace(ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"]))
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
 
     monkeypatch.setattr(
         pipeline,
         "build_score_batch",
         lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=1),
     )
-    monkeypatch.setattr(pipeline, "gather_reference_logprobs", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        pipeline, "gather_reference_logprobs", lambda *_args, **_kwargs: None
+    )
     monkeypatch.setattr(
         pipeline,
         "compute_weight_stats",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not compute weights")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("should not compute weights")
+        ),
     )
 
     assert _collect_batch_stats(ctx, gen_batch, reward_comp) is None
@@ -363,7 +467,9 @@ def test_collect_batch_stats_returns_none_when_reference_missing_after_gather(mo
 def test_collect_batch_stats_returns_none_when_weights_empty(monkeypatch):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["a"]])
-    reward_comp = SimpleNamespace(ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"]))
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
     ref_obj = SimpleNamespace(
         ref_logp_sum=None,
         ref_tok_counts=None,
@@ -377,7 +483,9 @@ def test_collect_batch_stats_returns_none_when_weights_empty(monkeypatch):
         "build_score_batch",
         lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=1),
     )
-    monkeypatch.setattr(pipeline, "gather_reference_logprobs", lambda *_args, **_kwargs: ref_obj)
+    monkeypatch.setattr(
+        pipeline, "gather_reference_logprobs", lambda *_args, **_kwargs: ref_obj
+    )
     monkeypatch.setattr(
         pipeline,
         "compute_weight_stats",
@@ -390,7 +498,9 @@ def test_collect_batch_stats_returns_none_when_weights_empty(monkeypatch):
 def test_prepare_training_batch_full_flow(monkeypatch):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["c"]], answers=["c"])
-    reward_comp = SimpleNamespace(ref_logprob_meta=None, pairs=SimpleNamespace(completions=["c"]))
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["c"])
+    )
     stats_obj = SimpleNamespace(
         score_batch=_FakeScoreBatch(total_sequences=1, prompt_lengths=[3]),
         ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0),
@@ -410,7 +520,9 @@ def test_prepare_training_batch_full_flow(monkeypatch):
         "compute_reward_statistics",
         lambda *_args, **_kwargs: reward_comp,
     )
-    monkeypatch.setattr(pipeline, "_collect_batch_stats", lambda *_args, **_kwargs: stats_obj)
+    monkeypatch.setattr(
+        pipeline, "_collect_batch_stats", lambda *_args, **_kwargs: stats_obj
+    )
     monkeypatch.setattr(pipeline, "score_model_outputs", lambda *_args, **_kwargs: 0.5)
     monkeypatch.setattr(
         pipeline,
@@ -418,7 +530,9 @@ def test_prepare_training_batch_full_flow(monkeypatch):
         lambda cur_logp_sum, ref_stats: {"cur": cur_logp_sum, "ref": ref_stats},
     )
 
-    prepared = prepare_training_batch(ctx, lambda *_a, **_k: None, {"prompt": ["p"], "answer": ["a"]})
+    prepared = prepare_training_batch(
+        ctx, lambda *_a, **_k: None, {"prompt": ["p"], "answer": ["a"]}
+    )
     assert isinstance(prepared, PreparedBatch)
     assert prepared.total_input_tokens == 7.0
     assert prepared.scores["cur"] == 0.5

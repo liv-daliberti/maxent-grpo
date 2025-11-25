@@ -173,7 +173,9 @@ def test_apply_learning_rate_updates_all_parameter_groups():
 def test_optimizer_step_uses_accelerator_hook(monkeypatch):
     model = _Model([1.0])
     optimizer = _Optimizer([0.1])
-    handles = SimpleNamespace(optimizer=optimizer, base_optimizer=optimizer, learning_rate=0.01)
+    handles = SimpleNamespace(
+        optimizer=optimizer, base_optimizer=optimizer, learning_rate=0.01
+    )
     schedule = SimpleNamespace(max_grad_norm=1.5)
 
     class _Accel:
@@ -212,7 +214,9 @@ def test_optimizer_step_falls_back_to_optimizer_step_method():
             return 1.1
 
     accel = _Accel()
-    handles = SimpleNamespace(optimizer=optimizer, base_optimizer=optimizer, learning_rate=0.5)
+    handles = SimpleNamespace(
+        optimizer=optimizer, base_optimizer=optimizer, learning_rate=0.5
+    )
     ctx = SimpleNamespace(
         runtime=SimpleNamespace(accelerator=accel, model=model),
         optimization=SimpleNamespace(
@@ -264,6 +268,22 @@ def test_configure_accumulation_steps_sets_attribute_on_fallback():
     accel = _Accel()
     opt.configure_accumulation_steps(accel, grad_accum_steps=3)
     assert accel.gradient_accumulation_steps == 3
+
+
+def test_configure_accumulation_steps_ignores_attr_errors():
+    class _Accel:
+        def __init__(self):
+            self.gradient_state = SimpleNamespace()
+            self.gradient_accumulation_steps = 1
+
+    class _State:
+        def __setattr__(self, key, value):
+            raise AttributeError("nope")
+
+    accel = _Accel()
+    accel.gradient_state = _State()
+    # Should not raise even when setattr fails
+    opt.configure_accumulation_steps(accel, grad_accum_steps=5)
 
 
 def test_detect_deepspeed_state_reads_plugin():

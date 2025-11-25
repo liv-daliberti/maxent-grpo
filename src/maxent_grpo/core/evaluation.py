@@ -74,17 +74,20 @@ def register_lighteval_task(
     - Core tasks table: https://github.com/huggingface/lighteval/blob/main/src/lighteval/tasks/tasks_table.jsonl
     - Custom tasks should live under your project (ops/scripts/evaluation/...).
 
-    :param configs: Mapping where the serialized task spec is stored.
+    :param configs: Mapping where the serialized task spec is stored; mutated
+        in place with the new ``task_name`` entry.
     :type configs: dict[str, str]
-    :param eval_suite: Suite prefix, e.g. ``"lighteval"`` or ``"extended"``.
+    :param eval_suite: Suite prefix, e.g. ``"lighteval"`` or ``"extended"``. This
+        is prepended to every task in ``task_list``.
     :type eval_suite: str
-    :param task_name: Key to store the task under.
+    :param task_name: Key under which the composed task specification is stored.
     :type task_name: str
-    :param task_list: Comma‑separated list of tasks, without suite prefix.
+    :param task_list: Comma-separated list of task identifiers without suite
+        prefix. Each entry is expanded into ``{eval_suite}|{task}|{num_fewshot}|0``.
     :type task_list: str
-    :param num_fewshot: Number of few‑shot examples per task.
-    :type num_fewshot: int
-    :returns: None
+    :param num_fewshot: Number of few-shot examples per task (defaults to zero).
+        :type num_fewshot: int
+    :returns: ``None``. ``configs`` is updated directly.
     :rtype: None
     """
     # Format task list in lighteval format
@@ -109,7 +112,7 @@ register_lighteval_task(
 def get_lighteval_tasks() -> List[TaskName]:
     """Return the list of registered LightEval task names.
 
-    :returns: Available benchmark keys.
+    :returns: Available benchmark keys currently registered in ``LIGHTEVAL_TASKS``.
     :rtype: list[str]
     """
     return list(LIGHTEVAL_TASKS.keys())
@@ -119,7 +122,7 @@ SUPPORTED_BENCHMARKS = get_lighteval_tasks()
 
 
 def _build_slurm_gpu_flag(num_gpus: int) -> List[str]:
-    """Return sbatch GPU flag(s) based on env policy.
+    """Return sbatch GPU flag(s) based on environment policy.
 
     The behaviour is controlled by ``SLURM_GPU_FLAG_STYLE``:
 
@@ -127,9 +130,10 @@ def _build_slurm_gpu_flag(num_gpus: int) -> List[str]:
     - ``\"gpus\"``: append ``--gpus={num_gpus}``.
     - ``\"gres\"``: append ``--gres=gpu:{num_gpus}``.
 
-    :param num_gpus: Requested number of GPUs for the evaluation job.
+    :param num_gpus: Requested number of GPUs for the evaluation job. This is
+        used verbatim in the formatted flag.
     :type num_gpus: int
-    :returns: List of flag strings suitable for ``sbatch``.
+    :returns: List of flag strings suitable for ``sbatch`` (possibly empty).
     :rtype: list[str]
     """
     style = os.getenv("SLURM_GPU_FLAG_STYLE", "none").lower()
@@ -147,14 +151,25 @@ def run_lighteval_job(
 ) -> None:
     """Launch a LightEval job under Slurm with vLLM decoding.
 
-    :param benchmark: Registered benchmark key.
+    The job command is composed from ``VLLM_SLURM_PREFIX`` and a generated task
+    list. For models with >=30B parameters the function enables tensor
+    parallelism; otherwise it defaults to two GPUs to reduce cluster pressure.
+    If ``system_prompt`` is provided it is base64-encoded to avoid quoting
+    issues in the Slurm script.
+
+    :param benchmark: Registered benchmark key to execute.
     :type benchmark: str
-    :param training_args: Training configuration containing Hub model info.
+    :param training_args: Training configuration providing Hub identifiers and
+        the optional ``system_prompt`` for evaluation.
     :type training_args: GRPOConfig
-    :param model_args: Model configuration (trust flags).
+    :param model_args: Model configuration controlling trust flags for remote
+        code and general model loading options.
     :type model_args: ModelConfig
-    :returns: None
+    :returns: ``None``. A subprocess is spawned for the Slurm submission.
     :rtype: None
+    :raises KeyError: If ``benchmark`` is not present in ``LIGHTEVAL_TASKS``.
+    :raises subprocess.CalledProcessError: If ``sbatch`` returns a non-zero exit
+        status.
     """
     task_list = LIGHTEVAL_TASKS[benchmark]
     model_name = training_args.hub_model_id
@@ -192,11 +207,16 @@ def run_lighteval_job(
 def run_benchmark_jobs(training_args: "GRPOConfig", model_args: "ModelConfig") -> None:
     """Launch one or more benchmarks as Slurm jobs.
 
-    :param training_args: Training configuration (reads ``benchmarks`` list).
+    When the CLI requests ``benchmarks=["all"]`` the function expands this into
+    every registered LightEval task. Each benchmark is delegated to
+    ``run_lighteval_job`` with the provided arguments.
+
+    :param training_args: Training configuration whose ``benchmarks`` field
+        enumerates the tasks to run (or the sentinel ``\"all\"``).
     :type training_args: GRPOConfig
-    :param model_args: Model configuration.
+    :param model_args: Model configuration forwarded to ``run_lighteval_job``.
     :type model_args: ModelConfig
-    :returns: None
+    :returns: ``None``. Jobs are submitted sequentially.
     :rtype: None
     :raises ValueError: If an unknown benchmark name is supplied.
     """

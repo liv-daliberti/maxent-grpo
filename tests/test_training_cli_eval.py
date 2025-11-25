@@ -13,26 +13,35 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Unit tests for training top-level shims, CLI helpers, and eval helpers.
+Unit tests for training entrypoints, CLI helpers, and eval helpers.
 """
 
 from __future__ import annotations
 
 import importlib
-import os
 import sys
 from types import SimpleNamespace, ModuleType
 
-import pytest
 
-
-def test_training_init_run_maxent_grpo_raises(training_stubs):
+def test_training_init_run_maxent_training_delegates(monkeypatch, training_stubs):
     import maxent_grpo.training as training
 
-    with pytest.raises(NotImplementedError):
-        training.run_maxent_grpo()
+    called = {}
+
+    def _fake_run(*args, **kwargs):
+        called["args"] = args
+        called["kwargs"] = kwargs
+        return "ok"
+
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.maxent.run_maxent_training", _fake_run
+    )
+    result = training.run_maxent_training("s", "t", model="m")
+    assert result == "ok"
+    assert called["args"] == ("s", "t")
+    assert called["kwargs"] == {"model": "m"}
     exported = set(dir(training))
-    assert "run_maxent_grpo" in exported
+    assert "run_maxent_training" in exported
 
 
 def test_training_init_provides_wandb_stub(monkeypatch, training_stubs):
@@ -43,7 +52,7 @@ def test_training_init_provides_wandb_stub(monkeypatch, training_stubs):
     wandb_stub = sys.modules["wandb"]
 
     assert getattr(wandb_stub.errors, "Error") is RuntimeError
-    assert "run_maxent_grpo" in dir(training)
+    assert "run_maxent_training" in dir(training)
 
 
 def test_training_cli_reexports_parse_grpo_args(training_stubs):
@@ -114,7 +123,9 @@ def test_iter_eval_batches_and_compute_rewards(monkeypatch, training_stubs):
         return [float(len(a)) for a in answers]
 
     rewards = _compute_eval_rewards(
-        ["c1", "c2"], ["a1", "abc"], RewardSpec(reward_funcs=[r1, r2], reward_weights=[0.5, 1.0])
+        ["c1", "c2"],
+        ["a1", "abc"],
+        RewardSpec(reward_funcs=[r1, r2], reward_weights=[0.5, 1.0]),
     )
     assert rewards == [2.5, 3.5]
 
@@ -135,9 +146,15 @@ def test_iter_eval_batches_skips_empty_slices(training_stubs):
     assert batches == []
 
 
-def test_run_validation_step_logs_and_restores_model(monkeypatch, training_stubs, caplog):
+def test_run_validation_step_logs_and_restores_model(
+    monkeypatch, training_stubs, caplog
+):
     from maxent_grpo.training.eval import run_validation_step
-    from maxent_grpo.training.types import RewardSpec, EvaluationSettings, ValidationContext
+    from maxent_grpo.training.types import (
+        RewardSpec,
+        EvaluationSettings,
+        ValidationContext,
+    )
 
     class _Model:
         def __init__(self):
@@ -167,7 +184,12 @@ def test_run_validation_step_logs_and_restores_model(monkeypatch, training_stubs
         wait_for_everyone=lambda: caplog.records.append("waited"),  # type: ignore[arg-type]
     )
     model = _Model()
-    eval_cfg = EvaluationSettings(enabled=True, rows=[{"prompt": "p", "answer": "a"}], batch_size=1, every_n_steps=None)
+    eval_cfg = EvaluationSettings(
+        enabled=True,
+        rows=[{"prompt": "p", "answer": "a"}],
+        batch_size=1,
+        every_n_steps=None,
+    )
     ctx = ValidationContext(
         evaluation=eval_cfg,
         accelerator=accel,
@@ -175,7 +197,9 @@ def test_run_validation_step_logs_and_restores_model(monkeypatch, training_stubs
         reward=RewardSpec(reward_funcs=[_reward], reward_weights=[1.0]),
         generator=_generator,
         logging=SimpleNamespace(
-            log_metrics=lambda metrics, step: caplog.records.append(("log", metrics, step)),
+            log_metrics=lambda metrics, step: caplog.records.append(
+                ("log", metrics, step)
+            ),
             metric_writer=SimpleNamespace(log=lambda *_: None, flush=lambda: None),
         ),
     )
@@ -194,7 +218,9 @@ def test_run_validation_step_returns_when_disabled(training_stubs):
             raise AssertionError(f"attribute {name} should not be accessed")
 
     ctx = ValidationContext(
-        evaluation=EvaluationSettings(enabled=False, rows=[], batch_size=1, every_n_steps=None),
+        evaluation=EvaluationSettings(
+            enabled=False, rows=[], batch_size=1, every_n_steps=None
+        ),
         accelerator=_Exploding(),
         model=_Exploding(),
         reward=_Exploding(),

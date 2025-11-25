@@ -35,3 +35,8 @@ Notes
 - For large models (≥ 30B) or MATH‑heavy runs, the job script increases GPU count and uses tensor parallelism.
 - Check the Slurm script under `ops/slurm/evaluate.slurm` if you want to customize cluster resources.
 - To evaluate a single suite locally without Slurm, adapt `run_lighteval_job` to spawn `vllm` and `lighteval` processes on your workstation.
+- For a quick parity check between GRPO and MaxEnt checkpoints on the shared `math_500` pipeline, use the offline stub runner:
+
+  ```bash
+  make eval-math500-delta  # tools/eval_math_delta.py (stub runner + fixed dataset)
+  ```

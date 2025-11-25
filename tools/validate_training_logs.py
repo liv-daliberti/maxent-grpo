@@ -37,7 +37,13 @@ from typing import Any, Dict, Iterable, List, Sequence, Set
 
 
 DEFAULT_PATTERN = "logs/train_*.log"
-DEFAULT_REQUIRED_KEYS = {"train/loss", "train/learning_rate", "train/global_step"}
+DEFAULT_REQUIRED_KEYS = {
+    "train/loss",
+    "train/learning_rate",
+    "train/global_step",
+    "run/git_sha",
+    "run/recipe_path",
+}
 
 
 def _extract_json(line: str) -> Dict[str, Any] | None:

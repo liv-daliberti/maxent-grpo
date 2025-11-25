@@ -24,10 +24,33 @@ import types
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from maxent_grpo.config import (
+    GRPOConfig,
+    GRPOScriptArguments,
+    load_grpo_recipe,
+)
+from maxent_grpo.pipelines.generation.distilabel import (
+    DistilabelGenerationConfig,
+    run_generation_job,
+)
+from maxent_grpo.pipelines.inference.math500 import (
+    InferenceModelSpec,
+    Math500EvalConfig,
+    run_math500_inference,
+)
+
+
 class _HydraStub:
     """Minimal Hydra-like stub used when hydra is absent."""
 
     def main(self, *_args, **_kwargs):
+        """Return a decorator that forwards directly to the wrapped function.
+
+        :param _args: Positional arguments ignored by the stub.
+        :param _kwargs: Keyword arguments ignored by the stub.
+        :returns: Decorator mimicking :func:`hydra.main`.
+        """
+
         def _decorator(fn):
             def _wrapped(*_a, **_k):
                 return fn(*_a, **_k)
@@ -61,24 +84,16 @@ except ImportError:  # pragma: no cover - hydra not installed in minimal envs
             return payload
 
 
-from maxent_grpo.config import (
-    GRPOConfig,
-    GRPOScriptArguments,
-    load_grpo_recipe,
-)
-from maxent_grpo.pipelines.generation.distilabel import (
-    DistilabelGenerationConfig,
-    run_generation_job,
-)
-from maxent_grpo.pipelines.inference.math500 import (
-    InferenceModelSpec,
-    Math500EvalConfig,
-    run_math500_inference,
-)
-
-
 @dataclass
 class BaselineCommand:
+    """GRPO training command options for the baseline recipe.
+
+    :param recipe: Optional recipe file path to load default configs from.
+    :param script: Script-level overrides passed to GRPO script arguments.
+    :param training: Training argument overrides passed to GRPO config.
+    :param model: Model argument overrides passed to TRL model config.
+    """
+
     recipe: Optional[str] = None
     script: Dict[str, Any] = field(default_factory=dict)
     training: Dict[str, Any] = field(default_factory=dict)
@@ -87,6 +102,14 @@ class BaselineCommand:
 
 @dataclass
 class MaxentCommand:
+    """GRPO training command options for the MaxEnt recipe.
+
+    :param recipe: Optional recipe file path to load default configs from.
+    :param script: Script-level overrides passed to GRPO script arguments.
+    :param training: Training argument overrides passed to GRPO config.
+    :param model: Model argument overrides passed to TRL model config.
+    """
+
     recipe: Optional[str] = None
     script: Dict[str, Any] = field(default_factory=dict)
     training: Dict[str, Any] = field(default_factory=dict)
@@ -95,11 +118,24 @@ class MaxentCommand:
 
 @dataclass
 class GenerateCommand:
+    """Generation job configuration block.
+
+    :param args: Keyword arguments forwarded to :class:`DistilabelGenerationConfig`.
+    """
+
     args: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class InferenceCommand:
+    """Inference job configuration block.
+
+    :param models: Sequence of model specs to evaluate.
+    :param eval: Evaluation configuration for Math500.
+    :param limit: Optional cap on number of items to evaluate.
+    :param collect_generations: Whether to return collected generations.
+    """
+
     models: List[Dict[str, Any]] = field(default_factory=list)
     eval: Dict[str, Any] = field(default_factory=dict)
     limit: Optional[int] = None
@@ -108,6 +144,15 @@ class InferenceCommand:
 
 @dataclass
 class HydraRootConfig:
+    """Hydra root configuration covering all supported CLI commands.
+
+    :param command: Name of the subcommand to run.
+    :param baseline: Baseline training command configuration.
+    :param maxent: MaxEnt training command configuration.
+    :param generate: Generation job configuration.
+    :param inference: Inference job configuration.
+    """
+
     command: str = "train-baseline"
     baseline: BaselineCommand = field(default_factory=BaselineCommand)
     maxent: MaxentCommand = field(default_factory=MaxentCommand)
@@ -116,7 +161,11 @@ class HydraRootConfig:
 
 
 def _maybe_insert_command(default_command: str) -> None:
-    """Ensure hydra sees a command override for convenience entrypoints."""
+    """Ensure hydra sees a command override for convenience entrypoints.
+
+    :param default_command: Command name inserted when no explicit ``command=`` is present.
+    :returns: ``None``; updates ``sys.argv`` in-place when needed.
+    """
 
     if not any(arg.startswith("command=") for arg in sys.argv[1:]):
         sys.argv.insert(1, f"command={default_command}")
@@ -125,7 +174,11 @@ def _maybe_insert_command(default_command: str) -> None:
 def _build_grpo_configs(
     cmd: BaselineCommand | MaxentCommand,
 ) -> tuple[GRPOScriptArguments, GRPOConfig, Any]:
-    """Construct GRPO config objects from a command block."""
+    """Construct GRPO config objects from a command block.
+
+    :param cmd: Command payload defining script, training, and model sections.
+    :returns: Tuple of ``(script_args, training_args, model_config)`` ready to pass to training pipelines.
+    """
 
     if cmd.recipe:
         from trl import ModelConfig
@@ -141,7 +194,12 @@ def _build_grpo_configs(
 
 
 def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
-    """Dispatch hydra-configured subcommands (direct-call friendly)."""
+    """Dispatch hydra-configured subcommands (direct-call friendly).
+
+    :param cfg: Optional Hydra configuration object or plain dict derived from CLI files.
+    :returns: Result of the executed command, or ``None`` for commands that only have side effects.
+    :raises ValueError: If an unsupported command name is supplied.
+    """
 
     # When hydra is monkeypatched to a stub (tests), delegate to it directly.
     if not isinstance(hydra, types.ModuleType):
@@ -170,17 +228,10 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
         script_args, training_args, model_args = _build_grpo_configs(root.baseline)
         run_baseline_training(script_args, training_args, model_args)
     elif cmd == "train-maxent":
-        from maxent_grpo.training import run_maxent_grpo
+        from maxent_grpo.pipelines.training.maxent import run_maxent_training
 
         script_args, training_args, model_args = _build_grpo_configs(root.maxent)
-        try:
-            run_maxent_grpo(script_args, training_args, model_args)
-        except NotImplementedError as exc:
-            raise RuntimeError(
-                "MaxEnt training entrypoint is no longer provided via "
-                "training.run_maxent_grpo. Compose a runner using training.loop "
-                "or switch to the baseline GRPO pipeline."
-            ) from exc
+        run_maxent_training(script_args, training_args, model_args)
     elif cmd == "generate":
         gen_args = (
             root.generate.args if hasattr(root.generate, "args") else root.generate
@@ -208,31 +259,54 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
 
 
 def hydra_entry() -> None:
+    """Entry point for the top-level Hydra CLI.
+
+    :returns: ``None`` after invoking the configured command.
+    """
     _invoke_hydra_cli()
 
 
 def baseline_entry() -> None:
+    """Console script wrapper for baseline training.
+
+    :returns: ``None`` after dispatching to Hydra.
+    """
     _maybe_insert_command("train-baseline")
     _invoke_hydra_cli()
 
 
 def maxent_entry() -> None:
+    """Console script wrapper for MaxEnt training.
+
+    :returns: ``None`` after dispatching to Hydra.
+    """
     _maybe_insert_command("train-maxent")
     _invoke_hydra_cli()
 
 
 def generate_entry() -> None:
+    """Console script wrapper for dataset generation.
+
+    :returns: ``None`` after dispatching to Hydra.
+    """
     _maybe_insert_command("generate")
     _invoke_hydra_cli()
 
 
 def inference_entry() -> None:
+    """Console script wrapper for math inference evaluation.
+
+    :returns: ``None`` after dispatching to Hydra.
+    """
     _maybe_insert_command("inference")
     _invoke_hydra_cli()
 
 
 def _invoke_hydra_cli() -> Any:
-    """Invoke hydra_main through Hydra's decorator wrapper for CLI use."""
+    """Invoke hydra_main through Hydra's decorator wrapper for CLI use.
+
+    :returns: Result of :func:`hydra_main`, forwarded directly.
+    """
     if not isinstance(hydra, types.ModuleType):
         return hydra_main()
     decorated = hydra.main(version_base=None, config_name=None)(hydra_main)

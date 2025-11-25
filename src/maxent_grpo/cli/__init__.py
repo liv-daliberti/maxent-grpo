@@ -18,13 +18,24 @@ CLI helper utilities shared across entrypoints.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Tuple
+
 from .generate import build_generate_parser
+
+if TYPE_CHECKING:
+    from trl import ModelConfig
+
+    from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
 __all__ = ["parse_grpo_args", "build_generate_parser"]
 
 
-def parse_grpo_args():
-    """Lazily import the TRL parser to avoid heavyweight deps at import time."""
+def parse_grpo_args() -> Tuple["GRPOScriptArguments", "GRPOConfig", "ModelConfig"]:
+    """Parse GRPO CLI arguments (lazy import to keep deps light).
+
+    :returns: Tuple of script args, training args, and model config parsed by TRL.
+    :raises ImportError: If the TRL dependency is missing.
+    """
     from maxent_grpo.training.cli import parse_grpo_args as _parse_grpo_args
 
     return _parse_grpo_args()

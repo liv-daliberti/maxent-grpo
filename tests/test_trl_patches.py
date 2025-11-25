@@ -23,7 +23,11 @@ import sys
 
 import pytest
 
-from maxent_grpo.patches.trl import _PATCH_STATE, _resolve_port_from_env, ensure_vllm_group_port
+from maxent_grpo.patches.trl import (
+    _PATCH_STATE,
+    _resolve_port_from_env,
+    ensure_vllm_group_port,
+)
 
 
 def test_resolve_port_from_env_prefers_primary(monkeypatch):
@@ -52,10 +56,16 @@ def test_ensure_vllm_group_port_injects_env(monkeypatch):
         def __init__(self, **kwargs):
             self.kwargs = kwargs
 
-    trl_stub = types.SimpleNamespace(extras=types.SimpleNamespace(vllm_client=types.SimpleNamespace(VLLMClient=_Client)))
+    trl_stub = types.SimpleNamespace(
+        extras=types.SimpleNamespace(
+            vllm_client=types.SimpleNamespace(VLLMClient=_Client)
+        )
+    )
     monkeypatch.setitem(sys.modules, "trl", types.SimpleNamespace())
     monkeypatch.setitem(sys.modules, "trl.extras", trl_stub.extras)
-    monkeypatch.setitem(sys.modules, "trl.extras.vllm_client", trl_stub.extras.vllm_client)
+    monkeypatch.setitem(
+        sys.modules, "trl.extras.vllm_client", trl_stub.extras.vllm_client
+    )
 
     monkeypatch.setenv("VLLM_GROUP_PORT", "4242")
     ensure_vllm_group_port()
@@ -72,10 +82,16 @@ def test_ensure_vllm_group_port_is_idempotent(monkeypatch):
             calls.setdefault("count", 0)
             calls["count"] += 1
 
-    trl_stub = types.SimpleNamespace(extras=types.SimpleNamespace(vllm_client=types.SimpleNamespace(VLLMClient=_Client)))
+    trl_stub = types.SimpleNamespace(
+        extras=types.SimpleNamespace(
+            vllm_client=types.SimpleNamespace(VLLMClient=_Client)
+        )
+    )
     monkeypatch.setitem(sys.modules, "trl", types.SimpleNamespace())
     monkeypatch.setitem(sys.modules, "trl.extras", trl_stub.extras)
-    monkeypatch.setitem(sys.modules, "trl.extras.vllm_client", trl_stub.extras.vllm_client)
+    monkeypatch.setitem(
+        sys.modules, "trl.extras.vllm_client", trl_stub.extras.vllm_client
+    )
 
     ensure_vllm_group_port()
     ensure_vllm_group_port()
@@ -91,10 +107,16 @@ def test_ensure_vllm_group_port_no_override_logs_debug(monkeypatch, caplog):
         def __init__(self, **kwargs):
             self.kwargs = kwargs
 
-    trl_stub = types.SimpleNamespace(extras=types.SimpleNamespace(vllm_client=types.SimpleNamespace(VLLMClient=_Client)))
+    trl_stub = types.SimpleNamespace(
+        extras=types.SimpleNamespace(
+            vllm_client=types.SimpleNamespace(VLLMClient=_Client)
+        )
+    )
     monkeypatch.setitem(sys.modules, "trl", types.SimpleNamespace())
     monkeypatch.setitem(sys.modules, "trl.extras", trl_stub.extras)
-    monkeypatch.setitem(sys.modules, "trl.extras.vllm_client", trl_stub.extras.vllm_client)
+    monkeypatch.setitem(
+        sys.modules, "trl.extras.vllm_client", trl_stub.extras.vllm_client
+    )
     monkeypatch.delenv("VLLM_GROUP_PORT", raising=False)
     monkeypatch.delenv("MASTER_PORT", raising=False)
     monkeypatch.delenv("MAIN_PROCESS_PORT", raising=False)

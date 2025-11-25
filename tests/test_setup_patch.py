@@ -88,7 +88,9 @@ def test_trl_patch_raises_when_anchor_missing(tmp_path, monkeypatch):
     target = tmp_path / "vllm_serve.py"
     target.write_text("def noop():\n    return None\n", encoding="utf-8")
     _install_fake_trl(monkeypatch, target)
-    setup_mod = _load_setup_module(monkeypatch, module_name="setup_patch_missing_anchor")
+    setup_mod = _load_setup_module(
+        monkeypatch, module_name="setup_patch_missing_anchor"
+    )
 
     with pytest.raises(RuntimeError) as excinfo:
         setup_mod._patch_trl_vllm_serve()

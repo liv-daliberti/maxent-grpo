@@ -14,95 +14,135 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-"""Tests for training.rewards."""
-
 import sys
 from types import ModuleType, SimpleNamespace
 
 import pytest
 
-torch_module = sys.modules.setdefault("torch", ModuleType("torch"))
-torch_module.__spec__ = getattr(torch_module, "__spec__", SimpleNamespace())
-torch_module.__path__ = getattr(torch_module, "__path__", [])
-if not hasattr(torch_module, "Tensor"):
-    torch_module.Tensor = type("Tensor", (), {})
-torch_utils_module = sys.modules.setdefault("torch.utils", ModuleType("torch.utils"))
-torch_utils_module.__spec__ = getattr(torch_utils_module, "__spec__", SimpleNamespace())
-torch_utils_module.__path__ = getattr(torch_utils_module, "__path__", [])
-torch_data_module = sys.modules.setdefault(
-    "torch.utils.data", ModuleType("torch.utils.data")
-)
-torch_data_module.__spec__ = getattr(torch_data_module, "__spec__", SimpleNamespace())
-torch_data_module.__path__ = getattr(torch_data_module, "__path__", [])
-if not hasattr(torch_data_module, "DataLoader"):
 
-    class _DataLoader:  # minimal stub
-        pass
+def _install_stubs() -> None:
+    """Install minimal torch/accelerate/transformers stubs for reward tests."""
 
-    torch_data_module.DataLoader = _DataLoader
-if not hasattr(torch_data_module, "Sampler"):
+    torch_module = sys.modules.setdefault("torch", ModuleType("torch"))
+    torch_module.__spec__ = getattr(torch_module, "__spec__", SimpleNamespace())
+    torch_module.__path__ = getattr(torch_module, "__path__", [])
+    if not hasattr(torch_module, "Tensor"):
+        torch_module.Tensor = type("Tensor", (), {})
+    torch_utils_module = sys.modules.setdefault(
+        "torch.utils", ModuleType("torch.utils")
+    )
+    torch_utils_module.__spec__ = getattr(
+        torch_utils_module, "__spec__", SimpleNamespace()
+    )
+    torch_utils_module.__path__ = getattr(torch_utils_module, "__path__", [])
+    torch_data_module = sys.modules.setdefault(
+        "torch.utils.data", ModuleType("torch.utils.data")
+    )
+    torch_data_module.__spec__ = getattr(
+        torch_data_module, "__spec__", SimpleNamespace()
+    )
+    torch_data_module.__path__ = getattr(torch_data_module, "__path__", [])
+    if not hasattr(torch_data_module, "DataLoader"):
 
-    class _Sampler:
-        pass
+        class _DataLoader:  # minimal stub
+            pass
 
-    torch_data_module.Sampler = _Sampler
-torch_utils_module.data = torch_data_module
-torch_module.utils = torch_utils_module
-torch_optim_module = sys.modules.setdefault("torch.optim", ModuleType("torch.optim"))
-torch_optim_module.__spec__ = getattr(torch_optim_module, "__spec__", SimpleNamespace())
-torch_optim_module.Optimizer = type("Optimizer", (), {})
-torch_module.optim = torch_optim_module
-torch_nn_module = sys.modules.setdefault("torch.nn", ModuleType("torch.nn"))
-torch_nn_module.__spec__ = getattr(torch_nn_module, "__spec__", SimpleNamespace())
-torch_nn_functional = sys.modules.setdefault(
-    "torch.nn.functional",
-    ModuleType("torch.nn.functional"),
-)
-torch_nn_functional.__spec__ = getattr(
-    torch_nn_functional, "__spec__", SimpleNamespace()
-)
-if not hasattr(torch_nn_functional, "log_softmax"):
+        torch_data_module.DataLoader = _DataLoader
+    if not hasattr(torch_data_module, "Sampler"):
 
-    def _log_softmax(*_args, **_kwargs):
-        raise NotImplementedError
+        class _Sampler:
+            pass
 
-    torch_nn_functional.log_softmax = _log_softmax
+        torch_data_module.Sampler = _Sampler
+    torch_utils_module.data = torch_data_module
+    torch_module.utils = torch_utils_module
+    torch_optim_module = sys.modules.setdefault(
+        "torch.optim", ModuleType("torch.optim")
+    )
+    torch_optim_module.__spec__ = getattr(
+        torch_optim_module, "__spec__", SimpleNamespace()
+    )
+    torch_optim_module.Optimizer = type("Optimizer", (), {})
+    torch_module.optim = torch_optim_module
+    torch_nn_module = sys.modules.setdefault("torch.nn", ModuleType("torch.nn"))
+    torch_nn_module.__spec__ = getattr(torch_nn_module, "__spec__", SimpleNamespace())
+    torch_nn_functional = sys.modules.setdefault(
+        "torch.nn.functional",
+        ModuleType("torch.nn.functional"),
+    )
+    torch_nn_functional.__spec__ = getattr(
+        torch_nn_functional, "__spec__", SimpleNamespace()
+    )
+    if not hasattr(torch_nn_functional, "log_softmax"):
 
-accelerate_module = sys.modules.setdefault("accelerate", ModuleType("accelerate"))
-accelerate_module.__spec__ = getattr(accelerate_module, "__spec__", SimpleNamespace())
-if not hasattr(accelerate_module, "Accelerator"):
+        def _log_softmax(*_args, **_kwargs):
+            raise NotImplementedError
 
-    class _Accel:
-        def __init__(self, **_kwargs):
-            self.is_main_process = True
-            self.process_index = 0
+        torch_nn_functional.log_softmax = _log_softmax
 
-    accelerate_module.Accelerator = _Accel
+    accelerate_module = sys.modules.setdefault("accelerate", ModuleType("accelerate"))
+    accelerate_module.__spec__ = getattr(
+        accelerate_module, "__spec__", SimpleNamespace()
+    )
+    if not hasattr(accelerate_module, "Accelerator"):
 
-transformers_module = sys.modules.setdefault("transformers", ModuleType("transformers"))
-transformers_module.__spec__ = getattr(
-    transformers_module, "__spec__", SimpleNamespace()
-)
-if not hasattr(transformers_module, "PreTrainedModel"):
+        class _Accel:
+            def __init__(self, **_kwargs):
+                self.is_main_process = True
+                self.process_index = 0
 
-    class _PreTrainedModel:
-        pass
+        accelerate_module.Accelerator = _Accel
 
-    class _PreTrainedTokenizer:
-        pass
+    transformers_module = sys.modules.setdefault(
+        "transformers", ModuleType("transformers")
+    )
+    transformers_module.__spec__ = getattr(
+        transformers_module, "__spec__", SimpleNamespace()
+    )
+    if not hasattr(transformers_module, "PreTrainedModel"):
 
-    transformers_module.PreTrainedModel = _PreTrainedModel
-    transformers_module.PreTrainedTokenizer = _PreTrainedTokenizer
+        class _PreTrainedModel:
+            pass
 
-import maxent_grpo.training.rewards as rr  # noqa: E402
-from maxent_grpo.training.rewards import (  # noqa: E402
+        class _PreTrainedTokenizer:
+            pass
+
+        transformers_module.PreTrainedModel = _PreTrainedModel
+        transformers_module.PreTrainedTokenizer = _PreTrainedTokenizer
+
+
+def _imports():
+    _install_stubs()
+    import maxent_grpo.training.rewards as rr
+    from maxent_grpo.training.rewards import (
+        RewardComputation,
+        RewardSpec,
+        prepare_generation_batch,
+    )
+    from maxent_grpo.generation import flatten_ref_metadata
+    from maxent_grpo.training.types import GenerationBatch
+    from maxent_grpo.patches.vllm import VLLMLogprobResult
+
+    return (
+        rr,
+        RewardComputation,
+        RewardSpec,
+        prepare_generation_batch,
+        flatten_ref_metadata,
+        GenerationBatch,
+        VLLMLogprobResult,
+    )
+
+
+(
+    rr,
     RewardComputation,
     RewardSpec,
     prepare_generation_batch,
-)
-from maxent_grpo.generation import flatten_ref_metadata  # noqa: E402
-from maxent_grpo.training.types import GenerationBatch  # noqa: E402
-from maxent_grpo.patches.vllm import VLLMLogprobResult  # noqa: E402
+    flatten_ref_metadata,
+    GenerationBatch,
+    VLLMLogprobResult,
+) = _imports()
 
 
 def test_prepare_generation_batch_keeps_partial_and_drops_empty():

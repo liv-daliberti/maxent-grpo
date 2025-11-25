@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
 
 from maxent_grpo.training.types.logging import (
     LoggingHandles,

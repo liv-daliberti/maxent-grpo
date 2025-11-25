@@ -32,7 +32,7 @@ except ImportError:  # pragma: no cover - fallback when accelerate absent
         DEEPSPEED = "deepspeed"
 
 
-from .run_helpers import require_torch
+from maxent_grpo.training.runtime import require_torch
 from .types import (
     Accelerator,
     OptimizationSchedule,

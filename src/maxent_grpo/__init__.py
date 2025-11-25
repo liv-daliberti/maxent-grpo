@@ -12,11 +12,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-"""
 
-from __future__ import annotations
-
-"""MaxEnt-GRPO Python package namespace.
+MaxEnt-GRPO Python package namespace.
 
 All public modules live under this package (e.g., ``maxent_grpo.training``,
 ``maxent_grpo.pipelines``, ``maxent_grpo.cli``).  Importing :mod:`maxent_grpo`
@@ -24,6 +21,8 @@ exposes those submodules through a light lazy-loader so code can use
 ``from maxent_grpo import training`` without pulling heavy dependencies until
 they are actually accessed.
 """
+
+from __future__ import annotations
 
 from importlib import import_module
 from types import ModuleType
@@ -34,9 +33,7 @@ _LAZY_MODULES: Dict[str, str] = {
     "config": "maxent_grpo.config",
     "core": "maxent_grpo.core",
     "generation": "maxent_grpo.generation",
-    "grpo": "maxent_grpo.grpo",
     "inference": "maxent_grpo.inference",
-    "maxent_grpo": "maxent_grpo.maxent_grpo",
     "patches": "maxent_grpo.patches",
     "pipelines": "maxent_grpo.pipelines",
     "rewards": "maxent_grpo.rewards",

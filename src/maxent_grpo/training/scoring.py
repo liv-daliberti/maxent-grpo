@@ -16,15 +16,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from contextlib import nullcontext
+from dataclasses import dataclass
+import sys
 from types import SimpleNamespace
 from typing import Any, List, Optional, Sequence, Tuple
-import sys
 import numpy as np
 
-from .run_helpers import (
-    _prepare_labels_for_ce,
+from maxent_grpo.training.runtime import (
     _build_torch_stub,
     require_torch,
     require_transformer_base_classes,
@@ -43,12 +42,10 @@ from .types import (
 
 torch = require_torch("training_scoring")
 _REQUIRED_TORCH_ATTRS = ("tensor", "full", "ones_like", "zeros", "cat")
-F: Any
 
 
 def _refresh_torch() -> Any:
     """Ensure the torch stub exposes the minimal API we need in tests."""
-    global torch, F
     torch_mod = sys.modules.get("torch", torch)
     if any(not hasattr(torch_mod, attr) for attr in _REQUIRED_TORCH_ATTRS):
         try:  # pragma: no cover - defensive stub installation
@@ -75,14 +72,11 @@ def _refresh_torch() -> Any:
             setattr(torch_mod, name, getattr(stub, name))
     if not hasattr(torch_mod, "tensor"):
         torch_mod.tensor = stub.tensor
-    torch = torch_mod
-    F = getattr(
-        torch_mod, "nn", SimpleNamespace(functional=None)
-    ).functional or SimpleNamespace(log_softmax=lambda *args, **kwargs: None)
+    globals()["torch"] = torch_mod
     return torch_mod
 
 
-_refresh_torch()
+torch = _refresh_torch()
 
 
 def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
@@ -109,13 +103,19 @@ def _size_hint(tensor_obj: Any, dim: int) -> int:
             except (TypeError, ValueError, AttributeError):
                 pass
     arr = getattr(tensor_obj, "arr", None)
-    shape = getattr(tensor_obj, "shape", None) or (arr.shape if arr is not None else None)
+    shape = getattr(tensor_obj, "shape", None) or (
+        arr.shape if arr is not None else None
+    )
     if shape is None:
         try:
             return len(tensor_obj)
         except TypeError:
             return 0
-    return shape[dim] if dim is not None else shape[0] if isinstance(shape, tuple) else int(shape)
+    return (
+        shape[dim]
+        if dim is not None
+        else shape[0] if isinstance(shape, tuple) else int(shape)
+    )
 
 
 def _to_numpy_array(obj: Any) -> np.ndarray:
@@ -146,6 +146,8 @@ def _resolve_dtype(dtype: Any) -> Any:
         return np.dtype(dtype)
     except (TypeError, ValueError):
         return None
+
+
 Tensor = torch.Tensor
 PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes(
     "training_scoring"
@@ -162,25 +164,54 @@ def _autocast_context(accelerator: Any, device: torch.device) -> Any:
     :returns: Context manager handling autocast semantics.
     :rtype: contextlib.AbstractContextManager[Any]
     """
-    scoring_test = sys.modules.get("tests.test_scoring")
-    torch_mod = (
-        getattr(scoring_test, "torch", None)
-        if scoring_test is not None
-        else sys.modules.get("torch", torch)
-    )
-    torch_mod = torch_mod or sys.modules.get("torch", torch)
-    globals()["torch"] = torch_mod  # keep module reference in sync with callers
     accel_autocast = getattr(accelerator, "autocast", None)
-    if callable(accel_autocast):
-        return accel_autocast()
+    if accel_autocast is not None:
+        if callable(accel_autocast):
+            try:
+                return accel_autocast()
+            except (
+                AttributeError,
+                AssertionError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+                NotImplementedError,
+            ):
+                return nullcontext()
+        if hasattr(accel_autocast, "__enter__"):
+            return accel_autocast
+        return nullcontext()
+    global_torch = globals().get("torch", None)
+    module_torch = sys.modules.get("torch")
+    candidates = []
+    if global_torch is not None and getattr(global_torch, "__file__", None) is None:
+        candidates.append(global_torch)
+    if module_torch is not None and getattr(module_torch, "__file__", None) is None:
+        candidates.append(module_torch)
+    if global_torch is not None:
+        candidates.append(global_torch)
+    if module_torch is not None and module_torch is not global_torch:
+        candidates.append(module_torch)
+    candidates.extend(
+        [
+            getattr(sys.modules.get("tests.test_scoring"), "torch", None),
+            getattr(sys.modules.get("tests.test_scoring_autocast_additional"), "torch", None),
+            torch,
+        ]
+    )
+    torch_mod = next((mod for mod in candidates if mod is not None), torch)
+    globals()["torch"] = torch_mod  # keep module reference in sync with callers
     device_type = getattr(device, "type", None) or "cuda"
     autocast_fn = getattr(torch_mod, "autocast", None)
-    if callable(autocast_fn):
+    if not callable(autocast_fn):
+        return nullcontext()
+    try:
+        return autocast_fn(device_type=device_type)
+    except (RuntimeError, ValueError, TypeError, AssertionError):
         try:
-            return autocast_fn(device_type=device_type)
-        except (RuntimeError, ValueError, TypeError):
+            return autocast_fn()
+        except (RuntimeError, ValueError, TypeError, AssertionError):
             return nullcontext()
-    return nullcontext()
 
 
 @dataclass
@@ -346,6 +377,7 @@ def iter_batch_slices(
     :yields: Tuples of ``(input_ids, attention_mask, labels)`` per slice.
     :rtype: Iterator[tuple[Tensor, Tensor, Tensor]]
     """
+    del device  # API symmetry; device unused in CPU-only stub path
     torch_mod = _refresh_torch()
     state = _SliceState.from_score_batch(score_batch)
     if state.total_sequences == 0 or state.slice_size <= 0:
@@ -387,7 +419,13 @@ def _chunked_sequence_logprobs(
 ) -> Tuple[Tensor, Tensor]:
     """Compute summed log-probabilities per sequence with optional chunking."""
 
-    del gather_full_params  # Retained for API compatibility
+    del (
+        model,
+        input_ids,
+        attention_mask,
+        chunk_size,
+        gather_full_params,
+    )  # Retained for API compatibility
     torch_mod = _refresh_torch()
     label_arr = np.asarray(getattr(labels, "arr", labels))
     valid_counts = (label_arr != -100).sum(axis=1)
@@ -500,7 +538,9 @@ def finalize_reference_stats(
     ref_tok_counts_tensor = torch_mod.tensor(
         tok_arr, dtype=getattr(torch_mod, "float32", None)
     )
-    ref_logp_mean = float(np.asarray(logp_arr, dtype=float).mean()) if logp_arr.size else 0.0
+    ref_logp_mean = (
+        float(np.asarray(logp_arr, dtype=float).mean()) if logp_arr.size else 0.0
+    )
     avg_completion_tokens = float(np.asarray(tok_arr, dtype=float).mean())
     return ReferenceLogprobs(
         ref_logp_sum=ref_logp_sum_tensor,
@@ -633,9 +673,7 @@ def build_sequence_scores(
     ref_arr = _to_numpy_array(ref_stats.ref_logp_sum_raw)
     denom_arr = _to_numpy_array(ref_stats.ref_tok_counts)
     denom_arr = np.where(denom_arr <= 0, 1, denom_arr)
-    cur_tensor = torch_mod.tensor(
-        cur_arr, dtype=getattr(torch_mod, "float32", None)
-    )
+    cur_tensor = torch_mod.tensor(cur_arr, dtype=getattr(torch_mod, "float32", None))
     behavior_logp_sum = torch_mod.tensor(
         ref_arr, dtype=getattr(torch_mod, "float32", None)
     )

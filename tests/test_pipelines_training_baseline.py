@@ -18,6 +18,7 @@ Unit tests for the baseline training pipeline stub.
 
 from __future__ import annotations
 
+import importlib
 from types import ModuleType, SimpleNamespace
 import sys
 
@@ -103,7 +104,11 @@ def test_run_baseline_training_wires_components(monkeypatch):
     monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
     # Log to a dummy handler to avoid noisy output during test
     monkeypatch.setattr(baseline.logging, "basicConfig", lambda **_k: None)
-    monkeypatch.setattr(baseline.logging, "getLogger", lambda name=None: baseline.logging.Logger(name or "test"))
+    monkeypatch.setattr(
+        baseline.logging,
+        "getLogger",
+        lambda name=None: baseline.logging.Logger(name or "test"),
+    )
     train_called = {}
 
     class _Trainer:
@@ -166,7 +171,9 @@ def test_run_baseline_training_fallback_paths(monkeypatch):
         def __len__(self):
             return 10
 
-        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
+        def apply_chat_template(
+            self, messages, tokenize=False, add_generation_prompt=True
+        ):
             return messages[-1]["content"] + "|chat"
 
         def __setattr__(self, name, value):
@@ -176,7 +183,9 @@ def test_run_baseline_training_fallback_paths(monkeypatch):
 
     class _Model:
         def __init__(self):
-            self.config = SimpleNamespace(pad_token_id=None, save_pretrained=lambda *_: None)
+            self.config = SimpleNamespace(
+                pad_token_id=None, save_pretrained=lambda *_: None
+            )
 
         def resize_token_embeddings(self, size):
             self.config.pad_token_id = size
@@ -185,7 +194,9 @@ def test_run_baseline_training_fallback_paths(monkeypatch):
         def __init__(self, **kwargs):
             self.kwargs = kwargs
             self.accelerator = SimpleNamespace(is_main_process=True)
-            self.model = SimpleNamespace(config=SimpleNamespace(use_cache=False, save_pretrained=lambda *_: None))
+            self.model = SimpleNamespace(
+                config=SimpleNamespace(use_cache=False, save_pretrained=lambda *_: None)
+            )
             self.train_dataset = kwargs.get("train_dataset")
             self.eval_dataset = kwargs.get("eval_dataset")
 
@@ -244,7 +255,11 @@ def test_run_baseline_training_fallback_paths(monkeypatch):
     training_args.dataset_test_split = None
     model_args = sys.modules["trl"].ModelConfig()
 
-    monkeypatch.setattr(sys.modules["transformers.trainer_utils"], "get_last_checkpoint", lambda *_: None)
+    monkeypatch.setattr(
+        sys.modules["transformers.trainer_utils"],
+        "get_last_checkpoint",
+        lambda *_: None,
+    )
     monkeypatch.setattr(baseline.os.path, "isdir", lambda path: False)
     monkeypatch.setattr(baseline.os, "makedirs", lambda *a, **k: None)
 
@@ -260,7 +275,9 @@ def test_run_baseline_training_fallback_paths(monkeypatch):
     assert trainer.pushed["dataset_name"] == "ds"
     # Exercise fallback _Split helpers
     assert trainer.train_dataset.remove_columns("messages") is trainer.train_dataset
-    assert trainer.train_dataset.shuffle(seed=training_args.seed) is trainer.train_dataset
+    assert (
+        trainer.train_dataset.shuffle(seed=training_args.seed) is trainer.train_dataset
+    )
     assert trainer.train_dataset.select(range(1)) is trainer.train_dataset
 
 
@@ -300,13 +317,25 @@ def test_resume_requests_and_messages_removed(monkeypatch, tmp_path):
 
     baseline.GRPOTrainerOverride = _trainer_factory
     monkeypatch.setattr(baseline, "get_dataset", lambda *_: _Dataset())
-    monkeypatch.setattr(baseline, "get_tokenizer", lambda *_: SimpleNamespace(pad_token_id=0, eos_token_id=0))
-    monkeypatch.setattr(baseline, "get_model", lambda *_: SimpleNamespace(config=SimpleNamespace(pad_token_id=0)))
+    monkeypatch.setattr(
+        baseline,
+        "get_tokenizer",
+        lambda *_: SimpleNamespace(pad_token_id=0, eos_token_id=0),
+    )
+    monkeypatch.setattr(
+        baseline,
+        "get_model",
+        lambda *_: SimpleNamespace(config=SimpleNamespace(pad_token_id=0)),
+    )
     monkeypatch.setattr(baseline, "get_reward_funcs", lambda *_: [])
     monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
     monkeypatch.setattr(baseline.os.path, "isdir", lambda path: path == str(tmp_path))
     monkeypatch.setattr(baseline.logging, "basicConfig", lambda **_k: None)
-    monkeypatch.setattr(sys.modules["transformers.trainer_utils"], "get_last_checkpoint", lambda path: None)
+    monkeypatch.setattr(
+        sys.modules["transformers.trainer_utils"],
+        "get_last_checkpoint",
+        lambda path: None,
+    )
     monkeypatch.setattr(baseline.os, "makedirs", lambda *a, **k: None)
 
     script_args = baseline.GRPOScriptArguments(dataset_name="ds")
@@ -349,12 +378,24 @@ def test_output_dir_resume(monkeypatch, tmp_path):
 
     baseline.GRPOTrainerOverride = lambda **kwargs: _Trainer(**kwargs)
     monkeypatch.setattr(baseline, "get_dataset", lambda *_: _Dataset())
-    monkeypatch.setattr(baseline, "get_tokenizer", lambda *_: SimpleNamespace(pad_token_id=0, eos_token_id=0))
-    monkeypatch.setattr(baseline, "get_model", lambda *_: SimpleNamespace(config=SimpleNamespace(pad_token_id=0)))
+    monkeypatch.setattr(
+        baseline,
+        "get_tokenizer",
+        lambda *_: SimpleNamespace(pad_token_id=0, eos_token_id=0),
+    )
+    monkeypatch.setattr(
+        baseline,
+        "get_model",
+        lambda *_: SimpleNamespace(config=SimpleNamespace(pad_token_id=0)),
+    )
     monkeypatch.setattr(baseline, "get_reward_funcs", lambda *_: [])
     monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
     monkeypatch.setattr(baseline.os.path, "isdir", lambda path: path == str(tmp_path))
-    monkeypatch.setattr(sys.modules["transformers.trainer_utils"], "get_last_checkpoint", lambda path: "ckpt-path")
+    monkeypatch.setattr(
+        sys.modules["transformers.trainer_utils"],
+        "get_last_checkpoint",
+        lambda path: "ckpt-path",
+    )
     monkeypatch.setattr(baseline.os, "makedirs", lambda *a, **k: None)
     monkeypatch.setattr(baseline.logging, "basicConfig", lambda **_k: None)
 
@@ -401,9 +442,19 @@ def test_eval_dataset_messages_removed(monkeypatch):
 
     eval_ds = _EvalDS()
     baseline.GRPOTrainerOverride = lambda **kwargs: _Trainer(**kwargs)
-    monkeypatch.setattr(baseline, "get_dataset", lambda *_: {"train": [{"prompt": "p", "answer": "a"}]})
-    monkeypatch.setattr(baseline, "get_tokenizer", lambda *_: SimpleNamespace(pad_token_id=0, eos_token_id=0))
-    monkeypatch.setattr(baseline, "get_model", lambda *_: SimpleNamespace(config=SimpleNamespace(pad_token_id=0)))
+    monkeypatch.setattr(
+        baseline, "get_dataset", lambda *_: {"train": [{"prompt": "p", "answer": "a"}]}
+    )
+    monkeypatch.setattr(
+        baseline,
+        "get_tokenizer",
+        lambda *_: SimpleNamespace(pad_token_id=0, eos_token_id=0),
+    )
+    monkeypatch.setattr(
+        baseline,
+        "get_model",
+        lambda *_: SimpleNamespace(config=SimpleNamespace(pad_token_id=0)),
+    )
     monkeypatch.setattr(baseline, "get_reward_funcs", lambda *_: [])
     monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
     monkeypatch.setattr(
@@ -425,6 +476,99 @@ def test_eval_dataset_messages_removed(monkeypatch):
 
     baseline.run_baseline_training(script_args, training_args, model_args)
     assert eval_ds.removed is True
+
+
+def test_baseline_sets_seed_utils_and_existing_resume(monkeypatch, tmp_path):
+    # Provide a transformer stub missing set_seed/utils to exercise fallbacks.
+    tf_stub = ModuleType("transformers")
+    tf_stub.trainer_utils = ModuleType("transformers.trainer_utils")
+    tf_stub.trainer_utils.get_last_checkpoint = lambda *_a, **_k: None
+    tf_stub.PreTrainedModel = type("PreTrainedModel", (), {})
+    tf_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (), {})
+    monkeypatch.setitem(sys.modules, "transformers", tf_stub)
+    monkeypatch.setitem(
+        sys.modules, "transformers.trainer_utils", tf_stub.trainer_utils
+    )
+    monkeypatch.delitem(sys.modules, "transformers.utils", raising=False)
+
+    trl_stub = ModuleType("trl")
+    trl_stub.ModelConfig = type("ModelConfig", (), {})
+    trl_stub.GRPOTrainer = lambda *args, **kwargs: SimpleNamespace()
+    trl_stub.get_peft_config = lambda *_a, **_k: "peft"
+    monkeypatch.setitem(sys.modules, "trl", trl_stub)
+
+    reloaded = importlib.reload(baseline)
+
+    raw_ds = {
+        "train": [{"prompt": "p", "answer": "a"} for _ in range(5)],
+        "validation": [{"prompt": "v", "answer": "b"} for _ in range(10)],
+    }
+
+    class _Tokenizer:
+        def __init__(self):
+            self.pad_token_id = 0
+            self.eos_token_id = 0
+            self.pad_token = "<pad>"
+
+    class _Model:
+        def __init__(self):
+            self.config = SimpleNamespace(pad_token_id=0, use_cache=False)
+
+    train_log = {}
+
+    class _Trainer:
+        def __init__(self, **kwargs):
+            train_log["kwargs"] = kwargs
+            self.accelerator = SimpleNamespace(is_main_process=True)
+            self.model = SimpleNamespace(
+                config=SimpleNamespace(use_cache=False, save_pretrained=lambda *_: None)
+            )
+
+        def train(self, resume_from_checkpoint=None):
+            train_log["resume"] = resume_from_checkpoint
+            return SimpleNamespace(metrics={"ok": 1})
+
+        def log_metrics(self, split, metrics):
+            train_log.setdefault("log", []).append((split, metrics))
+
+        def save_metrics(self, split, metrics):
+            train_log.setdefault("save", []).append((split, metrics))
+
+        def save_state(self):
+            train_log["state"] = True
+
+        def save_model(self, *args, **kwargs):
+            return None
+
+        def evaluate(self):
+            return {"eval": 1}
+
+    reloaded.GRPOTrainerOverride = lambda **kwargs: _Trainer(**kwargs)
+    monkeypatch.setattr(reloaded, "get_dataset", lambda *_: raw_ds)
+    monkeypatch.setattr(reloaded, "get_tokenizer", lambda *_: _Tokenizer())
+    monkeypatch.setattr(reloaded, "get_model", lambda *_: _Model())
+    monkeypatch.setattr(reloaded, "get_reward_funcs", lambda *_: [])
+    monkeypatch.setattr(reloaded, "ensure_vllm_group_port", lambda: None)
+    monkeypatch.setattr(reloaded.logging, "basicConfig", lambda **_k: None)
+    monkeypatch.setattr(reloaded.os.path, "isdir", lambda path: True)
+    monkeypatch.setattr(reloaded.os, "makedirs", lambda *a, **k: None)
+
+    script_args = reloaded.GRPOScriptArguments(dataset_name="ds")
+    training_args = reloaded.GRPOConfig()
+    training_args.do_eval = True
+    training_args.seed = 123
+    training_args.output_dir = str(tmp_path)
+    training_args.resume_from_checkpoint = "ckpt-dir"
+    training_args.get_process_log_level = lambda: 20
+    model_args = trl_stub.ModelConfig()
+
+    reloaded.run_baseline_training(script_args, training_args, model_args)
+    # set_seed/utils fallback should be installed
+    assert hasattr(reloaded.transformers, "set_seed")
+    assert hasattr(reloaded.transformers, "utils")
+    # Existing resume path should propagate to trainer
+    assert training_args.resume_from_checkpoint == "ckpt-dir"
+    assert train_log["resume"] == "ckpt-dir"
 
 
 def test_pad_token_uses_eos_when_missing(monkeypatch):
@@ -458,7 +602,9 @@ def test_pad_token_uses_eos_when_missing(monkeypatch):
 
     baseline.GRPOTrainerOverride = lambda **kwargs: _Trainer(**kwargs)
     monkeypatch.setattr(
-        baseline, "get_dataset", lambda *_: {"train": [{"prompt": "p"}], "validation": []}
+        baseline,
+        "get_dataset",
+        lambda *_: {"train": [{"prompt": "p"}], "validation": []},
     )
     tok = _Tokenizer()
     monkeypatch.setattr(baseline, "get_tokenizer", lambda *_: tok)
@@ -477,3 +623,165 @@ def test_pad_token_uses_eos_when_missing(monkeypatch):
 
     baseline.run_baseline_training(script_args, training_args, model_args)
     assert tok.pad_token == "<eos>"
+
+
+def test_eval_sampling_uses_fraction_of_split(monkeypatch, tmp_path):
+    import builtins
+
+    _install_transformers_stub(monkeypatch)
+    _install_trl_stub(monkeypatch)
+
+    raw_ds = {
+        "train": [{"prompt": "p", "answer": "a"} for _ in range(3)],
+        "test": [{"prompt": "t", "answer": "b"} for _ in range(25)],
+    }
+
+    class _Tokenizer:
+        def __init__(self):
+            self.pad_token_id = 0
+            self.eos_token_id = 0
+
+        def apply_chat_template(
+            self, messages, tokenize=False, add_generation_prompt=True
+        ):
+            return messages[-1]["content"]
+
+    class _Model:
+        def __init__(self):
+            self.config = SimpleNamespace(pad_token_id=0)
+
+    captured_range = {}
+    orig_range = builtins.range
+
+    def _range(*args, **kwargs):
+        captured_range["args"] = args
+        return orig_range(*args, **kwargs)
+
+    class _Trainer:
+        def __init__(self, **kwargs):
+            self.train_dataset = kwargs["train_dataset"]
+            self.eval_dataset = kwargs["eval_dataset"]
+            self.accelerator = SimpleNamespace(is_main_process=False)
+            self.model = SimpleNamespace(
+                config=SimpleNamespace(use_cache=False, save_pretrained=lambda *_: None)
+            )
+
+        def train(self, resume_from_checkpoint=None):
+            self.resume = resume_from_checkpoint
+            return SimpleNamespace(metrics={})
+
+        def save_model(self, *args, **kwargs):
+            return None
+
+        def log_metrics(self, split, metrics):
+            self.logged = (split, metrics)
+
+        def save_metrics(self, split, metrics):
+            self.saved = (split, metrics)
+
+        def save_state(self):
+            return None
+
+        def evaluate(self):
+            self.evaluated = True
+            return {"eval": 1}
+
+    trainer_holder: dict[str, _Trainer] = {}
+
+    def _factory(**kwargs):
+        inst = _Trainer(**kwargs)
+        trainer_holder["obj"] = inst
+        return inst
+
+    baseline.GRPOTrainerOverride = _factory
+    monkeypatch.setattr(baseline, "get_dataset", lambda *_: raw_ds)
+    monkeypatch.setattr(baseline, "get_tokenizer", lambda *_: _Tokenizer())
+    monkeypatch.setattr(baseline, "get_model", lambda *_: _Model())
+    monkeypatch.setattr(baseline, "get_reward_funcs", lambda *_: [])
+    monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
+    monkeypatch.setattr(baseline.logging, "basicConfig", lambda **_k: None)
+    monkeypatch.setattr(baseline.os, "makedirs", lambda *a, **k: None)
+    monkeypatch.setattr(builtins, "range", _range)
+    monkeypatch.setattr(baseline.os.path, "isdir", lambda path: False)
+
+    script_args = baseline.GRPOScriptArguments(dataset_name="ds")
+    training_args = baseline.GRPOConfig()
+    training_args.do_eval = True
+    training_args.seed = 0
+    training_args.output_dir = str(tmp_path)
+    training_args.dataset_test_split = "test"
+    training_args.get_process_log_level = lambda: 20
+    model_args = sys.modules["trl"].ModelConfig()
+
+    baseline.run_baseline_training(script_args, training_args, model_args)
+    trainer = trainer_holder["obj"]
+    assert captured_range["args"][0] == 2  # 10% of 25 yields 2
+    # ensure evaluation path ran and eval_dataset came from test split
+    assert trainer.evaluated is True
+    assert len(trainer.eval_dataset) == len(raw_ds["test"])
+
+
+def test_run_baseline_training_handles_missing_datasets_logging(monkeypatch):
+    _install_transformers_stub(monkeypatch)
+    _install_trl_stub(monkeypatch)
+
+    import builtins
+
+    real_import = builtins.__import__
+
+    def _fake_import(name, *args, **kwargs):
+        if name == "datasets":
+            raise ImportError("missing")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _fake_import)
+
+    raw_ds = {"train": [{"prompt": "p", "answer": "a"}]}
+    monkeypatch.setattr(baseline, "get_dataset", lambda *_: raw_ds)
+    monkeypatch.setattr(
+        baseline,
+        "get_tokenizer",
+        lambda *_: SimpleNamespace(pad_token_id=0, eos_token_id=0),
+    )
+    monkeypatch.setattr(
+        baseline,
+        "get_model",
+        lambda *_: SimpleNamespace(config=SimpleNamespace(pad_token_id=0)),
+    )
+    monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
+    monkeypatch.setattr(baseline.logging, "basicConfig", lambda **_k: None)
+    monkeypatch.setattr(
+        baseline.logging,
+        "getLogger",
+        lambda name=None: baseline.logging.Logger(name or "test"),
+    )
+
+    trainer_holder: dict = {}
+
+    class _Trainer:
+        def __init__(self, **kwargs):
+            trainer_holder["obj"] = self
+            self.train_dataset = kwargs.get("train_dataset")
+            self.eval_dataset = kwargs.get("eval_dataset")
+
+        def train(self, resume_from_checkpoint=None):
+            self.resume = resume_from_checkpoint
+            return SimpleNamespace(metrics={})
+
+        def save_model(self, *args, **kwargs):
+            return None
+
+    baseline.GRPOTrainerOverride = _Trainer
+
+    script_args = baseline.GRPOScriptArguments(dataset_name="ds")
+    training_args = baseline.GRPOConfig()
+    training_args.do_eval = False
+    training_args.seed = 0
+    training_args.output_dir = "/tmp/out"
+    training_args.get_process_log_level = lambda: 20
+    model_args = sys.modules["trl"].ModelConfig()
+
+    baseline.run_baseline_training(script_args, training_args, model_args)
+    trainer = trainer_holder["obj"]
+    assert hasattr(trainer.train_dataset, "__len__")
+    assert getattr(trainer, "resume", None) is None or trainer.resume is False

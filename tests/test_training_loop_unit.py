@@ -32,14 +32,25 @@ def test_train_step_runs_deepspeed_optimizer(monkeypatch):
     monkeypatch.setattr(loop, "torch", stub_torch)
     monkeypatch.setattr(loop, "Tensor", object)
     # Stub helpers
-    monkeypatch.setattr(loop, "detect_deepspeed_state", lambda _accel: SimpleNamespace(use_deepspeed=True, zero_stage=2))
-    monkeypatch.setattr(loop, "require_accumulation_context", lambda *a, **k: nullcontext())
+    monkeypatch.setattr(
+        loop,
+        "detect_deepspeed_state",
+        lambda _accel: SimpleNamespace(use_deepspeed=True, zero_stage=2),
+    )
+    monkeypatch.setattr(
+        loop, "require_accumulation_context", lambda *a, **k: nullcontext()
+    )
     monkeypatch.setattr(loop, "_scheduled_learning_rate", lambda *a, **k: 0.001)
-    monkeypatch.setattr(loop, "build_loss_inputs", lambda *a, **k: (None, None, None, None))
+    monkeypatch.setattr(
+        loop, "build_loss_inputs", lambda *a, **k: (None, None, None, None)
+    )
     monkeypatch.setattr(
         loop,
         "evaluate_losses",
-        lambda *_args, **_kwargs: (SimpleNamespace(loss=0.0, kl_loss_scalar=None), SimpleNamespace()),
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(loss=0.0, kl_loss_scalar=None),
+            SimpleNamespace(),
+        ),
     )
     optimizer_called = {}
 
@@ -66,10 +77,14 @@ def test_train_step_runs_deepspeed_optimizer(monkeypatch):
 
     ctx = SimpleNamespace(
         optimization=SimpleNamespace(
-            schedule=SimpleNamespace(grad_accum_steps=1, total_training_steps=4, steps_per_epoch=1),
+            schedule=SimpleNamespace(
+                grad_accum_steps=1, total_training_steps=4, steps_per_epoch=1
+            ),
             handles=SimpleNamespace(),
         ),
-        runtime=SimpleNamespace(accelerator=_Accel(), model=SimpleNamespace(), tokenizer=None),
+        runtime=SimpleNamespace(
+            accelerator=_Accel(), model=SimpleNamespace(), tokenizer=None
+        ),
         generation=SimpleNamespace(generation_stats={}),
         scoring=SimpleNamespace(
             clipping=SimpleNamespace(),
@@ -105,9 +120,16 @@ def test_train_step_runs_deepspeed_optimizer(monkeypatch):
 def test_run_epoch_stops_when_train_step_requests(monkeypatch):
     """_run_epoch should stop early when _train_step signals True."""
     calls = {"train_step": 0}
-    monkeypatch.setattr(loop, "_train_step", lambda *a, **k: (calls.update(train_step=calls["train_step"] + 1) or True))
+    monkeypatch.setattr(
+        loop,
+        "_train_step",
+        lambda *a, **k: (calls.update(train_step=calls["train_step"] + 1) or True),
+    )
     ctx = SimpleNamespace(
-        runtime=SimpleNamespace(train_loader=[1, 2, 3], train_sampler=SimpleNamespace(set_epoch=lambda *_a, **_k: None))
+        runtime=SimpleNamespace(
+            train_loader=[1, 2, 3],
+            train_sampler=SimpleNamespace(set_epoch=lambda *_a, **_k: None),
+        )
     )
     state = TrainingLoopState()
     resources = StepResources(generator=lambda *_a, **_k: None, validation_ctx=None)
@@ -132,7 +154,9 @@ def test_run_training_loop_breaks_after_epoch(monkeypatch, caplog):
 
     wandb = _Wandb()
     runtime = SimpleNamespace(
-        accelerator=SimpleNamespace(is_main_process=True, model=None, tokenizer=None, device="cpu"),
+        accelerator=SimpleNamespace(
+            is_main_process=True, model=None, tokenizer=None, device="cpu"
+        ),
         model=SimpleNamespace(),
         tokenizer=None,
         device="cpu",
@@ -160,8 +184,15 @@ def test_run_training_loop_breaks_after_epoch(monkeypatch, caplog):
         logging=SimpleNamespace(wandb_run=wandb),
         controller=SimpleNamespace(state_path=None, resume_from=None),
         optimization=SimpleNamespace(
-            schedule=SimpleNamespace(num_epochs=2, grad_accum_steps=1, steps_per_epoch=1, total_training_steps=1),
-            handles=SimpleNamespace(optimizer=SimpleNamespace(zero_grad=lambda set_to_none=True: None)),
+            schedule=SimpleNamespace(
+                num_epochs=2,
+                grad_accum_steps=1,
+                steps_per_epoch=1,
+                total_training_steps=1,
+            ),
+            handles=SimpleNamespace(
+                optimizer=SimpleNamespace(zero_grad=lambda set_to_none=True: None)
+            ),
         ),
         scoring=SimpleNamespace(weighting=SimpleNamespace()),
     )

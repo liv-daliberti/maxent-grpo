@@ -50,6 +50,7 @@ class _FakeTensor:
 def rewards_mod(monkeypatch):
     """Reload rewards with a lightweight torch stub."""
     import maxent_grpo.training.run_helpers as run_helpers
+
     torch_stub = SimpleNamespace(
         tensor=lambda data, dtype=None, device=None: _FakeTensor(
             data, dtype=dtype, device=device
@@ -59,7 +60,9 @@ def rewards_mod(monkeypatch):
         long=int,
         device=lambda kind="cpu": SimpleNamespace(type=kind),
     )
-    monkeypatch.setattr(run_helpers, "require_torch", lambda *_args, **_kwargs: torch_stub)
+    monkeypatch.setattr(
+        run_helpers, "require_torch", lambda *_args, **_kwargs: torch_stub
+    )
     sys.modules.pop("maxent_grpo.training.rewards", None)
     mod = importlib.import_module("maxent_grpo.training.rewards")
     yield mod
@@ -70,9 +73,7 @@ def test_reward_moments_and_weighted_totals(rewards_mod):
         reward_funcs=[lambda comps, ans: [1.0, 2.0]],
         reward_weights=[2.0],
     )
-    totals, per_reward = rewards_mod.compute_reward_totals(
-        spec, ["a", "b"], ["x", "y"]
-    )
+    totals, per_reward = rewards_mod.compute_reward_totals(spec, ["a", "b"], ["x", "y"])
     assert totals == [2.0, 4.0]
     assert per_reward["reward_0"] == [1.0, 2.0]
 
@@ -105,7 +106,9 @@ def test_prepare_generation_batch_branches(rewards_mod, monkeypatch):
         grouped_ref_meta=None,
     )
     monkeypatch.setattr(
-        rewards_mod, "AggregatedGenerationState", lambda comps, meta: SimpleNamespace(completions=comps, metadata=meta)
+        rewards_mod,
+        "AggregatedGenerationState",
+        lambda comps, meta: SimpleNamespace(completions=comps, metadata=meta),
     )
     monkeypatch.setattr(
         rewards_mod, "retry_incomplete_prompts", lambda *args, **kwargs: args[3]
@@ -136,7 +139,9 @@ def test_prepare_generation_batch_branches(rewards_mod, monkeypatch):
     # Structured object with grouped_completions attribute uses the hasattr branch
     out2 = rewards_mod.prepare_generation_batch(
         {"prompt": ["p2"], "answer": ["a2"]},
-        lambda *_a: SimpleNamespace(grouped_completions=[["c2"]], grouped_ref_meta=None),
+        lambda *_a: SimpleNamespace(
+            grouped_completions=[["c2"]], grouped_ref_meta=None
+        ),
         {},
         1,
     )
@@ -151,7 +156,9 @@ def test_prepare_generation_batch_branches(rewards_mod, monkeypatch):
     assert (
         rewards_mod.prepare_generation_batch(
             {"prompt": ["p3"], "answer": ["a3"]},
-            lambda *_a: SimpleNamespace(grouped_completions=[["c3"]], grouped_ref_meta=None),
+            lambda *_a: SimpleNamespace(
+                grouped_completions=[["c3"]], grouped_ref_meta=None
+            ),
             {},
             1,
         )
@@ -193,3 +200,78 @@ def test_group_q_and_compute_reward_statistics_guards(rewards_mod, monkeypatch):
         )
         is None
     )
+
+
+def test_reward_moments_single_entry_returns_zero_std(rewards_mod):
+    mean, std = rewards_mod.reward_moments([5.0], SimpleNamespace(type="cpu"))
+    assert mean == 5.0 and std == 0.0
+
+
+def test_reward_moments_fallback_handles_bad_values(monkeypatch, rewards_mod):
+    class _BadNumber:
+        def __add__(self, other):
+            raise TypeError("nope")
+
+        __radd__ = __add__
+
+    class _Tensor:
+        def __init__(self, data, dtype=None, device=None):
+            self.data = list(data)
+            self.dtype = dtype
+            self.device = device
+
+        def mean(self):
+            return SimpleNamespace(item=lambda: 3.5)
+
+        def std(self, unbiased=False):
+            return SimpleNamespace(item=lambda: 0.25)
+
+        def numel(self):
+            return len(self.data)
+
+    torch_stub = SimpleNamespace(
+        tensor=lambda data, dtype=None, device=None: _Tensor(
+            data, dtype=dtype, device=device
+        ),
+        float32="float32",
+        device=lambda name="cpu": SimpleNamespace(type=name),
+    )
+    monkeypatch.setattr(rewards_mod, "require_torch", lambda *_a, **_k: torch_stub)
+    mean, std = rewards_mod.reward_moments(
+        [_BadNumber(), _BadNumber()], SimpleNamespace(type="cuda")
+    )
+    assert mean == 3.5 and std == 0.25
+
+
+def test_reward_moments_fallback_single_tensor_skips_std(monkeypatch, rewards_mod):
+    class _BadNumber:
+        def __radd__(self, other):
+            raise TypeError("boom")
+
+        __add__ = __radd__
+
+    class _Tensor:
+        def __init__(self, data, dtype=None, device=None):
+            self.data = list(data)
+            self.dtype = dtype
+            self.device = device
+
+        def mean(self):
+            return SimpleNamespace(item=lambda: 7.0)
+
+        def std(self, unbiased=False):
+            raise AssertionError("std should not be called when numel == 1")
+
+        def numel(self):
+            return len(self.data)
+
+    torch_stub = SimpleNamespace(
+        tensor=lambda data, dtype=None, device=None: _Tensor(
+            data, dtype=dtype, device=device
+        ),
+        float32="float32",
+        device=lambda name="cpu": SimpleNamespace(type=name),
+    )
+    monkeypatch.setattr(rewards_mod, "require_torch", lambda *_a, **_k: torch_stub)
+    mean, std = rewards_mod.reward_moments([_BadNumber()], SimpleNamespace(type="cpu"))
+    assert mean == 7.0 and std == 0.0

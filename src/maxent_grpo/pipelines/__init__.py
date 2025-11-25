@@ -12,10 +12,16 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-"""
 
-"""Application-layer orchestration helpers for the MaxEnt-GRPO toolkit."""
+Application-layer orchestration helpers for the MaxEnt-GRPO toolkit.
+"""
 
 from .base import PipelineResult, log_pipeline_banner
 
-__all__ = ["generation", "inference", "training", "PipelineResult", "log_pipeline_banner"]
+__all__ = [
+    "generation",
+    "inference",
+    "training",
+    "PipelineResult",
+    "log_pipeline_banner",
+]

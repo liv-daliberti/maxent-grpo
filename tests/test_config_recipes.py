@@ -1,124 +1,108 @@
 """
-Copyright 2025 Liv d'Aliberti
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-Unit tests for recipe helpers under maxent_grpo.config.recipes.
+Unit tests for recipe loading helpers.
 """
 
 from __future__ import annotations
 
+import os
 from types import SimpleNamespace
-from dataclasses import dataclass
 
 import pytest
 
-import maxent_grpo.config.recipes as recipes_mod
-from maxent_grpo.config.dataset import ScriptArguments
-from maxent_grpo.config.grpo import GRPOConfig
-from maxent_grpo.config.recipes import (
-    _dataclass_field_names,
-    _split_recipe_payload,
-    load_grpo_recipe,
-)
+from maxent_grpo.config import recipes
+from maxent_grpo.config.grpo import GRPOConfig, GRPOScriptArguments
 
 
-@dataclass
-class _DummyModelConfig:
-    foo: int = 0
-    bar: str = "bar"
-
-
-def test_dataclass_field_names_extracts_all_fields():
-    names = _dataclass_field_names(_DummyModelConfig)
-    assert {"foo", "bar"} <= names
-
-
-def test_split_recipe_payload_routes_sections():
+def test_split_recipe_payload_routes_fields():
     payload = {
-        "dataset_name": "demo/ds",
-        "benchmarks": ["math"],
-        "foo": 3,
-        "maxent_tau": 0.7,
+        "dataset_name": "ds",  # script arg
+        "maxent_tau_min": 0.2,  # training arg
+        "model_name": "m",  # model arg
+        "unknown": 123,  # defaults to training
     }
-    script_kwargs, training_kwargs, model_kwargs = _split_recipe_payload(
-        payload, _DummyModelConfig
+    model_cls = SimpleNamespace(__dataclass_fields__={"model_name": None})
+    script_kwargs, training_kwargs, model_kwargs = recipes._split_recipe_payload(
+        payload, model_cls
     )
-    assert script_kwargs["dataset_name"] == "demo/ds"
-    assert training_kwargs["benchmarks"] == ["math"]
-    assert training_kwargs["maxent_tau"] == 0.7
-    assert model_kwargs["foo"] == 3
+    assert script_kwargs["dataset_name"] == "ds"
+    assert training_kwargs["maxent_tau_min"] == 0.2
+    assert model_kwargs["model_name"] == "m"
+    assert training_kwargs["unknown"] == 123
 
 
-def test_load_grpo_recipe_builds_dataclasses(tmp_path):
-    recipe_path = tmp_path / "recipe.yaml"
+def test_load_grpo_recipe_with_yaml(monkeypatch, tmp_path):
+    recipe_path = tmp_path / "recipe.yml"
     recipe_path.write_text(
-        "dataset_name: demo/ds\nbenchmarks: [math]\nfoo: 5\n", encoding="utf-8"
+        "dataset_name: ds\nmaxent_tau_min: 0.5\nmaxent_tau_max: 1.0\nmodel_name: modelx\n"
     )
-    script_args, training_args, model_cfg = load_grpo_recipe(
-        str(recipe_path), model_config_cls=_DummyModelConfig
+    monkeypatch.setenv("GRPO_RECIPE_USED", "preset")
+    # force yaml loader path
+    monkeypatch.setattr(recipes, "OmegaConf", None)
+
+    # simple model config class
+    class _ModelCfg:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    script_args, training_args, model_args = recipes.load_grpo_recipe(
+        str(recipe_path), model_config_cls=_ModelCfg
     )
-    assert isinstance(script_args, ScriptArguments)
+    assert isinstance(script_args, GRPOScriptArguments)
     assert isinstance(training_args, GRPOConfig)
-    assert isinstance(model_cfg, _DummyModelConfig)
-    assert script_args.dataset_name == "demo/ds"
-    assert training_args.benchmarks == ["math"]
-    assert model_cfg.foo == 5
+    assert isinstance(model_args, _ModelCfg)
+    assert getattr(script_args, "recipe_path") == str(recipe_path)
+    assert getattr(training_args, "recipe_path") == str(recipe_path)
+    assert getattr(model_args, "recipe_path") == str(recipe_path)
+    assert os.environ.get("GRPO_RECIPE_USED") == "preset"
 
 
-def test_load_grpo_recipe_falls_back_to_yaml(tmp_path, monkeypatch):
-    recipe_path = tmp_path / "recipe.yaml"
-    recipe_path.write_text("foo: 7\ndataset_name: demo\nbenchmarks: [math]\n", encoding="utf-8")
-    monkeypatch.setattr(recipes_mod, "OmegaConf", None)
-    called = {}
-
-    def _safe_load(handle):
-        called["loaded"] = handle.name
-        return {"foo": 7, "dataset_name": "demo", "benchmarks": ["math"]}
-
-    monkeypatch.setattr(recipes_mod, "yaml", SimpleNamespace(safe_load=_safe_load))
-    script_args, training_args, model_cfg = load_grpo_recipe(
-        str(recipe_path), model_config_cls=_DummyModelConfig
-    )
-    assert called["loaded"] == str(recipe_path)
-    assert script_args.dataset_name == "demo"
-    assert training_args.benchmarks == ["math"]
-    assert model_cfg.foo == 7
-
-
-def test_load_grpo_recipe_validates_mapping(tmp_path, monkeypatch):
-    recipe_path = tmp_path / "recipe.yaml"
-    recipe_path.write_text("ignored: true\n", encoding="utf-8")
-
-    class _OmegaStub:
-        @staticmethod
-        def load(path):
-            return ["not", "a", "dict"]
-
-        @staticmethod
-        def to_container(cfg, resolve=True):
-            return cfg
-
-    monkeypatch.setattr(recipes_mod, "OmegaConf", _OmegaStub)
-    with pytest.raises(ValueError):
-        load_grpo_recipe(str(recipe_path), model_config_cls=_DummyModelConfig)
-
-
-def test_load_grpo_recipe_requires_loader(tmp_path, monkeypatch):
-    recipe_path = tmp_path / "recipe.yaml"
-    recipe_path.write_text("foo: 1\n", encoding="utf-8")
-    monkeypatch.setattr(recipes_mod, "OmegaConf", None)
-    monkeypatch.setattr(recipes_mod, "yaml", None)
-
+def test_load_grpo_recipe_requires_loader(monkeypatch, tmp_path):
+    monkeypatch.setattr(recipes, "OmegaConf", None)
+    monkeypatch.setattr(recipes, "yaml", None)
     with pytest.raises(ImportError):
-        load_grpo_recipe(str(recipe_path), model_config_cls=_DummyModelConfig)
+        recipes.load_grpo_recipe(
+            str(tmp_path / "missing.yml"), model_config_cls=type("M", (), {})
+        )
+
+
+def test_load_grpo_recipe_rejects_non_mapping(monkeypatch, tmp_path):
+    recipe_path = tmp_path / "recipe.yml"
+    recipe_path.write_text("list:\n  - 1\n  - 2\n")
+    monkeypatch.setattr(recipes, "OmegaConf", None)
+
+    class _YamlStub:
+        @staticmethod
+        def safe_load(_handle):
+            return ["not-a-mapping"]
+
+    monkeypatch.setattr(recipes, "yaml", _YamlStub)
+    with pytest.raises(ValueError):
+        recipes.load_grpo_recipe(str(recipe_path), model_config_cls=type("M", (), {}))
+
+
+def test_load_grpo_recipe_sets_recipe_path_best_effort(monkeypatch, tmp_path):
+    recipe_path = tmp_path / "recipe.yml"
+    recipe_path.write_text("dataset_name: ds\nmodel_name: m\n")
+    monkeypatch.setattr(recipes, "OmegaConf", None)
+
+    class _YamlStub:
+        @staticmethod
+        def safe_load(_handle):
+            return {"dataset_name": "ds"}
+
+    class _ModelCfg:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def __setattr__(self, name, value):
+            if name == "recipe_path":
+                raise AttributeError("no recipe_path")
+            return super().__setattr__(name, value)
+
+    monkeypatch.setattr(recipes, "yaml", _YamlStub)
+    script_args, training_args, model_args = recipes.load_grpo_recipe(
+        str(recipe_path), model_config_cls=_ModelCfg
+    )
+    assert getattr(script_args, "recipe_path") == str(recipe_path)
+    assert getattr(training_args, "recipe_path") == str(recipe_path)
+    assert not hasattr(model_args, "recipe_path")

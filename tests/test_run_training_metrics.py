@@ -296,15 +296,20 @@ def test_fraction_zero_std_groups_skips_empty_groups():
 
 
 def test_epoch_from_global_step_selects_schedule_fields():
-    assert metrics_mod._epoch_from_global_step(SimpleNamespace(steps_per_epoch=5), 10) == pytest.approx(
-        2.0
-    )
+    assert metrics_mod._epoch_from_global_step(
+        SimpleNamespace(steps_per_epoch=5), 10
+    ) == pytest.approx(2.0)
     assert metrics_mod._epoch_from_global_step(
         SimpleNamespace(steps_per_epoch=0, num_generations=4),
         3,
     ) == pytest.approx(0.75)
     assert metrics_mod._epoch_from_global_step(
-        SimpleNamespace(steps_per_epoch=None, num_generations=0, total_training_steps=20, num_epochs=5),
+        SimpleNamespace(
+            steps_per_epoch=None,
+            num_generations=0,
+            total_training_steps=20,
+            num_epochs=5,
+        ),
         4,
     ) == pytest.approx(1.0)
 
@@ -322,10 +327,14 @@ def test_emit_metrics_handles_type_error_and_unorderable_keys(monkeypatch):
 
     ctx = SimpleNamespace(
         runtime=SimpleNamespace(accelerator=_Accel()),
-        logging=SimpleNamespace(log_metrics=lambda metrics, step: log_calls.append((metrics, step))),
+        logging=SimpleNamespace(
+            log_metrics=lambda metrics, step: log_calls.append((metrics, step))
+        ),
     )
     metrics = {1: "a", "b": 2}
-    result = metrics_mod._emit_metrics(ctx, metrics, global_step=7, log_to_wandb=True, tag="Test")
+    result = metrics_mod._emit_metrics(
+        ctx, metrics, global_step=7, log_to_wandb=True, tag="Test"
+    )
     assert log_calls == [(metrics, 7)]
     assert accel_calls == [metrics]
     assert result is metrics
@@ -338,9 +347,15 @@ def test_log_local_step_noop_when_not_main(monkeypatch):
         "_build_metrics_payload",
         lambda *_a, **_k: payload_called.__setitem__("called", True),
     )
-    state = SimpleNamespace(global_step=0, num_input_tokens_seen=0, metric_sums={}, metric_counts={})
-    ctx = SimpleNamespace(runtime=SimpleNamespace(accelerator=SimpleNamespace(is_main_process=False)))
-    metrics_mod.log_local_step(ctx, state, prepared=None, log_artifacts=None, current_lr=0.0)
+    state = SimpleNamespace(
+        global_step=0, num_input_tokens_seen=0, metric_sums={}, metric_counts={}
+    )
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(accelerator=SimpleNamespace(is_main_process=False))
+    )
+    metrics_mod.log_local_step(
+        ctx, state, prepared=None, log_artifacts=None, current_lr=0.0
+    )
     assert payload_called["called"] is False
     assert state.metric_sums == {}
 
@@ -350,21 +365,31 @@ def test_log_sample_table_uses_fallback_wandb(monkeypatch):
     monkeypatch.setitem(sys.modules, "wandb", None)
     run_logs = []
     ctx = SimpleNamespace(
-        logging=SimpleNamespace(wandb_run=SimpleNamespace(log=lambda *_a, **_k: run_logs.append("logged"))),
+        logging=SimpleNamespace(
+            wandb_run=SimpleNamespace(log=lambda *_a, **_k: run_logs.append("logged"))
+        ),
         runtime=SimpleNamespace(accelerator=SimpleNamespace(is_main_process=True)),
     )
     state = SimpleNamespace(global_step=0)
-    prepared = SimpleNamespace(reward_comp=SimpleNamespace(pairs=SimpleNamespace(prompts=[], completions=[])))
+    prepared = SimpleNamespace(
+        reward_comp=SimpleNamespace(pairs=SimpleNamespace(prompts=[], completions=[]))
+    )
     metrics_mod._log_sample_table(ctx, state, prepared)
     assert run_logs == []
 
 
 def test_log_sample_table_aborts_when_max_rows_zero(monkeypatch):
     monkeypatch.setattr(metrics_mod, "_WANDB_SAMPLE_ROWS", 0)
-    monkeypatch.setattr(metrics_mod, "_get_wandb", lambda: SimpleNamespace(Table=lambda *args, **kwargs: {}))
+    monkeypatch.setattr(
+        metrics_mod,
+        "_get_wandb",
+        lambda: SimpleNamespace(Table=lambda *args, **kwargs: {}),
+    )
     run_logs = []
     ctx = SimpleNamespace(
-        logging=SimpleNamespace(wandb_run=SimpleNamespace(log=lambda *_a, **_k: run_logs.append("logged"))),
+        logging=SimpleNamespace(
+            wandb_run=SimpleNamespace(log=lambda *_a, **_k: run_logs.append("logged"))
+        ),
         runtime=SimpleNamespace(accelerator=SimpleNamespace(is_main_process=True)),
     )
     prepared = SimpleNamespace(
@@ -379,11 +404,19 @@ def test_log_sample_table_aborts_when_max_rows_zero(monkeypatch):
 
 
 def test_log_sample_table_skips_empty_rows(monkeypatch):
-    monkeypatch.setattr(metrics_mod, "_get_wandb", lambda: SimpleNamespace(Table=lambda *args, **kwargs: {}))
-    monkeypatch.setattr(metrics_mod, "_build_sample_table", lambda *_a, **_k: (["step"], []))
+    monkeypatch.setattr(
+        metrics_mod,
+        "_get_wandb",
+        lambda: SimpleNamespace(Table=lambda *args, **kwargs: {}),
+    )
+    monkeypatch.setattr(
+        metrics_mod, "_build_sample_table", lambda *_a, **_k: (["step"], [])
+    )
     run_logs = []
     ctx = SimpleNamespace(
-        logging=SimpleNamespace(wandb_run=SimpleNamespace(log=lambda *_a, **_k: run_logs.append("logged"))),
+        logging=SimpleNamespace(
+            wandb_run=SimpleNamespace(log=lambda *_a, **_k: run_logs.append("logged"))
+        ),
         runtime=SimpleNamespace(accelerator=SimpleNamespace(is_main_process=True)),
     )
     prepared = SimpleNamespace(
@@ -492,7 +525,9 @@ def test_log_training_step_builds_payload_when_no_averages(monkeypatch):
     ctx = SimpleNamespace(
         runtime=SimpleNamespace(accelerator=SimpleNamespace(is_main_process=True)),
         logging=SimpleNamespace(step_logger=lambda *_a, **_k: nullcontext()),
-        scoring=SimpleNamespace(weighting=SimpleNamespace(tau=0.1, beta=0.2), clipping=None),
+        scoring=SimpleNamespace(
+            weighting=SimpleNamespace(tau=0.1, beta=0.2), clipping=None
+        ),
         optimization=SimpleNamespace(schedule=None),
     )
     state = SimpleNamespace(global_step=9, metric_sums={}, metric_counts={})

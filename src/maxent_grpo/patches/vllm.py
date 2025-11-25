@@ -361,12 +361,32 @@ def safe_generate(
     :type temperature: float
     :param top_p: Nucleus sampling p.
     :type top_p: float
+    :param top_k: Optional top-k cutoff applied during sampling.
+    :type top_k: int | None
     :param n: Number of completions per prompt.
     :type n: int
     :param stream: Whether to use chunked streaming responses.
     :type stream: bool
     :param tokenizer: Optional tokenizer to decode token ID arrays.
     :type tokenizer: Any
+    :param best_of: vLLM ``best_of`` parameter to sample more than ``n`` candidates.
+    :type best_of: int | None
+    :param frequency_penalty: Frequency penalty forwarded to vLLM sampling.
+    :type frequency_penalty: float | None
+    :param presence_penalty: Presence penalty forwarded to vLLM sampling.
+    :type presence_penalty: float | None
+    :param stop: Stop sequences used to truncate completions.
+    :type stop: list[str] | None
+    :param logit_bias: Token-level logit bias forwarded to vLLM.
+    :type logit_bias: dict[str, float] | None
+    :param guided_json: Optional JSON schema string for constrained decoding.
+    :type guided_json: str | None
+    :param guided_regex: Optional regex constraint for decoding.
+    :type guided_regex: str | None
+    :param request_id: Explicit request identifier to forward to vLLM.
+    :type request_id: str | None
+    :param request_id_prefix: Prefix used when auto-generating ``request_id``.
+    :type request_id_prefix: str | None
     :param max_retries: Number of attempts before surfacing the error.
     :type max_retries: int
     :param backoff: Base backoff in seconds; exponential across attempts.
@@ -375,8 +395,8 @@ def safe_generate(
     :type timeout: float
     :param return_logprobs: Whether to request log-prob metadata from vLLM.
     :type return_logprobs: bool
-    :returns: Tuple of grouped texts and optional log-prob metadata.
-    :rtype: tuple[list[list[str]], Optional[list[list[VLLMLogprobResult]]]]
+    :returns: Tuple of grouped texts, optional log-prob metadata, and latency in milliseconds.
+    :rtype: tuple[list[list[str]], Optional[list[list[VLLMLogprobResult]]], float]
     :raises RuntimeError: When the server returns a non‑200 response or after
         exhausting retries.
     """

@@ -18,7 +18,6 @@ Unit tests for training package initialization shims.
 
 from __future__ import annotations
 
-import importlib
 import sys
 from types import SimpleNamespace
 
@@ -31,7 +30,10 @@ def test_training_import_seeds_wandb_stub(monkeypatch):
 
     assert "wandb" in sys.modules
     stub = sys.modules["wandb"]
-    assert getattr(getattr(stub, "errors", SimpleNamespace()), "Error", None) is RuntimeError
+    assert (
+        getattr(getattr(stub, "errors", SimpleNamespace()), "Error", None)
+        is RuntimeError
+    )
 
     # Ensure __dir__ returns a sorted list of exported names
     names = training.__dir__()

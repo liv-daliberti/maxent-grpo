@@ -18,43 +18,28 @@ Unit tests for the thin ``maxent_grpo.generate`` CLI wrapper.
 
 from __future__ import annotations
 
+import importlib
 from argparse import Namespace
 from types import ModuleType
 import runpy
 import sys
 
-import maxent_grpo.generate as generate
 
-
-def test_run_cli_builds_config_and_executes_job(monkeypatch):
-    captured = {}
-
-    class _Cfg:
-        def __init__(self, ns):
-            self.namespace = ns
-
-        @classmethod
-        def from_namespace(cls, ns):
-            captured["ns"] = ns
-            return cls(ns)
-
-    monkeypatch.setattr(generate, "DistilabelGenerationConfig", _Cfg)
-    monkeypatch.setattr(
-        generate,
-        "run_generation_job",
-        lambda cfg, **kwargs: captured.setdefault("cfg", cfg),
-    )
+def test_run_cli_proxies_cli_generate(monkeypatch):
+    called = {}
+    cli_generate = importlib.import_module("maxent_grpo.cli.generate")
+    monkeypatch.setattr(cli_generate, "run_cli", lambda ns: called.setdefault("ns", ns))
+    generate = importlib.reload(importlib.import_module("maxent_grpo.generate"))
 
     args = Namespace(model="demo")
     generate.run_cli(args)
 
-    assert captured["ns"] is args
-    assert isinstance(captured["cfg"], _Cfg)
-    assert captured["cfg"].namespace is args
+    assert called["ns"] is args
 
 
 def test_main_invokes_typer_app(monkeypatch):
     called = {}
+    generate = importlib.reload(importlib.import_module("maxent_grpo.generate"))
     monkeypatch.setattr(
         generate, "generate_cli_app", lambda: called.setdefault("invoked", True)
     )
@@ -67,6 +52,7 @@ def test_generate_module_executes_main_guard(monkeypatch):
     cli_generate = ModuleType("maxent_grpo.cli.generate")
     cli_generate.app = lambda: called.setdefault("invoked", True)
     cli_generate.build_generate_parser = lambda: None
+    cli_generate.run_cli = lambda *_a, **_k: None
     monkeypatch.setitem(sys.modules, "maxent_grpo.cli.generate", cli_generate)
 
     distilabel_mod = ModuleType("maxent_grpo.pipelines.generation.distilabel")
@@ -87,3 +73,44 @@ def test_generate_module_executes_main_guard(monkeypatch):
     runpy.run_module("maxent_grpo.generate", run_name="__main__")
 
     assert called["invoked"] is True
+
+
+def test_run_generation_job_forwards_args(monkeypatch):
+    generate = importlib.reload(importlib.import_module("maxent_grpo.generate"))
+    sentinel = object()
+    seen = {}
+
+    def _fake_run(cfg, builder):
+        seen["cfg"] = cfg
+        seen["builder"] = builder
+        return sentinel
+
+    monkeypatch.setattr(generate, "_run_generation_job", _fake_run)
+
+    cfg = Namespace(task="demo")
+    builder = object()
+
+    result = generate.run_generation_job(cfg, builder)
+
+    assert result is sentinel
+    assert seen["cfg"] is cfg
+    assert seen["builder"] is builder
+
+
+def test_run_generation_job_defaults_builder(monkeypatch):
+    generate = importlib.reload(importlib.import_module("maxent_grpo.generate"))
+    called = {}
+
+    def _fake_run(cfg, builder):
+        called["cfg"] = cfg
+        called["builder"] = builder
+        return "ok"
+
+    monkeypatch.setattr(generate, "_run_generation_job", _fake_run)
+    cfg = Namespace(task="demo")
+
+    result = generate.run_generation_job(cfg)
+
+    assert result == "ok"
+    assert called["cfg"] is cfg
+    assert called["builder"] is None

@@ -20,20 +20,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
-
-def test_load_dataset_split_raises_when_missing_datasets(monkeypatch):
-    import maxent_grpo.core.data as data
-
-    monkeypatch.setattr(data, "datasets", None)
-    with pytest.raises(ImportError):
-        data.load_dataset_split("demo", split="train")
-
 
 def test_get_dataset_mixture_subsampling(monkeypatch):
     import maxent_grpo.core.data as data
-    from maxent_grpo.config.dataset import DatasetConfig, DatasetMixtureConfig, ScriptArguments
+    from maxent_grpo.config.dataset import (
+        ScriptArguments,
+    )
 
     class _FakeDS:
         def __init__(self, rows):
@@ -62,11 +54,23 @@ def test_get_dataset_mixture_subsampling(monkeypatch):
         return _FakeDS(list(range(10)))
 
     monkeypatch.setattr(
-        data, "datasets", SimpleNamespace(load_dataset=_load_dataset, concatenate_datasets=lambda seq: seq[0])
+        data,
+        "datasets",
+        SimpleNamespace(
+            load_dataset=_load_dataset, concatenate_datasets=lambda seq: seq[0]
+        ),
     )
     monkeypatch.setattr(data, "concatenate_datasets", lambda seq: seq[0])
     mixture = {
-        "datasets": [{"id": "a", "config": None, "split": "train", "columns": ["x"], "weight": 0.5}],
+        "datasets": [
+            {
+                "id": "a",
+                "config": None,
+                "split": "train",
+                "columns": ["x"],
+                "weight": 0.5,
+            }
+        ],
         "seed": 0,
         "test_split_size": None,
     }
@@ -81,5 +85,9 @@ def test_get_dataset_mixture_subsampling(monkeypatch):
 def test_get_param_count_from_repo_id_uses_safetensors(monkeypatch):
     import maxent_grpo.core.hub as hub
 
-    monkeypatch.setattr(hub, "get_safetensors_metadata", lambda repo: SimpleNamespace(parameter_count={"w": 123}))
+    monkeypatch.setattr(
+        hub,
+        "get_safetensors_metadata",
+        lambda repo: SimpleNamespace(parameter_count={"w": 123}),
+    )
     assert hub.get_param_count_from_repo_id("org/unknown") == 123

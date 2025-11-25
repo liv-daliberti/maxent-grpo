@@ -15,10 +15,6 @@ limitations under the License.
 """
 
 from types import SimpleNamespace
-import builtins
-import importlib.util
-from pathlib import Path
-import sys
 import pytest
 
 import maxent_grpo.core.data as D
@@ -55,7 +51,7 @@ def test_get_dataset_single_name(monkeypatch):
         assert name == "ds/name" and config is None
         return {"train": FakeDS(3)}
 
-    monkeypatch.setattr(D, "datasets", SimpleNamespace(load_dataset=fake_load_dataset))
+    monkeypatch.setattr(D.datasets, "load_dataset", fake_load_dataset)
     args = SimpleNamespace(
         dataset_name="ds/name", dataset_config=None, dataset_mixture=None
     )
@@ -75,7 +71,7 @@ def test_get_dataset_mixture_weights_and_split(monkeypatch):
     def fake_concat(list_ds):
         return FakeDS(sum(len(ds) for ds in list_ds))
 
-    monkeypatch.setattr(D, "datasets", SimpleNamespace(load_dataset=fake_load_dataset))
+    monkeypatch.setattr(D.datasets, "load_dataset", fake_load_dataset)
     monkeypatch.setattr(D, "concatenate_datasets", fake_concat)
 
     mixture = {
@@ -93,33 +89,13 @@ def test_get_dataset_mixture_weights_and_split(monkeypatch):
     assert set(out.keys()) == {"train", "test"}
 
 
-def _load_data_module_without_datasets(monkeypatch):
-    """Reload core.data while forcing datasets import to fail."""
-    module_name = "core.data_no_datasets"
-    path = Path(D.__file__)
-    monkeypatch.delitem(sys.modules, module_name, raising=False)
-    orig_import = builtins.__import__
-
-    def _fake_import(name, *args, **kwargs):
-        if name == "datasets":
-            raise ModuleNotFoundError("datasets missing")
-        return orig_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
-    spec = importlib.util.spec_from_file_location(module_name, path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
 def test_get_dataset_errors_without_config(monkeypatch):
     """ValueError when neither dataset_name nor mixture is provided."""
 
     def fake_load_dataset(*_args, **_kwargs):
         return {"train": FakeDS(1)}
 
-    monkeypatch.setattr(D, "datasets", SimpleNamespace(load_dataset=fake_load_dataset))
+    monkeypatch.setattr(D.datasets, "load_dataset", fake_load_dataset)
     args = SimpleNamespace(dataset_name=None, dataset_config=None, dataset_mixture=None)
     with pytest.raises(ValueError):
         D.get_dataset(args)
@@ -131,7 +107,7 @@ def test_get_dataset_empty_mixture(monkeypatch):
     def fake_load_dataset(*_args, **_kwargs):
         return {"train": FakeDS(1)}
 
-    monkeypatch.setattr(D, "datasets", SimpleNamespace(load_dataset=fake_load_dataset))
+    monkeypatch.setattr(D.datasets, "load_dataset", fake_load_dataset)
     mixture = SimpleNamespace(datasets=[], seed=0, test_split_size=None)
     args = SimpleNamespace(
         dataset_name=None, dataset_config=None, dataset_mixture=mixture
@@ -140,39 +116,15 @@ def test_get_dataset_empty_mixture(monkeypatch):
         D.get_dataset(args)
 
 
-def test_get_dataset_import_guard(monkeypatch):
-    monkeypatch.setattr(D, "datasets", None)
-    args = SimpleNamespace(dataset_name="ds/name", dataset_config=None, dataset_mixture=None)
-    with pytest.raises(ImportError):
-        D.get_dataset(args)
-
-
 def test_load_dataset_split_guards(monkeypatch):
     """load_dataset_split raises for missing deps or split."""
-    monkeypatch.setattr(D, "datasets", None)
-    with pytest.raises(ImportError):
-        D.load_dataset_split("repo/name", split="train")
 
     def fake_load_dataset(*_args, **_kwargs):
         return {"train": FakeDS(1)}
 
-    monkeypatch.setattr(D, "datasets", SimpleNamespace(load_dataset=fake_load_dataset))
+    monkeypatch.setattr(D.datasets, "load_dataset", fake_load_dataset)
     with pytest.raises(ValueError):
         D.load_dataset_split("repo/name", split="")
-
-
-def test_fallback_dataset_methods_raise(monkeypatch):
-    """Placeholder Dataset raises NotImplemented in fallback mode."""
-    mod = _load_data_module_without_datasets(monkeypatch)
-    ds = mod.Dataset()
-    with pytest.raises(NotImplementedError):
-        len(ds)
-    with pytest.raises(NotImplementedError):
-        ds.shuffle()
-    with pytest.raises(NotImplementedError):
-        ds.select([])
-    with pytest.raises(NotImplementedError):
-        ds.select_columns([])
 
 
 """

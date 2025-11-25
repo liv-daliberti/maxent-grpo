@@ -116,3 +116,10 @@ clean-local:
 
 validate-logs:
 	python tools/validate_logs.py
+
+smoke:
+	HF_HOME=$(VAR_DIR)/cache/huggingface HF_DATASETS_CACHE=$(VAR_DIR)/cache/huggingface/datasets TRANSFORMERS_CACHE=$(VAR_DIR)/cache/huggingface/transformers PIP_CACHE_DIR=$(VAR_DIR)/cache/pip WANDB_DIR=$(VAR_DIR)/logs TMPDIR=$(VAR_DIR)/tmp WANDB_MODE=offline \
+	  python tools/smoke_cli.py
+
+eval-math500-delta:
+	python tools/eval_math_delta.py --baseline baseline --candidate candidate --runner stub --limit 4

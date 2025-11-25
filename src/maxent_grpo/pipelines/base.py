@@ -27,7 +27,16 @@ LOG = logging.getLogger(__name__)
 
 @dataclass
 class PipelineResult:
-    """Lightweight container for pipeline outputs/metrics."""
+    """Lightweight container for pipeline outputs/metrics.
+
+    :param name: Identifier for the pipeline entrypoint (e.g., ``training.maxent``).
+    :type name: str
+    :param metrics: Optional mapping of metric names to values surfaced by the pipeline.
+    :type metrics: dict[str, Any] | None
+    :param artifacts: Optional opaque object returned by the pipeline implementation
+        (dataset handles, model paths, etc.).
+    :type artifacts: Any
+    """
 
     name: str
     metrics: Optional[dict[str, Any]] = None
@@ -35,7 +44,16 @@ class PipelineResult:
 
 
 def log_pipeline_banner(name: str, cfg: Any) -> None:
-    """Emit a consistent banner before running a pipeline."""
+    """Emit a consistent banner before running a pipeline.
+
+    :param name: Human-readable pipeline identifier shown in logs.
+    :type name: str
+    :param cfg: Configuration object/namespace whose fields help contextualize the run.
+        Logged at debug level to avoid noisy output in production.
+    :type cfg: Any
+    :returns: ``None`` after logging the banner.
+    :rtype: None
+    """
 
     LOG.info("Starting pipeline: %s", name)
     if cfg is not None:

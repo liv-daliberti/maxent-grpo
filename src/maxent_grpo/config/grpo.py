@@ -1,4 +1,12 @@
 """
+GRPO-specific configuration dataclasses with MaxEnt extensions.
+
+These classes layer additional benchmarking, telemetry, weighting, and vLLM
+generation controls on top of TRL's GRPO configuration so training recipes can
+be expressed declaratively. The TRL dependency is optional during imports to
+keep documentation builds and tests lightweight.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +22,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# GRPO-specific configuration dataclasses.
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -26,7 +32,59 @@ from .dataset import ScriptArguments, trl
 
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
-    """Additional knobs for GRPO runs (callbacks, benchmarks, etc)."""
+    """GRPO configuration extended for MaxEnt-GRPO experiments.
+
+    Adds logging hooks, benchmark orchestration, weighting controls, and vLLM
+    integration options on top of :class:`trl.GRPOConfig`.
+
+    :ivar benchmarks: Benchmarks to run after training completes.
+    :ivar callbacks: Callback identifiers executed during training.
+    :ivar chat_template: Optional chat template string used to render prompts.
+    :ivar hub_model_revision: Hub model branch to push artifacts to.
+    :ivar num_completions_to_print: Number of completions to print for inspection.
+    :ivar overwrite_hub_revision: Whether to overwrite the destination Hub branch.
+    :ivar push_to_hub_revision: Whether to push training outputs to the Hub.
+    :ivar system_prompt: System prompt injected before training prompts.
+    :ivar wandb_log_unique_prompts: Log unique prompts to W&B runs.
+    :ivar wandb_entity: W&B entity/organization for run tracking.
+    :ivar wandb_project: W&B project name.
+    :ivar wandb_run_group: W&B group used to cluster related runs.
+    :ivar maxent_tau: Sequence-level entropy weight used by MaxEnt-GRPO.
+    :ivar maxent_q_temperature: Temperature applied when forming listwise q values.
+    :ivar maxent_q_epsilon: Minimum support added to q before normalization.
+    :ivar maxent_length_normalize_ref: Length-normalize reference log-probs.
+    :ivar maxent_logprob_chunk_size: Mini-batch size when computing log-probs.
+    :ivar maxent_target_weight_entropy: Target weight entropy for automatic tau tuning.
+    :ivar maxent_tau_lr: Learning rate applied during tau adaptation.
+    :ivar maxent_tau_min: Lower bound enforced on tau during tuning.
+    :ivar maxent_tau_max: Upper bound enforced on tau during tuning.
+    :ivar maxent_tau_warmup_steps: Warmup steps before enabling tau adaptation.
+    :ivar maxent_use_clip_objective: Blend a PPO-style clipped objective into the loss.
+    :ivar maxent_clip_objective_coef: Scale for the clipped objective component.
+    :ivar maxent_clip_adv_baseline: Baseline subtracted before clipping.
+    :ivar train_grpo_objective: Disable MaxEnt weighting and run the standard GRPO objective.
+    :ivar maxent_clip_range: Override PPO clip range for the MaxEnt objective.
+    :ivar init_kl_coeff: Legacy alias for the reverse-KL coefficient.
+    :ivar init_kl_coef: Single-f alias for ``init_kl_coeff``.
+    :ivar kl_target: Target KL value for automatic beta adjustment.
+    :ivar kl_horizon: Horizon in optimizer steps for the beta controller.
+    :ivar kl_ctl_step_size: Maximum fractional beta change per controller step.
+    :ivar clip_range: Legacy PPO clip range knob kept for compatibility.
+    :ivar evaluation_strategy: Alias for eval_strategy; accepts string or enum.
+    :ivar gen_temperature: Temperature used for candidate generation.
+    :ivar gen_top_p: Top-p nucleus sampling used for generation.
+    :ivar vllm_url: Base URL for the vLLM ``/generate`` endpoint.
+    :ivar vllm_max_completion_rounds: Maximum number of retries to top off completions.
+    :ivar vllm_retry_sleep: Seconds to sleep between vLLM retries.
+    :ivar vllm_backfill_with_model: Fallback to local ``model.generate`` when vLLM misses completions.
+    :ivar vllm_return_logprobs: Request per-token logprobs from vLLM.
+    :ivar vllm_best_of: vLLM ``best_of`` parameter forwarded from TRL.
+    :ivar vllm_frequency_penalty: Frequency penalty applied during sampling.
+    :ivar vllm_presence_penalty: Presence penalty applied during sampling.
+    :ivar vllm_top_k: Top-k sampling parameter forwarded to vLLM.
+    :ivar vllm_stop_sequences: Stop sequences for vLLM (JSON list or ``'||'``-delimited string).
+    :raises ValueError: If validation detects negative or inconsistent hyperparameters.
+    """
 
     benchmarks: list[str] = field(
         default_factory=lambda: [],
@@ -333,7 +391,10 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_tau_max must be >= maxent_tau_min")
         if self.maxent_tau_lr < 0.0:
             raise ValueError("maxent_tau_lr must be non-negative")
-        if self.maxent_tau_warmup_steps is not None and self.maxent_tau_warmup_steps < -1:
+        if (
+            self.maxent_tau_warmup_steps is not None
+            and self.maxent_tau_warmup_steps < -1
+        ):
             raise ValueError("maxent_tau_warmup_steps must be >= -1")
         if self.maxent_q_epsilon <= 0.0:
             raise ValueError("maxent_q_epsilon must be > 0 to avoid zero weights")
@@ -353,7 +414,32 @@ class GRPOConfig(trl.GRPOConfig):
 
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
-    """Script arguments for the GRPO training script."""
+    """Script arguments for the GRPO training script.
+
+    Extends :class:`~maxent_grpo.config.ScriptArguments` with reward, dataset,
+    and evaluation knobs used by MaxEnt-GRPO training pipelines.
+
+    :ivar reward_funcs: Reward functions to apply (currently ``pure_accuracy_math``).
+    :ivar cosine_min_value_wrong: Minimum reward when the answer is wrong.
+    :ivar cosine_max_value_wrong: Maximum reward when the answer is wrong.
+    :ivar cosine_min_value_correct: Minimum reward for correct answers.
+    :ivar cosine_max_value_correct: Maximum reward for correct answers.
+    :ivar cosine_max_len: Maximum length considered when scaling cosine reward.
+    :ivar repetition_n_grams: N-gram size for repetition penalty rewards.
+    :ivar repetition_max_penalty: Maximum negative penalty for repetition rewards.
+    :ivar dataset_prompt_column: Column used as prompts during training.
+    :ivar dataset_solution_column: Column containing the reference solution.
+    :ivar eval_dataset_name: Dataset to use for evaluation when different from training.
+    :ivar eval_dataset_config: Config name for the evaluation dataset.
+    :ivar eval_dataset_split: Split to read from the evaluation dataset.
+    :ivar eval_dataset_prompt_column: Prompt column for the evaluation dataset.
+    :ivar eval_dataset_solution_column: Solution column for the evaluation dataset.
+    :ivar max_completion_len: Maximum completion length in characters.
+    :ivar soft_punish_cache: Minimum completion length before applying a soft penalty.
+    :ivar span_kl_target: Per-token KL target used by the span KL controller.
+    :ivar span_kl_beta0: Initial KL coefficient for span KL regularization.
+    :ivar span_kl_horizon: Horizon (steps) for the span KL controller.
+    """
 
     reward_funcs: list[str] = field(
         default_factory=lambda: ["pure_accuracy_math"],

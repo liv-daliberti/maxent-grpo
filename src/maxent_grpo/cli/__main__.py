@@ -26,7 +26,10 @@ from maxent_grpo.cli.hydra_cli import hydra_entry
 
 
 def main() -> None:
-    """Invoke the Hydra CLI entrypoint."""
+    """Invoke the Hydra CLI entrypoint.
+
+    :returns: ``None`` after running the console entrypoint.
+    """
 
     hydra_entry()
 

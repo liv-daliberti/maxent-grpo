@@ -28,13 +28,16 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from ..run_helpers import (
-    GenerationPenaltyConfig,
+from maxent_grpo.training.runtime import (
     GenerationSamplingConfig,
     require_accelerator,
     require_dataloader,
     require_torch,
     require_transformer_base_classes,
+)
+from maxent_grpo.training.runtime.prompts import (
+    GenerationPenaltyConfig,
+    GenerationPenaltyPassthroughMixin,
 )
 from ..weighting import WeightingSettings
 from .logging import LoggingHandles
@@ -168,85 +171,11 @@ class RewardSpec:
 
 
 @dataclass
-class GenerationSettings(GenerationSamplingConfig):
+class GenerationSettings(GenerationPenaltyPassthroughMixin, GenerationSamplingConfig):
     """Configuration for sampling completions with penalty passthrough helpers."""
 
     penalty: GenerationPenaltyConfig = field(default_factory=GenerationPenaltyConfig)
     generation_stats: Dict[str, int] = field(default_factory=dict)
-
-    @property
-    def gen_top_k(self) -> Optional[int]:
-        """Expose penalty mixin attributes with backwards-compatible names."""
-        return self.penalty.gen_top_k
-
-    @gen_top_k.setter
-    def gen_top_k(self, value: Optional[int]) -> None:
-        """Update the top-k sampling limit."""
-        self.penalty.gen_top_k = value
-
-    @property
-    def gen_best_of(self) -> Optional[int]:
-        """Return the best-of sampling count."""
-        return self.penalty.gen_best_of
-
-    @gen_best_of.setter
-    def gen_best_of(self, value: Optional[int]) -> None:
-        """Update the best-of sampling count."""
-        self.penalty.gen_best_of = value
-
-    @property
-    def gen_frequency_penalty(self) -> float:
-        """Return the frequency penalty strength.
-
-        :returns: Penalty applied when repeated tokens appear.
-        :rtype: float
-        """
-        return self.penalty.gen_frequency_penalty
-
-    @gen_frequency_penalty.setter
-    def gen_frequency_penalty(self, value: float) -> None:
-        """Update the frequency penalty strength.
-
-        :param value: Frequency penalty weight forwarded to the sampler.
-        :type value: float
-        """
-        self.penalty.gen_frequency_penalty = value
-
-    @property
-    def gen_presence_penalty(self) -> float:
-        """Return the presence penalty strength.
-
-        :returns: Penalty weight discouraging token reuse.
-        :rtype: float
-        """
-        return self.penalty.gen_presence_penalty
-
-    @gen_presence_penalty.setter
-    def gen_presence_penalty(self, value: float) -> None:
-        """Update the presence penalty strength.
-
-        :param value: New presence penalty applied at generation time.
-        :type value: float
-        """
-        self.penalty.gen_presence_penalty = value
-
-    @property
-    def gen_stop_sequences(self) -> Optional[List[str]]:
-        """Return the configured stop sequences.
-
-        :returns: Optional list of stop strings forwarded to the sampler.
-        :rtype: list[str] | None
-        """
-        return self.penalty.gen_stop_sequences
-
-    @gen_stop_sequences.setter
-    def gen_stop_sequences(self, value: Optional[List[str]]) -> None:
-        """Update the set of stop sequences.
-
-        :param value: Stop strings the generation backend must honour.
-        :type value: list[str] | None
-        """
-        self.penalty.gen_stop_sequences = value
 
 
 @dataclass

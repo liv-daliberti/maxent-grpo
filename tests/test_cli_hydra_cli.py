@@ -93,7 +93,9 @@ def test_build_grpo_configs_without_recipe(monkeypatch):
         def __init__(self, **kwargs):
             self.kwargs = kwargs
 
-    monkeypatch.setitem(sys.modules, "trl", types.SimpleNamespace(ModelConfig=_ModelConfig))
+    monkeypatch.setitem(
+        sys.modules, "trl", types.SimpleNamespace(ModelConfig=_ModelConfig)
+    )
     cmd = hydra_cli.BaselineCommand(
         script={"reward_funcs": ["x"], "dataset_name": "demo"},
         training={},
@@ -115,7 +117,9 @@ def test_hydra_main_runs_baseline(monkeypatch):
     baseline_mod = SimpleNamespace(
         run_baseline_training=lambda *args: calls.setdefault("baseline", args)
     )
-    monkeypatch.setitem(sys.modules, "maxent_grpo.pipelines.training.baseline", baseline_mod)
+    monkeypatch.setitem(
+        sys.modules, "maxent_grpo.pipelines.training.baseline", baseline_mod
+    )
     monkeypatch.setattr(hydra_cli, "_build_grpo_configs", lambda _cmd: ("s", "t", "m"))
 
     cfg = hydra_cli.HydraRootConfig(command="train-baseline")
@@ -130,10 +134,10 @@ def test_hydra_main_runs_maxent(monkeypatch):
     hydra_cli.OmegaConf = _stub_omegaconf()
     _stub_trl(monkeypatch)
     calls = {}
-    training_mod = SimpleNamespace(
-        run_maxent_grpo=lambda *args: calls.setdefault("maxent", args)
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.maxent.run_maxent_training",
+        lambda *args: calls.setdefault("maxent", args),
     )
-    monkeypatch.setitem(sys.modules, "maxent_grpo.training", training_mod)
     monkeypatch.setattr(hydra_cli, "_build_grpo_configs", lambda _cmd: ("s", "t", "m"))
 
     cfg = hydra_cli.HydraRootConfig(command="train-maxent")
@@ -148,13 +152,12 @@ def test_hydra_main_wraps_not_implemented(monkeypatch):
     hydra_cli.OmegaConf = _stub_omegaconf()
     _stub_trl(monkeypatch)
     monkeypatch.setattr(hydra_cli, "_build_grpo_configs", lambda _cmd: ("s", "t", "m"))
-    monkeypatch.setitem(
-        sys.modules,
-        "maxent_grpo.training",
-        SimpleNamespace(run_maxent_grpo=lambda *_a, **_k: (_ for _ in ()).throw(NotImplementedError())),
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.maxent.run_maxent_training",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("boom")),
     )
     cfg = hydra_cli.HydraRootConfig(command="train-maxent")
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="boom"):
         hydra_cli.hydra_main(cfg)
 
 
@@ -371,7 +374,9 @@ def test_hydra_entry_invokes_cli(monkeypatch):
 
     hydra_cli.hydra = _stub_hydra_module()
     called = {}
-    monkeypatch.setattr(hydra_cli, "_invoke_hydra_cli", lambda: called.setdefault("invoked", True))
+    monkeypatch.setattr(
+        hydra_cli, "_invoke_hydra_cli", lambda: called.setdefault("invoked", True)
+    )
     hydra_cli.hydra_entry()
     assert called["invoked"] is True
 

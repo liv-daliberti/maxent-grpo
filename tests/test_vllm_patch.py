@@ -193,7 +193,9 @@ def test_infer_token_count_paths():
 
 def test_extract_logprob_info_variants():
     assert VP._extract_logprob_info("not a dict") is None
-    info = VP._extract_logprob_info({"logprobs": {"token_logprobs": [-0.1, None, -0.2]}})
+    info = VP._extract_logprob_info(
+        {"logprobs": {"token_logprobs": [-0.1, None, -0.2]}}
+    )
     assert info is not None
     assert info.logprob_sum == pytest.approx(-0.3)
     assert info.token_count == 2
@@ -325,7 +327,13 @@ def test_safe_generate_retries_then_fails(monkeypatch):
 
 
 def test_collect_stream_texts_handles_blanks():
-    resp = R(lines=[b"", b'{"prompt_index": 1, "text": "hi"}', b'{"prompt_index": 9, "text": "skip"}'])
+    resp = R(
+        lines=[
+            b"",
+            b'{"prompt_index": 1, "text": "hi"}',
+            b'{"prompt_index": 9, "text": "skip"}',
+        ]
+    )
     out = VP._collect_stream_texts(resp, num_prompts=2)
     assert out == [[""], ["hi"]]
 

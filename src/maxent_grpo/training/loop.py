@@ -42,7 +42,7 @@ from dataclasses import replace
 from typing import Optional
 
 from .generation import CompletionGenerator, GenerationContext
-from .run_helpers import require_accelerator, require_torch
+from maxent_grpo.training.runtime import require_accelerator, require_torch
 from .eval import run_validation_step
 from .weighting.loss import LossInputConfig, build_loss_inputs, evaluate_losses
 from .pipeline import prepare_training_batch

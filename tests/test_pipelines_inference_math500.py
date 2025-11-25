@@ -40,7 +40,9 @@ def test_prepare_examples_validates_columns_and_nonempty():
     bad_row = [{"p": "x"}]
     with pytest.raises(ValueError):
         math500._prepare_examples(bad_row, cfg, limit=None)
-    cfg_missing_solution = math500.Math500EvalConfig(prompt_column="p", solution_column="missing")
+    cfg_missing_solution = math500.Math500EvalConfig(
+        prompt_column="p", solution_column="missing"
+    )
     with pytest.raises(ValueError):
         math500._prepare_examples([{"p": "x"}], cfg_missing_solution, limit=None)
 
@@ -66,6 +68,7 @@ def test_resolve_default_device_prefers_mps(monkeypatch):
 
     class _Torch:
         cuda = _Cuda()
+
         class backends:
             mps = _MPS()
 
@@ -157,8 +160,14 @@ def test_transformers_prompt_runner_sets_chat_template_and_pad(monkeypatch):
     model = _Model()
     monkeypatch.setattr(math500, "torch", _Torch)
     monkeypatch.setattr(math500, "Tensor", type("Tensor", (), {}))
-    monkeypatch.setattr(math500, "AutoTokenizer", SimpleNamespace(from_pretrained=lambda *_a, **_k: tok))
-    monkeypatch.setattr(math500, "AutoModelForCausalLM", SimpleNamespace(from_pretrained=lambda *_a, **_k: model))
+    monkeypatch.setattr(
+        math500, "AutoTokenizer", SimpleNamespace(from_pretrained=lambda *_a, **_k: tok)
+    )
+    monkeypatch.setattr(
+        math500,
+        "AutoModelForCausalLM",
+        SimpleNamespace(from_pretrained=lambda *_a, **_k: model),
+    )
 
     spec = math500.InferenceModelSpec(
         model_name_or_path="m",
@@ -221,12 +230,16 @@ def test_normalize_dtype_converts_strings(monkeypatch):
 def test_transformers_prompt_runner_import_guards(monkeypatch):
     monkeypatch.setattr(math500, "torch", None)
     with pytest.raises(ImportError):
-        math500.TransformersPromptRunner(math500.InferenceModelSpec(model_name_or_path="x"))
+        math500.TransformersPromptRunner(
+            math500.InferenceModelSpec(model_name_or_path="x")
+        )
     monkeypatch.setattr(math500, "torch", types.SimpleNamespace())
     monkeypatch.setattr(math500, "AutoTokenizer", None)
     monkeypatch.setattr(math500, "AutoModelForCausalLM", None)
     with pytest.raises(ImportError):
-        math500.TransformersPromptRunner(math500.InferenceModelSpec(model_name_or_path="x"))
+        math500.TransformersPromptRunner(
+            math500.InferenceModelSpec(model_name_or_path="x")
+        )
 
 
 class _StubTensor:
@@ -300,7 +313,9 @@ def _stub_tokenizer():
                 "attention_mask": _StubTensor([[1, 1, 1]] * batch),
             }
 
-        def decode(self, ids, skip_special_tokens=True, clean_up_tokenization_spaces=True):
+        def decode(
+            self, ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
+        ):
             return " ".join(str(tok) for tok in ids)
 
     return _Tokenizer()
@@ -335,8 +350,16 @@ def test_transformers_prompt_runner_sets_padding_and_generates(monkeypatch):
     monkeypatch.setattr(math500, "Tensor", _StubTensor)
     tokenizer = _stub_tokenizer()
     model = _stub_model()
-    monkeypatch.setattr(math500, "AutoTokenizer", SimpleNamespace(from_pretrained=lambda *_a, **_k: tokenizer))
-    monkeypatch.setattr(math500, "AutoModelForCausalLM", SimpleNamespace(from_pretrained=lambda *_a, **_k: model))
+    monkeypatch.setattr(
+        math500,
+        "AutoTokenizer",
+        SimpleNamespace(from_pretrained=lambda *_a, **_k: tokenizer),
+    )
+    monkeypatch.setattr(
+        math500,
+        "AutoModelForCausalLM",
+        SimpleNamespace(from_pretrained=lambda *_a, **_k: model),
+    )
     spec = math500.InferenceModelSpec(
         model_name_or_path="demo/model",
         system_prompt="system",
@@ -384,14 +407,26 @@ def test_transformers_prompt_runner_infers_missing_eos_and_padding(monkeypatch):
                 "attention_mask": _StubTensor([[1]] * batch),
             }
 
-        def decode(self, ids, skip_special_tokens=True, clean_up_tokenization_spaces=True):
+        def decode(
+            self, ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
+        ):
             return " ".join(str(tok) for tok in ids)
 
     tokenizer = _TokenizerMissingEOS()
     model = _stub_model()
-    monkeypatch.setattr(math500, "AutoTokenizer", SimpleNamespace(from_pretrained=lambda *_a, **_k: tokenizer))
-    monkeypatch.setattr(math500, "AutoModelForCausalLM", SimpleNamespace(from_pretrained=lambda *_a, **_k: model))
-    spec = math500.InferenceModelSpec(model_name_or_path="demo/model", chat_template=None)
+    monkeypatch.setattr(
+        math500,
+        "AutoTokenizer",
+        SimpleNamespace(from_pretrained=lambda *_a, **_k: tokenizer),
+    )
+    monkeypatch.setattr(
+        math500,
+        "AutoModelForCausalLM",
+        SimpleNamespace(from_pretrained=lambda *_a, **_k: model),
+    )
+    spec = math500.InferenceModelSpec(
+        model_name_or_path="demo/model", chat_template=None
+    )
     runner = math500.TransformersPromptRunner(spec)
     assert tokenizer.special_added is True
     assert tokenizer.pad_token_id == 7
@@ -443,6 +478,7 @@ def test_run_math500_inference_raises_on_length_mismatch(monkeypatch):
         "pure_accuracy_reward_math",
         lambda gens, answers: [0.0 for _ in answers],
     )
+
     class _BadRunner(math500.PromptRunner):
         def generate(self, problems):
             return []

@@ -32,6 +32,11 @@ from types import ModuleType
 _HERE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "src")))
 
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+
 
 def _ensure_stub(module_name: str) -> ModuleType:
     """Create a lightweight stub module when optional deps are missing."""
@@ -108,6 +113,10 @@ class _BaseStub:
 transformers_mod.PreTrainedModel = getattr(
     transformers_mod, "PreTrainedModel", type("PreTrainedModel", (_BaseStub,), {})
 )
+try:
+    transformers_mod.PreTrainedModel.__module__ = "transformers"
+except Exception:
+    pass
 transformers_mod.PreTrainedTokenizerBase = getattr(
     transformers_mod,
     "PreTrainedTokenizerBase",
@@ -117,6 +126,10 @@ transformers_mod.PreTrainedTokenizerBase = getattr(
         {"pad_token_id": None, "eos_token_id": None},
     ),
 )
+try:
+    transformers_mod.PreTrainedTokenizerBase.__module__ = "transformers"
+except Exception:
+    pass
 transformers_mod.PreTrainedTokenizer = getattr(
     transformers_mod,
     "PreTrainedTokenizer",
@@ -126,17 +139,33 @@ transformers_mod.PreTrainedTokenizer = getattr(
         {"pad_token_id": None, "eos_token_id": None},
     ),
 )
+try:
+    transformers_mod.PreTrainedTokenizer.__module__ = "transformers"
+except Exception:
+    pass
 transformers_mod.AutoConfig = getattr(
     transformers_mod, "AutoConfig", type("AutoConfig", (_BaseStub,), {})
 )
+try:
+    transformers_mod.AutoConfig.__module__ = "transformers"
+except Exception:
+    pass
 transformers_mod.AutoTokenizer = getattr(
     transformers_mod, "AutoTokenizer", type("AutoTokenizer", (_BaseStub,), {})
 )
+try:
+    transformers_mod.AutoTokenizer.__module__ = "transformers"
+except Exception:
+    pass
 transformers_mod.AutoModelForCausalLM = getattr(
     transformers_mod,
     "AutoModelForCausalLM",
     type("AutoModelForCausalLM", (_BaseStub,), {}),
 )
+try:
+    transformers_mod.AutoModelForCausalLM.__module__ = "transformers"
+except Exception:
+    pass
 trainer_utils_mod = _ensure_stub("transformers.trainer_utils")
 trainer_utils_mod.get_last_checkpoint = getattr(
     trainer_utils_mod, "get_last_checkpoint", lambda *a, **k: None
@@ -227,12 +256,12 @@ autodoc_default_options = {
     "exclude-members": "AutoModelForCausalLM,AutoTokenizer,PreTrainedTokenizer",
 }
 autodoc_type_aliases = {
-    "CompletionType": "rewards.CompletionType",
-    "RewardFunction": "rewards.RewardFunction",
-    "GenerationFn": "training.types.GenerationFn",
-    "GenerationBatch": "training.types.GenerationBatch",
-    "RewardComputation": "training.types.RewardComputation",
-    "RewardSpec": "training.types.RewardSpec",
+    "CompletionType": "maxent_grpo.rewards.basic.CompletionType",
+    "RewardFunction": "maxent_grpo.rewards.basic.RewardFunction",
+    "GenerationFn": "maxent_grpo.training.types.GenerationFn",
+    "GenerationBatch": "maxent_grpo.training.types.GenerationBatch",
+    "RewardComputation": "maxent_grpo.training.types.RewardComputation",
+    "RewardSpec": "maxent_grpo.training.types.RewardSpec",
 }
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True

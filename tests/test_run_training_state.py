@@ -16,6 +16,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 import sys
 import types
 from types import SimpleNamespace
@@ -52,7 +53,9 @@ sys.modules["transformers"] = transformers_stub
 
 # Stub out training.optim to avoid importing the real module with heavy deps.
 optim_stub = types.ModuleType("maxent_grpo.training.optim")
-optim_stub.configure_accumulation_steps = lambda *args, **kwargs: types.SimpleNamespace()
+optim_stub.configure_accumulation_steps = (
+    lambda *args, **kwargs: types.SimpleNamespace()
+)
 optim_stub.detect_deepspeed_state = lambda *_a, **_k: types.SimpleNamespace(
     use_deepspeed=False, zero_stage=0
 )
@@ -172,7 +175,9 @@ def test__load_controller_file_logs_success(monkeypatch, caplog):
     caplog.set_level("INFO")
     accel = _Accel()
     weighting_cfg = SimpleNamespace(beta=0.1, tau=0.2)
-    monkeypatch.setattr("maxent_grpo.training.state.load_controller_state", lambda *_: True)
+    monkeypatch.setattr(
+        "maxent_grpo.training.state.load_controller_state", lambda *_: True
+    )
     from maxent_grpo.training import state as state_mod
 
     loaded = state_mod._load_controller_file("path.bin", accel, weighting_cfg)
@@ -180,7 +185,9 @@ def test__load_controller_file_logs_success(monkeypatch, caplog):
     assert "Loaded controller state from path.bin" in caplog.text
 
 
-def test_load_controller_state_chain_marks_resume_even_when_missing(monkeypatch, tmp_path):
+def test_load_controller_state_chain_marks_resume_even_when_missing(
+    monkeypatch, tmp_path
+):
     state_dir = tmp_path / "resume"
     state_dir.mkdir()
     controller_cfg = SimpleNamespace(

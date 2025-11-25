@@ -28,7 +28,8 @@ from maxent_grpo.generation import (
     seed_generation_groups,
     truncate_to_expected_counts,
 )
-from .run_helpers import _group_softmax, require_torch
+from maxent_grpo.training.runtime import require_torch
+from .run_helpers import _group_softmax
 from .types import (
     AdvantageStats,
     GenerationBatch,
@@ -89,18 +90,38 @@ def reward_moments(
     """
     if not total_utils:
         return 0.0, 0.0
-    utils_tensor = torch.tensor(
-        total_utils,
-        dtype=torch.float32,
-        device=device if device.type != "cpu" else torch.device("cpu"),
-    )
-    train_reward_mean = float(utils_tensor.mean().item())
-    train_reward_std = (
-        float(utils_tensor.std(unbiased=False).item())
-        if utils_tensor.numel() > 1
-        else 0.0
-    )
-    return train_reward_mean, train_reward_std
+    try:
+        import math
+
+        mean_val = sum(total_utils) / len(total_utils)
+        train_reward_mean = float(mean_val)
+        if len(total_utils) > 1:
+            var = sum((u - mean_val) ** 2 for u in total_utils) / len(total_utils)
+            train_reward_std = float(math.sqrt(var))
+        else:
+            train_reward_std = 0.0
+        return train_reward_mean, train_reward_std
+    except (TypeError, ZeroDivisionError, ValueError, OverflowError):
+        torch_mod = require_torch("training_rewards")
+        utils_tensor = torch_mod.tensor(
+            total_utils,
+            dtype=getattr(torch_mod, "float32", None),
+            device=(
+                device
+                if getattr(device, "type", "cpu") != "cpu"
+                else torch_mod.device("cpu")
+            ),
+        )
+        mean_val = getattr(utils_tensor, "mean", lambda *a, **k: utils_tensor)()
+        train_reward_mean = float(getattr(mean_val, "item", lambda: mean_val)())
+        if utils_tensor.numel() > 1:
+            std_val = getattr(utils_tensor, "std", lambda *a, **k: utils_tensor)(
+                unbiased=False
+            )
+            train_reward_std = float(getattr(std_val, "item", lambda: std_val)())
+        else:
+            train_reward_std = 0.0
+        return train_reward_mean, train_reward_std
 
 
 def group_advantages(

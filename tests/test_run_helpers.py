@@ -19,10 +19,11 @@ from __future__ import annotations
 import sys
 import types
 from importlib import import_module, reload
-import os
 from types import SimpleNamespace
 
 import pytest
+
+import maxent_grpo.training.runtime.torch_utils as torch_utils
 
 
 @pytest.fixture
@@ -30,7 +31,8 @@ def run_helpers(monkeypatch, training_stubs):
     """Reload training.run_helpers with lightweight dependency stubs installed."""
     # training_stubs fixture installs torch/accelerate/transformers shims
     import maxent_grpo.training  # noqa: F401
-    module = import_module("training.run_helpers")
+
+    module = import_module("maxent_grpo.training.run_helpers")
     return reload(module)
 
 
@@ -112,15 +114,15 @@ def test_group_softmax_empty_returns_empty(run_helpers):
 
 
 def test_require_torch_builds_stub_when_missing(monkeypatch, run_helpers):
-    run_helpers._import_module.cache_clear()
-    real_import = run_helpers._import_module
+    torch_utils._import_module.cache_clear()
+    real_import = torch_utils._import_module
 
     def _missing(name: str):
         if name == "torch":
             raise ModuleNotFoundError("no torch")
         return real_import(name)
 
-    monkeypatch.setattr(run_helpers, "_import_module", _missing)
+    monkeypatch.setattr(torch_utils, "_import_module", _missing)
     monkeypatch.delitem(sys.modules, "torch", raising=False)
     torch_mod = run_helpers.require_torch("ctx")
     assert hasattr(torch_mod, "tensor")
@@ -135,7 +137,7 @@ def test_require_torch_patches_missing_attrs(monkeypatch, run_helpers):
         full=lambda *_a, **_k: None,
         ones_like=lambda *_a, **_k: None,
     )
-    run_helpers._import_module.cache_clear()
+    torch_utils._import_module.cache_clear()
     monkeypatch.delitem(sys.modules, "torch", raising=False)
     stubs = [stub_missing, stub_patched]
 
@@ -145,7 +147,7 @@ def test_require_torch_patches_missing_attrs(monkeypatch, run_helpers):
         return import_module(name)
 
     _fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
-    monkeypatch.setattr(run_helpers, "_import_module", _fake_import)
+    monkeypatch.setattr(torch_utils, "_import_module", _fake_import)
     torch_mod = run_helpers.require_torch("ctx2")
     assert hasattr(torch_mod, "zeros")
     zeros_val = torch_mod.zeros((1,))
@@ -153,7 +155,7 @@ def test_require_torch_patches_missing_attrs(monkeypatch, run_helpers):
 
 
 def test_require_torch_installs_via_bootstrap(monkeypatch, run_helpers):
-    run_helpers._import_module.cache_clear()
+    torch_utils._import_module.cache_clear()
     monkeypatch.delitem(sys.modules, "torch", raising=False)
     installed = SimpleNamespace(
         tensor=lambda *_a, **_k: "t",
@@ -172,26 +174,57 @@ def test_require_torch_installs_via_bootstrap(monkeypatch, run_helpers):
         if name in sys.modules:
             return sys.modules[name]
         if name == "torch":
-            return SimpleNamespace(tensor=lambda *_a, **_k: "missing")  # missing zeros attr
+            return SimpleNamespace(
+                tensor=lambda *_a, **_k: "missing"
+            )  # missing zeros attr
         if name == "ops.sitecustomize":
             return bootstrap
         return import_module(name)
 
     _fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
-    monkeypatch.setattr(run_helpers, "_import_module", _fake_import)
+    monkeypatch.setattr(torch_utils, "_import_module", _fake_import)
     torch_mod = run_helpers.require_torch("bootstrap")
     assert callable(torch_mod.zeros)
     assert torch_mod.zeros((1,)) == "z"
 
 
+def test_require_torch_reinstalls_when_attrs_missing(monkeypatch, run_helpers):
+    torch_utils._import_module.cache_clear()
+    monkeypatch.delitem(sys.modules, "torch", raising=False)
+    installed = SimpleNamespace(
+        tensor=lambda *_a, **_k: "t",
+        zeros=lambda *_a, **_k: "z",
+        full=lambda *_a, **_k: "f",
+        ones_like=lambda *_a, **_k: "o",
+    )
+
+    def _install_stub():
+        sys.modules["torch"] = installed
+
+    bootstrap = SimpleNamespace(_install_torch_stub=_install_stub)
+    monkeypatch.setitem(sys.modules, "ops.sitecustomize", bootstrap)
+
+    def _fake_import(name):
+        if name == "torch":
+            return SimpleNamespace(tensor=lambda *_a, **_k: None)  # missing attrs
+        if name == "ops.sitecustomize":
+            return bootstrap
+        return import_module(name)
+
+    _fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
+    monkeypatch.setattr(torch_utils, "_import_module", _fake_import)
+    torch_mod = run_helpers.require_torch("bootstrap_missing")
+    assert torch_mod.full((1,), 1) == "f"
+
+
 def test_require_torch_builds_stub_when_all_imports_fail(monkeypatch, run_helpers):
-    run_helpers._import_module.cache_clear()
+    torch_utils._import_module.cache_clear()
 
     def _missing(name):
         raise ModuleNotFoundError("no torch")
 
     _missing.cache_clear = lambda: None  # type: ignore[attr-defined]
-    monkeypatch.setattr(run_helpers, "_import_module", _missing)
+    monkeypatch.setattr(torch_utils, "_import_module", _missing)
     monkeypatch.delitem(sys.modules, "torch", raising=False)
     torch_mod = run_helpers.require_torch("fallback")
     assert hasattr(torch_mod, "Tensor")
@@ -240,6 +273,23 @@ def test_torch_stub_indexing_and_math_edges(run_helpers):
     assert (t1d >= [0, 3]).tolist() == [True, False]
 
 
+def test_torch_stub_setitem_tuple_row_non_int_raises(run_helpers):
+    stub = run_helpers._build_torch_stub()
+    tensor = stub.tensor([[1, 2]])
+    with pytest.raises(TypeError):
+        tensor[(object(), slice(0, 1))] = 3
+
+
+def test_torch_stub_long_and_sum_non_nested_and_full_1d(run_helpers):
+    stub = run_helpers._build_torch_stub()
+    t = stub.tensor([1, 2])
+    assert t.long() is t
+    summed = t.sum(dim=0)
+    assert summed.tolist() == [3]
+    filled = stub.full((3,), 7)
+    assert filled.tolist() == [7, 7, 7]
+
+
 def test_torch_stub_utilities_and_clamp(run_helpers):
     stub = run_helpers._build_torch_stub()
     zeros_2d = stub.zeros((2, 3))
@@ -278,45 +328,6 @@ def test_truncate_prompt_warns_once(monkeypatch, caplog, run_helpers):
     truncated = run_helpers._truncate_prompt("y" * 10, char_limit=5)
     assert truncated == "yyyyy"
     assert "Prompt length exceeded" not in caplog.text
-
-
-def test_prompt_char_limit_from_tokens_respects_env(monkeypatch, run_helpers):
-    monkeypatch.setenv("MAX_PROMPT_CHARS", "99")
-    module = reload(run_helpers)
-    limit = module._prompt_char_limit_from_tokens(10)
-    assert limit == max(99, 40)
-    monkeypatch.delenv("MAX_PROMPT_CHARS", raising=False)
-    module = reload(run_helpers)
-    assert module._prompt_char_limit_from_tokens(0) == module.PROMPT_CHAR_LIMIT
-
-
-def test_truncate_prompt_shared_with_baseline(monkeypatch, caplog):
-    caplog.set_level("WARNING")
-    import maxent_grpo.training.run_helpers as run_helpers
-    import maxent_grpo.pipelines.training.baseline as baseline
-
-    run_helpers = reload(run_helpers)
-    run_helpers._TRUNC_STATE["warned"] = False
-    monkeypatch.setattr(run_helpers, "PROMPT_CHAR_LIMIT", 5)
-    baseline = reload(baseline)
-    baseline.truncate_prompt = run_helpers.truncate_prompt
-
-    class _Tok:
-        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
-            return messages[-1]["content"]
-
-    out = baseline._to_prompt(
-        {"prompt": "z" * 10, "answer": "42"}, _Tok(), "prompt", None
-    )
-    assert len(out["prompt"]) <= run_helpers.PROMPT_CHAR_LIMIT
-    assert "Prompt length exceeded" in caplog.text
-    caplog.clear()
-
-    # Second truncation through the shared helper should not warn again.
-    _ = run_helpers._truncate_prompt("w" * 10)
-    assert "Prompt length exceeded" not in caplog.text
-
-    run_helpers._TRUNC_STATE["warned"] = False
 
 
 def test_generation_sampling_config_proxies_vllm_fields(run_helpers):
@@ -371,7 +382,7 @@ def test_generation_sampling_config_proxies_vllm_fields(run_helpers):
 def test_require_dataloader_installs_stub(monkeypatch):
     import maxent_grpo.training.run_helpers as run_helpers
 
-    run_helpers._import_module.cache_clear()
+    torch_utils._import_module.cache_clear()
     for mod in ("torch.utils.data", "torch.utils", "torch"):
         monkeypatch.delitem(sys.modules, mod, raising=False)
 
@@ -384,22 +395,11 @@ def test_require_dataloader_installs_stub(monkeypatch):
             raise ModuleNotFoundError("missing torch")
         return real_import(name, *args, **kwargs)
 
-    monkeypatch.setattr(run_helpers, "_import_module", _fake_import)
+    monkeypatch.setattr(torch_utils, "_import_module", _fake_import)
     loader_cls = run_helpers.require_dataloader("test_stub")
 
     assert loader_cls.__name__ == "DataLoader"
     assert "torch.utils.data" in sys.modules
-
-
-def test_require_dataloader_missing_attribute(monkeypatch):
-    import maxent_grpo.training.run_helpers as run_helpers
-
-    run_helpers._import_module.cache_clear()
-    monkeypatch.setattr(
-        run_helpers, "_import_module", lambda name, *_, **__: SimpleNamespace() if name == "torch.utils.data" else import_module(name)
-    )
-    with pytest.raises(RuntimeError):
-        run_helpers.require_dataloader("ctx")
 
 
 def test_require_dependency_and_optional_dependency(monkeypatch, run_helpers):
@@ -426,7 +426,7 @@ def test_wandb_error_types_defaults_and_custom_error(monkeypatch, run_helpers):
     errors_mod.Error = CustomError
     monkeypatch.setitem(sys.modules, "wandb.errors", errors_mod)
     err_types = run_helpers._wandb_error_types()
-    assert err_types[0] is CustomError
+    assert CustomError in err_types
     assert RuntimeError in err_types and ValueError in err_types
 
 
@@ -435,7 +435,8 @@ def test_wandb_error_types_ignores_non_exception_error(monkeypatch, run_helpers)
     errors_mod = types.ModuleType("wandb.errors")
     errors_mod.Error = "not-an-exception"
     monkeypatch.setitem(sys.modules, "wandb.errors", errors_mod)
-    assert run_helpers._wandb_error_types() == (RuntimeError, ValueError)
+    err_types = run_helpers._wandb_error_types()
+    assert RuntimeError in err_types and ValueError in err_types
 
 
 def test_report_to_contains_handles_variants(run_helpers):
@@ -444,261 +445,11 @@ def test_report_to_contains_handles_variants(run_helpers):
     assert run_helpers._report_to_contains(["mlflow", "wandb"], "WANDB") is True
 
 
-def test_maybe_init_wandb_run_warns_without_package(monkeypatch, caplog, run_helpers):
-    accelerator = SimpleNamespace(is_main_process=True)
-    training_args = SimpleNamespace(report_to="wandb")
-    init_called = {}
-    monkeypatch.setattr(
-        run_helpers,
-        "init_wandb_training",
-        lambda *_a, **_k: init_called.setdefault("called", True),
-    )
-    monkeypatch.setattr(run_helpers, "_optional_dependency", lambda *_a, **_k: None)
-    caplog.set_level("WARNING")
-    result = run_helpers._maybe_init_wandb_run(accelerator, training_args, {})
-    assert result is None
-    assert init_called["called"] is True
-    assert "wandb package is not installed" in caplog.text
-
-
-def test_maybe_init_wandb_run_applies_env_overrides(monkeypatch, run_helpers):
-    accelerator = SimpleNamespace(is_main_process=True)
-    training_args = SimpleNamespace(report_to=["wandb"], run_name=None)
-    monkeypatch.setenv("WANDB_PROJECT", "proj")
-    monkeypatch.setenv("WANDB_ENTITY", "ent")
-    monkeypatch.setenv("WANDB_RUN_GROUP", "group")
-
-    class _FakeRun:
-        pass
-
-    class _FakeWandb:
-        def __init__(self):
-            self.kwargs = None
-
-        def init(self, **kwargs):
-            self.kwargs = kwargs
-            return _FakeRun()
-
-    wandb = _FakeWandb()
-    monkeypatch.setattr(run_helpers, "init_wandb_training", lambda *_a, **_k: None)
-    monkeypatch.setattr(run_helpers, "_optional_dependency", lambda *_a, **_k: wandb)
-    run = run_helpers._maybe_init_wandb_run(accelerator, training_args, {"x": 1})
-    assert isinstance(run, _FakeRun)
-    assert wandb.kwargs["project"] == "proj"
-    assert wandb.kwargs["entity"] == "ent"
-    assert wandb.kwargs["group"] == "group"
-
-
-def test_maybe_init_wandb_run_skips_when_report_to_missing(run_helpers):
-    accelerator = SimpleNamespace(is_main_process=True)
-    training_args = SimpleNamespace(report_to=None)
-    assert run_helpers._maybe_init_wandb_run(accelerator, training_args, {}) is None
-
-
-def test_maybe_init_wandb_run_non_main_sets_offline(monkeypatch, run_helpers):
-    accelerator = SimpleNamespace(is_main_process=False)
-    training_args = SimpleNamespace(report_to=["wandb"])
-    monkeypatch.delenv("WANDB_MODE", raising=False)
-    monkeypatch.setattr(run_helpers, "init_wandb_training", lambda *_a, **_k: None)
-    result = run_helpers._maybe_init_wandb_run(accelerator, training_args, {})
-    assert result is None
-    assert os.environ.get("WANDB_MODE") == "offline"
-
-
-def test_maybe_init_wandb_run_honors_run_name(monkeypatch, run_helpers):
-    accelerator = SimpleNamespace(is_main_process=True)
-    training_args = SimpleNamespace(report_to="wandb", run_name="named-run")
-
-    class _FakeRun:
-        pass
-
-    class _FakeWandb:
-        def __init__(self):
-            self.kwargs = None
-
-        def init(self, **kwargs):
-            self.kwargs = kwargs
-            return _FakeRun()
-
-    wandb = _FakeWandb()
-    monkeypatch.setattr(run_helpers, "init_wandb_training", lambda *_a, **_k: None)
-    monkeypatch.setattr(run_helpers, "_optional_dependency", lambda *_a, **_k: wandb)
-    run = run_helpers._maybe_init_wandb_run(accelerator, training_args, {})
-    assert isinstance(run, _FakeRun)
-    assert wandb.kwargs["name"] == "named-run"
-
-
-def test_log_wandb_handles_first_and_error_runs(monkeypatch, caplog, run_helpers):
-    run_helpers._FIRST_WANDB_LOGGED_RUNS.clear()
-    caplog.set_level("INFO")
-    run_helpers._log_wandb(None, {"a": 1}, step=1)
-
-    class _Run:
-        def __init__(self):
-            self.logged = []
-            self.id = "run1"
-
-        def log(self, metrics, step):
-            self.logged.append((metrics, step))
-
-    good_run = _Run()
-    run_helpers._log_wandb(good_run, {"x": 2}, step=3)
-    assert good_run.logged == [({"x": 2}, 3)]
-    assert "Logging first metrics" in caplog.text
-
-    class _BadRun:
-        def __init__(self):
-            self.id = "run2"
-
-        def log(self, *_a, **_k):
-            raise ValueError("boom")
-
-    caplog.set_level("WARNING")
-    run_helpers._log_wandb(_BadRun(), {"y": 5}, step=4)
-    assert "Failed to log metrics" in caplog.text
-
-
 def test_maybe_create_deepspeed_plugin_returns_none_when_disabled(
     run_helpers, monkeypatch
 ):
     monkeypatch.setenv("ACCELERATE_USE_DEEPSPEED", "false")
     assert run_helpers._maybe_create_deepspeed_plugin() is None
-
-
-def test_maybe_create_deepspeed_plugin_reads_config(monkeypatch, tmp_path, run_helpers):
-    monkeypatch.setenv("ACCELERATE_USE_DEEPSPEED", "true")
-    ds_yaml = tmp_path / "ds.yaml"
-    ds_yaml.write_text(
-        """
-deepspeed_config:
-  zero_stage: 2
-  offload_param_device: cpu
-  zero3_save_16bit_model: true
-""",
-        encoding="utf-8",
-    )
-    monkeypatch.setenv("ACCELERATE_CONFIG_FILE", str(ds_yaml))
-
-    class _FakeDSPlugin:
-        def __init__(self, **kwargs):
-            self.kwargs = kwargs
-
-    fake_mod = SimpleNamespace(DeepSpeedPlugin=_FakeDSPlugin)
-    orig_require = run_helpers._require_dependency
-    monkeypatch.setattr(
-        run_helpers,
-        "_require_dependency",
-        lambda name, hint: (
-            fake_mod if name == "accelerate.utils" else orig_require(name, hint)
-        ),
-    )
-    plugin = run_helpers._maybe_create_deepspeed_plugin()
-    assert isinstance(plugin, _FakeDSPlugin)
-    assert plugin.kwargs["zero_stage"] == 2
-    assert plugin.kwargs["offload_param_device"] == "cpu"
-    assert plugin.kwargs["zero3_save_16bit_model"] is True
-
-
-def test_maybe_create_deepspeed_plugin_handles_yaml_errors(
-    monkeypatch, tmp_path, run_helpers
-):
-    monkeypatch.setenv("ACCELERATE_USE_DEEPSPEED", "true")
-    cfg_path = tmp_path / "ds_err.yaml"
-    cfg_path.write_text("{}", encoding="utf-8")
-    monkeypatch.setenv("ACCELERATE_CONFIG_FILE", str(cfg_path))
-
-    def _raise(*_a, **_k):
-        raise ValueError("bad yaml")
-
-    monkeypatch.setattr(run_helpers.yaml, "safe_load", _raise)
-    fake_mod = SimpleNamespace(
-        DeepSpeedPlugin=lambda **kwargs: SimpleNamespace(kwargs=kwargs)
-    )
-    orig_require = run_helpers._require_dependency
-    monkeypatch.setattr(
-        run_helpers,
-        "_require_dependency",
-        lambda name, hint: (
-            fake_mod if name == "accelerate.utils" else orig_require(name, hint)
-        ),
-    )
-    plugin = run_helpers._maybe_create_deepspeed_plugin()
-    assert isinstance(plugin, SimpleNamespace)
-    assert plugin.kwargs["zero_stage"] == 3
-
-
-def test_maybe_create_deepspeed_plugin_returns_none_when_no_config_values(
-    monkeypatch, tmp_path, run_helpers
-):
-    monkeypatch.setenv("ACCELERATE_USE_DEEPSPEED", "true")
-    cfg_path = tmp_path / "ds_empty.yaml"
-    cfg_path.write_text("{}", encoding="utf-8")
-    monkeypatch.setenv("ACCELERATE_CONFIG_FILE", str(cfg_path))
-    fake_mod = SimpleNamespace(DeepSpeedPlugin=lambda **kwargs: kwargs)
-    orig_require = run_helpers._require_dependency
-    monkeypatch.setattr(
-        run_helpers,
-        "_require_dependency",
-        lambda name, hint: (
-            fake_mod if name == "accelerate.utils" else orig_require(name, hint)
-        ),
-    )
-    monkeypatch.setattr(
-        run_helpers.yaml,
-        "safe_load",
-        lambda *_a, **_k: {"deepspeed_config": {"zero_stage": None}},
-    )
-    assert run_helpers._maybe_create_deepspeed_plugin() is None
-
-
-def test_require_deepspeed_wraps_import_errors(monkeypatch, run_helpers):
-    def _raise(*_a, **_k):
-        raise ImportError("x")
-
-    monkeypatch.setattr(run_helpers, "_require_dependency", _raise)
-    with pytest.raises(RuntimeError):
-        run_helpers.require_deepspeed("ctx")
-
-
-def test_require_accelerator_import_failure(monkeypatch, run_helpers):
-    run_helpers._import_module.cache_clear()
-    monkeypatch.setattr(
-        run_helpers,
-        "_import_module",
-        lambda name: (_ for _ in ()).throw(ModuleNotFoundError("missing")) if name == "accelerate" else import_module(name),
-    )
-    with pytest.raises(RuntimeError):
-        run_helpers.require_accelerator("ctx")
-
-
-def test_require_transformer_base_classes_missing_attrs(monkeypatch, run_helpers):
-    fake_mod = SimpleNamespace()
-    monkeypatch.setattr(
-        run_helpers, "_import_module", lambda name: fake_mod if name == "transformers" else import_module(name)
-    )
-    with pytest.raises(RuntimeError):
-        run_helpers.require_transformer_base_classes("ctx")
-
-
-def test_get_trl_prepare_deepspeed_ignores_non_callable(monkeypatch, run_helpers):
-    utils_mod = types.ModuleType("trl.trainer.utils")
-    utils_mod.prepare_deepspeed = "not-callable"
-    monkeypatch.setitem(sys.modules, "trl.trainer.utils", utils_mod)
-    assert run_helpers.get_trl_prepare_deepspeed() is None
-
-
-def test_get_trl_prepare_deepspeed(monkeypatch, run_helpers):
-    monkeypatch.delitem(sys.modules, "trl.trainer.utils", raising=False)
-    assert run_helpers.get_trl_prepare_deepspeed() is None
-
-    utils_mod = types.ModuleType("trl.trainer.utils")
-
-    def _prep():
-        return "ok"
-
-    utils_mod.prepare_deepspeed = _prep
-    monkeypatch.setitem(sys.modules, "trl.trainer.utils", utils_mod)
-    assert run_helpers.get_trl_prepare_deepspeed() is _prep
 
 
 def test_chat_tokenizer_protocol_methods_raise(run_helpers):

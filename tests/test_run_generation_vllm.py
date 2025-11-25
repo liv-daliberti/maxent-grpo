@@ -85,10 +85,14 @@ sys.modules["trl"] = trl_stub
 sys.modules["trl.extras"] = trl_extras
 sys.modules["trl.extras.vllm_client"] = trl_vllm
 
-from maxent_grpo.training.generation.vllm import (  # noqa: E402
-    VLLMGenerationHelper,
-    _VLLMGenerationState,
-)
+
+def _vllm_classes():
+    from maxent_grpo.generation.vllm import (
+        VLLMGenerationHelper,
+        _VLLMGenerationState,
+    )
+
+    return VLLMGenerationHelper, _VLLMGenerationState
 
 
 def _helper_ctx():
@@ -118,6 +122,7 @@ def _fallback_generate(prompts, num_samples, counts=None):
 
 
 def test_vllm_state_pending_and_trim():
+    _, _VLLMGenerationState = _vllm_classes()
     state = _VLLMGenerationState(
         prompts=["p1", "p2"],
         target_counts=[2, 1],
@@ -136,6 +141,7 @@ def test_vllm_state_pending_and_trim():
 
 def test_prepare_targets_dedup_enabled(monkeypatch):
     monkeypatch.setenv("MAXENT_VLLM_DEDUP", "1")
+    VLLMGenerationHelper, _ = _vllm_classes()
     helper = VLLMGenerationHelper(_helper_ctx(), _fallback_generate)
     prompts = ["p1", "p1", "p2"]
     counts = [1, 2, 3]
@@ -152,6 +158,7 @@ def test_prepare_targets_dedup_enabled(monkeypatch):
 
 
 def test_vllm_helper_backfills_missing(monkeypatch):
+    VLLMGenerationHelper, _VLLMGenerationState = _vllm_classes()
     ctx = _helper_ctx()
     ctx.vllm_backfill_local = True
     helper = VLLMGenerationHelper(ctx, _fallback_generate)
@@ -173,6 +180,7 @@ def test_vllm_helper_backfills_missing(monkeypatch):
 
 
 def test_vllm_helper_maybe_sync_weights(monkeypatch):
+    VLLMGenerationHelper, _ = _vllm_classes()
     ctx = _helper_ctx()
     ctx.vllm_sync_weights = True
     helper = VLLMGenerationHelper(ctx, _fallback_generate)

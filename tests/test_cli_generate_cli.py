@@ -19,6 +19,10 @@ from __future__ import annotations
 import importlib
 import types
 from argparse import Namespace
+
+import pytest
+
+
 def test_run_cli_invokes_pipeline(monkeypatch):
     module = importlib.import_module("maxent_grpo.cli.generate")
     called = {}
@@ -82,3 +86,10 @@ def test_typer_entrypoint_and_app(monkeypatch):
 
     module.app()
     assert run_calls["fn"].__name__ == "_typer_entrypoint"
+
+
+def test_app_raises_without_typer(monkeypatch):
+    module = importlib.import_module("maxent_grpo.cli.generate")
+    monkeypatch.setattr(module, "typer", None)
+    with pytest.raises(RuntimeError):
+        module.app()

@@ -290,15 +290,23 @@ def test_maybe_update_tau_respects_guards(weighting_logic):
     logic, _ = weighting_logic
 
     no_target_cfg = _build_weighting(tau_target=None)
-    logic.maybe_update_tau(no_target_cfg, weight_stats=SimpleNamespace(weight_entropy=1.0), global_step=5)
+    logic.maybe_update_tau(
+        no_target_cfg, weight_stats=SimpleNamespace(weight_entropy=1.0), global_step=5
+    )
     assert no_target_cfg.tau == pytest.approx(0.2)
 
     warmup_cfg = _build_weighting(tau_target=0.5, tau_warmup=10)
-    logic.maybe_update_tau(warmup_cfg, weight_stats=SimpleNamespace(weight_entropy=1.0), global_step=5)
+    logic.maybe_update_tau(
+        warmup_cfg, weight_stats=SimpleNamespace(weight_entropy=1.0), global_step=5
+    )
     assert warmup_cfg.tau == pytest.approx(0.2)
 
     non_finite_cfg = _build_weighting(tau_target=0.5)
-    logic.maybe_update_tau(non_finite_cfg, weight_stats=SimpleNamespace(weight_entropy=float("inf")), global_step=20)
+    logic.maybe_update_tau(
+        non_finite_cfg,
+        weight_stats=SimpleNamespace(weight_entropy=float("inf")),
+        global_step=20,
+    )
     assert non_finite_cfg.tau == pytest.approx(0.2)
 
 
@@ -437,7 +445,9 @@ def test_compute_weight_stats_uses_per_token_reference(weighting_logic):
         pairs=PromptCompletionBatch(
             prompts=["p1", "p1", "p2"], completions=["a", "b", "c"]
         ),
-        q_distribution=QDistribution(grouped=[[0.2, 0.8], [0.6]], samples=[0.2, 0.8, 0.6]),
+        q_distribution=QDistribution(
+            grouped=[[0.2, 0.8], [0.6]], samples=[0.2, 0.8, 0.6]
+        ),
         moments=RewardMoments(mean=0.0, std=1.0),
     )
     weighting_cfg = _build_weighting(beta=0.4, tau=0.5, len_norm_ref=False)
@@ -446,7 +456,9 @@ def test_compute_weight_stats_uses_per_token_reference(weighting_logic):
 
     assert stats is not None
     expected_log_terms = np.log([0.2, 0.8]) / 0.9 + (0.4 / 0.9) * np.array([1.0, -1.0])
-    expected_group = np.exp(expected_log_terms - np.log(np.exp(expected_log_terms).sum()))
+    expected_group = np.exp(
+        expected_log_terms - np.log(np.exp(expected_log_terms).sum())
+    )
     expected_group = expected_group * np.array([2.0, 1.0])
     expected_group = expected_group / expected_group.sum()
     assert stats.weights_grouped[0] == pytest.approx(expected_group.tolist(), rel=1e-4)

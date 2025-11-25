@@ -16,18 +16,12 @@
 
 from __future__ import annotations
 
+import sys
 from types import SimpleNamespace
 from typing import Any, List
 
-# Provide a lightweight wandb stub so legacy imports in test environments
-# don't pull the full dependency graph.
-import sys
-
-_wandb_stub = sys.modules.get("wandb")
-if _wandb_stub is None or getattr(getattr(_wandb_stub, "errors", None), "Error", None) is None:
-    sys.modules["wandb"] = SimpleNamespace(errors=SimpleNamespace(Error=RuntimeError))
-
 from .loop import run_training_loop
+from .pipeline import PreparedBatch
 from .types import (
     RuntimeHandles,
     RewardSpec,
@@ -68,11 +62,19 @@ from .types import (
     TrainingLoopState,
 )
 from .weighting.loss import SequenceScores
-from .pipeline import PreparedBatch
+
+# Provide a lightweight wandb stub so legacy imports in test environments
+# don't pull the full dependency graph.
+_wandb_stub = sys.modules.get("wandb")
+if (
+    _wandb_stub is None
+    or getattr(getattr(_wandb_stub, "errors", None), "Error", None) is None
+):
+    sys.modules["wandb"] = SimpleNamespace(errors=SimpleNamespace(Error=RuntimeError))
 
 __all__: List[str] = [
-    "run_maxent_grpo",
     "run_training_loop",
+    "run_maxent_training",
     "TrainingLoopState",
     "StepBatchInfo",
     "StepResources",
@@ -115,19 +117,12 @@ __all__: List[str] = [
 ]
 
 
-def run_maxent_grpo(*args: Any, **kwargs: Any) -> Any:
-    """Compatibility wrapper for callers still importing ``training.run_maxent_grpo``.
+def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
+    """Lazy entrypoint to the MaxEnt training pipeline."""
 
-    The legacy shim modules have been removed. To launch training, invoke the
-    Hydra CLI entrypoint (``maxent-grpo-maxent``) or compose your own runner
-    using the building blocks in ``training.loop``, ``training.pipeline``, and
-    ``training.run_helpers``.
-    """
-    raise NotImplementedError(
-        "training.run_maxent_grpo is no longer provided. Use the Hydra CLI "
-        "entrypoint (maxent-grpo-maxent) or build a runner with training.loop/"
-        "training.pipeline."
-    )
+    from maxent_grpo.pipelines.training.maxent import run_maxent_training as _run_maxent
+
+    return _run_maxent(*args, **kwargs)
 
 
 def __dir__():

@@ -39,6 +39,8 @@ def test_validate_logs_passes_on_finite_metrics(tmp_path):
         "train/learning_rate": 1e-4,
         "train/global_step": 1,
         "train/custom_metric": 2.0,
+        "run/git_sha": "abc123",
+        "run/recipe_path": "path/to/recipe",
     }
     log_path.write_text(f"INFO metrics {json.dumps(payload)}\n")
     errors = mod["validate_logs"](
@@ -54,6 +56,8 @@ def test_validate_logs_flags_nan_and_missing_keys(tmp_path):
     bad_payload = {
         "train/loss": float("nan"),
         "train/learning_rate": 1e-4,
+        "run/git_sha": "abc123",
+        "run/recipe_path": "path/to/recipe",
     }
     log_path.write_text(f"{json.dumps(bad_payload, allow_nan=True)}\n")
     errors = mod["validate_logs"](

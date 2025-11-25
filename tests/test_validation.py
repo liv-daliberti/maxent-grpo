@@ -21,11 +21,14 @@ import logging
 import grpo
 from maxent_grpo.pipelines.training import baseline
 import maxent_grpo.core.data as data_utils
+
 try:
     import transformers.trainer_utils as trainer_utils  # type: ignore
 except ModuleNotFoundError:
     # Provide a lightweight stub when transformers is not installed
-    transformers_mod = sys.modules.setdefault("transformers", ModuleType("transformers"))
+    transformers_mod = sys.modules.setdefault(
+        "transformers", ModuleType("transformers")
+    )
     trainer_utils = ModuleType("transformers.trainer_utils")
     trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
     sys.modules["transformers.trainer_utils"] = trainer_utils

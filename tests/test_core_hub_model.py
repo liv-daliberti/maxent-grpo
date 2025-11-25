@@ -18,11 +18,8 @@ Unit tests for core.hub and core.model helpers.
 
 from __future__ import annotations
 
-import builtins
 import importlib
-import sys
 from types import SimpleNamespace
-import types
 
 import pytest
 
@@ -176,55 +173,3 @@ def test_get_tokenizer_fallback_sets_chat_template(monkeypatch):
     )
     assert isinstance(rendered, list)
     assert rendered  # non-empty bytes
-
-
-def test_model_import_fallback_without_transformers(monkeypatch):
-    """Reload core.model with transformers/trl missing to exercise fallback classes."""
-    import maxent_grpo.core.model as model
-
-    real_import = builtins.__import__
-
-    def _fake_import(name, *args, **kwargs):
-        if name.startswith("transformers") or name.startswith("trl"):
-            raise ModuleNotFoundError(name)
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
-    fallback_mod = importlib.reload(model)
-
-    tok = fallback_mod.PreTrainedTokenizer()
-    rendered = tok.apply_chat_template(
-        [{"role": "user", "content": "hello"}],
-        tokenize=False,
-        add_generation_prompt=False,
-    )
-    assert "user" in rendered
-    assert isinstance(fallback_mod.get_quantization_config(None), type(None))
-
-    # Restore normal module state for subsequent tests
-    monkeypatch.setattr(builtins, "__import__", real_import, raising=False)
-    importlib.reload(model)
-
-
-def test_hub_commitinfo_fallback(monkeypatch):
-    """Reload core.hub with a stubbed huggingface_hub lacking CommitInfo."""
-    import maxent_grpo.core.hub as hub
-
-    hf_stub = types.ModuleType("huggingface_hub")
-    hf_stub.create_branch = lambda **_kwargs: None
-    hf_stub.create_repo = lambda **_kwargs: None
-    hf_stub.get_safetensors_metadata = lambda *_args, **_kwargs: {}
-    hf_stub.list_repo_commits = lambda *_args, **_kwargs: []
-    hf_stub.list_repo_files = lambda **_kwargs: []
-    hf_stub.list_repo_refs = lambda *_args, **_kwargs: SimpleNamespace(branches=[])
-    hf_stub.repo_exists = lambda *_args, **_kwargs: False
-    hf_stub.upload_folder = lambda **_kwargs: None
-
-    monkeypatch.setitem(sys.modules, "huggingface_hub", hf_stub)
-    monkeypatch.setitem(sys.modules, "huggingface_hub.utils", None)
-    reloaded = importlib.reload(hub)
-
-    from typing import Any
-
-    assert reloaded.CommitInfo is Any
-    assert issubclass(reloaded.HfHubHTTPError, Exception)

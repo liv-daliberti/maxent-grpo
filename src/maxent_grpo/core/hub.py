@@ -23,9 +23,6 @@ This module provides:
   (via naming conventions or safetensors metadata) and choosing a valid GPU
   count for vLLM tensor parallelism.
 
-Imports from ``huggingface_hub`` are guarded for environments where the full
-stack is unavailable; a minimal ``HfHubHTTPError`` shim preserves error types
-for tests.
 """
 
 from __future__ import annotations
@@ -33,28 +30,16 @@ from __future__ import annotations
 import logging
 import re
 from concurrent.futures import Future
-from typing import List, Optional, Any, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
-try:
+from maxent_grpo.utils.stubs import AutoConfigStub
+
+try:  # pragma: no cover - optional dependency
     from transformers import AutoConfig
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback for doc builds
-
-    class AutoConfig:
-        """Minimal AutoConfig stub when transformers is unavailable."""
-
-        def __init__(self, **_kwargs):
-            self.model_type = None
-
-        @classmethod
-        def from_pretrained(cls, *_args, **_kwargs):
-            return cls()
-
-    AutoConfig.__module__ = __name__
-else:  # pragma: no cover - ensure Sphinx autodoc sees the local module
-    try:
-        AutoConfig.__module__ = __name__
-    except AttributeError:
-        pass
+except ModuleNotFoundError:
+    raise
+except (ImportError, RuntimeError, AttributeError):
+    AutoConfig = AutoConfigStub
 
 from huggingface_hub import (
     create_branch,
@@ -65,29 +50,9 @@ from huggingface_hub import (
     list_repo_refs,
     repo_exists,
     upload_folder,
+    CommitInfo,
 )
-
-# CommitInfo was introduced in newer huggingface_hub versions; fall back to Any
-try:  # pragma: no cover - import surface varies across environments
-    from huggingface_hub import CommitInfo
-except (ImportError, AttributeError):
-    CommitInfo = Any
-# Optional: guard HfHubHTTPError import for environments with minimal stubs
-try:  # pragma: no cover - exercised via tests with stubs
-    from huggingface_hub.utils import HfHubHTTPError
-except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover
-
-    class HfHubHTTPError(Exception):
-        """Minimal shim mirroring Hugging Face's ``HfHubHTTPError``.
-
-        :ivar status_code: HTTP status code returned by the Hub request.
-        :vartype status_code: int
-        :ivar response: Optional response payload captured by the caller.
-        :vartype response: Any
-        """
-
-        status_code: int
-        response: Any
+from huggingface_hub.utils import HfHubHTTPError
 
 
 logger = logging.getLogger(__name__)
@@ -102,13 +67,22 @@ def push_to_hub_revision(
 ) -> Future[str]:
     """Push a checkpoint directory to a branch on the Hub.
 
-    :param training_args: Training config with Hub identifiers and output dir.
+    The helper will create the repository if missing, ensure the target branch
+    exists (forked from the latest commit when possible), and upload the
+    ``output_dir`` contents while ignoring common checkpoint artefacts. Uploads
+    are executed asynchronously via ``run_as_future=True`` to avoid blocking
+    training scripts.
+
+    :param training_args: Training config with Hub identifiers (``hub_model_id``
+        and ``hub_model_revision``) and the local ``output_dir`` to upload.
     :type training_args: GRPOConfig
-    :param extra_ignore_patterns: Additional filename patterns to ignore during upload.
+    :param extra_ignore_patterns: Additional filename patterns to ignore during
+        upload; appended to the default ``checkpoint-*`` and ``*.pth`` filters.
     :type extra_ignore_patterns: list[str] | None
-    :returns: Future that completes when the upload finishes.
+    :returns: Future that completes when the upload finishes, resolving to the
+        commit hash.
     :rtype: concurrent.futures.Future[str]
-    :raises ValueError: If hub_model_id is not set in training_args
+    :raises ValueError: If ``hub_model_id`` is not set in ``training_args``.
     """
     if not training_args.hub_model_id:
         raise ValueError("hub_model_id must be set in training_args")
@@ -156,11 +130,17 @@ def push_to_hub_revision(
 def check_hub_revision_exists(training_args: "GRPOConfig") -> None:
     """Validate whether a target Hub revision exists and is safe to write.
 
-    :param training_args: Training config with Hub identifiers and flags.
+    The check avoids clobbering populated branches unless explicitly permitted
+    via ``overwrite_hub_revision``. A README in the branch is treated as a
+    signal that the branch has content.
+
+    :param training_args: Training config with Hub identifiers and safety flags
+        such as ``push_to_hub_revision`` and ``overwrite_hub_revision``.
     :type training_args: GRPOConfig
-    :returns: None
+    :returns: ``None``. Raises if the target revision appears non-empty and
+        overwriting is disallowed.
     :rtype: None
-    :raises ValueError: If the revision exists and appears non‑empty without
+    :raises ValueError: If the revision exists and appears non-empty without
         setting ``overwrite_hub_revision``.
     """
     if repo_exists(training_args.hub_model_id):
@@ -194,7 +174,8 @@ def get_param_count_from_repo_id(repo_id: str) -> int:
 
     :param repo_id: Hub repository ID.
     :type repo_id: str
-    :returns: Best guess of total parameter count, or ``-1`` if unknown.
+    :returns: Best guess of total parameter count, or ``-1`` if unknown after
+        attempting both pattern extraction and safetensors metadata lookup.
     :rtype: int
     """
     # Pattern to match products (like 8x7b) and single values (like 42m)
@@ -236,13 +217,14 @@ def get_gpu_count_for_vllm(
     the tensor parallel size. This function decrements ``num_gpus`` until the
     constraints are satisfied.
 
-    :param model_name: Model repository ID.
+    :param model_name: Model repository ID used to fetch the ``AutoConfig``.
     :type model_name: str
-    :param revision: Repo revision/branch.
+    :param revision: Repo revision/branch to inspect.
     :type revision: str
-    :param num_gpus: Starting number of GPUs available.
+    :param num_gpus: Starting number of GPUs available; decremented until the
+        constraints are satisfied.
     :type num_gpus: int
-    :returns: A compatible number of GPUs for vLLM.
+    :returns: A compatible number of GPUs for vLLM tensor parallelism.
     :rtype: int
     """
     config = AutoConfig.from_pretrained(

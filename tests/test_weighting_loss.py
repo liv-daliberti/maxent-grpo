@@ -19,7 +19,6 @@ Unit tests for training.weighting.loss helpers.
 from __future__ import annotations
 
 import math
-import importlib
 import sys
 import numpy as np
 
@@ -99,18 +98,36 @@ def _patch_torch_stub(monkeypatch):
 
     monkeypatch.setattr(TORCH_STUB.Tensor, "view", _view, raising=False)
     monkeypatch.setattr(TORCH_STUB.Tensor, "std", _std, raising=False)
-    monkeypatch.setattr(TORCH_STUB.Tensor, "__float__", lambda self: float(self.item()), raising=False)
-    monkeypatch.setattr(TORCH_STUB.Tensor, "__rmul__", lambda self, other: self.__mul__(other), raising=False)
-    monkeypatch.setattr(TORCH_STUB.Tensor, "__radd__", lambda self, other: self.__add__(other), raising=False)
+    monkeypatch.setattr(
+        TORCH_STUB.Tensor, "__float__", lambda self: float(self.item()), raising=False
+    )
+    monkeypatch.setattr(
+        TORCH_STUB.Tensor,
+        "__rmul__",
+        lambda self, other: self.__mul__(other),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        TORCH_STUB.Tensor,
+        "__radd__",
+        lambda self, other: self.__add__(other),
+        raising=False,
+    )
     monkeypatch.setattr(
         TORCH_STUB.Tensor,
         "__le__",
-        lambda self, other: TORCH_STUB.tensor(self.arr <= (other.arr if hasattr(other, "arr") else other)),
+        lambda self, other: TORCH_STUB.tensor(
+            self.arr <= (other.arr if hasattr(other, "arr") else other)
+        ),
         raising=False,
     )
-    monkeypatch.setattr(TORCH_STUB.Tensor, "ndim", property(lambda self: len(self.shape)), raising=False)
+    monkeypatch.setattr(
+        TORCH_STUB.Tensor, "ndim", property(lambda self: len(self.shape)), raising=False
+    )
     monkeypatch.setattr(TORCH_STUB, "exp", _exp, raising=False)
-    monkeypatch.setattr(TORCH_STUB.Tensor, "exp", lambda self: _exp(self), raising=False)
+    monkeypatch.setattr(
+        TORCH_STUB.Tensor, "exp", lambda self: _exp(self), raising=False
+    )
     monkeypatch.setattr(TORCH_STUB, "where", _where, raising=False)
     monkeypatch.setattr(TORCH_STUB, "minimum", _minimum, raising=False)
     monkeypatch.setattr(TORCH_STUB, "maximum", _maximum, raising=False)
@@ -130,7 +147,11 @@ def _weighting(len_norm_ref: bool = True, beta: float = 0.5) -> WeightingSetting
         normalization=WeightNormalizationSettings(denom=1.0, len_norm_ref=len_norm_ref),
         q_distribution=QDistributionSettings(temperature=1.0, epsilon=1e-6),
         tau_schedule=TauSchedule(
-            target_entropy=None, learning_rate=0.0, minimum_value=0.0, maximum_value=1.0, warmup_steps=0
+            target_entropy=None,
+            learning_rate=0.0,
+            minimum_value=0.0,
+            maximum_value=1.0,
+            warmup_steps=0,
         ),
         kl_controller=KlControllerSettings(target=0.0, horizon=0, step_size=0.0),
         train_grpo_objective=False,
@@ -154,7 +175,12 @@ def test_build_loss_inputs_mismatch_raises():
         denom_tok_tensor=torch.tensor([1.0, 1.0]),
     )
     cfg = LossInputConfig(
-        clip_cfg=ClipSettings(clip_range=0.2, use_clip_objective=False, clip_objective_coef=1.0, clip_adv_baseline=None),
+        clip_cfg=ClipSettings(
+            clip_range=0.2,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
         weighting_cfg=_weighting(),
         ref_stats=ReferenceLogprobs(
             ref_logp_sum=torch.tensor([0.0, 0.0]),
@@ -191,7 +217,12 @@ def test_apply_clip_objective_disabled_returns_none():
     ratio_ctx = RatioContext(
         log_ratio_train=torch.zeros(2),
         denom_tok_tensor=torch.ones(2),
-        clip_cfg=ClipSettings(clip_range=0.0, use_clip_objective=False, clip_objective_coef=1.0, clip_adv_baseline=None),
+        clip_cfg=ClipSettings(
+            clip_range=0.0,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
         weighting_cfg=_weighting(),
         ref_stats=ReferenceLogprobs(
             ref_logp_sum=torch.zeros(2),
@@ -216,7 +247,12 @@ def test_apply_clip_objective_disabled_returns_none():
 
 
 def test_apply_clip_objective_updates_loss():
-    clip_cfg = ClipSettings(clip_range=0.1, use_clip_objective=True, clip_objective_coef=2.0, clip_adv_baseline=None)
+    clip_cfg = ClipSettings(
+        clip_range=0.1,
+        use_clip_objective=True,
+        clip_objective_coef=2.0,
+        clip_adv_baseline=None,
+    )
     ratio_ctx = RatioContext(
         log_ratio_train=torch.zeros(2),
         denom_tok_tensor=torch.ones(2),
@@ -245,7 +281,12 @@ def test_apply_clip_objective_updates_loss():
 
 
 def test_apply_clip_objective_skips_empty_groups():
-    clip_cfg = ClipSettings(clip_range=0.1, use_clip_objective=True, clip_objective_coef=1.0, clip_adv_baseline=None)
+    clip_cfg = ClipSettings(
+        clip_range=0.1,
+        use_clip_objective=True,
+        clip_objective_coef=1.0,
+        clip_adv_baseline=None,
+    )
     ratio_ctx = RatioContext(
         log_ratio_train=torch.zeros(0),
         denom_tok_tensor=torch.zeros(0),
@@ -278,7 +319,12 @@ def test_kl_terms_respects_len_norm_ref_toggle():
     ratio_ctx = RatioContext(
         log_ratio_train=torch.zeros(2),
         denom_tok_tensor=torch.tensor([2.0, 2.0]),
-        clip_cfg=ClipSettings(clip_range=0.2, use_clip_objective=False, clip_objective_coef=1.0, clip_adv_baseline=None),
+        clip_cfg=ClipSettings(
+            clip_range=0.2,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
         weighting_cfg=weighting,
         ref_stats=ReferenceLogprobs(
             ref_logp_sum=torch.tensor([1.0, 1.0]),
@@ -296,7 +342,12 @@ def test_kl_terms_respects_len_norm_ref_toggle():
 
 
 def test_compute_clip_ratios_clamps_values():
-    clip_cfg = ClipSettings(clip_range=0.5, use_clip_objective=True, clip_objective_coef=1.0, clip_adv_baseline=None)
+    clip_cfg = ClipSettings(
+        clip_range=0.5,
+        use_clip_objective=True,
+        clip_objective_coef=1.0,
+        clip_adv_baseline=None,
+    )
     ratio_ctx = RatioContext(
         log_ratio_train=torch.zeros(2),
         denom_tok_tensor=torch.ones(2),
@@ -318,7 +369,12 @@ def test_compute_clip_ratios_clamps_values():
 
 
 def test_build_loss_outputs_packs_scalars():
-    clip_cfg = ClipSettings(clip_range=0.2, use_clip_objective=False, clip_objective_coef=1.0, clip_adv_baseline=None)
+    clip_cfg = ClipSettings(
+        clip_range=0.2,
+        use_clip_objective=False,
+        clip_objective_coef=1.0,
+        clip_adv_baseline=None,
+    )
     ratio_ctx = RatioContext(
         log_ratio_train=torch.ones(1),
         denom_tok_tensor=torch.ones(1),
@@ -337,15 +393,26 @@ def test_build_loss_outputs_packs_scalars():
     scalar_inputs = type(
         "_S",
         (),
-        {"clip_loss_scalar": None, "kl_loss_scalar": 0.1, "weighted_kl_loss_scalar": 0.2},
+        {
+            "clip_loss_scalar": None,
+            "kl_loss_scalar": 0.1,
+            "weighted_kl_loss_scalar": 0.2,
+        },
     )()
-    outputs = _build_loss_outputs(ratio_ctx, torch.tensor(0.5), torch.tensor(0.1), scalar_inputs)
+    outputs = _build_loss_outputs(
+        ratio_ctx, torch.tensor(0.5), torch.tensor(0.1), scalar_inputs
+    )
     assert outputs.scalars.total_loss > 0
     assert outputs.scalars.policy_loss > 0
 
 
 def test_clip_bounds_and_region_metrics():
-    clip_cfg = ClipSettings(clip_range=0.2, use_clip_objective=True, clip_objective_coef=1.0, clip_adv_baseline=None)
+    clip_cfg = ClipSettings(
+        clip_range=0.2,
+        use_clip_objective=True,
+        clip_objective_coef=1.0,
+        clip_adv_baseline=None,
+    )
     low, high = _clip_bounds(clip_cfg)
     assert low < 0 < high
     log_ratio = torch.tensor([-1.0, 0.0, 1.0])
@@ -370,7 +437,12 @@ def test_ratio_diagnostics_without_ref_counts_zero():
     ratio_ctx = RatioContext(
         log_ratio_train=torch.zeros(0),
         denom_tok_tensor=torch.zeros(0),
-        clip_cfg=ClipSettings(clip_range=0.1, use_clip_objective=False, clip_objective_coef=1.0, clip_adv_baseline=None),
+        clip_cfg=ClipSettings(
+            clip_range=0.1,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
         weighting_cfg=_weighting(beta=0.0),
         ref_stats=ReferenceLogprobs(
             ref_logp_sum=torch.tensor([]),
@@ -393,7 +465,12 @@ def test_ratio_stats_with_ref_uses_raw_when_len_norm_disabled():
     ratio_ctx = RatioContext(
         log_ratio_train=torch.zeros(1),
         denom_tok_tensor=torch.tensor([2.0]),
-        clip_cfg=ClipSettings(clip_range=0.1, use_clip_objective=False, clip_objective_coef=1.0, clip_adv_baseline=None),
+        clip_cfg=ClipSettings(
+            clip_range=0.1,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
         weighting_cfg=weighting,
         ref_stats=ReferenceLogprobs(
             ref_logp_sum=torch.tensor([0.0]),
@@ -406,7 +483,9 @@ def test_ratio_stats_with_ref_uses_raw_when_len_norm_disabled():
         behavior_logp_sum=torch.tensor([0.0]),
     )
     kl_value, *_ = loss_mod._ratio_stats_with_ref(ratio_ctx)
-    expected = math.exp(1.0) - 1.0 - 1.0  # delta=1.0 when using raw ref_logp_sum_raw/denom
+    expected = (
+        math.exp(1.0) - 1.0 - 1.0
+    )  # delta=1.0 when using raw ref_logp_sum_raw/denom
     assert math.isclose(kl_value, expected, rel_tol=1e-5)
 
 
@@ -426,7 +505,12 @@ def test_evaluate_losses_end_to_end():
         denom_tok_tensor=torch.tensor([2.0, 2.0]),
     )
     cfg = LossInputConfig(
-        clip_cfg=ClipSettings(clip_range=0.0, use_clip_objective=False, clip_objective_coef=1.0, clip_adv_baseline=None),
+        clip_cfg=ClipSettings(
+            clip_range=0.0,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
         weighting_cfg=_weighting(),
         ref_stats=ReferenceLogprobs(
             ref_logp_sum=torch.tensor([0.1, 0.1]),

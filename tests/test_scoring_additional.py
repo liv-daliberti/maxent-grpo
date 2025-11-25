@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import nullcontext
 from types import SimpleNamespace
 import types
 import sys
@@ -19,7 +18,10 @@ def test_refresh_torch_import_error_falls_back(monkeypatch):
             return ("tensor", data)
 
     # Force import failure path
-    monkeypatch.setattr("importlib.import_module", lambda *_a, **_k: (_ for _ in ()).throw(ImportError()))
+    monkeypatch.setattr(
+        "importlib.import_module",
+        lambda *_a, **_k: (_ for _ in ()).throw(ImportError()),
+    )
     monkeypatch.setattr(scoring, "require_torch", lambda _ctx: _Stub())
     monkeypatch.setitem(sys.modules, "torch", types.SimpleNamespace())
     torch_mod = scoring._refresh_torch()
@@ -71,13 +73,29 @@ def test_build_score_batch_uses_callable_cache(monkeypatch):
                 "attention_mask": np.array([[1]]),
             }
 
-    batching_cfg = lambda prompt: SimpleNamespace(
-        input_ids=[1], attention_mask=[1]
-    )  # callable path
+    class _BatchCfg(SimpleNamespace):
+        score_slice = 0
+
+        def __call__(self, prompt):
+            return SimpleNamespace(input_ids=[1], attention_mask=[1])
+
+    batching_cfg = _BatchCfg()
     gen_cfg = SimpleNamespace(max_prompt_len=1, max_completion_len=1)
     sb = scoring.build_score_batch(reward_comp, _Tok(), gen_cfg, batching_cfg)
     assert sb is not None
     assert sb.slice_size == 1
+
+
+def test_autocast_context_prefers_accelerator():
+    class _Ctx:
+        pass
+
+    class _Accel:
+        def autocast(self):
+            return _Ctx()
+
+    ctx = scoring._autocast_context(_Accel(), SimpleNamespace(type="cuda"))
+    assert isinstance(ctx, _Ctx)
 
 
 def test_gather_reference_logprobs_none_passthrough(monkeypatch):
@@ -91,7 +109,9 @@ def test_gather_reference_logprobs_none_passthrough(monkeypatch):
     called = {}
     monkeypatch.setattr(scoring, "reference_from_model", lambda *_a, **_k: fake_tensors)
     monkeypatch.setattr(
-        scoring, "finalize_reference_stats", lambda *args: called.setdefault("args", args)
+        scoring,
+        "finalize_reference_stats",
+        lambda *args: called.setdefault("args", args),
     )
     scoring.gather_reference_logprobs(sb, runtime, batching)
     assert called["args"] == fake_tensors

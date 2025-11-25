@@ -65,4 +65,7 @@ def test_configure_accumulation_steps_handles_missing_attributes():
 
     accel = _Accel()
     opt.configure_accumulation_steps(accel, grad_accum_steps=3)
-    assert not hasattr(accel, "gradient_accumulation_steps") or accel.gradient_accumulation_steps == 3
+    assert (
+        not hasattr(accel, "gradient_accumulation_steps")
+        or accel.gradient_accumulation_steps == 3
+    )

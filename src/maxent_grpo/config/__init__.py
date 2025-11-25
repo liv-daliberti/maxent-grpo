@@ -1,4 +1,10 @@
 """
+Configuration package bundling dataset, GRPO, and recipe helpers.
+
+Exports dataclasses used across CLI/training entrypoints along with helpers to
+load YAML recipes into the corresponding config objects.
+
+License
 Copyright 2025 Liv d'Aliberti
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +19,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-"""Configuration dataclasses used across MaxEnt-GRPO scripts."""
 
 from .dataset import DatasetConfig, DatasetMixtureConfig, ScriptArguments
 from .grpo import GRPOConfig, GRPOScriptArguments

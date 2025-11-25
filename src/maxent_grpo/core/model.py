@@ -26,75 +26,34 @@ This module exposes two utilities:
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, TypedDict, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union
 
-try:
-    import torch
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - tests provide lightweight stub
-    torch = SimpleNamespace(
-        float16="float16",
-        bfloat16="bfloat16",
-        dtype=Any,
-    )
+import torch
+
+from maxent_grpo.utils.stubs import (
+    AutoModelForCausalLMStub,
+    AutoTokenizerStub,
+    PreTrainedTokenizerStub,
+)
 
 try:  # pragma: no cover - optional dependency (offline/CI fallback)
     from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
 except (
     ImportError,
-    ModuleNotFoundError,
-):  # degrade gracefully when transformers missing
-
-    class _FallbackTokenizer:
-        """Minimal tokenizer stub used when ``transformers`` is missing."""
-
-        chat_template: Optional[str] = None
-        eos_token_id: Optional[int] = None
-        pad_token_id: Optional[int] = None
-
-        @classmethod
-        def from_pretrained(cls, *_args, **_kwargs):
-            """Return a basic tokenizer placeholder."""
-            return cls()
-
-    class AutoTokenizer(_FallbackTokenizer):
-        pass
-
-    class PreTrainedTokenizer(_FallbackTokenizer):
-        def apply_chat_template(
-            self,
-            messages: List["ChatMessage"],
-            tokenize=False,
-            add_generation_prompt=True,
-        ):
-            """Render chat messages when the real tokenizer implementation is absent."""
-            text = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-            if add_generation_prompt:
-                text += "\nassistant:"
-            if tokenize:
-                return list(text.encode("utf-8"))
-            return text
-
-    class AutoModelForCausalLM:
-        def __init__(self):
-            self.config = SimpleNamespace()
-
-        @classmethod
-        def from_pretrained(cls, *_args, **_kwargs):
-            return cls()
-
-        def gradient_checkpointing_enable(self, *_args, **_kwargs):
-            return None
-
-    _FallbackTokenizer.__module__ = "transformers"
-    AutoTokenizer.__module__ = "transformers"
-    PreTrainedTokenizer.__module__ = "transformers"
-    AutoModelForCausalLM.__module__ = "transformers"
-
+    RuntimeError,
+    AttributeError,
+):  # degrade gracefully when transformers partially missing
+    AutoTokenizer = AutoTokenizerStub
+    PreTrainedTokenizer = PreTrainedTokenizerStub
+    AutoModelForCausalLM = AutoModelForCausalLMStub
 
 try:
     from trl import ModelConfig, get_kbit_device_map, get_quantization_config
-except (ImportError, ModuleNotFoundError):  # fallback for partially installed TRL/httpx
+except (
+    ImportError,
+    RuntimeError,
+    AttributeError,
+):  # fallback for partially installed TRL/httpx
 
     class ModelConfig:
         """Fallback stub for ``trl.ModelConfig`` when TRL is unavailable."""
@@ -134,11 +93,21 @@ def get_tokenizer(
 ) -> PreTrainedTokenizer | Any:
     """Load and optionally customize the tokenizer.
 
-    :param model_args: Model configuration (name, revision, trust flags).
+    The function first attempts to download a tokenizer from the Hub using the
+    provided model identifiers. If the environment lacks the ``transformers``
+    dependency or network access, it falls back to a lightweight stub that
+    preserves the API surface required by downstream code. When a
+    ``chat_template`` override is configured it is injected into the tokenizer
+    before returning.
+
+    :param model_args: Model configuration (name, revision, trust flags) used to
+        locate the tokenizer on the Hub.
     :type model_args: ``trl.ModelConfig``
-    :param training_args: Training configuration (used for ``chat_template``).
+    :param training_args: Training configuration, specifically the optional
+        ``chat_template`` used to override the tokenizer template.
     :type training_args: GRPOConfig
-    :returns: A pre-trained tokenizer instance.
+    :returns: A pre-trained tokenizer instance or a stub with matching
+        interface for offline/CI environments.
     :rtype: ``transformers.PreTrainedTokenizer``
     """
     try:
@@ -152,34 +121,8 @@ def get_tokenizer(
         ValueError,
         RuntimeError,
     ):  # pragma: no cover - offline/CI fallback
-
-        class _FallbackTok:  # minimal surface for tests/docs
-            """Tiny tokenizer stub used when AutoTokenizer cannot be loaded."""
-
-            chat_template: Optional[str] = None
-            eos_token_id: Optional[int] = None
-            pad_token_id: Optional[int] = None
-
-            def apply_chat_template(
-                self,
-                messages: List[ChatMessage],
-                tokenize: bool = False,
-                add_generation_prompt: bool = True,
-            ) -> Union[str, List[int]]:
-                """Render messages into plain text or naive byte-level tokens."""
-                text = "\n".join(
-                    f"{m['role'].upper()}: {m['content']}" for m in messages
-                )
-                if add_generation_prompt:
-                    text += "\nASSISTANT:"
-                # Provide a deterministic, minimal behavior when tokenize=True
-                # to mirror HF's API surface without external dependencies.
-                if tokenize:
-                    # Naive byte-level tokenization for CI/docs environments.
-                    return list(text.encode("utf-8"))
-                return text
-
-        tokenizer = _FallbackTok()
+        # Always fall back to the lightweight stub to avoid network access.
+        tokenizer = PreTrainedTokenizerStub()
 
     if training_args.chat_template is not None:
         tokenizer.chat_template = training_args.chat_template
@@ -192,14 +135,18 @@ def get_model(
 ) -> AutoModelForCausalLM:
     """Construct the causal LM with optional quantization and device map.
 
-    :param model_args: Model configuration (quantization, dtype, attn impl,
-        revision, trust settings).
+    :param model_args: Model configuration (quantization, dtype, attention
+        implementation, revision, trust settings) forwarded to
+        ``from_pretrained``.
     :type model_args: ``trl.ModelConfig``
     :param training_args: Training configuration (used for ``use_cache`` and
         gradient checkpointing compatibility).
     :type training_args: GRPOConfig
-    :returns: A loaded ``AutoModelForCausalLM`` instance.
+    :returns: A loaded ``AutoModelForCausalLM`` instance, configured with a
+        device map and quantization settings when available.
     :rtype: ``transformers.AutoModelForCausalLM``
+    :raises ValueError: Propagated from underlying model loading if identifiers
+        or revisions are invalid.
     """
     # Accept strings ("float16"), special values ("auto"/None), or actual torch.dtype
     torch_dtype: Union[str, TorchDType, None] = getattr(model_args, "torch_dtype", None)

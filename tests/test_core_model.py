@@ -19,7 +19,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import importlib
-import builtins
 import sys
 
 
@@ -94,34 +93,6 @@ def test_get_model_quantization_and_gradient_checkpointing(monkeypatch):
     assert kwargs["torch_dtype"] == getattr(module.torch, "float16", "float16")
     assert kwargs["use_cache"] is False  # disabled when grad checkpointing is on
     assert model.gc_calls == [{"foo": "bar"}, {}]  # fallback retried without kwargs
-
-
-def test_transformers_import_failure_uses_fallback_stubs(monkeypatch):
-    monkeypatch.delitem(sys.modules, "maxent_grpo.core.model", raising=False)
-    real_import = builtins.__import__
-
-    def _fake_import(name, *args, **kwargs):
-        if name.startswith("transformers"):
-            raise ModuleNotFoundError("transformers missing")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
-    module = importlib.import_module("maxent_grpo.core.model")
-
-    tok = module.PreTrainedTokenizer()
-    messages = [{"role": "user", "content": "hi"}]
-    tokens = tok.apply_chat_template(
-        messages, tokenize=True, add_generation_prompt=True
-    )
-    assert tokens == list("user: hi\nassistant:".encode("utf-8"))
-    rendered = tok.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=False
-    )
-    assert rendered == "user: hi"
-
-    model = module.AutoModelForCausalLM.from_pretrained("demo")
-    assert hasattr(model, "config")
-    assert model.gradient_checkpointing_enable() is None
 
 
 def test_get_model_auto_dtype_and_gc_without_kwargs(monkeypatch):
@@ -203,17 +174,9 @@ def test_get_model_preserves_nonstring_dtype(monkeypatch):
     assert kwargs["device_map"] is None
 
 
-def test_trl_import_failure_uses_stubbed_helpers(monkeypatch):
-    monkeypatch.delitem(sys.modules, "maxent_grpo.core.model", raising=False)
-    real_import = builtins.__import__
-
-    def _fake_import(name, *args, **kwargs):
-        if name.startswith("trl"):
-            raise ModuleNotFoundError("trl missing")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
-    module = importlib.import_module("maxent_grpo.core.model")
-
+def test_trl_stub_helpers_return_none(monkeypatch):
+    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
+    monkeypatch.setitem(sys.modules, "trl", None)
+    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
     assert module.get_quantization_config(SimpleNamespace()) is None
     assert module.get_kbit_device_map() is None

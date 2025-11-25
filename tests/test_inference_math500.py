@@ -199,11 +199,16 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
             self.pad_token = "<pad>"
             self.chat_template = None
 
-        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
+        def apply_chat_template(
+            self, messages, tokenize=False, add_generation_prompt=True
+        ):
             return f"TEMPLATE:{messages[0]['content']}"
 
         def __call__(self, prompts, **_kwargs):
-            return {"input_ids": types.SimpleNamespace(to=lambda *_: [0]), "attention_mask": [2, 2]}
+            return {
+                "input_ids": types.SimpleNamespace(to=lambda *_: [0]),
+                "attention_mask": [2, 2],
+            }
 
         def decode(self, _ids, **_kwargs):
             return "decoded"
@@ -227,9 +232,13 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
         types.SimpleNamespace(from_pretrained=lambda *_a, **_k: _Model()),
     )
     torch_stub = types.SimpleNamespace(
-        no_grad=lambda: types.SimpleNamespace(__enter__=lambda *_: None, __exit__=lambda *_: None),
+        no_grad=lambda: types.SimpleNamespace(
+            __enter__=lambda *_: None, __exit__=lambda *_: None
+        ),
         cuda=types.SimpleNamespace(is_available=lambda: False),
-        backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: False)),
+        backends=types.SimpleNamespace(
+            mps=types.SimpleNamespace(is_available=lambda: False)
+        ),
         device=lambda name: types.SimpleNamespace(type=name),
         dtype=type("dtype", (), {}),
     )

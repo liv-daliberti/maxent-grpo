@@ -18,6 +18,7 @@ Unit tests for training.rewards edge cases and branches.
 
 from __future__ import annotations
 
+import builtins
 import importlib
 import importlib.util
 from types import SimpleNamespace
@@ -91,6 +92,122 @@ def test_reward_moments_handles_empty_and_nonempty(rewards_mod):
     mean, std = rewards_mod.reward_moments([1.0, 3.0], device)
     assert pytest.approx(mean) == 2.0
     assert pytest.approx(std) == pytest.approx(1.0)
+
+
+def test_reward_moments_single_entry_zero_std(rewards_mod):
+    mean, std = rewards_mod.reward_moments([5.0], _FakeDevice("cpu"))
+    assert mean == 5.0 and std == 0.0
+
+
+def test_reward_moments_tensor_fallback(monkeypatch, rewards_mod):
+    original_sum = builtins.sum
+    monkeypatch.setattr(
+        builtins,
+        "sum",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("bad sum")),
+    )
+
+    class _FakeTensor:
+        def __init__(self, data, dtype=None, device=None):
+            self.data = list(data)
+            self.dtype = dtype
+            self.device = device
+            self._value = None
+
+        def mean(self, *a, **k):
+            self._value = original_sum(self.data) / len(self.data)
+            return self
+
+        def std(self, unbiased=False):
+            self.unbiased = unbiased
+            mean_val = original_sum(self.data) / len(self.data)
+            var = original_sum((v - mean_val) ** 2 for v in self.data) / len(self.data)
+            self._value = var**0.5
+            return self
+
+        def item(self):
+            return self._value
+
+        def numel(self):
+            return len(self.data)
+
+    class _FakeTorch:
+        float32 = "f32"
+
+        def tensor(self, data, dtype=None, device=None):
+            return _FakeTensor(data, dtype=dtype, device=device)
+
+        @staticmethod
+        def device(kind):
+            return f"dev:{kind}"
+
+    fake_tensors = []
+
+    class _FakeTorch:
+        float32 = "f32"
+
+        def tensor(self, data, dtype=None, device=None):
+            tensor = _FakeTensor(data, dtype=dtype, device=device)
+            fake_tensors.append(tensor)
+            return tensor
+
+        @staticmethod
+        def device(kind):
+            return f"dev:{kind}"
+
+    fake_torch = _FakeTorch()
+    monkeypatch.setattr(rewards_mod, "require_torch", lambda *_a, **_k: fake_torch)
+    mean, std = rewards_mod.reward_moments([2.0, 6.0], _FakeDevice("cuda"))
+    assert mean == 4.0
+    assert std == pytest.approx(2.0)
+    assert fake_tensors[0].dtype == "f32"
+    assert fake_tensors[0].device.type == "cuda"
+    assert getattr(fake_tensors[0], "unbiased", None) is False
+
+
+def test_reward_moments_tensor_fallback_single_sample(monkeypatch, rewards_mod):
+    original_sum = builtins.sum
+    monkeypatch.setattr(
+        builtins,
+        "sum",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("sum fail")),
+    )
+
+    class _FakeTensor:
+        def __init__(self, data, dtype=None, device=None):
+            self.data = list(data)
+            self.dtype = dtype
+            self.device = device
+            self._value = None
+
+        def mean(self, *a, **k):
+            self._value = original_sum(self.data) / len(self.data)
+            return self
+
+        def std(self, unbiased=False):
+            self.unbiased = unbiased
+            self._value = 0.0
+            return self
+
+        def item(self):
+            return self._value
+
+        def numel(self):
+            return len(self.data)
+
+    class _FakeTorch:
+        float32 = "f32"
+
+        def tensor(self, data, dtype=None, device=None):
+            return _FakeTensor(data, dtype=dtype, device=device)
+
+        @staticmethod
+        def device(kind):
+            return f"dev:{kind}"
+
+    monkeypatch.setattr(rewards_mod, "require_torch", lambda *_a, **_k: _FakeTorch())
+    mean, std = rewards_mod.reward_moments([10.0], _FakeDevice("cpu"))
+    assert mean == 10.0 and std == 0.0
 
 
 def test_group_advantages_handles_empty_groups(rewards_mod):

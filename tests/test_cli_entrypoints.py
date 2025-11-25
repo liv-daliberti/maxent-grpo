@@ -85,9 +85,10 @@ def test_cli_parse_grpo_args_wrapper(monkeypatch):
 def test_grpo_cli_invokes_main(monkeypatch):
     module = importlib.reload(importlib.import_module("maxent_grpo.grpo"))
     called = {}
-    monkeypatch.setattr(
-        "maxent_grpo.pipelines.training.baseline.run_baseline_training",
-        lambda *args: called.setdefault("args", args),
+    baseline_mod = ModuleType("maxent_grpo.pipelines.training.baseline")
+    baseline_mod.run_baseline_training = lambda *args: called.setdefault("args", args)
+    monkeypatch.setitem(
+        sys.modules, "maxent_grpo.pipelines.training.baseline", baseline_mod
     )
     module.main("s", "t", "m")
     assert called.get("args") == ("s", "t", "m")
@@ -96,9 +97,10 @@ def test_grpo_cli_invokes_main(monkeypatch):
 def test_maxent_entrypoint_calls_training_runner(monkeypatch):
     module = _load_maxent_entry_module()
     called = {}
-    monkeypatch.setattr(
-        "maxent_grpo.training.run_maxent_grpo",
-        lambda *args: called.setdefault("args", args),
+    maxent_stub = ModuleType("maxent_grpo.pipelines.training.maxent")
+    maxent_stub.run_maxent_training = lambda *args: called.setdefault("args", args)
+    monkeypatch.setitem(
+        sys.modules, "maxent_grpo.pipelines.training.maxent", maxent_stub
     )
     module.main("s_args", "t_args", "m_args")
     assert called.get("args") == ("s_args", "t_args", "m_args")

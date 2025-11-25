@@ -22,26 +22,31 @@ import importlib.util
 import sys
 from contextlib import contextmanager
 from types import SimpleNamespace
-from typing import Any, Callable, ContextManager, List, Optional, cast
+from typing import Any, Callable, List, Optional, cast
 
-from .run_helpers import require_deepspeed
+from maxent_grpo.training.runtime import require_deepspeed
 
 # Rehydrate the module spec when running under stubbed environments
-
+_current_spec = getattr(sys.modules.get(__name__), "__spec__", None)
 if (
-    __spec__ is None or getattr(__spec__, "loader", None) is None
+    _current_spec is None or getattr(_current_spec, "loader", None) is None
 ):  # pragma: no cover - defensive reload support
-    __spec__ = importlib.util.spec_from_loader(
+    _current_spec = importlib.util.spec_from_loader(
         __name__, importlib.machinery.SourceFileLoader(__name__, __file__)
     )
+    setattr(sys.modules[__name__], "__spec__", _current_spec)
 sys.modules.setdefault(__name__, sys.modules.get(__name__, None))
-if __spec__ is not None:
-    sys.modules.setdefault(__spec__.name, sys.modules[__name__])
+if _current_spec is not None:
+    sys.modules.setdefault(_current_spec.name, sys.modules[__name__])
 
 try:  # Optional dependency when running under DeepSpeed ZeRO
     import torch
     from torch import nn
-except (ImportError, ModuleNotFoundError, RuntimeError):  # pragma: no cover - environment dependent
+except (
+    ImportError,
+    ModuleNotFoundError,
+    RuntimeError,
+):  # pragma: no cover - environment dependent
     torch = None
     nn = None
 
@@ -87,10 +92,11 @@ def _ensure_deepspeed_ready() -> bool:
     :returns: ``True`` when DeepSpeed zero helpers are available; ``False`` otherwise.
     :rtype: bool
     """
-    global ds_zero, ZeroParamStatus, _DEEPSPEED_READY
-    if _DEEPSPEED_READY is True:
+    module = sys.modules[__name__]
+    ready_state = getattr(module, "_DEEPSPEED_READY", None)
+    if ready_state is True:
         return True
-    if _DEEPSPEED_READY is False:
+    if ready_state is False:
         return False
     try:
         ds_module = require_deepspeed("ZeRO utilities")
@@ -99,14 +105,17 @@ def _ensure_deepspeed_ready() -> bool:
             "deepspeed.runtime.zero.partition_parameters",
         )
     except RuntimeError:
-        _DEEPSPEED_READY = False
-        ds_zero = None
-        ZeroParamStatus = None
+        setattr(module, "_DEEPSPEED_READY", False)
+        setattr(module, "ds_zero", None)
+        setattr(module, "ZeroParamStatus", None)
         return False
-    ds_zero = getattr(ds_module, "zero", None)
-    ZeroParamStatus = getattr(partition_module, "ZeroParamStatus", None)
-    _DEEPSPEED_READY = bool(ds_zero is not None and ZeroParamStatus is not None)
-    return bool(_DEEPSPEED_READY)
+    ds_zero_mod = getattr(ds_module, "zero", None)
+    zero_status = getattr(partition_module, "ZeroParamStatus", None)
+    setattr(module, "ds_zero", ds_zero_mod)
+    setattr(module, "ZeroParamStatus", zero_status)
+    is_ready = bool(ds_zero_mod is not None and zero_status is not None)
+    setattr(module, "_DEEPSPEED_READY", is_ready)
+    return is_ready
 
 
 LOG = logging.getLogger(__name__)
@@ -245,12 +254,13 @@ def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]):
     if not callable(gather_cls):
         yield
         return
-    gather_ctx = cast(Callable[..., ContextManager[Any]], gather_cls)
     weight = _embedding_weight_needing_gather(model)
     if weight is None:
         yield
         return
-    with gather_ctx([weight], modifier_rank=None):
+    gather_fn = cast(Callable[..., Any], gather_cls)
+    gather_ctx = gather_fn([weight], modifier_rank=None)  # pylint: disable=not-callable
+    with gather_ctx:
         yield
 
 
@@ -291,7 +301,6 @@ def _maybe_zero_gather_params(model: Optional[nn.Module], enabled: bool):
     if not callable(gather_cls):
         yield
         return
-    gather_ctx = cast(Callable[..., ContextManager[Any]], gather_cls)
     params = _zero_param_list(model)
     zero_stage = _zero_stage(model)
     if zero_stage > 0:
@@ -303,7 +312,12 @@ def _maybe_zero_gather_params(model: Optional[nn.Module], enabled: bool):
         return
     if torch is not None and torch.cuda.is_available():
         torch.cuda.empty_cache()
-    with gather_ctx(gather_params, modifier_rank=0):
+    gather_fn = gather_cls if callable(gather_cls) else None
+    if gather_fn is None:
+        yield
+        return
+    gather_ctx = gather_fn(gather_params, modifier_rank=0)  # type: ignore[misc]  # pylint: disable=not-callable
+    with gather_ctx:
         yield
 
 

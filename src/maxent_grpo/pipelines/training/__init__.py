@@ -12,10 +12,11 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+Training pipelines (baseline GRPO + MaxEnt-GRPO).
 """
 
-"""Training pipelines (baseline GRPO + MaxEnt-GRPO)."""
-
 from .baseline import run_baseline_training
+from .maxent import run_maxent_training
 
-__all__ = ["run_baseline_training"]
+__all__ = ["run_baseline_training", "run_maxent_training"]

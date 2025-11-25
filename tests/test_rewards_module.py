@@ -75,7 +75,9 @@ def test_pure_accuracy_reward_math_handles_multiple_rewards():
 
 def test_pure_accuracy_reward_math_handles_missing_answer(monkeypatch):
     # Force the answer extractor to fail even when the format regex matches.
-    monkeypatch.setattr("rewards._answer_pat", type("Pat", (), {"search": lambda *_a, **_k: None})())
+    monkeypatch.setattr(
+        "rewards._answer_pat", type("Pat", (), {"search": lambda *_a, **_k: None})()
+    )
     comps = ["<think>t</think><answer>missing</answer>"]
     rewards = pure_accuracy_reward_math(comps, ["42"])
     assert rewards == [0.0]
@@ -87,3 +89,16 @@ def test_get_reward_funcs_resolves_known_names():
     assert funcs[0] is pure_accuracy_reward_math
     with pytest.raises(KeyError):
         get_reward_funcs(SimpleNamespace(reward_funcs=["unknown"]))
+
+
+def test_pure_accuracy_reward_math_missing_answer_via_basic(monkeypatch):
+    import maxent_grpo.rewards.basic as basic
+
+    monkeypatch.setattr(
+        basic,
+        "_answer_pat",
+        type("Pat", (), {"search": lambda *_a, **_k: None})(),
+    )
+    comps = ["<think>trace</think><answer>?</answer>"]
+    rewards = basic.pure_accuracy_reward_math(comps, ["42"])
+    assert rewards == [0.0]

@@ -74,6 +74,11 @@ fi
 export PYTHONNOUSERSITE=1
 
 # Route all caches and temp dirs into var/
+if [[ -n "${HF_TOKEN:-}" ]]; then
+  export HF_TOKEN
+else
+  echo "[warn] HF_TOKEN not set; gated models/datasets may fail to download." >&2
+fi
 export HF_HOME="$VAR_DIR/cache/hf"
 export XDG_CACHE_HOME="$VAR_DIR/cache/xdg"
 export XDG_CONFIG_HOME="$VAR_DIR/config"
@@ -88,6 +93,8 @@ export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
 export VLLM_NO_USAGE_STATS=1
 export HF_HUB_ENABLE_HF_TRANSFER=1
 export HF_HUB_ENABLE_PROGRESS_BARS=1
+# Enable vLLM prompt dedup unless overridden.
+export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
          "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
          "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \
@@ -108,7 +115,7 @@ if [[ "$*" == *"--help"* ]]; then
   echo "  --accelerator NAME       Accelerate config in configs/recipes/accelerate_configs/<NAME>.yaml (e.g., zero3)"
   echo "  --dp N                   vLLM data parallel size on the server node (default: 1)"
   echo "  --tp N                   vLLM tensor parallel size on the server node (default: 1)"
-  echo "  --vllm-port PORT         vLLM server port (default: 8000)"
+  echo "  --vllm-port PORT         vLLM server port (default: 29525)"
   echo "  --vllm-group-port PORT   NCCL group port for weight sync RPCs (default: 29535)"
   echo "  --args \"ARGS\"          Extra args to pass to the training entrypoint"
   echo ""
@@ -163,6 +170,7 @@ if [[ ! -f "$ACCEL_FILE" ]]; then
   echo "Accelerate config not found: $ACCEL_FILE" >&2
   exit 1
 fi
+export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$CONFIG_FILE}"
 
 export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
 if grep -qi '^[[:space:]]*distributed_type:[[:space:]]*deepspeed' "$ACCEL_FILE"; then

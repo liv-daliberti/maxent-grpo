@@ -18,7 +18,11 @@ Unit tests for recipe loading helpers.
 
 from __future__ import annotations
 
-from maxent_grpo.config.recipes import _dataclass_field_names, _split_recipe_payload, load_grpo_recipe
+from maxent_grpo.config.recipes import (
+    _dataclass_field_names,
+    _split_recipe_payload,
+    load_grpo_recipe,
+)
 from maxent_grpo.config.grpo import GRPOScriptArguments, GRPOConfig
 
 
