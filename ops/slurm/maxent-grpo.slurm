@@ -72,6 +72,9 @@ elif [[ -f "$ENV_ACTIVATE" ]]; then
 else
   echo "[warn] No environment activation performed (ENV_MODE=$ENV_MODE)."
 fi
+# Ensure downstream shells inherit the venv path even if activation is skipped.
+export VIRTUAL_ENV="${VIRTUAL_ENV:-$VAR_DIR/openr1}"
+export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
 # Sanity check: confirm python and wandb availability on the submit shell (workers will re-run activation).
 echo "[debug] python after activation: $(which python)"
 python - <<'PY' || echo "[warn] wandb import failed in submit shell"
