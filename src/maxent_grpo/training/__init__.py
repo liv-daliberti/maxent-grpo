@@ -62,10 +62,11 @@ from .types import (
 )
 from .weighting.loss import SequenceScores
 
-# Provide a lightweight wandb stub so legacy imports in test environments
-# don't pull the full dependency graph.
+# Provide a lightweight wandb stub only when the real package is unavailable, to
+# avoid breaking optional imports during tests.
+_wandb_spec = _importlib.util.find_spec("wandb")
 _wandb_stub = sys.modules.get("wandb")
-if (
+if _wandb_spec is None and (
     _wandb_stub is None
     or getattr(getattr(_wandb_stub, "errors", None), "Error", None) is None
 ):
