@@ -15,7 +15,7 @@
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
-resume_from_checkpoint: true
+resume_from_checkpoint: false
 torch_dtype: bfloat16
 attn_implementation: sdpa
 

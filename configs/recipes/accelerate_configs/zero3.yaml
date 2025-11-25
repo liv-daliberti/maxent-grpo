@@ -3,7 +3,7 @@ debug: false
 distributed_type: DEEPSPEED
 mixed_precision: bf16
 num_machines: 1
-num_processes: 7
+num_processes: 6
 machine_rank: 0
 same_network: true
 rdzv_backend: static
