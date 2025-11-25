@@ -149,6 +149,7 @@ DP=${DP:-1}
 TP=${TP:-1}
 VLLM_PORT=${VLLM_PORT:-29525}
 VLLM_GROUP_PORT=${VLLM_GROUP_PORT:-29535}
+VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-3500}
 OPTIONAL_ARGS="${OPTIONAL_ARGS:-}"
 
 # Parse CLI
@@ -360,6 +361,7 @@ if $USE_VLLM_SERVER && ! $INLINE_VLLM; then
       --tensor_parallel_size $TP \
       --data_parallel_size $DP \
       --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
+      --max-model-len $VLLM_MAX_MODEL_LEN \
       --dtype float16 \
       --gpu_memory_utilization 0.90 \
       --enforce_eager false" \
@@ -492,7 +494,8 @@ PY
       --model "$VLLM_MODEL" ${REVISION:+--revision $REVISION} \
       --tensor_parallel_size $TP --data_parallel_size $DP \
       --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
-      --dtype float16 --gpu_memory_utilization 0.90 \
+      --max-model-len $VLLM_MAX_MODEL_LEN \
+      --dtype float16 --gpu_memory_utilization 0.50 \
       --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
     VLLM_PID=\$!; \
     echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \

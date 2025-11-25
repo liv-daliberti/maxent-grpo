@@ -78,7 +78,7 @@ maxent_tau_warmup_steps: 200    # roughly match LR warmup so tau stays steady ea
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
 maxent_clip_adv_baseline: 0.125   # 1/num_generations (8) for a gentler clip objective
-train_grpo_objective: false
+train_grpo_objective: true
 
 # Training/eval & logging
 bf16: false
