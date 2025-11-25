@@ -37,6 +37,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import logging
 import os
 import sys
@@ -73,11 +74,48 @@ except ImportError:  # pragma: no cover - optional dependency
     transformers.__path__ = []
     trainer_utils = ModuleType("transformers.trainer_utils")
     trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
-    tf_logging = SimpleNamespace(
-        set_verbosity=lambda *args, **kwargs: None,
-        enable_default_handler=lambda *args, **kwargs: None,
-        enable_explicit_format=lambda *args, **kwargs: None,
-    )
+tf_logging = SimpleNamespace(
+    set_verbosity=lambda *args, **kwargs: None,
+    enable_default_handler=lambda *args, **kwargs: None,
+    enable_explicit_format=lambda *args, **kwargs: None,
+)
+
+
+@contextmanager
+def _force_vllm_dtype(training_args: GRPOConfig):
+    """Ensure colocated vLLM uses the requested dtype instead of model defaults."""
+
+    dtype_override = None
+    if getattr(training_args, "fp16", False):
+        dtype_override = "float16"
+    elif getattr(training_args, "bf16", False):
+        dtype_override = "bfloat16"
+
+    if not (dtype_override and getattr(training_args, "use_vllm", False)):
+        yield
+        return
+
+    try:
+        import trl.trainer.grpo_trainer as grpo_mod
+        from vllm import LLM as _LLM
+    except Exception:
+        # If vLLM/TRL isn't available, fall through without patching.
+        yield
+        return
+
+    orig_llm = getattr(grpo_mod, "LLM", None)
+
+    def _patched_llm(*args, **kwargs):
+        kwargs.setdefault("dtype", dtype_override)
+        return _LLM(*args, **kwargs)
+
+    if orig_llm is not None:
+        grpo_mod.LLM = _patched_llm
+    try:
+        yield
+    finally:
+        if orig_llm is not None:
+            grpo_mod.LLM = orig_llm
     utils_module = ModuleType("transformers.utils")
     utils_module.logging = tf_logging
     transformers.trainer_utils = trainer_utils
@@ -337,15 +375,16 @@ def run_baseline_training(
     reward_funcs = get_reward_funcs(script_args, None, tokenizer)
 
     # Trainer
-    trainer = trainer_cls(
-        model=model,
-        reward_funcs=reward_funcs,
-        args=training_args,
-        train_dataset=train_ds,
-        eval_dataset=eval_ds,
-        peft_config=peft_factory(model_args),
-        processing_class=tokenizer,
-    )
+    with _force_vllm_dtype(training_args):
+        trainer = trainer_cls(
+            model=model,
+            reward_funcs=reward_funcs,
+            args=training_args,
+            train_dataset=train_ds,
+            eval_dataset=eval_ds,
+            peft_config=peft_factory(model_args),
+            processing_class=tokenizer,
+        )
 
     # Train
     logger = logging.getLogger(__name__)

@@ -16,7 +16,7 @@
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
 resume_from_checkpoint: false
-torch_dtype: bfloat16
+torch_dtype: float16
 attn_implementation: sdpa
 
 # Data training arguments
@@ -63,8 +63,10 @@ system_prompt: "You are an expert *mathematics problem-solver*.
   "
 # GRPO trainer config
 bf16: false
+fp16: true
 use_vllm: true
 vllm_mode: colocate
+vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 64
 gradient_checkpointing: true

@@ -82,9 +82,11 @@ train_grpo_objective: false
 
 # Training/eval & logging
 bf16: false
+fp16: true
 use_vllm: true
 vllm_mode: colocate
 vllm_return_logprobs: true
+vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 128    # match TRL defaults for faster logging feedback
 gradient_checkpointing: true

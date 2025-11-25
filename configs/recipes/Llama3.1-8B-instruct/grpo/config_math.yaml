@@ -16,7 +16,7 @@ model_name_or_path: meta-llama/Llama-3.1-8B-Instruct
 model_revision: main
 overwrite_output_dir: true
 resume_from_checkpoint: false
-torch_dtype: bfloat16
+torch_dtype: float16
 attn_implementation: sdpa
 dataset_name: open-r1/OpenR1-Math-220k
 zero3_save_16bit_model: true
@@ -45,7 +45,7 @@ system_prompt: "You are an expert *mathematics problem-solver*.\n\nEvery time yo
   \ 1\u20133 as many\ntimes as necessary until you are confident in your result. Finish\
   \ by verifying the\nresult satisfies the original conditions exactly (substitution/checks).\n\
   </think>\n<answer>\nTHEANSWER\n</answer>\n"
-bf16: true
+bf16: false
 use_vllm: true
 vllm_mode: colocate
 do_eval: false

@@ -46,7 +46,46 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
 
     class MaxEntGRPOTrainer(parent_cls):  # type: ignore[misc,valid-type]
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+            # Force vLLM to honor fp16/bf16 flags even when the base model's
+            # config defaults to bfloat16 (e.g., Qwen2.5). TRL's GRPOTrainer
+            # does not forward a dtype to LLM(...), so colocated vLLM falls
+            # back to the model config and can crash on GPUs without bf16.
+            patch_llm = None
+            orig_llm = None
+            try:
+                import trl.trainer.grpo_trainer as grpo_mod
+                from vllm import LLM as _LLM
+
+                # Args are always passed by name in our pipeline.
+                t_args = kwargs.get("args")
+                dtype_override = None
+                if getattr(t_args, "fp16", False):
+                    dtype_override = "float16"
+                elif getattr(t_args, "bf16", False):
+                    dtype_override = "bfloat16"
+                if dtype_override and getattr(t_args, "use_vllm", False):
+                    orig_llm = getattr(grpo_mod, "LLM", None)
+
+                    def _patched_llm(*llm_args, **llm_kwargs):
+                        llm_kwargs.setdefault("dtype", dtype_override)
+                        return _LLM(*llm_args, **llm_kwargs)
+
+                    patch_llm = _patched_llm
+                    if orig_llm is not None:
+                        grpo_mod.LLM = patch_llm
+            except Exception:
+                patch_llm = None
+                orig_llm = None
+
+            try:
+                super().__init__(*args, **kwargs)
+            finally:
+                # Restore the original LLM constructor to avoid side effects.
+                try:
+                    if patch_llm is not None and orig_llm is not None:
+                        grpo_mod.LLM = orig_llm
+                except Exception:
+                    pass
             # Mark the args so downstream hooks/metrics can key off it.
             if hasattr(self, "args"):
                 setattr(self.args, "train_grpo_objective", False)
