@@ -96,7 +96,6 @@ for DATASET in "${DATASET_ARRAY[@]}"; do
   echo "[info] Running dataset=$DATASET"
   CMD=(
     maxent-grpo-math-eval
-    command=math-eval
     "inference.dataset=${DATASET}"
     "inference.seeds=[${SEEDS}]"
     "inference.num_generations=${NUM_GENERATIONS}"

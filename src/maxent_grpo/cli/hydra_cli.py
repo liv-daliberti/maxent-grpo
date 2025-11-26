@@ -186,8 +186,10 @@ def _maybe_insert_command(default_command: str) -> None:
     :returns: ``None``; updates ``sys.argv`` in-place when needed.
     """
 
-    if not any(arg.startswith("command=") for arg in sys.argv[1:]):
-        sys.argv.insert(1, f"command={default_command}")
+    if not any(
+        arg.startswith("command=") or arg.startswith("+command=") for arg in sys.argv[1:]
+    ):
+        sys.argv.insert(1, f"+command={default_command}")
 
 
 def _build_grpo_configs(
@@ -232,7 +234,7 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
     # Allow CLI-style `command=` overrides from sys.argv even when cfg is absent.
     cmd = root.command
     for arg in sys.argv[1:]:
-        if arg.startswith("command="):
+        if arg.startswith("command=") or arg.startswith("+command="):
             cmd = arg.split("=", 1)[1]
             root.command = cmd
             break
