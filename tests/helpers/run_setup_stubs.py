@@ -135,6 +135,9 @@ def _torch_stub():
         def detach(self):
             return self
 
+        def any(self):
+            return bool(np.any(self.arr))
+
         def clone(self):
             return _Tensor(self.arr.copy())
 
@@ -314,6 +317,10 @@ def _torch_stub():
         logsum = np.log(np.sum(exps, axis=dim, keepdims=True))
         return _Tensor(arr - max_val - logsum)
 
+    def _unique(x):
+        arr = x.arr if isinstance(x, _Tensor) else np.array(x)
+        return _Tensor(np.unique(arr))
+
     nn_functional = SimpleNamespace(log_softmax=_log_softmax)
     nn_mod = SimpleNamespace(Parameter=FakeParameter, functional=nn_functional)
     data_loader_cls = type("DataLoader", (), {})
@@ -335,6 +342,7 @@ def _torch_stub():
         arange=_arange,
         cat=_cat,
         all=_all,
+        unique=_unique,
         float32=np.float32,
         float64=np.float64,
         long=np.int64,

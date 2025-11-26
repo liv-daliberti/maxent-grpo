@@ -39,6 +39,26 @@ class _StubMetricWriter:
         self.flushed = True
 
 
+def _weighting_stub() -> SimpleNamespace:
+    return SimpleNamespace(
+        tau=0.2,
+        beta=0.5,
+        denom=1.0,
+        q_temperature=1.0,
+        q_epsilon=1e-6,
+        tau_lr=0.0,
+        tau_min=0.0,
+        tau_max=1.0,
+        tau_warmup_steps=0,
+        tau_target_entropy=None,
+        kl_target=0.0,
+        kl_horizon=0,
+        kl_ctl_step_size=0.0,
+        len_norm_ref=False,
+        train_grpo_objective=True,
+    )
+
+
 @pytest.fixture
 def logging_mod(monkeypatch):
     """Load logging helpers with torch/accelerate stubs."""
@@ -82,6 +102,10 @@ def test_log_training_metrics_emits_only_scalars(logging_mod):
             "accuracy": RewardComponentStats(mean=0.2, std=0.05),
             "format": RewardComponentStats(mean=-0.1, std=0.02),
         },
+        q_entropy_mean=0.0,
+        q_entropy_std=0.0,
+        q_entropy_min=0.0,
+        q_entropy_max=0.0,
     )
     weight_stats = WeightLoggingView(
         entropy=0.3,
@@ -98,6 +122,7 @@ def test_log_training_metrics_emits_only_scalars(logging_mod):
             kl_loss_scalar=0.2,
             weighted_kl_loss_scalar=0.25,
             clip_loss_scalar=None,
+            policy_loss_scalar=0.15,
         ),
         diagnostics=BatchDiagnostics(
             kl_value=0.2,
@@ -107,6 +132,8 @@ def test_log_training_metrics_emits_only_scalars(logging_mod):
             clip_ratio_high_mean=0.15,
             clip_ratio_high_max=0.2,
             clip_ratio_region_mean=0.05,
+            kl_per_token_by_len_bucket={},
+            kl_token_count_by_len_bucket={},
         ),
         length_stats=LengthStats(
             min_length=5.0,
@@ -118,7 +145,7 @@ def test_log_training_metrics_emits_only_scalars(logging_mod):
             max_terminated=20.0,
         ),
         config=LoggingConfigView(
-            weighting=SimpleNamespace(beta=0.5, tau=0.2),
+            weighting=_weighting_stub(),
             clipping=SimpleNamespace(
                 clip_range=0.1,
                 clip_adv_baseline=None,

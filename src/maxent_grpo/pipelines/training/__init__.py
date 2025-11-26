@@ -18,5 +18,6 @@ Training pipelines (baseline GRPO + MaxEnt-GRPO).
 
 from .baseline import run_baseline_training
 from .maxent import run_maxent_training
+from .infoseed import run_infoseed_training
 
-__all__ = ["run_baseline_training", "run_maxent_training"]
+__all__ = ["run_baseline_training", "run_maxent_training", "run_infoseed_training"]

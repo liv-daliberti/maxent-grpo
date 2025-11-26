@@ -15,6 +15,7 @@
 #SBATCH --exclusive
 #SBATCH --nodes=1                 # Default: single node
 #SBATCH --gres=gpu:8              # Default: 8 GPUs on the node
+#SBATCH --exclude=node915,node916,node917,node105
 #SBATCH --partition=mltheory      # Adjust for your cluster (e.g., hopper-prod)
 #SBATCH --output=var/logs/%x-%j.out
 #SBATCH --error=var/logs/%x-%j.err
@@ -104,6 +105,8 @@ export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
 export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
 export WANDB_DIR="$VAR_DIR/cache/wandb"
+export WANDB_HTTP_TIMEOUT="${WANDB_HTTP_TIMEOUT:-300}"
+export WANDB_RETRY_MAX="${WANDB_RETRY_MAX:-10}"
 export TMPDIR="$VAR_DIR/tmp"
 export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
 export VLLM_NO_USAGE_STATS=1

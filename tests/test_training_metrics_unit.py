@@ -46,6 +46,27 @@ class _StubMetricWriter:
         self.flushed = True
 
 
+def _weighting_stub() -> SimpleNamespace:
+    return SimpleNamespace(
+        tau=0.2,
+        beta=0.1,
+        denom=1.0,
+        q_temperature=1.0,
+        q_epsilon=1e-6,
+        tau_lr=0.0,
+        tau_min=0.0,
+        tau_max=1.0,
+        tau_warmup_steps=0,
+        tau_target_entropy=None,
+        kl_target=0.0,
+        kl_horizon=0,
+        kl_ctl_step_size=0.0,
+        len_norm_ref=False,
+        train_grpo_objective=True,
+        _tau_entropy_ema=0.3,
+    )
+
+
 def _payload() -> metrics_mod.TrainingMetricsPayload:
     scalars = metrics_mod.TrainingScalarStats(
         ref_logp_mean=0.0,
@@ -67,6 +88,8 @@ def _payload() -> metrics_mod.TrainingMetricsPayload:
         clip_ratio_high_mean=0.0,
         clip_ratio_high_max=0.0,
         clip_ratio_region_mean=0.0,
+        kl_per_token_by_len_bucket={},
+        kl_token_count_by_len_bucket={},
     )
     reward_stats = metrics_mod.RewardLoggingView(
         reward_mean=1.0,
@@ -76,6 +99,10 @@ def _payload() -> metrics_mod.TrainingMetricsPayload:
         advantage_std=0.0,
         advantage_count=1,
         per_reward={},
+        q_entropy_mean=0.0,
+        q_entropy_std=0.0,
+        q_entropy_min=0.0,
+        q_entropy_max=0.0,
     )
     weight_stats = metrics_mod.WeightLoggingView(
         entropy=0.1,
@@ -86,7 +113,7 @@ def _payload() -> metrics_mod.TrainingMetricsPayload:
     )
     return metrics_mod.TrainingMetricsPayload(
         config=metrics_mod.LoggingConfigView(
-            weighting=SimpleNamespace(beta=0.1, tau=0.2, _tau_entropy_ema=0.3),
+            weighting=_weighting_stub(),
             clipping=SimpleNamespace(),
             schedule=SimpleNamespace(),
         ),
@@ -97,6 +124,9 @@ def _payload() -> metrics_mod.TrainingMetricsPayload:
         loss_outputs=SimpleNamespace(
             total_loss_scalar=1.23,
             kl_loss_scalar=None,
+            policy_loss_scalar=1.23,
+            weighted_kl_loss_scalar=0.0,
+            clip_loss_scalar=None,
             scalars=SimpleNamespace(kl_loss=0.0),
         ),
         length_stats=metrics_mod.LengthStats(
@@ -152,6 +182,7 @@ def test_log_local_step_accumulates(monkeypatch):
         per_reward_values={},
         advantage_samples=[0.0],
         advantage=SimpleNamespace(grouped=[[0.0]]),
+        q_grouped=[[1.0]],
     )
     weight_stats = metrics_mod.WeightStats(
         weights_grouped=[[1.0]],
@@ -174,7 +205,7 @@ def test_log_local_step_accumulates(monkeypatch):
             runtime=SimpleNamespace(accelerator=SimpleNamespace(is_main_process=True)),
             logging=logging_handles,
             scoring=SimpleNamespace(
-                weighting=SimpleNamespace(tau=0.2, beta=0.1), clipping=SimpleNamespace()
+                weighting=_weighting_stub(), clipping=SimpleNamespace()
             ),
             generation=SimpleNamespace(use_vllm=False, generation_stats={}),
             optimization=SimpleNamespace(
@@ -188,6 +219,7 @@ def test_log_local_step_accumulates(monkeypatch):
             ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0),
             length_stats=payload.length_stats,
             num_completion_tokens=payload.scalars.tokens.num_completion_tokens,
+            seed_metrics=None,
         ),
         metrics_mod.LogStepArtifacts(
             loss_outputs=payload.loss_outputs,
@@ -209,6 +241,7 @@ def test_log_training_step_aggregates(monkeypatch):
         per_reward_values={},
         advantage_samples=[0.0],
         advantage=SimpleNamespace(grouped=[[0.0]]),
+        q_grouped=[[1.0]],
     )
     weight_stats = metrics_mod.WeightStats(
         weights_grouped=[[1.0]],
@@ -226,11 +259,6 @@ def test_log_training_step_aggregates(monkeypatch):
         save_steps=0,
         wandb_run=None,
     )
-    ctx = SimpleNamespace(
-        logging=logging_handles,
-        weighting=SimpleNamespace(),
-        scoring=SimpleNamespace(),
-    )
     state = SimpleNamespace(
         global_step=1, num_input_tokens_seen=10.0, metric_sums={}, metric_counts={}
     )
@@ -242,9 +270,9 @@ def test_log_training_step_aggregates(monkeypatch):
     )
     ctx_full = SimpleNamespace(
         runtime=SimpleNamespace(accelerator=accel),
-        logging=ctx.logging,
+        logging=logging_handles,
         scoring=SimpleNamespace(
-            weighting=SimpleNamespace(beta=0.1, tau=0.2), clipping=SimpleNamespace()
+            weighting=_weighting_stub(), clipping=SimpleNamespace()
         ),
         generation=SimpleNamespace(use_vllm=False, generation_stats={}),
         optimization=SimpleNamespace(schedule=SimpleNamespace(total_training_steps=1)),
@@ -255,6 +283,7 @@ def test_log_training_step_aggregates(monkeypatch):
         ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0),
         length_stats=payload.length_stats,
         num_completion_tokens=payload.scalars.tokens.num_completion_tokens,
+        seed_metrics=None,
     )
     metrics_mod.log_local_step(
         ctx_full,

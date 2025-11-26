@@ -1,0 +1,3 @@
+command: train-infoseed
+infoseed:
+  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml

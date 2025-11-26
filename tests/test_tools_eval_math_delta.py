@@ -12,9 +12,9 @@ import pytest
 
 
 from tools import eval_math_delta
-from maxent_grpo.pipelines.inference.math500 import (
+from maxent_grpo.pipelines.inference.inference import (
     InferenceModelSpec,
-    Math500EvalConfig,
+    MathEvalConfig,
 )
 
 
@@ -43,7 +43,7 @@ def test_evaluate_delta_stub_runner_matches_baseline(monkeypatch):
         {"problem": "1+1", "answer": "2"},
         {"problem": "2+2", "answer": "4"},
     ]
-    cfg = Math500EvalConfig(limit=2)
+    cfg = MathEvalConfig(limit=2)
     base = InferenceModelSpec(model_name_or_path="base", label="baseline")
     cand = InferenceModelSpec(model_name_or_path="cand", label="candidate")
     delta = eval_math_delta.evaluate_delta(

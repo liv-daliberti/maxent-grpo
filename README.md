@@ -15,6 +15,9 @@ Run the Hydra console scripts from the repo root:
 # Baseline GRPO using the math recipe
 maxent-grpo-baseline baseline.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
 
+# InfoSeed-GRPO using the math recipe (custom loop)
+maxent-grpo-infoseed infoseed.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml
+
 # Inline overrides without a YAML recipe
 maxent-grpo-baseline command=train-baseline \
   baseline.script.dataset_name=open-r1/OpenR1-Math-220k \
@@ -24,7 +27,11 @@ maxent-grpo-baseline command=train-baseline \
 maxent-grpo-generate command=generate \
   generate.args.hf_dataset=open-r1/OpenR1-Math-220k \
   generate.args.model=Qwen/Qwen2.5-1.5B-Instruct
-maxent-grpo-inference command=inference \
+maxent-grpo-math-eval command=math-eval \
+  inference.dataset=math_500 \
+  inference.num_generations=8 \
+  inference.seeds=[0,1,2,3,4] \
+  inference.temperature=0.6 \
   inference.models='[ {model_name_or_path: od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1} ]'
 ```
 
@@ -33,9 +40,9 @@ The MaxEnt runner is provided as building blocks under `src/maxent_grpo/training
 Multi-node training (recommended): `sbatch ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3 --args "--run_name demo --report_to wandb"`.
 - Inspect `sbatch ops/slurm/train.slurm --help` for dp/tp, ports, vLLM mode, and accelerate config knobs. All caches/logs stay under `var/` by default.
 
-Evaluate checkpoints on `math_500` locally via `src/inference`:
+Evaluate math benchmarks locally via `src/inference`:
 ```python
-from maxent_grpo.inference import InferenceModelSpec, run_math500_inference
+from maxent_grpo.inference import InferenceModelSpec, run_math_eval_inference
 
 specs = [
     InferenceModelSpec(
@@ -49,12 +56,16 @@ specs = [
         system_prompt="...",
     ),
 ]
-for res in run_math500_inference(specs):
+for res in run_math_eval_inference(specs):
     print(res.label, res.accuracy)
 ```
 
 Notes
 - Recipes live in `configs/recipes/` (Hydra shortcuts: `configs/recipes/hydra/{baseline,maxent}_math.yaml`).
+- InfoSeed runner: recipe at `configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml` with Hydra shortcut `configs/recipes/hydra/infoseed_math.yaml`; console alias `maxent-grpo-infoseed`.
+- Inference presets cover `math_500`, `aime24`, `aime25`, `amc`, and `minerva`; override columns/splits via `inference.eval.*` if you use alternative mirrors. The math eval pipeline reports Pass@1, Pass@k (default k=8), and Avg@k averaged across seeds (default seeds: `[0,1,2,3,4]` at temperature 0.6).
+- Preferred CLI alias for multi-benchmark math inference: `maxent-grpo-math-eval` (older `maxent-grpo-inference command=math-eval` remains for compatibility).
+- Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`.
 - Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
 - For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
 
@@ -90,6 +101,12 @@ Notes
 4. **Optimization** — `training.loop` drives gradient accumulation and schedules; `training.optim` + `training.state` handle LR schedules, controllers, checkpoints.
 5. **Logging** — `training.metrics` and `telemetry.wandb` report metrics; logs/checkpoints land under `var/` by default.
 
+## InfoSeed-GRPO (seed-aware auxiliary, optional)
+- Enable via `info_seed_enabled=True`; suggested defaults: `info_seed_lambda=0.01`, `info_seed_alpha_entropy=0.5`, `info_seed_num_seeds=4–8`, `info_seed_prompt_template="\n[seed={seed}]"`.
+- Losses: seed-aware contrastive (`info_seed_loss_type=infonce`) or CE over `seed_head` logits (`info_seed_loss_type=ce`); pooling via `info_seed_pooling` (`mean`/`last`).
+- Metrics: logs `seed_pred_acc`, per-subset entropies (orig vs seed-aug), seed diversity (`seed_diversity_l2`), and optional eval-time seed metrics (`eval_seed/*`) when `EvaluationSettings.seed_eval` is configured.
+- Failure modes: high `info_seed_lambda` can produce stylistic hacks. Mitigate by lowering `lambda`, capping entropy, adding dropout/perturbation to seed template tokens, and monitoring `seed_pred_acc` vs. diversity.
+
 
 ## Environment Notes
 - Transformers/TRL require `huggingface-hub < 1.0`; the launchers repin Hub and small CLI deps (`yq`, `rich`, `markdown-it-py`) inside the repo-local env.
@@ -123,7 +140,7 @@ Quick eval parity check (shared math_500 pipeline):
 
 ```bash
 # stubbed, offline delta comparison between baseline and candidate (math_500 runner)
-make eval-math500-delta  # uses tools/eval_math_delta.py with a fixed seed/dataset
+make eval-math-delta  # uses tools/eval_math_delta.py with a fixed seed/dataset
 # real models: swap stub runner for transformers and point at downloaded dataset
 python tools/eval_math_delta.py --baseline /path/to/grpo --candidate /path/to/maxent --runner transformers --dataset /path/to/math_500.jsonl
 ```

@@ -21,6 +21,12 @@ def _build_torch_stub() -> Any:
         def __len__(self):
             return len(self.data) if self.data is not None else 0
 
+        def any(self):
+            try:
+                return any(bool(x) for x in self.data)
+            except (TypeError, ValueError):
+                return False
+
         @property
         def shape(self):
             if self.data and hasattr(self.data[0], "__len__"):
@@ -152,6 +158,11 @@ def _build_torch_stub() -> Any:
         def __truediv__(self, other):
             return self._binary(other, lambda a, b: a / b)
 
+        def __mul__(self, other):
+            return self._binary(other, lambda a, b: a * b)
+
+        __rmul__ = __mul__
+
         cpu = _identity
 
         def __eq__(self, other):
@@ -225,6 +236,14 @@ def _build_torch_stub() -> Any:
         autocast=_autocast,
         SymBool=_SymBool,
     )
+    stub.optim = SimpleNamespace(
+        AdamW=lambda params, lr=1e-3: SimpleNamespace(
+            param_groups=[{"lr": lr}],
+            step=lambda: None,
+            zero_grad=lambda set_to_none=True: None,
+            parameters=lambda: params,
+        )
+    )
 
     def _device(*args, **kwargs):
         del kwargs
@@ -259,10 +278,19 @@ def _build_torch_stub() -> Any:
     stub.long = int
     stub.float32 = float
     stub.int64 = int
+
+    def _log_fn(x):
+        import math
+
+        data = x.data if isinstance(x, _Tensor) else x
+        return _Tensor([math.log(v) for v in data], getattr(x, "dtype", None))
+
+    stub.log = _log_fn
     _Tensor.to = _to
     _Tensor.detach = lambda self: self
     _Tensor.clone = lambda self: _Tensor(list(self.data), self.dtype)
     _Tensor.size = lambda self, dim=None: _size(self.data, dim)
+    _Tensor.view = lambda self, *args, **kwargs: self
 
     def _tensor_clamp(self, min_val=None, max_val=None, **_kwargs):
         # Accept both keyword styles while avoiding built-in shadowing.
@@ -281,6 +309,59 @@ def _build_torch_stub() -> Any:
         return _Tensor(result, self.dtype)
 
     _Tensor.clamp = _tensor_clamp
+
+    def _tensor_log(self):
+        import math
+
+        return _Tensor([math.log(v) for v in self.data], self.dtype)
+
+    _Tensor.log = _tensor_log
+
+    def _softmax(tensor, dim=0):
+        import math
+
+        _ = dim  # dim kept for API compatibility
+        vals = tensor.data if isinstance(tensor, _Tensor) else list(tensor)
+        max_val = max(vals) if vals else 0.0
+        exps = [math.exp(v - max_val) for v in vals]
+        denom = sum(exps) if exps else 1.0
+        return _Tensor([v / denom for v in exps], getattr(tensor, "dtype", None))
+
+    stub.softmax = _softmax
+    stub.stack = lambda tensors, dim=0: _Tensor(
+        [t.data if isinstance(t, _Tensor) else t for t in tensors]
+    )
+    stub.unique = lambda x: _Tensor(
+        sorted(set(x.data if isinstance(x, _Tensor) else x))
+    )
+
+    def _pdist(tensor, p=2):
+        arr = tensor.data if isinstance(tensor, _Tensor) else tensor
+        try:
+            import numpy as _np
+
+            arr = _np.array(arr, dtype=float)
+            if arr.ndim != 2:
+                return _Tensor([], getattr(tensor, "dtype", None))
+            diff = arr[:, None, :] - arr[None, :, :]
+            dist = _np.power(_np.abs(diff), p).sum(axis=-1) ** (1.0 / p)
+            idx = _np.triu_indices(dist.shape[0], k=1)
+            return _Tensor(list(dist[idx]), getattr(tensor, "dtype", None))
+        except (ImportError, TypeError, ValueError, OverflowError):
+            return _Tensor([], getattr(tensor, "dtype", None))
+
+    stub.nn = SimpleNamespace(
+        Module=type("Module", (), {}),
+        Parameter=type("Parameter", (), {}),
+        functional=SimpleNamespace(
+            log_softmax=lambda *args, **kwargs: _Tensor([]), pdist=_pdist
+        ),
+        Linear=lambda *_a, **_k: (lambda x: _Tensor([])),
+        Embedding=lambda *_a, **_k: SimpleNamespace(
+            weight=_Tensor([]), __call__=lambda ids: _Tensor([])
+        ),
+    )
+    stub.optim = SimpleNamespace(Optimizer=type("Optimizer", (), {}))
     return stub
 
 

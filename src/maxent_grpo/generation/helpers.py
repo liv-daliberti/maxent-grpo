@@ -54,20 +54,55 @@ def flatten_prompt_completions(
     prompts: List[str] = []
     completions: List[str] = []
     answers: List[str] = []
-    for prompt_text, answer_text, comp_group in zip(
-        gen_batch.prompts, gen_batch.answers, gen_batch.grouped_completions
+    metadata: List[dict] = []
+    info_groups = getattr(gen_batch, "grouped_completion_info", None) or []
+    if info_groups and len(info_groups) < len(gen_batch.grouped_completions):
+        # Pad with empty lists so zip does not drop prompts.
+        info_groups = list(info_groups) + [
+            [] for _ in range(len(gen_batch.grouped_completions) - len(info_groups))
+        ]
+    elif not info_groups:
+        info_groups = [[] for _ in gen_batch.grouped_completions]
+    for prompt_text, answer_text, comp_group, info_group in zip(
+        gen_batch.prompts, gen_batch.answers, gen_batch.grouped_completions, info_groups
     ):
-        for completion_text in comp_group:
+        info_group = info_group or []
+        for idx, completion_text in enumerate(comp_group):
             prompts.append(prompt_text)
             completions.append(completion_text)
             answers.append(answer_text)
+            if idx < len(info_group):
+                metadata.append(info_group[idx])
+            elif info_group:
+                metadata.append({})
+    if metadata and len(metadata) != len(completions):
+        # Align lengths defensively; downstream consumers can treat empty dict
+        # as "no metadata" without failing.
+        target_len = min(len(completions), len(metadata))
+        metadata = metadata[:target_len]
+        completions = completions[:target_len]
+        prompts = prompts[:target_len]
+        answers = answers[:target_len]
     min_len = min(len(prompts), len(completions), len(answers))
     if min_len == 0:
-        return PromptCompletionBatch([], []), []
+        try:
+            return PromptCompletionBatch([], []), []
+        except TypeError:
+            return PromptCompletionBatch([], [], None), []
     prompts = prompts[:min_len]
     completions = completions[:min_len]
     answers = answers[:min_len]
-    return PromptCompletionBatch(prompts=prompts, completions=completions), answers
+    metadata_out = metadata[:min_len] if metadata else None
+    batch_args = (prompts, completions)
+    if metadata_out:
+        try:
+            return (
+                PromptCompletionBatch(*batch_args, metadata=metadata_out),
+                answers,
+            )
+        except TypeError:
+            return PromptCompletionBatch(*batch_args, metadata_out), answers
+    return PromptCompletionBatch(*batch_args), answers
 
 
 @dataclass

@@ -29,6 +29,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union
 
 import torch
+import torch.nn as nn
 
 from maxent_grpo.utils.stubs import (
     AutoModelForCausalLMStub,
@@ -186,4 +187,11 @@ def get_model(
                     enable_fn()
             except TypeError:
                 enable_fn()
+    # Optional seed classification head for InfoSeed auxiliary objectives.
+    if getattr(training_args, "info_seed_enabled", False):
+        num_seeds = max(int(getattr(training_args, "info_seed_num_seeds", 0)), 0)
+        hidden_size = getattr(getattr(model, "config", None), "hidden_size", None)
+        if num_seeds > 0 and hidden_size:
+            if not hasattr(model, "seed_head"):
+                model.seed_head = nn.Linear(hidden_size, num_seeds)
     return model

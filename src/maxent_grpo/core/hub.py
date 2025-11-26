@@ -41,18 +41,53 @@ except ModuleNotFoundError:
 except (ImportError, RuntimeError, AttributeError):
     AutoConfig = AutoConfigStub
 
-from huggingface_hub import (
-    create_branch,
-    create_repo,
-    get_safetensors_metadata,
-    list_repo_commits,
-    list_repo_files,
-    list_repo_refs,
-    repo_exists,
-    upload_folder,
-    CommitInfo,
-)
-from huggingface_hub.utils import HfHubHTTPError
+try:  # pragma: no cover - optional dependency
+    from huggingface_hub import (
+        create_branch,
+        create_repo,
+        get_safetensors_metadata,
+        list_repo_commits,
+        list_repo_files,
+        list_repo_refs,
+        repo_exists,
+        upload_folder,
+        CommitInfo,
+    )
+    from huggingface_hub.utils import HfHubHTTPError
+except ModuleNotFoundError:  # pragma: no cover - provide safe fallbacks for tests
+
+    def create_branch(*_args, **_kwargs):
+        raise RuntimeError("huggingface_hub is not installed")
+
+    def create_repo(*_args, **_kwargs):
+        raise RuntimeError("huggingface_hub is not installed")
+
+    def get_safetensors_metadata(*_args, **_kwargs):
+        raise RuntimeError("huggingface_hub is not installed")
+
+    def list_repo_commits(*_args, **_kwargs):
+        return []
+
+    def list_repo_files(*_args, **_kwargs):
+        return []
+
+    class _EmptyBranches:
+        branches = []
+
+    def list_repo_refs(*_args, **_kwargs):
+        return _EmptyBranches()
+
+    def repo_exists(*_args, **_kwargs):
+        return False
+
+    def upload_folder(*_args, **_kwargs):
+        raise RuntimeError("huggingface_hub is not installed")
+
+    class CommitInfo:  # type: ignore
+        commit_id = ""
+
+    class HfHubHTTPError(Exception):
+        pass
 
 
 logger = logging.getLogger(__name__)

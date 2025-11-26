@@ -18,9 +18,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Iterator, List, Tuple
+from types import SimpleNamespace
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from .types import RewardSpec, ValidationContext
+from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
+from .scoring import _refresh_torch
 
 
 @dataclass
@@ -33,6 +36,17 @@ class _EvalShardInfo:
     world_size: int
     log_every: int
     is_main: bool
+
+
+@dataclass
+class _SeedEvalConfig:
+    """Parsed seed-eval options."""
+
+    enabled: bool
+    num_seeds: int
+    samples_per_seed: int
+    template: str
+    pooling: str
 
 
 def _iter_eval_batches(
@@ -218,6 +232,150 @@ def _gather_eval_stats(
     return total_sum, total_count
 
 
+def _render_seed_prompts(
+    prompts: List[str], num_seeds: int, template: str
+) -> Tuple[List[str], List[int], List[int]]:
+    """Expand prompts with seed template; return prompts, seeds, base indices."""
+
+    rendered: List[str] = []
+    seed_ids: List[int] = []
+    base_idx: List[int] = []
+    for base_idx_val, prompt in enumerate(prompts):
+        for seed in range(1, num_seeds + 1):
+            if "{prompt}" in template:
+                rendered_prompt = template.format(prompt=prompt, seed=seed)
+            else:
+                rendered_prompt = f"{prompt}{template.format(seed=seed)}"
+            rendered.append(rendered_prompt)
+            seed_ids.append(seed)
+            base_idx.append(base_idx_val)
+    return rendered, seed_ids, base_idx
+
+
+def _pool_hidden(hidden: Any, mask: Any, pooling: str) -> Any:
+    """Pool hidden states according to the configured mode."""
+
+    if pooling == "last":
+        return hidden[:, -1, :]
+    mask = mask.unsqueeze(-1).type_as(hidden)
+    return (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
+
+
+def _run_seed_eval(
+    ctx: ValidationContext,
+    shard: _EvalShardInfo,
+    seed_cfg: _SeedEvalConfig,
+) -> Optional[Dict[str, float]]:
+    """Run multi-seed eval to measure pass@k, predictability, and diversity."""
+
+    if (
+        not seed_cfg.enabled
+        or seed_cfg.num_seeds <= 0
+        or seed_cfg.samples_per_seed <= 0
+    ):
+        return None
+    torch_mod = _refresh_torch()
+    prompts = [row["prompt"] for row in shard.rows]
+    answers = [row.get("answer", "") for row in shard.rows]
+    if not prompts:
+        return None
+    rendered_prompts, seed_ids, base_indices = _render_seed_prompts(
+        prompts, seed_cfg.num_seeds, seed_cfg.template
+    )
+    per_prompt_counts = [seed_cfg.samples_per_seed] * len(rendered_prompts)
+    grouped, _ = ctx.generator(
+        rendered_prompts,
+        seed_cfg.samples_per_seed,
+        per_prompt_counts,
+    )
+    if not grouped:
+        return None
+    # Flatten completions, align answers/seed ids.
+    flat_completions: List[str] = []
+    flat_answers: List[str] = []
+    flat_seed_ids: List[int] = []
+    flat_base_idx: List[int] = []
+    flat_prompts_for_pairs: List[str] = []
+    for comps, seed_id, base_idx_val, rendered_prompt in zip(
+        grouped, seed_ids, base_indices, rendered_prompts
+    ):
+        for comp in comps:
+            flat_completions.append(comp)
+            flat_answers.append(answers[base_idx_val])
+            flat_seed_ids.append(seed_id)
+            flat_base_idx.append(base_idx_val)
+            flat_prompts_for_pairs.append(rendered_prompt)
+    if not flat_completions:
+        return None
+    rewards = _compute_eval_rewards(flat_completions, flat_answers, ctx.reward)
+    # Pass@K per base prompt
+    pass_counts: Dict[int, int] = {}
+    total_per_prompt: Dict[int, int] = {}
+    for r, base_idx_val in zip(rewards, flat_base_idx):
+        total_per_prompt[base_idx_val] = total_per_prompt.get(base_idx_val, 0) + 1
+        if r > 0:
+            pass_counts[base_idx_val] = 1
+    pass_at_1 = sum(pass_counts.values()) / max(len(prompts), 1)
+    # Seed predictability via seed head if available
+    seed_pred_acc = None
+    diversity_l2 = None
+    seed_head = getattr(ctx.model, "seed_head", None)
+    tokenizer = getattr(ctx, "tokenizer", None)
+    if callable(seed_head) and tokenizer is not None:
+        input_ids, attn, prompt_lengths = _batch_tokenize_pairs(
+            tokenizer, flat_prompts_for_pairs, flat_completions
+        )
+        labels = _prepare_labels_for_ce(input_ids.clone(), prompt_lengths)
+        input_ids = input_ids.to(ctx.model.device)
+        attn = attn.to(ctx.model.device)
+        labels = labels.to(ctx.model.device)
+        with torch_mod.no_grad():
+            outputs = ctx.model(
+                input_ids=input_ids,
+                attention_mask=attn,
+                labels=labels,
+                output_hidden_states=True,
+            )
+            hidden = outputs.hidden_states[-1]
+            pooled = _pool_hidden(hidden, attn, seed_cfg.pooling)
+            logits = seed_head(pooled)
+            preds = logits.argmax(dim=-1).cpu()
+            sid_tensor = torch_mod.tensor(flat_seed_ids, device=preds.device)
+            valid_mask = sid_tensor >= 0
+            if valid_mask.any():
+                seed_pred_acc = (
+                    (preds[valid_mask] == sid_tensor[valid_mask]).float().mean().item()
+                )
+                # Diversity across seeds (mean pooled representations per seed)
+                unique_sids = torch_mod.unique(sid_tensor[valid_mask])
+                if unique_sids.numel() > 1:
+                    means = []
+                    for sid in unique_sids:
+                        m = pooled[sid_tensor == sid].mean(dim=0)
+                        means.append(m)
+                    if len(means) > 1:
+                        stacked = torch_mod.stack(means)
+                        pdist_fn = getattr(
+                            getattr(torch_mod, "nn", SimpleNamespace()),
+                            "functional",
+                            None,
+                        )
+                        pdist = getattr(pdist_fn, "pdist", None) if pdist_fn else None
+                        if callable(pdist):
+                            try:
+                                diversity_l2 = pdist(stacked, p=2).mean().item()
+                            except (TypeError, ValueError, RuntimeError):
+                                diversity_l2 = None
+    metrics = {
+        "eval_seed/pass_at_1": pass_at_1,
+    }
+    if seed_pred_acc is not None:
+        metrics["eval_seed/pred_acc"] = float(seed_pred_acc)
+    if diversity_l2 is not None:
+        metrics["eval_seed/diversity_l2"] = float(diversity_l2)
+    return metrics
+
+
 def run_validation_step(step: int, ctx: ValidationContext) -> None:
     """Generate single completions on the eval set and log mean reward.
 
@@ -259,6 +417,23 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                 int(total_count),
             )
             ctx.logging.log_metrics({"eval/mean_reward": mean_reward}, step)
+            seed_cfg_raw = getattr(evaluation_cfg, "seed_eval", None)
+            if isinstance(seed_cfg_raw, dict):
+                seed_cfg = _SeedEvalConfig(
+                    enabled=bool(seed_cfg_raw.get("enabled", False)),
+                    num_seeds=int(seed_cfg_raw.get("num_seeds", 0)),
+                    samples_per_seed=int(seed_cfg_raw.get("samples_per_seed", 0)),
+                    template=str(seed_cfg_raw.get("template", "\n[seed={seed}]")),
+                    pooling=str(seed_cfg_raw.get("pooling", "mean")),
+                )
+                seed_metrics = _run_seed_eval(ctx, shard, seed_cfg)
+                if seed_metrics:
+                    logging.getLogger(__name__).info(
+                        "eval seed metrics @ step %d | %s",
+                        step,
+                        seed_metrics,
+                    )
+                    ctx.logging.log_metrics(seed_metrics, step)
     finally:
         if prev_mode:
             model.train()

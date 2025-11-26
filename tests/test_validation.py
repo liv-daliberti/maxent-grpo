@@ -236,7 +236,7 @@ def test_grpo_main_prefers_dedicated_eval_dataset(monkeypatch):
         dataset_prompt_column="problem",
         dataset_solution_column="answer",
         dataset_train_split="train",
-        eval_dataset_name="hf/math500",
+        eval_dataset_name="hf/math",
         eval_dataset_config=None,
         eval_dataset_split="test",
         eval_dataset_prompt_column="problem",
@@ -256,7 +256,7 @@ def test_grpo_main_prefers_dedicated_eval_dataset(monkeypatch):
 
     grpo.main(script_args, training_args, model_args)
 
-    assert eval_calls["args"] == ("hf/math500", None, "test")
+    assert eval_calls["args"] == ("hf/math", None, "test")
 
     # Dummy trainer should have seen the fully mapped eval dataset.
     captured_eval = DummyTrainer.last_instance.eval_dataset

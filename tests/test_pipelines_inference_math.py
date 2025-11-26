@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Unit tests for the math_500 inference helpers.
+Unit tests for the math inference helpers.
 """
 
 from __future__ import annotations
@@ -23,36 +23,113 @@ from types import SimpleNamespace
 
 import pytest
 
-from maxent_grpo.pipelines.inference import math500
+from maxent_grpo.pipelines.inference import inference as math_inf
 
 
 def test_inference_model_spec_resolve_label_defaults():
-    spec = math500.InferenceModelSpec(model_name_or_path="org/model", style="")
+    spec = math_inf.InferenceModelSpec(model_name_or_path="org/model", style="")
     assert spec.resolve_label() == "model"
-    labeled = math500.InferenceModelSpec(model_name_or_path="org/model", label="custom")
+    labeled = math_inf.InferenceModelSpec(
+        model_name_or_path="org/model", label="custom"
+    )
     assert labeled.resolve_label() == "custom"
 
 
 def test_prepare_examples_validates_columns_and_nonempty():
-    cfg = math500.Math500EvalConfig(prompt_column="p", solution_column="a")
+    cfg = math_inf.MathEvalConfig(prompt_column="p", solution_column="a")
     with pytest.raises(ValueError):
-        math500._prepare_examples([], cfg, limit=None)
+        math_inf._prepare_examples([], cfg, limit=None)
     bad_row = [{"p": "x"}]
     with pytest.raises(ValueError):
-        math500._prepare_examples(bad_row, cfg, limit=None)
-    cfg_missing_solution = math500.Math500EvalConfig(
+        math_inf._prepare_examples(bad_row, cfg, limit=None)
+    cfg_missing_solution = math_inf.MathEvalConfig(
         prompt_column="p", solution_column="missing"
     )
     with pytest.raises(ValueError):
-        math500._prepare_examples([{"p": "x"}], cfg_missing_solution, limit=None)
+        math_inf._prepare_examples([{"p": "x"}], cfg_missing_solution, limit=None)
 
 
 def test_prepare_examples_respects_limit():
-    cfg = math500.Math500EvalConfig(prompt_column="p", solution_column="a")
+    cfg = math_inf.MathEvalConfig(prompt_column="p", solution_column="a")
     dataset = [{"p": f"q{i}", "a": f"ans{i}"} for i in range(5)]
-    examples = math500._prepare_examples(dataset, cfg, limit=2)
+    examples = math_inf._prepare_examples(dataset, cfg, limit=2)
     assert len(examples) == 2
     assert examples[0] == ("q0", "ans0")
+
+
+def test_prepare_examples_accepts_alias_columns():
+    cfg = math_inf.MathEvalConfig(
+        dataset_name="alias-ds",
+        prompt_column="problem",
+        solution_column="answer",
+        prompt_column_aliases=("prompt",),
+        solution_column_aliases=("solution",),
+    )
+    dataset = [{"prompt": "p0", "solution": "s0"}]
+    examples = math_inf._prepare_examples(dataset, cfg, limit=None)
+    assert examples == [("p0", "s0")]
+
+
+def test_resolve_inference_dataset_merges_overrides():
+    cfg = math_inf.resolve_inference_dataset(
+        "AIME24", {"split": "validation", "limit": 4}
+    )
+    assert cfg.dataset_name == "HuggingFaceH4/aime_2024"
+    assert cfg.split == "validation"
+    assert cfg.limit == 4
+    assert "solution" in cfg.solution_column_aliases
+
+
+def test_resolve_inference_dataset_handles_aliases():
+    cfg = math_inf.resolve_inference_dataset("math")
+    assert cfg.dataset_name == "HuggingFaceH4/MATH-500"
+
+
+def test_run_math_inference_supports_pass_at_k():
+    calls = {"runs": 0}
+
+    class _Runner(math_inf.PromptRunner):
+        def __init__(self, _spec):
+            pass
+
+        def generate(self, problems):
+            calls["runs"] += 1
+            outputs = []
+            for idx, _p in enumerate(problems):
+                if idx == 0:
+                    outputs.append(
+                        [
+                            "<think></think><answer>ok</answer>",
+                            "<think></think><answer>bad</answer>",
+                        ]
+                    )
+                else:
+                    outputs.append(
+                        [
+                            "<think></think><answer>bad</answer>",
+                            "<think></think><answer>ok</answer>",
+                        ]
+                    )
+            return outputs
+
+        def close(self):
+            return None
+
+    dataset = [
+        {"problem": "p1", "answer": "ok"},
+        {"problem": "p2", "answer": "ok"},
+    ]
+    spec = math_inf.InferenceModelSpec(model_name_or_path="demo", batch_size=2)
+    res = math_inf.run_math_inference(
+        [spec],
+        math_inf.MathEvalConfig(),
+        dataset=dataset,
+        num_generations=2,
+        runner_factory=lambda _spec: _Runner(_spec),
+    )[0]
+    assert res.pass_at_1 == 0.5  # second prompt first sample wrong
+    assert res.pass_at_k == 1.0  # second sample recovers
+    assert res.num_generations == 2
 
 
 def test_resolve_default_device_prefers_mps(monkeypatch):
@@ -76,8 +153,8 @@ def test_resolve_default_device_prefers_mps(monkeypatch):
         def device(name):
             return f"dev:{name}"
 
-    monkeypatch.setattr(math500, "torch", _Torch)
-    assert math500._resolve_default_device(None) == "dev:mps"
+    monkeypatch.setattr(math_inf, "torch", _Torch)
+    assert math_inf._resolve_default_device(None) == "dev:mps"
 
 
 def test_transformers_prompt_runner_sets_chat_template_and_pad(monkeypatch):
@@ -158,32 +235,34 @@ def test_transformers_prompt_runner_sets_chat_template_and_pad(monkeypatch):
 
     tok = _Tokenizer()
     model = _Model()
-    monkeypatch.setattr(math500, "torch", _Torch)
-    monkeypatch.setattr(math500, "Tensor", type("Tensor", (), {}))
+    monkeypatch.setattr(math_inf, "torch", _Torch)
+    monkeypatch.setattr(math_inf, "Tensor", type("Tensor", (), {}))
     monkeypatch.setattr(
-        math500, "AutoTokenizer", SimpleNamespace(from_pretrained=lambda *_a, **_k: tok)
+        math_inf,
+        "AutoTokenizer",
+        SimpleNamespace(from_pretrained=lambda *_a, **_k: tok),
     )
     monkeypatch.setattr(
-        math500,
+        math_inf,
         "AutoModelForCausalLM",
         SimpleNamespace(from_pretrained=lambda *_a, **_k: model),
     )
 
-    spec = math500.InferenceModelSpec(
+    spec = math_inf.InferenceModelSpec(
         model_name_or_path="m",
         chat_template="tmpl",
         torch_dtype="auto",
     )
-    runner = math500.TransformersPromptRunner(spec)
+    runner = math_inf.TransformersPromptRunner(spec)
     assert tok.chat_template == "tmpl"
     assert tok.pad_token_id == 7
     assert runner.device == "dev:cpu"
 
 
 def test_resolve_default_device_handles_missing_torch(monkeypatch):
-    monkeypatch.setattr(math500, "torch", None)
+    monkeypatch.setattr(math_inf, "torch", None)
     with pytest.raises(ImportError):
-        math500._resolve_default_device(None)
+        math_inf._resolve_default_device(None)
 
 
 def test_resolve_default_device_prefers_override(monkeypatch):
@@ -212,9 +291,9 @@ def test_resolve_default_device_prefers_override(monkeypatch):
         def dtype():
             return None
 
-    monkeypatch.setattr(math500, "torch", _Torch)
-    assert math500._resolve_default_device("cpu") == "dev:cpu"
-    assert math500._resolve_default_device(None) == "dev:cuda"
+    monkeypatch.setattr(math_inf, "torch", _Torch)
+    assert math_inf._resolve_default_device("cpu") == "dev:cpu"
+    assert math_inf._resolve_default_device(None) == "dev:cuda"
 
 
 def test_normalize_dtype_converts_strings(monkeypatch):
@@ -222,23 +301,23 @@ def test_normalize_dtype_converts_strings(monkeypatch):
         float16 = object()
         dtype = type("dtype", (), {})
 
-    monkeypatch.setattr(math500, "torch", _Torch)
-    assert math500._normalize_dtype("float16") is _Torch.float16
-    assert math500._normalize_dtype(" auto ") == "auto"
+    monkeypatch.setattr(math_inf, "torch", _Torch)
+    assert math_inf._normalize_dtype("float16") is _Torch.float16
+    assert math_inf._normalize_dtype(" auto ") == "auto"
 
 
 def test_transformers_prompt_runner_import_guards(monkeypatch):
-    monkeypatch.setattr(math500, "torch", None)
+    monkeypatch.setattr(math_inf, "torch", None)
     with pytest.raises(ImportError):
-        math500.TransformersPromptRunner(
-            math500.InferenceModelSpec(model_name_or_path="x")
+        math_inf.TransformersPromptRunner(
+            math_inf.InferenceModelSpec(model_name_or_path="x")
         )
-    monkeypatch.setattr(math500, "torch", types.SimpleNamespace())
-    monkeypatch.setattr(math500, "AutoTokenizer", None)
-    monkeypatch.setattr(math500, "AutoModelForCausalLM", None)
+    monkeypatch.setattr(math_inf, "torch", types.SimpleNamespace())
+    monkeypatch.setattr(math_inf, "AutoTokenizer", None)
+    monkeypatch.setattr(math_inf, "AutoModelForCausalLM", None)
     with pytest.raises(ImportError):
-        math500.TransformersPromptRunner(
-            math500.InferenceModelSpec(model_name_or_path="x")
+        math_inf.TransformersPromptRunner(
+            math_inf.InferenceModelSpec(model_name_or_path="x")
         )
 
 
@@ -346,27 +425,27 @@ def _stub_model():
 
 
 def test_transformers_prompt_runner_sets_padding_and_generates(monkeypatch):
-    monkeypatch.setattr(math500, "torch", _StubTorch)
-    monkeypatch.setattr(math500, "Tensor", _StubTensor)
+    monkeypatch.setattr(math_inf, "torch", _StubTorch)
+    monkeypatch.setattr(math_inf, "Tensor", _StubTensor)
     tokenizer = _stub_tokenizer()
     model = _stub_model()
     monkeypatch.setattr(
-        math500,
+        math_inf,
         "AutoTokenizer",
         SimpleNamespace(from_pretrained=lambda *_a, **_k: tokenizer),
     )
     monkeypatch.setattr(
-        math500,
+        math_inf,
         "AutoModelForCausalLM",
         SimpleNamespace(from_pretrained=lambda *_a, **_k: model),
     )
-    spec = math500.InferenceModelSpec(
+    spec = math_inf.InferenceModelSpec(
         model_name_or_path="demo/model",
         system_prompt="system",
         temperature=0.1,
         chat_template=None,
     )
-    runner = math500.TransformersPromptRunner(spec)
+    runner = math_inf.TransformersPromptRunner(spec)
     prompt = runner._build_prompt("prob")
     assert "SYSTEM" in prompt and "prob" in prompt
     outputs = runner.generate(["p1", "p2"])
@@ -377,8 +456,8 @@ def test_transformers_prompt_runner_sets_padding_and_generates(monkeypatch):
 
 
 def test_transformers_prompt_runner_infers_missing_eos_and_padding(monkeypatch):
-    monkeypatch.setattr(math500, "torch", _StubTorch)
-    monkeypatch.setattr(math500, "Tensor", _StubTensor)
+    monkeypatch.setattr(math_inf, "torch", _StubTorch)
+    monkeypatch.setattr(math_inf, "Tensor", _StubTensor)
 
     class _TokenizerMissingEOS:
         def __init__(self):
@@ -415,19 +494,19 @@ def test_transformers_prompt_runner_infers_missing_eos_and_padding(monkeypatch):
     tokenizer = _TokenizerMissingEOS()
     model = _stub_model()
     monkeypatch.setattr(
-        math500,
+        math_inf,
         "AutoTokenizer",
         SimpleNamespace(from_pretrained=lambda *_a, **_k: tokenizer),
     )
     monkeypatch.setattr(
-        math500,
+        math_inf,
         "AutoModelForCausalLM",
         SimpleNamespace(from_pretrained=lambda *_a, **_k: model),
     )
-    spec = math500.InferenceModelSpec(
+    spec = math_inf.InferenceModelSpec(
         model_name_or_path="demo/model", chat_template=None
     )
-    runner = math500.TransformersPromptRunner(spec)
+    runner = math_inf.TransformersPromptRunner(spec)
     assert tokenizer.special_added is True
     assert tokenizer.pad_token_id == 7
     assert getattr(model, "resize_called", False) is True
@@ -435,15 +514,15 @@ def test_transformers_prompt_runner_infers_missing_eos_and_padding(monkeypatch):
     runner.close()
 
 
-def test_run_math500_inference_collects_and_validates(monkeypatch):
+def test_run_math_inference_collects_and_validates(monkeypatch):
     calls = {}
     monkeypatch.setattr(
-        math500,
+        math_inf,
         "pure_accuracy_reward_math",
         lambda gens, answers: [1.0 if g == a else 0.0 for g, a in zip(gens, answers)],
     )
 
-    class _Runner(math500.PromptRunner):
+    class _Runner(math_inf.PromptRunner):
         def __init__(self, spec):
             calls.setdefault("specs", []).append(spec.model_name_or_path)
 
@@ -455,31 +534,31 @@ def test_run_math500_inference_collects_and_validates(monkeypatch):
             calls["closed"] = True
 
     specs = [
-        math500.InferenceModelSpec(model_name_or_path="m1", batch_size=2),
-        math500.InferenceModelSpec(model_name_or_path="m2", batch_size=1),
+        math_inf.InferenceModelSpec(model_name_or_path="m1", batch_size=2),
+        math_inf.InferenceModelSpec(model_name_or_path="m2", batch_size=1),
     ]
     dataset = [{"problem": f"q{i}", "answer": f"q{i}-ans"} for i in range(3)]
-    results = math500.run_math500_inference(
+    results = math_inf.run_math_inference(
         specs,
-        math500.Math500EvalConfig(),
+        math_inf.MathEvalConfig(),
         dataset=dataset,
         collect_generations=True,
         runner_factory=lambda spec: _Runner(spec),
     )
     assert len(results) == 2
     assert results[0].correct == 3 and results[0].accuracy == 1.0
-    assert results[0].generations == ["q0-ans", "q1-ans", "q2-ans"]
+    assert results[0].generations == [["q0-ans"], ["q1-ans"], ["q2-ans"]]
     assert calls["closed"] is True
 
 
-def test_run_math500_inference_raises_on_length_mismatch(monkeypatch):
+def test_run_math_inference_raises_on_length_mismatch(monkeypatch):
     monkeypatch.setattr(
-        math500,
+        math_inf,
         "pure_accuracy_reward_math",
         lambda gens, answers: [0.0 for _ in answers],
     )
 
-    class _BadRunner(math500.PromptRunner):
+    class _BadRunner(math_inf.PromptRunner):
         def generate(self, problems):
             return []
 
@@ -487,9 +566,9 @@ def test_run_math500_inference_raises_on_length_mismatch(monkeypatch):
             pass
 
     with pytest.raises(RuntimeError):
-        math500.run_math500_inference(
-            [math500.InferenceModelSpec(model_name_or_path="m")],
-            math500.Math500EvalConfig(),
+        math_inf.run_math_inference(
+            [math_inf.InferenceModelSpec(model_name_or_path="m")],
+            math_inf.MathEvalConfig(),
             dataset=[{"problem": "p", "answer": "a"}],
             runner_factory=lambda spec: _BadRunner(),
         )

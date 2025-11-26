@@ -294,8 +294,10 @@ setup(
             "maxent-grpo=maxent_grpo.cli.hydra_cli:hydra_entry",
             "maxent-grpo-baseline=maxent_grpo.cli.hydra_cli:baseline_entry",
             "maxent-grpo-maxent=maxent_grpo.cli.hydra_cli:maxent_entry",
+            "maxent-grpo-infoseed=maxent_grpo.cli.hydra_cli:infoseed_entry",
             "maxent-grpo-generate=maxent_grpo.cli.hydra_cli:generate_entry",
             "maxent-grpo-inference=maxent_grpo.cli.hydra_cli:inference_entry",
+            "maxent-grpo-math-eval=maxent_grpo.cli.hydra_cli:math_eval_entry",
         ],
     },
     classifiers=[

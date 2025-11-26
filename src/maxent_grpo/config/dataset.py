@@ -47,10 +47,54 @@ else:
 
 if not hasattr(trl, "GRPOConfig"):  # pragma: no cover - used by sibling module
 
+    @dataclass
     class _BaseGRPOConfig:
         """Minimal stand-in for ``trl.GRPOConfig`` used in test contexts."""
 
-        __slots__ = ()
+        per_device_train_batch_size: int = 1
+        per_device_eval_batch_size: int = 1
+        num_generations: int = 1
+        num_train_epochs: int = 1
+        max_steps: int = 0
+        gradient_accumulation_steps: int = 1
+        max_grad_norm: float = 0.0
+        warmup_ratio: float = 0.0
+        max_prompt_length: int = 1024
+        max_completion_length: int = 256
+        gen_temperature: float = 1.0
+        gen_top_p: float = 1.0
+        gen_best_of: Optional[int] = None
+        gen_top_k: Optional[int] = None
+        gen_frequency_penalty: float = 0.0
+        gen_presence_penalty: float = 0.0
+        use_vllm: bool = False
+        vllm_url: str = "http://localhost:8000/generate"
+        vllm_rounds_cfg: int = 0
+        vllm_retry_sleep: float = 1.0
+        vllm_backfill_local: bool = False
+        vllm_request_logprobs: bool = True
+        vllm_stop_sequences: Optional[list] = None
+        vllm_request_timeout: float = 120.0
+        vllm_max_retries: int = 3
+        vllm_backoff: float = 1.0
+        vllm_guided_json: Optional[str] = None
+        vllm_guided_regex: Optional[str] = None
+        vllm_logit_bias: Optional[dict] = None
+        vllm_request_id_prefix: Optional[str] = None
+        vllm_sync_weights: bool = False
+        do_eval: bool = False
+        eval_steps: Optional[int] = None
+        clip_range: float = 0.2
+        learning_rate: float = 1e-4
+        train_grpo_objective: bool = True
+        reward_weights: list = field(default_factory=list)
+        reward_funcs: list = field(default_factory=list)
+        output_dir: str = "."
+        save_strategy: str = "no"
+        save_steps: int = 0
+
+        def get_process_log_level(self) -> int:
+            return 20
 
     trl.GRPOConfig = _BaseGRPOConfig
 

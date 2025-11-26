@@ -105,6 +105,7 @@ def test_train_step_runs_deepspeed_optimizer(monkeypatch):
         weight_stats=SimpleNamespace(),
         scores=None,
         ref_stats=None,
+        seed_heatmap=None,
     )
     monkeypatch.setattr(loop, "prepare_training_batch", lambda *a, **k: prepared)
     resources = StepResources(generator=lambda *_a, **_k: None, validation_ctx=None)

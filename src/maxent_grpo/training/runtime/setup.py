@@ -11,7 +11,12 @@ from maxent_grpo.utils.imports import (
 )
 
 from . import deps as _deps
-from .config import GenerationSamplingConfig, MaxEntOptions, VLLMClientConfig
+from .config import (
+    GenerationSamplingConfig,
+    MaxEntOptions,
+    SeedAugmentationConfig,
+    VLLMClientConfig,
+)
 from .torch_stub import _build_torch_stub
 
 # Re-export accelerator/deepspeed types for callers.
@@ -82,6 +87,7 @@ __all__ = [
     "DeepSpeedPlugin",
     "GenerationSamplingConfig",
     "MaxEntOptions",
+    "SeedAugmentationConfig",
     "VLLMClientConfig",
     "_build_torch_stub",
     "_import_module",

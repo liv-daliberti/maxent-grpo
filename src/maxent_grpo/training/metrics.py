@@ -38,6 +38,7 @@ from __future__ import annotations
 import logging
 import sys
 import math
+import json
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
 
 from .runtime import resolve_run_metadata
@@ -62,6 +63,7 @@ from .weighting import WeightLoggingView, WeightStats
 
 if TYPE_CHECKING:  # Avoid importing heavy pipeline/scoring deps at runtime
     from .pipeline import PreparedBatch
+    from .weighting.loss import LossOutputs
 
 LOG = logging.getLogger(__name__)
 _WANDB_SAMPLE_ROWS = 4
@@ -178,8 +180,10 @@ def _base_metric_block(
         "train/global_step": float(global_step),
         "train/num_tokens": scalars.num_input_tokens,
         "train/avg_completion_tokens": scalars.avg_completion_tokens,
+        "train/ref_logp_mean": scalars.ref_logp_mean,
         "train/beta": payload.config.weighting.beta,
         "train/tau": payload.config.weighting.tau,
+        "train/kl_coeff": payload.config.weighting.beta,
         "train/grpo_objective": (
             1.0
             if getattr(payload.config.weighting, "train_grpo_objective", False)
@@ -206,6 +210,22 @@ def _base_metric_block(
     return metrics
 
 
+def _loss_component_block(loss_outputs: "LossOutputs") -> Dict[str, float]:
+    """Break down the loss into individual components."""
+    metrics: Dict[str, float] = {
+        "train/loss/policy": loss_outputs.policy_loss_scalar,
+        "train/loss/kl": loss_outputs.kl_loss_scalar,
+        "train/loss/weighted_kl": loss_outputs.weighted_kl_loss_scalar,
+    }
+    clip_loss = loss_outputs.clip_loss_scalar
+    if clip_loss is not None:
+        metrics["train/loss/clip"] = clip_loss
+    seed_loss = getattr(loss_outputs, "seed_loss_value", None)
+    if seed_loss is not None:
+        metrics["train/loss/seed"] = seed_loss
+    return metrics
+
+
 def _length_metric_block(length_stats: LengthStats) -> Dict[str, float]:
     """Metrics summarizing completion lengths."""
     return {
@@ -225,6 +245,10 @@ def _reward_metric_block(payload: TrainingMetricsPayload) -> Dict[str, float]:
         "train/reward": reward_stats.reward_mean,
         "train/reward_std": reward_stats.reward_std,
         "train/frac_reward_zero_std": reward_stats.frac_zero_std,
+        "train/q_entropy_mean": reward_stats.q_entropy_mean,
+        "train/q_entropy_std": reward_stats.q_entropy_std,
+        "train/q_entropy_min": reward_stats.q_entropy_min,
+        "train/q_entropy_max": reward_stats.q_entropy_max,
     }
     for reward_key, stats in reward_stats.per_reward.items():
         metrics[f"train/rewards/{reward_key}/mean"] = stats.mean
@@ -244,6 +268,13 @@ def _clip_metric_block(diagnostics: "BatchDiagnostics") -> Dict[str, float]:
     }
     if diagnostics.kl_value is not None:
         metrics["train/kl"] = diagnostics.kl_value
+    bucket_means = getattr(diagnostics, "kl_per_token_by_len_bucket", {}) or {}
+    bucket_token_counts = getattr(diagnostics, "kl_token_count_by_len_bucket", {}) or {}
+    for bucket in sorted(bucket_means.keys()):
+        metrics[f"train/kl_per_token_bucket/{bucket}"] = bucket_means[bucket]
+        metrics[f"train/kl_per_token_bucket_tokens/{bucket}"] = bucket_token_counts.get(
+            bucket, 0.0
+        )
     return metrics
 
 
@@ -263,6 +294,82 @@ def _weight_metric_block(payload: TrainingMetricsPayload) -> Dict[str, float]:
     return metrics
 
 
+def _weighting_config_block(
+    payload: TrainingMetricsPayload, global_step: int
+) -> Dict[str, float]:
+    """Log controller hyperparameters for both GRPO and MaxEnt-GRPO."""
+    weighting = payload.config.weighting
+    prev_tau = getattr(weighting, "_prev_tau", None)
+    prev_beta = getattr(weighting, "_prev_beta", None)
+    delta_tau = float(weighting.tau) - float(prev_tau) if prev_tau is not None else 0.0
+    delta_beta = (
+        float(weighting.beta) - float(prev_beta) if prev_beta is not None else 0.0
+    )
+    metrics: Dict[str, float] = {
+        "train/weight_norm_denom": weighting.denom,
+        "train/tau_log": float(
+            getattr(weighting, "_tau_log", math.log(max(weighting.tau, 1e-8)))
+        ),
+        "train/q_temperature": weighting.q_temperature,
+        "train/q_epsilon": weighting.q_epsilon,
+        "train/tau_lr": weighting.tau_lr,
+        "train/tau_min": weighting.tau_min,
+        "train/tau_max": weighting.tau_max,
+        "train/tau_warmup_steps": float(weighting.tau_warmup_steps),
+        "train/tau_target_entropy": float(
+            weighting.tau_target_entropy
+            if weighting.tau_target_entropy is not None
+            else 0.0
+        ),
+        "train/tau_target_enabled": (
+            1.0 if weighting.tau_target_entropy is not None else 0.0
+        ),
+        "train/tau_schedule_active": (
+            1.0
+            if (
+                weighting.tau_target_entropy is not None
+                and global_step > max(0, weighting.tau_warmup_steps)
+            )
+            else 0.0
+        ),
+        "train/kl_controller_target": weighting.kl_target,
+        "train/kl_controller_horizon": float(weighting.kl_horizon),
+        "train/kl_controller_step_size": weighting.kl_ctl_step_size,
+        "train/kl_controller_enabled": (
+            1.0
+            if weighting.kl_target > 0.0
+            and weighting.kl_horizon > 0
+            and weighting.kl_ctl_step_size > 0.0
+            else 0.0
+        ),
+        "train/len_norm_ref": 1.0 if weighting.len_norm_ref else 0.0,
+        "train/maxent_objective": 0.0 if weighting.train_grpo_objective else 1.0,
+        "train/delta_tau": delta_tau,
+        "train/delta_tau_abs": abs(delta_tau),
+        "train/delta_beta": delta_beta,
+        "train/delta_beta_abs": abs(delta_beta),
+    }
+    # Error-to-target signals for KL and weight entropy controllers.
+    kl_measured = payload.diagnostics.kl_value
+    if kl_measured is None:
+        kl_measured = getattr(payload.loss_outputs, "kl_loss_scalar", None)
+    if (
+        isinstance(kl_measured, (int, float))
+        and weighting.kl_target
+        and weighting.kl_target > 0.0
+    ):
+        metrics["train/kl_error_to_target"] = float(kl_measured) - weighting.kl_target
+        metrics["train/kl_ratio_to_target"] = float(kl_measured) / max(
+            weighting.kl_target, 1e-8
+        )
+    target_entropy = weighting.tau_target_entropy
+    if target_entropy is not None:
+        metrics["train/weight_entropy_error"] = payload.weight_stats.entropy - float(
+            target_entropy
+        )
+    return metrics
+
+
 def build_training_metrics_dict(
     payload: TrainingMetricsPayload,
     global_step: int,
@@ -271,10 +378,14 @@ def build_training_metrics_dict(
     metrics: Dict[str, Any] = {}
     metrics.update(resolve_run_metadata())
     metrics.update(_base_metric_block(payload, global_step))
+    metrics.update(_loss_component_block(payload.loss_outputs))
     metrics.update(_length_metric_block(payload.length_stats))
     metrics.update(_reward_metric_block(payload))
     metrics.update(_weight_metric_block(payload))
+    metrics.update(_weighting_config_block(payload, global_step))
     metrics.update(_clip_metric_block(payload.diagnostics))
+    if payload.seed_metrics:
+        metrics.update({f"train/seed/{k}": v for k, v in payload.seed_metrics.items()})
     return metrics
 
 
@@ -356,6 +467,22 @@ def _summarize_reward_stats(
     per_reward_values = _gather_dict_of_lists_for_metrics(
         accelerator, reward_comp.per_reward_values
     )
+    # Q-distribution entropy captures how sharp the ranking is per prompt.
+    q_grouped = reward_comp.q_grouped
+    q_entropies = []
+    for q_vals in q_grouped:
+        if not q_vals:
+            continue
+        # Clamp for numerical stability before log.
+        entropy = 0.0
+        for q in q_vals:
+            q_clamped = max(float(q), 1e-12)
+            entropy -= q_clamped * math.log(q_clamped)
+        q_entropies.append(entropy)
+    q_entropies = _gather_list_for_metrics(accelerator, q_entropies)
+    q_entropy_mean, q_entropy_std = _mean_std(q_entropies)
+    q_entropy_min = min(q_entropies) if q_entropies else 0.0
+    q_entropy_max = max(q_entropies) if q_entropies else 0.0
     return RewardLoggingView(
         reward_mean=reward_mean,
         reward_std=reward_std,
@@ -366,6 +493,10 @@ def _summarize_reward_stats(
         advantage_std=adv_std,
         advantage_count=len(adv_samples),
         per_reward=_reward_component_stats(per_reward_values),
+        q_entropy_mean=q_entropy_mean,
+        q_entropy_std=q_entropy_std,
+        q_entropy_min=q_entropy_min,
+        q_entropy_max=q_entropy_max,
     )
 
 
@@ -462,6 +593,7 @@ def _build_metrics_payload(
         length_stats=prepared.length_stats,
         config=config_view,
         scalars=scalar_stats,
+        seed_metrics=prepared.seed_metrics,
     )
 
 
@@ -526,6 +658,24 @@ def _emit_metrics(
         kv_pairs = str(metrics)
     LOG.info("%s metrics step %d | %s", tag, global_step, kv_pairs)
     return metrics
+
+
+def _pretty_print_metrics(metrics: Dict[str, Any]) -> str:
+    """Return a deterministic, pretty JSON string for human-readable logs."""
+    try:
+        return json.dumps(metrics, indent=2, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        return str(metrics)
+
+
+def _update_weighting_history(weighting: Any, global_step: int) -> None:
+    """Cache the last-seen tau/beta for delta logging."""
+    try:
+        setattr(weighting, "_prev_tau", float(weighting.tau))
+        setattr(weighting, "_prev_beta", float(weighting.beta))
+        setattr(weighting, "_prev_step", int(global_step))
+    except (AttributeError, TypeError, ValueError):
+        return
 
 
 def accumulate_metrics(state: MetricState, metrics: Dict[str, Any]) -> None:
@@ -742,6 +892,10 @@ def log_training_step(
             tag="Global",
             metric_logger=getattr(step_logger, "log", None),
         )
+    if accelerator.is_main_process:
+        pretty = _pretty_print_metrics(metrics)
+        LOG.info("Global metrics (pretty) step %d\n%s", state.global_step, pretty)
+    _update_weighting_history(ctx.scoring.weighting, state.global_step)
     _log_sample_table(ctx, state, prepared)
 
 

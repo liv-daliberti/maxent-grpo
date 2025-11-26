@@ -43,10 +43,11 @@ def test_split_recipe_payload_routes_fields():
         "trust_remote_code": True,
         "extra": "x",
     }
-    script, training, model = _split_recipe_payload(payload, _ModelCfg)
+    script, training, model, other = _split_recipe_payload(payload, _ModelCfg)
     assert script == {"reward_funcs": ["foo"]}
-    assert training.get("beta") == 0.2
+    assert training == {}
     assert model == {"model_name_or_path": "m", "trust_remote_code": True}
+    assert other == {"beta": 0.2, "extra": "x"}
 
 
 def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):

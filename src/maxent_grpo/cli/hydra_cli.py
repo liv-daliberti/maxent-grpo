@@ -33,10 +33,10 @@ from maxent_grpo.pipelines.generation.distilabel import (
     DistilabelGenerationConfig,
     run_generation_job,
 )
-from maxent_grpo.pipelines.inference.math500 import (
+from maxent_grpo.pipelines.inference.inference import (
     InferenceModelSpec,
-    Math500EvalConfig,
-    run_math500_inference,
+    resolve_inference_dataset,
+    run_math_inference,
 )
 
 
@@ -117,6 +117,16 @@ class MaxentCommand:
 
 
 @dataclass
+class InfoSeedCommand:
+    """GRPO training command options for the InfoSeed recipe."""
+
+    recipe: Optional[str] = None
+    script: Dict[str, Any] = field(default_factory=dict)
+    training: Dict[str, Any] = field(default_factory=dict)
+    model: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class GenerateCommand:
     """Generation job configuration block.
 
@@ -131,13 +141,21 @@ class InferenceCommand:
     """Inference job configuration block.
 
     :param models: Sequence of model specs to evaluate.
-    :param eval: Evaluation configuration for Math500.
+    :param dataset: Named inference preset to evaluate.
+    :param eval: Evaluation configuration overrides for math benchmarks.
+    :param seeds: RNG seeds to average metrics over.
+    :param num_generations: Number of completions per prompt (Pass@k with k=num_generations).
+    :param temperature: Temperature override for rollout sampling.
     :param limit: Optional cap on number of items to evaluate.
     :param collect_generations: Whether to return collected generations.
     """
 
     models: List[Dict[str, Any]] = field(default_factory=list)
+    dataset: str = "math_500"
     eval: Dict[str, Any] = field(default_factory=dict)
+    seeds: List[int] = field(default_factory=lambda: [0, 1, 2, 3, 4])
+    num_generations: int = 8
+    temperature: float = 0.6
     limit: Optional[int] = None
     collect_generations: bool = False
 
@@ -156,6 +174,7 @@ class HydraRootConfig:
     command: str = "train-baseline"
     baseline: BaselineCommand = field(default_factory=BaselineCommand)
     maxent: MaxentCommand = field(default_factory=MaxentCommand)
+    infoseed: InfoSeedCommand = field(default_factory=InfoSeedCommand)
     generate: GenerateCommand = field(default_factory=GenerateCommand)
     inference: InferenceCommand = field(default_factory=InferenceCommand)
 
@@ -172,7 +191,7 @@ def _maybe_insert_command(default_command: str) -> None:
 
 
 def _build_grpo_configs(
-    cmd: BaselineCommand | MaxentCommand,
+    cmd: BaselineCommand | MaxentCommand | InfoSeedCommand,
 ) -> tuple[GRPOScriptArguments, GRPOConfig, Any]:
     """Construct GRPO config objects from a command block.
 
@@ -180,7 +199,7 @@ def _build_grpo_configs(
     :returns: Tuple of ``(script_args, training_args, model_config)`` ready to pass to training pipelines.
     """
 
-    if cmd.recipe:
+    if getattr(cmd, "recipe", None):
         from trl import ModelConfig
 
         return load_grpo_recipe(cmd.recipe, model_config_cls=ModelConfig)
@@ -232,6 +251,11 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
 
         script_args, training_args, model_args = _build_grpo_configs(root.maxent)
         run_maxent_training(script_args, training_args, model_args)
+    elif cmd == "train-infoseed":
+        from maxent_grpo.pipelines.training.infoseed import run_infoseed_training
+
+        script_args, training_args, model_args = _build_grpo_configs(root.infoseed)
+        run_infoseed_training(script_args, training_args, model_args)
     elif cmd == "generate":
         gen_args = (
             root.generate.args if hasattr(root.generate, "args") else root.generate
@@ -240,18 +264,24 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
         if is_test:
             return "ok"
         run_generation_job(gen_cfg)
-    elif cmd == "inference":
+    elif cmd in ("inference", "math-eval", "math_eval"):
         if not root.inference.models:
             raise ValueError("inference.models must contain at least one model spec")
         specs = [InferenceModelSpec(**spec) for spec in root.inference.models]
-        eval_cfg = Math500EvalConfig(**root.inference.eval)
+        eval_cfg = resolve_inference_dataset(
+            getattr(root.inference, "dataset", None) or "math_500",
+            root.inference.eval,
+        )
         if is_test:
             return "ok"
-        results = run_math500_inference(
+        results = run_math_inference(
             specs,
             eval_cfg=eval_cfg,
             limit=root.inference.limit,
             collect_generations=root.inference.collect_generations,
+            num_generations=root.inference.num_generations,
+            seeds=root.inference.seeds,
+            temperature=root.inference.temperature,
         )
         print(OmegaConf.to_yaml(OmegaConf.create([r.__dict__ for r in results])))
     else:
@@ -299,6 +329,20 @@ def inference_entry() -> None:
     :returns: ``None`` after dispatching to Hydra.
     """
     _maybe_insert_command("inference")
+    _invoke_hydra_cli()
+
+
+def math_eval_entry() -> None:
+    """Console script wrapper for multi-benchmark math inference."""
+
+    _maybe_insert_command("math-eval")
+    _invoke_hydra_cli()
+
+
+def infoseed_entry() -> None:
+    """Console script wrapper for InfoSeed training."""
+
+    _maybe_insert_command("train-infoseed")
     _invoke_hydra_cli()
 
 

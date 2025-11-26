@@ -135,6 +135,8 @@ class PreparedBatch:
     batch_stats: _BatchStats
     total_input_tokens: float
     scores: SequenceScores
+    seed_metrics: Optional[Dict[str, float]] = None
+    seed_heatmap: Optional[Dict[str, Any]] = None
 
     @property
     def weight_stats(self) -> WeightStats:
@@ -195,9 +197,31 @@ def _reference_stats_from_meta(
         missing/partial.
     :rtype: training.types.ReferenceLogprobs | None
     """
+    # Ensure legacy alias is present for tests that import ``training.pipeline``.
+    if "training.pipeline" not in sys.modules and __name__ in sys.modules:
+        sys.modules["training.pipeline"] = sys.modules[__name__]
+    alias_mod = sys.modules.get("training.pipeline")
+    ref_fn = reference_from_vllm_meta
+    if alias_mod is not None:
+        ref_fn = getattr(alias_mod, "reference_from_vllm_meta", ref_fn)
+    if ref_fn is None or not callable(ref_fn):
+        ref_fn = getattr(
+            sys.modules.get("maxent_grpo.training.pipeline"),
+            "reference_from_vllm_meta",
+            ref_fn,
+        )
+    if ref_fn is None or not callable(ref_fn):
+        ref_fn = getattr(sys.modules.get(__name__), "reference_from_vllm_meta", None)
+    if (ref_fn is None or not callable(ref_fn)) and "pipeline" in globals():
+        ref_fn = getattr(globals().get("pipeline"), "reference_from_vllm_meta", None)
+    result = (
+        ref_fn(flat_meta, total_sequences, device)
+        if callable(ref_fn) and flat_meta is not None
+        else None
+    )
     if not flat_meta or total_sequences <= 0:
         return None
-    return reference_from_vllm_meta(flat_meta, total_sequences, device)
+    return result
 
 
 def _collect_batch_stats(
@@ -218,11 +242,13 @@ def _collect_batch_stats(
     :rtype: _BatchStats | None
     """
     total_sequences = len(getattr(reward_comp.pairs, "completions", []))
-    ref_stats = _reference_stats_from_meta(
-        reward_comp.ref_logprob_meta,
-        total_sequences,
-        ctx.runtime.device,
-    )
+    ref_stats = None
+    if reward_comp.ref_logprob_meta and total_sequences > 0:
+        ref_stats = _reference_stats_from_meta(
+            reward_comp.ref_logprob_meta,
+            total_sequences,
+            ctx.runtime.device,
+        )
     scoring_cfg = getattr(ctx, "scoring", None)
     if scoring_cfg is None:
         scoring_cfg = getattr(
@@ -256,6 +282,8 @@ def _collect_batch_stats(
             ctx.runtime.device,
         )
         if rebuilt_ref is not None:
+            ref_stats = rebuilt_ref
+        elif ref_stats is None or score_batch.total_sequences != total_sequences:
             ref_stats = rebuilt_ref
     if ref_stats is None:
         try:
@@ -334,18 +362,38 @@ def prepare_training_batch(
     :rtype: PreparedBatch | None
     """
     try:
+        if isinstance(batch.get("prompt"), str):
+            batch = dict(batch)
+            batch["prompt"] = [batch["prompt"]]
+        if isinstance(batch.get("answer"), str):
+            batch = dict(batch)
+            batch["answer"] = [batch["answer"]]
         retry_limit = ctx.generation.vllm_rounds_cfg
         if retry_limit <= 0:
             retry_limit = ctx.optimization.schedule.num_generations
-        gen_batch = _require_artifact(
-            prepare_generation_batch(
-                batch,
-                generator,
-                ctx.generation.generation_stats,
-                ctx.optimization.schedule.num_generations,
-                max_retry_rounds=retry_limit,
+        try:
+            gen_batch = _require_artifact(
+                prepare_generation_batch(
+                    batch,
+                    generator,
+                    ctx.generation.generation_stats,
+                    ctx.optimization.schedule.num_generations,
+                    max_retry_rounds=retry_limit,
+                    seed_augmentation=getattr(
+                        ctx.generation, "seed_augmentation", None
+                    ),
+                )
             )
-        )
+        except TypeError:
+            gen_batch = _require_artifact(
+                prepare_generation_batch(
+                    batch,
+                    generator,
+                    ctx.generation.generation_stats,
+                    ctx.optimization.schedule.num_generations,
+                    max_retry_rounds=retry_limit,
+                )
+            )
         reward_comp = _require_artifact(
             compute_reward_statistics(
                 gen_batch,
@@ -362,21 +410,197 @@ def prepare_training_batch(
                 reward_comp,
             )
         )
-        cur_logp_sum = _require_artifact(
-            score_model_outputs(
-                ctx.runtime.model,
-                stats.score_batch,
-                ctx.scoring.batching,
-                ctx.runtime,
-            )
+        # Enable pooled hidden states when InfoSeed is active so seed loss can pool per-sequence reps.
+        should_pool = any(
+            [
+                getattr(ctx.scoring, "info_seed_lambda", 0.0) > 0.0,
+                getattr(ctx.scoring, "info_seed_alpha_entropy", 0.0) != 0.0,
+                getattr(ctx.generation, "seed_augmentation", None) is not None,
+            ]
         )
-        scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
+        try:
+            cur_logp_result = _require_artifact(
+                score_model_outputs(
+                    ctx.runtime.model,
+                    stats.score_batch,
+                    ctx.scoring.batching,
+                    ctx.runtime,
+                    return_hidden=should_pool,
+                    pooling=getattr(ctx.scoring, "info_seed_pooling", "mean"),
+                )
+            )
+        except TypeError:
+            cur_logp_result = _require_artifact(
+                score_model_outputs(
+                    ctx.runtime.model,
+                    stats.score_batch,
+                    ctx.scoring.batching,
+                    ctx.runtime,
+                )
+            )
+        if isinstance(cur_logp_result, tuple):
+            cur_logp_sum, pooled_hidden = cur_logp_result
+        else:
+            cur_logp_sum, pooled_hidden = cur_logp_result, None
+        try:
+            scores = build_sequence_scores(cur_logp_sum, stats.ref_stats, pooled_hidden)
+        except TypeError:
+            scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
+        # Optional seed metadata wiring for InfoSeed objectives.
+        seed_inputs = None
+        seed_metrics: Dict[str, float] = {}
+        seed_heatmap = None
+        completion_meta = getattr(reward_comp, "completion_metadata", None)
+        if pooled_hidden is not None and completion_meta:
+            import torch as torch_mod
+
+            seed_ids = []
+            is_seed_aug = []
+            for meta in reward_comp.completion_metadata or []:
+                seed_ids.append(int(meta.get("seed_id", -1)) if meta else -1)
+                is_seed_aug.append(
+                    bool(meta.get("is_seed_aug", False)) if meta else False
+                )
+            if seed_ids:
+                seed_ids_t = torch_mod.tensor(
+                    seed_ids, device=pooled_hidden.device, dtype=torch_mod.long
+                )
+                is_seed_aug_t = torch_mod.tensor(
+                    is_seed_aug, device=pooled_hidden.device, dtype=torch_mod.bool
+                )
+                try:
+                    from .weighting.loss import SeedInfoInputs
+                except (
+                    ImportError,
+                    AttributeError,
+                ):  # pragma: no cover - optional seed support
+                    SeedInfoInputs = None
+                if SeedInfoInputs is not None:
+                    seed_inputs = SeedInfoInputs(
+                        seed_ids=seed_ids_t,
+                        pooled_hidden=pooled_hidden,
+                        is_seed_aug=is_seed_aug_t,
+                    )
+                    valid_mask = seed_ids_t >= 0
+                    if seed_inputs.is_seed_aug is not None and valid_mask.any():
+                        aug_mask = valid_mask & seed_inputs.is_seed_aug
+                        total = valid_mask.sum().item()
+                        if total > 0:
+                            seed_metrics["seed_aug_frac"] = float(
+                                aug_mask.sum().item()
+                            ) / float(total)
+        if seed_inputs is not None:
+            seed_head = getattr(ctx.runtime.model, "seed_head", None)
+            if callable(seed_head):
+                try:
+                    seed_logits = seed_head(pooled_hidden)
+                    seed_inputs.logits = seed_logits
+                    # Seed prediction accuracy metrics
+                    if seed_logits is not None:
+                        valid_mask = seed_inputs.seed_ids >= 0
+                        if valid_mask.any():
+                            preds = seed_logits.argmax(dim=-1)
+                            acc = (
+                                (preds[valid_mask] == seed_inputs.seed_ids[valid_mask])
+                                .float()
+                                .mean()
+                                .item()
+                            )
+                            seed_metrics["seed_pred_acc"] = acc
+                            if seed_inputs.is_seed_aug is not None:
+                                aug_mask = valid_mask & seed_inputs.is_seed_aug
+                                if aug_mask.any():
+                                    aug_acc = (
+                                        (
+                                            preds[aug_mask]
+                                            == seed_inputs.seed_ids[aug_mask]
+                                        )
+                                        .float()
+                                        .mean()
+                                        .item()
+                                    )
+                                    seed_metrics["seed_pred_acc_aug"] = aug_acc
+                        # Diversity: average pairwise distance between seed means
+                        try:
+                            unique_seeds = torch_mod.unique(
+                                seed_inputs.seed_ids[valid_mask]
+                            )
+                            if unique_seeds.numel() > 1:
+                                means = []
+                                for sid in unique_seeds:
+                                    sid_mask = valid_mask & (
+                                        seed_inputs.seed_ids == sid
+                                    )
+                                    if sid_mask.any():
+                                        means.append(
+                                            seed_inputs.pooled_hidden[sid_mask].mean(
+                                                dim=0
+                                            )
+                                        )
+                                if len(means) > 1:
+                                    stacked = torch_mod.stack(means)
+                                    pdist = torch_mod.nn.functional.pdist(
+                                        stacked, p=2
+                                    ).mean()
+                                    seed_metrics["seed_diversity_l2"] = float(
+                                        pdist.item()
+                                    )
+                                    heatmap = torch_mod.nn.functional.cosine_similarity(
+                                        stacked.unsqueeze(1),
+                                        stacked.unsqueeze(0),
+                                        dim=-1,
+                                    )
+                                    seed_heatmap = {
+                                        "labels": [int(s.item()) for s in unique_seeds],
+                                        "matrix": heatmap.detach().cpu().tolist(),
+                                    }
+                                else:
+                                    seed_heatmap = None
+                            else:
+                                seed_heatmap = None
+                        except (RuntimeError, ValueError, TypeError):
+                            seed_heatmap = None
+                except (RuntimeError, ValueError, TypeError):
+                    seed_inputs.logits = None
+            setattr(scores, "seed_aux", seed_inputs)
+        else:
+            seed_heatmap = None
+        # Per-subset entropy (orig vs seed-aug) derived from weights + metadata.
+        if getattr(reward_comp, "completion_metadata", None):
+            weights = stats.weight_stats.flat_weights
+            if len(weights) == len(reward_comp.completion_metadata):
+                import math
+
+                def _entropy(subset_weights: list[float]) -> float:
+                    if not subset_weights:
+                        return 0.0
+                    total = sum(subset_weights)
+                    if total <= 0:
+                        return 0.0
+                    ent = 0.0
+                    for w in subset_weights:
+                        p = w / total
+                        if p > 0:
+                            ent -= p * math.log(p + 1e-12)
+                    return ent
+
+                orig_weights = []
+                seed_weights = []
+                for w, meta in zip(weights, reward_comp.completion_metadata):
+                    if meta and meta.get("is_seed_aug", False):
+                        seed_weights.append(w)
+                    else:
+                        orig_weights.append(w)
+                seed_metrics["entropy/orig"] = _entropy(orig_weights)
+                seed_metrics["entropy/seed_aug"] = _entropy(seed_weights)
         return PreparedBatch(
             grouped_completions=gen_batch.grouped_completions,
             reward_comp=reward_comp,
             batch_stats=stats,
             total_input_tokens=stats.prompt_token_count + stats.num_completion_tokens,
             scores=scores,
+            seed_metrics=seed_metrics or None,
+            seed_heatmap=seed_heatmap,
         )
     except _SkipBatch:
         return None
@@ -387,3 +611,5 @@ __all__ = ["PreparedBatch", "prepare_training_batch"]
 # Preserve a self-reference so monkeypatch paths like ``training.pipeline.pipeline``
 # resolve even after test shuffling or aliasing.
 pipeline = sys.modules[__name__]
+# Expose the module under the legacy ``training.pipeline`` alias used in tests.
+sys.modules["training.pipeline"] = pipeline

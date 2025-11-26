@@ -380,8 +380,12 @@ def test_run_vllm_rounds_sets_legacy_hooks(monkeypatch):
     class _LegacyHelper(_DelegateHelper):
         def __init__(self):
             super().__init__()
-            self._execute_vllm_request = VLLMGenerationHelper._execute_vllm_request.__get__(self, type(self))
-            self._request_vllm_batch = VLLMGenerationHelper._request_vllm_batch.__get__(self, type(self))
+            self._execute_vllm_request = (
+                VLLMGenerationHelper._execute_vllm_request.__get__(self, type(self))
+            )
+            self._request_vllm_batch = VLLMGenerationHelper._request_vllm_batch.__get__(
+                self, type(self)
+            )
 
         def _run_vllm_rounds(self, state):
             self.calls.append(("run_rounds", state))
@@ -391,15 +395,15 @@ def test_run_vllm_rounds_sets_legacy_hooks(monkeypatch):
     gen.ctx.accelerator = SimpleNamespace(is_main_process=True, num_processes=1)
     marker_state = object()
     gen._run_vllm_rounds(marker_state)
-    assert getattr(helper._execute_vllm_request, "__func__", helper._execute_vllm_request) is getattr(
-        gen._execute_vllm_request, "__func__", gen._execute_vllm_request
-    )
-    assert getattr(helper._request_vllm_batch, "__func__", helper._request_vllm_batch) is getattr(
-        gen._request_vllm_batch, "__func__", gen._request_vllm_batch
-    )
-    assert getattr(helper._fallback_generate, "__func__", helper._fallback_generate) is getattr(
-        gen._generate_local, "__func__", gen._generate_local
-    )
+    assert getattr(
+        helper._execute_vllm_request, "__func__", helper._execute_vllm_request
+    ) is getattr(gen._execute_vllm_request, "__func__", gen._execute_vllm_request)
+    assert getattr(
+        helper._request_vllm_batch, "__func__", helper._request_vllm_batch
+    ) is getattr(gen._request_vllm_batch, "__func__", gen._request_vllm_batch)
+    assert getattr(
+        helper._fallback_generate, "__func__", helper._fallback_generate
+    ) is getattr(gen._generate_local, "__func__", gen._generate_local)
     assert ("run_rounds", marker_state) in helper.calls
 
 
@@ -424,7 +428,9 @@ def test_generate_vllm_collective_fills_none_grouped():
     class _CollectiveGen(_DelegateGen):
         def __init__(self):
             super().__init__(helper)
-            self.ctx.accelerator = SimpleNamespace(is_main_process=True, num_processes=2)
+            self.ctx.accelerator = SimpleNamespace(
+                is_main_process=True, num_processes=2
+            )
 
         def _generate_with_vllm(self, prompts, num_samples, counts=None):
             return helper._generate_with_vllm(prompts, num_samples, counts)

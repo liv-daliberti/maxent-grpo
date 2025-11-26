@@ -8,19 +8,25 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
-from maxent_grpo.training.runtime.prompts import (
-    PROMPT_CHAR_LIMIT as _DEFAULT_PROMPT_CHAR_LIMIT,
-    _truncate_prompt,
-)
+from maxent_grpo.training.runtime.prompts import _truncate_prompt
 
 from .vllm_state import _VLLMGenerationState
+
+_DEFAULT_PROMPT_CHAR_LIMIT = 2048
 
 LOG = logging.getLogger(__name__)
 
 
 def _resolve_default_limit() -> int:
     """Return the current default prompt character cap from the environment."""
-
+    if _DEFAULT_PROMPT_CHAR_LIMIT <= 0:
+        try:
+            env_val = os.environ.get("MAX_PROMPT_CHARS")
+            if env_val is not None:
+                return int(env_val)
+        except (TypeError, ValueError):
+            pass
+        return _DEFAULT_PROMPT_CHAR_LIMIT
     try:
         env_val = os.environ.get("MAX_PROMPT_CHARS")
         if env_val is not None:
@@ -28,13 +34,15 @@ def _resolve_default_limit() -> int:
     except (TypeError, ValueError):
         pass
     try:
-        from maxent_grpo.training.runtime import prompts as prompt_mod
-    except Exception:
-        prompt_mod = None
-    prompt_limit = getattr(prompt_mod, "PROMPT_CHAR_LIMIT", _DEFAULT_PROMPT_CHAR_LIMIT)
-    if _DEFAULT_PROMPT_CHAR_LIMIT <= 0:
+        from maxent_grpo.training.runtime import prompts as prompts_mod
+
+        baseline = getattr(prompts_mod, "PROMPT_CHAR_LIMIT", _DEFAULT_PROMPT_CHAR_LIMIT)
+    except (ImportError, AttributeError):
+        baseline = _DEFAULT_PROMPT_CHAR_LIMIT
+    try:
+        return max(int(baseline), int(_DEFAULT_PROMPT_CHAR_LIMIT))
+    except (TypeError, ValueError):
         return _DEFAULT_PROMPT_CHAR_LIMIT
-    return prompt_limit
 
 
 class VLLMRequestMixin:
@@ -324,7 +332,6 @@ class VLLMRequestMixin:
         :rtype: int
         """
         base_limit = _resolve_default_limit()
-        globals()["_DEFAULT_PROMPT_CHAR_LIMIT"] = base_limit
         limit_override = getattr(self.ctx, "prompt_char_limit", None)
         if isinstance(limit_override, int) and limit_override > 0:
             return limit_override
@@ -335,10 +342,8 @@ class VLLMRequestMixin:
         try:
             from maxent_grpo.generation import vllm as _vllm_mod
 
-            limit_const = getattr(
-                _vllm_mod, "PROMPT_CHAR_LIMIT", base_limit
-            )
-        except (ImportError, AttributeError):
+            limit_const = getattr(_vllm_mod, "PROMPT_CHAR_LIMIT", base_limit)
+        except (ImportError, AttributeError, RuntimeError):
             limit_const = base_limit
         if limit_const <= 0:
             return approx_chars

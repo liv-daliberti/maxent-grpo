@@ -96,6 +96,7 @@ def test_run_validation_step_uses_per_prompt_counts(rte):
         evaluation=evaluation_settings,
         accelerator=accelerator,
         model=_Model(),
+        tokenizer=SimpleNamespace(pad_token_id=0, __call__=lambda *a, **k: {}),
         reward=reward_spec,
         generator=fake_generator,
         logging=logging_handles,
@@ -160,6 +161,9 @@ def test_run_validation_step_synchronizes_all_ranks(rte):
             evaluation=evaluation_settings,
             accelerator=accelerator,
             model=model,
+            tokenizer=SimpleNamespace(
+                pad_token_id=0, __call__=lambda *args, **kwargs: {}
+            ),
             reward=reward_spec,
             generator=fake_generator,
             logging=logging_handles,
@@ -224,6 +228,7 @@ def test_run_validation_step_aggregates_rewards_across_ranks(rte):
         evaluation=evaluation_settings,
         accelerator=_Accel(),
         model=_Model(),
+        tokenizer=SimpleNamespace(pad_token_id=0, __call__=lambda *a, **k: {}),
         reward=reward_spec,
         generator=fake_generator,
         logging=logging_handles,

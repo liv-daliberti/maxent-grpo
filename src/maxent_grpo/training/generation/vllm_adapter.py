@@ -496,7 +496,9 @@ class VLLMGenerationMixin:
         if callable(set_fallback):
             set_fallback(self._generate_local)
         else:
-            self._vllm_helper._fallback_generate = self._generate_local  # pragma: no cover - legacy stubs
+            self._vllm_helper._fallback_generate = (
+                self._generate_local
+            )  # pragma: no cover - legacy stubs
         run_rounds = getattr(self._vllm_helper, "run_vllm_rounds", None)
         if callable(run_rounds):
             run_rounds(state)
@@ -549,7 +551,9 @@ class VLLMGenerationMixin:
         pending_indices: List[int],
     ) -> bool:
         """Request completions for specific prompts, grouped by need bucket."""
-        return getattr(self._vllm_helper, "_execute_vllm_request")(state, pending_indices)
+        return getattr(self._vllm_helper, "_execute_vllm_request")(
+            state, pending_indices
+        )
 
     def _flatten_prompts_for_broadcast(
         self,
@@ -679,10 +683,12 @@ def _broadcast_object_list(
     """Broadcast python objects even when Accelerate lacks the helper."""
     broadcast_fn = getattr(accelerator, "broadcast_object_list", None)
     if callable(broadcast_fn):
-        broadcast_fn(payload, src=src)
+        broadcast_fn(payload, src)
         return
     if dist is not None and dist.is_available() and dist.is_initialized():
-        dist.broadcast_object_list(payload, src=src)
+        broadcast = getattr(dist, "broadcast_object_list", None)
+        if callable(broadcast):
+            broadcast(payload, src)
 
 
 def _scatter_object(
@@ -712,7 +718,7 @@ def _scatter_object(
                     input_list if accelerator.process_index == src else None,
                     src=src,
                 )
-            except Exception:
+            except (RuntimeError, ValueError, TypeError):
                 return None
             return output[0]
         return None

@@ -88,6 +88,7 @@ def test_summarize_reward_stats_computes_means():
         advantage_samples=[0.0, 0.1, -0.1],
         per_reward_values={"reward_0": [1.0, 2.0, 3.0]},
         advantage=SimpleNamespace(grouped=[[0.0, 0.0], [0.5, -0.5]]),
+        q_grouped=[[0.6, 0.4], [0.25, 0.75]],
     )
     stats = _summarize_reward_stats(_accel(), reward_comp)
     assert pytest.approx(stats.reward_mean) == 2.0

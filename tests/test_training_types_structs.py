@@ -79,6 +79,8 @@ def test_reward_computation_and_loss_accessors(training_stubs):
         clip_ratio_high_mean=0.0,
         clip_ratio_high_max=0.0,
         clip_ratio_region_mean=0.0,
+        kl_per_token_by_len_bucket={},
+        kl_token_count_by_len_bucket={},
     )
     score_batch = rewards.PromptCacheEntry(
         input_ids=[1, 2, 3], attention_mask=[1, 1, 1]

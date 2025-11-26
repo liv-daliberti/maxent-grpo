@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib
 import sys
 from types import SimpleNamespace, ModuleType
+import types
 
 
 def test_training_init_run_maxent_training_delegates(monkeypatch, training_stubs):
@@ -194,6 +195,7 @@ def test_run_validation_step_logs_and_restores_model(
         evaluation=eval_cfg,
         accelerator=accel,
         model=model,
+        tokenizer=types.SimpleNamespace(pad_token_id=0, __call__=lambda *a, **k: {}),
         reward=RewardSpec(reward_funcs=[_reward], reward_weights=[1.0]),
         generator=_generator,
         logging=SimpleNamespace(
@@ -223,6 +225,7 @@ def test_run_validation_step_returns_when_disabled(training_stubs):
         ),
         accelerator=_Exploding(),
         model=_Exploding(),
+        tokenizer=_Exploding(),
         reward=_Exploding(),
         generator=_Exploding(),
         logging=_Exploding(),

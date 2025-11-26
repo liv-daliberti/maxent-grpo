@@ -224,13 +224,17 @@ def test_hydra_main_inference_validates(monkeypatch):
     monkeypatch.setattr(
         hydra_cli, "InferenceModelSpec", lambda **kwargs: ("spec", kwargs)
     )
-    monkeypatch.setattr(
-        hydra_cli, "Math500EvalConfig", lambda **kwargs: ("eval", kwargs)
-    )
     called = {}
     monkeypatch.setattr(
         hydra_cli,
-        "run_math500_inference",
+        "resolve_inference_dataset",
+        lambda name, overrides: called.setdefault(
+            "eval", {"name": name, "overrides": overrides}
+        ),
+    )
+    monkeypatch.setattr(
+        hydra_cli,
+        "run_math_inference",
         lambda *args, **kwargs: called.setdefault("ran", (args, kwargs)),
     )
     cfg = hydra_cli.HydraRootConfig(
@@ -244,6 +248,7 @@ def test_hydra_main_inference_validates(monkeypatch):
     )
     result = hydra_cli.hydra_main(cfg)
     assert result == "ok"
+    assert called.get("eval", {}).get("name") == "math_500"
     assert "ran" not in called  # not executed in test mode
 
 
@@ -296,11 +301,6 @@ def test_hydra_main_inference_executes_when_allowed(monkeypatch):
         "InferenceModelSpec",
         lambda **kwargs: SimpleNamespace(payload=kwargs),
     )
-    monkeypatch.setattr(
-        hydra_cli,
-        "Math500EvalConfig",
-        lambda **kwargs: SimpleNamespace(payload=kwargs),
-    )
     called = {}
 
     class _Result(SimpleNamespace):
@@ -310,7 +310,12 @@ def test_hydra_main_inference_executes_when_allowed(monkeypatch):
         called["run"] = (args, kwargs)
         return [_Result(data="ok")]
 
-    monkeypatch.setattr(hydra_cli, "run_math500_inference", _run_inference)
+    monkeypatch.setattr(
+        hydra_cli,
+        "resolve_inference_dataset",
+        lambda name, overrides: SimpleNamespace(payload={"name": name, **overrides}),
+    )
+    monkeypatch.setattr(hydra_cli, "run_math_inference", _run_inference)
     prints = []
     monkeypatch.setattr("builtins.print", lambda *args, **kwargs: prints.append(args))
     cfg = hydra_cli.HydraRootConfig(
@@ -320,11 +325,18 @@ def test_hydra_main_inference_executes_when_allowed(monkeypatch):
             eval={"shots": 1},
             limit=2,
             collect_generations=False,
+            seeds=[1, 2],
+            num_generations=3,
+            temperature=0.5,
         ),
     )
     hydra_cli.hydra_main(cfg)
     assert called["run"][0][0][0].payload["name"] == "m1"
     assert called["run"][1]["eval_cfg"].payload["shots"] == 1
+    assert called["run"][1]["eval_cfg"].payload["name"] == "math_500"
+    assert called["run"][1]["num_generations"] == 3
+    assert called["run"][1]["seeds"] == [1, 2]
+    assert called["run"][1]["temperature"] == 0.5
     assert prints, "expected results to be printed"
 
 

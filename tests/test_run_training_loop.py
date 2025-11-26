@@ -555,6 +555,7 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
         num_completion_tokens=2.0,
         total_input_tokens=5.0,
         scores=SimpleNamespace(),
+        seed_heatmap=None,
     )
     loss_outputs = SimpleNamespace(loss=object(), kl_loss_scalar=0.25)
     recorded = {}

@@ -30,6 +30,7 @@ from typing import (
 
 from maxent_grpo.training.runtime import (
     GenerationSamplingConfig,
+    SeedAugmentationConfig,
     require_accelerator,
     require_dataloader,
     require_torch,
@@ -176,6 +177,7 @@ class GenerationSettings(GenerationPenaltyPassthroughMixin, GenerationSamplingCo
 
     penalty: GenerationPenaltyConfig = field(default_factory=GenerationPenaltyConfig)
     generation_stats: Dict[str, int] = field(default_factory=dict)
+    seed_augmentation: Optional[SeedAugmentationConfig] = None
 
 
 @dataclass
@@ -186,6 +188,7 @@ class EvaluationSettings:
     rows: List[Dict[str, str]]
     batch_size: int
     every_n_steps: Optional[int]
+    seed_eval: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -245,6 +248,11 @@ class ScoringSettings:
     weighting: WeightingSettings
     clipping: ClipSettings
     batching: BatchingSettings
+    info_seed_lambda: float = 0.0
+    info_seed_temperature: float = 0.1
+    info_seed_loss_type: str = "infonce"
+    info_seed_pooling: str = "mean"
+    info_seed_alpha_entropy: float = 0.0
 
 
 @dataclass
@@ -342,6 +350,7 @@ __all__ = [
     "RuntimeHandles",
     "Sampler",
     "ScoringSettings",
+    "SeedAugmentationConfig",
     "Tensor",
     "TrainingLoopContext",
 ]

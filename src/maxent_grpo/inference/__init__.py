@@ -14,26 +14,37 @@
 
 """Inference helpers for evaluating trained models.
 
-This package currently exposes utilities to run the math_500 benchmark across
-multiple checkpoints produced by the GRPO or MaxEnt-GRPO training flows. See
-``maxent_grpo.pipelines.inference.math500`` for the detailed implementation
+This package exposes utilities to run common math benchmarks (e.g., math_500,
+AIME24/25, AMC, Minerva) across checkpoints produced by the GRPO or
+MaxEnt-GRPO training flows. See
+``maxent_grpo.pipelines.inference.inference`` for the detailed implementation
 and public data classes. This module re-exports the pipeline helpers for
 backwards compatibility so existing imports such as
-``from maxent_grpo.inference import run_math500_inference`` continue to work.
+``from maxent_grpo.inference import run_math_inference`` continue to work.
+Use the CLI alias ``maxent-grpo-math-eval`` (or ``maxent-grpo-inference command=math-eval``)
+to run multi-benchmark evaluations from the console.
 """
 
-from maxent_grpo.pipelines.inference.math500 import (
+from maxent_grpo.pipelines.inference.inference import (
+    INFERENCE_DATASETS,
     InferenceModelSpec,
-    Math500EvalConfig,
-    Math500InferenceResult,
-    run_math500_inference,
-    load_math500_dataset,
+    MathEvalConfig,
+    MathInferenceResult,
+    list_inference_datasets,
+    run_math_eval_inference,
+    run_math_inference,
+    resolve_inference_dataset,
+    load_math_dataset,
 )
 
 __all__ = [
+    "INFERENCE_DATASETS",
     "InferenceModelSpec",
-    "Math500EvalConfig",
-    "Math500InferenceResult",
-    "run_math500_inference",
-    "load_math500_dataset",
+    "MathEvalConfig",
+    "MathInferenceResult",
+    "list_inference_datasets",
+    "run_math_eval_inference",
+    "resolve_inference_dataset",
+    "run_math_inference",
+    "load_math_dataset",
 ]

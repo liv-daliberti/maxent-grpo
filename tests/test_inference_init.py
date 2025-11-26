@@ -21,27 +21,37 @@ from __future__ import annotations
 import importlib
 
 import maxent_grpo.inference as inference
-import maxent_grpo.pipelines.inference.math500 as math500
+import maxent_grpo.pipelines.inference.inference as math_inference
 
 
-def test_inference_reexports_math500_symbols():
-    assert inference.InferenceModelSpec is math500.InferenceModelSpec
-    assert inference.Math500EvalConfig is math500.Math500EvalConfig
-    assert inference.Math500InferenceResult is math500.Math500InferenceResult
-    assert inference.run_math500_inference is math500.run_math500_inference
-    assert inference.load_math500_dataset is math500.load_math500_dataset
+def test_inference_reexports_math_inference_symbols():
+    assert inference.InferenceModelSpec is math_inference.InferenceModelSpec
+    assert inference.MathEvalConfig is math_inference.MathEvalConfig
+    assert inference.MathInferenceResult is math_inference.MathInferenceResult
+    assert inference.run_math_inference is math_inference.run_math_inference
+    assert inference.run_math_eval_inference is math_inference.run_math_eval_inference
+    assert inference.load_math_dataset is math_inference.load_math_dataset
+    assert inference.INFERENCE_DATASETS is math_inference.INFERENCE_DATASETS
+    assert inference.list_inference_datasets is math_inference.list_inference_datasets
+    assert (
+        inference.resolve_inference_dataset is math_inference.resolve_inference_dataset
+    )
     for name in (
+        "INFERENCE_DATASETS",
         "InferenceModelSpec",
-        "Math500EvalConfig",
-        "Math500InferenceResult",
-        "run_math500_inference",
-        "load_math500_dataset",
+        "MathEvalConfig",
+        "MathInferenceResult",
+        "list_inference_datasets",
+        "run_math_eval_inference",
+        "resolve_inference_dataset",
+        "run_math_inference",
+        "load_math_dataset",
     ):
         assert name in inference.__all__
 
 
-def test_load_math500_dataset_delegates(monkeypatch):
-    cfg = math500.Math500EvalConfig(
+def test_load_math_dataset_delegates(monkeypatch):
+    cfg = math_inference.MathEvalConfig(
         dataset_name="demo", dataset_config=None, split="test"
     )
     sentinel = object()
@@ -52,7 +62,7 @@ def test_load_math500_dataset_delegates(monkeypatch):
         assert split == "test"
         return sentinel
 
-    monkeypatch.setattr(math500, "load_dataset", _fake_load_dataset)
-    # reload inference to ensure it still points to math500.load_math500_dataset
+    monkeypatch.setattr(math_inference, "load_dataset", _fake_load_dataset)
+    # reload inference to ensure it still points to math_inference.load_math_dataset
     importlib.reload(inference)
-    assert inference.load_math500_dataset(cfg) is sentinel
+    assert inference.load_math_dataset(cfg) is sentinel

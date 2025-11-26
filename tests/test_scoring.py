@@ -475,7 +475,7 @@ def test_chunked_sequence_logprobs_computes_sums():
     input_ids = torch.tensor([[1, 2], [3, 4]])
     attn = torch.ones_like(input_ids)
     labels = torch.tensor([[1, -100], [2, 3]])
-    logp, tok_counts = _chunked_sequence_logprobs(
+    logp, tok_counts, _hidden = _chunked_sequence_logprobs(
         _LinearModel(),
         input_ids=input_ids,
         attention_mask=attn,
@@ -579,7 +579,8 @@ def test_score_model_outputs_and_reference_from_model(monkeypatch):
     ref_stats = finalize_reference_stats(*ref_tensors)
     cur_logp = score_model_outputs(_Model(), sb, batching_cfg, runtime)
     assert cur_logp is not None
-    scores = build_sequence_scores(cur_logp, ref_stats)
+    cur_logp_sum = cur_logp[0] if isinstance(cur_logp, tuple) else cur_logp
+    scores = build_sequence_scores(cur_logp_sum, ref_stats)
     assert scores.cur_logp_sum.shape == ref_stats.ref_logp_sum_raw.shape
 
 

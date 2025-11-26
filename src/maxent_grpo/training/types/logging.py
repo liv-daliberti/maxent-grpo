@@ -248,6 +248,10 @@ class RewardLoggingView:
     advantage_std: float
     advantage_count: int
     per_reward: Dict[str, RewardComponentStats]
+    q_entropy_mean: float
+    q_entropy_std: float
+    q_entropy_min: float
+    q_entropy_max: float
 
 
 @dataclass
@@ -261,6 +265,7 @@ class TrainingMetricsPayload:
     length_stats: "LengthStats"
     config: LoggingConfigView
     scalars: TrainingScalarStats
+    seed_metrics: Optional[Dict[str, float]] = None
 
 
 __all__ = [

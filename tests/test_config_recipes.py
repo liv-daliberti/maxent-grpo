@@ -21,13 +21,13 @@ def test_split_recipe_payload_routes_fields():
         "unknown": 123,  # defaults to training
     }
     model_cls = SimpleNamespace(__dataclass_fields__={"model_name": None})
-    script_kwargs, training_kwargs, model_kwargs = recipes._split_recipe_payload(
-        payload, model_cls
+    script_kwargs, training_kwargs, model_kwargs, other_kwargs = (
+        recipes._split_recipe_payload(payload, model_cls)
     )
     assert script_kwargs["dataset_name"] == "ds"
     assert training_kwargs["maxent_tau_min"] == 0.2
     assert model_kwargs["model_name"] == "m"
-    assert training_kwargs["unknown"] == 123
+    assert other_kwargs["unknown"] == 123
 
 
 def test_load_grpo_recipe_with_yaml(monkeypatch, tmp_path):

@@ -203,6 +203,9 @@ def _install_torch_stub() -> None:
     if existing is not None and getattr(existing, "tensor", None):
         return
 
+    _rng = np.random.default_rng(0)
+    _grad_tensors = []
+
     def _resolve_dtype(dtype: object | None):
         if dtype is None:
             return None
@@ -234,11 +237,15 @@ def _install_torch_stub() -> None:
     class TorchTensor:
         __array_priority__ = 100
 
-        def __init__(self, data, dtype=None):
+        def __init__(self, data, dtype=None, requires_grad: bool = False):
             np_dtype = _resolve_dtype(dtype)
             self._arr = np.array(data, dtype=np_dtype)
             self.dtype = dtype or self._arr.dtype
             self.device = "cpu"
+            self.requires_grad = bool(requires_grad)
+            self.grad = None
+            if self.requires_grad:
+                _grad_tensors.append(self)
 
         def __array__(self, dtype=None):
             if dtype is None:
@@ -250,6 +257,9 @@ def _install_torch_stub() -> None:
 
         def __len__(self):
             return len(self._arr)
+
+        def any(self):
+            return bool(np.any(self._arr))
 
         @property
         def shape(self):
@@ -299,6 +309,9 @@ def _install_torch_stub() -> None:
                 return TorchTensor(np.squeeze(self._arr), dtype=self.dtype)
             return TorchTensor(np.squeeze(self._arr, axis=dim), dtype=self.dtype)
 
+        def type_as(self, other):
+            return TorchTensor(self._arr, dtype=getattr(other, "dtype", self.dtype))
+
         def sum(self, dim: int | None = None):
             return TorchTensor(self._arr.sum(axis=dim))
 
@@ -320,6 +333,11 @@ def _install_torch_stub() -> None:
                 return TorchTensor(self._arr.max())
             return TorchTensor(self._arr.max(axis=dim))
 
+        def argmax(self, dim: int | None = None):
+            if dim is None:
+                return TorchTensor(np.array(self._arr.argmax()), dtype=torch_int64)
+            return TorchTensor(self._arr.argmax(axis=dim), dtype=torch_int64)
+
         def gather(self, dim: int, index):
             gathered = np.take_along_axis(self._arr, _as_array(index), axis=dim)
             return TorchTensor(gathered, dtype=self.dtype)
@@ -333,6 +351,9 @@ def _install_torch_stub() -> None:
         def __mul__(self, other):
             return TorchTensor(self._arr * _as_array(other), dtype=self.dtype)
 
+        def __rmul__(self, other):
+            return self.__mul__(other)
+
         def __add__(self, other):
             return TorchTensor(self._arr + _as_array(other), dtype=self.dtype)
 
@@ -344,6 +365,9 @@ def _install_torch_stub() -> None:
 
         def __ne__(self, other):
             return TorchTensor(self._arr != _as_array(other), dtype=torch_bool)
+
+        def ne(self, other):
+            return self.__ne__(other)
 
         def __truediv__(self, other):
             return TorchTensor(self._arr / _as_array(other), dtype=self.dtype)
@@ -360,6 +384,15 @@ def _install_torch_stub() -> None:
         def __invert__(self):
             return TorchTensor(np.logical_not(self._arr), dtype=self.dtype)
 
+        def __neg__(self):
+            return TorchTensor(-self._arr, dtype=self.dtype)
+
+        def __lt__(self, other):
+            return TorchTensor(self._arr < _as_array(other), dtype=torch_bool)
+
+        def __gt__(self, other):
+            return TorchTensor(self._arr > _as_array(other), dtype=torch_bool)
+
         def __repr__(self):
             return f"TorchTensor(shape={self._arr.shape}, dtype={self.dtype})"
 
@@ -374,6 +407,18 @@ def _install_torch_stub() -> None:
         def __float__(self):
             return float(self._arr)
 
+        def backward(self, *args, **kwargs):
+            grad_val = np.ones_like(self._arr, dtype=_resolve_dtype(self.dtype))
+            self.grad = TorchTensor(grad_val, dtype=self.dtype)
+            for t in _grad_tensors:
+                t.grad = TorchTensor(
+                    np.ones_like(t._arr, dtype=_resolve_dtype(t.dtype)),
+                    dtype=t.dtype,
+                )
+
+        def exp(self):
+            return TorchTensor(np.exp(self._arr), dtype=self.dtype)
+
     class TorchDevice:
         def __init__(self, device: str = "cpu"):
             self.type = str(device).split(":")[0]
@@ -382,8 +427,13 @@ def _install_torch_stub() -> None:
         def __repr__(self):
             return f"torch.device('{self.type}')"
 
-    def tensor(data, dtype=None, device=None):
-        return TorchTensor(data, dtype=dtype)
+    def manual_seed(seed: int):
+        nonlocal _rng
+        _rng = np.random.default_rng(int(seed))
+        return None
+
+    def tensor(data, dtype=None, device=None, requires_grad: bool = False):
+        return TorchTensor(data, dtype=dtype, requires_grad=requires_grad)
 
     def arange(end, dtype=None):
         return TorchTensor(np.arange(end, dtype=_resolve_dtype(dtype)), dtype=dtype)
@@ -420,8 +470,26 @@ def _install_torch_stub() -> None:
             dtype=getattr(tensors[0], "dtype", None),
         )
 
+    def stack(tensors, dim=0):
+        arrays = [_as_array(t) for t in tensors]
+        return TorchTensor(
+            np.stack(arrays, axis=dim),
+            dtype=getattr(tensors[0], "dtype", None) if tensors else None,
+        )
+
     def all_fn(x):
         return bool(np.all(_as_array(x)))
+
+    def randn(*shape, requires_grad: bool = False):
+        return TorchTensor(
+            _rng.standard_normal(size=shape),
+            dtype=torch_float32,
+            requires_grad=requires_grad,
+        )
+
+    def unique(x):
+        arr = _as_array(x)
+        return TorchTensor(np.unique(arr), dtype=getattr(x, "dtype", None))
 
     def log_softmax(logits, dim=-1):
         arr = _as_array(logits)
@@ -430,15 +498,55 @@ def _install_torch_stub() -> None:
         probs = exps / np.maximum(exps.sum(axis=dim, keepdims=True), 1e-12)
         return TorchTensor(np.log(probs + 1e-12), dtype=getattr(logits, "dtype", None))
 
+    def cross_entropy(logits, targets):
+        log_probs = log_softmax(logits, dim=1)
+        arr = _as_array(log_probs)
+        idx = _as_array(targets).astype(int)
+        gathered = arr[np.arange(len(idx)), idx]
+        return TorchTensor(-(gathered).mean(), dtype=torch_float32)
+
     @contextmanager
     def no_grad():
         yield
+
+    def pdist(tensor, p=2):
+        arr = _as_array(tensor)
+        if arr.ndim != 2:
+            return TorchTensor(np.array([]), dtype=torch_float32)
+        diff = arr[:, None, :] - arr[None, :, :]
+        dist = np.power(np.abs(diff), p).sum(axis=-1) ** (1.0 / p)
+        idx = np.triu_indices(dist.shape[0], k=1)
+        flat = dist[idx]
+        return TorchTensor(flat, dtype=torch_float32)
+
+    def cosine_similarity(x1, x2, dim=-1):
+        a = _as_array(x1)
+        b = _as_array(x2)
+        numerator = (a * b).sum(axis=dim)
+        denom = np.linalg.norm(a, axis=dim) * np.linalg.norm(b, axis=dim)
+        denom = np.maximum(denom, 1e-12)
+        return TorchTensor(numerator / denom, dtype=torch_float32)
+
+    def softmax(logits, dim=-1):
+        arr = _as_array(logits)
+        shifted = arr - np.max(arr, axis=dim, keepdims=True)
+        exps = np.exp(shifted)
+        denom = np.sum(exps, axis=dim, keepdims=True)
+        return TorchTensor(exps / np.maximum(denom, 1e-12), dtype=torch_float32)
 
     torch_mod = sys.modules.get("torch")
     if torch_mod is None:
         torch_mod = ModuleType("torch")
     if not getattr(torch_mod, "__spec__", None):
         torch_mod.__spec__ = SimpleNamespace(name="torch", origin="<maxent-torch-stub>")
+    spec = getattr(torch_mod, "__spec__", None)
+    if spec is not None and getattr(spec, "submodule_search_locations", None) is None:
+        try:
+            spec.submodule_search_locations = []
+        except Exception:
+            pass
+    if not hasattr(torch_mod, "__path__"):
+        torch_mod.__path__ = []
     torch_mod.__file__ = getattr(torch_mod, "__file__", "<maxent-torch-stub>")
     torch_mod.Tensor = TorchTensor
     torch_mod.float32 = torch_float32
@@ -447,13 +555,18 @@ def _install_torch_stub() -> None:
     torch_mod.bool = torch_bool
     torch_mod.tensor = tensor
     torch_mod.arange = arange
+    torch_mod.manual_seed = manual_seed
+    torch_mod.randn = randn
+    torch_mod.stack = stack
     torch_mod.ones_like = ones_like
     torch_mod.zeros = zeros
     torch_mod.zeros_like = zeros_like
     torch_mod.full = full
     torch_mod.empty = empty
     torch_mod.cat = cat
+    torch_mod.unique = unique
     torch_mod.all = all_fn
+    torch_mod.softmax = softmax
     torch_mod.device = TorchDevice
     if not hasattr(torch_mod, "autocast"):
         torch_mod.autocast = lambda **_kwargs: nullcontext()
@@ -464,14 +577,84 @@ def _install_torch_stub() -> None:
     torch_mod.distributed = SimpleNamespace(
         is_available=lambda: False, is_initialized=lambda: False
     )
+    dynamo_mod = sys.modules.get("torch._dynamo")
+    if dynamo_mod is None:
+        dynamo_mod = ModuleType("torch._dynamo")
 
-    nn_functional = SimpleNamespace(log_softmax=log_softmax)
+        def _identity_wrapper(fn=None, *_args, **_kwargs):
+            if fn is None:
+
+                def _decorator(actual_fn):
+                    return actual_fn
+
+                return _decorator
+            return fn
+
+        dynamo_mod.optimize = _identity_wrapper
+        dynamo_mod.reset = lambda: None
+        dynamo_mod.allow_in_graph = _identity_wrapper
+        dynamo_mod.disallow_in_graph = _identity_wrapper
+        dynamo_mod.mark_static_address = lambda *_args, **_kwargs: None
+        sys.modules["torch._dynamo"] = dynamo_mod
+    torch_mod._dynamo = dynamo_mod
+
+    nn_functional = SimpleNamespace(
+        log_softmax=log_softmax,
+        cross_entropy=cross_entropy,
+        pdist=pdist,
+        cosine_similarity=cosine_similarity,
+        softmax=softmax,
+    )
     nn_functional.__spec__ = SimpleNamespace(
         name="torch.nn.functional", origin="<maxent-torch-stub>"
     )
+
+    class _Module:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __call__(self, *args, **kwargs):
+            forward_fn = getattr(self, "forward", None)
+            if callable(forward_fn):
+                return forward_fn(*args, **kwargs)
+            return None
+
+    class _Linear:
+        def __init__(self, in_features, out_features, bias=True):
+            self.in_features = in_features
+            self.out_features = out_features
+            self.weight = TorchTensor(
+                _rng.standard_normal((out_features, in_features)), dtype=torch_float32
+            )
+            self.bias = (
+                TorchTensor(np.zeros(out_features), dtype=torch_float32)
+                if bias
+                else None
+            )
+
+        def __call__(self, x):
+            arr = _as_array(x)
+            out = arr @ self.weight._arr.T
+            if self.bias is not None:
+                out = out + self.bias._arr
+            return TorchTensor(out, dtype=torch_float32)
+
+    class _Embedding:
+        def __init__(self, num_embeddings, embedding_dim):
+            self.weight = TorchTensor(
+                _rng.standard_normal((num_embeddings, embedding_dim)),
+                dtype=torch_float32,
+            )
+
+        def __call__(self, input_ids):
+            idx = _as_array(input_ids).astype(int)
+            return TorchTensor(self.weight._arr[idx], dtype=torch_float32)
+
     nn_mod = SimpleNamespace(
-        Module=type("Module", (), {}),
+        Module=_Module,
         Parameter=type("Parameter", (), {}),
+        Linear=_Linear,
+        Embedding=_Embedding,
         functional=nn_functional,
     )
     nn_mod.__spec__ = SimpleNamespace(name="torch.nn", origin="<maxent-torch-stub>")

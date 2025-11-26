@@ -23,11 +23,65 @@ from typing import List, Optional, Tuple
 
 from maxent_grpo.training.runtime import require_torch
 from ..types import ReferenceLogprobs, RewardComputation
-from .types import WeightStats, WeightingSettings
+from .types import (
+    WeightStats,
+    WeightingSettings,
+    WeightNormalizationSettings,
+    QDistributionSettings,
+    TauSchedule,
+    KlControllerSettings,
+)
+from maxent_grpo.config import GRPOConfig
 
 torch = require_torch("training")
 CONTROLLER_STATE_FILENAME = "controller_state.json"
 _TAU_ENTROPY_EMA_DECAY = 0.9
+
+
+def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
+    """Convenience builder for WeightingSettings from GRPOConfig."""
+
+    tau = float(getattr(cfg, "maxent_tau", 0.0))
+    beta = float(
+        getattr(cfg, "init_kl_coeff", None)
+        or getattr(cfg, "init_kl_coef", None)
+        or getattr(cfg, "beta", 0.0)
+    )
+    normalization = WeightingSettings.__annotations__.get(
+        "normalization", WeightNormalizationSettings
+    )
+    normalization = WeightNormalizationSettings(
+        denom=max(tau + beta, 1.0),
+        len_norm_ref=bool(getattr(cfg, "maxent_length_normalize_ref", True)),
+    )
+    q_dist = WeightingSettings.__annotations__.get(
+        "q_distribution", QDistributionSettings
+    )
+    q_dist = QDistributionSettings(
+        temperature=float(getattr(cfg, "maxent_q_temperature", 1.0)),
+        epsilon=float(getattr(cfg, "maxent_q_epsilon", 1e-6)),
+    )
+    tau_sched = TauSchedule(
+        target_entropy=getattr(cfg, "maxent_target_weight_entropy", None),
+        learning_rate=float(getattr(cfg, "maxent_tau_lr", 0.0)),
+        minimum_value=float(getattr(cfg, "maxent_tau_min", 0.0)),
+        maximum_value=float(getattr(cfg, "maxent_tau_max", 0.0)),
+        warmup_steps=int(getattr(cfg, "maxent_tau_warmup_steps", -1)),
+    )
+    kl_ctl = KlControllerSettings(
+        target=float(getattr(cfg, "kl_target", 0.0)),
+        horizon=int(getattr(cfg, "kl_horizon", 0)),
+        step_size=float(getattr(cfg, "kl_ctl_step_size", 0.0)),
+    )
+    return WeightingSettings(
+        tau=tau,
+        beta=beta,
+        normalization=normalization,
+        q_distribution=q_dist,
+        tau_schedule=tau_sched,
+        kl_controller=kl_ctl,
+        train_grpo_objective=bool(getattr(cfg, "train_grpo_objective", True)),
+    )
 
 
 def split_reference_logprobs(
@@ -145,17 +199,20 @@ def weight_vector_from_q(
         safe_denom = tau + beta  # fallback if denom was stale
     if safe_denom <= 0.0:
         safe_denom = 1e-8
-    q_tensor = torch.tensor(q_values, dtype=torch.float32).clamp(min=1e-12)
-    log_weight_terms = torch.log(q_tensor) / safe_denom
-    if include_reference_term and beta > 0.0:
-        ref_tensor = torch.tensor(logp_values, dtype=torch.float32)
-        log_weight_terms = log_weight_terms + (beta / safe_denom) * ref_tensor
-    probs = torch.softmax(log_weight_terms, dim=0)
-    if normalize_by_tokens and token_counts:
-        tok_tensor = torch.tensor(token_counts, dtype=torch.float32).clamp(min=1.0)
-        probs = probs * tok_tensor
-        probs = probs / probs.sum()
-    return probs.tolist()
+    try:
+        q_tensor = torch.tensor(q_values, dtype=torch.float32).clamp(min=1e-12)
+        log_weight_terms = torch.log(q_tensor) / safe_denom
+        if include_reference_term and beta > 0.0:
+            ref_tensor = torch.tensor(logp_values, dtype=torch.float32)
+            log_weight_terms = log_weight_terms + (beta / safe_denom) * ref_tensor
+        probs = torch.softmax(log_weight_terms, dim=0)
+        if normalize_by_tokens and token_counts:
+            tok_tensor = torch.tensor(token_counts, dtype=torch.float32).clamp(min=1.0)
+            probs = probs * tok_tensor
+            probs = probs / probs.sum()
+        return probs.tolist()
+    except (TypeError, ValueError, RuntimeError):
+        return [1.0 / len(logp_values)] * len(logp_values)
 
 
 def maybe_update_beta(weighting_cfg: WeightingSettings, measured_kl: float) -> None:
@@ -341,10 +398,20 @@ def collect_weight_entropy(
     for weight_group in weights_grouped:
         if not weight_group:
             continue
-        weight_tensor = torch.tensor(weight_group, dtype=torch.float32)
-        entropy_vals.append(
-            float((-weight_tensor.clamp(min=1e-12).log() * weight_tensor).sum().item())
-        )
+        try:
+            weight_tensor = torch.tensor(weight_group, dtype=torch.float32)
+            entropy_vals.append(
+                float(
+                    (-weight_tensor.clamp(min=1e-12).log() * weight_tensor).sum().item()
+                )
+            )
+        except (TypeError, ValueError, RuntimeError):
+            p = [max(w, 1e-12) for w in weight_group]
+            total = sum(p)
+            if total <= 0:
+                continue
+            p = [w / total for w in p]
+            entropy_vals.append(float(-sum(val * math.log(val) for val in p)))
         baseline = 1.0 / float(len(weight_group))
         entropy_advantage_samples.extend([val - baseline for val in weight_group])
     if not entropy_vals:

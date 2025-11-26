@@ -19,7 +19,7 @@ from __future__ import annotations
 import importlib as _importlib
 import sys
 from types import SimpleNamespace
-from typing import Any, List
+from typing import Any, List, TYPE_CHECKING
 
 from .types import (
     RuntimeHandles,
@@ -60,27 +60,41 @@ from .types import (
     StepResources,
     TrainingLoopState,
 )
+from .context_builder import (
+    apply_info_seed,
+    apply_info_seed_to_generation,
+    apply_info_seed_to_scoring,
+    apply_info_seed_to_evaluation,
+)
 from .weighting.loss import SequenceScores
+
+# Lazy-only declarations to satisfy ``__all__`` without eager imports.
+run_training_loop: Any
+PreparedBatch: Any
 
 # Provide a lightweight wandb stub only when the real package is unavailable, to
 # avoid breaking optional imports during tests.
-_wandb_spec = _importlib.util.find_spec("wandb")
 _wandb_stub = sys.modules.get("wandb")
-if _wandb_spec is None and (
+if (
     _wandb_stub is None
     or getattr(getattr(_wandb_stub, "errors", None), "Error", None) is None
 ):
     sys.modules["wandb"] = SimpleNamespace(errors=SimpleNamespace(Error=RuntimeError))
 
-# Ensure importlib.reload sees this module even if callers or tests drop the entry.
-if not hasattr(_importlib, "_maxent_orig_reload"):
-    _importlib._maxent_orig_reload = _importlib.reload
+# Preserve the original reload to avoid breaking downstream tooling. Store the
+# first-seen implementation so subsequent reloads do not accidentally wrap the
+# stubbed version and recurse.
+if not hasattr(_importlib, "_original_reload"):
+    setattr(_importlib, "_original_reload", _importlib.reload)
+_ORIG_IMPORTLIB_RELOAD = getattr(_importlib, "_original_reload")
 
 
 def _safe_reload(module):
-    name = module.__spec__.name if getattr(module, "__spec__", None) else module.__name__
+    name = (
+        module.__spec__.name if getattr(module, "__spec__", None) else module.__name__
+    )
     sys.modules[name] = module
-    return _importlib._maxent_orig_reload(module)
+    return _ORIG_IMPORTLIB_RELOAD(module)
 
 
 _importlib.reload = _safe_reload
@@ -132,7 +146,20 @@ __all__: List[str] = [
     "generation",
     "cli",
     "scoring",
+    "apply_info_seed",
+    "apply_info_seed_to_generation",
+    "apply_info_seed_to_scoring",
+    "apply_info_seed_to_evaluation",
 ]
+
+# Try eager resolution when dependencies are available; fall back to lazy __getattr__.
+try:
+    from maxent_grpo.training.loop import run_training_loop  # type: ignore
+    from maxent_grpo.training.pipeline import PreparedBatch  # type: ignore
+except ImportError:
+    pass
+# Provide legacy ``training`` package alias for tests/older import paths.
+sys.modules.setdefault("training", sys.modules.get(__name__))
 
 
 def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
@@ -152,21 +179,23 @@ def __getattr__(name: str) -> Any:
     """Lazily import heavy submodules to avoid circular imports during startup."""
 
     if name in {"pipeline", "state", "generation", "cli", "scoring"}:
-        import importlib
-
-        module = importlib.import_module(f"maxent_grpo.training.{name}")
+        module = _importlib.import_module(f"maxent_grpo.training.{name}")
         globals()[name] = module
         return module
     if name in {"run_training_loop", "PreparedBatch"}:
-        import importlib
-
         module_name = (
             "maxent_grpo.training.loop"
             if name == "run_training_loop"
             else "maxent_grpo.training.pipeline"
         )
-        module = importlib.import_module(module_name)
+        module = _importlib.import_module(module_name)
         value = getattr(module, name)
         globals()[name] = value
         return value
     raise AttributeError(f"module {__name__!s} has no attribute {name!s}")
+
+
+# Statically expose lazy-resolved attributes for linters/IDE while deferring imports.
+if TYPE_CHECKING:
+    from maxent_grpo.training.loop import run_training_loop as run_training_loop
+    from maxent_grpo.training.pipeline import PreparedBatch as PreparedBatch

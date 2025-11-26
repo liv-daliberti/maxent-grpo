@@ -29,6 +29,7 @@ from dataclasses import fields
 from typing import Any, Dict, Tuple, Type
 
 from .grpo import GRPOConfig, GRPOScriptArguments
+from .defaults import INFO_SEED_DEFAULTS
 
 try:  # pragma: no cover - optional dependency
     from omegaconf import OmegaConf
@@ -53,12 +54,12 @@ def _dataclass_field_names(cls: Type[Any]) -> set[str]:
 def _split_recipe_payload(
     payload: Dict[str, Any],
     model_cls: Type[Any],
-) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
-    """Split a recipe dict into script/training/model sections.
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """Split a recipe dict into script/training/model/other sections.
 
     :param payload: Raw mapping loaded from a recipe file.
     :param model_cls: Model config class used to route model kwargs.
-    :returns: Tuple of script, training, and model kwargs dictionaries.
+    :returns: Tuple of script, training, model, and passthrough kwargs dictionaries.
     """
 
     script_fields = _dataclass_field_names(GRPOScriptArguments)
@@ -68,6 +69,7 @@ def _split_recipe_payload(
     script_kwargs: Dict[str, Any] = {}
     training_kwargs: Dict[str, Any] = {}
     model_kwargs: Dict[str, Any] = {}
+    other_kwargs: Dict[str, Any] = {}
     for key, value in payload.items():
         if key in script_fields:
             script_kwargs[key] = value
@@ -76,8 +78,8 @@ def _split_recipe_payload(
         elif not model_fields or key in model_fields:
             model_kwargs[key] = value
         else:
-            training_kwargs[key] = value
-    return script_kwargs, training_kwargs, model_kwargs
+            other_kwargs[key] = value
+    return script_kwargs, training_kwargs, model_kwargs, other_kwargs
 
 
 def load_grpo_recipe(
@@ -109,9 +111,14 @@ def load_grpo_recipe(
     # Persist the resolved path so downstream logging can surface it consistently.
     os.environ.setdefault("GRPO_RECIPE_USED", resolved_path)
 
-    script_kwargs, training_kwargs, model_kwargs = _split_recipe_payload(
-        cfg, model_config_cls
-    )
+    (
+        script_kwargs,
+        training_kwargs,
+        model_kwargs,
+        other_kwargs,
+    ) = _split_recipe_payload(cfg, model_config_cls)
+    for key, default_val in INFO_SEED_DEFAULTS.items():
+        training_kwargs.setdefault(key, other_kwargs.get(key, default_val))
     script_args = GRPOScriptArguments(**script_kwargs)
     training_args = GRPOConfig(**training_kwargs)
     model_args = model_config_cls(**model_kwargs)

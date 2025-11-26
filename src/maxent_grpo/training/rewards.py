@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from maxent_grpo.generation import (
     AggregatedGenerationState,
@@ -30,6 +30,7 @@ from maxent_grpo.generation import (
 )
 from maxent_grpo.training.runtime import require_torch
 from .run_helpers import _group_softmax
+from maxent_grpo.rewards.basic import get_reward_funcs
 from .types import (
     AdvantageStats,
     GenerationBatch,
@@ -162,6 +163,7 @@ def prepare_generation_batch(
     generation_stats: Dict[str, int],
     expected_generations: int,
     max_retry_rounds: Optional[int] = None,
+    seed_augmentation: Optional[Any] = None,
 ) -> Optional[GenerationBatch]:
     """Generate completions and retry prompts that initially returned nothing.
 
@@ -175,6 +177,8 @@ def prepare_generation_batch(
     :type expected_generations: int
     :param max_retry_rounds: Optional cap overriding the default retry limit.
     :type max_retry_rounds: int | None
+    :param seed_augmentation: Optional InfoSeed augmentation config.
+    :type seed_augmentation: Any | None
     :returns: Populated :class:`~training.types.GenerationBatch` or ``None`` if
         generation fails after retries.
     :rtype: :class:`~training.types.GenerationBatch` | None
@@ -183,6 +187,17 @@ def prepare_generation_batch(
     answers: List[str] = batch["answer"]
     if not prompts:
         return None
+    seed_cfg = None
+    if seed_augmentation is not None:
+        if hasattr(seed_augmentation, "is_active"):
+            if seed_augmentation.is_active():
+                seed_cfg = seed_augmentation
+        elif (
+            getattr(seed_augmentation, "enabled", False)
+            and getattr(seed_augmentation, "num_seeds", 0) > 0
+            and getattr(seed_augmentation, "completions_per_seed", 0) > 0
+        ):
+            seed_cfg = seed_augmentation
     LOG.debug(
         "Starting completion generation | prompts=%d | expected_generations=%d",
         len(prompts),
@@ -239,11 +254,94 @@ def prepare_generation_batch(
     if partial_count > 0:
         generation_stats.setdefault("partial_prompts", 0)
         generation_stats["partial_prompts"] += partial_count
+    completion_info: List[List[dict]] = [
+        [{"seed_id": None, "is_seed_aug": False} for _ in group]
+        for group in aggregated_comps
+    ]
+    # Optionally augment with seed-tagged completions to support InfoSeed-GRPO.
+    if seed_cfg:
+        try:
+            import random as _random
+        except ImportError:  # pragma: no cover - fallback in minimal envs
+            _random = None
+        rng = _random.Random() if _random is not None else None
+        seed_prompts: List[str] = []
+        seed_answers: List[str] = []
+        seed_parent: List[int] = []
+        seed_ids: List[int] = []
+        num_seeds = max(int(getattr(seed_cfg, "num_seeds", 0)), 0)
+        comps_per_seed = max(int(getattr(seed_cfg, "completions_per_seed", 0)), 0)
+        template = getattr(seed_cfg, "template", "\n[seed={seed}]") or "{prompt}"
+        for idx, prompt_text in enumerate(prompts):
+            for _ in range(num_seeds):
+                seed_id = (
+                    rng.randint(1, num_seeds)
+                    if rng is not None and num_seeds > 0
+                    else 1
+                )
+                if "{prompt}" in template:
+                    seed_prompt = template.format(prompt=prompt_text, seed=seed_id)
+                else:
+                    seed_prompt = f"{prompt_text}{template.format(seed=seed_id)}"
+                seed_prompts.append(seed_prompt)
+                seed_answers.append(answers[idx])
+                seed_parent.append(idx)
+                seed_ids.append(seed_id)
+        if seed_prompts and comps_per_seed > 0:
+            seed_result = generator(seed_prompts, comps_per_seed)
+            if isinstance(seed_result, GenerationBatch):
+                seed_grouped = seed_result.grouped_completions
+                seed_meta = getattr(seed_result, "grouped_ref_meta", None)
+            elif hasattr(seed_result, "grouped_completions"):
+                seed_grouped = getattr(seed_result, "grouped_completions")
+                seed_meta = getattr(seed_result, "grouped_ref_meta", None)
+            elif seed_result is None:
+                seed_grouped, seed_meta = [], None
+            else:
+                seed_grouped, seed_meta = seed_result
+            seed_grouped, seed_meta = seed_generation_groups(
+                len(seed_prompts),
+                seed_grouped,
+                seed_meta,
+            )
+            seed_grouped, seed_meta, _ = truncate_to_expected_counts(
+                seed_grouped, seed_meta, comps_per_seed
+            )
+            if len(seed_grouped) < len(seed_prompts):
+                seed_grouped.extend([[]] * (len(seed_prompts) - len(seed_grouped)))
+            if seed_meta is not None and len(seed_meta) < len(seed_prompts):
+                seed_meta.extend(
+                    [[] for _ in range(len(seed_prompts) - len(seed_meta))]
+                )
+            for idx, comps in enumerate(seed_grouped):
+                parent_idx = seed_parent[idx] if idx < len(seed_parent) else None
+                if parent_idx is None or parent_idx >= len(aggregated_comps):
+                    continue
+                if not comps:
+                    continue
+                seed_tag = seed_ids[idx] if idx < len(seed_ids) else None
+                aggregated_comps[parent_idx].extend(comps)
+                while completion_info and len(completion_info) <= parent_idx:
+                    completion_info.append([])
+                completion_info[parent_idx].extend(
+                    [
+                        {"seed_id": seed_tag, "is_seed_aug": True}
+                        for _ in range(len(comps))
+                    ]
+                )
+                if seed_meta is not None:
+                    while aggregated_meta is None or len(aggregated_meta) <= parent_idx:
+                        aggregated_meta = aggregated_meta or []
+                        aggregated_meta.append([])
+                    meta_group = seed_meta[idx] if idx < len(seed_meta) else None
+                    meta_group = meta_group or [None] * len(comps)
+                    aggregated_meta[parent_idx].extend(meta_group[: len(comps)])
     return GenerationBatch(
         prompts=prompts,
         answers=answers,
         grouped_completions=aggregated_comps,
         grouped_ref_meta=aggregated_meta,
+        grouped_completion_info=completion_info,
     )
 
 
@@ -315,6 +413,7 @@ def compute_reward_statistics(
     pair_batch, flat_answers = _flatten_prompt_completions(gen_batch)
     if not pair_batch.completions:
         return None
+    completion_metadata = getattr(pair_batch, "metadata", None)
     total_utils, per_reward_values = compute_reward_totals(
         reward_spec,
         pair_batch.completions,
@@ -339,4 +438,22 @@ def compute_reward_statistics(
         q_distribution=q_distribution,
         moments=moments,
         ref_logprob_meta=flat_ref_meta,
+        completion_metadata=completion_metadata,
     )
+
+
+def load_reward_functions(script_args: Any, tokenizer: Any) -> Tuple[list, list]:
+    """Resolve reward functions/weights from script_args."""
+
+    reward_funcs = get_reward_funcs(script_args, None, tokenizer)
+    reward_weights = getattr(script_args, "reward_weights", None)
+    if reward_weights is None or len(reward_weights) != len(reward_funcs):
+        reward_weights = [1.0] * len(reward_funcs)
+    return reward_funcs, reward_weights
+
+
+__all__ = [
+    "compute_reward_statistics",
+    "prepare_generation_batch",
+    "load_reward_functions",
+]

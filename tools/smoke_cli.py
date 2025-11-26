@@ -18,7 +18,7 @@ Lightweight CLI smoke check for training and inference entrypoints.
 This script stubs heavy dependencies (torch/transformers/trl) and exercises:
 - GRPO training entrypoint (maxent_grpo.grpo -> pipelines.training.baseline)
 - MaxEnt-GRPO entrypoint (maxent_grpo.maxent_grpo)
-- math_500 inference runner (maxent_grpo.pipelines.inference.math500)
+- math inference runner (maxent_grpo.pipelines.inference.inference)
 
 The goal is to catch wiring/packaging breakage without downloading models or
 datasets. It should run quickly on CPU-only CI runners.
@@ -333,14 +333,14 @@ def _run_generation_smoke() -> None:
 
 
 def _run_inference_smoke() -> None:
-    """Run math_500 inference with a stub runner."""
-    import maxent_grpo.pipelines.inference.math500 as math500
+    """Run math inference with a stub runner."""
+    import maxent_grpo.pipelines.inference.inference as math_inf
 
     stub_data = [
         {"problem": "1+1", "answer": "2"},
         {"problem": "2+2", "answer": "4"},
     ]
-    math500.load_math500_dataset = lambda cfg: list(stub_data)
+    math_inf.load_math_dataset = lambda cfg: list(stub_data)
 
     class _Runner:
         def __init__(self, spec):
@@ -353,11 +353,11 @@ def _run_inference_smoke() -> None:
             return None
 
     specs = [
-        math500.InferenceModelSpec(
+        math_inf.InferenceModelSpec(
             model_name_or_path="stub/model", style="grpo", label="smoke"
         )
     ]
-    results = math500.run_math500_inference(
+    results = math_inf.run_math_inference(
         specs, runner_factory=lambda spec: _Runner(spec)
     )
     assert results and results[0].total == len(stub_data)

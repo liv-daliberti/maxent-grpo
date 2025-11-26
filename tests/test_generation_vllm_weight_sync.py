@@ -315,7 +315,9 @@ def test_sync_model_params_fsdp_branch_uses_visited(monkeypatch):
 
     # Inject fsdp class and ensure visited set is honored.
     helper._fsdp_cls = _FSDP
-    model = _FSDP([("seen", SimpleNamespace(data=1)), ("fresh", SimpleNamespace(data=2))])
+    model = _FSDP(
+        [("seen", SimpleNamespace(data=1)), ("fresh", SimpleNamespace(data=2))]
+    )
     monkeypatch.setattr(
         helper, "_push_param_to_vllm", lambda name, param: pushed.append(name)
     )

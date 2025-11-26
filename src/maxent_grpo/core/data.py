@@ -89,6 +89,11 @@ def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
     :raises ValueError: If neither a dataset name nor mixture is supplied, or
         when a mixture resolves to zero loaded datasets.
     """
+    inline_ds = getattr(args, "dataset", None)
+    if inline_ds is not None:
+        if isinstance(inline_ds, dict):
+            return inline_ds  # type: ignore[return-value]
+        return {"train": inline_ds}  # type: ignore[return-value]
     if args.dataset_name and not args.dataset_mixture:
         logger.info("Loading dataset: %s", args.dataset_name)
         return cast(

@@ -21,7 +21,7 @@ helpers now live in :mod:`maxent_grpo.training.runtime.logging`.
 
 from __future__ import annotations
 
-from typing import Any, List, Tuple, TYPE_CHECKING
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
 from maxent_grpo.training.runtime import (
     PROMPT_CHAR_LIMIT,
@@ -41,6 +41,7 @@ from maxent_grpo.training.runtime import (
     GenerationPenaltyPassthroughMixin,
     GenerationSamplingConfig,
     MaxEntOptions,
+    SeedAugmentationConfig,
     VLLMClientConfig,
     get_trl_prepare_deepspeed,
     require_accelerator,
@@ -55,8 +56,17 @@ if TYPE_CHECKING:  # pragma: no cover - type hints only
 else:  # pragma: no cover - runtime fallback
     Tensor = Any
 
+
 # Backwards compatibility for legacy imports that referenced the private alias.
-_truncate_prompt = truncate_prompt
+def _truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
+    # Keep the shared warning state in sync with the runtime.prompts module.
+    try:
+        from maxent_grpo.training.runtime import prompts as _prompts_mod
+
+        _prompts_mod._TRUNC_STATE = _TRUNC_STATE  # pylint: disable=protected-access
+    except (ImportError, AttributeError):
+        pass
+    return truncate_prompt(prompt, char_limit)
 
 
 def _group_softmax(
@@ -75,10 +85,27 @@ def _group_softmax(
             "Install it via `pip install torch`."
         ),
     )
-    value_tensor = torch_module.tensor(values, dtype=torch_module.float32)
+    value_tensor = torch_module.tensor(
+        values, dtype=getattr(torch_module, "float32", None)
+    )
     value_tensor = value_tensor / max(temperature, 1e-8)
     value_tensor = value_tensor - value_tensor.max()
-    probs = torch_module.softmax(value_tensor, dim=0)
+    softmax_fn = getattr(torch_module, "softmax", None)
+    if not callable(softmax_fn):
+        try:
+            import numpy as _np
+
+            arr = _np.array(values, dtype=float)
+            arr = arr / max(temperature, 1e-8)
+            arr = arr - arr.max()
+            exps = _np.exp(arr)
+            denom = exps.sum() if exps.size else 1.0
+            probs_arr = exps / denom
+            probs = torch_module.tensor(probs_arr.tolist(), dtype=torch_module.float32)
+        except (ImportError, TypeError, ValueError, OverflowError):
+            probs = torch_module.full((len(values),), 1.0 / max(len(values), 1))
+    else:
+        probs = softmax_fn(value_tensor, dim=0)
     probs = probs * (1.0 - eps * len(values)) + eps
     probs = probs / probs.sum()
     return probs.tolist()
@@ -130,6 +157,7 @@ __all__ = [
     "GenerationPenaltyConfig",
     "GenerationPenaltyPassthroughMixin",
     "MaxEntOptions",
+    "SeedAugmentationConfig",
     "VLLMClientConfig",
     "PROMPT_CHAR_LIMIT",
     "_TRUNC_STATE",
@@ -153,5 +181,4 @@ __all__ = [
     "_report_to_contains",
     "_prompt_char_limit_from_tokens",
     "_build_torch_stub",
-    "_truncate_prompt",
 ]

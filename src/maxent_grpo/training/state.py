@@ -226,21 +226,44 @@ def maybe_checkpoint(
 
 
 def check_stop_condition(
-    schedule: OptimizationSchedule, state: "TrainingLoopState"
+    schedule: OptimizationSchedule, loop_state: "TrainingLoopState"
 ) -> None:
     """Set stop flag when the configured number of steps is reached.
 
     :param schedule: Optimization schedule describing ``total_training_steps``.
     :type schedule: training.types.OptimizationSchedule
-    :param state: Mutable training loop state whose ``stop_training`` flag
+    :param loop_state: Mutable training loop state whose ``stop_training`` flag
         should be updated when the threshold is crossed.
-    :type state: training.loop.TrainingLoopState
+    :type loop_state: training.loop.TrainingLoopState
     """
     if (
         schedule.total_training_steps > 0
-        and state.global_step >= schedule.total_training_steps
+        and loop_state.global_step >= schedule.total_training_steps
     ):
-        state.stop_training = True
+        loop_state.stop_training = True
+
+
+def build_training_state(training_args) -> LoggingHandles:
+    """Construct minimal logging handles for the custom runner."""
+
+    class _NoopWriter:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((step, metrics))
+
+        def flush(self):
+            return
+
+    writer = _NoopWriter()
+    return LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy=getattr(training_args, "save_strategy", "no"),
+        save_steps=int(getattr(training_args, "save_steps", 0) or 0),
+        wandb_run=None,
+    )
 
 
 __all__ = [
@@ -249,6 +272,7 @@ __all__ = [
     "maybe_load_accelerator_state",
     "maybe_checkpoint",
     "check_stop_condition",
+    "build_training_state",
 ]
 
 # Preserve a self-reference so monkeypatch paths like ``training.state.state`` resolve

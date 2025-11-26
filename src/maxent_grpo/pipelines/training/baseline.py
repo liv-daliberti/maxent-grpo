@@ -84,7 +84,7 @@ tf_logging = SimpleNamespace(
 if "trainer_utils" not in locals():
     try:
         import transformers.trainer_utils as trainer_utils  # type: ignore
-    except Exception:
+    except (ImportError, AttributeError):
         trainer_utils = ModuleType("transformers.trainer_utils")
         trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
 
@@ -106,7 +106,7 @@ def _force_vllm_dtype(training_args: GRPOConfig):
     try:
         import trl.trainer.grpo_trainer as grpo_mod
         from vllm import LLM as _LLM
-    except Exception:
+    except (ImportError, AttributeError, RuntimeError):
         # If vLLM/TRL isn't available, fall through without patching.
         yield
         return
@@ -131,6 +131,7 @@ def _force_vllm_dtype(training_args: GRPOConfig):
     sys.modules.setdefault("transformers", transformers)
     sys.modules.setdefault("transformers.trainer_utils", trainer_utils)
     sys.modules.setdefault("transformers.utils", utils_module)
+
 
 if not hasattr(transformers, "set_seed"):
     transformers.set_seed = lambda *_args, **_kwargs: None

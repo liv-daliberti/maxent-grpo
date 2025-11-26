@@ -49,6 +49,24 @@ class VLLMClientConfig:
 
 
 @dataclass
+class SeedAugmentationConfig:
+    """Optional seed augmentation used by InfoSeed-style objectives."""
+
+    enabled: bool = False
+    num_seeds: int = 0
+    completions_per_seed: int = 1
+    template: str = "\n[seed={seed}]"
+    include_original: bool = True
+
+    def is_active(self) -> bool:
+        """Return ``True`` when augmentation should run."""
+
+        return (
+            bool(self.enabled) and self.num_seeds > 0 and self.completions_per_seed > 0
+        )
+
+
+@dataclass
 class GenerationSamplingConfig:
     """Shared completion sampling knobs (HF + vLLM)."""
 
@@ -150,4 +168,9 @@ class GenerationSamplingConfig:
         return bool(getattr(self.vllm, "sync_weights", False))
 
 
-__all__ = ["GenerationSamplingConfig", "MaxEntOptions", "VLLMClientConfig"]
+__all__ = [
+    "GenerationSamplingConfig",
+    "MaxEntOptions",
+    "SeedAugmentationConfig",
+    "VLLMClientConfig",
+]

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         EvaluationSettings,
         GenerationFn,
         PreTrainedModel,
+        PreTrainedTokenizer,
         Tensor,
         torch,
     )
@@ -37,6 +38,7 @@ else:  # pragma: no cover - runtime imports are deferred in generation.helpers
     EvaluationSettings = Any
     GenerationFn = Any
     PreTrainedModel = Any
+    PreTrainedTokenizer = Any
     Tensor = Any
     logging_stub = None
     try:
@@ -64,6 +66,7 @@ class GenerationBatch:
     answers: List[str]
     grouped_completions: List[List[str]]
     grouped_ref_meta: Optional[List[List[Optional[Any]]]]
+    grouped_completion_info: Optional[List[List[Dict[str, Any]]]] = None
 
 
 @dataclass
@@ -72,6 +75,7 @@ class PromptCompletionBatch:
 
     prompts: List[str]
     completions: List[str]
+    metadata: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
@@ -109,6 +113,7 @@ class RewardComputation:
     q_distribution: QDistribution
     moments: RewardMoments
     ref_logprob_meta: Optional[List[Optional[Any]]] = None
+    completion_metadata: Optional[List[Dict[str, Any]]] = None
 
     @property
     def advantage_samples(self) -> List[float]:
@@ -190,6 +195,10 @@ class LossOutputs:
     scalars: LossScalarBundle
     log_ratio_train: Tensor
     denom_tok_tensor: Tensor
+    seed_loss: Optional[torch.Tensor] = None
+    seed_loss_scalar: Optional[float] = None
+    info_seed_entropy_term: Optional[torch.Tensor] = None
+    info_seed_entropy_scalar: Optional[float] = None
 
     @property
     def total_loss_scalar(self) -> float:
@@ -236,6 +245,18 @@ class LossOutputs:
         """
         return self.scalars.weighted_kl_loss
 
+    @property
+    def seed_loss_value(self) -> Optional[float]:
+        """Convenience accessor for the auxiliary seed loss scalar."""
+
+        return self.seed_loss_scalar
+
+    @property
+    def info_seed_entropy_value(self) -> Optional[float]:
+        """Convenience accessor for the MI-style entropy term scalar."""
+
+        return self.info_seed_entropy_scalar
+
 
 @dataclass
 class LengthStats:
@@ -261,6 +282,8 @@ class BatchDiagnostics:
     clip_ratio_high_mean: float
     clip_ratio_high_max: float
     clip_ratio_region_mean: float
+    kl_per_token_by_len_bucket: Dict[str, float]
+    kl_token_count_by_len_bucket: Dict[str, float]
 
 
 @dataclass
@@ -270,6 +293,7 @@ class ValidationContext:
     evaluation: "EvaluationSettings"
     accelerator: "Accelerator"
     model: "PreTrainedModel"
+    tokenizer: "PreTrainedTokenizer"
     reward: RewardSpec
     generator: "GenerationFn"
     logging: "LoggingHandles"

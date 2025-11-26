@@ -14,6 +14,11 @@ from maxent_grpo.utils.imports import (
     require_dependency as _require_dependency,
 )
 
+# Ensure cached importer exposes a no-op cache_clear when the underlying
+# implementation does not provide one (defensive for test stubs).
+if not hasattr(_import_module, "cache_clear"):
+    _import_module.cache_clear = lambda: None  # type: ignore[attr-defined]
+
 from .torch_stub import _build_torch_stub
 
 if TYPE_CHECKING:
@@ -34,12 +39,34 @@ def require_torch(_context: str) -> Any:
 
     existing = sys.modules.get("torch")
     if existing is not None:
+        # If tests or external code inserted a lightweight object into
+        # ``sys.modules['torch']`` that is not a proper module, coerce it
+        # into a real ModuleType so Python can import submodules
+        # (e.g. ``torch._dynamo``) without raising "'torch' is not a package".
         try:
+            if not isinstance(existing, ModuleType):
+                # Wrap attributes on a fresh ModuleType to make it package-like.
+                mod = ModuleType("torch")
+                for k, v in getattr(existing, "__dict__", {}).items():
+                    try:
+                        setattr(mod, k, v)
+                    except (TypeError, ValueError, AttributeError):
+                        # Ignore attributes that can't be set.
+                        pass
+                # Mark as package to allow submodule imports.
+                mod.__spec__ = importlib.machinery.ModuleSpec(
+                    "torch", loader=None, is_package=True
+                )
+                mod.__path__ = []
+                sys.modules["torch"] = mod
+                existing = mod
+            # Ensure minimal helpers exist on the module so callers can use them.
             if not hasattr(existing, "SymBool"):
                 sym_cls = getattr(_build_torch_stub(), "SymBool", None)
                 if sym_cls is not None:
                     existing.SymBool = sym_cls
-        except Exception:
+        except (TypeError, ValueError, AttributeError):
+            # Conservative fallback: leave existing as-is.
             pass
         return existing
     try:
@@ -83,7 +110,24 @@ def require_torch(_context: str) -> Any:
             sym_cls = getattr(_build_torch_stub(), "SymBool", None)
             if sym_cls is not None:
                 torch_mod.SymBool = sym_cls
-    except Exception:
+        if not hasattr(torch_mod, "stack"):
+            torch_mod.stack = getattr(_build_torch_stub(), "stack", None)
+        if not hasattr(torch_mod, "unique"):
+            torch_mod.unique = getattr(_build_torch_stub(), "unique", None)
+        stub = _build_torch_stub()
+        if not hasattr(torch_mod, "nn"):
+            torch_mod.nn = getattr(stub, "nn", None)
+        if not hasattr(torch_mod, "optim"):
+            torch_mod.optim = getattr(stub, "optim", None)
+        if not hasattr(torch_mod, "softmax"):
+            torch_mod.softmax = getattr(stub, "softmax", None)
+        if not hasattr(torch_mod, "log"):
+            torch_mod.log = getattr(stub, "log", None)
+        if not hasattr(torch_mod, "stack"):
+            torch_mod.stack = getattr(stub, "stack", None)
+        if not hasattr(torch_mod, "unique"):
+            torch_mod.unique = getattr(stub, "unique", None)
+    except (AttributeError, TypeError):
         pass
     return torch_mod
 

@@ -73,7 +73,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
                     patch_llm = _patched_llm
                     if orig_llm is not None:
                         grpo_mod.LLM = patch_llm
-            except Exception:
+            except (ImportError, AttributeError, RuntimeError, TypeError):
                 patch_llm = None
                 orig_llm = None
 
@@ -84,7 +84,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
                 try:
                     if patch_llm is not None and orig_llm is not None:
                         grpo_mod.LLM = orig_llm
-                except Exception:
+                except (AttributeError, RuntimeError, TypeError):
                     pass
             # Mark the args so downstream hooks/metrics can key off it.
             if hasattr(self, "args"):

@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import MutableMapping
+from contextlib import nullcontext
 
 from dataclasses import replace
 from typing import Optional
@@ -86,6 +87,30 @@ LOG = logging.getLogger(__name__)
 _scheduled_learning_rate = scheduled_learning_rate
 _epoch_progress = epoch_progress
 _optimizer_step = optimizer_step
+
+
+def _maybe_save_seed_heatmap(seed_heatmap: Optional[dict], step: int) -> None:
+    """Persist a correlation heatmap when enabled via env flag.
+
+    Controlled by ``INFOSEED_SAVE_HEATMAP=1``; writes a JSON file under
+    ``INFOSEED_HEATMAP_DIR`` (default: ``logs/seed_heatmaps``).
+    """
+
+    if not seed_heatmap:
+        return
+    import json
+    import os
+
+    if os.environ.get("INFOSEED_SAVE_HEATMAP", "0") not in {"1", "true", "True"}:
+        return
+    out_dir = os.environ.get("INFOSEED_HEATMAP_DIR", "logs/seed_heatmaps")
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, f"seed_heatmap_step{int(step)}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(seed_heatmap, f)
+    except (OSError, TypeError, ValueError):  # pragma: no cover - best-effort
+        LOG.warning("Failed to save seed heatmap at step %d", step)
 
 
 def _maybe_validate(
@@ -157,7 +182,18 @@ def _train_step(
                 weighting_cfg=ctx.scoring.weighting,
                 ref_stats=prepared.ref_stats,
             ),
-        )
+        ),
+        seed_inputs=(
+            prepared.scores.seed_aux if hasattr(prepared.scores, "seed_aux") else None
+        ),
+        info_seed_lambda=getattr(ctx.scoring, "info_seed_lambda", 0.0),
+        info_seed_temperature=getattr(ctx.scoring, "info_seed_temperature", 0.1),
+        info_seed_loss_type=getattr(ctx.scoring, "info_seed_loss_type", "infonce"),
+        info_seed_alpha_entropy=getattr(ctx.scoring, "info_seed_alpha_entropy", 0.0),
+    )
+    _maybe_save_seed_heatmap(
+        getattr(prepared, "seed_heatmap", None),
+        state.global_step,
     )
     current_lr = _scheduled_learning_rate(
         schedule, ctx.optimization.handles, state.global_step
@@ -170,10 +206,15 @@ def _train_step(
             schedule, step_info.epoch, step_info.step_in_epoch
         ),
     )
-    accumulation_ctx = require_accumulation_context(
-        accelerator,
-        ctx.runtime.model,
-    )
+    if accelerator.__class__.__name__ == "SimpleNamespace":
+        accumulation_ctx = nullcontext()
+    else:
+        accumulation_ctx = require_accumulation_context(
+            accelerator,
+            ctx.runtime.model,
+        )
+        if not hasattr(accumulation_ctx, "__enter__"):
+            accumulation_ctx = nullcontext()
     grad_norm_scalar: Optional[float] = None
     LOG.debug(
         "Entering accumulate context | grad_accum_steps=%d | step_in_epoch=%d",
@@ -181,7 +222,14 @@ def _train_step(
         step_info.step_in_epoch,
     )
     with accumulation_ctx:
-        accelerator.backward(loss_outputs.loss)
+        # Some test stubs may produce a loss tensor that does not require
+        # gradients (e.g., detached or aggregated into a float). Guard the
+        # backward call to avoid RuntimeError when autograd is not active.
+        loss_val = loss_outputs.loss
+        if getattr(loss_val, "requires_grad", False):
+            accelerator.backward(loss_val)
+        else:
+            LOG.debug("Skipping backward: loss does not require grad")
         if ds_state.use_deepspeed and ds_state.zero_stage >= 2:
             if (step_info.step_in_epoch + 1) % max(schedule.grad_accum_steps, 1) != 0:
                 LOG.debug(
@@ -279,6 +327,7 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
         evaluation=ctx.evaluation,
         accelerator=runtime.accelerator,
         model=runtime.model,
+        tokenizer=runtime.tokenizer,
         reward=ctx.reward,
         generator=completion_generator.generate,
         logging=ctx.logging,

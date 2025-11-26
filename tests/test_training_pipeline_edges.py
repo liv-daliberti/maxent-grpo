@@ -312,7 +312,9 @@ def test_prepare_training_batch_uses_retry_fallback(monkeypatch):
 
     called = {}
 
-    def _fake_prepare(batch, generator, stats, num_generations, max_retry_rounds):
+    def _fake_prepare(
+        batch, generator, stats, num_generations, max_retry_rounds, **_kwargs
+    ):
         called["retry"] = max_retry_rounds
         return SimpleNamespace(grouped_completions=[["a"]], answers=[""])
 
@@ -321,7 +323,9 @@ def test_prepare_training_batch_uses_retry_fallback(monkeypatch):
         pipeline,
         "compute_reward_statistics",
         lambda *_args, **_kwargs: SimpleNamespace(
-            ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+            ref_logprob_meta=None,
+            pairs=SimpleNamespace(completions=["a"]),
+            completion_metadata=[],
         ),
     )
     monkeypatch.setattr(
@@ -520,6 +524,7 @@ def test_prepare_training_batch_full_flow(monkeypatch):
         "compute_reward_statistics",
         lambda *_args, **_kwargs: reward_comp,
     )
+    reward_comp.completion_metadata = []
     monkeypatch.setattr(
         pipeline, "_collect_batch_stats", lambda *_args, **_kwargs: stats_obj
     )
@@ -527,7 +532,11 @@ def test_prepare_training_batch_full_flow(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "build_sequence_scores",
-        lambda cur_logp_sum, ref_stats: {"cur": cur_logp_sum, "ref": ref_stats},
+        lambda cur_logp_sum, ref_stats, pooled_hidden=None: {
+            "cur": cur_logp_sum,
+            "ref": ref_stats,
+            "hidden": pooled_hidden,
+        },
     )
 
     prepared = prepare_training_batch(

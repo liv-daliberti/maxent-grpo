@@ -61,7 +61,9 @@ def test_ensure_vllm_client_handles_init_signatures(monkeypatch):
 
 def test_maybe_sync_weights_respects_step_and_stats(monkeypatch):
     ctx = SimpleNamespace(
-        accelerator=SimpleNamespace(unwrap_model=lambda m: m, wait_for_everyone=lambda: None),
+        accelerator=SimpleNamespace(
+            unwrap_model=lambda m: m, wait_for_everyone=lambda: None
+        ),
         vllm_url="http://host",
         vllm_sync_weights=True,
         generation_stats={"current_step": 1},
@@ -72,7 +74,9 @@ def test_maybe_sync_weights_respects_step_and_stats(monkeypatch):
     mixin._last_vllm_synced_step = 0
     # Guard against NameError in maybe_sync_weights when inspecting the callable.
     monkeypatch.setattr(
-        __import__("maxent_grpo.generation.vllm_weight_sync", fromlist=["SimpleNamespace"]),
+        __import__(
+            "maxent_grpo.generation.vllm_weight_sync", fromlist=["SimpleNamespace"]
+        ),
         "SimpleNamespace",
         SimpleNamespace,
     )

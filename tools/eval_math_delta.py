@@ -1,9 +1,9 @@
 """
-Compare math_500 accuracies between two models using the shared inference pipeline.
+Compare math accuracies between two models using the shared inference pipeline.
 
 Defaults to a stub runner + tiny built-in dataset so CI can exercise the wiring
 without network/model downloads. When `--runner transformers` is used, the
-standard TransformersPromptRunner from `pipelines.inference.math500` is used.
+standard TransformersPromptRunner from `pipelines.inference.inference` is used.
 """
 
 from __future__ import annotations
@@ -15,10 +15,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, List, Sequence
 
-from maxent_grpo.pipelines.inference.math500 import (
+from maxent_grpo.pipelines.inference.inference import (
     InferenceModelSpec,
-    Math500EvalConfig,
-    run_math500_inference,
+    MathEvalConfig,
+    run_math_inference,
 )
 
 
@@ -87,10 +87,10 @@ def evaluate_delta(
     candidate: InferenceModelSpec,
     *,
     dataset: Iterable[dict[str, Any]] | None,
-    eval_cfg: Math500EvalConfig,
+    eval_cfg: MathEvalConfig,
     runner: str = "stub",
 ) -> DeltaResult:
-    """Run math_500 inference for two specs and return the accuracy delta."""
+    """Run math inference for two specs and return the accuracy delta."""
 
     rows = list(dataset) if dataset is not None else _STUB_PROBLEMS
     examples = rows[: eval_cfg.limit] if eval_cfg.limit else rows
@@ -99,7 +99,7 @@ def evaluate_delta(
         if runner == "stub"
         else None
     )
-    results = run_math500_inference(
+    results = run_math_inference(
         [baseline, candidate],
         eval_cfg=eval_cfg,
         dataset=examples,
@@ -116,7 +116,7 @@ def evaluate_delta(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare math_500 accuracies between two models."
+        description="Compare math accuracies between two models."
     )
     parser.add_argument(
         "--baseline", required=True, help="Baseline model name or path."
@@ -145,7 +145,7 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     random.seed(args.seed)
-    cfg = Math500EvalConfig(limit=args.limit)
+    cfg = MathEvalConfig(limit=args.limit)
     dataset = _load_dataset(args.dataset, cfg.prompt_column, cfg.solution_column)
     specs = [
         InferenceModelSpec(model_name_or_path=args.baseline, label="baseline"),

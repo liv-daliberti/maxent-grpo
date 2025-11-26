@@ -16,18 +16,28 @@ limitations under the License.
 Inference pipelines for evaluating trained checkpoints.
 """
 
-from .math500 import (
+from .inference import (
+    INFERENCE_DATASETS,
     InferenceModelSpec,
-    Math500EvalConfig,
-    Math500InferenceResult,
-    load_math500_dataset,
-    run_math500_inference,
+    MathEvalConfig,
+    MathInferenceResult,
+    list_inference_datasets,
+    load_math_dataset,
+    run_math_eval_inference,
+    resolve_inference_dataset,
+    run_math_inference,
+    TransformersPromptRunner,
 )
 
 __all__ = [
+    "INFERENCE_DATASETS",
     "InferenceModelSpec",
-    "Math500EvalConfig",
-    "Math500InferenceResult",
-    "load_math500_dataset",
-    "run_math500_inference",
+    "MathEvalConfig",
+    "MathInferenceResult",
+    "list_inference_datasets",
+    "resolve_inference_dataset",
+    "run_math_eval_inference",
+    "run_math_inference",
+    "load_math_dataset",
+    "TransformersPromptRunner",
 ]

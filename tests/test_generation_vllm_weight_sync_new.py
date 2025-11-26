@@ -499,7 +499,14 @@ def test_sync_model_params_fsdp_branch_uses_existing_cls(monkeypatch):
 
     class _PresetFSDP:
         def named_children(self):
-            return [("child", SimpleNamespace(named_parameters=lambda: [("p", "v")], named_children=lambda: []))]
+            return [
+                (
+                    "child",
+                    SimpleNamespace(
+                        named_parameters=lambda: [("p", "v")], named_children=lambda: []
+                    ),
+                )
+            ]
 
         def named_parameters(self):
             return [("root", "r")]
@@ -592,12 +599,17 @@ def test_sync_model_params_handles_hasattr_exception_and_second_pass(monkeypatch
     helper._is_peft_model_safe = lambda _m: False  # type: ignore[assignment]
     helper._gather_factory = lambda _p: nullcontext()
     pushed: list[str] = []
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
     monkeypatch.setattr(helper, "_reset_vllm_cache", lambda: pushed.append("reset"))
 
     class _Child:
         def named_parameters(self):
-            return [("p", SimpleNamespace(data="child")), ("skip", SimpleNamespace(data="skip"))]
+            return [
+                ("p", SimpleNamespace(data="child")),
+                ("skip", SimpleNamespace(data="skip")),
+            ]
 
     class _Model:
         summon_full_params = staticmethod(lambda *_a, **_k: None)
@@ -640,7 +652,9 @@ def test_sync_model_params_walk_skips_none_and_repushes_root(monkeypatch):
     helper._is_peft_model_safe = lambda _m: False  # type: ignore[assignment]
     helper._gather_factory = lambda _p: nullcontext()
     pushed: list[str] = []
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
     monkeypatch.setattr(helper, "_reset_vllm_cache", lambda: pushed.append("reset"))
 
     class _Model:
@@ -674,7 +688,9 @@ def test_sync_model_params_sets_fsdp_cls_after_second_probe(monkeypatch):
     helper._is_peft_model_safe = lambda _m: False  # type: ignore[assignment]
     helper._gather_factory = lambda _p: nullcontext()
     pushed: list[str] = []
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
     monkeypatch.setattr(helper, "_reset_vllm_cache", lambda: pushed.append("reset"))
 
     class _Model:

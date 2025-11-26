@@ -68,13 +68,16 @@ class LocalGenerationMixin:
         """Tokenize prompts for local generation and track prompt lengths."""
         tokenizer = self.ctx.tokenizer
         if callable(tokenizer):
-            encoder_inputs = tokenizer(
-                expanded_prompts,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=self.ctx.max_prompt_len,
-            )
+            try:
+                encoder_inputs = tokenizer(
+                    expanded_prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=self.ctx.max_prompt_len,
+                )
+            except TypeError:
+                encoder_inputs = tokenizer(expanded_prompts)
             if hasattr(encoder_inputs, "to"):
                 encoder_inputs = encoder_inputs.to(self.ctx.device)
             prompt_lengths = (
@@ -195,7 +198,16 @@ class LocalGenerationMixin:
         outputs: List[str] = []
         for row, prompt_len in zip(sequences, prompt_lengths):
             completion_ids = row[int(prompt_len) :]
-            outputs.append(tokenizer.decode(completion_ids, skip_special_tokens=True))
+            try:
+                outputs.append(
+                    tokenizer.decode(completion_ids, skip_special_tokens=True)
+                )
+            except AttributeError:
+                # Minimal tokenizer fallback: stringify the ids.
+                try:
+                    outputs.append(" ".join(str(int(tok)) for tok in completion_ids))
+                except (TypeError, ValueError):
+                    outputs.append(str(completion_ids))
         return outputs
 
 

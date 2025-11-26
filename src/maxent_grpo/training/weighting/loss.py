@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from maxent_grpo.training.runtime import require_torch
 from ..types import (
@@ -32,6 +32,53 @@ from .types import WeightStats, WeightingSettings
 
 torch = require_torch("training_loss")
 Tensor = torch.Tensor
+_KL_LENGTH_BUCKETS: List[Tuple[int, Optional[int]]] = [
+    (0, 32),
+    (33, 64),
+    (65, 128),
+    (129, 256),
+    (257, None),
+]
+
+
+def _bucket_label(lower: int, upper: Optional[int]) -> str:
+    """Return a human-readable bucket label."""
+    return f"{lower}-{upper}" if upper is not None else f"{lower}+"
+
+
+def _bucketized_kl_per_token(
+    token_counts: Tensor, kl_values: Tensor
+) -> Tuple[Dict[str, float], Dict[str, float]]:
+    """Return per-token KL averaged within predefined length buckets.
+
+    Aggregates KL weighted by token counts to avoid short completions dominating
+    the average. Returns both mean KL per token and the total token counts for
+    each bucket so downstream logging can show support.
+    """
+    bucket_kl_sum: Dict[str, float] = {}
+    bucket_token_sum: Dict[str, float] = {}
+    token_cpu = token_counts.detach().float().cpu()
+    kl_cpu = kl_values.detach().float().cpu()
+    for tok, kl in zip(token_cpu, kl_cpu):
+        tok_val = float(max(tok.item(), 1.0))
+        kl_val = float(kl.item())
+        for lower, upper in _KL_LENGTH_BUCKETS:
+            if tok_val < lower:
+                continue
+            if upper is not None and tok_val > upper:
+                continue
+            label = _bucket_label(lower, upper)
+            bucket_kl_sum[label] = bucket_kl_sum.get(label, 0.0) + kl_val * tok_val
+            bucket_token_sum[label] = bucket_token_sum.get(label, 0.0) + tok_val
+            break
+        else:
+            label = _bucket_label(_KL_LENGTH_BUCKETS[-1][0], _KL_LENGTH_BUCKETS[-1][1])
+            bucket_kl_sum[label] = bucket_kl_sum.get(label, 0.0) + kl_val * tok_val
+            bucket_token_sum[label] = bucket_token_sum.get(label, 0.0) + tok_val
+    bucket_means: Dict[str, float] = {}
+    for label, tok_sum in bucket_token_sum.items():
+        bucket_means[label] = bucket_kl_sum.get(label, 0.0) / max(tok_sum, 1.0)
+    return bucket_means, bucket_token_sum
 
 
 @dataclass
@@ -42,6 +89,17 @@ class SequenceScores:
     behavior_logp_sum: Tensor
     log_ratio_train: Tensor
     denom_tok_tensor: Tensor
+    pooled_hidden: Optional[Tensor] = None
+
+
+@dataclass
+class SeedInfoInputs:
+    """Optional seed-level metadata and pooled representations."""
+
+    seed_ids: Tensor
+    pooled_hidden: Tensor
+    is_seed_aug: Optional[Tensor] = None
+    logits: Optional[Tensor] = None
 
 
 @dataclass
@@ -111,10 +169,15 @@ def build_loss_inputs(
         weight_stats.flat_weights,
         device=scores.cur_logp_sum.device,
         dtype=scores.cur_logp_sum.dtype,
-    ).view(-1)
+    )
+    if hasattr(weight_tensor, "view"):
+        weight_tensor = weight_tensor.view(-1)
     if (
         total_completions != scores.cur_logp_sum.numel()
-        or weight_tensor.numel() != total_completions
+        or getattr(
+            weight_tensor, "numel", lambda: len(getattr(weight_tensor, "data", []))
+        )()
+        != total_completions
     ):
         raise ValueError("Mismatch between weights and log-prob dimensions.")
     group_data = GroupLossData(
@@ -312,6 +375,9 @@ def _build_loss_outputs(
     total_loss: torch.Tensor,
     policy_loss_tensor: torch.Tensor,
     scalar_inputs: _LossScalarInputs,
+    *,
+    seed_loss: Optional[torch.Tensor] = None,
+    info_entropy_term: Optional[torch.Tensor] = None,
 ) -> LossOutputs:
     """Pack scalar values into a ``LossOutputs`` dataclass.
 
@@ -323,11 +389,21 @@ def _build_loss_outputs(
     :type policy_loss_tensor: torch.Tensor
     :param scalar_inputs: Scalar clip/KL contributions.
     :type scalar_inputs: _LossScalarInputs
+    :param seed_loss: Optional auxiliary seed loss tensor.
+    :type seed_loss: torch.Tensor | None
     :returns: Structured outputs consumed by the optimizer/metrics layer.
     :rtype: LossOutputs
     """
     loss_scalar = float(total_loss.detach().float().cpu())
     policy_scalar = float(policy_loss_tensor.detach().float().cpu())
+    seed_scalar = (
+        float(seed_loss.detach().float().cpu()) if seed_loss is not None else None
+    )
+    info_entropy_scalar = (
+        float(info_entropy_term.detach().float().cpu())
+        if info_entropy_term is not None
+        else None
+    )
     scalar_bundle = LossScalarBundle(
         total_loss=loss_scalar,
         policy_loss=policy_scalar,
@@ -340,6 +416,10 @@ def _build_loss_outputs(
         scalars=scalar_bundle,
         log_ratio_train=ratio_ctx.log_ratio_train,
         denom_tok_tensor=ratio_ctx.denom_tok_tensor,
+        seed_loss=seed_loss,
+        seed_loss_scalar=seed_scalar,
+        info_seed_entropy_term=info_entropy_term,
+        info_seed_entropy_scalar=info_entropy_scalar,
     )
 
 
@@ -421,7 +501,17 @@ def _clip_region_metrics(
 
 def _ratio_stats_with_ref(
     ratio_ctx: RatioContext,
-) -> Tuple[float, float, float, float, float, float, float]:
+) -> Tuple[
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    Dict[str, float],
+    Dict[str, float],
+]:
     """Return diagnostics when reference stats are available.
 
     :param ratio_ctx: Ratio context containing ref/current log-probs.
@@ -440,6 +530,9 @@ def _ratio_stats_with_ref(
     delta = (ref_logp_per_token - cur_logp_per_token).clamp(min=-60.0, max=60.0)
     ratio = delta.exp()
     kl_value = float((ratio - delta - 1.0).mean().detach().cpu().item())
+    kl_bucket_means, kl_bucket_token_counts = _bucketized_kl_per_token(
+        denom_tok_tensor, ratio - delta - 1.0
+    )
     log_ratio = (cur_logp_per_token - ref_logp_per_token).clamp(min=-60.0, max=60.0)
     clip_ratio, low_mean, low_min, high_mean, high_max, region_mean = (
         _clip_region_metrics(log_ratio, ratio_ctx.clip_cfg)
@@ -452,18 +545,28 @@ def _ratio_stats_with_ref(
         high_mean,
         high_max,
         region_mean,
+        kl_bucket_means,
+        kl_bucket_token_counts,
     )
 
 
-def _ratio_stats_without_ref() -> (
-    Tuple[float, float, float, float, float, float, float]
-):
+def _ratio_stats_without_ref() -> Tuple[
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    Dict[str, float],
+    Dict[str, float],
+]:
     """Default diagnostics when no reference stats exist.
 
     :returns: Zero-valued tuple used when reference stats are missing.
-    :rtype: tuple[float, float, float, float, float, float, float]
+    :rtype: tuple[float, float, float, float, float, float, float, dict, dict]
     """
-    return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, {}, {}
 
 
 def _ratio_diagnostics(ratio_ctx: RatioContext) -> BatchDiagnostics:
@@ -479,21 +582,71 @@ def _ratio_diagnostics(ratio_ctx: RatioContext) -> BatchDiagnostics:
         stats = _ratio_stats_with_ref(ratio_ctx)
     else:
         stats = _ratio_stats_without_ref()
-    kl_value = stats[0] if ratio_ctx.weighting_cfg.beta > 0.0 else None
+    (
+        kl_value,
+        clip_ratio,
+        low_mean,
+        low_min,
+        high_mean,
+        high_max,
+        region_mean,
+        kl_bucket_means,
+        kl_bucket_token_counts,
+    ) = stats
+    kl_value = kl_value if ratio_ctx.weighting_cfg.beta > 0.0 else None
     return BatchDiagnostics(
         kl_value=kl_value,
-        clip_ratio=stats[1],
-        clip_ratio_low_mean=stats[2],
-        clip_ratio_low_min=stats[3],
-        clip_ratio_high_mean=stats[4],
-        clip_ratio_high_max=stats[5],
-        clip_ratio_region_mean=stats[6],
+        clip_ratio=clip_ratio,
+        clip_ratio_low_mean=low_mean,
+        clip_ratio_low_min=low_min,
+        clip_ratio_high_mean=high_mean,
+        clip_ratio_high_max=high_max,
+        clip_ratio_region_mean=region_mean,
+        kl_per_token_by_len_bucket=kl_bucket_means,
+        kl_token_count_by_len_bucket=kl_bucket_token_counts,
     )
+
+
+def _contrastive_seed_loss(
+    seed_inputs: SeedInfoInputs,
+    temperature: float = 0.1,
+) -> Optional[torch.Tensor]:
+    """Compute a contrastive InfoNCE-style loss over seed IDs."""
+
+    if seed_inputs.pooled_hidden is None or seed_inputs.seed_ids is None:
+        return None
+    hidden = seed_inputs.pooled_hidden
+    seed_ids = seed_inputs.seed_ids
+    if hidden.numel() == 0 or seed_ids.numel() == 0:
+        return None
+    valid_mask = seed_ids >= 0
+    if not valid_mask.any():
+        return None
+    hidden = hidden[valid_mask]
+    seed_ids = seed_ids[valid_mask]
+    if hidden.size(0) < 2:
+        return None
+    hidden = torch.nn.functional.normalize(hidden, dim=1)
+    sim = torch.matmul(hidden, hidden.t()) / max(temperature, 1e-4)
+    sim.fill_diagonal_(float("-inf"))
+    pos_mask = seed_ids.unsqueeze(1).eq(seed_ids.unsqueeze(0))
+    pos_mask.fill_diagonal_(False)
+    if not pos_mask.any():
+        return None
+    log_probs = torch.nn.functional.log_softmax(sim, dim=1)
+    loss = -(log_probs[pos_mask]).mean()
+    return loss
 
 
 def evaluate_losses(
     group_data: GroupLossData,
     ratio_ctx: RatioContext,
+    *,
+    seed_inputs: Optional[SeedInfoInputs] = None,
+    info_seed_lambda: float = 0.0,
+    info_seed_temperature: float = 0.1,
+    info_seed_loss_type: str = "infonce",
+    info_seed_alpha_entropy: float = 0.0,
 ) -> Tuple[LossOutputs, BatchDiagnostics]:
     """Compute policy loss, clipping objectives, and diagnostics.
 
@@ -501,6 +654,12 @@ def evaluate_losses(
     :type group_data: GroupLossData
     :param ratio_ctx: Ratio context describing log-ratios and configuration.
     :type ratio_ctx: RatioContext
+    :param seed_inputs: Optional pooled representations and seed labels.
+    :type seed_inputs: SeedInfoInputs | None
+    :param info_seed_lambda: Scaling applied to the auxiliary seed loss.
+    :type info_seed_lambda: float
+    :param info_seed_temperature: Temperature for the contrastive seed loss.
+    :type info_seed_temperature: float
     :returns: Tuple containing ``LossOutputs`` and diagnostic statistics.
     :rtype: tuple[LossOutputs, BatchDiagnostics]
     """
@@ -510,6 +669,42 @@ def evaluate_losses(
     )
     kl_loss_tensor, kl_loss_scalar, weighted_kl_loss_scalar = _kl_terms(ratio_ctx)
     total_loss = policy_loss + ratio_ctx.weighting_cfg.beta * kl_loss_tensor
+    # Optional MI-style entropy term: alpha * H(orig) - H(seed_aug)
+    info_entropy_term = None
+    if info_seed_alpha_entropy != 0.0 and seed_inputs is not None:
+        weight_tensor = group_data.weight_tensor
+        is_seed_aug = getattr(seed_inputs, "is_seed_aug", None)
+        if is_seed_aug is not None:
+            seed_mask = is_seed_aug.bool()
+            if weight_tensor.numel() == seed_mask.numel():
+                orig_weights = weight_tensor[~seed_mask]
+                seed_weights = weight_tensor[seed_mask]
+                if orig_weights.numel() > 0:
+                    p = orig_weights / orig_weights.sum().clamp(min=1e-8)
+                    h_orig = -(p * torch.log(p + 1e-12)).sum()
+                else:
+                    h_orig = torch.tensor(0.0, device=weight_tensor.device)
+                if seed_weights.numel() > 0:
+                    p = seed_weights / seed_weights.sum().clamp(min=1e-8)
+                    h_seed = -(p * torch.log(p + 1e-12)).sum()
+                else:
+                    h_seed = torch.tensor(0.0, device=weight_tensor.device)
+                info_entropy_term = (
+                    info_seed_alpha_entropy * h_orig - info_seed_alpha_entropy * h_seed
+                )
+                total_loss = total_loss + info_entropy_term
+    seed_loss = None
+    if info_seed_lambda > 0.0 and seed_inputs is not None:
+        if info_seed_loss_type == "ce" and seed_inputs.logits is not None:
+            seed_loss = torch.nn.functional.cross_entropy(
+                seed_inputs.logits, seed_inputs.seed_ids
+            )
+        else:
+            seed_loss = _contrastive_seed_loss(
+                seed_inputs, temperature=info_seed_temperature
+            )
+        if seed_loss is not None:
+            total_loss = total_loss + info_seed_lambda * seed_loss
     scalar_inputs = _LossScalarInputs(
         clip_loss_scalar=clip_loss_scalar,
         kl_loss_scalar=kl_loss_scalar,
@@ -520,6 +715,8 @@ def evaluate_losses(
         total_loss,
         policy_loss,
         scalar_inputs,
+        seed_loss=seed_loss,
+        info_entropy_term=info_entropy_term,
     )
     diagnostics = _ratio_diagnostics(ratio_ctx)
     return loss_outputs, diagnostics
@@ -528,6 +725,7 @@ def evaluate_losses(
 __all__ = [
     "GroupLossData",
     "RatioContext",
+    "SeedInfoInputs",
     "SequenceScores",
     "build_loss_inputs",
     "evaluate_losses",

@@ -109,6 +109,10 @@ def test_training_metrics_payload_accepts_views():
         advantage_std=0.05,
         advantage_count=2,
         per_reward={"acc": RewardComponentStats(mean=1.0, std=0.0)},
+        q_entropy_mean=0.0,
+        q_entropy_std=0.0,
+        q_entropy_min=0.0,
+        q_entropy_max=0.0,
     )
     weight_stats = SimpleNamespace()  # WeightLoggingView placeholder
     payload = TrainingMetricsPayload(

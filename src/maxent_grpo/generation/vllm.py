@@ -7,8 +7,6 @@ import time as _time
 
 from maxent_grpo.patches.vllm import safe_generate as _safe_generate
 from maxent_grpo.training.runtime import require_torch
-from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT as _PROMPT_CHAR_LIMIT
-
 from .vllm_distributed import (
     VLLMDistributedMixin as _VLLMDistributedMixin,
     _gather_object_list as _imported_gather_object_list,
@@ -28,6 +26,8 @@ from .vllm_weight_sync import (
     _zero3_gather_factory as _imported_zero3_gather_factory,
 )
 
+PROMPT_CHAR_LIMIT = 2048
+
 torch = require_torch("generation_vllm")
 
 __all__ = ["VLLMGenerationHelper", "_VLLMGenerationState"]
@@ -43,7 +43,6 @@ _zero3_gather_factory = _imported_zero3_gather_factory
 VLLMRequestMixin = _VLLMRequestMixin
 VLLMWeightSyncMixin = _VLLMWeightSyncMixin
 VLLMDistributedMixin = _VLLMDistributedMixin
-PROMPT_CHAR_LIMIT = _PROMPT_CHAR_LIMIT
 nullcontext = _nullcontext
 safe_generate = _safe_generate
 time = _time

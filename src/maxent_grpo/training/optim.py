@@ -269,6 +269,27 @@ def require_accumulation_context(accelerator: Accelerator, model: Any) -> Any:
     )
 
 
+def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
+    """Construct a minimal optimizer/scheduler bundle for the custom runner."""
+
+    optimizer_cls = getattr(torch.optim, "AdamW", None)
+    if optimizer_cls is None:
+        raise ImportError("torch.optim.AdamW is required for optimization.")
+    lr = float(getattr(cfg, "learning_rate", 1e-5))
+    params = (
+        model.parameters()
+        if hasattr(model, "parameters") and callable(getattr(model, "parameters"))
+        else []
+    )
+    optimizer = optimizer_cls(params, lr=lr)
+    return OptimizerHandles(
+        optimizer=optimizer,
+        lr_scheduler=None,
+        base_optimizer=optimizer,
+        learning_rate=lr,
+    )
+
+
 __all__ = [
     "DeepspeedState",
     "apply_learning_rate",
@@ -280,4 +301,5 @@ __all__ = [
     "require_accumulation_context",
     "scheduled_learning_rate",
     "sync_gradients_enabled",
+    "build_optimization_handles",
 ]

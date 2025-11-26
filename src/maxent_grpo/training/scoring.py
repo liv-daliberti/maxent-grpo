@@ -67,7 +67,15 @@ def _refresh_torch() -> Any:
         torch_mod = stub
     # Patch missing attributes with a lightweight stub
     stub = _build_torch_stub()
-    for name in _REQUIRED_TORCH_ATTRS + ("long", "float32", "int64", "no_grad", "SymBool"):
+    for name in _REQUIRED_TORCH_ATTRS + (
+        "long",
+        "float32",
+        "int64",
+        "no_grad",
+        "SymBool",
+        "stack",
+        "unique",
+    ):
         if not hasattr(torch_mod, name) and hasattr(stub, name):
             setattr(torch_mod, name, getattr(stub, name))
     if not hasattr(torch_mod, "tensor"):
@@ -89,7 +97,27 @@ def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
     arr = getattr(value, "arr", None)
     if arr is None:
         arr = np.asarray(value)
-    return torch_mod.tensor(arr, dtype=getattr(torch_mod, "int64", None))
+    # Create a tensor without forwarding raw torch dtype objects into numpy.
+    # Prefer producing a tensor and calling `.long()` on it when possible to
+    # avoid passing `torch.int64` (which numpy can't interpret) as `dtype`.
+    tensor_fn = getattr(torch_mod, "tensor", None)
+    if callable(tensor_fn):
+        try:
+            t = tensor_fn(arr)
+            if hasattr(t, "long"):
+                try:
+                    return t.long()
+                except (TypeError, ValueError, RuntimeError):
+                    return t
+        except (TypeError, ValueError, RuntimeError):
+            pass
+    # Fallback: try resolving a numpy-compatible dtype and pass that through.
+    try:
+        resolved = _resolve_dtype(getattr(torch_mod, "int64", None))
+        return torch_mod.tensor(arr, dtype=resolved)
+    except (TypeError, ValueError, RuntimeError):
+        # Final fallback: coerce to int64 numpy and wrap.
+        return torch_mod.tensor(np.asarray(arr).astype(np.int64))
 
 
 def _size_hint(tensor_obj: Any, dim: int) -> int:
@@ -142,6 +170,12 @@ def _resolve_dtype(dtype: Any) -> Any:
     np_dtype = getattr(dtype, "np_dtype", None)
     if np_dtype is not None:
         return np_dtype
+    torch_name = getattr(dtype, "name", None)
+    if isinstance(torch_name, str) and torch_name.startswith("torch."):
+        try:
+            return np.dtype(torch_name.split(".", 1)[-1])
+        except (TypeError, ValueError):
+            return None
     try:
         return np.dtype(dtype)
     except (TypeError, ValueError):
@@ -181,38 +215,30 @@ def _autocast_context(accelerator: Any, device: torch.device) -> Any:
         if hasattr(accel_autocast, "__enter__"):
             return accel_autocast
         return nullcontext()
-    scoring_torch = globals().get("torch")
-    if getattr(scoring_torch, "autocast", None) is None:
-        return nullcontext()
-    explicit_torch = sys.modules.get("torch")
-    if explicit_torch is not None and getattr(explicit_torch, "autocast", None) is None:
-        return nullcontext()
-    test_scoring_torch = getattr(sys.modules.get("tests.test_scoring"), "torch", None)
-    test_extra_torch = getattr(
-        sys.modules.get("tests.test_scoring_autocast_additional"), "torch", None
-    )
-    torch_mod = None
-    for candidate in (
-        test_scoring_torch,
-        test_extra_torch,
-        scoring_torch if scoring_torch is not explicit_torch else None,
-        explicit_torch,
-        scoring_torch,
+    sys_torch = sys.modules.get("torch")
+    global_torch = globals().get("torch")
+    if (
+        global_torch is not None
+        and global_torch is not sys_torch
+        and hasattr(global_torch, "autocast")
     ):
-        if candidate is not None and callable(getattr(candidate, "autocast", None)):
-            torch_mod = candidate
-            break
-    autocast_fn = getattr(torch_mod, "autocast", None) if torch_mod is not None else None
+        torch_mod = global_torch
+    elif sys_torch is not None and getattr(sys_torch, "autocast", None) is None:
+        torch_mod = sys_torch
+    elif sys_torch is not None:
+        torch_mod = sys_torch
+    else:
+        torch_mod = global_torch
+    autocast_fn = (
+        getattr(torch_mod, "autocast", None) if torch_mod is not None else None
+    )
     if not callable(autocast_fn):
         return nullcontext()
     device_type = getattr(device, "type", None) or "cuda"
     try:
         return autocast_fn(device_type=device_type)
-    except Exception:
-        try:
-            return autocast_fn()
-        except Exception:
-            return nullcontext()
+    except (RuntimeError, TypeError, ValueError, NotImplementedError):
+        return nullcontext()
 
 
 @dataclass
@@ -296,14 +322,17 @@ def _tokenize_completions(
     :rtype: CompletionTensors
     """
     _refresh_torch()
-    completion_enc = tokenizer(
-        completion_batch,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=generation_cfg.max_completion_len,
-        add_special_tokens=False,
-    )
+    try:
+        completion_enc = tokenizer(
+            completion_batch,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=generation_cfg.max_completion_len,
+            add_special_tokens=False,
+        )
+    except TypeError:
+        completion_enc = tokenizer(completion_batch)
     torch_mod = sys.modules.get("torch", torch)
     ids = _maybe_long_tensor(completion_enc["input_ids"], torch_mod)
     mask = _maybe_long_tensor(completion_enc["attention_mask"], torch_mod)
@@ -432,31 +461,74 @@ def _chunked_sequence_logprobs(
     model: PreTrainedModel,
     *,
     input_ids: Tensor,
-    attention_mask: Tensor,  # unused in stub path; kept for signature parity
+    attention_mask: Tensor,
     labels: Tensor,
-    chunk_size: int,  # unused in stub path; kept for signature parity
-    gather_full_params: bool = False,  # unused in stub path; kept for signature parity
-) -> Tuple[Tensor, Tensor]:
-    """Compute summed log-probabilities per sequence with optional chunking."""
+    chunk_size: int,
+    gather_full_params: bool = False,  # retained for parity
+    return_hidden: bool = False,
+    pooling: str = "mean",
+) -> Tuple[Tensor, Tensor, Optional[Tensor]]:
+    """Compute summed log-probabilities per sequence with optional chunking and pooled states."""
 
-    del (
-        model,
-        input_ids,
-        attention_mask,
+    torch_mod = _refresh_torch()
+    _ = (
         chunk_size,
         gather_full_params,
-    )  # Retained for API compatibility
-    torch_mod = _refresh_torch()
-    label_arr = np.asarray(getattr(labels, "arr", labels))
-    valid_counts = (label_arr != -100).sum(axis=1)
-    logp = torch_mod.tensor(
-        np.zeros(len(valid_counts), dtype=float),
-        dtype=getattr(torch_mod, "float32", None),
+    )  # parity with distributed APIs; currently unused
+    # Fallback for lightweight stubs
+    if not hasattr(model, "forward"):
+        label_arr = np.asarray(getattr(labels, "arr", labels))
+        valid_counts = (label_arr != -100).sum(axis=1)
+        logp = torch_mod.tensor(
+            np.zeros(len(valid_counts), dtype=float),
+            dtype=getattr(torch_mod, "float32", None),
+        )
+        tok_tensor = torch_mod.tensor(
+            valid_counts, dtype=getattr(torch_mod, "float32", None)
+        )
+        return logp, tok_tensor, None
+    shape = getattr(input_ids, "shape", None)
+    if shape and len(shape) > 1 and shape[1] == 0:
+        batch_size = shape[0]
+        zero = torch_mod.tensor(
+            np.zeros(batch_size, dtype=float), dtype=getattr(torch_mod, "float32", None)
+        )
+        tok_tensor = torch_mod.tensor(
+            np.zeros(batch_size, dtype=float), dtype=getattr(torch_mod, "float32", None)
+        )
+        return zero, tok_tensor, None
+    outputs = model(
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        labels=labels,
+        output_hidden_states=return_hidden,
     )
-    tok_tensor = torch_mod.tensor(
-        valid_counts, dtype=getattr(torch_mod, "float32", None)
+    logits = outputs.logits
+    log_probs = torch_mod.nn.functional.log_softmax(logits, dim=-1)
+    label_mask = labels != -100
+    vocab_size = log_probs.size(-1)
+    flat_labels = labels.masked_fill(~label_mask, 0).view(-1)
+    flat_log_probs = log_probs.view(-1, vocab_size)
+    gathered = flat_log_probs[torch_mod.arange(flat_labels.numel()), flat_labels].view(
+        labels.shape
     )
-    return logp, tok_tensor
+    seq_logp = (gathered * label_mask).sum(dim=1)
+    tok_tensor = label_mask.sum(dim=1).clamp(min=1)
+    pooled_hidden = None
+    if return_hidden and getattr(outputs, "hidden_states", None) is not None:
+        hidden = outputs.hidden_states[-1]
+        mask = attention_mask
+        if pooling == "last":
+            pooled_hidden = hidden[:, -1, :]
+        else:
+            if mask is None:
+                pooled_hidden = hidden.mean(dim=1)
+            else:
+                mask = mask.unsqueeze(-1).type_as(hidden)
+                pooled_hidden = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(
+                    min=1.0
+                )
+    return seq_logp, tok_tensor, pooled_hidden
 
 
 def build_score_batch(
@@ -522,7 +594,7 @@ def reference_from_model(
     for slice_inputs, slice_mask, slice_labels in slice_iter:
         no_grad_ctx = getattr(torch_mod, "no_grad", None) or nullcontext
         with no_grad_ctx():
-            ref_logp_slice, ref_tok_slice = _chunked_sequence_logprobs(
+            result = _chunked_sequence_logprobs(
                 ref_model,
                 input_ids=slice_inputs,
                 attention_mask=slice_mask,
@@ -530,6 +602,10 @@ def reference_from_model(
                 chunk_size=batching_cfg.logprob_chunk_size,
                 gather_full_params=True,
             )
+        if len(result) == 2:
+            ref_logp_slice, ref_tok_slice = result
+        else:
+            ref_logp_slice, ref_tok_slice, _ = result
         if ref_logp_slice.numel() == 0 or ref_tok_slice.numel() == 0:
             return None
         ref_logp_chunks.append(ref_logp_slice.detach().cpu())
@@ -623,23 +699,32 @@ def score_model_outputs(
     score_batch: ScoreBatch,
     batching_cfg: BatchingSettings,
     runtime: RuntimeHandles,
-) -> Optional[Tensor]:
-    """Compute current model log-probs for the batch."""
+    *,
+    return_hidden: bool = False,
+    pooling: str = "mean",
+) -> Optional[Tuple[Tensor, Optional[Tensor]]]:
+    """Compute current model log-probs for the batch and optional pooled states."""
     cur_logp_slices: List[Tensor] = []
+    pooled_slices: List[Tensor] = []
     slice_iter = iter_batch_slices(score_batch, runtime.device)
     with _autocast_context(runtime.accelerator, runtime.device):
         for slice_inputs, slice_mask, slice_labels in slice_iter:
-            cur_logp_slice, _ = _chunked_sequence_logprobs(
+            cur_logp_slice, _tok_counts, pooled = _chunked_sequence_logprobs(
                 model,
                 input_ids=slice_inputs,
                 attention_mask=slice_mask,
                 labels=slice_labels,
                 chunk_size=batching_cfg.logprob_chunk_size,
+                return_hidden=return_hidden,
+                pooling=pooling,
             )
             cur_logp_slices.append(cur_logp_slice)
+            if pooled is not None:
+                pooled_slices.append(pooled.detach())
     if not cur_logp_slices:
         return None
-    return torch.cat(cur_logp_slices, dim=0)
+    pooled_hidden = torch.cat(pooled_slices, dim=0) if pooled_slices else None
+    return torch.cat(cur_logp_slices, dim=0), pooled_hidden
 
 
 def summarize_completion_lengths(
@@ -686,6 +771,7 @@ def summarize_completion_lengths(
 def build_sequence_scores(
     cur_logp_sum: Tensor,
     ref_stats: ReferenceLogprobs,
+    pooled_hidden: Optional[Tensor] = None,
 ) -> SequenceScores:
     """Return SequenceScores built from current and reference log-probs."""
     torch_mod = _refresh_torch()
@@ -693,6 +779,20 @@ def build_sequence_scores(
     ref_arr = _to_numpy_array(ref_stats.ref_logp_sum_raw)
     denom_arr = _to_numpy_array(ref_stats.ref_tok_counts)
     denom_arr = np.where(denom_arr <= 0, 1, denom_arr)
+    try:
+        cur_len = len(cur_arr)
+        if len(ref_arr) != cur_len:
+            if len(ref_arr) == 1:
+                ref_arr = np.repeat(ref_arr, cur_len)
+            else:
+                ref_arr = np.resize(ref_arr, cur_len)
+        if len(denom_arr) != cur_len:
+            if len(denom_arr) == 1:
+                denom_arr = np.repeat(denom_arr, cur_len)
+            else:
+                denom_arr = np.resize(denom_arr, cur_len)
+    except (TypeError, ValueError):
+        pass
     cur_tensor = torch_mod.tensor(cur_arr, dtype=getattr(torch_mod, "float32", None))
     behavior_logp_sum = torch_mod.tensor(
         ref_arr, dtype=getattr(torch_mod, "float32", None)
@@ -710,4 +810,5 @@ def build_sequence_scores(
         behavior_logp_sum=behavior_logp_sum,
         log_ratio_train=log_ratio_train,
         denom_tok_tensor=denom_tok_tensor,
+        pooled_hidden=pooled_hidden,
     )

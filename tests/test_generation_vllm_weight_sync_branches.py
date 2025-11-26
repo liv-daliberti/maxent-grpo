@@ -98,7 +98,9 @@ def test_sync_model_params_uses_distributed_fsdp(monkeypatch):
         )
     )
     monkeypatch.setattr(weight_sync, "torch", torch_stub)
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
     monkeypatch.setattr(helper, "_reset_vllm_cache", lambda: pushed.append("reset"))
 
     helper._sync_model_params_to_vllm(_FSDP())
@@ -110,7 +112,9 @@ def test_sync_model_params_fsdp_second_pass_after_missing_summon(monkeypatch):
     helper = _WeightSyncUnderTest()
     helper._fsdp_cls = None
     monkeypatch.setattr(weight_sync, "torch", SimpleNamespace(distributed=None))
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
     monkeypatch.setattr(helper, "_reset_vllm_cache", lambda: pushed.append("reset"))
 
     class _FSDP:
@@ -138,7 +142,9 @@ def test_sync_model_params_walk_branch(monkeypatch):
     helper = _WeightSyncUnderTest()
     helper._fsdp_cls = None
     monkeypatch.setattr(weight_sync, "torch", SimpleNamespace(distributed=None))
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
     monkeypatch.setattr(helper, "_reset_vllm_cache", lambda: pushed.append("reset"))
 
     class _Leaf:
@@ -169,7 +175,9 @@ def test_sync_model_params_walk_respects_existing_visited(monkeypatch):
     helper = _WeightSyncUnderTest()
     helper._fsdp_cls = None
     monkeypatch.setattr(weight_sync, "torch", SimpleNamespace(distributed=None))
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
     monkeypatch.setattr(helper, "_reset_vllm_cache", lambda: pushed.append("reset"))
 
     class _Leaf:
@@ -229,7 +237,9 @@ def test_push_and_reset_vllm_cache(monkeypatch):
 def test_sync_standard_params_skips_none_and_recurse(monkeypatch):
     pushed: list[str] = []
     helper = _WeightSyncUnderTest()
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
 
     class _Child:
         def named_parameters(self):
@@ -257,7 +267,9 @@ def test_sync_peft_params_skips_original_and_unmerges(monkeypatch):
     flags = {"merged": False, "unmerged": False}
     helper = _WeightSyncUnderTest()
     helper._gather_factory = lambda _p: nullcontext()
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
 
     class _Model:
         prefix = None
@@ -294,7 +306,9 @@ def test_sync_fsdp_params_runs_full_pass(monkeypatch):
 
     helper._fsdp_cls = _FSDP
     helper._gather_factory = lambda _params: nullcontext()
-    monkeypatch.setattr(helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name))
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _p: pushed.append(name)
+    )
 
     class _Module(_FSDP):
         def __init__(self):

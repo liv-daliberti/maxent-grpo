@@ -39,4 +39,4 @@ Notes
 
   .. code-block:: bash
 
-     make eval-math500-delta  # tools/eval_math_delta.py (stub runner + fixed dataset)
+     make eval-math-delta  # tools/eval_math_delta.py (stub runner + fixed dataset)

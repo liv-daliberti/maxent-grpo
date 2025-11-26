@@ -420,7 +420,7 @@ def test_prepare_training_batch_drops_on_stats_failure(monkeypatch):
     ctx = _FakeCtx()
 
     def _fake_prepare_generation_batch(
-        batch, generator, stats, num_generations, max_retry_rounds
+        batch, generator, stats, num_generations, max_retry_rounds, **_kwargs
     ):
         return SimpleNamespace(grouped_completions=[["ok"]], answers=[""])
 

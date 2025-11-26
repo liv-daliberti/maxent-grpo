@@ -34,15 +34,15 @@ if "transformers" not in sys.modules:  # pragma: no cover - import-time shim
     )
     sys.modules["transformers"] = fake_tf  # type: ignore[assignment]
 
-from maxent_grpo.pipelines.inference.math500 import (  # noqa: E402 - after stub injection
+from maxent_grpo.pipelines.inference.inference import (  # noqa: E402 - after stub injection
     InferenceModelSpec,
-    Math500EvalConfig,
-    Math500InferenceResult,
+    MathEvalConfig,
+    MathInferenceResult,
     TransformersPromptRunner,
     _normalize_dtype,
     _resolve_default_device,
-    load_math500_dataset,
-    run_math500_inference,
+    load_math_dataset,
+    run_math_inference,
 )
 
 
@@ -67,7 +67,7 @@ class DummyRunner:
         self.closed = True
 
 
-def test_run_math500_inference_accumulates_accuracy() -> None:
+def test_run_math_inference_accumulates_accuracy() -> None:
     """Verify accuracy/correct counts are derived from reward hits."""
 
     dataset = [
@@ -79,15 +79,15 @@ def test_run_math500_inference_accumulates_accuracy() -> None:
         batch_size=1,
         style="maxent",
     )
-    config = Math500EvalConfig(prompt_column="problem", solution_column="answer")
-    results = run_math500_inference(
+    config = MathEvalConfig(prompt_column="problem", solution_column="answer")
+    results = run_math_inference(
         [spec],
         eval_cfg=config,
         dataset=dataset,
         runner_factory=lambda _spec: DummyRunner(_spec),
     )
     assert len(results) == 1
-    res: Math500InferenceResult = results[0]
+    res: MathInferenceResult = results[0]
     assert res.total == 2
     assert res.correct == 1
     assert abs(res.accuracy - 0.5) < 1e-6
@@ -101,10 +101,8 @@ def test_collect_generations_captures_raw_outputs() -> None:
         {"problem": "ans=202", "answer": "202"},
     ]
     spec = InferenceModelSpec(model_name_or_path="stub/model", batch_size=2)
-    config = Math500EvalConfig(
-        prompt_column="problem", solution_column="answer", limit=5
-    )
-    results = run_math500_inference(
+    config = MathEvalConfig(prompt_column="problem", solution_column="answer", limit=5)
+    results = run_math_inference(
         [spec],
         eval_cfg=config,
         dataset=dataset,
@@ -114,12 +112,12 @@ def test_collect_generations_captures_raw_outputs() -> None:
     )
     generated = results[0].generations
     assert generated is not None
-    assert generated == ["<think></think><answer>101</answer>"]
+    assert generated == [["<think></think><answer>101</answer>"]]
 
 
 def test_inference_requires_model_specs() -> None:
     with pytest.raises(ValueError):
-        run_math500_inference([], dataset=[{"problem": "1", "answer": "1"}])
+        run_math_inference([], dataset=[{"problem": "1", "answer": "1"}])
 
 
 def test_runner_mismatch_counts_raise(monkeypatch):
@@ -137,7 +135,7 @@ def test_runner_mismatch_counts_raise(monkeypatch):
             pass
 
     with pytest.raises(RuntimeError):
-        run_math500_inference(
+        run_math_inference(
             [spec], dataset=dataset, runner_factory=lambda _s: _Runner(_s)
         )
 
@@ -159,7 +157,7 @@ def test_default_device_prefers_cuda_then_mps(monkeypatch):
 
     torch_stub = _Torch()
     torch_stub.backends = types.SimpleNamespace(mps=_Torch._Backends._MPS())
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.math500.torch", torch_stub)
+    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.torch", torch_stub)
     dev = _resolve_default_device(None)
     assert isinstance(dev, _Torch.device)
     assert dev.type == "mps"
@@ -187,7 +185,7 @@ def test_normalize_dtype_handles_strings(value, expected, monkeypatch):
             return types.SimpleNamespace(type=name)
 
     _Torch.dtype = _Torch.dtype  # ensure attribute exists for isinstance checks
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.math500.torch", _Torch)
+    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.torch", _Torch)
     assert _normalize_dtype(value) == expected
 
 
@@ -224,11 +222,11 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
             return [[0, 1, 2]]
 
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.inference.math500.AutoTokenizer",
+        "maxent_grpo.pipelines.inference.inference.AutoTokenizer",
         types.SimpleNamespace(from_pretrained=lambda *_a, **_k: _Tok()),
     )
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.inference.math500.AutoModelForCausalLM",
+        "maxent_grpo.pipelines.inference.inference.AutoModelForCausalLM",
         types.SimpleNamespace(from_pretrained=lambda *_a, **_k: _Model()),
     )
     torch_stub = types.SimpleNamespace(
@@ -244,7 +242,7 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
     )
     # Provide transformers stubs so the runner does not try to hit HF Hub
     monkeypatch.setitem(sys.modules, "transformers", types.SimpleNamespace())
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.math500.torch", torch_stub)
+    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.torch", torch_stub)
 
     spec = InferenceModelSpec(model_name_or_path="stub", chat_template="<<template>>")
     runner = TransformersPromptRunner(spec)
@@ -252,10 +250,10 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
     assert prompt.startswith("TEMPLATE:")
 
 
-def test_load_math500_dataset_requires_datasets(monkeypatch):
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.math500.load_dataset", None)
+def test_load_math_dataset_requires_datasets(monkeypatch):
+    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.load_dataset", None)
     with pytest.raises(ImportError):
-        load_math500_dataset(Math500EvalConfig())
+        load_math_dataset(MathEvalConfig())
 
 
 def test_missing_columns_raise_friendly_error() -> None:
@@ -263,16 +261,20 @@ def test_missing_columns_raise_friendly_error() -> None:
 
     dataset = [{"prompt": "x=1"}]  # missing problem/answer
     spec = InferenceModelSpec(model_name_or_path="stub/model", batch_size=1)
-    cfg = Math500EvalConfig(prompt_column="problem", solution_column="answer")
+    cfg = MathEvalConfig(
+        dataset_name="demo",
+        prompt_column="problem",
+        solution_column="answer",
+    )
     with pytest.raises(ValueError) as excinfo:
-        run_math500_inference(
+        run_math_inference(
             [spec],
             eval_cfg=cfg,
             dataset=dataset,
             runner_factory=lambda _spec: DummyRunner(_spec),
         )
     msg = str(excinfo.value)
-    assert "missing required column 'problem'" in msg
+    assert "demo row 0 missing required prompt column 'problem'" in msg
     assert "available: ['prompt']" in msg
 
 
@@ -281,9 +283,9 @@ def test_empty_dataset_raises_friendly_error() -> None:
 
     dataset: list[dict[str, str]] = []
     spec = InferenceModelSpec(model_name_or_path="stub/model", batch_size=1)
-    cfg = Math500EvalConfig(prompt_column="problem", solution_column="answer")
+    cfg = MathEvalConfig(prompt_column="problem", solution_column="answer")
     with pytest.raises(ValueError) as excinfo:
-        run_math500_inference(
+        run_math_inference(
             [spec],
             eval_cfg=cfg,
             dataset=dataset,
