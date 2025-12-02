@@ -1,6 +1,0 @@
-- +command=math-eval
-- +inference.dataset=math_500
-- +inference.seeds=[0,1,2,3,4]
-- +inference.num_generations=8
-- +inference.temperature=0.6
-- +inference.models=[{model_name_or_path:var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1/checkpoint-550,batch_size:1}]
