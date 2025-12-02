@@ -49,4 +49,3 @@ if [[ $apply -eq 1 ]]; then
 else
   echo "Dry run. Re-run with --apply to modify $RC_FILE." >&2
 fi
-

@@ -30,4 +30,3 @@ jobs:
         run: |
           # Ignore import errors to avoid requiring heavy runtime deps on CI
           pylint --disable=import-error --rcfile=.pylintrc src || (echo "pylint found issues" && exit 1)
-

@@ -73,8 +73,8 @@ kl_horizon:       50000    # was 100 000 → controller adapts in ~½ the step
 kl_ctl_step_size: 0.15      # was 0.05 → gentler per‑update β adjustments
 max_grad_norm: 0.15
 vf_coef: 0.25
-advantage_normalization: running 
-horizon: 1024      
+advantage_normalization: running
+horizon: 1024
 save_strategy: steps
 save_steps: 50
 evaluation_strategy: steps
@@ -86,8 +86,8 @@ reward_normalization: true
 gamma: 0.99
 gae_lambda: 0.95
 log_grad_norm_after_clip: true
-log_kl_per_token: true    
-reward_clip: [-6.0, 6.0]          
-advantage_clip: [-2.5, 2.5]       
+log_kl_per_token: true
+reward_clip: [-6.0, 6.0]
+advantage_clip: [-2.5, 2.5]
 clip_range:     0.05          # keep or lower to 0.08
 clip_range_vf:  0.5           # tighten critic clipping

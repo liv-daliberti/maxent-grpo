@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from typing import Any, cast
 from types import ModuleType, SimpleNamespace
 import sys
 
@@ -23,6 +24,8 @@ class _DelegateHelper:
         self._last_vllm_synced_step = None
         self._fsdp_cls = None
         self._fallback_generate = None
+        self._generate_with_vllm = None
+        self._scatter_vllm_payload = None
 
     def maybe_sync_weights(self, *args, **kwargs):
         self.calls.append(("sync_call", args, kwargs))
@@ -211,7 +214,7 @@ def test_backfill_and_failure_delegation():
 def test_run_vllm_rounds_rewires_helper(monkeypatch):
     sentinel_time = object()
     helpers_mod = ModuleType("maxent_grpo.training.generation.helpers")
-    helpers_mod.time = sentinel_time
+    helpers_mod.time = sentinel_time  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, helpers_mod.__name__, helpers_mod)
     monkeypatch.setattr(sys.modules[__name__], "time", sentinel_time, raising=False)
 
@@ -233,7 +236,7 @@ def test_run_vllm_rounds_rewires_helper(monkeypatch):
             return ("batch", prompts, n)
 
     gen = _RunGen()
-    state = object()
+    state: Any = {}
     gen._run_vllm_rounds(state)
     helper: _RunHelper = gen._vllm_helper  # type: ignore[assignment]
     assert ("run", state) in helper.calls
@@ -258,15 +261,15 @@ def test_generate_vllm_collective_main_and_worker_paths():
         prompts,
         [0, len(prompts)],
         counts,
-    )
+    )  # type: ignore[attr-defined]
     helper._generate_with_vllm = lambda prompts, num_samples, counts: (
         [["a"] for _ in prompts],
         None,
-    )
+    )  # type: ignore[attr-defined]
     helper._scatter_vllm_payload = lambda flat, offsets, grouped, meta: (
         grouped or [],
         meta,
-    )
+    )  # type: ignore[attr-defined]
 
     class _CollectiveGen(_DelegateGen):
         def __init__(self, accel):
@@ -298,9 +301,9 @@ def test_generate_vllm_collective_handles_none_scatter(monkeypatch):
         prompts,
         [0, len(prompts)],
         counts,
-    )
-    helper._generate_with_vllm = lambda *a, **k: (None, None)
-    helper._scatter_vllm_payload = lambda *a, **k: (None, None)
+    )  # type: ignore[attr-defined]
+    helper._generate_with_vllm = lambda *a, **k: (None, None)  # type: ignore[attr-defined]
+    helper._scatter_vllm_payload = lambda *a, **k: (None, None)  # type: ignore[attr-defined]
 
     class _CollectiveGen(_DelegateGen):
         def __init__(self, accel):

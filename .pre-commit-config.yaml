@@ -12,8 +12,6 @@ repos:
         language: system
         types: [python]
         args: ["check", "."]
-        env:
-          RUFF_CACHE_DIR: var/cache/ruff
       - id: pylint
         name: pylint
         entry: pylint
@@ -46,7 +44,7 @@ repos:
         pass_filenames: false
         args:
           - --progress-spinner
-          - off
+          - "off"
           - -r
           - configs/constraints.txt
           - -r
@@ -63,7 +61,7 @@ repos:
           - src/pipelines
       - id: validate-logs
         name: validate-training-logs
-        entry: python tools/validate_training_logs.py --allow-missing
+        entry: python tools/validate_training_logs.py
         language: system
         pass_filenames: false
       - id: perf-microbench
@@ -92,6 +90,8 @@ repos:
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: name-tests-test
+        args:
+          - --pytest
       - id: check-yaml
       - id: check-json
       - id: mixed-line-ending
