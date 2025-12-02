@@ -34,6 +34,7 @@ from maxent_grpo.pipelines.generation.distilabel import (
     run_generation_job,
 )
 from maxent_grpo.pipelines.inference.inference import (
+    InferenceArtifactConfig,
     InferenceModelSpec,
     resolve_inference_dataset,
     run_math_inference,
@@ -62,7 +63,7 @@ class _HydraStub:
 
 try:  # Optional dependency; provide stubs so linting/tests can import.
     import hydra
-    from omegaconf import DictConfig, OmegaConf
+    from omegaconf import DictConfig, OmegaConf, open_dict
 except ImportError:  # pragma: no cover - hydra not installed in minimal envs
 
     hydra = _HydraStub()
@@ -82,6 +83,10 @@ except ImportError:  # pragma: no cover - hydra not installed in minimal envs
         @staticmethod
         def create(payload: Any) -> Any:
             return payload
+
+        @staticmethod
+        def structured(obj: Any) -> Any:
+            return obj
 
 
 @dataclass
@@ -148,6 +153,7 @@ class InferenceCommand:
     :param temperature: Temperature override for rollout sampling.
     :param limit: Optional cap on number of items to evaluate.
     :param collect_generations: Whether to return collected generations.
+    :param artifacts: Artifact persistence/resume configuration.
     """
 
     models: List[Dict[str, Any]] = field(default_factory=list)
@@ -158,6 +164,7 @@ class InferenceCommand:
     temperature: float = 0.6
     limit: Optional[int] = None
     collect_generations: bool = False
+    artifacts: InferenceArtifactConfig = field(default_factory=InferenceArtifactConfig)
 
 
 @dataclass
@@ -187,9 +194,10 @@ def _maybe_insert_command(default_command: str) -> None:
     """
 
     if not any(
-        arg.startswith("command=") or arg.startswith("+command=") for arg in sys.argv[1:]
+        arg.startswith("command=") or arg.startswith("+command=")
+        for arg in sys.argv[1:]
     ):
-        sys.argv.insert(1, f"+command={default_command}")
+        sys.argv.insert(1, f"command={default_command}")
 
 
 def _build_grpo_configs(
@@ -207,9 +215,17 @@ def _build_grpo_configs(
         return load_grpo_recipe(cmd.recipe, model_config_cls=ModelConfig)
     from trl import ModelConfig
 
+    # Avoid parser conflicts by keeping reward-related flags on the training config.
+    training_payload = dict(cmd.training)
+    script_payload = dict(cmd.script)
+    if "reward_funcs" in script_payload and "reward_funcs" not in training_payload:
+        training_payload["reward_funcs"] = script_payload.pop("reward_funcs")
+    if "reward_weights" in script_payload and "reward_weights" not in training_payload:
+        training_payload["reward_weights"] = script_payload.pop("reward_weights")
+
     return (
-        GRPOScriptArguments(**cmd.script),
-        GRPOConfig(**cmd.training),
+        GRPOScriptArguments(**script_payload),
+        GRPOConfig(**training_payload),
         ModelConfig(**cmd.model),
     )
 
@@ -228,9 +244,24 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
 
     if isinstance(cfg, HydraRootConfig):
         root = cfg
+    elif hasattr(OmegaConf, "structured"):
+        structured_root = OmegaConf.structured(HydraRootConfig())
+        if cfg is not None:
+            with open_dict(structured_root):
+                structured_root.merge_with(cfg)
+        conf = OmegaConf.to_object(structured_root)
+        if isinstance(conf, HydraRootConfig):
+            root = conf
+        else:
+            root = HydraRootConfig(**conf)
     else:
-        conf = OmegaConf.to_object(cfg or {})
-        root = HydraRootConfig(**conf)
+        payload = cfg or {}
+        if isinstance(payload, HydraRootConfig):
+            root = payload
+        elif isinstance(payload, dict):
+            root = HydraRootConfig(**payload)
+        else:
+            root = HydraRootConfig()
     # Allow CLI-style `command=` overrides from sys.argv even when cfg is absent.
     cmd = root.command
     for arg in sys.argv[1:]:
@@ -270,8 +301,9 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
         if not root.inference.models:
             raise ValueError("inference.models must contain at least one model spec")
         specs = [InferenceModelSpec(**spec) for spec in root.inference.models]
+        dataset_name = getattr(root.inference, "dataset", None) or "math_500"
         eval_cfg = resolve_inference_dataset(
-            getattr(root.inference, "dataset", None) or "math_500",
+            dataset_name,
             root.inference.eval,
         )
         if is_test:
@@ -284,6 +316,8 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
             num_generations=root.inference.num_generations,
             seeds=root.inference.seeds,
             temperature=root.inference.temperature,
+            dataset_id=dataset_name,
+            artifact_config=root.inference.artifacts,
         )
         print(OmegaConf.to_yaml(OmegaConf.create([r.__dict__ for r in results])))
     else:

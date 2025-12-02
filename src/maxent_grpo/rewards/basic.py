@@ -86,12 +86,24 @@ def _canon_math(s: str) -> str:
 def pure_accuracy_reward_math(
     completions: List[CompletionType], answer: List[str], **_kwargs: Any
 ) -> List[float]:
-    """Binary reward for exact match on a tagged math template."""
+    """Binary reward for exact match on a tagged math template.
+
+    Strict formatting (``<think>…</think><answer>…</answer>``) is enforced by
+    default. When called with ``is_eval=True`` or ``relaxed_format=True``,
+    the ``<think>`` block is optional and only the ``<answer>`` tag is
+    required. This keeps training strict while avoiding format false-negatives
+    during eval.
+    """
 
     outs: List[float] = []
+    relaxed = bool(
+        _kwargs.get("is_eval")
+        or _kwargs.get("relaxed_format")
+        or _kwargs.get("split") in {"eval", "validation", "test"}
+    )
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
-        if not _format_pat.match(txt):
+        if not relaxed and not _format_pat.match(txt):
             outs.append(0.0)
             continue
         m = _answer_pat.search(txt)

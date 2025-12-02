@@ -33,6 +33,7 @@ from .types import (  # noqa: F401  # re-exported via __all__
 
 _LOGIC_EXPORTS = {
     "CONTROLLER_STATE_FILENAME",
+    "broadcast_controller_state",
     "collect_weight_entropy",
     "compute_weight_stats",
     "controller_state_dict",

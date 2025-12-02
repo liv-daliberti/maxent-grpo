@@ -102,3 +102,13 @@ def test_pure_accuracy_reward_math_missing_answer_via_basic(monkeypatch):
     comps = ["<think>trace</think><answer>?</answer>"]
     rewards = basic.pure_accuracy_reward_math(comps, ["42"])
     assert rewards == [0.0]
+
+
+def test_pure_accuracy_reward_math_relaxed_eval_allows_missing_think():
+    import maxent_grpo.rewards.basic as basic
+
+    comps = ["<answer>7</answer>"]
+    rewards_train = basic.pure_accuracy_reward_math(comps, ["7"])
+    rewards_eval = basic.pure_accuracy_reward_math(comps, ["7"], is_eval=True)
+    assert rewards_train == [0.0]
+    assert rewards_eval == [1.0]

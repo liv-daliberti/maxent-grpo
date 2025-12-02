@@ -94,11 +94,20 @@ class GRPOConfig(trl.GRPOConfig):
         default_factory=lambda: [],
         metadata={"help": "The callbacks to run during training."},
     )
-    # Backwards-compatible alias accepted by some callers/tests. Stored but
-    # unused by core training code; kept to preserve ctor compatibility.
     reward_funcs: list[str] = field(
+        default_factory=lambda: ["pure_accuracy_math"],
+        metadata={
+            "help": (
+                "Reward functions to apply during training. Kept for compatibility "
+                "with earlier CLIs; defaults to pure_accuracy_math."
+            )
+        },
+    )
+    reward_weights: list[float] = field(
         default_factory=lambda: [],
-        metadata={"help": "Backward-compatible list of reward functions."},
+        metadata={
+            "help": "Optional weights aligned with reward_funcs (defaults to 1.0 each)."
+        },
     )
     chat_template: Optional[str] = field(
         default=None,
@@ -425,8 +434,8 @@ class GRPOConfig(trl.GRPOConfig):
     def __post_init__(self) -> None:
         try:
             super().__post_init__()
-        except AttributeError:
-            # TRL may be absent in some test environments; ignore in that case.
+        except (AttributeError, ImportError, ModuleNotFoundError):
+            # TRL/Transformers may be absent in some test environments; ignore in that case.
             pass
         except ValueError as err:
             # Be tolerant of TRL validation errors related to tiny batch sizes
@@ -488,7 +497,6 @@ class GRPOScriptArguments(ScriptArguments):
     Extends :class:`~maxent_grpo.config.ScriptArguments` with reward, dataset,
     and evaluation knobs used by MaxEnt-GRPO training pipelines.
 
-    :ivar reward_funcs: Reward functions to apply (currently ``pure_accuracy_math``).
     :ivar cosine_min_value_wrong: Minimum reward when the answer is wrong.
     :ivar cosine_max_value_wrong: Maximum reward when the answer is wrong.
     :ivar cosine_min_value_correct: Minimum reward for correct answers.
@@ -510,10 +518,16 @@ class GRPOScriptArguments(ScriptArguments):
     :ivar span_kl_horizon: Horizon (steps) for the span KL controller.
     """
 
-    reward_funcs: list[str] = field(
-        default_factory=lambda: ["pure_accuracy_math"],
+    eval_reward_funcs: list[str] = field(
+        default_factory=list,
         metadata={
-            "help": "List of reward functions. Allowed: 'pure_accuracy_math' only."
+            "help": "Optional override for eval rewards; defaults to reward_funcs when empty."
+        },
+    )
+    eval_reward_weights: list[float] = field(
+        default_factory=list,
+        metadata={
+            "help": "Optional weights for eval rewards; length must match eval_reward_funcs."
         },
     )
     cosine_min_value_wrong: float = field(
@@ -544,6 +558,13 @@ class GRPOScriptArguments(ScriptArguments):
         default=-1.0,
         metadata={"help": "Maximum (negative) penalty for repetition penalty reward"},
     )
+
+    def __post_init__(self) -> None:  # pragma: no cover - compatibility shim
+        # Keep a default reward_funcs attribute for legacy consumers while
+        # avoiding CLI flag conflicts with GRPOConfig.
+        if not hasattr(self, "reward_funcs"):
+            self.reward_funcs = ["pure_accuracy_math"]
+
     dataset_prompt_column: str = field(
         default="problem",
         metadata={"help": "Column to use as prompts for training."},

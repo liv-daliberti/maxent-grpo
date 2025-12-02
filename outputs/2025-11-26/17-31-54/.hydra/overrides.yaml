@@ -1,0 +1,7 @@
+- +command=math-eval
+- +inference.dataset=math_500
+- +inference.seeds=[0,1,2,3,4]
+- +inference.num_generations=8
+- +inference.temperature=0.6
+- +inference.models=[{model_name_or_path:od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1,revision:3500eb3,batch_size:1}]
+size:1}]

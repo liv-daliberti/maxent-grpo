@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import importlib as _importlib
 import sys
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import Any, List, TYPE_CHECKING
 
 from .types import (
@@ -72,14 +72,24 @@ from .weighting.loss import SequenceScores
 run_training_loop: Any
 PreparedBatch: Any
 
-# Provide a lightweight wandb stub only when the real package is unavailable, to
-# avoid breaking optional imports during tests.
+# Provide a lightweight wandb stub only when the real package is unavailable.
+# This must not override a real installation (even if not yet imported) or the
+# Transformers WandbCallback import check will fail at runtime.
 _wandb_stub = sys.modules.get("wandb")
-if (
-    _wandb_stub is None
-    or getattr(getattr(_wandb_stub, "errors", None), "Error", None) is None
-):
-    sys.modules["wandb"] = SimpleNamespace(errors=SimpleNamespace(Error=RuntimeError))
+_wandb_errors = getattr(getattr(_wandb_stub, "errors", None), "Error", None)
+if _wandb_errors is None:
+    try:
+        _wandb_mod = _importlib.import_module("wandb")
+    except (ImportError, ModuleNotFoundError):
+        _wandb_mod = None
+    if (
+        _wandb_mod is None
+        or getattr(getattr(_wandb_mod, "errors", None), "Error", None) is None
+    ):
+        # Only install a stub when the real package is missing or malformed.
+        sys.modules["wandb"] = SimpleNamespace(
+            errors=SimpleNamespace(Error=RuntimeError)
+        )
 
 # Preserve the original reload to avoid breaking downstream tooling. Store the
 # first-seen implementation so subsequent reloads do not accidentally wrap the
@@ -94,6 +104,12 @@ def _safe_reload(module):
         module.__spec__.name if getattr(module, "__spec__", None) else module.__name__
     )
     sys.modules[name] = module
+    if "." in name:
+        parent_name = name.rsplit(".", 1)[0]
+        if parent_name not in sys.modules:
+            parent_mod = ModuleType(parent_name)
+            parent_mod.__path__ = []
+            sys.modules[parent_name] = parent_mod
     return _ORIG_IMPORTLIB_RELOAD(module)
 
 

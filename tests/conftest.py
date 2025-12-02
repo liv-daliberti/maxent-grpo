@@ -52,6 +52,35 @@ try:
 except Exception:
     pass
 try:
+    import types as _types
+    import torch as _torch_mod
+
+    try:
+        from maxent_grpo.training.runtime.torch_stub import (
+            _build_torch_stub as _torch_builder,
+        )
+
+        sym_cls = getattr(_torch_builder(), "SymBool", None)
+    except Exception:
+        sym_cls = None
+    _torch_mod.SymBool = sym_cls or type(
+        "SymBool", (), {"__bool__": lambda self: bool(getattr(self, "value", False))}
+    )
+    if not hasattr(_torch_mod, "_dynamo"):
+        _torch_mod._dynamo = _types.SimpleNamespace(
+            disable=lambda fn=None, recursive=False: fn, graph_break=lambda: None
+        )
+    else:
+        dyn = _torch_mod._dynamo
+        if not hasattr(dyn, "disable"):
+            dyn.disable = lambda fn=None, recursive=False: fn
+        if not hasattr(dyn, "graph_break"):
+            dyn.graph_break = lambda: None
+    if not hasattr(_torch_mod, "manual_seed"):
+        _torch_mod.manual_seed = lambda *_a, **_k: None
+except Exception:
+    pass
+try:
     import tests.test_scoring as _ts  # type: ignore
 
     if "__getattr__" in _ts.__dict__:

@@ -441,6 +441,10 @@ class VLLMWeightSyncMixin:
         ) as exc:  # pragma: no cover - network dependent
             LOG.warning("Failed to push param %s to vLLM: %s", name, exc)
 
+    def push_param_to_vllm(self, name: str, param: Any) -> None:
+        """Public wrapper forwarding to the protected vLLM param push."""
+        self._push_param_to_vllm(name, param)
+
     def _reset_vllm_cache(self) -> None:
         """Reset the vLLM prefix cache if the client exposes the hook."""
         reset_fn = self._client_callable("reset_prefix_cache")
@@ -450,6 +454,10 @@ class VLLMWeightSyncMixin:
             reset_fn()
         except (RuntimeError, ValueError, AttributeError):
             return
+
+    def reset_vllm_cache(self) -> None:
+        """Public wrapper that resets the vLLM prefix cache."""
+        self._reset_vllm_cache()
 
     def _sync_standard_params(
         self,
@@ -603,6 +611,10 @@ class VLLMWeightSyncMixin:
                         continue
                     visited.add(full_name)
                     self._push_param_to_vllm(full_name, param)
+
+    def sync_fsdp_params(self, module: Any) -> None:
+        """Public wrapper to synchronize FSDP parameters to vLLM."""
+        self._sync_fsdp_params(module)
 
 
 __all__ = [

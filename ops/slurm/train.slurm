@@ -108,6 +108,8 @@ export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
 export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
 export WANDB_DIR="$VAR_DIR/cache/wandb"
+# Force-enable wandb for training jobs so the Transformers callback sees it.
+export WANDB_DISABLED=0
 export TMPDIR="$VAR_DIR/tmp"
 export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
 export VLLM_NO_USAGE_STATS=1
@@ -207,6 +209,9 @@ if [[ ! -f "$ACCEL_FILE" ]]; then
   exit 1
 fi
 export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$CONFIG_FILE}"
+# Ensure the training entrypoint loads the recipe via GRPO_RECIPE to avoid
+# TRL parser conflicts when reward fields overlap.
+export GRPO_RECIPE="${GRPO_RECIPE:-$CONFIG_FILE}"
 export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
 if grep -qi '^[[:space:]]*distributed_type:[[:space:]]*deepspeed' "$ACCEL_FILE"; then
   export ACCELERATE_USE_DEEPSPEED="true"
@@ -515,7 +520,7 @@ PY
     echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \
     INLINE_VLLM_READY=false; \
     INLINE_VLLM_FAILURE_REASON=\"timeout\"; \
-    for attempt in \$(seq 1 180); do \
+    for attempt in \$(seq 1 360); do \
       if curl -sf http://localhost:$VLLM_PORT/health >/dev/null 2>&1; then \
         INLINE_VLLM_READY=true; \
         break; \

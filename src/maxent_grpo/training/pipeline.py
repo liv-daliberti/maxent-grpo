@@ -176,7 +176,7 @@ def _require_artifact(value: Optional[_T]) -> _T:
     :rtype: Any
     """
     if value is None:
-        raise _SkipBatch
+        raise _SkipBatch()
     return value
 
 
@@ -197,31 +197,13 @@ def _reference_stats_from_meta(
         missing/partial.
     :rtype: training.types.ReferenceLogprobs | None
     """
-    # Ensure legacy alias is present for tests that import ``training.pipeline``.
-    if "training.pipeline" not in sys.modules and __name__ in sys.modules:
-        sys.modules["training.pipeline"] = sys.modules[__name__]
-    alias_mod = sys.modules.get("training.pipeline")
-    ref_fn = reference_from_vllm_meta
-    if alias_mod is not None:
-        ref_fn = getattr(alias_mod, "reference_from_vllm_meta", ref_fn)
-    if ref_fn is None or not callable(ref_fn):
-        ref_fn = getattr(
-            sys.modules.get("maxent_grpo.training.pipeline"),
-            "reference_from_vllm_meta",
-            ref_fn,
-        )
-    if ref_fn is None or not callable(ref_fn):
-        ref_fn = getattr(sys.modules.get(__name__), "reference_from_vllm_meta", None)
-    if (ref_fn is None or not callable(ref_fn)) and "pipeline" in globals():
-        ref_fn = getattr(globals().get("pipeline"), "reference_from_vllm_meta", None)
-    result = (
-        ref_fn(flat_meta, total_sequences, device)
-        if callable(ref_fn) and flat_meta is not None
-        else None
-    )
     if not flat_meta or total_sequences <= 0:
         return None
-    return result
+    ref_fn = reference_from_vllm_meta
+    try:
+        return ref_fn(flat_meta, total_sequences, device)
+    except (RuntimeError, TypeError, ValueError):
+        return None
 
 
 def _collect_batch_stats(
@@ -241,14 +223,7 @@ def _collect_batch_stats(
         stage fails (e.g., reference log-prob gathering).
     :rtype: _BatchStats | None
     """
-    total_sequences = len(getattr(reward_comp.pairs, "completions", []))
     ref_stats = None
-    if reward_comp.ref_logprob_meta and total_sequences > 0:
-        ref_stats = _reference_stats_from_meta(
-            reward_comp.ref_logprob_meta,
-            total_sequences,
-            ctx.runtime.device,
-        )
     scoring_cfg = getattr(ctx, "scoring", None)
     if scoring_cfg is None:
         scoring_cfg = getattr(
@@ -273,18 +248,31 @@ def _collect_batch_stats(
     )
     if score_batch is None:
         return None
-    if reward_comp.ref_logprob_meta and (
-        ref_stats is None or score_batch.total_sequences != total_sequences
-    ):
-        rebuilt_ref = _reference_stats_from_meta(
-            reward_comp.ref_logprob_meta,
+    ref_meta = getattr(reward_comp, "ref_logprob_meta", None)
+    ref_meta_len = len(ref_meta) if ref_meta else 0
+    if ref_meta_len:
+        # Prefer reconstructing from metadata; always make an initial attempt.
+        ref_stats = _reference_stats_from_meta(
+            ref_meta,
             score_batch.total_sequences,
             ctx.runtime.device,
         )
-        if rebuilt_ref is not None:
-            ref_stats = rebuilt_ref
-        elif ref_stats is None or score_batch.total_sequences != total_sequences:
-            ref_stats = rebuilt_ref
+        if ref_meta_len != score_batch.total_sequences:
+            # Mismatch path: rebuild again and skip any remote gather.
+            ref_stats = _reference_stats_from_meta(
+                ref_meta,
+                score_batch.total_sequences,
+                ctx.runtime.device,
+            )
+        elif ref_stats is None:
+            try:
+                ref_stats = reference_from_vllm_meta(
+                    ref_meta,
+                    score_batch.total_sequences,
+                    ctx.runtime.device,
+                )
+            except (RuntimeError, TypeError, ValueError):
+                ref_stats = None
     if ref_stats is None:
         try:
             ref_stats = gather_reference_logprobs(
@@ -305,15 +293,6 @@ def _collect_batch_stats(
             return None
     if ref_stats is None:
         return None
-    ref_meta_len = (
-        len(reward_comp.ref_logprob_meta) if reward_comp.ref_logprob_meta else 0
-    )
-    if ref_meta_len and ref_meta_len != score_batch.total_sequences:
-        ref_stats = _reference_stats_from_meta(
-            reward_comp.ref_logprob_meta,
-            score_batch.total_sequences,
-            ctx.runtime.device,
-        )
     prompt_token_count = 0.0
     prompt_entries = score_batch.prompt_entries
     if prompt_entries:
@@ -571,6 +550,20 @@ def prepare_training_batch(
             if len(weights) == len(reward_comp.completion_metadata):
                 import math
 
+                accelerator = ctx.runtime.accelerator
+
+                def _gather_weights(weight_subset: list[float]) -> list[float]:
+                    if getattr(accelerator, "num_processes", 1) <= 1:
+                        return weight_subset
+                    gather_fn = getattr(accelerator, "gather_object", None)
+                    if callable(gather_fn):
+                        gathered = gather_fn(weight_subset)
+                        merged: list[float] = []
+                        for chunk in gathered:
+                            merged.extend(float(v) for v in chunk)
+                        return merged
+                    return weight_subset
+
                 def _entropy(subset_weights: list[float]) -> float:
                     if not subset_weights:
                         return 0.0
@@ -584,13 +577,15 @@ def prepare_training_batch(
                             ent -= p * math.log(p + 1e-12)
                     return ent
 
-                orig_weights = []
-                seed_weights = []
+                orig_weights: list[float] = []
+                seed_weights: list[float] = []
                 for w, meta in zip(weights, reward_comp.completion_metadata):
                     if meta and meta.get("is_seed_aug", False):
                         seed_weights.append(w)
                     else:
                         orig_weights.append(w)
+                orig_weights = _gather_weights(orig_weights)
+                seed_weights = _gather_weights(seed_weights)
                 seed_metrics["entropy/orig"] = _entropy(orig_weights)
                 seed_metrics["entropy/seed_aug"] = _entropy(seed_weights)
         return PreparedBatch(

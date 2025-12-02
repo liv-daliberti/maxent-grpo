@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import Any, Tuple
 
 from maxent_grpo.core.data import get_dataset
-from maxent_grpo.training.runtime.prompts import _to_prompt
+from maxent_grpo.training.runtime.prompts import (
+    _prompt_char_limit_from_tokens,
+    _to_prompt,
+)
 
 
 def load_datasets(
@@ -16,10 +19,17 @@ def load_datasets(
     raw_ds = get_dataset(script_args)
     pc = getattr(script_args, "dataset_prompt_column", "problem")
     sc = getattr(script_args, "dataset_solution_column", "answer")
+    char_limit = _prompt_char_limit_from_tokens(
+        getattr(training_args, "max_prompt_length", 0)
+    )
 
     def _map_fn(ex: dict) -> dict:
         out = _to_prompt(
-            ex, tokenizer, pc, getattr(training_args, "system_prompt", None)
+            ex,
+            tokenizer,
+            pc,
+            getattr(training_args, "system_prompt", None),
+            char_limit=char_limit,
         )
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out

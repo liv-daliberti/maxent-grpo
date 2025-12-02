@@ -25,34 +25,78 @@ from types import SimpleNamespace
 
 import pytest
 
-# Minimal torch/accelerate/transformers stubs so imports succeed.
-_TORCH_STUB = types.ModuleType("torch")
-_TORCH_STUB.Tensor = type("Tensor", (object,), {})
-_TORCH_STUB.device = type("device", (object,), {})
-_TORCH_STUB.optim = SimpleNamespace(Optimizer=type("Optimizer", (object,), {}))
-_TORCH_STUB.__spec__ = SimpleNamespace()
-sys.modules["torch"] = _TORCH_STUB
-torch_utils = types.ModuleType("torch.utils")
-sys.modules["torch.utils"] = torch_utils
-torch_utils_data = types.ModuleType("torch.utils.data")
-torch_utils_data.DataLoader = type("DataLoader", (object,), {})
-sys.modules["torch.utils.data"] = torch_utils_data
-transformers_stub = types.ModuleType("transformers")
-transformers_stub.PreTrainedModel = type("PreTrainedModel", (object,), {})
-transformers_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (object,), {})
-sys.modules["transformers"] = transformers_stub
+# Placeholders populated by the module-scoped fixture below.
+pipeline = None
+PreparedBatch = None
+_BatchStats = None
+_TraceCounter = None
+_SkipBatch = None
+_collect_batch_stats = None
+_reference_stats_from_meta = None
+_require_artifact = None
+prepare_training_batch = None
 
-import maxent_grpo.training.pipeline as pipeline  # noqa: E402
-from maxent_grpo.training.pipeline import (  # noqa: E402,E401
-    PreparedBatch,
-    _BatchStats,
-    _TraceCounter,
-    _SkipBatch,
-    _collect_batch_stats,
-    _reference_stats_from_meta,
-    _require_artifact,
-    prepare_training_batch,
-)
+
+@pytest.fixture(scope="module", autouse=True)
+def _pipeline_with_stubs():
+    """Install lightweight stubs while importing pipeline, then restore originals."""
+
+    orig_modules = {
+        "torch": sys.modules.pop("torch", None),
+        "torch.utils": sys.modules.pop("torch.utils", None),
+        "torch.utils.data": sys.modules.pop("torch.utils.data", None),
+        "transformers": sys.modules.pop("transformers", None),
+    }
+
+    torch_stub = types.ModuleType("torch")
+    torch_stub.Tensor = type("Tensor", (object,), {})
+    torch_stub.device = lambda *_a, **_k: SimpleNamespace(type="cpu")
+    torch_stub.optim = SimpleNamespace(Optimizer=type("Optimizer", (object,), {}))
+    torch_stub.nn = SimpleNamespace(
+        Module=type("Module", (object,), {}),
+        Linear=lambda *a, **k: SimpleNamespace(
+            weight=None, __call__=lambda *_a, **_k: None
+        ),
+        Embedding=lambda *a, **k: SimpleNamespace(
+            weight=None, __call__=lambda *_a, **_k: None
+        ),
+    )
+    torch_stub.__spec__ = SimpleNamespace()
+    sys.modules["torch"] = torch_stub
+
+    torch_utils = types.ModuleType("torch.utils")
+    sys.modules["torch.utils"] = torch_utils
+    torch_utils_data = types.ModuleType("torch.utils.data")
+    torch_utils_data.DataLoader = type("DataLoader", (object,), {})
+    sys.modules["torch.utils.data"] = torch_utils_data
+
+    transformers_stub = types.ModuleType("transformers")
+    transformers_stub.PreTrainedModel = type("PreTrainedModel", (object,), {})
+    transformers_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (object,), {})
+    sys.modules["transformers"] = transformers_stub
+
+    import maxent_grpo.training.pipeline as pipeline_mod  # noqa: E402
+
+    globals().update(
+        pipeline=pipeline_mod,
+        PreparedBatch=pipeline_mod.PreparedBatch,
+        _BatchStats=pipeline_mod._BatchStats,
+        _TraceCounter=pipeline_mod._TraceCounter,
+        _SkipBatch=pipeline_mod._SkipBatch,
+        _collect_batch_stats=pipeline_mod._collect_batch_stats,
+        _reference_stats_from_meta=pipeline_mod._reference_stats_from_meta,
+        _require_artifact=pipeline_mod._require_artifact,
+        prepare_training_batch=pipeline_mod.prepare_training_batch,
+    )
+
+    yield
+
+    # Restore original modules after this test module completes.
+    for name, mod in orig_modules.items():
+        if mod is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = mod
 
 
 class _FakePromptEntry:

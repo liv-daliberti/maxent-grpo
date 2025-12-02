@@ -84,6 +84,39 @@ class VLLMGenerationHelper(
         stats.setdefault("vllm_retry_rounds", 0)
         ctx.generation_stats = stats
 
+    # Expose patchable state via public accessors for callers/tests.
+    @property
+    def vllm_client(self) -> Any:
+        return self._vllm_client
+
+    @vllm_client.setter
+    def vllm_client(self, value: Any) -> None:
+        self._vllm_client = value
+
+    @property
+    def vllm_sync_ready(self) -> bool:
+        return self._vllm_sync_ready
+
+    @vllm_sync_ready.setter
+    def vllm_sync_ready(self, value: bool) -> None:
+        self._vllm_sync_ready = bool(value)
+
+    @property
+    def last_vllm_synced_step(self) -> Optional[int]:
+        return self._last_vllm_synced_step
+
+    @last_vllm_synced_step.setter
+    def last_vllm_synced_step(self, value: Optional[int]) -> None:
+        self._last_vllm_synced_step = value
+
+    @property
+    def fsdp_cls(self):
+        return self._fsdp_cls
+
+    @fsdp_cls.setter
+    def fsdp_cls(self, value) -> None:
+        self._fsdp_cls = value
+
     def generate(
         self,
         prompts: List[str],

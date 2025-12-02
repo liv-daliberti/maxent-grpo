@@ -23,6 +23,7 @@ from maxent_grpo.pipelines.training.baseline import (
     _to_prompt,
     ChatTemplate,
 )
+from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
 
 LOG = logging.getLogger(__name__)
 
@@ -104,6 +105,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
                 setattr(loss, "maxent_enabled", True)
             return loss
 
+    MaxEntGRPOTrainer = ensure_weighting_logging(MaxEntGRPOTrainer)
     MaxEntGRPOTrainer.__name__ = "MaxEntGRPOTrainer"
     return MaxEntGRPOTrainer
 

@@ -19,12 +19,13 @@ from __future__ import annotations
 import json
 import math
 import os
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from maxent_grpo.training.runtime import require_torch
 from ..types import ReferenceLogprobs, RewardComputation
 from .types import (
     WeightStats,
+    WeightLoggingView,
     WeightingSettings,
     WeightNormalizationSettings,
     QDistributionSettings,
@@ -255,24 +256,40 @@ def maybe_update_beta(weighting_cfg: WeightingSettings, measured_kl: float) -> N
 
 def maybe_update_tau(
     weighting_cfg: WeightingSettings,
-    weight_stats: WeightStats,
+    weight_stats: WeightStats | WeightLoggingView,
     global_step: int,
+    lr_scale: Optional[float] = None,
 ) -> None:
     """Adjust tau to hit a target weight entropy if configured.
 
     :param weighting_cfg: Weighting configuration mutated in-place.
     :type weighting_cfg: WeightingSettings
-    :param weight_stats: Current batch weight statistics providing entropy.
-    :type weight_stats: WeightStats
+    :param weight_stats: Current batch weight statistics providing entropy. Can be
+        raw per-batch stats or aggregated logging views.
+    :type weight_stats: WeightStats | WeightLoggingView
     :param global_step: Training step used for warmup/EMA logic.
     :type global_step: int
+    :param lr_scale: Optional multiplicative scale applied to ``maxent_tau_lr``
+        (e.g., to follow the main LR scheduler).
+    :type lr_scale: float | None
     """
+    base_tau_lr = getattr(weighting_cfg, "_tau_lr_base", weighting_cfg.tau_lr)
+    if not isinstance(base_tau_lr, (int, float)):
+        base_tau_lr = float(weighting_cfg.tau_lr)
+    setattr(weighting_cfg, "_tau_lr_base", float(base_tau_lr))
+    scale = 1.0
+    if isinstance(lr_scale, (int, float)) and math.isfinite(float(lr_scale)):
+        scale = max(float(lr_scale), 0.0)
+    effective_tau_lr = float(base_tau_lr) * scale
+    setattr(weighting_cfg, "_tau_lr_effective", effective_tau_lr)
     target_entropy = weighting_cfg.tau_target_entropy
     if target_entropy is None:
         return
     if global_step <= max(0, weighting_cfg.tau_warmup_steps):
         return
-    measured_entropy = weight_stats.weight_entropy
+    measured_entropy = getattr(weight_stats, "weight_entropy", None)
+    if measured_entropy is None:
+        measured_entropy = getattr(weight_stats, "entropy", None)
     if not isinstance(measured_entropy, (int, float)) or not math.isfinite(
         measured_entropy
     ):
@@ -294,7 +311,7 @@ def maybe_update_tau(
     error = target_entropy - measured_entropy
     if abs(error) < 1e-12:
         return
-    tau_log = tau_log + weighting_cfg.tau_lr * error
+    tau_log = tau_log + effective_tau_lr * error
     new_tau = math.exp(tau_log)
     new_tau = min(max(new_tau, weighting_cfg.tau_min), weighting_cfg.tau_max)
     weighting_cfg.tau = new_tau
@@ -304,6 +321,68 @@ def maybe_update_tau(
         denom_sum = new_tau + weighting_cfg.beta
         weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
     setattr(weighting_cfg, "_tau_log", math.log(max(new_tau, 1e-8)))
+
+
+def broadcast_controller_state(
+    accelerator: Any, weighting_cfg: WeightingSettings
+) -> bool:
+    """Sync controller scalars (tau, beta, entropy EMA/log) across ranks.
+
+    Uses ``broadcast_object_list`` when available; falls back to a no-op if the
+    accelerator does not expose a broadcast helper. Returns ``True`` on success.
+    """
+
+    bcast = getattr(accelerator, "broadcast_object_list", None)
+    if not callable(bcast):
+        return False
+    try:
+        payload = [
+            [
+                float(weighting_cfg.beta),
+                float(weighting_cfg.tau),
+                float(getattr(weighting_cfg, "_tau_entropy_ema", float("nan"))),
+                float(
+                    getattr(
+                        weighting_cfg,
+                        "_tau_log",
+                        math.log(max(weighting_cfg.tau, 1e-8)),
+                    )
+                ),
+            ]
+        ]
+    except (TypeError, ValueError):
+        return False
+    proc_index = getattr(accelerator, "process_index", None)
+    if proc_index == 0:
+        # Cache source payload for sequential/unit-test invocations where a real
+        # collective is not running concurrently.
+        setattr(broadcast_controller_state, "_last_payload", payload)
+    cached = getattr(broadcast_controller_state, "_last_payload", None)
+    received = None
+    try:
+        received = bcast(payload, src=0)
+    except (RuntimeError, TypeError, ValueError, OSError):
+        received = None
+    if isinstance(received, list) and received:
+        payload = received
+    elif proc_index != 0 and cached:
+        payload = cached
+    try:
+        beta, tau, entropy_ema, tau_log = payload[0]
+        weighting_cfg.beta = float(beta)
+        weighting_cfg.tau = float(tau)
+        if weighting_cfg.train_grpo_objective:
+            weighting_cfg.denom = 1.0
+        else:
+            denom_sum = weighting_cfg.tau + weighting_cfg.beta
+            weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+        if isinstance(entropy_ema, (int, float)) and math.isfinite(entropy_ema):
+            setattr(weighting_cfg, "_tau_entropy_ema", float(entropy_ema))
+        if isinstance(tau_log, (int, float)) and math.isfinite(tau_log):
+            setattr(weighting_cfg, "_tau_log", float(tau_log))
+    except (TypeError, ValueError, IndexError):
+        return False
+    return True
 
 
 def controller_state_dict(weighting_cfg: WeightingSettings) -> dict:
@@ -400,11 +479,12 @@ def collect_weight_entropy(
             continue
         try:
             weight_tensor = torch.tensor(weight_group, dtype=torch.float32)
-            entropy_vals.append(
-                float(
-                    (-weight_tensor.clamp(min=1e-12).log() * weight_tensor).sum().item()
-                )
-            )
+            clamped = weight_tensor.clamp(min=1e-12)
+            try:
+                log_vals = clamped.log()
+            except (RuntimeError, TypeError, ValueError):
+                log_vals = torch.log(clamped) if hasattr(torch, "log") else clamped
+            entropy_vals.append(float((-(log_vals) * weight_tensor).sum().item()))
         except (TypeError, ValueError, RuntimeError):
             p = [max(w, 1e-12) for w in weight_group]
             total = sum(p)

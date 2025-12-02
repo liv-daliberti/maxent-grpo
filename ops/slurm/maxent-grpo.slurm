@@ -21,7 +21,7 @@
 #SBATCH --error=var/logs/%x-%j.err
 #SBATCH --requeue
 #SBATCH --time=128:00:00
-#SBATCH --account=mltheory      # Adjust for your cluster (e.g., hopper-prod)
+#SBATCH --account=mltheory
 # Ensure the job sees the project venv by default; override with sbatch --export if needed.
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 
@@ -105,6 +105,8 @@ export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
 export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
 export WANDB_DIR="$VAR_DIR/cache/wandb"
+# Force-enable wandb for training jobs so the Transformers callback sees it.
+export WANDB_DISABLED=0
 export WANDB_HTTP_TIMEOUT="${WANDB_HTTP_TIMEOUT:-300}"
 export WANDB_RETRY_MAX="${WANDB_RETRY_MAX:-10}"
 export TMPDIR="$VAR_DIR/tmp"
@@ -131,7 +133,8 @@ if [[ "$*" == *"--help"* ]]; then
   echo "Usage: sbatch ops/slurm/maxent-grpo.slurm [options]"
   echo "Options:"
   echo "  --model MODEL            Recipe model directory under configs/recipes/ (e.g., Qwen2.5-1.5B-Instruct)"
-  echo "  --config SUFFIX          Config suffix in configs/recipes/<model>/maxent-grpo/config_<SUFFIX>.yaml (e.g., math)"
+  echo "  --config SUFFIX          Config suffix in configs/recipes/<model>/<task-subdir>/config_<SUFFIX>.yaml (e.g., math)"
+  echo "  --task-subdir NAME       Task subdir under configs/recipes/<model>/ (default: maxent-grpo; use 'grpo' for GRPO-only recipes)"
   echo "  --accelerator NAME       Accelerate config in configs/recipes/accelerate_configs/<NAME>.yaml (e.g., zero3)"
   echo "  --dp N                   vLLM data parallel size on the server node (default: 1)"
   echo "  --tp N                   vLLM tensor parallel size on the server node (default: 1)"
@@ -139,7 +142,7 @@ if [[ "$*" == *"--help"* ]]; then
   echo "  --vllm-group-port PORT   NCCL group port for weight sync RPCs (default: 29535)"
   echo "  --args \"ARGS\"          Extra args to pass to the training entrypoint"
   echo ""
-  echo "This script always launches src/maxent_grpo/maxent_grpo.py with configs/recipes/<model>/maxent-grpo configs."
+  echo "This script launches src/maxent_grpo/maxent_grpo.py with configs/recipes/<model>/<task-subdir> configs."
   exit 0
 fi
 
@@ -149,11 +152,12 @@ fi
 MODEL="${MODEL:-Qwen2.5-1.5B-Instruct}"
 CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
 ACCELERATOR="${ACCELERATOR:-zero3}"
+TASK_SUBDIR="${TASK_SUBDIR:-maxent-grpo}"
 DP=${DP:-1}
 TP=${TP:-1}
 VLLM_PORT=${VLLM_PORT:-29525}
 VLLM_GROUP_PORT=${VLLM_GROUP_PORT:-29535}
-VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-5000}
+VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-8000}
 OPTIONAL_ARGS="${OPTIONAL_ARGS:-}"
 
 # Parse CLI
@@ -161,6 +165,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --model)        MODEL="$2"; shift 2;;
     --config)       CONFIG_SUFFIX="$2"; shift 2;;
+    --task-subdir)  TASK_SUBDIR="$2"; shift 2;;
     --accelerator)  ACCELERATOR="$2"; shift 2;;
     --dp)           DP="$2"; shift 2;;
     --tp)           TP="$2"; shift 2;;
@@ -180,7 +185,7 @@ if [[ -z "$MODEL" || -z "$CONFIG_SUFFIX" || -z "$ACCELERATOR" ]]; then
   exit 1
 fi
 
-TASK_SUBDIR="maxent-grpo"
+TASK_SUBDIR="${TASK_SUBDIR:-maxent-grpo}"
 CONFIG_FILE="configs/recipes/${MODEL}/${TASK_SUBDIR}/config_${CONFIG_SUFFIX}.yaml"
 ACCEL_FILE="configs/recipes/accelerate_configs/${ACCELERATOR}.yaml"
 if [[ ! -f "$CONFIG_FILE" ]]; then
@@ -192,6 +197,9 @@ if [[ ! -f "$ACCEL_FILE" ]]; then
   exit 1
 fi
 export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$CONFIG_FILE}"
+# Ensure the training entrypoint loads the recipe via GRPO_RECIPE to avoid
+# TRL parser conflicts when reward fields overlap.
+export GRPO_RECIPE="${GRPO_RECIPE:-$CONFIG_FILE}"
 
 export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
 if grep -qi '^[[:space:]]*distributed_type:[[:space:]]*deepspeed' "$ACCEL_FILE"; then

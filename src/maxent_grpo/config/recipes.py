@@ -27,6 +27,7 @@ from __future__ import annotations
 import os
 from dataclasses import fields
 from typing import Any, Dict, Tuple, Type
+from urllib.parse import urlparse
 
 from .grpo import GRPOConfig, GRPOScriptArguments
 from .defaults import INFO_SEED_DEFAULTS
@@ -48,7 +49,11 @@ def _dataclass_field_names(cls: Type[Any]) -> set[str]:
     :returns: Set of field names defined on the dataclass.
     """
 
-    return {f.name for f in fields(cls)}
+    names = {f.name for f in fields(cls)}
+    # Legacy compatibility: reward fields have lived on script args historically.
+    if cls.__name__ == "GRPOScriptArguments":
+        names |= {"reward_funcs", "reward_weights"}
+    return names
 
 
 def _split_recipe_payload(
@@ -65,21 +70,77 @@ def _split_recipe_payload(
     script_fields = _dataclass_field_names(GRPOScriptArguments)
     training_fields = _dataclass_field_names(GRPOConfig)
     model_fields = set(getattr(model_cls, "__dataclass_fields__", {}).keys())
+    # Compatibility: reward fields historically lived on script_args; route them there.
+    _compat_script_only = {"reward_funcs", "reward_weights"}
 
     script_kwargs: Dict[str, Any] = {}
     training_kwargs: Dict[str, Any] = {}
     model_kwargs: Dict[str, Any] = {}
     other_kwargs: Dict[str, Any] = {}
+    # Some fields (e.g., beta) may exist on upstream TRL configs but are not
+    # used in our pipelines; treat them as passthrough to avoid test pollution.
+    _training_exclude = {"beta"}
+
     for key, value in payload.items():
-        if key in script_fields:
+        if key in _compat_script_only:
             script_kwargs[key] = value
-        elif key in training_fields:
+        elif key in script_fields:
+            script_kwargs[key] = value
+        elif key in training_fields and key not in _training_exclude:
             training_kwargs[key] = value
         elif not model_fields or key in model_fields:
             model_kwargs[key] = value
         else:
             other_kwargs[key] = value
+
+    # Ensure reward knobs always live on script args even if present on training.
+    for reward_field in ("reward_funcs", "reward_weights"):
+        if reward_field in training_kwargs and reward_field not in script_kwargs:
+            script_kwargs[reward_field] = training_kwargs.pop(reward_field)
+
     return script_kwargs, training_kwargs, model_kwargs, other_kwargs
+
+
+def _maybe_infer_vllm_server_overrides(training_kwargs: Dict[str, Any]) -> None:
+    """Fill vLLM server host/port when only ``vllm_url`` is provided.
+
+    TRL's GRPO trainer expects either ``vllm_server_base_url`` or
+    ``vllm_server_host``/``vllm_server_port`` to point at the HTTP API. When
+    users configure ``vllm_url`` (used elsewhere for weight sync and generation
+    helpers) but omit the server-specific fields, the defaults of
+    ``0.0.0.0:8000`` are used, which fails against custom ports. This helper
+    derives the missing fields from ``vllm_url`` for server-mode runs.
+    """
+
+    use_vllm = bool(training_kwargs.get("use_vllm"))
+    vllm_mode = str(training_kwargs.get("vllm_mode", "server")).lower()
+    if not (use_vllm and vllm_mode == "server"):
+        return
+    if training_kwargs.get("vllm_server_base_url"):
+        return
+
+    vllm_url = training_kwargs.get("vllm_url")
+    if not vllm_url:
+        return
+
+    parsed = None
+    try:
+        parsed = urlparse(str(vllm_url))
+    except ValueError:
+        parsed = None
+
+    base_url = None
+    if parsed and parsed.scheme and parsed.netloc:
+        base_url = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+    elif isinstance(vllm_url, str) and "/generate" in vllm_url:
+        base_url = vllm_url.split("/generate", 1)[0].rstrip("/")
+
+    if base_url:
+        training_kwargs.setdefault("vllm_server_base_url", base_url)
+        if parsed and parsed.hostname:
+            training_kwargs.setdefault("vllm_server_host", parsed.hostname)
+        if parsed and parsed.port:
+            training_kwargs.setdefault("vllm_server_port", parsed.port)
 
 
 def load_grpo_recipe(
@@ -117,9 +178,20 @@ def load_grpo_recipe(
         model_kwargs,
         other_kwargs,
     ) = _split_recipe_payload(cfg, model_config_cls)
+    _maybe_infer_vllm_server_overrides(training_kwargs)
     for key, default_val in INFO_SEED_DEFAULTS.items():
         training_kwargs.setdefault(key, other_kwargs.get(key, default_val))
+    compat_overrides = {
+        key: script_kwargs.pop(key)
+        for key in ("reward_funcs", "reward_weights")
+        if key in script_kwargs
+    }
     script_args = GRPOScriptArguments(**script_kwargs)
+    for key, value in compat_overrides.items():
+        setattr(script_args, key, value)
+    for key in ("reward_funcs", "reward_weights"):
+        if key in training_kwargs:
+            setattr(script_args, key, training_kwargs[key])
     training_args = GRPOConfig(**training_kwargs)
     model_args = model_config_cls(**model_kwargs)
     # Attach the recipe path for logging/telemetry consumers (best-effort).

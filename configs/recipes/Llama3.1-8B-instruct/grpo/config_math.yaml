@@ -80,7 +80,9 @@ reward_funcs:
 reward_weights:
 - 1
 kl_target: 0.07
-init_kl_coeff: 3.0
+init_kl_coeff: 0.50
+init_kl_coef: 0.50
+kl_penalty_beta: 0.50
 kl_horizon: 50000
 kl_ctl_step_size: 0.15
 max_grad_norm: 0.15

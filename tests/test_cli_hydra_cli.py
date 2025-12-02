@@ -102,7 +102,8 @@ def test_build_grpo_configs_without_recipe(monkeypatch):
         model={"a": 1},
     )
     script_args, train_args, model_cfg = hydra_cli._build_grpo_configs(cmd)
-    assert script_args.reward_funcs  # defaults from GRPOScriptArguments applied
+    assert train_args.reward_funcs == ["x"]
+    assert script_args.reward_funcs  # legacy shim still set
     assert hasattr(train_args, "benchmarks")
     assert model_cfg.kwargs == {"a": 1}
 

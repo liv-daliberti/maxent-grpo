@@ -35,7 +35,10 @@ from maxent_grpo.training.runtime.deps import require_dataloader, require_accele
 from maxent_grpo.training.runtime.prompts import GenerationPenaltyConfig
 from maxent_grpo.training.runtime.config import VLLMClientConfig
 from maxent_grpo.training.data import load_datasets
-from maxent_grpo.training.rewards import load_reward_functions
+from maxent_grpo.training.rewards import (
+    load_reward_functions,
+    load_eval_reward_functions,
+)
 from maxent_grpo.training.weighting.logic import build_weighting_settings
 from maxent_grpo.training.state import build_training_state
 from maxent_grpo.training.types import PromptCacheEntry
@@ -152,8 +155,16 @@ def run_infoseed_training(
     train_dataset, eval_rows = load_datasets(script_args, training_args, tokenizer)
     training_args.eval_rows = eval_rows
 
-    reward_funcs, reward_weights = load_reward_functions(script_args, tokenizer)
+    reward_funcs, reward_weights = load_reward_functions(
+        script_args, tokenizer, training_args
+    )
     reward_spec = RewardSpec(reward_funcs=reward_funcs, reward_weights=reward_weights)
+    eval_reward_funcs, eval_reward_weights = load_eval_reward_functions(
+        script_args, tokenizer, training_args
+    )
+    eval_reward_spec = RewardSpec(
+        reward_funcs=eval_reward_funcs, reward_weights=eval_reward_weights
+    )
 
     # Weighting from GRPOConfig (MaxEnt params set to neutral values).
     weighting = build_weighting_settings(training_args)
@@ -239,6 +250,7 @@ def run_infoseed_training(
     ctx = TrainingLoopContext(
         runtime=runtime_handles,
         reward=reward_spec,
+        eval_reward=eval_reward_spec,
         settings=loop_settings,
         logging=logging_handles,
     )

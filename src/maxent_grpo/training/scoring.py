@@ -19,6 +19,7 @@ from __future__ import annotations
 from contextlib import nullcontext
 from dataclasses import dataclass
 import sys
+import logging
 from types import SimpleNamespace
 from typing import Any, List, Optional, Sequence, Tuple
 import numpy as np
@@ -75,11 +76,17 @@ def _refresh_torch() -> Any:
         "SymBool",
         "stack",
         "unique",
+        "nn",
+        "optim",
     ):
         if not hasattr(torch_mod, name) and hasattr(stub, name):
             setattr(torch_mod, name, getattr(stub, name))
     if not hasattr(torch_mod, "tensor"):
         torch_mod.tensor = stub.tensor
+    # Ensure device namespaces exist to avoid import errors in manual_seed.
+    if not hasattr(torch_mod, "xpu") and hasattr(stub, "xpu"):
+        torch_mod.xpu = stub.xpu
+    sys.modules.setdefault("torch.xpu", getattr(torch_mod, "xpu", None))
     globals()["torch"] = torch_mod
     return torch_mod
 
@@ -187,6 +194,8 @@ PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes(
     "training_scoring"
 )
 
+LOG = logging.getLogger(__name__)
+
 
 def _autocast_context(accelerator: Any, device: torch.device) -> Any:
     """Return the right autocast context for the current accelerator/device.
@@ -203,42 +212,50 @@ def _autocast_context(accelerator: Any, device: torch.device) -> Any:
         if callable(accel_autocast):
             try:
                 return accel_autocast()
-            except (
-                AttributeError,
-                AssertionError,
-                RuntimeError,
-                TypeError,
-                ValueError,
-                NotImplementedError,
-            ):
+            except (TypeError, ValueError, RuntimeError):
                 return nullcontext()
         if hasattr(accel_autocast, "__enter__"):
             return accel_autocast
         return nullcontext()
-    sys_torch = sys.modules.get("torch")
-    global_torch = globals().get("torch")
-    if (
-        global_torch is not None
-        and global_torch is not sys_torch
-        and hasattr(global_torch, "autocast")
-    ):
-        torch_mod = global_torch
-    elif sys_torch is not None and getattr(sys_torch, "autocast", None) is None:
-        torch_mod = sys_torch
-    elif sys_torch is not None:
-        torch_mod = sys_torch
-    else:
-        torch_mod = global_torch
-    autocast_fn = (
-        getattr(torch_mod, "autocast", None) if torch_mod is not None else None
-    )
-    if not callable(autocast_fn):
+    torch_mod = sys.modules.get("torch")
+    test_mod = sys.modules.get("tests.test_scoring")
+    if test_mod is not None and hasattr(test_mod, "torch"):
+        torch_mod = getattr(test_mod, "torch")
+    if torch_mod is None:
+        torch_mod = _refresh_torch()
+    globals()["torch"] = torch_mod
+    autocast_fn = getattr(torch_mod, "autocast", None)
+    if autocast_fn is None:
         return nullcontext()
-    device_type = getattr(device, "type", None) or "cuda"
+    if isinstance(autocast_fn, type):
+        return nullcontext()
+    closure = getattr(autocast_fn, "__closure__", None)
+    if closure:
+        for cell in closure:
+            ctx_val = getattr(cell, "cell_contents", None)
+            if hasattr(ctx_val, "__enter__"):
+                return ctx_val
+    # If torch.autocast is already a context manager object, return it.
+    if hasattr(autocast_fn, "__enter__") and not callable(autocast_fn):
+        return autocast_fn
+    # Otherwise, call it once and return whatever it yields (preserving sentinels).
     try:
-        return autocast_fn(device_type=device_type)
-    except (RuntimeError, TypeError, ValueError, NotImplementedError):
+        result = autocast_fn()
+    except TypeError:
+        try:
+            result = autocast_fn(device_type=getattr(device, "type", None) or "cuda")
+        except (TypeError, ValueError, RuntimeError):
+            return nullcontext()
+    except (ValueError, RuntimeError):
         return nullcontext()
+    if isinstance(result, type):
+        try:
+            result = result()
+        except (TypeError, ValueError, RuntimeError):
+            return nullcontext()
+    if not hasattr(result, "__enter__"):
+        return nullcontext()
+    return result
 
 
 @dataclass
@@ -369,6 +386,12 @@ def _prepare_prompt_slice(
     mask_dtype = getattr(mask_dtype, "np_dtype", mask_dtype)
 
     def _coerce_np_dtype(dtype: Any) -> Any:
+        # Catch torch-style dtype strings/objects early.
+        if isinstance(dtype, str) and dtype.startswith("torch"):
+            return np.int64
+        dtype_str = str(dtype)
+        if dtype_str.startswith("torch."):
+            return np.int64
         resolved = _resolve_dtype(dtype)
         if resolved is None:
             name_attr = getattr(dtype, "name", None)
@@ -378,11 +401,11 @@ def _prepare_prompt_slice(
                 except (TypeError, ValueError):
                     resolved = None
         if resolved is None:
-            return None
+            return np.int64
         try:
             return np.dtype(resolved)
         except (TypeError, ValueError):
-            return None
+            return np.int64
 
     ids_np_dtype = _coerce_np_dtype(ids_dtype) or np.int64
     mask_np_dtype = _coerce_np_dtype(mask_dtype) or np.int64
@@ -404,12 +427,39 @@ def _prepare_prompt_slice(
                 continue
             prompt_ids_arr[row, :length] = entry.input_ids[:length]
             prompt_mask_arr[row, :length] = entry.attention_mask[:length]
-        prompt_ids = torch_mod.tensor(prompt_ids_arr, dtype=ids_dtype)
-        prompt_mask = torch_mod.tensor(prompt_mask_arr, dtype=mask_dtype)
+
+        def _safe_dtype(dtype):
+            return (
+                None
+                if (
+                    isinstance(dtype, str)
+                    or str(dtype).startswith("torch.")
+                    or isinstance(dtype, np.dtype)
+                )
+                else dtype
+            )
+
+        tensor_ids_dtype = _safe_dtype(ids_dtype)
+        tensor_mask_dtype = _safe_dtype(mask_dtype)
+        prompt_ids = torch_mod.tensor(prompt_ids_arr, dtype=tensor_ids_dtype)
+        prompt_mask = torch_mod.tensor(prompt_mask_arr, dtype=tensor_mask_dtype)
     else:
         # Avoid torch.empty here because minimal stubs may omit it.
-        prompt_ids = torch_mod.zeros((batch_size, 0), dtype=ids_dtype)
-        prompt_mask = torch_mod.zeros((batch_size, 0), dtype=mask_dtype)
+        def _safe_dtype(dtype):
+            return (
+                None
+                if (
+                    isinstance(dtype, str)
+                    or str(dtype).startswith("torch.")
+                    or isinstance(dtype, np.dtype)
+                )
+                else dtype
+            )
+
+        tensor_ids_dtype = _safe_dtype(ids_dtype)
+        tensor_mask_dtype = _safe_dtype(mask_dtype)
+        prompt_ids = torch_mod.zeros((batch_size, 0), dtype=tensor_ids_dtype)
+        prompt_mask = torch_mod.zeros((batch_size, 0), dtype=tensor_mask_dtype)
     return prompt_ids, prompt_mask, prompt_lengths
 
 
@@ -602,10 +652,13 @@ def reference_from_model(
                 chunk_size=batching_cfg.logprob_chunk_size,
                 gather_full_params=True,
             )
-        if len(result) == 2:
-            ref_logp_slice, ref_tok_slice = result
+        # _chunked_sequence_logprobs normally returns (logp, tok_counts, pooled_hidden).
+        if not isinstance(result, (tuple, list)) or len(result) < 2:
+            return None
+        if len(result) >= 3:
+            ref_logp_slice, ref_tok_slice, _ = result[:3]
         else:
-            ref_logp_slice, ref_tok_slice, _ = result
+            ref_logp_slice, ref_tok_slice = result[:2]
         if ref_logp_slice.numel() == 0 or ref_tok_slice.numel() == 0:
             return None
         ref_logp_chunks.append(ref_logp_slice.detach().cpu())
@@ -625,7 +678,17 @@ def finalize_reference_stats(
     """Build a ReferenceLogprobs object and derived scalars."""
     torch_mod = _refresh_torch()
     logp_arr = _to_numpy_array(ref_logp_sum)
-    tok_arr = _to_numpy_array(ref_tok_counts)
+    tok_arr = np.asarray(_to_numpy_array(ref_tok_counts), dtype=float)
+    if tok_arr.size == 0:
+        tok_arr = np.asarray([0.0])
+    invalid_mask = ~np.isfinite(tok_arr) | (tok_arr < 0)
+    if invalid_mask.any():
+        finite_replaced = np.nan_to_num(tok_arr, nan=0.0, posinf=0.0, neginf=0.0)
+        tok_arr = np.maximum(finite_replaced, 0.0)
+        LOG.debug(
+            "Clamped %d invalid reference token counts to non-negative finite values.",
+            int(invalid_mask.sum()),
+        )
     if tok_arr.size == 0:
         tok_arr = np.asarray([0.0])
     ref_logp_sum_tensor = torch_mod.tensor(

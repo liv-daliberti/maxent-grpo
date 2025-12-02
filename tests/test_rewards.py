@@ -40,6 +40,15 @@ def test_pure_accuracy_reward_requires_format_tags():
     assert out == [0.0]
 
 
+def test_pure_accuracy_reward_relaxes_format_in_eval():
+    comp = "no think but <answer>42</answer>"
+    gold = ["42"]
+    out_train = R.pure_accuracy_reward_math([comp], gold)
+    out_eval = R.pure_accuracy_reward_math([comp], gold, is_eval=True)
+    assert out_train == [0.0]
+    assert out_eval == [1.0]
+
+
 """
 Copyright 2025 Liv d'Aliberti
 

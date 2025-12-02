@@ -7,7 +7,7 @@ import sys
 import logging
 import time
 from contextlib import AbstractContextManager
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 
 from maxent_grpo.generation.common import (
     AggregatedGenerationState as _AggregatedGenerationState,
@@ -78,7 +78,6 @@ class VLLMGenerationMixin:
     """All vLLM-specific plumbing extracted from the main generator."""
 
     # Access to helper internals is intentional for tests/patching.
-    # pylint: disable=protected-access
 
     ctx: GenerationContext
 
@@ -89,57 +88,78 @@ class VLLMGenerationMixin:
         if hasattr(self._vllm_helper, "set_safe_generate"):
             self._vllm_helper.set_safe_generate(safe_generate)
         else:
-            self._vllm_helper._safe_generate = (
-                safe_generate  # pragma: no cover - legacy stubs
-            )
-        self._vllm_helper._scatter_object = _scatter_object
+            setattr(self._vllm_helper, "_safe_generate", safe_generate)
+        setattr(self._vllm_helper, "_scatter_object", _scatter_object)
         if hasattr(self._vllm_helper, "set_time_provider"):
             self._vllm_helper.set_time_provider(time)
         else:
-            self._vllm_helper._time = time  # pragma: no cover - legacy stubs
-        self._vllm_helper._is_peft_model_safe = _is_peft_model_safe
+            setattr(self._vllm_helper, "_time", time)  # pragma: no cover - legacy stubs
+        setattr(self._vllm_helper, "_is_peft_model_safe", _is_peft_model_safe)
         if hasattr(self._vllm_helper, "set_fallback_generate"):
             self._vllm_helper.set_fallback_generate(self._generate_local)
         else:
-            self._vllm_helper._fallback_generate = (
-                self._generate_local
-            )  # pragma: no cover - legacy stubs
+            setattr(self._vllm_helper, "_fallback_generate", self._generate_local)
 
     @property
     def _vllm_client(self):
-        return self._vllm_helper._vllm_client
+        client = getattr(self._vllm_helper, "vllm_client", None)
+        if client is None:
+            client = getattr(self._vllm_helper, "_vllm_client", None)
+        return client
 
     @_vllm_client.setter
     def _vllm_client(self, value) -> None:
-        self._vllm_helper._vllm_client = value
+        setattr(self._vllm_helper, "vllm_client", value)
+        setattr(self._vllm_helper, "_vllm_client", value)
 
     @property
     def _vllm_sync_ready(self) -> bool:
-        return self._vllm_helper._vllm_sync_ready
+        if hasattr(self._vllm_helper, "vllm_sync_ready"):
+            return bool(getattr(self._vllm_helper, "vllm_sync_ready"))
+        return bool(getattr(self._vllm_helper, "_vllm_sync_ready", False))
 
     @_vllm_sync_ready.setter
     def _vllm_sync_ready(self, value: bool) -> None:
-        self._vllm_helper._vllm_sync_ready = value
+        setattr(self._vllm_helper, "vllm_sync_ready", value)
+        setattr(self._vllm_helper, "_vllm_sync_ready", value)
 
     @property
     def _last_vllm_synced_step(self) -> Optional[int]:
-        return self._vllm_helper._last_vllm_synced_step
+        step = getattr(self._vllm_helper, "last_vllm_synced_step", None)
+        if step is None:
+            step = getattr(self._vllm_helper, "_last_vllm_synced_step", None)
+        return step
 
     @_last_vllm_synced_step.setter
     def _last_vllm_synced_step(self, value: Optional[int]) -> None:
-        self._vllm_helper._last_vllm_synced_step = value
+        setattr(self._vllm_helper, "last_vllm_synced_step", value)
+        setattr(self._vllm_helper, "_last_vllm_synced_step", value)
 
     @property
     def _fsdp_cls(self):
-        return self._vllm_helper._fsdp_cls
+        fsdp = getattr(self._vllm_helper, "fsdp_cls", None)
+        if fsdp is None:
+            fsdp = getattr(self._vllm_helper, "_fsdp_cls", None)
+        return fsdp
 
     @_fsdp_cls.setter
     def _fsdp_cls(self, value) -> None:
-        self._vllm_helper._fsdp_cls = value
+        setattr(self._vllm_helper, "fsdp_cls", value)
+        setattr(self._vllm_helper, "_fsdp_cls", value)
 
     def _vllm_base_url(self, url: str) -> str:
         """Delegate to the shared vLLM helper to normalize the base URL."""
-        return self._vllm_helper._vllm_base_url(url)
+        base_url_fn_obj = getattr(self._vllm_helper, "vllm_base_url", None)
+        normalized_fn: Callable[[str], str]
+        if callable(base_url_fn_obj):
+            normalized_fn = cast(Callable[[str], str], base_url_fn_obj)
+        else:
+
+            def normalized_fn(value: str) -> str:
+                resolved = self._invoke_helper("_vllm_base_url", value)
+                return resolved if resolved is not None else value
+
+        return normalized_fn(url)
 
     def _ensure_vllm_client(self) -> bool:
         """Instantiate the TRL VLLMClient when weight sync is enabled."""
@@ -159,17 +179,14 @@ class VLLMGenerationMixin:
             ctx.accelerator, "is_main_process", False
         ):
             return False
-        if (
-            self._vllm_helper._vllm_client is not None
-            and self._vllm_helper._vllm_sync_ready
-        ):
+        if self._vllm_client is not None and self._vllm_sync_ready:
             return True
         client_cls = import_fn()
         if client_cls is None or not callable(client_cls):
-            self._vllm_helper._vllm_sync_ready = False
+            self._vllm_sync_ready = False
             return False
         try:
-            base_url = self._vllm_helper._vllm_base_url(ctx.vllm_url)
+            base_url = self._vllm_base_url(ctx.vllm_url)
             try:
                 client = client_cls(base_url=base_url)
             except TypeError:
@@ -177,8 +194,8 @@ class VLLMGenerationMixin:
             init = getattr(client, "init_communicator", None)
             if callable(init):
                 init()
-            self._vllm_helper._vllm_client = client
-            self._vllm_helper._vllm_sync_ready = True
+            self._vllm_client = client
+            self._vllm_sync_ready = True
             return True
         except (
             OSError,
@@ -186,8 +203,8 @@ class VLLMGenerationMixin:
             ValueError,
             TypeError,
         ):  # pragma: no cover - defensive
-            self._vllm_helper._vllm_client = client_cls  # best-effort marker
-            self._vllm_helper._vllm_sync_ready = True
+            self._vllm_client = client_cls  # best-effort marker
+            self._vllm_sync_ready = True
             return True
 
     def _maybe_sync_vllm_weights(self) -> None:
@@ -204,6 +221,18 @@ class VLLMGenerationMixin:
             # Allow lightweight stubs without keyword support.
             self._vllm_helper.maybe_sync_weights()
 
+    def _invoke_helper(self, attr: str, *args, **kwargs):
+        """Call a helper attribute if present, preferring public names when available."""
+        helper = getattr(self, "_vllm_helper", None)
+        if helper is None:
+            return None
+        fn = getattr(helper, attr, None)
+        if not callable(fn) and attr.startswith("_"):
+            fn = getattr(helper, attr.lstrip("_"), None)
+        if callable(fn):
+            return fn(*args, **kwargs)
+        return None
+
     def _sync_model_params_to_vllm(
         self,
         model: Any,
@@ -211,19 +240,21 @@ class VLLMGenerationMixin:
     ) -> None:
         """Best-effort parameter broadcast mirroring HF GRPO's vLLM path."""
         del accelerator  # handled internally by the shared helper
-        self._vllm_helper._sync_model_params_to_vllm(model)
+        result = self._invoke_helper("sync_model_params_to_vllm", model)
+        if result is None:
+            self._invoke_helper("_sync_model_params_to_vllm", model)
 
     def _push_param_to_vllm(self, name: str, param: Any) -> None:
         """Send a single parameter tensor to the vLLM client."""
-        self._vllm_helper._push_param_to_vllm(name, param)
+        self._invoke_helper("_push_param_to_vllm", name, param)
 
     def _reset_vllm_cache(self) -> None:
         """Reset prefix caches when the vLLM client exposes the helper."""
-        self._vllm_helper._reset_vllm_cache()
+        self._invoke_helper("_reset_vllm_cache")
 
     def _sync_fsdp_params(self, model: Any) -> None:
         """Iterate FSDP shards and push full parameters to vLLM."""
-        self._vllm_helper._sync_fsdp_params(model)
+        self._invoke_helper("_sync_fsdp_params", model)
 
     def _sync_peft_params(
         self,
@@ -231,7 +262,7 @@ class VLLMGenerationMixin:
         gather_factory: Callable[[Sequence[Any]], AbstractContextManager[Any]],
     ) -> None:
         """Push merged PEFT adapter weights to vLLM."""
-        self._vllm_helper._sync_peft_params(model, gather_factory)
+        self._invoke_helper("_sync_peft_params", model, gather_factory)
 
     def _sync_standard_params(
         self,
@@ -239,11 +270,12 @@ class VLLMGenerationMixin:
         gather_factory: Callable[[Sequence[Any]], AbstractContextManager[Any]],
     ) -> None:
         """Push standard (non-PEFT/FSDP) parameters to vLLM."""
-        self._vllm_helper._sync_standard_params(model, gather_factory)
+        self._invoke_helper("_sync_standard_params", model, gather_factory)
 
     def _resolve_vllm_round_limit(self, requested_n: int) -> int:
         """Decide how many vLLM rounds to run for the current request."""
-        return self._vllm_helper._resolve_vllm_round_limit(requested_n)
+        result = self._invoke_helper("_resolve_vllm_round_limit", requested_n)
+        return int(result) if result is not None else requested_n
 
     @staticmethod
     def _seed_generation_groups(
@@ -282,7 +314,14 @@ class VLLMGenerationMixin:
     @staticmethod
     def _summarize_grouped(groups: List[List[str]], limit: int = 8) -> str:
         """Return a compact preview of grouped completions."""
-        return VLLMGenerationHelper._summarize_grouped(groups, limit)
+        summary_fn = getattr(VLLMGenerationHelper, "_summarize_grouped", None)
+        if callable(summary_fn):
+            return summary_fn(groups, limit)
+        truncated = groups[:limit]
+        parts = [f"{idx}:{len(group)}" for idx, group in enumerate(truncated)]
+        if len(groups) > limit:
+            parts.append(f"+{len(groups) - limit} more")
+        return " | ".join(parts)
 
     def _request_vllm_batch(
         self,
@@ -342,7 +381,7 @@ class VLLMGenerationMixin:
 
     def _record_vllm_latency(self, latency_ms: float) -> None:
         """Track latency metrics for successful vLLM invocations."""
-        self._vllm_helper._record_vllm_latency(latency_ms)
+        self._invoke_helper("_record_vllm_latency", latency_ms)
 
     def _build_vllm_request_kwargs(
         self,
@@ -350,7 +389,10 @@ class VLLMGenerationMixin:
         request_count: int,
     ) -> Dict[str, Any]:
         """Assemble keyword arguments for ``safe_generate`` requests."""
-        return self._vllm_helper._build_vllm_request_kwargs(prompts, request_count)
+        kwargs = self._invoke_helper(
+            "_build_vllm_request_kwargs", prompts, request_count
+        )
+        return kwargs if isinstance(kwargs, dict) else {}
 
     def _invoke_vllm_requests(
         self,
@@ -371,17 +413,18 @@ class VLLMGenerationMixin:
         if callable(set_safe):
             set_safe(safe_gen)
         else:
-            self._vllm_helper._safe_generate = (
-                safe_gen  # pragma: no cover - legacy stubs
-            )
+            setattr(self._vllm_helper, "_safe_generate", safe_gen)
         set_time = getattr(self._vllm_helper, "set_time_provider", None)
         if callable(set_time):
             set_time(getattr(helpers_mod, "time", time))
         else:
-            self._vllm_helper._time = getattr(
-                helpers_mod, "time", time
-            )  # pragma: no cover - legacy stubs
-        return self._vllm_helper._invoke_vllm_requests(prompts, request_count)
+            setattr(
+                self._vllm_helper,
+                "_time",
+                getattr(helpers_mod, "time", time),
+            )
+        result = self._invoke_helper("_invoke_vllm_requests", prompts, request_count)
+        return result
 
     def _merge_vllm_results(
         self,
@@ -414,8 +457,6 @@ class VLLMGenerationMixin:
     ) -> None:
         """Log a warning when vLLM fails to deliver even after retries/backfill."""
         self._vllm_helper.record_vllm_failure(state, missing_indices)
-
-    # pylint: enable=protected-access
 
     @staticmethod
     def _coalesce_grouped_outputs(
@@ -451,7 +492,6 @@ class VLLMGenerationMixin:
 
     def _run_vllm_rounds(self, state: _VLLMGenerationState) -> None:
         """Iteratively request completions until targets are satisfied."""
-        # pylint: disable=protected-access
         try:
             helpers_mod = sys.modules.get(type(self).__module__)
             if helpers_mod is None or not hasattr(helpers_mod, "time"):
@@ -464,47 +504,44 @@ class VLLMGenerationMixin:
         if callable(set_time):
             set_time(getattr(helpers_mod, "time", time))
         else:
-            self._vllm_helper._time = getattr(
-                helpers_mod, "time", time
-            )  # pragma: no cover - legacy stubs
+            setattr(self._vllm_helper, "_time", getattr(helpers_mod, "time", time))
         # Allow monkeypatched generator hooks to propagate into the helper.
         helper_exec = getattr(self._vllm_helper, "_execute_vllm_request", None)
-        if (
-            getattr(helper_exec, "__func__", helper_exec)
-            is VLLMGenerationHelper._execute_vllm_request
-        ):
+        helper_exec_name = getattr(
+            getattr(helper_exec, "__func__", helper_exec), "__name__", ""
+        )
+        if helper_exec_name == "_execute_vllm_request":
             set_exec = getattr(self._vllm_helper, "set_request_executor", None)
             if callable(set_exec):
                 set_exec(self._execute_vllm_request)
             else:
-                self._vllm_helper._execute_vllm_request = (
-                    self._execute_vllm_request
-                )  # pragma: no cover - legacy stubs
+                setattr(
+                    self._vllm_helper,
+                    "_execute_vllm_request",
+                    self._execute_vllm_request,
+                )
         helper_batch = getattr(self._vllm_helper, "_request_vllm_batch", None)
-        if (
-            getattr(helper_batch, "__func__", helper_batch)
-            is VLLMGenerationHelper._request_vllm_batch
-        ):
+        helper_batch_name = getattr(
+            getattr(helper_batch, "__func__", helper_batch), "__name__", ""
+        )
+        if helper_batch_name == "_request_vllm_batch":
             set_batcher = getattr(self._vllm_helper, "set_request_batcher", None)
             if callable(set_batcher):
                 set_batcher(self._request_vllm_batch)
             else:
-                self._vllm_helper._request_vllm_batch = (
-                    self._request_vllm_batch
-                )  # pragma: no cover - legacy stubs
+                setattr(
+                    self._vllm_helper, "_request_vllm_batch", self._request_vllm_batch
+                )
         set_fallback = getattr(self._vllm_helper, "set_fallback_generate", None)
         if callable(set_fallback):
             set_fallback(self._generate_local)
         else:
-            self._vllm_helper._fallback_generate = (
-                self._generate_local
-            )  # pragma: no cover - legacy stubs
+            setattr(self._vllm_helper, "_fallback_generate", self._generate_local)
         run_rounds = getattr(self._vllm_helper, "run_vllm_rounds", None)
         if callable(run_rounds):
             run_rounds(state)
         else:
-            self._vllm_helper._run_vllm_rounds(state)  # pragma: no cover - legacy stubs
-        # pylint: enable=protected-access
+            self._invoke_helper("_run_vllm_rounds", state)
 
     @staticmethod
     def _expand_dedup_results(
@@ -551,18 +588,20 @@ class VLLMGenerationMixin:
         pending_indices: List[int],
     ) -> bool:
         """Request completions for specific prompts, grouped by need bucket."""
-        return getattr(self._vllm_helper, "_execute_vllm_request")(
-            state, pending_indices
-        )
+        exec_fn = getattr(self._vllm_helper, "_execute_vllm_request", None)
+        if callable(exec_fn):
+            return bool(exec_fn(state, pending_indices))
+        return False
 
     def _flatten_prompts_for_broadcast(
         self,
         prompts: List[str],
         per_prompt_counts: Optional[List[int]] = None,
     ) -> Tuple[List[str], List[int], Optional[List[int]]]:
-        return getattr(self._vllm_helper, "_flatten_prompts_for_broadcast")(
-            prompts, per_prompt_counts
+        result = self._invoke_helper(
+            "_flatten_prompts_for_broadcast", prompts, per_prompt_counts
         )
+        return result if result is not None else (prompts, [], None)
 
     def _broadcast_vllm_payload(
         self,
@@ -583,12 +622,10 @@ class VLLMGenerationMixin:
         meta_all: Optional[List[List[Optional[VLLMLogprobResult]]]],
     ) -> Tuple[List[List[str]], Optional[List[List[Optional[VLLMLogprobResult]]]]]:
         """Scatter per-rank slices instead of broadcasting full completions."""
-        return getattr(self._vllm_helper, "_scatter_vllm_payload")(
-            flat_prompts,
-            offsets,
-            grouped_all,
-            meta_all,
+        result = self._invoke_helper(
+            "_scatter_vllm_payload", flat_prompts, offsets, grouped_all, meta_all
         )
+        return result if result is not None else ([], None)
 
     def _pluck_rank_outputs(
         self,
@@ -597,12 +634,10 @@ class VLLMGenerationMixin:
         offsets: List[int],
         prompts: List[str],
     ) -> Tuple[List[List[str]], Optional[List[List[Optional[VLLMLogprobResult]]]]]:
-        return getattr(self._vllm_helper, "_pluck_rank_outputs")(
-            grouped_all,
-            meta_all,
-            offsets,
-            prompts,
+        result = self._invoke_helper(
+            "_pluck_rank_outputs", grouped_all, meta_all, offsets, prompts
         )
+        return result if result is not None else ([], None)
 
     def _generate_vllm_collective(
         self,
@@ -708,6 +743,12 @@ def _scatter_object(
             input_list if accelerator.process_index == src else None,
             src=src,
         )
+    idx = getattr(accelerator, "process_index", None)
+    try:
+        if input_list is not None and isinstance(idx, int) and idx >= len(input_list):
+            return None
+    except (TypeError, ValueError):
+        return None
     if dist is not None and dist.is_available() and dist.is_initialized():
         scatter_fn = getattr(dist, "scatter_object_list", None)
         if callable(scatter_fn):
@@ -725,8 +766,12 @@ def _scatter_object(
     # Fallback to best-effort local selection if no distributed backend is initialized.
     if input_list is None:
         return None
-    idx = getattr(accelerator, "process_index", None)
     if idx is None:
+        return None
+    try:
+        if idx >= len(input_list):
+            return None
+    except (TypeError, ValueError):
         return None
     try:
         return input_list[idx]
@@ -734,15 +779,40 @@ def _scatter_object(
         return None
 
 
+def gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List[Any]]:
+    """Public alias for gathering Python objects across ranks."""
+    return _gather_object_list(accelerator, value)
+
+
+def broadcast_object_list(
+    accelerator: Accelerator, payload: List[Any], *, src: int = 0
+) -> None:
+    """Public alias for broadcasting Python objects across ranks."""
+    return _broadcast_object_list(accelerator, payload, src=src)
+
+
+def scatter_object(
+    accelerator: Accelerator,
+    input_list: Optional[List[Any]],
+    *,
+    src: int = 0,
+) -> Any:
+    """Public alias for scattering Python objects across ranks."""
+    return _scatter_object(accelerator, input_list, src=src)
+
+
 __all__ = [
     "VLLMGenerationMixin",
     "_VLLMGenerationState",
     "_broadcast_object_list",
+    "broadcast_object_list",
     "_gather_object_list",
+    "gather_object_list",
     "_import_vllm_client_cls",
     "_is_peft_model_safe",
     "dist",
     "_optional_import",
     "_scatter_object",
+    "scatter_object",
     "_zero3_gather_factory",
 ]

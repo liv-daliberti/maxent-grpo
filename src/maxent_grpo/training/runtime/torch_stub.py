@@ -2,367 +2,658 @@
 
 from __future__ import annotations
 
-from contextlib import nullcontext
-from types import SimpleNamespace
-from typing import Any
+from contextlib import nullcontext, contextmanager
+import sys
+from types import ModuleType, SimpleNamespace
+from typing import Any, Iterable, Tuple
+
+import numpy as np
+
+# Expected conversion/indexing errors when emulating torch with numpy.
+_NUMPY_EXCEPTIONS = (TypeError, ValueError, OverflowError, IndexError)
 
 
 def _build_torch_stub() -> Any:
-    """Return a lightweight torch stub for test environments."""
+    """Return a lightweight, numpy-backed torch stub for test environments."""
+
+    class _DType:
+        def __init__(self, name: str, np_dtype: np.dtype):
+            self.name = name
+            self.np_dtype = np.dtype(np_dtype)
+
+        def __repr__(self) -> str:  # pragma: no cover - representational only
+            return f"torch.{self.name}"
+
+    def _resolve_dtype(dtype: object | None):
+        if dtype is None:
+            return None
+        np_dtype = getattr(dtype, "np_dtype", None)
+        if np_dtype is not None:
+            return np_dtype
+        try:
+            return np.dtype(dtype)
+        except _NUMPY_EXCEPTIONS:
+            return None
+
+    def _normalize_shape(shape: object | None) -> Tuple[int, ...]:
+        if shape is None:
+            return (0,)
+        if isinstance(shape, _Tensor):
+            return tuple(shape.arr.shape)
+        if isinstance(shape, (list, tuple)):
+            if len(shape) == 0:
+                return (0,)
+            return tuple(int(s) for s in shape)
+        try:
+            return (int(shape),)
+        except _NUMPY_EXCEPTIONS:
+            try:
+                return tuple(shape)  # type: ignore[arg-type]
+            except _NUMPY_EXCEPTIONS:
+                return (0,)
+
+    class _Device:
+        def __init__(self, device: str = "cpu"):
+            self.type = str(device)
+
+        def __repr__(self):
+            return f"torch.device('{self.type}')"
 
     class _Tensor:
-        def __init__(self, data=None, dtype=None):
-            self.data = list(data) if data is not None else []
-            self.dtype = dtype
+        __array_priority__ = 100.0
+
+        def __init__(self, data=None, dtype=None, requires_grad: bool = False):
+            np_dtype = _resolve_dtype(dtype)
+            if isinstance(data, _Tensor):
+                data = data.arr
+            try:
+                arr = np.array([] if data is None else data, dtype=np_dtype)
+            except _NUMPY_EXCEPTIONS:
+                arr = np.array([] if data is None else data, dtype=np_dtype, copy=False)
+            self.arr = arr
+            self.dtype = dtype if dtype is not None else arr.dtype
+            self.requires_grad = bool(requires_grad)
+            self.grad = None
+
+        # Container/utility helpers
+        @property
+        def shape(self):
+            return self.arr.shape
+
+        @property
+        def ndim(self):
+            return self.arr.ndim
+
+        @property
+        def device(self):
+            return _Device("cpu")
 
         def __iter__(self):
-            return iter(self.data) if self.data is not None else iter([])
+            return iter(self.arr)
 
         def __len__(self):
-            return len(self.data) if self.data is not None else 0
+            if self.arr.ndim == 0:
+                return 0 if self.arr.size == 0 else 1
+            return int(self.arr.shape[0])
 
         def any(self):
             try:
-                return any(bool(x) for x in self.data)
-            except (TypeError, ValueError):
+                return bool(np.any(self.arr))
+            except _NUMPY_EXCEPTIONS:
                 return False
 
-        @property
-        def shape(self):
-            if self.data and hasattr(self.data[0], "__len__"):
-                return (len(self.data), len(self.data[0]))
-            return (len(self.data),)
+        def numel(self):
+            if self.arr.ndim > 1:
+                return int(self.arr.shape[0])
+            return int(self.arr.size)
 
-        def __getitem__(self, key):
-            if isinstance(key, tuple) and len(key) == 2:
-                rows, cols = key
-                selected = []
-                row_indices = (
-                    range(len(self.data)) if isinstance(rows, slice) else [rows]
+        def item(self):
+            try:
+                return self.arr.item()
+            except _NUMPY_EXCEPTIONS:
+                return self.arr.tolist() if self.arr.size else []
+
+        def to(self, *args, **kwargs):
+            dtype = kwargs.get("dtype", None)
+            if len(args) >= 2 and dtype is None:
+                dtype = args[1]
+            np_dtype = _resolve_dtype(dtype)
+            if np_dtype is None:
+                return self
+            return _Tensor(self.arr.astype(np_dtype), dtype=dtype)
+
+        def cpu(self):
+            return self
+
+        def detach(self):
+            return self
+
+        def clone(self):
+            return _Tensor(self.arr.copy(), dtype=self.dtype)
+
+        def float(self):
+            return self
+
+        def long(self):
+            return self
+
+        def reshape(self, *shape):
+            return _Tensor(self.arr.reshape(*shape), dtype=self.dtype)
+
+        view = reshape
+
+        def unsqueeze(self, dim: int):
+            return _Tensor(np.expand_dims(self.arr, axis=dim), dtype=self.dtype)
+
+        def squeeze(self, dim: int | None = None):
+            if dim is None:
+                return _Tensor(np.squeeze(self.arr), dtype=self.dtype)
+            return _Tensor(np.squeeze(self.arr, axis=dim), dtype=self.dtype)
+
+        def size(self, dim: int | None = None):
+            if dim is None:
+                return self.arr.shape
+            if self.arr.ndim <= dim:
+                return 0
+            return int(self.arr.shape[dim])
+
+        # Reductions
+        def sum(self, dim: int | None = None):
+            try:
+                if dim is None:
+                    return _Tensor(np.sum(self.arr), dtype=self.dtype)
+                return _Tensor(np.sum(self.arr, axis=dim), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor([0.0], dtype=self.dtype)
+
+        def mean(self, dim: int | None = None):
+            if not np.issubdtype(self.arr.dtype, np.number):
+                return _Tensor(np.array([0.0], dtype=float), dtype=float)
+            try:
+                if self.arr.size == 0:
+                    return _Tensor([0.0], dtype=self.dtype)
+                if dim is None:
+                    return _Tensor(np.mean(self.arr), dtype=self.dtype)
+                return _Tensor(np.mean(self.arr, axis=dim), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor([0.0], dtype=self.dtype)
+
+        def std(self, unbiased: bool = False):
+            if self.arr.size == 0:
+                return _Tensor([0.0], dtype=self.dtype)
+            if not np.issubdtype(self.arr.dtype, np.number):
+                return _Tensor(np.array([0.0], dtype=float), dtype=float)
+            try:
+                ddof = 1 if unbiased else 0
+                val = np.std(self.arr, ddof=ddof)
+                if not np.isfinite(val):
+                    val = 0.0
+                return _Tensor(np.array(val, dtype=float), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor([0.0], dtype=self.dtype)
+
+        def min(self, dim: int | None = None):
+            try:
+                if dim is None:
+                    return _Tensor(
+                        np.min(self.arr) if self.arr.size else np.array(0),
+                        dtype=self.dtype,
+                    )
+                return _Tensor(np.min(self.arr, axis=dim), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor([0], dtype=self.dtype)
+
+        def max(self, dim: int | None = None):
+            try:
+                if dim is None:
+                    return _Tensor(
+                        np.max(self.arr) if self.arr.size else np.array(0),
+                        dtype=self.dtype,
+                    )
+                return _Tensor(np.max(self.arr, axis=dim), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor([0], dtype=self.dtype)
+
+        def clamp(self, min_val=None, max_val=None, **kwargs):
+            # Accept torch-style keyword aliases clamp(min=..., max=...)
+            if "min" in kwargs and min_val is None:
+                min_val = kwargs.get("min")
+            if "max" in kwargs and max_val is None:
+                max_val = kwargs.get("max")
+            try:
+                return _Tensor(
+                    np.clip(self.arr, a_min=min_val, a_max=max_val), dtype=self.dtype
                 )
-                for r in row_indices:
-                    row_val = self.data[r]
-                    if isinstance(row_val, list):
-                        selected.append(row_val[cols])
-                return _Tensor(selected, self.dtype)
-            return _Tensor(self.data[key], self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor(self.arr, dtype=self.dtype)
+
+        def fill_diagonal_(self, value):
+            try:
+                np.fill_diagonal(self.arr, value)
+            except _NUMPY_EXCEPTIONS:
+                pass
+            return self
+
+        def exp(self):
+            try:
+                return _Tensor(np.exp(self.arr), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor(self.arr, dtype=self.dtype)
+
+        # Indexing
+        def __getitem__(self, key):
+            if isinstance(key, _Tensor):
+                key = key.arr
+            try:
+                return _Tensor(self.arr[key], dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor(self.arr, dtype=self.dtype)
 
         def __setitem__(self, key, value):
-            val = value.data if isinstance(value, _Tensor) else value
-            if isinstance(key, tuple) and len(key) == 2 and isinstance(key[1], slice):
-                row, sl = key
+            val = value.arr if isinstance(value, _Tensor) else value
+            if isinstance(key, tuple) and len(key) == 2:
+                row, col = key
                 if isinstance(row, slice):
                     raise TypeError("Row slice assignment is not supported in the stub")
-                if isinstance(row, int):
-                    while len(self.data) <= row:
-                        self.data.append([])
-                    row_data = list(self.data[row])
-                    start, stop, step = sl.indices(len(row_data))
-                    if isinstance(val, list):
-                        row_data[start:stop:step] = val
+                if not isinstance(row, int):
+                    raise TypeError("Row index must be an int in the stub")
+                data = self.tolist() if self.arr.size else []
+                if data and not isinstance(data[0], list):
+                    data = [[v] for v in data]
+                while len(data) <= row:
+                    data.append([])
+                row_data = list(data[row])
+                if isinstance(col, slice):
+                    start, stop, step = col.indices(max(len(row_data), (col.stop or 0)))
+                    if stop > len(row_data):
+                        row_data.extend([0] * (stop - len(row_data)))
+                    if isinstance(val, np.ndarray):
+                        val = val.tolist()
+                    if isinstance(val, Iterable) and not isinstance(val, (str, bytes)):
+                        row_data[start:stop:step] = list(val)
                     else:
                         row_data[start:stop:step] = [val] * len(
                             range(start, stop, step)
                         )
-                    self.data[row] = row_data
                 else:
-                    self.data[key] = val
-            else:
-                self.data[key] = val
+                    while len(row_data) <= int(col):
+                        row_data.append(0)
+                    row_data[int(col)] = val
+                data[row] = row_data
+                try:
+                    self.arr = np.array(data, dtype=_resolve_dtype(self.dtype))
+                except _NUMPY_EXCEPTIONS:
+                    self.arr = np.array(data, dtype=object)
+                return
+            self.arr[key] = val
+
+        # Array adaptors
+        def __array__(self, dtype=None):
+            if dtype is None:
+                return np.array(self.arr)
+            return np.array(self.arr, dtype=dtype)
 
         def tolist(self):
-            return list(self.data)
+            res = self.arr.tolist()
+            return res if isinstance(res, list) else [res]
 
-        def _identity(self):
-            return self
-
-        long = _identity
-        float = _identity
-
-        def numel(self):
-            return len(self.data)
-
-        def sum(self, dim=None):
-            if dim is None:
-                return _Tensor([sum(self.data)], self.dtype)
-            if self.data and isinstance(self.data[0], list):
-                return _Tensor([sum(row) for row in self.data], self.dtype)
-            return _Tensor([sum(self.data)], self.dtype)
-
-        def std(self, unbiased=False):
-            import math
-
-            count = len(self.data)
-            if count == 0:
-                return _Tensor([0.0], self.dtype)
+        def __float__(self):
             try:
-                mean_val = sum(self.data) / count
-                var = sum((x - mean_val) ** 2 for x in self.data)
-                denom = count - 1 if unbiased and count > 1 else count
-                return _Tensor([math.sqrt(var / denom)], self.dtype)
-            except (TypeError, ValueError, ZeroDivisionError):
-                return _Tensor([0.0], self.dtype)
+                return float(self.arr)
+            except _NUMPY_EXCEPTIONS:
+                return float(self.arr.reshape(-1)[0]) if self.arr.size else 0.0
 
-        def mean(self):
-            count = len(self.data)
-            if count == 0:
-                return _Tensor([0.0], self.dtype)
-            try:
-                return _Tensor([sum(self.data) / count], self.dtype)
-            except (TypeError, ValueError):
-                return _Tensor([0.0], self.dtype)
-
-        def item(self):
-            try:
-                return self.data[0]
-            except (IndexError, TypeError):
-                return self.data
-
+        # Binary ops
         def _binary(self, other, op):
-            other_data = other.data if isinstance(other, _Tensor) else other
-            if (
-                isinstance(self.data, list)
-                and self.data
-                and isinstance(self.data[0], list)
-            ):
-                res = [
-                    [
-                        op(a, b if isinstance(other_data, list) else other_data)
-                        for a, b in zip(
-                            row,
-                            (
-                                other_data[row_idx]
-                                if isinstance(other_data, list)
-                                else [other_data] * len(row)
-                            ),
-                        )
-                    ]
-                    for row_idx, row in enumerate(self.data)
-                ]
-            else:
-                if isinstance(other_data, list):
-                    res = [op(a, b) for a, b in zip(self.data, other_data)]
-                else:
-                    res = [op(a, other_data) for a in self.data]
-            return _Tensor(res, self.dtype)
+            other_arr = other.arr if isinstance(other, _Tensor) else other
+            try:
+                return _Tensor(op(self.arr, other_arr), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                try:
+                    return _Tensor(op(self.arr, np.array(other_arr)), dtype=self.dtype)
+                except _NUMPY_EXCEPTIONS:
+                    return _Tensor(self.arr, dtype=self.dtype)
 
         def __add__(self, other):
-            return self._binary(other, lambda a, b: a + b)
+            return self._binary(other, np.add)
 
         def __sub__(self, other):
-            return self._binary(other, lambda a, b: a - b)
+            return self._binary(other, np.subtract)
 
         def __rsub__(self, other):
-            return _Tensor([other], self.dtype)._binary(self, lambda a, b: a - b)
+            return _Tensor(other)._binary(self, np.subtract)
 
         def __truediv__(self, other):
-            return self._binary(other, lambda a, b: a / b)
+            other_arr = other.arr if isinstance(other, _Tensor) else other
+            return _Tensor(np.divide(self.arr, other_arr), dtype=float)
+
+        def __rtruediv__(self, other):
+            return _Tensor(np.divide(other, self.arr), dtype=float)
 
         def __mul__(self, other):
-            return self._binary(other, lambda a, b: a * b)
+            return self._binary(other, np.multiply)
 
         __rmul__ = __mul__
 
-        cpu = _identity
+        def __matmul__(self, other):
+            return self._binary(other, np.matmul)
 
+        def __neg__(self):
+            return _Tensor(-self.arr, dtype=self.dtype)
+
+        # Comparisons / logic
         def __eq__(self, other):
-            return self._binary(other, lambda a, b: a == b)
+            return self._binary(other, np.equal)
+
+        def __ne__(self, other):
+            return self._binary(other, np.not_equal)
 
         def __ge__(self, other):
-            return self._binary(other, lambda a, b: a >= b)
+            return self._binary(other, np.greater_equal)
 
-    def _tensor(data=None, dtype=None, device=None):
+        def __lt__(self, other):
+            return self._binary(other, np.less)
+
+        def __gt__(self, other):
+            return self._binary(other, np.greater)
+
+        def ge(self, other):
+            return self.__ge__(other)
+
+        def ne(self, other):
+            return self.__ne__(other)
+
+    # Tensor factories
+    def _tensor(data=None, dtype=None, device=None, requires_grad: bool = False):
         del device
-        return _Tensor(data, dtype)
+        if isinstance(data, _Tensor):
+            return data
+        return _Tensor(data, dtype=dtype, requires_grad=requires_grad)
 
-    def _zeros(shape, *_args, **_kwargs):
-        n = int(shape[0]) if shape else 0
-        if len(shape) > 1:
-            m = int(shape[1])
-            return _Tensor([[0] * m for _ in range(n)])
-        return _Tensor([0] * n)
+    def _zeros(shape, dtype=None, device=None):
+        del device
+        norm = _normalize_shape(shape)
+        return _Tensor(np.zeros(norm, dtype=_resolve_dtype(dtype)), dtype=dtype)
 
-    def _ones_like(arr, *_args, **_kwargs):
-        try:
-            return _Tensor([1 for _ in arr])
-        except (TypeError, ValueError):
+    def _ones(shape, dtype=None, device=None):
+        del device
+        norm = _normalize_shape(shape)
+        return _Tensor(np.ones(norm, dtype=_resolve_dtype(dtype)), dtype=dtype)
+
+    def _full(shape, fill_value, dtype=None, device=None):
+        del device
+        norm = _normalize_shape(shape)
+        return _Tensor(
+            np.full(norm, fill_value, dtype=_resolve_dtype(dtype)), dtype=dtype
+        )
+
+    def _empty(shape, dtype=None, device=None):
+        del device
+        norm = _normalize_shape(shape)
+        return _Tensor(np.empty(norm, dtype=_resolve_dtype(dtype)), dtype=dtype)
+
+    def _zeros_like(arr, dtype=None):
+        if arr is None:
             return _Tensor([])
+        data = arr.arr if isinstance(arr, _Tensor) else arr
+        return _Tensor(np.zeros_like(data, dtype=_resolve_dtype(dtype)), dtype=dtype)
 
-    def _full(shape, fill_value, *_args, **_kwargs):
-        n = int(shape[0]) if shape else 0
-        if len(shape) > 1:
-            m = int(shape[1])
-            return _Tensor([[fill_value] * m for _ in range(n)])
-        return _Tensor([fill_value] * n)
+    def _ones_like(arr, dtype=None):
+        if arr is None:
+            return _Tensor([])
+        data = arr.arr if isinstance(arr, _Tensor) else arr
+        return _Tensor(np.ones_like(data, dtype=_resolve_dtype(dtype)), dtype=dtype)
 
-    def _cat(seq, dim=0):
-        del dim
-        out: list[Any] = []
+    def _full_like(arr, fill_value):
+        data = arr.arr if isinstance(arr, _Tensor) else arr
+        return _Tensor(
+            np.full_like(data, fill_value), dtype=getattr(arr, "dtype", None)
+        )
+
+    def _arange(end, dtype=None):
+        return _Tensor(np.arange(end, dtype=_resolve_dtype(dtype)), dtype=dtype)
+
+    def _cat(seq, dim: int = 0):
+        arrays = []
         for item in seq:
+            if item is None:
+                continue
             if isinstance(item, _Tensor):
-                out.extend(item.data)
-            elif isinstance(item, list):
-                out.extend(item)
-        return _Tensor(out)
-
-    def _size(arr, dim=None):
+                arrays.append(item.arr)
+            else:
+                arrays.append(np.array(item))
+        if not arrays:
+            return _Tensor([], dtype=None)
         try:
-            return len(arr) if dim is None else len(arr[dim])
-        except (TypeError, AttributeError):
-            return 0
+            return _Tensor(np.concatenate(arrays, axis=dim))
+        except _NUMPY_EXCEPTIONS:
+            flat = []
+            for arr in arrays:
+                flat.extend(arr.tolist() if hasattr(arr, "tolist") else list(arr))
+            return _Tensor(flat)
 
-    def _to(self, *_args, **_kwargs):
-        return self
+    def _stack(tensors, dim: int = 0):
+        arrays = [t.arr if isinstance(t, _Tensor) else np.array(t) for t in tensors]
+        return _Tensor(np.stack(arrays, axis=dim)) if arrays else _Tensor([])
+
+    def _all(x):
+        data = x.arr if isinstance(x, _Tensor) else x
+        return bool(np.all(data))
+
+    def _where(cond, x, y):
+        cond_arr = cond.arr if isinstance(cond, _Tensor) else cond
+        x_arr = x.arr if isinstance(x, _Tensor) else x
+        y_arr = y.arr if isinstance(y, _Tensor) else y
+        return _Tensor(np.where(cond_arr, x_arr, y_arr))
+
+    def _minimum(a, b):
+        a_arr = a.arr if isinstance(a, _Tensor) else a
+        b_arr = b.arr if isinstance(b, _Tensor) else b
+        return _Tensor(np.minimum(a_arr, b_arr))
+
+    def _maximum(a, b):
+        a_arr = a.arr if isinstance(a, _Tensor) else a
+        b_arr = b.arr if isinstance(b, _Tensor) else b
+        return _Tensor(np.maximum(a_arr, b_arr))
+
+    def _log_fn(x):
+        data = x.arr if isinstance(x, _Tensor) else x
+        try:
+            return _Tensor(np.log(data), dtype=getattr(x, "dtype", None))
+        except _NUMPY_EXCEPTIONS:
+            return _Tensor(data, dtype=getattr(x, "dtype", None))
+
+    def _softmax(tensor, dim: int = 0):
+        vals = tensor.arr if isinstance(tensor, _Tensor) else np.array(tensor)
+        max_val = np.max(vals, axis=dim, keepdims=True) if vals.size else 0.0
+        exps = np.exp(vals - max_val)
+        denom = np.sum(exps, axis=dim, keepdims=True)
+        return _Tensor(
+            exps / np.maximum(denom, 1e-12), dtype=getattr(tensor, "dtype", None)
+        )
+
+    def _pdist(tensor, p: int = 2):
+        arr = tensor.arr if isinstance(tensor, _Tensor) else np.array(tensor)
+        if arr.ndim != 2:
+            return _Tensor([], dtype=getattr(tensor, "dtype", None))
+        diff = arr[:, None, :] - arr[None, :, :]
+        dist = np.power(np.abs(diff), p).sum(axis=-1) ** (1.0 / p)
+        idx = np.triu_indices(dist.shape[0], k=1)
+        return _Tensor(dist[idx], dtype=getattr(tensor, "dtype", None))
+
+    def _unique(x):
+        arr = x.arr if isinstance(x, _Tensor) else np.array(x)
+        return _Tensor(np.unique(arr), dtype=getattr(x, "dtype", None))
+
+    def _randn(*shape, requires_grad: bool = False):
+        return _Tensor(
+            np.random.standard_normal(size=shape),
+            dtype=np.float32,
+            requires_grad=requires_grad,
+        )
+
+    @contextmanager
+    def _no_grad():
+        yield
 
     def _autocast(**_kwargs):
         return nullcontext()
 
+    torch_mod = SimpleNamespace()
+    torch_mod.Tensor = _Tensor
+    torch_mod.tensor = _tensor
+    torch_mod.zeros = _zeros
+    torch_mod.ones = _ones
+    torch_mod.full = _full
+    torch_mod.empty = _empty
+    torch_mod.randn = _randn
+    torch_mod.arange = _arange
+    torch_mod.cat = _cat
+    torch_mod.stack = _stack
+    torch_mod.matmul = lambda a, b: _Tensor(np.matmul(_tensor(a).arr, _tensor(b).arr))
+    torch_mod.size = lambda arr, dim=None: (
+        0
+        if arr is None
+        else (
+            len(arr)
+            if dim is None
+            else (len(arr[dim]) if hasattr(arr, "__getitem__") else 0)
+        )
+    )
+    torch_mod.zeros_like = _zeros_like
+    torch_mod.ones_like = _ones_like
+    torch_mod.full_like = _full_like
+    torch_mod.all = _all
+    torch_mod.where = _where
+    torch_mod.minimum = _minimum
+    torch_mod.maximum = _maximum
+    torch_mod.unique = _unique
+    torch_mod.softmax = _softmax
+    torch_mod.log = _log_fn
+    torch_mod.clamp = lambda inp, min_val=None, max_val=None: _Tensor(
+        np.clip(_tensor(inp).arr, a_min=min_val, a_max=max_val)
+    )
+    torch_mod.no_grad = _no_grad
+    torch_mod.autocast = _autocast
+    torch_mod.float32 = _DType("float32", np.float32)
+    torch_mod.float64 = _DType("float64", np.float64)
+    torch_mod.int64 = _DType("int64", np.int64)
+    torch_mod.long = torch_mod.int64
+    torch_mod.bool = _DType("bool", np.bool_)
+    torch_mod.dtype = type("dtype", (), {})  # pragma: no cover - placeholder
+    torch_mod.device = lambda name="cpu": _Device(name)
+    torch_mod.is_grad_enabled = lambda: True
+    torch_mod.manual_seed = lambda seed=None: np.random.seed(int(seed or 0))
+    torch_mod.autograd = SimpleNamespace(no_grad=_no_grad)
+
     class _SymBool:
-        def __init__(self, value=True):
+        def __init__(self, value=False):
             self.value = bool(value)
-            self.node = None
 
         def __bool__(self):
             return self.value
 
-    stub = SimpleNamespace(
-        Tensor=_Tensor,
-        tensor=_tensor,
-        full=_full,
-        ones_like=_ones_like,
-        zeros=_zeros,
-        cat=_cat,
-        size=_size,
-        autocast=_autocast,
-        SymBool=_SymBool,
+    torch_mod.SymBool = _SymBool
+
+    # cuda namespace stub
+    torch_mod.cuda = SimpleNamespace(
+        is_available=lambda: False,
+        manual_seed_all=lambda *_a, **_k: None,
+        _is_in_bad_fork=lambda: False,
     )
-    stub.optim = SimpleNamespace(
-        AdamW=lambda params, lr=1e-3: SimpleNamespace(
-            param_groups=[{"lr": lr}],
-            step=lambda: None,
-            zero_grad=lambda set_to_none=True: None,
-            parameters=lambda: params,
-        )
+    torch_mod.xpu = SimpleNamespace(
+        is_available=lambda: False,
+        manual_seed=lambda *_a, **_k: None,
+        manual_seed_all=lambda *_a, **_k: None,
+        _is_in_bad_fork=lambda: False,
     )
 
-    def _device(*args, **kwargs):
-        del kwargs
-        return SimpleNamespace(type=str(args[0]) if args else "cpu")
-
-    stub.device = _device
-    stub.nn = SimpleNamespace(
-        functional=SimpleNamespace(log_softmax=lambda *a, **k: None)
-    )
-
-    def _no_grad():
-        return nullcontext()
-
-    stub.autograd = SimpleNamespace(no_grad=_no_grad)
-    stub.no_grad = _no_grad
-
-    def _all(x):
-        data = x.data if isinstance(x, _Tensor) else x
-
-        def _flatten(val):
-            for item in val:
-                if isinstance(item, list):
-                    yield from _flatten(item)
-                else:
-                    yield item
-
-        return all(_flatten(data))
-
-    stub.all = _all
-    stub.ones = _ones_like
-    stub.zeros_like = _ones_like
-    stub.long = int
-    stub.float32 = float
-    stub.int64 = int
-
-    def _log_fn(x):
-        import math
-
-        data = x.data if isinstance(x, _Tensor) else x
-        return _Tensor([math.log(v) for v in data], getattr(x, "dtype", None))
-
-    stub.log = _log_fn
-    _Tensor.to = _to
-    _Tensor.detach = lambda self: self
-    _Tensor.clone = lambda self: _Tensor(list(self.data), self.dtype)
-    _Tensor.size = lambda self, dim=None: _size(self.data, dim)
-    _Tensor.view = lambda self, *args, **kwargs: self
-
-    def _tensor_clamp(self, min_val=None, max_val=None, **_kwargs):
-        # Accept both keyword styles while avoiding built-in shadowing.
-        if "max" in _kwargs and max_val is None:
-            max_val = _kwargs.pop("max")
-        if "min" in _kwargs and min_val is None:
-            min_val = _kwargs.pop("min")
-        result = []
-        for v in self.data:
-            val = v
-            if min_val is not None and val < min_val:
-                val = min_val
-            if max_val is not None and val > max_val:
-                val = max_val
-            result.append(val)
-        return _Tensor(result, self.dtype)
-
-    _Tensor.clamp = _tensor_clamp
-
-    def _tensor_log(self):
-        import math
-
-        return _Tensor([math.log(v) for v in self.data], self.dtype)
-
-    _Tensor.log = _tensor_log
-
-    def _softmax(tensor, dim=0):
-        import math
-
-        _ = dim  # dim kept for API compatibility
-        vals = tensor.data if isinstance(tensor, _Tensor) else list(tensor)
-        max_val = max(vals) if vals else 0.0
-        exps = [math.exp(v - max_val) for v in vals]
-        denom = sum(exps) if exps else 1.0
-        return _Tensor([v / denom for v in exps], getattr(tensor, "dtype", None))
-
-    stub.softmax = _softmax
-    stub.stack = lambda tensors, dim=0: _Tensor(
-        [t.data if isinstance(t, _Tensor) else t for t in tensors]
-    )
-    stub.unique = lambda x: _Tensor(
-        sorted(set(x.data if isinstance(x, _Tensor) else x))
-    )
-
-    def _pdist(tensor, p=2):
-        arr = tensor.data if isinstance(tensor, _Tensor) else tensor
-        try:
-            import numpy as _np
-
-            arr = _np.array(arr, dtype=float)
-            if arr.ndim != 2:
-                return _Tensor([], getattr(tensor, "dtype", None))
-            diff = arr[:, None, :] - arr[None, :, :]
-            dist = _np.power(_np.abs(diff), p).sum(axis=-1) ** (1.0 / p)
-            idx = _np.triu_indices(dist.shape[0], k=1)
-            return _Tensor(list(dist[idx]), getattr(tensor, "dtype", None))
-        except (ImportError, TypeError, ValueError, OverflowError):
-            return _Tensor([], getattr(tensor, "dtype", None))
-
-    stub.nn = SimpleNamespace(
+    # nn + optim namespaces
+    torch_mod.nn = SimpleNamespace(
         Module=type("Module", (), {}),
         Parameter=type("Parameter", (), {}),
         functional=SimpleNamespace(
-            log_softmax=lambda *args, **kwargs: _Tensor([]), pdist=_pdist
+            log_softmax=lambda *a, **k: _log_fn(a[0]) if a else _Tensor([]),
+            pdist=_pdist,
         ),
         Linear=lambda *_a, **_k: (lambda x: _Tensor([])),
         Embedding=lambda *_a, **_k: SimpleNamespace(
             weight=_Tensor([]), __call__=lambda ids: _Tensor([])
         ),
     )
-    stub.optim = SimpleNamespace(Optimizer=type("Optimizer", (), {}))
-    return stub
+    torch_mod.backends = SimpleNamespace()
+    torch_mod.mps = SimpleNamespace(
+        is_available=lambda: False,
+        is_built=False,
+        _is_in_bad_fork=lambda: False,
+        manual_seed=lambda *_a, **_k: None,
+    )
+    torch_mod.backends.mps = torch_mod.mps
+    torch_mod.optim = SimpleNamespace(
+        Optimizer=type("Optimizer", (), {}),
+        AdamW=lambda params=None, lr=1e-3: SimpleNamespace(
+            param_groups=[{"lr": lr}],
+            step=lambda: None,
+            zero_grad=lambda set_to_none=True: None,
+            parameters=lambda: params,
+        ),
+    )
+
+    # _dynamo shim
+    dynamo_mod = sys.modules.get("torch._dynamo")
+    if dynamo_mod is None:
+        dynamo_mod = ModuleType("torch._dynamo")
+        dynamo_mod.disable = lambda fn=None, recursive=False: fn
+        dynamo_mod.graph_break = lambda: None
+        dynamo_mod.__spec__ = SimpleNamespace()
+        sys.modules["torch._dynamo"] = dynamo_mod
+    setattr(torch_mod, "_dynamo", dynamo_mod)
+
+    # utils.data stubs
+    utils_mod = getattr(torch_mod, "utils", None)
+    if utils_mod is None:
+        utils_mod = SimpleNamespace()
+        torch_mod.utils = utils_mod
+    data_mod = getattr(utils_mod, "data", None)
+    if data_mod is None:
+        data_mod = SimpleNamespace()
+        utils_mod.data = data_mod
+    if getattr(utils_mod, "__spec__", None) is None:
+        utils_mod.__spec__ = SimpleNamespace()
+    if getattr(data_mod, "__spec__", None) is None:
+        data_mod.__spec__ = SimpleNamespace()
+
+    class DataLoader:
+        def __iter__(self):
+            return iter([])
+
+    data_mod.DataLoader = DataLoader
+
+    # Register stub modules for import resolution
+    torch_mod.__spec__ = SimpleNamespace()
+    torch_mod.__path__ = []
+    sys.modules.setdefault("torch", torch_mod)
+    sys.modules.setdefault("torch.cuda", torch_mod.cuda)
+    sys.modules.setdefault("torch.xpu", torch_mod.xpu)
+    sys.modules.setdefault("torch.nn", torch_mod.nn)
+    sys.modules.setdefault("torch.nn.functional", torch_mod.nn.functional)
+    sys.modules.setdefault("torch.optim", torch_mod.optim)
+    sys.modules.setdefault("torch.utils", torch_mod.utils)
+    sys.modules.setdefault("torch.utils.data", data_mod)
+    sys.modules.setdefault("torch.mps", torch_mod.mps)
+    # Register nested namespace stubs to placate imports triggered during backward passes.
+    nested_mod = ModuleType("torch.nested")
+    nested_mod.__spec__ = SimpleNamespace()
+    nested_internal = ModuleType("torch.nested._internal")
+    nested_internal.__spec__ = SimpleNamespace()
+    nested_tensor_mod = ModuleType("torch.nested._internal.nested_tensor")
+    nested_tensor_mod.__spec__ = SimpleNamespace()
+    nested_tensor_mod.NestedTensor = type("NestedTensor", (), {})
+    sys.modules.setdefault("torch.nested", nested_mod)
+    sys.modules.setdefault("torch.nested._internal", nested_internal)
+    sys.modules.setdefault("torch.nested._internal.nested_tensor", nested_tensor_mod)
+
+    return torch_mod
 
 
 __all__ = ["_build_torch_stub"]

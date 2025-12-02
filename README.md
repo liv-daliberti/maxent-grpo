@@ -32,7 +32,9 @@ maxent-grpo-math-eval command=math-eval \
   inference.num_generations=8 \
   inference.seeds=[0,1,2,3,4] \
   inference.temperature=0.6 \
-  inference.models='[ {model_name_or_path: od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1} ]'
+  inference.models='[ {model_name_or_path: od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1} ]' \
+  inference.collect_generations=false \
+  inference.artifacts.root_dir=var/artifacts/inference
 ```
 
 The MaxEnt runner is provided as building blocks under `src/maxent_grpo/training/` and a YAML recipe; the convenience CLI (`maxent-grpo-maxent` / `--task maxent`) currently raises until the dedicated launcher is restored.
@@ -64,8 +66,10 @@ Notes
 - Recipes live in `configs/recipes/` (Hydra shortcuts: `configs/recipes/hydra/{baseline,maxent}_math.yaml`).
 - InfoSeed runner: recipe at `configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml` with Hydra shortcut `configs/recipes/hydra/infoseed_math.yaml`; console alias `maxent-grpo-infoseed`.
 - Inference presets cover `math_500`, `aime24`, `aime25`, `amc`, and `minerva`; override columns/splits via `inference.eval.*` if you use alternative mirrors. The math eval pipeline reports Pass@1, Pass@k (default k=8), and Avg@k averaged across seeds (default seeds: `[0,1,2,3,4]` at temperature 0.6).
+  - Every math eval invocation now persists prompt-level artifacts under `var/artifacts/inference/<model>/<dataset>/<temp>/seed_<n>.jsonl`. Appends are flushed after each prompt so preempted jobs can resume automatically; rerunning `maxent-grpo-math-eval` reuses completed prompts and continues where the previous Slurm job stopped.
+  - The table helper `python tools/math_eval_table.py --artifact-root var/artifacts/inference` renders three terminal tables (Pass@1 / Pass@8 / Avg@8) averaged over all seeds using the artifact JSON. Adjust `--precision` or `--min-datasets` to control formatting/filters.
 - Preferred CLI alias for multi-benchmark math inference: `maxent-grpo-math-eval` (older `maxent-grpo-inference command=math-eval` remains for compatibility).
-- Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`.
+- Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`. Pass `--revision <git_commit>` when pointing at Hugging Face repos (e.g., `--model od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1 --revision c929c65`) to evaluate specific training steps without syncing local checkpoints.
 - Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
 - For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
 

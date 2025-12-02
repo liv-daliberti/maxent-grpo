@@ -37,8 +37,13 @@ from maxent_grpo.utils.stubs import AutoConfigStub
 try:  # pragma: no cover - optional dependency
     from transformers import AutoConfig
 except ModuleNotFoundError:
+    # When ``transformers`` is genuinely absent, surface the import error so
+    # callers (and tests) see the missing dependency instead of silently
+    # registering a stub.
     raise
-except (ImportError, RuntimeError, AttributeError):
+except ImportError:  # pragma: no cover - fallback stub for test envs
+    AutoConfig = AutoConfigStub
+except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive
     AutoConfig = AutoConfigStub
 
 try:  # pragma: no cover - optional dependency

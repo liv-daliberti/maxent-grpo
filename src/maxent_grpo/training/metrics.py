@@ -228,14 +228,16 @@ def _loss_component_block(loss_outputs: "LossOutputs") -> Dict[str, float]:
 
 def _length_metric_block(length_stats: LengthStats) -> Dict[str, float]:
     """Metrics summarizing completion lengths."""
+    # Clamp clipped_ratio to the valid [0, 1] range to avoid noisy negatives.
+    clipped_ratio = max(0.0, min(1.0, float(length_stats.clipped_ratio)))
     return {
-        "train/completions/mean_length": length_stats.mean_length,
-        "train/completions/min_length": length_stats.min_length,
-        "train/completions/max_length": length_stats.max_length,
-        "train/completions/clipped_ratio": length_stats.clipped_ratio,
-        "train/completions/mean_terminated_length": length_stats.mean_terminated,
-        "train/completions/min_terminated_length": length_stats.min_terminated,
-        "train/completions/max_terminated_length": length_stats.max_terminated,
+        "train/completions/mean_length_sampled": length_stats.mean_length,
+        "train/completions/min_length_sampled": length_stats.min_length,
+        "train/completions/max_length_sampled": length_stats.max_length,
+        "train/completions/clipped_frac": clipped_ratio,
+        "train/completions/mean_length_terminated": length_stats.mean_terminated,
+        "train/completions/min_length_terminated": length_stats.min_terminated,
+        "train/completions/max_length_terminated": length_stats.max_terminated,
     }
 
 
@@ -305,6 +307,7 @@ def _weighting_config_block(
     delta_beta = (
         float(weighting.beta) - float(prev_beta) if prev_beta is not None else 0.0
     )
+    tau_lr_effective = getattr(weighting, "_tau_lr_effective", weighting.tau_lr)
     metrics: Dict[str, float] = {
         "train/weight_norm_denom": weighting.denom,
         "train/tau_log": float(
@@ -312,7 +315,7 @@ def _weighting_config_block(
         ),
         "train/q_temperature": weighting.q_temperature,
         "train/q_epsilon": weighting.q_epsilon,
-        "train/tau_lr": weighting.tau_lr,
+        "train/tau_lr": float(tau_lr_effective),
         "train/tau_min": weighting.tau_min,
         "train/tau_max": weighting.tau_max,
         "train/tau_warmup_steps": float(weighting.tau_warmup_steps),
@@ -364,9 +367,12 @@ def _weighting_config_block(
         )
     target_entropy = weighting.tau_target_entropy
     if target_entropy is not None:
-        metrics["train/weight_entropy_error"] = payload.weight_stats.entropy - float(
-            target_entropy
-        )
+        entropy_error = payload.weight_stats.entropy - float(target_entropy)
+        metrics["train/weight_entropy_error"] = entropy_error
+        metrics["train/weight_entropy_abs_error"] = abs(entropy_error)
+        # Treat the squared error as a simple controller "loss" so it shows up alongside
+        # the main model loss in dashboards (e.g., W&B).
+        metrics["train/tau_loss"] = 0.5 * entropy_error * entropy_error
     return metrics
 
 
@@ -513,22 +519,22 @@ def _summarize_weight_stats(
     :returns: Aggregated entropy metrics per batch.
     :rtype: WeightLoggingView
     """
-    prompt_count = len(weight_stats.weights_grouped)
+    weights_grouped = getattr(weight_stats, "weights_grouped", []) or []
+    prompt_count = len(weights_grouped)
+    entropy_val = float(getattr(weight_stats, "weight_entropy", 0.0))
     entropy_sum = _sum_scalar_for_metrics(
-        accelerator, float(weight_stats.weight_entropy * max(prompt_count, 0))
+        accelerator, float(entropy_val * max(prompt_count, 0))
     )
     prompt_total = _sum_scalar_for_metrics(accelerator, float(prompt_count))
-    entropy_mean = (
-        entropy_sum / prompt_total if prompt_total > 0 else weight_stats.weight_entropy
-    )
+    entropy_mean = entropy_sum / prompt_total if prompt_total > 0 else entropy_val
     entropy_min_vals = _gather_list_for_metrics(
-        accelerator, [weight_stats.weight_entropy_min]
+        accelerator, [getattr(weight_stats, "weight_entropy_min", 0.0)]
     )
     entropy_max_vals = _gather_list_for_metrics(
-        accelerator, [weight_stats.weight_entropy_max]
+        accelerator, [getattr(weight_stats, "weight_entropy_max", 0.0)]
     )
     ent_adv_values = _gather_list_for_metrics(
-        accelerator, weight_stats.advantage_entropy
+        accelerator, getattr(weight_stats, "advantage_entropy", [])
     )
     ent_adv_mean, ent_adv_std = _mean_std(ent_adv_values)
     return WeightLoggingView(
@@ -540,12 +546,27 @@ def _summarize_weight_stats(
     )
 
 
+def summarize_weight_stats(
+    accelerator: Accelerator,
+    weight_stats: WeightStats,
+) -> WeightLoggingView:
+    """Aggregate per-batch weight statistics across all processes.
+
+    Exposes the internal summarization helper so controller logic can rely on
+    the same cross-rank entropy measurement used for logging.
+    """
+
+    return _summarize_weight_stats(accelerator, weight_stats)
+
+
 def _build_metrics_payload(
     ctx: TrainingLoopContext,
     state: MetricState,
     prepared: PreparedBatch,
     log_artifacts: LogStepArtifacts,
     current_lr: float,
+    *,
+    weight_view: Optional[WeightLoggingView] = None,
 ) -> TrainingMetricsPayload:
     """Return a structured payload describing the current step.
 
@@ -587,7 +608,11 @@ def _build_metrics_payload(
     )
     return TrainingMetricsPayload(
         reward_stats=_summarize_reward_stats(accelerator, prepared.reward_comp),
-        weight_stats=_summarize_weight_stats(accelerator, prepared.weight_stats),
+        weight_stats=(
+            weight_view
+            if weight_view is not None
+            else _summarize_weight_stats(accelerator, prepared.weight_stats)
+        ),
         loss_outputs=log_artifacts.loss_outputs,
         diagnostics=log_artifacts.diagnostics,
         length_stats=prepared.length_stats,
@@ -720,6 +745,8 @@ def log_local_step(
     prepared: PreparedBatch,
     log_artifacts: LogStepArtifacts,
     current_lr: float,
+    *,
+    weight_view: Optional[WeightLoggingView] = None,
 ) -> None:
     """Log metrics for the current step on the main process only.
 
@@ -736,7 +763,14 @@ def log_local_step(
     """
     if not ctx.runtime.accelerator.is_main_process:
         return
-    payload = _build_metrics_payload(ctx, state, prepared, log_artifacts, current_lr)
+    payload = _build_metrics_payload(
+        ctx,
+        state,
+        prepared,
+        log_artifacts,
+        current_lr,
+        weight_view=weight_view,
+    )
     metrics = build_training_metrics_dict(payload, state.global_step)
     with ctx.logging.step_logger(state.global_step, enabled=False) as step_logger:
         _emit_metrics(
@@ -842,6 +876,8 @@ def log_training_step(
     prepared: PreparedBatch,
     log_artifacts: LogStepArtifacts,
     current_lr: float,
+    *,
+    weight_view: Optional[WeightLoggingView] = None,
 ) -> None:
     """Emit global metrics (including optional W&B logging).
 
@@ -881,6 +917,7 @@ def log_training_step(
             prepared,
             log_artifacts,
             current_lr,
+            weight_view=weight_view,
         )
         metrics = build_training_metrics_dict(payload, state.global_step)
     with ctx.logging.step_logger(state.global_step, enabled=True) as step_logger:
@@ -907,4 +944,5 @@ __all__ = [
     "log_local_step",
     "log_training_metrics",
     "log_training_step",
+    "summarize_weight_stats",
 ]

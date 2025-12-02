@@ -14,8 +14,7 @@
 #SBATCH --partition=mltheory
 #SBATCH --output=var/logs/%x-%j.out
 #SBATCH --error=var/logs/%x-%j.err
-#SBATCH --time=02:00:00
-#SBATCH --account=mltheory
+#SBATCH --time=24:00:00
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 
 set -euo pipefail
@@ -48,6 +47,7 @@ export XDG_CONFIG_HOME="$VAR_DIR/config"
 export HUGGINGFACE_HUB_CACHE="$VAR_DIR/cache/huggingface/hub"
 export HF_DATASETS_CACHE="$VAR_DIR/cache/huggingface/datasets"
 export TMPDIR="$VAR_DIR/tmp"
+export HF_HUB_ENABLE_HF_TRANSFER=1
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" "$HF_DATASETS_CACHE" "$TMPDIR"
 
 if [[ -n "${HF_TOKEN:-}" ]]; then
@@ -58,6 +58,7 @@ fi
 
 # --- Argument parsing ---
 MODEL="${MODEL:-}"
+REVISION="${REVISION:-}"
 DATASETS="${DATASETS:-math_500,aime24,aime25,amc,minerva}"
 SEEDS="${SEEDS:-0,1,2,3,4}"
 NUM_GENERATIONS="${NUM_GENERATIONS:-8}"
@@ -68,6 +69,7 @@ EXTRA_OPTS="${EXTRA_OPTS:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --model) MODEL="$2"; shift 2;;
+    --revision) REVISION="$2"; shift 2;;
     --datasets) DATASETS="$2"; shift 2;;
     --seeds) SEEDS="$2"; shift 2;;
     --num-generations) NUM_GENERATIONS="$2"; shift 2;;
@@ -92,15 +94,21 @@ IFS=',' read -r -a DATASET_ARRAY <<< "$DATASETS"
 echo "[info] Evaluating $MODEL on datasets: ${DATASET_ARRAY[*]}"
 echo "[info] Seeds: $SEEDS | num_generations: $NUM_GENERATIONS | temperature: $TEMPERATURE"
 
+if [[ -n "$REVISION" ]]; then
+  MODEL_SPEC="{model_name_or_path:${MODEL},revision:${REVISION},batch_size:${BATCH_SIZE}}"
+else
+  MODEL_SPEC="{model_name_or_path:${MODEL},batch_size:${BATCH_SIZE}}"
+fi
+
 for DATASET in "${DATASET_ARRAY[@]}"; do
   echo "[info] Running dataset=$DATASET"
   CMD=(
     maxent-grpo-math-eval
-    "inference.dataset=${DATASET}"
-    "inference.seeds=[${SEEDS}]"
-    "inference.num_generations=${NUM_GENERATIONS}"
-    "inference.temperature=${TEMPERATURE}"
-    "inference.models=[{model_name_or_path:${MODEL},batch_size:${BATCH_SIZE}}]"
+    "+inference.dataset=${DATASET}"
+    "+inference.seeds=[${SEEDS}]"
+    "+inference.num_generations=${NUM_GENERATIONS}"
+    "+inference.temperature=${TEMPERATURE}"
+    "+inference.models=[${MODEL_SPEC}]"
   )
   if [[ -n "$EXTRA_OPTS" ]]; then
     CMD+=(${EXTRA_OPTS})

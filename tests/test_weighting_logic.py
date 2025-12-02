@@ -335,6 +335,22 @@ def test_maybe_update_tau_applies_ema_and_updates_denom(weighting_logic):
     )
 
 
+def test_maybe_update_tau_accepts_logging_view_entropy(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(
+        tau=0.2, beta=0.3, tau_target=0.5, tau_lr=0.1, tau_warmup=0
+    )
+
+    logic.maybe_update_tau(
+        weighting_cfg,
+        weight_stats=SimpleNamespace(entropy=0.1),
+        global_step=1,
+    )
+
+    assert getattr(weighting_cfg, "_tau_entropy_ema") == pytest.approx(0.1)
+    assert weighting_cfg.tau != pytest.approx(0.2)
+
+
 def test_maybe_update_tau_returns_on_zero_error(weighting_logic):
     logic, _ = weighting_logic
     weighting_cfg = _build_weighting(tau=0.4, beta=0.3, tau_target=1.0, tau_lr=0.2)
@@ -355,6 +371,61 @@ def test_maybe_update_tau_returns_on_zero_error(weighting_logic):
     assert weighting_cfg.tau == pytest.approx(0.4)
     assert weighting_cfg.denom == pytest.approx(0.7)
     assert getattr(weighting_cfg, "_tau_entropy_ema") == pytest.approx(1.0)
+
+
+class _FakeAccelerator:
+    """Simple broadcast stub capturing the last payload from the source rank."""
+
+    def __init__(self, process_index: int, shared: dict):
+        self.process_index = process_index
+        self._shared = shared
+
+    def broadcast_object_list(self, obj_list, src=0):
+        if self.process_index == src:
+            # Store a deepcopy-like copy to mimic transfer.
+            self._shared["payload"] = [list(obj_list[0])]
+            return obj_list
+        return self._shared.get("payload", obj_list)
+
+
+def test_broadcast_controller_state_syncs_across_ranks(weighting_logic):
+    logic, _ = weighting_logic
+    shared = {}
+    accel0 = _FakeAccelerator(process_index=0, shared=shared)
+    accel1 = _FakeAccelerator(process_index=1, shared=shared)
+    weight_stats = SimpleNamespace(weight_entropy=0.2)
+    cfg0 = _build_weighting(tau=0.2, beta=0.1, tau_target=0.5, tau_lr=0.3, tau_warmup=0)
+    cfg1 = _build_weighting(tau=0.9, beta=0.6, tau_target=0.5, tau_lr=0.3, tau_warmup=0)
+
+    logic.maybe_update_tau(cfg0, weight_stats=weight_stats, global_step=2)
+    logic.broadcast_controller_state(accel0, cfg0)
+    assert "payload" in shared
+    source_tau = shared["payload"][0][1]
+    assert source_tau != cfg1.tau
+    logic.broadcast_controller_state(accel1, cfg1)
+
+    assert cfg1.tau == pytest.approx(cfg0.tau)
+    assert getattr(cfg1, "_tau_entropy_ema") == pytest.approx(
+        getattr(cfg0, "_tau_entropy_ema")
+    )
+    assert cfg1.beta == pytest.approx(cfg0.beta)
+    assert cfg1.denom == pytest.approx(cfg0.denom)
+
+
+def test_maybe_update_tau_scales_learning_rate(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(
+        tau=0.2, beta=0.3, tau_target=0.8, tau_lr=0.1, tau_warmup=0
+    )
+    setattr(weighting_cfg, "_tau_entropy_ema", 0.1)
+    logic.maybe_update_tau(
+        weighting_cfg,
+        weight_stats=SimpleNamespace(weight_entropy=0.1),
+        global_step=1,
+        lr_scale=0.5,
+    )
+    assert getattr(weighting_cfg, "_tau_lr_effective") == pytest.approx(0.05)
+    assert weighting_cfg.tau != pytest.approx(0.2)  # update should apply
 
 
 def test_controller_state_roundtrip_and_missing_tau_log(tmp_path, weighting_logic):

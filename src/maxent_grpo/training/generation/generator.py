@@ -17,9 +17,7 @@ from .vllm_adapter import (
 )
 
 
-class CompletionGenerator(
-    LocalGenerationMixin, VLLMGenerationMixin
-):  # pylint: disable=super-init-not-called
+class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
     """Stateful helper that handles both local HF and vLLM completions."""
 
     def __init__(self, ctx: GenerationContext) -> None:
@@ -32,18 +30,13 @@ class CompletionGenerator(
         else:
             self._vllm_helper = None
         helper_cls = globals().get("VLLMGenerationHelper", VLLMGenerationHelper)
-        self._vllm_helper = helper_cls(
-            ctx, self._generate_local
-        )  # pylint: disable=no-member
+        self._vllm_helper = helper_cls(ctx, self._generate_local)
         # Surface patchable hooks for tests so monkeypatched helpers.* propagate.
-        # pylint: disable=protected-access
         self._vllm_helper._safe_generate = safe_generate
         self._vllm_helper._scatter_object = _scatter_object
         self._vllm_helper._time = time
         self._vllm_helper._is_peft_model_safe = _is_peft_model_safe
-        self._vllm_helper._fallback_generate = (
-            self._generate_local
-        )  # pylint: disable=no-member
+        self._vllm_helper._fallback_generate = self._generate_local
 
     def describe(self) -> Dict[str, Any]:
         """Expose the underlying generation configuration for logging."""

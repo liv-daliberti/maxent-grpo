@@ -103,7 +103,7 @@ def test_parse_grpo_args_defaults_to_trl_parser(monkeypatch, training_stubs):
 
     trl_stub = ModuleType("trl")
     trl_stub.ModelConfig = _ModelConfig
-    trl_stub.TrlParser = lambda classes: _Parser(classes)
+    trl_stub.TrlParser = lambda classes, **_kwargs: _Parser(classes)
     monkeypatch.setitem(sys.modules, "trl", trl_stub)
     monkeypatch.delenv("GRPO_RECIPE", raising=False)
     assert cli_trl.parse_grpo_args() == ("s", "t", "m")

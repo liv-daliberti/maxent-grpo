@@ -19,6 +19,39 @@ _FIRST_WANDB_LOGGED_RUNS: set[Any] = set()
 _RUN_META_CACHE: Dict[str, str] = {}
 
 
+def _ensure_wandb_installed() -> Optional[Any]:
+    """Best-effort runtime install of wandb when it's missing."""
+
+    wandb_mod = _optional_dependency("wandb")
+    if wandb_mod is not None:
+        return wandb_mod
+    if os.environ.get("MAXENT_WANDB_INSTALL_ATTEMPTED") == "1":
+        return None
+    os.environ["MAXENT_WANDB_INSTALL_ATTEMPTED"] = "1"
+    pip_cmd = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--upgrade",
+        "wandb",
+    ]
+    try:
+        proc = subprocess.run(pip_cmd, check=True, capture_output=True, text=True)
+        msg = proc.stdout.strip() or proc.stderr.strip()
+        if msg:
+            LOG.info("Runtime wandb install output: %s", msg)
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        OSError,
+        ValueError,
+    ) as exc:
+        LOG.warning("Failed to install wandb at runtime: %s", exc)
+        return None
+    return _optional_dependency("wandb")
+
+
 def _git_sha() -> str:
     """Return the short git SHA for the current repo if available."""
 
@@ -106,7 +139,7 @@ def _maybe_init_wandb_run(
     if not accelerator.is_main_process:
         os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
         return None
-    wandb = _optional_dependency("wandb")
+    wandb = _ensure_wandb_installed()
     if wandb is None:
         LOG.warning(
             "report_to includes wandb but the wandb package is not installed; skipping logging."

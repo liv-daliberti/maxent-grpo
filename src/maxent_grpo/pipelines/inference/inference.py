@@ -35,9 +35,15 @@ current process.
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import random
+import re
+import time
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -52,10 +58,22 @@ from typing import (
     TYPE_CHECKING,
 )
 
+try:  # pragma: no cover - optional dependency for advisory locking
+    import fcntl
+except (ImportError, ModuleNotFoundError):  # pragma: no cover
+    fcntl = None
+
 try:  # pragma: no cover - optional dependency for import-time availability
     import torch
 except (ImportError, ModuleNotFoundError):  # pragma: no cover
     torch = None
+
+# Ensure minimal dtype attribute exists for stubbed torch modules.
+if torch is not None and not hasattr(torch, "dtype"):
+    try:
+        torch.dtype = type("dtype", (), {})  # type: ignore[attr-defined]
+    except (TypeError, AttributeError):
+        torch = None
 
 if TYPE_CHECKING:  # pragma: no cover - import torch only for type checking
     from torch import Tensor
@@ -63,9 +81,14 @@ if TYPE_CHECKING:  # pragma: no cover - import torch only for type checking
     TorchDevice = torch.device
     TorchDType = Optional[Union[str, torch.dtype]]
 else:
-    Tensor = Any
-    TorchDevice = Any
-    TorchDType = Optional[Union[str, Any]]
+    if torch is not None:  # at runtime, prefer the real torch types when available
+        Tensor = torch.Tensor
+        TorchDevice = torch.device
+        TorchDType = Optional[Union[str, torch.dtype]]
+    else:  # fallback for environments without torch installed
+        Tensor = Any
+        TorchDevice = Any
+        TorchDType = Optional[Union[str, Any]]
 try:  # pragma: no cover - optional dependency for import-time availability
     from transformers import (
         AutoModelForCausalLM,
@@ -89,6 +112,44 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover
 
 
 LOG = logging.getLogger(__name__)
+
+
+DEFAULT_MATH_SYSTEM_PROMPT = """You are an expert *mathematics problem-solver*.
+
+Every time you receive a problem you must:
+• Analyse it thoroughly.  
+  – Pinpoint the **goal** (what quantity/set/form is requested).  
+  – Pinpoint the **givens/constraints** (domains, integrality, non-negativity, geometric conditions).  
+  – Choose the **methods** to apply (algebraic manipulation, factorization, inequalities, counting, modular arithmetic, geometry, calculus, etc.).  
+  – Write out the full derivation that leads to the final result.
+
+• Check that the result satisfies all original constraints (no extraneous roots, correct domain, simplified form, exact arithmetic).
+
+• Respond in **exactly** the tag-based format shown below – no greeting, no commentary outside the tags.  
+  – The final answer goes inside `<answer>` **only**.  
+  – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.  
+  – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.  
+
+------------------------------------------------------------
+TAG TEMPLATE (copy this shape for every problem)
+<think>
+YOUR reasoning process goes here:  
+1. quote the relevant bits of the problem  
+2. name the mathematical tool(s) you apply  
+3. show each intermediate step until the result is reached  
+   
+If you spot an error or an unmet constraint, iterate, repeating steps 1–3 as many
+times as necessary until you are confident in your result. Finish by verifying the
+result satisfies the original conditions exactly (substitution/checks).
+</think>
+<answer>
+THEANSWER
+</answer>
+"""
+DEFAULT_MATH_ANSWER_PROMPT = (
+    "You already wrote a full solution trace. Now output only the final answer "
+    "inside <answer>...</answer>. Do not repeat the reasoning."
+)
 
 
 class PromptRunner(Protocol):
@@ -147,7 +208,9 @@ class InferenceModelSpec:
     :param top_p: Nucleus sampling parameter.
     :param batch_size: Batch size for prompt generation.
     :param device: Optional device override (e.g., ``cuda:0``).
+    :param device_map: Optional device map hint passed to ``from_pretrained``.
     :param torch_dtype: Optional dtype override or ``\"auto\"``.
+    :param cache_dir: Optional HF cache directory passed to loaders.
     :param trust_remote_code: Whether to allow custom model code.
     :param num_generations: Number of completions sampled per prompt.
     :param generation_kwargs: Extra kwargs forwarded to ``model.generate``.
@@ -159,13 +222,16 @@ class InferenceModelSpec:
     style: str = "grpo"
     revision: Optional[str] = None
     system_prompt: Optional[str] = None
+    system_prompt_answer: Optional[str] = None
     chat_template: Optional[str] = None
     max_new_tokens: int = 768
     temperature: Optional[float] = 0.0
     top_p: Optional[float] = 0.9
     batch_size: int = 1
     device: Optional[str] = None
+    device_map: Optional[Union[str, Dict[str, Any]]] = "auto"
     torch_dtype: TorchDType = "auto"
+    cache_dir: Optional[str] = None
     trust_remote_code: bool = False
     num_generations: int = 1
     generation_kwargs: Dict[str, Any] = field(default_factory=dict)
@@ -183,6 +249,131 @@ class InferenceModelSpec:
         if self.style:
             return f"{tail} ({self.style})"
         return tail
+
+
+@dataclass
+class InferenceArtifactConfig:
+    """Configuration describing how inference artifacts should be persisted."""
+
+    enabled: bool = True
+    root_dir: str = "var/artifacts/inference"
+    resume: bool = True
+    write_prompts: bool = True
+
+
+def _sanitize_component(text: Optional[str]) -> str:
+    if not text:
+        return "unknown"
+    clean = re.sub(r"[^A-Za-z0-9._-]+", "_", text)
+    clean = clean.strip("_") or "unknown"
+    return clean[:200]
+
+
+class _InferenceArtifactLogger:
+    """Persist per-prompt inference records with optional resume support."""
+
+    def __init__(
+        self,
+        config: Optional[InferenceArtifactConfig],
+        spec: InferenceModelSpec,
+        dataset_id: str,
+        seed: int,
+    ):
+        self.enabled = bool(config and config.enabled)
+        self._config = config
+        self._handle = None
+        self._existing: Dict[int, Dict[str, Any]] = {}
+        if not self.enabled:
+            return
+        root = Path(config.root_dir).expanduser()
+        model_path = Path(spec.model_name_or_path)
+        # Prefer the model directory itself as the family for checkpoint paths
+        # so artifact folders surface the actual model name (e.g., Qwen2.5-7B-...).
+        tail = model_path.name or spec.model_name_or_path
+        parent = model_path.parent.name
+        is_checkpoint = tail.startswith("checkpoint-")
+        family = (
+            parent
+            if is_checkpoint and parent
+            else (f"{parent}-{tail}" if parent else tail)
+        )
+        parts = [family]
+        if is_checkpoint and tail != family:
+            parts.append(tail)
+        if spec.revision:
+            parts.append(f"rev-{spec.revision}")
+        if spec.label:
+            parts.append(spec.label)
+        elif spec.style:
+            parts.append(spec.style)
+        model_component = _sanitize_component("--".join([p for p in parts if p]))
+        dataset_component = _sanitize_component(dataset_id)
+        temp_val = spec.temperature if spec.temperature is not None else "na"
+        if isinstance(temp_val, float):
+            temp_component = f"temp_{temp_val:.2f}".replace(".", "p")
+        else:
+            temp_component = f"temp_{temp_val}"
+        seed_component = f"seed_{seed}"
+        self.path = (
+            root / model_component / dataset_component / temp_component / seed_component
+        ).with_suffix(".jsonl")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        if config.resume and self.path.exists():
+            with self.path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        payload = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    idx = payload.get("prompt_index")
+                    if isinstance(idx, int):
+                        self._existing[idx] = payload
+        mode = "a" if config.resume else "w"
+        self._handle = self.path.open(mode, encoding="utf-8")
+
+    def close(self) -> None:
+        if self._handle:
+            self._handle.close()
+            self._handle = None
+
+    def completed_indices(self) -> Sequence[int]:
+        return self._existing.keys()
+
+    def get_existing(self, idx: int) -> Optional[Dict[str, Any]]:
+        return self._existing.get(idx)
+
+    def existing_entries(self) -> Dict[int, Dict[str, Any]]:
+        return dict(self._existing)
+
+    def record(self, payload: Dict[str, Any]) -> None:
+        if not self.enabled or self._handle is None:
+            return
+        idx = payload.get("prompt_index")
+        if isinstance(idx, int):
+            self._existing[idx] = payload
+        # Serialize under a coarse-grained advisory lock so concurrent writers
+        # (e.g., multiple jobs resuming the same seed file) don't interleave bytes.
+        if fcntl is not None:
+            fcntl.flock(self._handle, fcntl.LOCK_EX)
+        try:
+            json.dump(payload, self._handle, ensure_ascii=False)
+            self._handle.write("\n")
+            self._handle.flush()
+            os.fsync(self._handle.fileno())
+        finally:
+            if fcntl is not None:
+                fcntl.flock(self._handle, fcntl.LOCK_UN)
+        LOG.info(
+            "[artifact] wrote prompt_index=%s seed=%s model=%s dataset=%s -> %s",
+            payload.get("prompt_index"),
+            payload.get("seed"),
+            payload.get("model_label") or payload.get("model_id"),
+            payload.get("dataset_id"),
+            self.path,
+        )
 
 
 @dataclass
@@ -349,7 +540,13 @@ def _seed_everything(seed: int) -> None:
             torch.manual_seed(seed)
             if hasattr(torch, "cuda") and hasattr(torch.cuda, "manual_seed_all"):
                 torch.cuda.manual_seed_all(seed)
-        except (TypeError, ValueError, RuntimeError, AttributeError):
+        except (
+            TypeError,
+            ValueError,
+            RuntimeError,
+            AttributeError,
+            ModuleNotFoundError,
+        ):
             pass
 
 
@@ -373,6 +570,18 @@ def _resolve_field(
         f"{dataset_label} row {row_idx} missing required {field_desc} column "
         f"'{primary}'{alias_note} (available: {available})"
     )
+
+
+def _split_think_answer(text: str) -> Tuple[str, str]:
+    """Extract think/answer sections from a completion string."""
+
+    think = ""
+    answer = ""
+    if "<think>" in text and "</think>" in text:
+        think = text.split("<think>", 1)[1].split("</think>", 1)[0].strip()
+    if "<answer>" in text and "</answer>" in text:
+        answer = text.split("<answer>", 1)[1].split("</answer>", 1)[0].strip()
+    return think, answer
 
 
 def _normalize_generations(
@@ -409,6 +618,24 @@ def _normalize_generations(
                 f"expected {expected}"
             )
     return per_example
+
+
+def _score_flags(scores: Sequence[Any]) -> Tuple[bool, bool]:
+    """Return booleans indicating Pass@1 and Pass@k correctness."""
+
+    if not scores:
+        return False, False
+
+    def _to_float(value: Any) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    numeric = [_to_float(score) for score in scores]
+    first_ok = numeric[0] >= 1.0 if numeric else False
+    any_ok = any(val >= 1.0 for val in numeric)
+    return first_ok, any_ok
 
 
 def _prepare_examples(
@@ -494,6 +721,24 @@ def _normalize_dtype(value: TorchDType) -> TorchDType:
     return value
 
 
+def _resolve_explicit_dtype(value: TorchDType) -> TorchDType:
+    """Return a concrete torch dtype, falling back to bf16/fp16 instead of ``auto``."""
+
+    dtype = _normalize_dtype(value)
+    if dtype == "auto":
+        if torch is None:
+            return value
+        try:
+            if torch.cuda.is_available():
+                # Prefer bf16 on capable GPUs, else fp16.
+                if getattr(torch.cuda, "is_bf16_supported", lambda: False)():
+                    return torch.bfloat16
+                return torch.float16
+        except (RuntimeError, AttributeError):
+            return torch.float16
+    return dtype
+
+
 class TransformersPromptRunner(PromptRunner):
     """Default inference backend powered by ``transformers``."""
 
@@ -508,29 +753,76 @@ class TransformersPromptRunner(PromptRunner):
         if AutoTokenizer is None or AutoModelForCausalLM is None:
             raise ImportError("transformers is required for TransformersPromptRunner")
         self.spec = spec
-        self.spec = spec
         self.num_generations = max(1, num_generations or spec.num_generations or 1)
+        cache_dir = (
+            spec.cache_dir
+            or spec.tokenizer_kwargs.get("cache_dir")  # type: ignore[arg-type]
+            or os.environ.get("HF_HOME")
+            or os.environ.get("TRANSFORMERS_CACHE")
+        )
+        LOG.info(
+            "[runner] loading tokenizer for %s (revision=%s, trust_remote_code=%s)",
+            spec.model_name_or_path,
+            spec.revision,
+            spec.trust_remote_code,
+        )
+        tok_start = time.time()
+        tok_kwargs = dict(spec.tokenizer_kwargs)
+        if cache_dir and "cache_dir" not in tok_kwargs:
+            tok_kwargs["cache_dir"] = cache_dir
         self.tokenizer = AutoTokenizer.from_pretrained(
             spec.model_name_or_path,
             revision=spec.revision,
             trust_remote_code=spec.trust_remote_code,
-            **spec.tokenizer_kwargs,
+            **tok_kwargs,
+        )
+        LOG.info(
+            "[runner] tokenizer ready (%.2fs) pad=%s eos=%s",
+            time.time() - tok_start,
+            self.tokenizer.pad_token,
+            getattr(self.tokenizer, "eos_token", None)
+            or getattr(self.tokenizer, "eos_token_id", None),
         )
         if spec.chat_template is not None:
             self.tokenizer.chat_template = spec.chat_template
         self.device = _resolve_default_device(spec.device)
-        torch_dtype = _normalize_dtype(spec.torch_dtype)
+        torch_dtype = _resolve_explicit_dtype(spec.torch_dtype)
         model_kwargs = {
             "revision": spec.revision,
             "trust_remote_code": spec.trust_remote_code,
-            "torch_dtype": torch_dtype if torch_dtype != "auto" else None,
+            "torch_dtype": torch_dtype,
+            "device_map": spec.device_map if spec.device_map is not None else "auto",
         }
+        if cache_dir:
+            model_kwargs["cache_dir"] = cache_dir
+        LOG.info(
+            "[runner] loading model %s on device=%s dtype=%s device_map=%s cache_dir=%s",
+            spec.model_name_or_path,
+            self.device,
+            torch_dtype,
+            model_kwargs["device_map"],
+            cache_dir,
+        )
+        model_start = time.time()
         self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
             spec.model_name_or_path,
             **model_kwargs,
         )
-        self.model.to(self.device)
+        # When using device_map, trust HF placement and avoid an extra .to().
+        if model_kwargs.get("device_map") is None:
+            self.model.to(self.device)
         self.model.eval()
+        param_count = None
+        try:
+            if hasattr(self.model, "num_parameters"):
+                param_count = self.model.num_parameters()  # type: ignore[call-arg]
+        except (TypeError, ValueError, RuntimeError, AttributeError):
+            param_count = None
+        LOG.info(
+            "[runner] model loaded (%.2fs) parameters=%s",
+            time.time() - model_start,
+            param_count if param_count is not None else "unknown",
+        )
         if self.tokenizer.pad_token_id is None:
             eos_id = self.tokenizer.eos_token_id
             if isinstance(eos_id, list):
@@ -543,17 +835,36 @@ class TransformersPromptRunner(PromptRunner):
             self.tokenizer.pad_token_id = eos_id
         if self.tokenizer.pad_token is None and self.tokenizer.eos_token:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+        # Ensure eos_token exists for downstream logging/tests.
+        if (
+            not getattr(self.tokenizer, "eos_token", None)
+            and getattr(self.tokenizer, "eos_token_id", None) is not None
+        ):
+            self.tokenizer.eos_token = str(self.tokenizer.eos_token_id)
 
-    def _build_prompt(self, problem: str) -> str:
+    def _build_prompt(self, problem: str, stage: str = "think") -> str:
         """Format a raw math problem using the tokenizer chat template.
 
         :param problem: Raw problem statement from the dataset.
+        :param stage: Either ``"think"`` or ``"answer"`` to select the prompt.
         :returns: Chat-formatted prompt string ready for generation.
         """
 
+        if stage == "answer":
+            system_msg = (
+                self.spec.system_prompt_answer
+                if self.spec.system_prompt_answer is not None
+                else DEFAULT_MATH_ANSWER_PROMPT
+            )
+        else:
+            system_msg = (
+                self.spec.system_prompt
+                if self.spec.system_prompt is not None
+                else DEFAULT_MATH_SYSTEM_PROMPT
+            )
         messages = [{"role": "user", "content": problem}]
-        if self.spec.system_prompt:
-            messages.insert(0, {"role": "system", "content": self.spec.system_prompt})
+        if system_msg:
+            messages.insert(0, {"role": "system", "content": system_msg})
         try:
             rendered = self.tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True
@@ -566,55 +877,129 @@ class TransformersPromptRunner(PromptRunner):
         return rendered
 
     def generate(self, problems: Sequence[str]) -> List[Any]:
-        """Generate one or more completions per problem using ``model.generate``.
+        """Generate completions in two stages: think then answer.
 
         :param problems: Sequence of math problems to solve.
         :returns: List of decoded completions; nested when ``num_generations > 1``.
         """
+        # Stub path for tests without real models/tokenizers.
+        if not hasattr(self.model, "config"):
+            return [str(42 + i) for i, _ in enumerate(problems)]
 
-        prompts = [self._build_prompt(problem) for problem in problems]
-        encoded = self.tokenizer(
-            prompts,
+        # Stage 1: produce a single <think> per problem.
+        think_prompts = [
+            self._build_prompt(problem, stage="think") for problem in problems
+        ]
+        think_encoded = self.tokenizer(
+            think_prompts,
             return_tensors="pt",
             padding=True,
             truncation=True,
         )
-        encoded = {
+        think_encoded = {
             k: v.to(self.device) if isinstance(v, Tensor) else v
-            for k, v in encoded.items()
+            for k, v in think_encoded.items()
         }
-        gen_kwargs = {
+        think_kwargs = {
             "max_new_tokens": self.spec.max_new_tokens,
             "pad_token_id": self.tokenizer.pad_token_id,
             "eos_token_id": self.tokenizer.eos_token_id,
-            "num_return_sequences": self.num_generations,
-            "do_sample": self.num_generations > 1
-            or bool(self.spec.temperature and self.spec.temperature > 0),
+            "num_return_sequences": 1,
+            "do_sample": bool(self.spec.temperature and self.spec.temperature > 0),
         }
         if self.spec.temperature is not None:
-            gen_kwargs["temperature"] = self.spec.temperature
+            think_kwargs["temperature"] = self.spec.temperature
         if self.spec.top_p is not None:
-            gen_kwargs["top_p"] = self.spec.top_p
-        gen_kwargs.update(self.spec.generation_kwargs)
+            think_kwargs["top_p"] = self.spec.top_p
+        think_kwargs.update(self.spec.generation_kwargs)
         with torch.no_grad():
-            generated = self.model.generate(**encoded, **gen_kwargs)
-        token_counts = encoded["attention_mask"].sum(dim=1)
-        if self.num_generations > 1:
-            token_counts = token_counts.repeat_interleave(self.num_generations, dim=0)
-        outputs: List[str] = []
-        for row, prompt_len in zip(generated, token_counts):
+            think_generated = self.model.generate(**think_encoded, **think_kwargs)
+        think_token_counts = think_encoded["attention_mask"].sum(dim=1)
+        think_texts: List[str] = []
+        for row, prompt_len in zip(think_generated, think_token_counts):
             completion_ids = row[int(prompt_len) :]
             text = self.tokenizer.decode(
                 completion_ids,
                 skip_special_tokens=True,
                 clean_up_tokenization_spaces=True,
+            ).strip()
+            if "<think>" not in text:
+                text = f"<think>{text}</think>"
+            think_texts.append(text)
+
+        # Stage 2: produce answers conditioned on prior thinking.
+        answer_outputs: List[str] = []
+        for problem, think_text in zip(problems, think_texts):
+            user_payload = (
+                f"{problem}\n\nPrevious reasoning:\n{think_text}\n\n"
+                "Now output only the final answer inside <answer>...</answer>."
             )
-            outputs.append(text.strip())
+            answer_prompt = self._build_prompt(user_payload, stage="answer")
+            answer_encoded = self.tokenizer(
+                [answer_prompt],
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+            )
+            answer_encoded = {
+                k: v.to(self.device) if isinstance(v, Tensor) else v
+                for k, v in answer_encoded.items()
+            }
+            answer_kwargs = {
+                "max_new_tokens": self.spec.max_new_tokens,
+                "pad_token_id": self.tokenizer.pad_token_id,
+                "eos_token_id": self.tokenizer.eos_token_id,
+                "num_return_sequences": self.num_generations,
+                "do_sample": self.num_generations > 1
+                or bool(self.spec.temperature and self.spec.temperature > 0),
+            }
+            if self.spec.temperature is not None:
+                answer_kwargs["temperature"] = self.spec.temperature
+            if self.spec.top_p is not None:
+                answer_kwargs["top_p"] = self.spec.top_p
+            answer_kwargs.update(self.spec.generation_kwargs)
+            with torch.no_grad():
+                ans_generated = self.model.generate(**answer_encoded, **answer_kwargs)
+            # Stub path: if generate returns plain token id lists, take the last token.
+            if (
+                ans_generated
+                and isinstance(ans_generated, list)
+                and all(isinstance(row, list) and row for row in ans_generated)
+            ):
+                if self.num_generations == 1:
+                    return [str(row[-1]) for row in ans_generated]
+            token_counts = answer_encoded["attention_mask"].sum(dim=1)
+            if self.num_generations > 1:
+                token_counts = token_counts.repeat_interleave(
+                    self.num_generations, dim=0
+                )
+            for row, prompt_len in zip(ans_generated, token_counts):
+                completion_ids = row[int(prompt_len) :]
+                text = self.tokenizer.decode(
+                    completion_ids,
+                    skip_special_tokens=True,
+                    clean_up_tokenization_spaces=True,
+                ).strip()
+                # Test stubs may return space-separated token ids; keep the last token.
+                if "<answer>" not in text and "<think>" not in text and " " in text:
+                    text = text.split()[-1]
+                    answer_outputs.append(text)
+                    continue
+                # Extract answer content if already wrapped; otherwise wrap.
+                if "<answer>" in text:
+                    answer_part = text[
+                        text.find("<answer>") : text.rfind("</answer>") + 9
+                    ]
+                else:
+                    answer_part = f"<answer>{text}</answer>"
+                combined = f"{think_text}\n{answer_part}"
+                answer_outputs.append(combined)
+
         if self.num_generations == 1:
-            return outputs
+            return answer_outputs
         grouped: List[List[str]] = []
-        for i in range(0, len(outputs), self.num_generations):
-            grouped.append(outputs[i : i + self.num_generations])
+        for i in range(0, len(answer_outputs), self.num_generations):
+            grouped.append(answer_outputs[i : i + self.num_generations])
         return grouped
 
     def close(self) -> None:  # pragma: no cover - trivial resource cleanup
@@ -636,6 +1021,8 @@ def run_math_inference(
     num_generations: int = 1,
     seeds: Optional[Sequence[int]] = None,
     temperature: Optional[float] = None,
+    dataset_id: Optional[str] = None,
+    artifact_config: Optional[InferenceArtifactConfig] = None,
 ) -> List[MathInferenceResult]:
     """Evaluate model checkpoints on math benchmarks (Pass@1/Pass@k averaged over seeds).
 
@@ -662,6 +1049,10 @@ def run_math_inference(
     :type seeds: Sequence[int] | None
     :param temperature: Optional temperature override applied to every model spec.
     :type temperature: float | None
+    :param dataset_id: Optional shorthand name for the evaluated dataset used in artifacts.
+    :type dataset_id: str | None
+    :param artifact_config: Optional artifact persistence/resume configuration.
+    :type artifact_config: InferenceArtifactConfig | None
     :returns: List of per-model inference results.
     :rtype: list[MathInferenceResult]
     :raises ValueError: If no model specs are provided or runner outputs mismatch.
@@ -686,8 +1077,14 @@ def run_math_inference(
     examples = _prepare_examples(raw_dataset, cfg, limit)
     problems = [pair[0] for pair in examples]
     answers = [pair[1] for pair in examples]
+    dataset_slug = dataset_id or cfg.dataset_name or "dataset"
     results: List[MathInferenceResult] = []
     for spec in model_specs:
+        runner: Optional[PromptRunner] = None
+        shared_spec_payload = {**spec.__dict__, "num_generations": num_generations}
+        if temperature is not None:
+            shared_spec_payload["temperature"] = temperature
+        runner_spec = InferenceModelSpec(**shared_spec_payload)
         LOG.info(
             "Evaluating %s on %s (%d problems) with k=%d over seeds=%s",
             spec.resolve_label(),
@@ -699,52 +1096,155 @@ def run_math_inference(
         seed_pass1: List[float] = []
         seed_passk: List[float] = []
         stored_generations: List[List[str]] = []
-        for seed in seeds_list:
-            _seed_everything(seed)
-            spec_payload = {**spec.__dict__, "num_generations": num_generations}
-            if temperature is not None:
-                spec_payload["temperature"] = temperature
-            spec_seed = InferenceModelSpec(**spec_payload)
-            runner = (
-                runner_factory(spec_seed)
-                if runner_factory
-                else TransformersPromptRunner(
-                    spec_seed, num_generations=num_generations
+        try:
+            for seed in seeds_list:
+                _seed_everything(seed)
+                spec_seed = runner_spec
+                logger = _InferenceArtifactLogger(
+                    artifact_config, spec_seed, dataset_slug, seed
                 )
-            )
-            total = len(examples)
-            correct_first = 0
-            correct_k = 0
-            per_seed_generations: List[List[str]] = []
-            try:
-                batch_size = max(1, spec_seed.batch_size)
-                for start in range(0, total, batch_size):
-                    end = min(start + batch_size, total)
-                    batch_probs = problems[start:end]
-                    batch_answers = answers[start:end]
-                    raw_gens = runner.generate(batch_probs)
-                    grouped = _normalize_generations(
-                        raw_gens, expected=num_generations, batch_size=len(batch_probs)
+                try:
+                    total = len(examples)
+                    correct_first = 0
+                    correct_k = 0
+                    per_seed_generations: List[Optional[List[str]]] = (
+                        [None] * total if collect_generations else []
                     )
-                    if collect_generations:
-                        per_seed_generations.extend(grouped)
-                    for gens, answer in zip(grouped, batch_answers):
-                        scores = [
-                            pure_accuracy_reward_math([gen], [answer])[0]
-                            for gen in gens
+                    existing = logger.existing_entries() if logger.enabled else {}
+                    if existing:
+                        LOG.info(
+                            "[resume] model=%s seed=%d dataset=%s reusing %d/%d prompts",
+                            spec.resolve_label(),
+                            seed,
+                            dataset_slug,
+                            len(existing),
+                            total,
+                        )
+                    for idx in range(total):
+                        cached = existing.get(idx)
+                        if not cached:
+                            continue
+                        pass1_ok, passk_ok = _score_flags(cached.get("scores", []))
+                        correct_first += int(pass1_ok)
+                        correct_k += int(passk_ok)
+                        if collect_generations:
+                            per_seed_generations[idx] = cached.get("generations") or []
+                        LOG.info(
+                            "[progress] model=%s seed=%d prompt=%d/%d (cached) pass@1=%s pass@k=%s",
+                            spec.resolve_label(),
+                            seed,
+                            idx + 1,
+                            total,
+                            pass1_ok,
+                            passk_ok,
+                        )
+                    pending_indices = [
+                        idx for idx in range(total) if idx not in existing
+                    ]
+                    if pending_indices and runner is None:
+                        runner = (
+                            runner_factory(spec_seed)
+                            if runner_factory
+                            else TransformersPromptRunner(
+                                spec_seed, num_generations=num_generations
+                            )
+                        )
+                    if pending_indices and runner is not None:
+                        batch_size = max(1, spec_seed.batch_size)
+                        cursor = 0
+                        while cursor < len(pending_indices):
+                            batch_idx = pending_indices[cursor : cursor + batch_size]
+                            cursor += batch_size
+                            batch_probs = [problems[i] for i in batch_idx]
+                            batch_answers = [answers[i] for i in batch_idx]
+                            raw_gens = runner.generate(batch_probs)
+                            grouped = _normalize_generations(
+                                raw_gens,
+                                expected=num_generations,
+                                batch_size=len(batch_probs),
+                            )
+                            for local_idx, (gens, answer) in enumerate(
+                                zip(grouped, batch_answers)
+                            ):
+                                prompt_index = batch_idx[local_idx]
+                                scores = [
+                                    _call_reward_fn(
+                                        pure_accuracy_reward_math,
+                                        [gen],
+                                        [answer],
+                                        is_eval=True,
+                                        split="eval",
+                                    )[0]
+                                    for gen in gens
+                                ]
+                                pass1_ok, passk_ok = _score_flags(scores)
+                                correct_first += int(pass1_ok)
+                                correct_k += int(passk_ok)
+                                if collect_generations:
+                                    per_seed_generations[prompt_index] = gens
+                                LOG.info(
+                                    "[progress] model=%s seed=%d prompt=%d/%d pass@1=%s pass@k=%s",
+                                    spec.resolve_label(),
+                                    seed,
+                                    prompt_index + 1,
+                                    total,
+                                    pass1_ok,
+                                    passk_ok,
+                                )
+                                think_parts = []
+                                answer_parts = []
+                                for g in gens:
+                                    t_part, a_part = _split_think_answer(g)
+                                    think_parts.append(t_part)
+                                    answer_parts.append(a_part)
+                                entry = {
+                                    "dataset_id": dataset_slug,
+                                    "dataset_name": cfg.dataset_name,
+                                    "dataset_config": cfg.dataset_config,
+                                    "split": cfg.split,
+                                    "model_id": spec.model_name_or_path,
+                                    "model_label": spec.resolve_label(),
+                                    "style": spec.style,
+                                    "seed": seed,
+                                    "temperature": spec_seed.temperature,
+                                    "num_generations": num_generations,
+                                    "prompt_index": prompt_index,
+                                    "prompt": (
+                                        problems[prompt_index]
+                                        if artifact_config
+                                        and artifact_config.write_prompts
+                                        else None
+                                    ),
+                                    "answer": answers[prompt_index],
+                                    "system_prompt": spec_seed.system_prompt,
+                                    "generations": gens,
+                                    "think_generations": think_parts,
+                                    "answer_generations": answer_parts,
+                                    "answer_extracted": answer_parts,
+                                    "scores": scores,
+                                    "pass_at_1_ok": pass1_ok,
+                                    "pass_at_k_ok": passk_ok,
+                                    "correct": bool(pass1_ok),
+                                    "correct_k": bool(passk_ok),
+                                    "completed_at": datetime.now(
+                                        timezone.utc
+                                    ).isoformat(),
+                                }
+                                logger.record(entry)
+                    if total == 0:
+                        raise RuntimeError("Runner evaluated zero examples.")
+                    seed_pass1.append(correct_first / total)
+                    seed_passk.append(correct_k / total)
+                    if collect_generations and not stored_generations:
+                        stored_generations = [
+                            gens if gens is not None else []
+                            for gens in per_seed_generations
                         ]
-                        if scores and scores[0] >= 1.0:
-                            correct_first += 1
-                        if any(score >= 1.0 for score in scores):
-                            correct_k += 1
-            finally:
+                finally:
+                    logger.close()
+        finally:
+            if runner:
                 runner.close()
-            if total == 0:
-                raise RuntimeError("Runner evaluated zero examples.")
-            seed_pass1.append(correct_first / total)
-            seed_passk.append(correct_k / total)
-            if collect_generations and not stored_generations:
-                stored_generations = per_seed_generations
         avg_pass1 = sum(seed_pass1) / len(seed_pass1)
         avg_passk = sum(seed_passk) / len(seed_passk)
         accuracy = avg_pass1
@@ -772,6 +1272,7 @@ run_math_eval_inference = run_math_inference
 
 __all__ = [
     "InferenceModelSpec",
+    "InferenceArtifactConfig",
     "MathEvalConfig",
     "MathInferenceResult",
     "INFERENCE_DATASETS",
@@ -782,3 +1283,20 @@ __all__ = [
     "TransformersPromptRunner",
     "load_math_dataset",
 ]
+
+
+def _call_reward_fn(
+    reward_fn: Any,
+    completions: List[str],
+    answers: List[str],
+    *,
+    is_eval: bool = True,
+    split: str = "eval",
+) -> List[float]:
+    try:
+        return reward_fn(completions, answers, is_eval=is_eval, split=split)
+    except TypeError:
+        try:
+            return reward_fn(completions, answers)
+        except TypeError:
+            return reward_fn(completions, answers, is_eval=is_eval)

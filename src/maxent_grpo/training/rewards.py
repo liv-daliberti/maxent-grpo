@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional, Tuple
+from types import SimpleNamespace
 
 from maxent_grpo.generation import (
     AggregatedGenerationState,
@@ -45,6 +46,25 @@ torch = require_torch("training")
 LOG = logging.getLogger(__name__)
 
 
+def _call_reward_fn(
+    reward_fn: Any,
+    completions: List[str],
+    answers: List[str],
+    *,
+    is_eval: bool,
+    split: str,
+) -> List[float]:
+    """Call a reward fn with backward-compatible kwargs handling."""
+
+    try:
+        return reward_fn(completions, answers, is_eval=is_eval, split=split)
+    except TypeError:
+        try:
+            return reward_fn(completions, answers)
+        except TypeError:
+            return reward_fn(completions, answers, is_eval=is_eval)
+
+
 def compute_reward_totals(
     reward_spec: RewardSpec,
     completion_batch: List[str],
@@ -68,7 +88,10 @@ def compute_reward_totals(
     ):
         reward_key = f"reward_{idx_reward}"
         reward_values = [
-            float(val) for val in reward_fn(completion_batch, flat_answers)
+            float(val)
+            for val in _call_reward_fn(
+                reward_fn, completion_batch, flat_answers, is_eval=False, split="train"
+            )
         ]
         per_reward_values[reward_key] = reward_values
         if reward_weight != 1.0:
@@ -442,18 +465,48 @@ def compute_reward_statistics(
     )
 
 
-def load_reward_functions(script_args: Any, tokenizer: Any) -> Tuple[list, list]:
-    """Resolve reward functions/weights from script_args."""
+def load_reward_functions(
+    script_args: Any, tokenizer: Any, training_args: Any = None
+) -> Tuple[list, list]:
+    """Resolve reward functions/weights from script or training args."""
 
-    reward_funcs = get_reward_funcs(script_args, None, tokenizer)
-    reward_weights = getattr(script_args, "reward_weights", None)
+    reward_source = training_args if training_args is not None else script_args
+    reward_names = (
+        getattr(reward_source, "reward_funcs", None)
+        or getattr(script_args, "reward_funcs", None)
+        or ["pure_accuracy_math"]
+    )
+    proxy = SimpleNamespace(reward_funcs=reward_names)
+    reward_funcs = get_reward_funcs(proxy, None, tokenizer)
+    reward_weights = getattr(reward_source, "reward_weights", None)
     if reward_weights is None or len(reward_weights) != len(reward_funcs):
         reward_weights = [1.0] * len(reward_funcs)
     return reward_funcs, reward_weights
+
+
+def load_eval_reward_functions(
+    script_args: Any, tokenizer: Any, training_args: Any = None
+) -> Tuple[list, list]:
+    """Resolve eval reward functions/weights, defaulting to training rewards."""
+
+    fallback_funcs = []
+    if training_args is not None:
+        fallback_funcs = getattr(training_args, "reward_funcs", []) or []
+    if not fallback_funcs:
+        fallback_funcs = getattr(script_args, "reward_funcs", []) or []
+    eval_names = getattr(script_args, "eval_reward_funcs", None) or fallback_funcs
+    proxy = SimpleNamespace(reward_funcs=eval_names)
+    reward_funcs = get_reward_funcs(proxy, None, tokenizer)
+
+    eval_weights = getattr(script_args, "eval_reward_weights", None)
+    if eval_weights is None or len(eval_weights) != len(reward_funcs):
+        eval_weights = [1.0] * len(reward_funcs)
+    return reward_funcs, eval_weights
 
 
 __all__ = [
     "compute_reward_statistics",
     "prepare_generation_batch",
     "load_reward_functions",
+    "load_eval_reward_functions",
 ]

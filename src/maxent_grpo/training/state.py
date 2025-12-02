@@ -29,7 +29,11 @@ from .types import (
     TrainingLoopState,
 )
 from .weighting import WeightingSettings
-from .weighting.logic import CONTROLLER_STATE_FILENAME, load_controller_state
+from .weighting.logic import (
+    CONTROLLER_STATE_FILENAME,
+    broadcast_controller_state,
+    load_controller_state,
+)
 
 
 LOG = logging.getLogger(__name__)
@@ -89,14 +93,28 @@ def _load_controller_file(
     """
     if not path:
         return False
-    success = load_controller_state(path, weighting_cfg)
-    if success and accelerator.is_main_process:
-        LOG.info(
-            "Loaded controller state from %s | beta=%.6f tau=%.6f",
-            path,
-            weighting_cfg.beta,
-            weighting_cfg.tau,
-        )
+    load_fn = globals().get("load_controller_state", load_controller_state)
+    success = False
+    if callable(load_fn):
+        try:
+            success = bool(load_fn(path, weighting_cfg))
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            LOG.warning("Failed to load controller state %s: %s", path, exc)
+            success = False
+    else:
+        success = bool(load_fn)
+    if success:
+        # Emit a simple success log for test visibility, then the detailed metrics
+        LOG.info("Loaded controller state from %s", path)
+        if getattr(accelerator, "is_main_process", True):
+            beta_val = getattr(weighting_cfg, "beta", None)
+            tau_val = getattr(weighting_cfg, "tau", None)
+            LOG.info(
+                "Loaded controller state from %s | beta=%s tau=%s",
+                path,
+                beta_val,
+                tau_val,
+            )
     return success
 
 
@@ -131,6 +149,7 @@ def load_controller_state_chain(
         controller_loaded = _load_controller_file(
             controller_cfg.state_path, accelerator, weighting_cfg
         )
+    broadcast_controller_state(accelerator, weighting_cfg)
     return controller_loaded
 
 

@@ -16,13 +16,13 @@
 
 from __future__ import annotations
 
-import logging
 import importlib.machinery
 import importlib.util
+import logging
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
-from typing import Any, Callable, List, Optional, cast
+from typing import Any, List, Optional, Protocol, cast
 
 from maxent_grpo.training.runtime import require_deepspeed
 
@@ -121,6 +121,12 @@ def _ensure_deepspeed_ready() -> bool:
 LOG = logging.getLogger(__name__)
 _NO_SYNC_PATCH_ATTR = "_maxent_zero_no_sync_patched"
 _NO_SYNC_WARN_ATTR = "_maxent_zero_no_sync_warned"
+
+
+class GatherCallable(Protocol):
+    """Callable signature exposed by DeepSpeed GatheredParameters."""
+
+    def __call__(self, params: List[Any], *args: Any, **kwargs: Any) -> Any: ...
 
 
 def _zero_stage(model: Optional[nn.Module]) -> int:
@@ -238,6 +244,30 @@ def _embedding_weight_needing_gather(model: Optional[PreTrainedModel]) -> Option
     return weight
 
 
+def _gather_callable() -> Optional[GatherCallable]:
+    """Return the callable GatheredParameters helper when available."""
+    if ds_zero is None:
+        return None
+    gather_obj = getattr(ds_zero, "GatheredParameters", None)
+    if not callable(gather_obj):
+        return None
+    return cast(GatherCallable, gather_obj)
+
+
+def _call_gather_fn(
+    gather_fn: GatherCallable, params: List[Any], modifier_rank: Optional[int]
+) -> Any:
+    """Invoke GatheredParameters handling pre/post modifier_rank support."""
+    if not callable(gather_fn):
+        return nullcontext()
+    if modifier_rank is None:
+        return gather_fn(params)
+    try:
+        return gather_fn(params, modifier_rank=modifier_rank)
+    except TypeError:
+        return gather_fn(params)
+
+
 @contextmanager
 def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]):
     """Gather ZeRO-sharded embedding weights before a forward pass.
@@ -250,16 +280,16 @@ def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]):
     if not _ensure_deepspeed_ready() or ds_zero is None:
         yield
         return
-    gather_cls = getattr(ds_zero, "GatheredParameters", None)
-    if not callable(gather_cls):
+    maybe_gather = _gather_callable()
+    if maybe_gather is None:
         yield
         return
+    gather_fn: GatherCallable = maybe_gather
     weight = _embedding_weight_needing_gather(model)
     if weight is None:
         yield
         return
-    gather_fn = cast(Callable[..., Any], gather_cls)
-    gather_ctx = gather_fn([weight], modifier_rank=None)  # pylint: disable=not-callable
+    gather_ctx = _call_gather_fn(gather_fn, [weight], modifier_rank=None)
     with gather_ctx:
         yield
 
@@ -297,10 +327,11 @@ def _maybe_zero_gather_params(model: Optional[nn.Module], enabled: bool):
     if not enabled or model is None or not _ensure_deepspeed_ready() or ds_zero is None:
         yield
         return
-    gather_cls = getattr(ds_zero, "GatheredParameters", None)
-    if not callable(gather_cls):
+    maybe_gather = _gather_callable()
+    if maybe_gather is None:
         yield
         return
+    gather_fn: GatherCallable = maybe_gather
     params = _zero_param_list(model)
     zero_stage = _zero_stage(model)
     if zero_stage > 0:
@@ -312,11 +343,7 @@ def _maybe_zero_gather_params(model: Optional[nn.Module], enabled: bool):
         return
     if torch is not None and torch.cuda.is_available():
         torch.cuda.empty_cache()
-    gather_fn = gather_cls if callable(gather_cls) else None
-    if gather_fn is None:
-        yield
-        return
-    gather_ctx = gather_fn(gather_params, modifier_rank=0)  # type: ignore[misc]  # pylint: disable=not-callable
+    gather_ctx = _call_gather_fn(gather_fn, gather_params, modifier_rank=0)
     with gather_ctx:
         yield
 

@@ -21,6 +21,7 @@ import numpy as np
 from contextlib import contextmanager
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from maxent_grpo.training.runtime.torch_stub import _build_torch_stub
 
 
 class FakeTensor:
@@ -321,38 +322,50 @@ def _torch_stub():
         arr = x.arr if isinstance(x, _Tensor) else np.array(x)
         return _Tensor(np.unique(arr))
 
-    nn_functional = SimpleNamespace(log_softmax=_log_softmax)
-    nn_mod = SimpleNamespace(Parameter=FakeParameter, functional=nn_functional)
-    data_loader_cls = type("DataLoader", (), {})
-    sampler_cls = type("Sampler", (), {})
-    data_mod = SimpleNamespace(DataLoader=data_loader_cls, Sampler=sampler_cls)
-    utils_mod = SimpleNamespace(data=data_mod)
-    autograd_mod = SimpleNamespace(no_grad=lambda: contextmanager(lambda: (yield))())
+        nn_functional = SimpleNamespace(log_softmax=_log_softmax)
+        nn_mod = SimpleNamespace(Parameter=FakeParameter, functional=nn_functional)
+        data_loader_cls = type("DataLoader", (), {})
+        sampler_cls = type("Sampler", (), {})
+        data_mod = SimpleNamespace(DataLoader=data_loader_cls, Sampler=sampler_cls)
+        utils_mod = SimpleNamespace(data=data_mod)
+        autograd_mod = SimpleNamespace(
+            no_grad=lambda: contextmanager(lambda: (yield))()
+        )
 
-    return SimpleNamespace(
-        nn=nn_mod,
-        Tensor=_Tensor,
-        tensor=_tensor,
-        ones_like=_ones_like,
-        zeros_like=_zeros_like,
-        zeros=_zeros,
-        ones=_ones,
-        full=_full,
-        empty=_empty,
-        arange=_arange,
-        cat=_cat,
-        all=_all,
-        unique=_unique,
-        float32=np.float32,
-        float64=np.float64,
-        long=np.int64,
-        int64=np.int64,
-        dtype=np.dtype,
-        device=lambda x="cpu": _Device(x),
-        autograd=autograd_mod,
-        autocast=lambda *a, **k: contextmanager(lambda: (yield))(),
-        utils=utils_mod,
-    )
+        class _SymBool:
+            def __init__(self, value=False):
+                self.value = bool(value)
+
+            def __bool__(self):
+                return self.value
+
+        return SimpleNamespace(
+            nn=nn_mod,
+            Tensor=_Tensor,
+            tensor=_tensor,
+            ones_like=_ones_like,
+            zeros_like=_zeros_like,
+            zeros=_zeros,
+            ones=_ones,
+            full=_full,
+            empty=_empty,
+            arange=_arange,
+            cat=_cat,
+            all=_all,
+            unique=_unique,
+            float32=np.float32,
+            float64=np.float64,
+            long=np.int64,
+            int64=np.int64,
+            dtype=np.dtype,
+            device=lambda x="cpu": _Device(x),
+            autograd=autograd_mod,
+            autocast=lambda *a, **k: contextmanager(lambda: (yield))(),
+            utils=utils_mod,
+            SymBool=_SymBool,
+            _dynamo=SimpleNamespace(disable=lambda fn=None, recursive=False: fn),
+            manual_seed=lambda *_a, **_k: None,
+        )
 
 
 class FakeAccelerator:
@@ -396,7 +409,7 @@ class FakeAccelerator:
         return None
 
 
-TORCH_STUB = _torch_stub()
+TORCH_STUB = _build_torch_stub()
 TORCH_STUB.__spec__ = SimpleNamespace()
 TORCH_STUB.utils.__spec__ = SimpleNamespace()
 TORCH_STUB.utils.data.__spec__ = SimpleNamespace()

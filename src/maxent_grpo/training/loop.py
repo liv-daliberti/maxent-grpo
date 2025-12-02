@@ -47,7 +47,7 @@ from maxent_grpo.training.runtime import require_accelerator, require_torch
 from .eval import run_validation_step
 from .weighting.loss import LossInputConfig, build_loss_inputs, evaluate_losses
 from .pipeline import prepare_training_batch
-from .metrics import log_local_step, log_training_step
+from .metrics import log_local_step, log_training_step, summarize_weight_stats
 from .optim import (
     configure_accumulation_steps,
     detect_deepspeed_state,
@@ -64,6 +64,7 @@ from .state import (
     maybe_load_accelerator_state,
 )
 from .weighting.logic import (
+    broadcast_controller_state,
     maybe_update_beta,
     maybe_update_tau,
     save_controller_state,
@@ -250,10 +251,39 @@ def _train_step(
             grad_norm_scalar = _optimizer_step(ctx, state, current_lr)
     LOG.debug("Exiting accumulate context | synced_step=%d", state.global_step)
     log_artifacts.grad_norm_scalar = grad_norm_scalar
-    log_local_step(ctx, state, prepared, log_artifacts, current_lr)
-    log_training_step(ctx, state, prepared, log_artifacts, current_lr)
+    weight_stats_global = summarize_weight_stats(
+        accelerator, prepared.weight_stats
+    )  # Aggregate entropy across ranks once per step.
+    log_local_step(
+        ctx,
+        state,
+        prepared,
+        log_artifacts,
+        current_lr,
+        weight_view=weight_stats_global,
+    )
+    log_training_step(
+        ctx,
+        state,
+        prepared,
+        log_artifacts,
+        current_lr,
+        weight_view=weight_stats_global,
+    )
     maybe_update_beta(ctx.scoring.weighting, loss_outputs.kl_loss_scalar)
-    maybe_update_tau(ctx.scoring.weighting, prepared.weight_stats, state.global_step)
+    base_lr = max(float(getattr(ctx.optimization.handles, "learning_rate", 0.0)), 1e-12)
+    lr_scale = float(current_lr) / base_lr if base_lr > 0 else 1.0
+    weight_stats_for_tau = getattr(prepared, "weight_stats", weight_stats_global)
+    try:
+        maybe_update_tau(
+            ctx.scoring.weighting,
+            weight_stats_for_tau,
+            state.global_step,
+            lr_scale=lr_scale,
+        )
+    except TypeError:
+        maybe_update_tau(ctx.scoring.weighting, weight_stats_for_tau, state.global_step)
+    broadcast_controller_state(accelerator, ctx.scoring.weighting)
     if ctx.runtime.accelerator.is_main_process:
         save_controller_state(ctx.controller.state_path, ctx.scoring.weighting)
     _maybe_validate(ctx.evaluation, resources.validation_ctx, state.global_step)
@@ -329,6 +359,7 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
         model=runtime.model,
         tokenizer=runtime.tokenizer,
         reward=ctx.reward,
+        eval_reward=getattr(ctx, "eval_reward", None),
         generator=completion_generator.generate,
         logging=ctx.logging,
     )

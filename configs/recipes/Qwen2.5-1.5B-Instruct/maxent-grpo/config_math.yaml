@@ -107,7 +107,7 @@ vllm_stop_sequences:
   - "</answer>\n"
   - "</assistant>"
 vllm_request_timeout: 600
-vllm_url: http://localhost:29525/generate
+vllm_url: http://localhost:29525
 hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 hub_strategy: every_save
 learning_rate: 5e-6
@@ -140,7 +140,9 @@ reward_weights:
 - 1
 
 # Reverse‑KL weight β used inside MaxEnt update
-init_kl_coeff: 1.00
+init_kl_coeff: 0.50
+init_kl_coef: 0.50
+kl_penalty_beta: 0.50
 kl_target:        0.07
 kl_horizon:       5000 
 kl_ctl_step_size: 0.25

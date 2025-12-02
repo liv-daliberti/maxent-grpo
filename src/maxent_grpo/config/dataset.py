@@ -122,8 +122,21 @@ class DatasetConfig:
     weight: Optional[float] = None
 
 
+class _DatasetMixtureMeta(type):
+    """Metaclass that treats compatible mixtures as instances across reloads."""
+
+    def __instancecheck__(cls, instance):
+        base_check = type.__instancecheck__(cls, instance)
+        duck_typed = (
+            hasattr(instance, "datasets")
+            and hasattr(instance, "seed")
+            and hasattr(instance, "test_split_size")
+        )
+        return bool(base_check or duck_typed)
+
+
 @dataclass
-class DatasetMixtureConfig:
+class DatasetMixtureConfig(metaclass=_DatasetMixtureMeta):
     """Configuration for a mixture of datasets.
 
     :ivar datasets: Ordered dataset entries combined into a single iterable.
@@ -186,50 +199,54 @@ class ScriptArguments(_BaseScriptArgs):
             )
 
         if self.dataset_mixture is not None:
-            if (
-                not isinstance(self.dataset_mixture, dict)
-                or "datasets" not in self.dataset_mixture
-            ):
-                raise ValueError(
-                    "dataset_mixture must be a dictionary with a 'datasets' key. "
-                    "Expected format: {'datasets': [...], 'seed': int}"
-                )
+            self.dataset_mixture = self._coerce_dataset_mixture(self.dataset_mixture)
 
-            datasets_list = []
-            datasets_data = self.dataset_mixture.get("datasets", [])
+    def __setattr__(self, name, value):
+        if name == "dataset_mixture" and value is not None:
+            value = self._coerce_dataset_mixture(value)
+        object.__setattr__(self, name, value)
 
-            if isinstance(datasets_data, list):
-                for dataset_config in datasets_data:
-                    datasets_list.append(
-                        DatasetConfig(
-                            id=dataset_config.get("id"),
-                            config=dataset_config.get("config"),
-                            split=dataset_config.get("split", "train"),
-                            columns=dataset_config.get("columns"),
-                            weight=dataset_config.get("weight", 1.0),
-                        )
-                    )
-            else:
-                raise ValueError("'datasets' must be a list of dataset configurations")
-
-            self.dataset_mixture = DatasetMixtureConfig(
-                datasets=datasets_list,
-                seed=self.dataset_mixture.get("seed", 0),
-                test_split_size=self.dataset_mixture.get("test_split_size", None),
+    @staticmethod
+    def _coerce_dataset_mixture(
+        mixture: DatasetMixtureConfig | dict,
+    ) -> DatasetMixtureConfig:
+        if isinstance(mixture, DatasetMixtureConfig):
+            return mixture
+        if not isinstance(mixture, dict) or "datasets" not in mixture:
+            raise ValueError(
+                "dataset_mixture must be a dictionary with a 'datasets' key. "
+                "Expected format: {'datasets': [...], 'seed': int}"
             )
-
-            columns_sets = [
-                set(dataset.columns)
-                for dataset in datasets_list
-                if dataset.columns is not None
-            ]
-            if columns_sets:
-                first_columns = columns_sets[0]
-                if not all(columns == first_columns for columns in columns_sets):
-                    raise ValueError(
-                        "Column names must be consistent across all dataset configurations in a mixture. "
-                        f"Found different column sets: {[list(cols) for cols in columns_sets]}"
-                    )
+        datasets_data = mixture.get("datasets", [])
+        if not isinstance(datasets_data, list):
+            raise ValueError("'datasets' must be a list of dataset configurations")
+        datasets_list = [
+            DatasetConfig(
+                id=dataset_config.get("id"),
+                config=dataset_config.get("config"),
+                split=dataset_config.get("split", "train"),
+                columns=dataset_config.get("columns"),
+                weight=dataset_config.get("weight", 1.0),
+            )
+            for dataset_config in datasets_data
+        ]
+        columns_sets = [
+            set(dataset.columns)
+            for dataset in datasets_list
+            if dataset.columns is not None
+        ]
+        if columns_sets:
+            first_columns = columns_sets[0]
+            if not all(columns == first_columns for columns in columns_sets):
+                raise ValueError(
+                    "Column names must be consistent across all dataset configurations in a mixture. "
+                    f"Found different column sets: {[list(cols) for cols in columns_sets]}"
+                )
+        return DatasetMixtureConfig(
+            datasets=datasets_list,
+            seed=mixture.get("seed", 0),
+            test_split_size=mixture.get("test_split_size", None),
+        )
 
 
 __all__ = ["DatasetConfig", "DatasetMixtureConfig", "ScriptArguments"]

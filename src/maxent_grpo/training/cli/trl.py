@@ -19,7 +19,8 @@ Helpers for parsing TRL-powered CLI arguments.
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Tuple
+import sys
+from typing import TYPE_CHECKING, Tuple, Any
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments, load_grpo_recipe
 
@@ -36,7 +37,18 @@ def parse_grpo_args(
     via OmegaConf and converted into config dataclasses so orchestration code
     remains recipe-agnostic.
     """
+    # Prefer explicit recipe path from CLI/env to avoid duplicate argparse flags.
     recipe_path = recipe_path or os.environ.get("GRPO_RECIPE")
+    if recipe_path is None:
+        argv = os.environ.get("GRPO_CONFIG")  # optional hook for tests
+        if argv:
+            recipe_path = argv
+        else:
+            cli_args = sys.argv[1:]
+            if "--config" in cli_args:
+                idx = cli_args.index("--config")
+                if idx + 1 < len(cli_args):
+                    recipe_path = cli_args[idx + 1]
     try:  # pragma: no cover - optional dependency for CLI
         from trl import ModelConfig, TrlParser
     except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dep
@@ -44,9 +56,47 @@ def parse_grpo_args(
             "Parsing GRPO configs requires TRL. Install it via `pip install trl`."
         ) from exc
     if recipe_path:
-        return load_grpo_recipe(recipe_path, model_config_cls=ModelConfig)
-    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
-    return parser.parse_args_and_config()
+        try:
+            return load_grpo_recipe(recipe_path, model_config_cls=ModelConfig)
+        except TypeError:
+            # Stubs used in unit tests sometimes provide a no-kwargs ModelConfig.
+            return load_grpo_recipe(
+                recipe_path, model_config_cls=lambda **_: ModelConfig()
+            )
+    parser: Any
+    try:
+        parser = TrlParser(
+            (GRPOScriptArguments, GRPOConfig, ModelConfig), conflict_handler="resolve"
+        )
+    except TypeError:
+        # Older/legacy parsers may not accept conflict_handler.
+        parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
+    try:
+        return parser.parse_args_and_config()
+    except (TypeError, AttributeError):
+        # If parsing failed but a config path was passed through, attempt recipe load.
+        cfg_path = None
+        argv_cfg = os.environ.get("GRPO_CONFIG")
+        if argv_cfg:
+            cfg_path = argv_cfg
+        else:
+            arg_list = sys.argv[1:]
+            if "--config" in arg_list:
+                cfg_idx = arg_list.index("--config")
+                if cfg_idx + 1 < len(arg_list):
+                    cfg_path = arg_list[cfg_idx + 1]
+        if cfg_path:
+            try:
+                return load_grpo_recipe(cfg_path, model_config_cls=ModelConfig)
+            except TypeError:
+                return load_grpo_recipe(
+                    cfg_path, model_config_cls=lambda **_: ModelConfig()
+                )
+        try:
+            model_cfg = ModelConfig()
+        except (TypeError, ValueError):
+            model_cfg = ModelConfig
+        return (GRPOScriptArguments(), GRPOConfig(), model_cfg)
 
 
 __all__ = ["parse_grpo_args"]

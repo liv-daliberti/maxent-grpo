@@ -22,8 +22,9 @@ from types import SimpleNamespace
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from .types import RewardSpec, ValidationContext
+from maxent_grpo.rewards.basic import _answer_pat, _format_pat
 from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
-from .scoring import _refresh_torch
+from .scoring import _refresh_torch, _to_numpy_array
 
 
 @dataclass
@@ -94,7 +95,13 @@ def _compute_eval_rewards(
     for reward_weight, reward_fn in zip(
         reward_spec.reward_weights, reward_spec.reward_funcs
     ):
-        reward_scores = reward_fn(completions, answers)
+        try:
+            reward_scores = reward_fn(completions, answers, is_eval=True, split="eval")
+        except TypeError:
+            try:
+                reward_scores = reward_fn(completions, answers)
+            except TypeError:
+                reward_scores = reward_fn(completions, answers, is_eval=True)
         if reward_weight != 1.0:
             reward_scores = [
                 float(reward_weight) * float(score) for score in reward_scores
@@ -104,6 +111,21 @@ def _compute_eval_rewards(
             for running, score in zip(total_rewards, reward_scores)
         ]
     return total_rewards
+
+
+def _tally_format_issues(
+    completions: List[str],
+) -> Dict[str, float]:
+    """Return format issue counts for a batch of completions."""
+
+    stats = {"missing_answer": 0.0, "missing_format": 0.0, "total": 0.0}
+    for comp in completions:
+        stats["total"] += 1.0
+        if not _format_pat.match(comp):
+            stats["missing_format"] += 1.0
+        if not _answer_pat.search(comp):
+            stats["missing_answer"] += 1.0
+    return stats
 
 
 def _build_eval_shard(
@@ -168,7 +190,7 @@ def _run_eval_batches(
     batch_size: int,
     ctx: ValidationContext,
     step: int,
-) -> List[float]:
+) -> Tuple[List[float], Dict[str, float]]:
     """Generate completions for the shard rows and log periodic progress.
 
     :param shard: Evaluation shard metadata for the current rank.
@@ -183,6 +205,12 @@ def _run_eval_batches(
     :rtype: list[float]
     """
     eval_scores: List[float] = []
+    fmt_counts: Dict[str, float] = {
+        "missing_answer": 0.0,
+        "missing_format": 0.0,
+        "total": 0.0,
+    }
+    reward_spec = ctx.eval_reward or ctx.reward
     processed = 0
     for batch_idx, (prompts, answers) in enumerate(
         _iter_eval_batches(shard.rows, batch_size)
@@ -191,7 +219,10 @@ def _run_eval_batches(
         grouped, _ = ctx.generator(prompts, 1, target_counts)
         if grouped:
             completions = [grp[0] if grp else "" for grp in grouped]
-            eval_scores.extend(_compute_eval_rewards(completions, answers, ctx.reward))
+            eval_scores.extend(_compute_eval_rewards(completions, answers, reward_spec))
+            batch_fmt = _tally_format_issues(completions)
+            for k, v in batch_fmt.items():
+                fmt_counts[k] = fmt_counts.get(k, 0.0) + float(v)
         processed += len(prompts)
         should_log = shard.shard_total and (
             processed >= shard.shard_total or (batch_idx + 1) % shard.log_every == 0
@@ -205,13 +236,14 @@ def _run_eval_batches(
                 shard.shard_total,
                 running_mean,
             )
-    return eval_scores
+    return eval_scores, fmt_counts
 
 
 def _gather_eval_stats(
     accelerator: Any,
     eval_scores: List[float],
-) -> Tuple[float, float]:
+    fmt_counts: Optional[Dict[str, float]] = None,
+) -> Tuple[float, float, Dict[str, float]]:
     """Gather mean reward statistics across all ranks.
 
     :param accelerator: Accelerate handle used to gather objects.
@@ -223,13 +255,37 @@ def _gather_eval_stats(
     """
     local_sum = float(sum(eval_scores))
     local_count = float(len(eval_scores))
+    provided_fmt = fmt_counts is not None
+    fmt_counts = fmt_counts or {
+        "missing_answer": 0.0,
+        "missing_format": 0.0,
+        "total": 0.0,
+    }
     gather_fn = getattr(accelerator, "gather_object", None)
-    gathered = gather_fn((local_sum, local_count)) if callable(gather_fn) else None
+    payload = (local_sum, local_count, fmt_counts)
+    gathered = gather_fn(payload) if callable(gather_fn) else None
     if not gathered:
-        gathered = [(local_sum, local_count)]
-    total_sum = sum(pair[0] for pair in gathered)
-    total_count = sum(pair[1] for pair in gathered)
-    return total_sum, total_count
+        gathered = [payload]
+    total_sum = 0.0
+    total_count = 0.0
+    total_fmt: Dict[str, float] = {
+        "missing_answer": 0.0,
+        "missing_format": 0.0,
+        "total": 0.0,
+    }
+    for item in gathered:
+        # Accept payloads of length 2 (sum, count) or 3 (sum, count, fmt_counts)
+        if not isinstance(item, (list, tuple)):
+            continue
+        if len(item) >= 2:
+            total_sum += float(item[0])
+            total_count += float(item[1])
+        if len(item) >= 3 and item[2] is not None:
+            for k, v in item[2].items():
+                total_fmt[k] = total_fmt.get(k, 0.0) + float(v)
+    if not provided_fmt:
+        return total_sum, total_count
+    return total_sum, total_count, total_fmt
 
 
 def _render_seed_prompts(
@@ -307,7 +363,8 @@ def _run_seed_eval(
             flat_prompts_for_pairs.append(rendered_prompt)
     if not flat_completions:
         return None
-    rewards = _compute_eval_rewards(flat_completions, flat_answers, ctx.reward)
+    reward_spec = ctx.eval_reward or ctx.reward
+    rewards = _compute_eval_rewards(flat_completions, flat_answers, reward_spec)
     # Pass@K per base prompt
     pass_counts: Dict[int, int] = {}
     total_per_prompt: Dict[int, int] = {}
@@ -339,13 +396,52 @@ def _run_seed_eval(
             hidden = outputs.hidden_states[-1]
             pooled = _pool_hidden(hidden, attn, seed_cfg.pooling)
             logits = seed_head(pooled)
-            preds = logits.argmax(dim=-1).cpu()
-            sid_tensor = torch_mod.tensor(flat_seed_ids, device=preds.device)
+            preds = getattr(torch_mod, "as_tensor", torch_mod.tensor)(
+                logits.argmax(dim=-1)
+            ).view(-1)
+            sid_tensor = getattr(torch_mod, "as_tensor", torch_mod.tensor)(
+                flat_seed_ids, device=preds.device
+            ).view(-1)
+            seq_len = 0
+            shape = getattr(pooled, "shape", None)
+            if shape and len(shape) > 0:
+                seq_len = int(shape[0])
+            valid_len = int(
+                min(preds.numel(), sid_tensor.numel(), seq_len or preds.numel())
+            )
+            if valid_len > 0:
+                preds = preds[:valid_len]
+                sid_tensor = sid_tensor[:valid_len]
+                try:
+                    pooled = pooled[:valid_len]
+                except (
+                    TypeError,
+                    AttributeError,
+                    RuntimeError,
+                ):  # pragma: no cover - defensive
+                    pass
             valid_mask = sid_tensor >= 0
-            if valid_mask.any():
-                seed_pred_acc = (
-                    (preds[valid_mask] == sid_tensor[valid_mask]).float().mean().item()
-                )
+            if valid_mask.any() and preds.numel() > 0:
+                try:
+                    seed_pred_acc = (
+                        (preds[valid_mask] == sid_tensor[valid_mask])
+                        .float()
+                        .mean()
+                        .item()
+                    )
+                except (TypeError, ValueError, RuntimeError):
+                    # Fall back to numpy-style masking when stubs are present.
+                    import numpy as _np
+
+                    preds_arr = _to_numpy_array(preds)
+                    mask_arr = _to_numpy_array(valid_mask).astype(bool)
+                    sid_arr = _to_numpy_array(sid_tensor)
+                    try:
+                        seed_pred_acc = float(
+                            _np.mean(preds_arr[mask_arr] == sid_arr[mask_arr])
+                        )
+                    except (TypeError, ValueError, RuntimeError):
+                        seed_pred_acc = None
                 # Diversity across seeds (mean pooled representations per seed)
                 unique_sids = torch_mod.unique(sid_tensor[valid_mask])
                 if unique_sids.numel() > 1:
@@ -354,7 +450,12 @@ def _run_seed_eval(
                         m = pooled[sid_tensor == sid].mean(dim=0)
                         means.append(m)
                     if len(means) > 1:
-                        stacked = torch_mod.stack(means)
+                        try:
+                            stacked = torch_mod.stack(means)
+                        except TypeError:
+                            stacked = torch_mod.stack(
+                                [torch_mod.tensor(getattr(m, "arr", m)) for m in means]
+                            )
                         pdist_fn = getattr(
                             getattr(torch_mod, "nn", SimpleNamespace()),
                             "functional",
@@ -401,22 +502,49 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
     model.eval()
 
     try:
-        eval_scores = _run_eval_batches(
+        eval_scores, fmt_counts = _run_eval_batches(
             shard,
             evaluation_cfg.batch_size,
             ctx,
             step,
         )
-        total_sum, total_count = _gather_eval_stats(accelerator, eval_scores)
+        gathered_stats = _gather_eval_stats(accelerator, eval_scores, fmt_counts)
+        total_sum, total_count = gathered_stats[:2]
+        total_fmt = (
+            gathered_stats[2]
+            if len(gathered_stats) >= 3
+            else {
+                "missing_answer": 0.0,
+                "missing_format": 0.0,
+                "total": float(total_count),
+            }
+        )
         if shard.is_main:
             mean_reward = total_sum / max(total_count, 1.0)
             logging.getLogger(__name__).info(
-                "eval step %d | mean_reward=%.4f | samples=%d",
+                "eval step %d | mean_reward=%.4f | samples=%d | missing_answer_frac=%.4f | missing_format_frac=%.4f",
                 step,
                 mean_reward,
                 int(total_count),
+                float(total_fmt.get("missing_answer", 0.0))
+                / max(float(total_fmt.get("total", 0.0)), 1.0),
+                float(total_fmt.get("missing_format", 0.0))
+                / max(float(total_fmt.get("total", 0.0)), 1.0),
             )
-            ctx.logging.log_metrics({"eval/mean_reward": mean_reward}, step)
+            ctx.logging.log_metrics(
+                {
+                    "eval/mean_reward": mean_reward,
+                    "eval/format/missing_answer_frac": float(
+                        total_fmt.get("missing_answer", 0.0)
+                    )
+                    / max(float(total_fmt.get("total", 0.0)), 1.0),
+                    "eval/format/missing_format_frac": float(
+                        total_fmt.get("missing_format", 0.0)
+                    )
+                    / max(float(total_fmt.get("total", 0.0)), 1.0),
+                },
+                step,
+            )
             seed_cfg_raw = getattr(evaluation_cfg, "seed_eval", None)
             if isinstance(seed_cfg_raw, dict):
                 seed_cfg = _SeedEvalConfig(

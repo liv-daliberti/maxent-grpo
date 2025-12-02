@@ -62,21 +62,18 @@ def _refresh_vllm_globals() -> None:
 
 
 def _gather_object_list_wrapper(accelerator, value):
-    # pylint: disable=protected-access
     _refresh_vllm_globals()
-    return _vllm_adapter._gather_object_list(accelerator, value)
+    return _vllm_adapter.gather_object_list(accelerator, value)
 
 
 def _broadcast_object_list_wrapper(accelerator, payload, *, src=0):
-    # pylint: disable=protected-access
     _refresh_vllm_globals()
-    return _vllm_adapter._broadcast_object_list(accelerator, payload, src=src)
+    return _vllm_adapter.broadcast_object_list(accelerator, payload, src=src)
 
 
 def _scatter_object_wrapper(accelerator, input_list, *, src=0):
-    # pylint: disable=protected-access
     _refresh_vllm_globals()
-    return _vllm_adapter._scatter_object(accelerator, input_list, src=src)
+    return _vllm_adapter.scatter_object(accelerator, input_list, src=src)
 
 
 # Expose wrapper functions that honor patched globals.

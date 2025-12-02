@@ -115,6 +115,13 @@ def truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
     return prompt[:limit]
 
 
+def sync_trunc_state(state: Dict[str, Any]) -> None:
+    """Merge external truncation state into the shared warning cache."""
+
+    if isinstance(state, dict):
+        _TRUNC_STATE.update(state)
+
+
 # Backwards compatibility for existing imports.
 _truncate_prompt = truncate_prompt
 
@@ -146,15 +153,26 @@ def _to_prompt(
     messages.append({"role": "user", "content": user})
 
     try:
-        prompt = tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        apply_fn = getattr(tokenizer, "apply_chat_template", None)
+        if not callable(apply_fn):
+            raise AttributeError("chat template missing or not callable")
+        prompt = apply_fn(messages, tokenize=False, add_generation_prompt=True)
+        if not isinstance(prompt, str):
+            raise TypeError("chat template did not return a string prompt")
     except (AttributeError, TypeError, ValueError, RuntimeError):
         prompt = (
             "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
             + "\nASSISTANT:"
         )
-    prompt = truncate_prompt(prompt, char_limit)
+    effective_limit = char_limit if char_limit is not None else PROMPT_CHAR_LIMIT
+    min_required = len("USER: ") + len(user) + len("\nASSISTANT:")
+    if effective_limit and effective_limit > 0 and effective_limit < min_required:
+        effective_limit = min_required
+    prompt = truncate_prompt(prompt, effective_limit)
+    # Defensive: ensure the user message survives even if truncation or a template
+    # removed it entirely.
+    if user and user not in prompt:
+        prompt = f"{prompt}\n{user}"
     return {
         "prompt": prompt,
         "answer": str(example.get("answer", example.get("solution", ""))),
@@ -170,5 +188,6 @@ __all__ = [
     "_prompt_char_limit_from_tokens",
     "_to_prompt",
     "_truncate_prompt",
+    "sync_trunc_state",
     "truncate_prompt",
 ]

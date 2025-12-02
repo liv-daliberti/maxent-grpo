@@ -51,6 +51,13 @@ _ORIG_FIND_SPEC = importlib.util.find_spec
 
 def _maxent_find_spec(name: str, package: str | None = None):
     """Treat lightweight stubs (missing files/spec) as absent for optional deps."""
+    # Always defer to the real import machinery for wandb so integrations don't
+    # mistakenly treat a partially imported module as missing.
+    if name.startswith("wandb"):
+        try:
+            return _ORIG_FIND_SPEC(name, package)
+        except ValueError:
+            return None
     module = sys.modules.get(name)
     if isinstance(module, ModuleType):
         # When a module is stubbed/partially imported, both __file__ and __spec__
@@ -67,6 +74,17 @@ def _maxent_find_spec(name: str, package: str | None = None):
 
 
 importlib.util.find_spec = _maxent_find_spec
+
+# Ensure downstream integrations don't incorrectly treat wandb as missing when
+# the package is installed. Some environments may inject a stub with no spec;
+# force availability checks to succeed so the real import is attempted.
+try:  # pragma: no cover - defensive runtime patch
+    from transformers.integrations import integration_utils as _iu
+
+    if hasattr(_iu, "is_wandb_available"):
+        _iu.is_wandb_available = lambda: True
+except Exception:
+    pass
 
 
 def _install_transformers_stub() -> None:
@@ -201,7 +219,15 @@ def _install_torch_stub() -> None:
         pass
     existing = sys.modules.get("torch")
     if existing is not None and getattr(existing, "tensor", None):
-        return
+        if not hasattr(existing, "nn"):
+            existing.nn = SimpleNamespace(
+                functional=SimpleNamespace(log_softmax=lambda *_a, **_k: None)
+            )
+        if not hasattr(existing, "optim"):
+            existing.optim = SimpleNamespace(Optimizer=type("Optimizer", (), {}))
+        # If other critical attrs are missing (e.g., mps/backends), continue to rebuild.
+        if hasattr(existing, "nn") and hasattr(existing, "optim"):
+            return
 
     _rng = np.random.default_rng(0)
     _grad_tensors = []
@@ -568,6 +594,18 @@ def _install_torch_stub() -> None:
     torch_mod.all = all_fn
     torch_mod.softmax = softmax
     torch_mod.device = TorchDevice
+
+    class _SymBool:
+        def __init__(self, value=False):
+            self.value = bool(value)
+
+        def __bool__(self):
+            return self.value
+
+    torch_mod.SymBool = _SymBool
+    torch_mod._dynamo = SimpleNamespace(disable=lambda fn=None, recursive=False: fn)
+    if not hasattr(torch_mod, "manual_seed"):
+        torch_mod.manual_seed = lambda *_a, **_k: None
     if not hasattr(torch_mod, "autocast"):
         torch_mod.autocast = lambda **_kwargs: nullcontext()
     torch_mod.no_grad = no_grad
@@ -577,6 +615,7 @@ def _install_torch_stub() -> None:
     torch_mod.distributed = SimpleNamespace(
         is_available=lambda: False, is_initialized=lambda: False
     )
+    torch_mod.multiprocessing = SimpleNamespace(_is_in_bad_fork=False)
     dynamo_mod = sys.modules.get("torch._dynamo")
     if dynamo_mod is None:
         dynamo_mod = ModuleType("torch._dynamo")

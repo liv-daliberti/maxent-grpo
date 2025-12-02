@@ -53,12 +53,18 @@ from typing import (
 )
 from types import ModuleType, SimpleNamespace
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
-from maxent_grpo.rewards.basic import get_reward_funcs
+from maxent_grpo.training.rewards import load_reward_functions
+from maxent_grpo.rewards.basic import get_reward_funcs as _compat_get_reward_funcs
 from maxent_grpo.core.data import get_dataset, load_dataset_split
 from maxent_grpo.core.model import get_model, get_tokenizer
 from maxent_grpo.patches.trl import ensure_vllm_group_port
 from maxent_grpo.training.runtime import log_run_header
-from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT, _to_prompt
+from maxent_grpo.training.runtime.prompts import (
+    PROMPT_CHAR_LIMIT,
+    _prompt_char_limit_from_tokens,
+    _to_prompt,
+)
+from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
 
 if TYPE_CHECKING:
     from trl import ModelConfig
@@ -154,10 +160,14 @@ get_peft_config_override: Optional[Any] = (
 __all__ = [
     "GRPOTrainerOverride",
     "get_peft_config_override",
+    "get_reward_funcs",
     "run_baseline_training",
     "_to_prompt",
     "PROMPT_CHAR_LIMIT",
 ]
+
+# Backward compatibility hook for tests/legacy callers that monkeypatch reward resolution.
+get_reward_funcs = _compat_get_reward_funcs
 
 
 @runtime_checkable
@@ -210,7 +220,11 @@ def run_baseline_training(
     from transformers.trainer_utils import get_last_checkpoint
     from trl import GRPOTrainer as _GRPOTrainer, get_peft_config as _get_peft_config
 
-    trainer_cls = GRPOTrainerOverride or _GRPOTrainer
+    override = getattr(sys.modules[__name__], "GRPOTrainerOverride", None)
+    trainer_cls = override or _GRPOTrainer
+    # Avoid leaking overrides across calls/tests.
+    setattr(sys.modules[__name__], "GRPOTrainerOverride", None)
+    trainer_cls = ensure_weighting_logging(trainer_cls)
     peft_factory = get_peft_config_override or _get_peft_config
 
     # Ensure TRL's VLLM client honours distributed port overrides before
@@ -222,6 +236,12 @@ def run_baseline_training(
         set_seed_fn(training_args.seed)
     if not getattr(training_args, "return_reward", False):
         training_args.return_reward = True
+    # Keep stop sequences aligned across train/eval and vLLM/HF generation.
+    vllm_stops = getattr(training_args, "vllm_stop_sequences", None)
+    if getattr(training_args, "gen_stop_sequences", None) in (None, []):
+        setattr(training_args, "gen_stop_sequences", vllm_stops)
+    if getattr(training_args, "eval_stop_sequences", None) in (None, []):
+        setattr(training_args, "eval_stop_sequences", vllm_stops)
 
     # Logging
     logging.basicConfig(
@@ -280,6 +300,9 @@ def run_baseline_training(
     # Map dataset → prompt text + gold answer
     pc = getattr(script_args, "dataset_prompt_column", "problem")
     sc = getattr(script_args, "dataset_solution_column", "answer")
+    char_limit = _prompt_char_limit_from_tokens(
+        getattr(training_args, "max_prompt_length", 0)
+    )
 
     def _map_fn(ex: Dict[str, Any]) -> Dict[str, str]:
         """Map a training split example to prompt/answer text.
@@ -289,7 +312,13 @@ def run_baseline_training(
         :returns: Mapping with ``prompt``/``answer`` keys for training.
         :rtype: dict[str, str]
         """
-        out = _to_prompt(ex, tokenizer, pc, training_args.system_prompt)
+        out = _to_prompt(
+            ex,
+            tokenizer,
+            pc,
+            training_args.system_prompt,
+            char_limit=char_limit,
+        )
         # Ensure answer is present from the configured column
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out
@@ -365,7 +394,11 @@ def run_baseline_training(
                 :rtype: dict[str, str]
                 """
                 out = _to_prompt(
-                    ex, tokenizer, eval_prompt_col, training_args.system_prompt
+                    ex,
+                    tokenizer,
+                    eval_prompt_col,
+                    training_args.system_prompt,
+                    char_limit=char_limit,
                 )
                 out["answer"] = str(ex.get(eval_solution_col, out.get("answer", "")))
                 return out
@@ -381,7 +414,16 @@ def run_baseline_training(
             eval_ds = full_eval.shuffle(seed=training_args.seed).select(range(n_keep))
 
     # Rewards
-    reward_funcs = get_reward_funcs(script_args, None, tokenizer)
+    reward_funcs, reward_weights = load_reward_functions(
+        script_args, tokenizer, training_args
+    )
+    # Keep TRL args aligned with the resolved reward spec so GRPOTrainer's
+    # validation (length match) succeeds even when recipes store rewards on
+    # script_args only.
+    try:
+        setattr(training_args, "reward_weights", reward_weights)
+    except (AttributeError, TypeError):
+        pass
 
     # Trainer
     with _force_vllm_dtype(training_args):
@@ -393,6 +435,20 @@ def run_baseline_training(
             eval_dataset=eval_ds,
             peft_config=peft_factory(model_args),
             processing_class=tokenizer,
+        )
+        # Expose trainer kwargs for tests that introspect trainer construction.
+        setattr(
+            trainer,
+            "_init_kwargs",
+            dict(
+                model=model,
+                reward_funcs=reward_funcs,
+                args=training_args,
+                train_dataset=train_ds,
+                eval_dataset=eval_ds,
+                peft_config=peft_factory(model_args),
+                processing_class=tokenizer,
+            ),
         )
 
     # Train

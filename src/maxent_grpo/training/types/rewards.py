@@ -297,6 +297,7 @@ class ValidationContext:
     reward: RewardSpec
     generator: "GenerationFn"
     logging: "LoggingHandles"
+    eval_reward: Optional[RewardSpec] = None
 
 
 @dataclass
