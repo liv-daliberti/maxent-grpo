@@ -103,7 +103,18 @@ def split_reference_logprobs(
     """
     ref_logp_grouped: List[List[float]] = []
     offset = 0
-    ref_values = ref_stats.ref_logp_sum if len_norm_ref else ref_stats.ref_logp_sum_raw
+    if len_norm_ref:
+        # When already length-normalized, use the provided per-token sums directly.
+        ref_values = getattr(ref_stats, "ref_logp_sum", None)
+        if ref_values is None:
+            raw_vals = getattr(ref_stats, "ref_logp_sum_raw", None)
+            tok_counts = getattr(ref_stats, "ref_tok_counts", None)
+            if raw_vals is not None and tok_counts is not None:
+                ref_values = raw_vals / tok_counts.clamp(min=1.0)
+            else:
+                ref_values = getattr(ref_stats, "ref_logp_sum_raw", [])
+    else:
+        ref_values = ref_stats.ref_logp_sum_raw
     for comps in grouped_completions:
         comp_count = len(comps)
         ref_slice = ref_values[offset : offset + comp_count]
@@ -201,19 +212,57 @@ def weight_vector_from_q(
     if safe_denom <= 0.0:
         safe_denom = 1e-8
     try:
-        q_tensor = torch.tensor(q_values, dtype=torch.float32).clamp(min=1e-12)
+        try:
+            q_tensor = torch.tensor(q_values, dtype=torch.float32)
+        except (RuntimeError, TypeError, ValueError, AttributeError):
+            try:
+                q_tensor = torch.tensor(q_values)
+            except (RuntimeError, TypeError, ValueError, AttributeError):
+                return [1.0 / len(logp_values)] * len(logp_values)
+        q_tensor = q_tensor.clamp(min=1e-12)
         log_weight_terms = torch.log(q_tensor) / safe_denom
         if include_reference_term and beta > 0.0:
-            ref_tensor = torch.tensor(logp_values, dtype=torch.float32)
+            try:
+                ref_tensor = torch.tensor(logp_values, dtype=torch.float32)
+            except (RuntimeError, TypeError, ValueError, AttributeError):
+                try:
+                    ref_tensor = torch.tensor(logp_values)
+                except (RuntimeError, TypeError, ValueError, AttributeError):
+                    return [1.0 / len(logp_values)] * len(logp_values)
             log_weight_terms = log_weight_terms + (beta / safe_denom) * ref_tensor
         probs = torch.softmax(log_weight_terms, dim=0)
+        # Keep post-softmax length reweighting when requested by caller.
         if normalize_by_tokens and token_counts:
-            tok_tensor = torch.tensor(token_counts, dtype=torch.float32).clamp(min=1.0)
+            try:
+                tok_tensor = torch.tensor(token_counts, dtype=torch.float32)
+            except (RuntimeError, TypeError, ValueError, AttributeError):
+                try:
+                    tok_tensor = torch.tensor(token_counts)
+                except (RuntimeError, TypeError, ValueError, AttributeError):
+                    return [1.0 / len(logp_values)] * len(logp_values)
+            tok_tensor = tok_tensor.clamp(min=1.0)
             probs = probs * tok_tensor
             probs = probs / probs.sum()
         return probs.tolist()
     except (TypeError, ValueError, RuntimeError):
-        return [1.0 / len(logp_values)] * len(logp_values)
+        # Manual fallback to preserve expected behavior under stubbed torch implementations.
+        try:
+            log_terms = [math.log(max(q, 1e-12)) / safe_denom for q in q_values]
+            if include_reference_term and beta > 0.0:
+                log_terms = [
+                    lt + (beta / safe_denom) * lp for lt, lp in zip(log_terms, logp_values)
+                ]
+            max_term = max(log_terms)
+            exp_terms = [math.exp(lt - max_term) for lt in log_terms]
+            denom_val = sum(exp_terms) or 1.0
+            probs = [et / denom_val for et in exp_terms]
+            if normalize_by_tokens and token_counts:
+                scaled = [p * max(tc, 1.0) for p, tc in zip(probs, token_counts)]
+                scale_sum = sum(scaled) or 1.0
+                probs = [s / scale_sum for s in scaled]
+            return probs
+        except (TypeError, ValueError, ZeroDivisionError):
+            return [1.0 / len(logp_values)] * len(logp_values)
 
 
 def maybe_update_beta(weighting_cfg: WeightingSettings, measured_kl: float) -> None:
@@ -482,7 +531,7 @@ def collect_weight_entropy(
             clamped = weight_tensor.clamp(min=1e-12)
             try:
                 log_vals = clamped.log()
-            except (RuntimeError, TypeError, ValueError):
+            except (RuntimeError, TypeError, ValueError, AttributeError):
                 log_vals = torch.log(clamped) if hasattr(torch, "log") else clamped
             entropy_vals.append(float((-(log_vals) * weight_tensor).sum().item()))
         except (TypeError, ValueError, RuntimeError):
@@ -530,6 +579,7 @@ def compute_weight_stats(
     )
     token_counts_grouped = split_reference_token_counts(grouped_completions, ref_stats)
     weights_grouped: List[List[float]] = []
+    include_ref_term = not getattr(weighting_cfg, "train_grpo_objective", False)
     for q_vals, logp_vals, tok_counts in zip(
         reward_comp.q_grouped, ref_logp_grouped, token_counts_grouped
     ):
@@ -539,7 +589,8 @@ def compute_weight_stats(
                 logp_vals,
                 tok_counts,
                 weighting_cfg,
-                include_reference_term=True,
+                include_reference_term=include_ref_term,
+                normalize_by_tokens=not weighting_cfg.len_norm_ref,
             )
         )
     flat_weights = [weight for group in weights_grouped for weight in group]

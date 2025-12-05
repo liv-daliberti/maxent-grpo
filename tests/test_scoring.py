@@ -560,6 +560,36 @@ def test_build_sequence_scores_clamps_empty_denominator():
     assert scores.denom_tok_tensor.tolist() == [1.0, 1.0]
 
 
+def test_build_sequence_scores_defaults_behavior_to_current_policy():
+    ref_stats = ReferenceLogprobs(
+        ref_logp_sum=torch.tensor([-1.0, -2.0], dtype=torch.float32),
+        ref_tok_counts=torch.tensor([1.0, 1.0], dtype=torch.float32),
+        ref_logp_sum_raw=torch.tensor([-1.0, -2.0], dtype=torch.float32),
+        ref_logp_mean=-1.5,
+        avg_completion_tokens=1.0,
+    )
+    cur = torch.tensor([0.2, 0.4], dtype=torch.float32)
+    scores = build_sequence_scores(cur, ref_stats)
+    # Behavior should follow the rollout actor (current policy) by default, not the reference model.
+    assert scores.behavior_logp_sum.tolist() == pytest.approx(cur.tolist())
+    # The ref-based log ratio should remain unchanged for KL logging.
+    assert scores.log_ratio_train.tolist() == pytest.approx([1.2, 2.4])
+
+
+def test_build_sequence_scores_accepts_behavior_override():
+    ref_stats = ReferenceLogprobs(
+        ref_logp_sum=torch.tensor([-1.0, -1.0], dtype=torch.float32),
+        ref_tok_counts=torch.tensor([1.0, 1.0], dtype=torch.float32),
+        ref_logp_sum_raw=torch.tensor([-1.0, -1.0], dtype=torch.float32),
+        ref_logp_mean=-1.0,
+        avg_completion_tokens=1.0,
+    )
+    cur = torch.tensor([0.0, 0.0], dtype=torch.float32)
+    behavior = torch.tensor([0.3, 0.4], dtype=torch.float32)
+    scores = build_sequence_scores(cur, ref_stats, behavior_logp_sum=behavior)
+    assert scores.behavior_logp_sum.tolist() == pytest.approx(behavior.tolist())
+
+
 def test_score_model_outputs_and_reference_from_model(monkeypatch):
     sb, tokenizer, gen_cfg, batching_cfg = _score_batch()
     device = torch.device("cpu")

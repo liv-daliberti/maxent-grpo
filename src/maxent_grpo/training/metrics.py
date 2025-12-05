@@ -223,6 +223,9 @@ def _loss_component_block(loss_outputs: "LossOutputs") -> Dict[str, float]:
     seed_loss = getattr(loss_outputs, "seed_loss_value", None)
     if seed_loss is not None:
         metrics["train/loss/seed"] = seed_loss
+    info_entropy = getattr(loss_outputs, "info_seed_entropy_scalar", None)
+    if info_entropy is not None:
+        metrics["train/info_seed/entropy"] = info_entropy
     return metrics
 
 

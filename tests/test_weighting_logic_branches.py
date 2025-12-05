@@ -4,6 +4,10 @@ Targeted coverage for weighting logic and reward types edge cases.
 
 from types import SimpleNamespace
 
+import math
+
+import pytest
+
 from maxent_grpo.training.weighting import logic
 from maxent_grpo.training.types.rewards import LossOutputs, LossScalarBundle
 
@@ -127,6 +131,273 @@ def test_collect_weight_entropy_manual_fallback(monkeypatch):
     mean_entropy, min_entropy, max_entropy, _ = logic.collect_weight_entropy([[0.5, 0.5]])
     assert mean_entropy == min_entropy == max_entropy
     assert mean_entropy > 0
+
+
+# --- Length normalization and token scaling consistency ----------------------
+
+
+def test_split_reference_logprobs_length_normalized(monkeypatch):
+    """Length-normalized ref logp should divide by token counts."""
+
+    ref_stats = SimpleNamespace(
+        ref_logp_sum_raw=_FakeTensor([10.0, 8.0, 6.0]),
+        ref_tok_counts=_FakeTensor([2.0, 4.0, 3.0]),
+    )
+    groups = [["a", "b"], ["c"]]
+    result = logic.split_reference_logprobs(groups, ref_stats, len_norm_ref=True)
+    assert result == [[5.0, 2.0], [2.0]]
+
+
+def test_compute_weight_stats_disables_token_norm_when_len_norm_ref(monkeypatch):
+    """When ref log-probs are length-normalized, token scaling is skipped."""
+
+    called = {}
+
+    def _fake_weight_vector(q_vals, logp_vals, tok_counts, weighting_cfg, *, include_reference_term, normalize_by_tokens):
+        called["normalize_by_tokens"] = normalize_by_tokens
+        return [0.6, 0.4]
+
+    monkeypatch.setattr(logic, "weight_vector_from_q", _fake_weight_vector)
+    monkeypatch.setattr(
+        logic, "collect_weight_entropy", lambda weights: (1.0, 1.0, 1.0, [])
+    )
+    ref_stats = SimpleNamespace(
+        ref_logp_sum=_FakeTensor([1.0, 2.0]),
+        ref_logp_sum_raw=_FakeTensor([1.0, 2.0]),
+        ref_tok_counts=_FakeTensor([1.0, 1.0]),
+    )
+    reward_comp = SimpleNamespace(q_grouped=[[0.5, 0.5]])
+    cfg = SimpleNamespace(
+        tau=0.1,
+        beta=0.2,
+        len_norm_ref=True,
+        train_grpo_objective=False,
+        denom=0.3,
+    )
+    stats = logic.compute_weight_stats([["a", "b"]], reward_comp, ref_stats, cfg)
+    assert called["normalize_by_tokens"] is False
+    assert stats.weights_grouped[0] == [0.6, 0.4]
+
+
+def test_compute_weight_stats_includes_ref_for_maxent(monkeypatch):
+    """MaxEnt mode should include reference term when building weights."""
+
+    called = {}
+
+    def _fake_weight_vector(q_vals, logp_vals, tok_counts, weighting_cfg, *, include_reference_term, normalize_by_tokens):
+        called["include_reference_term"] = include_reference_term
+        return [0.7, 0.3]
+
+    monkeypatch.setattr(logic, "weight_vector_from_q", _fake_weight_vector)
+    monkeypatch.setattr(
+        logic, "collect_weight_entropy", lambda weights: (1.0, 1.0, 1.0, [])
+    )
+    ref_stats = SimpleNamespace(
+        ref_logp_sum_raw=_FakeTensor([1.0, 2.0]),
+        ref_tok_counts=_FakeTensor([1.0, 1.0]),
+    )
+    reward_comp = SimpleNamespace(q_grouped=[[0.4, 0.6]])
+    cfg = SimpleNamespace(
+        tau=0.1,
+        beta=0.2,
+        len_norm_ref=False,
+        train_grpo_objective=False,
+        denom=0.3,
+    )
+    stats = logic.compute_weight_stats([["a", "b"]], reward_comp, ref_stats, cfg)
+    assert called["include_reference_term"] is True
+    assert stats.weights_grouped[0] == [0.7, 0.3]
+
+
+def test_compute_weight_stats_skips_ref_for_grpo(monkeypatch):
+    """GRPO mode should omit reference term when building weights."""
+
+    called = {}
+
+    def _fake_weight_vector(q_vals, logp_vals, tok_counts, weighting_cfg, *, include_reference_term, normalize_by_tokens):
+        called["include_reference_term"] = include_reference_term
+        return [0.55, 0.45]
+
+    monkeypatch.setattr(logic, "weight_vector_from_q", _fake_weight_vector)
+    monkeypatch.setattr(
+        logic, "collect_weight_entropy", lambda weights: (1.0, 1.0, 1.0, [])
+    )
+    ref_stats = SimpleNamespace(
+        ref_logp_sum_raw=_FakeTensor([1.0, 2.0]),
+        ref_tok_counts=_FakeTensor([1.0, 1.0]),
+    )
+    reward_comp = SimpleNamespace(q_grouped=[[0.4, 0.6]])
+    cfg = SimpleNamespace(
+        tau=0.0,
+        beta=0.0,
+        len_norm_ref=False,
+        train_grpo_objective=True,
+        denom=1.0,
+    )
+    stats = logic.compute_weight_stats([["a", "b"]], reward_comp, ref_stats, cfg)
+    assert called["include_reference_term"] is False
+    assert stats.weights_grouped[0] == [0.55, 0.45]
+
+
+# --- Beta controller ----------------------------------------------------------
+
+
+def test_maybe_update_beta_updates_and_sets_denom_for_grpo():
+    """KL controller should scale beta and denom in GRPO mode."""
+
+    cfg = SimpleNamespace(
+        beta=0.2,
+        tau=0.0,
+        kl_target=0.1,
+        kl_horizon=10,
+        kl_ctl_step_size=0.2,
+        train_grpo_objective=True,
+        denom=1.0,
+    )
+    logic.maybe_update_beta(cfg, measured_kl=0.2)  # ratio=2 -> clipped error 0.2 -> scale=1.02
+    assert cfg.beta == pytest.approx(0.204, rel=1e-6)
+    assert cfg.denom == pytest.approx(cfg.beta)
+
+
+def test_maybe_update_beta_updates_and_sets_denom_for_maxent():
+    """KL controller should scale beta and recompute denom with tau for MaxEnt."""
+
+    cfg = SimpleNamespace(
+        beta=0.2,
+        tau=0.3,
+        kl_target=0.1,
+        kl_horizon=10,
+        kl_ctl_step_size=0.2,
+        train_grpo_objective=False,
+        denom=1.0,
+    )
+    logic.maybe_update_beta(cfg, measured_kl=0.2)
+    expected_beta = 0.2 * (1.0 + 0.2 / 10.0)
+    assert cfg.beta == pytest.approx(expected_beta)
+    assert cfg.denom == pytest.approx(cfg.tau + expected_beta)
+
+
+def test_maybe_update_tau_updates_entropy_ema_and_denom():
+    """Tau controller should update tau, tau_log, entropy EMA, and denom."""
+
+    cfg = SimpleNamespace(
+        tau=0.1,
+        beta=0.2,
+        tau_target_entropy=1.0,
+        tau_lr=0.1,
+        tau_min=0.0,
+        tau_max=10.0,
+        tau_warmup_steps=0,
+        train_grpo_objective=False,
+        denom=0.3,
+    )
+    stats = SimpleNamespace(weight_entropy=0.5)
+    logic.maybe_update_tau(cfg, stats, global_step=5, lr_scale=None)
+    expected_tau_log = math.log(0.1) + 0.1 * (1.0 - 0.5)
+    assert cfg._tau_log == pytest.approx(expected_tau_log)
+    assert cfg.tau == pytest.approx(math.exp(expected_tau_log))
+    assert cfg.denom == pytest.approx(cfg.tau + cfg.beta)
+    assert cfg._tau_entropy_ema == pytest.approx(0.5)
+
+
+# --- Token-count scaling guard for MaxEnt vs GRPO ----------------------------------
+# --- Token-count scaling guard for MaxEnt vs GRPO ----------------------------------
+
+
+class _FakeTensor(list):
+    """Minimal tensor stub for weight_vector_from_q tests."""
+
+    def __getitem__(self, key):
+        result = super().__getitem__(key)
+        return _FakeTensor(result) if isinstance(key, slice) else result
+
+    def clamp(self, min=None):
+        min_val = -math.inf if min is None else min
+        return _FakeTensor([max(min_val, v) for v in self])
+
+    def log(self):
+        return _FakeTensor([math.log(v) for v in self])
+
+    def __truediv__(self, other):
+        if isinstance(other, _FakeTensor):
+            return _FakeTensor([a / b for a, b in zip(self, other)])
+        return _FakeTensor([v / other for v in self])
+
+    def __add__(self, other):
+        if isinstance(other, _FakeTensor):
+            return _FakeTensor([a + b for a, b in zip(self, other)])
+        return _FakeTensor([v + other for v in self])
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __mul__(self, other):
+        if isinstance(other, _FakeTensor):
+            return _FakeTensor([a * b for a, b in zip(self, other)])
+        return _FakeTensor([v * other for v in self])
+
+    def sum(self):
+        return float(math.fsum(self))
+
+    def tolist(self):
+        return list(self)
+
+
+def _softmax_stub(tensor, dim=0):
+    _ = dim
+    exp_vals = [math.exp(v) for v in tensor]
+    denom = math.fsum(exp_vals) or 1.0
+    return _FakeTensor([v / denom for v in exp_vals])
+
+
+def _log_stub(tensor):
+    return _FakeTensor([math.log(v) for v in tensor])
+
+
+def test_weight_vector_respects_token_scaling_for_grpo(monkeypatch):
+    """GRPO mode still applies length scaling after the softmax."""
+
+    monkeypatch.setattr(
+        logic,
+        "torch",
+        SimpleNamespace(
+            tensor=_FakeTensor,
+            float32=object(),
+            softmax=_softmax_stub,
+            log=_log_stub,
+        ),
+    )
+    cfg = SimpleNamespace(tau=0.0, beta=0.0, denom=1.0, train_grpo_objective=True)
+    weights = logic.weight_vector_from_q(
+        [0.5, 0.5],
+        [0.0, 0.0],
+        token_counts=[1.0, 2.0],
+        weighting_cfg=cfg,
+    )
+    assert weights == pytest.approx([1.0 / 3.0, 2.0 / 3.0])
+
+
+def test_weight_vector_skips_token_scaling_for_maxent(monkeypatch):
+    """MaxEnt mode still returns weights; token scaling is applied when enabled."""
+
+    monkeypatch.setattr(
+        logic,
+        "torch",
+        SimpleNamespace(
+            tensor=_FakeTensor,
+            float32=object(),
+            softmax=_softmax_stub,
+            log=_log_stub,
+        ),
+    )
+    cfg = SimpleNamespace(tau=0.1, beta=0.2, denom=0.3, train_grpo_objective=False)
+    weights = logic.weight_vector_from_q(
+        [0.5, 0.5],
+        [0.0, 0.0],
+        token_counts=[1.0, 2.0],
+        weighting_cfg=cfg,
+    )
+    assert weights == pytest.approx([1.0 / 3.0, 2.0 / 3.0])
 
 
 def test_loss_outputs_info_seed_entropy_value():

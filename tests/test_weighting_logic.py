@@ -559,3 +559,38 @@ def test_compute_weight_stats_returns_none_for_empty_inputs(weighting_logic):
     )
 
     assert logic.compute_weight_stats([], reward_comp, ref_stats, weighting_cfg) is None
+
+
+def test_compute_weight_stats_respects_grpo_flag(weighting_logic):
+    """GRPO path should ignore reference term, MaxEnt should use it."""
+
+    logic, stub = weighting_logic
+    grouped = [["a", "b"]]
+    # Non-uniform reference logprobs so MaxEnt should tilt weights.
+    ref_stats = ReferenceLogprobs(
+        ref_logp_sum=stub.tensor([-0.5, -2.0]),
+        ref_tok_counts=stub.tensor([1.0, 1.0]),
+        ref_logp_sum_raw=stub.tensor([-0.5, -2.0]),
+        ref_logp_mean=-1.25,
+        avg_completion_tokens=1.0,
+    )
+    reward_comp = RewardComputation(
+        total_utils=[0.0, 0.0],
+        per_reward_values={},
+        advantage=AdvantageStats(grouped=[[], []], samples=[]),
+        pairs=PromptCompletionBatch(prompts=["p", "p"], completions=["a", "b"]),
+        q_distribution=QDistribution(grouped=[[0.5, 0.5]], samples=[0.5, 0.5]),
+        moments=RewardMoments(mean=0.0, std=1.0),
+    )
+
+    grpo_cfg = _build_weighting(train_grpo_objective=True, tau=0.0, beta=0.5)
+    maxent_cfg = _build_weighting(train_grpo_objective=False, tau=0.1, beta=0.5)
+
+    grpo_stats = logic.compute_weight_stats(grouped, reward_comp, ref_stats, grpo_cfg)
+    maxent_stats = logic.compute_weight_stats(grouped, reward_comp, ref_stats, maxent_cfg)
+
+    assert grpo_stats is not None and maxent_stats is not None
+    # GRPO path should stay uniform because reference term is omitted.
+    assert grpo_stats.weights_grouped[0] == pytest.approx([0.5, 0.5])
+    # MaxEnt should tilt toward the higher reference logprob (first element).
+    assert maxent_stats.weights_grouped[0][0] > maxent_stats.weights_grouped[0][1]

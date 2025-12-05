@@ -7,22 +7,24 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 SLURM_SCRIPT="ops/slurm/infer_math.slurm"
-DATASETS="math_500,aime24,aime25,amc,minerva"
-SEEDS="0,1,2,3,4"
-NUM_GENERATIONS="8"
-TEMPERATURE="0.6"
-BATCH_SIZE="1"
+DATASETS="${DATASETS:-math_500,aime24,aime25,amc,minerva}"
+SEEDS="${SEEDS:-0,1,2,3,4}"
+NUM_GENERATIONS="${NUM_GENERATIONS:-8}"
+TEMPERATURE="${TEMPERATURE:-0.6}"
+BATCH_SIZE="${BATCH_SIZE:-1}"
+EXTRA_OPTS="${EXTRA_OPTS:-}"
 
 submit_job() {
   local model="$1"
   local revision="${2:-}"
-  local extra="${3:-}"
-  local cmd=(sbatch "$SLURM_SCRIPT" --model "$model" --datasets "$DATASETS" --seeds "$SEEDS" --num-generations "$NUM_GENERATIONS" --temperature "$TEMPERATURE" --batch-size "$BATCH_SIZE")
+  local dataset="${3:-$DATASETS}"
+  local extra="${4:-}"
+  local cmd=(sbatch "$SLURM_SCRIPT" --model "$model" --datasets "$dataset" --seeds "$SEEDS" --num-generations "$NUM_GENERATIONS" --temperature "$TEMPERATURE" --batch-size "$BATCH_SIZE")
   if [[ -n "$revision" ]]; then
     cmd+=(--revision "$revision")
   fi
   if [[ -n "$extra" ]]; then
-    cmd+=("$extra")
+    cmd+=(--extra-opts "$extra")
   fi
   echo "[submit] ${cmd[*]}"
   "${cmd[@]}"
@@ -30,8 +32,11 @@ submit_job() {
 
 # --- Local checkpoints ------------------------------------------------------
 local_roots=(
-  "var/data/Qwen2.5-7B-Open-R1-MaxEnt-GRPO-math-2k"
+  "var/data/Qwen2.5-7B-Open-R1-GRPO-math-2k"
 )
+
+# Split datasets into an array so each dataset gets its own job.
+IFS=',' read -r -a DATASET_ARRAY <<< "$DATASETS"
 
 for root in "${local_roots[@]}"; do
   if [[ ! -d "$root" ]]; then
@@ -39,7 +44,9 @@ for root in "${local_roots[@]}"; do
     continue
   fi
   while IFS= read -r -d '' ckpt; do
-    submit_job "$ckpt"
+    for dataset in "${DATASET_ARRAY[@]}"; do
+      submit_job "$ckpt" "" "$dataset" "$EXTRA_OPTS"
+    done
   done < <(find "$root" -maxdepth 1 -mindepth 1 -type d -name 'checkpoint-*' -print0 | sort -zV)
 done
 

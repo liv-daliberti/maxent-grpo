@@ -118,12 +118,12 @@ reward_weights:
 - 1
 
 # Reverse‑KL weight β used inside GRPO update
-init_kl_coeff: 0.50        # MaxEnt/metrics path reads this alias
-init_kl_coef: 0.50         # TRL field that seeds the KL controller/beta
-kl_penalty_beta: 0.50      # Extra TRL alias used by some releases
+init_kl_coeff: 0.04        # MaxEnt/metrics path reads this alias
+init_kl_coef: 0.04         # TRL field that seeds the KL controller/beta
+kl_penalty_beta: 0.04      # Extra TRL alias used by some releases
 kl_target:        0.07
-kl_horizon:       5000
-kl_ctl_step_size: 0.25
+kl_horizon:       500
+kl_ctl_step_size: 1.0
 
 # Misc GRPO knobs (kept consistent with MaxEnt recipe)
 max_grad_norm: 0.15

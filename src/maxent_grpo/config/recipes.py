@@ -77,16 +77,17 @@ def _split_recipe_payload(
     training_kwargs: Dict[str, Any] = {}
     model_kwargs: Dict[str, Any] = {}
     other_kwargs: Dict[str, Any] = {}
-    # Some fields (e.g., beta) may exist on upstream TRL configs but are not
-    # used in our pipelines; treat them as passthrough to avoid test pollution.
-    _training_exclude = {"beta"}
-
+    # Collect fields into the appropriate bucket.
     for key, value in payload.items():
         if key in _compat_script_only:
             script_kwargs[key] = value
         elif key in script_fields:
             script_kwargs[key] = value
-        elif key in training_fields and key not in _training_exclude:
+        elif key in training_fields:
+            if key == "beta":
+                # Route beta to passthrough to keep recipes neutral; aliases are mapped later.
+                other_kwargs[key] = value
+                continue
             training_kwargs[key] = value
         elif not model_fields or key in model_fields:
             model_kwargs[key] = value
@@ -97,6 +98,21 @@ def _split_recipe_payload(
     for reward_field in ("reward_funcs", "reward_weights"):
         if reward_field in training_kwargs and reward_field not in script_kwargs:
             script_kwargs[reward_field] = training_kwargs.pop(reward_field)
+
+    # Map KL aliases used in recipes into the trainer's ``beta`` field so
+    # TRL's controller receives the intended value. Consume aliases even if
+    # they are not selected.
+    if "beta" not in training_kwargs:
+        for alias in ("init_kl_coeff", "init_kl_coef", "kl_penalty_beta"):
+            if alias in training_kwargs:
+                training_kwargs["beta"] = training_kwargs[alias]
+                break
+            if alias in other_kwargs:
+                training_kwargs["beta"] = other_kwargs[alias]
+                break
+    for alias in ("init_kl_coeff", "init_kl_coef", "kl_penalty_beta"):
+        training_kwargs.pop(alias, None)
+        other_kwargs.pop(alias, None)
 
     return script_kwargs, training_kwargs, model_kwargs, other_kwargs
 

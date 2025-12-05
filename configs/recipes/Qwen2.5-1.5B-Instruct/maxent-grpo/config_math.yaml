@@ -75,7 +75,7 @@ maxent_tau_warmup_steps: 75    # roughly match LR warmup so tau stays steady ear
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
 maxent_clip_adv_baseline: 0.25   # 1/num_generations (4) for a gentler clip objective
-train_grpo_objective: true
+train_grpo_objective: false
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false

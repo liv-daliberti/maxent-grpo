@@ -38,6 +38,7 @@ gradient_accumulation_steps: 64
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
+train_grpo_objective: true
 hub_model_id: od2961/Qwen2.5-7B-Open-R1-GRPO-math-v1
 hub_strategy: every_save
 learning_rate: 5e-6

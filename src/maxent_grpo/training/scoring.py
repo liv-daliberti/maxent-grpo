@@ -835,6 +835,8 @@ def build_sequence_scores(
     cur_logp_sum: Tensor,
     ref_stats: ReferenceLogprobs,
     pooled_hidden: Optional[Tensor] = None,
+    *,
+    behavior_logp_sum: Optional[Tensor] = None,
 ) -> SequenceScores:
     """Return SequenceScores built from current and reference log-probs."""
     torch_mod = _refresh_torch()
@@ -857,9 +859,15 @@ def build_sequence_scores(
     except (TypeError, ValueError):
         pass
     cur_tensor = torch_mod.tensor(cur_arr, dtype=getattr(torch_mod, "float32", None))
-    behavior_logp_sum = torch_mod.tensor(
-        ref_arr, dtype=getattr(torch_mod, "float32", None)
-    )
+    if behavior_logp_sum is None:
+        # For PPO-style clipping, the behavior policy should be the rollout
+        # actor. Default to the current policy log-probs (on-policy) rather than
+        # the frozen reference model to avoid turning clipping into a second KL.
+        behavior_logp_sum = cur_tensor.detach()
+    else:
+        behavior_logp_sum = torch_mod.tensor(
+            _to_numpy_array(behavior_logp_sum), dtype=getattr(torch_mod, "float32", None)
+        )
     log_ratio_train = torch_mod.tensor(
         cur_arr - ref_arr, dtype=getattr(torch_mod, "float32", None)
     )

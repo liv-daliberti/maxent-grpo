@@ -55,6 +55,7 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
+train_grpo_objective: true
 hub_model_id: od2961/Llama-8B-Open-R1-GRPO-math-v2
 hub_strategy: every_save
 push_to_hub: true

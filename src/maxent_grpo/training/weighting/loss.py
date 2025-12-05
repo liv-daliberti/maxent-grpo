@@ -487,13 +487,17 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
         ref_tok_weights, "numel", lambda: len(getattr(ref_tok_weights, "data", []))
     )()
     if ref_len == 1 and per_len > 1:
-        ref_tok_weights = torch.full_like(per_seq_kl, float(ref_tok_weights[0]))
+        fill_val = float(ref_tok_weights[0]) if hasattr(ref_tok_weights, "__getitem__") else 1.0
+        try:
+            ref_tok_weights = torch.full_like(per_seq_kl, fill_val)
+        except (RuntimeError, TypeError, ValueError, AttributeError):
+            ref_tok_weights = torch.tensor([fill_val] * per_len)
     elif ref_len != per_len:
         # Align lengths by flattening or recreating the tensor when stubs
         # provide incompatible shapes.
         try:
             ref_tok_weights = ref_tok_weights.view(-1)
-        except (RuntimeError, TypeError, ValueError):
+        except (RuntimeError, TypeError, ValueError, AttributeError):
             try:
                 ref_tok_weights = torch.tensor(
                     getattr(
@@ -502,30 +506,34 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
                         getattr(ref_tok_weights, "data", ref_tok_weights),
                     )
                 )
-            except (RuntimeError, TypeError, ValueError):
+            except (RuntimeError, TypeError, ValueError, AttributeError):
                 ref_tok_weights = torch.tensor(list(ref_tok_weights))
             try:
                 ref_tok_weights = ref_tok_weights.view(-1)
-            except (RuntimeError, TypeError, ValueError):
+            except (RuntimeError, TypeError, ValueError, AttributeError):
                 fill_val = (
                     float(ref_tok_weights[-1])
                     if hasattr(ref_tok_weights, "__getitem__")
                     else 1.0
                 )
+            try:
+                ref_tok_weights = torch.full_like(per_seq_kl, fill_val)
+            except (RuntimeError, TypeError, ValueError, AttributeError):
                 try:
-                    ref_tok_weights = torch.full_like(per_seq_kl, fill_val)
-                except (RuntimeError, TypeError, ValueError):
-                    try:
-                        ref_tok_weights = torch.full(
-                            getattr(per_seq_kl, "shape", (per_len,)),
-                            fill_val,
-                            device=getattr(per_seq_kl, "device", None),
-                            dtype=getattr(per_seq_kl, "dtype", None),
-                        )
-                    except (RuntimeError, TypeError, ValueError):
-                        ref_tok_weights = torch.tensor([fill_val] * per_len)
+                    ref_tok_weights = torch.full(
+                        getattr(per_seq_kl, "shape", (per_len,)),
+                        fill_val,
+                        device=getattr(per_seq_kl, "device", None),
+                        dtype=getattr(per_seq_kl, "dtype", None),
+                    )
+                except (RuntimeError, TypeError, ValueError, AttributeError):
+                    ref_tok_weights = torch.tensor([fill_val] * per_len)
     if ref_tok_weights.numel() < per_len:
-        pad = torch.full_like(per_seq_kl, float(ref_tok_weights[-1]))
+        fill_val = float(ref_tok_weights[-1]) if hasattr(ref_tok_weights, "__getitem__") else 1.0
+        try:
+            pad = torch.full_like(per_seq_kl, fill_val)
+        except (RuntimeError, TypeError, ValueError, AttributeError):
+            pad = torch.tensor([fill_val] * per_len)
         ref_tok_weights = pad
     denom_weight = ref_tok_weights.sum().clamp(min=1.0)
     kl_loss_tensor = (per_seq_kl * ref_tok_weights).sum() / denom_weight

@@ -444,7 +444,7 @@ INFERENCE_DATASETS: Dict[str, MathEvalConfig] = {
     "minerva": MathEvalConfig(
         dataset_name="svc-huggingface/minerva-math",
         dataset_config=None,
-        split="train",
+        split="test",
         prompt_column="problem",
         prompt_column_aliases=("question", "prompt"),
         solution_column="answer",
@@ -961,10 +961,9 @@ class TransformersPromptRunner(PromptRunner):
             with torch.no_grad():
                 ans_generated = self.model.generate(**answer_encoded, **answer_kwargs)
             # Stub path: if generate returns plain token id lists, take the last token.
-            if (
-                ans_generated
-                and isinstance(ans_generated, list)
-                and all(isinstance(row, list) and row for row in ans_generated)
+            # Handle stubbed runners that return nested Python lists without torch tensors.
+            if isinstance(ans_generated, list) and ans_generated and all(
+                isinstance(row, list) and row for row in ans_generated
             ):
                 if self.num_generations == 1:
                     return [str(row[-1]) for row in ans_generated]

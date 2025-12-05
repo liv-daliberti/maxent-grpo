@@ -2,7 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
+from maxent_grpo.telemetry.trl_logging import (
+    ensure_weighting_logging,
+    _WeightingLogCallback,
+    patch_trl_grpo_clipped_ratio,
+)
 
 
 class _StubTrainer:
@@ -59,3 +63,126 @@ def test_ensure_weighting_logging_adds_metrics_and_is_idempotent():
     assert metrics["train/tau"] == pytest.approx(0.25)
     assert metrics["train/delta_beta"] == pytest.approx(0.15)
     assert metrics["train/delta_tau"] == pytest.approx(0.05)
+
+
+def test_maxent_objective_flagging_prefers_train_flag():
+    class _StubTrainerMaxEnt(_StubTrainer):
+        def __init__(self):
+            super().__init__()
+            self.args.train_grpo_objective = False
+            self.args.maxent_objective = None  # ensure fallback flips the flags
+
+    Wrapped = ensure_weighting_logging(_StubTrainerMaxEnt)
+    trainer = Wrapped()
+    trainer.log({})
+    metrics = trainer.logged
+    assert metrics["train/grpo_objective"] == 0.0
+    assert metrics["train/maxent_objective"] == 1.0
+
+
+def test_clipped_ratio_metrics_are_sanitized():
+    class _StubTrainerClipped(_StubTrainer):
+        def __init__(self):
+            super().__init__()
+            self.args.num_generations = 4
+            # Simulate TRL internal metrics with negative counts.
+            self._metrics = {"train": {"completions/clipped_ratio": [-8.0, -1.0]}}
+
+        def log(self, logs):
+            # Capture merged logs for inspection.
+            self.logged = logs
+            return logs
+
+    Wrapped = ensure_weighting_logging(_StubTrainerClipped)
+    trainer = Wrapped()
+    trainer.log({})
+    # Internal metrics should be normalized into [0, 1].
+    normalized_vals = trainer._metrics["train"]["completions/clipped_ratio"]
+    assert all(0.0 <= v <= 1.0 for v in normalized_vals)
+
+
+def test_loss_raw_is_preserved_when_rounded_to_zero():
+    class _FakeLoss:
+        def __init__(self, val: float):
+            self.val = val
+
+        def mean(self):
+            return self
+
+        def item(self):
+            return self.val
+
+    class _LossyTrainer(_StubTrainer):
+        def __init__(self):
+            super().__init__()
+            self._metrics = {"train": {}}
+            self.args.num_generations = 1
+
+        def compute_loss(self, *args, **kwargs):
+            return _FakeLoss(1e-5)
+
+        def log(self, logs):
+            self.logged = logs
+            return logs
+
+    Wrapped = ensure_weighting_logging(_LossyTrainer)
+    trainer = Wrapped()
+    trainer.compute_loss()  # capture the raw loss
+    trainer.log({"loss": 0.0})
+    assert trainer.logged["train/loss/total_raw"] == pytest.approx(1e-5)
+    # Loss should be backfilled when upstream rounded it away.
+    assert trainer.logged["train/loss/total"] == pytest.approx(1e-5)
+
+
+def test_callback_normalizes_logs_when_log_hook_is_bypassed():
+    args = SimpleNamespace(num_generations=4, world_size=2)
+    control = SimpleNamespace()
+    logs = {"loss": 0.0, "kl": 0.1, "completions/clipped_ratio": -8.0}
+    cb = _WeightingLogCallback()
+    cb.on_log(args=args, state=None, control=control, logs=logs)
+    assert "train/loss/total" in logs
+    assert "train/kl" in logs
+    assert logs["train/completions/clipped_frac"] == 0.0
+    assert all(key.startswith("train/") for key in logs.keys())
+
+
+def test_patch_trl_grpo_clipped_ratio_sanitizes_trainer(monkeypatch):
+    import types
+    import sys
+
+    calls = {}
+
+    class _StubTrainer:
+        def __init__(self):
+            self.args = SimpleNamespace(num_generations=4, world_size=1)
+
+        def log(self, logs):
+            calls["logs"] = logs
+            return logs
+
+    grpo_mod = types.SimpleNamespace(GRPOTrainer=_StubTrainer)
+    monkeypatch.setitem(sys.modules, "trl", types.SimpleNamespace(trainer=types.SimpleNamespace(grpo_trainer=grpo_mod)))
+    monkeypatch.setitem(sys.modules, "trl.trainer", types.SimpleNamespace(grpo_trainer=grpo_mod))
+    monkeypatch.setitem(sys.modules, "trl.trainer.grpo_trainer", grpo_mod)
+
+    patched = patch_trl_grpo_clipped_ratio()
+    assert patched is True
+    trainer = grpo_mod.GRPOTrainer()
+    trainer.log({"completions/clipped_ratio": -4.0})
+    assert "completions/clipped_ratio" not in calls["logs"]
+    assert calls["logs"]["completions/clipped_frac"] == 0.0
+
+
+def test_callback_attached_when_callback_handler_present():
+    class _CallbackTrainer(_StubTrainer):
+        def __init__(self):
+            super().__init__()
+            self.callback_handler = SimpleNamespace(callbacks=[])
+
+        def add_callback(self, cb):
+            self.callback_handler.callbacks.append(cb)
+
+    Wrapped = ensure_weighting_logging(_CallbackTrainer)
+    trainer = Wrapped()
+    callbacks = getattr(trainer, "callback_handler").callbacks
+    assert any(isinstance(cb, _WeightingLogCallback) for cb in callbacks)

@@ -69,6 +69,13 @@ def _canon_math(s: str) -> str:
     if s is None:
         return ""
     s = s.strip()
+    # Strip common LaTeX wrappers that should not affect equality.
+    s = (
+        s.replace("\\left", "")
+        .replace("\\right", "")
+        .replace("$", "")
+        .replace("\\,", "")
+    )
     if re.fullmatch(r"\{[^{}]+\}", s):
         s = s[1:-1]
     if re.fullmatch(r"\([^()]+\)", s):

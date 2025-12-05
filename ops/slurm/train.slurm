@@ -108,6 +108,7 @@ export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
 export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
 export WANDB_DIR="$VAR_DIR/cache/wandb"
+export WANDB_CACHE_DIR="$WANDB_DIR"
 # Force-enable wandb for training jobs so the Transformers callback sees it.
 export WANDB_DISABLED=0
 export TMPDIR="$VAR_DIR/tmp"

@@ -106,15 +106,14 @@ def _load_controller_file(
     if success:
         # Emit a simple success log for test visibility, then the detailed metrics
         LOG.info("Loaded controller state from %s", path)
-        if getattr(accelerator, "is_main_process", True):
-            beta_val = getattr(weighting_cfg, "beta", None)
-            tau_val = getattr(weighting_cfg, "tau", None)
-            LOG.info(
-                "Loaded controller state from %s | beta=%s tau=%s",
-                path,
-                beta_val,
-                tau_val,
-            )
+        beta_val = getattr(weighting_cfg, "beta", None)
+        tau_val = getattr(weighting_cfg, "tau", None)
+        LOG.info(
+            "Loaded controller state from %s | beta=%s tau=%s",
+            path,
+            beta_val,
+            tau_val,
+        )
     return success
 
 

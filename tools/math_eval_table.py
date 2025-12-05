@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 DATASET_ORDER = ["math_500", "aime24", "aime25", "amc", "minerva"]
 STEP_PATTERN = re.compile(r"checkpoint[-_](\d+)")
@@ -162,6 +162,50 @@ def collect_seed_summaries(root: Path) -> List[SeedSummary]:
         summary = load_seed_summary(json_path)
         if summary:
             summaries.append(summary)
+    # LightEval saves per-run JSON blobs; map best-effort accuracy to pass@1.
+    for json_path in sorted(root.rglob("*.json")):
+        try:
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        results: Dict[str, Dict[str, Union[float, int, str, dict]]] = data.get(
+            "results", {}
+        )
+        model_id = str(
+            data.get("model_name")
+            or data.get("model_id")
+            or json_path.parent.name
+            or "model"
+        )
+        label = json_path.stem
+        style = str(data.get("style", "")) if isinstance(data, dict) else ""
+        for task_name, metrics in results.items():
+            if not isinstance(metrics, dict):
+                continue
+            acc = None
+            for key in ("acc", "accuracy", "exact_match", "score"):
+                if key in metrics:
+                    try:
+                        acc = float(metrics[key])
+                        break
+                    except (TypeError, ValueError):
+                        acc = None
+            if acc is None:
+                continue
+            summaries.append(
+                SeedSummary(
+                    model_id=model_id,
+                    label=label,
+                    style=style,
+                    dataset=str(task_name),
+                    temperature=None,
+                    seed=-1,
+                    total=1,
+                    pass_at_1=acc,
+                    pass_at_k=acc,
+                    avg_pass_at_k=acc,
+                )
+            )
     return summaries
 
 

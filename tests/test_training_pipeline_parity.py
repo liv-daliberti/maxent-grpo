@@ -69,8 +69,8 @@ def _ref_stats() -> ReferenceLogprobs:
     )
 
 
-def test_zero_tau_weights_match_grpo_path():
-    """When tau=0 and q is uniform, weights should match GRPO behavior."""
+def test_zero_tau_grpo_weights_ignore_reference():
+    """When train_grpo_objective is set, weights should ignore the reference term."""
 
     grouped = [["a", "b"]]
     reward_comp = SimpleNamespace(q_grouped=[[0.5, 0.5]])
@@ -83,7 +83,6 @@ def test_zero_tau_weights_match_grpo_path():
     )
 
     assert grpo_stats is not None and maxent_stats is not None
-    assert grpo_stats.flat_weights == pytest.approx(maxent_stats.flat_weights)
-    assert grpo_stats.weights_grouped[0] == pytest.approx(
-        maxent_stats.weights_grouped[0]
-    )
+    assert grpo_stats.weights_grouped[0] == pytest.approx([0.5, 0.5])
+    assert maxent_stats.weights_grouped[0] != pytest.approx([0.5, 0.5])
+    assert maxent_stats.weights_grouped[0][0] > maxent_stats.weights_grouped[0][1]

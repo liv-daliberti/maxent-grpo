@@ -210,10 +210,20 @@ def _build_grpo_configs(
     """
 
     if getattr(cmd, "recipe", None):
-        from trl import ModelConfig
+        try:
+            from trl import ModelConfig  # type: ignore
+        except Exception:
+            class ModelConfig:  # type: ignore[override]
+                def __init__(self, **kwargs):
+                    self.__dict__.update(kwargs)
 
         return load_grpo_recipe(cmd.recipe, model_config_cls=ModelConfig)
-    from trl import ModelConfig
+    try:
+        from trl import ModelConfig  # type: ignore
+    except Exception:
+        class ModelConfig:  # type: ignore[override]
+            def __init__(self, **kwargs):
+                self.__dict__.update(kwargs)
 
     # Avoid parser conflicts by keeping reward-related flags on the training config.
     training_payload = dict(cmd.training)

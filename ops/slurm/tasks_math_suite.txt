@@ -1,0 +1,13 @@
+# Benchmark tasks for LightEval batch runs.
+# Format: <benchmark> <task_list> [extra_lighteval_opts...]
+# NOTE: Newer LightEval (0.9.x) no longer accepts Hydra-style
+# "+inference.models.0.*" overrides as positional arguments. Per-task
+# generation settings (top_p, max_new_tokens, etc.) should instead be
+# configured via LightEval configs or CLI flags, not via "+inference".
+#
+# The defaults below therefore only specify the task identifiers.
+math_500 lighteval|math_500|0|0
+aime24  lighteval|aime24|0|0
+aime25  lighteval|aime25|0|0
+amc     lighteval|amc|0|0
+minerva lighteval|minerva|0|0
