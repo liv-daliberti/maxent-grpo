@@ -24,10 +24,36 @@ limitations under the License.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 from .dataset import ScriptArguments, trl
+
+LOG = logging.getLogger(__name__)
+
+
+def _parse_log_level(value: Any) -> Optional[int]:
+    """Resolve a logging level specified as a name or numeric value."""
+
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        candidate = value.strip()
+        if not candidate:
+            return None
+        if candidate.isdigit():
+            try:
+                return int(candidate)
+            except ValueError:
+                return None
+        normalized = candidate.upper()
+        level = getattr(logging, normalized, None)
+        if isinstance(level, int):
+            return level
+    return None
 
 
 @dataclass
@@ -153,6 +179,15 @@ class GRPOConfig(trl.GRPOConfig):
         default=None,
         metadata={"help": ("The group to store runs under.")},
     )
+    init_from_checkpoint: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional checkpoint path to initialize weights/state from when resuming "
+                "custom MaxEnt/InfoSeed loops."
+            )
+        },
+    )
     maxent_tau: float = field(
         default=0.0,
         metadata={"help": "Sequence-level entropy weight τ for MaxEnt-GRPO."},
@@ -183,6 +218,33 @@ class GRPOConfig(trl.GRPOConfig):
             "help": (
                 "If >0, score reference/policy log-probs in mini-batches of this size "
                 "to reduce activation memory."
+            )
+        },
+    )
+    maxent_score_tail_tokens: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": (
+                "If set, only the final N tokens of each prompt+completion pair are "
+                "used when computing reference/policy log-probs."
+            )
+        },
+    )
+    maxent_score_slice_prefetch: int = field(
+        default=0,
+        metadata={
+            "help": (
+                "Number of scoring slices to prefetch in a background thread while "
+                "the model processes the current slice."
+            )
+        },
+    )
+    maxent_prompt_cache_size: int = field(
+        default=0,
+        metadata={
+            "help": (
+                "If >0, remember up to this many prompt tokenizations (LRU) so repeated "
+                "prompts skip re-tokenization when building scoring batches."
             )
         },
     )
@@ -222,6 +284,82 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    controller_meta_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Enable the tau/beta meta-controller. When true, τ/β are updated "
+                "according to controller_meta_method."
+            )
+        },
+    )
+    controller_meta_method: str = field(
+        default="analytic",
+        metadata={
+            "help": (
+                "Meta-controller update rule. 'analytic' applies closed-form gradients "
+                "derived from the MaxEnt potential."
+            )
+        },
+    )
+    controller_meta_lr: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Learning rate for meta-controller updates. Leave at zero to disable gradient steps."
+            )
+        },
+    )
+    controller_meta_update_interval: int = field(
+        default=1,
+        metadata={
+            "help": (
+                "Number of training steps between meta-controller updates when enabled."
+            )
+        },
+    )
+    controller_meta_objective: str = field(
+        default="potential",
+        metadata={
+            "help": (
+                "Name of the objective optimized by the meta-controller. The default "
+                "optimizes the regularized potential."
+            )
+        },
+    )
+    controller_meta_analytic_steps: int = field(
+        default=1,
+        metadata={
+            "help": (
+                "Number of inner steps to include when computing analytic meta-gradients."
+            )
+        },
+    )
+    controller_meta_optimizer: str = field(
+        default="sgd",
+        metadata={
+            "help": (
+                "Optimizer used for the meta-controller when truncated/first-order "
+                "updates are enabled. Currently only 'sgd' is supported."
+            )
+        },
+    )
+    controller_meta_truncation_steps: int = field(
+        default=1,
+        metadata={
+            "help": (
+                "Number of truncated inner steps used for first-order/backprop-based meta updates."
+            )
+        },
+    )
+    controller_meta_use_hessian: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Whether to include second-order (Hessian) information when approximating meta-gradients."
+            )
+        },
+    )
     maxent_use_clip_objective: bool = field(
         default=False,
         metadata={
@@ -244,11 +382,28 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    controller_overwrite_from_config: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When resuming from checkpoints, overwrite the controller's tau/beta scalars "
+                "with the recipe values before training continues."
+            )
+        },
+    )
     train_grpo_objective: bool = field(
         default=False,
         metadata={
             "help": (
                 "When true, disable the MaxEnt reference weighting term and train with the standard GRPO objective."
+            )
+        },
+    )
+    maxent_allow_empty_weight_fallback: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Allow training to fall back to uniform GRPO-style weights when MaxEnt weighting returns no samples."
             )
         },
     )
@@ -430,8 +585,17 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    log_level: str | int = field(
+        default="info",
+        metadata={"help": "Logging level applied to the training process."},
+    )
+    log_completions: bool = field(
+        default=False,
+        metadata={"help": "Log prompt/completion samples when W&B logging is enabled."},
+    )
 
     def __post_init__(self) -> None:
+        orig_num_generations = getattr(self, "num_generations", None)
         try:
             super().__post_init__()
         except (AttributeError, ImportError, ModuleNotFoundError):
@@ -443,10 +607,19 @@ class GRPOConfig(trl.GRPOConfig):
             # divisibility, adjust num_generations down to 1 and continue.
             msg = str(err) or ""
             if "generations" in msg and "divisible" in msg:
+                LOG.warning(
+                    "Ignoring num_generations divisibility constraint from base trainer; "
+                    "continuing with %s completions per prompt.",
+                    orig_num_generations,
+                )
                 try:
                     self.num_generations = 1
-                except (AttributeError, TypeError):
+                    super().__post_init__()
+                except ValueError:
                     pass
+                finally:
+                    if orig_num_generations is not None:
+                        self.num_generations = orig_num_generations
             else:
                 # Re-raise unrelated ValueErrors.
                 raise
@@ -474,12 +647,29 @@ class GRPOConfig(trl.GRPOConfig):
             and self.maxent_tau_warmup_steps < -1
         ):
             raise ValueError("maxent_tau_warmup_steps must be >= -1")
+        if self.controller_meta_lr < 0.0:
+            raise ValueError("controller_meta_lr must be non-negative")
+        if self.controller_meta_update_interval < 1:
+            raise ValueError("controller_meta_update_interval must be >= 1")
+        if self.controller_meta_analytic_steps < 1:
+            raise ValueError("controller_meta_analytic_steps must be >= 1")
+        if self.controller_meta_truncation_steps < 1:
+            raise ValueError("controller_meta_truncation_steps must be >= 1")
         if self.maxent_q_epsilon <= 0.0:
             raise ValueError("maxent_q_epsilon must be > 0 to avoid zero weights")
         if self.maxent_q_temperature <= 0.0:
             raise ValueError("maxent_q_temperature must be > 0")
         if self.maxent_logprob_chunk_size < 0:
             raise ValueError("maxent_logprob_chunk_size must be non-negative")
+        if (
+            self.maxent_score_tail_tokens is not None
+            and self.maxent_score_tail_tokens <= 0
+        ):
+            raise ValueError("maxent_score_tail_tokens must be positive when set")
+        if self.maxent_score_slice_prefetch < 0:
+            raise ValueError("maxent_score_slice_prefetch must be non-negative")
+        if self.maxent_prompt_cache_size < 0:
+            raise ValueError("maxent_prompt_cache_size must be non-negative")
         if self.maxent_clip_objective_coef < 0.0:
             raise ValueError("maxent_clip_objective_coef must be non-negative")
         if self.maxent_clip_range is not None and self.maxent_clip_range < 0.0:
@@ -488,6 +678,17 @@ class GRPOConfig(trl.GRPOConfig):
             value = getattr(self, name, None)
             if value is not None and value < 0:
                 raise ValueError(f"{name} must be non-negative")
+
+    def get_process_log_level(self) -> int:
+        """Return the numeric log level honoring the configured overrides."""
+
+        resolved = _parse_log_level(getattr(self, "log_level", None))
+        if resolved is not None:
+            return resolved
+        parent_getter = getattr(super(), "get_process_log_level", None)
+        if callable(parent_getter):
+            return parent_getter()
+        return logging.INFO
 
 
 @dataclass

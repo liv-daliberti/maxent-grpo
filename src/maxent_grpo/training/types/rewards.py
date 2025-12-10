@@ -163,6 +163,7 @@ class ScoreBatch:
     max_prompt_len: int
     slice_size: int
     total_sequences: int
+    score_tail_tokens: Optional[int] = None
 
 
 @dataclass

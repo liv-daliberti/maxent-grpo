@@ -26,11 +26,12 @@ from __future__ import annotations
 
 import os
 from dataclasses import fields
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type
 from urllib.parse import urlparse
 
 from .grpo import GRPOConfig, GRPOScriptArguments
 from .defaults import INFO_SEED_DEFAULTS
+from pydantic import BaseModel, ConfigDict, PositiveInt, ValidationError, model_validator
 
 try:  # pragma: no cover - optional dependency
     from omegaconf import OmegaConf
@@ -40,6 +41,106 @@ try:
     import yaml
 except ImportError:  # pragma: no cover
     yaml = None
+
+
+class _BaseRecipeSchema(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    model_name_or_path: str
+    dataset_name: str
+    output_dir: str
+    logging_steps: PositiveInt
+    save_steps: PositiveInt
+
+
+class _BaselineRecipeSchema(_BaseRecipeSchema):
+    train_grpo_objective: bool
+    beta: Optional[float] = None
+    init_kl_coeff: Optional[float] = None
+    init_kl_coef: Optional[float] = None
+    kl_penalty_beta: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _ensure_beta_alias(self) -> "_BaselineRecipeSchema":
+        if not any(
+            getattr(self, alias, None) is not None
+            for alias in ("beta", "init_kl_coeff", "init_kl_coef", "kl_penalty_beta")
+        ):
+            raise ValueError(
+                "Recipe must define beta/init_kl_coeff/init_kl_coef/kl_penalty_beta"
+            )
+        return self
+
+
+class _MaxentRecipeSchema(_BaselineRecipeSchema):
+    maxent_tau: float
+
+    @model_validator(mode="after")
+    def _validate_maxent_flags(self) -> "_MaxentRecipeSchema":
+        if self.train_grpo_objective:
+            raise ValueError("MaxEnt recipes must set train_grpo_objective=false")
+        return self
+
+
+class _InfoSeedRecipeSchema(_BaselineRecipeSchema):
+    info_seed_enabled: bool
+
+    @model_validator(mode="after")
+    def _validate_infoseed(self) -> "_InfoSeedRecipeSchema":
+        if not self.info_seed_enabled:
+            raise ValueError("InfoSeed recipes must set info_seed_enabled=true")
+        return self
+
+
+_RECIPE_SCHEMAS = {
+    "baseline": _BaselineRecipeSchema,
+    "maxent": _MaxentRecipeSchema,
+    "infoseed": _InfoSeedRecipeSchema,
+}
+
+
+def _should_validate_recipe(payload: Dict[str, Any]) -> bool:
+    return not any(key in payload for key in ("script", "training", "model"))
+
+
+def _infer_recipe_kind(recipe_path: Optional[str], payload: Dict[str, Any]) -> str:
+    path_hint = (recipe_path or "").lower()
+    if "infoseed" in path_hint:
+        return "infoseed"
+    if "maxent-grpo" in path_hint:
+        return "maxent"
+    if payload.get("info_seed_enabled"):
+        return "infoseed"
+    if payload.get("train_grpo_objective") is False:
+        return "maxent"
+    return "baseline"
+
+
+def _format_recipe_errors(errors: list[Dict[str, Any]]) -> str:
+    parts = []
+    for error in errors:
+        loc = error.get("loc") or ()
+        if isinstance(loc, tuple):
+            field = ".".join(str(item) for item in loc if item is not None)
+        else:
+            field = str(loc)
+        if field:
+            parts.append(f"{field}: {error.get('msg', '')}")
+        else:
+            parts.append(error.get("msg", ""))
+    return "; ".join(parts)
+
+
+def _validate_recipe_payload(payload: Dict[str, Any], recipe_path: Optional[str]) -> None:
+    if not _should_validate_recipe(payload):
+        return
+    schema_cls = _RECIPE_SCHEMAS[_infer_recipe_kind(recipe_path, payload)]
+    try:
+        schema_cls(**payload)
+    except ValidationError as exc:
+        summary = _format_recipe_errors(exc.errors())
+        identifier = recipe_path or "<recipe>"
+        raise ValueError(f"Recipe {identifier} failed validation: {summary}") from exc
 
 
 def _dataclass_field_names(cls: Type[Any]) -> set[str]:
@@ -185,6 +286,8 @@ def load_grpo_recipe(
     if not isinstance(cfg, dict):
         raise ValueError(f"Recipe {recipe_path} did not resolve to a mapping.")
 
+    _validate_recipe_payload(cfg, resolved_path)
+
     # Persist the resolved path so downstream logging can surface it consistently.
     os.environ.setdefault("GRPO_RECIPE_USED", resolved_path)
 
@@ -208,6 +311,9 @@ def load_grpo_recipe(
     for key in ("reward_funcs", "reward_weights"):
         if key in training_kwargs:
             setattr(script_args, key, training_kwargs[key])
+    env_log_level = os.environ.get("MAXENT_LOG_LEVEL")
+    if env_log_level:
+        training_kwargs["log_level"] = env_log_level
     training_args = GRPOConfig(**training_kwargs)
     model_args = model_config_cls(**model_kwargs)
     # Attach the recipe path for logging/telemetry consumers (best-effort).

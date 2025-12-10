@@ -1,0 +1,25 @@
+model_name_or_path: Stub/Model
+model_revision: main
+dataset_name: stub/dataset
+dataset_prompt_column: prompt
+train_grpo_objective: false
+output_dir: var/tests/maxent_smoke
+maxent_tau: 0.3
+maxent_q_temperature: 1.0
+max_steps: 1
+num_generations: 2
+generation_method: vllm
+gradient_accumulation_steps: 1
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+use_vllm: false
+do_eval: false
+logging_steps: 1
+save_strategy: steps
+save_steps: 1
+warmup_ratio: 0.0
+beta: 0.1
+reward_funcs:
+  - pure_accuracy_math
+reward_weights:
+  - 1

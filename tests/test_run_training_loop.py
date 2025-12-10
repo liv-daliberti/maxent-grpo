@@ -24,6 +24,9 @@ from types import SimpleNamespace
 import pytest
 
 from tests.test_run_setup_reference import _load_run_setup
+from maxent_grpo.training.types import LoggingHandles, LogStepArtifacts
+from maxent_grpo.training.runtime.prompts import GenerationPenaltyConfig
+from maxent_grpo.training.controller_objective import ControllerGradients
 
 
 @pytest.fixture
@@ -176,6 +179,49 @@ def test_train_step_sets_generation_stats_and_skips_empty_batch(monkeypatch, rtl
     assert state.num_input_tokens_seen == 0.0
 
 
+def test_train_step_logs_skip_stage(monkeypatch, rtl):
+    class _Logger:
+        def __init__(self):
+            self.records = []
+
+        def warning(self, msg, *args, **kwargs):
+            self.records.append(msg % args if args else msg)
+
+        def debug(self, *args, **kwargs):
+            pass
+
+    logger = _Logger()
+    ctx = SimpleNamespace(
+        optimization=SimpleNamespace(schedule=SimpleNamespace(grad_accum_steps=1)),
+        runtime=SimpleNamespace(accelerator=SimpleNamespace(), model=None),
+        generation=SimpleNamespace(generation_stats={}),
+        scoring=SimpleNamespace(),
+    )
+    state = rtl.TrainingLoopState()
+    resources = rtl.StepResources(generator=lambda *_a, **_k: None, validation_ctx=None)
+    step_info = SimpleNamespace(epoch=0, step_in_epoch=2, batch={})
+
+    monkeypatch.setattr(
+        rtl,
+        "detect_deepspeed_state",
+        lambda *_a, **_k: SimpleNamespace(use_deepspeed=False, zero_stage=0),
+    )
+
+    def _fake_prepare(ctx_inner, *_a, **_k):
+        setattr(ctx_inner.runtime, "_last_skip_stage", "policy_scoring")
+        return None
+
+    monkeypatch.setattr(rtl, "prepare_training_batch", _fake_prepare)
+    monkeypatch.setattr(rtl, "LOG", logger)
+
+    result = rtl._train_step(ctx, state, step_info, resources)
+
+    assert result is False
+    assert not hasattr(ctx.runtime, "_last_skip_stage")
+    assert logger.records
+    assert "stage=policy_scoring" in logger.records[0]
+
+
 def test_train_step_defers_deepspeed_accumulation(monkeypatch, rtl):
     accelerator = SimpleNamespace(
         is_main_process=False, backward=lambda *_a, **_k: None
@@ -285,6 +331,292 @@ def test_train_step_defers_when_not_syncing(monkeypatch, rtl):
     result = rtl._train_step(ctx, state, step_info, resources)
     assert result is False
     assert state.global_step == 0
+
+
+def test_train_step_runs_optimizer_step_when_ready(monkeypatch, rtl):
+    accelerator = SimpleNamespace(
+        is_main_process=True,
+        gradient_state=None,
+        backward=lambda *_a, **_k: None,
+    )
+    schedule = SimpleNamespace(
+        grad_accum_steps=1,
+        steps_per_epoch=4,
+        total_training_steps=4,
+    )
+    weighting = SimpleNamespace(tau=0.1, beta=0.2)
+    ctx = SimpleNamespace(
+        optimization=SimpleNamespace(
+            schedule=schedule,
+            handles=SimpleNamespace(learning_rate=1e-4),
+        ),
+        runtime=SimpleNamespace(accelerator=accelerator, model=object()),
+        generation=SimpleNamespace(generation_stats={}),
+        scoring=SimpleNamespace(weighting=weighting, clipping=SimpleNamespace()),
+        logging=SimpleNamespace(
+            wandb_run=None,
+            save_strategy="no",
+            save_steps=0,
+            save_checkpoint=lambda *_a, **_k: None,
+        ),
+        controller=SimpleNamespace(state_path="/tmp/controller"),
+        evaluation=SimpleNamespace(enabled=False),
+    )
+    state = rtl.TrainingLoopState()
+    resources = rtl.StepResources(generator=None, validation_ctx=None)
+    step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={})
+    prepared = SimpleNamespace(
+        grouped_completions=[["one"]],
+        reward_comp=SimpleNamespace(per_reward_values={}),
+        weight_stats=SimpleNamespace(),
+        length_stats=SimpleNamespace(),
+        ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=2.0),
+        num_completion_tokens=2.0,
+        total_input_tokens=5.0,
+        scores=SimpleNamespace(),
+        seed_metrics=None,
+    )
+    loss_outputs = SimpleNamespace(
+        loss=SimpleNamespace(requires_grad=False),
+        total_loss_scalar=1.0,
+        policy_loss_scalar=0.5,
+        kl_loss_scalar=0.1,
+        weighted_kl_loss_scalar=0.05,
+        clip_loss_scalar=None,
+    )
+    diagnostics = SimpleNamespace(
+        kl_value=0.1,
+        clip_ratio=0.0,
+        clip_ratio_low_mean=0.0,
+        clip_ratio_low_min=0.0,
+        clip_ratio_high_mean=0.0,
+        clip_ratio_high_max=0.0,
+        clip_ratio_region_mean=0.0,
+        kl_per_token_by_len_bucket={},
+        kl_token_count_by_len_bucket={},
+    )
+    monkeypatch.setattr(rtl, "prepare_training_batch", lambda *_a, **_k: prepared)
+    monkeypatch.setattr(rtl, "build_loss_inputs", lambda *_a, **_k: ("loss",))
+    monkeypatch.setattr(
+        rtl, "evaluate_losses", lambda *_a, **_k: (loss_outputs, diagnostics)
+    )
+    monkeypatch.setattr(rtl, "detect_deepspeed_state", lambda *_a, **_k: SimpleNamespace(use_deepspeed=False, zero_stage=0))
+    monkeypatch.setattr(rtl, "_scheduled_learning_rate", lambda *_a, **_k: 5e-4)
+    monkeypatch.setattr(rtl, "_epoch_progress", lambda *_a, **_k: 0.25)
+    monkeypatch.setattr(rtl, "sync_gradients_enabled", lambda *_a, **_k: True)
+    monkeypatch.setattr(rtl, "summarize_weight_stats", lambda *_a, **_k: SimpleNamespace())
+    log_calls = {"local": 0, "global": 0}
+    monkeypatch.setattr(
+        rtl,
+        "log_local_step",
+        lambda *_a, **_k: log_calls.__setitem__("local", log_calls["local"] + 1),
+    )
+    monkeypatch.setattr(
+        rtl,
+        "log_training_step",
+        lambda *_a, **_k: log_calls.__setitem__("global", log_calls["global"] + 1),
+    )
+    optimizer_called = {}
+
+    def _fake_opt_step(ctx_obj, loop_state, lr):
+        optimizer_called["lr"] = lr
+        loop_state.global_step += 1
+        return 0.75
+
+    monkeypatch.setattr(rtl, "_optimizer_step", _fake_opt_step)
+    monkeypatch.setattr(rtl, "maybe_update_beta", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "maybe_update_tau", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "broadcast_controller_state", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "save_controller_state", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "_maybe_validate", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "maybe_checkpoint", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "check_stop_condition", lambda *_a, **_k: None)
+
+    result = rtl._train_step(ctx, state, step_info, resources)
+    assert result is False
+    assert state.global_step == 1
+    assert optimizer_called["lr"] == pytest.approx(5e-4)
+    assert state.num_input_tokens_seen == pytest.approx(5.0)
+    assert log_calls["local"] == 1
+    assert log_calls["global"] == 1
+
+def test_pipeline_replay_logs_expected_metrics(monkeypatch):
+    _load_run_setup(monkeypatch)
+    rtl = reload(import_module("training.loop"))
+    pipeline_mod = reload(import_module("training.pipeline"))
+    metrics_mod = reload(import_module("training.metrics"))
+
+    class _Writer:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((metrics, step))
+
+        def flush(self):
+            return None
+
+    writer = _Writer()
+    logging_handles = LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="no",
+        save_steps=0,
+        wandb_run=None,
+    )
+    weighting = SimpleNamespace(
+        tau=0.3,
+        beta=0.04,
+        denom=1.0,
+        q_temperature=1.0,
+        q_epsilon=1e-6,
+        tau_lr=0.01,
+        tau_min=0.05,
+        tau_max=1.0,
+        tau_warmup_steps=0,
+        tau_target_entropy=0.6,
+        kl_target=0.1,
+        kl_horizon=10,
+        kl_ctl_step_size=1.0,
+        len_norm_ref=False,
+        train_grpo_objective=False,
+        _tau_entropy_ema=0.2,
+    )
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(
+            accelerator=SimpleNamespace(is_main_process=True, log=lambda *_a, **_k: None),
+            tokenizer=SimpleNamespace(),
+            device="cpu",
+        ),
+        generation=SimpleNamespace(
+            max_completion_len=4,
+            use_vllm=False,
+            generation_stats={},
+        ),
+        optimization=SimpleNamespace(
+            schedule=SimpleNamespace(steps_per_epoch=10),
+        ),
+        scoring=SimpleNamespace(
+            weighting=weighting,
+            clipping=SimpleNamespace(),
+            batching=SimpleNamespace(
+                prompt_length_cache_get=lambda *_a, **_k: SimpleNamespace(
+                    input_ids=[], attention_mask=[]
+                )
+            ),
+        ),
+        logging=logging_handles,
+    )
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=[],
+        pairs=SimpleNamespace(
+            prompts=["p1", "p2"],
+            completions=["c1", "c2"],
+        ),
+        advantage=SimpleNamespace(grouped=[[0.2, -0.1], [0.3, -0.2]]),
+        q_grouped=[[0.5, 0.4], [0.3, 0.6]],
+        total_utils=[0.2, 0.4],
+        advantage_samples=[0.1, -0.05],
+        per_reward_values={"accuracy": [1.0, 0.0]},
+    )
+    gen_batch = SimpleNamespace(grouped_completions=[["c1", "c1b"], ["c2", "c2b"]])
+    score_batch = SimpleNamespace(
+        total_sequences=4,
+        prompt_entries=[SimpleNamespace(length=2), SimpleNamespace(length=2)],
+        max_prompt_len=4,
+    )
+    ref_stats = SimpleNamespace(ref_logp_mean=-0.4, avg_completion_tokens=3.0)
+    weight_stats = SimpleNamespace(
+        flat_weights=[0.4, 0.6, 0.5, 0.5],
+        weights_grouped=[[0.4, 0.6], [0.5, 0.5]],
+        weight_entropy=0.42,
+        weight_entropy_min=0.4,
+        weight_entropy_max=0.44,
+        advantage_entropy=[0.1, 0.3],
+    )
+    length_stats = metrics_mod.LengthStats(
+        min_length=2.0,
+        mean_length=3.0,
+        max_length=4.0,
+        clipped_ratio=0.0,
+        min_terminated=2.0,
+        mean_terminated=2.5,
+        max_terminated=3.0,
+    )
+    monkeypatch.setattr(
+        pipeline_mod,
+        "build_score_batch",
+        lambda *_a, **_k: score_batch,
+    )
+    monkeypatch.setattr(
+        pipeline_mod,
+        "compute_weight_stats",
+        lambda *_a, **_k: weight_stats,
+    )
+    monkeypatch.setattr(
+        pipeline_mod,
+        "summarize_completion_lengths",
+        lambda *_a, **_k: (None, length_stats, 4.0),
+    )
+    monkeypatch.setattr(
+        pipeline_mod,
+        "gather_reference_logprobs",
+        lambda *_a, **_k: ref_stats,
+    )
+
+    batch_stats = pipeline_mod._collect_batch_stats(ctx, gen_batch, reward_comp)
+    prepared = SimpleNamespace(
+        reward_comp=reward_comp,
+        weight_stats=batch_stats.weight_stats,
+        length_stats=batch_stats.length_stats,
+        ref_stats=batch_stats.ref_stats,
+        num_completion_tokens=batch_stats.num_completion_tokens,
+        grouped_completions=gen_batch.grouped_completions,
+        seed_metrics={},
+    )
+    loss_outputs = SimpleNamespace(
+        total_loss_scalar=0.9,
+        kl_loss_scalar=0.06,
+        policy_loss_scalar=0.8,
+        weighted_kl_loss_scalar=0.06,
+        clip_loss_scalar=None,
+        scalars=SimpleNamespace(kl_loss=0.06),
+    )
+    diagnostics = metrics_mod.BatchDiagnostics(
+        kl_value=0.06,
+        clip_ratio=0.0,
+        clip_ratio_low_mean=0.0,
+        clip_ratio_low_min=0.0,
+        clip_ratio_high_mean=0.0,
+        clip_ratio_high_max=0.0,
+        clip_ratio_region_mean=0.0,
+        kl_per_token_by_len_bucket={},
+        kl_token_count_by_len_bucket={},
+    )
+    log_artifacts = LogStepArtifacts(
+        loss_outputs=loss_outputs,
+        diagnostics=diagnostics,
+        grad_norm_scalar=0.25,
+        epoch_progress=0.1,
+    )
+    state = SimpleNamespace(
+        global_step=1,
+        metric_sums={},
+        metric_counts={},
+        num_input_tokens_seen=10.0,
+    )
+
+    rtl.log_training_step(ctx, state, prepared, log_artifacts, current_lr=1e-4)
+    assert writer.logged, "metrics should be emitted"
+    metrics = writer.logged[-1][0]
+    assert metrics["train/weight_entropy"] == pytest.approx(
+        weight_stats.weight_entropy
+    )
+    assert metrics["train/weighting/tau"] == pytest.approx(weighting.tau)
+    assert metrics["train/rewards/accuracy/mean"] == pytest.approx(0.5)
+    assert metrics["train/completions/mean_length_sampled"] == pytest.approx(
+        length_stats.mean_length
+    )
 
 
 def test_run_epoch_retries_sampler_with_int(monkeypatch, rtl):
@@ -627,3 +959,646 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
     assert recorded["checkpoint"] == state.global_step
     assert recorded["checked"] == state.global_step
     assert state.num_input_tokens_seen == pytest.approx(prepared.total_input_tokens)
+
+
+def test_controller_objective_hook_applies_meta_updates(monkeypatch, rtl):
+    class _Accelerator:
+        is_main_process = True
+        sync_gradients = True
+        gradient_accumulation_steps = 1
+
+        def backward(self, loss):
+            return loss
+
+        def accumulate(self, _model):
+            class _Ctx:
+                def __enter__(self_inner):
+                    return self_inner
+
+                def __exit__(self_inner, exc_type, exc, tb):
+                    return False
+
+            return _Ctx()
+
+        def wait_for_everyone(self):
+            return None
+
+    accelerator = _Accelerator()
+    weighting = SimpleNamespace(beta=0.4, tau=0.2)
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(accelerator=accelerator, model=object()),
+        scoring=SimpleNamespace(
+            clipping=SimpleNamespace(),
+            weighting=weighting,
+            batching=SimpleNamespace(),
+        ),
+        optimization=SimpleNamespace(
+            schedule=SimpleNamespace(grad_accum_steps=1, total_training_steps=0),
+            handles=SimpleNamespace(),
+        ),
+        logging=SimpleNamespace(
+            wandb_run=None,
+            save_strategy="no",
+            save_steps=0,
+            log_metrics=lambda *_a, **_k: None,
+            save_checkpoint=lambda *_a, **_k: None,
+        ),
+        evaluation=SimpleNamespace(enabled=False),
+        controller=SimpleNamespace(state_path="/tmp/controller"),
+        generation=SimpleNamespace(),
+    )
+    ctx.settings = SimpleNamespace(controller_objective=SimpleNamespace(), controller_meta_manager=None)
+    state = rtl.TrainingLoopState()
+    resources = rtl.StepResources(
+        generator=lambda *_a, **_k: None, validation_ctx=object()
+    )
+    step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={"prompt": ["p"]})
+    prepared = SimpleNamespace(
+        grouped_completions=[["one"]],
+        reward_comp=SimpleNamespace(),
+        weight_stats=SimpleNamespace(weight_entropy=0.3),
+        ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=2.0),
+        length_stats=SimpleNamespace(),
+        num_completion_tokens=2.0,
+        total_input_tokens=5.0,
+        scores=SimpleNamespace(),
+        seed_heatmap=None,
+    )
+    loss_outputs = SimpleNamespace(loss=object(), kl_loss_scalar=0.15)
+    gradients = ControllerGradients(tau_grad=0.2, beta_grad=-0.05)
+
+    def _objective_compute(meta_ctx):
+        assert meta_ctx.weighting is weighting
+        return gradients
+
+    ctx.settings.controller_objective.compute = _objective_compute
+    monkeypatch.setattr(rtl, "prepare_training_batch", lambda *_a, **_k: prepared)
+    monkeypatch.setattr(rtl, "build_loss_inputs", lambda *_a, **_k: ("group", "ratio"))
+    monkeypatch.setattr(
+        rtl,
+        "evaluate_losses",
+        lambda *_a, **_k: (loss_outputs, SimpleNamespace()),
+    )
+    monkeypatch.setattr(rtl, "_scheduled_learning_rate", lambda *_a, **_k: 0.001)
+    monkeypatch.setattr(rtl, "_epoch_progress", lambda *_a, **_k: 0.5)
+    monkeypatch.setattr(
+        rtl,
+        "log_local_step",
+        lambda *_a, **_k: None,
+    )
+    monkeypatch.setattr(
+        rtl,
+        "log_training_step",
+        lambda *_a, **_k: None,
+    )
+
+    def _fake_opt_step(_ctx, loop_state, current_lr):
+        loop_state.global_step += 1
+        return 0.0
+
+    monkeypatch.setattr(rtl, "_optimizer_step", _fake_opt_step)
+    monkeypatch.setattr(rtl, "maybe_update_beta", lambda *_, **__: None)
+    monkeypatch.setattr(rtl, "maybe_update_tau", lambda *_, **__: None)
+    monkeypatch.setattr(rtl, "broadcast_controller_state", lambda *_, **__: None)
+    monkeypatch.setattr(rtl, "save_controller_state", lambda *_, **__: None)
+    monkeypatch.setattr(rtl, "_maybe_validate", lambda *_, **__: None)
+    monkeypatch.setattr(rtl, "maybe_checkpoint", lambda *_, **__: None)
+    monkeypatch.setattr(rtl, "check_stop_condition", lambda *_, **__: None)
+
+    calls = {}
+
+    def _fake_meta_update(cfg, **kwargs):
+        calls["meta_update"] = (cfg, kwargs)
+
+    monkeypatch.setattr(rtl, "apply_meta_controller_update", _fake_meta_update)
+
+    rtl._train_step(ctx, state, step_info, resources)
+    assert "meta_update" in calls
+    cfg, kwargs = calls["meta_update"]
+    assert cfg is weighting
+    assert kwargs["tau_grad"] == pytest.approx(gradients.tau_grad)
+    assert kwargs["beta_grad"] == pytest.approx(gradients.beta_grad)
+
+def test_maxent_smoke_logs_expected_metrics(monkeypatch):
+    _load_run_setup(monkeypatch)
+    rtl = reload(import_module("training.loop"))
+    target_steps = 2
+
+    class _Writer:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((metrics, step))
+
+        def flush(self):
+            return None
+
+    writer = _Writer()
+    logging_handles = LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="steps",
+        save_steps=1,
+        wandb_run=None,
+    )
+    generation_stats = {
+        "vllm_retry_rounds": 0,
+        "vllm_backfilled_prompts": 0,
+        "vllm_failed_prompts": 0,
+        "dropped_prompts": 0,
+    }
+    generation_cfg = SimpleNamespace(
+        max_prompt_len=16,
+        max_completion_len=16,
+        gen_temperature=1.0,
+        gen_top_p=1.0,
+        use_vllm=False,
+        vllm=None,
+        penalty=GenerationPenaltyConfig(),
+        generation_stats=generation_stats,
+    )
+    evaluation_cfg = SimpleNamespace(
+        enabled=False, every_n_steps=None, rows=[], batch_size=0
+    )
+    schedule = SimpleNamespace(
+        num_epochs=1,
+        steps_per_epoch=target_steps,
+        total_training_steps=target_steps,
+        grad_accum_steps=1,
+        num_generations=1,
+        max_grad_norm=1.0,
+    )
+    optimizer_stub = SimpleNamespace(zero_grad=lambda set_to_none=None: None)
+    optimization = SimpleNamespace(
+        schedule=schedule,
+        handles=SimpleNamespace(
+            optimizer=optimizer_stub,
+            lr_scheduler=None,
+            base_optimizer=optimizer_stub,
+            learning_rate=1e-5,
+        ),
+    )
+    weighting = SimpleNamespace(tau=0.3, beta=0.04, denom=1.0)
+    clipping = SimpleNamespace(
+        clip_range=0.05,
+        use_clip_objective=True,
+        clip_objective_coef=1.0,
+        clip_adv_baseline=0.0,
+    )
+    batching = SimpleNamespace(
+        logprob_chunk_size=0,
+        score_slice=0,
+        prompt_length_cache_get=lambda *_a, **_k: SimpleNamespace(
+            input_ids=[], attention_mask=[]
+        ),
+    )
+    scoring = SimpleNamespace(weighting=weighting, clipping=clipping, batching=batching)
+    runtime = SimpleNamespace(
+        accelerator=SimpleNamespace(is_main_process=True, gradient_state=None),
+        model=SimpleNamespace(),
+        tokenizer=SimpleNamespace(),
+        train_loader=[{"prompt": ["p"], "answer": ["a"]} for _ in range(target_steps)],
+        train_sampler=None,
+        device="cpu",
+        get_ref_model=lambda: None,
+    )
+    ctx = SimpleNamespace(
+        runtime=runtime,
+        generation=generation_cfg,
+        evaluation=evaluation_cfg,
+        optimization=optimization,
+        scoring=scoring,
+        logging=logging_handles,
+        controller=SimpleNamespace(state_path=None, resume_from=None),
+        reward=SimpleNamespace(reward_funcs=[], reward_weights=[]),
+        eval_reward=None,
+    )
+
+    class _FakeGenerator:
+        def __init__(self, *_args, **_kwargs):
+            self.generate = lambda *_a, **_k: None
+
+    class _FakeValidationCtx:
+        def __init__(self, *_args, **_kwargs):
+            return None
+
+    monkeypatch.setattr(rtl, "CompletionGenerator", _FakeGenerator)
+    monkeypatch.setattr(rtl, "ValidationContext", _FakeValidationCtx)
+    monkeypatch.setattr(rtl, "GenerationContext", lambda *_a, **_k: SimpleNamespace())
+    monkeypatch.setattr(rtl, "load_controller_state_chain", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "maybe_load_accelerator_state", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "_maybe_patch_zero_no_sync", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "configure_accumulation_steps", lambda *_a, **_k: None)
+
+    def _fake_train_step(ctx_inner, state, step_info, resources):
+        idx = state.global_step
+        metrics = {
+            "train/kl": 0.01 * (idx + 1),
+            "train/beta": 0.04 + 0.01 * idx,
+            "train/weighting/beta": 0.04 + 0.01 * idx,
+            "train/tau": ctx_inner.scoring.weighting.tau,
+            "train/weighting/tau": ctx_inner.scoring.weighting.tau,
+            "train/maxent_objective": 1.0,
+            "train/grpo_objective": 0.0,
+            "train/weight_entropy": 0.2 + 0.05 * idx,
+        }
+        ctx_inner.logging.metric_writer.log(metrics, idx)
+        state.global_step += 1
+        if state.global_step >= target_steps:
+            state.stop_training = True
+            return True
+        return False
+
+    monkeypatch.setattr(rtl, "_train_step", _fake_train_step)
+
+    rtl.run_training_loop(ctx)
+
+    assert len(writer.logged) == target_steps
+    entropies = []
+    for metrics, step in writer.logged:
+        assert metrics["train/kl"] > 0.0
+        assert "train/beta" in metrics
+        assert "train/tau" in metrics
+        assert metrics["train/maxent_objective"] == 1.0
+        assert metrics["train/grpo_objective"] == 0.0
+        entropies.append(metrics["train/weight_entropy"])
+    assert entropies[0] != entropies[1]
+
+
+def test_maxent_vs_grpo_parity(monkeypatch, tmp_path):
+    _load_run_setup(monkeypatch)
+    rtl = reload(import_module("training.loop"))
+    ckpt_dir = tmp_path / "ckpts"
+    ckpt_dir.mkdir()
+    runs = []
+
+    class _Writer:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((metrics, step))
+
+        def flush(self):
+            return None
+
+    def _run_loop(train_grpo):
+        writer = _Writer()
+        logging_handles = LoggingHandles(
+            metric_writer=writer,
+            save_checkpoint=lambda name: runs.append((train_grpo, name)),
+            save_strategy="steps",
+            save_steps=1,
+            wandb_run=None,
+        )
+        weighting = SimpleNamespace(
+            tau=0.3 if not train_grpo else 0.0,
+            beta=0.04,
+            denom=1.0,
+            train_grpo_objective=train_grpo,
+        )
+        ctx = SimpleNamespace(
+            runtime=SimpleNamespace(
+                accelerator=SimpleNamespace(is_main_process=True, gradient_state=None),
+                model=SimpleNamespace(),
+                tokenizer=SimpleNamespace(),
+                train_loader=[{"prompt": ["p"], "answer": ["a"]}] * 2,
+                train_sampler=None,
+                device="cpu",
+                get_ref_model=lambda: None,
+            ),
+            generation=SimpleNamespace(
+                max_prompt_len=8,
+                max_completion_len=8,
+                gen_temperature=1.0,
+                gen_top_p=1.0,
+                use_vllm=False,
+                vllm=None,
+                penalty=GenerationPenaltyConfig(),
+                generation_stats={
+                    "vllm_retry_rounds": 0,
+                    "vllm_backfilled_prompts": 0,
+                    "vllm_failed_prompts": 0,
+                    "dropped_prompts": 0,
+                },
+            ),
+            evaluation=SimpleNamespace(enabled=False, every_n_steps=None, rows=[], batch_size=0),
+            optimization=SimpleNamespace(
+                schedule=SimpleNamespace(
+                    num_epochs=1,
+                    steps_per_epoch=2,
+                    total_training_steps=2,
+                    grad_accum_steps=1,
+                    num_generations=1,
+                    max_grad_norm=1.0,
+                ),
+                handles=SimpleNamespace(
+                    optimizer=SimpleNamespace(zero_grad=lambda set_to_none=None: None),
+                    lr_scheduler=None,
+                    base_optimizer=SimpleNamespace(),
+                    learning_rate=1e-5,
+                ),
+            ),
+            scoring=SimpleNamespace(
+                weighting=weighting,
+                clipping=SimpleNamespace(
+                    clip_range=0.05,
+                    use_clip_objective=True,
+                    clip_objective_coef=1.0,
+                    clip_adv_baseline=0.0,
+                ),
+                batching=SimpleNamespace(
+                    logprob_chunk_size=0,
+                    score_slice=0,
+                    prompt_length_cache_get=lambda *_a, **_k: SimpleNamespace(
+                        input_ids=[], attention_mask=[]
+                    ),
+                ),
+            ),
+            logging=logging_handles,
+            controller=SimpleNamespace(state_path=str(ckpt_dir / ("maxent" if not train_grpo else "grpo")), resume_from=None),
+            reward=SimpleNamespace(reward_funcs=[], reward_weights=[]),
+            eval_reward=None,
+        )
+
+        class _Gen:
+            def __init__(self, *_a, **_k):
+                self.generate = lambda *_x, **_y: None
+
+        monkeypatch.setattr(rtl, "CompletionGenerator", _Gen)
+        monkeypatch.setattr(rtl, "ValidationContext", lambda *_a, **_k: None)
+        monkeypatch.setattr(rtl, "GenerationContext", lambda *_a, **_k: SimpleNamespace())
+
+        def _fake_train_step(ctx_inner, state, *_a, **_k):
+            idx = state.global_step
+            metrics = {
+                "train/kl": 0.02 + (0.01 if not train_grpo else 0.0),
+                "train/beta": ctx_inner.scoring.weighting.beta,
+                "train/tau": ctx_inner.scoring.weighting.tau,
+                "train/weight_entropy": 0.3 if not train_grpo else 0.1,
+                "train/weight_entropy_error": (0.3 if not train_grpo else 0.1) - 0.2,
+                "train/kl_error_to_target": -0.05 if not train_grpo else -0.02,
+                "train/maxent_objective": 0.0 if train_grpo else 1.0,
+                "train/grpo_objective": 1.0 if train_grpo else 0.0,
+            }
+            ctx_inner.logging.metric_writer.log(metrics, idx)
+            ctx_inner.logging.save_checkpoint(f"step-{idx}")
+            state.global_step += 1
+            return state.global_step >= ctx_inner.optimization.schedule.total_training_steps
+
+        monkeypatch.setattr(rtl, "_train_step", _fake_train_step)
+        rtl.run_training_loop(ctx)
+        return writer.logged
+
+    maxent_metrics = _run_loop(train_grpo=False)[0][0]
+    grpo_metrics = _run_loop(train_grpo=True)[0][0]
+
+    assert maxent_metrics["train/maxent_objective"] == 1.0
+    assert grpo_metrics["train/grpo_objective"] == 1.0
+    assert "train/kl" in maxent_metrics and "train/kl" in grpo_metrics
+    assert maxent_metrics["train/weight_entropy"] != grpo_metrics["train/weight_entropy"]
+    assert maxent_metrics["train/kl_error_to_target"] != grpo_metrics["train/kl_error_to_target"]
+    assert len(runs) == 4  # checkpoint callback invoked for each step
+
+
+def test_eval_loop_smoke_logs_eval_metrics(monkeypatch):
+    _load_run_setup(monkeypatch)
+    rtl = reload(import_module("training.loop"))
+    target_steps = 2
+    validation_calls = []
+
+    class _Writer:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((metrics, step))
+
+        def flush(self):
+            return None
+
+    writer = _Writer()
+    logging_handles = LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="steps",
+        save_steps=1,
+        wandb_run=None,
+    )
+    weighting = SimpleNamespace(tau=0.25, beta=0.05, denom=1.0)
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(
+            accelerator=SimpleNamespace(is_main_process=True, gradient_state=None),
+            model=SimpleNamespace(),
+            tokenizer=SimpleNamespace(),
+            train_loader=[{"prompt": ["p"], "answer": ["a"]} for _ in range(target_steps)],
+            train_sampler=None,
+            device="cpu",
+            get_ref_model=lambda: None,
+        ),
+        generation=SimpleNamespace(
+            max_prompt_len=8,
+            max_completion_len=8,
+            gen_temperature=1.0,
+            gen_top_p=1.0,
+            use_vllm=False,
+            vllm=None,
+            penalty=GenerationPenaltyConfig(),
+            generation_stats={
+                "vllm_retry_rounds": 0,
+                "vllm_backfilled_prompts": 0,
+                "vllm_failed_prompts": 0,
+                "dropped_prompts": 0,
+            },
+        ),
+        evaluation=SimpleNamespace(enabled=True, every_n_steps=1, rows=[], batch_size=0),
+        optimization=SimpleNamespace(
+            schedule=SimpleNamespace(
+                num_epochs=1,
+                steps_per_epoch=target_steps,
+                total_training_steps=target_steps,
+                grad_accum_steps=1,
+                num_generations=1,
+                max_grad_norm=1.0,
+            ),
+            handles=SimpleNamespace(
+                optimizer=SimpleNamespace(zero_grad=lambda set_to_none=None: None),
+                lr_scheduler=None,
+                base_optimizer=SimpleNamespace(),
+                learning_rate=1e-5,
+            ),
+        ),
+        scoring=SimpleNamespace(
+            weighting=weighting,
+            clipping=SimpleNamespace(
+                clip_range=0.05,
+                use_clip_objective=True,
+                clip_objective_coef=1.0,
+                clip_adv_baseline=0.0,
+            ),
+            batching=SimpleNamespace(
+                logprob_chunk_size=0,
+                score_slice=0,
+                prompt_length_cache_get=lambda *_a, **_k: SimpleNamespace(
+                    input_ids=[], attention_mask=[]
+                ),
+            ),
+        ),
+        logging=logging_handles,
+        controller=SimpleNamespace(state_path=None, resume_from=None),
+        reward=SimpleNamespace(reward_funcs=[], reward_weights=[]),
+        eval_reward=None,
+    )
+
+    class _Gen:
+        def __init__(self, *_a, **_k):
+            self.generate = lambda *_x, **_y: None
+
+    val_ctx = SimpleNamespace(tag="val")
+    monkeypatch.setattr(rtl, "CompletionGenerator", _Gen)
+    monkeypatch.setattr(rtl, "ValidationContext", lambda *_a, **_k: val_ctx)
+    monkeypatch.setattr(rtl, "GenerationContext", lambda *_a, **_k: SimpleNamespace())
+    monkeypatch.setattr(rtl, "load_controller_state_chain", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "maybe_load_accelerator_state", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "_maybe_patch_zero_no_sync", lambda *_a, **_k: None)
+    monkeypatch.setattr(rtl, "configure_accumulation_steps", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        rtl,
+        "run_validation_step",
+        lambda step, ctx_obj: validation_calls.append((step, ctx_obj)),
+    )
+
+    def _train_step(ctx_inner, state, _step_info, resources):
+        metrics = {
+            "train/kl": 0.02 + 0.01 * state.global_step,
+            "train/tau": ctx_inner.scoring.weighting.tau,
+            "eval/reward": 0.1 * (state.global_step + 1),
+        }
+        ctx_inner.logging.metric_writer.log(metrics, state.global_step)
+        state.global_step += 1
+        rtl._maybe_validate(
+            ctx_inner.evaluation,
+            resources.validation_ctx,
+            state.global_step,
+        )
+        if state.global_step >= target_steps:
+            state.stop_training = True
+            return True
+        return False
+
+    monkeypatch.setattr(rtl, "_train_step", _train_step)
+    rtl.run_training_loop(ctx)
+
+    assert len(writer.logged) == target_steps
+    for metrics, step in writer.logged:
+        assert "train/kl" in metrics
+        assert "eval/reward" in metrics
+        assert metrics["train/tau"] == pytest.approx(weighting.tau)
+        assert step in {0, 1}
+    assert validation_calls == [(1, val_ctx), (2, val_ctx)]
+
+
+def test_maybe_overwrite_controller_state_from_config_applies_recipe(monkeypatch, rtl):
+    """Overwriting should reset tau/beta, denom, and broadcast the controller state."""
+
+    calls = {}
+
+    def _fake_broadcast(accel, weighting):
+        calls["broadcast"] = (accel, weighting)
+        return True
+
+    sync_values = {}
+
+    def _fake_sync(weighting):
+        sync_values["scalars"] = (weighting.tau, weighting.beta)
+
+    monkeypatch.setattr(rtl, "broadcast_controller_state", _fake_broadcast)
+    monkeypatch.setattr(rtl, "_sync_controller_state", _fake_sync)
+
+    class _Weighting:
+        def __init__(self):
+            self.tau = 0.1
+            self.beta = 0.02
+            self.train_grpo_objective = False
+            self.normalization = SimpleNamespace(denom=1.0, len_norm_ref=False)
+
+        @property
+        def denom(self):
+            return self.normalization.denom
+
+        @denom.setter
+        def denom(self, value):
+            self.normalization.denom = value
+
+    ctx = SimpleNamespace(
+        training_args=SimpleNamespace(
+            controller_overwrite_from_config=True,
+            maxent_tau=0.3,
+            init_kl_coeff=0.04,
+        ),
+        scoring=SimpleNamespace(weighting=_Weighting()),
+        runtime=SimpleNamespace(accelerator=SimpleNamespace()),
+    )
+
+    rtl._maybe_overwrite_controller_state_from_config(ctx)
+
+    assert ctx.scoring.weighting.tau == pytest.approx(0.3)
+    assert ctx.scoring.weighting.beta == pytest.approx(0.04)
+    assert ctx.scoring.weighting.denom == pytest.approx(0.34)
+    assert sync_values["scalars"] == (pytest.approx(0.3), pytest.approx(0.04))
+    assert calls["broadcast"][0] is ctx.runtime.accelerator
+    assert calls["broadcast"][1] is ctx.scoring.weighting
+
+
+def test_maybe_overwrite_controller_state_from_config_noop_without_flag(monkeypatch, rtl):
+    """When flag is disabled, helper should not touch controller state."""
+
+    def _fail(*_args, **_kwargs):
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(rtl, "broadcast_controller_state", _fail)
+    monkeypatch.setattr(rtl, "_sync_controller_state", _fail)
+
+    class _Weighting:
+        def __init__(self):
+            self.tau = 0.1
+            self.beta = 0.02
+            self.train_grpo_objective = False
+            self.normalization = SimpleNamespace(denom=0.5, len_norm_ref=False)
+
+        @property
+        def denom(self):
+            return self.normalization.denom
+
+        @denom.setter
+        def denom(self, value):
+            self.normalization.denom = value
+
+    ctx = SimpleNamespace(
+        training_args=SimpleNamespace(
+            controller_overwrite_from_config=False,
+            maxent_tau=0.9,
+            init_kl_coeff=0.7,
+        ),
+        scoring=SimpleNamespace(weighting=_Weighting()),
+        runtime=SimpleNamespace(accelerator=SimpleNamespace()),
+    )
+
+    rtl._maybe_overwrite_controller_state_from_config(ctx)
+
+    assert ctx.scoring.weighting.tau == 0.1
+    assert ctx.scoring.weighting.beta == 0.02
+    assert ctx.scoring.weighting.denom == 0.5
+
+
+def test_apply_weighting_overrides_from_config_sets_fallback(rtl):
+    weighting = SimpleNamespace(allow_empty_weight_fallback=False)
+    ctx = SimpleNamespace(
+        training_args=SimpleNamespace(maxent_allow_empty_weight_fallback=True),
+        scoring=SimpleNamespace(weighting=weighting),
+    )
+
+    rtl._apply_weighting_overrides_from_config(ctx)
+
+    assert weighting.allow_empty_weight_fallback is True

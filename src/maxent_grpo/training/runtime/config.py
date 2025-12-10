@@ -41,6 +41,7 @@ class VLLMClientConfig:
     timeout: float = 120.0
     max_retries: int = 3
     backoff: float = 1.0
+    backoff_multiplier: float = 2.0
     guided_json: Optional[str] = None
     guided_regex: Optional[str] = None
     logit_bias: Optional[Dict[str, float]] = None
@@ -141,6 +142,11 @@ class GenerationSamplingConfig:
     def vllm_backoff(self) -> float:
         """Backward-compatible accessor for exponential backoff factor."""
         return self.vllm.backoff
+
+    @property
+    def vllm_backoff_multiplier(self) -> float:
+        """Multiplier applied to the backoff delay after each attempt."""
+        return getattr(self.vllm, "backoff_multiplier", 2.0)
 
     @property
     def vllm_guided_json(self) -> Optional[str]:

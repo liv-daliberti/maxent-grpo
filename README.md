@@ -12,10 +12,10 @@ A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑lev
 
 Run the Hydra console scripts from the repo root:
 ```bash
-# Baseline GRPO using the math recipe
+# Baseline GRPO using the math recipe (static τ/β by default)
 maxent-grpo-baseline baseline.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
 
-# InfoSeed-GRPO using the math recipe (custom loop)
+# InfoSeed-GRPO using the math recipe (custom loop; τ/β meta-controller enabled)
 maxent-grpo-infoseed infoseed.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml
 
 # Inline overrides without a YAML recipe
@@ -35,6 +35,21 @@ maxent-grpo-math-eval command=math-eval \
   inference.models='[ {model_name_or_path: od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1} ]' \
   inference.collect_generations=false \
   inference.artifacts.root_dir=var/artifacts/inference
+```
+
+All MaxEnt and InfoSeed recipes now enable the τ/β meta-controller (analytic mode) by default so weights stay on target without manual tuning. Override with Hydra/CLI flags such as ``controller_meta_enabled=false`` (fully static), ``controller_meta_method=first_order`` (truncated gradients), or ``controller_meta_lr=0.02`` for per-project retuning. The baseline GRPO recipes keep the controller disabled unless you explicitly flip the flag.
+
+Examples:
+
+```bash
+# Disable meta-controller for ablations (MaxEnt pipeline)
+maxent-grpo-maxent maxent.training.controller_meta_enabled=false
+
+# Enable first-order meta updates for baseline GRPO
+maxent-grpo-baseline \
+  baseline.training.controller_meta_enabled=true \
+  baseline.training.controller_meta_method=first_order \
+  baseline.training.controller_meta_lr=0.02
 ```
 
 The MaxEnt runner is provided as building blocks under `src/maxent_grpo/training/` and a YAML recipe; the convenience CLI (`maxent-grpo-maxent` / `--task maxent`) currently raises until the dedicated launcher is restored.
@@ -72,6 +87,11 @@ Notes
 - Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`. Pass `--revision <git_commit>` when pointing at Hugging Face repos (e.g., `--model od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1 --revision c929c65`) to evaluate specific training steps without syncing local checkpoints.
 - Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
 - For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
+- Shared vLLM servers:
+  - Every Accelerate rank derives a stable `client_tag` and forwards it via the JSON payload and `X-VLLM-Client-Tag` header so responses can be sharded per rank.
+  - Override (`export VLLM_CLIENT_TAG=trainer-3`) when you run multiple independent trainers behind the same endpoint or when an external proxy wants to pin requests to a specific backend.
+  - **Server requirement:** the vLLM server (or proxy) must copy the `client_tag` back into each prompt group of the JSON response (either at the result level or inside every output). Without that echo the client cannot filter, so you’ll see warnings such as “Skipping policy loss group due to empty log-probs,” `train/grpo_objective` stays at zero, and KL/entropy metrics remain `NaN`.
+  - **Verification:** when filtering works you’ll no longer see `vLLM raw groups=96 ...` immediately followed by `Score batch built | total_sequences=16`; the counts match and the controller metrics (`train/delta_tau`, `train/delta_beta`) move off zero even with chunking enabled. For a quick end‑to‑end check on a local model, run `python tools/vllm_client_tag_smoke.py --model <HF_ID>` and confirm it logs “server echoed client_tag …” before launching training.
 
 
 ## Code Organization
@@ -106,7 +126,7 @@ Notes
 5. **Logging** — `training.metrics` and `telemetry.wandb` report metrics; logs/checkpoints land under `var/` by default.
 
 ## InfoSeed-GRPO (seed-aware auxiliary, optional)
-- Enable via `info_seed_enabled=True`; suggested defaults: `info_seed_lambda=0.01`, `info_seed_alpha_entropy=0.5`, `info_seed_num_seeds=4–8`, `info_seed_prompt_template="\n[seed={seed}]"`.
+- Enable via `info_seed_enabled=True` (Hydra now enforces this for `train-infoseed` recipes); suggested defaults: `info_seed_lambda=0.01`, `info_seed_alpha_entropy=0.5`, `info_seed_num_seeds=4–8`, `info_seed_prompt_template="\n[seed={seed}]"`.
 - Losses: seed-aware contrastive (`info_seed_loss_type=infonce`) or CE over `seed_head` logits (`info_seed_loss_type=ce`); pooling via `info_seed_pooling` (`mean`/`last`).
 - Metrics: logs `seed_pred_acc`, per-subset entropies (orig vs seed-aug), seed diversity (`seed_diversity_l2`), and optional eval-time seed metrics (`eval_seed/*`) when `EvaluationSettings.seed_eval` is configured.
 - Failure modes: high `info_seed_lambda` can produce stylistic hacks. Mitigate by lowering `lambda`, capping entropy, adding dropout/perturbation to seed template tokens, and monitoring `seed_pred_acc` vs. diversity.

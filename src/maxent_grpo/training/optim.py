@@ -43,7 +43,23 @@ from .types import (
 
 LOG = logging.getLogger(__name__)
 _TWO_NORM = 2.0
-torch = require_torch("training_optim")
+try:
+    torch = require_torch("training_optim")
+    _TORCH_IMPORT_ERROR = None
+except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as exc:  # pragma: no cover - optional dep
+    _TORCH_IMPORT_ERROR = exc
+
+    class _TorchStub:
+        class optim:
+            AdamW = None
+
+        class nn:
+            class utils:
+                @staticmethod
+                def clip_grad_norm_(*_args, **_kwargs):
+                    return 0.0
+
+    torch = _TorchStub()
 
 
 @dataclass
@@ -131,6 +147,13 @@ def scheduled_learning_rate(
         return base_lr * (float(step) / float(warmup_steps))
     decay_steps = max(total_steps - warmup_steps, 1)
     progress = min(max(step - warmup_steps, 0), decay_steps) / float(decay_steps)
+    scheduler_type = str(getattr(schedule, "lr_scheduler_type", "cosine") or "cosine").lower()
+    if scheduler_type in {"constant", "constant_with_warmup"}:
+        return base_lr
+    if scheduler_type in {"linear", "linear_decay", "linear_with_warmup"}:
+        multiplier = max(1.0 - progress, 0.0)
+        return base_lr * multiplier
+    # Default to cosine-style decay for any other scheduler names.
     return 0.5 * base_lr * (1.0 + math.cos(math.pi * progress))
 
 
@@ -272,6 +295,8 @@ def require_accumulation_context(accelerator: Accelerator, model: Any) -> Any:
 def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     """Construct a minimal optimizer/scheduler bundle for the custom runner."""
 
+    if _TORCH_IMPORT_ERROR is not None:
+        raise ImportError("torch is required for optimization") from _TORCH_IMPORT_ERROR
     optimizer_cls = getattr(torch.optim, "AdamW", None)
     if optimizer_cls is None:
         raise ImportError("torch.optim.AdamW is required for optimization.")

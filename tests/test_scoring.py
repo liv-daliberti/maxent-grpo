@@ -28,6 +28,8 @@ import numpy as np
 import sys
 import types
 
+from maxent_grpo.training.scoring import _PadTokenGuard
+
 
 # Provide a richer torch stub when the real package is unavailable or broken.
 try:  # pragma: no cover - environment dependent
@@ -201,6 +203,11 @@ if _needs_stub:
             return _Tensor(
                 self.arr - (other.arr if isinstance(other, _Tensor) else other)
             )
+
+        def masked_fill(self, mask, value):
+            mask_arr = mask.arr if isinstance(mask, _Tensor) else np.asarray(mask)
+            filled = np.where(mask_arr, value, self.arr)
+            return _Tensor(filled)
 
         def __mul__(self, other):
             return _Tensor(
@@ -468,8 +475,216 @@ def test_prepare_prompt_slice_and_iter_batch_slices_shapes():
     # Labels should mask prompt tokens with -100
     labels_arr = np.asarray(labels[:, :2])
     assert np.all(labels_arr == -100)
-    assert np.all(np.asarray(labels[:, 2:]) >= 0)
+    completion_region = np.asarray(labels[:, 2:])
+    assert (completion_region >= 0).any()
 
+
+def test_iter_batch_slices_applies_tail_limit():
+    sb_full, _, _, _ = _score_batch()
+    device = torch.device("cpu")
+    base_len = list(iter_batch_slices(sb_full, device))[0][0].shape[1]
+
+    sb_tail, _, _, _ = _score_batch()
+    sb_tail.score_tail_tokens = 2
+    tail_slice = list(iter_batch_slices(sb_tail, device))[0]
+    tail_len = tail_slice[0].shape[1]
+    assert tail_len == min(2, base_len)
+    assert tail_len <= base_len
+
+
+def test_iter_batch_slices_tail_excludes_global_padding():
+    prompt_entries = [PromptCacheEntry(input_ids=[10, 11], attention_mask=[1, 1])]
+    completion_ids = torch.tensor([[101, 102, 0, 0, 0]], dtype=torch.long)
+    completion_mask = torch.tensor([[1, 1, 0, 0, 0]], dtype=torch.long)
+    score_batch = ScoreBatch(
+        prompt_entries=prompt_entries,
+        completion_ids=completion_ids,
+        completion_attention_mask=completion_mask,
+        pad_token_id=0,
+        max_prompt_len=4,
+        slice_size=2,
+        total_sequences=1,
+        score_tail_tokens=2,
+    )
+    device = torch.device("cpu")
+    input_ids, _attn, labels = next(iter_batch_slices(score_batch, device))
+    assert input_ids.shape[1] == 2
+    assert input_ids[0].tolist() == [101, 102]
+    assert labels[0].tolist() == [101, 102]
+
+
+def test_iter_batch_slices_tail_truncates_completion_span():
+    prompt_tokens = list(range(100))
+    prompt_entries = [
+        PromptCacheEntry(input_ids=prompt_tokens, attention_mask=[1] * len(prompt_tokens))
+    ]
+    completion_ids = torch.tensor([[401, 402, 403]], dtype=torch.long)
+    completion_mask = torch.tensor([[1, 1, 1]], dtype=torch.long)
+    # Tail window smaller than completion span would previously drop completion columns.
+    score_batch = ScoreBatch(
+        prompt_entries=prompt_entries,
+        completion_ids=completion_ids,
+        completion_attention_mask=completion_mask,
+        pad_token_id=0,
+        max_prompt_len=len(prompt_tokens),
+        slice_size=1,
+        total_sequences=1,
+        score_tail_tokens=2,
+    )
+    device = torch.device("cpu")
+    input_ids, _attn, labels = next(iter_batch_slices(score_batch, device))
+    assert input_ids.shape[1] == 2
+    assert labels.tolist() == [[402, 403]]
+
+
+def test_iter_batch_slices_tail_keeps_single_token_completion():
+    prompt_tokens = list(range(256))
+    prompt_entries = [
+        PromptCacheEntry(input_ids=prompt_tokens, attention_mask=[1] * len(prompt_tokens))
+    ]
+    completion_ids = torch.tensor([[915]], dtype=torch.long)
+    completion_mask = torch.tensor([[1]], dtype=torch.long)
+    score_batch = ScoreBatch(
+        prompt_entries=prompt_entries,
+        completion_ids=completion_ids,
+        completion_attention_mask=completion_mask,
+        pad_token_id=0,
+        max_prompt_len=len(prompt_tokens),
+        slice_size=1,
+        total_sequences=1,
+        score_tail_tokens=64,
+    )
+    device = torch.device("cpu")
+    _ids, _attn, labels = next(iter_batch_slices(score_batch, device))
+    assert (labels != -100).any()
+    assert 915 in labels.tolist()[0]
+
+
+def test_iter_batch_slices_masks_completion_padding():
+    prompt_entries = [
+        PromptCacheEntry(input_ids=[1], attention_mask=[1]),
+        PromptCacheEntry(input_ids=[2], attention_mask=[1]),
+    ]
+    completion_ids = torch.tensor(
+        [[201, 202, 0, 0], [301, 302, 303, 304]], dtype=torch.long
+    )
+    completion_mask = torch.tensor(
+        [[1, 1, 0, 0], [1, 1, 1, 1]], dtype=torch.long
+    )
+    score_batch = ScoreBatch(
+        prompt_entries=prompt_entries,
+        completion_ids=completion_ids,
+        completion_attention_mask=completion_mask,
+        pad_token_id=0,
+        max_prompt_len=2,
+        slice_size=2,
+        total_sequences=2,
+    )
+    device = torch.device("cpu")
+    _ids, _attn, labels = next(iter_batch_slices(score_batch, device))
+    prompt_width = 1
+    assert labels[0, prompt_width : prompt_width + 2].tolist() == [201, 202]
+    assert labels[0, prompt_width + 2 :].tolist() == [-100, -100]
+    assert labels[1, prompt_width : prompt_width + 4].tolist() == [301, 302, 303, 304]
+
+
+def test_iter_batch_slices_materializes_tensors():
+    sb, _, _, _ = _score_batch()
+    device = torch.device("cpu")
+    input_ids, attention_mask, labels = next(iter_batch_slices(sb, device))
+    # Ensure numpy arrays are converted back to torch tensors before model call.
+    tensor_type = getattr(torch, "Tensor", tuple())
+
+    def _looks_like_tensor(obj):
+        is_tensor_fn = getattr(torch, "is_tensor", None)
+        if callable(is_tensor_fn):
+            try:
+                if is_tensor_fn(obj):
+                    return True
+            except Exception:
+                pass
+        if tensor_type and isinstance(obj, tensor_type):
+            return True
+        return hasattr(obj, "arr") or hasattr(obj, "shape")
+
+    assert _looks_like_tensor(input_ids)
+    assert _looks_like_tensor(attention_mask)
+    assert _looks_like_tensor(labels)
+    dev_ids = getattr(input_ids, "device", None)
+    dev_mask = getattr(attention_mask, "device", None)
+    dev_labels = getattr(labels, "device", None)
+    dev_ids_type = getattr(dev_ids, "type", dev_ids)
+    dev_mask_type = getattr(dev_mask, "type", dev_mask)
+    dev_labels_type = getattr(dev_labels, "type", dev_labels)
+    assert dev_ids_type == dev_mask_type == dev_labels_type
+    assert input_ids.dtype == torch.long
+    assert labels.dtype == torch.long
+
+
+def test_reference_scoring_preserves_slice_order(monkeypatch):
+    """Check that sliced ref scoring concatenates per-sequence results in order."""
+
+    prompt_entries = [
+        PromptCacheEntry(input_ids=[10], attention_mask=[1]),
+        PromptCacheEntry(input_ids=[20, 21], attention_mask=[1, 1]),
+        PromptCacheEntry(input_ids=[30], attention_mask=[1]),
+    ]
+    completion_ids = torch.tensor(
+        [[101, 102], [201, 202], [301, 302]], dtype=torch.long
+    )
+    completion_mask = torch.ones_like(completion_ids, dtype=torch.long)
+    score_batch = ScoreBatch(
+        prompt_entries=prompt_entries,
+        completion_ids=completion_ids,
+        completion_attention_mask=completion_mask,
+        pad_token_id=0,
+        max_prompt_len=4,
+        slice_size=2,  # force >1 slice for 3 sequences
+        total_sequences=3,
+    )
+    batching_cfg = BatchingSettings(
+        logprob_chunk_size=0,
+        score_slice=2,
+        prompt_length_cache_get=_dummy_prompt_cache,
+        slice_prefetch=2,
+    )
+    runtime = SimpleNamespace(
+        get_ref_model=lambda: SimpleNamespace(), device=torch.device("cpu")
+    )
+
+    def _fake_chunked_sequence_logprobs(
+        model,
+        *,
+        input_ids,
+        attention_mask,
+        labels,
+        chunk_size,
+        gather_full_params=False,
+        return_hidden=False,
+        pooling="mean",
+    ):
+        _ = (
+            model,
+            attention_mask,
+            chunk_size,
+            gather_full_params,
+            return_hidden,
+            pooling,
+        )
+        valid_mask = labels.ne(-100)
+        seq_sum = (labels * valid_mask).sum(dim=1)
+        tok_counts = valid_mask.sum(dim=1)
+        return seq_sum.float(), tok_counts.float(), None
+
+    monkeypatch.setattr(
+        scoring, "_chunked_sequence_logprobs", _fake_chunked_sequence_logprobs
+    )
+
+    ref = gather_reference_logprobs(score_batch, runtime, batching_cfg)
+    assert ref is not None
+    assert ref.ref_logp_sum.tolist() == [203.0, 403.0, 603.0]
+    assert ref.ref_tok_counts.tolist() == [3.0, 2.0, 2.0]
+   
 
 def test_chunked_sequence_logprobs_computes_sums():
     input_ids = torch.tensor([[1, 2], [3, 4]])
@@ -485,6 +700,525 @@ def test_chunked_sequence_logprobs_computes_sums():
     # First sequence only first token counted, second sequence two tokens
     assert tok_counts.tolist() == [1, 2]
     assert logp.numel() == 2
+
+
+def test_chunked_sequence_logprobs_honors_chunk_limits():
+    class _Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.calls: list[int] = []
+            self.embed_tokens = torch.nn.Embedding(16, 4)
+
+        def forward(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            self.calls.append(input_ids.shape[0])
+            vocab = 8
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            hidden_np = np.asarray(input_ids)
+            hidden_np = np.repeat(hidden_np[..., None], 4, axis=-1).astype(np.float32)
+            hidden = torch.tensor(hidden_np, dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=[hidden])
+
+    input_ids = torch.tensor([[0, 1, 2], [3, 4, 5], [6, 7, 8]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[0, 1, 2], [1, 2, 3], [2, 3, 4]], dtype=torch.long)
+    base_model = _Model()
+    chunk_model = _Model()
+    base_logp, base_tok, base_hidden = _chunked_sequence_logprobs(
+        base_model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=0,
+        return_hidden=True,
+        pooling="last",
+    )
+    chunk_logp, chunk_tok, chunk_hidden = _chunked_sequence_logprobs(
+        chunk_model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=2,
+        return_hidden=True,
+        pooling="last",
+    )
+    assert base_model.calls == [3]
+    assert chunk_model.calls == [2, 1]
+
+    def _to_np(tensor):
+        try:
+            return np.asarray(tensor)
+        except Exception:
+            arr = getattr(tensor, "arr", None)
+            return np.asarray(arr if arr is not None else tensor)
+
+    np.testing.assert_allclose(_to_np(base_logp), _to_np(chunk_logp))
+    np.testing.assert_allclose(_to_np(base_tok), _to_np(chunk_tok))
+    np.testing.assert_allclose(_to_np(base_hidden), _to_np(chunk_hidden))
+
+
+def test_chunked_sequence_logprobs_gathers_params(monkeypatch):
+    """Ensure ZeRO-3 gathered parameters context is invoked when requested."""
+
+    class _Ctx:
+        entered = False
+
+        def __enter__(self):
+            _Ctx.entered = True
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class _Zero:
+        def __init__(self):
+            self.seen = None
+
+        def GatheredParameters(self, params, modifier_rank=None):
+            self.seen = params
+            return _Ctx()
+
+    # Patch a lightweight deepspeed.zero stub
+    monkeypatch.setitem(sys.modules, "deepspeed", SimpleNamespace(zero=_Zero()))
+
+    class _Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.embed_tokens = torch.nn.Embedding(4, 2)
+
+        def forward(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            vocab = 5
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    model = _Model()
+    input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, 2]], dtype=torch.long)
+    _chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=1,
+        gather_full_params=True,
+    )
+    stub = sys.modules.get("deepspeed")
+    assert getattr(getattr(stub, "zero", None), "seen", None) is not None
+    assert _Ctx.entered
+
+
+def test_chunked_sequence_logprobs_uses_zero_embedding_context(monkeypatch):
+    """Reference scoring should always enter the ZeRO embedding gather context."""
+
+    class _Ctx:
+        def __init__(self, model):
+            self.model = model
+            self.entered = False
+
+        def __enter__(self):
+            self.entered = True
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    calls: dict[str, object] = {}
+
+    def _fake_ctx(model):
+        ctx = _Ctx(model)
+        calls["ctx"] = ctx
+        return ctx
+
+    monkeypatch.setattr(scoring, "_maybe_zero_gather_embedding", _fake_ctx)
+
+    class _Model(torch.nn.Module):
+        def forward(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            vocab = 5
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    model = _Model()
+    input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, 2]], dtype=torch.long)
+    _chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=1,
+    )
+    ctx = calls.get("ctx")
+    assert isinstance(ctx, _Ctx)
+    assert ctx.entered is True
+    assert ctx.model is model
+
+
+def test_chunked_sequence_logprobs_uses_zero_param_context(monkeypatch):
+    """Reference scoring must gather all ZeRO params before the forward pass."""
+
+    class _Ctx:
+        def __init__(self, model, enabled):
+            self.model = model
+            self.enabled = enabled
+            self.entered = False
+
+        def __enter__(self):
+            self.entered = True
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    calls: dict[str, object] = {}
+
+    def _fake_ctx(model, enabled):
+        ctx = _Ctx(model, enabled)
+        calls["ctx"] = ctx
+        return ctx
+
+    monkeypatch.setattr(scoring, "_maybe_zero_gather_params", _fake_ctx)
+
+    class _Model(torch.nn.Module):
+        def forward(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            vocab = 5
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    model = _Model()
+    input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, 2]], dtype=torch.long)
+    _chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=1,
+    )
+    ctx = calls.get("ctx")
+    assert isinstance(ctx, _Ctx)
+    assert ctx.entered is True
+    assert ctx.model is model
+    assert ctx.enabled is True
+
+
+def test_chunked_sequence_logprobs_param_gather_restores_weights(monkeypatch):
+    """ZeRO param gather should expose non-empty weights to the model forward."""
+
+    class _WeightStub:
+        def __init__(self):
+            self._shape = (0,)
+
+        @property
+        def shape(self):
+            return self._shape
+
+        def set_shape(self, shape):
+            self._shape = tuple(shape)
+
+    class _Model(torch.nn.Module):
+        def __init__(self, weight):
+            super().__init__()
+            self.weight = weight
+            self.config = SimpleNamespace(pad_token_id=0, vocab_size=5)
+            self.embed_tokens = torch.nn.Embedding(self.config.vocab_size, 2)
+
+        def forward(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            if not self.weight.shape or self.weight.shape[0] == 0:
+                raise RuntimeError("norm weight missing")
+            vocab = self.config.vocab_size
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    weight = _WeightStub()
+    model = _Model(weight)
+    input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, 2]], dtype=torch.long)
+
+    def _run_with_ctx(ctx_factory):
+        monkeypatch.setattr(scoring, "_maybe_zero_gather_params", ctx_factory)
+        return _chunked_sequence_logprobs(
+            model,
+            input_ids=input_ids,
+            attention_mask=attn,
+            labels=labels,
+            chunk_size=1,
+        )
+
+    def _null_ctx(model, enabled):
+        _ = model, enabled
+        return nullcontext()
+
+    monkeypatch.setattr(scoring, "_maybe_zero_gather_embedding", lambda _m: nullcontext())
+    monkeypatch.setattr(scoring, "_maybe_zero_gather_params", _null_ctx)
+    with pytest.raises(RuntimeError):
+        _chunked_sequence_logprobs(
+            model,
+            input_ids=input_ids,
+            attention_mask=attn,
+            labels=labels,
+            chunk_size=1,
+        )
+
+    class _GatherCtx:
+        def __enter__(self):
+            weight.set_shape((3584,))
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            weight.set_shape((0,))
+            return False
+
+    def _ctx_factory(model, enabled):
+        _ = model, enabled
+        return _GatherCtx()
+
+    result = _run_with_ctx(_ctx_factory)
+    assert isinstance(result, tuple) and len(result) == 3
+    logp, tok_counts, _hidden = result
+    assert logp.numel() == 1
+    assert tok_counts.tolist() == [2]
+    assert weight.shape == (0,)
+
+
+def test_chunked_sequence_logprobs_gather_restores_2d_embeddings(monkeypatch):
+    """ZeRO embedding gather should recover 2-D weights for reference scoring."""
+
+    class _WeightStub:
+        def __init__(self):
+            self._shape = (0,)
+
+        def set_shape(self, shape):
+            self._shape = tuple(shape)
+
+        @property
+        def shape(self):
+            return self._shape
+
+        def size(self, dim=None):
+            if dim is None:
+                return self._shape
+            return self._shape[dim]
+
+    class _Emb:
+        def __init__(self, weight):
+            self.weight = weight
+            self.padding_idx = 0
+
+    class _Model(torch.nn.Module):
+        def __init__(self, weight):
+            super().__init__()
+            self._emb = _Emb(weight)
+            self.embed_tokens = None
+            self.config = SimpleNamespace(pad_token_id=0, vocab_size=5)
+
+        def get_input_embeddings(self):
+            return self._emb
+
+        def forward(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            vocab = self.config.vocab_size
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    def _run_once(weight, gather_ctx):
+        model = _Model(weight)
+        input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+        attn = torch.ones_like(input_ids)
+        labels = torch.tensor([[1, 2]], dtype=torch.long)
+        monkeypatch.setattr(scoring, "_maybe_zero_gather_embedding", gather_ctx)
+        return _chunked_sequence_logprobs(
+            model,
+            input_ids=input_ids,
+            attention_mask=attn,
+            labels=labels,
+            chunk_size=1,
+        )
+
+    weight = _WeightStub()
+
+    # Without a gather context, the zero-dim embedding should trigger a skip.
+    assert _run_once(weight, lambda _model: nullcontext()) is None
+
+    class _GatherCtx:
+        def __enter__(self):
+            weight.set_shape((4, 3))
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            weight.set_shape((0,))
+            return False
+
+    def _ctx_factory(model):
+        _ = model
+        return _GatherCtx()
+
+    result = _run_once(weight, _ctx_factory)
+    assert isinstance(result, tuple) and len(result) == 3
+    logp, tok_counts, _ = result
+    assert logp.numel() == 1
+    assert tok_counts.tolist() == [2]
+    assert weight.shape == (0,)
+
+
+def test_chunked_sequence_logprobs_handles_attribute_only_config():
+    """Config objects without a mapping interface should still be read safely."""
+
+    class _Config:
+        def __init__(self):
+            self.pad_token_id = 1
+            self.vocab_size = 5
+
+    class _Model:
+        def __init__(self):
+            cfg = _Config()
+            self.config = cfg
+            self.embed_tokens = SimpleNamespace(
+                weight=torch.zeros((cfg.vocab_size, 2), dtype=torch.float32)
+            )
+
+        def __call__(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            logits = torch.zeros(
+                (input_ids.shape[0], input_ids.shape[1], self.config.vocab_size),
+                dtype=torch.float32,
+            )
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    model = _Model()
+    input_ids = torch.tensor([[1, 2, 3]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, -100, 2]], dtype=torch.long)
+    logp, tok_counts, _hidden = _chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=1,
+    )
+    assert tok_counts.tolist() == [2]
+    assert logp.shape == (1,)
+
+
+def test_chunked_sequence_logprobs_uses_input_embeddings_when_embed_missing():
+    """Models without `embed_tokens` should still expose embeddings via getters."""
+
+    class _Embedding:
+        def __init__(self):
+            self.weight = torch.zeros((8, 2), dtype=torch.float32)
+
+    class _Model:
+        def __init__(self):
+            self.config = SimpleNamespace(pad_token_id=0, vocab_size=8)
+            self._embedding = _Embedding()
+
+        def get_input_embeddings(self):
+            return self._embedding
+
+        def __call__(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            logits = torch.zeros(
+                (input_ids.shape[0], input_ids.shape[1], self.config.vocab_size),
+                dtype=torch.float32,
+            )
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    model = _Model()
+    input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, 2]], dtype=torch.long)
+    logp, tok_counts, _hidden = _chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=1,
+    )
+    assert tok_counts.tolist() == [2]
+    assert logp.shape == (1,)
+
+
+def test_chunked_sequence_logprobs_clamps_config_pad_token():
+    """Clamp config.pad_token_id to the embedding vocab when it is too large."""
+
+    class _Config:
+        def __init__(self):
+            self.pad_token_id = 10
+            self.vocab_size = 20
+
+    class _Model:
+        def __init__(self):
+            self.config = _Config()
+            self.embed_tokens = SimpleNamespace(
+                weight=torch.zeros((3, 2), dtype=torch.float32)
+            )
+
+        def __call__(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            vocab = self.config.vocab_size
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+    model = _Model()
+    input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, 2]], dtype=torch.long)
+    _chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=1,
+    )
+    # Config should be restored to its original pad_token_id.
+    assert model.config.pad_token_id == 10
+
+
+def test_chunked_sequence_logprobs_applies_clamped_pad_during_forward():
+    """Ensure the clamped pad_token_id is seen inside the model call."""
+
+    class _Config:
+        def __init__(self):
+            self.pad_token_id = 11
+            self.vocab_size = 20
+
+    class _Model:
+        def __init__(self):
+            self.config = _Config()
+            self.embed_tokens = SimpleNamespace(
+                weight=torch.zeros((4, 2), dtype=torch.float32)
+            )
+            self.seen_pad = None
+
+        def __call__(self, input_ids, attention_mask, labels, output_hidden_states=False):
+            # record what pad_token_id the guard exposed while in the forward pass
+            self.seen_pad = self.config.pad_token_id
+            vocab = self.config.vocab_size
+            bsz, seqlen = input_ids.shape
+            logits = torch.zeros((bsz, seqlen, vocab), dtype=torch.float32)
+            return SimpleNamespace(logits=logits, hidden_states=None)
+
+        def forward(self, *args, **kwargs):
+            return self.__call__(*args, **kwargs)
+
+    model = _Model()
+    input_ids = torch.tensor([[1, 2]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = torch.tensor([[1, 2]], dtype=torch.long)
+    _chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=1,
+    )
+    assert model.seen_pad == 3
+    assert model.config.pad_token_id == 11
 
 
 def test_reference_from_vllm_meta_handles_valid_payload(monkeypatch):
@@ -531,6 +1265,20 @@ def test_reference_from_vllm_meta_handles_valid_payload(monkeypatch):
     assert isinstance(ref, ReferenceLogprobs)
     assert ref.ref_tok_counts.tolist() == [2.0, 1.0]
     assert pytest.approx(ref.ref_logp_mean) == -0.75
+
+
+def test_reference_from_vllm_meta_handles_attr_objects():
+    class _Payload:
+        def __init__(self, logprob_sum, token_count):
+            self.logprob_sum = logprob_sum
+            self.token_count = token_count
+
+    device = torch.device("cpu")
+    meta = [_Payload(-1.5, 4), _Payload(-0.5, 2)]
+    ref = reference_from_vllm_meta(meta, total_sequences=2, device=device)
+    assert isinstance(ref, ReferenceLogprobs)
+    assert ref.ref_tok_counts.tolist() == [4.0, 2.0]
+    assert ref.ref_logp_sum_raw.tolist() == [-1.5, -0.5]
 
 
 def test_finalize_reference_stats_and_lengths_summary():
@@ -987,6 +1735,7 @@ def test_reference_from_model_handles_empty_slices(monkeypatch):
     assert reference_from_model(sb2, runtime, batching_cfg2) is None
 
 
+
 def test_reference_from_vllm_meta_invalid_cases():
     device = torch.device("cpu")
     assert reference_from_vllm_meta([], total_sequences=1, device=device) is None
@@ -1058,3 +1807,39 @@ def test_build_sequence_scores_handles_empty_denoms(monkeypatch):
     )
     scores = build_sequence_scores(torch.tensor([]), ref_stats)
     assert getattr(scores.denom_tok_tensor, "numel", lambda: 0)() >= 0
+
+
+def test_pad_token_guard_applies_to_two_dim_weight() -> None:
+    class S2D(SimpleNamespace):
+        pass
+
+    module = S2D(padding_idx=5)
+    module.weight = np.ones((4, 4))
+    with _PadTokenGuard([(module, "padding_idx")], 99):
+        # The guard should clamp the requested padding index to be
+        # within the number of embeddings exposed by the weight.
+        assert module.padding_idx == 3
+    assert module.padding_idx == 5
+
+
+def test_pad_token_guard_skips_non_two_dim_weight() -> None:
+    class S1D(SimpleNamespace):
+        pass
+
+    module = S1D(padding_idx=5)
+    module.weight = np.ones((4,))
+    with _PadTokenGuard([(module, "padding_idx")], 99):
+        assert module.padding_idx == 5
+
+
+def test_pad_token_guard_uses_num_embeddings_when_available() -> None:
+    class FakeEmbedding(SimpleNamespace):
+        pass
+
+    module = FakeEmbedding(padding_idx=100, num_embeddings=10)
+    # A 1-D weight shape mimics sharded or stubbed embeddings where the
+    # module still exposes its logical embedding count via ``num_embeddings``.
+    module.weight = np.ones((4,))
+    with _PadTokenGuard([(module, "padding_idx")], 99):
+        assert module.padding_idx == 9
+    assert module.padding_idx == 100

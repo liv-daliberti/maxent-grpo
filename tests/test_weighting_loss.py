@@ -18,6 +18,7 @@ Unit tests for training.weighting.loss helpers.
 
 from __future__ import annotations
 
+import logging
 import math
 import sys
 import numpy as np
@@ -194,6 +195,44 @@ def test_build_loss_inputs_mismatch_raises():
         build_loss_inputs(grouped, weight_stats, scores, cfg)
 
 
+def test_build_loss_inputs_trims_group_sizes_when_logp_missing():
+    grouped = [["a", "b"], ["c", "d"]]
+    weight_stats = WeightStats(
+        weights_grouped=[[0.25, 0.25], [0.25, 0.25]],
+        flat_weights=[0.25, 0.25, 0.25, 0.25],
+        weight_entropy=0.0,
+        weight_entropy_min=0.0,
+        weight_entropy_max=0.0,
+        advantage_entropy=[],
+    )
+    scores = SequenceScores(
+        cur_logp_sum=torch.tensor([0.1, 0.2]),
+        behavior_logp_sum=torch.tensor([0.1, 0.2]),
+        log_ratio_train=torch.tensor([0.0, 0.0]),
+        denom_tok_tensor=torch.tensor([1.0, 1.0]),
+    )
+    cfg = LossInputConfig(
+        clip_cfg=ClipSettings(
+            clip_range=0.2,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
+        weighting_cfg=_weighting(),
+        ref_stats=ReferenceLogprobs(
+            ref_logp_sum=torch.tensor([0.0, 0.0]),
+            ref_tok_counts=torch.tensor([1.0, 1.0]),
+            ref_logp_sum_raw=torch.tensor([0.0, 0.0]),
+            ref_logp_mean=0.0,
+            avg_completion_tokens=1.0,
+        ),
+    )
+    group_data, _ = build_loss_inputs(grouped, weight_stats, scores, cfg)
+    assert group_data.group_sizes == [2]
+    assert group_data.weight_tensor.numel() == 2
+    assert group_data.logp_sums.numel() == 2
+
+
 def test_policy_loss_requires_completions():
     group_data = GroupLossData(
         group_sizes=[0],
@@ -203,6 +242,32 @@ def test_policy_loss_requires_completions():
     )
     with pytest.raises(ValueError):
         _policy_loss_from_groups(group_data)
+
+
+def test_policy_loss_truncates_mismatched_lengths(caplog):
+    caplog.set_level(logging.WARNING)
+    group_data = GroupLossData(
+        group_sizes=[4],
+        weight_tensor=torch.tensor([0.25, 0.25, 0.25, 0.25]),
+        logp_sums=torch.tensor([0.1, 0.2]),
+        token_counts=torch.tensor([1.0, 1.0, 1.0, 1.0]),
+    )
+    loss = _policy_loss_from_groups(group_data)
+    assert pytest.approx(float(loss)) == -0.075
+    assert "empty log-probs" not in caplog.text
+
+
+def test_policy_loss_skips_empty_logp_group(caplog):
+    caplog.set_level(logging.WARNING)
+    group_data = GroupLossData(
+        group_sizes=[16],
+        weight_tensor=torch.ones(16),
+        logp_sums=torch.tensor([]),
+        token_counts=torch.ones(16),
+    )
+    with pytest.raises(ValueError):
+        _policy_loss_from_groups(group_data)
+    assert "empty log-probs" in caplog.text
 
 
 def test_clip_loss_for_slice_computes_objective():

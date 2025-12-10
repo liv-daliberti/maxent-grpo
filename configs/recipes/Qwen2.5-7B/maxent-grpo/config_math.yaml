@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 7B MaxEnt‑GRPO math recipe paired with
+# configs/recipes/Qwen2.5-7B/grpo/config_math_maxent_hparams.yaml
+# (same batch size, logging, KL control, prompt lengths, etc.)
+
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-7B
 model_revision: main
-resume_from_checkpoint: false
+resume_from_checkpoint: true
 torch_dtype: float16
 attn_implementation: sdpa
 
@@ -62,20 +66,34 @@ system_prompt: |
 
 # MaxEnt‑GRPO specific knobs (used by src/maxent_grpo/maxent_grpo.py)
 # Enable MaxEnt weighting (set train_grpo_objective=false) with a modest tau and adaptive entropy target.
-maxent_tau: 0.0001
-maxent_q_temperature: 0.9       # soften/sharpen listwise q if rewards are flat/noisy
+maxent_tau: 0.3
+maxent_q_temperature: 1.0       # soften/sharpen listwise q if rewards are flat/noisy
 maxent_q_epsilon: 1.0e-6        # epsilon floor on q for full support
 maxent_length_normalize_ref: true
-maxent_logprob_chunk_size: 0  # finer chunking for ref scoring to trim peak memory
-maxent_target_weight_entropy: 0.42  # ~70% of log(4) to keep weights spread but not uniform
-maxent_tau_lr: 0.001
-maxent_tau_min: 0.0001
-maxent_tau_max: 1
-maxent_tau_warmup_steps: 75    # roughly match LR warmup so tau stays steady early on
+maxent_logprob_chunk_size: 2  # cap ref/policy scoring slices to lighten per-forward memory
+maxent_target_weight_entropy: 0.6  # keep weights spread but avoid fully uniform q
+maxent_tau_lr: 0.01
+maxent_tau_min: 0.05
+maxent_tau_max: 1.0
+maxent_tau_warmup_steps: 0      # no warmup: enable tau adaptation from the first step
+# Phase 2 meta-controller defaults (analytic updates for stability)
+controller_meta_enabled: true
+controller_meta_method: analytic
+controller_meta_lr: 0.05
+controller_meta_update_interval: 1
+controller_meta_optimizer: sgd
+controller_meta_truncation_steps: 1
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
-maxent_clip_adv_baseline: 0.25   # 1/num_generations (4) for a gentler clip objective
+maxent_clip_adv_baseline: 0.0625   # 1/num_generations (16) for a gentler clip objective
+controller_overwrite_from_config: true
 train_grpo_objective: false
+maxent_allow_empty_weight_fallback: true
+# Score the entire sequence when computing reference log-probs; we explicitly disable tail-only slicing
+# because long prompts already consume ~2k tokens and truncating them removes the completions entirely.
+maxent_score_tail_tokens: null
+maxent_score_slice_prefetch: 2     # overlap CPU slice prep with reference/policy scoring
+maxent_prompt_cache_size: 2048     # memoize prompt tokenization for repeated prompts
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false
@@ -94,23 +112,23 @@ vllm_mode: server         # reuse the single vLLM server from the launcher; avoi
 vllm_return_logprobs: true
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 64    # match TRL defaults for faster logging feedback
+gradient_accumulation_steps: 2
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-gen_temperature: 0.7
-gen_top_p: 0.8
-gen_top_k: 32
+gen_temperature: 1.0          # paper setting
+gen_top_p: 1.0
+gen_top_k: 0
 gen_best_of: 1
 vllm_stop_sequences:
   - "</answer>"
   - "</answer>\n"
   - "</assistant>"
 vllm_request_timeout: 600
-vllm_url: http://localhost:29525
-hub_model_id: od2961/Qwen2.5-7B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
+vllm_url: http://localhost:29525/generate
+hub_model_id: od2961/Qwen2.5-7B-Open-R1-MaxEnt-GRPO-math-2k
 hub_strategy: every_save
-learning_rate: 5e-6
+learning_rate: 1e-6
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
@@ -119,13 +137,12 @@ logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
-max_prompt_length: 2500      # trim prompt window to ease ref scoring memory
-max_completion_length: 750   # shorter completions to reduce activation + ref costs
-max_steps: 1000
-# GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
-num_generations: 4          # reduce scoring footprint while satisfying GRPO minimum
+max_prompt_length: 2096
+max_completion_length: 4096
+max_steps: 2000              # matches the paired MaxEnt 2k math run
+num_generations: 16          # paper setting
 num_train_epochs: 5
-output_dir: var/data/Qwen2.5-7B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
+output_dir: var/data/Qwen2.5-7B-Open-R1-MaxEnt-GRPO-math-2k
 overwrite_output_dir: true
 per_device_eval_batch_size: 8
 per_device_train_batch_size: 1
@@ -140,12 +157,12 @@ reward_weights:
 - 1
 
 # Reverse‑KL weight β used inside MaxEnt update
-init_kl_coeff: 0.50
-init_kl_coef: 0.50
-kl_penalty_beta: 0.50
+init_kl_coeff: 0.04        # MaxEnt/metrics path reads this alias
+init_kl_coef: 0.04         # TRL field that seeds the KL controller/beta
+kl_penalty_beta: 0.04      # Extra TRL alias used by some releases
 kl_target:        0.07
-kl_horizon:       5000
-kl_ctl_step_size: 0.25
+kl_horizon:       500
+kl_ctl_step_size: 1.0
 
 # Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.15
@@ -153,7 +170,7 @@ clip_range: 0.05
 save_strategy: steps
 save_steps: 50
 evaluation_strategy: steps
-eval_steps: 25
+eval_steps: 500
 save_total_limit: 1000
 seed: 42
 warmup_ratio: 0.2

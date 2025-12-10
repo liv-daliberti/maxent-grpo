@@ -51,7 +51,6 @@ def _fix_clipped_ratio(metrics: Dict[str, Any], args: Any) -> None:
     if world_size in (None, 0.0):
         world_size = _numeric_or_none(getattr(args, "process_count", None))
 
-    num_generations = _numeric_or_none(getattr(args, "num_generations", None)) or 0.0
     for key in list(metrics.keys()):
         if "completions/clipped_ratio" not in key:
             continue
@@ -449,6 +448,31 @@ class _WeightingMetricHelper:
                 else 0.0
             ),
         }
+        meta_enabled = _bool_flag(getattr(args, "controller_meta_enabled", None))
+        meta_lr = _numeric_or_none(getattr(args, "controller_meta_lr", None)) or 0.0
+        meta_interval = _numeric_or_none(
+            getattr(args, "controller_meta_update_interval", None)
+        ) or 0.0
+        meta_trunc = _numeric_or_none(
+            getattr(args, "controller_meta_truncation_steps", None)
+            or getattr(args, "controller_meta_analytic_steps", None)
+        ) or 0.0
+        meta_use_hessian = 1.0 if _bool_flag(getattr(args, "controller_meta_use_hessian", None)) else 0.0
+        metrics.update(
+            {
+                "train/meta/enabled": 1.0 if meta_enabled else 0.0,
+                "train/meta/lr": meta_lr if meta_enabled else 0.0,
+                "train/meta/update_interval": meta_interval if meta_enabled else 0.0,
+                "train/meta/truncation_steps": meta_trunc if meta_enabled else 0.0,
+                "train/meta/use_hessian": meta_use_hessian if meta_enabled else 0.0,
+                "train/meta/tau_grad": 0.0,
+                "train/meta/beta_grad": 0.0,
+                "train/meta/grad_norm": 0.0,
+                "train/meta/loss": 0.0,
+                "train/meta/tau_projected": 0.0,
+                "train/meta/beta_projected": 0.0,
+            }
+        )
         return {
             k: float(v) for k, v in metrics.items() if _numeric_or_none(v) is not None
         }

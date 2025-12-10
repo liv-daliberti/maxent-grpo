@@ -10,12 +10,14 @@ and entropy-weighted MaxEnt behavior via config toggles
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Any
 
 from contextlib import contextmanager
 from typing import Type
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
+from maxent_grpo.core.hub import ensure_hf_repo_ready
 from maxent_grpo.pipelines.training.baseline import (
     GRPOTrainerOverride,
     get_peft_config_override,
@@ -24,6 +26,9 @@ from maxent_grpo.pipelines.training.baseline import (
     ChatTemplate,
 )
 from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
+from maxent_grpo.training import run_training_loop
+from maxent_grpo.training.runtime.logging import log_run_header
+from .loop_common import build_training_loop_context
 
 LOG = logging.getLogger(__name__)
 
@@ -34,6 +39,48 @@ __all__ = [
     "_to_prompt",
     "ChatTemplate",
 ]
+
+
+def _configure_custom_loop_logging(training_args: GRPOConfig) -> None:
+    """Set up Python/logging backends before launching the custom loop."""
+
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+    log_level = training_args.get_process_log_level()
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    LOG.setLevel(log_level)
+    log_run_header(training_args)
+    try:
+        import datasets as _hf_datasets
+
+        _hf_datasets.utils.logging.set_verbosity(log_level)
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        pass
+    try:
+        import transformers as _transformers
+    except (ImportError, ModuleNotFoundError):
+        _transformers = None
+    tf_logging_module = getattr(
+        getattr(_transformers, "utils", None), "logging", None
+    )
+    if tf_logging_module is not None:
+        set_verbosity = getattr(tf_logging_module, "set_verbosity", None)
+        if callable(set_verbosity):
+            set_verbosity(log_level)
+        enable_default_handler = getattr(
+            tf_logging_module, "enable_default_handler", None
+        )
+        if callable(enable_default_handler):
+            enable_default_handler()
+        enable_explicit_format = getattr(
+            tf_logging_module, "enable_explicit_format", None
+        )
+        if callable(enable_explicit_format):
+            enable_explicit_format()
 
 
 def _build_maxent_trainer(parent_cls: Type) -> Type:
@@ -169,11 +216,33 @@ def run_maxent_training(
     :rtype: None
     """
 
-    use_vanilla = bool(getattr(training_args, "train_grpo_objective", False))
+    ensure_hf_repo_ready(training_args)
+
+    train_grpo_flag = bool(getattr(training_args, "train_grpo_objective", False))
+    meta_enabled = bool(getattr(training_args, "controller_meta_enabled", False))
+    use_custom_loop = (not train_grpo_flag) or meta_enabled
+    if use_custom_loop:
+        _configure_custom_loop_logging(training_args)
+        LOG.info(
+            "Launching custom training loop | objective=%s | controller_meta_enabled=%s",
+            "GRPO" if train_grpo_flag else "MaxEnt",
+            meta_enabled,
+        )
+        # Accelerate 1.4.0+ guards against calling ``AcceleratorState`` before the
+        # accelerator is initialized. Pre-warm the shared state so downstream
+        # ``Accelerator()`` construction does not raise when used outside the CLI.
+        ctx = build_training_loop_context(
+            script_args,
+            training_args,
+            model_args,
+            deps_namespace="maxent",
+            apply_info_seed_cfg=True,
+            force_grpo_objective=True if train_grpo_flag else None,
+        )
+        return run_training_loop(ctx)
     LOG.info(
-        "Launching %s pipeline | train_grpo_objective=%s",
-        "vanilla GRPO" if use_vanilla else "MaxEnt (entropy-weighted)",
-        use_vanilla,
+        "Launching vanilla GRPO pipeline via TRL | controller_meta_enabled=%s",
+        meta_enabled,
     )
     with _maybe_patch_trainer(training_args):
         return _run_baseline_training(script_args, training_args, model_args)

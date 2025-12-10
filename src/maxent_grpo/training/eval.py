@@ -21,6 +21,10 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+from maxent_grpo.generation.errors import (
+    GenerationServiceError,
+    log_generation_service_error,
+)
 from .types import RewardSpec, ValidationContext
 from maxent_grpo.rewards.basic import _answer_pat, _format_pat
 from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
@@ -216,7 +220,13 @@ def _run_eval_batches(
         _iter_eval_batches(shard.rows, batch_size)
     ):
         target_counts = [1] * len(prompts)
-        grouped, _ = ctx.generator(prompts, 1, target_counts)
+        try:
+            grouped, _ = ctx.generator(prompts, 1, target_counts)
+        except GenerationServiceError as exc:
+            log_generation_service_error(
+                logging.getLogger(__name__), "evaluation", exc
+            )
+            raise
         if grouped:
             completions = [grp[0] if grp else "" for grp in grouped]
             eval_scores.extend(_compute_eval_rewards(completions, answers, reward_spec))

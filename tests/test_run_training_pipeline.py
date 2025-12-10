@@ -66,6 +66,23 @@ optim_stub.optimizer_step = lambda *_a, **_k: None
 optim_stub.require_accumulation_context = lambda *_a, **_k: nullcontext()
 optim_stub.scheduled_learning_rate = lambda *_a, **_k: 0.0
 optim_stub.sync_gradients_enabled = lambda *_a, **_k: False
+
+
+def _build_handles(_model=None, training_args=None):
+    lr = float(getattr(training_args, "learning_rate", 0.0)) if training_args else 0.0
+    optimizer = SimpleNamespace(
+        step=lambda *_a, **_k: None,
+        zero_grad=lambda **_k: None,
+    )
+    return SimpleNamespace(
+        optimizer=optimizer,
+        lr_scheduler=None,
+        base_optimizer=optimizer,
+        learning_rate=lr,
+    )
+
+
+optim_stub.build_optimization_handles = _build_handles
 sys.modules["maxent_grpo.training.optim"] = optim_stub
 
 
@@ -97,6 +114,7 @@ class _FakeScoreBatch:
         self.completion_ids = None
         self.completion_attention_mask = None
         self.pad_token_id = 0
+        self.score_tail_tokens = None
 
 
 class _FakeRefStats:

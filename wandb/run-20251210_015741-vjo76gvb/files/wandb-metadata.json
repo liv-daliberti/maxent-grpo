@@ -1,0 +1,28 @@
+{
+  "os":  "Linux-5.14.0-570.24.1.el9_6.x86_64-x86_64-with-glibc2.34",
+  "python":  "CPython 3.11.14",
+  "startedAt":  "2025-12-10T06:57:41.138846Z",
+  "program":  "/n/fs/similarity/maxent-grpo/var/openr1/bin/pytest",
+  "codePath":  "var/openr1/bin/pytest",
+  "codePathLocal":  "var/openr1/bin/pytest",
+  "git":  {
+    "remote":  "git@github.com:liv-daliberti/maxent-grpo.git",
+    "commit":  "c3ec7fc90b807125ce025816dad1502b5f010356"
+  },
+  "email":  "ogd3@georgetown.edu",
+  "root":  "/n/fs/similarity/maxent-grpo",
+  "host":  "rinse.cs.princeton.edu",
+  "executable":  "/n/fs/similarity/maxent-grpo/var/openr1/bin/python",
+  "cpu_count":  40,
+  "cpu_count_logical":  80,
+  "disk":  {
+    "/":  {
+      "total":  "552866439168",
+      "used":  "27305361408"
+    }
+  },
+  "memory":  {
+    "total":  "1081155600384"
+  },
+  "writerId":  "nq6g6zrmbw2sm4s4ifnihw1bwfvpyjjd"
+}

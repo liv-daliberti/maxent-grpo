@@ -24,6 +24,13 @@ import types
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
+
+from maxent_grpo.cli.config_validation import (
+    validate_generation_config,
+    validate_inference_config,
+    validate_training_config,
+)
 from maxent_grpo.config import (
     GRPOConfig,
     GRPOScriptArguments,
@@ -87,6 +94,23 @@ except ImportError:  # pragma: no cover - hydra not installed in minimal envs
         @staticmethod
         def structured(obj: Any) -> Any:
             return obj
+
+
+class _FallbackModelConfig:
+    """Trivial stand-in for :class:`trl.ModelConfig` when TRL is absent."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        self.__dict__.update(kwargs)
+
+
+def _resolve_model_config_cls() -> type[Any]:
+    """Return the TRL ``ModelConfig`` type or a stub when TRL is unavailable."""
+
+    try:
+        from trl import ModelConfig as _model_config_cls  # type: ignore
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        return _FallbackModelConfig
+    return _model_config_cls
 
 
 @dataclass
@@ -186,6 +210,39 @@ class HydraRootConfig:
     inference: InferenceCommand = field(default_factory=InferenceCommand)
 
 
+_HYDRA_CONFIG_NAME = "maxent_grpo_cli"
+_HYDRA_CONFIG_REGISTERED = False
+
+
+def _register_hydra_config() -> Optional[str]:
+    """
+    Register :class:`HydraRootConfig` with Hydra's config store.
+
+    Hydra validates CLI overrides (``command=``) against the registered
+    config schema.  When Hydra is present and the config has not been
+    registered, overrides like ``command=train-maxent`` raise
+    ``Could not override 'command'`` before :func:`hydra_main` runs.
+    """
+
+    if not isinstance(hydra, types.ModuleType):
+        return None
+    global _HYDRA_CONFIG_REGISTERED
+    if _HYDRA_CONFIG_REGISTERED:
+        return _HYDRA_CONFIG_NAME
+    try:
+        from hydra.core.config_store import ConfigStore
+    except Exception:  # pragma: no cover - optional Hydra dependency
+        return None
+    cs = ConfigStore.instance()
+    try:
+        cs.store(name=_HYDRA_CONFIG_NAME, node=HydraRootConfig)
+    except Exception:  # pragma: no cover - defensive double registration
+        _HYDRA_CONFIG_REGISTERED = True
+        return _HYDRA_CONFIG_NAME
+    _HYDRA_CONFIG_REGISTERED = True
+    return _HYDRA_CONFIG_NAME
+
+
 def _maybe_insert_command(default_command: str) -> None:
     """Ensure hydra sees a command override for convenience entrypoints.
 
@@ -200,6 +257,12 @@ def _maybe_insert_command(default_command: str) -> None:
         sys.argv.insert(1, f"command={default_command}")
 
 
+def _resolve_recipe_path(cmd: BaselineCommand | MaxentCommand | InfoSeedCommand) -> Optional[str]:
+    """Return the explicit recipe path or fall back to ``$GRPO_RECIPE``."""
+
+    return getattr(cmd, "recipe", None) or os.environ.get("GRPO_RECIPE")
+
+
 def _build_grpo_configs(
     cmd: BaselineCommand | MaxentCommand | InfoSeedCommand,
 ) -> tuple[GRPOScriptArguments, GRPOConfig, Any]:
@@ -209,21 +272,10 @@ def _build_grpo_configs(
     :returns: Tuple of ``(script_args, training_args, model_config)`` ready to pass to training pipelines.
     """
 
-    if getattr(cmd, "recipe", None):
-        try:
-            from trl import ModelConfig  # type: ignore
-        except Exception:
-            class ModelConfig:  # type: ignore[override]
-                def __init__(self, **kwargs):
-                    self.__dict__.update(kwargs)
-
-        return load_grpo_recipe(cmd.recipe, model_config_cls=ModelConfig)
-    try:
-        from trl import ModelConfig  # type: ignore
-    except Exception:
-        class ModelConfig:  # type: ignore[override]
-            def __init__(self, **kwargs):
-                self.__dict__.update(kwargs)
+    recipe_path = _resolve_recipe_path(cmd)
+    model_config_cls = _resolve_model_config_cls()
+    if recipe_path:
+        return load_grpo_recipe(recipe_path, model_config_cls=model_config_cls)
 
     # Avoid parser conflicts by keeping reward-related flags on the training config.
     training_payload = dict(cmd.training)
@@ -236,7 +288,7 @@ def _build_grpo_configs(
     return (
         GRPOScriptArguments(**script_payload),
         GRPOConfig(**training_payload),
-        ModelConfig(**cmd.model),
+        model_config_cls(**cmd.model),
     )
 
 
@@ -285,29 +337,55 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
     )
 
     if cmd == "train-baseline":
-        from maxent_grpo.pipelines.training.baseline import run_baseline_training
-
         script_args, training_args, model_args = _build_grpo_configs(root.baseline)
-        run_baseline_training(script_args, training_args, model_args)
+        baseline_recipe = _resolve_recipe_path(root.baseline)
+        validate_training_config(
+            training_args,
+            command="train-baseline",
+            source=baseline_recipe,
+        )
+        if getattr(training_args, "controller_meta_enabled", False):
+            from maxent_grpo.pipelines.training.maxent import run_maxent_training
+
+            training_args.train_grpo_objective = True
+            run_maxent_training(script_args, training_args, model_args)
+        else:
+            from maxent_grpo.pipelines.training.baseline import run_baseline_training
+
+            run_baseline_training(script_args, training_args, model_args)
     elif cmd == "train-maxent":
         from maxent_grpo.pipelines.training.maxent import run_maxent_training
 
         script_args, training_args, model_args = _build_grpo_configs(root.maxent)
+        maxent_recipe = _resolve_recipe_path(root.maxent)
+        validate_training_config(
+            training_args,
+            command="train-maxent",
+            source=maxent_recipe,
+        )
         run_maxent_training(script_args, training_args, model_args)
     elif cmd == "train-infoseed":
         from maxent_grpo.pipelines.training.infoseed import run_infoseed_training
 
         script_args, training_args, model_args = _build_grpo_configs(root.infoseed)
+        infoseed_recipe = _resolve_recipe_path(root.infoseed)
+        validate_training_config(
+            training_args,
+            command="train-infoseed",
+            source=infoseed_recipe,
+        )
         run_infoseed_training(script_args, training_args, model_args)
     elif cmd == "generate":
         gen_args = (
             root.generate.args if hasattr(root.generate, "args") else root.generate
         )
+        validate_generation_config(gen_args, command="generate")
         gen_cfg = DistilabelGenerationConfig(**gen_args)
         if is_test:
             return "ok"
         run_generation_job(gen_cfg)
     elif cmd in ("inference", "math-eval", "math_eval"):
+        validate_inference_config(root.inference, command=cmd)
         if not root.inference.models:
             raise ValueError("inference.models must contain at least one model spec")
         specs = [InferenceModelSpec(**spec) for spec in root.inference.models]
@@ -397,7 +475,12 @@ def _invoke_hydra_cli() -> Any:
 
     :returns: Result of :func:`hydra_main`, forwarded directly.
     """
+    ensure_usercustomize_loaded()
     if not isinstance(hydra, types.ModuleType):
         return hydra_main()
-    decorated = hydra.main(version_base=None, config_name=None)(hydra_main)
+    config_name = _register_hydra_config()
+    decorated = hydra.main(
+        version_base=None,
+        config_name=config_name,
+    )(hydra_main)
     return decorated()

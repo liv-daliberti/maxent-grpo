@@ -29,9 +29,12 @@ class _StubTrainer:
         self.state = SimpleNamespace(global_step=5)
         self.kl_ctl = SimpleNamespace(value=0.4)
         self.logged = None
+        self._kl_increment = 0.05
 
     def log(self, logs):
         self.logged = logs
+        # Mimic a KL controller update so delta metrics change between calls.
+        self.kl_ctl.value += self._kl_increment
         return logs
 
 
@@ -186,3 +189,50 @@ def test_callback_attached_when_callback_handler_present():
     trainer = Wrapped()
     callbacks = getattr(trainer, "callback_handler").callbacks
     assert any(isinstance(cb, _WeightingLogCallback) for cb in callbacks)
+
+
+def test_logging_tracks_delta_beta_changes():
+    Wrapped = ensure_weighting_logging(_StubTrainer)
+    trainer = Wrapped()
+    trainer.log({"loss": 1.0})
+    trainer.state.global_step = 6
+    trainer.log({})
+    metrics = trainer.logged
+    assert metrics["train/delta_beta"] != 0.0
+
+
+def test_weighting_logging_respects_tau_bounds_for_maxent():
+    class _BoundedTrainer(_StubTrainer):
+        def __init__(self):
+            super().__init__()
+            self.args.train_grpo_objective = False
+            self.args.maxent_tau_min = 0.3
+            self.args.maxent_tau_max = 0.3
+            self.args.maxent_tau = 0.3
+
+    Wrapped = ensure_weighting_logging(_BoundedTrainer)
+    trainer = Wrapped()
+    trainer.log({})
+    metrics = trainer.logged
+    assert metrics["train/maxent_objective"] == 1.0
+    assert metrics["train/weighting/tau"] == pytest.approx(0.3)
+    assert metrics["train/weighting/tau_min"] == pytest.approx(0.3)
+    assert metrics["train/weighting/tau_max"] == pytest.approx(0.3)
+
+
+def test_logging_respects_tau_bounds_for_maxent():
+    class _BoundedTrainer(_StubTrainer):
+        def __init__(self):
+            super().__init__()
+            self.args.train_grpo_objective = False
+            self.args.maxent_tau = 0.5
+            self.args.maxent_tau_min = 0.5
+            self.args.maxent_tau_max = 0.5
+
+    Wrapped = ensure_weighting_logging(_BoundedTrainer)
+    trainer = Wrapped()
+    trainer.log({})
+    metrics = trainer.logged
+    assert metrics["train/maxent_objective"] == 1.0
+    assert metrics["train/weighting/tau"] == pytest.approx(0.5)
+    assert metrics["train/tau"] == pytest.approx(0.5)

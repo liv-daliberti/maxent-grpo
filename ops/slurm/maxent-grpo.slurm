@@ -393,6 +393,9 @@ fi
 
 # Build Accelerate launcher and training command
 NODELIST_CSV=$(IFS=,; echo "${TRAIN_NODES[*]}")
+if [[ "$OPTIONAL_ARGS" != *"--log_level"* ]]; then
+  OPTIONAL_ARGS="${OPTIONAL_ARGS} --log_level debug"
+fi
 export CMD="${TRAIN_ENTRYPOINT} --config ${CONFIG_FILE} ${OPTIONAL_ARGS}"
 
 TRAIN_PROCS=${TRAIN_LOCAL_PROCS}

@@ -7,11 +7,12 @@ from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 
 import maxent_grpo.generation.vllm_weight_sync as weight_sync
+from tests.helpers.vllm import make_vllm_context
 
 
 class _WeightSyncUnderTest(weight_sync.VLLMWeightSyncMixin):
     def __init__(self):
-        self.ctx = SimpleNamespace(
+        self.ctx = make_vllm_context(
             accelerator=SimpleNamespace(
                 is_main_process=True, unwrap_model=lambda m: m, wait_for_everyone=None
             ),

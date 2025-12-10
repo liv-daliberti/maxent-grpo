@@ -57,6 +57,7 @@ from .scoring import (
     summarize_completion_lengths,
 )
 from .types import (
+    BatchingSettings,
     GenerationBatch,
     GenerationFn,
     LengthStats,
@@ -67,7 +68,7 @@ from .types import (
     TrainingLoopContext,
 )
 from .weighting import WeightStats
-from .weighting.logic import compute_weight_stats
+from .weighting.logic import compute_weight_stats, build_uniform_weight_stats
 
 if TYPE_CHECKING:
     import torch
@@ -96,6 +97,41 @@ class _TraceCounter:
 
 
 _REF_LOGPROB_TRACE_LIMITER = _TraceCounter(_REF_LOGPROB_TRACE_LIMIT)
+
+
+def _resolve_weighting_value(
+    ctx: TrainingLoopContext,
+    attribute: str,
+    default: Optional[float] = None,
+) -> Optional[float]:
+    """Return a weighting attribute with graceful fallbacks.
+
+    Some lightweight test contexts construct ``ctx.scoring.weighting`` as a
+    simple namespace that omits optional controller fields (e.g., ``beta`` and
+    ``tau``).  When those values are absent we try ``ctx.settings.scoring`` and
+    finally fall back to a default so :func:`compute_reward_statistics` always
+    receives valid arguments.
+
+    :param ctx: Training loop context supplying scoring configs.
+    :param attribute: Weighting attribute name to resolve.
+    :param default: Value returned when the attribute is missing everywhere.
+    :returns: Attribute value or ``default`` when undefined.
+    """
+    scoring_cfg = getattr(ctx, "scoring", None)
+    weighting = getattr(scoring_cfg, "weighting", None)
+    if weighting is not None:
+        value = getattr(weighting, attribute, None)
+        if value is not None:
+            return value
+    settings = getattr(ctx, "settings", None)
+    if settings is not None:
+        settings_scoring = getattr(settings, "scoring", None)
+        settings_weighting = getattr(settings_scoring, "weighting", None)
+        if settings_weighting is not None:
+            value = getattr(settings_weighting, attribute, None)
+            if value is not None:
+                return value
+    return default
 
 
 @dataclass
@@ -162,11 +198,15 @@ class PreparedBatch:
 class _SkipBatch(RuntimeError):
     """Internal control-flow exception to skip invalid batches."""
 
+    def __init__(self, stage: str):
+        super().__init__(stage)
+        self.stage = stage or "unknown"
+
 
 _T = TypeVar("_T")
 
 
-def _require_artifact(value: Optional[_T]) -> _T:
+def _require_artifact(value: Optional[_T], stage: str) -> _T:
     """Return ``value`` or raise the internal ``_SkipBatch`` sentinel.
 
     :param value: Artifact produced by a preparation step.
@@ -176,7 +216,7 @@ def _require_artifact(value: Optional[_T]) -> _T:
     :rtype: Any
     """
     if value is None:
-        raise _SkipBatch()
+        raise _SkipBatch(stage)
     return value
 
 
@@ -224,17 +264,97 @@ def _collect_batch_stats(
     :rtype: _BatchStats | None
     """
     ref_stats = None
+    last_ref_stats = getattr(ctx, "_last_ref_stats", None)
+
+    def _ref_stats_empty(candidate: Optional[ReferenceLogprobs]) -> bool:
+        if candidate is None:
+            return True
+        tensor = getattr(candidate, "ref_logp_sum_raw", None)
+        if tensor is None:
+            tensor = getattr(candidate, "ref_logp_sum", None)
+        if tensor is None:
+            try:
+                return len(candidate) == 0  # type: ignore[arg-type]
+            except TypeError:
+                return False
+        numel = getattr(tensor, "numel", None)
+        if callable(numel):
+            try:
+                return numel() == 0
+            except Exception:
+                pass
+        to_list = getattr(tensor, "tolist", None)
+        data = tensor
+        if callable(to_list):
+            try:
+                data = to_list()
+            except Exception:
+                data = tensor
+        try:
+            length = len(data)
+        except TypeError:
+            return False
+        return length == 0
+
+    def _warn_fallback(reason: str) -> None:
+        flag = getattr(_collect_batch_stats, "_fallback_warned", False)
+        if flag:
+            return
+        LOG.error(
+            "Reference scoring degraded (%s); reusing last cached ReferenceLogprobs.",
+            reason,
+        )
+        setattr(_collect_batch_stats, "_fallback_warned", True)
+
+    def _retry_reference_gather(
+        score_batch_retry: ScoreBatch, batching_cfg_retry: BatchingSettings
+    ) -> Optional[ReferenceLogprobs]:
+        original_slice = getattr(score_batch_retry, "slice_size", None)
+        original_chunk = getattr(batching_cfg_retry, "logprob_chunk_size", None)
+        slice_val = int(original_slice or score_batch_retry.total_sequences or 1)
+        reduced_slice = max(1, slice_val // 2)
+        if reduced_slice == original_slice:
+            if reduced_slice > 1:
+                reduced_slice -= 1
+            else:
+                reduced_slice = 1
+        if original_slice is not None and reduced_slice == original_slice:
+            return None
+        logprob_chunk = int(original_chunk or reduced_slice)
+        reduced_chunk = max(1, logprob_chunk // 2) if logprob_chunk > 1 else 1
+        try:
+            score_batch_retry.slice_size = reduced_slice
+            batching_cfg_retry.logprob_chunk_size = reduced_chunk
+            try:
+                return gather_reference_logprobs(
+                    score_batch_retry,
+                    ctx.runtime,
+                    batching_cfg_retry,
+                )
+            except Exception as exc:  # pragma: no cover - best-effort logging
+                LOG.warning("Retry reference gather failed: %s", exc)
+                return None
+        finally:
+            if original_slice is not None:
+                score_batch_retry.slice_size = original_slice
+            if original_chunk is not None:
+                batching_cfg_retry.logprob_chunk_size = original_chunk
     scoring_cfg = getattr(ctx, "scoring", None)
     if scoring_cfg is None:
         scoring_cfg = getattr(
             getattr(ctx, "settings", SimpleNamespace()), "scoring", None
         )
+    if scoring_cfg is None:
+        scoring_cfg = SimpleNamespace()
     batching_cfg = getattr(scoring_cfg, "batching", SimpleNamespace())
     if not getattr(batching_cfg, "prompt_length_cache_get", None):
-        # Provide a no-op cache accessor for tests and lightweight callers.
-        batching_cfg.prompt_length_cache_get = lambda _p, _cls=PromptCacheEntry: _cls(
-            input_ids=[], attention_mask=[]
-        )
+        runtime_cache = getattr(getattr(ctx, "runtime", None), "prompt_cache_get", None)
+        if callable(runtime_cache):
+            batching_cfg.prompt_length_cache_get = runtime_cache
+        else:
+            batching_cfg.prompt_length_cache_get = lambda _p, _cls=PromptCacheEntry: _cls(
+                input_ids=[], attention_mask=[]
+            )
     gen_cfg = getattr(ctx, "generation", None)
     if gen_cfg is None:
         gen_cfg = getattr(
@@ -248,6 +368,11 @@ def _collect_batch_stats(
     )
     if score_batch is None:
         return None
+    LOG.debug(
+        "Score batch built | total_sequences=%d | max_prompt_len=%s",
+        getattr(score_batch, "total_sequences", 0),
+        getattr(score_batch, "max_prompt_len", None),
+    )
     ref_meta = getattr(reward_comp, "ref_logprob_meta", None)
     ref_meta_len = len(ref_meta) if ref_meta else 0
     if ref_meta_len:
@@ -273,14 +398,16 @@ def _collect_batch_stats(
                 )
             except (RuntimeError, TypeError, ValueError):
                 ref_stats = None
+    first_ref_attempt = True
     if ref_stats is None:
+        ref_try = None
         try:
-            ref_stats = gather_reference_logprobs(
+            ref_try = gather_reference_logprobs(
                 score_batch,
                 ctx.runtime,
-                ctx.scoring.batching,
+                batching_cfg,
             )
-        except RuntimeError as exc:
+        except (RuntimeError, AssertionError) as exc:
             LOG.warning("Failed to gather reference logprobs: %s", exc)
             occurrence = _REF_LOGPROB_TRACE_LIMITER.next_occurrence()
             if occurrence is not None:
@@ -290,9 +417,60 @@ def _collect_batch_stats(
                     _REF_LOGPROB_TRACE_LIMIT,
                     traceback.format_exc(),
                 )
-            return None
-    if ref_stats is None:
+        ref_stats = ref_try
+    fallback_guard = getattr(_collect_batch_stats, "_fallback_warned", False)
+    if _ref_stats_empty(ref_stats):
+        retry_stats = _retry_reference_gather(score_batch, batching_cfg)
+        if not _ref_stats_empty(retry_stats):
+            ref_stats = retry_stats
+        elif last_ref_stats is None and not fallback_guard:
+            # No cache yet and retry failed: force a minimal slice/chunk attempt.
+            fallback_guard = True
+            single_score = ScoreBatch(
+                prompt_entries=score_batch.prompt_entries,
+                completion_ids=score_batch.completion_ids,
+                completion_attention_mask=score_batch.completion_attention_mask,
+                pad_token_id=score_batch.pad_token_id,
+                max_prompt_len=score_batch.max_prompt_len,
+                slice_size=1,
+                total_sequences=score_batch.total_sequences,
+                score_tail_tokens=score_batch.score_tail_tokens,
+            )
+            single_batching = BatchingSettings(
+                logprob_chunk_size=1,
+                score_slice=1,
+                prompt_length_cache_get=getattr(
+                    batching_cfg,
+                    "prompt_length_cache_get",
+                    lambda _p, _cls=PromptCacheEntry: _cls(
+                        input_ids=[], attention_mask=[]
+                    ),
+                ),
+                score_tail_tokens=getattr(batching_cfg, "score_tail_tokens", None),
+                slice_prefetch=0,
+                prompt_cache_size=getattr(batching_cfg, "prompt_cache_size", 0),
+            )
+            try:
+                forced = gather_reference_logprobs(
+                    single_score,
+                    ctx.runtime,
+                    single_batching,
+                )
+            except Exception:
+                forced = None
+            if not _ref_stats_empty(forced):
+                ref_stats = forced
+    if _ref_stats_empty(ref_stats) and last_ref_stats is not None:
+        _warn_fallback("reference gather returned empty tensors")
+        ref_stats = last_ref_stats
+    if _ref_stats_empty(ref_stats):
         return None
+    setattr(ctx, "_last_ref_stats", ref_stats)
+    LOG.debug(
+        "Reference stats gathered | avg_completion_tokens=%.2f",
+        getattr(ref_stats, "avg_completion_tokens", 0.0),
+    )
+
     prompt_token_count = 0.0
     prompt_entries = score_batch.prompt_entries
     if prompt_entries:
@@ -300,14 +478,37 @@ def _collect_batch_stats(
         prompt_token_count = float(
             sum(min(entry.length, max_prompt_len) for entry in prompt_entries)
         )
+    weighting_cfg = getattr(scoring_cfg, "weighting", SimpleNamespace())
     weight_stats = compute_weight_stats(
         gen_batch.grouped_completions,
         reward_comp,
         ref_stats,
-        ctx.scoring.weighting,
+        weighting_cfg,
     )
-    if weight_stats is None or not weight_stats.flat_weights:
-        return None
+    fallback_enabled = bool(
+        getattr(weighting_cfg, "allow_empty_weight_fallback", False)
+    )
+    if weight_stats is None or not getattr(weight_stats, "flat_weights", None):
+        fallback_weights = None
+        if fallback_enabled:
+            fallback_weights = build_uniform_weight_stats(
+                gen_batch.grouped_completions
+            )
+            if fallback_weights is not None:
+                LOG.warning(
+                    "MaxEnt weighting returned no samples; falling back to uniform GRPO weights for this batch."
+                )
+        if fallback_weights is not None:
+            weight_stats = fallback_weights
+        else:
+            LOG.error(
+                "MaxEnt weighting returned no samples; check reward outputs, `maxent_tau`, or `maxent_q_temperature`."
+            )
+            return None
+    LOG.debug(
+        "Weight stats ready | entropy=%.4f",
+        getattr(weight_stats, "weight_entropy", 0.0),
+    )
     _, length_stats, num_completion_tokens = summarize_completion_lengths(
         ref_stats,
         ctx.generation.max_completion_len,
@@ -350,6 +551,11 @@ def prepare_training_batch(
         retry_limit = ctx.generation.vllm_rounds_cfg
         if retry_limit <= 0:
             retry_limit = ctx.optimization.schedule.num_generations
+        LOG.debug(
+            "Preparing training batch | prompts=%d | retry_limit=%d",
+            len(batch.get("prompt", [])),
+            retry_limit,
+        )
         try:
             gen_batch = _require_artifact(
                 prepare_generation_batch(
@@ -361,7 +567,8 @@ def prepare_training_batch(
                     seed_augmentation=getattr(
                         ctx.generation, "seed_augmentation", None
                     ),
-                )
+                ),
+                stage="generation",
             )
         except TypeError:
             gen_batch = _require_artifact(
@@ -371,23 +578,52 @@ def prepare_training_batch(
                     ctx.generation.generation_stats,
                     ctx.optimization.schedule.num_generations,
                     max_retry_rounds=retry_limit,
-                )
+                ),
+                stage="generation",
             )
+        group_count = len(getattr(gen_batch, "grouped_completions", []) or [])
+        avg_group = (
+            sum(len(group) for group in getattr(gen_batch, "grouped_completions", []) or [])
+            / max(group_count, 1)
+        )
+        LOG.debug(
+            "Generation complete | grouped_prompts=%d | avg_group_size=%.2f",
+            group_count,
+            avg_group,
+        )
         reward_comp = _require_artifact(
             compute_reward_statistics(
                 gen_batch,
                 ctx.reward,
                 ctx.runtime.device,
-                ctx.scoring.weighting.q_temperature,
-                ctx.scoring.weighting.q_epsilon,
-            )
+                _resolve_weighting_value(ctx, "q_temperature", 1.0),
+                _resolve_weighting_value(ctx, "q_epsilon", 1e-6),
+                _resolve_weighting_value(ctx, "beta"),
+                _resolve_weighting_value(ctx, "tau"),
+            ),
+            stage="reward_stats",
+        )
+        reward_mean = float(getattr(getattr(reward_comp, "moments", None), "mean", 0.0))
+        reward_std = float(getattr(getattr(reward_comp, "moments", None), "std", 0.0))
+        LOG.debug(
+            "Reward statistics ready | completions=%d | reward_mean=%.4f | reward_std=%.4f",
+            len(getattr(reward_comp.pairs, "completions", []) or []),
+            reward_mean,
+            reward_std,
         )
         stats = _require_artifact(
             _collect_batch_stats(
                 ctx,
                 gen_batch,
                 reward_comp,
-            )
+            ),
+            stage="batch_stats",
+        )
+        LOG.debug(
+            "Batch stats ready | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
+            getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
+            stats.prompt_token_count,
+            stats.num_completion_tokens,
         )
         # Enable pooled hidden states when InfoSeed is active so seed loss can pool per-sequence reps.
         should_pool = any(
@@ -406,7 +642,8 @@ def prepare_training_batch(
                     ctx.runtime,
                     return_hidden=should_pool,
                     pooling=getattr(ctx.scoring, "info_seed_pooling", "mean"),
-                )
+                ),
+                stage="policy_scoring",
             )
         except TypeError:
             cur_logp_result = _require_artifact(
@@ -415,8 +652,18 @@ def prepare_training_batch(
                     stats.score_batch,
                     ctx.scoring.batching,
                     ctx.runtime,
-                )
+                ),
+                stage="policy_scoring",
             )
+        logprob_tensor = (
+            cur_logp_result[0]
+            if isinstance(cur_logp_result, tuple)
+            else cur_logp_result
+        )
+        LOG.debug(
+            "Policy scoring complete | logprob_shape=%s",
+            getattr(logprob_tensor, "shape", None),
+        )
         if isinstance(cur_logp_result, tuple):
             cur_logp_sum, pooled_hidden = cur_logp_result
         else:
@@ -436,11 +683,25 @@ def prepare_training_batch(
             seed_ids = []
             is_seed_aug = []
             for meta in reward_comp.completion_metadata or []:
-                seed_ids.append(int(meta.get("seed_id", -1)) if meta else -1)
-                is_seed_aug.append(
-                    bool(meta.get("is_seed_aug", False)) if meta else False
-                )
+                if meta:
+                    getter = getattr(meta, "get", None)
+                    raw_seed = getter("seed_id", -1) if callable(getter) else -1
+                    if raw_seed is None:
+                        raw_seed = -1
+                    try:
+                        seed_ids.append(int(raw_seed))
+                    except (TypeError, ValueError):
+                        seed_ids.append(-1)
+                    raw_aug = getter("is_seed_aug", False) if callable(getter) else False
+                    is_seed_aug.append(bool(raw_aug))
+                else:
+                    seed_ids.append(-1)
+                    is_seed_aug.append(False)
             if seed_ids:
+                valid_total = sum(1 for sid in seed_ids if sid >= 0)
+                aug_total = sum(
+                    1 for sid, aug in zip(seed_ids, is_seed_aug) if sid >= 0 and aug
+                )
                 seed_ids_t = torch_mod.tensor(
                     seed_ids, device=pooled_hidden.device, dtype=torch_mod.long
                 )
@@ -460,14 +721,10 @@ def prepare_training_batch(
                         pooled_hidden=pooled_hidden,
                         is_seed_aug=is_seed_aug_t,
                     )
-                    valid_mask = seed_ids_t >= 0
-                    if seed_inputs.is_seed_aug is not None and valid_mask.any():
-                        aug_mask = valid_mask & seed_inputs.is_seed_aug
-                        total = valid_mask.sum().item()
-                        if total > 0:
-                            seed_metrics["seed_aug_frac"] = float(
-                                aug_mask.sum().item()
-                            ) / float(total)
+                    if seed_inputs.is_seed_aug is not None and valid_total > 0:
+                        seed_metrics["seed_aug_frac"] = float(aug_total) / float(
+                            valid_total
+                        )
         if seed_inputs is not None:
             seed_head = getattr(ctx.runtime.model, "seed_head", None)
             if callable(seed_head):
@@ -524,15 +781,27 @@ def prepare_training_batch(
                                     seed_metrics["seed_diversity_l2"] = float(
                                         pdist.item()
                                     )
-                                    heatmap = torch_mod.nn.functional.cosine_similarity(
-                                        stacked.unsqueeze(1),
-                                        stacked.unsqueeze(0),
-                                        dim=-1,
+                                    cosine = getattr(
+                                        torch_mod.nn.functional,
+                                        "cosine_similarity",
+                                        None,
                                     )
-                                    seed_heatmap = {
-                                        "labels": [int(s.item()) for s in unique_seeds],
-                                        "matrix": heatmap.detach().cpu().tolist(),
-                                    }
+                                    if callable(cosine):
+                                        heatmap = cosine(
+                                            stacked.unsqueeze(1),
+                                            stacked.unsqueeze(0),
+                                            dim=-1,
+                                        )
+                                        seed_heatmap = {
+                                            "labels": [
+                                                int(s.item()) for s in unique_seeds
+                                            ],
+                                            "matrix": heatmap.detach()
+                                            .cpu()
+                                            .tolist(),
+                                        }
+                                    else:
+                                        seed_heatmap = None
                                 else:
                                     seed_heatmap = None
                             else:
@@ -597,7 +866,13 @@ def prepare_training_batch(
             seed_metrics=seed_metrics or None,
             seed_heatmap=seed_heatmap,
         )
-    except _SkipBatch:
+    except _SkipBatch as exc:
+        skip_stage = getattr(exc, "stage", "unknown")
+        try:
+            setattr(ctx.runtime, "_last_skip_stage", skip_stage)
+        except Exception:
+            pass
+        LOG.debug("Skipping training batch: stage=%s returned None", skip_stage)
         return None
 
 

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime import require_accelerator, require_torch
 
 from .vllm_distributed import VLLMDistributedMixin, _scatter_object
-from .vllm_requests import VLLMRequestMixin
+from .vllm_requests import VLLMRequestMixin, _resolve_served_model_id
 from .vllm_state import _VLLMGenerationState
 from .vllm_weight_sync import (
     VLLMWeightSyncMixin,
@@ -23,6 +23,26 @@ from .vllm_weight_sync import (
 torch = require_torch("generation_vllm")
 Accelerator = require_accelerator("generation_vllm")
 LOG = logging.getLogger(__name__)
+
+
+def _seed_stats_metadata(stats: Dict[str, Any], ctx: Any) -> None:
+    """Ensure dataset/model identifiers are stored on generation stats."""
+
+    if not stats.get("dataset_name"):
+        label = getattr(ctx, "dataset_name", None)
+        if not label:
+            training_args = getattr(ctx, "training_args", None)
+            label = getattr(training_args, "dataset_name", None)
+            if not label:
+                mixture = getattr(training_args, "dataset_mixture", None)
+                if mixture:
+                    label = str(mixture)
+        if label:
+            stats["dataset_name"] = label
+    if not stats.get("model_id"):
+        model_label = _resolve_served_model_id(ctx)
+        if model_label:
+            stats["model_id"] = model_label
 
 
 class VLLMGenerationHelper(
@@ -82,6 +102,9 @@ class VLLMGenerationHelper(
         stats.setdefault("vllm_backfilled_prompts", 0)
         stats.setdefault("vllm_failed_prompts", 0)
         stats.setdefault("vllm_retry_rounds", 0)
+        stats.setdefault("vllm_retry_failures", 0)
+        stats.setdefault("vllm_last_error", None)
+        _seed_stats_metadata(stats, ctx)
         ctx.generation_stats = stats
 
     # Expose patchable state via public accessors for callers/tests.

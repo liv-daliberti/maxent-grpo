@@ -145,6 +145,8 @@ def test_build_training_metrics_dict_includes_weighting():
     payload = _payload()
     result = metrics_mod.build_training_metrics_dict(payload, global_step=3)
     assert result["train/tau"] == pytest.approx(0.2)
+    assert result["train/weighting/tau"] == pytest.approx(0.2)
+    assert result["train/weighting/beta"] == pytest.approx(0.1)
     assert result["train/weight_entropy_ema"] == pytest.approx(0.3)
     assert "train/kl_per_completion_token" in result
 
@@ -184,6 +186,8 @@ def test_build_training_metrics_flags_grpo_vs_maxent():
     assert grpo_metrics["train/grpo_objective"] == 1.0
     assert grpo_metrics["train/maxent_objective"] == 0.0
     payload.config.weighting.train_grpo_objective = False
+    payload.config.weighting.tau = 0.45
+    payload.config.weighting.beta = 0.33
     maxent_metrics = metrics_mod.build_training_metrics_dict(payload, global_step=1)
     assert maxent_metrics["train/grpo_objective"] == 0.0
     assert maxent_metrics["train/maxent_objective"] == 1.0
@@ -191,6 +195,69 @@ def test_build_training_metrics_flags_grpo_vs_maxent():
     assert maxent_metrics["train/len_norm_ref"] == (
         1.0 if payload.config.weighting.len_norm_ref else 0.0
     )
+    assert maxent_metrics["train/tau"] == pytest.approx(0.45)
+    assert maxent_metrics["train/weighting/tau"] == pytest.approx(0.45)
+    assert maxent_metrics["train/beta"] == pytest.approx(0.33)
+
+
+def test_build_training_metrics_emits_kl_from_loss_when_missing_in_diag():
+    payload = _payload()
+    payload.diagnostics = payload.diagnostics.__class__(
+        **{
+            "kl_value": None,
+            "clip_ratio": payload.diagnostics.clip_ratio,
+            "clip_ratio_low_mean": payload.diagnostics.clip_ratio_low_mean,
+            "clip_ratio_low_min": payload.diagnostics.clip_ratio_low_min,
+            "clip_ratio_high_mean": payload.diagnostics.clip_ratio_high_mean,
+            "clip_ratio_high_max": payload.diagnostics.clip_ratio_high_max,
+            "clip_ratio_region_mean": payload.diagnostics.clip_ratio_region_mean,
+            "kl_per_token_by_len_bucket": {},
+            "kl_token_count_by_len_bucket": {},
+        }
+    )
+    payload.loss_outputs.kl_loss_scalar = 0.42
+    result = metrics_mod.build_training_metrics_dict(payload, global_step=5)
+    assert result["train/kl"] == pytest.approx(0.42)
+
+
+def test_build_training_metrics_emits_weight_entropy_key():
+    payload = _payload()
+    payload.weight_stats = metrics_mod.WeightLoggingView(
+        entropy=0.33,
+        entropy_min=0.1,
+        entropy_max=0.5,
+        advantage_entropy_mean=0.0,
+        advantage_entropy_std=0.0,
+    )
+    result = metrics_mod.build_training_metrics_dict(payload, global_step=2)
+    assert "train/weight_entropy" in result
+    assert result["train/weight_entropy"] == pytest.approx(0.33)
+
+
+def test_build_training_metrics_emits_weight_aliases_for_maxent():
+    payload = _payload()
+    payload.config.weighting.train_grpo_objective = False
+    payload.config.weighting.tau = 0.62
+    payload.config.weighting.beta = 0.17
+    payload.loss_outputs.total_loss_scalar = 0.5
+    metrics = metrics_mod.build_training_metrics_dict(payload, global_step=2)
+    assert metrics["train/maxent_objective"] == 1.0
+    assert metrics["train/tau"] == pytest.approx(0.62)
+    assert metrics["train/weighting/tau"] == pytest.approx(0.62)
+    assert metrics["train/beta"] == pytest.approx(0.17)
+    assert metrics["train/weighting/beta"] == pytest.approx(0.17)
+
+
+def test_build_training_metrics_falls_back_to_loss_kl_scalar():
+    payload = _payload()
+    payload.diagnostics = payload.diagnostics.__class__(**{
+        **payload.diagnostics.__dict__,
+        "kl_value": None,
+    })
+    payload.loss_outputs.kl_loss_scalar = 0.37
+    metrics = metrics_mod.build_training_metrics_dict(payload, global_step=4)
+    assert metrics["train/kl"] == pytest.approx(0.37)
+    assert maxent_metrics["train/weighting/beta"] == pytest.approx(0.33)
 
 
 def test_build_training_metrics_emits_controller_signals():
@@ -260,6 +327,23 @@ def test_build_training_metrics_emits_clip_diagnostics_and_clamps_lengths():
     assert metrics["train/clip_ratio/region_mean"] == pytest.approx(0.3)
     # Length clamping should map 5.0 to 1.0.
     assert metrics["train/completions/clipped_frac"] == pytest.approx(1.0)
+
+
+def test_build_training_metrics_propagates_raw_kl_value():
+    payload = _payload()
+    payload.diagnostics = payload.diagnostics.__class__(
+        kl_value=0.42,
+        clip_ratio=0.0,
+        clip_ratio_low_mean=0.0,
+        clip_ratio_low_min=0.0,
+        clip_ratio_high_mean=0.0,
+        clip_ratio_high_max=0.0,
+        clip_ratio_region_mean=0.0,
+        kl_per_token_by_len_bucket={},
+        kl_token_count_by_len_bucket={},
+    )
+    metrics = metrics_mod.build_training_metrics_dict(payload, global_step=11)
+    assert metrics["train/kl"] == pytest.approx(0.42)
 
 
 def test_build_training_metrics_preserves_kl_buckets():
@@ -501,4 +585,33 @@ def test_log_training_step_aggregates(monkeypatch):
     last_metrics, _step = writer.logged[-1]
     assert last_metrics["train/loss"] == pytest.approx(
         payload.loss_outputs.total_loss_scalar
+    )
+def test_build_training_metrics_falls_back_to_loss_kl_scalar():
+    payload = _payload()
+    payload.diagnostics = payload.diagnostics.__class__(
+        kl_value=None,
+        clip_ratio=0.0,
+        clip_ratio_low_mean=0.0,
+        clip_ratio_low_min=0.0,
+        clip_ratio_high_mean=0.0,
+        clip_ratio_high_max=0.0,
+        clip_ratio_region_mean=0.0,
+        kl_per_token_by_len_bucket={},
+        kl_token_count_by_len_bucket={},
+    )
+    payload.loss_outputs = payload.loss_outputs.__class__(
+        total_loss_scalar=1.0,
+        kl_loss_scalar=0.25,
+        policy_loss_scalar=0.5,
+        weighted_kl_loss_scalar=0.0,
+        clip_loss_scalar=None,
+        scalars=SimpleNamespace(kl_loss=0.25),
+    )
+    payload.config.weighting.kl_target = 0.5
+    payload.config.weighting.kl_horizon = 10
+    payload.config.weighting.kl_ctl_step_size = 0.1
+    metrics = metrics_mod.build_training_metrics_dict(payload, global_step=6)
+    assert metrics["train/kl"] == pytest.approx(0.25)
+    assert metrics["train/kl_error_to_target"] == pytest.approx(
+        0.25 - payload.config.weighting.kl_target
     )

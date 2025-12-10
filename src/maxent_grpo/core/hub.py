@@ -103,7 +103,10 @@ if TYPE_CHECKING:  # only for type checking; avoids runtime dependency
 
 
 def push_to_hub_revision(
-    training_args: "GRPOConfig", extra_ignore_patterns: Optional[List[str]] = None
+    training_args: "GRPOConfig",
+    extra_ignore_patterns: Optional[List[str]] = None,
+    *,
+    include_checkpoints: bool = False,
 ) -> Future[str]:
     """Push a checkpoint directory to a branch on the Hub.
 
@@ -116,6 +119,8 @@ def push_to_hub_revision(
     :param training_args: Training config with Hub identifiers (``hub_model_id``
         and ``hub_model_revision``) and the local ``output_dir`` to upload.
     :type training_args: GRPOConfig
+    :param include_checkpoints: When True, do not ignore checkpoint-* folders.
+    :type include_checkpoints: bool
     :param extra_ignore_patterns: Additional filename patterns to ignore during
         upload; appended to the default ``checkpoint-*`` and ``*.pth`` filters.
     :type extra_ignore_patterns: list[str] | None
@@ -147,7 +152,9 @@ def push_to_hub_revision(
     )
     logger.info("Created target repo at %s", repo_url)
     logger.info("Pushing to the Hub revision %s...", training_args.hub_model_revision)
-    ignore_patterns: List[str] = ["checkpoint-*", "*.pth"]
+    ignore_patterns: List[str] = []
+    if not include_checkpoints:
+        ignore_patterns.extend(["checkpoint-*", "*.pth"])
     if extra_ignore_patterns:
         ignore_patterns.extend(extra_ignore_patterns)
     future: Future[str] = upload_folder(
@@ -165,6 +172,38 @@ def push_to_hub_revision(
     )
 
     return future
+
+
+def ensure_hf_repo_ready(training_args: "GRPOConfig") -> None:
+    """Verify Hub credentials and provision the target repo/branch upfront."""
+
+    push_requested = bool(
+        getattr(training_args, "push_to_hub", False)
+        or getattr(training_args, "push_to_hub_revision", False)
+    )
+    if not push_requested:
+        return
+    repo_id = getattr(training_args, "hub_model_id", None)
+    if not repo_id:
+        logger.warning("push_to_hub requested but hub_model_id is unset; skipping preflight")
+        return
+    revision = getattr(training_args, "hub_model_revision", None) or "main"
+    try:
+        repo_url = create_repo(repo_id=repo_id, private=True, exist_ok=True)
+        base_rev: Optional[str]
+        try:
+            base_rev = list_repo_commits(repo_id)[-1].commit_id
+        except (IndexError, HfHubHTTPError):
+            base_rev = None
+        create_branch(repo_id=repo_id, branch=revision, revision=base_rev, exist_ok=True)
+        logger.info("Verified Hugging Face repo %s (revision %s) is ready", repo_url, revision)
+    except RuntimeError as exc:
+        logger.warning("Skipping Hub preflight: %s", exc)
+        return
+    except Exception as exc:  # pragma: no cover - network dependent
+        raise RuntimeError(
+            "Failed to preflight Hugging Face Hub access; check credentials/network"
+        ) from exc
 
 
 def check_hub_revision_exists(training_args: "GRPOConfig") -> None:

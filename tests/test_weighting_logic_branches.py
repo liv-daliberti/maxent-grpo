@@ -4,6 +4,7 @@ Targeted coverage for weighting logic and reward types edge cases.
 
 from types import SimpleNamespace
 
+import logging
 import math
 
 import pytest
@@ -146,6 +147,21 @@ def test_split_reference_logprobs_length_normalized(monkeypatch):
     groups = [["a", "b"], ["c"]]
     result = logic.split_reference_logprobs(groups, ref_stats, len_norm_ref=True)
     assert result == [[5.0, 2.0], [2.0]]
+
+
+def test_split_reference_logprobs_length_norm_handles_missing(caplog):
+    """When len-norm is on and log-probs are missing, fall back to zeros and warn."""
+
+    caplog.set_level(logging.WARNING)
+    ref_stats = SimpleNamespace(
+        ref_logp_sum=_FakeTensor([]),
+        ref_logp_sum_raw=_FakeTensor([]),
+        ref_tok_counts=_FakeTensor([3.0, 3.0, 3.0]),
+    )
+    groups = [["a", "b"], ["c"]]
+    result = logic.split_reference_logprobs(groups, ref_stats, len_norm_ref=True)
+    assert result == [[0.0, 0.0], [0.0]]
+    assert "Reference log-prob/token mismatch" in caplog.text
 
 
 def test_compute_weight_stats_disables_token_norm_when_len_norm_ref(monkeypatch):

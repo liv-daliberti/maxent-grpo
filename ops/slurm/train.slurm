@@ -36,51 +36,52 @@ export VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
 mkdir -p "$VAR_DIR/logs"
 
 # ---- Environment bootstrap (configure for your cluster) ----
-# Choose how to activate your environment on all nodes.
-# - For Conda: set ENV_MODE=conda, CONDA_SH to conda.sh, CONDA_ENV to env path or name
-# - For venv:  set ENV_MODE=venv and ENV_ACTIVATE to the venv's activate script path
-# Default to the project venv; override ENV_MODE/ENV_ACTIVATE if you prefer conda.
-export ENV_MODE="${ENV_MODE:-venv}"
-export CONDA_SH="${CONDA_SH:-/usr/local/anaconda3/2024.02/etc/profile.d/conda.sh}"
-export CONDA_ENV="${CONDA_ENV:-$VAR_DIR/openr1}"
-export ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
+if [[ "${MAXENT_DRY_RUN:-0}" != "1" ]]; then
+  # Choose how to activate your environment on all nodes.
+  # - For Conda: set ENV_MODE=conda, CONDA_SH to conda.sh, CONDA_ENV to env path or name
+  # - For venv:  set ENV_MODE=venv and ENV_ACTIVATE to the venv's activate script path
+  # Default to the project venv; override ENV_MODE/ENV_ACTIVATE if you prefer conda.
+  export ENV_MODE="${ENV_MODE:-venv}"
+  export CONDA_SH="${CONDA_SH:-/usr/local/anaconda3/2024.02/etc/profile.d/conda.sh}"
+  export CONDA_ENV="${CONDA_ENV:-$VAR_DIR/openr1}"
+  export ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
 
-# Ensure CUDA toolkit matches the PyTorch build (torch 2.7.0 was compiled with CUDA 12.6)
-if command -v module &>/dev/null; then
-  module unload cuda || true
-  echo "[info] Available CUDA-related modulefiles (if any):"
-  module avail cuda 2>&1 | sed -n '1,40p' || true
-  if module load cuda/12.4 >/dev/null 2>&1 || module load cudatoolkit/12.4 >/dev/null 2>&1; then
-    CUDA_MODULE_VERSION="12.4"
-    echo "[info] Loaded CUDA 12.4 via environment modules."
-  elif module load cuda/12.6 >/dev/null 2>&1 || module load cudatoolkit/12.6 >/dev/null 2>&1; then
-    CUDA_MODULE_VERSION="12.6"
-    echo "[info] Loaded CUDA 12.6 via environment modules."
-  else
-    echo "[warn] No cuda modulefiles could be loaded; defaulting to system installation under /usr/local." >&2
+  # Ensure CUDA toolkit matches the PyTorch build (torch 2.7.0 was compiled with CUDA 12.6)
+  if command -v module &>/dev/null; then
+    module unload cuda || true
+    echo "[info] Available CUDA-related modulefiles (if any):"
+    module avail cuda 2>&1 | sed -n '1,40p' || true
+    if module load cuda/12.4 >/dev/null 2>&1 || module load cudatoolkit/12.4 >/dev/null 2>&1; then
+      CUDA_MODULE_VERSION="12.4"
+      echo "[info] Loaded CUDA 12.4 via environment modules."
+    elif module load cuda/12.6 >/dev/null 2>&1 || module load cudatoolkit/12.6 >/dev/null 2>&1; then
+      CUDA_MODULE_VERSION="12.6"
+      echo "[info] Loaded CUDA 12.6 via environment modules."
+    else
+      echo "[warn] No cuda modulefiles could be loaded; defaulting to system installation under /usr/local." >&2
+    fi
   fi
-fi
-CUDA_DEFAULT_VERSION="${CUDA_MODULE_VERSION:-12.6}"
-export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda-${CUDA_DEFAULT_VERSION}}"
-export PATH="$CUDA_HOME/bin:${PATH:-}"
-export LD_LIBRARY_PATH="$CUDA_HOME/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  CUDA_DEFAULT_VERSION="${CUDA_MODULE_VERSION:-12.6}"
+  export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda-${CUDA_DEFAULT_VERSION}}"
+  export PATH="$CUDA_HOME/bin:${PATH:-}"
+  export LD_LIBRARY_PATH="$CUDA_HOME/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-# Activate once in submission shell (best-effort); srun subshells will also activate.
-if [[ "$ENV_MODE" == "conda" ]]; then
-  if [[ -f "$CONDA_SH" ]]; then source "$CONDA_SH"; fi
-  conda activate "$CONDA_ENV" || echo "[warn] submit-shell: failed to conda activate $CONDA_ENV"
-elif [[ -f "$ENV_ACTIVATE" ]]; then
-  # shellcheck disable=SC1090
-  source "$ENV_ACTIVATE" || echo "[warn] submit-shell: failed to source $ENV_ACTIVATE"
-else
-  echo "[warn] No environment activation performed (ENV_MODE=$ENV_MODE)."
-fi
-# Ensure downstream shells inherit the venv path even if activation is skipped.
-export VIRTUAL_ENV="${VIRTUAL_ENV:-$VAR_DIR/openr1}"
-export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
-# Sanity check: confirm python and wandb availability on the submit shell (workers will re-run activation).
-echo "[debug] python after activation: $(which python)"
-python - <<'PY' || echo "[warn] wandb import failed in submit shell"
+  # Activate once in submission shell (best-effort); srun subshells will also activate.
+  if [[ "$ENV_MODE" == "conda" ]]; then
+    if [[ -f "$CONDA_SH" ]]; then source "$CONDA_SH"; fi
+    conda activate "$CONDA_ENV" || echo "[warn] submit-shell: failed to conda activate $CONDA_ENV"
+  elif [[ -f "$ENV_ACTIVATE" ]]; then
+    # shellcheck disable=SC1090
+    source "$ENV_ACTIVATE" || echo "[warn] submit-shell: failed to source $ENV_ACTIVATE"
+  else
+    echo "[warn] No environment activation performed (ENV_MODE=$ENV_MODE)."
+  fi
+  # Ensure downstream shells inherit the venv path even if activation is skipped.
+  export VIRTUAL_ENV="${VIRTUAL_ENV:-$VAR_DIR/openr1}"
+  export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
+  # Sanity check: confirm python and wandb availability on the submit shell (workers will re-run activation).
+  echo "[debug] python after activation: $(which python)"
+  python - <<'PY' || echo "[warn] wandb import failed in submit shell"
 import sys, importlib.util
 print("exe", sys.executable)
 print("wandb spec", importlib.util.find_spec("wandb"))
@@ -90,45 +91,53 @@ try:
 except Exception as e:
     print("wandb import error:", e)
 PY
-# Avoid picking up user-site packages (~/.local) that can conflict (e.g., httpx)
-export PYTHONNOUSERSITE=1
+  # Avoid picking up user-site packages (~/.local) that can conflict (e.g., httpx)
+  export PYTHONNOUSERSITE=1
 
-# Route all caches and temp dirs into var/
-if [[ -n "${HF_TOKEN:-}" ]]; then
-  export HF_TOKEN
+  # Route all caches and temp dirs into var/
+  if [[ -n "${HF_TOKEN:-}" ]]; then
+    export HF_TOKEN
+  else
+    echo "[warn] HF_TOKEN not set; gated models/datasets may fail to download." >&2
+  fi
+  export HF_HOME="$VAR_DIR/cache/hf"
+  export XDG_CACHE_HOME="$VAR_DIR/cache/xdg"
+  export XDG_CONFIG_HOME="$VAR_DIR/config"
+  export HUGGINGFACE_HUB_CACHE="$VAR_DIR/cache/huggingface/hub"
+  export HF_DATASETS_CACHE="$VAR_DIR/cache/huggingface/datasets"
+  export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
+  export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
+  export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
+  export WANDB_DIR="$VAR_DIR/cache/wandb"
+  export WANDB_CACHE_DIR="$WANDB_DIR"
+  # Force-enable wandb for training jobs so the Transformers callback sees it.
+  export WANDB_DISABLED=0
+  export TMPDIR="$VAR_DIR/tmp"
+  export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
+  export VLLM_NO_USAGE_STATS=1
+  export HF_HUB_ENABLE_HF_TRANSFER=1
+  export HF_HUB_ENABLE_PROGRESS_BARS=1
+  # Enable vLLM prompt dedup unless overridden.
+  export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
+  mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
+           "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
+           "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \
+           "$(dirname "$VLLM_USAGE_STATS_PATH")"
+  echo "Preflight: pin hub + httpx for compatibility"
+  # Pin once in the submission shell to avoid concurrent pip on multiple nodes
+  python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
+  # Ensure the local repo (with recent edits) is installed in editable mode for worker nodes.
+  python -m pip install -q -e "$ROOT_DIR" || {
+    echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
+  }
 else
-  echo "[warn] HF_TOKEN not set; gated models/datasets may fail to download." >&2
+  export ENV_MODE="${ENV_MODE:-venv}"
+  export CONDA_ENV="${CONDA_ENV:-$VAR_DIR/openr1}"
+  export ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
+  export VIRTUAL_ENV="${VIRTUAL_ENV:-$VAR_DIR/openr1}"
+  export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
+  export PYTHONNOUSERSITE=1
 fi
-export HF_HOME="$VAR_DIR/cache/hf"
-export XDG_CACHE_HOME="$VAR_DIR/cache/xdg"
-export XDG_CONFIG_HOME="$VAR_DIR/config"
-export HUGGINGFACE_HUB_CACHE="$VAR_DIR/cache/huggingface/hub"
-export HF_DATASETS_CACHE="$VAR_DIR/cache/huggingface/datasets"
-export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
-export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
-export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
-export WANDB_DIR="$VAR_DIR/cache/wandb"
-export WANDB_CACHE_DIR="$WANDB_DIR"
-# Force-enable wandb for training jobs so the Transformers callback sees it.
-export WANDB_DISABLED=0
-export TMPDIR="$VAR_DIR/tmp"
-export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
-export VLLM_NO_USAGE_STATS=1
-export HF_HUB_ENABLE_HF_TRANSFER=1
-export HF_HUB_ENABLE_PROGRESS_BARS=1
-# Enable vLLM prompt dedup unless overridden.
-export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
-mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
-         "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
-         "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \
-         "$(dirname "$VLLM_USAGE_STATS_PATH")"
-echo "Preflight: pin hub + httpx for compatibility"
-# Pin once in the submission shell to avoid concurrent pip on multiple nodes
-python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
-# Ensure the local repo (with recent edits) is installed in editable mode for worker nodes.
-python -m pip install -q -e "$ROOT_DIR" || {
-  echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
-}
 
 if [[ "$*" == *"--help"* ]]; then
   echo "Usage: sbatch ops/slurm/train.slurm [options]"
@@ -193,8 +202,12 @@ case "$TASK_NORMALIZED" in
     TASK_DIR="maxent-grpo"
     TRAIN_ENTRYPOINT="src/maxent_grpo/maxent_grpo.py"
     ;;
+  infoseed|info-seed)
+    TASK_DIR="infoseed"
+    TRAIN_ENTRYPOINT="src/maxent_grpo/infoseed.py"
+    ;;
   *)
-    echo "Unsupported --task: $TASK (use: grpo | maxent | maxent-grpo)" >&2
+    echo "Unsupported --task: $TASK (use: grpo | maxent | maxent-grpo | infoseed)" >&2
     exit 1
     ;;
 esac
@@ -214,6 +227,10 @@ export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$CONFIG_FILE}"
 # TRL parser conflicts when reward fields overlap.
 export GRPO_RECIPE="${GRPO_RECIPE:-$CONFIG_FILE}"
 export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
+if [[ "${MAXENT_DRY_RUN:-0}" == "1" ]]; then
+  echo "[dry-run] model=$MODEL task=$TASK config=$CONFIG_FILE accelerator=$ACCEL_FILE entrypoint=$TRAIN_ENTRYPOINT"
+  exit 0
+fi
 if grep -qi '^[[:space:]]*distributed_type:[[:space:]]*deepspeed' "$ACCEL_FILE"; then
   export ACCELERATE_USE_DEEPSPEED="true"
   # Default to DeepSpeed's native save_checkpoint; allow opting into

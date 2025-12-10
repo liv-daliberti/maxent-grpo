@@ -15,6 +15,10 @@ if __package__ is None or __package__ == "":
 
 from typing import Optional
 
+from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
+
+ensure_usercustomize_loaded()
+
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.cli import hydra_cli, parse_grpo_args
 

@@ -18,6 +18,7 @@ Application-layer helpers for running the distilabel generation pipeline.
 
 from __future__ import annotations
 
+import logging
 from argparse import Namespace
 from dataclasses import asdict, dataclass
 from typing import Callable, Optional
@@ -27,6 +28,12 @@ from maxent_grpo.generation.helpers import (
     DistilabelPipelineConfig,
     build_distilabel_pipeline,
 )
+from maxent_grpo.generation.errors import (
+    GenerationServiceError,
+    log_generation_service_error,
+)
+
+LOG = logging.getLogger(__name__)
 
 __all__ = [
     "DistilabelGenerationConfig",
@@ -164,11 +171,24 @@ def run_generation_job(
     pipeline_builder = builder or build_distilabel_pipeline
     pipeline = pipeline_builder(pipeline_cfg)
 
-    distiset = pipeline.run(
-        dataset=dataset,
-        dataset_batch_size=args.input_batch_size * 1000,
-        use_cache=False,
-    )
+    try:
+        distiset = pipeline.run(
+            dataset=dataset,
+            dataset_batch_size=args.input_batch_size * 1000,
+            use_cache=False,
+        )
+    except GenerationServiceError as exc:
+        extra = {
+            "dataset": args.hf_dataset,
+            "dataset_config": args.hf_dataset_config,
+            "dataset_split": args.hf_dataset_split,
+            "model_id": args.model,
+        }
+        exc.payload = exc.payload.copy_with(extra=extra)
+        log_generation_service_error(LOG, "distilabel", exc)
+        raise RuntimeError(
+            "Generation failed due to vLLM service error; see logs for payload."
+        ) from exc
     if args.hf_output_dataset:
         push_fn = getattr(distiset, "push_to_hub", None)
         if not callable(push_fn):

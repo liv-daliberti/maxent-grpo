@@ -22,6 +22,8 @@ from importlib import import_module
 from typing import Any
 
 from .types import (  # noqa: F401  # re-exported via __all__
+    ControllerMetaSettings,
+    ControllerStateSnapshot,
     KlControllerSettings,
     QDistributionSettings,
     TauSchedule,
@@ -32,8 +34,10 @@ from .types import (  # noqa: F401  # re-exported via __all__
 )
 
 _LOGIC_EXPORTS = {
+    "apply_meta_controller_update",
     "CONTROLLER_STATE_FILENAME",
     "broadcast_controller_state",
+    "build_uniform_weight_stats",
     "collect_weight_entropy",
     "compute_weight_stats",
     "controller_state_dict",
@@ -47,6 +51,8 @@ _LOGIC_EXPORTS = {
 }
 
 _TYPE_EXPORTS = {
+    "ControllerMetaSettings",
+    "ControllerStateSnapshot",
     "KlControllerSettings",
     "QDistributionSettings",
     "TauSchedule",

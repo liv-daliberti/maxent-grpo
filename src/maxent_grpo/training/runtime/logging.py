@@ -106,8 +106,16 @@ def _wandb_error_types() -> Tuple[type, ...]:
     if errors_module is None:
         return base_exceptions
     wandb_error = getattr(errors_module, "Error", None)
+    comm_error = getattr(errors_module, "CommError", None)
+    error_types: Tuple[type, ...] = base_exceptions
     if isinstance(wandb_error, type) and issubclass(wandb_error, BaseException):
-        return (wandb_error,) + base_exceptions
+        error_types = (wandb_error,) + error_types
+    if isinstance(comm_error, type) and issubclass(comm_error, BaseException):
+        # Ensure specific communication failures (e.g., HTTP 4xx/5xx) never
+        # crash training runs even when they do not inherit from Error.
+        if comm_error not in error_types:
+            error_types = (comm_error,) + error_types
+    return error_types
     return base_exceptions
 
 
@@ -126,6 +134,56 @@ def _report_to_contains(
     return any(str(item).lower() == target for item in entries)
 
 
+def _torch_rank_zero() -> Optional[bool]:
+    """Return True when a torch distributed rank 0 process is running."""
+
+    try:
+        import torch
+
+        dist = torch.distributed
+        if dist.is_available() and dist.is_initialized():
+            return dist.get_rank() == 0
+    except (ImportError, AttributeError):
+        return None
+    return None
+
+
+def _env_rank_zero() -> Optional[bool]:
+    """Return True when common environment hints describe the primary node."""
+
+    for key in (
+        "RANK",
+        "SLURM_PROCID",
+        "OMPI_COMM_WORLD_RANK",
+        "PMI_RANK",
+        "PROCESS_RANK",
+        "LOCAL_RANK",
+    ):
+        value = os.environ.get(key)
+        if not value:
+            continue
+        try:
+            return int(value) == 0
+        except ValueError:
+            continue
+    return None
+
+
+def _is_primary_wandb_process(accelerator: Any) -> bool:
+    """Return True when the current process should initialize a W&B run."""
+
+    is_main = getattr(accelerator, "is_main_process", None)
+    if isinstance(is_main, bool):
+        return is_main
+    is_zero = _torch_rank_zero()
+    if is_zero is not None:
+        return is_zero
+    env_zero = _env_rank_zero()
+    if env_zero is not None:
+        return env_zero
+    return True
+
+
 def _maybe_init_wandb_run(
     accelerator: Any,
     training_args: GRPOConfig,
@@ -136,7 +194,7 @@ def _maybe_init_wandb_run(
     if not _report_to_contains(getattr(training_args, "report_to", None), "wandb"):
         return None
     init_wandb_training(training_args)
-    if not accelerator.is_main_process:
+    if not _is_primary_wandb_process(accelerator):
         os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
         return None
     wandb = _ensure_wandb_installed()
@@ -171,7 +229,11 @@ def _maybe_init_wandb_run(
         run_meta["run/git_sha"],
         run_meta["run/recipe_path"],
     )
-    return wandb.init(**wandb_kwargs)
+    try:
+        return wandb.init(**wandb_kwargs)
+    except (_wandb_error_types() + (OSError,)) as exc:  # pragma: no cover - defensive
+        LOG.warning("Failed to initialize W&B run: %s", exc)
+        return None
 
 
 def log_run_header(training_args: Any | None = None) -> Dict[str, str]:

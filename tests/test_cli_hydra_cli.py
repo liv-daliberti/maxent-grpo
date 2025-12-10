@@ -19,8 +19,13 @@ from __future__ import annotations
 import types
 import sys
 from types import SimpleNamespace
+import json
+import os
+from pathlib import Path
 
 import pytest
+
+from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
 
 def _stub_hydra_module():
@@ -72,6 +77,15 @@ def _stub_trl(monkeypatch):
 @pytest.fixture(autouse=True)
 def _reset_sysargv(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["prog"])
+
+
+@pytest.fixture(autouse=True)
+def _disable_validation(monkeypatch):
+    from maxent_grpo.cli import hydra_cli
+
+    monkeypatch.setattr(hydra_cli, "validate_training_config", lambda *_, **__: None)
+    monkeypatch.setattr(hydra_cli, "validate_generation_config", lambda *_, **__: None)
+    monkeypatch.setattr(hydra_cli, "validate_inference_config", lambda *_, **__: None)
 
 
 def test_build_grpo_configs_recipe(monkeypatch):
@@ -144,6 +158,128 @@ def test_hydra_main_runs_maxent(monkeypatch):
     cfg = hydra_cli.HydraRootConfig(command="train-maxent")
     hydra_cli.hydra_main(cfg)
     assert calls["maxent"] == ("s", "t", "m")
+
+
+@pytest.mark.parametrize(
+    "command,expected_pipeline,recipe_key",
+    [
+        ("train-baseline", "baseline", "baseline"),
+        ("train-maxent", "maxent", "maxent"),
+        ("train-infoseed", "infoseed", "infoseed"),
+    ],
+)
+def test_hydra_recipes_route_to_expected_pipeline(
+    monkeypatch, command, expected_pipeline, recipe_key
+):
+    from maxent_grpo.cli import hydra_cli
+
+    hydra_cli.hydra = _stub_hydra_module()
+    hydra_cli.OmegaConf = _stub_omegaconf()
+    _stub_trl(monkeypatch)
+    recipe_calls: list[str] = []
+
+    def _fake_loader(recipe, model_config_cls):
+        recipe_calls.append(recipe)
+        cfg = GRPOConfig()
+        if recipe == "maxent":
+            cfg.train_grpo_objective = False
+            cfg.info_seed_enabled = True  # mixed flag should not flip pipelines
+        elif recipe == "infoseed":
+            cfg.info_seed_enabled = True
+        else:
+            cfg.train_grpo_objective = True
+        return (
+            GRPOScriptArguments(dataset_name=recipe),
+            cfg,
+            model_config_cls(),
+        )
+
+    monkeypatch.setattr(hydra_cli, "load_grpo_recipe", _fake_loader)
+
+    baseline_calls = {}
+    maxent_calls = {}
+    infoseed_calls = {}
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.baseline.run_baseline_training",
+        lambda *args: baseline_calls.setdefault("args", args),
+    )
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.maxent.run_maxent_training",
+        lambda *args: maxent_calls.setdefault("args", args),
+    )
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.infoseed.run_infoseed_training",
+        lambda *args: infoseed_calls.setdefault("args", args),
+    )
+    cfg = hydra_cli.HydraRootConfig(command=command)
+    cfg.baseline.recipe = "baseline"
+    cfg.maxent.recipe = "maxent"
+    cfg.infoseed.recipe = "infoseed"
+    hydra_cli.hydra_main(cfg)
+    assert recipe_calls == [recipe_key]
+    if expected_pipeline == "baseline":
+        assert "args" in baseline_calls and "args" not in maxent_calls and "args" not in infoseed_calls
+    elif expected_pipeline == "maxent":
+        assert "args" in maxent_calls and maxent_calls["args"][1].info_seed_enabled is True
+        assert "args" not in baseline_calls and "args" not in infoseed_calls
+    else:
+        assert "args" in infoseed_calls and infoseed_calls["args"][1].info_seed_enabled is True
+        assert "args" not in baseline_calls and "args" not in maxent_calls
+
+
+def test_mixed_recipe_regression_maxent_vs_infoseed(monkeypatch):
+    from maxent_grpo.cli import hydra_cli
+
+    hydra_cli.hydra = _stub_hydra_module()
+    hydra_cli.OmegaConf = _stub_omegaconf()
+    _stub_trl(monkeypatch)
+
+    mixed_cfg = GRPOConfig()
+    mixed_cfg.train_grpo_objective = False
+    mixed_cfg.info_seed_enabled = True
+    infoseed_cfg = GRPOConfig()
+    infoseed_cfg.info_seed_enabled = True
+
+    def _loader(recipe, model_config_cls):
+        if recipe == "maxent-mixed":
+            return (
+                GRPOScriptArguments(dataset_name="mx"),
+                mixed_cfg,
+                model_config_cls(),
+            )
+        if recipe == "infoseed-prod":
+            return (
+                GRPOScriptArguments(dataset_name="is"),
+                infoseed_cfg,
+                model_config_cls(),
+            )
+        raise AssertionError(f"unexpected recipe {recipe}")
+
+    monkeypatch.setattr(hydra_cli, "load_grpo_recipe", _loader)
+    maxent_called = {}
+    infoseed_called = {}
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.maxent.run_maxent_training",
+        lambda *args: maxent_called.setdefault("args", args),
+    )
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.infoseed.run_infoseed_training",
+        lambda *args: infoseed_called.setdefault("args", args),
+    )
+    cfg = hydra_cli.HydraRootConfig(command="train-maxent")
+    cfg.maxent.recipe = "maxent-mixed"
+    cfg.infoseed.recipe = "infoseed-prod"
+    hydra_cli.hydra_main(cfg)
+    assert "args" in maxent_called
+    assert maxent_called["args"][1].info_seed_enabled is True
+    assert "args" not in infoseed_called
+
+    cfg = hydra_cli.HydraRootConfig(command="train-infoseed")
+    cfg.maxent.recipe = "maxent-mixed"
+    cfg.infoseed.recipe = "infoseed-prod"
+    hydra_cli.hydra_main(cfg)
+    assert "args" in infoseed_called
+    assert infoseed_called["args"][1].info_seed_enabled is True
 
 
 def test_hydra_main_wraps_not_implemented(monkeypatch):
@@ -261,6 +397,47 @@ def test_hydra_main_inference_requires_models(monkeypatch):
     cfg = hydra_cli.HydraRootConfig(command="inference")
     with pytest.raises(ValueError):
         hydra_cli.hydra_main(cfg)
+
+
+def test_cli_smoke_runs_recipe_and_logs(monkeypatch, tmp_path):
+    from maxent_grpo.cli import hydra_cli
+
+    hydra_cli.hydra = _stub_hydra_module()
+    hydra_cli.OmegaConf = _stub_omegaconf()
+    _stub_trl(monkeypatch)
+
+    recipe_path = Path("tests/fixtures/recipes/maxent_smoke.yaml")
+    log_dir = tmp_path / "logs"
+    monkeypatch.setenv("GRPO_RECIPE", str(recipe_path))
+    monkeypatch.setenv("VAR_DIR", str(tmp_path))
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.setenv("MAXENT_ALLOW_HYDRA_EXEC", "1")
+
+    def _fake_run_maxent(script_args, training_args, model_args):
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / "cli-smoke.log"
+        payload = {
+            "train/kl": 0.05,
+            "train/beta": 0.04,
+            "train/tau": 0.3,
+            "train/maxent_objective": 1.0,
+        }
+        with open(log_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle)
+        return "ok"
+
+    monkeypatch.setattr(
+        "maxent_grpo.pipelines.training.maxent.run_maxent_training", _fake_run_maxent
+    )
+
+    result = hydra_cli.maxent_entry()
+    log_path = log_dir / "cli-smoke.log"
+    assert log_path.exists()
+    data = json.loads(log_path.read_text("utf-8"))
+    assert data["train/kl"] == pytest.approx(0.05)
+    assert data["train/beta"] == pytest.approx(0.04)
+    assert data["train/tau"] == pytest.approx(0.3)
+    assert data["train/maxent_objective"] == 1.0
 
 
 def test_hydra_main_generate_runs_when_allowed(monkeypatch):

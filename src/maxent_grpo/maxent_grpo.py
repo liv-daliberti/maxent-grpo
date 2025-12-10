@@ -14,6 +14,10 @@ if __package__ is None or __package__ == "":
         sys.path.remove(project_src_str)
     sys.path.insert(0, project_src_str)
 
+from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
+
+ensure_usercustomize_loaded()
+
 from maxent_grpo.cli import hydra_cli, parse_grpo_args
 
 __all__ = ["main"]

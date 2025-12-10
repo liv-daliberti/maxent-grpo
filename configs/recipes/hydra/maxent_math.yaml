@@ -1,3 +1,8 @@
 command: train-maxent
 maxent:
   recipe: configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml
+  training:
+    controller_meta_enabled: true
+    controller_meta_method: analytic
+    controller_meta_lr: 0.05
+    controller_meta_update_interval: 1

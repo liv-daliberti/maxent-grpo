@@ -33,7 +33,17 @@ def test_split_recipe_payload_routes_fields():
 def test_load_grpo_recipe_with_yaml(monkeypatch, tmp_path):
     recipe_path = tmp_path / "recipe.yml"
     recipe_path.write_text(
-        "dataset_name: ds\nmaxent_tau_min: 0.5\nmaxent_tau_max: 1.0\nmodel_name: modelx\n"
+        """
+dataset_name: ds
+model_name_or_path: modelx
+output_dir: /tmp/out
+logging_steps: 1
+save_steps: 1
+train_grpo_objective: true
+beta: 0.1
+maxent_tau_min: 0.5
+maxent_tau_max: 1.0
+"""
     )
     monkeypatch.setenv("GRPO_RECIPE_USED", "preset")
     # force yaml loader path
@@ -82,13 +92,23 @@ def test_load_grpo_recipe_rejects_non_mapping(monkeypatch, tmp_path):
 
 def test_load_grpo_recipe_sets_recipe_path_best_effort(monkeypatch, tmp_path):
     recipe_path = tmp_path / "recipe.yml"
-    recipe_path.write_text("dataset_name: ds\nmodel_name: m\n")
+    recipe_path.write_text(
+        "dataset_name: ds\nmodel_name_or_path: m\noutput_dir: /tmp/out\nlogging_steps: 1\nsave_steps: 1\ntrain_grpo_objective: true\nbeta: 0.1\n"
+    )
     monkeypatch.setattr(recipes, "OmegaConf", None)
 
     class _YamlStub:
         @staticmethod
         def safe_load(_handle):
-            return {"dataset_name": "ds"}
+            return {
+                "dataset_name": "ds",
+                "model_name_or_path": "m",
+                "output_dir": "/tmp/out",
+                "logging_steps": 1,
+                "save_steps": 1,
+                "train_grpo_objective": True,
+                "beta": 0.1,
+            }
 
     class _ModelCfg:
         def __init__(self, **kwargs):

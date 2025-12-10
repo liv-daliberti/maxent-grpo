@@ -16,6 +16,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import json
 from contextlib import nullcontext
 import sys
 import types
@@ -64,6 +65,21 @@ optim_stub.optimizer_step = lambda *_a, **_k: None
 optim_stub.require_accumulation_context = lambda *_a, **_k: nullcontext()
 optim_stub.scheduled_learning_rate = lambda *_a, **_k: 0.0
 optim_stub.sync_gradients_enabled = lambda *_a, **_k: False
+def _build_handles(_model=None, training_args=None):
+    lr = float(getattr(training_args, "learning_rate", 0.0)) if training_args else 0.0
+    optimizer = SimpleNamespace(
+        step=lambda *_a, **_k: None,
+        zero_grad=lambda **_k: None,
+    )
+    return SimpleNamespace(
+        optimizer=optimizer,
+        lr_scheduler=None,
+        base_optimizer=optimizer,
+        learning_rate=lr,
+    )
+
+
+optim_stub.build_optimization_handles = _build_handles
 sys.modules["maxent_grpo.training.optim"] = optim_stub
 
 trl_stub = types.ModuleType("trl")
@@ -71,6 +87,7 @@ trl_stub.ScriptArguments = type("ScriptArguments", (object,), {})
 trl_stub.GRPOConfig = type("GRPOConfig", (object,), {})
 sys.modules["trl"] = trl_stub
 
+import maxent_grpo.training.metrics as metrics_mod  # noqa: E402
 from maxent_grpo.training.state import (  # noqa: E402  import after stubs
     check_stop_condition,
     load_controller_state_chain,
@@ -79,7 +96,9 @@ from maxent_grpo.training.state import (  # noqa: E402  import after stubs
     maybe_load_accelerator_state,
     _checkpoint_log_once,
 )
+from maxent_grpo.training.types import LoggingHandles, LogStepArtifacts  # noqa: E402
 from maxent_grpo.training.weighting import CONTROLLER_STATE_FILENAME  # noqa: E402
+from maxent_grpo.training.weighting.logic import save_controller_state  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -171,18 +190,26 @@ def test_load_controller_file_logs_failure(monkeypatch, caplog):
     assert loaded is False
 
 
-def test__load_controller_file_logs_success(monkeypatch, caplog):
+def test__load_controller_file_logs_success(tmp_path, caplog):
     caplog.set_level("INFO")
     accel = _Accel()
-    weighting_cfg = SimpleNamespace(beta=0.1, tau=0.2)
-    monkeypatch.setattr(
-        "maxent_grpo.training.state.load_controller_state", lambda *_: True
+    weighting_cfg = SimpleNamespace(
+        beta=0.1,
+        tau=0.2,
+        train_grpo_objective=False,
+        denom=1.0,
+    )
+    controller_path = tmp_path / "controller.bin"
+    controller_path.write_text(
+        json.dumps({"beta": 0.33, "tau": 0.44, "tau_log": 0.0}), encoding="utf-8"
     )
     from maxent_grpo.training import state as state_mod
 
-    loaded = state_mod._load_controller_file("path.bin", accel, weighting_cfg)
+    loaded = state_mod._load_controller_file(str(controller_path), accel, weighting_cfg)
     assert loaded is True
-    assert "Loaded controller state from path.bin" in caplog.text
+    assert "Loaded controller state from" in caplog.text
+    assert weighting_cfg.beta == pytest.approx(0.33)
+    assert weighting_cfg.tau == pytest.approx(0.44)
 
 
 def test_load_controller_state_chain_marks_resume_even_when_missing(
@@ -206,6 +233,160 @@ def test_load_controller_state_chain_marks_resume_even_when_missing(
     monkeypatch.setattr("maxent_grpo.training.state._load_controller_file", _fake_load)
     loaded = load_controller_state_chain(controller_cfg, accel, weighting_cfg)
     assert loaded is True  # resume path preferred even when load returns False
+
+
+def test_controller_resume_influences_initial_metrics(monkeypatch, tmp_path):
+    resume_dir = tmp_path / "resume"
+    resume_dir.mkdir()
+    resume_file = resume_dir / CONTROLLER_STATE_FILENAME
+    saved_weighting = SimpleNamespace(
+        tau=0.55,
+        beta=0.09,
+        denom=1.0,
+        q_temperature=1.0,
+        q_epsilon=1e-6,
+        tau_lr=0.01,
+        tau_min=0.05,
+        tau_max=1.0,
+        tau_warmup_steps=0,
+        tau_target_entropy=0.6,
+        kl_target=0.1,
+        kl_horizon=10,
+        kl_ctl_step_size=1.0,
+        len_norm_ref=False,
+        train_grpo_objective=False,
+        _tau_entropy_ema=0.2,
+    )
+    save_controller_state(str(resume_file), saved_weighting)
+    weighting_cfg = SimpleNamespace(
+        tau=0.2,
+        beta=0.04,
+        denom=1.0,
+        q_temperature=1.0,
+        q_epsilon=1e-6,
+        tau_lr=0.01,
+        tau_min=0.05,
+        tau_max=1.0,
+        tau_warmup_steps=0,
+        tau_target_entropy=0.6,
+        kl_target=0.1,
+        kl_horizon=10,
+        kl_ctl_step_size=1.0,
+        len_norm_ref=False,
+        train_grpo_objective=False,
+        _tau_entropy_ema=0.2,
+    )
+    controller_cfg = SimpleNamespace(
+        resume_from=str(resume_dir),
+        overwrite_existing=False,
+        state_path=str(tmp_path / "controller/current" / CONTROLLER_STATE_FILENAME),
+    )
+    accel = _Accel()
+    loaded = load_controller_state_chain(controller_cfg, accel, weighting_cfg)
+    assert loaded is True
+    assert weighting_cfg.tau == pytest.approx(saved_weighting.tau)
+    assert weighting_cfg.beta == pytest.approx(saved_weighting.beta)
+
+    class _Writer:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((metrics, step))
+
+        def flush(self):
+            return None
+
+    writer = _Writer()
+    logging_handles = LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="no",
+        save_steps=0,
+        wandb_run=None,
+    )
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(
+            accelerator=_Accel(),
+            device="cpu",
+        ),
+        logging=logging_handles,
+        scoring=SimpleNamespace(
+            weighting=weighting_cfg,
+            clipping=SimpleNamespace(),
+        ),
+        optimization=SimpleNamespace(
+            schedule=SimpleNamespace(steps_per_epoch=1),
+        ),
+        generation=SimpleNamespace(use_vllm=False, generation_stats={}),
+    )
+    reward_comp = SimpleNamespace(
+        total_utils=[0.2, 0.4],
+        advantage_samples=[0.0, 0.1],
+        per_reward_values={"accuracy": [1.0, 0.0]},
+        advantage=SimpleNamespace(grouped=[[0.0], [0.1]]),
+        q_grouped=[[0.5], [0.6]],
+        pairs=SimpleNamespace(prompts=["p1", "p2"], completions=["c1", "c2"]),
+    )
+    prepared = SimpleNamespace(
+        reward_comp=reward_comp,
+        weight_stats=SimpleNamespace(
+            entropy=0.4,
+            entropy_min=0.38,
+            entropy_max=0.42,
+            advantage_entropy_mean=0.0,
+            advantage_entropy_std=0.0,
+        ),
+        length_stats=SimpleNamespace(
+            min_length=2.0,
+            mean_length=3.0,
+            max_length=4.0,
+            clipped_ratio=0.0,
+            min_terminated=2.0,
+            mean_terminated=2.5,
+            max_terminated=3.0,
+        ),
+        ref_stats=SimpleNamespace(ref_logp_mean=-0.3, avg_completion_tokens=2.0),
+        num_completion_tokens=2.0,
+        seed_metrics={},
+    )
+    loss_outputs = SimpleNamespace(
+        total_loss_scalar=0.5,
+        kl_loss_scalar=0.03,
+        policy_loss_scalar=0.47,
+        weighted_kl_loss_scalar=0.03,
+        clip_loss_scalar=None,
+        scalars=SimpleNamespace(kl_loss=0.03),
+    )
+    diagnostics = metrics_mod.BatchDiagnostics(
+        kl_value=0.03,
+        clip_ratio=0.0,
+        clip_ratio_low_mean=0.0,
+        clip_ratio_low_min=0.0,
+        clip_ratio_high_mean=0.0,
+        clip_ratio_high_max=0.0,
+        clip_ratio_region_mean=0.0,
+        kl_per_token_by_len_bucket={},
+        kl_token_count_by_len_bucket={},
+    )
+    log_artifacts = LogStepArtifacts(
+        loss_outputs=loss_outputs,
+        diagnostics=diagnostics,
+        grad_norm_scalar=None,
+        epoch_progress=0.0,
+    )
+    state = SimpleNamespace(
+        global_step=1,
+        metric_sums={},
+        metric_counts={},
+        num_input_tokens_seen=5.0,
+    )
+
+    metrics_mod.log_training_step(ctx, state, prepared, log_artifacts, current_lr=1e-4)
+    assert writer.logged, "resume metrics should be logged"
+    logged_metrics = writer.logged[-1][0]
+    assert logged_metrics["train/tau"] == pytest.approx(saved_weighting.tau)
+    assert logged_metrics["train/beta"] == pytest.approx(saved_weighting.beta)
 
 
 def test_maybe_load_accelerator_state_invokes_load(tmp_path):

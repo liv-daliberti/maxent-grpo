@@ -72,6 +72,13 @@ maxent_tau_lr: 0.001
 maxent_tau_min: 0.0001
 maxent_tau_max: 1
 maxent_tau_warmup_steps: 75    # roughly match LR warmup so tau stays steady early on
+# Phase 2 meta-controller defaults (analytic updates for τ/β)
+controller_meta_enabled: true
+controller_meta_method: analytic
+controller_meta_lr: 0.02
+controller_meta_update_interval: 1
+controller_meta_optimizer: sgd
+controller_meta_truncation_steps: 1
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
 maxent_clip_adv_baseline: 0.25   # 1/num_generations (4) for a gentler clip objective

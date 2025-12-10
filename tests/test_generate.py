@@ -70,6 +70,9 @@ def test_generate_module_executes_main_guard(monkeypatch):
         sys.modules, "maxent_grpo.pipelines.generation.distilabel", distilabel_mod
     )
 
+    # Ensure the module reloads under __main__ without runpy warnings.
+    sys.modules.pop("maxent_grpo.generate", None)
+
     runpy.run_module("maxent_grpo.generate", run_name="__main__")
 
     assert called["invoked"] is True

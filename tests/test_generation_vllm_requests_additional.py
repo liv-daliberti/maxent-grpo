@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import builtins
-from types import SimpleNamespace
 
 import maxent_grpo.generation.vllm_requests as vr
+from tests.helpers.vllm import make_vllm_context
 
 
 class _ReqHelper(vr.VLLMRequestMixin):
     def __init__(self):
-        self.ctx = SimpleNamespace(
+        self.ctx = make_vllm_context(
             prompt_char_limit=None,
             max_prompt_len=None,
         )

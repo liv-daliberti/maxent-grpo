@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from types import ModuleType, SimpleNamespace
+from types import ModuleType
 
 import maxent_grpo.generation.vllm_requests as vr
+from tests.helpers.vllm import make_vllm_context
 
 
 class _PromptLimitHelper(vr.VLLMRequestMixin):
@@ -14,7 +15,7 @@ class _PromptLimitHelper(vr.VLLMRequestMixin):
 
 def test_prompt_char_limit_prefers_ctx_override():
     helper = _PromptLimitHelper(
-        SimpleNamespace(prompt_char_limit=123, max_prompt_len=10)
+        make_vllm_context(prompt_char_limit=123, max_prompt_len=10)
     )
     assert helper._prompt_char_limit() == 123
 
@@ -28,7 +29,7 @@ def test_prompt_char_limit_handles_negative_constant(monkeypatch):
         modules["maxent_grpo.generation"], "vllm", dummy_vllm, raising=False
     )
     helper = _PromptLimitHelper(
-        SimpleNamespace(prompt_char_limit=None, max_prompt_len=6)
+        make_vllm_context(prompt_char_limit=None, max_prompt_len=6)
     )
 
     # Negative constant falls back to approx chars computed from max_len.
@@ -44,7 +45,7 @@ def test_prompt_char_limit_uses_constant_when_no_max_len(monkeypatch):
         modules["maxent_grpo.generation"], "vllm", dummy_vllm, raising=False
     )
     helper = _PromptLimitHelper(
-        SimpleNamespace(prompt_char_limit=None, max_prompt_len=None)
+        make_vllm_context(prompt_char_limit=None, max_prompt_len=None)
     )
 
     assert helper._prompt_char_limit() == 42

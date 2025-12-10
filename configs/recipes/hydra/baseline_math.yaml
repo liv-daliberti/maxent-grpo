@@ -1,3 +1,8 @@
 command: train-baseline
 baseline:
   recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
+  training:
+    controller_meta_enabled: false
+    controller_meta_method: analytic
+    controller_meta_lr: 0.0
+    controller_meta_update_interval: 1

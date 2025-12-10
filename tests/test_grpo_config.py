@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from maxent_grpo.config.grpo import GRPOConfig, GRPOScriptArguments
+from maxent_grpo.config.dataset import trl
 
 
 def test_grpo_config_eval_alias_sets_eval_strategy(monkeypatch):
@@ -40,3 +41,21 @@ def test_grpo_script_arguments_defaults():
 def test_grpo_config_validates_tau_bounds():
     with pytest.raises(ValueError):
         GRPOConfig(maxent_tau_min=-0.1)
+
+
+def test_grpo_config_preserves_num_generations_on_divisibility_warning(monkeypatch, caplog):
+    """Resume divisibility errors from the base class should not overwrite num_generations."""
+
+    def _failing_post_init(self):
+        raise ValueError("num_generations must be divisible by tensor parallelism")
+
+    monkeypatch.setattr(trl.GRPOConfig, "__post_init__", _failing_post_init, raising=False)
+    caplog.set_level("WARNING")
+
+    cfg = GRPOConfig(num_generations=16)
+
+    assert cfg.num_generations == 16
+    assert any(
+        "Ignoring num_generations divisibility constraint" in record.message
+        for record in caplog.records
+    )

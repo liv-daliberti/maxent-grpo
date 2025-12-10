@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext, contextmanager
+from numbers import Integral
 import sys
 from types import ModuleType, SimpleNamespace
 from typing import Any, Iterable, Tuple
@@ -52,12 +53,31 @@ def _build_torch_stub() -> Any:
             except _NUMPY_EXCEPTIONS:
                 return (0,)
 
+    def _is_bool_dtype(dtype: object | None) -> bool:
+        np_dtype = getattr(dtype, "np_dtype", None)
+        if np_dtype is None and dtype is not None:
+            try:
+                np_dtype = np.dtype(dtype)
+            except _NUMPY_EXCEPTIONS:
+                np_dtype = None
+        if np_dtype is None:
+            return False
+        try:
+            return np.issubdtype(np_dtype, np.bool_)
+        except _NUMPY_EXCEPTIONS:
+            return False
+
     class _Device:
         def __init__(self, device: str = "cpu"):
             self.type = str(device)
 
         def __repr__(self):
             return f"torch.device('{self.type}')"
+
+    bool_dtype = _DType("bool", np.bool_)
+    int64_dtype = _DType("int64", np.int64)
+    float32_dtype = _DType("float32", np.float32)
+    float64_dtype = _DType("float64", np.float64)
 
     class _Tensor:
         __array_priority__ = 100.0
@@ -103,9 +123,9 @@ def _build_torch_stub() -> Any:
                 return False
 
         def numel(self):
-            if self.arr.ndim > 1:
-                return int(self.arr.shape[0])
-            return int(self.arr.size)
+            if self.arr.ndim <= 1:
+                return int(self.arr.size)
+            return int(self.arr.shape[0])
 
         def item(self):
             try:
@@ -157,12 +177,44 @@ def _build_torch_stub() -> Any:
                 return 0
             return int(self.arr.shape[dim])
 
+        def masked_fill(self, mask, value):
+            mask_arr = getattr(mask, "arr", None)
+            if mask_arr is None:
+                mask_arr = np.array(mask, dtype=bool)
+            filled = np.where(mask_arr.astype(bool), value, self.arr)
+            return _Tensor(filled, dtype=self.dtype)
+
+        def masked_fill_(self, mask, value):
+            """In-place variant mirroring ``torch.Tensor.masked_fill_``."""
+            mask_arr = getattr(mask, "arr", None)
+            if mask_arr is None:
+                mask_arr = np.array(mask, dtype=bool)
+            try:
+                np.putmask(self.arr, mask_arr.astype(bool), value)
+            except _NUMPY_EXCEPTIONS:
+                pass
+            return self
+
+        def bool(self):
+            return _Tensor(self.arr.astype(bool), dtype=bool_dtype)
+
         # Reductions
         def sum(self, dim: int | None = None):
+            """Sum elements along an axis, promoting bool tensors to integer counts."""
             try:
+                arr = self.arr
+                result_dtype = self.dtype
+                is_bool_tensor = _is_bool_dtype(result_dtype) or _is_bool_dtype(
+                    getattr(arr, "dtype", None)
+                )
+                if is_bool_tensor:
+                    arr = arr.astype(np.int64)
+                    result_dtype = int64_dtype
                 if dim is None:
-                    return _Tensor(np.sum(self.arr), dtype=self.dtype)
-                return _Tensor(np.sum(self.arr, axis=dim), dtype=self.dtype)
+                    result = np.sum(arr)
+                else:
+                    result = np.sum(arr, axis=dim)
+                return _Tensor(result, dtype=result_dtype)
             except _NUMPY_EXCEPTIONS:
                 return _Tensor([0.0], dtype=self.dtype)
 
@@ -244,6 +296,8 @@ def _build_torch_stub() -> Any:
         def __getitem__(self, key):
             if isinstance(key, _Tensor):
                 key = key.arr
+            elif isinstance(key, tuple):
+                key = tuple(k.arr if isinstance(k, _Tensor) else k for k in key)
             try:
                 return _Tensor(self.arr[key], dtype=self.dtype)
             except _NUMPY_EXCEPTIONS:
@@ -251,35 +305,66 @@ def _build_torch_stub() -> Any:
 
         def __setitem__(self, key, value):
             val = value.arr if isinstance(value, _Tensor) else value
+            # Convert tensor-based indices to numpy-friendly equivalents.
+            if isinstance(key, tuple):
+                key = tuple(k.arr if isinstance(k, _Tensor) else k for k in key)
+            if isinstance(key, tuple) and len(key) == 2:
+                row_key = key[0]
+                allow_full_slice = (
+                    isinstance(row_key, slice)
+                    and row_key.start is None
+                    and row_key.stop is None
+                    and row_key.step is None
+                )
+                if not isinstance(row_key, Integral) and not allow_full_slice:
+                    raise TypeError("Row indices must be integers for tensor writes")
+            try:
+                self.arr[key] = val
+                return
+            except _NUMPY_EXCEPTIONS:
+                pass
+            # Legacy fallback for environments where numpy indexing still fails.
             if isinstance(key, tuple) and len(key) == 2:
                 row, col = key
+                allow_full_slice = (
+                    isinstance(row, slice)
+                    and row.start is None
+                    and row.stop is None
+                    and row.step is None
+                )
+                if not isinstance(row, Integral) and not allow_full_slice:
+                    raise TypeError("Row indices must be integers for tensor writes")
                 if isinstance(row, slice):
-                    raise TypeError("Row slice assignment is not supported in the stub")
-                if not isinstance(row, int):
-                    raise TypeError("Row index must be an int in the stub")
-                data = self.tolist() if self.arr.size else []
-                if data and not isinstance(data[0], list):
-                    data = [[v] for v in data]
-                while len(data) <= row:
-                    data.append([])
-                row_data = list(data[row])
-                if isinstance(col, slice):
-                    start, stop, step = col.indices(max(len(row_data), (col.stop or 0)))
-                    if stop > len(row_data):
-                        row_data.extend([0] * (stop - len(row_data)))
-                    if isinstance(val, np.ndarray):
-                        val = val.tolist()
-                    if isinstance(val, Iterable) and not isinstance(val, (str, bytes)):
-                        row_data[start:stop:step] = list(val)
-                    else:
-                        row_data[start:stop:step] = [val] * len(
-                            range(start, stop, step)
-                        )
+                    row_indices = list(range(*row.indices(self.arr.shape[0])))
                 else:
-                    while len(row_data) <= int(col):
-                        row_data.append(0)
-                    row_data[int(col)] = val
-                data[row] = row_data
+                    row_indices = [int(row)]
+                data = self.arr.tolist()
+                for r in row_indices:
+                    while len(data) <= r:
+                        data.append([])
+                    row_data = list(data[r])
+                    if isinstance(col, slice):
+                        start, stop, step = col.indices(
+                            max(len(row_data), col.stop or 0)
+                        )
+                        if stop > len(row_data):
+                            row_data.extend([0] * (stop - len(row_data)))
+                        payload = val
+                        if isinstance(payload, np.ndarray):
+                            payload = payload.tolist()
+                        if isinstance(payload, Iterable) and not isinstance(
+                            payload, (str, bytes)
+                        ):
+                            row_data[start:stop:step] = list(payload)
+                        else:
+                            row_data[start:stop:step] = [payload] * len(
+                                range(start, stop, step)
+                            )
+                    else:
+                        while len(row_data) <= int(col):
+                            row_data.append(0)
+                        row_data[int(col)] = val
+                    data[r] = row_data
                 try:
                     self.arr = np.array(data, dtype=_resolve_dtype(self.dtype))
                 except _NUMPY_EXCEPTIONS:
@@ -341,27 +426,61 @@ def _build_torch_stub() -> Any:
         def __neg__(self):
             return _Tensor(-self.arr, dtype=self.dtype)
 
+        def __invert__(self):
+            try:
+                return _Tensor(np.logical_not(self.arr.astype(bool)), dtype=bool_dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor([], dtype=bool_dtype)
+
         # Comparisons / logic
+        def _binary_bool(self, other, op):
+            other_arr = other.arr if isinstance(other, _Tensor) else other
+            try:
+                return _Tensor(op(self.arr, other_arr), dtype=bool_dtype)
+            except _NUMPY_EXCEPTIONS:
+                try:
+                    return _Tensor(op(self.arr, np.array(other_arr)), dtype=bool_dtype)
+                except _NUMPY_EXCEPTIONS:
+                    return _Tensor([], dtype=bool_dtype)
+
         def __eq__(self, other):
-            return self._binary(other, np.equal)
+            return self._binary_bool(other, np.equal)
 
         def __ne__(self, other):
-            return self._binary(other, np.not_equal)
+            return self._binary_bool(other, np.not_equal)
 
         def __ge__(self, other):
-            return self._binary(other, np.greater_equal)
+            return self._binary_bool(other, np.greater_equal)
 
         def __lt__(self, other):
-            return self._binary(other, np.less)
+            return self._binary_bool(other, np.less)
 
         def __gt__(self, other):
-            return self._binary(other, np.greater)
+            return self._binary_bool(other, np.greater)
 
         def ge(self, other):
             return self.__ge__(other)
 
         def ne(self, other):
             return self.__ne__(other)
+
+        def __and__(self, other):
+            return self._binary_bool(other, np.logical_and)
+
+        def __rand__(self, other):
+            return self._binary_bool(other, np.logical_and)
+
+        def __or__(self, other):
+            return self._binary_bool(other, np.logical_or)
+
+        def __ror__(self, other):
+            return self._binary_bool(other, np.logical_or)
+
+        def __xor__(self, other):
+            return self._binary_bool(other, np.logical_xor)
+
+        def __rxor__(self, other):
+            return self._binary_bool(other, np.logical_xor)
 
     # Tensor factories
     def _tensor(data=None, dtype=None, device=None, requires_grad: bool = False):
@@ -472,6 +591,11 @@ def _build_torch_stub() -> Any:
             exps / np.maximum(denom, 1e-12), dtype=getattr(tensor, "dtype", None)
         )
 
+    def _log_softmax(tensor, dim: int = -1):
+        soft = _softmax(tensor, dim=dim)
+        safe = np.clip(soft.arr, 1e-12, None)
+        return _Tensor(np.log(safe), dtype=getattr(tensor, "dtype", None))
+
     def _pdist(tensor, p: int = 2):
         arr = tensor.arr if isinstance(tensor, _Tensor) else np.array(tensor)
         if arr.ndim != 2:
@@ -533,13 +657,24 @@ def _build_torch_stub() -> Any:
     torch_mod.clamp = lambda inp, min_val=None, max_val=None: _Tensor(
         np.clip(_tensor(inp).arr, a_min=min_val, a_max=max_val)
     )
+    # Persistence helpers (minimal stubs so tests can monkeypatch torch.save).
+    def _save(obj, path):
+        try:  # pragma: no cover - side-effect only
+            with open(path, "wb") as handle:
+                # Write a small marker; callers in tests overwrite via monkeypatch.
+                handle.write(b"stub")
+        except Exception:
+            # Silently ignore I/O failures in stub environments.
+            return None
+
+    torch_mod.save = _save
     torch_mod.no_grad = _no_grad
     torch_mod.autocast = _autocast
-    torch_mod.float32 = _DType("float32", np.float32)
-    torch_mod.float64 = _DType("float64", np.float64)
-    torch_mod.int64 = _DType("int64", np.int64)
+    torch_mod.float32 = float32_dtype
+    torch_mod.float64 = float64_dtype
+    torch_mod.int64 = int64_dtype
     torch_mod.long = torch_mod.int64
-    torch_mod.bool = _DType("bool", np.bool_)
+    torch_mod.bool = bool_dtype
     torch_mod.dtype = type("dtype", (), {})  # pragma: no cover - placeholder
     torch_mod.device = lambda name="cpu": _Device(name)
     torch_mod.is_grad_enabled = lambda: True
@@ -573,7 +708,11 @@ def _build_torch_stub() -> Any:
         Module=type("Module", (), {}),
         Parameter=type("Parameter", (), {}),
         functional=SimpleNamespace(
-            log_softmax=lambda *a, **k: _log_fn(a[0]) if a else _Tensor([]),
+            log_softmax=lambda *a, **k: _log_softmax(
+                a[0], dim=k.get("dim", -1) if a else -1
+            )
+            if a
+            else _Tensor([]),
             pdist=_pdist,
         ),
         Linear=lambda *_a, **_k: (lambda x: _Tensor([])),

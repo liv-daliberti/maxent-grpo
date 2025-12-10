@@ -12,6 +12,7 @@ from .vllm_distributed import (
     _gather_object_list as _imported_gather_object_list,
     _scatter_object as _imported_scatter_object,
 )
+from .errors import GenerationServiceError as _GenerationServiceError
 from .vllm_helper import (
     VLLMGenerationHelper,
     _VLLMGenerationState,
@@ -30,7 +31,12 @@ PROMPT_CHAR_LIMIT = 2048
 
 torch = require_torch("generation_vllm")
 
-__all__ = ["VLLMGenerationHelper", "_VLLMGenerationState"]
+__all__ = [
+    "VLLMGenerationHelper",
+    "_VLLMGenerationState",
+    "GenerationServiceError",
+    "VLLMServiceError",
+]
 
 # Backwards compatibility for callers/tests importing private helpers directly.
 _gather_object_list = _imported_gather_object_list
@@ -46,3 +52,5 @@ VLLMDistributedMixin = _VLLMDistributedMixin
 nullcontext = _nullcontext
 safe_generate = _safe_generate
 time = _time
+GenerationServiceError = _GenerationServiceError
+VLLMServiceError = _GenerationServiceError
