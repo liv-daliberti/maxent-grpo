@@ -1,0 +1,1 @@
+{"beta": 0.0, "tau": 0.0, "tau_log": -18.420680743952367, "tau_entropy_ema": 0.0, "meta": {"version": 1, "controller": {"enabled": false, "method": "analytic", "learning_rate": 0.0, "update_interval": 1, "objective": "potential", "analytic_steps": 1, "optimizer": "sgd", "truncation_steps": 1, "use_hessian": false, "last_tau_grad": 0.0, "last_beta_grad": 0.0}}}

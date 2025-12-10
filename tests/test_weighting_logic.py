@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import math
 from importlib import import_module, reload
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import numpy as np
@@ -37,6 +38,7 @@ from maxent_grpo.training.types import (
 from maxent_grpo.training.weighting.types import (
     KlControllerSettings,
     QDistributionSettings,
+    TorchControllerState,
     TauSchedule,
     WeightNormalizationSettings,
     WeightStats,
@@ -49,6 +51,7 @@ class _TorchTensor:
 
     def __init__(self, data, dtype=None):
         self.arr = np.array(data, dtype=dtype)
+        self.dtype = self.arr.dtype if dtype is None else dtype
 
     def clamp(self, min=None, max=None):
         return _TorchTensor(np.clip(self.arr, a_min=min, a_max=max))
@@ -117,6 +120,27 @@ class _TorchStub:
     Tensor = _TorchTensor
     float32 = np.float32
 
+    def __init__(self):
+        class _Parameter(_TorchTensor):
+            def __init__(self, data, requires_grad=False):
+                super().__init__(data)
+                self.requires_grad = requires_grad
+                self.grad = None
+
+            def requires_grad_(self, flag: bool):
+                self.requires_grad = bool(flag)
+                return self
+
+            def detach(self):
+                return _TorchTensor(self.arr.copy(), dtype=self.dtype)
+
+            def copy_(self, other):
+                source = other.arr if isinstance(other, _TorchTensor) else np.array(other)
+                self.arr = np.array(source, dtype=self.arr.dtype)
+                return self
+
+        self.nn = SimpleNamespace(Parameter=_Parameter)
+
     def tensor(self, data, dtype=None, **_kwargs):
         return _TorchTensor(data, dtype=dtype)
 
@@ -130,6 +154,9 @@ class _TorchStub:
         exps = np.exp(shifted)
         denom = np.sum(exps, axis=dim, keepdims=True)
         return _TorchTensor(exps / np.maximum(denom, 1e-12))
+
+    def no_grad(self):
+        return nullcontext()
 
 
 def _build_weighting(
@@ -217,6 +244,23 @@ def test_split_reference_helpers_handle_offsets(weighting_logic):
     assert per_token[1] == [3.0]
 
 
+def test_split_ref_logprobs_per_token_handles_mismatched_lengths(weighting_logic):
+    logic, stub = weighting_logic
+    grouped = [["a", "b", "c"]]
+    ref_stats = ReferenceLogprobs(
+        ref_logp_sum=stub.tensor([0.0, 0.0]),
+        ref_tok_counts=stub.tensor([2.0, 1.0, 4.0]),
+        ref_logp_sum_raw=stub.tensor([2.0, -1.0]),
+        ref_logp_mean=0.0,
+        avg_completion_tokens=0.0,
+    )
+
+    per_token = logic._split_ref_logprobs_per_token(grouped, ref_stats)
+
+    assert len(per_token) == 1
+    assert per_token[0] == pytest.approx([1.0, -1.0, 0.0])
+
+
 def test_weight_vector_from_q_normalizes_with_reference_and_tokens(weighting_logic):
     logic, _ = weighting_logic
     weighting_cfg = _build_weighting(beta=0.3, tau=0.2, denom=0.0)
@@ -294,12 +338,18 @@ def test_maybe_update_tau_respects_guards(weighting_logic):
         no_target_cfg, weight_stats=SimpleNamespace(weight_entropy=1.0), global_step=5
     )
     assert no_target_cfg.tau == pytest.approx(0.2)
+    assert getattr(no_target_cfg, "_tau_entropy_ema") == pytest.approx(
+        1.0
+    )  # falls back to measured entropy
+    assert getattr(no_target_cfg, "_tau_log") == pytest.approx(math.log(no_target_cfg.tau))
 
     warmup_cfg = _build_weighting(tau_target=0.5, tau_warmup=10)
     logic.maybe_update_tau(
         warmup_cfg, weight_stats=SimpleNamespace(weight_entropy=1.0), global_step=5
     )
     assert warmup_cfg.tau == pytest.approx(0.2)
+    assert getattr(warmup_cfg, "_tau_entropy_ema") == pytest.approx(1.0)
+    assert getattr(warmup_cfg, "_tau_log") == pytest.approx(math.log(warmup_cfg.tau))
 
     non_finite_cfg = _build_weighting(tau_target=0.5)
     logic.maybe_update_tau(
@@ -308,6 +358,8 @@ def test_maybe_update_tau_respects_guards(weighting_logic):
         global_step=20,
     )
     assert non_finite_cfg.tau == pytest.approx(0.2)
+    assert getattr(non_finite_cfg, "_tau_entropy_ema") == pytest.approx(0.2)
+    assert getattr(non_finite_cfg, "_tau_log") == pytest.approx(math.log(non_finite_cfg.tau))
 
 
 def test_maybe_update_tau_applies_ema_and_updates_denom(weighting_logic):
@@ -333,6 +385,46 @@ def test_maybe_update_tau_applies_ema_and_updates_denom(weighting_logic):
     assert getattr(weighting_cfg, "_tau_log") == pytest.approx(
         math.log(weighting_cfg.tau)
     )
+
+
+def test_maybe_update_beta_scales_under_large_kl(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(
+        beta=0.2,
+        tau=0.3,
+        kl_target=0.1,
+        kl_horizon=5,
+        kl_step=0.5,
+    )
+
+    logic.maybe_update_beta(weighting_cfg, measured_kl=0.6)  # ratio=6 → clip error to 0.5
+
+    expected_beta = 0.2 * (1.0 + 0.5 / 5.0)
+    assert weighting_cfg.beta == pytest.approx(expected_beta)
+    assert weighting_cfg.denom == pytest.approx(weighting_cfg.tau + expected_beta)
+
+
+def test_maybe_update_tau_reacts_to_large_entropy_gap(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(
+        tau=0.8,
+        beta=0.1,
+        tau_target=0.2,
+        tau_lr=0.5,
+        tau_min=0.05,
+        tau_max=1.0,
+    )
+    setattr(weighting_cfg, "_tau_entropy_ema", 0.9)
+
+    logic.maybe_update_tau(
+        weighting_cfg,
+        weight_stats=SimpleNamespace(weight_entropy=1.2),
+        global_step=10,
+    )
+
+    assert weighting_cfg.tau < 0.8
+    assert weighting_cfg.tau >= weighting_cfg.tau_min
+    assert weighting_cfg.denom == pytest.approx(weighting_cfg.tau + weighting_cfg.beta)
 
 
 def test_maybe_update_tau_accepts_logging_view_entropy(weighting_logic):
@@ -428,11 +520,69 @@ def test_maybe_update_tau_scales_learning_rate(weighting_logic):
     assert weighting_cfg.tau != pytest.approx(0.2)  # update should apply
 
 
+def test_controller_state_dict_includes_meta(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(beta=0.2, tau=0.5)
+    weighting_cfg.controller_meta.enabled = True
+    weighting_cfg.controller_meta.learning_rate = 0.02
+    weighting_cfg.controller_meta.optimizer = "sgd"
+    weighting_cfg.controller_meta.truncation_steps = 3
+    setattr(weighting_cfg, "_meta_last_tau_grad", 0.01)
+    weighting_cfg.controller_meta.last_tau_grad = 0.01
+    state = logic.controller_state_dict(weighting_cfg)
+    assert "meta" in state
+    controller_meta = state["meta"].get("controller", {})
+    assert controller_meta.get("enabled") is True
+    assert controller_meta.get("learning_rate") == pytest.approx(0.02)
+    assert controller_meta.get("optimizer") == "sgd"
+    assert controller_meta.get("truncation_steps") == 3
+    assert controller_meta.get("last_tau_grad") == pytest.approx(0.01)
+
+
+def test_apply_meta_controller_update_updates_params(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(beta=0.3, tau=0.6)
+    weighting_cfg.controller_meta.enabled = True
+    weighting_cfg.controller_meta.learning_rate = 0.5
+    old_tau = weighting_cfg.tau
+    old_beta = weighting_cfg.beta
+    updated = logic.apply_meta_controller_update(
+        weighting_cfg, tau_grad=0.2, beta_grad=-0.4
+    )
+    assert updated is True
+    assert weighting_cfg.tau == pytest.approx(old_tau - 0.1)
+    assert weighting_cfg.beta == pytest.approx(old_beta + 0.2)
+
+
+def test_apply_meta_controller_update_requires_flag(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(beta=0.1, tau=0.2)
+    result_disabled = logic.apply_meta_controller_update(
+        weighting_cfg, tau_grad=1.0, beta_grad=1.0
+    )
+    assert result_disabled is False
+    weighting_cfg.controller_meta.enabled = True
+    weighting_cfg.controller_meta.learning_rate = 0.0
+    result_no_lr = logic.apply_meta_controller_update(
+        weighting_cfg, tau_grad=1.0, beta_grad=1.0
+    )
+    assert result_no_lr is False
+
+
 def test_controller_state_roundtrip_and_missing_tau_log(tmp_path, weighting_logic):
     logic, _ = weighting_logic
     weighting_cfg = _build_weighting(beta=0.4, tau=0.3)
     setattr(weighting_cfg, "_tau_entropy_ema", 0.25)
     setattr(weighting_cfg, "_tau_log", math.log(weighting_cfg.tau))
+    weighting_cfg.controller_meta.enabled = True
+    weighting_cfg.controller_meta.learning_rate = 0.05
+    weighting_cfg.controller_meta.update_interval = 4
+    weighting_cfg.controller_meta.optimizer = "sgd"
+    weighting_cfg.controller_meta.truncation_steps = 2
+    weighting_cfg.controller_meta.last_tau_grad = 0.01
+    weighting_cfg.controller_meta.last_beta_grad = -0.02
+    setattr(weighting_cfg, "_meta_last_tau_grad", 0.01)
+    setattr(weighting_cfg, "_meta_last_beta_grad", -0.02)
     path = tmp_path / "state" / "ctl.json"
 
     logic.save_controller_state(str(path), weighting_cfg)
@@ -444,6 +594,11 @@ def test_controller_state_roundtrip_and_missing_tau_log(tmp_path, weighting_logi
     assert loaded_cfg.tau == pytest.approx(weighting_cfg.tau)
     assert loaded_cfg.denom == pytest.approx(1.0)
     assert getattr(loaded_cfg, "_tau_log") == pytest.approx(math.log(weighting_cfg.tau))
+    assert loaded_cfg.controller_meta.enabled is True
+    assert loaded_cfg.controller_meta.learning_rate == pytest.approx(0.05)
+    assert loaded_cfg.controller_meta.update_interval == 4
+    assert getattr(loaded_cfg, "_meta_last_tau_grad") == pytest.approx(0.01)
+    assert getattr(loaded_cfg, "_meta_last_beta_grad") == pytest.approx(-0.02)
 
     state = json.loads(path.read_text())
     state.pop("tau_log", None)
@@ -481,6 +636,57 @@ def test_load_controller_state_rejects_invalid_types(tmp_path, weighting_logic):
     assert logic.load_controller_state(str(path), cfg) is False
     assert cfg.beta == pytest.approx(0.3)
     assert cfg.tau == pytest.approx(0.4)
+
+
+def test_broadcast_controller_state_syncs_meta_fields(weighting_logic):
+    logic, _ = weighting_logic
+
+    class _Accel:
+        def __init__(self, index: int):
+            self.process_index = index
+            self.num_processes = 2
+            self._cached = None
+
+        def broadcast_object_list(self, payload, src=0):  # noqa: ARG002
+            if self.process_index == 0:
+                self._cached = payload
+                return payload
+            return self._cached
+
+    weighting_root = _build_weighting(beta=0.5, tau=0.2)
+    weighting_root.controller_meta.enabled = True
+    weighting_root.controller_meta.learning_rate = 0.5
+    setattr(weighting_root, "_tau_log", math.log(weighting_root.tau))
+    setattr(weighting_root, "_tau_entropy_ema", 0.75)
+    weighting_root.controller_state = TorchControllerState(
+        logic.torch if hasattr(logic, "torch") else __import__("torch"),
+        tau_init=weighting_root.tau,
+        beta_init=weighting_root.beta,
+        requires_grad=False,
+    )
+    accel_root = _Accel(index=0)
+    assert logic.broadcast_controller_state(accel_root, weighting_root) is True
+
+    follower = _build_weighting(beta=0.1, tau=0.9)
+    follower.controller_meta.enabled = True
+    setattr(follower, "_tau_log", math.log(follower.tau))
+    setattr(follower, "_tau_entropy_ema", follower.tau)
+    follower.controller_state = TorchControllerState(
+        logic.torch if hasattr(logic, "torch") else __import__("torch"),
+        tau_init=follower.tau,
+        beta_init=follower.beta,
+        requires_grad=False,
+    )
+    accel_follower = _Accel(index=1)
+    assert logic.broadcast_controller_state(accel_follower, follower) is True
+    assert follower.tau == pytest.approx(weighting_root.tau)
+    assert follower.beta == pytest.approx(weighting_root.beta)
+    assert getattr(follower, "_tau_log") == pytest.approx(
+        getattr(weighting_root, "_tau_log")
+    )
+    assert getattr(follower, "_tau_entropy_ema") == pytest.approx(
+        getattr(weighting_root, "_tau_entropy_ema")
+    )
 
 
 def test_collect_weight_entropy_handles_empty_and_values(weighting_logic):
@@ -594,3 +800,31 @@ def test_compute_weight_stats_respects_grpo_flag(weighting_logic):
     assert grpo_stats.weights_grouped[0] == pytest.approx([0.5, 0.5])
     # MaxEnt should tilt toward the higher reference logprob (first element).
     assert maxent_stats.weights_grouped[0][0] > maxent_stats.weights_grouped[0][1]
+
+
+def test_weight_vector_uses_controller_state_parameters(weighting_logic):
+    logic, stub = weighting_logic
+    weighting = _build_weighting(beta=0.2, tau=0.8)
+    weighting.controller_meta.enabled = True
+    controller_state = TorchControllerState(
+        stub,
+        tau_init=weighting.tau,
+        beta_init=weighting.beta,
+        requires_grad=True,
+    )
+    controller_state.sync_from_scalars(0.2, 0.2)
+    weighting.controller_state = controller_state
+
+    weights = logic.weight_vector_from_q(
+        [0.6, 0.4],
+        [0.0, 0.0],
+        None,
+        weighting,
+        include_reference_term=False,
+        normalize_by_tokens=False,
+    )
+    numerators = np.exp([math.log(0.6) / 0.4, math.log(0.4) / 0.4])
+    expected = (numerators / numerators.sum()).tolist()
+    assert weights == pytest.approx(expected)
+    assert controller_state.last_weights is not None
+    assert controller_state.last_weights.tolist() == pytest.approx(expected)

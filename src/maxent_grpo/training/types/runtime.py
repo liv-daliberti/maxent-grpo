@@ -46,6 +46,7 @@ from .rewards import PromptCacheEntry
 
 if TYPE_CHECKING:
     from .batch import ValidationContext
+    from ..controller_objective import ControllerObjective
 
     try:
         import torch as torch_module
@@ -220,6 +221,7 @@ class RuntimeHandles:
     train_sampler: Optional[Sampler[Any]]
     device: torch.device
     get_ref_model: Callable[[], PreTrainedModel]
+    prompt_cache_get: Optional[Callable[[str], PromptCacheEntry]] = None
 
 
 @dataclass
@@ -261,6 +263,7 @@ class OptimizationSchedule:
     steps_per_epoch: Optional[int]
     total_training_steps: int
     warmup_steps: int
+    lr_scheduler_type: str = "cosine"
 
 
 @dataclass
@@ -298,6 +301,9 @@ class BatchingSettings:
     logprob_chunk_size: int
     score_slice: int
     prompt_length_cache_get: Callable[[str], "PromptCacheEntry"]
+    score_tail_tokens: Optional[int] = None
+    slice_prefetch: int = 0
+    prompt_cache_size: int = 0
 
 
 @dataclass
@@ -332,6 +338,8 @@ class LoopSettings:
     optimization: OptimizationSettings
     scoring: ScoringSettings
     controller: ControllerPaths
+    controller_objective: Optional["ControllerObjective"] = None
+    controller_meta_manager: Optional[Any] = None
 
 
 @dataclass
@@ -388,6 +396,18 @@ class TrainingLoopContext:
         :rtype: ControllerPaths
         """
         return self.settings.controller
+
+    @property
+    def controller_objective(self):
+        """Return the configured controller objective, if any."""
+
+        return getattr(self.settings, "controller_objective", None)
+
+    @property
+    def controller_meta_manager(self):
+        """Return the meta-controller manager, if configured."""
+
+        return getattr(self.settings, "controller_meta_manager", None)
 
 
 __all__ = [

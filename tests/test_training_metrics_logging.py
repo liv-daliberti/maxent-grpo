@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
 from maxent_grpo.training import metrics
 from maxent_grpo.training.types.logging import (
     LoggingConfigView,
@@ -163,3 +164,69 @@ def test_build_training_metrics_dict_sets_grpo_vs_maxent_flags():
     metrics_dict = metrics.build_training_metrics_dict(payload, global_step=1)
     assert metrics_dict["train/grpo_objective"] == 1.0
     assert metrics_dict["train/maxent_objective"] == 0.0
+
+
+def test_build_training_metrics_dict_smoke_emits_metric_sections():
+    payload = _payload()
+    payload.seed_metrics = {"foo": 0.5}
+    metrics_dict = metrics.build_training_metrics_dict(payload, global_step=5)
+    expected_keys = [
+        "train/loss",
+        "train/loss/total",
+        "train/loss/policy",
+        "train/reward",
+        "train/rewards/r0/mean",
+        "train/completions/mean_length_sampled",
+        "train/weight_entropy",
+        "train/weighting/tau",
+        "train/weighting/q_temperature",
+        "train/weight_norm_denom",
+        "train/weighting/weight_norm_denom",
+        "train/clip_ratio",
+        "train/kl_per_token_bucket/0-32",
+        "train/kl_controller/target",
+        "train/seed/foo",
+        "run/git_sha",
+    ]
+    missing = [key for key in expected_keys if key not in metrics_dict]
+    assert not missing
+
+
+def test_grpo_pipeline_metrics_are_subset_of_maxent_metrics():
+    payload = _payload()
+    payload.seed_metrics = {"foo": 0.1}
+    payload.config.weighting.train_grpo_objective = False
+    maxent_metrics = metrics.build_training_metrics_dict(payload, global_step=2)
+
+    class _Trainer:
+        def __init__(self):
+            self.args = SimpleNamespace(
+                maxent_tau=payload.config.weighting.tau,
+                maxent_tau_lr=payload.config.weighting.tau_lr,
+                maxent_tau_min=payload.config.weighting.tau_min,
+                maxent_tau_max=payload.config.weighting.tau_max,
+                maxent_tau_warmup_steps=payload.config.weighting.tau_warmup_steps,
+                maxent_target_weight_entropy=None,
+                maxent_q_temperature=payload.config.weighting.q_temperature,
+                maxent_q_epsilon=payload.config.weighting.q_epsilon,
+                maxent_length_normalize_ref=False,
+                train_grpo_objective=True,
+                kl_target=payload.config.weighting.kl_controller.target,
+                kl_horizon=payload.config.weighting.kl_controller.horizon,
+                kl_ctl_step_size=payload.config.weighting.kl_controller.step_size,
+                num_generations=1,
+            )
+            self.state = SimpleNamespace(global_step=1)
+            self.kl_ctl = SimpleNamespace(value=payload.config.weighting.beta)
+            self.logged = None
+
+        def log(self, logs):
+            self.logged = logs
+            return logs
+
+    Wrapped = ensure_weighting_logging(_Trainer)
+    trainer = Wrapped()
+    trainer.log({"loss": 1.0, "reward": 0.5, "completions/clipped_ratio": -1.0})
+    grpo_keys = {key for key in trainer.logged if key.startswith("train/")}
+    missing = sorted(grpo_keys - set(maxent_metrics))
+    assert not missing

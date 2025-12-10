@@ -41,6 +41,7 @@ import math
 import json
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
 
+from maxent_grpo.training.runtime.logging import _log_wandb
 from .runtime import resolve_run_metadata
 from .types import (
     Accelerator,
@@ -67,6 +68,70 @@ if TYPE_CHECKING:  # Avoid importing heavy pipeline/scoring deps at runtime
 
 LOG = logging.getLogger(__name__)
 _WANDB_SAMPLE_ROWS = 4
+_LOG_STRATEGY_WARNED = {"epoch": False}
+_DEBUG_METRIC_FIELDS = (
+    ("train/loss", "loss"),
+    ("train/reward", "reward"),
+    ("train/reward_std", "reward_std"),
+    ("train/q_entropy_mean", "q_entropy"),
+    ("train/weight_entropy", "w_entropy"),
+    ("train/kl", "kl"),
+    ("train/tau", "tau"),
+    ("train/beta", "beta"),
+)
+
+
+def _logging_controls(ctx: TrainingLoopContext) -> tuple[str, int, bool]:
+    """Return logging cadence (strategy, steps, first-step flag)."""
+    training_args = getattr(ctx, "training_args", None)
+    strategy = str(getattr(training_args, "logging_strategy", "steps") or "steps").lower()
+    steps = int(getattr(training_args, "logging_steps", 1) or 1)
+    first_step = bool(getattr(training_args, "logging_first_step", True))
+    if steps <= 0:
+        steps = 1
+    return strategy, steps, first_step
+
+
+def _should_log(ctx: TrainingLoopContext, step: int) -> bool:
+    """Return True when metrics should be emitted for this step."""
+    strategy, steps, first_step = _logging_controls(ctx)
+    if strategy in {"no", "none", "off"}:
+        return False
+    if strategy in {"epoch", "epochs"}:
+        if not _LOG_STRATEGY_WARNED["epoch"]:
+            LOG.warning("logging_strategy=epoch is not supported in the custom loop; disabling step logs.")
+            _LOG_STRATEGY_WARNED["epoch"] = True
+        return False
+    if step == 0:
+        return first_step
+    return (step % steps) == 0
+
+
+def _log_debug_metrics(step: int, metrics: Dict[str, Any]) -> None:
+    """Emit a concise debug line with key metrics for the current step."""
+
+    if not LOG.isEnabledFor(logging.DEBUG):
+        return
+    parts: List[str] = []
+    for key, label in _DEBUG_METRIC_FIELDS:
+        value = metrics.get(key)
+        if isinstance(value, (int, float)) and math.isfinite(float(value)):
+            parts.append(f"{label}={float(value):.6f}")
+    reward_components: List[str] = []
+    for key in sorted(metrics):
+        if not key.startswith("train/rewards/"):
+            continue
+        if not key.endswith("/mean"):
+            continue
+        short_name = key.split("/")[-2]
+        value = metrics.get(key)
+        if isinstance(value, (int, float)) and math.isfinite(float(value)):
+            reward_components.append(f"{short_name}={float(value):.4f}")
+    if reward_components:
+        parts.append("rewards[" + ", ".join(reward_components) + "]")
+    if not parts:
+        parts.append("no-metrics")
+    LOG.debug("debug metrics step %d | %s", step, " ".join(parts))
 
 try:  # Optional dependency
     import wandb
@@ -173,8 +238,10 @@ def _base_metric_block(
 ) -> Dict[str, Any]:
     """Return loss/optimizer scalars that mirror the TRL trainer."""
     scalars = payload.scalars
+    total_loss = payload.loss_outputs.total_loss_scalar
     metrics: Dict[str, Any] = {
-        "train/loss": payload.loss_outputs.total_loss_scalar,
+        "train/loss": total_loss,
+        "train/loss/total": total_loss,
         "train/learning_rate": scalars.current_lr,
         "train/epoch": scalars.epoch_progress,
         "train/global_step": float(global_step),
@@ -313,6 +380,8 @@ def _weighting_config_block(
     tau_lr_effective = getattr(weighting, "_tau_lr_effective", weighting.tau_lr)
     metrics: Dict[str, float] = {
         "train/weight_norm_denom": weighting.denom,
+        "train/weighting/tau": float(weighting.tau),
+        "train/weighting/beta": float(weighting.beta),
         "train/tau_log": float(
             getattr(weighting, "_tau_log", math.log(max(weighting.tau, 1e-8)))
         ),
@@ -355,6 +424,26 @@ def _weighting_config_block(
         "train/delta_beta": delta_beta,
         "train/delta_beta_abs": abs(delta_beta),
     }
+    metrics["train/weighting/weight_norm_denom"] = metrics["train/weight_norm_denom"]
+    metrics["train/weighting/tau_log"] = metrics["train/tau_log"]
+    metrics["train/weighting/q_temperature"] = metrics["train/q_temperature"]
+    metrics["train/weighting/q_epsilon"] = metrics["train/q_epsilon"]
+    metrics["train/weighting/tau_lr"] = metrics["train/tau_lr"]
+    metrics["train/weighting/tau_min"] = metrics["train/tau_min"]
+    metrics["train/weighting/tau_max"] = metrics["train/tau_max"]
+    metrics[
+        "train/weighting/tau_warmup_steps"
+    ] = metrics["train/tau_warmup_steps"]
+    metrics[
+        "train/weighting/tau_target_entropy"
+    ] = metrics["train/tau_target_entropy"]
+    metrics[
+        "train/weighting/tau_schedule_active"
+    ] = metrics["train/tau_schedule_active"]
+    metrics["train/weighting/delta_tau"] = metrics["train/delta_tau"]
+    metrics["train/weighting/delta_tau_abs"] = metrics["train/delta_tau_abs"]
+    metrics["train/weighting/delta_beta"] = metrics["train/delta_beta"]
+    metrics["train/weighting/delta_beta_abs"] = metrics["train/delta_beta_abs"]
     # Error-to-target signals for KL and weight entropy controllers.
     kl_measured = payload.diagnostics.kl_value
     if kl_measured is None:
@@ -376,6 +465,38 @@ def _weighting_config_block(
         # Treat the squared error as a simple controller "loss" so it shows up alongside
         # the main model loss in dashboards (e.g., W&B).
         metrics["train/tau_loss"] = 0.5 * entropy_error * entropy_error
+    meta_cfg = getattr(weighting, "controller_meta", None)
+    meta_enabled = bool(getattr(meta_cfg, "enabled", False))
+    metrics["train/meta/enabled"] = 1.0 if meta_enabled else 0.0
+    metrics["train/meta/lr"] = float(getattr(meta_cfg, "learning_rate", 0.0)) if meta_cfg else 0.0
+    metrics["train/meta/update_interval"] = float(
+        getattr(meta_cfg, "update_interval", 0.0) if meta_cfg else 0.0
+    )
+    metrics["train/meta/truncation_steps"] = float(
+        getattr(meta_cfg, "truncation_steps", getattr(meta_cfg, "analytic_steps", 0)) if meta_cfg else 0.0
+    )
+    metrics["train/meta/use_hessian"] = (
+        1.0 if meta_cfg and getattr(meta_cfg, "use_hessian", False) else 0.0
+    )
+    tau_grad = float(getattr(weighting, "_meta_last_tau_grad", 0.0))
+    beta_grad = float(getattr(weighting, "_meta_last_beta_grad", 0.0))
+    metrics["train/meta/tau_grad"] = tau_grad
+    metrics["train/meta/beta_grad"] = beta_grad
+    metrics["train/meta/grad_norm"] = math.sqrt(tau_grad * tau_grad + beta_grad * beta_grad)
+    metrics["train/meta/loss"] = float(getattr(weighting, "_meta_last_loss", 0.0))
+    metrics["train/meta/tau_projected"] = (
+        1.0 if getattr(weighting, "_meta_tau_projected", False) else 0.0
+    )
+    metrics["train/meta/beta_projected"] = (
+        1.0 if getattr(weighting, "_meta_beta_projected", False) else 0.0
+    )
+    metrics.setdefault(
+        "train/weighting/tau_loss", metrics.get("train/tau_loss", 0.0)
+    )
+    metrics["train/kl_controller/target"] = metrics["train/kl_controller_target"]
+    metrics["train/kl_controller/horizon"] = metrics["train/kl_controller_horizon"]
+    metrics["train/kl_controller/step_size"] = metrics["train/kl_controller_step_size"]
+    metrics["train/kl_controller/enabled"] = metrics["train/kl_controller_enabled"]
     return metrics
 
 
@@ -393,6 +514,10 @@ def build_training_metrics_dict(
     metrics.update(_weight_metric_block(payload))
     metrics.update(_weighting_config_block(payload, global_step))
     metrics.update(_clip_metric_block(payload.diagnostics))
+    if "train/kl" not in metrics:
+        kl_fallback = getattr(payload.loss_outputs, "kl_loss_scalar", None)
+        if isinstance(kl_fallback, (int, float)):
+            metrics["train/kl"] = float(kl_fallback)
     if payload.seed_metrics:
         metrics.update({f"train/seed/{k}": v for k, v in payload.seed_metrics.items()})
     return metrics
@@ -672,6 +797,7 @@ def _emit_metrics(
             metric_logger(metrics)
         else:
             logging_handles.log_metrics(metrics, global_step)
+        _log_wandb(getattr(logging_handles, "wandb_run", None), metrics, global_step)
         accelerator_log = getattr(accelerator, "log", None)
         if callable(accelerator_log):
             try:
@@ -775,7 +901,11 @@ def log_local_step(
         weight_view=weight_view,
     )
     metrics = build_training_metrics_dict(payload, state.global_step)
-    with ctx.logging.step_logger(state.global_step, enabled=False) as step_logger:
+    _log_debug_metrics(state.global_step, metrics)
+    accumulate_metrics(state, metrics)
+    if not _should_log(ctx, state.global_step):
+        return
+    with ctx.logging.step_logger(state.global_step, enabled=True) as step_logger:
         _emit_metrics(
             ctx,
             metrics,
@@ -784,7 +914,6 @@ def log_local_step(
             tag="Local",
             metric_logger=getattr(step_logger, "log", None),
         )
-    accumulate_metrics(state, metrics)
 
 
 def _build_sample_table(
@@ -895,6 +1024,8 @@ def log_training_step(
     :param current_lr: Learning rate applied for the current step.
     :type current_lr: float
     """
+    if not _should_log(ctx, state.global_step):
+        return
     accelerator = ctx.runtime.accelerator
     if accelerator.is_main_process:
         LOG.info(
@@ -936,7 +1067,13 @@ def log_training_step(
         pretty = _pretty_print_metrics(metrics)
         LOG.info("Global metrics (pretty) step %d\n%s", state.global_step, pretty)
     _update_weighting_history(ctx.scoring.weighting, state.global_step)
-    _log_sample_table(ctx, state, prepared)
+    training_args = getattr(ctx, "training_args", None)
+    if training_args is None:
+        log_completions = True
+    else:
+        log_completions = getattr(training_args, "log_completions", False)
+    if log_completions:
+        _log_sample_table(ctx, state, prepared)
 
 
 __all__ = [

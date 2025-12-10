@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import List
 
 import maxent_grpo.generation.vllm as vllm
+from tests.helpers.vllm import make_vllm_context
 
 
 class _StubAccel:
@@ -19,9 +20,8 @@ class _StubAccel:
 
 
 def _ctx():
-    return SimpleNamespace(
+    return make_vllm_context(
         accelerator=_StubAccel(),
-        generation_stats={},
         vllm_sync_weights=True,
         vllm_request_logprobs=False,
         vllm_url="http://localhost:8000",

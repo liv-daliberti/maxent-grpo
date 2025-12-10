@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from maxent_grpo.generation.vllm_weight_sync import VLLMWeightSyncMixin
+from tests.helpers.vllm import make_vllm_context
 
 
 class _MixinUnderTest(VLLMWeightSyncMixin):
@@ -35,7 +36,7 @@ class _MixinUnderTest(VLLMWeightSyncMixin):
 
 
 def test_ensure_vllm_client_handles_init_signatures(monkeypatch):
-    ctx = SimpleNamespace(
+    ctx = make_vllm_context(
         accelerator=SimpleNamespace(is_main_process=True),
         vllm_url="http://host",
         vllm_sync_weights=True,
@@ -60,7 +61,7 @@ def test_ensure_vllm_client_handles_init_signatures(monkeypatch):
 
 
 def test_maybe_sync_weights_respects_step_and_stats(monkeypatch):
-    ctx = SimpleNamespace(
+    ctx = make_vllm_context(
         accelerator=SimpleNamespace(
             unwrap_model=lambda m: m, wait_for_everyone=lambda: None
         ),
@@ -102,7 +103,7 @@ def test_maybe_sync_weights_respects_step_and_stats(monkeypatch):
 
 
 def test_sync_model_params_to_vllm_handles_fsdp_and_peft(monkeypatch):
-    ctx = SimpleNamespace(
+    ctx = make_vllm_context(
         generation_stats={},
         vllm_url="http://host",
         vllm_sync_weights=True,

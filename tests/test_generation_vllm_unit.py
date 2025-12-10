@@ -24,6 +24,8 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
+from tests.helpers.vllm import make_vllm_context
+
 import pytest
 
 
@@ -81,49 +83,7 @@ def _load_vllm(monkeypatch):
 
 
 def _ctx(**kwargs):
-    defaults = dict(
-        accelerator=SimpleNamespace(
-            is_main_process=True,
-            process_index=0,
-            num_processes=1,
-            state=None,
-        ),
-        vllm_sync_weights=False,
-        vllm_url="http://localhost:8000/generate",
-        vllm_rounds_cfg=0,
-        vllm_request_logprobs=False,
-        vllm_retry_sleep=0.0,
-        vllm_backfill_local=False,
-        vllm_stop_sequences=None,
-        vllm_top_k=None,
-        vllm_best_of=None,
-        vllm_logit_bias=None,
-        vllm_guided_json=None,
-        vllm_guided_regex=None,
-        vllm_request_id_prefix=None,
-        vllm_timeout=10,
-        vllm_max_retries=0,
-        vllm_backoff=None,
-        gen_stop_sequences=None,
-        gen_top_k=None,
-        gen_best_of=None,
-        gen_temperature=0.1,
-        gen_top_p=0.9,
-        gen_frequency_penalty=0.0,
-        gen_presence_penalty=0.0,
-        max_completion_len=8,
-        tokenizer=None,
-        prompt_char_limit=None,
-        generation_stats={
-            "vllm_retry_rounds": 0,
-            "vllm_backfilled_prompts": 0,
-            "vllm_failed_prompts": 0,
-            "vllm_excess_prompts": 0,
-            "vllm_excess_completions": 0,
-        },
-    )
-    defaults.update(kwargs)
-    return SimpleNamespace(**defaults)
+    return make_vllm_context(**kwargs)
 
 
 def test_optional_import_returns_none_and_module(monkeypatch):
@@ -401,6 +361,17 @@ def test_build_vllm_request_kwargs_and_latency(monkeypatch):
     monkeypatch.setattr(module, "PROMPT_CHAR_LIMIT", 9)
     ctx.max_prompt_len = 0
     assert helper._prompt_char_limit() == 9
+
+
+def test_build_vllm_request_kwargs_attaches_metadata(monkeypatch):
+    module = _load_vllm(monkeypatch)
+    ctx = _ctx()
+    ctx.generation_stats["dataset_name"] = "train-ds"
+    ctx.generation_stats["model_id"] = "org/model"
+    ctx.model = SimpleNamespace(name_or_path="org/model")
+    helper = module.VLLMGenerationHelper(ctx, lambda *_: ([], None))
+    kwargs = helper._build_vllm_request_kwargs(["p"], 1)
+    assert kwargs["metadata"] == {"dataset": "train-ds", "model_id": "org/model"}
 
 
 def test_scatter_vllm_payload_single_rank(monkeypatch):
@@ -1325,9 +1296,13 @@ def test_run_vllm_rounds_breaks_after_runtime_error(monkeypatch):
         round_limit=1,
         track_logprobs=False,
     )
-    helper._run_vllm_rounds(state)
-    # Failure recorded for the single prompt after exhausting retries.
-    assert helper.ctx.generation_stats["vllm_failed_prompts"] == 1
+    with pytest.raises(module.GenerationServiceError) as exc_info:
+        helper._run_vllm_rounds(state)
+    payload = exc_info.value.payload.to_dict()
+    assert payload["prompt_count"] == 1
+    assert payload["attempt"] == 1
+    assert helper.ctx.generation_stats["vllm_retry_failures"] == 1
+    assert helper.ctx.generation_stats["vllm_last_error"]["prompt_count"] == 1
 
 
 def test_request_vllm_batch_mismatch_returns_none(monkeypatch):

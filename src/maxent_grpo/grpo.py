@@ -8,6 +8,7 @@ programmatic invocation inside orchestration code.
 
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -21,19 +22,56 @@ if __package__ is None or __package__ == "":
     sys.path.insert(0, project_src_str)
 
 from typing import TYPE_CHECKING, Optional
+from types import SimpleNamespace
+
+from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
+
+ensure_usercustomize_loaded()
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
 if TYPE_CHECKING:
     from trl import ModelConfig
 
+def _missing_hydra_entry(*_args, **_kwargs):  # pragma: no cover - fallback stub
+    raise RuntimeError(
+        "Hydra CLI entrypoints are unavailable; install optional CLI dependencies."
+    )
+
+
 try:  # Best-effort to expose CLI helpers when available.
     from maxent_grpo.cli import hydra_cli, parse_grpo_args  # type: ignore
 except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover - optional deps may be absent
-    hydra_cli = None  # type: ignore
+    hydra_cli = SimpleNamespace(  # type: ignore
+        baseline_entry=_missing_hydra_entry,
+        maxent_entry=_missing_hydra_entry,
+        infoseed_entry=_missing_hydra_entry,
+        hydra_entry=_missing_hydra_entry,
+    )
     parse_grpo_args = None  # type: ignore
 
 __all__ = ["cli", "main"]
+
+
+def _resolve_cli_attr(attr_name: str):
+    """Best-effort import helper for optional CLI attributes."""
+
+    try:
+        cli_mod = importlib.import_module("maxent_grpo.cli")
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        cli_mod = None
+    if cli_mod is not None:
+        attr = getattr(cli_mod, attr_name, None)
+        if attr is not None:
+            return attr
+    try:
+        pkg = importlib.import_module("maxent_grpo")
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        return None
+    cli_pkg = getattr(pkg, "cli", None)
+    if cli_pkg is None:
+        return None
+    return getattr(cli_pkg, attr_name, None)
 
 
 def main(
@@ -55,20 +93,11 @@ def main(
         _parse_grpo_args = parse_grpo_args
         _hydra_cli = hydra_cli
         if not callable(_parse_grpo_args):
-            try:
-                from maxent_grpo.cli import parse_grpo_args as _parse_grpo_args  # type: ignore
-            except (ImportError, ModuleNotFoundError, AttributeError):
-                _parse_grpo_args = None
+            parsed = _resolve_cli_attr("parse_grpo_args")
+            _parse_grpo_args = parsed if callable(parsed) else None
         if _hydra_cli is None:
-            try:
-                from maxent_grpo.cli import hydra_cli as _hydra_cli  # type: ignore
-            except (ImportError, ModuleNotFoundError, AttributeError):
-                try:
-                    from maxent_grpo import cli as _cli_pkg  # type: ignore
-
-                    _hydra_cli = getattr(_cli_pkg, "hydra_cli", None)
-                except (ImportError, ModuleNotFoundError, AttributeError):
-                    _hydra_cli = None
+            resolved_hydra = _resolve_cli_attr("hydra_cli")
+            _hydra_cli = resolved_hydra if resolved_hydra is not None else None
         if callable(_parse_grpo_args):
             try:
                 script_args, training_args, model_args = _parse_grpo_args()
@@ -87,6 +116,13 @@ def main(
             return _hydra_cli.baseline_entry()
         else:
             raise RuntimeError("No CLI parser available")
+    meta_enabled = bool(getattr(training_args, "controller_meta_enabled", False))
+    if meta_enabled:
+        training_args.train_grpo_objective = True
+        from maxent_grpo.pipelines.training.maxent import run_maxent_training
+
+        return run_maxent_training(script_args, training_args, model_args)
+
     baseline_mod = sys.modules.get("maxent_grpo.pipelines.training.baseline")
     if baseline_mod and hasattr(baseline_mod, "run_baseline_training"):
         run_baseline_training = baseline_mod.run_baseline_training  # type: ignore[attr-defined]

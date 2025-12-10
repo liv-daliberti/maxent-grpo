@@ -2,19 +2,130 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
+import sys
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime.prompts import _truncate_prompt
+from maxent_grpo.training.runtime.logging import _wandb_error_types
 
 from .vllm_state import _VLLMGenerationState
 
 _DEFAULT_PROMPT_CHAR_LIMIT = 2048
 
 LOG = logging.getLogger(__name__)
+
+
+
+
+def _hash_prompts(prompts: List[str]) -> str:
+    """Return a stable identifier for the pending prompt batch."""
+
+    if not prompts:
+        return "0" * 12
+    try:
+        joined = "\u241e".join(prompts)
+    except TypeError:
+        joined = "\u241e".join(str(prompt) for prompt in prompts)
+    digest = hashlib.sha256(joined.encode("utf-8", errors="ignore")).hexdigest()
+    return digest[:12]
+
+
+def _resolve_served_model_id(ctx: Any) -> Optional[str]:
+    """Best-effort resolution of the external model identifier."""
+
+    direct_keys = (
+        "vllm_model_id",
+        "served_model_id",
+        "model_name",
+        "model_id",
+        "hub_model_id",
+    )
+    for key in direct_keys:
+        value = getattr(ctx, key, None)
+        if isinstance(value, str) and value:
+            return value
+    model_obj = getattr(ctx, "model", None)
+    if model_obj is not None:
+        name = getattr(model_obj, "name_or_path", None)
+        if isinstance(name, str) and name:
+            return name
+        cfg = getattr(model_obj, "config", None)
+        cfg_name = getattr(cfg, "name_or_path", None) or getattr(
+            cfg, "_name_or_path", None
+        )
+        if isinstance(cfg_name, str) and cfg_name:
+            return cfg_name
+    training_args = getattr(ctx, "training_args", None)
+    hub_id = getattr(training_args, "hub_model_id", None)
+    if isinstance(hub_id, str) and hub_id:
+        return hub_id
+    return None
+
+
+def _resolve_dataset_label(ctx: Any) -> Optional[str]:
+    """Return the dataset label stored on the context or stats."""
+
+    stats = getattr(ctx, "generation_stats", None)
+    if isinstance(stats, dict):
+        label = stats.get("dataset_name")
+        if isinstance(label, str) and label:
+            return label
+    label = getattr(ctx, "dataset_name", None)
+    if isinstance(label, str) and label:
+        return label
+    training_args = getattr(ctx, "training_args", None)
+    label = getattr(training_args, "dataset_name", None)
+    if isinstance(label, str) and label:
+        return label
+    return None
+
+
+def _resolve_client_tag(ctx: Any) -> Optional[str]:
+    """Return a stable client tag for this trainer rank if available."""
+
+    explicit = getattr(ctx, "vllm_client_tag", None)
+    if isinstance(explicit, str) and explicit.strip():
+        return explicit.strip()
+
+    env_tag = os.environ.get("VLLM_CLIENT_TAG")
+    if isinstance(env_tag, str) and env_tag.strip():
+        return env_tag.strip()
+
+    accelerator = getattr(ctx, "accelerator", None)
+    rank: Optional[int] = None
+    world: Optional[int] = None
+    if accelerator is not None:
+        rank = getattr(accelerator, "process_index", None)
+        world = getattr(accelerator, "num_processes", None)
+    if rank is None:
+        for key in ("RANK", "LOCAL_RANK", "SLURM_PROCID"):
+            raw = os.environ.get(key)
+            if raw is not None:
+                try:
+                    rank = int(raw)
+                    break
+                except (TypeError, ValueError):
+                    continue
+    if rank is None:
+        return None
+    if world is None:
+        for key in ("WORLD_SIZE", "SLURM_NTASKS"):
+            raw = os.environ.get(key)
+            if raw is not None:
+                try:
+                    world = int(raw)
+                    break
+                except (TypeError, ValueError):
+                    continue
+    if world is not None and world > 0:
+        return f"rank-{rank}-of-{world}"
+    return f"rank-{rank}"
 
 
 def _resolve_default_limit() -> int:
@@ -264,19 +375,41 @@ class VLLMRequestMixin:
             except RuntimeError as err:
                 pending_count = len(pending_indices)
                 LOG.warning(
-                    "vLLM attempt %d/%d for %d prompts failed: %s",
+                    "vLLM attempt %d/%d for %d prompts failed (policy=%s): %s",
                     attempt,
                     state.round_limit,
                     pending_count,
+                    self._format_retry_policy(),
                     err,
                 )
+                status_code = self._status_code_from_error(err)
+                self._record_retry_attempt_metric(
+                    status_code,
+                    attempt,
+                    pending_count,
+                )
                 if attempt >= state.round_limit:
-                    break
-                sleep_mod = getattr(self, "_time", time)
-                if ctx.vllm_retry_sleep > 0 and hasattr(sleep_mod, "sleep"):
-                    sleep_mod.sleep(ctx.vllm_retry_sleep)
+                    payload = self._build_vllm_failure_payload(
+                        state,
+                        pending_indices,
+                        attempt,
+                        err,
+                    )
+                    self._log_retry_exhausted_metric(payload)
+                    self._log_structured_vllm_failure(payload)
+                    raise GenerationServiceError(
+                        f"vLLM retries exhausted for batch: {err}",
+                        payload,
+                    ) from err
+                self._sleep_before_retry()
                 continue
             if not success:
+                self._record_retry_attempt_metric(
+                    None,
+                    attempt,
+                    len(pending_indices),
+                    reason="no_response",
+                )
                 continue
         missing_indices = state.pending_indices()
         if missing_indices:
@@ -284,6 +417,190 @@ class VLLMRequestMixin:
             remaining = state.pending_indices()
             if remaining:
                 self._record_vllm_failure(state, remaining)
+
+    def _sleep_before_retry(self) -> None:
+        """Sleep between retries when ``vllm_retry_sleep`` is positive."""
+
+        retry_sleep = float(getattr(self.ctx, "vllm_retry_sleep", 0.0) or 0.0)
+        if retry_sleep <= 0:
+            return
+        sleep_mod = getattr(self, "_time", time)
+        if hasattr(sleep_mod, "sleep"):
+            sleep_mod.sleep(retry_sleep)
+
+    def _wandb_run(self) -> Optional[Any]:
+        wandb_mod = sys.modules.get("wandb")
+        if wandb_mod is None:
+            return None
+        return getattr(wandb_mod, "run", None)
+
+    def _log_wandb_metrics(self, metrics: Dict[str, Any]) -> None:
+        run = self._wandb_run()
+        if run is None or not metrics:
+            return
+        stats = getattr(self.ctx, "generation_stats", {}) or {}
+        step = int(stats.get("current_step") or 0)
+        try:
+            run.log(metrics, step=step)
+        except (_wandb_error_types() + (OSError,)) as exc:  # pragma: no cover - defensive
+            LOG.warning("Failed to log retry metrics to W&B: %s", exc)
+
+    def _retry_policy_details(self) -> Dict[str, Any]:
+        ctx = self.ctx
+        return {
+            "backoff_initial": float(getattr(ctx, "vllm_backoff", 1.0) or 0.0),
+            "backoff_multiplier": float(
+                getattr(ctx, "vllm_backoff_multiplier", 2.0) or 1.0
+            ),
+            "retry_sleep": float(getattr(ctx, "vllm_retry_sleep", 0.0) or 0.0),
+            "max_retries": int(getattr(ctx, "vllm_max_retries", 3) or 0),
+        }
+
+    def _format_retry_policy(self) -> str:
+        policy = self._retry_policy_details()
+        return (
+            "initial={backoff_initial:.3f},multiplier={backoff_multiplier:.3f},"
+            "sleep={retry_sleep:.3f},max_retries={max_retries}"
+        ).format(**policy)
+
+    def _record_retry_attempt_metric(
+        self,
+        status_code: Optional[int],
+        attempt: int,
+        pending_count: int,
+        reason: Optional[str] = None,
+    ) -> None:
+        metrics: Dict[str, Any] = {
+            "generation/retry_attempts": 1,
+            "generation/retry_status_code": status_code if status_code is not None else -1,
+            "generation/retry_attempt_index": attempt,
+            "generation/retry_pending": pending_count,
+        }
+        dataset_label = _resolve_dataset_label(self.ctx)
+        if dataset_label:
+            metrics["generation/retry_dataset"] = dataset_label
+        if reason:
+            metrics["generation/retry_reason"] = reason
+        self._log_wandb_metrics(metrics)
+
+    def _log_retry_exhausted_metric(self, payload: ServiceErrorPayload) -> None:
+        metrics: Dict[str, Any] = {
+            "generation/retry_exhausted": 1,
+            "generation/retry_exhausted_status": payload.status_code
+            if payload.status_code is not None
+            else -1,
+            "generation/retry_prompt_count": payload.prompt_count,
+            "generation/retry_attempt_index": payload.attempt,
+        }
+        prompt_hash = payload.extra.get("prompt_hash") if payload.extra else None
+        if prompt_hash:
+            metrics["generation/retry_prompt_hash"] = prompt_hash
+        dataset_label = payload.extra.get("dataset") if payload.extra else None
+        if not dataset_label:
+            dataset_label = _resolve_dataset_label(self.ctx)
+        if dataset_label:
+            metrics["generation/retry_dataset"] = dataset_label
+        model_label = payload.extra.get("model_id") if payload.extra else None
+        if not model_label:
+            stats = getattr(self.ctx, "generation_stats", None)
+            if isinstance(stats, dict):
+                model_label = stats.get("model_id")
+        if not model_label:
+            model_label = _resolve_served_model_id(self.ctx)
+        if model_label:
+            metrics["generation/retry_model_id"] = model_label
+        self._log_wandb_metrics(metrics)
+
+    def _status_code_from_error(self, err: BaseException) -> Optional[int]:
+        if isinstance(err, GenerationServiceError):
+            return err.payload.status_code
+        message = str(err)
+        if message.startswith("HTTP "):
+            parts = message.split(" ", 2)
+            if len(parts) >= 2:
+                try:
+                    return int(parts[1].rstrip(":"))
+                except ValueError:
+                    return None
+        return None
+
+    def _build_vllm_failure_payload(
+        self,
+        state: _VLLMGenerationState,
+        pending_indices: List[int],
+        attempt: int,
+        err: RuntimeError,
+    ) -> ServiceErrorPayload:
+        """Construct structured metadata for an exhausted retry batch."""
+
+        prompts = [state.prompts[idx] for idx in pending_indices]
+        remaining = state.remaining_counts(pending_indices)
+        stats = getattr(self.ctx, "generation_stats", {}) or {}
+        accelerator = getattr(self.ctx, "accelerator", None)
+        rank = int(getattr(accelerator, "process_index", 0)) if accelerator else 0
+        world = int(getattr(accelerator, "num_processes", 1)) if accelerator else 1
+        step = stats.get("current_step") if isinstance(stats, dict) else None
+        extra = {
+            "prompt_hash": _hash_prompts(prompts),
+            "pending_indices": list(pending_indices),
+            "remaining_need": remaining,
+            "rank": rank,
+            "world_size": world,
+            "step": int(step) if isinstance(step, (int, float)) else None,
+            "request_id_prefix": getattr(self.ctx, "vllm_request_id_prefix", None),
+            "round_limit": state.round_limit,
+            "backfill_enabled": bool(getattr(self.ctx, "vllm_backfill_local", False)),
+        }
+        extra.update(self._retry_policy_details())
+        dataset_label = _resolve_dataset_label(self.ctx)
+        if dataset_label:
+            extra["dataset"] = dataset_label
+        model_label = None
+        if isinstance(stats, dict):
+            model_label = stats.get("model_id")
+        if not model_label:
+            model_label = _resolve_served_model_id(self.ctx)
+        if model_label:
+            extra["model_id"] = model_label
+        base_payload = None
+        if isinstance(err, GenerationServiceError):
+            base_payload = err.payload
+        if base_payload is not None:
+            return base_payload.copy_with(
+                attempt=attempt,
+                max_attempts=state.round_limit,
+                exception_type=type(err).__name__,
+                exception_message=str(err),
+                extra=extra,
+            )
+        payload_chars = sum(len(prompt) for prompt in prompts)
+        payload_size_bytes = sum(
+            len(prompt.encode("utf-8", errors="ignore")) for prompt in prompts
+        )
+        return ServiceErrorPayload(
+            service="vllm",
+            endpoint=getattr(self.ctx, "vllm_url", ""),
+            model=_resolve_served_model_id(self.ctx),
+            prompt_count=len(prompts),
+            payload_chars=payload_chars,
+            payload_size_bytes=payload_size_bytes,
+            status_code=None,
+            attempt=attempt,
+            max_attempts=state.round_limit,
+            exception_type=type(err).__name__,
+            exception_message=str(err),
+            request_id=None,
+            extra=extra,
+        )
+
+    def _log_structured_vllm_failure(self, payload: ServiceErrorPayload) -> None:
+        """Emit structured metrics/logging for retry exhaustion."""
+
+        stats = getattr(self.ctx, "generation_stats", None)
+        if isinstance(stats, dict):
+            stats["vllm_retry_failures"] = int(stats.get("vllm_retry_failures", 0)) + 1
+            stats["vllm_last_error"] = payload.to_dict()
+        LOG.error("vLLM retry exhaustion | payload=%s", payload.to_json())
 
     def _execute_vllm_request(
         self,
@@ -462,7 +779,19 @@ class VLLMRequestMixin:
         )
         top_k = ctx.gen_top_k if ctx.gen_top_k is not None else ctx.vllm_top_k
         best_of = ctx.gen_best_of if ctx.gen_best_of is not None else ctx.vllm_best_of
-        return {
+        backoff_multiplier = getattr(ctx, "vllm_backoff_multiplier", 2.0)
+        stats = getattr(self.ctx, "generation_stats", {}) or {}
+        metadata: Dict[str, Any] = {}
+        dataset_label = _resolve_dataset_label(self.ctx)
+        if dataset_label:
+            metadata["dataset"] = dataset_label
+        model_label = stats.get("model_id")
+        if not model_label:
+            model_label = _resolve_served_model_id(self.ctx)
+        if model_label:
+            metadata["model_id"] = model_label
+        client_tag = _resolve_client_tag(ctx)
+        request_kwargs: Dict[str, Any] = {
             "prompts": prompts,
             "url": ctx.vllm_url,
             "max_tokens": ctx.max_completion_len,
@@ -483,8 +812,15 @@ class VLLMRequestMixin:
             "timeout": ctx.vllm_timeout,
             "max_retries": ctx.vllm_max_retries,
             "backoff": ctx.vllm_backoff,
+            "backoff_multiplier": backoff_multiplier,
             "return_logprobs": ctx.vllm_request_logprobs,
+            "service_model": _resolve_served_model_id(self.ctx),
         }
+        if metadata:
+            request_kwargs["metadata"] = metadata
+        if client_tag:
+            request_kwargs["client_tag"] = client_tag
+        return request_kwargs
 
     def _invoke_vllm_requests(
         self,

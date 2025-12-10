@@ -7,6 +7,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 import sys
 
+import pytest
+
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.pipelines.training import baseline
 from maxent_grpo.pipelines.training import maxent
@@ -90,73 +92,104 @@ def test_run_maxent_training_wires_baseline_call(monkeypatch):
     )
     script_args = GRPOScriptArguments(dataset_name="ds")
     training_args = GRPOConfig()
+    training_args.train_grpo_objective = True
     model_args = SimpleNamespace()
     result = maxent.run_maxent_training(script_args, training_args, model_args)
     assert called["args"] == (script_args, training_args, model_args)
     assert result == called["args"]
 
 
-def test_run_maxent_training_respects_flags(monkeypatch):
-    called = {}
+@pytest.mark.parametrize(
+    "train_grpo,info_seed_enabled",
+    [
+        (True, False),
+        (True, True),
+        (False, False),
+        (False, True),
+    ],
+)
+def test_run_maxent_training_pipeline_matrix(
+    monkeypatch, train_grpo, info_seed_enabled
+):
+    baseline_calls = []
     monkeypatch.setattr(
         maxent,
         "_run_baseline_training",
-        lambda *args, **kwargs: called.setdefault("args", args),
+        lambda *args, **kwargs: baseline_calls.append((args, kwargs)),
     )
+    builder_calls = []
+    ctx = SimpleNamespace()
+
+    def _builder(*args, **kwargs):
+        builder_calls.append((args, kwargs))
+        return ctx
+
+    loop_calls = []
+    monkeypatch.setattr(maxent, "build_training_loop_context", _builder)
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.training.GRPOTrainerOverride", None, raising=False
+        maxent,
+        "run_training_loop",
+        lambda context: loop_calls.append(context),
     )
-    script_args = GRPOScriptArguments(dataset_name="ds", dataset_prompt_column="prompt")
-    training_args = maxent.GRPOConfig()
-    training_args.train_grpo_objective = True
+    script_args = GRPOScriptArguments(dataset_name="ds")
+    training_args = GRPOConfig()
+    training_args.train_grpo_objective = train_grpo
+    training_args.info_seed_enabled = info_seed_enabled
+    training_args.get_process_log_level = lambda: 20
     model_args = SimpleNamespace()
+
     maxent.run_maxent_training(script_args, training_args, model_args)
-    assert called["args"] == (script_args, training_args, model_args)
+
+    if train_grpo:
+        assert baseline_calls and not builder_calls and not loop_calls
+        assert baseline_calls[0][0] == (script_args, training_args, model_args)
+    else:
+        assert not baseline_calls
+        assert builder_calls and loop_calls
+        args, kwargs = builder_calls[0]
+        assert args == (script_args, training_args, model_args)
+        assert kwargs == {
+            "deps_namespace": "maxent",
+            "apply_info_seed_cfg": True,
+            "force_grpo_objective": None,
+        }
+        assert loop_calls[0] is ctx
 
 
-def test_run_maxent_training_installs_override(monkeypatch):
-    _install_transformers_stub(monkeypatch)
-    trl_stub = _install_trl_stub(monkeypatch)
+def test_run_maxent_training_with_meta_forces_custom_loop(monkeypatch):
+    baseline_calls = []
+    monkeypatch.setattr(
+        maxent,
+        "_run_baseline_training",
+        lambda *args, **kwargs: baseline_calls.append((args, kwargs)),
+    )
+    builder_calls = []
+    ctx = SimpleNamespace()
 
-    raw_ds = {"train": [{"prompt": "p", "answer": "a"}]}
-    monkeypatch.setattr(baseline, "get_dataset", lambda *_: raw_ds)
-    monkeypatch.setattr(
-        baseline,
-        "get_tokenizer",
-        lambda *_a, **_k: SimpleNamespace(
-            eos_token_id=0,
-            pad_token_id=0,
-            padding_side="right",
-            add_special_tokens=lambda *_a, **_k: None,
-            __setattr__=object.__setattr__,
-        ),
-    )
-    monkeypatch.setattr(
-        baseline,
-        "get_model",
-        lambda *_a, **_k: SimpleNamespace(config=SimpleNamespace()),
-    )
-    monkeypatch.setattr(baseline, "get_reward_funcs", lambda *_a, **_k: [])
-    monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
-    monkeypatch.setattr(baseline.logging, "basicConfig", lambda **_k: None)
-    monkeypatch.setattr(
-        baseline.logging,
-        "getLogger",
-        lambda name=None: baseline.logging.Logger(name or "test"),
-    )
-    monkeypatch.setattr(baseline.os.path, "isdir", lambda path: False)
-    monkeypatch.setattr(baseline.os, "makedirs", lambda *a, **k: None)
+    def _builder(*args, **kwargs):
+        builder_calls.append((args, kwargs))
+        return ctx
+
+    loop_calls = []
+    monkeypatch.setattr(maxent, "build_training_loop_context", _builder)
+    monkeypatch.setattr(maxent, "run_training_loop", lambda context: loop_calls.append(context))
 
     script_args = GRPOScriptArguments(dataset_name="ds")
     training_args = GRPOConfig()
-    training_args.train_grpo_objective = False
-    training_args.do_eval = False
-    training_args.seed = 0
-    training_args.output_dir = "/tmp/out"
+    training_args.train_grpo_objective = True
+    training_args.controller_meta_enabled = True
     training_args.get_process_log_level = lambda: 20
-    model_args = trl_stub.ModelConfig()
+    model_args = SimpleNamespace()
 
     maxent.run_maxent_training(script_args, training_args, model_args)
-    trainer = trl_stub._created[-1]
-    assert trainer.__class__.__name__ == "MaxEntGRPOTrainer"
-    assert getattr(trainer, "maxent_enabled", False) is True
+
+    assert not baseline_calls
+    assert builder_calls and loop_calls
+    args, kwargs = builder_calls[0]
+    assert args == (script_args, training_args, model_args)
+    assert kwargs == {
+        "deps_namespace": "maxent",
+        "apply_info_seed_cfg": True,
+        "force_grpo_objective": True,
+    }
+    assert loop_calls[0] is ctx

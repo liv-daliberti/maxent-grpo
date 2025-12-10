@@ -29,6 +29,10 @@ from maxent_grpo.generation import (
     seed_generation_groups,
     truncate_to_expected_counts,
 )
+from maxent_grpo.generation.errors import (
+    GenerationServiceError,
+    log_generation_service_error,
+)
 from maxent_grpo.training.runtime import require_torch
 from .run_helpers import _group_softmax
 from maxent_grpo.rewards.basic import get_reward_funcs
@@ -226,7 +230,18 @@ def prepare_generation_batch(
         len(prompts),
         expected_generations,
     )
-    gen_result = generator(prompts, expected_generations)
+    def _call_generator(
+        prompt_batch: List[str],
+        expected: int,
+        per_prompt_counts: Optional[List[int]] = None,
+    ):
+        try:
+            return generator(prompt_batch, expected, per_prompt_counts)
+        except GenerationServiceError as exc:
+            log_generation_service_error(LOG, "training", exc)
+            raise
+
+    gen_result = _call_generator(prompts, expected_generations)
     if gen_result is None:
         return None
     if isinstance(gen_result, GenerationBatch):
@@ -251,7 +266,7 @@ def prepare_generation_batch(
     aggregated_state = AggregatedGenerationState(aggregated_comps, aggregated_meta)
     aggregated_state = retry_incomplete_prompts(
         prompts,
-        generator,
+        _call_generator,
         expected_generations,
         aggregated_state,
         max_retry_rounds,
@@ -413,6 +428,8 @@ def compute_reward_statistics(
     device: torch.device,
     q_temperature: float,
     q_epsilon: float,
+    controller_beta: Optional[float] = None,
+    controller_tau: Optional[float] = None,
 ) -> Optional[RewardComputation]:
     """Compute utilities, q-distributions, and flattened prompt/completion pairs.
 
@@ -426,6 +443,10 @@ def compute_reward_statistics(
     :type q_temperature: float
     :param q_epsilon: Epsilon floor ensuring full support in q-distribution.
     :type q_epsilon: float
+    :param controller_beta: Optional KL controller beta logged with stats.
+    :type controller_beta: float | None
+    :param controller_tau: Optional controller tau logged alongside q temp.
+    :type controller_tau: float | None
     :returns: Populated :class:`~training.types.RewardComputation` or ``None``
         when inputs are empty.
     :rtype: :class:`~training.types.RewardComputation` | None
@@ -453,6 +474,48 @@ def compute_reward_statistics(
         )
     )
     flat_ref_meta = _flatten_ref_metadata(grouped_comps, gen_batch.grouped_ref_meta)
+    if LOG.isEnabledFor(logging.DEBUG):
+        meta_len = len(flat_ref_meta) if flat_ref_meta else 0
+        sample = None
+        if flat_ref_meta:
+            sample = flat_ref_meta[: min(2, meta_len)]
+        LOG.debug(
+            "Ref metadata flatten | grouped_meta=%s | entries=%d | sample=%s",
+            "none" if gen_batch.grouped_ref_meta is None else "present",
+            meta_len,
+            sample,
+        )
+    q_samples = q_distribution.samples or []
+    if q_samples:
+        q_min = min(q_samples)
+        q_max = max(q_samples)
+    else:
+        q_min = q_max = 0.0
+    beta_repr = "nan"
+    try:
+        if controller_beta is not None:
+            beta_repr = f"{float(controller_beta):.4f}"
+    except (TypeError, ValueError):
+        pass
+    tau_repr = "nan"
+    try:
+        if controller_tau is not None:
+            tau_repr = f"{float(controller_tau):.4f}"
+    except (TypeError, ValueError):
+        pass
+    LOG.debug(
+        "Reward computation | prompts=%d | completions=%d | reward_mean=%.4f | reward_std=%.4f | q_range=[%.4f, %.4f] | q_temperature=%.3f | controller_tau=%s | beta=%s | eps=%.2e",
+        len(grouped_comps),
+        len(pair_batch.completions),
+        moments.mean,
+        moments.std,
+        q_min,
+        q_max,
+        q_temperature,
+        tau_repr,
+        beta_repr,
+        q_epsilon,
+    )
     return RewardComputation(
         total_utils=total_utils,
         per_reward_values=per_reward_values,

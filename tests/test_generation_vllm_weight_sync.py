@@ -7,24 +7,27 @@ from types import SimpleNamespace
 
 
 from maxent_grpo.generation.vllm_weight_sync import VLLMWeightSyncMixin
+from tests.helpers.vllm import make_vllm_context
 
 
-class _Ctx:
-    def __init__(self):
-        self.accelerator = SimpleNamespace(
-            is_main_process=True,
-            unwrap_model=lambda m: m,
-            wait_for_everyone=lambda: None,
-        )
-        self.generation_stats = {}
-        self.vllm_sync_weights = True
-        self.vllm_url = "http://localhost/generate"
-        self.model = None
+def _ctx():
+    accelerator = SimpleNamespace(
+        is_main_process=True,
+        unwrap_model=lambda m: m,
+        wait_for_everyone=lambda: None,
+    )
+    return make_vllm_context(
+        accelerator=accelerator,
+        generation_stats={},
+        vllm_sync_weights=True,
+        vllm_url="http://localhost/generate",
+        model=None,
+    )
 
 
 class _Helper(VLLMWeightSyncMixin):
     def __init__(self, ctx=None):
-        self.ctx = ctx or _Ctx()
+        self.ctx = ctx or _ctx()
         self._vllm_client = None
         self._vllm_sync_ready = False
         self._last_vllm_synced_step = None

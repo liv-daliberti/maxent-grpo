@@ -7,7 +7,11 @@ from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 
 import maxent_grpo.generation.vllm as vllm
-from tests.test_generation_vllm_unit import _ctx
+from tests.helpers.vllm import make_vllm_context
+
+
+def _ctx(**overrides):
+    return make_vllm_context(**overrides)
 
 
 def test_sync_model_params_sets_fsdp_cls_from_summon_full_params(monkeypatch):

@@ -32,10 +32,16 @@ Quickstart
    GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml \
      maxent-grpo-maxent
 
+   # InfoSeed (adds seed-conditioned data augment + auxiliary loss)
+   GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml \
+     maxent-grpo-maxent
+
 2) Evaluate or generate with your model:
 
 - Training and evaluation: see Guides → Training
 - Bulk generation via vLLM: see Guides → Generation
+
+All MaxEnt/InfoSeed recipes ship with the τ/β meta-controller enabled (analytic mode) so the weighting parameters stay near the entropy/KL targets automatically. Disable it by passing ``--controller_meta_enabled false`` (or setting the YAML field to ``false``) if you need fixed hyperparameters for ablations; re-enable and tune via ``controller_meta_method``, ``controller_meta_lr``, and friends when you want the learned controller back. Baseline GRPO recipes keep the controller off unless you override the flag.
 
 What’s Inside
 =============

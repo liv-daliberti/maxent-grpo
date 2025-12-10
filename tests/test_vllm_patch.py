@@ -118,6 +118,90 @@ def test_safe_generate_with_logprobs(monkeypatch):
     assert meta[0][0].raw_output["token_ids"] == [1, 2, 3]
 
 
+def test_safe_generate_filters_client_tag(monkeypatch):
+    payload = {
+        "results": [
+            {"metadata": {"client_tag": "rank-2"}, "outputs": [{"text": "skip"}]},
+            {"metadata": {"client_tag": "rank-1"}, "outputs": [{"text": "keep"}]},
+        ]
+    }
+
+    def fake_post(url, json, timeout, stream, headers):
+        assert headers["X-VLLM-Client-Tag"] == "rank-1"
+        assert json.get("client_tag") == "rank-1"
+        return R(200, payload)
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    texts, meta, _ = VP.safe_generate(
+        prompts=["p"], stream=False, client_tag="rank-1", return_logprobs=False
+    )
+    assert texts == [["keep"]]
+    assert meta is None
+
+
+def test_safe_generate_no_matching_client_tag(monkeypatch):
+    payload = {
+        "results": [
+            {"metadata": {"client_tag": "rank-2"}, "outputs": [{"text": "skip"}]},
+        ]
+    }
+
+    def fake_post(url, json, timeout, stream, headers):
+        return R(200, payload)
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    monkeypatch.setattr(VP.time, "sleep", lambda *_args, **_kwargs: None)
+    with pytest.raises(VP.GenerationServiceError):
+        VP.safe_generate(
+            prompts=["p"],
+            stream=False,
+            client_tag="rank-1",
+            max_retries=1,
+            backoff=0.0,
+        )
+
+
+def test_filter_response_preserves_untagged_entries():
+    data = {"results": [{"outputs": [{"text": "loose"}]}]}
+    filtered = VP._filter_response_for_client_tag(data, "rank-9")
+    assert filtered["results"][0]["outputs"][0]["text"] == "loose"
+
+
+def test_filter_response_filters_groups_and_outputs():
+    data = {
+        "results": [
+            {
+                "metadata": {"client_tag": "rank-1"},
+                "outputs": [
+                    {"metadata": {"client_tag": "rank-9"}, "text": "drop"},
+                    {"metadata": {"client_tag": "rank-1"}, "text": "keep"},
+                ],
+            },
+            {
+                "metadata": {"client_tag": "rank-2"},
+                "outputs": [{"text": "skip"}],
+            },
+        ]
+    }
+    filtered = VP._filter_response_for_client_tag(data, "rank-1")
+    assert len(filtered["results"]) == 1
+    outputs = filtered["results"][0]["outputs"]
+    assert len(outputs) == 1 and outputs[0]["text"] == "keep"
+
+
+def test_filter_response_raises_when_all_outputs_removed():
+    data = {
+        "results": [
+            {
+                "metadata": {"client_tag": "rank-1"},
+                "outputs": [{"metadata": {"client_tag": "rank-2"}, "text": "drop"}],
+            }
+        ]
+    }
+    with pytest.raises(RuntimeError):
+        VP._filter_response_for_client_tag(data, "rank-1")
+
+
 def test_tokenizer_protocol_raises():
     class BareTokenizer(VP.TokenizerLike):
         pass
@@ -236,6 +320,26 @@ def test_extract_logprob_info_returns_none_when_missing():
     )
 
 
+def test_extract_logprob_info_uses_metadata_block():
+    entry = {
+        "text": "x",
+        "metadata": {"logprob_sum": -1.5, "token_count": 3, "token_logprobs": [-0.5] * 3},
+    }
+    info = VP._extract_logprob_info(entry)
+    assert info is not None
+    assert info.logprob_sum == pytest.approx(-1.5)
+    assert info.token_count == 3
+    assert info.token_logprobs == [-0.5, -0.5, -0.5]
+
+
+def test_extract_logprob_info_infers_metadata_count():
+    entry = {"text": "two tokens", "metadata": {"logprob_sum": -2.0}}
+    info = VP._extract_logprob_info(entry)
+    assert info is not None
+    assert info.logprob_sum == pytest.approx(-2.0)
+    assert info.token_count == 2
+
+
 def test_parse_nonstream_json_choices_with_logs():
     data = {"choices": [{"text": "x", "logprobs": {"token_logprobs": [-0.5]}}]}
     texts, meta = VP._parse_nonstream_json(data, want_logprobs=True)
@@ -321,9 +425,34 @@ def test_safe_generate_retries_then_fails(monkeypatch):
 
     monkeypatch.setattr(VP.requests, "post", fake_post)
     monkeypatch.setattr(VP.time, "sleep", lambda *_args, **_kwargs: None)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(VP.GenerationServiceError) as exc_info:
         VP.safe_generate(prompts=["p"], max_retries=2, backoff=0.0)
     assert len(attempts) == 2
+    payload = exc_info.value.payload.to_dict()
+    assert payload["prompt_count"] == 1
+    assert payload["status_code"] == 500
+    assert payload["attempt"] == 2
+    extras = payload.get("extra")
+    assert extras["backoff_initial"] == pytest.approx(0.0)
+    assert extras["backoff_multiplier"] == pytest.approx(2.0)
+    assert extras["elapsed_ms"] >= 0.0
+
+
+def test_safe_generate_failure_carries_metadata(monkeypatch):
+    def fake_post(url, json, timeout, stream, headers):
+        return R(503, {"err": "nope"})
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    monkeypatch.setattr(VP.time, "sleep", lambda *_a, **_k: None)
+    with pytest.raises(VP.GenerationServiceError) as exc_info:
+        VP.safe_generate(
+            prompts=["p"],
+            max_retries=1,
+            metadata={"dataset": "hf/train", "model_id": "org/model"},
+        )
+    payload = exc_info.value.payload.to_dict()
+    assert payload["extra"]["dataset"] == "hf/train"
+    assert payload["extra"]["model_id"] == "org/model"
 
 
 def test_collect_stream_texts_handles_blanks():

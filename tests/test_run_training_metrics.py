@@ -65,6 +65,7 @@ from maxent_grpo.training.metrics import (  # noqa: E402
     _summarize_reward_stats,
     _summarize_weight_stats,
 )
+from maxent_grpo.training.types import LoggingHandles  # noqa: E402
 
 
 def _accel():
@@ -191,6 +192,68 @@ def test_log_local_step_uses_payload(monkeypatch):
     assert state.metric_sums["train/loss"] == 1.0
 
 
+def test_log_local_step_emits_debug_metrics(monkeypatch, caplog):
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(accelerator=_accel()),
+        scoring=SimpleNamespace(weighting=None, clipping=None),
+        optimization=SimpleNamespace(schedule=None),
+        generation=SimpleNamespace(use_vllm=False, generation_stats={}),
+        logging=SimpleNamespace(
+            log_metrics=lambda *_a, **_k: None,
+            step_logger=lambda *_a, **_k: nullcontext(),
+        ),
+        training_args=SimpleNamespace(logging_strategy="no"),
+    )
+    state = SimpleNamespace(
+        global_step=7,
+        num_input_tokens_seen=4.0,
+        metric_sums={},
+        metric_counts={},
+    )
+    prepared = SimpleNamespace(
+        reward_comp=None,
+        weight_stats=None,
+        length_stats=None,
+        ref_stats=SimpleNamespace(avg_completion_tokens=1.0, ref_logp_mean=0.0),
+        num_completion_tokens=1.0,
+    )
+    artifacts = SimpleNamespace(
+        loss_outputs=SimpleNamespace(),
+        diagnostics=SimpleNamespace(),
+        grad_norm_scalar=None,
+        epoch_progress=0.25,
+    )
+    monkeypatch.setattr(
+        metrics_mod,
+        "_build_metrics_payload",
+        lambda *_a, **_k: SimpleNamespace(),
+    )
+    metric_dict = {
+        "train/loss": 0.25,
+        "train/reward": 0.5,
+        "train/reward_std": 0.1,
+        "train/q_entropy_mean": 0.0,
+        "train/weight_entropy": 0.0,
+        "train/kl": 0.01,
+        "train/tau": 0.4,
+        "train/beta": 0.03,
+        "train/rewards/pure_accuracy/mean": 0.6,
+        "train/global_step": state.global_step,
+    }
+    monkeypatch.setattr(
+        metrics_mod,
+        "build_training_metrics_dict",
+        lambda *_a, **_k: dict(metric_dict),
+    )
+    with caplog.at_level("DEBUG", logger=metrics_mod.LOG.name):
+        log_local_step(ctx, state, prepared, artifacts, current_lr=1e-5)
+    debug_lines = [
+        record.message for record in caplog.records if "debug metrics step" in record.message
+    ]
+    assert debug_lines, "expected debug metrics log"
+    assert "tau=0.400000" in debug_lines[0]
+
+
 def test_log_sample_table_emits_rows(monkeypatch):
     logged = []
 
@@ -236,6 +299,134 @@ def test_log_sample_table_emits_rows(monkeypatch):
         "advantage",
         "reward/reward",
     ]
+
+
+def _controller_payload():
+    weighting = SimpleNamespace(
+        tau=0.3,
+        beta=0.15,
+        denom=0.45,
+        q_temperature=1.0,
+        q_epsilon=1e-6,
+        tau_lr=0.0,
+        tau_min=0.0,
+        tau_max=1.0,
+        tau_warmup_steps=0,
+        tau_target_entropy=0.6,
+        kl_target=0.4,
+        kl_horizon=10,
+        kl_ctl_step_size=0.5,
+        len_norm_ref=True,
+        train_grpo_objective=False,
+    )
+    payload = metrics_mod.TrainingMetricsPayload(
+        reward_stats=metrics_mod.RewardLoggingView(
+            reward_mean=0.5,
+            reward_std=0.1,
+            frac_zero_std=0.0,
+            advantage_mean=0.0,
+            advantage_std=0.0,
+            advantage_count=1,
+            per_reward={},
+            q_entropy_mean=0.0,
+            q_entropy_std=0.0,
+            q_entropy_min=0.0,
+            q_entropy_max=0.0,
+        ),
+        weight_stats=metrics_mod.WeightLoggingView(
+            entropy=0.2,
+            entropy_min=0.1,
+            entropy_max=0.3,
+            advantage_entropy_mean=0.0,
+            advantage_entropy_std=0.0,
+        ),
+        loss_outputs=SimpleNamespace(
+            total_loss_scalar=1.0,
+            kl_loss_scalar=0.45,
+            policy_loss_scalar=0.8,
+            weighted_kl_loss_scalar=0.45,
+            clip_loss_scalar=None,
+            scalars=SimpleNamespace(kl_loss=0.45),
+        ),
+        diagnostics=metrics_mod.BatchDiagnostics(
+            kl_value=0.5,
+            clip_ratio=0.0,
+            clip_ratio_low_mean=0.0,
+            clip_ratio_low_min=0.0,
+            clip_ratio_high_mean=0.0,
+            clip_ratio_high_max=0.0,
+            clip_ratio_region_mean=0.0,
+            kl_per_token_by_len_bucket={},
+            kl_token_count_by_len_bucket={},
+        ),
+        length_stats=metrics_mod.LengthStats(
+            min_length=1.0,
+            mean_length=2.0,
+            max_length=3.0,
+            clipped_ratio=0.0,
+            min_terminated=0.5,
+            mean_terminated=1.0,
+            max_terminated=1.5,
+        ),
+        config=metrics_mod.LoggingConfigView(
+            weighting=weighting,
+            clipping=SimpleNamespace(),
+            schedule=SimpleNamespace(),
+        ),
+        scalars=metrics_mod.TrainingScalarStats(
+            ref_logp_mean=0.0,
+            tokens=metrics_mod.TokenUsageStats(
+                avg_completion_tokens=2.0,
+                num_completion_tokens=4.0,
+                num_input_tokens=6.0,
+            ),
+            current_lr=1e-4,
+            grad_norm_scalar=None,
+            epoch_progress=0.1,
+            vllm_latency_ms=None,
+        ),
+    )
+    return weighting, payload
+
+
+def test_build_training_metrics_dict_logs_controller_errors():
+    _, payload = _controller_payload()
+    metrics = metrics_mod.build_training_metrics_dict(payload, global_step=8)
+    assert metrics["train/kl_error_to_target"] == pytest.approx(0.5 - 0.4)
+    assert metrics["train/weight_entropy_error"] == pytest.approx(0.2 - 0.6)
+    assert "train/tau_loss" in metrics and metrics["train/tau_loss"] > 0.0
+
+
+def test_log_training_metrics_emits_controller_errors(monkeypatch):
+    weighting, payload = _controller_payload()
+    payload.config.weighting = weighting
+    writer_logs = []
+
+    class _Writer:
+        def __init__(self):
+            self.logged = []
+
+        def log(self, metrics, step):
+            self.logged.append((metrics, step))
+            writer_logs.append(metrics)
+
+        def flush(self):
+            return None
+
+    handles = LoggingHandles(
+        metric_writer=_Writer(),
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="no",
+        save_steps=0,
+        wandb_run=None,
+    )
+    metrics = metrics_mod.log_training_metrics(handles, global_step=3, payload=payload)
+    assert writer_logs, "metric writer should receive payload"
+    logged_metrics = writer_logs[-1]
+    assert "train/tau_loss" in logged_metrics
+    assert "train/weight_entropy_error" in logged_metrics
+    assert "train/kl_error_to_target" in logged_metrics
+    assert metrics is logged_metrics
 
 
 def test_gather_dict_of_lists_single_rank():

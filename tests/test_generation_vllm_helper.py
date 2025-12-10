@@ -7,6 +7,7 @@ from typing import List, Optional
 
 import maxent_grpo.generation.vllm as vllm
 from maxent_grpo.patches.vllm import safe_generate
+from tests.helpers.vllm import make_vllm_context
 import builtins
 import sys
 import time
@@ -27,18 +28,31 @@ class _StubAccel:
 def _make_helper(
     *, world_size: int = 1, rank: int = 0, prompt_char_limit: Optional[int] = None
 ) -> vllm.VLLMGenerationHelper:
-    ctx = SimpleNamespace(
+    ctx = make_vllm_context(
         accelerator=_StubAccel(world_size, rank),
-        generation_stats={},
-        vllm_request_logprobs=False,
-        vllm_sync_weights=False,
-        vllm_url="http://localhost:8000",
         prompt_char_limit=prompt_char_limit,
         max_prompt_len=None,
+        generation_stats={},
     )
     return vllm.VLLMGenerationHelper(
         ctx, fallback_generate=lambda *_a, **_k: ([], None)
     )
+
+
+def test_helper_seeds_metadata_from_context():
+    ctx = make_vllm_context(
+        accelerator=_StubAccel(),
+        generation_stats={},
+        vllm_url="http://localhost:8000",
+        dataset_name="math/train",
+        training_args=SimpleNamespace(dataset_name="math/train"),
+        model=SimpleNamespace(name_or_path="org/model"),
+        prompt_char_limit=None,
+        max_prompt_len=None,
+    )
+    _ = vllm.VLLMGenerationHelper(ctx, fallback_generate=lambda *_a, **_k: ([], None))
+    assert ctx.generation_stats["dataset_name"] == "math/train"
+    assert ctx.generation_stats["model_id"] == "org/model"
 
 
 def test_sync_model_params_handles_fsdp_like_wrappers(monkeypatch):

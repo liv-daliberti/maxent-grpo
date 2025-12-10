@@ -166,6 +166,7 @@ _deps = [
     "numpy>=1.26.4",
     "packaging>=23.0",
     "parameterized>=0.9.0",
+    "pydantic>=2.7",
     "peft>=0.14.0",
     "pytest",
     "python-dotenv",

@@ -16,8 +16,87 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Optional
+import math
+from contextlib import nullcontext
+from dataclasses import dataclass, field
+from typing import Any, ClassVar, Dict, List, Mapping, Optional
+
+@dataclass
+class ControllerMetaSettings:
+    """Meta-controller knobs governing tau/beta adaptation."""
+
+    enabled: bool = False
+    method: str = "analytic"
+    learning_rate: float = 0.0
+    update_interval: int = 1
+    objective: str = "potential"
+    analytic_steps: int = 1
+    optimizer: str = "sgd"
+    truncation_steps: int = 1
+    use_hessian: bool = False
+    last_tau_grad: float = 0.0
+    last_beta_grad: float = 0.0
+
+    def to_state(self) -> Dict[str, Any]:
+        """Return a serializable snapshot of the meta-controller settings."""
+
+        return {
+            "enabled": bool(self.enabled),
+            "method": str(self.method),
+            "learning_rate": float(self.learning_rate),
+            "update_interval": int(self.update_interval),
+            "objective": str(self.objective),
+            "analytic_steps": int(self.analytic_steps),
+            "optimizer": str(self.optimizer),
+            "truncation_steps": int(self.truncation_steps),
+            "use_hessian": bool(self.use_hessian),
+            "last_tau_grad": float(self.last_tau_grad),
+            "last_beta_grad": float(self.last_beta_grad),
+        }
+
+    def apply_state(self, payload: Mapping[str, Any]) -> None:
+        """Update the meta-controller settings from a serialized payload."""
+
+        if "enabled" in payload:
+            self.enabled = bool(payload["enabled"])
+        if "method" in payload and payload["method"]:
+            self.method = str(payload["method"])
+        if "learning_rate" in payload:
+            try:
+                self.learning_rate = float(payload["learning_rate"])
+            except (TypeError, ValueError):
+                pass
+        if "update_interval" in payload:
+            try:
+                self.update_interval = max(1, int(payload["update_interval"]))
+            except (TypeError, ValueError):
+                pass
+        if "objective" in payload and payload["objective"]:
+            self.objective = str(payload["objective"])
+        if "analytic_steps" in payload:
+            try:
+                self.analytic_steps = max(1, int(payload["analytic_steps"]))
+            except (TypeError, ValueError):
+                pass
+        if "optimizer" in payload and payload["optimizer"]:
+            self.optimizer = str(payload["optimizer"])
+        if "truncation_steps" in payload:
+            try:
+                self.truncation_steps = max(1, int(payload["truncation_steps"]))
+            except (TypeError, ValueError):
+                pass
+        if "use_hessian" in payload:
+            self.use_hessian = bool(payload["use_hessian"])
+        if "last_tau_grad" in payload:
+            try:
+                self.last_tau_grad = float(payload["last_tau_grad"])
+            except (TypeError, ValueError):
+                pass
+        if "last_beta_grad" in payload:
+            try:
+                self.last_beta_grad = float(payload["last_beta_grad"])
+            except (TypeError, ValueError):
+                pass
 
 
 @dataclass
@@ -67,6 +146,9 @@ class WeightingSettings:
     tau_schedule: TauSchedule
     kl_controller: KlControllerSettings
     train_grpo_objective: bool
+    controller_meta: ControllerMetaSettings = field(default_factory=ControllerMetaSettings)
+    controller_state: Optional["TorchControllerState"] = None
+    allow_empty_weight_fallback: bool = False
 
     @property
     def denom(self) -> float:
@@ -286,6 +368,126 @@ class WeightingSettings:
 
 
 @dataclass
+class ControllerStateSnapshot:
+    """Serializable controller state describing tau/beta parameters."""
+
+    beta: float
+    tau: float
+    tau_log: float
+    tau_entropy_ema: float
+    meta: Dict[str, Any] = field(default_factory=dict)
+
+    STATE_VERSION: ClassVar[int] = 1
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the snapshot to a JSON-friendly mapping."""
+
+        payload: Dict[str, Any] = {
+            "beta": float(self.beta),
+            "tau": float(self.tau),
+            "tau_log": float(self.tau_log),
+            "tau_entropy_ema": float(self.tau_entropy_ema),
+        }
+        if self.meta:
+            meta_payload = dict(self.meta)
+            meta_payload.setdefault("version", self.STATE_VERSION)
+            payload["meta"] = meta_payload
+        return payload
+
+    @classmethod
+    def from_weighting(cls, weighting_cfg: "WeightingSettings") -> "ControllerStateSnapshot":
+        """Build a controller snapshot from the active weighting settings."""
+
+        tau_val = float(weighting_cfg.tau)
+        tau_log = getattr(weighting_cfg, "_tau_log", math.log(max(tau_val, 1e-8)))
+        tau_entropy_field = getattr(weighting_cfg, "_tau_entropy_ema", float("nan"))
+        if not isinstance(tau_entropy_field, (int, float)) or not math.isfinite(
+            float(tau_entropy_field)
+        ):
+            tau_entropy_ema = tau_val
+        else:
+            tau_entropy_ema = float(tau_entropy_field)
+        meta_payload: Dict[str, Any] = {}
+        meta_cfg = getattr(weighting_cfg, "controller_meta", None)
+        if hasattr(meta_cfg, "to_state"):
+            meta_payload = {
+                "version": cls.STATE_VERSION,
+                "controller": meta_cfg.to_state(),
+            }
+        return cls(
+            beta=float(weighting_cfg.beta),
+            tau=tau_val,
+            tau_log=float(tau_log),
+            tau_entropy_ema=tau_entropy_ema,
+            meta=meta_payload,
+        )
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "ControllerStateSnapshot":
+        """Instantiate a snapshot from a serialized payload."""
+
+        beta = payload.get("beta")
+        tau = payload.get("tau")
+        tau_log_val = payload.get("tau_log")
+        tau_entropy_ema_val = payload.get("tau_entropy_ema")
+        if not isinstance(beta, (int, float)) or not isinstance(tau, (int, float)):
+            raise ValueError("controller state requires numeric beta/tau")
+        tau = float(tau)
+        if not isinstance(tau_log_val, (int, float)):
+            tau_log = math.log(max(tau, 1e-8))
+        else:
+            tau_log = float(tau_log_val)
+        if not isinstance(tau_entropy_ema_val, (int, float)):
+            tau_entropy_ema = tau
+        else:
+            tau_entropy_ema = float(tau_entropy_ema_val)
+        meta_payload = payload.get("meta")
+        if not isinstance(meta_payload, dict):
+            meta_payload = {}
+        return cls(
+            beta=float(beta),
+            tau=tau,
+            tau_log=float(tau_log),
+            tau_entropy_ema=float(tau_entropy_ema),
+            meta=meta_payload,
+        )
+
+    def apply_to_weighting(self, weighting_cfg: "WeightingSettings") -> None:
+        """Apply the snapshot contents to a weighting configuration."""
+
+        weighting_cfg.beta = float(self.beta)
+        weighting_cfg.tau = float(self.tau)
+        if weighting_cfg.train_grpo_objective:
+            weighting_cfg.denom = 1.0
+        else:
+            denom_sum = weighting_cfg.tau + weighting_cfg.beta
+            weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+        tau_log_val = float(self.tau_log)
+        if not math.isfinite(tau_log_val):
+            tau_log_val = math.log(max(weighting_cfg.tau, 1e-8))
+        setattr(weighting_cfg, "_tau_log", tau_log_val)
+        tau_entropy_val = float(self.tau_entropy_ema)
+        if not math.isfinite(tau_entropy_val):
+            tau_entropy_val = weighting_cfg.tau
+        setattr(weighting_cfg, "_tau_entropy_ema", tau_entropy_val)
+        meta_payload = {}
+        if isinstance(self.meta, dict):
+            meta_payload = self.meta.get("controller", {})
+        if isinstance(meta_payload, dict):
+            meta_cfg = getattr(weighting_cfg, "controller_meta", None)
+            if hasattr(meta_cfg, "apply_state"):
+                meta_cfg.apply_state(meta_payload)
+                setattr(weighting_cfg, "_meta_last_tau_grad", float(getattr(meta_cfg, "last_tau_grad", 0.0)))
+                setattr(weighting_cfg, "_meta_last_beta_grad", float(getattr(meta_cfg, "last_beta_grad", 0.0)))
+        state = getattr(weighting_cfg, "controller_state", None)
+        if state is not None:
+            try:
+                state.sync_from_scalars(weighting_cfg.tau, weighting_cfg.beta)
+            except (AttributeError, RuntimeError, TypeError, ValueError):
+                pass
+
+
+@dataclass
 class WeightStats:
     """Weights per completion and entropy diagnostics."""
 
@@ -308,7 +510,76 @@ class WeightLoggingView:
     advantage_entropy_std: float
 
 
+class TorchControllerState:
+    """Torch-backed parameters for tau/beta with sync helpers."""
+
+    def __init__(
+        self,
+        torch_mod: Any,
+        tau_init: float,
+        beta_init: float,
+        *,
+        requires_grad: bool = False,
+    ):
+        self.torch = torch_mod
+        param_cls = getattr(torch_mod.nn, "Parameter")
+        tensor_cls = getattr(torch_mod, "tensor")
+        dtype = getattr(torch_mod, "float32", None)
+        tau_tensor = tensor_cls(float(tau_init), dtype=dtype)
+        beta_tensor = tensor_cls(float(beta_init), dtype=dtype)
+        self.tau_param = param_cls(tau_tensor, requires_grad=requires_grad)
+        self.beta_param = param_cls(beta_tensor, requires_grad=requires_grad)
+        self.last_weights = None
+
+    def enable_grad(self) -> None:
+        self.tau_param.requires_grad_(True)
+        self.beta_param.requires_grad_(True)
+
+    def disable_grad(self) -> None:
+        self.tau_param.requires_grad_(False)
+        self.beta_param.requires_grad_(False)
+
+    def sync_from_scalars(self, tau: float, beta: float) -> None:
+        no_grad = getattr(self.torch, "no_grad", None)
+        ctx = no_grad() if callable(no_grad) else nullcontext()
+        with ctx:
+            self.tau_param.copy_(
+                self.torch.tensor(float(tau), dtype=getattr(self.tau_param, "dtype", None))
+            )
+            self.beta_param.copy_(
+                self.torch.tensor(float(beta), dtype=getattr(self.beta_param, "dtype", None))
+            )
+
+    def tau_tensor(self, detach: bool = False):
+        tensor = self.tau_param.detach() if detach else self.tau_param
+        return tensor
+
+    def beta_tensor(self, detach: bool = False):
+        tensor = self.beta_param.detach() if detach else self.beta_param
+        return tensor
+
+    def parameters(self) -> List[Any]:
+        return [self.tau_param, self.beta_param]
+
+    def zero_grad(self) -> None:
+        for param in self.parameters():
+            grad = getattr(param, "grad", None)
+            if grad is None:
+                continue
+            zero = getattr(grad, "zero_", None)
+            if callable(zero):
+                zero()
+            else:
+                try:
+                    param.grad = None  # type: ignore[attr-defined]
+                except AttributeError:  # pragma: no cover - defensive cleanup
+                    pass
+
+
 __all__ = [
+    "TorchControllerState",
+    "ControllerMetaSettings",
+    "ControllerStateSnapshot",
     "KlControllerSettings",
     "QDistributionSettings",
     "TauSchedule",

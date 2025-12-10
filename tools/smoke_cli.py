@@ -204,6 +204,34 @@ def _set_local_caches() -> None:
     os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
 
 
+def _install_datasets_stub() -> None:
+    """Provide a minimal datasets stub for smoke environments."""
+
+    if "datasets" in sys.modules:
+        return
+
+    datasets_mod = ModuleType("datasets")
+
+    def _load_dataset(*_args, **_kwargs):
+        return _build_dummy_data()
+
+    def _concatenate(datasets):
+        rows = []
+        for ds in datasets:
+            rows.extend(list(ds))
+        return _DummyDataset(rows)
+
+    datasets_mod.Dataset = _DummyDataset
+    datasets_mod.DatasetDict = _DummyDatasetDict
+    datasets_mod.load_dataset = _load_dataset
+    datasets_mod.concatenate_datasets = _concatenate
+    datasets_mod.interleave_datasets = lambda datasets, **_kw: _concatenate(datasets)
+    datasets_mod.utils = SimpleNamespace(
+        logging=SimpleNamespace(set_verbosity=lambda *_a, **_k: None)
+    )
+    sys.modules["datasets"] = datasets_mod
+
+
 class _DummyDataset:
     """Minimal dataset stand-in with HF Dataset-like surface."""
 
@@ -222,6 +250,10 @@ class _DummyDataset:
     def shuffle(self, seed=None):
         # Deterministic for speed; no-op is fine for smoke.
         return self
+
+    def select_columns(self, columns):
+        keep = list(columns)
+        return _DummyDataset([{k: row.get(k) for k in keep} for row in self._rows])
 
     def select(self, indices):
         return _DummyDataset([self._rows[i] for i in indices])
@@ -293,12 +325,6 @@ def _run_generation_smoke() -> None:
 
     from maxent_grpo.pipelines.generation.distilabel import run_generation_job
 
-    datasets_mod = ModuleType("datasets")
-    datasets_mod.load_dataset = lambda *_a, **_k: [
-        {"instruction": "Ping?", "answer": "Pong!"}
-    ]
-    sys.modules["datasets"] = datasets_mod
-
     class _StubDistiset(list):
         def push_to_hub(self, *args, **kwargs):
             return None
@@ -363,16 +389,76 @@ def _run_inference_smoke() -> None:
     assert results and results[0].total == len(stub_data)
 
 
+def _run_tail_scoring_smoke() -> None:
+    """Exercise the tail-scoring helpers to ensure completions survive slicing."""
+    import torch
+
+    from maxent_grpo.training.scoring import (
+        gather_reference_logprobs,
+        iter_batch_slices,
+    )
+    from maxent_grpo.training.types import BatchingSettings, PromptCacheEntry, ScoreBatch
+
+    prompt_len = 512
+    prompt_entry = PromptCacheEntry(
+        input_ids=list(range(prompt_len)), attention_mask=[1] * prompt_len
+    )
+    completion_ids = torch.tensor([[101, 102, 103, 0]], dtype=torch.long)
+    completion_mask = torch.tensor([[1, 1, 1, 0]], dtype=torch.long)
+    score_batch = ScoreBatch(
+        prompt_entries=[prompt_entry],
+        completion_ids=completion_ids,
+        completion_attention_mask=completion_mask,
+        pad_token_id=0,
+        max_prompt_len=prompt_len,
+        slice_size=2,
+        total_sequences=1,
+        score_tail_tokens=8,
+    )
+    device = torch.device("cpu")
+    ids, _attn, labels = next(iter_batch_slices(score_batch, device))
+    assert ids.shape[0] == 1
+    label_values = [val for val in labels.view(-1).tolist() if val != -100]
+    assert any(val in label_values for val in (101, 102, 103)), "tail slice lost completion"
+
+    class _LinearModel:
+        def __call__(self, input_ids, attention_mask, labels, **_kwargs):
+            vocab_min = 8
+            valid_labels = labels[labels >= 0]
+            max_label = int(valid_labels.max().item()) if valid_labels.numel() else -1
+            vocab = max(vocab_min, max_label + 1)
+            bsz, seqlen = input_ids.shape
+            logits = torch.arange(bsz * seqlen * vocab, dtype=torch.float32).reshape(
+                bsz, seqlen, vocab
+            )
+            return SimpleNamespace(logits=logits)
+
+        forward = __call__
+
+    runtime = SimpleNamespace(device=device, get_ref_model=lambda: _LinearModel())
+    batching_cfg = BatchingSettings(
+        logprob_chunk_size=0,
+        score_slice=score_batch.slice_size,
+        prompt_length_cache_get=lambda *_args, **_kwargs: prompt_entry,
+        score_tail_tokens=score_batch.score_tail_tokens,
+    )
+    ref_stats = gather_reference_logprobs(score_batch, runtime, batching_cfg)
+    assert ref_stats is not None
+    assert float(ref_stats.ref_tok_counts.sum().item()) >= completion_mask.sum().item()
+
+
 def main() -> None:
     _set_local_caches()
     _install_trl_stub()
     _install_transformers_stub()
     _install_accelerate_stub()
+    _install_datasets_stub()
     _run_generation_smoke()
     _run_grpo_smoke()
     _run_maxent_smoke()
     _run_inference_smoke()
-    print("✅ Smoke CLI passed (generation, grpo, maxent, inference)")
+    _run_tail_scoring_smoke()
+    print("✅ Smoke CLI passed (generation, grpo, maxent, inference, tail-scoring)")
 
 
 if __name__ == "__main__":

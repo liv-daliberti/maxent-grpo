@@ -85,6 +85,7 @@ vllm_stop_sequences:
   - "</answer>\n"
   - "</assistant>"
 vllm_request_timeout: 600
+vllm_url: http://localhost:29525/generate
 hub_model_id: od2961/Qwen2.5-7B-Open-R1-GRPO-math-2k
 hub_strategy: every_save
 learning_rate: 1e-6
@@ -102,7 +103,6 @@ max_steps: 2000              # matches the paired MaxEnt 2k math run
 num_generations: 16          # paper setting
 num_train_epochs: 5
 use_vllm: true
-vllm_url: http://localhost:29525
 output_dir: var/data/Qwen2.5-7B-Open-R1-GRPO-math-2k
 overwrite_output_dir: true
 per_device_eval_batch_size: 8

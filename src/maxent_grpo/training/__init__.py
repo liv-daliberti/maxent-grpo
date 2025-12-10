@@ -21,6 +21,10 @@ import sys
 from types import ModuleType, SimpleNamespace
 from typing import Any, List, TYPE_CHECKING
 
+from .controller_objective import (
+    AnalyticControllerObjective,
+    TruncatedBackpropControllerObjective,
+)
 from .types import (
     RuntimeHandles,
     RewardSpec,
@@ -110,12 +114,19 @@ def _safe_reload(module):
             parent_mod = ModuleType(parent_name)
             parent_mod.__path__ = []
             sys.modules[parent_name] = parent_mod
+    if getattr(module, "__spec__", None) is None:
+        try:
+            module.__spec__ = _importlib.util.find_spec(name)
+        except (ImportError, ValueError, AttributeError):
+            module.__spec__ = None
     return _ORIG_IMPORTLIB_RELOAD(module)
 
 
 _importlib.reload = _safe_reload
 
 __all__: List[str] = [
+    "AnalyticControllerObjective",
+    "TruncatedBackpropControllerObjective",
     "run_training_loop",
     "run_maxent_training",
     "TrainingLoopState",
@@ -194,7 +205,7 @@ def __dir__():
 def __getattr__(name: str) -> Any:
     """Lazily import heavy submodules to avoid circular imports during startup."""
 
-    if name in {"pipeline", "state", "generation", "cli", "scoring"}:
+    if name in {"pipeline", "state", "generation", "cli", "scoring", "optim"}:
         module = _importlib.import_module(f"maxent_grpo.training.{name}")
         globals()[name] = module
         return module

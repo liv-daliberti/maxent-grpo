@@ -22,7 +22,9 @@ from argparse import Namespace
 from types import SimpleNamespace
 import sys
 
+import pytest
 
+from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
 from maxent_grpo.pipelines.generation import distilabel as distilabel_mod
 
 
@@ -119,3 +121,51 @@ def test_run_generation_job_plain_object(monkeypatch):
     distilabel_mod.run_generation_job(_Cfg(), builder=_builder)
     assert captured["cfg"].base_url == "http://v2"
     assert captured["cfg"].prompt_column == "c2"
+
+
+def test_run_generation_job_augments_error_payload(monkeypatch):
+    datasets_mod = SimpleNamespace(load_dataset=lambda *a, **k: {"rows": ["ok"]})
+    monkeypatch.setitem(sys.modules, "datasets", datasets_mod)
+    payload = ServiceErrorPayload(
+        service="vllm",
+        endpoint="http://host",
+        model="m",
+        prompt_count=1,
+        payload_chars=10,
+        payload_size_bytes=20,
+        status_code=500,
+        attempt=1,
+        max_attempts=1,
+        exception_type="RuntimeError",
+        exception_message="boom",
+    )
+    error = GenerationServiceError("boom", payload)
+
+    class _Pipeline:
+        def run(self, **_kwargs):
+            raise error
+
+    def _builder(_cfg):
+        return _Pipeline()
+
+    logged = {}
+
+    def _log(_logger, _stage, exc):
+        logged["payload"] = exc.payload
+
+    monkeypatch.setattr(
+        distilabel_mod, "log_generation_service_error", _log, raising=False
+    )
+    cfg = distilabel_mod.DistilabelGenerationConfig(
+        hf_dataset="hf/train",
+        hf_dataset_config="alpha",
+        hf_dataset_split="eval",
+        model="org/model",
+    )
+    with pytest.raises(RuntimeError):
+        distilabel_mod.run_generation_job(cfg, builder=_builder)
+    extra = logged["payload"].extra
+    assert extra["dataset"] == "hf/train"
+    assert extra["dataset_config"] == "alpha"
+    assert extra["dataset_split"] == "eval"
+    assert extra["model_id"] == "org/model"

@@ -24,6 +24,10 @@ from collections import defaultdict
 from types import SimpleNamespace
 
 import pytest
+from maxent_grpo.generation.errors import (
+    GenerationServiceError,
+    ServiceErrorPayload,
+)
 
 # Placeholders populated by the module-scoped fixture below.
 pipeline = None
@@ -114,6 +118,7 @@ class _FakeScoreBatch:
         self.completion_ids = None
         self.completion_attention_mask = None
         self.pad_token_id = 0
+        self.score_tail_tokens = None
 
 
 class _Ctx:
@@ -394,9 +399,36 @@ def test_prepare_training_batch_uses_retry_fallback(monkeypatch):
 
 
 def test_require_artifact_passes_and_raises():
-    assert _require_artifact("ok") == "ok"
+    assert _require_artifact("ok", stage="test") == "ok"
     with pytest.raises(_SkipBatch):
-        _require_artifact(None)
+        _require_artifact(None, stage="test")
+
+
+def test_prepare_training_batch_logs_generation_error(caplog):
+    ctx = _Ctx()
+    batch = {"prompt": ["p"], "answer": ["a"]}
+    payload = ServiceErrorPayload(
+        service="vllm",
+        endpoint="http://host",
+        model="model",
+        prompt_count=1,
+        payload_chars=1,
+        payload_size_bytes=10,
+        status_code=503,
+        attempt=2,
+        max_attempts=2,
+        exception_type="RuntimeError",
+        exception_message="boom",
+        request_id="req",
+    )
+
+    def _generator(*_args, **_kwargs):
+        raise GenerationServiceError("boom", payload)
+
+    caplog.set_level("ERROR")
+    with pytest.raises(GenerationServiceError):
+        prepare_training_batch(ctx, _generator, batch)
+    assert "Generation service failure" in caplog.text
 
 
 def test_collect_batch_stats_rebuilds_ref_meta_on_sequence_mismatch(monkeypatch):
@@ -543,6 +575,52 @@ def test_collect_batch_stats_returns_none_when_weights_empty(monkeypatch):
     assert _collect_batch_stats(ctx, gen_batch, reward_comp) is None
 
 
+def test_collect_batch_stats_falls_back_to_uniform_weights(monkeypatch):
+    ctx = _Ctx()
+    ctx.scoring.weighting.allow_empty_weight_fallback = True
+    gen_batch = SimpleNamespace(grouped_completions=[["a", "b"]])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a", "b"])
+    )
+    ref_obj = SimpleNamespace(
+        ref_logp_sum=None,
+        ref_tok_counts=None,
+        ref_logp_sum_raw=None,
+        ref_logp_mean=0.0,
+        avg_completion_tokens=0.0,
+    )
+    fallback_weights = SimpleNamespace(flat_weights=[0.5, 0.5])
+
+    monkeypatch.setattr(
+        pipeline,
+        "build_score_batch",
+        lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=2),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "gather_reference_logprobs",
+        lambda *_args, **_kwargs: ref_obj,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_weight_stats",
+        lambda *_args, **_kwargs: SimpleNamespace(flat_weights=[]),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "build_uniform_weight_stats",
+        lambda *_args, **_kwargs: fallback_weights,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "summarize_completion_lengths",
+        lambda *_args, **_kwargs: (None, SimpleNamespace(), 0.0),
+    )
+
+    stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
+    assert stats.weight_stats is fallback_weights
+
+
 def test_prepare_training_batch_full_flow(monkeypatch):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["c"]], answers=["c"])
@@ -589,3 +667,110 @@ def test_prepare_training_batch_full_flow(monkeypatch):
     assert isinstance(prepared, PreparedBatch)
     assert prepared.total_input_tokens == 7.0
     assert prepared.scores["cur"] == 0.5
+
+
+def test_prepare_training_batch_records_generation_stage(monkeypatch):
+    ctx = _Ctx()
+
+    monkeypatch.setattr(
+        pipeline,
+        "prepare_generation_batch",
+        lambda *_a, **_k: None,
+    )
+
+    result = prepare_training_batch(
+        ctx, lambda *_a, **_k: None, {"prompt": ["p"], "answer": ["a"]}
+    )
+    assert result is None
+    assert getattr(ctx.runtime, "_last_skip_stage") == "generation"
+
+
+def test_prepare_training_batch_records_policy_scoring_stage(monkeypatch):
+    ctx = _Ctx()
+    gen_batch = SimpleNamespace(grouped_completions=[["c"]], answers=["c"])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["c"])
+    )
+    stats_obj = SimpleNamespace(
+        score_batch=_FakeScoreBatch(total_sequences=1, prompt_lengths=[3]),
+        ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0),
+        weight_stats=SimpleNamespace(flat_weights=[1.0]),
+        length_stats=SimpleNamespace(),
+        num_completion_tokens=5.0,
+        prompt_token_count=2.0,
+    )
+
+    monkeypatch.setattr(
+        pipeline,
+        "prepare_generation_batch",
+        lambda *_a, **_k: gen_batch,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_reward_statistics",
+        lambda *_a, **_k: reward_comp,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_collect_batch_stats",
+        lambda *_a, **_k: stats_obj,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "score_model_outputs",
+        lambda *_a, **_k: None,
+    )
+
+    result = prepare_training_batch(
+        ctx, lambda *_a, **_k: None, {"prompt": ["p"], "answer": ["a"]}
+    )
+    assert result is None
+    assert getattr(ctx.runtime, "_last_skip_stage") == "policy_scoring"
+
+
+def test_prepare_training_batch_records_reward_stage(monkeypatch):
+    ctx = _Ctx()
+    gen_batch = SimpleNamespace(grouped_completions=[[]], answers=["a"])
+
+    monkeypatch.setattr(
+        pipeline,
+        "prepare_generation_batch",
+        lambda *_a, **_k: gen_batch,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_reward_statistics",
+        lambda *_a, **_k: None,
+    )
+
+    result = prepare_training_batch(
+        ctx, lambda *_a, **_k: None, {"prompt": ["p"], "answer": ["a"]}
+    )
+    assert result is None
+    assert getattr(ctx.runtime, "_last_skip_stage") == "reward_stats"
+
+
+def test_prepare_training_batch_records_batch_stats_stage(monkeypatch):
+    ctx = _Ctx()
+    gen_batch = SimpleNamespace(grouped_completions=[["c"]], answers=["a"])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["c"])
+    )
+
+    monkeypatch.setattr(
+        pipeline,
+        "prepare_generation_batch",
+        lambda *_a, **_k: gen_batch,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_reward_statistics",
+        lambda *_a, **_k: reward_comp,
+    )
+    monkeypatch.setattr(pipeline, "_collect_batch_stats", lambda *_a, **_k: None)
+
+    result = prepare_training_batch(
+        ctx, lambda *_a, **_k: None, {"prompt": ["p"], "answer": ["a"]}
+    )
+    assert result is None
+    assert getattr(ctx.runtime, "_last_skip_stage") == "batch_stats"

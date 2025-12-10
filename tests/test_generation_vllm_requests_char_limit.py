@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import builtins
 import sys
-from types import SimpleNamespace
 
 from maxent_grpo.generation import vllm_requests
+from tests.helpers.vllm import make_vllm_context
 
 
 class _Req(vllm_requests.VLLMRequestMixin):
     def __init__(self):
-        self.ctx = SimpleNamespace(prompt_char_limit=None, max_prompt_len=None)
+        self.ctx = make_vllm_context(prompt_char_limit=None, max_prompt_len=None)
         self._safe_generate = None
         self._time = None
         self._fallback_generate = None

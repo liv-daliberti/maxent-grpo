@@ -22,6 +22,7 @@ import importlib
 from types import ModuleType, SimpleNamespace
 import sys
 
+import pytest
 
 from maxent_grpo.pipelines.training import baseline
 
@@ -785,3 +786,91 @@ def test_run_baseline_training_handles_missing_datasets_logging(monkeypatch):
     trainer = trainer_holder["obj"]
     assert hasattr(trainer.train_dataset, "__len__")
     assert getattr(trainer, "resume", None) is None or trainer.resume is False
+
+
+@pytest.mark.parametrize(
+    "train_grpo,info_seed",
+    [
+        (False, False),
+        (False, True),
+        (True, False),
+        (True, True),
+    ],
+)
+def test_run_baseline_training_pipeline_selection(monkeypatch, train_grpo, info_seed):
+    _install_transformers_stub(monkeypatch)
+    _install_trl_stub(monkeypatch)
+
+    raw_ds = {
+        "train": [{"prompt": "p", "answer": "a"}],
+        "validation": [{"prompt": "v", "answer": "b"}],
+    }
+    monkeypatch.setattr(baseline, "get_dataset", lambda *_: raw_ds)
+    monkeypatch.setattr(
+        baseline,
+        "get_tokenizer",
+        lambda *_a, **_k: SimpleNamespace(
+            eos_token_id=0,
+            pad_token_id=0,
+            padding_side="right",
+            add_special_tokens=lambda *_a, **_k: None,
+            __setattr__=object.__setattr__,
+        ),
+    )
+    monkeypatch.setattr(
+        baseline,
+        "get_model",
+        lambda *_a, **_k: SimpleNamespace(
+            config=SimpleNamespace(
+                pad_token_id=0, save_pretrained=lambda *_a, **_k: None
+            ),
+            resize_token_embeddings=lambda *_a, **_k: None,
+        ),
+    )
+    monkeypatch.setattr(baseline, "load_reward_functions", lambda *_a, **_k: ([], []))
+    monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
+    monkeypatch.setattr(baseline.logging, "basicConfig", lambda **_k: None)
+    monkeypatch.setattr(
+        baseline.logging,
+        "getLogger",
+        lambda name=None: baseline.logging.Logger(name or "test"),
+    )
+    monkeypatch.setattr(baseline, "ensure_weighting_logging", lambda cls: cls)
+
+    trainer_calls = {"instances": 0, "trains": 0}
+
+    class _Trainer:
+        def __init__(self, **kwargs):
+            trainer_calls["instances"] += 1
+
+        def train(self, resume_from_checkpoint=None):
+            trainer_calls["trains"] += 1
+            return SimpleNamespace(metrics={"foo": 1})
+
+        def save_model(self, *args, **kwargs):
+            return None
+
+        def log_metrics(self, split, metrics):
+            return None
+
+        def save_metrics(self, split, metrics):
+            return None
+
+        def save_state(self):
+            return None
+
+    sys.modules["trl"].GRPOTrainer = _Trainer  # type: ignore[attr-defined]
+
+    script_args = baseline.GRPOScriptArguments(dataset_name="ds")
+    training_args = baseline.GRPOConfig()
+    training_args.train_grpo_objective = train_grpo
+    training_args.info_seed_enabled = info_seed
+    training_args.output_dir = "/tmp/out"
+    training_args.do_eval = False
+    training_args.seed = 0
+    training_args.get_process_log_level = lambda: 20
+    model_args = SimpleNamespace()
+
+    baseline.run_baseline_training(script_args, training_args, model_args)
+    assert trainer_calls["instances"] == 1
+    assert trainer_calls["trains"] == 1

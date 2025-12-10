@@ -70,7 +70,19 @@ def test_split_recipe_payload_maps_kl_alias_to_beta():
 def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):
     path = tmp_path / "recipe.yaml"
     path.write_text(
-        "reward_funcs: ['r1']\nmaxent_tau: 0.3\ndataset_name: ds\nmodel_name_or_path: repo/model\n",
+        "\n".join(
+            [
+                "reward_funcs: ['r1']",
+                "maxent_tau: 0.3",
+                "dataset_name: ds",
+                "model_name_or_path: repo/model",
+                "train_grpo_objective: false",
+                "output_dir: /tmp/out",
+                "logging_steps: 10",
+                "save_steps: 10",
+                "beta: 0.5",
+            ]
+        ),
         encoding="utf-8",
     )
 

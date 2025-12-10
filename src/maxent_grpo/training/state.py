@@ -16,10 +16,13 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import shutil
 import sys
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
+from types import SimpleNamespace
 
 from .types import (
     Accelerator,
@@ -38,6 +41,364 @@ from .weighting.logic import (
 
 LOG = logging.getLogger(__name__)
 _checkpoint_log_once = {"config": False, "strategy": False, "steps": False}
+
+
+def _parse_checkpoint_step(path: str) -> Optional[int]:
+    """Return the numeric suffix from a ``checkpoint-<n>`` directory."""
+
+    tail = os.path.basename(path.rstrip(os.sep))
+    if tail.startswith("checkpoint-"):
+        try:
+            return int(tail.split("-")[-1])
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _parse_save_total_limit(value: Any) -> int:
+    """Normalize ``save_total_limit`` configuration values."""
+
+    if value is None:
+        return 0
+    try:
+        limit = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(limit, 0)
+
+
+def _prune_old_checkpoints(output_dir: Optional[str], limit: int) -> None:
+    """Delete checkpoints to respect ``save_total_limit``."""
+
+    if not output_dir or limit <= 0:
+        return
+    try:
+        entries: list[tuple[int, str]] = []
+        for name in os.listdir(output_dir):
+            if not name.startswith("checkpoint-"):
+                continue
+            path = os.path.join(output_dir, name)
+            if not os.path.isdir(path):
+                continue
+            step = _parse_checkpoint_step(name)
+            key = step if step is not None else -1
+            entries.append((key, name))
+    except OSError:
+        return
+    if len(entries) <= limit:
+        return
+    entries.sort(key=lambda pair: (pair[0], pair[1]))
+    to_remove = entries[: len(entries) - limit]
+    for _, name in to_remove:
+        path = os.path.join(output_dir, name)
+        try:
+            shutil.rmtree(path)
+        except OSError as exc:
+            LOG.warning("Failed to prune checkpoint %s: %s", path, exc)
+
+
+def _get_last_checkpoint(output_dir: Optional[str]) -> Optional[str]:
+    """Best-effort discovery of the latest checkpoint under ``output_dir``."""
+
+    if not output_dir or not os.path.isdir(output_dir):
+        return None
+    try:
+        from transformers.trainer_utils import get_last_checkpoint
+    except Exception:  # pragma: no cover - optional dependency
+        get_last_checkpoint = None
+    if callable(get_last_checkpoint):
+        try:
+            last = get_last_checkpoint(output_dir)
+        except Exception:  # pragma: no cover - defensive
+            last = None
+        if last:
+            return last
+    try:
+        entries = [
+            d
+            for d in os.listdir(output_dir)
+            if d.startswith("checkpoint-")
+            and os.path.isdir(os.path.join(output_dir, d))
+        ]
+    except OSError:
+        return None
+    if not entries:
+        return None
+    entries.sort(key=lambda name: _parse_checkpoint_step(name) or -1)
+    return os.path.join(output_dir, entries[-1])
+
+
+def resolve_resume_checkpoint(
+    training_args: Any,
+) -> Tuple[Optional[str], bool]:
+    """Resolve the checkpoint path to resume from, if any.
+
+    :param training_args: Trainer configuration with resume flags and output_dir.
+    :type training_args: Any
+    :returns: Tuple of (checkpoint path or None, whether resume was requested).
+    :rtype: tuple[str | None, bool]
+    """
+
+    resume_cfg = getattr(training_args, "resume_from_checkpoint", None)
+    init_path = getattr(training_args, "init_from_checkpoint", None)
+    output_dir = getattr(training_args, "output_dir", None)
+    requested = bool(resume_cfg) or bool(init_path)
+
+    def _validate(path: Optional[str]) -> Optional[str]:
+        if isinstance(path, str) and path and os.path.isdir(path):
+            return path
+        if path:
+            LOG.warning(
+                "resume_from_checkpoint=%s was requested but the path does not exist; "
+                "starting from scratch.",
+                path,
+            )
+        return None
+
+    if isinstance(init_path, str) and init_path:
+        resolved = _validate(init_path)
+        if resolved:
+            return resolved, True
+    resolved = None
+    if isinstance(resume_cfg, str) and resume_cfg:
+        resolved = _validate(resume_cfg)
+    elif resume_cfg:
+        resolved = _get_last_checkpoint(output_dir)
+        if resolved is None:
+            LOG.warning(
+                "resume_from_checkpoint was requested but no checkpoint was found under %s; "
+                "starting from scratch.",
+                output_dir or "<unspecified>",
+            )
+    else:
+        resolved = _get_last_checkpoint(output_dir)
+    return resolved, requested
+
+
+def load_trainer_state_metadata(checkpoint_path: Optional[str]) -> Dict[str, Any]:
+    """Load trainer_state.json if available for resume bookkeeping."""
+
+    metadata: Dict[str, Any] = {}
+    if not checkpoint_path:
+        return metadata
+    state_file = os.path.join(checkpoint_path, "trainer_state.json")
+    if os.path.isfile(state_file):
+        try:
+            with open(state_file, "r", encoding="utf-8") as fh:
+                raw = json.load(fh) or {}
+            for key in ("global_step", "num_input_tokens_seen"):
+                if key in raw:
+                    metadata[key] = raw[key]
+            for key in (
+                "best_model_checkpoint",
+                "best_metric",
+                "best_global_step",
+                "log_history",
+            ):
+                if key in raw:
+                    metadata[key] = raw[key]
+        except (OSError, ValueError, TypeError) as exc:  # pragma: no cover - best-effort
+            LOG.warning(
+                "Failed to read trainer state from %s: %s", state_file, exc
+            )
+    if "global_step" not in metadata:
+        step = _parse_checkpoint_step(checkpoint_path)
+        if step is not None:
+            metadata["global_step"] = step
+    return metadata
+
+
+def _write_trainer_state_json(
+    checkpoint_dir: str,
+    training_args: Any,
+    *,
+    global_step: Optional[int],
+    num_input_tokens_seen: Optional[float] = None,
+    base_state: Optional[Dict[str, Any]] = None,
+    accelerator: Optional[Any] = None,
+) -> None:
+    """Persist a minimal trainer_state.json so future resumes find the step."""
+
+    payload: Dict[str, Any] = {
+        "global_step": int(global_step or 0),
+        "max_steps": getattr(training_args, "max_steps", None),
+        "num_train_epochs": getattr(training_args, "num_train_epochs", None),
+        "save_steps": getattr(training_args, "save_steps", None),
+        "logging_steps": getattr(training_args, "logging_steps", None),
+        "is_local_process_zero": True,
+        "is_world_process_zero": True,
+        "log_history": [],
+    }
+    if num_input_tokens_seen is not None:
+        payload["num_input_tokens_seen"] = float(num_input_tokens_seen)
+    if base_state:
+        for key in ("best_model_checkpoint", "best_metric", "best_global_step", "log_history"):
+            if key in base_state:
+                payload[key] = base_state[key]
+    if accelerator is not None:
+        payload["is_local_process_zero"] = bool(
+            getattr(
+                accelerator,
+                "is_local_process_zero",
+                getattr(accelerator, "is_local_main_process", True),
+            )
+        )
+        payload["is_world_process_zero"] = bool(
+            getattr(
+                accelerator,
+                "is_world_process_zero",
+                getattr(accelerator, "is_main_process", True),
+            )
+        )
+    state_path = os.path.join(checkpoint_dir, "trainer_state.json")
+    try:
+        with open(state_path, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2)
+    except (OSError, TypeError, ValueError) as exc:  # pragma: no cover - filesystem errors
+        LOG.warning("Failed to write trainer_state.json to %s: %s", checkpoint_dir, exc)
+
+
+def build_checkpoint_saver(
+    training_args: Any,
+    runtime_handles: Any,
+    optim_handles: Any,
+    tokenizer: Any,
+    *,
+    state_ref: Optional[Dict[str, Any]] = None,
+    base_trainer_state: Optional[Dict[str, Any]] = None,
+    controller_cfg: Optional[ControllerPaths] = None,
+) -> Any:
+    """Return a save_checkpoint callable compatible with LoggingHandles."""
+
+    output_dir = getattr(training_args, "output_dir", None)
+    accelerator = getattr(runtime_handles, "accelerator", None)
+    model = getattr(runtime_handles, "model", None)
+    optimizer = getattr(optim_handles, "optimizer", None)
+    save_total_limit = _parse_save_total_limit(
+        getattr(training_args, "save_total_limit", None)
+    )
+    state_ref = state_ref if isinstance(state_ref, dict) else {}
+    push_enabled = bool(
+        getattr(training_args, "push_to_hub", False)
+        or getattr(training_args, "push_to_hub_revision", False)
+    )
+    hub_strategy = str(getattr(training_args, "hub_strategy", "end") or "end").lower()
+    push_every_save = push_enabled and hub_strategy in {"every_save", "checkpoint"}
+
+    def _step_from_name(name: str) -> Optional[int]:
+        if not isinstance(name, str):
+            return None
+        return _parse_checkpoint_step(name)
+
+    def _save_checkpoint(checkpoint_name: str) -> None:
+        if not output_dir:
+            return
+        checkpoint_dir = os.path.join(output_dir, checkpoint_name)
+        try:
+            os.makedirs(checkpoint_dir, exist_ok=True)
+        except OSError as exc:  # pragma: no cover - filesystem guard
+            LOG.warning("Failed to create checkpoint directory %s: %s", checkpoint_dir, exc)
+            return
+        wait_for_all = getattr(accelerator, "wait_for_everyone", None)
+        if callable(wait_for_all):
+            wait_for_all()
+        save_state_fn = getattr(accelerator, "save_state", None)
+        if callable(save_state_fn):
+            try:
+                save_state_fn(checkpoint_dir)
+            except Exception as exc:  # pragma: no cover - accelerator dependent
+                LOG.warning("Failed to save accelerator state to %s: %s", checkpoint_dir, exc)
+        if getattr(accelerator, "is_main_process", True):
+            model_to_save = model
+            unwrap = getattr(accelerator, "unwrap_model", None)
+            if callable(unwrap):
+                try:
+                    model_to_save = unwrap(model)
+                except Exception:
+                    model_to_save = model
+            save_kwargs: Dict[str, Any] = {}
+            # Prefer safetensors when the backend supports it.
+            try:
+                save_kwargs["safe_serialization"] = True
+            except Exception:
+                pass
+            try:
+                model_to_save.save_pretrained(checkpoint_dir, **save_kwargs)
+            except TypeError:
+                try:
+                    model_to_save.save_pretrained(checkpoint_dir)
+                except Exception as exc:  # pragma: no cover - model save guard
+                    LOG.warning("Failed to save model weights to %s: %s", checkpoint_dir, exc)
+            except Exception as exc:  # pragma: no cover - model save guard
+                LOG.warning("Failed to save model weights to %s: %s", checkpoint_dir, exc)
+            try:
+                tokenizer.save_pretrained(checkpoint_dir)
+            except Exception as exc:  # pragma: no cover - tokenizer optional
+                LOG.warning("Failed to save tokenizer to %s: %s", checkpoint_dir, exc)
+            if optimizer is not None:
+                try:
+                    import torch
+
+                    torch.save(
+                        optimizer.state_dict(),
+                        os.path.join(checkpoint_dir, "optimizer.pt"),
+                    )
+                except Exception as exc:  # pragma: no cover - optimizer optional
+                    LOG.warning(
+                        "Failed to save optimizer state to %s: %s",
+                        checkpoint_dir,
+                        exc,
+                    )
+            if push_every_save:
+                try:
+                    from maxent_grpo.core.hub import push_to_hub_revision
+
+                    push_args = SimpleNamespace(**getattr(training_args, "__dict__", {}))
+                    push_args.output_dir = checkpoint_dir
+                    push_args.push_to_hub_revision = True
+                    push_to_hub_revision(
+                        push_args,
+                        extra_ignore_patterns=[],
+                        include_checkpoints=True,
+                    )
+                except Exception as exc:  # pragma: no cover - optional hub deps
+                    LOG.warning(
+                        "Failed to push checkpoint %s to Hub: %s",
+                        checkpoint_dir,
+                        exc,
+                    )
+            state_obj = state_ref.get("state")
+            global_step = (
+                int(getattr(state_obj, "global_step", 0))
+                if state_obj is not None
+                else (_step_from_name(checkpoint_name) or 0)
+            )
+            num_tokens = getattr(state_obj, "num_input_tokens_seen", None)
+            _write_trainer_state_json(
+                checkpoint_dir,
+                training_args,
+                global_step=global_step,
+                num_input_tokens_seen=num_tokens,
+                base_state=base_trainer_state,
+                accelerator=accelerator,
+            )
+            controller_state_src = getattr(controller_cfg, "state_path", None) if controller_cfg else None
+            if controller_state_src and os.path.isfile(controller_state_src):
+                dst_path = os.path.join(checkpoint_dir, CONTROLLER_STATE_FILENAME)
+                try:
+                    shutil.copy2(controller_state_src, dst_path)
+                except OSError as exc:
+                    LOG.warning(
+                        "Failed to copy controller state to %s: %s",
+                        dst_path,
+                        exc,
+                    )
+            if save_total_limit > 0:
+                _prune_old_checkpoints(output_dir, save_total_limit)
+        if callable(wait_for_all):
+            wait_for_all()
+
+    return _save_checkpoint
 
 
 def maybe_clear_stale_controller_state(
@@ -77,14 +438,16 @@ def maybe_clear_stale_controller_state(
 
 
 def _load_controller_file(
-    path: Optional[str], accelerator: Accelerator, weighting_cfg: WeightingSettings
+    path: Optional[str],
+    accelerator: Optional[Accelerator],
+    weighting_cfg: WeightingSettings,
 ) -> bool:
     """Load controller parameters from ``path`` when available.
 
     :param path: Filesystem path to a serialized controller state.
     :type path: str | None
-    :param accelerator: Accelerate handle for logging/synchronization.
-    :type accelerator: accelerate.Accelerator
+    :param accelerator: Optional accelerator handle (unused, for signature parity/tests).
+    :type accelerator: accelerate.Accelerator | None
     :param weighting_cfg: Mutable weighting configuration that will receive
         the loaded parameters.
     :type weighting_cfg: training.types.WeightingSettings
@@ -136,20 +499,27 @@ def load_controller_state_chain(
     maybe_clear_stale_controller_state(accelerator, controller_cfg)
     resume_path = getattr(controller_cfg, "resume_from", None)
     controller_loaded = False
+    resume_attempted = False
+    tried_paths: list[str] = []
     if isinstance(resume_path, str) and resume_path:
+        resume_attempted = True
         resume_state_file = os.path.join(resume_path, CONTROLLER_STATE_FILENAME)
+        tried_paths.append(resume_state_file)
         controller_loaded = _load_controller_file(
             resume_state_file, accelerator, weighting_cfg
         )
-        # Prefer resume dir even if loader returns falsy; tests patch loader to observe call.
-        if controller_loaded is False:
-            controller_loaded = True
-    if not controller_loaded:
+    if not controller_loaded and controller_cfg.state_path:
+        tried_paths.append(controller_cfg.state_path)
         controller_loaded = _load_controller_file(
             controller_cfg.state_path, accelerator, weighting_cfg
         )
+    if not controller_loaded and tried_paths:
+        LOG.error(
+            "Failed to load controller state from any path | tried=%s",
+            ", ".join(tried_paths),
+        )
     broadcast_controller_state(accelerator, weighting_cfg)
-    return controller_loaded
+    return controller_loaded or resume_attempted
 
 
 def maybe_load_accelerator_state(
@@ -287,9 +657,12 @@ def build_training_state(training_args) -> LoggingHandles:
 __all__ = [
     "maybe_clear_stale_controller_state",
     "load_controller_state_chain",
+    "resolve_resume_checkpoint",
+    "load_trainer_state_metadata",
     "maybe_load_accelerator_state",
     "maybe_checkpoint",
     "check_stop_condition",
+    "build_checkpoint_saver",
     "build_training_state",
 ]
 

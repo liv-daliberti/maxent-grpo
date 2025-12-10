@@ -345,6 +345,7 @@ def test_generation_sampling_config_proxies_vllm_fields(run_helpers):
         timeout=30.0,
         max_retries=2,
         backoff=1.5,
+        backoff_multiplier=3.0,
         guided_json=None,
         guided_regex=None,
         logit_bias={"0": -2.0},
@@ -372,6 +373,7 @@ def test_generation_sampling_config_proxies_vllm_fields(run_helpers):
     assert cfg.vllm_timeout == 30.0
     assert cfg.vllm_max_retries == 2
     assert cfg.vllm_backoff == pytest.approx(1.5)
+    assert cfg.vllm_backoff_multiplier == pytest.approx(3.0)
     assert cfg.vllm_guided_json is None
     assert cfg.vllm_guided_regex is None
     assert cfg.vllm_logit_bias == {"0": -2.0}

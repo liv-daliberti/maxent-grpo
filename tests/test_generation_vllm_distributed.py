@@ -6,6 +6,7 @@ import sys
 from types import SimpleNamespace
 
 from maxent_grpo.generation import vllm_distributed as dist
+from tests.helpers.vllm import make_vllm_context
 
 
 def test_current_torch_prefers_vllm_module(monkeypatch):
@@ -29,7 +30,7 @@ def test_scatter_vllm_payload_handles_none_result(monkeypatch):
 
     class _Mixin(dist.VLLMDistributedMixin):
         def __init__(self):
-            self.ctx = SimpleNamespace(accelerator=_Accel())
+            self.ctx = make_vllm_context(accelerator=_Accel())
             # Return None to exercise the early exit branch.
             self._scatter_object = lambda accel, payload, src=0: None
 

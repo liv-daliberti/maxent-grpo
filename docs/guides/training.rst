@@ -19,7 +19,8 @@ Slurm (recommended):
 
 Quick flags:
 
-- ``--task maxent`` launches ``src/maxent_grpo/maxent_grpo.py``.
+- ``--task maxent`` launches the MaxEnt pipeline. When ``train_grpo_objective=false`` in the recipe this calls the custom loop under ``src/maxent_grpo/training/loop.py`` so τ/β controllers run every step; when ``train_grpo_objective=true`` it reuses the vanilla GRPOTrainer. Recipes shipped under ``maxent-grpo`` and ``infoseed`` now enable the meta-controller by default, so even GRPO-style runs will fall back to the custom loop unless you set ``controller_meta_enabled=false``.
+- ``--task infoseed`` (or a recipe with ``info_seed_enabled=true``) routes through ``src/maxent_grpo/pipelines/training/infoseed.py`` which always uses the custom loop so the auxiliary seed loss can tap the same hooks as MaxEnt. Hydra validation enforces ``info_seed_enabled`` for this command, so keep the flag true unless you switch back to the baseline/MaxEnt recipes.
 - ``--dp/--tp`` set vLLM data/tensor parallel sizes.
 - ``--vllm-port`` / ``--vllm-group-port`` override RPC ports when needed.
 - ``--args "…"`` passes raw CLI to the trainer (quote the entire string).
@@ -43,6 +44,7 @@ Recipe pairing (reproducible GRPO_RECIPE runs)
 - The baseline and MaxEnt math recipes are paired to stay comparable: both use ``open-r1/OpenR1-Math-220k`` for training and ``HuggingFaceH4/MATH-500`` (``test`` split, ``problem``/``answer`` columns) for evaluation with the same seed (``42``) and eval cadence (``evaluation_strategy=steps``, ``eval_steps=25``, ``per_device_eval_batch_size=8``).
 - Baseline GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml``
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
+- InfoSeed recipe (custom loop + auxiliary loss): ``configs/recipes/<model>/infoseed/config_math.yaml``. Those keep ``info_seed_enabled: true`` (required for ``train-infoseed``) and default to the InfoSeed variant of the pipeline; flip the flag (or use the MaxEnt/GRPO recipes) to disable seed conditioning entirely.
 - Hydra console wrappers reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so ``GRPO_RECIPE=… maxent-grpo-{baseline,maxent}`` will read the intended sibling.
 
 What the Slurm launcher does
@@ -102,8 +104,10 @@ Key Files
 ---------
 
 - ``src/maxent_grpo/grpo.py`` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
+- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt entrypoint that detects ``train_grpo_objective`` and either wraps TRL’s trainer (GRPO mode) or drives the fully custom controller-aware loop (MaxEnt mode).
+- ``src/maxent_grpo/pipelines/training/infoseed.py`` — InfoSeed pipeline that always runs through the custom loop so auxiliary losses can inspect weight stats.
 - ``src/maxent_grpo/config/`` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
-- ``configs/recipes/`` — ready‑to‑use YAML configs; see the Recipes page
+- ``configs/recipes/`` — ready-to-use YAML configs; see the Recipes page
 
 Datasets
 --------
@@ -113,6 +117,42 @@ You can train from a single dataset or a mixture. The mixture form lets you blen
 See: ``src/maxent_grpo/config/dataset.py:ScriptArguments`` and ``src/maxent_grpo/config/dataset.py:DatasetMixtureConfig``.
 
 Prompts longer than 2,048 characters are clipped before requests are sent to vLLM to avoid HTTP payload failures. Override the limit with ``MAX_PROMPT_CHARS`` if your setup requires more context.
+
+Shared vLLM servers
+--------------------
+
+When multiple trainer ranks share a single vLLM HTTP server every request is
+tagged with a ``client_tag`` so responses can be sharded. The helper derives a
+stable identifier from ``Accelerate.process_index`` (falling back to
+``RANK``/``WORLD_SIZE``) and automatically attaches it to:
+
+1. the JSON payload (``client_tag`` field), and
+2. the ``X-VLLM-Client-Tag`` HTTP header.
+
+Override the value when needed by exporting ``VLLM_CLIENT_TAG`` before launching
+the trainer. This is useful when several jobs share a proxy that fans out to
+multiple vLLM backends and you want deterministic routing.
+
+**Server requirement:** the vLLM server (or proxy) must echo the tag in its JSON
+response. The client inspects ``results[*].metadata.client_tag`` and falls back
+to nested ``outputs[*].metadata.client_tag``; any group/output whose tag does
+not match the current rank is dropped before rewards/weighting run. If the echo
+is missing the client discards every completion, leading to warnings such as
+``Skipping policy loss group due to empty log-probs`` followed by zero losses
+and ``train/kl`` = ``NaN``.
+
+**Troubleshooting checklist**
+
+- The vLLM warning ``vLLM raw groups=96 ...`` immediately followed by ``Score
+  batch built | total_sequences=16`` indicates that one rank received all
+  completions. Confirm that each HTTP response carries your tag, or run a
+  per-rank vLLM worker to keep requests isolated.
+- When filtering works you should see log entries like ``Filtered 80
+  extraneous vLLM result groups for client_tag=rank-0`` exactly once per batch
+  (DEBUG level) and the controller metrics ``train/delta_tau`` /
+  ``train/delta_beta`` stop being pinned at zero.
+- For ad-hoc debugging set ``VLLM_CLIENT_TAG`` to a descriptive value and enable
+  ``MAXENT_GRPO_LOGLEVEL=DEBUG`` so the helper prints which tags were removed.
 
 Rewards
 -------
@@ -170,6 +210,7 @@ Common Flags
 - ``--num_generations`` and ``--max_completion_length`` for candidate sampling
 - ``--init_kl_coeff``, ``--kl_target``, ``--kl_horizon`` for trust region
 - ``--report_to wandb`` plus ``wandb_*`` fields for logging
+- InfoSeed extras (only when ``info_seed_enabled``): ``info_seed_num_seeds``, ``info_seed_lambda``, ``info_seed_temperature``, ``info_seed_prompt_template``, ``info_seed_loss_type`` – set ``info_seed_enabled=false`` (CLI or YAML) to drop the augmentation entirely.
 - MaxEnt extras (when using ``src/maxent_grpo/maxent_grpo.py``): ``--maxent_tau``, ``--maxent_q_temperature``, ``--maxent_q_epsilon``, ``--maxent_length_normalize_ref``, plus optional controllers below.
 
 Adaptive Controllers (MaxEnt)
@@ -190,6 +231,45 @@ Adaptive Controllers (MaxEnt)
   ``<output_dir>/controller_state.json``. When resuming via
   ``--resume_from_checkpoint``, the trainer restores that snapshot; otherwise the
   controllers restart from the recipe defaults.
+
+Meta-Controller (τ/β)
+---------------------
+
+- Enable the meta-controller by setting ``controller_meta_enabled=true`` in your
+  recipe (or ``--controller_meta_enabled true`` on TRL's CLI). The default mode
+  uses a lightweight analytic update; flip ``controller_meta_method`` to
+  ``first_order`` or ``truncated_backprop`` to run the meta-optimizer loop and
+  differentiate through the controller loss.
+- ``controller_meta_lr`` sets the meta learning rate. ``controller_meta_update_interval``
+  controls how often meta steps run (every N policy steps). ``controller_meta_objective``
+  is currently informational (the regularized potential is always optimized),
+  ``controller_meta_optimizer`` chooses the meta optimizer (currently ``sgd``),
+  ``controller_meta_truncation_steps`` (or ``controller_meta_analytic_steps``)
+  controls the truncated horizon, and ``controller_meta_use_hessian`` toggles
+  whether second-order approximations are permitted.
+  Example Hydra overrides:
+
+  .. code-block:: bash
+
+     # Disable meta-controller in the MaxEnt Hydra template
+     maxent-grpo-maxent maxent.training.controller_meta_enabled=false
+
+     # Enable first-order meta updates for the baseline GRPO template
+     maxent-grpo-baseline \
+       baseline.training.controller_meta_enabled=true \
+       baseline.training.controller_meta_method=first_order \
+       baseline.training.controller_meta_lr=0.02
+- When the meta-controller is enabled, the training loop caches per-step weight
+  entropy and KL metrics, builds a controller objective (analytic or truncated
+  backprop), and applies the resulting τ/β gradients through the meta-optimizer.
+  The controller snapshot now includes the meta configuration so resuming runs
+  with the flag turned on preserves the same behaviour. Metrics prefixed with
+  ``train/meta/*`` record the latest meta loss, gradients, projected updates,
+  and runtime configuration so dashboards can track the “strictly concave”
+  controller dynamics alongside the main loss.
+- Disable the meta-controller (or leave ``controller_meta_enabled=false``) to
+  fall back to the standard EMA-based τ controller and KL feedback loop. In this
+  mode the new CLI knobs are ignored and checkpoints omit meta diagnostics.
 
 Troubleshooting
 ---------------

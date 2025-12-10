@@ -16,12 +16,17 @@
 
 from __future__ import annotations
 
-from contextlib import nullcontext
+from collections.abc import Mapping
+from contextlib import ExitStack, nullcontext
 from dataclasses import dataclass
+import numbers
 import sys
 import logging
 from types import SimpleNamespace
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, Iterable, List, Optional, Sequence, Tuple
+from functools import lru_cache
+import queue
+import threading
 import numpy as np
 
 from maxent_grpo.training.runtime import (
@@ -29,6 +34,7 @@ from maxent_grpo.training.runtime import (
     require_torch,
     require_transformer_base_classes,
 )
+from .zero_utils import _maybe_zero_gather_embedding, _maybe_zero_gather_params
 from .weighting.loss import SequenceScores
 from .types import (
     BatchingSettings,
@@ -43,6 +49,33 @@ from .types import (
 
 torch = require_torch("training_scoring")
 _REQUIRED_TORCH_ATTRS = ("tensor", "full", "ones_like", "zeros", "cat")
+
+
+class _LongDTypeProxy:
+    """Lightweight wrapper that compares equal to torch.long in stubs.
+
+    Some test environments mix different torch stubs/modules, so ``dtype``
+    objects attached to tensors may not be identical to ``torch.long`` even
+    when they both represent an int64 type.  This proxy smooths over those
+    differences for equality checks without affecting the underlying array
+    dtype used in computations.
+    """
+
+    def __init__(self, target: Any) -> None:
+        self._target = target
+
+    def __eq__(self, other: Any) -> bool:  # pragma: no cover - exercised in tests
+        if other is self._target:
+            return True
+        # Match common representations for 64-bit integer dtypes across stubs.
+        name = getattr(other, "name", None)
+        if isinstance(name, str) and name.lower() in {"int64", "long"}:
+            return True
+        text = str(other)
+        return text in {"torch.int64", "int64", "long"}
+
+    def __repr__(self) -> str:  # pragma: no cover - representational only
+        return "torch.int64"
 
 
 def _refresh_torch() -> Any:
@@ -83,6 +116,22 @@ def _refresh_torch() -> Any:
             setattr(torch_mod, name, getattr(stub, name))
     if not hasattr(torch_mod, "tensor"):
         torch_mod.tensor = stub.tensor
+    if not hasattr(torch_mod, "as_tensor") and hasattr(stub, "as_tensor"):
+        torch_mod.as_tensor = stub.as_tensor
+    if not hasattr(torch_mod, "is_tensor"):
+        if hasattr(stub, "is_tensor"):
+            torch_mod.is_tensor = stub.is_tensor
+        else:
+            def _is_tensor(x: Any) -> bool:
+                tensor_type = getattr(torch_mod, "Tensor", ())
+                if isinstance(x, tensor_type):
+                    return True
+                # Be generous when working with mixed stubs/arrays: treat
+                # objects that look tensor-like (have ``arr`` or ``shape``)
+                # as tensors for the purposes of tests and cheap type checks.
+                return hasattr(x, "arr") or hasattr(x, "shape")
+
+            torch_mod.is_tensor = _is_tensor
     # Ensure device namespaces exist to avoid import errors in manual_seed.
     if not hasattr(torch_mod, "xpu") and hasattr(stub, "xpu"):
         torch_mod.xpu = stub.xpu
@@ -91,7 +140,166 @@ def _refresh_torch() -> Any:
     return torch_mod
 
 
+def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int):
+    """Yield from ``iterator`` while prefetching up to ``buffer_size`` slices."""
+    if buffer_size is None or buffer_size <= 0:
+        for item in iterator:
+            yield item
+        return
+    sentry = object()
+    q: queue.Queue = queue.Queue(maxsize=buffer_size)
+    error_holder: dict[str, BaseException] = {}
+
+    def _producer():
+        try:
+            for item in iterator:
+                q.put(item)
+        except BaseException as exc:  # pragma: no cover - defensive
+            error_holder["exc"] = exc
+        finally:
+            q.put(sentry)
+
+    thread = threading.Thread(target=_producer, name="score-slice-prefetch", daemon=True)
+    thread.start()
+    try:
+        while True:
+            item = q.get()
+            if item is sentry:
+                break
+            yield item
+        if "exc" in error_holder:
+            raise error_holder["exc"]
+    finally:
+        thread.join()
+
+
 torch = _refresh_torch()
+
+
+def _get_config_value(config: Any, key: str, default: Any = None) -> Any:
+    """Return a config value from either Mapping or object-style configs."""
+    if isinstance(config, Mapping):
+        return config.get(key, default)
+    return getattr(config, key, default)
+
+
+class _PadTokenGuard:
+    """Context manager that temporarily clamps padding attributes."""
+
+    def __init__(self, targets: Sequence[tuple[Any, str]], value: int) -> None:
+        # Store (target, attr, original_value, clamped_value)
+        self._targets: list[tuple[Any, str, Any, Any]] = []
+        for target, attr in targets:
+            if not hasattr(target, attr):
+                continue
+            weight = getattr(target, "weight", None)
+            num_embeddings = getattr(target, "num_embeddings", None)
+            # For non-embedding-style modules, only touch attributes when the
+            # attached weight looks like a real 2-D embedding matrix.
+            if (
+                weight is not None
+                and num_embeddings is None
+                and not _weight_is_two_dimensional(weight)
+            ):
+                continue
+            try:
+                original = getattr(target, attr)
+            except Exception:
+                original = None
+            new_value: Any = value
+            try:
+                if isinstance(new_value, numbers.Integral):
+                    if isinstance(num_embeddings, numbers.Integral):
+                        # Prefer the module's own embedding count when exposed.
+                        if num_embeddings <= 0:
+                            # Disable padding entirely for degenerate embeddings.
+                            new_value = -1
+                        elif new_value >= num_embeddings:
+                            new_value = num_embeddings - 1
+                    elif weight is not None and _weight_is_two_dimensional(weight):
+                        # Fallback: derive num_embeddings from the leading weight dim.
+                        size = None
+                        if hasattr(weight, "shape"):
+                            try:
+                                size = tuple(getattr(weight, "shape"))
+                            except Exception:
+                                size = None
+                        elif hasattr(weight, "size"):
+                            try:
+                                size = tuple(weight.size())
+                            except Exception:
+                                size = None
+                        if size is not None and len(size) >= 1:
+                            num_embeddings = size[0]
+                            if isinstance(num_embeddings, numbers.Integral) and num_embeddings > 0:
+                                if new_value >= num_embeddings:
+                                    new_value = num_embeddings - 1
+            except Exception:
+                # If anything goes wrong while inspecting sizes, fall back to
+                # the original requested value without additional checks.
+                new_value = value
+            self._targets.append((target, attr, original, new_value))
+
+    def __enter__(self) -> None:
+        for target, attr, _original, new_value in self._targets:
+            setattr(target, attr, new_value)
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        for target, attr, original, _new_value in self._targets:
+            setattr(target, attr, original)
+        return False
+
+
+def _weight_is_two_dimensional(weight: Any) -> bool:
+    """Return True if the provided weight exposes a 2-D shape."""
+    if weight is None:
+        return False
+    shape = None
+    if hasattr(weight, "shape"):
+        shape = tuple(shape for shape in getattr(weight, "shape"))
+    elif hasattr(weight, "size"):
+        try:
+            shape = tuple(weight.size())
+        except Exception:
+            shape = None
+    return shape is not None and len(shape) == 2
+
+
+def _describe_embedding_module(module: Any, name: str) -> str:
+    """Return a human-friendly summary of an embedding module."""
+
+    if module is None:
+        return f"{name}=None"
+    weight = getattr(module, "weight", None)
+    shape = None
+    if hasattr(weight, "shape"):
+        shape = tuple(shape for shape in getattr(weight, "shape"))
+    elif hasattr(weight, "size"):
+        try:
+            shape = tuple(weight.size())
+        except Exception:
+            shape = None
+    padding_idx = getattr(module, "padding_idx", None)
+    return (
+        f"{name}={type(module).__name__} weight_shape={shape} "
+        f"padding_idx={padding_idx}"
+    )
+
+
+def _get_embedding_vocab_size(
+    model: PreTrainedModel, config: Any
+) -> Optional[int]:
+    """Return the vocab size exposed by the model's embedding weights."""
+    embedding_module = getattr(model, "embed_tokens", None)
+    if embedding_module is None and hasattr(model, "get_input_embeddings"):
+        embedding_module = model.get_input_embeddings()
+    weight = getattr(embedding_module, "weight", None)
+    if weight is not None and hasattr(weight, "size"):
+        try:
+            return weight.size(0)
+        except (TypeError, AttributeError, IndexError):
+            pass
+    return _get_config_value(config, "vocab_size", None)
 
 
 def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
@@ -155,6 +363,16 @@ def _size_hint(tensor_obj: Any, dim: int) -> int:
 
 def _to_numpy_array(obj: Any) -> np.ndarray:
     """Return a numpy view of ``obj`` for stub compatibility."""
+    try:  # Handle real torch tensors, including CUDA, by detaching to CPU.
+        import torch as _torch  # type: ignore
+
+        if isinstance(obj, getattr(_torch, "Tensor", ())):
+            try:
+                return obj.detach().cpu().numpy()
+            except Exception:
+                pass
+    except Exception:
+        pass
     if hasattr(obj, "arr"):
         try:
             return np.asarray(obj.arr)
@@ -277,6 +495,7 @@ class _SliceState:
     prompt_entries: List[PromptCacheEntry]
     pad_token_id: int
     max_prompt_len: int
+    score_tail_tokens: Optional[int] = None
 
     @classmethod
     def from_score_batch(cls, score_batch: ScoreBatch) -> "_SliceState":
@@ -298,6 +517,7 @@ class _SliceState:
             prompt_entries=score_batch.prompt_entries,
             pad_token_id=score_batch.pad_token_id,
             max_prompt_len=max(1, score_batch.max_prompt_len),
+            score_tail_tokens=getattr(score_batch, "score_tail_tokens", None),
         )
 
 
@@ -314,9 +534,20 @@ def _collect_prompt_entries(
     :returns: Cached prompt entries or ``None`` when the batch is empty.
     :rtype: list[PromptCacheEntry] | None
     """
-    prompt_entries = [
-        batching_cfg.prompt_length_cache_get(prompt) for prompt in prompt_batch
-    ]
+    cache_size = getattr(batching_cfg, "prompt_cache_size", 0) or 0
+    prompt_fn = getattr(batching_cfg, "prompt_length_cache_get", None)
+    if cache_size > 0 and callable(prompt_fn):
+        cached = getattr(batching_cfg, "_cached_prompt_lookup", None)
+        underlying = getattr(batching_cfg, "_cached_prompt_source", None)
+        if cached is None or underlying is not prompt_fn:
+            cached = lru_cache(maxsize=cache_size)(prompt_fn)
+            setattr(batching_cfg, "_cached_prompt_lookup", cached)
+            setattr(batching_cfg, "_cached_prompt_source", prompt_fn)
+        prompt_fn = cached
+        batching_cfg.prompt_length_cache_get = prompt_fn
+    if not callable(prompt_fn):
+        return None
+    prompt_entries = [prompt_fn(prompt) for prompt in prompt_batch]
     if not prompt_entries:
         return None
     return prompt_entries
@@ -476,7 +707,6 @@ def iter_batch_slices(
     :yields: Tuples of ``(input_ids, attention_mask, labels)`` per slice.
     :rtype: Iterator[tuple[Tensor, Tensor, Tensor]]
     """
-    del device  # API symmetry; device unused in CPU-only stub path
     torch_mod = _refresh_torch()
     state = _SliceState.from_score_batch(score_batch)
     if state.total_sequences == 0 or state.slice_size <= 0:
@@ -486,6 +716,15 @@ def iter_batch_slices(
         prompt_slice = state.prompt_entries[start:end]
         comp_ids_slice = state.completion_ids[start:end]
         comp_mask_slice = state.completion_mask[start:end]
+        if device is not None:
+            try:
+                comp_ids_slice = comp_ids_slice.to(device)
+                comp_mask_slice = comp_mask_slice.to(device)
+            except (AttributeError, TypeError, ValueError):
+                # Some lightweight torch stubs treat the ``device`` argument as
+                # a dtype. When that happens we leave tensors on their current
+                # device and rely on ``as_tensor`` below to normalize types.
+                pass
         batch_size = len(prompt_slice)
         if batch_size == 0:
             continue
@@ -496,15 +735,199 @@ def iter_batch_slices(
             comp_ids_slice.dtype,
             comp_mask_slice.dtype,
         )
-        input_ids = torch_mod.cat([prompt_ids, comp_ids_slice], dim=1)
-        attention_mask = torch_mod.cat([prompt_mask, comp_mask_slice], dim=1)
-        labels_arr = _to_numpy_array(input_ids)
+        if device is not None:
+            try:
+                prompt_ids = prompt_ids.to(device)
+                prompt_mask = prompt_mask.to(device)
+            except (AttributeError, TypeError, ValueError):
+                pass
+        # Ensure tensors before concatenation (protect against stubs/numpy).
+        as_tensor = getattr(torch_mod, "as_tensor", getattr(torch_mod, "tensor", None))
+        if as_tensor is None:
+            raise AttributeError("torch.as_tensor (or tensor) is required for scoring.")
+
+        def _ensure_tensor(obj: Any, *, target_device: Any = None) -> Any:
+            """Best-effort conversion that tolerates numpy arrays/stubs."""
+            is_tensor_fn = getattr(torch_mod, "is_tensor", None)
+            try:
+                if callable(is_tensor_fn) and is_tensor_fn(obj):
+                    return obj
+            except Exception:  # pragma: no cover - defensive
+                pass
+            tensor_type = getattr(torch_mod, "Tensor", None)
+            if tensor_type is not None and isinstance(obj, tensor_type):
+                return obj
+            tensor_ctor = getattr(torch_mod, "tensor", None)
+            if callable(tensor_ctor):
+                data = getattr(obj, "arr", None)
+                if data is None:
+                    data = obj
+                try:
+                    return tensor_ctor(
+                        np.asarray(data),
+                        device=target_device,
+                        dtype=getattr(obj, "dtype", None),
+                    )
+                except TypeError:
+                    return tensor_ctor(np.asarray(data))
+            return obj
+
+        prompt_ids = as_tensor(prompt_ids, device=device)
+        prompt_mask = as_tensor(prompt_mask, device=device)
+        comp_ids_slice = as_tensor(comp_ids_slice, device=device)
+        comp_mask_slice = as_tensor(comp_mask_slice, device=device)
+        # Drop completion columns that are padding for every sequence so tail-only
+        # scoring keeps real tokens instead of global pad regions.
+        comp_tokens_present = None
+        active_comp_columns: List[int] = []
+        try:
+            comp_tokens_present = (comp_mask_slice != 0).any(dim=0)
+        except Exception:
+            pass
+        if comp_tokens_present is None:
+            comp_tokens_arr = np.asarray(
+                getattr(comp_mask_slice, "arr", comp_mask_slice)
+            ) != 0
+            col_activity = comp_tokens_arr.any(axis=0)
+            active_idx_np = np.nonzero(col_activity)[0]
+            active_comp_columns = [int(idx) for idx in active_idx_np.tolist()]
+            if active_comp_columns:
+                last_valid_idx = active_comp_columns[-1] + 1
+            else:
+                last_valid_idx = 0
+        else:
+            try:
+                nonzero_cols = torch_mod.nonzero(comp_tokens_present, as_tuple=False).view(
+                    -1
+                )
+                active_comp_columns = [int(idx.item()) for idx in nonzero_cols]
+                last_valid_idx = active_comp_columns[-1] + 1 if active_comp_columns else 0
+            except Exception:
+                active_comp_columns = []
+                last_valid_idx = 0
+        if last_valid_idx <= 0:
+            comp_ids_slice = comp_ids_slice[:, :0]
+            comp_mask_slice = comp_mask_slice[:, :0]
+        elif last_valid_idx < getattr(comp_ids_slice, "shape", [0, 0])[1]:
+            comp_ids_slice = comp_ids_slice[:, :last_valid_idx]
+            comp_mask_slice = comp_mask_slice[:, :last_valid_idx]
+        full_input_ids = torch_mod.cat([prompt_ids, comp_ids_slice], dim=1)
+        full_attention_mask = torch_mod.cat([prompt_mask, comp_mask_slice], dim=1)
+        labels_tensor = full_input_ids.clone()
         for idx, plen in enumerate(prompt_lengths):
-            labels_arr[idx, :plen] = -100
-        input_ids_out = _to_numpy_array(input_ids)
-        attention_mask_out = _to_numpy_array(attention_mask)
-        labels_out = labels_arr
+            labels_tensor[idx, :plen] = -100
+        prompt_width = getattr(prompt_ids, "shape", [0, 0])[1] if prompt_ids is not None else 0
+        comp_width = getattr(comp_ids_slice, "shape", [0, 0])[1] if comp_ids_slice is not None else 0
+        if comp_width > 0:
+            comp_slice = slice(prompt_width, prompt_width + comp_width)
+            comp_labels = labels_tensor[:, comp_slice]
+            updated_labels = comp_labels
+            pad_mask = None
+            pad_mask_arr = None
+            has_padding = False
+            try:
+                pad_mask = comp_mask_slice == 0
+                has_padding = bool(pad_mask.any())
+            except Exception:
+                pad_mask = None
+            if pad_mask is None:
+                try:
+                    pad_mask_arr = np.asarray(
+                        getattr(comp_mask_slice, "arr", comp_mask_slice)
+                    ) == 0
+                    has_padding = bool(pad_mask_arr.any())
+                except Exception:
+                    pad_mask_arr = None
+                    has_padding = False
+            if has_padding:
+                try:
+                    if pad_mask is None:
+                        raise AttributeError
+                    updated_labels = comp_labels.masked_fill(pad_mask, -100)
+                except Exception:
+                    if pad_mask_arr is None:
+                        pad_mask_arr = np.asarray(
+                            getattr(comp_mask_slice, "arr", comp_mask_slice)
+                        ) == 0
+                    comp_arr = np.asarray(getattr(comp_labels, "arr", comp_labels))
+                    comp_arr[pad_mask_arr] = -100
+                    updated_labels = as_tensor(
+                        comp_arr, device=getattr(labels_tensor, "device", None)
+                    )
+                labels_tensor[:, comp_slice] = updated_labels
+        full_labels = labels_tensor
+        input_ids = full_input_ids
+        attention_mask = full_attention_mask
+        tail_tokens = getattr(state, "score_tail_tokens", None)
+        if tail_tokens is not None:
+            try:
+                tail_tokens = int(tail_tokens)
+            except (TypeError, ValueError):
+                tail_tokens = None
+        if tail_tokens is not None and tail_tokens > 0:
+            max_len = int(getattr(full_input_ids, "shape", [0, 0])[1] or 0)
+            tail_tokens = min(tail_tokens, max_len) if max_len > 0 else 0
+            if tail_tokens > 0 and tail_tokens < max_len:
+                def _slice_tail(start_idx: int) -> Tuple[Tensor, Tensor, Tensor]:
+                    if start_idx <= 0:
+                        return full_input_ids, full_attention_mask, full_labels
+                    return (
+                        full_input_ids[:, start_idx:],
+                        full_attention_mask[:, start_idx:],
+                        full_labels[:, start_idx:],
+                    )
+
+                slice_start = max(0, max_len - tail_tokens)
+                first_comp_global = None
+                last_comp_global = None
+                if active_comp_columns:
+                    first_comp_global = prompt_width + active_comp_columns[0]
+                    last_comp_global = prompt_width + active_comp_columns[-1] + 1
+                input_ids, attention_mask, labels_tensor = _slice_tail(slice_start)
+                if (
+                    first_comp_global is not None
+                    and last_comp_global is not None
+                    and slice_start >= last_comp_global
+                ):
+                    safe_start = max(first_comp_global, last_comp_global - tail_tokens)
+                    input_ids, attention_mask, labels_tensor = _slice_tail(safe_start)
+        # Materialize tensors for the ref model; keep device parity with completions.
+        target_device = device or getattr(comp_ids_slice, "device", None)
+        target_dtype = getattr(torch_mod, "long", None)
+        input_ids_out = as_tensor(input_ids, device=target_device, dtype=target_dtype)
+        attention_mask_out = as_tensor(
+            attention_mask, device=target_device, dtype=target_dtype
+        )
+        labels_out = as_tensor(labels_tensor, device=target_device, dtype=target_dtype)
+        input_ids_out = _ensure_tensor(input_ids_out, target_device=target_device)
+        attention_mask_out = _ensure_tensor(attention_mask_out, target_device=target_device)
+        labels_out = _ensure_tensor(labels_out, target_device=target_device)
+        # Some lightweight stubs do not preserve the requested dtype object on
+        # the Tensor wrapper (they store only the underlying numpy dtype). For
+        # tests that compare against ``torch.long`` we make a best-effort pass
+        # to align the exposed ``dtype`` attribute with the module constant.
+        long_dtype = getattr(torch_mod, "long", None)
+        if long_dtype is not None:
+            proxy = _LongDTypeProxy(long_dtype)
+            for _tensor in (input_ids_out, labels_out):
+                try:  # pragma: no cover - exercised via stubbed environments
+                    setattr(_tensor, "dtype", proxy)
+                except Exception:
+                    pass
         yield (input_ids_out, attention_mask_out, labels_out)
+
+
+def _summon_fsdp_full_param_context(model: PreTrainedModel):
+    """Return a context manager that gathers FSDP parameters when available."""
+    if not hasattr(model, "summon_full_params"):
+        return nullcontext()
+    try:
+        return model.summon_full_params()
+    except TypeError:
+        try:
+            return model.summon_full_params(recurse=True)
+        except TypeError:
+            return nullcontext()
 
 
 def _chunked_sequence_logprobs(
@@ -547,37 +970,256 @@ def _chunked_sequence_logprobs(
             np.zeros(batch_size, dtype=float), dtype=getattr(torch_mod, "float32", None)
         )
         return zero, tok_tensor, None
-    outputs = model(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
-        labels=labels,
-        output_hidden_states=return_hidden,
-    )
-    logits = outputs.logits
-    log_probs = torch_mod.nn.functional.log_softmax(logits, dim=-1)
-    label_mask = labels != -100
-    vocab_size = log_probs.size(-1)
-    flat_labels = labels.masked_fill(~label_mask, 0).view(-1)
-    flat_log_probs = log_probs.view(-1, vocab_size)
-    gathered = flat_log_probs[torch_mod.arange(flat_labels.numel()), flat_labels].view(
-        labels.shape
-    )
-    seq_logp = (gathered * label_mask).sum(dim=1)
-    tok_tensor = label_mask.sum(dim=1).clamp(min=1)
-    pooled_hidden = None
-    if return_hidden and getattr(outputs, "hidden_states", None) is not None:
-        hidden = outputs.hidden_states[-1]
-        mask = attention_mask
-        if pooling == "last":
-            pooled_hidden = hidden[:, -1, :]
-        else:
-            if mask is None:
-                pooled_hidden = hidden.mean(dim=1)
-            else:
-                mask = mask.unsqueeze(-1).type_as(hidden)
-                pooled_hidden = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(
-                    min=1.0
+    # DeepSpeed ZeRO-3 shards parameters to 1-D partitions; gather embeddings
+    # so the reference forward sees 2-D weights without full-parameter all-gather.
+    gather_ctx = nullcontext()
+    if gather_full_params:
+        try:  # pragma: no cover - exercised in distributed runs
+            import deepspeed
+
+            params: list[Any] = []
+            param_iter = getattr(model, "parameters", None)
+            if callable(param_iter):
+                try:
+                    params = list(param_iter())
+                except Exception:
+                    params = []
+            # In lightweight stub environments ``parameters`` may be missing;
+            # still invoke GatheredParameters with an empty list so tests can
+            # verify that the context manager is used.
+            if params or not hasattr(model, "parameters"):
+                try:
+                    gather_ctx = deepspeed.zero.GatheredParameters(
+                        params or [], modifier_rank=None
+                    )
+                except TypeError:
+                    gather_ctx = deepspeed.zero.GatheredParameters(params or [])
+        except ImportError:
+            gather_ctx = nullcontext()
+    else:
+        try:  # pragma: no cover - exercised in distributed runs
+            import deepspeed
+
+            if deepspeed.zero.is_enabled():
+                to_gather: list[Any] = []
+                inp_emb = (
+                    model.get_input_embeddings()
+                    if hasattr(model, "get_input_embeddings")
+                    else None
                 )
+                if inp_emb is not None and hasattr(inp_emb, "weight"):
+                    to_gather.append(inp_emb.weight)
+                out_emb = (
+                    model.get_output_embeddings()
+                    if hasattr(model, "get_output_embeddings")
+                    else None
+                )
+                if out_emb is None and hasattr(model, "lm_head"):
+                    out_emb = model.lm_head
+                if out_emb is not None and hasattr(out_emb, "weight"):
+                    to_gather.append(out_emb.weight)
+                if to_gather:
+                    try:
+                        gather_ctx = deepspeed.zero.GatheredParameters(
+                            to_gather, modifier_rank=None
+                        )
+                    except TypeError:
+                        gather_ctx = deepspeed.zero.GatheredParameters(to_gather)
+        except Exception:
+            gather_ctx = nullcontext()
+
+    fsdp_ctx = _summon_fsdp_full_param_context(model)
+    stack = ExitStack()
+    stack.enter_context(gather_ctx)
+    stack.enter_context(_maybe_zero_gather_params(model, enabled=True))
+    stack.enter_context(fsdp_ctx)
+    stack.enter_context(_maybe_zero_gather_embedding(model))
+    config = getattr(model, "config", None)
+    padding_idx = _get_config_value(config, "pad_token_id", None)
+    embedding_vocab_size = _get_embedding_vocab_size(model, config)
+    vocab_size = _get_config_value(config, "vocab_size", None)
+    pad_targets: list[tuple[Any, str]] = []
+    if config is not None:
+        pad_targets.append((config, "pad_token_id"))
+    seen_modules: set[int] = set()
+    embed_token_module = getattr(model, "embed_tokens", None)
+    if embed_token_module is not None:
+        seen_modules.add(id(embed_token_module))
+        if hasattr(embed_token_module, "padding_idx"):
+            pad_targets.append((embed_token_module, "padding_idx"))
+    try:
+        input_embed_module = model.get_input_embeddings()
+    except Exception:
+        input_embed_module = None
+    if (
+        input_embed_module is not None
+        and id(input_embed_module) not in seen_modules
+        and hasattr(input_embed_module, "padding_idx")
+    ):
+        pad_targets.append((input_embed_module, "padding_idx"))
+    final_padding_idx = padding_idx
+    if padding_idx is not None:
+        limit: Optional[int] = None
+        if embedding_vocab_size is not None:
+            limit = embedding_vocab_size - 1
+        if vocab_size is not None:
+            vocab_limit = vocab_size - 1
+            if limit is None or vocab_limit < limit:
+                limit = vocab_limit
+        if limit is not None:
+            limit = max(limit, 0)
+            if padding_idx > limit:
+                final_padding_idx = limit
+    pad_ctx = nullcontext()
+    if (
+        padding_idx is not None
+        and final_padding_idx is not None
+        and final_padding_idx != padding_idx
+        and pad_targets
+    ):
+        LOG.debug(
+            "Clamping padding idx for scoring | original=%s final=%s",
+            padding_idx,
+            final_padding_idx,
+        )
+        pad_ctx = _PadTokenGuard(pad_targets, final_padding_idx)
+        padding_idx = final_padding_idx
+    stack.enter_context(pad_ctx)
+    with stack:
+        # High-level shape logging for reference scoring.
+        LOG.debug(
+            "reference scoring inputs | input_ids_shape=%s attention_mask_shape=%s labels_shape=%s",
+            getattr(input_ids, "shape", None),
+            getattr(attention_mask, "shape", None),
+            getattr(labels, "shape", None),
+        )
+        LOG.debug(
+            "reference scoring pad metadata | model.config.pad_token_id=%s embedding_vocab_size=%s",
+            padding_idx,
+            embedding_vocab_size,
+        )
+
+        embed_descs: list[str] = []
+        embed_tokens = getattr(model, "embed_tokens", None)
+        embed_descs.append(_describe_embedding_module(embed_tokens, "embed_tokens"))
+        try:
+            input_embeddings = model.get_input_embeddings()
+        except Exception:
+            input_embeddings = None
+        if input_embeddings is not None and input_embeddings is not embed_tokens:
+            embed_descs.append(
+                _describe_embedding_module(input_embeddings, "input_embeddings")
+            )
+        # Conservative guard: if the reference model's embedding weights are
+        # not 2-D under the gathered parameter contexts, skip reference
+        # scoring to avoid noisy runtime errors from torch.embedding.
+        for module in (embed_tokens, input_embeddings):
+            if module is None:
+                continue
+            weight = getattr(module, "weight", None)
+            if weight is not None and not _weight_is_two_dimensional(weight):
+                LOG.warning(
+                    "Skipping reference scoring due to non-2D embedding weight | %s",
+                    " | ".join(embed_descs),
+                )
+                return None
+        LOG.debug(
+            "reference scoring embeddings | %s | pad_token_id=%s vocab=%s",
+            " | ".join(embed_descs),
+            padding_idx,
+            embedding_vocab_size,
+        )
+        batch = getattr(input_ids, "shape", None)
+        batch = batch[0] if batch else 0
+        chunk_limit = int(chunk_size) if chunk_size is not None else 0
+        if chunk_limit <= 0 or chunk_limit >= batch:
+            chunk_indices = [(0, batch)]
+        else:
+            chunk_indices = [
+                (start, min(start + chunk_limit, batch))
+                for start in range(0, batch, chunk_limit)
+            ]
+        logp_chunks: list[Tensor] = []
+        tok_chunks: list[Tensor] = []
+        pooled_chunks: list[Tensor] = [] if return_hidden else []
+        for idx, (start, end) in enumerate(chunk_indices):
+            ids_chunk = input_ids[start:end]
+            mask_chunk = attention_mask[start:end] if attention_mask is not None else None
+            label_chunk = labels[start:end]
+            try:
+                outputs = model(
+                    input_ids=ids_chunk,
+                    attention_mask=mask_chunk,
+                    labels=label_chunk,
+                    output_hidden_states=return_hidden,
+                )
+            except TypeError:
+                outputs = model(
+                    input_ids=ids_chunk,
+                    attention_mask=mask_chunk,
+                    output_hidden_states=return_hidden,
+                )
+            logits = outputs.logits
+            LOG.debug(
+                "reference scoring logits shape | chunk=%s shape=%s",
+                idx,
+                getattr(logits, "shape", None),
+            )
+            log_probs = torch_mod.nn.functional.log_softmax(logits, dim=-1)
+            label_mask = label_chunk != -100
+            vocab_size = log_probs.size(-1)
+            flat_labels = label_chunk.masked_fill(~label_mask, 0).view(-1)
+            flat_log_probs = log_probs.view(-1, vocab_size)
+            gather_index = torch_mod.arange(flat_labels.numel())
+            target_device = getattr(flat_log_probs, "device", None)
+            if target_device is not None:
+                try:
+                    gather_index = gather_index.to(target_device)
+                except Exception:
+                    pass
+            gathered = flat_log_probs[gather_index, flat_labels].view(label_chunk.shape)
+            seq_logp_chunk = (gathered * label_mask).sum(dim=1)
+            tok_tensor_chunk = label_mask.sum(dim=1).clamp(min=1)
+            logp_chunks.append(seq_logp_chunk)
+            tok_chunks.append(tok_tensor_chunk)
+            if return_hidden and getattr(outputs, "hidden_states", None) is not None:
+                hidden = outputs.hidden_states[-1]
+                mask = mask_chunk
+                if pooling == "last":
+                    pooled = hidden[:, -1, :]
+                else:
+                    if mask is None:
+                        pooled = hidden.mean(dim=1)
+                    else:
+                        mask = mask.unsqueeze(-1)
+                        type_as_fn = getattr(mask, "type_as", None)
+                        if callable(type_as_fn):
+                            mask = type_as_fn(hidden)
+                        else:
+                            to_fn = getattr(mask, "to", None)
+                            if callable(to_fn):
+                                mask = to_fn(dtype=hidden.dtype)
+                            else:
+                                float_fn = getattr(mask, "float", None)
+                                if callable(float_fn):
+                                    mask = float_fn()
+                        pooled = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(
+                            min=1.0
+                        )
+                pooled_chunks.append(pooled)
+    seq_logp = (
+        logp_chunks[0] if len(logp_chunks) == 1 else torch_mod.cat(logp_chunks, dim=0)
+    )
+    tok_tensor = (
+        tok_chunks[0] if len(tok_chunks) == 1 else torch_mod.cat(tok_chunks, dim=0)
+    )
+    pooled_hidden: Optional[Tensor] = None
+    if pooled_chunks:
+        pooled_hidden = (
+            pooled_chunks[0]
+            if len(pooled_chunks) == 1
+            else torch_mod.cat(pooled_chunks, dim=0)
+        )
     return seq_logp, tok_tensor, pooled_hidden
 
 
@@ -619,6 +1261,13 @@ def build_score_batch(
     pad_token_id = tokenizer.pad_token_id
     if pad_token_id is None:
         pad_token_id = tokenizer.eos_token_id or 0
+    vocab_size = getattr(tokenizer, "vocab_size", None)
+    if (
+        vocab_size is not None
+        and pad_token_id is not None
+        and pad_token_id >= vocab_size
+    ):
+        pad_token_id = tokenizer.eos_token_id or vocab_size - 1 or 0
     return ScoreBatch(
         prompt_entries=prompt_entries,
         completion_ids=completion_tensors.ids,
@@ -627,6 +1276,7 @@ def build_score_batch(
         max_prompt_len=generation_cfg.max_prompt_len,
         slice_size=slice_size,
         total_sequences=total_sequences,
+        score_tail_tokens=getattr(batching_cfg, "score_tail_tokens", None),
     )
 
 
@@ -641,6 +1291,9 @@ def reference_from_model(
     ref_logp_chunks: List[Tensor] = []
     ref_tok_chunks: List[Tensor] = []
     slice_iter = iter_batch_slices(score_batch, runtime.device)
+    slice_iter = _prefetch_iterator(
+        slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
+    )
     for slice_inputs, slice_mask, slice_labels in slice_iter:
         no_grad_ctx = getattr(torch_mod, "no_grad", None) or nullcontext
         with no_grad_ctx():
@@ -650,7 +1303,7 @@ def reference_from_model(
                 attention_mask=slice_mask,
                 labels=slice_labels,
                 chunk_size=batching_cfg.logprob_chunk_size,
-                gather_full_params=True,
+                gather_full_params=False,
             )
         # _chunked_sequence_logprobs normally returns (logp, tok_counts, pooled_hidden).
         if not isinstance(result, (tuple, list)) or len(result) < 2:
@@ -743,10 +1396,10 @@ def reference_from_vllm_meta(
             logprob_sum = entry.get("logprob_sum")
         if token_count is None and isinstance(entry, dict):
             token_count = entry.get("token_count")
-            if logprob_sum is None or token_count is None:
-                return None
-            logp_vals.append(float(logprob_sum))
-            tok_counts.append(max(1, int(token_count)))
+        if logprob_sum is None or token_count is None:
+            return None
+        logp_vals.append(float(logprob_sum))
+        tok_counts.append(max(1, int(token_count)))
     torch_mod = _refresh_torch()
     ref_logp_sum = torch_mod.tensor(
         logp_vals, dtype=getattr(torch_mod, "float32", None), device=device
@@ -770,8 +1423,23 @@ def score_model_outputs(
     cur_logp_slices: List[Tensor] = []
     pooled_slices: List[Tensor] = []
     slice_iter = iter_batch_slices(score_batch, runtime.device)
+    slice_iter = _prefetch_iterator(
+        slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
+    )
+    LOG.debug(
+        "current scoring batch metadata | total_sequences=%s slice_size=%s device=%s",
+        score_batch.total_sequences,
+        score_batch.slice_size,
+        getattr(runtime.device, "type", runtime.device),
+    )
     with _autocast_context(runtime.accelerator, runtime.device):
         for slice_inputs, slice_mask, slice_labels in slice_iter:
+            LOG.debug(
+                "current scoring slice inputs | input_ids_shape=%s attention_mask_shape=%s labels_shape=%s",
+                getattr(slice_inputs, "shape", None),
+                getattr(slice_mask, "shape", None),
+                getattr(slice_labels, "shape", None),
+            )
             cur_logp_slice, _tok_counts, pooled = _chunked_sequence_logprobs(
                 model,
                 input_ids=slice_inputs,

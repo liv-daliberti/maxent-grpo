@@ -8,7 +8,11 @@ from types import SimpleNamespace
 
 import maxent_grpo.generation.vllm as vllm
 from maxent_grpo.generation import vllm_distributed, vllm_requests
-from tests.test_generation_vllm_unit import _ctx  # reuse lightweight ctx helper
+from tests.helpers.vllm import make_vllm_context
+
+
+def _ctx(**overrides):
+    return make_vllm_context(**overrides)
 
 
 def test_sync_model_params_skips_child_without_named_params():
@@ -152,7 +156,12 @@ def test_generate_collective_with_hooks():
         return [["a"]], None
 
     helper.generate = _fake_generate  # type: ignore[assignment]
-    accel = SimpleNamespace(is_main_process=True, num_processes=1, process_index=0)
+    accel = SimpleNamespace(
+        is_main_process=True,
+        num_processes=1,
+        process_index=0,
+        gather_object=lambda obj: [obj],
+    )
     helper.ctx.accelerator = accel
     grouped, meta = helper.generate_collective(
         ["p"], 1, None, lambda: True, lambda m: None

@@ -21,8 +21,16 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 import sys
 import os
+import warnings
 import numpy as np
 from types import ModuleType, SimpleNamespace
+
+try:  # pragma: no cover - optional dependency
+    from pydantic.warnings import UnsupportedFieldAttributeWarning
+
+    warnings.filterwarnings("ignore", category=UnsupportedFieldAttributeWarning)
+except Exception:  # pragma: no cover - pydantic missing
+    pass
 
 _ROOT_DIR = Path(__file__).resolve().parent.parent
 _VAR_ROOT = _ROOT_DIR / "var"
@@ -327,6 +335,8 @@ def _install_torch_stub() -> None:
         def reshape(self, *shape):
             return TorchTensor(self._arr.reshape(*shape), dtype=self.dtype)
 
+        view = reshape
+
         def unsqueeze(self, dim: int):
             return TorchTensor(np.expand_dims(self._arr, axis=dim), dtype=self.dtype)
 
@@ -345,6 +355,11 @@ def _install_torch_stub() -> None:
             return TorchTensor(
                 np.clip(self._arr, a_min=min, a_max=max), dtype=self.dtype
             )
+
+        def masked_fill(self, mask, value):
+            arr = mask._arr if isinstance(mask, TorchTensor) else np.asarray(mask)
+            filled = np.where(arr.astype(bool), value, self._arr)
+            return TorchTensor(filled, dtype=self.dtype)
 
         def mean(self, dim: int | None = None):
             return TorchTensor(self._arr.mean(axis=dim))
@@ -725,3 +740,10 @@ def _install_torch_stub() -> None:
 
 _install_accelerate_stub()
 _install_torch_stub()
+
+try:  # pragma: no cover - best-effort hook for shared vLLM servers
+    from maxent_grpo.patches.vllm_server import install_vllm_client_tag_middleware
+
+    install_vllm_client_tag_middleware()
+except Exception:
+    pass

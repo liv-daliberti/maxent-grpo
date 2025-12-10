@@ -1,0 +1,37 @@
+command: generate
+baseline:
+  recipe: null
+  script: {}
+  training: {}
+  model: {}
+maxent:
+  recipe: null
+  script: {}
+  training: {}
+  model: {}
+infoseed:
+  recipe: null
+  script: {}
+  training: {}
+  model: {}
+generate:
+  args: {}
+inference:
+  models: []
+  dataset: math_500
+  eval: {}
+  seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  num_generations: 8
+  temperature: 0.6
+  limit: null
+  collect_generations: false
+  artifacts:
+    enabled: true
+    root_dir: var/artifacts/inference
+    resume: true
+    write_prompts: true

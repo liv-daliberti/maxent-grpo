@@ -22,6 +22,20 @@ class _TinyModel(torch.nn.Module):
         labels=None,
         output_hidden_states=False,
     ):
+        def _ensure_tensor(value, dtype=torch.long):
+            if value is None or isinstance(value, torch.Tensor):
+                return value
+            data = value
+            if hasattr(value, "tolist"):
+                try:
+                    data = value.tolist()
+                except Exception:
+                    data = value
+            return torch.tensor(data, dtype=dtype)
+
+        input_ids = _ensure_tensor(input_ids, dtype=torch.long)
+        attention_mask = _ensure_tensor(attention_mask, dtype=torch.long)
+        labels = _ensure_tensor(labels, dtype=torch.long)
         hidden = self.embed(input_ids)
         logits = self.lm_head(hidden)
         if labels is not None:
@@ -101,17 +115,17 @@ def test_infoseed_runner_end_to_end(monkeypatch):
     tiny_ds = [{"prompt": "a", "answer": "b"}]
     script_args.dataset = tiny_ds
 
-    # Patch model/tokenizer/builders used by the runner
+    # Patch model/tokenizer/builders used by the runner (shared loop builder module)
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.training.infoseed.get_model",
+        "maxent_grpo.pipelines.training.loop_common.get_model",
         lambda *a, **k: _TinyModel(),
     )
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.training.infoseed.get_tokenizer",
+        "maxent_grpo.pipelines.training.loop_common.get_tokenizer",
         lambda *a, **k: _TinyTokenizer(),
     )
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.training.infoseed.require_accelerator",
+        "maxent_grpo.pipelines.training.loop_common.require_accelerator",
         lambda *_a, **_k: types.SimpleNamespace(
             device=torch.device("cpu"),
             is_main_process=True,
@@ -125,8 +139,8 @@ def test_infoseed_runner_end_to_end(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.training.infoseed.require_dataloader",
-        lambda *_a, **_k: lambda ds, batch_size: ds,
+        "maxent_grpo.pipelines.training.loop_common.require_dataloader",
+        lambda *_a, **_k: lambda ds, batch_size, shuffle=False, **_kwargs: ds,
     )
     # Run should complete without exceptions and attach seed metrics.
     run_infoseed_training(script_args, training_args, model_args)

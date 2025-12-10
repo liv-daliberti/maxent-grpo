@@ -72,6 +72,14 @@ info_seed_loss_type: infonce
 info_seed_pooling: mean
 info_seed_temperature: 0.3
 
+# Phase 2 meta-controller defaults (analytic updates for τ/β)
+controller_meta_enabled: true
+controller_meta_method: analytic
+controller_meta_lr: 0.05
+controller_meta_update_interval: 1
+controller_meta_optimizer: sgd
+controller_meta_truncation_steps: 1
+
 # GRPO trainer config (InfoSeed uses GRPO objective)
 bf16: false
 fp16: true

@@ -49,6 +49,8 @@ import os
 import uuid
 from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
+from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
+
 try:
     import requests
 except ImportError:  # pragma: no cover - optional dependency
@@ -201,6 +203,23 @@ def _extract_logprob_info(entry: Dict[str, Any]) -> Optional[VLLMLogprobResult]:
     """
     if not isinstance(entry, dict):
         return None
+    metadata = entry.get("metadata")
+    if isinstance(metadata, dict):
+        meta_seq = _clean_logprob_seq(metadata.get("token_logprobs"))
+        logprob_sum = metadata.get("logprob_sum")
+        token_count = metadata.get("token_count")
+        if token_count is None and meta_seq:
+            token_count = len(meta_seq)
+        if logprob_sum is not None:
+            inferred = token_count
+            if inferred is None:
+                inferred = _infer_token_count(entry, meta_seq)
+            return VLLMLogprobResult(
+                logprob_sum=float(logprob_sum),
+                token_count=max(1, int(inferred)),
+                token_logprobs=meta_seq,
+                raw_output=metadata.get("raw_output") or dict(entry),
+            )
     if entry.get("cumulative_logprob") is not None:
         seq = _clean_logprob_seq(entry.get("output_token_logprobs"))
         count = _infer_token_count(entry, seq)
@@ -324,6 +343,119 @@ def _parse_nonstream_json(
 LOG = logging.getLogger(__name__)
 
 
+def _find_client_tag(candidate: Any, depth: int = 0) -> Optional[str]:
+    """Traverse a limited portion of ``candidate`` to locate ``client_tag``."""
+
+    if depth > 5:
+        return None
+    if isinstance(candidate, dict):
+        tag = candidate.get("client_tag")
+        if isinstance(tag, str) and tag.strip():
+            return tag.strip()
+        for key in ("metadata", "meta", "context", "extra", "request"):
+            nested = candidate.get(key)
+            tag = _find_client_tag(nested, depth + 1)
+            if tag:
+                return tag
+    elif isinstance(candidate, list):
+        for entry in candidate[:8]:
+            tag = _find_client_tag(entry, depth + 1)
+            if tag:
+                return tag
+    return None
+
+
+def _filter_result_outputs_for_tag(
+    entry: Any, client_tag: str
+) -> bool:
+    """Filter per-output metadata for a single prompt entry."""
+
+    if not isinstance(entry, dict):
+        return True
+    outputs = entry.get("outputs")
+    if not isinstance(outputs, list) or not outputs:
+        return True
+    filtered: List[Any] = []
+    dropped = 0
+    LOG.debug(
+        "Inspecting %d outputs for client_tag=%s",
+        len(outputs),
+        client_tag,
+    )
+    for output in outputs:
+        tag = _find_client_tag(output)
+        if tag is None or tag == client_tag:
+            filtered.append(output)
+        else:
+            dropped += 1
+            LOG.debug(
+                "Dropping vLLM output tagged for %s (expecting %s)",
+                tag,
+                client_tag,
+            )
+    if dropped and not filtered:
+        return False
+    if dropped:
+        entry["outputs"] = filtered
+        LOG.debug(
+            "Filtered %d extraneous vLLM outputs for client_tag=%s",
+            dropped,
+            client_tag,
+        )
+    return True
+
+
+def _filter_response_for_client_tag(data: JsonDict, client_tag: Optional[str]) -> JsonDict:
+    """Remove prompt groups that do not match ``client_tag`` when provided."""
+
+    if not client_tag or not isinstance(data, dict):
+        return data
+    results = data.get("results")
+    if isinstance(results, list) and results:
+        filtered: List[Any] = []
+        dropped = 0
+        LOG.debug(
+            "Evaluating %d vLLM result groups for client_tag=%s",
+            len(results),
+            client_tag,
+        )
+        for entry in results:
+            tag = _find_client_tag(entry)
+            if tag is not None and tag != client_tag:
+                dropped += 1
+                LOG.debug(
+                    "Dropping result group tagged for %s (expecting %s)",
+                    tag,
+                    client_tag,
+                )
+                continue
+            if not _filter_result_outputs_for_tag(entry, client_tag):
+                dropped += 1
+                continue
+            filtered.append(entry)
+        if filtered:
+            if dropped:
+                LOG.debug(
+                    "Filtered %d extraneous vLLM result groups for client_tag=%s",
+                    dropped,
+                    client_tag,
+                )
+            data = dict(data)
+            data["results"] = filtered
+            return data
+        if dropped:
+            raise RuntimeError(
+                f"vLLM response missing completions for client_tag={client_tag}"
+            )
+        return data
+    root_tag = _find_client_tag(data)
+    if root_tag and root_tag != client_tag:
+        raise RuntimeError(
+            f"vLLM response tagged for {root_tag} cannot satisfy client_tag={client_tag}"
+        )
+    return data
+
+
 def safe_generate(
     *,
     prompts: List[str],
@@ -347,7 +479,11 @@ def safe_generate(
     timeout: Optional[float] = None,
     max_retries: Optional[int] = None,
     backoff: Optional[float] = None,
+    backoff_multiplier: Optional[float] = None,
     return_logprobs: bool = False,
+    service_model: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    client_tag: Optional[str] = None,
 ) -> Tuple[GenerationResults, GenerationLogprobGroups, float]:
     """Robust POST to ``/generate`` with retry + schema-agnostic decoding.
 
@@ -395,10 +531,16 @@ def safe_generate(
     :type timeout: float
     :param return_logprobs: Whether to request log-prob metadata from vLLM.
     :type return_logprobs: bool
+    :param service_model: Optional identifier for the served model (used in error payloads).
+    :type service_model: str | None
+    :param metadata: Optional structured context (dataset/model) copied into error payloads.
+    :type metadata: dict[str, Any] | None
+    :param client_tag: Optional client/rank identifier forwarded via headers/payload.
+    :type client_tag: str | None
     :returns: Tuple of grouped texts, optional log-prob metadata, and latency in milliseconds.
     :rtype: tuple[list[list[str]], Optional[list[list[VLLMLogprobResult]]], float]
-    :raises RuntimeError: When the server returns a non‑200 response or after
-        exhausting retries.
+    :raises GenerationServiceError: When the server responds with repeated errors
+        after exhausting retries.
     """
     timeout = float(
         timeout if timeout is not None else os.environ.get("VLLM_TIMEOUT", 120.0)
@@ -410,6 +552,11 @@ def safe_generate(
     )
     backoff = float(
         backoff if backoff is not None else os.environ.get("VLLM_BACKOFF", 1.0)
+    )
+    backoff_multiplier = float(
+        backoff_multiplier
+        if backoff_multiplier is not None
+        else os.environ.get("VLLM_BACKOFF_MULTIPLIER", 2.0)
     )
     effective_request_id = (
         request_id
@@ -452,8 +599,15 @@ def safe_generate(
         payload["guided_json"] = guided_json
     if guided_regex:
         payload["guided_regex"] = guided_regex
+    if client_tag:
+        payload["client_tag"] = client_tag
 
-    headers = _build_vllm_headers(prompts)
+    headers = _build_vllm_headers(prompts, client_tag)
+    prompt_chars = sum(len(prompt) for prompt in prompts)
+    try:
+        payload_size_bytes = len(json.dumps(payload).encode("utf-8"))
+    except (TypeError, ValueError):
+        payload_size_bytes = None
     LOG.debug(
         "vLLM request start | url=%s | prompts=%d | n=%d | stream=%s",
         url,
@@ -462,6 +616,7 @@ def safe_generate(
         stream,
     )
     start_time = time.perf_counter()
+    last_status: Optional[int] = None
     for attempt in range(max_retries):
         try:
             r = requests.post(
@@ -481,12 +636,15 @@ def safe_generate(
                 latency_ms = (time.perf_counter() - start_time) * 1000.0
                 if stream:
                     return _collect_stream_texts(r, len(prompts)), None, latency_ms
+                payload = r.json()
+                payload = _filter_response_for_client_tag(payload, client_tag)
                 grouped, meta = _parse_nonstream_json(
-                    r.json(),
+                    payload,
                     tokenizer,
                     want_logprobs=return_logprobs,
                 )
                 return grouped, meta, latency_ms
+            last_status = r.status_code
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:120]}")
         except (requests.ConnectionError, requests.Timeout, RuntimeError) as err:
             LOG.warning(
@@ -497,14 +655,48 @@ def safe_generate(
                 url,
             )
             if attempt < max_retries - 1:
-                time.sleep(backoff * (2**attempt))
+                delay = backoff * (backoff_multiplier ** attempt)
+                time.sleep(delay)
             else:
                 LOG.error(
                     "vLLM request exhausted retries | url=%s | prompts=%d",
                     url,
                     len(prompts),
                 )
-                raise RuntimeError(f"safe_generate failed: {err}") from err
+                elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+                payload_extra = {
+                    "stream": stream,
+                    "timeout": timeout,
+                    "request_id_prefix": request_id_prefix,
+                    "max_tokens": max_tokens,
+                    "completions_per_prompt": n,
+                    "backoff_initial": backoff,
+                    "backoff_multiplier": backoff_multiplier,
+                    "elapsed_ms": elapsed_ms,
+                }
+                if metadata:
+                    for key, value in metadata.items():
+                        if value is not None:
+                            payload_extra[key] = value
+                error_payload = ServiceErrorPayload(
+                    service="vllm",
+                    endpoint=url,
+                    model=service_model,
+                    prompt_count=len(prompts),
+                    payload_chars=prompt_chars,
+                    payload_size_bytes=payload_size_bytes,
+                    status_code=last_status,
+                    attempt=attempt + 1,
+                    max_attempts=max_retries,
+                    exception_type=type(err).__name__,
+                    exception_message=str(err),
+                    request_id=effective_request_id,
+                    extra=payload_extra,
+                )
+                raise GenerationServiceError(
+                    f"safe_generate failed after {max_retries} attempts",
+                    error_payload,
+                ) from err
 
 
 def _collect_stream_texts(
@@ -531,11 +723,15 @@ def _collect_stream_texts(
     return [["".join(parts)] for parts in texts]
 
 
-def _build_vllm_headers(prompts: List[str]) -> Dict[str, str]:
+def _build_vllm_headers(
+    prompts: List[str], client_tag: Optional[str] = None
+) -> Dict[str, str]:
     """Construct optional headers used by TRL's vLLM RPC helpers.
 
     :param prompts: Prompt batch used to derive deterministic group IDs.
     :type prompts: list[str]
+    :param client_tag: Optional client/rank identifier propagated to the server.
+    :type client_tag: str | None
     :returns: Header dictionary containing stable request identifiers and
         optional auth/extra headers sourced from the environment.
     :rtype: dict[str, str]
@@ -550,6 +746,8 @@ def _build_vllm_headers(prompts: List[str]) -> Dict[str, str]:
     api_key = os.environ.get("VLLM_API_KEY")
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
+    if client_tag:
+        headers["X-VLLM-Client-Tag"] = client_tag
     custom_headers = os.environ.get("VLLM_EXTRA_HEADERS")
     if custom_headers:
         try:
