@@ -261,6 +261,46 @@ def test_split_ref_logprobs_per_token_handles_mismatched_lengths(weighting_logic
     assert per_token[0] == pytest.approx([1.0, -1.0, 0.0])
 
 
+def test_compute_weight_stats_honors_len_norm_flag(monkeypatch, weighting_logic):
+    logic, stub = weighting_logic
+    grouped = [["a", "b"]]
+    reward_comp = SimpleNamespace(q_grouped=[[0.6, 0.4]])
+    ref_stats = ReferenceLogprobs(
+        ref_logp_sum=stub.tensor([0.1, 0.2]),
+        ref_tok_counts=stub.tensor([1.0, 1.0]),
+        ref_logp_sum_raw=stub.tensor([1.5, 2.5]),
+        ref_logp_mean=0.0,
+        avg_completion_tokens=1.0,
+    )
+    calls: list[bool] = []
+
+    def _fake_split(groups, stats, len_norm_ref):
+        calls.append(len_norm_ref)
+        return [[0.1, 0.2]]
+
+    monkeypatch.setattr(logic, "split_reference_logprobs", _fake_split)
+    monkeypatch.setattr(
+        logic, "split_reference_token_counts", lambda *_a, **_k: [[1.0, 1.0]]
+    )
+    monkeypatch.setattr(
+        logic,
+        "weight_vector_from_q",
+        lambda *_a, **_k: [0.5, 0.5],
+    )
+    weighting = SimpleNamespace(
+        len_norm_ref=False,
+        tau=0.3,
+        beta=0.1,
+        denom=0.4,
+        train_grpo_objective=False,
+        controller_state=None,
+    )
+    logic.compute_weight_stats(grouped, reward_comp, ref_stats, weighting)
+    weighting.len_norm_ref = True
+    logic.compute_weight_stats(grouped, reward_comp, ref_stats, weighting)
+    assert calls == [False, True]
+
+
 def test_weight_vector_from_q_normalizes_with_reference_and_tokens(weighting_logic):
     logic, _ = weighting_logic
     weighting_cfg = _build_weighting(beta=0.3, tau=0.2, denom=0.0)
@@ -705,7 +745,7 @@ def test_collect_weight_entropy_handles_empty_and_values(weighting_logic):
     assert advantage == pytest.approx([-0.25, 0.25, 0.0])
 
 
-def test_compute_weight_stats_uses_per_token_reference(weighting_logic):
+def test_compute_weight_stats_respects_len_norm_flag(weighting_logic):
     logic, stub = weighting_logic
     grouped = [["a", "b"], ["c"]]
     ref_stats = ReferenceLogprobs(
@@ -732,7 +772,7 @@ def test_compute_weight_stats_uses_per_token_reference(weighting_logic):
     stats = logic.compute_weight_stats(grouped, reward_comp, ref_stats, weighting_cfg)
 
     assert stats is not None
-    expected_log_terms = np.log([0.2, 0.8]) / 0.9 + (0.4 / 0.9) * np.array([1.0, -1.0])
+    expected_log_terms = np.log([0.2, 0.8]) / 0.9 + (0.4 / 0.9) * np.array([2.0, -1.0])
     expected_group = np.exp(
         expected_log_terms - np.log(np.exp(expected_log_terms).sum())
     )

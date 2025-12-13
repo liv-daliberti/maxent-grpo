@@ -16,6 +16,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import importlib
 import importlib.util
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
@@ -38,6 +39,38 @@ _VAR_ROOT.mkdir(parents=True, exist_ok=True)
 _PYCACHE_DIR = _VAR_ROOT / "pycache"
 _PYCACHE_DIR.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("PYTHONPYCACHEPREFIX", str(_PYCACHE_DIR))
+
+_CACHE_ROOT = _VAR_ROOT / "cache"
+_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+def _setdefault_dir(env_name: str, path: Path) -> Path:
+    """Populate filesystem-backed env vars with repo-local defaults."""
+
+    if not os.environ.get(env_name):
+        os.environ[env_name] = str(path)
+    resolved = Path(os.environ[env_name]).expanduser()
+    try:
+        resolved.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Re-create PIP cache may fail when pointed at a file; tolerate silently.
+        pass
+    return resolved
+
+
+_ENV_PATH_DEFAULTS = {
+    "XDG_CACHE_HOME": _CACHE_ROOT / "xdg",
+    "XDG_CONFIG_HOME": _VAR_ROOT / "config",
+    "PIP_CACHE_DIR": _CACHE_ROOT / "pip",
+    "TMPDIR": _VAR_ROOT / "tmp",
+    "HF_HOME": _CACHE_ROOT / "huggingface",
+    "HUGGINGFACE_HUB_CACHE": _CACHE_ROOT / "huggingface" / "hub",
+    "HF_HUB_CACHE": _CACHE_ROOT / "huggingface" / "hub",
+    "HF_DATASETS_CACHE": _CACHE_ROOT / "huggingface" / "datasets",
+    "TRANSFORMERS_CACHE": _CACHE_ROOT / "huggingface" / "transformers",
+}
+for _env, _path in _ENV_PATH_DEFAULTS.items():
+    _setdefault_dir(_env, _path)
 
 _SRC_ROOT = _ROOT_DIR / "src"
 if _SRC_ROOT.exists():
@@ -738,8 +771,35 @@ def _install_torch_stub() -> None:
     sys.modules["torch.optim"] = optim_mod
 
 
+def _patch_antlr4_runtime() -> None:
+    """Permit ANTLR runtimes expecting v4 grammars to load OmegaConf v3 grammars."""
+
+    try:
+        atn_module = importlib.import_module("antlr4.atn.ATNDeserializer")
+    except Exception:
+        return
+
+    expected = getattr(atn_module, "SERIALIZED_VERSION", None)
+    if expected is None or expected <= 3:
+        return
+    if getattr(atn_module, "_maxent_allow_v3_serialized_atn", False):
+        return
+
+    def _check_version(self):  # type: ignore[override]
+        version = self.readInt()
+        if version in (expected, 3):
+            return
+        raise Exception(
+            f"Could not deserialize ATN with version {version} (expected {expected})."
+        )
+
+    atn_module.ATNDeserializer.checkVersion = _check_version
+    atn_module._maxent_allow_v3_serialized_atn = True
+
+
 _install_accelerate_stub()
 _install_torch_stub()
+_patch_antlr4_runtime()
 
 try:  # pragma: no cover - best-effort hook for shared vLLM servers
     from maxent_grpo.patches.vllm_server import install_vllm_client_tag_middleware

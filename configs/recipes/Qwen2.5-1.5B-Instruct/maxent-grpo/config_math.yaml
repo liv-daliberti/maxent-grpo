@@ -72,6 +72,7 @@ maxent_tau_lr: 0.001
 maxent_tau_min: 0.0001
 maxent_tau_max: 1
 maxent_tau_warmup_steps: 75    # roughly match LR warmup so tau stays steady early on
+maxent_score_tail_tokens: 512  # restrict KL/entropy measurements to the tail of each completion
 # Phase 2 meta-controller defaults (analytic updates for τ/β)
 controller_meta_enabled: true
 controller_meta_method: analytic
@@ -101,7 +102,7 @@ vllm_mode: server         # reuse the single vLLM server from the launcher; avoi
 vllm_return_logprobs: true
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 64    # match TRL defaults for faster logging feedback
+gradient_accumulation_steps: 128    # match TRL defaults for faster logging feedback
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
@@ -114,7 +115,7 @@ vllm_stop_sequences:
   - "</answer>\n"
   - "</assistant>"
 vllm_request_timeout: 600
-vllm_url: http://localhost:29525
+vllm_url: http://localhost:29525/generate
 hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 hub_strategy: every_save
 learning_rate: 5e-6
@@ -125,12 +126,13 @@ log_level: info
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
+log_like_grpo: true
 lr_scheduler_type: cosine
 max_prompt_length: 2500      # trim prompt window to ease ref scoring memory
-max_completion_length: 750   # shorter completions to reduce activation + ref costs
+max_completion_length: 2500   # shorter completions to reduce activation + ref costs
 max_steps: 1000
 # GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
-num_generations: 4          # reduce scoring footprint while satisfying GRPO minimum
+num_generations: 8          # reduce scoring footprint while satisfying GRPO minimum
 num_train_epochs: 5
 output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 overwrite_output_dir: true

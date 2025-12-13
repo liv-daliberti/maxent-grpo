@@ -528,20 +528,61 @@ def compute_reward_statistics(
     )
 
 
+def _coerce_reward_names(raw_names: Any) -> List[str]:
+    """Return a list of reward identifiers from arbitrary inputs."""
+
+    if not raw_names:
+        return []
+    if isinstance(raw_names, str):
+        return [raw_names]
+    try:
+        sequence = list(raw_names)
+    except TypeError:
+        return [str(raw_names)]
+    names: List[str] = []
+    for name in sequence:
+        if name is None:
+            continue
+        names.append(str(name))
+    return names
+
+
+def _has_recipe_path(obj: Any) -> bool:
+    """Return ``True`` when the object carries a recipe path marker."""
+
+    return bool(getattr(obj, "recipe_path", None))
+
+
 def load_reward_functions(
     script_args: Any, tokenizer: Any, training_args: Any = None
 ) -> Tuple[list, list]:
     """Resolve reward functions/weights from script or training args."""
 
-    reward_source = training_args if training_args is not None else script_args
-    reward_names = (
-        getattr(reward_source, "reward_funcs", None)
-        or getattr(script_args, "reward_funcs", None)
-        or ["pure_accuracy_math"]
-    )
+    def _resolve_rewards(source: Any) -> Tuple[List[str], Optional[List[float]]]:
+        if source is None:
+            return [], None
+        names = _coerce_reward_names(getattr(source, "reward_funcs", None))
+        weights = getattr(source, "reward_weights", None)
+        return names, weights
+
+    script_names, script_weights = _resolve_rewards(script_args)
+    training_names, training_weights = _resolve_rewards(training_args)
+    use_training = False
+    if training_names:
+        if not script_names or training_names != script_names:
+            use_training = True
+    if use_training:
+        reward_names = training_names
+        weight_source = training_weights
+    elif script_names:
+        reward_names = script_names
+        weight_source = script_weights
+    else:
+        reward_names = ["pure_accuracy_math"]
+        weight_source = None
     proxy = SimpleNamespace(reward_funcs=reward_names)
     reward_funcs = get_reward_funcs(proxy, None, tokenizer)
-    reward_weights = getattr(reward_source, "reward_weights", None)
+    reward_weights = weight_source
     if reward_weights is None or len(reward_weights) != len(reward_funcs):
         reward_weights = [1.0] * len(reward_funcs)
     return reward_funcs, reward_weights
@@ -552,19 +593,48 @@ def load_eval_reward_functions(
 ) -> Tuple[list, list]:
     """Resolve eval reward functions/weights, defaulting to training rewards."""
 
-    fallback_funcs = []
-    if training_args is not None:
-        fallback_funcs = getattr(training_args, "reward_funcs", []) or []
-    if not fallback_funcs:
-        fallback_funcs = getattr(script_args, "reward_funcs", []) or []
-    eval_names = getattr(script_args, "eval_reward_funcs", None) or fallback_funcs
-    proxy = SimpleNamespace(reward_funcs=eval_names)
+    script_eval_names = _coerce_reward_names(
+        getattr(script_args, "eval_reward_funcs", None)
+    )
+    script_eval_weights = getattr(script_args, "eval_reward_weights", None)
+    script_train_names = _coerce_reward_names(
+        getattr(script_args, "reward_funcs", None)
+    )
+    script_train_weights = getattr(script_args, "reward_weights", None)
+    training_names = (
+        _coerce_reward_names(getattr(training_args, "reward_funcs", None))
+        if training_args is not None
+        else []
+    )
+    training_weights = (
+        getattr(training_args, "reward_weights", None)
+        if training_args is not None
+        else None
+    )
+    if script_eval_names:
+        reward_names = script_eval_names
+        weight_source = script_eval_weights
+    else:
+        use_training = False
+        if training_names:
+            if not script_train_names or training_names != script_train_names:
+                use_training = True
+        if script_train_names and not use_training:
+            reward_names = script_train_names
+            weight_source = script_train_weights
+        elif training_names:
+            reward_names = training_names
+            weight_source = training_weights
+        else:
+            reward_names = ["pure_accuracy_math"]
+            weight_source = None
+    proxy = SimpleNamespace(reward_funcs=reward_names)
     reward_funcs = get_reward_funcs(proxy, None, tokenizer)
 
-    eval_weights = getattr(script_args, "eval_reward_weights", None)
-    if eval_weights is None or len(eval_weights) != len(reward_funcs):
-        eval_weights = [1.0] * len(reward_funcs)
-    return reward_funcs, eval_weights
+    reward_weights = weight_source
+    if reward_weights is None or len(reward_weights) != len(reward_funcs):
+        reward_weights = [1.0] * len(reward_funcs)
+    return reward_funcs, reward_weights
 
 
 __all__ = [

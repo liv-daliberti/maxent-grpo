@@ -21,8 +21,9 @@ from __future__ import annotations
 import os
 import sys
 import types
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, is_dataclass
 from typing import Any, Dict, List, Optional
+from collections.abc import Mapping
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
 
@@ -275,7 +276,13 @@ def _build_grpo_configs(
     recipe_path = _resolve_recipe_path(cmd)
     model_config_cls = _resolve_model_config_cls()
     if recipe_path:
-        return load_grpo_recipe(recipe_path, model_config_cls=model_config_cls)
+        script_args, training_args, model_args = load_grpo_recipe(
+            recipe_path, model_config_cls=model_config_cls
+        )
+        _apply_overrides(script_args, getattr(cmd, "script", None))
+        _apply_overrides(training_args, getattr(cmd, "training", None))
+        _apply_overrides(model_args, getattr(cmd, "model", None))
+        return script_args, training_args, model_args
 
     # Avoid parser conflicts by keeping reward-related flags on the training config.
     training_payload = dict(cmd.training)
@@ -290,6 +297,48 @@ def _build_grpo_configs(
         GRPOConfig(**training_payload),
         model_config_cls(**cmd.model),
     )
+
+
+def _merge_mapping(
+    base: Mapping[str, Any], updates: Mapping[str, Any]
+) -> Dict[str, Any]:
+    merged = dict(base)
+    for key, value in updates.items():
+        if (
+            isinstance(value, Mapping)
+            and not isinstance(value, str)
+            and isinstance(merged.get(key), Mapping)
+        ):
+            merged[key] = _merge_mapping(
+                merged[key], value  # type: ignore[arg-type]
+            )
+        else:
+            merged[key] = value
+    return merged
+
+
+def _apply_overrides(target: Any, overrides: Optional[Dict[str, Any]]) -> Any:
+    if target is None or not overrides:
+        return target
+    for key, value in overrides.items():
+        if value is None:
+            continue
+        if (
+            isinstance(value, Mapping)
+            and not isinstance(value, str)
+        ):
+            current = getattr(target, key, None)
+            if isinstance(current, Mapping):
+                setattr(target, key, _merge_mapping(current, value))
+            elif current is not None and (
+                is_dataclass(current) or hasattr(current, "__dict__")
+            ):
+                _apply_overrides(current, value)  # type: ignore[arg-type]
+            else:
+                setattr(target, key, dict(value))
+        else:
+            setattr(target, key, value)
+    return target
 
 
 def hydra_main(cfg: Optional[DictConfig] = None) -> Any:

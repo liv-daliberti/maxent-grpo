@@ -246,6 +246,92 @@ def _reference_stats_from_meta(
         return None
 
 
+def _behavior_logp_tensor_from_meta(
+    flat_meta: Optional[List[Optional[Any]]],
+    total_sequences: int,
+    template_tensor: Any,
+) -> Optional["torch.Tensor"]:
+    """Return a tensor of behavior log-prob sums derived from metadata.
+
+    The metadata is expected to contain ``logprob_sum`` entries aligned with
+    the flattened completions list.  When metadata is missing or incomplete
+    ``None`` is returned so downstream callers can fall back to current-policy
+    log-probs.
+
+    :param flat_meta: Flattened metadata per sequence emitted by generation.
+    :type flat_meta: list | None
+    :param total_sequences: Expected number of completions in the batch.
+    :type total_sequences: int
+    :param template_tensor: Tensor used to infer device/dtype for the result.
+    :type template_tensor: torch.Tensor
+    :returns: Tensor of log-prob sums or ``None`` if unavailable.
+    :rtype: torch.Tensor | None
+    """
+    if not flat_meta or total_sequences <= 0:
+        return None
+    if len(flat_meta) < total_sequences:
+        LOG.debug(
+            "Behavior log-prob metadata too short | meta_len=%d | sequences=%d",
+            len(flat_meta),
+            total_sequences,
+        )
+        return None
+    logprob_vals: List[float] = []
+    for idx in range(total_sequences):
+        entry = flat_meta[idx]
+        if entry is None:
+            LOG.debug("Behavior log-prob metadata missing entry at idx=%d", idx)
+            return None
+        logprob_sum = getattr(entry, "logprob_sum", None)
+        if logprob_sum is None and isinstance(entry, dict):
+            logprob_sum = entry.get("logprob_sum")
+        if logprob_sum is None:
+            LOG.debug("Behavior log-prob metadata missing logprob_sum at idx=%d", idx)
+            return None
+        try:
+            logprob_vals.append(float(logprob_sum))
+        except (TypeError, ValueError):
+            LOG.debug(
+                "Behavior log-prob metadata has non-castable value at idx=%d: %s",
+                idx,
+                logprob_sum,
+            )
+            return None
+    new_tensor = getattr(template_tensor, "new_tensor", None)
+    tensor_obj: Optional["torch.Tensor"] = None
+    if callable(new_tensor):
+        try:
+            tensor_obj = new_tensor(
+                logprob_vals,
+                dtype=getattr(template_tensor, "dtype", None),
+                device=getattr(template_tensor, "device", None),
+            )
+        except (TypeError, ValueError, RuntimeError):
+            tensor_obj = None
+    if tensor_obj is None:
+        torch_mod = sys.modules.get("torch")
+        tensor_fn = getattr(torch_mod, "tensor", None) if torch_mod is not None else None
+        if callable(tensor_fn):
+            try:
+                tensor_obj = tensor_fn(
+                    logprob_vals,
+                    dtype=getattr(template_tensor, "dtype", None),
+                    device=getattr(template_tensor, "device", None),
+                )
+            except (TypeError, ValueError, RuntimeError):
+                tensor_obj = None
+    if tensor_obj is None:
+        LOG.debug("Unable to convert behavior log-prob metadata into a tensor.")
+        return None
+    view_fn = getattr(tensor_obj, "view", None)
+    if callable(view_fn):
+        try:
+            tensor_obj = view_fn(-1)
+        except (TypeError, ValueError, RuntimeError):
+            pass
+    return tensor_obj
+
+
 def _collect_batch_stats(
     ctx: TrainingLoopContext,
     gen_batch: GenerationBatch,
@@ -267,7 +353,24 @@ def _collect_batch_stats(
     last_ref_stats = getattr(ctx, "_last_ref_stats", None)
 
     def _ref_stats_empty(candidate: Optional[ReferenceLogprobs]) -> bool:
+        if candidate is not None and not getattr(
+            _collect_batch_stats, "_ref_candidate_seen", False
+        ):
+            LOG.debug(
+                "Reference stats candidate present | type=%s | ref_logp_sum_raw_shape=%s | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s",
+                type(candidate).__name__,
+                getattr(getattr(candidate, "ref_logp_sum_raw", None), "shape", None),
+                getattr(getattr(candidate, "ref_logp_sum", None), "shape", None),
+                getattr(getattr(candidate, "ref_tok_counts", None), "shape", None),
+            )
+            setattr(_collect_batch_stats, "_ref_candidate_seen", True)
         if candidate is None:
+            _log_ref_diag = not getattr(_collect_batch_stats, "_ref_diag_logged", False)
+            if _log_ref_diag:
+                LOG.warning(
+                    "Reference stats deemed empty: candidate=None | ref_logp_sum_raw=None | ref_logp_sum=None | ref_tok_counts=None"
+                )
+                setattr(_collect_batch_stats, "_ref_diag_logged", True)
             return True
         tensor = getattr(candidate, "ref_logp_sum_raw", None)
         if tensor is None:
@@ -294,7 +397,53 @@ def _collect_batch_stats(
             length = len(data)
         except TypeError:
             return False
-        return length == 0
+        is_empty = length == 0
+        if is_empty and not getattr(_collect_batch_stats, "_ref_diag_logged", False):
+            def _describe(obj: Any) -> str:
+                if obj is None:
+                    return "None"
+                shape = getattr(obj, "shape", None)
+                numel_fn = getattr(obj, "numel", None)
+                numel_val = None
+                if callable(numel_fn):
+                    try:
+                        numel_val = numel_fn()
+                    except Exception:
+                        numel_val = "error"
+                return f"{type(obj).__name__}(shape={shape}, numel={numel_val})"
+
+            LOG.warning(
+                "Reference stats deemed empty: candidate=%s | ref_logp_sum_raw=%s | ref_logp_sum=%s | ref_tok_counts=%s",
+                type(candidate).__name__,
+                _describe(getattr(candidate, "ref_logp_sum_raw", None)),
+                _describe(getattr(candidate, "ref_logp_sum", None)),
+                _describe(getattr(candidate, "ref_tok_counts", None)),
+            )
+            setattr(_collect_batch_stats, "_ref_diag_logged", True)
+        elif not is_empty and not getattr(_collect_batch_stats, "_ref_diag_logged_success", False):
+            LOG.debug(
+                "Reference stats non-empty | ref_logp_sum_raw_shape=%s | ref_tok_counts_shape=%s",
+                getattr(getattr(candidate, "ref_logp_sum_raw", None), "shape", None),
+                getattr(getattr(candidate, "ref_tok_counts", None), "shape", None),
+            )
+            setattr(_collect_batch_stats, "_ref_diag_logged_success", True)
+        # If logp sum tensors are length zero but token counts exist, treat as non-empty
+        tok_counts = getattr(candidate, "ref_tok_counts", None)
+        if tok_counts is not None:
+            tok_numel = _safe_numel(tok_counts)
+            logp_sum_raw_numel = _safe_numel(getattr(candidate, "ref_logp_sum_raw", None))
+            logp_sum_numel = _safe_numel(getattr(candidate, "ref_logp_sum", None))
+            if tok_numel and tok_numel > 0 and (
+                logp_sum_raw_numel == 0 or logp_sum_numel == 0
+            ):
+                LOG.debug(
+                    "Reference stats: allowing zero-length logp_sum because tok_counts exist | tok_numel=%s | logp_sum_raw_numel=%s | logp_sum_numel=%s",
+                    tok_numel,
+                    logp_sum_raw_numel,
+                    logp_sum_numel,
+                )
+                return False
+        return is_empty
 
     def _warn_fallback(reason: str) -> None:
         flag = getattr(_collect_batch_stats, "_fallback_warned", False)
@@ -326,11 +475,18 @@ def _collect_batch_stats(
             score_batch_retry.slice_size = reduced_slice
             batching_cfg_retry.logprob_chunk_size = reduced_chunk
             try:
-                return gather_reference_logprobs(
+                result = gather_reference_logprobs(
                     score_batch_retry,
                     ctx.runtime,
                     batching_cfg_retry,
                 )
+                LOG.debug(
+                    "Retry reference gather result | slice_size=%s | chunk_size=%s | result=%s",
+                    reduced_slice,
+                    reduced_chunk,
+                    _describe_ref(result),
+                )
+                return result
             except Exception as exc:  # pragma: no cover - best-effort logging
                 LOG.warning("Retry reference gather failed: %s", exc)
                 return None
@@ -367,11 +523,20 @@ def _collect_batch_stats(
         batching_cfg,
     )
     if score_batch is None:
+        LOG.warning(
+            "Score batch build failed; completions=%d | prompts=%d",
+            len(getattr(reward_comp.pairs, "completions", []) or []),
+            len(getattr(reward_comp.pairs, "prompts", []) or []),
+        )
         return None
     LOG.debug(
-        "Score batch built | total_sequences=%d | max_prompt_len=%s",
+        "Score batch built | total_sequences=%d | max_prompt_len=%s | slice_size=%s | comp_ids_shape=%s | comp_mask_shape=%s | pad_id=%s",
         getattr(score_batch, "total_sequences", 0),
         getattr(score_batch, "max_prompt_len", None),
+        getattr(score_batch, "slice_size", None),
+        getattr(score_batch, "completion_ids", None).shape if getattr(score_batch, "completion_ids", None) is not None else None,
+        getattr(score_batch, "completion_attention_mask", None).shape if getattr(score_batch, "completion_attention_mask", None) is not None else None,
+        getattr(score_batch, "pad_token_id", None),
     )
     ref_meta = getattr(reward_comp, "ref_logprob_meta", None)
     ref_meta_len = len(ref_meta) if ref_meta else 0
@@ -417,8 +582,70 @@ def _collect_batch_stats(
                     _REF_LOGPROB_TRACE_LIMIT,
                     traceback.format_exc(),
                 )
+        except Exception as exc:  # pragma: no cover - defensive diag
+            LOG.error(
+                "Unexpected exception during gather_reference_logprobs: %s",
+                traceback.format_exc(),
+            )
         ref_stats = ref_try
+        if ref_stats is None:
+            LOG.warning(
+                "gather_reference_logprobs returned None | slice_size=%s chunk_size=%s device=%s | ref_meta_len=%d | total_sequences=%d",
+                getattr(score_batch, "slice_size", None),
+                getattr(batching_cfg, "logprob_chunk_size", None),
+                getattr(ctx.runtime, "device", None),
+                ref_meta_len,
+                getattr(score_batch, "total_sequences", 0),
+            )
+        else:
+            LOG.debug(
+                "Reference stats gathered | type=%s | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s",
+                type(ref_stats).__name__,
+                getattr(getattr(ref_stats, "ref_logp_sum", None), "shape", None),
+                getattr(getattr(ref_stats, "ref_tok_counts", None), "shape", None),
+            )
+    def _safe_numel(tensor: Any) -> Any:
+        numel_fn = getattr(tensor, "numel", None)
+        if callable(numel_fn):
+            try:
+                return numel_fn()
+            except Exception:
+                return "error"
+        return None
+
+    def _describe_ref(obj: Any) -> str:
+        if obj is None:
+            return "None"
+        return (
+            f"{type(obj).__name__}(shape_logp_sum_raw="
+            f"{getattr(getattr(obj, 'ref_logp_sum_raw', None), 'shape', None)}, "
+            f"shape_logp_sum={getattr(getattr(obj, 'ref_logp_sum', None), 'shape', None)}, "
+            f"shape_tok_counts={getattr(getattr(obj, 'ref_tok_counts', None), 'shape', None)}, "
+            f"numel_logp_sum_raw={_safe_numel(getattr(obj, 'ref_logp_sum_raw', None))}, "
+            f"numel_logp_sum={_safe_numel(getattr(obj, 'ref_logp_sum', None))}, "
+            f"numel_tok_counts={_safe_numel(getattr(obj, 'ref_tok_counts', None))})"
+        )
+
+    LOG.debug(
+        "Reference stats post gather | is_none=%s | type=%s | ref_logp_sum_raw_shape=%s | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s | ref_logp_sum_raw_numel=%s | ref_logp_sum_numel=%s | ref_tok_counts_numel=%s",
+        ref_stats is None,
+        type(ref_stats).__name__ if ref_stats is not None else None,
+        getattr(getattr(ref_stats, "ref_logp_sum_raw", None), "shape", None),
+        getattr(getattr(ref_stats, "ref_logp_sum", None), "shape", None),
+        getattr(getattr(ref_stats, "ref_tok_counts", None), "shape", None),
+        _safe_numel(getattr(ref_stats, "ref_logp_sum_raw", None)) if ref_stats is not None else None,
+        _safe_numel(getattr(ref_stats, "ref_logp_sum", None)) if ref_stats is not None else None,
+        _safe_numel(getattr(ref_stats, "ref_tok_counts", None)) if ref_stats is not None else None,
+    )
+
     fallback_guard = getattr(_collect_batch_stats, "_fallback_warned", False)
+    LOG.debug(
+        "Reference stats emptiness check | ref_stats=%s | last_ref_stats=%s | ref_meta_len=%d | total_sequences=%d",
+        _describe_ref(ref_stats),
+        _describe_ref(last_ref_stats),
+        ref_meta_len,
+        getattr(score_batch, "total_sequences", 0),
+    )
     if _ref_stats_empty(ref_stats):
         retry_stats = _retry_reference_gather(score_batch, batching_cfg)
         if not _ref_stats_empty(retry_stats):
@@ -426,6 +653,11 @@ def _collect_batch_stats(
         elif last_ref_stats is None and not fallback_guard:
             # No cache yet and retry failed: force a minimal slice/chunk attempt.
             fallback_guard = True
+            LOG.debug(
+                "Attempting forced minimal reference gather | orig_slice=%s orig_chunk=%s",
+                getattr(score_batch, "slice_size", None),
+                getattr(batching_cfg, "logprob_chunk_size", None),
+            )
             single_score = ScoreBatch(
                 prompt_entries=score_batch.prompt_entries,
                 completion_ids=score_batch.completion_ids,
@@ -457,13 +689,29 @@ def _collect_batch_stats(
                     single_batching,
                 )
             except Exception:
+                LOG.warning("Forced minimal reference gather raised an exception; skipping.")
                 forced = None
+            else:
+                LOG.debug(
+                    "Forced minimal reference gather result | ref_stats=%s",
+                    _describe_ref(forced),
+                )
             if not _ref_stats_empty(forced):
                 ref_stats = forced
     if _ref_stats_empty(ref_stats) and last_ref_stats is not None:
+        LOG.warning(
+            "Reference gather empty; reusing last ref stats | last_ref_shapes=%s/%s",
+            getattr(getattr(last_ref_stats, 'ref_logp_sum', None), 'shape', None),
+            getattr(getattr(last_ref_stats, 'ref_tok_counts', None), 'shape', None),
+        )
         _warn_fallback("reference gather returned empty tensors")
         ref_stats = last_ref_stats
     if _ref_stats_empty(ref_stats):
+        LOG.error(
+            "Reference scoring returned empty tensors even after retries; meta_len=%d | sequences=%d",
+            ref_meta_len,
+            getattr(score_batch, "total_sequences", 0),
+        )
         return None
     setattr(ctx, "_last_ref_stats", ref_stats)
     LOG.debug(
@@ -668,10 +916,30 @@ def prepare_training_batch(
             cur_logp_sum, pooled_hidden = cur_logp_result
         else:
             cur_logp_sum, pooled_hidden = cur_logp_result, None
+        behavior_tensor = _behavior_logp_tensor_from_meta(
+            getattr(reward_comp, "ref_logprob_meta", None),
+            getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
+            cur_logp_sum,
+        )
         try:
-            scores = build_sequence_scores(cur_logp_sum, stats.ref_stats, pooled_hidden)
+            scores = build_sequence_scores(
+                cur_logp_sum,
+                stats.ref_stats,
+                pooled_hidden,
+                behavior_logp_sum=behavior_tensor,
+            )
         except TypeError:
-            scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
+            if behavior_tensor is not None:
+                try:
+                    scores = build_sequence_scores(
+                        cur_logp_sum,
+                        stats.ref_stats,
+                        behavior_logp_sum=behavior_tensor,
+                    )
+                except TypeError:
+                    scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
+            else:
+                scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
         # Optional seed metadata wiring for InfoSeed objectives.
         seed_inputs = None
         seed_metrics: Dict[str, float] = {}

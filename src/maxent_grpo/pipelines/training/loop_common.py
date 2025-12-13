@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import os
 from functools import lru_cache
 from types import SimpleNamespace
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional, Callable, Tuple
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.core.model import get_model, get_tokenizer
@@ -124,6 +125,59 @@ def _build_prompt_cache_fn(
 
         return _cached
     return _encode
+
+
+def _clone_model_args(model_args: Any) -> Optional[Any]:
+    """Return a deep clone of the model config used for reference loading."""
+
+    if model_args is None:
+        return None
+    try:
+        return copy.deepcopy(model_args)
+    except Exception:
+        pass
+    attrs = getattr(model_args, "__dict__", None)
+    if attrs is not None:
+        return SimpleNamespace(**attrs)
+    return None
+
+
+def _prepare_reference_model(model: Any, device: Any) -> Any:
+    """Freeze the reference model and move it onto the target device."""
+
+    if model is None:
+        return None
+    eval_fn = getattr(model, "eval", None)
+    if callable(eval_fn):
+        try:
+            eval_fn()
+        except Exception:
+            pass
+    requires_grad_fn = getattr(model, "requires_grad_", None)
+    if callable(requires_grad_fn):
+        try:
+            requires_grad_fn(False)
+        except Exception:
+            pass
+    else:
+        params = getattr(model, "parameters", None)
+        if callable(params):
+            try:
+                for param in params():
+                    requires_grad = getattr(param, "requires_grad", True)
+                    if requires_grad and hasattr(param, "requires_grad_"):
+                        param.requires_grad_(False)
+            except Exception:
+                pass
+    move_fn = getattr(model, "to", None)
+    if callable(move_fn) and device is not None:
+        try:
+            moved = move_fn(device)
+            if moved is not None:
+                model = moved
+        except Exception:
+            pass
+    return model
 
 def _seed_generation_metadata(
     stats: Dict[str, Any], cfg: GRPOConfig
@@ -288,6 +342,41 @@ def _maybe_build_distributed_sampler(
     except ImportError:  # pragma: no cover - depends on torch availability
         return None
     return DistributedSampler(dataset, shuffle=True)
+
+
+def _prepare_runtime_components(
+    accelerator: Any,
+    model: Any,
+    optimizer: Any,
+    train_loader: Any,
+    lr_scheduler: Optional[Any],
+) -> Tuple[Any, Any, Any, Optional[Any]]:
+    """Wrap core training objects with ``accelerator.prepare`` when available."""
+
+    prepare_fn = getattr(accelerator, "prepare", None)
+    if not callable(prepare_fn):
+        return model, optimizer, train_loader, lr_scheduler
+    prepare_args = [model, optimizer, train_loader]
+    include_scheduler = lr_scheduler is not None
+    if include_scheduler:
+        prepare_args.append(lr_scheduler)
+    prepared = prepare_fn(*prepare_args)
+    if not isinstance(prepared, (list, tuple)):
+        prepared = (prepared,)
+    if len(prepared) != len(prepare_args):
+        LOG.warning(
+            "accelerator.prepare returned %d objects for %d inputs; skipping wrapping.",
+            len(prepared),
+            len(prepare_args),
+        )
+        return model, optimizer, train_loader, lr_scheduler
+    prepared_model = prepared[0]
+    prepared_optimizer = prepared[1]
+    prepared_loader = prepared[2]
+    prepared_scheduler: Optional[Any] = lr_scheduler
+    if include_scheduler:
+        prepared_scheduler = prepared[3]
+    return prepared_model, prepared_optimizer, prepared_loader, prepared_scheduler
 
 
 def _loader_steps(loader: Any) -> Optional[int]:
@@ -460,6 +549,21 @@ def build_training_loop_context(
 ) -> TrainingLoopContext:
     """Return a TrainingLoopContext configured for the custom MaxEnt loop."""
 
+    share_reference_model = bool(
+        getattr(training_args, "maxent_share_reference_model", False)
+    )
+    reference_model_args = None
+    if not share_reference_model:
+        reference_model_args = _clone_model_args(model_args)
+        if reference_model_args is None:
+            share_reference_model = True
+        else:
+            ref_name = getattr(training_args, "reference_model_name_or_path", None)
+            if ref_name:
+                setattr(reference_model_args, "model_name_or_path", ref_name)
+            ref_revision = getattr(training_args, "reference_model_revision", None)
+            if ref_revision is not None:
+                setattr(reference_model_args, "model_revision", ref_revision)
     if force_grpo_objective is not None:
         training_args.train_grpo_objective = force_grpo_objective
     resume_checkpoint, resume_requested = resolve_resume_checkpoint(training_args)
@@ -507,6 +611,18 @@ def build_training_loop_context(
     accelerator = _init_accelerator(accelerator_cls_or_obj)
     dataloader_cls = require_dataloader(deps_namespace)
     model = get_model(model_args, training_args)
+    reference_model = None
+    if not share_reference_model and reference_model_args is not None:
+        try:
+            reference_model = get_model(reference_model_args, training_args)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            LOG.warning(
+                "Unable to load frozen reference model; falling back to the live policy | error=%s",
+                exc,
+            )
+            share_reference_model = True
+    if reference_model is not None:
+        reference_model = _prepare_reference_model(reference_model, accelerator.device)
     tokenizer = get_tokenizer(model_args, training_args)
     train_dataset, eval_rows = load_datasets(
         script_args, training_args, tokenizer, accelerator=accelerator
@@ -544,14 +660,44 @@ def build_training_loop_context(
     if sampler is not None:
         loader_kwargs["sampler"] = sampler
     train_loader = dataloader_cls(train_dataset, **loader_kwargs)
+
+    optim_handles = _build_optim_handles(model, training_args)
+    (
+        model,
+        prepared_optimizer,
+        train_loader,
+        prepared_scheduler,
+    ) = _prepare_runtime_components(
+        accelerator,
+        model,
+        optim_handles.optimizer,
+        train_loader,
+        optim_handles.lr_scheduler,
+    )
+    optim_handles.optimizer = prepared_optimizer
+    if prepared_scheduler is not None:
+        optim_handles.lr_scheduler = prepared_scheduler
+
+    def _resolve_ref_model():
+        if reference_model is not None:
+            return reference_model
+        unwrap = getattr(accelerator, "unwrap_model", None)
+        if callable(unwrap):
+            try:
+                return unwrap(model)
+            except Exception:
+                return model
+        return model
+
     runtime_handles = RuntimeHandles(
         accelerator=accelerator,
         model=model,
         tokenizer=tokenizer,
         train_loader=train_loader,
-        train_sampler=None,
+        train_sampler=sampler,
         device=accelerator.device,
-        get_ref_model=lambda: model,
+        get_ref_model=_resolve_ref_model,
+        reference_model=reference_model,
     )
     prompt_cache = _build_prompt_cache_fn(
         tokenizer,
@@ -561,7 +707,6 @@ def build_training_loop_context(
     if callable(prompt_cache):
         runtime_handles.prompt_cache_get = prompt_cache
         scoring.batching.prompt_length_cache_get = prompt_cache
-    optim_handles = _build_optim_handles(model, training_args)
     max_grad_norm = _sanitize_float(
         getattr(training_args, "max_grad_norm", 0.0),
         default=0.0,

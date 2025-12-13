@@ -1086,6 +1086,20 @@ def _chunked_sequence_logprobs(
         padding_idx = final_padding_idx
     stack.enter_context(pad_ctx)
     with stack:
+        LOG.debug(
+            "chunked_sequence_logprobs start | gather_full_params=%s return_hidden=%s pooling=%s | "
+            "input_ids_shape=%s dtype=%s device=%s | attention_mask_shape=%s | labels_shape=%s dtype=%s device=%s",
+            gather_full_params,
+            return_hidden,
+            pooling,
+            getattr(input_ids, "shape", None),
+            getattr(input_ids, "dtype", None),
+            getattr(input_ids, "device", None),
+            getattr(attention_mask, "shape", None),
+            getattr(labels, "shape", None),
+            getattr(labels, "dtype", None),
+            getattr(labels, "device", None),
+        )
         # High-level shape logging for reference scoring.
         LOG.debug(
             "reference scoring inputs | input_ids_shape=%s attention_mask_shape=%s labels_shape=%s",
@@ -1139,10 +1153,23 @@ def _chunked_sequence_logprobs(
                 (start, min(start + chunk_limit, batch))
                 for start in range(0, batch, chunk_limit)
             ]
+        LOG.debug(
+            "reference scoring chunk plan | total_batch=%s chunk_size=%s chunks=%s",
+            batch,
+            chunk_limit,
+            len(chunk_indices),
+        )
         logp_chunks: list[Tensor] = []
         tok_chunks: list[Tensor] = []
         pooled_chunks: list[Tensor] = [] if return_hidden else []
         for idx, (start, end) in enumerate(chunk_indices):
+            LOG.debug(
+                "reference scoring chunk begin | chunk=%s | slice=[%s:%s] | rows=%s",
+                idx,
+                start,
+                end,
+                end - start,
+            )
             ids_chunk = input_ids[start:end]
             mask_chunk = attention_mask[start:end] if attention_mask is not None else None
             label_chunk = labels[start:end]
@@ -1161,9 +1188,11 @@ def _chunked_sequence_logprobs(
                 )
             logits = outputs.logits
             LOG.debug(
-                "reference scoring logits shape | chunk=%s shape=%s",
+                "reference scoring logits metadata | chunk=%s | shape=%s dtype=%s device=%s",
                 idx,
                 getattr(logits, "shape", None),
+                getattr(logits, "dtype", None),
+                getattr(logits, "device", None),
             )
             log_probs = torch_mod.nn.functional.log_softmax(logits, dim=-1)
             label_mask = label_chunk != -100
@@ -1182,6 +1211,37 @@ def _chunked_sequence_logprobs(
             tok_tensor_chunk = label_mask.sum(dim=1).clamp(min=1)
             logp_chunks.append(seq_logp_chunk)
             tok_chunks.append(tok_tensor_chunk)
+            try:
+                tok_sum = tok_tensor_chunk.detach().cpu().sum().item()
+            except Exception:
+                tok_sum = None
+            try:
+                logp_preview = (
+                    seq_logp_chunk.detach().cpu().reshape(-1)[:3].tolist()
+                )
+            except Exception:
+                logp_preview = None
+            try:
+                valid_tokens = int(label_mask.sum().detach().cpu().item())
+            except Exception:
+                valid_tokens = None
+            LOG.debug(
+                "reference scoring chunk stats | chunk=%s | ids_shape=%s | mask_shape=%s | "
+                "seq_logp_shape=%s dtype=%s device=%s | tok_shape=%s dtype=%s device=%s | "
+                "tok_sum=%s | valid_token_mask_sum=%s | seq_logp_preview=%s",
+                idx,
+                getattr(ids_chunk, "shape", None),
+                getattr(mask_chunk, "shape", None),
+                getattr(seq_logp_chunk, "shape", None),
+                getattr(seq_logp_chunk, "dtype", None),
+                getattr(seq_logp_chunk, "device", None),
+                getattr(tok_tensor_chunk, "shape", None),
+                getattr(tok_tensor_chunk, "dtype", None),
+                getattr(tok_tensor_chunk, "device", None),
+                tok_sum,
+                valid_tokens,
+                logp_preview,
+            )
             if return_hidden and getattr(outputs, "hidden_states", None) is not None:
                 hidden = outputs.hidden_states[-1]
                 mask = mask_chunk
@@ -1220,6 +1280,27 @@ def _chunked_sequence_logprobs(
             if len(pooled_chunks) == 1
             else torch_mod.cat(pooled_chunks, dim=0)
         )
+    try:
+        logp_sample = seq_logp.detach().cpu().reshape(-1)[:4].tolist()
+    except Exception:
+        logp_sample = None
+    LOG.debug(
+        "chunked_sequence_logprobs finish | seq_logp_shape=%s tok_shape=%s pooled_shape=%s | "
+        "seq_logp_dtype=%s tok_dtype=%s pooled_dtype=%s | seq_logp_device=%s tok_device=%s pooled_device=%s | "
+        "seq_logp_numel=%s tok_numel=%s | seq_logp_preview=%s",
+        getattr(seq_logp, "shape", None),
+        getattr(tok_tensor, "shape", None),
+        getattr(pooled_hidden, "shape", None) if pooled_hidden is not None else None,
+        getattr(seq_logp, "dtype", None),
+        getattr(tok_tensor, "dtype", None),
+        getattr(pooled_hidden, "dtype", None) if pooled_hidden is not None else None,
+        getattr(seq_logp, "device", None),
+        getattr(tok_tensor, "device", None),
+        getattr(pooled_hidden, "device", None) if pooled_hidden is not None else None,
+        getattr(seq_logp, "numel", lambda: None)(),
+        getattr(tok_tensor, "numel", lambda: None)(),
+        logp_sample,
+    )
     return seq_logp, tok_tensor, pooled_hidden
 
 
@@ -1290,77 +1371,77 @@ def reference_from_model(
     ref_model = runtime.get_ref_model()
     ref_logp_chunks: List[Tensor] = []
     ref_tok_chunks: List[Tensor] = []
+
+    def _log_once(reason: str) -> None:
+        if getattr(reference_from_model, "_diag_logged", False):
+            return
+        LOG.warning("reference_from_model returning None: %s", reason)
+        setattr(reference_from_model, "_diag_logged", True)
+
+    slices_seen = 0
     slice_iter = iter_batch_slices(score_batch, runtime.device)
     slice_iter = _prefetch_iterator(
         slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
     )
     for slice_inputs, slice_mask, slice_labels in slice_iter:
+        slices_seen += 1
         no_grad_ctx = getattr(torch_mod, "no_grad", None) or nullcontext
         with no_grad_ctx():
-            result = _chunked_sequence_logprobs(
-                ref_model,
-                input_ids=slice_inputs,
-                attention_mask=slice_mask,
-                labels=slice_labels,
-                chunk_size=batching_cfg.logprob_chunk_size,
-                gather_full_params=False,
-            )
+            try:
+                result = _chunked_sequence_logprobs(
+                    ref_model,
+                    input_ids=slice_inputs,
+                    attention_mask=slice_mask,
+                    labels=slice_labels,
+                    chunk_size=batching_cfg.logprob_chunk_size,
+                    gather_full_params=False,
+                )
+            except Exception as exc:  # pragma: no cover - defensive diagnostics
+                _log_once(
+                    f"_chunked_sequence_logprobs raised {type(exc).__name__}: {exc}"
+                )
+                return None
         # _chunked_sequence_logprobs normally returns (logp, tok_counts, pooled_hidden).
         if not isinstance(result, (tuple, list)) or len(result) < 2:
+            _log_once(
+                f"chunked_sequence_logprobs returned invalid result | type={type(result)} len={len(result) if hasattr(result, '__len__') else 'n/a'} "
+                f"inputs_shape={getattr(slice_inputs, 'shape', None)}"
+            )
             return None
         if len(result) >= 3:
             ref_logp_slice, ref_tok_slice, _ = result[:3]
         else:
             ref_logp_slice, ref_tok_slice = result[:2]
         if ref_logp_slice.numel() == 0 or ref_tok_slice.numel() == 0:
+            _log_once(
+                f"empty slice tensors | logp_numel={ref_logp_slice.numel()} tok_numel={ref_tok_slice.numel()} "
+                f"inputs_shape={getattr(slice_inputs, 'shape', None)}"
+            )
             return None
+        LOG.debug(
+            "Reference slice gathered | slice_idx=%d | logp_shape=%s | tok_shape=%s | inputs_shape=%s",
+            slices_seen - 1,
+            getattr(ref_logp_slice, "shape", None),
+            getattr(ref_tok_slice, "shape", None),
+            getattr(slice_inputs, "shape", None),
+        )
         ref_logp_chunks.append(ref_logp_slice.detach().cpu())
         ref_tok_chunks.append(ref_tok_slice.detach().cpu())
-    if not ref_logp_chunks:
+    if slices_seen == 0:
+        _log_once("iter_batch_slices yielded zero slices")
         return None
-    return (
-        torch_mod.cat(ref_logp_chunks, dim=0).to(runtime.device),
-        torch_mod.cat(ref_tok_chunks, dim=0).to(runtime.device),
+    if not ref_logp_chunks:
+        _log_once("no reference slices produced any chunks")
+        return None
+    ref_logp = torch_mod.cat(ref_logp_chunks, dim=0).to(runtime.device)
+    ref_tok = torch_mod.cat(ref_tok_chunks, dim=0).to(runtime.device)
+    LOG.debug(
+        "Reference gather succeeded | slices=%d | ref_logp_shape=%s | ref_tok_shape=%s",
+        slices_seen,
+        getattr(ref_logp, "shape", None),
+        getattr(ref_tok, "shape", None),
     )
-
-
-def finalize_reference_stats(
-    ref_logp_sum: Tensor,
-    ref_tok_counts: Tensor,
-) -> ReferenceLogprobs:
-    """Build a ReferenceLogprobs object and derived scalars."""
-    torch_mod = _refresh_torch()
-    logp_arr = _to_numpy_array(ref_logp_sum)
-    tok_arr = np.asarray(_to_numpy_array(ref_tok_counts), dtype=float)
-    if tok_arr.size == 0:
-        tok_arr = np.asarray([0.0])
-    invalid_mask = ~np.isfinite(tok_arr) | (tok_arr < 0)
-    if invalid_mask.any():
-        finite_replaced = np.nan_to_num(tok_arr, nan=0.0, posinf=0.0, neginf=0.0)
-        tok_arr = np.maximum(finite_replaced, 0.0)
-        LOG.debug(
-            "Clamped %d invalid reference token counts to non-negative finite values.",
-            int(invalid_mask.sum()),
-        )
-    if tok_arr.size == 0:
-        tok_arr = np.asarray([0.0])
-    ref_logp_sum_tensor = torch_mod.tensor(
-        logp_arr, dtype=getattr(torch_mod, "float32", None)
-    )
-    ref_tok_counts_tensor = torch_mod.tensor(
-        tok_arr, dtype=getattr(torch_mod, "float32", None)
-    )
-    ref_logp_mean = (
-        float(np.asarray(logp_arr, dtype=float).mean()) if logp_arr.size else 0.0
-    )
-    avg_completion_tokens = float(np.asarray(tok_arr, dtype=float).mean())
-    return ReferenceLogprobs(
-        ref_logp_sum=ref_logp_sum_tensor,
-        ref_tok_counts=ref_tok_counts_tensor,
-        ref_logp_sum_raw=ref_logp_sum_tensor,
-        ref_logp_mean=ref_logp_mean,
-        avg_completion_tokens=avg_completion_tokens,
-    )
+    return ref_logp, ref_tok
 
 
 def gather_reference_logprobs(
@@ -1369,10 +1450,188 @@ def gather_reference_logprobs(
     batching_cfg: BatchingSettings,
 ) -> Optional[ReferenceLogprobs]:
     """Compute log-probabilities by running the frozen reference model."""
+    def _safe_numel(obj: Any) -> Any:
+        numel_fn = getattr(obj, "numel", None)
+        if callable(numel_fn):
+            try:
+                return numel_fn()
+            except Exception:
+                return "error"
+        return None
+
     tensors = reference_from_model(score_batch, runtime, batching_cfg)
     if tensors is None:
+        LOG.debug(
+            "gather_reference_logprobs returning None from reference_from_model | slice_size=%s | chunk_size=%s | device=%s",
+            getattr(score_batch, "slice_size", None),
+            getattr(batching_cfg, "logprob_chunk_size", None),
+            getattr(runtime, "device", None),
+        )
         return None
-    return finalize_reference_stats(*tensors)
+    LOG.debug(
+        "reference_from_model tensors | ref_logp_shape=%s | ref_tok_shape=%s | ref_logp_numel=%s | ref_tok_numel=%s | ref_logp_dtype=%s | ref_tok_dtype=%s | ref_logp_device=%s | ref_tok_device=%s",
+        getattr(tensors[0], "shape", None),
+        getattr(tensors[1], "shape", None),
+        _safe_numel(tensors[0]),
+        _safe_numel(tensors[1]),
+        getattr(tensors[0], "dtype", None),
+        getattr(tensors[1], "dtype", None),
+        getattr(tensors[0], "device", None),
+        getattr(tensors[1], "device", None),
+    )
+    try:
+        stats = finalize_reference_stats(*tensors)
+    except Exception as exc:  # pragma: no cover - defensive diagnostics
+        LOG.error(
+            "finalize_reference_stats raised %s: %s | ref_logp_shape=%s | ref_tok_shape=%s | ref_logp_dtype=%s | ref_tok_dtype=%s | ref_logp_device=%s | ref_tok_device=%s",
+            type(exc).__name__,
+            exc,
+            getattr(tensors[0], "shape", None),
+            getattr(tensors[1], "shape", None),
+            getattr(tensors[0], "dtype", None),
+            getattr(tensors[1], "dtype", None),
+            getattr(tensors[0], "device", None),
+            getattr(tensors[1], "device", None),
+        )
+        return None
+    LOG.debug(
+        "gather_reference_logprobs built stats | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s | ref_logp_sum_numel=%s | ref_tok_counts_numel=%s",
+        getattr(getattr(stats, "ref_logp_sum", None), "shape", None),
+        getattr(getattr(stats, "ref_tok_counts", None), "shape", None),
+        _safe_numel(getattr(stats, "ref_logp_sum", None)),
+        _safe_numel(getattr(stats, "ref_tok_counts", None)),
+    )
+    return stats
+
+
+def finalize_reference_stats(
+    ref_logp_sum: Tensor,
+    ref_tok_counts: Tensor,
+) -> ReferenceLogprobs:
+    """Build a ReferenceLogprobs object and derived scalars."""
+    torch_mod = _refresh_torch()
+    try:
+        logp_arr_raw = _to_numpy_array(ref_logp_sum)
+        tok_arr_raw = _to_numpy_array(ref_tok_counts)
+        logp_numel = None
+        tok_numel = None
+        numel_fn = getattr(ref_logp_sum, "numel", None)
+        if callable(numel_fn):
+            try:
+                logp_numel = numel_fn()
+            except Exception:
+                logp_numel = None
+        numel_fn_tok = getattr(ref_tok_counts, "numel", None)
+        if callable(numel_fn_tok):
+            try:
+                tok_numel = numel_fn_tok()
+            except Exception:
+                tok_numel = None
+
+        # If numpy conversion dropped elements (e.g., CUDA+bfloat16 -> empty array),
+        # retry with a CPU float32 view so we do not lose reference stats.
+        if (
+            getattr(logp_arr_raw, "size", 0) == 0
+            and isinstance(logp_numel, numbers.Number)
+            and logp_numel > 0
+        ):
+            try:
+                tensor_cpu = ref_logp_sum.detach().to("cpu")
+                if hasattr(tensor_cpu, "float"):
+                    tensor_cpu = tensor_cpu.float()
+                logp_arr_raw = np.asarray(tensor_cpu.reshape(-1).cpu().numpy())
+                LOG.debug(
+                    "finalize_reference_stats fallback tensor->numpy succeeded | target_numel=%s | result_size=%s",
+                    logp_numel,
+                    getattr(logp_arr_raw, "size", None),
+                )
+            except Exception as exc:
+                LOG.debug(
+                    "finalize_reference_stats fallback tensor->numpy failed | target_numel=%s | exc=%s",
+                    logp_numel,
+                    exc,
+                )
+        # If still empty but token counts exist, fill with zeros to avoid losing stats.
+        if getattr(logp_arr_raw, "size", 0) == 0 and isinstance(tok_numel, numbers.Number) and tok_numel > 0:
+            logp_arr_raw = np.zeros(int(tok_numel), dtype=float)
+            LOG.debug(
+                "finalize_reference_stats filled empty logp array with zeros | tok_numel=%s",
+                tok_numel,
+            )
+
+        def _safe_size(x: Any) -> Any:
+            try:
+                return int(np.size(x))
+            except Exception:
+                return None
+
+        LOG.debug(
+            "finalize_reference_stats raw inputs | ref_logp_len=%s | ref_tok_len=%s | ref_logp_numel=%s | ref_tok_numel=%s | ref_logp_dtype=%s | ref_tok_dtype=%s | ref_logp_device=%s | ref_tok_device=%s | ref_logp_sample=%s",
+            _safe_size(logp_arr_raw),
+            _safe_size(tok_arr_raw),
+            logp_numel,
+            tok_numel,
+            getattr(ref_logp_sum, "dtype", None),
+            getattr(ref_tok_counts, "dtype", None),
+            getattr(ref_logp_sum, "device", None),
+            getattr(ref_tok_counts, "device", None),
+            logp_arr_raw[:4] if hasattr(logp_arr_raw, "__getitem__") else None,
+        )
+        logp_arr = np.asarray(logp_arr_raw, dtype=float)
+        tok_arr = np.asarray(tok_arr_raw, dtype=float)
+        if tok_arr.size == 0:
+            tok_arr = np.asarray([0.0])
+        invalid_mask = ~np.isfinite(tok_arr) | (tok_arr < 0)
+        if invalid_mask.any():
+            finite_replaced = np.nan_to_num(
+                tok_arr, nan=0.0, posinf=0.0, neginf=0.0
+            )
+            tok_arr = np.maximum(finite_replaced, 0.0)
+            LOG.debug(
+                "Clamped %d invalid reference token counts to non-negative finite values.",
+                int(invalid_mask.sum()),
+            )
+        if tok_arr.size == 0:
+            tok_arr = np.asarray([0.0])
+        safe_tok = np.maximum(tok_arr, 1.0)
+        logp_norm = np.divide(
+            logp_arr,
+            safe_tok,
+            out=np.zeros_like(logp_arr, dtype=float),
+            where=safe_tok > 0,
+        )
+        ref_logp_sum_tensor = torch_mod.tensor(
+            logp_norm, dtype=getattr(torch_mod, "float32", None)
+        )
+        ref_tok_counts_tensor = torch_mod.tensor(
+            tok_arr, dtype=getattr(torch_mod, "float32", None)
+        )
+        ref_logp_raw_tensor = torch_mod.tensor(
+            logp_arr, dtype=getattr(torch_mod, "float32", None)
+        )
+        ref_logp_mean = (
+            float(np.asarray(logp_arr, dtype=float).mean()) if logp_arr.size else 0.0
+        )
+        avg_completion_tokens = float(np.asarray(tok_arr, dtype=float).mean())
+        return ReferenceLogprobs(
+            ref_logp_sum=ref_logp_sum_tensor,
+            ref_tok_counts=ref_tok_counts_tensor,
+            ref_logp_sum_raw=ref_logp_raw_tensor,
+            ref_logp_mean=ref_logp_mean,
+            avg_completion_tokens=avg_completion_tokens,
+        )
+    except Exception as exc:  # pragma: no cover - defensive diagnostics
+        LOG.exception(
+            "finalize_reference_stats failed | exc=%s | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s | ref_logp_sum_dtype=%s | ref_tok_counts_dtype=%s | ref_logp_sum_device=%s | ref_tok_counts_device=%s",
+            type(exc).__name__,
+            getattr(ref_logp_sum, "shape", None),
+            getattr(ref_tok_counts, "shape", None),
+            getattr(ref_logp_sum, "dtype", None),
+            getattr(ref_tok_counts, "dtype", None),
+            getattr(ref_logp_sum, "device", None),
+            getattr(ref_tok_counts, "device", None),
+        )
+        raise
 
 
 def reference_from_vllm_meta(
@@ -1499,6 +1758,91 @@ def summarize_completion_lengths(
     )
 
 
+def _as_torch_tensor(
+    torch_mod: Any,
+    value: Any,
+    *,
+    device: Optional["torch.device"],
+    dtype: Optional[Any],
+) -> Tensor:
+    """Best-effort conversion of ``value`` into a torch tensor on ``device``."""
+
+    ctor = getattr(torch_mod, "as_tensor", getattr(torch_mod, "tensor", None))
+    if ctor is None:
+        raise RuntimeError("Torch tensor constructor unavailable")
+    if isinstance(value, torch_mod.Tensor):
+        tensor = value
+    else:
+        payload = getattr(value, "arr", None)
+        if payload is None:
+            payload = getattr(value, "data", value)
+        try:
+            tensor = ctor(payload)
+        except Exception:
+            tensor = ctor([])
+    if dtype is not None:
+        try:
+            tensor = tensor.to(dtype=dtype)
+        except Exception:
+            clone_fn = getattr(tensor, "clone", None)
+            if callable(clone_fn):
+                tensor = clone_fn()
+                tensor = tensor.to(dtype=dtype)
+    if device is not None and getattr(tensor, "device", None) != device:
+        tensor = tensor.to(device=device)
+    return tensor
+
+
+def _match_tensor_length(
+    torch_mod: Any,
+    tensor: Tensor,
+    target_len: int,
+    *,
+    device: "torch.device",
+    dtype: Any,
+    fill_value: float = 0.0,
+) -> Tensor:
+    """Return ``tensor`` reshaped/padded to ``target_len`` elements."""
+
+    def _full(shape: Tuple[int, ...], value: float) -> Tensor:
+        kwargs = {}
+        if device is not None:
+            kwargs["device"] = device
+        if dtype is not None:
+            kwargs["dtype"] = dtype
+        return torch_mod.full(shape, value, **kwargs)
+
+    def _zeros(shape: Tuple[int, ...]) -> Tensor:
+        kwargs = {}
+        if device is not None:
+            kwargs["device"] = device
+        if dtype is not None:
+            kwargs["dtype"] = dtype
+        try:
+            return torch_mod.zeros(shape, **kwargs)
+        except TypeError:
+            return torch_mod.zeros(shape)
+
+    tensor = tensor.view(-1)
+    cur_len = int(getattr(tensor, "numel", lambda: 0)())
+    if target_len <= 0:
+        return _zeros((0,))
+    if cur_len == target_len:
+        return tensor
+    if cur_len == 0:
+        return _full((target_len,), fill_value)
+    if cur_len == 1:
+        scalar_val = float(getattr(tensor[0], "item", lambda: tensor[0])())
+        return _full((target_len,), scalar_val)
+    min_len = min(cur_len, target_len)
+    tensor = tensor[:min_len]
+    if min_len == target_len:
+        return tensor
+    pad_val = float(getattr(tensor[-1], "item", lambda: tensor[-1])())
+    pad = _full((target_len - min_len,), pad_val)
+    return torch_mod.cat([tensor, pad], dim=0)
+
+
 def build_sequence_scores(
     cur_logp_sum: Tensor,
     ref_stats: ReferenceLogprobs,
@@ -1507,47 +1851,75 @@ def build_sequence_scores(
     behavior_logp_sum: Optional[Tensor] = None,
 ) -> SequenceScores:
     """Return SequenceScores built from current and reference log-probs."""
+
     torch_mod = _refresh_torch()
-    cur_arr = _to_numpy_array(cur_logp_sum)
-    ref_arr = _to_numpy_array(ref_stats.ref_logp_sum_raw)
-    denom_arr = _to_numpy_array(ref_stats.ref_tok_counts)
-    denom_arr = np.where(denom_arr <= 0, 1, denom_arr)
-    try:
-        cur_len = len(cur_arr)
-        if len(ref_arr) != cur_len:
-            if len(ref_arr) == 1:
-                ref_arr = np.repeat(ref_arr, cur_len)
-            else:
-                ref_arr = np.resize(ref_arr, cur_len)
-        if len(denom_arr) != cur_len:
-            if len(denom_arr) == 1:
-                denom_arr = np.repeat(denom_arr, cur_len)
-            else:
-                denom_arr = np.resize(denom_arr, cur_len)
-    except (TypeError, ValueError):
-        pass
-    cur_tensor = torch_mod.tensor(cur_arr, dtype=getattr(torch_mod, "float32", None))
+    base_dtype = getattr(torch_mod, "float32", None)
+    cur_tensor = _as_torch_tensor(
+        torch_mod,
+        cur_logp_sum,
+        device=getattr(cur_logp_sum, "device", None),
+        dtype=base_dtype,
+    ).view(-1)
+    device = getattr(cur_tensor, "device", None)
+    cur_len = int(getattr(cur_tensor, "numel", lambda: 0)())
+    ref_source = getattr(ref_stats, "ref_logp_sum_raw", None)
+    if ref_source is None:
+        ref_source = getattr(ref_stats, "ref_logp_sum", None)
+    ref_tensor = _as_torch_tensor(
+        torch_mod,
+        ref_source if ref_source is not None else [],
+        device=device,
+        dtype=base_dtype,
+    )
+    ref_tensor = _match_tensor_length(
+        torch_mod,
+        ref_tensor,
+        cur_len,
+        device=device,
+        dtype=base_dtype,
+        fill_value=0.0,
+    )
+    denom_source = getattr(ref_stats, "ref_tok_counts", None)
+    denom_tensor = _as_torch_tensor(
+        torch_mod,
+        denom_source if denom_source is not None else [],
+        device=device,
+        dtype=base_dtype,
+    )
+    denom_tensor = _match_tensor_length(
+        torch_mod,
+        denom_tensor,
+        cur_len,
+        device=device,
+        dtype=base_dtype,
+        fill_value=1.0,
+    ).clamp(min=1.0)
     if behavior_logp_sum is None:
-        # For PPO-style clipping, the behavior policy should be the rollout
-        # actor. Default to the current policy log-probs (on-policy) rather than
-        # the frozen reference model to avoid turning clipping into a second KL.
-        behavior_logp_sum = cur_tensor.detach()
+        behavior_tensor = cur_tensor.detach()
     else:
-        behavior_logp_sum = torch_mod.tensor(
-            _to_numpy_array(behavior_logp_sum), dtype=getattr(torch_mod, "float32", None)
+        behavior_tensor = _as_torch_tensor(
+            torch_mod,
+            behavior_logp_sum,
+            device=device,
+            dtype=base_dtype,
         )
-    log_ratio_train = torch_mod.tensor(
-        cur_arr - ref_arr, dtype=getattr(torch_mod, "float32", None)
-    )
-    denom_tok_tensor = torch_mod.tensor(
-        denom_arr, dtype=getattr(torch_mod, "float32", None)
-    )
-    if getattr(denom_tok_tensor, "numel", lambda: 0)() == 0:
-        denom_tok_tensor = torch_mod.ones_like(cur_tensor, dtype=cur_tensor.dtype)
+        behavior_tensor = _match_tensor_length(
+            torch_mod,
+            behavior_tensor,
+            cur_len,
+            device=device,
+            dtype=base_dtype,
+            fill_value=0.0,
+        )
+    log_ratio_train = cur_tensor - ref_tensor
+    if getattr(log_ratio_train, "numel", lambda: 0)() == 0 and cur_len > 0:
+        log_ratio_train = torch_mod.zeros(
+            (cur_len,), device=device, dtype=base_dtype
+        )
     return SequenceScores(
         cur_logp_sum=cur_tensor,
-        behavior_logp_sum=behavior_logp_sum,
+        behavior_logp_sum=behavior_tensor,
         log_ratio_train=log_ratio_train,
-        denom_tok_tensor=denom_tok_tensor,
+        denom_tok_tensor=denom_tensor,
         pooled_hidden=pooled_hidden,
     )

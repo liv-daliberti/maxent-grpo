@@ -27,6 +27,42 @@ def test_weight_vector_from_q_falls_back_on_tensor_error(monkeypatch):
     assert weights == [0.5, 0.5]
 
 
+def test_build_weighting_settings_respects_kl_penalty_beta():
+    """Weighting builder should fall back to kl_penalty_beta when other aliases missing."""
+
+    cfg = SimpleNamespace(
+        maxent_tau=0.2,
+        init_kl_coeff=None,
+        init_kl_coef=None,
+        kl_penalty_beta=0.07,
+        beta=None,
+        maxent_length_normalize_ref=True,
+        maxent_q_temperature=1.0,
+        maxent_q_epsilon=1e-6,
+        maxent_target_weight_entropy=None,
+        maxent_tau_lr=0.0,
+        maxent_tau_min=0.0,
+        maxent_tau_max=1.0,
+        maxent_tau_warmup_steps=0,
+        kl_target=0.0,
+        kl_horizon=0,
+        kl_ctl_step_size=0.0,
+        controller_meta_enabled=False,
+        controller_meta_method="analytic",
+        controller_meta_lr=0.0,
+        controller_meta_update_interval=1,
+        controller_meta_objective="potential",
+        controller_meta_analytic_steps=1,
+        controller_meta_optimizer="sgd",
+        controller_meta_truncation_steps=1,
+        controller_meta_use_hessian=False,
+        train_grpo_objective=False,
+        maxent_allow_empty_weight_fallback=False,
+    )
+    weighting = logic.build_weighting_settings(cfg)
+    assert weighting.beta == pytest.approx(0.07)
+
+
 def test_maybe_update_tau_converts_non_numeric_tau_lr(monkeypatch):
     """String tau_lr should be coerced and used to update tau."""
 

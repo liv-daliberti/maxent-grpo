@@ -266,6 +266,74 @@ def _policy_loss_from_groups(group_data: GroupLossData) -> torch.Tensor:
     :rtype: torch.Tensor
     :raises ValueError: If no completions were available for aggregation.
     """
+    total_groups = len(group_data.group_sizes)
+    total_weights = _tensor_numel(group_data.weight_tensor)
+    total_logp = _tensor_numel(group_data.logp_sums)
+    total_tokens = _tensor_numel(group_data.token_counts)
+    LOG.debug(
+        "Policy loss group summary | groups=%d | weights=%d | logp=%d | tokens=%d",
+        total_groups,
+        total_weights,
+        total_logp,
+        total_tokens,
+    )
+    def _stats_for_logging(tensor_like: torch.Tensor) -> Tuple[int, int, str]:
+        """Return ``(numel, nonzero, preview)`` for debug logging."""
+        try:
+            tensor = torch.as_tensor(getattr(tensor_like, "arr", tensor_like))
+        except (TypeError, ValueError):
+            tensor = torch.tensor(
+                getattr(getattr(tensor_like, "arr", tensor_like), "data", tensor_like)
+            )
+        tensor = tensor.view(-1)
+        numel = tensor.numel()
+        if numel == 0:
+            return 0, 0, _tensor_preview(tensor_like)
+        nonzero = int((tensor != 0).sum().item())
+        return numel, nonzero, _tensor_preview(tensor_like)
+    if total_weights > 0 and total_logp == 0:
+        weight_stats = _stats_for_logging(group_data.weight_tensor)
+        token_stats = _stats_for_logging(group_data.token_counts)
+        zero_weight_support = weight_stats[1] == 0
+        log_fn = LOG.info if zero_weight_support else LOG.warning
+        log_fn(
+            "Policy loss logp tensor empty; forcing zeros | groups=%d | weights=%d (nonzero=%d) "
+            "| tokens=%d (nonzero=%d) | logp_preview=%s | weight_preview=%s | token_preview=%s",
+            total_groups,
+            total_weights,
+            weight_stats[1],
+            total_tokens,
+            token_stats[1],
+            _tensor_preview(group_data.logp_sums),
+            weight_stats[2],
+            token_stats[2],
+        )
+        logp_device = getattr(
+            group_data.logp_sums, "device", getattr(group_data.weight_tensor, "device", None)
+        )
+        logp_dtype = getattr(
+            group_data.logp_sums, "dtype", getattr(group_data.weight_tensor, "dtype", torch.float32)
+        )
+        group_data.logp_sums = torch.zeros(
+            (total_weights,), device=logp_device, dtype=logp_dtype
+        )
+    if total_weights > 0 and total_tokens == 0:
+        weight_stats = _stats_for_logging(group_data.weight_tensor)
+        LOG.warning(
+            "Policy loss token counts empty; forcing ones | groups=%d | weights=%d (nonzero=%d) "
+            "| token_preview=%s",
+            total_groups,
+            total_weights,
+            weight_stats[1],
+            _tensor_preview(group_data.token_counts),
+        )
+        tok_device = getattr(
+            group_data.token_counts, "device", getattr(group_data.weight_tensor, "device", None)
+        )
+        tok_dtype = getattr(group_data.token_counts, "dtype", torch.float32)
+        group_data.token_counts = torch.ones(
+            (total_weights,), device=tok_device, dtype=tok_dtype
+        )
     policy_group_losses: List[torch.Tensor] = []
     offset = 0
     for size in group_data.group_sizes:
@@ -275,19 +343,43 @@ def _policy_loss_from_groups(group_data: GroupLossData) -> torch.Tensor:
         w_slice = group_data.weight_tensor[offset:end]
         logp_slice = group_data.logp_sums[offset:end]
         token_slice = group_data.token_counts[offset:end].clamp(min=1.0)
-        if w_slice.numel() != logp_slice.numel():
-            mismatch = min(w_slice.numel(), logp_slice.numel())
+        weight_len = w_slice.numel()
+        logp_len = logp_slice.numel()
+        if weight_len != logp_len:
+            mismatch = min(weight_len, logp_len)
+            LOG.debug(
+                "Policy loss group length mismatch | offset=%d | size=%d | weights=%d | logp=%d | tokens=%d",
+                offset,
+                size,
+                int(weight_len),
+                int(logp_len),
+                int(token_slice.numel()),
+            )
             if mismatch == 0:
+                if weight_len == 0:
+                    offset = end
+                    continue
                 LOG.warning(
-                    "Skipping policy loss group due to empty log-probs | weights=%d | logp=%d",
-                    int(w_slice.numel()),
-                    int(logp_slice.numel()),
+                    "Filling empty policy log-probs with zeros | offset=%d | size=%d | weights=%d | logp_preview=%s",
+                    offset,
+                    size,
+                    int(weight_len),
+                    _tensor_preview(logp_slice),
                 )
-                offset = end
-                continue
-            w_slice = w_slice[:mismatch]
-            logp_slice = logp_slice[:mismatch]
-            token_slice = token_slice[:mismatch]
+                logp_slice = torch.zeros(
+                    (weight_len,),
+                    device=getattr(group_data.logp_sums, "device", getattr(w_slice, "device", None)),
+                    dtype=getattr(group_data.logp_sums, "dtype", getattr(w_slice, "dtype", None)),
+                )
+                token_slice = torch.ones(
+                    (weight_len,),
+                    device=getattr(group_data.token_counts, "device", getattr(logp_slice, "device", None)),
+                    dtype=getattr(group_data.token_counts, "dtype", torch.float32),
+                )
+            else:
+                w_slice = w_slice[:mismatch]
+                logp_slice = logp_slice[:mismatch]
+                token_slice = token_slice[:mismatch]
         normalized_logp = logp_slice / token_slice
         try:
             term = (-normalized_logp * w_slice).sum()
@@ -304,8 +396,25 @@ def _policy_loss_from_groups(group_data: GroupLossData) -> torch.Tensor:
         policy_group_losses.append(term_tensor)
         offset = end
     if not policy_group_losses:
-        LOG.warning("No policy loss groups available; raising ValueError.")
-        raise ValueError("No policy loss groups available")
+        _, nonzero_weights, weight_prev = _stats_for_logging(group_data.weight_tensor)
+        _, nonzero_logp, logp_prev = _stats_for_logging(group_data.logp_sums)
+        zero_signal = nonzero_weights == 0 and nonzero_logp == 0
+        log_fn = LOG.info if zero_signal else LOG.warning
+        log_fn(
+            "Policy loss groups empty; returning zero | groups=%d | weights=%d (nonzero=%d) "
+            "| logp=%d (nonzero=%d) | tokens=%d | weight_preview=%s | logp_preview=%s",
+            total_groups,
+            total_weights,
+            nonzero_weights,
+            total_logp,
+            nonzero_logp,
+            total_tokens,
+            weight_prev,
+            logp_prev,
+        )
+        if isinstance(group_data.weight_tensor, torch.Tensor):
+            return group_data.weight_tensor.new_zeros(())
+        return torch.tensor(0.0)
     return torch.stack(policy_group_losses).mean()
 
 
@@ -385,6 +494,24 @@ def _tensor_numel(value: torch.Tensor) -> int:
         return len(value)
     except Exception:
         return 0
+
+
+def _tensor_preview(value: torch.Tensor, limit: int = 4) -> str:
+    """Return a short preview string for logging diagnostics."""
+
+    try:
+        tensor = value
+        if not isinstance(tensor, torch.Tensor):
+            tensor = torch.as_tensor(getattr(value, "arr", value))
+        flat = tensor.flatten()
+        if flat.numel() == 0:
+            return "[]"
+        subset = flat[:limit].tolist()
+        more = flat.numel() - len(subset)
+        suffix = "..." if more > 0 else ""
+        return f"{subset}{suffix}"
+    except Exception:
+        return f"<unprintable:{type(value).__name__}>"
 
 
 def _clip_loss_for_slice(
@@ -546,6 +673,20 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
     *length-normalized* per-token log-probabilities, then aggregate with a
     token-weighted mean to avoid overweighting short completions.
     """
+    def _zero_kl_return(
+        log_reason: Optional[str], level: int = logging.WARNING
+    ) -> Tuple[torch.Tensor, float, float]:
+        zero_tensor: torch.Tensor
+        if isinstance(ratio_ctx.cur_logp_sum, torch.Tensor):
+            zero_tensor = ratio_ctx.cur_logp_sum.new_zeros(())
+        else:
+            zero_tensor = torch.tensor(0.0)
+        beta_val = getattr(ratio_ctx.weighting_cfg, "beta", 0.0)
+        beta_scalar = float(getattr(beta_val, "arr", beta_val))
+        if log_reason:
+            LOG.log(level, "%s", log_reason)
+        return zero_tensor, 0.0, beta_scalar * 0.0
+
     denom = ratio_ctx.denom_tok_tensor.clamp(min=1.0)
     cur_logp_per_tok = ratio_ctx.cur_logp_sum / denom
     if ratio_ctx.weighting_cfg.len_norm_ref:
@@ -569,7 +710,13 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
         ref_len = ref_logp_per_tok.numel()
     except (AttributeError, TypeError):
         ref_len = len(getattr(ref_logp_per_tok, "data", []))
-    if ref_len and cur_len and ref_len != cur_len:
+    if not cur_len or not ref_len:
+        return _zero_kl_return(
+            "Skipping KL computation due to empty logp tensors | cur=%d | ref=%d"
+            % (int(cur_len), int(ref_len)),
+            logging.WARNING,
+        )
+    if ref_len != cur_len:
         if ref_len == 1:
             fill_val = (
                 float(ref_logp_per_tok[0])
@@ -622,6 +769,46 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
         cur_logp_per_tok = torch.tensor(
             getattr(cur_logp_per_tok, "arr", cur_logp_per_tok)
         )
+    # Align dtype/device so downstream math stays on the accelerator when available.
+    ref_device = getattr(ref_logp_per_tok, "device", None)
+    cur_device = getattr(cur_logp_per_tok, "device", None)
+    ref_dtype = getattr(ref_logp_per_tok, "dtype", None)
+    cur_dtype = getattr(cur_logp_per_tok, "dtype", None)
+    if (ref_device is not None and cur_device is not None and ref_device != cur_device) or (
+        ref_dtype is not None and cur_dtype is not None and ref_dtype != cur_dtype
+    ):
+        try:
+            ref_logp_per_tok = ref_logp_per_tok.to(cur_logp_per_tok)
+        except (AttributeError, RuntimeError, TypeError):
+            # Fall back to moving both tensors to CPU so we never mix devices.
+            ref_logp_per_tok = ref_logp_per_tok.to("cpu")
+            cur_logp_per_tok = cur_logp_per_tok.to("cpu")
+    # Re-check lengths after conversions/padding; skip if still empty.
+    cur_len = cur_logp_per_tok.numel()
+    ref_len = ref_logp_per_tok.numel()
+    if cur_len == 0 or ref_len == 0:
+        return _zero_kl_return(
+            "Skipping KL computation due to post-align empty tensors | cur=%d | ref=%d"
+            % (int(cur_len), int(ref_len)),
+            logging.WARNING,
+        )
+    if ref_len != cur_len:
+        min_len = min(cur_len, ref_len)
+        if min_len == 0:
+            return _zero_kl_return(
+                "Skipping KL computation due to irreconcilable logp lengths | cur=%d | ref=%d"
+                % (int(cur_len), int(ref_len)),
+                logging.WARNING,
+            )
+        LOG.warning(
+            "Trimming KL tensors to minimum length | cur=%d | ref=%d | min=%d",
+            int(cur_len),
+            int(ref_len),
+            int(min_len),
+        )
+        ref_logp_per_tok = ref_logp_per_tok[:min_len]
+        cur_logp_per_tok = cur_logp_per_tok[:min_len]
+
     delta = (ref_logp_per_tok - cur_logp_per_tok).clamp(min=-60.0, max=60.0)
     if not hasattr(delta, "exp"):
         delta = torch.tensor(getattr(delta, "arr", getattr(delta, "data", delta)))
@@ -917,12 +1104,71 @@ def _ratio_stats_with_ref(
         ref_logp_sum_raw = torch.tensor(
             getattr(ref_logp_sum_raw, "arr", ref_logp_sum_raw)
         )
+    # Align denom tensor with the policy tensors so len normalization is consistent.
+    if isinstance(denom_tok_tensor, torch.Tensor):
+        cur_device = getattr(cur_logp_sum, "device", None)
+        denom_device = getattr(denom_tok_tensor, "device", None)
+        if cur_device is not None and denom_device is not None and cur_device != denom_device:
+            try:
+                denom_tok_tensor = denom_tok_tensor.to(cur_logp_sum)
+            except (RuntimeError, TypeError, AttributeError):
+                denom_tok_tensor = denom_tok_tensor.to("cpu")
+                cur_logp_sum = cur_logp_sum.to("cpu")
+                ref_logp_sum = ref_logp_sum.to("cpu")
+                ref_logp_sum_raw = ref_logp_sum_raw.to("cpu")
 
     cur_logp_per_token = cur_logp_sum.detach() / denom_tok_tensor
     if ratio_ctx.weighting_cfg.len_norm_ref:
         ref_logp_per_token = ref_logp_sum.detach()
     else:
         ref_logp_per_token = ref_logp_sum_raw.detach() / denom_tok_tensor
+    # Align dtype/device across tensors for downstream ops.
+    ref_device = getattr(ref_logp_per_token, "device", None)
+    cur_device = getattr(cur_logp_per_token, "device", None)
+    ref_dtype = getattr(ref_logp_per_token, "dtype", None)
+    cur_dtype = getattr(cur_logp_per_token, "dtype", None)
+    if (
+        ref_device is not None
+        and cur_device is not None
+        and (ref_device != cur_device or (ref_dtype and cur_dtype and ref_dtype != cur_dtype))
+    ):
+        try:
+            ref_logp_per_token = ref_logp_per_token.to(cur_logp_per_token)
+        except (AttributeError, RuntimeError, TypeError):
+            ref_logp_per_token = ref_logp_per_token.to("cpu")
+            cur_logp_per_token = cur_logp_per_token.to("cpu")
+    try:
+        cur_len = cur_logp_per_token.numel()
+    except (AttributeError, TypeError):
+        cur_len = len(getattr(cur_logp_per_token, "data", []))
+    try:
+        ref_len = ref_logp_per_token.numel()
+    except (AttributeError, TypeError):
+        ref_len = len(getattr(ref_logp_per_token, "data", []))
+    if not cur_len or not ref_len:
+        LOG.warning(
+            "Skipping ratio diagnostics due to empty logp tensors | cur=%d | ref=%d",
+            int(cur_len),
+            int(ref_len),
+        )
+        return _ratio_stats_without_ref()
+    if ref_len != cur_len:
+        min_len = min(cur_len, ref_len)
+        if min_len == 0:
+            LOG.warning(
+                "Skipping ratio diagnostics due to irreconcilable logp lengths | cur=%d | ref=%d",
+                int(cur_len),
+                int(ref_len),
+            )
+            return _ratio_stats_without_ref()
+        LOG.warning(
+            "Trimming ratio diagnostics tensors to minimum length | cur=%d | ref=%d | min=%d",
+            int(cur_len),
+            int(ref_len),
+            int(min_len),
+        )
+        cur_logp_per_token = cur_logp_per_token[:min_len]
+        ref_logp_per_token = ref_logp_per_token[:min_len]
     delta = (ref_logp_per_token - cur_logp_per_token).clamp(min=-60.0, max=60.0)
     if not hasattr(delta, "exp"):
         delta = torch.tensor(getattr(delta, "arr", getattr(delta, "data", delta)))
@@ -998,7 +1244,6 @@ def _ratio_diagnostics(ratio_ctx: RatioContext) -> BatchDiagnostics:
         kl_bucket_means,
         kl_bucket_token_counts,
     ) = stats
-    kl_value = kl_value if ratio_ctx.weighting_cfg.beta > 0.0 else None
     return BatchDiagnostics(
         kl_value=kl_value,
         clip_ratio=clip_ratio,

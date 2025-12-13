@@ -97,7 +97,7 @@ def test_build_grpo_configs_recipe(monkeypatch):
         hydra_cli, "load_grpo_recipe", lambda recipe, model_config_cls: stub_result
     )
     cmd = hydra_cli.BaselineCommand(recipe="demo")
-    assert hydra_cli._build_grpo_configs(cmd) is stub_result
+    assert hydra_cli._build_grpo_configs(cmd) == stub_result
 
 
 def test_build_grpo_configs_without_recipe(monkeypatch):

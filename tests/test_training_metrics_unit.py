@@ -18,6 +18,7 @@ Unit tests for training.metrics helper functions.
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any, Dict
 
@@ -200,6 +201,83 @@ def test_build_training_metrics_flags_grpo_vs_maxent():
     assert maxent_metrics["train/beta"] == pytest.approx(0.33)
 
 
+def test_log_like_grpo_mode_skips_gathers():
+    gather_calls = []
+
+    def _gather(payload):
+        gather_calls.append(payload)
+        return [payload]
+
+    accel = SimpleNamespace(num_processes=2, gather_object=_gather)
+    reward_comp = SimpleNamespace(
+        total_utils=[1.0, 2.0],
+        advantage_samples=[0.1, -0.2],
+        per_reward_values={"base": [1.0, 2.0]},
+        advantage=SimpleNamespace(grouped=[[0.1, -0.1]]),
+        q_grouped=[[0.5, 0.5]],
+    )
+    metrics_mod.summarize_reward_stats(accel, reward_comp)
+    assert gather_calls  # Cross-rank gather occurs when disabled.
+    gather_calls.clear()
+    metrics_mod.summarize_reward_stats(
+        accel, reward_comp, log_like_grpo=True
+    )
+    assert gather_calls == []
+
+
+def test_log_training_step_noop_when_log_like_grpo(monkeypatch):
+    accel = SimpleNamespace(
+        num_processes=1,
+        is_main_process=True,
+        log=lambda *_args, **_kwargs: None,
+    )
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(accelerator=accel),
+        logging=SimpleNamespace(
+            step_logger=lambda *_a, **_k: nullcontext(),
+            log_metrics=lambda *_a, **_k: None,
+            wandb_run=None,
+        ),
+        training_args=SimpleNamespace(log_like_grpo=True, log_completions=False),
+        scoring=SimpleNamespace(weighting=SimpleNamespace(tau=0.1, beta=0.2)),
+        optimization=SimpleNamespace(schedule=SimpleNamespace(steps_per_epoch=None)),
+        generation=SimpleNamespace(use_vllm=False, generation_stats={}),
+    )
+    state = SimpleNamespace(
+        global_step=3,
+        metric_sums={},
+        metric_counts={},
+    )
+    prepared = SimpleNamespace(
+        reward_comp=None,
+        weight_stats=None,
+        length_stats=None,
+        ref_stats=SimpleNamespace(avg_completion_tokens=0.0, ref_logp_mean=0.0),
+        num_completion_tokens=0.0,
+    )
+    log_artifacts = SimpleNamespace(
+        loss_outputs=SimpleNamespace(total_loss_scalar=0.0),
+        diagnostics=SimpleNamespace(),
+        epoch_progress=0.0,
+    )
+    emitted = []
+
+    def _fail_emit(*_args, **_kwargs):
+        emitted.append(True)
+
+    monkeypatch.setattr(metrics_mod, "_emit_metrics", _fail_emit)
+    metrics_mod.log_training_step(
+        ctx,
+        state,
+        prepared,
+        log_artifacts,
+        current_lr=1e-4,
+        reward_view=None,
+        weight_view=None,
+    )
+    assert not emitted
+
+
 def test_build_training_metrics_emits_kl_from_loss_when_missing_in_diag():
     payload = _payload()
     payload.diagnostics = payload.diagnostics.__class__(
@@ -257,7 +335,6 @@ def test_build_training_metrics_falls_back_to_loss_kl_scalar():
     payload.loss_outputs.kl_loss_scalar = 0.37
     metrics = metrics_mod.build_training_metrics_dict(payload, global_step=4)
     assert metrics["train/kl"] == pytest.approx(0.37)
-    assert maxent_metrics["train/weighting/beta"] == pytest.approx(0.33)
 
 
 def test_build_training_metrics_emits_controller_signals():
@@ -586,6 +663,111 @@ def test_log_training_step_aggregates(monkeypatch):
     assert last_metrics["train/loss"] == pytest.approx(
         payload.loss_outputs.total_loss_scalar
     )
+
+
+def test_log_like_grpo_logs_accumulated_rewards(monkeypatch):
+    payload = _payload()
+
+    def _reward_comp(val: float):
+        return SimpleNamespace(
+            total_utils=[val],
+            advantage_samples=[val],
+            per_reward_values={"reward": [val]},
+            advantage=SimpleNamespace(grouped=[[val]]),
+            q_grouped=[[0.5, 0.5]],
+            pairs=SimpleNamespace(prompts=["p"], completions=["c"]),
+        )
+
+    wandb_logs = []
+    writer = _StubMetricWriter()
+    logging_handles = metrics_mod.LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda *_a, **_k: None,
+        save_strategy="steps",
+        save_steps=1,
+        wandb_run=SimpleNamespace(
+            log=lambda metrics, step: wandb_logs.append((metrics, step))
+        ),
+    )
+    accelerator = SimpleNamespace(
+        is_main_process=True,
+        num_processes=1,
+        log=lambda *_a, **_k: None,
+    )
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(accelerator=accelerator),
+        logging=logging_handles,
+        scoring=SimpleNamespace(weighting=_weighting_stub(), clipping=SimpleNamespace()),
+        generation=SimpleNamespace(use_vllm=False, generation_stats={}),
+        optimization=SimpleNamespace(
+            schedule=SimpleNamespace(steps_per_epoch=100, num_generations=0, num_epochs=1)
+        ),
+        training_args=SimpleNamespace(
+            log_like_grpo=True,
+            logging_strategy="steps",
+            logging_steps=1,
+            logging_first_step=True,
+            log_completions=False,
+        ),
+    )
+    prepared = SimpleNamespace(
+        reward_comp=_reward_comp(0.0),
+        weight_stats=metrics_mod.WeightStats(
+            weights_grouped=[[1.0]],
+            flat_weights=[1.0],
+            weight_entropy=0.2,
+            weight_entropy_min=0.2,
+            weight_entropy_max=0.2,
+            advantage_entropy=[0.0],
+        ),
+        length_stats=payload.length_stats,
+        ref_stats=SimpleNamespace(
+            ref_logp_mean=0.0,
+            avg_completion_tokens=payload.scalars.tokens.avg_completion_tokens,
+        ),
+        num_completion_tokens=payload.scalars.tokens.num_completion_tokens,
+        seed_metrics=None,
+    )
+    log_artifacts = metrics_mod.LogStepArtifacts(
+        loss_outputs=payload.loss_outputs,
+        diagnostics=payload.diagnostics,
+        grad_norm_scalar=None,
+        epoch_progress=0.1,
+    )
+    state = SimpleNamespace(
+        global_step=2,
+        num_input_tokens_seen=payload.scalars.tokens.num_input_tokens,
+        metric_sums={},
+        metric_counts={},
+    )
+
+    metrics_mod.log_local_step(
+        ctx,
+        state,
+        prepared,
+        log_artifacts,
+        current_lr=payload.scalars.current_lr,
+        emit=False,
+    )
+    assert not wandb_logs
+    assert "train/reward" in state.metric_sums
+
+    prepared.reward_comp = _reward_comp(1.0)
+    metrics_mod.log_local_step(
+        ctx,
+        state,
+        prepared,
+        log_artifacts,
+        current_lr=payload.scalars.current_lr,
+        emit=True,
+    )
+
+    assert wandb_logs, "wandb should log averaged metrics once per step"
+    logged_metrics, logged_step = wandb_logs[-1]
+    assert logged_step == state.global_step
+    assert pytest.approx(logged_metrics["train/reward"], rel=1e-6) == 0.5
+    assert state.metric_sums == {}
+    assert writer.logged, "step logger should record metrics"
 def test_build_training_metrics_falls_back_to_loss_kl_scalar():
     payload = _payload()
     payload.diagnostics = payload.diagnostics.__class__(

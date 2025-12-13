@@ -27,6 +27,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from .dataset import ScriptArguments, trl
 
@@ -142,6 +143,30 @@ class GRPOConfig(trl.GRPOConfig):
     hub_model_revision: Optional[str] = field(
         default="main", metadata={"help": "The Hub model branch to push the model to."}
     )
+    reference_model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional frozen reference model to score completions against. "
+                "Defaults to model_name_or_path when unset."
+            )
+        },
+    )
+    reference_model_revision: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Optional revision/branch for the frozen reference model."
+        },
+    )
+    maxent_share_reference_model: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, reuse the trainable policy weights for reference scoring "
+                "instead of loading a frozen copy."
+            )
+        },
+    )
     num_completions_to_print: int = field(
         default=0,
         metadata={"help": "Number of completions to print."},
@@ -178,6 +203,14 @@ class GRPOConfig(trl.GRPOConfig):
     wandb_run_group: Optional[str] = field(
         default=None,
         metadata={"help": ("The group to store runs under.")},
+    )
+    log_like_grpo: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Emit GRPOTrainer-style single-rank logs instead of aggregated metrics."
+            )
+        },
     )
     init_from_checkpoint: Optional[str] = field(
         default=None,
@@ -623,6 +656,26 @@ class GRPOConfig(trl.GRPOConfig):
             else:
                 # Re-raise unrelated ValueErrors.
                 raise
+        vllm_url = getattr(self, "vllm_url", None)
+        if isinstance(vllm_url, str):
+            normalized = vllm_url.strip()
+            parsed = None
+            if normalized:
+                try:
+                    parsed = urlparse(normalized)
+                except ValueError:
+                    parsed = None
+            if (
+                parsed
+                and parsed.scheme
+                and parsed.netloc
+                and (parsed.path in ("", "/"))
+                and not parsed.params
+                and not parsed.query
+                and not parsed.fragment
+            ):
+                normalized = f"{parsed.scheme}://{parsed.netloc}/generate"
+                setattr(self, "vllm_url", normalized)
         eval_alias = getattr(self, "evaluation_strategy", None)
         if eval_alias not in (None, ""):
             try:

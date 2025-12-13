@@ -14,14 +14,14 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --exclusive
 #SBATCH --nodes=1                 # Default: single node
-#SBATCH --gres=gpu:8              # Default: 8 GPUs on the node
+#SBATCH --gres=gpu:a100:8         # Default: 8 A100 GPUs on the node
 #SBATCH --exclude=node915,node916,node917,node105
 #SBATCH --partition=mltheory      # Adjust for your cluster (e.g., hopper-prod)
+#SBATCH --account=mltheory
 #SBATCH --output=var/logs/%x-%j.out
 #SBATCH --error=var/logs/%x-%j.err
 #SBATCH --requeue
 #SBATCH --time=128:00:00
-#SBATCH --account=mltheory
 # Ensure the job sees the project venv by default; override with sbatch --export if needed.
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 

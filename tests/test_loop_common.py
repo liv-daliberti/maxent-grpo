@@ -219,3 +219,76 @@ def test_build_loop_context_applies_chunking_knobs():
     gen = ctx.generation
     assert gen.max_prompt_len == training_args.max_prompt_length
     assert gen.max_completion_len == training_args.max_completion_length
+
+
+def test_build_loop_context_attaches_frozen_reference_model(monkeypatch):
+    script_args, training_args, model_args = _script_and_training_args()
+    models = []
+
+    class _Model:
+        def __init__(self, name):
+            self.name = name
+            self.device = None
+            self.config = SimpleNamespace()
+            self._frozen = False
+            self._eval_calls = 0
+
+        def eval(self):
+            self._eval_calls += 1
+            return self
+
+        def requires_grad_(self, flag):
+            self._frozen = not flag
+            return self
+
+        def parameters(self):
+            return iter(())
+
+        def to(self, device):
+            self.device = device
+            return self
+
+    def _fake_get_model(args, _training_args):
+        mdl = _Model(getattr(args, "model_name_or_path", "policy"))
+        models.append(mdl)
+        return mdl
+
+    monkeypatch.setattr(loop_common, "get_model", _fake_get_model)
+    training_args.reference_model_name_or_path = "frozen-ref"
+    ctx = loop_common.build_training_loop_context(
+        script_args,
+        training_args,
+        model_args,
+        deps_namespace="test",
+        apply_info_seed_cfg=False,
+        force_grpo_objective=None,
+    )
+    assert ctx.runtime.model is models[0]
+    assert ctx.runtime.reference_model is models[1]
+    assert ctx.runtime.get_ref_model() is models[1]
+    assert models[1].device == ctx.runtime.device
+    assert models[1]._frozen is True
+    assert models[1]._eval_calls >= 1
+
+
+def test_build_loop_context_can_share_policy_reference(monkeypatch):
+    script_args, training_args, model_args = _script_and_training_args()
+    training_args.maxent_share_reference_model = True
+    call_count = {"value": 0}
+
+    def _fake_get_model(*_args, **_kwargs):
+        call_count["value"] += 1
+        return SimpleNamespace(config=SimpleNamespace())
+
+    monkeypatch.setattr(loop_common, "get_model", _fake_get_model)
+    ctx = loop_common.build_training_loop_context(
+        script_args,
+        training_args,
+        model_args,
+        deps_namespace="test",
+        apply_info_seed_cfg=False,
+        force_grpo_objective=None,
+    )
+    assert call_count["value"] == 1
+    assert ctx.runtime.reference_model is None
+    assert ctx.runtime.get_ref_model() is ctx.runtime.model

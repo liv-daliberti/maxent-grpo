@@ -77,8 +77,6 @@ def _pipeline_with_stubs():
     transformers_stub = types.ModuleType("transformers")
     transformers_stub.PreTrainedModel = type("PreTrainedModel", (object,), {})
     transformers_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (object,), {})
-    sys.modules["transformers"] = transformers_stub
-
     import maxent_grpo.training.pipeline as pipeline_mod  # noqa: E402
 
     globals().update(
@@ -101,6 +99,30 @@ def _pipeline_with_stubs():
             sys.modules.pop(name, None)
         else:
             sys.modules[name] = mod
+
+
+class _BehaviorTensorStub:
+    """Lightweight tensor stub storing flattened log-prob entries."""
+
+    def __init__(self, values, device="cpu", dtype="float32"):
+        self.arr = list(values)
+        self.device = device
+        self.dtype = dtype
+
+    def view(self, *_args, **_kwargs):
+        return self
+
+
+class _LogpTensorStub:
+    """Stub mimicking the current-policy log-prob tensor."""
+
+    def __init__(self, value=0.0, device="cpu", dtype="float32"):
+        self.value = value
+        self.device = device
+        self.dtype = dtype
+
+    def new_tensor(self, values, **_kwargs):
+        return _BehaviorTensorStub(values, device=self.device, dtype=self.dtype)
 
 
 class _FakePromptEntry:
@@ -387,7 +409,11 @@ def test_prepare_training_batch_uses_retry_fallback(monkeypatch):
             prompt_token_count=0.0,
         ),
     )
-    monkeypatch.setattr(pipeline, "score_model_outputs", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(
+        pipeline,
+        "score_model_outputs",
+        lambda *_args, **_kwargs: _LogpTensorStub(0.0),
+    )
     monkeypatch.setattr(
         pipeline, "build_sequence_scores", lambda *_args, **_kwargs: SimpleNamespace()
     )
@@ -650,11 +676,16 @@ def test_prepare_training_batch_full_flow(monkeypatch):
     monkeypatch.setattr(
         pipeline, "_collect_batch_stats", lambda *_args, **_kwargs: stats_obj
     )
-    monkeypatch.setattr(pipeline, "score_model_outputs", lambda *_args, **_kwargs: 0.5)
+    cur_stub = _LogpTensorStub(0.5)
+    monkeypatch.setattr(
+        pipeline,
+        "score_model_outputs",
+        lambda *_args, **_kwargs: cur_stub,
+    )
     monkeypatch.setattr(
         pipeline,
         "build_sequence_scores",
-        lambda cur_logp_sum, ref_stats, pooled_hidden=None: {
+        lambda cur_logp_sum, ref_stats, pooled_hidden=None, **_kw: {
             "cur": cur_logp_sum,
             "ref": ref_stats,
             "hidden": pooled_hidden,
@@ -666,7 +697,64 @@ def test_prepare_training_batch_full_flow(monkeypatch):
     )
     assert isinstance(prepared, PreparedBatch)
     assert prepared.total_input_tokens == 7.0
-    assert prepared.scores["cur"] == 0.5
+    assert prepared.scores["cur"] is cur_stub
+
+
+def test_prepare_training_batch_uses_behavior_meta(monkeypatch):
+    ctx = _Ctx()
+    gen_batch = SimpleNamespace(grouped_completions=[["c"]], answers=["c"])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=[{"logprob_sum": -1.5}],
+        pairs=SimpleNamespace(completions=["c"]),
+        completion_metadata=[],
+    )
+    stats_obj = SimpleNamespace(
+        score_batch=_FakeScoreBatch(total_sequences=1, prompt_lengths=[3]),
+        ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0),
+        weight_stats=SimpleNamespace(flat_weights=[1.0]),
+        length_stats=SimpleNamespace(),
+        num_completion_tokens=5.0,
+        prompt_token_count=2.0,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "prepare_generation_batch",
+        lambda *_args, **_kwargs: gen_batch,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_reward_statistics",
+        lambda *_args, **_kwargs: reward_comp,
+    )
+    monkeypatch.setattr(
+        pipeline, "_collect_batch_stats", lambda *_args, **_kwargs: stats_obj
+    )
+    cur_stub = _LogpTensorStub(-0.2)
+    monkeypatch.setattr(
+        pipeline,
+        "score_model_outputs",
+        lambda *_args, **_kwargs: cur_stub,
+    )
+    captured = {}
+
+    def _capture_scores(cur_logp_sum, ref_stats, pooled_hidden=None, **kwargs):
+        captured["behavior"] = kwargs.get("behavior_logp_sum")
+        return {
+            "cur": cur_logp_sum,
+            "ref": ref_stats,
+            "hidden": pooled_hidden,
+            "behavior": kwargs.get("behavior_logp_sum"),
+        }
+
+    monkeypatch.setattr(pipeline, "build_sequence_scores", _capture_scores)
+
+    prepared = prepare_training_batch(
+        ctx, lambda *_a, **_k: None, {"prompt": ["p"], "answer": ["a"]}
+    )
+    assert isinstance(prepared, PreparedBatch)
+    behavior = captured.get("behavior")
+    assert behavior is not None
+    assert getattr(behavior, "arr", None) == [-1.5]
 
 
 def test_prepare_training_batch_records_generation_stage(monkeypatch):

@@ -221,6 +221,7 @@ class RuntimeHandles:
     train_sampler: Optional[Sampler[Any]]
     device: torch.device
     get_ref_model: Callable[[], PreTrainedModel]
+    reference_model: Optional[PreTrainedModel] = None
     prompt_cache_get: Optional[Callable[[str], PromptCacheEntry]] = None
 
 

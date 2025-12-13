@@ -22,7 +22,7 @@
 #SBATCH --error=var/logs/%x-%j.err
 #SBATCH --requeue
 #SBATCH --time=00:59:00
-#SBATCH --account=mltheory      # Adjust for your cluster (e.g., hopper-prod)
+#SBATCH --account=      # Adjust for your cluster (e.g., hopper-prod)
 # Ensure the job sees the project venv by default; override with sbatch --export if needed.
 # NOTE: sbatch processes this line at submit time; absolute paths avoid $PWD expansion issues.
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate

@@ -22,6 +22,9 @@ model_revision: main
 resume_from_checkpoint: true
 torch_dtype: float16
 attn_implementation: sdpa
+reference_model_name_or_path: Qwen/Qwen2.5-7B
+reference_model_revision: main
+maxent_share_reference_model: false
 
 # Data training arguments
 dataset_name: open-r1/OpenR1-Math-220k
@@ -109,7 +112,7 @@ bf16: true
 fp16: false
 use_vllm: true
 vllm_mode: server         # reuse the single vLLM server from the launcher; avoids spawning 6 colocated engines
-vllm_return_logprobs: true
+vllm_return_logprobs: false
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 2

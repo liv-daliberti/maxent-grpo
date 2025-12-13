@@ -146,6 +146,7 @@ for stale_egg_info in stale_egg_infos:
 #   * If a dependency is fast-moving (e.g. trl), pin to the exact version
 _deps = [
     "accelerate==1.4.0",
+    "antlr4-python3-runtime>=4.13.2",
     "bitsandbytes>=0.43.0",
     "datasets>=3.2.0",
     "deepspeed==0.16.8",

@@ -42,6 +42,7 @@ import json
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
 
 from maxent_grpo.training.runtime.logging import _log_wandb
+from maxent_grpo.telemetry.trl_logging import _normalize_prefixes
 from .runtime import resolve_run_metadata
 from .types import (
     Accelerator,
@@ -79,6 +80,18 @@ _DEBUG_METRIC_FIELDS = (
     ("train/tau", "tau"),
     ("train/beta", "beta"),
 )
+
+
+def _log_like_grpo_enabled(training_args: Any) -> bool:
+    """Return ``True`` when GRPO-style per-rank logging is requested."""
+
+    flag_val = getattr(training_args, "log_like_grpo", False) if training_args else False
+    if isinstance(flag_val, bool):
+        return flag_val
+    try:
+        return bool(flag_val)
+    except (TypeError, ValueError):
+        return False
 
 
 def _logging_controls(ctx: TrainingLoopContext) -> tuple[str, int, bool]:
@@ -170,6 +183,8 @@ def _mean_std(values: Sequence[float]) -> Tuple[float, float]:
 def _gather_list_for_metrics(
     accelerator: Accelerator,
     values: Sequence[float],
+    *,
+    skip_global: bool = False,
 ) -> List[float]:
     """Gather a sequence of floats across processes.
 
@@ -181,7 +196,7 @@ def _gather_list_for_metrics(
     :rtype: list[float]
     """
     local = [float(v) for v in values]
-    if getattr(accelerator, "num_processes", 1) <= 1:
+    if skip_global or getattr(accelerator, "num_processes", 1) <= 1:
         return local
     gather_fn = getattr(accelerator, "gather_object", None)
     if not callable(gather_fn):
@@ -196,6 +211,8 @@ def _gather_list_for_metrics(
 def _gather_dict_of_lists_for_metrics(
     accelerator: Accelerator,
     values: Dict[str, Sequence[float]],
+    *,
+    skip_global: bool = False,
 ) -> Dict[str, List[float]]:
     """Gather dict-of-list structures across processes.
 
@@ -206,7 +223,7 @@ def _gather_dict_of_lists_for_metrics(
     :returns: Mapping where each metric key contains concatenated lists.
     :rtype: dict[str, list[float]]
     """
-    if getattr(accelerator, "num_processes", 1) <= 1:
+    if skip_global or getattr(accelerator, "num_processes", 1) <= 1:
         return {key: [float(v) for v in seq] for key, seq in values.items()}
     gather_fn = getattr(accelerator, "gather_object", None)
     if not callable(gather_fn):
@@ -220,7 +237,12 @@ def _gather_dict_of_lists_for_metrics(
     return merged
 
 
-def _sum_scalar_for_metrics(accelerator: Accelerator, value: float) -> float:
+def _sum_scalar_for_metrics(
+    accelerator: Accelerator,
+    value: float,
+    *,
+    skip_global: bool = False,
+) -> float:
     """Sum a scalar across all processes.
 
     :param accelerator: Accelerate handle used for reductions.
@@ -230,7 +252,9 @@ def _sum_scalar_for_metrics(accelerator: Accelerator, value: float) -> float:
     :returns: Sum of the scalar across all processes.
     :rtype: float
     """
-    return float(sum(_gather_list_for_metrics(accelerator, [value])))
+    return float(
+        sum(_gather_list_for_metrics(accelerator, [value], skip_global=skip_global))
+    )
 
 
 def _base_metric_block(
@@ -558,6 +582,8 @@ def _reward_component_stats(
 def _fraction_zero_std_groups(
     accelerator: Accelerator,
     advantage_groups: Sequence[Sequence[float]],
+    *,
+    skip_global: bool = False,
 ) -> float:
     """Return the global fraction of zero-variance advantage groups.
 
@@ -576,14 +602,20 @@ def _fraction_zero_std_groups(
         total_groups_local += 1.0
         if all(abs(val) < 1e-8 for val in adv_group):
             zero_std_local += 1.0
-    zero_std_total = _sum_scalar_for_metrics(accelerator, zero_std_local)
-    group_total = _sum_scalar_for_metrics(accelerator, total_groups_local)
+    zero_std_total = _sum_scalar_for_metrics(
+        accelerator, zero_std_local, skip_global=skip_global
+    )
+    group_total = _sum_scalar_for_metrics(
+        accelerator, total_groups_local, skip_global=skip_global
+    )
     return zero_std_total / group_total if group_total > 0 else 0.0
 
 
 def _summarize_reward_stats(
     accelerator: Accelerator,
     reward_comp: RewardComputation,
+    *,
+    skip_global: bool = False,
 ) -> RewardLoggingView:
     """Aggregate reward/advantage stats into a lightweight view.
 
@@ -594,12 +626,16 @@ def _summarize_reward_stats(
     :returns: Lightweight logging view containing aggregated stats.
     :rtype: RewardLoggingView
     """
-    all_rewards = _gather_list_for_metrics(accelerator, reward_comp.total_utils)
+    all_rewards = _gather_list_for_metrics(
+        accelerator, reward_comp.total_utils, skip_global=skip_global
+    )
     reward_mean, reward_std = _mean_std(all_rewards)
-    adv_samples = _gather_list_for_metrics(accelerator, reward_comp.advantage_samples)
+    adv_samples = _gather_list_for_metrics(
+        accelerator, reward_comp.advantage_samples, skip_global=skip_global
+    )
     adv_mean, adv_std = _mean_std(adv_samples)
     per_reward_values = _gather_dict_of_lists_for_metrics(
-        accelerator, reward_comp.per_reward_values
+        accelerator, reward_comp.per_reward_values, skip_global=skip_global
     )
     # Q-distribution entropy captures how sharp the ranking is per prompt.
     q_grouped = reward_comp.q_grouped
@@ -613,7 +649,9 @@ def _summarize_reward_stats(
             q_clamped = max(float(q), 1e-12)
             entropy -= q_clamped * math.log(q_clamped)
         q_entropies.append(entropy)
-    q_entropies = _gather_list_for_metrics(accelerator, q_entropies)
+    q_entropies = _gather_list_for_metrics(
+        accelerator, q_entropies, skip_global=skip_global
+    )
     q_entropy_mean, q_entropy_std = _mean_std(q_entropies)
     q_entropy_min = min(q_entropies) if q_entropies else 0.0
     q_entropy_max = max(q_entropies) if q_entropies else 0.0
@@ -621,7 +659,7 @@ def _summarize_reward_stats(
         reward_mean=reward_mean,
         reward_std=reward_std,
         frac_zero_std=_fraction_zero_std_groups(
-            accelerator, reward_comp.advantage.grouped
+            accelerator, reward_comp.advantage.grouped, skip_global=skip_global
         ),
         advantage_mean=adv_mean,
         advantage_std=adv_std,
@@ -634,9 +672,28 @@ def _summarize_reward_stats(
     )
 
 
+def summarize_reward_stats(
+    accelerator: Accelerator,
+    reward_comp: RewardComputation,
+    *,
+    log_like_grpo: bool = False,
+) -> RewardLoggingView:
+    """Aggregate reward statistics across all ranks.
+
+    Exposes the internal helper so that training code can gather reward
+    diagnostics even on non-main ranks before metrics are logged.
+    """
+
+    return _summarize_reward_stats(
+        accelerator, reward_comp, skip_global=log_like_grpo
+    )
+
+
 def _summarize_weight_stats(
     accelerator: Accelerator,
     weight_stats: WeightStats,
+    *,
+    skip_global: bool = False,
 ) -> WeightLoggingView:
     """Summarize entropy statistics for logging.
 
@@ -651,18 +708,26 @@ def _summarize_weight_stats(
     prompt_count = len(weights_grouped)
     entropy_val = float(getattr(weight_stats, "weight_entropy", 0.0))
     entropy_sum = _sum_scalar_for_metrics(
-        accelerator, float(entropy_val * max(prompt_count, 0))
+        accelerator, float(entropy_val * max(prompt_count, 0)), skip_global=skip_global
     )
-    prompt_total = _sum_scalar_for_metrics(accelerator, float(prompt_count))
+    prompt_total = _sum_scalar_for_metrics(
+        accelerator, float(prompt_count), skip_global=skip_global
+    )
     entropy_mean = entropy_sum / prompt_total if prompt_total > 0 else entropy_val
     entropy_min_vals = _gather_list_for_metrics(
-        accelerator, [getattr(weight_stats, "weight_entropy_min", 0.0)]
+        accelerator,
+        [getattr(weight_stats, "weight_entropy_min", 0.0)],
+        skip_global=skip_global,
     )
     entropy_max_vals = _gather_list_for_metrics(
-        accelerator, [getattr(weight_stats, "weight_entropy_max", 0.0)]
+        accelerator,
+        [getattr(weight_stats, "weight_entropy_max", 0.0)],
+        skip_global=skip_global,
     )
     ent_adv_values = _gather_list_for_metrics(
-        accelerator, getattr(weight_stats, "advantage_entropy", [])
+        accelerator,
+        getattr(weight_stats, "advantage_entropy", []),
+        skip_global=skip_global,
     )
     ent_adv_mean, ent_adv_std = _mean_std(ent_adv_values)
     return WeightLoggingView(
@@ -677,6 +742,8 @@ def _summarize_weight_stats(
 def summarize_weight_stats(
     accelerator: Accelerator,
     weight_stats: WeightStats,
+    *,
+    log_like_grpo: bool = False,
 ) -> WeightLoggingView:
     """Aggregate per-batch weight statistics across all processes.
 
@@ -684,7 +751,9 @@ def summarize_weight_stats(
     the same cross-rank entropy measurement used for logging.
     """
 
-    return _summarize_weight_stats(accelerator, weight_stats)
+    return _summarize_weight_stats(
+        accelerator, weight_stats, skip_global=log_like_grpo
+    )
 
 
 def _build_metrics_payload(
@@ -694,6 +763,7 @@ def _build_metrics_payload(
     log_artifacts: LogStepArtifacts,
     current_lr: float,
     *,
+    reward_view: Optional[RewardLoggingView] = None,
     weight_view: Optional[WeightLoggingView] = None,
 ) -> TrainingMetricsPayload:
     """Return a structured payload describing the current step.
@@ -709,10 +779,17 @@ def _build_metrics_payload(
     :type log_artifacts: LogStepArtifacts
     :param current_lr: Learning rate applied for the step (logged for reference).
     :type current_lr: float
+    :param reward_view: Optional pre-aggregated reward statistics. When
+        ``None`` the helper gathers them across all ranks.
+    :type reward_view: RewardLoggingView | None
+    :param weight_view: Optional pre-aggregated weight statistics.
+    :type weight_view: WeightLoggingView | None
     :returns: Aggregated metrics suitable for logging.
     :rtype: training.types.TrainingMetricsPayload
     """
     accelerator = ctx.runtime.accelerator
+    training_args = getattr(ctx, "training_args", None)
+    log_like_grpo = _log_like_grpo_enabled(training_args)
     config_view = LoggingConfigView(
         weighting=ctx.scoring.weighting,
         clipping=ctx.scoring.clipping,
@@ -734,13 +811,27 @@ def _build_metrics_payload(
             else None
         ),
     )
-    return TrainingMetricsPayload(
-        reward_stats=_summarize_reward_stats(accelerator, prepared.reward_comp),
-        weight_stats=(
+    if log_like_grpo:
+        reward_stats_payload = _summarize_reward_stats(
+            accelerator, prepared.reward_comp, skip_global=True
+        )
+        weight_stats_payload = _summarize_weight_stats(
+            accelerator, prepared.weight_stats, skip_global=True
+        )
+    else:
+        reward_stats_payload = (
+            reward_view
+            if reward_view is not None
+            else _summarize_reward_stats(accelerator, prepared.reward_comp)
+        )
+        weight_stats_payload = (
             weight_view
             if weight_view is not None
             else _summarize_weight_stats(accelerator, prepared.weight_stats)
-        ),
+        )
+    return TrainingMetricsPayload(
+        reward_stats=reward_stats_payload,
+        weight_stats=weight_stats_payload,
         loss_outputs=log_artifacts.loss_outputs,
         diagnostics=log_artifacts.diagnostics,
         length_stats=prepared.length_stats,
@@ -875,7 +966,9 @@ def log_local_step(
     log_artifacts: LogStepArtifacts,
     current_lr: float,
     *,
+    reward_view: Optional[RewardLoggingView] = None,
     weight_view: Optional[WeightLoggingView] = None,
+    emit: bool = True,
 ) -> None:
     """Log metrics for the current step on the main process only.
 
@@ -889,20 +982,67 @@ def log_local_step(
     :type log_artifacts: LogStepArtifacts
     :param current_lr: Learning rate applied for the current step.
     :type current_lr: float
+    :param reward_view: Optional reward statistics aggregated across ranks.
+    :type reward_view: RewardLoggingView | None
+    :param weight_view: Optional weight statistics aggregated across ranks.
+    :type weight_view: WeightLoggingView | None
+    :param emit: When ``False``, skip emitting logs and only accumulate averages.
+    :type emit: bool
     """
-    if not ctx.runtime.accelerator.is_main_process:
+    accelerator = ctx.runtime.accelerator
+    if not accelerator.is_main_process:
         return
+    training_args = getattr(ctx, "training_args", None)
+    log_like_grpo = _log_like_grpo_enabled(training_args)
     payload = _build_metrics_payload(
         ctx,
         state,
         prepared,
         log_artifacts,
         current_lr,
+        reward_view=reward_view,
         weight_view=weight_view,
     )
     metrics = build_training_metrics_dict(payload, state.global_step)
-    _log_debug_metrics(state.global_step, metrics)
+    metrics["train/global_step"] = float(state.global_step)
     accumulate_metrics(state, metrics)
+    if not emit:
+        return
+    if log_like_grpo:
+        if not _should_log(ctx, state.global_step):
+            return
+        averaged_metrics = flush_metric_averages(state)
+        if averaged_metrics:
+            metrics_to_emit = dict(metrics)
+            metrics_to_emit.update(averaged_metrics)
+        else:
+            metrics_to_emit = dict(metrics)
+        if "train/epoch" not in metrics_to_emit:
+            metrics_to_emit["train/epoch"] = _epoch_from_global_step(
+                ctx.optimization.schedule,
+                state.global_step,
+            )
+        metrics_to_emit.setdefault("train/global_step", float(state.global_step))
+        _log_debug_metrics(state.global_step, metrics_to_emit)
+        normalized_metrics = _normalize_prefixes(dict(metrics_to_emit), is_eval=False)
+        with ctx.logging.step_logger(state.global_step, enabled=True) as step_logger:
+            _emit_metrics(
+                ctx,
+                normalized_metrics,
+                state.global_step,
+                log_to_wandb=True,
+                tag="Global",
+                metric_logger=getattr(step_logger, "log", None),
+            )
+        _update_weighting_history(ctx.scoring.weighting, state.global_step)
+        if training_args is None:
+            log_completions = True
+        else:
+            log_completions = getattr(training_args, "log_completions", False)
+        if log_completions:
+            _log_sample_table(ctx, state, prepared)
+        return
+    _log_debug_metrics(state.global_step, metrics)
     if not _should_log(ctx, state.global_step):
         return
     with ctx.logging.step_logger(state.global_step, enabled=True) as step_logger:
@@ -1009,6 +1149,7 @@ def log_training_step(
     log_artifacts: LogStepArtifacts,
     current_lr: float,
     *,
+    reward_view: Optional[RewardLoggingView] = None,
     weight_view: Optional[WeightLoggingView] = None,
 ) -> None:
     """Emit global metrics (including optional W&B logging).
@@ -1023,7 +1164,14 @@ def log_training_step(
     :type log_artifacts: LogStepArtifacts
     :param current_lr: Learning rate applied for the current step.
     :type current_lr: float
+    :param reward_view: Optional reward statistics aggregated across ranks.
+    :type reward_view: RewardLoggingView | None
+    :param weight_view: Optional weight statistics aggregated across ranks.
+    :type weight_view: WeightLoggingView | None
     """
+    training_args = getattr(ctx, "training_args", None)
+    if _log_like_grpo_enabled(training_args):
+        return
     if not _should_log(ctx, state.global_step):
         return
     accelerator = ctx.runtime.accelerator
@@ -1051,9 +1199,11 @@ def log_training_step(
             prepared,
             log_artifacts,
             current_lr,
+            reward_view=reward_view,
             weight_view=weight_view,
         )
         metrics = build_training_metrics_dict(payload, state.global_step)
+        metrics["train/global_step"] = float(state.global_step)
     with ctx.logging.step_logger(state.global_step, enabled=True) as step_logger:
         _emit_metrics(
             ctx,
@@ -1067,7 +1217,6 @@ def log_training_step(
         pretty = _pretty_print_metrics(metrics)
         LOG.info("Global metrics (pretty) step %d\n%s", state.global_step, pretty)
     _update_weighting_history(ctx.scoring.weighting, state.global_step)
-    training_args = getattr(ctx, "training_args", None)
     if training_args is None:
         log_completions = True
     else:
@@ -1084,5 +1233,6 @@ __all__ = [
     "log_local_step",
     "log_training_metrics",
     "log_training_step",
+    "summarize_reward_stats",
     "summarize_weight_stats",
 ]

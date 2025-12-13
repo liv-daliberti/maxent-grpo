@@ -43,7 +43,7 @@ import math
 from contextlib import nullcontext
 
 from dataclasses import replace
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from .generation import CompletionGenerator, GenerationContext
 from maxent_grpo.training.runtime import require_accelerator, require_torch
@@ -51,7 +51,12 @@ from maxent_grpo.core.hub import push_to_hub_revision
 from .eval import run_validation_step
 from .weighting.loss import LossInputConfig, build_loss_inputs, evaluate_losses
 from . import pipeline as pipeline_mod
-from .metrics import log_local_step, log_training_step, summarize_weight_stats
+from .metrics import (
+    log_local_step,
+    log_training_step,
+    summarize_reward_stats,
+    summarize_weight_stats,
+)
 from .optim import (
     configure_accumulation_steps,
     detect_deepspeed_state,
@@ -93,6 +98,8 @@ Accelerator = require_accelerator("training")
 prepare_training_batch = pipeline_mod.prepare_training_batch
 
 LOG = logging.getLogger(__name__)
+_PROMPT_OBJECTIVE_ENV_VAR = "MAXENT_LOG_PROMPT_OBJECTIVE"
+_PROMPT_OBJECTIVE_PREVIEW_LEN = 160
 _scheduled_learning_rate = scheduled_learning_rate
 _epoch_progress = epoch_progress
 _optimizer_step = optimizer_step
@@ -120,6 +127,201 @@ def _maybe_save_seed_heatmap(seed_heatmap: Optional[dict], step: int) -> None:
             json.dump(seed_heatmap, f)
     except (OSError, TypeError, ValueError):  # pragma: no cover - best-effort
         LOG.warning("Failed to save seed heatmap at step %d", step)
+
+
+def _prompt_objective_logging_enabled(ctx: TrainingLoopContext) -> bool:
+    """Return True when per-prompt objective logging is requested."""
+
+    training_args = getattr(ctx, "training_args", None)
+    args_enabled = bool(getattr(training_args, "log_prompt_objective", False))
+    env_val = os.environ.get(_PROMPT_OBJECTIVE_ENV_VAR, "")
+    if isinstance(env_val, str):
+        env_enabled = env_val.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        env_enabled = False
+    return args_enabled or env_enabled
+
+
+def _to_cpu_tensor(value: Any) -> "torch.Tensor":
+    """Best-effort conversion of tensors/arrays to 1D CPU float tensors."""
+
+    if value is None:
+        return torch.tensor([], dtype=torch.float32)
+    if isinstance(value, torch.Tensor):
+        try:
+            return value.detach().float().cpu().view(-1)
+        except Exception:  # pragma: no cover - defensive conversion
+            return torch.tensor([], dtype=torch.float32)
+    arr = getattr(value, "arr", value)
+    try:
+        tensor = torch.tensor(arr, dtype=torch.float32)
+    except (TypeError, ValueError):
+        return torch.tensor([], dtype=torch.float32)
+    return tensor.view(-1)
+
+
+def _entropy_from_probs(probs: Optional[List[float]]) -> float:
+    """Return natural-log entropy for a probability vector."""
+
+    if not probs:
+        return 0.0
+    filtered = [max(float(p), 1e-12) for p in probs if isinstance(p, (int, float))]
+    if not filtered:
+        return 0.0
+    total = sum(filtered)
+    if total <= 0.0:
+        return 0.0
+    normalized = [val / total for val in filtered]
+    return float(-sum(val * math.log(val) for val in normalized))
+
+
+def _per_sequence_kl_values(
+    scores: Any,
+    ref_stats: Any,
+    weighting_cfg: Any,
+) -> List[float]:
+    """Return per-sequence KL estimates used for prompt-level logging."""
+
+    if scores is None or ref_stats is None or weighting_cfg is None:
+        return []
+    cur_logp = _to_cpu_tensor(getattr(scores, "cur_logp_sum", None))
+    denom = _to_cpu_tensor(getattr(scores, "denom_tok_tensor", None)).clamp(min=1.0)
+    count = min(cur_logp.numel(), denom.numel())
+    if count <= 0:
+        return []
+    cur_logp = cur_logp[:count]
+    denom = denom[:count]
+    cur_per_tok = cur_logp / denom
+    ref_source = (
+        getattr(ref_stats, "ref_logp_sum", None)
+        if getattr(weighting_cfg, "len_norm_ref", False)
+        else getattr(ref_stats, "ref_logp_sum_raw", None)
+    )
+    if ref_source is None:
+        # Fallback to whichever tensor is available so logging still works.
+        ref_source = getattr(ref_stats, "ref_logp_sum", None)
+    ref_tensor = _to_cpu_tensor(ref_source)
+    if ref_tensor.numel() == 0:
+        return []
+    if ref_tensor.numel() < count:
+        pad_val = ref_tensor[-1]
+        pad = pad_val.new_full((count - ref_tensor.numel(),), float(pad_val))
+        ref_tensor = torch.cat([ref_tensor, pad], dim=0)
+    ref_tensor = ref_tensor[:count]
+    if getattr(weighting_cfg, "len_norm_ref", False):
+        ref_per_tok = ref_tensor
+    else:
+        ref_per_tok = ref_tensor / denom
+    delta = (ref_per_tok - cur_per_tok).clamp(min=-60.0, max=60.0)
+    per_seq = delta.exp() - delta - 1.0
+    return per_seq.detach().cpu().tolist()
+
+
+def _prompt_preview(text: str) -> str:
+    """Return a compact preview of the prompt for logging."""
+
+    if not text:
+        return ""
+    compact = " ".join(str(text).strip().split())
+    if len(compact) <= _PROMPT_OBJECTIVE_PREVIEW_LEN:
+        return compact
+    return compact[: _PROMPT_OBJECTIVE_PREVIEW_LEN - 1] + "…"
+
+
+def _build_prompt_objective_entries(
+    prepared: Any,
+    weighting_cfg: Any,
+) -> List[Dict[str, Any]]:
+    """Return per-prompt summaries of reward, KL, and entropy."""
+
+    if prepared is None or weighting_cfg is None:
+        return []
+    grouped = getattr(prepared, "grouped_completions", None) or []
+    if not grouped:
+        return []
+    reward_comp = getattr(prepared, "reward_comp", None)
+    weight_stats = getattr(prepared, "weight_stats", None)
+    if reward_comp is None:
+        return []
+    rewards_flat = list(getattr(reward_comp, "total_utils", []) or [])
+    q_grouped = getattr(reward_comp, "q_grouped", None)
+    if q_grouped is None:
+        q_dist = getattr(reward_comp, "q_distribution", None)
+        q_grouped = getattr(q_dist, "grouped", None)
+    if q_grouped is None:
+        q_grouped = []
+    prompt_pairs = getattr(reward_comp, "pairs", None)
+    prompt_texts = list(getattr(prompt_pairs, "prompts", []) or [])
+    weight_groups = getattr(weight_stats, "weights_grouped", None) or []
+    kl_values = _per_sequence_kl_values(
+        getattr(prepared, "scores", None),
+        getattr(prepared, "ref_stats", None),
+        weighting_cfg,
+    )
+    entries: List[Dict[str, Any]] = []
+    offset = 0
+    for idx, comp_group in enumerate(grouped):
+        size = len(comp_group)
+        if size <= 0:
+            continue
+        reward_slice = rewards_flat[offset : offset + size]
+        kl_slice = kl_values[offset : offset + size] if kl_values else []
+        reward_mean = (
+            float(sum(reward_slice) / len(reward_slice)) if reward_slice else 0.0
+        )
+        kl_mean = float(sum(kl_slice) / len(kl_slice)) if kl_slice else 0.0
+        q_entropy = _entropy_from_probs(q_grouped[idx] if idx < len(q_grouped) else [])
+        weight_entropy = _entropy_from_probs(
+            weight_groups[idx] if idx < len(weight_groups) else []
+        )
+        prompt_text = prompt_texts[offset] if offset < len(prompt_texts) else ""
+        entries.append(
+            {
+                "index": idx,
+                "prompt": prompt_text,
+                "reward": reward_mean,
+                "reward_values": reward_slice,
+                "kl": kl_mean,
+                "kl_values": kl_slice,
+                "q_entropy": q_entropy,
+                "weight_entropy": weight_entropy,
+                "objective": reward_mean + kl_mean + q_entropy,
+                "group_size": size,
+            }
+        )
+        offset += size
+    return entries
+
+
+def _log_prompt_objective(
+    ctx: TrainingLoopContext,
+    prepared: Any,
+    step: int,
+) -> None:
+    """Emit per-prompt objective breakdown when explicitly requested."""
+
+    if not _prompt_objective_logging_enabled(ctx):
+        return
+    weighting_cfg = getattr(getattr(ctx, "scoring", None), "weighting", None)
+    entries = _build_prompt_objective_entries(prepared, weighting_cfg)
+    if not entries:
+        return
+    for entry in entries:
+        LOG.info(
+            (
+                "Prompt objective | step=%d | idx=%d | comps=%d | reward=%.4f | "
+                "kl=%.4f | entropy=%.4f | weight_entropy=%.4f | objective=%.4f | prompt=%s"
+            ),
+            step,
+            entry["index"],
+            entry["group_size"],
+            entry["reward"],
+            entry["kl"],
+            entry["q_entropy"],
+            entry["weight_entropy"],
+            entry["objective"],
+            _prompt_preview(entry.get("prompt", "")),
+        )
 
 
 def _maybe_validate(
@@ -155,6 +357,9 @@ def _maybe_overwrite_controller_state_from_config(
     if not getattr(training_args, "controller_overwrite_from_config", False):
         return
     if controller_resumed:
+        LOG.info(
+            "Controller state resumed from checkpoint; skipping config overwrite."
+        )
         return
     weighting = getattr(getattr(ctx, "scoring", None), "weighting", None)
     if weighting is None:
@@ -303,6 +508,7 @@ def _train_step(
         getattr(prepared, "seed_heatmap", None),
         state.global_step,
     )
+    _log_prompt_objective(ctx, prepared, state.global_step)
     current_lr = _scheduled_learning_rate(
         schedule, ctx.optimization.handles, state.global_step
     )
@@ -313,6 +519,12 @@ def _train_step(
         epoch_progress=_epoch_progress(
             schedule, step_info.epoch, step_info.step_in_epoch
         ),
+    )
+    reward_stats_global = summarize_reward_stats(
+        accelerator, prepared.reward_comp
+    )
+    weight_stats_global = summarize_weight_stats(
+        accelerator, prepared.weight_stats
     )
     scalars = getattr(loss_outputs, "scalars", None)
     if scalars is not None:
@@ -359,6 +571,16 @@ def _train_step(
                     accum_position,
                     grad_accum_total,
                 )
+                log_local_step(
+                    ctx,
+                    state,
+                    prepared,
+                    log_artifacts,
+                    current_lr,
+                    reward_view=reward_stats_global,
+                    weight_view=weight_stats_global,
+                    emit=False,
+                )
                 return False
             grad_norm_scalar = _optimizer_step(ctx, state, current_lr)
             LOG.debug(
@@ -375,6 +597,16 @@ def _train_step(
                     accum_position,
                     grad_accum_total,
                 )
+                log_local_step(
+                    ctx,
+                    state,
+                    prepared,
+                    log_artifacts,
+                    current_lr,
+                    reward_view=reward_stats_global,
+                    weight_view=weight_stats_global,
+                    emit=False,
+                )
                 return False
             grad_norm_scalar = _optimizer_step(ctx, state, current_lr)
             LOG.debug(
@@ -384,15 +616,13 @@ def _train_step(
             )
     LOG.debug("Exiting accumulate context | synced_step=%d", state.global_step)
     log_artifacts.grad_norm_scalar = grad_norm_scalar
-    weight_stats_global = summarize_weight_stats(
-        accelerator, prepared.weight_stats
-    )  # Aggregate entropy across ranks once per step.
     log_local_step(
         ctx,
         state,
         prepared,
         log_artifacts,
         current_lr,
+        reward_view=reward_stats_global,
         weight_view=weight_stats_global,
     )
     log_training_step(
@@ -401,12 +631,17 @@ def _train_step(
         prepared,
         log_artifacts,
         current_lr,
+        reward_view=reward_stats_global,
         weight_view=weight_stats_global,
     )
     maybe_update_beta(ctx.scoring.weighting, loss_outputs.kl_loss_scalar)
     base_lr = max(float(getattr(ctx.optimization.handles, "learning_rate", 0.0)), 1e-12)
     lr_scale = float(current_lr) / base_lr if base_lr > 0 else 1.0
-    weight_stats_for_tau = getattr(prepared, "weight_stats", weight_stats_global)
+    weight_stats_for_tau = (
+        weight_stats_global
+        if weight_stats_global is not None
+        else getattr(prepared, "weight_stats", None)
+    )
     try:
         maybe_update_tau(
             ctx.scoring.weighting,

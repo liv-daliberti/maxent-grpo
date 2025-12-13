@@ -97,6 +97,7 @@ if [[ "${BACKEND,,}" == "hf" && -n "${CUDA_VISIBLE_DEVICES:-}" ]]; then
   CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES%%,*}"
   export CUDA_VISIBLE_DEVICES
 fi
+echo "[info] Selected LightEval backend: ${BACKEND}"
 
 # --- Argument parsing ---
 if [[ $# -lt 6 ]]; then
@@ -217,7 +218,14 @@ RESULTS_JSON="$RESULTS_DIR/${BENCHMARK}-tp${TP_SIZE}-job${SLURM_JOB_ID}.json"
 
 if [[ "${BACKEND,,}" == "hf" ]]; then
   MODEL_ARGS="model_name=${MODEL},revision=${REVISION},batch_size=${BATCH_SIZE},generation_size=${MAX_NEW_TOKENS},trust_remote_code=${TRUST_REMOTE_CODE},model_parallel=false,device=cuda,dtype=float16"
-  LIGHTEVAL_CMD=(lighteval accelerate "$MODEL_ARGS" "$TASK_LIST" --output-dir "$RESULTS_DIR" --save-details)
+  if [[ "${LIGHTEVAL_DEBUG_WRAPPER:-0}" == "1" ]]; then
+    # Use a local debug wrapper that patches the LightEval Pipeline to emit
+    # explicit phase markers (tasks loading / model run / metrics) so we can
+    # see where a job is stuck.
+    LIGHTEVAL_CMD=(python tools/debug_lighteval_accelerate.py "$MODEL_ARGS" "$TASK_LIST" --output-dir "$RESULTS_DIR" --save-details)
+  else
+    LIGHTEVAL_CMD=(lighteval accelerate "$MODEL_ARGS" "$TASK_LIST" --output-dir "$RESULTS_DIR" --save-details)
+  fi
 else
   MODEL_ARGS="model_name=${MODEL##*/},base_url=http://127.0.0.1:${PORT}/v1,provider=openai,api_key=EMPTY,temperature=${TEMPERATURE},top_p=${TOP_P},max_new_tokens=${MAX_NEW_TOKENS}"
   LIGHTEVAL_CMD=(lighteval endpoint litellm "$MODEL_ARGS" "$TASK_LIST" --output-dir "$RESULTS_DIR" --save-details)

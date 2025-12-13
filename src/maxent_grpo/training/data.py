@@ -5,15 +5,16 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 import shutil
-from typing import Any, Tuple
+from typing import Any, List, Optional, Tuple
 
 try:  # pragma: no cover - optional dependency guard for stripped test envs
     from datasets import load_from_disk as _hf_load_from_disk
 except Exception:  # pragma: no cover - fallback when datasets is unavailable
     _hf_load_from_disk = None
 
-from maxent_grpo.core.data import get_dataset
+from maxent_grpo.core.data import get_dataset, load_dataset_split
 from maxent_grpo.training.runtime.prompts import (
     _prompt_char_limit_from_tokens,
     _to_prompt,
@@ -63,6 +64,50 @@ def _dataset_cache_path(
     }
     cache_key = _stable_hash(dataset_id)
     return os.path.join(base_dir, cache_key)
+
+
+def _format_eval_row(
+    example: dict,
+    *,
+    prompt_column: str,
+    solution_column: str,
+    tokenizer: Any,
+    system_prompt: Optional[str],
+    char_limit: int,
+) -> dict:
+    out = _to_prompt(
+        example,
+        tokenizer,
+        prompt_column,
+        system_prompt,
+        char_limit=char_limit,
+    )
+    answer = example.get(solution_column, out.get("answer", ""))
+    out["answer"] = "" if answer is None else str(answer)
+    return out
+
+
+def _normalize_eval_rows(rows: Any) -> Optional[List[dict]]:
+    if rows is None:
+        return None
+    if isinstance(rows, list):
+        return [dict(row) for row in rows]
+    normalized: List[dict] = []
+    try:
+        iterator = iter(rows)
+    except TypeError:
+        return normalized
+    for row in iterator:
+        normalized.append(dict(row))
+    return normalized
+
+
+def _sample_eval_rows(rows: List[dict], keep: int, seed: int) -> List[dict]:
+    if keep <= 0 or keep >= len(rows):
+        return rows
+    indices = list(range(len(rows)))
+    random.Random(int(seed or 0)).shuffle(indices)
+    return [rows[idx] for idx in indices[:keep]]
 
 
 def load_datasets(
@@ -176,9 +221,58 @@ def load_datasets(
 
     train_ds = dataset[train_split]
 
-    eval_rows = getattr(script_args, "eval_rows", None)
-    if eval_rows is None and test_split is not None and test_split in dataset:
-        eval_rows = dataset[test_split]
+    eval_rows = _normalize_eval_rows(getattr(script_args, "eval_rows", None))
+    if eval_rows is None and getattr(training_args, "do_eval", False):
+        eval_dataset_name = getattr(script_args, "eval_dataset_name", None)
+        eval_prompt_col = (
+            getattr(script_args, "eval_dataset_prompt_column", None) or pc
+        )
+        eval_solution_col = (
+            getattr(script_args, "eval_dataset_solution_column", None) or sc
+        )
+        if eval_dataset_name:
+            eval_split = getattr(script_args, "eval_dataset_split", "validation")
+            eval_ds_raw = load_dataset_split(
+                eval_dataset_name,
+                getattr(script_args, "eval_dataset_config", None),
+                eval_split,
+            )
+            eval_rows = [
+                _format_eval_row(
+                    row,
+                    prompt_column=eval_prompt_col,
+                    solution_column=eval_solution_col,
+                    tokenizer=tokenizer,
+                    system_prompt=getattr(training_args, "system_prompt", None),
+                    char_limit=char_limit,
+                )
+                for row in eval_ds_raw
+            ]
+        elif test_split is not None and test_split in dataset:
+            full_eval = dataset[test_split]
+            try:
+                n_total = len(full_eval)
+            except (TypeError, AttributeError):
+                n_total = 0
+            n_keep = min(1000, max(1, int(0.1 * n_total))) if n_total > 0 else 0
+            if (
+                hasattr(full_eval, "shuffle")
+                and hasattr(full_eval, "select")
+                and n_keep > 0
+            ):
+                try:
+                    subset = full_eval.shuffle(seed=training_args.seed).select(
+                        range(n_keep)
+                    )
+                    eval_rows = _normalize_eval_rows(subset)
+                except Exception:
+                    eval_rows = None
+            if eval_rows is None:
+                eval_rows = _normalize_eval_rows(full_eval)
+                if eval_rows and n_keep > 0:
+                    eval_rows = _sample_eval_rows(
+                        eval_rows, n_keep, getattr(training_args, "seed", 0)
+                    )
     if eval_rows is None:
         eval_rows = []
     return train_ds, eval_rows

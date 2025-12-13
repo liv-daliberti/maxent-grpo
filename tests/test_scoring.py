@@ -682,7 +682,9 @@ def test_reference_scoring_preserves_slice_order(monkeypatch):
 
     ref = gather_reference_logprobs(score_batch, runtime, batching_cfg)
     assert ref is not None
-    assert ref.ref_logp_sum.tolist() == [203.0, 403.0, 603.0]
+    assert ref.ref_logp_sum.tolist() == pytest.approx(
+        [203.0 / 3.0, 403.0 / 2.0, 603.0 / 2.0]
+    )
     assert ref.ref_tok_counts.tolist() == [3.0, 2.0, 2.0]
    
 

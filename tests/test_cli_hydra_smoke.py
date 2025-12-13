@@ -505,6 +505,32 @@ def test_build_grpo_configs_prefers_recipe(monkeypatch, tmp_path):
     assert "cls" in called
 
 
+def test_build_grpo_configs_applies_recipe_overrides(monkeypatch):
+    script_ns = SimpleNamespace(dataset_name="base_ds", extra=1)
+    training_ns = SimpleNamespace(maxent_tau=0.1, gradient_checkpointing_kwargs={"use_reentrant": True})
+    model_ns = SimpleNamespace(model_name_or_path="base")
+
+    def _fake_load(recipe, model_config_cls):
+        return (script_ns, training_ns, model_ns)
+
+    monkeypatch.setattr(hydra_cli, "load_grpo_recipe", _fake_load)
+    cmd = hydra_cli.MaxentCommand(
+        recipe="stub",
+        script={"dataset_name": "override_ds"},
+        training={
+            "maxent_tau": 0.5,
+            "gradient_checkpointing_kwargs": {"use_reentrant": False},
+        },
+        model={"model_name_or_path": "override"},
+    )
+    script_args, training_args, model_args = hydra_cli._build_grpo_configs(cmd)
+    assert script_args.dataset_name == "override_ds"
+    assert script_args.extra == 1
+    assert training_args.maxent_tau == pytest.approx(0.5)
+    assert training_args.gradient_checkpointing_kwargs["use_reentrant"] is False
+    assert model_args.model_name_or_path == "override"
+
+
 def test_build_grpo_configs_merges_inline_sections(monkeypatch):
     class _ModelCfg(SimpleNamespace):
         pass

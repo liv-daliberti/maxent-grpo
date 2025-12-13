@@ -59,3 +59,13 @@ def test_grpo_config_preserves_num_generations_on_divisibility_warning(monkeypat
         "Ignoring num_generations divisibility constraint" in record.message
         for record in caplog.records
     )
+
+
+def test_grpo_config_appends_generate_suffix_for_plain_hosts():
+    cfg = GRPOConfig(vllm_url="http://localhost:29525")
+    assert cfg.vllm_url == "http://localhost:29525/generate"
+
+
+def test_grpo_config_preserves_custom_vllm_paths():
+    cfg = GRPOConfig(vllm_url="http://localhost:29525/custom/path")
+    assert cfg.vllm_url == "http://localhost:29525/custom/path"

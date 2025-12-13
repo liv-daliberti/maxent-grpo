@@ -69,6 +69,23 @@ def _canon_math(s: str) -> str:
     if s is None:
         return ""
     s = s.strip()
+    replacements = {
+        "π": r"\pi",
+        "Π": r"\Pi",
+        "τ": r"\tau",
+        "θ": r"\theta",
+        "Θ": r"\Theta",
+        "φ": r"\phi",
+        "Φ": r"\Phi",
+        "∞": r"\infty",
+    }
+    for src, dst in replacements.items():
+        s = s.replace(src, dst)
+    def _normalize_frac(match: re.Match[str]) -> str:
+        num = match.group(1).strip()
+        den = match.group(2).strip()
+        return f"({num})/({den})"
+    s = re.sub(r"\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}", _normalize_frac, s)
     # Strip common LaTeX wrappers that should not affect equality.
     s = (
         s.replace("\\left", "")
@@ -76,6 +93,7 @@ def _canon_math(s: str) -> str:
         .replace("$", "")
         .replace("\\,", "")
     )
+    s = re.sub(r"\(([A-Za-z0-9_\\]+)\)", r"\1", s)
     if re.fullmatch(r"\{[^{}]+\}", s):
         s = s[1:-1]
     if re.fullmatch(r"\([^()]+\)", s):

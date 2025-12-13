@@ -18,6 +18,7 @@ Tests for the training loop helpers.
 
 from __future__ import annotations
 from importlib import import_module, reload
+import logging
 import sys
 from types import SimpleNamespace
 
@@ -239,6 +240,13 @@ def test_train_step_defers_deepspeed_accumulation(monkeypatch, rtl):
 
     prepared = SimpleNamespace(
         grouped_completions=[],
+        reward_comp=SimpleNamespace(
+            total_utils=[0.0],
+            per_reward_values={},
+            advantage_samples=[0.0],
+            advantage=SimpleNamespace(grouped=[[0.0]]),
+            q_grouped=[[1.0]],
+        ),
         weight_stats=None,
         scores=None,
         ref_stats=None,
@@ -295,6 +303,13 @@ def test_train_step_defers_when_not_syncing(monkeypatch, rtl):
 
     prepared = SimpleNamespace(
         grouped_completions=[],
+        reward_comp=SimpleNamespace(
+            total_utils=[0.0],
+            per_reward_values={},
+            advantage_samples=[0.0],
+            advantage=SimpleNamespace(grouped=[[0.0]]),
+            q_grouped=[[1.0]],
+        ),
         weight_stats=None,
         scores=None,
         ref_stats=None,
@@ -367,7 +382,13 @@ def test_train_step_runs_optimizer_step_when_ready(monkeypatch, rtl):
     step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={})
     prepared = SimpleNamespace(
         grouped_completions=[["one"]],
-        reward_comp=SimpleNamespace(per_reward_values={}),
+        reward_comp=SimpleNamespace(
+            total_utils=[0.0],
+            per_reward_values={},
+            advantage_samples=[0.0],
+            advantage=SimpleNamespace(grouped=[[0.0]]),
+            q_grouped=[[1.0]],
+        ),
         weight_stats=SimpleNamespace(),
         length_stats=SimpleNamespace(),
         ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=2.0),
@@ -880,7 +901,13 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
     step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={"prompt": ["p"]})
     prepared = SimpleNamespace(
         grouped_completions=[["one"]],
-        reward_comp=SimpleNamespace(),
+        reward_comp=SimpleNamespace(
+            total_utils=[0.0],
+            per_reward_values={},
+            advantage_samples=[0.0],
+            advantage=SimpleNamespace(grouped=[[0.0]]),
+            q_grouped=[[1.0]],
+        ),
         weight_stats=SimpleNamespace(),
         ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=2.0),
         length_stats=SimpleNamespace(),
@@ -891,6 +918,7 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
     )
     loss_outputs = SimpleNamespace(loss=object(), kl_loss_scalar=0.25)
     recorded = {}
+    aggregated_view = SimpleNamespace(entropy=0.0)
 
     monkeypatch.setattr(rtl, "prepare_training_batch", lambda *_a, **_k: prepared)
     monkeypatch.setattr(rtl, "build_loss_inputs", lambda *_a, **_k: ("group", "ratio"))
@@ -908,6 +936,9 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
         rtl,
         "log_training_step",
         lambda *_a, **_k: recorded.setdefault("log_training", True),
+    )
+    monkeypatch.setattr(
+        rtl, "summarize_weight_stats", lambda *_a, **_k: aggregated_view
     )
 
     def _fake_opt_step(_ctx, loop_state, current_lr):
@@ -953,7 +984,7 @@ def test_train_step_updates_controllers_and_saves_state(monkeypatch, rtl):
 
     assert result is state.stop_training
     assert recorded["beta_call"] == (weighting, loss_outputs.kl_loss_scalar)
-    assert recorded["tau_call"] == (weighting, prepared.weight_stats, state.global_step)
+    assert recorded["tau_call"] == (weighting, aggregated_view, state.global_step)
     assert recorded["saved"] == (ctx.controller.state_path, weighting)
     assert recorded["validated"] == state.global_step
     assert recorded["checkpoint"] == state.global_step
@@ -1015,7 +1046,13 @@ def test_controller_objective_hook_applies_meta_updates(monkeypatch, rtl):
     step_info = SimpleNamespace(epoch=0, step_in_epoch=0, batch={"prompt": ["p"]})
     prepared = SimpleNamespace(
         grouped_completions=[["one"]],
-        reward_comp=SimpleNamespace(),
+        reward_comp=SimpleNamespace(
+            total_utils=[0.0],
+            per_reward_values={},
+            advantage_samples=[0.0],
+            advantage=SimpleNamespace(grouped=[[0.0]]),
+            q_grouped=[[1.0]],
+        ),
         weight_stats=SimpleNamespace(weight_entropy=0.3),
         ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=2.0),
         length_stats=SimpleNamespace(),
@@ -1362,6 +1399,48 @@ def test_maxent_vs_grpo_parity(monkeypatch, tmp_path):
     assert len(runs) == 4  # checkpoint callback invoked for each step
 
 
+def test_log_prompt_objective_respects_flags(monkeypatch, caplog, rtl):
+    """Per-prompt objective logging should require an explicit flag or env."""
+
+    ctx = SimpleNamespace(
+        training_args=SimpleNamespace(log_prompt_objective=False),
+        scoring=SimpleNamespace(weighting=None),
+    )
+    prepared = SimpleNamespace()
+    entry = {
+        "index": 0,
+        "group_size": 2,
+        "reward": 0.5,
+        "kl": 0.1,
+        "q_entropy": 0.2,
+        "weight_entropy": 0.3,
+        "objective": 0.8,
+        "prompt": "prompt text",
+    }
+    monkeypatch.setattr(
+        rtl,
+        "_build_prompt_objective_entries",
+        lambda *_args, **_kwargs: [entry],
+    )
+    monkeypatch.delenv("MAXENT_LOG_PROMPT_OBJECTIVE", raising=False)
+    with caplog.at_level(logging.INFO):
+        rtl._log_prompt_objective(ctx, prepared, 7)
+    assert all("Prompt objective" not in rec.message for rec in caplog.records)
+    caplog.clear()
+
+    monkeypatch.setenv("MAXENT_LOG_PROMPT_OBJECTIVE", "1")
+    with caplog.at_level(logging.INFO):
+        rtl._log_prompt_objective(ctx, prepared, 8)
+    assert any("Prompt objective" in rec.message for rec in caplog.records)
+    caplog.clear()
+
+    monkeypatch.delenv("MAXENT_LOG_PROMPT_OBJECTIVE", raising=False)
+    ctx.training_args.log_prompt_objective = True
+    with caplog.at_level(logging.INFO):
+        rtl._log_prompt_objective(ctx, prepared, 9)
+    assert any("Prompt objective" in rec.message for rec in caplog.records)
+
+
 def test_eval_loop_smoke_logs_eval_metrics(monkeypatch):
     _load_run_setup(monkeypatch)
     rtl = reload(import_module("training.loop"))
@@ -1590,6 +1669,48 @@ def test_maybe_overwrite_controller_state_from_config_noop_without_flag(monkeypa
     assert ctx.scoring.weighting.tau == 0.1
     assert ctx.scoring.weighting.beta == 0.02
     assert ctx.scoring.weighting.denom == 0.5
+
+
+def test_maybe_overwrite_controller_state_skips_when_resumed(monkeypatch, rtl):
+    """Resumed controllers should not be clobbered by recipe overrides."""
+
+    def _fail(*_args, **_kwargs):
+        raise AssertionError("should not sync/broadcast when skipping overwrite")
+
+    monkeypatch.setattr(rtl, "broadcast_controller_state", _fail)
+    monkeypatch.setattr(rtl, "_sync_controller_state", _fail)
+
+    class _Weighting:
+        def __init__(self):
+            self.tau = 0.2
+            self.beta = 0.05
+            self.train_grpo_objective = False
+            self.normalization = SimpleNamespace(denom=0.25, len_norm_ref=False)
+
+        @property
+        def denom(self):
+            return self.normalization.denom
+
+        @denom.setter
+        def denom(self, value):
+            self.normalization.denom = value
+
+    weighting = _Weighting()
+    ctx = SimpleNamespace(
+        training_args=SimpleNamespace(
+            controller_overwrite_from_config=True,
+            maxent_tau=0.8,
+            init_kl_coeff=0.1,
+        ),
+        scoring=SimpleNamespace(weighting=weighting),
+        runtime=SimpleNamespace(accelerator=SimpleNamespace()),
+    )
+
+    rtl._maybe_overwrite_controller_state_from_config(ctx, controller_resumed=True)
+
+    assert weighting.tau == pytest.approx(0.2)
+    assert weighting.beta == pytest.approx(0.05)
+    assert weighting.denom == pytest.approx(0.25)
 
 
 def test_apply_weighting_overrides_from_config_sets_fallback(rtl):

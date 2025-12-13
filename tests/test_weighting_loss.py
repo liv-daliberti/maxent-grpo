@@ -97,6 +97,13 @@ def _patch_torch_stub(monkeypatch):
         arrays = [t.arr if hasattr(t, "arr") else np.array(t) for t in tensors]
         return TORCH_STUB.tensor(np.stack(arrays, axis=dim))
 
+    def _as_tensor(value):
+        return TORCH_STUB.tensor(getattr(value, "arr", value))
+
+    def _new_zeros(self, size, **_kwargs):
+        shape = size if isinstance(size, tuple) else (size,)
+        return TORCH_STUB.zeros(shape)
+
     monkeypatch.setattr(TORCH_STUB.Tensor, "view", _view, raising=False)
     monkeypatch.setattr(TORCH_STUB.Tensor, "std", _std, raising=False)
     monkeypatch.setattr(
@@ -134,6 +141,11 @@ def _patch_torch_stub(monkeypatch):
     monkeypatch.setattr(TORCH_STUB, "maximum", _maximum, raising=False)
     monkeypatch.setattr(TORCH_STUB, "clamp", _clamp, raising=False)
     monkeypatch.setattr(TORCH_STUB, "stack", _stack, raising=False)
+    monkeypatch.setattr(TORCH_STUB, "as_tensor", _as_tensor, raising=False)
+    monkeypatch.setattr(TORCH_STUB.Tensor, "new_zeros", _new_zeros, raising=False)
+    monkeypatch.setattr(
+        TORCH_STUB, "is_tensor", lambda value: isinstance(value, TORCH_STUB.Tensor), raising=False
+    )
     sys.modules["torch"] = TORCH_STUB
     monkeypatch.setattr(loss_mod, "torch", TORCH_STUB)
     monkeypatch.setattr(loss_mod, "Tensor", TORCH_STUB.Tensor)
@@ -157,6 +169,26 @@ def _weighting(len_norm_ref: bool = True, beta: float = 0.5) -> WeightingSetting
         kl_controller=KlControllerSettings(target=0.0, horizon=0, step_size=0.0),
         train_grpo_objective=False,
     )
+
+
+def _tensor_value(value):
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            return float(item())
+        except Exception:
+            pass
+    try:
+        return float(value)
+    except Exception:
+        pass
+    detach = getattr(value, "detach", None)
+    if callable(detach):
+        try:
+            return float(detach().cpu().numpy().item())
+        except Exception:
+            pass
+    return 0.0
 
 
 def test_build_loss_inputs_mismatch_raises():
@@ -233,15 +265,17 @@ def test_build_loss_inputs_trims_group_sizes_when_logp_missing():
     assert group_data.logp_sums.numel() == 2
 
 
-def test_policy_loss_requires_completions():
+def test_policy_loss_requires_completions(caplog):
+    caplog.set_level(logging.INFO)
     group_data = GroupLossData(
         group_sizes=[0],
         weight_tensor=torch.tensor([], dtype=torch.float32),
         logp_sums=torch.tensor([], dtype=torch.float32),
         token_counts=torch.tensor([], dtype=torch.float32),
     )
-    with pytest.raises(ValueError):
-        _policy_loss_from_groups(group_data)
+    loss = _policy_loss_from_groups(group_data)
+    assert _tensor_value(loss) == pytest.approx(0.0)
+    assert "Policy loss groups empty" in caplog.text
 
 
 def test_policy_loss_truncates_mismatched_lengths(caplog):
@@ -265,9 +299,9 @@ def test_policy_loss_skips_empty_logp_group(caplog):
         logp_sums=torch.tensor([]),
         token_counts=torch.ones(16),
     )
-    with pytest.raises(ValueError):
-        _policy_loss_from_groups(group_data)
-    assert "empty log-probs" in caplog.text
+    loss = _policy_loss_from_groups(group_data)
+    assert _tensor_value(loss) == pytest.approx(0.0)
+    assert "logp tensor empty; forcing zeros" in caplog.text
 
 
 def test_clip_loss_for_slice_computes_objective():
@@ -433,6 +467,54 @@ def test_compute_clip_ratios_clamps_values():
     assert ratio.shape == clipped.shape
 
 
+def test_policy_loss_returns_zero_when_weights_and_logp_missing(caplog):
+    caplog.set_level(logging.INFO)
+    group_data = GroupLossData(
+        group_sizes=[2],
+        weight_tensor=torch.tensor([0.0, 0.0]),
+        logp_sums=torch.tensor([], dtype=torch.float32),
+        token_counts=torch.tensor([], dtype=torch.float32),
+    )
+    loss = _policy_loss_from_groups(group_data)
+    assert torch.is_tensor(loss)
+    assert loss.item() == 0.0
+    assert any("Policy loss logp tensor empty" in rec.message for rec in caplog.records)
+
+
+def test_kl_terms_returns_zero_when_cur_logp_empty(caplog):
+    caplog.set_level(logging.INFO)
+    weighting = _weighting(len_norm_ref=True, beta=0.7)
+    ratio_ctx = RatioContext(
+        log_ratio_train=torch.zeros(0),
+        denom_tok_tensor=torch.zeros(0),
+        clip_cfg=ClipSettings(
+            clip_range=0.2,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
+        weighting_cfg=weighting,
+        ref_stats=ReferenceLogprobs(
+            ref_logp_sum=torch.tensor([0.0, 0.0]),
+            ref_tok_counts=torch.tensor([1.0, 1.0]),
+            ref_logp_sum_raw=torch.tensor([0.0, 0.0]),
+            ref_logp_mean=0.0,
+            avg_completion_tokens=1.0,
+        ),
+        cur_logp_sum=torch.tensor([], dtype=torch.float32),
+        behavior_logp_sum=torch.tensor([], dtype=torch.float32),
+    )
+    kl_tensor, kl_scalar, weighted = _kl_terms(ratio_ctx)
+    assert torch.is_tensor(kl_tensor)
+    tensor_arr = getattr(kl_tensor, "arr", None)
+    if tensor_arr is not None:
+        assert np.allclose(tensor_arr, 0.0)
+    else:
+        assert kl_tensor.item() == 0.0
+    assert kl_scalar == 0.0 and weighted == 0.0
+    assert any("Skipping KL computation" in rec.message for rec in caplog.records)
+
+
 def test_build_loss_outputs_packs_scalars():
     clip_cfg = ClipSettings(
         clip_range=0.2,
@@ -521,8 +603,36 @@ def test_ratio_diagnostics_without_ref_counts_zero():
     )
     diag = _ratio_diagnostics(ratio_ctx)
     assert diag.clip_ratio == 0.0
-    assert diag.kl_value is None
+    assert diag.kl_value == 0.0
     assert _ratio_stats_without_ref()[0] == 0.0
+
+
+def test_ratio_diagnostics_with_ref_handles_empty_cur(caplog):
+    caplog.set_level(logging.WARNING)
+    ratio_ctx = RatioContext(
+        log_ratio_train=torch.zeros(0),
+        denom_tok_tensor=torch.zeros(0),
+        clip_cfg=ClipSettings(
+            clip_range=0.1,
+            use_clip_objective=False,
+            clip_objective_coef=1.0,
+            clip_adv_baseline=None,
+        ),
+        weighting_cfg=_weighting(beta=0.5),
+        ref_stats=ReferenceLogprobs(
+            ref_logp_sum=torch.tensor([0.0, 0.0]),
+            ref_tok_counts=torch.tensor([1.0, 1.0]),
+            ref_logp_sum_raw=torch.tensor([0.0, 0.0]),
+            ref_logp_mean=0.0,
+            avg_completion_tokens=1.0,
+        ),
+        cur_logp_sum=torch.tensor([], dtype=torch.float32),
+        behavior_logp_sum=torch.tensor([], dtype=torch.float32),
+    )
+    diag = _ratio_diagnostics(ratio_ctx)
+    assert diag.clip_ratio == 0.0
+    assert diag.kl_value == 0.0
+    assert any("Skipping ratio diagnostics" in rec.message for rec in caplog.records)
 
 
 def test_ratio_stats_with_ref_uses_raw_when_len_norm_disabled():

@@ -106,6 +106,20 @@ class VLLMGenerationHelper(
         stats.setdefault("vllm_last_error", None)
         _seed_stats_metadata(stats, ctx)
         ctx.generation_stats = stats
+        if not getattr(ctx, "_maxent_vllm_helper_logged", False):
+            sync_weights = bool(getattr(ctx, "vllm_sync_weights", False))
+            backend_note = (
+                "frozen server (no weight sync)" if not sync_weights else "live weight sync"
+            )
+            LOG.info(
+                "vLLM helper configured | use_vllm=%s | endpoint=%s | request_logprobs=%s | sync_weights=%s (%s)",
+                bool(getattr(ctx, "use_vllm", False)),
+                getattr(ctx, "vllm_url", None),
+                bool(getattr(ctx, "vllm_request_logprobs", False)),
+                sync_weights,
+                backend_note,
+            )
+            setattr(ctx, "_maxent_vllm_helper_logged", True)
 
     # Expose patchable state via public accessors for callers/tests.
     @property

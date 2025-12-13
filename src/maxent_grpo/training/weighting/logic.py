@@ -121,16 +121,24 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
     """Convenience builder for WeightingSettings from GRPOConfig."""
 
     tau = float(getattr(cfg, "maxent_tau", 0.0))
-    beta = float(
-        getattr(cfg, "init_kl_coeff", None)
-        or getattr(cfg, "init_kl_coef", None)
-        or getattr(cfg, "beta", 0.0)
-    )
+    beta_source = None
+    for attr in ("init_kl_coeff", "init_kl_coef", "kl_penalty_beta", "beta"):
+        value = getattr(cfg, attr, None)
+        if value is not None:
+            beta_source = value
+            break
+    try:
+        beta = float(beta_source)
+    except (TypeError, ValueError):
+        beta = 0.0
     normalization = WeightingSettings.__annotations__.get(
         "normalization", WeightNormalizationSettings
     )
+    denom = float(tau + beta)
+    if not math.isfinite(denom) or denom <= 0.0:
+        denom = 1.0
     normalization = WeightNormalizationSettings(
-        denom=max(tau + beta, 1.0),
+        denom=denom,
         len_norm_ref=bool(getattr(cfg, "maxent_length_normalize_ref", True)),
     )
     q_dist = WeightingSettings.__annotations__.get(
@@ -815,10 +823,8 @@ def compute_weight_stats(
     :returns: Weight stats dataclass or ``None`` if inputs are empty.
     :rtype: WeightStats | None
     """
-    ref_logp_grouped = (
-        split_reference_logprobs(grouped_completions, ref_stats, True)
-        if weighting_cfg.len_norm_ref
-        else _split_ref_logprobs_per_token(grouped_completions, ref_stats)
+    ref_logp_grouped = split_reference_logprobs(
+        grouped_completions, ref_stats, weighting_cfg.len_norm_ref
     )
     token_counts_grouped = split_reference_token_counts(grouped_completions, ref_stats)
     weights_grouped: List[List[float]] = []
