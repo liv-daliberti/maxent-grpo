@@ -26,7 +26,10 @@ var/
 var/tmp/
 data/*
 !data/README.md
-
+wandb/
+.wandb/
+.venv-train/
+.venv-lighteval/
 # Sphinx docs build
 _build/
 docs/_build/
