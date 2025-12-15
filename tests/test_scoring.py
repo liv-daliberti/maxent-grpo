@@ -759,6 +759,33 @@ def test_chunked_sequence_logprobs_honors_chunk_limits():
     np.testing.assert_allclose(_to_np(base_hidden), _to_np(chunk_hidden))
 
 
+def test_chunked_sequence_logprobs_scores_next_token_alignment():
+    class _IdentityPredictModel(torch.nn.Module):
+        def forward(self, input_ids, attention_mask, output_hidden_states=False):
+            _ = (attention_mask, output_hidden_states)
+            vocab = 8
+            bsz, seqlen = input_ids.shape
+            logits = torch.full((bsz, seqlen, vocab), -100.0, dtype=torch.float32)
+            for b in range(bsz):
+                for t in range(seqlen):
+                    token = int(input_ids[b, t].item())
+                    logits[b, t, token] = 0.0
+            return SimpleNamespace(logits=logits)
+
+    input_ids = torch.tensor([[1, 2, 3, 4]], dtype=torch.long)
+    attn = torch.ones_like(input_ids)
+    labels = input_ids.clone()
+    logp, tok_counts, _hidden = _chunked_sequence_logprobs(
+        _IdentityPredictModel(),
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels,
+        chunk_size=0,
+    )
+    assert tok_counts.tolist() == [3]
+    assert logp.tolist() == pytest.approx([-300.0], abs=1e-3)
+
+
 def test_chunked_sequence_logprobs_gathers_params(monkeypatch):
     """Ensure ZeRO-3 gathered parameters context is invoked when requested."""
 
@@ -1401,6 +1428,57 @@ def test_tokenize_completions_and_build_score_batch():
     assert isinstance(sb, ScoreBatch)
     # Tokenizer was invoked when building the score batch
     assert tokenizer.called is True
+
+
+def test_build_score_batch_uses_completion_token_ids_metadata():
+    class _Tokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
+        vocab_size = 16
+
+        def __init__(self):
+            self.called = False
+
+        def __call__(self, *_args, **_kwargs):
+            self.called = True
+            raise AssertionError("Tokenizer should not be called when token_ids metadata exists.")
+
+    prompts = ["hi", "ok"]
+    completions = ["ignored", "ignored2"]
+    reward_comp = RewardComputation(
+        total_utils=[],
+        per_reward_values={},
+        advantage=SimpleNamespace(samples=[]),
+        pairs=SimpleNamespace(prompts=prompts, completions=completions),
+        q_distribution=SimpleNamespace(grouped=[], samples=[]),
+        moments=SimpleNamespace(mean=0.0, std=0.0),
+        completion_metadata=[{"token_ids": [5, 6]}, {"token_ids": [7]}],
+    )
+    tokenizer = _Tokenizer()
+    gen_cfg = GenerationSettings(
+        max_prompt_len=4,
+        max_completion_len=4,
+        gen_temperature=1.0,
+        gen_top_p=1.0,
+        use_vllm=False,
+        vllm=VLLMClientConfig(
+            url="http://localhost",
+            rounds_cfg=1,
+            retry_sleep=0.0,
+            backfill_local=False,
+            request_logprobs=False,
+        ),
+    )
+    batching_cfg = BatchingSettings(
+        logprob_chunk_size=0, score_slice=0, prompt_length_cache_get=_dummy_prompt_cache
+    )
+    sb = build_score_batch(reward_comp, tokenizer, gen_cfg, batching_cfg)
+    assert sb is not None
+    assert tokenizer.called is False
+    assert sb.completion_ids[0][:2].tolist() == [5, 6]
+    assert sb.completion_attention_mask[0][:2].tolist() == [1, 1]
+    assert sb.completion_ids[1][:2].tolist() == [7, 0]
+    assert sb.completion_attention_mask[1][:2].tolist() == [1, 0]
 
 
 def test_refresh_torch_handles_import_failure(monkeypatch):

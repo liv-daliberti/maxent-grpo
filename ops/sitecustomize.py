@@ -87,7 +87,12 @@ if _PKG_ROOT.exists():
         sys.path.append(pkg_str)
 
 
-_ORIG_FIND_SPEC = importlib.util.find_spec
+if not hasattr(importlib.util, "_MAXENT_GRPO_ORIG_FIND_SPEC"):
+    # Preserve the underlying importlib implementation so additional wrappers
+    # (e.g., test harnesses) can safely layer without infinite recursion.
+    importlib.util._MAXENT_GRPO_ORIG_FIND_SPEC = importlib.util.find_spec
+
+_ORIG_FIND_SPEC = importlib.util._MAXENT_GRPO_ORIG_FIND_SPEC
 
 
 def _maxent_find_spec(name: str, package: str | None = None):
@@ -243,6 +248,57 @@ def _install_accelerate_stub() -> None:
     accel_mod.state = accel_state
     sys.modules.setdefault("accelerate", accel_mod)
     sys.modules.setdefault("accelerate.state", accel_state)
+
+
+def _install_more_itertools_stub() -> None:
+    """Provide a tiny more-itertools stub when the dependency is missing.
+
+    Some isolated environments (e.g., evaluation venvs without network access)
+    may not be able to install `more-itertools`. We only stub the small surface
+    area needed by downstream packages (LightEval uses `distribute`; setuptools
+    expects `always_iterable`).
+    """
+    if "more_itertools" in sys.modules:
+        return
+    try:
+        spec = importlib.util.find_spec("more_itertools")
+    except ValueError:
+        spec = None
+    if spec is not None:
+        return
+
+    mod = ModuleType("more_itertools")
+    mod.__spec__ = None
+    mod.__path__ = []  # type: ignore[attr-defined]
+    mod.__version__ = "0.0.0-stub"
+
+    def distribute(n: int, iterable: Iterable[object]):
+        if n <= 0:
+            raise ValueError("n must be a positive integer")
+        buckets: list[list[object]] = [[] for _ in range(n)]
+        for idx, value in enumerate(iterable):
+            buckets[idx % n].append(value)
+        return tuple(buckets)
+
+    _sentinel = object()
+
+    def always_iterable(obj, base_type=(str, bytes), default=_sentinel):
+        if obj is None:
+            if default is _sentinel:
+                return iter(())
+            obj = default
+        if base_type is not None and isinstance(obj, base_type):
+            return iter((obj,))
+        try:
+            return iter(obj)
+        except TypeError:
+            return iter((obj,))
+
+    mod.distribute = distribute  # type: ignore[attr-defined]
+    mod.always_iterable = always_iterable  # type: ignore[attr-defined]
+    mod.__all__ = ["distribute", "always_iterable"]  # type: ignore[attr-defined]
+
+    sys.modules.setdefault("more_itertools", mod)
 
 
 def _install_torch_stub() -> None:
@@ -780,6 +836,24 @@ def _patch_antlr4_runtime() -> None:
         return
 
     expected = getattr(atn_module, "SERIALIZED_VERSION", None)
+
+    # Some Hydra/OmegaConf bundles still ship serialized ATNs as lists of ints or bytes.
+    # Convert those inputs back to strings before the runtime calls ord().
+    reset_fn = getattr(atn_module.ATNDeserializer, "reset", None)
+    if callable(reset_fn) and not getattr(
+        atn_module.ATNDeserializer, "_maxent_reset_patched", False
+    ):
+
+        def _reset(self, data):  # type: ignore[override]
+            if isinstance(data, (bytes, bytearray)):
+                data = data.decode("latin-1")
+            elif isinstance(data, (list, tuple)) and data and isinstance(data[0], int):
+                data = "".join(chr(int(c) & 0xFFFF) for c in data)
+            return reset_fn(self, data)
+
+        atn_module.ATNDeserializer.reset = _reset
+        atn_module.ATNDeserializer._maxent_reset_patched = True
+
     if expected is None or expected <= 3:
         return
     if getattr(atn_module, "_maxent_allow_v3_serialized_atn", False):
@@ -787,7 +861,8 @@ def _patch_antlr4_runtime() -> None:
 
     def _check_version(self):  # type: ignore[override]
         version = self.readInt()
-        if version in (expected, 3):
+        allowable = {expected, 3, 4}
+        if version in allowable:
             return
         raise Exception(
             f"Could not deserialize ATN with version {version} (expected {expected})."
@@ -798,12 +873,65 @@ def _patch_antlr4_runtime() -> None:
 
 
 _install_accelerate_stub()
+_install_more_itertools_stub()
 _install_torch_stub()
 _patch_antlr4_runtime()
 
-try:  # pragma: no cover - best-effort hook for shared vLLM servers
-    from maxent_grpo.patches.vllm_server import install_vllm_client_tag_middleware
+def _install_vllm_client_tag_hook() -> None:
+    """Install a lazy hook that patches vLLM's OpenAI server when imported.
 
-    install_vllm_client_tag_middleware()
-except Exception:
-    pass
+    Importing vLLM (and its OpenAI protocol dependencies) can be heavyweight
+    and may fail in environments where optional deps are missing.  Instead of
+    importing vLLM eagerly at interpreter startup, we attach a small import
+    hook that runs *after* ``vllm.entrypoints.openai.api_server`` is imported.
+    """
+
+    target = "vllm.entrypoints.openai.api_server"
+    if getattr(_install_vllm_client_tag_hook, "_installed", False):
+        return
+    setattr(_install_vllm_client_tag_hook, "_installed", True)
+
+    def _apply_patch(module: ModuleType) -> None:
+        try:
+            from maxent_grpo.patches.vllm_server import (
+                install_vllm_client_tag_middleware,
+            )
+
+            install_vllm_client_tag_middleware(getattr(module, "app", None))
+        except Exception:
+            return
+
+    existing = sys.modules.get(target)
+    if isinstance(existing, ModuleType):
+        _apply_patch(existing)
+        return
+
+    try:  # pragma: no cover - importlib internals are environment-dependent
+        import importlib.abc
+        import importlib.machinery
+    except Exception:
+        return
+
+    class _Finder(importlib.abc.MetaPathFinder):
+        def find_spec(self, fullname, path, target_obj=None):  # type: ignore[override]
+            if fullname != target:
+                return None
+            spec = importlib.machinery.PathFinder.find_spec(fullname, path)
+            if spec is None or spec.loader is None:
+                return spec
+            loader = spec.loader
+            exec_module = getattr(loader, "exec_module", None)
+            if not callable(exec_module):
+                return spec
+
+            def _exec_module(module):  # type: ignore[no-untyped-def]
+                exec_module(module)
+                _apply_patch(module)
+
+            loader.exec_module = _exec_module  # type: ignore[assignment]
+            return spec
+
+    sys.meta_path.insert(0, _Finder())
+
+
+_install_vllm_client_tag_hook()

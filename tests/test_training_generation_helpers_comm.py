@@ -36,6 +36,7 @@ def test_gather_broadcast_scatter_fall_back_to_dist(monkeypatch):
     class _Dist:
         def __init__(self):
             self.broadcast_called = False
+            self.broadcast_payload = None
             self.scatter_payload = None
 
         @staticmethod
@@ -56,6 +57,7 @@ def test_gather_broadcast_scatter_fall_back_to_dist(monkeypatch):
 
         def broadcast_object_list(self, payload, src=0):
             self.broadcast_called = True
+            self.broadcast_payload = (list(payload), src)
             return payload
 
         def scatter_object_list(self, output, input_list, src=0):
@@ -76,12 +78,18 @@ def test_gather_broadcast_scatter_fall_back_to_dist(monkeypatch):
     accel_b = SimpleNamespace(num_processes=2, process_index=1, broadcast_object=None)
     helpers._broadcast_object_list(accel_b, ["p1", "p2"], src=0)
     assert dist.broadcast_called is True
+    assert dist.broadcast_payload == (["p1", "p2"], 0)
 
     # scatter_object path (dist)
+    dist.broadcast_payload = None
+    dist.scatter_payload = None
     accel_s = SimpleNamespace(num_processes=2, process_index=0, scatter_object=None)
     scattered = helpers._scatter_object(accel_s, [["a"], ["b"]], src=0)
     assert scattered == ["a"]
-    assert dist.scatter_payload == [["a"], ["b"]]
+    assert dist.scatter_payload == [["a"], ["b"]] or dist.broadcast_payload == (
+        [["a"], ["b"]],
+        0,
+    )
 
 
 def test_broadcast_and_scatter_fallback_to_accelerator(monkeypatch):

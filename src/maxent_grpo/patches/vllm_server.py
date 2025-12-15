@@ -155,43 +155,115 @@ def install_vllm_client_tag_middleware(app: Optional[Any] = None) -> bool:
         return False
 
     try:
-        from starlette.middleware.base import BaseHTTPMiddleware
+        from starlette.types import ASGIApp, Message, Receive, Scope, Send
     except Exception as exc:  # pragma: no cover - FastAPI/Starlette missing
-        LOG.warning("Starlette unavailable; cannot install client_tag middleware: %s", exc)
+        LOG.warning(
+            "Starlette unavailable; cannot install client_tag middleware: %s", exc
+        )
         return False
 
-    class _ClientTagMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):  # type: ignore[override]
-            client_tag = request.headers.get("X-VLLM-Client-Tag", "")
-            response = await call_next(request)
-            if (
-                not client_tag
-                or request.method != "POST"
-                or not str(getattr(request.url, "path", "")).endswith("/generate")
-            ):
-                return response
-            content_type = (response.headers.get("content-type") or "").lower()
-            if "application/json" not in content_type:
-                return response
-
-            body = b""
+    def _header_map(headers: list[tuple[bytes, bytes]]) -> dict[str, str]:
+        mapped: dict[str, str] = {}
+        for key, value in headers:
             try:
-                async for chunk in response.body_iterator:
-                    body += chunk
-            except Exception as exc:  # pragma: no cover - defensive
-                LOG.warning("Failed to read vLLM response body for tag propagation: %s", exc)
-                return response
-
-            if not body:
-                return _build_passthrough_response(response, body)
-            try:
-                payload = json.loads(body)
+                mapped[key.decode("latin-1").lower()] = value.decode("latin-1")
             except Exception:
-                return _build_passthrough_response(response, body)
+                continue
+        return mapped
 
-            updated = _propagate_client_tag(payload, client_tag)
-            new_body = json.dumps(payload).encode("utf-8") if updated else body
-            return _build_passthrough_response(response, new_body)
+    class _ClientTagMiddleware:
+        """ASGI middleware that injects ``client_tag`` into JSON responses.
+
+        This is implemented as raw ASGI middleware (not BaseHTTPMiddleware)
+        because Starlette's BaseHTTPMiddleware can deadlock on streaming
+        responses when the middleware consumes ``body_iterator``.
+        """
+
+        def __init__(self, inner: ASGIApp) -> None:
+            self._app = inner
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            if scope.get("type") != "http":
+                await self._app(scope, receive, send)
+                return
+
+            method = (scope.get("method") or "").upper()
+            path = str(scope.get("path") or "")
+            if method != "POST" or not path.endswith("/generate"):
+                await self._app(scope, receive, send)
+                return
+
+            headers = _header_map(list(scope.get("headers") or []))
+            client_tag = headers.get("x-vllm-client-tag", "").strip()
+            if not client_tag:
+                await self._app(scope, receive, send)
+                return
+
+            start_message: Message | None = None
+            body_chunks: list[bytes] = []
+            response_sent = False
+
+            async def send_wrapper(message: Message) -> None:
+                nonlocal start_message, body_chunks, response_sent
+
+                if message.get("type") == "http.response.start":
+                    start_message = message
+                    return
+                if message.get("type") != "http.response.body":
+                    await send(message)
+                    return
+
+                body_chunks.append(message.get("body", b"") or b"")
+                if message.get("more_body"):
+                    return
+
+                # Final body chunk: rewrite (if possible) and flush.
+                if start_message is None:
+                    await send(message)
+                    return
+
+                start_headers = list(start_message.get("headers") or [])
+                header_lookup = _header_map(start_headers)
+                content_type = (header_lookup.get("content-type") or "").lower()
+                body = b"".join(body_chunks)
+
+                new_body = body
+                if body and "application/json" in content_type:
+                    try:
+                        payload = json.loads(body)
+                    except Exception:
+                        payload = None
+                    if payload is not None:
+                        updated = _propagate_client_tag(payload, client_tag)
+                        if updated:
+                            try:
+                                new_body = json.dumps(payload).encode("utf-8")
+                            except Exception:
+                                new_body = body
+
+                # Update content-length for the buffered payload.
+                filtered_headers = [
+                    (k, v)
+                    for k, v in start_headers
+                    if k.lower() != b"content-length"
+                ]
+                filtered_headers.append(
+                    (b"content-length", str(len(new_body)).encode("ascii"))
+                )
+                start_message = dict(start_message)
+                start_message["headers"] = filtered_headers
+                await send(start_message)
+                await send({"type": "http.response.body", "body": new_body, "more_body": False})
+                response_sent = True
+                start_message = None
+                body_chunks = []
+
+            await self._app(scope, receive, send_wrapper)
+            if not response_sent and start_message is not None:
+                # Some responses may not send a body (e.g., HEAD). Ensure the
+                # start message isn't swallowed.
+                await send(start_message)
+                await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     app.add_middleware(_ClientTagMiddleware)
     if state is not None:

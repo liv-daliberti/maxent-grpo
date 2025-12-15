@@ -521,7 +521,7 @@ def _train_step(
         ),
     )
     reward_stats_global = summarize_reward_stats(
-        accelerator, prepared.reward_comp
+        accelerator, getattr(prepared, "reward_comp", None)
     )
     weight_stats_global = summarize_weight_stats(
         accelerator, prepared.weight_stats
@@ -634,7 +634,10 @@ def _train_step(
         reward_view=reward_stats_global,
         weight_view=weight_stats_global,
     )
-    maybe_update_beta(ctx.scoring.weighting, loss_outputs.kl_loss_scalar)
+    meta_cfg = getattr(getattr(ctx.scoring, "weighting", None), "controller_meta", None)
+    meta_enabled = bool(getattr(meta_cfg, "enabled", False))
+    if not meta_enabled:
+        maybe_update_beta(ctx.scoring.weighting, loss_outputs.kl_loss_scalar)
     base_lr = max(float(getattr(ctx.optimization.handles, "learning_rate", 0.0)), 1e-12)
     lr_scale = float(current_lr) / base_lr if base_lr > 0 else 1.0
     weight_stats_for_tau = (
@@ -642,15 +645,18 @@ def _train_step(
         if weight_stats_global is not None
         else getattr(prepared, "weight_stats", None)
     )
-    try:
-        maybe_update_tau(
-            ctx.scoring.weighting,
-            weight_stats_for_tau,
-            state.global_step,
-            lr_scale=lr_scale,
-        )
-    except TypeError:
-        maybe_update_tau(ctx.scoring.weighting, weight_stats_for_tau, state.global_step)
+    if not meta_enabled:
+        try:
+            maybe_update_tau(
+                ctx.scoring.weighting,
+                weight_stats_for_tau,
+                state.global_step,
+                lr_scale=lr_scale,
+            )
+        except TypeError:
+            maybe_update_tau(
+                ctx.scoring.weighting, weight_stats_for_tau, state.global_step
+            )
     settings_obj = getattr(ctx, "settings", None)
     controller_objective = getattr(settings_obj, "controller_objective", None)
     controller_manager = getattr(settings_obj, "controller_meta_manager", None)

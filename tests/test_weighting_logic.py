@@ -591,7 +591,39 @@ def test_apply_meta_controller_update_updates_params(weighting_logic):
     )
     assert updated is True
     assert weighting_cfg.tau == pytest.approx(old_tau - 0.1)
-    assert weighting_cfg.beta == pytest.approx(old_beta + 0.2)
+    assert weighting_cfg.beta == pytest.approx(old_beta - 0.2)
+
+
+def test_apply_meta_controller_update_respects_separate_lrs(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(beta=0.3, tau=0.6)
+    weighting_cfg.controller_meta.enabled = True
+    weighting_cfg.controller_meta.learning_rate = 0.0
+    weighting_cfg.controller_meta.tau_learning_rate = 0.5
+    weighting_cfg.controller_meta.beta_learning_rate = 0.1
+
+    old_tau = weighting_cfg.tau
+    old_beta = weighting_cfg.beta
+    updated = logic.apply_meta_controller_update(
+        weighting_cfg, tau_grad=0.2, beta_grad=-0.4
+    )
+    assert updated is True
+    assert weighting_cfg.tau == pytest.approx(old_tau - 0.1)  # 0.5 * 0.2
+    assert weighting_cfg.beta == pytest.approx(old_beta - 0.04)  # 0.1 * -0.4
+
+
+def test_apply_meta_controller_update_clips_beta_grad(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(beta=0.3, tau=0.6)
+    weighting_cfg.controller_meta.enabled = True
+    weighting_cfg.controller_meta.learning_rate = 0.0
+    weighting_cfg.controller_meta.beta_learning_rate = 0.1
+    weighting_cfg.controller_meta.beta_grad_clip = 0.5
+
+    old_beta = weighting_cfg.beta
+    updated = logic.apply_meta_controller_update(weighting_cfg, beta_grad=100.0)
+    assert updated is True
+    assert weighting_cfg.beta == pytest.approx(old_beta + 0.05)  # 0.1 * clip(100 -> 0.5)
 
 
 def test_apply_meta_controller_update_requires_flag(weighting_logic):

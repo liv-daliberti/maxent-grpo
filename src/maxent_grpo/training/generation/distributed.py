@@ -75,6 +75,28 @@ def _scatter_object(
             src=src,
         )
     if dist is not None and dist.is_available() and dist.is_initialized():
+        # Prefer a broadcast-based implementation when possible. Some torch/
+        # backend combinations have flaky support for scatter_object_list,
+        # whereas broadcast_object_list tends to be more reliable.
+        if callable(getattr(dist, "broadcast_object_list", None)):
+            try:
+                world_size = int(dist.get_world_size())
+            except Exception:
+                world_size = int(getattr(accelerator, "num_processes", 1) or 1)
+            list_ok = input_list is None or (
+                isinstance(input_list, list) and len(input_list) == world_size
+            )
+            if world_size > 0 and list_ok:
+                payload = (
+                    input_list
+                    if accelerator.process_index == src and input_list is not None
+                    else [None for _ in range(world_size)]
+                )
+                dist.broadcast_object_list(payload, src=src)
+                try:
+                    return payload[int(accelerator.process_index)]
+                except Exception:
+                    return None
         output: List[Any] = [None]
         dist.scatter_object_list(
             output,

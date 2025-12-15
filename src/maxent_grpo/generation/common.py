@@ -351,6 +351,7 @@ def flatten_ref_metadata(
     if grouped_meta is None:
         return None
     flat_meta: List[Optional[Any]] = []
+    has_payload = False
     for prompt_idx, comp_group in enumerate(grouped_comps):
         meta_group: Optional[List[Optional[Any]]] = (
             grouped_meta[prompt_idx] if prompt_idx < len(grouped_meta) else None
@@ -364,7 +365,11 @@ def flatten_ref_metadata(
                         meta_entry = meta_entry.to_trl_payload()
                     except TypeError:
                         pass
+                if meta_entry is not None:
+                    has_payload = True
             flat_meta.append(meta_entry)
+    if not has_payload:
+        return None
     return flat_meta if flat_meta else None
 
 

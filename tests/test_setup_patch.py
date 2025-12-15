@@ -64,14 +64,93 @@ def _install_fake_trl(monkeypatch, target_path: Path) -> None:
 
 
 def test_trl_patch_idempotent(tmp_path, monkeypatch):
-    """Applying the patch twice should only insert the hook once."""
+    """Applying the patch twice should only insert the hooks once."""
 
     target = tmp_path / "vllm_serve.py"
-    target.write_text(
-        "llm = LLM(\n        enforce_eager=script_args.enforce_eager,\n"
-        "        dtype=script_args.dtype,\n)\n",
-        encoding="utf-8",
-    )
+    stub_text = """from typing import Optional
+from itertools import chain
+
+class LLM:
+    pass
+
+
+class BaseModel:
+    pass
+
+
+def chunk_list(lst, _n):
+    return [lst]
+
+
+script_args = type("Args", (), {"data_parallel_size": 1, "enforce_eager": False, "dtype": "float16"})()
+connections = []
+
+
+def main(_script_args=None):
+    class GenerateRequest(BaseModel):
+        prompts: list[str]
+        n: int = 1
+        repetition_penalty: float = 1.0
+        temperature: float = 1.0
+        top_p: float = 1.0
+        top_k: int = -1
+        min_p: float = 0.0
+        max_tokens: int = 16
+        guided_decoding_regex: Optional[str] = None
+
+    class GenerateResponse(BaseModel):
+        completion_ids: list[list[int]]
+
+    @app.post("/generate/", response_model=GenerateResponse)
+    async def generate(request: GenerateRequest):
+        # Guided decoding, if enabled
+        if request.guided_decoding_regex is not None:
+            guided_decoding = GuidedDecodingParams(backend="outlines", regex=request.guided_decoding_regex)
+        else:
+            guided_decoding = None
+
+        # Sampling parameters
+        sampling_params = SamplingParams(
+            n=request.n,
+            repetition_penalty=request.repetition_penalty,
+            temperature=request.temperature,
+            top_p=request.top_p,
+            top_k=request.top_k,
+            min_p=request.min_p,
+            max_tokens=request.max_tokens,
+            guided_decoding=guided_decoding,
+        )
+        # Evenly distribute prompts across DP ranks
+        chunked_prompts = chunk_list(request.prompts, script_args.data_parallel_size)
+
+        # Send the prompts to each worker
+        for connection, prompts in zip(connections, chunked_prompts):
+            # When the number of prompts is less than data_parallel_size, some workers will receive empty prompts.
+            # However, vLLM requires that we always send at least one prompt. So we send a placeholder prompt to comply
+            # with vLLM's requirement, and we later ignore the result.
+            if not prompts:
+                prompts = ["<placeholder>"]
+            kwargs = {"prompts": prompts, "sampling_params": sampling_params}
+            connection.send({"type": "call", "method": "generate", "kwargs": kwargs})
+
+        # Receive results
+        all_outputs = [connection.recv() for connection in connections]
+
+        # Handle empty prompts (see above)
+        all_outputs = [output for output, prompts in zip(all_outputs, chunked_prompts) if prompts]
+
+        # Flatten and combine all results
+        all_outputs = list(chain.from_iterable(all_outputs))  # from list of list to single list
+        completion_ids = [list(output.token_ids) for outputs in all_outputs for output in outputs.outputs]
+        return {"completion_ids": completion_ids}
+
+
+llm = LLM(
+        enforce_eager=script_args.enforce_eager,
+        dtype=script_args.dtype,
+)
+"""
+    target.write_text(stub_text, encoding="utf-8")
     _install_fake_trl(monkeypatch, target)
     setup_mod = _load_setup_module(monkeypatch, module_name="setup_patch_idempotent")
 
@@ -80,6 +159,10 @@ def test_trl_patch_idempotent(tmp_path, monkeypatch):
 
     patched = target.read_text(encoding="utf-8")
     assert patched.count("use_tqdm_on_load=True") == 1
+    assert "return_logprobs: bool = False" in patched
+    assert patched.count("logprobs=logprobs") == 1
+    assert patched.count("output_token_logprobs") == 2
+    assert '"completion_ids": token_ids' in patched
 
 
 def test_trl_patch_raises_when_anchor_missing(tmp_path, monkeypatch):

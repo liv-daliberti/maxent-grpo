@@ -36,6 +36,7 @@ from maxent_grpo.training.runtime.prompts import GenerationPenaltyConfig
 from maxent_grpo.training.runtime.logging import _maybe_init_wandb_run
 from maxent_grpo.training.controller_objective import build_controller_objective
 from maxent_grpo.training.controller_optimizer import ControllerMetaManager
+from maxent_grpo.training.optim import detect_deepspeed_state
 from maxent_grpo.training.state import (
     build_checkpoint_saver,
     build_training_state,
@@ -417,16 +418,30 @@ def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
     )
     vllm_cfg = VLLMClientConfig(
         url=getattr(cfg, "vllm_url", ""),
-        rounds_cfg=getattr(cfg, "vllm_rounds_cfg", 0),
+        rounds_cfg=getattr(
+            cfg,
+            "vllm_max_completion_rounds",
+            getattr(cfg, "vllm_rounds_cfg", 0),
+        ),
         retry_sleep=retry_sleep,
-        backfill_local=bool(getattr(cfg, "vllm_backfill_local", False)),
-        request_logprobs=bool(getattr(cfg, "vllm_request_logprobs", True)),
+        backfill_local=bool(
+            getattr(
+                cfg,
+                "vllm_backfill_with_model",
+                getattr(cfg, "vllm_backfill_local", False),
+            )
+        ),
+        request_logprobs=bool(
+            getattr(cfg, "vllm_return_logprobs", getattr(cfg, "vllm_request_logprobs", True))
+        ),
         best_of=getattr(cfg, "gen_best_of", None),
         frequency_penalty=float(getattr(cfg, "gen_frequency_penalty", 0.0)),
         presence_penalty=float(getattr(cfg, "gen_presence_penalty", 0.0)),
         top_k=getattr(cfg, "gen_top_k", None),
         stop_sequences=getattr(cfg, "vllm_stop_sequences", None),
-        timeout=float(getattr(cfg, "vllm_request_timeout", 120.0)),
+        timeout=float(
+            getattr(cfg, "vllm_server_timeout", getattr(cfg, "vllm_request_timeout", 120.0))
+        ),
         max_retries=max_retries,
         backoff=backoff,
         backoff_multiplier=backoff_multiplier,
@@ -504,7 +519,17 @@ def build_scoring_settings(
         clip_objective_coef=float(getattr(cfg, "maxent_clip_objective_coef", 1.0)),
         clip_adv_baseline=getattr(cfg, "maxent_clip_adv_baseline", None),
     )
-    return ScoringSettings(weighting=weighting, clipping=clipping, batching=batching)
+    return ScoringSettings(
+        weighting=weighting,
+        clipping=clipping,
+        batching=batching,
+        reference_logprobs_source=str(
+            getattr(cfg, "maxent_reference_logprobs_source", "auto") or "auto"
+        ),
+        allow_stale_reference_logprobs=bool(
+            getattr(cfg, "maxent_allow_stale_reference_logprobs", False)
+        ),
+    )
 
 
 def build_evaluation_settings(cfg: GRPOConfig) -> EvaluationSettings:
@@ -570,14 +595,10 @@ def build_training_loop_context(
     resume_state = load_trainer_state_metadata(resume_checkpoint)
     if resume_checkpoint:
         LOG.info("Resuming from checkpoint %s", resume_checkpoint)
-        try:
-            model_args.model_name_or_path = resume_checkpoint
-        except Exception:
-            pass
-        try:
-            training_args.model_name_or_path = resume_checkpoint
-        except Exception:
-            pass
+        # When resuming, prefer restoring model weights via `accelerator.load_state()`
+        # (called later in the training loop) instead of re-initializing the model
+        # from `resume_checkpoint`. Older ZeRO-3/FSDP checkpoints may not contain
+        # consolidated HF weights loadable via `from_pretrained()`.
         try:
             training_args.resume_from_checkpoint = resume_checkpoint
         except Exception:
@@ -681,6 +702,13 @@ def build_training_loop_context(
     def _resolve_ref_model():
         if reference_model is not None:
             return reference_model
+        # Under DeepSpeed ZeRO (and some other wrappers), unwrapping returns the
+        # underlying module with partitioned parameters. Reference scoring uses
+        # forward passes and may invoke ZeRO gather contexts; using the wrapped
+        # model keeps those interactions consistent with the training engine.
+        ds_state = detect_deepspeed_state(accelerator)
+        if ds_state.use_deepspeed or ds_state.zero_stage >= 2:
+            return model
         unwrap = getattr(accelerator, "unwrap_model", None)
         if callable(unwrap):
             try:

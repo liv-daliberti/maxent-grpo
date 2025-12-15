@@ -52,9 +52,11 @@ from .scoring import (
     build_score_batch,
     build_sequence_scores,
     gather_reference_logprobs,
+    reference_stats_from_policy_logprobs,
     reference_from_vllm_meta,
     score_model_outputs,
     summarize_completion_lengths,
+    token_counts_from_score_batch,
 )
 from .types import (
     BatchingSettings,
@@ -97,6 +99,42 @@ class _TraceCounter:
 
 
 _REF_LOGPROB_TRACE_LIMITER = _TraceCounter(_REF_LOGPROB_TRACE_LIMIT)
+
+
+def _deepspeed_zero_stage(accelerator: Any) -> int:
+    """Return DeepSpeed ZeRO stage from Accelerate plugin state when present."""
+    state = getattr(accelerator, "state", None)
+    ds_plugin = getattr(state, "deepspeed_plugin", None)
+    try:
+        return int(getattr(ds_plugin, "zero_stage", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _dist_any_flag(accelerator: Any, flag: bool) -> bool:
+    """Return True if flag is True on any rank (best-effort, object gather)."""
+    if getattr(accelerator, "num_processes", 1) <= 1:
+        return bool(flag)
+    torch_mod = sys.modules.get("torch")
+    dist = getattr(torch_mod, "distributed", None) if torch_mod is not None else None
+    if (
+        dist is None
+        or not callable(getattr(dist, "is_available", None))
+        or not callable(getattr(dist, "is_initialized", None))
+        or not dist.is_available()
+        or not dist.is_initialized()
+    ):
+        return bool(flag)
+    try:
+        world_size = int(dist.get_world_size())
+    except Exception:
+        return bool(flag)
+    gathered = [None for _ in range(max(world_size, 1))]
+    try:
+        dist.all_gather_object(gathered, bool(flag))
+        return any(bool(x) for x in gathered)
+    except Exception:
+        return bool(flag)
 
 
 def _resolve_weighting_value(
@@ -336,6 +374,9 @@ def _collect_batch_stats(
     ctx: TrainingLoopContext,
     gen_batch: GenerationBatch,
     reward_comp: RewardComputation,
+    *,
+    score_batch: Optional[ScoreBatch] = None,
+    cur_logp_sum: Optional[Any] = None,
 ) -> Optional[_BatchStats]:
     """Gather scoring, reference, and weighting artifacts for a batch.
 
@@ -450,7 +491,8 @@ def _collect_batch_stats(
         if flag:
             return
         LOG.error(
-            "Reference scoring degraded (%s); reusing last cached ReferenceLogprobs.",
+            "Reference scoring degraded (%s); configured to reuse last cached ReferenceLogprobs. "
+            "Set maxent_allow_stale_reference_logprobs=false to skip batches instead.",
             reason,
         )
         setattr(_collect_batch_stats, "_fallback_warned", True)
@@ -516,12 +558,31 @@ def _collect_batch_stats(
         gen_cfg = getattr(
             getattr(ctx, "settings", SimpleNamespace()), "generation", None
         )
-    score_batch = build_score_batch(
-        reward_comp,
-        ctx.runtime.tokenizer,
-        gen_cfg,
-        batching_cfg,
-    )
+    if score_batch is None:
+        score_batch = build_score_batch(
+            reward_comp,
+            ctx.runtime.tokenizer,
+            gen_cfg,
+            batching_cfg,
+        )
+    accelerator = getattr(ctx.runtime, "accelerator", None)
+    # Under DeepSpeed ZeRO, reference scoring may invoke collective param gathers even
+    # in no_grad forward passes. If ranks diverge (some build an empty score batch),
+    # later collectives can hang. Make the skip decision consistent across ranks.
+    if _deepspeed_zero_stage(accelerator) >= 2 and _dist_any_flag(
+        accelerator, score_batch is None
+    ):
+        if score_batch is None:
+            LOG.warning(
+                "Score batch build failed; completions=%d | prompts=%d",
+                len(getattr(reward_comp.pairs, "completions", []) or []),
+                len(getattr(reward_comp.pairs, "prompts", []) or []),
+            )
+        LOG.warning(
+            "Skipping batch because at least one rank could not build a ScoreBatch "
+            "(DeepSpeed ZeRO safety guard)."
+        )
+        return None
     if score_batch is None:
         LOG.warning(
             "Score batch build failed; completions=%d | prompts=%d",
@@ -539,8 +600,13 @@ def _collect_batch_stats(
         getattr(score_batch, "pad_token_id", None),
     )
     ref_meta = getattr(reward_comp, "ref_logprob_meta", None)
+    ref_source = str(
+        getattr(scoring_cfg, "reference_logprobs_source", "auto") or "auto"
+    ).strip().lower()
+    force_reference_model = ref_source in {"model", "reference_model", "ref_model", "reference"}
+    ref_stats_source = "unknown"
     ref_meta_len = len(ref_meta) if ref_meta else 0
-    if ref_meta_len:
+    if ref_meta_len and not force_reference_model:
         # Prefer reconstructing from metadata; always make an initial attempt.
         ref_stats = _reference_stats_from_meta(
             ref_meta,
@@ -563,8 +629,44 @@ def _collect_batch_stats(
                 )
             except (RuntimeError, TypeError, ValueError):
                 ref_stats = None
+        if ref_stats is not None:
+            ref_stats_source = "vllm_meta"
     first_ref_attempt = True
-    if ref_stats is None:
+
+    needs_ref_model_local = bool(force_reference_model or ref_stats is None)
+    needs_ref_model_any = needs_ref_model_local
+    # Keep reference scoring branches aligned under ZeRO to avoid mismatched collectives.
+    if _deepspeed_zero_stage(accelerator) >= 2:
+        needs_ref_model_any = _dist_any_flag(accelerator, needs_ref_model_local)
+
+    if (
+        needs_ref_model_any
+        and not force_reference_model
+        and cur_logp_sum is not None
+        and getattr(ctx.runtime, "reference_model", None) is None
+    ):
+        # When no separate frozen reference model is configured, avoid running an
+        # extra reference forward pass under DeepSpeed (which can deadlock when
+        # vLLM does not return logprob metadata). Use policy logprobs as a
+        # "reference==policy" fallback (KL ~= 0).
+        try:
+            tok_counts = token_counts_from_score_batch(
+                score_batch, ctx.runtime, batching_cfg
+            )
+            ref_stats = reference_stats_from_policy_logprobs(cur_logp_sum, tok_counts)
+            ref_stats_source = "policy_logprobs"
+            needs_ref_model_any = False
+            if not getattr(_collect_batch_stats, "_policy_ref_warned", False):
+                LOG.warning(
+                    "vLLM did not provide reference logprob metadata; using policy logprobs as reference "
+                    "(KL ~= 0 fallback; set vllm_return_logprobs=true or configure a frozen reference model to disable)."
+                )
+                setattr(_collect_batch_stats, "_policy_ref_warned", True)
+        except Exception as exc:  # pragma: no cover - defensive diagnostics
+            LOG.warning("Policy-logprob reference fallback failed: %s", exc)
+
+    if needs_ref_model_any:
+        use_ref_try = bool(force_reference_model or ref_stats is None)
         ref_try = None
         try:
             ref_try = gather_reference_logprobs(
@@ -580,29 +682,37 @@ def _collect_batch_stats(
                     "Reference logprob traceback (occurrence %d/%d):\n%s",
                     occurrence,
                     _REF_LOGPROB_TRACE_LIMIT,
-                    traceback.format_exc(),
-                )
+                traceback.format_exc(),
+            )
         except Exception as exc:  # pragma: no cover - defensive diag
             LOG.error(
                 "Unexpected exception during gather_reference_logprobs: %s",
                 traceback.format_exc(),
             )
-        ref_stats = ref_try
-        if ref_stats is None:
-            LOG.warning(
-                "gather_reference_logprobs returned None | slice_size=%s chunk_size=%s device=%s | ref_meta_len=%d | total_sequences=%d",
-                getattr(score_batch, "slice_size", None),
-                getattr(batching_cfg, "logprob_chunk_size", None),
-                getattr(ctx.runtime, "device", None),
-                ref_meta_len,
-                getattr(score_batch, "total_sequences", 0),
-            )
-        else:
+        # Always run the gather on every rank when any rank needs it, but only
+        # overwrite precomputed metadata-derived stats when needed/forced.
+        if use_ref_try:
+            ref_stats = ref_try
+            if ref_stats is None:
+                LOG.warning(
+                    "gather_reference_logprobs returned None | slice_size=%s chunk_size=%s device=%s | ref_meta_len=%d | total_sequences=%d",
+                    getattr(score_batch, "slice_size", None),
+                    getattr(batching_cfg, "logprob_chunk_size", None),
+                    getattr(ctx.runtime, "device", None),
+                    ref_meta_len,
+                    getattr(score_batch, "total_sequences", 0),
+                )
+            else:
+                ref_stats_source = "reference_model"
+                LOG.debug(
+                    "Reference stats gathered | type=%s | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s",
+                    type(ref_stats).__name__,
+                    getattr(getattr(ref_stats, "ref_logp_sum", None), "shape", None),
+                    getattr(getattr(ref_stats, "ref_tok_counts", None), "shape", None),
+                )
+        elif ref_try is None:
             LOG.debug(
-                "Reference stats gathered | type=%s | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s",
-                type(ref_stats).__name__,
-                getattr(getattr(ref_stats, "ref_logp_sum", None), "shape", None),
-                getattr(getattr(ref_stats, "ref_tok_counts", None), "shape", None),
+                "Reference gather ran for ZeRO alignment but returned None; keeping metadata-derived stats."
             )
     def _safe_numel(tensor: Any) -> Any:
         numel_fn = getattr(tensor, "numel", None)
@@ -699,20 +809,45 @@ def _collect_batch_stats(
             if not _ref_stats_empty(forced):
                 ref_stats = forced
     if _ref_stats_empty(ref_stats) and last_ref_stats is not None:
+        allow_stale = bool(
+            getattr(scoring_cfg, "allow_stale_reference_logprobs", False)
+        )
+        if not allow_stale:
+            LOG.warning(
+                "Reference gather empty; skipping batch instead of reusing stale ref stats "
+                "(enable maxent_allow_stale_reference_logprobs to override)."
+            )
+            try:
+                setattr(ctx.runtime, "_last_skip_stage", "reference_logprobs")
+            except Exception:
+                pass
+            return None
         LOG.warning(
             "Reference gather empty; reusing last ref stats | last_ref_shapes=%s/%s",
-            getattr(getattr(last_ref_stats, 'ref_logp_sum', None), 'shape', None),
-            getattr(getattr(last_ref_stats, 'ref_tok_counts', None), 'shape', None),
+            getattr(getattr(last_ref_stats, "ref_logp_sum", None), "shape", None),
+            getattr(getattr(last_ref_stats, "ref_tok_counts", None), "shape", None),
         )
         _warn_fallback("reference gather returned empty tensors")
         ref_stats = last_ref_stats
+        ref_stats_source = "stale_cached"
     if _ref_stats_empty(ref_stats):
         LOG.error(
             "Reference scoring returned empty tensors even after retries; meta_len=%d | sequences=%d",
             ref_meta_len,
             getattr(score_batch, "total_sequences", 0),
         )
+        try:
+            setattr(ctx.runtime, "_last_skip_stage", "reference_logprobs")
+        except Exception:
+            pass
         return None
+    prev_source = getattr(ctx, "_ref_logprobs_source", None)
+    if prev_source != ref_stats_source and ref_stats_source != "unknown":
+        LOG.info("Reference logprobs source=%s", ref_stats_source)
+        try:
+            setattr(ctx, "_ref_logprobs_source", ref_stats_source)
+        except Exception:
+            pass
     setattr(ctx, "_last_ref_stats", ref_stats)
     LOG.debug(
         "Reference stats gathered | avg_completion_tokens=%.2f",
@@ -859,20 +994,53 @@ def prepare_training_batch(
             reward_mean,
             reward_std,
         )
-        stats = _require_artifact(
-            _collect_batch_stats(
-                ctx,
-                gen_batch,
+        runtime_tokenizer = getattr(ctx.runtime, "tokenizer", None)
+        if not callable(runtime_tokenizer):
+            # Unit tests often stub `ctx.runtime.tokenizer`; preserve the previous
+            # control-flow by letting `_collect_batch_stats` supply the ScoreBatch.
+            stats = _require_artifact(
+                _collect_batch_stats(ctx, gen_batch, reward_comp),
+                stage="batch_stats",
+            )
+            score_batch = getattr(stats, "score_batch", None)
+            LOG.debug(
+                "Batch stats ready | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
+                getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
+                stats.prompt_token_count,
+                stats.num_completion_tokens,
+            )
+        else:
+            score_batch = build_score_batch(
                 reward_comp,
-            ),
-            stage="batch_stats",
-        )
-        LOG.debug(
-            "Batch stats ready | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
-            getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
-            stats.prompt_token_count,
-            stats.num_completion_tokens,
-        )
+                runtime_tokenizer,
+                ctx.generation,
+                ctx.scoring.batching,
+            )
+            accelerator = getattr(ctx.runtime, "accelerator", None)
+            if _deepspeed_zero_stage(accelerator) >= 2 and _dist_any_flag(
+                accelerator, score_batch is None
+            ):
+                if score_batch is None:
+                    LOG.warning(
+                        "Score batch build failed; completions=%d | prompts=%d",
+                        len(getattr(reward_comp.pairs, "completions", []) or []),
+                        len(getattr(reward_comp.pairs, "prompts", []) or []),
+                    )
+                LOG.warning(
+                    "Skipping batch because at least one rank could not build a ScoreBatch "
+                    "(DeepSpeed ZeRO safety guard)."
+                )
+                return None
+            score_batch = _require_artifact(score_batch, stage="score_batch")
+            LOG.debug(
+                "Score batch built | total_sequences=%d | max_prompt_len=%s | slice_size=%s | comp_ids_shape=%s | comp_mask_shape=%s | pad_id=%s",
+                getattr(score_batch, "total_sequences", 0),
+                getattr(score_batch, "max_prompt_len", None),
+                getattr(score_batch, "slice_size", None),
+                getattr(score_batch, "completion_ids", None).shape if getattr(score_batch, "completion_ids", None) is not None else None,
+                getattr(score_batch, "completion_attention_mask", None).shape if getattr(score_batch, "completion_attention_mask", None) is not None else None,
+                getattr(score_batch, "pad_token_id", None),
+            )
         # Enable pooled hidden states when InfoSeed is active so seed loss can pool per-sequence reps.
         should_pool = any(
             [
@@ -885,7 +1053,7 @@ def prepare_training_batch(
             cur_logp_result = _require_artifact(
                 score_model_outputs(
                     ctx.runtime.model,
-                    stats.score_batch,
+                    score_batch,
                     ctx.scoring.batching,
                     ctx.runtime,
                     return_hidden=should_pool,
@@ -897,7 +1065,7 @@ def prepare_training_batch(
             cur_logp_result = _require_artifact(
                 score_model_outputs(
                     ctx.runtime.model,
-                    stats.score_batch,
+                    score_batch,
                     ctx.scoring.batching,
                     ctx.runtime,
                 ),
@@ -916,6 +1084,23 @@ def prepare_training_batch(
             cur_logp_sum, pooled_hidden = cur_logp_result
         else:
             cur_logp_sum, pooled_hidden = cur_logp_result, None
+        if callable(runtime_tokenizer):
+            stats = _require_artifact(
+                _collect_batch_stats(
+                    ctx,
+                    gen_batch,
+                    reward_comp,
+                    score_batch=score_batch,
+                    cur_logp_sum=cur_logp_sum,
+                ),
+                stage="batch_stats",
+            )
+            LOG.debug(
+                "Batch stats ready | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
+                getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
+                stats.prompt_token_count,
+                stats.num_completion_tokens,
+            )
         behavior_tensor = _behavior_logp_tensor_from_meta(
             getattr(reward_comp, "ref_logprob_meta", None),
             getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
@@ -1087,7 +1272,7 @@ def prepare_training_batch(
             if len(weights) == len(reward_comp.completion_metadata):
                 import math
 
-                accelerator = ctx.runtime.accelerator
+                accelerator = getattr(ctx.runtime, "accelerator", SimpleNamespace(num_processes=1))
 
                 def _gather_weights(weight_subset: list[float]) -> list[float]:
                     if getattr(accelerator, "num_processes", 1) <= 1:

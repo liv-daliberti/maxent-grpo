@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+import logging
 from typing import Any, List, Optional, Tuple
 
 from maxent_grpo.training.runtime import require_torch, require_transformer_base_classes
 from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT, _truncate_prompt
 
 from .context import GenerationContext
+
+LOG = logging.getLogger(__name__)
 
 torch = require_torch("generation")
 PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes("generation")
@@ -122,6 +125,14 @@ class LocalGenerationMixin:
         unwrap = getattr(self.ctx.accelerator, "unwrap_model", None)
         gen_model = unwrap(self.ctx.model) if callable(unwrap) else self.ctx.model
         no_grad = getattr(torch, "no_grad", None) or nullcontext
+        LOG.debug(
+            "HF generate start | model=%s | max_new_tokens=%s | temp=%.3f | top_p=%.3f | top_k=%s",
+            gen_model.__class__.__name__ if gen_model is not None else "None",
+            self.ctx.max_completion_len,
+            self.ctx.gen_temperature,
+            self.ctx.gen_top_p,
+            self.ctx.gen_top_k,
+        )
         with no_grad():
             generate_fn = getattr(gen_model, "generate", None)
             if callable(generate_fn):
@@ -163,6 +174,13 @@ class LocalGenerationMixin:
         target_counts = self._resolve_local_counts(
             prompts, num_samples, per_prompt_counts
         )
+        LOG.debug(
+            "Local generation | prompts=%d | num_samples=%d | char_limit=%d | per_prompt_counts=%s",
+            len(prompts),
+            num_samples,
+            char_limit,
+            f"len={len(target_counts)}" if target_counts is not None else "none",
+        )
         expanded_prompts, prompt_indices = self._build_local_prompt_requests(
             prompts,
             target_counts,
@@ -170,7 +188,18 @@ class LocalGenerationMixin:
         if not expanded_prompts:
             return grouped, None
         enc_inputs, prompt_lengths = self._tokenize_expanded_prompts(expanded_prompts)
+        LOG.debug(
+            "Local generation tokenize | expanded_prompts=%d | prompt_indices=%d | prompt_lengths_sample=%s",
+            len(expanded_prompts),
+            len(prompt_indices),
+            prompt_lengths[: min(3, len(prompt_lengths))],
+        )
         decoded = self._run_local_model(enc_inputs, prompt_lengths)
+        LOG.debug(
+            "Local generation decode done | decoded=%d | first_prompt_count=%d",
+            len(decoded),
+            len(grouped[0]) if grouped else 0,
+        )
         for text, prompt_idx in zip(decoded, prompt_indices):
             grouped[prompt_idx].append(text)
         return grouped, None

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
+import signal
+import faulthandler
 
 # Allow running this file directly (e.g., accelerate launch src/maxent_grpo/maxent_grpo.py)
 # by ensuring the package root is on sys.path.
@@ -21,6 +24,16 @@ ensure_usercustomize_loaded()
 from maxent_grpo.cli import hydra_cli, parse_grpo_args
 
 __all__ = ["main"]
+
+if os.environ.get("MAXENT_FAULTHANDLER", "").strip():
+    try:
+        faulthandler.enable(all_threads=True)
+    except Exception:
+        pass
+    try:
+        faulthandler.register(signal.SIGUSR1, all_threads=True)
+    except Exception:
+        pass
 
 
 def main(script_args=None, training_args=None, model_args=None):

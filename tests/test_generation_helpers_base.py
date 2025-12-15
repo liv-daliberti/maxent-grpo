@@ -52,6 +52,12 @@ def test_flatten_ref_metadata_handles_payload_and_type_error():
     assert flat[2] is None
 
 
+def test_flatten_ref_metadata_returns_none_when_meta_empty():
+    grouped = [["c1", "c2"]]
+    assert helpers.flatten_ref_metadata(grouped, [[]]) is None
+    assert helpers.flatten_ref_metadata(grouped, None) is None
+
+
 def test_flatten_prompt_completions_returns_empty_when_no_pairs(monkeypatch):
     pc_calls = {}
 

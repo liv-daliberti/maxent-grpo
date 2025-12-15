@@ -117,6 +117,11 @@ _GROUP_MARKER_PATTERNS = {
 }
 
 
+if not hasattr(importlib.util, "_MAXENT_GRPO_ORIG_FIND_SPEC"):
+    # Keep a stable reference to the real importlib implementation so test
+    # wrappers and sitecustomize can stack without recursing into each other.
+    importlib.util._MAXENT_GRPO_ORIG_FIND_SPEC = importlib.util.find_spec
+
 _ORIG_FIND_SPEC = importlib.util.find_spec
 
 

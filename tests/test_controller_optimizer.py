@@ -72,6 +72,22 @@ def test_controller_meta_manager_optimizer_updates_values(monkeypatch):
     assert getattr(weighting, "_meta_last_tau_grad") != 0.0
 
 
+def test_controller_meta_manager_analytic_uses_tau_beta_lrs_when_legacy_zero():
+    cfg = GRPOConfig(controller_meta_lr=0.0, controller_meta_tau_lr=0.1, controller_meta_beta_lr=0.05)
+    weighting = _weighting()
+    weighting.controller_meta.enabled = True
+    weighting.controller_meta.method = "analytic"
+    weighting.controller_meta.learning_rate = 0.0
+    weighting.controller_meta.tau_learning_rate = 0.1
+    weighting.controller_meta.beta_learning_rate = 0.05
+    weighting.controller_meta.update_interval = 1
+    manager = ControllerMetaManager(cfg, weighting)
+    grads = ControllerGradients(tau_grad=1.0, beta_grad=1.0)
+    manager.apply_gradients(grads, lr_scale=1.0)
+    assert weighting.tau == pytest.approx(0.4)
+    assert weighting.beta == pytest.approx(0.25)
+
+
 def test_controller_meta_manager_first_order_uses_parameter_grads():
     pytest.importorskip("torch")
     import torch

@@ -314,6 +314,8 @@ class ScoringSettings:
     weighting: WeightingSettings
     clipping: ClipSettings
     batching: BatchingSettings
+    reference_logprobs_source: str = "auto"
+    allow_stale_reference_logprobs: bool = False
     info_seed_lambda: float = 0.0
     info_seed_temperature: float = 0.1
     info_seed_loss_type: str = "infonce"

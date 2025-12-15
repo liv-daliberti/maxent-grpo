@@ -63,10 +63,15 @@ def test_collectives_use_dist_when_initialized(monkeypatch):
     assert dist.broadcast_called is True
     assert dist.broadcast_payload == (["a", "b"], 0)
 
+    dist.broadcast_called = False
+    dist.broadcast_payload = None
     accel_s = SimpleNamespace(num_processes=2, process_index=0, scatter_object=None)
     scattered = distributed._scatter_object(accel_s, [["a"], ["b"]], src=0)
     assert scattered == ["a"]
-    assert dist.scatter_payload == [["a"], ["b"]]
+    assert dist.scatter_payload == [["a"], ["b"]] or dist.broadcast_payload == (
+        [["a"], ["b"]],
+        0,
+    )
 
 
 def test_broadcast_prefers_accelerator(monkeypatch):
@@ -122,3 +127,44 @@ def test_scatter_single_process_and_index_fallback(monkeypatch):
 
     accel_multi = SimpleNamespace(num_processes=2, process_index=1, scatter_object=None)
     assert distributed._scatter_object(accel_multi, ["r0", "r1"], src=0) == "r1"
+
+
+def test_scatter_broadcast_works_with_none_on_non_src(monkeypatch):
+    class _Dist:
+        def __init__(self):
+            self.rank = 0
+            self.last_payload = None
+
+        @staticmethod
+        def is_available():
+            return True
+
+        @staticmethod
+        def is_initialized():
+            return True
+
+        @staticmethod
+        def get_world_size():
+            return 2
+
+        def broadcast_object_list(self, payload, src=0):
+            if self.rank == src:
+                self.last_payload = list(payload)
+                return
+            assert self.last_payload is not None
+            for idx, val in enumerate(self.last_payload):
+                payload[idx] = val
+
+        def scatter_object_list(self, *_a, **_k):  # pragma: no cover - should not be used
+            raise AssertionError("scatter_object_list should not be used")
+
+    dist = _Dist()
+    monkeypatch.setattr(distributed, "dist", dist)
+
+    dist.rank = 0
+    accel_src = SimpleNamespace(num_processes=2, process_index=0, scatter_object=None)
+    assert distributed._scatter_object(accel_src, ["p0", "p1"], src=0) == "p0"
+
+    dist.rank = 1
+    accel_other = SimpleNamespace(num_processes=2, process_index=1, scatter_object=None)
+    assert distributed._scatter_object(accel_other, None, src=0) == "p1"

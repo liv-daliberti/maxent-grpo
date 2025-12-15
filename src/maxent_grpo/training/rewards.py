@@ -50,6 +50,81 @@ torch = require_torch("training")
 LOG = logging.getLogger(__name__)
 
 
+def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optional[Any]]:
+    """Return ``(logprob_sum, token_count)`` when present in metadata entries."""
+
+    if meta_entry is None:
+        return None, None
+    logprob_sum = getattr(meta_entry, "logprob_sum", None)
+    token_count = getattr(meta_entry, "token_count", None)
+    if isinstance(meta_entry, dict):
+        if logprob_sum is None:
+            logprob_sum = meta_entry.get("logprob_sum") or meta_entry.get(
+                "cumulative_logprob"
+            )
+        if token_count is None:
+            token_count = meta_entry.get("token_count") or meta_entry.get("num_tokens")
+            if token_count is None:
+                tok_logs = meta_entry.get("token_logprobs") or meta_entry.get(
+                    "logprobs"
+                )
+                try:
+                    token_count = len(tok_logs)
+                except Exception:
+                    token_count = None
+    return logprob_sum, token_count
+
+
+def _sanitize_ref_logprob_meta(
+    flat_meta: Optional[List[Optional[Any]]], total_sequences: int
+) -> Optional[List[Optional[Any]]]:
+    """
+    Drop reference metadata when any entry is missing logprob information.
+
+    :param flat_meta: Flattened metadata aligned to completions.
+    :type flat_meta: list | None
+    :param total_sequences: Expected number of completions for the batch.
+    :type total_sequences: int
+    :returns: Metadata when complete, otherwise ``None``.
+    :rtype: list | None
+    """
+
+    if not flat_meta or total_sequences <= 0:
+        return None
+    if len(flat_meta) != total_sequences:
+        return None
+    missing_idx: List[int] = []
+    saw_any_logprob_fields = False
+    for idx, entry in enumerate(flat_meta):
+        logprob_sum, token_count = _extract_ref_logprob_fields(entry)
+        if logprob_sum is not None or token_count is not None:
+            saw_any_logprob_fields = True
+        if logprob_sum is None or token_count is None:
+            missing_idx.append(idx)
+            continue
+        try:
+            float(logprob_sum)
+            int(token_count)
+        except (TypeError, ValueError):
+            missing_idx.append(idx)
+    # If none of the entries advertise logprob information, treat the metadata
+    # as opaque and keep it. When some entries include logprob fields but others
+    # don't, drop the entire batch to avoid mixing stale/partial ref stats.
+    if not saw_any_logprob_fields:
+        return flat_meta
+    if missing_idx:
+        if not getattr(_sanitize_ref_logprob_meta, "_warned", False):
+            LOG.warning(
+                "Dropping incomplete reference logprob metadata | missing_entries=%d/%d | first_missing_idx=%d",
+                len(missing_idx),
+                total_sequences,
+                missing_idx[0],
+            )
+            setattr(_sanitize_ref_logprob_meta, "_warned", True)
+        return None
+    return flat_meta
+
+
 def _call_reward_fn(
     reward_fn: Any,
     completions: List[str],
@@ -230,13 +305,31 @@ def prepare_generation_batch(
         len(prompts),
         expected_generations,
     )
+
     def _call_generator(
         prompt_batch: List[str],
         expected: int,
         per_prompt_counts: Optional[List[int]] = None,
     ):
+        per_prompt_repr = "none"
+        if per_prompt_counts is not None:
+            try:
+                per_prompt_repr = f"len={len(per_prompt_counts)} first3={list(per_prompt_counts)[:3]}"
+            except Exception:
+                per_prompt_repr = str(per_prompt_counts)
+        LOG.debug(
+            "Invoking generator | prompts=%d | expected=%d | per_prompt_counts=%s",
+            len(prompt_batch),
+            expected,
+            per_prompt_repr,
+        )
         try:
-            return generator(prompt_batch, expected, per_prompt_counts)
+            result = generator(prompt_batch, expected, per_prompt_counts)
+            LOG.debug(
+                "Generator returned | result_type=%s",
+                type(result).__name__,
+            )
+            return result
         except GenerationServiceError as exc:
             log_generation_service_error(LOG, "training", exc)
             raise
@@ -253,6 +346,11 @@ def prepare_generation_batch(
     else:
         grouped_comps, grouped_meta = gen_result
     LOG.debug(
+        "Generator output unpacked | grouped_type=%s | meta_present=%s",
+        type(grouped_comps).__name__,
+        grouped_meta is not None,
+    )
+    LOG.debug(
         "Generation finished | prompts=%d | groups_returned=%d",
         len(prompts),
         len(grouped_comps) if grouped_comps is not None else 0,
@@ -264,6 +362,11 @@ def prepare_generation_batch(
         grouped_meta,
     )
     aggregated_state = AggregatedGenerationState(aggregated_comps, aggregated_meta)
+    LOG.debug(
+        "Retrying incomplete prompts | initial_groups=%d | expected=%d",
+        len(aggregated_comps) if aggregated_comps is not None else 0,
+        expected_generations,
+    )
     aggregated_state = retry_incomplete_prompts(
         prompts,
         _call_generator,
@@ -274,6 +377,11 @@ def prepare_generation_batch(
     aggregated_comps, aggregated_meta = (
         aggregated_state.completions,
         aggregated_state.metadata,
+    )
+    LOG.debug(
+        "Retries done | prompts=%d | groups=%d",
+        len(prompts),
+        len(aggregated_comps) if aggregated_comps is not None else 0,
     )
     prompts, answers, aggregated_comps, aggregated_meta = drop_empty_prompt_groups(
         prompts,
@@ -289,6 +397,12 @@ def prepare_generation_batch(
         aggregated_meta,
         expected_generations,
     )
+    LOG.debug(
+        "Truncated completions | prompts=%d | expected=%d | partial=%d",
+        len(prompts),
+        expected_generations,
+        partial_count,
+    )
     if partial_count > 0:
         generation_stats.setdefault("partial_prompts", 0)
         generation_stats["partial_prompts"] += partial_count
@@ -296,6 +410,60 @@ def prepare_generation_batch(
         [{"seed_id": None, "is_seed_aug": False} for _ in group]
         for group in aggregated_comps
     ]
+    if aggregated_meta is not None:
+        # Propagate token-id metadata (when available) into completion_info.
+        # Some generation backends include token ids or other structured info
+        # alongside reference-logprob summaries; keeping token ids here lets
+        # downstream scoring avoid re-tokenizing long completions.
+        def _meta_to_dict(entry: Any) -> Optional[Dict[str, Any]]:
+            if entry is None:
+                return None
+            if hasattr(entry, "to_trl_payload"):
+                try:
+                    value = entry.to_trl_payload()
+                    return value if isinstance(value, dict) else None
+                except Exception:
+                    return None
+            return entry if isinstance(entry, dict) else None
+
+        def _extract_token_ids(entry_dict: Optional[Dict[str, Any]]) -> Optional[List[int]]:
+            if not entry_dict:
+                return None
+            token_ids = entry_dict.get("token_ids")
+            if token_ids is None and isinstance(entry_dict.get("raw_output"), dict):
+                raw = entry_dict["raw_output"]
+                token_ids = raw.get("token_ids") or raw.get("output_token_ids")
+            if token_ids is None:
+                return None
+            if hasattr(token_ids, "tolist"):
+                try:
+                    token_ids = token_ids.tolist()
+                except Exception:
+                    pass
+            if isinstance(token_ids, list) and token_ids and isinstance(token_ids[0], list):
+                token_ids = token_ids[0]
+            if not isinstance(token_ids, list):
+                return None
+            coerced: List[int] = []
+            for val in token_ids:
+                try:
+                    coerced.append(int(val))
+                except (TypeError, ValueError):
+                    return None
+            return coerced
+
+        for prompt_idx, comp_group in enumerate(aggregated_comps):
+            if prompt_idx >= len(aggregated_meta):
+                continue
+            meta_group = aggregated_meta[prompt_idx]
+            if not isinstance(meta_group, list) or not meta_group:
+                continue
+            for comp_idx in range(len(comp_group)):
+                meta_entry = meta_group[comp_idx] if comp_idx < len(meta_group) else None
+                meta_dict = _meta_to_dict(meta_entry)
+                token_ids = _extract_token_ids(meta_dict)
+                if token_ids is not None:
+                    completion_info[prompt_idx][comp_idx]["token_ids"] = token_ids
     # Optionally augment with seed-tagged completions to support InfoSeed-GRPO.
     if seed_cfg:
         try:
@@ -326,7 +494,12 @@ def prepare_generation_batch(
                 seed_parent.append(idx)
                 seed_ids.append(seed_id)
         if seed_prompts and comps_per_seed > 0:
-            seed_result = generator(seed_prompts, comps_per_seed)
+            LOG.debug(
+                "Invoking seed generator | prompts=%d | completions_per_seed=%d",
+                len(seed_prompts),
+                comps_per_seed,
+            )
+            seed_result = _call_generator(seed_prompts, comps_per_seed)
             if isinstance(seed_result, GenerationBatch):
                 seed_grouped = seed_result.grouped_completions
                 seed_meta = getattr(seed_result, "grouped_ref_meta", None)
@@ -341,6 +514,11 @@ def prepare_generation_batch(
                 len(seed_prompts),
                 seed_grouped,
                 seed_meta,
+            )
+            LOG.debug(
+                "Seed generation finished | prompts=%d | groups_returned=%d",
+                len(seed_prompts),
+                len(seed_grouped) if seed_grouped is not None else 0,
             )
             seed_grouped, seed_meta, _ = truncate_to_expected_counts(
                 seed_grouped, seed_meta, comps_per_seed
@@ -402,12 +580,28 @@ def _group_q_distribution(
     :returns: Tuple of grouped q-values and flattened q-samples.
     :rtype: tuple[list[list[float]], list[float]]
     """
+    LOG.debug(
+        "Computing q distribution | groups=%d | total_utils=%d | temperature=%.4f | epsilon=%.2e",
+        len(grouped_comps),
+        len(total_utils),
+        temperature,
+        epsilon,
+    )
     q_grouped: List[List[float]] = []
     q_samples: List[float] = []
     idx_utils = 0
-    for comp_group in grouped_comps:
+    for group_idx, comp_group in enumerate(grouped_comps):
         size = len(comp_group)
         group_vals = total_utils[idx_utils : idx_utils + size]
+        if LOG.isEnabledFor(logging.DEBUG) and group_idx < 5:
+            LOG.debug(
+                "Softmax sampler | group_idx=%d | size=%d | temp=%.4f | eps=%.2e | util_sample=%s",
+                group_idx,
+                size,
+                temperature,
+                epsilon,
+                group_vals[: min(3, len(group_vals))],
+            )
         if size > 0 and group_vals:
             q_vals = _group_softmax(
                 group_vals,
@@ -474,6 +668,9 @@ def compute_reward_statistics(
         )
     )
     flat_ref_meta = _flatten_ref_metadata(grouped_comps, gen_batch.grouped_ref_meta)
+    flat_ref_meta = _sanitize_ref_logprob_meta(
+        flat_ref_meta, len(pair_batch.completions)
+    )
     if LOG.isEnabledFor(logging.DEBUG):
         meta_len = len(flat_ref_meta) if flat_ref_meta else 0
         sample = None

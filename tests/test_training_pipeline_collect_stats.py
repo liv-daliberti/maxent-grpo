@@ -225,3 +225,57 @@ def test_collect_batch_stats_gathers_reference_when_meta_missing(monkeypatch):
     assert metrics["train/completions/mean_length_sampled"] == pytest.approx(
         length_stats.mean_length
     )
+
+
+def test_collect_batch_stats_forces_reference_model_when_configured(monkeypatch):
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(device="cpu", tokenizer="tok"),
+        scoring=SimpleNamespace(
+            reference_logprobs_source="model",
+            batching=SimpleNamespace(prompt_length_cache_get=None),
+            weighting=SimpleNamespace(),
+        ),
+        generation=SimpleNamespace(max_completion_len=4),
+    )
+    gen_batch = SimpleNamespace(grouped_completions=[["a"], ["b"]])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=[{"logprob_sum": -1.0, "token_count": 1}],
+        pairs=SimpleNamespace(completions=[1, 2]),
+    )
+
+    monkeypatch.setattr(
+        pipeline,
+        "build_score_batch",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            total_sequences=2, prompt_entries=[], max_prompt_len=1
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_weight_stats",
+        lambda *_args, **_kwargs: SimpleNamespace(flat_weights=[0.5]),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "summarize_completion_lengths",
+        lambda *_args, **_kwargs: ("scores", "lengths", 3),
+    )
+    meta_calls = {"count": 0}
+    gather_calls = {"count": 0}
+    monkeypatch.setattr(
+        pipeline,
+        "_reference_stats_from_meta",
+        lambda *_a, **_k: meta_calls.__setitem__("count", meta_calls["count"] + 1)
+        or SimpleNamespace(),
+    )
+
+    def _fake_gather(*_a, **_k):
+        gather_calls["count"] += 1
+        return SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0)
+
+    monkeypatch.setattr(pipeline, "gather_reference_logprobs", _fake_gather)
+
+    result = pipeline._collect_batch_stats(ctx, gen_batch, reward_comp)
+    assert result is not None
+    assert meta_calls["count"] == 0
+    assert gather_calls["count"] == 1

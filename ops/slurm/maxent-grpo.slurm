@@ -118,6 +118,9 @@ export HF_HUB_ENABLE_HF_TRANSFER=1
 export HF_HUB_ENABLE_PROGRESS_BARS=1
 # Enable vLLM prompt dedup unless overridden.
 export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
+# Defaults for MaxEnt runs (override via `sbatch --export` or env).
+export VLLM_SERVER_IMPL="${VLLM_SERVER_IMPL:-trl}"
+export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-debug}"
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
          "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
          "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \
@@ -222,6 +225,9 @@ export MAXENT_CHECKPOINT_METADATA_MODE="${MAXENT_CHECKPOINT_METADATA_MODE:-shall
 # checkpoints. Leave empty to default to the training output_dir.
 export MAXENT_CHECKPOINT_METADATA_SOURCE="${MAXENT_CHECKPOINT_METADATA_SOURCE:-}"
 
+# Best-effort: read num_processes from accelerate config to honor its world size
+ACCEL_NUM_PROCS=$(grep -E "^[[:space:]]*num_processes:" "$ACCEL_FILE" | head -n1 | awk '{print $2}' || true)
+
 TRAIN_ENTRYPOINT="src/maxent_grpo/maxent_grpo.py"
 
 # Extract model + revision for vLLM from YAML (best-effort)
@@ -260,7 +266,19 @@ export USE_VLLM_SERVER
 
 # SLURM topology
 NUM_NODES=${SLURM_NNODES}
-GPUS_PER_NODE=${GPUS_PER_NODE:-8}
+
+# Infer visible GPUs to avoid over-launching when CUDA_VISIBLE_DEVICES is set.
+CUDA_VISIBLE_COUNT=""
+if [[ -n "${CUDA_VISIBLE_DEVICES:-}" && "${CUDA_VISIBLE_DEVICES,,}" != "none" ]]; then
+  IFS=',' read -ra _cudas <<< "$CUDA_VISIBLE_DEVICES"
+  CUDA_VISIBLE_COUNT=${#_cudas[@]}
+fi
+
+# Respect explicit override, then Slurm hint, then CUDA visibility, else default to 8.
+GPUS_PER_NODE=${GPUS_PER_NODE:-${SLURM_GPUS_ON_NODE:-${CUDA_VISIBLE_COUNT:-8}}}
+if [[ -n "$CUDA_VISIBLE_COUNT" ]] && (( CUDA_VISIBLE_COUNT > 0 )) && (( CUDA_VISIBLE_COUNT < GPUS_PER_NODE )); then
+  GPUS_PER_NODE=$CUDA_VISIBLE_COUNT
+fi
 readarray -t NODELIST < <(scontrol show hostnames "$SLURM_JOB_NODELIST")
 MASTER_PORT=${MASTER_PORT:-6000}
 
@@ -313,7 +331,11 @@ if $SINGLE_NODE_VLLM && (( GPUS_PER_NODE < 2 )); then
   exit 1
 fi
 
-TRAIN_LOCAL_PROCS=$GPUS_PER_NODE
+TRAIN_LOCAL_PROCS=${TRAIN_LOCAL_PROCS:-${ACCEL_NUM_PROCS:-$GPUS_PER_NODE}}
+if (( TRAIN_LOCAL_PROCS > GPUS_PER_NODE )); then
+  echo "Requested TRAIN_LOCAL_PROCS=${TRAIN_LOCAL_PROCS} exceeds visible GPUs (${GPUS_PER_NODE})." >&2
+  exit 1
+fi
 if $SINGLE_NODE && $USE_VLLM; then
   # Reserve 2 GPUs for inline vLLM, leaving the rest for training.
   TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 2 ))
@@ -460,6 +482,8 @@ mkdir -p "$(dirname "$TRAINING_LOG")"
 export INLINE_VLLM_FALLBACK_GPUS="$(seq -s, 0 $((GPUS_PER_NODE - 1)))"
 
 srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; set -x; \
+  export VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
+  export MAXENT_LOG_LEVEL=\"${MAXENT_LOG_LEVEL:-debug}\"; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
   elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
   export PYTHONNOUSERSITE=1; \
@@ -503,16 +527,27 @@ PY
     : > \"\$VLLM_LOG\"; \
     tail -n +1 -F \"\$VLLM_LOG\" & \
     VLLM_TAIL_PID=\$!; \
-    PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
-    VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
-    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID_CSV \
-    python -m trl.scripts.vllm_serve \
-      --model "$VLLM_MODEL" ${REVISION:+--revision $REVISION} \
-      --tensor_parallel_size $TP --data_parallel_size $DP \
-      --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
-      --max-model-len $VLLM_MAX_MODEL_LEN \
-      --dtype float16 --gpu_memory_utilization 0.90 \
-      --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
+    VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
+    PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT; \
+    VLLM_GROUP_PORT=$VLLM_GROUP_PORT; \
+    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID_CSV; \
+    if [ \"\$VLLM_SERVER_IMPL\" = \"native\" ]; then \
+      python -m vllm.entrypoints.api_server \
+        --model \"$VLLM_MODEL\" ${REVISION:+--revision $REVISION} \
+        --tensor-parallel-size $TP \
+        --host 0.0.0.0 --port $VLLM_PORT \
+        --max-model-len $VLLM_MAX_MODEL_LEN \
+        --gpu-memory-utilization 0.90 \
+        --dtype float16 > \"\$VLLM_LOG\" 2>&1 & \
+    else \
+      python -m trl.scripts.vllm_serve \
+        --model \"$VLLM_MODEL\" ${REVISION:+--revision $REVISION} \
+        --tensor_parallel_size $TP --data_parallel_size $DP \
+        --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
+        --max-model-len $VLLM_MAX_MODEL_LEN \
+        --dtype float16 --gpu_memory_utilization 0.90 \
+        --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
+    fi; \
     VLLM_PID=\$!; \
     echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \
     INLINE_VLLM_READY=false; \
@@ -538,7 +573,7 @@ PY
     fi; \
     echo 'Inline vLLM is healthy.'; \
   fi; \
-  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; \
+  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; export MAXENT_FAULTHANDLER=1; \
   export TRAINING_LOG=\"$VAR_DIR/logs/train_${SLURM_JOB_ID}.log\"; \
   mkdir -p \"$ROOT_DIR/logs\"; : > \"$TRAINING_LOG\"; \
   echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \

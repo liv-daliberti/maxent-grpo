@@ -89,6 +89,41 @@ def test_safe_generate_stream_joins(monkeypatch):
     assert meta is None
 
 
+def test_safe_generate_text_list_with_logprobs(monkeypatch):
+    payload = {"text": ["done"], "logprobs": [[-0.25, -0.75]]}
+
+    def fake_post(url, json, timeout, stream, headers):
+        return R(200, payload)
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    texts, meta, _ = VP.safe_generate(prompts=["p"], stream=False, return_logprobs=True)
+    assert texts == [["done"]]
+    assert meta is not None and meta[0][0] is not None
+    assert meta[0][0].logprob_sum == -1.0
+    assert meta[0][0].token_count == 2
+    assert meta[0][0].token_logprobs == [-0.25, -0.75]
+
+
+def test_safe_generate_text_list_with_cumulative_logprobs(monkeypatch):
+    payload = {
+        "text": ["a", "b"],
+        "cumulative_logprobs": [-1.5, -2.0],
+        "token_ids": [[1, 2], [3, 4, 5]],
+    }
+
+    def fake_post(url, json, timeout, stream, headers):
+        return R(200, payload)
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    texts, meta, _ = VP.safe_generate(prompts=["p"], stream=False, return_logprobs=True)
+    assert texts == [["a"], ["b"]]
+    assert meta is not None
+    assert meta[0][0] is not None and meta[0][0].logprob_sum == -1.5
+    assert meta[0][0].token_count == 2
+    assert meta[1][0] is not None and meta[1][0].logprob_sum == -2.0
+    assert meta[1][0].token_count == 3
+
+
 def test_safe_generate_with_logprobs(monkeypatch):
     payload = {
         "results": [
@@ -116,6 +151,34 @@ def test_safe_generate_with_logprobs(monkeypatch):
     assert meta[0][0].token_count == 3
     assert meta[0][0].token_logprobs == [-0.5, -1.0, -1.0]
     assert meta[0][0].raw_output["token_ids"] == [1, 2, 3]
+
+
+def test_safe_generate_with_logprobs_dict_sequence(monkeypatch):
+    payload = {
+        "results": [
+            {
+                "outputs": [
+                    {
+                        "text": "done",
+                        "logprobs": {
+                            "token_logprobs": [{"logprob": -0.5}, {"logprob": -1.0}]
+                        },
+                    }
+                ]
+            }
+        ]
+    }
+
+    def fake_post(url, json, timeout, stream, headers):
+        return R(200, payload)
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    texts, meta, _ = VP.safe_generate(prompts=["p"], stream=False, return_logprobs=True)
+    assert texts == [["done"]]
+    assert meta is not None and meta[0][0] is not None
+    assert meta[0][0].logprob_sum == -1.5
+    assert meta[0][0].token_count == 2
+    assert meta[0][0].token_logprobs == [-0.5, -1.0]
 
 
 def test_safe_generate_filters_client_tag(monkeypatch):
@@ -361,7 +424,11 @@ def test_parse_nonstream_json_results_variants(monkeypatch):
     }
     texts, meta = VP._parse_nonstream_json(data, tokenizer=Tok(), want_logprobs=True)
     assert texts == [["direct"], ["123"], ["raw"]]
-    assert meta == [[], [], []]
+    assert meta == [
+        [],
+        [{"token_ids": [1, 2, 3], "token_count": 3}],
+        [],
+    ]
 
 
 def test_parse_nonstream_json_text_list():
@@ -373,6 +440,21 @@ def test_parse_nonstream_json_text_list():
 def test_parse_nonstream_json_token_ids_without_tokenizer():
     with pytest.raises(RuntimeError):
         VP._parse_nonstream_json({"completion_ids": [[1], [2]]})
+
+
+def test_parse_nonstream_json_token_ids_with_tokenizer_and_meta(monkeypatch):
+    class Tok:
+        def decode(self, ids, skip_special_tokens=True):
+            return "".join(map(str, ids))
+
+    texts, meta = VP._parse_nonstream_json(
+        {"completion_ids": [[1, 2], [3]]}, tokenizer=Tok(), want_logprobs=True
+    )
+    assert texts == [["12"], ["3"]]
+    assert meta == [
+        [{"token_ids": [1, 2], "token_count": 2}],
+        [{"token_ids": [3], "token_count": 1}],
+    ]
 
 
 def test_parse_nonstream_json_unknown():

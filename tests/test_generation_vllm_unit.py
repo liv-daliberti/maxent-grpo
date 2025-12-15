@@ -337,6 +337,29 @@ def test_coalesce_grouped_outputs_merges_chunks(monkeypatch):
     assert merged_meta == [10]
 
 
+def test_coalesce_grouped_outputs_regroups_microgroups_with_logprob_meta(monkeypatch):
+    module = _load_vllm(monkeypatch)
+    helper = module.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))
+    # Mirror the "raw groups = prompt_count * req_n, each group has len=1" case.
+    prompt_count = 6
+    requested_n = 8
+    total_groups = prompt_count * requested_n
+    groups = [[f"c{i}"] for i in range(total_groups)]
+    meta = [
+        [{"logprob_sum": -float(i), "token_count": 1}] for i in range(total_groups)
+    ]
+    regrouped, regrouped_meta = helper._coalesce_grouped_outputs(
+        groups, prompt_count, requested_n, meta
+    )
+    assert len(regrouped) == prompt_count
+    assert all(len(entry) == requested_n for entry in regrouped)
+    assert regrouped_meta is not None
+    assert len(regrouped_meta) == prompt_count
+    assert all(len(entry) == requested_n for entry in regrouped_meta)
+    assert regrouped_meta[0][0] is not None and regrouped_meta[0][0]["logprob_sum"] == 0.0
+    assert regrouped_meta[0][1] is not None and regrouped_meta[0][1]["logprob_sum"] == -1.0
+
+
 def test_build_vllm_request_kwargs_and_latency(monkeypatch):
     module = _load_vllm(monkeypatch)
     ctx = _ctx(gen_stop_sequences=["stop"], gen_top_k=5, gen_best_of=2)

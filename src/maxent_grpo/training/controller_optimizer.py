@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import logging
 from contextlib import nullcontext
 from typing import Optional
@@ -38,7 +39,13 @@ class ControllerMetaManager:
         self.update_interval = max(
             1, int(getattr(meta_cfg, "update_interval", getattr(cfg, "controller_meta_update_interval", 1)))
         )
-        self.learning_rate = float(getattr(meta_cfg, "learning_rate", cfg.controller_meta_lr))
+        legacy_lr = float(getattr(meta_cfg, "learning_rate", cfg.controller_meta_lr))
+        tau_lr = float(getattr(meta_cfg, "tau_learning_rate", getattr(cfg, "controller_meta_tau_lr", 0.0)))
+        beta_lr = float(getattr(meta_cfg, "beta_learning_rate", getattr(cfg, "controller_meta_beta_lr", 0.0)))
+        self.tau_learning_rate = tau_lr if tau_lr > 0.0 else legacy_lr
+        self.beta_learning_rate = beta_lr if beta_lr > 0.0 else legacy_lr
+        self.learning_rate = max(self.tau_learning_rate, self.beta_learning_rate, 0.0)
+        self.beta_grad_clip = float(getattr(meta_cfg, "beta_grad_clip", getattr(cfg, "controller_meta_beta_grad_clip", 0.0)))
         self.method = str(getattr(meta_cfg, "method", "analytic") or "analytic").lower()
         self.optimizer = str(getattr(meta_cfg, "optimizer", "sgd") or "sgd").lower()
         self.objective_name = str(getattr(meta_cfg, "objective", cfg.controller_meta_objective))
@@ -94,18 +101,22 @@ class ControllerMetaManager:
                 self._requires_optimizer = False
                 self._torch = None
                 self._meta_optimizer = None
-        if self.learning_rate <= 0.0:
+        if self.tau_learning_rate <= 0.0 and self.beta_learning_rate <= 0.0:
             self.enabled = False
-            disable_reason = "controller_meta_lr <= 0"
+            disable_reason = "controller_meta learning rates <= 0"
         proc_index = getattr(cfg, "process_index", getattr(cfg, "local_process_index", 0))
         if proc_index in (0, None):
             if self.enabled:
                 update_mode = self.optimizer if self._requires_optimizer else "analytic"
                 LOG.info(
-                    "Controller meta enabled | method=%s | objective=%s | lr=%.4f | update_interval=%d | update_mode=%s",
+                    "Controller meta enabled | method=%s | objective=%s | tau_lr=%.4g | beta_lr=%.4g | beta_grad_clip=%s | update_interval=%d | update_mode=%s",
                     self.method,
                     self.objective_name,
-                    self.learning_rate,
+                    self.tau_learning_rate,
+                    self.beta_learning_rate,
+                    f"{self.beta_grad_clip:.4g}"
+                    if self.beta_grad_clip and self.beta_grad_clip > 0
+                    else "off",
                     self.update_interval,
                     update_mode,
                 )
@@ -183,57 +194,99 @@ class ControllerMetaManager:
         self._manual_update(gradients, lr_scale=lr_scale)
 
     def _manual_update(self, gradients: ControllerGradients, *, lr_scale: float) -> None:
-        base_lr = float(
-            getattr(getattr(self._weighting, "controller_meta", None), "learning_rate", self.learning_rate)
-        )
-        effective_lr = base_lr * float(lr_scale)
+        meta_cfg = getattr(self._weighting, "controller_meta", None)
+        base_lr = 0.0
+        if meta_cfg is not None:
+            try:
+                base_lr = float(getattr(meta_cfg, "learning_rate", 0.0) or 0.0)
+            except (TypeError, ValueError):
+                base_lr = 0.0
+
+        lr_scale_val = float(lr_scale) if isinstance(lr_scale, (int, float)) else 1.0
+        if not math.isfinite(lr_scale_val):
+            lr_scale_val = 1.0
+        lr_scale_val = max(lr_scale_val, 0.0)
+
+        lr_tau = base_lr if base_lr > 0.0 else float(self.tau_learning_rate)
+        lr_beta = base_lr if base_lr > 0.0 else float(self.beta_learning_rate)
+        lr_tau *= lr_scale_val
+        lr_beta *= lr_scale_val
+        if lr_tau <= 0.0 and lr_beta <= 0.0:
+            return
+
         updated = False
         tau_projected = False
-        if isinstance(gradients.tau_grad, (int, float)):
-            raw_tau = self._weighting.tau - effective_lr * float(gradients.tau_grad)
-            new_tau = raw_tau
-            new_tau = max(self._weighting.tau_min, new_tau)
-            tau_max = self._weighting.tau_max
+        if isinstance(gradients.tau_grad, (int, float)) and math.isfinite(
+            float(gradients.tau_grad)
+        ):
+            grad_val = float(gradients.tau_grad)
+            raw_tau = self._weighting.tau - lr_tau * grad_val
+            new_tau = max(self._weighting.tau_min, raw_tau)
+            tau_max = float(self._weighting.tau_max)
             if tau_max > 0.0:
                 clipped = min(new_tau, tau_max)
-                if clipped != new_tau:
-                    tau_projected = True
+                tau_projected = tau_projected or clipped != new_tau
                 new_tau = clipped
-            if new_tau == self._weighting.tau_min and raw_tau < new_tau:
+            if self._weighting.tau_min > 0.0 and new_tau <= self._weighting.tau_min:
                 tau_projected = True
-            self._weighting.tau = new_tau
+            self._weighting.tau = float(new_tau)
+            try:
+                setattr(self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8)))
+            except Exception:
+                pass
             updated = True
-            setattr(self._weighting, "_meta_last_tau_grad", float(gradients.tau_grad))
-            meta_cfg = getattr(self._weighting, "controller_meta", None)
-            if meta_cfg:
-                meta_cfg.last_tau_grad = float(gradients.tau_grad)
-        beta_projected = False
-        if isinstance(gradients.beta_grad, (int, float)):
-            new_beta = self._weighting.beta - effective_lr * float(gradients.beta_grad)
-            if new_beta < 0.0:
-                beta_projected = True
-            self._weighting.beta = max(new_beta, 0.0)
-            updated = True
-            setattr(self._weighting, "_meta_last_beta_grad", float(gradients.beta_grad))
-            meta_cfg = getattr(self._weighting, "controller_meta", None)
-            if meta_cfg:
-                meta_cfg.last_beta_grad = float(gradients.beta_grad)
-        if updated:
-            _ensure_tau_history(self._weighting)
-            if self._weighting.train_grpo_objective:
-                self._weighting.denom = 1.0
-            else:
-                denom_sum = self._weighting.tau + self._weighting.beta
-                self._weighting.denom = denom_sum if denom_sum > 0 else 1.0
-            setattr(self._weighting, "_meta_tau_projected", bool(tau_projected))
-            setattr(self._weighting, "_meta_beta_projected", bool(beta_projected))
-            state = getattr(self._weighting, "controller_state", None)
-            if state is not None:
+            setattr(self._weighting, "_meta_last_tau_grad", float(grad_val))
+            if meta_cfg is not None:
                 try:
-                    state.sync_from_scalars(self._weighting.tau, self._weighting.beta)
+                    meta_cfg.last_tau_grad = float(grad_val)
                 except (AttributeError, TypeError, ValueError):
                     pass
+
+        beta_projected = False
+        if isinstance(gradients.beta_grad, (int, float)) and math.isfinite(
+            float(gradients.beta_grad)
+        ):
+            raw_grad_val = float(gradients.beta_grad)
+            if lr_beta > 0.0:
+                clip = float(self.beta_grad_clip or 0.0)
+                grad_update_val = raw_grad_val
+                if clip > 0.0 and math.isfinite(clip):
+                    grad_update_val = max(min(grad_update_val, clip), -clip)
+                # Beta tightens KL: when kl > target (grad > 0) beta must increase.
+                raw_beta = self._weighting.beta + lr_beta * grad_update_val
+                if raw_beta < 0.0:
+                    beta_projected = True
+                self._weighting.beta = max(float(raw_beta), 0.0)
+                updated = True
+                setattr(self._weighting, "_meta_last_beta_grad", float(raw_grad_val))
+                if meta_cfg is not None:
+                    try:
+                        meta_cfg.last_beta_grad = float(raw_grad_val)
+                    except (AttributeError, TypeError, ValueError):
+                        pass
+
+        if not updated:
+            return
+
+        _ensure_tau_history(self._weighting)
+        if self._weighting.train_grpo_objective:
+            self._weighting.denom = 1.0
+        else:
+            denom_sum = float(self._weighting.tau) + float(self._weighting.beta)
+            self._weighting.denom = denom_sum if denom_sum > 0 else 1.0
+        setattr(self._weighting, "_meta_tau_projected", bool(tau_projected))
+        setattr(self._weighting, "_meta_beta_projected", bool(beta_projected))
+
+        state = getattr(self._weighting, "controller_state", None)
+        if state is not None:
+            try:
+                state.sync_from_scalars(self._weighting.tau, self._weighting.beta)
+            except (AttributeError, TypeError, ValueError):
+                pass
+            try:
                 state.zero_grad()
+            except Exception:
+                pass
 
     def _build_optimizer(self, params):
         torch_mod = self._torch

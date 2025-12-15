@@ -96,6 +96,34 @@ def test_maybe_sync_weights_skips_when_not_ready(monkeypatch):
     assert helper._vllm_client is None
 
 
+def test_maybe_sync_weights_participates_in_zero3_gather_on_non_main_rank(monkeypatch):
+    wait_calls = []
+    accelerator = SimpleNamespace(
+        is_main_process=False,
+        unwrap_model=lambda m: m,
+        wait_for_everyone=lambda: wait_calls.append("wait"),
+        state=SimpleNamespace(deepspeed_plugin=SimpleNamespace(zero_stage=3)),
+    )
+    ctx = make_vllm_context(
+        accelerator=accelerator,
+        generation_stats={"current_step": 5},
+        vllm_sync_weights=True,
+        vllm_url="http://localhost/generate",
+        model=None,
+    )
+    helper = _Helper(ctx=ctx)
+    synced = []
+
+    def _sync_model(model):
+        synced.append(model)
+
+    helper.maybe_sync_weights(ensure_client=lambda: False, sync_model=_sync_model)
+    assert synced == [None]
+    assert wait_calls == ["wait"]
+    assert helper.ctx.generation_stats.get("vllm_weight_syncs") is None
+    assert helper._last_vllm_synced_step is None
+
+
 def test_maybe_sync_weights_updates_stats_and_step(monkeypatch):
     helper = _Helper()
     helper.ctx.generation_stats["current_step"] = 5
@@ -154,6 +182,78 @@ def test_sync_standard_params_uses_gather_and_push(monkeypatch):
 
     helper._sync_standard_params(_Model())
     assert pushed == ["a", "b", "child.c"]
+
+
+def test_sync_standard_params_skips_gather_for_available_zero3_param(monkeypatch):
+    helper = _Helper()
+    pushed = []
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _param: pushed.append(name)
+    )
+    gathered = []
+
+    def _gather_factory(params):
+        gathered.append(list(params))
+        return nullcontext()
+
+    helper._gather_factory = _gather_factory
+
+    class _Param(SimpleNamespace):
+        pass
+
+    available = _Param(
+        data=1,
+        ds_id=0,
+        ds_status=SimpleNamespace(name="AVAILABLE"),
+        ds_active_sub_modules={2},
+    )
+
+    class _Model:
+        def named_parameters(self, recurse=False):
+            _ = recurse
+            return [("a", available)]
+
+        def named_children(self):
+            return []
+
+    helper._sync_standard_params(_Model())
+    assert pushed == ["a"]
+    assert gathered == [[]]
+
+
+def test_sync_standard_params_gathers_only_unavailable_zero3_params(monkeypatch):
+    helper = _Helper()
+    pushed = []
+    monkeypatch.setattr(
+        helper, "_push_param_to_vllm", lambda name, _param: pushed.append(name)
+    )
+    gathered = []
+
+    def _gather_factory(params):
+        gathered.append(list(params))
+        return nullcontext()
+
+    helper._gather_factory = _gather_factory
+
+    class _Param(SimpleNamespace):
+        pass
+
+    available = _Param(data=1, ds_id=0, ds_status=SimpleNamespace(name="AVAILABLE"))
+    unavailable = _Param(
+        data=2, ds_id=1, ds_status=SimpleNamespace(name="NOT_AVAILABLE")
+    )
+
+    class _Model:
+        def named_parameters(self, recurse=False):
+            _ = recurse
+            return [("a", available), ("b", unavailable)]
+
+        def named_children(self):
+            return []
+
+    helper._sync_standard_params(_Model())
+    assert pushed == ["a", "b"]
+    assert gathered == [[unavailable]]
 
 
 def test_sync_peft_params_merges_and_filters(monkeypatch):

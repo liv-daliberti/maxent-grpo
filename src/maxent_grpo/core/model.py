@@ -128,6 +128,14 @@ def get_tokenizer(
     if training_args.chat_template is not None:
         tokenizer.chat_template = training_args.chat_template
 
+    pad_token = getattr(tokenizer, "pad_token", None)
+    eos_token = getattr(tokenizer, "eos_token", None)
+    if pad_token is None and eos_token is not None:
+        try:
+            tokenizer.pad_token = eos_token
+        except (AttributeError, TypeError, ValueError):
+            pass
+
     return tokenizer
 
 
@@ -176,6 +184,26 @@ def get_model(
         model_args.model_name_or_path,
         **model_kwargs,
     )
+    try:
+        cfg = getattr(model, "config", None)
+        if cfg is not None and getattr(cfg, "pad_token_id", None) is None:
+            eos_token_id = getattr(cfg, "eos_token_id", None)
+            if isinstance(eos_token_id, int):
+                cfg.pad_token_id = eos_token_id
+            elif isinstance(eos_token_id, (list, tuple)) and eos_token_id:
+                first = eos_token_id[0]
+                if isinstance(first, int):
+                    cfg.pad_token_id = first
+        gen_cfg = getattr(model, "generation_config", None)
+        if gen_cfg is not None and getattr(gen_cfg, "pad_token_id", None) is None:
+            cfg = getattr(model, "config", None)
+            pad_token_id = (
+                getattr(cfg, "pad_token_id", None) if cfg is not None else None
+            )
+            if isinstance(pad_token_id, int):
+                gen_cfg.pad_token_id = pad_token_id
+    except Exception:
+        pass
     if getattr(training_args, "gradient_checkpointing", False):
         enable_fn = getattr(model, "gradient_checkpointing_enable", None)
         if callable(enable_fn):

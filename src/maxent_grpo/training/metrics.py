@@ -401,6 +401,8 @@ def _weighting_config_block(
     delta_beta = (
         float(weighting.beta) - float(prev_beta) if prev_beta is not None else 0.0
     )
+    meta_cfg = getattr(weighting, "controller_meta", None)
+    meta_enabled = bool(getattr(meta_cfg, "enabled", False))
     tau_lr_effective = getattr(weighting, "_tau_lr_effective", weighting.tau_lr)
     metrics: Dict[str, float] = {
         "train/weight_norm_denom": weighting.denom,
@@ -426,6 +428,8 @@ def _weighting_config_block(
         "train/tau_schedule_active": (
             1.0
             if (
+                (not meta_enabled)
+                and
                 weighting.tau_target_entropy is not None
                 and global_step > max(0, weighting.tau_warmup_steps)
             )
@@ -436,7 +440,8 @@ def _weighting_config_block(
         "train/kl_controller_step_size": weighting.kl_ctl_step_size,
         "train/kl_controller_enabled": (
             1.0
-            if weighting.kl_target > 0.0
+            if (not meta_enabled)
+            and weighting.kl_target > 0.0
             and weighting.kl_horizon > 0
             and weighting.kl_ctl_step_size > 0.0
             else 0.0
@@ -674,7 +679,7 @@ def _summarize_reward_stats(
 
 def summarize_reward_stats(
     accelerator: Accelerator,
-    reward_comp: RewardComputation,
+    reward_comp: Optional[RewardComputation],
     *,
     log_like_grpo: bool = False,
 ) -> RewardLoggingView:
@@ -684,9 +689,21 @@ def summarize_reward_stats(
     diagnostics even on non-main ranks before metrics are logged.
     """
 
-    return _summarize_reward_stats(
-        accelerator, reward_comp, skip_global=log_like_grpo
-    )
+    if reward_comp is None:
+        return RewardLoggingView(
+            reward_mean=0.0,
+            reward_std=0.0,
+            frac_zero_std=0.0,
+            advantage_mean=0.0,
+            advantage_std=0.0,
+            advantage_count=0,
+            per_reward={},
+            q_entropy_mean=0.0,
+            q_entropy_std=0.0,
+            q_entropy_min=0.0,
+            q_entropy_max=0.0,
+        )
+    return _summarize_reward_stats(accelerator, reward_comp, skip_global=log_like_grpo)
 
 
 def _summarize_weight_stats(

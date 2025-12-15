@@ -19,6 +19,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from contextlib import ExitStack, nullcontext
 from dataclasses import dataclass
+import inspect
+import os
 import numbers
 import sys
 import logging
@@ -28,6 +30,8 @@ from functools import lru_cache
 import queue
 import threading
 import numpy as np
+
+from maxent_grpo.utils.fallbacks import dist_with_fallback
 
 from maxent_grpo.training.runtime import (
     _build_torch_stub,
@@ -370,7 +374,13 @@ def _to_numpy_array(obj: Any) -> np.ndarray:
             try:
                 return obj.detach().cpu().numpy()
             except Exception:
-                pass
+                try:
+                    tensor_cpu = obj.detach().to("cpu")
+                    if hasattr(tensor_cpu, "float"):
+                        tensor_cpu = tensor_cpu.float()
+                    return tensor_cpu.numpy()
+                except Exception:
+                    pass
     except Exception:
         pass
     if hasattr(obj, "arr"):
@@ -388,6 +398,49 @@ def _to_numpy_array(obj: Any) -> np.ndarray:
         return np.asarray(obj)
     except (TypeError, ValueError, RuntimeError):
         return np.asarray([])
+
+
+def _dist_collective_ready(torch_mod: Any) -> Any:
+    """Return a dist module when initialized, otherwise None."""
+    dist = dist_with_fallback(getattr(torch_mod, "distributed", None))
+    try:
+        if dist is not None and dist.is_available() and dist.is_initialized():
+            return dist
+    except Exception:
+        return None
+    return None
+
+
+def _dist_all(dist: Any, flag: bool) -> bool:
+    """Return True if flag is True on all ranks (best-effort)."""
+    if dist is None:
+        return bool(flag)
+    try:
+        world_size = int(dist.get_world_size())
+    except Exception:
+        return bool(flag)
+    gathered = [None for _ in range(max(world_size, 1))]
+    try:
+        dist.all_gather_object(gathered, bool(flag))
+        return all(bool(x) for x in gathered)
+    except Exception:
+        return bool(flag)
+
+
+def _dist_any(dist: Any, flag: bool) -> bool:
+    """Return True if flag is True on any rank (best-effort)."""
+    if dist is None:
+        return bool(flag)
+    try:
+        world_size = int(dist.get_world_size())
+    except Exception:
+        return bool(flag)
+    gathered = [None for _ in range(max(world_size, 1))]
+    try:
+        dist.all_gather_object(gathered, bool(flag))
+        return any(bool(x) for x in gathered)
+    except Exception:
+        return bool(flag)
 
 
 def _resolve_dtype(dtype: Any) -> Any:
@@ -588,6 +641,35 @@ def _tokenize_completions(
         ids=ids,
         mask=mask,
     )
+
+
+def _completion_tensors_from_token_ids(
+    token_ids: List[List[int]],
+    *,
+    pad_token_id: int,
+    max_length: int,
+) -> CompletionTensors:
+    """Build completion tensors from pre-tokenized token-id sequences."""
+    torch_mod = _refresh_torch()
+    limit = int(max_length or 0)
+    clipped: List[List[int]] = []
+    for seq in token_ids:
+        seq_list = list(seq)
+        if limit > 0:
+            seq_list = seq_list[:limit]
+        clipped.append(seq_list)
+    max_len = max((len(seq) for seq in clipped), default=0)
+    batch = len(clipped)
+    ids_arr = np.full((batch, max_len), int(pad_token_id), dtype=np.int64)
+    mask_arr = np.zeros((batch, max_len), dtype=np.int64)
+    for row, seq in enumerate(clipped):
+        if not seq:
+            continue
+        ids_arr[row, : len(seq)] = np.asarray(seq, dtype=np.int64)
+        mask_arr[row, : len(seq)] = 1
+    ids = torch_mod.tensor(ids_arr, dtype=getattr(torch_mod, "long", None))
+    mask = torch_mod.tensor(mask_arr, dtype=getattr(torch_mod, "long", None))
+    return CompletionTensors(ids=ids, mask=mask)
 
 
 def _prepare_prompt_slice(
@@ -946,7 +1028,6 @@ def _chunked_sequence_logprobs(
     torch_mod = _refresh_torch()
     _ = (
         chunk_size,
-        gather_full_params,
     )  # parity with distributed APIs; currently unused
     # Fallback for lightweight stubs
     if not hasattr(model, "forward"):
@@ -973,6 +1054,7 @@ def _chunked_sequence_logprobs(
     # DeepSpeed ZeRO-3 shards parameters to 1-D partitions; gather embeddings
     # so the reference forward sees 2-D weights without full-parameter all-gather.
     gather_ctx = nullcontext()
+    dist = _dist_collective_ready(torch_mod)
     if gather_full_params:
         try:  # pragma: no cover - exercised in distributed runs
             import deepspeed
@@ -1001,14 +1083,20 @@ def _chunked_sequence_logprobs(
             import deepspeed
 
             if deepspeed.zero.is_enabled():
-                to_gather: list[Any] = []
+                if os.environ.get("MAXENT_DISABLE_SCORING_ZERO_GATHER", "").strip():
+                    gather_ctx = nullcontext()
+                else:
+                    to_gather: list[Any] = []
                 inp_emb = (
                     model.get_input_embeddings()
                     if hasattr(model, "get_input_embeddings")
                     else None
                 )
-                if inp_emb is not None and hasattr(inp_emb, "weight"):
-                    to_gather.append(inp_emb.weight)
+                input_weight = (
+                    getattr(inp_emb, "weight", None)
+                    if inp_emb is not None and hasattr(inp_emb, "weight")
+                    else None
+                )
                 out_emb = (
                     model.get_output_embeddings()
                     if hasattr(model, "get_output_embeddings")
@@ -1016,21 +1104,88 @@ def _chunked_sequence_logprobs(
                 )
                 if out_emb is None and hasattr(model, "lm_head"):
                     out_emb = model.lm_head
-                if out_emb is not None and hasattr(out_emb, "weight"):
-                    to_gather.append(out_emb.weight)
+                output_weight = (
+                    getattr(out_emb, "weight", None)
+                    if out_emb is not None and hasattr(out_emb, "weight")
+                    else None
+                )
+
+                input_present_local = input_weight is not None
+                output_present_local = output_weight is not None
+                input_present_all = (
+                    _dist_all(dist, input_present_local) if dist is not None else input_present_local
+                )
+                output_present_all = (
+                    _dist_all(dist, output_present_local) if dist is not None else output_present_local
+                )
+
+                needs_input_local = bool(
+                    input_weight is not None and not _weight_is_two_dimensional(input_weight)
+                )
+                needs_output_local = bool(
+                    output_weight is not None and not _weight_is_two_dimensional(output_weight)
+                )
+                needs_input_any = (
+                    _dist_any(dist, needs_input_local) if dist is not None else needs_input_local
+                )
+                needs_output_any = (
+                    _dist_any(dist, needs_output_local) if dist is not None else needs_output_local
+                )
+
+                if needs_input_any and input_present_all and input_weight is not None:
+                    to_gather.append(input_weight)
+                if needs_output_any and output_present_all and output_weight is not None:
+                    to_gather.append(output_weight)
+
+                if (needs_input_any and not input_present_all) or (
+                    needs_output_any and not output_present_all
+                ):
+                    LOG.warning(
+                        "DeepSpeed ZeRO gather decision mismatch across ranks; skipping embed gather to avoid deadlock | "
+                        "input_present_local=%s input_present_all=%s needs_input_local=%s needs_input_any=%s | "
+                        "output_present_local=%s output_present_all=%s needs_output_local=%s needs_output_any=%s",
+                        input_present_local,
+                        input_present_all,
+                        needs_input_local,
+                        needs_input_any,
+                        output_present_local,
+                        output_present_all,
+                        needs_output_local,
+                        needs_output_any,
+                    )
+                    to_gather = []
+
                 if to_gather:
+                    # De-duplicate parameters to avoid repeated GatheredParameters calls
+                    # on shared/tied embedding weights.
+                    seen: set[int] = set()
+                    unique: list[Any] = []
+                    for param in to_gather:
+                        param_id = id(param)
+                        if param_id in seen:
+                            continue
+                        seen.add(param_id)
+                        unique.append(param)
+                    LOG.debug(
+                        "DeepSpeed ZeRO gather for scoring | tensors=%d | shapes=%s",
+                        len(unique),
+                        [getattr(param, "shape", None) for param in unique],
+                    )
                     try:
                         gather_ctx = deepspeed.zero.GatheredParameters(
-                            to_gather, modifier_rank=None
+                            unique, modifier_rank=None
                         )
                     except TypeError:
-                        gather_ctx = deepspeed.zero.GatheredParameters(to_gather)
+                        gather_ctx = deepspeed.zero.GatheredParameters(unique)
         except Exception:
             gather_ctx = nullcontext()
 
     fsdp_ctx = _summon_fsdp_full_param_context(model)
     stack = ExitStack()
     stack.enter_context(gather_ctx)
+    # Ensure ZeRO-managed params are gathered consistently before the forward pass.
+    # The helper is a no-op when DeepSpeed isn't available, but keeps tests and
+    # distributed reference scoring behavior aligned.
     stack.enter_context(_maybe_zero_gather_params(model, enabled=True))
     stack.enter_context(fsdp_ctx)
     stack.enter_context(_maybe_zero_gather_embedding(model))
@@ -1146,6 +1301,50 @@ def _chunked_sequence_logprobs(
         batch = getattr(input_ids, "shape", None)
         batch = batch[0] if batch else 0
         chunk_limit = int(chunk_size) if chunk_size is not None else 0
+        if chunk_limit <= 0 and batch > 1 and not os.environ.get(
+            "MAXENT_DISABLE_LOGPROB_AUTOBATCH", ""
+        ).strip():
+            try:
+                vocab_size_guess = int(
+                    getattr(getattr(model, "config", None), "vocab_size", 0) or 0
+                )
+            except (TypeError, ValueError):
+                vocab_size_guess = 0
+            seq_len = getattr(input_ids, "shape", None)
+            seq_len = int(seq_len[1]) if seq_len and len(seq_len) > 1 else 0
+            device_str = str(getattr(input_ids, "device", "")).lower()
+            if vocab_size_guess > 0 and seq_len > 0 and "cuda" in device_str:
+                try:
+                    model_dtype = getattr(model, "dtype", None)
+                    dtype_str = str(getattr(model_dtype, "name", model_dtype) or "").lower()
+                except Exception:
+                    dtype_str = ""
+                bytes_per_elem = 2
+                if "float32" in dtype_str or "fp32" in dtype_str:
+                    bytes_per_elem = 4
+                target_mb_raw = os.environ.get("MAXENT_LOGPROB_TARGET_LOGITS_MB", "256")
+                try:
+                    target_bytes = int(float(target_mb_raw) * 1024 * 1024)
+                except (TypeError, ValueError):
+                    target_bytes = 256 * 1024 * 1024
+                bytes_per_seq = max(1, seq_len * vocab_size_guess * bytes_per_elem)
+                auto_limit = max(1, min(batch, target_bytes // bytes_per_seq))
+                if auto_limit < batch:
+                    warned = getattr(_chunked_sequence_logprobs, "_autobatch_warned", False)
+                    if not warned:
+                        LOG.warning(
+                            "Auto-tuning reference scoring batch chunk size to avoid large logits tensors | "
+                            "requested_chunk_size=%s auto_chunk_size=%s batch=%s seq_len=%s vocab=%s target_logits_mb=%s "
+                            "(set MAXENT_DISABLE_LOGPROB_AUTOBATCH=1 to disable)",
+                            chunk_size,
+                            auto_limit,
+                            batch,
+                            seq_len,
+                            vocab_size_guess,
+                            target_mb_raw,
+                        )
+                        setattr(_chunked_sequence_logprobs, "_autobatch_warned", True)
+                    chunk_limit = auto_limit
         if chunk_limit <= 0 or chunk_limit >= batch:
             chunk_indices = [(0, batch)]
         else:
@@ -1173,19 +1372,36 @@ def _chunked_sequence_logprobs(
             ids_chunk = input_ids[start:end]
             mask_chunk = attention_mask[start:end] if attention_mask is not None else None
             label_chunk = labels[start:end]
+            wants_labels = False
+            for callable_name in ("forward", "__call__"):
+                candidate = getattr(model, callable_name, None)
+                if not callable(candidate):
+                    continue
+                try:
+                    sig = inspect.signature(candidate)
+                    param = sig.parameters.get("labels")
+                    if param is not None and param.default is inspect.Signature.empty:
+                        wants_labels = True
+                        break
+                except (TypeError, ValueError):
+                    continue
+            call_kwargs: dict[str, Any] = {
+                "input_ids": ids_chunk,
+                "attention_mask": mask_chunk,
+                "output_hidden_states": return_hidden,
+            }
+            if wants_labels:
+                call_kwargs["labels"] = label_chunk
             try:
-                outputs = model(
-                    input_ids=ids_chunk,
-                    attention_mask=mask_chunk,
-                    labels=label_chunk,
-                    output_hidden_states=return_hidden,
-                )
+                outputs = model(**call_kwargs)
             except TypeError:
-                outputs = model(
-                    input_ids=ids_chunk,
-                    attention_mask=mask_chunk,
-                    output_hidden_states=return_hidden,
-                )
+                call_kwargs.pop("output_hidden_states", None)
+                try:
+                    outputs = model(**call_kwargs)
+                except TypeError:
+                    if not wants_labels:
+                        call_kwargs.pop("labels", None)
+                    outputs = model(**call_kwargs)
             logits = outputs.logits
             LOG.debug(
                 "reference scoring logits metadata | chunk=%s | shape=%s dtype=%s device=%s",
@@ -1194,20 +1410,98 @@ def _chunked_sequence_logprobs(
                 getattr(logits, "dtype", None),
                 getattr(logits, "device", None),
             )
-            log_probs = torch_mod.nn.functional.log_softmax(logits, dim=-1)
-            label_mask = label_chunk != -100
-            vocab_size = log_probs.size(-1)
-            flat_labels = label_chunk.masked_fill(~label_mask, 0).view(-1)
-            flat_log_probs = log_probs.view(-1, vocab_size)
-            gather_index = torch_mod.arange(flat_labels.numel())
-            target_device = getattr(flat_log_probs, "device", None)
-            if target_device is not None:
+            # Causal LM logits at position t predict token t+1. Align labels by
+            # shifting so we score next-token log-probs for all non-masked targets.
+            if logits.size(1) <= 1:
+                batch_rows = logits.size(0)
                 try:
-                    gather_index = gather_index.to(target_device)
+                    seq_logp_chunk = torch_mod.zeros(
+                        (batch_rows,),
+                        dtype=getattr(torch_mod, "float32", None),
+                        device=getattr(logits, "device", None),
+                    )
                 except Exception:
-                    pass
-            gathered = flat_log_probs[gather_index, flat_labels].view(label_chunk.shape)
-            seq_logp_chunk = (gathered * label_mask).sum(dim=1)
+                    seq_logp_chunk = torch_mod.tensor(
+                        np.zeros(batch_rows, dtype=float),
+                        dtype=getattr(torch_mod, "float32", None),
+                        device=getattr(logits, "device", None),
+                    )
+                tok_tensor_chunk = torch_mod.ones(
+                    (batch_rows,),
+                    dtype=getattr(torch_mod, "long", None),
+                    device=getattr(logits, "device", None),
+                )
+                logp_chunks.append(seq_logp_chunk)
+                tok_chunks.append(tok_tensor_chunk)
+                LOG.debug(
+                    "reference scoring chunk stats | chunk=%s | ids_shape=%s | mask_shape=%s | "
+                    "seq_logp_shape=%s dtype=%s device=%s | tok_shape=%s dtype=%s device=%s | "
+                    "tok_sum=%s | valid_token_mask_sum=%s | seq_logp_preview=%s",
+                    idx,
+                    getattr(ids_chunk, "shape", None),
+                    getattr(mask_chunk, "shape", None),
+                    getattr(seq_logp_chunk, "shape", None),
+                    getattr(seq_logp_chunk, "dtype", None),
+                    getattr(seq_logp_chunk, "device", None),
+                    getattr(tok_tensor_chunk, "shape", None),
+                    getattr(tok_tensor_chunk, "dtype", None),
+                    getattr(tok_tensor_chunk, "device", None),
+                    float(batch_rows),
+                    0,
+                    getattr(seq_logp_chunk, "detach", lambda: seq_logp_chunk)()
+                    .cpu()
+                    .reshape(-1)[:3]
+                    .tolist()
+                    if hasattr(seq_logp_chunk, "cpu")
+                    else None,
+                )
+                continue
+
+            shifted_logits = logits[:, :-1, :]
+            shifted_labels = label_chunk[:, 1:]
+            label_mask = shifted_labels != -100
+            vocab_size = shifted_logits.size(-1)
+            flat_logits = shifted_logits.reshape(-1, vocab_size)
+            safe_labels = shifted_labels.masked_fill(~label_mask, 0)
+            flat_labels = safe_labels.reshape(-1)
+            token_logp = None
+            try:
+                logsumexp_fn = getattr(torch_mod, "logsumexp", None)
+                if not callable(logsumexp_fn):
+                    raise AttributeError("torch.logsumexp unavailable")
+                log_denom = logsumexp_fn(shifted_logits, dim=-1)
+                gather_index = torch_mod.arange(flat_labels.numel())
+                target_device = getattr(flat_logits, "device", None)
+                if target_device is not None:
+                    try:
+                        gather_index = gather_index.to(target_device)
+                    except Exception:
+                        pass
+                target_logits = flat_logits[gather_index, flat_labels].reshape(safe_labels.shape)
+                to_fn = getattr(target_logits, "to", None)
+                if callable(to_fn):
+                    target_logits = to_fn(dtype=getattr(log_denom, "dtype", None))
+                token_logp = target_logits - log_denom
+            except Exception:
+                log_probs = torch_mod.nn.functional.log_softmax(shifted_logits, dim=-1)
+                flat_log_probs = log_probs.reshape(-1, vocab_size)
+                gather_index = torch_mod.arange(flat_labels.numel())
+                target_device = getattr(flat_log_probs, "device", None)
+                if target_device is not None:
+                    try:
+                        gather_index = gather_index.to(target_device)
+                    except Exception:
+                        pass
+                token_logp = flat_log_probs[gather_index, flat_labels].reshape(safe_labels.shape)
+            mask_float = label_mask
+            type_as_fn = getattr(mask_float, "type_as", None)
+            if callable(type_as_fn):
+                mask_float = type_as_fn(token_logp)
+            else:
+                to_fn = getattr(mask_float, "to", None)
+                if callable(to_fn):
+                    mask_float = to_fn(dtype=getattr(token_logp, "dtype", None))
+            seq_logp_chunk = (token_logp * mask_float).sum(dim=1)
             tok_tensor_chunk = label_mask.sum(dim=1).clamp(min=1)
             logp_chunks.append(seq_logp_chunk)
             tok_chunks.append(tok_tensor_chunk)
@@ -1330,11 +1624,64 @@ def build_score_batch(
     )
     if prompt_entries is None:
         return None
-    completion_tensors = _tokenize_completions(
-        completion_batch,
-        tokenizer,
-        generation_cfg,
-    )
+    completion_tensors: Optional[CompletionTensors] = None
+    completion_meta = getattr(reward_comp, "completion_metadata", None)
+    if (
+        completion_meta
+        and isinstance(completion_meta, list)
+        and len(completion_meta) == len(completion_batch)
+    ):
+        token_ids: List[List[int]] = []
+        ok = True
+        for entry in completion_meta:
+            if not isinstance(entry, dict):
+                ok = False
+                break
+            raw_ids = entry.get("token_ids")
+            if raw_ids is None:
+                ok = False
+                break
+            if hasattr(raw_ids, "tolist"):
+                try:
+                    raw_ids = raw_ids.tolist()
+                except Exception:
+                    pass
+            if isinstance(raw_ids, list) and raw_ids and isinstance(raw_ids[0], list):
+                raw_ids = raw_ids[0]
+            if not isinstance(raw_ids, list):
+                ok = False
+                break
+            try:
+                token_ids.append([int(val) for val in raw_ids])
+            except (TypeError, ValueError):
+                ok = False
+                break
+        if ok:
+            pad_token_id = tokenizer.pad_token_id
+            if pad_token_id is None:
+                pad_token_id = tokenizer.eos_token_id or 0
+            vocab_size = getattr(tokenizer, "vocab_size", None)
+            if (
+                vocab_size is not None
+                and pad_token_id is not None
+                and pad_token_id >= vocab_size
+            ):
+                pad_token_id = tokenizer.eos_token_id or vocab_size - 1 or 0
+            completion_tensors = _completion_tensors_from_token_ids(
+                token_ids,
+                pad_token_id=int(pad_token_id or 0),
+                max_length=int(getattr(generation_cfg, "max_completion_len", 0) or 0),
+            )
+            LOG.debug(
+                "Using pre-tokenized completion token_ids from completion_metadata | sequences=%d",
+                len(token_ids),
+            )
+    if completion_tensors is None:
+        completion_tensors = _tokenize_completions(
+            completion_batch,
+            tokenizer,
+            generation_cfg,
+        )
     slice_size = (
         batching_cfg.score_slice if batching_cfg.score_slice > 0 else total_sequences
     )
@@ -1450,6 +1797,32 @@ def gather_reference_logprobs(
     batching_cfg: BatchingSettings,
 ) -> Optional[ReferenceLogprobs]:
     """Compute log-probabilities by running the frozen reference model."""
+    torch_mod = _refresh_torch()
+
+    def _dim0(obj: Any) -> int:
+        if obj is None:
+            return 0
+        shape = getattr(obj, "shape", None)
+        if shape is not None:
+            try:
+                return int(shape[0])
+            except Exception:
+                pass
+        try:
+            return int(len(obj))  # type: ignore[arg-type]
+        except Exception:
+            return 0
+
+    def _first_slice_rows(sb: Any) -> int:
+        total = int(getattr(sb, "total_sequences", 0) or 0)
+        slice_size = int(getattr(sb, "slice_size", 0) or 0)
+        prompt_len = len(getattr(sb, "prompt_entries", []) or [])
+        comp0 = _dim0(getattr(sb, "completion_ids", None))
+        mask0 = _dim0(getattr(sb, "completion_attention_mask", None))
+        # Bound by the first slice end index; if any of these are zero on a rank,
+        # that rank will not enter the reference forward and ZeRO collectives can hang.
+        return max(0, min(total, slice_size, prompt_len, comp0, mask0))
+
     def _safe_numel(obj: Any) -> Any:
         numel_fn = getattr(obj, "numel", None)
         if callable(numel_fn):
@@ -1459,13 +1832,71 @@ def gather_reference_logprobs(
                 return "error"
         return None
 
+    accelerator = getattr(runtime, "accelerator", None)
+    num_processes = int(getattr(accelerator, "num_processes", 1) or 1)
+    gather_obj = getattr(accelerator, "gather_object", None)
+    preflight_rows = _first_slice_rows(score_batch)
+    if num_processes > 1:
+        # Preflight: if any rank has an empty first slice, skip reference scoring
+        # everywhere to avoid deadlocking inside ZeRO parameter all-gathers.
+        all_rows: Optional[List[Any]] = None
+        if callable(gather_obj):
+            try:
+                all_rows = gather_obj(int(preflight_rows))
+            except Exception:
+                all_rows = None
+        if all_rows is None:
+            dist = _dist_collective_ready(torch_mod)
+            if dist is not None:
+                gathered: List[Any] = [None for _ in range(max(int(dist.get_world_size()), 1))]
+                try:
+                    dist.all_gather_object(gathered, int(preflight_rows))
+                    all_rows = gathered
+                except Exception:
+                    all_rows = None
+        if isinstance(all_rows, list) and all_rows:
+            try:
+                min_rows = min(int(v) for v in all_rows)
+            except Exception:
+                min_rows = int(preflight_rows)
+            if min_rows <= 0:
+                LOG.warning(
+                    "Skipping reference scoring preflight: at least one rank has empty first slice "
+                    "| local_rows=%s all_rows=%s total_sequences=%s slice_size=%s prompt_entries=%s comp_ids0=%s comp_mask0=%s",
+                    preflight_rows,
+                    all_rows,
+                    getattr(score_batch, "total_sequences", None),
+                    getattr(score_batch, "slice_size", None),
+                    len(getattr(score_batch, "prompt_entries", []) or []),
+                    _dim0(getattr(score_batch, "completion_ids", None)),
+                    _dim0(getattr(score_batch, "completion_attention_mask", None)),
+                )
+                return None
+
     tensors = reference_from_model(score_batch, runtime, batching_cfg)
-    if tensors is None:
+    local_ok = tensors is not None
+    global_ok = local_ok
+    if num_processes > 1:
+        if callable(gather_obj):
+            try:
+                gathered = gather_obj(bool(local_ok))
+                if isinstance(gathered, list):
+                    global_ok = all(bool(x) for x in gathered)
+                else:
+                    global_ok = bool(gathered)
+            except Exception:
+                global_ok = local_ok
+        else:
+            dist = _dist_collective_ready(torch_mod)
+            global_ok = _dist_all(dist, local_ok) if dist is not None else local_ok
+    if tensors is None or not global_ok:
         LOG.debug(
-            "gather_reference_logprobs returning None from reference_from_model | slice_size=%s | chunk_size=%s | device=%s",
+            "gather_reference_logprobs returning None due to reference_from_model failure on at least one rank | "
+            "slice_size=%s | chunk_size=%s | device=%s | local_ok=%s",
             getattr(score_batch, "slice_size", None),
             getattr(batching_cfg, "logprob_chunk_size", None),
             getattr(runtime, "device", None),
+            local_ok,
         )
         return None
     LOG.debug(
@@ -1530,10 +1961,9 @@ def finalize_reference_stats(
 
         # If numpy conversion dropped elements (e.g., CUDA+bfloat16 -> empty array),
         # retry with a CPU float32 view so we do not lose reference stats.
-        if (
-            getattr(logp_arr_raw, "size", 0) == 0
-            and isinstance(logp_numel, numbers.Number)
-            and logp_numel > 0
+        if getattr(logp_arr_raw, "size", 0) == 0 and (
+            (isinstance(logp_numel, numbers.Number) and logp_numel > 0)
+            or (isinstance(tok_numel, numbers.Number) and tok_numel > 0)
         ):
             try:
                 tensor_cpu = ref_logp_sum.detach().to("cpu")
@@ -1551,12 +1981,17 @@ def finalize_reference_stats(
                     logp_numel,
                     exc,
                 )
-        # If still empty but token counts exist, fill with zeros to avoid losing stats.
-        if getattr(logp_arr_raw, "size", 0) == 0 and isinstance(tok_numel, numbers.Number) and tok_numel > 0:
-            logp_arr_raw = np.zeros(int(tok_numel), dtype=float)
-            LOG.debug(
-                "finalize_reference_stats filled empty logp array with zeros | tok_numel=%s",
-                tok_numel,
+        # If still empty but token counts exist, treat as a hard failure. Returning
+        # zeros here can yield pathological KL (e.g., delta ~= -cur_logp) and
+        # destabilize training; let callers retry/skip the batch instead.
+        if (
+            getattr(logp_arr_raw, "size", 0) == 0
+            and isinstance(tok_numel, numbers.Number)
+            and tok_numel > 0
+        ):
+            raise ValueError(
+                "Reference logp tensor conversion produced an empty array while token counts exist; "
+                "cannot finalize reference stats safely."
             )
 
         def _safe_size(x: Any) -> Any:
@@ -1632,6 +2067,96 @@ def finalize_reference_stats(
             getattr(ref_tok_counts, "device", None),
         )
         raise
+
+
+def token_counts_from_score_batch(
+    score_batch: ScoreBatch,
+    runtime: RuntimeHandles,
+    batching_cfg: BatchingSettings,
+) -> Tensor:
+    """Compute per-sequence token counts from the score batch labels mask."""
+    torch_mod = _refresh_torch()
+    tok_chunks: List[Tensor] = []
+    slice_iter = iter_batch_slices(score_batch, runtime.device)
+    slice_iter = _prefetch_iterator(slice_iter, getattr(batching_cfg, "slice_prefetch", 0))
+    for _slice_inputs, _slice_mask, slice_labels in slice_iter:
+        label_mask = slice_labels != -100
+        tok = label_mask.sum(dim=1).clamp(min=1)
+        to_fn = getattr(tok, "to", None)
+        if callable(to_fn):
+            tok = to_fn(dtype=getattr(torch_mod, "float32", None))
+        tok_chunks.append(tok)
+    if not tok_chunks:
+        try:
+            return torch_mod.zeros(
+                (0,),
+                dtype=getattr(torch_mod, "float32", None),
+                device=runtime.device,
+            )
+        except Exception:
+            return torch_mod.tensor([], dtype=getattr(torch_mod, "float32", None))
+    try:
+        out = torch_mod.cat(tok_chunks, dim=0)
+    except Exception:
+        out = tok_chunks[0]
+        for chunk in tok_chunks[1:]:
+            out = torch_mod.cat([out, chunk], dim=0)
+    to_fn = getattr(out, "to", None)
+    if callable(to_fn):
+        try:
+            out = to_fn(device=runtime.device)
+        except Exception:
+            pass
+    return out
+
+
+def reference_stats_from_policy_logprobs(
+    cur_logp_sum: Tensor,
+    tok_counts: Tensor,
+) -> ReferenceLogprobs:
+    """Build ReferenceLogprobs assuming reference == current policy (KL ~= 0)."""
+    torch_mod = _refresh_torch()
+    base_dtype = getattr(torch_mod, "float32", None)
+    device = getattr(cur_logp_sum, "device", None)
+    cur_tensor = _as_torch_tensor(
+        torch_mod, cur_logp_sum, device=device, dtype=base_dtype
+    ).view(-1)
+    tok_tensor = _as_torch_tensor(
+        torch_mod, tok_counts, device=device, dtype=base_dtype
+    ).view(-1)
+    try:
+        tok_tensor = tok_tensor.clamp(min=1.0)
+    except Exception:
+        pass
+    detach_fn = getattr(cur_tensor, "detach", None)
+    if callable(detach_fn):
+        cur_tensor = detach_fn()
+    detach_fn = getattr(tok_tensor, "detach", None)
+    if callable(detach_fn):
+        tok_tensor = detach_fn()
+    ref_logp_sum_raw = cur_tensor
+    ref_logp_sum = ref_logp_sum_raw / tok_tensor
+    try:
+        ref_logp_mean = float(ref_logp_sum_raw.detach().float().cpu().mean().item())
+    except Exception:
+        try:
+            ref_logp_mean = float(ref_logp_sum_raw.mean())
+        except Exception:
+            ref_logp_mean = 0.0
+    try:
+        avg_completion_tokens = float(tok_tensor.detach().float().cpu().mean().item())
+    except Exception:
+        try:
+            avg_completion_tokens = float(tok_tensor.mean())
+        except Exception:
+            avg_completion_tokens = 0.0
+    return ReferenceLogprobs(
+        ref_logp_sum=ref_logp_sum,
+        ref_tok_counts=tok_tensor,
+        ref_logp_sum_raw=ref_logp_sum_raw,
+        ref_logp_mean=ref_logp_mean,
+        avg_completion_tokens=avg_completion_tokens,
+    )
 
 
 def reference_from_vllm_meta(

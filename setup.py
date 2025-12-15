@@ -46,10 +46,13 @@ def _warn(msg: str) -> None:
 
 def _patch_trl_vllm_serve():
     """
-    Ensure TRL's vllm_serve.py passes use_tqdm_on_load=True to vLLM.LLM.
+    Ensure TRL's vllm_serve.py passes use_tqdm_on_load=True and returns logprobs.
 
     We locate trl.scripts.vllm_serve, and if the LLM(...) call does not
-    already include use_tqdm_on_load, we insert it after enforce_eager.
+    already include use_tqdm_on_load, we insert it after enforce_eager. We
+    also augment the /generate handler to accept return_logprobs/logprobs and
+    emit token-level logprob metadata so downstream callers can reconstruct
+    reference logprobs from vLLM responses.
     """
     trl_version = _trl_version_hint()
     if trl_version not in ("unknown",) and not str(trl_version).startswith(
@@ -72,36 +75,208 @@ def _patch_trl_vllm_serve():
         _warn(f"Skipping TRL patch (read failed at {path}): {e}")
         return False
 
-    if "use_tqdm_on_load=True" in text:
+    patched = False
+    tqdm_anchor = "enforce_eager=script_args.enforce_eager,"
+    tqdm_insert = "\n        use_tqdm_on_load=True,"
+    if "use_tqdm_on_load=True" not in text:
+        new_text = None
+        if tqdm_anchor in text:
+            new_text = text.replace(tqdm_anchor, tqdm_anchor + tqdm_insert)
+        else:
+            alt_anchor = "dtype=script_args.dtype,"
+            if alt_anchor in text:
+                new_text = text.replace(alt_anchor, alt_anchor + tqdm_insert)
+            else:
+                llm_call = "llm = LLM("
+                if llm_call in text:
+                    new_text = text.replace(llm_call, llm_call + tqdm_insert + "\n")
+        if new_text is None:
+            raise RuntimeError(
+                f"[open-r1 setup] Could not find insertion point in TRL vllm_serve "
+                f"(trl=={trl_version}, path={path}). Update the patch to match the "
+                "current TRL release."
+            )
+        text = new_text
+        patched = True
+    else:
         print("[open-r1 setup] TRL vllm_serve already patched (use_tqdm_on_load=True).")
+
+    needs_logprob_patch = "output_token_logprobs" not in text and "return_logprobs" not in text
+    if needs_logprob_patch:
+        req_anchor = (
+            "        max_tokens: int = 16\n"
+            "        guided_decoding_regex: Optional[str] = None\n"
+        )
+        req_replacement = (
+            req_anchor
+            + "        return_logprobs: bool = False\n"
+            "        logprobs: Optional[int] = None\n"
+        )
+        if req_anchor not in text:
+            raise RuntimeError(
+                f"[open-r1 setup] Could not find GenerateRequest anchor in TRL vllm_serve "
+                f"(trl=={trl_version}, path={path}) to inject logprob fields."
+            )
+        text = text.replace(req_anchor, req_replacement)
+
+        resp_anchor = (
+            '    class GenerateResponse(BaseModel):\n'
+            '        completion_ids: list[list[int]]\n'
+            "\n"
+            '    @app.post("/generate/", response_model=GenerateResponse)\n'
+            "    async def generate(request: GenerateRequest):\n"
+        )
+        resp_replacement = (
+            '    class GenerateResponse(BaseModel):\n'
+            "        text: list[str]\n"
+            "        token_ids: list[list[int]]\n"
+            "        output_token_logprobs: Optional[list[Optional[list[float]]]] = None\n"
+            "        cumulative_logprob: Optional[list[Optional[float]]] = None\n"
+            "        completion_ids: Optional[list[list[int]]] = None\n"
+            "\n"
+            '    @app.post("/generate/", response_model=GenerateResponse)\n'
+            "    async def generate(request: GenerateRequest):\n"
+        )
+        if resp_anchor not in text:
+            raise RuntimeError(
+                f"[open-r1 setup] Could not update GenerateResponse in TRL vllm_serve "
+                f"(trl=={trl_version}, path={path}) to include logprob metadata."
+            )
+        text = text.replace(resp_anchor, resp_replacement)
+
+        body_anchor = (
+            "        # Guided decoding, if enabled\n"
+            "        if request.guided_decoding_regex is not None:\n"
+            '            guided_decoding = GuidedDecodingParams(backend="outlines", regex=request.guided_decoding_regex)\n'
+            "        else:\n"
+            "            guided_decoding = None\n"
+            "\n"
+            "        # Sampling parameters\n"
+            "        sampling_params = SamplingParams(\n"
+            "            n=request.n,\n"
+            "            repetition_penalty=request.repetition_penalty,\n"
+            "            temperature=request.temperature,\n"
+            "            top_p=request.top_p,\n"
+            "            top_k=request.top_k,\n"
+            "            min_p=request.min_p,\n"
+            "            max_tokens=request.max_tokens,\n"
+            "            guided_decoding=guided_decoding,\n"
+            "        )\n"
+            "        # Evenly distribute prompts across DP ranks\n"
+            "        chunked_prompts = chunk_list(request.prompts, script_args.data_parallel_size)\n"
+            "\n"
+            "        # Send the prompts to each worker\n"
+            "        for connection, prompts in zip(connections, chunked_prompts):\n"
+            "            # When the number of prompts is less than data_parallel_size, some workers will receive empty prompts.\n"
+            "            # However, vLLM requires that we always send at least one prompt. So we send a placeholder prompt to comply\n"
+            "            # with vLLM's requirement, and we later ignore the result.\n"
+            "            if not prompts:\n"
+            '                prompts = ["<placeholder>"]\n'
+            '            kwargs = {"prompts": prompts, "sampling_params": sampling_params}\n'
+            '            connection.send({"type": "call", "method": "generate", "kwargs": kwargs})\n'
+            "\n"
+            "        # Receive results\n"
+            "        all_outputs = [connection.recv() for connection in connections]\n"
+            "\n"
+            "        # Handle empty prompts (see above)\n"
+            "        all_outputs = [output for output, prompts in zip(all_outputs, chunked_prompts) if prompts]\n"
+            "\n"
+            "        # Flatten and combine all results\n"
+            "        all_outputs = list(chain.from_iterable(all_outputs))  # from list of list to single list\n"
+            "        completion_ids = [list(output.token_ids) for outputs in all_outputs for output in outputs.outputs]\n"
+            '        return {"completion_ids": completion_ids}\n'
+        )
+        body_replacement = (
+            "        logprobs = request.logprobs if request.return_logprobs else None\n"
+            "\n"
+            "        # Guided decoding, if enabled\n"
+            "        if request.guided_decoding_regex is not None:\n"
+            '            guided_decoding = GuidedDecodingParams(backend="outlines", regex=request.guided_decoding_regex)\n'
+            "        else:\n"
+            "            guided_decoding = None\n"
+            "\n"
+            "        # Sampling parameters\n"
+            "        sampling_params = SamplingParams(\n"
+            "            n=request.n,\n"
+            "            repetition_penalty=request.repetition_penalty,\n"
+            "            temperature=request.temperature,\n"
+            "            top_p=request.top_p,\n"
+            "            top_k=request.top_k,\n"
+            "            min_p=request.min_p,\n"
+            "            max_tokens=request.max_tokens,\n"
+            "            guided_decoding=guided_decoding,\n"
+            "            logprobs=logprobs,\n"
+            "        )\n"
+            "        # Evenly distribute prompts across DP ranks\n"
+            "        chunked_prompts = chunk_list(request.prompts, script_args.data_parallel_size)\n"
+            "\n"
+            "        # Send the prompts to each worker\n"
+            "        for connection, prompts in zip(connections, chunked_prompts):\n"
+            "            # When the number of prompts is less than data_parallel_size, some workers will receive empty prompts.\n"
+            "            # However, vLLM requires that we always send at least one prompt. So we send a placeholder prompt to comply\n"
+            "            # with vLLM's requirement, and we later ignore the result.\n"
+            "            if not prompts:\n"
+            '                prompts = ["<placeholder>"]\n'
+            '            kwargs = {"prompts": prompts, "sampling_params": sampling_params}\n'
+            '            connection.send({"type": "call", "method": "generate", "kwargs": kwargs})\n'
+            "\n"
+            "        # Receive results\n"
+            "        all_outputs = [connection.recv() for connection in connections]\n"
+            "\n"
+            "        # Handle empty prompts (see above)\n"
+            "        all_outputs = [output for output, prompts in zip(all_outputs, chunked_prompts) if prompts]\n"
+            "\n"
+            "        # Flatten and combine all results\n"
+            "        all_outputs = list(chain.from_iterable(all_outputs))  # from list of list to single list\n"
+            "        texts = []\n"
+            "        token_ids = []\n"
+            "        token_logprobs = []\n"
+            "        cumulative_logprobs = []\n"
+            "        for outputs in all_outputs:\n"
+            "            for output in outputs.outputs:\n"
+            "                ids = list(output.token_ids)\n"
+            "                token_ids.append(ids)\n"
+            "                if logprobs is not None and getattr(output, \"logprobs\", None):\n"
+            "                    per_token = []\n"
+            "                    for tok_id, lp_dict in zip(ids, output.logprobs):\n"
+            "                        lp_val = None\n"
+            "                        try:\n"
+            "                            lp = lp_dict.get(tok_id)\n"
+            "                            if lp is not None:\n"
+            "                                lp_val = float(lp.logprob)\n"
+            "                        except Exception:\n"
+            "                            lp_val = None\n"
+            "                        per_token.append(lp_val)\n"
+            "                    token_logprobs.append(per_token)\n"
+            "                else:\n"
+            "                    token_logprobs.append(None)\n"
+            "                cumulative_logprobs.append(output.cumulative_logprob)\n"
+            "                texts.append(output.text)\n"
+            "        response = {\n"
+            '            "text": texts,\n'
+            '            "token_ids": token_ids,\n'
+            '            "completion_ids": token_ids,\n'
+            "        }\n"
+            "        if logprobs is not None:\n"
+            '            response["output_token_logprobs"] = token_logprobs\n'
+            '            response["cumulative_logprob"] = cumulative_logprobs\n'
+            "        return response\n"
+        )
+        if body_anchor not in text:
+            raise RuntimeError(
+                f"[open-r1 setup] Could not replace generate() body in TRL vllm_serve "
+                f"(trl=={trl_version}, path={path}) to return logprobs."
+            )
+        text = text.replace(body_anchor, body_replacement)
+        patched = True
+    else:
+        print("[open-r1 setup] TRL vllm_serve already patched for logprobs.")
+
+    if not patched:
         return True
 
-    # Preferred anchor to insert after
-    anchor = "enforce_eager=script_args.enforce_eager,"
-    insertion = "\n        use_tqdm_on_load=True,"
-
-    new_text = None
-    if anchor in text:
-        new_text = text.replace(anchor, anchor + insertion)
-    else:
-        # Fallback: try to place after dtype assignment
-        alt_anchor = "dtype=script_args.dtype,"
-        if alt_anchor in text:
-            new_text = text.replace(alt_anchor, alt_anchor + insertion)
-        else:
-            # Last resort: after the opening of the LLM call
-            llm_call = "llm = LLM("
-            if llm_call in text:
-                new_text = text.replace(llm_call, llm_call + insertion + "\n")
-    if new_text is None:
-        raise RuntimeError(
-            f"[open-r1 setup] Could not find insertion point in TRL vllm_serve "
-            f"(trl=={trl_version}, path={path}). Update the patch to match the "
-            "current TRL release."
-        )
-
     try:
-        path.write_text(new_text, encoding="utf-8")
+        path.write_text(text, encoding="utf-8")
         print(f"[open-r1 setup] Patched TRL vllm_serve at: {path}")
     except Exception as e:
         _warn(f"Failed to write TRL patch at {path}: {e}")
@@ -164,6 +339,7 @@ _deps = [
     "liger-kernel>=0.5.10",
     "lighteval @ git+https://github.com/huggingface/lighteval.git@d3da6b9bbf38104c8b5e1acc86f83541f9a502d1",  # Critical bug fix for tokenizer revisions
     "morphcloud==0.1.67",
+    "more-itertools>=10.0.0",
     "numpy>=1.26.4",
     "packaging>=23.0",
     "parameterized>=0.9.0",

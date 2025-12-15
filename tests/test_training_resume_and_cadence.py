@@ -62,6 +62,13 @@ def _patch_loop_common(monkeypatch):
 def test_resolve_resume_checkpoint_prefers_init(tmp_path):
     ckpt_init = tmp_path / "checkpoint-10"
     ckpt_init.mkdir()
+    # Simulate an Accelerate/DeepSpeed checkpoint layout: a `latest` tag pointing to
+    # the directory holding the `.pt` shard files.
+    (ckpt_init / "pytorch_model").mkdir()
+    (ckpt_init / "pytorch_model" / "zero_pp_rank_0_mp_rank_00_model_states.pt").write_text(
+        "state", encoding="utf-8"
+    )
+    (ckpt_init / "latest").write_text("pytorch_model", encoding="utf-8")
     training_args = SimpleNamespace(
         init_from_checkpoint=str(ckpt_init),
         resume_from_checkpoint="missing",
@@ -75,8 +82,18 @@ def test_resolve_resume_checkpoint_prefers_init(tmp_path):
 def test_resolve_resume_checkpoint_falls_back_to_latest(tmp_path):
     ckpt_old = tmp_path / "checkpoint-5"
     ckpt_old.mkdir()
+    (ckpt_old / "pytorch_model").mkdir()
+    (ckpt_old / "pytorch_model" / "zero_pp_rank_0_mp_rank_00_model_states.pt").write_text(
+        "state", encoding="utf-8"
+    )
+    (ckpt_old / "latest").write_text("pytorch_model", encoding="utf-8")
     ckpt_new = tmp_path / "checkpoint-20"
     ckpt_new.mkdir()
+    (ckpt_new / "pytorch_model").mkdir()
+    (ckpt_new / "pytorch_model" / "zero_pp_rank_0_mp_rank_00_model_states.pt").write_text(
+        "state", encoding="utf-8"
+    )
+    (ckpt_new / "latest").write_text("pytorch_model", encoding="utf-8")
     training_args = SimpleNamespace(
         init_from_checkpoint=None,
         resume_from_checkpoint=True,
@@ -84,6 +101,25 @@ def test_resolve_resume_checkpoint_falls_back_to_latest(tmp_path):
     )
     resolved, requested = resolve_resume_checkpoint(training_args)
     assert resolved == str(ckpt_new)
+    assert requested is True
+
+
+def test_resolve_resume_checkpoint_normalizes_accelerate_tag_dir(tmp_path):
+    ckpt = tmp_path / "checkpoint-100"
+    ckpt.mkdir()
+    tag_dir = ckpt / "pytorch_model"
+    tag_dir.mkdir()
+    (tag_dir / "zero_pp_rank_0_mp_rank_00_model_states.pt").write_text(
+        "state", encoding="utf-8"
+    )
+    (ckpt / "latest").write_text("pytorch_model", encoding="utf-8")
+    training_args = SimpleNamespace(
+        init_from_checkpoint=None,
+        resume_from_checkpoint=str(tag_dir),
+        output_dir=str(tmp_path),
+    )
+    resolved, requested = resolve_resume_checkpoint(training_args)
+    assert resolved == str(ckpt)
     assert requested is True
 
 
@@ -214,6 +250,73 @@ def test_build_checkpoint_saver_persists_and_pushes(monkeypatch, tmp_path, train
     assert trainer_state["best_global_step"] == 5
     assert saved["push"] == str(ckpt_dir)
     assert (ckpt_dir / "optimizer.pt").read_text() == "opt"
+
+
+def test_build_checkpoint_saver_writes_consolidated_hf_weights(monkeypatch, tmp_path):
+    saved = {"kwargs": None}
+
+    monkeypatch.setattr(
+        "maxent_grpo.training.state._is_safetensors_available", lambda: False
+    )
+
+    class _Model:
+        def save_pretrained(
+            self,
+            path,
+            *,
+            state_dict=None,
+            safe_serialization=None,
+            max_shard_size=None,
+        ):
+            saved["kwargs"] = {
+                "state_dict": state_dict,
+                "safe_serialization": safe_serialization,
+                "max_shard_size": max_shard_size,
+            }
+            # `_checkpoint_has_valid_hf_weights` treats tiny pytorch_model.bin files as invalid
+            # (to guard against zero-sized tensor checkpoints), so write >1MB of dummy bytes.
+            Path(path, "pytorch_model.bin").write_bytes(b"0" * 1_000_001)
+
+    class _Tokenizer:
+        def save_pretrained(self, path):
+            Path(path, "tokenizer").write_text("tok", encoding="utf-8")
+
+    class _Accel:
+        def __init__(self):
+            self.is_main_process = True
+
+        def wait_for_everyone(self):
+            return None
+
+        def save_state(self, _path):
+            return None
+
+        def unwrap_model(self, model):
+            return model
+
+        def get_state_dict(self, _model):
+            return {"w": 1}
+
+    training_args = SimpleNamespace(output_dir=str(tmp_path), __dict__={})
+    accel = _Accel()
+    runtime_handles = SimpleNamespace(accelerator=accel, model=_Model())
+    optim_handles = SimpleNamespace(optimizer=None)
+    saver = build_checkpoint_saver(
+        training_args,
+        runtime_handles,
+        optim_handles,
+        _Tokenizer(),
+        state_ref={"state": SimpleNamespace(global_step=1)},
+    )
+
+    saver("checkpoint-1")
+    ckpt_dir = Path(tmp_path) / "checkpoint-1"
+    assert (ckpt_dir / "pytorch_model.bin").exists()
+    assert saved["kwargs"] == {
+        "state_dict": {"w": 1},
+        "safe_serialization": False,
+        "max_shard_size": "100GB",
+    }
 
 
 def test_should_log_respects_strategy_and_first_step(caplog):

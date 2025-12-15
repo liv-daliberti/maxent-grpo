@@ -254,6 +254,26 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    maxent_reference_logprobs_source: str = field(
+        default="auto",
+        metadata={
+            "help": (
+                "How to obtain reference log-prob statistics used for KL. "
+                "'auto' uses vLLM metadata when valid, otherwise scores with the frozen reference model; "
+                "'model' always scores with the frozen reference model."
+            )
+        },
+    )
+    maxent_allow_stale_reference_logprobs: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, reuse the last cached reference log-prob statistics if reference scoring fails "
+                "for a batch. This avoids skipping steps but can corrupt KL/weighting when the cached stats "
+                "do not correspond to the current completions."
+            )
+        },
+    )
     maxent_score_tail_tokens: Optional[int] = field(
         default=None,
         metadata={
@@ -340,6 +360,33 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "Learning rate for meta-controller updates. Leave at zero to disable gradient steps."
+            )
+        },
+    )
+    controller_meta_tau_lr: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Optional tau-specific learning rate for meta-controller updates. "
+                "When > 0, overrides controller_meta_lr for tau updates."
+            )
+        },
+    )
+    controller_meta_beta_lr: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Optional beta-specific learning rate for meta-controller updates. "
+                "When > 0, overrides controller_meta_lr for beta updates."
+            )
+        },
+    )
+    controller_meta_beta_grad_clip: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Optional absolute clip value applied to the meta-controller beta gradient "
+                "(kl - kl_target) before applying the update. Set > 0 to enable."
             )
         },
     )
@@ -591,6 +638,15 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    vllm_sync_weights: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When using a long-lived vLLM server, push updated weights to the "
+                "server before generation so completions reflect the latest policy."
+            )
+        },
+    )
     vllm_best_of: Optional[int] = field(
         default=None,
         metadata={
@@ -702,6 +758,12 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_tau_warmup_steps must be >= -1")
         if self.controller_meta_lr < 0.0:
             raise ValueError("controller_meta_lr must be non-negative")
+        if self.controller_meta_tau_lr < 0.0:
+            raise ValueError("controller_meta_tau_lr must be non-negative")
+        if self.controller_meta_beta_lr < 0.0:
+            raise ValueError("controller_meta_beta_lr must be non-negative")
+        if self.controller_meta_beta_grad_clip < 0.0:
+            raise ValueError("controller_meta_beta_grad_clip must be non-negative")
         if self.controller_meta_update_interval < 1:
             raise ValueError("controller_meta_update_interval must be >= 1")
         if self.controller_meta_analytic_steps < 1:
@@ -714,6 +776,13 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_q_temperature must be > 0")
         if self.maxent_logprob_chunk_size < 0:
             raise ValueError("maxent_logprob_chunk_size must be non-negative")
+        ref_source = (
+            str(getattr(self, "maxent_reference_logprobs_source", "auto") or "auto")
+            .strip()
+            .lower()
+        )
+        if ref_source not in {"auto", "model"}:
+            raise ValueError("maxent_reference_logprobs_source must be one of: auto, model")
         if (
             self.maxent_score_tail_tokens is not None
             and self.maxent_score_tail_tokens <= 0

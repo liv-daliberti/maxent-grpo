@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import time
 from contextlib import nullcontext
 from types import SimpleNamespace as _SimpleNamespace
 from typing import Any, Callable, Optional, Sequence, cast
@@ -113,6 +114,48 @@ class VLLMWeightSyncMixin:
     _gather_factory: Any
     ctx: Any
 
+    @staticmethod
+    def _zero3_status_name(param: Any) -> Optional[str]:
+        """Best-effort extraction of DeepSpeed ZeRO-3 status for a parameter."""
+        status = getattr(param, "ds_status", None)
+        if status is None:
+            return None
+        name = getattr(status, "name", None)
+        if isinstance(name, str) and name:
+            return name
+        try:
+            text = str(status)
+        except Exception:
+            return None
+        if "." in text:
+            text = text.rsplit(".", 1)[-1]
+        return text or None
+
+    def _zero3_param_ready_without_gather(self, param: Any) -> bool:
+        """Return True if ZeRO-3 param is already available (or actively held)."""
+        status_name = self._zero3_status_name(param)
+        if status_name == "AVAILABLE":
+            return True
+        active = getattr(param, "ds_active_sub_modules", None)
+        try:
+            return bool(active)
+        except Exception:
+            return False
+
+    def _zero3_params_to_gather(self, params: Sequence[Any]) -> list[Any]:
+        """Filter ZeRO-3 params that actually require a GatheredParameters context."""
+        to_gather: list[Any] = []
+        for param in params:
+            if param is None or not hasattr(param, "ds_id"):
+                continue
+            status_name = self._zero3_status_name(param)
+            if status_name == "INFLIGHT":
+                continue
+            if self._zero3_param_ready_without_gather(param):
+                continue
+            to_gather.append(param)
+        return to_gather
+
     def _vllm_base_url(self, url: str) -> str:
         """Strip common ``/generate`` suffixes from the vLLM endpoint.
 
@@ -215,19 +258,87 @@ class VLLMWeightSyncMixin:
         :param sync_model: Optional callable invoked to push model weights.
         :type sync_model: Callable[[Any], None] | None
         """
+        ctx = self.ctx
+        if not getattr(ctx, "vllm_sync_weights", False):
+            return
+        accelerator = ctx.accelerator
+        is_main = getattr(accelerator, "is_main_process", True)
+        current_step = ctx.generation_stats.get("current_step")
         ensure_fn = ensure_client or self._ensure_vllm_client
-        if not ensure_fn():
-            return
-        current_step = self.ctx.generation_stats.get("current_step")
-        if current_step is not None and self._last_vllm_synced_step == int(
-            current_step
+        # Decide once (on rank 0) whether to run the ZeRO-3 gather + sync path,
+        # then broadcast to all ranks. This avoids deadlocks where non-main
+        # ranks enter the gather path while rank 0 returns early.
+        dist = getattr(torch, "distributed", None)
+        should_sync = True
+        if is_main and current_step is not None:
+            try:
+                should_sync = self._last_vllm_synced_step != int(current_step)
+            except (TypeError, ValueError):
+                should_sync = True
+        if (
+            getattr(accelerator, "num_processes", 1) > 1
+            and dist is not None
+            and callable(getattr(dist, "is_available", None))
+            and callable(getattr(dist, "is_initialized", None))
+            and dist.is_available()
+            and dist.is_initialized()
+            and callable(getattr(dist, "broadcast_object_list", None))
         ):
+            payload = [bool(should_sync)]
+            dist.broadcast_object_list(payload, src=0)
+            should_sync = bool(payload[0])
+        if not should_sync:
             return
-        accelerator = self.ctx.accelerator
+
+        def _is_zero3(accel: Any) -> bool:
+            ds_plugin = getattr(getattr(accel, "state", None), "deepspeed_plugin", None)
+            try:
+                return int(getattr(ds_plugin, "zero_stage", 0) or 0) == 3
+            except (TypeError, ValueError):
+                return False
+
+        # Only the main process should talk to the vLLM HTTP client. Other ranks
+        # still participate in ZeRO gathers so parameter states stay aligned.
+        ready = bool(ensure_fn()) if is_main else False
+        if not ready:
+            # In collective vLLM generation, only rank 0 issues the vLLM request,
+            # but ZeRO-3 parameter gathering is a collective op that requires
+            # participation from every rank. Allow non-main ranks to run the
+            # gather-only path (no client updates) to avoid deadlocks.
+            if _is_zero3(accelerator) and callable(sync_model):
+                try:
+                    try:
+                        model = accelerator.unwrap_model(ctx.model)
+                    except (AttributeError, TypeError):
+                        model = ctx.model
+                    start = time.monotonic()
+                    sync_model(model)
+                    if getattr(accelerator, "is_main_process", False):
+                        LOG.debug(
+                            "vLLM weight sync (gather-only) complete | step=%s | seconds=%.2f",
+                            current_step,
+                            time.monotonic() - start,
+                        )
+                except (RuntimeError, ValueError, TypeError):
+                    pass
+                wait_for_all = getattr(accelerator, "wait_for_everyone", None)
+                if callable(wait_for_all):
+                    wait_for_all()
+            else:
+                wait_for_all = getattr(accelerator, "wait_for_everyone", None)
+                if callable(wait_for_all):
+                    wait_for_all()
+            return
+
+        if current_step is not None and self._last_vllm_synced_step == int(current_step):
+            return
+        start = time.monotonic()
+        if getattr(accelerator, "is_main_process", False):
+            LOG.debug("vLLM weight sync start | step=%s", current_step)
         try:
-            model = accelerator.unwrap_model(self.ctx.model)
+            model = accelerator.unwrap_model(ctx.model)
         except (AttributeError, TypeError):
-            model = self.ctx.model
+            model = ctx.model
         sync_fn = sync_model or self._sync_model_params_to_vllm
         visited: set[str] = set()
         try:
@@ -240,7 +351,7 @@ class VLLMWeightSyncMixin:
                 sync_fn(model, visited=visited)
             else:
                 sync_fn(model)
-            stats = self.ctx.generation_stats
+            stats = ctx.generation_stats
             stats["vllm_weight_syncs"] = int(stats.get("vllm_weight_syncs", 0)) + 1
             if current_step is not None:
                 self._last_vllm_synced_step = int(current_step)
@@ -249,6 +360,21 @@ class VLLMWeightSyncMixin:
             ValueError,
         ) as exc:  # pragma: no cover - runtime dependent
             LOG.warning("Skipping vLLM weight sync due to error: %s", exc)
+        else:
+            elapsed = time.monotonic() - start
+            if getattr(accelerator, "is_main_process", False):
+                if elapsed >= 15.0:
+                    LOG.info(
+                        "vLLM weight sync complete | step=%s | seconds=%.2f",
+                        current_step,
+                        elapsed,
+                    )
+                else:
+                    LOG.debug(
+                        "vLLM weight sync complete | step=%s | seconds=%.2f",
+                        current_step,
+                        elapsed,
+                    )
         wait_for_all = getattr(accelerator, "wait_for_everyone", None)
         if callable(wait_for_all):
             wait_for_all()
@@ -477,29 +603,41 @@ class VLLMWeightSyncMixin:
         :param visited: Parameter names already synced to avoid duplicates.
         :type visited: set[str] | None
         """
-        params = list(model.parameters()) if hasattr(model, "parameters") else []
         factory = gather_factory or self._gather_factory or (lambda _p: nullcontext())
-        try:
-            ctx = factory(params)
-        except NameError:
-            ctx = nullcontext()
         visited = visited if visited is not None else set()
         named_params = getattr(model, "named_parameters", None)
+        iterator: list[tuple[str, Any]] = []
+        if callable(named_params):
+            try:
+                iterator = list(named_params(recurse=False))
+            except TypeError:
+                iterator = list(named_params())
+        params = [param for _, param in iterator if param is not None]
+        params_to_gather = self._zero3_params_to_gather(params)
+        if not params_to_gather and params:
+            saw_zero3 = any(self._zero3_status_name(p) is not None for p in params)
+            if not saw_zero3:
+                params_to_gather = params
+        try:
+            ctx = factory(params_to_gather)
+        except NameError:
+            ctx = nullcontext()
         with ctx:
-            if callable(named_params):
-                for name, param in named_params():
-                    if param is None:
-                        continue
-                    clean = f"{prefix}{name}" if prefix else name
-                    for extra in (
-                        "_fsdp_wrapped_module.",
-                        "_checkpoint_wrapped_module.",
-                    ):
-                        clean = clean.replace(extra, "")
-                    if clean in visited:
-                        continue
-                    visited.add(clean)
-                    self._push_param_to_vllm(clean, param)
+            for name, param in iterator:
+                if param is None:
+                    continue
+                if self._zero3_status_name(param) == "INFLIGHT":
+                    continue
+                clean = f"{prefix}{name}" if prefix else name
+                for extra in (
+                    "_fsdp_wrapped_module.",
+                    "_checkpoint_wrapped_module.",
+                ):
+                    clean = clean.replace(extra, "")
+                if clean in visited:
+                    continue
+                visited.add(clean)
+                self._push_param_to_vllm(clean, param)
         named_children = getattr(model, "named_children", None)
         if callable(named_children):
             for child_name, child in named_children():
@@ -524,7 +662,12 @@ class VLLMWeightSyncMixin:
         unmerge_fn = getattr(model, "unmerge_adapter", None)
         params = list(model.parameters())
         factory = gather_factory or self._gather_factory or (lambda _p: nullcontext())
-        with factory(params):
+        params_to_gather = self._zero3_params_to_gather(params)
+        if not params_to_gather and params:
+            saw_zero3 = any(self._zero3_status_name(p) is not None for p in params)
+            if not saw_zero3:
+                params_to_gather = params
+        with factory(params_to_gather):
             if callable(merge_fn):
                 merge_fn()
             for name, param in model.named_parameters():
@@ -571,7 +714,12 @@ class VLLMWeightSyncMixin:
             params = []
         visited = visited or set()
         factory = gather_factory or self._gather_factory or (lambda _p: nullcontext())
-        with factory(params):
+        params_to_gather = self._zero3_params_to_gather(params)
+        if not params_to_gather and params:
+            saw_zero3 = any(self._zero3_status_name(p) is not None for p in params)
+            if not saw_zero3:
+                params_to_gather = params
+        with factory(params_to_gather):
             named_params = getattr(module, "named_parameters", None)
             if callable(named_params):
                 for name, param in named_params():

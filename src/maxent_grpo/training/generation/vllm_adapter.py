@@ -650,6 +650,20 @@ class VLLMGenerationMixin:
         accelerator = self.ctx.accelerator
         if getattr(accelerator, "num_processes", 1) <= 1:
             return self._generate_with_vllm(prompts, num_samples, per_prompt_counts)
+        # Weight sync under ZeRO-3 uses collective gathers; run it on all ranks
+        # before non-main processes block waiting for the scatter payload.
+        vllm_helper = getattr(self, "_vllm_helper", None)
+        maybe_sync = getattr(vllm_helper, "maybe_sync_weights", None) if vllm_helper else None
+        if callable(maybe_sync) and getattr(self.ctx, "vllm_sync_weights", False):
+            try:
+                maybe_sync(
+                    ensure_client=self._ensure_vllm_client,
+                    sync_model=lambda model: self._sync_model_params_to_vllm(
+                        model, accelerator
+                    ),
+                )
+            except TypeError:
+                maybe_sync()
         flat_prompts, offsets, flat_counts = self._flatten_prompts_for_broadcast(
             prompts,
             per_prompt_counts,
@@ -750,6 +764,29 @@ def _scatter_object(
     except (TypeError, ValueError):
         return None
     if dist is not None and dist.is_available() and dist.is_initialized():
+        # Prefer broadcast-based scatter when possible. Some environments
+        # intermittently hang inside scatter_object_list; broadcasting the full
+        # payload is slower but tends to be more reliable.
+        broadcast_fn = getattr(dist, "broadcast_object_list", None)
+        if callable(broadcast_fn):
+            try:
+                world_size = int(dist.get_world_size())
+            except Exception:
+                world_size = int(getattr(accelerator, "num_processes", 1) or 1)
+            list_ok = input_list is None or (
+                isinstance(input_list, list) and len(input_list) == world_size
+            )
+            if world_size > 0 and list_ok:
+                payload = (
+                    input_list
+                    if accelerator.process_index == src and input_list is not None
+                    else [None for _ in range(world_size)]
+                )
+                try:
+                    broadcast_fn(payload, src=src)
+                    return payload[int(getattr(accelerator, "process_index", 0))]
+                except Exception:
+                    return None
         scatter_fn = getattr(dist, "scatter_object_list", None)
         if callable(scatter_fn):
             output: List[Any] = [None]

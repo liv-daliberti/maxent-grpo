@@ -221,6 +221,34 @@ def test_build_loop_context_applies_chunking_knobs():
     assert gen.max_completion_len == training_args.max_completion_length
 
 
+def test_build_loop_context_keeps_model_name_on_resume(monkeypatch, tmp_path):
+    script_args, training_args, model_args = _script_and_training_args()
+    base_model_name = model_args.model_name_or_path
+    resume_path = str(tmp_path / "checkpoint-50")
+
+    monkeypatch.setattr(
+        loop_common, "resolve_resume_checkpoint", lambda *_a, **_k: (resume_path, True)
+    )
+    monkeypatch.setattr(
+        loop_common,
+        "load_trainer_state_metadata",
+        lambda *_a, **_k: {"global_step": 50, "num_input_tokens_seen": 0.0},
+    )
+
+    ctx = loop_common.build_training_loop_context(
+        script_args,
+        training_args,
+        model_args,
+        deps_namespace="test",
+        apply_info_seed_cfg=False,
+        force_grpo_objective=None,
+    )
+
+    assert model_args.model_name_or_path == base_model_name
+    assert getattr(training_args, "resume_from_checkpoint", None) == resume_path
+    assert getattr(ctx, "resume_checkpoint", None) == resume_path
+
+
 def test_build_loop_context_attaches_frozen_reference_model(monkeypatch):
     script_args, training_args, model_args = _script_and_training_args()
     models = []

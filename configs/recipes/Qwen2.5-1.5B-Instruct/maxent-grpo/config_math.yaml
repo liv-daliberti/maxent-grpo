@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # Model arguments
-model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+model_name_or_path: var/data/Qwen2.5-1.5B-Open-R1-GRPO-math-2k/checkpoint-150
 model_revision: main
-resume_from_checkpoint: false
+resume_from_checkpoint: var/data/Qwen2.5-1.5B-Open-R1-GRPO-math-2k/checkpoint-150
 torch_dtype: float16
 attn_implementation: sdpa
 
@@ -63,11 +63,13 @@ system_prompt: |
 # MaxEnt‑GRPO specific knobs (used by src/maxent_grpo/maxent_grpo.py)
 # Enable MaxEnt weighting (set train_grpo_objective=false) with a modest tau and adaptive entropy target.
 maxent_tau: 0.0001
-maxent_q_temperature: 0.9       # soften/sharpen listwise q if rewards are flat/noisy
+maxent_q_temperature: 1.0       # keep q untempered (softmax temperature = 1)
 maxent_q_epsilon: 1.0e-6        # epsilon floor on q for full support
 maxent_length_normalize_ref: true
-maxent_logprob_chunk_size: 0  # finer chunking for ref scoring to trim peak memory
-maxent_target_weight_entropy: 0.42  # ~70% of log(4) to keep weights spread but not uniform
+maxent_logprob_chunk_size: 1  # chunk ref scoring to reduce peak logits memory
+# Force frozen reference-model scoring for KL/MaxEnt reference statistics.
+maxent_reference_logprobs_source: model
+maxent_target_weight_entropy: 1.0  # safer default: less peaky weights (for num_generations=8, max is log(8)=2.08)
 maxent_tau_lr: 0.001
 maxent_tau_min: 0.0001
 maxent_tau_max: 1
@@ -76,7 +78,12 @@ maxent_score_tail_tokens: 512  # restrict KL/entropy measurements to the tail of
 # Phase 2 meta-controller defaults (analytic updates for τ/β)
 controller_meta_enabled: true
 controller_meta_method: analytic
-controller_meta_lr: 0.02
+# Meta-controller uses separate learning rates for τ and β.
+# Keep β updates conservative and clip the KL error to avoid huge jumps when KL spikes.
+controller_meta_lr: 0.0
+controller_meta_tau_lr: 0.02
+controller_meta_beta_lr: 0.01
+controller_meta_beta_grad_clip: 5.0
 controller_meta_update_interval: 1
 controller_meta_optimizer: sgd
 controller_meta_truncation_steps: 1
@@ -97,9 +104,13 @@ info_seed_pooling: mean
 # Training/eval & logging
 bf16: true
 fp16: false
-use_vllm: true
-vllm_mode: server         # reuse the single vLLM server from the launcher; avoids spawning 6 colocated engines
+use_vllm: true            # enable vLLM server path for generation
+vllm_mode: server         # use external/inline server launched by the slurm helper
+# Request vLLM logprob metadata so MaxEnt can reconstruct reference stats from vLLM.
+# Request logprob metadata from vLLM (requires a server with logprob support).
 vllm_return_logprobs: true
+vllm_request_logprobs: true
+vllm_sync_weights: false
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 32    # match TRL defaults for faster logging feedback
@@ -115,7 +126,7 @@ vllm_stop_sequences:
   - "</answer>\n"
   - "</assistant>"
 vllm_request_timeout: 600
-vllm_url: http://localhost:29525/generate
+vllm_url: http://localhost:29525/generate/
 hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 hub_strategy: every_save
 learning_rate: 5e-6
@@ -153,8 +164,8 @@ init_kl_coeff: 0.50
 init_kl_coef: 0.50
 kl_penalty_beta: 0.50
 kl_target:        0.07
-kl_horizon:       5000
-kl_ctl_step_size: 0.25
+kl_horizon:       500
+kl_ctl_step_size: 1.0
 
 # Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.15

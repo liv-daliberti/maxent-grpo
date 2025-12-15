@@ -36,7 +36,16 @@ def zero3_gather_factory(
         return lambda _params: nullcontext()
 
     def _factory(params: Sequence[Any]) -> AbstractContextManager[Any]:
-        return gather_cls(params)
+        # Prefer limiting full-parameter materialization to rank 0 when the
+        # Deepspeed signature supports it, but fall back to the simplest call
+        # for older versions and for unit-test stubs.
+        try:
+            return gather_cls(params, modifier_rank=0)
+        except TypeError:
+            try:
+                return gather_cls(params, 0)
+            except TypeError:
+                return gather_cls(params)
 
     return _factory
 

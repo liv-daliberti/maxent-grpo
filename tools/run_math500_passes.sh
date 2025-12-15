@@ -18,9 +18,28 @@ export PIP_NO_USER_CONFIG=1
 export XDG_CACHE_HOME="${REPO_ROOT}/.cache"
 export PIP_CACHE_DIR="${REPO_ROOT}/.cache/pip"
 export HF_HOME="${REPO_ROOT}/.cache/huggingface"
+# Avoid noisy (and occasionally failing) background usage/telemetry threads in vLLM.
+export VLLM_NO_USAGE_STATS=1
+export VLLM_DO_NOT_TRACK=1
+export DO_NOT_TRACK=1
+# Avoid FlashInfer warnings/fallbacks unless explicitly enabled.
+export VLLM_USE_FLASHINFER_SAMPLER=0
 
-LIGHEVAL_BIN="${REPO_ROOT}/venv-lighteval/bin/lighteval"
+LIGHEVAL_BIN="${LIGHEVAL_BIN:-}"
+if [[ -z "$LIGHEVAL_BIN" ]]; then
+  # Prefer the legacy venv-lighteval path but fall back to the repo-local var/lighteval env.
+  for candidate in \
+    "${REPO_ROOT}/venv-lighteval/bin/lighteval" \
+    "${REPO_ROOT}/var/lighteval/bin/lighteval"
+  do
+    if [[ -x "$candidate" ]]; then
+      LIGHEVAL_BIN="$candidate"
+      break
+    fi
+  done
+fi
 CUSTOM_TASKS="${REPO_ROOT}/custom_tasks/math500_passk.py"
+CUSTOM_TASKS_MODULE="custom_tasks.math500_passk"
 PASS1_CFG_TEMPLATE="${REPO_ROOT}/custom_tasks/pass1.yaml"
 SYSTEM_PROMPT_PATH="${REPO_ROOT}/custom_tasks/system_prompt.txt"
 
@@ -30,7 +49,7 @@ LE_CACHE_DIR="${REPO_ROOT}/.cache/huggingface/lighteval"
 mkdir -p "${OUT_DIR}" "${LE_CACHE_DIR}" "${PIP_CACHE_DIR}" "${HF_HOME}"
 
 if [[ ! -x "${LIGHEVAL_BIN}" ]]; then
-  echo "error: ${LIGHEVAL_BIN} not found or not executable. Did you create venv-lighteval?" >&2
+  echo "error: ${LIGHEVAL_BIN:-<unset>} not found or not executable. Set LIGHEVAL_BIN or create venv-lighteval/var/lighteval." >&2
   exit 1
 fi
 if [[ ! -f "${CUSTOM_TASKS}" ]]; then
@@ -68,10 +87,8 @@ rewrite_config() {
   local dst="$2"
   local model_name="$3"
   local revision="$4"
-  local cache_dir="$5"
-  local system_prompt_path="$6"
 
-  python - <<'PY' "${src}" "${dst}" "${model_name}" "${revision}" "${cache_dir}" "${system_prompt_path}"
+  python - <<'PY' "${src}" "${dst}" "${model_name}" "${revision}"
 import pathlib
 import sys
 import yaml
@@ -80,8 +97,6 @@ src_path = pathlib.Path(sys.argv[1])
 dst_path = pathlib.Path(sys.argv[2])
 model_name = sys.argv[3]
 revision = sys.argv[4]
-cache_dir = sys.argv[5]
-system_prompt_path = pathlib.Path(sys.argv[6])
 
 data = yaml.safe_load(src_path.read_text()) or {}
 mp = data.setdefault("model_parameters", {})
@@ -90,14 +105,9 @@ mp["model_name"] = model_name
 if revision:
     mp["revision"] = revision
 
-# LightEval caches models here by default: ~/.cache/huggingface/lighteval :contentReference[oaicite:4]{index=4}
-mp["cache_dir"] = cache_dir
-
-# LightEval supports a system_prompt in model config. :contentReference[oaicite:5]{index=5}
-mp["system_prompt"] = system_prompt_path.read_text()
-
-# Optional: only set this if your VLLMModelConfig accepts it in your version.
-# mp["override_chat_template"] = True
+# Note: this repo pins a LightEval build whose VLLMModelConfig forbids extra keys
+# such as `system_prompt` / `cache_dir`. Pass prompts via `--system-prompt` and
+# keep HF caches local via env vars (HF_HOME/XDG_CACHE_HOME) instead.
 
 dst_path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
 PY
@@ -112,7 +122,7 @@ run_pass1() {
   tmp_cfg="$(mktemp "${TMPDIR:-/tmp}/lighteval_${slug}_pass1.XXXX.yaml")"
   tmp_files+=("${tmp_cfg}")
 
-  rewrite_config "${PASS1_CFG_TEMPLATE}" "${tmp_cfg}" "${model_name}" "${model_rev}" "${LE_CACHE_DIR}" "${SYSTEM_PROMPT_PATH}"
+  rewrite_config "${PASS1_CFG_TEMPLATE}" "${tmp_cfg}" "${model_name}" "${model_rev}"
 
   echo ">>> Running math_500_pass1_det (pass1) for ${slug} model ${model_name} (rev=${model_rev})"
 
@@ -121,10 +131,11 @@ run_pass1() {
 
   "${LIGHEVAL_BIN}" vllm \
     "${tmp_cfg}" \
-    "math_500_pass1_det" \
-    --custom-tasks "${CUSTOM_TASKS}" \
+    "custom|math_500_pass1_det|0|0" \
+    --custom-tasks "${CUSTOM_TASKS_MODULE}" \
     --output-dir "${OUT_DIR}" \
-    --save-details
+    --save-details \
+    --system-prompt "$(cat "${SYSTEM_PROMPT_PATH}")"
 }
 
 for v in "${MODEL_VARIANTS[@]}"; do

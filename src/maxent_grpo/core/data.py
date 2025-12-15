@@ -31,6 +31,9 @@ limitations under the License.
 from __future__ import annotations
 
 import logging
+import os
+import random
+import time
 from typing import Any, List, Optional, cast
 
 try:
@@ -69,6 +72,74 @@ from maxent_grpo.config import ScriptArguments
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_HF_RETRIES = 6
+_DEFAULT_HF_RETRY_SLEEP = 2.0
+_DEFAULT_HF_RETRY_MAX_SLEEP = 60.0
+
+
+def _dataset_load_retry_settings() -> tuple[int, float, float]:
+    def _read_int(name: str, default: int) -> int:
+        raw = os.environ.get(name)
+        if raw is None:
+            return default
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return default
+
+    def _read_float(name: str, default: float) -> float:
+        raw = os.environ.get(name)
+        if raw is None:
+            return default
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return default
+
+    retries = max(0, _read_int("MAXENT_HF_DATASET_RETRIES", _DEFAULT_HF_RETRIES))
+    sleep_s = max(0.0, _read_float("MAXENT_HF_DATASET_RETRY_SLEEP", _DEFAULT_HF_RETRY_SLEEP))
+    max_sleep_s = max(
+        sleep_s, _read_float("MAXENT_HF_DATASET_RETRY_MAX_SLEEP", _DEFAULT_HF_RETRY_MAX_SLEEP)
+    )
+    return retries, sleep_s, max_sleep_s
+
+
+def _should_retry_dataset_load(exc: BaseException) -> bool:
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    if isinstance(status, int) and (status == 429 or 500 <= status <= 599):
+        return True
+    message = str(exc)
+    for token in (" 502 ", " 503 ", " 504 ", " 500 ", " 429 "):
+        if token in f" {message} ":
+            return True
+    return False
+
+
+def _load_dataset_with_retries(*args: Any, **kwargs: Any) -> Any:
+    retries, sleep_s, max_sleep_s = _dataset_load_retry_settings()
+    last_exc: Optional[BaseException] = None
+    for attempt in range(retries + 1):
+        try:
+            return datasets.load_dataset(*args, **kwargs)
+        except Exception as exc:  # pragma: no cover - network failures are environment dependent
+            last_exc = exc
+            if attempt >= retries or not _should_retry_dataset_load(exc):
+                raise
+            delay = min(max_sleep_s, sleep_s * (2**attempt))
+            # Small jitter to avoid all ranks retrying in lockstep if this runs multi-process.
+            delay = delay * (0.85 + 0.3 * random.random())
+            logger.warning(
+                "datasets.load_dataset failed (attempt %d/%d); retrying in %.1fs | error=%s",
+                attempt + 1,
+                retries + 1,
+                delay,
+                exc,
+            )
+            time.sleep(delay)
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("datasets.load_dataset failed unexpectedly without an exception")
+
 
 def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
     """Load a dataset or a weighted mixture and return a dictionary.
@@ -98,7 +169,7 @@ def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
         logger.info("Loading dataset: %s", args.dataset_name)
         return cast(
             DatasetDict[Dataset],
-            datasets.load_dataset(args.dataset_name, args.dataset_config),
+            _load_dataset_with_retries(args.dataset_name, args.dataset_config),
         )
     elif args.dataset_mixture:
         logger.info(
@@ -114,7 +185,7 @@ def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
                 dataset_config.id,
                 dataset_config.config,
             )
-            ds = datasets.load_dataset(
+            ds = _load_dataset_with_retries(
                 dataset_config.id,
                 dataset_config.config,
                 split=dataset_config.split,

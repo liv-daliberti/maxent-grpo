@@ -164,7 +164,37 @@ def _clean_logprob_seq(candidate: Any) -> Optional[List[float]]:
         if "logprobs" in candidate:
             return _clean_logprob_seq(candidate.get("logprobs"))
     if isinstance(candidate, list):
-        cleaned = [float(val) for val in candidate if val is not None]
+        cleaned: List[float] = []
+        for val in candidate:
+            if val is None:
+                continue
+            if isinstance(val, (int, float)):
+                cleaned.append(float(val))
+                continue
+            if isinstance(val, dict):
+                extracted = None
+                for key in (
+                    "logprob",
+                    "log_prob",
+                    "token_logprob",
+                    "token_log_prob",
+                    "prob",
+                ):
+                    if key not in val:
+                        continue
+                    try:
+                        extracted = float(val[key])
+                        break
+                    except (TypeError, ValueError):
+                        extracted = None
+                if extracted is not None:
+                    cleaned.append(extracted)
+                continue
+            if isinstance(val, (list, tuple)) and val:
+                try:
+                    cleaned.append(float(val[0]))
+                except (TypeError, ValueError):
+                    continue
         return cleaned if cleaned else None
     return None
 
@@ -204,27 +234,48 @@ def _extract_logprob_info(entry: Dict[str, Any]) -> Optional[VLLMLogprobResult]:
     if not isinstance(entry, dict):
         return None
     metadata = entry.get("metadata")
-    if isinstance(metadata, dict):
-        meta_seq = _clean_logprob_seq(metadata.get("token_logprobs"))
-        logprob_sum = metadata.get("logprob_sum")
-        token_count = metadata.get("token_count")
+    meta_dict: Optional[Dict[str, Any]] = metadata if isinstance(metadata, dict) else None
+    meta_seq = None
+    logprob_sum = None
+    token_count = None
+    if meta_dict is not None:
+        meta_seq = _clean_logprob_seq(
+            meta_dict.get("token_logprobs") or meta_dict.get("logprobs")
+        )
+        logprob_sum = (
+            meta_dict.get("logprob_sum")
+            if meta_dict.get("logprob_sum") is not None
+            else meta_dict.get("cumulative_logprob")
+        )
+        if logprob_sum is None:
+            logprob_sum = meta_dict.get("logprob")
+        token_count = meta_dict.get("token_count") or meta_dict.get("num_tokens")
         if token_count is None and meta_seq:
             token_count = len(meta_seq)
         if logprob_sum is not None:
-            inferred = token_count
-            if inferred is None:
-                inferred = _infer_token_count(entry, meta_seq)
+            inferred = token_count if token_count is not None else _infer_token_count(entry, meta_seq)
             return VLLMLogprobResult(
                 logprob_sum=float(logprob_sum),
                 token_count=max(1, int(inferred)),
                 token_logprobs=meta_seq,
-                raw_output=metadata.get("raw_output") or dict(entry),
+                raw_output=meta_dict.get("raw_output") or dict(entry),
             )
     if entry.get("cumulative_logprob") is not None:
         seq = _clean_logprob_seq(entry.get("output_token_logprobs"))
         count = _infer_token_count(entry, seq)
         return VLLMLogprobResult(
             logprob_sum=float(entry["cumulative_logprob"]),
+            token_count=max(1, int(count)),
+            token_logprobs=seq,
+            raw_output=dict(entry),
+        )
+    if entry.get("logprob_sum") is not None:
+        seq = _clean_logprob_seq(entry.get("token_logprobs")) or _clean_logprob_seq(
+            entry.get("output_token_logprobs")
+        )
+        count = _infer_token_count(entry, seq)
+        return VLLMLogprobResult(
+            logprob_sum=float(entry["logprob_sum"]),
             token_count=max(1, int(count)),
             token_logprobs=seq,
             raw_output=dict(entry),
@@ -309,18 +360,55 @@ def _parse_nonstream_json(
                     _append_group(prompt_texts, prompt_logs)
                     continue
                 if "completion_ids" in item and tokenizer is not None:
+                    completion_ids = item["completion_ids"]
                     decoded = [
                         tokenizer.decode(ids, skip_special_tokens=True)
-                        for ids in item["completion_ids"]
+                        for ids in completion_ids
                     ]
+                    if prompt_logs is not None:
+                        prompt_logs = [
+                            {
+                                "token_ids": list(ids),
+                                "token_count": len(ids),
+                            }
+                            for ids in completion_ids
+                        ]
                     _append_group(decoded, prompt_logs)
                     continue
             _append_group([str(item)], prompt_logs)
         return grouped, logprob_groups
     # vLLM 0.8.x batched output
     if "text" in data and isinstance(data["text"], list):
-        for text in data["text"]:
-            _append_group([str(text)], None)
+        text_entries = data["text"]
+        # Some vLLM servers (notably older /generate variants) return a flat list of
+        # texts, optionally with parallel logprob arrays. Try to reconstruct
+        # per-output logprob summaries when requested.
+        flat_logprobs = data.get("logprobs")
+        if flat_logprobs is None:
+            flat_logprobs = data.get("output_token_logprobs")
+        flat_cum_logprob = data.get("cumulative_logprob")
+        if flat_cum_logprob is None:
+            flat_cum_logprob = data.get("cumulative_logprobs")
+        flat_token_ids = data.get("token_ids")
+        if flat_token_ids is None:
+            flat_token_ids = data.get("output_token_ids")
+        for idx, text_entry in enumerate(text_entries):
+            if isinstance(text_entry, dict):
+                payload_entry: Dict[str, Any] = dict(text_entry)
+                text = str(payload_entry.get("text", ""))
+            else:
+                text = str(text_entry)
+                payload_entry = {"text": text}
+            logs = None
+            if logprob_groups is not None:
+                if isinstance(flat_logprobs, list) and idx < len(flat_logprobs):
+                    payload_entry.setdefault("logprobs", flat_logprobs[idx])
+                if isinstance(flat_cum_logprob, list) and idx < len(flat_cum_logprob):
+                    payload_entry.setdefault("cumulative_logprob", flat_cum_logprob[idx])
+                if isinstance(flat_token_ids, list) and idx < len(flat_token_ids):
+                    payload_entry.setdefault("token_ids", flat_token_ids[idx])
+                logs = [_extract_logprob_info(payload_entry)]
+            _append_group([text], logs)
         return grouped, logprob_groups
     # vLLM 0.8.x token-ID output
     if "completion_ids" in data:
@@ -328,12 +416,20 @@ def _parse_nonstream_json(
             raise RuntimeError(
                 "Server returned token IDs but no tokenizer was supplied to safe_generate()."
             )
+        completion_ids = data["completion_ids"]
         decoded = [
-            tokenizer.decode(ids, skip_special_tokens=True)
-            for ids in data["completion_ids"]
+            tokenizer.decode(ids, skip_special_tokens=True) for ids in completion_ids
         ]
-        for text in decoded:
-            _append_group([text], None)
+        for ids, text in zip(completion_ids, decoded):
+            logs = None
+            if logprob_groups is not None:
+                logs = [
+                    {
+                        "token_ids": list(ids),
+                        "token_count": len(ids),
+                    }
+                ]
+            _append_group([text], logs)
         return grouped, logprob_groups
     raise RuntimeError(f"Unknown vLLM response format: {data}")
 
@@ -604,6 +700,15 @@ def safe_generate(
 
     headers = _build_vllm_headers(prompts, client_tag)
     prompt_chars = sum(len(prompt) for prompt in prompts)
+    prompt_lens_sample = [len(prompt) for prompt in prompts[:8]]
+    prompt_hash_sample = [
+        hashlib.sha256(prompt.encode("utf-8", errors="ignore")).hexdigest()[:8]
+        for prompt in prompts[:8]
+    ]
+    redacted_headers = {
+        key: ("<redacted>" if key.lower() == "authorization" else value)
+        for key, value in headers.items()
+    }
     try:
         payload_size_bytes = len(json.dumps(payload).encode("utf-8"))
     except (TypeError, ValueError):
@@ -615,9 +720,43 @@ def safe_generate(
         n,
         stream,
     )
+    LOG.debug(
+        (
+            "vLLM request prepared | req_id=%s | prompts=%d | prompt_chars=%d "
+            "| prompt_lens_sample=%s | prompt_hash_sample=%s | n=%d | max_tokens=%d "
+            "| stream=%s | timeout=%.1fs | max_retries=%d | backoff=%.2f "
+            "| backoff_multiplier=%.2f | payload_bytes=%s | client_tag=%s | headers=%s"
+        ),
+        effective_request_id,
+        len(prompts),
+        prompt_chars,
+        prompt_lens_sample,
+        prompt_hash_sample,
+        n,
+        max_tokens,
+        stream,
+        timeout,
+        max_retries,
+        backoff,
+        backoff_multiplier,
+        payload_size_bytes,
+        client_tag,
+        redacted_headers,
+    )
     start_time = time.perf_counter()
     last_status: Optional[int] = None
     for attempt in range(max_retries):
+        attempt_start = time.perf_counter()
+        LOG.debug(
+            "vLLM attempt start | req_id=%s | attempt=%d/%d | url=%s | stream=%s | timeout=%.2fs | payload_bytes=%s",
+            effective_request_id,
+            attempt + 1,
+            max_retries,
+            url,
+            stream,
+            timeout,
+            payload_size_bytes,
+        )
         try:
             r = requests.post(
                 url,
@@ -625,6 +764,25 @@ def safe_generate(
                 timeout=timeout,
                 stream=stream,
                 headers=headers,
+            )
+            attempt_elapsed_ms = (time.perf_counter() - attempt_start) * 1000.0
+            LOG.debug(
+                (
+                    "vLLM response received | req_id=%s | attempt=%d | status=%s "
+                    "| attempt_elapsed_ms=%.2f | reported_elapsed_ms=%s | content_length=%s "
+                    "| transfer_encoding=%s"
+                ),
+                effective_request_id,
+                attempt + 1,
+                getattr(r, "status_code", None),
+                attempt_elapsed_ms,
+                (
+                    r.elapsed.total_seconds() * 1000.0
+                    if getattr(r, "elapsed", None) is not None
+                    else None
+                ),
+                r.headers.get("content-length") if hasattr(r, "headers") else None,
+                r.headers.get("transfer-encoding") if hasattr(r, "headers") else None,
             )
             if r.status_code == 200:
                 LOG.debug(
@@ -636,23 +794,98 @@ def safe_generate(
                 latency_ms = (time.perf_counter() - start_time) * 1000.0
                 if stream:
                     return _collect_stream_texts(r, len(prompts)), None, latency_ms
+                body_bytes = len(r.content) if hasattr(r, "content") else None
+                LOG.debug(
+                    "vLLM response decode start | req_id=%s | attempt=%d | body_bytes=%s | content_type=%s",
+                    effective_request_id,
+                    attempt + 1,
+                    body_bytes,
+                    r.headers.get("content-type") if hasattr(r, "headers") else None,
+                )
+                decode_start = time.perf_counter()
                 payload = r.json()
+                decode_ms = (time.perf_counter() - decode_start) * 1000.0
+                LOG.debug(
+                    "vLLM response JSON decoded | req_id=%s | attempt=%d | decode_ms=%.2f | payload_keys=%s",
+                    effective_request_id,
+                    attempt + 1,
+                    decode_ms,
+                    list(payload.keys()) if isinstance(payload, dict) else type(payload).__name__,
+                )
                 payload = _filter_response_for_client_tag(payload, client_tag)
                 grouped, meta = _parse_nonstream_json(
                     payload,
                     tokenizer,
                     want_logprobs=return_logprobs,
                 )
+                if return_logprobs:
+                    if meta is None:
+                        LOG.warning(
+                            "vLLM logprobs requested but response missing logprob metadata | req_id=%s | attempt=%d",
+                            effective_request_id,
+                            attempt + 1,
+                        )
+                    else:
+                        total_completions = sum(len(g or []) for g in meta)
+                        with_token_logprobs = sum(
+                            1
+                            for g in meta
+                            for entry in (g or [])
+                            if entry is not None and entry.token_logprobs
+                        )
+                        sample = None
+                        for g in meta:
+                            if g:
+                                for entry in g:
+                                    if entry is not None:
+                                        sample = (
+                                            float(entry.logprob_sum),
+                                            int(entry.token_count),
+                                        )
+                                        break
+                                if sample:
+                                    break
+                        LOG.debug(
+                            (
+                                "vLLM logprob stats | req_id=%s | attempt=%d | groups=%d | completions=%d "
+                                "| with_token_logprobs=%d | sample_sum_count=%s"
+                            ),
+                            effective_request_id,
+                            attempt + 1,
+                            len(meta),
+                            total_completions,
+                            with_token_logprobs,
+                            sample,
+                        )
+                LOG.debug(
+                    (
+                        "vLLM response parsed | req_id=%s | attempt=%d | grouped_prompts=%d "
+                        "| per_prompt_lengths=%s | meta_present=%s | latency_ms=%.2f"
+                    ),
+                    effective_request_id,
+                    attempt + 1,
+                    len(grouped) if grouped is not None else 0,
+                    [len(entry) for entry in grouped[:8]] if grouped else [],
+                    meta is not None,
+                    latency_ms,
+                )
                 return grouped, meta, latency_ms
             last_status = r.status_code
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:120]}")
         except (requests.ConnectionError, requests.Timeout, RuntimeError) as err:
             LOG.warning(
-                "vLLM request failure (%s) | attempt=%d/%d | url=%s",
+                (
+                    "vLLM request failure (%s) | attempt=%d/%d | url=%s | req_id=%s "
+                    "| prompts=%d | payload_bytes=%s | timeout=%.2fs"
+                ),
                 err,
                 attempt + 1,
                 max_retries,
                 url,
+                effective_request_id,
+                len(prompts),
+                payload_size_bytes,
+                timeout,
             )
             if attempt < max_retries - 1:
                 delay = backoff * (backoff_multiplier ** attempt)
@@ -712,14 +945,25 @@ def _collect_stream_texts(
     :rtype: list[list[str]]
     """
     texts: List[List[str]] = [[] for _ in range(num_prompts)]
+    chunk_counts: List[int] = [0 for _ in range(num_prompts)]
+    total_bytes = 0
     for line in response.iter_lines():
         if not line:
             continue
+        total_bytes += len(line)
         row = json.loads(line.decode())
         idx = int(row.get("prompt_index", 0))
         if 0 <= idx < num_prompts:
             texts[idx].append(row.get("text", ""))
+            chunk_counts[idx] += 1
         # else: ignore malformed index
+    LOG.debug(
+        "vLLM stream collected | prompts=%d | chunks=%d | bytes=%d | per_prompt_chunks=%s",
+        num_prompts,
+        sum(chunk_counts),
+        total_bytes,
+        chunk_counts[:8],
+    )
     return [["".join(parts)] for parts in texts]
 
 

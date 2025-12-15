@@ -464,6 +464,13 @@ def run_baseline_training(
                 "starting from scratch.",
                 resume_request,
             )
+    elif resume_request is None:
+        # Backward compatible behavior: if the output directory already contains a
+        # checkpoint and the user did not explicitly opt out of resuming, prefer
+        # picking up from the latest checkpoint.
+        output_dir = getattr(training_args, "output_dir", None)
+        if output_dir and os.path.isdir(output_dir):
+            last_ckpt = get_last_checkpoint(output_dir)
     elif resume_request:
         output_dir = getattr(training_args, "output_dir", None)
         if output_dir and os.path.isdir(output_dir):
@@ -475,9 +482,7 @@ def run_baseline_training(
                 output_dir or "<unspecified>",
             )
     else:
-        output_dir = getattr(training_args, "output_dir", None)
-        if output_dir and os.path.isdir(output_dir):
-            last_ckpt = get_last_checkpoint(output_dir)
+        last_ckpt = None
 
     if last_ckpt is not None:
         training_args.resume_from_checkpoint = last_ckpt

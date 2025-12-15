@@ -368,6 +368,20 @@ class VLLMRequestMixin:
             if not pending_indices:
                 break
             attempt += 1
+            remaining_counts = state.remaining_counts(pending_indices)
+            LOG.debug(
+                (
+                    "vLLM round dispatch | attempt=%d/%d | pending_prompts=%d "
+                    "| remaining_counts_sample=%s | prompt_hash_sample=%s"
+                ),
+                attempt,
+                state.round_limit,
+                len(pending_indices),
+                remaining_counts[:8],
+                _hash_prompts(
+                    [state.prompts[idx] for idx in pending_indices[:4]]
+                ),
+            )
             if attempt > 1:
                 ctx.generation_stats["vllm_retry_rounds"] += 1
             try:
@@ -631,6 +645,38 @@ class VLLMRequestMixin:
             )
             if grouped is None:
                 return False
+            if state.aggregated_meta is not None:
+                has_logprob_payload = False
+                if grouped_meta is not None:
+                    for group in grouped_meta:
+                        if not group:
+                            continue
+                        for entry in group:
+                            if entry is None:
+                                continue
+                            if isinstance(entry, dict):
+                                if (
+                                    "logprob_sum" in entry
+                                    or "cumulative_logprob" in entry
+                                    or "token_logprobs" in entry
+                                    or "logprobs" in entry
+                                ):
+                                    has_logprob_payload = True
+                                    break
+                            elif hasattr(entry, "logprob_sum") or hasattr(entry, "token_logprobs"):
+                                has_logprob_payload = True
+                                break
+                        if has_logprob_payload:
+                            break
+                if not has_logprob_payload:
+                    warned = getattr(self.ctx, "_vllm_logprobs_missing_warned", False)
+                    if not warned and bool(getattr(self.ctx, "vllm_request_logprobs", False)):
+                        LOG.warning(
+                            "vLLM logprob metadata requested but missing from responses; "
+                            "continuing without vLLM logprobs. "
+                            "If you are using `trl.scripts.vllm_serve`, it does not return logprobs."
+                        )
+                        setattr(self.ctx, "_vllm_logprobs_missing_warned", True)
             self._merge_vllm_results(
                 state,
                 grouped,
@@ -842,6 +888,22 @@ class VLLMRequestMixin:
         try:
             request_kwargs = self._build_vllm_request_kwargs(prompts, request_count)
             safe_gen = getattr(self, "_safe_generate", safe_generate)
+            LOG.debug(
+                (
+                    "Dispatching vLLM request | prompts=%d | req_n=%d | prompt_hash=%s "
+                    "| prompt_lens_sample=%s | total_chars=%d | timeout=%s | "
+                    "max_retries=%s | backoff=%s | url=%s"
+                ),
+                len(prompts),
+                request_count,
+                _hash_prompts(prompts),
+                [len(prompt) for prompt in prompts[:8]],
+                sum(len(prompt) for prompt in prompts),
+                request_kwargs.get("timeout"),
+                request_kwargs.get("max_retries"),
+                request_kwargs.get("backoff"),
+                request_kwargs.get("url"),
+            )
             grouped, grouped_meta, latency_ms = safe_gen(**request_kwargs)
             return grouped, grouped_meta, latency_ms
         except RuntimeError as err:

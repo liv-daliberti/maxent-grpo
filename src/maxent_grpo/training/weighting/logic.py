@@ -164,6 +164,9 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
         enabled=bool(getattr(cfg, "controller_meta_enabled", False)),
         method=str(getattr(cfg, "controller_meta_method", "analytic") or "analytic"),
         learning_rate=float(getattr(cfg, "controller_meta_lr", 0.0)),
+        tau_learning_rate=float(getattr(cfg, "controller_meta_tau_lr", 0.0)),
+        beta_learning_rate=float(getattr(cfg, "controller_meta_beta_lr", 0.0)),
+        beta_grad_clip=float(getattr(cfg, "controller_meta_beta_grad_clip", 0.0)),
         update_interval=max(1, int(getattr(cfg, "controller_meta_update_interval", 1))),
         objective=str(
             getattr(cfg, "controller_meta_objective", "potential") or "potential"
@@ -516,14 +519,25 @@ def apply_meta_controller_update(
     method = str(getattr(meta_cfg, "method", "")).lower()
     if method not in ("analytic", "analytic_grad"):
         return False
-    base_lr = float(getattr(meta_cfg, "learning_rate", 0.0))
-    effective_lr = base_lr * float(lr_scale)
-    if effective_lr <= 0.0:
+    legacy_lr = float(getattr(meta_cfg, "learning_rate", 0.0))
+    base_lr_tau = float(getattr(meta_cfg, "tau_learning_rate", 0.0))
+    base_lr_beta = float(getattr(meta_cfg, "beta_learning_rate", 0.0))
+    if base_lr_tau <= 0.0:
+        base_lr_tau = legacy_lr
+    if base_lr_beta <= 0.0:
+        base_lr_beta = legacy_lr
+    effective_lr_tau = base_lr_tau * float(lr_scale)
+    effective_lr_beta = base_lr_beta * float(lr_scale)
+    if effective_lr_tau <= 0.0 and effective_lr_beta <= 0.0:
         return False
     updated = False
     tau_projected = False
-    if isinstance(tau_grad, (int, float)) and math.isfinite(tau_grad):
-        new_tau = weighting_cfg.tau - effective_lr * float(tau_grad)
+    if (
+        effective_lr_tau > 0.0
+        and isinstance(tau_grad, (int, float))
+        and math.isfinite(tau_grad)
+    ):
+        new_tau = weighting_cfg.tau - effective_lr_tau * float(tau_grad)
         new_tau = max(new_tau, weighting_cfg.tau_min)
         tau_max = weighting_cfg.tau_max
         if tau_max > 0.0:
@@ -538,12 +552,25 @@ def apply_meta_controller_update(
         updated = True
         setattr(weighting_cfg, "_meta_last_tau_grad", float(tau_grad))
         try:
-            meta_cfg.last_tau_grad = float(tau_grad)
+                meta_cfg.last_tau_grad = float(tau_grad)
         except (AttributeError, TypeError, ValueError):
             pass
     beta_projected = False
-    if isinstance(beta_grad, (int, float)) and math.isfinite(beta_grad):
-        new_beta = weighting_cfg.beta - effective_lr * float(beta_grad)
+    if (
+        effective_lr_beta > 0.0
+        and isinstance(beta_grad, (int, float))
+        and math.isfinite(beta_grad)
+    ):
+        beta_grad_val = float(beta_grad)
+        beta_grad_clip = float(getattr(meta_cfg, "beta_grad_clip", 0.0) or 0.0)
+        if beta_grad_clip > 0.0 and math.isfinite(beta_grad_clip):
+            beta_grad_val = max(min(beta_grad_val, beta_grad_clip), -beta_grad_clip)
+        # Beta acts as the KL penalty coefficient. Empirically, increasing beta
+        # tightens the policy toward the reference (lower KL), so the update
+        # direction is opposite tau's entropy-temperature dynamics:
+        # - when `kl > target_kl` (beta_grad > 0), we must *increase* beta.
+        # - when `kl < target_kl` (beta_grad < 0), we should *decrease* beta.
+        new_beta = weighting_cfg.beta + effective_lr_beta * beta_grad_val
         if new_beta < 0.0:
             beta_projected = True
         weighting_cfg.beta = max(new_beta, 0.0)
@@ -643,9 +670,53 @@ def broadcast_controller_state(
 ) -> bool:
     """Sync controller scalars (tau, beta, entropy EMA/log) across ranks.
 
-    Uses ``broadcast_object_list`` when available; falls back to a no-op if the
-    accelerator does not expose a broadcast helper. Returns ``True`` on success.
+    Prefer an `all_gather`-style sync via `accelerator.gather` (available on
+    Accelerate 1.x), then fall back to `broadcast_object_list` when present.
+    Returns ``True`` on success.
     """
+
+    gather = getattr(accelerator, "gather", None)
+    if callable(gather):
+        try:
+            device = getattr(accelerator, "device", None)
+            payload = torch.tensor(
+                [
+                    float(weighting_cfg.beta),
+                    float(weighting_cfg.tau),
+                    float(getattr(weighting_cfg, "_tau_entropy_ema", float("nan"))),
+                    float(
+                        getattr(
+                            weighting_cfg,
+                            "_tau_log",
+                            math.log(max(weighting_cfg.tau, 1e-8)),
+                        )
+                    ),
+                ],
+                dtype=getattr(torch, "float32", None),
+                device=device,
+            )
+            gathered = gather(payload)
+            if not isinstance(gathered, torch.Tensor):
+                return False
+            if gathered.numel() < 4:
+                return False
+            src = gathered.view(-1, 4)[0].detach().float().cpu()
+            beta, tau, entropy_ema, tau_log = [float(x) for x in src.tolist()]
+            weighting_cfg.beta = float(beta)
+            weighting_cfg.tau = float(tau)
+            if weighting_cfg.train_grpo_objective:
+                weighting_cfg.denom = 1.0
+            else:
+                denom_sum = weighting_cfg.tau + weighting_cfg.beta
+                weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+            if math.isfinite(entropy_ema):
+                setattr(weighting_cfg, "_tau_entropy_ema", float(entropy_ema))
+            if math.isfinite(tau_log):
+                setattr(weighting_cfg, "_tau_log", float(tau_log))
+            _sync_controller_state(weighting_cfg)
+            return True
+        except (RuntimeError, TypeError, ValueError, AttributeError):
+            return False
 
     bcast = getattr(accelerator, "broadcast_object_list", None)
     if not callable(bcast):

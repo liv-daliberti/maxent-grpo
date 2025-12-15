@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
@@ -15,6 +16,8 @@ from .vllm_adapter import (
     VLLMGenerationMixin,
     _is_peft_model_safe,
 )
+
+LOG = logging.getLogger(__name__)
 
 
 class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
@@ -55,10 +58,18 @@ class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
             raise ValueError(
                 "per_prompt_counts length must match prompts length in generate()"
             )
+        LOG.debug(
+            "CompletionGenerator.generate | prompts=%d | num_samples=%d | use_vllm=%s | per_prompt_counts=%s",
+            len(prompts),
+            num_samples,
+            getattr(self.ctx, "use_vllm", False),
+            f"len={len(per_prompt_counts)}" if per_prompt_counts is not None else "none",
+        )
         if self.ctx.use_vllm:
             return self._generate_vllm_collective(
                 prompts, num_samples, per_prompt_counts
             )
+        LOG.debug("CompletionGenerator.generate using local HF path")
         return self._generate_local(prompts, num_samples, per_prompt_counts)
 
 

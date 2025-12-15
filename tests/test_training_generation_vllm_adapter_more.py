@@ -548,3 +548,41 @@ def test_scatter_object_variants(monkeypatch):
     # TypeError from non-subscriptable input_list
     accel_idx2 = SimpleNamespace(num_processes=2, process_index=0, scatter_object=None)
     assert vllm_adapter._scatter_object(accel_idx2, 123, src=0) is None
+
+
+def test_scatter_object_broadcast_supports_none_on_non_src(monkeypatch):
+    class _Dist:
+        def __init__(self):
+            self.rank = 0
+            self.payload = None
+
+        def is_available(self):
+            return True
+
+        def is_initialized(self):
+            return True
+
+        def get_world_size(self):
+            return 2
+
+        def broadcast_object_list(self, payload, src=0):
+            if self.rank == src:
+                self.payload = list(payload)
+                return
+            assert self.payload is not None
+            for idx, value in enumerate(self.payload):
+                payload[idx] = value
+
+        def scatter_object_list(self, *_a, **_k):  # pragma: no cover
+            raise AssertionError("scatter_object_list should not be used")
+
+    dist = _Dist()
+    monkeypatch.setattr(vllm_adapter, "dist", dist)
+
+    dist.rank = 0
+    accel_src = SimpleNamespace(num_processes=2, process_index=0, scatter_object=None)
+    assert vllm_adapter._scatter_object(accel_src, ["r0", "r1"], src=0) == "r0"
+
+    dist.rank = 1
+    accel_other = SimpleNamespace(num_processes=2, process_index=1, scatter_object=None)
+    assert vllm_adapter._scatter_object(accel_other, None, src=0) == "r1"

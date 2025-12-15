@@ -3,9 +3,8 @@ import re
 import numpy as np
 
 from lighteval.tasks.lighteval_task import LightevalTaskConfig
-from lighteval.tasks.requests import Doc, SamplingMethod
-from lighteval.metrics.utils.metric_utils import SampleLevelMetric
-from lighteval.metrics.metrics_sample import SampleLevelComputation
+from lighteval.tasks.requests import Doc
+from lighteval.metrics.utils.metric_utils import MetricCategory, MetricUseCase, SampleLevelMetric
 
 # Optional: SymPy-based symbolic equivalence (best-effort)
 try:
@@ -27,17 +26,66 @@ except Exception:
 # ---------------------------
 # Regex + basic helpers
 # ---------------------------
-ANSWER_RE = re.compile(r"<answer>\s*(.*?)\s*</answer>", re.DOTALL)
+ANSWER_BLOCK_RE = re.compile(
+    r"<answer\b[^>]*>\s*(.*?)\s*</answer\s*>", re.DOTALL | re.IGNORECASE
+)
+ANSWER_OPEN_RE = re.compile(r"<answer\b[^>]*>", re.IGNORECASE)
 TEXT_RE = re.compile(r"\\text\{([^}]*)\}")
 BOX_RE = re.compile(r"\\boxed\{([^}]*)\}")
 FRAC_SHORT_RE = re.compile(r"\\frac(\d+)(\d+)")  # \frac14 -> \frac{1}{4}
 MC_RE = re.compile(r"^\(?\s*([A-Ea-e])\s*\)?$")
+THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 def extract_answer(text: str) -> str:
-    """Extract answer span from <answer>...</answer>; fallback to raw text."""
-    m = ANSWER_RE.search(text or "")
-    return m.group(1).strip() if m else (text or "").strip()
+    """Extract the final answer span from <answer> tags (best-effort).
+
+    Notes:
+    - We intentionally prefer the *last* <answer> tag in the completion because
+      models sometimes echo the prompt/system template (which itself contains an
+      <answer> example) before emitting their actual answer.
+    - We tolerate missing closing tags because stop sequences often strip
+      ``</answer>`` from the returned text.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+
+    # Prefer the last well-formed <answer>...</answer> block (case-insensitive).
+    blocks = list(ANSWER_BLOCK_RE.finditer(raw))
+    if blocks:
+        return blocks[-1].group(1).strip()
+
+    # Fall back to the last opening tag and capture until a closing tag (if any).
+    opens = list(ANSWER_OPEN_RE.finditer(raw))
+    if opens:
+        rest = raw[opens[-1].end() :]
+        end = re.search(r"</answer\s*>", rest, flags=re.IGNORECASE)
+        if end:
+            return rest[: end.start()].strip()
+
+        # Stop at the next XML-ish tag if present, else return the remainder.
+        m = re.search(r"\n\s*<\s*/?\s*[A-Za-z]", rest)
+        if m:
+            return rest[: m.start()].strip()
+        return rest.strip()
+
+    return raw
+
+
+def extract_answer_stage(text: str) -> str:
+    """
+    Prefer the answer-stage text (after two-stage decoding):
+    - Strip any <think>...</think> block.
+    - If an <answer> exists, use the extracted <answer> content.
+    - Else, return the remaining text.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    stripped = THINK_BLOCK_RE.sub("", raw).strip()
+    extracted = extract_answer(stripped)
+    return extracted if extracted != stripped else (stripped or raw)
 
 
 # ---------------------------
@@ -48,7 +96,6 @@ def _strip_tex_noise(s: str) -> str:
     s = s.replace("\\!", "")
     s = s.replace("\\,", "").replace("\\;", "").replace("\\:", "")
     s = s.replace("\\$", "").replace("$", "")
-    s = s.replace(",", "")
     return s
 
 
@@ -204,17 +251,18 @@ def equiv(pred: str, gold: str) -> bool:
 # ---------------------------
 # Metric: pass@k from <answer> tag
 # ---------------------------
-class PassAtKAnswerTag(SampleLevelComputation):
-    """1.0 if ANY of first k generations matches ANY gold variant, else 0.0."""
+class PassAtKAnswerTag:
+    """Return 1.0 if any of the first k generations matches any gold variant."""
+
     def __init__(self, k: int):
-        super().__init__()
-        self.k = k
+        self.k = max(1, int(k))
 
-    def compute(self, doc: Doc, model_response, **kwargs) -> float:
-        golds = doc.get_golds()
-        preds = list(getattr(model_response, "final_text", []) or [])[: self.k]
-
-        for raw in preds:
+    def compute(
+        self, golds: list[str], predictions: list[str], formatted_doc: Doc | None = None, **kwargs
+    ) -> float:
+        if not golds or not predictions:
+            return 0.0
+        for raw in predictions[: self.k]:
             ans = extract_answer(raw)
             for g in golds:
                 if equiv(ans, g):
@@ -222,19 +270,90 @@ class PassAtKAnswerTag(SampleLevelComputation):
         return 0.0
 
 
+class PassAtKContainsGold:
+    """
+    Return 1.0 if any of the first k generations contains (substring match) any gold variant.
+
+    This ignores <answer> tagging requirements and is meant as a lightweight sanity metric
+    for runs where formatting is unreliable.
+    """
+
+    def __init__(self, k: int):
+        self.k = max(1, int(k))
+
+    def _contains(self, pred: str, gold: str) -> bool:
+        p = (pred or "").strip()
+        g = (gold or "").strip()
+        if not p or not g:
+            return False
+
+        # Special-case multiple-choice letters to avoid trivial false positives.
+        gv = mc_variants(g)
+        if gv:
+            # Look for standalone letter token.
+            for letter in gv:
+                if re.search(rf"(?<![A-Za-z0-9]){re.escape(letter)}(?![A-Za-z0-9])", p, flags=re.IGNORECASE):
+                    return True
+            return False
+
+        # Raw substring
+        if g in p:
+            return True
+
+        # Light normalization to reduce whitespace/LaTeX noise mismatch
+        pn = normalize_latex(p)
+        gn = normalize_latex(g)
+        return bool(gn) and (gn in pn)
+
+    def compute(
+        self, golds: list[str], predictions: list[str], formatted_doc: Doc | None = None, **kwargs
+    ) -> float:
+        if not golds or not predictions:
+            return 0.0
+        for raw in predictions[: self.k]:
+            # This metric is intentionally permissive: check both the extracted
+            # answer-stage span and the full completion with <think> removed.
+            ans = extract_answer_stage(raw)
+            full = THINK_BLOCK_RE.sub("", (raw or "")).strip()
+            for g in golds:
+                if self._contains(ans, g) or self._contains(full, g):
+                    return 1.0
+        return 0.0
+
+
 PASS1_TAG = SampleLevelMetric(
     metric_name="pass@1_answer_tag",
+    use_case=MetricUseCase.MATH,
     higher_is_better=True,
-    category=SamplingMethod.GENERATIVE,
-    sample_level_fn=PassAtKAnswerTag(k=1),  # must be SampleLevelComputation :contentReference[oaicite:4]{index=4}
+    category=MetricCategory.GENERATIVE,
+    sample_level_fn=PassAtKAnswerTag(k=1).compute,
     corpus_level_fn=np.mean,
 )
 
 PASS8_TAG = SampleLevelMetric(
     metric_name="pass@8_answer_tag",
+    use_case=MetricUseCase.MATH,
     higher_is_better=True,
-    category=SamplingMethod.GENERATIVE,
-    sample_level_fn=PassAtKAnswerTag(k=8),
+    category=MetricCategory.GENERATIVE_SAMPLING,
+    sample_level_fn=PassAtKAnswerTag(k=8).compute,
+    corpus_level_fn=np.mean,
+)
+
+PASS1_CONTAINS = SampleLevelMetric(
+    metric_name="pass@1_contains_gold",
+    use_case=MetricUseCase.MATH,
+    higher_is_better=True,
+    category=MetricCategory.GENERATIVE,
+    sample_level_fn=PassAtKContainsGold(k=1).compute,
+    corpus_level_fn=np.mean,
+)
+
+PASS8_CONTAINS = SampleLevelMetric(
+    metric_name="pass@8_contains_gold",
+    use_case=MetricUseCase.MATH,
+    higher_is_better=True,
+    category=MetricCategory.GENERATIVE_SAMPLING,
+    sample_level_fn=PassAtKContainsGold(k=8).compute,
     corpus_level_fn=np.mean,
 )
 
@@ -250,7 +369,10 @@ def math500_prompt(row: dict, task_name: str) -> Doc:
     choices = gold_variants(answer)
 
     return Doc(
-        query=problem + "\n\nReturn ONLY:\n<answer>\n...\n</answer>\n",
+        query=(
+            problem
+            + "\n\nReturn only the final answer wrapped in <answer> and </answer>."
+        ),
         choices=choices,
         gold_index=list(range(len(choices))),  # any variant counts
     )
@@ -271,10 +393,11 @@ TASKS_TABLE = [
         generation_size=4096,
         num_samples=[1],
         stop_sequence=["</answer>"],
-        few_shots_split=None,
+        # MATH-500 only exposes the eval split in most mirrors; pin few-shots to
+        # test so LightEval does not warn about implicitly reusing eval data.
+        few_shots_split="test",
         few_shots_select=None,
-        num_fewshots=0,
-        metrics=[PASS1_TAG],
+        metric=[PASS1_TAG, PASS1_CONTAINS],
         version=1,
     ),
 
@@ -289,10 +412,17 @@ TASKS_TABLE = [
         generation_size=4096,
         num_samples=[8],
         stop_sequence=["</answer>"],
-        few_shots_split=None,
+        few_shots_split="test",
         few_shots_select=None,
-        num_fewshots=0,
-        metrics=[PASS8_TAG],
+        metric=[PASS8_TAG, PASS8_CONTAINS],
         version=1,
     ),
 ]
+
+# Friendly aliases/groups so you can pass short names to `lighteval`:
+# `lighteval vllm <model_cfg> math_500_pass1_det --custom-tasks custom_tasks.math500_passk`
+TASKS_GROUPS = {
+    "math_500_pass1_det": ["custom|math_500_pass1_det|0|0"],
+    "math_500_pass8": ["custom|math_500_pass8|0|0"],
+    "math_500_passk": ["custom|math_500_pass1_det|0|0", "custom|math_500_pass8|0|0"],
+}

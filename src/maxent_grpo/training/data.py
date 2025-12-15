@@ -119,7 +119,6 @@ def load_datasets(
 ) -> Tuple[Any, list]:
     """Load train/eval datasets and return (train_dataset, eval_rows)."""
 
-    raw_ds = get_dataset(script_args)
     pc = getattr(script_args, "dataset_prompt_column", "problem")
     sc = getattr(script_args, "dataset_solution_column", "answer")
     char_limit = _prompt_char_limit_from_tokens(
@@ -152,17 +151,26 @@ def load_datasets(
 
     train_split = getattr(script_args, "dataset_train_split", "train")
     test_split = getattr(script_args, "dataset_test_split", None)
-    if test_split is None:
-        test_split = "validation" if hasattr(raw_ds, "keys") and "validation" in raw_ds else None
-        if test_split is None and hasattr(raw_ds, "keys") and "test" in raw_ds:
-            test_split = "test"
 
     dataset = None
     cache_path = None
     wait_fn = getattr(accelerator, "wait_for_everyone", None)
     is_main_process = bool(getattr(accelerator, "is_main_process", True))
 
+    cache_path = _dataset_cache_path(
+        script_args,
+        training_args,
+        prompt_column=pc,
+        solution_column=sc,
+        train_split=train_split,
+        char_limit=char_limit,
+    )
+    cache_enabled = bool(cache_path and _hf_load_from_disk)
+    if cache_enabled and os.path.isdir(cache_path) and _hf_load_from_disk:
+        dataset = _hf_load_from_disk(cache_path)
+
     def _build_hf_dataset():
+        raw_ds = get_dataset(script_args)
         # Remove all original columns so the DataLoader only sees prompt/answer.
         remove_cols = getattr(raw_ds, "column_names", None)
         if isinstance(remove_cols, dict):
@@ -181,19 +189,19 @@ def load_datasets(
             mapped = mapped.filter(_is_valid, desc="Filter")
         return mapped
 
-    if hasattr(raw_ds, "map"):
-        cache_path = _dataset_cache_path(
-            script_args,
-            training_args,
-            prompt_column=pc,
-            solution_column=sc,
-            train_split=train_split,
-            char_limit=char_limit,
-        )
-        cache_enabled = bool(cache_path)
-        if cache_enabled and os.path.isdir(cache_path) and _hf_load_from_disk:
+    if dataset is None and accelerator is not None and not is_main_process and cache_enabled:
+        if callable(wait_fn):
+            wait_fn()
+        if os.path.isdir(cache_path) and _hf_load_from_disk:
             dataset = _hf_load_from_disk(cache_path)
-        else:
+        else:  # pragma: no cover - indicates main process failed before caching
+            raise RuntimeError(
+                f"Expected dataset cache at {cache_path} but it was not created."
+            )
+
+    if dataset is None:
+        raw_ds = get_dataset(script_args)
+        if hasattr(raw_ds, "map"):
             if accelerator is None or is_main_process:
                 dataset = _build_hf_dataset()
                 if cache_enabled and hasattr(dataset, "save_to_disk"):
@@ -210,15 +218,24 @@ def load_datasets(
                     dataset = _hf_load_from_disk(cache_path)
                 else:
                     dataset = _build_hf_dataset()
-    elif isinstance(raw_ds, dict):
-        dataset = {}
-        for split, rows in raw_ds.items():
-            mapped = [_map_fn(row) for row in rows]
-            dataset[split] = [row for row in mapped if _is_valid(row)]
-    else:
-        mapped_rows = [_map_fn(row) for row in raw_ds]
-        dataset = {"train": [row for row in mapped_rows if _is_valid(row)]}
+        elif isinstance(raw_ds, dict):
+            dataset = {}
+            for split, rows in raw_ds.items():
+                mapped = [_map_fn(row) for row in rows]
+                dataset[split] = [row for row in mapped if _is_valid(row)]
+        else:
+            mapped_rows = [_map_fn(row) for row in raw_ds]
+            dataset = {"train": [row for row in mapped_rows if _is_valid(row)]}
 
+    if test_split is None:
+        test_split = (
+            "validation" if hasattr(dataset, "keys") and "validation" in dataset else None
+        )
+        if test_split is None and hasattr(dataset, "keys") and "test" in dataset:
+            test_split = "test"
+
+    if train_split not in dataset:
+        train_split = "train" if "train" in dataset else list(dataset.keys())[0]
     train_ds = dataset[train_split]
 
     eval_rows = _normalize_eval_rows(getattr(script_args, "eval_rows", None))

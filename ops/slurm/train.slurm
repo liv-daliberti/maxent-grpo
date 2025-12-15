@@ -165,6 +165,7 @@ DP=${DP:-1}
 TP=${TP:-1}
 VLLM_PORT=${VLLM_PORT:-29525}
 VLLM_GROUP_PORT=${VLLM_GROUP_PORT:-29535}
+VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-8000}
 OPTIONAL_ARGS="${OPTIONAL_ARGS:-}"
 
 # Parse CLI
@@ -250,6 +251,9 @@ export MAXENT_CHECKPOINT_METADATA_MODE="${MAXENT_CHECKPOINT_METADATA_MODE:-shall
 # checkpoints. Leave empty to default to the training output_dir.
 export MAXENT_CHECKPOINT_METADATA_SOURCE="${MAXENT_CHECKPOINT_METADATA_SOURCE:-}"
 
+# Best-effort: read num_processes from accelerate config to honor its world size
+ACCEL_NUM_PROCS=$(grep -E "^[[:space:]]*num_processes:" "$ACCEL_FILE" | head -n1 | awk '{print $2}' || true)
+
 # Extract model + revision for vLLM from YAML (best-effort)
 MODEL_ID=$(grep -E "^[[:space:]]*model_name_or_path:" "$CONFIG_FILE" | awk '{print $2}' || true)
 REVISION=$(grep -E "^[[:space:]]*model_revision:" "$CONFIG_FILE" | head -n1 | awk '{print $2}' || true)
@@ -286,7 +290,19 @@ export USE_VLLM_SERVER
 
 # SLURM topology
 NUM_NODES=${SLURM_NNODES}
-GPUS_PER_NODE=${GPUS_PER_NODE:-8}
+
+# Infer visible GPUs to avoid over-launching when CUDA_VISIBLE_DEVICES is set.
+CUDA_VISIBLE_COUNT=""
+if [[ -n "${CUDA_VISIBLE_DEVICES:-}" && "${CUDA_VISIBLE_DEVICES,,}" != "none" ]]; then
+  IFS=',' read -ra _cudas <<< "$CUDA_VISIBLE_DEVICES"
+  CUDA_VISIBLE_COUNT=${#_cudas[@]}
+fi
+
+# Respect explicit override, then Slurm hint, then CUDA visibility, else default to 8.
+GPUS_PER_NODE=${GPUS_PER_NODE:-${SLURM_GPUS_ON_NODE:-${CUDA_VISIBLE_COUNT:-8}}}
+if [[ -n "$CUDA_VISIBLE_COUNT" ]] && (( CUDA_VISIBLE_COUNT > 0 )) && (( CUDA_VISIBLE_COUNT < GPUS_PER_NODE )); then
+  GPUS_PER_NODE=$CUDA_VISIBLE_COUNT
+fi
 readarray -t NODELIST < <(scontrol show hostnames "$SLURM_JOB_NODELIST")
 MASTER_PORT=${MASTER_PORT:-6000}
 
@@ -339,7 +355,11 @@ if $SINGLE_NODE_VLLM && (( GPUS_PER_NODE < 2 )); then
   exit 1
 fi
 
-TRAIN_LOCAL_PROCS=$GPUS_PER_NODE
+TRAIN_LOCAL_PROCS=${TRAIN_LOCAL_PROCS:-${ACCEL_NUM_PROCS:-$GPUS_PER_NODE}}
+if (( TRAIN_LOCAL_PROCS > GPUS_PER_NODE )); then
+  echo "Requested TRAIN_LOCAL_PROCS=${TRAIN_LOCAL_PROCS} exceeds visible GPUs (${GPUS_PER_NODE})." >&2
+  exit 1
+fi
 if $SINGLE_NODE && $USE_VLLM; then
   # Reserve 2 GPUs for inline vLLM, leaving the rest for training.
   TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 2 ))
@@ -525,15 +545,27 @@ PY
     : > \"\$VLLM_LOG\"; \
     tail -n +1 -F \"\$VLLM_LOG\" & \
     VLLM_TAIL_PID=\$!; \
-    PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
-    VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
-    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID_CSV \
-    python -m trl.scripts.vllm_serve \
-      --model "$VLLM_MODEL" ${REVISION:+--revision $REVISION} \
-      --tensor_parallel_size $TP --data_parallel_size $DP \
-      --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
-      --dtype float16 --gpu_memory_utilization 0.90 \
-      --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
+    # Default to TRL's vllm_serve (patched for logprobs); override with VLLM_SERVER_IMPL=native to use the API server.
+    VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
+    PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT; \
+    VLLM_GROUP_PORT=$VLLM_GROUP_PORT; \
+    CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID_CSV; \
+    if [ \"\$VLLM_SERVER_IMPL\" = \"native\" ]; then \
+      python -m vllm.entrypoints.api_server \
+        --model \"$VLLM_MODEL\" ${REVISION:+--revision $REVISION} \
+        --tensor-parallel-size $TP \
+        --host 0.0.0.0 --port $VLLM_PORT \
+        --max-model-len $VLLM_MAX_MODEL_LEN \
+        --gpu-memory-utilization 0.90 \
+        --dtype float16 > \"\$VLLM_LOG\" 2>&1 & \
+    else \
+      python -m trl.scripts.vllm_serve \
+        --model \"$VLLM_MODEL\" ${REVISION:+--revision $REVISION} \
+        --tensor_parallel_size $TP --data_parallel_size $DP \
+        --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
+        --dtype float16 --gpu_memory_utilization 0.90 \
+        --enforce_eager false > \"\$VLLM_LOG\" 2>&1 & \
+    fi; \
     VLLM_PID=\$!; \
     echo \"Waiting for inline vLLM health at http://localhost:$VLLM_PORT/health …\"; \
     INLINE_VLLM_READY=false; \
@@ -559,7 +591,7 @@ PY
     fi; \
     echo 'Inline vLLM is healthy.'; \
   fi; \
-  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; \
+  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; export MAXENT_FAULTHANDLER=1; \
   export TRAINING_LOG=\"$VAR_DIR/logs/train_${SLURM_JOB_ID}.log\"; \
   mkdir -p \"$ROOT_DIR/logs\"; : > \"$TRAINING_LOG\"; \
   echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \

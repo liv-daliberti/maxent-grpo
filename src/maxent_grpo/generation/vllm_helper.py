@@ -258,6 +258,19 @@ class VLLMGenerationHelper(
             per_prompt_counts,
         )
         accelerator = self.ctx.accelerator
+        # When ZeRO-3 is active, weight synchronization gathers parameters
+        # collectively even though only rank 0 issues the HTTP requests. Run the
+        # sync hook on every rank before non-main processes block waiting for
+        # the scatter payload.
+        if getattr(self.ctx, "vllm_sync_weights", False):
+            try:
+                self.maybe_sync_weights(
+                    ensure_client=ensure_client,
+                    sync_model=sync_model or self._sync_model_params_to_vllm,
+                )
+            except TypeError:
+                # Backwards-compatible fallback for lightweight stubs.
+                self.maybe_sync_weights()
         if accelerator.is_main_process:
             if ensure_client is None and sync_model is None:
                 grouped_all, meta_all = self.generate(

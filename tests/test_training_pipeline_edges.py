@@ -570,6 +570,82 @@ def test_collect_batch_stats_returns_none_when_reference_missing_after_gather(
     assert _collect_batch_stats(ctx, gen_batch, reward_comp) is None
 
 
+def test_collect_batch_stats_skips_when_reference_missing_but_cached(monkeypatch):
+    ctx = _Ctx()
+    gen_batch = SimpleNamespace(grouped_completions=[["a"]])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
+    ctx._last_ref_stats = SimpleNamespace(
+        ref_logp_sum=[-1.0],
+        ref_logp_sum_raw=[-1.0],
+        ref_tok_counts=[1.0],
+        ref_logp_mean=-1.0,
+        avg_completion_tokens=1.0,
+    )
+    ctx.scoring.allow_stale_reference_logprobs = False
+
+    monkeypatch.setattr(
+        pipeline,
+        "build_score_batch",
+        lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=1),
+    )
+    monkeypatch.setattr(
+        pipeline, "gather_reference_logprobs", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_weight_stats",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("should not compute weights when skipping batch")
+        ),
+    )
+
+    assert _collect_batch_stats(ctx, gen_batch, reward_comp) is None
+    assert getattr(ctx.runtime, "_last_skip_stage", None) == "reference_logprobs"
+
+
+def test_collect_batch_stats_allows_stale_reference_when_enabled(monkeypatch):
+    ctx = _Ctx()
+    gen_batch = SimpleNamespace(grouped_completions=[["a"]])
+    reward_comp = SimpleNamespace(
+        ref_logprob_meta=None, pairs=SimpleNamespace(completions=["a"])
+    )
+    ctx._last_ref_stats = SimpleNamespace(
+        ref_logp_sum=[-1.0],
+        ref_logp_sum_raw=[-1.0],
+        ref_tok_counts=[1.0],
+        ref_logp_mean=-1.0,
+        avg_completion_tokens=1.0,
+    )
+    ctx.scoring.allow_stale_reference_logprobs = True
+
+    monkeypatch.setattr(
+        pipeline,
+        "build_score_batch",
+        lambda *_args, **_kwargs: _FakeScoreBatch(total_sequences=1),
+    )
+    monkeypatch.setattr(
+        pipeline, "gather_reference_logprobs", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "compute_weight_stats",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            flat_weights=[1.0], weights_grouped=[[1.0]], weight_entropy=0.0
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "summarize_completion_lengths",
+        lambda *_args, **_kwargs: (None, SimpleNamespace(clipped_ratio=0.0), 1.0),
+    )
+
+    stats = _collect_batch_stats(ctx, gen_batch, reward_comp)
+    assert stats is not None
+    assert stats.ref_stats is ctx._last_ref_stats
+
+
 def test_collect_batch_stats_returns_none_when_weights_empty(monkeypatch):
     ctx = _Ctx()
     gen_batch = SimpleNamespace(grouped_completions=[["a"]])
@@ -862,3 +938,29 @@ def test_prepare_training_batch_records_batch_stats_stage(monkeypatch):
     )
     assert result is None
     assert getattr(ctx.runtime, "_last_skip_stage") == "batch_stats"
+
+
+def test_behavior_logp_tensor_from_meta_accepts_dict_entries():
+    template = _LogpTensorStub()
+    meta = [{"logprob_sum": -1.0}, {"logprob_sum": -2.5}]
+    out = pipeline._behavior_logp_tensor_from_meta(meta, 2, template)
+    assert isinstance(out, _BehaviorTensorStub)
+    assert out.arr == [-1.0, -2.5]
+
+
+def test_behavior_logp_tensor_from_meta_accepts_object_entries():
+    class _MetaObj:
+        def __init__(self, logprob_sum):
+            self.logprob_sum = logprob_sum
+
+    template = _LogpTensorStub()
+    meta = [_MetaObj(-3.0), _MetaObj(-4.0)]
+    out = pipeline._behavior_logp_tensor_from_meta(meta, 2, template)
+    assert isinstance(out, _BehaviorTensorStub)
+    assert out.arr == [-3.0, -4.0]
+
+
+def test_behavior_logp_tensor_from_meta_returns_none_on_missing_values():
+    template = _LogpTensorStub()
+    meta = [{"token_count": 2}, {"logprob_sum": -1.0}]
+    assert pipeline._behavior_logp_tensor_from_meta(meta, 2, template) is None

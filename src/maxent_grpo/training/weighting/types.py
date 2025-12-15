@@ -28,6 +28,9 @@ class ControllerMetaSettings:
     enabled: bool = False
     method: str = "analytic"
     learning_rate: float = 0.0
+    tau_learning_rate: float = 0.0
+    beta_learning_rate: float = 0.0
+    beta_grad_clip: float = 0.0
     update_interval: int = 1
     objective: str = "potential"
     analytic_steps: int = 1
@@ -44,6 +47,9 @@ class ControllerMetaSettings:
             "enabled": bool(self.enabled),
             "method": str(self.method),
             "learning_rate": float(self.learning_rate),
+            "tau_learning_rate": float(self.tau_learning_rate),
+            "beta_learning_rate": float(self.beta_learning_rate),
+            "beta_grad_clip": float(self.beta_grad_clip),
             "update_interval": int(self.update_interval),
             "objective": str(self.objective),
             "analytic_steps": int(self.analytic_steps),
@@ -64,6 +70,21 @@ class ControllerMetaSettings:
         if "learning_rate" in payload:
             try:
                 self.learning_rate = float(payload["learning_rate"])
+            except (TypeError, ValueError):
+                pass
+        if "tau_learning_rate" in payload:
+            try:
+                self.tau_learning_rate = float(payload["tau_learning_rate"])
+            except (TypeError, ValueError):
+                pass
+        if "beta_learning_rate" in payload:
+            try:
+                self.beta_learning_rate = float(payload["beta_learning_rate"])
+            except (TypeError, ValueError):
+                pass
+        if "beta_grad_clip" in payload:
+            try:
+                self.beta_grad_clip = float(payload["beta_grad_clip"])
             except (TypeError, ValueError):
                 pass
         if "update_interval" in payload:
