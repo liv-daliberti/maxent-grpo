@@ -1,5 +1,5 @@
 """
-Exercise additional branches in training.generation.helpers.
+Exercise additional branches in training.rollout.helpers.
 """
 
 from __future__ import annotations
@@ -7,7 +7,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 
-from maxent_grpo.training.generation import helpers
+from maxent_grpo.training.rollout import helpers
 from maxent_grpo.training.run_helpers import GenerationPenaltyConfig, VLLMClientConfig
 
 

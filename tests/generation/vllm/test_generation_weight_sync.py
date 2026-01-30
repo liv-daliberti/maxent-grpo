@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Tests for vLLM weight synchronization in ``training.generation.helpers``.
+Tests for vLLM weight synchronization in ``training.rollout.helpers``.
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ sys.modules.setdefault("transformers", transformers_stub)
 
 def _import_under_test():
     helpers_mod = importlib.reload(
-        importlib.import_module("maxent_grpo.training.generation.helpers")
+        importlib.import_module("maxent_grpo.training.rollout.helpers")
     )
     run_helpers_mod = importlib.reload(
         importlib.import_module("maxent_grpo.training.run_helpers")
@@ -181,7 +181,7 @@ def test_ensure_vllm_client_inits_client(monkeypatch):
         return lambda base_url: client
 
     monkeypatch.setattr(
-        "maxent_grpo.training.generation.helpers._import_vllm_client_cls", fake_import
+        "maxent_grpo.training.rollout.helpers._import_vllm_client_cls", fake_import
     )
     gen = CompletionGenerator(ctx)
     gen._import_vllm_client_cls = fake_import
@@ -194,7 +194,7 @@ def test_sync_standard_params_updates_client(monkeypatch):
     ctx = _generator_ctx(vllm_sync_weights=True)
     client = _DummyClient()
     monkeypatch.setattr(
-        "maxent_grpo.training.generation.helpers._import_vllm_client_cls",
+        "maxent_grpo.training.rollout.helpers._import_vllm_client_cls",
         lambda: lambda **_: client,
     )
     weights = {"layer.weight": SimpleNamespace(data="tensor")}
@@ -224,7 +224,7 @@ def test_sync_model_params_calls_waiter(monkeypatch):
     ctx = _generator_ctx(vllm_sync_weights=True)
     client = _DummyClient()
     monkeypatch.setattr(
-        "maxent_grpo.training.generation.helpers._import_vllm_client_cls",
+        "maxent_grpo.training.rollout.helpers._import_vllm_client_cls",
         lambda: lambda **_: client,
     )
     ctx.accelerator = _DummyAccel()

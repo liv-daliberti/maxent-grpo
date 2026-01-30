@@ -1515,7 +1515,7 @@ def test_build_score_batch_uses_completion_token_ids_metadata():
 
 
 def test_refresh_torch_handles_import_failure(monkeypatch):
-    """_refresh_torch should recover when ops.sitecustomize import fails."""
+    """_refresh_torch should recover when sitecustomize import fails."""
     original_import = builtins.__import__
     bad_torch = types.SimpleNamespace(
         full=lambda *a, **k: None,
@@ -1526,7 +1526,7 @@ def test_refresh_torch_handles_import_failure(monkeypatch):
     monkeypatch.setitem(sys.modules, "torch", bad_torch)
 
     def _fake_import(name, *args, **kwargs):
-        if name.startswith("ops.sitecustomize"):
+        if name.startswith("sitecustomize"):
             raise ImportError("boom")
         return original_import(name, *args, **kwargs)
 

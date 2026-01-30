@@ -111,7 +111,8 @@ Notes
 .
 ├─ configs/                     # env, constraints, recipes, prompts (Hydra shortcuts + TRL YAML + accelerate configs)
 ├─ custom_tasks/                # LightEval custom tasks + task YAML templates
-├─ ops/                         # operations toolbox (slurm launchers + sitecustomize)
+├─ sitecustomize.py             # repo-local Python bootstrapper (stubs + cache dirs)
+├─ ops/                         # operations toolbox (slurm launchers)
 ├─ src/
 │  └─ maxent_grpo/              # all code now lives under the namespaced package
 │     ├─ cli/                   # Hydra console entrypoints (baseline/maxent/generate/inference)
@@ -134,7 +135,7 @@ Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now liv
 
 
 ## Training Flow (MaxEnt Runner)
-1. **Generation** — `training.generation.CompletionGenerator` wraps HF + vLLM; `GenerationContext` carries sampling + accelerator handles.
+1. **Generation** — `training.rollout.CompletionGenerator` wraps HF + vLLM; `GenerationContext` carries sampling + accelerator handles.
 2. **Rewards & scoring** — `training.rewards` + `training.pipeline.prepare_training_batch` build grouped completions, reward stats, reference log-probs, and sequence scores.
 3. **Weighting & loss** — `training.weighting.loss` + `training.weighting.logic` compute listwise targets/weights (entropy, KL) and loss scalars.
 4. **Optimization** — `training.loop` drives gradient accumulation and schedules; `training.optim` + `training.state` handle LR schedules, controllers, checkpoints.
@@ -161,7 +162,7 @@ Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now liv
 
 ## Development
 - Install dev tooling with `pip install -r configs/requirements-dev.txt` (enforces `configs/constraints.txt`).
-- Run `pytest -q -c configs/pytest.ini` (or `make test`) so the relocated config is picked up.
+- Run `pytest -q` (or `make test`) from the repo root.
 - Type check via `pyright --project configs/pyrightconfig.json`.
 - Optional commit hooks: `pre-commit install` then `pre-commit run -a`.
 - Quick offline smoke (generation → training shim → inference) with isolated caches under `var/`: `make smoke`

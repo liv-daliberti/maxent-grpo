@@ -30,6 +30,7 @@ from .types import (
     ControllerStateSnapshot,
     WeightStats,
     WeightLoggingView,
+    WeightingConfigLike,
     WeightingSettings,
     WeightNormalizationSettings,
     QDistributionSettings,
@@ -65,7 +66,7 @@ def _to_float_list(values: Any) -> List[float]:
 
 
 def _ensure_tau_history(
-    weighting_cfg: WeightingSettings, measured_entropy: Optional[float] = None
+    weighting_cfg: WeightingConfigLike, measured_entropy: Optional[float] = None
 ) -> None:
     """Ensure tau controller history fields have finite defaults."""
 
@@ -104,7 +105,7 @@ def _maybe_init_controller_state(weighting_cfg: WeightingSettings) -> None:
         weighting_cfg.controller_state = None
 
 
-def _sync_controller_state(weighting_cfg: WeightingSettings) -> None:
+def _sync_controller_state(weighting_cfg: WeightingConfigLike) -> None:
     """Ensure the TorchControllerState mirrors the scalar tau/beta."""
 
     state = getattr(weighting_cfg, "controller_state", None)
@@ -702,7 +703,7 @@ def maybe_update_tau(
 
 
 def broadcast_controller_state(
-    accelerator: Any, weighting_cfg: WeightingSettings
+    accelerator: Any, weighting_cfg: WeightingConfigLike
 ) -> bool:
     """Sync controller scalars (tau, beta, entropy EMA/log) across ranks.
 
@@ -740,11 +741,12 @@ def broadcast_controller_state(
             beta, tau, entropy_ema, tau_log = [float(x) for x in src.tolist()]
             weighting_cfg.beta = float(beta)
             weighting_cfg.tau = float(tau)
-            if weighting_cfg.train_grpo_objective:
-                weighting_cfg.denom = 1.0
+            if getattr(weighting_cfg, "train_grpo_objective", False):
+                denom_val = 1.0
             else:
                 denom_sum = weighting_cfg.tau + weighting_cfg.beta
-                weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+                denom_val = denom_sum if denom_sum > 0 else 1.0
+            setattr(weighting_cfg, "denom", denom_val)
             if math.isfinite(entropy_ema):
                 setattr(weighting_cfg, "_tau_entropy_ema", float(entropy_ema))
             if math.isfinite(tau_log):
@@ -793,11 +795,12 @@ def broadcast_controller_state(
         beta, tau, entropy_ema, tau_log = payload[0]
         weighting_cfg.beta = float(beta)
         weighting_cfg.tau = float(tau)
-        if weighting_cfg.train_grpo_objective:
-            weighting_cfg.denom = 1.0
+        if getattr(weighting_cfg, "train_grpo_objective", False):
+            denom_val = 1.0
         else:
             denom_sum = weighting_cfg.tau + weighting_cfg.beta
-            weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+            denom_val = denom_sum if denom_sum > 0 else 1.0
+        setattr(weighting_cfg, "denom", denom_val)
         if isinstance(entropy_ema, (int, float)) and math.isfinite(entropy_ema):
             setattr(weighting_cfg, "_tau_entropy_ema", float(entropy_ema))
         if isinstance(tau_log, (int, float)) and math.isfinite(tau_log):
@@ -808,11 +811,11 @@ def broadcast_controller_state(
     return True
 
 
-def controller_state_dict(weighting_cfg: WeightingSettings) -> dict:
+def controller_state_dict(weighting_cfg: WeightingConfigLike) -> dict:
     """Return a serializable snapshot of the controller state.
 
-    :param weighting_cfg: Weighting configuration containing tau/beta.
-    :type weighting_cfg: WeightingSettings
+    :param weighting_cfg: Weighting configuration containing tau/beta scalars.
+    :type weighting_cfg: WeightingConfigLike
     :returns: Dictionary describing controller parameters.
     :rtype: dict[str, float]
     """
@@ -822,14 +825,14 @@ def controller_state_dict(weighting_cfg: WeightingSettings) -> dict:
 
 
 def save_controller_state(
-    path: Optional[str], weighting_cfg: WeightingSettings
+    path: Optional[str], weighting_cfg: WeightingConfigLike
 ) -> None:
     """Persist controller parameters to disk.
 
     :param path: Destination path for the controller JSON file.
     :type path: str | None
     :param weighting_cfg: Weighting configuration to serialize.
-    :type weighting_cfg: WeightingSettings
+    :type weighting_cfg: WeightingConfigLike
     """
     if not path:
         return
@@ -842,14 +845,14 @@ def save_controller_state(
 
 
 def load_controller_state(
-    path: Optional[str], weighting_cfg: WeightingSettings
+    path: Optional[str], weighting_cfg: WeightingConfigLike
 ) -> bool:
     """Load controller parameters if a state file exists.
 
     :param path: Filesystem path to a controller JSON file.
     :type path: str | None
     :param weighting_cfg: Weighting configuration that will receive the values.
-    :type weighting_cfg: WeightingSettings
+    :type weighting_cfg: WeightingConfigLike
     :returns: ``True`` when the controller state was loaded successfully.
     :rtype: bool
     """

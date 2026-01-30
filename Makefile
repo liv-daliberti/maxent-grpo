@@ -13,7 +13,7 @@ help:
 	@echo "  install-venv - install project into .venv"
 	@echo "  lint         - ruff check . && pylint src"
 	@echo "  format       - ruff check --fix . && isort ."
-	@echo "  test         - pytest -q -c configs/pytest.ini"
+	@echo "  test         - pytest -q"
 	@echo "  precommit    - pre-commit run -a"
 	@echo "  docs         - build Sphinx HTML to var/docs/_build/html"
 	@echo "  docs-clean   - remove var/docs/_build"
@@ -99,7 +99,7 @@ format:
 	isort .
 
 test:
-	pytest -q -c configs/pytest.ini
+	pytest -q
 
 precommit:
 	pre-commit run -a

@@ -57,8 +57,8 @@ trl_stub.ScriptArguments = type("ScriptArguments", (object,), {})
 trl_stub.GRPOConfig = type("GRPOConfig", (object,), {})
 sys.modules["trl"] = trl_stub
 
-from maxent_grpo.training.generation import CompletionGenerator  # noqa: E402
-from maxent_grpo.training.generation.helpers import _VLLMGenerationState  # noqa: E402
+from maxent_grpo.training.rollout import CompletionGenerator  # noqa: E402
+from maxent_grpo.training.rollout.helpers import _VLLMGenerationState  # noqa: E402
 from maxent_grpo.training.run_helpers import (  # noqa: E402
     GenerationPenaltyConfig,
     GenerationSamplingConfig,

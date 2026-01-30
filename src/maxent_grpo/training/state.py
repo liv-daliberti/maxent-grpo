@@ -22,17 +22,15 @@ import os
 import shutil
 import sys
 import inspect
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Protocol
 from types import SimpleNamespace
 
 from .types import (
-    Accelerator,
-    ControllerPaths,
     LoggingHandles,
     OptimizationSchedule,
     TrainingLoopState,
 )
-from .weighting import WeightingSettings
+from .weighting.types import WeightingConfigLike
 from .weighting.logic import (
     CONTROLLER_STATE_FILENAME,
     broadcast_controller_state,
@@ -42,6 +40,24 @@ from .weighting.logic import (
 
 LOG = logging.getLogger(__name__)
 _checkpoint_log_once = {"config": False, "strategy": False, "steps": False}
+
+
+class ControllerPathsLike(Protocol):
+    """Minimal controller path settings used by checkpoint helpers."""
+
+    state_path: Optional[str]
+
+
+class AcceleratorLike(Protocol):
+    """Subset of Accelerator API used by training state utilities."""
+
+    is_main_process: bool
+
+    def wait_for_everyone(self) -> None:
+        """Synchronize all processes."""
+
+    def load_state(self, path: str) -> Any:
+        """Load accelerator state from ``path``."""
 
 
 def _is_safetensors_available() -> bool:
@@ -623,7 +639,7 @@ def build_checkpoint_saver(
     *,
     state_ref: Optional[Dict[str, Any]] = None,
     base_trainer_state: Optional[Dict[str, Any]] = None,
-    controller_cfg: Optional[ControllerPaths] = None,
+    controller_cfg: Optional[ControllerPathsLike] = None,
 ) -> Any:
     """Return a save_checkpoint callable compatible with LoggingHandles.
 
@@ -821,16 +837,16 @@ def build_checkpoint_saver(
 
 
 def maybe_clear_stale_controller_state(
-    accelerator: Accelerator, controller_cfg: ControllerPaths
+    accelerator: AcceleratorLike, controller_cfg: ControllerPathsLike
 ) -> None:
     """Delete a stale controller state file when overwriting the output dir.
 
     :param accelerator: Accelerate handle used to determine the main process
         and trigger ``wait_for_everyone`` guards.
-    :type accelerator: accelerate.Accelerator
+    :type accelerator: AcceleratorLike
     :param controller_cfg: Paths describing the active controller
         checkpoint/restore locations.
-    :type controller_cfg: training.types.ControllerPaths
+    :type controller_cfg: ControllerPathsLike
     """
     resume_path = getattr(controller_cfg, "resume_from", None)
     if resume_path:
@@ -858,18 +874,18 @@ def maybe_clear_stale_controller_state(
 
 def _load_controller_file(
     path: Optional[str],
-    _accelerator: Optional[Accelerator],
-    weighting_cfg: WeightingSettings,
+    _accelerator: Optional[AcceleratorLike],
+    weighting_cfg: WeightingConfigLike,
 ) -> bool:
     """Load controller parameters from ``path`` when available.
 
     :param path: Filesystem path to a serialized controller state.
     :type path: str | None
     :param accelerator: Optional accelerator handle (unused, for signature parity/tests).
-    :type accelerator: accelerate.Accelerator | None
+    :type accelerator: AcceleratorLike | None
     :param weighting_cfg: Mutable weighting configuration that will receive
         the loaded parameters.
-    :type weighting_cfg: training.types.WeightingSettings
+    :type weighting_cfg: WeightingConfigLike
     :returns: ``True`` when the controller state was loaded successfully.
     :rtype: bool
     """
@@ -900,18 +916,18 @@ def _load_controller_file(
 
 
 def load_controller_state_chain(
-    controller_cfg: ControllerPaths,
-    accelerator: Accelerator,
-    weighting_cfg: WeightingSettings,
+    controller_cfg: ControllerPathsLike,
+    accelerator: AcceleratorLike,
+    weighting_cfg: WeightingConfigLike,
 ) -> bool:
     """Attempt to load controller state from resume directory or the current state.
 
     :param controller_cfg: Filesystem paths for controller checkpoints.
-    :type controller_cfg: training.types.ControllerPaths
+    :type controller_cfg: ControllerPathsLike
     :param accelerator: Accelerate handle performing logging/synchronization.
-    :type accelerator: accelerate.Accelerator
+    :type accelerator: AcceleratorLike
     :param weighting_cfg: Mutable weighting settings that receive the loaded parameters.
-    :type weighting_cfg: training.types.WeightingSettings
+    :type weighting_cfg: WeightingConfigLike
     :returns: ``True`` when controller resume was requested or a controller
         checkpoint was successfully loaded.
     :rtype: bool
@@ -949,7 +965,7 @@ def load_controller_state_chain(
 
 
 def maybe_load_accelerator_state(
-    resume_state_path: Optional[str], accelerator: Accelerator
+    resume_state_path: Optional[str], accelerator: AcceleratorLike
 ) -> None:
     """Load an accelerator state directory when resuming if available.
 
@@ -957,7 +973,7 @@ def maybe_load_accelerator_state(
         (e.g., saved by ``accelerator.save_state``).
     :type resume_state_path: str | None
     :param accelerator: Accelerate handle whose ``load_state`` method will be invoked.
-    :type accelerator: accelerate.Accelerator
+    :type accelerator: AcceleratorLike
     :returns: ``None``.
     """
     load_state_fn = getattr(accelerator, "load_state", None)
@@ -1006,7 +1022,7 @@ def maybe_load_accelerator_state(
 
 
 def maybe_checkpoint(
-    logging_cfg: LoggingHandles, accelerator: Accelerator, global_step: int
+    logging_cfg: LoggingHandles, accelerator: AcceleratorLike, global_step: int
 ) -> None:
     """Checkpoint periodically while on the main process.
 
@@ -1015,7 +1031,7 @@ def maybe_checkpoint(
     :type logging_cfg: training.types.LoggingHandles
     :param accelerator: Accelerate handle used for synchronization and
         main-process checks.
-    :type accelerator: accelerate.Accelerator
+    :type accelerator: AcceleratorLike
     :param global_step: Current optimizer step; used to decide whether
         ``save_steps`` divides the step index evenly.
     :type global_step: int

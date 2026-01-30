@@ -1,4 +1,4 @@
-"""Extra unit tests for training.generation.helpers (local generation paths)."""
+"""Extra unit tests for training.rollout.helpers (local generation paths)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from contextlib import AbstractContextManager
 from types import SimpleNamespace
 
 
-from maxent_grpo.training.generation import helpers as gen_helpers
-from maxent_grpo.training.generation import local as local_gen
+from maxent_grpo.training.rollout import helpers as gen_helpers
+from maxent_grpo.training.rollout import local as local_gen
 from maxent_grpo.training.runtime.prompts import GenerationPenaltyConfig
 from maxent_grpo.training.runtime.setup import VLLMClientConfig
 
@@ -103,7 +103,7 @@ def test_prompt_char_limit_falls_back_without_helpers_import(monkeypatch):
     real_import = builtins.__import__
 
     def fake_import(name, *args, **kwargs):
-        if name == "maxent_grpo.training.generation.helpers":
+        if name == "maxent_grpo.training.rollout.helpers":
             raise ImportError("helpers missing")
         return real_import(name, *args, **kwargs)
 
@@ -145,7 +145,7 @@ def test_generate_local_uses_truncate_fallback_when_helpers_missing(monkeypatch)
     real_import = builtins.__import__
 
     def fake_import(name, *args, **kwargs):
-        if name == "maxent_grpo.training.generation.helpers":
+        if name == "maxent_grpo.training.rollout.helpers":
             raise ImportError("helpers unavailable")
         return real_import(name, *args, **kwargs)
 

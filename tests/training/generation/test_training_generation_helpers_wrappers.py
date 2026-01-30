@@ -1,10 +1,10 @@
 """
-Unit tests covering thin wrapper branches in training.generation.helpers.
+Unit tests covering thin wrapper branches in training.rollout.helpers.
 """
 
 from types import SimpleNamespace
 
-import maxent_grpo.training.generation.helpers as helpers
+import maxent_grpo.training.rollout.helpers as helpers
 
 
 class _StubAccel:
@@ -122,7 +122,7 @@ def test_generate_raises_on_per_prompt_mismatch():
 
 
 def test_refresh_vllm_globals_updates_adapter(monkeypatch):
-    helpers = __import__("maxent_grpo.training.generation.helpers", fromlist=["dist"])
+    helpers = __import__("maxent_grpo.training.rollout.helpers", fromlist=["dist"])
     marker_dist = object()
     marker_safe = object()
     retry_fn = lambda *_a, **_k: "retry"  # noqa: E731 - simple stub

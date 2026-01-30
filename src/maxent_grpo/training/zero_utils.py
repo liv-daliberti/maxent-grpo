@@ -65,7 +65,15 @@ def _ensure_cuda_fallback() -> Any:
         return None
 
     return SimpleNamespace(
-        is_available=_cuda_is_available, empty_cache=_cuda_empty_cache
+        is_available=_cuda_is_available,
+        empty_cache=_cuda_empty_cache,
+        current_allocated_memory=lambda: 0,
+        current_reserved_memory=lambda: 0,
+        memory_allocated=lambda *_a, **_k: 0,
+        memory_reserved=lambda *_a, **_k: 0,
+        max_memory_allocated=lambda *_a, **_k: 0,
+        max_memory_reserved=lambda *_a, **_k: 0,
+        memory_stats=lambda *_a, **_k: {},
     )
 
 

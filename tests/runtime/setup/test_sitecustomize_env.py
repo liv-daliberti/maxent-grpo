@@ -22,7 +22,7 @@ def test_sitecustomize_sets_repo_local_hf_dirs(monkeypatch):
     for key in cache_keys:
         monkeypatch.delenv(key, raising=False)
 
-    import ops.sitecustomize as bootstrap
+    import sitecustomize as bootstrap
 
     module = importlib.reload(bootstrap)
     var_root = module._VAR_ROOT

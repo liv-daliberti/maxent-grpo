@@ -1,4 +1,4 @@
-"""Focused tests for vLLM-related helpers in training.generation.helpers."""
+"""Focused tests for vLLM-related helpers in training.rollout.helpers."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import os
 from types import SimpleNamespace
 
 
-import maxent_grpo.training.generation.helpers as helpers
+import maxent_grpo.training.rollout.helpers as helpers
 from maxent_grpo.training.run_helpers import VLLMClientConfig
 
 

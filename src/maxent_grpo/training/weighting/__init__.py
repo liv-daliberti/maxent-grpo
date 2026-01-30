@@ -30,6 +30,7 @@ from .types import (  # noqa: F401  # re-exported via __all__
     WeightLoggingView,
     WeightNormalizationSettings,
     WeightStats,
+    WeightingConfigLike,
     WeightingSettings,
 )
 
@@ -59,6 +60,7 @@ _TYPE_EXPORTS = {
     "WeightLoggingView",
     "WeightNormalizationSettings",
     "WeightStats",
+    "WeightingConfigLike",
     "WeightingSettings",
 }
 

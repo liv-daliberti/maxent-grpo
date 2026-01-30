@@ -72,7 +72,7 @@ def register_lighteval_task(
     """Register a LightEval task configuration in ``configs``.
 
     - Core tasks table: https://github.com/huggingface/lighteval/blob/main/src/lighteval/tasks/tasks_table.jsonl
-- Custom tasks should live under your project (e.g., custom_tasks/ or tools/).
+    - Custom tasks should live under your project (e.g., custom_tasks/ or tools/).
 
     :param configs: Mapping where the serialized task spec is stored; mutated
         in place with the new ``task_name`` entry.

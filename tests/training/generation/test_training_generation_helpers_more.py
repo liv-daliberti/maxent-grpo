@@ -1,4 +1,4 @@
-"""Additional unit tests for training.generation.helpers."""
+"""Additional unit tests for training.rollout.helpers."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from maxent_grpo.training.runtime.setup import VLLMClientConfig
 
 def _make_ctx(helpers=None, use_vllm: bool = False):
     if helpers is None:
-        from maxent_grpo.training.generation import helpers as _helpers
+        from maxent_grpo.training.rollout import helpers as _helpers
 
         helpers = _helpers
     vllm_cfg = VLLMClientConfig(
@@ -48,7 +48,7 @@ def _make_ctx(helpers=None, use_vllm: bool = False):
 @pytest.fixture
 def helpers(monkeypatch, training_stubs):
     # Ensure torch stub is in place via training_stubs fixture.
-    return reload(import_module("maxent_grpo.training.generation.helpers"))
+    return reload(import_module("maxent_grpo.training.rollout.helpers"))
 
 
 def test_generation_context_penalty_proxies(helpers):

@@ -92,6 +92,10 @@ acc_utils = _ensure_stub("accelerate.utils")
 acc_utils.is_peft_model = getattr(
     acc_utils, "is_peft_model", lambda *_args, **_kwargs: False
 )
+# Ensure submodule imports like ``accelerate.accelerator`` resolve to a stub too.
+accelerator_submod = _ensure_stub("accelerate.accelerator")
+if not hasattr(accelerator_submod, "Accelerator"):
+    accelerator_submod.Accelerator = accelerate_mod.Accelerator
 
 transformers_mod = _ensure_stub("transformers")
 
@@ -259,10 +263,17 @@ autodoc_default_options = {
 autodoc_type_aliases = {
     "CompletionType": "maxent_grpo.rewards.basic.CompletionType",
     "RewardFunction": "maxent_grpo.rewards.basic.RewardFunction",
+    "DataLoader": "maxent_grpo.training.types.DataLoader",
     "GenerationFn": "maxent_grpo.training.types.GenerationFn",
     "GenerationBatch": "maxent_grpo.training.types.GenerationBatch",
     "RewardComputation": "maxent_grpo.training.types.RewardComputation",
     "RewardSpec": "maxent_grpo.training.types.RewardSpec",
+    "SeedAugmentationConfig": "maxent_grpo.training.runtime.SeedAugmentationConfig",
+    "DatasetMixtureConfig": "maxent_grpo.config.dataset.DatasetMixtureConfig",
+    "GRPOConfig": "maxent_grpo.config.grpo.GRPOConfig",
+    "GRPOScriptArguments": "maxent_grpo.config.grpo.GRPOScriptArguments",
+    "RewardConfig": "maxent_grpo.rewards.basic.RewardConfig",
+    "GenerationServiceError": "maxent_grpo.generation.errors.GenerationServiceError",
 }
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
@@ -397,3 +408,38 @@ html_context = {
 
 # Keep the landing page snappy on RTD by limiting autosummary depth in nav
 html_theme_options.setdefault("navigation_with_keys", True)
+
+
+_DUPLICATE_EXPORTS = {
+    # Skip re-exported names in package-level modules to avoid ambiguous refs.
+    "maxent_grpo.config": {
+        "DatasetConfig",
+        "DatasetMixtureConfig",
+        "GRPOConfig",
+        "GRPOScriptArguments",
+        "ScriptArguments",
+    },
+    "maxent_grpo.rewards": {
+        "RewardConfig",
+    },
+    "maxent_grpo.generation.vllm": {
+        "GenerationServiceError",
+        "VLLMServiceError",
+    },
+}
+
+
+def _skip_external_members(app, what, name, obj, skip, options):  # noqa: D401
+    """Skip documenting external or duplicate members with noisy docstrings."""
+
+    module_name = getattr(obj, "__module__", "") or ""
+    if module_name.startswith("accelerate."):
+        return True
+    current_module = app.env.temp_data.get("autodoc:module") if app.env else None
+    if current_module in _DUPLICATE_EXPORTS and name in _DUPLICATE_EXPORTS[current_module]:
+        return True
+    return skip
+
+
+def setup(app):  # type: ignore[override]
+    app.connect("autodoc-skip-member", _skip_external_members)

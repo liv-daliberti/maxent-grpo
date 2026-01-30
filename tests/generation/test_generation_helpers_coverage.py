@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 
-import maxent_grpo.training.generation.helpers as helpers
+import maxent_grpo.training.rollout.helpers as helpers
 from maxent_grpo.training.run_helpers import GenerationPenaltyConfig
 
 

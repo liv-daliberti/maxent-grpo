@@ -12,7 +12,7 @@ import maxent_grpo.training.scoring as scoring
 
 
 def test_refresh_torch_import_error_falls_back(monkeypatch):
-    """Ensure _refresh_torch uses require_torch when ops.sitecustomize import fails."""
+    """Ensure _refresh_torch uses require_torch when sitecustomize import fails."""
 
     class _Stub:
         def tensor(self, data, dtype=None):

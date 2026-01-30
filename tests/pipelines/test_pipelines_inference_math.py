@@ -23,7 +23,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from maxent_grpo.pipelines.inference import inference as math_inf
+import maxent_grpo.pipelines.math_inference as math_inf
 
 
 def test_inference_model_spec_resolve_label_defaults():

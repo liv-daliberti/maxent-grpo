@@ -20,57 +20,75 @@ from __future__ import annotations
 
 import builtins
 import importlib
+from importlib.machinery import ModuleSpec
 import logging
 import sys
 from types import SimpleNamespace
 import types
 from contextlib import contextmanager
+from typing import Any, cast
 
 import pytest
 
 # Seed lightweight stubs for optional runtime deps before importing training.*
 from maxent_grpo.training.run_helpers import _build_torch_stub
 
+def _module_spec(name: str) -> ModuleSpec:
+    return ModuleSpec(name, loader=None)
+
+
 torch_stub = _build_torch_stub()
-torch_stub.__spec__ = types.SimpleNamespace(name="torch")
+torch_stub.__spec__ = _module_spec("torch")
 sys.modules["torch"] = torch_stub
 
 torch_utils = sys.modules.setdefault("torch.utils", types.ModuleType("torch.utils"))
-torch_utils.__spec__ = getattr(torch_utils, "__spec__", types.SimpleNamespace())
+torch_utils.__spec__ = getattr(torch_utils, "__spec__", None) or _module_spec(
+    "torch.utils"
+)
 torch_data = sys.modules.setdefault(
     "torch.utils.data", types.ModuleType("torch.utils.data")
 )
-torch_data.__spec__ = getattr(torch_data, "__spec__", types.SimpleNamespace())
-torch_data.DataLoader = getattr(torch_data, "DataLoader", type("DataLoader", (), {}))
-torch_data.Sampler = getattr(torch_data, "Sampler", type("Sampler", (), {}))
-torch_utils.data = torch_data
+torch_data.__spec__ = getattr(torch_data, "__spec__", None) or _module_spec(
+    "torch.utils.data"
+)
+cast(Any, torch_data).DataLoader = getattr(
+    torch_data, "DataLoader", type("DataLoader", (), {})
+)
+cast(Any, torch_data).Sampler = getattr(torch_data, "Sampler", type("Sampler", (), {}))
+cast(Any, torch_utils).data = torch_data
 torch_optim = sys.modules.setdefault("torch.optim", types.ModuleType("torch.optim"))
-torch_optim.__spec__ = getattr(torch_optim, "__spec__", types.SimpleNamespace())
-torch_optim.Optimizer = getattr(torch_optim, "Optimizer", type("Optimizer", (), {}))
+torch_optim.__spec__ = getattr(torch_optim, "__spec__", None) or _module_spec(
+    "torch.optim"
+)
+cast(Any, torch_optim).Optimizer = getattr(
+    torch_optim, "Optimizer", type("Optimizer", (), {})
+)
 transformers_stub = sys.modules.setdefault(
     "transformers", types.ModuleType("transformers")
 )
 transformers_stub.__spec__ = getattr(
-    transformers_stub, "__spec__", types.SimpleNamespace()
-)
-transformers_stub.PreTrainedModel = getattr(
+    transformers_stub, "__spec__", None
+) or _module_spec("transformers")
+cast(Any, transformers_stub).PreTrainedModel = getattr(
     transformers_stub, "PreTrainedModel", type("PreTrainedModel", (), {})
 )
-transformers_stub.PreTrainedTokenizer = getattr(
+cast(Any, transformers_stub).PreTrainedTokenizer = getattr(
     transformers_stub, "PreTrainedTokenizer", type("PreTrainedTokenizer", (), {})
 )
 accelerate_stub = sys.modules.setdefault("accelerate", types.ModuleType("accelerate"))
-accelerate_stub.__spec__ = getattr(accelerate_stub, "__spec__", types.SimpleNamespace())
-accelerate_stub.Accelerator = getattr(
+accelerate_stub.__spec__ = getattr(
+    accelerate_stub, "__spec__", None
+) or _module_spec("accelerate")
+cast(Any, accelerate_stub).Accelerator = getattr(
     accelerate_stub, "Accelerator", type("Accelerator", (), {})
 )
 accelerate_utils = sys.modules.setdefault(
     "accelerate.utils", types.ModuleType("accelerate.utils")
 )
 accelerate_utils.__spec__ = getattr(
-    accelerate_utils, "__spec__", types.SimpleNamespace()
-)
-accelerate_utils.DeepSpeedPlugin = getattr(
+    accelerate_utils, "__spec__", None
+) or _module_spec("accelerate.utils")
+cast(Any, accelerate_utils).DeepSpeedPlugin = getattr(
     accelerate_utils, "DeepSpeedPlugin", type("DeepSpeedPlugin", (), {})
 )
 
@@ -91,7 +109,7 @@ def _reload_zero_utils():
     yield
     sys.modules.setdefault("training.zero_utils", zero_utils)
     if getattr(zero_utils, "__spec__", None) is None:
-        zero_utils.__spec__ = SimpleNamespace(name="training.zero_utils")
+        zero_utils.__spec__ = _module_spec("training.zero_utils")
     importlib.reload(zero_utils)
 
 
@@ -352,7 +370,7 @@ def test_embedding_weight_needing_gather_handles_missing_cases(monkeypatch):
 
 
 def test_maybe_zero_gather_embedding_invokes_gather(monkeypatch):
-    calls: dict[str, object] = {}
+    calls: dict[str, Any] = {}
 
     @contextmanager
     def gathered(params, modifier_rank=None):
@@ -420,7 +438,7 @@ def test_zero_param_list_and_gather_params(monkeypatch):
     with_params = WithParams()
     assert zero_utils._zero_param_list(with_params) == [with_params.p]
 
-    calls: dict[str, object] = {}
+    calls: dict[str, Any] = {}
 
     @contextmanager
     def gathered(params, modifier_rank=None):
@@ -477,7 +495,7 @@ def test_maybe_zero_gather_params_handles_disabled_and_stage(monkeypatch):
         def parameters(self):
             return [self.p]
 
-    calls: dict[str, object] = {}
+    calls: dict[str, Any] = {}
 
     @contextmanager
     def gathered(params, modifier_rank=None):

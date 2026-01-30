@@ -86,6 +86,8 @@ def _build_torch_stub() -> Any:
     float32_dtype = _DType("float32", np.float32)
     float64_dtype = _DType("float64", np.float64)
 
+    grad_tensors: list[Any] = []
+
     class _Tensor:
         __array_priority__ = 100.0
 
@@ -101,6 +103,9 @@ def _build_torch_stub() -> Any:
             self.dtype = dtype if dtype is not None else arr.dtype
             self.requires_grad = bool(requires_grad)
             self.grad = None
+            if self.requires_grad:
+                if self not in grad_tensors:
+                    grad_tensors.append(self)
 
         # Container/utility helpers
         @property
@@ -162,8 +167,22 @@ def _build_torch_stub() -> Any:
             return self
 
         def backward(self, *_args, **_kwargs):
-            # No-op for stubbed tensors.
+            # Minimal autograd placeholder: mark grads for tracked tensors.
+            for tensor in list(grad_tensors):
+                if getattr(tensor, "grad", None) is None:
+                    try:
+                        tensor.grad = _Tensor(
+                            np.ones_like(tensor.arr), dtype=tensor.dtype
+                        )
+                    except _NUMPY_EXCEPTIONS:
+                        tensor.grad = _Tensor(1.0, dtype=tensor.dtype)
             return None
+
+        def requires_grad_(self, flag: bool):
+            self.requires_grad = bool(flag)
+            if self.requires_grad and self not in grad_tensors:
+                grad_tensors.append(self)
+            return self
 
         def clone(self):
             return _Tensor(self.arr.copy(), dtype=self.dtype)
@@ -308,6 +327,16 @@ def _build_torch_stub() -> Any:
                 return _Tensor(np.exp(self.arr), dtype=self.dtype)
             except _NUMPY_EXCEPTIONS:
                 return _Tensor(self.arr, dtype=self.dtype)
+
+        def argmax(self, dim: int | None = None):
+            try:
+                if self.arr.size == 0:
+                    return _Tensor(0, dtype=self.dtype)
+                if dim is None:
+                    return _Tensor(np.argmax(self.arr), dtype=self.dtype)
+                return _Tensor(np.argmax(self.arr, axis=dim), dtype=self.dtype)
+            except _NUMPY_EXCEPTIONS:
+                return _Tensor(0, dtype=self.dtype)
 
         # Indexing
         def __getitem__(self, key):
@@ -613,6 +642,28 @@ def _build_torch_stub() -> Any:
         safe = np.clip(soft.arr, 1e-12, None)
         return _Tensor(np.log(safe), dtype=getattr(tensor, "dtype", None))
 
+    def _normalize(tensor, dim: int = 1):
+        arr = tensor.arr if isinstance(tensor, _Tensor) else np.array(tensor)
+        try:
+            denom = np.linalg.norm(arr, axis=dim, keepdims=True) + 1e-12
+            return _Tensor(arr / denom, dtype=getattr(tensor, "dtype", None))
+        except _NUMPY_EXCEPTIONS:
+            return _Tensor(arr, dtype=getattr(tensor, "dtype", None))
+
+    def _cross_entropy(logits, targets):
+        logits_arr = logits.arr if isinstance(logits, _Tensor) else np.array(logits)
+        targets_arr = targets.arr if isinstance(targets, _Tensor) else np.array(targets)
+        targets_arr = np.asarray(targets_arr, dtype=int)
+        if logits_arr.size == 0:
+            return _Tensor(0.0, dtype=getattr(logits, "dtype", None))
+        # Simple negative log likelihood for the first target index.
+        idx = targets_arr.reshape(-1)[0] if targets_arr.size else 0
+        exp_logits = np.exp(logits_arr - np.max(logits_arr))
+        probs = exp_logits / np.maximum(exp_logits.sum(), 1e-12)
+        nll = -np.log(probs.reshape(-1)[idx] + 1e-12)
+        requires_grad = bool(getattr(logits, "requires_grad", False))
+        return _Tensor(nll, dtype=getattr(logits, "dtype", None), requires_grad=requires_grad)
+
     def _pdist(tensor, p: int = 2):
         arr = tensor.arr if isinstance(tensor, _Tensor) else np.array(tensor)
         if arr.ndim != 2:
@@ -782,6 +833,8 @@ def _build_torch_stub() -> Any:
             )
             if a
             else _Tensor([]),
+            normalize=_normalize,
+            cross_entropy=_cross_entropy,
             pdist=_pdist,
         ),
         Linear=_Linear,

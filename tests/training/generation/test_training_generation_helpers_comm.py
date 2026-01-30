@@ -1,5 +1,5 @@
 """
-Communication helper coverage for training.generation.helpers.
+Communication helper coverage for training.rollout.helpers.
 """
 
 from __future__ import annotations
@@ -8,7 +8,7 @@ from contextlib import nullcontext
 from types import SimpleNamespace
 
 
-import maxent_grpo.training.generation.helpers as helpers
+import maxent_grpo.training.rollout.helpers as helpers
 
 
 def test_optional_import_returns_none_on_import_error(monkeypatch):

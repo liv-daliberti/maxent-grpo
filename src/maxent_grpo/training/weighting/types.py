@@ -20,9 +20,21 @@ import logging
 import math
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, List, Mapping, Optional
+from typing import Any, ClassVar, Dict, List, Mapping, Optional, Protocol
 
 LOG = logging.getLogger(__name__)
+
+
+class WeightingConfigLike(Protocol):
+    """Protocol for objects that carry controller weighting scalars.
+
+    ``beta`` and ``tau`` are required. Optional attributes such as ``denom`` or
+    ``train_grpo_objective`` may be present and are accessed via ``getattr``.
+    """
+
+    beta: float
+    tau: float
+
 
 @dataclass
 class ControllerMetaSettings:
@@ -463,7 +475,9 @@ class ControllerStateSnapshot:
         return payload
 
     @classmethod
-    def from_weighting(cls, weighting_cfg: "WeightingSettings") -> "ControllerStateSnapshot":
+    def from_weighting(
+        cls, weighting_cfg: "WeightingConfigLike"
+    ) -> "ControllerStateSnapshot":
         """Build a controller snapshot from the active weighting settings."""
 
         tau_val = float(weighting_cfg.tau)
@@ -520,16 +534,17 @@ class ControllerStateSnapshot:
             meta=meta_payload,
         )
 
-    def apply_to_weighting(self, weighting_cfg: "WeightingSettings") -> None:
+    def apply_to_weighting(self, weighting_cfg: "WeightingConfigLike") -> None:
         """Apply the snapshot contents to a weighting configuration."""
 
         weighting_cfg.beta = float(self.beta)
         weighting_cfg.tau = float(self.tau)
-        if weighting_cfg.train_grpo_objective:
-            weighting_cfg.denom = 1.0
+        if getattr(weighting_cfg, "train_grpo_objective", False):
+            denom_val = 1.0
         else:
             denom_sum = weighting_cfg.tau + weighting_cfg.beta
-            weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+            denom_val = denom_sum if denom_sum > 0 else 1.0
+        setattr(weighting_cfg, "denom", denom_val)
         tau_log_val = float(self.tau_log)
         if not math.isfinite(tau_log_val):
             tau_log_val = math.log(max(weighting_cfg.tau, 1e-8))
@@ -646,6 +661,7 @@ class TorchControllerState:
 
 __all__ = [
     "TorchControllerState",
+    "WeightingConfigLike",
     "ControllerMetaSettings",
     "ControllerStateSnapshot",
     "KlControllerSettings",

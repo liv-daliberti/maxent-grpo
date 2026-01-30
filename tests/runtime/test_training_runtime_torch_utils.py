@@ -11,7 +11,7 @@ def test_require_torch_bootstrap_retry_falls_back(monkeypatch):
     from maxent_grpo.training.runtime import torch_utils
 
     torch_utils._import_module.cache_clear()
-    for mod in ("torch", "ops.sitecustomize"):
+    for mod in ("torch", "sitecustomize"):
         monkeypatch.delitem(sys.modules, mod, raising=False)
 
     torch_attempts = [
@@ -27,7 +27,7 @@ def test_require_torch_bootstrap_retry_falls_back(monkeypatch):
     fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
     monkeypatch.setattr(torch_utils, "_import_module", fake_import)
 
-    bootstrap = ModuleType("ops.sitecustomize")
+    bootstrap = ModuleType("sitecustomize")
     install_calls = []
 
     def _install_torch_stub():
@@ -37,7 +37,7 @@ def test_require_torch_bootstrap_retry_falls_back(monkeypatch):
     ops_pkg = ModuleType("ops")
     ops_pkg.sitecustomize = bootstrap
     monkeypatch.setitem(sys.modules, "ops", ops_pkg)
-    monkeypatch.setitem(sys.modules, "ops.sitecustomize", bootstrap)
+    monkeypatch.setitem(sys.modules, "sitecustomize", bootstrap)
 
     torch_mod = torch_utils.require_torch("test-bootstrap-missing")
     assert install_calls == [True]
@@ -59,7 +59,7 @@ def test_require_torch_missing_attrs_and_no_bootstrap(monkeypatch):
 
     torch_utils._import_module.cache_clear()
     monkeypatch.delitem(sys.modules, "torch", raising=False)
-    # First call returns a module missing required attrs; ops.sitecustomize import will fail.
+    # First call returns a module missing required attrs; sitecustomize import will fail.
     monkeypatch.setattr(
         torch_utils,
         "_import_module",

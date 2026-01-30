@@ -13,7 +13,7 @@ def test_require_torch_installs_stub_via_bootstrap(monkeypatch):
     from maxent_grpo.training.runtime import deps
 
     deps._import_module.cache_clear()
-    for mod in ("torch", "ops.sitecustomize"):
+    for mod in ("torch", "sitecustomize"):
         monkeypatch.delitem(sys.modules, mod, raising=False)
 
     installed = SimpleNamespace(
@@ -26,12 +26,12 @@ def test_require_torch_installs_stub_via_bootstrap(monkeypatch):
     def _install_stub():
         sys.modules["torch"] = installed
 
-    bootstrap = ModuleType("ops.sitecustomize")
+    bootstrap = ModuleType("sitecustomize")
     bootstrap._install_torch_stub = _install_stub
     ops_pkg = ModuleType("ops")
     ops_pkg.sitecustomize = bootstrap
     monkeypatch.setitem(sys.modules, "ops", ops_pkg)
-    monkeypatch.setitem(sys.modules, "ops.sitecustomize", bootstrap)
+    monkeypatch.setitem(sys.modules, "sitecustomize", bootstrap)
 
     def fake_import(name: str):
         if name == "torch":
@@ -52,7 +52,7 @@ def test_require_torch_missing_attrs_builds_stub(monkeypatch):
     from maxent_grpo.training.runtime import deps
 
     deps._import_module.cache_clear()
-    for mod in ("torch", "ops.sitecustomize"):
+    for mod in ("torch", "sitecustomize"):
         monkeypatch.delitem(sys.modules, mod, raising=False)
 
     torch_attempts = [
@@ -67,12 +67,12 @@ def test_require_torch_missing_attrs_builds_stub(monkeypatch):
 
     fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
     monkeypatch.setattr(deps, "_import_module", fake_import)
-    bootstrap = ModuleType("ops.sitecustomize")
+    bootstrap = ModuleType("sitecustomize")
     bootstrap._install_torch_stub = lambda: None
     ops_pkg = ModuleType("ops")
     ops_pkg.sitecustomize = bootstrap
     monkeypatch.setitem(sys.modules, "ops", ops_pkg)
-    monkeypatch.setitem(sys.modules, "ops.sitecustomize", bootstrap)
+    monkeypatch.setitem(sys.modules, "sitecustomize", bootstrap)
 
     torch_mod = deps.require_torch("deps-missing")
     assert hasattr(torch_mod, "Tensor")
@@ -245,7 +245,7 @@ def test_require_torch_missing_bootstrap_falls_back(monkeypatch):
     from maxent_grpo.training.runtime import deps
 
     deps._import_module.cache_clear()
-    for mod in ("torch", "ops", "ops.sitecustomize"):
+    for mod in ("torch", "ops", "sitecustomize"):
         monkeypatch.delitem(sys.modules, mod, raising=False)
 
     incomplete = SimpleNamespace(tensor=lambda *_a, **_k: None)
@@ -258,7 +258,7 @@ def test_require_torch_missing_bootstrap_falls_back(monkeypatch):
     fake_import.cache_clear = lambda: None  # type: ignore[attr-defined]
     monkeypatch.setattr(deps, "_import_module", fake_import)
     monkeypatch.setitem(sys.modules, "ops", ModuleType("ops"))
-    monkeypatch.delitem(sys.modules, "ops.sitecustomize", raising=False)
+    monkeypatch.delitem(sys.modules, "sitecustomize", raising=False)
 
     torch_mod = deps.require_torch("missing-bootstrap")
     assert torch_mod is not incomplete

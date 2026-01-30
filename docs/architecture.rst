@@ -15,7 +15,7 @@ Flow Diagram
                 │
                 ▼
       Generation & vLLM bridge
-      (``maxent_grpo.training.generation``)
+      (``maxent_grpo.training.rollout``)
                 │
                 ▼
       Reward + Reference Prep
@@ -36,8 +36,8 @@ Stage Breakdown
 ---------------
 
 Generation
-    :mod:`maxent_grpo.training.generation` and
-    :mod:`maxent_grpo.training.generation.vllm` construct grouped completions,
+    :mod:`maxent_grpo.training.rollout` and
+    :mod:`maxent_grpo.training.rollout.vllm` construct grouped completions,
     handling prompt truncation, tokenizer quirks, and optional multi-round
     vLLM retries.
 

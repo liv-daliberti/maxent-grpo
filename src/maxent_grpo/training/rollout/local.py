@@ -33,7 +33,7 @@ class LocalGenerationMixin:
         """Return the character limit applied to prompts for vLLM/local calls."""
         try:
             helpers_mod = __import__(
-                "maxent_grpo.training.generation.helpers",
+                "maxent_grpo.training.rollout.helpers",
                 fromlist=["PROMPT_CHAR_LIMIT"],
             )
             limit_base = getattr(helpers_mod, "PROMPT_CHAR_LIMIT", PROMPT_CHAR_LIMIT)
@@ -161,7 +161,7 @@ class LocalGenerationMixin:
         """Generate completions using the local HF model."""
         try:
             helpers_mod = __import__(
-                "maxent_grpo.training.generation.helpers", fromlist=["_truncate_prompt"]
+                "maxent_grpo.training.rollout.helpers", fromlist=["_truncate_prompt"]
             )
             trunc_fn = getattr(helpers_mod, "_truncate_prompt", _truncate_prompt)
         except ImportError:

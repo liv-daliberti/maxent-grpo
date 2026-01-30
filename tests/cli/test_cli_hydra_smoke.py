@@ -32,7 +32,7 @@ if str(ROOT) not in sys.path:
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 import importlib
-importlib.import_module("ops.sitecustomize")
+importlib.import_module("sitecustomize")
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 import maxent_grpo.cli.hydra_cli as hydra_cli
@@ -365,7 +365,7 @@ elif kind == "generate":
         ),
     )
 elif kind == "inference":
-    import maxent_grpo.pipelines.inference.inference as _pipe
+    import maxent_grpo.pipelines.math_inference as _pipe
     def _run_inference(specs, **_kwargs):
         marker.write_text("inference")
         return [

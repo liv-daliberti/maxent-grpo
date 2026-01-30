@@ -21,7 +21,7 @@ from __future__ import annotations
 import importlib
 
 import maxent_grpo.inference as inference
-import maxent_grpo.pipelines.inference.inference as math_inference
+import maxent_grpo.pipelines.math_inference as math_inference
 
 
 def test_inference_reexports_math_inference_symbols():

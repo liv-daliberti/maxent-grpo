@@ -1,5 +1,5 @@
 """
-Additional unit tests for :mod:`maxent_grpo.training.generation.helpers`.
+Additional unit tests for :mod:`maxent_grpo.training.rollout.helpers`.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-import maxent_grpo.training.generation.helpers as helpers
+import maxent_grpo.training.rollout.helpers as helpers
 from maxent_grpo.training.run_helpers import (
     GenerationPenaltyConfig,
     VLLMClientConfig,
@@ -997,7 +997,7 @@ def test_dist_fallback_created_on_reload(monkeypatch):
         m.setitem(sys.modules, "accelerate", stub_accel)
         m.setitem(sys.modules, "transformers", stub_tf)
         mod = importlib.reload(
-            importlib.import_module("maxent_grpo.training.generation.helpers")
+            importlib.import_module("maxent_grpo.training.rollout.helpers")
         )
         dist_obj = mod.dist
         assert dist_obj.is_available() is False
@@ -1007,7 +1007,7 @@ def test_dist_fallback_created_on_reload(monkeypatch):
         dist_obj.all_gather_object(out, "x")
         assert out[0] == "x"
         dist_obj.broadcast_object_list([])
-    importlib.reload(importlib.import_module("maxent_grpo.training.generation.helpers"))
+    importlib.reload(importlib.import_module("maxent_grpo.training.rollout.helpers"))
 
 
 def test_ensure_vllm_client_reuses_existing(monkeypatch):

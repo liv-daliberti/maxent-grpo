@@ -1,4 +1,4 @@
-"""Expanded coverage for training.generation.vllm_adapter edge cases."""
+"""Expanded coverage for training.rollout.vllm_adapter edge cases."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import sys
 
 import pytest
 
-import maxent_grpo.training.generation.vllm_adapter as vllm_adapter
+import maxent_grpo.training.rollout.vllm_adapter as vllm_adapter
 from maxent_grpo.generation.vllm import VLLMGenerationHelper
 
 safe_generate = None
@@ -18,14 +18,22 @@ time = None
 
 class _DelegateHelper:
     def __init__(self):
-        self.calls: list[tuple[str, object]] = []
-        self._vllm_client = None
+        self.calls: list[tuple[Any, ...]] = []
+        self._vllm_client: Any = None
         self._vllm_sync_ready = False
-        self._last_vllm_synced_step = None
-        self._fsdp_cls = None
-        self._fallback_generate = None
-        self._generate_with_vllm = None
-        self._scatter_vllm_payload = None
+        self._last_vllm_synced_step: Any = None
+        self._fsdp_cls: Any = None
+        self._fallback_generate: Any = None
+        self._safe_generate: Any = None
+        self._time: Any = None
+        self._coalesce_grouped_outputs: Any = None
+        self._flatten_prompts_for_broadcast: Any = None
+        self._generate_with_vllm: Any = None
+        self._scatter_vllm_payload: Any = None
+        self._execute_vllm_request: Any = None
+        self._request_vllm_batch: Any = None
+        self._backfill_missing: Any = None
+        self._record_vllm_failure: Any = None
 
     def maybe_sync_weights(self, *args, **kwargs):
         self.calls.append(("sync_call", args, kwargs))
@@ -75,6 +83,8 @@ class _DelegateHelper:
 
 
 class _DelegateGen(vllm_adapter.VLLMGenerationMixin):
+    ctx: Any
+
     def __init__(self, helper=None):
         helper = helper or _DelegateHelper()
         self.ctx = SimpleNamespace(
@@ -202,8 +212,15 @@ def test_backfill_and_failure_delegation():
         ("failure", missing)
     )
     gen = _DelegateGen(helper)
-    gen._backfill_missing("state", [1, 2])
-    gen._record_vllm_failure("state", [3])
+    state = vllm_adapter._VLLMGenerationState(
+        prompts=["p"],
+        target_counts=[1],
+        requested_n=1,
+        round_limit=1,
+        track_logprobs=False,
+    )
+    gen._backfill_missing(state, [1, 2])
+    gen._record_vllm_failure(state, [3])
     assert ("backfill", [1, 2]) in helper.calls
     assert ("failure", [3]) in helper.calls
     assert getattr(
@@ -213,7 +230,7 @@ def test_backfill_and_failure_delegation():
 
 def test_run_vllm_rounds_rewires_helper(monkeypatch):
     sentinel_time = object()
-    helpers_mod = ModuleType("maxent_grpo.training.generation.helpers")
+    helpers_mod = ModuleType("maxent_grpo.training.rollout.helpers")
     helpers_mod.time = sentinel_time  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, helpers_mod.__name__, helpers_mod)
     monkeypatch.setattr(sys.modules[__name__], "time", sentinel_time, raising=False)
@@ -396,7 +413,13 @@ def test_run_vllm_rounds_sets_legacy_hooks(monkeypatch):
     helper = _LegacyHelper()
     gen = _DelegateGen(helper)
     gen.ctx.accelerator = SimpleNamespace(is_main_process=True, num_processes=1)
-    marker_state = object()
+    marker_state = vllm_adapter._VLLMGenerationState(
+        prompts=["p"],
+        target_counts=[1],
+        requested_n=1,
+        round_limit=1,
+        track_logprobs=False,
+    )
     gen._run_vllm_rounds(marker_state)
     assert getattr(
         helper._execute_vllm_request, "__func__", helper._execute_vllm_request
@@ -461,8 +484,8 @@ def test_generate_routes_and_validates_counts():
         gen.generate(["p"], 1, [1, 2])
 
     gen.ctx.use_vllm = True
-    gen._generate_vllm_collective = lambda *a, **k: ("via_vllm", None)
-    assert gen.generate(["p"], 1) == ("via_vllm", None)
+    gen._generate_vllm_collective = lambda *a, **k: ([["via_vllm"]], None)
+    assert gen.generate(["p"], 1) == ([["via_vllm"]], None)
 
 
 def test_gather_and_broadcast_helpers(monkeypatch):
@@ -547,7 +570,7 @@ def test_scatter_object_variants(monkeypatch):
 
     # TypeError from non-subscriptable input_list
     accel_idx2 = SimpleNamespace(num_processes=2, process_index=0, scatter_object=None)
-    assert vllm_adapter._scatter_object(accel_idx2, 123, src=0) is None
+    assert vllm_adapter._scatter_object(accel_idx2, cast(Any, 123), src=0) is None
 
 
 def test_scatter_object_broadcast_supports_none_on_non_src(monkeypatch):

@@ -45,7 +45,7 @@ try:
 except Exception:
     pass
 try:
-    from ops.sitecustomize import _install_torch_stub
+    from sitecustomize import _install_torch_stub
 
     _install_torch_stub()
 except Exception:
@@ -298,7 +298,7 @@ def training_stubs(monkeypatch):
 def _ensure_torch_stub():
     """Reinstall the torch stub before each test to avoid leaked monkeypatches."""
     try:
-        from ops.sitecustomize import _install_torch_stub
+        from sitecustomize import _install_torch_stub
 
         _install_torch_stub()
     except Exception:

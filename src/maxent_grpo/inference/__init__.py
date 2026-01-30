@@ -17,7 +17,7 @@
 This package exposes utilities to run common math benchmarks (e.g., math_500,
 AIME24/25, AMC, Minerva) across checkpoints produced by the GRPO or
 MaxEnt-GRPO training flows. See
-``maxent_grpo.pipelines.inference.inference`` for the detailed implementation
+``maxent_grpo.pipelines.math_inference`` for the detailed implementation
 and public data classes. This module re-exports the pipeline helpers for
 backwards compatibility so existing imports such as
 ``from maxent_grpo.inference import run_math_inference`` continue to work.
@@ -25,7 +25,7 @@ Use the CLI alias ``maxent-grpo-math-eval`` (or ``maxent-grpo-inference command=
 to run multi-benchmark evaluations from the console.
 """
 
-from maxent_grpo.pipelines.inference.inference import (
+from maxent_grpo.pipelines.math_inference import (
     INFERENCE_DATASETS,
     InferenceModelSpec,
     MathEvalConfig,

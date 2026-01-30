@@ -21,7 +21,7 @@ def test_require_torch_builds_stub_when_missing_attrs(monkeypatch):
         if name == "torch":
             # Present but missing zeros/full/ones_like
             return SimpleNamespace(tensor=lambda *_a, **_k: "tensor-only")
-        if name == "ops.sitecustomize":
+        if name == "sitecustomize":
             raise ImportError("no stub installer")
         return __import__(name)
 

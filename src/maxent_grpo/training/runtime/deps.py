@@ -181,9 +181,21 @@ def require_torch(_context: str) -> Any:
                 existing.arange = getattr(stub, "arange", None)
             if not hasattr(existing, "cuda"):
                 existing.cuda = SimpleNamespace(is_available=lambda: False)
-            # Ensure CUDA memory helpers exist on lightweight stubs.
-            cuda_mod = getattr(existing, "cuda", None)
-            if cuda_mod is not None:
+
+            def _patch_cuda_helpers(cuda_mod: Any) -> None:
+                """Best-effort CUDA stub normalization for tests."""
+                if cuda_mod is None:
+                    return
+                if not hasattr(cuda_mod, "is_available"):
+                    try:
+                        cuda_mod.is_available = lambda: False
+                    except (AttributeError, TypeError):
+                        pass
+                if not hasattr(cuda_mod, "empty_cache"):
+                    try:
+                        cuda_mod.empty_cache = lambda: None
+                    except (AttributeError, TypeError):
+                        pass
                 if not hasattr(cuda_mod, "memory_stats"):
                     try:
                         cuda_mod.memory_stats = lambda *_a, **_k: {}
@@ -202,6 +214,34 @@ def require_torch(_context: str) -> Any:
                             setattr(cuda_mod, name, lambda *_a, **_k: 0)
                         except (AttributeError, TypeError):
                             pass
+
+            # Ensure CUDA memory helpers exist on lightweight stubs.
+            cuda_mod = getattr(existing, "cuda", None)
+            _patch_cuda_helpers(cuda_mod)
+            existing_cuda = sys.modules.get("torch.cuda")
+            if existing_cuda is None and cuda_mod is not None:
+                sys.modules["torch.cuda"] = cuda_mod
+            elif existing_cuda is not None and existing_cuda is not cuda_mod:
+                _patch_cuda_helpers(existing_cuda)
+                try:
+                    existing.cuda = existing_cuda
+                except (AttributeError, TypeError, ValueError):
+                    pass
+            # Ensure torch.device is callable for common stub patterns.
+            device_attr = getattr(existing, "device", None)
+            stub_device = getattr(stub, "device", None)
+            if stub_device is not None:
+                needs_device = not callable(device_attr)
+                if not needs_device and callable(device_attr):
+                    try:
+                        device_attr("cpu")
+                    except (TypeError, ValueError, RuntimeError):
+                        needs_device = True
+                if needs_device:
+                    try:
+                        existing.device = stub_device
+                    except (AttributeError, TypeError, ValueError):
+                        pass
             if not hasattr(existing, "xpu"):
                 existing.xpu = getattr(
                     stub, "xpu", SimpleNamespace(is_available=lambda: False)
@@ -227,7 +267,7 @@ def require_torch(_context: str) -> Any:
     except (ModuleNotFoundError, RuntimeError):  # pragma: no cover - import guard
         torch_mod = None
         try:
-            _bootstrap = importlib.import_module("ops.sitecustomize")
+            _bootstrap = importlib.import_module("sitecustomize")
             installer = getattr(_bootstrap, "_install_torch_stub", None)
             if callable(installer):
                 installer()
@@ -244,7 +284,7 @@ def require_torch(_context: str) -> Any:
 
     if _missing_required(torch_mod):
         try:
-            _bootstrap = importlib.import_module("ops.sitecustomize")
+            _bootstrap = importlib.import_module("sitecustomize")
             installer = getattr(_bootstrap, "_install_torch_stub", None)
             if callable(installer):
                 installer()
@@ -322,7 +362,7 @@ def require_dataloader(context: str) -> Any:
     except (ImportError, ModuleNotFoundError):  # pragma: no cover - import guard
         torch_data = None
         try:
-            _bootstrap = importlib.import_module("ops.sitecustomize")
+            _bootstrap = importlib.import_module("sitecustomize")
             installer = getattr(_bootstrap, "_install_torch_stub", None)
             if callable(installer):
                 installer()

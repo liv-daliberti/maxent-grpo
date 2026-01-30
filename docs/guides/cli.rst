@@ -11,7 +11,7 @@ The project ships two user-facing CLIs:
 Entry Points
 ------------
 
-Console scripts are defined in ``setup.py``:
+Console scripts are defined in ``pyproject.toml``:
 
 - ``maxent-grpo``: top-level Hydra CLI (requires ``command=...``).
 - ``maxent-grpo-baseline``: wrapper for ``command=train-baseline``.

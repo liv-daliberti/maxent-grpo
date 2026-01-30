@@ -117,7 +117,7 @@ except ImportError:
     UnsupportedFieldAttributeWarning = _FallbackUnsupportedFieldAttributeWarning
 
 from maxent_grpo.config import GRPOConfig
-from maxent_grpo.pipelines.inference.inference import resolve_inference_dataset
+from maxent_grpo.pipelines.math_inference import resolve_inference_dataset
 
 __all__ = [
     "validate_training_config",

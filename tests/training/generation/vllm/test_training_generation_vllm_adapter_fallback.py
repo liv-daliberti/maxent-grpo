@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any
 
-import maxent_grpo.training.generation.vllm_adapter as vllm_adapter
+import maxent_grpo.training.rollout.vllm_adapter as vllm_adapter
 
 
 def test_generate_with_vllm_sets_fallback_and_handles_missing_generate(monkeypatch):
@@ -46,7 +47,7 @@ def test_generate_with_vllm_calls_helper_generate(monkeypatch):
     class _Helper:
         def __init__(self):
             self._fallback_generate = None
-            self.called_with = None
+            self.called_with: Any = None
 
         def generate(self, prompts, num_samples, counts, **kwargs):
             self.called_with = (prompts, num_samples, counts, kwargs)

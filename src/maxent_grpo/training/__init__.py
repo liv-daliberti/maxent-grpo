@@ -181,7 +181,7 @@ __all__: List[str] = [
     "PreparedBatch",
     "pipeline",
     "state",
-    "generation",
+    "rollout",
     "cli",
     "scoring",
     "apply_info_seed",

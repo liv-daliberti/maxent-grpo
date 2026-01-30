@@ -12,7 +12,7 @@ import pytest
 
 
 from tools import eval_math_delta
-from maxent_grpo.pipelines.inference.inference import (
+from maxent_grpo.pipelines.math_inference import (
     InferenceModelSpec,
     MathEvalConfig,
 )

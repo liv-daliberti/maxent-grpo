@@ -64,7 +64,7 @@ def test_maxent_cli_round_trip(tmp_path):
                 sys.path.insert(0, str(ROOT))
             if str(SRC) not in sys.path:
                 sys.path.insert(0, str(SRC))
-            importlib.import_module("ops.sitecustomize")
+            importlib.import_module("sitecustomize")
             VAR_DIR = Path(os.environ.get("VAR_DIR", ROOT / "var"))
             LOG_DIR = VAR_DIR / "artifacts" / "logs"
             LOG_DIR.mkdir(parents=True, exist_ok=True)

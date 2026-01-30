@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Additional coverage for training.generation.helpers.
+Additional coverage for training.rollout.helpers.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from types import ModuleType, SimpleNamespace
 import sys
 import pytest
 
-from maxent_grpo.training.generation import helpers
+from maxent_grpo.training.rollout import helpers
 from maxent_grpo.training.run_helpers import (
     GenerationPenaltyConfig,
     VLLMClientConfig,

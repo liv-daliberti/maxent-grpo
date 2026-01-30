@@ -103,7 +103,7 @@ def _refresh_torch() -> Any:
         try:  # pragma: no cover - defensive stub installation
             import importlib
 
-            _bootstrap = importlib.import_module("ops.sitecustomize")
+            _bootstrap = importlib.import_module("sitecustomize")
             installer = getattr(_bootstrap, "_install_torch_stub", None)
             if callable(installer):
                 installer()
@@ -261,6 +261,21 @@ def _refresh_torch() -> Any:
                         except (AttributeError, TypeError):
                             pass
                 torch_mod.cuda = existing_cuda
+    # Ensure torch.device is callable (some tests stub it as a no-arg type).
+    device_attr = getattr(torch_mod, "device", None)
+    stub_device = getattr(stub, "device", None)
+    if stub_device is not None:
+        needs_device = not callable(device_attr)
+        if not needs_device and callable(device_attr):
+            try:
+                device_attr("cpu")
+            except (TypeError, ValueError, RuntimeError):
+                needs_device = True
+        if needs_device:
+            try:
+                torch_mod.device = stub_device
+            except (AttributeError, TypeError, ValueError):
+                pass
     sys.modules["torch"] = torch_mod
     if nn_mod is not None:
         sys.modules["torch.nn"] = nn_mod

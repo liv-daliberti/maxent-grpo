@@ -18,7 +18,7 @@ Lightweight CLI smoke check for training and inference entrypoints.
 This script stubs heavy dependencies (torch/transformers/trl) and exercises:
 - GRPO training entrypoint (maxent_grpo.grpo -> pipelines.training.baseline)
 - MaxEnt-GRPO entrypoint (maxent_grpo.maxent_grpo)
-- math inference runner (maxent_grpo.pipelines.inference.inference)
+- math inference runner (maxent_grpo.pipelines.math_inference)
 
 The goal is to catch wiring/packaging breakage without downloading models or
 datasets. It should run quickly on CPU-only CI runners.
@@ -360,7 +360,7 @@ def _run_generation_smoke() -> None:
 
 def _run_inference_smoke() -> None:
     """Run math inference with a stub runner."""
-    import maxent_grpo.pipelines.inference.inference as math_inf
+    import maxent_grpo.pipelines.math_inference as math_inf
 
     stub_data = [
         {"problem": "1+1", "answer": "2"},

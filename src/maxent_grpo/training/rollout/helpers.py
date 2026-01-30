@@ -19,7 +19,7 @@ from __future__ import annotations
 import importlib
 import time
 
-import maxent_grpo.training.generation.vllm_adapter as _vllm_adapter
+import maxent_grpo.training.rollout.vllm_adapter as _vllm_adapter
 from maxent_grpo.patches.vllm import safe_generate
 from maxent_grpo.generation.vllm import VLLMGenerationHelper
 from maxent_grpo.training.runtime import require_torch

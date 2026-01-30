@@ -20,7 +20,7 @@ from .base import PipelineResult, log_pipeline_banner
 
 __all__ = [
     "generation",
-    "inference",
+    "math_inference",
     "training",
     "PipelineResult",
     "log_pipeline_banner",

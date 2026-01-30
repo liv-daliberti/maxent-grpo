@@ -45,7 +45,7 @@ def test_require_torch_recovers_when_required_attrs_missing(monkeypatch):
     def _fake_import(name: str):
         if name == "torch":
             return SimpleNamespace()
-        if name == "ops.sitecustomize":
+        if name == "sitecustomize":
             raise ImportError("no bootstrap")
         return importlib.import_module(name)
 

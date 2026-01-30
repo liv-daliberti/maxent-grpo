@@ -1,11 +1,11 @@
-"""Additional coverage for training.generation.vllm_adapter."""
+"""Additional coverage for training.rollout.vllm_adapter."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 
 
-import maxent_grpo.training.generation.vllm_adapter as vllm_adapter
+import maxent_grpo.training.rollout.vllm_adapter as vllm_adapter
 
 
 class _DummyHelper:

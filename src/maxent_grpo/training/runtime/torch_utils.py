@@ -29,7 +29,7 @@ def require_torch(context: str) -> Any:
     except (ModuleNotFoundError, RuntimeError):  # pragma: no cover - import guard
         torch_mod = None
         try:
-            _bootstrap = importlib.import_module("ops.sitecustomize")
+            _bootstrap = importlib.import_module("sitecustomize")
             installer = getattr(_bootstrap, "_install_torch_stub", None)
             if callable(installer):
                 installer()
@@ -46,7 +46,7 @@ def require_torch(context: str) -> Any:
 
     if _missing_required(torch_mod):
         try:
-            _bootstrap = importlib.import_module("ops.sitecustomize")
+            _bootstrap = importlib.import_module("sitecustomize")
             installer = getattr(_bootstrap, "_install_torch_stub", None)
             if callable(installer):
                 installer()
@@ -75,7 +75,7 @@ def require_dataloader(context: str) -> Any:
     except (ModuleNotFoundError, RuntimeError):  # pragma: no cover - import guard
         torch_data = None
         try:
-            _bootstrap = importlib.import_module("ops.sitecustomize")
+            _bootstrap = importlib.import_module("sitecustomize")
             installer = getattr(_bootstrap, "_install_torch_stub", None)
             if callable(installer):
                 installer()

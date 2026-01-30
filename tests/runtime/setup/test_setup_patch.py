@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Smoke tests for the TRL vllm_serve patcher in setup.py.
+Smoke tests for the TRL vllm_serve patcher in tools/patch_trl_vllm_serve.py.
 """
 
 from __future__ import annotations
@@ -28,12 +28,11 @@ from types import ModuleType
 import pytest
 
 
-def _load_setup_module(monkeypatch, module_name: str = "setup_under_test"):
-    """Import setup.py with setuptools.setup stubbed out."""
+def _load_patch_module(module_name: str = "patcher_under_test"):
+    """Import tools/patch_trl_vllm_serve.py as a module."""
 
-    monkeypatch.setattr("setuptools.setup", lambda *args, **kwargs: None)
-    setup_path = Path(__file__).resolve().parents[3] / "setup.py"
-    spec = importlib.util.spec_from_file_location(module_name, setup_path)
+    patch_path = Path(__file__).resolve().parents[3] / "tools" / "patch_trl_vllm_serve.py"
+    spec = importlib.util.spec_from_file_location(module_name, patch_path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     sys.modules[module_name] = module
@@ -152,10 +151,10 @@ llm = LLM(
 """
     target.write_text(stub_text, encoding="utf-8")
     _install_fake_trl(monkeypatch, target)
-    setup_mod = _load_setup_module(monkeypatch, module_name="setup_patch_idempotent")
+    patch_mod = _load_patch_module(module_name="patch_trl_idempotent")
 
-    setup_mod._patch_trl_vllm_serve()
-    setup_mod._patch_trl_vllm_serve()
+    patch_mod.patch_trl_vllm_serve()
+    patch_mod.patch_trl_vllm_serve()
 
     patched = target.read_text(encoding="utf-8")
     assert patched.count("use_tqdm_on_load=True") == 1
@@ -171,11 +170,8 @@ def test_trl_patch_raises_when_anchor_missing(tmp_path, monkeypatch):
     target = tmp_path / "vllm_serve.py"
     target.write_text("def noop():\n    return None\n", encoding="utf-8")
     _install_fake_trl(monkeypatch, target)
-    setup_mod = _load_setup_module(
-        monkeypatch, module_name="setup_patch_missing_anchor"
-    )
+    patch_mod = _load_patch_module(module_name="patch_missing_anchor")
 
     with pytest.raises(RuntimeError) as excinfo:
-        setup_mod._patch_trl_vllm_serve()
-    assert "Could not find insertion point" in str(excinfo.value)
-    assert "trl==" in str(excinfo.value)
+        patch_mod.patch_trl_vllm_serve()
+    assert "insertion point" in str(excinfo.value)

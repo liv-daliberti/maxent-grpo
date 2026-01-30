@@ -1,4 +1,4 @@
-"""Additional branch coverage for training.generation.helpers."""
+"""Additional branch coverage for training.rollout.helpers."""
 
 from __future__ import annotations
 
@@ -38,10 +38,10 @@ def helpers_mod(monkeypatch):
     tf_stub.PreTrainedTokenizer = type("PreTrainedTokenizer", (), {})
     monkeypatch.setitem(sys.modules, "transformers", tf_stub)
     ops_pkg = ModuleType("ops")
-    site_stub = ModuleType("ops.sitecustomize")
+    site_stub = ModuleType("sitecustomize")
     site_stub._install_torch_stub = lambda: None
     monkeypatch.setitem(sys.modules, "ops", ops_pkg)
-    monkeypatch.setitem(sys.modules, "ops.sitecustomize", site_stub)
+    monkeypatch.setitem(sys.modules, "sitecustomize", site_stub)
 
     # Stub out config to sidestep the package-level __future__ parsing quirks.
     config_stub = ModuleType("maxent_grpo.config")
@@ -117,15 +117,15 @@ def helpers_mod(monkeypatch):
 
     # Force fresh import of helpers and run_helpers to pick up stubs.
     for name in list(sys.modules):
-        if name.startswith("training.generation.helpers") or name.startswith(
+        if name.startswith("training.rollout.helpers") or name.startswith(
             "training.run_helpers"
         ):
             sys.modules.pop(name, None)
     try:
-        helpers = importlib.import_module("training.generation.helpers")
+        helpers = importlib.import_module("training.rollout.helpers")
         run_helpers = importlib.import_module("training.run_helpers")
     except ImportError:
-        helpers = importlib.import_module("maxent_grpo.training.generation.helpers")
+        helpers = importlib.import_module("maxent_grpo.training.rollout.helpers")
         run_helpers = importlib.import_module("maxent_grpo.training.run_helpers")
     return helpers, run_helpers.VLLMClientConfig
 

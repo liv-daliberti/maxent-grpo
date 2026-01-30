@@ -34,7 +34,7 @@ if "transformers" not in sys.modules:  # pragma: no cover - import-time shim
     )
     sys.modules["transformers"] = fake_tf  # type: ignore[assignment]
 
-from maxent_grpo.pipelines.inference.inference import (  # noqa: E402 - after stub injection
+from maxent_grpo.pipelines.math_inference import (  # noqa: E402 - after stub injection
     InferenceModelSpec,
     MathEvalConfig,
     MathInferenceResult,
@@ -157,7 +157,7 @@ def test_default_device_prefers_cuda_then_mps(monkeypatch):
 
     torch_stub = _Torch()
     torch_stub.backends = types.SimpleNamespace(mps=_Torch._Backends._MPS())
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.torch", torch_stub)
+    monkeypatch.setattr("maxent_grpo.pipelines.math_inference.torch", torch_stub)
     dev = _resolve_default_device(None)
     assert isinstance(dev, _Torch.device)
     assert dev.type == "mps"
@@ -185,7 +185,7 @@ def test_normalize_dtype_handles_strings(value, expected, monkeypatch):
             return types.SimpleNamespace(type=name)
 
     _Torch.dtype = _Torch.dtype  # ensure attribute exists for isinstance checks
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.torch", _Torch)
+    monkeypatch.setattr("maxent_grpo.pipelines.math_inference.torch", _Torch)
     assert _normalize_dtype(value) == expected
 
 
@@ -222,11 +222,11 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
             return [[0, 1, 2]]
 
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.inference.inference.AutoTokenizer",
+        "maxent_grpo.pipelines.math_inference.AutoTokenizer",
         types.SimpleNamespace(from_pretrained=lambda *_a, **_k: _Tok()),
     )
     monkeypatch.setattr(
-        "maxent_grpo.pipelines.inference.inference.AutoModelForCausalLM",
+        "maxent_grpo.pipelines.math_inference.AutoModelForCausalLM",
         types.SimpleNamespace(from_pretrained=lambda *_a, **_k: _Model()),
     )
     torch_stub = types.SimpleNamespace(
@@ -242,7 +242,7 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
     )
     # Provide transformers stubs so the runner does not try to hit HF Hub
     monkeypatch.setitem(sys.modules, "transformers", types.SimpleNamespace())
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.torch", torch_stub)
+    monkeypatch.setattr("maxent_grpo.pipelines.math_inference.torch", torch_stub)
 
     spec = InferenceModelSpec(model_name_or_path="stub", chat_template="<<template>>")
     runner = TransformersPromptRunner(spec)
@@ -251,7 +251,7 @@ def test_transformers_runner_builds_prompt_with_template(monkeypatch):
 
 
 def test_load_math_dataset_requires_datasets(monkeypatch):
-    monkeypatch.setattr("maxent_grpo.pipelines.inference.inference.load_dataset", None)
+    monkeypatch.setattr("maxent_grpo.pipelines.math_inference.load_dataset", None)
     with pytest.raises(ImportError):
         load_math_dataset(MathEvalConfig())
 

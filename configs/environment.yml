@@ -31,7 +31,7 @@ dependencies:
       - huggingface-hub[cli,hf_xet]>=0.30.2,<1.0
       - trl[vllm]==0.18.0
       - lighteval @ git+https://github.com/huggingface/lighteval.git@d3da6b9bbf38104c8b5e1acc86f83541f9a502d1
-      # Install this repository in editable mode (minimal core deps via setup.py)
+      # Install this repository in editable mode (minimal core deps via pyproject.toml)
       - ruff==0.14.6
       - pyright==1.1.381
       - pytest>=6.2

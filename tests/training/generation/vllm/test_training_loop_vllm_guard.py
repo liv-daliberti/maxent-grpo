@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
 from maxent_grpo.training.loop import _maybe_guard_vllm_logprobs
+from maxent_grpo.training.types import TrainingLoopContext
 
 
-def _build_ctx(fail_after: int, *, fallback: bool = False):
+def _build_ctx(fail_after: int, *, fallback: bool = False) -> TrainingLoopContext:
     runtime = SimpleNamespace(_vllm_logprob_miss_steps=0)
     generation = SimpleNamespace(use_vllm=True, vllm_request_logprobs=True)
     scoring = SimpleNamespace(reference_logprobs_source="auto")
@@ -18,12 +20,15 @@ def _build_ctx(fail_after: int, *, fallback: bool = False):
         vllm_logprob_fallback=fallback,
     )
     settings = SimpleNamespace(scoring=SimpleNamespace(reference_logprobs_source="auto"))
-    return SimpleNamespace(
-        runtime=runtime,
-        generation=generation,
-        scoring=scoring,
-        training_args=training_args,
-        settings=settings,
+    return cast(
+        TrainingLoopContext,
+        SimpleNamespace(
+            runtime=runtime,
+            generation=generation,
+            scoring=scoring,
+            training_args=training_args,
+            settings=settings,
+        ),
     )
 
 

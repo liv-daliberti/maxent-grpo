@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 
 def test_gather_object_prefers_accelerate(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     calls = []
 
@@ -20,7 +20,7 @@ def test_gather_object_prefers_accelerate(monkeypatch):
 
 
 def test_gather_object_uses_dist_when_available(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     class _Dist:
         def __init__(self):
@@ -52,7 +52,7 @@ def test_gather_object_uses_dist_when_available(monkeypatch):
 
 
 def test_gather_object_fallback_single(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     accelerator = SimpleNamespace(gather_object=None)
     monkeypatch.setattr(distributed, "dist", None)
@@ -61,7 +61,7 @@ def test_gather_object_fallback_single(monkeypatch):
 
 
 def test_broadcast_prefers_accelerate(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     calls = []
 
@@ -76,7 +76,7 @@ def test_broadcast_prefers_accelerate(monkeypatch):
 
 
 def test_broadcast_uses_dist(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     class _Dist:
         def __init__(self):
@@ -104,7 +104,7 @@ def test_broadcast_uses_dist(monkeypatch):
 
 
 def test_scatter_single_process(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     accelerator = SimpleNamespace(num_processes=1, process_index=0)
     monkeypatch.setattr(distributed, "dist", None)
@@ -113,7 +113,7 @@ def test_scatter_single_process(monkeypatch):
 
 
 def test_scatter_prefers_accelerate(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     calls = []
 
@@ -132,7 +132,7 @@ def test_scatter_prefers_accelerate(monkeypatch):
 
 
 def test_scatter_uses_dist(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     class _Dist:
         def __init__(self):
@@ -159,7 +159,7 @@ def test_scatter_uses_dist(monkeypatch):
 
 
 def test_scatter_fallback_local_selection(monkeypatch):
-    from maxent_grpo.training.generation import distributed
+    from maxent_grpo.training.rollout import distributed
 
     accelerator = SimpleNamespace(num_processes=3, process_index=2, scatter_object=None)
     monkeypatch.setattr(distributed, "dist", None)

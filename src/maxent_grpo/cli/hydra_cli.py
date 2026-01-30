@@ -42,7 +42,7 @@ from maxent_grpo.pipelines.generation.distilabel import (
     DistilabelGenerationConfig,
     run_generation_job,
 )
-from maxent_grpo.pipelines.inference.inference import (
+from maxent_grpo.pipelines.math_inference import (
     InferenceArtifactConfig,
     InferenceModelSpec,
     resolve_inference_dataset,

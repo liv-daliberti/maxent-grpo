@@ -907,7 +907,7 @@ def prepare_training_batch(
     :param ctx: Full training context containing generation/scoring configs.
     :type ctx: training.types.TrainingLoopContext
     :param generator: Callable that produces grouped completions (typically
-        from :class:`training.generation.CompletionGenerator`).
+        from :class:`training.rollout.CompletionGenerator`).
     :type generator: training.types.GenerationFn
     :param batch: Mini-batch produced by the training dataloader.
     :type batch: dict[str, list[str]]

@@ -1,11 +1,11 @@
-"""Coverage for training.generation.distributed collectives."""
+"""Coverage for training.rollout.distributed collectives."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 
 
-import maxent_grpo.training.generation.distributed as distributed
+import maxent_grpo.training.rollout.distributed as distributed
 
 
 def test_gather_object_list_prefers_accelerator(monkeypatch):

@@ -1,4 +1,4 @@
-"""Targeted unit tests for training.generation.helpers (lightweight stubs)."""
+"""Targeted unit tests for training.rollout.helpers (lightweight stubs)."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def _install_torch_stub(monkeypatch):
 def _import_helpers(monkeypatch):
     _install_torch_stub(monkeypatch)
     return importlib.reload(
-        importlib.import_module("maxent_grpo.training.generation.helpers")
+        importlib.import_module("maxent_grpo.training.rollout.helpers")
     )
 
 

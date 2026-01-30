@@ -166,7 +166,7 @@ class VLLMGenerationMixin:
         try:
             helpers_mod = sys.modules.get(
                 type(self).__module__
-            ) or importlib.import_module("maxent_grpo.training.generation.helpers")
+            ) or importlib.import_module("maxent_grpo.training.rollout.helpers")
         except ImportError:
             helpers_mod = None
         import_fn = getattr(
@@ -405,7 +405,7 @@ class VLLMGenerationMixin:
         try:
             helpers_mod = sys.modules.get(
                 type(self).__module__
-            ) or importlib.import_module("maxent_grpo.training.generation.helpers")
+            ) or importlib.import_module("maxent_grpo.training.rollout.helpers")
         except ImportError:
             helpers_mod = None
         safe_gen = getattr(helpers_mod, "safe_generate", safe_generate)
@@ -496,7 +496,7 @@ class VLLMGenerationMixin:
             helpers_mod = sys.modules.get(type(self).__module__)
             if helpers_mod is None or not hasattr(helpers_mod, "time"):
                 helpers_mod = importlib.import_module(
-                    "maxent_grpo.training.generation.helpers"
+                    "maxent_grpo.training.rollout.helpers"
                 )
         except ImportError:
             helpers_mod = helpers_mod if "helpers_mod" in locals() else None

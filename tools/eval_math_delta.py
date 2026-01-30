@@ -3,7 +3,7 @@ Compare math accuracies between two models using the shared inference pipeline.
 
 Defaults to a stub runner + tiny built-in dataset so CI can exercise the wiring
 without network/model downloads. When `--runner transformers` is used, the
-standard TransformersPromptRunner from `pipelines.inference.inference` is used.
+standard TransformersPromptRunner from `pipelines.math_inference` is used.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, List, Sequence
 
-from maxent_grpo.pipelines.inference.inference import (
+from maxent_grpo.pipelines.math_inference import (
     InferenceModelSpec,
     MathEvalConfig,
     run_math_inference,

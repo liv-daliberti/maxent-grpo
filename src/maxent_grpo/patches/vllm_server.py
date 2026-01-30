@@ -10,7 +10,7 @@ all completions, so the trainer discards them and the loss falls to zero.
 
 This module provides a FastAPI middleware that injects the ``client_tag``
 header into every JSON response emitted by ``/generate``.  The middleware
-is attached automatically from ``ops/sitecustomize.py`` when the vLLM
+is attached automatically from ``sitecustomize.py`` when the vLLM
 OpenAI server is imported, but can also be installed manually when
 constructing a custom proxy.
 """

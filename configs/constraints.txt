@@ -1,4 +1,4 @@
-# Global dependency constraints. Keep in sync with setup.py::_deps.
+# Global dependency constraints. Keep in sync with pyproject.toml.
 # Constraints must stay plain package pins (no extras or direct references).
 accelerate==1.4.0
 aiofiles>=24.1.0

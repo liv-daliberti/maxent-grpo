@@ -168,7 +168,7 @@ def test_require_torch_installs_via_bootstrap(monkeypatch, run_helpers):
         sys.modules["torch"] = installed
 
     bootstrap = SimpleNamespace(_install_torch_stub=_install_stub)
-    monkeypatch.setitem(sys.modules, "ops.sitecustomize", bootstrap)
+    monkeypatch.setitem(sys.modules, "sitecustomize", bootstrap)
 
     def _fake_import(name):
         if name in sys.modules:
@@ -177,7 +177,7 @@ def test_require_torch_installs_via_bootstrap(monkeypatch, run_helpers):
             return SimpleNamespace(
                 tensor=lambda *_a, **_k: "missing"
             )  # missing zeros attr
-        if name == "ops.sitecustomize":
+        if name == "sitecustomize":
             return bootstrap
         return import_module(name)
 
@@ -202,12 +202,12 @@ def test_require_torch_reinstalls_when_attrs_missing(monkeypatch, run_helpers):
         sys.modules["torch"] = installed
 
     bootstrap = SimpleNamespace(_install_torch_stub=_install_stub)
-    monkeypatch.setitem(sys.modules, "ops.sitecustomize", bootstrap)
+    monkeypatch.setitem(sys.modules, "sitecustomize", bootstrap)
 
     def _fake_import(name):
         if name == "torch":
             return SimpleNamespace(tensor=lambda *_a, **_k: None)  # missing attrs
-        if name == "ops.sitecustomize":
+        if name == "sitecustomize":
             return bootstrap
         return import_module(name)
 

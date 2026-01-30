@@ -1,12 +1,13 @@
-"""Unit coverage for training.generation.generator.CompletionGenerator."""
+"""Unit coverage for training.rollout.generator.CompletionGenerator."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
-from maxent_grpo.training.generation import generator
+from maxent_grpo.training.rollout import generator
 
 
 pytestmark = pytest.mark.generation
@@ -16,10 +17,15 @@ class _DummyHelper:
     def __init__(self, ctx, fallback):
         self.ctx = ctx
         self.fallback = fallback
-        self._vllm_client = None
-        self._vllm_sync_ready = False
-        self._last_vllm_synced_step = None
-        self._fsdp_cls = None
+        self._vllm_client: Any = None
+        self._vllm_sync_ready: bool = False
+        self._last_vllm_synced_step: Any = None
+        self._fsdp_cls: Any = None
+        self._safe_generate: Any = None
+        self._scatter_object: Any = None
+        self._time: Any = None
+        self._is_peft_model_safe: Any = None
+        self._fallback_generate: Any = None
 
 
 def _make_ctx(use_vllm: bool = False):
