@@ -23,7 +23,7 @@ import numbers
 import sys
 from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
-from typing import Any, List, Optional, Protocol, TYPE_CHECKING, TypeAlias, cast
+from typing import Any, Iterator, List, Optional, Protocol, TYPE_CHECKING, TypeAlias, cast
 
 from maxent_grpo.training.runtime import require_deepspeed
 
@@ -218,7 +218,7 @@ def _maybe_patch_zero_no_sync(model: Optional[TorchModule]) -> bool:
     original_no_sync = no_sync
 
     @contextmanager
-    def _patched_no_sync(*args: Any, **kwargs: Any):
+    def _patched_no_sync(*args: Any, **kwargs: Any) -> Iterator[None]:
         """Shim that emits a warning and bypasses ``no_sync`` under ZeRO-3."""
         if _zero_partitioning_gradients(model):
             if not getattr(model, _NO_SYNC_WARN_ATTR, False):
@@ -289,7 +289,7 @@ def _call_gather_fn(
 
 
 @contextmanager
-def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]):
+def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]) -> Iterator[None]:
     """Gather ZeRO-sharded embedding weights before a forward pass.
 
     :param model: Model potentially wrapping ZeRO-managed embeddings.
@@ -334,7 +334,7 @@ def _zero_param_list(model: Optional[TorchModule]) -> List[TorchParameter]:
 
 
 @contextmanager
-def _maybe_zero_gather_params(model: Optional[TorchModule], enabled: bool):
+def _maybe_zero_gather_params(model: Optional[TorchModule], enabled: bool) -> Iterator[None]:
     """Gather ZeRO-partitioned params only when needed.
 
     :param model: Module whose parameters might be partitioned.

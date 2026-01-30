@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import logging
 from contextlib import nullcontext
-from typing import Any, ContextManager, Optional, cast
+from typing import Any, Callable, ContextManager, Optional, cast
 
 from maxent_grpo.config import GRPOConfig
 from maxent_grpo.training.runtime import require_torch
@@ -30,7 +30,7 @@ def _no_grad_context(torch_mod: Any) -> ContextManager[None]:
 class ControllerMetaManager:
     """Manage meta-controller optimizer state and cadence."""
 
-    def __init__(self, cfg: GRPOConfig, weighting: WeightingSettings):
+    def __init__(self, cfg: GRPOConfig, weighting: WeightingSettings) -> None:
         meta_cfg = getattr(weighting, "controller_meta", None)
         disable_reason = None
         self.enabled = bool(meta_cfg and meta_cfg.enabled)
@@ -138,7 +138,7 @@ class ControllerMetaManager:
             return False
         return (global_step + 1) % self.update_interval == 0
 
-    def make_backprop_fn(self):
+    def make_backprop_fn(self) -> Optional[Callable[[int], Optional[ControllerGradients]]]:
         """Return a callback that computes gradients via autograd."""
 
         if not (
@@ -218,7 +218,7 @@ class ControllerMetaManager:
         except (AttributeError, RuntimeError, TypeError) as exc:
             LOG.debug("Failed to zero controller grads: %s", exc)
 
-        def _as_grad_tensor(param, value: float):
+        def _as_grad_tensor(param: Any, value: float) -> Any:
             dtype = getattr(param, "dtype", None)
             device = getattr(param, "device", None)
             try:
@@ -334,7 +334,7 @@ class ControllerMetaManager:
             except (AttributeError, RuntimeError, TypeError) as exc:
                 LOG.debug("Failed to zero controller state grads: %s", exc)
 
-    def _build_optimizer(self):
+    def _build_optimizer(self) -> Any:
         torch_mod = self._torch
         if torch_mod is None:
             raise RuntimeError("torch is not available for meta optimizer")

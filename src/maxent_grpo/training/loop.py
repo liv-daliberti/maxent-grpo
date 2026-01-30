@@ -504,7 +504,7 @@ def _maybe_overwrite_controller_state_from_config(
     if weighting is None:
         return
 
-    def _coerce_scalar(value):
+    def _coerce_scalar(value: Any) -> Optional[float]:
         try:
             return float(value)
         except (TypeError, ValueError):
@@ -1035,7 +1035,7 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
                 LOG.warning("Failed to close W&B run cleanly: %s", exc)
 
 
-def _cache_meta_stats(weighting_cfg, weight_view, loss_outputs):
+def _cache_meta_stats(weighting_cfg: Any, weight_view: Any, loss_outputs: Any) -> None:
     entropy_val = getattr(weight_view, "weight_entropy", None)
     if entropy_val is None:
         entropy_val = getattr(weight_view, "entropy", None)

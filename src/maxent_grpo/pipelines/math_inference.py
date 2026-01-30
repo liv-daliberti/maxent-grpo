@@ -289,7 +289,7 @@ class _InferenceArtifactLogger:
         spec: InferenceModelSpec,
         dataset_id: str,
         seed: int,
-    ):
+    ) -> None:
         self._config = config
         self._handle = None
         self._existing: Dict[int, Dict[str, Any]] = {}
@@ -763,7 +763,7 @@ def _resolve_explicit_dtype(value: TorchDType) -> TorchDType:
 class TransformersPromptRunner(PromptRunner):
     """Default inference backend powered by ``transformers``."""
 
-    def __init__(self, spec: InferenceModelSpec, num_generations: Optional[int] = None):
+    def __init__(self, spec: InferenceModelSpec, num_generations: Optional[int] = None) -> None:
         """Initialize tokenizer/model for prompt generation.
 
         :param spec: Model specification describing checkpoint and generation params.
@@ -952,7 +952,8 @@ class TransformersPromptRunner(PromptRunner):
             think_generated = generate_fn(**think_encoded, **think_kwargs)
         think_token_counts = think_encoded["attention_mask"].sum(dim=1)
         think_texts: List[str] = []
-        for row, prompt_len in zip(think_generated, think_token_counts):
+        think_generated_iter = cast(Iterable[Any], think_generated)
+        for row, prompt_len in zip(think_generated_iter, think_token_counts):
             completion_ids = row[int(prompt_len) :]
             text = self.tokenizer.decode(
                 completion_ids,
@@ -1008,7 +1009,8 @@ class TransformersPromptRunner(PromptRunner):
                 token_counts = token_counts.repeat_interleave(
                     self.num_generations, dim=0
                 )
-            for row, prompt_len in zip(ans_generated, token_counts):
+            ans_generated_iter = cast(Iterable[Any], ans_generated)
+            for row, prompt_len in zip(ans_generated_iter, token_counts):
                 completion_ids = row[int(prompt_len) :]
                 text = self.tokenizer.decode(
                     completion_ids,

@@ -206,7 +206,6 @@ def test_grpo_main_prefers_dedicated_eval_dataset(monkeypatch):
         "get_reward_funcs",
         lambda *args, **kwargs: [lambda comps, answers: [1.0] * len(comps)],
     )
-    monkeypatch.setattr(baseline, "ensure_vllm_group_port", lambda: None)
     monkeypatch.setattr(
         baseline.transformers, "set_seed", lambda *_args, **_kwargs: None
     )

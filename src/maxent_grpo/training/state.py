@@ -1144,7 +1144,7 @@ def check_stop_condition(
         loop_state.stop_training = True
 
 
-def build_training_state(training_args) -> LoggingHandles:
+def build_training_state(training_args: Any) -> LoggingHandles:
     """Construct minimal logging handles for the custom runner.
 
     :param training_args: Training configuration providing save strategy/steps.
@@ -1153,13 +1153,13 @@ def build_training_state(training_args) -> LoggingHandles:
     """
 
     class _NoopWriter:
-        def __init__(self):
+        def __init__(self) -> None:
             self.logged = []
 
-        def log(self, metrics, step):
+        def log(self, metrics: Dict[str, Any], step: int) -> None:
             self.logged.append((step, metrics))
 
-        def flush(self):
+        def flush(self) -> None:
             return
 
     writer = _NoopWriter()

@@ -32,19 +32,7 @@ import re
 from concurrent.futures import Future
 from typing import Any, List, Optional, TYPE_CHECKING
 
-from maxent_grpo.utils.stubs import AutoConfigStub
-
-try:  # pragma: no cover - optional dependency
-    from transformers import AutoConfig
-except ModuleNotFoundError:
-    # When ``transformers`` is genuinely absent, surface the import error so
-    # callers (and tests) see the missing dependency instead of silently
-    # registering a stub.
-    raise
-except ImportError:  # pragma: no cover - fallback stub for test envs
-    AutoConfig = AutoConfigStub
-except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive
-    AutoConfig = AutoConfigStub
+from transformers import AutoConfig
 
 if TYPE_CHECKING:  # pragma: no cover - import types without runtime dependency
     from huggingface_hub import (  # type: ignore[import-not-found]
@@ -99,7 +87,7 @@ else:
         def repo_exists(*_args: Any, **_kwargs: Any) -> bool:
             return False
 
-        def upload_folder(*_args: Any, **_kwargs: Any) -> Future[str]:
+        def upload_folder(*_args: Any, **_kwargs: Any) -> Future["CommitInfo"]:
             raise RuntimeError("huggingface_hub is not installed")
 
         class CommitInfo:  # type: ignore
@@ -121,7 +109,7 @@ def push_to_hub_revision(
     extra_ignore_patterns: Optional[List[str]] = None,
     *,
     include_checkpoints: bool = False,
-) -> Future[str]:
+) -> Future[CommitInfo]:
     """Push a checkpoint directory to a branch on the Hub.
 
     The helper will create the repository if missing, ensure the target branch

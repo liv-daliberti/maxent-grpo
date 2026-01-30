@@ -20,27 +20,6 @@ class _TrainingArgs(SimpleNamespace):
     pass
 
 
-def test_get_tokenizer_falls_back_and_sets_chat_template(monkeypatch):
-    """AutoTokenizer failure should fall back to the stub and apply chat_template."""
-
-    monkeypatch.setattr(
-        core_model,
-        "AutoTokenizer",
-        SimpleNamespace(
-            from_pretrained=lambda *_a, **_k: (_ for _ in ()).throw(OSError())
-        ),
-    )
-    training_args = _TrainingArgs(chat_template="chat-template")
-    tok = core_model.get_tokenizer(
-        _ModelConfig(
-            model_name_or_path="stub", model_revision=None, trust_remote_code=False
-        ),
-        training_args,
-    )
-    assert isinstance(tok, core_model.PreTrainedTokenizerStub)
-    assert getattr(tok, "chat_template") == "chat-template"
-
-
 def test_get_model_resolves_dtype_and_enables_gradient_checkpointing(monkeypatch):
     """Ensure dtype conversion and gradient checkpointing kwargs are applied."""
 

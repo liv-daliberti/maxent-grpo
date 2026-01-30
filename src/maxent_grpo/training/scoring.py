@@ -24,8 +24,20 @@ import os
 import numbers
 import sys
 import logging
-from types import SimpleNamespace
-from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, TYPE_CHECKING, cast
+from types import SimpleNamespace, TracebackType
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+    cast,
+)
 from functools import lru_cache
 import queue
 import threading
@@ -111,7 +123,7 @@ def _refresh_torch() -> Any:
     return torch
 
 
-def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int):
+def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int) -> Iterator[Any]:
     """Yield from ``iterator`` while prefetching up to ``buffer_size`` slices."""
     if buffer_size is None or buffer_size <= 0:
         for item in iterator:
@@ -121,7 +133,7 @@ def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int):
     q: queue.Queue = queue.Queue(maxsize=buffer_size)
     error_holder: dict[str, BaseException] = {}
 
-    def _producer():
+    def _producer() -> None:
         try:
             for item in iterator:
                 q.put(item)
@@ -219,7 +231,12 @@ class _PadTokenGuard:
         for target, attr, _original, new_value in self._targets:
             setattr(target, attr, new_value)
 
-    def __exit__(self, exc_type, exc, tb) -> bool:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool:
         for target, attr, original, _new_value in self._targets:
             setattr(target, attr, original)
         return False
@@ -754,7 +771,7 @@ def _prepare_prompt_slice(
             prompt_ids_arr[row, :length] = entry.input_ids[:length]
             prompt_mask_arr[row, :length] = entry.attention_mask[:length]
 
-        def _safe_dtype(dtype):
+        def _safe_dtype(dtype: Any) -> Any:
             return (
                 None
                 if (
@@ -771,7 +788,7 @@ def _prepare_prompt_slice(
         prompt_mask = torch_mod.tensor(prompt_mask_arr, dtype=tensor_mask_dtype)
     else:
         # Avoid torch.empty here because minimal stubs may omit it.
-        def _safe_dtype(dtype):
+        def _safe_dtype(dtype: Any) -> Any:
             return (
                 None
                 if (
@@ -808,7 +825,7 @@ def _slice_tail_window(
 def iter_batch_slices(
     score_batch: ScoreBatch,
     device: TorchDevice,  # kept for API symmetry with callers
-):
+) -> Iterator[Tuple[Tensor, Tensor, Tensor]]:
     """Yield scoring slices for a batch, assembling prompt tensors on demand.
 
     :param score_batch: Prepared prompt/completion tensors and metadata.
@@ -1029,7 +1046,7 @@ def iter_batch_slices(
         yield (input_ids_out, attention_mask_out, labels_out)
 
 
-def _summon_fsdp_full_param_context(model: PreTrainedModel):
+def _summon_fsdp_full_param_context(model: PreTrainedModel) -> ContextManager[Any]:
     """Return a context manager that gathers FSDP parameters when available."""
     summon_fn = getattr(model, "summon_full_params", None)
     summon_callable = cast(Optional[Callable[..., Any]], summon_fn)

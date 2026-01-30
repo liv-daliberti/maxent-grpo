@@ -152,7 +152,7 @@ def _build_prompt_cache_fn(
             ids = []
         attn = encoding.get("attention_mask")
 
-        def _normalize_tokens(value):
+        def _normalize_tokens(value: Any) -> Any:
             if hasattr(value, "tolist"):
                 try:
                     value = value.tolist()
@@ -335,20 +335,20 @@ def _fallback_optim_handles(training_args: GRPOConfig) -> SimpleNamespace:
     lr = float(getattr(training_args, "learning_rate", 0.0))
 
     class _DummyOpt:
-        def __init__(self, base_lr: float):
+        def __init__(self, base_lr: float) -> None:
             self.param_groups = [{"lr": base_lr}]
 
-        def step(self):
+        def step(self) -> None:
             return None
 
-        def zero_grad(self, set_to_none: bool = True):
+        def zero_grad(self, set_to_none: bool = True) -> None:
             _ = set_to_none
             return None
 
-        def state_dict(self):
+        def state_dict(self) -> Dict[str, Any]:
             return {}
 
-        def load_state_dict(self, _state):
+        def load_state_dict(self, _state: Any) -> None:
             return None
 
     dummy_opt = _DummyOpt(lr)
@@ -818,7 +818,7 @@ def build_training_loop_context(
     if prepared_scheduler is not None:
         optim_handles.lr_scheduler = prepared_scheduler
 
-    def _resolve_ref_model():
+    def _resolve_ref_model() -> Any:
         if reference_model is not None:
             return reference_model
         # Under DeepSpeed ZeRO (and some other wrappers), unwrapping returns the

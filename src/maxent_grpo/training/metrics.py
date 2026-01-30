@@ -1189,7 +1189,12 @@ def _log_sample_table(
     if wandb_mod is None:
 
         class _FallbackWandb:
-            def Table(self, columns=None, rows=None, **_kwargs):
+            def Table(
+                self,
+                columns: Any = None,
+                rows: Any = None,
+                **_kwargs: Any,
+            ) -> Dict[str, Any]:
                 return {"columns": columns, "rows": rows}
 
         wandb_mod = _FallbackWandb()

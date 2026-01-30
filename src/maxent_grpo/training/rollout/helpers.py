@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import importlib
 import time
+from typing import Any, Callable
 
 import maxent_grpo.training.rollout.vllm_adapter as _vllm_adapter
 from maxent_grpo.patches.vllm import safe_generate
@@ -59,17 +60,17 @@ def _refresh_vllm_globals() -> None:
     globals()["_retry_incomplete_prompts_impl"] = _retry_incomplete_prompts
 
 
-def _gather_object_list_wrapper(accelerator, value):
+def _gather_object_list_wrapper(accelerator: Any, value: Any) -> Any:
     _refresh_vllm_globals()
     return _vllm_adapter.gather_object_list(accelerator, value)
 
 
-def _broadcast_object_list_wrapper(accelerator, payload, *, src=0):
+def _broadcast_object_list_wrapper(accelerator: Any, payload: Any, *, src: int = 0) -> Any:
     _refresh_vllm_globals()
     return _vllm_adapter.broadcast_object_list(accelerator, payload, src=src)
 
 
-def _scatter_object_wrapper(accelerator, input_list, *, src=0):
+def _scatter_object_wrapper(accelerator: Any, input_list: Any, *, src: int = 0) -> Any:
     _refresh_vllm_globals()
     return _vllm_adapter.scatter_object(accelerator, input_list, src=src)
 
@@ -80,7 +81,7 @@ _gather_object_list = _gather_object_list_wrapper
 _scatter_object = _scatter_object_wrapper
 
 
-def _import_vllm_client_cls(import_fn=None):
+def _import_vllm_client_cls(import_fn: Callable[[str], Any] | None = None) -> Any:
     """Import the TRL VLLMClient using the caller-provided optional import hook."""
 
     resolved_import = import_fn or globals().get("_optional_import") or _optional_import

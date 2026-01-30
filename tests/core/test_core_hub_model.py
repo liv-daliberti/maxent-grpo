@@ -150,26 +150,3 @@ def test_get_model_resolves_dtype_and_enables_gradient_checkpointing(monkeypatch
         model.torch, "float16", "float16"
     )
     assert mdl.gc_calls == [train_args.gradient_checkpointing_kwargs]
-
-
-def test_get_tokenizer_fallback_sets_chat_template(monkeypatch):
-    import maxent_grpo.core.model as model
-
-    class _Err:
-        @staticmethod
-        def from_pretrained(*_a, **_k):
-            raise OSError("offline")
-
-    monkeypatch.setattr(model, "AutoTokenizer", _Err)
-    args = SimpleNamespace(
-        model_name_or_path="demo", model_revision=None, trust_remote_code=False
-    )
-    train_args = SimpleNamespace(chat_template="You are helpful.")
-
-    tokenizer = model.get_tokenizer(args, train_args)
-    assert tokenizer.chat_template == "You are helpful."
-    rendered = tokenizer.apply_chat_template(
-        [{"role": "user", "content": "hi"}], tokenize=True, add_generation_prompt=True
-    )
-    assert isinstance(rendered, list)
-    assert rendered  # non-empty bytes

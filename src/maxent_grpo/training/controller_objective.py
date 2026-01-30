@@ -90,7 +90,7 @@ class TruncatedBackpropControllerObjective(ControllerObjective):
 
     name = "truncated_backprop"
 
-    def __init__(self, steps: int = 1):
+    def __init__(self, steps: int = 1) -> None:
         self.steps = max(1, int(steps))
 
     def compute(self, meta_ctx: ControllerMetaContext) -> Optional[ControllerGradients]:

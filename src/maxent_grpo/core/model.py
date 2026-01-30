@@ -17,8 +17,7 @@ Tokenizer/model loading helpers for training scripts.
 
 This module exposes two utilities:
 
-- ``get_tokenizer``: Load a tokenizer with optional chat template override. A
-  minimal fallback tokenizer is provided for offline/CI environments.
+- ``get_tokenizer``: Load a tokenizer with optional chat template override.
 - ``get_model``: Load an ``AutoModelForCausalLM`` with optional quantization
   and device map resolution via TRL helpers, respecting attention impl/dtype
   choices and gradient checkpointing compatibility.
@@ -32,23 +31,8 @@ import logging
 import torch
 import torch.nn as nn
 
-from maxent_grpo.utils.stubs import (
-    AutoModelForCausalLMStub,
-    AutoTokenizerStub,
-    PreTrainedTokenizerStub,
-)
-
-try:  # pragma: no cover - optional dependency (offline/CI fallback)
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    from transformers.tokenization_utils import PreTrainedTokenizer as _PreTrainedTokenizer
-except (
-    ImportError,
-    RuntimeError,
-    AttributeError,
-):  # degrade gracefully when transformers partially missing
-    AutoTokenizer = AutoTokenizerStub
-    AutoModelForCausalLM = AutoModelForCausalLMStub
-    _PreTrainedTokenizer = PreTrainedTokenizerStub
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers.tokenization_utils import PreTrainedTokenizer as _PreTrainedTokenizer
 
 PreTrainedTokenizer = _PreTrainedTokenizer
 if TYPE_CHECKING:
@@ -58,44 +42,11 @@ else:
     AutoModelForCausalLMType = Any
     PreTrainedTokenizerType = Any
 
-class _ModelConfigFallback:
-    """Fallback stub for ``trl.ModelConfig`` when TRL is unavailable."""
-
-    model_name_or_path: str = ""
-    model_revision: Optional[str] = None
-    trust_remote_code: bool = False
-    attn_implementation: Optional[str] = None
-    torch_dtype: Optional[str] = None
-
-
-def _get_kbit_device_map_stub(*_args: Any, **_kwargs: Any) -> Any:
-    """Stub used when TRL's ``get_kbit_device_map`` is unavailable."""
-    return None
-
-
-def _get_quantization_config_stub(*_args: Any, **_kwargs: Any) -> Any:
-    """Stub used when TRL's ``get_quantization_config`` is unavailable."""
-    return None
-
-
-try:
-    from trl import (  # type: ignore[reportMissingTypeStubs]
-        ModelConfig as _TRLModelConfig,
-        get_kbit_device_map as _get_kbit_device_map,
-        get_quantization_config as _get_quantization_config,
-    )
-except (
-    ImportError,
-    RuntimeError,
-    AttributeError,
-):  # fallback for partially installed TRL/httpx
-    ModelConfig = _ModelConfigFallback
-    get_kbit_device_map = _get_kbit_device_map_stub
-    get_quantization_config = _get_quantization_config_stub
-else:
-    ModelConfig = _TRLModelConfig
-    get_kbit_device_map = _get_kbit_device_map
-    get_quantization_config = _get_quantization_config
+from trl import (  # type: ignore[reportMissingTypeStubs]
+    ModelConfig,
+    get_kbit_device_map,
+    get_quantization_config,
+)
 
 if TYPE_CHECKING:
     ModelConfigType = ModelConfig
@@ -125,12 +76,9 @@ def get_tokenizer(
 ) -> PreTrainedTokenizerType | Any:
     """Load and optionally customize the tokenizer.
 
-    The function first attempts to download a tokenizer from the Hub using the
-    provided model identifiers. If the environment lacks the ``transformers``
-    dependency or network access, it falls back to a lightweight stub that
-    preserves the API surface required by downstream code. When a
-    ``chat_template`` override is configured it is injected into the tokenizer
-    before returning.
+    The function downloads a tokenizer from the Hub using the provided model
+    identifiers. When a ``chat_template`` override is configured it is injected
+    into the tokenizer before returning.
 
     :param model_args: Model configuration (name, revision, trust flags) used to
         locate the tokenizer on the Hub.
@@ -138,23 +86,14 @@ def get_tokenizer(
     :param training_args: Training configuration, specifically the optional
         ``chat_template`` used to override the tokenizer template.
     :type training_args: GRPOConfig
-    :returns: A pre-trained tokenizer instance or a stub with matching
-        interface for offline/CI environments.
+    :returns: A pre-trained tokenizer instance.
     :rtype: ``transformers.PreTrainedTokenizer``
     """
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            revision=model_args.model_revision,
-            trust_remote_code=model_args.trust_remote_code,
-        )
-    except (
-        OSError,
-        ValueError,
-        RuntimeError,
-    ):  # pragma: no cover - offline/CI fallback
-        # Always fall back to the lightweight stub to avoid network access.
-        tokenizer = PreTrainedTokenizerStub()
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_args.model_name_or_path,
+        revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
+    )
 
     if training_args.chat_template is not None:
         tokenizer.chat_template = training_args.chat_template

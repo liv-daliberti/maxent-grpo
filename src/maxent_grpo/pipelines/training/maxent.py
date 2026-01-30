@@ -11,10 +11,9 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Any
+from typing import Any, Iterator, Type
 
 from contextlib import contextmanager
-from typing import Type
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.core.hub import ensure_hf_repo_ready
@@ -94,7 +93,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
     """
 
     class MaxEntGRPOTrainer(parent_cls):  # type: ignore[misc,valid-type]
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             # Force vLLM to honor fp16/bf16 flags even when the base model's
             # config defaults to bfloat16 (e.g., Qwen2.5). TRL's GRPOTrainer
             # does not forward a dtype to LLM(...), so colocated vLLM falls
@@ -115,7 +114,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
                 if dtype_override and getattr(t_args, "use_vllm", False):
                     orig_llm = getattr(grpo_mod, "LLM", None)
 
-                    def _patched_llm(*llm_args, **llm_kwargs):
+                    def _patched_llm(*llm_args: Any, **llm_kwargs: Any) -> Any:
                         llm_kwargs.setdefault("dtype", dtype_override)
                         return _LLM(*llm_args, **llm_kwargs)
 
@@ -141,7 +140,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
                 setattr(self.args, "train_grpo_objective", False)
             self.maxent_enabled = True
 
-        def compute_loss(self, *args, **kwargs):  # pragma: no cover - thin wrapper
+        def compute_loss(self, *args: Any, **kwargs: Any) -> Any:  # pragma: no cover - thin wrapper
             """Call parent compute_loss but tag outputs for MaxEnt bookkeeping."""
             loss = super().compute_loss(*args, **kwargs)
             if isinstance(loss, tuple):
@@ -160,7 +159,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
 
 
 @contextmanager
-def _maybe_patch_trainer(training_args: GRPOConfig):
+def _maybe_patch_trainer(training_args: GRPOConfig) -> Iterator[None]:
     """Temporarily install a MaxEnt-aware trainer override when requested.
 
     :param training_args: Trainer configuration controlling GRPO vs MaxEnt mode.

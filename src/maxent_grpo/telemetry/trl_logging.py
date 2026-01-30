@@ -82,7 +82,14 @@ else:
 class _WeightingLogCallback(_WeightingLogCallbackBase):
     """Normalize/log metrics even if a trainer bypasses the log override."""
 
-    def on_log(self, args, state, control, logs=None, **kwargs):  # type: ignore[override]
+    def on_log(  # type: ignore[override]
+        self,
+        args: Any,
+        state: Any,
+        control: Any,
+        logs: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Any:
         if logs is None:
             return control
         # Inputs are unused but kept for TrainerCallback signature compatibility.
@@ -275,7 +282,7 @@ def _normalize_prefixes(
 class _WeightingMetricHelper:
     """Helper that derives tau/beta metrics from a trainer + its args."""
 
-    def __init__(self, args: Any):
+    def __init__(self, args: Any) -> None:
         self._args = args
         self._prev_tau: Optional[float] = None
         self._prev_beta: Optional[float] = None
@@ -547,7 +554,7 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
     class _LossCaptureMixin:
         """Capture loss component dicts returned by compute_loss for logging."""
 
-        def compute_loss(self, *args: Any, **kwargs: Any):  # type: ignore[override]
+        def compute_loss(self, *args: Any, **kwargs: Any) -> Any:  # type: ignore[override]
             loss = super().compute_loss(*args, **kwargs)  # type: ignore[misc]
             setattr(self, "_last_loss_components", None)
             setattr(self, "_last_loss_scalar", None)

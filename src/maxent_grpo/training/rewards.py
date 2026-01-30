@@ -316,7 +316,7 @@ def prepare_generation_batch(
         prompt_batch: List[str],
         expected: int,
         per_prompt_counts: Optional[List[int]] = None,
-    ):
+    ) -> Any:
         per_prompt_repr = "none"
         if per_prompt_counts is not None:
             try:

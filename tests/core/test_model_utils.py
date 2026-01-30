@@ -19,12 +19,16 @@ from types import SimpleNamespace
 import maxent_grpo.core.model as MU
 
 
-def test_get_tokenizer_applies_chat_template():
+def test_get_tokenizer_applies_chat_template(monkeypatch):
     model_args = SimpleNamespace(
         model_name_or_path="x", model_revision="main", trust_remote_code=True
     )
     training_args = SimpleNamespace(
         chat_template="SYS: {{ system }}\nUSER: {{ input }}"
+    )
+    dummy = SimpleNamespace(chat_template=None)
+    monkeypatch.setattr(
+        MU.AutoTokenizer, "from_pretrained", lambda *_a, **_k: dummy
     )
     tok = MU.get_tokenizer(model_args, training_args)
     assert getattr(tok, "chat_template", None) is not None

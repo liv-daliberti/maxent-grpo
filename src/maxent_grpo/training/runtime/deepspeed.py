@@ -17,7 +17,7 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional
 LOG = logging.getLogger(__name__)
 
 
-def require_deepspeed(context: str, module: str = "deepspeed"):
+def require_deepspeed(context: str, module: str = "deepspeed") -> Any:
     """Return a DeepSpeed module import or raise a contextual RuntimeError."""
 
     hint = (
@@ -42,7 +42,7 @@ def get_trl_prepare_deepspeed() -> Optional[Any]:
     return prepare
 
 
-def _maybe_create_deepspeed_plugin():
+def _maybe_create_deepspeed_plugin() -> Optional[Any]:
     """Construct a DeepSpeedPlugin from Accelerate env/config when available."""
 
     if os.environ.get("ACCELERATE_USE_DEEPSPEED", "false").lower() != "true":

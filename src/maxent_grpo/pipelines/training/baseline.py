@@ -47,12 +47,13 @@ from typing import (
     Any,
     List,
     Union,
+    Callable,
+    Iterator,
     Protocol,
     cast,
     runtime_checkable,
     TYPE_CHECKING,
 )
-from types import ModuleType, SimpleNamespace
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.training.rewards import load_reward_functions
 from maxent_grpo.training.data import resolve_dataloader_kwargs
@@ -71,31 +72,12 @@ from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 if TYPE_CHECKING:
     from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
 
-try:  # Expose a transformers handle for tests that monkeypatch logging.
-    import transformers as transformers
-except ImportError:  # pragma: no cover - optional dependency
-    transformers = ModuleType("transformers")
-    transformers.__spec__ = None
-    transformers.__path__ = []
-    trainer_utils = ModuleType("transformers.trainer_utils")
-    setattr(trainer_utils, "get_last_checkpoint", lambda *_args, **_kwargs: None)
-tf_logging = SimpleNamespace(
-    set_verbosity=lambda *args, **kwargs: None,
-    enable_default_handler=lambda *args, **kwargs: None,
-    enable_explicit_format=lambda *args, **kwargs: None,
-)
-
-# Ensure trainer_utils is available even when transformers is installed.
-if "trainer_utils" not in locals():
-    try:
-        import transformers.trainer_utils as trainer_utils  # type: ignore
-    except (ImportError, AttributeError):
-        trainer_utils = ModuleType("transformers.trainer_utils")
-        setattr(trainer_utils, "get_last_checkpoint", lambda *_args, **_kwargs: None)
+import transformers as transformers
+import transformers.trainer_utils as trainer_utils  # type: ignore
 
 
 @contextmanager
-def _force_vllm_dtype(training_args: GRPOConfig):
+def _force_vllm_dtype(training_args: GRPOConfig) -> Iterator[None]:
     """Ensure colocated vLLM uses the requested dtype instead of model defaults."""
 
     dtype_override = None
@@ -118,7 +100,7 @@ def _force_vllm_dtype(training_args: GRPOConfig):
 
     orig_llm = getattr(grpo_mod, "LLM", None)
 
-    def _patched_llm(*args, **kwargs):
+    def _patched_llm(*args: Any, **kwargs: Any) -> Any:
         kwargs.setdefault("dtype", dtype_override)
         return _LLM(*args, **kwargs)
 
@@ -129,29 +111,6 @@ def _force_vllm_dtype(training_args: GRPOConfig):
     finally:
         if orig_llm is not None:
             grpo_mod.LLM = orig_llm
-    utils_module = ModuleType("transformers.utils")
-    setattr(utils_module, "logging", tf_logging)
-    setattr(transformers, "trainer_utils", trainer_utils)
-    setattr(transformers, "utils", utils_module)
-    sys.modules.setdefault("transformers", transformers)
-    sys.modules.setdefault("transformers.trainer_utils", trainer_utils)
-    sys.modules.setdefault("transformers.utils", utils_module)
-
-
-if getattr(transformers, "set_seed", None) is None:
-    setattr(transformers, "set_seed", lambda *_args, **_kwargs: None)
-if getattr(transformers, "utils", None) is None:
-    setattr(
-        transformers,
-        "utils",
-        SimpleNamespace(
-            logging=SimpleNamespace(
-                set_verbosity=lambda *args, **kwargs: None,
-                enable_default_handler=lambda *args, **kwargs: None,
-                enable_explicit_format=lambda *args, **kwargs: None,
-            )
-        ),
-    )
 
 LOG = logging.getLogger(__name__)
 
@@ -505,28 +464,28 @@ def run_baseline_training(
     else:
 
         class _Split:
-            def __init__(self, rows):
+            def __init__(self, rows: List[Any]) -> None:
                 self._rows = rows
 
             @property
-            def column_names(self):
+            def column_names(self) -> List[str]:
                 return []
 
-            def remove_columns(self, *_cols):
+            def remove_columns(self, *_cols: Any) -> "_Split":
                 return self
 
-            def shuffle(self, seed=None):
+            def shuffle(self, seed: Any = None) -> "_Split":
                 _ = seed
                 return self
 
-            def select(self, _indices):
+            def select(self, _indices: Any) -> "_Split":
                 return self
 
-            def __len__(self):
+            def __len__(self) -> int:
                 return len(self._rows)
 
         class _DictDataset(dict):
-            def map(self, fn):
+            def map(self, fn: Callable[[Any], Any]) -> "_DictDataset":
                 return _DictDataset(
                     {k: _Split([fn(ex) for ex in v]) for k, v in self.items()}
                 )

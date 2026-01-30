@@ -127,14 +127,14 @@ class VLLMGenerationMixin:
         raise NotImplementedError("Subclasses must implement _prompt_char_limit().")
 
     @property
-    def _vllm_client(self):
+    def _vllm_client(self) -> Any:
         client = getattr(self._vllm_helper, "vllm_client", None)
         if client is None:
             client = getattr(self._vllm_helper, "_vllm_client", None)
         return client
 
     @_vllm_client.setter
-    def _vllm_client(self, value) -> None:
+    def _vllm_client(self, value: Any) -> None:
         setattr(self._vllm_helper, "vllm_client", value)
         setattr(self._vllm_helper, "_vllm_client", value)
 
@@ -162,14 +162,14 @@ class VLLMGenerationMixin:
         setattr(self._vllm_helper, "_last_vllm_synced_step", value)
 
     @property
-    def _fsdp_cls(self):
+    def _fsdp_cls(self) -> Any:
         fsdp = getattr(self._vllm_helper, "fsdp_cls", None)
         if fsdp is None:
             fsdp = getattr(self._vllm_helper, "_fsdp_cls", None)
         return fsdp
 
     @_fsdp_cls.setter
-    def _fsdp_cls(self, value) -> None:
+    def _fsdp_cls(self, value: Any) -> None:
         setattr(self._vllm_helper, "fsdp_cls", value)
         setattr(self._vllm_helper, "_fsdp_cls", value)
 
@@ -247,7 +247,7 @@ class VLLMGenerationMixin:
             # Allow lightweight stubs without keyword support.
             self._vllm_helper.maybe_sync_weights()
 
-    def _invoke_helper(self, attr: str, *args, **kwargs):
+    def _invoke_helper(self, attr: str, *args: Any, **kwargs: Any) -> Any:
         """Call a helper attribute if present, preferring public names when available."""
         helper = getattr(self, "_vllm_helper", None)
         if helper is None:

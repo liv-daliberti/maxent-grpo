@@ -209,7 +209,7 @@ def load_datasets(
     if cache_enabled and os.path.isdir(cache_path) and _hf_load_from_disk:
         dataset = _hf_load_from_disk(cache_path)
 
-    def _build_hf_dataset():
+    def _build_hf_dataset() -> Any:
         raw_ds = get_dataset(script_args)
         # Remove all original columns so the DataLoader only sees prompt/answer.
         remove_cols = getattr(raw_ds, "column_names", None)

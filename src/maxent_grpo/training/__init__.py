@@ -17,11 +17,7 @@
 from __future__ import annotations
 
 import importlib as _importlib
-import importlib.machinery as _importlib_machinery
-import importlib.util as _importlib_util
 import logging
-import sys
-from types import ModuleType, SimpleNamespace
 from typing import Any, List, TYPE_CHECKING
 
 from .controller_objective import (
@@ -80,62 +76,6 @@ LOG = logging.getLogger(__name__)
 # Lazy-only declarations to satisfy ``__all__`` without eager imports.
 run_training_loop: Any
 PreparedBatch: Any
-
-# Provide a lightweight wandb stub only when the real package is unavailable.
-# This must not override a real installation (even if not yet imported) or the
-# Transformers WandbCallback import check will fail at runtime.
-_wandb_stub = sys.modules.get("wandb")
-_wandb_errors = getattr(getattr(_wandb_stub, "errors", None), "Error", None)
-if _wandb_errors is None:
-    try:
-        _wandb_mod = _importlib.import_module("wandb")
-    except (ImportError, ModuleNotFoundError):
-        _wandb_mod = None
-    if (
-        _wandb_mod is None
-        or getattr(getattr(_wandb_mod, "errors", None), "Error", None) is None
-    ):
-        # Only install a stub when the real package is missing or malformed.
-        _wandb_stub_mod = ModuleType("wandb")
-        setattr(_wandb_stub_mod, "errors", SimpleNamespace(Error=RuntimeError))
-        sys.modules["wandb"] = _wandb_stub_mod
-
-# Preserve the original reload to avoid breaking downstream tooling. Store the
-# first-seen implementation so subsequent reloads do not accidentally wrap the
-# stubbed version and recurse.
-if not hasattr(_importlib, "_original_reload"):
-    setattr(_importlib, "_original_reload", _importlib.reload)
-_ORIG_IMPORTLIB_RELOAD = getattr(_importlib, "_original_reload")
-
-
-def _safe_reload(module):
-    spec = getattr(module, "__spec__", None)
-    name = getattr(spec, "name", None) if spec is not None else None
-    if not name:
-        name = getattr(module, "__name__", None) or str(module)
-    if spec is None or getattr(spec, "name", None) is None:
-        try:
-            module.__spec__ = _importlib_machinery.ModuleSpec(
-                name, loader=getattr(spec, "loader", None), is_package=hasattr(module, "__path__")
-            )
-        except (ImportError, AttributeError, ValueError):
-            module.__spec__ = None
-    sys.modules[name] = module
-    if "." in name:
-        parent_name = name.rsplit(".", 1)[0]
-        if parent_name not in sys.modules:
-            parent_mod = ModuleType(parent_name)
-            parent_mod.__path__ = []
-            sys.modules[parent_name] = parent_mod
-    if getattr(module, "__spec__", None) is None:
-        try:
-            module.__spec__ = _importlib_util.find_spec(name)
-        except (ImportError, ValueError, AttributeError):
-            module.__spec__ = None
-    return _ORIG_IMPORTLIB_RELOAD(module)
-
-
-_importlib.reload = _safe_reload
 
 __all__: List[str] = [
     "AnalyticControllerObjective",
@@ -217,7 +157,7 @@ def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
     return _run_maxent(*args, **kwargs)
 
 
-def __dir__():
+def __dir__() -> List[str]:
     """Return sorted public attributes for IDE completion.
 
     :returns: Sorted list of public attribute names.

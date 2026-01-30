@@ -102,26 +102,26 @@ class LocalGenerationMixin:
         lengths = [len(p) for p in expanded_prompts]
 
         class _Mask:
-            def __init__(self, vals):
+            def __init__(self, vals: List[int]) -> None:
                 self._vals = vals
 
-            def sum(self, _dim=1):
+            def sum(self, _dim: int = 1) -> "_Mask":
                 return self
 
-            def detach(self):
+            def detach(self) -> "_Mask":
                 return self
 
-            def cpu(self):
+            def cpu(self) -> "_Mask":
                 return self
 
-            def tolist(self):
+            def tolist(self) -> List[int]:
                 return list(self._vals)
 
         class _Inputs(dict):
-            def __init__(self, lens):
+            def __init__(self, lens: List[int]) -> None:
                 super().__init__(attention_mask=_Mask(lens))
 
-            def to(self, _device):
+            def to(self, _device: Any) -> "_Inputs":
                 return self
 
         return _Inputs(lengths), lengths

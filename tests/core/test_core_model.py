@@ -19,32 +19,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import importlib
-import sys
-
-
-def test_get_tokenizer_fallback_sets_chat_template(monkeypatch):
-    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
-
-    # Force fallback path by raising when attempting to load a pretrained tokenizer.
-    def _raise(*_args, **_kwargs):
-        raise OSError("fail")
-
-    monkeypatch.setattr(module.AutoTokenizer, "from_pretrained", _raise)
-
-    model_args = SimpleNamespace(
-        model_name_or_path="demo", model_revision=None, trust_remote_code=False
-    )
-    training_args = SimpleNamespace(chat_template="<<chat>>")
-    tok = module.get_tokenizer(model_args, training_args)
-
-    assert tok.chat_template == "<<chat>>"
-    rendered = tok.apply_chat_template(
-        [{"role": "user", "content": "hi"}],
-        tokenize=True,
-        add_generation_prompt=True,
-    )
-    assert isinstance(rendered, list)
-    assert all(isinstance(b, int) for b in rendered)
 
 
 def test_get_model_quantization_and_gradient_checkpointing(monkeypatch):
@@ -173,10 +147,3 @@ def test_get_model_preserves_nonstring_dtype(monkeypatch):
     assert kwargs["use_cache"] is True
     assert kwargs["device_map"] is None
 
-
-def test_trl_stub_helpers_return_none(monkeypatch):
-    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
-    monkeypatch.setitem(sys.modules, "trl", None)
-    module = importlib.reload(importlib.import_module("maxent_grpo.core.model"))
-    assert module.get_quantization_config(SimpleNamespace()) is None
-    assert module.get_kbit_device_map() is None

@@ -47,7 +47,17 @@ import hashlib
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    NoReturn,
+    Optional,
+    Protocol,
+    Tuple,
+    runtime_checkable,
+    TYPE_CHECKING,
+)
 
 from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
 
@@ -64,7 +74,7 @@ except ImportError:  # pragma: no cover - optional dependency
         class Timeout(RuntimeError):
             pass
 
-        def _raise(self, *_args: Any, **_kwargs: Any) -> None:
+        def _raise(self, *_args: Any, **_kwargs: Any) -> NoReturn:
             raise ImportError("requests is required for vLLM helpers")
 
         get = _raise

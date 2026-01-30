@@ -51,15 +51,6 @@ Generation
 
    maxent_grpo.generation
 
-Inference
----------
-
-.. autosummary::
-   :toctree: _autosummary
-   :recursive:
-
-   maxent_grpo.inference
-
 Pipelines
 ---------
 

@@ -87,7 +87,7 @@ _REF_LOGPROB_TRACE_LIMIT = 3
 class _TraceCounter:
     """Stateful helper to guard noisy tracebacks."""
 
-    def __init__(self, limit: int):
+    def __init__(self, limit: int) -> None:
         self._limit = limit
         self._count = 0
 
@@ -247,7 +247,7 @@ class PreparedBatch:
 class _SkipBatch(RuntimeError):
     """Internal control-flow exception to skip invalid batches."""
 
-    def __init__(self, stage: str):
+    def __init__(self, stage: str) -> None:
         super().__init__(stage)
         self.stage = stage or "unknown"
 
