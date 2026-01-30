@@ -67,13 +67,20 @@ class ControllerMetaManager:
         self._controller_state = getattr(weighting, "controller_state", None)
         self._meta_optimizer = None
         self._weighting = weighting
+        # NOTE: These updates are not "true" meta-gradients by default. The
+        # controller objective returns tau/beta update signals, and (when an
+        # optimizer is enabled) we map those signals onto Parameter.grads so we
+        # can use standard torch.optim state (e.g., Adam momentum).
         self._requires_optimizer = self.method in (
+            "analytic",
+            "analytic_grad",
+            "potential",
             "first_order",
             "truncated",
             "truncated_backprop",
             "backprop",
         )
-        if self.optimizer not in ("sgd",):
+        if self.optimizer not in ("sgd", "adam", "adamw"):
             LOG.warning(
                 "Unsupported controller_meta_optimizer=%s; falling back to analytic updates.",
                 self.optimizer,
@@ -92,7 +99,7 @@ class ControllerMetaManager:
                 params = self._controller_state.parameters()
                 if not params:
                     raise RuntimeError("controller_state missing parameters")
-                self._meta_optimizer = self._build_optimizer(params)
+                self._meta_optimizer = self._build_optimizer()
             except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as exc:  # pragma: no cover
                 LOG.warning(
                     "Controller meta-optimizer falling back to analytic updates: %s",
@@ -183,6 +190,11 @@ class ControllerMetaManager:
         if not gradients:
             return
         if self._requires_optimizer and self._meta_optimizer is not None:
+            # Populate parameter grads from the controller objective signals when
+            # running in analytic mode. Optimizer-based modes expect the grads
+            # to already be set on the controller parameters.
+            if self.method in ("analytic", "analytic_grad", "potential"):
+                self._set_optimizer_grads(gradients)
             self._apply_optimizer_step(lr_scale)
             setattr(self._weighting, "_meta_last_tau_grad", float(gradients.tau_grad or 0.0))
             setattr(self._weighting, "_meta_last_beta_grad", float(gradients.beta_grad or 0.0))
@@ -192,6 +204,40 @@ class ControllerMetaManager:
                 meta_cfg.last_beta_grad = float(gradients.beta_grad or 0.0)
             return
         self._manual_update(gradients, lr_scale=lr_scale)
+
+    def _set_optimizer_grads(self, gradients: ControllerGradients) -> None:
+        """Map controller update signals onto controller Parameter.grads."""
+
+        if self._controller_state is None or self._torch is None:
+            return
+
+        state = self._controller_state
+        torch_mod = self._torch
+        try:
+            state.zero_grad()
+        except (AttributeError, RuntimeError, TypeError):
+            pass
+
+        def _as_grad_tensor(param, value: float):
+            dtype = getattr(param, "dtype", None)
+            device = getattr(param, "device", None)
+            try:
+                return torch_mod.tensor(float(value), dtype=dtype, device=device)
+            except TypeError:
+                return torch_mod.tensor(float(value), dtype=dtype)
+
+        # tau: gradient-descent style update (tau -= lr * tau_grad)
+        if isinstance(gradients.tau_grad, (int, float)) and math.isfinite(float(gradients.tau_grad)):
+            state.tau_param.grad = _as_grad_tensor(state.tau_param, float(gradients.tau_grad))
+
+        # beta: "tighten KL when kl > target" update (beta += lr * beta_grad),
+        # so we flip sign to match optimizer descent convention.
+        if isinstance(gradients.beta_grad, (int, float)) and math.isfinite(float(gradients.beta_grad)):
+            grad_update_val = float(gradients.beta_grad)
+            clip = float(self.beta_grad_clip or 0.0)
+            if clip > 0.0 and math.isfinite(clip):
+                grad_update_val = max(min(grad_update_val, clip), -clip)
+            state.beta_param.grad = _as_grad_tensor(state.beta_param, -grad_update_val)
 
     def _manual_update(self, gradients: ControllerGradients, *, lr_scale: float) -> None:
         meta_cfg = getattr(self._weighting, "controller_meta", None)
@@ -232,7 +278,7 @@ class ControllerMetaManager:
             self._weighting.tau = float(new_tau)
             try:
                 setattr(self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8)))
-            except Exception:
+            except (AttributeError, TypeError, ValueError):
                 pass
             updated = True
             setattr(self._weighting, "_meta_last_tau_grad", float(grad_val))
@@ -285,22 +331,40 @@ class ControllerMetaManager:
                 pass
             try:
                 state.zero_grad()
-            except Exception:
+            except (AttributeError, RuntimeError, TypeError):
                 pass
 
-    def _build_optimizer(self, params):
+    def _build_optimizer(self):
         torch_mod = self._torch
         if torch_mod is None:
             raise RuntimeError("torch is not available for meta optimizer")
+        state = self._controller_state
+        if state is None:
+            raise RuntimeError("controller_state required for meta optimizer")
+        # Use param groups so tau/beta can have independent learning rates and
+        # optimizer state (e.g., Adam moments).
+        param_groups = [
+            {"params": [state.tau_param], "base_lr": float(self.tau_learning_rate)},
+            {"params": [state.beta_param], "base_lr": float(self.beta_learning_rate)},
+        ]
         if self.optimizer == "sgd":
-            return torch_mod.optim.SGD(params, lr=self.learning_rate)
+            return torch_mod.optim.SGD(param_groups, lr=self.learning_rate)
+        if self.optimizer == "adam":
+            return torch_mod.optim.Adam(param_groups, lr=self.learning_rate)
+        if self.optimizer == "adamw":
+            return torch_mod.optim.AdamW(param_groups, lr=self.learning_rate)
         raise RuntimeError(f"Unsupported controller_meta_optimizer={self.optimizer}")
 
     def _apply_optimizer_step(self, lr_scale: float) -> None:
         if self._controller_state is None or self._meta_optimizer is None or self._torch is None:
             return
         for group in self._meta_optimizer.param_groups:
-            group["lr"] = float(self.learning_rate * lr_scale)
+            base_lr = group.get("base_lr", self.learning_rate)
+            try:
+                base_lr_val = float(base_lr)
+            except (TypeError, ValueError):
+                base_lr_val = float(self.learning_rate)
+            group["lr"] = float(base_lr_val * lr_scale)
         self._meta_optimizer.step()
         self._meta_optimizer.zero_grad(set_to_none=True)
         torch_mod = self._torch
@@ -334,6 +398,10 @@ class ControllerMetaManager:
             tau_val = max(tau_val, tau_min)
         self._weighting.tau = tau_val
         self._weighting.beta = max(0.0, beta_val)
+        try:
+            setattr(self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8)))
+        except (AttributeError, TypeError, ValueError):
+            pass
         state.zero_grad()
         _ensure_tau_history(self._weighting)
         setattr(self._weighting, "_meta_tau_projected", False)

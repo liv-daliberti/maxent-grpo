@@ -28,6 +28,7 @@ from maxent_grpo.pipelines.training.baseline import (
 from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
 from maxent_grpo.training import run_training_loop
 from maxent_grpo.training.runtime.logging import log_run_header
+from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 from .loop_common import build_training_loop_context
 
 LOG = logging.getLogger(__name__)
@@ -58,8 +59,8 @@ def _configure_custom_loop_logging(training_args: GRPOConfig) -> None:
         import datasets as _hf_datasets
 
         _hf_datasets.utils.logging.set_verbosity(log_level)
-    except (ImportError, ModuleNotFoundError, AttributeError):
-        pass
+    except (ImportError, ModuleNotFoundError, AttributeError) as exc:
+        LOG.debug("Skipping datasets logging setup: %s", exc)
     try:
         import transformers as _transformers
     except (ImportError, ModuleNotFoundError):
@@ -121,9 +122,10 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
                     patch_llm = _patched_llm
                     if orig_llm is not None:
                         grpo_mod.LLM = patch_llm
-            except (ImportError, AttributeError, RuntimeError, TypeError):
+            except (ImportError, AttributeError, RuntimeError, TypeError) as exc:
                 patch_llm = None
                 orig_llm = None
+                LOG.debug("Unable to patch TRL LLM constructor: %s", exc)
 
             try:
                 super().__init__(*args, **kwargs)
@@ -132,8 +134,8 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
                 try:
                     if patch_llm is not None and orig_llm is not None:
                         grpo_mod.LLM = orig_llm
-                except (AttributeError, RuntimeError, TypeError):
-                    pass
+                except (AttributeError, RuntimeError, TypeError) as exc:
+                    LOG.debug("Failed to restore TRL LLM constructor: %s", exc)
             # Mark the args so downstream hooks/metrics can key off it.
             if hasattr(self, "args"):
                 setattr(self.args, "train_grpo_objective", False)
@@ -216,6 +218,7 @@ def run_maxent_training(
     :rtype: None
     """
 
+    ensure_real_dependencies(context="MaxEnt-GRPO training")
     ensure_hf_repo_ready(training_args)
 
     train_grpo_flag = bool(getattr(training_args, "train_grpo_objective", False))

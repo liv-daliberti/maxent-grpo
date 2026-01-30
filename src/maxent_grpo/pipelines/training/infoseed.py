@@ -7,6 +7,7 @@ from typing import Any
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.training import run_training_loop
+from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 from .loop_common import build_training_loop_context
 
 LOG = logging.getLogger(__name__)
@@ -18,6 +19,8 @@ def run_infoseed_training(
     model_args: "Any",
 ) -> None:
     """Run InfoSeed-GRPO training via the custom loop."""
+
+    ensure_real_dependencies(context="InfoSeed-GRPO training")
 
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",

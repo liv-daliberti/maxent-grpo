@@ -166,6 +166,9 @@ def _build_weighting(
     len_norm_ref: bool = True,
     denom: float | None = None,
     tau_target: float | None = None,
+    tau_target_start: float | None = None,
+    tau_target_final: float | None = None,
+    tau_target_horizon: int = 0,
     tau_lr: float = 0.1,
     tau_min: float = 0.0,
     tau_max: float = 10.0,
@@ -194,6 +197,9 @@ def _build_weighting(
         q_distribution=QDistributionSettings(temperature=1.0, epsilon=1e-6),
         tau_schedule=TauSchedule(
             target_entropy=tau_target,
+            target_entropy_start=tau_target_start,
+            target_entropy_final=tau_target_final,
+            target_entropy_horizon=tau_target_horizon,
             learning_rate=tau_lr,
             minimum_value=tau_min,
             maximum_value=tau_max,
@@ -503,6 +509,38 @@ def test_maybe_update_tau_returns_on_zero_error(weighting_logic):
     assert weighting_cfg.tau == pytest.approx(0.4)
     assert weighting_cfg.denom == pytest.approx(0.7)
     assert getattr(weighting_cfg, "_tau_entropy_ema") == pytest.approx(1.0)
+
+
+def test_maybe_update_tau_anneals_target_entropy(weighting_logic):
+    logic, _ = weighting_logic
+    weighting_cfg = _build_weighting(
+        tau=0.4,
+        beta=0.3,
+        tau_target=1.0,
+        tau_target_start=2.0,
+        tau_target_final=1.0,
+        tau_target_horizon=10,
+        tau_lr=0.0,  # keep tau constant to focus on target scheduling
+    )
+
+    logic.maybe_update_tau(
+        weighting_cfg,
+        weight_stats=WeightStats(
+            weights_grouped=[[1.0, 0.0]],
+            flat_weights=[1.0, 0.0],
+            weight_entropy=0.5,
+            weight_entropy_min=0.5,
+            weight_entropy_max=0.5,
+            advantage_entropy=[0.0, 0.0],
+        ),
+        global_step=5,
+    )
+
+    # Midway through the horizon, target should be halfway between start and final.
+    assert weighting_cfg.tau_target_entropy == pytest.approx(1.5)
+    assert getattr(weighting_cfg.tau_schedule, "current_target_entropy", None) == pytest.approx(
+        1.5
+    )
 
 
 class _FakeAccelerator:

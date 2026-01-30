@@ -53,6 +53,7 @@ class LoggingHandles:
     save_strategy: str
     save_steps: int
     wandb_run: Optional[Any]
+    checkpoint_state_ref: Optional[Dict[str, Any]] = None
 
     def log_metrics(self, metrics: Dict[str, Any], step: int) -> None:
         """Send metrics to the configured writer.

@@ -25,6 +25,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import List, Optional
 from types import SimpleNamespace
@@ -33,6 +34,8 @@ try:  # Optional dependency in unit tests
     import trl
 except ImportError:  # pragma: no cover - fallback for tests
     trl = SimpleNamespace()
+
+LOG = logging.getLogger(__name__)
 
 if not hasattr(trl, "ScriptArguments"):  # pragma: no cover - test fallback
 
@@ -191,8 +194,8 @@ class ScriptArguments(_BaseScriptArgs):
     def __post_init__(self) -> None:
         try:
             super().__post_init__()
-        except AttributeError:
-            pass
+        except AttributeError as exc:
+            LOG.debug("Skipping base ScriptArguments.__post_init__: %s", exc)
         if self.dataset_name is None and self.dataset_mixture is None:
             raise ValueError(
                 "Either `dataset_name` or `dataset_mixture` must be provided"

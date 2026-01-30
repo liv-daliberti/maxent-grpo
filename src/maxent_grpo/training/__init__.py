@@ -104,9 +104,17 @@ _ORIG_IMPORTLIB_RELOAD = getattr(_importlib, "_original_reload")
 
 
 def _safe_reload(module):
-    name = (
-        module.__spec__.name if getattr(module, "__spec__", None) else module.__name__
-    )
+    spec = getattr(module, "__spec__", None)
+    name = getattr(spec, "name", None) if spec is not None else None
+    if not name:
+        name = getattr(module, "__name__", None) or str(module)
+    if spec is None or getattr(spec, "name", None) is None:
+        try:
+            module.__spec__ = _importlib.machinery.ModuleSpec(
+                name, loader=getattr(spec, "loader", None), is_package=hasattr(module, "__path__")
+            )
+        except (ImportError, AttributeError, ValueError):
+            module.__spec__ = None
     sys.modules[name] = module
     if "." in name:
         parent_name = name.rsplit(".", 1)[0]

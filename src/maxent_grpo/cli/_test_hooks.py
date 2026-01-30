@@ -21,29 +21,28 @@ import os
 from typing import Final
 
 _ENV_SKIP_FLAG: Final[str] = "MAXENT_SKIP_USERCUSTOMIZE"
-_ALREADY_ATTEMPTED: bool = False
+_USERCUSTOMIZE_STATE = {"attempted": False}
 
 
 def ensure_usercustomize_loaded() -> None:
     """Best-effort import of ``usercustomize`` for CLI smoke tests.
 
     The import is attempted at most once per process and is skipped entirely
-    when ``MAXENT_SKIP_USERCUSTOMIZE=1`` is set.  Any ImportError or runtime
-    exception is swallowed so real CLI executions remain unaffected.
+    when ``MAXENT_SKIP_USERCUSTOMIZE=1`` is set.  Import errors and common
+    runtime exceptions are swallowed so real CLI executions remain unaffected.
     """
 
-    global _ALREADY_ATTEMPTED
-    if _ALREADY_ATTEMPTED:
+    if _USERCUSTOMIZE_STATE["attempted"]:
         return
-    _ALREADY_ATTEMPTED = True
+    _USERCUSTOMIZE_STATE["attempted"] = True
     if os.environ.get(_ENV_SKIP_FLAG) == "1":
         return
     try:
         importlib.import_module("usercustomize")
-    except ModuleNotFoundError:
+    except ImportError:
         # Most environments will not provide a usercustomize module; silently
         # continue so CLI entrypoints behave normally.
         return
-    except Exception:
+    except (AttributeError, OSError, RuntimeError, SyntaxError, TypeError, ValueError):
         # Defensive: custom user hooks should never take down the CLI.
         return

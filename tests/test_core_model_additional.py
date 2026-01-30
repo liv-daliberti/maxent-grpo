@@ -139,3 +139,54 @@ def test_get_model_gradient_checkpointing_fallback_on_type_error(monkeypatch):
     # First call attempted with kwargs; second call without kwargs after TypeError
     assert model.calls[0] == {"foo": "bar"}
     assert model.calls[1] == {}
+
+
+def test_get_model_applies_torch_compile_when_enabled(monkeypatch):
+    """When torch_compile is true and torch.compile is available, wrap the model."""
+
+    captured = {}
+
+    class _BaseModel:
+        pass
+
+    def _from_pretrained(name, **kwargs):
+        captured["name"] = name
+        captured["kwargs"] = kwargs
+        return _BaseModel()
+
+    monkeypatch.setattr(
+        core_model,
+        "AutoModelForCausalLM",
+        SimpleNamespace(from_pretrained=_from_pretrained),
+    )
+    monkeypatch.setattr(core_model, "get_quantization_config", lambda *_a, **_k: None)
+    monkeypatch.setattr(core_model, "get_kbit_device_map", lambda *_a, **_k: None)
+
+    compile_calls = {}
+
+    def _compile(model, **kwargs):
+        compile_calls["model"] = model
+        compile_calls["kwargs"] = kwargs
+        return SimpleNamespace(compiled_from=model, compile_kwargs=kwargs)
+
+    monkeypatch.setattr(core_model.torch, "compile", _compile, raising=False)
+
+    model_args = _ModelConfig(
+        model_name_or_path="stub-compile",
+        model_revision=None,
+        trust_remote_code=False,
+        attn_implementation=None,
+        torch_dtype=None,
+    )
+    training_args = _TrainingArgs(
+        gradient_checkpointing=False,
+        gradient_checkpointing_kwargs=None,
+        torch_compile=True,
+    )
+
+    compiled_model = core_model.get_model(model_args, training_args)
+    assert isinstance(compiled_model, SimpleNamespace)
+    assert isinstance(compiled_model.compiled_from, _BaseModel)
+    # Ensure compile was invoked with the model and a mode kwarg when supported.
+    assert compile_calls["model"].__class__ is _BaseModel
+    assert "mode" in compile_calls["kwargs"]

@@ -39,6 +39,8 @@ class AutoConfigStub:
     :param _kwargs: Ignored keyword arguments mirroring ``AutoConfig`` signature.
     """
 
+    __maxent_stub__ = True
+
     def __init__(self, **_kwargs):
         self.model_type = None
 
@@ -55,6 +57,8 @@ class AutoConfigStub:
 
 class FallbackTokenizer:
     """Minimal tokenizer stub used when ``transformers`` is missing."""
+
+    __maxent_stub__ = True
 
     chat_template: Optional[str] = None
     eos_token_id: Optional[int] = None
@@ -93,6 +97,8 @@ class FallbackTokenizer:
 
 class AutoModelForCausalLMStub:
     """Tiny model stub for environments without transformers."""
+
+    __maxent_stub__ = True
 
     def __init__(self):
         self.config = SimpleNamespace()

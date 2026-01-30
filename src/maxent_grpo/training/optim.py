@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import math
+import inspect
 from dataclasses import dataclass
 from contextlib import nullcontext
 from typing import Any, Optional
@@ -43,6 +44,7 @@ from .types import (
 
 LOG = logging.getLogger(__name__)
 _TWO_NORM = 2.0
+_PARAM_GROUP_LOG_STATE = {"logged": False}
 try:
     torch = require_torch("training_optim")
     _TORCH_IMPORT_ERROR = None
@@ -60,6 +62,19 @@ except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as exc: 
                     return 0.0
 
     torch = _TorchStub()
+
+
+def _filter_optimizer_kwargs(optimizer_cls: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Drop optimizer kwargs unsupported by lightweight stubs or callables."""
+    try:
+        signature = inspect.signature(optimizer_cls)
+    except (TypeError, ValueError):
+        return kwargs
+    params = signature.parameters.values()
+    if any(param.kind == param.VAR_KEYWORD for param in params):
+        return kwargs
+    allowed = {param.name for param in params if param.name != "self"}
+    return {key: value for key, value in kwargs.items() if key in allowed}
 
 
 @dataclass
@@ -293,20 +308,146 @@ def require_accumulation_context(accelerator: Accelerator, model: Any) -> Any:
 
 
 def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
-    """Construct a minimal optimizer/scheduler bundle for the custom runner."""
+    """Construct an optimizer/scheduler bundle that mirrors GRPO defaults.
+
+    The implementation follows the same AdamW parameter‑group semantics used by
+    Hugging Face Trainer/TRL GRPO:
+
+    * Parameters whose names contain ``\"bias\"`` or ``\"LayerNorm.weight\"``
+      are placed in a no‑decay group (``weight_decay=0.0``).
+    * All other trainable parameters share a decay group with
+      ``weight_decay=cfg.weight_decay``.
+    * Optimizer hyperparameters (learning rate, betas, epsilon) are taken from
+      the GRPO/TrainingArguments instance so that MaxEnt/InfoSeed runs stay
+      aligned with the baseline GRPO trainer.
+    """
 
     if _TORCH_IMPORT_ERROR is not None:
         raise ImportError("torch is required for optimization") from _TORCH_IMPORT_ERROR
-    optimizer_cls = getattr(torch.optim, "AdamW", None)
+
+    lr = float(getattr(cfg, "learning_rate", 1e-5))
+    weight_decay = float(getattr(cfg, "weight_decay", 0.0))
+    beta1 = float(getattr(cfg, "adam_beta1", 0.9))
+    beta2 = float(getattr(cfg, "adam_beta2", 0.999))
+    epsilon = float(getattr(cfg, "adam_epsilon", 1e-8))
+    optim_name = str(getattr(cfg, "optim", "adamw_torch") or "adamw_torch").lower()
+
+    optim_mod = getattr(torch, "optim", None)
+    torch_adamw_cls = getattr(optim_mod, "AdamW", None) if optim_mod is not None else None
+
+    no_decay_markers = ["bias", "LayerNorm.weight"]
+    decay_params = []
+    no_decay_params = []
+    named_params = getattr(model, "named_parameters", None)
+    if callable(named_params):
+        for name, param in named_params():
+            if not getattr(param, "requires_grad", True):
+                continue
+            if any(marker in name for marker in no_decay_markers):
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+
+    param_groups = []
+    if decay_params:
+        param_groups.append({"params": decay_params, "weight_decay": weight_decay})
+    if no_decay_params:
+        param_groups.append({"params": no_decay_params, "weight_decay": 0.0})
+    if not param_groups:
+        params = (
+            list(model.parameters())
+            if hasattr(model, "parameters") and callable(getattr(model, "parameters"))
+            else []
+        )
+        if params:
+            param_groups.append({"params": params, "weight_decay": weight_decay})
+
+    if not _PARAM_GROUP_LOG_STATE["logged"]:
+        total_decay = len(decay_params)
+        total_no_decay = len(no_decay_params)
+        total_trainable = total_decay + total_no_decay
+        LOG.info(
+            (
+                "Optimizer param groups | total_trainable=%d | "
+                "decay_params=%d | no_decay_params=%d | groups=%d | weight_decay=%.6f"
+            ),
+            total_trainable,
+            total_decay,
+            total_no_decay,
+            len(param_groups),
+            weight_decay,
+        )
+        _PARAM_GROUP_LOG_STATE["logged"] = True
+
+    optimizer_kwargs = {
+        "lr": lr,
+        "betas": (beta1, beta2),
+        "eps": epsilon,
+    }
+    optimizer_cls = None
+    using_bnb = False
+    if any(key in optim_name for key in ["adamw_bnb", "adamw_8bit"]) and "paged" not in optim_name:
+        try:
+            import bitsandbytes as bnb  # type: ignore[import]
+
+            bnb_optim = getattr(bnb, "optim", None)
+            optimizer_cls = getattr(bnb_optim, "AdamW8bit", None)
+            if optimizer_cls is not None:
+                using_bnb = True
+        except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError):
+            optimizer_cls = None
+        if optimizer_cls is None:
+            LOG.warning(
+                "Requested optim=%s but bitsandbytes is unavailable; falling back to torch AdamW.",
+                optim_name,
+            )
+    elif "paged_adamw_8bit" in optim_name or "adamw_paged_8bit" in optim_name:
+        try:
+            import bitsandbytes as bnb  # type: ignore[import]
+
+            bnb_optim = getattr(bnb, "optim", None)
+            optimizer_cls = getattr(bnb_optim, "PagedAdamW8bit", None)
+            if optimizer_cls is not None:
+                using_bnb = True
+        except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError):
+            optimizer_cls = None
+        if optimizer_cls is None:
+            LOG.warning(
+                "Requested optim=%s but bitsandbytes is unavailable; falling back to torch AdamW.",
+                optim_name,
+            )
+
+    if optimizer_cls is None:
+        optimizer_cls = torch_adamw_cls
     if optimizer_cls is None:
         raise ImportError("torch.optim.AdamW is required for optimization.")
-    lr = float(getattr(cfg, "learning_rate", 1e-5))
-    params = (
-        model.parameters()
-        if hasattr(model, "parameters") and callable(getattr(model, "parameters"))
-        else []
-    )
-    optimizer = optimizer_cls(params, lr=lr)
+
+    if optimizer_cls is torch_adamw_cls and "fused" in optim_name:
+        optimizer_kwargs["fused"] = True
+    if using_bnb:
+        optimizer_kwargs.setdefault("weight_decay", weight_decay)
+
+    filtered_kwargs = _filter_optimizer_kwargs(optimizer_cls, optimizer_kwargs)
+    try:
+        optimizer = optimizer_cls(param_groups, **filtered_kwargs)
+    except TypeError:
+        if optimizer_cls is torch_adamw_cls and "fused" in optimizer_kwargs:
+            optimizer_kwargs.pop("fused", None)
+            filtered_kwargs = _filter_optimizer_kwargs(optimizer_cls, optimizer_kwargs)
+            optimizer = optimizer_cls(param_groups, **filtered_kwargs)
+        else:
+            LOG.warning(
+                "Failed to construct optimizer for optim=%s; falling back to torch AdamW.",
+                optim_name,
+            )
+            optimizer_cls = torch_adamw_cls
+            if optimizer_cls is None:
+                raise
+            optimizer_kwargs.pop("fused", None)
+            optimizer_kwargs.pop("weight_decay", None)
+            filtered_kwargs = _filter_optimizer_kwargs(optimizer_cls, optimizer_kwargs)
+            optimizer = optimizer_cls(param_groups, **filtered_kwargs)
+
     return OptimizerHandles(
         optimizer=optimizer,
         lr_scheduler=None,

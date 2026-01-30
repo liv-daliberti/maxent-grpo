@@ -14,6 +14,8 @@ class PreTrainedTokenizerStub:
     environments.
     """
 
+    __maxent_stub__ = True
+
     chat_template: Optional[str] = None
     eos_token_id: Optional[int] = None
     pad_token_id: Optional[int] = None
@@ -83,9 +85,13 @@ class PreTrainedTokenizerStub:
 class AutoTokenizerStub(PreTrainedTokenizerStub):
     """Alias matching transformers.AutoTokenizer."""
 
+    __maxent_stub__ = True
+
 
 class AutoModelForCausalLMStub:
     """Minimal causal LM stub mirroring transformers' loader API."""
+
+    __maxent_stub__ = True
 
     def __init__(self) -> None:
         self.config = SimpleNamespace()
@@ -119,6 +125,8 @@ class AutoModelForCausalLMStub:
 
 class AutoConfigStub:
     """Lightweight AutoConfig stand-in used when transformers is missing."""
+
+    __maxent_stub__ = True
 
     @classmethod
     def from_pretrained(cls, *_args: Any, **_kwargs: Any) -> Any:

@@ -14,11 +14,69 @@ from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime.prompts import _truncate_prompt
 from maxent_grpo.training.runtime.logging import _wandb_error_types
 
+_WANDB_LOG_EXCEPTIONS = _wandb_error_types() + (OSError,)
+
 from .vllm_state import _VLLMGenerationState
 
 _DEFAULT_PROMPT_CHAR_LIMIT = 2048
 
 LOG = logging.getLogger(__name__)
+_CLIENT_TAG_FAIL_FAST_ENV = "MAXENT_VLLM_CLIENT_TAG_FAIL_FAST"
+
+
+def _coerce_bool(value: Any) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return None
+
+
+def _client_tag_fail_fast_enabled(ctx: Any | None = None) -> bool:
+    cfg_val = None
+    if ctx is not None:
+        cfg_val = getattr(ctx, "vllm_client_tag_fail_fast", None)
+        if cfg_val is None:
+            training_args = getattr(ctx, "training_args", None)
+            cfg_val = getattr(training_args, "vllm_client_tag_fail_fast", None)
+    parsed = _coerce_bool(cfg_val)
+    if parsed is not None:
+        return parsed
+    raw = os.environ.get(_CLIENT_TAG_FAIL_FAST_ENV, "1")
+    return str(raw).strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _is_client_tag_error(err: BaseException) -> bool:
+    message = ""
+    if isinstance(err, GenerationServiceError):
+        message = getattr(err.payload, "exception_message", "") or ""
+    if not message:
+        message = str(err)
+    lowered = message.lower()
+    return "client_tag" in lowered or "client tag" in lowered
+
+
+def _record_logprob_status(ctx: Any, has_payload: bool) -> None:
+    stats = getattr(ctx, "generation_stats", None)
+    if not isinstance(stats, dict):
+        return
+    stats.setdefault("vllm_logprobs_missing_rounds", 0)
+    stats.setdefault("vllm_logprobs_missing_consecutive", 0)
+    stats.setdefault("vllm_logprobs_present_rounds", 0)
+    if has_payload:
+        stats["vllm_logprobs_present_rounds"] += 1
+        stats["vllm_logprobs_missing_consecutive"] = 0
+    else:
+        stats["vllm_logprobs_missing_rounds"] += 1
+        stats["vllm_logprobs_missing_consecutive"] += 1
 
 
 
@@ -136,14 +194,14 @@ def _resolve_default_limit() -> int:
             if env_val is not None:
                 return int(env_val)
         except (TypeError, ValueError):
-            pass
+            LOG.debug("Invalid MAX_PROMPT_CHARS=%s; using defaults.", env_val)
         return _DEFAULT_PROMPT_CHAR_LIMIT
     try:
         env_val = os.environ.get("MAX_PROMPT_CHARS")
         if env_val is not None:
             return int(env_val)
     except (TypeError, ValueError):
-        pass
+        LOG.debug("Invalid MAX_PROMPT_CHARS=%s; using defaults.", env_val)
     try:
         from maxent_grpo.training.runtime import prompts as prompts_mod
 
@@ -387,6 +445,16 @@ class VLLMRequestMixin:
             try:
                 success = self._execute_vllm_request(state, pending_indices)
             except RuntimeError as err:
+                if _is_client_tag_error(err) and _client_tag_fail_fast_enabled(ctx):
+                    stats = getattr(self.ctx, "generation_stats", None)
+                    if isinstance(stats, dict):
+                        stats["vllm_client_tag_errors"] = int(
+                            stats.get("vllm_client_tag_errors", 0)
+                        ) + 1
+                    LOG.error(
+                        "vLLM client_tag mismatch detected; aborting retries: %s", err
+                    )
+                    raise
                 pending_count = len(pending_indices)
                 LOG.warning(
                     "vLLM attempt %d/%d for %d prompts failed (policy=%s): %s",
@@ -456,7 +524,7 @@ class VLLMRequestMixin:
         step = int(stats.get("current_step") or 0)
         try:
             run.log(metrics, step=step)
-        except (_wandb_error_types() + (OSError,)) as exc:  # pragma: no cover - defensive
+        except _WANDB_LOG_EXCEPTIONS as exc:  # pragma: no cover - defensive
             LOG.warning("Failed to log retry metrics to W&B: %s", exc)
 
     def _retry_policy_details(self) -> Dict[str, Any]:
@@ -668,6 +736,8 @@ class VLLMRequestMixin:
                                 break
                         if has_logprob_payload:
                             break
+                if bool(getattr(self.ctx, "vllm_request_logprobs", False)):
+                    _record_logprob_status(self.ctx, has_logprob_payload)
                 if not has_logprob_payload:
                     warned = getattr(self.ctx, "_vllm_logprobs_missing_warned", False)
                     if not warned and bool(getattr(self.ctx, "vllm_request_logprobs", False)):

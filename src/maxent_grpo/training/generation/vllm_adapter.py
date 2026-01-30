@@ -771,7 +771,7 @@ def _scatter_object(
         if callable(broadcast_fn):
             try:
                 world_size = int(dist.get_world_size())
-            except Exception:
+            except (RuntimeError, TypeError, ValueError):
                 world_size = int(getattr(accelerator, "num_processes", 1) or 1)
             list_ok = input_list is None or (
                 isinstance(input_list, list) and len(input_list) == world_size
@@ -783,9 +783,9 @@ def _scatter_object(
                     else [None for _ in range(world_size)]
                 )
                 try:
-                    broadcast_fn(payload, src=src)
+                    broadcast_fn(payload, src)
                     return payload[int(getattr(accelerator, "process_index", 0))]
-                except Exception:
+                except (RuntimeError, TypeError, ValueError):
                     return None
         scatter_fn = getattr(dist, "scatter_object_list", None)
         if callable(scatter_fn):
@@ -794,7 +794,7 @@ def _scatter_object(
                 scatter_fn(
                     output,
                     input_list if accelerator.process_index == src else None,
-                    src=src,
+                    src,
                 )
             except (RuntimeError, ValueError, TypeError):
                 return None

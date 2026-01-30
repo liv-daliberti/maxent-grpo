@@ -70,7 +70,7 @@ def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optiona
                 )
                 try:
                     token_count = len(tok_logs)
-                except Exception:
+                except (TypeError, ValueError):
                     token_count = None
     return logprob_sum, token_count
 
@@ -315,7 +315,7 @@ def prepare_generation_batch(
         if per_prompt_counts is not None:
             try:
                 per_prompt_repr = f"len={len(per_prompt_counts)} first3={list(per_prompt_counts)[:3]}"
-            except Exception:
+            except (TypeError, ValueError):
                 per_prompt_repr = str(per_prompt_counts)
         LOG.debug(
             "Invoking generator | prompts=%d | expected=%d | per_prompt_counts=%s",
@@ -422,7 +422,7 @@ def prepare_generation_batch(
                 try:
                     value = entry.to_trl_payload()
                     return value if isinstance(value, dict) else None
-                except Exception:
+                except (AttributeError, TypeError, ValueError):
                     return None
             return entry if isinstance(entry, dict) else None
 
@@ -438,8 +438,8 @@ def prepare_generation_batch(
             if hasattr(token_ids, "tolist"):
                 try:
                     token_ids = token_ids.tolist()
-                except Exception:
-                    pass
+                except (AttributeError, TypeError, ValueError) as exc:
+                    LOG.debug("Failed to coerce token_ids to list: %s", exc)
             if isinstance(token_ids, list) and token_ids and isinstance(token_ids[0], list):
                 token_ids = token_ids[0]
             if not isinstance(token_ids, list):
@@ -667,15 +667,17 @@ def compute_reward_statistics(
             q_epsilon,
         )
     )
-    flat_ref_meta = _flatten_ref_metadata(grouped_comps, gen_batch.grouped_ref_meta)
     flat_ref_meta = _sanitize_ref_logprob_meta(
-        flat_ref_meta, len(pair_batch.completions)
+        _flatten_ref_metadata(grouped_comps, gen_batch.grouped_ref_meta),
+        len(pair_batch.completions),
     )
     if LOG.isEnabledFor(logging.DEBUG):
-        meta_len = len(flat_ref_meta) if flat_ref_meta else 0
-        sample = None
-        if flat_ref_meta:
-            sample = flat_ref_meta[: min(2, meta_len)]
+        if isinstance(flat_ref_meta, list):
+            flat_meta_list: List[Optional[Any]] = list(flat_ref_meta)
+        else:
+            flat_meta_list = []
+        meta_len = len(flat_meta_list)
+        sample = flat_meta_list[: min(2, meta_len)] if meta_len else None
         LOG.debug(
             "Ref metadata flatten | grouped_meta=%s | entries=%d | sample=%s",
             "none" if gen_batch.grouped_ref_meta is None else "present",
@@ -692,14 +694,14 @@ def compute_reward_statistics(
     try:
         if controller_beta is not None:
             beta_repr = f"{float(controller_beta):.4f}"
-    except (TypeError, ValueError):
-        pass
+    except (TypeError, ValueError) as exc:
+        LOG.debug("Failed to format controller_beta for logging: %s", exc)
     tau_repr = "nan"
     try:
         if controller_tau is not None:
             tau_repr = f"{float(controller_tau):.4f}"
-    except (TypeError, ValueError):
-        pass
+    except (TypeError, ValueError) as exc:
+        LOG.debug("Failed to format controller_tau for logging: %s", exc)
     LOG.debug(
         "Reward computation | prompts=%d | completions=%d | reward_mean=%.4f | reward_std=%.4f | q_range=[%.4f, %.4f] | q_temperature=%.3f | controller_tau=%s | beta=%s | eps=%.2e",
         len(grouped_comps),

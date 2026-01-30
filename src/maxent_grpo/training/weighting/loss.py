@@ -457,19 +457,19 @@ def _coerce_tensor_like(reference: torch.Tensor, value: torch.Tensor) -> torch.T
     payload = getattr(value, "arr", value)
     try:
         coerced = tensor_ctor(payload)
-    except Exception:  # pragma: no cover - best-effort fallback
+    except (TypeError, ValueError, RuntimeError, AttributeError):  # pragma: no cover - best-effort fallback
         return value
     ref_device = getattr(reference, "device", None)
     if ref_device is not None and hasattr(coerced, "to"):
         try:
             coerced = coerced.to(ref_device)
-        except Exception:
+        except (TypeError, ValueError, RuntimeError, AttributeError):
             pass
     ref_dtype = getattr(reference, "dtype", None)
     if ref_dtype is not None and hasattr(coerced, "to"):
         try:
             coerced = coerced.to(dtype=ref_dtype)
-        except Exception:
+        except (TypeError, ValueError, RuntimeError, AttributeError):
             pass
     return coerced
 
@@ -481,18 +481,18 @@ def _tensor_numel(value: torch.Tensor) -> int:
     if callable(numel_fn):
         try:
             return int(numel_fn())
-        except Exception:
+        except (TypeError, ValueError, RuntimeError):
             pass
     for attr in ("data", "arr"):
         payload = getattr(value, attr, None)
         if payload is not None:
             try:
                 return len(payload)
-            except Exception:
+            except (TypeError, ValueError, RuntimeError):
                 continue
     try:
         return len(value)
-    except Exception:
+    except (TypeError, ValueError, RuntimeError):
         return 0
 
 
@@ -510,7 +510,7 @@ def _tensor_preview(value: torch.Tensor, limit: int = 4) -> str:
         more = flat.numel() - len(subset)
         suffix = "..." if more > 0 else ""
         return f"{subset}{suffix}"
-    except Exception:
+    except (TypeError, ValueError, RuntimeError, AttributeError, IndexError):
         return f"<unprintable:{type(value).__name__}>"
 
 
@@ -545,7 +545,7 @@ def _clip_loss_for_slice(
             adv_tensor = _to_tensor(adv_tensor)
             obj_unclipped = _to_tensor(obj_unclipped)
             obj_clipped = _to_tensor(obj_clipped)
-        except Exception:
+        except (TypeError, ValueError, RuntimeError, AttributeError):
             pass
     # Prefer native torch helpers when available, but fall back to basic
     # tensor arithmetic for lightweight stubs that omit them or when mixed

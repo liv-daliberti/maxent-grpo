@@ -137,6 +137,21 @@ def _prompt_char_limit_from_tokens(max_prompt_len: int) -> int:
     return max(PROMPT_CHAR_LIMIT, approx_char_limit)
 
 
+def _require_prompt_column(example: Dict[str, Any], prompt_column: str) -> None:
+    """Raise if the configured prompt column is missing from a dataset row."""
+
+    if prompt_column in example:
+        return
+    try:
+        available = ", ".join(sorted(str(key) for key in example.keys()))
+    except (AttributeError, TypeError):
+        available = "<unknown>"
+    raise KeyError(
+        f"Missing prompt column '{prompt_column}' in dataset row. "
+        f"Available columns: {available}"
+    )
+
+
 def _to_prompt(
     example: Dict[str, Any],
     tokenizer: Union["PreTrainedTokenizer", ChatTokenizer],
@@ -146,7 +161,20 @@ def _to_prompt(
 ) -> Dict[str, str]:
     """Shared prompt/answer builder used across training pipelines."""
 
-    user = str(example.get(prompt_column, example.get("prompt", "")))
+    resolved_column = prompt_column
+    if prompt_column not in example and prompt_column == "problem":
+        for candidate in ("prompt", "question"):
+            if candidate in example:
+                LOG.info(
+                    "Prompt column '%s' missing; falling back to '%s'.",
+                    prompt_column,
+                    candidate,
+                )
+                resolved_column = candidate
+                break
+    _require_prompt_column(example, resolved_column)
+    user_val = example.get(resolved_column)
+    user = "" if user_val is None else str(user_val)
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})

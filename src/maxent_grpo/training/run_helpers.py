@@ -21,6 +21,7 @@ helpers now live in :mod:`maxent_grpo.training.runtime.logging`.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
 from maxent_grpo.training.runtime import (
@@ -54,6 +55,8 @@ from maxent_grpo.training.runtime import torch_utils as _torch_utils
 # Use the torch_utils implementation so tests can monkeypatch its importer.
 require_dataloader = _torch_utils.require_dataloader
 
+LOG = logging.getLogger(__name__)
+
 if TYPE_CHECKING:  # pragma: no cover - type hints only
     from torch import Tensor
 else:  # pragma: no cover - runtime fallback
@@ -68,7 +71,7 @@ def _truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
 
         _prompts_mod.sync_trunc_state(_TRUNC_STATE)
     except (ImportError, AttributeError):
-        pass
+        LOG.debug("Skipping prompt truncation state sync; prompts module unavailable.")
     truncated = truncate_prompt(prompt, char_limit)
     _TRUNC_STATE["warned"] = getattr(_prompts_mod, "_TRUNC_STATE", _TRUNC_STATE).get(
         "warned", _TRUNC_STATE.get("warned", False)
@@ -125,7 +128,7 @@ def _group_softmax(
 
             probs = _np.array(probs, dtype=float)
         except (ImportError, TypeError, ValueError):
-            pass
+            LOG.debug("Failed to coerce softmax probs to numpy array.")
     try:
         probs = probs * (1.0 - eps * len(values)) + eps
         probs = probs / probs.sum()
@@ -168,7 +171,7 @@ def _prepare_labels_for_ce(
                 labels[i][:plen] = -100
             except (AttributeError, IndexError, TypeError, ValueError):
                 # Best-effort masking for stub tensors that lack full indexing support.
-                pass
+                LOG.debug("Failed to mask labels for prompt index %s", i)
     return labels
 
 

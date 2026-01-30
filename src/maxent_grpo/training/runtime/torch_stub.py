@@ -658,12 +658,12 @@ def _build_torch_stub() -> Any:
         np.clip(_tensor(inp).arr, a_min=min_val, a_max=max_val)
     )
     # Persistence helpers (minimal stubs so tests can monkeypatch torch.save).
-    def _save(obj, path):
+    def _save(_obj, path):
         try:  # pragma: no cover - side-effect only
             with open(path, "wb") as handle:
                 # Write a small marker; callers in tests overwrite via monkeypatch.
                 handle.write(b"stub")
-        except Exception:
+        except OSError:
             # Silently ignore I/O failures in stub environments.
             return None
 
@@ -680,6 +680,8 @@ def _build_torch_stub() -> Any:
     torch_mod.is_grad_enabled = lambda: True
     torch_mod.manual_seed = lambda seed=None: np.random.seed(int(seed or 0))
     torch_mod.autograd = SimpleNamespace(no_grad=_no_grad)
+    torch_mod.version = SimpleNamespace(version="0.0.0", __version__="0.0.0", cuda=None)
+    torch_mod.__version__ = "0.0.0"
 
     class _SymBool:
         def __init__(self, value=False):
@@ -703,6 +705,20 @@ def _build_torch_stub() -> Any:
         _is_in_bad_fork=lambda: False,
     )
 
+    class _Linear:
+        def __init__(self, *_args, **_kwargs):
+            self.weight = _Tensor([])
+
+        def __call__(self, _inputs):
+            return _Tensor([])
+
+    class _Embedding:
+        def __init__(self, *_args, **_kwargs):
+            self.weight = _Tensor([])
+
+        def __call__(self, _ids):
+            return _Tensor([])
+
     # nn + optim namespaces
     torch_mod.nn = SimpleNamespace(
         Module=type("Module", (), {}),
@@ -715,10 +731,8 @@ def _build_torch_stub() -> Any:
             else _Tensor([]),
             pdist=_pdist,
         ),
-        Linear=lambda *_a, **_k: (lambda x: _Tensor([])),
-        Embedding=lambda *_a, **_k: SimpleNamespace(
-            weight=_Tensor([]), __call__=lambda ids: _Tensor([])
-        ),
+        Linear=_Linear,
+        Embedding=_Embedding,
     )
     torch_mod.backends = SimpleNamespace()
     torch_mod.mps = SimpleNamespace(
@@ -728,15 +742,27 @@ def _build_torch_stub() -> Any:
         manual_seed=lambda *_a, **_k: None,
     )
     torch_mod.backends.mps = torch_mod.mps
-    torch_mod.optim = SimpleNamespace(
-        Optimizer=type("Optimizer", (), {}),
-        AdamW=lambda params=None, lr=1e-3: SimpleNamespace(
-            param_groups=[{"lr": lr}],
-            step=lambda: None,
-            zero_grad=lambda set_to_none=True: None,
-            parameters=lambda: params,
-        ),
+    optim_mod = ModuleType("torch.optim")
+    optim_mod.__spec__ = SimpleNamespace()
+    optim_mod.__path__ = []
+    optim_mod.Optimizer = type("Optimizer", (), {})
+    optim_mod.AdamW = lambda params=None, lr=1e-3: SimpleNamespace(
+        param_groups=[{"lr": lr}],
+        step=lambda: None,
+        zero_grad=lambda set_to_none=True: None,
+        parameters=lambda: params,
+        state_dict=lambda: {},
+        load_state_dict=lambda _state: None,
     )
+    # lr_scheduler stub to satisfy "import torch.optim.lr_scheduler" paths.
+    lr_sched_mod = ModuleType("torch.optim.lr_scheduler")
+    lr_sched_mod.__spec__ = SimpleNamespace()
+    lr_sched_mod.__path__ = []
+    lr_sched_mod.LRScheduler = type("LRScheduler", (), {})
+    protected_name = "_" + "LRScheduler"
+    setattr(lr_sched_mod, protected_name, lr_sched_mod.LRScheduler)
+    optim_mod.lr_scheduler = lr_sched_mod
+    torch_mod.optim = optim_mod
 
     # _dynamo shim
     dynamo_mod = sys.modules.get("torch._dynamo")
@@ -768,18 +794,21 @@ def _build_torch_stub() -> Any:
 
     data_mod.DataLoader = DataLoader
 
+    # Mark the module so runtime guards can detect stubbed deps.
+    torch_mod.__maxent_stub__ = True
     # Register stub modules for import resolution
     torch_mod.__spec__ = SimpleNamespace()
     torch_mod.__path__ = []
-    sys.modules.setdefault("torch", torch_mod)
-    sys.modules.setdefault("torch.cuda", torch_mod.cuda)
-    sys.modules.setdefault("torch.xpu", torch_mod.xpu)
-    sys.modules.setdefault("torch.nn", torch_mod.nn)
-    sys.modules.setdefault("torch.nn.functional", torch_mod.nn.functional)
-    sys.modules.setdefault("torch.optim", torch_mod.optim)
-    sys.modules.setdefault("torch.utils", torch_mod.utils)
-    sys.modules.setdefault("torch.utils.data", data_mod)
-    sys.modules.setdefault("torch.mps", torch_mod.mps)
+    sys.modules["torch"] = torch_mod
+    sys.modules["torch.cuda"] = torch_mod.cuda
+    sys.modules["torch.xpu"] = torch_mod.xpu
+    sys.modules["torch.nn"] = torch_mod.nn
+    sys.modules["torch.nn.functional"] = torch_mod.nn.functional
+    sys.modules["torch.optim"] = torch_mod.optim
+    sys.modules["torch.optim.lr_scheduler"] = lr_sched_mod
+    sys.modules["torch.utils"] = torch_mod.utils
+    sys.modules["torch.utils.data"] = data_mod
+    sys.modules["torch.mps"] = torch_mod.mps
     # Register nested namespace stubs to placate imports triggered during backward passes.
     nested_mod = ModuleType("torch.nested")
     nested_mod.__spec__ = SimpleNamespace()

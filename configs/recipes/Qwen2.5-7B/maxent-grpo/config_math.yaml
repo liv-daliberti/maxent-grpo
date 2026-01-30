@@ -74,6 +74,8 @@ maxent_q_temperature: 1.0       # soften/sharpen listwise q if rewards are flat/
 maxent_q_epsilon: 1.0e-6        # epsilon floor on q for full support
 maxent_length_normalize_ref: true
 maxent_logprob_chunk_size: 2  # cap ref/policy scoring slices to lighten per-forward memory
+# Force frozen reference-model scoring for KL/MaxEnt reference statistics.
+maxent_reference_logprobs_source: model
 maxent_target_weight_entropy: 0.6  # keep weights spread but avoid fully uniform q
 maxent_tau_lr: 0.01
 maxent_tau_min: 0.05

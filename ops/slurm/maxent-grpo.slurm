@@ -120,7 +120,7 @@ export HF_HUB_ENABLE_PROGRESS_BARS=1
 export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
 # Defaults for MaxEnt runs (override via `sbatch --export` or env).
 export VLLM_SERVER_IMPL="${VLLM_SERVER_IMPL:-trl}"
-export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-debug}"
+export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-info}"
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
          "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
          "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \
@@ -132,6 +132,8 @@ python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'h
 python -m pip install -q -e "$ROOT_DIR" || {
   echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
 }
+echo "[info] Patching TRL vllm_serve for logprob support"
+python "$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py"
 
 if [[ "$*" == *"--help"* ]]; then
   echo "Usage: sbatch ops/slurm/maxent-grpo.slurm [options]"
@@ -387,6 +389,7 @@ if $USE_VLLM_SERVER && ! $INLINE_VLLM; then
     export VLLM_USAGE_STATS_PATH=\"$VLLM_USAGE_STATS_PATH\"; export VLLM_NO_USAGE_STATS=1; \
     mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
     mkdir -p \"$(dirname "$VLLM_USAGE_STATS_PATH")\"; \
+    python \"$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py\"; \
     export NCCL_DEBUG=WARN; \
     PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
     VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
@@ -416,7 +419,7 @@ fi
 # Build Accelerate launcher and training command
 NODELIST_CSV=$(IFS=,; echo "${TRAIN_NODES[*]}")
 if [[ "$OPTIONAL_ARGS" != *"--log_level"* ]]; then
-  OPTIONAL_ARGS="${OPTIONAL_ARGS} --log_level debug"
+  OPTIONAL_ARGS="${OPTIONAL_ARGS} --log_level ${MAXENT_LOG_LEVEL:-info}"
 fi
 export CMD="${TRAIN_ENTRYPOINT} --config ${CONFIG_FILE} ${OPTIONAL_ARGS}"
 
@@ -483,7 +486,7 @@ export INLINE_VLLM_FALLBACK_GPUS="$(seq -s, 0 $((GPUS_PER_NODE - 1)))"
 
 srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; set -x; \
   export VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
-  export MAXENT_LOG_LEVEL=\"${MAXENT_LOG_LEVEL:-debug}\"; \
+  export MAXENT_LOG_LEVEL=\"${MAXENT_LOG_LEVEL:-info}\"; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
   elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
   export PYTHONNOUSERSITE=1; \
@@ -527,6 +530,7 @@ PY
     : > \"\$VLLM_LOG\"; \
     tail -n +1 -F \"\$VLLM_LOG\" & \
     VLLM_TAIL_PID=\$!; \
+    python \"$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py\"; \
     VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
     PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT; \
     VLLM_GROUP_PORT=$VLLM_GROUP_PORT; \

@@ -18,6 +18,7 @@ Hydra-powered multi-command CLI for MaxEnt-GRPO workflows.
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 import types
@@ -212,7 +213,17 @@ class HydraRootConfig:
 
 
 _HYDRA_CONFIG_NAME = "maxent_grpo_cli"
-_HYDRA_CONFIG_REGISTERED = False
+_HYDRA_CONFIG_STATE = {"registered": False}
+
+
+def _load_config_store() -> Optional[type[Any]]:
+    """Return Hydra's ConfigStore class if available."""
+
+    try:
+        module = importlib.import_module("hydra.core.config_store")
+    except ImportError:
+        return None
+    return getattr(module, "ConfigStore", None)
 
 
 def _register_hydra_config() -> Optional[str]:
@@ -227,20 +238,19 @@ def _register_hydra_config() -> Optional[str]:
 
     if not isinstance(hydra, types.ModuleType):
         return None
-    global _HYDRA_CONFIG_REGISTERED
-    if _HYDRA_CONFIG_REGISTERED:
+    if _HYDRA_CONFIG_STATE["registered"]:
         return _HYDRA_CONFIG_NAME
-    try:
-        from hydra.core.config_store import ConfigStore
-    except Exception:  # pragma: no cover - optional Hydra dependency
+    config_store_cls = _load_config_store()
+    if config_store_cls is None:
         return None
-    cs = ConfigStore.instance()
+    cs = config_store_cls.instance()
     try:
         cs.store(name=_HYDRA_CONFIG_NAME, node=HydraRootConfig)
-    except Exception:  # pragma: no cover - defensive double registration
-        _HYDRA_CONFIG_REGISTERED = True
+    except (KeyError, RuntimeError, TypeError, ValueError, AssertionError):
+        # Defensive: ignore double registration or mismatched config errors.
+        _HYDRA_CONFIG_STATE["registered"] = True
         return _HYDRA_CONFIG_NAME
-    _HYDRA_CONFIG_REGISTERED = True
+    _HYDRA_CONFIG_STATE["registered"] = True
     return _HYDRA_CONFIG_NAME
 
 

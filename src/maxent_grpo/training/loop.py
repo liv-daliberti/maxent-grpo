@@ -81,6 +81,7 @@ from .weighting.logic import (
     save_controller_state,
     _sync_controller_state,
 )
+from .scoring import vllm_meta_has_logprobs
 from .types import (
     EvaluationSettings,
     LogStepArtifacts,
@@ -100,9 +101,29 @@ prepare_training_batch = pipeline_mod.prepare_training_batch
 LOG = logging.getLogger(__name__)
 _PROMPT_OBJECTIVE_ENV_VAR = "MAXENT_LOG_PROMPT_OBJECTIVE"
 _PROMPT_OBJECTIVE_PREVIEW_LEN = 160
+_VLLM_LOGPROB_FAIL_AFTER_ENV = "MAXENT_VLLM_LOGPROB_FAIL_AFTER"
+_VLLM_LOGPROB_FALLBACK_ENV = "MAXENT_VLLM_LOGPROB_FALLBACK"
 _scheduled_learning_rate = scheduled_learning_rate
 _epoch_progress = epoch_progress
 _optimizer_step = optimizer_step
+
+
+def _coerce_bool(value: Any) -> Optional[bool]:
+    """Return a parsed boolean when possible, else None."""
+
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return None
 
 
 def _maybe_save_seed_heatmap(seed_heatmap: Optional[dict], step: int) -> None:
@@ -115,7 +136,6 @@ def _maybe_save_seed_heatmap(seed_heatmap: Optional[dict], step: int) -> None:
     if not seed_heatmap:
         return
     import json
-    import os
 
     if os.environ.get("INFOSEED_SAVE_HEATMAP", "0") not in {"1", "true", "True"}:
         return
@@ -150,7 +170,7 @@ def _to_cpu_tensor(value: Any) -> "torch.Tensor":
     if isinstance(value, torch.Tensor):
         try:
             return value.detach().float().cpu().view(-1)
-        except Exception:  # pragma: no cover - defensive conversion
+        except (RuntimeError, TypeError, ValueError):  # pragma: no cover - defensive conversion
             return torch.tensor([], dtype=torch.float32)
     arr = getattr(value, "arr", value)
     try:
@@ -226,6 +246,109 @@ def _prompt_preview(text: str) -> str:
     if len(compact) <= _PROMPT_OBJECTIVE_PREVIEW_LEN:
         return compact
     return compact[: _PROMPT_OBJECTIVE_PREVIEW_LEN - 1] + "…"
+
+
+def _resolve_vllm_logprob_fail_after(ctx: TrainingLoopContext) -> int:
+    """Return the consecutive-step threshold for missing vLLM logprobs."""
+
+    training_args = getattr(ctx, "training_args", None)
+    cfg_val = getattr(training_args, "vllm_logprob_fail_after", None)
+    if cfg_val is not None:
+        try:
+            return max(0, int(cfg_val))
+        except (TypeError, ValueError):
+            LOG.warning(
+                "Invalid vllm_logprob_fail_after=%s; falling back to env/default.",
+                cfg_val,
+            )
+    raw = os.environ.get(_VLLM_LOGPROB_FAIL_AFTER_ENV)
+    if raw is None:
+        return 3
+    try:
+        return max(0, int(raw))
+    except (TypeError, ValueError):
+        return 3
+
+
+def _vllm_logprob_fallback_enabled(ctx: TrainingLoopContext) -> bool:
+    training_args = getattr(ctx, "training_args", None)
+    cfg_val = getattr(training_args, "vllm_logprob_fallback", None)
+    parsed = _coerce_bool(cfg_val)
+    if parsed is not None:
+        return parsed
+    raw = os.environ.get(_VLLM_LOGPROB_FALLBACK_ENV, "0")
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _maybe_guard_vllm_logprobs(
+    ctx: TrainingLoopContext, prepared: Any, global_step: int
+) -> None:
+    """Fail fast or force fallback when vLLM logprobs are repeatedly missing."""
+
+    gen_cfg = getattr(ctx, "generation", None)
+    if gen_cfg is None or not getattr(gen_cfg, "use_vllm", False):
+        return
+    if not getattr(gen_cfg, "vllm_request_logprobs", False):
+        return
+    scoring_cfg = getattr(ctx, "scoring", None)
+    ref_source = str(
+        getattr(scoring_cfg, "reference_logprobs_source", "auto") or "auto"
+    ).lower()
+    if ref_source in {"model", "reference", "reference_model", "ref_model"}:
+        return
+    reward_comp = getattr(prepared, "reward_comp", None)
+    flat_meta = getattr(reward_comp, "ref_logprob_meta", None)
+    total_sequences = None
+    batch_stats = getattr(prepared, "batch_stats", None)
+    score_batch = getattr(batch_stats, "score_batch", None) if batch_stats else None
+    if score_batch is not None:
+        total_sequences = getattr(score_batch, "total_sequences", None)
+    has_meta = vllm_meta_has_logprobs(flat_meta, total_sequences)
+    counter = int(getattr(ctx.runtime, "_vllm_logprob_miss_steps", 0) or 0)
+    if has_meta:
+        if counter:
+            setattr(ctx.runtime, "_vllm_logprob_miss_steps", 0)
+        return
+    counter += 1
+    setattr(ctx.runtime, "_vllm_logprob_miss_steps", counter)
+    limit = _resolve_vllm_logprob_fail_after(ctx)
+    if limit <= 0:
+        return
+    if counter < limit:
+        LOG.warning(
+            "vLLM logprob metadata missing | step=%d | consecutive_missing=%d/%d",
+            global_step,
+            counter,
+            limit,
+        )
+        return
+    if _vllm_logprob_fallback_enabled(ctx):
+        LOG.error(
+            (
+                "vLLM logprobs missing for %d consecutive steps; forcing "
+                "reference_logprobs_source=model."
+            ),
+            counter,
+        )
+        try:
+            ctx.scoring.reference_logprobs_source = "model"
+        except (AttributeError, TypeError, ValueError):
+            pass
+        try:
+            ctx.settings.scoring.reference_logprobs_source = "model"
+        except (AttributeError, TypeError, ValueError):
+            pass
+        setattr(ctx.runtime, "_vllm_logprob_miss_steps", 0)
+        return
+    raise RuntimeError(
+        (
+            "vLLM logprob metadata missing for "
+            f"{counter} consecutive steps (>= {limit}). "
+            "Check vLLM client_tag echo and return_logprobs settings, or set "
+            "vllm_logprob_fallback=true "
+            f"(or {_VLLM_LOGPROB_FALLBACK_ENV}=1) to force reference-model fallback."
+        )
+    )
 
 
 def _build_prompt_objective_entries(
@@ -481,9 +604,10 @@ def _train_step(
         )
         try:
             delattr(ctx.runtime, "_last_skip_stage")
-        except Exception:
+        except (AttributeError, TypeError):
             pass
         return False
+    _maybe_guard_vllm_logprobs(ctx, prepared, state.global_step)
     state.num_input_tokens_seen += float(prepared.total_input_tokens)
     loss_outputs, diagnostics = evaluate_losses(
         *build_loss_inputs(
@@ -790,7 +914,7 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
                 extra_ignore_patterns=[],
                 include_checkpoints=True,
             )
-        except Exception as exc:  # pragma: no cover - optional hub deps
+        except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - optional hub deps
             LOG.warning("Failed to push final output_dir to Hub: %s", exc)
 
     runtime = ctx.runtime
@@ -809,6 +933,15 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
         vllm=generation_cfg.vllm,
         penalty=replace(generation_cfg.penalty),
     )
+    training_args = getattr(ctx, "training_args", None)
+    if training_args is not None:
+        setattr(generation_ctx, "training_args", training_args)
+        cfg_val = getattr(training_args, "vllm_client_tag_fail_fast", None)
+        if cfg_val is not None:
+            setattr(generation_ctx, "vllm_client_tag_fail_fast", cfg_val)
+        sync_interval = getattr(training_args, "vllm_sync_interval_steps", None)
+        if sync_interval is not None:
+            setattr(generation_ctx, "vllm_sync_interval_steps", sync_interval)
     completion_generator = CompletionGenerator(generation_ctx)
     validation_ctx = ValidationContext(
         evaluation=ctx.evaluation,

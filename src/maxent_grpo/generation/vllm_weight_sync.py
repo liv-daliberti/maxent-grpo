@@ -110,6 +110,7 @@ class VLLMWeightSyncMixin:
     _vllm_client: Any
     _vllm_sync_ready: bool
     _last_vllm_synced_step: Optional[int]
+    _last_vllm_param_version: Optional[int]
     _fsdp_cls: Any
     _gather_factory: Any
     ctx: Any
@@ -125,7 +126,7 @@ class VLLMWeightSyncMixin:
             return name
         try:
             text = str(status)
-        except Exception:
+        except (TypeError, ValueError, RuntimeError):
             return None
         if "." in text:
             text = text.rsplit(".", 1)[-1]
@@ -139,7 +140,7 @@ class VLLMWeightSyncMixin:
         active = getattr(param, "ds_active_sub_modules", None)
         try:
             return bool(active)
-        except Exception:
+        except (TypeError, ValueError, RuntimeError):
             return False
 
     def _zero3_params_to_gather(self, params: Sequence[Any]) -> list[Any]:
@@ -261,20 +262,73 @@ class VLLMWeightSyncMixin:
         ctx = self.ctx
         if not getattr(ctx, "vllm_sync_weights", False):
             return
+        model_obj = getattr(ctx, "model", None)
+        params_fn = getattr(model_obj, "parameters", None)
+        if callable(params_fn):
+            try:
+                if not any(
+                    bool(getattr(param, "requires_grad", True))
+                    for param in params_fn()
+                    if param is not None
+                ):
+                    LOG.debug(
+                        "Skipping vLLM weight sync: no trainable parameters detected."
+                    )
+                    return
+            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to inspect trainable parameters for vLLM sync: %s", exc)
         accelerator = ctx.accelerator
         is_main = getattr(accelerator, "is_main_process", True)
         current_step = ctx.generation_stats.get("current_step")
+        sync_interval = getattr(ctx, "vllm_sync_interval_steps", None)
+        if sync_interval is None:
+            training_args = getattr(ctx, "training_args", None)
+            sync_interval = getattr(training_args, "vllm_sync_interval_steps", None)
+        if sync_interval is not None:
+            try:
+                sync_interval = int(sync_interval)
+            except (TypeError, ValueError):
+                LOG.warning(
+                    "Invalid vllm_sync_interval_steps=%s; ignoring.",
+                    sync_interval,
+                )
+                sync_interval = None
+        if sync_interval is not None and sync_interval <= 0:
+            LOG.debug("Skipping vLLM weight sync: interval set to %s.", sync_interval)
+            return
         ensure_fn = ensure_client or self._ensure_vllm_client
         # Decide once (on rank 0) whether to run the ZeRO-3 gather + sync path,
         # then broadcast to all ranks. This avoids deadlocks where non-main
         # ranks enter the gather path while rank 0 returns early.
         dist = getattr(torch, "distributed", None)
         should_sync = True
+        current_version_sig: Optional[int] = None
         if is_main and current_step is not None:
             try:
-                should_sync = self._last_vllm_synced_step != int(current_step)
+                last_synced = self._last_vllm_synced_step
+                current_step_int = int(current_step)
+                if (
+                    sync_interval is not None
+                    and last_synced is not None
+                    and current_step_int - int(last_synced) < sync_interval
+                ):
+                    should_sync = False
+                else:
+                    should_sync = last_synced != current_step_int
             except (TypeError, ValueError):
                 should_sync = True
+        if is_main and should_sync:
+            current_version_sig = self._param_version_signature(model_obj)
+            last_sig = getattr(self, "_last_vllm_param_version", None)
+            if (
+                current_version_sig is not None
+                and last_sig is not None
+                and current_version_sig == last_sig
+            ):
+                LOG.debug(
+                    "Skipping vLLM weight sync: parameter version signature unchanged."
+                )
+                should_sync = False
         if (
             getattr(accelerator, "num_processes", 1) > 1
             and dist is not None
@@ -319,8 +373,8 @@ class VLLMWeightSyncMixin:
                             current_step,
                             time.monotonic() - start,
                         )
-                except (RuntimeError, ValueError, TypeError):
-                    pass
+                except (RuntimeError, ValueError, TypeError) as exc:
+                    LOG.warning("vLLM weight sync (gather-only) failed: %s", exc)
                 wait_for_all = getattr(accelerator, "wait_for_everyone", None)
                 if callable(wait_for_all):
                     wait_for_all()
@@ -355,6 +409,8 @@ class VLLMWeightSyncMixin:
             stats["vllm_weight_syncs"] = int(stats.get("vllm_weight_syncs", 0)) + 1
             if current_step is not None:
                 self._last_vllm_synced_step = int(current_step)
+            if is_main and current_version_sig is not None:
+                self._last_vllm_param_version = current_version_sig
         except (
             RuntimeError,
             ValueError,
@@ -378,6 +434,28 @@ class VLLMWeightSyncMixin:
         wait_for_all = getattr(accelerator, "wait_for_everyone", None)
         if callable(wait_for_all):
             wait_for_all()
+
+    def _param_version_signature(self, model: Any) -> Optional[int]:
+        """Return a cheap signature based on torch parameter version counters."""
+
+        params_fn = getattr(model, "parameters", None)
+        if not callable(params_fn):
+            return None
+        total = 0
+        count = 0
+        try:
+            for param in params_fn():
+                if param is None:
+                    continue
+                version = getattr(param, "_version", None)
+                if isinstance(version, int):
+                    total += version
+                    count += 1
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            return None
+        if count <= 0:
+            return None
+        return total
 
     def _client_callable(self, attr_name: str) -> Optional[_ClientCallable]:
         """Return a callable attribute from the vLLM client if available.

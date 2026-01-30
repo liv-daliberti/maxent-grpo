@@ -114,6 +114,47 @@ def require_torch(_context: str) -> Any:
         # Always expose a _dynamo attribute on the module to satisfy downstream imports.
         if not hasattr(existing, "_dynamo"):
             setattr(existing, "_dynamo", sys.modules.get("torch._dynamo"))
+        try:
+            if not hasattr(existing, "version") or existing.version is None:
+                existing.version = SimpleNamespace()
+            if isinstance(existing.version, SimpleNamespace):
+                if not hasattr(existing.version, "version"):
+                    existing.version.version = "0.0.0"
+                if not hasattr(existing.version, "__version__"):
+                    existing.version.__version__ = "0.0.0"
+                if not hasattr(existing.version, "cuda"):
+                    existing.version.cuda = None
+            if not hasattr(existing, "__version__"):
+                existing.__version__ = "0.0.0"
+        except (AttributeError, TypeError, ValueError):
+            pass
+        try:
+            optim_mod = sys.modules.get("torch.optim")
+            if not isinstance(optim_mod, ModuleType):
+                optim_mod = ModuleType("torch.optim")
+                optim_mod.__spec__ = importlib.machinery.ModuleSpec(
+                    "torch.optim", loader=None, is_package=True
+                )
+                optim_mod.__path__ = []
+                optim_mod.Optimizer = type("Optimizer", (), {})
+                sys.modules["torch.optim"] = optim_mod
+            if getattr(optim_mod, "__path__", None) is None:
+                optim_mod.__path__ = []
+            lr_sched_mod = sys.modules.get("torch.optim.lr_scheduler")
+            if not isinstance(lr_sched_mod, ModuleType):
+                lr_sched_mod = ModuleType("torch.optim.lr_scheduler")
+                lr_sched_mod.__spec__ = importlib.machinery.ModuleSpec(
+                    "torch.optim.lr_scheduler", loader=None, is_package=True
+                )
+                lr_sched_mod.__path__ = []
+                lr_sched_mod.LRScheduler = type("LRScheduler", (), {})
+                lr_sched_mod._LRScheduler = lr_sched_mod.LRScheduler
+                sys.modules["torch.optim.lr_scheduler"] = lr_sched_mod
+            optim_mod.lr_scheduler = lr_sched_mod
+            if not hasattr(existing, "optim"):
+                setattr(existing, "optim", optim_mod)
+        except (AttributeError, TypeError, ValueError):
+            pass
         return existing
     try:
         torch_mod = _import_module("torch")

@@ -200,7 +200,7 @@ def ensure_hf_repo_ready(training_args: "GRPOConfig") -> None:
     except RuntimeError as exc:
         logger.warning("Skipping Hub preflight: %s", exc)
         return
-    except Exception as exc:  # pragma: no cover - network dependent
+    except (HfHubHTTPError, OSError, ValueError) as exc:  # pragma: no cover - network dependent
         raise RuntimeError(
             "Failed to preflight Hugging Face Hub access; check credentials/network"
         ) from exc

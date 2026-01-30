@@ -25,8 +25,6 @@ import sys
 from pathlib import Path
 
 from setuptools import find_packages, setup
-from setuptools.command.develop import develop as _develop
-from setuptools.command.install import install as _install
 
 _EXPECTED_TRL_VERSION_PREFIX = "0.18."
 
@@ -283,17 +281,8 @@ def _patch_trl_vllm_serve():
         return False
     return True
 
-
-class install(_install):
-    def run(self):
-        super().run()
-        _patch_trl_vllm_serve()
-
-
-class develop(_develop):
-    def run(self):
-        super().run()
-        _patch_trl_vllm_serve()
+# NOTE: install-time patching is disabled. Run ops/scripts/patch_trl_vllm_serve.py
+# explicitly after installing/upgrading TRL to apply this patch.
 
 
 # Remove stale open_r1.egg-info directories to avoid https://github.com/pypa/pip/issues/5466
@@ -460,10 +449,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
-    cmdclass={
-        "install": install,
-        "develop": develop,
-    },
+    cmdclass={},
     extras_require=extras,
     python_requires=">=3.10.9",
     install_requires=install_requires,

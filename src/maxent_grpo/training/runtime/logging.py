@@ -116,7 +116,9 @@ def _wandb_error_types() -> Tuple[type, ...]:
         if comm_error not in error_types:
             error_types = (comm_error,) + error_types
     return error_types
-    return base_exceptions
+
+
+_WANDB_INIT_EXCEPTIONS = _wandb_error_types() + (OSError,)
 
 
 def _report_to_contains(
@@ -231,7 +233,7 @@ def _maybe_init_wandb_run(
     )
     try:
         return wandb.init(**wandb_kwargs)
-    except (_wandb_error_types() + (OSError,)) as exc:  # pragma: no cover - defensive
+    except _WANDB_INIT_EXCEPTIONS as exc:  # pragma: no cover - defensive
         LOG.warning("Failed to initialize W&B run: %s", exc)
         return None
 

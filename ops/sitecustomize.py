@@ -33,6 +33,12 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover - pydantic missing
     pass
 
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    module=r"transformers\.utils\.hub",
+)
+
 _ROOT_DIR = Path(__file__).resolve().parent.parent
 _VAR_ROOT = _ROOT_DIR / "var"
 _VAR_ROOT.mkdir(parents=True, exist_ok=True)
@@ -311,6 +317,49 @@ def _install_torch_stub() -> None:
         import torch as _real_torch  # type: ignore
 
         if _real_torch is not None:
+            if not isinstance(_real_torch, ModuleType):
+                mod = ModuleType("torch")
+                for key, val in getattr(_real_torch, "__dict__", {}).items():
+                    try:
+                        setattr(mod, key, val)
+                    except (AttributeError, TypeError):
+                        pass
+                mod.__spec__ = SimpleNamespace(
+                    name="torch", origin="<maxent-torch-stub>"
+                )
+                mod.__path__ = []
+                sys.modules["torch"] = mod
+                _real_torch = mod
+            if getattr(_real_torch, "__path__", None) is None:
+                try:
+                    _real_torch.__path__ = []
+                except (AttributeError, TypeError):
+                    pass
+            # Ensure torch.optim is a proper package module so nested imports work
+            optim_mod = sys.modules.get("torch.optim")
+            if not isinstance(optim_mod, ModuleType):
+                optim_mod = ModuleType("torch.optim")
+                optim_mod.__spec__ = SimpleNamespace(
+                    name="torch.optim", origin="<maxent-torch-stub>"
+                )
+                optim_mod.__path__ = []
+                optim_mod.Optimizer = type("Optimizer", (), {})
+            lr_sched_mod = sys.modules.get("torch.optim.lr_scheduler")
+            if not isinstance(lr_sched_mod, ModuleType):
+                lr_sched_mod = ModuleType("torch.optim.lr_scheduler")
+                lr_sched_mod.__spec__ = SimpleNamespace(
+                    name="torch.optim.lr_scheduler", origin="<maxent-torch-stub>"
+                )
+                lr_sched_mod.__path__ = []
+                lr_sched_mod.LRScheduler = type("LRScheduler", (), {})
+                lr_sched_mod._LRScheduler = lr_sched_mod.LRScheduler
+            optim_mod.lr_scheduler = lr_sched_mod
+            sys.modules["torch.optim"] = optim_mod
+            sys.modules["torch.optim.lr_scheduler"] = lr_sched_mod
+            try:
+                setattr(_real_torch, "optim", optim_mod)
+            except (AttributeError, TypeError):
+                pass
             return
     except ModuleNotFoundError:
         pass
@@ -818,13 +867,23 @@ def _install_torch_stub() -> None:
     optim_mod.__spec__ = SimpleNamespace(
         name="torch.optim", origin="<maxent-torch-stub>"
     )
+    optim_mod.__path__ = []
     optim_mod.Optimizer = type("Optimizer", (), {})
+    lr_sched_mod = ModuleType("torch.optim.lr_scheduler")
+    lr_sched_mod.__spec__ = SimpleNamespace(
+        name="torch.optim.lr_scheduler", origin="<maxent-torch-stub>"
+    )
+    lr_sched_mod.__path__ = []
+    lr_sched_mod.LRScheduler = type("LRScheduler", (), {})
+    lr_sched_mod._LRScheduler = lr_sched_mod.LRScheduler
+    optim_mod.lr_scheduler = lr_sched_mod
     sys.modules["torch"] = torch_mod
     sys.modules["torch.nn"] = nn_mod
     sys.modules["torch.nn.functional"] = nn_functional
     sys.modules["torch.utils"] = utils_mod
     sys.modules["torch.utils.data"] = data_mod
     sys.modules["torch.optim"] = optim_mod
+    sys.modules["torch.optim.lr_scheduler"] = lr_sched_mod
 
 
 def _patch_antlr4_runtime() -> None:

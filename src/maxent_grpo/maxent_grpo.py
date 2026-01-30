@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
 from pathlib import Path
 import signal
 import faulthandler
@@ -25,15 +26,18 @@ from maxent_grpo.cli import hydra_cli, parse_grpo_args
 
 __all__ = ["main"]
 
+LOG = logging.getLogger(__name__)
+
 if os.environ.get("MAXENT_FAULTHANDLER", "").strip():
     try:
         faulthandler.enable(all_threads=True)
-    except Exception:
-        pass
-    try:
-        faulthandler.register(signal.SIGUSR1, all_threads=True)
-    except Exception:
-        pass
+    except (OSError, RuntimeError, ValueError) as exc:
+        LOG.warning("Failed to enable faulthandler: %s", exc)
+    if hasattr(signal, "SIGUSR1"):
+        try:
+            faulthandler.register(signal.SIGUSR1, all_threads=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            LOG.warning("Failed to register faulthandler SIGUSR1 handler: %s", exc)
 
 
 def main(script_args=None, training_args=None, model_args=None):

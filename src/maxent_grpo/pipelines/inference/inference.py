@@ -533,8 +533,8 @@ def _seed_everything(seed: int) -> None:
         import numpy as np
 
         np.random.seed(seed % (2**32 - 1))
-    except (ImportError, AttributeError, ValueError):
-        pass
+    except (ImportError, AttributeError, ValueError) as exc:
+        LOG.debug("Skipping numpy seed setup: %s", exc)
     if torch is not None:  # pragma: no cover - optional dependency
         try:
             torch.manual_seed(seed)
@@ -546,8 +546,8 @@ def _seed_everything(seed: int) -> None:
             RuntimeError,
             AttributeError,
             ModuleNotFoundError,
-        ):
-            pass
+        ) as exc:
+            LOG.debug("Skipping torch seed setup: %s", exc)
 
 
 def _resolve_field(

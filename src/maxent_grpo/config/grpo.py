@@ -82,6 +82,9 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_length_normalize_ref: Length-normalize reference log-probs.
     :ivar maxent_logprob_chunk_size: Mini-batch size when computing log-probs.
     :ivar maxent_target_weight_entropy: Target weight entropy for automatic tau tuning.
+    :ivar maxent_target_weight_entropy_start: Optional starting entropy target for annealing.
+    :ivar maxent_target_weight_entropy_final: Optional final entropy target for annealing.
+    :ivar maxent_target_weight_entropy_horizon: Steps to interpolate between start/final targets.
     :ivar maxent_tau_lr: Learning rate applied during tau adaptation.
     :ivar maxent_tau_min: Lower bound enforced on tau during tuning.
     :ivar maxent_tau_max: Upper bound enforced on tau during tuning.
@@ -105,11 +108,19 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar vllm_retry_sleep: Seconds to sleep between vLLM retries.
     :ivar vllm_backfill_with_model: Fallback to local ``model.generate`` when vLLM misses completions.
     :ivar vllm_return_logprobs: Request per-token logprobs from vLLM.
+    :ivar vllm_logprob_fail_after: Consecutive steps with missing vLLM logprobs before aborting (0 disables).
+    :ivar vllm_logprob_fallback: When true, switch reference logprobs to the model after missing vLLM logprobs.
+    :ivar vllm_client_tag_fail_fast: When true, abort vLLM retries immediately on client_tag mismatch.
+    :ivar vllm_sync_interval_steps: Only sync weights every N optimizer steps when using vLLM sync.
     :ivar vllm_best_of: vLLM ``best_of`` parameter forwarded from TRL.
     :ivar vllm_frequency_penalty: Frequency penalty applied during sampling.
     :ivar vllm_presence_penalty: Presence penalty applied during sampling.
     :ivar vllm_top_k: Top-k sampling parameter forwarded to vLLM.
     :ivar vllm_stop_sequences: Stop sequences for vLLM (JSON list or ``'||'``-delimited string).
+    :ivar dataloader_num_workers: Number of worker processes for the training dataloader.
+    :ivar dataloader_pin_memory: Whether to pin memory in the training dataloader.
+    :ivar dataloader_prefetch_factor: Prefetch factor per worker (only when num_workers > 0).
+    :ivar dataloader_persistent_workers: Keep DataLoader workers alive between epochs.
     :raises ValueError: If validation detects negative or inconsistent hyperparameters.
     """
 
@@ -212,6 +223,15 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    torch_compile: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, wrap the loaded model with torch.compile for faster training "
+                "(if supported by the installed torch version)."
+            )
+        },
+    )
     init_from_checkpoint: Optional[str] = field(
         default=None,
         metadata={
@@ -259,7 +279,8 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "How to obtain reference log-prob statistics used for KL. "
-                "'auto' uses vLLM metadata when valid, otherwise scores with the frozen reference model; "
+                "'auto' uses vLLM metadata when valid, otherwise falls back to policy logprobs "
+                "(KL ~= 0) and only runs the frozen reference model when needed; "
                 "'model' always scores with the frozen reference model."
             )
         },
@@ -293,11 +314,12 @@ class GRPOConfig(trl.GRPOConfig):
         },
     )
     maxent_prompt_cache_size: int = field(
-        default=0,
+        default=10000,
         metadata={
             "help": (
-                "If >0, remember up to this many prompt tokenizations (LRU) so repeated "
-                "prompts skip re-tokenization when building scoring batches."
+                "Remember up to this many prompt tokenizations (LRU) so repeated prompts "
+                "skip re-tokenization when building scoring batches. Defaults to an "
+                "auto-sized value (min 10k, max 50k); set to 0 to disable."
             )
         },
     )
@@ -307,6 +329,34 @@ class GRPOConfig(trl.GRPOConfig):
             "help": (
                 "If set, automatically tune the MaxEnt entropy weight τ to keep the "
                 "average per-prompt weight entropy near this target."
+            )
+        },
+    )
+    maxent_target_weight_entropy_start: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional starting entropy target to anneal toward "
+                "maxent_target_weight_entropy_final."
+            )
+        },
+    )
+    maxent_target_weight_entropy_final: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional final entropy target used alongside "
+                "maxent_target_weight_entropy_start to enable annealing. Defaults to "
+                "maxent_target_weight_entropy when unset."
+            )
+        },
+    )
+    maxent_target_weight_entropy_horizon: int = field(
+        default=0,
+        metadata={
+            "help": (
+                "Number of optimizer steps to linearly anneal the entropy target from "
+                "start to final. When 0 or negative, annealing is disabled."
             )
         },
     )
@@ -420,7 +470,7 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "Optimizer used for the meta-controller when truncated/first-order "
-                "updates are enabled. Currently only 'sgd' is supported."
+                "updates are enabled. Supported: 'sgd', 'adam', 'adamw'."
             )
         },
     )
@@ -638,6 +688,42 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    vllm_logprob_fail_after: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Consecutive steps with missing vLLM logprobs before aborting; "
+                "set to 0 to disable (None uses env/default)."
+            )
+        },
+    )
+    vllm_logprob_fallback: Optional[bool] = field(
+        default=None,
+        metadata={
+            "help": (
+                "When true, switch reference logprobs to the model after missing "
+                "vLLM logprobs (None uses env/default)."
+            )
+        },
+    )
+    vllm_client_tag_fail_fast: Optional[bool] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Abort vLLM retries immediately on client_tag mismatch "
+                "(None uses env/default)."
+            )
+        },
+    )
+    vllm_sync_interval_steps: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Only sync weights to vLLM every N optimizer steps when vllm_sync_weights is true. "
+                "Set to 0 to disable sync; None uses the default (sync every step)."
+            )
+        },
+    )
     vllm_sync_weights: bool = field(
         default=False,
         metadata={
@@ -674,6 +760,30 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    dataloader_num_workers: int = field(
+        default=0,
+        metadata={"help": "Number of worker processes for the training DataLoader."},
+    )
+    dataloader_pin_memory: Optional[bool] = field(
+        default=None,
+        metadata={
+            "help": "Whether to pin memory in the training DataLoader (None uses default)."
+        },
+    )
+    dataloader_prefetch_factor: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Prefetch factor per DataLoader worker (only valid when num_workers > 0)."
+            )
+        },
+    )
+    dataloader_persistent_workers: Optional[bool] = field(
+        default=None,
+        metadata={
+            "help": "Keep DataLoader workers alive between epochs (only when num_workers > 0)."
+        },
+    )
     log_level: str | int = field(
         default="info",
         metadata={"help": "Logging level applied to the training process."},
@@ -687,9 +797,9 @@ class GRPOConfig(trl.GRPOConfig):
         orig_num_generations = getattr(self, "num_generations", None)
         try:
             super().__post_init__()
-        except (AttributeError, ImportError, ModuleNotFoundError):
+        except (AttributeError, ImportError, ModuleNotFoundError) as exc:
             # TRL/Transformers may be absent in some test environments; ignore in that case.
-            pass
+            LOG.debug("Skipping base __post_init__ (dependency unavailable): %s", exc)
         except ValueError as err:
             # Be tolerant of TRL validation errors related to tiny batch sizes
             # during unit tests. If the error message references generation
@@ -704,8 +814,11 @@ class GRPOConfig(trl.GRPOConfig):
                 try:
                     self.num_generations = 1
                     super().__post_init__()
-                except ValueError:
-                    pass
+                except ValueError as exc:
+                    LOG.warning(
+                        "Base __post_init__ still failing after num_generations override: %s",
+                        exc,
+                    )
                 finally:
                     if orig_num_generations is not None:
                         self.num_generations = orig_num_generations
@@ -792,6 +905,41 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_score_slice_prefetch must be non-negative")
         if self.maxent_prompt_cache_size < 0:
             raise ValueError("maxent_prompt_cache_size must be non-negative")
+        sync_interval = getattr(self, "vllm_sync_interval_steps", None)
+        if sync_interval is not None:
+            try:
+                sync_interval = int(sync_interval)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    "vllm_sync_interval_steps must be an integer when set"
+                ) from exc
+            if sync_interval < 0:
+                raise ValueError("vllm_sync_interval_steps must be >= 0 when set")
+            setattr(self, "vllm_sync_interval_steps", sync_interval)
+        if self.dataloader_num_workers < 0:
+            raise ValueError("dataloader_num_workers must be non-negative")
+        prefetch = getattr(self, "dataloader_prefetch_factor", None)
+        if prefetch is not None:
+            try:
+                prefetch = int(prefetch)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    "dataloader_prefetch_factor must be an integer when set"
+                ) from exc
+            if prefetch <= 0:
+                raise ValueError("dataloader_prefetch_factor must be > 0 when set")
+            setattr(self, "dataloader_prefetch_factor", prefetch)
+        vllm_logprob_fail_after = getattr(self, "vllm_logprob_fail_after", None)
+        if vllm_logprob_fail_after is not None:
+            try:
+                vllm_logprob_fail_after = int(vllm_logprob_fail_after)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    "vllm_logprob_fail_after must be an integer when set"
+                ) from exc
+            if vllm_logprob_fail_after < 0:
+                raise ValueError("vllm_logprob_fail_after must be >= 0 when set")
+            setattr(self, "vllm_logprob_fail_after", vllm_logprob_fail_after)
         if self.maxent_clip_objective_coef < 0.0:
             raise ValueError("maxent_clip_objective_coef must be non-negative")
         if self.maxent_clip_range is not None and self.maxent_clip_range < 0.0:
@@ -807,10 +955,14 @@ class GRPOConfig(trl.GRPOConfig):
         resolved = _parse_log_level(getattr(self, "log_level", None))
         if resolved is not None:
             return resolved
-        parent_getter = getattr(super(), "get_process_log_level", None)
-        if callable(parent_getter):
+        try:
+            parent_getter = super().get_process_log_level
+        except AttributeError:
+            return logging.INFO
+        try:
             return parent_getter()
-        return logging.INFO
+        except (TypeError, ValueError):
+            return logging.INFO
 
 
 @dataclass

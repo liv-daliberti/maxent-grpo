@@ -7,11 +7,12 @@ import json
 import os
 import random
 import shutil
+import logging
 from typing import Any, List, Optional, Tuple
 
 try:  # pragma: no cover - optional dependency guard for stripped test envs
     from datasets import load_from_disk as _hf_load_from_disk
-except Exception:  # pragma: no cover - fallback when datasets is unavailable
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback when datasets is unavailable
     _hf_load_from_disk = None
 
 from maxent_grpo.core.data import get_dataset, load_dataset_split
@@ -20,6 +21,7 @@ from maxent_grpo.training.runtime.prompts import (
     _to_prompt,
 )
 
+LOG = logging.getLogger(__name__)
 
 def _stable_hash(value: Any) -> str:
     """Return a short, stable hash for arbitrarily typed values."""
@@ -154,8 +156,13 @@ def load_datasets(
 
     dataset = None
     cache_path = None
-    wait_fn = getattr(accelerator, "wait_for_everyone", None)
     is_main_process = bool(getattr(accelerator, "is_main_process", True))
+
+    def _wait_for_everyone() -> None:
+        wait_for_all = getattr(accelerator, "wait_for_everyone", None)
+        if not callable(wait_for_all):
+            return
+        cast(Callable[[], None], wait_for_all)()
 
     cache_path = _dataset_cache_path(
         script_args,
@@ -190,8 +197,7 @@ def load_datasets(
         return mapped
 
     if dataset is None and accelerator is not None and not is_main_process and cache_enabled:
-        if callable(wait_fn):
-            wait_fn()
+        _wait_for_everyone()
         if os.path.isdir(cache_path) and _hf_load_from_disk:
             dataset = _hf_load_from_disk(cache_path)
         else:  # pragma: no cover - indicates main process failed before caching
@@ -211,8 +217,7 @@ def load_datasets(
                         shutil.rmtree(tmp_dir)
                     dataset.save_to_disk(tmp_dir)
                     os.replace(tmp_dir, cache_path)
-            if callable(wait_fn):
-                wait_fn()
+            _wait_for_everyone()
             if dataset is None:
                 if cache_enabled and os.path.isdir(cache_path) and _hf_load_from_disk:
                     dataset = _hf_load_from_disk(cache_path)
@@ -282,7 +287,7 @@ def load_datasets(
                         range(n_keep)
                     )
                     eval_rows = _normalize_eval_rows(subset)
-                except Exception:
+                except (AttributeError, RuntimeError, TypeError, ValueError):
                     eval_rows = None
             if eval_rows is None:
                 eval_rows = _normalize_eval_rows(full_eval)
@@ -295,4 +300,33 @@ def load_datasets(
     return train_ds, eval_rows
 
 
-__all__ = ["load_datasets"]
+def resolve_dataloader_kwargs(training_args: Any) -> dict:
+    """Return DataLoader kwargs derived from training_args."""
+
+    kwargs: dict[str, Any] = {}
+    num_workers = int(getattr(training_args, "dataloader_num_workers", 0) or 0)
+    if num_workers < 0:
+        num_workers = 0
+    kwargs["num_workers"] = num_workers
+    pin_memory = getattr(training_args, "dataloader_pin_memory", None)
+    if pin_memory is not None:
+        kwargs["pin_memory"] = bool(pin_memory)
+    prefetch = getattr(training_args, "dataloader_prefetch_factor", None)
+    if prefetch is not None:
+        if num_workers > 0:
+            try:
+                kwargs["prefetch_factor"] = int(prefetch)
+            except (TypeError, ValueError):
+                LOG.warning("Invalid dataloader_prefetch_factor=%s; ignoring.", prefetch)
+        else:
+            LOG.debug("Ignoring dataloader_prefetch_factor because num_workers=0.")
+    persistent = getattr(training_args, "dataloader_persistent_workers", None)
+    if persistent is not None:
+        if num_workers > 0:
+            kwargs["persistent_workers"] = bool(persistent)
+        else:
+            LOG.debug("Ignoring dataloader_persistent_workers because num_workers=0.")
+    return kwargs
+
+
+__all__ = ["load_datasets", "resolve_dataloader_kwargs"]

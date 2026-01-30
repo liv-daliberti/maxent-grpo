@@ -9,9 +9,11 @@ of truth instead of maintaining divergent copies.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 _DEFAULT_RETRY_LIMIT = 3
+LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -363,8 +365,11 @@ def flatten_ref_metadata(
                 if meta_entry is not None and hasattr(meta_entry, "to_trl_payload"):
                     try:
                         meta_entry = meta_entry.to_trl_payload()
-                    except TypeError:
-                        pass
+                    except TypeError as exc:
+                        LOG.debug(
+                            "Failed to convert metadata to TRL payload; keeping raw entry: %s",
+                            exc,
+                        )
                 if meta_entry is not None:
                     has_payload = True
             flat_meta.append(meta_entry)

@@ -16,10 +16,13 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, List, Mapping, Optional
+
+LOG = logging.getLogger(__name__)
 
 @dataclass
 class ControllerMetaSettings:
@@ -70,54 +73,90 @@ class ControllerMetaSettings:
         if "learning_rate" in payload:
             try:
                 self.learning_rate = float(payload["learning_rate"])
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta learning_rate=%s: %s",
+                    payload.get("learning_rate"),
+                    exc,
+                )
         if "tau_learning_rate" in payload:
             try:
                 self.tau_learning_rate = float(payload["tau_learning_rate"])
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta tau_learning_rate=%s: %s",
+                    payload.get("tau_learning_rate"),
+                    exc,
+                )
         if "beta_learning_rate" in payload:
             try:
                 self.beta_learning_rate = float(payload["beta_learning_rate"])
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta beta_learning_rate=%s: %s",
+                    payload.get("beta_learning_rate"),
+                    exc,
+                )
         if "beta_grad_clip" in payload:
             try:
                 self.beta_grad_clip = float(payload["beta_grad_clip"])
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta beta_grad_clip=%s: %s",
+                    payload.get("beta_grad_clip"),
+                    exc,
+                )
         if "update_interval" in payload:
             try:
                 self.update_interval = max(1, int(payload["update_interval"]))
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta update_interval=%s: %s",
+                    payload.get("update_interval"),
+                    exc,
+                )
         if "objective" in payload and payload["objective"]:
             self.objective = str(payload["objective"])
         if "analytic_steps" in payload:
             try:
                 self.analytic_steps = max(1, int(payload["analytic_steps"]))
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta analytic_steps=%s: %s",
+                    payload.get("analytic_steps"),
+                    exc,
+                )
         if "optimizer" in payload and payload["optimizer"]:
             self.optimizer = str(payload["optimizer"])
         if "truncation_steps" in payload:
             try:
                 self.truncation_steps = max(1, int(payload["truncation_steps"]))
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta truncation_steps=%s: %s",
+                    payload.get("truncation_steps"),
+                    exc,
+                )
         if "use_hessian" in payload:
             self.use_hessian = bool(payload["use_hessian"])
         if "last_tau_grad" in payload:
             try:
                 self.last_tau_grad = float(payload["last_tau_grad"])
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta last_tau_grad=%s: %s",
+                    payload.get("last_tau_grad"),
+                    exc,
+                )
         if "last_beta_grad" in payload:
             try:
                 self.last_beta_grad = float(payload["last_beta_grad"])
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                LOG.debug(
+                    "Invalid controller_meta last_beta_grad=%s: %s",
+                    payload.get("last_beta_grad"),
+                    exc,
+                )
 
 
 @dataclass
@@ -137,6 +176,9 @@ class TauSchedule:
     minimum_value: float
     maximum_value: float
     warmup_steps: int
+    target_entropy_start: Optional[float] = None
+    target_entropy_final: Optional[float] = None
+    target_entropy_horizon: int = 0
 
 
 @dataclass
@@ -250,7 +292,12 @@ class WeightingSettings:
         :returns: Desired entropy target (``None`` to disable adaptation).
         :rtype: float | None
         """
-        return self.tau_schedule.target_entropy
+        active = getattr(self.tau_schedule, "current_target_entropy", None)
+        return (
+            active
+            if active is not None
+            else getattr(self.tau_schedule, "target_entropy", None)
+        )
 
     @tau_target_entropy.setter
     def tau_target_entropy(self, value: Optional[float]) -> None:
@@ -505,7 +552,7 @@ class ControllerStateSnapshot:
             try:
                 state.sync_from_scalars(weighting_cfg.tau, weighting_cfg.beta)
             except (AttributeError, RuntimeError, TypeError, ValueError):
-                pass
+                LOG.debug("Failed to sync controller_state from weighting scalars.")
 
 
 @dataclass
@@ -594,7 +641,7 @@ class TorchControllerState:
                 try:
                     param.grad = None  # type: ignore[attr-defined]
                 except AttributeError:  # pragma: no cover - defensive cleanup
-                    pass
+                    LOG.debug("Failed to clear controller grad for param %s", param)
 
 
 __all__ = [

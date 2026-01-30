@@ -45,12 +45,9 @@ _checkpoint_log_once = {"config": False, "strategy": False, "steps": False}
 
 
 def _is_safetensors_available() -> bool:
-    try:
-        import safetensors  # noqa: F401
+    import importlib.util
 
-        return True
-    except Exception:
-        return False
+    return importlib.util.find_spec("safetensors") is not None
 
 
 def _callable_accepts_kwargs(fn: Any) -> bool:
@@ -101,7 +98,7 @@ def _safetensors_header_has_valid_tensors(path: str) -> bool:
                 return False
             header = handle.read(header_len)
         meta = json.loads(header.decode("utf-8"))
-    except Exception:
+    except (OSError, ValueError, UnicodeDecodeError):
         return False
 
     if not isinstance(meta, dict):
@@ -153,7 +150,7 @@ def _checkpoint_has_valid_hf_weights(checkpoint_dir: str) -> bool:
             if not isinstance(weight_map, dict) or not weight_map:
                 return False
             shard_files = sorted({str(v) for v in weight_map.values() if v})
-        except Exception:
+        except (OSError, ValueError, UnicodeDecodeError):
             return False
         for shard in shard_files:
             shard_path = os.path.join(checkpoint_dir, shard)
@@ -174,7 +171,7 @@ def _checkpoint_has_valid_hf_weights(checkpoint_dir: str) -> bool:
             if not isinstance(weight_map, dict) or not weight_map:
                 return False
             shard_files = sorted({str(v) for v in weight_map.values() if v})
-        except Exception:
+        except (OSError, ValueError, UnicodeDecodeError):
             return False
         for shard in shard_files:
             shard_path = os.path.join(checkpoint_dir, shard)
@@ -306,7 +303,7 @@ def _state_dict_has_zero_sized_tensors(state_dict: Optional[Dict[str, Any]]) -> 
         return True
     try:
         import torch
-    except Exception:  # pragma: no cover - optional runtime
+    except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional runtime
         return False
     for value in state_dict.values():
         if isinstance(value, torch.Tensor):
@@ -357,7 +354,7 @@ def _save_consolidated_hf_weights(
 
     try:
         save_pretrained(checkpoint_dir, **save_kwargs)
-    except Exception:
+    except (OSError, RuntimeError, TypeError, ValueError):
         if save_kwargs.get("safe_serialization") is True:
             retry_kwargs = dict(save_kwargs)
             retry_kwargs["safe_serialization"] = False
@@ -427,12 +424,12 @@ def _get_last_checkpoint(output_dir: Optional[str]) -> Optional[str]:
         return None
     try:
         from transformers.trainer_utils import get_last_checkpoint
-    except Exception:  # pragma: no cover - optional dependency
+    except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
         get_last_checkpoint = None
     if callable(get_last_checkpoint):
         try:
             last = get_last_checkpoint(output_dir)
-        except Exception:  # pragma: no cover - defensive
+        except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive
             last = None
         if last:
             return last
@@ -660,7 +657,7 @@ def build_checkpoint_saver(
         if callable(save_state_fn):
             try:
                 save_state_fn(checkpoint_dir)
-            except Exception as exc:  # pragma: no cover - accelerator dependent
+            except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - accelerator dependent
                 LOG.warning("Failed to save accelerator state to %s: %s", checkpoint_dir, exc)
 
         state_dict = None
@@ -674,13 +671,13 @@ def build_checkpoint_saver(
             if callable(unwrap):
                 try:
                     unwrapped = unwrap(model)
-                except Exception:
+                except (AttributeError, RuntimeError, TypeError, ValueError):
                     unwrapped = model
                 candidates.append(unwrapped)
             for candidate in candidates:
                 try:
                     gathered = get_state_dict_fn(candidate)
-                except Exception as exc:  # pragma: no cover - backend specific
+                except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - backend specific
                     LOG.warning(
                         "Failed to gather consolidated model state_dict for %s: %s",
                         checkpoint_dir,
@@ -702,7 +699,7 @@ def build_checkpoint_saver(
             if callable(unwrap):
                 try:
                     model_to_save = unwrap(model)
-                except Exception:
+                except (AttributeError, RuntimeError, TypeError, ValueError):
                     model_to_save = model
             try:
                 _save_consolidated_hf_weights(
@@ -710,7 +707,7 @@ def build_checkpoint_saver(
                     checkpoint_dir=checkpoint_dir,
                     state_dict=state_dict,
                 )
-            except Exception as exc:  # pragma: no cover - model save guard
+            except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - model save guard
                 LOG.warning("Failed to save model weights to %s: %s", checkpoint_dir, exc)
             if not _checkpoint_has_hf_weights(checkpoint_dir):
                 LOG.warning(
@@ -727,17 +724,24 @@ def build_checkpoint_saver(
                 _remove_hf_weight_files(checkpoint_dir)
             try:
                 tokenizer.save_pretrained(checkpoint_dir)
-            except Exception as exc:  # pragma: no cover - tokenizer optional
+            except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - tokenizer optional
                 LOG.warning("Failed to save tokenizer to %s: %s", checkpoint_dir, exc)
             if optimizer is not None:
                 try:
                     import torch
 
-                    torch.save(
-                        optimizer.state_dict(),
-                        os.path.join(checkpoint_dir, "optimizer.pt"),
-                    )
-                except Exception as exc:  # pragma: no cover - optimizer optional
+                    state_dict_fn = getattr(optimizer, "state_dict", None)
+                    if callable(state_dict_fn):
+                        torch.save(
+                            state_dict_fn(),
+                            os.path.join(checkpoint_dir, "optimizer.pt"),
+                        )
+                    else:
+                        LOG.warning(
+                            "Optimizer state_dict unavailable; skipping optimizer.pt for %s",
+                            checkpoint_dir,
+                        )
+                except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - optimizer optional
                     LOG.warning(
                         "Failed to save optimizer state to %s: %s",
                         checkpoint_dir,
@@ -755,7 +759,7 @@ def build_checkpoint_saver(
                         extra_ignore_patterns=[],
                         include_checkpoints=True,
                     )
-                except Exception as exc:  # pragma: no cover - optional hub deps
+                except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - optional hub deps
                     LOG.warning(
                         "Failed to push checkpoint %s to Hub: %s",
                         checkpoint_dir,
@@ -833,7 +837,7 @@ def maybe_clear_stale_controller_state(
 
 def _load_controller_file(
     path: Optional[str],
-    accelerator: Optional[Accelerator],
+    _accelerator: Optional[Accelerator],
     weighting_cfg: WeightingSettings,
 ) -> bool:
     """Load controller parameters from ``path`` when available.

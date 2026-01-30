@@ -125,15 +125,21 @@ def _dist_any_flag(accelerator: Any, flag: bool) -> bool:
         or not dist.is_initialized()
     ):
         return bool(flag)
+    get_world_size = getattr(dist, "get_world_size", None)
+    if not callable(get_world_size):
+        return bool(flag)
     try:
-        world_size = int(dist.get_world_size())
-    except Exception:
+        world_size = int(get_world_size())
+    except (TypeError, ValueError, RuntimeError):
         return bool(flag)
     gathered = [None for _ in range(max(world_size, 1))]
+    gather_fn = getattr(dist, "all_gather_object", None)
+    if not callable(gather_fn):
+        return bool(flag)
     try:
-        dist.all_gather_object(gathered, bool(flag))
+        gather_fn(gathered, bool(flag))
         return any(bool(x) for x in gathered)
-    except Exception:
+    except (RuntimeError, ValueError, TypeError):
         return bool(flag)
 
 
@@ -361,12 +367,12 @@ def _behavior_logp_tensor_from_meta(
     if tensor_obj is None:
         LOG.debug("Unable to convert behavior log-prob metadata into a tensor.")
         return None
-    view_fn = getattr(tensor_obj, "view", None)
-    if callable(view_fn):
+    view_attr = getattr(tensor_obj, "view", None)
+    if callable(view_attr):
         try:
-            tensor_obj = view_fn(-1)
+            tensor_obj = tensor_obj.view(-1)
         except (TypeError, ValueError, RuntimeError):
-            pass
+            LOG.debug("Failed to reshape logprob tensor to 1D.")
     return tensor_obj
 
 
@@ -425,14 +431,14 @@ def _collect_batch_stats(
         if callable(numel):
             try:
                 return numel() == 0
-            except Exception:
-                pass
+            except (RuntimeError, TypeError, ValueError):
+                LOG.debug("Unable to compute numel for reference stats tensor.")
         to_list = getattr(tensor, "tolist", None)
         data = tensor
         if callable(to_list):
             try:
                 data = to_list()
-            except Exception:
+            except (RuntimeError, TypeError, ValueError):
                 data = tensor
         try:
             length = len(data)
@@ -449,7 +455,7 @@ def _collect_batch_stats(
                 if callable(numel_fn):
                     try:
                         numel_val = numel_fn()
-                    except Exception:
+                    except (RuntimeError, TypeError, ValueError):
                         numel_val = "error"
                 return f"{type(obj).__name__}(shape={shape}, numel={numel_val})"
 
@@ -529,7 +535,7 @@ def _collect_batch_stats(
                     _describe_ref(result),
                 )
                 return result
-            except Exception as exc:  # pragma: no cover - best-effort logging
+            except (RuntimeError, ValueError, TypeError, AssertionError) as exc:  # pragma: no cover - best-effort logging
                 LOG.warning("Retry reference gather failed: %s", exc)
                 return None
         finally:
@@ -614,56 +620,37 @@ def _collect_batch_stats(
             ctx.runtime.device,
         )
         if ref_meta_len != score_batch.total_sequences:
-            # Mismatch path: rebuild again and skip any remote gather.
+            # Mismatch path: retry metadata reconstruction using score batch length.
             ref_stats = _reference_stats_from_meta(
                 ref_meta,
                 score_batch.total_sequences,
                 ctx.runtime.device,
             )
-        elif ref_stats is None:
-            try:
-                ref_stats = reference_from_vllm_meta(
-                    ref_meta,
-                    score_batch.total_sequences,
-                    ctx.runtime.device,
-                )
-            except (RuntimeError, TypeError, ValueError):
-                ref_stats = None
         if ref_stats is not None:
             ref_stats_source = "vllm_meta"
-    first_ref_attempt = True
-
-    needs_ref_model_local = bool(force_reference_model or ref_stats is None)
-    needs_ref_model_any = needs_ref_model_local
-    # Keep reference scoring branches aligned under ZeRO to avoid mismatched collectives.
-    if _deepspeed_zero_stage(accelerator) >= 2:
-        needs_ref_model_any = _dist_any_flag(accelerator, needs_ref_model_local)
-
-    if (
-        needs_ref_model_any
-        and not force_reference_model
-        and cur_logp_sum is not None
-        and getattr(ctx.runtime, "reference_model", None) is None
-    ):
-        # When no separate frozen reference model is configured, avoid running an
-        # extra reference forward pass under DeepSpeed (which can deadlock when
-        # vLLM does not return logprob metadata). Use policy logprobs as a
-        # "reference==policy" fallback (KL ~= 0).
+    if ref_stats is None and not force_reference_model and cur_logp_sum is not None:
+        # Prefer policy logprobs over a reference-model pass when metadata is missing.
         try:
             tok_counts = token_counts_from_score_batch(
                 score_batch, ctx.runtime, batching_cfg
             )
             ref_stats = reference_stats_from_policy_logprobs(cur_logp_sum, tok_counts)
             ref_stats_source = "policy_logprobs"
-            needs_ref_model_any = False
             if not getattr(_collect_batch_stats, "_policy_ref_warned", False):
                 LOG.warning(
                     "vLLM did not provide reference logprob metadata; using policy logprobs as reference "
-                    "(KL ~= 0 fallback; set vllm_return_logprobs=true or configure a frozen reference model to disable)."
+                    "(KL ~= 0 fallback; set vllm_return_logprobs=true or "
+                    "maxent_reference_logprobs_source=model to force a reference-model pass)."
                 )
                 setattr(_collect_batch_stats, "_policy_ref_warned", True)
-        except Exception as exc:  # pragma: no cover - defensive diagnostics
+        except (RuntimeError, ValueError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive diagnostics
             LOG.warning("Policy-logprob reference fallback failed: %s", exc)
+
+    needs_ref_model_local = bool(force_reference_model or ref_stats is None)
+    needs_ref_model_any = needs_ref_model_local
+    # Keep reference scoring branches aligned under ZeRO to avoid mismatched collectives.
+    if _deepspeed_zero_stage(accelerator) >= 2:
+        needs_ref_model_any = _dist_any_flag(accelerator, needs_ref_model_local)
 
     if needs_ref_model_any:
         use_ref_try = bool(force_reference_model or ref_stats is None)
@@ -682,9 +669,9 @@ def _collect_batch_stats(
                     "Reference logprob traceback (occurrence %d/%d):\n%s",
                     occurrence,
                     _REF_LOGPROB_TRACE_LIMIT,
-                traceback.format_exc(),
-            )
-        except Exception as exc:  # pragma: no cover - defensive diag
+                    traceback.format_exc(),
+                )
+        except (ValueError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive diag
             LOG.error(
                 "Unexpected exception during gather_reference_logprobs: %s",
                 traceback.format_exc(),
@@ -719,7 +706,7 @@ def _collect_batch_stats(
         if callable(numel_fn):
             try:
                 return numel_fn()
-            except Exception:
+            except (RuntimeError, ValueError, TypeError):
                 return "error"
         return None
 
@@ -798,7 +785,7 @@ def _collect_batch_stats(
                     ctx.runtime,
                     single_batching,
                 )
-            except Exception:
+            except (RuntimeError, ValueError, TypeError, AssertionError):
                 LOG.warning("Forced minimal reference gather raised an exception; skipping.")
                 forced = None
             else:
@@ -819,8 +806,8 @@ def _collect_batch_stats(
             )
             try:
                 setattr(ctx.runtime, "_last_skip_stage", "reference_logprobs")
-            except Exception:
-                pass
+            except (AttributeError, TypeError):
+                LOG.debug("Failed to record reference_logprobs skip stage on runtime.")
             return None
         LOG.warning(
             "Reference gather empty; reusing last ref stats | last_ref_shapes=%s/%s",
@@ -838,16 +825,16 @@ def _collect_batch_stats(
         )
         try:
             setattr(ctx.runtime, "_last_skip_stage", "reference_logprobs")
-        except Exception:
-            pass
+        except (AttributeError, TypeError):
+            LOG.debug("Failed to record reference_logprobs skip stage on runtime.")
         return None
     prev_source = getattr(ctx, "_ref_logprobs_source", None)
     if prev_source != ref_stats_source and ref_stats_source != "unknown":
         LOG.info("Reference logprobs source=%s", ref_stats_source)
         try:
             setattr(ctx, "_ref_logprobs_source", ref_stats_source)
-        except Exception:
-            pass
+        except (AttributeError, TypeError):
+            LOG.debug("Failed to update reference logprobs source on context.")
     setattr(ctx, "_last_ref_stats", ref_stats)
     LOG.debug(
         "Reference stats gathered | avg_completion_tokens=%.2f",
@@ -1323,8 +1310,8 @@ def prepare_training_batch(
         skip_stage = getattr(exc, "stage", "unknown")
         try:
             setattr(ctx.runtime, "_last_skip_stage", skip_stage)
-        except Exception:
-            pass
+        except (AttributeError, TypeError):
+            LOG.debug("Failed to record skip stage on runtime.")
         LOG.debug("Skipping training batch: stage=%s returned None", skip_stage)
         return None
 

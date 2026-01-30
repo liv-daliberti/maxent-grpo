@@ -297,6 +297,13 @@ def _ensure_torch_stub():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _allow_stubbed_dependencies(monkeypatch):
+    """Ensure dependency guards permit lightweight stubs in tests."""
+    monkeypatch.setenv("ALLOW_STUBS", "1")
+    yield
+
+
 def pytest_report_header(config):
     seed = getattr(config, "_maxent_random_seed", None)
     if seed is None:

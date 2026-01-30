@@ -8,6 +8,7 @@ unit tests can exercise them with SimpleNamespace stubs.
 
 from __future__ import annotations
 
+import logging
 import math
 from typing import Any, Dict, Optional
 
@@ -15,6 +16,8 @@ try:  # Optional dependency for callback-based logging patch
     from transformers import TrainerCallback
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
     TrainerCallback = None
+
+LOG = logging.getLogger(__name__)
 
 def _numeric_or_none(value: Any) -> Optional[float]:
     """Return a finite float or ``None`` when conversion fails."""
@@ -246,6 +249,16 @@ def _normalize_prefixes(
             out[key] = val
             continue
         out[_with_prefix(prefix, key)] = val
+    # Always materialize top-level aliases for weighting scalars so dashboards
+    # can rely on `train/tau` and `train/beta` regardless of the upstream key
+    # shape (e.g., `weighting/tau`, `train/weighting/tau`, or `tau`).
+    alias_prefix = "eval" if is_eval else "train"
+    tau_key = f"{alias_prefix}/weighting/tau"
+    beta_key = f"{alias_prefix}/weighting/beta"
+    if tau_key in out:
+        out.setdefault(f"{alias_prefix}/tau", out[tau_key])
+    if beta_key in out:
+        out.setdefault(f"{alias_prefix}/beta", out[beta_key])
     return out
 
 
@@ -285,8 +298,8 @@ def patch_trl_grpo_clipped_ratio() -> bool:
 # without TRL remain unaffected.
 try:  # pragma: no cover - exercised in dedicated tests
     patch_trl_grpo_clipped_ratio()
-except (ImportError, ModuleNotFoundError, AttributeError):
-    pass
+except (ImportError, ModuleNotFoundError, AttributeError) as exc:
+    LOG.debug("Skipping TRL clipped_ratio patch: %s", exc)
 
 
 class _WeightingMetricHelper:
@@ -496,10 +509,10 @@ class _WeightingLoggingMixin:
                 extra = helper.metrics_for_trainer(self)
                 for key, value in extra.items():
                     merged.setdefault(key, value)
-            except (AttributeError, RuntimeError, TypeError, ValueError):
+            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
                 # Defensive: helper can rely on optional Trainer attributes
                 # that may be missing in lightweight stubs.
-                pass
+                LOG.debug("Failed to compute weighting metrics: %s", exc)
         # Prefer the precise loss captured during compute_loss to avoid the
         # 4-decimal rounding applied by the upstream Trainer logger.
         precise_loss = _numeric_or_none(getattr(self, "_last_loss_scalar", None))
@@ -571,16 +584,16 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
                         RuntimeError,
                         TypeError,
                         ValueError,
-                    ):  # pragma: no cover - defensive
-                        pass
+                    ) as exc:  # pragma: no cover - defensive
+                        LOG.debug("Failed to capture loss components for logging: %s", exc)
                 loss_value = loss[0]
             try:
                 # Capture a precise scalar before upstream rounding.
                 if hasattr(loss_value, "mean"):
                     loss_value = loss_value.mean()
                 self._last_loss_scalar = float(loss_value.item())  # type: ignore[arg-type]
-            except (AttributeError, RuntimeError, TypeError, ValueError):
-                pass
+            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to capture precise loss scalar: %s", exc)
             return loss
 
     class WeightingLoggedTrainer(_LossCaptureMixin, _WeightingLoggingMixin, trainer_cls):  # type: ignore[misc]
@@ -598,8 +611,8 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
                 )
                 if not already_added and hasattr(self, "add_callback"):
                     self.add_callback(_WeightingLogCallback())
-            except (AttributeError, RuntimeError, TypeError):
-                pass
+            except (AttributeError, RuntimeError, TypeError) as exc:
+                LOG.debug("Failed to attach weighting log callback: %s", exc)
 
     WeightingLoggedTrainer.__name__ = f"WeightingLogged{trainer_cls.__name__}"
     return WeightingLoggedTrainer

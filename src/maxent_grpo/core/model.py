@@ -27,6 +27,7 @@ This module exposes two utilities:
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union
+import logging
 
 import torch
 import torch.nn as nn
@@ -80,6 +81,8 @@ if TYPE_CHECKING:
     from torch import dtype as TorchDType  # pragma: no cover
 else:  # pragma: no cover - runtime fallback when torch.dtype is missing
     TorchDType = getattr(torch, "dtype", Any)
+
+LOG = logging.getLogger(__name__)
 
 
 class ChatMessage(TypedDict):
@@ -202,7 +205,7 @@ def get_model(
             )
             if isinstance(pad_token_id, int):
                 gen_cfg.pad_token_id = pad_token_id
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         pass
     if getattr(training_args, "gradient_checkpointing", False):
         enable_fn = getattr(model, "gradient_checkpointing_enable", None)
@@ -222,4 +225,41 @@ def get_model(
         if num_seeds > 0 and hidden_size:
             if not hasattr(model, "seed_head"):
                 model.seed_head = nn.Linear(hidden_size, num_seeds)
+    if getattr(training_args, "torch_compile", False):
+        # torch.compile is fragile with DeepSpeed/ZeRO wrapping; skip when deepspeed config is present.
+        if getattr(training_args, "deepspeed", None):
+            LOG.warning(
+                "Skipping torch.compile because deepspeed is enabled; set torch_compile=false to silence."
+            )
+        else:
+            prev_suppress = None
+            dynamo_mod = None
+            try:
+                import torch._dynamo as dynamo_mod  # type: ignore[attr-defined]
+
+                prev_suppress = getattr(dynamo_mod.config, "suppress_errors", None)
+                try:
+                    dynamo_mod.config.suppress_errors = True  # fall back to eager on compile errors
+                except (AttributeError, TypeError):
+                    pass
+            except (ImportError, AttributeError, RuntimeError):
+                dynamo_mod = None
+        compile_fn = getattr(torch, "compile", None)
+        if callable(compile_fn):
+            try:
+                model = compile_fn(model, mode="max-autotune")
+            except TypeError:
+                try:
+                    model = compile_fn(model)
+                except (RuntimeError, TypeError, ValueError):
+                    pass
+            except (RuntimeError, ValueError):
+                # Best-effort: ignore compilation failures and keep the original model.
+                pass
+            finally:
+                if dynamo_mod is not None and prev_suppress is not None:
+                    try:
+                        dynamo_mod.config.suppress_errors = prev_suppress
+                    except (AttributeError, TypeError):
+                        pass
     return model

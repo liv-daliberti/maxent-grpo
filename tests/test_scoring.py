@@ -774,16 +774,25 @@ def test_chunked_sequence_logprobs_scores_next_token_alignment():
 
     input_ids = torch.tensor([[1, 2, 3, 4]], dtype=torch.long)
     attn = torch.ones_like(input_ids)
-    labels = input_ids.clone()
-    logp, tok_counts, _hidden = _chunked_sequence_logprobs(
+    labels_bad = input_ids.clone()
+    labels_good = torch.tensor([[-100, 1, 2, 3]], dtype=torch.long)
+    logp_bad, tok_bad, _hidden = _chunked_sequence_logprobs(
         _IdentityPredictModel(),
         input_ids=input_ids,
         attention_mask=attn,
-        labels=labels,
+        labels=labels_bad,
         chunk_size=0,
     )
-    assert tok_counts.tolist() == [3]
-    assert logp.tolist() == pytest.approx([-300.0], abs=1e-3)
+    logp_good, tok_good, _hidden = _chunked_sequence_logprobs(
+        _IdentityPredictModel(),
+        input_ids=input_ids,
+        attention_mask=attn,
+        labels=labels_good,
+        chunk_size=0,
+    )
+    assert tok_bad.tolist() == [3]
+    assert tok_good.tolist() == [3]
+    assert (logp_good - logp_bad).item() > 1.0
 
 
 def test_chunked_sequence_logprobs_gathers_params(monkeypatch):
@@ -1013,7 +1022,7 @@ def test_chunked_sequence_logprobs_param_gather_restores_weights(monkeypatch):
     assert isinstance(result, tuple) and len(result) == 3
     logp, tok_counts, _hidden = result
     assert logp.numel() == 1
-    assert tok_counts.tolist() == [2]
+    assert tok_counts.tolist() == [1]
     assert weight.shape == (0,)
 
 
@@ -1093,7 +1102,7 @@ def test_chunked_sequence_logprobs_gather_restores_2d_embeddings(monkeypatch):
     assert isinstance(result, tuple) and len(result) == 3
     logp, tok_counts, _ = result
     assert logp.numel() == 1
-    assert tok_counts.tolist() == [2]
+    assert tok_counts.tolist() == [1]
     assert weight.shape == (0,)
 
 
@@ -1308,6 +1317,30 @@ def test_reference_from_vllm_meta_handles_attr_objects():
     assert isinstance(ref, ReferenceLogprobs)
     assert ref.ref_tok_counts.tolist() == [4.0, 2.0]
     assert ref.ref_logp_sum_raw.tolist() == [-1.5, -0.5]
+
+
+def test_reference_from_vllm_meta_accepts_alt_field_names():
+    device = torch.device("cpu")
+    meta = [
+        {"cumulative_logprob": -1.2, "num_tokens": 3},
+        {"cumulative_logprob": -0.2, "num_tokens": 1},
+    ]
+    ref = reference_from_vllm_meta(meta, total_sequences=2, device=device)
+    assert isinstance(ref, ReferenceLogprobs)
+    assert ref.ref_tok_counts.tolist() == [3.0, 1.0]
+    assert ref.ref_logp_sum_raw.tolist() == pytest.approx([-1.2, -0.2])
+
+
+def test_reference_from_vllm_meta_sums_token_logprobs():
+    device = torch.device("cpu")
+    meta = [
+        {"token_logprobs": [-0.2, -0.1]},
+        {"logprobs": [-0.3]},
+    ]
+    ref = reference_from_vllm_meta(meta, total_sequences=2, device=device)
+    assert isinstance(ref, ReferenceLogprobs)
+    assert ref.ref_tok_counts.tolist() == [2.0, 1.0]
+    assert ref.ref_logp_sum_raw.tolist() == pytest.approx([-0.3, -0.3])
 
 
 def test_finalize_reference_stats_and_lengths_summary():

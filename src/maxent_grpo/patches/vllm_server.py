@@ -113,7 +113,7 @@ def _build_passthrough_response(response: Any, content: bytes) -> Any:
 
     try:
         from starlette.responses import Response
-    except Exception:  # pragma: no cover - FastAPI/Starlette missing
+    except (ImportError, ModuleNotFoundError):  # pragma: no cover - FastAPI/Starlette missing
         return response
 
     headers = dict(getattr(response, "headers", {}))
@@ -144,7 +144,7 @@ def install_vllm_client_tag_middleware(app: Optional[Any] = None) -> bool:
             from vllm.entrypoints.openai import api_server as vllm_api
 
             app = getattr(vllm_api, "app", None)
-        except Exception as exc:  # pragma: no cover - optional dependency
+        except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dependency
             LOG.debug("vLLM OpenAI server unavailable; skip client_tag middleware: %s", exc)
             return False
     if app is None:
@@ -156,7 +156,7 @@ def install_vllm_client_tag_middleware(app: Optional[Any] = None) -> bool:
 
     try:
         from starlette.types import ASGIApp, Message, Receive, Scope, Send
-    except Exception as exc:  # pragma: no cover - FastAPI/Starlette missing
+    except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - FastAPI/Starlette missing
         LOG.warning(
             "Starlette unavailable; cannot install client_tag middleware: %s", exc
         )
@@ -167,7 +167,7 @@ def install_vllm_client_tag_middleware(app: Optional[Any] = None) -> bool:
         for key, value in headers:
             try:
                 mapped[key.decode("latin-1").lower()] = value.decode("latin-1")
-            except Exception:
+            except (AttributeError, TypeError, UnicodeDecodeError):
                 continue
         return mapped
 
@@ -231,14 +231,14 @@ def install_vllm_client_tag_middleware(app: Optional[Any] = None) -> bool:
                 if body and "application/json" in content_type:
                     try:
                         payload = json.loads(body)
-                    except Exception:
+                    except (json.JSONDecodeError, TypeError, ValueError):
                         payload = None
                     if payload is not None:
                         updated = _propagate_client_tag(payload, client_tag)
                         if updated:
                             try:
                                 new_body = json.dumps(payload).encode("utf-8")
-                            except Exception:
+                            except (TypeError, ValueError):
                                 new_body = body
 
                 # Update content-length for the buffered payload.

@@ -54,6 +54,7 @@ from typing import (
 from types import ModuleType, SimpleNamespace
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.training.rewards import load_reward_functions
+from maxent_grpo.training.data import resolve_dataloader_kwargs
 from maxent_grpo.rewards.basic import get_reward_funcs as _compat_get_reward_funcs
 from maxent_grpo.core.data import get_dataset, load_dataset_split
 from maxent_grpo.core.model import get_model, get_tokenizer
@@ -65,6 +66,7 @@ from maxent_grpo.training.runtime.prompts import (
     _to_prompt,
 )
 from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
+from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 
 if TYPE_CHECKING:
     from trl import ModelConfig
@@ -193,6 +195,84 @@ class ChatTemplate(Protocol):
         """
 
 
+def _collect_dataset_columns(dataset: Any) -> Dict[str, List[str]]:
+    """Return per-split column names when discoverable."""
+
+    col_map: Dict[str, List[str]] = {}
+    cols = getattr(dataset, "column_names", None)
+    if isinstance(cols, dict):
+        for split, names in cols.items():
+            if isinstance(names, (list, tuple)) and names:
+                col_map[str(split)] = list(names)
+        return col_map
+    if isinstance(cols, (list, tuple)) and cols:
+        return {"all": list(cols)}
+    if isinstance(dataset, dict):
+        for split, split_ds in dataset.items():
+            split_cols = getattr(split_ds, "column_names", None)
+            if isinstance(split_cols, (list, tuple)) and split_cols:
+                col_map[str(split)] = list(split_cols)
+                continue
+            if isinstance(split_ds, list) and split_ds:
+                first = split_ds[0]
+                if isinstance(first, dict):
+                    col_map[str(split)] = list(first.keys())
+    return col_map
+
+
+def _validate_dataset_columns(
+    dataset: Any,
+    *,
+    prompt_column: str,
+    solution_column: str,
+    label: str,
+) -> None:
+    """Fail fast if required dataset columns are missing."""
+
+    col_map = _collect_dataset_columns(dataset)
+    if not col_map:
+        LOG.debug(
+            "Unable to infer columns for %s; skipping early validation.", label
+        )
+        return
+    missing_by_split: Dict[str, List[str]] = {}
+    for split, cols in col_map.items():
+        missing = [
+            name
+            for name in (prompt_column, solution_column)
+            if name not in cols
+        ]
+        if missing:
+            missing_by_split[split] = missing
+    if missing_by_split:
+        missing_desc = "; ".join(
+            f"{split} missing {', '.join(cols)}"
+            for split, cols in missing_by_split.items()
+        )
+        available_desc = "; ".join(
+            f"{split}={sorted(cols)}" for split, cols in col_map.items()
+        )
+        raise ValueError(
+            f"{label} is missing required columns: {missing_desc}. "
+            f"Available columns: {available_desc}"
+        )
+
+
+def _resolve_prompt_column(dataset: Any, prompt_column: str) -> str:
+    """Return an inferred prompt column when the default is missing."""
+    if prompt_column != "problem":
+        return prompt_column
+    col_map = _collect_dataset_columns(dataset)
+    if not col_map:
+        return prompt_column
+    if all("problem" in cols for cols in col_map.values()):
+        return prompt_column
+    if all("prompt" in cols for cols in col_map.values()):
+        LOG.info("Prompt column '%s' missing; falling back to 'prompt'.", prompt_column)
+        return "prompt"
+    return prompt_column
+
+
 def run_baseline_training(
     script_args: GRPOScriptArguments,
     training_args: GRPOConfig,
@@ -214,6 +294,8 @@ def run_baseline_training(
     """
     # Ensure logs directory exists for any file redirections by launchers
     os.makedirs(os.environ.get("LOG_DIR", "logs"), exist_ok=True)
+
+    ensure_real_dependencies(context="baseline GRPO training")
 
     # Import selected pieces lazily to keep module import light-weight
     import transformers as transformers_mod
@@ -252,13 +334,59 @@ def run_baseline_training(
     log_level = training_args.get_process_log_level()
     logging.getLogger(__name__).setLevel(log_level)
     log_run_header(training_args)
+    dl_kwargs = resolve_dataloader_kwargs(training_args)
+    if dl_kwargs:
+        # Normalize dataloader settings onto training_args for TRL/Trainer usage.
+        try:
+            training_args.dataloader_num_workers = int(
+                dl_kwargs.get("num_workers", getattr(training_args, "dataloader_num_workers", 0))
+            )
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to set dataloader_num_workers: %s", exc)
+        if "pin_memory" in dl_kwargs:
+            try:
+                training_args.dataloader_pin_memory = bool(dl_kwargs["pin_memory"])
+            except (AttributeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to set dataloader_pin_memory: %s", exc)
+        if getattr(training_args, "dataloader_num_workers", 0) > 0:
+            if "prefetch_factor" in dl_kwargs:
+                try:
+                    training_args.dataloader_prefetch_factor = int(
+                        dl_kwargs["prefetch_factor"]
+                    )
+                except (AttributeError, TypeError, ValueError) as exc:
+                    LOG.debug("Failed to set dataloader_prefetch_factor: %s", exc)
+            if "persistent_workers" in dl_kwargs:
+                try:
+                    training_args.dataloader_persistent_workers = bool(
+                        dl_kwargs["persistent_workers"]
+                    )
+                except (AttributeError, TypeError, ValueError) as exc:
+                    LOG.debug("Failed to set dataloader_persistent_workers: %s", exc)
+        else:
+            # Avoid invalid prefetch/persistent settings when workers are disabled.
+            try:
+                training_args.dataloader_prefetch_factor = None
+            except (AttributeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to clear dataloader_prefetch_factor: %s", exc)
+            try:
+                training_args.dataloader_persistent_workers = None
+            except (AttributeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to clear dataloader_persistent_workers: %s", exc)
+        LOG.info(
+            "Baseline dataloader settings | num_workers=%s | pin_memory=%s | prefetch_factor=%s | persistent_workers=%s",
+            getattr(training_args, "dataloader_num_workers", None),
+            getattr(training_args, "dataloader_pin_memory", None),
+            getattr(training_args, "dataloader_prefetch_factor", None),
+            getattr(training_args, "dataloader_persistent_workers", None),
+        )
     # Optional: datasets logging if available
     try:  # pragma: no cover - environment dependent
         import datasets as _hf_datasets
 
         _hf_datasets.utils.logging.set_verbosity(log_level)
-    except (ImportError, ModuleNotFoundError, AttributeError):
-        pass
+    except (ImportError, ModuleNotFoundError, AttributeError) as exc:
+        LOG.debug("Skipping datasets logging setup: %s", exc)
     tf_logging_module = getattr(
         getattr(transformers_mod, "utils", None), "logging", None
     )
@@ -279,8 +407,29 @@ def run_baseline_training(
 
     # Data / model
     raw_ds = get_dataset(script_args)
+    pc = getattr(script_args, "dataset_prompt_column", "problem")
+    pc = _resolve_prompt_column(raw_ds, pc)
+    sc = getattr(script_args, "dataset_solution_column", "answer")
+    dataset_label = getattr(script_args, "dataset_name", None) or getattr(
+        script_args, "dataset_mixture", None
+    )
+    _validate_dataset_columns(
+        raw_ds,
+        prompt_column=pc,
+        solution_column=sc,
+        label=f"training dataset {dataset_label or ''}".strip(),
+    )
     tokenizer = get_tokenizer(model_args, training_args)
     model = get_model(model_args, training_args)
+    ensure_real_dependencies(
+        context="baseline GRPO training",
+        require_torch=False,
+        require_transformers=False,
+        require_trl=False,
+        require_datasets=False,
+        model=model,
+        tokenizer=tokenizer,
+    )
 
     # Ensure PAD token exists (left padding recommended for causal LMs)
     if tokenizer.pad_token_id is None:
@@ -294,12 +443,10 @@ def run_baseline_training(
         model.config.pad_token_id = tokenizer.pad_token_id
     try:
         tokenizer.padding_side = "left"
-    except AttributeError:
-        pass
+    except AttributeError as exc:
+        LOG.debug("Unable to set tokenizer.padding_side: %s", exc)
 
     # Map dataset → prompt text + gold answer
-    pc = getattr(script_args, "dataset_prompt_column", "problem")
-    sc = getattr(script_args, "dataset_solution_column", "answer")
     char_limit = _prompt_char_limit_from_tokens(
         getattr(training_args, "max_prompt_length", 0)
     )
@@ -312,14 +459,27 @@ def run_baseline_training(
         :returns: Mapping with ``prompt``/``answer`` keys for training.
         :rtype: dict[str, str]
         """
+        prompt_col = pc
+        if prompt_col not in ex and prompt_col == "problem" and "prompt" in ex:
+            prompt_col = "prompt"
         out = _to_prompt(
             ex,
             tokenizer,
-            pc,
+            prompt_col,
             training_args.system_prompt,
             char_limit=char_limit,
         )
         # Ensure answer is present from the configured column
+        if sc not in ex:
+            available = (
+                ", ".join(sorted(str(key) for key in ex.keys()))
+                if hasattr(ex, "keys")
+                else "<unknown>"
+            )
+            raise KeyError(
+                f"Missing solution column '{sc}' in training row. "
+                f"Available columns: {available}"
+            )
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out
 
@@ -384,6 +544,13 @@ def run_baseline_training(
                 getattr(script_args, "eval_dataset_config", None),
                 eval_split,
             )
+            eval_prompt_col = _resolve_prompt_column(eval_ds_raw, eval_prompt_col)
+            _validate_dataset_columns(
+                eval_ds_raw,
+                prompt_column=eval_prompt_col,
+                solution_column=eval_solution_col,
+                label=f"eval dataset {eval_dataset_name}:{eval_split}",
+            )
 
             def _map_eval_fn(ex: Dict[str, Any]) -> Dict[str, str]:
                 """Convert evaluation dataset rows into prompt/answer pairs.
@@ -393,13 +560,26 @@ def run_baseline_training(
                 :returns: Prompt-answer mapping used for validation.
                 :rtype: dict[str, str]
                 """
+                prompt_col = eval_prompt_col
+                if prompt_col not in ex and prompt_col == "problem" and "prompt" in ex:
+                    prompt_col = "prompt"
                 out = _to_prompt(
                     ex,
                     tokenizer,
-                    eval_prompt_col,
+                    prompt_col,
                     training_args.system_prompt,
                     char_limit=char_limit,
                 )
+                if eval_solution_col not in ex:
+                    available = (
+                        ", ".join(sorted(str(key) for key in ex.keys()))
+                        if hasattr(ex, "keys")
+                        else "<unknown>"
+                    )
+                    raise KeyError(
+                        f"Missing solution column '{eval_solution_col}' in eval row. "
+                        f"Available columns: {available}"
+                    )
                 out["answer"] = str(ex.get(eval_solution_col, out.get("answer", "")))
                 return out
 
@@ -422,8 +602,8 @@ def run_baseline_training(
     # script_args only.
     try:
         setattr(training_args, "reward_weights", reward_weights)
-    except (AttributeError, TypeError):
-        pass
+    except (AttributeError, TypeError) as exc:
+        LOG.debug("Failed to attach reward_weights to training_args: %s", exc)
 
     # Trainer
     with _force_vllm_dtype(training_args):

@@ -1,0 +1,182 @@
+# Copyright 2025 Liv d'Aliberti
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# MaxEnt‑GRPO math recipe for Qwen 0.5B that mirrors the paired GRPO config
+# with POC-sized defaults while keeping the MaxEnt weighting/controller knobs.
+
+# Model arguments
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+model_revision: main
+resume_from_checkpoint: true
+torch_dtype: float16
+attn_implementation: sdpa
+
+# Data training arguments
+dataset_mixture:
+  seed: 42
+  datasets:
+    - id: open-r1/OpenR1-Math-220k
+      split: train
+      columns: [problem, answer]
+      weight: 0.01  # tiny subset for fast POC runs
+dataset_prompt_column: problem
+eval_dataset_name: HuggingFaceH4/MATH-500
+eval_dataset_split: "test[:50]"  # tiny eval subset for fast POC
+eval_dataset_prompt_column: problem
+eval_dataset_solution_column: answer
+disable_distributed_sampler: true
+system_prompt: "You are an expert *mathematics problem-solver*.
+
+  Every time you receive a problem you must:
+  • Analyse it thoroughly.
+    – Pinpoint the **goal** (what quantity/set/form is requested).
+    – Pinpoint the **givens/constraints** (domains, integrality, non-negativity, geometric conditions).
+    – Choose the **methods** to apply (algebraic manipulation, factorization, inequalities, counting, modular arithmetic, geometry, calculus, etc.).
+    – Write out the full derivation that leads to the final result.
+
+  • Check that the result satisfies all original constraints (no extraneous roots, correct domain, simplified form, exact arithmetic).
+
+  • Respond in **exactly** the tag-based format shown below – no greeting, no commentary outside the tags.
+    – The final answer goes inside `<answer>` **only**.
+    – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.
+    – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.
+    – If there is **no solution**, write `NO SOLUTION`. If the problem is **underdetermined**, write `I DON'T KNOW`.
+
+  • You have a hard cap of **750 output tokens**. Be concise but complete.
+
+  ------------------------------------------------------------
+  TAG TEMPLATE (copy this shape for every problem)
+  <think>
+  YOUR reasoning process goes here:
+  1. quote the relevant bits of the problem
+  2. name the mathematical tool(s) you apply
+  3. show each intermediate step until the result is reached
+
+  If you spot an error or an unmet constraint, iterate, repeating steps 1–3 as many
+  times as necessary until you are confident in your result. Finish by verifying the
+  result satisfies the original conditions exactly (substitution/checks).
+  </think>
+  <answer>
+  THEANSWER
+  </answer>
+  "
+
+# MaxEnt‑GRPO specific knobs (aligned with the 7B MaxEnt recipe)
+maxent_tau: 0.3
+maxent_q_temperature: 1.0
+maxent_q_epsilon: 1.0e-6
+maxent_length_normalize_ref: true
+maxent_logprob_chunk_size: 1
+# Force frozen reference-model scoring for KL/MaxEnt reference statistics.
+maxent_reference_logprobs_source: model
+maxent_target_weight_entropy: 0.6
+maxent_tau_lr: 0.01
+maxent_tau_min: 0.05
+maxent_tau_max: 1.0
+maxent_tau_warmup_steps: 0
+controller_meta_enabled: true
+controller_meta_method: analytic
+controller_meta_lr: 0.05
+controller_meta_update_interval: 1
+controller_meta_optimizer: sgd
+controller_meta_truncation_steps: 1
+controller_overwrite_from_config: true
+maxent_use_clip_objective: true
+maxent_clip_objective_coef: 1.0
+maxent_clip_adv_baseline: 0.25   # 1/num_generations (4) for a gentler clip objective
+train_grpo_objective: false
+maxent_allow_empty_weight_fallback: true
+maxent_score_tail_tokens: null
+maxent_score_slice_prefetch: 1
+maxent_prompt_cache_size: 2048
+
+# InfoSeed (optional; defaults keep it off)
+info_seed_enabled: false
+info_seed_num_seeds: 0
+info_seed_lambda: 0.0
+info_seed_alpha_entropy: 0.0
+info_seed_prompt_template: "\n[seed={seed}]"
+info_seed_loss_type: infonce
+info_seed_pooling: mean
+
+# Training/eval & logging
+bf16: true
+fp16: false
+use_vllm: true
+vllm_mode: server
+vllm_return_logprobs: true
+vllm_gpu_memory_utilization: 0.9
+do_eval: true
+gradient_accumulation_steps: 2
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+gen_temperature: 1.0
+gen_top_p: 1.0
+gen_top_k: 0
+gen_best_of: 1
+vllm_stop_sequences:
+  - "</answer>"
+  - "</answer>\n"
+  - "</assistant>"
+vllm_request_timeout: 600
+vllm_url: http://localhost:29525/generate
+hub_model_id: od2961/Qwen2.5-0.5B-Open-R1-MaxEnt-GRPO-math-poc
+hub_strategy: every_save
+learning_rate: 1e-6
+adam_beta2: 0.99
+adam_epsilon: 1e-06
+log_completions: true
+log_level: debug
+logging_first_step: true
+logging_steps: 1
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_prompt_length: 1024
+max_completion_length: 512
+max_steps: 200
+num_generations: 4
+num_train_epochs: 1
+output_dir: var/data/Qwen2.5-0.5B-Open-R1-MaxEnt-GRPO-math-poc
+overwrite_output_dir: true
+per_device_eval_batch_size: 1
+per_device_train_batch_size: 1
+push_to_hub: true
+report_to:
+- wandb
+wandb_project: huggingface
+wandb_entity: ogd3-princeton-university
+reward_funcs:
+- pure_accuracy_math
+reward_weights:
+- 1
+
+# Reverse‑KL weight β used inside MaxEnt update
+init_kl_coeff: 0.04
+init_kl_coef: 0.04
+kl_penalty_beta: 0.04
+kl_target:        0.07
+kl_horizon:       500
+kl_ctl_step_size: 1.0
+
+# Misc GRPO knobs (kept consistent with the paired GRPO recipe)
+max_grad_norm: 0.15
+clip_range: 0.05
+save_strategy: steps
+save_steps: 25
+evaluation_strategy: steps
+eval_steps: 26
+save_total_limit: 1000
+seed: 42
+warmup_ratio: 0.2

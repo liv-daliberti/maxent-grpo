@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import logging
 import os
+from dataclasses import FrozenInstanceError, fields
 from functools import lru_cache
 from types import SimpleNamespace
 from typing import Any, Dict, Optional, Callable, Tuple
@@ -25,7 +26,7 @@ from maxent_grpo.training import (
     LoopSettings,
     TrainingLoopContext,
 )
-from maxent_grpo.training.data import load_datasets
+from maxent_grpo.training.data import load_datasets, resolve_dataloader_kwargs
 from maxent_grpo.training.rewards import (
     load_reward_functions,
     load_eval_reward_functions,
@@ -37,6 +38,7 @@ from maxent_grpo.training.runtime.logging import _maybe_init_wandb_run
 from maxent_grpo.training.controller_objective import build_controller_objective
 from maxent_grpo.training.controller_optimizer import ControllerMetaManager
 from maxent_grpo.training.optim import detect_deepspeed_state
+from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 from maxent_grpo.training.state import (
     build_checkpoint_saver,
     build_training_state,
@@ -57,6 +59,52 @@ _MIN_BACKOFF_MULT = 1.0
 _MAX_BACKOFF_MULT = 10.0
 _MIN_MAX_RETRIES = 1
 _MAX_MAX_RETRIES = 50
+_PROMPT_CACHE_MIN = 10000
+_PROMPT_CACHE_MAX = 50000
+_PROMPT_CACHE_SCALE = 250
+
+
+def _default_prompt_cache_size() -> int:
+    """Return the declared default for maxent_prompt_cache_size."""
+
+    try:
+        for field in fields(GRPOConfig):
+            if field.name == "maxent_prompt_cache_size":
+                return int(field.default)
+    except (TypeError, ValueError) as exc:
+        LOG.debug("Unable to read default maxent_prompt_cache_size: %s", exc)
+    return _PROMPT_CACHE_MIN
+
+
+_PROMPT_CACHE_DEFAULT = _default_prompt_cache_size()
+
+
+def _resolve_prompt_cache_size(cfg: GRPOConfig) -> int:
+    """Return a prompt cache size with adaptive defaults."""
+
+    raw = getattr(cfg, "maxent_prompt_cache_size", _PROMPT_CACHE_DEFAULT)
+    try:
+        requested = int(raw or 0)
+    except (TypeError, ValueError):
+        LOG.warning("Invalid maxent_prompt_cache_size=%s; disabling cache.", raw)
+        return 0
+    if requested <= 0:
+        return 0
+    if requested != _PROMPT_CACHE_DEFAULT:
+        return requested
+    bsz = int(getattr(cfg, "per_device_train_batch_size", 1) or 1)
+    gens = int(getattr(cfg, "num_generations", 1) or 1)
+    derived = bsz * max(1, gens) * _PROMPT_CACHE_SCALE
+    resolved = max(_PROMPT_CACHE_MIN, min(_PROMPT_CACHE_MAX, derived))
+    if resolved != requested:
+        LOG.debug(
+            "Auto-sized prompt cache | requested=%d | resolved=%d | bsz=%d | gens=%d",
+            requested,
+            resolved,
+            bsz,
+            gens,
+        )
+    return resolved
 
 
 def _build_prompt_cache_fn(
@@ -102,8 +150,11 @@ def _build_prompt_cache_fn(
             if hasattr(value, "tolist"):
                 try:
                     value = value.tolist()
-                except Exception:
-                    pass
+                except (TypeError, ValueError, AttributeError, RuntimeError) as exc:
+                    LOG.debug(
+                        "Prompt cache token normalization failed; keeping raw tokens: %s",
+                        exc,
+                    )
             if isinstance(value, list) and value and isinstance(value[0], list):
                 return value[0]
             return value
@@ -135,8 +186,8 @@ def _clone_model_args(model_args: Any) -> Optional[Any]:
         return None
     try:
         return copy.deepcopy(model_args)
-    except Exception:
-        pass
+    except (TypeError, ValueError, AttributeError, RuntimeError) as exc:
+        LOG.debug("Unable to deepcopy model args; falling back to __dict__: %s", exc)
     attrs = getattr(model_args, "__dict__", None)
     if attrs is not None:
         return SimpleNamespace(**attrs)
@@ -152,14 +203,14 @@ def _prepare_reference_model(model: Any, device: Any) -> Any:
     if callable(eval_fn):
         try:
             eval_fn()
-        except Exception:
-            pass
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            LOG.debug("Reference model eval() failed; continuing: %s", exc)
     requires_grad_fn = getattr(model, "requires_grad_", None)
     if callable(requires_grad_fn):
         try:
             requires_grad_fn(False)
-        except Exception:
-            pass
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            LOG.debug("Reference model requires_grad_(False) failed: %s", exc)
     else:
         params = getattr(model, "parameters", None)
         if callable(params):
@@ -168,16 +219,16 @@ def _prepare_reference_model(model: Any, device: Any) -> Any:
                     requires_grad = getattr(param, "requires_grad", True)
                     if requires_grad and hasattr(param, "requires_grad_"):
                         param.requires_grad_(False)
-            except Exception:
-                pass
+            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+                LOG.debug("Reference model parameter freeze failed: %s", exc)
     move_fn = getattr(model, "to", None)
     if callable(move_fn) and device is not None:
         try:
             moved = move_fn(device)
             if moved is not None:
                 model = moved
-        except Exception:
-            pass
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            LOG.debug("Reference model device move failed; using original: %s", exc)
     return model
 
 def _seed_generation_metadata(
@@ -284,6 +335,12 @@ def _fallback_optim_handles(training_args: GRPOConfig) -> SimpleNamespace:
 
         def zero_grad(self, set_to_none: bool = True):
             _ = set_to_none
+            return None
+
+        def state_dict(self):
+            return {}
+
+        def load_state_dict(self, _state):
             return None
 
     dummy_opt = _DummyOpt(lr)
@@ -511,7 +568,7 @@ def build_scoring_settings(
         prompt_length_cache_get=None,
         score_tail_tokens=score_tail_tokens,
         slice_prefetch=getattr(cfg, "maxent_score_slice_prefetch", 0),
-        prompt_cache_size=int(getattr(cfg, "maxent_prompt_cache_size", 0) or 0),
+        prompt_cache_size=_resolve_prompt_cache_size(cfg),
     )
     clipping = ClipSettings(
         clip_range=clip_range,
@@ -519,13 +576,20 @@ def build_scoring_settings(
         clip_objective_coef=float(getattr(cfg, "maxent_clip_objective_coef", 1.0)),
         clip_adv_baseline=getattr(cfg, "maxent_clip_adv_baseline", None),
     )
+    ref_source = str(
+        getattr(cfg, "maxent_reference_logprobs_source", "auto") or "auto"
+    )
+    if not getattr(cfg, "train_grpo_objective", True) and ref_source.strip().lower() == "auto":
+        LOG.info(
+            "MaxEnt run detected (train_grpo_objective=false); forcing "
+            "maxent_reference_logprobs_source=model to use the frozen reference model."
+        )
+        ref_source = "model"
     return ScoringSettings(
         weighting=weighting,
         clipping=clipping,
         batching=batching,
-        reference_logprobs_source=str(
-            getattr(cfg, "maxent_reference_logprobs_source", "auto") or "auto"
-        ),
+        reference_logprobs_source=ref_source,
         allow_stale_reference_logprobs=bool(
             getattr(cfg, "maxent_allow_stale_reference_logprobs", False)
         ),
@@ -601,12 +665,12 @@ def build_training_loop_context(
         # consolidated HF weights loadable via `from_pretrained()`.
         try:
             training_args.resume_from_checkpoint = resume_checkpoint
-        except Exception:
+        except (AttributeError, FrozenInstanceError, TypeError, ValueError):
             setattr(training_args, "resume_from_checkpoint", resume_checkpoint)
     elif resume_requested:
         try:
             training_args.resume_from_checkpoint = False
-        except Exception:
+        except (AttributeError, FrozenInstanceError, TypeError, ValueError):
             setattr(training_args, "resume_from_checkpoint", False)
     accelerator_cls_or_obj = require_accelerator(deps_namespace)
     # Defensive: reset any lingering Accelerate shared state (e.g., from stubs or
@@ -617,8 +681,8 @@ def build_training_loop_context(
         reset_fn = getattr(AcceleratorState, "_reset_state", None)
         if callable(reset_fn):
             reset_fn(reset_partial_state=True)
-    except Exception:
-        pass
+    except (ImportError, ModuleNotFoundError, AttributeError, TypeError, RuntimeError) as exc:
+        LOG.debug("Unable to reset Accelerate shared state: %s", exc)
 
     def _init_accelerator(cls_or_obj: Any) -> Any:
         if not callable(cls_or_obj):
@@ -636,7 +700,7 @@ def build_training_loop_context(
     if not share_reference_model and reference_model_args is not None:
         try:
             reference_model = get_model(reference_model_args, training_args)
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - defensive logging
             LOG.warning(
                 "Unable to load frozen reference model; falling back to the live policy | error=%s",
                 exc,
@@ -645,6 +709,11 @@ def build_training_loop_context(
     if reference_model is not None:
         reference_model = _prepare_reference_model(reference_model, accelerator.device)
     tokenizer = get_tokenizer(model_args, training_args)
+    ensure_real_dependencies(
+        context="MaxEnt-GRPO training loop",
+        model=model,
+        tokenizer=tokenizer,
+    )
     train_dataset, eval_rows = load_datasets(
         script_args, training_args, tokenizer, accelerator=accelerator
     )
@@ -678,6 +747,7 @@ def build_training_loop_context(
         "batch_size": training_args.per_device_train_batch_size,
         "shuffle": sampler is None,
     }
+    loader_kwargs.update(resolve_dataloader_kwargs(training_args))
     if sampler is not None:
         loader_kwargs["sampler"] = sampler
     train_loader = dataloader_cls(train_dataset, **loader_kwargs)
@@ -713,7 +783,7 @@ def build_training_loop_context(
         if callable(unwrap):
             try:
                 return unwrap(model)
-            except Exception:
+            except (AttributeError, RuntimeError, TypeError, ValueError):
                 return model
         return model
 
@@ -730,7 +800,7 @@ def build_training_loop_context(
     prompt_cache = _build_prompt_cache_fn(
         tokenizer,
         getattr(training_args, "max_prompt_length", 0),
-        int(getattr(training_args, "maxent_prompt_cache_size", 0) or 0),
+        _resolve_prompt_cache_size(training_args),
     )
     if callable(prompt_cache):
         runtime_handles.prompt_cache_get = prompt_cache
@@ -790,7 +860,7 @@ def build_training_loop_context(
         base_trainer_state=resume_state,
         controller_cfg=controller,
     )
-    logging_handles._checkpoint_state_ref = checkpoint_state_ref
+    logging_handles.checkpoint_state_ref = checkpoint_state_ref
     loop_settings = LoopSettings(
         generation=generation,
         evaluation=evaluation,
@@ -807,7 +877,7 @@ def build_training_loop_context(
             training_args,
             {"run/config_path": getattr(training_args, "recipe_path", None)},
         )
-    except Exception as exc:  # pragma: no cover - network/env guard
+    except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - network/env guard
         LOG.warning("Unable to initialize W&B run: %s | continuing without wandb", exc)
         wandb_run = None
     logging_handles.wandb_run = wandb_run

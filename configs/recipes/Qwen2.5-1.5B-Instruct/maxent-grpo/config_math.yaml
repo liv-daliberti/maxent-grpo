@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # Model arguments
-model_name_or_path: var/data/Qwen2.5-1.5B-Open-R1-GRPO-math-2k/checkpoint-150
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
-resume_from_checkpoint: var/data/Qwen2.5-1.5B-Open-R1-GRPO-math-2k/checkpoint-150
+resume_from_checkpoint: false
 torch_dtype: float16
 attn_implementation: sdpa
 
@@ -63,20 +63,25 @@ system_prompt: |
 # MaxEnt‑GRPO specific knobs (used by src/maxent_grpo/maxent_grpo.py)
 # Enable MaxEnt weighting (set train_grpo_objective=false) with a modest tau and adaptive entropy target.
 maxent_tau: 0.0001
-maxent_q_temperature: 1.0       # keep q untempered (softmax temperature = 1)
+maxent_q_temperature: 0.7       # slightly sharpen q early on while avoiding extreme peaking
 maxent_q_epsilon: 1.0e-6        # epsilon floor on q for full support
 maxent_length_normalize_ref: true
-maxent_logprob_chunk_size: 1  # chunk ref scoring to reduce peak logits memory
+maxent_logprob_chunk_size: 64  # chunk ref scoring to reduce peak logits memory
 # Force frozen reference-model scoring for KL/MaxEnt reference statistics.
 maxent_reference_logprobs_source: model
-maxent_target_weight_entropy: 1.0  # safer default: less peaky weights (for num_generations=8, max is log(8)=2.08)
+maxent_target_weight_entropy: 2.2  # end-of-anneal target; allow more mixing later
+maxent_target_weight_entropy_start: 1.2  # start very sharp
+maxent_target_weight_entropy_final: 2.2  # gradually loosen to this
+maxent_target_weight_entropy_horizon: 2000  # steps to anneal start->final
 maxent_tau_lr: 0.001
-maxent_tau_min: 0.0001
+maxent_tau_min: 1.0e-06          # keep a low floor but let the controller move slowly toward it
 maxent_tau_max: 1
-maxent_tau_warmup_steps: 75    # roughly match LR warmup so tau stays steady early on
+maxent_tau_warmup_steps: 200    # delay tau adaptation so early steps use the recipe value
 maxent_score_tail_tokens: 512  # restrict KL/entropy measurements to the tail of each completion
+# Prompt cache (auto-sized default; set to 0 to disable or override)
+maxent_prompt_cache_size: 10000
 # Phase 2 meta-controller defaults (analytic updates for τ/β)
-controller_meta_enabled: true
+controller_meta_enabled: false
 controller_meta_method: analytic
 # Meta-controller uses separate learning rates for τ and β.
 # Keep β updates conservative and clip the KL error to avoid huge jumps when KL spikes.
@@ -106,20 +111,22 @@ bf16: true
 fp16: false
 use_vllm: true            # enable vLLM server path for generation
 vllm_mode: server         # use external/inline server launched by the slurm helper
+torch_compile: false      # disabled: torch.compile is unstable with DeepSpeed/ZeRO here
 # Request vLLM logprob metadata so MaxEnt can reconstruct reference stats from vLLM.
 # Request logprob metadata from vLLM (requires a server with logprob support).
 vllm_return_logprobs: true
 vllm_request_logprobs: true
 vllm_sync_weights: false
+vllm_sync_interval_steps: 10  # sync weights every N optimizer steps when enabled (0 disables)
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 32    # match TRL defaults for faster logging feedback
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-gen_temperature: 0.7
-gen_top_p: 0.8
-gen_top_k: 32
+gen_temperature: 1.0
+gen_top_p: 1.0
+gen_top_k: 0
 gen_best_of: 1
 vllm_stop_sequences:
   - "</answer>"
@@ -129,7 +136,8 @@ vllm_request_timeout: 600
 vllm_url: http://localhost:29525/generate/
 hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 hub_strategy: every_save
-learning_rate: 5e-6
+learning_rate: 1e-6
+optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
@@ -139,16 +147,21 @@ logging_steps: 1
 logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
-max_prompt_length: 2500      # trim prompt window to ease ref scoring memory
-max_completion_length: 2500   # shorter completions to reduce activation + ref costs
-max_steps: 1000
+max_prompt_length: 2096      # trim prompt window to ease ref scoring memory
+max_completion_length: 2048   # shorter completions to reduce activation + ref costs
+max_steps: 2000
 # GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
-num_generations: 8          # reduce scoring footprint while satisfying GRPO minimum
+num_generations: 16          # reduce scoring footprint while satisfying GRPO minimum
 num_train_epochs: 5
 output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 overwrite_output_dir: true
 per_device_eval_batch_size: 8
-per_device_train_batch_size: 1
+per_device_train_batch_size: 2
+# DataLoader throughput knobs (custom loop + baseline)
+dataloader_num_workers: 4
+dataloader_pin_memory: true
+dataloader_prefetch_factor: 2
+dataloader_persistent_workers: true
 push_to_hub: true
 report_to:
 - wandb
@@ -160,9 +173,10 @@ reward_weights:
 - 1
 
 # Reverse‑KL weight β used inside MaxEnt update
-init_kl_coeff: 0.50
-init_kl_coef: 0.50
-kl_penalty_beta: 0.50
+# Gentle KL controller: keep updates small even when KL is far from target.
+init_kl_coeff: 0.5
+init_kl_coef: 0.5
+kl_penalty_beta: 0.5
 kl_target:        0.07
 kl_horizon:       500
 kl_ctl_step_size: 1.0

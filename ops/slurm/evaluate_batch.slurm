@@ -86,6 +86,8 @@ fi
 echo "[info] Pinning huggingface-hub/httpx and installing repo in editable mode"
 python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
 python -m pip install -q -e "$ROOT_DIR" || echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
+# Patch TRL vllm_serve so logprob metadata is available to downstream tooling.
+python "$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py"
 # Ensure math metrics deps are present for LightEval.
 python -m pip install -q 'lighteval[math]' || echo "[warn] Failed to install lighteval[math]; math tasks may error" >&2
 

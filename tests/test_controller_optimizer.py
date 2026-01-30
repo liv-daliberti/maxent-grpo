@@ -121,3 +121,34 @@ def test_controller_meta_manager_first_order_uses_parameter_grads():
     assert weighting.tau != pytest.approx(0.5)
     assert weighting.beta != pytest.approx(0.2)
     assert state.tau_param.grad is None or getattr(state.tau_param.grad, "item", lambda: None)() == 0  # zeroed
+
+
+def test_controller_meta_manager_analytic_can_use_torch_optimizer():
+    pytest.importorskip("torch")
+    import math
+    import torch
+
+    try:
+        _ = torch.nn.Parameter(torch.tensor(0.0))
+    except Exception:
+        pytest.skip("torch stub does not support Parameters")
+
+    cfg = GRPOConfig(controller_meta_tau_lr=0.1, controller_meta_beta_lr=0.05, controller_meta_optimizer="sgd")
+    weighting = _weighting()
+    weighting.controller_meta.enabled = True
+    weighting.controller_meta.method = "analytic"
+    weighting.controller_meta.tau_learning_rate = 0.1
+    weighting.controller_meta.beta_learning_rate = 0.05
+    weighting.controller_meta.optimizer = "sgd"
+    weighting.controller_state = TorchControllerState(
+        torch,
+        tau_init=weighting.tau,
+        beta_init=weighting.beta,
+        requires_grad=False,
+    )
+    manager = ControllerMetaManager(cfg, weighting)
+    grads = ControllerGradients(tau_grad=1.0, beta_grad=1.0)
+    manager.apply_gradients(grads, lr_scale=1.0)
+    assert weighting.tau == pytest.approx(0.4)
+    assert weighting.beta == pytest.approx(0.25)
+    assert getattr(weighting, "_tau_log") == pytest.approx(math.log(weighting.tau))

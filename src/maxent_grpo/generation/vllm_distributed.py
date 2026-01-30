@@ -89,7 +89,7 @@ def _scatter_object(
         if callable(getattr(dist, "broadcast_object_list", None)):
             try:
                 world_size = int(dist.get_world_size())
-            except Exception:
+            except (AttributeError, TypeError, ValueError, RuntimeError):
                 world_size = int(getattr(accelerator, "num_processes", 1) or 1)
             list_ok = input_list is None or (
                 isinstance(input_list, list) and len(input_list) == world_size
@@ -103,7 +103,7 @@ def _scatter_object(
                 dist.broadcast_object_list(payload, src=src)
                 try:
                     return payload[int(accelerator.process_index)]
-                except Exception:
+                except (IndexError, TypeError, ValueError):
                     return None
         output: List[Any] = [None]
         dist.scatter_object_list(

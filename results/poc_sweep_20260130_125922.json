@@ -1,0 +1,32 @@
+{
+  "metric": "eval/mean_reward",
+  "tag": "local-check",
+  "baseline": {
+    "mean": null,
+    "std": null,
+    "n": 0
+  },
+  "maxent": {
+    "mean": null,
+    "std": null,
+    "n": 0
+  },
+  "runs": {
+    "baseline": [
+      {
+        "seed": 0,
+        "run_name": "local-check-baseline-s0",
+        "run_dir": null,
+        "metric": null
+      }
+    ],
+    "maxent": [
+      {
+        "seed": 0,
+        "run_name": "local-check-maxent-s0",
+        "run_dir": null,
+        "metric": null
+      }
+    ]
+  }
+}

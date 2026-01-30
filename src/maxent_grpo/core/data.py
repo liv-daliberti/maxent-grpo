@@ -121,7 +121,7 @@ def _load_dataset_with_retries(*args: Any, **kwargs: Any) -> Any:
     for attempt in range(retries + 1):
         try:
             return datasets.load_dataset(*args, **kwargs)
-        except Exception as exc:  # pragma: no cover - network failures are environment dependent
+        except (ConnectionError, OSError, RuntimeError, ValueError) as exc:  # pragma: no cover - network failures are environment dependent
             last_exc = exc
             if attempt >= retries or not _should_retry_dataset_load(exc):
                 raise

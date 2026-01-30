@@ -130,6 +130,8 @@ PY
   python -m pip install -q -e "$ROOT_DIR" || {
     echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
   }
+  echo "[info] Patching TRL vllm_serve for logprob support"
+  python "$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py"
 else
   export ENV_MODE="${ENV_MODE:-venv}"
   export CONDA_ENV="${CONDA_ENV:-$VAR_DIR/openr1}"
@@ -411,6 +413,7 @@ if $USE_VLLM_SERVER && ! $INLINE_VLLM; then
     export VLLM_USAGE_STATS_PATH=\"$VLLM_USAGE_STATS_PATH\"; export VLLM_NO_USAGE_STATS=1; \
     mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
     mkdir -p \"$(dirname "$VLLM_USAGE_STATS_PATH")\"; \
+    python \"$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py\"; \
     export NCCL_DEBUG=WARN; \
     PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
     VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
@@ -545,6 +548,7 @@ PY
     : > \"\$VLLM_LOG\"; \
     tail -n +1 -F \"\$VLLM_LOG\" & \
     VLLM_TAIL_PID=\$!; \
+    python \"$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py\"; \
     # Default to TRL's vllm_serve (patched for logprobs); override with VLLM_SERVER_IMPL=native to use the API server.
     VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
     PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT; \

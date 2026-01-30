@@ -73,6 +73,8 @@ maxent_q_temperature: 1.0
 maxent_q_epsilon: 1.0e-6
 maxent_length_normalize_ref: true
 maxent_logprob_chunk_size: 1
+# Force frozen reference-model scoring for KL/MaxEnt reference statistics.
+maxent_reference_logprobs_source: model
 maxent_target_weight_entropy: 0.6
 maxent_tau_lr: 0.01
 maxent_tau_min: 0.05

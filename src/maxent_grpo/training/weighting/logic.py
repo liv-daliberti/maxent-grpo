@@ -42,8 +42,7 @@ torch = require_torch("training")
 LOG = logging.getLogger(__name__)
 CONTROLLER_STATE_FILENAME = "controller_state.json"
 _TAU_ENTROPY_EMA_DECAY = 0.9
-_PER_TOKEN_MISMATCH_WARNED = False
-_LEN_NORM_MISMATCH_WARNED = False
+_MISMATCH_WARNED = {"per_token": False, "len_norm": False}
 
 
 def _to_float_list(values: Any) -> List[float]:
@@ -113,8 +112,8 @@ def _sync_controller_state(weighting_cfg: WeightingSettings) -> None:
         return
     try:
         state.sync_from_scalars(float(weighting_cfg.tau), float(weighting_cfg.beta))
-    except (AttributeError, RuntimeError, TypeError, ValueError):
-        pass
+    except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+        LOG.debug("Failed to sync controller_state from weighting scalars: %s", exc)
 
 
 def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
@@ -150,6 +149,15 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
     )
     tau_sched = TauSchedule(
         target_entropy=getattr(cfg, "maxent_target_weight_entropy", None),
+        target_entropy_start=getattr(
+            cfg, "maxent_target_weight_entropy_start", None
+        ),
+        target_entropy_final=getattr(
+            cfg, "maxent_target_weight_entropy_final", None
+        ),
+        target_entropy_horizon=int(
+            getattr(cfg, "maxent_target_weight_entropy_horizon", 0)
+        ),
         learning_rate=float(getattr(cfg, "maxent_tau_lr", 0.0)),
         minimum_value=float(getattr(cfg, "maxent_tau_min", 0.0)),
         maximum_value=float(getattr(cfg, "maxent_tau_max", 0.0)),
@@ -249,15 +257,14 @@ def split_reference_logprobs(
             mismatch_detected = True
         ref_logp_grouped.append(slice_list)
         offset += comp_count
-    global _LEN_NORM_MISMATCH_WARNED
-    if mismatch_detected and not _LEN_NORM_MISMATCH_WARNED:
+    if mismatch_detected and not _MISMATCH_WARNED["len_norm"]:
         LOG.warning(
             "Reference log-prob/token mismatch | raw=%d | tok=%d | requested=%d",
             len(raw_values),
             len(tok_values),
             total_requested,
         )
-        _LEN_NORM_MISMATCH_WARNED = True
+        _MISMATCH_WARNED["len_norm"] = True
     return ref_logp_grouped
 
 
@@ -301,7 +308,6 @@ def _split_ref_logprobs_per_token(
     raw_values = _to_float_list(getattr(ref_stats, "ref_logp_sum_raw", None))
     tok_values = _to_float_list(getattr(ref_stats, "ref_tok_counts", None))
     pairs_available = min(len(raw_values), len(tok_values))
-    global _PER_TOKEN_MISMATCH_WARNED
     mismatch_detected = len(raw_values) != len(tok_values)
     offset = 0
     for comps in grouped_completions:
@@ -322,7 +328,7 @@ def _split_ref_logprobs_per_token(
             mismatch_detected = True
         ref_logp_per_token.append(per_token)
         offset += comp_count
-    if mismatch_detected and not _PER_TOKEN_MISMATCH_WARNED:
+    if mismatch_detected and not _MISMATCH_WARNED["per_token"]:
         total_requested = sum(len(group) for group in grouped_completions)
         LOG.warning(
             "Reference log-prob/token mismatch | raw=%d | tok=%d | requested=%d",
@@ -330,7 +336,7 @@ def _split_ref_logprobs_per_token(
             len(tok_values),
             total_requested,
         )
-        _PER_TOKEN_MISMATCH_WARNED = True
+        _MISMATCH_WARNED["per_token"] = True
 
     return ref_logp_per_token
 
@@ -490,6 +496,36 @@ def maybe_update_beta(weighting_cfg: WeightingSettings, measured_kl: float) -> N
     _sync_controller_state(weighting_cfg)
 
 
+def _resolve_target_entropy(weighting_cfg: WeightingSettings, global_step: int) -> Optional[float]:
+    """Compute the active target entropy, honoring optional annealing settings."""
+
+    schedule = getattr(weighting_cfg, "tau_schedule", None)
+    if schedule is None:
+        return getattr(weighting_cfg, "tau_target_entropy", None)
+    base_target = schedule.target_entropy
+    start = getattr(schedule, "target_entropy_start", None)
+    final = getattr(schedule, "target_entropy_final", None)
+    horizon = getattr(schedule, "target_entropy_horizon", 0)
+    if start is None and final is None:
+        active = base_target
+    else:
+        if start is None:
+            start = base_target
+        if final is None:
+            final = base_target
+        try:
+            horizon_val = int(horizon)
+        except (TypeError, ValueError):
+            horizon_val = 0
+        if horizon_val <= 0:
+            active = final
+        else:
+            frac = min(max(int(global_step), 0), horizon_val) / float(horizon_val)
+            active = float(start) + (float(final) - float(start)) * frac
+    setattr(schedule, "current_target_entropy", active)
+    return active
+
+
 def apply_meta_controller_update(
     weighting_cfg: WeightingSettings,
     *,
@@ -552,9 +588,9 @@ def apply_meta_controller_update(
         updated = True
         setattr(weighting_cfg, "_meta_last_tau_grad", float(tau_grad))
         try:
-                meta_cfg.last_tau_grad = float(tau_grad)
-        except (AttributeError, TypeError, ValueError):
-            pass
+            meta_cfg.last_tau_grad = float(tau_grad)
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to record controller meta tau_grad: %s", exc)
     beta_projected = False
     if (
         effective_lr_beta > 0.0
@@ -578,8 +614,8 @@ def apply_meta_controller_update(
         setattr(weighting_cfg, "_meta_last_beta_grad", float(beta_grad))
         try:
             meta_cfg.last_beta_grad = float(beta_grad)
-        except (AttributeError, TypeError, ValueError):
-            pass
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to record controller meta beta_grad: %s", exc)
     if updated:
         setattr(weighting_cfg, "_meta_tau_projected", bool(tau_projected))
         setattr(weighting_cfg, "_meta_beta_projected", bool(beta_projected))
@@ -626,7 +662,7 @@ def maybe_update_tau(
         if measured_entropy is None:
             measured_entropy = getattr(weight_stats, "entropy", None)
     _ensure_tau_history(weighting_cfg, measured_entropy)
-    target_entropy = weighting_cfg.tau_target_entropy
+    target_entropy = _resolve_target_entropy(weighting_cfg, global_step)
     if target_entropy is None:
         return
     if global_step <= max(0, weighting_cfg.tau_warmup_steps):

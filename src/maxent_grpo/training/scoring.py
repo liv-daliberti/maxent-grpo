@@ -51,8 +51,21 @@ from .types import (
     ScoreBatch,
 )
 
+LOG = logging.getLogger(__name__)
+
 torch = require_torch("training_scoring")
 _REQUIRED_TORCH_ATTRS = ("tensor", "full", "ones_like", "zeros", "cat")
+
+_SCORING_EXCEPTIONS = (
+    ImportError,
+    ModuleNotFoundError,
+    AttributeError,
+    KeyError,
+    IndexError,
+    TypeError,
+    ValueError,
+    RuntimeError,
+)
 
 
 class _LongDTypeProxy:
@@ -109,6 +122,7 @@ def _refresh_torch() -> Any:
         "long",
         "float32",
         "int64",
+        "version",
         "no_grad",
         "SymBool",
         "stack",
@@ -118,6 +132,17 @@ def _refresh_torch() -> Any:
     ):
         if not hasattr(torch_mod, name) and hasattr(stub, name):
             setattr(torch_mod, name, getattr(stub, name))
+    if not hasattr(torch_mod, "version") or torch_mod.version is None:
+        torch_mod.version = SimpleNamespace()
+    if isinstance(torch_mod.version, SimpleNamespace):
+        if not hasattr(torch_mod.version, "version"):
+            torch_mod.version.version = "0.0.0"
+        if not hasattr(torch_mod.version, "__version__"):
+            torch_mod.version.__version__ = "0.0.0"
+        if not hasattr(torch_mod.version, "cuda"):
+            torch_mod.version.cuda = None
+    if not hasattr(torch_mod, "__version__"):
+        torch_mod.__version__ = "0.0.0"
     if not hasattr(torch_mod, "tensor"):
         torch_mod.tensor = stub.tensor
     if not hasattr(torch_mod, "as_tensor") and hasattr(stub, "as_tensor"):
@@ -158,7 +183,7 @@ def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int):
         try:
             for item in iterator:
                 q.put(item)
-        except BaseException as exc:  # pragma: no cover - defensive
+        except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive
             error_holder["exc"] = exc
         finally:
             q.put(sentry)
@@ -208,7 +233,7 @@ class _PadTokenGuard:
                 continue
             try:
                 original = getattr(target, attr)
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 original = None
             new_value: Any = value
             try:
@@ -226,19 +251,19 @@ class _PadTokenGuard:
                         if hasattr(weight, "shape"):
                             try:
                                 size = tuple(getattr(weight, "shape"))
-                            except Exception:
+                            except _SCORING_EXCEPTIONS:
                                 size = None
                         elif hasattr(weight, "size"):
                             try:
                                 size = tuple(weight.size())
-                            except Exception:
+                            except _SCORING_EXCEPTIONS:
                                 size = None
                         if size is not None and len(size) >= 1:
                             num_embeddings = size[0]
                             if isinstance(num_embeddings, numbers.Integral) and num_embeddings > 0:
                                 if new_value >= num_embeddings:
                                     new_value = num_embeddings - 1
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 # If anything goes wrong while inspecting sizes, fall back to
                 # the original requested value without additional checks.
                 new_value = value
@@ -264,7 +289,7 @@ def _weight_is_two_dimensional(weight: Any) -> bool:
     elif hasattr(weight, "size"):
         try:
             shape = tuple(weight.size())
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             shape = None
     return shape is not None and len(shape) == 2
 
@@ -281,7 +306,7 @@ def _describe_embedding_module(module: Any, name: str) -> str:
     elif hasattr(weight, "size"):
         try:
             shape = tuple(weight.size())
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             shape = None
     padding_idx = getattr(module, "padding_idx", None)
     return (
@@ -301,8 +326,11 @@ def _get_embedding_vocab_size(
     if weight is not None and hasattr(weight, "size"):
         try:
             return weight.size(0)
-        except (TypeError, AttributeError, IndexError):
-            pass
+        except (TypeError, AttributeError, IndexError) as exc:
+            LOG.debug(
+                "Failed to read embedding weight size; falling back to config vocab_size: %s",
+                exc,
+            )
     return _get_config_value(config, "vocab_size", None)
 
 
@@ -311,8 +339,8 @@ def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
     if hasattr(value, "long"):
         try:
             return value.long()
-        except TypeError:
-            pass
+        except TypeError as exc:
+            LOG.debug("value.long() failed; falling back to tensor cast: %s", exc)
     arr = getattr(value, "arr", None)
     if arr is None:
         arr = np.asarray(value)
@@ -328,8 +356,8 @@ def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
                     return t.long()
                 except (TypeError, ValueError, RuntimeError):
                     return t
-        except (TypeError, ValueError, RuntimeError):
-            pass
+        except (TypeError, ValueError, RuntimeError) as exc:
+            LOG.debug("torch.tensor(arr) failed in long conversion; retrying: %s", exc)
     # Fallback: try resolving a numpy-compatible dtype and pass that through.
     try:
         resolved = _resolve_dtype(getattr(torch_mod, "int64", None))
@@ -347,8 +375,8 @@ def _size_hint(tensor_obj: Any, dim: int) -> int:
         except TypeError:
             try:
                 return tensor_obj.size()
-            except (TypeError, ValueError, AttributeError):
-                pass
+            except (TypeError, ValueError, AttributeError) as exc:
+                LOG.debug("tensor.size() fallback failed; using shape/len: %s", exc)
     arr = getattr(tensor_obj, "arr", None)
     shape = getattr(tensor_obj, "shape", None) or (
         arr.shape if arr is not None else None
@@ -373,27 +401,42 @@ def _to_numpy_array(obj: Any) -> np.ndarray:
         if isinstance(obj, getattr(_torch, "Tensor", ())):
             try:
                 return obj.detach().cpu().numpy()
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 try:
                     tensor_cpu = obj.detach().to("cpu")
                     if hasattr(tensor_cpu, "float"):
                         tensor_cpu = tensor_cpu.float()
                     return tensor_cpu.numpy()
-                except Exception:
-                    pass
-    except Exception:
-        pass
+                except _SCORING_EXCEPTIONS as exc:
+                    LOG.debug("Failed to materialize torch tensor to numpy: %s", exc)
+    except _SCORING_EXCEPTIONS as exc:
+        LOG.debug("Torch import or tensor handling failed; falling back: %s", exc)
+    # Fallback for tensor-like objects from mixed torch modules/stubs.
+    if hasattr(obj, "detach"):
+        try:
+            tensor_cpu = obj.detach()
+            to_fn = getattr(tensor_cpu, "to", None)
+            if callable(to_fn):
+                tensor_cpu = to_fn("cpu")
+            cpu_fn = getattr(tensor_cpu, "cpu", None)
+            if callable(cpu_fn):
+                tensor_cpu = cpu_fn()
+            numpy_fn = getattr(tensor_cpu, "numpy", None)
+            if callable(numpy_fn):
+                return numpy_fn()
+        except _SCORING_EXCEPTIONS as exc:
+            LOG.debug("Fallback tensor->numpy conversion failed: %s", exc)
     if hasattr(obj, "arr"):
         try:
             return np.asarray(obj.arr)
-        except (TypeError, ValueError, RuntimeError):
-            pass
+        except (TypeError, ValueError, RuntimeError) as exc:
+            LOG.debug("Failed to convert obj.arr to numpy array: %s", exc)
     data = getattr(obj, "data", None)
     if data is not None:
         try:
             return np.asarray(data)
-        except (TypeError, ValueError, RuntimeError):
-            pass
+        except (TypeError, ValueError, RuntimeError) as exc:
+            LOG.debug("Failed to convert obj.data to numpy array: %s", exc)
     try:
         return np.asarray(obj)
     except (TypeError, ValueError, RuntimeError):
@@ -406,7 +449,7 @@ def _dist_collective_ready(torch_mod: Any) -> Any:
     try:
         if dist is not None and dist.is_available() and dist.is_initialized():
             return dist
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         return None
     return None
 
@@ -417,13 +460,13 @@ def _dist_all(dist: Any, flag: bool) -> bool:
         return bool(flag)
     try:
         world_size = int(dist.get_world_size())
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         return bool(flag)
     gathered = [None for _ in range(max(world_size, 1))]
     try:
         dist.all_gather_object(gathered, bool(flag))
         return all(bool(x) for x in gathered)
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         return bool(flag)
 
 
@@ -433,13 +476,13 @@ def _dist_any(dist: Any, flag: bool) -> bool:
         return bool(flag)
     try:
         world_size = int(dist.get_world_size())
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         return bool(flag)
     gathered = [None for _ in range(max(world_size, 1))]
     try:
         dist.all_gather_object(gathered, bool(flag))
         return any(bool(x) for x in gathered)
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         return bool(flag)
 
 
@@ -465,7 +508,6 @@ PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes(
     "training_scoring"
 )
 
-LOG = logging.getLogger(__name__)
 
 
 def _autocast_context(accelerator: Any, device: torch.device) -> Any:
@@ -776,6 +818,22 @@ def _prepare_prompt_slice(
     return prompt_ids, prompt_mask, prompt_lengths
 
 
+def _slice_tail_window(
+    start_idx: int,
+    input_ids: Tensor,
+    attention_mask: Tensor,
+    labels: Tensor,
+) -> Tuple[Tensor, Tensor, Tensor]:
+    """Slice tail tokens without closing over loop variables."""
+    if start_idx <= 0:
+        return input_ids, attention_mask, labels
+    return (
+        input_ids[:, start_idx:],
+        attention_mask[:, start_idx:],
+        labels[:, start_idx:],
+    )
+
+
 def iter_batch_slices(
     score_batch: ScoreBatch,
     device: torch.device,  # kept for API symmetry with callers
@@ -802,11 +860,11 @@ def iter_batch_slices(
             try:
                 comp_ids_slice = comp_ids_slice.to(device)
                 comp_mask_slice = comp_mask_slice.to(device)
-            except (AttributeError, TypeError, ValueError):
+            except (AttributeError, TypeError, ValueError) as exc:
                 # Some lightweight torch stubs treat the ``device`` argument as
                 # a dtype. When that happens we leave tensors on their current
                 # device and rely on ``as_tensor`` below to normalize types.
-                pass
+                LOG.debug("Failed to move completion tensors to device: %s", exc)
         batch_size = len(prompt_slice)
         if batch_size == 0:
             continue
@@ -821,8 +879,8 @@ def iter_batch_slices(
             try:
                 prompt_ids = prompt_ids.to(device)
                 prompt_mask = prompt_mask.to(device)
-            except (AttributeError, TypeError, ValueError):
-                pass
+            except (AttributeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to move prompt tensors to device: %s", exc)
         # Ensure tensors before concatenation (protect against stubs/numpy).
         as_tensor = getattr(torch_mod, "as_tensor", getattr(torch_mod, "tensor", None))
         if as_tensor is None:
@@ -834,8 +892,8 @@ def iter_batch_slices(
             try:
                 if callable(is_tensor_fn) and is_tensor_fn(obj):
                     return obj
-            except Exception:  # pragma: no cover - defensive
-                pass
+            except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive
+                LOG.debug("torch.is_tensor check failed; continuing: %s", exc)
             tensor_type = getattr(torch_mod, "Tensor", None)
             if tensor_type is not None and isinstance(obj, tensor_type):
                 return obj
@@ -864,8 +922,8 @@ def iter_batch_slices(
         active_comp_columns: List[int] = []
         try:
             comp_tokens_present = (comp_mask_slice != 0).any(dim=0)
-        except Exception:
-            pass
+        except _SCORING_EXCEPTIONS as exc:
+            LOG.debug("Failed to compute completion token presence mask: %s", exc)
         if comp_tokens_present is None:
             comp_tokens_arr = np.asarray(
                 getattr(comp_mask_slice, "arr", comp_mask_slice)
@@ -884,7 +942,7 @@ def iter_batch_slices(
                 )
                 active_comp_columns = [int(idx.item()) for idx in nonzero_cols]
                 last_valid_idx = active_comp_columns[-1] + 1 if active_comp_columns else 0
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 active_comp_columns = []
                 last_valid_idx = 0
         if last_valid_idx <= 0:
@@ -910,7 +968,7 @@ def iter_batch_slices(
             try:
                 pad_mask = comp_mask_slice == 0
                 has_padding = bool(pad_mask.any())
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 pad_mask = None
             if pad_mask is None:
                 try:
@@ -918,7 +976,7 @@ def iter_batch_slices(
                         getattr(comp_mask_slice, "arr", comp_mask_slice)
                     ) == 0
                     has_padding = bool(pad_mask_arr.any())
-                except Exception:
+                except _SCORING_EXCEPTIONS:
                     pad_mask_arr = None
                     has_padding = False
             if has_padding:
@@ -926,7 +984,7 @@ def iter_batch_slices(
                     if pad_mask is None:
                         raise AttributeError
                     updated_labels = comp_labels.masked_fill(pad_mask, -100)
-                except Exception:
+                except _SCORING_EXCEPTIONS:
                     if pad_mask_arr is None:
                         pad_mask_arr = np.asarray(
                             getattr(comp_mask_slice, "arr", comp_mask_slice)
@@ -950,29 +1008,30 @@ def iter_batch_slices(
             max_len = int(getattr(full_input_ids, "shape", [0, 0])[1] or 0)
             tail_tokens = min(tail_tokens, max_len) if max_len > 0 else 0
             if tail_tokens > 0 and tail_tokens < max_len:
-                def _slice_tail(start_idx: int) -> Tuple[Tensor, Tensor, Tensor]:
-                    if start_idx <= 0:
-                        return full_input_ids, full_attention_mask, full_labels
-                    return (
-                        full_input_ids[:, start_idx:],
-                        full_attention_mask[:, start_idx:],
-                        full_labels[:, start_idx:],
-                    )
-
                 slice_start = max(0, max_len - tail_tokens)
                 first_comp_global = None
                 last_comp_global = None
                 if active_comp_columns:
                     first_comp_global = prompt_width + active_comp_columns[0]
                     last_comp_global = prompt_width + active_comp_columns[-1] + 1
-                input_ids, attention_mask, labels_tensor = _slice_tail(slice_start)
+                input_ids, attention_mask, labels_tensor = _slice_tail_window(
+                    slice_start,
+                    full_input_ids,
+                    full_attention_mask,
+                    full_labels,
+                )
                 if (
                     first_comp_global is not None
                     and last_comp_global is not None
                     and slice_start >= last_comp_global
                 ):
                     safe_start = max(first_comp_global, last_comp_global - tail_tokens)
-                    input_ids, attention_mask, labels_tensor = _slice_tail(safe_start)
+                    input_ids, attention_mask, labels_tensor = _slice_tail_window(
+                        safe_start,
+                        full_input_ids,
+                        full_attention_mask,
+                        full_labels,
+                    )
         # Materialize tensors for the ref model; keep device parity with completions.
         target_device = device or getattr(comp_ids_slice, "device", None)
         target_dtype = getattr(torch_mod, "long", None)
@@ -994,8 +1053,8 @@ def iter_batch_slices(
             for _tensor in (input_ids_out, labels_out):
                 try:  # pragma: no cover - exercised via stubbed environments
                     setattr(_tensor, "dtype", proxy)
-                except Exception:
-                    pass
+                except _SCORING_EXCEPTIONS as exc:
+                    LOG.debug("Unable to patch tensor dtype proxy: %s", exc)
         yield (input_ids_out, attention_mask_out, labels_out)
 
 
@@ -1064,7 +1123,7 @@ def _chunked_sequence_logprobs(
             if callable(param_iter):
                 try:
                     params = list(param_iter())
-                except Exception:
+                except _SCORING_EXCEPTIONS:
                     params = []
             # In lightweight stub environments ``parameters`` may be missing;
             # still invoke GatheredParameters with an empty list so tests can
@@ -1177,7 +1236,7 @@ def _chunked_sequence_logprobs(
                         )
                     except TypeError:
                         gather_ctx = deepspeed.zero.GatheredParameters(unique)
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             gather_ctx = nullcontext()
 
     fsdp_ctx = _summon_fsdp_full_param_context(model)
@@ -1204,7 +1263,7 @@ def _chunked_sequence_logprobs(
             pad_targets.append((embed_token_module, "padding_idx"))
     try:
         input_embed_module = model.get_input_embeddings()
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         input_embed_module = None
     if (
         input_embed_module is not None
@@ -1273,7 +1332,7 @@ def _chunked_sequence_logprobs(
         embed_descs.append(_describe_embedding_module(embed_tokens, "embed_tokens"))
         try:
             input_embeddings = model.get_input_embeddings()
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             input_embeddings = None
         if input_embeddings is not None and input_embeddings is not embed_tokens:
             embed_descs.append(
@@ -1317,7 +1376,7 @@ def _chunked_sequence_logprobs(
                 try:
                     model_dtype = getattr(model, "dtype", None)
                     dtype_str = str(getattr(model_dtype, "name", model_dtype) or "").lower()
-                except Exception:
+                except _SCORING_EXCEPTIONS:
                     dtype_str = ""
                 bytes_per_elem = 2
                 if "float32" in dtype_str or "fp32" in dtype_str:
@@ -1392,16 +1451,19 @@ def _chunked_sequence_logprobs(
             }
             if wants_labels:
                 call_kwargs["labels"] = label_chunk
+            call_target = model if callable(model) else getattr(model, "forward", None)
+            if not callable(call_target):
+                raise TypeError("Model is not callable and lacks a forward method")
             try:
-                outputs = model(**call_kwargs)
+                outputs = call_target(**call_kwargs)
             except TypeError:
                 call_kwargs.pop("output_hidden_states", None)
                 try:
-                    outputs = model(**call_kwargs)
+                    outputs = call_target(**call_kwargs)
                 except TypeError:
                     if not wants_labels:
                         call_kwargs.pop("labels", None)
-                    outputs = model(**call_kwargs)
+                    outputs = call_target(**call_kwargs)
             logits = outputs.logits
             LOG.debug(
                 "reference scoring logits metadata | chunk=%s | shape=%s dtype=%s device=%s",
@@ -1420,7 +1482,7 @@ def _chunked_sequence_logprobs(
                         dtype=getattr(torch_mod, "float32", None),
                         device=getattr(logits, "device", None),
                     )
-                except Exception:
+                except _SCORING_EXCEPTIONS:
                     seq_logp_chunk = torch_mod.tensor(
                         np.zeros(batch_rows, dtype=float),
                         dtype=getattr(torch_mod, "float32", None),
@@ -1433,6 +1495,19 @@ def _chunked_sequence_logprobs(
                 )
                 logp_chunks.append(seq_logp_chunk)
                 tok_chunks.append(tok_tensor_chunk)
+                preview_vals = None
+                preview_source = seq_logp_chunk
+                detach_fn = getattr(seq_logp_chunk, "detach", None)
+                if callable(detach_fn):
+                    try:
+                        preview_source = detach_fn()
+                    except _SCORING_EXCEPTIONS:
+                        preview_source = seq_logp_chunk
+                if hasattr(preview_source, "cpu"):
+                    try:
+                        preview_vals = preview_source.cpu().reshape(-1)[:3].tolist()
+                    except _SCORING_EXCEPTIONS:
+                        preview_vals = None
                 LOG.debug(
                     "reference scoring chunk stats | chunk=%s | ids_shape=%s | mask_shape=%s | "
                     "seq_logp_shape=%s dtype=%s device=%s | tok_shape=%s dtype=%s device=%s | "
@@ -1448,12 +1523,7 @@ def _chunked_sequence_logprobs(
                     getattr(tok_tensor_chunk, "device", None),
                     float(batch_rows),
                     0,
-                    getattr(seq_logp_chunk, "detach", lambda: seq_logp_chunk)()
-                    .cpu()
-                    .reshape(-1)[:3]
-                    .tolist()
-                    if hasattr(seq_logp_chunk, "cpu")
-                    else None,
+                    preview_vals,
                 )
                 continue
 
@@ -1475,14 +1545,14 @@ def _chunked_sequence_logprobs(
                 if target_device is not None:
                     try:
                         gather_index = gather_index.to(target_device)
-                    except Exception:
-                        pass
+                    except _SCORING_EXCEPTIONS as exc:
+                        LOG.debug("Failed to move gather_index to device: %s", exc)
                 target_logits = flat_logits[gather_index, flat_labels].reshape(safe_labels.shape)
                 to_fn = getattr(target_logits, "to", None)
                 if callable(to_fn):
                     target_logits = to_fn(dtype=getattr(log_denom, "dtype", None))
                 token_logp = target_logits - log_denom
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 log_probs = torch_mod.nn.functional.log_softmax(shifted_logits, dim=-1)
                 flat_log_probs = log_probs.reshape(-1, vocab_size)
                 gather_index = torch_mod.arange(flat_labels.numel())
@@ -1490,34 +1560,63 @@ def _chunked_sequence_logprobs(
                 if target_device is not None:
                     try:
                         gather_index = gather_index.to(target_device)
-                    except Exception:
-                        pass
+                    except _SCORING_EXCEPTIONS as exc:
+                        LOG.debug("Failed to move fallback gather_index to device: %s", exc)
                 token_logp = flat_log_probs[gather_index, flat_labels].reshape(safe_labels.shape)
+            # If mask tensors are real torch tensors but token_logp is a stub tensor,
+            # coerce token_logp into the active torch module to avoid type mismatches.
+            torch_tensor = getattr(torch_mod, "Tensor", None)
+            if (
+                torch_tensor is not None
+                and isinstance(label_mask, torch_tensor)
+                and not isinstance(token_logp, torch_tensor)
+            ):
+                try:
+                    token_logp = torch_mod.tensor(_to_numpy_array(token_logp))
+                except _SCORING_EXCEPTIONS as exc:
+                    LOG.debug("Failed to coerce token_logp into torch tensor: %s", exc)
             mask_float = label_mask
             type_as_fn = getattr(mask_float, "type_as", None)
             if callable(type_as_fn):
-                mask_float = type_as_fn(token_logp)
-            else:
+                try:
+                    is_tensor_fn = getattr(torch_mod, "is_tensor", None)
+                    if callable(is_tensor_fn) and not is_tensor_fn(token_logp):
+                        raise TypeError("type_as requires a torch tensor")
+                    mask_mod = getattr(type(mask_float), "__module__", "")
+                    token_mod = getattr(type(token_logp), "__module__", "")
+                    if mask_mod.startswith("torch") != token_mod.startswith("torch"):
+                        raise TypeError("type_as requires matching torch tensors")
+                    if not isinstance(token_logp, type(mask_float)):
+                        raise TypeError("type_as requires same tensor types")
+                    mask_float = type_as_fn(token_logp)
+                except _SCORING_EXCEPTIONS:
+                    type_as_fn = None
+            if not callable(type_as_fn):
                 to_fn = getattr(mask_float, "to", None)
                 if callable(to_fn):
-                    mask_float = to_fn(dtype=getattr(token_logp, "dtype", None))
+                    try:
+                        mask_float = to_fn(dtype=getattr(token_logp, "dtype", None))
+                    except _SCORING_EXCEPTIONS:
+                        float_fn = getattr(mask_float, "float", None)
+                        if callable(float_fn):
+                            mask_float = float_fn()
             seq_logp_chunk = (token_logp * mask_float).sum(dim=1)
             tok_tensor_chunk = label_mask.sum(dim=1).clamp(min=1)
             logp_chunks.append(seq_logp_chunk)
             tok_chunks.append(tok_tensor_chunk)
             try:
                 tok_sum = tok_tensor_chunk.detach().cpu().sum().item()
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 tok_sum = None
             try:
                 logp_preview = (
                     seq_logp_chunk.detach().cpu().reshape(-1)[:3].tolist()
                 )
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 logp_preview = None
             try:
                 valid_tokens = int(label_mask.sum().detach().cpu().item())
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 valid_tokens = None
             LOG.debug(
                 "reference scoring chunk stats | chunk=%s | ids_shape=%s | mask_shape=%s | "
@@ -1548,11 +1647,28 @@ def _chunked_sequence_logprobs(
                         mask = mask.unsqueeze(-1)
                         type_as_fn = getattr(mask, "type_as", None)
                         if callable(type_as_fn):
-                            mask = type_as_fn(hidden)
-                        else:
+                            try:
+                                is_tensor_fn = getattr(torch_mod, "is_tensor", None)
+                                if callable(is_tensor_fn) and not is_tensor_fn(hidden):
+                                    raise TypeError("type_as requires a torch tensor")
+                                mask_mod = getattr(type(mask), "__module__", "")
+                                hidden_mod = getattr(type(hidden), "__module__", "")
+                                if mask_mod.startswith("torch") != hidden_mod.startswith("torch"):
+                                    raise TypeError("type_as requires matching torch tensors")
+                                if not isinstance(hidden, type(mask)):
+                                    raise TypeError("type_as requires same tensor types")
+                                mask = type_as_fn(hidden)
+                            except _SCORING_EXCEPTIONS:
+                                type_as_fn = None
+                        if not callable(type_as_fn):
                             to_fn = getattr(mask, "to", None)
                             if callable(to_fn):
-                                mask = to_fn(dtype=hidden.dtype)
+                                try:
+                                    mask = to_fn(dtype=hidden.dtype)
+                                except _SCORING_EXCEPTIONS:
+                                    float_fn = getattr(mask, "float", None)
+                                    if callable(float_fn):
+                                        mask = float_fn()
                             else:
                                 float_fn = getattr(mask, "float", None)
                                 if callable(float_fn):
@@ -1576,7 +1692,7 @@ def _chunked_sequence_logprobs(
         )
     try:
         logp_sample = seq_logp.detach().cpu().reshape(-1)[:4].tolist()
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         logp_sample = None
     LOG.debug(
         "chunked_sequence_logprobs finish | seq_logp_shape=%s tok_shape=%s pooled_shape=%s | "
@@ -1644,8 +1760,8 @@ def build_score_batch(
             if hasattr(raw_ids, "tolist"):
                 try:
                     raw_ids = raw_ids.tolist()
-                except Exception:
-                    pass
+                except _SCORING_EXCEPTIONS as exc:
+                    LOG.debug("Failed to convert completion metadata token_ids: %s", exc)
             if isinstance(raw_ids, list) and raw_ids and isinstance(raw_ids[0], list):
                 raw_ids = raw_ids[0]
             if not isinstance(raw_ids, list):
@@ -1743,7 +1859,7 @@ def reference_from_model(
                     chunk_size=batching_cfg.logprob_chunk_size,
                     gather_full_params=False,
                 )
-            except Exception as exc:  # pragma: no cover - defensive diagnostics
+            except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive diagnostics
                 _log_once(
                     f"_chunked_sequence_logprobs raised {type(exc).__name__}: {exc}"
                 )
@@ -1806,11 +1922,11 @@ def gather_reference_logprobs(
         if shape is not None:
             try:
                 return int(shape[0])
-            except Exception:
-                pass
+            except _SCORING_EXCEPTIONS as exc:
+                LOG.debug("Failed to read shape[0] from tensor; falling back to len: %s", exc)
         try:
             return int(len(obj))  # type: ignore[arg-type]
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             return 0
 
     def _first_slice_rows(sb: Any) -> int:
@@ -1828,7 +1944,7 @@ def gather_reference_logprobs(
         if callable(numel_fn):
             try:
                 return numel_fn()
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 return "error"
         return None
 
@@ -1843,7 +1959,7 @@ def gather_reference_logprobs(
         if callable(gather_obj):
             try:
                 all_rows = gather_obj(int(preflight_rows))
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 all_rows = None
         if all_rows is None:
             dist = _dist_collective_ready(torch_mod)
@@ -1852,12 +1968,12 @@ def gather_reference_logprobs(
                 try:
                     dist.all_gather_object(gathered, int(preflight_rows))
                     all_rows = gathered
-                except Exception:
+                except _SCORING_EXCEPTIONS:
                     all_rows = None
         if isinstance(all_rows, list) and all_rows:
             try:
                 min_rows = min(int(v) for v in all_rows)
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 min_rows = int(preflight_rows)
             if min_rows <= 0:
                 LOG.warning(
@@ -1884,7 +2000,7 @@ def gather_reference_logprobs(
                     global_ok = all(bool(x) for x in gathered)
                 else:
                     global_ok = bool(gathered)
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 global_ok = local_ok
         else:
             dist = _dist_collective_ready(torch_mod)
@@ -1912,7 +2028,7 @@ def gather_reference_logprobs(
     )
     try:
         stats = finalize_reference_stats(*tensors)
-    except Exception as exc:  # pragma: no cover - defensive diagnostics
+    except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive diagnostics
         LOG.error(
             "finalize_reference_stats raised %s: %s | ref_logp_shape=%s | ref_tok_shape=%s | ref_logp_dtype=%s | ref_tok_dtype=%s | ref_logp_device=%s | ref_tok_device=%s",
             type(exc).__name__,
@@ -1950,13 +2066,13 @@ def finalize_reference_stats(
         if callable(numel_fn):
             try:
                 logp_numel = numel_fn()
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 logp_numel = None
         numel_fn_tok = getattr(ref_tok_counts, "numel", None)
         if callable(numel_fn_tok):
             try:
                 tok_numel = numel_fn_tok()
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 tok_numel = None
 
         # If numpy conversion dropped elements (e.g., CUDA+bfloat16 -> empty array),
@@ -1975,7 +2091,7 @@ def finalize_reference_stats(
                     logp_numel,
                     getattr(logp_arr_raw, "size", None),
                 )
-            except Exception as exc:
+            except _SCORING_EXCEPTIONS as exc:
                 LOG.debug(
                     "finalize_reference_stats fallback tensor->numpy failed | target_numel=%s | exc=%s",
                     logp_numel,
@@ -1997,7 +2113,7 @@ def finalize_reference_stats(
         def _safe_size(x: Any) -> Any:
             try:
                 return int(np.size(x))
-            except Exception:
+            except _SCORING_EXCEPTIONS:
                 return None
 
         LOG.debug(
@@ -2055,7 +2171,7 @@ def finalize_reference_stats(
             ref_logp_mean=ref_logp_mean,
             avg_completion_tokens=avg_completion_tokens,
         )
-    except Exception as exc:  # pragma: no cover - defensive diagnostics
+    except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive diagnostics
         LOG.exception(
             "finalize_reference_stats failed | exc=%s | ref_logp_sum_shape=%s | ref_tok_counts_shape=%s | ref_logp_sum_dtype=%s | ref_tok_counts_dtype=%s | ref_logp_sum_device=%s | ref_tok_counts_device=%s",
             type(exc).__name__,
@@ -2093,11 +2209,11 @@ def token_counts_from_score_batch(
                 dtype=getattr(torch_mod, "float32", None),
                 device=runtime.device,
             )
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             return torch_mod.tensor([], dtype=getattr(torch_mod, "float32", None))
     try:
         out = torch_mod.cat(tok_chunks, dim=0)
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         out = tok_chunks[0]
         for chunk in tok_chunks[1:]:
             out = torch_mod.cat([out, chunk], dim=0)
@@ -2105,8 +2221,8 @@ def token_counts_from_score_batch(
     if callable(to_fn):
         try:
             out = to_fn(device=runtime.device)
-        except Exception:
-            pass
+        except _SCORING_EXCEPTIONS as exc:
+            LOG.debug("Failed to move token counts to runtime device: %s", exc)
     return out
 
 
@@ -2126,8 +2242,8 @@ def reference_stats_from_policy_logprobs(
     ).view(-1)
     try:
         tok_tensor = tok_tensor.clamp(min=1.0)
-    except Exception:
-        pass
+    except _SCORING_EXCEPTIONS as exc:
+        LOG.debug("Failed to clamp token counts; continuing: %s", exc)
     detach_fn = getattr(cur_tensor, "detach", None)
     if callable(detach_fn):
         cur_tensor = detach_fn()
@@ -2138,17 +2254,17 @@ def reference_stats_from_policy_logprobs(
     ref_logp_sum = ref_logp_sum_raw / tok_tensor
     try:
         ref_logp_mean = float(ref_logp_sum_raw.detach().float().cpu().mean().item())
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         try:
             ref_logp_mean = float(ref_logp_sum_raw.mean())
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             ref_logp_mean = 0.0
     try:
         avg_completion_tokens = float(tok_tensor.detach().float().cpu().mean().item())
-    except Exception:
+    except _SCORING_EXCEPTIONS:
         try:
             avg_completion_tokens = float(tok_tensor.mean())
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             avg_completion_tokens = 0.0
     return ReferenceLogprobs(
         ref_logp_sum=ref_logp_sum,
@@ -2157,6 +2273,59 @@ def reference_stats_from_policy_logprobs(
         ref_logp_mean=ref_logp_mean,
         avg_completion_tokens=avg_completion_tokens,
     )
+
+
+def _meta_field(entry: Any, *names: str) -> Any:
+    """Return the first matching field from a metadata entry."""
+    if entry is None:
+        return None
+    sentinel = object()
+    for name in names:
+        if isinstance(entry, Mapping):
+            if name in entry:
+                return entry.get(name)
+        else:
+            value = getattr(entry, name, sentinel)
+            if value is not sentinel:
+                return value
+    return None
+
+
+def _coerce_logprob_value(value: Any) -> Optional[float]:
+    """Best-effort conversion of a token logprob payload into a float."""
+    if value is None:
+        return None
+    if isinstance(value, numbers.Number):
+        return float(value)
+    if isinstance(value, Mapping):
+        if "logprob" in value:
+            return _coerce_logprob_value(value.get("logprob"))
+        if len(value) == 1:
+            return _coerce_logprob_value(next(iter(value.values())))
+        return None
+    attr_val = getattr(value, "logprob", None)
+    if attr_val is not None:
+        return _coerce_logprob_value(attr_val)
+    return None
+
+
+def _sum_token_logprobs(token_logprobs: Any) -> Optional[float]:
+    """Return the sum of per-token logprobs when the payload is parseable."""
+    if token_logprobs is None or isinstance(token_logprobs, Mapping):
+        return None
+    try:
+        iterator = iter(token_logprobs)
+    except TypeError:
+        return None
+    total = 0.0
+    saw_any = False
+    for item in iterator:
+        val = _coerce_logprob_value(item)
+        if val is None:
+            return None
+        total += float(val)
+        saw_any = True
+    return total if saw_any else None
 
 
 def reference_from_vllm_meta(
@@ -2174,12 +2343,16 @@ def reference_from_vllm_meta(
     for entry in flat_meta:
         if entry is None:
             return None
-        logprob_sum = getattr(entry, "logprob_sum", None)
-        token_count = getattr(entry, "token_count", None)
-        if logprob_sum is None and isinstance(entry, dict):
-            logprob_sum = entry.get("logprob_sum")
-        if token_count is None and isinstance(entry, dict):
-            token_count = entry.get("token_count")
+        logprob_sum = _meta_field(entry, "logprob_sum", "cumulative_logprob")
+        token_count = _meta_field(entry, "token_count", "num_tokens")
+        token_logprobs = _meta_field(entry, "token_logprobs", "logprobs")
+        if logprob_sum is None and token_logprobs is not None:
+            logprob_sum = _sum_token_logprobs(token_logprobs)
+        if token_count is None and token_logprobs is not None:
+            try:
+                token_count = len(token_logprobs)
+            except (TypeError, ValueError, AttributeError):
+                token_count = None
         if logprob_sum is None or token_count is None:
             return None
         logp_vals.append(float(logprob_sum))
@@ -2192,6 +2365,35 @@ def reference_from_vllm_meta(
         tok_counts, dtype=getattr(torch_mod, "float32", None), device=device
     )
     return finalize_reference_stats(ref_logp_sum, ref_tok_counts)
+
+
+def vllm_meta_has_logprobs(
+    flat_meta: Optional[Sequence[Optional[Any]]],
+    total_sequences: Optional[int] = None,
+) -> bool:
+    """Return True when vLLM metadata includes per-completion logprob info."""
+
+    if not flat_meta:
+        return False
+    if total_sequences is not None and total_sequences >= 0:
+        try:
+            if len(flat_meta) != int(total_sequences):
+                return False
+        except (TypeError, ValueError):
+            return False
+    for entry in flat_meta:
+        if entry is None:
+            return False
+        logprob_sum = getattr(entry, "logprob_sum", None)
+        token_count = getattr(entry, "token_count", None)
+        if isinstance(entry, dict):
+            if logprob_sum is None:
+                logprob_sum = entry.get("logprob_sum") or entry.get("cumulative_logprob")
+            if token_count is None:
+                token_count = entry.get("token_count")
+        if logprob_sum is None or token_count is None:
+            return False
+    return True
 
 
 def score_model_outputs(
@@ -2303,12 +2505,12 @@ def _as_torch_tensor(
             payload = getattr(value, "data", value)
         try:
             tensor = ctor(payload)
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             tensor = ctor([])
     if dtype is not None:
         try:
             tensor = tensor.to(dtype=dtype)
-        except Exception:
+        except _SCORING_EXCEPTIONS:
             clone_fn = getattr(tensor, "clone", None)
             if callable(clone_fn):
                 tensor = clone_fn()
