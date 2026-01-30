@@ -104,15 +104,15 @@ def resolve_run_metadata(training_args: Any | None = None) -> Dict[str, str]:
 
 
 @lru_cache(maxsize=None)
-def _wandb_error_types() -> Tuple[type, ...]:
+def _wandb_error_types() -> Tuple[type[BaseException], ...]:
     """Return exception types that should be suppressed during W&B logging.
 
     :returns: Tuple of exception classes treated as non-fatal during W&B calls.
     :rtype: tuple[type, ...]
     """
 
-    base_exceptions: Tuple[type, ...] = (RuntimeError, ValueError)
-    error_list: list[type] = []
+    base_exceptions: Tuple[type[BaseException], ...] = (RuntimeError, ValueError)
+    error_list: list[type[BaseException]] = []
 
     modules = []
     if (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules) and "wandb.errors" not in sys.modules:

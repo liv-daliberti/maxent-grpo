@@ -10,111 +10,11 @@ this module by adding additional schema checks.
 from __future__ import annotations
 
 import warnings
-import importlib
-import inspect
 from dataclasses import MISSING, asdict, fields, is_dataclass
-from types import SimpleNamespace
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Sequence
 
-
-class _FallbackBaseModel:  # pragma: no cover - used when pydantic is missing
-    """Minimal stub for linting/optional pydantic environments."""
-
-    def __init__(self, **_kwargs: Any) -> None:
-        pass
-
-
-class _FallbackValidationError(Exception):
-    """Fallback when pydantic isn't importable."""
-
-
-class _FallbackUnsupportedFieldAttributeWarning(Warning):
-    """Fallback warning category when pydantic isn't importable."""
-
-
-def _fallback_field(default: Any = None, **_kwargs: Any) -> Any:
-    return default
-
-
-def _fallback_config_dict(**kwargs: Any) -> dict[str, Any]:
-    return dict(kwargs)
-
-
-def _fallback_model_validator(*_args: Any, **_kwargs: Any):
-    def _decorator(fn):
-        return fn
-
-    return _decorator
-
-
-def _build_model_validator_from_root(root_validator):
-    """Return a pydantic v1-compatible model_validator shim."""
-
-    def _invoke(fn, values: dict[str, Any]):
-        try:
-            sig = inspect.signature(fn)
-        except (TypeError, ValueError):
-            return fn(SimpleNamespace(**values))
-        params = list(sig.parameters.values())
-        if len(params) == 1:
-            return fn(SimpleNamespace(**values))
-        return fn(None, values)
-
-    def _adapter(*_args: Any, mode: str = "after", **_kwargs: Any):
-        def _decorator(fn):
-            def _root_validator(_cls, values):
-                if mode == "before":
-                    result = _invoke(fn, values)
-                    return result if isinstance(result, dict) else values
-                result = _invoke(fn, values)
-                return result if isinstance(result, dict) else values
-
-            return root_validator(pre=(mode == "before"), skip_on_failure=True)(
-                _root_validator
-            )
-
-        return _decorator
-
-    return _adapter
-
-
-def _load_pydantic():
-    try:
-        return importlib.import_module("pydantic")
-    except ImportError:
-        return None
-
-
-_PYDANTIC = _load_pydantic()
-BaseModel = _FallbackBaseModel
-ConfigDict = _fallback_config_dict
-Field = _fallback_field
-PositiveInt = int
-ValidationError = _FallbackValidationError
-model_validator = _fallback_model_validator
-if _PYDANTIC is not None:
-    BaseModel = getattr(_PYDANTIC, "BaseModel", _FallbackBaseModel)
-    ConfigDict = getattr(_PYDANTIC, "ConfigDict", _fallback_config_dict)
-    Field = getattr(_PYDANTIC, "Field", _fallback_field)
-    PositiveInt = getattr(_PYDANTIC, "PositiveInt", int)
-    ValidationError = getattr(_PYDANTIC, "ValidationError", _FallbackValidationError)
-    model_validator = getattr(_PYDANTIC, "model_validator", None)
-    if model_validator is None:
-        root_validator_fn = getattr(_PYDANTIC, "root_validator", None)
-        if root_validator_fn is not None:
-            model_validator = _build_model_validator_from_root(root_validator_fn)
-        else:
-            model_validator = _fallback_model_validator
-
-try:
-    _pydantic_warnings = importlib.import_module("pydantic.warnings")
-    UnsupportedFieldAttributeWarning = getattr(
-        _pydantic_warnings,
-        "UnsupportedFieldAttributeWarning",
-        _FallbackUnsupportedFieldAttributeWarning,
-    )
-except ImportError:
-    UnsupportedFieldAttributeWarning = _FallbackUnsupportedFieldAttributeWarning
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, ValidationError, model_validator
+from pydantic.warnings import UnsupportedFieldAttributeWarning
 
 from maxent_grpo.config import GRPOConfig
 from maxent_grpo.pipelines.math_inference import resolve_inference_dataset
@@ -128,7 +28,7 @@ __all__ = [
 warnings.filterwarnings("ignore", category=UnsupportedFieldAttributeWarning)
 
 
-def _field_default(field) -> Any:
+def _field_default(field: Any) -> Any:
     if field.default is not MISSING:
         return field.default
     if field.default_factory is not MISSING:  # type: ignore[attr-defined]
@@ -286,7 +186,7 @@ def _info_seed_overrides(values: Mapping[str, Any]) -> dict[str, Any]:
 def _payload_mapping(payload: Any) -> MutableMapping[str, Any]:
     if isinstance(payload, Mapping):
         return {key: payload[key] for key in payload}
-    if is_dataclass(payload):
+    if is_dataclass(payload) and not isinstance(payload, type):
         return asdict(payload)
     if hasattr(payload, "__dict__"):
         return dict(payload.__dict__)
@@ -310,7 +210,7 @@ def _command_hint(command: str, source: str | None = None) -> str:
     return " | ".join(hints)
 
 
-def _format_validation_errors(errors: list[dict[str, Any]]) -> str:
+def _format_validation_errors(errors: Sequence[Mapping[str, Any]]) -> str:
     parts = []
     for error in errors:
         loc = error.get("loc") or ()

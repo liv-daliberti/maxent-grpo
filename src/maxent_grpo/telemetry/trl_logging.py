@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast, TYPE_CHECKING
 
 try:  # Optional dependency for callback-based logging patch
-    from transformers import TrainerCallback
+    from transformers.trainer_callback import TrainerCallback
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
     TrainerCallback = None
 
@@ -30,7 +30,7 @@ def _numeric_or_none(value: Any) -> Optional[float]:
         item_fn = getattr(value, "item", None)
         if callable(item_fn):
             try:
-                candidate = float(item_fn())
+                candidate = float(cast(Any, item_fn)())
             except (TypeError, ValueError):
                 return None
         else:
@@ -71,7 +71,15 @@ def _fix_clipped_ratio(metrics: Dict[str, Any], args: Any) -> None:
         metrics[key.replace("clipped_ratio", "clipped_frac")] = max(0.0, min(1.0, val))
 
 
-class _WeightingLogCallback(TrainerCallback if TrainerCallback is not None else object):
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from transformers.trainer_callback import TrainerCallback as _TrainerCallback
+
+    _WeightingLogCallbackBase = _TrainerCallback
+else:
+    _WeightingLogCallbackBase = TrainerCallback if TrainerCallback is not None else object
+
+
+class _WeightingLogCallback(_WeightingLogCallbackBase):
     """Normalize/log metrics even if a trainer bypasses the log override."""
 
     def on_log(self, args, state, control, logs=None, **kwargs):  # type: ignore[override]
@@ -262,47 +270,6 @@ def _normalize_prefixes(
     return out
 
 
-def patch_trl_grpo_clipped_ratio() -> bool:
-    """Best-effort monkeypatch to sanitize GRPOTrainer logs even if unwrapped.
-
-    When users invoke TRL's GRPOTrainer directly (bypassing ensure_weighting_logging),
-    this patch adjusts the ``log`` method so negative ``completions/clipped_ratio``
-    counts are clamped and renamed to ``clipped_frac`` before they are emitted.
-
-    :returns: ``True`` when the patch is active (or already applied), ``False`` otherwise.
-    :rtype: bool
-    """
-
-    try:
-        import trl.trainer.grpo_trainer as grpo_mod  # type: ignore
-    except (ImportError, ModuleNotFoundError, AttributeError):
-        return False
-    trainer_cls = getattr(grpo_mod, "GRPOTrainer", None)
-    if not isinstance(trainer_cls, type):
-        return False
-    if getattr(trainer_cls, "_MAXENT_CLIPPED_RATIO_PATCH", False):
-        return True
-    orig_log = getattr(trainer_cls, "log", None)
-    if not callable(orig_log):
-        return False
-
-    def _patched_log(self, logs: Dict[str, Any], *args: Any, **kwargs: Any):
-        merged = dict(logs or {})
-        _fix_clipped_ratio(merged, getattr(self, "args", None))
-        _fix_clipped_ratio_metrics(self)
-        return orig_log(self, merged, *args, **kwargs)
-
-    trainer_cls.log = _patched_log  # type: ignore[assignment]
-    setattr(trainer_cls, "_MAXENT_CLIPPED_RATIO_PATCH", True)
-    return True
-
-
-# Attempt the global patch once on import; ignore failures so environments
-# without TRL remain unaffected.
-try:  # pragma: no cover - exercised in dedicated tests
-    patch_trl_grpo_clipped_ratio()
-except (ImportError, ModuleNotFoundError, AttributeError) as exc:
-    LOG.debug("Skipping TRL clipped_ratio patch: %s", exc)
 
 
 class _WeightingMetricHelper:
@@ -336,10 +303,9 @@ class _WeightingMetricHelper:
             if beta_val is not None:
                 return beta_val
         args = getattr(trainer, "args", self._args)
-        for init_field in ("init_kl_coef", "init_kl_coeff"):
-            init_val = _numeric_or_none(getattr(args, init_field, None))
-            if init_val is not None:
-                return init_val
+        beta_arg = _numeric_or_none(getattr(args, "beta", None))
+        if beta_arg is not None:
+            return beta_arg
         return 0.0
 
     def metrics_for_trainer(self, trainer: Any) -> Dict[str, float]:
@@ -489,9 +455,13 @@ class _WeightingMetricHelper:
                 "train/meta/beta_projected": 0.0,
             }
         )
-        return {
-            k: float(v) for k, v in metrics.items() if _numeric_or_none(v) is not None
-        }
+        sanitized: Dict[str, float] = {}
+        for key, val in metrics.items():
+            val_num = _numeric_or_none(val)
+            if val_num is None:
+                continue
+            sanitized[key] = float(val_num)
+        return sanitized
 
 
 class _WeightingLoggingMixin:
@@ -531,7 +501,7 @@ class _WeightingLoggingMixin:
         # reintroduce negative clipped_ratio values.
         _fix_clipped_ratio_metrics(self)
         normalized = _normalize_prefixes(merged, is_eval=False)
-        return super().log(normalized, *args, **kwargs)
+        return cast(Any, super()).log(normalized, *args, **kwargs)
 
 
 def ensure_weighting_logging(trainer_cls: type) -> type:
@@ -627,4 +597,4 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
     return WeightingLoggedTrainer
 
 
-__all__ = ["ensure_weighting_logging", "patch_trl_grpo_clipped_ratio"]
+__all__ = ["ensure_weighting_logging"]

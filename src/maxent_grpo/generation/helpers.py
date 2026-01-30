@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from argparse import Namespace
-from typing import Any, Callable, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from maxent_grpo.generation.common import (
     AggregatedGenerationState,
@@ -33,7 +33,7 @@ from maxent_grpo.generation.common import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from distilabel.pipeline import Pipeline
+    from distilabel.pipeline import Pipeline  # type: ignore[reportMissingTypeStubs]
     from maxent_grpo.training.types import GenerationBatch, PromptCompletionBatch
 
 
@@ -165,7 +165,7 @@ def build_distilabel_pipeline(
     """
     if cfg is None:
         cfg = DistilabelPipelineConfig(**kwargs)
-    generation_kwargs = {"max_new_tokens": cfg.max_new_tokens}
+    generation_kwargs: Dict[str, float | int] = {"max_new_tokens": cfg.max_new_tokens}
     if cfg.temperature is not None:
         generation_kwargs["temperature"] = cfg.temperature
     if cfg.top_p is not None:

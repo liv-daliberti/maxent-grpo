@@ -64,9 +64,9 @@ def _maybe_create_deepspeed_plugin():
     ds_cfg: Dict[str, Any] = {}
     cfg_path = os.environ.get("ACCELERATE_CONFIG_FILE")
     if cfg_path and yaml is not None and os.path.isfile(cfg_path):
-        handled_exceptions: Tuple[type, ...] = (OSError, ValueError)
+        handled_exceptions: Tuple[type[BaseException], ...] = (OSError, ValueError)
         yaml_error = getattr(yaml, "YAMLError", None)
-        if isinstance(yaml_error, type):
+        if isinstance(yaml_error, type) and issubclass(yaml_error, BaseException):
             handled_exceptions = handled_exceptions + (yaml_error,)
         try:
             with open(cfg_path, "r", encoding="utf-8") as cfg_file:

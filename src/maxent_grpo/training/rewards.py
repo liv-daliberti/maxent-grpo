@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
 from maxent_grpo.generation import (
@@ -35,7 +35,7 @@ from maxent_grpo.generation.errors import (
 )
 from maxent_grpo.training.runtime import require_torch
 from .run_helpers import _group_softmax
-from maxent_grpo.rewards.basic import get_reward_funcs
+from maxent_grpo.rewards.basic import RewardConfig, get_reward_funcs
 from .types import (
     AdvantageStats,
     GenerationBatch,
@@ -48,6 +48,13 @@ from .types import (
 
 torch = require_torch("training")
 LOG = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    import torch as torch_types
+
+    TorchDevice = torch_types.device
+else:  # pragma: no cover - runtime uses optional torch stub
+    TorchDevice = Any
 
 
 def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optional[Any]]:
@@ -65,13 +72,12 @@ def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optiona
         if token_count is None:
             token_count = meta_entry.get("token_count") or meta_entry.get("num_tokens")
             if token_count is None:
-                tok_logs = meta_entry.get("token_logprobs") or meta_entry.get(
-                    "logprobs"
-                )
-                try:
-                    token_count = len(tok_logs)
-                except (TypeError, ValueError):
-                    token_count = None
+                tok_logs = meta_entry.get("token_logprobs") or meta_entry.get("logprobs")
+                if tok_logs is not None:
+                    try:
+                        token_count = len(tok_logs)
+                    except (TypeError, ValueError):
+                        token_count = None
     return logprob_sum, token_count
 
 
@@ -180,7 +186,7 @@ def compute_reward_totals(
 
 
 def reward_moments(
-    total_utils: List[float], device: torch.device
+    total_utils: List[float], device: TorchDevice
 ) -> Tuple[float, float]:
     """Compute reward mean/std on CPU or current accelerator device.
 
@@ -619,7 +625,7 @@ def _group_q_distribution(
 def compute_reward_statistics(
     gen_batch: GenerationBatch,
     reward_spec: RewardSpec,
-    device: torch.device,
+    device: TorchDevice,
     q_temperature: float,
     q_epsilon: float,
     controller_beta: Optional[float] = None,
@@ -641,9 +647,9 @@ def compute_reward_statistics(
     :type controller_beta: float | None
     :param controller_tau: Optional controller tau logged alongside q temp.
     :type controller_tau: float | None
-    :returns: Populated :class:`~training.types.RewardComputation` or ``None``
+    :returns: Populated :class:`~maxent_grpo.training.types.rewards.RewardComputation` or ``None``
         when inputs are empty.
-    :rtype: :class:`~training.types.RewardComputation` | None
+    :rtype: :class:`~maxent_grpo.training.types.rewards.RewardComputation` | None
     """
     grouped_comps = gen_batch.grouped_completions
     if not grouped_comps:
@@ -786,7 +792,7 @@ def load_reward_functions(
     else:
         reward_names = ["pure_accuracy_math"]
         weight_source = None
-    proxy = SimpleNamespace(reward_funcs=reward_names)
+    proxy = cast(RewardConfig, SimpleNamespace(reward_funcs=reward_names))
     reward_funcs = get_reward_funcs(proxy, None, tokenizer)
     reward_weights = weight_source
     if reward_weights is None or len(reward_weights) != len(reward_funcs):
@@ -841,7 +847,7 @@ def load_eval_reward_functions(
         else:
             reward_names = ["pure_accuracy_math"]
             weight_source = None
-    proxy = SimpleNamespace(reward_funcs=reward_names)
+    proxy = cast(RewardConfig, SimpleNamespace(reward_funcs=reward_names))
     reward_funcs = get_reward_funcs(proxy, None, tokenizer)
 
     reward_weights = weight_source

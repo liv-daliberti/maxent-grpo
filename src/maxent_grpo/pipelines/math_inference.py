@@ -47,6 +47,7 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
+    cast,
     Dict,
     Iterable,
     List,
@@ -76,10 +77,11 @@ if torch is not None and not hasattr(torch, "dtype"):
         torch = None
 
 if TYPE_CHECKING:  # pragma: no cover - import torch only for type checking
+    import torch as torch_mod
     from torch import Tensor
 
-    TorchDevice = torch.device
-    TorchDType = Optional[Union[str, torch.dtype]]
+    TorchDevice = torch_mod.device
+    TorchDType = Optional[Union[str, torch_mod.dtype]]
 else:
     if torch is not None:  # at runtime, prefer the real torch types when available
         Tensor = torch.Tensor
@@ -90,25 +92,32 @@ else:
         TorchDevice = Any
         TorchDType = Optional[Union[str, Any]]
 try:  # pragma: no cover - optional dependency for import-time availability
-    from transformers import (
-        AutoModelForCausalLM,
-        AutoTokenizer,
-        PreTrainedModel,
-    )
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers.modeling_utils import PreTrainedModel as _PreTrainedModel
 except (ImportError, ModuleNotFoundError):  # pragma: no cover
     AutoModelForCausalLM = None
     AutoTokenizer = None
+    _PreTrainedModel = Any
+
+if TYPE_CHECKING:
+    PreTrainedModel = _PreTrainedModel
+else:
     PreTrainedModel = Any
-    PreTrainedTokenizerBase = Any
 
 from maxent_grpo.rewards.basic import pure_accuracy_reward_math
 from maxent_grpo.pipelines.base import log_pipeline_banner
 
 try:  # pragma: no cover - optional dependency for import-time availability
-    from datasets import Dataset, load_dataset
+    from datasets import Dataset as _HFDataset, load_dataset as _load_dataset  # type: ignore
 except (ImportError, ModuleNotFoundError):  # pragma: no cover
+    _HFDataset = Any
+    _load_dataset = None
+
+if TYPE_CHECKING:
+    Dataset = _HFDataset
+else:
     Dataset = Any
-    load_dataset = None
+load_dataset = _load_dataset
 
 
 LOG = logging.getLogger(__name__)
@@ -161,9 +170,11 @@ class PromptRunner(Protocol):
         May return a flat list of strings (one per prompt) or a nested list when
         multiple generations per prompt are produced.
         """
+        raise NotImplementedError
 
     def close(self) -> None:
         """Release any resources attached to the runner (optional hook)."""
+        raise NotImplementedError
 
 
 RunnerFactory = Callable[["InferenceModelSpec"], PromptRunner]
@@ -279,12 +290,13 @@ class _InferenceArtifactLogger:
         dataset_id: str,
         seed: int,
     ):
-        self.enabled = bool(config and config.enabled)
         self._config = config
         self._handle = None
         self._existing: Dict[int, Dict[str, Any]] = {}
-        if not self.enabled:
+        if config is None or not config.enabled:
+            self.enabled = False
             return
+        self.enabled = True
         root = Path(config.root_dir).expanduser()
         model_path = Path(spec.model_name_or_path)
         # Prefer the model directory itself as the family for checkpoint paths
@@ -340,7 +352,7 @@ class _InferenceArtifactLogger:
             self._handle = None
 
     def completed_indices(self) -> Sequence[int]:
-        return self._existing.keys()
+        return list(self._existing.keys())
 
     def get_existing(self, idx: int) -> Optional[Dict[str, Any]]:
         return self._existing.get(idx)
@@ -400,7 +412,7 @@ class MathInferenceResult:
     correct: int
     accuracy: float
     label: str
-    generations: Optional[List[str]] = None
+    generations: Optional[List[List[str]]] = None
     pass_at_1: float = 0.0
     pass_at_k: float = 0.0
     avg_pass_at_1: float = 0.0
@@ -518,7 +530,7 @@ def load_math_dataset(cfg: MathEvalConfig) -> Dataset:
         cfg.dataset_config,
         cfg.split,
     )
-    return load_dataset(cfg.dataset_name, cfg.dataset_config, split=cfg.split)
+    return cast(Dataset, load_dataset(cfg.dataset_name, cfg.dataset_config, split=cfg.split))
 
 
 def _format_dataset_label(cfg: MathEvalConfig) -> str:
@@ -717,13 +729,15 @@ def _normalize_dtype(value: TorchDType) -> TorchDType:
     :returns: Normalized dtype or original value when unrecognized.
     """
 
-    if value is None or isinstance(value, torch.dtype):
+    if value is None:
+        return value
+    if torch is not None and isinstance(value, torch.dtype):
         return value
     if isinstance(value, str):
         norm = value.strip().lower()
         if norm in {"auto", ""}:
             return "auto"
-        if hasattr(torch, norm):
+        if torch is not None and hasattr(torch, norm):
             return getattr(torch, norm)
     return value
 
@@ -811,14 +825,21 @@ class TransformersPromptRunner(PromptRunner):
             cache_dir,
         )
         model_start = time.time()
-        self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-            spec.model_name_or_path,
-            **model_kwargs,
+        self.model = cast(
+            PreTrainedModel,
+            AutoModelForCausalLM.from_pretrained(
+                spec.model_name_or_path,
+                **model_kwargs,
+            ),
         )
         # When using device_map, trust HF placement and avoid an extra .to().
         if model_kwargs.get("device_map") is None:
-            self.model.to(self.device)
-        self.model.eval()
+            model_to = getattr(self.model, "to", None)
+            if callable(model_to):
+                model_to(self.device)
+        model_eval = getattr(self.model, "eval", None)
+        if callable(model_eval):
+            model_eval()
         param_count = None
         try:
             if hasattr(self.model, "num_parameters"):
@@ -838,7 +859,9 @@ class TransformersPromptRunner(PromptRunner):
                 self.tokenizer.add_special_tokens({"pad_token": "<|pad|>"})
                 eos_id = self.tokenizer.pad_token_id
                 # Update embedding table if tokenizer size changed.
-                self.model.resize_token_embeddings(len(self.tokenizer))
+                resize_fn = getattr(self.model, "resize_token_embeddings", None)
+                if callable(resize_fn):
+                    resize_fn(len(self.tokenizer))
             self.tokenizer.pad_token_id = eos_id
         if self.tokenizer.pad_token is None and self.tokenizer.eos_token:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -892,6 +915,12 @@ class TransformersPromptRunner(PromptRunner):
         # Stub path for tests without real models/tokenizers.
         if not hasattr(self.model, "config"):
             return [str(42 + i) for i, _ in enumerate(problems)]
+        if torch is None:  # pragma: no cover - guard for optional dependency
+            raise ImportError("torch is required for TransformersPromptRunner")
+
+        generate_fn = getattr(self.model, "generate", None)
+        if not callable(generate_fn):
+            raise AttributeError("Model does not support generate()")
 
         # Stage 1: produce a single <think> per problem.
         think_prompts = [
@@ -920,7 +949,7 @@ class TransformersPromptRunner(PromptRunner):
             think_kwargs["top_p"] = self.spec.top_p
         think_kwargs.update(self.spec.generation_kwargs)
         with torch.no_grad():
-            think_generated = self.model.generate(**think_encoded, **think_kwargs)
+            think_generated = generate_fn(**think_encoded, **think_kwargs)
         think_token_counts = think_encoded["attention_mask"].sum(dim=1)
         think_texts: List[str] = []
         for row, prompt_len in zip(think_generated, think_token_counts):
@@ -966,7 +995,7 @@ class TransformersPromptRunner(PromptRunner):
                 answer_kwargs["top_p"] = self.spec.top_p
             answer_kwargs.update(self.spec.generation_kwargs)
             with torch.no_grad():
-                ans_generated = self.model.generate(**answer_encoded, **answer_kwargs)
+                ans_generated = generate_fn(**answer_encoded, **answer_kwargs)
             # Stub path: if generate returns plain token id lists, take the last token.
             # Handle stubbed runners that return nested Python lists without torch tensors.
             if isinstance(ans_generated, list) and ans_generated and all(
@@ -1080,7 +1109,7 @@ def run_math_inference(
         },
     )
     raw_dataset = dataset if dataset is not None else load_math_dataset(cfg)
-    examples = _prepare_examples(raw_dataset, cfg, limit)
+    examples = _prepare_examples(cast(Iterable[Dict[str, Any]], raw_dataset), cfg, limit)
     problems = [pair[0] for pair in examples]
     answers = [pair[1] for pair in examples]
     dataset_slug = dataset_id or cfg.dataset_name or "dataset"

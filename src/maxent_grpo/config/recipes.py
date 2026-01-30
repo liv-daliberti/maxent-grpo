@@ -24,103 +24,19 @@ limitations under the License.
 
 from __future__ import annotations
 
-import importlib
 import os
-import inspect
 import sys
 import logging
 from dataclasses import fields
-from types import SimpleNamespace
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type, cast
 from urllib.parse import urlparse
+
+from pydantic import BaseModel, ConfigDict, PositiveInt, ValidationError, model_validator
 
 from .grpo import GRPOConfig, GRPOScriptArguments
 from .defaults import INFO_SEED_DEFAULTS
 
 LOG = logging.getLogger(__name__)
-
-class _FallbackBaseModel:  # pragma: no cover - used when pydantic is missing
-    """Minimal stub for linting/optional pydantic environments."""
-
-    def __init__(self, **_kwargs: Any) -> None:
-        LOG.debug("Using fallback pydantic BaseModel stub; kwargs ignored.")
-
-
-class _FallbackValidationError(Exception):
-    """Fallback when pydantic isn't importable."""
-
-
-def _fallback_field(default: Any = None, **_kwargs: Any) -> Any:
-    return default
-
-
-def _fallback_config_dict(**kwargs: Any) -> dict[str, Any]:
-    return dict(kwargs)
-
-
-def _fallback_model_validator(*_args: Any, **_kwargs: Any):
-    def _decorator(fn):
-        return fn
-
-    return _decorator
-
-
-def _build_model_validator_from_root(root_validator):
-    """Return a pydantic v1-compatible model_validator shim."""
-
-    def _invoke(fn, values: dict[str, Any]):
-        try:
-            sig = inspect.signature(fn)
-        except (TypeError, ValueError):
-            return fn(SimpleNamespace(**values))
-        params = list(sig.parameters.values())
-        if len(params) == 1:
-            return fn(SimpleNamespace(**values))
-        return fn(None, values)
-
-    def _adapter(*_args: Any, mode: str = "after", **_kwargs: Any):
-        def _decorator(fn):
-            def _root_validator(_cls, values):
-                if mode == "before":
-                    result = _invoke(fn, values)
-                    return result if isinstance(result, dict) else values
-                result = _invoke(fn, values)
-                return result if isinstance(result, dict) else values
-
-            return root_validator(pre=(mode == "before"), skip_on_failure=True)(
-                _root_validator
-            )
-
-        return _decorator
-
-    return _adapter
-
-
-def _load_pydantic():
-    try:
-        return importlib.import_module("pydantic")
-    except ImportError:
-        return None
-
-
-_PYDANTIC = _load_pydantic()
-BaseModel = _FallbackBaseModel
-ConfigDict = _fallback_config_dict
-PositiveInt = int
-ValidationError = _FallbackValidationError
-model_validator = _fallback_model_validator
-if _PYDANTIC is not None:
-    BaseModel = getattr(_PYDANTIC, "BaseModel", _FallbackBaseModel)
-    ConfigDict = getattr(_PYDANTIC, "ConfigDict", _fallback_config_dict)
-    PositiveInt = getattr(_PYDANTIC, "PositiveInt", int)
-    ValidationError = getattr(_PYDANTIC, "ValidationError", _FallbackValidationError)
-    model_validator = getattr(_PYDANTIC, "model_validator", None)
-    if model_validator is None:
-        root_validator_fn = getattr(_PYDANTIC, "root_validator", None)
-        if root_validator_fn is not None:
-            model_validator = _build_model_validator_from_root(root_validator_fn)
-        else:
-            model_validator = _fallback_model_validator
 
 try:  # pragma: no cover - optional dependency
     from omegaconf import OmegaConf
@@ -145,19 +61,11 @@ class _BaseRecipeSchema(BaseModel):
 class _BaselineRecipeSchema(_BaseRecipeSchema):
     train_grpo_objective: bool
     beta: Optional[float] = None
-    init_kl_coeff: Optional[float] = None
-    init_kl_coef: Optional[float] = None
-    kl_penalty_beta: Optional[float] = None
 
     @model_validator(mode="after")
     def _ensure_beta_alias(self) -> "_BaselineRecipeSchema":
-        if not any(
-            getattr(self, alias, None) is not None
-            for alias in ("beta", "init_kl_coeff", "init_kl_coef", "kl_penalty_beta")
-        ):
-            raise ValueError(
-                "Recipe must define beta/init_kl_coeff/init_kl_coef/kl_penalty_beta"
-            )
+        if self.beta is None:
+            raise ValueError("Recipe must define beta")
         return self
 
 
@@ -209,7 +117,7 @@ def _infer_recipe_kind(recipe_path: Optional[str], payload: Dict[str, Any]) -> s
     return "baseline"
 
 
-def _format_recipe_errors(errors: list[Dict[str, Any]]) -> str:
+def _format_recipe_errors(errors: Sequence[Mapping[str, Any]]) -> str:
     parts = []
     for error in errors:
         loc = error.get("loc") or ()
@@ -247,11 +155,7 @@ def _dataclass_field_names(cls: Type[Any]) -> set[str]:
     :returns: Set of field names defined on the dataclass.
     """
 
-    names = {f.name for f in fields(cls)}
-    # Legacy compatibility: reward fields have lived on script args historically.
-    if cls.__name__ == "GRPOScriptArguments":
-        names |= {"reward_funcs", "reward_weights"}
-    return names
+    return {f.name for f in fields(cls)}
 
 
 def _split_recipe_payload(
@@ -268,49 +172,20 @@ def _split_recipe_payload(
     script_fields = _dataclass_field_names(GRPOScriptArguments)
     training_fields = _dataclass_field_names(GRPOConfig)
     model_fields = set(getattr(model_cls, "__dataclass_fields__", {}).keys())
-    # Compatibility: reward fields historically lived on script_args; route them there.
-    _compat_script_only = {"reward_funcs", "reward_weights"}
-
     script_kwargs: Dict[str, Any] = {}
     training_kwargs: Dict[str, Any] = {}
     model_kwargs: Dict[str, Any] = {}
     other_kwargs: Dict[str, Any] = {}
     # Collect fields into the appropriate bucket.
     for key, value in payload.items():
-        if key in _compat_script_only:
-            script_kwargs[key] = value
-        elif key in script_fields:
+        if key in script_fields:
             script_kwargs[key] = value
         elif key in training_fields:
-            if key == "beta":
-                # Route beta to passthrough to keep recipes neutral; aliases are mapped later.
-                other_kwargs[key] = value
-                continue
             training_kwargs[key] = value
         elif not model_fields or key in model_fields:
             model_kwargs[key] = value
         else:
             other_kwargs[key] = value
-
-    # Ensure reward knobs always live on script args even if present on training.
-    for reward_field in ("reward_funcs", "reward_weights"):
-        if reward_field in training_kwargs and reward_field not in script_kwargs:
-            script_kwargs[reward_field] = training_kwargs.pop(reward_field)
-
-    # Map KL aliases used in recipes into the trainer's ``beta`` field so
-    # TRL's controller receives the intended value. Consume aliases even if
-    # they are not selected.
-    if "beta" not in training_kwargs:
-        for alias in ("init_kl_coeff", "init_kl_coef", "kl_penalty_beta"):
-            if alias in training_kwargs:
-                training_kwargs["beta"] = training_kwargs[alias]
-                break
-            if alias in other_kwargs:
-                training_kwargs["beta"] = other_kwargs[alias]
-                break
-    for alias in ("init_kl_coeff", "init_kl_coef", "kl_penalty_beta"):
-        training_kwargs.pop(alias, None)
-        other_kwargs.pop(alias, None)
 
     return script_kwargs, training_kwargs, model_kwargs, other_kwargs
 
@@ -383,7 +258,8 @@ def load_grpo_recipe(
     if not isinstance(cfg, dict):
         raise ValueError(f"Recipe {recipe_path} did not resolve to a mapping.")
 
-    _validate_recipe_payload(cfg, resolved_path)
+    cfg_payload = cast(Dict[str, Any], cfg)
+    _validate_recipe_payload(cfg_payload, resolved_path)
 
     # Persist the resolved path so downstream logging can surface it consistently.
     os.environ.setdefault("GRPO_RECIPE_USED", resolved_path)
@@ -393,21 +269,11 @@ def load_grpo_recipe(
         training_kwargs,
         model_kwargs,
         other_kwargs,
-    ) = _split_recipe_payload(cfg, model_config_cls)
+    ) = _split_recipe_payload(cfg_payload, model_config_cls)
     _maybe_infer_vllm_server_overrides(training_kwargs)
     for key, default_val in INFO_SEED_DEFAULTS.items():
         training_kwargs.setdefault(key, other_kwargs.get(key, default_val))
-    compat_overrides = {
-        key: script_kwargs.pop(key)
-        for key in ("reward_funcs", "reward_weights")
-        if key in script_kwargs
-    }
     script_args = GRPOScriptArguments(**script_kwargs)
-    for key, value in compat_overrides.items():
-        setattr(script_args, key, value)
-    for key in ("reward_funcs", "reward_weights"):
-        if key in training_kwargs:
-            setattr(script_args, key, training_kwargs[key])
     env_log_level = os.environ.get("MAXENT_LOG_LEVEL")
     if env_log_level:
         training_kwargs["log_level"] = env_log_level

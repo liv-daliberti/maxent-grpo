@@ -39,7 +39,7 @@ import logging
 import sys
 import math
 import json
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
 
 from maxent_grpo.training.runtime.logging import _log_wandb
 from maxent_grpo.telemetry.trl_logging import _normalize_prefixes
@@ -148,7 +148,7 @@ def _log_debug_metrics(step: int, metrics: Dict[str, Any]) -> None:
 
 try:  # Optional dependency
     import wandb
-    from wandb.errors import Error as WandbError
+    from wandb.errors import Error as WandbError  # type: ignore[reportMissingTypeStubs]
 except ImportError:  # pragma: no cover - optional logging backend
     wandb = None
 
@@ -202,6 +202,8 @@ def _gather_list_for_metrics(
     if not callable(gather_fn):
         return local
     gathered = gather_fn(local)
+    if not isinstance(gathered, list):
+        return local
     merged: List[float] = []
     for chunk in gathered:
         merged.extend(float(v) for v in chunk)
@@ -210,7 +212,7 @@ def _gather_list_for_metrics(
 
 def _gather_dict_of_lists_for_metrics(
     accelerator: Accelerator,
-    values: Dict[str, Sequence[float]],
+    values: Mapping[str, Sequence[float]],
     *,
     skip_global: bool = False,
 ) -> Dict[str, List[float]]:
@@ -219,7 +221,7 @@ def _gather_dict_of_lists_for_metrics(
     :param accelerator: Accelerate handle used for distributed comms.
     :type accelerator: Accelerator
     :param values: Mapping of metric name to local float sequence.
-    :type values: dict[str, Sequence[float]]
+    :type values: Mapping[str, Sequence[float]]
     :returns: Mapping where each metric key contains concatenated lists.
     :rtype: dict[str, list[float]]
     """
@@ -230,8 +232,12 @@ def _gather_dict_of_lists_for_metrics(
         return {key: [float(v) for v in seq] for key, seq in values.items()}
     payload = {key: [float(v) for v in seq] for key, seq in values.items()}
     gathered = gather_fn(payload)
+    if not isinstance(gathered, list):
+        return {key: [float(v) for v in seq] for key, seq in values.items()}
     merged: Dict[str, List[float]] = {}
     for shard in gathered:
+        if not isinstance(shard, dict):
+            continue
         for key, seq in shard.items():
             merged.setdefault(key, []).extend(float(v) for v in seq)
     return merged
@@ -586,12 +592,12 @@ def log_training_metrics(
 
 
 def _reward_component_stats(
-    per_reward_values: Dict[str, Sequence[float]],
+    per_reward_values: Mapping[str, Sequence[float]],
 ) -> Dict[str, RewardComponentStats]:
     """Convert raw reward samples into summary statistics.
 
     :param per_reward_values: Mapping of reward key to local samples.
-    :type per_reward_values: dict[str, Sequence[float]]
+    :type per_reward_values: Mapping[str, Sequence[float]]
     :returns: Mapping of reward key to mean/std dataclasses.
     :rtype: dict[str, RewardComponentStats]
     """

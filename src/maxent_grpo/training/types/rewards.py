@@ -17,7 +17,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, TypeAlias, cast
 
 from typing import TYPE_CHECKING
 
@@ -34,12 +35,12 @@ if TYPE_CHECKING:
     from .logging import LoggingHandles
     from .runtime import RewardSpec
 else:  # pragma: no cover - runtime imports are deferred in generation.helpers
-    Accelerator = Any
-    EvaluationSettings = Any
-    GenerationFn = Any
-    PreTrainedModel = Any
-    PreTrainedTokenizer = Any
-    Tensor = Any
+    Accelerator: TypeAlias = Any
+    EvaluationSettings: TypeAlias = Any
+    GenerationFn: TypeAlias = Any
+    PreTrainedModel: TypeAlias = Any
+    PreTrainedTokenizer: TypeAlias = Any
+    Tensor: TypeAlias = Any
     logging_stub = None
     try:
         from .runtime import torch
@@ -48,7 +49,7 @@ else:  # pragma: no cover - runtime imports are deferred in generation.helpers
         ImportError,
         ModuleNotFoundError,
     ):  # pragma: no cover - fallback when runtime not ready
-        torch = Any
+        torch = cast(Any, SimpleNamespace(Tensor=Any))
         RewardSpec = Any
     try:
         from .logging import LoggingHandles
@@ -192,13 +193,13 @@ class LossScalarBundle:
 class LossOutputs:
     """Loss terms computed for a batch."""
 
-    loss: torch.Tensor
+    loss: Tensor
     scalars: LossScalarBundle
     log_ratio_train: Tensor
     denom_tok_tensor: Tensor
-    seed_loss: Optional[torch.Tensor] = None
+    seed_loss: Optional[Tensor] = None
     seed_loss_scalar: Optional[float] = None
-    info_seed_entropy_term: Optional[torch.Tensor] = None
+    info_seed_entropy_term: Optional[Tensor] = None
     info_seed_entropy_scalar: Optional[float] = None
 
     @property

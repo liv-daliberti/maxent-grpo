@@ -22,18 +22,14 @@ helpers now live in :mod:`maxent_grpo.training.runtime.logging`.
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, List, Tuple, TYPE_CHECKING, cast
 
 from maxent_grpo.training.runtime import (
     PROMPT_CHAR_LIMIT,
     _TRUNC_STATE,
-    _build_torch_stub,
-    _import_module,
     _maybe_create_deepspeed_plugin,
-    _optional_dependency,
     _prompt_char_limit_from_tokens,
     _report_to_contains,
-    _require_dependency,
     _to_prompt,
     _wandb_error_types,
     truncate_prompt,
@@ -46,14 +42,11 @@ from maxent_grpo.training.runtime import (
     VLLMClientConfig,
     get_trl_prepare_deepspeed,
     require_accelerator,
+    require_dataloader,
     require_deepspeed,
     require_torch,
     require_transformer_base_classes,
 )
-from maxent_grpo.training.runtime import torch_utils as _torch_utils
-
-# Use the torch_utils implementation so tests can monkeypatch its importer.
-require_dataloader = _torch_utils.require_dataloader
 
 LOG = logging.getLogger(__name__)
 
@@ -61,22 +54,6 @@ if TYPE_CHECKING:  # pragma: no cover - type hints only
     from torch import Tensor
 else:  # pragma: no cover - runtime fallback
     Tensor = Any
-
-
-# Backwards compatibility for legacy imports that referenced the private alias.
-def _truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
-    # Keep the shared warning state in sync with the runtime.prompts module.
-    try:
-        from maxent_grpo.training.runtime import prompts as _prompts_mod
-
-        _prompts_mod.sync_trunc_state(_TRUNC_STATE)
-    except (ImportError, AttributeError):
-        LOG.debug("Skipping prompt truncation state sync; prompts module unavailable.")
-    truncated = truncate_prompt(prompt, char_limit)
-    _TRUNC_STATE["warned"] = getattr(_prompts_mod, "_TRUNC_STATE", _TRUNC_STATE).get(
-        "warned", _TRUNC_STATE.get("warned", False)
-    )
-    return truncated
 
 
 def _group_softmax(
@@ -88,13 +65,7 @@ def _group_softmax(
 
     if len(values) == 0:
         return []
-    torch_module = _require_dependency(
-        "torch",
-        (
-            "MaxEnt softmax weighting requires PyTorch. "
-            "Install it via `pip install torch`."
-        ),
-    )
+    torch_module = require_torch("softmax weighting")
     try:
         value_tensor = torch_module.tensor(
             values, dtype=getattr(torch_module, "float32", None)
@@ -130,9 +101,10 @@ def _group_softmax(
         except (ImportError, TypeError, ValueError):
             LOG.debug("Failed to coerce softmax probs to numpy array.")
     try:
-        probs = probs * (1.0 - eps * len(values)) + eps
-        probs = probs / probs.sum()
-        return probs.tolist()
+        probs_any = cast(Any, probs)
+        probs_any = probs_any * (1.0 - eps * len(values)) + eps
+        probs_any = probs_any / probs_any.sum()
+        return probs_any.tolist()
     except (TypeError, ValueError, ZeroDivisionError, OverflowError):
         try:
             # Fallback when probs is still a sequence, e.g., torch stub list.
@@ -214,7 +186,6 @@ __all__ = [
     "PROMPT_CHAR_LIMIT",
     "_TRUNC_STATE",
     "truncate_prompt",
-    "_truncate_prompt",
     "require_accelerator",
     "require_dataloader",
     "require_torch",
@@ -226,11 +197,7 @@ __all__ = [
     "_maybe_create_deepspeed_plugin",
     "_prepare_labels_for_ce",
     "_to_prompt",
-    "_import_module",
-    "_require_dependency",
-    "_optional_dependency",
     "_wandb_error_types",
     "_report_to_contains",
     "_prompt_char_limit_from_tokens",
-    "_build_torch_stub",
 ]

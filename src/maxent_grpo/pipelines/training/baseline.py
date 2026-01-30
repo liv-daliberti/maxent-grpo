@@ -48,6 +48,7 @@ from typing import (
     List,
     Union,
     Protocol,
+    cast,
     runtime_checkable,
     TYPE_CHECKING,
 )
@@ -58,7 +59,6 @@ from maxent_grpo.training.data import resolve_dataloader_kwargs
 from maxent_grpo.rewards.basic import get_reward_funcs as _compat_get_reward_funcs
 from maxent_grpo.core.data import get_dataset, load_dataset_split
 from maxent_grpo.core.model import get_model, get_tokenizer
-from maxent_grpo.patches.trl import ensure_vllm_group_port
 from maxent_grpo.training.runtime import log_run_header
 from maxent_grpo.training.runtime.prompts import (
     PROMPT_CHAR_LIMIT,
@@ -69,10 +69,7 @@ from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
 from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 
 if TYPE_CHECKING:
-    from trl import ModelConfig
-    from transformers import PreTrainedTokenizer
-else:
-    PreTrainedTokenizer = Any
+    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
 
 try:  # Expose a transformers handle for tests that monkeypatch logging.
     import transformers as transformers
@@ -81,7 +78,7 @@ except ImportError:  # pragma: no cover - optional dependency
     transformers.__spec__ = None
     transformers.__path__ = []
     trainer_utils = ModuleType("transformers.trainer_utils")
-    trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
+    setattr(trainer_utils, "get_last_checkpoint", lambda *_args, **_kwargs: None)
 tf_logging = SimpleNamespace(
     set_verbosity=lambda *args, **kwargs: None,
     enable_default_handler=lambda *args, **kwargs: None,
@@ -94,7 +91,7 @@ if "trainer_utils" not in locals():
         import transformers.trainer_utils as trainer_utils  # type: ignore
     except (ImportError, AttributeError):
         trainer_utils = ModuleType("transformers.trainer_utils")
-        trainer_utils.get_last_checkpoint = lambda *_args, **_kwargs: None
+        setattr(trainer_utils, "get_last_checkpoint", lambda *_args, **_kwargs: None)
 
 
 @contextmanager
@@ -112,7 +109,7 @@ def _force_vllm_dtype(training_args: GRPOConfig):
         return
 
     try:
-        import trl.trainer.grpo_trainer as grpo_mod
+        import trl.trainer.grpo_trainer as grpo_mod  # type: ignore[reportMissingTypeStubs]
         from vllm import LLM as _LLM
     except (ImportError, AttributeError, RuntimeError):
         # If vLLM/TRL isn't available, fall through without patching.
@@ -133,23 +130,27 @@ def _force_vllm_dtype(training_args: GRPOConfig):
         if orig_llm is not None:
             grpo_mod.LLM = orig_llm
     utils_module = ModuleType("transformers.utils")
-    utils_module.logging = tf_logging
-    transformers.trainer_utils = trainer_utils
-    transformers.utils = utils_module
+    setattr(utils_module, "logging", tf_logging)
+    setattr(transformers, "trainer_utils", trainer_utils)
+    setattr(transformers, "utils", utils_module)
     sys.modules.setdefault("transformers", transformers)
     sys.modules.setdefault("transformers.trainer_utils", trainer_utils)
     sys.modules.setdefault("transformers.utils", utils_module)
 
 
-if not hasattr(transformers, "set_seed"):
-    transformers.set_seed = lambda *_args, **_kwargs: None
-if not hasattr(transformers, "utils"):
-    transformers.utils = SimpleNamespace(
-        logging=SimpleNamespace(
-            set_verbosity=lambda *args, **kwargs: None,
-            enable_default_handler=lambda *args, **kwargs: None,
-            enable_explicit_format=lambda *args, **kwargs: None,
-        )
+if getattr(transformers, "set_seed", None) is None:
+    setattr(transformers, "set_seed", lambda *_args, **_kwargs: None)
+if getattr(transformers, "utils", None) is None:
+    setattr(
+        transformers,
+        "utils",
+        SimpleNamespace(
+            logging=SimpleNamespace(
+                set_verbosity=lambda *args, **kwargs: None,
+                enable_default_handler=lambda *args, **kwargs: None,
+                enable_explicit_format=lambda *args, **kwargs: None,
+            )
+        ),
     )
 
 LOG = logging.getLogger(__name__)
@@ -193,6 +194,7 @@ class ChatTemplate(Protocol):
         :returns: The templated conversation as text or token IDs.
         :rtype: str | list[int]
         """
+        raise NotImplementedError
 
 
 def _collect_dataset_columns(dataset: Any) -> Dict[str, List[str]]:
@@ -318,7 +320,10 @@ def run_baseline_training(
     # Import selected pieces lazily to keep module import light-weight
     import transformers as transformers_mod
     from transformers.trainer_utils import get_last_checkpoint
-    from trl import GRPOTrainer as _GRPOTrainer, get_peft_config as _get_peft_config
+    from trl import (  # type: ignore[reportMissingTypeStubs]
+        GRPOTrainer as _GRPOTrainer,
+        get_peft_config as _get_peft_config,
+    )
 
     override = getattr(sys.modules[__name__], "GRPOTrainerOverride", None)
     trainer_cls = override or _GRPOTrainer
@@ -329,13 +334,12 @@ def run_baseline_training(
 
     # Ensure TRL's VLLM client honours distributed port overrides before
     # the trainer instantiates it.
-    ensure_vllm_group_port()
 
     set_seed_fn = getattr(transformers_mod, "set_seed", None)
     if callable(set_seed_fn):
         set_seed_fn(training_args.seed)
     if not getattr(training_args, "return_reward", False):
-        training_args.return_reward = True
+        setattr(training_args, "return_reward", True)
     # Keep stop sequences aligned across train/eval and vLLM/HF generation.
     vllm_stops = getattr(training_args, "vllm_stop_sequences", None)
     if getattr(training_args, "gen_stop_sequences", None) in (None, []):
@@ -400,7 +404,7 @@ def run_baseline_training(
         )
     # Optional: datasets logging if available
     try:  # pragma: no cover - environment dependent
-        import datasets as _hf_datasets
+        import datasets as _hf_datasets  # type: ignore[reportMissingTypeStubs]
 
         _hf_datasets.utils.logging.set_verbosity(log_level)
     except (ImportError, ModuleNotFoundError, AttributeError) as exc:
@@ -452,13 +456,19 @@ def run_baseline_training(
     # Ensure PAD token exists (left padding recommended for causal LMs)
     if tokenizer.pad_token_id is None:
         if tokenizer.eos_token_id is not None:
-            tokenizer.pad_token = tokenizer.eos_token
+            eos_token = tokenizer.eos_token
+            if isinstance(eos_token, list):
+                eos_token = eos_token[0] if eos_token else None
+            if isinstance(eos_token, str):
+                tokenizer.pad_token = eos_token
         else:
             tokenizer.add_special_tokens({"pad_token": "[PAD]"})
-            if hasattr(model, "resize_token_embeddings"):
-                model.resize_token_embeddings(len(tokenizer))
-    if getattr(model.config, "pad_token_id", None) is None:
-        model.config.pad_token_id = tokenizer.pad_token_id
+            resize_fn = getattr(model, "resize_token_embeddings", None)
+            if callable(resize_fn):
+                resize_fn(len(tokenizer))
+    config = getattr(model, "config", None)
+    if config is not None and getattr(config, "pad_token_id", None) is None:
+        setattr(config, "pad_token_id", tokenizer.pad_token_id)
     try:
         tokenizer.padding_side = "left"
     except AttributeError as exc:
@@ -482,7 +492,7 @@ def run_baseline_training(
             prompt_col = "prompt"
         out = _to_prompt(
             ex,
-            tokenizer,
+            cast(Any, tokenizer),
             prompt_col,
             training_args.system_prompt,
             char_limit=char_limit,
@@ -572,7 +582,7 @@ def run_baseline_training(
                     prompt_col = "prompt"
                 out = _to_prompt(
                     ex,
-                    tokenizer,
+                    cast(Any, tokenizer),
                     prompt_col,
                     training_args.system_prompt,
                     char_limit=char_limit,
@@ -664,7 +674,7 @@ def run_baseline_training(
     if last_ckpt is not None:
         training_args.resume_from_checkpoint = last_ckpt
     else:
-        training_args.resume_from_checkpoint = False
+        training_args.resume_from_checkpoint = None
     train_result = trainer.train(resume_from_checkpoint=last_ckpt)
     if hasattr(trainer, "log_metrics"):
         trainer.log_metrics("train", train_result.metrics)

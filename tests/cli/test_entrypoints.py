@@ -53,7 +53,7 @@ def test_grpo_main_falls_back_to_hydra(monkeypatch):
 
 
 def test_maxent_main_runs_with_explicit_args(monkeypatch):
-    import maxent_grpo.maxent_grpo as maxent_mod
+    import maxent_grpo as maxent_mod
 
     called = {}
     maxent_stub = ModuleType("maxent_grpo.pipelines.training.maxent")
@@ -69,7 +69,7 @@ def test_maxent_main_runs_with_explicit_args(monkeypatch):
 
 
 def test_maxent_main_parses_args_when_missing(monkeypatch):
-    import maxent_grpo.maxent_grpo as maxent_mod
+    import maxent_grpo as maxent_mod
 
     called = {}
     maxent_stub = ModuleType("maxent_grpo.pipelines.training.maxent")
@@ -86,7 +86,7 @@ def test_maxent_main_parses_args_when_missing(monkeypatch):
 
 
 def test_maxent_main_falls_back_to_hydra(monkeypatch):
-    import maxent_grpo.maxent_grpo as maxent_mod
+    import maxent_grpo as maxent_mod
 
     monkeypatch.setattr(
         maxent_mod,

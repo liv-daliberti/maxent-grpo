@@ -28,7 +28,7 @@ from maxent_grpo.config.grpo import GRPOScriptArguments, GRPOConfig
 
 def test_dataclass_field_names():
     fields = _dataclass_field_names(GRPOScriptArguments)
-    assert "reward_funcs" in fields
+    assert "reward_funcs" not in fields
     assert "cosine_max_len" in fields
 
 
@@ -44,27 +44,10 @@ def test_split_recipe_payload_routes_fields():
         "extra": "x",
     }
     script, training, model, other = _split_recipe_payload(payload, _ModelCfg)
-    assert script == {"reward_funcs": ["foo"]}
-    assert training == {}
+    assert script == {}
+    assert training == {"reward_funcs": ["foo"], "beta": 0.2}
     assert model == {"model_name_or_path": "m", "trust_remote_code": True}
-    # beta is not a GRPOConfig field; expect it to remain passthrough.
-    assert other == {"beta": 0.2, "extra": "x"}
-
-
-def test_split_recipe_payload_maps_kl_alias_to_beta():
-    class _ModelCfg:
-        __dataclass_fields__ = {}
-
-    payload = {
-        "init_kl_coeff": 0.6,
-        "init_kl_coef": 0.7,  # later aliases should not override once mapped
-        "kl_penalty_beta": 0.8,
-    }
-    _script, training, _model, other = _split_recipe_payload(payload, _ModelCfg)
-    assert training.get("beta") == 0.6
-    # Aliases should be consumed during mapping.
-    assert all(alias not in training for alias in ("init_kl_coeff", "init_kl_coef"))
-    assert all(alias not in other for alias in ("init_kl_coeff", "init_kl_coef", "kl_penalty_beta"))
+    assert other == {"extra": "x"}
 
 
 def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):
@@ -94,6 +77,6 @@ def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):
     assert isinstance(args, GRPOScriptArguments)
     assert isinstance(cfg, GRPOConfig)
     assert isinstance(model_cfg, _ModelCfg)
-    assert args.reward_funcs == ["r1"]
+    assert cfg.reward_funcs == ["r1"]
     assert cfg.maxent_tau == 0.3
     assert model_cfg.kwargs["model_name_or_path"] == "repo/model"

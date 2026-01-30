@@ -40,7 +40,7 @@ def rtl(monkeypatch):
 
 def test_collect_batch_stats_prefers_vllm_metadata(monkeypatch, rtl):
     """When vLLM metadata covers all sequences we should skip local rescoring."""
-    pipeline = reload(import_module("training.pipeline"))
+    pipeline = reload(import_module("maxent_grpo.training.pipeline"))
 
     reward_comp = SimpleNamespace(
         ref_logprob_meta=[
@@ -464,7 +464,7 @@ def test_train_step_runs_optimizer_step_when_ready(monkeypatch, rtl):
 def test_pipeline_replay_logs_expected_metrics(monkeypatch):
     _load_run_setup(monkeypatch)
     rtl = reload(import_module("training.loop"))
-    pipeline_mod = reload(import_module("training.pipeline"))
+    pipeline_mod = reload(import_module("maxent_grpo.training.pipeline"))
     metrics_mod = reload(import_module("training.metrics"))
 
     class _Writer:

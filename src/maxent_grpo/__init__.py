@@ -26,23 +26,32 @@ from __future__ import annotations
 
 from importlib import import_module
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
 
-_LAZY_MODULES: Dict[str, str] = {
-    "cli": "maxent_grpo.cli",
-    "config": "maxent_grpo.config",
-    "core": "maxent_grpo.core",
-    "generation": "maxent_grpo.generation",
-    "inference": "maxent_grpo.inference",
-    "patches": "maxent_grpo.patches",
-    "pipelines": "maxent_grpo.pipelines",
-    "rewards": "maxent_grpo.rewards",
-    "telemetry": "maxent_grpo.telemetry",
-    "training": "maxent_grpo.training",
-    "generate": "maxent_grpo.generate",
-}
+__all__ = [
+    "cli",
+    "config",
+    "core",
+    "generation",
+    "patches",
+    "pipelines",
+    "rewards",
+    "telemetry",
+    "training",
+]
 
-__all__ = sorted(_LAZY_MODULES)
+_LAZY_MODULES: Dict[str, str] = {name: f"maxent_grpo.{name}" for name in __all__}
+
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from . import cli as cli
+    from . import config as config
+    from . import core as core
+    from . import generation as generation
+    from . import patches as patches
+    from . import pipelines as pipelines
+    from . import rewards as rewards
+    from . import telemetry as telemetry
+    from . import training as training
 
 
 def __getattr__(name: str) -> Any:

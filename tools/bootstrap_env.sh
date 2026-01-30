@@ -70,8 +70,6 @@ conda activate "$ENV_PREFIX"
 # Defensive: ensure pip stays inside this repo for caching/builds
 python -m pip install --upgrade pip
 
-echo "🔧 Patching TRL vllm_serve for logprob support"
-python "$ROOT_DIR/tools/patch_trl_vllm_serve.py"
 
 echo "✅ Done. Activate with: conda activate $ENV_PREFIX"
 echo "python:  $(which python)"

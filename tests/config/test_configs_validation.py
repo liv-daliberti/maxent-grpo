@@ -16,10 +16,6 @@ limitations under the License.
 Validation tests for configuration dataclasses in ``src/maxent_grpo/config``.
 """
 
-import importlib
-import sys
-from types import ModuleType, SimpleNamespace
-
 import pytest
 
 from maxent_grpo.config import (
@@ -83,33 +79,6 @@ def test_script_arguments_convert_mixture_to_dataclass():
     assert args.dataset_mixture.seed == 123
     assert args.dataset_mixture.test_split_size == 0.25
     assert len(args.dataset_mixture.datasets) == 2
-
-
-def test_dataset_module_prefers_trl_script_arguments_when_present(monkeypatch):
-    trl_stub = SimpleNamespace(
-        ScriptArguments=type("ScriptArguments", (), {}),
-        GRPOConfig=type("GRPOConfig", (), {}),
-    )
-    monkeypatch.setitem(sys.modules, "trl", trl_stub)
-    mod = importlib.reload(importlib.import_module("maxent_grpo.config.dataset"))
-    assert mod._BaseScriptArgs is trl_stub.ScriptArguments
-
-
-def test_grpo_config_sets_eval_strategy_alias(monkeypatch):
-    # Ensure the IntervalStrategy branch is exercised even when transformers is absent.
-    training_args_mod = ModuleType("transformers.training_args")
-
-    class _IntervalStrategy(str):
-        def __new__(cls, value):
-            return str.__new__(cls, value)
-
-    training_args_mod.IntervalStrategy = _IntervalStrategy
-    monkeypatch.setitem(sys.modules, "transformers", ModuleType("transformers"))
-    monkeypatch.setitem(sys.modules, "transformers.training_args", training_args_mod)
-
-    cfg = GRPOConfig(evaluation_strategy="steps")
-    assert isinstance(getattr(cfg, "eval_strategy"), _IntervalStrategy)
-    assert str(getattr(cfg, "eval_strategy")) == "steps"
 
 
 def test_grpo_config_accepts_maxent_knobs():

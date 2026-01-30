@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING, cast
 import sys
 
 from maxent_grpo.training.runtime import require_accelerator, require_torch
 
 torch = require_torch("generation_vllm_dist")
 Accelerator = require_accelerator("generation_vllm_dist")
+if TYPE_CHECKING:  # pragma: no cover - hints only
+    from accelerate import Accelerator as AcceleratorType  # type: ignore[reportMissingTypeStubs]
+else:  # pragma: no cover - runtime fallback
+    AcceleratorType = Any
 
 
 def _current_torch() -> Any:
@@ -24,7 +28,9 @@ def _current_torch() -> Any:
     return torch
 
 
-def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List[Any]]:
+def _gather_object_list(
+    accelerator: AcceleratorType, value: List[Any]
+) -> List[List[Any]]:
     """Gather python lists across ranks with Accelerate/torch fallbacks.
 
     :param accelerator: Accelerate instance providing distributed utilities.
@@ -36,7 +42,10 @@ def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List
     """
     gather_fn = getattr(accelerator, "gather_object", None)
     if callable(gather_fn):
-        return gather_fn(value)
+        gathered = gather_fn(value)
+        if isinstance(gathered, list):
+            return cast(List[List[Any]], gathered)
+        return [value]
     dist = getattr(_current_torch(), "distributed", None)
     if (
         dist is not None
@@ -46,14 +55,14 @@ def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List
         and dist.is_initialized()
     ):
         world_size = dist.get_world_size()
-        gathered: List[List[str]] = [[] for _ in range(world_size)]
-        dist.all_gather_object(gathered, value)
-        return gathered
+        gathered_lists: List[List[Any]] = [[] for _ in range(world_size)]
+        dist.all_gather_object(gathered_lists, value)
+        return gathered_lists
     return [value]
 
 
 def _scatter_object(
-    accelerator: Accelerator,
+    accelerator: AcceleratorType,
     input_list: Optional[List[Any]],
     *,
     src: int = 0,

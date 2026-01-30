@@ -17,12 +17,13 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 import logging
 import os
 import shutil
 import sys
 import inspect
-from typing import Any, Dict, Optional, Tuple, Protocol
+from typing import Any, Dict, Optional, Tuple, Protocol, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
 from .types import (
@@ -41,6 +42,10 @@ from .weighting.logic import (
 LOG = logging.getLogger(__name__)
 _checkpoint_log_once = {"config": False, "strategy": False, "steps": False}
 
+if TYPE_CHECKING:
+    from maxent_grpo.config import GRPOConfig as GRPOConfigType
+else:
+    GRPOConfigType = Any
 
 class ControllerPathsLike(Protocol):
     """Minimal controller path settings used by checkpoint helpers."""
@@ -51,13 +56,18 @@ class ControllerPathsLike(Protocol):
 class AcceleratorLike(Protocol):
     """Subset of Accelerator API used by training state utilities."""
 
-    is_main_process: bool
+    @property
+    def is_main_process(self) -> bool:
+        """Return True when on the main process."""
+        raise NotImplementedError
 
     def wait_for_everyone(self) -> None:
         """Synchronize all processes."""
+        raise NotImplementedError
 
-    def load_state(self, path: str) -> Any:
+    def load_state(self, input_dir: str, **kwargs: Any) -> Any:
         """Load accelerator state from ``path``."""
+        raise NotImplementedError
 
 
 def _is_safetensors_available() -> bool:
@@ -322,9 +332,12 @@ def _state_dict_has_zero_sized_tensors(state_dict: Optional[Dict[str, Any]]) -> 
     except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional runtime
         return False
     for value in state_dict.values():
-        if isinstance(value, torch.Tensor):
-            if value.numel() == 0:
-                return True
+        try:
+            is_tensor = isinstance(value, torch.Tensor)
+        except TypeError:
+            is_tensor = False
+        if is_tensor and value.numel() == 0:
+            return True
     # If there are no tensors (e.g., stubbed accelerators in tests), treat the
     # payload as non-indicative rather than invalid.
     return False
@@ -358,24 +371,45 @@ def _save_consolidated_hf_weights(
         raise TypeError("Model does not define save_pretrained()")
 
     save_kwargs: Dict[str, Any] = {}
-    if state_dict is not None and _callable_accepts_param(save_pretrained, "state_dict"):
+    if state_dict is not None:
         save_kwargs["state_dict"] = state_dict
-
     safetensors_ok = _is_safetensors_available()
-    if _callable_accepts_param(save_pretrained, "safe_serialization"):
-        save_kwargs["safe_serialization"] = bool(safetensors_ok)
+    save_kwargs["safe_serialization"] = bool(safetensors_ok)
+    save_kwargs["max_shard_size"] = max_shard_size
 
-    if _callable_accepts_param(save_pretrained, "max_shard_size"):
-        save_kwargs["max_shard_size"] = max_shard_size
+    def _try_save(kwargs: Dict[str, Any]) -> None:
+        save_pretrained(checkpoint_dir, **kwargs)
+
+    def _retry_without_kwargs(kwargs: Dict[str, Any]) -> None:
+        retry_kwargs = dict(kwargs)
+        last_exc: Optional[TypeError] = None
+        for key in ("max_shard_size", "safe_serialization", "state_dict"):
+            retry_kwargs.pop(key, None)
+            try:
+                _try_save(retry_kwargs)
+                return
+            except TypeError as exc:
+                last_exc = exc
+                continue
+        if last_exc is not None:
+            raise last_exc
+        raise TypeError("save_pretrained rejected provided kwargs")
 
     try:
-        save_pretrained(checkpoint_dir, **save_kwargs)
-    except (OSError, RuntimeError, TypeError, ValueError):
+        _try_save(save_kwargs)
+    except TypeError:
+        _retry_without_kwargs(save_kwargs)
+        return
+    except (OSError, RuntimeError, ValueError):
         if save_kwargs.get("safe_serialization") is True:
             retry_kwargs = dict(save_kwargs)
             retry_kwargs["safe_serialization"] = False
-            save_pretrained(checkpoint_dir, **retry_kwargs)
-            return
+            try:
+                _try_save(retry_kwargs)
+                return
+            except TypeError:
+                _retry_without_kwargs(retry_kwargs)
+                return
         raise
 
 
@@ -697,7 +731,7 @@ def build_checkpoint_saver(
             except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - accelerator dependent
                 LOG.warning("Failed to save accelerator state to %s: %s", checkpoint_dir, exc)
 
-        state_dict = None
+        state_dict: Optional[Dict[str, Any]] = None
         get_state_dict_fn = getattr(accelerator, "get_state_dict", None)
         if callable(get_state_dict_fn) and model is not None:
             # Needed for ZeRO-3/FSDP: gathers a full (saveable) state_dict.
@@ -721,14 +755,20 @@ def build_checkpoint_saver(
                         exc,
                     )
                     continue
-                if _state_dict_has_zero_sized_tensors(gathered):
+                state_dict_candidate = gathered if isinstance(gathered, Mapping) else None
+                if (
+                    state_dict_candidate is not None
+                    and not isinstance(state_dict_candidate, dict)
+                ):
+                    state_dict_candidate = dict(state_dict_candidate)
+                if _state_dict_has_zero_sized_tensors(state_dict_candidate):
                     LOG.warning(
                         "Accelerator returned an invalid consolidated state_dict for %s "
                         "(zero-sized tensors detected); trying fallback.",
                         checkpoint_dir,
                     )
                     continue
-                state_dict = gathered
+                state_dict = state_dict_candidate
                 break
         if getattr(accelerator, "is_main_process", True):
             model_to_save = model
@@ -792,7 +832,7 @@ def build_checkpoint_saver(
                     push_args.output_dir = checkpoint_dir
                     push_args.push_to_hub_revision = True
                     push_to_hub_revision(
-                        push_args,
+                        cast(GRPOConfigType, push_args),
                         extra_ignore_patterns=[],
                         include_checkpoints=True,
                     )
@@ -1028,7 +1068,7 @@ def maybe_checkpoint(
 
     :param logging_cfg: Logging handles containing checkpoint callbacks and
         scheduling knobs.
-    :type logging_cfg: training.types.LoggingHandles
+    :type logging_cfg: ~maxent_grpo.training.types.logging.LoggingHandles
     :param accelerator: Accelerate handle used for synchronization and
         main-process checks.
     :type accelerator: AcceleratorLike

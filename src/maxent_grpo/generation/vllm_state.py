@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from maxent_grpo.patches.vllm import VLLMLogprobResult
@@ -29,8 +29,10 @@ class _VLLMGenerationState:
     requested_n: int
     round_limit: int
     track_logprobs: bool
-    aggregated: List[List[str]] = None
-    aggregated_meta: Optional[List[List[Optional[VLLMLogprobResult]]]] = None
+    aggregated: List[List[str]] = field(init=False, default_factory=list)
+    aggregated_meta: Optional[List[List[Optional[VLLMLogprobResult]]]] = field(
+        init=False, default=None
+    )
 
     def __post_init__(self) -> None:
         """Initialize aggregate storage and validate prompt alignment."""

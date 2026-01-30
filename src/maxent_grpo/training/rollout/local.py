@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 import logging
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING, cast
 
 from maxent_grpo.training.runtime import require_torch, require_transformer_base_classes
 from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT, _truncate_prompt
@@ -15,6 +15,17 @@ LOG = logging.getLogger(__name__)
 
 torch = require_torch("generation")
 PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes("generation")
+
+if TYPE_CHECKING:
+    import torch as torch_types
+    from transformers.tokenization_utils import (  # type: ignore[reportPrivateImportUsage]
+        PreTrainedTokenizer as PreTrainedTokenizerType,
+    )
+
+    Tensor = torch_types.Tensor
+else:
+    PreTrainedTokenizerType = Any
+    Tensor = Any
 
 
 class LocalGenerationMixin:
@@ -83,9 +94,8 @@ class LocalGenerationMixin:
                 encoder_inputs = tokenizer(expanded_prompts)
             if hasattr(encoder_inputs, "to"):
                 encoder_inputs = encoder_inputs.to(self.ctx.device)
-            prompt_lengths = (
-                encoder_inputs["attention_mask"].sum(dim=1).detach().cpu().tolist()
-            )
+            mask = cast(Any, encoder_inputs["attention_mask"])
+            prompt_lengths = mask.sum(dim=1).detach().cpu().tolist()
             return encoder_inputs, prompt_lengths
 
         # Fallback for lightweight stubs that only provide ``decode``.
@@ -150,7 +160,8 @@ class LocalGenerationMixin:
             else:
                 # Fallback for lightweight stubs without generation support.
                 gen_out = encoder_inputs
-        return self._decode_sequences(gen_out, prompt_lengths, self.ctx.tokenizer)
+        gen_out_any = cast(Any, gen_out)
+        return self._decode_sequences(gen_out_any, prompt_lengths, self.ctx.tokenizer)
 
     def _generate_local(
         self,
@@ -219,9 +230,9 @@ class LocalGenerationMixin:
 
     @staticmethod
     def _decode_sequences(
-        sequences: torch.Tensor,
+        sequences: Any,
         prompt_lengths: List[int],
-        tokenizer: PreTrainedTokenizer,
+        tokenizer: PreTrainedTokenizerType,
     ) -> List[str]:
         """Decode model outputs into completion strings."""
         outputs: List[str] = []

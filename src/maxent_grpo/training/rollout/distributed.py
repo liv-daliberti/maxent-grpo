@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
-
-from maxent_grpo.utils.fallbacks import dist_with_fallback
+from typing import Any, List, Optional, TYPE_CHECKING, cast
 
 from maxent_grpo.training.runtime import require_accelerator, require_torch
 
 torch = require_torch("generation_comm")
 Accelerator = require_accelerator("generation_comm")
-dist = dist_with_fallback(getattr(torch, "distributed", None))
+dist = getattr(torch, "distributed", None)
+
+if TYPE_CHECKING:
+    from accelerate import Accelerator as AcceleratorType  # type: ignore[reportMissingTypeStubs]
+else:
+    AcceleratorType = Any
 
 
-def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List[Any]]:
+def _gather_object_list(
+    accelerator: AcceleratorType, value: List[Any]
+) -> List[List[Any]]:
     """Gather Python lists across ranks with graceful Accelerate fallbacks.
 
     :param accelerator: Accelerator providing collective utilities.
@@ -25,7 +30,7 @@ def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List
     """
     gather_fn = getattr(accelerator, "gather_object", None)
     if callable(gather_fn):
-        return gather_fn(value)
+        return cast(List[List[Any]], gather_fn(value))
     if dist is not None and dist.is_available() and dist.is_initialized():
         world_size = dist.get_world_size()
         gathered: List[List[str]] = [[] for _ in range(world_size)]
@@ -36,7 +41,7 @@ def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List
 
 
 def _broadcast_object_list(
-    accelerator: Accelerator, payload: List[Any], *, src: int = 0
+    accelerator: AcceleratorType, payload: List[Any], *, src: int = 0
 ) -> None:
     """Broadcast python objects even when Accelerate lacks the helper."""
     broadcast_fn = getattr(accelerator, "broadcast_object_list", None)
@@ -48,7 +53,7 @@ def _broadcast_object_list(
 
 
 def _scatter_object(
-    accelerator: Accelerator,
+    accelerator: AcceleratorType,
     input_list: Optional[List[Any]],
     *,
     src: int = 0,

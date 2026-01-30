@@ -10,8 +10,8 @@ from maxent_grpo.config.dataset import trl
 
 
 def test_grpo_config_eval_alias_sets_eval_strategy(monkeypatch):
-    """evaluation_strategy alias should populate eval_strategy when available."""
-    cfg = GRPOConfig(evaluation_strategy="steps")
+    """eval_strategy alias should populate eval_strategy when available."""
+    cfg = GRPOConfig(eval_strategy="steps")
     assert getattr(cfg, "eval_strategy", None) == "steps"
 
     # When IntervalStrategy is available, ensure conversion uses the enum type
@@ -27,14 +27,13 @@ def test_grpo_config_eval_alias_sets_eval_strategy(monkeypatch):
         "transformers.training_args",
         SimpleNamespace(IntervalStrategy=_Interval),
     )
-    cfg2 = GRPOConfig(evaluation_strategy=_Interval("epoch"))
+    cfg2 = GRPOConfig(eval_strategy=_Interval("epoch"))
     assert isinstance(cfg2.eval_strategy, _Interval)
     assert str(cfg2.eval_strategy) == "epoch"
 
 
 def test_grpo_script_arguments_defaults():
     args = GRPOScriptArguments(dataset_name="dummy")
-    assert args.reward_funcs == ["pure_accuracy_math"]
     assert args.dataset_prompt_column == "problem"
 
 

@@ -8,7 +8,7 @@ from types import ModuleType, SimpleNamespace
 
 
 def test_main_uses_parsed_args(monkeypatch):
-    module = importlib.reload(importlib.import_module("maxent_grpo.maxent_grpo"))
+    module = importlib.reload(importlib.import_module("maxent_grpo"))
 
     called = {}
 
@@ -38,7 +38,7 @@ def test_main_uses_parsed_args(monkeypatch):
 
 
 def test_main_fallbacks_to_hydra(monkeypatch):
-    module = importlib.reload(importlib.import_module("maxent_grpo.maxent_grpo"))
+    module = importlib.reload(importlib.import_module("maxent_grpo"))
 
     def _parse():
         raise ValueError("boom")

@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Compatibility patches for external libraries (TRL, vLLM, etc.).
+"""Helpers for external integrations (vLLM, etc.)."""
 
-The package centralizes monkey-patches needed for TRL/vLLM interoperability and
-re-exports the concrete patch modules for Sphinx autodoc.
-"""
+from . import vllm
 
-from . import trl, vllm
-
-__all__ = ["trl", "vllm"]
+__all__ = ["vllm"]

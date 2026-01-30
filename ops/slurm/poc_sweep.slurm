@@ -86,8 +86,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "[info] Patching TRL vllm_serve for logprob support"
-python "$ROOT_DIR/tools/patch_trl_vllm_serve.py"
 
 echo "[info] Starting vLLM on GPUs ${VLLM_GPU_IDS} (model=${VLLM_MODEL})"
 CUDA_VISIBLE_DEVICES="$VLLM_GPU_IDS" \

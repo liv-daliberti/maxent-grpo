@@ -22,8 +22,9 @@ import importlib
 import os
 import sys
 import types
+from contextlib import nullcontext
 from dataclasses import dataclass, field, is_dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, TypedDict, cast
 from collections.abc import Mapping
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
@@ -53,7 +54,9 @@ from maxent_grpo.pipelines.math_inference import (
 class _HydraStub:
     """Minimal Hydra-like stub used when hydra is absent."""
 
-    def main(self, *_args, **_kwargs):
+    def main(
+        self, *_args: Any, **_kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Return a decorator that forwards directly to the wrapped function.
 
         :param _args: Positional arguments ignored by the stub.
@@ -61,8 +64,8 @@ class _HydraStub:
         :returns: Decorator mimicking :func:`hydra.main`.
         """
 
-        def _decorator(fn):
-            def _wrapped(*_a, **_k):
+        def _decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+            def _wrapped(*_a: Any, **_k: Any) -> Any:
                 return fn(*_a, **_k)
 
             return _wrapped
@@ -70,32 +73,47 @@ class _HydraStub:
         return _decorator
 
 
-try:  # Optional dependency; provide stubs so linting/tests can import.
-    import hydra
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    import hydra  # type: ignore[reportMissingTypeStubs]
     from omegaconf import DictConfig, OmegaConf, open_dict
-except ImportError:  # pragma: no cover - hydra not installed in minimal envs
+else:
+    DictConfig: type[Any]
+    OmegaConf: type[Any]
+    open_dict: Any
+    try:  # Optional dependency; provide stubs so linting/tests can import.
+        import hydra  # type: ignore[reportMissingTypeStubs]
+        from omegaconf import DictConfig as _DictConfig
+        from omegaconf import OmegaConf as _OmegaConf
+        from omegaconf import open_dict as _open_dict
+    except ImportError:  # pragma: no cover - hydra not installed in minimal envs
+        hydra = _HydraStub()
 
-    hydra = _HydraStub()
+        class _DictConfigStub(dict):
+            """Minimal stub so type hints resolve without hydra installed."""
 
-    class DictConfig(dict):
-        """Minimal stub so type hints resolve without hydra installed."""
+        class _OmegaConfStub:
+            @staticmethod
+            def to_object(cfg: Any) -> Any:
+                return cfg
 
-    class OmegaConf:
-        @staticmethod
-        def to_object(cfg: Any) -> Any:
-            return cfg
+            @staticmethod
+            def to_yaml(cfg: Any) -> str:
+                return str(cfg)
 
-        @staticmethod
-        def to_yaml(cfg: Any) -> str:
-            return str(cfg)
+            @staticmethod
+            def create(payload: Any) -> Any:
+                return payload
 
-        @staticmethod
-        def create(payload: Any) -> Any:
-            return payload
+            @staticmethod
+            def structured(obj: Any) -> Any:
+                return obj
 
-        @staticmethod
-        def structured(obj: Any) -> Any:
-            return obj
+        _DictConfig = _DictConfigStub
+        _OmegaConf = _OmegaConfStub
+        _open_dict = nullcontext
+    DictConfig = _DictConfig
+    OmegaConf = _OmegaConf
+    open_dict = _open_dict
 
 
 class _FallbackModelConfig:
@@ -165,6 +183,29 @@ class GenerateCommand:
     """
 
     args: Dict[str, Any] = field(default_factory=dict)
+
+
+class _GenerationArgsRequired(TypedDict):
+    hf_dataset: str
+    model: str
+
+
+class _GenerationArgs(_GenerationArgsRequired, total=False):
+    hf_dataset_config: Optional[str]
+    hf_dataset_split: str
+    prompt_column: str
+    prompt_template: str
+    vllm_server_url: str
+    temperature: Optional[float]
+    top_p: Optional[float]
+    max_new_tokens: int
+    num_generations: int
+    input_batch_size: int
+    client_replicas: int
+    timeout: int
+    retries: int
+    hf_output_dataset: Optional[str]
+    private: bool
 
 
 @dataclass
@@ -294,17 +335,9 @@ def _build_grpo_configs(
         _apply_overrides(model_args, getattr(cmd, "model", None))
         return script_args, training_args, model_args
 
-    # Avoid parser conflicts by keeping reward-related flags on the training config.
-    training_payload = dict(cmd.training)
-    script_payload = dict(cmd.script)
-    if "reward_funcs" in script_payload and "reward_funcs" not in training_payload:
-        training_payload["reward_funcs"] = script_payload.pop("reward_funcs")
-    if "reward_weights" in script_payload and "reward_weights" not in training_payload:
-        training_payload["reward_weights"] = script_payload.pop("reward_weights")
-
     return (
-        GRPOScriptArguments(**script_payload),
-        GRPOConfig(**training_payload),
+        GRPOScriptArguments(**cmd.script),
+        GRPOConfig(**cmd.training),
         model_config_cls(**cmd.model),
     )
 
@@ -351,6 +384,16 @@ def _apply_overrides(target: Any, overrides: Optional[Dict[str, Any]]) -> Any:
     return target
 
 
+def _payload_mapping(payload: Any) -> Dict[str, Any]:
+    if isinstance(payload, Mapping):
+        return dict(payload)
+    if is_dataclass(payload) and not isinstance(payload, type):
+        return dict(payload.__dict__)
+    if hasattr(payload, "__dict__"):
+        return dict(payload.__dict__)
+    return {}
+
+
 def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
     """Dispatch hydra-configured subcommands (direct-call friendly).
 
@@ -373,8 +416,11 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
         conf = OmegaConf.to_object(structured_root)
         if isinstance(conf, HydraRootConfig):
             root = conf
+        elif isinstance(conf, Mapping):
+            conf_map = cast(Mapping[str, Any], conf)
+            root = HydraRootConfig(**dict(conf_map))
         else:
-            root = HydraRootConfig(**conf)
+            root = HydraRootConfig()
     else:
         payload = cfg or {}
         if isinstance(payload, HydraRootConfig):
@@ -435,9 +481,12 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
         )
         run_infoseed_training(script_args, training_args, model_args)
     elif cmd == "generate":
-        gen_args = (
-            root.generate.args if hasattr(root.generate, "args") else root.generate
+        gen_payload = (
+            root.generate.args
+            if isinstance(root.generate, GenerateCommand)
+            else root.generate
         )
+        gen_args = cast(_GenerationArgs, _payload_mapping(gen_payload))
         validate_generation_config(gen_args, command="generate")
         gen_cfg = DistilabelGenerationConfig(**gen_args)
         if is_test:

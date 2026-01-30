@@ -248,7 +248,7 @@ class VLLMRequestMixin:
         self._fallback_generate = fallback_fn
 
     def set_request_executor(
-        self, executor_fn: Callable[["_VLLMGenerationState, list[int]"], bool]
+        self, executor_fn: Callable[["_VLLMGenerationState", List[int]], bool]
     ) -> None:
         """Allow callers to override the vLLM request executor.
 

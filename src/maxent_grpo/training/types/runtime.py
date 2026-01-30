@@ -26,6 +26,7 @@ from typing import (
     Sequence,
     Tuple,
     TYPE_CHECKING,
+    TypeAlias,
 )
 
 from maxent_grpo.training.runtime import (
@@ -45,38 +46,25 @@ from .logging import LoggingHandles
 from .rewards import PromptCacheEntry
 
 if TYPE_CHECKING:
-    from .batch import ValidationContext
+    from .rewards import ValidationContext
     from ..controller_objective import ControllerObjective
 
-    try:
-        import torch as torch_module
-        from torch import Tensor as TorchTensor
-        from torch.optim import Optimizer as TorchOptimizer
-        from torch.utils.data import (
-            DataLoader as TorchDataLoader,
-            Sampler as TorchSampler,
-        )
-    except ImportError:  # pragma: no cover - typing fallback
-        torch_module = Any
-        TorchTensor = Any
-        TorchOptimizer = Any
-        TorchDataLoader = Any
-        TorchSampler = Any
-    try:
-        from accelerate import Accelerator as HFAccelerator
-    except ImportError:  # pragma: no cover - typing fallback
-        HFAccelerator = Any
-    try:
-        from transformers import (
-            PreTrainedModel as HFPreTrainedModel,
-            PreTrainedTokenizer as HFPreTrainedTokenizer,
-        )
-    except ImportError:  # pragma: no cover - typing fallback
-        HFPreTrainedModel = Any
-        HFPreTrainedTokenizer = Any
+    import torch as torch_module
+    from torch import Tensor as TorchTensor, device as TorchDevice
+    from torch.optim import Optimizer as TorchOptimizer
+    from torch.utils.data import (
+        DataLoader as TorchDataLoader,
+        Sampler as TorchSampler,
+    )
+    from accelerate import Accelerator as HFAccelerator  # type: ignore[reportMissingTypeStubs]
+    from transformers.modeling_utils import PreTrainedModel as HFPreTrainedModel
+    from transformers.tokenization_utils import (
+        PreTrainedTokenizer as HFPreTrainedTokenizer,
+    )
 else:  # pragma: no cover - runtime dependency loading
     torch_module = require_torch("training_types")
     TorchTensor = getattr(torch_module, "Tensor", Any)
+    TorchDevice = Any
     try:
         from torch.optim import Optimizer as TorchOptimizer
     except (
@@ -100,73 +88,15 @@ else:  # pragma: no cover - runtime dependency loading
     ):  # pragma: no cover - optional stub fallback
         TorchSampler = Any
 
-torch = torch_module
-Tensor = TorchTensor
-Optimizer = TorchOptimizer
-DataLoader = TorchDataLoader
-Sampler = TorchSampler
-Accelerator = HFAccelerator
-PreTrainedModel = HFPreTrainedModel
-PreTrainedTokenizer = HFPreTrainedTokenizer
-
-# Provide tolerant fallbacks when the underlying transformers stubs require args.
-try:
-    _ = DataLoader()  # type: ignore[call-arg]
-except (TypeError, ValueError, RuntimeError):
-
-    class _PatchedDataLoader(TorchDataLoader):
-        def __init__(self, *args, dataset=None, batch_size=None, **kwargs):
-            dataset = dataset or []
-            batch_size = batch_size or 1
-            try:
-                super().__init__(*args, dataset=dataset, batch_size=batch_size, **kwargs)  # type: ignore[misc]
-            except (TypeError, ValueError, RuntimeError):
-                self.dataset = dataset
-                self.batch_size = batch_size
-
-        def __iter__(self):
-            return iter(getattr(self, "dataset", []) or [])
-
-    DataLoader = _PatchedDataLoader
-
-try:  # pragma: no cover - defensive shim for test stubs
-    _ = PreTrainedModel()  # type: ignore[call-arg]
-except (TypeError, ValueError, RuntimeError):
-
-    class _PatchedPreTrainedModel(HFPreTrainedModel):
-        def __init__(self, *args, config=None, **kwargs):
-            try:
-                super().__init__(*args, config=config, **kwargs)  # type: ignore[misc]
-            except (TypeError, ValueError, RuntimeError):
-                try:
-                    super().__init__(*args, **kwargs)
-                except (TypeError, ValueError, RuntimeError):
-                    # Minimal stub when parent ctor signature is unknown in tests.
-                    self.config = config
-                else:
-                    self.config = getattr(self, "config", config)
-            else:
-                self.config = getattr(self, "config", config)
-
-    PreTrainedModel = _PatchedPreTrainedModel
-
-try:
-    _ = PreTrainedTokenizer()  # type: ignore[call-arg]
-except (TypeError, ValueError, RuntimeError):
-
-    class _PatchedPreTrainedTokenizer(HFPreTrainedTokenizer):
-        def __init__(self, *args, **kwargs):
-            try:
-                super().__init__(*args, **kwargs)
-            except (TypeError, ValueError, RuntimeError):
-                # Provide minimal attrs expected in tests.
-                self.pad_token_id = getattr(self, "pad_token_id", 0)
-                self.eos_token_id = getattr(self, "eos_token_id", 0)
-
-        def get_vocab(self):
-            return {}
-
-    PreTrainedTokenizer = _PatchedPreTrainedTokenizer
+torch: Any = torch_module
+Tensor: TypeAlias = TorchTensor
+Optimizer: TypeAlias = TorchOptimizer
+DataLoader: TypeAlias = TorchDataLoader
+Sampler: TypeAlias = TorchSampler
+Accelerator: TypeAlias = HFAccelerator
+PreTrainedModel: TypeAlias = HFPreTrainedModel
+PreTrainedTokenizer: TypeAlias = HFPreTrainedTokenizer
+Device: TypeAlias = TorchDevice
 
 GenerationFn = Callable[
     [List[str], int, Optional[List[int]]],
@@ -218,8 +148,8 @@ class RuntimeHandles:
     model: PreTrainedModel
     tokenizer: PreTrainedTokenizer
     train_loader: DataLoader
-    train_sampler: Optional[Sampler[Any]]
-    device: torch.device
+    train_sampler: Optional[Sampler]
+    device: Device
     get_ref_model: Callable[[], PreTrainedModel]
     reference_model: Optional[PreTrainedModel] = None
     prompt_cache_get: Optional[Callable[[str], PromptCacheEntry]] = None
@@ -301,7 +231,7 @@ class BatchingSettings:
 
     logprob_chunk_size: int
     score_slice: int
-    prompt_length_cache_get: Callable[[str], "PromptCacheEntry"]
+    prompt_length_cache_get: Optional[Callable[[str], "PromptCacheEntry"]] = None
     score_tail_tokens: Optional[int] = None
     slice_prefetch: int = 0
     prompt_cache_size: int = 0
@@ -354,6 +284,10 @@ class TrainingLoopContext:
     settings: LoopSettings
     logging: "LoggingHandles"
     eval_reward: Optional[RewardSpec] = None
+    resume_checkpoint: Optional[str] = None
+    resume_state: Optional[Dict[str, Any]] = None
+    checkpoint_state_ref: Optional[Dict[str, Any]] = None
+    training_args: Any = None
 
     @property
     def generation(self) -> GenerationSettings:
@@ -401,13 +335,13 @@ class TrainingLoopContext:
         return self.settings.controller
 
     @property
-    def controller_objective(self):
+    def controller_objective(self) -> Optional["ControllerObjective"]:
         """Return the configured controller objective, if any."""
 
         return getattr(self.settings, "controller_objective", None)
 
     @property
-    def controller_meta_manager(self):
+    def controller_meta_manager(self) -> Optional[Any]:
         """Return the meta-controller manager, if configured."""
 
         return getattr(self.settings, "controller_meta_manager", None)

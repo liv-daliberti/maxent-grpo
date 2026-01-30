@@ -23,15 +23,7 @@ import math
 import inspect
 from dataclasses import dataclass
 from contextlib import nullcontext
-from typing import Any, Optional
-
-try:  # Optional dependency in unit tests
-    from accelerate.state import DistributedType
-except ImportError:  # pragma: no cover - fallback when accelerate absent
-
-    class DistributedType:
-        DEEPSPEED = "deepspeed"
-
+from typing import Any, Iterable, Optional, cast
 
 from maxent_grpo.training.runtime import require_torch
 from .types import (
@@ -41,6 +33,20 @@ from .types import (
     TrainingLoopContext,
     TrainingLoopState,
 )
+
+try:
+    require_torch("training_optim")
+except (ImportError, ModuleNotFoundError, RuntimeError, AttributeError, TypeError, ValueError):
+    pass
+
+try:  # Optional dependency in unit tests
+    from accelerate.state import DistributedType as _DistributedType  # type: ignore[reportMissingTypeStubs]
+except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError, ValueError):  # pragma: no cover - fallback when accelerate absent
+
+    class _DistributedType:
+        DEEPSPEED = "deepspeed"
+
+DistributedType = _DistributedType
 
 LOG = logging.getLogger(__name__)
 _TWO_NORM = 2.0
@@ -52,13 +58,16 @@ except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as exc: 
     _TORCH_IMPORT_ERROR = exc
 
     class _TorchStub:
+        class Tensor:
+            pass
+
         class optim:
             AdamW = None
 
         class nn:
             class utils:
                 @staticmethod
-                def clip_grad_norm_(*_args, **_kwargs):
+                def clip_grad_norm_(*_args: Any, **_kwargs: Any) -> float:
                     return 0.0
 
     torch = _TorchStub()
@@ -106,7 +115,7 @@ def clip_grad_norm_local(
     params = [param for param in model.parameters() if param.grad is not None]
     if not params:
         return None
-    grad_norm: Optional[float] = None
+    grad_norm: Any = None
     clip_fn = getattr(accelerator, "clip_grad_norm_", None)
     if callable(clip_fn):
         try:
@@ -364,7 +373,7 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     no_decay_params = []
     named_params = getattr(model, "named_parameters", None)
     if callable(named_params):
-        for name, param in named_params():
+        for name, param in cast(Iterable[tuple[str, Any]], named_params()):
             if not getattr(param, "requires_grad", True):
                 continue
             if any(marker in name for marker in no_decay_markers):

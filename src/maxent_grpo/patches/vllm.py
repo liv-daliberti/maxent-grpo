@@ -47,7 +47,7 @@ import hashlib
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable, TYPE_CHECKING
 
 from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
 
@@ -64,13 +64,18 @@ except ImportError:  # pragma: no cover - optional dependency
         class Timeout(RuntimeError):
             pass
 
-        def _raise(self, *_args, **_kwargs):
+        def _raise(self, *_args: Any, **_kwargs: Any) -> None:
             raise ImportError("requests is required for vLLM helpers")
 
         get = _raise
         post = _raise
 
     requests = _RequestsStub()
+
+if TYPE_CHECKING:  # pragma: no cover - typing-only import
+    from requests import Response as RequestsResponse
+else:  # pragma: no cover - runtime fallback
+    RequestsResponse = Any
 
 # Type aliases for JSON responses
 JsonDict = Dict[str, Any]
@@ -145,6 +150,7 @@ def safe_request(
                 time.sleep(backoff * (2**attempt))
             else:
                 raise
+    raise RuntimeError(f"Failed to fetch {url} after {max_retries} attempts")
 
 
 # ─────────────────── helper to parse non-stream JSON ─────────────────────────
@@ -332,7 +338,7 @@ def _parse_nonstream_json(
     # OpenAI route
     if "choices" in data:
         texts = [str(c.get("text", "")) for c in data["choices"]]
-        logs = None
+        logs: Optional[List[Optional[VLLMLogprobResult]]] = None
         if logprob_groups is not None:
             logs = [_extract_logprob_info(c) for c in data["choices"]]
         _append_group(texts, logs)
@@ -367,10 +373,12 @@ def _parse_nonstream_json(
                     ]
                     if prompt_logs is not None:
                         prompt_logs = [
-                            {
-                                "token_ids": list(ids),
-                                "token_count": len(ids),
-                            }
+                            VLLMLogprobResult(
+                                logprob_sum=0.0,
+                                token_count=len(ids),
+                                token_logprobs=None,
+                                raw_output={"token_ids": list(ids)},
+                            )
                             for ids in completion_ids
                         ]
                     _append_group(decoded, prompt_logs)
@@ -399,7 +407,7 @@ def _parse_nonstream_json(
             else:
                 text = str(text_entry)
                 payload_entry = {"text": text}
-            logs = None
+            logs: Optional[List[Optional[VLLMLogprobResult]]] = None
             if logprob_groups is not None:
                 if isinstance(flat_logprobs, list) and idx < len(flat_logprobs):
                     payload_entry.setdefault("logprobs", flat_logprobs[idx])
@@ -421,13 +429,15 @@ def _parse_nonstream_json(
             tokenizer.decode(ids, skip_special_tokens=True) for ids in completion_ids
         ]
         for ids, text in zip(completion_ids, decoded):
-            logs = None
+            logs: Optional[List[Optional[VLLMLogprobResult]]] = None
             if logprob_groups is not None:
                 logs = [
-                    {
-                        "token_ids": list(ids),
-                        "token_count": len(ids),
-                    }
+                    VLLMLogprobResult(
+                        logprob_sum=0.0,
+                        token_count=len(ids),
+                        token_logprobs=None,
+                        raw_output={"token_ids": list(ids)},
+                    )
                 ]
             _append_group([text], logs)
         return grouped, logprob_groups
@@ -930,10 +940,11 @@ def safe_generate(
                     f"safe_generate failed after {max_retries} attempts",
                     error_payload,
                 ) from err
+    raise RuntimeError("vLLM request exhausted without response")
 
 
 def _collect_stream_texts(
-    response: requests.Response, num_prompts: int
+    response: RequestsResponse, num_prompts: int
 ) -> List[List[str]]:
     """Collect and join streaming response chunks per prompt index.
 

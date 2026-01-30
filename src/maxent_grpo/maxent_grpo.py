@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 import signal
 import faulthandler
+from typing import Any
 
 # Allow running this file directly (e.g., accelerate launch src/maxent_grpo/maxent_grpo.py)
 # by ensuring the package root is on sys.path.
@@ -40,7 +41,11 @@ if os.environ.get("MAXENT_FAULTHANDLER", "").strip():
             LOG.warning("Failed to register faulthandler SIGUSR1 handler: %s", exc)
 
 
-def main(script_args=None, training_args=None, model_args=None):
+def main(
+    script_args: Any = None,
+    training_args: Any = None,
+    model_args: Any = None,
+) -> Any:
     """Run the MaxEnt trainer when configs are provided, else delegate to Hydra.
 
     :param script_args: Optional GRPO script arguments; when ``None`` they are parsed via CLI.

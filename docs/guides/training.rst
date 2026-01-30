@@ -41,7 +41,7 @@ Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
 Recipe pairing (reproducible GRPO_RECIPE runs)
 ----------------------------------------------
 
-- The baseline and MaxEnt math recipes are paired to stay comparable: both use ``open-r1/OpenR1-Math-220k`` for training and ``HuggingFaceH4/MATH-500`` (``test`` split, ``problem``/``answer`` columns) for evaluation with the same seed (``42``) and eval cadence (``evaluation_strategy=steps``, ``eval_steps=25``, ``per_device_eval_batch_size=8``).
+- The baseline and MaxEnt math recipes are paired to stay comparable: both use ``open-r1/OpenR1-Math-220k`` for training and ``HuggingFaceH4/MATH-500`` (``test`` split, ``problem``/``answer`` columns) for evaluation with the same seed (``42``) and eval cadence (``eval_strategy=steps``, ``eval_steps=25``, ``per_device_eval_batch_size=8``).
 - Baseline GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml``
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
 - Paired GRPO recipes set ``force_custom_loop: true`` and ``maxent_reference_logprobs_source: model`` so GRPO runs through the same custom loop with a frozen reference anchor.

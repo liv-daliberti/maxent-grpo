@@ -31,7 +31,7 @@ if __package__ is None or __package__ == "":
     sys.path.insert(0, project_src_str)
 
 from argparse import Namespace
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
 from maxent_grpo.cli.generate import (
     app as generate_cli_app,
@@ -46,6 +46,9 @@ from maxent_grpo.pipelines.generation.distilabel import (
 )
 from maxent_grpo.pipelines.base import PipelineResult
 
+if TYPE_CHECKING:
+    from maxent_grpo.pipelines.generation.distilabel import DistilabelPipeline
+
 __all__ = [
     "DistilabelGenerationConfig",
     "DistilabelPipelineConfig",
@@ -58,7 +61,7 @@ __all__ = [
 
 def run_generation_job(
     cfg: DistilabelGenerationConfig | Namespace,
-    builder: Optional[Callable[[DistilabelPipelineConfig], object]] = None,
+    builder: Optional[Callable[[DistilabelPipelineConfig], "DistilabelPipeline"]] = None,
 ) -> PipelineResult:
     """Run the distilabel generation pipeline for a given configuration.
 

@@ -39,8 +39,9 @@ from __future__ import annotations
 import logging
 import sys
 import traceback
+from collections.abc import Sized
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, TypeVar, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TypeVar, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
 from .weighting.loss import SequenceScores
@@ -62,18 +63,22 @@ from .types import (
     BatchingSettings,
     GenerationBatch,
     GenerationFn,
+    GenerationSettings,
     LengthStats,
+    PreTrainedTokenizer,
     PromptCacheEntry,
     ReferenceLogprobs,
     RewardComputation,
     ScoreBatch,
+    Tensor,
     TrainingLoopContext,
 )
-from .weighting import WeightStats
+from .weighting import WeightStats, WeightingSettings
 from .weighting.logic import compute_weight_stats, build_uniform_weight_stats
 
 if TYPE_CHECKING:
     import torch
+    from .weighting.loss import SeedInfoInputs
 
 LOG = logging.getLogger(__name__)
 _REF_LOGPROB_TRACE_LIMIT = 3
@@ -129,7 +134,7 @@ def _dist_any_flag(accelerator: Any, flag: bool) -> bool:
     if not callable(get_world_size):
         return bool(flag)
     try:
-        world_size = int(get_world_size())
+        world_size = int(cast(Any, get_world_size()))
     except (TypeError, ValueError, RuntimeError):
         return bool(flag)
     gathered = [None for _ in range(max(world_size, 1))]
@@ -198,7 +203,7 @@ class PreparedBatch:
     :type grouped_completions: list[list[str]]
     :param reward_comp: Reward statistics computed by
         :func:`training.rewards.compute_reward_statistics`.
-    :type reward_comp: training.types.RewardComputation
+    :type reward_comp: ~maxent_grpo.training.types.rewards.RewardComputation
     :param batch_stats: Auxiliary scoring/weighting artifacts built by
         :func:`_collect_batch_stats`.
     :type batch_stats: _BatchStats
@@ -279,7 +284,7 @@ def _reference_stats_from_meta(
     :type device: torch.device
     :returns: Reference log-probability statistics or ``None`` if metadata is
         missing/partial.
-    :rtype: training.types.ReferenceLogprobs | None
+    :rtype: ~maxent_grpo.training.types.rewards.ReferenceLogprobs | None
     """
     if not flat_meta:
         return None
@@ -298,7 +303,7 @@ def _behavior_logp_tensor_from_meta(
     flat_meta: Optional[List[Optional[Any]]],
     total_sequences: int,
     template_tensor: Any,
-) -> Optional["torch.Tensor"]:
+) -> Optional[Tensor]:
     """Return a tensor of behavior log-prob sums derived from metadata.
 
     The metadata is expected to contain ``logprob_sum`` entries aligned with
@@ -346,13 +351,16 @@ def _behavior_logp_tensor_from_meta(
             )
             return None
     new_tensor = getattr(template_tensor, "new_tensor", None)
-    tensor_obj: Optional["torch.Tensor"] = None
+    tensor_obj: Optional[Tensor] = None
     if callable(new_tensor):
         try:
-            tensor_obj = new_tensor(
-                logprob_vals,
-                dtype=getattr(template_tensor, "dtype", None),
-                device=getattr(template_tensor, "device", None),
+            tensor_obj = cast(
+                Tensor,
+                new_tensor(
+                    logprob_vals,
+                    dtype=getattr(template_tensor, "dtype", None),
+                    device=getattr(template_tensor, "device", None),
+                ),
             )
         except (TypeError, ValueError, RuntimeError):
             tensor_obj = None
@@ -361,10 +369,13 @@ def _behavior_logp_tensor_from_meta(
         tensor_fn = getattr(torch_mod, "tensor", None) if torch_mod is not None else None
         if callable(tensor_fn):
             try:
-                tensor_obj = tensor_fn(
-                    logprob_vals,
-                    dtype=getattr(template_tensor, "dtype", None),
-                    device=getattr(template_tensor, "device", None),
+                tensor_obj = cast(
+                    Tensor,
+                    tensor_fn(
+                        logprob_vals,
+                        dtype=getattr(template_tensor, "dtype", None),
+                        device=getattr(template_tensor, "device", None),
+                    ),
                 )
             except (TypeError, ValueError, RuntimeError):
                 tensor_obj = None
@@ -395,7 +406,7 @@ def _collect_batch_stats(
     :param gen_batch: Outputs from :func:`prepare_generation_batch`.
     :type gen_batch: training.types.GenerationBatch
     :param reward_comp: Reward statistics used to build weighting/reward logs.
-    :type reward_comp: training.types.RewardComputation
+    :type reward_comp: ~maxent_grpo.training.types.rewards.RewardComputation
     :returns: Aggregated structures required downstream, or ``None`` when any
         stage fails (e.g., reference log-prob gathering).
     :rtype: _BatchStats | None
@@ -444,10 +455,9 @@ def _collect_batch_stats(
                 data = to_list()
             except (RuntimeError, TypeError, ValueError):
                 data = tensor
-        try:
-            length = len(data)
-        except TypeError:
+        if not isinstance(data, Sized):
             return False
+        length = len(data)
         is_empty = length == 0
         if is_empty and not getattr(_collect_batch_stats, "_ref_diag_logged", False):
             def _describe(obj: Any) -> str:
@@ -563,11 +573,13 @@ def _collect_batch_stats(
             batching_cfg.prompt_length_cache_get = lambda _p, _cls=PromptCacheEntry: _cls(
                 input_ids=[], attention_mask=[]
             )
+    batching_cfg = cast(BatchingSettings, batching_cfg)
     gen_cfg = getattr(ctx, "generation", None)
     if gen_cfg is None:
         gen_cfg = getattr(
             getattr(ctx, "settings", SimpleNamespace()), "generation", None
         )
+    gen_cfg = cast(GenerationSettings, gen_cfg)
     if score_batch is None:
         score_batch = build_score_batch(
             reward_comp,
@@ -600,13 +612,15 @@ def _collect_batch_stats(
             len(getattr(reward_comp.pairs, "prompts", []) or []),
         )
         return None
+    completion_ids = getattr(score_batch, "completion_ids", None)
+    completion_attention_mask = getattr(score_batch, "completion_attention_mask", None)
     LOG.debug(
         "Score batch built | total_sequences=%d | max_prompt_len=%s | slice_size=%s | comp_ids_shape=%s | comp_mask_shape=%s | pad_id=%s",
         getattr(score_batch, "total_sequences", 0),
         getattr(score_batch, "max_prompt_len", None),
         getattr(score_batch, "slice_size", None),
-        getattr(score_batch, "completion_ids", None).shape if getattr(score_batch, "completion_ids", None) is not None else None,
-        getattr(score_batch, "completion_attention_mask", None).shape if getattr(score_batch, "completion_attention_mask", None) is not None else None,
+        completion_ids.shape if completion_ids is not None else None,
+        completion_attention_mask.shape if completion_attention_mask is not None else None,
         getattr(score_batch, "pad_token_id", None),
     )
     ref_meta = getattr(reward_comp, "ref_logprob_meta", None)
@@ -844,6 +858,9 @@ def _collect_batch_stats(
         "Reference stats gathered | avg_completion_tokens=%.2f",
         getattr(ref_stats, "avg_completion_tokens", 0.0),
     )
+    if ref_stats is None:
+        return None
+    ref_stats = cast(ReferenceLogprobs, ref_stats)
 
     prompt_token_count = 0.0
     prompt_entries = score_batch.prompt_entries
@@ -852,7 +869,9 @@ def _collect_batch_stats(
         prompt_token_count = float(
             sum(min(entry.length, max_prompt_len) for entry in prompt_entries)
         )
-    weighting_cfg = getattr(scoring_cfg, "weighting", SimpleNamespace())
+    weighting_cfg = cast(
+        WeightingSettings, getattr(scoring_cfg, "weighting", SimpleNamespace())
+    )
     weight_stats = compute_weight_stats(
         gen_batch.grouped_completions,
         reward_comp,
@@ -916,12 +935,14 @@ def prepare_training_batch(
     :rtype: PreparedBatch | None
     """
     try:
-        if isinstance(batch.get("prompt"), str):
+        prompt_value = cast(Any, batch.get("prompt"))
+        if isinstance(prompt_value, str):
             batch = dict(batch)
-            batch["prompt"] = [batch["prompt"]]
-        if isinstance(batch.get("answer"), str):
+            batch["prompt"] = [prompt_value]
+        answer_value = cast(Any, batch.get("answer"))
+        if isinstance(answer_value, str):
             batch = dict(batch)
-            batch["answer"] = [batch["answer"]]
+            batch["answer"] = [answer_value]
         retry_limit = ctx.generation.vllm_rounds_cfg
         if retry_limit <= 0:
             retry_limit = ctx.optimization.schedule.num_generations
@@ -965,13 +986,19 @@ def prepare_training_batch(
             group_count,
             avg_group,
         )
+        q_temperature = _resolve_weighting_value(ctx, "q_temperature", 1.0)
+        if q_temperature is None:
+            q_temperature = 1.0
+        q_epsilon = _resolve_weighting_value(ctx, "q_epsilon", 1e-6)
+        if q_epsilon is None:
+            q_epsilon = 1e-6
         reward_comp = _require_artifact(
             compute_reward_statistics(
                 gen_batch,
                 ctx.reward,
                 ctx.runtime.device,
-                _resolve_weighting_value(ctx, "q_temperature", 1.0),
-                _resolve_weighting_value(ctx, "q_epsilon", 1e-6),
+                q_temperature,
+                q_epsilon,
                 _resolve_weighting_value(ctx, "beta"),
                 _resolve_weighting_value(ctx, "tau"),
             ),
@@ -993,17 +1020,17 @@ def prepare_training_batch(
                 _collect_batch_stats(ctx, gen_batch, reward_comp),
                 stage="batch_stats",
             )
-            score_batch = getattr(stats, "score_batch", None)
+            score_batch = stats.score_batch
             LOG.debug(
                 "Batch stats ready | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
-                getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
+                getattr(stats.score_batch, "total_sequences", 0),
                 stats.prompt_token_count,
                 stats.num_completion_tokens,
             )
         else:
             score_batch = build_score_batch(
                 reward_comp,
-                runtime_tokenizer,
+                cast(PreTrainedTokenizer, runtime_tokenizer),
                 ctx.generation,
                 ctx.scoring.batching,
             )
@@ -1023,13 +1050,15 @@ def prepare_training_batch(
                 )
                 return None
             score_batch = _require_artifact(score_batch, stage="score_batch")
+            completion_ids = getattr(score_batch, "completion_ids", None)
+            completion_attention_mask = getattr(score_batch, "completion_attention_mask", None)
             LOG.debug(
                 "Score batch built | total_sequences=%d | max_prompt_len=%s | slice_size=%s | comp_ids_shape=%s | comp_mask_shape=%s | pad_id=%s",
                 getattr(score_batch, "total_sequences", 0),
                 getattr(score_batch, "max_prompt_len", None),
                 getattr(score_batch, "slice_size", None),
-                getattr(score_batch, "completion_ids", None).shape if getattr(score_batch, "completion_ids", None) is not None else None,
-                getattr(score_batch, "completion_attention_mask", None).shape if getattr(score_batch, "completion_attention_mask", None) is not None else None,
+                completion_ids.shape if completion_ids is not None else None,
+                completion_attention_mask.shape if completion_attention_mask is not None else None,
                 getattr(score_batch, "pad_token_id", None),
             )
         # Enable pooled hidden states when InfoSeed is active so seed loss can pool per-sequence reps.
@@ -1094,7 +1123,7 @@ def prepare_training_batch(
             )
         behavior_tensor = _behavior_logp_tensor_from_meta(
             getattr(reward_comp, "ref_logprob_meta", None),
-            getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
+            stats.score_batch.total_sequences,
             cur_logp_sum,
         )
         try:
@@ -1117,7 +1146,7 @@ def prepare_training_batch(
             else:
                 scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
         # Optional seed metadata wiring for InfoSeed objectives.
-        seed_inputs = None
+        seed_inputs: Optional["SeedInfoInputs"] = None
         seed_metrics: Dict[str, float] = {}
         seed_heatmap = None
         completion_meta = getattr(reward_comp, "completion_metadata", None)
@@ -1129,7 +1158,9 @@ def prepare_training_batch(
             for meta in reward_comp.completion_metadata or []:
                 if meta:
                     getter = getattr(meta, "get", None)
-                    raw_seed = getter("seed_id", -1) if callable(getter) else -1
+                    raw_seed = cast(
+                        Any, getter("seed_id", -1) if callable(getter) else -1
+                    )
                     if raw_seed is None:
                         raw_seed = -1
                     try:
@@ -1174,12 +1205,13 @@ def prepare_training_batch(
             if callable(seed_head):
                 try:
                     seed_logits = seed_head(pooled_hidden)
-                    seed_inputs.logits = seed_logits
+                    seed_logits_t = cast(Optional["torch.Tensor"], seed_logits)
+                    seed_inputs.logits = seed_logits_t
                     # Seed prediction accuracy metrics
-                    if seed_logits is not None:
+                    if seed_logits_t is not None:
                         valid_mask = seed_inputs.seed_ids >= 0
                         if valid_mask.any():
-                            preds = seed_logits.argmax(dim=-1)
+                            preds = seed_logits_t.argmax(dim=-1)
                             acc = (
                                 (preds[valid_mask] == seed_inputs.seed_ids[valid_mask])
                                 .float()
@@ -1236,11 +1268,12 @@ def prepare_training_batch(
                                             stacked.unsqueeze(0),
                                             dim=-1,
                                         )
+                                        heatmap_t = cast("torch.Tensor", heatmap)
                                         seed_heatmap = {
                                             "labels": [
                                                 int(s.item()) for s in unique_seeds
                                             ],
-                                            "matrix": heatmap.detach()
+                                            "matrix": heatmap_t.detach()
                                             .cpu()
                                             .tolist(),
                                         }
@@ -1258,9 +1291,13 @@ def prepare_training_batch(
         else:
             seed_heatmap = None
         # Per-subset entropy (orig vs seed-aug) derived from weights + metadata.
-        if getattr(reward_comp, "completion_metadata", None):
-            weights = stats.weight_stats.flat_weights
-            if len(weights) == len(reward_comp.completion_metadata):
+        completion_meta = getattr(reward_comp, "completion_metadata", None)
+        if isinstance(completion_meta, list):
+            weight_stats = getattr(stats, "weight_stats", None)
+            weights = (
+                getattr(weight_stats, "flat_weights", None) if weight_stats is not None else None
+            )
+            if weights is not None and len(weights) == len(completion_meta):
                 import math
 
                 accelerator = getattr(ctx.runtime, "accelerator", SimpleNamespace(num_processes=1))
@@ -1271,6 +1308,8 @@ def prepare_training_batch(
                     gather_fn = getattr(accelerator, "gather_object", None)
                     if callable(gather_fn):
                         gathered = gather_fn(weight_subset)
+                        if not isinstance(gathered, list):
+                            return weight_subset
                         merged: list[float] = []
                         for chunk in gathered:
                             merged.extend(float(v) for v in chunk)
@@ -1292,7 +1331,7 @@ def prepare_training_batch(
 
                 orig_weights: list[float] = []
                 seed_weights: list[float] = []
-                for w, meta in zip(weights, reward_comp.completion_metadata):
+                for w, meta in zip(weights, completion_meta):
                     if meta and meta.get("is_seed_aug", False):
                         seed_weights.append(w)
                     else:
@@ -1321,9 +1360,3 @@ def prepare_training_batch(
 
 
 __all__ = ["PreparedBatch", "prepare_training_batch"]
-
-# Preserve a self-reference so monkeypatch paths like ``training.pipeline.pipeline``
-# resolve even after test shuffling or aliasing.
-pipeline = sys.modules[__name__]
-# Expose the module under the legacy ``training.pipeline`` alias used in tests.
-sys.modules["training.pipeline"] = pipeline

@@ -13,7 +13,7 @@ if __package__ is None or __package__ == "":
         sys.path.remove(project_src_str)
     sys.path.insert(0, project_src_str)
 
-from typing import Optional
+from typing import Any, Optional
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
 
@@ -29,7 +29,7 @@ def main(
     script_args: Optional[GRPOScriptArguments] = None,
     training_args: Optional[GRPOConfig] = None,
     model_args: "Optional[object]" = None,
-):
+) -> Any:
     """Run InfoSeed-GRPO via the custom runner or delegate to Hydra when args are missing.
 
     :param script_args: Optional script arguments; parsed from the CLI if omitted.

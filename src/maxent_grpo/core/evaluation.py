@@ -32,13 +32,15 @@ from __future__ import annotations
 import base64
 import os
 import subprocess
-from typing import TYPE_CHECKING, Dict, List, Literal
+from typing import TYPE_CHECKING, Dict, List, Literal, TypeAlias
 
 from .hub import get_gpu_count_for_vllm, get_param_count_from_repo_id
 
 
 if TYPE_CHECKING:
-    from trl import GRPOConfig, ModelConfig
+    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
+
+    from ..config.grpo import GRPOConfig
 
 
 # We need a special environment setup to launch vLLM from within Slurm training jobs.
@@ -54,12 +56,10 @@ VLLM_SLURM_PREFIX: List[str] = [
 ]
 
 # Type aliases for task configuration
-TaskSpec = str  # e.g. "lighteval|math_500|0|0"
-TaskName = str  # e.g. "math_500"
-TaskName = str
-TaskSpec = str
-TaskSuite = Literal["lighteval", "extended"]
-BenchmarkKey = Literal["bbh", "mt-bench", "TruthfulQA"]
+TaskSpec: TypeAlias = str  # e.g. "lighteval|math_500|0|0"
+TaskName: TypeAlias = str  # e.g. "math_500"
+TaskSuite: TypeAlias = Literal["lighteval", "extended"]
+BenchmarkKey: TypeAlias = Literal["bbh", "mt-bench", "TruthfulQA"]
 
 
 def register_lighteval_task(
@@ -173,7 +173,9 @@ def run_lighteval_job(
     """
     task_list = LIGHTEVAL_TASKS[benchmark]
     model_name = training_args.hub_model_id
-    model_revision = training_args.hub_model_revision
+    if not model_name:
+        raise ValueError("hub_model_id must be set to run evaluation jobs")
+    model_revision = training_args.hub_model_revision or "main"
     # For large models >= 30b params or those running the MATH benchmark, we need to shard them across the GPUs to avoid OOM
     num_gpus = get_gpu_count_for_vllm(model_name, model_revision)
     if get_param_count_from_repo_id(model_name) >= 30_000_000_000:

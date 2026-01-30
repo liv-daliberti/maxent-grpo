@@ -5,7 +5,6 @@ import pytest
 from maxent_grpo.telemetry.trl_logging import (
     ensure_weighting_logging,
     _WeightingLogCallback,
-    patch_trl_grpo_clipped_ratio,
 )
 
 
@@ -147,33 +146,6 @@ def test_callback_normalizes_logs_when_log_hook_is_bypassed():
     assert "train/kl" in logs
     assert logs["train/completions/clipped_frac"] == 0.0
     assert all(key.startswith("train/") for key in logs.keys())
-
-
-def test_patch_trl_grpo_clipped_ratio_sanitizes_trainer(monkeypatch):
-    import types
-    import sys
-
-    calls = {}
-
-    class _StubTrainer:
-        def __init__(self):
-            self.args = SimpleNamespace(num_generations=4, world_size=1)
-
-        def log(self, logs):
-            calls["logs"] = logs
-            return logs
-
-    grpo_mod = types.SimpleNamespace(GRPOTrainer=_StubTrainer)
-    monkeypatch.setitem(sys.modules, "trl", types.SimpleNamespace(trainer=types.SimpleNamespace(grpo_trainer=grpo_mod)))
-    monkeypatch.setitem(sys.modules, "trl.trainer", types.SimpleNamespace(grpo_trainer=grpo_mod))
-    monkeypatch.setitem(sys.modules, "trl.trainer.grpo_trainer", grpo_mod)
-
-    patched = patch_trl_grpo_clipped_ratio()
-    assert patched is True
-    trainer = grpo_mod.GRPOTrainer()
-    trainer.log({"completions/clipped_ratio": -4.0})
-    assert "completions/clipped_ratio" not in calls["logs"]
-    assert calls["logs"]["completions/clipped_frac"] == 0.0
 
 
 def test_callback_attached_when_callback_handler_present():

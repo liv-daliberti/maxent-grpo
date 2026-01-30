@@ -27,6 +27,7 @@ class GenerationContext(GenerationPenaltyPassthroughMixin, GenerationSamplingCon
     generation_stats: Dict[str, int]
     device: Any
     penalty: GenerationPenaltyConfig = field(default_factory=GenerationPenaltyConfig)
+    prompt_char_limit: int | None = None
 
     def as_dict(self) -> Dict[str, Any]:
         """Return a lightweight representation useful for logging/debugging."""

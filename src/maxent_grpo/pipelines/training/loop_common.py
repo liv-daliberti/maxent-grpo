@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 import os
-from dataclasses import FrozenInstanceError, fields
+from collections.abc import Iterable
+from dataclasses import FrozenInstanceError, MISSING, fields
 from functools import lru_cache
 from types import SimpleNamespace
-from typing import Any, Dict, Optional, Callable, Tuple
+from typing import Any, Dict, Optional, Callable, Tuple, cast
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.core.model import get_model, get_tokenizer
@@ -70,7 +72,11 @@ def _default_prompt_cache_size() -> int:
     try:
         for field in fields(GRPOConfig):
             if field.name == "maxent_prompt_cache_size":
-                return int(field.default)
+                if field.default is not MISSING:
+                    return int(field.default)
+                if field.default_factory is not MISSING:
+                    return int(field.default_factory())
+                break
     except (TypeError, ValueError) as exc:
         LOG.debug("Unable to read default maxent_prompt_cache_size: %s", exc)
     return _PROMPT_CACHE_MIN
@@ -215,10 +221,12 @@ def _prepare_reference_model(model: Any, device: Any) -> Any:
         params = getattr(model, "parameters", None)
         if callable(params):
             try:
-                for param in params():
-                    requires_grad = getattr(param, "requires_grad", True)
-                    if requires_grad and hasattr(param, "requires_grad_"):
-                        param.requires_grad_(False)
+                params_iter = params()
+                if isinstance(params_iter, Iterable):
+                    for param in params_iter:
+                        requires_grad = getattr(param, "requires_grad", True)
+                        if requires_grad and hasattr(param, "requires_grad_"):
+                            param.requires_grad_(False)
             except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
                 LOG.debug("Reference model parameter freeze failed: %s", exc)
     move_fn = getattr(model, "to", None)
@@ -419,21 +427,23 @@ def _prepare_runtime_components(
     if include_scheduler:
         prepare_args.append(lr_scheduler)
     prepared = prepare_fn(*prepare_args)
-    if not isinstance(prepared, (list, tuple)):
-        prepared = (prepared,)
-    if len(prepared) != len(prepare_args):
+    if isinstance(prepared, (list, tuple)):
+        prepared_items = list(prepared)
+    else:
+        prepared_items = [prepared]
+    if len(prepared_items) != len(prepare_args):
         LOG.warning(
             "accelerator.prepare returned %d objects for %d inputs; skipping wrapping.",
-            len(prepared),
+            len(prepared_items),
             len(prepare_args),
         )
         return model, optimizer, train_loader, lr_scheduler
-    prepared_model = prepared[0]
-    prepared_optimizer = prepared[1]
-    prepared_loader = prepared[2]
+    prepared_model = prepared_items[0]
+    prepared_optimizer = prepared_items[1]
+    prepared_loader = prepared_items[2]
     prepared_scheduler: Optional[Any] = lr_scheduler
     if include_scheduler:
-        prepared_scheduler = prepared[3]
+        prepared_scheduler = prepared_items[3]
     return prepared_model, prepared_optimizer, prepared_loader, prepared_scheduler
 
 
@@ -516,8 +526,8 @@ def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
         sync_weights=bool(getattr(cfg, "vllm_sync_weights", False)),
     )
     settings = GenerationSettings(
-        max_prompt_len=cfg.max_prompt_length,
-        max_completion_len=cfg.max_completion_length,
+        max_prompt_len=int(getattr(cfg, "max_prompt_length", 0) or 0),
+        max_completion_len=int(getattr(cfg, "max_completion_length", 0) or 0),
         gen_temperature=cfg.gen_temperature,
         gen_top_p=cfg.gen_top_p,
         use_vllm=cfg.use_vllm,
@@ -555,18 +565,18 @@ def build_scoring_settings(
         weighting = build_weighting_settings(cfg)
 
     clip_range = _sanitize_float(
-        getattr(cfg, "clip_range", 0.0),
+        getattr(cfg, "ppo_clip_range", 0.0),
         default=0.0,
         minimum=0.0,
         maximum=1.0,
-        name="clip_range",
+        name="ppo_clip_range",
     )
     use_clip_objective = bool(
         getattr(cfg, "maxent_use_clip_objective", False) or clip_range > 0.0
     )
     if clip_range > 0.0 and not getattr(cfg, "maxent_use_clip_objective", False):
         LOG.info(
-            "Enabling clip objective in custom loop because clip_range=%.3f was set.",
+            "Enabling clip objective in custom loop because ppo_clip_range=%.3f was set.",
             clip_range,
         )
     score_tail_tokens = getattr(cfg, "maxent_score_tail_tokens", None)
@@ -620,7 +630,7 @@ def build_evaluation_settings(cfg: GRPOConfig) -> EvaluationSettings:
     :returns: Evaluation settings for the custom loop.
     :rtype: EvaluationSettings
     """
-    strategy = str(getattr(cfg, "evaluation_strategy", "") or "").lower()
+    strategy = str(getattr(cfg, "eval_strategy", "") or "").lower()
     eval_steps = getattr(cfg, "eval_steps", None)
     enabled = cfg.do_eval
     every_n_steps = eval_steps
@@ -629,13 +639,13 @@ def build_evaluation_settings(cfg: GRPOConfig) -> EvaluationSettings:
             enabled = True
             if not eval_steps or int(eval_steps) <= 0:
                 LOG.warning(
-                    "evaluation_strategy=steps but eval_steps is not set; disabling eval."
+                    "eval_strategy=steps but eval_steps is not set; disabling eval."
                 )
                 enabled = False
         elif strategy in {"no", "none", "off"}:
             enabled = False
         elif strategy in {"epoch", "epochs"}:
-            LOG.warning("evaluation_strategy=epoch is not supported in custom loop; skipping eval.")
+            LOG.warning("eval_strategy=epoch is not supported in custom loop; skipping eval.")
             enabled = False
     if enabled and every_n_steps is None:
         every_n_steps = getattr(cfg, "logging_steps", None)
@@ -708,14 +718,14 @@ def build_training_loop_context(
             setattr(training_args, "resume_from_checkpoint", resume_checkpoint)
     elif resume_requested:
         try:
-            training_args.resume_from_checkpoint = False
+            training_args.resume_from_checkpoint = None
         except (AttributeError, FrozenInstanceError, TypeError, ValueError):
-            setattr(training_args, "resume_from_checkpoint", False)
+            setattr(training_args, "resume_from_checkpoint", None)
     accelerator_cls_or_obj = require_accelerator(deps_namespace)
     # Defensive: reset any lingering Accelerate shared state (e.g., from stubs or
     # prior imports) so the first Accelerator() call can safely set attributes.
     try:  # pragma: no cover - runtime guard
-        from accelerate.state import AcceleratorState
+        from accelerate.state import AcceleratorState  # type: ignore[reportMissingTypeStubs]
 
         reset_fn = getattr(AcceleratorState, "_reset_state", None)
         if callable(reset_fn):
@@ -756,7 +766,7 @@ def build_training_loop_context(
     train_dataset, eval_rows = load_datasets(
         script_args, training_args, tokenizer, accelerator=accelerator
     )
-    training_args.eval_rows = eval_rows
+    setattr(training_args, "eval_rows", eval_rows)
     reward_funcs, reward_weights = load_reward_functions(
         script_args, tokenizer, training_args
     )
@@ -829,16 +839,16 @@ def build_training_loop_context(
     runtime_handles = RuntimeHandles(
         accelerator=accelerator,
         model=model,
-        tokenizer=tokenizer,
+        tokenizer=cast(Any, tokenizer),
         train_loader=train_loader,
         train_sampler=sampler,
         device=accelerator.device,
-        get_ref_model=_resolve_ref_model,
+        get_ref_model=cast(Callable[[], Any], _resolve_ref_model),
         reference_model=reference_model,
     )
     prompt_cache = _build_prompt_cache_fn(
         tokenizer,
-        getattr(training_args, "max_prompt_length", 0),
+        int(getattr(training_args, "max_prompt_length", 0) or 0),
         _resolve_prompt_cache_size(training_args),
     )
     if callable(prompt_cache):
@@ -851,6 +861,11 @@ def build_training_loop_context(
         maximum=float("inf"),
         name="max_grad_norm",
     )
+    num_epochs_raw = float(getattr(training_args, "num_train_epochs", 0) or 0)
+    num_epochs = int(math.ceil(num_epochs_raw)) if num_epochs_raw > 0 else 0
+    num_generations = int(getattr(training_args, "num_generations", 1) or 1)
+    if num_generations <= 0:
+        num_generations = 1
     max_steps_cfg = int(getattr(training_args, "max_steps", 0) or 0)
     warmup_limit = max_steps_cfg if max_steps_cfg > 0 else (1 << 31) - 1
     warmup_steps_cfg = _sanitize_int(
@@ -863,8 +878,8 @@ def build_training_loop_context(
     steps_per_epoch = _loader_steps(train_loader)
     if max_steps_cfg > 0:
         total_training_steps = max_steps_cfg
-    elif steps_per_epoch and training_args.num_train_epochs > 0:
-        total_training_steps = steps_per_epoch * training_args.num_train_epochs
+    elif steps_per_epoch and num_epochs_raw > 0:
+        total_training_steps = int(math.ceil(steps_per_epoch * num_epochs_raw))
     else:
         total_training_steps = 0
     warmup_steps = warmup_steps_cfg
@@ -877,13 +892,13 @@ def build_training_loop_context(
         warmup_steps = total_training_steps
     lr_scheduler_type = getattr(training_args, "lr_scheduler_type", None) or "cosine"
     schedule = OptimizationSchedule(
-        num_epochs=training_args.num_train_epochs,
-        num_generations=training_args.num_generations,
+        num_epochs=num_epochs,
+        num_generations=num_generations,
         grad_accum_steps=training_args.gradient_accumulation_steps,
         max_grad_norm=max_grad_norm,
         steps_per_epoch=steps_per_epoch,
-        total_training_steps=total_training_steps,
-        warmup_steps=warmup_steps,
+        total_training_steps=int(total_training_steps or 0),
+        warmup_steps=int(warmup_steps or 0),
         lr_scheduler_type=str(lr_scheduler_type),
     )
     optimization = OptimizationSettings(schedule=schedule, handles=optim_handles)

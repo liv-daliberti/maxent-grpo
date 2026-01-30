@@ -41,5 +41,5 @@ def test_grpo_config_rejects_negative_kl_params(field_name: str, value: float):
 
 def test_grpo_config_eval_strategy_fallback(monkeypatch):
     monkeypatch.setitem(sys.modules, "transformers.training_args", None)
-    cfg = GRPOConfig(evaluation_strategy="steps")
+    cfg = GRPOConfig(eval_strategy="steps")
     assert getattr(cfg, "eval_strategy") == "steps"

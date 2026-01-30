@@ -7,15 +7,19 @@ import logging
 import time
 from contextlib import nullcontext
 from types import SimpleNamespace as _SimpleNamespace
-from typing import Any, Callable, Optional, Sequence, cast
+from typing import Any, Callable, Iterable, Optional, Sequence, TYPE_CHECKING, cast
 
 from maxent_grpo.generation import vllm_utils as _vllm_utils
-from maxent_grpo.utils.fallbacks import optional_import
+from maxent_grpo.utils.imports import optional_import
 
 from maxent_grpo.training.runtime import require_accelerator, require_torch
 
 torch = require_torch("generation_vllm")
 Accelerator = require_accelerator("generation_vllm")
+if TYPE_CHECKING:  # pragma: no cover - hints only
+    from accelerate import Accelerator as AcceleratorType  # type: ignore[reportMissingTypeStubs]
+else:  # pragma: no cover - runtime fallback
+    AcceleratorType = Any
 LOG = logging.getLogger(__name__)
 SimpleNamespace = _SimpleNamespace  # Exposed for tests that monkeypatch this module
 
@@ -46,7 +50,7 @@ def _import_vllm_client_cls(
 
 
 def _zero3_gather_factory(
-    accelerator: Accelerator,
+    accelerator: AcceleratorType,
 ) -> Callable[[Sequence[Any]], Any]:
     """Return a callable that gathers parameters when ZeRO-3 is active.
 
@@ -250,7 +254,7 @@ class VLLMWeightSyncMixin:
     def maybe_sync_weights(
         self,
         ensure_client: Optional[Callable[[], bool]] = None,
-        sync_model: Optional[Callable[[Any], None]] = None,
+        sync_model: Optional[Callable[..., None]] = None,
     ) -> None:
         """Synchronize weights to the vLLM server if configured.
 
@@ -266,14 +270,20 @@ class VLLMWeightSyncMixin:
         params_fn = getattr(model_obj, "parameters", None)
         if callable(params_fn):
             try:
-                params = [param for param in params_fn() if param is not None]
-                if params and not any(
-                    bool(getattr(param, "requires_grad", True)) for param in params
-                ):
+                params_iter = params_fn()
+                if isinstance(params_iter, Iterable):
+                    params = [param for param in params_iter if param is not None]
+                    if params and not any(
+                        bool(getattr(param, "requires_grad", True)) for param in params
+                    ):
+                        LOG.debug(
+                            "Skipping vLLM weight sync: no trainable parameters detected."
+                        )
+                        return
+                else:
                     LOG.debug(
-                        "Skipping vLLM weight sync: no trainable parameters detected."
+                        "Skipping vLLM trainable-parameter check: model.parameters() returned non-iterable."
                     )
-                    return
             except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
                 LOG.debug(
                     "Failed to inspect trainable parameters for vLLM sync: %s", exc
@@ -445,7 +455,7 @@ class VLLMWeightSyncMixin:
         total = 0
         count = 0
         try:
-            for param in params_fn():
+            for param in cast(Iterable[Any], params_fn()):
                 if param is None:
                     continue
                 version = getattr(param, "_version", None)
@@ -513,13 +523,18 @@ class VLLMWeightSyncMixin:
         ):
             self._fsdp_cls = fsdp_cls
         if fsdp_cls is not None and isinstance(model, fsdp_cls):
-            children = list(getattr(model, "named_children", None)())  # type: ignore[arg-type]
+            named_children = getattr(model, "named_children", None)
+            children = (
+                list(cast(Iterable[tuple[str, Any]], named_children()))
+                if callable(named_children)
+                else []
+            )
             modules_to_sync = children or [("", model)]
             for base_name, base_module in modules_to_sync:
                 named_params = getattr(base_module, "named_parameters", None)
                 if not callable(named_params):
                     continue
-                for pname, param in named_params():
+                for pname, param in cast(Iterable[tuple[str, Any]], named_params()):
                     full_name = f"{base_name}.{pname}" if base_name else pname
                     for extra in (
                         "_fsdp_wrapped_module.",
@@ -541,13 +556,18 @@ class VLLMWeightSyncMixin:
                 if self._fsdp_cls is None or not isinstance(model, self._fsdp_cls):
                     self._fsdp_cls = fsdp_cls
         if fsdp_cls is not None and isinstance(model, fsdp_cls):
-            children = list(getattr(model, "named_children", None)())  # type: ignore[arg-type]
+            named_children = getattr(model, "named_children", None)
+            children = (
+                list(cast(Iterable[tuple[str, Any]], named_children()))
+                if callable(named_children)
+                else []
+            )
             modules_to_sync = children or [("", model)]
             for base_name, base_module in modules_to_sync:
                 named_params = getattr(base_module, "named_parameters", None)
                 if not callable(named_params):
                     continue
-                for pname, param in named_params():
+                for pname, param in cast(Iterable[tuple[str, Any]], named_params()):
                     full_name = f"{base_name}.{pname}" if base_name else pname
                     for extra in (
                         "_fsdp_wrapped_module.",
@@ -564,10 +584,16 @@ class VLLMWeightSyncMixin:
 
             def _walk(module: Any, prefix: str = "") -> None:
                 named_children = getattr(module, "named_children", None)
-                children = list(named_children()) if callable(named_children) else []
+                children = (
+                    list(cast(Iterable[tuple[str, Any]], named_children()))
+                    if callable(named_children)
+                    else []
+                )
                 named_params = getattr(module, "named_parameters", None)
                 if callable(named_params):
-                    for raw_name, param in named_params():
+                    for raw_name, param in cast(
+                        Iterable[tuple[str, Any]], named_params()
+                    ):
                         if param is None:
                             continue
                         clean = raw_name
@@ -596,7 +622,7 @@ class VLLMWeightSyncMixin:
             _walk(model)
             root_params = getattr(model, "named_parameters", None)
             if callable(root_params):
-                for raw_name, param in root_params():
+                for raw_name, param in cast(Iterable[tuple[str, Any]], root_params()):
                     clean = raw_name
                     for extra in (
                         "_fsdp_wrapped_module.",
@@ -688,9 +714,11 @@ class VLLMWeightSyncMixin:
         iterator: list[tuple[str, Any]] = []
         if callable(named_params):
             try:
-                iterator = list(named_params(recurse=False))
+                iterator = list(
+                    cast(Iterable[tuple[str, Any]], named_params(recurse=False))
+                )
             except TypeError:
-                iterator = list(named_params())
+                iterator = list(cast(Iterable[tuple[str, Any]], named_params()))
         params = [param for _, param in iterator if param is not None]
         params_to_gather = self._zero3_params_to_gather(params)
         if not params_to_gather and params:
@@ -719,7 +747,9 @@ class VLLMWeightSyncMixin:
                 self._push_param_to_vllm(clean, param)
         named_children = getattr(model, "named_children", None)
         if callable(named_children):
-            for child_name, child in named_children():
+            for child_name, child in cast(
+                Iterable[tuple[str, Any]], named_children()
+            ):
                 child_prefix = f"{prefix}{child_name}."
                 self._sync_standard_params(
                     child, gather_factory, child_prefix, visited=visited
@@ -801,7 +831,7 @@ class VLLMWeightSyncMixin:
         with factory(params_to_gather):
             named_params = getattr(module, "named_parameters", None)
             if callable(named_params):
-                for name, param in named_params():
+                for name, param in cast(Iterable[tuple[str, Any]], named_params()):
                     full_name = f"{prefix}{name}" if prefix else name
                     for extra in (
                         "_fsdp_wrapped_module.",
@@ -814,7 +844,9 @@ class VLLMWeightSyncMixin:
                     self._push_param_to_vllm(full_name, param)
             named_children = getattr(module, "named_children", None)
             if callable(named_children):
-                for child_name, child in named_children():
+                for child_name, child in cast(
+                    Iterable[tuple[str, Any]], named_children()
+                ):
                     child_prefix = f"{prefix}{child_name}."
                     self._sync_fsdp_params(
                         child,

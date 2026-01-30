@@ -43,9 +43,9 @@ import math
 from contextlib import nullcontext
 
 from dataclasses import replace
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
-from .generation import CompletionGenerator, GenerationContext
+from .rollout import CompletionGenerator, GenerationContext
 from maxent_grpo.training.runtime import require_accelerator, require_torch
 from maxent_grpo.core.hub import push_to_hub_revision
 from .eval import run_validation_step
@@ -95,8 +95,18 @@ from .zero_utils import _maybe_patch_zero_no_sync
 
 torch = require_torch("training")
 Tensor = torch.Tensor
+
+if TYPE_CHECKING:
+    from torch import Tensor as TorchTensor
+else:  # pragma: no cover - runtime uses optional torch stub
+    TorchTensor = Any
 Accelerator = require_accelerator("training")
 prepare_training_batch = pipeline_mod.prepare_training_batch
+
+if TYPE_CHECKING:  # pragma: no cover - typing-only import
+    from maxent_grpo.config import GRPOConfig as GRPOConfigType
+else:
+    GRPOConfigType = Any
 
 LOG = logging.getLogger(__name__)
 _PROMPT_OBJECTIVE_ENV_VAR = "MAXENT_LOG_PROMPT_OBJECTIVE"
@@ -162,7 +172,7 @@ def _prompt_objective_logging_enabled(ctx: TrainingLoopContext) -> bool:
     return args_enabled or env_enabled
 
 
-def _to_cpu_tensor(value: Any) -> "torch.Tensor":
+def _to_cpu_tensor(value: Any) -> TorchTensor:
     """Best-effort conversion of tensors/arrays to 1D CPU float tensors."""
 
     if value is None:
@@ -500,20 +510,8 @@ def _maybe_overwrite_controller_state_from_config(
         except (TypeError, ValueError):
             return None
 
-    def _first_defined(*values):
-        for candidate in values:
-            if candidate is not None:
-                return candidate
-        return None
-
     tau_override = _coerce_scalar(getattr(training_args, "maxent_tau", None))
-    beta_source = _first_defined(
-        getattr(training_args, "init_kl_coeff", None),
-        getattr(training_args, "init_kl_coef", None),
-        getattr(training_args, "kl_penalty_beta", None),
-        getattr(training_args, "beta", None),
-    )
-    beta_override = _coerce_scalar(beta_source)
+    beta_override = _coerce_scalar(getattr(training_args, "beta", None))
     updated = False
     prev_tau = getattr(weighting, "tau", None)
     prev_beta = getattr(weighting, "beta", None)
@@ -916,7 +914,7 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
             push_args = SimpleNamespace(**getattr(training_args, "__dict__", {}))
             push_args.push_to_hub_revision = True
             push_to_hub_revision(
-                push_args,
+                cast(GRPOConfigType, push_args),
                 extra_ignore_patterns=[],
                 include_checkpoints=True,
             )

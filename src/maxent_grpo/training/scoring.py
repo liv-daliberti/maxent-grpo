@@ -25,16 +25,13 @@ import numbers
 import sys
 import logging
 from types import SimpleNamespace
-from typing import Any, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, TYPE_CHECKING, cast
 from functools import lru_cache
 import queue
 import threading
 import numpy as np
 
-from maxent_grpo.utils.fallbacks import dist_with_fallback
-
 from maxent_grpo.training.runtime import (
-    _build_torch_stub,
     require_torch,
     require_transformer_base_classes,
 )
@@ -52,6 +49,19 @@ from .types import (
 )
 
 LOG = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    import torch as torch_types
+    from torch import Tensor as TorchTensor, device as TorchDevice, dtype as TorchDType
+    from transformers.modeling_utils import PreTrainedModel as PreTrainedModel
+    from transformers.tokenization_utils import PreTrainedTokenizer as PreTrainedTokenizer
+else:  # pragma: no cover - runtime uses optional torch/transformers stubs
+    torch_types = None
+    TorchTensor = Any
+    TorchDevice = Any
+    TorchDType = Any
+    PreTrainedModel = Any
+    PreTrainedTokenizer = Any
 
 torch = require_torch("training_scoring")
 _REQUIRED_TORCH_ATTRS = ("tensor", "full", "ones_like", "zeros", "cat")
@@ -96,211 +106,9 @@ class _LongDTypeProxy:
 
 
 def _refresh_torch() -> Any:
-    """Ensure the torch stub exposes the minimal API we need in tests."""
-    torch_mod = sys.modules.get("torch", torch)
-    previous_mod = torch_mod
-    if any(not hasattr(torch_mod, attr) for attr in _REQUIRED_TORCH_ATTRS):
-        try:  # pragma: no cover - defensive stub installation
-            import importlib
+    """Return the active torch module."""
 
-            _bootstrap = importlib.import_module("sitecustomize")
-            installer = getattr(_bootstrap, "_install_torch_stub", None)
-            if callable(installer):
-                installer()
-            torch_mod = sys.modules.get("torch", torch_mod)
-        except (ImportError, AttributeError, ValueError):
-            torch_mod = require_torch("training_scoring")
-    # If real torch is present but unusable (e.g., minimal build in CI), fall back to stub.
-    try:
-        _ = torch_mod.tensor([0]) if hasattr(torch_mod, "tensor") else None
-    except (TypeError, ValueError, RuntimeError):
-        stub = _build_torch_stub()
-        sys.modules["torch"] = stub
-        torch_mod = stub
-        if (
-            previous_mod is not None
-            and hasattr(previous_mod, "distributed")
-            and not hasattr(torch_mod, "distributed")
-        ):
-            torch_mod.distributed = getattr(previous_mod, "distributed")
-    # Patch missing attributes with a lightweight stub. _build_torch_stub has
-    # side effects on sys.modules, so snapshot and restore to avoid clobbering
-    # any monkeypatches (e.g., torch.distributed) or real torch submodules.
-    existing_modules = {
-        name: module for name, module in sys.modules.items() if name.startswith("torch")
-    }
-    stub = _build_torch_stub()
-    if existing_modules:
-        for name in list(sys.modules.keys()):
-            if name.startswith("torch") and name not in existing_modules:
-                sys.modules.pop(name, None)
-        for name, module in existing_modules.items():
-            sys.modules[name] = module
-    for name in _REQUIRED_TORCH_ATTRS + (
-        "long",
-        "float32",
-        "int64",
-        "version",
-        "no_grad",
-        "SymBool",
-        "stack",
-        "unique",
-        "arange",
-        "nn",
-        "optim",
-    ):
-        if not hasattr(torch_mod, name) and hasattr(stub, name):
-            setattr(torch_mod, name, getattr(stub, name))
-    nn_mod = getattr(torch_mod, "nn", None)
-    stub_nn = getattr(stub, "nn", None)
-    if nn_mod is not None and stub_nn is not None:
-        for attr in ("Module", "Embedding", "Linear", "Parameter"):
-            if not hasattr(nn_mod, attr) and hasattr(stub_nn, attr):
-                setattr(nn_mod, attr, getattr(stub_nn, attr))
-        stub_func = getattr(stub_nn, "functional", None)
-        func_mod = getattr(nn_mod, "functional", None)
-        if func_mod is None and stub_func is not None:
-            nn_mod.functional = stub_func
-            func_mod = stub_func
-        if func_mod is not None and stub_func is not None:
-            if not hasattr(func_mod, "log_softmax") and hasattr(
-                stub_func, "log_softmax"
-            ):
-                func_mod.log_softmax = stub_func.log_softmax
-            if not hasattr(func_mod, "pdist") and hasattr(stub_func, "pdist"):
-                func_mod.pdist = stub_func.pdist
-    optim_mod = getattr(torch_mod, "optim", None)
-    stub_optim = getattr(stub, "optim", None)
-    if optim_mod is not None and stub_optim is not None:
-        for attr in ("Optimizer", "AdamW", "lr_scheduler"):
-            if not hasattr(optim_mod, attr) and hasattr(stub_optim, attr):
-                setattr(optim_mod, attr, getattr(stub_optim, attr))
-    if not hasattr(torch_mod, "version") or torch_mod.version is None:
-        torch_mod.version = SimpleNamespace()
-    if isinstance(torch_mod.version, SimpleNamespace):
-        if not hasattr(torch_mod.version, "version"):
-            torch_mod.version.version = "0.0.0"
-        if not hasattr(torch_mod.version, "__version__"):
-            torch_mod.version.__version__ = "0.0.0"
-        if not hasattr(torch_mod.version, "cuda"):
-            torch_mod.version.cuda = None
-    if not hasattr(torch_mod, "__version__"):
-        torch_mod.__version__ = "0.0.0"
-    if not hasattr(torch_mod, "tensor"):
-        torch_mod.tensor = stub.tensor
-    if not hasattr(torch_mod, "as_tensor") and hasattr(stub, "as_tensor"):
-        torch_mod.as_tensor = stub.as_tensor
-    if not hasattr(torch_mod, "is_tensor"):
-        if hasattr(stub, "is_tensor"):
-            torch_mod.is_tensor = stub.is_tensor
-        else:
-            def _is_tensor(x: Any) -> bool:
-                tensor_type = getattr(torch_mod, "Tensor", ())
-                if isinstance(x, tensor_type):
-                    return True
-                # Be generous when working with mixed stubs/arrays: treat
-                # objects that look tensor-like (have ``arr`` or ``shape``)
-                # as tensors for the purposes of tests and cheap type checks.
-                return hasattr(x, "arr") or hasattr(x, "shape")
-
-            torch_mod.is_tensor = _is_tensor
-    try:
-        tensor_ctor = getattr(torch_mod, "tensor", None)
-        if callable(tensor_ctor):
-            sample = tensor_ctor([0])
-            sample_cls = type(sample)
-            existing_cls = getattr(torch_mod, "Tensor", None)
-            if existing_cls is None or not isinstance(sample, existing_cls):
-                torch_mod.Tensor = sample_cls
-    except _SCORING_EXCEPTIONS:
-        pass
-    # Ensure device namespaces exist to avoid import errors in manual_seed.
-    if not hasattr(torch_mod, "xpu") and hasattr(stub, "xpu"):
-        torch_mod.xpu = stub.xpu
-    # Patch cuda memory query helpers for lightweight stubs.
-    cuda_mod = getattr(torch_mod, "cuda", None)
-    if cuda_mod is None and hasattr(stub, "cuda"):
-        torch_mod.cuda = stub.cuda
-        cuda_mod = torch_mod.cuda
-    if cuda_mod is not None:
-        if not hasattr(cuda_mod, "memory_stats"):
-            try:
-                cuda_mod.memory_stats = lambda *_a, **_k: {}
-            except (AttributeError, TypeError):
-                pass
-        for name in (
-            "current_allocated_memory",
-            "current_reserved_memory",
-            "memory_allocated",
-            "memory_reserved",
-            "max_memory_allocated",
-            "max_memory_reserved",
-        ):
-            if not hasattr(cuda_mod, name):
-                try:
-                    setattr(cuda_mod, name, lambda *_a, **_k: 0)
-                except (AttributeError, TypeError):
-                    pass
-        existing_cuda = sys.modules.get("torch.cuda")
-        if existing_cuda is None:
-            sys.modules["torch.cuda"] = cuda_mod
-        else:
-            if existing_cuda is not cuda_mod:
-                for name in (
-                    "memory_stats",
-                    "current_allocated_memory",
-                    "current_reserved_memory",
-                    "memory_allocated",
-                    "memory_reserved",
-                    "max_memory_allocated",
-                    "max_memory_reserved",
-                ):
-                    if not hasattr(existing_cuda, name):
-                        try:
-                            setattr(existing_cuda, name, lambda *_a, **_k: 0)
-                        except (AttributeError, TypeError):
-                            pass
-                torch_mod.cuda = existing_cuda
-    # Ensure torch.device is callable (some tests stub it as a no-arg type).
-    device_attr = getattr(torch_mod, "device", None)
-    stub_device = getattr(stub, "device", None)
-    if stub_device is not None:
-        needs_device = not callable(device_attr)
-        if not needs_device and callable(device_attr):
-            try:
-                device_attr("cpu")
-            except (TypeError, ValueError, RuntimeError):
-                needs_device = True
-        if needs_device:
-            try:
-                torch_mod.device = stub_device
-            except (AttributeError, TypeError, ValueError):
-                pass
-    sys.modules["torch"] = torch_mod
-    if nn_mod is not None:
-        sys.modules["torch.nn"] = nn_mod
-        func_mod = getattr(nn_mod, "functional", None)
-        if func_mod is not None:
-            sys.modules["torch.nn.functional"] = func_mod
-    if optim_mod is not None:
-        sys.modules["torch.optim"] = optim_mod
-        lr_sched = getattr(optim_mod, "lr_scheduler", None)
-        if lr_sched is not None:
-            sys.modules["torch.optim.lr_scheduler"] = lr_sched
-    utils_mod = getattr(torch_mod, "utils", None)
-    if utils_mod is not None:
-        sys.modules["torch.utils"] = utils_mod
-        data_mod = getattr(utils_mod, "data", None)
-        if data_mod is not None:
-            sys.modules["torch.utils.data"] = data_mod
-    if hasattr(torch_mod, "cuda"):
-        sys.modules["torch.cuda"] = torch_mod.cuda
-    if hasattr(torch_mod, "xpu"):
-        sys.modules["torch.xpu"] = torch_mod.xpu
-    if hasattr(torch_mod, "mps"):
-        sys.modules["torch.mps"] = torch_mod.mps
-    globals()["torch"] = torch_mod
-    return torch_mod
+    return torch
 
 
 def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int):
@@ -372,13 +180,16 @@ class _PadTokenGuard:
             new_value: Any = value
             try:
                 if isinstance(new_value, numbers.Integral):
+                    new_value_int = int(new_value)
+                    new_value = new_value_int
                     if isinstance(num_embeddings, numbers.Integral):
                         # Prefer the module's own embedding count when exposed.
-                        if num_embeddings <= 0:
+                        num_embeddings_int = int(num_embeddings)
+                        if num_embeddings_int <= 0:
                             # Disable padding entirely for degenerate embeddings.
                             new_value = -1
-                        elif new_value >= num_embeddings:
-                            new_value = num_embeddings - 1
+                        elif new_value_int >= num_embeddings_int:
+                            new_value = num_embeddings_int - 1
                     elif weight is not None and _weight_is_two_dimensional(weight):
                         # Fallback: derive num_embeddings from the leading weight dim.
                         size = None
@@ -394,9 +205,10 @@ class _PadTokenGuard:
                                 size = None
                         if size is not None and len(size) >= 1:
                             num_embeddings = size[0]
-                            if isinstance(num_embeddings, numbers.Integral) and num_embeddings > 0:
-                                if new_value >= num_embeddings:
-                                    new_value = num_embeddings - 1
+                            if isinstance(num_embeddings, numbers.Integral):
+                                num_embeddings_int = int(num_embeddings)
+                                if num_embeddings_int > 0 and new_value_int >= num_embeddings_int:
+                                    new_value = num_embeddings_int - 1
             except _SCORING_EXCEPTIONS:
                 # If anything goes wrong while inspecting sizes, fall back to
                 # the original requested value without additional checks.
@@ -459,7 +271,7 @@ def _describe_embedding_module(module: Any, name: str) -> str:
     shape = None
     if hasattr(weight, "shape"):
         shape = tuple(shape for shape in getattr(weight, "shape"))
-    elif hasattr(weight, "size"):
+    elif weight is not None and hasattr(weight, "size"):
         try:
             shape = tuple(weight.size())
         except _SCORING_EXCEPTIONS:
@@ -492,9 +304,10 @@ def _get_embedding_vocab_size(
 
 def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
     """Return a tensor cast to long when the stub lacks ``long``."""
-    if hasattr(value, "long"):
+    long_fn = getattr(value, "long", None)
+    if callable(long_fn):
         try:
-            return value.long()
+            return long_fn()
         except TypeError as exc:
             LOG.debug("value.long() failed; falling back to tensor cast: %s", exc)
     arr = getattr(value, "arr", None)
@@ -507,9 +320,10 @@ def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
     if callable(tensor_fn):
         try:
             t = tensor_fn(arr)
-            if hasattr(t, "long"):
+            long_method = getattr(t, "long", None)
+            if callable(long_method):
                 try:
-                    return t.long()
+                    return long_method()
                 except (TypeError, ValueError, RuntimeError):
                     return t
         except (TypeError, ValueError, RuntimeError) as exc:
@@ -579,7 +393,7 @@ def _to_numpy_array(obj: Any) -> np.ndarray:
                 tensor_cpu = cpu_fn()
             numpy_fn = getattr(tensor_cpu, "numpy", None)
             if callable(numpy_fn):
-                return numpy_fn()
+                return np.asarray(numpy_fn())
         except _SCORING_EXCEPTIONS as exc:
             LOG.debug("Fallback tensor->numpy conversion failed: %s", exc)
     if hasattr(obj, "arr"):
@@ -601,7 +415,7 @@ def _to_numpy_array(obj: Any) -> np.ndarray:
 
 def _dist_collective_ready(torch_mod: Any) -> Any:
     """Return a dist module when initialized, otherwise None."""
-    dist = dist_with_fallback(getattr(torch_mod, "distributed", None))
+    dist = getattr(torch_mod, "distributed", None)
     try:
         if dist is not None and dist.is_available() and dist.is_initialized():
             return dist
@@ -659,14 +473,12 @@ def _resolve_dtype(dtype: Any) -> Any:
         return None
 
 
-Tensor = torch.Tensor
-PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes(
-    "training_scoring"
-)
+Tensor = TorchTensor
+_ = require_transformer_base_classes("training_scoring")
 
 
 
-def _autocast_context(accelerator: Any, device: torch.device) -> Any:
+def _autocast_context(accelerator: Any, device: TorchDevice) -> Any:
     """Return the right autocast context for the current accelerator/device.
 
     :param accelerator: Accelerator handle exposing an optional ``autocast``.
@@ -676,14 +488,15 @@ def _autocast_context(accelerator: Any, device: torch.device) -> Any:
     :returns: Context manager handling autocast semantics.
     :rtype: contextlib.AbstractContextManager[Any]
     """
-    accel_autocast = getattr(accelerator, "autocast", None)
-    if accel_autocast is not None:
+    if hasattr(accelerator, "autocast"):
+        accel_autocast = getattr(accelerator, "autocast", None)
         if callable(accel_autocast):
             try:
-                return accel_autocast()
+                result = accel_autocast()
             except (TypeError, ValueError, RuntimeError):
                 return nullcontext()
-        if hasattr(accel_autocast, "__enter__"):
+            return result
+        if accel_autocast is not None and hasattr(accel_autocast, "__enter__"):
             return accel_autocast
         return nullcontext()
     torch_mod = sys.modules.get("torch")
@@ -774,7 +587,7 @@ class _SliceState:
 
 def _collect_prompt_entries(
     prompt_batch: List[str],
-    batching_cfg: BatchingSettings,
+    batching_cfg: Any,
 ) -> Optional[List[PromptCacheEntry]]:
     """Resolve cached prompt tokenization for a batch of strings.
 
@@ -798,7 +611,9 @@ def _collect_prompt_entries(
         batching_cfg.prompt_length_cache_get = prompt_fn
     if not callable(prompt_fn):
         return None
-    prompt_entries = [prompt_fn(prompt) for prompt in prompt_batch]
+    prompt_entries = cast(
+        List[PromptCacheEntry], [prompt_fn(prompt) for prompt in prompt_batch]
+    )
     if not prompt_entries:
         return None
     return prompt_entries
@@ -874,8 +689,8 @@ def _prepare_prompt_slice(
     prompt_slice: List[PromptCacheEntry],
     max_prompt_len: int,
     pad_token_id: int,
-    ids_dtype: torch.dtype,
-    mask_dtype: torch.dtype,
+    ids_dtype: TorchDType,
+    mask_dtype: TorchDType,
 ) -> Tuple[Tensor, Tensor, List[int]]:
     """Materialize prompt tensors for one scoring slice.
 
@@ -992,7 +807,7 @@ def _slice_tail_window(
 
 def iter_batch_slices(
     score_batch: ScoreBatch,
-    device: torch.device,  # kept for API symmetry with callers
+    device: TorchDevice,  # kept for API symmetry with callers
 ):
     """Yield scoring slices for a batch, assembling prompt tensors on demand.
 
@@ -1216,13 +1031,15 @@ def iter_batch_slices(
 
 def _summon_fsdp_full_param_context(model: PreTrainedModel):
     """Return a context manager that gathers FSDP parameters when available."""
-    if not hasattr(model, "summon_full_params"):
+    summon_fn = getattr(model, "summon_full_params", None)
+    summon_callable = cast(Optional[Callable[..., Any]], summon_fn)
+    if not callable(summon_callable):
         return nullcontext()
     try:
-        return model.summon_full_params()
+        return summon_callable()
     except TypeError:
         try:
-            return model.summon_full_params(recurse=True)
+            return summon_callable(recurse=True)
         except TypeError:
             return nullcontext()
 
@@ -1237,7 +1054,7 @@ def _chunked_sequence_logprobs(
     gather_full_params: bool = False,  # retained for parity
     return_hidden: bool = False,
     pooling: str = "mean",
-) -> Tuple[Tensor, Tensor, Optional[Tensor]]:
+) -> Optional[Tuple[Tensor, Tensor, Optional[Tensor]]]:
     """Compute summed log-probabilities per sequence with optional chunking and pooled states."""
 
     torch_mod = _refresh_torch()
@@ -1272,13 +1089,13 @@ def _chunked_sequence_logprobs(
     dist = _dist_collective_ready(torch_mod)
     if gather_full_params:
         try:  # pragma: no cover - exercised in distributed runs
-            import deepspeed
+            import deepspeed  # type: ignore[reportMissingTypeStubs]
 
             params: list[Any] = []
             param_iter = getattr(model, "parameters", None)
             if callable(param_iter):
                 try:
-                    params = list(param_iter())
+                    params = list(cast(Iterable[Any], param_iter()))
                 except _SCORING_EXCEPTIONS:
                     params = []
             # Always invoke GatheredParameters when available, even with an empty
@@ -1293,9 +1110,11 @@ def _chunked_sequence_logprobs(
             gather_ctx = nullcontext()
     else:
         try:  # pragma: no cover - exercised in distributed runs
-            import deepspeed
+            import deepspeed  # type: ignore[reportMissingTypeStubs]
 
-            if deepspeed.zero.is_enabled():
+            zero_mod = getattr(deepspeed, "zero", None)
+            is_enabled_fn = getattr(zero_mod, "is_enabled", None) if zero_mod is not None else None
+            if callable(is_enabled_fn) and is_enabled_fn():
                 to_gather: list[Any] = []
                 if os.environ.get("MAXENT_DISABLE_SCORING_ZERO_GATHER", "").strip():
                     gather_ctx = nullcontext()
@@ -1635,7 +1454,10 @@ def _chunked_sequence_logprobs(
                     if not wants_labels:
                         call_kwargs.pop("labels", None)
                     outputs = call_target(**call_kwargs)
-            logits = outputs.logits
+            outputs_any = cast(Any, outputs)
+            logits = getattr(outputs_any, "logits", None)
+            if logits is None:
+                raise AttributeError("Model outputs missing logits")
             LOG.debug(
                 "reference scoring logits metadata | chunk=%s | shape=%s dtype=%s device=%s",
                 idx,
@@ -1674,9 +1496,12 @@ def _chunked_sequence_logprobs(
                         preview_source = detach_fn()
                     except _SCORING_EXCEPTIONS:
                         preview_source = seq_logp_chunk
-                if hasattr(preview_source, "cpu"):
+                preview_source_any = cast(Any, preview_source)
+                if hasattr(preview_source_any, "cpu"):
                     try:
-                        preview_vals = preview_source.cpu().reshape(-1)[:3].tolist()
+                        preview_vals = (
+                            preview_source_any.cpu().reshape(-1)[:3].tolist()
+                        )
                     except _SCORING_EXCEPTIONS:
                         preview_vals = None
                 LOG.debug(
@@ -1722,7 +1547,7 @@ def _chunked_sequence_logprobs(
                 to_fn = getattr(target_logits, "to", None)
                 if callable(to_fn):
                     target_logits = to_fn(dtype=getattr(log_denom, "dtype", None))
-                token_logp = target_logits - log_denom
+                token_logp = cast(Any, target_logits) - log_denom
             except _SCORING_EXCEPTIONS:
                 log_probs = torch_mod.nn.functional.log_softmax(shifted_logits, dim=-1)
                 flat_log_probs = log_probs.reshape(-1, vocab_size)
@@ -1733,7 +1558,9 @@ def _chunked_sequence_logprobs(
                         gather_index = gather_index.to(target_device)
                     except _SCORING_EXCEPTIONS as exc:
                         LOG.debug("Failed to move fallback gather_index to device: %s", exc)
-                token_logp = flat_log_probs[gather_index, flat_labels].reshape(safe_labels.shape)
+                token_logp = flat_log_probs[gather_index, flat_labels].reshape(
+                    safe_labels.shape
+                )
             # If mask tensors are real torch tensors but token_logp is a stub tensor,
             # coerce token_logp into the active torch module to avoid type mismatches.
             torch_tensor = getattr(torch_mod, "Tensor", None)
@@ -1771,7 +1598,10 @@ def _chunked_sequence_logprobs(
                         float_fn = getattr(mask_float, "float", None)
                         if callable(float_fn):
                             mask_float = float_fn()
-            seq_logp_chunk = (token_logp * mask_float).sum(dim=1)
+            seq_logp_chunk = cast(
+                Tensor,
+                (cast(Any, token_logp) * cast(Any, mask_float)).sum(dim=1),
+            )
             tok_tensor_chunk = label_mask.sum(dim=1).clamp(min=1)
             logp_chunks.append(seq_logp_chunk)
             tok_chunks.append(tok_tensor_chunk)
@@ -1806,8 +1636,9 @@ def _chunked_sequence_logprobs(
                 valid_tokens,
                 logp_preview,
             )
-            if return_hidden and getattr(outputs, "hidden_states", None) is not None:
-                hidden = outputs.hidden_states[-1]
+            hidden_states = getattr(outputs_any, "hidden_states", None)
+            if return_hidden and hidden_states is not None:
+                hidden = hidden_states[-1]
                 mask = mask_chunk
                 if pooling == "last":
                     pooled = hidden[:, -1, :]
@@ -1844,7 +1675,10 @@ def _chunked_sequence_logprobs(
                                 float_fn = getattr(mask, "float", None)
                                 if callable(float_fn):
                                     mask = float_fn()
-                        pooled = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(
+                        mask_any = cast(Any, mask)
+                        pooled = (hidden * mask_any).sum(dim=1) / mask_any.sum(
+                            dim=1
+                        ).clamp(
                             min=1.0
                         )
                 pooled_chunks.append(pooled)
@@ -1905,17 +1739,28 @@ def build_score_batch(
     total_sequences = len(prompt_batch)
     if total_sequences == 0:
         return None
+    def _coerce_int(value: Any, default: int = 0) -> int:
+        if isinstance(value, numbers.Integral):
+            return int(value)
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+    prompt_length_cache_fn: Callable[[str], PromptCacheEntry]
     prompt_length_cache = getattr(batching_cfg, "prompt_length_cache_get", None)
-    if prompt_length_cache is None and callable(batching_cfg):
+    if not callable(prompt_length_cache) and callable(batching_cfg):
         prompt_length_cache = batching_cfg
-    if prompt_length_cache is None:
+    if callable(prompt_length_cache):
+        prompt_length_cache_fn = cast(Callable[[str], PromptCacheEntry], prompt_length_cache)
+    else:
 
-        def prompt_length_cache(_p: str) -> PromptCacheEntry:
+        def _default_prompt_length_cache(_p: str) -> PromptCacheEntry:
             return PromptCacheEntry(input_ids=[], attention_mask=[])
 
+        prompt_length_cache_fn = _default_prompt_length_cache
     prompt_entries = _collect_prompt_entries(
         prompt_batch,
-        SimpleNamespace(prompt_length_cache_get=prompt_length_cache),
+        SimpleNamespace(prompt_length_cache_get=prompt_length_cache_fn),
     )
     if prompt_entries is None:
         return None
@@ -1947,25 +1792,27 @@ def build_score_batch(
                 ok = False
                 break
             try:
-                token_ids.append([int(val) for val in raw_ids])
+                token_ids.append([_coerce_int(val) for val in raw_ids])
             except (TypeError, ValueError):
                 ok = False
                 break
         if ok:
-            pad_token_id = tokenizer.pad_token_id
-            if pad_token_id is None:
-                pad_token_id = tokenizer.eos_token_id or 0
+            pad_token_raw = tokenizer.pad_token_id
+            if pad_token_raw is None:
+                pad_token_raw = tokenizer.eos_token_id or 0
+            pad_token_id = _coerce_int(pad_token_raw, 0)
             vocab_size = getattr(tokenizer, "vocab_size", None)
-            if (
-                vocab_size is not None
-                and pad_token_id is not None
-                and pad_token_id >= vocab_size
-            ):
-                pad_token_id = tokenizer.eos_token_id or vocab_size - 1 or 0
+            if isinstance(vocab_size, numbers.Integral):
+                vocab_size_int = int(vocab_size)
+                if pad_token_id >= vocab_size_int:
+                    fallback = tokenizer.eos_token_id
+                    if fallback is None:
+                        fallback = vocab_size_int - 1
+                    pad_token_id = _coerce_int(fallback, 0)
             completion_tensors = _completion_tensors_from_token_ids(
                 token_ids,
-                pad_token_id=int(pad_token_id or 0),
-                max_length=int(getattr(generation_cfg, "max_completion_len", 0) or 0),
+                pad_token_id=pad_token_id,
+                max_length=_coerce_int(getattr(generation_cfg, "max_completion_len", 0), 0),
             )
             LOG.debug(
                 "Using pre-tokenized completion token_ids from completion_metadata | sequences=%d",
@@ -1981,16 +1828,18 @@ def build_score_batch(
         batching_cfg.score_slice if batching_cfg.score_slice > 0 else total_sequences
     )
     slice_size = max(1, slice_size)
-    pad_token_id = tokenizer.pad_token_id
-    if pad_token_id is None:
-        pad_token_id = tokenizer.eos_token_id or 0
+    pad_token_raw = tokenizer.pad_token_id
+    if pad_token_raw is None:
+        pad_token_raw = tokenizer.eos_token_id or 0
+    pad_token_id = _coerce_int(pad_token_raw, 0)
     vocab_size = getattr(tokenizer, "vocab_size", None)
-    if (
-        vocab_size is not None
-        and pad_token_id is not None
-        and pad_token_id >= vocab_size
-    ):
-        pad_token_id = tokenizer.eos_token_id or vocab_size - 1 or 0
+    if isinstance(vocab_size, numbers.Integral):
+        vocab_size_int = int(vocab_size)
+        if pad_token_id >= vocab_size_int:
+            fallback = tokenizer.eos_token_id
+            if fallback is None:
+                fallback = vocab_size_int - 1
+            pad_token_id = _coerce_int(fallback, 0)
     return ScoreBatch(
         prompt_entries=prompt_entries,
         completion_ids=completion_tensors.ids,
@@ -2051,16 +1900,20 @@ def reference_from_model(
                 )
                 return None
         # _chunked_sequence_logprobs normally returns (logp, tok_counts, pooled_hidden).
-        if not isinstance(result, (tuple, list)) or len(result) < 2:
+        if not isinstance(result, (tuple, list)):
             _log_once(
-                f"chunked_sequence_logprobs returned invalid result | type={type(result)} len={len(result) if hasattr(result, '__len__') else 'n/a'} "
+                f"chunked_sequence_logprobs returned invalid result | type={type(result)} len=n/a "
                 f"inputs_shape={getattr(slice_inputs, 'shape', None)}"
             )
             return None
-        if len(result) >= 3:
-            ref_logp_slice, ref_tok_slice, _ = result[:3]
-        else:
-            ref_logp_slice, ref_tok_slice = result[:2]
+        seq_result = cast(Sequence[Any], result)
+        if len(seq_result) < 2:
+            _log_once(
+                f"chunked_sequence_logprobs returned invalid result | type={type(result)} len={len(seq_result)} "
+                f"inputs_shape={getattr(slice_inputs, 'shape', None)}"
+            )
+            return None
+        ref_logp_slice, ref_tok_slice = seq_result[0], seq_result[1]
         if ref_logp_slice.numel() == 0 or ref_tok_slice.numel() == 0:
             _log_once(
                 f"empty slice tensors | logp_numel={ref_logp_slice.numel()} tok_numel={ref_tok_slice.numel()} "
@@ -2154,7 +2007,11 @@ def gather_reference_logprobs(
         all_rows: Optional[List[Any]] = None
         if callable(gather_obj):
             try:
-                all_rows = gather_obj(int(preflight_rows))
+                gathered_rows = gather_obj(int(preflight_rows))
+                if isinstance(gathered_rows, list):
+                    all_rows = cast(List[Any], gathered_rows)
+                elif gathered_rows is not None:
+                    all_rows = [gathered_rows]
             except _SCORING_EXCEPTIONS:
                 all_rows = None
         if all_rows is None:
@@ -2191,11 +2048,11 @@ def gather_reference_logprobs(
     if num_processes > 1:
         if callable(gather_obj):
             try:
-                gathered = gather_obj(bool(local_ok))
-                if isinstance(gathered, list):
-                    global_ok = all(bool(x) for x in gathered)
+                gathered_obj: Any = gather_obj(bool(local_ok))
+                if isinstance(gathered_obj, list):
+                    global_ok = all(bool(x) for x in gathered_obj)
                 else:
-                    global_ok = bool(gathered)
+                    global_ok = bool(gathered_obj)
             except _SCORING_EXCEPTIONS:
                 global_ok = local_ok
         else:
@@ -2280,9 +2137,10 @@ def finalize_reference_stats(
 
         # If numpy conversion dropped elements (e.g., CUDA+bfloat16 -> empty array),
         # retry with a CPU float32 view so we do not lose reference stats.
+        logp_numel_val = float(logp_numel) if isinstance(logp_numel, numbers.Real) else 0.0
+        tok_numel_val = float(tok_numel) if isinstance(tok_numel, numbers.Real) else 0.0
         if getattr(logp_arr_raw, "size", 0) == 0 and (
-            (isinstance(logp_numel, numbers.Number) and logp_numel > 0)
-            or (isinstance(tok_numel, numbers.Number) and tok_numel > 0)
+            logp_numel_val > 0.0 or tok_numel_val > 0.0
         ):
             try:
                 tensor_cpu = ref_logp_sum.detach().to("cpu")
@@ -2303,11 +2161,7 @@ def finalize_reference_stats(
         # If still empty but token counts exist, treat as a hard failure. Returning
         # zeros here can yield pathological KL (e.g., delta ~= -cur_logp) and
         # destabilize training; let callers retry/skip the batch instead.
-        if (
-            getattr(logp_arr_raw, "size", 0) == 0
-            and isinstance(tok_numel, numbers.Number)
-            and tok_numel > 0
-        ):
+        if getattr(logp_arr_raw, "size", 0) == 0 and tok_numel_val > 0.0:
             raise ValueError(
                 "Reference logp tensor conversion produced an empty array while token counts exist; "
                 "cannot finalize reference stats safely."
@@ -2411,29 +2265,38 @@ def token_counts_from_score_batch(
         to_fn = getattr(tok, "to", None)
         if callable(to_fn):
             tok = to_fn(dtype=getattr(torch_mod, "float32", None))
+        tok = cast(Tensor, tok)
         tok_chunks.append(tok)
     if not tok_chunks:
         try:
-            return torch_mod.zeros(
+            return cast(
+                Tensor,
+                torch_mod.zeros(
                 (0,),
                 dtype=getattr(torch_mod, "float32", None),
                 device=runtime.device,
+                ),
             )
         except _SCORING_EXCEPTIONS:
-            return torch_mod.tensor([], dtype=getattr(torch_mod, "float32", None))
+            return cast(
+                Tensor,
+                torch_mod.tensor([], dtype=getattr(torch_mod, "float32", None)),
+            )
     try:
         out = torch_mod.cat(tok_chunks, dim=0)
     except _SCORING_EXCEPTIONS:
         out = tok_chunks[0]
         for chunk in tok_chunks[1:]:
             out = torch_mod.cat([out, chunk], dim=0)
-    to_fn = getattr(out, "to", None)
+    out_tensor: Tensor = cast(Tensor, out)
+    to_fn = getattr(out_tensor, "to", None)
     if callable(to_fn):
         try:
-            out = to_fn(device=runtime.device)
+            out_tensor = cast(Tensor, to_fn(device=runtime.device))
         except _SCORING_EXCEPTIONS as exc:
             LOG.debug("Failed to move token counts to runtime device: %s", exc)
-    return out
+    out_tensor = cast(Tensor, out_tensor)
+    return out_tensor
 
 
 def reference_stats_from_policy_logprobs(
@@ -2456,30 +2319,39 @@ def reference_stats_from_policy_logprobs(
     tok_tensor = _as_torch_tensor(
         torch_mod, tok_counts, device=device, dtype=base_dtype
     ).view(-1)
+    cur_tensor = cast(Tensor, cur_tensor)
+    tok_tensor = cast(Tensor, tok_tensor)
     try:
         tok_tensor = tok_tensor.clamp(min=1.0)
     except _SCORING_EXCEPTIONS as exc:
         LOG.debug("Failed to clamp token counts; continuing: %s", exc)
+    tok_tensor = cast(Tensor, tok_tensor)
     detach_fn = getattr(cur_tensor, "detach", None)
     if callable(detach_fn):
         cur_tensor = detach_fn()
+        cur_tensor = cast(Tensor, cur_tensor)
     detach_fn = getattr(tok_tensor, "detach", None)
     if callable(detach_fn):
         tok_tensor = detach_fn()
-    ref_logp_sum_raw = cur_tensor
-    ref_logp_sum = ref_logp_sum_raw / tok_tensor
+        tok_tensor = cast(Tensor, tok_tensor)
+    ref_logp_sum_raw = cast(Tensor, cur_tensor)
+    ref_logp_sum = cast(Any, ref_logp_sum_raw) / tok_tensor
     try:
-        ref_logp_mean = float(ref_logp_sum_raw.detach().float().cpu().mean().item())
+        ref_logp_mean = float(
+            cast(Any, ref_logp_sum_raw).detach().float().cpu().mean().item()
+        )
     except _SCORING_EXCEPTIONS:
         try:
-            ref_logp_mean = float(ref_logp_sum_raw.mean())
+            ref_logp_mean = float(cast(Any, ref_logp_sum_raw).mean())
         except _SCORING_EXCEPTIONS:
             ref_logp_mean = 0.0
     try:
-        avg_completion_tokens = float(tok_tensor.detach().float().cpu().mean().item())
+        avg_completion_tokens = float(
+            cast(Any, tok_tensor).detach().float().cpu().mean().item()
+        )
     except _SCORING_EXCEPTIONS:
         try:
-            avg_completion_tokens = float(tok_tensor.mean())
+            avg_completion_tokens = float(cast(Any, tok_tensor).mean())
         except _SCORING_EXCEPTIONS:
             avg_completion_tokens = 0.0
     return ReferenceLogprobs(
@@ -2511,7 +2383,7 @@ def _coerce_logprob_value(value: Any) -> Optional[float]:
     """Best-effort conversion of a token logprob payload into a float."""
     if value is None:
         return None
-    if isinstance(value, numbers.Number):
+    if isinstance(value, numbers.Real):
         return float(value)
     if isinstance(value, Mapping):
         if "logprob" in value:
@@ -2547,7 +2419,7 @@ def _sum_token_logprobs(token_logprobs: Any) -> Optional[float]:
 def reference_from_vllm_meta(
     flat_meta: Sequence[Optional[Any]],
     total_sequences: int,
-    device: torch.device,
+    device: TorchDevice,
 ) -> Optional[ReferenceLogprobs]:
     """Convert flattened vLLM log-prob metadata into ``ReferenceLogprobs``.
 
@@ -2665,7 +2537,7 @@ def score_model_outputs(
                 getattr(slice_mask, "shape", None),
                 getattr(slice_labels, "shape", None),
             )
-            cur_logp_slice, _tok_counts, pooled = _chunked_sequence_logprobs(
+            result = _chunked_sequence_logprobs(
                 model,
                 input_ids=slice_inputs,
                 attention_mask=slice_mask,
@@ -2674,6 +2546,9 @@ def score_model_outputs(
                 return_hidden=return_hidden,
                 pooling=pooling,
             )
+            if result is None:
+                return None
+            cur_logp_slice, _tok_counts, pooled = result
             cur_logp_slices.append(cur_logp_slice)
             if pooled is not None:
                 pooled_slices.append(pooled.detach())
@@ -2712,8 +2587,9 @@ def summarize_completion_lengths(
         max_terminated = float(terminated.max())
     else:
         min_terminated = mean_terminated = max_terminated = 0.0
-    completion_lengths = torch_mod.tensor(
-        lengths_arr, dtype=getattr(torch_mod, "float32", None)
+    completion_lengths = cast(
+        Tensor,
+        torch_mod.tensor(lengths_arr, dtype=getattr(torch_mod, "float32", None)),
     )
     return (
         completion_lengths,
@@ -2734,7 +2610,7 @@ def _as_torch_tensor(
     torch_mod: Any,
     value: Any,
     *,
-    device: Optional["torch.device"],
+    device: Optional[TorchDevice],
     dtype: Optional[Any],
 ) -> Tensor:
     """Best-effort conversion of ``value`` into a torch tensor on ``device``."""
@@ -2753,16 +2629,22 @@ def _as_torch_tensor(
         except _SCORING_EXCEPTIONS:
             tensor = ctor([])
     if dtype is not None:
-        try:
-            tensor = tensor.to(dtype=dtype)
-        except _SCORING_EXCEPTIONS:
-            clone_fn = getattr(tensor, "clone", None)
-            if callable(clone_fn):
-                tensor = clone_fn()
-                tensor = tensor.to(dtype=dtype)
+        to_fn = getattr(tensor, "to", None)
+        if callable(to_fn):
+            try:
+                tensor = to_fn(dtype=dtype)
+            except _SCORING_EXCEPTIONS:
+                clone_fn = getattr(tensor, "clone", None)
+                if callable(clone_fn):
+                    tensor = clone_fn()
+                    to_fn = getattr(tensor, "to", None)
+                    if callable(to_fn):
+                        tensor = to_fn(dtype=dtype)
     if device is not None and getattr(tensor, "device", None) != device:
-        tensor = tensor.to(device=device)
-    return tensor
+        to_fn = getattr(tensor, "to", None)
+        if callable(to_fn):
+            tensor = to_fn(device=device)
+    return cast(Tensor, tensor)
 
 
 def _match_tensor_length(
@@ -2770,8 +2652,8 @@ def _match_tensor_length(
     tensor: Tensor,
     target_len: int,
     *,
-    device: "torch.device",
-    dtype: Any,
+    device: Optional[TorchDevice],
+    dtype: Optional[Any],
     fill_value: float = 0.0,
 ) -> Tensor:
     """Return ``tensor`` reshaped/padded to ``target_len`` elements."""

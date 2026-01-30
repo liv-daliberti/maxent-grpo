@@ -19,10 +19,11 @@ from __future__ import annotations
 import importlib.machinery
 import importlib.util
 import logging
+import numbers
 import sys
 from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
-from typing import Any, List, Optional, Protocol, cast
+from typing import Any, List, Optional, Protocol, TYPE_CHECKING, TypeAlias, cast
 
 from maxent_grpo.training.runtime import require_deepspeed
 
@@ -35,20 +36,20 @@ if (
         __name__, importlib.machinery.SourceFileLoader(__name__, __file__)
     )
     setattr(sys.modules[__name__], "__spec__", _current_spec)
-sys.modules.setdefault(__name__, sys.modules.get(__name__, None))
-if _current_spec is not None:
-    sys.modules.setdefault(_current_spec.name, sys.modules[__name__])
+_self_module = sys.modules.get(__name__)
+if _self_module is not None:
+    sys.modules.setdefault(__name__, _self_module)
+    if _current_spec is not None:
+        sys.modules.setdefault(_current_spec.name, _self_module)
 
 try:  # Optional dependency when running under DeepSpeed ZeRO
     import torch
-    from torch import nn
 except (
     ImportError,
     ModuleNotFoundError,
     RuntimeError,
 ):  # pragma: no cover - environment dependent
     torch = None
-    nn = None
 
 
 def _ensure_cuda_fallback() -> Any:
@@ -79,15 +80,23 @@ def _ensure_cuda_fallback() -> Any:
 
 if torch is None:
     torch = cast(Any, SimpleNamespace(cuda=_ensure_cuda_fallback()))
-    nn = cast(Any, SimpleNamespace(Module=object, Parameter=object))
 else:
     if not hasattr(torch, "cuda") or not hasattr(torch.cuda, "is_available"):
         setattr(torch, "cuda", _ensure_cuda_fallback())
 
-try:
-    from transformers import PreTrainedModel
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - environment dependent
-    PreTrainedModel = Any
+if TYPE_CHECKING:
+    from transformers.modeling_utils import (  # type: ignore[reportPrivateImportUsage]
+        PreTrainedModel as _PreTrainedModel,
+    )
+    from torch import nn as torch_nn
+
+    PreTrainedModel: TypeAlias = _PreTrainedModel
+    TorchModule = torch_nn.Module
+    TorchParameter = torch_nn.Parameter
+else:  # pragma: no cover - runtime uses optional stubs
+    PreTrainedModel: TypeAlias = Any
+    TorchModule = Any
+    TorchParameter = Any
 
 ds_zero = None
 ZeroParamStatus = None
@@ -137,7 +146,7 @@ class GatherCallable(Protocol):
     def __call__(self, params: List[Any], *args: Any, **kwargs: Any) -> Any: ...
 
 
-def _zero_stage(model: Optional[nn.Module]) -> int:
+def _zero_stage(model: Optional[TorchModule]) -> int:
     """Return the DeepSpeed ZeRO stage for a model when available.
 
     :param model: Model or engine exposing ``zero_optimization_stage``.
@@ -153,13 +162,15 @@ def _zero_stage(model: Optional[nn.Module]) -> int:
             stage_attr = stage_attr()
         except TypeError:
             stage_attr = stage_attr(model)
-    try:
-        return int(stage_attr or 0)
-    except (TypeError, ValueError):
-        return 0
+    if isinstance(stage_attr, numbers.Real):
+        try:
+            return int(float(stage_attr))
+        except (TypeError, ValueError):
+            return 0
+    return 0
 
 
-def _zero_partitioning_gradients(model: Optional[nn.Module]) -> bool:
+def _zero_partitioning_gradients(model: Optional[TorchModule]) -> bool:
     """Return whether the model partitions gradients (ZeRO-3).
 
     :param model: Model or engine potentially partitioning gradients.
@@ -186,7 +197,7 @@ def _zero_partitioning_gradients(model: Optional[nn.Module]) -> bool:
     return False
 
 
-def _maybe_patch_zero_no_sync(model: Optional[nn.Module]) -> bool:
+def _maybe_patch_zero_no_sync(model: Optional[TorchModule]) -> bool:
     """Patch DeepSpeedEngine.no_sync to a no-op when gradients are partitioned.
 
     :param model: DeepSpeed engine or wrapped model.
@@ -217,7 +228,8 @@ def _maybe_patch_zero_no_sync(model: Optional[nn.Module]) -> bool:
                 setattr(model, _NO_SYNC_WARN_ATTR, True)
             yield
             return
-        with original_no_sync(*args, **kwargs):
+        ctx = original_no_sync(*args, **kwargs)
+        with cast(Any, ctx):
             yield
 
     setattr(model, "no_sync", _patched_no_sync)
@@ -229,7 +241,7 @@ def _embedding_weight_needing_gather(model: Optional[PreTrainedModel]) -> Option
     """Return the embedding weight tensor when ZeRO gathering is required.
 
     :param model: Model potentially wrapping ZeRO-managed embeddings.
-    :type model: transformers.PreTrainedModel | None
+    :type model: PreTrainedModel | None
     :returns: Embedding weight requiring gather, or ``None``.
     :rtype: torch.Tensor | None
     """
@@ -281,7 +293,7 @@ def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]):
     """Gather ZeRO-sharded embedding weights before a forward pass.
 
     :param model: Model potentially wrapping ZeRO-managed embeddings.
-    :type model: transformers.PreTrainedModel | None
+    :type model: PreTrainedModel | None
     :returns: Context manager that gathers the embedding tensor when needed.
     :rtype: contextlib.AbstractContextManager[None]
     """
@@ -302,7 +314,7 @@ def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]):
         yield
 
 
-def _zero_param_list(model: Optional[nn.Module]) -> List[nn.Parameter]:
+def _zero_param_list(model: Optional[TorchModule]) -> List[TorchParameter]:
     """Return a parameter list for ZeRO-gather contexts, unwrapping engines.
 
     :param model: Module potentially wrapped by DeepSpeed.
@@ -322,7 +334,7 @@ def _zero_param_list(model: Optional[nn.Module]) -> List[nn.Parameter]:
 
 
 @contextmanager
-def _maybe_zero_gather_params(model: Optional[nn.Module], enabled: bool):
+def _maybe_zero_gather_params(model: Optional[TorchModule], enabled: bool):
     """Gather ZeRO-partitioned params only when needed.
 
     :param model: Module whose parameters might be partitioned.

@@ -34,37 +34,41 @@ import logging
 import os
 import random
 import time
-from typing import Any, List, Optional, cast
+from typing import TYPE_CHECKING, Any, List, Optional, cast
 
-try:
-    import datasets
-    from datasets import Dataset, DatasetDict, concatenate_datasets
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    import datasets  # type: ignore[reportMissingTypeStubs]
+    from datasets import Dataset, DatasetDict, concatenate_datasets  # type: ignore[reportMissingTypeStubs]
+else:
+    try:
+        import datasets  # type: ignore[reportMissingTypeStubs]
+        from datasets import Dataset, DatasetDict, concatenate_datasets  # type: ignore[reportMissingTypeStubs]
+    except ModuleNotFoundError:  # pragma: no cover - optional dependency
 
-    class _DatasetsStub:
-        """Lightweight stub so imports succeed when ``datasets`` is absent."""
+        class _DatasetsStub:
+            """Lightweight stub so imports succeed when ``datasets`` is absent."""
 
-        def load_dataset(self, *_args: Any, **_kwargs: Any):
+            def load_dataset(self, *_args: Any, **_kwargs: Any) -> Any:
+                raise ModuleNotFoundError(
+                    "The 'datasets' package is required for dataset loading. "
+                    "Install with `pip install datasets`."
+                )
+
+            def __getattr__(self, _name: str) -> Any:
+                raise ModuleNotFoundError(
+                    "The 'datasets' package is required for dataset loading. "
+                    "Install with `pip install datasets`."
+                )
+
+        datasets = _DatasetsStub()
+        Dataset = Any  # type: ignore[assignment]
+        DatasetDict = dict  # type: ignore[assignment]
+
+        def concatenate_datasets(*_datasets: Any, **_kwargs: Any) -> Any:
             raise ModuleNotFoundError(
-                "The 'datasets' package is required for dataset loading. "
+                "The 'datasets' package is required for dataset concatenation. "
                 "Install with `pip install datasets`."
             )
-
-        def __getattr__(self, _name: str) -> Any:
-            raise ModuleNotFoundError(
-                "The 'datasets' package is required for dataset loading. "
-                "Install with `pip install datasets`."
-            )
-
-    datasets = _DatasetsStub()
-    Dataset = Any  # type: ignore[assignment]
-    DatasetDict = dict  # type: ignore[assignment]
-
-    def concatenate_datasets(_datasets: List[Any]) -> Any:
-        raise ModuleNotFoundError(
-            "The 'datasets' package is required for dataset concatenation. "
-            "Install with `pip install datasets`."
-        )
 
 
 from maxent_grpo.config import ScriptArguments
@@ -141,7 +145,7 @@ def _load_dataset_with_retries(*args: Any, **kwargs: Any) -> Any:
     raise RuntimeError("datasets.load_dataset failed unexpectedly without an exception")
 
 
-def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
+def get_dataset(args: ScriptArguments) -> DatasetDict:
     """Load a dataset or a weighted mixture and return a dictionary.
 
     The function dispatches to ``datasets.load_dataset`` for simple cases or
@@ -168,7 +172,7 @@ def get_dataset(args: ScriptArguments) -> DatasetDict[Dataset]:
     if args.dataset_name and not args.dataset_mixture:
         logger.info("Loading dataset: %s", args.dataset_name)
         return cast(
-            DatasetDict[Dataset],
+            DatasetDict,
             _load_dataset_with_retries(args.dataset_name, args.dataset_config),
         )
     elif args.dataset_mixture:

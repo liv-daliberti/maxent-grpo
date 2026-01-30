@@ -147,11 +147,11 @@ class VLLMGenerationHelper(
         self._last_vllm_synced_step = value
 
     @property
-    def fsdp_cls(self):
+    def fsdp_cls(self) -> Any:
         return self._fsdp_cls
 
     @fsdp_cls.setter
-    def fsdp_cls(self, value) -> None:
+    def fsdp_cls(self, value: Any) -> None:
         self._fsdp_cls = value
 
     def generate(

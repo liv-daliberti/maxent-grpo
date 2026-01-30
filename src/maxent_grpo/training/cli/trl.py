@@ -20,12 +20,12 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import TYPE_CHECKING, Tuple, Any
+from typing import TYPE_CHECKING, Tuple, Any, cast
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments, load_grpo_recipe
 
 if TYPE_CHECKING:
-    from trl import ModelConfig
+    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
 
 
 def parse_grpo_args(
@@ -58,7 +58,7 @@ def parse_grpo_args(
                 if idx + 1 < len(cli_args):
                     recipe_path = cli_args[idx + 1]
     try:  # pragma: no cover - optional dependency for CLI
-        from trl import ModelConfig, TrlParser
+        from trl import ModelConfig, TrlParser  # type: ignore[reportMissingTypeStubs]
     except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dep
         raise ImportError(
             "Parsing GRPO configs requires TRL. Install it via `pip install trl`."
@@ -68,17 +68,17 @@ def parse_grpo_args(
             return load_grpo_recipe(recipe_path, model_config_cls=ModelConfig)
         except TypeError:
             # Stubs used in unit tests sometimes provide a no-kwargs ModelConfig.
-            return load_grpo_recipe(
-                recipe_path, model_config_cls=lambda **_: ModelConfig()
-            )
+            fallback_cls = cast(Any, lambda **_: ModelConfig())
+            return load_grpo_recipe(recipe_path, model_config_cls=fallback_cls)
     parser: Any
     try:
         parser = TrlParser(
-            (GRPOScriptArguments, GRPOConfig, ModelConfig), conflict_handler="resolve"
+            cast(Any, (GRPOScriptArguments, GRPOConfig, ModelConfig)),
+            conflict_handler="resolve",
         )
     except TypeError:
         # Older/legacy parsers may not accept conflict_handler.
-        parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
+        parser = TrlParser(cast(Any, (GRPOScriptArguments, GRPOConfig, ModelConfig)))
     try:
         return parser.parse_args_and_config()
     except (TypeError, AttributeError):
@@ -97,13 +97,12 @@ def parse_grpo_args(
             try:
                 return load_grpo_recipe(cfg_path, model_config_cls=ModelConfig)
             except TypeError:
-                return load_grpo_recipe(
-                    cfg_path, model_config_cls=lambda **_: ModelConfig()
-                )
+                fallback_cls = cast(Any, lambda **_: ModelConfig())
+                return load_grpo_recipe(cfg_path, model_config_cls=fallback_cls)
         try:
             model_cfg = ModelConfig()
         except (TypeError, ValueError):
-            model_cfg = ModelConfig
+            model_cfg = cast(ModelConfig, ModelConfig)
         return (GRPOScriptArguments(), GRPOConfig(), model_cfg)
 
 

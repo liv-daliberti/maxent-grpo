@@ -26,7 +26,7 @@ This module exposes two utilities:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 import logging
 
 import torch
@@ -39,40 +39,68 @@ from maxent_grpo.utils.stubs import (
 )
 
 try:  # pragma: no cover - optional dependency (offline/CI fallback)
-    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers.tokenization_utils import PreTrainedTokenizer as _PreTrainedTokenizer
 except (
     ImportError,
     RuntimeError,
     AttributeError,
 ):  # degrade gracefully when transformers partially missing
     AutoTokenizer = AutoTokenizerStub
-    PreTrainedTokenizer = PreTrainedTokenizerStub
     AutoModelForCausalLM = AutoModelForCausalLMStub
+    _PreTrainedTokenizer = PreTrainedTokenizerStub
+
+PreTrainedTokenizer = _PreTrainedTokenizer
+if TYPE_CHECKING:
+    AutoModelForCausalLMType = AutoModelForCausalLM
+    PreTrainedTokenizerType = PreTrainedTokenizer
+else:
+    AutoModelForCausalLMType = Any
+    PreTrainedTokenizerType = Any
+
+class _ModelConfigFallback:
+    """Fallback stub for ``trl.ModelConfig`` when TRL is unavailable."""
+
+    model_name_or_path: str = ""
+    model_revision: Optional[str] = None
+    trust_remote_code: bool = False
+    attn_implementation: Optional[str] = None
+    torch_dtype: Optional[str] = None
+
+
+def _get_kbit_device_map_stub(*_args: Any, **_kwargs: Any) -> Any:
+    """Stub used when TRL's ``get_kbit_device_map`` is unavailable."""
+    return None
+
+
+def _get_quantization_config_stub(*_args: Any, **_kwargs: Any) -> Any:
+    """Stub used when TRL's ``get_quantization_config`` is unavailable."""
+    return None
+
 
 try:
-    from trl import ModelConfig, get_kbit_device_map, get_quantization_config
+    from trl import (  # type: ignore[reportMissingTypeStubs]
+        ModelConfig as _TRLModelConfig,
+        get_kbit_device_map as _get_kbit_device_map,
+        get_quantization_config as _get_quantization_config,
+    )
 except (
     ImportError,
     RuntimeError,
     AttributeError,
 ):  # fallback for partially installed TRL/httpx
+    ModelConfig = _ModelConfigFallback
+    get_kbit_device_map = _get_kbit_device_map_stub
+    get_quantization_config = _get_quantization_config_stub
+else:
+    ModelConfig = _TRLModelConfig
+    get_kbit_device_map = _get_kbit_device_map
+    get_quantization_config = _get_quantization_config
 
-    class ModelConfig:
-        """Fallback stub for ``trl.ModelConfig`` when TRL is unavailable."""
-
-        model_name_or_path: str = ""
-        model_revision: Optional[str] = None
-        trust_remote_code: bool = False
-        attn_implementation: Optional[str] = None
-        torch_dtype: Optional[str] = None
-
-    def get_kbit_device_map(*_args, **_kwargs):
-        """Stub used when TRL's ``get_kbit_device_map`` is unavailable."""
-        return None
-
-    def get_quantization_config(*_args, **_kwargs):
-        """Stub used when TRL's ``get_quantization_config`` is unavailable."""
-        return None
+if TYPE_CHECKING:
+    ModelConfigType = ModelConfig
+else:
+    ModelConfigType = Any
 
 
 from maxent_grpo.config import GRPOConfig
@@ -93,8 +121,8 @@ class ChatMessage(TypedDict):
 
 
 def get_tokenizer(
-    model_args: ModelConfig, training_args: GRPOConfig
-) -> PreTrainedTokenizer | Any:
+    model_args: ModelConfigType, training_args: GRPOConfig
+) -> PreTrainedTokenizerType | Any:
     """Load and optionally customize the tokenizer.
 
     The function first attempts to download a tokenizer from the Hub using the
@@ -135,7 +163,7 @@ def get_tokenizer(
     eos_token = getattr(tokenizer, "eos_token", None)
     if pad_token is None and eos_token is not None:
         try:
-            tokenizer.pad_token = eos_token
+            setattr(tokenizer, "pad_token", eos_token)
         except (AttributeError, TypeError, ValueError):
             LOG.debug("Failed to set tokenizer.pad_token from eos_token.")
 
@@ -143,8 +171,8 @@ def get_tokenizer(
 
 
 def get_model(
-    model_args: ModelConfig, training_args: GRPOConfig
-) -> AutoModelForCausalLM:
+    model_args: ModelConfigType, training_args: GRPOConfig
+) -> AutoModelForCausalLMType:
     """Construct the causal LM with optional quantization and device map.
 
     :param model_args: Model configuration (quantization, dtype, attention
@@ -168,7 +196,9 @@ def get_model(
         torch_dtype = getattr(torch, model_args.torch_dtype, model_args.torch_dtype)
     else:
         torch_dtype = model_args.torch_dtype
-    quantization_config: Optional[Any] = get_quantization_config(model_args)
+    quantization_config: Optional[Any] = get_quantization_config(
+        cast(ModelConfig, model_args)
+    )
     device_map: Optional[Dict[str, Any]] = (
         get_kbit_device_map() if quantization_config is not None else None
     )
@@ -183,8 +213,11 @@ def get_model(
         "quantization_config": quantization_config,
     }
 
+    model_name_or_path = getattr(model_args, "model_name_or_path", None)
+    if not model_name_or_path:
+        raise ValueError("model_name_or_path must be set in model_args")
     model = AutoModelForCausalLM.from_pretrained(
-        model_args.model_name_or_path,
+        model_name_or_path,
         **model_kwargs,
     )
     try:
@@ -224,22 +257,29 @@ def get_model(
         hidden_size = getattr(getattr(model, "config", None), "hidden_size", None)
         if num_seeds > 0 and hidden_size:
             if not hasattr(model, "seed_head"):
-                model.seed_head = nn.Linear(hidden_size, num_seeds)
+                setattr(model, "seed_head", nn.Linear(hidden_size, num_seeds))
     if getattr(training_args, "torch_compile", False):
         # torch.compile is fragile with DeepSpeed/ZeRO wrapping; skip when deepspeed config is present.
+        prev_suppress = None
+        dynamo_mod = None
+        dynamo_config = None
         if getattr(training_args, "deepspeed", None):
             LOG.warning(
                 "Skipping torch.compile because deepspeed is enabled; set torch_compile=false to silence."
             )
         else:
-            prev_suppress = None
-            dynamo_mod = None
             try:
                 import torch._dynamo as dynamo_mod  # type: ignore[attr-defined]
 
-                prev_suppress = getattr(dynamo_mod.config, "suppress_errors", None)
+                dynamo_config = getattr(dynamo_mod, "config", None)
+                prev_suppress = (
+                    getattr(dynamo_config, "suppress_errors", None)
+                    if dynamo_config is not None
+                    else None
+                )
                 try:
-                    dynamo_mod.config.suppress_errors = True  # fall back to eager on compile errors
+                    if dynamo_config is not None:
+                        dynamo_config.suppress_errors = True  # fall back to eager on compile errors
                 except (AttributeError, TypeError):
                     LOG.debug("Failed to set torch._dynamo suppress_errors flag.")
             except (ImportError, AttributeError, RuntimeError):
@@ -257,9 +297,9 @@ def get_model(
                 # Best-effort: ignore compilation failures and keep the original model.
                 LOG.warning("torch.compile failed; falling back to eager mode.")
             finally:
-                if dynamo_mod is not None and prev_suppress is not None:
+                if dynamo_config is not None and prev_suppress is not None:
                     try:
-                        dynamo_mod.config.suppress_errors = prev_suppress
+                        dynamo_config.suppress_errors = prev_suppress
                     except (AttributeError, TypeError):
                         LOG.debug("Failed to restore torch._dynamo suppress_errors flag.")
-    return model
+    return cast(AutoModelForCausalLMType, model)

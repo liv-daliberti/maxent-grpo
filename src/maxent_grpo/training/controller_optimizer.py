@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import logging
 from contextlib import nullcontext
-from typing import Optional
+from typing import Any, ContextManager, Optional, cast
 
 from maxent_grpo.config import GRPOConfig
 from maxent_grpo.training.runtime import require_torch
@@ -16,14 +16,14 @@ from .controller_objective import ControllerGradients
 LOG = logging.getLogger(__name__)
 
 
-def _no_grad_context(torch_mod):
+def _no_grad_context(torch_mod: Any) -> ContextManager[None]:
     """Return a torch.no_grad context when available, else a nullcontext."""
 
     ctx = getattr(torch_mod, "no_grad", None)
     if callable(ctx):
-        return ctx()
-    if ctx is not None and hasattr(ctx, "__enter__"):
-        return ctx
+        return cast(ContextManager[None], ctx())
+    if ctx is not None and hasattr(ctx, "__enter__") and hasattr(ctx, "__exit__"):
+        return cast(ContextManager[None], ctx)
     return nullcontext()
 
 

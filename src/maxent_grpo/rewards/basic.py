@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Optional,
@@ -33,10 +32,8 @@ import re
 from re import Pattern as RePattern
 
 if TYPE_CHECKING:
-    from transformers import PreTrainedModel, PreTrainedTokenizerBase
-
-# Reward functions accept a single completion string and a reference answer.
-RewardFunction = Callable[[str, str], float]
+    from transformers.modeling_utils import PreTrainedModel
+    from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 # -------------------------------
 # Core reward implementations
@@ -49,6 +46,18 @@ _answer_pat: RePattern[str] = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
 
 
 CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
+
+
+class RewardFunction(Protocol):
+    """Protocol describing batch reward functions."""
+
+    def __call__(
+        self,
+        completions: List[CompletionType],
+        answer: List[str],
+        **kwargs: Any,
+    ) -> List[float]:
+        ...
 
 
 def _extract_content(comp: CompletionType) -> str:

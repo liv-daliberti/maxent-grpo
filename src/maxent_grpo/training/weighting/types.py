@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import logging
 import math
-from contextlib import nullcontext
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, List, Mapping, Optional, Protocol
+from typing import Any, ClassVar, Dict, List, Mapping, Optional, Protocol, cast
 
 LOG = logging.getLogger(__name__)
 
@@ -491,10 +491,11 @@ class ControllerStateSnapshot:
             tau_entropy_ema = float(tau_entropy_field)
         meta_payload: Dict[str, Any] = {}
         meta_cfg = getattr(weighting_cfg, "controller_meta", None)
-        if hasattr(meta_cfg, "to_state"):
+        to_state = getattr(meta_cfg, "to_state", None) if meta_cfg is not None else None
+        if callable(to_state):
             meta_payload = {
                 "version": cls.STATE_VERSION,
-                "controller": meta_cfg.to_state(),
+                "controller": to_state(),
             }
         return cls(
             beta=float(weighting_cfg.beta),
@@ -558,10 +559,21 @@ class ControllerStateSnapshot:
             meta_payload = self.meta.get("controller", {})
         if isinstance(meta_payload, dict):
             meta_cfg = getattr(weighting_cfg, "controller_meta", None)
-            if hasattr(meta_cfg, "apply_state"):
-                meta_cfg.apply_state(meta_payload)
-                setattr(weighting_cfg, "_meta_last_tau_grad", float(getattr(meta_cfg, "last_tau_grad", 0.0)))
-                setattr(weighting_cfg, "_meta_last_beta_grad", float(getattr(meta_cfg, "last_beta_grad", 0.0)))
+            apply_state = (
+                getattr(meta_cfg, "apply_state", None) if meta_cfg is not None else None
+            )
+            if callable(apply_state):
+                apply_state(meta_payload)
+                setattr(
+                    weighting_cfg,
+                    "_meta_last_tau_grad",
+                    float(getattr(meta_cfg, "last_tau_grad", 0.0)),
+                )
+                setattr(
+                    weighting_cfg,
+                    "_meta_last_beta_grad",
+                    float(getattr(meta_cfg, "last_beta_grad", 0.0)),
+                )
         state = getattr(weighting_cfg, "controller_state", None)
         if state is not None:
             try:
@@ -603,7 +615,7 @@ class TorchControllerState:
         beta_init: float,
         *,
         requires_grad: bool = False,
-    ):
+    ) -> None:
         self.torch = torch_mod
         param_cls = getattr(torch_mod.nn, "Parameter")
         tensor_cls = getattr(torch_mod, "tensor")
@@ -624,7 +636,10 @@ class TorchControllerState:
 
     def sync_from_scalars(self, tau: float, beta: float) -> None:
         no_grad = getattr(self.torch, "no_grad", None)
-        ctx = no_grad() if callable(no_grad) else nullcontext()
+        ctx = cast(
+            AbstractContextManager[Any],
+            no_grad() if callable(no_grad) else nullcontext(),
+        )
         with ctx:
             self.tau_param.copy_(
                 self.torch.tensor(float(tau), dtype=getattr(self.tau_param, "dtype", None))
@@ -633,11 +648,11 @@ class TorchControllerState:
                 self.torch.tensor(float(beta), dtype=getattr(self.beta_param, "dtype", None))
             )
 
-    def tau_tensor(self, detach: bool = False):
+    def tau_tensor(self, detach: bool = False) -> Any:
         tensor = self.tau_param.detach() if detach else self.tau_param
         return tensor
 
-    def beta_tensor(self, detach: bool = False):
+    def beta_tensor(self, detach: bool = False) -> Any:
         tensor = self.beta_param.detach() if detach else self.beta_param
         return tensor
 

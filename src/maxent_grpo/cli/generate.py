@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import argparse
 from argparse import Namespace
-from typing import Optional
+from typing import Any, Optional
 
 try:  # Typer is optional for unit tests that only touch argparse helpers.
     import typer
@@ -161,9 +161,22 @@ def run_cli(args: Namespace) -> None:
     run_generation_job(DistilabelGenerationConfig.from_namespace(args))
 
 
+def _typer_entrypoint_fallback(*_args: Any, **_kwargs: Any) -> None:
+    """Fallback entrypoint that surfaces missing Typer as a runtime error.
+
+    :param _args: Unused positional arguments.
+    :param _kwargs: Unused keyword arguments.
+    :raises RuntimeError: Always raised to indicate Typer is required.
+    """
+    raise RuntimeError(
+        "The Typer-based CLI requires the `typer` package. "
+        "Install it via `pip install typer` to use the command-line interface."
+    )
+
+
 if typer is not None:
 
-    def _typer_entrypoint(
+    def _typer_entrypoint_impl(
         hf_dataset: str = typer.Option(..., help="HuggingFace dataset to load."),
         hf_dataset_config: Optional[str] = typer.Option(
             None,
@@ -274,18 +287,14 @@ if typer is not None:
         )
 
 else:  # pragma: no cover - Typer missing in minimal test envs
+    _typer_entrypoint_impl = _typer_entrypoint_fallback
 
-    def _typer_entrypoint(*_args, **_kwargs) -> None:
-        """Fallback entrypoint that surfaces missing Typer as a runtime error.
 
-        :param _args: Unused positional arguments.
-        :param _kwargs: Unused keyword arguments.
-        :raises RuntimeError: Always raised to indicate Typer is required.
-        """
-        raise RuntimeError(
-            "The Typer-based CLI requires the `typer` package. "
-            "Install it via `pip install typer` to use the command-line interface."
-        )
+_typer_entrypoint = _typer_entrypoint_impl
+try:  # Ensure the Typer entrypoint name is stable for tests/introspection.
+    _typer_entrypoint.__name__ = "_typer_entrypoint"
+except (AttributeError, TypeError):  # pragma: no cover - defensive
+    pass
 
 
 def app() -> None:

@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from argparse import Namespace
 from dataclasses import asdict, dataclass
-from typing import Callable, Optional
+from typing import Any, Callable, Optional, Protocol, cast
 
 from maxent_grpo.pipelines.base import PipelineResult, log_pipeline_banner
 from maxent_grpo.generation.helpers import (
@@ -41,6 +41,19 @@ __all__ = [
     "build_distilabel_pipeline",
     "run_generation_job",
 ]
+
+
+class DistilabelPipeline(Protocol):
+    """Minimal protocol for distilabel pipeline runners."""
+
+    def run(
+        self,
+        *,
+        dataset: Any,
+        dataset_batch_size: int,
+        use_cache: bool,
+    ) -> Any:
+        ...
 
 
 @dataclass
@@ -125,7 +138,7 @@ class DistilabelGenerationConfig:
 
 def run_generation_job(
     cfg: DistilabelGenerationConfig | Namespace,
-    builder: Optional[Callable[[DistilabelPipelineConfig], object]] = None,
+    builder: Optional[Callable[[DistilabelPipelineConfig], DistilabelPipeline]] = None,
 ) -> PipelineResult:
     """Execute the distilabel generation pipeline.
 
@@ -139,7 +152,7 @@ def run_generation_job(
     :rtype: maxent_grpo.pipelines.base.PipelineResult
     :raises RuntimeError: If the resulting distilabel dataset cannot be pushed.
     """
-    from datasets import load_dataset
+    from datasets import load_dataset  # type: ignore
 
     if isinstance(cfg, Namespace):
         args = cfg
@@ -173,7 +186,7 @@ def run_generation_job(
 
     try:
         distiset = pipeline.run(
-            dataset=dataset,
+            dataset=cast(Any, dataset),
             dataset_batch_size=args.input_batch_size * 1000,
             use_cache=False,
         )

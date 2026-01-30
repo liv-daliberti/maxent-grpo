@@ -8,7 +8,7 @@ import pytest
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 import maxent_grpo.grpo as grpo_cli
-import maxent_grpo.maxent_grpo as maxent_cli
+import maxent_grpo as maxent_cli
 import maxent_grpo.infoseed as infoseed_cli
 
 

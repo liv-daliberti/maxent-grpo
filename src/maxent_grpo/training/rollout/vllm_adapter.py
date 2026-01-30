@@ -6,8 +6,19 @@ import importlib
 import sys
 import logging
 import time
+import numbers
 from contextlib import AbstractContextManager
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+    cast,
+)
 
 from maxent_grpo.generation.common import (
     AggregatedGenerationState as _AggregatedGenerationState,
@@ -25,14 +36,18 @@ from maxent_grpo.generation.vllm_utils import (
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime import require_accelerator, require_torch
 from maxent_grpo.training.runtime.prompts import _truncate_prompt
-from maxent_grpo.utils.fallbacks import dist_with_fallback
 
 from .context import GenerationContext
 
 torch = require_torch("generation")
 Accelerator = require_accelerator("generation")
-dist = dist_with_fallback(getattr(torch, "distributed", None))
+dist = getattr(torch, "distributed", None)
 LOG = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from accelerate import Accelerator as AcceleratorLike  # type: ignore[reportMissingTypeStubs]
+else:
+    AcceleratorLike = Any
 
 
 def _optional_import(module_name: str) -> Any:
@@ -44,7 +59,7 @@ def _optional_import(module_name: str) -> Any:
 
 
 def _zero3_gather_factory(
-    accelerator: Accelerator,
+    accelerator: AcceleratorLike,
 ) -> Callable[[Sequence[Any]], AbstractContextManager[Any]]:
     return _shared_zero3_gather_factory(accelerator, import_fn=_optional_import)
 
@@ -100,6 +115,17 @@ class VLLMGenerationMixin:
         else:
             setattr(self._vllm_helper, "_fallback_generate", self._generate_local)
 
+    def _generate_local(
+        self,
+        prompts: List[str],
+        num_samples: int,
+        per_prompt_counts: Optional[List[int]] = None,
+    ) -> Tuple[List[List[str]], Optional[List[List[Optional[VLLMLogprobResult]]]]]:
+        raise NotImplementedError("Subclasses must implement _generate_local().")
+
+    def _prompt_char_limit(self) -> int:
+        raise NotImplementedError("Subclasses must implement _prompt_char_limit().")
+
     @property
     def _vllm_client(self):
         client = getattr(self._vllm_helper, "vllm_client", None)
@@ -150,15 +176,15 @@ class VLLMGenerationMixin:
     def _vllm_base_url(self, url: str) -> str:
         """Delegate to the shared vLLM helper to normalize the base URL."""
         base_url_fn_obj = getattr(self._vllm_helper, "vllm_base_url", None)
-        normalized_fn: Callable[[str], str]
-        if callable(base_url_fn_obj):
-            normalized_fn = cast(Callable[[str], str], base_url_fn_obj)
-        else:
+        def _fallback_normalized(value: str) -> str:
+            resolved = self._invoke_helper("_vllm_base_url", value)
+            return str(resolved) if resolved is not None else value
 
-            def normalized_fn(value: str) -> str:
-                resolved = self._invoke_helper("_vllm_base_url", value)
-                return resolved if resolved is not None else value
-
+        normalized_fn: Callable[[str], str] = (
+            cast(Callable[[str], str], base_url_fn_obj)
+            if callable(base_url_fn_obj)
+            else _fallback_normalized
+        )
         return normalized_fn(url)
 
     def _ensure_vllm_client(self) -> bool:
@@ -236,7 +262,7 @@ class VLLMGenerationMixin:
     def _sync_model_params_to_vllm(
         self,
         model: Any,
-        accelerator: Accelerator,
+        accelerator: AcceleratorLike,
     ) -> None:
         """Best-effort parameter broadcast mirroring HF GRPO's vLLM path."""
         del accelerator  # handled internally by the shared helper
@@ -275,7 +301,12 @@ class VLLMGenerationMixin:
     def _resolve_vllm_round_limit(self, requested_n: int) -> int:
         """Decide how many vLLM rounds to run for the current request."""
         result = self._invoke_helper("_resolve_vllm_round_limit", requested_n)
-        return int(result) if result is not None else requested_n
+        if isinstance(result, numbers.Real):
+            try:
+                return int(float(result))
+            except (TypeError, ValueError):
+                return requested_n
+        return requested_n
 
     @staticmethod
     def _seed_generation_groups(
@@ -316,7 +347,7 @@ class VLLMGenerationMixin:
         """Return a compact preview of grouped completions."""
         summary_fn = getattr(VLLMGenerationHelper, "_summarize_grouped", None)
         if callable(summary_fn):
-            return summary_fn(groups, limit)
+            return str(summary_fn(groups, limit))
         truncated = groups[:limit]
         parts = [f"{idx}:{len(group)}" for idx, group in enumerate(truncated)]
         if len(groups) > limit:
@@ -424,7 +455,16 @@ class VLLMGenerationMixin:
                 getattr(helpers_mod, "time", time),
             )
         result = self._invoke_helper("_invoke_vllm_requests", prompts, request_count)
-        return result
+        return cast(
+            Optional[
+                Tuple[
+                    List[List[str]],
+                    Optional[List[List[Optional[VLLMLogprobResult]]]],
+                    float,
+                ]
+            ],
+            result,
+        )
 
     def _merge_vllm_results(
         self,
@@ -510,7 +550,7 @@ class VLLMGenerationMixin:
         helper_exec_name = getattr(
             getattr(helper_exec, "__func__", helper_exec), "__name__", ""
         )
-        if helper_exec_name == "_execute_vllm_request":
+        if not callable(helper_exec) or helper_exec_name == "_execute_vllm_request":
             set_exec = getattr(self._vllm_helper, "set_request_executor", None)
             if callable(set_exec):
                 set_exec(self._execute_vllm_request)
@@ -524,7 +564,7 @@ class VLLMGenerationMixin:
         helper_batch_name = getattr(
             getattr(helper_batch, "__func__", helper_batch), "__name__", ""
         )
-        if helper_batch_name == "_request_vllm_batch":
+        if not callable(helper_batch) or helper_batch_name == "_request_vllm_batch":
             set_batcher = getattr(self._vllm_helper, "set_request_batcher", None)
             if callable(set_batcher):
                 set_batcher(self._request_vllm_batch)
@@ -572,7 +612,7 @@ class VLLMGenerationMixin:
         generate_fn = getattr(self._vllm_helper, "generate", None)
         if not callable(generate_fn):
             return [], None
-        return generate_fn(
+        result = generate_fn(
             prompts,
             num_samples,
             per_prompt_counts,
@@ -581,6 +621,15 @@ class VLLMGenerationMixin:
                 model, accelerator
             ),
         )
+        if isinstance(result, tuple) and len(result) == 2:
+            grouped, meta = result
+            if grouped is None:
+                grouped = []
+            if isinstance(grouped, list):
+                return cast(
+                    List[List[str]], grouped
+                ), cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+        return [], None
 
     def _execute_vllm_request(
         self,
@@ -601,7 +650,16 @@ class VLLMGenerationMixin:
         result = self._invoke_helper(
             "_flatten_prompts_for_broadcast", prompts, per_prompt_counts
         )
-        return result if result is not None else (prompts, [], None)
+        if isinstance(result, tuple) and len(result) == 3:
+            flat_prompts, offsets, flat_counts = result
+            if isinstance(flat_prompts, list) and isinstance(offsets, list):
+                if flat_counts is None or isinstance(flat_counts, list):
+                    return (
+                        cast(List[str], flat_prompts),
+                        cast(List[int], offsets),
+                        cast(Optional[List[int]], flat_counts),
+                    )
+        return prompts, [], None
 
     def _broadcast_vllm_payload(
         self,
@@ -625,7 +683,16 @@ class VLLMGenerationMixin:
         result = self._invoke_helper(
             "_scatter_vllm_payload", flat_prompts, offsets, grouped_all, meta_all
         )
-        return result if result is not None else ([], None)
+        if isinstance(result, tuple) and len(result) == 2:
+            grouped, meta = result
+            if grouped is None:
+                return [], cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+            if isinstance(grouped, list):
+                return cast(
+                    List[List[str]], grouped
+                ), cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+            return grouped, meta
+        return [], None
 
     def _pluck_rank_outputs(
         self,
@@ -637,7 +704,16 @@ class VLLMGenerationMixin:
         result = self._invoke_helper(
             "_pluck_rank_outputs", grouped_all, meta_all, offsets, prompts
         )
-        return result if result is not None else ([], None)
+        if isinstance(result, tuple) and len(result) == 2:
+            grouped, meta = result
+            if grouped is None:
+                return [], cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+            if isinstance(grouped, list):
+                return cast(
+                    List[List[str]], grouped
+                ), cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+            return grouped, meta
+        return [], None
 
     def _generate_vllm_collective(
         self,
@@ -668,7 +744,7 @@ class VLLMGenerationMixin:
             prompts,
             per_prompt_counts,
         )
-        if accelerator.is_main_process:
+        if bool(getattr(accelerator, "is_main_process", False)):
             grouped_all, meta_all = self._generate_with_vllm(
                 flat_prompts,
                 num_samples,
@@ -712,11 +788,16 @@ class VLLMGenerationMixin:
         return self._generate_local(prompts, num_samples, per_prompt_counts)
 
 
-def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List[Any]]:
+def _gather_object_list(
+    accelerator: AcceleratorLike, value: List[Any]
+) -> List[List[Any]]:
     """Gather Python lists across ranks with graceful Accelerate fallbacks."""
     gather_fn = getattr(accelerator, "gather_object", None)
     if callable(gather_fn):
-        return gather_fn(value)
+        gathered_obj: Any = gather_fn(value)
+        if isinstance(gathered_obj, list):
+            return cast(List[List[Any]], gathered_obj)
+        return [value]
     if dist is not None and dist.is_available() and dist.is_initialized():
         world_size = dist.get_world_size()
         gathered: List[List[str]] = [[] for _ in range(world_size)]
@@ -727,7 +808,7 @@ def _gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List
 
 
 def _broadcast_object_list(
-    accelerator: Accelerator, payload: List[Any], *, src: int = 0
+    accelerator: AcceleratorLike, payload: List[Any], *, src: int = 0
 ) -> None:
     """Broadcast python objects even when Accelerate lacks the helper."""
     broadcast_fn = getattr(accelerator, "broadcast_object_list", None)
@@ -741,7 +822,7 @@ def _broadcast_object_list(
 
 
 def _scatter_object(
-    accelerator: Accelerator,
+    accelerator: AcceleratorLike,
     input_list: Optional[List[Any]],
     *,
     src: int = 0,
@@ -816,20 +897,23 @@ def _scatter_object(
         return None
 
 
-def gather_object_list(accelerator: Accelerator, value: List[Any]) -> List[List[Any]]:
+def gather_object_list(
+    accelerator: AcceleratorLike, value: List[Any]
+) -> List[List[Any]]:
     """Public alias for gathering Python objects across ranks."""
     return _gather_object_list(accelerator, value)
 
 
 def broadcast_object_list(
-    accelerator: Accelerator, payload: List[Any], *, src: int = 0
+    accelerator: AcceleratorLike, payload: List[Any], *, src: int = 0
 ) -> None:
     """Public alias for broadcasting Python objects across ranks."""
-    return _broadcast_object_list(accelerator, payload, src=src)
+    _broadcast_object_list(accelerator, payload, src=src)
+    return None
 
 
 def scatter_object(
-    accelerator: Accelerator,
+    accelerator: AcceleratorLike,
     input_list: Optional[List[Any]],
     *,
     src: int = 0,

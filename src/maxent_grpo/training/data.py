@@ -8,10 +8,10 @@ import os
 import random
 import shutil
 import logging
-from typing import Any, Callable, List, Optional, Tuple, cast
+from typing import Any, Callable, List, Mapping, Optional, Tuple, cast
 
 try:  # pragma: no cover - optional dependency guard for stripped test envs
-    from datasets import load_from_disk as _hf_load_from_disk
+    from datasets import load_from_disk as _hf_load_from_disk  # type: ignore[reportMissingTypeStubs]
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback when datasets is unavailable
     _hf_load_from_disk = None
 
@@ -69,7 +69,7 @@ def _dataset_cache_path(
 
 
 def _format_eval_row(
-    example: dict,
+    example: Mapping[str, Any],
     *,
     prompt_column: str,
     solution_column: str,
@@ -77,17 +77,18 @@ def _format_eval_row(
     system_prompt: Optional[str],
     char_limit: int,
 ) -> dict:
+    example_map = dict(example)
     prompt_col = prompt_column
-    if prompt_col not in example and prompt_col == "problem" and "prompt" in example:
+    if prompt_col not in example_map and prompt_col == "problem" and "prompt" in example_map:
         prompt_col = "prompt"
     out = _to_prompt(
-        example,
+        example_map,
         tokenizer,
         prompt_col,
         system_prompt,
         char_limit=char_limit,
     )
-    answer = example.get(solution_column, out.get("answer", ""))
+    answer = example_map.get(solution_column, out.get("answer", ""))
     out["answer"] = "" if answer is None else str(answer)
     return out
 
@@ -105,6 +106,16 @@ def _normalize_eval_rows(rows: Any) -> Optional[List[dict]]:
     for row in iterator:
         normalized.append(dict(row))
     return normalized
+
+
+def _ensure_split_mapping(dataset: Any) -> Mapping[str, Any]:
+    """Coerce a dataset-like object into a split->dataset mapping."""
+
+    if isinstance(dataset, dict):
+        return dataset
+    if hasattr(dataset, "keys") and hasattr(dataset, "__getitem__"):
+        return cast(Mapping[str, Any], dataset)
+    return {"train": dataset}
 
 
 def _sample_eval_rows(rows: List[dict], keep: int, seed: int) -> List[dict]:
@@ -146,18 +157,19 @@ def load_datasets(
         getattr(training_args, "max_prompt_length", 0)
     )
 
-    def _map_fn(ex: dict) -> dict:
+    def _map_fn(ex: Mapping[str, Any]) -> dict:
+        ex_map = dict(ex)
         prompt_col = pc
-        if prompt_col not in ex and prompt_col == "problem" and "prompt" in ex:
+        if prompt_col not in ex_map and prompt_col == "problem" and "prompt" in ex_map:
             prompt_col = "prompt"
         out = _to_prompt(
-            ex,
+            ex_map,
             tokenizer,
             prompt_col,
             getattr(training_args, "system_prompt", None),
             char_limit=char_limit,
         )
-        answer = ex.get(sc, out.get("answer", ""))
+        answer = ex_map.get(sc, out.get("answer", ""))
         out["answer"] = "" if answer is None else str(answer)
         return out
 
@@ -181,13 +193,9 @@ def load_datasets(
     is_main_process = bool(getattr(accelerator, "is_main_process", True))
 
     def _wait_for_everyone() -> None:
-        wait_for_all = cast(
-            Optional[Callable[[], None]],
-            getattr(accelerator, "wait_for_everyone", None),
-        )
-        if wait_for_all is None:
-            return
-        wait_for_all()
+        wait_for_all = getattr(accelerator, "wait_for_everyone", None)
+        if callable(wait_for_all):
+            wait_for_all()
 
     cache_path = _dataset_cache_path(
         script_args,
@@ -231,7 +239,7 @@ def load_datasets(
             )
 
     if dataset is None:
-        raw_ds = get_dataset(script_args)
+        raw_ds = cast(Any, get_dataset(script_args))
         if hasattr(raw_ds, "map"):
             if accelerator is None or is_main_process:
                 dataset = _build_hf_dataset()
@@ -251,22 +259,21 @@ def load_datasets(
         elif isinstance(raw_ds, dict):
             dataset = {}
             for split, rows in raw_ds.items():
-                mapped = [_map_fn(row) for row in rows]
+                mapped = [_map_fn(cast(Mapping[str, Any], row)) for row in rows]
                 dataset[split] = [row for row in mapped if _is_valid(row)]
         else:
-            mapped_rows = [_map_fn(row) for row in raw_ds]
+            mapped_rows = [_map_fn(cast(Mapping[str, Any], row)) for row in raw_ds]
             dataset = {"train": [row for row in mapped_rows if _is_valid(row)]}
 
+    dataset_map = _ensure_split_mapping(dataset)
     if test_split is None:
-        test_split = (
-            "validation" if hasattr(dataset, "keys") and "validation" in dataset else None
-        )
-        if test_split is None and hasattr(dataset, "keys") and "test" in dataset:
+        test_split = "validation" if "validation" in dataset_map else None
+        if test_split is None and "test" in dataset_map:
             test_split = "test"
 
-    if train_split not in dataset:
-        train_split = "train" if "train" in dataset else list(dataset.keys())[0]
-    train_ds = dataset[train_split]
+    if train_split not in dataset_map:
+        train_split = "train" if "train" in dataset_map else list(dataset_map.keys())[0]
+    train_ds = dataset_map[train_split]
 
     eval_rows = _normalize_eval_rows(getattr(script_args, "eval_rows", None))
     if eval_rows is None and getattr(training_args, "do_eval", False):
@@ -286,7 +293,7 @@ def load_datasets(
             )
             eval_rows = [
                 _format_eval_row(
-                    row,
+                    cast(Mapping[str, Any], row),
                     prompt_column=eval_prompt_col,
                     solution_column=eval_solution_col,
                     tokenizer=tokenizer,
@@ -295,23 +302,23 @@ def load_datasets(
                 )
                 for row in eval_ds_raw
             ]
-        elif test_split is not None and test_split in dataset:
-            full_eval = dataset[test_split]
+        elif test_split is not None and test_split in dataset_map:
+            full_eval = dataset_map[test_split]
             try:
                 n_total = len(full_eval)
             except (TypeError, AttributeError):
                 n_total = 0
             n_keep = min(1000, max(1, int(0.1 * n_total))) if n_total > 0 else 0
-            if (
-                hasattr(full_eval, "shuffle")
-                and hasattr(full_eval, "select")
-                and n_keep > 0
-            ):
+            shuffle_fn = getattr(full_eval, "shuffle", None)
+            if callable(shuffle_fn) and n_keep > 0:
                 try:
-                    subset = full_eval.shuffle(seed=training_args.seed).select(
-                        range(n_keep)
-                    )
-                    eval_rows = _normalize_eval_rows(subset)
+                    shuffled = shuffle_fn(seed=training_args.seed)
+                    select_fn = getattr(shuffled, "select", None)
+                    if callable(select_fn):
+                        subset = select_fn(range(n_keep))
+                        eval_rows = _normalize_eval_rows(subset)
+                    else:
+                        eval_rows = _normalize_eval_rows(shuffled)
                 except (AttributeError, RuntimeError, TypeError, ValueError):
                     eval_rows = None
             if eval_rows is None:

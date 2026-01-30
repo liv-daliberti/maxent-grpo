@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import importlib as _importlib
+import importlib.machinery as _importlib_machinery
+import importlib.util as _importlib_util
 import logging
 import sys
 from types import ModuleType, SimpleNamespace
@@ -94,9 +96,9 @@ if _wandb_errors is None:
         or getattr(getattr(_wandb_mod, "errors", None), "Error", None) is None
     ):
         # Only install a stub when the real package is missing or malformed.
-        sys.modules["wandb"] = SimpleNamespace(
-            errors=SimpleNamespace(Error=RuntimeError)
-        )
+        _wandb_stub_mod = ModuleType("wandb")
+        setattr(_wandb_stub_mod, "errors", SimpleNamespace(Error=RuntimeError))
+        sys.modules["wandb"] = _wandb_stub_mod
 
 # Preserve the original reload to avoid breaking downstream tooling. Store the
 # first-seen implementation so subsequent reloads do not accidentally wrap the
@@ -113,7 +115,7 @@ def _safe_reload(module):
         name = getattr(module, "__name__", None) or str(module)
     if spec is None or getattr(spec, "name", None) is None:
         try:
-            module.__spec__ = _importlib.machinery.ModuleSpec(
+            module.__spec__ = _importlib_machinery.ModuleSpec(
                 name, loader=getattr(spec, "loader", None), is_package=hasattr(module, "__path__")
             )
         except (ImportError, AttributeError, ValueError):
@@ -127,7 +129,7 @@ def _safe_reload(module):
             sys.modules[parent_name] = parent_mod
     if getattr(module, "__spec__", None) is None:
         try:
-            module.__spec__ = _importlib.util.find_spec(name)
+            module.__spec__ = _importlib_util.find_spec(name)
         except (ImportError, ValueError, AttributeError):
             module.__spec__ = None
     return _ORIG_IMPORTLIB_RELOAD(module)
@@ -196,8 +198,6 @@ try:
     from maxent_grpo.training.pipeline import PreparedBatch  # type: ignore
 except ImportError:
     LOG.debug("Deferring training imports until dependencies are available.")
-# Provide legacy ``training`` package alias for tests/older import paths.
-sys.modules.setdefault("training", sys.modules.get(__name__))
 
 
 def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
@@ -234,7 +234,7 @@ def __getattr__(name: str) -> Any:
     :raises AttributeError: If the requested name is not a known lazy attribute.
     """
 
-    if name in {"pipeline", "state", "generation", "cli", "scoring", "optim"}:
+    if name in {"pipeline", "state", "rollout", "cli", "scoring", "optim"}:
         module = _importlib.import_module(f"maxent_grpo.training.{name}")
         globals()[name] = module
         return module
@@ -255,3 +255,8 @@ def __getattr__(name: str) -> Any:
 if TYPE_CHECKING:
     from maxent_grpo.training.loop import run_training_loop as run_training_loop
     from maxent_grpo.training.pipeline import PreparedBatch as PreparedBatch
+    from maxent_grpo.training import pipeline as pipeline
+    from maxent_grpo.training import state as state
+    from maxent_grpo.training import rollout as rollout
+    from maxent_grpo.training import cli as cli
+    from maxent_grpo.training import scoring as scoring

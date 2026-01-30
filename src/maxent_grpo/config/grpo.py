@@ -94,13 +94,10 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_clip_adv_baseline: Baseline subtracted before clipping.
     :ivar train_grpo_objective: Disable MaxEnt weighting and run the standard GRPO objective.
     :ivar maxent_clip_range: Override PPO clip range for the MaxEnt objective.
-    :ivar init_kl_coeff: Legacy alias for the reverse-KL coefficient.
-    :ivar init_kl_coef: Single-f alias for ``init_kl_coeff``.
     :ivar kl_target: Target KL value for automatic beta adjustment.
     :ivar kl_horizon: Horizon in optimizer steps for the beta controller.
     :ivar kl_ctl_step_size: Maximum fractional beta change per controller step.
-    :ivar clip_range: Legacy PPO clip range knob kept for compatibility.
-    :ivar evaluation_strategy: Alias for eval_strategy; accepts string or enum.
+    :ivar ppo_clip_range: PPO clip range used for clipping ratios in the custom loop.
     :ivar gen_temperature: Temperature used for candidate generation.
     :ivar gen_top_p: Top-p nucleus sampling used for generation.
     :ivar vllm_url: Base URL for the vLLM ``/generate`` endpoint.
@@ -551,20 +548,8 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "If set, override the PPO clip range specifically for the MaxEnt objective "
-                "(falls back to clip_range)."
+                "(falls back to ppo_clip_range)."
             )
-        },
-    )
-    init_kl_coeff: Optional[float] = field(
-        default=None,
-        metadata={
-            "help": "Legacy alias for the reverse-KL coefficient β to keep recipes compatible.",
-        },
-    )
-    init_kl_coef: Optional[float] = field(
-        default=None,
-        metadata={
-            "help": "Single-f alias for init_kl_coeff used in some downstream tooling.",
         },
     )
     info_seed_enabled: bool = field(
@@ -634,22 +619,6 @@ class GRPOConfig(trl.GRPOConfig):
         default=0.0,
         metadata={
             "help": "Maximum fractional change allowed per β controller update. Zero disables adaptation.",
-        },
-    )
-    clip_range: float = field(
-        default=0.2,
-        metadata={
-            "help": (
-                "Legacy PPO clip range knob kept for compatibility; superseded by ppo_clip_range."
-            )
-        },
-    )
-    evaluation_strategy: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": (
-                "Alias for eval_strategy to remain compatible with standard transformers TrainingArguments."
-            )
         },
     )
     gen_temperature: float = field(
@@ -854,19 +823,6 @@ class GRPOConfig(trl.GRPOConfig):
             ):
                 normalized = f"{parsed.scheme}://{parsed.netloc}/generate"
                 setattr(self, "vllm_url", normalized)
-        eval_alias = getattr(self, "evaluation_strategy", None)
-        if eval_alias not in (None, ""):
-            try:
-                from transformers.training_args import IntervalStrategy
-
-                eval_value = (
-                    eval_alias
-                    if isinstance(eval_alias, IntervalStrategy)
-                    else IntervalStrategy(str(eval_alias))
-                )
-            except (ImportError, ModuleNotFoundError, ValueError):
-                eval_value = eval_alias
-            setattr(self, "eval_strategy", eval_value)
         if self.maxent_tau_min < 0.0:
             raise ValueError("maxent_tau_min must be non-negative")
         if self.maxent_tau_max < self.maxent_tau_min:
@@ -1042,12 +998,6 @@ class GRPOScriptArguments(ScriptArguments):
         default=-1.0,
         metadata={"help": "Maximum (negative) penalty for repetition penalty reward"},
     )
-
-    def __post_init__(self) -> None:  # pragma: no cover - compatibility shim
-        # Keep a default reward_funcs attribute for legacy consumers while
-        # avoiding CLI flag conflicts with GRPOConfig.
-        if not hasattr(self, "reward_funcs"):
-            self.reward_funcs = ["pure_accuracy_math"]
 
     dataset_prompt_column: str = field(
         default="problem",

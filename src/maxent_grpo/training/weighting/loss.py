@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TYPE_CHECKING, cast
 
 from maxent_grpo.training.runtime import require_torch
 from ..types import (
@@ -31,8 +31,13 @@ from ..types import (
 )
 from .types import WeightStats, WeightingSettings
 
+if TYPE_CHECKING:
+    import torch as torch_types
+    from torch import Tensor as Tensor
+else:  # pragma: no cover - runtime uses optional torch stub
+    torch_types = None
+    Tensor = Any
 torch = require_torch("training_loss")
-Tensor = torch.Tensor
 LOG = logging.getLogger(__name__)
 _KL_LENGTH_BUCKETS: List[Tuple[int, Optional[int]]] = [
     (0, 32),
@@ -41,6 +46,12 @@ _KL_LENGTH_BUCKETS: List[Tuple[int, Optional[int]]] = [
     (129, 256),
     (257, None),
 ]
+
+
+def _refresh_torch() -> Any:
+    """Return the active torch module."""
+
+    return torch
 
 
 def _bucket_label(lower: int, upper: Optional[int]) -> str:
@@ -92,6 +103,7 @@ class SequenceScores:
     log_ratio_train: Tensor
     denom_tok_tensor: Tensor
     pooled_hidden: Optional[Tensor] = None
+    seed_aux: Optional["SeedInfoInputs"] = None
 
 
 @dataclass
@@ -238,9 +250,9 @@ def build_loss_inputs(
                 weight_tensor = coerce(getattr(weight_tensor, "arr", weight_tensor))
         except (TypeError, ValueError, RuntimeError, AttributeError):
             pass
-        weight_tensor = torch.cat([weight_tensor.view(-1), pad])
+        weight_tensor = torch.cat([cast(Any, weight_tensor).view(-1), pad])
     elif weight_count > target_count:
-        weight_tensor = weight_tensor.view(-1)[:target_count]
+        weight_tensor = cast(Any, weight_tensor).view(-1)[:target_count]
     group_data = GroupLossData(
         group_sizes=group_sizes,
         weight_tensor=weight_tensor,
@@ -263,7 +275,7 @@ def build_loss_inputs(
     return group_data, ratio_context
 
 
-def _policy_loss_from_groups(group_data: GroupLossData) -> torch.Tensor:
+def _policy_loss_from_groups(group_data: GroupLossData) -> Tensor:
     """Return the mean policy loss aggregated over prompt groups.
 
     :param group_data: Flattened tensors/resolution metadata per group.
@@ -272,6 +284,7 @@ def _policy_loss_from_groups(group_data: GroupLossData) -> torch.Tensor:
     :rtype: torch.Tensor
     :raises ValueError: If no completions were available for aggregation.
     """
+    _refresh_torch()
     total_groups = len(group_data.group_sizes)
     total_weights = _tensor_numel(group_data.weight_tensor)
     total_logp = _tensor_numel(group_data.logp_sums)
@@ -283,7 +296,7 @@ def _policy_loss_from_groups(group_data: GroupLossData) -> torch.Tensor:
         total_logp,
         total_tokens,
     )
-    def _stats_for_logging(tensor_like: torch.Tensor) -> Tuple[int, int, str]:
+    def _stats_for_logging(tensor_like: Tensor) -> Tuple[int, int, str]:
         """Return ``(numel, nonzero, preview)`` for debug logging."""
         try:
             tensor = torch.as_tensor(getattr(tensor_like, "arr", tensor_like))
@@ -340,7 +353,7 @@ def _policy_loss_from_groups(group_data: GroupLossData) -> torch.Tensor:
         group_data.token_counts = torch.ones(
             (total_weights,), device=tok_device, dtype=tok_dtype
         )
-    policy_group_losses: List[torch.Tensor] = []
+    policy_group_losses: List[Tensor] = []
     offset = 0
     for size in group_data.group_sizes:
         if size <= 0:
@@ -455,7 +468,7 @@ def _iter_group_offsets(group_sizes: List[int]) -> Iterator[Tuple[int, int]]:
         offset += size
 
 
-def _coerce_tensor_like(reference: torch.Tensor, value: torch.Tensor) -> torch.Tensor:
+def _coerce_tensor_like(reference: Tensor, value: Tensor) -> Tensor:
     """Return ``value`` coerced to the backend/dtype of ``reference``."""
     tensor_ctor = getattr(torch, "as_tensor", getattr(torch, "tensor", None))
     if tensor_ctor is None:
@@ -480,13 +493,13 @@ def _coerce_tensor_like(reference: torch.Tensor, value: torch.Tensor) -> torch.T
     return coerced
 
 
-def _tensor_numel(value: torch.Tensor) -> int:
+def _tensor_numel(value: Tensor) -> int:
     """Best-effort ``numel`` lookup that tolerates lightweight tensor stubs."""
 
     numel_fn = getattr(value, "numel", None)
     if callable(numel_fn):
         try:
-            return int(numel_fn())
+            return int(cast(Any, numel_fn)())
         except (TypeError, ValueError, RuntimeError):
             LOG.debug("Failed to compute tensor numel via numel().")
     for attr in ("data", "arr"):
@@ -502,7 +515,7 @@ def _tensor_numel(value: torch.Tensor) -> int:
         return 0
 
 
-def _tensor_preview(value: torch.Tensor, limit: int = 4) -> str:
+def _tensor_preview(value: Tensor, limit: int = 4) -> str:
     """Return a short preview string for logging diagnostics."""
 
     try:
@@ -525,7 +538,7 @@ def _clip_loss_for_slice(
     ratio_slice: Tensor,
     clipped_slice: Tensor,
     adv_base_val: float,
-) -> torch.Tensor:
+) -> Tensor:
     """Return the PPO-style clip loss for a contiguous slice.
 
     :param weight_tensor: Flattened weights aligned with completions.
@@ -576,8 +589,8 @@ def _clip_loss_for_slice(
 def _apply_clip_objective(
     ratio_ctx: RatioContext,
     group_data: GroupLossData,
-    policy_loss: torch.Tensor,
-) -> Tuple[torch.Tensor, Optional[float]]:
+    policy_loss: Tensor,
+) -> Tuple[Tensor, Optional[float]]:
     """Apply the optional clip objective and return updated loss/scalar.
 
     :param ratio_ctx: Ratio context with log-probs and clip config.
@@ -593,7 +606,7 @@ def _apply_clip_objective(
     if not (clip_cfg.use_clip_objective and clip_cfg.clip_range > 0.0):
         return policy_loss, None
     ratio_for_loss, clipped_ratio_vals = _compute_clip_ratios(ratio_ctx, clip_cfg)
-    clip_losses: List[torch.Tensor] = []
+    clip_losses: List[Tensor] = []
     for offset, size in _iter_group_offsets(group_data.group_sizes):
         if size <= 0:
             continue
@@ -668,17 +681,18 @@ def _apply_clip_objective(
 def _grpo_policy_loss_from_groups(
     ratio_ctx: RatioContext,
     group_data: GroupLossData,
-) -> Tuple[torch.Tensor, Optional[float]]:
+) -> Tuple[Tensor, Optional[float]]:
     """Return PPO-style GRPO loss aggregated over prompt groups.
 
     Uses group-normalized advantages stored in ``group_data.weight_tensor`` and
     PPO ratios derived from behavior log-probabilities. If clipping is disabled,
     falls back to the unclipped ratio * advantage objective.
     """
+    _refresh_torch()
     clip_cfg = ratio_ctx.clip_cfg
     ratio_for_loss, clipped_ratio_vals = _compute_clip_ratios(ratio_ctx, clip_cfg)
     use_clip = bool(clip_cfg.use_clip_objective and clip_cfg.clip_range > 0.0)
-    grpo_losses: List[torch.Tensor] = []
+    grpo_losses: List[Tensor] = []
     for offset, size in _iter_group_offsets(group_data.group_sizes):
         if size <= 0:
             continue
@@ -750,7 +764,7 @@ def _grpo_policy_loss_from_groups(
     return grpo_loss_tensor, clip_loss_scalar
 
 
-def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
+def _kl_terms(ratio_ctx: RatioContext) -> Tuple[Tensor, float, float]:
     """Return KL tensor, scalar, and weighted scalar contributions.
 
     :param ratio_ctx: Ratio context describing current/reference log-probs.
@@ -764,10 +778,11 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
     *length-normalized* per-token log-probabilities, then aggregate with a
     token-weighted mean to avoid overweighting short completions.
     """
+    _refresh_torch()
     def _zero_kl_return(
         log_reason: Optional[str], level: int = logging.WARNING
-    ) -> Tuple[torch.Tensor, float, float]:
-        zero_tensor: torch.Tensor
+    ) -> Tuple[Tensor, float, float]:
+        zero_tensor: Tensor
         if isinstance(ratio_ctx.cur_logp_sum, torch.Tensor):
             zero_tensor = ratio_ctx.cur_logp_sum.new_zeros(())
         else:
@@ -794,11 +809,11 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
             getattr(cur_logp_per_tok, "arr", cur_logp_per_tok)
         )
     try:
-        cur_len = cur_logp_per_tok.numel()
+        cur_len = cast(Any, cur_logp_per_tok).numel()
     except (AttributeError, TypeError):
         cur_len = len(getattr(cur_logp_per_tok, "data", []))
     try:
-        ref_len = ref_logp_per_tok.numel()
+        ref_len = cast(Any, ref_logp_per_tok).numel()
     except (AttributeError, TypeError):
         ref_len = len(getattr(ref_logp_per_tok, "data", []))
     if not cur_len or not ref_len:
@@ -810,7 +825,7 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
     if ref_len != cur_len:
         if ref_len == 1:
             fill_val = (
-                float(ref_logp_per_tok[0])
+                float(cast(Any, ref_logp_per_tok)[0])
                 if hasattr(ref_logp_per_tok, "__getitem__")
                 else 0.0
             )
@@ -825,7 +840,7 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
                 ref_logp_per_tok = torch.full((cur_len,), fill_val)
         elif ref_len < cur_len:
             fill_val = (
-                float(ref_logp_per_tok[-1])
+                float(cast(Any, ref_logp_per_tok)[-1])
                 if hasattr(ref_logp_per_tok, "__getitem__")
                 else 0.0
             )
@@ -840,17 +855,21 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
                     ref_logp_per_tok = torch.cat([ref_logp_per_tok, pad])
                 except (RuntimeError, TypeError, ValueError):
                     ref_logp_per_tok = torch.tensor(
-                        list(ref_logp_per_tok) + list(getattr(pad, "data", []))
+                        list(cast(Any, ref_logp_per_tok))
+                        + list(getattr(pad, "data", []))
                     )
             except (RuntimeError, TypeError, ValueError):
                 ref_logp_per_tok = torch.tensor(
-                    list(ref_logp_per_tok) + [fill_val] * (cur_len - ref_len)
+                    list(cast(Any, ref_logp_per_tok))
+                    + [fill_val] * (cur_len - ref_len)
                 )
             else:
                 try:
-                    ref_logp_per_tok = ref_logp_per_tok[:cur_len]
+                    ref_logp_per_tok = cast(Any, ref_logp_per_tok)[:cur_len]
                 except (RuntimeError, TypeError, ValueError):
-                    ref_logp_per_tok = torch.tensor(list(ref_logp_per_tok)[:cur_len])
+                    ref_logp_per_tok = torch.tensor(
+                        list(cast(Any, ref_logp_per_tok))[:cur_len]
+                    )
     # Ensure tensors for downstream math.
     if not isinstance(ref_logp_per_tok, torch.Tensor):
         ref_logp_per_tok = torch.tensor(
@@ -869,14 +888,14 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
         ref_dtype is not None and cur_dtype is not None and ref_dtype != cur_dtype
     ):
         try:
-            ref_logp_per_tok = ref_logp_per_tok.to(cur_logp_per_tok)
+            ref_logp_per_tok = cast(Any, ref_logp_per_tok).to(cur_logp_per_tok)
         except (AttributeError, RuntimeError, TypeError):
             # Fall back to moving both tensors to CPU so we never mix devices.
-            ref_logp_per_tok = ref_logp_per_tok.to("cpu")
-            cur_logp_per_tok = cur_logp_per_tok.to("cpu")
+            ref_logp_per_tok = cast(Any, ref_logp_per_tok).to("cpu")
+            cur_logp_per_tok = cast(Any, cur_logp_per_tok).to("cpu")
     # Re-check lengths after conversions/padding; skip if still empty.
-    cur_len = cur_logp_per_tok.numel()
-    ref_len = ref_logp_per_tok.numel()
+    cur_len = cast(Any, cur_logp_per_tok).numel()
+    ref_len = cast(Any, ref_logp_per_tok).numel()
     if cur_len == 0 or ref_len == 0:
         return _zero_kl_return(
             "Skipping KL computation due to post-align empty tensors | cur=%d | ref=%d"
@@ -897,8 +916,8 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
             int(ref_len),
             int(min_len),
         )
-        ref_logp_per_tok = ref_logp_per_tok[:min_len]
-        cur_logp_per_tok = cur_logp_per_tok[:min_len]
+        ref_logp_per_tok = cast(Any, ref_logp_per_tok)[:min_len]
+        cur_logp_per_tok = cast(Any, cur_logp_per_tok)[:min_len]
 
     delta = (ref_logp_per_tok - cur_logp_per_tok).clamp(min=-60.0, max=60.0)
     if not hasattr(delta, "exp"):
@@ -911,9 +930,9 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
         ref_tok_counts, (list, tuple)
     ):
         ref_tok_counts = torch.tensor(getattr(ref_tok_counts, "arr", ref_tok_counts))
-    ref_tok_weights = ref_tok_counts.detach().clamp(min=1.0)
+    ref_tok_weights = cast(Any, ref_tok_counts).detach().clamp(min=1.0)
     try:
-        ref_tok_weights = ref_tok_weights.to(per_seq_kl)
+        ref_tok_weights = cast(Any, ref_tok_weights).to(per_seq_kl)
     except (AttributeError, TypeError, RuntimeError):
         ref_tok_weights = torch.tensor(
             getattr(ref_tok_weights, "arr", ref_tok_weights)
@@ -931,7 +950,7 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
             int(per_len),
             int(ref_len),
         )
-        zero_tensor: torch.Tensor
+        zero_tensor: Tensor
         if isinstance(per_seq_kl, torch.Tensor):
             zero_tensor = per_seq_kl.new_zeros(())
         elif isinstance(ratio_ctx.cur_logp_sum, torch.Tensor):
@@ -947,7 +966,11 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
         weighted_kl_loss_scalar = beta_val * kl_loss_scalar
         return zero_tensor, kl_loss_scalar, weighted_kl_loss_scalar
     if ref_len == 1 and per_len > 1:
-        fill_val = float(ref_tok_weights[0]) if hasattr(ref_tok_weights, "__getitem__") else 1.0
+        fill_val = (
+            float(cast(Any, ref_tok_weights)[0])
+            if hasattr(ref_tok_weights, "__getitem__")
+            else 1.0
+        )
         try:
             ref_tok_weights = torch.full_like(per_seq_kl, fill_val)
         except (RuntimeError, TypeError, ValueError, AttributeError):
@@ -956,7 +979,7 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
         # Align lengths by flattening or recreating the tensor when stubs
         # provide incompatible shapes.
         try:
-            ref_tok_weights = ref_tok_weights.view(-1)
+            ref_tok_weights = cast(Any, ref_tok_weights).view(-1)
         except (RuntimeError, TypeError, ValueError, AttributeError):
             try:
                 ref_tok_weights = torch.tensor(
@@ -967,12 +990,12 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
                     )
                 )
             except (RuntimeError, TypeError, ValueError, AttributeError):
-                ref_tok_weights = torch.tensor(list(ref_tok_weights))
+                ref_tok_weights = torch.tensor(list(cast(Any, ref_tok_weights)))
             try:
                 ref_tok_weights = ref_tok_weights.view(-1)
             except (RuntimeError, TypeError, ValueError, AttributeError):
                 fill_val = (
-                    float(ref_tok_weights[-1])
+                    float(cast(Any, ref_tok_weights)[-1])
                     if hasattr(ref_tok_weights, "__getitem__")
                     else 1.0
                 )
@@ -988,8 +1011,12 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
                     )
                 except (RuntimeError, TypeError, ValueError, AttributeError):
                     ref_tok_weights = torch.tensor([fill_val] * per_len)
-    if ref_tok_weights.numel() < per_len:
-        fill_val = float(ref_tok_weights[-1]) if hasattr(ref_tok_weights, "__getitem__") else 1.0
+    if cast(Any, ref_tok_weights).numel() < per_len:
+        fill_val = (
+            float(cast(Any, ref_tok_weights)[-1])
+            if hasattr(ref_tok_weights, "__getitem__")
+            else 1.0
+        )
         try:
             pad = torch.full_like(per_seq_kl, fill_val)
         except (RuntimeError, TypeError, ValueError, AttributeError):
@@ -1026,12 +1053,12 @@ def _compute_clip_ratios(
 
 def _build_loss_outputs(
     ratio_ctx: RatioContext,
-    total_loss: torch.Tensor,
-    policy_loss_tensor: torch.Tensor,
+    total_loss: Tensor,
+    policy_loss_tensor: Tensor,
     scalar_inputs: _LossScalarInputs,
     *,
-    seed_loss: Optional[torch.Tensor] = None,
-    info_entropy_term: Optional[torch.Tensor] = None,
+    seed_loss: Optional[Tensor] = None,
+    info_entropy_term: Optional[Tensor] = None,
 ) -> LossOutputs:
     """Pack scalar values into a ``LossOutputs`` dataclass.
 
@@ -1090,7 +1117,7 @@ def _clip_bounds(clip_cfg: ClipSettings) -> Tuple[float, float]:
     return lower, upper
 
 
-def _tensor_mean_std(tensor: torch.Tensor) -> Tuple[float, float]:
+def _tensor_mean_std(tensor: Tensor) -> Tuple[float, float]:
     """Return mean and std of a tensor detached to CPU.
 
     :param tensor: Input tensor for which to compute statistics.
@@ -1201,18 +1228,18 @@ def _ratio_stats_with_ref(
         denom_device = getattr(denom_tok_tensor, "device", None)
         if cur_device is not None and denom_device is not None and cur_device != denom_device:
             try:
-                denom_tok_tensor = denom_tok_tensor.to(cur_logp_sum)
+                denom_tok_tensor = cast(Any, denom_tok_tensor).to(cur_logp_sum)
             except (RuntimeError, TypeError, AttributeError):
-                denom_tok_tensor = denom_tok_tensor.to("cpu")
-                cur_logp_sum = cur_logp_sum.to("cpu")
-                ref_logp_sum = ref_logp_sum.to("cpu")
-                ref_logp_sum_raw = ref_logp_sum_raw.to("cpu")
+                denom_tok_tensor = cast(Any, denom_tok_tensor).to("cpu")
+                cur_logp_sum = cast(Any, cur_logp_sum).to("cpu")
+                ref_logp_sum = cast(Any, ref_logp_sum).to("cpu")
+                ref_logp_sum_raw = cast(Any, ref_logp_sum_raw).to("cpu")
 
-    cur_logp_per_token = cur_logp_sum.detach() / denom_tok_tensor
+    cur_logp_per_token = cast(Any, cur_logp_sum).detach() / denom_tok_tensor
     if ratio_ctx.weighting_cfg.len_norm_ref:
-        ref_logp_per_token = ref_logp_sum.detach()
+        ref_logp_per_token = cast(Any, ref_logp_sum).detach()
     else:
-        ref_logp_per_token = ref_logp_sum_raw.detach() / denom_tok_tensor
+        ref_logp_per_token = cast(Any, ref_logp_sum_raw).detach() / denom_tok_tensor
     # Align dtype/device across tensors for downstream ops.
     ref_device = getattr(ref_logp_per_token, "device", None)
     cur_device = getattr(cur_logp_per_token, "device", None)
@@ -1224,10 +1251,10 @@ def _ratio_stats_with_ref(
         and (ref_device != cur_device or (ref_dtype and cur_dtype and ref_dtype != cur_dtype))
     ):
         try:
-            ref_logp_per_token = ref_logp_per_token.to(cur_logp_per_token)
+            ref_logp_per_token = cast(Any, ref_logp_per_token).to(cur_logp_per_token)
         except (AttributeError, RuntimeError, TypeError):
-            ref_logp_per_token = ref_logp_per_token.to("cpu")
-            cur_logp_per_token = cur_logp_per_token.to("cpu")
+            ref_logp_per_token = cast(Any, ref_logp_per_token).to("cpu")
+            cur_logp_per_token = cast(Any, cur_logp_per_token).to("cpu")
     try:
         cur_len = cur_logp_per_token.numel()
     except (AttributeError, TypeError):
@@ -1351,8 +1378,9 @@ def _ratio_diagnostics(ratio_ctx: RatioContext) -> BatchDiagnostics:
 def _contrastive_seed_loss(
     seed_inputs: SeedInfoInputs,
     temperature: float = 0.1,
-) -> Optional[torch.Tensor]:
+) -> Optional[Tensor]:
     """Compute a contrastive InfoNCE-style loss over seed IDs."""
+    _refresh_torch()
 
     if seed_inputs.pooled_hidden is None or seed_inputs.seed_ids is None:
         return None
@@ -1363,8 +1391,8 @@ def _contrastive_seed_loss(
     valid_mask = seed_ids >= 0
     if not valid_mask.any():
         return None
-    hidden = hidden[valid_mask]
-    seed_ids = seed_ids[valid_mask]
+    hidden = cast(Tensor, hidden[valid_mask])
+    seed_ids = cast(Tensor, seed_ids[valid_mask])
     if hidden.size(0) < 2:
         return None
     try:
@@ -1374,7 +1402,9 @@ def _contrastive_seed_loss(
         else:
             norm = hidden.pow(2).sum(dim=1, keepdim=True).sqrt().clamp(min=1e-6)
             hidden = hidden / norm
-        sim = torch.matmul(hidden, hidden.t()) / max(temperature, 1e-4)
+        hidden_any = cast(Any, hidden)
+        hidden_t = hidden_any.transpose(0, 1)
+        sim = torch.matmul(hidden, hidden_t) / max(temperature, 1e-4)
         sim.fill_diagonal_(float("-inf"))
         pos_mask = seed_ids.unsqueeze(1).eq(seed_ids.unsqueeze(0))
         pos_mask.fill_diagonal_(False)
@@ -1412,6 +1442,7 @@ def evaluate_losses(
     :returns: Tuple containing ``LossOutputs`` and diagnostic statistics.
     :rtype: tuple[LossOutputs, BatchDiagnostics]
     """
+    _refresh_torch()
     if getattr(ratio_ctx.weighting_cfg, "train_grpo_objective", False):
         policy_loss, clip_loss_scalar = _grpo_policy_loss_from_groups(
             ratio_ctx, group_data

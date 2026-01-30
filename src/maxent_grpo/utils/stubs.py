@@ -41,11 +41,11 @@ class AutoConfigStub:
 
     __maxent_stub__ = True
 
-    def __init__(self, **_kwargs):
+    def __init__(self, **_kwargs: Any) -> None:
         self.model_type = None
 
     @classmethod
-    def from_pretrained(cls, *_args, **_kwargs):
+    def from_pretrained(cls, *_args: Any, **_kwargs: Any) -> "AutoConfigStub":
         """Return a stub config object.
 
         :param _args: Ignored positional args.
@@ -61,11 +61,17 @@ class FallbackTokenizer:
     __maxent_stub__ = True
 
     chat_template: Optional[str] = None
+    eos_token: Optional[str] = None
     eos_token_id: Optional[int] = None
+    pad_token: Optional[str] = None
     pad_token_id: Optional[int] = None
+    padding_side: str = "right"
+
+    def __init__(self) -> None:
+        self._vocab_size = 0
 
     @classmethod
-    def from_pretrained(cls, *_args, **_kwargs):
+    def from_pretrained(cls, *_args: Any, **_kwargs: Any) -> "FallbackTokenizer":
         """Return a basic tokenizer placeholder.
 
         :param _args: Ignored positional args matching transformers API.
@@ -76,7 +82,7 @@ class FallbackTokenizer:
 
     def apply_chat_template(
         self,
-        messages: List[Any],
+        messages: List[dict[str, str]],
         tokenize: bool = False,
         add_generation_prompt: bool = True,
     ) -> Union[str, List[int]]:
@@ -94,17 +100,65 @@ class FallbackTokenizer:
             return list(text.encode("utf-8"))
         return text
 
+    def add_special_tokens(
+        self, special_tokens_dict: dict[str, str], *_args: Any, **_kwargs: Any
+    ) -> int:
+        """Register special tokens on the stub tokenizer.
+
+        :param special_tokens_dict: Mapping of token names to token strings.
+        :returns: Number of tokens added (best-effort stubbed value).
+        """
+        added = 0
+        pad_token = special_tokens_dict.get("pad_token")
+        if pad_token is not None:
+            self.pad_token = pad_token
+            if self.pad_token_id is None:
+                self.pad_token_id = 0
+            added += 1
+        eos_token = special_tokens_dict.get("eos_token")
+        if eos_token is not None:
+            self.eos_token = eos_token
+            if self.eos_token_id is None:
+                self.eos_token_id = 0
+            added += 1
+        if added:
+            self._vocab_size = max(self._vocab_size, added)
+        return added
+
+    def __len__(self) -> int:
+        return self._vocab_size
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Minimal callable interface mirroring HF tokenizers."""
+        _ = kwargs
+        if not args:
+            return {"input_ids": [], "attention_mask": []}
+        text = args[0]
+        if isinstance(text, list):
+            ids = [list(str(item).encode("utf-8")) for item in text]
+            return {"input_ids": ids, "attention_mask": [[1] * len(seq) for seq in ids]}
+        token_ids = list(str(text).encode("utf-8"))
+        return {"input_ids": token_ids, "attention_mask": [1] * len(token_ids)}
+
+    def decode(self, token_ids: List[int], skip_special_tokens: bool = True) -> str:
+        """Best-effort decode for compatibility with HF tokenizer API."""
+        _ = skip_special_tokens
+        try:
+            return bytes(token_ids).decode("utf-8")
+        except (UnicodeDecodeError, ValueError, TypeError):
+            return "".join(str(t) for t in token_ids)
+
 
 class AutoModelForCausalLMStub:
     """Tiny model stub for environments without transformers."""
 
     __maxent_stub__ = True
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = SimpleNamespace()
 
     @classmethod
-    def from_pretrained(cls, *_args, **_kwargs):
+    def from_pretrained(cls, *_args: Any, **_kwargs: Any) -> "AutoModelForCausalLMStub":
         """Return a stub model instance.
 
         :param _args: Ignored positional args matching transformers API.
@@ -113,7 +167,7 @@ class AutoModelForCausalLMStub:
         """
         return cls()
 
-    def gradient_checkpointing_enable(self, *_args, **_kwargs):
+    def gradient_checkpointing_enable(self, *_args: Any, **_kwargs: Any) -> None:
         """No-op placeholder mirroring transformers API.
 
         :param _args: Ignored positional args.

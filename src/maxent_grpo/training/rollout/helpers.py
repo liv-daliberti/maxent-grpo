@@ -32,7 +32,6 @@ from maxent_grpo.generation.common import (
     retry_incomplete_prompts as _retry_incomplete_prompts,
     seed_generation_groups as _seed_generation_groups_impl,
 )
-from maxent_grpo.utils.fallbacks import dist_with_fallback
 
 from .context import GenerationContext
 from .local import LocalGenerationMixin
@@ -48,8 +47,7 @@ from .vllm_adapter import (
 torch = require_torch("generation")
 _retry_incomplete_prompts_impl = _retry_incomplete_prompts
 
-# Recreate the dist fallback on reload to pick up the current torch stub.
-dist = dist_with_fallback(getattr(torch, "distributed", None))
+dist = getattr(torch, "distributed", None)
 
 
 def _refresh_vllm_globals() -> None:

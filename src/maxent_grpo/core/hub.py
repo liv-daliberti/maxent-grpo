@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 import re
 from concurrent.futures import Future
-from typing import List, Optional, TYPE_CHECKING
+from typing import Any, List, Optional, TYPE_CHECKING
 
 from maxent_grpo.utils.stubs import AutoConfigStub
 
@@ -46,8 +46,8 @@ except ImportError:  # pragma: no cover - fallback stub for test envs
 except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive
     AutoConfig = AutoConfigStub
 
-try:  # pragma: no cover - optional dependency
-    from huggingface_hub import (
+if TYPE_CHECKING:  # pragma: no cover - import types without runtime dependency
+    from huggingface_hub import (  # type: ignore[import-not-found]
         create_branch,
         create_repo,
         get_safetensors_metadata,
@@ -58,41 +58,55 @@ try:  # pragma: no cover - optional dependency
         upload_folder,
         CommitInfo,
     )
-    from huggingface_hub.utils import HfHubHTTPError
-except ModuleNotFoundError:  # pragma: no cover - provide safe fallbacks for tests
+    from huggingface_hub.errors import HfHubHTTPError  # type: ignore[import-not-found]
+else:
+    try:  # pragma: no cover - optional dependency
+        from huggingface_hub import (
+            create_branch,
+            create_repo,
+            get_safetensors_metadata,
+            list_repo_commits,
+            list_repo_files,
+            list_repo_refs,
+            repo_exists,
+            upload_folder,
+            CommitInfo,
+        )
+        from huggingface_hub.errors import HfHubHTTPError
+    except ModuleNotFoundError:  # pragma: no cover - provide safe fallbacks for tests
 
-    def create_branch(*_args, **_kwargs):
-        raise RuntimeError("huggingface_hub is not installed")
+        def create_branch(*_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError("huggingface_hub is not installed")
 
-    def create_repo(*_args, **_kwargs):
-        raise RuntimeError("huggingface_hub is not installed")
+        def create_repo(*_args: Any, **_kwargs: Any) -> str:
+            raise RuntimeError("huggingface_hub is not installed")
 
-    def get_safetensors_metadata(*_args, **_kwargs):
-        raise RuntimeError("huggingface_hub is not installed")
+        def get_safetensors_metadata(*_args: Any, **_kwargs: Any) -> Any:
+            raise RuntimeError("huggingface_hub is not installed")
 
-    def list_repo_commits(*_args, **_kwargs):
-        return []
+        def list_repo_commits(*_args: Any, **_kwargs: Any) -> List[Any]:
+            return []
 
-    def list_repo_files(*_args, **_kwargs):
-        return []
+        def list_repo_files(*_args: Any, **_kwargs: Any) -> List[str]:
+            return []
 
-    class _EmptyBranches:
-        branches = []
+        class _EmptyBranches:
+            branches: List[Any] = []
 
-    def list_repo_refs(*_args, **_kwargs):
-        return _EmptyBranches()
+        def list_repo_refs(*_args: Any, **_kwargs: Any) -> _EmptyBranches:
+            return _EmptyBranches()
 
-    def repo_exists(*_args, **_kwargs):
-        return False
+        def repo_exists(*_args: Any, **_kwargs: Any) -> bool:
+            return False
 
-    def upload_folder(*_args, **_kwargs):
-        raise RuntimeError("huggingface_hub is not installed")
+        def upload_folder(*_args: Any, **_kwargs: Any) -> Future[str]:
+            raise RuntimeError("huggingface_hub is not installed")
 
-    class CommitInfo:  # type: ignore
-        commit_id = ""
+        class CommitInfo:  # type: ignore
+            commit_id = ""
 
-    class HfHubHTTPError(Exception):
-        pass
+        class HfHubHTTPError(Exception):
+            pass
 
 
 logger = logging.getLogger(__name__)
@@ -125,12 +139,17 @@ def push_to_hub_revision(
         upload; appended to the default ``checkpoint-*`` and ``*.pth`` filters.
     :type extra_ignore_patterns: list[str] | None
     :returns: Future that completes when the upload finishes, resolving to the
-        commit hash.
-    :rtype: concurrent.futures.Future[str]
+        Hub commit metadata.
+    :rtype: concurrent.futures.Future[huggingface_hub.CommitInfo]
     :raises ValueError: If ``hub_model_id`` is not set in ``training_args``.
     """
     if not training_args.hub_model_id:
         raise ValueError("hub_model_id must be set in training_args")
+
+    revision = training_args.hub_model_revision or "main"
+    output_dir = training_args.output_dir
+    if not output_dir:
+        raise ValueError("output_dir must be set in training_args")
 
     # Create a repo if it doesn't exist yet
     repo_url: str = create_repo(
@@ -138,37 +157,40 @@ def push_to_hub_revision(
     )
     # Get initial commit to branch from (repo may be empty on first push)
     try:
-        initial_commit: CommitInfo = list_repo_commits(training_args.hub_model_id)[-1]
-        base_rev: Optional[str] = initial_commit.commit_id
-    except (IndexError, HfHubHTTPError):
+        commits = list_repo_commits(training_args.hub_model_id)
+        initial_commit = commits[-1] if commits else None
+        base_rev: Optional[str] = (
+            getattr(initial_commit, "commit_id", None) if initial_commit is not None else None
+        )
+    except HfHubHTTPError:
         # Fall back to default branch tip
         base_rev = None
     # Now create the branch we'll be pushing to
     create_branch(
         repo_id=training_args.hub_model_id,
-        branch=training_args.hub_model_revision,
+        branch=revision,
         revision=base_rev,
         exist_ok=True,
     )
     logger.info("Created target repo at %s", repo_url)
-    logger.info("Pushing to the Hub revision %s...", training_args.hub_model_revision)
+    logger.info("Pushing to the Hub revision %s...", revision)
     ignore_patterns: List[str] = []
     if not include_checkpoints:
         ignore_patterns.extend(["checkpoint-*", "*.pth"])
     if extra_ignore_patterns:
         ignore_patterns.extend(extra_ignore_patterns)
-    future: Future[str] = upload_folder(
+    future: Future[CommitInfo] = upload_folder(
         repo_id=training_args.hub_model_id,
-        folder_path=training_args.output_dir,
-        revision=training_args.hub_model_revision,
-        commit_message=f"Add {training_args.hub_model_revision} checkpoint",
+        folder_path=output_dir,
+        revision=revision,
+        commit_message=f"Add {revision} checkpoint",
         ignore_patterns=ignore_patterns,
         run_as_future=True,
     )
     logger.info(
         "Pushed to %s revision %s successfully!",
         repo_url,
-        training_args.hub_model_revision,
+        revision,
     )
 
     return future
@@ -234,16 +256,20 @@ def check_hub_revision_exists(training_args: "GRPOConfig") -> None:
     :raises ValueError: If the revision exists and appears non-empty without
         setting ``overwrite_hub_revision``.
     """
-    if repo_exists(training_args.hub_model_id):
+    repo_id = getattr(training_args, "hub_model_id", None)
+    if not repo_id:
+        logger.warning(
+            "push_to_hub_revision requested but hub_model_id is unset; skipping revision check"
+        )
+        return
+    if repo_exists(repo_id):
         if training_args.push_to_hub_revision is True:
             # First check if the revision exists
-            revisions = [
-                rev.name for rev in list_repo_refs(training_args.hub_model_id).branches
-            ]
+            revisions = [rev.name for rev in list_repo_refs(repo_id).branches]
             # If the revision exists, we next check it has a README file
             if training_args.hub_model_revision in revisions:
                 repo_files = list_repo_files(
-                    repo_id=training_args.hub_model_id,
+                    repo_id=repo_id,
                     revision=training_args.hub_model_revision,
                 )
                 if (
@@ -256,7 +282,7 @@ def check_hub_revision_exists(training_args: "GRPOConfig") -> None:
                     )
 
 
-def get_param_count_from_repo_id(repo_id: str) -> int:
+def get_param_count_from_repo_id(repo_id: Optional[str]) -> int:
     """Infer parameter count from naming conventions or Hub metadata.
 
     Prefers parsing strings like ``42m``, ``1.5b`` or products like ``8x7b``
@@ -264,11 +290,14 @@ def get_param_count_from_repo_id(repo_id: str) -> int:
     found.
 
     :param repo_id: Hub repository ID.
-    :type repo_id: str
+    :type repo_id: str | None
     :returns: Best guess of total parameter count, or ``-1`` if unknown after
-        attempting both pattern extraction and safetensors metadata lookup.
+        attempting both pattern extraction and safetensors metadata lookup, or
+        if ``repo_id`` is missing.
     :rtype: int
     """
+    if not repo_id:
+        return -1
     # Pattern to match products (like 8x7b) and single values (like 42m)
     pattern = r"((\d+(\.\d+)?)(x(\d+(\.\d+)?))?)([bm])"
     matches = re.findall(pattern, repo_id.lower())
@@ -300,7 +329,9 @@ def get_param_count_from_repo_id(repo_id: str) -> int:
 
 
 def get_gpu_count_for_vllm(
-    model_name: str, revision: str = "main", num_gpus: int = 8
+    model_name: Optional[str],
+    revision: Optional[str] = "main",
+    num_gpus: int = 8,
 ) -> int:
     """Choose a valid GPU count for vLLM tensor parallelism.
 
@@ -309,20 +340,44 @@ def get_gpu_count_for_vllm(
     constraints are satisfied.
 
     :param model_name: Model repository ID used to fetch the ``AutoConfig``.
-    :type model_name: str
+    :type model_name: str | None
     :param revision: Repo revision/branch to inspect.
-    :type revision: str
+    :type revision: str | None
     :param num_gpus: Starting number of GPUs available; decremented until the
         constraints are satisfied.
     :type num_gpus: int
     :returns: A compatible number of GPUs for vLLM tensor parallelism.
     :rtype: int
     """
-    config = AutoConfig.from_pretrained(
-        model_name, revision=revision, trust_remote_code=True
-    )
+    if num_gpus <= 0:
+        logger.warning("Invalid num_gpus=%d supplied; defaulting to 1", num_gpus)
+        num_gpus = 1
+    if not model_name:
+        logger.warning("Missing model_name; using num_gpus=%d", num_gpus)
+        return num_gpus
+    safe_revision = revision or "main"
+    try:
+        config = AutoConfig.from_pretrained(
+            model_name, revision=safe_revision, trust_remote_code=True
+        )
+    except (OSError, RuntimeError, ValueError) as exc:  # pragma: no cover - network dependent
+        logger.warning(
+            "Unable to load config for %s (revision %s): %s; using num_gpus=%d",
+            model_name,
+            safe_revision,
+            exc,
+            num_gpus,
+        )
+        return num_gpus
     # Get number of attention heads
-    num_heads = config.num_attention_heads
+    num_heads = getattr(config, "num_attention_heads", None)
+    if not isinstance(num_heads, int) or num_heads <= 0:
+        logger.warning(
+            "Unable to infer num_attention_heads for %s; using num_gpus=%d",
+            model_name,
+            num_gpus,
+        )
+        return max(1, num_gpus)
     # Reduce num_gpus so that num_heads is divisible by num_gpus and 64 is divisible by num_gpus
     while num_heads % num_gpus != 0 or 64 % num_gpus != 0:
         logger.info(

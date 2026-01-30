@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple, cast
 
 from maxent_grpo.generation.errors import (
     GenerationServiceError,
@@ -255,15 +255,16 @@ def _gather_eval_stats(
     accelerator: Any,
     eval_scores: List[float],
     fmt_counts: Optional[Dict[str, float]] = None,
-) -> Tuple[float, float, Dict[str, float]]:
+) -> Tuple[float, float] | Tuple[float, float, Dict[str, float]]:
     """Gather mean reward statistics across all ranks.
 
     :param accelerator: Accelerate handle used to gather objects.
     :type accelerator: Any
     :param eval_scores: Reward samples produced locally.
     :type eval_scores: list[float]
-    :returns: Tuple containing ``(total_sum, total_count)`` across ranks.
-    :rtype: tuple[float, float]
+    :returns: Tuple containing ``(total_sum, total_count)`` across ranks, and
+        optionally the aggregated ``fmt_counts`` when provided.
+    :rtype: tuple[float, float] | tuple[float, float, dict[str, float]]
     """
     local_sum = float(sum(eval_scores))
     local_count = float(len(eval_scores))
@@ -275,8 +276,10 @@ def _gather_eval_stats(
     }
     gather_fn = getattr(accelerator, "gather_object", None)
     payload = (local_sum, local_count, fmt_counts)
-    gathered = gather_fn(payload) if callable(gather_fn) else None
-    if not gathered:
+    gathered_raw = gather_fn(payload) if callable(gather_fn) else None
+    if isinstance(gathered_raw, (list, tuple)):
+        gathered = list(gathered_raw)
+    else:
         gathered = [payload]
     total_sum = 0.0
     total_count = 0.0
@@ -402,17 +405,24 @@ def _run_seed_eval(
             call_target = ctx.model if callable(ctx.model) else getattr(ctx.model, "forward", None)
             if not callable(call_target):
                 raise TypeError("Model is not callable and lacks a forward method")
-            outputs = call_target(
+            outputs = cast(
+                Any,
+                call_target(
                 input_ids=input_ids,
                 attention_mask=attn,
                 labels=labels,
                 output_hidden_states=True,
+            ),
             )
-            hidden = outputs.hidden_states[-1]
+            hidden_states = getattr(outputs, "hidden_states", None)
+            if not hidden_states:
+                raise TypeError("Model outputs missing hidden_states")
+            hidden = hidden_states[-1]
             pooled = _pool_hidden(hidden, attn, seed_cfg.pooling)
             logits = seed_head(pooled)
+            logits_any = cast(Any, logits)
             preds = getattr(torch_mod, "as_tensor", torch_mod.tensor)(
-                logits.argmax(dim=-1)
+                logits_any.argmax(dim=-1)
             ).view(-1)
             sid_tensor = getattr(torch_mod, "as_tensor", torch_mod.tensor)(
                 flat_seed_ids, device=preds.device
@@ -461,8 +471,9 @@ def _run_seed_eval(
                 unique_sids = torch_mod.unique(sid_tensor[valid_mask])
                 if unique_sids.numel() > 1:
                     means = []
+                    pooled_any = cast(Any, pooled)
                     for sid in unique_sids:
-                        m = pooled[sid_tensor == sid].mean(dim=0)
+                        m = pooled_any[sid_tensor == sid].mean(dim=0)
                         means.append(m)
                     if len(means) > 1:
                         try:
@@ -479,7 +490,8 @@ def _run_seed_eval(
                         pdist = getattr(pdist_fn, "pdist", None) if pdist_fn else None
                         if callable(pdist):
                             try:
-                                diversity_l2 = pdist(stacked, p=2).mean().item()
+                                pdist_val = cast(Any, pdist(stacked, p=2))
+                                diversity_l2 = float(pdist_val.mean().item())
                             except (TypeError, ValueError, RuntimeError):
                                 diversity_l2 = None
     metrics = {

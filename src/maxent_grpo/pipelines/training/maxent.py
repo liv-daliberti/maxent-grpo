@@ -56,7 +56,7 @@ def _configure_custom_loop_logging(training_args: GRPOConfig) -> None:
     LOG.setLevel(log_level)
     log_run_header(training_args)
     try:
-        import datasets as _hf_datasets
+        import datasets as _hf_datasets  # type: ignore[reportMissingTypeStubs]
 
         _hf_datasets.utils.logging.set_verbosity(log_level)
     except (ImportError, ModuleNotFoundError, AttributeError) as exc:
@@ -102,7 +102,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
             patch_llm = None
             orig_llm = None
             try:
-                import trl.trainer.grpo_trainer as grpo_mod
+                import trl.trainer.grpo_trainer as grpo_mod  # type: ignore[reportMissingTypeStubs]
                 from vllm import LLM as _LLM
 
                 # Args are always passed by name in our pipeline.
@@ -177,7 +177,7 @@ def _maybe_patch_trainer(training_args: GRPOConfig):
         yield
         return
     try:
-        from trl import GRPOTrainer as _TRLGRPOTrainer
+        from trl import GRPOTrainer as _TRLGRPOTrainer  # type: ignore[reportMissingTypeStubs]
     except (
         ImportError,
         RuntimeError,

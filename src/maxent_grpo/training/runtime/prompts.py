@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
-    from transformers import PreTrainedTokenizer
+    from transformers.tokenization_utils import PreTrainedTokenizer
 
 LOG = logging.getLogger(__name__)
 PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))

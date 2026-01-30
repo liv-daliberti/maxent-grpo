@@ -19,7 +19,7 @@ limitations under the License.
 from __future__ import annotations
 
 from importlib import import_module
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from .types import (  # noqa: F401  # re-exported via __all__
     ControllerMetaSettings,
@@ -64,7 +64,50 @@ _TYPE_EXPORTS = {
     "WeightingSettings",
 }
 
-__all__ = sorted(_LOGIC_EXPORTS | _TYPE_EXPORTS)
+if TYPE_CHECKING:  # pragma: no cover - only for static analysis
+    from .logic import (
+        CONTROLLER_STATE_FILENAME,
+        apply_meta_controller_update,
+        broadcast_controller_state,
+        build_uniform_weight_stats,
+        collect_weight_entropy,
+        compute_weight_stats,
+        controller_state_dict,
+        load_controller_state,
+        maybe_update_beta,
+        maybe_update_tau,
+        save_controller_state,
+        split_reference_logprobs,
+        split_reference_token_counts,
+        weight_vector_from_q,
+    )
+
+__all__ = [
+    "CONTROLLER_STATE_FILENAME",
+    "ControllerMetaSettings",
+    "ControllerStateSnapshot",
+    "KlControllerSettings",
+    "QDistributionSettings",
+    "TauSchedule",
+    "WeightLoggingView",
+    "WeightNormalizationSettings",
+    "WeightStats",
+    "WeightingConfigLike",
+    "WeightingSettings",
+    "apply_meta_controller_update",
+    "broadcast_controller_state",
+    "build_uniform_weight_stats",
+    "collect_weight_entropy",
+    "compute_weight_stats",
+    "controller_state_dict",
+    "load_controller_state",
+    "maybe_update_beta",
+    "maybe_update_tau",
+    "save_controller_state",
+    "split_reference_logprobs",
+    "split_reference_token_counts",
+    "weight_vector_from_q",
+]
 
 
 def __getattr__(name: str) -> Any:

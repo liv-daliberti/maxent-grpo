@@ -14,8 +14,7 @@ config objects based on their dataclass field names:
 - TRL ``ModelConfig`` (model name, dtype, revision, etc.)
 
 Keys that do not match script or training fields are forwarded to the TRL
-``ModelConfig`` when possible. Any remaining keys are ignored (aside from a few
-compatibility aliases described below).
+``ModelConfig`` when possible. Any remaining keys are ignored.
 
 Minimal example:
 
@@ -31,11 +30,9 @@ Loading and Validation
 ----------------------
 
 ``maxent_grpo.config.load_grpo_recipe`` loads YAML with OmegaConf (or PyYAML),
-sets ``GRPO_RECIPE_USED`` to the resolved path, and applies a few compatibility
+sets ``GRPO_RECIPE_USED`` to the resolved path, and applies a few convenience
 rules:
 
-- ``init_kl_coeff`` / ``init_kl_coef`` / ``kl_penalty_beta`` map to ``beta`` if
-  ``beta`` is not set.
 - When ``use_vllm: true`` and ``vllm_mode: server``, missing
   ``vllm_server_base_url`` / host / port are inferred from ``vllm_url``.
 - ``MAXENT_LOG_LEVEL`` overrides ``log_level`` in the training config.
@@ -43,7 +40,7 @@ rules:
 For flat recipes (no top-level ``script`` / ``training`` / ``model`` keys),
 schema validation enforces:
 
-- Baseline recipes must set ``beta`` or a KL alias.
+- Baseline recipes must set ``beta``.
 - MaxEnt recipes must set ``train_grpo_objective: false``.
 - InfoSeed recipes must set ``info_seed_enabled: true``.
 

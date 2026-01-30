@@ -96,7 +96,7 @@ def test_maxent_cli_round_trip(tmp_path):
     env["PYTHONPATH"] = ":".join(
         [str(shim_dir), str(src_path), existing] if existing else [str(shim_dir), str(src_path)]
     )
-    cmd = [sys.executable, "-m", "maxent_grpo.maxent_grpo"]
+    cmd = [sys.executable, "-m", "maxent_grpo"]
     result = subprocess.run(cmd, cwd=str(project_root), env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     log_path = var_dir / "artifacts" / "logs" / "roundtrip.json"

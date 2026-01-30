@@ -91,7 +91,7 @@ Notes
 - Inference presets cover `math_500`, `aime24`, `aime25`, `amc`, and `minerva`; override columns/splits via `inference.eval.*` if you use alternative mirrors. The math eval pipeline reports Pass@1, Pass@k (default k=8), and Avg@k averaged across seeds (default seeds: `[0,1,2,3,4]` at temperature 0.6).
   - Every math eval invocation now persists prompt-level artifacts under `var/artifacts/inference/<model>/<dataset>/<temp>/seed_<n>.jsonl`. Appends are flushed after each prompt so preempted jobs can resume automatically; rerunning `maxent-grpo-math-eval` reuses completed prompts and continues where the previous Slurm job stopped.
   - The table helper `python tools/math_eval_table.py --artifact-root var/artifacts/inference` renders three terminal tables (Pass@1 / Pass@8 / Avg@8) averaged over all seeds using the artifact JSON. Adjust `--precision` or `--min-datasets` to control formatting/filters.
-- Preferred CLI alias for multi-benchmark math inference: `maxent-grpo-math-eval` (older `maxent-grpo-inference command=math-eval` remains for compatibility).
+- Preferred CLI alias for multi-benchmark math inference: `maxent-grpo-math-eval`.
 - Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`. Pass `--revision <git_commit>` when pointing at Hugging Face repos (e.g., `--model od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1 --revision c929c65`) to evaluate specific training steps without syncing local checkpoints.
 - Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
 - For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
@@ -111,7 +111,7 @@ Notes
 .
 ├─ configs/                     # env, constraints, recipes, prompts (Hydra shortcuts + TRL YAML + accelerate configs)
 ├─ custom_tasks/                # LightEval custom tasks + task YAML templates
-├─ sitecustomize.py             # repo-local Python bootstrapper (stubs + cache dirs)
+├─ sitecustomize.py             # repo-local Python bootstrapper (cache dirs)
 ├─ ops/                         # operations toolbox (slurm launchers)
 ├─ src/
 │  └─ maxent_grpo/              # all code now lives under the namespaced package
@@ -121,11 +121,10 @@ Notes
 │     ├─ generation/            # shared HF + vLLM generation helpers
 │     ├─ core/                  # dataset/model/evaluation utilities
 │     ├─ telemetry/             # wandb logging wrappers
-│     ├─ patches/               # compatibility shims for TRL/vLLM/transformers
+│     ├─ patches/               # vLLM HTTP helpers
 │     ├─ rewards.py             # reward registry used by the baseline trainer
-│     ├─ grpo.py / maxent_grpo.py  # TRL-style entrypoints (baseline GRPO + MaxEnt shim)
-│     └─ inference/             # math_500 inference helpers (re-exported by src/maxent_grpo/inference)
-├─ tools/                       # runnable utilities (env bootstrap, patchers, eval helpers)
+│     ├─ grpo.py / maxent_grpo.py  # TRL-style entrypoints (baseline GRPO + MaxEnt entry)
+├─ tools/                       # runnable utilities (env bootstrap, eval helpers)
 ├─ docs/                        # Sphinx guides + API reference
 ├─ var/                         # repo-local env, caches, run artifacts (see var/artifacts), data outputs (gitignored)
 └─ data/                        # optional staging area for large datasets/checkpoints

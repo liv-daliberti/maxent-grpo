@@ -21,7 +21,7 @@ if __package__ is None or __package__ == "":
         sys.path.remove(project_src_str)
     sys.path.insert(0, project_src_str)
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 from types import SimpleNamespace
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
@@ -31,9 +31,9 @@ ensure_usercustomize_loaded()
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
 if TYPE_CHECKING:
-    from trl import ModelConfig
+    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
 
-def _missing_hydra_entry(*_args, **_kwargs):  # pragma: no cover - fallback stub
+def _missing_hydra_entry(*_args: Any, **_kwargs: Any) -> None:  # pragma: no cover - fallback stub
     raise RuntimeError(
         "Hydra CLI entrypoints are unavailable; install optional CLI dependencies."
     )
@@ -53,7 +53,7 @@ except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover -
 __all__ = ["cli", "main"]
 
 
-def _resolve_cli_attr(attr_name: str):
+def _resolve_cli_attr(attr_name: str) -> Any:
     """Best-effort import helper for optional CLI attributes."""
 
     try:
@@ -78,7 +78,7 @@ def main(
     script_args: Optional[GRPOScriptArguments] = None,
     training_args: Optional[GRPOConfig] = None,
     model_args: "Optional[ModelConfig]" = None,
-):
+) -> Any:
     """Run the baseline GRPO trainer or delegate to Hydra.
 
     :param script_args: Dataset/reward script arguments parsed via TRL or provided directly.
@@ -102,7 +102,14 @@ def main(
             _hydra_cli = resolved_hydra if resolved_hydra is not None else None
         if callable(_parse_grpo_args):
             try:
-                script_args, training_args, model_args = _parse_grpo_args()
+                parser = cast(
+                    Callable[
+                        [],
+                        tuple[GRPOScriptArguments, GRPOConfig, "ModelConfig"],
+                    ],
+                    _parse_grpo_args,
+                )
+                script_args, training_args, model_args = parser()
             except (
                 RuntimeError,
                 ImportError,

@@ -18,13 +18,13 @@ CLI helper utilities shared across entrypoints.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Callable, Tuple, cast
 import sys
 
 from .generate import build_generate_parser
 
 if TYPE_CHECKING:
-    from trl import ModelConfig
+    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
 
     from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
@@ -50,7 +50,11 @@ def parse_grpo_args() -> Tuple["GRPOScriptArguments", "GRPOConfig", "ModelConfig
     if stub_cli is not None:
         delegate = getattr(stub_cli, "parse_grpo_args", None)
         if callable(delegate):
-            return delegate()
+            parser = cast(
+                Callable[[], Tuple["GRPOScriptArguments", "GRPOConfig", "ModelConfig"]],
+                delegate,
+            )
+            return parser()
     from maxent_grpo.training.cli.trl import parse_grpo_args as _parse_grpo_args
 
     return _parse_grpo_args()

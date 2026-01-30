@@ -111,13 +111,12 @@ def test_build_grpo_configs_without_recipe(monkeypatch):
         sys.modules, "trl", types.SimpleNamespace(ModelConfig=_ModelConfig)
     )
     cmd = hydra_cli.BaselineCommand(
-        script={"reward_funcs": ["x"], "dataset_name": "demo"},
-        training={},
+        script={"dataset_name": "demo"},
+        training={"reward_funcs": ["x"]},
         model={"a": 1},
     )
     script_args, train_args, model_cfg = hydra_cli._build_grpo_configs(cmd)
     assert train_args.reward_funcs == ["x"]
-    assert script_args.reward_funcs  # legacy shim still set
     assert hasattr(train_args, "benchmarks")
     assert model_cfg.kwargs == {"a": 1}
 

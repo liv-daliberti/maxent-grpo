@@ -20,7 +20,7 @@ import json
 import logging
 import math
 import os
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, cast
 
 from maxent_grpo.training.runtime import require_torch
 from ..types import ReferenceLogprobs, RewardComputation
@@ -121,16 +121,14 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
     """Convenience builder for WeightingSettings from GRPOConfig."""
 
     tau = float(getattr(cfg, "maxent_tau", 0.0))
-    beta_source = None
-    for attr in ("init_kl_coeff", "init_kl_coef", "kl_penalty_beta", "beta"):
-        value = getattr(cfg, attr, None)
-        if value is not None:
-            beta_source = value
-            break
-    try:
-        beta = float(beta_source)
-    except (TypeError, ValueError):
+    beta_source = getattr(cfg, "beta", None)
+    if beta_source is None:
         beta = 0.0
+    else:
+        try:
+            beta = float(beta_source)
+        except (TypeError, ValueError):
+            beta = 0.0
     normalization = WeightingSettings.__annotations__.get(
         "normalization", WeightNormalizationSettings
     )
@@ -224,7 +222,7 @@ def split_reference_logprobs(
     :param grouped_completions: Completion groups per prompt.
     :type grouped_completions: list[list[str]]
     :param ref_stats: Reference log-probability statistics.
-    :type ref_stats: ReferenceLogprobs
+    :type ref_stats: ~maxent_grpo.training.types.rewards.ReferenceLogprobs
     :param len_norm_ref: Whether ``ref_logp_sum`` is already length normalized.
     :type len_norm_ref: bool
     :returns: Reference log-probability sums aligned with each group.
@@ -278,7 +276,7 @@ def split_reference_token_counts(
     :param grouped_completions: Completion groups per prompt.
     :type grouped_completions: list[list[str]]
     :param ref_stats: Reference log-probability statistics.
-    :type ref_stats: ReferenceLogprobs
+    :type ref_stats: ~maxent_grpo.training.types.rewards.ReferenceLogprobs
     :returns: Reference token counts grouped by prompt.
     :rtype: list[list[float]]
     """
@@ -286,8 +284,8 @@ def split_reference_token_counts(
     offset = 0
     for comps in grouped_completions:
         comp_count = len(comps)
-        count_slice = ref_stats.ref_tok_counts[offset : offset + comp_count]
-        counts_grouped.append(count_slice.tolist())
+        count_slice = cast(Any, ref_stats.ref_tok_counts)[offset : offset + comp_count]
+        counts_grouped.append(cast(Any, count_slice).tolist())
         offset += comp_count
     return counts_grouped
 
@@ -301,7 +299,7 @@ def _split_ref_logprobs_per_token(
     :param grouped_completions: Completion groups per prompt.
     :type grouped_completions: list[list[str]]
     :param ref_stats: Reference log-probability statistics.
-    :type ref_stats: ReferenceLogprobs
+    :type ref_stats: ~maxent_grpo.training.types.rewards.ReferenceLogprobs
     :returns: Per-token reference log-probabilities grouped by prompt.
     :rtype: list[list[float]]
     """
@@ -436,7 +434,7 @@ def weight_vector_from_q(
         detach_fn = getattr(probs_for_return, "detach", None)
         if callable(detach_fn):
             probs_for_return = detach_fn()
-        return probs_for_return.tolist()
+        return cast(Any, probs_for_return).tolist()
     except (TypeError, ValueError, RuntimeError):
         # Manual fallback to preserve expected behavior under stubbed torch implementations.
         try:
@@ -631,7 +629,7 @@ def apply_meta_controller_update(
 
 def maybe_update_tau(
     weighting_cfg: WeightingSettings,
-    weight_stats: WeightStats | WeightLoggingView,
+    weight_stats: WeightStats | WeightLoggingView | None,
     global_step: int,
     lr_scale: Optional[float] = None,
 ) -> None:
@@ -641,7 +639,7 @@ def maybe_update_tau(
     :type weighting_cfg: WeightingSettings
     :param weight_stats: Current batch weight statistics providing entropy. Can be
         raw per-batch stats or aggregated logging views.
-    :type weight_stats: WeightStats | WeightLoggingView
+    :type weight_stats: WeightStats | WeightLoggingView | None
     :param global_step: Training step used for warmup/EMA logic.
     :type global_step: int
     :param lr_scale: Optional multiplicative scale applied to ``maxent_tau_lr``
@@ -733,12 +731,16 @@ def broadcast_controller_state(
                 device=device,
             )
             gathered = gather(payload)
-            if not isinstance(gathered, torch.Tensor):
+            tensor_cls = getattr(torch, "Tensor", None)
+            if tensor_cls is None or not isinstance(gathered, tensor_cls):
                 return False
-            if gathered.numel() < 4:
+            gathered_any = cast(Any, gathered)
+            if gathered_any.numel() < 4:
                 return False
-            src = gathered.view(-1, 4)[0].detach().float().cpu()
-            beta, tau, entropy_ema, tau_log = [float(x) for x in src.tolist()]
+            src = gathered_any.view(-1, 4)[0].detach().float().cpu()
+            beta, tau, entropy_ema, tau_log = [
+                float(x) for x in cast(Any, src).tolist()
+            ]
             weighting_cfg.beta = float(beta)
             weighting_cfg.tau = float(tau)
             if getattr(weighting_cfg, "train_grpo_objective", False):
@@ -925,9 +927,9 @@ def compute_weight_stats(
     :param grouped_completions: Completion groups per prompt.
     :type grouped_completions: list[list[str]]
     :param reward_comp: Reward computation outputs used for q-distributions.
-    :type reward_comp: RewardComputation
+    :type reward_comp: ~maxent_grpo.training.types.rewards.RewardComputation
     :param ref_stats: Reference-model log-probability statistics.
-    :type ref_stats: ReferenceLogprobs
+    :type ref_stats: ~maxent_grpo.training.types.rewards.ReferenceLogprobs
     :param weighting_cfg: Weighting configuration (tau/beta/targets).
     :type weighting_cfg: WeightingSettings
     :returns: Weight stats dataclass or ``None`` if inputs are empty.

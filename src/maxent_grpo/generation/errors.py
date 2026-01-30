@@ -71,7 +71,7 @@ class ServiceErrorPayload:
 class GenerationServiceError(RuntimeError):
     """Raised when external generation services exhaust their retries."""
 
-    def __init__(self, message: str, payload: ServiceErrorPayload):
+    def __init__(self, message: str, payload: ServiceErrorPayload) -> None:
         super().__init__(message)
         self.payload = payload
 

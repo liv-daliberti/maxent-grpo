@@ -263,22 +263,49 @@ autodoc_default_options = {
 autodoc_type_aliases = {
     "CompletionType": "maxent_grpo.rewards.basic.CompletionType",
     "RewardFunction": "maxent_grpo.rewards.basic.RewardFunction",
-    "DataLoader": "maxent_grpo.training.types.DataLoader",
+    "DataLoader": "maxent_grpo.training.types.runtime.DataLoader",
     "GenerationFn": "maxent_grpo.training.types.GenerationFn",
     "GenerationBatch": "maxent_grpo.training.types.GenerationBatch",
-    "RewardComputation": "maxent_grpo.training.types.RewardComputation",
-    "RewardSpec": "maxent_grpo.training.types.RewardSpec",
-    "SeedAugmentationConfig": "maxent_grpo.training.runtime.SeedAugmentationConfig",
+    "GenerationSettings": "maxent_grpo.training.types.runtime.GenerationSettings",
+    "MetricState": "maxent_grpo.training.types.logging.MetricState",
+    "RewardComputation": "maxent_grpo.training.types.rewards.RewardComputation",
+    "RewardSpec": "maxent_grpo.training.types.runtime.RewardSpec",
+    "RewardLoggingView": "maxent_grpo.training.types.logging.RewardLoggingView",
+    "PreparedBatch": "maxent_grpo.training.pipeline.PreparedBatch",
+    "ScoringSettings": "maxent_grpo.training.types.runtime.ScoringSettings",
+    "SeedAugmentationConfig": "maxent_grpo.training.runtime.config.SeedAugmentationConfig",
+    "TrainingLoopContext": "maxent_grpo.training.types.runtime.TrainingLoopContext",
+    "TrainingMetricsPayload": "maxent_grpo.training.types.logging.TrainingMetricsPayload",
+    "ValidationContext": "maxent_grpo.training.types.rewards.ValidationContext",
     "DatasetMixtureConfig": "maxent_grpo.config.dataset.DatasetMixtureConfig",
     "GRPOConfig": "maxent_grpo.config.grpo.GRPOConfig",
     "GRPOScriptArguments": "maxent_grpo.config.grpo.GRPOScriptArguments",
     "RewardConfig": "maxent_grpo.rewards.basic.RewardConfig",
     "GenerationServiceError": "maxent_grpo.generation.errors.GenerationServiceError",
+    "LoggingHandles": "maxent_grpo.training.types.logging.LoggingHandles",
+    "PromptCacheEntry": "maxent_grpo.training.types.rewards.PromptCacheEntry",
+    "ReferenceLogprobs": "maxent_grpo.training.types.rewards.ReferenceLogprobs",
+    "BatchDiagnostics": "maxent_grpo.training.types.rewards.BatchDiagnostics",
+    "ClipSettings": "maxent_grpo.training.types.runtime.ClipSettings",
+    "EvaluationSettings": "maxent_grpo.training.types.runtime.EvaluationSettings",
+    "GenerationPenaltyConfig": "maxent_grpo.training.runtime.prompts.GenerationPenaltyConfig",
+    "LengthStats": "maxent_grpo.training.types.rewards.LengthStats",
+    "LossOutputs": "maxent_grpo.training.types.rewards.LossOutputs",
+    "OptimizationSchedule": "maxent_grpo.training.types.runtime.OptimizationSchedule",
+    "OptimizerHandles": "maxent_grpo.training.types.runtime.OptimizerHandles",
+    "ScoreBatch": "maxent_grpo.training.types.rewards.ScoreBatch",
+    "SequenceScores": "maxent_grpo.training.weighting.loss.SequenceScores",
+    "WeightLoggingView": "maxent_grpo.training.weighting.types.WeightLoggingView",
+    "WeightStats": "maxent_grpo.training.weighting.types.WeightStats",
+    "WeightingConfigLike": "maxent_grpo.training.weighting.types.WeightingConfigLike",
+    "WeightingSettings": "maxent_grpo.training.weighting.types.WeightingSettings",
+    "VLLMClientConfig": "maxent_grpo.training.runtime.config.VLLMClientConfig",
 }
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
 napoleon_use_param = True
 napoleon_use_rtype = True
+napoleon_type_aliases = autodoc_type_aliases
 
 myst_enable_extensions = [
     # Keep lightweight: only enable extensions we ship and don't require
@@ -426,7 +453,119 @@ _DUPLICATE_EXPORTS = {
         "GenerationServiceError",
         "VLLMServiceError",
     },
+    "maxent_grpo.training": {
+        "DataLoader",
+        "GenerationSettings",
+        "LoggingHandles",
+        "MetricState",
+        "PreparedBatch",
+        "PromptCacheEntry",
+        "ReferenceLogprobs",
+        "RewardComputation",
+        "ScoringSettings",
+        "StepBatchInfo",
+        "StepResources",
+        "TrainingLoopContext",
+        "TrainingMetricsPayload",
+        "TrainingLoopState",
+        "ValidationContext",
+        "BatchDiagnostics",
+        "ClipSettings",
+        "EvaluationSettings",
+        "LengthStats",
+        "LossOutputs",
+        "OptimizationSchedule",
+        "OptimizerHandles",
+        "RewardLoggingView",
+        "RewardSpec",
+        "ScoreBatch",
+        "SequenceScores",
+    },
+    "maxent_grpo.training.types": {
+        "DataLoader",
+        "GenerationSettings",
+        "LoggingHandles",
+        "MetricState",
+        "Optimizer",
+        "PromptCacheEntry",
+        "PreparedBatch",
+        "ReferenceLogprobs",
+        "RewardComputation",
+        "ScoringSettings",
+        "StepBatchInfo",
+        "StepResources",
+        "Tensor",
+        "TrainingLoopContext",
+        "TrainingMetricsPayload",
+        "TrainingLoopState",
+        "ValidationContext",
+        "BatchDiagnostics",
+        "ClipSettings",
+        "EvaluationSettings",
+        "LengthStats",
+        "LossOutputs",
+        "OptimizationSchedule",
+        "OptimizerHandles",
+        "RewardLoggingView",
+        "RewardSpec",
+        "ScoreBatch",
+        "SeedAugmentationConfig",
+        "WeightLoggingView",
+        "WeightStats",
+        "WeightingSettings",
+    },
+    "maxent_grpo.training.types.runtime": {
+        "Tensor",
+    },
+    "maxent_grpo.training.types.logging": {
+        "MetricState",
+        "TrainingMetricsPayload",
+    },
+    "maxent_grpo.training.runtime": {
+        "GenerationPenaltyConfig",
+        "VLLMClientConfig",
+    },
+    "maxent_grpo.training.runtime.config": {
+        "SeedAugmentationConfig",
+    },
+    "maxent_grpo.training.runtime.setup": {
+        "SeedAugmentationConfig",
+        "VLLMClientConfig",
+    },
+    "maxent_grpo.training.run_helpers": {
+        "GenerationPenaltyConfig",
+        "SeedAugmentationConfig",
+        "VLLMClientConfig",
+    },
+    "maxent_grpo.training.pipeline": {
+        "PreparedBatch",
+    },
+    "maxent_grpo.training.weighting": {
+        "WeightLoggingView",
+        "WeightStats",
+        "WeightingConfigLike",
+        "WeightingSettings",
+    },
 }
+
+
+def _resolve_autodoc_module(app) -> str | None:
+    """Best-effort module name for the current autodoc context."""
+
+    if not app.env:
+        return None
+    current_module = app.env.temp_data.get("autodoc:module")
+    if current_module:
+        if current_module.endswith(".__init__"):
+            return current_module[: -len(".__init__")]
+        return current_module
+    docname = getattr(app.env, "docname", None)
+    if not docname:
+        return None
+    docname = docname.replace("/", ".")
+    if docname.startswith("_autosummary."):
+        return docname[len("_autosummary.") :]
+    return None
 
 
 def _skip_external_members(app, what, name, obj, skip, options):  # noqa: D401
@@ -435,9 +574,10 @@ def _skip_external_members(app, what, name, obj, skip, options):  # noqa: D401
     module_name = getattr(obj, "__module__", "") or ""
     if module_name.startswith("accelerate."):
         return True
-    current_module = app.env.temp_data.get("autodoc:module") if app.env else None
+    current_module = _resolve_autodoc_module(app)
     if current_module in _DUPLICATE_EXPORTS and name in _DUPLICATE_EXPORTS[current_module]:
-        return True
+        if module_name and module_name != current_module:
+            return True
     return skip
 
 

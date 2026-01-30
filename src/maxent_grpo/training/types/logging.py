@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Protocol, Callable, TYPE_CHECKING
+from typing import Any, Dict, Optional, Protocol, Callable, TYPE_CHECKING, Iterator
 
 if TYPE_CHECKING:
     from .rewards import LossOutputs, BatchDiagnostics, LengthStats
@@ -72,7 +72,9 @@ class LoggingHandles:
             flush()
 
     @contextmanager
-    def step_logger(self, step: int, *, enabled: bool = True):
+    def step_logger(
+        self, step: int, *, enabled: bool = True
+    ) -> Iterator["_MetricStepLogger | _NoopMetricLogger"]:
         """Yield a helper that logs metrics for a specific training step.
 
         :param step: Current training step being logged.
@@ -94,7 +96,7 @@ class LoggingHandles:
 class _MetricStepLogger:
     """Small helper that binds a metric writer to a fixed step."""
 
-    def __init__(self, writer: MetricWriter, step: int):
+    def __init__(self, writer: MetricWriter, step: int) -> None:
         """Store the writer and associated step.
 
         :param writer: Metric writer used to persist values.

@@ -37,7 +37,7 @@ Stage Breakdown
 
 Generation
     :mod:`maxent_grpo.training.rollout` and
-    :mod:`maxent_grpo.training.rollout.vllm` construct grouped completions,
+    :mod:`maxent_grpo.training.rollout.vllm_adapter` construct grouped completions,
     handling prompt truncation, tokenizer quirks, and optional multi-round
     vLLM retries.
 

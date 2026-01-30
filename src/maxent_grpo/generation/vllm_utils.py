@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Callable, Optional, Sequence
 
-from maxent_grpo.utils.fallbacks import optional_import
+from maxent_grpo.utils.imports import optional_import
 
 
 def zero3_gather_factory(

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import sys
 
 
-import maxent_grpo.maxent_grpo as entry
+import maxent_grpo as entry
 
 
 def test_main_with_explicit_args_calls_training(monkeypatch):
