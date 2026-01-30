@@ -999,5 +999,5 @@ def _build_vllm_headers(
             if isinstance(parsed, dict):
                 headers.update({str(k): str(v) for k, v in parsed.items()})
         except json.JSONDecodeError:
-            pass
+            LOG.warning("Invalid VLLM_EXTRA_HEADERS JSON; ignoring custom headers.")
     return headers

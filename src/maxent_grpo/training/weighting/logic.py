@@ -930,6 +930,28 @@ def compute_weight_stats(
     :returns: Weight stats dataclass or ``None`` if inputs are empty.
     :rtype: WeightStats | None
     """
+    if getattr(weighting_cfg, "train_grpo_objective", False):
+        weights_grouped = list(getattr(reward_comp.advantage, "grouped", []) or [])
+        if not any(weights_grouped):
+            try:
+                from maxent_grpo.training.rewards import group_advantages
+            except (ImportError, RuntimeError, ModuleNotFoundError):
+                group_advantages = None
+            if group_advantages is not None:
+                weights_grouped, _ = group_advantages(
+                    grouped_completions, list(getattr(reward_comp, "total_utils", []) or [])
+                )
+        flat_weights = [weight for group in weights_grouped for weight in group]
+        if not flat_weights:
+            return None
+        return WeightStats(
+            weights_grouped=weights_grouped,
+            flat_weights=flat_weights,
+            weight_entropy=0.0,
+            weight_entropy_min=0.0,
+            weight_entropy_max=0.0,
+            advantage_entropy=[],
+        )
     ref_logp_grouped = split_reference_logprobs(
         grouped_completions, ref_stats, weighting_cfg.len_norm_ref
     )

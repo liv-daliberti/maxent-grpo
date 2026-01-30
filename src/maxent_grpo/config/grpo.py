@@ -529,6 +529,15 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    force_custom_loop: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Force the custom training loop even when train_grpo_objective=true "
+                "(useful for paired GRPO/MaxEnt comparisons)."
+            )
+        },
+    )
     maxent_allow_empty_weight_fallback: bool = field(
         default=False,
         metadata={

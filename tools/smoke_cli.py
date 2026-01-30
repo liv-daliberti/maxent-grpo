@@ -199,7 +199,7 @@ def _set_local_caches() -> None:
         "TRANSFORMERS_CACHE", str(cache_root / "huggingface" / "transformers")
     )
     os.environ.setdefault("PIP_CACHE_DIR", str(cache_root / "pip"))
-    os.environ.setdefault("WANDB_DIR", str(VAR_ROOT / "logs"))
+    os.environ.setdefault("WANDB_DIR", str(VAR_ROOT / "artifacts" / "wandb"))
     os.environ.setdefault("TMPDIR", str(VAR_ROOT / "tmp"))
     os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
 

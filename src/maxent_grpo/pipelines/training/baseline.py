@@ -235,8 +235,17 @@ def _validate_dataset_columns(
             "Unable to infer columns for %s; skipping early validation.", label
         )
         return
+    message_only = {"messages", "message"}
+    if all(cols and set(cols).issubset(message_only) for cols in col_map.values()):
+        LOG.debug(
+            "Detected message-only dataset columns for %s; skipping early validation.",
+            label,
+        )
+        return
     missing_by_split: Dict[str, List[str]] = {}
     for split, cols in col_map.items():
+        if "messages" in cols and prompt_column not in cols and solution_column not in cols:
+            continue
         missing = [
             name
             for name in (prompt_column, solution_column)
@@ -245,6 +254,15 @@ def _validate_dataset_columns(
         if missing:
             missing_by_split[split] = missing
     if missing_by_split:
+        if all(
+            set(missing) == {solution_column} for missing in missing_by_split.values()
+        ):
+            LOG.info(
+                "%s is missing '%s'; continuing with empty answers.",
+                label,
+                solution_column,
+            )
+            return
         missing_desc = "; ".join(
             f"{split} missing {', '.join(cols)}"
             for split, cols in missing_by_split.items()
@@ -293,7 +311,7 @@ def run_baseline_training(
     :rtype: None
     """
     # Ensure logs directory exists for any file redirections by launchers
-    os.makedirs(os.environ.get("LOG_DIR", "logs"), exist_ok=True)
+    os.makedirs(os.environ.get("LOG_DIR", "var/artifacts/logs"), exist_ok=True)
 
     ensure_real_dependencies(context="baseline GRPO training")
 
@@ -469,17 +487,6 @@ def run_baseline_training(
             training_args.system_prompt,
             char_limit=char_limit,
         )
-        # Ensure answer is present from the configured column
-        if sc not in ex:
-            available = (
-                ", ".join(sorted(str(key) for key in ex.keys()))
-                if hasattr(ex, "keys")
-                else "<unknown>"
-            )
-            raise KeyError(
-                f"Missing solution column '{sc}' in training row. "
-                f"Available columns: {available}"
-            )
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out
 
@@ -570,16 +577,6 @@ def run_baseline_training(
                     training_args.system_prompt,
                     char_limit=char_limit,
                 )
-                if eval_solution_col not in ex:
-                    available = (
-                        ", ".join(sorted(str(key) for key in ex.keys()))
-                        if hasattr(ex, "keys")
-                        else "<unknown>"
-                    )
-                    raise KeyError(
-                        f"Missing solution column '{eval_solution_col}' in eval row. "
-                        f"Available columns: {available}"
-                    )
                 out["answer"] = str(ex.get(eval_solution_col, out.get("answer", "")))
                 return out
 

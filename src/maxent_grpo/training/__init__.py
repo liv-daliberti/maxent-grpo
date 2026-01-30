@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import importlib as _importlib
+import logging
 import sys
 from types import ModuleType, SimpleNamespace
 from typing import Any, List, TYPE_CHECKING
@@ -71,6 +72,8 @@ from .context_builder import (
     apply_info_seed_to_evaluation,
 )
 from .weighting.loss import SequenceScores
+
+LOG = logging.getLogger(__name__)
 
 # Lazy-only declarations to satisfy ``__all__`` without eager imports.
 run_training_loop: Any
@@ -192,13 +195,22 @@ try:
     from maxent_grpo.training.loop import run_training_loop  # type: ignore
     from maxent_grpo.training.pipeline import PreparedBatch  # type: ignore
 except ImportError:
-    pass
+    LOG.debug("Deferring training imports until dependencies are available.")
 # Provide legacy ``training`` package alias for tests/older import paths.
 sys.modules.setdefault("training", sys.modules.get(__name__))
 
 
 def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
-    """Lazy entrypoint to the MaxEnt training pipeline."""
+    """Lazy entrypoint to the MaxEnt training pipeline.
+
+    This wrapper defers importing the full training stack until invoked.
+
+    :param args: Positional arguments forwarded to
+        :func:`maxent_grpo.pipelines.training.maxent.run_maxent_training`.
+    :param kwargs: Keyword arguments forwarded to the training pipeline.
+    :returns: Whatever the underlying training pipeline returns.
+    :raises Exception: Propagates exceptions raised by the training pipeline.
+    """
 
     from maxent_grpo.pipelines.training.maxent import run_maxent_training as _run_maxent
 
@@ -206,12 +218,21 @@ def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
 
 
 def __dir__():
-    """Return sorted public attributes for IDE completion."""
+    """Return sorted public attributes for IDE completion.
+
+    :returns: Sorted list of public attribute names.
+    :rtype: list[str]
+    """
     return sorted(__all__)
 
 
 def __getattr__(name: str) -> Any:
-    """Lazily import heavy submodules to avoid circular imports during startup."""
+    """Lazily import heavy submodules to avoid circular imports during startup.
+
+    :param name: Attribute name to resolve.
+    :returns: Imported module or attribute for ``name`` when available.
+    :raises AttributeError: If the requested name is not a known lazy attribute.
+    """
 
     if name in {"pipeline", "state", "generation", "cli", "scoring", "optim"}:
         module = _importlib.import_module(f"maxent_grpo.training.{name}")

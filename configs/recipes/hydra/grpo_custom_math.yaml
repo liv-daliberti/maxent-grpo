@@ -1,0 +1,7 @@
+command: train-maxent
+maxent:
+  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
+  training:
+    train_grpo_objective: true
+    force_custom_loop: true
+    controller_meta_enabled: false

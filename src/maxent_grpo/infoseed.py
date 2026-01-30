@@ -30,7 +30,15 @@ def main(
     training_args: Optional[GRPOConfig] = None,
     model_args: "Optional[object]" = None,
 ):
-    """Run InfoSeed-GRPO via the custom runner or delegate to Hydra when args are missing."""
+    """Run InfoSeed-GRPO via the custom runner or delegate to Hydra when args are missing.
+
+    :param script_args: Optional script arguments; parsed from the CLI if omitted.
+    :param training_args: Optional training configuration; parsed from the CLI if omitted.
+    :param model_args: Optional model configuration; parsed from the CLI if omitted.
+    :returns: Result of :func:`run_infoseed_training` or Hydra entrypoint invocation.
+    :raises RuntimeError: If no CLI parser or Hydra entrypoint is available.
+    :raises Exception: Propagates parser or training pipeline exceptions.
+    """
 
     if script_args is None or training_args is None or model_args is None:
         try:
@@ -43,7 +51,10 @@ def main(
 
 
 def cli() -> None:
-    """Invoke the InfoSeed entrypoint (CLI style)."""
+    """Invoke the InfoSeed entrypoint (CLI style).
+
+    :returns: ``None``. The function executes for side effects.
+    """
 
     main()
 

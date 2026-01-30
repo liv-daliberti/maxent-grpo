@@ -206,6 +206,7 @@ def _run_variant(
         env.setdefault("WANDB_ENTITY", args.wandb_entity)
     if args.wandb_group:
         env.setdefault("WANDB_RUN_GROUP", args.wandb_group)
+    env.setdefault("WANDB_DIR", args.wandb_dir)
 
     wandb_root = Path(args.wandb_dir)
     before = _list_wandb_runs(wandb_root)
@@ -231,7 +232,7 @@ def main() -> int:
     parser.add_argument("--metric", default="eval/mean_reward")
     parser.add_argument("--tag", default="poc-0.5b")
     parser.add_argument("--output-root", default="var/data/poc_runs")
-    parser.add_argument("--wandb-dir", default="wandb")
+    parser.add_argument("--wandb-dir", default="var/artifacts/wandb")
     parser.add_argument("--wandb-project", default=None)
     parser.add_argument("--wandb-entity", default=None)
     parser.add_argument("--wandb-group", default=None)
@@ -284,7 +285,7 @@ def main() -> int:
     }
 
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    out_path = Path("results") / f"poc_sweep_{timestamp}.json"
+    out_path = Path("var") / "artifacts" / "results" / f"poc_sweep_{timestamp}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)

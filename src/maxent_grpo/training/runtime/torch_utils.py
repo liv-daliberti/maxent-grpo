@@ -13,7 +13,12 @@ from .torch_stub import _build_torch_stub
 
 
 def require_torch(context: str) -> Any:
-    """Return the torch module or a stub for test environments."""
+    """Return the torch module or a stub for test environments.
+
+    :param context: Short description used in error messages when torch is missing.
+    :returns: Imported torch module or a lightweight stub.
+    :rtype: Any
+    """
 
     del context  # context is provided for parity with public helpers.
     existing = sys.modules.get("torch")
@@ -56,7 +61,13 @@ def require_torch(context: str) -> Any:
 
 
 def require_dataloader(context: str) -> Any:
-    """Return torch.utils.data.DataLoader with a descriptive error on failure."""
+    """Return ``torch.utils.data.DataLoader`` with a descriptive error on failure.
+
+    :param context: Short description used in error messages when torch is missing.
+    :returns: DataLoader class (or stub in test environments).
+    :rtype: Any
+    :raises RuntimeError: If the DataLoader cannot be resolved.
+    """
 
     hint = f"Torch's DataLoader is required for MaxEnt-GRPO {context}. Install torch first."
     try:

@@ -266,17 +266,18 @@ class VLLMWeightSyncMixin:
         params_fn = getattr(model_obj, "parameters", None)
         if callable(params_fn):
             try:
-                if not any(
-                    bool(getattr(param, "requires_grad", True))
-                    for param in params_fn()
-                    if param is not None
+                params = [param for param in params_fn() if param is not None]
+                if params and not any(
+                    bool(getattr(param, "requires_grad", True)) for param in params
                 ):
                     LOG.debug(
                         "Skipping vLLM weight sync: no trainable parameters detected."
                     )
                     return
             except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
-                LOG.debug("Failed to inspect trainable parameters for vLLM sync: %s", exc)
+                LOG.debug(
+                    "Failed to inspect trainable parameters for vLLM sync: %s", exc
+                )
         accelerator = ctx.accelerator
         is_main = getattr(accelerator, "is_main_process", True)
         current_step = ctx.generation_stats.get("current_step")

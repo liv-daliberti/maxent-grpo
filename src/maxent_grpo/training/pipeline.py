@@ -281,8 +281,12 @@ def _reference_stats_from_meta(
         missing/partial.
     :rtype: training.types.ReferenceLogprobs | None
     """
-    if not flat_meta or total_sequences <= 0:
+    if not flat_meta:
         return None
+    if total_sequences <= 0:
+        total_sequences = len(flat_meta)
+        if total_sequences <= 0:
+            return None
     ref_fn = reference_from_vllm_meta
     try:
         return ref_fn(flat_meta, total_sequences, device)

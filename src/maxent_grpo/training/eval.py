@@ -28,6 +28,8 @@ from maxent_grpo.generation.errors import (
 from .types import RewardSpec, ValidationContext
 from maxent_grpo.rewards.basic import _answer_pat, _format_pat
 from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
+
+LOG = logging.getLogger(__name__)
 from .scoring import _refresh_torch, _to_numpy_array
 
 
@@ -397,7 +399,10 @@ def _run_seed_eval(
         attn = attn.to(ctx.model.device)
         labels = labels.to(ctx.model.device)
         with torch_mod.no_grad():
-            outputs = ctx.model(
+            call_target = ctx.model if callable(ctx.model) else getattr(ctx.model, "forward", None)
+            if not callable(call_target):
+                raise TypeError("Model is not callable and lacks a forward method")
+            outputs = call_target(
                 input_ids=input_ids,
                 attention_mask=attn,
                 labels=labels,
@@ -429,7 +434,7 @@ def _run_seed_eval(
                     AttributeError,
                     RuntimeError,
                 ):  # pragma: no cover - defensive
-                    pass
+                    LOG.debug("Failed to trim pooled seed predictions for valid length.")
             valid_mask = sid_tensor >= 0
             if valid_mask.any() and preds.numel() > 0:
                 try:

@@ -232,6 +232,12 @@ def build_loss_inputs(
             )
         except TypeError:
             pad = torch.full((target_count - weight_count,), pad_val)
+        try:
+            coerce = getattr(torch, "as_tensor", getattr(torch, "tensor", None))
+            if callable(coerce) and not isinstance(weight_tensor, torch.Tensor):
+                weight_tensor = coerce(getattr(weight_tensor, "arr", weight_tensor))
+        except (TypeError, ValueError, RuntimeError, AttributeError):
+            pass
         weight_tensor = torch.cat([weight_tensor.view(-1), pad])
     elif weight_count > target_count:
         weight_tensor = weight_tensor.view(-1)[:target_count]
@@ -464,13 +470,13 @@ def _coerce_tensor_like(reference: torch.Tensor, value: torch.Tensor) -> torch.T
         try:
             coerced = coerced.to(ref_device)
         except (TypeError, ValueError, RuntimeError, AttributeError):
-            pass
+            LOG.debug("Failed to move tensor to reference device.")
     ref_dtype = getattr(reference, "dtype", None)
     if ref_dtype is not None and hasattr(coerced, "to"):
         try:
             coerced = coerced.to(dtype=ref_dtype)
         except (TypeError, ValueError, RuntimeError, AttributeError):
-            pass
+            LOG.debug("Failed to cast tensor to reference dtype.")
     return coerced
 
 
@@ -482,7 +488,7 @@ def _tensor_numel(value: torch.Tensor) -> int:
         try:
             return int(numel_fn())
         except (TypeError, ValueError, RuntimeError):
-            pass
+            LOG.debug("Failed to compute tensor numel via numel().")
     for attr in ("data", "arr"):
         payload = getattr(value, attr, None)
         if payload is not None:
@@ -546,7 +552,7 @@ def _clip_loss_for_slice(
             obj_unclipped = _to_tensor(obj_unclipped)
             obj_clipped = _to_tensor(obj_clipped)
         except (TypeError, ValueError, RuntimeError, AttributeError):
-            pass
+            LOG.debug("Failed to coerce clip-loss tensors via torch backend.")
     # Prefer native torch helpers when available, but fall back to basic
     # tensor arithmetic for lightweight stubs that omit them or when mixed
     # tensor types (real ``Tensor`` vs stub ``_Tensor``) confuse the helpers.
@@ -657,6 +663,91 @@ def _apply_clip_objective(
         updated_loss = policy_loss + scaled_clip
     clip_loss_scalar = float(clip_loss_tensor.detach().float().cpu())
     return updated_loss, clip_loss_scalar
+
+
+def _grpo_policy_loss_from_groups(
+    ratio_ctx: RatioContext,
+    group_data: GroupLossData,
+) -> Tuple[torch.Tensor, Optional[float]]:
+    """Return PPO-style GRPO loss aggregated over prompt groups.
+
+    Uses group-normalized advantages stored in ``group_data.weight_tensor`` and
+    PPO ratios derived from behavior log-probabilities. If clipping is disabled,
+    falls back to the unclipped ratio * advantage objective.
+    """
+    clip_cfg = ratio_ctx.clip_cfg
+    ratio_for_loss, clipped_ratio_vals = _compute_clip_ratios(ratio_ctx, clip_cfg)
+    use_clip = bool(clip_cfg.use_clip_objective and clip_cfg.clip_range > 0.0)
+    grpo_losses: List[torch.Tensor] = []
+    for offset, size in _iter_group_offsets(group_data.group_sizes):
+        if size <= 0:
+            continue
+        end = offset + size
+        adv_slice = group_data.weight_tensor[offset:end]
+        ratio_slice = ratio_for_loss[offset:end]
+        clipped_slice = clipped_ratio_vals[offset:end]
+        adv_len = _tensor_numel(adv_slice)
+        ratio_len = _tensor_numel(ratio_slice)
+        clipped_len = _tensor_numel(clipped_slice)
+        min_len = min(adv_len, ratio_len, clipped_len)
+        if min_len <= 0:
+            LOG.warning(
+                "Skipping GRPO slice due to empty tensors | offset=%s size=%s adv=%s ratio=%s clipped=%s",
+                offset,
+                size,
+                adv_len,
+                ratio_len,
+                clipped_len,
+            )
+            continue
+        if (
+            min_len < adv_len
+            or min_len < ratio_len
+            or min_len < clipped_len
+        ):
+            LOG.warning(
+                "Truncating mismatched GRPO tensors | offset=%s size=%s adv=%s ratio=%s clipped=%s min=%s",
+                offset,
+                size,
+                adv_len,
+                ratio_len,
+                clipped_len,
+                min_len,
+            )
+            adv_slice = adv_slice[:min_len]
+            ratio_slice = ratio_slice[:min_len]
+            clipped_slice = clipped_slice[:min_len]
+        adv_base_val_raw = getattr(clip_cfg, "clip_adv_baseline", None)
+        adv_base_val = adv_base_val_raw if adv_base_val_raw is not None else 0.0
+        if use_clip:
+            grpo_losses.append(
+                _clip_loss_for_slice(
+                    adv_slice,
+                    ratio_slice,
+                    clipped_slice,
+                    adv_base_val,
+                )
+            )
+        else:
+            adv_tensor = adv_slice - adv_base_val
+            try:
+                loss = -(ratio_slice * adv_tensor).sum()
+            except (RuntimeError, TypeError, ValueError):
+                ratio_tensor = torch.tensor(getattr(ratio_slice, "arr", ratio_slice))
+                adv_tensor = torch.tensor(getattr(adv_tensor, "arr", adv_tensor))
+                loss = -(ratio_tensor * adv_tensor).sum()
+            grpo_losses.append(loss)
+    if not grpo_losses:
+        if isinstance(group_data.weight_tensor, torch.Tensor):
+            return group_data.weight_tensor.new_zeros(()), None
+        return torch.tensor(0.0), None
+    grpo_loss_tensor = torch.stack(grpo_losses).mean()
+    clip_loss_scalar = (
+        float(grpo_loss_tensor.detach().float().cpu()) if use_clip else None
+    )
+    if use_clip:
+        grpo_loss_tensor = clip_cfg.clip_objective_coef * grpo_loss_tensor
+    return grpo_loss_tensor, clip_loss_scalar
 
 
 def _kl_terms(ratio_ctx: RatioContext) -> Tuple[torch.Tensor, float, float]:
@@ -1321,10 +1412,15 @@ def evaluate_losses(
     :returns: Tuple containing ``LossOutputs`` and diagnostic statistics.
     :rtype: tuple[LossOutputs, BatchDiagnostics]
     """
-    policy_loss = _policy_loss_from_groups(group_data)
-    policy_loss, clip_loss_scalar = _apply_clip_objective(
-        ratio_ctx, group_data, policy_loss
-    )
+    if getattr(ratio_ctx.weighting_cfg, "train_grpo_objective", False):
+        policy_loss, clip_loss_scalar = _grpo_policy_loss_from_groups(
+            ratio_ctx, group_data
+        )
+    else:
+        policy_loss = _policy_loss_from_groups(group_data)
+        policy_loss, clip_loss_scalar = _apply_clip_objective(
+            ratio_ctx, group_data, policy_loss
+        )
     kl_loss_tensor, kl_loss_scalar, weighted_kl_loss_scalar = _kl_terms(ratio_ctx)
     _beta_raw = getattr(ratio_ctx.weighting_cfg, "beta", 0.0)
     beta_val = float(getattr(_beta_raw, "arr", _beta_raw))

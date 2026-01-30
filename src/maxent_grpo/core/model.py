@@ -137,7 +137,7 @@ def get_tokenizer(
         try:
             tokenizer.pad_token = eos_token
         except (AttributeError, TypeError, ValueError):
-            pass
+            LOG.debug("Failed to set tokenizer.pad_token from eos_token.")
 
     return tokenizer
 
@@ -206,7 +206,7 @@ def get_model(
             if isinstance(pad_token_id, int):
                 gen_cfg.pad_token_id = pad_token_id
     except (AttributeError, TypeError, ValueError):
-        pass
+        LOG.debug("Failed to align model pad_token_id settings.")
     if getattr(training_args, "gradient_checkpointing", False):
         enable_fn = getattr(model, "gradient_checkpointing_enable", None)
         if callable(enable_fn):
@@ -241,7 +241,7 @@ def get_model(
                 try:
                     dynamo_mod.config.suppress_errors = True  # fall back to eager on compile errors
                 except (AttributeError, TypeError):
-                    pass
+                    LOG.debug("Failed to set torch._dynamo suppress_errors flag.")
             except (ImportError, AttributeError, RuntimeError):
                 dynamo_mod = None
         compile_fn = getattr(torch, "compile", None)
@@ -252,14 +252,14 @@ def get_model(
                 try:
                     model = compile_fn(model)
                 except (RuntimeError, TypeError, ValueError):
-                    pass
+                    LOG.warning("torch.compile failed; falling back to eager mode.")
             except (RuntimeError, ValueError):
                 # Best-effort: ignore compilation failures and keep the original model.
-                pass
+                LOG.warning("torch.compile failed; falling back to eager mode.")
             finally:
                 if dynamo_mod is not None and prev_suppress is not None:
                     try:
                         dynamo_mod.config.suppress_errors = prev_suppress
                     except (AttributeError, TypeError):
-                        pass
+                        LOG.debug("Failed to restore torch._dynamo suppress_errors flag.")
     return model

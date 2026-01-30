@@ -141,8 +141,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--output-dir",
-        default="results",
-        help="Output directory for evaluation results (matches lighteval default).",
+        default="var/artifacts/lighteval",
+        help="Output directory for evaluation results (default: var/artifacts/lighteval).",
     )
     parser.add_argument(
         "--save-details",

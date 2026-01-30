@@ -17,7 +17,6 @@ limitations under the License.
 from __future__ import annotations
 
 from pathlib import Path
-from fnmatch import fnmatch
 from types import ModuleType, SimpleNamespace
 import os
 import random
@@ -81,7 +80,7 @@ try:
 except Exception:
     pass
 try:
-    import tests.test_scoring as _ts  # type: ignore
+    import tests.evaluation.test_scoring as _ts  # type: ignore
 
     if "__getattr__" in _ts.__dict__:
         delattr(_ts, "__getattr__")  # type: ignore[arg-type]
@@ -89,31 +88,33 @@ except Exception:
     pass
 
 _DEFAULT_TEST_MARKER = "core"
-_GROUP_MARKER_PATTERNS = {
-    "training": [
-        "test_run_training*.py",
-        "test_run_helpers.py",
-        "test_run_logging.py",
-    ],
-    "generation": [
-        "test_run_generation*.py",
-        "test_generate.py",
-        "test_grpo_prompt.py",
-    ],
-    "setup": [],
-    "logging": [
-        "test_run_logging.py",
-        "test_wandb_logging.py",
-    ],
-    "rewards": [
-        "test_rewards.py",
-        "test_run_training_rewards.py",
-        "test_run_training_weighting.py",
-    ],
-    "vllm": [
-        "test_run_generation_vllm.py",
-        "test_vllm_patch.py",
-    ],
+_TESTS_ROOT = _PROJECT_ROOT / "tests"
+_DIR_MARKERS = {
+    "cli": {"cli"},
+    "config": {"config"},
+    "core": {"core"},
+    "evaluation": {"evaluation"},
+    "generation": {"generation"},
+    "ops": {"ops"},
+    "pipelines": {"pipelines", "integration"},
+    "rewards": {"rewards"},
+    "runtime": {"runtime"},
+    "training": {"training"},
+}
+_SUBDIR_MARKERS = {
+    "generation": {"generation"},
+    "logging": {"logging"},
+    "setup": {"setup"},
+    "vllm": {"vllm"},
+}
+_NAME_MARKERS = {
+    "integration": {"integration"},
+    "logging": {"logging"},
+    "reward": {"rewards"},
+    "rewards": {"rewards"},
+    "weighting": {"rewards"},
+    "vllm": {"vllm"},
+    "setup": {"setup"},
 }
 
 
@@ -249,12 +250,20 @@ _install_wandb_stub()
 
 
 def _markers_for_path(path: Path) -> set[str]:
-    filename = path.name
-    matched = {
-        marker
-        for marker, patterns in _GROUP_MARKER_PATTERNS.items()
-        if any(fnmatch(filename, pattern) for pattern in patterns)
-    }
+    try:
+        rel_path = path.resolve().relative_to(_TESTS_ROOT)
+    except ValueError:
+        rel_path = path
+    parts = rel_path.parts
+    matched: set[str] = set()
+    if parts:
+        matched.update(_DIR_MARKERS.get(parts[0], set()))
+        for part in parts[1:]:
+            matched.update(_SUBDIR_MARKERS.get(part, set()))
+    filename = rel_path.name.lower()
+    for token, markers in _NAME_MARKERS.items():
+        if token in filename:
+            matched.update(markers)
     if not matched:
         matched.add(_DEFAULT_TEST_MARKER)
     return matched

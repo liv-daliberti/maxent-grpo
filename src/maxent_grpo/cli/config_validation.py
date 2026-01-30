@@ -341,6 +341,7 @@ def validate_training_config(
     :param training_args: Training dataclass or mapping derived from Hydra.
     :param command: CLI command being executed (e.g., ``train-baseline``).
     :param source: Optional user-facing hint (recipe path, override description).
+    :returns: ``None``. Raises on invalid or incompatible configurations.
     :raises ValueError: If incompatible knob combinations are detected.
     """
 
@@ -368,7 +369,15 @@ def validate_generation_config(
     command: str = "generate",
     source: str | None = None,
 ) -> None:
-    """Validate generation command payloads before invoking pipelines."""
+    """Validate generation command payloads before invoking pipelines.
+
+    :param config: Mapping or object carrying generation options (e.g., a Hydra
+        config block or :class:`DistilabelGenerationConfig`-like object).
+    :param command: Command label included in error messages.
+    :param source: Optional hint describing where the config came from.
+    :returns: ``None``. Raises on invalid payloads.
+    :raises ValueError: If required fields are missing or invalid.
+    """
 
     values = _payload_mapping(config)
     try:
@@ -385,7 +394,15 @@ def validate_inference_config(
     command: str = "inference",
     source: str | None = None,
 ) -> None:
-    """Validate inference command payloads prior to execution."""
+    """Validate inference command payloads prior to execution.
+
+    :param config: Mapping or object carrying inference options (Hydra config or
+        an object with attributes like ``models`` and ``dataset``).
+    :param command: Command label included in error messages.
+    :param source: Optional hint describing where the config came from.
+    :returns: ``None``. Raises on invalid payloads.
+    :raises ValueError: If required fields are missing or invalid.
+    """
 
     values = _payload_mapping(config)
     try:

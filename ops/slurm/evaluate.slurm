@@ -12,8 +12,8 @@
 # Avoid nodes that have previously wedged during vLLM loads; override with sbatch --exclude/--nodelist if desired.
 # (Kept consistent with evaluate_batch.slurm.)
 #SBATCH --exclude=node202,node203,node204
-#SBATCH --output=var/logs/%x-%j.out
-#SBATCH --error=var/logs/%x-%j.err
+#SBATCH --output=var/artifacts/logs/%x-%j.out
+#SBATCH --error=var/artifacts/logs/%x-%j.err
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 
 set -euo pipefail
@@ -22,7 +22,7 @@ set -x
 ROOT_DIR="${ROOT_DIR:-$PWD}"
 VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
 BACKEND="${LIGHEVAL_BACKEND:-vllm}" # vllm | hf
-mkdir -p "$VAR_DIR/logs" "$VAR_DIR/cache" "$VAR_DIR/artifacts/lighteval"
+mkdir -p "$VAR_DIR/artifacts/logs" "$VAR_DIR/cache" "$VAR_DIR/artifacts/lighteval"
 # Optional: stage model to node-local storage to avoid shared FS contention.
 STAGE_MODEL="${STAGE_MODEL:-false}"
 STAGE_DIR="${STAGE_DIR:-${SLURM_TMPDIR:-/tmp}/lighteval_model_${SLURM_JOB_ID}}"
@@ -72,7 +72,7 @@ export HF_DATASETS_CACHE="$VAR_DIR/cache/huggingface/datasets"
 export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
 export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
-export WANDB_DIR="$VAR_DIR/cache/wandb"
+export WANDB_DIR="$VAR_DIR/artifacts/wandb"
 export WANDB_CACHE_DIR="$WANDB_DIR"
 export TMPDIR="$VAR_DIR/tmp"
 export HF_HUB_ENABLE_HF_TRANSFER=1
@@ -144,7 +144,7 @@ if [[ "$TENSOR_PARALLEL" == "true" ]]; then
   TP_SIZE=2
 fi
 
-SERVER_LOG="$VAR_DIR/logs/vllm_${SLURM_JOB_ID}.log"
+SERVER_LOG="$VAR_DIR/artifacts/logs/vllm_${SLURM_JOB_ID}.log"
 RESULTS_DIR="$VAR_DIR/artifacts/lighteval/$(basename "$MODEL")"
 mkdir -p "$RESULTS_DIR"
 

@@ -445,6 +445,13 @@ def _loader_steps(loader: Any) -> Optional[int]:
 
 
 def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
+    """Construct generation settings for the custom training loop.
+
+    :param cfg: Training configuration carrying generation/vLLM knobs.
+    :type cfg: GRPOConfig
+    :returns: Generation settings with vLLM client config and stats initialized.
+    :rtype: GenerationSettings
+    """
     retry_sleep = _sanitize_float(
         getattr(cfg, "vllm_retry_sleep", 1.0),
         default=1.0,
@@ -535,6 +542,15 @@ def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
 def build_scoring_settings(
     cfg: GRPOConfig, weighting: Optional[WeightingSettings] = None
 ) -> ScoringSettings:
+    """Build scoring settings including weighting/clipping configuration.
+
+    :param cfg: Training configuration providing scoring-related fields.
+    :type cfg: GRPOConfig
+    :param weighting: Optional precomputed weighting settings; built when absent.
+    :type weighting: WeightingSettings | None
+    :returns: Scoring settings object used by the custom loop.
+    :rtype: ScoringSettings
+    """
     if weighting is None:
         weighting = build_weighting_settings(cfg)
 
@@ -597,6 +613,13 @@ def build_scoring_settings(
 
 
 def build_evaluation_settings(cfg: GRPOConfig) -> EvaluationSettings:
+    """Return evaluation settings derived from training arguments.
+
+    :param cfg: Training configuration containing eval flags and cadence.
+    :type cfg: GRPOConfig
+    :returns: Evaluation settings for the custom loop.
+    :rtype: EvaluationSettings
+    """
     strategy = str(getattr(cfg, "evaluation_strategy", "") or "").lower()
     eval_steps = getattr(cfg, "eval_steps", None)
     enabled = cfg.do_eval
@@ -636,7 +659,23 @@ def build_training_loop_context(
     apply_info_seed_cfg: bool,
     force_grpo_objective: Optional[bool],
 ) -> TrainingLoopContext:
-    """Return a TrainingLoopContext configured for the custom MaxEnt loop."""
+    """Return a TrainingLoopContext configured for the custom MaxEnt loop.
+
+    :param script_args: Script configuration with dataset/reward options.
+    :type script_args: GRPOScriptArguments
+    :param training_args: Training configuration (GRPO/MaxEnt knobs).
+    :type training_args: GRPOConfig
+    :param model_args: Model configuration used for loading policy/reference models.
+    :type model_args: Any
+    :param deps_namespace: Namespace hint for dependency resolution/logging.
+    :type deps_namespace: str
+    :param apply_info_seed_cfg: Whether to apply InfoSeed config to settings.
+    :type apply_info_seed_cfg: bool
+    :param force_grpo_objective: Optional override for ``train_grpo_objective``.
+    :type force_grpo_objective: bool | None
+    :returns: Fully constructed training loop context.
+    :rtype: TrainingLoopContext
+    """
 
     share_reference_model = bool(
         getattr(training_args, "maxent_share_reference_model", False)

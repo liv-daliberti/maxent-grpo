@@ -18,8 +18,8 @@
 #SBATCH --gres=gpu:8              # Default: 8 GPUs on the node
 #SBATCH --partition=mltheory      # Adjust for your cluster (e.g., hopper-prod)
 #SBATCH --exclude=node915,node916,node917,node105 # Avoid flaky nodes; adjust as needed
-#SBATCH --output=var/logs/%x-%j.out
-#SBATCH --error=var/logs/%x-%j.err
+#SBATCH --output=var/artifacts/logs/%x-%j.out
+#SBATCH --error=var/artifacts/logs/%x-%j.err
 #SBATCH --requeue
 #SBATCH --time=00:59:00
 #SBATCH --account=      # Adjust for your cluster (e.g., hopper-prod)
@@ -33,7 +33,7 @@ set -x
 
 export ROOT_DIR="$PWD"
 export VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
-mkdir -p "$VAR_DIR/logs"
+mkdir -p "$VAR_DIR/artifacts/logs"
 
 # ---- Environment bootstrap (configure for your cluster) ----
 if [[ "${MAXENT_DRY_RUN:-0}" != "1" ]]; then
@@ -108,7 +108,7 @@ PY
   export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
   export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
   export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
-  export WANDB_DIR="$VAR_DIR/cache/wandb"
+  export WANDB_DIR="$VAR_DIR/artifacts/wandb"
   export WANDB_CACHE_DIR="$WANDB_DIR"
   # Force-enable wandb for training jobs so the Transformers callback sees it.
   export WANDB_DISABLED=0
@@ -131,7 +131,7 @@ PY
     echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
   }
   echo "[info] Patching TRL vllm_serve for logprob support"
-  python "$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py"
+  python "$ROOT_DIR/tools/patch_trl_vllm_serve.py"
 else
   export ENV_MODE="${ENV_MODE:-venv}"
   export CONDA_ENV="${CONDA_ENV:-$VAR_DIR/openr1}"
@@ -413,7 +413,7 @@ if $USE_VLLM_SERVER && ! $INLINE_VLLM; then
     export VLLM_USAGE_STATS_PATH=\"$VLLM_USAGE_STATS_PATH\"; export VLLM_NO_USAGE_STATS=1; \
     mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
     mkdir -p \"$(dirname "$VLLM_USAGE_STATS_PATH")\"; \
-    python \"$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py\"; \
+    python \"$ROOT_DIR/tools/patch_trl_vllm_serve.py\"; \
     export NCCL_DEBUG=WARN; \
     PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT \
     VLLM_GROUP_PORT=$VLLM_GROUP_PORT \
@@ -426,7 +426,7 @@ if $USE_VLLM_SERVER && ! $INLINE_VLLM; then
       --dtype float16 \
       --gpu_memory_utilization 0.90 \
       --enforce_eager false" \
-    > "$VAR_DIR/logs/vllm-${SLURM_JOB_ID}.out" 2>&1 &
+    > "$VAR_DIR/artifacts/logs/vllm-${SLURM_JOB_ID}.out" 2>&1 &
 
   # Wait for health
   echo "Waiting for vLLM health at http://$VLLM_NODE:$VLLM_PORT/health …"
@@ -499,7 +499,7 @@ fi
 echo "Launching training across nodes…"
 
 # Predefine trainer log path in the outer shell (avoid set -u issues)
-export TRAINING_LOG="${TRAINING_LOG:-$VAR_DIR/logs/train_${SLURM_JOB_ID}.log}"
+export TRAINING_LOG="${TRAINING_LOG:-$VAR_DIR/artifacts/logs/train_${SLURM_JOB_ID}.log}"
 mkdir -p "$(dirname "$TRAINING_LOG")"
 : > "$TRAINING_LOG"
 export INLINE_VLLM_FALLBACK_GPUS="$(seq -s, 0 $((GPUS_PER_NODE - 1)))"
@@ -543,12 +543,12 @@ PY
     export INLINE_VLLM_GPU_ID_CSV INLINE_VLLM_TRAIN_GPUS; \
     echo \"Starting inline vLLM server on GPUs \$INLINE_VLLM_GPU_ID_CSV…\"; \
     echo \"Trainer GPUs: \$INLINE_VLLM_TRAIN_GPUS\"; \
-    VLLM_LOG=\"$VAR_DIR/logs/vllm-${SLURM_JOB_ID}.out\"; \
+    VLLM_LOG=\"$VAR_DIR/artifacts/logs/vllm-${SLURM_JOB_ID}.out\"; \
     mkdir -p \"\$(dirname \"\$VLLM_LOG\")\"; \
     : > \"\$VLLM_LOG\"; \
     tail -n +1 -F \"\$VLLM_LOG\" & \
     VLLM_TAIL_PID=\$!; \
-    python \"$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py\"; \
+    python \"$ROOT_DIR/tools/patch_trl_vllm_serve.py\"; \
     # Default to TRL's vllm_serve (patched for logprobs); override with VLLM_SERVER_IMPL=native to use the API server.
     VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
     PORT_FOR_COMMUNICATION=$VLLM_GROUP_PORT; \
@@ -596,8 +596,8 @@ PY
     echo 'Inline vLLM is healthy.'; \
   fi; \
   export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; export MAXENT_FAULTHANDLER=1; \
-  export TRAINING_LOG=\"$VAR_DIR/logs/train_${SLURM_JOB_ID}.log\"; \
-  mkdir -p \"$ROOT_DIR/logs\"; : > \"$TRAINING_LOG\"; \
+  export TRAINING_LOG=\"$VAR_DIR/artifacts/logs/train_${SLURM_JOB_ID}.log\"; \
+  mkdir -p \"$VAR_DIR/artifacts/logs\"; : > \"$TRAINING_LOG\"; \
   echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \
   echo 'Launch command:'; echo \"$LAUNCHER $CMD\"; echo 'About to start accelerate launch'; date; \
   echo 'Restricting training GPUs when inline vLLM is enabled'; \

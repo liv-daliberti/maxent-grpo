@@ -19,7 +19,7 @@ Slurm (recommended):
 
 Quick flags:
 
-- ``--task maxent`` launches the MaxEnt pipeline. When ``train_grpo_objective=false`` in the recipe this calls the custom loop under ``src/maxent_grpo/training/loop.py`` so τ/β controllers run every step; when ``train_grpo_objective=true`` it reuses the vanilla GRPOTrainer. Recipes shipped under ``maxent-grpo`` and ``infoseed`` now enable the meta-controller by default, so even GRPO-style runs will fall back to the custom loop unless you set ``controller_meta_enabled=false``.
+- ``--task maxent`` launches the shared MaxEnt/GRPO pipeline. When ``train_grpo_objective=false`` the run uses the custom loop under ``src/maxent_grpo/training/loop.py``; when ``train_grpo_objective=true`` it defaults to TRL’s GRPOTrainer unless you set ``force_custom_loop=true`` or enable the meta-controller. Paired GRPO recipes set ``force_custom_loop: true`` so GRPO and MaxEnt execute the same loop for parity.
 - ``--task infoseed`` (or a recipe with ``info_seed_enabled=true``) routes through ``src/maxent_grpo/pipelines/training/infoseed.py`` which always uses the custom loop so the auxiliary seed loss can tap the same hooks as MaxEnt. Hydra validation enforces ``info_seed_enabled`` for this command, so keep the flag true unless you switch back to the baseline/MaxEnt recipes.
 - ``--dp/--tp`` set vLLM data/tensor parallel sizes.
 - ``--vllm-port`` / ``--vllm-group-port`` override RPC ports when needed.
@@ -44,8 +44,9 @@ Recipe pairing (reproducible GRPO_RECIPE runs)
 - The baseline and MaxEnt math recipes are paired to stay comparable: both use ``open-r1/OpenR1-Math-220k`` for training and ``HuggingFaceH4/MATH-500`` (``test`` split, ``problem``/``answer`` columns) for evaluation with the same seed (``42``) and eval cadence (``evaluation_strategy=steps``, ``eval_steps=25``, ``per_device_eval_batch_size=8``).
 - Baseline GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml``
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
+- Paired GRPO recipes set ``force_custom_loop: true`` and ``maxent_reference_logprobs_source: model`` so GRPO runs through the same custom loop with a frozen reference anchor.
 - InfoSeed recipe (custom loop + auxiliary loss): ``configs/recipes/<model>/infoseed/config_math.yaml``. Those keep ``info_seed_enabled: true`` (required for ``train-infoseed``) and default to the InfoSeed variant of the pipeline; flip the flag (or use the MaxEnt/GRPO recipes) to disable seed conditioning entirely.
-- Hydra console wrappers reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so ``GRPO_RECIPE=… maxent-grpo-{baseline,maxent}`` will read the intended sibling.
+- Hydra console wrappers reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so ``GRPO_RECIPE=… maxent-grpo-{baseline,maxent}`` will read the intended sibling. For a custom-loop GRPO run, use ``configs/recipes/hydra/grpo_custom_math.yaml``.
 
 What the Slurm launcher does
 ----------------------------
@@ -61,7 +62,7 @@ What the Slurm launcher does
   - multi‑node → reserves the last node for vLLM (data/tensor parallel controlled by ``--dp/--tp``).
 - Launches ``trl.scripts.vllm_serve`` with health checks, then fans out ``accelerate launch`` across remaining nodes/GPUs.
 - Auto‑wires ``--vllm_server_host/port`` into the trainer if you did not pass them manually.
-- Streams logs to ``var/logs/train_<jobid>.log`` and ``var/logs/vllm-<jobid>.out`` alongside the Slurm stdout/err files.
+- Streams logs to ``var/artifacts/logs/train_<jobid>.log`` and ``var/artifacts/logs/vllm-<jobid>.out`` alongside the Slurm stdout/err files.
 
 Entrypoint and vLLM parameters
 ------------------------------
@@ -91,8 +92,8 @@ Slurm specifics
    #SBATCH --ntasks-per-node=1
    #SBATCH --exclusive
    #SBATCH --time=128:00:00
-   #SBATCH --output=var/logs/%x-%j.out
-   #SBATCH --error=var/logs/%x-%j.err
+   #SBATCH --output=var/artifacts/logs/%x-%j.out
+   #SBATCH --error=var/artifacts/logs/%x-%j.err
 
 On submission the script:
 
@@ -104,7 +105,7 @@ Key Files
 ---------
 
 - ``src/maxent_grpo/grpo.py`` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
-- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt entrypoint that detects ``train_grpo_objective`` and either wraps TRL’s trainer (GRPO mode) or drives the fully custom controller-aware loop (MaxEnt mode).
+- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt entrypoint that detects ``train_grpo_objective`` and either wraps TRL’s trainer (GRPO mode) or drives the fully custom controller-aware loop (MaxEnt mode, or GRPO when ``force_custom_loop`` is set).
 - ``src/maxent_grpo/pipelines/training/infoseed.py`` — InfoSeed pipeline that always runs through the custom loop so auxiliary losses can inspect weight stats.
 - ``src/maxent_grpo/config/`` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
 - ``configs/recipes/`` — ready-to-use YAML configs; see the Recipes page
@@ -170,9 +171,9 @@ Most options can be provided by CLI via TRL’s ``TrlParser`` or by a YAML recip
 Logging & Checkpoints
 ---------------------
 
-- Slurm stdout/err live in ``var/logs/<job-name>-<jobid>.out|err``.
-- vLLM server logs to ``var/logs/vllm-<jobid>.out`` (or inline when sharing a node).
-- Trainer logs to ``var/logs/train_<jobid>.log``.
+- Slurm stdout/err live in ``var/artifacts/logs/<job-name>-<jobid>.out|err``.
+- vLLM server logs to ``var/artifacts/logs/vllm-<jobid>.out`` (or inline when sharing a node).
+- Trainer logs to ``var/artifacts/logs/train_<jobid>.log``.
 - Run headers emit ``run/git_sha`` and ``run/recipe_path`` (from ``GRPO_RECIPE``/``GRPO_RECIPE_USED``) and the same keys are logged to metrics/W&B so cross-run comparisons stay schema-stable.
 - Weights & Biases integration is available via ``wandb_*`` fields.
 - Checkpoints are handled by TRL’s GRPOConfig as usual.

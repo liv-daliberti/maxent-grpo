@@ -175,7 +175,19 @@ def push_to_hub_revision(
 
 
 def ensure_hf_repo_ready(training_args: "GRPOConfig") -> None:
-    """Verify Hub credentials and provision the target repo/branch upfront."""
+    """Verify Hub credentials and provision the target repo/branch upfront.
+
+    The helper is a best-effort preflight. When Hub access is not configured
+    (or push is disabled), it returns early. Errors in network calls are
+    surfaced as ``RuntimeError`` to avoid silent misconfiguration.
+
+    :param training_args: Training config with Hub identifiers and push flags.
+    :type training_args: GRPOConfig
+    :returns: ``None``. The function exits early when Hub pushes are disabled.
+    :rtype: None
+    :raises RuntimeError: If the Hub preflight fails due to network or auth
+        errors.
+    """
 
     push_requested = bool(
         getattr(training_args, "push_to_hub", False)

@@ -12,8 +12,8 @@
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:8
 #SBATCH --partition=mltheory
-#SBATCH --output=var/logs/%x-%j.out
-#SBATCH --error=var/logs/%x-%j.err
+#SBATCH --output=var/artifacts/logs/%x-%j.out
+#SBATCH --error=var/artifacts/logs/%x-%j.err
 #SBATCH --requeue
 #SBATCH --time=02:00:00
 #SBATCH --account=
@@ -23,7 +23,7 @@ set -x
 
 ROOT_DIR="$PWD"
 VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
-mkdir -p "$VAR_DIR/logs"
+mkdir -p "$VAR_DIR/artifacts/logs"
 
 # ---- Environment bootstrap (configure for your cluster) ----
 export ENV_MODE="${ENV_MODE:-venv}"
@@ -50,7 +50,7 @@ export HF_DATASETS_CACHE="$VAR_DIR/cache/huggingface/datasets"
 export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
 export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
-export WANDB_DIR="${WANDB_DIR:-$VAR_DIR/cache/wandb}"
+export WANDB_DIR="${WANDB_DIR:-$VAR_DIR/artifacts/wandb}"
 export WANDB_CACHE_DIR="$WANDB_DIR"
 export WANDB_DISABLED=0
 export TMPDIR="$VAR_DIR/tmp"
@@ -76,7 +76,7 @@ VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-4096}"
 VLLM_GPU_IDS="${VLLM_GPU_IDS:-0,1}"
 TRAIN_GPU_IDS="${TRAIN_GPU_IDS:-2,3,4,5,6,7}"
 
-VLLM_LOG="$VAR_DIR/logs/vllm_${SLURM_JOB_ID}.out"
+VLLM_LOG="$VAR_DIR/artifacts/logs/vllm_${SLURM_JOB_ID}.out"
 
 cleanup() {
   if [[ -n "${VLLM_PID:-}" ]]; then
@@ -87,7 +87,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "[info] Patching TRL vllm_serve for logprob support"
-python "$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py"
+python "$ROOT_DIR/tools/patch_trl_vllm_serve.py"
 
 echo "[info] Starting vLLM on GPUs ${VLLM_GPU_IDS} (model=${VLLM_MODEL})"
 CUDA_VISIBLE_DEVICES="$VLLM_GPU_IDS" \

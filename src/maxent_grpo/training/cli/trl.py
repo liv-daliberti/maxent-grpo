@@ -36,6 +36,14 @@ def parse_grpo_args(
     When ``recipe_path`` (or ``$GRPO_RECIPE``) is provided, the YAML is loaded
     via OmegaConf and converted into config dataclasses so orchestration code
     remains recipe-agnostic.
+
+    :param recipe_path: Optional explicit path to a GRPO recipe YAML file.
+        When omitted the function looks for ``$GRPO_RECIPE`` or ``--config``.
+    :returns: Tuple of ``(script_args, training_args, model_args)``.
+    :rtype: tuple[GRPOScriptArguments, GRPOConfig, ModelConfig]
+    :raises ImportError: If TRL is not installed and no recipe path is provided.
+    :raises ValueError: If a recipe is provided but fails validation.
+    :raises SystemExit: If the underlying CLI parser aborts due to invalid args.
     """
     # Prefer explicit recipe path from CLI/env to avoid duplicate argparse flags.
     recipe_path = recipe_path or os.environ.get("GRPO_RECIPE")

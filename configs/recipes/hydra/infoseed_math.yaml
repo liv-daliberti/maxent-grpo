@@ -6,3 +6,10 @@ infoseed:
     controller_meta_method: analytic
     controller_meta_lr: 0.05
     controller_meta_update_interval: 1
+
+hydra:
+  run:
+    dir: var/artifacts/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: var/artifacts/outputs/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

@@ -29,7 +29,7 @@ install-local:
 	@echo "Add to PATH for local scripts: export PATH=\"$(PWD)/.local/bin:$$PATH\""
 
 ensure-path:
-	bash ops/tools/ensure_local_path.sh --apply
+	bash tools/ensure_local_path.sh --apply
 
 venv:
 	python -m venv .venv

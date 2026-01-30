@@ -281,7 +281,7 @@ def _patch_trl_vllm_serve():
         return False
     return True
 
-# NOTE: install-time patching is disabled. Run ops/scripts/patch_trl_vllm_serve.py
+# NOTE: install-time patching is disabled. Run tools/patch_trl_vllm_serve.py
 # explicitly after installing/upgrading TRL to apply this patch.
 
 

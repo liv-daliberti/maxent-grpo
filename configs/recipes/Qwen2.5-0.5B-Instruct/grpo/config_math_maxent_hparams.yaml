@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# GRPO-only math recipe for Qwen 0.5B that mirrors the paired MaxEnt config
-# with POC-sized defaults (batch sizing, KL control, prompt lengths, logging).
+# GRPO paired math recipe for Qwen 0.5B that mirrors the MaxEnt hparams
+# configuration (POC-sized defaults) while using the custom loop GRPO objective.
 
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
@@ -36,8 +36,7 @@ eval_dataset_split: "test[:50]"  # tiny eval subset for fast POC
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
-system_prompt: |
-  You are an expert *mathematics problem-solver*.
+system_prompt: "You are an expert *mathematics problem-solver*.
 
   Every time you receive a problem you must:
   • Analyse it thoroughly.
@@ -52,6 +51,9 @@ system_prompt: |
     – The final answer goes inside `<answer>` **only**.
     – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.
     – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.
+    – If there is **no solution**, write `NO SOLUTION`. If the problem is **underdetermined**, write `I DON'T KNOW`.
+
+  • You have a hard cap of **750 output tokens**. Be concise but complete.
 
   ------------------------------------------------------------
   TAG TEMPLATE (copy this shape for every problem)
@@ -68,20 +70,26 @@ system_prompt: |
   <answer>
   THEANSWER
   </answer>
+  "
 
-# GRPO trainer config (MaxEnt disabled)
-train_grpo_objective: true
+# GRPO paired config (mirrors MaxEnt training settings)
+# Training/eval & logging
 bf16: true
 fp16: false
-vllm_mode: server         # reuse the single vLLM server from the launcher
+use_vllm: true
+vllm_mode: server
 vllm_return_logprobs: true
+# Force frozen reference-model scoring for KL/GRPO trust region.
+maxent_reference_logprobs_source: model
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 128
+gradient_accumulation_steps: 2
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-gen_temperature: 1.0          # paper setting
+train_grpo_objective: true
+force_custom_loop: true
+gen_temperature: 1.0
 gen_top_p: 1.0
 gen_top_k: 0
 gen_best_of: 1
@@ -97,21 +105,20 @@ learning_rate: 1e-6
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
-log_level: info
+log_level: debug
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_prompt_length: 1024
 max_completion_length: 512
-max_steps: 200               # POC-sized run
+max_steps: 200
 num_generations: 4
 num_train_epochs: 1
-use_vllm: true
 output_dir: var/data/Qwen2.5-0.5B-Open-R1-GRPO-math-poc
 overwrite_output_dir: true
-per_device_eval_batch_size: 8
-per_device_train_batch_size: 1   # with grad accum 128 -> eff batch 128 (paper)
+per_device_eval_batch_size: 1
+per_device_train_batch_size: 1
 push_to_hub: true
 report_to:
 - wandb
@@ -122,21 +129,21 @@ reward_funcs:
 reward_weights:
 - 1
 
-# Reverse‑KL weight β used inside GRPO update
-init_kl_coeff: 0.04        # MaxEnt/metrics path reads this alias
-init_kl_coef: 0.04         # TRL field that seeds the KL controller/beta
-kl_penalty_beta: 0.04      # Extra TRL alias used by some releases
+# Reverse‑KL weight β used inside MaxEnt update
+init_kl_coeff: 0.04
+init_kl_coef: 0.04
+kl_penalty_beta: 0.04
 kl_target:        0.07
 kl_horizon:       500
 kl_ctl_step_size: 1.0
 
-# Misc GRPO knobs (kept consistent with the 7B recipe)
+# Misc GRPO knobs (kept consistent with the paired GRPO recipe)
 max_grad_norm: 0.15
 clip_range: 0.05
 save_strategy: steps
-save_steps: 50
+save_steps: 25
 evaluation_strategy: steps
-eval_steps: 25
+eval_steps: 26
 save_total_limit: 1000
 seed: 42
 warmup_ratio: 0.2

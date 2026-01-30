@@ -16,7 +16,7 @@ limitations under the License.
 Validate training log files for well-formed metrics.
 
 Default behaviour:
-- Scan glob ``logs/train_*.log``.
+- Scan glob ``var/artifacts/logs/train_*.log``.
 - Flag any metric values that are NaN/Inf.
 - Optionally ensure required metrics appear at least once.
 
@@ -111,8 +111,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate training log metrics.")
     parser.add_argument(
         "--glob",
-        default="logs/train_*.log",
-        help="Glob pattern of log files to validate (default: logs/train_*.log)",
+        default="var/artifacts/logs/train_*.log",
+        help="Glob pattern of log files to validate (default: var/artifacts/logs/train_*.log)",
     )
     parser.add_argument(
         "--require-key",

@@ -462,7 +462,11 @@ _INFERENCE_DATASET_ALIASES: Dict[str, str] = {
 
 
 def list_inference_datasets() -> List[str]:
-    """Return the canonical names of built-in inference presets."""
+    """Return the canonical names of built-in inference presets.
+
+    :returns: Sorted list of dataset preset keys.
+    :rtype: list[str]
+    """
 
     return sorted(INFERENCE_DATASETS.keys())
 
@@ -474,6 +478,8 @@ def resolve_inference_dataset(
 
     :param name: Preset name (case-insensitive, hyphens/underscores normalized).
     :param overrides: Optional field overrides applied to the preset.
+    :returns: Resolved dataset configuration.
+    :rtype: MathEvalConfig
     :raises ValueError: If ``name`` is empty or unknown.
     """
 
@@ -501,6 +507,7 @@ def load_math_dataset(cfg: MathEvalConfig) -> Dataset:
     :type cfg: MathEvalConfig
     :raises ImportError: If the datasets library is unavailable.
     :returns: Loaded :class:`datasets.Dataset` with the requested split/config.
+    :rtype: datasets.Dataset
     """
 
     if load_dataset is None:  # pragma: no cover - exercised when datasets missing

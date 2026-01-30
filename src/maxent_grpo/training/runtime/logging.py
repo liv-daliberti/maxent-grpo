@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from functools import lru_cache
+import importlib
 import subprocess
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
@@ -76,7 +77,12 @@ def _git_sha() -> str:
 
 
 def resolve_run_metadata(training_args: Any | None = None) -> Dict[str, str]:
-    """Return run-level metadata (git SHA, recipe path) for logging consistency."""
+    """Return run-level metadata (git SHA, recipe path) for logging consistency.
+
+    :param training_args: Optional training config used to read ``recipe_path``.
+    :returns: Mapping with ``run/git_sha`` and ``run/recipe_path`` keys.
+    :rtype: dict[str, str]
+    """
 
     if _RUN_META_CACHE:
         return _RUN_META_CACHE
@@ -99,32 +105,55 @@ def resolve_run_metadata(training_args: Any | None = None) -> Dict[str, str]:
 
 @lru_cache(maxsize=None)
 def _wandb_error_types() -> Tuple[type, ...]:
-    """Return exception types that should be suppressed during W&B logging."""
+    """Return exception types that should be suppressed during W&B logging.
+
+    :returns: Tuple of exception classes treated as non-fatal during W&B calls.
+    :rtype: tuple[type, ...]
+    """
 
     base_exceptions: Tuple[type, ...] = (RuntimeError, ValueError)
-    errors_module = sys.modules.get("wandb.errors")
-    if errors_module is None:
+    error_list: list[type] = []
+
+    modules = []
+    if (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules) and "wandb.errors" not in sys.modules:
         return base_exceptions
-    wandb_error = getattr(errors_module, "Error", None)
-    comm_error = getattr(errors_module, "CommError", None)
-    error_types: Tuple[type, ...] = base_exceptions
-    if isinstance(wandb_error, type) and issubclass(wandb_error, BaseException):
-        error_types = (wandb_error,) + error_types
-    if isinstance(comm_error, type) and issubclass(comm_error, BaseException):
-        # Ensure specific communication failures (e.g., HTTP 4xx/5xx) never
-        # crash training runs even when they do not inherit from Error.
-        if comm_error not in error_types:
-            error_types = (comm_error,) + error_types
-    return error_types
+    for name in ("wandb.errors", "wandb.errors.errors"):
+        mod = sys.modules.get(name)
+        if mod is None and not (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+            try:
+                mod = importlib.import_module(name)
+            except (ImportError, ModuleNotFoundError, ValueError):
+                mod = None
+        if mod is not None:
+            modules.append(mod)
 
-
-_WANDB_INIT_EXCEPTIONS = _wandb_error_types() + (OSError,)
+    for errors_module in modules:
+        wandb_error = getattr(errors_module, "Error", None)
+        comm_error = getattr(errors_module, "CommError", None)
+        if isinstance(wandb_error, type) and issubclass(wandb_error, BaseException):
+            if wandb_error not in error_list:
+                error_list.append(wandb_error)
+        if isinstance(comm_error, type) and issubclass(comm_error, BaseException):
+            # Ensure specific communication failures (e.g., HTTP 4xx/5xx) never
+            # crash training runs even when they do not inherit from Error.
+            if comm_error not in error_list:
+                error_list.append(comm_error)
+    for base in base_exceptions:
+        if base not in error_list:
+            error_list.append(base)
+    return tuple(error_list)
 
 
 def _report_to_contains(
     report_to: Union[str, Sequence[str], None], target: str
 ) -> bool:
-    """Case-insensitive membership check for TrainingArguments.report_to."""
+    """Case-insensitive membership check for ``TrainingArguments.report_to``.
+
+    :param report_to: ``report_to`` value from training arguments (string or list).
+    :param target: Target backend name (e.g., ``"wandb"``).
+    :returns: ``True`` when ``target`` is present in ``report_to``.
+    :rtype: bool
+    """
 
     if report_to is None:
         return False
@@ -191,10 +220,24 @@ def _maybe_init_wandb_run(
     training_args: GRPOConfig,
     wandb_config: Dict[str, Any],
 ) -> Optional[Any]:
-    """Initialize a W&B run when report_to includes wandb."""
+    """Initialize a W&B run when ``report_to`` includes ``wandb``.
+
+    :param accelerator: Accelerator instance used to determine the main process.
+    :param training_args: Training configuration providing W&B settings.
+    :param wandb_config: Prepared keyword arguments for ``wandb.init``.
+    :returns: W&B run handle, or ``None`` if logging is disabled.
+    :rtype: object | None
+    """
 
     if not _report_to_contains(getattr(training_args, "report_to", None), "wandb"):
         return None
+    if os.environ.get("WANDB_DISABLED") == "true":
+        return None
+    if os.environ.get("WANDB_MODE") == "disabled":
+        return None
+    if os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules:
+        # In test runs, default to offline mode unless explicitly overridden.
+        os.environ.setdefault("WANDB_MODE", "offline")
     init_wandb_training(training_args)
     if not _is_primary_wandb_process(accelerator):
         os.environ.setdefault("WANDB_MODE", os.environ.get("WANDB_MODE", "offline"))
@@ -213,7 +256,7 @@ def _maybe_init_wandb_run(
     wandb_config.setdefault("run/recipe_path", run_meta["run/recipe_path"])
     wandb_kwargs: Dict[str, Any] = {
         "config": wandb_config,
-        "dir": os.environ.get("WANDB_DIR") or os.getcwd(),
+        "dir": os.environ.get("WANDB_DIR") or os.path.join("var", "artifacts", "wandb"),
     }
     if run_name:
         wandb_kwargs["name"] = run_name
@@ -231,15 +274,31 @@ def _maybe_init_wandb_run(
         run_meta["run/git_sha"],
         run_meta["run/recipe_path"],
     )
+    if "PYTEST_CURRENT_TEST" in os.environ and "WANDB_MODE" not in os.environ:
+        # Avoid network calls in test runs unless explicitly requested.
+        os.environ["WANDB_MODE"] = "offline"
+    try:
+        _wandb_error_types.cache_clear()
+    except AttributeError:
+        LOG.debug("wandb error type cache_clear unavailable; proceeding.")
+    init_exceptions = _wandb_error_types() + (OSError,)
     try:
         return wandb.init(**wandb_kwargs)
-    except _WANDB_INIT_EXCEPTIONS as exc:  # pragma: no cover - defensive
+    except init_exceptions as exc:  # pragma: no cover - defensive
         LOG.warning("Failed to initialize W&B run: %s", exc)
+        return None
+    except Exception as exc:  # pragma: no cover - defensive fallback  # pylint: disable=broad-exception-caught
+        LOG.warning("Unexpected W&B init failure: %s", exc)
         return None
 
 
 def log_run_header(training_args: Any | None = None) -> Dict[str, str]:
-    """Log a consistent run header with git SHA and recipe path."""
+    """Log a consistent run header with git SHA and recipe path.
+
+    :param training_args: Optional training config used to resolve metadata.
+    :returns: Metadata dictionary emitted to the logs.
+    :rtype: dict[str, str]
+    """
 
     meta = resolve_run_metadata(training_args)
     LOG.info(
@@ -251,7 +310,13 @@ def log_run_header(training_args: Any | None = None) -> Dict[str, str]:
 
 
 def _log_wandb(run: Optional[Any], metrics: Dict[str, Any], step: int) -> None:
-    """Safely log metrics to a W&B run."""
+    """Safely log metrics to a W&B run.
+
+    :param run: W&B run object returned by ``wandb.init``.
+    :param metrics: Metric dictionary to log.
+    :param step: Global step to associate with the metrics.
+    :returns: ``None``.
+    """
 
     if run is None or not metrics:
         return

@@ -37,6 +37,12 @@ docs/_autosummary/
 
 # Legacy spill directories (should be rare)
 torchinductor_*/
+results/
+details/
+outputs/
+logs/
+trainer_output/
+controller_state.json
 
 # Python bytecode caches
 __pycache__/

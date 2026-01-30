@@ -228,8 +228,8 @@ def _checkpoint_has_accelerate_state(checkpoint_dir: str) -> bool:
                 os.path.join(checkpoint_dir, entry)
             ):
                 return True
-    except OSError:
-        pass
+    except OSError as exc:
+        LOG.debug("Failed to scan checkpoint dir for model shards: %s", exc)
 
     # Accelerate's non-DeepSpeed checkpoints use `.bin` for optimizer/scheduler and
     # `random_states_<rank>.pkl` (torch-saved payloads) for RNG tracking.
@@ -251,8 +251,8 @@ def _checkpoint_has_accelerate_state(checkpoint_dir: str) -> bool:
                 return True
             if entry.startswith("random_states_") and entry.endswith(".pkl"):
                 return True
-    except OSError:
-        pass
+    except OSError as exc:
+        LOG.debug("Failed to scan checkpoint dir for optimizer/random state: %s", exc)
     return False
 
 
@@ -527,7 +527,13 @@ def resolve_resume_checkpoint(
 
 
 def load_trainer_state_metadata(checkpoint_path: Optional[str]) -> Dict[str, Any]:
-    """Load trainer_state.json if available for resume bookkeeping."""
+    """Load trainer_state.json if available for resume bookkeeping.
+
+    :param checkpoint_path: Path to a checkpoint directory.
+    :type checkpoint_path: str | None
+    :returns: Parsed metadata fields (global_step, best metrics, etc.).
+    :rtype: dict[str, Any]
+    """
 
     metadata: Dict[str, Any] = {}
     if not checkpoint_path:
@@ -619,7 +625,22 @@ def build_checkpoint_saver(
     base_trainer_state: Optional[Dict[str, Any]] = None,
     controller_cfg: Optional[ControllerPaths] = None,
 ) -> Any:
-    """Return a save_checkpoint callable compatible with LoggingHandles."""
+    """Return a save_checkpoint callable compatible with LoggingHandles.
+
+    The returned callable snapshots accelerator state, model/optimizer weights,
+    trainer state metadata, and optional controller state into a checkpoint
+    directory under ``output_dir``.
+
+    :param training_args: Training configuration containing output/checkpoint options.
+    :param runtime_handles: Runtime bundle providing model/accelerator references.
+    :param optim_handles: Optimizer bundle used for saving optimizer state.
+    :param tokenizer: Tokenizer to serialize alongside checkpoints.
+    :param state_ref: Mutable state dict used for cross-callback coordination.
+    :param base_trainer_state: Optional base trainer state JSON to merge into saves.
+    :param controller_cfg: Optional controller state paths for MaxEnt/InfoSeed.
+    :returns: Callable ``save_checkpoint(name: str) -> None``.
+    :rtype: Callable[[str], None]
+    """
 
     output_dir = getattr(training_args, "output_dir", None)
     accelerator = getattr(runtime_handles, "accelerator", None)
@@ -937,6 +958,7 @@ def maybe_load_accelerator_state(
     :type resume_state_path: str | None
     :param accelerator: Accelerate handle whose ``load_state`` method will be invoked.
     :type accelerator: accelerate.Accelerator
+    :returns: ``None``.
     """
     load_state_fn = getattr(accelerator, "load_state", None)
     if isinstance(resume_state_path, str) and resume_state_path:
@@ -997,6 +1019,7 @@ def maybe_checkpoint(
     :param global_step: Current optimizer step; used to decide whether
         ``save_steps`` divides the step index evenly.
     :type global_step: int
+    :returns: ``None``.
     """
     if accelerator.is_main_process and not _checkpoint_log_once["config"]:
         LOG.info(
@@ -1056,6 +1079,7 @@ def check_stop_condition(
     :param loop_state: Mutable training loop state whose ``stop_training`` flag
         should be updated when the threshold is crossed.
     :type loop_state: training.loop.TrainingLoopState
+    :returns: ``None``.
     """
     if (
         schedule.total_training_steps > 0
@@ -1065,7 +1089,12 @@ def check_stop_condition(
 
 
 def build_training_state(training_args) -> LoggingHandles:
-    """Construct minimal logging handles for the custom runner."""
+    """Construct minimal logging handles for the custom runner.
+
+    :param training_args: Training configuration providing save strategy/steps.
+    :returns: ``LoggingHandles`` instance with a no-op checkpoint saver.
+    :rtype: LoggingHandles
+    """
 
     class _NoopWriter:
         def __init__(self):

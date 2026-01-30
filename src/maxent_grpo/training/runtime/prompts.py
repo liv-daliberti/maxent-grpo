@@ -100,7 +100,15 @@ class GenerationPenaltyPassthroughMixin:
 
 
 def truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
-    """Clamp prompt strings to a safe length for vLLM/http payloads (shared warning state)."""
+    """Clamp prompt strings to a safe length for vLLM/http payloads.
+
+    :param prompt: Prompt string to clamp.
+    :param char_limit: Optional character limit override. When ``None`` the
+        module-level ``PROMPT_CHAR_LIMIT`` is used.
+    :returns: The original prompt when under the limit, otherwise a truncated
+        prefix.
+    :rtype: str
+    """
 
     limit = char_limit if char_limit is not None else PROMPT_CHAR_LIMIT
     if limit <= 0 or len(prompt) <= limit:
@@ -116,7 +124,11 @@ def truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
 
 
 def sync_trunc_state(state: Dict[str, Any]) -> None:
-    """Merge external truncation state into the shared warning cache."""
+    """Merge external truncation state into the shared warning cache.
+
+    :param state: Dictionary of state keys to merge (e.g., ``{"warned": True}``).
+    :returns: ``None``.
+    """
 
     if isinstance(state, dict):
         _TRUNC_STATE.update(state)
@@ -127,7 +139,12 @@ _truncate_prompt = truncate_prompt
 
 
 def _prompt_char_limit_from_tokens(max_prompt_len: int) -> int:
-    """Derive a character cap from the token cap (≈4 chars/token) with env floor."""
+    """Derive a character cap from the token cap (approx. 4 chars/token).
+
+    :param max_prompt_len: Maximum number of tokens allowed for prompts.
+    :returns: Character limit used by ``truncate_prompt``.
+    :rtype: int
+    """
 
     approx_char_limit = (
         int(max_prompt_len * 4) if max_prompt_len and max_prompt_len > 0 else 0
@@ -159,7 +176,17 @@ def _to_prompt(
     system_prompt: Optional[str],
     char_limit: Optional[int] = None,
 ) -> Dict[str, str]:
-    """Shared prompt/answer builder used across training pipelines."""
+    """Shared prompt/answer builder used across training pipelines.
+
+    :param example: Dataset row containing a prompt and optional answer fields.
+    :param tokenizer: Tokenizer or chat template adapter used to render prompts.
+    :param prompt_column: Column name to read the user prompt from.
+    :param system_prompt: Optional system prompt prepended to the conversation.
+    :param char_limit: Optional character cap applied after formatting.
+    :returns: Mapping with ``prompt`` and ``answer`` string fields.
+    :rtype: dict[str, str]
+    :raises KeyError: If the prompt column is missing from the example.
+    """
 
     resolved_column = prompt_column
     if prompt_column not in example and prompt_column == "problem":

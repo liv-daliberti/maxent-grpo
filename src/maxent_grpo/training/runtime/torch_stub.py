@@ -3,19 +3,26 @@
 from __future__ import annotations
 
 from contextlib import nullcontext, contextmanager
+import logging
 from numbers import Integral
 import sys
 from types import ModuleType, SimpleNamespace
-from typing import Any, Iterable, Tuple
+from typing import Any, Iterable, Tuple, Dict
 
 import numpy as np
 
 # Expected conversion/indexing errors when emulating torch with numpy.
 _NUMPY_EXCEPTIONS = (TypeError, ValueError, OverflowError, IndexError)
+_TORCH_STUB_CACHE: Dict[str, Any] = {}
+
+LOG = logging.getLogger(__name__)
 
 
 def _build_torch_stub() -> Any:
     """Return a lightweight, numpy-backed torch stub for test environments."""
+    cached = _TORCH_STUB_CACHE.get("stub")
+    if cached is not None:
+        return cached
 
     class _DType:
         def __init__(self, name: str, np_dtype: np.dtype):
@@ -142,11 +149,21 @@ def _build_torch_stub() -> Any:
                 return self
             return _Tensor(self.arr.astype(np_dtype), dtype=dtype)
 
+        def type_as(self, other):
+            target_dtype = getattr(other, "dtype", None)
+            if target_dtype is None:
+                return self
+            return self.to(dtype=target_dtype)
+
         def cpu(self):
             return self
 
         def detach(self):
             return self
+
+        def backward(self, *_args, **_kwargs):
+            # No-op for stubbed tensors.
+            return None
 
         def clone(self):
             return _Tensor(self.arr.copy(), dtype=self.dtype)
@@ -192,7 +209,7 @@ def _build_torch_stub() -> Any:
             try:
                 np.putmask(self.arr, mask_arr.astype(bool), value)
             except _NUMPY_EXCEPTIONS:
-                pass
+                LOG.debug("torch_stub masked_fill_ failed for mask/value combination.")
             return self
 
         def bool(self):
@@ -283,7 +300,7 @@ def _build_torch_stub() -> Any:
             try:
                 np.fill_diagonal(self.arr, value)
             except _NUMPY_EXCEPTIONS:
-                pass
+                LOG.debug("torch_stub fill_diagonal_ failed.")
             return self
 
         def exp(self):
@@ -322,7 +339,7 @@ def _build_torch_stub() -> Any:
                 self.arr[key] = val
                 return
             except _NUMPY_EXCEPTIONS:
-                pass
+                LOG.debug("torch_stub __setitem__ failed for key=%s", key)
             # Legacy fallback for environments where numpy indexing still fails.
             if isinstance(key, tuple) and len(key) == 2:
                 row, col = key
@@ -675,6 +692,7 @@ def _build_torch_stub() -> Any:
     torch_mod.int64 = int64_dtype
     torch_mod.long = torch_mod.int64
     torch_mod.bool = bool_dtype
+    torch_mod.version = SimpleNamespace(version="0.0.0", __version__="0.0.0", cuda=None)
     torch_mod.dtype = type("dtype", (), {})  # pragma: no cover - placeholder
     torch_mod.device = lambda name="cpu": _Device(name)
     torch_mod.is_grad_enabled = lambda: True
@@ -697,6 +715,13 @@ def _build_torch_stub() -> Any:
         is_available=lambda: False,
         manual_seed_all=lambda *_a, **_k: None,
         _is_in_bad_fork=lambda: False,
+        current_allocated_memory=lambda: 0,
+        current_reserved_memory=lambda: 0,
+        memory_allocated=lambda *_a, **_k: 0,
+        memory_reserved=lambda *_a, **_k: 0,
+        max_memory_allocated=lambda *_a, **_k: 0,
+        max_memory_reserved=lambda *_a, **_k: 0,
+        memory_stats=lambda *_a, **_k: {},
     )
     torch_mod.xpu = SimpleNamespace(
         is_available=lambda: False,
@@ -720,8 +745,36 @@ def _build_torch_stub() -> Any:
             return _Tensor([])
 
     # nn + optim namespaces
+    class _Module:
+        def __init__(self, *args, **kwargs):
+            _ = args, kwargs
+            self.training = True
+
+        def forward(self, *args, **kwargs):
+            _ = args, kwargs
+            raise TypeError("Module is not callable")
+
+        def __call__(self, *args, **kwargs):
+            return self.forward(*args, **kwargs)
+
+        def train(self, mode: bool = True):
+            self.training = bool(mode)
+            return self
+
+        def eval(self):
+            return self.train(False)
+
+        def parameters(self):
+            return []
+
+        def state_dict(self):
+            return {}
+
+        def load_state_dict(self, _state):
+            return None
+
     torch_mod.nn = SimpleNamespace(
-        Module=type("Module", (), {}),
+        Module=_Module,
         Parameter=type("Parameter", (), {}),
         functional=SimpleNamespace(
             log_softmax=lambda *a, **k: _log_softmax(
@@ -743,7 +796,7 @@ def _build_torch_stub() -> Any:
     )
     torch_mod.backends.mps = torch_mod.mps
     optim_mod = ModuleType("torch.optim")
-    optim_mod.__spec__ = SimpleNamespace()
+    optim_mod.__spec__ = SimpleNamespace(name="torch.optim")
     optim_mod.__path__ = []
     optim_mod.Optimizer = type("Optimizer", (), {})
     optim_mod.AdamW = lambda params=None, lr=1e-3: SimpleNamespace(
@@ -756,7 +809,7 @@ def _build_torch_stub() -> Any:
     )
     # lr_scheduler stub to satisfy "import torch.optim.lr_scheduler" paths.
     lr_sched_mod = ModuleType("torch.optim.lr_scheduler")
-    lr_sched_mod.__spec__ = SimpleNamespace()
+    lr_sched_mod.__spec__ = SimpleNamespace(name="torch.optim.lr_scheduler")
     lr_sched_mod.__path__ = []
     lr_sched_mod.LRScheduler = type("LRScheduler", (), {})
     protected_name = "_" + "LRScheduler"
@@ -770,7 +823,7 @@ def _build_torch_stub() -> Any:
         dynamo_mod = ModuleType("torch._dynamo")
         dynamo_mod.disable = lambda fn=None, recursive=False: fn
         dynamo_mod.graph_break = lambda: None
-        dynamo_mod.__spec__ = SimpleNamespace()
+        dynamo_mod.__spec__ = SimpleNamespace(name="torch._dynamo")
         sys.modules["torch._dynamo"] = dynamo_mod
     setattr(torch_mod, "_dynamo", dynamo_mod)
 
@@ -784,9 +837,9 @@ def _build_torch_stub() -> Any:
         data_mod = SimpleNamespace()
         utils_mod.data = data_mod
     if getattr(utils_mod, "__spec__", None) is None:
-        utils_mod.__spec__ = SimpleNamespace()
+        utils_mod.__spec__ = SimpleNamespace(name="torch.utils")
     if getattr(data_mod, "__spec__", None) is None:
-        data_mod.__spec__ = SimpleNamespace()
+        data_mod.__spec__ = SimpleNamespace(name="torch.utils.data")
 
     class DataLoader:
         def __iter__(self):
@@ -797,8 +850,28 @@ def _build_torch_stub() -> Any:
     # Mark the module so runtime guards can detect stubbed deps.
     torch_mod.__maxent_stub__ = True
     # Register stub modules for import resolution
-    torch_mod.__spec__ = SimpleNamespace()
+    torch_mod.__spec__ = SimpleNamespace(name="torch")
     torch_mod.__path__ = []
+    if getattr(torch_mod, "cuda", None) is not None and getattr(
+        torch_mod.cuda, "__spec__", None
+    ) is None:
+        torch_mod.cuda.__spec__ = SimpleNamespace(name="torch.cuda")
+    if getattr(torch_mod, "xpu", None) is not None and getattr(
+        torch_mod.xpu, "__spec__", None
+    ) is None:
+        torch_mod.xpu.__spec__ = SimpleNamespace(name="torch.xpu")
+    if getattr(torch_mod, "mps", None) is not None and getattr(
+        torch_mod.mps, "__spec__", None
+    ) is None:
+        torch_mod.mps.__spec__ = SimpleNamespace(name="torch.mps")
+    if getattr(torch_mod, "nn", None) is not None and getattr(
+        torch_mod.nn, "__spec__", None
+    ) is None:
+        torch_mod.nn.__spec__ = SimpleNamespace(name="torch.nn")
+    if getattr(torch_mod.nn, "functional", None) is not None and getattr(
+        torch_mod.nn.functional, "__spec__", None
+    ) is None:
+        torch_mod.nn.functional.__spec__ = SimpleNamespace(name="torch.nn.functional")
     sys.modules["torch"] = torch_mod
     sys.modules["torch.cuda"] = torch_mod.cuda
     sys.modules["torch.xpu"] = torch_mod.xpu
@@ -811,16 +884,20 @@ def _build_torch_stub() -> Any:
     sys.modules["torch.mps"] = torch_mod.mps
     # Register nested namespace stubs to placate imports triggered during backward passes.
     nested_mod = ModuleType("torch.nested")
-    nested_mod.__spec__ = SimpleNamespace()
+    nested_mod.__spec__ = SimpleNamespace(name="torch.nested")
     nested_internal = ModuleType("torch.nested._internal")
-    nested_internal.__spec__ = SimpleNamespace()
+    nested_internal.__spec__ = SimpleNamespace(name="torch.nested._internal")
     nested_tensor_mod = ModuleType("torch.nested._internal.nested_tensor")
-    nested_tensor_mod.__spec__ = SimpleNamespace()
+    nested_tensor_mod.__spec__ = SimpleNamespace(
+        name="torch.nested._internal.nested_tensor"
+    )
     nested_tensor_mod.NestedTensor = type("NestedTensor", (), {})
+    torch_mod.nested = nested_mod
     sys.modules.setdefault("torch.nested", nested_mod)
     sys.modules.setdefault("torch.nested._internal", nested_internal)
     sys.modules.setdefault("torch.nested._internal.nested_tensor", nested_tensor_mod)
 
+    _TORCH_STUB_CACHE["stub"] = torch_mod
     return torch_mod
 
 

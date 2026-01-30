@@ -86,6 +86,8 @@ def main(
     :param model_args: Model configuration passed to TRL/transformers trainers.
     :returns: Training result from :func:`maxent_grpo.pipelines.training.baseline.run_baseline_training`,
         or the Hydra CLI invocation result when no args are supplied.
+    :raises RuntimeError: If no CLI parser or Hydra entrypoint is available.
+    :raises Exception: Propagates parser or training pipeline exceptions.
     """
 
     if script_args is None or training_args is None or model_args is None:

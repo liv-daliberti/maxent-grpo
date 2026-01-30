@@ -1,8 +1,0 @@
-- command=math-eval
-- inference.dataset=math_500
-- inference.seeds=[0]
-- inference.num_generations=8
-- inference.temperature=0.6
-- inference.models=[{model_name_or_path:Qwen/Qwen2.5-1.5B-Instruct,batch_size:1,label:base-1p5B,style:grpo,max_new_tokens:4096,top_p:0.9,num_generations:8,system_prompt:@/n/fs/similarity/maxent-grpo/configs/prompts/math_system_prompt.txt}]
-- inference.collect_generations=false
-- inference.artifacts.root_dir=var/artifacts/inference

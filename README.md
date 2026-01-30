@@ -5,7 +5,7 @@ A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑lev
 
 ## Quick Start
 
-- Bootstrap the repo-local env + caches: `bash ops/scripts/bootstrap_env.sh` (wraps `configs/environment.yml`, writes the env to `./var/openr1` and all caches/tmp under `./var`). Equivalent: `make conda-local`.
+- Bootstrap the repo-local env + caches: `bash tools/bootstrap_env.sh` (wraps `configs/environment.yml`, writes the env to `./var/openr1` and all caches/tmp under `./var`). Equivalent: `make conda-local`.
 - Activate: `conda activate ./var/openr1`; refresh installs via `pip install -c configs/constraints.txt -e .[dev]`.
 - Authenticate with Hugging Face (`huggingface-cli login` or `export HF_TOKEN=…`) so gated models/datasets can be pulled by vLLM/TRL.
 - Training telemetry / proof of work: public run stats at [wandb.ai ↗](https://api.wandb.ai/links/ogd3-princeton-university/aw6ecc9b).
@@ -37,6 +37,14 @@ maxent-grpo-math-eval command=math-eval \
   inference.artifacts.root_dir=var/artifacts/inference
 ```
 
+Paired recipes (GRPO vs MaxEnt): each model ships matched configs under
+`configs/recipes/<model>/grpo/config_math.yaml` and
+`configs/recipes/<model>/maxent-grpo/config_math.yaml` with shared sampling,
+optimizer, and eval settings. The GRPO pairs set `force_custom_loop: true` and
+`maxent_reference_logprobs_source: model` so both objectives run through the
+same custom loop with a frozen reference anchor. For the Hydra preset, use
+`configs/recipes/hydra/grpo_custom_math.yaml`.
+
 All MaxEnt and InfoSeed recipes now enable the τ/β meta-controller (analytic mode) by default so weights stay on target without manual tuning. Override with Hydra/CLI flags such as ``controller_meta_enabled=false`` (fully static), ``controller_meta_method=first_order`` (truncated gradients), or ``controller_meta_lr=0.02`` for per-project retuning. The baseline GRPO recipes keep the controller disabled unless you explicitly flip the flag.
 
 Examples:
@@ -55,7 +63,7 @@ maxent-grpo-baseline \
 The MaxEnt runner is provided as building blocks under `src/maxent_grpo/training/` and a YAML recipe; the convenience CLI (`maxent-grpo-maxent` / `--task maxent`) currently raises until the dedicated launcher is restored.
 
 Multi-node training (recommended): `sbatch ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3 --args "--run_name demo --report_to wandb"`.
-- Inspect `sbatch ops/slurm/train.slurm --help` for dp/tp, ports, vLLM mode, and accelerate config knobs. All caches/logs stay under `var/` by default.
+- Inspect `sbatch ops/slurm/train.slurm --help` for dp/tp, ports, vLLM mode, and accelerate config knobs. All caches stay under `var/` and run artifacts under `var/artifacts/` by default.
 
 Evaluate math benchmarks locally via `src/inference`:
 ```python
@@ -101,8 +109,9 @@ Notes
 ## Code Organization
 ```
 .
-├─ configs/                     # env, constraints, recipes (Hydra shortcuts + TRL YAML + accelerate configs)
-├─ ops/                         # operations toolbox (slurm launchers, env bootstrap, PATH helpers, sitecustomize)
+├─ configs/                     # env, constraints, recipes, prompts (Hydra shortcuts + TRL YAML + accelerate configs)
+├─ custom_tasks/                # LightEval custom tasks + task YAML templates
+├─ ops/                         # operations toolbox (slurm launchers + sitecustomize)
 ├─ src/
 │  └─ maxent_grpo/              # all code now lives under the namespaced package
 │     ├─ cli/                   # Hydra console entrypoints (baseline/maxent/generate/inference)
@@ -115,11 +124,13 @@ Notes
 │     ├─ rewards.py             # reward registry used by the baseline trainer
 │     ├─ grpo.py / maxent_grpo.py  # TRL-style entrypoints (baseline GRPO + MaxEnt shim)
 │     └─ inference/             # math_500 inference helpers (re-exported by src/maxent_grpo/inference)
-├─ tools/                       # local utilities (e.g., log validation)
+├─ tools/                       # runnable utilities (env bootstrap, patchers, eval helpers)
 ├─ docs/                        # Sphinx guides + API reference
-├─ var/                         # repo-local env, caches, logs, data outputs (gitignored)
+├─ var/                         # repo-local env, caches, run artifacts (see var/artifacts), data outputs (gitignored)
 └─ data/                        # optional staging area for large datasets/checkpoints
 ```
+
+Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now live under `var/artifacts/`.
 
 
 ## Training Flow (MaxEnt Runner)
@@ -127,7 +138,7 @@ Notes
 2. **Rewards & scoring** — `training.rewards` + `training.pipeline.prepare_training_batch` build grouped completions, reward stats, reference log-probs, and sequence scores.
 3. **Weighting & loss** — `training.weighting.loss` + `training.weighting.logic` compute listwise targets/weights (entropy, KL) and loss scalars.
 4. **Optimization** — `training.loop` drives gradient accumulation and schedules; `training.optim` + `training.state` handle LR schedules, controllers, checkpoints.
-5. **Logging** — `training.metrics` and `telemetry.wandb` report metrics; logs/checkpoints land under `var/` by default.
+5. **Logging** — `training.metrics` and `telemetry.wandb` report metrics; logs/checkpoints land under `var/` (logs under `var/artifacts/logs`) by default.
 
 ## InfoSeed-GRPO (seed-aware auxiliary, optional)
 - Enable via `info_seed_enabled=True` (Hydra now enforces this for `train-infoseed` recipes); suggested defaults: `info_seed_lambda=0.01`, `info_seed_alpha_entropy=0.5`, `info_seed_num_seeds=4–8`, `info_seed_prompt_template="\n[seed={seed}]"`.
@@ -143,7 +154,7 @@ Notes
 
 
 ## Troubleshooting
-- vLLM not healthy / empty server log: inspect `var/logs/slurm_%j.out` for `nvidia-smi -L`. If it prints “No devices found”, adjust SBATCH partition/GRES.
+- vLLM not healthy / empty server log: inspect `var/artifacts/logs/slurm_%j.out` for `nvidia-smi -L`. If it prints “No devices found”, adjust SBATCH partition/GRES.
 - “Invalid generic resource (gres) specification”: ensure your cluster supports `--gres=gpu:a100:7` or switch to `#SBATCH --gpus=7`.
 - Transformers complaining about `huggingface-hub==1.1.1`: reinstall inside the env with `pip install 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0'`.
 

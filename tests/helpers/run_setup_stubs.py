@@ -410,11 +410,11 @@ class FakeAccelerator:
 
 
 TORCH_STUB = _build_torch_stub()
-TORCH_STUB.__spec__ = SimpleNamespace()
-TORCH_STUB.utils.__spec__ = SimpleNamespace()
-TORCH_STUB.utils.data.__spec__ = SimpleNamespace()
-TORCH_STUB.nn.__spec__ = SimpleNamespace()
-TORCH_STUB.nn.functional.__spec__ = SimpleNamespace()
+TORCH_STUB.__spec__ = SimpleNamespace(name="torch")
+TORCH_STUB.utils.__spec__ = SimpleNamespace(name="torch.utils")
+TORCH_STUB.utils.data.__spec__ = SimpleNamespace(name="torch.utils.data")
+TORCH_STUB.nn.__spec__ = SimpleNamespace(name="torch.nn")
+TORCH_STUB.nn.functional.__spec__ = SimpleNamespace(name="torch.nn.functional")
 
 
 def _accelerate_stub():

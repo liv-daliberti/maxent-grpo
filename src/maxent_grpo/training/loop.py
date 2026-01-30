@@ -130,7 +130,7 @@ def _maybe_save_seed_heatmap(seed_heatmap: Optional[dict], step: int) -> None:
     """Persist a correlation heatmap when enabled via env flag.
 
     Controlled by ``INFOSEED_SAVE_HEATMAP=1``; writes a JSON file under
-    ``INFOSEED_HEATMAP_DIR`` (default: ``logs/seed_heatmaps``).
+    ``INFOSEED_HEATMAP_DIR`` (default: ``var/artifacts/logs/seed_heatmaps``).
     """
 
     if not seed_heatmap:
@@ -139,7 +139,7 @@ def _maybe_save_seed_heatmap(seed_heatmap: Optional[dict], step: int) -> None:
 
     if os.environ.get("INFOSEED_SAVE_HEATMAP", "0") not in {"1", "true", "True"}:
         return
-    out_dir = os.environ.get("INFOSEED_HEATMAP_DIR", "logs/seed_heatmaps")
+    out_dir = os.environ.get("INFOSEED_HEATMAP_DIR", "var/artifacts/logs/seed_heatmaps")
     try:
         os.makedirs(out_dir, exist_ok=True)
         path = os.path.join(out_dir, f"seed_heatmap_step{int(step)}.json")
@@ -333,11 +333,11 @@ def _maybe_guard_vllm_logprobs(
         try:
             ctx.scoring.reference_logprobs_source = "model"
         except (AttributeError, TypeError, ValueError):
-            pass
+            LOG.warning("Failed to set scoring.reference_logprobs_source to model.")
         try:
             ctx.settings.scoring.reference_logprobs_source = "model"
         except (AttributeError, TypeError, ValueError):
-            pass
+            LOG.warning("Failed to set settings.scoring.reference_logprobs_source to model.")
         setattr(ctx.runtime, "_vllm_logprob_miss_steps", 0)
         return
     raise RuntimeError(
@@ -376,6 +376,10 @@ def _build_prompt_objective_entries(
     prompt_pairs = getattr(reward_comp, "pairs", None)
     prompt_texts = list(getattr(prompt_pairs, "prompts", []) or [])
     weight_groups = getattr(weight_stats, "weights_grouped", None) or []
+    use_weight_entropy = not (
+        weighting_cfg is not None
+        and getattr(weighting_cfg, "train_grpo_objective", False)
+    )
     kl_values = _per_sequence_kl_values(
         getattr(prepared, "scores", None),
         getattr(prepared, "ref_stats", None),
@@ -394,8 +398,10 @@ def _build_prompt_objective_entries(
         )
         kl_mean = float(sum(kl_slice) / len(kl_slice)) if kl_slice else 0.0
         q_entropy = _entropy_from_probs(q_grouped[idx] if idx < len(q_grouped) else [])
-        weight_entropy = _entropy_from_probs(
-            weight_groups[idx] if idx < len(weight_groups) else []
+        weight_entropy = (
+            _entropy_from_probs(weight_groups[idx] if idx < len(weight_groups) else [])
+            if use_weight_entropy
+            else 0.0
         )
         prompt_text = prompt_texts[offset] if offset < len(prompt_texts) else ""
         entries.append(
@@ -528,7 +534,7 @@ def _maybe_overwrite_controller_state_from_config(
         setattr(weighting, "_tau_entropy_ema", float(weighting.tau))
         setattr(weighting, "_tau_log", math.log(max(float(weighting.tau), 1e-8)))
     except (TypeError, ValueError):
-        pass
+        LOG.debug("Failed to refresh weighting tau tracking fields.")
     _sync_controller_state(weighting)
     accelerator = getattr(getattr(ctx, "runtime", None), "accelerator", None)
     if accelerator is not None:
@@ -605,7 +611,7 @@ def _train_step(
         try:
             delattr(ctx.runtime, "_last_skip_stage")
         except (AttributeError, TypeError):
-            pass
+            LOG.debug("Failed to clear runtime skip stage marker.")
         return False
     _maybe_guard_vllm_logprobs(ctx, prepared, state.global_step)
     state.num_input_tokens_seen += float(prepared.total_input_tokens)

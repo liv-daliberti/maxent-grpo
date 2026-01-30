@@ -86,7 +86,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--server-log",
-        default="var/logs/vllm_client_tag_smoke.log",
+        default="var/artifacts/logs/vllm_client_tag_smoke.log",
         help="File to capture vLLM stdout/err when launching.",
     )
     parser.add_argument(

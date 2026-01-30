@@ -8,7 +8,7 @@ import os
 import random
 import shutil
 import logging
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple, cast
 
 try:  # pragma: no cover - optional dependency guard for stripped test envs
     from datasets import load_from_disk as _hf_load_from_disk
@@ -77,10 +77,13 @@ def _format_eval_row(
     system_prompt: Optional[str],
     char_limit: int,
 ) -> dict:
+    prompt_col = prompt_column
+    if prompt_col not in example and prompt_col == "problem" and "prompt" in example:
+        prompt_col = "prompt"
     out = _to_prompt(
         example,
         tokenizer,
-        prompt_column,
+        prompt_col,
         system_prompt,
         char_limit=char_limit,
     )
@@ -119,7 +122,23 @@ def load_datasets(
     *,
     accelerator: Any | None = None,
 ) -> Tuple[Any, list]:
-    """Load train/eval datasets and return (train_dataset, eval_rows)."""
+    """Load train/eval datasets and return ``(train_dataset, eval_rows)``.
+
+    The helper handles prompt/answer column normalization, optional dataset
+    caching, and prompt truncation. Evaluation rows are normalized into a list
+    of dictionaries with ``prompt``/``answer`` keys.
+
+    :param script_args: Script arguments describing dataset identifiers and
+        prompt/answer columns.
+    :param training_args: Training configuration providing prompt limits and
+        cache settings.
+    :param tokenizer: Tokenizer used to format prompts.
+    :param accelerator: Optional Accelerator used for process synchronization.
+    :returns: Tuple of the processed training dataset and a list of evaluation
+        rows (possibly empty when eval is disabled).
+    :rtype: tuple[Any, list]
+    :raises ValueError: If required dataset columns are missing.
+    """
 
     pc = getattr(script_args, "dataset_prompt_column", "problem")
     sc = getattr(script_args, "dataset_solution_column", "answer")
@@ -128,10 +147,13 @@ def load_datasets(
     )
 
     def _map_fn(ex: dict) -> dict:
+        prompt_col = pc
+        if prompt_col not in ex and prompt_col == "problem" and "prompt" in ex:
+            prompt_col = "prompt"
         out = _to_prompt(
             ex,
             tokenizer,
-            pc,
+            prompt_col,
             getattr(training_args, "system_prompt", None),
             char_limit=char_limit,
         )
@@ -159,10 +181,13 @@ def load_datasets(
     is_main_process = bool(getattr(accelerator, "is_main_process", True))
 
     def _wait_for_everyone() -> None:
-        wait_for_all = getattr(accelerator, "wait_for_everyone", None)
-        if not callable(wait_for_all):
+        wait_for_all = cast(
+            Optional[Callable[[], None]],
+            getattr(accelerator, "wait_for_everyone", None),
+        )
+        if wait_for_all is None:
             return
-        cast(Callable[[], None], wait_for_all)()
+        wait_for_all()
 
     cache_path = _dataset_cache_path(
         script_args,
@@ -301,7 +326,13 @@ def load_datasets(
 
 
 def resolve_dataloader_kwargs(training_args: Any) -> dict:
-    """Return DataLoader kwargs derived from training_args."""
+    """Return ``torch.utils.data.DataLoader`` kwargs derived from training_args.
+
+    :param training_args: Training config or namespace containing DataLoader
+        knobs such as ``dataloader_num_workers`` and ``dataloader_pin_memory``.
+    :returns: Dictionary of keyword arguments suitable for ``DataLoader``.
+    :rtype: dict
+    """
 
     kwargs: dict[str, Any] = {}
     num_workers = int(getattr(training_args, "dataloader_num_workers", 0) or 0)

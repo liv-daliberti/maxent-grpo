@@ -39,7 +39,7 @@ def _clear_torch_stub() -> None:
 
 
 _TORCH_SENSITIVE_MODULES = {
-    "tests.test_run_training_loss",
+    "tests.training.test_run_training_loss",
     "maxent_grpo.training.weighting.loss",
 }
 

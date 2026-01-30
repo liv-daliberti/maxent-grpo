@@ -755,7 +755,14 @@ def _has_recipe_path(obj: Any) -> bool:
 def load_reward_functions(
     script_args: Any, tokenizer: Any, training_args: Any = None
 ) -> Tuple[list, list]:
-    """Resolve reward functions/weights from script or training args."""
+    """Resolve reward functions/weights from script or training args.
+
+    :param script_args: Script arguments carrying reward names/weights.
+    :param tokenizer: Tokenizer passed to reward function factory helpers.
+    :param training_args: Optional training config that can override script rewards.
+    :returns: Tuple of ``(reward_funcs, reward_weights)``.
+    :rtype: tuple[list, list]
+    """
 
     def _resolve_rewards(source: Any) -> Tuple[List[str], Optional[List[float]]]:
         if source is None:
@@ -790,7 +797,14 @@ def load_reward_functions(
 def load_eval_reward_functions(
     script_args: Any, tokenizer: Any, training_args: Any = None
 ) -> Tuple[list, list]:
-    """Resolve eval reward functions/weights, defaulting to training rewards."""
+    """Resolve eval reward functions/weights, defaulting to training rewards.
+
+    :param script_args: Script arguments containing eval-specific reward settings.
+    :param tokenizer: Tokenizer passed to reward function factory helpers.
+    :param training_args: Optional training config with reward overrides.
+    :returns: Tuple of ``(reward_funcs, reward_weights)`` for evaluation.
+    :rtype: tuple[list, list]
+    """
 
     script_eval_names = _coerce_reward_names(
         getattr(script_args, "eval_reward_funcs", None)

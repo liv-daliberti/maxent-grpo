@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 7B MaxEnt‑GRPO math recipe paired with
+# configs/recipes/Qwen2.5-7B/grpo/config_math_maxent_hparams.yaml
+# (same batch size, logging, KL control, prompt lengths, etc.)
+
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-7B
 model_revision: main
-resume_from_checkpoint: false
+resume_from_checkpoint: true
 torch_dtype: float16
 attn_implementation: sdpa
+reference_model_name_or_path: Qwen/Qwen2.5-7B
+reference_model_revision: main
 
 # Data training arguments
 dataset_name: open-r1/OpenR1-Math-220k
@@ -26,12 +32,49 @@ eval_dataset_name: HuggingFaceH4/MATH-500
 eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
-system_prompt: "You are an expert *mathematics problem-solver*.\n\n  Every time you receive a problem you must:\n  • Analyse it thoroughly.  \n    – Pinpoint the **goal** (what quantity/set/form is requested).  \n    – Pinpoint the **givens/constraints** (domains, integrality, non-negativity, geometric conditions).  \n    – Choose the **methods** to apply (algebraic manipulation, factorization, inequalities, counting, modular arithmetic, geometry, calculus, etc.).  \n    – Write out the full derivation that leads to the final result.\n\n  • Check that the result satisfies all original constraints (no extraneous roots, correct domain, simplified form, exact arithmetic).\n\n  • Respond in **exactly** the tag-based format shown below – no greeting, no commentary outside the tags.  \n    – The final answer goes inside `<answer>` **only**.  \n    – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.  \n    – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.  \n    – If there is **no solution**, write `NO SOLUTION`. If the problem is **underdetermined**, write `I DON'T KNOW`.\n\n  • You have a hard cap of **750 output tokens**. Be concise but complete.\n\n  ------------------------------------------------------------\n  TAG TEMPLATE (copy this shape for every problem)\n  <think>\n  YOUR reasoning process goes here:  \n  1. quote the relevant bits of the problem  \n  2. name the mathematical tool(s) you apply  \n  3. show each intermediate step until the result is reached  \n     \n  If you spot an error or an unmet constraint, iterate, repeating steps 1–3 as many\n  times as necessary until you are confident in your result. Finish by verifying the\n  result satisfies the original conditions exactly (substitution/checks).\n  </think>\n  <answer>\n  THEANSWER\n  </answer>\n  "
-# GRPO trainer config
-bf16: false
-fp16: true
+disable_distributed_sampler: true
+system_prompt: |
+  You are an expert *mathematics problem-solver*.
+
+  Every time you receive a problem you must:
+  • Analyse it thoroughly.
+    – Pinpoint the **goal** (what quantity/set/form is requested).
+    – Pinpoint the **givens/constraints** (domains, integrality, non-negativity, geometric conditions).
+    – Choose the **methods** to apply (algebraic manipulation, factorization, inequalities, counting, modular arithmetic, geometry, calculus, etc.).
+    – Write out the full derivation that leads to the final result.
+
+  • Check that the result satisfies all original constraints (no extraneous roots, correct domain, simplified form, exact arithmetic).
+
+  • Respond in **exactly** the tag-based format shown below – no greeting, no commentary outside the tags.
+    – The final answer goes inside `<answer>` **only**.
+    – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.
+    – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.
+
+  ------------------------------------------------------------
+  TAG TEMPLATE (copy this shape for every problem)
+  <think>
+  YOUR reasoning process goes here:
+  1. quote the relevant bits of the problem
+  2. name the mathematical tool(s) you apply
+  3. show each intermediate step until the result is reached
+
+  If you spot an error or an unmet constraint, iterate, repeating steps 1–3 as many
+  times as necessary until you are confident in your result. Finish by verifying the
+  result satisfies the original conditions exactly (substitution/checks).
+  </think>
+  <answer>
+  THEANSWER
+  </answer>
+
+# GRPO paired config (mirrors MaxEnt training settings)
+# Training/eval & logging
+bf16: true
+fp16: false
 use_vllm: true
-vllm_mode: server         # reuse the single vLLM server launched by the script
+vllm_mode: server         # reuse the single vLLM server from the launcher; avoids spawning 6 colocated engines
+vllm_return_logprobs: false
+# Force frozen reference-model scoring for KL/GRPO trust region.
+maxent_reference_logprobs_source: model
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 2
@@ -39,9 +82,20 @@ gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
 train_grpo_objective: true
-hub_model_id: od2961/Qwen2.5-7B-Open-R1-GRPO-math-v1
+force_custom_loop: true
+gen_temperature: 1.0          # paper setting
+gen_top_p: 1.0
+gen_top_k: 0
+gen_best_of: 1
+vllm_stop_sequences:
+  - "</answer>"
+  - "</answer>\n"
+  - "</assistant>"
+vllm_request_timeout: 600
+vllm_url: http://localhost:29525/generate
+hub_model_id: od2961/Qwen2.5-7B-Open-R1-GRPO-math-2k
 hub_strategy: every_save
-learning_rate: 5e-6
+learning_rate: 1e-6
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
@@ -50,45 +104,40 @@ logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
-max_prompt_length: 1400
-max_completion_length: 600
-max_steps: -1
-num_generations: 4
-num_train_epochs: 3
-output_dir: var/data/Qwen2.5-7B-Open-R1-GRPO-math-v1
+max_prompt_length: 2096
+max_completion_length: 4096
+max_steps: 2000              # matches the paired MaxEnt 2k math run
+num_generations: 16          # paper setting
+num_train_epochs: 5
+output_dir: var/data/Qwen2.5-7B-Open-R1-GRPO-math-2k
 overwrite_output_dir: true
 per_device_eval_batch_size: 8
-per_device_train_batch_size: 8
+per_device_train_batch_size: 1
 push_to_hub: true
 report_to:
 - wandb
+wandb_project: huggingface
+wandb_entity: ogd3-princeton-university
 reward_funcs:
 - pure_accuracy_math
 reward_weights:
 - 1
-kl_target:        0.07       # was 0.05 → aim for ≈40 % of previous KL
-init_kl_coeff:    0.50
-init_kl_coef:     0.50        # TRL controller alias
-kl_penalty_beta:  0.50        # Additional TRL alias
-kl_horizon:       50000    # was 100 000 → controller adapts in ~½ the steps
-kl_ctl_step_size: 0.15      # was 0.05 → gentler per‑update β adjustments
+
+# Reverse‑KL weight β used inside MaxEnt update
+init_kl_coeff: 0.04        # MaxEnt/metrics path reads this alias
+init_kl_coef: 0.04         # TRL field that seeds the KL controller/beta
+kl_penalty_beta: 0.04      # Extra TRL alias used by some releases
+kl_target:        0.07
+kl_horizon:       500
+kl_ctl_step_size: 1.0
+
+# Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.15
-vf_coef: 0.25
-advantage_normalization: running
-horizon: 1024
+clip_range: 0.05
 save_strategy: steps
 save_steps: 50
 evaluation_strategy: steps
-eval_steps: 25
+eval_steps: 500
 save_total_limit: 1000
 seed: 42
 warmup_ratio: 0.2
-reward_normalization: true
-gamma: 0.99
-gae_lambda: 0.95
-log_grad_norm_after_clip: true
-log_kl_per_token: true
-reward_clip: [-6.0, 6.0]
-advantage_clip: [-2.5, 2.5]
-clip_range:     0.05          # keep or lower to 0.08
-clip_range_vf:  0.5           # tighten critic clipping

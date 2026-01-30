@@ -215,8 +215,8 @@ class ControllerMetaManager:
         torch_mod = self._torch
         try:
             state.zero_grad()
-        except (AttributeError, RuntimeError, TypeError):
-            pass
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            LOG.debug("Failed to zero controller grads: %s", exc)
 
         def _as_grad_tensor(param, value: float):
             dtype = getattr(param, "dtype", None)
@@ -278,15 +278,15 @@ class ControllerMetaManager:
             self._weighting.tau = float(new_tau)
             try:
                 setattr(self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8)))
-            except (AttributeError, TypeError, ValueError):
-                pass
+            except (AttributeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to update _tau_log after manual tau update: %s", exc)
             updated = True
             setattr(self._weighting, "_meta_last_tau_grad", float(grad_val))
             if meta_cfg is not None:
                 try:
                     meta_cfg.last_tau_grad = float(grad_val)
-                except (AttributeError, TypeError, ValueError):
-                    pass
+                except (AttributeError, TypeError, ValueError) as exc:
+                    LOG.debug("Failed to record controller meta tau_grad: %s", exc)
 
         beta_projected = False
         if isinstance(gradients.beta_grad, (int, float)) and math.isfinite(
@@ -308,8 +308,8 @@ class ControllerMetaManager:
                 if meta_cfg is not None:
                     try:
                         meta_cfg.last_beta_grad = float(raw_grad_val)
-                    except (AttributeError, TypeError, ValueError):
-                        pass
+                    except (AttributeError, TypeError, ValueError) as exc:
+                        LOG.debug("Failed to record controller meta beta_grad: %s", exc)
 
         if not updated:
             return
@@ -327,12 +327,12 @@ class ControllerMetaManager:
         if state is not None:
             try:
                 state.sync_from_scalars(self._weighting.tau, self._weighting.beta)
-            except (AttributeError, TypeError, ValueError):
-                pass
+            except (AttributeError, TypeError, ValueError) as exc:
+                LOG.debug("Failed to sync controller state from scalars: %s", exc)
             try:
                 state.zero_grad()
-            except (AttributeError, RuntimeError, TypeError):
-                pass
+            except (AttributeError, RuntimeError, TypeError) as exc:
+                LOG.debug("Failed to zero controller state grads: %s", exc)
 
     def _build_optimizer(self):
         torch_mod = self._torch
@@ -400,8 +400,8 @@ class ControllerMetaManager:
         self._weighting.beta = max(0.0, beta_val)
         try:
             setattr(self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8)))
-        except (AttributeError, TypeError, ValueError):
-            pass
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to update _tau_log after optimizer step: %s", exc)
         state.zero_grad()
         _ensure_tau_history(self._weighting)
         setattr(self._weighting, "_meta_tau_projected", False)
@@ -413,5 +413,5 @@ class ControllerMetaManager:
             self._weighting.denom = denom_sum if denom_sum > 0 else 1.0
         try:
             state.sync_from_scalars(self._weighting.tau, self._weighting.beta)
-        except (AttributeError, TypeError, ValueError):
-            pass
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to sync controller state after optimizer step: %s", exc)

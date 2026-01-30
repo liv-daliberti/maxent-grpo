@@ -12,8 +12,8 @@
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --partition=mltheory
-#SBATCH --output=var/logs/%x-%j.out
-#SBATCH --error=var/logs/%x-%j.err
+#SBATCH --output=var/artifacts/logs/%x-%j.out
+#SBATCH --error=var/artifacts/logs/%x-%j.err
 #SBATCH --time=24:00:00
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 
@@ -22,7 +22,7 @@ set -x
 
 ROOT_DIR="${ROOT_DIR:-$PWD}"
 VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
-mkdir -p "$VAR_DIR/logs" "$VAR_DIR/cache"
+mkdir -p "$VAR_DIR/artifacts/logs" "$VAR_DIR/cache"
 
 # --- Environment bootstrap (minimal, mirrors train.slurm) ---
 ENV_MODE="${ENV_MODE:-venv}"

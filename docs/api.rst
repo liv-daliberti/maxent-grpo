@@ -1,34 +1,115 @@
 API Reference
 =============
 
-Core Modules
-------------
+This page enumerates the full Python API surface under ``src/maxent_grpo``.
+
+Top-level Modules
+-----------------
+
+.. autosummary::
+   :toctree: _autosummary
+
+   maxent_grpo
+   maxent_grpo.maxent_grpo
+   maxent_grpo.grpo
+   maxent_grpo.generate
+   maxent_grpo.infoseed
+
+Configuration
+-------------
 
 .. autosummary::
    :toctree: _autosummary
    :recursive:
 
-   maxent_grpo.config.dataset
-   maxent_grpo.config.grpo
-   maxent_grpo.config.recipes
-   maxent_grpo.grpo
-   maxent_grpo.rewards
-   maxent_grpo.generate
-   maxent_grpo.training.loop
-   maxent_grpo.training.pipeline
-   maxent_grpo.training.metrics
-   maxent_grpo.training.state
-   maxent_grpo.training.weighting.loss
-   maxent_grpo.training.rewards
-   maxent_grpo.training.generation
+   maxent_grpo.config
 
-Supporting Packages
--------------------
+CLI
+---
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.cli
+
+Core
+----
 
 .. autosummary::
    :toctree: _autosummary
    :recursive:
 
    maxent_grpo.core
-   maxent_grpo.patches
+
+Generation
+----------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.generation
+
+Inference
+---------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.inference
+
+Pipelines
+---------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.pipelines
+
+Rewards
+-------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.rewards
+
+Training
+--------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.training
+
+Utilities
+---------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.utils
+
+Telemetry
+---------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
    maxent_grpo.telemetry
+
+Patches
+-------
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   maxent_grpo.patches

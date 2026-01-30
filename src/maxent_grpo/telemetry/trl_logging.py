@@ -268,6 +268,9 @@ def patch_trl_grpo_clipped_ratio() -> bool:
     When users invoke TRL's GRPOTrainer directly (bypassing ensure_weighting_logging),
     this patch adjusts the ``log`` method so negative ``completions/clipped_ratio``
     counts are clamped and renamed to ``clipped_frac`` before they are emitted.
+
+    :returns: ``True`` when the patch is active (or already applied), ``False`` otherwise.
+    :rtype: bool
     """
 
     try:
@@ -509,10 +512,10 @@ class _WeightingLoggingMixin:
                 extra = helper.metrics_for_trainer(self)
                 for key, value in extra.items():
                     merged.setdefault(key, value)
-            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            except (AttributeError, RuntimeError, TypeError, ValueError) as err:
                 # Defensive: helper can rely on optional Trainer attributes
                 # that may be missing in lightweight stubs.
-                LOG.debug("Failed to compute weighting metrics: %s", exc)
+                LOG.debug("Failed to compute weighting metrics: %s", err)
         # Prefer the precise loss captured during compute_loss to avoid the
         # 4-decimal rounding applied by the upstream Trainer logger.
         precise_loss = _numeric_or_none(getattr(self, "_last_loss_scalar", None))
@@ -532,7 +535,13 @@ class _WeightingLoggingMixin:
 
 
 def ensure_weighting_logging(trainer_cls: type) -> type:
-    """Wrap a Trainer subclass to include weighting metric logging once."""
+    """Wrap a Trainer subclass to include weighting metric logging once.
+
+    :param trainer_cls: Trainer class (or callable) to wrap.
+    :type trainer_cls: type
+    :returns: Wrapped trainer class emitting normalized weighting metrics.
+    :rtype: type
+    """
 
     if not isinstance(trainer_cls, type):
         # Allow callables (e.g., stubs returning SimpleNamespace) to be used like classes.
@@ -584,16 +593,16 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
                         RuntimeError,
                         TypeError,
                         ValueError,
-                    ) as exc:  # pragma: no cover - defensive
-                        LOG.debug("Failed to capture loss components for logging: %s", exc)
+                    ) as err:  # pragma: no cover - defensive
+                        LOG.debug("Failed to capture loss components for logging: %s", err)
                 loss_value = loss[0]
             try:
                 # Capture a precise scalar before upstream rounding.
                 if hasattr(loss_value, "mean"):
                     loss_value = loss_value.mean()
                 self._last_loss_scalar = float(loss_value.item())  # type: ignore[arg-type]
-            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
-                LOG.debug("Failed to capture precise loss scalar: %s", exc)
+            except (AttributeError, RuntimeError, TypeError, ValueError) as err:
+                LOG.debug("Failed to capture precise loss scalar: %s", err)
             return loss
 
     class WeightingLoggedTrainer(_LossCaptureMixin, _WeightingLoggingMixin, trainer_cls):  # type: ignore[misc]
@@ -611,8 +620,8 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
                 )
                 if not already_added and hasattr(self, "add_callback"):
                     self.add_callback(_WeightingLogCallback())
-            except (AttributeError, RuntimeError, TypeError) as exc:
-                LOG.debug("Failed to attach weighting log callback: %s", exc)
+            except (AttributeError, RuntimeError, TypeError) as err:
+                LOG.debug("Failed to attach weighting log callback: %s", err)
 
     WeightingLoggedTrainer.__name__ = f"WeightingLogged{trainer_cls.__name__}"
     return WeightingLoggedTrainer

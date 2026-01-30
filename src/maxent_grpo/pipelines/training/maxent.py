@@ -223,13 +223,15 @@ def run_maxent_training(
 
     train_grpo_flag = bool(getattr(training_args, "train_grpo_objective", False))
     meta_enabled = bool(getattr(training_args, "controller_meta_enabled", False))
-    use_custom_loop = (not train_grpo_flag) or meta_enabled
+    force_custom_loop = bool(getattr(training_args, "force_custom_loop", False))
+    use_custom_loop = force_custom_loop or (not train_grpo_flag) or meta_enabled
     if use_custom_loop:
         _configure_custom_loop_logging(training_args)
         LOG.info(
-            "Launching custom training loop | objective=%s | controller_meta_enabled=%s",
+            "Launching custom training loop | objective=%s | controller_meta_enabled=%s | force_custom_loop=%s",
             "GRPO" if train_grpo_flag else "MaxEnt",
             meta_enabled,
+            force_custom_loop,
         )
         # Accelerate 1.4.0+ guards against calling ``AcceleratorState`` before the
         # accelerator is initialized. Pre-warm the shared state so downstream

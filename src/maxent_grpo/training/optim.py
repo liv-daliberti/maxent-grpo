@@ -270,7 +270,13 @@ def configure_accumulation_steps(
 
 
 def detect_deepspeed_state(accelerator: Accelerator) -> DeepspeedState:
-    """Return DeepSpeed usage flags derived from the accelerator state."""
+    """Return DeepSpeed usage flags derived from the accelerator state.
+
+    :param accelerator: Accelerator instance whose state is inspected.
+    :type accelerator: Accelerator
+    :returns: ``DeepspeedState`` describing DeepSpeed usage and ZeRO stage.
+    :rtype: DeepspeedState
+    """
     accelerator_state = getattr(accelerator, "state", None)
     ds_plugin = getattr(accelerator_state, "deepspeed_plugin", None)
     zero_stage = int(getattr(ds_plugin, "zero_stage", 0) or 0)
@@ -284,7 +290,13 @@ def detect_deepspeed_state(accelerator: Accelerator) -> DeepspeedState:
 
 
 def sync_gradients_enabled(accelerator: Accelerator, global_step: int) -> bool:
-    """Return the ``sync_gradients`` flag and log it for debugging."""
+    """Return the ``sync_gradients`` flag and log it for debugging.
+
+    :param accelerator: Accelerator instance exposing ``sync_gradients``.
+    :param global_step: Current optimizer step used for debug logging.
+    :returns: ``True`` if gradients should be synchronized this step.
+    :rtype: bool
+    """
     syncing = bool(getattr(accelerator, "sync_gradients", True))
     LOG.debug(
         "Backprop complete | sync_gradients=%s | global_step=%d",
@@ -295,7 +307,13 @@ def sync_gradients_enabled(accelerator: Accelerator, global_step: int) -> bool:
 
 
 def require_accumulation_context(accelerator: Accelerator, model: Any) -> Any:
-    """Return an accumulation context compatible with the current strategy."""
+    """Return an accumulation context compatible with the current strategy.
+
+    :param accelerator: Accelerator instance providing ``accumulate``.
+    :param model: Model passed to ``accelerator.accumulate`` when available.
+    :returns: Context manager used to guard gradient accumulation.
+    :raises RuntimeError: If accumulation is required but unavailable.
+    """
     ds_state = detect_deepspeed_state(accelerator)
     if ds_state.use_deepspeed or ds_state.zero_stage >= 2:
         return nullcontext()
@@ -320,6 +338,12 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     * Optimizer hyperparameters (learning rate, betas, epsilon) are taken from
       the GRPO/TrainingArguments instance so that MaxEnt/InfoSeed runs stay
       aligned with the baseline GRPO trainer.
+
+    :param model: Model whose parameters will be optimized.
+    :param cfg: Training config carrying optimizer hyperparameters.
+    :returns: ``OptimizerHandles`` with optimizer and metadata.
+    :rtype: OptimizerHandles
+    :raises ImportError: If torch is unavailable.
     """
 
     if _TORCH_IMPORT_ERROR is not None:

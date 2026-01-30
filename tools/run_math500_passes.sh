@@ -41,9 +41,9 @@ fi
 CUSTOM_TASKS="${REPO_ROOT}/custom_tasks/math500_passk.py"
 CUSTOM_TASKS_MODULE="custom_tasks.math500_passk"
 PASS1_CFG_TEMPLATE="${REPO_ROOT}/custom_tasks/pass1.yaml"
-SYSTEM_PROMPT_PATH="${REPO_ROOT}/custom_tasks/system_prompt.txt"
+SYSTEM_PROMPT_PATH="${REPO_ROOT}/configs/prompts/math_system_prompt.txt"
 
-OUT_DIR="${OUT_DIR:-${REPO_ROOT}/results}"
+OUT_DIR="${OUT_DIR:-${REPO_ROOT}/var/artifacts/results}"
 LE_CACHE_DIR="${REPO_ROOT}/.cache/huggingface/lighteval"
 
 mkdir -p "${OUT_DIR}" "${LE_CACHE_DIR}" "${PIP_CACHE_DIR}" "${HF_HOME}"

@@ -47,6 +47,8 @@ def main(script_args=None, training_args=None, model_args=None):
     :param training_args: Optional GRPO training configuration; parsed when ``None``.
     :param model_args: Optional TRL model configuration; parsed when ``None``.
     :returns: Result of :func:`run_maxent_training` or Hydra entrypoint invocation.
+    :raises RuntimeError: If no CLI parser or Hydra entrypoint is available.
+    :raises Exception: Propagates parser or training pipeline exceptions.
     """
 
     if script_args is None or training_args is None or model_args is None:

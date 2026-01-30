@@ -360,6 +360,36 @@ def _install_torch_stub() -> None:
                 setattr(_real_torch, "optim", optim_mod)
             except (AttributeError, TypeError):
                 pass
+            cuda_mod = getattr(_real_torch, "cuda", None)
+            if cuda_mod is not None:
+                for name in (
+                    "current_allocated_memory",
+                    "current_reserved_memory",
+                    "memory_allocated",
+                    "memory_reserved",
+                    "max_memory_allocated",
+                    "max_memory_reserved",
+                ):
+                    if not hasattr(cuda_mod, name):
+                        try:
+                            setattr(cuda_mod, name, lambda *_a, **_k: 0)
+                        except (AttributeError, TypeError):
+                            pass
+                if not hasattr(cuda_mod, "memory_stats"):
+                    try:
+                        cuda_mod.memory_stats = lambda *_a, **_k: {}
+                    except (AttributeError, TypeError):
+                        pass
+            if not hasattr(_real_torch, "nested"):
+                nested_mod = ModuleType("torch.nested")
+                nested_mod.__spec__ = SimpleNamespace(
+                    name="torch.nested", origin="<maxent-torch-stub>"
+                )
+                sys.modules.setdefault("torch.nested", nested_mod)
+                try:
+                    setattr(_real_torch, "nested", nested_mod)
+                except (AttributeError, TypeError):
+                    pass
             return
     except ModuleNotFoundError:
         pass

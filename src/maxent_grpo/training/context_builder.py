@@ -34,7 +34,12 @@ def _build_seed_aug(cfg: GRPOConfig) -> Optional[SeedAugmentationConfig]:
 def apply_info_seed_to_generation(
     gen_settings: GenerationSettings, cfg: GRPOConfig
 ) -> GenerationSettings:
-    """Attach seed augmentation to GenerationSettings."""
+    """Attach seed augmentation to GenerationSettings.
+
+    :param gen_settings: Base generation settings to update.
+    :param cfg: Training configuration providing InfoSeed knobs.
+    :returns: Updated settings with ``seed_augmentation`` populated when enabled.
+    """
 
     seed_aug = _build_seed_aug(cfg)
     if seed_aug is None:
@@ -45,7 +50,12 @@ def apply_info_seed_to_generation(
 def apply_info_seed_to_scoring(
     scoring: ScoringSettings, cfg: GRPOConfig
 ) -> ScoringSettings:
-    """Attach InfoSeed loss knobs to ScoringSettings."""
+    """Attach InfoSeed loss knobs to ScoringSettings.
+
+    :param scoring: Base scoring settings to update.
+    :param cfg: Training configuration providing InfoSeed loss settings.
+    :returns: Updated scoring settings with InfoSeed options populated.
+    """
 
     return replace(
         scoring,
@@ -60,7 +70,12 @@ def apply_info_seed_to_scoring(
 def apply_info_seed_to_evaluation(
     eval_settings: EvaluationSettings, cfg: GRPOConfig
 ) -> EvaluationSettings:
-    """Populate EvaluationSettings.seed_eval using GRPOConfig fields when present."""
+    """Populate ``EvaluationSettings.seed_eval`` using GRPOConfig fields when present.
+
+    :param eval_settings: Base evaluation settings to update.
+    :param cfg: Training configuration providing InfoSeed evaluation knobs.
+    :returns: Updated evaluation settings with ``seed_eval`` populated when enabled.
+    """
 
     if not getattr(cfg, "info_seed_enabled", False):
         return eval_settings
@@ -83,7 +98,14 @@ def apply_info_seed(
     evaluation: EvaluationSettings,
     cfg: GRPOConfig,
 ) -> tuple[GenerationSettings, ScoringSettings, EvaluationSettings]:
-    """Convenience helper to update all settings with InfoSeed config."""
+    """Convenience helper to update all settings with InfoSeed config.
+
+    :param generation: Generation settings to update.
+    :param scoring: Scoring settings to update.
+    :param evaluation: Evaluation settings to update.
+    :param cfg: Training configuration providing InfoSeed knobs.
+    :returns: Tuple of updated ``(generation, scoring, evaluation)`` settings.
+    """
 
     generation = apply_info_seed_to_generation(generation, cfg)
     scoring = apply_info_seed_to_scoring(scoring, cfg)

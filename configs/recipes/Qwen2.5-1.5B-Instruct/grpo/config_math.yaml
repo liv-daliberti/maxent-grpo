@@ -26,7 +26,9 @@ eval_dataset_name: HuggingFaceH4/MATH-500
 eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
-system_prompt: "You are an expert *mathematics problem-solver*.
+disable_distributed_sampler: true
+system_prompt: |
+  You are an expert *mathematics problem-solver*.
 
   Every time you receive a problem you must:
   • Analyse it thoroughly.
@@ -41,9 +43,6 @@ system_prompt: "You are an expert *mathematics problem-solver*.
     – The final answer goes inside `<answer>` **only**.
     – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.
     – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.
-    – If there is **no solution**, write `NO SOLUTION`. If the problem is **underdetermined**, write `I DON'T KNOW`.
-
-  • You have a hard cap of **750 output tokens**. Be concise but complete.
 
   ------------------------------------------------------------
   TAG TEMPLATE (copy this shape for every problem)
@@ -60,23 +59,44 @@ system_prompt: "You are an expert *mathematics problem-solver*.
   <answer>
   THEANSWER
   </answer>
-  "
-# GRPO trainer config
-bf16: false
-fp16: true
-use_vllm: true
-vllm_mode: server         # reuse the single vLLM server launched by the script
-vllm_gpu_memory_utilization: 0.9
+
+# GRPO paired config (mirrors MaxEnt training settings)
+# Training/eval & logging
+bf16: true
+fp16: false
+use_vllm: true            # enable vLLM server path for generation
+vllm_mode: server         # use external/inline server launched by the slurm helper
+torch_compile: false      # disabled: torch.compile is unstable with DeepSpeed/ZeRO here
+# Request vLLM logprob metadata so MaxEnt can reconstruct reference stats from vLLM.
+# Request logprob metadata from vLLM (requires a server with logprob support).
+vllm_return_logprobs: true
+vllm_request_logprobs: true
+# Force frozen reference-model scoring for KL/GRPO trust region.
+maxent_reference_logprobs_source: model
+vllm_sync_weights: false
 vllm_sync_interval_steps: 10  # sync weights every N optimizer steps when enabled (0 disables)
+vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 64
+gradient_accumulation_steps: 32    # match TRL defaults for faster logging feedback
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
 train_grpo_objective: true
-hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1
+force_custom_loop: true
+gen_temperature: 1.0
+gen_top_p: 1.0
+gen_top_k: 0
+gen_best_of: 1
+vllm_stop_sequences:
+  - "</answer>"
+  - "</answer>\n"
+  - "</assistant>"
+vllm_request_timeout: 600
+vllm_url: http://localhost:29525/generate/
+hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-GRPO-BASELINE-math-v1
 hub_strategy: every_save
-learning_rate: 5e-6
+learning_rate: 1e-6
+optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
@@ -84,16 +104,18 @@ log_level: info
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
+log_like_grpo: true
 lr_scheduler_type: cosine
-max_prompt_length: 1400
-max_completion_length: 600
-max_steps: -1
-num_generations: 4
-num_train_epochs: 3
-output_dir: var/data/Qwen2.5-1.5B-Open-R1-GRPO-math-v1
+max_prompt_length: 2096      # trim prompt window to ease ref scoring memory
+max_completion_length: 2048   # shorter completions to reduce activation + ref costs
+max_steps: 2000
+# GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
+num_generations: 16          # reduce scoring footprint while satisfying GRPO minimum
+num_train_epochs: 5
+output_dir: var/data/Qwen2.5-1.5B-Open-R1-GRPO-BASELINE-math-v1
 overwrite_output_dir: true
 per_device_eval_batch_size: 8
-per_device_train_batch_size: 8
+per_device_train_batch_size: 2
 # DataLoader throughput knobs (custom loop + baseline)
 dataloader_num_workers: 4
 dataloader_pin_memory: true
@@ -102,20 +124,25 @@ dataloader_persistent_workers: true
 push_to_hub: true
 report_to:
 - wandb
+wandb_project: huggingface
+wandb_entity: ogd3-princeton-university
 reward_funcs:
 - pure_accuracy_math
 reward_weights:
 - 1
-kl_target:        0.07       # was 0.05 → aim for ≈40 % of previous KL
-init_kl_coeff:    0.50
-init_kl_coef:     0.50        # TRL controller alias
-kl_penalty_beta:  0.50        # Additional TRL alias
-kl_horizon:       50000    # was 100 000 → controller adapts in ~½ the steps
-kl_ctl_step_size: 0.15      # was 0.05 → gentler per‑update β adjustments
+
+# Reverse‑KL weight β used inside MaxEnt update
+# Gentle KL controller: keep updates small even when KL is far from target.
+init_kl_coeff: 0.5
+init_kl_coef: 0.5
+kl_penalty_beta: 0.5
+kl_target:        0.07
+kl_horizon:       500
+kl_ctl_step_size: 1.0
+
+# Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.15
-vf_coef: 0.25
-advantage_normalization: running
-horizon: 1024
+clip_range: 0.05
 save_strategy: steps
 save_steps: 50
 evaluation_strategy: steps
@@ -123,12 +150,3 @@ eval_steps: 25
 save_total_limit: 1000
 seed: 42
 warmup_ratio: 0.2
-reward_normalization: true
-gamma: 0.99
-gae_lambda: 0.95
-log_grad_norm_after_clip: true
-log_kl_per_token: true
-reward_clip: [-6.0, 6.0]
-advantage_clip: [-2.5, 2.5]
-clip_range:     0.05          # keep or lower to 0.08
-clip_range_vf:  0.5           # tighten critic clipping

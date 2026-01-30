@@ -110,7 +110,13 @@ class TruncatedBackpropControllerObjective(ControllerObjective):
 def build_controller_objective(
     cfg: GRPOConfig, weighting: WeightingSettings
 ) -> Optional[ControllerObjective]:
-    """Return the configured controller objective for the current run."""
+    """Return the configured controller objective for the current run.
+
+    :param cfg: Training configuration (retained for compatibility; not used).
+    :param weighting: Weighting settings containing controller meta config.
+    :returns: Controller objective instance or ``None`` when disabled.
+    :rtype: ControllerObjective | None
+    """
 
     del cfg  # legacy argument retained for compatibility
     meta_cfg = getattr(weighting, "controller_meta", None)

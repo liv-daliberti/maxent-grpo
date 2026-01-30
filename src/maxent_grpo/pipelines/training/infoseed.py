@@ -18,7 +18,17 @@ def run_infoseed_training(
     training_args: GRPOConfig,
     model_args: "Any",
 ) -> None:
-    """Run InfoSeed-GRPO training via the custom loop."""
+    """Run InfoSeed-GRPO training via the custom loop.
+
+    :param script_args: Script configuration including dataset and rewards.
+    :type script_args: GRPOScriptArguments
+    :param training_args: Training configuration (InfoSeed knobs enabled).
+    :type training_args: GRPOConfig
+    :param model_args: Model configuration forwarded to the loop context.
+    :type model_args: Any
+    :returns: ``None``. Side effects include training and checkpointing.
+    :rtype: None
+    """
 
     ensure_real_dependencies(context="InfoSeed-GRPO training")
 

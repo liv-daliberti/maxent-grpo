@@ -46,7 +46,12 @@ __all__ = sorted(_LAZY_MODULES)
 
 
 def __getattr__(name: str) -> Any:
-    """Lazily import submodules on first access."""
+    """Lazily import submodules on first access.
+
+    :param name: Attribute name corresponding to a lazy module entry.
+    :returns: Imported module instance.
+    :raises AttributeError: If ``name`` does not map to a known submodule.
+    """
 
     if name not in _LAZY_MODULES:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

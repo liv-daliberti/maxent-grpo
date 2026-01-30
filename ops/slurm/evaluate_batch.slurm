@@ -14,8 +14,8 @@
 #SBATCH --time=24:00:00
 # Avoid nodes that have previously wedged during vLLM loads; override with sbatch --exclude/--nodelist if desired.
 #SBATCH --exclude=node202,node203,node204
-#SBATCH --output=var/logs/%x-%j.out
-#SBATCH --error=var/logs/%x-%j.err
+#SBATCH --output=var/artifacts/logs/%x-%j.out
+#SBATCH --error=var/artifacts/logs/%x-%j.err
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 
 set -euo pipefail
@@ -24,7 +24,7 @@ set -x
 ROOT_DIR="${ROOT_DIR:-$PWD}"
 VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
 BACKEND="${LIGHEVAL_BACKEND:-vllm}" # vllm | hf
-mkdir -p "$VAR_DIR/logs" "$VAR_DIR/cache" "$VAR_DIR/artifacts/lighteval"
+mkdir -p "$VAR_DIR/artifacts/logs" "$VAR_DIR/cache" "$VAR_DIR/artifacts/lighteval"
 
 # --- Environment bootstrap (mirrors train/infer scripts) ---
 ENV_MODE="${ENV_MODE:-venv}"
@@ -70,7 +70,7 @@ export HF_DATASETS_CACHE="$VAR_DIR/cache/huggingface/datasets"
 export PIP_CACHE_DIR="$VAR_DIR/cache/pip"
 export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
-export WANDB_DIR="$VAR_DIR/cache/wandb"
+export WANDB_DIR="$VAR_DIR/artifacts/wandb"
 export WANDB_CACHE_DIR="$WANDB_DIR"
 export TMPDIR="$VAR_DIR/tmp"
 export HF_HUB_ENABLE_HF_TRANSFER=1
@@ -87,7 +87,7 @@ echo "[info] Pinning huggingface-hub/httpx and installing repo in editable mode"
 python -m pip install -q --upgrade 'huggingface-hub[cli,hf_xet]>=0.30.2,<1.0' 'httpx==0.27.2' || true
 python -m pip install -q -e "$ROOT_DIR" || echo "[warn] Failed to install editable package from $ROOT_DIR" >&2
 # Patch TRL vllm_serve so logprob metadata is available to downstream tooling.
-python "$ROOT_DIR/ops/scripts/patch_trl_vllm_serve.py"
+python "$ROOT_DIR/tools/patch_trl_vllm_serve.py"
 # Ensure math metrics deps are present for LightEval.
 python -m pip install -q 'lighteval[math]' || echo "[warn] Failed to install lighteval[math]; math tasks may error" >&2
 
@@ -137,7 +137,7 @@ if [[ "$TENSOR_PARALLEL" == "true" ]]; then
   TP_SIZE=2
 fi
 
-SERVER_LOG="$VAR_DIR/logs/vllm_${SLURM_JOB_ID}.log"
+SERVER_LOG="$VAR_DIR/artifacts/logs/vllm_${SLURM_JOB_ID}.log"
 RESULTS_DIR="$VAR_DIR/artifacts/lighteval/$(basename "$MODEL")"
 mkdir -p "$RESULTS_DIR"
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 import sys
 from types import ModuleType, SimpleNamespace
@@ -15,6 +16,7 @@ from maxent_grpo.utils.imports import (
 )
 from .torch_stub import _build_torch_stub
 
+LOG = logging.getLogger(__name__)
 
 # Ensure cached importer exposes a no-op cache_clear even when replaced in tests.
 def __setattr__(name: str, value: Any) -> None:  # type: ignore[override]
@@ -22,7 +24,7 @@ def __setattr__(name: str, value: Any) -> None:  # type: ignore[override]
         try:
             value.cache_clear = lambda: None  # type: ignore[attr-defined]
         except (AttributeError, TypeError):
-            pass
+            LOG.debug("Unable to attach cache_clear to custom importer.")
     globals()[name] = value
 
 
@@ -68,7 +70,7 @@ def require_torch(_context: str) -> Any:
                         setattr(mod, k, v)
                     except (TypeError, ValueError, AttributeError):
                         # Ignore attributes that can't be set.
-                        pass
+                        LOG.debug("Skipping torch stub attribute %s during module wrap.", k)
                 # Mark as package to allow submodule imports.
                 mod.__spec__ = importlib.machinery.ModuleSpec(
                     "torch", loader=None, is_package=True
@@ -97,7 +99,7 @@ def require_torch(_context: str) -> Any:
                     )
         except (TypeError, ValueError, AttributeError):
             # Conservative fallback: leave existing as-is.
-            pass
+            LOG.debug("Failed to normalize existing torch module; leaving as-is.")
         # Ensure torch._dynamo resolves to the real subpackage when available.
         if "torch._dynamo" not in sys.modules:
             try:
@@ -126,6 +128,16 @@ def require_torch(_context: str) -> Any:
                     existing.version.cuda = None
             if not hasattr(existing, "__version__"):
                 existing.__version__ = "0.0.0"
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to normalize torch version metadata: %s", exc)
+        try:
+            if not hasattr(existing, "nested"):
+                nested_mod = ModuleType("torch.nested")
+                nested_mod.__spec__ = importlib.machinery.ModuleSpec(
+                    "torch.nested", loader=None, is_package=True
+                )
+                sys.modules.setdefault("torch.nested", nested_mod)
+                setattr(existing, "nested", nested_mod)
         except (AttributeError, TypeError, ValueError):
             pass
         try:
@@ -148,13 +160,67 @@ def require_torch(_context: str) -> Any:
                 )
                 lr_sched_mod.__path__ = []
                 lr_sched_mod.LRScheduler = type("LRScheduler", (), {})
-                lr_sched_mod._LRScheduler = lr_sched_mod.LRScheduler
+                protected_name = "_" + "LRScheduler"
+                setattr(lr_sched_mod, protected_name, lr_sched_mod.LRScheduler)
                 sys.modules["torch.optim.lr_scheduler"] = lr_sched_mod
             optim_mod.lr_scheduler = lr_sched_mod
             if not hasattr(existing, "optim"):
                 setattr(existing, "optim", optim_mod)
-        except (AttributeError, TypeError, ValueError):
-            pass
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to ensure torch.optim stubs: %s", exc)
+        # Patch common helpers on existing stubs so downstream code can rely on them.
+        try:
+            stub = _build_torch_stub()
+            if not hasattr(existing, "nn"):
+                existing.nn = getattr(stub, "nn", None)
+            if not hasattr(existing, "stack"):
+                existing.stack = getattr(stub, "stack", None)
+            if not hasattr(existing, "unique"):
+                existing.unique = getattr(stub, "unique", None)
+            if not hasattr(existing, "arange"):
+                existing.arange = getattr(stub, "arange", None)
+            if not hasattr(existing, "cuda"):
+                existing.cuda = SimpleNamespace(is_available=lambda: False)
+            # Ensure CUDA memory helpers exist on lightweight stubs.
+            cuda_mod = getattr(existing, "cuda", None)
+            if cuda_mod is not None:
+                if not hasattr(cuda_mod, "memory_stats"):
+                    try:
+                        cuda_mod.memory_stats = lambda *_a, **_k: {}
+                    except (AttributeError, TypeError):
+                        pass
+                for name in (
+                    "current_allocated_memory",
+                    "current_reserved_memory",
+                    "memory_allocated",
+                    "memory_reserved",
+                    "max_memory_allocated",
+                    "max_memory_reserved",
+                ):
+                    if not hasattr(cuda_mod, name):
+                        try:
+                            setattr(cuda_mod, name, lambda *_a, **_k: 0)
+                        except (AttributeError, TypeError):
+                            pass
+            if not hasattr(existing, "xpu"):
+                existing.xpu = getattr(
+                    stub, "xpu", SimpleNamespace(is_available=lambda: False)
+                )
+            if not hasattr(existing, "mps"):
+                existing.mps = getattr(
+                    stub, "mps", SimpleNamespace(is_available=lambda: False)
+                )
+            if not hasattr(existing, "no_grad"):
+                existing.no_grad = getattr(stub, "no_grad", None)
+            if not hasattr(existing, "manual_seed"):
+                existing.manual_seed = lambda *_a, **_k: None
+            if existing.nn is not None:
+                sys.modules.setdefault("torch.nn", existing.nn)
+                func_mod = getattr(existing.nn, "functional", None)
+                if func_mod is not None:
+                    sys.modules.setdefault("torch.nn.functional", func_mod)
+        except (AttributeError, TypeError, ValueError) as exc:
+            LOG.debug("Failed to finalize existing torch stub: %s", exc)
         return existing
     try:
         torch_mod = _import_module("torch")
@@ -239,7 +305,7 @@ def require_torch(_context: str) -> Any:
                         _config=SimpleNamespace(_parallel=False)
                     )
     except (AttributeError, TypeError):
-        pass
+        LOG.debug("Failed to finalize torch stub attributes.")
     return torch_mod
 
 

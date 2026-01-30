@@ -533,7 +533,15 @@ def build_training_metrics_dict(
     payload: TrainingMetricsPayload,
     global_step: int,
 ) -> Dict[str, Any]:
-    """Return the flattened metrics dictionary for logging."""
+    """Return the flattened metrics dictionary for logging.
+
+    :param payload: Structured metrics payload produced by the training loop.
+    :type payload: TrainingMetricsPayload
+    :param global_step: Current optimizer step used for logging context.
+    :type global_step: int
+    :returns: Flat mapping of scalar metrics keyed by name.
+    :rtype: dict[str, Any]
+    """
     metrics: Dict[str, Any] = {}
     metrics.update(resolve_run_metadata())
     metrics.update(_base_metric_block(payload, global_step))
@@ -557,7 +565,17 @@ def log_training_metrics(
     global_step: int,
     payload: TrainingMetricsPayload,
 ) -> Dict[str, Any]:
-    """Emit scalar metrics to logging callbacks and return them."""
+    """Emit scalar metrics to logging callbacks and return them.
+
+    :param logging_cfg: Logging handles (W&B, tensorboard, stdout, etc.).
+    :type logging_cfg: LoggingHandles
+    :param global_step: Current optimizer step.
+    :type global_step: int
+    :param payload: Structured metrics payload to log.
+    :type payload: TrainingMetricsPayload
+    :returns: Flattened metrics dictionary emitted to loggers.
+    :rtype: dict[str, Any]
+    """
     metrics = build_training_metrics_dict(payload, global_step)
     logging_cfg.log_metrics(metrics, global_step)
     writer = getattr(logging_cfg, "metric_writer", None)
@@ -687,6 +705,16 @@ def summarize_reward_stats(
 
     Exposes the internal helper so that training code can gather reward
     diagnostics even on non-main ranks before metrics are logged.
+
+    :param accelerator: Accelerate handle used for reductions.
+    :type accelerator: Accelerator
+    :param reward_comp: Reward computation outputs for the current batch.
+    :type reward_comp: RewardComputation | None
+    :param log_like_grpo: When ``True``, skip global reductions and keep local
+        statistics for GRPO-style logging.
+    :type log_like_grpo: bool
+    :returns: Aggregated reward statistics for logging.
+    :rtype: RewardLoggingView
     """
 
     if reward_comp is None:
@@ -766,6 +794,16 @@ def summarize_weight_stats(
 
     Exposes the internal summarization helper so controller logic can rely on
     the same cross-rank entropy measurement used for logging.
+
+    :param accelerator: Accelerate handle used for reductions.
+    :type accelerator: Accelerator
+    :param weight_stats: Weight statistics for the current batch.
+    :type weight_stats: WeightStats
+    :param log_like_grpo: When ``True``, skip global reductions and keep local
+        statistics for GRPO-style logging.
+    :type log_like_grpo: bool
+    :returns: Aggregated weight statistics for logging.
+    :rtype: WeightLoggingView
     """
 
     return _summarize_weight_stats(
@@ -859,7 +897,15 @@ def _build_metrics_payload(
 
 
 def _epoch_from_global_step(schedule: OptimizationSchedule, global_step: int) -> float:
-    """Return the current epoch progress given the training schedule."""
+    """Return the current epoch progress given the training schedule.
+
+    :param schedule: Optimization schedule containing step/epoch metadata.
+    :type schedule: OptimizationSchedule
+    :param global_step: Current optimizer step.
+    :type global_step: int
+    :returns: Fractional epoch progress.
+    :rtype: float
+    """
     steps_per_epoch = getattr(schedule, "steps_per_epoch", None)
     if steps_per_epoch and steps_per_epoch > 0:
         return float(global_step) / float(steps_per_epoch)

@@ -88,6 +88,16 @@ def ensure_real_dependencies(
     """Raise if required deps are missing or replaced with stubs.
 
     Set ``ALLOW_STUBS=1`` to bypass the guard (intended for tests/CI stubs).
+
+    :param context: Human-readable context included in error messages.
+    :param require_torch: Whether to enforce a real ``torch`` import.
+    :param require_transformers: Whether to enforce ``transformers`` availability.
+    :param require_trl: Whether to enforce ``trl`` availability.
+    :param require_datasets: Whether to enforce ``datasets`` availability.
+    :param model: Optional model instance to check for stub markers.
+    :param tokenizer: Optional tokenizer instance to check for stub markers.
+    :returns: ``None``. Raises when required dependencies are missing.
+    :raises RuntimeError: If required modules or objects appear stubbed or missing.
     """
 
     if _allow_stubs():

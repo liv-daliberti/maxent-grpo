@@ -32,7 +32,19 @@ __all__ = ["parse_grpo_args", "build_generate_parser"]
 
 
 def parse_grpo_args() -> Tuple["GRPOScriptArguments", "GRPOConfig", "ModelConfig"]:
-    """Parse GRPO CLI arguments (lazy import to keep deps light)."""
+    """Parse GRPO CLI arguments.
+
+    The import is deferred to keep optional training dependencies out of
+    lightweight environments (tests, docs builds). If a stub CLI module is
+    preloaded under ``maxent_grpo.training.cli`` it is used instead.
+
+    :returns: Tuple of ``(script_args, training_args, model_args)`` parsed from
+        the CLI.
+    :rtype: tuple[GRPOScriptArguments, GRPOConfig, ModelConfig]
+    :raises ImportError: If the training CLI parser cannot be imported.
+    :raises RuntimeError: If the underlying parser fails to initialize.
+    :raises SystemExit: When the argument parser aborts due to invalid input.
+    """
     # Allow tests to monkeypatch the training CLI module and bypass the real parser.
     stub_cli = sys.modules.get("maxent_grpo.training.cli")
     if stub_cli is not None:

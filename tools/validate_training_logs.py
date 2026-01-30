@@ -15,7 +15,7 @@ limitations under the License.
 
 Validate training logs for expected metrics and numeric values.
 
-The validator scans ``logs/train_*.log`` (or a user-provided glob) for JSON
+The validator scans ``var/artifacts/logs/train_*.log`` (or a user-provided glob) for JSON
 objects containing training metrics and asserts that:
 - Required metric keys are present.
 - All numeric values are finite (no NaN/inf).
@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence, Set
 
 
-DEFAULT_PATTERN = "logs/train_*.log"
+DEFAULT_PATTERN = "var/artifacts/logs/train_*.log"
 DEFAULT_REQUIRED_KEYS = {
     "train/loss",
     "train/learning_rate",
