@@ -35,15 +35,30 @@ import os
 import random
 import time
 from typing import TYPE_CHECKING, Any, List, Optional, cast
+from collections.abc import Mapping
+
+from maxent_grpo.config import ScriptArguments
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from collections.abc import Sequence
+    from typing import Callable
+
     import datasets
-    from datasets import Dataset, DatasetDict, concatenate_datasets
+    from datasets import Dataset, DatasetDict
+
+    concatenate_datasets: Callable[[Sequence[Dataset]], Dataset]
 else:
     try:
         import datasets
-        from datasets import Dataset, DatasetDict, concatenate_datasets
-    except ModuleNotFoundError:  # pragma: no cover - optional dependency
+        from datasets import Dataset, DatasetDict
+
+        _concatenate = getattr(datasets, "concatenate_datasets", None)
+        if _concatenate is None:
+            raise AttributeError(
+                "The 'datasets' package is missing concatenate_datasets."
+            )
+        concatenate_datasets = _concatenate
+    except (ModuleNotFoundError, AttributeError):  # pragma: no cover - optional dependency
 
         class _DatasetsStub:
             """Lightweight stub so imports succeed when ``datasets`` is absent."""
@@ -70,8 +85,14 @@ else:
                 "Install with `pip install datasets`."
             )
 
+try:  # pragma: no cover - optional pyarrow exception for from_list conversions
+    from pyarrow.lib import ArrowInvalid as _ArrowInvalid
+except (ImportError, ModuleNotFoundError, AttributeError):
+    _ArrowInvalid = None
 
-from maxent_grpo.config import ScriptArguments
+_FROM_LIST_EXCEPTIONS = (TypeError, ValueError, RuntimeError)
+if _ArrowInvalid is not None:
+    _FROM_LIST_EXCEPTIONS = _FROM_LIST_EXCEPTIONS + (_ArrowInvalid,)
 
 
 logger = logging.getLogger(__name__)
@@ -145,6 +166,33 @@ def _load_dataset_with_retries(*args: Any, **kwargs: Any) -> Any:
     raise RuntimeError("datasets.load_dataset failed unexpectedly without an exception")
 
 
+def _to_dataset_dict(payload: Any) -> DatasetDict:
+    def _maybe_to_hf_dataset(value: Any) -> Any:
+        from_list = getattr(Dataset, "from_list", None)
+        if not callable(from_list):
+            return value
+        try:
+            if isinstance(value, Dataset):
+                return value
+        except TypeError:
+            return value
+        if isinstance(value, list):
+            if value and not all(isinstance(item, Mapping) for item in value):
+                return value
+            try:
+                return from_list(value)
+            except _FROM_LIST_EXCEPTIONS:
+                return value
+        return value
+
+    if isinstance(payload, DatasetDict):
+        return payload
+    if isinstance(payload, dict):
+        converted = {key: _maybe_to_hf_dataset(val) for key, val in payload.items()}
+        return DatasetDict(converted)
+    return DatasetDict({"train": _maybe_to_hf_dataset(payload)})
+
+
 def get_dataset(args: ScriptArguments) -> DatasetDict:
     """Load a dataset or a weighted mixture and return a dictionary.
 
@@ -166,9 +214,7 @@ def get_dataset(args: ScriptArguments) -> DatasetDict:
     """
     inline_ds = getattr(args, "dataset", None)
     if inline_ds is not None:
-        if isinstance(inline_ds, dict):
-            return inline_ds
-        return {"train": inline_ds}
+        return _to_dataset_dict(inline_ds)
     if args.dataset_name and not args.dataset_mixture:
         logger.info("Loading dataset: %s", args.dataset_name)
         return cast(

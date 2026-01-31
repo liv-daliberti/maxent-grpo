@@ -25,12 +25,12 @@ from maxent_grpo.generation.errors import (
     GenerationServiceError,
     log_generation_service_error,
 )
-from .types import RewardSpec, ValidationContext
 from maxent_grpo.rewards.basic import _answer_pat, _format_pat
 from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
+from .scoring import _refresh_torch, _to_numpy_array
+from .types import RewardSpec, ValidationContext
 
 LOG = logging.getLogger(__name__)
-from .scoring import _refresh_torch, _to_numpy_array
 
 
 @dataclass

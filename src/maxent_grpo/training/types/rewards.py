@@ -297,7 +297,7 @@ class ValidationContext:
     model: "PreTrainedModel"
     tokenizer: "PreTrainedTokenizer"
     reward: RewardSpec
-    generator: "GenerationFn"
+    generator: "GenerationFn[Any]"
     logging: "LoggingHandles"
     eval_reward: Optional[RewardSpec] = None
 

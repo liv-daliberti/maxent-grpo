@@ -25,14 +25,21 @@ This module exposes two utilities:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 import logging
+from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 
 import torch
 import torch.nn as nn
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.tokenization_utils import PreTrainedTokenizer as _PreTrainedTokenizer
+from trl import (
+    ModelConfig,
+    get_kbit_device_map,
+    get_quantization_config,
+)
+
+from maxent_grpo.config import GRPOConfig
 
 PreTrainedTokenizer = _PreTrainedTokenizer
 if TYPE_CHECKING:
@@ -42,19 +49,10 @@ else:
     AutoModelForCausalLMType = Any
     PreTrainedTokenizerType = Any
 
-from trl import (
-    ModelConfig,
-    get_kbit_device_map,
-    get_quantization_config,
-)
-
 if TYPE_CHECKING:
     ModelConfigType = ModelConfig
 else:
     ModelConfigType = Any
-
-
-from maxent_grpo.config import GRPOConfig
 
 if TYPE_CHECKING:
     from torch import dtype as TorchDType  # pragma: no cover

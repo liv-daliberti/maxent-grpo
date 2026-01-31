@@ -10,10 +10,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
 _DEFAULT_RETRY_LIMIT = 3
 LOG = logging.getLogger(__name__)
+
+@runtime_checkable
+class _TrlPayloadConvertible(Protocol):
+    def to_trl_payload(self) -> object: ...
+
 
 MetadataEntry = object
 MetadataGroup = List[Optional[MetadataEntry]]
@@ -367,7 +372,9 @@ def flatten_ref_metadata(
             meta_entry = None
             if meta_group is not None and comp_idx < len(meta_group):
                 meta_entry = meta_group[comp_idx]
-                if meta_entry is not None and hasattr(meta_entry, "to_trl_payload"):
+                if meta_entry is not None and isinstance(
+                    meta_entry, _TrlPayloadConvertible
+                ):
                     try:
                         meta_entry = meta_entry.to_trl_payload()
                     except TypeError as exc:

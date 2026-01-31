@@ -360,7 +360,7 @@ def _merge_mapping(
     return merged
 
 
-def _apply_overrides(target: Any, overrides: Optional[Dict[str, Any]]) -> Any:
+def _apply_overrides(target: Any, overrides: Optional[Mapping[str, Any]]) -> Any:
     if target is None or not overrides:
         return target
     for key, value in overrides.items():

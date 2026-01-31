@@ -26,8 +26,6 @@ from types import SimpleNamespace
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
 
-ensure_usercustomize_loaded()
-
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
 if TYPE_CHECKING:
@@ -90,6 +88,7 @@ def main(
     :raises Exception: Propagates parser or training pipeline exceptions.
     """
 
+    ensure_usercustomize_loaded()
     if script_args is None or training_args is None or model_args is None:
         # Prefer monkeypatched attributes (used in tests). Only fall back to Hydra when parsing is unavailable or fails.
         _parse_grpo_args = parse_grpo_args

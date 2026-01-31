@@ -242,7 +242,7 @@ distilabel_mod.llms = llms_mod
 sys.modules.setdefault("distilabel", distilabel_mod)
 sys.modules.setdefault("distilabel.pipeline", pipeline_mod)
 
-project = "Open R1"
+project = "MaxEnt-GRPO"
 author = "Hugging Face + Liv d'Aliberti"
 copyright = f"{datetime.now().year}, {author}"
 
@@ -298,7 +298,7 @@ autodoc_type_aliases = {
     "CompletionType": "maxent_grpo.rewards.basic.CompletionType",
     "RewardFunction": "maxent_grpo.rewards.basic.RewardFunction",
     "DataLoader": "maxent_grpo.training.types.runtime.DataLoader",
-    "GenerationFn": "maxent_grpo.training.types.GenerationFn",
+    "GenerationFn": "maxent_grpo.training.types.runtime.GenerationFn",
     "GenerationBatch": "maxent_grpo.training.types.GenerationBatch",
     "GenerationSettings": "maxent_grpo.training.types.runtime.GenerationSettings",
     "MetricState": "maxent_grpo.training.types.logging.MetricState",

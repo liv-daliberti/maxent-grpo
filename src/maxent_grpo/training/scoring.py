@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping, Sized
 from contextlib import ExitStack, nullcontext
 from dataclasses import dataclass
 import inspect
@@ -24,15 +24,15 @@ import os
 import numbers
 import sys
 import logging
-from types import ModuleType, SimpleNamespace, TracebackType
+from types import TracebackType
 from typing import (
     Any,
     Callable,
     ContextManager,
-    Iterable,
     Iterator,
     List,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     TYPE_CHECKING,
@@ -43,6 +43,7 @@ from functools import lru_cache
 import queue
 import threading
 import numpy as np
+from numpy.typing import ArrayLike, DTypeLike
 
 from maxent_grpo.training.runtime import (
     require_torch,
@@ -76,7 +77,34 @@ else:  # pragma: no cover - runtime uses optional torch/transformers stubs
     PreTrainedModel = Any
     PreTrainedTokenizer = Any
 
-torch = require_torch("training_scoring")
+
+class _TorchModuleLike(Protocol):
+    Tensor: type
+    float32: object
+
+    def tensor(self, data: object, *args: Any, **kwargs: Any) -> Any: ...
+    def as_tensor(self, data: object, *args: Any, **kwargs: Any) -> Any: ...
+    def full(self, size: Tuple[int, ...], fill_value: float, *args: Any, **kwargs: Any) -> Any: ...
+    def ones(self, size: Tuple[int, ...], *args: Any, **kwargs: Any) -> Any: ...
+    def zeros(self, size: Tuple[int, ...], *args: Any, **kwargs: Any) -> Any: ...
+    def arange(self, *args: Any, **kwargs: Any) -> Any: ...
+    def cat(self, tensors: Sequence[Any], dim: int = ...) -> Any: ...
+    def nonzero(self, input_tensor: Any, *, as_tuple: bool = ...) -> Any: ...
+    nn: Any
+    def no_grad(self) -> ContextManager[Any]: ...
+    def unique(self, values: Any) -> Any: ...
+    def stack(self, tensors: Sequence[Any], dim: int = ...) -> Any: ...
+
+
+class _DistModuleLike(Protocol):
+    """Minimal distributed API needed for best-effort gathers."""
+
+    def is_available(self) -> bool: ...
+    def is_initialized(self) -> bool: ...
+    def get_world_size(self) -> int: ...
+    def all_gather_object(self, object_list: List[object], obj: object) -> None: ...
+
+torch = cast(_TorchModuleLike, require_torch("training_scoring"))
 _REQUIRED_TORCH_ATTRS = ("tensor", "full", "ones_like", "zeros", "cat")
 
 _SCORING_EXCEPTIONS = (
@@ -120,7 +148,7 @@ class _LongDTypeProxy:
         return "torch.int64"
 
 
-def _refresh_torch() -> ModuleType:
+def _refresh_torch() -> _TorchModuleLike:
     """Return the active torch module."""
 
     return torch
@@ -169,6 +197,45 @@ def _get_config_value(config: object, key: str, default: object | None = None) -
     return getattr(config, key, default)
 
 
+def _coerce_optional_int(value: object | None) -> Optional[int]:
+    """Return ``value`` coerced to int when possible, else ``None``."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, numbers.Integral):
+        return int(value)
+    if isinstance(value, numbers.Real):
+        try:
+            return int(cast(Any, value))
+        except (TypeError, ValueError):
+            return None
+    if isinstance(value, (str, bytes, bytearray)):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+    try:
+        return int(cast(Any, value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_shape(value: object) -> Optional[Tuple[int, ...]]:
+    if value is None:
+        return None
+    if isinstance(value, tuple):
+        return value
+    if isinstance(value, list):
+        return tuple(value)
+    if isinstance(value, Iterable) and not isinstance(value, (str, bytes, bytearray)):
+        try:
+            return tuple(value)
+        except TypeError:
+            return None
+    return None
+
+
 class _PadTokenGuard:
     """Context manager that temporarily clamps padding attributes."""
 
@@ -207,15 +274,10 @@ class _PadTokenGuard:
                             new_value = num_embeddings_int - 1
                     elif weight is not None and _weight_is_two_dimensional(weight):
                         # Fallback: derive num_embeddings from the leading weight dim.
-                        size = None
-                        if hasattr(weight, "shape"):
+                        size = _coerce_shape(getattr(weight, "shape", None))
+                        if size is None and hasattr(weight, "size"):
                             try:
-                                size = tuple(getattr(weight, "shape"))
-                            except _SCORING_EXCEPTIONS:
-                                size = None
-                        elif hasattr(weight, "size"):
-                            try:
-                                size = tuple(weight.size())
+                                size = _coerce_shape(weight.size())
                             except _SCORING_EXCEPTIONS:
                                 size = None
                         if size is not None and len(size) >= 1:
@@ -249,14 +311,12 @@ def _weight_is_two_dimensional(weight: object) -> bool:
     """Return True if the provided weight exposes a 2-D shape."""
     if weight is None:
         return False
-    shape = None
-    if hasattr(weight, "shape"):
-        shape = tuple(shape for shape in getattr(weight, "shape"))
-    else:
+    shape = _coerce_shape(getattr(weight, "shape", None))
+    if shape is None:
         size_fn = getattr(weight, "size", None)
         if callable(size_fn):
             try:
-                shape = tuple(size_fn())
+                shape = _coerce_shape(size_fn())
             except _SCORING_EXCEPTIONS:
                 shape = None
     if shape is None:
@@ -290,14 +350,12 @@ def _describe_embedding_module(module: object, name: str) -> str:
     if module is None:
         return f"{name}=None"
     weight = getattr(module, "weight", None)
-    shape = None
-    if hasattr(weight, "shape"):
-        shape = tuple(shape for shape in getattr(weight, "shape"))
-    elif weight is not None:
+    shape = _coerce_shape(getattr(weight, "shape", None))
+    if shape is None and weight is not None:
         size_fn = getattr(weight, "size", None)
         if callable(size_fn):
             try:
-                shape = tuple(size_fn())
+                shape = _coerce_shape(size_fn())
             except _SCORING_EXCEPTIONS:
                 shape = None
     padding_idx = getattr(module, "padding_idx", None)
@@ -320,30 +378,24 @@ def _get_embedding_vocab_size(
         if callable(size_fn):
             try:
                 size_value = size_fn(0)
-                if isinstance(size_value, numbers.Integral):
-                    return int(size_value)
+                size_value_int = _coerce_optional_int(size_value)
+                if size_value_int is not None:
+                    return size_value_int
             except (TypeError, AttributeError, IndexError) as exc:
                 LOG.debug(
                     "Failed to read embedding weight size; falling back to config vocab_size: %s",
                     exc,
                 )
     config_value = _get_config_value(config, "vocab_size", None)
-    if config_value is None:
-        return None
-    if isinstance(config_value, numbers.Integral):
-        return int(config_value)
-    try:
-        return int(config_value)
-    except (TypeError, ValueError):
-        return None
+    return _coerce_optional_int(config_value)
 
 
-def _maybe_long_tensor(value: object, torch_mod: object) -> object:
+def _maybe_long_tensor(value: object, torch_mod: _TorchModuleLike) -> Tensor:
     """Return a tensor cast to long when the stub lacks ``long``."""
     long_fn = getattr(value, "long", None)
     if callable(long_fn):
         try:
-            return long_fn()
+            return cast(Tensor, long_fn())
         except TypeError as exc:
             LOG.debug("value.long() failed; falling back to tensor cast: %s", exc)
     arr = getattr(value, "arr", None)
@@ -359,44 +411,58 @@ def _maybe_long_tensor(value: object, torch_mod: object) -> object:
             long_method = getattr(t, "long", None)
             if callable(long_method):
                 try:
-                    return long_method()
+                    return cast(Tensor, long_method())
                 except (TypeError, ValueError, RuntimeError):
-                    return t
+                    return cast(Tensor, t)
         except (TypeError, ValueError, RuntimeError) as exc:
             LOG.debug("torch.tensor(arr) failed in long conversion; retrying: %s", exc)
     # Fallback: try resolving a numpy-compatible dtype and pass that through.
     try:
         resolved = _resolve_dtype(getattr(torch_mod, "int64", None))
-        return torch_mod.tensor(arr, dtype=resolved)
+        if callable(tensor_fn):
+            if resolved is None:
+                return cast(Tensor, tensor_fn(arr))
+            return cast(Tensor, tensor_fn(arr, dtype=resolved))
     except (TypeError, ValueError, RuntimeError):
         # Final fallback: coerce to int64 numpy and wrap.
-        return torch_mod.tensor(np.asarray(arr).astype(np.int64))
+        if callable(tensor_fn):
+            return cast(Tensor, tensor_fn(np.asarray(arr).astype(np.int64)))
+    return cast(Tensor, np.asarray(arr).astype(np.int64))
 
 
 def _size_hint(tensor_obj: object, dim: int) -> int:
     """Return ``tensor.size(dim)`` with fallbacks for numpy-backed stubs."""
-    if hasattr(tensor_obj, "size"):
+    size_fn = getattr(tensor_obj, "size", None)
+    if callable(size_fn):
         try:
-            return tensor_obj.size(dim)
+            size_val = size_fn(dim)
         except TypeError:
             try:
-                return tensor_obj.size()
+                size_val = size_fn()
             except (TypeError, ValueError, AttributeError) as exc:
                 LOG.debug("tensor.size() fallback failed; using shape/len: %s", exc)
+                size_val = None
+        if size_val is not None:
+            try:
+                return int(cast(Any, size_val))
+            except (TypeError, ValueError):
+                pass
     arr = getattr(tensor_obj, "arr", None)
     shape = getattr(tensor_obj, "shape", None) or (
         arr.shape if arr is not None else None
     )
     if shape is None:
-        try:
-            return len(tensor_obj)
-        except TypeError:
-            return 0
-    return (
-        shape[dim]
-        if dim is not None
-        else shape[0] if isinstance(shape, tuple) else int(shape)
-    )
+        if isinstance(tensor_obj, Sized):
+            try:
+                return len(tensor_obj)
+            except TypeError:
+                return 0
+        return 0
+    try:
+        size_val = shape[dim] if dim is not None else (shape[0] if isinstance(shape, tuple) else shape)
+        return int(cast(Any, size_val))
+    except (TypeError, ValueError, IndexError):
+        return 0
 
 
 def _to_numpy_array(obj: object) -> np.ndarray:
@@ -406,10 +472,12 @@ def _to_numpy_array(obj: object) -> np.ndarray:
 
         if isinstance(obj, getattr(_torch, "Tensor", ())):
             try:
-                return obj.detach().cpu().numpy()
+                tensor = cast(Any, obj)
+                return tensor.detach().cpu().numpy()
             except _SCORING_EXCEPTIONS:
                 try:
-                    tensor_cpu = obj.detach().to("cpu")
+                    tensor = cast(Any, obj)
+                    tensor_cpu = tensor.detach().to("cpu")
                     if hasattr(tensor_cpu, "float"):
                         tensor_cpu = tensor_cpu.float()
                     return tensor_cpu.numpy()
@@ -418,9 +486,10 @@ def _to_numpy_array(obj: object) -> np.ndarray:
     except _SCORING_EXCEPTIONS as exc:
         LOG.debug("Torch import or tensor handling failed; falling back: %s", exc)
     # Fallback for tensor-like objects from mixed torch modules/stubs.
-    if hasattr(obj, "detach"):
+    detach_fn = getattr(obj, "detach", None)
+    if callable(detach_fn):
         try:
-            tensor_cpu = obj.detach()
+            tensor_cpu = detach_fn()
             to_fn = getattr(tensor_cpu, "to", None)
             if callable(to_fn):
                 tensor_cpu = to_fn("cpu")
@@ -432,9 +501,10 @@ def _to_numpy_array(obj: object) -> np.ndarray:
                 return np.asarray(numpy_fn())
         except _SCORING_EXCEPTIONS as exc:
             LOG.debug("Fallback tensor->numpy conversion failed: %s", exc)
-    if hasattr(obj, "arr"):
+    arr = getattr(obj, "arr", None)
+    if arr is not None:
         try:
-            return np.asarray(obj.arr)
+            return np.asarray(arr)
         except (TypeError, ValueError, RuntimeError) as exc:
             LOG.debug("Failed to convert obj.arr to numpy array: %s", exc)
     data = getattr(obj, "data", None)
@@ -449,44 +519,56 @@ def _to_numpy_array(obj: object) -> np.ndarray:
         return np.asarray([])
 
 
-def _dist_collective_ready(torch_mod: object) -> object | None:
+def _dist_collective_ready(torch_mod: object) -> _DistModuleLike | None:
     """Return a dist module when initialized, otherwise None."""
     dist = getattr(torch_mod, "distributed", None)
     try:
         if dist is not None and dist.is_available() and dist.is_initialized():
-            return dist
+            return cast(_DistModuleLike, dist)
     except _SCORING_EXCEPTIONS:
         return None
     return None
 
 
-def _dist_all(dist: object | None, flag: bool) -> bool:
+def _dist_all(dist: _DistModuleLike | None, flag: bool) -> bool:
     """Return True if flag is True on all ranks (best-effort)."""
     if dist is None:
         return bool(flag)
     try:
-        world_size = int(dist.get_world_size())
+        get_world_size = getattr(dist, "get_world_size", None)
+        if not callable(get_world_size):
+            return bool(flag)
+        world_size = int(cast(Any, get_world_size()))
     except _SCORING_EXCEPTIONS:
         return bool(flag)
     gathered = [None for _ in range(max(world_size, 1))]
     try:
-        dist.all_gather_object(gathered, bool(flag))
+        gather_fn = getattr(dist, "all_gather_object", None)
+        if not callable(gather_fn):
+            return bool(flag)
+        gather_fn(gathered, bool(flag))
         return all(bool(x) for x in gathered)
     except _SCORING_EXCEPTIONS:
         return bool(flag)
 
 
-def _dist_any(dist: object | None, flag: bool) -> bool:
+def _dist_any(dist: _DistModuleLike | None, flag: bool) -> bool:
     """Return True if flag is True on any rank (best-effort)."""
     if dist is None:
         return bool(flag)
     try:
-        world_size = int(dist.get_world_size())
+        get_world_size = getattr(dist, "get_world_size", None)
+        if not callable(get_world_size):
+            return bool(flag)
+        world_size = int(cast(Any, get_world_size()))
     except _SCORING_EXCEPTIONS:
         return bool(flag)
     gathered = [None for _ in range(max(world_size, 1))]
     try:
-        dist.all_gather_object(gathered, bool(flag))
+        gather_fn = getattr(dist, "all_gather_object", None)
+        if not callable(gather_fn):
+            return bool(flag)
+        gather_fn(gathered, bool(flag))
         return any(bool(x) for x in gathered)
     except _SCORING_EXCEPTIONS:
         return bool(flag)
@@ -504,7 +586,7 @@ def _resolve_dtype(dtype: object) -> Optional[np.dtype]:
         except (TypeError, ValueError):
             return None
     try:
-        return np.dtype(dtype)
+        return np.dtype(cast(DTypeLike, dtype))
     except (TypeError, ValueError):
         return None
 
@@ -512,6 +594,12 @@ def _resolve_dtype(dtype: object) -> Optional[np.dtype]:
 Tensor = TorchTensor
 _ = require_transformer_base_classes("training_scoring")
 
+
+def _as_context_manager(value: object | None) -> ContextManager[object]:
+    """Return value as a context manager when possible, otherwise a no-op."""
+    if value is not None and hasattr(value, "__enter__") and hasattr(value, "__exit__"):
+        return cast(ContextManager[object], value)
+    return nullcontext()
 
 
 def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManager[object]:
@@ -531,9 +619,9 @@ def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManage
                 result = accel_autocast()
             except (TypeError, ValueError, RuntimeError):
                 return nullcontext()
-            return result
-        if accel_autocast is not None and hasattr(accel_autocast, "__enter__"):
-            return accel_autocast
+            return _as_context_manager(result)
+        if accel_autocast is not None:
+            return _as_context_manager(accel_autocast)
         return nullcontext()
     torch_mod = sys.modules.get("torch")
     test_mod = sys.modules.get("tests.test_scoring")
@@ -551,11 +639,11 @@ def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManage
     if closure:
         for cell in closure:
             ctx_val = getattr(cell, "cell_contents", None)
-            if hasattr(ctx_val, "__enter__"):
-                return ctx_val
+            if ctx_val is not None:
+                return _as_context_manager(ctx_val)
     # If torch.autocast is already a context manager object, return it.
     if hasattr(autocast_fn, "__enter__") and not callable(autocast_fn):
-        return autocast_fn
+        return _as_context_manager(autocast_fn)
     # Otherwise, call it once and return whatever it yields (preserving sentinels).
     try:
         result = autocast_fn()
@@ -571,9 +659,7 @@ def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManage
             result = result()
         except (TypeError, ValueError, RuntimeError):
             return nullcontext()
-    if not hasattr(result, "__enter__"):
-        return nullcontext()
-    return result
+    return _as_context_manager(result)
 
 
 @dataclass
@@ -621,16 +707,22 @@ class _SliceState:
         )
 
 
+@dataclass
+class _PromptCacheConfig:
+    prompt_length_cache_get: Optional[Callable[[str], PromptCacheEntry]]
+    prompt_cache_size: int = 0
+
+
 def _collect_prompt_entries(
     prompt_batch: List[str],
-    batching_cfg: BatchingSettings,
+    batching_cfg: _PromptCacheConfig,
 ) -> Optional[List[PromptCacheEntry]]:
     """Resolve cached prompt tokenization for a batch of strings.
 
     :param prompt_batch: Raw prompt strings to fetch from the cache.
     :type prompt_batch: list[str]
-    :param batching_cfg: Batching configuration containing the cache getter.
-    :type batching_cfg: BatchingSettings
+    :param batching_cfg: Prompt cache configuration containing the cache getter.
+    :type batching_cfg: _PromptCacheConfig
     :returns: Cached prompt entries or ``None`` when the batch is empty.
     :rtype: list[PromptCacheEntry] | None
     """
@@ -644,7 +736,6 @@ def _collect_prompt_entries(
             setattr(batching_cfg, "_cached_prompt_lookup", cached)
             setattr(batching_cfg, "_cached_prompt_source", prompt_fn)
         prompt_fn = cached
-        batching_cfg.prompt_length_cache_get = prompt_fn
     if not callable(prompt_fn):
         return None
     prompt_entries = cast(
@@ -683,7 +774,7 @@ def _tokenize_completions(
         )
     except TypeError:
         completion_enc = tokenizer(completion_batch)
-    torch_mod = sys.modules.get("torch", torch)
+    torch_mod = cast(_TorchModuleLike, sys.modules.get("torch", torch))
     ids = _maybe_long_tensor(completion_enc["input_ids"], torch_mod)
     mask = _maybe_long_tensor(completion_enc["attention_mask"], torch_mod)
     return CompletionTensors(
@@ -858,6 +949,43 @@ def iter_batch_slices(
     state = _SliceState.from_score_batch(score_batch)
     if state.total_sequences == 0 or state.slice_size <= 0:
         return
+    as_tensor = getattr(torch_mod, "as_tensor", getattr(torch_mod, "tensor", None))
+    if as_tensor is None:
+        raise AttributeError("torch.as_tensor (or tensor) is required for scoring.")
+    as_tensor_fn = cast(Callable[..., Tensor], as_tensor)
+
+    def _ensure_tensor(obj: object, *, target_device: object | None = None) -> Tensor:
+        """Best-effort conversion that tolerates numpy arrays/stubs."""
+        is_tensor_fn = getattr(torch_mod, "is_tensor", None)
+        try:
+            if callable(is_tensor_fn) and is_tensor_fn(obj):
+                return cast(Tensor, obj)
+        except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive
+            LOG.debug("torch.is_tensor check failed; continuing: %s", exc)
+        tensor_type = getattr(torch_mod, "Tensor", None)
+        if tensor_type is not None and isinstance(obj, tensor_type):
+            return cast(Tensor, obj)
+        tensor_ctor = getattr(torch_mod, "tensor", None)
+        if callable(tensor_ctor):
+            data = getattr(obj, "arr", None)
+            if data is None:
+                data = obj
+            try:
+                return cast(
+                    Tensor,
+                    tensor_ctor(
+                        np.asarray(data),
+                        device=target_device,
+                        dtype=getattr(obj, "dtype", None),
+                    ),
+                )
+            except TypeError:
+                return cast(Tensor, tensor_ctor(np.asarray(data)))
+        return cast(Tensor, obj)
+
+    def as_tensor_typed(*args: object, **kwargs: object) -> Tensor:
+        return cast(Tensor, as_tensor_fn(*args, **kwargs))
+
     for start in range(0, state.total_sequences, state.slice_size):
         end = min(start + state.slice_size, state.total_sequences)
         prompt_slice = state.prompt_entries[start:end]
@@ -889,40 +1017,10 @@ def iter_batch_slices(
             except (AttributeError, TypeError, ValueError) as exc:
                 LOG.debug("Failed to move prompt tensors to device: %s", exc)
         # Ensure tensors before concatenation (protect against stubs/numpy).
-        as_tensor = getattr(torch_mod, "as_tensor", getattr(torch_mod, "tensor", None))
-        if as_tensor is None:
-            raise AttributeError("torch.as_tensor (or tensor) is required for scoring.")
-
-        def _ensure_tensor(obj: object, *, target_device: object | None = None) -> object:
-            """Best-effort conversion that tolerates numpy arrays/stubs."""
-            is_tensor_fn = getattr(torch_mod, "is_tensor", None)
-            try:
-                if callable(is_tensor_fn) and is_tensor_fn(obj):
-                    return obj
-            except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive
-                LOG.debug("torch.is_tensor check failed; continuing: %s", exc)
-            tensor_type = getattr(torch_mod, "Tensor", None)
-            if tensor_type is not None and isinstance(obj, tensor_type):
-                return obj
-            tensor_ctor = getattr(torch_mod, "tensor", None)
-            if callable(tensor_ctor):
-                data = getattr(obj, "arr", None)
-                if data is None:
-                    data = obj
-                try:
-                    return tensor_ctor(
-                        np.asarray(data),
-                        device=target_device,
-                        dtype=getattr(obj, "dtype", None),
-                    )
-                except TypeError:
-                    return tensor_ctor(np.asarray(data))
-            return obj
-
-        prompt_ids = as_tensor(prompt_ids, device=device)
-        prompt_mask = as_tensor(prompt_mask, device=device)
-        comp_ids_slice = as_tensor(comp_ids_slice, device=device)
-        comp_mask_slice = as_tensor(comp_mask_slice, device=device)
+        prompt_ids = as_tensor_typed(prompt_ids, device=device)
+        prompt_mask = as_tensor_typed(prompt_mask, device=device)
+        comp_ids_slice = as_tensor_typed(comp_ids_slice, device=device)
+        comp_mask_slice = as_tensor_typed(comp_mask_slice, device=device)
         # Drop completion columns that are padding for every sequence so tail-only
         # scoring keeps real tokens instead of global pad regions.
         comp_tokens_present = None
@@ -998,7 +1096,7 @@ def iter_batch_slices(
                         ) == 0
                     comp_arr = np.asarray(getattr(comp_labels, "arr", comp_labels))
                     comp_arr[pad_mask_arr] = -100
-                    updated_labels = as_tensor(
+                    updated_labels = as_tensor_typed(
                         comp_arr, device=getattr(labels_tensor, "device", None)
                     )
                 labels_tensor[:, comp_slice] = updated_labels
@@ -1042,11 +1140,15 @@ def iter_batch_slices(
         # Materialize tensors for the ref model; keep device parity with completions.
         target_device = device or getattr(comp_ids_slice, "device", None)
         target_dtype = getattr(torch_mod, "long", None)
-        input_ids_out = as_tensor(input_ids, device=target_device, dtype=target_dtype)
-        attention_mask_out = as_tensor(
+        input_ids_out = as_tensor_typed(
+            input_ids, device=target_device, dtype=target_dtype
+        )
+        attention_mask_out = as_tensor_typed(
             attention_mask, device=target_device, dtype=target_dtype
         )
-        labels_out = as_tensor(labels_tensor, device=target_device, dtype=target_dtype)
+        labels_out = as_tensor_typed(
+            labels_tensor, device=target_device, dtype=target_dtype
+        )
         input_ids_out = _ensure_tensor(input_ids_out, target_device=target_device)
         attention_mask_out = _ensure_tensor(attention_mask_out, target_device=target_device)
         labels_out = _ensure_tensor(labels_out, target_device=target_device)
@@ -1269,9 +1371,9 @@ def _chunked_sequence_logprobs(
     stack.enter_context(fsdp_ctx)
     stack.enter_context(_maybe_zero_gather_embedding(model))
     config = getattr(model, "config", None)
-    padding_idx = _get_config_value(config, "pad_token_id", None)
+    padding_idx = _coerce_optional_int(_get_config_value(config, "pad_token_id", None))
     embedding_vocab_size = _get_embedding_vocab_size(model, config)
-    vocab_size = _get_config_value(config, "vocab_size", None)
+    vocab_size = _coerce_optional_int(_get_config_value(config, "vocab_size", None))
     pad_targets: list[tuple[Any, str]] = []
     if config is not None:
         pad_targets.append((config, "pad_token_id"))
@@ -1778,8 +1880,18 @@ def build_score_batch(
     def _coerce_int(value: object, default: int = 0) -> int:
         if isinstance(value, numbers.Integral):
             return int(value)
+        if isinstance(value, numbers.Real):
+            try:
+                return int(float(value))
+            except (TypeError, ValueError):
+                return default
+        if isinstance(value, (str, bytes, bytearray)):
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return default
         try:
-            return int(value)
+            return int(str(value))
         except (TypeError, ValueError):
             return default
     prompt_length_cache_fn: Callable[[str], PromptCacheEntry]
@@ -1794,10 +1906,11 @@ def build_score_batch(
             return PromptCacheEntry(input_ids=[], attention_mask=[])
 
         prompt_length_cache_fn = _default_prompt_length_cache
-    prompt_entries = _collect_prompt_entries(
-        prompt_batch,
-        SimpleNamespace(prompt_length_cache_get=prompt_length_cache_fn),
+    cache_cfg = _PromptCacheConfig(
+        prompt_length_cache_get=prompt_length_cache_fn,
+        prompt_cache_size=int(getattr(batching_cfg, "prompt_cache_size", 0) or 0),
     )
+    prompt_entries = _collect_prompt_entries(prompt_batch, cache_cfg)
     if prompt_entries is None:
         return None
     completion_tensors: Optional[CompletionTensors] = None
@@ -2009,10 +2122,12 @@ def gather_reference_logprobs(
                 return int(shape[0])
             except _SCORING_EXCEPTIONS as exc:
                 LOG.debug("Failed to read shape[0] from tensor; falling back to len: %s", exc)
-        try:
-            return int(len(obj))
-        except _SCORING_EXCEPTIONS:
-            return 0
+        if isinstance(obj, Sized):
+            try:
+                return int(len(obj))
+            except _SCORING_EXCEPTIONS:
+                return 0
+        return 0
 
     def _first_slice_rows(sb: object) -> int:
         total = int(getattr(sb, "total_sequences", 0) or 0)
@@ -2028,9 +2143,19 @@ def gather_reference_logprobs(
         numel_fn = getattr(obj, "numel", None)
         if callable(numel_fn):
             try:
-                return numel_fn()
+                value = numel_fn()
             except _SCORING_EXCEPTIONS:
                 return "error"
+            if value is None:
+                return None
+            if isinstance(value, numbers.Real):
+                try:
+                    return int(float(value))
+                except (TypeError, ValueError):
+                    return "error"
+            if isinstance(value, str):
+                return value
+            return str(value)
         return None
 
     accelerator = getattr(runtime, "accelerator", None)
@@ -2205,7 +2330,7 @@ def finalize_reference_stats(
 
         def _safe_size(x: object) -> Optional[int]:
             try:
-                return int(np.size(x))
+                return int(np.size(cast(ArrayLike, x)))
             except _SCORING_EXCEPTIONS:
                 return None
 
@@ -2415,6 +2540,16 @@ def _meta_field(entry: object, *names: str) -> object | None:
     return None
 
 
+def _coerce_int_optional(value: object) -> Optional[int]:
+    """Return ``int(value)`` when possible, otherwise ``None``."""
+    if isinstance(value, numbers.Integral):
+        return int(value)
+    try:
+        return int(cast(Any, value))
+    except (TypeError, ValueError):
+        return None
+
+
 def _coerce_logprob_value(value: object) -> Optional[float]:
     """Best-effort conversion of a token logprob payload into a float."""
     if value is None:
@@ -2436,6 +2571,8 @@ def _coerce_logprob_value(value: object) -> Optional[float]:
 def _sum_token_logprobs(token_logprobs: object) -> Optional[float]:
     """Return the sum of per-token logprobs when the payload is parseable."""
     if token_logprobs is None or isinstance(token_logprobs, Mapping):
+        return None
+    if not isinstance(token_logprobs, Iterable):
         return None
     try:
         iterator = iter(token_logprobs)
@@ -2480,14 +2617,21 @@ def reference_from_vllm_meta(
         if logprob_sum is None and token_logprobs is not None:
             logprob_sum = _sum_token_logprobs(token_logprobs)
         if token_count is None and token_logprobs is not None:
-            try:
-                token_count = len(token_logprobs)
-            except (TypeError, ValueError, AttributeError):
+            if isinstance(token_logprobs, Sized):
+                try:
+                    token_count = len(token_logprobs)
+                except (TypeError, ValueError, AttributeError):
+                    token_count = None
+            else:
                 token_count = None
-        if logprob_sum is None or token_count is None:
+        logprob_sum_val = _coerce_logprob_value(logprob_sum)
+        if logprob_sum_val is None or token_count is None:
             return None
-        logp_vals.append(float(logprob_sum))
-        tok_counts.append(max(1, int(token_count)))
+        token_count_int = _coerce_int_optional(token_count)
+        if token_count_int is None:
+            return None
+        logp_vals.append(logprob_sum_val)
+        tok_counts.append(max(1, token_count_int))
     torch_mod = _refresh_torch()
     ref_logp_sum = torch_mod.tensor(
         logp_vals, dtype=getattr(torch_mod, "float32", None), device=device
@@ -2643,7 +2787,7 @@ def summarize_completion_lengths(
 
 
 def _as_torch_tensor(
-    torch_mod: object,
+    torch_mod: _TorchModuleLike,
     value: object,
     *,
     device: Optional[TorchDevice],
@@ -2684,7 +2828,7 @@ def _as_torch_tensor(
 
 
 def _match_tensor_length(
-    torch_mod: object,
+    torch_mod: _TorchModuleLike,
     tensor: Tensor,
     target_len: int,
     *,

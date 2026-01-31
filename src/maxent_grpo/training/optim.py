@@ -23,7 +23,7 @@ import math
 import inspect
 from dataclasses import dataclass
 from contextlib import nullcontext
-from typing import Any, Iterable, Optional, cast
+from typing import Any, Iterable, Optional, TYPE_CHECKING, cast
 
 from maxent_grpo.training.runtime import require_torch
 from .types import (
@@ -39,14 +39,21 @@ try:
 except (ImportError, ModuleNotFoundError, RuntimeError, AttributeError, TypeError, ValueError):
     pass
 
-try:  # Optional dependency in unit tests
-    from accelerate.state import DistributedType as _AccelerateDistributedType
-except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError, ValueError):  # pragma: no cover - fallback when accelerate absent
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from accelerate.state import DistributedType as DistributedType
+else:
+    try:  # Optional dependency in unit tests
+        from accelerate.state import DistributedType as DistributedType
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        AttributeError,
+        RuntimeError,
+        ValueError,
+    ):  # pragma: no cover - fallback when accelerate absent
 
-    class _AccelerateDistributedType:
-        DEEPSPEED = "deepspeed"
-
-DistributedType = _AccelerateDistributedType
+        class DistributedType:
+            DEEPSPEED = "deepspeed"
 
 LOG = logging.getLogger(__name__)
 _TWO_NORM = 2.0

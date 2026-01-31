@@ -210,7 +210,7 @@ def reward_moments(
         else:
             train_reward_std = 0.0
         return train_reward_mean, train_reward_std
-    except (TypeError, ZeroDivisionError, ValueError, OverflowError):
+    except (TypeError, ZeroDivisionError, ValueError, OverflowError, RuntimeError):
         torch_mod = require_torch("training_rewards")
         utils_tensor = torch_mod.tensor(
             total_utils,
@@ -267,7 +267,7 @@ def group_advantages(
 
 def prepare_generation_batch(
     batch: Dict[str, List[str]],
-    generator: GenerationFn,
+    generator: GenerationFn[Any],
     generation_stats: Dict[str, int],
     expected_generations: int,
     max_retry_rounds: Optional[int] = None,
@@ -317,6 +317,8 @@ def prepare_generation_batch(
         expected: int,
         per_prompt_counts: Optional[List[int]] = None,
     ) -> Any:
+        import inspect
+
         per_prompt_repr = "none"
         if per_prompt_counts is not None:
             try:
@@ -330,7 +332,56 @@ def prepare_generation_batch(
             per_prompt_repr,
         )
         try:
-            result = generator(prompt_batch, expected, per_prompt_counts)
+            signature = inspect.signature(generator)
+        except (TypeError, ValueError):
+            signature = None
+
+        def _supports_positional_counts() -> bool:
+            if signature is None:
+                return True
+            params = list(signature.parameters.values())
+            if any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in params):
+                return True
+            positional = [
+                p
+                for p in params
+                if p.kind
+                in (
+                    inspect.Parameter.POSITIONAL_ONLY,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                )
+            ]
+            return len(positional) >= 3
+
+        def _supports_keyword_counts() -> bool:
+            if signature is None:
+                return False
+            if "per_prompt_counts" in signature.parameters:
+                return True
+            return any(
+                p.kind == inspect.Parameter.VAR_KEYWORD
+                for p in signature.parameters.values()
+            )
+
+        try:
+            if per_prompt_counts is None:
+                if _supports_positional_counts():
+                    result = generator(prompt_batch, expected, None)
+                else:
+                    result = generator(prompt_batch, expected)
+            elif _supports_positional_counts():
+                result = generator(prompt_batch, expected, per_prompt_counts)
+            elif _supports_keyword_counts():
+                result = generator(
+                    prompt_batch,
+                    expected,
+                    per_prompt_counts=per_prompt_counts,
+                )
+            else:
+                LOG.debug(
+                    "Generator does not accept per_prompt_counts; invoking without it."
+                )
+                result = generator(prompt_batch, expected)
             LOG.debug(
                 "Generator returned | result_type=%s",
                 type(result).__name__,

@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 import signal
 import faulthandler
-from typing import Any
+from typing import Any, Callable, cast
 
 # Allow running this file directly (e.g., accelerate launch src/maxent_grpo/maxent_grpo.py)
 # by ensuring the package root is on sys.path.
@@ -79,8 +79,12 @@ def main(
         _parse_grpo_args = _resolve_cli_attr("parse_grpo_args")
         _hydra_cli = _resolve_cli_attr("hydra_cli")
         if callable(_parse_grpo_args):
+            parse_grpo_args = cast(
+                Callable[[], tuple[Any, Any, Any]],
+                _parse_grpo_args,
+            )
             try:
-                script_args, training_args, model_args = _parse_grpo_args()
+                script_args, training_args, model_args = parse_grpo_args()
             except (
                 ImportError,
                 ModuleNotFoundError,

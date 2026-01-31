@@ -7,16 +7,15 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime.prompts import _truncate_prompt
 from maxent_grpo.training.runtime.logging import _wandb_error_types
+from .vllm_state import _VLLMGenerationState
 
 _WANDB_LOG_EXCEPTIONS = _wandb_error_types() + (OSError,)
-
-from .vllm_state import _VLLMGenerationState
 
 _DEFAULT_PROMPT_CHAR_LIMIT = 2048
 
@@ -731,9 +730,12 @@ class VLLMRequestMixin:
                                 ):
                                     has_logprob_payload = True
                                     break
-                            elif hasattr(entry, "logprob_sum") or hasattr(entry, "token_logprobs"):
-                                has_logprob_payload = True
-                                break
+                            else:
+                                logprob_sum = getattr(entry, "logprob_sum", None)
+                                token_logprobs = getattr(entry, "token_logprobs", None)
+                                if logprob_sum is not None or token_logprobs:
+                                    has_logprob_payload = True
+                                    break
                         if has_logprob_payload:
                             break
                 if bool(getattr(self.ctx, "vllm_request_logprobs", False)):
@@ -957,7 +959,17 @@ class VLLMRequestMixin:
         """
         try:
             request_kwargs = self._build_vllm_request_kwargs(prompts, request_count)
-            safe_gen = getattr(self, "_safe_generate", safe_generate)
+            safe_gen = cast(
+                Callable[
+                    ...,
+                    Tuple[
+                        List[List[str]],
+                        Optional[List[List[Optional[VLLMLogprobResult]]]],
+                        float,
+                    ],
+                ],
+                getattr(self, "_safe_generate", safe_generate),
+            )
             LOG.debug(
                 (
                     "Dispatching vLLM request | prompts=%d | req_n=%d | prompt_hash=%s "

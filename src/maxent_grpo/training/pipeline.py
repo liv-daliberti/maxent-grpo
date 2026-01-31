@@ -691,7 +691,7 @@ def _collect_batch_stats(
                     _REF_LOGPROB_TRACE_LIMIT,
                     traceback.format_exc(),
                 )
-        except (ValueError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive diag
+        except (ValueError, TypeError, AttributeError):  # pragma: no cover - defensive diag
             LOG.error(
                 "Unexpected exception during gather_reference_logprobs: %s",
                 traceback.format_exc(),
@@ -920,7 +920,7 @@ def _collect_batch_stats(
 
 def prepare_training_batch(
     ctx: TrainingLoopContext,
-    generator: GenerationFn,
+    generator: GenerationFn[Any],
     batch: Dict[str, List[str]],
 ) -> Optional[PreparedBatch]:
     """Return a :class:`PreparedBatch` or ``None`` when any stage fails.

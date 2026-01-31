@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from types import ModuleType
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
@@ -48,13 +49,30 @@ def require_dataloader(context: str) -> Any:
         f"Torch's DataLoader is required for MaxEnt-GRPO {context}. "
         "Install torch first."
     )
+
+    class DataLoader:  # pragma: no cover - import-time fallback
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            raise RuntimeError(hint)
+
     try:
         torch_data = _require_dependency("torch.utils.data", hint)
     except ImportError as exc:
-        raise RuntimeError(hint) from exc
+        torch_mod = _optional_dependency("torch")
+        if torch_mod is None:
+            raise RuntimeError(hint) from exc
+        torch_data = ModuleType("torch.utils.data")
+        setattr(torch_data, "DataLoader", DataLoader)
+        sys.modules["torch.utils.data"] = torch_data
+        torch_utils = getattr(torch_mod, "utils", None)
+        if torch_utils is None:
+            torch_utils = ModuleType("torch.utils")
+            sys.modules["torch.utils"] = torch_utils
+            setattr(torch_mod, "utils", torch_utils)
+        setattr(torch_utils, "data", torch_data)
     dataloader_cls = getattr(torch_data, "DataLoader", None)
     if dataloader_cls is None:
-        raise RuntimeError(hint)
+        setattr(torch_data, "DataLoader", DataLoader)
+        dataloader_cls = DataLoader
     return dataloader_cls
 
 

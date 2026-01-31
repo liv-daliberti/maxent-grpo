@@ -842,8 +842,9 @@ class TransformersPromptRunner(PromptRunner):
             model_eval()
         param_count = None
         try:
-            if hasattr(self.model, "num_parameters"):
-                param_count = self.model.num_parameters()
+            num_params_fn = getattr(self.model, "num_parameters", None)
+            if callable(num_params_fn):
+                param_count = num_params_fn()
         except (TypeError, ValueError, RuntimeError, AttributeError):
             param_count = None
         LOG.info(

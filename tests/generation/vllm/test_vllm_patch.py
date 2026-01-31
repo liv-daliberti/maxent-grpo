@@ -426,7 +426,14 @@ def test_parse_nonstream_json_results_variants(monkeypatch):
     assert texts == [["direct"], ["123"], ["raw"]]
     assert meta == [
         [],
-        [{"token_ids": [1, 2, 3], "token_count": 3}],
+        [
+            VP.VLLMLogprobResult(
+                logprob_sum=None,
+                token_count=None,
+                token_logprobs=None,
+                raw_output={"token_ids": [1, 2, 3], "token_count": 3},
+            )
+        ],
         [],
     ]
 
@@ -452,8 +459,22 @@ def test_parse_nonstream_json_token_ids_with_tokenizer_and_meta(monkeypatch):
     )
     assert texts == [["12"], ["3"]]
     assert meta == [
-        [{"token_ids": [1, 2], "token_count": 2}],
-        [{"token_ids": [3], "token_count": 1}],
+        [
+            VP.VLLMLogprobResult(
+                logprob_sum=None,
+                token_count=None,
+                token_logprobs=None,
+                raw_output={"token_ids": [1, 2], "token_count": 2},
+            )
+        ],
+        [
+            VP.VLLMLogprobResult(
+                logprob_sum=None,
+                token_count=None,
+                token_logprobs=None,
+                raw_output={"token_ids": [3], "token_count": 1},
+            )
+        ],
     ]
 
 

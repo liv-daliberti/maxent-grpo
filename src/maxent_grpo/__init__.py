@@ -43,7 +43,20 @@ _PUBLIC_ATTRS = {
     "hydra_cli": ("maxent_grpo.cli.hydra_cli", None),
 }
 
-__all__ = [*_PUBLIC_SUBMODULES, "main", "parse_grpo_args", *_PUBLIC_ATTRS]
+__all__ = [
+    "cli",
+    "config",
+    "core",
+    "generation",
+    "patches",
+    "pipelines",
+    "rewards",
+    "telemetry",
+    "training",
+    "main",
+    "parse_grpo_args",
+    "hydra_cli",
+]
 
 _LAZY_MODULES: Dict[str, str] = {
     name: f"maxent_grpo.{name}" for name in _PUBLIC_SUBMODULES

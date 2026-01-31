@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from typing import Optional
 
@@ -58,9 +59,12 @@ class ServiceErrorPayload:
 
         data = asdict(self)
         extra_updates = updates.pop("extra", None)
-        if extra_updates:
+        if extra_updates is not None:
             merged_extra = dict(data.get("extra", {}))
-            merged_extra.update(extra_updates)
+            if isinstance(extra_updates, Mapping):
+                merged_extra.update(extra_updates)
+            else:
+                merged_extra["value"] = extra_updates
             data["extra"] = merged_extra
         elif "extra" not in data:
             data["extra"] = {}

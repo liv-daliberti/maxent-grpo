@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import MISSING, dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 from urllib.parse import urlparse
 
 from .dataset import ScriptArguments, trl
@@ -244,6 +244,14 @@ class GRPOConfig(trl.GRPOConfig):
             "help": (
                 "Optional checkpoint path to initialize weights/state from when resuming "
                 "custom MaxEnt/InfoSeed loops."
+            )
+        },
+    )
+    resume_from_checkpoint: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional checkpoint path to resume training from (mirrors TRL/Trainer)."
             )
         },
     )
@@ -786,43 +794,51 @@ class GRPOConfig(trl.GRPOConfig):
 
     def __post_init__(self) -> None:
         orig_num_generations = getattr(self, "num_generations", None)
-        try:
-            super().__post_init__()
-        except (AttributeError, ImportError, ModuleNotFoundError) as exc:
-            # TRL/Transformers may be absent in some test environments; ignore in that case.
-            LOG.debug("Skipping base __post_init__ (dependency unavailable): %s", exc)
-        except ValueError as err:
-            # Be tolerant of TRL validation errors related to tiny batch sizes
-            # during unit tests. If the error message references generation
-            # divisibility, adjust num_generations down to 1 and continue.
-            msg = str(err) or ""
-            if "generations" in msg and "divisible" in msg:
-                LOG.warning(
-                    "Ignoring num_generations divisibility constraint from base trainer; "
-                    "continuing with %s completions per prompt.",
-                    orig_num_generations,
+        base_post_init: Optional[Callable[[], None]] = getattr(
+            super(), "__post_init__", None
+        )
+        if base_post_init is None:
+            LOG.debug("Skipping base __post_init__ (dependency unavailable): missing")
+        else:
+            try:
+                base_post_init()
+            except (AttributeError, ImportError, ModuleNotFoundError) as exc:
+                # TRL/Transformers may be absent in some test environments; ignore in that case.
+                LOG.debug(
+                    "Skipping base __post_init__ (dependency unavailable): %s", exc
                 )
-                try:
-                    self.num_generations = 1
-                    super().__post_init__()
-                except ValueError as exc:
+            except ValueError as err:
+                # Be tolerant of TRL validation errors related to tiny batch sizes
+                # during unit tests. If the error message references generation
+                # divisibility, adjust num_generations down to 1 and continue.
+                msg = str(err) or ""
+                if "generations" in msg and "divisible" in msg:
                     LOG.warning(
-                        "Base __post_init__ still failing after num_generations override: %s",
-                        exc,
+                        "Ignoring num_generations divisibility constraint from base trainer; "
+                        "continuing with %s completions per prompt.",
+                        orig_num_generations,
                     )
-                finally:
-                    if orig_num_generations is not None:
-                        self.num_generations = orig_num_generations
-            elif "IntervalStrategy" in msg and not isinstance(
-                getattr(self, "eval_strategy", None), str
-            ):
-                LOG.warning(
-                    "Skipping base __post_init__ due to IntervalStrategy validation: %s",
-                    err,
-                )
-            else:
-                # Re-raise unrelated ValueErrors.
-                raise
+                    try:
+                        self.num_generations = 1
+                        base_post_init()
+                    except ValueError as exc:
+                        LOG.warning(
+                            "Base __post_init__ still failing after num_generations override: %s",
+                            exc,
+                        )
+                    finally:
+                        if orig_num_generations is not None:
+                            self.num_generations = orig_num_generations
+                elif "IntervalStrategy" in msg and not isinstance(
+                    getattr(self, "eval_strategy", None), str
+                ):
+                    LOG.warning(
+                        "Skipping base __post_init__ due to IntervalStrategy validation: %s",
+                        err,
+                    )
+                else:
+                    # Re-raise unrelated ValueErrors.
+                    raise
         vllm_url = getattr(self, "vllm_url", None)
         if isinstance(vllm_url, str):
             normalized = vllm_url.strip()

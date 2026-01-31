@@ -17,8 +17,6 @@ from typing import Any, Optional
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
 
-ensure_usercustomize_loaded()
-
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 from maxent_grpo.cli import hydra_cli, parse_grpo_args
 
@@ -40,6 +38,7 @@ def main(
     :raises Exception: Propagates parser or training pipeline exceptions.
     """
 
+    ensure_usercustomize_loaded()
     if script_args is None or training_args is None or model_args is None:
         try:
             script_args, training_args, model_args = parse_grpo_args()

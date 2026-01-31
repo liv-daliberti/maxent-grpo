@@ -56,8 +56,11 @@ def _configure_custom_loop_logging(training_args: GRPOConfig) -> None:
     log_run_header(training_args)
     try:
         import datasets as _hf_datasets
-
-        _hf_datasets.utils.logging.set_verbosity(log_level)
+        hf_utils = getattr(_hf_datasets, "utils", None)
+        hf_logging = getattr(hf_utils, "logging", None) if hf_utils is not None else None
+        set_verbosity = getattr(hf_logging, "set_verbosity", None)
+        if callable(set_verbosity):
+            set_verbosity(log_level)
     except (ImportError, ModuleNotFoundError, AttributeError) as exc:
         LOG.debug("Skipping datasets logging setup: %s", exc)
     try:

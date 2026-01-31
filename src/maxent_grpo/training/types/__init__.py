@@ -23,7 +23,6 @@ from .runtime import (
     ControllerPaths,
     DataLoader,
     EvaluationSettings,
-    GenerationFn,
     GenerationSettings,
     SeedAugmentationConfig,
     LoopSettings,
@@ -42,6 +41,7 @@ from .runtime import (
     TrainingLoopContext,
     TrainingLoopState,
 )
+from .runtime import GenerationFn as _GenerationFn
 from .rewards import (
     AdvantageStats,
     BatchDiagnostics,
@@ -58,6 +58,9 @@ from .rewards import (
     ScoreBatch,
     ValidationContext,
 )
+
+# Re-export for runtime consumers; kept out of __all__ to avoid doc ambiguity.
+GenerationFn = _GenerationFn
 from .logging import (
     LoggingConfigView,
     LoggingHandles,
@@ -89,8 +92,8 @@ __all__ = [
     "ControllerPaths",
     "DataLoader",
     "EvaluationSettings",
-    "GenerationBatch",
     "GenerationFn",
+    "GenerationBatch",
     "GenerationSettings",
     "KlControllerSettings",
     "LengthStats",

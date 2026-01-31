@@ -23,7 +23,7 @@ import os
 import shutil
 import sys
 import inspect
-from typing import Callable, Dict, Optional, Tuple, Protocol, TYPE_CHECKING, cast
+from typing import Any, Callable, Dict, Optional, Tuple, Protocol, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
 from .types import (
@@ -77,8 +77,10 @@ def _is_safetensors_available() -> bool:
 
 
 def _callable_accepts_kwargs(fn: object) -> bool:
+    if not callable(fn):
+        return True
     try:
-        sig = inspect.signature(fn)
+        sig = inspect.signature(cast(Callable[..., object], fn))
     except (TypeError, ValueError):
         return True
     return any(
@@ -87,8 +89,10 @@ def _callable_accepts_kwargs(fn: object) -> bool:
 
 
 def _callable_accepts_param(fn: object, name: str) -> bool:
+    if not callable(fn):
+        return True
     try:
-        sig = inspect.signature(fn)
+        sig = inspect.signature(cast(Callable[..., object], fn))
     except (TypeError, ValueError):
         return True
     if name in sig.parameters:
@@ -336,8 +340,12 @@ def _state_dict_has_zero_sized_tensors(state_dict: Optional[Dict[str, object]]) 
             is_tensor = isinstance(value, torch.Tensor)
         except TypeError:
             is_tensor = False
-        if is_tensor and value.numel() == 0:
-            return True
+        if is_tensor:
+            try:
+                if cast(Any, value).numel() == 0:
+                    return True
+            except (AttributeError, RuntimeError, TypeError):
+                continue
     # If there are no tensors (e.g., stubbed accelerators in tests), treat the
     # payload as non-indicative rather than invalid.
     return False
@@ -431,7 +439,7 @@ def _parse_save_total_limit(value: object) -> int:
     if value is None:
         return 0
     try:
-        limit = int(value)
+        limit = int(cast(Any, value))
     except (TypeError, ValueError):
         return 0
     return max(limit, 0)
@@ -799,10 +807,18 @@ def build_checkpoint_saver(
                     checkpoint_dir,
                 )
                 _remove_hf_weight_files(checkpoint_dir)
-            try:
-                tokenizer.save_pretrained(checkpoint_dir)
-            except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - tokenizer optional
-                LOG.warning("Failed to save tokenizer to %s: %s", checkpoint_dir, exc)
+            save_tokenizer = getattr(tokenizer, "save_pretrained", None)
+            if callable(save_tokenizer):
+                try:
+                    save_tokenizer(checkpoint_dir)
+                except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - tokenizer optional
+                    LOG.warning("Failed to save tokenizer to %s: %s", checkpoint_dir, exc)
+            else:  # pragma: no cover - tokenizer optional
+                LOG.warning(
+                    "Failed to save tokenizer to %s: %s",
+                    checkpoint_dir,
+                    "save_pretrained unavailable",
+                )
             if optimizer is not None:
                 try:
                     import torch

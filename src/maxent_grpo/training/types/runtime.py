@@ -16,17 +16,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     TYPE_CHECKING,
     TypeAlias,
+    TypeVar,
 )
 
 from maxent_grpo.training.runtime import (
@@ -100,10 +102,21 @@ PreTrainedModel: TypeAlias = HFPreTrainedModel
 PreTrainedTokenizer: TypeAlias = HFPreTrainedTokenizer
 Device: TypeAlias = TorchDevice
 
-GenerationFn = Callable[
-    [List[str], int, Optional[List[int]]],
-    Tuple[List[List[str]], Optional[List[List[Optional[Any]]]]],
+LogprobT = TypeVar("LogprobT")
+
+GenerationResult: TypeAlias = Tuple[
+    List[List[str]], Optional[List[List[Optional[LogprobT]]]]
 ]
+
+
+class GenerationFn(Protocol[LogprobT]):
+    def __call__(
+        self,
+        prompts: List[str],
+        num_samples: int,
+        per_prompt_counts: Optional[List[int]] = None,
+    ) -> GenerationResult[LogprobT]:
+        ...
 
 
 @dataclass
@@ -138,7 +151,7 @@ class StepBatchInfo:
 class StepResources:
     """Reusable handles for each train step."""
 
-    generator: GenerationFn
+    generator: GenerationFn[Any]
     validation_ctx: "ValidationContext"
 
 
@@ -146,14 +159,14 @@ class StepResources:
 class RuntimeHandles:
     """Pointers to objects that should live for the entire training job."""
 
-    accelerator: "accelerate.Accelerator"
-    model: "transformers.PreTrainedModel"
-    tokenizer: "transformers.PreTrainedTokenizer"
+    accelerator: Accelerator
+    model: PreTrainedModel
+    tokenizer: PreTrainedTokenizer
     train_loader: DataLoader
     train_sampler: Optional[Sampler]
     device: Device
-    get_ref_model: Callable[[], "transformers.PreTrainedModel"]
-    reference_model: Optional["transformers.PreTrainedModel"] = None
+    get_ref_model: Callable[[], PreTrainedModel]
+    reference_model: Optional[PreTrainedModel] = None
     prompt_cache_get: Optional[Callable[[str], PromptCacheEntry]] = None
 
 

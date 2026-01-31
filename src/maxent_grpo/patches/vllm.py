@@ -54,7 +54,6 @@ from typing import (
     Optional,
     Protocol,
     Tuple,
-    Union,
     runtime_checkable,
     TYPE_CHECKING,
 )
@@ -92,16 +91,14 @@ else:  # pragma: no cover - runtime fallback
 # Type aliases for JSON responses
 JsonDict = Dict[str, Any]
 GenerationResults = List[List[str]]
-GenerationLogprobEntry = Union["VLLMLogprobResult", Dict[str, Any]]
-GenerationLogprobGroups = Optional[List[List[Optional[GenerationLogprobEntry]]]]
 
 
 @dataclass
 class VLLMLogprobResult:
     """Aggregate (and optionally raw) log-probability info for one completion."""
 
-    logprob_sum: float
-    token_count: int
+    logprob_sum: Optional[float]
+    token_count: Optional[int]
     token_logprobs: Optional[List[float]] = None
     raw_output: Optional[Dict[str, Any]] = None
 
@@ -111,15 +108,20 @@ class VLLMLogprobResult:
         :returns: Dictionary describing logprob sums/tokens/raw output.
         :rtype: dict[str, Any]
         """
-        payload: Dict[str, Any] = {
-            "logprob_sum": float(self.logprob_sum),
-            "token_count": int(self.token_count),
-        }
+        payload: Dict[str, Any] = {}
+        if self.logprob_sum is not None:
+            payload["logprob_sum"] = float(self.logprob_sum)
+        if self.token_count is not None:
+            payload["token_count"] = int(self.token_count)
         if self.token_logprobs is not None:
             payload["token_logprobs"] = [float(val) for val in self.token_logprobs]
         if self.raw_output is not None:
             payload["raw_output"] = self.raw_output
         return payload
+
+
+GenerationLogprobEntry = VLLMLogprobResult
+GenerationLogprobGroups = Optional[List[List[Optional[GenerationLogprobEntry]]]]
 
 
 @runtime_checkable
@@ -314,6 +316,33 @@ def _extract_logprob_info(entry: Dict[str, Any]) -> Optional[VLLMLogprobResult]:
     )
 
 
+def _has_token_logprobs(entry: GenerationLogprobEntry) -> bool:
+    """Return True when a logprob entry exposes per-token logprobs."""
+
+    return bool(entry.token_logprobs)
+
+
+def _summarize_logprob_entry(
+    entry: GenerationLogprobEntry,
+) -> Optional[Tuple[float, int]]:
+    """Return a (logprob_sum, token_count) tuple when available."""
+
+    if entry.logprob_sum is None or entry.token_count is None:
+        return None
+    return float(entry.logprob_sum), int(entry.token_count)
+
+
+def _metadata_from_token_ids(token_ids: List[int]) -> VLLMLogprobResult:
+    """Return metadata carrying token IDs without logprob fields."""
+
+    return VLLMLogprobResult(
+        logprob_sum=None,
+        token_count=None,
+        token_logprobs=None,
+        raw_output={"token_ids": list(token_ids), "token_count": len(token_ids)},
+    )
+
+
 def _parse_nonstream_json(
     data: JsonDict,
     tokenizer: Optional[TokenizerLike] = None,
@@ -329,7 +358,7 @@ def _parse_nonstream_json(
     :param want_logprobs: Whether to capture logprob metadata per output.
     :type want_logprobs: bool
     :returns: Tuple of grouped completion texts and optional logprob metadata.
-    :rtype: tuple[list[list[str]], list[list[Optional[VLLMLogprobResult | dict[str, Any]]]] | None]
+    :rtype: tuple[list[list[str]], list[list[Optional[VLLMLogprobResult]]] | None]
     """
     grouped: GenerationResults = []
     logprob_groups: GenerationLogprobGroups = [] if want_logprobs else None
@@ -342,7 +371,7 @@ def _parse_nonstream_json(
         :param texts: List of decoded completions for a single prompt.
         :type texts: list[str]
         :param logs: Optional log-probability metadata aligned with ``texts``.
-        :type logs: list[list[VLLMLogprobResult | dict[str, Any]]] | None
+        :type logs: list[list[VLLMLogprobResult]] | None
         """
         grouped.append(texts)
         if logprob_groups is not None:
@@ -386,8 +415,7 @@ def _parse_nonstream_json(
                     ]
                     if prompt_logs is not None:
                         prompt_logs = [
-                            {"token_ids": list(ids), "token_count": len(ids)}
-                            for ids in completion_ids
+                            _metadata_from_token_ids(list(ids)) for ids in completion_ids
                         ]
                     _append_group(decoded, prompt_logs)
                     continue
@@ -439,9 +467,7 @@ def _parse_nonstream_json(
         for ids, text in zip(completion_ids, decoded):
             logs: Optional[List[Optional[GenerationLogprobEntry]]] = None
             if logprob_groups is not None:
-                logs = [
-                    {"token_ids": list(ids), "token_count": len(ids)}
-                ]
+                logs = [_metadata_from_token_ids(list(ids))]
             _append_group([text], logs)
         return grouped, logprob_groups
     raise RuntimeError(f"Unknown vLLM response format: {data}")
@@ -844,18 +870,17 @@ def safe_generate(
                             1
                             for g in meta
                             for entry in (g or [])
-                            if entry is not None and entry.token_logprobs
+                            if entry is not None and _has_token_logprobs(entry)
                         )
                         sample = None
                         for g in meta:
                             if g:
                                 for entry in g:
                                     if entry is not None:
-                                        sample = (
-                                            float(entry.logprob_sum),
-                                            int(entry.token_count),
-                                        )
-                                        break
+                                        summary = _summarize_logprob_entry(entry)
+                                        if summary is not None:
+                                            sample = summary
+                                            break
                                 if sample:
                                     break
                         LOG.debug(

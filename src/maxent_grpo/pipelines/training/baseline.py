@@ -38,6 +38,7 @@ limitations under the License.
 from __future__ import annotations
 
 from contextlib import contextmanager
+from collections.abc import MutableMapping as MutableMappingABC
 from importlib import import_module
 import logging
 import os
@@ -47,6 +48,7 @@ from typing import (
     Optional,
     Any,
     List,
+    MutableMapping,
     Union,
     Callable,
     Iterator,
@@ -203,6 +205,15 @@ def _collect_dataset_columns(dataset: Any) -> Dict[str, List[str]]:
     return col_map
 
 
+def _get_column_names(dataset: Any) -> List[str]:
+    """Return a best-effort list of column names for a dataset split."""
+
+    cols = getattr(dataset, "column_names", None)
+    if isinstance(cols, (list, tuple)):
+        return list(cols)
+    return []
+
+
 def _validate_dataset_columns(
     dataset: Any,
     *,
@@ -272,6 +283,16 @@ def _resolve_prompt_column(dataset: Any, prompt_column: str) -> str:
         LOG.info("Prompt column '%s' missing; falling back to 'prompt'.", prompt_column)
         return "prompt"
     return prompt_column
+
+
+def _ensure_split_mapping(dataset: Any) -> MutableMapping[str, Any]:
+    """Coerce dataset-like objects into a split->dataset mapping."""
+
+    if isinstance(dataset, MutableMappingABC):
+        return cast(MutableMapping[str, Any], dataset)
+    if hasattr(dataset, "keys") and hasattr(dataset, "__getitem__"):
+        return cast(MutableMapping[str, Any], dataset)
+    return {"train": dataset}
 
 
 def run_baseline_training(
@@ -387,7 +408,11 @@ def run_baseline_training(
     try:  # pragma: no cover - environment dependent
         import datasets as _hf_datasets
 
-        _hf_datasets.utils.logging.set_verbosity(log_level)
+        datasets_utils = getattr(_hf_datasets, "utils", None)
+        datasets_logging = getattr(datasets_utils, "logging", None)
+        set_verbosity = getattr(datasets_logging, "set_verbosity", None)
+        if callable(set_verbosity):
+            set_verbosity(log_level)
     except (ImportError, ModuleNotFoundError, AttributeError) as exc:
         LOG.debug("Skipping datasets logging setup: %s", exc)
     tf_logging_module = getattr(
@@ -481,8 +506,11 @@ def run_baseline_training(
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out
 
-    if hasattr(raw_ds, "map"):
-        dataset = raw_ds.map(_map_fn)
+    dataset: MutableMapping[str, Any]
+    map_fn = getattr(raw_ds, "map", None)
+    dataset: MutableMapping[str, Any]
+    if callable(map_fn):
+        dataset = _ensure_split_mapping(map_fn(_map_fn))
     else:
 
         class _Split:
@@ -512,21 +540,24 @@ def run_baseline_training(
                     {k: _Split([fn(ex) for ex in v]) for k, v in self.items()}
                 )
 
-        dataset = _DictDataset(raw_ds).map(_map_fn)
-    for split in list(dataset.keys()):
-        if "messages" in dataset[split].column_names:
-            dataset[split] = dataset[split].remove_columns("messages")
+        raw_splits = raw_ds if isinstance(raw_ds, dict) else {"train": raw_ds}
+        dataset = _ensure_split_mapping(_DictDataset(raw_splits).map(_map_fn))
+    for split in list(dataset):
+        split_ds = dataset[split]
+        if "messages" in _get_column_names(split_ds):
+            remove_columns = getattr(split_ds, "remove_columns", None)
+            if callable(remove_columns):
+                dataset[split] = remove_columns("messages")
 
     # Resolve splits
     train_split = getattr(script_args, "dataset_train_split", "train")
     test_split = getattr(script_args, "dataset_test_split", None)
     if test_split is None:
         # prefer 'validation' then 'test' if present
-        test_split = (
-            "validation"
-            if "validation" in dataset.keys()
-            else ("test" if "test" in dataset.keys() else None)
-        )
+        if "validation" in dataset:
+            test_split = "validation"
+        elif "test" in dataset:
+            test_split = "test"
 
     train_ds = dataset[train_split]
     eval_ds = None
@@ -572,8 +603,10 @@ def run_baseline_training(
                 return out
 
             eval_ds = eval_ds_raw.map(_map_eval_fn)
-            if "messages" in eval_ds.column_names:
-                eval_ds = eval_ds.remove_columns("messages")
+            if "messages" in _get_column_names(eval_ds):
+                remove_columns = getattr(eval_ds, "remove_columns", None)
+                if callable(remove_columns):
+                    eval_ds = remove_columns("messages")
         elif test_split is not None and test_split in dataset:
             full_eval = dataset[test_split]
             n_total = len(full_eval)

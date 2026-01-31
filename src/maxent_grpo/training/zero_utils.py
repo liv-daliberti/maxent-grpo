@@ -23,7 +23,18 @@ import numbers
 import sys
 from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
-from typing import ContextManager, Iterator, List, Optional, Protocol, TYPE_CHECKING, TypeAlias, cast
+from typing import (
+    Any,
+    ContextManager,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    TYPE_CHECKING,
+    TypeAlias,
+    cast,
+)
 
 from maxent_grpo.training.runtime import require_deepspeed
 
@@ -144,7 +155,7 @@ class GatherCallable(Protocol):
     """Callable signature exposed by DeepSpeed GatheredParameters."""
 
     def __call__(
-        self, params: List[object], *args: object, **kwargs: object
+        self, params: Sequence[object], *args: object, **kwargs: object
     ) -> ContextManager[None]: ...
 
 
@@ -279,7 +290,7 @@ def _gather_callable() -> Optional[GatherCallable]:
 
 
 def _call_gather_fn(
-    gather_fn: GatherCallable, params: List[object], modifier_rank: Optional[int]
+    gather_fn: GatherCallable, params: Sequence[object], modifier_rank: Optional[int]
 ) -> ContextManager[None]:
     """Invoke GatheredParameters handling pre/post modifier_rank support."""
     if not callable(gather_fn):
@@ -365,8 +376,18 @@ def _maybe_zero_gather_params(model: Optional[TorchModule], enabled: bool) -> It
     if not gather_params:
         yield
         return
-    if torch is not None and torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    if torch is not None:
+        torch_mod = cast(Any, torch)
+        cuda_mod = getattr(torch_mod, "cuda", None)
+        if cuda_mod is not None:
+            try:
+                is_available = getattr(cuda_mod, "is_available", None)
+                if callable(is_available) and is_available():
+                    empty_cache = getattr(cuda_mod, "empty_cache", None)
+                    if callable(empty_cache):
+                        empty_cache()
+            except (AttributeError, RuntimeError, TypeError):
+                pass
     gather_ctx = _call_gather_fn(gather_fn, gather_params, modifier_rank=0)
     with gather_ctx:
         yield

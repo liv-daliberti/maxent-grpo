@@ -19,7 +19,8 @@ Application-layer orchestration helpers for the MaxEnt-GRPO toolkit.
 from __future__ import annotations
 
 from importlib import import_module
-from typing import Any
+from types import ModuleType
+from typing import Any, TYPE_CHECKING
 
 from .base import PipelineResult, log_pipeline_banner
 
@@ -29,8 +30,44 @@ _LAZY_SUBMODULES = {
     "training": "maxent_grpo.pipelines.training",
 }
 
+class _LazyModuleProxy:
+    """Proxy that lazily imports a module on first attribute access."""
+
+    def __init__(self, module_name: str) -> None:
+        self._module_name = module_name
+        self._module: ModuleType | None = None
+
+    def _load(self) -> ModuleType:
+        if self._module is None:
+            self._module = import_module(self._module_name)
+        return self._module
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self.__dict__:
+            return self.__dict__[name]
+        module = self._load()
+        value = getattr(module, name)
+        setattr(self, name, value)
+        return value
+
+    def __dir__(self) -> list[str]:  # pragma: no cover - trivial
+        if self._module is None:
+            return sorted(self.__dict__.keys())
+        return sorted(dir(self._module))
+
+if TYPE_CHECKING:  # pragma: no cover - typing-only imports for __all__
+    from . import generation as generation
+    from . import math_inference as math_inference
+    from . import training as training
+else:
+    generation = _LazyModuleProxy(_LAZY_SUBMODULES["generation"])
+    math_inference = _LazyModuleProxy(_LAZY_SUBMODULES["math_inference"])
+    training = _LazyModuleProxy(_LAZY_SUBMODULES["training"])
+
 __all__ = [
-    *list(_LAZY_SUBMODULES.keys()),
+    "generation",
+    "math_inference",
+    "training",
     "PipelineResult",
     "log_pipeline_banner",
 ]
