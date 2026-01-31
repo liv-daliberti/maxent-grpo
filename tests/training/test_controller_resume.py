@@ -185,7 +185,7 @@ def test_baseline_grpo_resume_switches_to_meta(monkeypatch, tmp_path):
 
     loaded: dict[str, Any] = {}
 
-    def _fake_builder(script, cfg, model, **kwargs):  # noqa: ARG001
+    def _fake_builder(script, cfg, model, **kwargs):
         loaded["force_grpo"] = kwargs.get("force_grpo_objective")
         return _builder_stub(cfg)
 

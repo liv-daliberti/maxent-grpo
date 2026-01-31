@@ -23,15 +23,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from tests.helpers.run_setup_reference import _load_run_setup
 
 
 @pytest.fixture
-def weighting_mod(monkeypatch):
-    """Load training.weighting with torch/accelerate stubs applied."""
+def weighting_mod():
+    """Load training.weighting module."""
 
-    _load_run_setup(monkeypatch)
-    module = reload(import_module("training.weighting"))
+    module = reload(import_module("maxent_grpo.training.weighting"))
     return SimpleNamespace(module=module, types=module)
 
 

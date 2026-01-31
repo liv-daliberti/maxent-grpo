@@ -35,7 +35,7 @@ from typing import Any, List, Optional, TYPE_CHECKING
 from transformers import AutoConfig
 
 if TYPE_CHECKING:  # pragma: no cover - import types without runtime dependency
-    from huggingface_hub import (  # type: ignore[import-not-found]
+    from huggingface_hub import (
         create_branch,
         create_repo,
         get_safetensors_metadata,
@@ -46,7 +46,7 @@ if TYPE_CHECKING:  # pragma: no cover - import types without runtime dependency
         upload_folder,
         CommitInfo,
     )
-    from huggingface_hub.errors import HfHubHTTPError  # type: ignore[import-not-found]
+    from huggingface_hub.errors import HfHubHTTPError
 else:
     try:  # pragma: no cover - optional dependency
         from huggingface_hub import (
@@ -90,7 +90,7 @@ else:
         def upload_folder(*_args: Any, **_kwargs: Any) -> Future["CommitInfo"]:
             raise RuntimeError("huggingface_hub is not installed")
 
-        class CommitInfo:  # type: ignore
+        class CommitInfo:
             commit_id = ""
 
         class HfHubHTTPError(Exception):

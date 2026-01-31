@@ -37,12 +37,12 @@ import time
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
-    import datasets  # type: ignore[reportMissingTypeStubs]
-    from datasets import Dataset, DatasetDict, concatenate_datasets  # type: ignore[reportMissingTypeStubs]
+    import datasets
+    from datasets import Dataset, DatasetDict, concatenate_datasets
 else:
     try:
-        import datasets  # type: ignore[reportMissingTypeStubs]
-        from datasets import Dataset, DatasetDict, concatenate_datasets  # type: ignore[reportMissingTypeStubs]
+        import datasets
+        from datasets import Dataset, DatasetDict, concatenate_datasets
     except ModuleNotFoundError:  # pragma: no cover - optional dependency
 
         class _DatasetsStub:
@@ -61,8 +61,8 @@ else:
                 )
 
         datasets = _DatasetsStub()
-        Dataset = Any  # type: ignore[assignment]
-        DatasetDict = dict  # type: ignore[assignment]
+        Dataset = Any
+        DatasetDict = dict
 
         def concatenate_datasets(*_datasets: Any, **_kwargs: Any) -> Any:
             raise ModuleNotFoundError(
@@ -167,8 +167,8 @@ def get_dataset(args: ScriptArguments) -> DatasetDict:
     inline_ds = getattr(args, "dataset", None)
     if inline_ds is not None:
         if isinstance(inline_ds, dict):
-            return inline_ds  # type: ignore[return-value]
-        return {"train": inline_ds}  # type: ignore[return-value]
+            return inline_ds
+        return {"train": inline_ds}
     if args.dataset_name and not args.dataset_mixture:
         logger.info("Loading dataset: %s", args.dataset_name)
         return cast(

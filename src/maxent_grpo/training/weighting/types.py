@@ -669,7 +669,7 @@ class TorchControllerState:
                 zero()
             else:
                 try:
-                    param.grad = None  # type: ignore[attr-defined]
+                    param.grad = None
                 except AttributeError:  # pragma: no cover - defensive cleanup
                     LOG.debug("Failed to clear controller grad for param %s", param)
 

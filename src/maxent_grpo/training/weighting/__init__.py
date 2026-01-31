@@ -21,7 +21,7 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Any, TYPE_CHECKING
 
-from .types import (  # noqa: F401  # re-exported via __all__
+from .types import (  # re-exported via __all__
     ControllerMetaSettings,
     ControllerStateSnapshot,
     KlControllerSettings,

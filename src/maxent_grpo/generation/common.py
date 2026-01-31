@@ -10,10 +10,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 _DEFAULT_RETRY_LIMIT = 3
 LOG = logging.getLogger(__name__)
+
+MetadataEntry = object
+MetadataGroup = List[Optional[MetadataEntry]]
+GroupedMetadata = List[MetadataGroup]
+FlatMetadata = List[Optional[MetadataEntry]]
 
 
 @dataclass
@@ -27,16 +32,16 @@ class AggregatedGenerationState:
     """
 
     completions: List[List[str]]
-    metadata: Optional[List[List[Optional[Any]]]] = None
+    metadata: Optional[GroupedMetadata] = None
 
 
 def append_completion_group(
     grouped_comps: List[List[str]],
-    grouped_meta: Optional[List[List[Optional[Any]]]],
+    grouped_meta: Optional[GroupedMetadata],
     prompt_idx: int,
     completions: Optional[List[str]],
-    meta_group: Optional[List[Optional[Any]]],
-) -> Optional[List[List[Optional[Any]]]]:
+    meta_group: Optional[MetadataGroup],
+) -> Optional[GroupedMetadata]:
     """Append completions (and metadata) for a specific prompt index.
 
     Completions and metadata are extended in place, creating a fresh metadata
@@ -87,8 +92,8 @@ def append_completion_group(
 def seed_generation_groups(
     prompt_count: int,
     grouped_comps: Optional[List[List[str]]],
-    grouped_meta: Optional[List[List[Optional[Any]]]],
-) -> Tuple[List[List[str]], Optional[List[List[Optional[Any]]]]]:
+    grouped_meta: Optional[GroupedMetadata],
+) -> Tuple[List[List[str]], Optional[GroupedMetadata]]:
     """Return initial completion/meta buffers aligned with prompts.
 
     The helper normalizes partially filled buffers into fresh lists sized to
@@ -106,13 +111,13 @@ def seed_generation_groups(
     """
 
     aggregated_comps: List[List[str]] = [[] for _ in range(prompt_count)]
-    aggregated_meta: Optional[List[List[Optional[Any]]]] = None
+    aggregated_meta: Optional[GroupedMetadata] = None
     base_groups = grouped_comps or []
     for idx in range(prompt_count):
         comp_group: List[str] = []
         if idx < len(base_groups) and base_groups[idx]:
             comp_group = list(base_groups[idx])
-        meta_group: Optional[List[Optional[Any]]] = None
+        meta_group: Optional[MetadataGroup] = None
         if grouped_meta is not None and idx < len(grouped_meta):
             meta_group = grouped_meta[idx]
         aggregated_meta = append_completion_group(
@@ -175,7 +180,7 @@ def retry_incomplete_prompts(
     prompts: List[str],
     generator: Callable[
         [List[str], int, Optional[List[int]]],
-        Tuple[List[List[str]], Optional[List[List[Optional[Any]]]]],
+        Tuple[List[List[str]], Optional[GroupedMetadata]],
     ],
     expected_generations: int,
     aggregated: AggregatedGenerationState,
@@ -223,7 +228,7 @@ def retry_incomplete_prompts(
             ],
         )
         retry_groups = retry_groups or [[] for _ in incomplete_indices]
-        meta_payload: Optional[List[List[Optional[Any]]]] = None
+        meta_payload: Optional[GroupedMetadata] = None
         if isinstance(retry_meta, list):
             meta_payload = retry_meta
         for local_idx, prompt_idx in enumerate(incomplete_indices):
@@ -249,13 +254,13 @@ def drop_empty_prompt_groups(
     prompts: List[str],
     answers: List[str],
     aggregated_comps: List[List[str]],
-    aggregated_meta: Optional[List[List[Optional[Any]]]],
+    aggregated_meta: Optional[GroupedMetadata],
     generation_stats: Dict[str, int],
 ) -> Tuple[
     List[str],
     List[str],
     List[List[str]],
-    Optional[List[List[Optional[Any]]]],
+    Optional[GroupedMetadata],
 ]:
     """Remove prompts that never yielded completions.
 
@@ -293,11 +298,11 @@ def drop_empty_prompt_groups(
 
 def truncate_to_expected_counts(
     aggregated_comps: List[List[str]],
-    aggregated_meta: Optional[List[List[Optional[Any]]]],
+    aggregated_meta: Optional[GroupedMetadata],
     expected_generations: int,
 ) -> Tuple[
     List[List[str]],
-    Optional[List[List[Optional[Any]]]],
+    Optional[GroupedMetadata],
     int,
 ]:
     """Trim completions/meta to requested counts and track partial prompts.
@@ -334,8 +339,8 @@ def truncate_to_expected_counts(
 
 def flatten_ref_metadata(
     grouped_comps: List[List[str]],
-    grouped_meta: Optional[List[List[Optional[Any]]]],
-) -> Optional[List[Optional[Any]]]:
+    grouped_meta: Optional[GroupedMetadata],
+) -> Optional[FlatMetadata]:
     """Flatten metadata to align with the flattened completions list.
 
     Metadata entries exposing ``to_trl_payload`` are converted before being
@@ -352,10 +357,10 @@ def flatten_ref_metadata(
 
     if grouped_meta is None:
         return None
-    flat_meta: List[Optional[Any]] = []
+    flat_meta: FlatMetadata = []
     has_payload = False
     for prompt_idx, comp_group in enumerate(grouped_comps):
-        meta_group: Optional[List[Optional[Any]]] = (
+        meta_group: Optional[MetadataGroup] = (
             grouped_meta[prompt_idx] if prompt_idx < len(grouped_meta) else None
         )
         for comp_idx in range(len(comp_group)):

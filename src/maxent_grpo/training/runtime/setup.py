@@ -43,6 +43,14 @@ def require_accelerator(context: str) -> Any:
 def require_transformer_base_classes(context: str) -> Tuple[Any, Any]:
     """Return (PreTrainedModel, PreTrainedTokenizer) with clear failure messages."""
 
+    hint = (
+        f"Transformers is required for MaxEnt-GRPO {context}. "
+        "Install it via `pip install transformers`."
+    )
+    try:
+        _import_module("transformers")
+    except (ModuleNotFoundError, ImportError) as exc:
+        raise RuntimeError(hint) from exc
     return _deps.require_transformer_base_classes(context)
 
 

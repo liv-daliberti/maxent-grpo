@@ -725,7 +725,7 @@ def build_training_loop_context(
     # Defensive: reset any lingering Accelerate shared state (e.g., from stubs or
     # prior imports) so the first Accelerator() call can safely set attributes.
     try:  # pragma: no cover - runtime guard
-        from accelerate.state import AcceleratorState  # type: ignore[reportMissingTypeStubs]
+        from accelerate.state import AcceleratorState
 
         reset_fn = getattr(AcceleratorState, "_reset_state", None)
         if callable(reset_fn):

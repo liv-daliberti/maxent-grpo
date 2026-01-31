@@ -49,7 +49,7 @@ def test_sync_model_params_prefers_child_params(monkeypatch):
         def named_parameters(self):
             return [("_fsdp_wrapped_module.w", object())]
 
-    class _Model(helper._fsdp_cls):  # type: ignore[misc]
+    class _Model(helper._fsdp_cls):
         def named_children(self):
             return [("child", _Child())]
 

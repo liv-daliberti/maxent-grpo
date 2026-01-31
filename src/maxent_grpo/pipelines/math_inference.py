@@ -72,7 +72,7 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover
 # Ensure minimal dtype attribute exists for stubbed torch modules.
 if torch is not None and not hasattr(torch, "dtype"):
     try:
-        torch.dtype = type("dtype", (), {})  # type: ignore[attr-defined]
+        torch.dtype = type("dtype", (), {})
     except (TypeError, AttributeError):
         torch = None
 
@@ -108,7 +108,7 @@ from maxent_grpo.rewards.basic import pure_accuracy_reward_math
 from maxent_grpo.pipelines.base import log_pipeline_banner
 
 try:  # pragma: no cover - optional dependency for import-time availability
-    from datasets import Dataset as _HFDataset, load_dataset as _load_dataset  # type: ignore
+    from datasets import Dataset as _HFDataset, load_dataset as _load_dataset
 except (ImportError, ModuleNotFoundError):  # pragma: no cover
     _HFDataset = Any
     _load_dataset = None
@@ -620,7 +620,7 @@ def _normalize_generations(
     per_example: List[List[str]] = []
     if all(isinstance(o, (list, tuple)) for o in outputs):
         # Already grouped per example.
-        per_example = [list(map(str, group)) for group in outputs]  # type: ignore[arg-type]
+        per_example = [list(map(str, group)) for group in outputs]
     else:
         flat = [str(o) for o in outputs]
         if len(flat) % batch_size != 0:
@@ -777,7 +777,7 @@ class TransformersPromptRunner(PromptRunner):
         self.num_generations = max(1, num_generations or spec.num_generations or 1)
         cache_dir = (
             spec.cache_dir
-            or spec.tokenizer_kwargs.get("cache_dir")  # type: ignore[arg-type]
+            or spec.tokenizer_kwargs.get("cache_dir")
             or os.environ.get("HF_HOME")
             or os.environ.get("TRANSFORMERS_CACHE")
         )
@@ -843,7 +843,7 @@ class TransformersPromptRunner(PromptRunner):
         param_count = None
         try:
             if hasattr(self.model, "num_parameters"):
-                param_count = self.model.num_parameters()  # type: ignore[call-arg]
+                param_count = self.model.num_parameters()
         except (TypeError, ValueError, RuntimeError, AttributeError):
             param_count = None
         LOG.info(

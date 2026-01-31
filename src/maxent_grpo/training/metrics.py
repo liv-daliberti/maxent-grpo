@@ -148,7 +148,7 @@ def _log_debug_metrics(step: int, metrics: Dict[str, Any]) -> None:
 
 try:  # Optional dependency
     import wandb
-    from wandb.errors import Error as WandbError  # type: ignore[reportMissingTypeStubs]
+    from wandb.errors import Error as WandbError
 except ImportError:  # pragma: no cover - optional logging backend
     wandb = None
 

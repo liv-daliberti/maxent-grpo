@@ -17,7 +17,7 @@ from maxent_grpo.training.runtime import require_accelerator, require_torch
 torch = require_torch("generation_vllm")
 Accelerator = require_accelerator("generation_vllm")
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from accelerate import Accelerator as AcceleratorType  # type: ignore[reportMissingTypeStubs]
+    from accelerate import Accelerator as AcceleratorType
 else:  # pragma: no cover - runtime fallback
     AcceleratorType = Any
 LOG = logging.getLogger(__name__)

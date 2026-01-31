@@ -33,7 +33,7 @@ from maxent_grpo.generation.common import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from distilabel.pipeline import Pipeline  # type: ignore[reportMissingTypeStubs]
+    from distilabel.pipeline import Pipeline
     from maxent_grpo.training.types import GenerationBatch, PromptCompletionBatch
 
 

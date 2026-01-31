@@ -42,7 +42,7 @@ else:
     AutoModelForCausalLMType = Any
     PreTrainedTokenizerType = Any
 
-from trl import (  # type: ignore[reportMissingTypeStubs]
+from trl import (
     ModelConfig,
     get_kbit_device_map,
     get_quantization_config,
@@ -208,7 +208,7 @@ def get_model(
             )
         else:
             try:
-                import torch._dynamo as dynamo_mod  # type: ignore[attr-defined]
+                import torch._dynamo as dynamo_mod
 
                 dynamo_config = getattr(dynamo_mod, "config", None)
                 prev_suppress = (

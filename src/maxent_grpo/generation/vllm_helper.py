@@ -186,7 +186,7 @@ class VLLMGenerationHelper(
         :rtype: tuple[list[list[str]], list[list[VLLMLogprobResult | None]] | None]
         """
         sync_fn = self.maybe_sync_weights
-        using_default_sync = getattr(sync_fn, "__func__", None) is VLLMGenerationHelper.maybe_sync_weights  # type: ignore[attr-defined]
+        using_default_sync = getattr(sync_fn, "__func__", None) is VLLMGenerationHelper.maybe_sync_weights
         try:
             if ensure_client is None and sync_model is None:
                 sync_fn()

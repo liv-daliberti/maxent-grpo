@@ -48,6 +48,7 @@ from .rewards import PromptCacheEntry
 if TYPE_CHECKING:
     from .rewards import ValidationContext
     from ..controller_objective import ControllerObjective
+    from maxent_grpo.config import GRPOConfig as GRPOConfigType
 
     import torch as torch_module
     from torch import Tensor as TorchTensor, device as TorchDevice
@@ -56,7 +57,7 @@ if TYPE_CHECKING:
         DataLoader as TorchDataLoader,
         Sampler as TorchSampler,
     )
-    from accelerate import Accelerator as HFAccelerator  # type: ignore[reportMissingTypeStubs]
+    from accelerate import Accelerator as HFAccelerator
     from transformers.modeling_utils import PreTrainedModel as HFPreTrainedModel
     from transformers.tokenization_utils import (
         PreTrainedTokenizer as HFPreTrainedTokenizer,
@@ -87,6 +88,7 @@ else:  # pragma: no cover - runtime dependency loading
         RuntimeError,
     ):  # pragma: no cover - optional stub fallback
         TorchSampler = Any
+    GRPOConfigType = object
 
 torch: Any = torch_module
 Tensor: TypeAlias = TorchTensor
@@ -287,7 +289,7 @@ class TrainingLoopContext:
     resume_checkpoint: Optional[str] = None
     resume_state: Optional[Dict[str, Any]] = None
     checkpoint_state_ref: Optional[Dict[str, Any]] = None
-    training_args: Any = None
+    training_args: GRPOConfigType | None = None
 
     @property
     def generation(self) -> GenerationSettings:

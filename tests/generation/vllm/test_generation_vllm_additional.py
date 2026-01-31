@@ -155,7 +155,7 @@ def test_generate_collective_with_hooks():
         calls["args"] = (prompts, n, counts, ensure_client, sync_model)
         return [["a"]], None
 
-    helper.generate = _fake_generate  # type: ignore[assignment]
+    helper.generate = _fake_generate
     accel = SimpleNamespace(
         is_main_process=True,
         num_processes=1,

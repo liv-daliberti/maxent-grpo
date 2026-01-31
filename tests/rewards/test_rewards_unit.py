@@ -56,20 +56,21 @@ def rewards_mod(monkeypatch):
     """Reload training.rewards while stubbing heavyweight dependency gates."""
     torch_mod = importlib.import_module("torch")
     monkeypatch.setattr(
-        "training.run_helpers.require_torch", lambda *_args, **_kwargs: torch_mod
+        "maxent_grpo.training.run_helpers.require_torch",
+        lambda *_args, **_kwargs: torch_mod,
     )
     monkeypatch.setattr(
-        "training.run_helpers.require_dataloader",
+        "maxent_grpo.training.run_helpers.require_dataloader",
         lambda *_a, **_k: SimpleNamespace(DataLoader=object),
     )
     monkeypatch.setattr(
-        "training.run_helpers.require_accelerator",
+        "maxent_grpo.training.run_helpers.require_accelerator",
         lambda *_a, **_k: SimpleNamespace(Accelerator=object),
     )
-    mod = importlib.reload(importlib.import_module("training.rewards"))
+    mod = importlib.reload(importlib.import_module("maxent_grpo.training.rewards"))
     yield mod
-    importlib.reload(importlib.import_module("training.run_helpers"))
-    importlib.reload(importlib.import_module("training.rewards"))
+    importlib.reload(importlib.import_module("maxent_grpo.training.run_helpers"))
+    importlib.reload(importlib.import_module("maxent_grpo.training.rewards"))
 
 
 def test_compute_reward_totals_applies_weights(rewards_mod):

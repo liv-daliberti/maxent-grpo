@@ -42,7 +42,7 @@ def test_hydra_cli_help(monkeypatch) -> None:
         Sampler = object
 
     torch_utils.data = _TorchData()
-    torch_mod.utils = torch_utils  # type: ignore[attr-defined]
+    torch_mod.utils = torch_utils
     monkeypatch.setitem(sys.modules, "torch", torch_mod)
     monkeypatch.setitem(sys.modules, "torch.utils", torch_utils)
     monkeypatch.setitem(sys.modules, "torch.utils.data", torch_utils.data)

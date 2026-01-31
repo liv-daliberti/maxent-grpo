@@ -98,6 +98,9 @@ if not hasattr(accelerator_submod, "Accelerator"):
     accelerator_submod.Accelerator = accelerate_mod.Accelerator
 
 transformers_mod = _ensure_stub("transformers")
+# Mark as a package so submodule imports (e.g. transformers.tokenization_utils) resolve.
+if not hasattr(transformers_mod, "__path__"):
+    transformers_mod.__path__ = []
 
 
 class _BaseStub:
@@ -172,7 +175,36 @@ trainer_utils_mod = _ensure_stub("transformers.trainer_utils")
 trainer_utils_mod.get_last_checkpoint = getattr(
     trainer_utils_mod, "get_last_checkpoint", lambda *a, **k: None
 )
-transformers_mod.trainer_utils = trainer_utils_mod  # type: ignore[attr-defined]
+transformers_mod.trainer_utils = trainer_utils_mod
+trainer_callback_mod = _ensure_stub("transformers.trainer_callback")
+trainer_callback_mod.TrainerCallback = getattr(
+    trainer_callback_mod, "TrainerCallback", type("TrainerCallback", (), {})
+)
+transformers_mod.trainer_callback = trainer_callback_mod
+modeling_utils_mod = _ensure_stub("transformers.modeling_utils")
+modeling_utils_mod.PreTrainedModel = getattr(
+    modeling_utils_mod, "PreTrainedModel", transformers_mod.PreTrainedModel
+)
+transformers_mod.modeling_utils = modeling_utils_mod
+tokenization_utils_mod = _ensure_stub("transformers.tokenization_utils")
+tokenization_utils_mod.PreTrainedTokenizer = getattr(
+    tokenization_utils_mod, "PreTrainedTokenizer", transformers_mod.PreTrainedTokenizer
+)
+tokenization_utils_mod.PreTrainedTokenizerBase = getattr(
+    tokenization_utils_mod,
+    "PreTrainedTokenizerBase",
+    transformers_mod.PreTrainedTokenizerBase,
+)
+transformers_mod.tokenization_utils = tokenization_utils_mod
+tokenization_utils_base_mod = _ensure_stub("transformers.tokenization_utils_base")
+tokenization_utils_base_mod.PreTrainedTokenizerBase = getattr(
+    tokenization_utils_base_mod,
+    "PreTrainedTokenizerBase",
+    transformers_mod.PreTrainedTokenizerBase,
+)
+transformers_mod.tokenization_utils_base = (
+    tokenization_utils_base_mod
+)
 tf_utils_mod = _ensure_stub("transformers.utils")
 tf_utils_mod.logging = getattr(
     tf_utils_mod,
@@ -187,23 +219,23 @@ tf_utils_mod.logging = getattr(
         },
     ),
 )
-transformers_mod.utils = tf_utils_mod  # type: ignore[attr-defined]
+transformers_mod.utils = tf_utils_mod
 transformers_mod.set_seed = getattr(transformers_mod, "set_seed", lambda *a, **k: None)
 
 distilabel_mod = _ensure_stub("distilabel")
 pipeline_mod = _ensure_stub("distilabel.pipeline")
 pipeline_mod.Pipeline = getattr(pipeline_mod, "Pipeline", type("Pipeline", (), {}))
-distilabel_mod.pipeline = pipeline_mod  # type: ignore[attr-defined]
+distilabel_mod.pipeline = pipeline_mod
 steps_mod = _ensure_stub("distilabel.steps")
 tasks_mod = _ensure_stub("distilabel.steps.tasks")
 tasks_mod.TextGeneration = getattr(
     tasks_mod, "TextGeneration", type("TextGeneration", (), {})
 )
-steps_mod.tasks = tasks_mod  # type: ignore[attr-defined]
-distilabel_mod.steps = steps_mod  # type: ignore[attr-defined]
+steps_mod.tasks = tasks_mod
+distilabel_mod.steps = steps_mod
 llms_mod = _ensure_stub("distilabel.llms")
 llms_mod.OpenAILLM = getattr(llms_mod, "OpenAILLM", type("OpenAILLM", (), {}))
-distilabel_mod.llms = llms_mod  # type: ignore[attr-defined]
+distilabel_mod.llms = llms_mod
 
 sys.modules.setdefault("distilabel", distilabel_mod)
 sys.modules.setdefault("distilabel.pipeline", pipeline_mod)
@@ -370,7 +402,7 @@ def _choose_theme():
     Order: Furo → PyData → RTD → Alabaster.
     """
     try:
-        import furo  # noqa: F401
+        import furo
 
         return "furo", {
             "light_css_variables": {
@@ -386,7 +418,7 @@ def _choose_theme():
         }
     except Exception:
         try:
-            import pydata_sphinx_theme  # noqa: F401
+            import pydata_sphinx_theme
 
             return "pydata_sphinx_theme", {
                 "logo": {
@@ -398,7 +430,7 @@ def _choose_theme():
             }
         except Exception:
             try:
-                import sphinx_rtd_theme  # noqa: F401
+                import sphinx_rtd_theme
 
                 return "sphinx_rtd_theme", {
                     "style_nav_header_background": "#7c4dff",
@@ -568,7 +600,7 @@ def _resolve_autodoc_module(app) -> str | None:
     return None
 
 
-def _skip_external_members(app, what, name, obj, skip, options):  # noqa: D401
+def _skip_external_members(app, what, name, obj, skip, options):
     """Skip documenting external or duplicate members with noisy docstrings."""
 
     module_name = getattr(obj, "__module__", "") or ""
@@ -581,5 +613,5 @@ def _skip_external_members(app, what, name, obj, skip, options):  # noqa: D401
     return skip
 
 
-def setup(app):  # type: ignore[override]
+def setup(app):
     app.connect("autodoc-skip-member", _skip_external_members)

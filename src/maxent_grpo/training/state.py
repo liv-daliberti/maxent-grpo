@@ -23,7 +23,7 @@ import os
 import shutil
 import sys
 import inspect
-from typing import Any, Dict, Optional, Tuple, Protocol, TYPE_CHECKING, cast
+from typing import Callable, Dict, Optional, Tuple, Protocol, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
 from .types import (
@@ -45,7 +45,7 @@ _checkpoint_log_once = {"config": False, "strategy": False, "steps": False}
 if TYPE_CHECKING:
     from maxent_grpo.config import GRPOConfig as GRPOConfigType
 else:
-    GRPOConfigType = Any
+    GRPOConfigType = object
 
 class ControllerPathsLike(Protocol):
     """Minimal controller path settings used by checkpoint helpers."""
@@ -65,7 +65,7 @@ class AcceleratorLike(Protocol):
         """Synchronize all processes."""
         raise NotImplementedError
 
-    def load_state(self, input_dir: str, **kwargs: Any) -> Any:
+    def load_state(self, input_dir: str, **kwargs: object) -> object:
         """Load accelerator state from ``path``."""
         raise NotImplementedError
 
@@ -76,7 +76,7 @@ def _is_safetensors_available() -> bool:
     return importlib.util.find_spec("safetensors") is not None
 
 
-def _callable_accepts_kwargs(fn: Any) -> bool:
+def _callable_accepts_kwargs(fn: object) -> bool:
     try:
         sig = inspect.signature(fn)
     except (TypeError, ValueError):
@@ -86,7 +86,7 @@ def _callable_accepts_kwargs(fn: Any) -> bool:
     )
 
 
-def _callable_accepts_param(fn: Any, name: str) -> bool:
+def _callable_accepts_param(fn: object, name: str) -> bool:
     try:
         sig = inspect.signature(fn)
     except (TypeError, ValueError):
@@ -324,7 +324,7 @@ def _normalize_checkpoint_dir(path: str) -> str:
     return path
 
 
-def _state_dict_has_zero_sized_tensors(state_dict: Optional[Dict[str, Any]]) -> bool:
+def _state_dict_has_zero_sized_tensors(state_dict: Optional[Dict[str, object]]) -> bool:
     if not isinstance(state_dict, dict) or not state_dict:
         return True
     try:
@@ -361,26 +361,26 @@ def _remove_hf_weight_files(checkpoint_dir: str) -> None:
 
 def _save_consolidated_hf_weights(
     *,
-    model_to_save: Any,
+    model_to_save: object,
     checkpoint_dir: str,
-    state_dict: Optional[Dict[str, Any]],
+    state_dict: Optional[Dict[str, object]],
     max_shard_size: str = "100GB",
 ) -> None:
     save_pretrained = getattr(model_to_save, "save_pretrained", None)
     if not callable(save_pretrained):
         raise TypeError("Model does not define save_pretrained()")
 
-    save_kwargs: Dict[str, Any] = {}
+    save_kwargs: Dict[str, object] = {}
     if state_dict is not None:
         save_kwargs["state_dict"] = state_dict
     safetensors_ok = _is_safetensors_available()
     save_kwargs["safe_serialization"] = bool(safetensors_ok)
     save_kwargs["max_shard_size"] = max_shard_size
 
-    def _try_save(kwargs: Dict[str, Any]) -> None:
+    def _try_save(kwargs: Dict[str, object]) -> None:
         save_pretrained(checkpoint_dir, **kwargs)
 
-    def _retry_without_kwargs(kwargs: Dict[str, Any]) -> None:
+    def _retry_without_kwargs(kwargs: Dict[str, object]) -> None:
         retry_kwargs = dict(kwargs)
         last_exc: Optional[TypeError] = None
         for key in ("max_shard_size", "safe_serialization", "state_dict"):
@@ -425,7 +425,7 @@ def _parse_checkpoint_step(path: str) -> Optional[int]:
     return None
 
 
-def _parse_save_total_limit(value: Any) -> int:
+def _parse_save_total_limit(value: object) -> int:
     """Normalize ``save_total_limit`` configuration values."""
 
     if value is None:
@@ -499,7 +499,7 @@ def _get_last_checkpoint(output_dir: Optional[str]) -> Optional[str]:
 
 
 def resolve_resume_checkpoint(
-    training_args: Any,
+    training_args: GRPOConfigType,
 ) -> Tuple[Optional[str], bool]:
     """Resolve the checkpoint path to resume from, if any.
 
@@ -576,7 +576,7 @@ def resolve_resume_checkpoint(
     return resolved, requested
 
 
-def load_trainer_state_metadata(checkpoint_path: Optional[str]) -> Dict[str, Any]:
+def load_trainer_state_metadata(checkpoint_path: Optional[str]) -> Dict[str, object]:
     """Load trainer_state.json if available for resume bookkeeping.
 
     :param checkpoint_path: Path to a checkpoint directory.
@@ -585,7 +585,7 @@ def load_trainer_state_metadata(checkpoint_path: Optional[str]) -> Dict[str, Any
     :rtype: dict[str, Any]
     """
 
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, object] = {}
     if not checkpoint_path:
         return metadata
     state_file = os.path.join(checkpoint_path, "trainer_state.json")
@@ -617,16 +617,16 @@ def load_trainer_state_metadata(checkpoint_path: Optional[str]) -> Dict[str, Any
 
 def _write_trainer_state_json(
     checkpoint_dir: str,
-    training_args: Any,
+    training_args: GRPOConfigType,
     *,
     global_step: Optional[int],
     num_input_tokens_seen: Optional[float] = None,
-    base_state: Optional[Dict[str, Any]] = None,
-    accelerator: Optional[Any] = None,
+    base_state: Optional[Dict[str, object]] = None,
+    accelerator: Optional[object] = None,
 ) -> None:
     """Persist a minimal trainer_state.json so future resumes find the step."""
 
-    payload: Dict[str, Any] = {
+    payload: Dict[str, object] = {
         "global_step": int(global_step or 0),
         "max_steps": getattr(training_args, "max_steps", None),
         "num_train_epochs": getattr(training_args, "num_train_epochs", None),
@@ -666,15 +666,15 @@ def _write_trainer_state_json(
 
 
 def build_checkpoint_saver(
-    training_args: Any,
-    runtime_handles: Any,
-    optim_handles: Any,
-    tokenizer: Any,
+    training_args: GRPOConfigType,
+    runtime_handles: object,
+    optim_handles: object,
+    tokenizer: object,
     *,
-    state_ref: Optional[Dict[str, Any]] = None,
-    base_trainer_state: Optional[Dict[str, Any]] = None,
+    state_ref: Optional[Dict[str, object]] = None,
+    base_trainer_state: Optional[Dict[str, object]] = None,
     controller_cfg: Optional[ControllerPathsLike] = None,
-) -> Any:
+) -> Callable[[str], None]:
     """Return a save_checkpoint callable compatible with LoggingHandles.
 
     The returned callable snapshots accelerator state, model/optimizer weights,
@@ -731,7 +731,7 @@ def build_checkpoint_saver(
             except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - accelerator dependent
                 LOG.warning("Failed to save accelerator state to %s: %s", checkpoint_dir, exc)
 
-        state_dict: Optional[Dict[str, Any]] = None
+        state_dict: Optional[Dict[str, object]] = None
         get_state_dict_fn = getattr(accelerator, "get_state_dict", None)
         if callable(get_state_dict_fn) and model is not None:
             # Needed for ZeRO-3/FSDP: gathers a full (saveable) state_dict.
@@ -1144,7 +1144,7 @@ def check_stop_condition(
         loop_state.stop_training = True
 
 
-def build_training_state(training_args: Any) -> LoggingHandles:
+def build_training_state(training_args: GRPOConfigType) -> LoggingHandles:
     """Construct minimal logging handles for the custom runner.
 
     :param training_args: Training configuration providing save strategy/steps.
@@ -1156,7 +1156,7 @@ def build_training_state(training_args: Any) -> LoggingHandles:
         def __init__(self) -> None:
             self.logged = []
 
-        def log(self, metrics: Dict[str, Any], step: int) -> None:
+        def log(self, metrics: Dict[str, object], step: int) -> None:
             self.logged.append((step, metrics))
 
         def flush(self) -> None:

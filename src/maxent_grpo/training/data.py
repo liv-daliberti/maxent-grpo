@@ -11,7 +11,7 @@ import logging
 from typing import Any, Callable, List, Mapping, Optional, Tuple, cast
 
 try:  # pragma: no cover - optional dependency guard for stripped test envs
-    from datasets import load_from_disk as _hf_load_from_disk  # type: ignore[reportMissingTypeStubs]
+    from datasets import load_from_disk as _hf_load_from_disk
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback when datasets is unavailable
     _hf_load_from_disk = None
 
@@ -193,8 +193,12 @@ def load_datasets(
     is_main_process = bool(getattr(accelerator, "is_main_process", True))
 
     def _wait_for_everyone() -> None:
-        wait_for_all = getattr(accelerator, "wait_for_everyone", None)
-        if callable(wait_for_all):
+        if accelerator is None:
+            return
+        wait_for_all: Optional[Callable[[], None]] = getattr(
+            accelerator, "wait_for_everyone", None
+        )
+        if wait_for_all is not None:
             wait_for_all()
 
     cache_path = _dataset_cache_path(

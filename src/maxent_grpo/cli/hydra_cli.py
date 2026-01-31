@@ -74,14 +74,14 @@ class _HydraStub:
 
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
-    import hydra  # type: ignore[reportMissingTypeStubs]
+    import hydra
     from omegaconf import DictConfig, OmegaConf, open_dict
 else:
     DictConfig: type[Any]
     OmegaConf: type[Any]
     open_dict: Any
     try:  # Optional dependency; provide stubs so linting/tests can import.
-        import hydra  # type: ignore[reportMissingTypeStubs]
+        import hydra
         from omegaconf import DictConfig as _DictConfig
         from omegaconf import OmegaConf as _OmegaConf
         from omegaconf import open_dict as _open_dict
@@ -127,7 +127,7 @@ def _resolve_model_config_cls() -> type[Any]:
     """Return the TRL ``ModelConfig`` type or a stub when TRL is unavailable."""
 
     try:
-        from trl import ModelConfig as _model_config_cls  # type: ignore
+        from trl import ModelConfig as _model_config_cls
     except (ImportError, ModuleNotFoundError, AttributeError):
         return _FallbackModelConfig
     return _model_config_cls
@@ -353,7 +353,7 @@ def _merge_mapping(
             and isinstance(merged.get(key), Mapping)
         ):
             merged[key] = _merge_mapping(
-                merged[key], value  # type: ignore[arg-type]
+                merged[key], value
             )
         else:
             merged[key] = value
@@ -376,7 +376,7 @@ def _apply_overrides(target: Any, overrides: Optional[Dict[str, Any]]) -> Any:
             elif current is not None and (
                 is_dataclass(current) or hasattr(current, "__dict__")
             ):
-                _apply_overrides(current, value)  # type: ignore[arg-type]
+                _apply_overrides(current, value)
             else:
                 setattr(target, key, dict(value))
         else:

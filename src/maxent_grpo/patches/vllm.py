@@ -51,7 +51,6 @@ from typing import (
     Any,
     Dict,
     List,
-    NoReturn,
     Optional,
     Protocol,
     Tuple,
@@ -62,7 +61,7 @@ from typing import (
 from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
 
 try:
-    import requests
+    import requests as _requests
 except ImportError:  # pragma: no cover - optional dependency
 
     class _RequestsStub:
@@ -74,13 +73,15 @@ except ImportError:  # pragma: no cover - optional dependency
         class Timeout(RuntimeError):
             pass
 
-        def _raise(self, *_args: Any, **_kwargs: Any) -> NoReturn:
+        def _raise(self, *_args: Any, **_kwargs: Any) -> Any:
             raise ImportError("requests is required for vLLM helpers")
 
         get = _raise
         post = _raise
 
-    requests = _RequestsStub()
+    _requests = _RequestsStub()
+
+requests: Any = _requests
 
 if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from requests import Response as RequestsResponse

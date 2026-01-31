@@ -24,17 +24,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from tests.helpers.run_setup_reference import _load_run_setup
 from maxent_grpo.training.types import LoggingHandles, LogStepArtifacts
 from maxent_grpo.training.runtime.prompts import GenerationPenaltyConfig
 from maxent_grpo.training.controller_objective import ControllerGradients
 
 
 @pytest.fixture
-def rtl(monkeypatch):
-    """Load training.loop with torch/accelerate stubs applied."""
-    _load_run_setup(monkeypatch)
-    module = reload(import_module("training.loop"))
+def rtl():
+    """Load training.loop module."""
+    module = reload(import_module("maxent_grpo.training.loop"))
     return module
 
 
@@ -117,7 +115,7 @@ def test_log_sample_table_logs_to_wandb(monkeypatch, rtl):
         )
     )
     monkeypatch.setitem(sys.modules, "wandb", fake_wandb)
-    metrics = reload(import_module("training.metrics"))
+    metrics = reload(import_module("maxent_grpo.training.metrics"))
 
     class _Accelerator:
         is_main_process = True
@@ -462,10 +460,9 @@ def test_train_step_runs_optimizer_step_when_ready(monkeypatch, rtl):
     assert log_calls["global"] == 1
 
 def test_pipeline_replay_logs_expected_metrics(monkeypatch):
-    _load_run_setup(monkeypatch)
-    rtl = reload(import_module("training.loop"))
+    rtl = reload(import_module("maxent_grpo.training.loop"))
     pipeline_mod = reload(import_module("maxent_grpo.training.pipeline"))
-    metrics_mod = reload(import_module("training.metrics"))
+    metrics_mod = reload(import_module("maxent_grpo.training.metrics"))
 
     class _Writer:
         def __init__(self):
@@ -773,7 +770,7 @@ def test_run_training_loop_logs_and_finishes_wandb(monkeypatch, rtl):
 
 def test_clear_stale_controller_state_removes_file(monkeypatch, rtl):
     """overwrite_output_dir should delete old controller snapshots before training."""
-    state_mod = reload(import_module("training.state"))
+    state_mod = reload(import_module("maxent_grpo.training.state"))
 
     removed = {}
     waited = {}
@@ -807,7 +804,7 @@ def test_clear_stale_controller_state_removes_file(monkeypatch, rtl):
 
 def test_maybe_checkpoint_calls_save_on_all_ranks(monkeypatch, rtl):
     """DeepSpeed checkpoints must be invoked by every rank, not just rank 0."""
-    state_mod = reload(import_module("training.state"))
+    state_mod = reload(import_module("maxent_grpo.training.state"))
     state_mod._checkpoint_log_once = {
         "config": False,
         "strategy": False,
@@ -1117,8 +1114,7 @@ def test_controller_objective_hook_applies_meta_updates(monkeypatch, rtl):
     assert kwargs["beta_grad"] == pytest.approx(gradients.beta_grad)
 
 def test_maxent_smoke_logs_expected_metrics(monkeypatch):
-    _load_run_setup(monkeypatch)
-    rtl = reload(import_module("training.loop"))
+    rtl = reload(import_module("maxent_grpo.training.loop"))
     target_steps = 2
 
     class _Writer:
@@ -1264,8 +1260,7 @@ def test_maxent_smoke_logs_expected_metrics(monkeypatch):
 
 
 def test_maxent_vs_grpo_parity(monkeypatch, tmp_path):
-    _load_run_setup(monkeypatch)
-    rtl = reload(import_module("training.loop"))
+    rtl = reload(import_module("maxent_grpo.training.loop"))
     ckpt_dir = tmp_path / "ckpts"
     ckpt_dir.mkdir()
     runs = []
@@ -1442,8 +1437,7 @@ def test_log_prompt_objective_respects_flags(monkeypatch, caplog, rtl):
 
 
 def test_eval_loop_smoke_logs_eval_metrics(monkeypatch):
-    _load_run_setup(monkeypatch)
-    rtl = reload(import_module("training.loop"))
+    rtl = reload(import_module("maxent_grpo.training.loop"))
     target_steps = 2
     validation_calls = []
 
@@ -1614,7 +1608,7 @@ def test_maybe_overwrite_controller_state_from_config_applies_recipe(monkeypatch
         training_args=SimpleNamespace(
             controller_overwrite_from_config=True,
             maxent_tau=0.3,
-            init_kl_coeff=0.04,
+            beta=0.04,
         ),
         scoring=SimpleNamespace(weighting=_Weighting()),
         runtime=SimpleNamespace(accelerator=SimpleNamespace()),
@@ -1658,7 +1652,7 @@ def test_maybe_overwrite_controller_state_from_config_noop_without_flag(monkeypa
         training_args=SimpleNamespace(
             controller_overwrite_from_config=False,
             maxent_tau=0.9,
-            init_kl_coeff=0.7,
+            beta=0.7,
         ),
         scoring=SimpleNamespace(weighting=_Weighting()),
         runtime=SimpleNamespace(accelerator=SimpleNamespace()),
@@ -1700,7 +1694,7 @@ def test_maybe_overwrite_controller_state_skips_when_resumed(monkeypatch, rtl):
         training_args=SimpleNamespace(
             controller_overwrite_from_config=True,
             maxent_tau=0.8,
-            init_kl_coeff=0.1,
+            beta=0.1,
         ),
         scoring=SimpleNamespace(weighting=weighting),
         runtime=SimpleNamespace(accelerator=SimpleNamespace()),

@@ -287,9 +287,6 @@ def _maybe_init_wandb_run(
     except init_exceptions as exc:  # pragma: no cover - defensive
         LOG.warning("Failed to initialize W&B run: %s", exc)
         return None
-    except Exception as exc:  # pragma: no cover - defensive fallback  # pylint: disable=broad-exception-caught
-        LOG.warning("Unexpected W&B init failure: %s", exc)
-        return None
 
 
 def log_run_header(training_args: Any | None = None) -> Dict[str, str]:

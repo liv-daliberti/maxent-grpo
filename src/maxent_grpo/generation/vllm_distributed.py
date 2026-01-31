@@ -10,7 +10,7 @@ from maxent_grpo.training.runtime import require_accelerator, require_torch
 torch = require_torch("generation_vllm_dist")
 Accelerator = require_accelerator("generation_vllm_dist")
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from accelerate import Accelerator as AcceleratorType  # type: ignore[reportMissingTypeStubs]
+    from accelerate import Accelerator as AcceleratorType
 else:  # pragma: no cover - runtime fallback
     AcceleratorType = Any
 
@@ -24,7 +24,7 @@ def _current_torch() -> Any:
 
     vllm_mod = sys.modules.get("maxent_grpo.generation.vllm")
     if vllm_mod is not None and getattr(vllm_mod, "torch", None) is not None:
-        return vllm_mod.torch  # type: ignore[attr-defined]
+        return vllm_mod.torch
     return torch
 
 

@@ -38,7 +38,7 @@ from .hub import get_gpu_count_for_vllm, get_param_count_from_repo_id
 
 
 if TYPE_CHECKING:
-    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
+    from trl import ModelConfig
 
     from ..config.grpo import GRPOConfig
 

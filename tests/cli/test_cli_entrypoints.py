@@ -38,7 +38,7 @@ def _reload_cli_trl() -> ModuleType:
     spec = importlib.util.spec_from_file_location("test_maxent_training_cli_trl", path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
-    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    spec.loader.exec_module(module)
     return module
 
 

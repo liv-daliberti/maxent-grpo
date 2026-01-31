@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from types import ModuleType
 from typing import Any, Dict, Iterator, List, Optional, Tuple, TYPE_CHECKING, cast
 
 from maxent_grpo.training.runtime import require_torch
@@ -48,7 +49,7 @@ _KL_LENGTH_BUCKETS: List[Tuple[int, Optional[int]]] = [
 ]
 
 
-def _refresh_torch() -> Any:
+def _refresh_torch() -> ModuleType:
     """Return the active torch module."""
 
     return torch

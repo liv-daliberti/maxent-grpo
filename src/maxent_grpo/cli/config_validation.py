@@ -10,7 +10,7 @@ this module by adding additional schema checks.
 from __future__ import annotations
 
 import warnings
-from dataclasses import MISSING, asdict, fields, is_dataclass
+from dataclasses import MISSING, Field as DataclassField, asdict, fields, is_dataclass
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, ValidationError, model_validator
@@ -28,11 +28,11 @@ __all__ = [
 warnings.filterwarnings("ignore", category=UnsupportedFieldAttributeWarning)
 
 
-def _field_default(field: Any) -> Any:
+def _field_default(field: DataclassField[object]) -> object | None:
     if field.default is not MISSING:
         return field.default
-    if field.default_factory is not MISSING:  # type: ignore[attr-defined]
-        return field.default_factory()  # type: ignore[misc]
+    if field.default_factory is not MISSING:
+        return field.default_factory()
     return None
 
 

@@ -18,7 +18,7 @@ import maxent_grpo.rewards as R
 
 
 def test_canon_math_strips_wrappers_and_spaces():
-    canon = R._canon_math  # type: ignore[attr-defined]
+    canon = R._canon_math
     assert canon(" { 42 } ") == "42"
     assert canon("( 3.0 )") == "3"
     assert canon("-0") == "0"

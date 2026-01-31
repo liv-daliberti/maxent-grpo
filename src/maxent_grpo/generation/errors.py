@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional
+from typing import Optional
 
 
 @dataclass
@@ -24,9 +24,9 @@ class ServiceErrorPayload:
     exception_type: str
     exception_message: str
     request_id: Optional[str] = None
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, object] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Return a JSON-friendly dictionary for structured logging."""
 
         trimmed_message = self.exception_message or ""
@@ -53,7 +53,7 @@ class ServiceErrorPayload:
 
         return json.dumps(self.to_dict(), sort_keys=True)
 
-    def copy_with(self, **updates: Any) -> "ServiceErrorPayload":
+    def copy_with(self, **updates: object) -> "ServiceErrorPayload":
         """Return a shallow copy with the provided field overrides."""
 
         data = asdict(self)
@@ -75,7 +75,7 @@ class GenerationServiceError(RuntimeError):
         super().__init__(message)
         self.payload = payload
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Structured representation including the human-readable message."""
 
         info = self.payload.to_dict()

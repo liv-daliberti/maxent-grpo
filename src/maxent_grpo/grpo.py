@@ -31,7 +31,7 @@ ensure_usercustomize_loaded()
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
 if TYPE_CHECKING:
-    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
+    from trl import ModelConfig
 
 def _missing_hydra_entry(*_args: Any, **_kwargs: Any) -> None:  # pragma: no cover - fallback stub
     raise RuntimeError(
@@ -40,15 +40,15 @@ def _missing_hydra_entry(*_args: Any, **_kwargs: Any) -> None:  # pragma: no cov
 
 
 try:  # Best-effort to expose CLI helpers when available.
-    from maxent_grpo.cli import hydra_cli, parse_grpo_args  # type: ignore
+    from maxent_grpo.cli import hydra_cli, parse_grpo_args
 except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover - optional deps may be absent
-    hydra_cli = SimpleNamespace(  # type: ignore
+    hydra_cli = SimpleNamespace(
         baseline_entry=_missing_hydra_entry,
         maxent_entry=_missing_hydra_entry,
         infoseed_entry=_missing_hydra_entry,
         hydra_entry=_missing_hydra_entry,
     )
-    parse_grpo_args = None  # type: ignore
+    parse_grpo_args = None
 
 __all__ = ["cli", "main"]
 
@@ -134,7 +134,7 @@ def main(
 
     baseline_mod = sys.modules.get("maxent_grpo.pipelines.training.baseline")
     if baseline_mod and hasattr(baseline_mod, "run_baseline_training"):
-        run_baseline_training = baseline_mod.run_baseline_training  # type: ignore[attr-defined]
+        run_baseline_training = baseline_mod.run_baseline_training
     else:
         from maxent_grpo.pipelines.training.baseline import run_baseline_training
 

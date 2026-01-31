@@ -358,7 +358,7 @@ def test_sync_model_params_fsdp_branch_resets_cache(monkeypatch):
 
 def test_push_param_to_vllm_skips_when_missing_callable():
     helper = vllm.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))
-    helper._client_callable = lambda name: None  # type: ignore[assignment]
+    helper._client_callable = lambda name: None
     helper._push_param_to_vllm("x", SimpleNamespace(data="d"))  # should no-op
 
 
@@ -600,7 +600,7 @@ def test_sync_model_params_handles_hasattr_exception_and_second_pass(monkeypatch
 
     helper = vllm.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))
     helper._fsdp_cls = None
-    helper._is_peft_model_safe = lambda _m: False  # type: ignore[assignment]
+    helper._is_peft_model_safe = lambda _m: False
     helper._gather_factory = lambda _p: nullcontext()
     pushed: list[str] = []
     monkeypatch.setattr(
@@ -653,7 +653,7 @@ def test_sync_model_params_walk_skips_none_and_repushes_root(monkeypatch):
 
     helper = vllm.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))
     helper._fsdp_cls = None
-    helper._is_peft_model_safe = lambda _m: False  # type: ignore[assignment]
+    helper._is_peft_model_safe = lambda _m: False
     helper._gather_factory = lambda _p: nullcontext()
     pushed: list[str] = []
     monkeypatch.setattr(
@@ -689,7 +689,7 @@ def test_sync_model_params_sets_fsdp_cls_after_second_probe(monkeypatch):
 
     helper = vllm.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))
     helper._fsdp_cls = None
-    helper._is_peft_model_safe = lambda _m: False  # type: ignore[assignment]
+    helper._is_peft_model_safe = lambda _m: False
     helper._gather_factory = lambda _p: nullcontext()
     pushed: list[str] = []
     monkeypatch.setattr(

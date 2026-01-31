@@ -91,7 +91,7 @@ def test_zero3_gather_factory_uses_deepspeed(monkeypatch):
     accel = SimpleNamespace(
         state=SimpleNamespace(deepspeed_plugin=SimpleNamespace(zero_stage=3))
     )
-    factory = helpers._zero3_gather_factory(accel)  # noqa: SLF001
+    factory = helpers._zero3_gather_factory(accel)
     with factory(["p1"]) as ctx:
         assert isinstance(ctx, _Gather)
     assert gather_called["params"] == ["p1"]
@@ -101,30 +101,30 @@ def test_zero3_gather_factory_returns_nullcontext_when_disabled():
     accel = SimpleNamespace(
         state=SimpleNamespace(deepspeed_plugin=SimpleNamespace(zero_stage=1))
     )
-    factory = helpers._zero3_gather_factory(accel)  # noqa: SLF001
+    factory = helpers._zero3_gather_factory(accel)
     assert isinstance(factory([]), nullcontext)
 
 
 def test_is_peft_model_safe_handles_missing_and_errors(monkeypatch):
     monkeypatch.delitem(sys.modules, "accelerate.utils", raising=False)
-    assert helpers._is_peft_model_safe(object()) is False  # noqa: SLF001
+    assert helpers._is_peft_model_safe(object()) is False
 
     accel_utils = ModuleType("accelerate.utils")
     accel_utils.is_peft_model = lambda target: target == "ok"
     monkeypatch.setitem(sys.modules, "accelerate.utils", accel_utils)
-    assert helpers._is_peft_model_safe("ok") is True  # noqa: SLF001
+    assert helpers._is_peft_model_safe("ok") is True
     accel_utils.is_peft_model = lambda _t: (_ for _ in ()).throw(TypeError())
-    assert helpers._is_peft_model_safe("bad") is False  # noqa: SLF001
+    assert helpers._is_peft_model_safe("bad") is False
 
 
 def test_import_vllm_client_cls(monkeypatch):
     monkeypatch.delitem(sys.modules, "trl.extras.vllm_client", raising=False)
-    assert helpers._import_vllm_client_cls() is None  # noqa: SLF001
+    assert helpers._import_vllm_client_cls() is None
     mod = ModuleType("trl.extras.vllm_client")
     sentinel = object()
     mod.VLLMClient = sentinel
     monkeypatch.setitem(sys.modules, "trl.extras.vllm_client", mod)
-    assert helpers._import_vllm_client_cls() is sentinel  # noqa: SLF001
+    assert helpers._import_vllm_client_cls() is sentinel
 
 
 def test_generation_context_accessors_and_as_dict():
@@ -179,7 +179,7 @@ def test_vllm_base_url_and_round_limit():
 def test_seed_and_retry_incomplete_prompts(monkeypatch):
     grouped, meta = helpers.CompletionGenerator._seed_generation_groups(
         2, [["a"], []], [[None], []]
-    )  # noqa: SLF001
+    )
     assert grouped[0] == ["a"]
     completions = [["b"], ["c"]]
     metas = [["m1"], ["m2"]]
@@ -189,7 +189,7 @@ def test_seed_and_retry_incomplete_prompts(monkeypatch):
         return completions, metas
 
     out_groups, out_meta = (
-        helpers.CompletionGenerator._retry_incomplete_prompts(  # noqa: SLF001
+        helpers.CompletionGenerator._retry_incomplete_prompts(
             None,
             ["p1", "p2"],
             _generator,
@@ -500,14 +500,14 @@ def test_record_vllm_latency_accumulates():
 
 def test_coalesce_grouped_outputs_and_merge_chunk():
     merged, merged_meta = (
-        helpers.CompletionGenerator._merge_group_chunk(  # noqa: SLF001
+        helpers.CompletionGenerator._merge_group_chunk(
             [["a"], ["b"]], [[["ma"]], [["mb"]]], requested_n=1
         )
     )
     assert merged == ["a"]
     assert merged_meta == [["ma"]]
     groups, meta = (
-        helpers.CompletionGenerator._coalesce_grouped_outputs(  # noqa: SLF001
+        helpers.CompletionGenerator._coalesce_grouped_outputs(
             [["a"], ["b"], ["c"], ["d"]],
             prompt_count=2,
             requested_n=2,
@@ -517,7 +517,7 @@ def test_coalesce_grouped_outputs_and_merge_chunk():
     assert len(groups) == 2
     assert meta is not None and len(meta) == 2
     fallback_groups, fallback_meta = (
-        helpers.CompletionGenerator._coalesce_grouped_outputs(  # noqa: SLF001
+        helpers.CompletionGenerator._coalesce_grouped_outputs(
             [["a"], ["b"], ["c"]],
             prompt_count=2,
             requested_n=1,
@@ -536,7 +536,7 @@ def test_prepare_vllm_targets_and_expand(monkeypatch):
     assert prompts2 == ["p1"]
     assert counts2 == [1]
     assert mapping2 == [0, 0]
-    grouped, meta = helpers.CompletionGenerator._expand_dedup_results(  # noqa: SLF001
+    grouped, meta = helpers.CompletionGenerator._expand_dedup_results(
         [["a"]], [["m"]], mapping2
     )
     assert grouped == [["a"], ["a"]]

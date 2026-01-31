@@ -16,13 +16,33 @@ limitations under the License.
 Application-layer orchestration helpers for the MaxEnt-GRPO toolkit.
 """
 
-from . import generation, math_inference, training
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
+
 from .base import PipelineResult, log_pipeline_banner
 
+_LAZY_SUBMODULES = {
+    "generation": "maxent_grpo.pipelines.generation",
+    "math_inference": "maxent_grpo.pipelines.math_inference",
+    "training": "maxent_grpo.pipelines.training",
+}
+
 __all__ = [
-    "generation",
-    "math_inference",
-    "training",
+    *list(_LAZY_SUBMODULES.keys()),
     "PipelineResult",
     "log_pipeline_banner",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    if name in _LAZY_SUBMODULES:
+        module = import_module(_LAZY_SUBMODULES[name])
+        globals()[name] = module
+        return module
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:  # pragma: no cover - trivial
+    return sorted(__all__)

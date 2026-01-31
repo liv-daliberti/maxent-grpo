@@ -23,7 +23,7 @@ import numbers
 import sys
 from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
-from typing import Any, Iterator, List, Optional, Protocol, TYPE_CHECKING, TypeAlias, cast
+from typing import ContextManager, Iterator, List, Optional, Protocol, TYPE_CHECKING, TypeAlias, cast
 
 from maxent_grpo.training.runtime import require_deepspeed
 
@@ -52,7 +52,7 @@ except (
     torch = None
 
 
-def _ensure_cuda_fallback() -> Any:
+def _ensure_cuda_fallback() -> SimpleNamespace:
     """Return a cuda namespace exposing ``is_available`` and ``empty_cache``.
 
     :returns: Namespace exposing ``is_available`` and ``empty_cache`` placeholders.
@@ -79,13 +79,13 @@ def _ensure_cuda_fallback() -> Any:
 
 
 if torch is None:
-    torch = cast(Any, SimpleNamespace(cuda=_ensure_cuda_fallback()))
+    torch = cast(object, SimpleNamespace(cuda=_ensure_cuda_fallback()))
 else:
     if not hasattr(torch, "cuda") or not hasattr(torch.cuda, "is_available"):
         setattr(torch, "cuda", _ensure_cuda_fallback())
 
 if TYPE_CHECKING:
-    from transformers.modeling_utils import (  # type: ignore[reportPrivateImportUsage]
+    from transformers.modeling_utils import (
         PreTrainedModel as _PreTrainedModel,
     )
     from torch import nn as torch_nn
@@ -94,9 +94,9 @@ if TYPE_CHECKING:
     TorchModule = torch_nn.Module
     TorchParameter = torch_nn.Parameter
 else:  # pragma: no cover - runtime uses optional stubs
-    PreTrainedModel: TypeAlias = Any
-    TorchModule = Any
-    TorchParameter = Any
+    PreTrainedModel: TypeAlias = object
+    TorchModule = object
+    TorchParameter = object
 
 ds_zero = None
 ZeroParamStatus = None
@@ -143,7 +143,9 @@ _NO_SYNC_WARN_ATTR = "_maxent_zero_no_sync_warned"
 class GatherCallable(Protocol):
     """Callable signature exposed by DeepSpeed GatheredParameters."""
 
-    def __call__(self, params: List[Any], *args: Any, **kwargs: Any) -> Any: ...
+    def __call__(
+        self, params: List[object], *args: object, **kwargs: object
+    ) -> ContextManager[None]: ...
 
 
 def _zero_stage(model: Optional[TorchModule]) -> int:
@@ -218,7 +220,7 @@ def _maybe_patch_zero_no_sync(model: Optional[TorchModule]) -> bool:
     original_no_sync = no_sync
 
     @contextmanager
-    def _patched_no_sync(*args: Any, **kwargs: Any) -> Iterator[None]:
+    def _patched_no_sync(*args: object, **kwargs: object) -> Iterator[None]:
         """Shim that emits a warning and bypasses ``no_sync`` under ZeRO-3."""
         if _zero_partitioning_gradients(model):
             if not getattr(model, _NO_SYNC_WARN_ATTR, False):
@@ -229,7 +231,7 @@ def _maybe_patch_zero_no_sync(model: Optional[TorchModule]) -> bool:
             yield
             return
         ctx = original_no_sync(*args, **kwargs)
-        with cast(Any, ctx):
+        with cast(ContextManager[None], ctx):
             yield
 
     setattr(model, "no_sync", _patched_no_sync)
@@ -237,7 +239,9 @@ def _maybe_patch_zero_no_sync(model: Optional[TorchModule]) -> bool:
     return True
 
 
-def _embedding_weight_needing_gather(model: Optional[PreTrainedModel]) -> Optional[Any]:
+def _embedding_weight_needing_gather(
+    model: Optional[PreTrainedModel],
+) -> Optional[TorchParameter]:
     """Return the embedding weight tensor when ZeRO gathering is required.
 
     :param model: Model potentially wrapping ZeRO-managed embeddings.
@@ -275,8 +279,8 @@ def _gather_callable() -> Optional[GatherCallable]:
 
 
 def _call_gather_fn(
-    gather_fn: GatherCallable, params: List[Any], modifier_rank: Optional[int]
-) -> Any:
+    gather_fn: GatherCallable, params: List[object], modifier_rank: Optional[int]
+) -> ContextManager[None]:
     """Invoke GatheredParameters handling pre/post modifier_rank support."""
     if not callable(gather_fn):
         return nullcontext()

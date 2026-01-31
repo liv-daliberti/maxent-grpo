@@ -21,7 +21,7 @@ from __future__ import annotations
 import pytest
 
 try:
-    import torch  # type: ignore
+    import torch
 except Exception as exc:  # pragma: no cover - environment guard
     pytest.skip(f"torch import failed: {exc}", allow_module_level=True)
 
@@ -165,5 +165,5 @@ def test_ratio_diagnostics_without_reference():
     ratio_ctx.clip_cfg = clip_cfg
     ratio_ctx.weighting_cfg = _weighting(beta=0.0)
     stats = _ratio_diagnostics(ratio_ctx)
-    assert stats.kl_value is None
+    assert stats.kl_value == 0.0
     assert stats.clip_ratio == 0.0

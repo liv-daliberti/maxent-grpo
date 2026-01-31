@@ -82,7 +82,7 @@ else:
 class _WeightingLogCallback(_WeightingLogCallbackBase):
     """Normalize/log metrics even if a trainer bypasses the log override."""
 
-    def on_log(  # type: ignore[override]
+    def on_log(
         self,
         args: Any,
         state: Any,
@@ -480,7 +480,7 @@ class _WeightingLoggingMixin:
                 getattr(self, "args", None)
             )
 
-    def log(self, logs: Dict[str, Any], *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
+    def log(self, logs: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
         self._init_weighting_logger()
         helper = getattr(self, "_weighting_metric_helper", None)
         merged = dict(logs or {})
@@ -524,7 +524,7 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
         # Allow callables (e.g., stubs returning SimpleNamespace) to be used like classes.
         callable_trainer = trainer_cls
 
-        class _CallableTrainer(_WeightingLoggingMixin):  # type: ignore[misc]
+        class _CallableTrainer(_WeightingLoggingMixin):
             _MAXENT_WEIGHTING_LOGGING = True
 
             def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -534,7 +534,7 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
             def __getattr__(self, name: str) -> Any:
                 return getattr(self._inner, name)
 
-            def log(self, logs: Dict[str, Any], *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
+            def log(self, logs: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
                 merged = dict(logs or {})
                 _merge_loss_components_from_trainer(merged, self)
                 _augment_loss_metrics(merged)
@@ -554,8 +554,8 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
     class _LossCaptureMixin:
         """Capture loss component dicts returned by compute_loss for logging."""
 
-        def compute_loss(self, *args: Any, **kwargs: Any) -> Any:  # type: ignore[override]
-            loss = super().compute_loss(*args, **kwargs)  # type: ignore[misc]
+        def compute_loss(self, *args: Any, **kwargs: Any) -> Any:
+            loss = super().compute_loss(*args, **kwargs)
             setattr(self, "_last_loss_components", None)
             setattr(self, "_last_loss_scalar", None)
             loss_value = loss
@@ -577,12 +577,12 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
                 # Capture a precise scalar before upstream rounding.
                 if hasattr(loss_value, "mean"):
                     loss_value = loss_value.mean()
-                self._last_loss_scalar = float(loss_value.item())  # type: ignore[arg-type]
+                self._last_loss_scalar = float(loss_value.item())
             except (AttributeError, RuntimeError, TypeError, ValueError) as err:
                 LOG.debug("Failed to capture precise loss scalar: %s", err)
             return loss
 
-    class WeightingLoggedTrainer(_LossCaptureMixin, _WeightingLoggingMixin, trainer_cls):  # type: ignore[misc]
+    class WeightingLoggedTrainer(_LossCaptureMixin, _WeightingLoggingMixin, trainer_cls):
         _MAXENT_WEIGHTING_LOGGING = True
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:

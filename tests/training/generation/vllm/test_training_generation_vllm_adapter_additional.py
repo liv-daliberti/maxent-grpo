@@ -92,7 +92,7 @@ def test_invoke_vllm_requests_uses_defaults_on_import_error(monkeypatch):
         "import_module",
         lambda name: (_ for _ in ()).throw(ImportError()),
     )
-    sentinel_safe = lambda *_a, **_k: "safe"  # noqa: E731
+    sentinel_safe = lambda *_a, **_k: "safe"
     sentinel_time = SimpleNamespace()
     monkeypatch.setattr(vllm_adapter, "safe_generate", sentinel_safe)
     monkeypatch.setattr(vllm_adapter, "time", sentinel_time)
@@ -183,7 +183,7 @@ def test_invoke_vllm_requests_handles_missing_helpers_module(monkeypatch):
         "import_module",
         lambda name: (_ for _ in ()).throw(ImportError()),
     )
-    sentinel_safe = lambda *_a, **_k: "safe"  # noqa: E731
+    sentinel_safe = lambda *_a, **_k: "safe"
     sentinel_time = SimpleNamespace()
     monkeypatch.setattr(vllm_adapter, "safe_generate", sentinel_safe)
     monkeypatch.setattr(vllm_adapter, "time", sentinel_time)

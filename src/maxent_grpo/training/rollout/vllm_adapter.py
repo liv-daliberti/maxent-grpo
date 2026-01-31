@@ -45,7 +45,7 @@ dist = getattr(torch, "distributed", None)
 LOG = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from accelerate import Accelerator as AcceleratorLike  # type: ignore[reportMissingTypeStubs]
+    from accelerate import Accelerator as AcceleratorLike
 else:
     AcceleratorLike = Any
 

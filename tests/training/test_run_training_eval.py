@@ -24,7 +24,6 @@ from typing import Any, Dict, List, Tuple
 
 import pytest
 
-from tests.helpers.run_setup_reference import _load_run_setup
 
 
 class _StubMetricWriter:
@@ -39,11 +38,10 @@ class _StubMetricWriter:
 
 
 @pytest.fixture
-def rte(monkeypatch):
-    """Load training.eval with dependency stubs."""
-    _load_run_setup(monkeypatch)
-    eval_mod = reload(import_module("training.eval"))
-    types_mod = reload(import_module("training.types"))
+def rte():
+    """Load training.eval module."""
+    eval_mod = reload(import_module("maxent_grpo.training.eval"))
+    types_mod = reload(import_module("maxent_grpo.training.types"))
     return eval_mod, types_mod
 
 

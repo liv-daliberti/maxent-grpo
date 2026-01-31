@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 import logging
@@ -21,10 +22,6 @@ if __package__ is None or __package__ == "":
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
 
-ensure_usercustomize_loaded()
-
-from maxent_grpo.cli import hydra_cli, parse_grpo_args
-
 __all__ = ["main"]
 
 LOG = logging.getLogger(__name__)
@@ -39,6 +36,26 @@ if os.environ.get("MAXENT_FAULTHANDLER", "").strip():
             faulthandler.register(signal.SIGUSR1, all_threads=True)
         except (OSError, RuntimeError, ValueError) as exc:
             LOG.warning("Failed to register faulthandler SIGUSR1 handler: %s", exc)
+
+
+def _resolve_cli_attr(attr_name: str) -> Any:
+    """Best-effort import helper for optional CLI attributes."""
+
+    try:
+        pkg = importlib.import_module("maxent_grpo")
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        pkg = None
+    if pkg is not None:
+        attr = getattr(pkg, attr_name, None)
+        if attr is not None:
+            return attr
+    try:
+        if attr_name == "hydra_cli":
+            return importlib.import_module("maxent_grpo.cli.hydra_cli")
+        cli_mod = importlib.import_module("maxent_grpo.cli")
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        return None
+    return getattr(cli_mod, attr_name, None)
 
 
 def main(
@@ -56,11 +73,35 @@ def main(
     :raises Exception: Propagates parser or training pipeline exceptions.
     """
 
+    ensure_usercustomize_loaded()
+
     if script_args is None or training_args is None or model_args is None:
-        try:
-            script_args, training_args, model_args = parse_grpo_args()
-        except (ImportError, RuntimeError, SystemExit, ValueError):
-            return hydra_cli.maxent_entry()
+        _parse_grpo_args = _resolve_cli_attr("parse_grpo_args")
+        _hydra_cli = _resolve_cli_attr("hydra_cli")
+        if callable(_parse_grpo_args):
+            try:
+                script_args, training_args, model_args = _parse_grpo_args()
+            except (
+                ImportError,
+                ModuleNotFoundError,
+                RuntimeError,
+                SystemExit,
+                TypeError,
+                ValueError,
+                AttributeError,
+            ):
+                if _hydra_cli is not None:
+                    maxent_entry = getattr(_hydra_cli, "maxent_entry", None)
+                    if callable(maxent_entry):
+                        return maxent_entry()
+                raise
+        elif _hydra_cli is not None:
+            maxent_entry = getattr(_hydra_cli, "maxent_entry", None)
+            if callable(maxent_entry):
+                return maxent_entry()
+            raise RuntimeError("Hydra CLI entrypoint is unavailable")
+        else:
+            raise RuntimeError("No CLI parser available")
     from maxent_grpo.pipelines.training.maxent import run_maxent_training
 
     return run_maxent_training(script_args, training_args, model_args)

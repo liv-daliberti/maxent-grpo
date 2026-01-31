@@ -70,10 +70,7 @@ from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
 from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 
 if TYPE_CHECKING:
-    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
-
-import transformers as transformers
-import transformers.trainer_utils as trainer_utils  # type: ignore
+    from trl import ModelConfig
 
 
 @contextmanager
@@ -91,7 +88,7 @@ def _force_vllm_dtype(training_args: GRPOConfig) -> Iterator[None]:
         return
 
     try:
-        import trl.trainer.grpo_trainer as grpo_mod  # type: ignore[reportMissingTypeStubs]
+        import trl.trainer.grpo_trainer as grpo_mod
         from vllm import LLM as _LLM
     except (ImportError, AttributeError, RuntimeError):
         # If vLLM/TRL isn't available, fall through without patching.
@@ -279,7 +276,7 @@ def run_baseline_training(
     # Import selected pieces lazily to keep module import light-weight
     import transformers as transformers_mod
     from transformers.trainer_utils import get_last_checkpoint
-    from trl import (  # type: ignore[reportMissingTypeStubs]
+    from trl import (
         GRPOTrainer as _GRPOTrainer,
         get_peft_config as _get_peft_config,
     )
@@ -363,7 +360,7 @@ def run_baseline_training(
         )
     # Optional: datasets logging if available
     try:  # pragma: no cover - environment dependent
-        import datasets as _hf_datasets  # type: ignore[reportMissingTypeStubs]
+        import datasets as _hf_datasets
 
         _hf_datasets.utils.logging.set_verbosity(log_level)
     except (ImportError, ModuleNotFoundError, AttributeError) as exc:

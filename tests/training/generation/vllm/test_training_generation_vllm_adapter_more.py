@@ -231,7 +231,7 @@ def test_backfill_and_failure_delegation():
 def test_run_vllm_rounds_rewires_helper(monkeypatch):
     sentinel_time = object()
     helpers_mod = ModuleType("maxent_grpo.training.rollout.helpers")
-    helpers_mod.time = sentinel_time  # type: ignore[attr-defined]
+    helpers_mod.time = sentinel_time
     monkeypatch.setitem(sys.modules, helpers_mod.__name__, helpers_mod)
     monkeypatch.setattr(sys.modules[__name__], "time", sentinel_time, raising=False)
 
@@ -255,7 +255,7 @@ def test_run_vllm_rounds_rewires_helper(monkeypatch):
     gen = _RunGen()
     state: Any = {}
     gen._run_vllm_rounds(state)
-    helper: _RunHelper = gen._vllm_helper  # type: ignore[assignment]
+    helper: _RunHelper = gen._vllm_helper
     assert ("run", state) in helper.calls
     assert helper._time is sentinel_time
     assert callable(helper._execute_vllm_request)
@@ -278,15 +278,15 @@ def test_generate_vllm_collective_main_and_worker_paths():
         prompts,
         [0, len(prompts)],
         counts,
-    )  # type: ignore[attr-defined]
+    )
     helper._generate_with_vllm = lambda prompts, num_samples, counts: (
         [["a"] for _ in prompts],
         None,
-    )  # type: ignore[attr-defined]
+    )
     helper._scatter_vllm_payload = lambda flat, offsets, grouped, meta: (
         grouped or [],
         meta,
-    )  # type: ignore[attr-defined]
+    )
 
     class _CollectiveGen(_DelegateGen):
         def __init__(self, accel):
@@ -318,9 +318,9 @@ def test_generate_vllm_collective_handles_none_scatter(monkeypatch):
         prompts,
         [0, len(prompts)],
         counts,
-    )  # type: ignore[attr-defined]
-    helper._generate_with_vllm = lambda *a, **k: (None, None)  # type: ignore[attr-defined]
-    helper._scatter_vllm_payload = lambda *a, **k: (None, None)  # type: ignore[attr-defined]
+    )
+    helper._generate_with_vllm = lambda *a, **k: (None, None)
+    helper._scatter_vllm_payload = lambda *a, **k: (None, None)
 
     class _CollectiveGen(_DelegateGen):
         def __init__(self, accel):

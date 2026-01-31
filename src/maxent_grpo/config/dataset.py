@@ -27,9 +27,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, cast
+from typing import Any, Callable, List, Optional, cast
 
-import trl  # type: ignore[reportMissingTypeStubs]
+import trl
 
 LOG = logging.getLogger(__name__)
 
@@ -131,8 +131,10 @@ class ScriptArguments(_BaseScriptArgs):
     )
 
     def __post_init__(self) -> None:
-        base_post_init = getattr(super(), "__post_init__", None)
-        if callable(base_post_init):
+        base_post_init: Optional[Callable[[], None]] = getattr(
+            super(), "__post_init__", None
+        )
+        if base_post_init is not None:
             base_post_init()
         else:
             LOG.debug("Skipping base ScriptArguments.__post_init__: missing")

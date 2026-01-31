@@ -123,6 +123,8 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
     tau = float(getattr(cfg, "maxent_tau", 0.0))
     beta_source = getattr(cfg, "beta", None)
     if beta_source is None:
+        beta_source = getattr(cfg, "init_kl_coeff", None)
+    if beta_source is None:
         beta = 0.0
     else:
         try:

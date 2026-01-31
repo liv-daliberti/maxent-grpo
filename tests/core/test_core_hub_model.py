@@ -36,12 +36,16 @@ def test_push_to_hub_revision_handles_missing_commits(monkeypatch):
 
     def _list_commits(repo_id):
         assert repo_id == "org/repo"
-        raise importlib.import_module("core.hub").HfHubHTTPError("oops")  # type: ignore[arg-type]
+        raise importlib.import_module("maxent_grpo.core.hub").HfHubHTTPError(
+            "oops"
+        )
 
-    monkeypatch.setattr("core.hub.create_repo", lambda **_: "https://hub/repo")
-    monkeypatch.setattr("core.hub.list_repo_commits", _list_commits)
     monkeypatch.setattr(
-        "core.hub.create_branch",
+        "maxent_grpo.core.hub.create_repo", lambda **_: "https://hub/repo"
+    )
+    monkeypatch.setattr("maxent_grpo.core.hub.list_repo_commits", _list_commits)
+    monkeypatch.setattr(
+        "maxent_grpo.core.hub.create_branch",
         lambda **kwargs: calls.setdefault("create_branch", kwargs.copy()),
     )
 
@@ -49,9 +53,9 @@ def test_push_to_hub_revision_handles_missing_commits(monkeypatch):
         calls["upload_folder"] = kwargs.copy()
         return future
 
-    monkeypatch.setattr("core.hub.upload_folder", _upload_folder)
+    monkeypatch.setattr("maxent_grpo.core.hub.upload_folder", _upload_folder)
 
-    result = importlib.import_module("core.hub").push_to_hub_revision(_Args())
+    result = importlib.import_module("maxent_grpo.core.hub").push_to_hub_revision(_Args())
     assert result is future
     assert calls["create_branch"]["revision"] is None
     assert "checkpoint-*" in calls["upload_folder"]["ignore_patterns"]
@@ -64,25 +68,29 @@ def test_check_hub_revision_exists_raises_when_readme_present(monkeypatch):
         push_to_hub_revision=True,
         overwrite_hub_revision=False,
     )
-    monkeypatch.setattr("core.hub.repo_exists", lambda *_: True)
+    monkeypatch.setattr("maxent_grpo.core.hub.repo_exists", lambda *_: True)
     monkeypatch.setattr(
-        "core.hub.list_repo_refs",
+        "maxent_grpo.core.hub.list_repo_refs",
         lambda *_: SimpleNamespace(branches=[SimpleNamespace(name="branch")]),
     )
-    monkeypatch.setattr("core.hub.list_repo_files", lambda **_: ["README.md"])
+    monkeypatch.setattr(
+        "maxent_grpo.core.hub.list_repo_files", lambda **_: ["README.md"]
+    )
 
     with pytest.raises(ValueError):
-        importlib.import_module("core.hub").check_hub_revision_exists(args)
+        importlib.import_module("maxent_grpo.core.hub").check_hub_revision_exists(
+            args
+        )
 
 
 def test_get_param_count_from_repo_id_handles_patterns_and_fallback(monkeypatch):
-    hub = importlib.import_module("core.hub")
+    hub = importlib.import_module("maxent_grpo.core.hub")
     # Pattern parsing should pick the largest derived count
     assert hub.get_param_count_from_repo_id("org/8x7b-and-42m") == 56_000_000_000
 
     # When no pattern matches and metadata lookup fails, return -1
     monkeypatch.setattr(
-        "core.hub.get_safetensors_metadata",
+        "maxent_grpo.core.hub.get_safetensors_metadata",
         lambda *_: (_ for _ in ()).throw(hub.HfHubHTTPError("404")),
     )
     assert hub.get_param_count_from_repo_id("org/unknown-model") == -1
@@ -93,11 +101,11 @@ def test_get_gpu_count_for_vllm_decrements_until_divisible(monkeypatch):
         num_attention_heads = 30
 
     monkeypatch.setattr(
-        "core.hub.AutoConfig",
+        "maxent_grpo.core.hub.AutoConfig",
         SimpleNamespace(from_pretrained=lambda *_args, **_kwargs: _Cfg()),
     )
 
-    result = importlib.import_module("core.hub").get_gpu_count_for_vllm(
+    result = importlib.import_module("maxent_grpo.core.hub").get_gpu_count_for_vllm(
         model_name="org/repo",
         revision="main",
         num_gpus=8,

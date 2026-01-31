@@ -37,14 +37,14 @@ def test_maxent_grpo_lazy_import(monkeypatch):
     monkeypatch.setattr(maxent_grpo, "import_module", _fake_import)
     monkeypatch.delattr(maxent_grpo, "cli", raising=False)
     sys.modules.pop("maxent_grpo.cli", None)
-    cli_attr = maxent_grpo.cli  # type: ignore[attr-defined]
+    cli_attr = maxent_grpo.cli
     if calls:
         assert calls["module"] == "maxent_grpo.cli"
         assert cli_attr is dummy_mod
     else:
         assert cli_attr is not None
     calls.clear()
-    _ = maxent_grpo.cli  # type: ignore[attr-defined]
+    _ = maxent_grpo.cli
     assert calls == {}
 
 

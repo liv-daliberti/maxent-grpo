@@ -18,7 +18,7 @@ PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes("generat
 
 if TYPE_CHECKING:
     import torch as torch_types
-    from transformers.tokenization_utils import (  # type: ignore[reportPrivateImportUsage]
+    from transformers.tokenization_utils import (
         PreTrainedTokenizer as PreTrainedTokenizerType,
     )
 

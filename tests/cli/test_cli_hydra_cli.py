@@ -41,7 +41,7 @@ def _stub_hydra_module():
 
         return decorator
 
-    hydra_mod.main = main  # type: ignore[attr-defined]
+    hydra_mod.main = main
     return hydra_mod
 
 
@@ -69,7 +69,7 @@ def _stub_trl(monkeypatch):
         def __init__(self, **kwargs):
             self.payload = kwargs
 
-    trl_mod.ModelConfig = _ModelConfig  # type: ignore[attr-defined]
+    trl_mod.ModelConfig = _ModelConfig
     monkeypatch.setitem(sys.modules, "trl", trl_mod)
     return _ModelConfig
 

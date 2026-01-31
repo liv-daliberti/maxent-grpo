@@ -30,7 +30,7 @@ def _install_pipeline_debug_hooks() -> None:
     """
 
     try:
-        from lighteval import pipeline as le_pipeline  # type: ignore[import]
+        from lighteval import pipeline as le_pipeline
     except Exception:  # pragma: no cover - optional / env-specific
         return
 
@@ -41,7 +41,7 @@ def _install_pipeline_debug_hooks() -> None:
 
         use_label = label or f"{getattr(obj, '__name__', obj)}.{method_name}"
 
-        def wrapped(*args, **kwargs):  # type: ignore[override]
+        def wrapped(*args, **kwargs):
             cancel = None
             if timeout_sec:
                 try:
@@ -85,13 +85,13 @@ def _install_pipeline_debug_hooks() -> None:
 
     # Add lower-level hooks around model loading steps to catch hangs inside Transformers load.
     try:
-        from lighteval.models import model_loader as _ml  # type: ignore[import]
+        from lighteval.models import model_loader as _ml
         _wrap(_ml, "load_model")
     except Exception:
         pass
 
     try:
-        from lighteval.models.transformers import transformers_model as _tm  # type: ignore[import]
+        from lighteval.models.transformers import transformers_model as _tm
         for _name in (
             "__init__",
             "_create_auto_model",
@@ -108,7 +108,7 @@ def _install_pipeline_debug_hooks() -> None:
         pass
 
     try:
-        from transformers import AutoConfig, AutoModelForCausalLM  # type: ignore[import]
+        from transformers import AutoConfig, AutoModelForCausalLM
         _wrap(AutoConfig, "from_pretrained", label="AutoConfig.from_pretrained")
         # Set a timeout so we dump stack traces if model load hangs.
         _wrap(
@@ -172,7 +172,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     # Pipeline construction uses the wrapped methods.
     _install_pipeline_debug_hooks()
 
-    from lighteval.main_accelerate import accelerate  # type: ignore[import]
+    from lighteval.main_accelerate import accelerate
 
     print(
         "[debug-lighteval] Starting accelerate() "

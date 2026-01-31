@@ -88,7 +88,7 @@ def test_maybe_sync_weights_respects_step_and_stats(monkeypatch):
         called["model"] = model
         called["visited"] = visited
 
-    mixin._sync_model_params_to_vllm = _sync_model  # type: ignore[assignment]
+    mixin._sync_model_params_to_vllm = _sync_model
     mixin.maybe_sync_weights(ensure_client=lambda: True)
 
     assert called["model"] == "model"
@@ -154,12 +154,12 @@ def test_sync_model_params_to_vllm_handles_fsdp_and_peft(monkeypatch):
     class _PeftModel:
         pass
 
-    mixin._is_peft_model_safe = lambda model: isinstance(model, _PeftModel)  # type: ignore[assignment]
+    mixin._is_peft_model_safe = lambda model: isinstance(model, _PeftModel)
     mixin._sync_model_params_to_vllm(_PeftModel())
     assert ctx.generation_stats["peft"].__class__ is _PeftModel
 
     ctx.generation_stats.clear()
 
-    mixin._is_peft_model_safe = lambda _m: False  # type: ignore[assignment]
+    mixin._is_peft_model_safe = lambda _m: False
     mixin._sync_model_params_to_vllm(SimpleNamespace())
     assert ctx.generation_stats["standard"] is not None

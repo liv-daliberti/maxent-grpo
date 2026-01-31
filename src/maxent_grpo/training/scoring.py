@@ -24,7 +24,7 @@ import os
 import numbers
 import sys
 import logging
-from types import SimpleNamespace, TracebackType
+from types import ModuleType, SimpleNamespace, TracebackType
 from typing import (
     Any,
     Callable,
@@ -36,6 +36,7 @@ from typing import (
     Sequence,
     Tuple,
     TYPE_CHECKING,
+    TypeVar,
     cast,
 )
 from functools import lru_cache
@@ -89,6 +90,8 @@ _SCORING_EXCEPTIONS = (
     RuntimeError,
 )
 
+T = TypeVar("T")
+
 
 class _LongDTypeProxy:
     """Lightweight wrapper that compares equal to torch.long in stubs.
@@ -100,10 +103,10 @@ class _LongDTypeProxy:
     dtype used in computations.
     """
 
-    def __init__(self, target: Any) -> None:
+    def __init__(self, target: object) -> None:
         self._target = target
 
-    def __eq__(self, other: Any) -> bool:  # pragma: no cover - exercised in tests
+    def __eq__(self, other: object) -> bool:  # pragma: no cover - exercised in tests
         if other is self._target:
             return True
         # Match common representations for 64-bit integer dtypes across stubs.
@@ -117,13 +120,13 @@ class _LongDTypeProxy:
         return "torch.int64"
 
 
-def _refresh_torch() -> Any:
+def _refresh_torch() -> ModuleType:
     """Return the active torch module."""
 
     return torch
 
 
-def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int) -> Iterator[Any]:
+def _prefetch_iterator(iterator: Iterable[T], buffer_size: int) -> Iterator[T]:
     """Yield from ``iterator`` while prefetching up to ``buffer_size`` slices."""
     if buffer_size is None or buffer_size <= 0:
         for item in iterator:
@@ -159,7 +162,7 @@ def _prefetch_iterator(iterator: Iterable[Any], buffer_size: int) -> Iterator[An
 torch = _refresh_torch()
 
 
-def _get_config_value(config: Any, key: str, default: Any = None) -> Any:
+def _get_config_value(config: object, key: str, default: object | None = None) -> object | None:
     """Return a config value from either Mapping or object-style configs."""
     if isinstance(config, Mapping):
         return config.get(key, default)
@@ -169,9 +172,9 @@ def _get_config_value(config: Any, key: str, default: Any = None) -> Any:
 class _PadTokenGuard:
     """Context manager that temporarily clamps padding attributes."""
 
-    def __init__(self, targets: Sequence[tuple[Any, str]], value: int) -> None:
+    def __init__(self, targets: Sequence[tuple[object, str]], value: int) -> None:
         # Store (target, attr, original_value, clamped_value)
-        self._targets: list[tuple[Any, str, Any, Any]] = []
+        self._targets: list[tuple[object, str, object, object]] = []
         for target, attr in targets:
             if not hasattr(target, attr):
                 continue
@@ -189,7 +192,7 @@ class _PadTokenGuard:
                 original = getattr(target, attr)
             except _SCORING_EXCEPTIONS:
                 original = None
-            new_value: Any = value
+            new_value: object = value
             try:
                 if isinstance(new_value, numbers.Integral):
                     new_value_int = int(new_value)
@@ -242,7 +245,7 @@ class _PadTokenGuard:
         return False
 
 
-def _weight_is_two_dimensional(weight: Any) -> bool:
+def _weight_is_two_dimensional(weight: object) -> bool:
     """Return True if the provided weight exposes a 2-D shape."""
     if weight is None:
         return False
@@ -271,7 +274,7 @@ def _weight_is_two_dimensional(weight: Any) -> bool:
     return False
 
 
-def _weight_is_stub_tensor(weight: Any) -> bool:
+def _weight_is_stub_tensor(weight: object) -> bool:
     """Return True for tensor-like stubs used in tests."""
     if weight is None:
         return False
@@ -279,7 +282,7 @@ def _weight_is_stub_tensor(weight: Any) -> bool:
     return hasattr(weight, "arr")
 
 
-def _describe_embedding_module(module: Any, name: str) -> str:
+def _describe_embedding_module(module: object, name: str) -> str:
     """Return a human-friendly summary of an embedding module."""
 
     if module is None:
@@ -301,7 +304,7 @@ def _describe_embedding_module(module: Any, name: str) -> str:
 
 
 def _get_embedding_vocab_size(
-    model: PreTrainedModel, config: Any
+    model: PreTrainedModel, config: object
 ) -> Optional[int]:
     """Return the vocab size exposed by the model's embedding weights."""
     embedding_module = getattr(model, "embed_tokens", None)
@@ -319,7 +322,7 @@ def _get_embedding_vocab_size(
     return _get_config_value(config, "vocab_size", None)
 
 
-def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
+def _maybe_long_tensor(value: object, torch_mod: object) -> object:
     """Return a tensor cast to long when the stub lacks ``long``."""
     long_fn = getattr(value, "long", None)
     if callable(long_fn):
@@ -354,7 +357,7 @@ def _maybe_long_tensor(value: Any, torch_mod: Any) -> Any:
         return torch_mod.tensor(np.asarray(arr).astype(np.int64))
 
 
-def _size_hint(tensor_obj: Any, dim: int) -> int:
+def _size_hint(tensor_obj: object, dim: int) -> int:
     """Return ``tensor.size(dim)`` with fallbacks for numpy-backed stubs."""
     if hasattr(tensor_obj, "size"):
         try:
@@ -380,10 +383,10 @@ def _size_hint(tensor_obj: Any, dim: int) -> int:
     )
 
 
-def _to_numpy_array(obj: Any) -> np.ndarray:
+def _to_numpy_array(obj: object) -> np.ndarray:
     """Return a numpy view of ``obj`` for stub compatibility."""
     try:  # Handle real torch tensors, including CUDA, by detaching to CPU.
-        import torch as _torch  # type: ignore
+        import torch as _torch
 
         if isinstance(obj, getattr(_torch, "Tensor", ())):
             try:
@@ -430,7 +433,7 @@ def _to_numpy_array(obj: Any) -> np.ndarray:
         return np.asarray([])
 
 
-def _dist_collective_ready(torch_mod: Any) -> Any:
+def _dist_collective_ready(torch_mod: object) -> object | None:
     """Return a dist module when initialized, otherwise None."""
     dist = getattr(torch_mod, "distributed", None)
     try:
@@ -441,7 +444,7 @@ def _dist_collective_ready(torch_mod: Any) -> Any:
     return None
 
 
-def _dist_all(dist: Any, flag: bool) -> bool:
+def _dist_all(dist: object | None, flag: bool) -> bool:
     """Return True if flag is True on all ranks (best-effort)."""
     if dist is None:
         return bool(flag)
@@ -457,7 +460,7 @@ def _dist_all(dist: Any, flag: bool) -> bool:
         return bool(flag)
 
 
-def _dist_any(dist: Any, flag: bool) -> bool:
+def _dist_any(dist: object | None, flag: bool) -> bool:
     """Return True if flag is True on any rank (best-effort)."""
     if dist is None:
         return bool(flag)
@@ -473,7 +476,7 @@ def _dist_any(dist: Any, flag: bool) -> bool:
         return bool(flag)
 
 
-def _resolve_dtype(dtype: Any) -> Any:
+def _resolve_dtype(dtype: object) -> Optional[np.dtype]:
     """Normalize dtype objects coming from various stubs."""
     np_dtype = getattr(dtype, "np_dtype", None)
     if np_dtype is not None:
@@ -495,7 +498,7 @@ _ = require_transformer_base_classes("training_scoring")
 
 
 
-def _autocast_context(accelerator: Any, device: TorchDevice) -> Any:
+def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManager[object]:
     """Return the right autocast context for the current accelerator/device.
 
     :param accelerator: Accelerator handle exposing an optional ``autocast``.
@@ -604,7 +607,7 @@ class _SliceState:
 
 def _collect_prompt_entries(
     prompt_batch: List[str],
-    batching_cfg: Any,
+    batching_cfg: BatchingSettings,
 ) -> Optional[List[PromptCacheEntry]]:
     """Resolve cached prompt tokenization for a batch of strings.
 
@@ -728,7 +731,7 @@ def _prepare_prompt_slice(
     ids_dtype = getattr(ids_dtype, "np_dtype", ids_dtype)
     mask_dtype = getattr(mask_dtype, "np_dtype", mask_dtype)
 
-    def _coerce_np_dtype(dtype: Any) -> Any:
+    def _coerce_np_dtype(dtype: object) -> np.dtype | type[np.generic]:
         # Catch torch-style dtype strings/objects early.
         if isinstance(dtype, str) and dtype.startswith("torch"):
             return np.int64
@@ -771,7 +774,7 @@ def _prepare_prompt_slice(
             prompt_ids_arr[row, :length] = entry.input_ids[:length]
             prompt_mask_arr[row, :length] = entry.attention_mask[:length]
 
-        def _safe_dtype(dtype: Any) -> Any:
+        def _safe_dtype(dtype: object) -> object | None:
             return (
                 None
                 if (
@@ -788,7 +791,7 @@ def _prepare_prompt_slice(
         prompt_mask = torch_mod.tensor(prompt_mask_arr, dtype=tensor_mask_dtype)
     else:
         # Avoid torch.empty here because minimal stubs may omit it.
-        def _safe_dtype(dtype: Any) -> Any:
+        def _safe_dtype(dtype: object) -> object | None:
             return (
                 None
                 if (
@@ -874,7 +877,7 @@ def iter_batch_slices(
         if as_tensor is None:
             raise AttributeError("torch.as_tensor (or tensor) is required for scoring.")
 
-        def _ensure_tensor(obj: Any, *, target_device: Any = None) -> Any:
+        def _ensure_tensor(obj: object, *, target_device: object | None = None) -> object:
             """Best-effort conversion that tolerates numpy arrays/stubs."""
             is_tensor_fn = getattr(torch_mod, "is_tensor", None)
             try:
@@ -1046,10 +1049,10 @@ def iter_batch_slices(
         yield (input_ids_out, attention_mask_out, labels_out)
 
 
-def _summon_fsdp_full_param_context(model: PreTrainedModel) -> ContextManager[Any]:
+def _summon_fsdp_full_param_context(model: PreTrainedModel) -> ContextManager[object]:
     """Return a context manager that gathers FSDP parameters when available."""
     summon_fn = getattr(model, "summon_full_params", None)
-    summon_callable = cast(Optional[Callable[..., Any]], summon_fn)
+    summon_callable = cast(Optional[Callable[..., ContextManager[object]]], summon_fn)
     if not callable(summon_callable):
         return nullcontext()
     try:
@@ -1106,7 +1109,7 @@ def _chunked_sequence_logprobs(
     dist = _dist_collective_ready(torch_mod)
     if gather_full_params:
         try:  # pragma: no cover - exercised in distributed runs
-            import deepspeed  # type: ignore[reportMissingTypeStubs]
+            import deepspeed
 
             params: list[Any] = []
             param_iter = getattr(model, "parameters", None)
@@ -1127,7 +1130,7 @@ def _chunked_sequence_logprobs(
             gather_ctx = nullcontext()
     else:
         try:  # pragma: no cover - exercised in distributed runs
-            import deepspeed  # type: ignore[reportMissingTypeStubs]
+            import deepspeed
 
             zero_mod = getattr(deepspeed, "zero", None)
             is_enabled_fn = getattr(zero_mod, "is_enabled", None) if zero_mod is not None else None
@@ -1756,7 +1759,7 @@ def build_score_batch(
     total_sequences = len(prompt_batch)
     if total_sequences == 0:
         return None
-    def _coerce_int(value: Any, default: int = 0) -> int:
+    def _coerce_int(value: object, default: int = 0) -> int:
         if isinstance(value, numbers.Integral):
             return int(value)
         try:
@@ -1981,7 +1984,7 @@ def gather_reference_logprobs(
     """
     torch_mod = _refresh_torch()
 
-    def _dim0(obj: Any) -> int:
+    def _dim0(obj: object) -> int:
         if obj is None:
             return 0
         shape = getattr(obj, "shape", None)
@@ -1991,11 +1994,11 @@ def gather_reference_logprobs(
             except _SCORING_EXCEPTIONS as exc:
                 LOG.debug("Failed to read shape[0] from tensor; falling back to len: %s", exc)
         try:
-            return int(len(obj))  # type: ignore[arg-type]
+            return int(len(obj))
         except _SCORING_EXCEPTIONS:
             return 0
 
-    def _first_slice_rows(sb: Any) -> int:
+    def _first_slice_rows(sb: object) -> int:
         total = int(getattr(sb, "total_sequences", 0) or 0)
         slice_size = int(getattr(sb, "slice_size", 0) or 0)
         prompt_len = len(getattr(sb, "prompt_entries", []) or [])
@@ -2005,7 +2008,7 @@ def gather_reference_logprobs(
         # that rank will not enter the reference forward and ZeRO collectives can hang.
         return max(0, min(total, slice_size, prompt_len, comp0, mask0))
 
-    def _safe_numel(obj: Any) -> Any:
+    def _safe_numel(obj: object) -> int | str | None:
         numel_fn = getattr(obj, "numel", None)
         if callable(numel_fn):
             try:
@@ -2184,7 +2187,7 @@ def finalize_reference_stats(
                 "cannot finalize reference stats safely."
             )
 
-        def _safe_size(x: Any) -> Any:
+        def _safe_size(x: object) -> Optional[int]:
             try:
                 return int(np.size(x))
             except _SCORING_EXCEPTIONS:
@@ -2380,7 +2383,7 @@ def reference_stats_from_policy_logprobs(
     )
 
 
-def _meta_field(entry: Any, *names: str) -> Any:
+def _meta_field(entry: object, *names: str) -> object | None:
     """Return the first matching field from a metadata entry."""
     if entry is None:
         return None
@@ -2396,7 +2399,7 @@ def _meta_field(entry: Any, *names: str) -> Any:
     return None
 
 
-def _coerce_logprob_value(value: Any) -> Optional[float]:
+def _coerce_logprob_value(value: object) -> Optional[float]:
     """Best-effort conversion of a token logprob payload into a float."""
     if value is None:
         return None
@@ -2414,7 +2417,7 @@ def _coerce_logprob_value(value: Any) -> Optional[float]:
     return None
 
 
-def _sum_token_logprobs(token_logprobs: Any) -> Optional[float]:
+def _sum_token_logprobs(token_logprobs: object) -> Optional[float]:
     """Return the sum of per-token logprobs when the payload is parseable."""
     if token_logprobs is None or isinstance(token_logprobs, Mapping):
         return None
@@ -2434,7 +2437,7 @@ def _sum_token_logprobs(token_logprobs: Any) -> Optional[float]:
 
 
 def reference_from_vllm_meta(
-    flat_meta: Sequence[Optional[Any]],
+    flat_meta: Sequence[Optional[object]],
     total_sequences: int,
     device: TorchDevice,
 ) -> Optional[ReferenceLogprobs]:
@@ -2480,7 +2483,7 @@ def reference_from_vllm_meta(
 
 
 def vllm_meta_has_logprobs(
-    flat_meta: Optional[Sequence[Optional[Any]]],
+    flat_meta: Optional[Sequence[Optional[object]]],
     total_sequences: Optional[int] = None,
 ) -> bool:
     """Return True when vLLM metadata includes per-completion logprob info.
@@ -2624,11 +2627,11 @@ def summarize_completion_lengths(
 
 
 def _as_torch_tensor(
-    torch_mod: Any,
-    value: Any,
+    torch_mod: object,
+    value: object,
     *,
     device: Optional[TorchDevice],
-    dtype: Optional[Any],
+    dtype: Optional[object],
 ) -> Tensor:
     """Best-effort conversion of ``value`` into a torch tensor on ``device``."""
 
@@ -2665,12 +2668,12 @@ def _as_torch_tensor(
 
 
 def _match_tensor_length(
-    torch_mod: Any,
+    torch_mod: object,
     tensor: Tensor,
     target_len: int,
     *,
     device: Optional[TorchDevice],
-    dtype: Optional[Any],
+    dtype: Optional[object],
     fill_value: float = 0.0,
 ) -> Tensor:
     """Return ``tensor`` reshaped/padded to ``target_len`` elements."""

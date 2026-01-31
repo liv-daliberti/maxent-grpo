@@ -16,7 +16,7 @@ limitations under the License.
 Unit tests for helpers in :mod:`training.rollout.helpers`.
 """
 
-import sys  # noqa: E402  # module-level stubs set up first in some environments
+import sys  # module-level stubs set up first in some environments
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -100,7 +100,7 @@ if not hasattr(transformers_module, "PreTrainedModel"):
     transformers_module.PreTrainedModel = _PreTrainedModel
     transformers_module.PreTrainedTokenizer = _PreTrainedTokenizer
 
-from maxent_grpo.training.rollout.helpers import (  # noqa: E402  import after torch stub
+from maxent_grpo.training.rollout.helpers import (  # import after torch stub
     CompletionGenerator,
     _broadcast_object_list,
     _gather_object_list,

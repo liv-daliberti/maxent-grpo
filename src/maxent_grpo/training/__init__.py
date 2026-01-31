@@ -134,8 +134,8 @@ __all__: List[str] = [
 
 # Try eager resolution when dependencies are available; fall back to lazy __getattr__.
 try:
-    from maxent_grpo.training.loop import run_training_loop  # type: ignore
-    from maxent_grpo.training.pipeline import PreparedBatch  # type: ignore
+    from maxent_grpo.training.loop import run_training_loop
+    from maxent_grpo.training.pipeline import PreparedBatch
 except ImportError:
     LOG.debug("Deferring training imports until dependencies are available.")
 

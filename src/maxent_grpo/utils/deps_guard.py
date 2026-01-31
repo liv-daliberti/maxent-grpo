@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any, Iterable
+from typing import Iterable
 
 
 def _check_modules(names: Iterable[str]) -> list[str]:
@@ -25,8 +25,8 @@ def ensure_real_dependencies(
     require_transformers: bool = True,
     require_trl: bool = True,
     require_datasets: bool = True,
-    model: Any = None,
-    tokenizer: Any = None,
+    model: object | None = None,
+    tokenizer: object | None = None,
 ) -> None:
     """Raise if required deps are missing.
 

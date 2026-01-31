@@ -16,8 +16,8 @@ from maxent_grpo.utils.imports import (
 LOG = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from accelerate import Accelerator  # type: ignore[reportMissingTypeStubs]
-    from accelerate.utils import DeepSpeedPlugin  # type: ignore[reportMissingTypeStubs]
+    from accelerate import Accelerator
+    from accelerate.utils import DeepSpeedPlugin
 else:  # pragma: no cover - typing fallbacks
     Accelerator = Any
     DeepSpeedPlugin = Any

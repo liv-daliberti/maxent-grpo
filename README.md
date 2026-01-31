@@ -134,11 +134,11 @@ Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now liv
 
 
 ## Training Flow (MaxEnt Runner)
-1. **Generation** — `training.rollout.CompletionGenerator` wraps HF + vLLM; `GenerationContext` carries sampling + accelerator handles.
-2. **Rewards & scoring** — `training.rewards` + `training.pipeline.prepare_training_batch` build grouped completions, reward stats, reference log-probs, and sequence scores.
-3. **Weighting & loss** — `training.weighting.loss` + `training.weighting.logic` compute listwise targets/weights (entropy, KL) and loss scalars.
-4. **Optimization** — `training.loop` drives gradient accumulation and schedules; `training.optim` + `training.state` handle LR schedules, controllers, checkpoints.
-5. **Logging** — `training.metrics` and `telemetry.wandb` report metrics; logs/checkpoints land under `var/` (logs under `var/artifacts/logs`) by default.
+1. **Generation** — `maxent_grpo.training.rollout.CompletionGenerator` wraps HF + vLLM; `GenerationContext` carries sampling + accelerator handles.
+2. **Rewards & scoring** — `maxent_grpo.training.rewards` + `maxent_grpo.training.pipeline.prepare_training_batch` build grouped completions, reward stats, reference log-probs, and sequence scores.
+3. **Weighting & loss** — `maxent_grpo.training.weighting.loss` + `maxent_grpo.training.weighting.logic` compute listwise targets/weights (entropy, KL) and loss scalars.
+4. **Optimization** — `maxent_grpo.training.loop` drives gradient accumulation and schedules; `maxent_grpo.training.optim` + `maxent_grpo.training.state` handle LR schedules, controllers, checkpoints.
+5. **Logging** — `maxent_grpo.training.metrics` and `maxent_grpo.telemetry.wandb` report metrics; logs/checkpoints land under `var/` (logs under `var/artifacts/logs`) by default.
 
 ## InfoSeed-GRPO (seed-aware auxiliary, optional)
 - Enable via `info_seed_enabled=True` (Hydra now enforces this for `train-infoseed` recipes); suggested defaults: `info_seed_lambda=0.01`, `info_seed_alpha_entropy=0.5`, `info_seed_num_seeds=4–8`, `info_seed_prompt_template="\n[seed={seed}]"`.
@@ -150,7 +150,7 @@ Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now liv
 ## Environment Notes
 - Transformers/TRL require `huggingface-hub < 1.0`; the launchers repin Hub and small CLI deps (`yq`, `rich`, `markdown-it-py`) inside the repo-local env.
 - vLLM requires a CUDA-enabled PyTorch. The Slurm launcher loads CUDA 12.6 by default and routes all caches/temp dirs into `var/`.
-- The MaxEnt entrypoint (`training.run_maxent_training`) delegates to `pipelines.training.maxent.run_maxent_training`; compose a custom runner with `training.loop`/`training.pipeline` if you need finer control.
+- The MaxEnt entrypoint (`maxent_grpo.training.run_maxent_training`) delegates to `maxent_grpo.pipelines.training.maxent.run_maxent_training`; compose a custom runner with `maxent_grpo.training.loop`/`maxent_grpo.training.pipeline` if you need finer control.
 
 
 ## Troubleshooting

@@ -218,7 +218,7 @@ def test_vllm_generation_state_pending_and_trim(monkeypatch):
     state.aggregated[0].append("a")
     state.aggregated[1].append("b")
     assert state.remaining_counts([0, 1]) == [0, 1]
-    state.aggregated_meta[1].append("meta")  # type: ignore[index]
+    state.aggregated_meta[1].append("meta")
     trimmed, meta = state.trim()
     assert trimmed == [["a"], ["b"]]
     assert meta == [[], ["meta"]]
@@ -1223,7 +1223,7 @@ def test_run_local_model_uses_top_k_none(monkeypatch):
     enc, lens = {"input_ids": [[1]], "attention_mask": [[1]]}, [1]
     out = generator._run_local_model(enc, lens)
     assert out == ["ok"]
-    assert generator.ctx.model.called is True  # type: ignore[attr-defined]
+    assert generator.ctx.model.called is True
 
 
 def test_backfill_missing_respects_need_zero(monkeypatch):

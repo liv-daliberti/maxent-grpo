@@ -18,12 +18,12 @@ from types import ModuleType, SimpleNamespace
 import sys
 import logging
 
-import grpo
+from maxent_grpo import grpo
 from maxent_grpo.pipelines.training import baseline
 import maxent_grpo.core.data as data_utils
 
 try:
-    import transformers.trainer_utils as trainer_utils  # type: ignore
+    import transformers.trainer_utils as trainer_utils
 except ModuleNotFoundError:
     # Provide a lightweight stub when transformers is not installed
     transformers_mod = sys.modules.setdefault(

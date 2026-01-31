@@ -55,7 +55,7 @@ def _configure_custom_loop_logging(training_args: GRPOConfig) -> None:
     LOG.setLevel(log_level)
     log_run_header(training_args)
     try:
-        import datasets as _hf_datasets  # type: ignore[reportMissingTypeStubs]
+        import datasets as _hf_datasets
 
         _hf_datasets.utils.logging.set_verbosity(log_level)
     except (ImportError, ModuleNotFoundError, AttributeError) as exc:
@@ -92,7 +92,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
     :rtype: type
     """
 
-    class MaxEntGRPOTrainer(parent_cls):  # type: ignore[misc,valid-type]
+    class MaxEntGRPOTrainer(parent_cls):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             # Force vLLM to honor fp16/bf16 flags even when the base model's
             # config defaults to bfloat16 (e.g., Qwen2.5). TRL's GRPOTrainer
@@ -101,7 +101,7 @@ def _build_maxent_trainer(parent_cls: Type) -> Type:
             patch_llm = None
             orig_llm = None
             try:
-                import trl.trainer.grpo_trainer as grpo_mod  # type: ignore[reportMissingTypeStubs]
+                import trl.trainer.grpo_trainer as grpo_mod
                 from vllm import LLM as _LLM
 
                 # Args are always passed by name in our pipeline.
@@ -176,7 +176,7 @@ def _maybe_patch_trainer(training_args: GRPOConfig) -> Iterator[None]:
         yield
         return
     try:
-        from trl import GRPOTrainer as _TRLGRPOTrainer  # type: ignore[reportMissingTypeStubs]
+        from trl import GRPOTrainer as _TRLGRPOTrainer
     except (
         ImportError,
         RuntimeError,

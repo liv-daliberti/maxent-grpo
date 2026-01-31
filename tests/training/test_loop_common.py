@@ -73,7 +73,7 @@ def _script_and_training_args() -> tuple[GRPOScriptArguments, GRPOConfig, Simple
     training_args.output_dir = "var/data/out"
     training_args.controller_resume_from = "resume_dir"
     training_args.learning_rate = 1e-4
-    training_args.init_kl_coeff = 0.07
+    training_args.beta = 0.07
     training_args.kl_target = 0.1
     training_args.kl_horizon = 5
     training_args.kl_ctl_step_size = 0.5
@@ -102,7 +102,7 @@ def test_build_loop_context_copies_weighting_settings():
     assert weighting.tau_max == pytest.approx(training_args.maxent_tau_max)
     assert weighting.tau_lr == pytest.approx(training_args.maxent_tau_lr)
     assert weighting.tau_warmup_steps == training_args.maxent_tau_warmup_steps
-    assert weighting.beta == pytest.approx(training_args.init_kl_coeff)
+    assert weighting.beta == pytest.approx(training_args.beta)
     assert ctx.optimization.handles.learning_rate == pytest.approx(
         training_args.learning_rate
     )

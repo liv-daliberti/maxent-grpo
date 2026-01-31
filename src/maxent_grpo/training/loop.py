@@ -512,6 +512,8 @@ def _maybe_overwrite_controller_state_from_config(
 
     tau_override = _coerce_scalar(getattr(training_args, "maxent_tau", None))
     beta_override = _coerce_scalar(getattr(training_args, "beta", None))
+    if beta_override is None:
+        beta_override = _coerce_scalar(getattr(training_args, "init_kl_coeff", None))
     updated = False
     prev_tau = getattr(weighting, "tau", None)
     prev_beta = getattr(weighting, "beta", None)

@@ -21,14 +21,20 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable, Tuple, cast
 import sys
 
-from .generate import build_generate_parser
-
 if TYPE_CHECKING:
-    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
+    from trl import ModelConfig
 
     from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
 __all__ = ["parse_grpo_args", "build_generate_parser"]
+
+
+def build_generate_parser():
+    """Return the argparse parser used by the distilabel generation CLI."""
+
+    from .generate import build_generate_parser as _build_generate_parser
+
+    return _build_generate_parser()
 
 
 def parse_grpo_args() -> Tuple["GRPOScriptArguments", "GRPOConfig", "ModelConfig"]:

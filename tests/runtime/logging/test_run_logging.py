@@ -24,7 +24,6 @@ from typing import Dict, Any
 
 import pytest
 
-from tests.helpers.run_setup_reference import _load_run_setup
 
 
 class _StubMetricWriter:
@@ -60,10 +59,9 @@ def _weighting_stub() -> SimpleNamespace:
 
 
 @pytest.fixture
-def logging_mod(monkeypatch):
-    """Load logging helpers with torch/accelerate stubs."""
-    _load_run_setup(monkeypatch)
-    return reload(import_module("training.metrics"))
+def logging_mod():
+    """Load logging helpers."""
+    return reload(import_module("maxent_grpo.training.metrics"))
 
 
 def test_log_training_metrics_emits_only_scalars(logging_mod):

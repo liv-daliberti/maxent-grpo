@@ -40,7 +40,7 @@ except (ImportError, ModuleNotFoundError, RuntimeError, AttributeError, TypeErro
     pass
 
 try:  # Optional dependency in unit tests
-    from accelerate.state import DistributedType as _DistributedType  # type: ignore[reportMissingTypeStubs]
+    from accelerate.state import DistributedType as _DistributedType
 except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError, ValueError):  # pragma: no cover - fallback when accelerate absent
 
     class _DistributedType:
@@ -421,7 +421,7 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     using_bnb = False
     if any(key in optim_name for key in ["adamw_bnb", "adamw_8bit"]) and "paged" not in optim_name:
         try:
-            import bitsandbytes as bnb  # type: ignore[import]
+            import bitsandbytes as bnb
 
             bnb_optim = getattr(bnb, "optim", None)
             optimizer_cls = getattr(bnb_optim, "AdamW8bit", None)
@@ -436,7 +436,7 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
             )
     elif "paged_adamw_8bit" in optim_name or "adamw_paged_8bit" in optim_name:
         try:
-            import bitsandbytes as bnb  # type: ignore[import]
+            import bitsandbytes as bnb
 
             bnb_optim = getattr(bnb, "optim", None)
             optimizer_cls = getattr(bnb_optim, "PagedAdamW8bit", None)

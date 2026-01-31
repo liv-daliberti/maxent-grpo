@@ -11,7 +11,7 @@ Accelerator = require_accelerator("generation_comm")
 dist = getattr(torch, "distributed", None)
 
 if TYPE_CHECKING:
-    from accelerate import Accelerator as AcceleratorType  # type: ignore[reportMissingTypeStubs]
+    from accelerate import Accelerator as AcceleratorType
 else:
     AcceleratorType = Any
 

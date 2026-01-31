@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 from .dataset import ScriptArguments, trl
@@ -34,7 +34,7 @@ from .dataset import ScriptArguments, trl
 LOG = logging.getLogger(__name__)
 
 
-def _parse_log_level(value: Any) -> Optional[int]:
+def _parse_log_level(value: int | str | None) -> Optional[int]:
     """Resolve a logging level specified as a name or numeric value."""
 
     if value is None:
@@ -800,6 +800,13 @@ class GRPOConfig(trl.GRPOConfig):
                 finally:
                     if orig_num_generations is not None:
                         self.num_generations = orig_num_generations
+            elif "IntervalStrategy" in msg and not isinstance(
+                getattr(self, "eval_strategy", None), str
+            ):
+                LOG.warning(
+                    "Skipping base __post_init__ due to IntervalStrategy validation: %s",
+                    err,
+                )
             else:
                 # Re-raise unrelated ValueErrors.
                 raise

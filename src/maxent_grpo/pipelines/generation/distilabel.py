@@ -152,7 +152,7 @@ def run_generation_job(
     :rtype: maxent_grpo.pipelines.base.PipelineResult
     :raises RuntimeError: If the resulting distilabel dataset cannot be pushed.
     """
-    from datasets import load_dataset  # type: ignore
+    from datasets import load_dataset
 
     if isinstance(cfg, Namespace):
         args = cfg

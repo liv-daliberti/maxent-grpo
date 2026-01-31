@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Tuple, Any, cast
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments, load_grpo_recipe
 
 if TYPE_CHECKING:
-    from trl import ModelConfig  # type: ignore[reportMissingTypeStubs]
+    from trl import ModelConfig
 
 
 def parse_grpo_args(
@@ -58,7 +58,7 @@ def parse_grpo_args(
                 if idx + 1 < len(cli_args):
                     recipe_path = cli_args[idx + 1]
     try:  # pragma: no cover - optional dependency for CLI
-        from trl import ModelConfig, TrlParser  # type: ignore[reportMissingTypeStubs]
+        from trl import ModelConfig, TrlParser
     except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dep
         raise ImportError(
             "Parsing GRPO configs requires TRL. Install it via `pip install trl`."
@@ -103,7 +103,8 @@ def parse_grpo_args(
             model_cfg = ModelConfig()
         except (TypeError, ValueError):
             model_cfg = cast(ModelConfig, ModelConfig)
-        return (GRPOScriptArguments(), GRPOConfig(), model_cfg)
+        dataset_name = os.environ.get("GRPO_DATASET_NAME") or "dummy"
+        return (GRPOScriptArguments(dataset_name=dataset_name), GRPOConfig(), model_cfg)
 
 
 __all__ = ["parse_grpo_args"]
