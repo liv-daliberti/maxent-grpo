@@ -208,6 +208,11 @@ class VLLMGenerationMixin:
         if self._vllm_client is not None and self._vllm_sync_ready:
             return True
         client_cls = import_fn()
+        if client_cls is None:
+            try:
+                client_cls = import_fn(_optional_import)
+            except TypeError:
+                client_cls = None
         if client_cls is None or not callable(client_cls):
             self._vllm_sync_ready = False
             return False

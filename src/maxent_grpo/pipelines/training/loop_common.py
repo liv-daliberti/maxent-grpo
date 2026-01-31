@@ -565,18 +565,18 @@ def build_scoring_settings(
         weighting = build_weighting_settings(cfg)
 
     clip_range = _sanitize_float(
-        getattr(cfg, "ppo_clip_range", 0.0),
+        getattr(cfg, "clip_range", 0.0),
         default=0.0,
         minimum=0.0,
         maximum=1.0,
-        name="ppo_clip_range",
+        name="clip_range",
     )
     use_clip_objective = bool(
         getattr(cfg, "maxent_use_clip_objective", False) or clip_range > 0.0
     )
     if clip_range > 0.0 and not getattr(cfg, "maxent_use_clip_objective", False):
         LOG.info(
-            "Enabling clip objective in custom loop because ppo_clip_range=%.3f was set.",
+            "Enabling clip objective in custom loop because clip_range=%.3f was set.",
             clip_range,
         )
     score_tail_tokens = getattr(cfg, "maxent_score_tail_tokens", None)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import sys
 from functools import lru_cache
 from types import ModuleType
 from typing import Optional
@@ -42,6 +43,9 @@ def require_dependency(module_name: str, context_hint: str) -> ModuleType:
     :returns: Imported module, if available.
     :raises ImportError: Wrapped with ``context_hint`` when the dependency is absent.
     """
+    existing = sys.modules.get(module_name)
+    if existing is not None:
+        return existing
     try:
         return cached_import(module_name)
     except ModuleNotFoundError as exc:

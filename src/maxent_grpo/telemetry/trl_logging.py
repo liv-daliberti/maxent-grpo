@@ -555,7 +555,8 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
         """Capture loss component dicts returned by compute_loss for logging."""
 
         def compute_loss(self, *args: Any, **kwargs: Any) -> Any:
-            loss = super().compute_loss(*args, **kwargs)
+            super_obj = cast(Any, super())
+            loss = super_obj.compute_loss(*args, **kwargs)
             setattr(self, "_last_loss_components", None)
             setattr(self, "_last_loss_scalar", None)
             loss_value = loss

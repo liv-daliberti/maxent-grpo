@@ -86,7 +86,9 @@ trl_mod.TrlParser = getattr(
 
 accelerate_mod = _ensure_stub("accelerate")
 accelerate_mod.Accelerator = getattr(
-    accelerate_mod, "Accelerator", type("Accelerator", (), {})
+    accelerate_mod,
+    "Accelerator",
+    _make_stub_class("accelerate", "Accelerator"),
 )
 acc_utils = _ensure_stub("accelerate.utils")
 acc_utils.is_peft_model = getattr(
@@ -547,6 +549,7 @@ _DUPLICATE_EXPORTS = {
         "WeightingSettings",
     },
     "maxent_grpo.training.types.runtime": {
+        "SeedAugmentationConfig",
         "Tensor",
     },
     "maxent_grpo.training.types.logging": {
@@ -580,6 +583,12 @@ _DUPLICATE_EXPORTS = {
     },
 }
 
+_CANONICAL_TYPE_ALIASES = {
+    "Accelerator": "maxent_grpo.training.types.runtime",
+    "PreTrainedModel": "maxent_grpo.training.types.runtime",
+    "PreTrainedTokenizer": "maxent_grpo.training.types.runtime",
+}
+
 
 def _resolve_autodoc_module(app) -> str | None:
     """Best-effort module name for the current autodoc context."""
@@ -604,9 +613,12 @@ def _skip_external_members(app, what, name, obj, skip, options):
     """Skip documenting external or duplicate members with noisy docstrings."""
 
     module_name = getattr(obj, "__module__", "") or ""
+    current_module = _resolve_autodoc_module(app)
+    if current_module and name in _CANONICAL_TYPE_ALIASES:
+        if current_module != _CANONICAL_TYPE_ALIASES[name]:
+            return True
     if module_name.startswith("accelerate."):
         return True
-    current_module = _resolve_autodoc_module(app)
     if current_module in _DUPLICATE_EXPORTS and name in _DUPLICATE_EXPORTS[current_module]:
         if module_name and module_name != current_module:
             return True

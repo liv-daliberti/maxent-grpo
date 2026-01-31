@@ -439,7 +439,9 @@ def _collect_batch_stats(
             tensor = getattr(candidate, "ref_logp_sum", None)
         if tensor is None:
             try:
-                return len(candidate) == 0
+                length_fn = getattr(candidate, "__len__", None)
+                if callable(length_fn):
+                    return length_fn() == 0
             except TypeError:
                 return False
         numel = getattr(tensor, "numel", None)

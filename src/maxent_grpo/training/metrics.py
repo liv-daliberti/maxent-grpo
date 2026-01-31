@@ -148,12 +148,14 @@ def _log_debug_metrics(step: int, metrics: Dict[str, Any]) -> None:
 
 try:  # Optional dependency
     import wandb
-    from wandb.errors import Error as WandbError
+    from wandb.errors import Error as _WandbError
 except ImportError:  # pragma: no cover - optional logging backend
     wandb = None
 
-    class WandbError(RuntimeError):
+    class _WandbError(RuntimeError):
         """Fallback error used when wandb is unavailable."""
+
+WandbError: type[Exception] = _WandbError
 
 
 def _get_wandb() -> Optional[Any]:

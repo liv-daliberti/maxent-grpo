@@ -25,13 +25,22 @@ limitations under the License.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import MISSING, dataclass, field
 from typing import Optional
 from urllib.parse import urlparse
 
 from .dataset import ScriptArguments, trl
 
 LOG = logging.getLogger(__name__)
+
+_BASE_CLIP_RANGE_DEFAULT = 0.0
+_base_fields = getattr(trl.GRPOConfig, "__dataclass_fields__", None)
+if isinstance(_base_fields, dict):
+    _base_clip = _base_fields.get("clip_range")
+    if _base_clip is not None:
+        _base_default = getattr(_base_clip, "default", MISSING)
+        if _base_default is not MISSING:
+            _BASE_CLIP_RANGE_DEFAULT = _base_default
 
 
 def _parse_log_level(value: int | str | None) -> Optional[int]:
@@ -97,7 +106,7 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar kl_target: Target KL value for automatic beta adjustment.
     :ivar kl_horizon: Horizon in optimizer steps for the beta controller.
     :ivar kl_ctl_step_size: Maximum fractional beta change per controller step.
-    :ivar ppo_clip_range: PPO clip range used for clipping ratios in the custom loop.
+    :ivar clip_range: PPO clip range used for clipping ratios in the custom loop.
     :ivar gen_temperature: Temperature used for candidate generation.
     :ivar gen_top_p: Top-p nucleus sampling used for generation.
     :ivar vllm_url: Base URL for the vLLM ``/generate`` endpoint.
@@ -548,9 +557,13 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "If set, override the PPO clip range specifically for the MaxEnt objective "
-                "(falls back to ppo_clip_range)."
+                "(falls back to clip_range)."
             )
         },
+    )
+    clip_range: float = field(
+        default=_BASE_CLIP_RANGE_DEFAULT,
+        metadata={"help": "PPO clip range used for clipping ratios in the custom loop."},
     )
     info_seed_enabled: bool = field(
         default=False,

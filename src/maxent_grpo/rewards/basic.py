@@ -159,9 +159,9 @@ class RewardConfig(Protocol):
 
 def get_reward_funcs(
     script_args: RewardConfig,
-    _ref_model: Optional[PreTrainedModel] = None,
-    _tokenizer: Optional[PreTrainedTokenizerBase] = None,
-) -> List[RewardFunction]:
+    _ref_model: Optional["transformers.PreTrainedModel"] = None,
+    _tokenizer: Optional["transformers.PreTrainedTokenizerBase"] = None,
+) -> List["maxent_grpo.rewards.basic.RewardFunction"]:
     """Resolve reward function callables from names."""
 
     registry = {

@@ -1,15 +1,15 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright-internal/schemas/pyrightconfig.schema.json",
-  "include": ["../src"],
-  "exclude": ["../tests"],
+  "include": ["src"],
+  "exclude": ["tests"],
   "typeCheckingMode": "basic",
   "reportMissingImports": "warning",
   "reportMissingTypeStubs": "warning",
-  "stubPath": "../typings",
+  "stubPath": "typings",
   "executionEnvironments": [
     {
-      "root": "../src",
-      "extraPaths": ["../src"]
+      "root": "src",
+      "extraPaths": ["src"]
     }
   ]
 }

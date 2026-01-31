@@ -54,6 +54,7 @@ from typing import (
     Optional,
     Protocol,
     Tuple,
+    Union,
     runtime_checkable,
     TYPE_CHECKING,
 )
@@ -91,7 +92,8 @@ else:  # pragma: no cover - runtime fallback
 # Type aliases for JSON responses
 JsonDict = Dict[str, Any]
 GenerationResults = List[List[str]]
-GenerationLogprobGroups = Optional[List[List[Optional["VLLMLogprobResult"]]]]
+GenerationLogprobEntry = Union["VLLMLogprobResult", Dict[str, Any]]
+GenerationLogprobGroups = Optional[List[List[Optional[GenerationLogprobEntry]]]]
 
 
 @dataclass
@@ -327,20 +329,20 @@ def _parse_nonstream_json(
     :param want_logprobs: Whether to capture logprob metadata per output.
     :type want_logprobs: bool
     :returns: Tuple of grouped completion texts and optional logprob metadata.
-    :rtype: tuple[list[list[str]], list[list[Optional[VLLMLogprobResult]]] | None]
+    :rtype: tuple[list[list[str]], list[list[Optional[VLLMLogprobResult | dict[str, Any]]]] | None]
     """
     grouped: GenerationResults = []
     logprob_groups: GenerationLogprobGroups = [] if want_logprobs else None
 
     def _append_group(
-        texts: List[str], logs: Optional[List[Optional[VLLMLogprobResult]]]
+        texts: List[str], logs: Optional[List[Optional[GenerationLogprobEntry]]]
     ) -> None:
         """Append one prompt's completions into the grouped outputs.
 
         :param texts: List of decoded completions for a single prompt.
         :type texts: list[str]
         :param logs: Optional log-probability metadata aligned with ``texts``.
-        :type logs: list[list[VLLMLogprobResult]] | None
+        :type logs: list[list[VLLMLogprobResult | dict[str, Any]]] | None
         """
         grouped.append(texts)
         if logprob_groups is not None:
@@ -349,7 +351,7 @@ def _parse_nonstream_json(
     # OpenAI route
     if "choices" in data:
         texts = [str(c.get("text", "")) for c in data["choices"]]
-        logs: Optional[List[Optional[VLLMLogprobResult]]] = None
+        logs: Optional[List[Optional[GenerationLogprobEntry]]] = None
         if logprob_groups is not None:
             logs = [_extract_logprob_info(c) for c in data["choices"]]
         _append_group(texts, logs)
@@ -358,7 +360,7 @@ def _parse_nonstream_json(
     if "results" in data:
         for item in data["results"]:
             prompt_texts: List[str] = []
-            prompt_logs: Optional[List[Optional[VLLMLogprobResult]]] = (
+            prompt_logs: Optional[List[Optional[GenerationLogprobEntry]]] = (
                 [] if logprob_groups is not None else None
             )
             if isinstance(item, dict):
@@ -384,12 +386,7 @@ def _parse_nonstream_json(
                     ]
                     if prompt_logs is not None:
                         prompt_logs = [
-                            VLLMLogprobResult(
-                                logprob_sum=0.0,
-                                token_count=len(ids),
-                                token_logprobs=None,
-                                raw_output={"token_ids": list(ids)},
-                            )
+                            {"token_ids": list(ids), "token_count": len(ids)}
                             for ids in completion_ids
                         ]
                     _append_group(decoded, prompt_logs)
@@ -418,7 +415,7 @@ def _parse_nonstream_json(
             else:
                 text = str(text_entry)
                 payload_entry = {"text": text}
-            logs: Optional[List[Optional[VLLMLogprobResult]]] = None
+            logs: Optional[List[Optional[GenerationLogprobEntry]]] = None
             if logprob_groups is not None:
                 if isinstance(flat_logprobs, list) and idx < len(flat_logprobs):
                     payload_entry.setdefault("logprobs", flat_logprobs[idx])
@@ -440,15 +437,10 @@ def _parse_nonstream_json(
             tokenizer.decode(ids, skip_special_tokens=True) for ids in completion_ids
         ]
         for ids, text in zip(completion_ids, decoded):
-            logs: Optional[List[Optional[VLLMLogprobResult]]] = None
+            logs: Optional[List[Optional[GenerationLogprobEntry]]] = None
             if logprob_groups is not None:
                 logs = [
-                    VLLMLogprobResult(
-                        logprob_sum=0.0,
-                        token_count=len(ids),
-                        token_logprobs=None,
-                        raw_output={"token_ids": list(ids)},
-                    )
+                    {"token_ids": list(ids), "token_count": len(ids)}
                 ]
             _append_group([text], logs)
         return grouped, logprob_groups

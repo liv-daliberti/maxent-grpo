@@ -40,13 +40,13 @@ except (ImportError, ModuleNotFoundError, RuntimeError, AttributeError, TypeErro
     pass
 
 try:  # Optional dependency in unit tests
-    from accelerate.state import DistributedType as _DistributedType
+    from accelerate.state import DistributedType as _AccelerateDistributedType
 except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError, ValueError):  # pragma: no cover - fallback when accelerate absent
 
-    class _DistributedType:
+    class _AccelerateDistributedType:
         DEEPSPEED = "deepspeed"
 
-DistributedType = _DistributedType
+DistributedType = _AccelerateDistributedType
 
 LOG = logging.getLogger(__name__)
 _TWO_NORM = 2.0

@@ -146,14 +146,14 @@ class StepResources:
 class RuntimeHandles:
     """Pointers to objects that should live for the entire training job."""
 
-    accelerator: Accelerator
-    model: PreTrainedModel
-    tokenizer: PreTrainedTokenizer
+    accelerator: "accelerate.Accelerator"
+    model: "transformers.PreTrainedModel"
+    tokenizer: "transformers.PreTrainedTokenizer"
     train_loader: DataLoader
     train_sampler: Optional[Sampler]
     device: Device
-    get_ref_model: Callable[[], PreTrainedModel]
-    reference_model: Optional[PreTrainedModel] = None
+    get_ref_model: Callable[[], "transformers.PreTrainedModel"]
+    reference_model: Optional["transformers.PreTrainedModel"] = None
     prompt_cache_get: Optional[Callable[[str], PromptCacheEntry]] = None
 
 

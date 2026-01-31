@@ -252,11 +252,13 @@ def _weight_is_two_dimensional(weight: object) -> bool:
     shape = None
     if hasattr(weight, "shape"):
         shape = tuple(shape for shape in getattr(weight, "shape"))
-    elif hasattr(weight, "size"):
-        try:
-            shape = tuple(weight.size())
-        except _SCORING_EXCEPTIONS:
-            shape = None
+    else:
+        size_fn = getattr(weight, "size", None)
+        if callable(size_fn):
+            try:
+                shape = tuple(size_fn())
+            except _SCORING_EXCEPTIONS:
+                shape = None
     if shape is None:
         return False
     if len(shape) == 2:
@@ -291,11 +293,13 @@ def _describe_embedding_module(module: object, name: str) -> str:
     shape = None
     if hasattr(weight, "shape"):
         shape = tuple(shape for shape in getattr(weight, "shape"))
-    elif weight is not None and hasattr(weight, "size"):
-        try:
-            shape = tuple(weight.size())
-        except _SCORING_EXCEPTIONS:
-            shape = None
+    elif weight is not None:
+        size_fn = getattr(weight, "size", None)
+        if callable(size_fn):
+            try:
+                shape = tuple(size_fn())
+            except _SCORING_EXCEPTIONS:
+                shape = None
     padding_idx = getattr(module, "padding_idx", None)
     return (
         f"{name}={type(module).__name__} weight_shape={shape} "
@@ -311,15 +315,27 @@ def _get_embedding_vocab_size(
     if embedding_module is None and hasattr(model, "get_input_embeddings"):
         embedding_module = model.get_input_embeddings()
     weight = getattr(embedding_module, "weight", None)
-    if weight is not None and hasattr(weight, "size"):
-        try:
-            return weight.size(0)
-        except (TypeError, AttributeError, IndexError) as exc:
-            LOG.debug(
-                "Failed to read embedding weight size; falling back to config vocab_size: %s",
-                exc,
-            )
-    return _get_config_value(config, "vocab_size", None)
+    if weight is not None:
+        size_fn = getattr(weight, "size", None)
+        if callable(size_fn):
+            try:
+                size_value = size_fn(0)
+                if isinstance(size_value, numbers.Integral):
+                    return int(size_value)
+            except (TypeError, AttributeError, IndexError) as exc:
+                LOG.debug(
+                    "Failed to read embedding weight size; falling back to config vocab_size: %s",
+                    exc,
+                )
+    config_value = _get_config_value(config, "vocab_size", None)
+    if config_value is None:
+        return None
+    if isinstance(config_value, numbers.Integral):
+        return int(config_value)
+    try:
+        return int(config_value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _maybe_long_tensor(value: object, torch_mod: object) -> object:

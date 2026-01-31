@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import importlib
+import sys
 import time
 from typing import Any, Callable
 
@@ -48,7 +49,58 @@ from .vllm_adapter import (
 torch = require_torch("generation")
 _retry_incomplete_prompts_impl = _retry_incomplete_prompts
 
-dist = getattr(torch, "distributed", None)
+
+class _DistFallback:
+    """Minimal torch.distributed stand-in for single-process tests."""
+
+    def is_available(self) -> bool:
+        return False
+
+    def is_initialized(self) -> bool:
+        return False
+
+    def get_world_size(self) -> int:
+        return 1
+
+    def all_gather_object(self, output: Any, value: Any) -> None:
+        if isinstance(output, list):
+            if output:
+                output[0] = value
+            else:
+                output.append(value)
+
+    def broadcast_object_list(self, _payload: Any, _src: int = 0) -> None:
+        return None
+
+    def scatter_object_list(
+        self, output: Any, input_list: Any = None, src: int = 0
+    ) -> None:
+        if isinstance(output, list):
+            if output:
+                if isinstance(input_list, list) and 0 <= src < len(input_list):
+                    output[0] = input_list[src]
+                else:
+                    output[0] = None
+            else:
+                output.append(None)
+
+
+def _ensure_dist(dist_obj: Any) -> Any:
+    if dist_obj is None:
+        return _DistFallback()
+    required = (
+        "is_available",
+        "is_initialized",
+        "get_world_size",
+        "all_gather_object",
+        "broadcast_object_list",
+    )
+    if any(not hasattr(dist_obj, name) for name in required):
+        return _DistFallback()
+    return dist_obj
+
+
+dist = _ensure_dist(getattr(torch, "distributed", None))
 
 
 def _refresh_vllm_globals() -> None:
@@ -83,7 +135,11 @@ _scatter_object = _scatter_object_wrapper
 
 def _import_vllm_client_cls(import_fn: Callable[[str], Any] | None = None) -> Any:
     """Import the TRL VLLMClient using the caller-provided optional import hook."""
-
+    if import_fn is None:
+        vllm_mod = sys.modules.get("trl.extras.vllm_client")
+        if vllm_mod is None:
+            return None
+        return getattr(vllm_mod, "VLLMClient", None)
     resolved_import = import_fn or globals().get("_optional_import") or _optional_import
     return _adapter_import_vllm_client_cls(resolved_import)
 

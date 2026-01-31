@@ -38,6 +38,7 @@ limitations under the License.
 from __future__ import annotations
 
 from contextlib import contextmanager
+from importlib import import_module
 import logging
 import os
 import sys
@@ -71,6 +72,30 @@ from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 
 if TYPE_CHECKING:
     from trl import ModelConfig
+
+
+class _LazyModuleProxy:
+    """Proxy that lazily imports a module on first attribute access."""
+
+    def __init__(self, module_name: str) -> None:
+        self._module_name = module_name
+        self._module: Any | None = None
+
+    def _load(self) -> Any:
+        if self._module is None:
+            self._module = import_module(self._module_name)
+        return self._module
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self.__dict__:
+            return self.__dict__[name]
+        module = self._load()
+        value = getattr(module, name)
+        setattr(self, name, value)
+        return value
+
+
+transformers = _LazyModuleProxy("transformers")
 
 
 @contextmanager
@@ -274,7 +299,6 @@ def run_baseline_training(
     ensure_real_dependencies(context="baseline GRPO training")
 
     # Import selected pieces lazily to keep module import light-weight
-    import transformers as transformers_mod
     from transformers.trainer_utils import get_last_checkpoint
     from trl import (
         GRPOTrainer as _GRPOTrainer,
@@ -291,6 +315,7 @@ def run_baseline_training(
     # Ensure TRL's VLLM client honours distributed port overrides before
     # the trainer instantiates it.
 
+    transformers_mod = transformers
     set_seed_fn = getattr(transformers_mod, "set_seed", None)
     if callable(set_seed_fn):
         set_seed_fn(training_args.seed)

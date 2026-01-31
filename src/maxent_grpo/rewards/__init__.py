@@ -25,6 +25,8 @@ Two layers of rewards are exposed:
 
 from __future__ import annotations
 
+import sys
+
 from .basic import (
     RewardConfig,
     RewardFunction,
@@ -44,3 +46,6 @@ __all__ = [
     "get_reward_funcs",
     "pure_accuracy_reward_math",
 ]
+
+# Ensure a top-level "rewards" import resolves to this module.
+sys.modules["rewards"] = sys.modules[__name__]
