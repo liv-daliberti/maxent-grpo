@@ -125,7 +125,11 @@ def test_refresh_vllm_globals_updates_adapter(monkeypatch):
     helpers = __import__("maxent_grpo.training.rollout.helpers", fromlist=["dist"])
     marker_dist = object()
     marker_safe = object()
-    retry_fn = lambda *_a, **_k: "retry"  # - simple stub
+
+    def _retry_stub(*_a, **_k):
+        return "retry"
+
+    retry_fn = _retry_stub
 
     monkeypatch.setattr(helpers, "dist", marker_dist)
     monkeypatch.setattr(helpers, "safe_generate", marker_safe)

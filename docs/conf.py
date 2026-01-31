@@ -22,6 +22,7 @@ See the specific language governing permissions and
 limitations under the License.
 """
 
+import importlib
 import os
 import sys
 from datetime import datetime
@@ -404,7 +405,7 @@ def _choose_theme():
     Order: Furo → PyData → RTD → Alabaster.
     """
     try:
-        import furo
+        importlib.import_module("furo")
 
         return "furo", {
             "light_css_variables": {
@@ -420,7 +421,7 @@ def _choose_theme():
         }
     except Exception:
         try:
-            import pydata_sphinx_theme
+            importlib.import_module("pydata_sphinx_theme")
 
             return "pydata_sphinx_theme", {
                 "logo": {
@@ -432,7 +433,7 @@ def _choose_theme():
             }
         except Exception:
             try:
-                import sphinx_rtd_theme
+                importlib.import_module("sphinx_rtd_theme")
 
                 return "sphinx_rtd_theme", {
                     "style_nav_header_background": "#7c4dff",

@@ -326,17 +326,6 @@ def test_build_training_metrics_emits_weight_aliases_for_maxent():
     assert metrics["train/weighting/beta"] == pytest.approx(0.17)
 
 
-def test_build_training_metrics_falls_back_to_loss_kl_scalar():
-    payload = _payload()
-    payload.diagnostics = payload.diagnostics.__class__(**{
-        **payload.diagnostics.__dict__,
-        "kl_value": None,
-    })
-    payload.loss_outputs.kl_loss_scalar = 0.37
-    metrics = metrics_mod.build_training_metrics_dict(payload, global_step=4)
-    assert metrics["train/kl"] == pytest.approx(0.37)
-
-
 def test_build_training_metrics_emits_controller_signals():
     payload = _payload()
     weighting = payload.config.weighting
@@ -768,6 +757,8 @@ def test_log_like_grpo_logs_accumulated_rewards(monkeypatch):
     assert pytest.approx(logged_metrics["train/reward"], rel=1e-6) == 0.5
     assert state.metric_sums == {}
     assert writer.logged, "step logger should record metrics"
+
+
 def test_build_training_metrics_falls_back_to_loss_kl_scalar():
     payload = _payload()
     payload.diagnostics = payload.diagnostics.__class__(

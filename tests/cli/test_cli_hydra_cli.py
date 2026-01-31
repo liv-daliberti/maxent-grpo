@@ -20,7 +20,6 @@ import types
 import sys
 from types import SimpleNamespace
 import json
-import os
 from pathlib import Path
 
 import pytest
@@ -429,7 +428,7 @@ def test_cli_smoke_runs_recipe_and_logs(monkeypatch, tmp_path):
         "maxent_grpo.pipelines.training.maxent.run_maxent_training", _fake_run_maxent
     )
 
-    result = hydra_cli.maxent_entry()
+    hydra_cli.maxent_entry()
     log_path = log_dir / "cli-smoke.log"
     assert log_path.exists()
     data = json.loads(log_path.read_text("utf-8"))

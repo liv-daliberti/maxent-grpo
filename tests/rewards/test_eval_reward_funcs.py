@@ -1,7 +1,5 @@
 from types import SimpleNamespace
 
-import pytest
-
 import maxent_grpo.training.rewards as rewards_mod
 from maxent_grpo.training.rewards import (
     load_eval_reward_functions,

@@ -28,8 +28,8 @@ if hasattr(torch, "Tensor") and not hasattr(torch.Tensor, "log"):
 if hasattr(torch, "Tensor") and not hasattr(torch.Tensor, "__neg__"):
     torch.Tensor.__neg__ = lambda self: self * -1
 
-from maxent_grpo.training.types import ReferenceLogprobs
-from maxent_grpo.training.weighting import (
+from maxent_grpo.training.types import ReferenceLogprobs  # noqa: E402
+from maxent_grpo.training.weighting import (  # noqa: E402
     KlControllerSettings,
     QDistributionSettings,
     TauSchedule,
