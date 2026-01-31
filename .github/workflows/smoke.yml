@@ -26,6 +26,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e . --no-deps
 
+      - name: Install smoke dependencies
+        run: |
+          pip install "numpy>=1.26.4" "pydantic>=2" "torch==2.8.0"
+
       - name: Run CLI smoke
         run: python tools/smoke_cli.py
 

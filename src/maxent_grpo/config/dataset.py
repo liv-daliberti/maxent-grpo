@@ -29,7 +29,19 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, List, Optional, cast
 
-import trl
+try:  # pragma: no cover - optional dependency for lightweight imports
+    import trl
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dep
+    class _TRLStub:
+        """Lightweight TRL shim for environments without the dependency."""
+
+        class ScriptArguments:
+            pass
+
+        class GRPOConfig:
+            pass
+
+    trl = _TRLStub()
 
 LOG = logging.getLogger(__name__)
 
