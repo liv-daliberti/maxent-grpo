@@ -20,10 +20,6 @@ import importlib as _importlib
 import logging
 from typing import Any, List, TYPE_CHECKING
 
-from .controller_objective import (
-    AnalyticControllerObjective,
-    TruncatedBackpropControllerObjective,
-)
 from .types import (
     RuntimeHandles,
     RewardSpec,
@@ -63,13 +59,30 @@ from .types import (
     StepResources,
     TrainingLoopState,
 )
-from .context_builder import (
-    apply_info_seed,
-    apply_info_seed_to_generation,
-    apply_info_seed_to_scoring,
-    apply_info_seed_to_evaluation,
-)
-from .weighting.loss import SequenceScores
+_LAZY_ATTRS = {
+    "AnalyticControllerObjective": (
+        "maxent_grpo.training.controller_objective",
+        "AnalyticControllerObjective",
+    ),
+    "TruncatedBackpropControllerObjective": (
+        "maxent_grpo.training.controller_objective",
+        "TruncatedBackpropControllerObjective",
+    ),
+    "apply_info_seed": ("maxent_grpo.training.context_builder", "apply_info_seed"),
+    "apply_info_seed_to_generation": (
+        "maxent_grpo.training.context_builder",
+        "apply_info_seed_to_generation",
+    ),
+    "apply_info_seed_to_scoring": (
+        "maxent_grpo.training.context_builder",
+        "apply_info_seed_to_scoring",
+    ),
+    "apply_info_seed_to_evaluation": (
+        "maxent_grpo.training.context_builder",
+        "apply_info_seed_to_evaluation",
+    ),
+    "SequenceScores": ("maxent_grpo.training.weighting.loss", "SequenceScores"),
+}
 
 LOG = logging.getLogger(__name__)
 
@@ -178,6 +191,13 @@ def __getattr__(name: str) -> Any:
         module = _importlib.import_module(f"maxent_grpo.training.{name}")
         globals()[name] = module
         return module
+    lazy_target = _LAZY_ATTRS.get(name)
+    if lazy_target is not None:
+        module_name, attr_name = lazy_target
+        module = _importlib.import_module(module_name)
+        value = getattr(module, attr_name)
+        globals()[name] = value
+        return value
     if name in {"run_training_loop", "PreparedBatch"}:
         module_name = (
             "maxent_grpo.training.loop"
@@ -193,6 +213,24 @@ def __getattr__(name: str) -> Any:
 
 # Statically expose lazy-resolved attributes for linters/IDE while deferring imports.
 if TYPE_CHECKING:
+    from maxent_grpo.training.context_builder import (
+        apply_info_seed as apply_info_seed,
+    )
+    from maxent_grpo.training.context_builder import (
+        apply_info_seed_to_evaluation as apply_info_seed_to_evaluation,
+    )
+    from maxent_grpo.training.context_builder import (
+        apply_info_seed_to_generation as apply_info_seed_to_generation,
+    )
+    from maxent_grpo.training.context_builder import (
+        apply_info_seed_to_scoring as apply_info_seed_to_scoring,
+    )
+    from maxent_grpo.training.controller_objective import (
+        AnalyticControllerObjective as AnalyticControllerObjective,
+    )
+    from maxent_grpo.training.controller_objective import (
+        TruncatedBackpropControllerObjective as TruncatedBackpropControllerObjective,
+    )
     from maxent_grpo.training.loop import run_training_loop as run_training_loop
     from maxent_grpo.training.pipeline import PreparedBatch as PreparedBatch
     from maxent_grpo.training import pipeline as pipeline
@@ -200,3 +238,4 @@ if TYPE_CHECKING:
     from maxent_grpo.training import rollout as rollout
     from maxent_grpo.training import cli as cli
     from maxent_grpo.training import scoring as scoring
+    from maxent_grpo.training.weighting.loss import SequenceScores as SequenceScores

@@ -32,7 +32,15 @@ import re
 from concurrent.futures import Future
 from typing import Any, List, Optional, TYPE_CHECKING
 
-from transformers import AutoConfig
+try:  # pragma: no cover - optional dependency or incomplete install
+    from transformers import AutoConfig
+except Exception:  # pragma: no cover - allow runtimes without full transformers
+    class AutoConfig:  # type: ignore[no-redef]
+        """Fallback stub when transformers is missing or incomplete."""
+
+        @staticmethod
+        def from_pretrained(*_args: Any, **_kwargs: Any) -> Any:
+            raise RuntimeError("transformers is not installed or lacks AutoConfig")
 
 if TYPE_CHECKING:  # pragma: no cover - import types without runtime dependency
     from huggingface_hub import (
