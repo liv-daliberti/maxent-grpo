@@ -37,14 +37,13 @@ import time
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 from collections.abc import Mapping
 
-from maxent_grpo.config import ScriptArguments
-
 if TYPE_CHECKING:  # pragma: no cover - type hints only
     from collections.abc import Sequence
     from typing import Callable
 
     import datasets
     from datasets import Dataset, DatasetDict
+    from maxent_grpo.config import ScriptArguments
 
     concatenate_datasets: Callable[[Sequence[Dataset]], Dataset]
 else:

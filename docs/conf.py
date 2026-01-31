@@ -517,6 +517,7 @@ _DUPLICATE_EXPORTS = {
     },
     "maxent_grpo.training.types": {
         "DataLoader",
+        "GenerationFn",
         "GenerationSettings",
         "LoggingHandles",
         "MetricState",
@@ -585,8 +586,10 @@ _DUPLICATE_EXPORTS = {
 
 _CANONICAL_TYPE_ALIASES = {
     "Accelerator": "maxent_grpo.training.types.runtime",
+    "GenerationFn": "maxent_grpo.training.types.runtime",
     "PreTrainedModel": "maxent_grpo.training.types.runtime",
     "PreTrainedTokenizer": "maxent_grpo.training.types.runtime",
+    "SeedAugmentationConfig": "maxent_grpo.training.runtime.config",
 }
 
 

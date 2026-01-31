@@ -37,6 +37,7 @@ dependencies = [
   "liger-kernel>=0.5.10",
   "numpy>=1.26.4",
   "packaging>=23.0",
+  "pydantic>=2",
   "safetensors>=0.3.3",
   "sentencepiece>=0.1.99",
   "transformers==4.53.0",

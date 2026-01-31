@@ -65,7 +65,7 @@ __all__ = [
     "GenerationPenaltyPassthroughMixin",
     "GenerationSamplingConfig",
     "MaxEntOptions",
-    "SeedAugmentationConfig",
+    SeedAugmentationConfig.__name__,
     "VLLMClientConfig",
     "get_trl_prepare_deepspeed",
     "require_accelerator",
