@@ -5,6 +5,7 @@ pyright==1.1.381
 pytest>=6.2
 pytest-cov>=4.1
 numpy>=1.26.4
+pydantic>=2
 black>=24.8
 pip-audit>=2.7
 bandit>=1.7
