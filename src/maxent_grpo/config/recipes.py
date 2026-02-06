@@ -70,12 +70,25 @@ class _BaselineRecipeSchema(_BaseRecipeSchema):
 
 
 class _MaxentRecipeSchema(_BaselineRecipeSchema):
-    maxent_tau: float
+    maxent_tau: Optional[float] = None
+    policy_entropy_bonus_coef: Optional[float] = None
 
     @model_validator(mode="after")
     def _validate_maxent_flags(self) -> "_MaxentRecipeSchema":
         if self.train_grpo_objective:
-            raise ValueError("MaxEnt recipes must set train_grpo_objective=false")
+            bonus = self.policy_entropy_bonus_coef
+            try:
+                bonus = float(bonus) if bonus is not None else 0.0
+            except (TypeError, ValueError):
+                bonus = 0.0
+            if bonus <= 0.0:
+                raise ValueError(
+                    "MaxEnt recipes must set train_grpo_objective=false "
+                    "or enable policy_entropy_bonus_coef>0"
+                )
+            return self
+        if self.maxent_tau is None:
+            raise ValueError("maxent_tau is required when train_grpo_objective=false")
         return self
 
 
@@ -270,6 +283,28 @@ def load_grpo_recipe(
         model_kwargs,
         other_kwargs,
     ) = _split_recipe_payload(cfg_payload, model_config_cls)
+    env_vllm_url = os.environ.get("MAXENT_VLLM_URL") or os.environ.get("VLLM_URL")
+    if env_vllm_url and training_kwargs.get("use_vllm"):
+        training_kwargs["vllm_url"] = env_vllm_url
+    env_vllm_mode = os.environ.get("MAXENT_VLLM_MODE") or os.environ.get("VLLM_MODE")
+    if env_vllm_mode and training_kwargs.get("use_vllm"):
+        training_kwargs["vllm_mode"] = env_vllm_mode
+    env_sync = os.environ.get("MAXENT_VLLM_SYNC_WEIGHTS")
+    if env_sync is not None:
+        training_kwargs["vllm_sync_weights"] = str(env_sync).strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "y",
+        }
+    env_run_name = os.environ.get("MAXENT_RUN_NAME") or os.environ.get("WANDB_RUN_NAME")
+    if env_run_name:
+        training_kwargs["run_name"] = env_run_name
+    env_wandb_group = os.environ.get("MAXENT_WANDB_RUN_GROUP") or os.environ.get(
+        "WANDB_RUN_GROUP"
+    )
+    if env_wandb_group:
+        training_kwargs["wandb_run_group"] = env_wandb_group
     _maybe_infer_vllm_server_overrides(training_kwargs)
     for key, default_val in INFO_SEED_DEFAULTS.items():
         training_kwargs.setdefault(key, other_kwargs.get(key, default_val))

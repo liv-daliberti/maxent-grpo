@@ -73,6 +73,7 @@ vllm_return_logprobs: true
 vllm_request_logprobs: true
 # Force frozen reference-model scoring for KL/GRPO trust region.
 maxent_reference_logprobs_source: model
+maxent_policy_entropy: false
 vllm_sync_weights: false
 vllm_sync_interval_steps: 10  # sync weights every N optimizer steps when enabled (0 disables)
 vllm_gpu_memory_utilization: 0.9
@@ -141,6 +142,7 @@ kl_ctl_step_size: 1.0
 # Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.15
 ppo_clip_range: 0.05
+clip_range: 0.05
 save_strategy: steps
 save_steps: 50
 eval_strategy: steps

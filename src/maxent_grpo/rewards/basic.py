@@ -137,16 +137,20 @@ def pure_accuracy_reward_math(
     )
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
-        if not relaxed and not _format_pat.match(txt):
-            outs.append(0.0)
-            continue
+        format_ok = bool(_format_pat.match(txt))
         m = _answer_pat.search(txt)
-        if not m:
-            outs.append(0.0)
+        pred = m.group(1) if m else None
+        gold_canon = _canon_math(gold)
+        pred_ok = pred is not None and _canon_math(pred) == gold_canon
+        if format_ok and pred_ok:
+            outs.append(1.0)
             continue
-        pred = m.group(1)
-        ok = _canon_math(pred) == _canon_math(gold)
-        outs.append(1.0 if ok else 0.0)
+        if not relaxed and not format_ok:
+            txt_canon = _canon_math(txt)
+            outs.append(0.5 if gold_canon and gold_canon in txt_canon else 0.0)
+            continue
+        txt_canon = _canon_math(txt)
+        outs.append(0.5 if gold_canon and gold_canon in txt_canon else 0.0)
     return outs
 
 

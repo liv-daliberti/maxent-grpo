@@ -81,7 +81,8 @@ Validation
 
 Before launching, ``maxent_grpo.cli.config_validation`` checks that:
 
-- MaxEnt-specific overrides are only used with ``train_grpo_objective=false``.
+- MaxEnt-specific overrides are only used with ``train_grpo_objective=false``,
+  except for GRPO + entropy bonus runs where ``policy_entropy_bonus_coef>0``.
 - InfoSeed overrides require ``info_seed_enabled=true``.
 - Generation and inference inputs meet minimal requirements (e.g., vLLM URL).
 

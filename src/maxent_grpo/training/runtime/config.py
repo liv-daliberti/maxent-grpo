@@ -77,6 +77,7 @@ class GenerationSamplingConfig:
     gen_top_p: float
     use_vllm: bool
     vllm: VLLMClientConfig
+    vllm_mode: str
 
     @property
     def vllm_url(self) -> str:

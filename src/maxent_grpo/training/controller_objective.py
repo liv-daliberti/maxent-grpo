@@ -41,6 +41,26 @@ class ControllerMetaContext:
     def entropy_value(self) -> Optional[float]:
         """Return the batch entropy used for tau updates (handles logging views)."""
 
+        if not getattr(self.weighting, "train_grpo_objective", True):
+            scores = getattr(self.prepared_batch, "scores", None)
+            entropy_sum = getattr(scores, "policy_entropy_sum", None)
+            token_counts = getattr(scores, "denom_tok_tensor", None)
+            if entropy_sum is not None and token_counts is not None:
+                try:
+                    entropy_total = float(entropy_sum.detach().float().sum().cpu().item())
+                    token_total = float(token_counts.detach().float().sum().cpu().item())
+                except (AttributeError, RuntimeError, TypeError, ValueError):
+                    try:
+                        entropy_total = float(entropy_sum.sum())
+                        token_total = float(token_counts.sum())
+                    except (AttributeError, RuntimeError, TypeError, ValueError):
+                        entropy_total = token_total = None
+                if (
+                    isinstance(entropy_total, (int, float))
+                    and isinstance(token_total, (int, float))
+                    and token_total > 0
+                ):
+                    return float(entropy_total) / float(token_total)
         for attr in ("weight_entropy", "entropy"):
             value = getattr(self.weight_stats, attr, None)
             if isinstance(value, (int, float)):

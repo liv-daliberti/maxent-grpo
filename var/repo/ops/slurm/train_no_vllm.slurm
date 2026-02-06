@@ -1,8 +1,8 @@
 #!/bin/bash
-# Multi-node Open‑R1 trainer with optional vLLM server on a dedicated node
+# Multi-node Open‑R1 trainer with vLLM disabled (in-process generation)
 #
 # Example:
-#   sbatch --nodes=2 ops/slurm/train.slurm \
+#   sbatch --nodes=2 var/repo/ops/slurm/train_no_vllm.slurm \
 #     --model Qwen2.5-1.5B-Instruct \
 #     --task grpo \
 #     --config math \
@@ -16,15 +16,10 @@
 #SBATCH --exclusive
 #SBATCH --nodes=1                 # Default: single node
 #SBATCH --gres=gpu:8              # Default: 8 GPUs on the node
-#SBATCH --partition=mltheory      # Adjust for your cluster (e.g., hopper-prod)
-#SBATCH --exclude=node915,node916,node917,node105 # Avoid flaky nodes; adjust as needed
+#SBATCH --account=mltheory      # Adjust for your cluster (e.g., hopper-prod)
 #SBATCH --output=var/artifacts/logs/%x-%j.out
 #SBATCH --error=var/artifacts/logs/%x-%j.err
-#SBATCH --requeue
-#SBATCH --time=00:59:00
-#SBATCH --account=      # Adjust for your cluster (e.g., hopper-prod)
-# Ensure the job sees the project venv by default; override with sbatch --export if needed.
-# NOTE: sbatch processes this line at submit time; absolute paths avoid $PWD expansion issues.
+#SBATCH --time=01:00:00
 #SBATCH --export=ALL,ENV_MODE=venv,ENV_ACTIVATE=/n/fs/similarity/maxent-grpo/var/openr1/bin/activate
 
 
@@ -93,6 +88,7 @@ except Exception as e:
 PY
   # Avoid picking up user-site packages (~/.local) that can conflict (e.g., httpx)
   export PYTHONNOUSERSITE=1
+  export HF_TOKEN="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"
 
   # Route all caches and temp dirs into var/
   if [[ -n "${HF_TOKEN:-}" ]]; then
@@ -140,7 +136,7 @@ else
 fi
 
 if [[ "$*" == *"--help"* ]]; then
-  echo "Usage: sbatch ops/slurm/train.slurm [options]"
+  echo "Usage: sbatch var/repo/ops/slurm/train.slurm [options]"
   echo "Options:"
   echo "  --model MODEL            Recipe model directory under configs/recipes/ (e.g., Qwen2.5-1.5B-Instruct)"
   echo "  --task TASK              Task name: grpo | maxent (alias: maxent-grpo)"
@@ -154,7 +150,7 @@ if [[ "$*" == *"--help"* ]]; then
   exit 0
 fi
 
-# Defaults (so `sbatch ops/slurm/train.slurm` just works)
+# Defaults (so `sbatch var/repo/ops/slurm/train.slurm` just works)
 # - Single node, 8 GPUs; vLLM on 1 GPU and GRPO training on remaining 7 GPUs
 # - Qwen 1.5B GRPO math with accelerate zero3
 MODEL="${MODEL:-Qwen2.5-1.5B-Instruct}"
@@ -224,9 +220,17 @@ if [[ ! -f "$ACCEL_FILE" ]]; then
   exit 1
 fi
 export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$CONFIG_FILE}"
+# Prefer an absolute recipe path so worker CWD doesn't matter.
+GRPO_RECIPE_PATH="$CONFIG_FILE"
+if command -v realpath >/dev/null 2>&1; then
+  GRPO_RECIPE_PATH="$(realpath "$CONFIG_FILE")"
+elif command -v readlink >/dev/null 2>&1; then
+  GRPO_RECIPE_PATH="$(readlink -f "$CONFIG_FILE" 2>/dev/null || echo "$CONFIG_FILE")"
+fi
 # Ensure the training entrypoint loads the recipe via GRPO_RECIPE to avoid
 # TRL parser conflicts when reward fields overlap.
-export GRPO_RECIPE="${GRPO_RECIPE:-$CONFIG_FILE}"
+export GRPO_RECIPE="${GRPO_RECIPE:-$GRPO_RECIPE_PATH}"
+export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$GRPO_RECIPE_PATH}"
 export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
 if [[ "${MAXENT_DRY_RUN:-0}" == "1" ]]; then
   echo "[dry-run] model=$MODEL task=$TASK config=$CONFIG_FILE accelerator=$ACCEL_FILE entrypoint=$TRAIN_ENTRYPOINT"
@@ -276,6 +280,10 @@ if grep -qE '^[[:space:]]*use_vllm:[[:space:]]*true' "$CONFIG_FILE"; then
   USE_VLLM=true
 fi
 
+# Force-disable vLLM for this script (generation runs in-process).
+USE_VLLM=false
+echo "[info] train_no_vllm.slurm: overriding use_vllm=false (in-process generation)."
+
 VLLM_MODE=$(grep -E "^[[:space:]]*vllm_mode:" "$CONFIG_FILE" | head -n1 | awk '{print $2}' | tr -d '"' | tr '[:upper:]' '[:lower:]')
 if [[ -z "$VLLM_MODE" ]]; then
   VLLM_MODE="server"
@@ -287,6 +295,9 @@ if $USE_VLLM && [[ "$VLLM_MODE" == "server" ]]; then
   USE_VLLM_SERVER=true
 fi
 export USE_VLLM_SERVER
+
+# Ensure no inline vLLM paths are taken.
+INLINE_VLLM=false
 
 # SLURM topology
 NUM_NODES=${SLURM_NNODES}
@@ -361,8 +372,8 @@ if (( TRAIN_LOCAL_PROCS > GPUS_PER_NODE )); then
   exit 1
 fi
 if $SINGLE_NODE && $USE_VLLM; then
-  # Reserve 2 GPUs for inline vLLM, leaving the rest for training.
-  TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 2 ))
+  # Reserve 1 GPU for inline vLLM, leaving the rest for training.
+  TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 1 ))
 fi
 if (( TRAIN_LOCAL_PROCS <= 0 )); then
   echo "Training GPU count per node must be positive (computed $TRAIN_LOCAL_PROCS)." >&2
@@ -372,11 +383,8 @@ WORLD_SIZE=$(( TRAIN_LOCAL_PROCS * TRAIN_NUM_MACHINES ))
 
 VLLM_GROUP_PORT_FLAG=""
 if $USE_VLLM; then
-  if python -m trl.scripts.vllm_serve --help 2>&1 | grep -q -- "--group-port"; then
-    VLLM_GROUP_PORT_FLAG="--group-port ${VLLM_GROUP_PORT}"
-  else
-    echo "[info] trl.scripts.vllm_serve does not advertise --group-port; relying on env overrides only."
-  fi
+# NOTE: trl.scripts.vllm_serve in this env doesn't accept --group-port.
+VLLM_GROUP_PORT_FLAG=""
 fi
 export VLLM_GROUP_PORT_FLAG
 
@@ -438,13 +446,23 @@ fi
 
 # Build Accelerate launcher and training command
 NODELIST_CSV=$(IFS=,; echo "${TRAIN_NODES[*]}")
-export CMD="${TRAIN_ENTRYPOINT} --config ${CONFIG_FILE} ${OPTIONAL_ARGS}"
+export CMD="${TRAIN_ENTRYPOINT} ${OPTIONAL_ARGS}"
 
 TRAIN_PROCS=${TRAIN_LOCAL_PROCS}
 
 export ACC_TEE=${ACC_TEE:-3}
-export TRAIN_SEED=${TRAIN_SEED:-42}
-export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info accelerate launch \
+if [[ -n "${MAXENT_LOG_LEVEL:-}" ]]; then
+  case "${MAXENT_LOG_LEVEL}" in
+    trace|debug) MAXENT_LOG_LEVEL=10 ;;
+    info) MAXENT_LOG_LEVEL=20 ;;
+    warning|warn) MAXENT_LOG_LEVEL=30 ;;
+    error) MAXENT_LOG_LEVEL=40 ;;
+    critical|fatal) MAXENT_LOG_LEVEL=50 ;;
+  esac
+fi
+export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-20}"
+export MAXENT_LOG_LEVEL_NUM="${MAXENT_LOG_LEVEL}"
+export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info $VIRTUAL_ENV/bin/accelerate launch \
   --config_file ${ACCEL_FILE} \
   --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
   --num_machines ${TRAIN_NUM_MACHINES} \
@@ -454,20 +472,9 @@ export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info accelerat
   --machine_rank ${SLURM_PROCID} \
   --tee ${ACC_TEE}"
 
-CMD+=" --seed ${TRAIN_SEED}"
 export CMD
 
-# If vLLM server is used, forward host/port to trainer unless already set in OPTIONAL_ARGS
-if $USE_VLLM_SERVER; then
-  if [[ "$OPTIONAL_ARGS" != *"--vllm_server_base_url="* && "$OPTIONAL_ARGS" != *"--vllm_server_host="* ]]; then
-    if $INLINE_VLLM; then
-      VLLM_CLIENT_HOST="localhost"
-    else
-      VLLM_CLIENT_HOST="${VLLM_NODE}"
-    fi
-    export CMD+=" --vllm_server_host ${VLLM_CLIENT_HOST} --vllm_server_port ${VLLM_PORT}"
-  fi
-fi
+# vLLM host/port should be supplied via recipe config (vllm_url), not CLI flags.
 
 if $SINGLE_NODE; then
   if $SINGLE_NODE_VLLM; then
@@ -501,12 +508,16 @@ mkdir -p "$(dirname "$TRAINING_LOG")"
 : > "$TRAINING_LOG"
 export INLINE_VLLM_FALLBACK_GPUS="$(seq -s, 0 $((GPUS_PER_NODE - 1)))"
 
-srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; set -x; \
+srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
   elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
+  export MAXENT_LOG_LEVEL=\"${MAXENT_LOG_LEVEL_NUM}\"; \
+  export GRPO_RECIPE=\"${GRPO_RECIPE}\"; \
+  export GRPO_RECIPE_USED=\"${GRPO_RECIPE_USED}\"; \
+  export PYTHONPATH=\"${ROOT_DIR}/src:\${PYTHONPATH:-}\"; \
   export PYTHONNOUSERSITE=1; \
   echo 'Trainer node uses python:'; which python || true; python --version || true; \
-  echo 'Trainer node has accelerate:'; which accelerate || true; python - <<'PY'
+  echo 'Trainer node has accelerate:'; "$VIRTUAL_ENV/bin/accelerate" --version || which accelerate || true; python - <<'PY'
 import sys
 try:
     import accelerate
@@ -529,11 +540,11 @@ PY
       ORIGINAL_CUDA_VISIBLE_DEVICES=\"${INLINE_VLLM_FALLBACK_GPUS}\"; \
     fi; \
     IFS=, read -ra ALL_GPU_IDS <<< \"\$ORIGINAL_CUDA_VISIBLE_DEVICES\"; \
-    if [ \"\${#ALL_GPU_IDS[@]}\" -lt 3 ]; then \
-      echo \"Inline vLLM (2 GPUs) plus training requires at least 3 GPUs, saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
+    if [ \"\${#ALL_GPU_IDS[@]}\" -lt 2 ]; then \
+      echo \"Inline vLLM (1 GPU) plus training requires at least 2 GPUs, saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
     fi; \
-    INLINE_VLLM_GPU_IDS=(\"\${ALL_GPU_IDS[0]}\" \"\${ALL_GPU_IDS[1]}\"); \
-    TRAIN_GPU_IDS=(\"\${ALL_GPU_IDS[@]:2}\"); \
+    INLINE_VLLM_GPU_IDS=(\"\${ALL_GPU_IDS[0]}\"); \
+    TRAIN_GPU_IDS=(\"\${ALL_GPU_IDS[@]:1}\"); \
     INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_IDS[*]}\"; INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_ID_CSV// /,}\"; \
     INLINE_VLLM_TRAIN_GPUS=\"\${TRAIN_GPU_IDS[*]}\"; \
     INLINE_VLLM_TRAIN_GPUS=\"\${INLINE_VLLM_TRAIN_GPUS// /,}\"; \
@@ -551,7 +562,7 @@ PY
     VLLM_GROUP_PORT=$VLLM_GROUP_PORT; \
     CUDA_VISIBLE_DEVICES=\$INLINE_VLLM_GPU_ID_CSV; \
     if [ \"\$VLLM_SERVER_IMPL\" = \"native\" ]; then \
-      python -m vllm.entrypoints.api_server \
+      \"$VIRTUAL_ENV/bin/python\" -m vllm.entrypoints.api_server \
         --model \"$VLLM_MODEL\" ${REVISION:+--revision $REVISION} \
         --tensor-parallel-size $TP \
         --host 0.0.0.0 --port $VLLM_PORT \
@@ -559,7 +570,7 @@ PY
         --gpu-memory-utilization 0.90 \
         --dtype float16 > \"\$VLLM_LOG\" 2>&1 & \
     else \
-      python -m trl.scripts.vllm_serve \
+      \"$VIRTUAL_ENV/bin/python\" -m trl.scripts.vllm_serve \
         --model \"$VLLM_MODEL\" ${REVISION:+--revision $REVISION} \
         --tensor_parallel_size $TP --data_parallel_size $DP \
         --port $VLLM_PORT ${VLLM_GROUP_PORT_FLAG:+$VLLM_GROUP_PORT_FLAG} \
@@ -596,6 +607,8 @@ PY
   mkdir -p \"$VAR_DIR/artifacts/logs\"; : > \"$TRAINING_LOG\"; \
   echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \
   echo 'Launch command:'; echo \"$LAUNCHER $CMD\"; echo 'About to start accelerate launch'; date; \
+  echo \"Effective MAXENT_LOG_LEVEL=\${MAXENT_LOG_LEVEL}\"; \
+  echo \"Effective GRPO_RECIPE=\${GRPO_RECIPE}\"; \
   echo 'Restricting training GPUs when inline vLLM is enabled'; \
   if [ "${INLINE_VLLM}" = "true" ]; then export CUDA_VISIBLE_DEVICES=\"\$INLINE_VLLM_TRAIN_GPUS\"; fi; \
   echo 'Spawning accelerate launcher'; \

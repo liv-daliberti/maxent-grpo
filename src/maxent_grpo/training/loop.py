@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from types import SimpleNamespace
 from collections.abc import MutableMapping
 import math
@@ -116,6 +117,27 @@ _VLLM_LOGPROB_FALLBACK_ENV = "MAXENT_VLLM_LOGPROB_FALLBACK"
 _scheduled_learning_rate = scheduled_learning_rate
 _epoch_progress = epoch_progress
 _optimizer_step = optimizer_step
+
+
+def _rank_tag(accelerator: Any = None) -> str:
+    """Return best-effort rank string for logging."""
+
+    rank = getattr(accelerator, "process_index", None)
+    world = getattr(accelerator, "num_processes", None)
+    if rank is None:
+        try:
+            dist = getattr(torch, "distributed", None)
+            if dist is not None and dist.is_available() and dist.is_initialized():
+                rank = dist.get_rank()
+                world = dist.get_world_size()
+        except Exception:
+            rank = None
+            world = None
+    if rank is None:
+        return "rank=na"
+    if world is None:
+        return f"rank={rank}"
+    return f"rank={rank}/{world}"
 
 
 def _coerce_bool(value: Any) -> Optional[bool]:
@@ -589,8 +611,10 @@ def _train_step(
     schedule = ctx.optimization.schedule
     accelerator = ctx.runtime.accelerator
     ds_state = detect_deepspeed_state(accelerator)
+    rank_tag = _rank_tag(accelerator)
     LOG.debug(
-        "Train step begin | epoch=%d | step_in_epoch=%d | global_step=%d",
+        "Train step begin | %s | epoch=%d | step_in_epoch=%d | global_step=%d",
+        rank_tag,
         step_info.epoch,
         step_info.step_in_epoch,
         state.global_step,
@@ -602,7 +626,8 @@ def _train_step(
     if prepared is None:
         skip_stage = getattr(ctx.runtime, "_last_skip_stage", "unknown")
         LOG.warning(
-            "Skipping training batch | epoch=%d | step_in_epoch=%d | global_step=%d | stage=%s",
+            "Skipping training batch | %s | epoch=%d | step_in_epoch=%d | global_step=%d | stage=%s",
+            rank_tag,
             step_info.epoch,
             step_info.step_in_epoch,
             state.global_step,
@@ -613,6 +638,18 @@ def _train_step(
         except (AttributeError, TypeError):
             LOG.debug("Failed to clear runtime skip stage marker.")
         return False
+    grouped = prepared.grouped_completions or []
+    total_comps = sum(len(group) for group in grouped) if grouped else 0
+    score_batch = getattr(getattr(prepared, "batch_stats", None), "score_batch", None)
+    LOG.debug(
+        "Prepared batch summary | %s | prompts=%d | total_completions=%d | total_sequences=%s | prompt_tokens=%.0f | completion_tokens=%.0f",
+        rank_tag,
+        len(grouped),
+        total_comps,
+        getattr(score_batch, "total_sequences", None),
+        prepared.batch_stats.prompt_token_count,
+        prepared.batch_stats.num_completion_tokens,
+    )
     _maybe_guard_vllm_logprobs(ctx, prepared, state.global_step)
     state.num_input_tokens_seen += float(prepared.total_input_tokens)
     loss_outputs, diagnostics = evaluate_losses(
@@ -659,7 +696,8 @@ def _train_step(
     scalars = getattr(loss_outputs, "scalars", None)
     if scalars is not None:
         LOG.debug(
-            "Loss scalars | total=%.4f | policy=%.4f | kl=%.4f",
+            "Loss scalars | %s | total=%.4f | policy=%.4f | kl=%.4f",
+            rank_tag,
             getattr(scalars, "total_loss", 0.0),
             getattr(scalars, "policy_loss", 0.0),
             getattr(scalars, "kl_loss", 0.0),
@@ -676,6 +714,7 @@ def _train_step(
     grad_accum_total = int(getattr(schedule, "grad_accum_steps", 1) or 1)
     accum_position = (step_info.step_in_epoch % grad_accum_total) + 1
     grad_norm_scalar: Optional[float] = None
+    accum_start = time.monotonic()
     LOG.debug(
         "Entering accumulate context | grad_accum_steps=%d | accum_progress=%d/%d | step_in_epoch=%d",
         schedule.grad_accum_steps,
@@ -684,65 +723,93 @@ def _train_step(
         step_info.step_in_epoch,
     )
     with accumulation_ctx:
-        # Some test stubs may produce a loss tensor that does not require
-        # gradients (e.g., detached or aggregated into a float). Guard the
-        # backward call to avoid RuntimeError when autograd is not active.
-        loss_val = loss_outputs.loss
-        if getattr(loss_val, "requires_grad", False):
-            accelerator.backward(loss_val)
-        else:
-            LOG.debug("Skipping backward: loss does not require grad")
-        if ds_state.use_deepspeed and ds_state.zero_stage >= 2:
-            if (step_info.step_in_epoch + 1) % grad_accum_total != 0:
-                LOG.debug(
-                    "DeepSpeed accumulate | deferring optimizer step | epoch=%d | step_in_epoch=%d | accum_progress=%d/%d",
-                    step_info.epoch,
-                    step_info.step_in_epoch,
-                    accum_position,
-                    grad_accum_total,
-                )
-                log_local_step(
-                    ctx,
-                    state,
-                    prepared,
-                    log_artifacts,
-                    current_lr,
-                    reward_view=reward_stats_global,
-                    weight_view=weight_stats_global,
-                    emit=False,
-                )
-                return False
-            grad_norm_scalar = _optimizer_step(ctx, state, current_lr)
+        try:
             LOG.debug(
-                "Optimizer step executed | global_step=%d | grad_norm=%s",
+                "Accumulation context entered | global_step=%d | step_in_epoch=%d",
                 state.global_step,
-                grad_norm_scalar,
+                step_info.step_in_epoch,
             )
-        else:
-            if not sync_gradients_enabled(accelerator, state.global_step):
+            # Some test stubs may produce a loss tensor that does not require
+            # gradients (e.g., detached or aggregated into a float). Guard the
+            # backward call to avoid RuntimeError when autograd is not active.
+            loss_val = loss_outputs.loss
+            if getattr(loss_val, "requires_grad", False):
+                backward_start = time.monotonic()
                 LOG.debug(
-                    "Deferring optimizer step until sync | epoch=%d | step_in_epoch=%d | accum_progress=%d/%d",
-                    step_info.epoch,
+                    "Backward start | global_step=%d | step_in_epoch=%d | accum_progress=%d/%d",
+                    state.global_step,
                     step_info.step_in_epoch,
                     accum_position,
                     grad_accum_total,
                 )
-                log_local_step(
-                    ctx,
-                    state,
-                    prepared,
-                    log_artifacts,
-                    current_lr,
-                    reward_view=reward_stats_global,
-                    weight_view=weight_stats_global,
-                    emit=False,
+                accelerator.backward(loss_val)
+                LOG.debug(
+                    "Backward done | seconds=%.2f | global_step=%d | step_in_epoch=%d",
+                    time.monotonic() - backward_start,
+                    state.global_step,
+                    step_info.step_in_epoch,
                 )
-                return False
-            grad_norm_scalar = _optimizer_step(ctx, state, current_lr)
+            else:
+                LOG.debug("Skipping backward: loss does not require grad")
+            if ds_state.use_deepspeed and ds_state.zero_stage >= 2:
+                if (step_info.step_in_epoch + 1) % grad_accum_total != 0:
+                    LOG.debug(
+                        "DeepSpeed accumulate | deferring optimizer step | epoch=%d | step_in_epoch=%d | accum_progress=%d/%d",
+                        step_info.epoch,
+                        step_info.step_in_epoch,
+                        accum_position,
+                        grad_accum_total,
+                    )
+                    log_local_step(
+                        ctx,
+                        state,
+                        prepared,
+                        log_artifacts,
+                        current_lr,
+                        reward_view=reward_stats_global,
+                        weight_view=weight_stats_global,
+                        emit=False,
+                    )
+                    return False
+                grad_norm_scalar = _optimizer_step(ctx, state, current_lr)
+                LOG.debug(
+                    "Optimizer step executed | global_step=%d | grad_norm=%s",
+                    state.global_step,
+                    grad_norm_scalar,
+                )
+            else:
+                if not sync_gradients_enabled(accelerator, state.global_step):
+                    LOG.debug(
+                        "Deferring optimizer step until sync | epoch=%d | step_in_epoch=%d | accum_progress=%d/%d",
+                        step_info.epoch,
+                        step_info.step_in_epoch,
+                        accum_position,
+                        grad_accum_total,
+                    )
+                    log_local_step(
+                        ctx,
+                        state,
+                        prepared,
+                        log_artifacts,
+                        current_lr,
+                        reward_view=reward_stats_global,
+                        weight_view=weight_stats_global,
+                        emit=False,
+                    )
+                    return False
+                grad_norm_scalar = _optimizer_step(ctx, state, current_lr)
+                LOG.debug(
+                    "Optimizer step executed | global_step=%d | grad_norm=%s",
+                    state.global_step,
+                    grad_norm_scalar,
+                )
+        finally:
             LOG.debug(
-                "Optimizer step executed | global_step=%d | grad_norm=%s",
-                state.global_step,
-                grad_norm_scalar,
+                "Accumulation context exit | seconds=%.2f | accum_progress=%d/%d | step_in_epoch=%d",
+                time.monotonic() - accum_start,
+                accum_position,
+                grad_accum_total,
+                step_info.step_in_epoch,
             )
     LOG.debug("Exiting accumulate context | synced_step=%d", state.global_step)
     log_artifacts.grad_norm_scalar = grad_norm_scalar
@@ -936,6 +1003,7 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
         gen_temperature=generation_cfg.gen_temperature,
         gen_top_p=generation_cfg.gen_top_p,
         use_vllm=generation_cfg.use_vllm,
+        vllm_mode=getattr(generation_cfg, "vllm_mode", "server"),
         vllm=generation_cfg.vllm,
         penalty=replace(generation_cfg.penalty),
     )
@@ -1005,6 +1073,13 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
     _apply_weighting_overrides_from_config(ctx)
     maybe_load_accelerator_state(accel_state_path, runtime.accelerator)
     _maybe_load_optimizer_state(accel_state_path)
+    if (
+        training_args is not None
+        and getattr(training_args, "eval_before_train", False)
+        and starting_step <= 0
+    ):
+        LOG.info("Running pre-training evaluation at step 0.")
+        run_validation_step(0, validation_ctx)
     try:
         ctx.optimization.handles.optimizer.zero_grad(set_to_none=True)
         for epoch in range(ctx.optimization.schedule.num_epochs):

@@ -2,7 +2,7 @@
 # Slurm launcher for LightEval benchmarks using a local vLLM OpenAI server.
 # Set LIGHEVAL_BACKEND=hf to skip vLLM and run the LightEval HF backend in-process.
 # Usage (from repo root):
-#   sbatch ops/slurm/evaluate.slurm <benchmark_name> <task_list> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]
+#   sbatch var/repo/ops/slurm/evaluate.slurm <benchmark_name> <task_list> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]
 
 #SBATCH --job-name=lighteval
 #SBATCH --ntasks=1
@@ -101,7 +101,7 @@ echo "[info] Selected LightEval backend: ${BACKEND}"
 
 # --- Argument parsing ---
 if [[ $# -lt 6 ]]; then
-  echo "Usage: sbatch ops/slurm/evaluate.slurm <benchmark_name> <task_list> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]" >&2
+  echo "Usage: sbatch var/repo/ops/slurm/evaluate.slurm <benchmark_name> <task_list> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]" >&2
   exit 1
 fi
 BENCHMARK="$1"          # e.g., math_500
@@ -222,7 +222,7 @@ if [[ "${BACKEND,,}" == "hf" ]]; then
     # Use a local debug wrapper that patches the LightEval Pipeline to emit
     # explicit phase markers (tasks loading / model run / metrics) so we can
     # see where a job is stuck.
-    LIGHTEVAL_CMD=(python tools/debug_lighteval_accelerate.py "$MODEL_ARGS" "$TASK_LIST" --output-dir "$RESULTS_DIR" --save-details)
+    LIGHTEVAL_CMD=(python var/repo/tools/debug_lighteval_accelerate.py "$MODEL_ARGS" "$TASK_LIST" --output-dir "$RESULTS_DIR" --save-details)
   else
     LIGHTEVAL_CMD=(lighteval accelerate "$MODEL_ARGS" "$TASK_LIST" --output-dir "$RESULTS_DIR" --save-details)
   fi

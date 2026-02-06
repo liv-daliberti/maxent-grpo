@@ -8,6 +8,7 @@ import os
 import sys
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+from urllib.parse import urlparse
 
 from maxent_grpo.generation.errors import GenerationServiceError, ServiceErrorPayload
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
@@ -186,21 +187,15 @@ def _resolve_client_tag(ctx: Any) -> Optional[str]:
 
 
 def _resolve_default_limit() -> int:
-    """Return the current default prompt character cap from the environment."""
-    if _DEFAULT_PROMPT_CHAR_LIMIT <= 0:
-        try:
-            env_val = os.environ.get("MAX_PROMPT_CHARS")
-            if env_val is not None:
-                return int(env_val)
-        except (TypeError, ValueError):
-            LOG.debug("Invalid MAX_PROMPT_CHARS=%s; using defaults.", env_val)
-        return _DEFAULT_PROMPT_CHAR_LIMIT
-    try:
+    """Return the current default prompt token cap from the environment."""
+    env_val = os.environ.get("MAX_PROMPT_TOKENS")
+    if env_val is None:
         env_val = os.environ.get("MAX_PROMPT_CHARS")
-        if env_val is not None:
+    if env_val is not None:
+        try:
             return int(env_val)
-    except (TypeError, ValueError):
-        LOG.debug("Invalid MAX_PROMPT_CHARS=%s; using defaults.", env_val)
+        except (TypeError, ValueError):
+            LOG.debug("Invalid MAX_PROMPT_TOKENS/MAX_PROMPT_CHARS=%s; using defaults.", env_val)
     try:
         from maxent_grpo.training.runtime import prompts as prompts_mod
 
@@ -211,6 +206,42 @@ def _resolve_default_limit() -> int:
         return max(int(baseline), int(_DEFAULT_PROMPT_CHAR_LIMIT))
     except (TypeError, ValueError):
         return _DEFAULT_PROMPT_CHAR_LIMIT
+
+
+def _normalize_vllm_url(raw_url: Optional[str]) -> str:
+    """Return a normalized vLLM /generate endpoint URL or raise on invalid input."""
+    if raw_url is None:
+        return ""
+    raw = str(raw_url).strip()
+    if not raw:
+        return ""
+    trimmed = raw.rstrip("/")
+    if trimmed.endswith("/generate"):
+        return f"{trimmed}/"
+    parsed = None
+    try:
+        parsed = urlparse(trimmed)
+    except ValueError:
+        parsed = None
+    if parsed and parsed.scheme and parsed.netloc:
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        if parsed.path in ("", "/"):
+            normalized = f"{base}/generate/"
+            LOG.warning(
+                "vllm_url missing /generate; normalizing to %s", normalized
+            )
+            return normalized
+        if parsed.path in ("/v1", "/v1/"):
+            normalized = f"{base}/generate/"
+            LOG.warning(
+                "vllm_url points to OpenAI-style /v1; expected /generate. "
+                "Normalizing to %s",
+                normalized,
+            )
+            return normalized
+    raise ValueError(
+        f"vllm_url must point to the /generate endpoint (got {raw!r})."
+    )
 
 
 class VLLMRequestMixin:
@@ -350,7 +381,10 @@ class VLLMRequestMixin:
         mapping: List[int] = []
         for prompt, count in zip(prompts, target_counts):
             if prompt in seen:
-                mapping.append(seen[prompt])
+                existing_idx = seen[prompt]
+                if count > unique_counts[existing_idx]:
+                    unique_counts[existing_idx] = count
+                mapping.append(existing_idx)
                 continue
             seen[prompt] = len(unique_prompts)
             mapping.append(seen[prompt])
@@ -420,84 +454,128 @@ class VLLMRequestMixin:
         """
         ctx = self.ctx
         attempt = 0
-        while attempt < state.round_limit:
-            pending_indices = state.pending_indices()
-            if not pending_indices:
-                break
-            attempt += 1
-            remaining_counts = state.remaining_counts(pending_indices)
-            LOG.debug(
-                (
-                    "vLLM round dispatch | attempt=%d/%d | pending_prompts=%d "
-                    "| remaining_counts_sample=%s | prompt_hash_sample=%s"
-                ),
-                attempt,
-                state.round_limit,
-                len(pending_indices),
-                remaining_counts[:8],
-                _hash_prompts(
-                    [state.prompts[idx] for idx in pending_indices[:4]]
-                ),
-            )
-            if attempt > 1:
-                ctx.generation_stats["vllm_retry_rounds"] += 1
+        inner_retries_override = None
+        disable_inner = os.environ.get("MAXENT_VLLM_DISABLE_INNER_RETRIES", "1").strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        if disable_inner:
             try:
-                success = self._execute_vllm_request(state, pending_indices)
-            except RuntimeError as err:
-                if _is_client_tag_error(err) and _client_tag_fail_fast_enabled(ctx):
-                    stats = getattr(self.ctx, "generation_stats", None)
-                    if isinstance(stats, dict):
-                        stats["vllm_client_tag_errors"] = int(
-                            stats.get("vllm_client_tag_errors", 0)
-                        ) + 1
-                    LOG.error(
-                        "vLLM client_tag mismatch detected; aborting retries: %s", err
+                current_retries = int(getattr(ctx, "vllm_max_retries", 0) or 0)
+            except (TypeError, ValueError):
+                current_retries = 0
+            if current_retries > 1 and state.round_limit > 1:
+                inner_retries_override = current_retries
+                try:
+                    setattr(ctx, "vllm_max_retries", 1)
+                except Exception:
+                    inner_retries_override = None
+                else:
+                    LOG.debug(
+                        "Disabling inner vLLM retries (max_retries=%d) because outer rounds=%d.",
+                        current_retries,
+                        state.round_limit,
                     )
-                    raise
-                pending_count = len(pending_indices)
-                LOG.warning(
-                    "vLLM attempt %d/%d for %d prompts failed (policy=%s): %s",
+        LOG.info(
+            "vLLM rounds loop start | prompts=%d | round_limit=%d",
+            len(state.prompts),
+            state.round_limit,
+        )
+        try:
+            while attempt < state.round_limit:
+                pending_indices = state.pending_indices()
+                if not pending_indices:
+                    break
+                attempt += 1
+                remaining_counts = state.remaining_counts(pending_indices)
+                LOG.info(
+                    "vLLM round attempt | attempt=%d/%d | pending_prompts=%d",
                     attempt,
                     state.round_limit,
-                    pending_count,
-                    self._format_retry_policy(),
-                    err,
+                    len(pending_indices),
                 )
-                status_code = self._status_code_from_error(err)
-                self._record_retry_attempt_metric(
-                    status_code,
+                LOG.debug(
+                    (
+                        "vLLM round dispatch | attempt=%d/%d | pending_prompts=%d "
+                        "| remaining_counts_sample=%s | prompt_hash_sample=%s"
+                    ),
                     attempt,
-                    pending_count,
+                    state.round_limit,
+                    len(pending_indices),
+                    remaining_counts[:8],
+                    _hash_prompts(
+                        [state.prompts[idx] for idx in pending_indices[:4]]
+                    ),
                 )
-                if attempt >= state.round_limit:
-                    payload = self._build_vllm_failure_payload(
-                        state,
-                        pending_indices,
+                if attempt > 1:
+                    ctx.generation_stats["vllm_retry_rounds"] += 1
+                try:
+                    success = self._execute_vllm_request(state, pending_indices)
+                except RuntimeError as err:
+                    if _is_client_tag_error(err) and _client_tag_fail_fast_enabled(ctx):
+                        stats = getattr(self.ctx, "generation_stats", None)
+                        if isinstance(stats, dict):
+                            stats["vllm_client_tag_errors"] = int(
+                                stats.get("vllm_client_tag_errors", 0)
+                            ) + 1
+                        LOG.error(
+                            "vLLM client_tag mismatch detected; aborting retries: %s", err
+                        )
+                        raise
+                    pending_count = len(pending_indices)
+                    LOG.warning(
+                        "vLLM attempt %d/%d for %d prompts failed (policy=%s): %s",
                         attempt,
+                        state.round_limit,
+                        pending_count,
+                        self._format_retry_policy(),
                         err,
                     )
-                    self._log_retry_exhausted_metric(payload)
-                    self._log_structured_vllm_failure(payload)
-                    raise GenerationServiceError(
-                        f"vLLM retries exhausted for batch: {err}",
-                        payload,
-                    ) from err
-                self._sleep_before_retry()
-                continue
-            if not success:
-                self._record_retry_attempt_metric(
-                    None,
-                    attempt,
-                    len(pending_indices),
-                    reason="no_response",
-                )
-                continue
-        missing_indices = state.pending_indices()
-        if missing_indices:
-            self._backfill_missing(state, missing_indices)
-            remaining = state.pending_indices()
-            if remaining:
-                self._record_vllm_failure(state, remaining)
+                    status_code = self._status_code_from_error(err)
+                    self._record_retry_attempt_metric(
+                        status_code,
+                        attempt,
+                        pending_count,
+                    )
+                    if attempt >= state.round_limit:
+                        payload = self._build_vllm_failure_payload(
+                            state,
+                            pending_indices,
+                            attempt,
+                            err,
+                        )
+                        self._log_retry_exhausted_metric(payload)
+                        self._log_structured_vllm_failure(payload)
+                        raise GenerationServiceError(
+                            f"vLLM retries exhausted for batch: {err}",
+                            payload,
+                        ) from err
+                    self._sleep_before_retry()
+                    continue
+                if not success:
+                    self._record_retry_attempt_metric(
+                        None,
+                        attempt,
+                        len(pending_indices),
+                        reason="no_response",
+                    )
+                    self._sleep_before_retry()
+                    continue
+            missing_indices = state.pending_indices()
+            if missing_indices:
+                self._backfill_missing(state, missing_indices)
+                remaining = state.pending_indices()
+                if remaining:
+                    self._record_vllm_failure(state, remaining)
+            LOG.info("vLLM rounds loop done | remaining_prompts=%d", len(state.pending_indices()))
+        finally:
+            if inner_retries_override is not None:
+                try:
+                    setattr(ctx, "vllm_max_retries", inner_retries_override)
+                except Exception:
+                    pass
 
     def _sleep_before_retry(self) -> None:
         """Sleep between retries when ``vllm_retry_sleep`` is positive."""
@@ -758,33 +836,28 @@ class VLLMRequestMixin:
         return True
 
     def _prompt_char_limit(self) -> int:
-        """Return the maximum prompt length enforced before calling vLLM.
+        """Return the maximum prompt length (tokens) enforced before calling vLLM.
 
         The limit prefers ``ctx.prompt_char_limit`` when set, otherwise derives
         from ``max_prompt_len`` or the static default constant.
 
-        :returns: Maximum number of characters to send per prompt.
+        :returns: Maximum number of tokens to send per prompt.
         :rtype: int
         """
         base_limit = _resolve_default_limit()
         limit_override = getattr(self.ctx, "prompt_char_limit", None)
         if isinstance(limit_override, int) and limit_override > 0:
             return limit_override
-        approx_chars = 0
         max_len = getattr(self.ctx, "max_prompt_len", None)
         if isinstance(max_len, int) and max_len > 0:
-            approx_chars = int(max_len * 4)
+            return int(max_len)
         try:
             from maxent_grpo.generation import vllm as _vllm_mod
 
             limit_const = getattr(_vllm_mod, "PROMPT_CHAR_LIMIT", base_limit)
         except (ImportError, AttributeError, RuntimeError):
             limit_const = base_limit
-        if limit_const <= 0:
-            return approx_chars
-        if approx_chars <= 0:
-            return limit_const
-        return max(limit_const, approx_chars)
+        return int(limit_const) if limit_const is not None else base_limit
 
     def _request_vllm_batch(
         self,
@@ -820,7 +893,17 @@ class VLLMRequestMixin:
         :rtype: tuple[list[list[str]] | None, list[list[VLLMLogprobResult | None]] | None]
         """
         char_limit = self._prompt_char_limit()
-        truncated = [_truncate_prompt(prompt, char_limit) for prompt in pending_prompts]
+        tokenizer = getattr(self.ctx, "tokenizer", None)
+        max_tokens = getattr(self.ctx, "max_prompt_len", None)
+        truncated = [
+            _truncate_prompt(
+                prompt,
+                char_limit,
+                tokenizer=tokenizer,
+                max_tokens=max_tokens,
+            )
+            for prompt in pending_prompts
+        ]
         request_impl = invoke_fn or self._invoke_vllm_requests
         response = request_impl(truncated, request_count)
         if response is None:
@@ -896,9 +979,16 @@ class VLLMRequestMixin:
             else ctx.vllm_stop_sequences
         )
         top_k = ctx.gen_top_k if ctx.gen_top_k is not None else ctx.vllm_top_k
+        if top_k is None or top_k == 0:
+            top_k = -1
         best_of = ctx.gen_best_of if ctx.gen_best_of is not None else ctx.vllm_best_of
         backoff_multiplier = getattr(ctx, "vllm_backoff_multiplier", 2.0)
         stats = getattr(self.ctx, "generation_stats", {}) or {}
+        stream = _coerce_bool(getattr(ctx, "vllm_stream", None))
+        if stream is None:
+            stream = _coerce_bool(os.getenv("MAXENT_VLLM_STREAM"))
+        if stream is None:
+            stream = False
         metadata: Dict[str, Any] = {}
         dataset_label = _resolve_dataset_label(self.ctx)
         if dataset_label:
@@ -909,9 +999,10 @@ class VLLMRequestMixin:
         if model_label:
             metadata["model_id"] = model_label
         client_tag = _resolve_client_tag(ctx)
+        url = _normalize_vllm_url(getattr(ctx, "vllm_url", ""))
         request_kwargs: Dict[str, Any] = {
             "prompts": prompts,
-            "url": ctx.vllm_url,
+            "url": url,
             "max_tokens": ctx.max_completion_len,
             "temperature": ctx.gen_temperature,
             "top_p": ctx.gen_top_p,
@@ -925,7 +1016,7 @@ class VLLMRequestMixin:
             "guided_json": ctx.vllm_guided_json,
             "guided_regex": ctx.vllm_guided_regex,
             "request_id_prefix": ctx.vllm_request_id_prefix,
-            "stream": False,
+            "stream": bool(stream),
             "tokenizer": ctx.tokenizer,
             "timeout": ctx.vllm_timeout,
             "max_retries": ctx.vllm_max_retries,
@@ -986,7 +1077,20 @@ class VLLMRequestMixin:
                 request_kwargs.get("backoff"),
                 request_kwargs.get("url"),
             )
+            LOG.info(
+                "vLLM request start | prompts=%d | req_n=%d | timeout=%s | url=%s",
+                len(prompts),
+                request_count,
+                request_kwargs.get("timeout"),
+                request_kwargs.get("url"),
+            )
             grouped, grouped_meta, latency_ms = safe_gen(**request_kwargs)
+            LOG.info(
+                "vLLM request done | prompts=%d | req_n=%d | latency_ms=%.2f",
+                len(prompts),
+                request_count,
+                float(latency_ms),
+            )
             return grouped, grouped_meta, latency_ms
         except RuntimeError as err:
             if len(prompts) <= 1:

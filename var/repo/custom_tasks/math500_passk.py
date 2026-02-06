@@ -1,4 +1,4 @@
-# custom_tasks/math500_passk.py
+# var/repo/custom_tasks/math500_passk.py
 import re
 import numpy as np
 

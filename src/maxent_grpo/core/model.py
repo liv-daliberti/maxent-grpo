@@ -28,16 +28,58 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 
-import torch
-import torch.nn as nn
+try:  # pragma: no cover - optional dependency
+    import torch
+    import torch.nn as nn
+except Exception:  # pragma: no cover - allow stubbed environments
+    class _TorchStub:
+        float16 = "float16"
+        bfloat16 = "bfloat16"
+        float32 = "float32"
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from transformers.tokenization_utils import PreTrainedTokenizer as _PreTrainedTokenizer
-from trl import (
-    ModelConfig,
-    get_kbit_device_map,
-    get_quantization_config,
-)
+        class dtype:  # noqa: N801 - mimic torch.dtype
+            pass
+
+    class _NNStub:
+        class Linear:  # pragma: no cover - stubbed fallback
+            def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+                raise RuntimeError("torch is required for nn.Linear")
+
+    torch = _TorchStub()  # type: ignore[assignment]
+    nn = _NNStub()  # type: ignore[assignment]
+
+try:  # pragma: no cover - optional dependency
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers.tokenization_utils import PreTrainedTokenizer as _PreTrainedTokenizer
+except Exception:  # pragma: no cover - allow stubbed environments
+    class AutoModelForCausalLM:  # type: ignore[no-redef]
+        @classmethod
+        def from_pretrained(cls, *_args: Any, **_kwargs: Any) -> Any:
+            raise RuntimeError("transformers is required for AutoModelForCausalLM")
+
+    class AutoTokenizer:  # type: ignore[no-redef]
+        @classmethod
+        def from_pretrained(cls, *_args: Any, **_kwargs: Any) -> Any:
+            raise RuntimeError("transformers is required for AutoTokenizer")
+
+    class _PreTrainedTokenizer:  # type: ignore[no-redef]
+        pass
+
+try:  # pragma: no cover - optional dependency
+    from trl import (
+        ModelConfig,
+        get_kbit_device_map,
+        get_quantization_config,
+    )
+except Exception:  # pragma: no cover - allow stubbed environments
+    class ModelConfig:  # type: ignore[no-redef]
+        pass
+
+    def get_kbit_device_map(*_args: Any, **_kwargs: Any) -> Any:
+        return None
+
+    def get_quantization_config(*_args: Any, **_kwargs: Any) -> Any:
+        return None
 
 from maxent_grpo.config import GRPOConfig
 

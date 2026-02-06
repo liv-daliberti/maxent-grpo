@@ -1,4 +1,4 @@
-"""MaxEnt-GRPO training entrypoint."""
+"""GRPO training entrypoint (supports entropy bonus and MaxEnt weighting)."""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def main(
     training_args: Any = None,
     model_args: Any = None,
 ) -> Any:
-    """Run the MaxEnt trainer when configs are provided, else delegate to Hydra.
+    """Run the GRPO/MaxEnt trainer when configs are provided, else delegate to Hydra.
 
     :param script_args: Optional GRPO script arguments; when ``None`` they are parsed via CLI.
     :param training_args: Optional GRPO training configuration; parsed when ``None``.

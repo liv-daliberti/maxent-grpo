@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """Debug wrapper around ``lighteval accelerate``.
 
-This script mirrors the minimal CLI surface used by ``ops/slurm/evaluate.slurm``
+This script mirrors the minimal CLI surface used by ``var/repo/ops/slurm/evaluate.slurm``
 but injects extra logging hooks into the LightEval ``Pipeline`` so we can see
 which phase (tasks loading, model run, metrics) a job is stuck in.
 
 Usage (from repo root, matching the Slurm script):
 
-    python tools/debug_lighteval_accelerate.py \\
+    python var/repo/tools/debug_lighteval_accelerate.py \\
         "model_name=...,revision=...,batch_size=1,..." \\
         "lighteval|math_500|0|0" \\
         --output-dir var/artifacts/lighteval/checkpoint-600 \\

@@ -81,6 +81,8 @@ vllm_mode: server
 vllm_return_logprobs: true
 # Force frozen reference-model scoring for KL/GRPO trust region.
 maxent_reference_logprobs_source: model
+maxent_policy_entropy: false
+maxent_length_normalize_ref: false
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 2
@@ -111,7 +113,7 @@ logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_prompt_length: 1024
-max_completion_length: 512
+max_completion_length: 500
 max_steps: 200
 num_generations: 4
 num_train_epochs: 1

@@ -75,6 +75,7 @@ vllm_mode: server         # reuse the single vLLM server from the launcher; avoi
 vllm_return_logprobs: false
 # Force frozen reference-model scoring for KL/GRPO trust region.
 maxent_reference_logprobs_source: model
+maxent_policy_entropy: false
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 2

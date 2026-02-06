@@ -5,13 +5,15 @@ from __future__ import annotations
 import importlib
 import sys
 import logging
+import os
 import time
 import numbers
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager
 from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -31,6 +33,7 @@ from maxent_grpo.generation.vllm import (
 )
 from maxent_grpo.generation.vllm_utils import (
     import_vllm_client_cls as _shared_import_vllm_client_cls,
+    init_vllm_client_communicator as _shared_init_vllm_client_communicator,
     zero3_gather_factory as _shared_zero3_gather_factory,
 )
 from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
@@ -72,6 +75,79 @@ def _import_vllm_client_cls(
     return _shared_import_vllm_client_cls(import_fn or _optional_import)
 
 
+def _resolve_vllm_group_port() -> Optional[int]:
+    for key in ("VLLM_GROUP_PORT", "PORT_FOR_COMMUNICATION"):
+        value = os.environ.get(key)
+        if not value:
+            continue
+        try:
+            return int(value)
+        except ValueError:
+            LOG.warning("Invalid %s=%r; expected an integer.", key, value)
+    return None
+
+
+@contextmanager
+def _temporary_env(overrides: Dict[str, str]) -> Iterable[None]:
+    if not overrides:
+        yield
+        return
+    previous: Dict[str, Optional[str]] = {}
+    for key, value in overrides.items():
+        previous[key] = os.environ.get(key)
+        os.environ[key] = value
+    try:
+        yield
+    finally:
+        for key, prior in previous.items():
+            if prior is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prior
+
+
+def _loopback_host(base_url: str) -> bool:
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(base_url)
+        host = parsed.hostname or ""
+    except Exception:
+        host = ""
+    if not host:
+        host = base_url
+    host = host.strip().lower()
+    return host in {"localhost", "127.0.0.1", "::1"}
+
+
+def _vllm_client_nccl_overrides(base_url: str) -> Dict[str, str]:
+    overrides: Dict[str, str] = {}
+    if not _loopback_host(base_url):
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME")
+        if explicit and "NCCL_SOCKET_IFNAME" not in os.environ:
+            overrides["NCCL_SOCKET_IFNAME"] = explicit
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_P2P_DISABLE")
+        if explicit and "NCCL_P2P_DISABLE" not in os.environ:
+            overrides["NCCL_P2P_DISABLE"] = explicit
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_IB_DISABLE")
+        if explicit and "NCCL_IB_DISABLE" not in os.environ:
+            overrides["NCCL_IB_DISABLE"] = explicit
+        return overrides
+    if "NCCL_SOCKET_IFNAME" not in os.environ:
+        overrides["NCCL_SOCKET_IFNAME"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME", "lo"
+        )
+    if "NCCL_P2P_DISABLE" not in os.environ:
+        overrides["NCCL_P2P_DISABLE"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_P2P_DISABLE", "1"
+        )
+    if "NCCL_IB_DISABLE" not in os.environ:
+        overrides["NCCL_IB_DISABLE"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_IB_DISABLE", "1"
+        )
+    return overrides
+
+
 def _is_peft_model_safe(target: Any) -> bool:
     """Return True if accelerate.utils reports that the model uses PEFT adapters."""
     accel_utils = _optional_import("accelerate.utils")
@@ -99,6 +175,7 @@ class VLLMGenerationMixin:
     def __init__(self, ctx: GenerationContext) -> None:
         self.ctx = ctx
         self._vllm_helper = VLLMGenerationHelper(ctx, self._generate_local)
+        self._vllm_colocate_engine = None
         # Surface patchable hooks for tests so monkeypatched helpers.* propagate.
         if hasattr(self._vllm_helper, "set_safe_generate"):
             self._vllm_helper.set_safe_generate(safe_generate)
@@ -114,6 +191,40 @@ class VLLMGenerationMixin:
             self._vllm_helper.set_fallback_generate(self._generate_local)
         else:
             setattr(self._vllm_helper, "_fallback_generate", self._generate_local)
+        self._configure_vllm_mode()
+
+    def _configure_vllm_mode(self) -> None:
+        if not getattr(self.ctx, "use_vllm", False):
+            return
+        mode = str(getattr(self.ctx, "vllm_mode", "server") or "server").strip().lower()
+        if mode in {"inline", "local", "inprocess", "in-process"}:
+            mode = "colocate"
+        if mode != "colocate":
+            return
+        try:
+            from .vllm_colocate import ColocateVLLMEngine
+        except ImportError as exc:
+            LOG.warning("vLLM colocate requested but unavailable: %s", exc)
+            return
+        if getattr(self.ctx, "vllm_sync_weights", False):
+            LOG.warning(
+                "vLLM colocate does not support weight sync; disabling vllm_sync_weights."
+            )
+            try:
+                setattr(self.ctx, "vllm_sync_weights", False)
+            except Exception:
+                pass
+        self._vllm_colocate_engine = ColocateVLLMEngine(self.ctx, self._generate_local)
+        batcher = getattr(self._vllm_helper, "set_request_batcher", None)
+        if callable(batcher):
+            batcher(self._vllm_colocate_engine.request_batch)
+        else:
+            setattr(
+                self._vllm_helper,
+                "_request_vllm_batch",
+                self._vllm_colocate_engine.request_batch,
+            )
+        LOG.info("vLLM colocate mode enabled; using in-process vLLM engine.")
 
     def _generate_local(
         self,
@@ -218,13 +329,45 @@ class VLLMGenerationMixin:
             return False
         try:
             base_url = self._vllm_base_url(ctx.vllm_url)
+            LOG.info(
+                "vLLM client NCCL config | base_url=%s | vllm_url=%s | group_port=%s | NCCL_SOCKET_IFNAME=%s | MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME=%s | NCCL_P2P_DISABLE=%s | NCCL_IB_DISABLE=%s",
+                base_url,
+                ctx.vllm_url,
+                _resolve_vllm_group_port(),
+                os.getenv("NCCL_SOCKET_IFNAME", ""),
+                os.getenv("MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME", ""),
+                os.getenv("NCCL_P2P_DISABLE", ""),
+                os.getenv("NCCL_IB_DISABLE", ""),
+            )
             try:
-                client = client_cls(base_url=base_url)
+                group_port = _resolve_vllm_group_port()
+                client_kwargs = {"base_url": base_url}
+                if group_port is not None:
+                    client_kwargs["group_port"] = group_port
+                client = client_cls(**client_kwargs)
             except TypeError:
-                client = client_cls()
+                try:
+                    client = client_cls(base_url=base_url)
+                except TypeError:
+                    client = client_cls()
             init = getattr(client, "init_communicator", None)
             if callable(init):
-                init()
+                overrides = _vllm_client_nccl_overrides(base_url)
+                if overrides:
+                    LOG.info(
+                        "vLLM client NCCL overrides applied | %s",
+                        ", ".join(f"{k}={v}" for k, v in overrides.items()),
+                    )
+                else:
+                    LOG.info("vLLM client NCCL overrides applied | none")
+                with _temporary_env(overrides):
+                    LOG.info(
+                        "vLLM client NCCL env effective | NCCL_SOCKET_IFNAME=%s | NCCL_P2P_DISABLE=%s | NCCL_IB_DISABLE=%s",
+                        os.getenv("NCCL_SOCKET_IFNAME", ""),
+                        os.getenv("NCCL_P2P_DISABLE", ""),
+                        os.getenv("NCCL_IB_DISABLE", ""),
+                    )
+                    _shared_init_vllm_client_communicator(client, log=LOG.info)
             self._vllm_client = client
             self._vllm_sync_ready = True
             return True
@@ -233,10 +376,17 @@ class VLLMGenerationMixin:
             RuntimeError,
             ValueError,
             TypeError,
-        ):  # pragma: no cover - defensive
-            self._vllm_client = client_cls  # best-effort marker
-            self._vllm_sync_ready = True
-            return True
+        ) as exc:  # pragma: no cover - defensive
+            LOG.warning("Failed to initialize vLLMClient for weight sync: %s", exc)
+            self._vllm_client = None
+            self._vllm_sync_ready = False
+            helper = getattr(self, "_vllm_helper", None)
+            if helper is not None:
+                try:
+                    setattr(helper, "_vllm_last_sync_ok", False)
+                except Exception:
+                    pass
+            return False
 
     def _maybe_sync_vllm_weights(self) -> None:
         """Push current model weights to the vLLM server."""
@@ -369,7 +519,17 @@ class VLLMGenerationMixin:
     ]:
         """Request completions from vLLM for a subset of prompts."""
         char_limit = self._prompt_char_limit()
-        truncated = [_truncate_prompt(prompt, char_limit) for prompt in pending_prompts]
+        tokenizer = getattr(self.ctx, "tokenizer", None)
+        max_tokens = getattr(self.ctx, "max_prompt_len", None)
+        truncated = [
+            _truncate_prompt(
+                prompt,
+                char_limit,
+                tokenizer=tokenizer,
+                max_tokens=max_tokens,
+            )
+            for prompt in pending_prompts
+        ]
         response = self._invoke_vllm_requests(truncated, request_count)
         if response is None:
             return None, None
@@ -602,6 +762,8 @@ class VLLMGenerationMixin:
         prompts: List[str],
         num_samples: int,
         per_prompt_counts: Optional[List[int]] = None,
+        *,
+        skip_sync: bool = False,
     ) -> Tuple[List[List[str]], Optional[List[List[Optional[VLLMLogprobResult]]]]]:
         """Generate completions via vLLM, with dedupe/backoff handling."""
         if not prompts:
@@ -617,15 +779,45 @@ class VLLMGenerationMixin:
         generate_fn = getattr(self._vllm_helper, "generate", None)
         if not callable(generate_fn):
             return [], None
-        result = generate_fn(
-            prompts,
-            num_samples,
-            per_prompt_counts,
-            ensure_client=self._ensure_vllm_client,
-            sync_model=lambda model: self._sync_model_params_to_vllm(
-                model, accelerator
-            ),
-        )
+        if skip_sync:
+            helper = getattr(self, "_vllm_helper", None)
+            sentinel = object()
+            prev_sync = sentinel
+            swapped = False
+            if helper is not None:
+                prev_sync = getattr(helper, "__dict__", {}).get(
+                    "maybe_sync_weights", sentinel
+                )
+                if callable(getattr(helper, "maybe_sync_weights", None)):
+                    setattr(helper, "maybe_sync_weights", lambda *args, **kwargs: None)
+                    swapped = True
+            try:
+                result = generate_fn(
+                    prompts,
+                    num_samples,
+                    per_prompt_counts,
+                    ensure_client=None,
+                    sync_model=None,
+                )
+            finally:
+                if swapped and helper is not None:
+                    if prev_sync is sentinel:
+                        try:
+                            delattr(helper, "maybe_sync_weights")
+                        except AttributeError:
+                            pass
+                    else:
+                        setattr(helper, "maybe_sync_weights", prev_sync)
+        else:
+            result = generate_fn(
+                prompts,
+                num_samples,
+                per_prompt_counts,
+                ensure_client=self._ensure_vllm_client,
+                sync_model=lambda model: self._sync_model_params_to_vllm(
+                    model, accelerator
+                ),
+            )
         if isinstance(result, tuple) and len(result) == 2:
             grouped, meta = result
             if grouped is None:

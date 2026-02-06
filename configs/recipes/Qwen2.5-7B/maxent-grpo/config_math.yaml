@@ -67,38 +67,21 @@ system_prompt: |
   THEANSWER
   </answer>
 
-# MaxEnt‑GRPO specific knobs (used by src/maxent_grpo/maxent_grpo.py)
-# Enable MaxEnt weighting (set train_grpo_objective=false) with a modest tau and adaptive entropy target.
-maxent_tau: 0.3
-maxent_q_temperature: 1.0       # soften/sharpen listwise q if rewards are flat/noisy
-maxent_q_epsilon: 1.0e-6        # epsilon floor on q for full support
-maxent_length_normalize_ref: true
-maxent_logprob_chunk_size: 2  # cap ref/policy scoring slices to lighten per-forward memory
-# Force frozen reference-model scoring for KL/MaxEnt reference statistics.
+# MaxEnt (entropy bonus) knobs: standard GRPO + policy-entropy reward bonus.
+policy_entropy_bonus_coef: 0.3
+maxent_policy_entropy: true
+# Scoring/kl settings for the GRPO objective.
 maxent_reference_logprobs_source: model
-maxent_target_weight_entropy: 0.6  # keep weights spread but avoid fully uniform q
-maxent_tau_lr: 0.01
-maxent_tau_min: 0.05
-maxent_tau_max: 1.0
-maxent_tau_warmup_steps: 0      # no warmup: enable tau adaptation from the first step
-# Phase 2 meta-controller defaults (analytic updates for stability)
-controller_meta_enabled: true
-controller_meta_method: analytic
-controller_meta_lr: 0.05
-controller_meta_update_interval: 1
-controller_meta_optimizer: sgd
-controller_meta_truncation_steps: 1
+maxent_length_normalize_ref: false
+maxent_logprob_chunk_size: 2  # cap ref/policy scoring slices to lighten per-forward memory
+maxent_score_slice_prefetch: 2     # overlap CPU slice prep with reference/policy scoring
+maxent_prompt_cache_size: 2048     # memoize prompt tokenization for repeated prompts
+train_grpo_objective: true
+force_custom_loop: true
+# Optional clip objective settings (kept aligned with prior MaxEnt runs).
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
 maxent_clip_adv_baseline: 0.0625   # 1/num_generations (16) for a gentler clip objective
-controller_overwrite_from_config: true
-train_grpo_objective: false
-maxent_allow_empty_weight_fallback: true
-# Score the entire sequence when computing reference log-probs; we explicitly disable tail-only slicing
-# because long prompts already consume ~2k tokens and truncating them removes the completions entirely.
-maxent_score_tail_tokens: null
-maxent_score_slice_prefetch: 2     # overlap CPU slice prep with reference/policy scoring
-maxent_prompt_cache_size: 2048     # memoize prompt tokenization for repeated prompts
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false

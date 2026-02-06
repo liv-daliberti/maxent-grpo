@@ -14,6 +14,32 @@
 
 """Core domain helpers (data, evaluation, hub, model access)."""
 
-from . import data, evaluation, hub, model
+from __future__ import annotations
 
-__all__ = ["data", "evaluation", "hub", "model"]
+from importlib import import_module
+from types import ModuleType
+from typing import Any, TYPE_CHECKING
+
+_SUBMODULES = ("data", "evaluation", "hub", "model")
+
+__all__ = list(_SUBMODULES)
+
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from . import data as data
+    from . import evaluation as evaluation
+    from . import hub as hub
+    from . import model as model
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily import core submodules on first access."""
+
+    if name in _SUBMODULES:
+        module: ModuleType = import_module(f"{__name__}.{name}")
+        globals()[name] = module
+        return module
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:  # pragma: no cover - trivial
+    return sorted(__all__)

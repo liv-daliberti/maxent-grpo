@@ -1,7 +1,7 @@
 #!/bin/bash
 # Slurm launcher for multi-benchmark math inference (math_500, AIME24/25, AMC, Minerva).
 # Example:
-#   sbatch ops/slurm/infer_math.slurm \
+#   sbatch var/repo/ops/slurm/infer_math.slurm \
 #     --model od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1 \
 #     --datasets math_500,aime24,aime25,amc,minerva \
 #     --seeds 0,1,2,3,4 \
@@ -92,7 +92,7 @@ while [[ $# -gt 0 ]]; do
     --collect-generations) COLLECT_GENERATIONS="$2"; shift 2;;
     --extra-opts) EXTRA_OPTS="$2"; shift 2;;
     --help)
-      echo "Usage: sbatch ops/slurm/infer_math.slurm \\"
+      echo "Usage: sbatch var/repo/ops/slurm/infer_math.slurm \\"
       echo "         --model HF_ID_OR_PATH [--datasets math_500,...] [--revision <rev>] [--seeds 0,1,...] \\"
       echo "         [--num-generations K] [--temperature T] [--batch-size N] [--label name] [--style maxent] \\"
       echo "         [--max-new-tokens N] [--top-p P] [--system-prompt-file /path/prompt.txt] \\"

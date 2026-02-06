@@ -105,6 +105,7 @@ class SequenceScores:
     denom_tok_tensor: Tensor
     pooled_hidden: Optional[Tensor] = None
     seed_aux: Optional["SeedInfoInputs"] = None
+    policy_entropy_sum: Optional[Tensor] = None
 
 
 @dataclass
@@ -562,9 +563,9 @@ def _clip_loss_for_slice(
     _to_tensor = getattr(torch, "as_tensor", getattr(torch, "tensor", None))
     if _to_tensor is not None:  # pragma: no cover - exercised in integration tests
         try:
-            adv_tensor = _to_tensor(adv_tensor)
-            obj_unclipped = _to_tensor(obj_unclipped)
-            obj_clipped = _to_tensor(obj_clipped)
+            adv_tensor = cast(Tensor, _to_tensor(adv_tensor))
+            obj_unclipped = cast(Tensor, _to_tensor(obj_unclipped))
+            obj_clipped = cast(Tensor, _to_tensor(obj_clipped))
         except (TypeError, ValueError, RuntimeError, AttributeError):
             LOG.debug("Failed to coerce clip-loss tensors via torch backend.")
     # Prefer native torch helpers when available, but fall back to basic
@@ -574,15 +575,15 @@ def _clip_loss_for_slice(
         min_vals = torch.minimum(obj_unclipped, obj_clipped)
         max_vals = torch.maximum(obj_unclipped, obj_clipped)
     except (AttributeError, TypeError, ValueError):  # pragma: no cover - stub/mixed fallback
-        less_mask = obj_unclipped <= obj_clipped
-        greater_mask = obj_unclipped > obj_clipped
+        less_mask = obj_unclipped.le(obj_clipped)
+        greater_mask = obj_unclipped.gt(obj_clipped)
         min_vals = obj_unclipped * less_mask + obj_clipped * greater_mask
         max_vals = obj_unclipped * greater_mask + obj_clipped * less_mask
     try:  # pragma: no cover - exercised indirectly in integration tests
-        obj = torch.where(adv_tensor >= 0, min_vals, max_vals)
+        obj = torch.where(adv_tensor.ge(0), min_vals, max_vals)
     except (AttributeError, TypeError, ValueError):  # pragma: no cover - stub/mixed fallback
-        pos_mask = adv_tensor >= 0
-        neg_mask = adv_tensor < 0
+        pos_mask = adv_tensor.ge(0)
+        neg_mask = adv_tensor.lt(0)
         obj = min_vals * pos_mask + max_vals * neg_mask
     return -(obj.sum())
 
@@ -675,7 +676,7 @@ def _apply_clip_objective(
     except TypeError:  # pragma: no cover - mixed backend fallback
         policy_loss = _coerce_tensor_like(scaled_clip, policy_loss)
         updated_loss = policy_loss + scaled_clip
-    clip_loss_scalar = float(clip_loss_tensor.detach().float().cpu())
+    clip_loss_scalar = float(clip_loss_tensor.detach().float().cpu().item())
     return updated_loss, clip_loss_scalar
 
 
@@ -758,7 +759,7 @@ def _grpo_policy_loss_from_groups(
         return torch.tensor(0.0), None
     grpo_loss_tensor = torch.stack(grpo_losses).mean()
     clip_loss_scalar = (
-        float(grpo_loss_tensor.detach().float().cpu()) if use_clip else None
+        float(grpo_loss_tensor.detach().float().cpu().item()) if use_clip else None
     )
     if use_clip:
         grpo_loss_tensor = clip_cfg.clip_objective_coef * grpo_loss_tensor
@@ -794,12 +795,30 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[Tensor, float, float]:
             LOG.log(level, "%s", log_reason)
         return zero_tensor, 0.0, beta_scalar * 0.0
 
-    denom = ratio_ctx.denom_tok_tensor.clamp(min=1.0)
+    base_device = (
+        ratio_ctx.cur_logp_sum.device
+        if isinstance(ratio_ctx.cur_logp_sum, torch.Tensor)
+        else None
+    )
+    denom = ratio_ctx.denom_tok_tensor
+    if base_device is not None and isinstance(denom, torch.Tensor):
+        denom = denom.to(base_device)
+    denom = denom.clamp(min=1.0)
     cur_logp_per_tok = ratio_ctx.cur_logp_sum / denom
     if ratio_ctx.weighting_cfg.len_norm_ref:
         ref_logp_per_tok = ratio_ctx.ref_stats.ref_logp_sum
+        if base_device is not None and isinstance(ref_logp_per_tok, torch.Tensor):
+            ref_logp_per_tok = ref_logp_per_tok.to(base_device)
     else:
-        ref_logp_per_tok = ratio_ctx.ref_stats.ref_logp_sum_raw / denom
+        ref_logp_raw = ratio_ctx.ref_stats.ref_logp_sum_raw
+        if base_device is not None and isinstance(ref_logp_raw, torch.Tensor):
+            ref_logp_raw = ref_logp_raw.to(base_device)
+        elif base_device is not None and not hasattr(ref_logp_raw, "clamp"):
+            ref_logp_raw = torch.tensor(
+                getattr(ref_logp_raw, "arr", ref_logp_raw),
+                device=base_device,
+            )
+        ref_logp_per_tok = ref_logp_raw / denom
     # Coerce reference arrays into tensors when stubs are used in tests.
     if not hasattr(ref_logp_per_tok, "clamp"):
         ref_logp_per_tok = torch.tensor(
@@ -809,6 +828,12 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[Tensor, float, float]:
         cur_logp_per_tok = torch.tensor(
             getattr(cur_logp_per_tok, "arr", cur_logp_per_tok)
         )
+    if (
+        base_device is not None
+        and isinstance(ref_logp_per_tok, torch.Tensor)
+        and ref_logp_per_tok.device != base_device
+    ):
+        ref_logp_per_tok = ref_logp_per_tok.to(base_device)
     try:
         cur_len = cast(Any, cur_logp_per_tok).numel()
     except (AttributeError, TypeError):
@@ -1025,7 +1050,7 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[Tensor, float, float]:
         ref_tok_weights = pad
     denom_weight = ref_tok_weights.sum().clamp(min=1.0)
     kl_loss_tensor = (per_seq_kl * ref_tok_weights).sum() / denom_weight
-    kl_loss_scalar = float(kl_loss_tensor.detach().float().cpu())
+    kl_loss_scalar = float(kl_loss_tensor.detach().float().cpu().item())
     weighted_kl_loss_scalar = ratio_ctx.weighting_cfg.beta * kl_loss_scalar
     return kl_loss_tensor, kl_loss_scalar, weighted_kl_loss_scalar
 
@@ -1076,13 +1101,13 @@ def _build_loss_outputs(
     :returns: Structured outputs consumed by the optimizer/metrics layer.
     :rtype: LossOutputs
     """
-    loss_scalar = float(total_loss.detach().float().cpu())
-    policy_scalar = float(policy_loss_tensor.detach().float().cpu())
+    loss_scalar = float(total_loss.detach().float().cpu().item())
+    policy_scalar = float(policy_loss_tensor.detach().float().cpu().item())
     seed_scalar = (
-        float(seed_loss.detach().float().cpu()) if seed_loss is not None else None
+        float(seed_loss.detach().float().cpu().item()) if seed_loss is not None else None
     )
     info_entropy_scalar = (
-        float(info_entropy_term.detach().float().cpu())
+        float(info_entropy_term.detach().float().cpu().item())
         if info_entropy_term is not None
         else None
     )
@@ -1149,18 +1174,18 @@ def _clip_region_metrics(
     :returns: Tuple summarizing clip frequency and per-side stats.
     :rtype: tuple[float, float, float, float, float, float]
     """
-    if not hasattr(log_ratio, "__lt__"):
+    if not hasattr(log_ratio, "lt"):
         log_ratio = torch.tensor(getattr(log_ratio, "arr", log_ratio))
     log_clip_low, log_clip_high = _clip_bounds(clip_cfg)
     try:
-        low_mask = (log_ratio < log_clip_low).float()
-        high_mask = (log_ratio > log_clip_high).float()
+        low_mask = log_ratio.lt(log_clip_low).float()
+        high_mask = log_ratio.gt(log_clip_high).float()
     except TypeError:
         log_ratio = torch.tensor(
             getattr(log_ratio, "arr", getattr(log_ratio, "data", log_ratio))
         )
-        low_mask = (log_ratio < log_clip_low).float()
-        high_mask = (log_ratio > log_clip_high).float()
+        low_mask = log_ratio.lt(log_clip_low).float()
+        high_mask = log_ratio.gt(log_clip_high).float()
     combined_mask = (low_mask + high_mask).clamp(max=1.0)
     region_mean = (
         float(combined_mask.mean().detach().cpu().item())
@@ -1235,6 +1260,14 @@ def _ratio_stats_with_ref(
                 cur_logp_sum = cast(Any, cur_logp_sum).to("cpu")
                 ref_logp_sum = cast(Any, ref_logp_sum).to("cpu")
                 ref_logp_sum_raw = cast(Any, ref_logp_sum_raw).to("cpu")
+        if cur_device is not None:
+            if isinstance(ref_logp_sum, torch.Tensor) and ref_logp_sum.device != cur_device:
+                ref_logp_sum = ref_logp_sum.to(cur_logp_sum)
+            if (
+                isinstance(ref_logp_sum_raw, torch.Tensor)
+                and ref_logp_sum_raw.device != cur_device
+            ):
+                ref_logp_sum_raw = ref_logp_sum_raw.to(cur_logp_sum)
 
     cur_logp_per_token = cast(Any, cur_logp_sum).detach() / denom_tok_tensor
     if ratio_ctx.weighting_cfg.len_norm_ref:
@@ -1389,7 +1422,7 @@ def _contrastive_seed_loss(
     seed_ids = seed_inputs.seed_ids
     if hidden.numel() == 0 or seed_ids.numel() == 0:
         return None
-    valid_mask = seed_ids >= 0
+    valid_mask = seed_ids.ge(0)
     if not valid_mask.any():
         return None
     hidden = cast(Tensor, hidden[valid_mask])

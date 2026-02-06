@@ -37,6 +37,7 @@ caller can skip the problematic batch gracefully.
 from __future__ import annotations
 
 import logging
+import math
 import sys
 import traceback
 from collections.abc import Sized
@@ -46,8 +47,11 @@ from types import SimpleNamespace
 
 from .weighting.loss import SequenceScores
 from .rewards import (
+    _group_q_distribution,
     compute_reward_statistics,
+    group_advantages,
     prepare_generation_batch,
+    reward_moments,
 )
 from .scoring import (
     build_score_batch,
@@ -59,6 +63,7 @@ from .scoring import (
     summarize_completion_lengths,
     token_counts_from_score_batch,
 )
+from .runtime import require_torch
 from .types import (
     BatchingSettings,
     GenerationBatch,
@@ -69,9 +74,12 @@ from .types import (
     PromptCacheEntry,
     ReferenceLogprobs,
     RewardComputation,
+    RewardMoments,
     ScoreBatch,
     Tensor,
     TrainingLoopContext,
+    AdvantageStats,
+    QDistribution,
 )
 from .weighting import WeightStats, WeightingSettings
 from .weighting.logic import compute_weight_stats, build_uniform_weight_stats
@@ -82,6 +90,7 @@ if TYPE_CHECKING:
 
 LOG = logging.getLogger(__name__)
 _REF_LOGPROB_TRACE_LIMIT = 3
+torch = require_torch("training_pipeline")
 
 
 class _TraceCounter:
@@ -114,6 +123,27 @@ def _deepspeed_zero_stage(accelerator: Any) -> int:
         return int(getattr(ds_plugin, "zero_stage", 0) or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def _rank_tag(accelerator: Any = None) -> str:
+    """Return best-effort rank string for logging."""
+
+    rank = getattr(accelerator, "process_index", None)
+    world = getattr(accelerator, "num_processes", None)
+    if rank is None:
+        try:
+            dist = getattr(torch, "distributed", None)
+            if dist is not None and dist.is_available() and dist.is_initialized():
+                rank = dist.get_rank()
+                world = dist.get_world_size()
+        except Exception:
+            rank = None
+            world = None
+    if rank is None:
+        return "rank=na"
+    if world is None:
+        return f"rank={rank}"
+    return f"rank={rank}/{world}"
 
 
 def _dist_any_flag(accelerator: Any, flag: bool) -> bool:
@@ -181,6 +211,199 @@ def _resolve_weighting_value(
             if value is not None:
                 return value
     return default
+
+
+def _maybe_apply_entropy_bonus(
+    ctx: TrainingLoopContext,
+    gen_batch: GenerationBatch,
+    reward_comp: RewardComputation,
+    ref_stats: ReferenceLogprobs,
+    policy_entropy_sum: Optional[Any],
+) -> RewardComputation:
+    """Optionally add a policy-entropy bonus to rewards and refresh stats."""
+
+    scoring_cfg = getattr(ctx, "scoring", None)
+    bonus_coef = getattr(scoring_cfg, "policy_entropy_bonus_coef", 0.0)
+    try:
+        bonus_coef = float(bonus_coef)
+    except (TypeError, ValueError):
+        LOG.warning("Invalid policy_entropy_bonus_coef=%s; skipping entropy bonus.", bonus_coef)
+        return reward_comp
+    if bonus_coef == 0.0 or not math.isfinite(bonus_coef):
+        return reward_comp
+    if policy_entropy_sum is None:
+        return reward_comp
+    total_utils = list(getattr(reward_comp, "total_utils", []) or [])
+    if not total_utils:
+        return reward_comp
+    device = getattr(policy_entropy_sum, "device", None)
+    dtype = getattr(policy_entropy_sum, "dtype", None)
+    try:
+        if not isinstance(policy_entropy_sum, torch.Tensor):
+            entropy_tensor = torch.tensor(
+                getattr(policy_entropy_sum, "arr", policy_entropy_sum),
+                device=device,
+                dtype=dtype or getattr(torch, "float32", None),
+            )
+        else:
+            entropy_tensor = policy_entropy_sum
+    except (TypeError, ValueError, RuntimeError):
+        return reward_comp
+    tok_counts = getattr(ref_stats, "ref_tok_counts", None)
+    try:
+        if not isinstance(tok_counts, torch.Tensor):
+            tok_tensor = torch.tensor(
+                getattr(tok_counts, "arr", tok_counts),
+                device=getattr(entropy_tensor, "device", None),
+                dtype=getattr(entropy_tensor, "dtype", None)
+                or getattr(torch, "float32", None),
+            )
+        else:
+            tok_tensor = tok_counts
+    except (TypeError, ValueError, RuntimeError):
+        return reward_comp
+    if getattr(entropy_tensor, "numel", lambda: 0)() == 0:
+        return reward_comp
+    if getattr(tok_tensor, "numel", lambda: 0)() == 0:
+        return reward_comp
+    entropy_tensor = entropy_tensor.view(-1).float()
+    tok_tensor = tok_tensor.view(-1).float()
+    target_len = len(total_utils)
+    try:
+        ent_len = int(entropy_tensor.numel())
+    except (TypeError, ValueError, RuntimeError, AttributeError):
+        ent_len = len(getattr(entropy_tensor, "data", []))
+    try:
+        tok_len = int(tok_tensor.numel())
+    except (TypeError, ValueError, RuntimeError, AttributeError):
+        tok_len = len(getattr(tok_tensor, "data", []))
+    n = min(target_len, ent_len, tok_len)
+    if n <= 0:
+        return reward_comp
+    if ent_len != target_len or tok_len != target_len:
+        LOG.debug(
+            "Entropy bonus length mismatch | rewards=%d entropy=%d tok_counts=%d; aligning to %d",
+            target_len,
+            ent_len,
+            tok_len,
+            n,
+        )
+    device = getattr(entropy_tensor, "device", None)
+    if device is not None and hasattr(tok_tensor, "to"):
+        try:
+            tok_tensor = tok_tensor.to(device)
+        except (TypeError, ValueError, RuntimeError):
+            pass
+    entropy_slice = entropy_tensor[:n]
+    tok_slice = tok_tensor[:n].clamp(min=1.0)
+    entropy_per_tok_raw = entropy_slice / tok_slice
+    entropy_per_tok = entropy_per_tok_raw
+    group_sizes = [
+        len(group) for group in getattr(gen_batch, "grouped_completions", []) or []
+    ]
+    if group_sizes:
+        zscored = entropy_per_tok.clone()
+        offset = 0
+        for group_size in group_sizes:
+            if offset >= n:
+                break
+            take = min(group_size, n - offset)
+            if take <= 0:
+                offset += max(group_size, 0)
+                continue
+            slice_vals = entropy_per_tok[offset : offset + take]
+            mean_val = slice_vals.mean()
+            try:
+                std_val = slice_vals.std(unbiased=False)
+            except (TypeError, RuntimeError, ValueError, AttributeError):
+                std_val = slice_vals.std()
+            std_val = std_val.clamp(min=1e-6)
+            zscored[offset : offset + take] = (slice_vals - mean_val) / std_val
+            offset += group_size
+        if offset < n:
+            LOG.debug(
+                "Entropy bonus group sizes shorter than rewards | groups_total=%d rewards=%d",
+                sum(group_sizes),
+                n,
+            )
+            zscored[offset:n] = entropy_per_tok[offset:n]
+        entropy_per_tok = zscored
+    try:
+        entropy_per_tok = torch.nan_to_num(entropy_per_tok, nan=0.0, posinf=0.0, neginf=0.0)
+    except (AttributeError, TypeError, RuntimeError):
+        isfinite = getattr(torch, "isfinite", None)
+        if callable(isfinite):
+            entropy_per_tok = torch.where(
+                isfinite(entropy_per_tok),
+                entropy_per_tok,
+                torch.zeros_like(entropy_per_tok),
+            )
+    reward_std = None
+    moments = getattr(reward_comp, "moments", None)
+    if moments is not None:
+        reward_std = getattr(moments, "std", None)
+    try:
+        reward_std = float(reward_std)
+    except (TypeError, ValueError):
+        reward_std = None
+    if reward_std is None or not math.isfinite(reward_std) or reward_std <= 0.0:
+        reward_std = 1.0
+    zscale = bonus_coef * reward_std
+    bonus_tensor = entropy_per_tok * zscale
+    try:
+        bonus_vals = bonus_tensor.detach().float().cpu().tolist()
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        bonus_vals = [float(x) for x in getattr(bonus_tensor, "arr", bonus_tensor)]
+    if len(bonus_vals) < target_len:
+        bonus_vals.extend([0.0] * (target_len - len(bonus_vals)))
+    entropy_vals = [b / zscale if zscale != 0.0 else 0.0 for b in bonus_vals]
+    try:
+        entropy_raw_vals = entropy_per_tok_raw.detach().float().cpu().tolist()
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        entropy_raw_vals = [
+            float(x) for x in getattr(entropy_per_tok_raw, "arr", entropy_per_tok_raw)
+        ]
+    if len(entropy_raw_vals) < target_len:
+        entropy_raw_vals.extend([0.0] * (target_len - len(entropy_raw_vals)))
+    new_total_utils = [float(u) + b for u, b in zip(total_utils, bonus_vals)]
+    per_reward_values = dict(getattr(reward_comp, "per_reward_values", {}) or {})
+    per_reward_values["policy_entropy_group_zscore"] = entropy_vals
+    per_reward_values["policy_entropy_per_token"] = entropy_raw_vals
+    per_reward_values["entropy_bonus"] = bonus_vals
+    moments = RewardMoments(*reward_moments(new_total_utils, ctx.runtime.device))
+    advantage_stats = AdvantageStats(
+        *group_advantages(gen_batch.grouped_completions, new_total_utils)
+    )
+    q_temperature = _resolve_weighting_value(ctx, "q_temperature", 1.0) or 1.0
+    q_epsilon = _resolve_weighting_value(ctx, "q_epsilon", 1e-6) or 1e-6
+    q_distribution = QDistribution(
+        *_group_q_distribution(
+            gen_batch.grouped_completions,
+            new_total_utils,
+            q_temperature,
+            q_epsilon,
+        )
+    )
+    try:
+        reward_comp.total_utils = new_total_utils
+        reward_comp.per_reward_values = per_reward_values
+        reward_comp.advantage = advantage_stats
+        reward_comp.moments = moments
+        reward_comp.q_distribution = q_distribution
+        reward_comp.entropy_bonus_scale = reward_std
+    except (AttributeError, TypeError, ValueError):
+        reward_comp = RewardComputation(
+            total_utils=new_total_utils,
+            per_reward_values=per_reward_values,
+            advantage=advantage_stats,
+            pairs=reward_comp.pairs,
+            q_distribution=q_distribution,
+            moments=moments,
+            ref_logprob_meta=getattr(reward_comp, "ref_logprob_meta", None),
+            completion_metadata=getattr(reward_comp, "completion_metadata", None),
+            entropy_bonus_scale=reward_std,
+        )
+    return reward_comp
 
 
 @dataclass
@@ -398,6 +621,7 @@ def _collect_batch_stats(
     *,
     score_batch: Optional[ScoreBatch] = None,
     cur_logp_sum: Optional[Any] = None,
+    policy_entropy_sum: Optional[Any] = None,
 ) -> Optional[_BatchStats]:
     """Gather scoring, reference, and weighting artifacts for a batch.
 
@@ -632,7 +856,30 @@ def _collect_batch_stats(
     force_reference_model = ref_source in {"model", "reference_model", "ref_model", "reference"}
     ref_stats_source = "unknown"
     ref_meta_len = len(ref_meta) if ref_meta else 0
-    if ref_meta_len and not force_reference_model:
+    if ref_source in {"policy", "none"}:
+        ref_meta_len = 0
+        if cur_logp_sum is not None:
+            try:
+                tok_counts = token_counts_from_score_batch(
+                    score_batch, ctx.runtime, batching_cfg
+                )
+                ref_stats = reference_stats_from_policy_logprobs(cur_logp_sum, tok_counts)
+                ref_stats_source = "policy_logprobs"
+                if not getattr(_collect_batch_stats, "_policy_ref_forced_warned", False):
+                    LOG.info(
+                        "Reference logprobs source=%s; using policy logprobs as reference (no frozen reference model).",
+                        ref_source,
+                    )
+                    setattr(_collect_batch_stats, "_policy_ref_forced_warned", True)
+            except (RuntimeError, ValueError, TypeError, AttributeError) as exc:
+                LOG.warning("Policy-logprob reference fallback failed: %s", exc)
+        else:
+            LOG.warning(
+                "Reference logprobs source=%s but policy logprobs are unavailable; "
+                "reference scoring may fall back to reference model.",
+                ref_source,
+            )
+    elif ref_meta_len and not force_reference_model:
         # Prefer reconstructing from metadata; always make an initial attempt.
         ref_stats = _reference_stats_from_meta(
             ref_meta,
@@ -871,6 +1118,13 @@ def _collect_batch_stats(
         prompt_token_count = float(
             sum(min(entry.length, max_prompt_len) for entry in prompt_entries)
         )
+    reward_comp = _maybe_apply_entropy_bonus(
+        ctx,
+        gen_batch,
+        reward_comp,
+        ref_stats,
+        policy_entropy_sum,
+    )
     weighting_cfg = cast(
         WeightingSettings, getattr(scoring_cfg, "weighting", SimpleNamespace())
     )
@@ -948,8 +1202,10 @@ def prepare_training_batch(
         retry_limit = ctx.generation.vllm_rounds_cfg
         if retry_limit <= 0:
             retry_limit = ctx.optimization.schedule.num_generations
+        rank_tag = _rank_tag(getattr(ctx.runtime, "accelerator", None))
         LOG.debug(
-            "Preparing training batch | prompts=%d | retry_limit=%d",
+            "Preparing training batch | %s | prompts=%d | retry_limit=%d",
+            rank_tag,
             len(batch.get("prompt", [])),
             retry_limit,
         )
@@ -978,14 +1234,21 @@ def prepare_training_batch(
                 ),
                 stage="generation",
             )
-        group_count = len(getattr(gen_batch, "grouped_completions", []) or [])
-        avg_group = (
-            sum(len(group) for group in getattr(gen_batch, "grouped_completions", []) or [])
-            / max(group_count, 1)
-        )
+        grouped = getattr(gen_batch, "grouped_completions", []) or []
+        group_count = len(grouped)
+        total_comps = sum(len(group) for group in grouped) if grouped else 0
+        empty_groups = sum(1 for group in grouped if not group) if grouped else 0
+        min_group = min((len(group) for group in grouped), default=0)
+        max_group = max((len(group) for group in grouped), default=0)
+        avg_group = total_comps / max(group_count, 1)
         LOG.debug(
-            "Generation complete | grouped_prompts=%d | avg_group_size=%.2f",
+            "Generation complete | %s | grouped_prompts=%d | total_completions=%d | empty_groups=%d | min_group=%d | max_group=%d | avg_group_size=%.2f",
+            rank_tag,
             group_count,
+            total_comps,
+            empty_groups,
+            min_group,
+            max_group,
             avg_group,
         )
         q_temperature = _resolve_weighting_value(ctx, "q_temperature", 1.0)
@@ -1009,7 +1272,8 @@ def prepare_training_batch(
         reward_mean = float(getattr(getattr(reward_comp, "moments", None), "mean", 0.0))
         reward_std = float(getattr(getattr(reward_comp, "moments", None), "std", 0.0))
         LOG.debug(
-            "Reward statistics ready | completions=%d | reward_mean=%.4f | reward_std=%.4f",
+            "Reward statistics ready | %s | completions=%d | reward_mean=%.4f | reward_std=%.4f",
+            rank_tag,
             len(getattr(reward_comp.pairs, "completions", []) or []),
             reward_mean,
             reward_std,
@@ -1024,7 +1288,8 @@ def prepare_training_batch(
             )
             score_batch = stats.score_batch
             LOG.debug(
-                "Batch stats ready | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
+                "Batch stats ready | %s | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
+                rank_tag,
                 getattr(stats.score_batch, "total_sequences", 0),
                 stats.prompt_token_count,
                 stats.num_completion_tokens,
@@ -1042,7 +1307,8 @@ def prepare_training_batch(
             ):
                 if score_batch is None:
                     LOG.warning(
-                        "Score batch build failed; completions=%d | prompts=%d",
+                        "Score batch build failed | %s | completions=%d | prompts=%d",
+                        rank_tag,
                         len(getattr(reward_comp.pairs, "completions", []) or []),
                         len(getattr(reward_comp.pairs, "prompts", []) or []),
                     )
@@ -1055,7 +1321,8 @@ def prepare_training_batch(
             completion_ids = getattr(score_batch, "completion_ids", None)
             completion_attention_mask = getattr(score_batch, "completion_attention_mask", None)
             LOG.debug(
-                "Score batch built | total_sequences=%d | max_prompt_len=%s | slice_size=%s | comp_ids_shape=%s | comp_mask_shape=%s | pad_id=%s",
+                "Score batch built | %s | total_sequences=%d | max_prompt_len=%s | slice_size=%s | comp_ids_shape=%s | comp_mask_shape=%s | pad_id=%s",
+                rank_tag,
                 getattr(score_batch, "total_sequences", 0),
                 getattr(score_batch, "max_prompt_len", None),
                 getattr(score_batch, "slice_size", None),
@@ -1071,6 +1338,8 @@ def prepare_training_batch(
                 getattr(ctx.generation, "seed_augmentation", None) is not None,
             ]
         )
+        return_entropy = bool(getattr(ctx.scoring, "policy_entropy", False))
+        entropy_mode = getattr(ctx.scoring, "policy_entropy_mode", "exact")
         try:
             cur_logp_result = _require_artifact(
                 score_model_outputs(
@@ -1080,6 +1349,8 @@ def prepare_training_batch(
                     ctx.runtime,
                     return_hidden=should_pool,
                     pooling=getattr(ctx.scoring, "info_seed_pooling", "mean"),
+                    return_entropy=return_entropy,
+                    entropy_mode=entropy_mode,
                 ),
                 stage="policy_scoring",
             )
@@ -1099,11 +1370,16 @@ def prepare_training_batch(
             else cur_logp_result
         )
         LOG.debug(
-            "Policy scoring complete | logprob_shape=%s",
+            "Policy scoring complete | %s | logprob_shape=%s",
+            rank_tag,
             getattr(logprob_tensor, "shape", None),
         )
+        policy_entropy_sum = None
         if isinstance(cur_logp_result, tuple):
-            cur_logp_sum, pooled_hidden = cur_logp_result
+            if len(cur_logp_result) >= 3:
+                cur_logp_sum, pooled_hidden, policy_entropy_sum = cur_logp_result
+            else:
+                cur_logp_sum, pooled_hidden = cur_logp_result
         else:
             cur_logp_sum, pooled_hidden = cur_logp_result, None
         if callable(runtime_tokenizer):
@@ -1114,11 +1390,13 @@ def prepare_training_batch(
                     reward_comp,
                     score_batch=score_batch,
                     cur_logp_sum=cur_logp_sum,
+                    policy_entropy_sum=policy_entropy_sum,
                 ),
                 stage="batch_stats",
             )
             LOG.debug(
-                "Batch stats ready | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
+                "Batch stats ready | %s | sequences=%d | prompt_tokens=%.0f | completion_tokens=%.0f",
+                rank_tag,
                 getattr(getattr(stats, "score_batch", None), "total_sequences", 0),
                 stats.prompt_token_count,
                 stats.num_completion_tokens,
@@ -1134,6 +1412,7 @@ def prepare_training_batch(
                 stats.ref_stats,
                 pooled_hidden,
                 behavior_logp_sum=behavior_tensor,
+                policy_entropy_sum=policy_entropy_sum,
             )
         except TypeError:
             if behavior_tensor is not None:
@@ -1142,11 +1421,14 @@ def prepare_training_batch(
                         cur_logp_sum,
                         stats.ref_stats,
                         behavior_logp_sum=behavior_tensor,
+                        policy_entropy_sum=policy_entropy_sum,
                     )
                 except TypeError:
                     scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
             else:
-                scores = build_sequence_scores(cur_logp_sum, stats.ref_stats)
+                scores = build_sequence_scores(
+                    cur_logp_sum, stats.ref_stats, policy_entropy_sum=policy_entropy_sum
+                )
         # Optional seed metadata wiring for InfoSeed objectives.
         seed_inputs: Optional["SeedInfoInputs"] = None
         seed_metrics: Dict[str, float] = {}
@@ -1357,7 +1639,11 @@ def prepare_training_batch(
             setattr(ctx.runtime, "_last_skip_stage", skip_stage)
         except (AttributeError, TypeError):
             LOG.debug("Failed to record skip stage on runtime.")
-        LOG.debug("Skipping training batch: stage=%s returned None", skip_stage)
+        LOG.debug(
+            "Skipping training batch: stage=%s returned None | %s",
+            skip_stage,
+            _rank_tag(getattr(ctx.runtime, "accelerator", None)),
+        )
         return None
 
 

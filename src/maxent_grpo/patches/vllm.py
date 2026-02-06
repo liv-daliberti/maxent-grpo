@@ -47,6 +47,9 @@ import hashlib
 import logging
 import os
 import uuid
+import socket
+import threading
+from urllib.parse import urlparse
 from typing import (
     Any,
     Dict,
@@ -478,6 +481,27 @@ def _parse_nonstream_json(
 LOG = logging.getLogger(__name__)
 
 
+def _mirror_vllm_log(message: str) -> None:
+    path = os.environ.get("MAXENT_VLLM_LOG_MIRROR_FILE")
+    if not path:
+        return
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(f"[mirror {timestamp}] {message}\n")
+    except OSError:
+        LOG.debug("Failed to mirror vLLM logs to %s", path)
+
+
+def _log_vllm_info(template: str, *args: Any) -> None:
+    LOG.info(template, *args)
+    try:
+        rendered = template % args
+    except Exception:
+        rendered = template
+    _mirror_vllm_log(rendered)
+
+
 def _find_client_tag(candidate: Any, depth: int = 0) -> Optional[str]:
     """Traverse a limited portion of ``candidate`` to locate ``client_tag``."""
 
@@ -782,10 +806,73 @@ def safe_generate(
         client_tag,
         redacted_headers,
     )
+    LOG.info(
+        "vLLM request prepared | req_id=%s | prompts=%d | payload_bytes=%s | prompt_hash_sample=%s",
+        effective_request_id,
+        len(prompts),
+        payload_size_bytes,
+        prompt_hash_sample,
+    )
+    _log_vllm_info(
+        "vLLM request id | req_id=%s | req_id_prefix=%s | prompts=%d",
+        effective_request_id,
+        request_id_prefix or "",
+        len(prompts),
+    )
+    _log_vllm_info(
+        "vLLM request dispatch start | req_id=%s | url=%s | timeout=%.2fs | stream=%s | max_retries=%d | client_tag=%s",
+        effective_request_id,
+        url,
+        timeout,
+        stream,
+        max_retries,
+        client_tag,
+    )
+    parsed_url = urlparse(url)
+    if parsed_url.hostname:
+        try:
+            addrinfo = socket.getaddrinfo(
+                parsed_url.hostname,
+                parsed_url.port or (443 if parsed_url.scheme == "https" else 80),
+                proto=socket.IPPROTO_TCP,
+            )
+            resolved = sorted({item[4][0] for item in addrinfo})
+            LOG.info(
+                "vLLM request resolve | req_id=%s | host=%s | resolved_addrs=%s",
+                effective_request_id,
+                parsed_url.hostname,
+                resolved,
+            )
+        except Exception as exc:  # pragma: no cover - best effort logging
+            LOG.warning(
+                "vLLM request resolve failed | req_id=%s | host=%s | error=%s",
+                effective_request_id,
+                parsed_url.hostname,
+                exc,
+            )
+    connect_timeout = float(os.getenv("MAXENT_VLLM_CONNECT_TIMEOUT", str(timeout)))
+    read_timeout = float(os.getenv("MAXENT_VLLM_READ_TIMEOUT", str(timeout)))
+    timeout_tuple = (connect_timeout, read_timeout)
     start_time = time.perf_counter()
     last_status: Optional[int] = None
     for attempt in range(max_retries):
         attempt_start = time.perf_counter()
+        _log_vllm_info(
+            "vLLM HTTP attempt start | req_id=%s | attempt=%d/%d | url=%s | timeout=%.2fs",
+            effective_request_id,
+            attempt + 1,
+            max_retries,
+            url,
+            timeout,
+        )
+        LOG.info(
+            "vLLM HTTP attempt start | req_id=%s | attempt=%d/%d | url=%s | timeout=%.2fs",
+            effective_request_id,
+            attempt + 1,
+            max_retries,
+            url,
+            timeout,
+        )
         LOG.debug(
             "vLLM attempt start | req_id=%s | attempt=%d/%d | url=%s | stream=%s | timeout=%.2fs | payload_bytes=%s",
             effective_request_id,
@@ -796,15 +883,40 @@ def safe_generate(
             timeout,
             payload_size_bytes,
         )
+        stop_event = threading.Event()
+        heartbeat_sec = float(os.getenv("MAXENT_VLLM_REQUEST_HEARTBEAT_SEC", "30"))
+        if heartbeat_sec > 0:
+            def _heartbeat() -> None:
+                while not stop_event.wait(heartbeat_sec):
+                    elapsed = time.perf_counter() - attempt_start
+                    LOG.warning(
+                        "vLLM request in-flight | req_id=%s | attempt=%d/%d | elapsed_s=%.1f | url=%s",
+                        effective_request_id,
+                        attempt + 1,
+                        max_retries,
+                        elapsed,
+                        url,
+                    )
+
+            threading.Thread(target=_heartbeat, daemon=True).start()
         try:
             r = requests.post(
                 url,
                 json=payload,
-                timeout=timeout,
+                timeout=timeout_tuple,
                 stream=stream,
                 headers=headers,
             )
+            stop_event.set()
             attempt_elapsed_ms = (time.perf_counter() - attempt_start) * 1000.0
+            LOG.info(
+                "vLLM HTTP attempt done | req_id=%s | attempt=%d/%d | status=%s | elapsed_ms=%.2f",
+                effective_request_id,
+                attempt + 1,
+                max_retries,
+                getattr(r, "status_code", None),
+                attempt_elapsed_ms,
+            )
             LOG.debug(
                 (
                     "vLLM response received | req_id=%s | attempt=%d | status=%s "
@@ -831,6 +943,13 @@ def safe_generate(
                     attempt + 1,
                 )
                 latency_ms = (time.perf_counter() - start_time) * 1000.0
+                _log_vllm_info(
+                    "vLLM request response ok | req_id=%s | status=200 | attempt=%d/%d | latency_ms=%.2f",
+                    effective_request_id,
+                    attempt + 1,
+                    max_retries,
+                    latency_ms,
+                )
                 if stream:
                     return _collect_stream_texts(r, len(prompts)), None, latency_ms
                 body_bytes = len(r.content) if hasattr(r, "content") else None
@@ -911,6 +1030,7 @@ def safe_generate(
             last_status = r.status_code
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:120]}")
         except (requests.ConnectionError, requests.Timeout, RuntimeError) as err:
+            stop_event.set()
             LOG.warning(
                 (
                     "vLLM request failure (%s) | attempt=%d/%d | url=%s | req_id=%s "
@@ -986,6 +1106,15 @@ def _collect_stream_texts(
     texts: List[List[str]] = [[] for _ in range(num_prompts)]
     chunk_counts: List[int] = [0 for _ in range(num_prompts)]
     total_bytes = 0
+    log_chunks_raw = os.getenv(
+        "MAXENT_VLLM_STREAM_LOG_CHUNKS",
+        os.getenv("MAXENT_VLLM_STREAM_LOG", "0"),
+    )
+    log_chunks = str(log_chunks_raw).strip().lower() in {"1", "true", "yes", "on"}
+    try:
+        max_chars = int(os.getenv("MAXENT_VLLM_STREAM_LOG_CHARS", "200"))
+    except ValueError:
+        max_chars = 200
     for line in response.iter_lines():
         if not line:
             continue
@@ -993,8 +1122,20 @@ def _collect_stream_texts(
         row = json.loads(line.decode())
         idx = int(row.get("prompt_index", 0))
         if 0 <= idx < num_prompts:
-            texts[idx].append(row.get("text", ""))
+            chunk_text = row.get("text", "")
+            texts[idx].append(chunk_text)
             chunk_counts[idx] += 1
+            if log_chunks:
+                preview = chunk_text
+                if max_chars >= 0 and len(preview) > max_chars:
+                    preview = preview[:max_chars] + "..."
+                LOG.info(
+                    "vLLM stream chunk | prompt=%d | chunk=%d | chars=%d | text=%s",
+                    idx,
+                    chunk_counts[idx],
+                    len(chunk_text),
+                    preview,
+                )
         # else: ignore malformed index
     LOG.debug(
         "vLLM stream collected | prompts=%d | chunks=%d | bytes=%d | per_prompt_chunks=%s",

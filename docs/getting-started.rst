@@ -1,7 +1,7 @@
 Overview
 ========
 
-MaxEnt‑GRPO is a clean training stack for GRPO with optional maximum‑entropy weighting. It targets practical math training and evaluation while keeping code simple and production‑oriented.
+MaxEnt‑GRPO is a clean training stack for GRPO with optional maximum‑entropy weighting and a GRPO + entropy‑bonus mode. It targets practical math training and evaluation while keeping code simple and production‑oriented.
 
 Install
 =======
@@ -19,9 +19,9 @@ Quickstart
 
    make conda-local && conda activate ./var/openr1
    pip install -c configs/constraints.txt -e .[dev]
-   sbatch ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3
+   sbatch var/repo/ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3
 
-``ops/slurm/train.slurm`` provisions the repo-local env via ``configs/environment.yml``, configures caches under ``./var/``, and dispatches training/inference processes. For a no-Slurm smoke test, use the Hydra console scripts instead:
+``var/repo/ops/slurm/train.slurm`` provisions the repo-local env via ``configs/environment.yml``, configures caches under ``./var/``, and dispatches training/inference processes. For a no-Slurm smoke test, use the Hydra console scripts instead:
 
 .. code-block:: bash
 

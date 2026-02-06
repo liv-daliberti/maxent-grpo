@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r configs/requirements-dev.txt
-          pip install -c configs/constraints.txt -e . --no-deps
+          pip install -c configs/constraints.txt -e ".[torch]"
 
       - name: Run pyright
         run: pyright --project configs/pyrightconfig.json

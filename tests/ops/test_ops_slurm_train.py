@@ -1,4 +1,4 @@
-"""Tests for ops/slurm/train.slurm task routing."""
+"""Tests for var/repo/ops/slurm/train.slurm task routing."""
 
 from __future__ import annotations
 
@@ -27,8 +27,20 @@ def _task_entries(script: str) -> dict[str, dict[str, str]]:
     return entries
 
 
+def _resolve_train_slurm() -> Path:
+    repo_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        repo_root / "var" / "repo" / "ops" / "slurm" / "train.slurm",
+        repo_root / "ops" / "slurm" / "train.slurm",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError("train.slurm not found in expected locations")
+
+
 def test_slurm_task_dispatch_includes_infoseed():
-    script = Path("ops/slurm/train.slurm").read_text()
+    script = _resolve_train_slurm().read_text()
     entries = _task_entries(script)
     assert entries["grpo"]["entrypoint"].endswith("maxent_grpo/grpo.py")
     assert entries["grpo"]["task_dir"] == "grpo"
@@ -45,9 +57,10 @@ def test_slurm_train_supports_dry_run(tmp_path):
     env["MAXENT_DRY_RUN"] = "1"
     env["VAR_DIR"] = str(tmp_path / "var")
     env.setdefault("HF_TOKEN", "test")
+    script_path = _resolve_train_slurm()
     cmd = [
         "bash",
-        "ops/slurm/train.slurm",
+        str(script_path),
         "--model",
         "Qwen2.5-1.5B-Instruct",
         "--task",

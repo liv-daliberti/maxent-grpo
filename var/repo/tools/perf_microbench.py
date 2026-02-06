@@ -19,7 +19,7 @@ Current coverage:
 - logging_metrics_ops_per_sec: iterations of build_training_metrics_dict
   using a representative TrainingMetricsPayload.
 
-Baseline values live in tools/perf_baseline.json. The CLI compares the current
+Baseline values live in var/repo/tools/perf_baseline.json. The CLI compares the current
 measurement to the baseline and fails if it regresses beyond the tolerance.
 """
 
@@ -38,7 +38,7 @@ from typing import Dict, Iterable, Tuple
 
 
 DEFAULT_BASELINE = Path(__file__).parent / "perf_baseline.json"
-REPO_ROOT = DEFAULT_BASELINE.parents[1]
+REPO_ROOT = DEFAULT_BASELINE.parents[3]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
@@ -119,6 +119,31 @@ def _install_lightweight_stubs() -> None:
         tf_mod.PreTrainedModel = type("PreTrainedModel", (), {})
         tf_mod.PreTrainedTokenizer = type("PreTrainedTokenizer", (), {})
         sys.modules["transformers"] = tf_mod
+
+    torch_loaded = "torch" in sys.modules
+    torch_spec = None
+    if not torch_loaded:
+        try:
+            torch_spec = importlib.util.find_spec("torch")
+        except ValueError:
+            torch_spec = None
+    if not torch_loaded and torch_spec is None:
+        torch_mod = ModuleType("torch")
+        torch_mod.__spec__ = SimpleNamespace()
+        torch_mod.__path__ = []
+        torch_mod.Tensor = type("Tensor", (), {})
+        torch_mod.float32 = object()
+
+        class _TorchNN(SimpleNamespace):
+            Parameter = type("Parameter", (), {})
+
+        def _tensor(val, dtype=None):
+            del dtype
+            return val
+
+        torch_mod.nn = _TorchNN()
+        torch_mod.tensor = _tensor
+        sys.modules["torch"] = torch_mod
 
 
 def _build_logging_payload():

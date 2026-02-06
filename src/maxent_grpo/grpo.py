@@ -125,7 +125,8 @@ def main(
         else:
             raise RuntimeError("No CLI parser available")
     meta_enabled = bool(getattr(training_args, "controller_meta_enabled", False))
-    if meta_enabled:
+    force_custom_loop = bool(getattr(training_args, "force_custom_loop", False))
+    if meta_enabled or force_custom_loop:
         training_args.train_grpo_objective = True
         from maxent_grpo.pipelines.training.maxent import run_maxent_training
 

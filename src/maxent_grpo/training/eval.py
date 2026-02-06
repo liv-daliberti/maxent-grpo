@@ -17,6 +17,9 @@
 from __future__ import annotations
 
 import logging
+import math
+import os
+import time
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Dict, Iterator, List, Optional, Tuple, cast
@@ -26,11 +29,22 @@ from maxent_grpo.generation.errors import (
     log_generation_service_error,
 )
 from maxent_grpo.rewards.basic import _answer_pat, _format_pat
+from maxent_grpo.training.runtime.logging import _log_wandb
 from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
 from .scoring import _refresh_torch, _to_numpy_array
 from .types import RewardSpec, ValidationContext
 
 LOG = logging.getLogger(__name__)
+
+
+def _deepspeed_zero_stage(accelerator: Any) -> int:
+    """Return DeepSpeed ZeRO stage from Accelerate plugin state when present."""
+    state = getattr(accelerator, "state", None)
+    ds_plugin = getattr(state, "deepspeed_plugin", None)
+    try:
+        return int(getattr(ds_plugin, "zero_stage", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 @dataclass
@@ -43,6 +57,7 @@ class _EvalShardInfo:
     world_size: int
     log_every: int
     is_main: bool
+    rank: int
 
 
 @dataclass
@@ -163,6 +178,7 @@ def _build_eval_shard(
         world_size=world_size,
         log_every=log_every,
         is_main=is_main,
+        rank=rank,
     )
 
 
@@ -191,6 +207,37 @@ def _log_eval_start(step: int, shard: _EvalShardInfo, batch_size: int) -> None:
     )
 
 
+def _maybe_presync_vllm_for_eval(ctx: ValidationContext, eval_only_rank0: bool) -> None:
+    """Synchronize vLLM weights across all ranks before rank-0-only eval."""
+    if not eval_only_rank0:
+        return
+    if os.getenv("MAXENT_SKIP_VLLM_EVAL_PRESYNC"):
+        logging.getLogger(__name__).info(
+            "eval pre-sync vLLM weights skipped | reason=MAXENT_SKIP_VLLM_EVAL_PRESYNC"
+        )
+        return
+    generator = getattr(ctx, "generator", None)
+    generator_self = getattr(generator, "__self__", None)
+    vllm_helper = getattr(generator_self, "_vllm_helper", None) if generator_self else None
+    maybe_sync = getattr(vllm_helper, "maybe_sync_weights", None)
+    if not callable(maybe_sync):
+        return
+    logging.getLogger(__name__).info(
+        "eval pre-sync vLLM weights | mode=eval_only_rank0"
+    )
+    try:
+        sync_model = getattr(vllm_helper, "_sync_model_params_to_vllm", None)
+        if callable(sync_model):
+            maybe_sync(sync_model=sync_model)
+        else:
+            maybe_sync()
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "eval pre-sync vLLM weights failed: %s", exc
+        )
+        raise
+
+
 def _run_eval_batches(
     shard: _EvalShardInfo,
     batch_size: int,
@@ -216,12 +263,41 @@ def _run_eval_batches(
         "missing_format": 0.0,
         "total": 0.0,
     }
+    timeout_s = 0.0
+    try:
+        timeout_s = float(os.getenv("MAXENT_EVAL_BATCH_TIMEOUT_S", "0") or 0)
+    except (TypeError, ValueError):
+        timeout_s = 0.0
+    num_batches = (
+        math.ceil(shard.shard_total / batch_size) if batch_size > 0 else 0
+    )
     reward_spec = ctx.eval_reward or ctx.reward
     processed = 0
     for batch_idx, (prompts, answers) in enumerate(
         _iter_eval_batches(shard.rows, batch_size)
     ):
+        batch_num = batch_idx + 1
+        request_id_prefix = f"eval-s{step}-b{batch_num}-r{shard.rank}"
+        logging.getLogger(__name__).info(
+            "eval step %d rank %d/%d batch %d/%d start | batch_size=%d",
+            step,
+            shard.rank,
+            max(shard.world_size, 1),
+            batch_num,
+            max(num_batches, 1),
+            len(prompts),
+        )
+        logging.getLogger(__name__).info(
+            "eval step %d rank %d batch %d request_id_prefix=%s",
+            step,
+            shard.rank,
+            batch_num,
+            request_id_prefix,
+        )
+        batch_start = time.time()
         target_counts = [1] * len(prompts)
+        prev_request_id_prefix = getattr(ctx, "vllm_request_id_prefix", None)
+        setattr(ctx, "vllm_request_id_prefix", request_id_prefix)
         try:
             grouped, _ = ctx.generator(prompts, 1, target_counts)
         except GenerationServiceError as exc:
@@ -229,6 +305,39 @@ def _run_eval_batches(
                 logging.getLogger(__name__), "evaluation", exc
             )
             raise
+        finally:
+            if prev_request_id_prefix is None:
+                try:
+                    delattr(ctx, "vllm_request_id_prefix")
+                except AttributeError:
+                    pass
+            else:
+                setattr(ctx, "vllm_request_id_prefix", prev_request_id_prefix)
+        elapsed_s = time.time() - batch_start
+        logging.getLogger(__name__).info(
+            "eval step %d rank %d/%d batch %d/%d done | batch_size=%d | elapsed_s=%.2f",
+            step,
+            shard.rank,
+            max(shard.world_size, 1),
+            batch_num,
+            max(num_batches, 1),
+            len(prompts),
+            elapsed_s,
+        )
+        if timeout_s > 0.0 and elapsed_s > timeout_s:
+            logging.getLogger(__name__).warning(
+                (
+                    "eval step %d rank %d/%d batch %d/%d slow | elapsed_s=%.2f "
+                    "> timeout_s=%.2f"
+                ),
+                step,
+                shard.rank,
+                max(shard.world_size, 1),
+                batch_num,
+                max(num_batches, 1),
+                elapsed_s,
+                timeout_s,
+            )
         if grouped:
             completions = [grp[0] if grp else "" for grp in grouped]
             eval_scores.extend(_compute_eval_rewards(completions, answers, reward_spec))
@@ -521,7 +630,51 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
     wait_for_all = getattr(accelerator, "wait_for_everyone", None)
     if callable(wait_for_all):
         wait_for_all()
+    eval_only_rank0 = str(
+        os.getenv("MAXENT_EVAL_ONLY_RANK0", "0") or "0"
+    ).strip().lower() in {"1", "true", "yes", "y", "on"}
+    is_main = bool(getattr(accelerator, "is_main_process", True))
+    if eval_only_rank0:
+        zero_stage = _deepspeed_zero_stage(accelerator)
+        if zero_stage >= 3 and int(getattr(accelerator, "num_processes", 1) or 1) > 1:
+            use_vllm = True
+            generator = getattr(ctx, "generator", None)
+            generator_self = getattr(generator, "__self__", None)
+            if generator_self is not None:
+                gen_ctx = getattr(generator_self, "ctx", None)
+                if gen_ctx is not None:
+                    use_vllm = bool(getattr(gen_ctx, "use_vllm", False))
+            if not use_vllm:
+                if is_main:
+                    LOG.warning(
+                        "Disabling MAXENT_EVAL_ONLY_RANK0 under ZeRO-3 local eval generation "
+                        "(zero_stage=%s, use_vllm=%s).",
+                        zero_stage,
+                        use_vllm,
+                    )
+                eval_only_rank0 = False
+    _maybe_presync_vllm_for_eval(ctx, eval_only_rank0)
+    if eval_only_rank0 and callable(wait_for_all):
+        wait_for_all()
+    if eval_only_rank0 and not is_main:
+        if callable(wait_for_all):
+            # Barrier before eval starts.
+            wait_for_all()
+            # Barrier after rank 0 finishes eval.
+            wait_for_all()
+        return
     shard = _build_eval_shard(evaluation_cfg.rows, accelerator)
+    if eval_only_rank0:
+        total_rows = len(evaluation_cfg.rows)
+        shard = _EvalShardInfo(
+            rows=evaluation_cfg.rows,
+            total_rows=total_rows,
+            shard_total=total_rows,
+            world_size=1,
+            log_every=max(1, total_rows // 10) if total_rows else 1,
+            is_main=True,
+            rank=0,
+        )
     _log_eval_start(step, shard, evaluation_cfg.batch_size)
 
     model = ctx.model
@@ -535,24 +688,30 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
             ctx,
             step,
         )
-        gathered_stats = _gather_eval_stats(accelerator, eval_scores, fmt_counts)
-        total_sum, total_count = gathered_stats[:2]
-        total_fmt = (
-            gathered_stats[2]
-            if len(gathered_stats) >= 3
-            else {
-                "missing_answer": 0.0,
-                "missing_format": 0.0,
-                "total": float(total_count),
-            }
-        )
+        if eval_only_rank0:
+            total_sum = float(sum(eval_scores))
+            total_count = float(len(eval_scores))
+            total_fmt = fmt_counts
+        else:
+            gathered_stats = _gather_eval_stats(accelerator, eval_scores, fmt_counts)
+            total_sum, total_count = gathered_stats[:2]
+            total_fmt = (
+                gathered_stats[2]
+                if len(gathered_stats) >= 3
+                else {
+                    "missing_answer": 0.0,
+                    "missing_format": 0.0,
+                    "total": float(total_count),
+                }
+            )
         if shard.is_main:
             mean_reward = total_sum / max(total_count, 1.0)
+            sample_total = int(shard.total_rows)
             logging.getLogger(__name__).info(
                 "eval step %d | mean_reward=%.4f | samples=%d | missing_answer_frac=%.4f | missing_format_frac=%.4f",
                 step,
                 mean_reward,
-                int(total_count),
+                sample_total,
                 float(total_fmt.get("missing_answer", 0.0))
                 / max(float(total_fmt.get("total", 0.0)), 1.0),
                 float(total_fmt.get("missing_format", 0.0))
@@ -561,6 +720,7 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
             ctx.logging.log_metrics(
                 {
                     "eval/mean_reward": mean_reward,
+                    "eval/samples": sample_total,
                     "eval/format/missing_answer_frac": float(
                         total_fmt.get("missing_answer", 0.0)
                     )
@@ -572,6 +732,25 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                 },
                 step,
             )
+            eval_metrics = {
+                "eval/mean_reward": mean_reward,
+                "eval/samples": sample_total,
+                "eval/format/missing_answer_frac": float(
+                    total_fmt.get("missing_answer", 0.0)
+                )
+                / max(float(total_fmt.get("total", 0.0)), 1.0),
+                "eval/format/missing_format_frac": float(
+                    total_fmt.get("missing_format", 0.0)
+                )
+                / max(float(total_fmt.get("total", 0.0)), 1.0),
+            }
+            _log_wandb(getattr(ctx.logging, "wandb_run", None), eval_metrics, step)
+            accel_log = getattr(accelerator, "log", None)
+            if callable(accel_log):
+                try:
+                    accel_log(eval_metrics, step=step)
+                except TypeError:
+                    accel_log(eval_metrics)
             seed_cfg_raw = getattr(evaluation_cfg, "seed_eval", None)
             if isinstance(seed_cfg_raw, dict):
                 seed_cfg = _SeedEvalConfig(
@@ -589,6 +768,17 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                         seed_metrics,
                     )
                     ctx.logging.log_metrics(seed_metrics, step)
+                    _log_wandb(
+                        getattr(ctx.logging, "wandb_run", None), seed_metrics, step
+                    )
+                    accel_log = getattr(accelerator, "log", None)
+                    if callable(accel_log):
+                        try:
+                            accel_log(seed_metrics, step=step)
+                        except TypeError:
+                            accel_log(seed_metrics)
+        if eval_only_rank0 and callable(wait_for_all):
+            wait_for_all()
     finally:
         if prev_mode:
             model.train()

@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "${REPO_ROOT}"
 
 # Keep caches local (no ~/.local, no ~/.cache).
@@ -38,9 +38,9 @@ if [[ -z "$LIGHEVAL_BIN" ]]; then
     fi
   done
 fi
-CUSTOM_TASKS="${REPO_ROOT}/custom_tasks/math500_passk.py"
+CUSTOM_TASKS="${REPO_ROOT}/var/repo/custom_tasks/math500_passk.py"
 CUSTOM_TASKS_MODULE="custom_tasks.math500_passk"
-PASS1_CFG_TEMPLATE="${REPO_ROOT}/custom_tasks/pass1.yaml"
+PASS1_CFG_TEMPLATE="${REPO_ROOT}/var/repo/custom_tasks/pass1.yaml"
 SYSTEM_PROMPT_PATH="${REPO_ROOT}/configs/prompts/math_system_prompt.txt"
 
 OUT_DIR="${OUT_DIR:-${REPO_ROOT}/var/artifacts/results}"

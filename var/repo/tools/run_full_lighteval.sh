@@ -4,10 +4,10 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT_DIR"
 
-SLURM_SCRIPT="ops/slurm/evaluate.slurm"
+SLURM_SCRIPT="var/repo/ops/slurm/evaluate.slurm"
 # Set LIGHEVAL_BACKEND=hf to run LightEval without vLLM.
 # Accept DATASETS for compatibility with the old pipeline.
 TASKS="${TASKS:-${DATASETS:-math_500,aime24,aime25,amc,minerva}}"

@@ -31,6 +31,7 @@ from .types import (
     OptimizationSchedule,
     TrainingLoopState,
 )
+from .optim import detect_deepspeed_state
 from .weighting.types import WeightingConfigLike
 from .weighting.logic import (
     CONTROLLER_STATE_FILENAME,
@@ -744,6 +745,11 @@ def build_checkpoint_saver(
         if callable(get_state_dict_fn) and model is not None:
             # Needed for ZeRO-3/FSDP: gathers a full (saveable) state_dict.
             # This may involve collective ops, so run it on all ranks.
+            ds_state = None
+            try:
+                ds_state = detect_deepspeed_state(accelerator)
+            except (AttributeError, RuntimeError, TypeError, ValueError):
+                ds_state = None
             candidates = [model]
             # Some Accelerate versions behave differently depending on whether the model is wrapped.
             unwrap = getattr(accelerator, "unwrap_model", None)
@@ -752,11 +758,19 @@ def build_checkpoint_saver(
                     unwrapped = unwrap(model)
                 except (AttributeError, RuntimeError, TypeError, ValueError):
                     unwrapped = model
-                candidates.append(unwrapped)
+                if unwrapped is not model:
+                    if ds_state and (ds_state.use_deepspeed or ds_state.zero_stage >= 2):
+                        LOG.warning(
+                            "Skipping unwrapped model state_dict gather under DeepSpeed for %s; "
+                            "use ZeRO shards or enable 16-bit gathering on save.",
+                            checkpoint_dir,
+                        )
+                    else:
+                        candidates.append(unwrapped)
             for candidate in candidates:
                 try:
                     gathered = get_state_dict_fn(candidate)
-                except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - backend specific
+                except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - backend specific
                     LOG.warning(
                         "Failed to gather consolidated model state_dict for %s: %s",
                         checkpoint_dir,
@@ -770,11 +784,18 @@ def build_checkpoint_saver(
                 ):
                     state_dict_candidate = dict(state_dict_candidate)
                 if _state_dict_has_zero_sized_tensors(state_dict_candidate):
-                    LOG.warning(
-                        "Accelerator returned an invalid consolidated state_dict for %s "
-                        "(zero-sized tensors detected); trying fallback.",
-                        checkpoint_dir,
-                    )
+                    if ds_state and (ds_state.use_deepspeed or ds_state.zero_stage >= 2):
+                        LOG.warning(
+                            "Accelerator returned an invalid consolidated state_dict for %s "
+                            "(zero-sized tensors detected); skipping fallback under DeepSpeed.",
+                            checkpoint_dir,
+                        )
+                    else:
+                        LOG.warning(
+                            "Accelerator returned an invalid consolidated state_dict for %s "
+                            "(zero-sized tensors detected); trying fallback.",
+                            checkpoint_dir,
+                        )
                     continue
                 state_dict = state_dict_candidate
                 break

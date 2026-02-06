@@ -41,7 +41,9 @@ For flat recipes (no top-level ``script`` / ``training`` / ``model`` keys),
 schema validation enforces:
 
 - Baseline recipes must set ``beta``.
-- MaxEnt recipes must set ``train_grpo_objective: false``.
+- MaxEnt recipes must set ``train_grpo_objective: false`` **unless** they opt
+  into GRPO + entropy bonus via ``policy_entropy_bonus_coef>0`` under
+  ``train-maxent``.
 - InfoSeed recipes must set ``info_seed_enabled: true``.
 
 Validation is skipped during tests and only applies to flat recipe files (not
@@ -92,6 +94,11 @@ Paired GRPO recipes set ``force_custom_loop: true`` so GRPO runs through the
 same custom loop used by MaxEnt, and they pin
 ``maxent_reference_logprobs_source: model`` so both objectives use a frozen
 reference anchor for KL.
+
+The paired ``maxent-grpo`` recipes now default to GRPO + entropy bonus (by
+setting ``train_grpo_objective: true`` and a nonzero
+``policy_entropy_bonus_coef``). Switch back to MaxEnt weighting by setting
+``train_grpo_objective: false``.
 
 Tips
 ----

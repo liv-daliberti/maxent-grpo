@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Training pipelines (baseline GRPO + MaxEnt-GRPO).
+Training pipelines (baseline GRPO + GRPO/entropy-bonus/MaxEnt).
 """
 
 from .baseline import run_baseline_training

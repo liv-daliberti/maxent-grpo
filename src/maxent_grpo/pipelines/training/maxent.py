@@ -1,10 +1,12 @@
 """
-MaxEnt-GRPO training entrypoint that mirrors the baseline GRPO pipeline.
+Training entrypoint that mirrors the baseline GRPO pipeline.
 
 This keeps data loading, prompt construction, and trainer wiring aligned with
-``pipelines.training.baseline`` while letting callers flip between vanilla GRPO
-and entropy-weighted MaxEnt behavior via config toggles
-(``training_args.train_grpo_objective`` and related ``maxent_*`` fields).
+``pipelines.training.baseline`` while letting callers flip between:
+
+* vanilla GRPO (``train_grpo_objective=true``),
+* GRPO + policy-entropy reward bonus (``policy_entropy_bonus_coef>0``), and
+* entropy-weighted MaxEnt (``train_grpo_objective=false``).
 """
 
 from __future__ import annotations
@@ -203,12 +205,13 @@ def run_maxent_training(
     training_args: GRPOConfig,
     model_args: Any,
 ) -> None:
-    """Run MaxEnt/GRPO training using the shared baseline pipeline.
+    """Run GRPO (vanilla or entropy-bonus) or MaxEnt training via the shared pipeline.
 
     The same prompt construction and dataset loader are reused from
     ``pipelines.training.baseline``. The ``train_grpo_objective`` flag controls
-    whether the run behaves like vanilla GRPO (``True``) or entropy-weighted
-    MaxEnt (``False``), keeping the codepath unified and testable.
+    whether the run behaves like GRPO (``True``) or entropy-weighted MaxEnt
+    (``False``); when ``policy_entropy_bonus_coef>0`` and ``train_grpo_objective``
+    is ``True`` the run becomes GRPO + entropy bonus.
 
     :param script_args: Data/reward configuration mirroring the baseline pipeline.
     :type script_args: GRPOScriptArguments
@@ -220,18 +223,28 @@ def run_maxent_training(
     :rtype: None
     """
 
-    ensure_real_dependencies(context="MaxEnt-GRPO training")
+    ensure_real_dependencies(context="GRPO/MaxEnt training")
     ensure_hf_repo_ready(training_args)
 
     train_grpo_flag = bool(getattr(training_args, "train_grpo_objective", False))
     meta_enabled = bool(getattr(training_args, "controller_meta_enabled", False))
     force_custom_loop = bool(getattr(training_args, "force_custom_loop", False))
+    entropy_bonus_coef = float(
+        getattr(training_args, "policy_entropy_bonus_coef", 0.0) or 0.0
+    )
+    entropy_bonus_enabled = train_grpo_flag and entropy_bonus_coef > 0.0
     use_custom_loop = force_custom_loop or (not train_grpo_flag) or meta_enabled
     if use_custom_loop:
         _configure_custom_loop_logging(training_args)
+        if entropy_bonus_enabled:
+            LOG.info(
+                "Entropy bonus enabled (coef=%.4g): policy entropy is computed from the scoring pass; no extra forward passes.",
+                entropy_bonus_coef,
+            )
         LOG.info(
-            "Launching custom training loop | objective=%s | controller_meta_enabled=%s | force_custom_loop=%s",
-            "GRPO" if train_grpo_flag else "MaxEnt",
+            "Launching custom training loop | objective=%s | entropy_bonus_coef=%s | controller_meta_enabled=%s | force_custom_loop=%s",
+            "GRPO+EntropyBonus" if entropy_bonus_enabled else ("GRPO" if train_grpo_flag else "MaxEnt"),
+            f"{entropy_bonus_coef:.4g}" if entropy_bonus_enabled else "off",
             meta_enabled,
             force_custom_loop,
         )

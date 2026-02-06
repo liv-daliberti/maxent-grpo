@@ -3,7 +3,7 @@
 Launch a vLLM server (via TRL) and verify ``client_tag`` metadata is echoed.
 
 Example:
-    python tools/vllm_client_tag_smoke.py \
+    python var/repo/tools/vllm_client_tag_smoke.py \
         --model Qwen/Qwen2.5-1.5B-Instruct \
         --client-tag rank-0 \
         --prompts "Hello, world?"

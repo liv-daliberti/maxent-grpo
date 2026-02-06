@@ -7,13 +7,16 @@ import os
 from functools import lru_cache
 import importlib
 import subprocess
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
-
-from maxent_grpo.config import GRPOConfig
+from typing import Any, Dict, Optional, Sequence, Tuple, Union, TYPE_CHECKING
 from maxent_grpo.telemetry.wandb import init_wandb_training
 
 from .setup import _optional_dependency
 import sys
+
+if TYPE_CHECKING:
+    from maxent_grpo.config import GRPOConfig
+else:  # pragma: no cover - typing-only dependency
+    GRPOConfig = Any
 
 LOG = logging.getLogger(__name__)
 _FIRST_WANDB_LOGGED_RUNS: set[Any] = set()

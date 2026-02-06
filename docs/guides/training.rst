@@ -10,7 +10,7 @@ Slurm (recommended):
 
 .. code-block:: bash
 
-   sbatch ops/slurm/train.slurm \
+   sbatch var/repo/ops/slurm/train.slurm \
      --model Qwen2.5-1.5B-Instruct \
      --task grpo \
      --config math \
@@ -19,13 +19,13 @@ Slurm (recommended):
 
 Quick flags:
 
-- ``--task maxent`` launches the shared MaxEnt/GRPO pipeline. When ``train_grpo_objective=false`` the run uses the custom loop under ``src/maxent_grpo/training/loop.py``; when ``train_grpo_objective=true`` it defaults to TRL’s GRPOTrainer unless you set ``force_custom_loop=true`` or enable the meta-controller. Paired GRPO recipes set ``force_custom_loop: true`` so GRPO and MaxEnt execute the same loop for parity.
+- ``--task maxent`` launches the shared MaxEnt/GRPO pipeline. When ``train_grpo_objective=false`` the run uses the custom loop under ``src/maxent_grpo/training/loop.py``; when ``train_grpo_objective=true`` it defaults to TRL’s GRPOTrainer unless you set ``force_custom_loop=true`` or enable the meta-controller. To run **GRPO + entropy bonus**, keep ``train_grpo_objective=true`` and set ``policy_entropy_bonus_coef>0`` (this mode uses the custom loop so set ``force_custom_loop=true`` in the recipe). Paired GRPO recipes set ``force_custom_loop: true`` so GRPO and MaxEnt execute the same loop for parity.
 - ``--task infoseed`` (or a recipe with ``info_seed_enabled=true``) routes through ``src/maxent_grpo/pipelines/training/infoseed.py`` which always uses the custom loop so the auxiliary seed loss can tap the same hooks as MaxEnt. Hydra validation enforces ``info_seed_enabled`` for this command, so keep the flag true unless you switch back to the baseline/MaxEnt recipes.
 - ``--dp/--tp`` set vLLM data/tensor parallel sizes.
 - ``--vllm-port`` / ``--vllm-group-port`` override RPC ports when needed.
 - ``--args "…"`` passes raw CLI to the trainer (quote the entire string).
 - Authenticate with Hugging Face ahead of time (``huggingface-cli login`` or ``export HF_TOKEN=...``); the launcher forwards ``HF_TOKEN`` to every node for gated repos.
-- See every option via ``sbatch ops/slurm/train.slurm --help``.
+- See every option via ``sbatch var/repo/ops/slurm/train.slurm --help``.
 
 Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
 
@@ -45,13 +45,30 @@ Recipe pairing (reproducible GRPO_RECIPE runs)
 - Baseline GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml``
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
 - Paired GRPO recipes set ``force_custom_loop: true`` and ``maxent_reference_logprobs_source: model`` so GRPO runs through the same custom loop with a frozen reference anchor.
+- The MaxEnt-GRPO recipes now default to **GRPO + entropy bonus**; switch back to MaxEnt weighting by setting ``train_grpo_objective=false``.
 - InfoSeed recipe (custom loop + auxiliary loss): ``configs/recipes/<model>/infoseed/config_math.yaml``. Those keep ``info_seed_enabled: true`` (required for ``train-infoseed``) and default to the InfoSeed variant of the pipeline; flip the flag (or use the MaxEnt/GRPO recipes) to disable seed conditioning entirely.
 - Hydra console wrappers reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so ``GRPO_RECIPE=… maxent-grpo-{baseline,maxent}`` will read the intended sibling. For a custom-loop GRPO run, use ``configs/recipes/hydra/grpo_custom_math.yaml``.
+
+Logging (Entropy Bonus)
+-----------------------
+
+Entropy-bonus runs emit per-step metrics that make the impact explicit:
+``train/entropy_bonus_mean``, ``train/reward_without_entropy_bonus``,
+``train/reward_with_entropy_bonus``, and ``train/objective/minimize``. Set
+``logging_steps=1`` to log these values every step.
+The bonus is computed from the same scoring logits (no extra forward passes);
+the added cost is the entropy reduction on the existing logits. The bonus is
+group-normalized with a z-score (zero-mean, unit-variance) within each prompt’s
+completion group and scaled by the batch reward std, so the mean bonus may be
+near zero even though it changes the per-sample ranking. Per-reward stats include
+``train/rewards/policy_entropy_group_zscore/mean`` and
+``train/rewards/entropy_bonus/std`` for magnitude checks, and the scalar
+``train/entropy_bonus_reward_std`` reports the reward std used for scaling.
 
 What the Slurm launcher does
 ----------------------------
 
-``ops/slurm/train.slurm`` is the orchestrator. It:
+``var/repo/ops/slurm/train.slurm`` is the orchestrator. It:
 
 - Boots a conda env (default ``./var/openr1``) or arbitrary venv depending on ``ENV_MODE``.
 - Loads CUDA 12.6 modules (editable) and exports ``CUDA_HOME``, ``PATH``, ``LD_LIBRARY_PATH``.
@@ -80,7 +97,7 @@ Entrypoint and vLLM parameters
 Slurm specifics
 ---------------
 
-``ops/slurm/train.slurm`` ships with a conservative SBATCH header. Update account, partition, GPU type/count, and walltime for your site.
+``var/repo/ops/slurm/train.slurm`` ships with a conservative SBATCH header. Update account, partition, GPU type/count, and walltime for your site.
 
 .. code-block:: bash
 
@@ -105,7 +122,7 @@ Key Files
 ---------
 
 - ``src/maxent_grpo/grpo.py`` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
-- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt entrypoint that detects ``train_grpo_objective`` and either wraps TRL’s trainer (GRPO mode) or drives the fully custom controller-aware loop (MaxEnt mode, or GRPO when ``force_custom_loop`` is set).
+- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt entrypoint that detects ``train_grpo_objective`` and either wraps TRL’s trainer (GRPO mode) or drives the fully custom controller-aware loop (MaxEnt weighting or GRPO + entropy bonus, plus GRPO when ``force_custom_loop`` is set).
 - ``src/maxent_grpo/pipelines/training/infoseed.py`` — InfoSeed pipeline that always runs through the custom loop so auxiliary losses can inspect weight stats.
 - ``src/maxent_grpo/config/`` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
 - ``configs/recipes/`` — ready-to-use YAML configs; see the Recipes page
@@ -212,7 +229,7 @@ Common Flags
 - ``--init_kl_coeff``, ``--kl_target``, ``--kl_horizon`` for trust region
 - ``--report_to wandb`` plus ``wandb_*`` fields for logging
 - InfoSeed extras (only when ``info_seed_enabled``): ``info_seed_num_seeds``, ``info_seed_lambda``, ``info_seed_temperature``, ``info_seed_prompt_template``, ``info_seed_loss_type`` – set ``info_seed_enabled=false`` (CLI or YAML) to drop the augmentation entirely.
-- MaxEnt extras (when using ``src/maxent_grpo/maxent_grpo.py``): ``--maxent_tau``, ``--maxent_q_temperature``, ``--maxent_q_epsilon``, ``--maxent_length_normalize_ref``, plus optional controllers below.
+- MaxEnt extras (when using ``src/maxent_grpo/maxent_grpo.py``): ``--maxent_tau``, ``--maxent_q_temperature``, ``--maxent_q_epsilon``, ``--maxent_length_normalize_ref``, and ``--policy_entropy_bonus_coef`` (GRPO + entropy bonus), plus optional controllers below.
 
 Adaptive Controllers (MaxEnt)
 -----------------------------

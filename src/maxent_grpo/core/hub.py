@@ -34,7 +34,9 @@ from typing import Any, List, Optional, TYPE_CHECKING
 
 try:  # pragma: no cover - optional dependency or incomplete install
     from transformers import AutoConfig
-except Exception:  # pragma: no cover - allow runtimes without full transformers
+except ModuleNotFoundError:  # pragma: no cover - bubble up missing dependency
+    raise
+except (ImportError, RuntimeError, AttributeError):  # pragma: no cover
     class AutoConfig:  # type: ignore[no-redef]
         """Fallback stub when transformers is missing or incomplete."""
 
@@ -54,7 +56,7 @@ if TYPE_CHECKING:  # pragma: no cover - import types without runtime dependency
         upload_folder,
         CommitInfo,
     )
-    from huggingface_hub.errors import HfHubHTTPError
+    from huggingface_hub.errors import HfHubHTTPError, NotASafetensorsRepoError
 else:
     try:  # pragma: no cover - optional dependency
         from huggingface_hub import (
@@ -68,7 +70,7 @@ else:
             upload_folder,
             CommitInfo,
         )
-        from huggingface_hub.errors import HfHubHTTPError
+        from huggingface_hub.errors import HfHubHTTPError, NotASafetensorsRepoError
     except ModuleNotFoundError:  # pragma: no cover - provide safe fallbacks for tests
 
         def create_branch(*_args: Any, **_kwargs: Any) -> None:
@@ -102,6 +104,9 @@ else:
             commit_id = ""
 
         class HfHubHTTPError(Exception):
+            pass
+
+        class NotASafetensorsRepoError(Exception):
             pass
 
 
@@ -320,7 +325,7 @@ def get_param_count_from_repo_id(repo_id: Optional[str]) -> int:
     try:  # pragma: no cover - behavior depends on environment
         metadata = get_safetensors_metadata(repo_id)
         return int(list(metadata.parameter_count.values())[0])
-    except (HfHubHTTPError, ValueError, KeyError, TypeError):
+    except (HfHubHTTPError, NotASafetensorsRepoError, ValueError, KeyError, TypeError):
         return -1
 
 

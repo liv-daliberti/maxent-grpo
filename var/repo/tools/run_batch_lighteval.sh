@@ -3,11 +3,11 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT_DIR"
 
-SLURM_SCRIPT="ops/slurm/evaluate_batch.slurm"
-TASKS_FILE="${1:-${TASKS_FILE:-ops/slurm/tasks_math_suite.txt}}"
+SLURM_SCRIPT="var/repo/ops/slurm/evaluate_batch.slurm"
+TASKS_FILE="${1:-${TASKS_FILE:-var/repo/ops/slurm/tasks_math_suite.txt}}"
 MODEL_ROOT="${MODEL_ROOT:-var/data/Qwen2.5-7B-Open-R1-GRPO-math-2k}"
 REVISION="${REVISION:-main}"
 TENSOR_PARALLEL="${TENSOR_PARALLEL:-false}"

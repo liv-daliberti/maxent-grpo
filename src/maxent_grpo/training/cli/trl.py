@@ -57,19 +57,26 @@ def parse_grpo_args(
                 idx = cli_args.index("--config")
                 if idx + 1 < len(cli_args):
                     recipe_path = cli_args[idx + 1]
-    try:  # pragma: no cover - optional dependency for CLI
-        from trl import ModelConfig, TrlParser
-    except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dep
-        raise ImportError(
-            "Parsing GRPO configs requires TRL. Install it via `pip install trl`."
-        ) from exc
     if recipe_path:
+        try:  # pragma: no cover - optional dependency for CLI
+            from trl import ModelConfig
+        except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dep
+            class ModelConfig:  # type: ignore[no-redef]
+                def __init__(self, **kwargs: Any) -> None:
+                    for key, value in kwargs.items():
+                        setattr(self, key, value)
         try:
             return load_grpo_recipe(recipe_path, model_config_cls=ModelConfig)
         except TypeError:
             # Stubs used in unit tests sometimes provide a no-kwargs ModelConfig.
             fallback_cls = cast(Any, lambda **_: ModelConfig())
             return load_grpo_recipe(recipe_path, model_config_cls=fallback_cls)
+    try:  # pragma: no cover - optional dependency for CLI
+        from trl import ModelConfig, TrlParser
+    except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dep
+        raise ImportError(
+            "Parsing GRPO configs requires TRL. Install it via `pip install trl`."
+        ) from exc
     parser: Any
     try:
         parser = TrlParser(

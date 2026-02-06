@@ -490,6 +490,19 @@ def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
         maximum=_MAX_MAX_RETRIES,
         name="vllm_max_retries",
     )
+    ref_source = str(
+        getattr(cfg, "maxent_reference_logprobs_source", "auto") or "auto"
+    ).strip().lower()
+    request_logprobs = bool(
+        getattr(cfg, "vllm_return_logprobs", getattr(cfg, "vllm_request_logprobs", True))
+    )
+    force_logprobs = bool(getattr(cfg, "vllm_force_logprobs", False))
+    if (
+        ref_source
+        in {"model", "policy", "none", "reference", "reference_model", "ref_model"}
+        and not force_logprobs
+    ):
+        request_logprobs = False
     vllm_cfg = VLLMClientConfig(
         url=getattr(cfg, "vllm_url", ""),
         rounds_cfg=getattr(
@@ -505,9 +518,7 @@ def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
                 getattr(cfg, "vllm_backfill_local", False),
             )
         ),
-        request_logprobs=bool(
-            getattr(cfg, "vllm_return_logprobs", getattr(cfg, "vllm_request_logprobs", True))
-        ),
+        request_logprobs=request_logprobs,
         best_of=getattr(cfg, "gen_best_of", None),
         frequency_penalty=float(getattr(cfg, "gen_frequency_penalty", 0.0)),
         presence_penalty=float(getattr(cfg, "gen_presence_penalty", 0.0)),
@@ -525,12 +536,19 @@ def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
         request_id_prefix=getattr(cfg, "vllm_request_id_prefix", None),
         sync_weights=bool(getattr(cfg, "vllm_sync_weights", False)),
     )
+    vllm_mode = str(getattr(cfg, "vllm_mode", "server") or "server").strip().lower()
+    if vllm_mode in {"inline", "local", "inprocess", "in-process"}:
+        vllm_mode = "colocate"
+    if vllm_mode not in {"server", "colocate"}:
+        LOG.warning("Unknown vllm_mode=%s; defaulting to server.", vllm_mode)
+        vllm_mode = "server"
     settings = GenerationSettings(
         max_prompt_len=int(getattr(cfg, "max_prompt_length", 0) or 0),
         max_completion_len=int(getattr(cfg, "max_completion_length", 0) or 0),
         gen_temperature=cfg.gen_temperature,
         gen_top_p=cfg.gen_top_p,
         use_vllm=cfg.use_vllm,
+        vllm_mode=vllm_mode,
         vllm=vllm_cfg,
         penalty=GenerationPenaltyConfig(),
     )
@@ -606,11 +624,51 @@ def build_scoring_settings(
         getattr(cfg, "maxent_reference_logprobs_source", "auto") or "auto"
     )
     if not getattr(cfg, "train_grpo_objective", True) and ref_source.strip().lower() == "auto":
-        LOG.info(
-            "MaxEnt run detected (train_grpo_objective=false); forcing "
-            "maxent_reference_logprobs_source=model to use the frozen reference model."
+        if str(os.environ.get("MAXENT_FORCE_REF_MODEL", "")).strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "y",
+        }:
+            LOG.info(
+                "MaxEnt run detected (train_grpo_objective=false); forcing "
+                "maxent_reference_logprobs_source=model because MAXENT_FORCE_REF_MODEL=1."
+            )
+            ref_source = "model"
+        else:
+            LOG.info(
+                "MaxEnt run detected (train_grpo_objective=false); keeping "
+                "maxent_reference_logprobs_source=auto to allow vLLM logprob metadata."
+            )
+    entropy_bonus_coef = float(getattr(cfg, "policy_entropy_bonus_coef", 0.0) or 0.0)
+    policy_entropy_enabled = bool(getattr(cfg, "maxent_policy_entropy", False))
+    if entropy_bonus_coef != 0.0:
+        policy_entropy_enabled = True
+    entropy_mode = str(
+        getattr(cfg, "maxent_policy_entropy_mode", "exact") or "exact"
+    ).strip().lower()
+    if entropy_mode in {"", "none"}:
+        entropy_mode = "exact"
+    if entropy_mode in {"exact", "full", "distribution"}:
+        entropy_mode = "exact"
+    elif entropy_mode in {
+        "sample",
+        "estimate",
+        "estimated",
+        "approx",
+        "approximate",
+        "token",
+        "token_logp",
+        "nll",
+        "logp",
+    }:
+        entropy_mode = "sample"
+    else:
+        LOG.warning(
+            "Unknown maxent_policy_entropy_mode=%s; falling back to 'exact'.",
+            entropy_mode,
         )
-        ref_source = "model"
+        entropy_mode = "exact"
     return ScoringSettings(
         weighting=weighting,
         clipping=clipping,
@@ -619,6 +677,9 @@ def build_scoring_settings(
         allow_stale_reference_logprobs=bool(
             getattr(cfg, "maxent_allow_stale_reference_logprobs", False)
         ),
+        policy_entropy_bonus_coef=entropy_bonus_coef,
+        policy_entropy=policy_entropy_enabled,
+        policy_entropy_mode=entropy_mode,
     )
 
 
@@ -687,8 +748,12 @@ def build_training_loop_context(
     :rtype: TrainingLoopContext
     """
 
+    ref_source = str(
+        getattr(training_args, "maxent_reference_logprobs_source", "auto") or "auto"
+    ).strip().lower()
     share_reference_model = bool(
         getattr(training_args, "maxent_share_reference_model", False)
+        or ref_source in {"policy", "none"}
     )
     reference_model_args = None
     if not share_reference_model:
@@ -744,11 +809,15 @@ def build_training_loop_context(
 
     accelerator = _init_accelerator(accelerator_cls_or_obj)
     dataloader_cls = require_dataloader(deps_namespace)
+    LOG.info("[trace] build_training_loop_context: loading policy model")
     model = get_model(model_args, training_args)
+    LOG.info("[trace] build_training_loop_context: policy model loaded")
     reference_model = None
     if not share_reference_model and reference_model_args is not None:
         try:
+            LOG.info("[trace] build_training_loop_context: loading reference model")
             reference_model = get_model(reference_model_args, training_args)
+            LOG.info("[trace] build_training_loop_context: reference model loaded")
         except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - defensive logging
             LOG.warning(
                 "Unable to load frozen reference model; falling back to the live policy | error=%s",
@@ -756,16 +825,40 @@ def build_training_loop_context(
             )
             share_reference_model = True
     if reference_model is not None:
+        LOG.info("[trace] build_training_loop_context: preparing reference model")
         reference_model = _prepare_reference_model(reference_model, accelerator.device)
+        LOG.info("[trace] build_training_loop_context: reference model prepared")
+    LOG.info("[trace] build_training_loop_context: loading tokenizer")
     tokenizer = get_tokenizer(model_args, training_args)
+    LOG.info("[trace] build_training_loop_context: tokenizer loaded")
     ensure_real_dependencies(
         context="MaxEnt-GRPO training loop",
         model=model,
         tokenizer=tokenizer,
     )
+    # Align tokenizer padding with causal LM expectations (left padding).
+    try:
+        if getattr(tokenizer, "pad_token_id", None) is None:
+            eos_token_id = getattr(tokenizer, "eos_token_id", None)
+            eos_token = getattr(tokenizer, "eos_token", None)
+            if eos_token_id is not None and isinstance(eos_token, str):
+                tokenizer.pad_token = eos_token
+            else:
+                tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+                resize_fn = getattr(model, "resize_token_embeddings", None)
+                if callable(resize_fn):
+                    resize_fn(len(tokenizer))
+        cfg = getattr(model, "config", None)
+        if cfg is not None and getattr(cfg, "pad_token_id", None) is None:
+            setattr(cfg, "pad_token_id", tokenizer.pad_token_id)
+        tokenizer.padding_side = "left"
+    except Exception as exc:  # pragma: no cover - defensive
+        LOG.debug("Unable to enforce tokenizer padding_side=left: %s", exc)
+    LOG.info("[trace] build_training_loop_context: loading datasets")
     train_dataset, eval_rows = load_datasets(
         script_args, training_args, tokenizer, accelerator=accelerator
     )
+    LOG.info("[trace] build_training_loop_context: datasets loaded")
     setattr(training_args, "eval_rows", eval_rows)
     reward_funcs, reward_weights = load_reward_functions(
         script_args, tokenizer, training_args
@@ -792,6 +885,18 @@ def build_training_loop_context(
     sampler = _maybe_build_distributed_sampler(
         train_dataset, training_args, accelerator
     )
+    if getattr(accelerator, "is_main_process", True):
+        try:
+            train_len = len(train_dataset)
+        except (TypeError, AttributeError):
+            train_len = None
+        LOG.info(
+            "Train dataset sanity | size=%s | num_processes=%s | disable_distributed_sampler=%s | sampler=%s",
+            train_len,
+            getattr(accelerator, "num_processes", 1),
+            bool(getattr(training_args, "disable_distributed_sampler", False)),
+            "enabled" if sampler is not None else "none",
+        )
     loader_kwargs = {
         "batch_size": training_args.per_device_train_batch_size,
         "shuffle": sampler is None,
@@ -802,6 +907,7 @@ def build_training_loop_context(
     train_loader = dataloader_cls(train_dataset, **loader_kwargs)
 
     optim_handles = _build_optim_handles(model, training_args)
+    LOG.info("[trace] build_training_loop_context: accelerator.prepare start")
     (
         model,
         prepared_optimizer,
@@ -814,6 +920,7 @@ def build_training_loop_context(
         train_loader,
         optim_handles.lr_scheduler,
     )
+    LOG.info("[trace] build_training_loop_context: accelerator.prepare done")
     optim_handles.optimizer = prepared_optimizer
     if prepared_scheduler is not None:
         optim_handles.lr_scheduler = prepared_scheduler

@@ -2,7 +2,7 @@
 # Slurm launcher to start one vLLM server and run multiple LightEval tasks sequentially against it.
 # Set LIGHEVAL_BACKEND=hf to skip vLLM and run the LightEval HF backend in-process.
 # Usage (from repo root):
-#   sbatch ops/slurm/evaluate_batch.slurm <tasks_file> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]
+#   sbatch var/repo/ops/slurm/evaluate_batch.slurm <tasks_file> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]
 # tasks_file: plain text; each non-empty/non-comment line is:
 #   <benchmark> <task_list> [extra_lighteval_opts...]
 # Example line: math_500 lighteval|math_500|0|0 +inference.models.0.top_p=1.0
@@ -97,7 +97,7 @@ fi
 
 # --- Argument parsing ---
 if [[ $# -lt 5 ]]; then
-  echo "Usage: sbatch ops/slurm/evaluate_batch.slurm <tasks_file> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]" >&2
+  echo "Usage: sbatch var/repo/ops/slurm/evaluate_batch.slurm <tasks_file> <model> <revision> <tensor_parallel> <trust_remote_code> [base64_system_prompt]" >&2
   exit 1
 fi
 TASKS_FILE="$1"        # path to tasks file

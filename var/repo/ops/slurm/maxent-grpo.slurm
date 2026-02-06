@@ -2,7 +2,7 @@
 # Multi-node Open‑R1 MaxEnt‑GRPO trainer with optional vLLM server on a dedicated node
 #
 # Example:
-#   sbatch --nodes=2 ops/slurm/maxent-grpo.slurm \
+#   sbatch --nodes=2 var/repo/ops/slurm/maxent-grpo.slurm \
 #     --model Qwen2.5-1.5B-Instruct \
 #     --config math \
 #     --accelerator zero3 \
@@ -118,6 +118,9 @@ export HF_HUB_ENABLE_HF_TRANSFER=1
 export HF_HUB_ENABLE_PROGRESS_BARS=1
 # Enable vLLM prompt dedup unless overridden.
 export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
+# Defaults for colocated vLLM KV cache sizing (override via sbatch --export)
+export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN="${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN:-4096}"
+export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.6}"
 # Defaults for MaxEnt runs (override via `sbatch --export` or env).
 export VLLM_SERVER_IMPL="${VLLM_SERVER_IMPL:-trl}"
 export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-info}"
@@ -134,7 +137,7 @@ python -m pip install -q -e "$ROOT_DIR" || {
 }
 
 if [[ "$*" == *"--help"* ]]; then
-  echo "Usage: sbatch ops/slurm/maxent-grpo.slurm [options]"
+  echo "Usage: sbatch var/repo/ops/slurm/maxent-grpo.slurm [options]"
   echo "Options:"
   echo "  --model MODEL            Recipe model directory under configs/recipes/ (e.g., Qwen2.5-1.5B-Instruct)"
   echo "  --config SUFFIX          Config suffix in configs/recipes/<model>/<task-subdir>/config_<SUFFIX>.yaml (e.g., math)"
@@ -150,7 +153,7 @@ if [[ "$*" == *"--help"* ]]; then
   exit 0
 fi
 
-# Defaults (so `sbatch ops/slurm/maxent-grpo.slurm` just works)
+# Defaults (so `sbatch var/repo/ops/slurm/maxent-grpo.slurm` just works)
 # - Single node, 8 GPUs; vLLM on 1 GPU and MaxEnt-GRPO training on remaining 7 GPUs
 # - Qwen 1.5B MaxEnt-GRPO math with accelerate zero3
 MODEL="${MODEL:-Qwen2.5-1.5B-Instruct}"
@@ -484,6 +487,14 @@ export INLINE_VLLM_FALLBACK_GPUS="$(seq -s, 0 $((GPUS_PER_NODE - 1)))"
 srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; set -x; \
   export VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
   export MAXENT_LOG_LEVEL=\"${MAXENT_LOG_LEVEL:-info}\"; \
+  # Prefer async init on loopback (auto) to avoid init_communicator deadlocks.
+  export MAXENT_VLLM_ASYNC_INIT=\"${MAXENT_VLLM_ASYNC_INIT:-auto}\"; \
+  # Retry init_communicator to survive transient NCCL failures.
+  export MAXENT_VLLM_INIT_RETRIES=\"${MAXENT_VLLM_INIT_RETRIES:-3}\"; \
+  export MAXENT_VLLM_INIT_RETRY_BACKOFF_S=\"${MAXENT_VLLM_INIT_RETRY_BACKOFF_S:-2}\"; \
+  export MAXENT_VLLM_INIT_TIMEOUT_S=\"${MAXENT_VLLM_INIT_TIMEOUT_S:-300}\"; \
+  export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN=\"${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN}\"; \
+  export MAXENT_VLLM_COLOCATE_GPU_UTIL=\"${MAXENT_VLLM_COLOCATE_GPU_UTIL}\"; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
   elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
   export PYTHONNOUSERSITE=1; \

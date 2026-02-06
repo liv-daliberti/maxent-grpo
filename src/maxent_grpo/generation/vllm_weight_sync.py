@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import inspect
 import logging
+import os
+import socket
 import time
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace as _SimpleNamespace
 from typing import Any, Callable, Iterable, Optional, Sequence, TYPE_CHECKING, cast
 
@@ -21,7 +23,127 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
 else:  # pragma: no cover - runtime fallback
     AcceleratorType = Any
 LOG = logging.getLogger(__name__)
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return default
 SimpleNamespace = _SimpleNamespace  # Exposed for tests that monkeypatch this module
+
+
+def _mirror_log(message: str) -> None:
+    path = os.environ.get("MAXENT_VLLM_LOG_MIRROR_FILE")
+    if not path:
+        return
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(f"[mirror {timestamp}] {message}\n")
+    except OSError:
+        LOG.debug("Failed to mirror vLLM sync logs to %s", path)
+
+
+def _log_sync_info(template: str, *args: Any) -> None:
+    LOG.info(template, *args)
+    try:
+        rendered = template % args
+    except Exception:
+        rendered = template
+    _mirror_log(rendered)
+
+
+def _log_sync_warning(template: str, *args: Any) -> None:
+    LOG.warning(template, *args)
+    try:
+        rendered = template % args
+    except Exception:
+        rendered = template
+    _mirror_log(rendered)
+
+
+@contextmanager
+def _temporary_env(overrides: dict[str, str]) -> Iterable[None]:
+    if not overrides:
+        yield
+        return
+    previous: dict[str, Optional[str]] = {}
+    for key, value in overrides.items():
+        previous[key] = os.environ.get(key)
+        os.environ[key] = value
+    try:
+        yield
+    finally:
+        for key, prior in previous.items():
+            if prior is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prior
+
+
+def _loopback_host(base_url: str) -> bool:
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(base_url)
+        host = parsed.hostname or ""
+    except Exception:
+        host = ""
+    if not host:
+        host = base_url
+    host = host.strip().lower()
+    return host in {"localhost", "127.0.0.1", "::1"}
+
+
+def _vllm_client_nccl_overrides(base_url: str) -> dict[str, str]:
+    overrides: dict[str, str] = {}
+    if not _loopback_host(base_url):
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME")
+        if explicit and "NCCL_SOCKET_IFNAME" not in os.environ:
+            overrides["NCCL_SOCKET_IFNAME"] = explicit
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_P2P_DISABLE")
+        if explicit and "NCCL_P2P_DISABLE" not in os.environ:
+            overrides["NCCL_P2P_DISABLE"] = explicit
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_IB_DISABLE")
+        if explicit and "NCCL_IB_DISABLE" not in os.environ:
+            overrides["NCCL_IB_DISABLE"] = explicit
+        return overrides
+    if "NCCL_SOCKET_IFNAME" not in os.environ:
+        overrides["NCCL_SOCKET_IFNAME"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME", "lo"
+        )
+    if "NCCL_P2P_DISABLE" not in os.environ:
+        overrides["NCCL_P2P_DISABLE"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_P2P_DISABLE", "1"
+        )
+    if "NCCL_IB_DISABLE" not in os.environ:
+        overrides["NCCL_IB_DISABLE"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_IB_DISABLE", "1"
+        )
+    return overrides
+
+
+def _resolve_vllm_group_port() -> Optional[int]:
+    for key in ("VLLM_GROUP_PORT", "PORT_FOR_COMMUNICATION"):
+        value = os.environ.get(key)
+        if not value:
+            continue
+        try:
+            return int(value)
+        except ValueError:
+            LOG.warning("Invalid %s=%r; expected an integer.", key, value)
+    return None
 
 
 def _optional_import(module_name: str) -> Any:
@@ -194,6 +316,8 @@ class VLLMWeightSyncMixin:
         :rtype: bool
         """
         ctx = self.ctx
+        if getattr(self, "_vllm_sync_disabled", False):
+            return False
         if not ctx.vllm_sync_weights or not ctx.accelerator.is_main_process:
             return False
         if self._vllm_client is not None and self._vllm_sync_ready:
@@ -214,10 +338,27 @@ class VLLMWeightSyncMixin:
             return False
         try:
             base_url = self._vllm_base_url(ctx.vllm_url)
+            LOG.info(
+                "vLLM client NCCL config | base_url=%s | vllm_url=%s | group_port=%s | NCCL_SOCKET_IFNAME=%s | MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME=%s | NCCL_P2P_DISABLE=%s | NCCL_IB_DISABLE=%s",
+                base_url,
+                ctx.vllm_url,
+                _resolve_vllm_group_port(),
+                os.getenv("NCCL_SOCKET_IFNAME", ""),
+                os.getenv("MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME", ""),
+                os.getenv("NCCL_P2P_DISABLE", ""),
+                os.getenv("NCCL_IB_DISABLE", ""),
+            )
+            group_port = _resolve_vllm_group_port()
             try:
-                self._vllm_client = client_cls(base_url=base_url)
+                client_kwargs = {"base_url": base_url}
+                if group_port is not None:
+                    client_kwargs["group_port"] = group_port
+                self._vllm_client = client_cls(**client_kwargs)
             except TypeError:
-                self._vllm_client = client_cls()
+                try:
+                    self._vllm_client = client_cls(base_url=base_url)
+                except TypeError:
+                    self._vllm_client = client_cls()
             init_attr = getattr(self._vllm_client, "init_communicator", None)
             if not callable(init_attr):
                 LOG.warning(
@@ -228,18 +369,49 @@ class VLLMWeightSyncMixin:
                 return False
             init_fn = cast(Callable[..., Any], init_attr)
 
-            def _call_init(fn: Callable[..., Any]) -> None:
-                # Some stubs may expect different signatures; try common variants explicitly.
+            override_host = os.getenv("MAXENT_VLLM_CLIENT_HOST", "").strip()
+            if override_host:
                 try:
-                    fn()
-                except TypeError:
-                    try:
-                        fn(self._vllm_client)
-                    except TypeError:
-                        fn(self._vllm_client, base_url)
+                    resolved_override = socket.gethostbyname(override_host)
+                except Exception:
+                    resolved_override = override_host
+                current_host = getattr(self._vllm_client, "host", None)
+                if resolved_override != current_host:
+                    _log_sync_info(
+                        "Overriding vLLM client host for init_communicator | current=%s | override=%s",
+                        current_host,
+                        resolved_override,
+                    )
+                try:
+                    setattr(self._vllm_client, "host", resolved_override)
+                except Exception:
+                    LOG.debug(
+                        "Failed to override vLLM client host; proceeding with %s",
+                        current_host,
+                    )
 
-            _call_init(init_fn)
+            overrides = _vllm_client_nccl_overrides(base_url)
+            if overrides:
+                _log_sync_info(
+                    "vLLM client NCCL overrides applied | %s",
+                    ", ".join(f"{k}={v}" for k, v in overrides.items()),
+                )
+            else:
+                _log_sync_info("vLLM client NCCL overrides applied | none")
+            with _temporary_env(overrides):
+                _log_sync_info(
+                    "vLLM client NCCL env effective | NCCL_SOCKET_IFNAME=%s | NCCL_P2P_DISABLE=%s | NCCL_IB_DISABLE=%s",
+                    os.getenv("NCCL_SOCKET_IFNAME", ""),
+                    os.getenv("NCCL_P2P_DISABLE", ""),
+                    os.getenv("NCCL_IB_DISABLE", ""),
+                )
+                _vllm_utils.init_vllm_client_communicator(
+                    self._vllm_client, log=_log_sync_info
+                )
             self._vllm_sync_ready = True
+            setattr(self, "_vllm_last_sync_ok", True)
+            setattr(self, "_vllm_last_sync_error", None)
+            setattr(self, "_vllm_sync_failures", 0)
             return True
         except (
             OSError,
@@ -247,6 +419,23 @@ class VLLMWeightSyncMixin:
             ValueError,
         ) as exc:  # pragma: no cover - network dependent
             LOG.warning("Failed to initialize vLLMClient for weight sync: %s", exc)
+            setattr(self, "_vllm_last_sync_ok", False)
+            setattr(self, "_vllm_last_sync_error", str(exc))
+            failures = int(getattr(self, "_vllm_sync_failures", 0) or 0) + 1
+            setattr(self, "_vllm_sync_failures", failures)
+            if _env_flag("MAXENT_VLLM_SYNC_DISABLE_ON_FAILURE", True):
+                max_fails = max(1, _env_int("MAXENT_VLLM_SYNC_MAX_FAILURES", 2))
+                if failures >= max_fails:
+                    if not getattr(self, "_vllm_sync_disabled", False):
+                        LOG.warning(
+                            "Disabling vLLM weight sync after %d init failures.",
+                            failures,
+                        )
+                    setattr(self, "_vllm_sync_disabled", True)
+                    try:
+                        ctx.vllm_sync_weights = False
+                    except Exception:
+                        LOG.debug("Failed to update ctx.vllm_sync_weights; proceeding.")
             self._vllm_client = None
             self._vllm_sync_ready = False
             return False
@@ -266,6 +455,7 @@ class VLLMWeightSyncMixin:
         ctx = self.ctx
         if not getattr(ctx, "vllm_sync_weights", False):
             return
+        setattr(self, "_vllm_sync_attempted", False)
         model_obj = getattr(ctx, "model", None)
         params_fn = getattr(model_obj, "parameters", None)
         if callable(params_fn):
@@ -289,7 +479,40 @@ class VLLMWeightSyncMixin:
                     "Failed to inspect trainable parameters for vLLM sync: %s", exc
                 )
         accelerator = ctx.accelerator
+        dist = getattr(torch, "distributed", None)
+        rank = getattr(accelerator, "process_index", None)
+        local_rank = getattr(accelerator, "local_process_index", None)
+        if rank is None and dist is not None and dist.is_available() and dist.is_initialized():
+            try:
+                rank = dist.get_rank()
+            except Exception:
+                rank = None
+        world_size = getattr(accelerator, "num_processes", None)
+        if not world_size and dist is not None and dist.is_available() and dist.is_initialized():
+            try:
+                world_size = dist.get_world_size()
+            except Exception:
+                world_size = None
+        if not world_size:
+            world_size = 1
         is_main = getattr(accelerator, "is_main_process", True)
+        disable_sync = bool(getattr(self, "_vllm_sync_disabled", False))
+        if (
+            getattr(accelerator, "num_processes", 1) > 1
+            and dist is not None
+            and callable(getattr(dist, "is_available", None))
+            and callable(getattr(dist, "is_initialized", None))
+            and dist.is_available()
+            and dist.is_initialized()
+            and callable(getattr(dist, "broadcast_object_list", None))
+        ):
+            payload = [bool(disable_sync)] if is_main else [False]
+            dist.broadcast_object_list(payload, src=0)
+            disable_sync = bool(payload[0])
+            if disable_sync and not getattr(self, "_vllm_sync_disabled", False):
+                setattr(self, "_vllm_sync_disabled", True)
+        if disable_sync:
+            return
         current_step = ctx.generation_stats.get("current_step")
         sync_interval = getattr(ctx, "vllm_sync_interval_steps", None)
         if sync_interval is None:
@@ -311,7 +534,6 @@ class VLLMWeightSyncMixin:
         # Decide once (on rank 0) whether to run the ZeRO-3 gather + sync path,
         # then broadcast to all ranks. This avoids deadlocks where non-main
         # ranks enter the gather path while rank 0 returns early.
-        dist = getattr(torch, "distributed", None)
         should_sync = True
         current_version_sig: Optional[int] = None
         if is_main and current_step is not None:
@@ -354,6 +576,15 @@ class VLLMWeightSyncMixin:
             should_sync = bool(payload[0])
         if not should_sync:
             return
+        _log_sync_info(
+            "vLLM weight sync check | step=%s | rank=%s/%s | local_rank=%s | is_main=%s | should_sync=%s",
+            current_step,
+            rank,
+            world_size,
+            local_rank,
+            is_main,
+            should_sync,
+        )
 
         def _is_zero3(accel: Any) -> bool:
             ds_plugin = getattr(getattr(accel, "state", None), "deepspeed_plugin", None)
@@ -364,7 +595,19 @@ class VLLMWeightSyncMixin:
 
         # Only the main process should talk to the vLLM HTTP client. Other ranks
         # still participate in ZeRO gathers so parameter states stay aligned.
-        ready = bool(ensure_fn()) if is_main else False
+        ready = False
+        if is_main:
+            setattr(self, "_vllm_sync_attempted", True)
+            ensure_start = time.monotonic()
+            ready = bool(ensure_fn())
+            _log_sync_info(
+                "vLLM weight sync ensure_client done | step=%s | rank=%s/%s | ready=%s | seconds=%.2f",
+                current_step,
+                rank,
+                world_size,
+                ready,
+                time.monotonic() - ensure_start,
+            )
         if not ready:
             # In collective vLLM generation, only rank 0 issues the vLLM request,
             # but ZeRO-3 parameter gathering is a collective op that requires
@@ -377,29 +620,77 @@ class VLLMWeightSyncMixin:
                     except (AttributeError, TypeError):
                         model = ctx.model
                     start = time.monotonic()
+                    _log_sync_info(
+                        "vLLM weight sync gather-only start | step=%s | rank=%s/%s | local_rank=%s",
+                        current_step,
+                        rank,
+                        world_size,
+                        local_rank,
+                    )
                     sync_model(model)
-                    if getattr(accelerator, "is_main_process", False):
-                        LOG.debug(
-                            "vLLM weight sync (gather-only) complete | step=%s | seconds=%.2f",
-                            current_step,
-                            time.monotonic() - start,
-                        )
+                    _log_sync_info(
+                        "vLLM weight sync gather-only done | step=%s | rank=%s/%s | seconds=%.2f",
+                        current_step,
+                        rank,
+                        world_size,
+                        time.monotonic() - start,
+                    )
                 except (RuntimeError, ValueError, TypeError) as exc:
-                    LOG.warning("vLLM weight sync (gather-only) failed: %s", exc)
+                    _log_sync_warning("vLLM weight sync (gather-only) failed: %s", exc)
                 wait_for_all = getattr(accelerator, "wait_for_everyone", None)
                 if callable(wait_for_all):
+                    wait_start = time.monotonic()
+                    _log_sync_info(
+                        "vLLM weight sync gather-only wait_for_everyone start | step=%s | rank=%s/%s",
+                        current_step,
+                        rank,
+                        world_size,
+                    )
                     wait_for_all()
+                    _log_sync_info(
+                        "vLLM weight sync gather-only wait_for_everyone done | step=%s | rank=%s/%s | seconds=%.2f",
+                        current_step,
+                        rank,
+                        world_size,
+                        time.monotonic() - wait_start,
+                    )
+                    if is_main:
+                        _log_sync_info(
+                            "vLLM weight sync barrier complete | step=%s | rank=%s/%s | next=vLLM request",
+                            current_step,
+                            rank,
+                            world_size,
+                        )
             else:
                 wait_for_all = getattr(accelerator, "wait_for_everyone", None)
                 if callable(wait_for_all):
+                    wait_start = time.monotonic()
+                    _log_sync_info(
+                        "vLLM weight sync wait_for_everyone start | step=%s | rank=%s/%s",
+                        current_step,
+                        rank,
+                        world_size,
+                    )
                     wait_for_all()
+                    _log_sync_info(
+                        "vLLM weight sync wait_for_everyone done | step=%s | rank=%s/%s | seconds=%.2f",
+                        current_step,
+                        rank,
+                        world_size,
+                        time.monotonic() - wait_start,
+                    )
             return
 
         if current_step is not None and self._last_vllm_synced_step == int(current_step):
             return
         start = time.monotonic()
-        if getattr(accelerator, "is_main_process", False):
-            LOG.debug("vLLM weight sync start | step=%s", current_step)
+        _log_sync_info(
+            "vLLM weight sync push start | step=%s | rank=%s/%s | local_rank=%s",
+            current_step,
+            rank,
+            world_size,
+            local_rank,
+        )
         try:
             model = accelerator.unwrap_model(ctx.model)
         except (AttributeError, TypeError):
@@ -426,25 +717,40 @@ class VLLMWeightSyncMixin:
             RuntimeError,
             ValueError,
         ) as exc:  # pragma: no cover - runtime dependent
-            LOG.warning("Skipping vLLM weight sync due to error: %s", exc)
+            _log_sync_warning("Skipping vLLM weight sync due to error: %s", exc)
         else:
             elapsed = time.monotonic() - start
-            if getattr(accelerator, "is_main_process", False):
-                if elapsed >= 15.0:
-                    LOG.info(
-                        "vLLM weight sync complete | step=%s | seconds=%.2f",
-                        current_step,
-                        elapsed,
-                    )
-                else:
-                    LOG.debug(
-                        "vLLM weight sync complete | step=%s | seconds=%.2f",
-                        current_step,
-                        elapsed,
-                    )
+            _log_sync_info(
+                "vLLM weight sync push done | step=%s | rank=%s/%s | seconds=%.2f",
+                current_step,
+                rank,
+                world_size,
+                elapsed,
+            )
         wait_for_all = getattr(accelerator, "wait_for_everyone", None)
         if callable(wait_for_all):
+            wait_start = time.monotonic()
+            _log_sync_info(
+                "vLLM weight sync wait_for_everyone start | step=%s | rank=%s/%s",
+                current_step,
+                rank,
+                world_size,
+            )
             wait_for_all()
+            _log_sync_info(
+                "vLLM weight sync wait_for_everyone done | step=%s | rank=%s/%s | seconds=%.2f",
+                current_step,
+                rank,
+                world_size,
+                time.monotonic() - wait_start,
+            )
+            if is_main:
+                _log_sync_info(
+                    "vLLM weight sync barrier complete | step=%s | rank=%s/%s | next=vLLM request",
+                    current_step,
+                    rank,
+                    world_size,
+                )
 
     def _param_version_signature(self, model: Any) -> Optional[int]:
         """Return a cheap signature based on torch parameter version counters."""
@@ -467,6 +773,38 @@ class VLLMWeightSyncMixin:
         if count <= 0:
             return None
         return total
+
+    def _sync_log_param(self, name: str, param: Any) -> bool:
+        state = getattr(self, "_vllm_sync_log_state", None)
+        if not isinstance(state, dict):
+            return False
+        state["push_count"] = int(state.get("push_count", 0)) + 1
+        idx = int(state["push_count"])
+        log_every = int(state.get("log_every", 50))
+        if log_every > 0 and idx % log_every == 0:
+            _log_sync_info(
+                "vLLM weight sync param push | idx=%d | name=%s | shape=%s | dtype=%s",
+                idx,
+                name,
+                getattr(param, "shape", None),
+                getattr(param, "dtype", None),
+            )
+        max_params = state.get("max_params")
+        if isinstance(max_params, int) and max_params > 0 and idx >= max_params:
+            if not state.get("stop"):
+                _log_sync_warning(
+                    "vLLM weight sync early stop | max_params=%d reached",
+                    max_params,
+                )
+            state["stop"] = True
+            return True
+        return bool(state.get("stop"))
+
+    def _sync_log_should_stop(self) -> bool:
+        state = getattr(self, "_vllm_sync_log_state", None)
+        if not isinstance(state, dict):
+            return False
+        return bool(state.get("stop"))
 
     def _client_callable(self, attr_name: str) -> Optional[_ClientCallable]:
         """Return a callable attribute from the vLLM client if available.
@@ -499,111 +837,171 @@ class VLLMWeightSyncMixin:
         """
         fsdp_cls = self._fsdp_cls
         visited = visited if visited is not None else set()
-
-        def _has_summon_full_params(target: Any) -> bool:
+        log_every_raw = os.getenv("MAXENT_VLLM_SYNC_LOG_EVERY", "50")
+        try:
+            log_every = max(1, int(log_every_raw))
+        except (TypeError, ValueError):
+            log_every = 50
+        max_params_raw = os.getenv("MAXENT_VLLM_SYNC_MAX_PARAMS", "")
+        max_params: Optional[int]
+        if max_params_raw:
             try:
-                return callable(getattr(target, "summon_full_params"))
-            except (AttributeError, RuntimeError, TypeError, ValueError):
-                return False
+                max_params = max(1, int(max_params_raw))
+            except (TypeError, ValueError):
+                max_params = None
+        else:
+            max_params = None
+        self._vllm_sync_log_state = {
+            "log_every": log_every,
+            "max_params": max_params,
+            "push_count": 0,
+            "stop": False,
+        }
+        try:
 
-        class_summon = getattr(type(model), "summon_full_params", None)
-        if fsdp_cls is None:
-            fsdp_mod = getattr(getattr(torch, "distributed", None), "fsdp", None)
-            fsdp_cls = (
-                getattr(fsdp_mod, "FullyShardedDataParallel", None)
-                if fsdp_mod
-                else None
-            )
-        has_summon = _has_summon_full_params(model)
-        if has_summon and callable(class_summon):
-            if fsdp_cls is None or not isinstance(model, fsdp_cls):
-                fsdp_cls = type(model)
-        if fsdp_cls is not None and (
-            self._fsdp_cls is None or not isinstance(model, self._fsdp_cls)
-        ):
-            self._fsdp_cls = fsdp_cls
-        if fsdp_cls is not None and isinstance(model, fsdp_cls):
-            named_children = getattr(model, "named_children", None)
-            children = (
-                list(cast(Iterable[tuple[str, Any]], named_children()))
-                if callable(named_children)
-                else []
-            )
-            modules_to_sync = children or [("", model)]
-            for base_name, base_module in modules_to_sync:
-                named_params = getattr(base_module, "named_parameters", None)
-                if not callable(named_params):
-                    continue
-                for pname, param in cast(Iterable[tuple[str, Any]], named_params()):
-                    full_name = f"{base_name}.{pname}" if base_name else pname
-                    for extra in (
-                        "_fsdp_wrapped_module.",
-                        "_checkpoint_wrapped_module.",
-                    ):
-                        full_name = full_name.replace(extra, "")
-                    if full_name in visited:
-                        continue
-                    visited.add(full_name)
-                    self._push_param_to_vllm(full_name, param)
-            self._reset_vllm_cache()
-            return
-        if not has_summon:
+            def _has_summon_full_params(target: Any) -> bool:
+                try:
+                    return callable(getattr(target, "summon_full_params"))
+                except (AttributeError, RuntimeError, TypeError, ValueError):
+                    return False
+
+            class_summon = getattr(type(model), "summon_full_params", None)
+            if fsdp_cls is None:
+                fsdp_mod = getattr(getattr(torch, "distributed", None), "fsdp", None)
+                fsdp_cls = (
+                    getattr(fsdp_mod, "FullyShardedDataParallel", None)
+                    if fsdp_mod
+                    else None
+                )
             has_summon = _has_summon_full_params(model)
-            if callable(class_summon) and (
-                fsdp_cls is None or not isinstance(model, fsdp_cls)
+            if has_summon and callable(class_summon):
+                if fsdp_cls is None or not isinstance(model, fsdp_cls):
+                    fsdp_cls = type(model)
+            if fsdp_cls is not None and (
+                self._fsdp_cls is None or not isinstance(model, self._fsdp_cls)
             ):
-                fsdp_cls = type(model)
-                if self._fsdp_cls is None or not isinstance(model, self._fsdp_cls):
-                    self._fsdp_cls = fsdp_cls
-        if fsdp_cls is not None and isinstance(model, fsdp_cls):
-            named_children = getattr(model, "named_children", None)
-            children = (
-                list(cast(Iterable[tuple[str, Any]], named_children()))
-                if callable(named_children)
-                else []
-            )
-            modules_to_sync = children or [("", model)]
-            for base_name, base_module in modules_to_sync:
-                named_params = getattr(base_module, "named_parameters", None)
-                if not callable(named_params):
-                    continue
-                for pname, param in cast(Iterable[tuple[str, Any]], named_params()):
-                    full_name = f"{base_name}.{pname}" if base_name else pname
-                    for extra in (
-                        "_fsdp_wrapped_module.",
-                        "_checkpoint_wrapped_module.",
-                    ):
-                        full_name = full_name.replace(extra, "")
-                    if full_name in visited:
-                        continue
-                    visited.add(full_name)
-                    self._push_param_to_vllm(full_name, param)
-            self._reset_vllm_cache()
-            return
-        if has_summon:
-
-            def _walk(module: Any, prefix: str = "") -> None:
-                named_children = getattr(module, "named_children", None)
+                self._fsdp_cls = fsdp_cls
+            if fsdp_cls is not None and isinstance(model, fsdp_cls):
+                named_children = getattr(model, "named_children", None)
                 children = (
                     list(cast(Iterable[tuple[str, Any]], named_children()))
                     if callable(named_children)
                     else []
                 )
-                named_params = getattr(module, "named_parameters", None)
-                if callable(named_params):
-                    for raw_name, param in cast(
-                        Iterable[tuple[str, Any]], named_params()
-                    ):
-                        if param is None:
+                modules_to_sync = children or [("", model)]
+                for base_name, base_module in modules_to_sync:
+                    named_params = getattr(base_module, "named_parameters", None)
+                    if not callable(named_params):
+                        continue
+                    for pname, param in cast(Iterable[tuple[str, Any]], named_params()):
+                        full_name = f"{base_name}.{pname}" if base_name else pname
+                        for extra in (
+                            "_fsdp_wrapped_module.",
+                            "_checkpoint_wrapped_module.",
+                        ):
+                            full_name = full_name.replace(extra, "")
+                        if full_name in visited:
                             continue
+                        visited.add(full_name)
+                        self._sync_log_param(full_name, param)
+                        self._push_param_to_vllm(full_name, param)
+                        if self._sync_log_should_stop():
+                            self._reset_vllm_cache()
+                            return
+                self._reset_vllm_cache()
+                return
+            if not has_summon:
+                has_summon = _has_summon_full_params(model)
+                if callable(class_summon) and (
+                    fsdp_cls is None or not isinstance(model, fsdp_cls)
+                ):
+                    fsdp_cls = type(model)
+                    if self._fsdp_cls is None or not isinstance(model, self._fsdp_cls):
+                        self._fsdp_cls = fsdp_cls
+            if fsdp_cls is not None and isinstance(model, fsdp_cls):
+                named_children = getattr(model, "named_children", None)
+                children = (
+                    list(cast(Iterable[tuple[str, Any]], named_children()))
+                    if callable(named_children)
+                    else []
+                )
+                modules_to_sync = children or [("", model)]
+                for base_name, base_module in modules_to_sync:
+                    named_params = getattr(base_module, "named_parameters", None)
+                    if not callable(named_params):
+                        continue
+                    for pname, param in cast(Iterable[tuple[str, Any]], named_params()):
+                        full_name = f"{base_name}.{pname}" if base_name else pname
+                        for extra in (
+                            "_fsdp_wrapped_module.",
+                            "_checkpoint_wrapped_module.",
+                        ):
+                            full_name = full_name.replace(extra, "")
+                        if full_name in visited:
+                            continue
+                        visited.add(full_name)
+                        self._sync_log_param(full_name, param)
+                        self._push_param_to_vllm(full_name, param)
+                        if self._sync_log_should_stop():
+                            self._reset_vllm_cache()
+                            return
+                self._reset_vllm_cache()
+                return
+            if has_summon:
+
+                def _walk(module: Any, prefix: str = "") -> None:
+                    named_children = getattr(module, "named_children", None)
+                    children = (
+                        list(cast(Iterable[tuple[str, Any]], named_children()))
+                        if callable(named_children)
+                        else []
+                    )
+                    named_params = getattr(module, "named_parameters", None)
+                    if callable(named_params):
+                        for raw_name, param in cast(
+                            Iterable[tuple[str, Any]], named_params()
+                        ):
+                            if param is None:
+                                continue
+                            clean = raw_name
+                            for extra in (
+                                "_fsdp_wrapped_module.",
+                                "_checkpoint_wrapped_module.",
+                            ):
+                                clean = clean.replace(extra, "")
+                            full_name = f"{prefix}.{clean}" if prefix else clean
+                            if children and any(
+                                raw_name.startswith(extra)
+                                for extra in (
+                                    "_fsdp_wrapped_module.",
+                                    "_checkpoint_wrapped_module.",
+                                )
+                            ):
+                                continue
+                            if full_name in visited:
+                                continue
+                            visited.add(full_name)
+                            self._sync_log_param(full_name, param)
+                            self._push_param_to_vllm(full_name, param)
+                            if self._sync_log_should_stop():
+                                return
+                    for child_name, child in children:
+                        child_prefix = f"{prefix}.{child_name}" if prefix else child_name
+                        _walk(child, child_prefix)
+
+                _walk(model)
+                root_params = getattr(model, "named_parameters", None)
+                if callable(root_params):
+                    for raw_name, param in cast(
+                        Iterable[tuple[str, Any]], root_params()
+                    ):
                         clean = raw_name
                         for extra in (
                             "_fsdp_wrapped_module.",
                             "_checkpoint_wrapped_module.",
                         ):
                             clean = clean.replace(extra, "")
-                        full_name = f"{prefix}.{clean}" if prefix else clean
-                        if children and any(
+                        if any(
                             raw_name.startswith(extra)
                             for extra in (
                                 "_fsdp_wrapped_module.",
@@ -611,45 +1009,28 @@ class VLLMWeightSyncMixin:
                             )
                         ):
                             continue
-                        if full_name in visited:
+                        if clean in visited:
                             continue
-                        visited.add(full_name)
-                        self._push_param_to_vllm(full_name, param)
-                for child_name, child in children:
-                    child_prefix = f"{prefix}.{child_name}" if prefix else child_name
-                    _walk(child, child_prefix)
-
-            _walk(model)
-            root_params = getattr(model, "named_parameters", None)
-            if callable(root_params):
-                for raw_name, param in cast(Iterable[tuple[str, Any]], root_params()):
-                    clean = raw_name
-                    for extra in (
-                        "_fsdp_wrapped_module.",
-                        "_checkpoint_wrapped_module.",
-                    ):
-                        clean = clean.replace(extra, "")
-                    if any(
-                        raw_name.startswith(extra)
-                        for extra in (
-                            "_fsdp_wrapped_module.",
-                            "_checkpoint_wrapped_module.",
-                        )
-                    ):
-                        continue
-                    if clean in visited:
-                        continue
-                    visited.add(clean)
-                    self._push_param_to_vllm(clean, param)
+                        visited.add(clean)
+                        self._sync_log_param(clean, param)
+                        self._push_param_to_vllm(clean, param)
+                        if self._sync_log_should_stop():
+                            self._reset_vllm_cache()
+                            return
+                self._reset_vllm_cache()
+                return
+            is_peft_fn = getattr(self, "_is_peft_model_safe", _is_peft_model_safe)
+            if is_peft_fn(model):
+                self._sync_peft_params(model)
+                self._reset_vllm_cache()
+                return
+            self._sync_standard_params(model)
             self._reset_vllm_cache()
-            return
-        is_peft_fn = getattr(self, "_is_peft_model_safe", _is_peft_model_safe)
-        if is_peft_fn(model):
-            self._sync_peft_params(model)
-            self._reset_vllm_cache()
-            return
-        self._sync_standard_params(model)
-        self._reset_vllm_cache()
+        finally:
+            try:
+                delattr(self, "_vllm_sync_log_state")
+            except AttributeError:
+                self._vllm_sync_log_state = None
 
     def _push_param_to_vllm(self, name: str, param: Any) -> None:
         """Send a single parameter tensor to the vLLM client if available.
@@ -729,6 +1110,12 @@ class VLLMWeightSyncMixin:
             ctx = factory(params_to_gather)
         except NameError:
             ctx = nullcontext()
+        gather_start = time.monotonic()
+        _log_sync_info(
+            "vLLM weight sync gather ctx start | params=%d | prefix=%s",
+            len(params_to_gather),
+            prefix,
+        )
         with ctx:
             for name, param in iterator:
                 if param is None:
@@ -744,7 +1131,16 @@ class VLLMWeightSyncMixin:
                 if clean in visited:
                     continue
                 visited.add(clean)
+                self._sync_log_param(clean, param)
                 self._push_param_to_vllm(clean, param)
+                if self._sync_log_should_stop():
+                    return
+        _log_sync_info(
+            "vLLM weight sync gather ctx done | params=%d | prefix=%s | seconds=%.2f",
+            len(params_to_gather),
+            prefix,
+            time.monotonic() - gather_start,
+        )
         named_children = getattr(model, "named_children", None)
         if callable(named_children):
             for child_name, child in cast(
@@ -776,6 +1172,11 @@ class VLLMWeightSyncMixin:
             saw_zero3 = any(self._zero3_status_name(p) is not None for p in params)
             if not saw_zero3:
                 params_to_gather = params
+        gather_start = time.monotonic()
+        _log_sync_info(
+            "vLLM weight sync gather ctx start | params=%d | peft=true",
+            len(params_to_gather),
+        )
         with factory(params_to_gather):
             if callable(merge_fn):
                 merge_fn()
@@ -789,9 +1190,17 @@ class VLLMWeightSyncMixin:
                     continue
                 if "original_module" in clean:
                     continue
+                self._sync_log_param(clean, param)
                 self._push_param_to_vllm(clean, param)
+                if self._sync_log_should_stop():
+                    return
             if callable(unmerge_fn):
                 unmerge_fn()
+        _log_sync_info(
+            "vLLM weight sync gather ctx done | params=%d | peft=true | seconds=%.2f",
+            len(params_to_gather),
+            time.monotonic() - gather_start,
+        )
 
     def _sync_fsdp_params(
         self,
@@ -828,6 +1237,12 @@ class VLLMWeightSyncMixin:
             saw_zero3 = any(self._zero3_status_name(p) is not None for p in params)
             if not saw_zero3:
                 params_to_gather = params
+        gather_start = time.monotonic()
+        _log_sync_info(
+            "vLLM weight sync gather ctx start | params=%d | fsdp=true | prefix=%s",
+            len(params_to_gather),
+            prefix,
+        )
         with factory(params_to_gather):
             named_params = getattr(module, "named_parameters", None)
             if callable(named_params):
@@ -841,7 +1256,10 @@ class VLLMWeightSyncMixin:
                     if full_name in visited:
                         continue
                     visited.add(full_name)
+                    self._sync_log_param(full_name, param)
                     self._push_param_to_vllm(full_name, param)
+                    if self._sync_log_should_stop():
+                        return
             named_children = getattr(module, "named_children", None)
             if callable(named_children):
                 for child_name, child in cast(
@@ -855,9 +1273,20 @@ class VLLMWeightSyncMixin:
                         fsdp_cls=fsdp_cls,
                         visited=visited,
                     )
+        _log_sync_info(
+            "vLLM weight sync gather ctx done | params=%d | fsdp=true | prefix=%s | seconds=%.2f",
+            len(params_to_gather),
+            prefix,
+            time.monotonic() - gather_start,
+        )
         if isinstance(module, fsdp_cls) and callable(
             getattr(module, "named_parameters", None)
         ):
+            summon_start = time.monotonic()
+            _log_sync_info(
+                "vLLM weight sync summon_full_params start | prefix=%s",
+                prefix,
+            )
             with fsdp_cls.summon_full_params(module, recurse=False, writeback=False):
                 for pname, param in module.named_parameters():
                     full_name = f"{prefix}{pname}" if prefix else pname
@@ -869,7 +1298,15 @@ class VLLMWeightSyncMixin:
                     if full_name in visited:
                         continue
                     visited.add(full_name)
+                    self._sync_log_param(full_name, param)
                     self._push_param_to_vllm(full_name, param)
+                    if self._sync_log_should_stop():
+                        return
+            _log_sync_info(
+                "vLLM weight sync summon_full_params done | prefix=%s | seconds=%.2f",
+                prefix,
+                time.monotonic() - summon_start,
+            )
 
     def sync_fsdp_params(self, module: Any) -> None:
         """Public wrapper to synchronize FSDP parameters to vLLM."""

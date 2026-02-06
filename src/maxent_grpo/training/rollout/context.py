@@ -39,6 +39,7 @@ class GenerationContext(GenerationPenaltyPassthroughMixin, GenerationSamplingCon
             "top_k": self.gen_top_k,
             "best_of": self.gen_best_of,
             "use_vllm": self.use_vllm,
+            "vllm_mode": getattr(self, "vllm_mode", "server"),
             "vllm_url": self.vllm_url,
         }
 

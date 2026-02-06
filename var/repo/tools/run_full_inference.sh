@@ -3,10 +3,10 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT_DIR"
 
-SLURM_SCRIPT="ops/slurm/infer_math.slurm"
+SLURM_SCRIPT="var/repo/ops/slurm/infer_math.slurm"
 DATASETS="${DATASETS:-math_500,aime24,aime25,amc,minerva}"
 SEEDS="${SEEDS:-0,1,2,3,4}"
 NUM_GENERATIONS="${NUM_GENERATIONS:-8}"

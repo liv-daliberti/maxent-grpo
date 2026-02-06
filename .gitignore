@@ -18,14 +18,16 @@ build/
 # Local environments and caches (kept inside repo)
 .venv/
 .local/
-var/
+var/*
+!var/repo/
+!var/repo/**
 .cache/
 .conda_pkgs/
 .pip_cache/
 .tmp/
 var/tmp/
-data/*
-!data/README.md
+var/repo/data/*
+!var/repo/data/README.md
 wandb/
 .wandb/
 .venv-train/

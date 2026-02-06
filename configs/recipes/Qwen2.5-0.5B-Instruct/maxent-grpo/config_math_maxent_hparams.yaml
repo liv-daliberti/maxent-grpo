@@ -72,34 +72,21 @@ system_prompt: "You are an expert *mathematics problem-solver*.
   </answer>
   "
 
-# MaxEnt‑GRPO specific knobs (aligned with the 7B MaxEnt recipe)
-maxent_tau: 0.3
-maxent_q_temperature: 1.0
-maxent_q_epsilon: 1.0e-6
-maxent_length_normalize_ref: true
-maxent_logprob_chunk_size: 1
-# Force frozen reference-model scoring for KL/MaxEnt reference statistics.
+# MaxEnt (entropy bonus) knobs: standard GRPO + policy-entropy reward bonus.
+policy_entropy_bonus_coef: 0.3
+maxent_policy_entropy: true
+# Scoring/kl settings for the GRPO objective.
 maxent_reference_logprobs_source: model
-maxent_target_weight_entropy: 0.6
-maxent_tau_lr: 0.01
-maxent_tau_min: 0.05
-maxent_tau_max: 1.0
-maxent_tau_warmup_steps: 0
-controller_meta_enabled: true
-controller_meta_method: analytic
-controller_meta_lr: 0.05
-controller_meta_update_interval: 1
-controller_meta_optimizer: sgd
-controller_meta_truncation_steps: 1
-controller_overwrite_from_config: true
+maxent_length_normalize_ref: false
+maxent_logprob_chunk_size: 1
+maxent_score_slice_prefetch: 1
+maxent_prompt_cache_size: 2048
+train_grpo_objective: true
+force_custom_loop: true
+# Optional clip objective settings (kept aligned with prior MaxEnt runs).
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
 maxent_clip_adv_baseline: 0.25   # 1/num_generations (4) for a gentler clip objective
-train_grpo_objective: false
-maxent_allow_empty_weight_fallback: true
-maxent_score_tail_tokens: null
-maxent_score_slice_prefetch: 1
-maxent_prompt_cache_size: 2048
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false
@@ -116,6 +103,7 @@ fp16: false
 use_vllm: true
 vllm_mode: server
 vllm_return_logprobs: true
+vllm_request_logprobs: true
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
 gradient_accumulation_steps: 2
@@ -144,7 +132,7 @@ logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_prompt_length: 1024
-max_completion_length: 512
+max_completion_length: 500
 max_steps: 200
 num_generations: 4
 num_train_epochs: 1

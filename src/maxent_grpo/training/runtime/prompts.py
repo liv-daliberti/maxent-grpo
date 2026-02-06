@@ -11,7 +11,9 @@ if TYPE_CHECKING:  # pragma: no cover - type checking only
     from transformers.tokenization_utils import PreTrainedTokenizer
 
 LOG = logging.getLogger(__name__)
-PROMPT_CHAR_LIMIT = int(os.environ.get("MAX_PROMPT_CHARS", "2048"))
+PROMPT_CHAR_LIMIT = int(
+    os.environ.get("MAX_PROMPT_TOKENS", os.environ.get("MAX_PROMPT_CHARS", "2048"))
+)
 _TRUNC_STATE = {"warned": False}
 
 
@@ -99,16 +101,54 @@ class GenerationPenaltyPassthroughMixin:
         self.penalty.gen_stop_sequences = value
 
 
-def truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
-    """Clamp prompt strings to a safe length for vLLM/http payloads.
+def truncate_prompt(
+    prompt: str,
+    char_limit: Optional[int] = None,
+    *,
+    tokenizer: Optional[Any] = None,
+    max_tokens: Optional[int] = None,
+) -> str:
+    """Clamp prompt strings to a safe token length when possible.
 
     :param prompt: Prompt string to clamp.
-    :param char_limit: Optional character limit override. When ``None`` the
+    :param char_limit: Optional character limit fallback. When ``None`` the
         module-level ``PROMPT_CHAR_LIMIT`` is used.
+    :param tokenizer: Optional tokenizer used to enforce token limits.
+    :param max_tokens: Optional token limit override (preferred when tokenizer
+        is available).
     :returns: The original prompt when under the limit, otherwise a truncated
         prefix.
     :rtype: str
     """
+
+    token_limit = max_tokens if max_tokens is not None else char_limit
+    if tokenizer is not None and token_limit is not None and token_limit > 0:
+        try:
+            encoded = tokenizer(prompt, add_special_tokens=False)
+            ids = encoded.get("input_ids") if isinstance(encoded, dict) else encoded
+            if hasattr(ids, "tolist"):
+                try:
+                    ids = ids.tolist()
+                except (TypeError, ValueError, AttributeError, RuntimeError):
+                    pass
+            if isinstance(ids, list) and ids and isinstance(ids[0], list):
+                ids = ids[0]
+            if isinstance(ids, list) and len(ids) > token_limit:
+                decode = getattr(tokenizer, "decode", None)
+                if callable(decode):
+                    truncated = decode(ids[:token_limit], skip_special_tokens=False)
+                    if not _TRUNC_STATE.get("warned_tokens", False):
+                        LOG.warning(
+                            "Prompt length exceeded %d tokens; truncating. "
+                            "Override via MAX_PROMPT_TOKENS if needed.",
+                            token_limit,
+                        )
+                        _TRUNC_STATE["warned_tokens"] = True
+                    return truncated
+        except Exception as exc:
+            if not _TRUNC_STATE.get("warned_tokens_error", False):
+                LOG.debug("Token-based prompt truncation failed; falling back: %s", exc)
+                _TRUNC_STATE["warned_tokens_error"] = True
 
     limit = char_limit if char_limit is not None else PROMPT_CHAR_LIMIT
     if limit <= 0 or len(prompt) <= limit:
@@ -116,7 +156,7 @@ def truncate_prompt(prompt: str, char_limit: Optional[int] = None) -> str:
     if not _TRUNC_STATE["warned"]:
         LOG.warning(
             "Prompt length exceeded %d characters; truncating. "
-            "Override via MAX_PROMPT_CHARS if needed.",
+            "Override via MAX_PROMPT_TOKENS (or MAX_PROMPT_CHARS for legacy) if needed.",
             limit,
         )
         _TRUNC_STATE["warned"] = True
@@ -139,19 +179,16 @@ _truncate_prompt = truncate_prompt
 
 
 def _prompt_char_limit_from_tokens(max_prompt_len: int) -> int:
-    """Derive a character cap from the token cap (approx. 4 chars/token).
+    """Return the token cap used for prompt truncation.
 
     :param max_prompt_len: Maximum number of tokens allowed for prompts.
-    :returns: Character limit used by ``truncate_prompt``.
+    :returns: Token limit used by ``truncate_prompt`` when tokenizers are available.
     :rtype: int
     """
 
-    approx_char_limit = (
-        int(max_prompt_len * 4) if max_prompt_len and max_prompt_len > 0 else 0
-    )
-    if approx_char_limit <= 0:
-        return PROMPT_CHAR_LIMIT
-    return max(PROMPT_CHAR_LIMIT, approx_char_limit)
+    if max_prompt_len and max_prompt_len > 0:
+        return int(max_prompt_len)
+    return PROMPT_CHAR_LIMIT
 
 
 def _require_prompt_column(example: Dict[str, Any], prompt_column: str) -> None:
@@ -223,7 +260,12 @@ def _to_prompt(
     min_required = len("USER: ") + len(user) + len("\nASSISTANT:")
     if effective_limit and effective_limit > 0 and effective_limit < min_required:
         effective_limit = min_required
-    prompt = truncate_prompt(prompt, effective_limit)
+    prompt = truncate_prompt(
+        prompt,
+        effective_limit,
+        tokenizer=tokenizer,
+        max_tokens=effective_limit,
+    )
     # Defensive: ensure the user message survives even if truncation or a template
     # removed it entirely.
     if user and user not in prompt:

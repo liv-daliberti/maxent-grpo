@@ -592,7 +592,10 @@ def _resolve_dtype(dtype: object) -> Optional[np.dtype]:
 
 
 Tensor = TorchTensor
-_ = require_transformer_base_classes("training_scoring")
+try:
+    _ = require_transformer_base_classes("training_scoring")
+except (ImportError, RuntimeError, ModuleNotFoundError):  # pragma: no cover - stub fallback
+    _ = (Any, Any)
 
 
 def _as_context_manager(value: object | None) -> ContextManager[object]:
@@ -1192,10 +1195,41 @@ def _chunked_sequence_logprobs(
     gather_full_params: bool = False,  # retained for parity
     return_hidden: bool = False,
     pooling: str = "mean",
-) -> Optional[Tuple[Tensor, Tensor, Optional[Tensor]]]:
-    """Compute summed log-probabilities per sequence with optional chunking and pooled states."""
+    return_entropy: bool = False,
+    entropy_mode: str = "exact",
+) -> Optional[Tuple[Tensor, Tensor, Optional[Tensor], Optional[Tensor]]]:
+    """Compute summed log-probabilities per sequence with optional chunking/pooled states/entropy."""
 
     torch_mod = _refresh_torch()
+    entropy_mode_norm = str(entropy_mode or "exact").strip().lower()
+    if entropy_mode_norm in {"", "none"}:
+        entropy_mode_norm = "exact"
+    if entropy_mode_norm in {"exact", "full", "distribution"}:
+        entropy_mode_norm = "exact"
+    elif entropy_mode_norm in {
+        "sample",
+        "estimate",
+        "estimated",
+        "approx",
+        "approximate",
+        "token",
+        "token_logp",
+        "nll",
+        "logp",
+    }:
+        entropy_mode_norm = "sample"
+    else:
+        if return_entropy:
+            warned = getattr(_chunked_sequence_logprobs, "_entropy_mode_warned", False)
+            if not warned:
+                LOG.warning(
+                    "Unknown entropy_mode=%s; falling back to 'exact'.",
+                    entropy_mode,
+                )
+                setattr(_chunked_sequence_logprobs, "_entropy_mode_warned", True)
+        entropy_mode_norm = "exact"
+    use_exact_entropy = return_entropy and entropy_mode_norm == "exact"
+    use_sample_entropy = return_entropy and entropy_mode_norm == "sample"
     _ = (
         chunk_size,
     )  # parity with distributed APIs; currently unused
@@ -1210,7 +1244,15 @@ def _chunked_sequence_logprobs(
         tok_tensor = torch_mod.tensor(
             valid_counts, dtype=getattr(torch_mod, "float32", None)
         )
-        return logp, tok_tensor, None
+        entropy_sum = (
+            torch_mod.tensor(
+                np.zeros(len(valid_counts), dtype=float),
+                dtype=getattr(torch_mod, "float32", None),
+            )
+            if return_entropy
+            else None
+        )
+        return logp, tok_tensor, None, entropy_sum
     shape = getattr(input_ids, "shape", None)
     if shape and len(shape) > 1 and shape[1] == 0:
         batch_size = shape[0]
@@ -1220,7 +1262,15 @@ def _chunked_sequence_logprobs(
         tok_tensor = torch_mod.tensor(
             np.zeros(batch_size, dtype=float), dtype=getattr(torch_mod, "float32", None)
         )
-        return zero, tok_tensor, None
+        entropy_sum = (
+            torch_mod.tensor(
+                np.zeros(batch_size, dtype=float),
+                dtype=getattr(torch_mod, "float32", None),
+            )
+            if return_entropy
+            else None
+        )
+        return zero, tok_tensor, None, entropy_sum
     # DeepSpeed ZeRO-3 shards parameters to 1-D partitions; gather embeddings
     # so the reference forward sees 2-D weights without full-parameter all-gather.
     gather_ctx = nullcontext()
@@ -1548,6 +1598,7 @@ def _chunked_sequence_logprobs(
         logp_chunks: list[Tensor] = []
         tok_chunks: list[Tensor] = []
         pooled_chunks: list[Tensor] = [] if return_hidden else []
+        entropy_chunks: list[Tensor] = [] if return_entropy else []
         for idx, (start, end) in enumerate(chunk_indices):
             LOG.debug(
                 "reference scoring chunk begin | chunk=%s | slice=[%s:%s] | rows=%s",
@@ -1626,6 +1677,20 @@ def _chunked_sequence_logprobs(
                 )
                 logp_chunks.append(seq_logp_chunk)
                 tok_chunks.append(tok_tensor_chunk)
+                if return_entropy:
+                    try:
+                        entropy_chunk = torch_mod.zeros(
+                            (batch_rows,),
+                            dtype=getattr(torch_mod, "float32", None),
+                            device=getattr(seq_logp_chunk, "device", None),
+                        )
+                    except _SCORING_EXCEPTIONS:
+                        entropy_chunk = torch_mod.tensor(
+                            np.zeros(batch_rows, dtype=float),
+                            dtype=getattr(torch_mod, "float32", None),
+                            device=getattr(seq_logp_chunk, "device", None),
+                        )
+                    entropy_chunks.append(entropy_chunk)
                 preview_vals = None
                 preview_source = seq_logp_chunk
                 detach_fn = getattr(seq_logp_chunk, "detach", None)
@@ -1668,37 +1733,65 @@ def _chunked_sequence_logprobs(
             flat_logits = shifted_logits.reshape(-1, vocab_size)
             safe_labels = shifted_labels.masked_fill(~label_mask, 0)
             flat_labels = safe_labels.reshape(-1)
+            log_probs = None
             token_logp = None
-            try:
-                logsumexp_fn = getattr(torch_mod, "logsumexp", None)
-                if not callable(logsumexp_fn):
-                    raise AttributeError("torch.logsumexp unavailable")
-                log_denom = logsumexp_fn(shifted_logits, dim=-1)
-                gather_index = torch_mod.arange(flat_labels.numel())
-                target_device = getattr(flat_logits, "device", None)
-                if target_device is not None:
-                    try:
-                        gather_index = gather_index.to(target_device)
-                    except _SCORING_EXCEPTIONS as exc:
-                        LOG.debug("Failed to move gather_index to device: %s", exc)
-                target_logits = flat_logits[gather_index, flat_labels].reshape(safe_labels.shape)
-                to_fn = getattr(target_logits, "to", None)
-                if callable(to_fn):
-                    target_logits = to_fn(dtype=getattr(log_denom, "dtype", None))
-                token_logp = cast(Any, target_logits) - log_denom
-            except _SCORING_EXCEPTIONS:
-                log_probs = torch_mod.nn.functional.log_softmax(shifted_logits, dim=-1)
-                flat_log_probs = log_probs.reshape(-1, vocab_size)
-                gather_index = torch_mod.arange(flat_labels.numel())
-                target_device = getattr(flat_log_probs, "device", None)
-                if target_device is not None:
-                    try:
-                        gather_index = gather_index.to(target_device)
-                    except _SCORING_EXCEPTIONS as exc:
-                        LOG.debug("Failed to move fallback gather_index to device: %s", exc)
-                token_logp = flat_log_probs[gather_index, flat_labels].reshape(
-                    safe_labels.shape
-                )
+            if use_exact_entropy:
+                try:
+                    log_probs = torch_mod.nn.functional.log_softmax(
+                        shifted_logits, dim=-1
+                    )
+                    flat_log_probs = log_probs.reshape(-1, vocab_size)
+                    gather_index = torch_mod.arange(flat_labels.numel())
+                    target_device = getattr(flat_log_probs, "device", None)
+                    if target_device is not None:
+                        try:
+                            gather_index = gather_index.to(target_device)
+                        except _SCORING_EXCEPTIONS as exc:
+                            LOG.debug("Failed to move gather_index to device: %s", exc)
+                    token_logp = flat_log_probs[gather_index, flat_labels].reshape(
+                        safe_labels.shape
+                    )
+                except _SCORING_EXCEPTIONS:
+                    log_probs = None
+                    token_logp = None
+            if token_logp is None:
+                try:
+                    logsumexp_fn = getattr(torch_mod, "logsumexp", None)
+                    if not callable(logsumexp_fn):
+                        raise AttributeError("torch.logsumexp unavailable")
+                    log_denom = logsumexp_fn(shifted_logits, dim=-1)
+                    gather_index = torch_mod.arange(flat_labels.numel())
+                    target_device = getattr(flat_logits, "device", None)
+                    if target_device is not None:
+                        try:
+                            gather_index = gather_index.to(target_device)
+                        except _SCORING_EXCEPTIONS as exc:
+                            LOG.debug("Failed to move gather_index to device: %s", exc)
+                    target_logits = flat_logits[gather_index, flat_labels].reshape(
+                        safe_labels.shape
+                    )
+                    to_fn = getattr(target_logits, "to", None)
+                    if callable(to_fn):
+                        target_logits = to_fn(dtype=getattr(log_denom, "dtype", None))
+                    token_logp = cast(Any, target_logits) - log_denom
+                except _SCORING_EXCEPTIONS:
+                    log_probs = torch_mod.nn.functional.log_softmax(
+                        shifted_logits, dim=-1
+                    )
+                    flat_log_probs = log_probs.reshape(-1, vocab_size)
+                    gather_index = torch_mod.arange(flat_labels.numel())
+                    target_device = getattr(flat_log_probs, "device", None)
+                    if target_device is not None:
+                        try:
+                            gather_index = gather_index.to(target_device)
+                        except _SCORING_EXCEPTIONS as exc:
+                            LOG.debug(
+                                "Failed to move fallback gather_index to device: %s",
+                                exc,
+                            )
+                    token_logp = flat_log_probs[gather_index, flat_labels].reshape(
+                        safe_labels.shape
+                    )
             # If mask tensors are real torch tensors but token_logp is a stub tensor,
             # coerce token_logp into the active torch module to avoid type mismatches.
             torch_tensor = getattr(torch_mod, "Tensor", None)
@@ -1743,6 +1836,40 @@ def _chunked_sequence_logprobs(
             tok_tensor_chunk = label_mask.sum(dim=1).clamp(min=1)
             logp_chunks.append(seq_logp_chunk)
             tok_chunks.append(tok_tensor_chunk)
+            if return_entropy:
+                entropy_chunk = None
+                if use_sample_entropy:
+                    try:
+                        entropy_chunk = (-seq_logp_chunk).to(
+                            dtype=getattr(torch_mod, "float32", None)
+                            or getattr(seq_logp_chunk, "dtype", None)
+                        )
+                    except _SCORING_EXCEPTIONS:
+                        entropy_chunk = None
+                if entropy_chunk is None:
+                    try:
+                        if log_probs is None:
+                            log_probs = torch_mod.nn.functional.log_softmax(
+                                shifted_logits, dim=-1
+                            )
+                        ent = -(log_probs.exp() * log_probs).sum(dim=-1)
+                        entropy_chunk = (ent * cast(Any, mask_float)).sum(dim=1)
+                    except _SCORING_EXCEPTIONS as exc:
+                        LOG.debug("Failed to compute policy entropy: %s", exc)
+                if entropy_chunk is None:
+                    try:
+                        entropy_chunk = torch_mod.zeros(
+                            (seq_logp_chunk.shape[0],),
+                            dtype=getattr(torch_mod, "float32", None),
+                            device=getattr(seq_logp_chunk, "device", None),
+                        )
+                    except _SCORING_EXCEPTIONS:
+                        entropy_chunk = torch_mod.tensor(
+                            np.zeros(seq_logp_chunk.shape[0], dtype=float),
+                            dtype=getattr(torch_mod, "float32", None),
+                            device=getattr(seq_logp_chunk, "device", None),
+                        )
+                entropy_chunks.append(entropy_chunk)
             try:
                 tok_sum = tok_tensor_chunk.detach().cpu().sum().item()
             except _SCORING_EXCEPTIONS:
@@ -1833,6 +1960,16 @@ def _chunked_sequence_logprobs(
             if len(pooled_chunks) == 1
             else torch_mod.cat(pooled_chunks, dim=0)
         )
+    entropy_sum: Optional[Tensor] = None
+    if return_entropy:
+        if entropy_chunks:
+            entropy_sum = (
+                entropy_chunks[0]
+                if len(entropy_chunks) == 1
+                else torch_mod.cat(entropy_chunks, dim=0)
+            )
+        else:
+            entropy_sum = torch_mod.zeros_like(tok_tensor)
     try:
         logp_sample = seq_logp.detach().cpu().reshape(-1)[:4].tolist()
     except _SCORING_EXCEPTIONS:
@@ -1854,7 +1991,7 @@ def _chunked_sequence_logprobs(
         getattr(tok_tensor, "numel", lambda: None)(),
         logp_sample,
     )
-    return seq_logp, tok_tensor, pooled_hidden
+    return seq_logp, tok_tensor, pooled_hidden, entropy_sum
 
 
 def build_score_batch(
@@ -2685,7 +2822,9 @@ def score_model_outputs(
     *,
     return_hidden: bool = False,
     pooling: str = "mean",
-) -> Optional[Tuple[Tensor, Optional[Tensor]]]:
+    return_entropy: bool = False,
+    entropy_mode: str = "exact",
+) -> Optional[Tuple[Tensor, Optional[Tensor], Optional[Tensor]]]:
     """Compute current model log-probs for the batch and optional pooled states.
 
     :param model: Current policy model used for scoring.
@@ -2694,11 +2833,12 @@ def score_model_outputs(
     :param runtime: Runtime handles providing device and accelerator state.
     :param return_hidden: When ``True``, also return pooled hidden states.
     :param pooling: Pooling strategy applied to hidden states.
-    :returns: Tuple of ``(cur_logp_sum, pooled_hidden)`` or ``None`` if empty.
-    :rtype: tuple[Tensor, Tensor | None] | None
+    :returns: Tuple of ``(cur_logp_sum, pooled_hidden[, policy_entropy_sum])`` or ``None`` if empty.
+    :rtype: tuple[Tensor, Tensor | None] | tuple[Tensor, Tensor | None, Tensor | None] | None
     """
     cur_logp_slices: List[Tensor] = []
     pooled_slices: List[Tensor] = []
+    entropy_slices: List[Tensor] = []
     slice_iter = iter_batch_slices(score_batch, runtime.device)
     slice_iter = _prefetch_iterator(
         slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
@@ -2725,17 +2865,24 @@ def score_model_outputs(
                 chunk_size=batching_cfg.logprob_chunk_size,
                 return_hidden=return_hidden,
                 pooling=pooling,
+                return_entropy=return_entropy,
+                entropy_mode=entropy_mode,
             )
             if result is None:
                 return None
-            cur_logp_slice, _tok_counts, pooled = result
+            cur_logp_slice, _tok_counts, pooled, entropy_sum = result
             cur_logp_slices.append(cur_logp_slice)
             if pooled is not None:
                 pooled_slices.append(pooled.detach())
+            if entropy_sum is not None:
+                entropy_slices.append(entropy_sum.detach())
     if not cur_logp_slices:
         return None
     pooled_hidden = torch.cat(pooled_slices, dim=0) if pooled_slices else None
-    return torch.cat(cur_logp_slices, dim=0), pooled_hidden
+    if not return_entropy:
+        return torch.cat(cur_logp_slices, dim=0), pooled_hidden
+    entropy_sum = torch.cat(entropy_slices, dim=0) if entropy_slices else None
+    return torch.cat(cur_logp_slices, dim=0), pooled_hidden, entropy_sum
 
 
 def summarize_completion_lengths(
@@ -2883,6 +3030,7 @@ def build_sequence_scores(
     pooled_hidden: Optional[Tensor] = None,
     *,
     behavior_logp_sum: Optional[Tensor] = None,
+    policy_entropy_sum: Optional[Tensor] = None,
 ) -> SequenceScores:
     """Return ``SequenceScores`` built from current and reference log-probs.
 
@@ -2953,6 +3101,22 @@ def build_sequence_scores(
             dtype=base_dtype,
             fill_value=0.0,
         )
+    policy_entropy_tensor: Optional[Tensor] = None
+    if policy_entropy_sum is not None:
+        policy_entropy_tensor = _as_torch_tensor(
+            torch_mod,
+            policy_entropy_sum,
+            device=device,
+            dtype=base_dtype,
+        )
+        policy_entropy_tensor = _match_tensor_length(
+            torch_mod,
+            policy_entropy_tensor,
+            cur_len,
+            device=device,
+            dtype=base_dtype,
+            fill_value=0.0,
+        )
     log_ratio_train = cur_tensor - ref_tensor
     if getattr(log_ratio_train, "numel", lambda: 0)() == 0 and cur_len > 0:
         log_ratio_train = torch_mod.zeros(
@@ -2964,4 +3128,5 @@ def build_sequence_scores(
         log_ratio_train=log_ratio_train,
         denom_tok_tensor=denom_tensor,
         pooled_hidden=pooled_hidden,
+        policy_entropy_sum=policy_entropy_tensor,
     )

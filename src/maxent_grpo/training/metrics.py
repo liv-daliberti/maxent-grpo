@@ -39,6 +39,7 @@ import logging
 import sys
 import math
 import json
+import os
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
 
 from maxent_grpo.training.runtime.logging import _log_wandb
@@ -80,6 +81,155 @@ _DEBUG_METRIC_FIELDS = (
     ("train/tau", "tau"),
     ("train/beta", "beta"),
 )
+
+
+def _as_float(value: Any) -> Optional[float]:
+    """Return a finite float or ``None`` when conversion fails."""
+    if isinstance(value, bool):
+        return None
+    try:
+        candidate = float(value)
+    except (TypeError, ValueError):
+        item_fn = getattr(value, "item", None)
+        if callable(item_fn):
+            try:
+                candidate = float(item_fn())
+            except (TypeError, ValueError):
+                return None
+        else:
+            return None
+    return candidate if math.isfinite(candidate) else None
+
+
+def _metrics_mode() -> str:
+    """Return the logging mode for metrics filtering."""
+    raw = os.environ.get("MAXENT_WANDB_METRICS_MODE") or os.environ.get(
+        "MAXENT_METRICS_MODE", ""
+    )
+    return raw.strip().lower()
+
+
+def _drop_prefix(metrics: Dict[str, Any], prefix: str) -> None:
+    """Remove all keys that start with ``prefix`` from ``metrics``."""
+    for key in [k for k in metrics if k.startswith(prefix)]:
+        metrics.pop(key, None)
+
+
+def _slim_metrics(
+    metrics: Dict[str, Any],
+    ctx: TrainingLoopContext,
+) -> Dict[str, Any]:
+    """Return a compact metrics dict for W&B/console logging."""
+    slim = dict(metrics)
+    maxent_objective = _as_float(metrics.get("train/maxent_objective"))
+    entropy_bonus_coef = _as_float(metrics.get("train/entropy_bonus_coef"))
+    meta_enabled = _as_float(metrics.get("train/meta/enabled"))
+
+    _drop_prefix(slim, "train/weighting/")
+    _drop_prefix(slim, "train/kl_controller/")
+    _drop_prefix(slim, "train/kl_per_token_bucket/")
+    _drop_prefix(slim, "train/kl_per_token_bucket_tokens/")
+
+    for key in (
+        "train/loss/total",
+        "train/objective/minimize",
+        "train/objective/maximize",
+        "train/kl_coeff",
+        "train/grpo_objective",
+        "train/maxent_objective",
+        "train/len_norm_ref",
+        "train/weight_norm_denom",
+        "train/tau_log",
+        "train/delta_tau_abs",
+        "train/delta_beta_abs",
+    ):
+        slim.pop(key, None)
+
+    for key in [k for k in slim if k.startswith("train/clip_ratio/")]:
+        slim.pop(key, None)
+
+    keep_completions = {
+        "train/completions/mean_length_sampled",
+        "train/completions/mean_length_terminated",
+        "train/completions/clipped_frac",
+    }
+    for key in [k for k in slim if k.startswith("train/completions/")]:
+        if key not in keep_completions:
+            slim.pop(key, None)
+
+    keep_reward_quantiles = {"train/reward_p05", "train/reward_p50", "train/reward_p95"}
+    for key in [k for k in slim if k.startswith("train/reward_p")]:
+        if key not in keep_reward_quantiles:
+            slim.pop(key, None)
+    for key in [k for k in slim if k.startswith("train/rewards/") and "/p" in k]:
+        if not key.endswith(("/p05", "/p50", "/p95")):
+            slim.pop(key, None)
+
+    comp_means = [
+        k for k in slim if k.startswith("train/rewards/") and k.endswith("/mean")
+    ]
+    if len(comp_means) == 1:
+        comp_mean = comp_means[0]
+        if _as_float(slim.get(comp_mean)) == _as_float(slim.get("train/reward")):
+            reward_key = comp_mean.split("/")[2]
+            _drop_prefix(slim, f"train/rewards/{reward_key}/")
+
+    if meta_enabled == 0.0:
+        _drop_prefix(slim, "train/meta/")
+
+    if entropy_bonus_coef in (None, 0.0):
+        for key in list(slim):
+            if key.startswith("train/entropy_bonus"):
+                slim.pop(key, None)
+        slim.pop("train/reward_without_entropy_bonus", None)
+        slim.pop("train/reward_with_entropy_bonus", None)
+        _drop_prefix(slim, "train/rewards/entropy_bonus/")
+
+    training_args = getattr(ctx, "training_args", None)
+    if training_args is not None:
+        info_seed_enabled = bool(getattr(training_args, "info_seed_enabled", False))
+        info_seed_num = getattr(training_args, "info_seed_num_seeds", 0) or 0
+        info_seed_lambda = float(getattr(training_args, "info_seed_lambda", 0.0) or 0.0)
+        if not info_seed_enabled and info_seed_num <= 0 and info_seed_lambda == 0.0:
+            _drop_prefix(slim, "train/info_seed/")
+            _drop_prefix(slim, "train/seed/")
+    else:
+        seed_keys = [k for k in slim if k.startswith("train/seed/")]
+        if seed_keys and all(_as_float(slim.get(k)) in (0.0, None) for k in seed_keys):
+            _drop_prefix(slim, "train/info_seed/")
+            _drop_prefix(slim, "train/seed/")
+
+    if maxent_objective == 0.0:
+        for key in list(slim):
+            if key.startswith("train/weight_entropy") or key.startswith(
+                "train/advantage_entropy"
+            ):
+                slim.pop(key, None)
+        tau_val = _as_float(slim.get("train/tau"))
+        if tau_val in (None, 0.0):
+            slim.pop("train/tau", None)
+            for key in [k for k in slim if k.startswith("train/tau_")]:
+                slim.pop(key, None)
+    else:
+        for key in ("train/weight_entropy_min", "train/weight_entropy_max", "train/weight_entropy_ema"):
+            slim.pop(key, None)
+        for key in ("train/q_entropy_min", "train/q_entropy_max"):
+            slim.pop(key, None)
+
+    return slim
+
+
+def _filter_metrics(
+    metrics: Dict[str, Any],
+    ctx: TrainingLoopContext,
+) -> Dict[str, Any]:
+    """Return metrics filtered according to the configured mode."""
+    mode = _metrics_mode()
+    if not mode or mode in {"full", "all", "default"}:
+        return metrics
+    if mode in {"slim", "compact", "minimal", "lite"}:
+        return _slim_metrics(metrics, ctx)
+    return metrics
 
 
 def _log_like_grpo_enabled(training_args: Any) -> bool:
@@ -146,6 +296,54 @@ def _log_debug_metrics(step: int, metrics: Dict[str, Any]) -> None:
         parts.append("no-metrics")
     LOG.debug("debug metrics step %d | %s", step, " ".join(parts))
 
+
+def _log_entropy_bonus_impact(
+    metrics: Dict[str, Any],
+    step: int,
+    *,
+    tag: str,
+) -> None:
+    """Emit a concise log line showing entropy bonus impact when present."""
+    bonus_mean = metrics.get("train/entropy_bonus_mean")
+    bonus_std = metrics.get("train/rewards/entropy_bonus/std")
+    reward_no_bonus = metrics.get("train/reward_without_entropy_bonus")
+    reward_with_bonus = metrics.get("train/reward_with_entropy_bonus")
+    objective_loss = metrics.get("train/objective/minimize", metrics.get("train/loss"))
+    if not isinstance(bonus_mean, (int, float)):
+        return
+    if not isinstance(reward_no_bonus, (int, float)):
+        return
+    if not isinstance(reward_with_bonus, (int, float)):
+        reward_with_bonus = metrics.get("train/reward")
+    if not isinstance(reward_with_bonus, (int, float)):
+        return
+    if not isinstance(objective_loss, (int, float)):
+        objective_loss = None
+    bonus_std_str = ""
+    if isinstance(bonus_std, (int, float)) and math.isfinite(float(bonus_std)):
+        bonus_std_str = f" | bonus_std={float(bonus_std):.6f}"
+    if objective_loss is None:
+        LOG.info(
+            "%s entropy bonus step %d | reward_no_bonus=%.6f | bonus_mean=%.6f | reward_with_bonus=%.6f%s",
+            tag,
+            step,
+            float(reward_no_bonus),
+            float(bonus_mean),
+            float(reward_with_bonus),
+            bonus_std_str,
+        )
+        return
+    LOG.info(
+        "%s entropy bonus step %d | reward_no_bonus=%.6f | bonus_mean=%.6f | reward_with_bonus=%.6f | objective_loss=%.6f%s",
+        tag,
+        step,
+        float(reward_no_bonus),
+        float(bonus_mean),
+        float(reward_with_bonus),
+        float(objective_loss),
+        bonus_std_str,
+    )
+
 try:  # Optional dependency
     import wandb
 except ImportError:  # pragma: no cover - optional logging backend
@@ -186,6 +384,35 @@ def _mean_std(values: Sequence[float]) -> Tuple[float, float]:
         std_val = 0.0
     return mean_val, std_val
 
+
+def _quantile_stats(
+    values: Sequence[float],
+    quantiles: Sequence[float],
+) -> Dict[str, float]:
+    """Compute simple linear-interpolated quantiles for logging."""
+    if not values:
+        return {}
+    sorted_vals = sorted(float(v) for v in values)
+    n = len(sorted_vals)
+    stats: Dict[str, float] = {}
+    for q in quantiles:
+        q = float(q)
+        if q <= 0.0:
+            stats[f"p{int(q * 100):02d}"] = sorted_vals[0]
+            continue
+        if q >= 1.0:
+            stats[f"p{int(q * 100):02d}"] = sorted_vals[-1]
+            continue
+        pos = q * (n - 1)
+        lo = int(math.floor(pos))
+        hi = int(math.ceil(pos))
+        if lo == hi:
+            val = sorted_vals[lo]
+        else:
+            frac = pos - lo
+            val = sorted_vals[lo] * (1.0 - frac) + sorted_vals[hi] * frac
+        stats[f"p{int(q * 100):02d}"] = float(val)
+    return stats
 
 def _gather_list_for_metrics(
     accelerator: Accelerator,
@@ -270,6 +497,31 @@ def _sum_scalar_for_metrics(
     )
 
 
+def _policy_entropy_from_scores(scores: Any) -> Optional[float]:
+    """Return token-weighted policy entropy from a SequenceScores-like object."""
+    entropy_sum = getattr(scores, "policy_entropy_sum", None)
+    token_counts = getattr(scores, "denom_tok_tensor", None)
+    if entropy_sum is None or token_counts is None:
+        return None
+    try:
+        entropy_total = float(entropy_sum.detach().float().sum().cpu().item())
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        try:
+            entropy_total = float(entropy_sum.sum())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            return None
+    try:
+        token_total = float(token_counts.detach().float().sum().cpu().item())
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        try:
+            token_total = float(token_counts.sum())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            return None
+    if token_total <= 0:
+        return None
+    return entropy_total / token_total
+
+
 def _base_metric_block(
     payload: TrainingMetricsPayload, global_step: int
 ) -> Dict[str, Any]:
@@ -279,6 +531,8 @@ def _base_metric_block(
     metrics: Dict[str, Any] = {
         "train/loss": total_loss,
         "train/loss/total": total_loss,
+        "train/objective/minimize": total_loss,
+        "train/objective/maximize": -float(total_loss),
         "train/learning_rate": scalars.current_lr,
         "train/epoch": scalars.epoch_progress,
         "train/global_step": float(global_step),
@@ -311,6 +565,12 @@ def _base_metric_block(
         metrics["train/grad_norm"] = scalars.grad_norm_scalar
     if scalars.vllm_latency_ms is not None:
         metrics["train/vllm_latency_ms"] = scalars.vllm_latency_ms
+    if scalars.policy_entropy is not None:
+        metrics["train/policy_entropy"] = scalars.policy_entropy
+    if scalars.entropy_bonus_coef is not None:
+        metrics["train/entropy_bonus_coef"] = scalars.entropy_bonus_coef
+    if scalars.entropy_bonus_reward_std is not None:
+        metrics["train/entropy_bonus_reward_std"] = scalars.entropy_bonus_reward_std
     return metrics
 
 
@@ -348,6 +608,27 @@ def _length_metric_block(length_stats: LengthStats) -> Dict[str, float]:
     }
 
 
+def _entropy_bonus_impact(
+    reward_stats: RewardLoggingView,
+) -> Optional[Tuple[float, float, float, float, float]]:
+    """Return reward/bonus summary values when an entropy bonus is present."""
+    bonus_stats = reward_stats.per_reward.get("entropy_bonus")
+    if bonus_stats is None:
+        return None
+    bonus_mean = float(bonus_stats.mean)
+    reward_with_bonus = float(reward_stats.reward_mean)
+    reward_without_bonus = reward_with_bonus - bonus_mean
+    base_denom = max(abs(reward_without_bonus), 1e-8)
+    total_denom = max(abs(reward_with_bonus), 1e-8)
+    return (
+        reward_without_bonus,
+        reward_with_bonus,
+        bonus_mean,
+        bonus_mean / base_denom,
+        bonus_mean / total_denom,
+    )
+
+
 def _reward_metric_block(payload: TrainingMetricsPayload) -> Dict[str, float]:
     reward_stats = payload.reward_stats
     metrics: Dict[str, float] = {
@@ -359,9 +640,29 @@ def _reward_metric_block(payload: TrainingMetricsPayload) -> Dict[str, float]:
         "train/q_entropy_min": reward_stats.q_entropy_min,
         "train/q_entropy_max": reward_stats.q_entropy_max,
     }
+    for quantile_key, value in reward_stats.reward_quantiles.items():
+        metrics[f"train/reward_{quantile_key}"] = value
     for reward_key, stats in reward_stats.per_reward.items():
         metrics[f"train/rewards/{reward_key}/mean"] = stats.mean
         metrics[f"train/rewards/{reward_key}/std"] = stats.std
+        for quantile_key, value in reward_stats.per_reward_quantiles.get(
+            reward_key, {}
+        ).items():
+            metrics[f"train/rewards/{reward_key}/{quantile_key}"] = value
+    bonus_summary = _entropy_bonus_impact(reward_stats)
+    if bonus_summary is not None:
+        (
+            reward_without_bonus,
+            reward_with_bonus,
+            bonus_mean,
+            bonus_frac_base,
+            bonus_frac_total,
+        ) = bonus_summary
+        metrics["train/reward_without_entropy_bonus"] = reward_without_bonus
+        metrics["train/reward_with_entropy_bonus"] = reward_with_bonus
+        metrics["train/entropy_bonus_mean"] = bonus_mean
+        metrics["train/entropy_bonus_frac_of_base"] = bonus_frac_base
+        metrics["train/entropy_bonus_frac_of_total"] = bonus_frac_total
     return metrics
 
 
@@ -392,6 +693,7 @@ def _weight_metric_block(payload: TrainingMetricsPayload) -> Dict[str, float]:
     weight_stats = payload.weight_stats
     metrics = {
         "train/weight_entropy": weight_stats.entropy,
+        "train/weight_entropy_norm": weight_stats.entropy_norm,
         "train/weight_entropy_min": weight_stats.entropy_min,
         "train/weight_entropy_max": weight_stats.entropy_max,
         "train/advantage_entropy_mean": weight_stats.advantage_entropy_mean,
@@ -691,6 +993,16 @@ def _summarize_reward_stats(
     q_entropy_mean, q_entropy_std = _mean_std(q_entropies)
     q_entropy_min = min(q_entropies) if q_entropies else 0.0
     q_entropy_max = max(q_entropies) if q_entropies else 0.0
+    reward_quantiles = _quantile_stats(
+        all_rewards, (0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0)
+    )
+    per_reward_quantiles: Dict[str, Dict[str, float]] = {}
+    for reward_key, values in per_reward_values.items():
+        if not values:
+            continue
+        per_reward_quantiles[reward_key] = _quantile_stats(
+            values, (0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0)
+        )
     return RewardLoggingView(
         reward_mean=reward_mean,
         reward_std=reward_std,
@@ -705,6 +1017,8 @@ def _summarize_reward_stats(
         q_entropy_std=q_entropy_std,
         q_entropy_min=q_entropy_min,
         q_entropy_max=q_entropy_max,
+        reward_quantiles=reward_quantiles,
+        per_reward_quantiles=per_reward_quantiles,
     )
 
 
@@ -743,6 +1057,8 @@ def summarize_reward_stats(
             q_entropy_std=0.0,
             q_entropy_min=0.0,
             q_entropy_max=0.0,
+            reward_quantiles={},
+            per_reward_quantiles={},
         )
     return _summarize_reward_stats(accelerator, reward_comp, skip_global=log_like_grpo)
 
@@ -765,6 +1081,28 @@ def _summarize_weight_stats(
     weights_grouped = getattr(weight_stats, "weights_grouped", []) or []
     prompt_count = len(weights_grouped)
     entropy_val = float(getattr(weight_stats, "weight_entropy", 0.0))
+    entropy_norm_vals: List[float] = []
+    for weight_group in weights_grouped:
+        if not weight_group:
+            continue
+        denom = math.log(max(len(weight_group), 1))
+        if denom <= 0.0:
+            entropy_norm_vals.append(0.0)
+            continue
+        filtered = [max(float(w), 1e-12) for w in weight_group if isinstance(w, (int, float))]
+        if not filtered:
+            entropy_norm_vals.append(0.0)
+            continue
+        total = sum(filtered)
+        if total <= 0.0:
+            entropy_norm_vals.append(0.0)
+            continue
+        normalized = [val / total for val in filtered]
+        entropy = -sum(val * math.log(val) for val in normalized)
+        entropy_norm_vals.append(float(entropy / denom))
+    entropy_norm_sum = _sum_scalar_for_metrics(
+        accelerator, float(sum(entropy_norm_vals)), skip_global=skip_global
+    )
     entropy_sum = _sum_scalar_for_metrics(
         accelerator, float(entropy_val * max(prompt_count, 0)), skip_global=skip_global
     )
@@ -772,6 +1110,7 @@ def _summarize_weight_stats(
         accelerator, float(prompt_count), skip_global=skip_global
     )
     entropy_mean = entropy_sum / prompt_total if prompt_total > 0 else entropy_val
+    entropy_norm_mean = entropy_norm_sum / prompt_total if prompt_total > 0 else 0.0
     entropy_min_vals = _gather_list_for_metrics(
         accelerator,
         [getattr(weight_stats, "weight_entropy_min", 0.0)],
@@ -790,6 +1129,7 @@ def _summarize_weight_stats(
     ent_adv_mean, ent_adv_std = _mean_std(ent_adv_values)
     return WeightLoggingView(
         entropy=entropy_mean,
+        entropy_norm=entropy_norm_mean,
         entropy_min=min(entropy_min_vals) if entropy_min_vals else 0.0,
         entropy_max=max(entropy_max_vals) if entropy_max_vals else 0.0,
         advantage_entropy_mean=ent_adv_mean,
@@ -863,6 +1203,23 @@ def _build_metrics_payload(
         clipping=ctx.scoring.clipping,
         schedule=ctx.optimization.schedule,
     )
+    policy_entropy = _policy_entropy_from_scores(getattr(prepared, "scores", None))
+    entropy_bonus_coef = None
+    entropy_bonus_reward_std = None
+    scoring_cfg = getattr(ctx, "scoring", None)
+    if scoring_cfg is not None:
+        try:
+            entropy_bonus_coef = float(
+                getattr(scoring_cfg, "policy_entropy_bonus_coef", 0.0)
+            )
+        except (TypeError, ValueError):
+            entropy_bonus_coef = None
+    try:
+        entropy_bonus_reward_std = float(
+            getattr(prepared.reward_comp, "entropy_bonus_scale", None)
+        )
+    except (TypeError, ValueError):
+        entropy_bonus_reward_std = None
     scalar_stats = TrainingScalarStats(
         ref_logp_mean=prepared.ref_stats.ref_logp_mean,
         tokens=TokenUsageStats(
@@ -878,6 +1235,9 @@ def _build_metrics_payload(
             if ctx.generation.use_vllm
             else None
         ),
+        policy_entropy=policy_entropy,
+        entropy_bonus_coef=entropy_bonus_coef,
+        entropy_bonus_reward_std=entropy_bonus_reward_std,
     )
     if log_like_grpo:
         reward_stats_payload = _summarize_reward_stats(
@@ -959,26 +1319,33 @@ def _emit_metrics(
     """
     accelerator = ctx.runtime.accelerator
     logging_handles = ctx.logging
+    metrics_to_emit = _filter_metrics(metrics, ctx)
     if log_to_wandb:
         if metric_logger is not None:
-            metric_logger(metrics)
+            metric_logger(metrics_to_emit)
         else:
-            logging_handles.log_metrics(metrics, global_step)
-        _log_wandb(getattr(logging_handles, "wandb_run", None), metrics, global_step)
+            logging_handles.log_metrics(metrics_to_emit, global_step)
+        _log_wandb(
+            getattr(logging_handles, "wandb_run", None),
+            metrics_to_emit,
+            global_step,
+        )
         accelerator_log = getattr(accelerator, "log", None)
         if callable(accelerator_log):
             try:
-                accelerator_log(metrics, step=global_step)
+                accelerator_log(metrics_to_emit, step=global_step)
             except TypeError:
-                accelerator_log(metrics)
+                accelerator_log(metrics_to_emit)
     elif metric_logger is not None:
-        metric_logger(metrics)
+        metric_logger(metrics_to_emit)
     try:
-        kv_pairs = " | ".join(f"{key}={metrics[key]}" for key in sorted(metrics.keys()))
+        kv_pairs = " | ".join(
+            f"{key}={metrics_to_emit[key]}" for key in sorted(metrics_to_emit.keys())
+        )
     except (TypeError, ValueError, KeyError):
-        kv_pairs = str(metrics)
+        kv_pairs = str(metrics_to_emit)
     LOG.info("%s metrics step %d | %s", tag, global_step, kv_pairs)
-    return metrics
+    return metrics_to_emit
 
 
 def _pretty_print_metrics(metrics: Dict[str, Any]) -> str:
@@ -1099,6 +1466,7 @@ def log_local_step(
                 state.global_step,
             )
         metrics_to_emit.setdefault("train/global_step", float(state.global_step))
+        _log_entropy_bonus_impact(metrics_to_emit, state.global_step, tag="Global")
         _log_debug_metrics(state.global_step, metrics_to_emit)
         normalized_metrics = _normalize_prefixes(dict(metrics_to_emit), is_eval=False)
         with ctx.logging.step_logger(state.global_step, enabled=True) as step_logger:
@@ -1121,6 +1489,7 @@ def log_local_step(
     _log_debug_metrics(state.global_step, metrics)
     if not _should_log(ctx, state.global_step):
         return
+    _log_entropy_bonus_impact(metrics, state.global_step, tag="Local")
     with ctx.logging.step_logger(state.global_step, enabled=True) as step_logger:
         _emit_metrics(
             ctx,

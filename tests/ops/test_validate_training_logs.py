@@ -23,11 +23,20 @@ import runpy
 from pathlib import Path
 
 
+def _resolve_tool(script_name: str) -> Path:
+    repo_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        repo_root / "var" / "repo" / "tools" / script_name,
+        repo_root / "tools" / script_name,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(f"{script_name} not found in expected locations")
+
+
 def _load_validator():
-    tools_dir = (
-        Path(__file__).resolve().parents[2] / "tools" / "validate_training_logs.py"
-    )
-    return runpy.run_path(str(tools_dir))
+    return runpy.run_path(str(_resolve_tool("validate_training_logs.py")))
 
 
 def test_validate_logs_passes_on_finite_metrics(tmp_path):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -103,6 +104,7 @@ class VLLMGenerationHelper(
         stats.setdefault("vllm_failed_prompts", 0)
         stats.setdefault("vllm_retry_rounds", 0)
         stats.setdefault("vllm_retry_failures", 0)
+        stats.setdefault("vllm_sync_fail_fallbacks", 0)
         stats.setdefault("vllm_last_error", None)
         _seed_stats_metadata(stats, ctx)
         ctx.generation_stats = stats
@@ -185,6 +187,11 @@ class VLLMGenerationHelper(
             metadata when enabled.
         :rtype: tuple[list[list[str]], list[list[VLLMLogprobResult | None]] | None]
         """
+        LOG.info(
+            "vLLM helper generate start | prompts=%d | num_samples=%d",
+            len(prompts),
+            num_samples,
+        )
         sync_fn = self.maybe_sync_weights
         using_default_sync = getattr(sync_fn, "__func__", None) is VLLMGenerationHelper.maybe_sync_weights
         try:
@@ -194,6 +201,22 @@ class VLLMGenerationHelper(
                 sync_fn(ensure_client, sync_model)
         except TypeError:
             sync_fn()
+        if (
+            getattr(self.ctx, "vllm_sync_weights", False)
+            and bool(getattr(self, "_vllm_sync_attempted", False))
+            and not getattr(self, "_vllm_last_sync_ok", True)
+            and os.getenv("MAXENT_VLLM_FALLBACK_ON_SYNC_FAIL", "1").strip().lower()
+            not in {"0", "false", "no", "off"}
+        ):
+            LOG.warning(
+                "vLLM weight sync failed; falling back to local generation for this batch."
+            )
+            stats = getattr(self.ctx, "generation_stats", None)
+            if isinstance(stats, dict):
+                stats["vllm_sync_fail_fallbacks"] = int(
+                    stats.get("vllm_sync_fail_fallbacks", 0)
+                ) + 1
+            return self._fallback_generate(prompts, num_samples, per_prompt_counts)
         stats = self.ctx.generation_stats
         if getattr(self.ctx, "vllm_sync_weights", False):
             if "vllm_weight_syncs" not in stats:
@@ -205,10 +228,20 @@ class VLLMGenerationHelper(
                     ensure_client()
                 if sync_model is not None:
                     sync_model(getattr(self.ctx, "model", None))
+        LOG.info(
+            "vLLM helper generate synced | prompts=%d | num_samples=%d",
+            len(prompts),
+            num_samples,
+        )
         prompts_local, target_counts, mapping = self._prepare_vllm_targets(
             prompts,
             num_samples,
             per_prompt_counts,
+        )
+        LOG.info(
+            "vLLM helper targets prepared | prompts_local=%d | target_counts_sample=%s",
+            len(prompts_local),
+            target_counts[:8],
         )
         effective_target = max(target_counts) if target_counts else int(num_samples)
         round_limit = self._resolve_vllm_round_limit(max(effective_target, 1))
@@ -219,9 +252,38 @@ class VLLMGenerationHelper(
             round_limit=round_limit,
             track_logprobs=self.ctx.vllm_request_logprobs,
         )
+        LOG.info(
+            "vLLM helper rounds start | round_limit=%d | requested_n=%d",
+            round_limit,
+            num_samples,
+        )
         self._run_vllm_rounds(state)
+        LOG.info("vLLM helper rounds done | requested_n=%d", num_samples)
         grouped, meta = state.trim()
-        return self._expand_dedup_results(grouped, meta, mapping)
+        LOG.info(
+            "vLLM helper generate done | grouped_prompts=%d",
+            len(grouped) if grouped else 0,
+        )
+        expanded, expanded_meta = self._expand_dedup_results(grouped, meta, mapping)
+        if per_prompt_counts is not None:
+            try:
+                safe_counts = [max(0, int(count)) for count in per_prompt_counts]
+            except (TypeError, ValueError):
+                safe_counts = None
+            if safe_counts is not None and len(safe_counts) == len(expanded):
+                expanded = [
+                    group[:count] if count >= 0 else group
+                    for group, count in zip(expanded, safe_counts)
+                ]
+                if expanded_meta is not None:
+                    trimmed_meta: List[List[Optional[VLLMLogprobResult]]] = []
+                    for meta_group, count in zip(expanded_meta, safe_counts):
+                        if meta_group is None:
+                            trimmed_meta.append([])
+                        else:
+                            trimmed_meta.append(list(meta_group)[:count])
+                    expanded_meta = trimmed_meta
+        return expanded, expanded_meta
 
     def generate_collective(
         self,

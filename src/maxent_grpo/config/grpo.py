@@ -24,6 +24,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import MISSING, dataclass, field
 from typing import Callable, Optional
@@ -90,6 +91,10 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_q_epsilon: Minimum support added to q before normalization.
     :ivar maxent_length_normalize_ref: Length-normalize reference log-probs.
     :ivar maxent_logprob_chunk_size: Mini-batch size when computing log-probs.
+    :ivar maxent_policy_entropy: Whether to compute policy entropy during scoring.
+    :ivar maxent_policy_entropy_mode: Which entropy estimator to use ("exact" or "sample").
+    :ivar policy_entropy_bonus_coef: Coefficient applied to per-token policy entropy
+        when adding an entropy bonus to rewards (GRPO + entropy bonus).
     :ivar maxent_target_weight_entropy: Target weight entropy for automatic tau tuning.
     :ivar maxent_target_weight_entropy_start: Optional starting entropy target for annealing.
     :ivar maxent_target_weight_entropy_final: Optional final entropy target for annealing.
@@ -109,6 +114,7 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar clip_range: PPO clip range used for clipping ratios in the custom loop.
     :ivar gen_temperature: Temperature used for candidate generation.
     :ivar gen_top_p: Top-p nucleus sampling used for generation.
+    :ivar vllm_mode: vLLM backend mode ("server" or "colocate").
     :ivar vllm_url: Base URL for the vLLM ``/generate`` endpoint.
     :ivar vllm_max_completion_rounds: Maximum number of retries to top off completions.
     :ivar vllm_retry_sleep: Seconds to sleep between vLLM retries.
@@ -123,6 +129,8 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar vllm_presence_penalty: Presence penalty applied during sampling.
     :ivar vllm_top_k: Top-k sampling parameter forwarded to vLLM.
     :ivar vllm_stop_sequences: Stop sequences for vLLM (JSON list or ``'||'``-delimited string).
+    :ivar eval_before_train: Run evaluation once before training begins (step 0).
+    :ivar disable_distributed_sampler: Disable the DistributedSampler to avoid double sharding.
     :ivar dataloader_num_workers: Number of worker processes for the training dataloader.
     :ivar dataloader_pin_memory: Whether to pin memory in the training dataloader.
     :ivar dataloader_prefetch_factor: Prefetch factor per worker (only when num_workers > 0).
@@ -133,6 +141,10 @@ class GRPOConfig(trl.GRPOConfig):
     benchmarks: list[str] = field(
         default_factory=lambda: [],
         metadata={"help": "The benchmarks to run after training."},
+    )
+    eval_before_train: bool = field(
+        default=False,
+        metadata={"help": "Run evaluation once before training starts (step 0)."},
     )
     callbacks: list[str] = field(
         default_factory=lambda: [],
@@ -295,7 +307,9 @@ class GRPOConfig(trl.GRPOConfig):
                 "How to obtain reference log-prob statistics used for KL. "
                 "'auto' uses vLLM metadata when valid, otherwise falls back to policy logprobs "
                 "(KL ~= 0) and only runs the frozen reference model when needed; "
-                "'model' always scores with the frozen reference model."
+                "'model' always scores with the frozen reference model; "
+                "'policy' always uses policy logprobs (no reference model); "
+                "'none' is an alias for 'policy'."
             )
         },
     )
@@ -315,6 +329,36 @@ class GRPOConfig(trl.GRPOConfig):
             "help": (
                 "If set, only the final N tokens of each prompt+completion pair are "
                 "used when computing reference/policy log-probs."
+            )
+        },
+    )
+    maxent_policy_entropy: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Compute policy token entropy from logits during scoring so MaxEnt "
+                "runs can log (and optionally use) policy entropy diagnostics."
+            )
+        },
+    )
+    maxent_policy_entropy_mode: str = field(
+        default="exact",
+        metadata={
+            "help": (
+                "Entropy estimator to use when policy entropy is requested. "
+                "'exact' computes full-distribution entropy (slow, uses log_softmax); "
+                "'sample' uses the negative log-prob of sampled tokens as an unbiased "
+                "entropy estimator (fast, matches generation entropy on average)."
+            )
+        },
+    )
+    policy_entropy_bonus_coef: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Coefficient applied to per-token policy entropy when adding an entropy "
+                "bonus to rewards (GRPO + entropy bonus). The entropy bonus is z-scored "
+                "within each prompt group and scaled by the batch reward std. Set to 0 to disable."
             )
         },
     )
@@ -650,6 +694,15 @@ class GRPOConfig(trl.GRPOConfig):
         default=0.9,
         metadata={"help": "Top-p used for candidate generation."},
     )
+    vllm_mode: str = field(
+        default="server",
+        metadata={
+            "help": (
+                "vLLM backend mode: 'server' for HTTP API or 'colocate' for "
+                "in-process generation."
+            )
+        },
+    )
     vllm_url: Optional[str] = field(
         default="http://localhost:8000/generate",
         metadata={"help": "Base URL for vLLM /generate when use_vllm is true."},
@@ -687,6 +740,15 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    vllm_force_logprobs: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Force vLLM logprob requests even when reference logprobs are sourced "
+                "from the model/policy (useful for debugging)."
+            )
+        },
+    )
     vllm_logprob_fail_after: Optional[int] = field(
         default=None,
         metadata={
@@ -715,11 +777,11 @@ class GRPOConfig(trl.GRPOConfig):
         },
     )
     vllm_sync_interval_steps: Optional[int] = field(
-        default=None,
+        default=1,
         metadata={
             "help": (
                 "Only sync weights to vLLM every N optimizer steps when vllm_sync_weights is true. "
-                "Set to 0 to disable sync; None uses the default (sync every step)."
+                "Set to 0 to disable sync; None syncs every step. Default: 1."
             )
         },
     )
@@ -783,8 +845,14 @@ class GRPOConfig(trl.GRPOConfig):
             "help": "Keep DataLoader workers alive between epochs (only when num_workers > 0)."
         },
     )
+    disable_distributed_sampler: bool = field(
+        default=False,
+        metadata={
+            "help": "Disable DistributedSampler to avoid double sharding under Accelerate."
+        },
+    )
     log_level: str | int = field(
-        default="info",
+        default="warning",
         metadata={"help": "Logging level applied to the training process."},
     )
     log_completions: bool = field(
@@ -839,6 +907,12 @@ class GRPOConfig(trl.GRPOConfig):
                 else:
                     # Re-raise unrelated ValueErrors.
                     raise
+        vllm_mode = str(getattr(self, "vllm_mode", "server") or "server").strip().lower()
+        if vllm_mode in {"inline", "local", "inprocess", "in-process"}:
+            vllm_mode = "colocate"
+        if vllm_mode not in {"server", "colocate"}:
+            raise ValueError("vllm_mode must be one of: server, colocate")
+        setattr(self, "vllm_mode", vllm_mode)
         vllm_url = getattr(self, "vllm_url", None)
         if isinstance(vllm_url, str):
             normalized = vllm_url.strip()
@@ -859,6 +933,47 @@ class GRPOConfig(trl.GRPOConfig):
             ):
                 normalized = f"{parsed.scheme}://{parsed.netloc}/generate"
                 setattr(self, "vllm_url", normalized)
+        def _parse_stop_sequences(raw: object) -> Optional[list[str]]:
+            if raw is None:
+                return None
+            if isinstance(raw, (list, tuple)):
+                cleaned = [
+                    str(item)
+                    for item in raw
+                    if item is not None and str(item).strip()
+                ]
+                return cleaned or None
+            if isinstance(raw, str):
+                stripped = raw.strip()
+                if not stripped:
+                    return None
+                parsed_val: Optional[object]
+                try:
+                    parsed_val = json.loads(stripped)
+                except (TypeError, ValueError):
+                    parsed_val = None
+                if isinstance(parsed_val, list):
+                    cleaned = [
+                        str(item)
+                        for item in parsed_val
+                        if item is not None and str(item).strip()
+                    ]
+                    return cleaned or None
+                if isinstance(parsed_val, str):
+                    stripped = parsed_val.strip()
+                if "||" in stripped:
+                    parts = [part.strip() for part in stripped.split("||")]
+                    cleaned = [part for part in parts if part]
+                    return cleaned or None
+                return [stripped]
+            return [str(raw)]
+
+        raw_stops = getattr(self, "vllm_stop_sequences", None)
+        parsed_stops = _parse_stop_sequences(raw_stops)
+        if parsed_stops is not None:
+            setattr(self, "vllm_stop_sequences", parsed_stops)
+        elif isinstance(raw_stops, str):
+            setattr(self, "vllm_stop_sequences", None)
         if self.maxent_tau_min < 0.0:
             raise ValueError("maxent_tau_min must be non-negative")
         if self.maxent_tau_max < self.maxent_tau_min:
@@ -888,6 +1003,32 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_q_epsilon must be > 0 to avoid zero weights")
         if self.maxent_q_temperature <= 0.0:
             raise ValueError("maxent_q_temperature must be > 0")
+        if self.policy_entropy_bonus_coef < 0.0:
+            raise ValueError("policy_entropy_bonus_coef must be non-negative")
+        entropy_mode = (
+            str(getattr(self, "maxent_policy_entropy_mode", "exact") or "exact")
+            .strip()
+            .lower()
+        )
+        if entropy_mode in {"", "none"}:
+            entropy_mode = "exact"
+        if entropy_mode in {"exact", "full", "distribution"}:
+            entropy_mode = "exact"
+        elif entropy_mode in {
+            "sample",
+            "estimate",
+            "estimated",
+            "approx",
+            "approximate",
+            "token",
+            "token_logp",
+            "nll",
+            "logp",
+        }:
+            entropy_mode = "sample"
+        else:
+            raise ValueError("maxent_policy_entropy_mode must be one of: exact, sample")
+        setattr(self, "maxent_policy_entropy_mode", entropy_mode)
         if self.maxent_logprob_chunk_size < 0:
             raise ValueError("maxent_logprob_chunk_size must be non-negative")
         ref_source = (
@@ -895,8 +1036,10 @@ class GRPOConfig(trl.GRPOConfig):
             .strip()
             .lower()
         )
-        if ref_source not in {"auto", "model"}:
-            raise ValueError("maxent_reference_logprobs_source must be one of: auto, model")
+        if ref_source not in {"auto", "model", "policy", "none"}:
+            raise ValueError(
+                "maxent_reference_logprobs_source must be one of: auto, model, policy, none"
+            )
         if (
             self.maxent_score_tail_tokens is not None
             and self.maxent_score_tail_tokens <= 0

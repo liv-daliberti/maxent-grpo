@@ -27,6 +27,11 @@ eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
+maxent_prompt_cache_size: 20000
+dataloader_num_workers: 4
+dataloader_persistent_workers: true
+dataloader_prefetch_factor: 2
+dataloader_pin_memory: true
 system_prompt: |
   You are an expert *mathematics problem-solver*.
 
@@ -62,21 +67,25 @@ system_prompt: |
 
 # GRPO paired config (mirrors MaxEnt training settings)
 # Training/eval & logging
-bf16: true
-fp16: false
+bf16: false
+fp16: true
 use_vllm: true            # enable vLLM server path for generation
 vllm_mode: server         # use external/inline server launched by the slurm helper
 torch_compile: false      # disabled: torch.compile is unstable with DeepSpeed/ZeRO here
-# Request vLLM logprob metadata so MaxEnt can reconstruct reference stats from vLLM.
-# Request logprob metadata from vLLM (requires a server with logprob support).
+# Request vLLM logprob metadata (kept on for debugging even with model reference).
 vllm_return_logprobs: true
 vllm_request_logprobs: true
+vllm_force_logprobs: true
 # Force frozen reference-model scoring for KL/GRPO trust region.
-maxent_reference_logprobs_source: model
-vllm_sync_weights: false
+maxent_reference_logprobs_source: auto
+maxent_policy_entropy: false
+maxent_logprob_chunk_size: 8
+maxent_length_normalize_ref: false
+vllm_sync_weights: true
+vllm_sync_interval_steps: 1
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 32    # match TRL defaults for faster logging feedback
+gradient_accumulation_steps: 32    # keep global batch size with lower per-device batch
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
@@ -90,35 +99,35 @@ vllm_stop_sequences:
   - "</answer>"
   - "</answer>\n"
   - "</assistant>"
-vllm_request_timeout: 600
-vllm_url: http://localhost:29525/generate/
-hub_model_id: od2961/Qwen2.5-0.5B-Open-R1-GRPO-BASELINE-math-v1
-hub_strategy: every_save
-learning_rate: 1e-6
+vllm_request_timeout: 10
+vllm_max_retries: 2
+hub_model_id: null
+hub_strategy: "end"
+learning_rate: 1.5e-6
 optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
-log_level: info
+log_level: 30
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
-max_prompt_length: 1024      # trim prompt window to ease ref scoring memory
-max_completion_length: 512   # shorter completions to reduce activation + ref costs
-max_steps: 200
+max_prompt_length: 2000      # trim prompt window to ease ref scoring memory
+max_completion_length: 800   # requested output length
+max_steps: 1000
 # GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
-num_generations: 4           # reduce scoring footprint while satisfying GRPO minimum
-num_train_epochs: 1
+num_generations: 8           # match MaxEnt group size for fair comparison
+num_train_epochs: 18
 output_dir: var/data/Qwen2.5-0.5B-Open-R1-GRPO-BASELINE-math-v1
 overwrite_output_dir: true
-per_device_eval_batch_size: 8
-per_device_train_batch_size: 2
-push_to_hub: true
+per_device_eval_batch_size: 4
+per_device_train_batch_size: 1
+push_to_hub: false
 report_to:
 - wandb
-wandb_project: huggingface
+wandb_project: open-r1-maxent-grpo
 wandb_entity: ogd3-princeton-university
 reward_funcs:
 - pure_accuracy_math
@@ -127,18 +136,21 @@ reward_weights:
 
 # Reverse‑KL weight β used inside MaxEnt update
 # Gentle KL controller: keep updates small even when KL is far from target.
-beta: 0.5
+beta: 0.3
 kl_target:        0.07
-kl_horizon:       500
+kl_horizon:       300
 kl_ctl_step_size: 1.0
 
 # Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
-max_grad_norm: 0.15
+max_grad_norm: 0.5
 ppo_clip_range: 0.05
+clip_range: 0.1
 save_strategy: steps
 save_steps: 50
 eval_strategy: steps
-eval_steps: 25
+eval_steps: 50
+eval_before_train: true
 save_total_limit: 1000
 seed: 42
-warmup_ratio: 0.2
+vllm_url: "http://localhost:29526/generate"
+warmup_ratio: 0.1

@@ -1,11 +1,11 @@
 # MaxEnt-GRPO: Maximum‑Entropy Group‑Relative Policy Optimization
 
-A clean, maximum‑entropy variant of GRPO for sequence‑level (candidate‑level) learning. Hydra console scripts, TRL entrypoints, and Slurm launchers are wired to keep environments + caches inside the repo (`./var`).
+A clean GRPO training stack that supports vanilla GRPO, GRPO + entropy bonus, and maximum‑entropy weighting for sequence‑level learning. Hydra console scripts, TRL entrypoints, and Slurm launchers are wired to keep environments + caches inside the repo (`./var`).
 
 
 ## Quick Start
 
-- Bootstrap the repo-local env + caches: `bash tools/bootstrap_env.sh` (wraps `configs/environment.yml`, writes the env to `./var/openr1` and all caches/tmp under `./var`). Equivalent: `make conda-local`.
+- Bootstrap the repo-local env + caches: `bash var/repo/tools/bootstrap_env.sh` (wraps `configs/environment.yml`, writes the env to `./var/openr1` and all caches/tmp under `./var`). Equivalent: `make conda-local`.
 - Activate: `conda activate ./var/openr1`; refresh installs via `pip install -c configs/constraints.txt -e .[dev]`.
 - Authenticate with Hugging Face (`huggingface-cli login` or `export HF_TOKEN=…`) so gated models/datasets can be pulled by vLLM/TRL.
 - Training telemetry / proof of work: public run stats at [wandb.ai ↗](https://api.wandb.ai/links/ogd3-princeton-university/aw6ecc9b).
@@ -45,6 +45,14 @@ optimizer, and eval settings. The GRPO pairs set `force_custom_loop: true` and
 same custom loop with a frozen reference anchor. For the Hydra preset, use
 `configs/recipes/hydra/grpo_custom_math.yaml`.
 
+Policy entropy is only computed when requested (``maxent_policy_entropy=true``)
+or when the **GRPO + entropy bonus** mode is enabled via
+``policy_entropy_bonus_coef>0``. In the entropy‑bonus mode the policy entropy
+is extracted from the same scoring pass (no extra forward passes), **z‑scored**
+within each prompt group and scaled by the batch reward std, then added to the
+reward before the loss is built; logs report the bonus mean and its impact on
+the total reward/objective.
+
 All MaxEnt and InfoSeed recipes now enable the τ/β meta-controller (analytic mode) by default so weights stay on target without manual tuning. Override with Hydra/CLI flags such as ``controller_meta_enabled=false`` (fully static), ``controller_meta_method=first_order`` (truncated gradients), or ``controller_meta_lr=0.02`` for per-project retuning. The baseline GRPO recipes keep the controller disabled unless you explicitly flip the flag.
 
 Examples:
@@ -62,8 +70,8 @@ maxent-grpo-baseline \
 
 The MaxEnt runner is provided as building blocks under `src/maxent_grpo/training/` and a YAML recipe; the convenience CLI (`maxent-grpo-maxent` / `--task maxent`) currently raises until the dedicated launcher is restored.
 
-Multi-node training (recommended): `sbatch ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3 --args "--run_name demo --report_to wandb"`.
-- Inspect `sbatch ops/slurm/train.slurm --help` for dp/tp, ports, vLLM mode, and accelerate config knobs. All caches stay under `var/` and run artifacts under `var/artifacts/` by default.
+Multi-node training (recommended): `sbatch var/repo/ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3 --args "--run_name demo --report_to wandb"`.
+- Inspect `sbatch var/repo/ops/slurm/train.slurm --help` for dp/tp, ports, vLLM mode, and accelerate config knobs. All caches stay under `var/` and run artifacts under `var/artifacts/` by default.
 
 Evaluate math benchmarks locally via `src/inference`:
 ```python
@@ -90,9 +98,9 @@ Notes
 - InfoSeed runner: recipe at `configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml` with Hydra shortcut `configs/recipes/hydra/infoseed_math.yaml`; console alias `maxent-grpo-infoseed`.
 - Inference presets cover `math_500`, `aime24`, `aime25`, `amc`, and `minerva`; override columns/splits via `inference.eval.*` if you use alternative mirrors. The math eval pipeline reports Pass@1, Pass@k (default k=8), and Avg@k averaged across seeds (default seeds: `[0,1,2,3,4]` at temperature 0.6).
   - Every math eval invocation now persists prompt-level artifacts under `var/artifacts/inference/<model>/<dataset>/<temp>/seed_<n>.jsonl`. Appends are flushed after each prompt so preempted jobs can resume automatically; rerunning `maxent-grpo-math-eval` reuses completed prompts and continues where the previous Slurm job stopped.
-  - The table helper `python tools/math_eval_table.py --artifact-root var/artifacts/inference` renders three terminal tables (Pass@1 / Pass@8 / Avg@8) averaged over all seeds using the artifact JSON. Adjust `--precision` or `--min-datasets` to control formatting/filters.
+  - The table helper `python var/repo/tools/math_eval_table.py --artifact-root var/artifacts/inference` renders three terminal tables (Pass@1 / Pass@8 / Avg@8) averaged over all seeds using the artifact JSON. Adjust `--precision` or `--min-datasets` to control formatting/filters.
 - Preferred CLI alias for multi-benchmark math inference: `maxent-grpo-math-eval`.
-- Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`. Pass `--revision <git_commit>` when pointing at Hugging Face repos (e.g., `--model od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1 --revision c929c65`) to evaluate specific training steps without syncing local checkpoints.
+- Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch var/repo/ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`. Pass `--revision <git_commit>` when pointing at Hugging Face repos (e.g., `--model od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1 --revision c929c65`) to evaluate specific training steps without syncing local checkpoints.
 - Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
 - For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
 - Throughput knobs: `dataloader_num_workers`, `dataloader_pin_memory`, `dataloader_prefetch_factor`, `dataloader_persistent_workers` are honored by both the custom loop and the baseline TRL trainer.
@@ -103,16 +111,14 @@ Notes
   - **Server requirement:** the vLLM server (or proxy) must copy the `client_tag` back into each prompt group of the JSON response (either at the result level or inside every output). Without that echo the client cannot filter, so you’ll see warnings such as “Skipping policy loss group due to empty log-probs,” `train/grpo_objective` stays at zero, and KL/entropy metrics remain `NaN`.
   - Guard rails: training now stops after `vllm_logprob_fail_after` consecutive steps with missing vLLM logprobs (default 3). Set `vllm_logprob_fallback=true` to switch to reference-model scoring instead, or `vllm_logprob_fail_after=0` to disable. `vllm_client_tag_fail_fast` controls abort-on-client_tag mismatch; env fallbacks are `MAXENT_VLLM_LOGPROB_FAIL_AFTER`, `MAXENT_VLLM_LOGPROB_FALLBACK`, `MAXENT_VLLM_CLIENT_TAG_FAIL_FAST`.
   - Weight sync: set `vllm_sync_interval_steps` to reduce sync stalls (e.g., sync every N optimizer steps; 0 disables sync).
-  - **Verification:** when filtering works you’ll no longer see `vLLM raw groups=96 ...` immediately followed by `Score batch built | total_sequences=16`; the counts match and the controller metrics (`train/delta_tau`, `train/delta_beta`) move off zero even with chunking enabled. For a quick end‑to‑end check on a local model, run `python tools/vllm_client_tag_smoke.py --model <HF_ID>` and confirm it logs “server echoed client_tag …” before launching training.
+  - **Verification:** when filtering works you’ll no longer see `vLLM raw groups=96 ...` immediately followed by `Score batch built | total_sequences=16`; the counts match and the controller metrics (`train/delta_tau`, `train/delta_beta`) move off zero even with chunking enabled. For a quick end‑to‑end check on a local model, run `python var/repo/tools/vllm_client_tag_smoke.py --model <HF_ID>` and confirm it logs “server echoed client_tag …” before launching training.
 
 
 ## Code Organization
 ```
 .
 ├─ configs/                     # env, constraints, recipes, prompts (Hydra shortcuts + TRL YAML + accelerate configs)
-├─ custom_tasks/                # LightEval custom tasks + task YAML templates
 ├─ sitecustomize.py             # repo-local Python bootstrapper (cache dirs)
-├─ ops/                         # operations toolbox (slurm launchers)
 ├─ src/
 │  └─ maxent_grpo/              # all code now lives under the namespaced package
 │     ├─ cli/                   # Hydra console entrypoints (baseline/maxent/generate/inference)
@@ -124,10 +130,14 @@ Notes
 │     ├─ patches/               # vLLM HTTP helpers
 │     ├─ rewards.py             # reward registry used by the baseline trainer
 │     ├─ grpo.py / maxent_grpo.py  # TRL-style entrypoints (baseline GRPO + MaxEnt entry)
-├─ tools/                       # runnable utilities (env bootstrap, eval helpers)
 ├─ docs/                        # Sphinx guides + API reference
 ├─ var/                         # repo-local env, caches, run artifacts (see var/artifacts), data outputs (gitignored)
-└─ data/                        # optional staging area for large datasets/checkpoints
+│  ├─ repo/                     # tracked repo assets (tools/ops/custom_tasks/data staging)
+│  │  ├─ custom_tasks/           # LightEval custom tasks + task YAML templates
+│  │  ├─ ops/                    # operations toolbox (slurm launchers)
+│  │  ├─ tools/                  # runnable utilities (env bootstrap, eval helpers)
+│  │  └─ data/                   # optional staging area for large datasets/checkpoints
+│  └─ ...                       # artifacts/, cache/, tmp/, etc.
 ```
 
 Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now live under `var/artifacts/`.
@@ -179,9 +189,9 @@ Quick eval parity check (shared math_500 pipeline):
 
 ```bash
 # stubbed, offline delta comparison between baseline and candidate (math_500 runner)
-make eval-math-delta  # uses tools/eval_math_delta.py with a fixed seed/dataset
+make eval-math-delta  # uses var/repo/tools/eval_math_delta.py with a fixed seed/dataset
 # real models: swap stub runner for transformers and point at downloaded dataset
-python tools/eval_math_delta.py --baseline /path/to/grpo --candidate /path/to/maxent --runner transformers --dataset /path/to/math_500.jsonl
+python var/repo/tools/eval_math_delta.py --baseline /path/to/grpo --candidate /path/to/maxent --runner transformers --dataset /path/to/math_500.jsonl
 ```
 
 BibTeX

@@ -57,6 +57,20 @@ else:  # pragma: no cover - runtime uses optional torch stub
     TorchDevice = Any
 
 
+def _rank_tag() -> str:
+    """Return best-effort rank string for logging."""
+
+    try:
+        dist = getattr(torch, "distributed", None)
+        if dist is not None and dist.is_available() and dist.is_initialized():
+            rank = dist.get_rank()
+            world = dist.get_world_size()
+            return f"rank={rank}/{world}"
+    except Exception:
+        pass
+    return "rank=na"
+
+
 def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optional[Any]]:
     """Return ``(logprob_sum, token_count)`` when present in metadata entries."""
 
@@ -294,6 +308,7 @@ def prepare_generation_batch(
     prompts: List[str] = batch["prompt"]
     answers: List[str] = batch["answer"]
     if not prompts:
+        LOG.debug("Generation skipped | %s | reason=empty_prompts", _rank_tag())
         return None
     seed_cfg = None
     if seed_augmentation is not None:
@@ -307,7 +322,8 @@ def prepare_generation_batch(
         ):
             seed_cfg = seed_augmentation
     LOG.debug(
-        "Starting completion generation | prompts=%d | expected_generations=%d",
+        "Starting completion generation | %s | prompts=%d | expected_generations=%d",
+        _rank_tag(),
         len(prompts),
         expected_generations,
     )
@@ -393,6 +409,10 @@ def prepare_generation_batch(
 
     gen_result = _call_generator(prompts, expected_generations)
     if gen_result is None:
+        LOG.warning(
+            "Generation skipped | %s | reason=generator_returned_none",
+            _rank_tag(),
+        )
         return None
     if isinstance(gen_result, GenerationBatch):
         grouped_comps = gen_result.grouped_completions
@@ -403,12 +423,14 @@ def prepare_generation_batch(
     else:
         grouped_comps, grouped_meta = gen_result
     LOG.debug(
-        "Generator output unpacked | grouped_type=%s | meta_present=%s",
+        "Generator output unpacked | %s | grouped_type=%s | meta_present=%s",
+        _rank_tag(),
         type(grouped_comps).__name__,
         grouped_meta is not None,
     )
     LOG.debug(
-        "Generation finished | prompts=%d | groups_returned=%d",
+        "Generation finished | %s | prompts=%d | groups_returned=%d",
+        _rank_tag(),
         len(prompts),
         len(grouped_comps) if grouped_comps is not None else 0,
     )
@@ -420,7 +442,8 @@ def prepare_generation_batch(
     )
     aggregated_state = AggregatedGenerationState(aggregated_comps, aggregated_meta)
     LOG.debug(
-        "Retrying incomplete prompts | initial_groups=%d | expected=%d",
+        "Retrying incomplete prompts | %s | initial_groups=%d | expected=%d",
+        _rank_tag(),
         len(aggregated_comps) if aggregated_comps is not None else 0,
         expected_generations,
     )
@@ -436,9 +459,26 @@ def prepare_generation_batch(
         aggregated_state.metadata,
     )
     LOG.debug(
-        "Retries done | prompts=%d | groups=%d",
+        "Retries done | %s | prompts=%d | groups=%d",
+        _rank_tag(),
         len(prompts),
         len(aggregated_comps) if aggregated_comps is not None else 0,
+    )
+    pre_prompt_count = len(prompts)
+    pre_group_count = len(aggregated_comps) if aggregated_comps is not None else 0
+    pre_total_comps = (
+        sum(len(group) for group in aggregated_comps) if aggregated_comps else 0
+    )
+    pre_empty_groups = (
+        sum(1 for group in aggregated_comps if not group) if aggregated_comps else 0
+    )
+    LOG.debug(
+        "Generation pre-filter | %s | prompts=%d | groups=%d | total_completions=%d | empty_groups=%d",
+        _rank_tag(),
+        pre_prompt_count,
+        pre_group_count,
+        pre_total_comps,
+        pre_empty_groups,
     )
     prompts, answers, aggregated_comps, aggregated_meta = drop_empty_prompt_groups(
         prompts,
@@ -447,7 +487,29 @@ def prepare_generation_batch(
         aggregated_meta,
         generation_stats,
     )
+    post_prompt_count = len(prompts)
+    post_group_count = len(aggregated_comps) if aggregated_comps is not None else 0
+    post_total_comps = (
+        sum(len(group) for group in aggregated_comps) if aggregated_comps else 0
+    )
+    post_empty_groups = (
+        sum(1 for group in aggregated_comps if not group) if aggregated_comps else 0
+    )
+    LOG.debug(
+        "Generation post-filter | %s | prompts=%d | groups=%d | total_completions=%d | empty_groups=%d | dropped_prompts=%d",
+        _rank_tag(),
+        post_prompt_count,
+        post_group_count,
+        post_total_comps,
+        post_empty_groups,
+        max(pre_prompt_count - post_prompt_count, 0),
+    )
     if not aggregated_comps:
+        LOG.warning(
+            "Generation skipped | %s | reason=no_completions_after_filter | prompts=%d",
+            _rank_tag(),
+            post_prompt_count,
+        )
         return None
     aggregated_comps, aggregated_meta, partial_count = truncate_to_expected_counts(
         aggregated_comps,
@@ -455,7 +517,8 @@ def prepare_generation_batch(
         expected_generations,
     )
     LOG.debug(
-        "Truncated completions | prompts=%d | expected=%d | partial=%d",
+        "Truncated completions | %s | prompts=%d | expected=%d | partial=%d",
+        _rank_tag(),
         len(prompts),
         expected_generations,
         partial_count,
@@ -704,10 +767,28 @@ def compute_reward_statistics(
     """
     grouped_comps = gen_batch.grouped_completions
     if not grouped_comps:
+        LOG.warning(
+            "Reward stats skipped | %s | reason=empty_grouped_completions",
+            _rank_tag(),
+        )
         return None
     pair_batch, flat_answers = _flatten_prompt_completions(gen_batch)
     if not pair_batch.completions:
+        total_groups = len(grouped_comps)
+        total_comps = sum(len(group) for group in grouped_comps)
+        LOG.warning(
+            "Reward stats skipped | %s | reason=empty_flat_completions | groups=%d | total_completions=%d",
+            _rank_tag(),
+            total_groups,
+            total_comps,
+        )
         return None
+    LOG.debug(
+        "Reward stats inputs | %s | prompts=%d | completions=%d",
+        _rank_tag(),
+        len(grouped_comps),
+        len(pair_batch.completions),
+    )
     completion_metadata = getattr(pair_batch, "metadata", None)
     total_utils, per_reward_values = compute_reward_totals(
         reward_spec,
@@ -760,7 +841,8 @@ def compute_reward_statistics(
     except (TypeError, ValueError) as exc:
         LOG.debug("Failed to format controller_tau for logging: %s", exc)
     LOG.debug(
-        "Reward computation | prompts=%d | completions=%d | reward_mean=%.4f | reward_std=%.4f | q_range=[%.4f, %.4f] | q_temperature=%.3f | controller_tau=%s | beta=%s | eps=%.2e",
+        "Reward computation | %s | prompts=%d | completions=%d | reward_mean=%.4f | reward_std=%.4f | q_range=[%.4f, %.4f] | q_temperature=%.3f | controller_tau=%s | beta=%s | eps=%.2e",
+        _rank_tag(),
         len(grouped_comps),
         len(pair_batch.completions),
         moments.mean,

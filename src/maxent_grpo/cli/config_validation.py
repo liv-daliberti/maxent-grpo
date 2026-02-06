@@ -4,7 +4,8 @@ This module inspects the resolved training arguments before a pipeline is
 launched so accidental MaxEnt toggles are caught early. The validator is kept
 lightweight and only depends on :mod:`pydantic`, which is already part of the
 runtime toolchain for several other components. Future guardrails can extend
-this module by adding additional schema checks.
+this module by adding additional schema checks (including GRPO + entropy-bonus
+overrides under ``train-maxent``).
 """
 
 from __future__ import annotations
@@ -67,6 +68,7 @@ class _TrainingSchema(BaseModel):
     maxent_overrides: dict[str, Any] = Field(default_factory=dict)
     info_seed_enabled: bool | None = None
     info_seed_overrides: dict[str, Any] = Field(default_factory=dict)
+    allow_grpo_with_maxent_overrides: bool = False
     allow_info_seed: bool = True
     require_info_seed: bool = False
 
@@ -77,7 +79,11 @@ class _TrainingSchema(BaseModel):
             if self.train_grpo_objective is not None
             else self.default_objective
         )
-        if effective is not False and self.maxent_overrides:
+        if (
+            effective is not False
+            and self.maxent_overrides
+            and not self.allow_grpo_with_maxent_overrides
+        ):
             knobs = ", ".join(sorted(self.maxent_overrides))
             raise ValueError(
                 "MaxEnt overrides (%s) require train_grpo_objective=false" % knobs
@@ -147,7 +153,11 @@ def _training_values(payload: Any) -> MutableMapping[str, Any]:
         return {key: payload[key] for key in payload}
     values: MutableMapping[str, Any] = {}
     attr_names = set(_MAXENT_DEFAULTS)
-    attr_names |= {"train_grpo_objective", "info_seed_enabled"}
+    attr_names |= {
+        "train_grpo_objective",
+        "info_seed_enabled",
+        "policy_entropy_bonus_coef",
+    }
     attr_names |= set(_INFO_SEED_DEFAULTS)
     for name in attr_names:
         if hasattr(payload, name):
@@ -236,7 +246,8 @@ def validate_training_config(
     The validator ensures that the GRPO objective flag matches the presence of
     MaxEnt-specific options. When MaxEnt knobs are supplied while
     ``train_grpo_objective`` resolves to ``True`` (the vanilla GRPO objective), a
-    :class:`ValueError` is raised so the job fails fast.
+    :class:`ValueError` is raised so the job fails fast, except when running
+    ``train-maxent`` with ``policy_entropy_bonus_coef>0`` to enable GRPO + entropy bonus.
 
     :param training_args: Training dataclass or mapping derived from Hydra.
     :param command: CLI command being executed (e.g., ``train-baseline``).
@@ -246,12 +257,21 @@ def validate_training_config(
     """
 
     values = _training_values(training_args)
+    bonus_coef = values.get("policy_entropy_bonus_coef", 0.0)
+    allow_grpo_with_maxent_overrides = False
+    try:
+        allow_grpo_with_maxent_overrides = (
+            command == "train-maxent" and float(bonus_coef) > 0.0
+        )
+    except (TypeError, ValueError):
+        allow_grpo_with_maxent_overrides = False
     schema_payload = {
         "train_grpo_objective": values.get("train_grpo_objective"),
         "default_objective": _DEFAULT_OBJECTIVE_BY_COMMAND.get(command),
         "maxent_overrides": _maxent_overrides(values),
         "info_seed_enabled": values.get("info_seed_enabled"),
         "info_seed_overrides": _info_seed_overrides(values),
+        "allow_grpo_with_maxent_overrides": allow_grpo_with_maxent_overrides,
         "allow_info_seed": command in _INFO_SEED_SUPPORTED,
         "require_info_seed": command == "train-infoseed",
     }

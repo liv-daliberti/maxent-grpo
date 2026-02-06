@@ -4,7 +4,7 @@ set -euo pipefail
 # Ensures the repo-local .local/bin is on PATH by appending a snippet
 # to the user's shell rc file. Supports bash and zsh.
 
-REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
+REPO_DIR=$(cd "$(dirname "$0")/../../.." && pwd)
 BIN_DIR="$REPO_DIR/.local/bin"
 SNIPPET="# Open R1 local bin (added by ensure_local_path.sh)
 if [ -d \"$BIN_DIR\" ]; then

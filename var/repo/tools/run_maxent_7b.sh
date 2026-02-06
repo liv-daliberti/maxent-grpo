@@ -3,10 +3,10 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT_DIR"
 
-SLURM_SCRIPT="ops/slurm/maxent-grpo.slurm"
+SLURM_SCRIPT="var/repo/ops/slurm/maxent-grpo.slurm"
 MODEL="Qwen2.5-7B"
 CONFIG_SUFFIX="math"
 CONFIG_SUFFIX_GRPO="math_maxent_hparams"

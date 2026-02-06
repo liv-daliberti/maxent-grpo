@@ -14,7 +14,11 @@ from .context import GenerationContext
 LOG = logging.getLogger(__name__)
 
 torch = require_torch("generation")
-PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes("generation")
+try:
+    PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes("generation")
+except (ImportError, RuntimeError, ModuleNotFoundError):  # pragma: no cover - stub fallback
+    PreTrainedModel = Any
+    PreTrainedTokenizer = Any
 
 if TYPE_CHECKING:
     import torch as torch_types
@@ -41,7 +45,7 @@ class LocalGenerationMixin:
         return self.ctx.as_dict()
 
     def _prompt_char_limit(self) -> int:
-        """Return the character limit applied to prompts for vLLM/local calls."""
+        """Return the token limit applied to prompts for vLLM/local calls."""
         try:
             helpers_mod = __import__(
                 "maxent_grpo.training.rollout.helpers",
@@ -50,14 +54,9 @@ class LocalGenerationMixin:
             limit_base = getattr(helpers_mod, "PROMPT_CHAR_LIMIT", PROMPT_CHAR_LIMIT)
         except ImportError:
             limit_base = PROMPT_CHAR_LIMIT
-        approx_chars = 0
         if self.ctx.max_prompt_len and self.ctx.max_prompt_len > 0:
-            approx_chars = int(self.ctx.max_prompt_len * 4)
-        if limit_base <= 0:
-            return approx_chars
-        if approx_chars <= 0:
-            return limit_base
-        return max(limit_base, approx_chars)
+            return int(self.ctx.max_prompt_len)
+        return int(limit_base) if limit_base is not None else 0
 
     def _build_local_prompt_requests(
         self,

@@ -84,6 +84,11 @@ else:
                 "Install with `pip install datasets`."
             )
 
+try:  # pragma: no cover - convenience re-export for callers/tests
+    from maxent_grpo.config.dataset import ScriptArguments
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
+    ScriptArguments = Any  # type: ignore[assignment]
+
 try:  # pragma: no cover - optional pyarrow exception for from_list conversions
     from pyarrow.lib import ArrowInvalid as _ArrowInvalid
 except (ImportError, ModuleNotFoundError, AttributeError):

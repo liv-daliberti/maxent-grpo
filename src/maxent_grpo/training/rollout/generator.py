@@ -32,14 +32,22 @@ class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
                 self._vllm_helper = None
         else:
             self._vllm_helper = None
-        helper_cls = globals().get("VLLMGenerationHelper", VLLMGenerationHelper)
-        self._vllm_helper = helper_cls(ctx, self._generate_local)
-        # Surface patchable hooks for tests so monkeypatched helpers.* propagate.
-        self._vllm_helper._safe_generate = safe_generate
-        self._vllm_helper._scatter_object = _scatter_object
-        self._vllm_helper._time = time
-        self._vllm_helper._is_peft_model_safe = _is_peft_model_safe
-        self._vllm_helper._fallback_generate = self._generate_local
+        helper = getattr(self, "_vllm_helper", None)
+        if helper is None:
+            helper_cls = globals().get("VLLMGenerationHelper", VLLMGenerationHelper)
+            self._vllm_helper = helper_cls(ctx, self._generate_local)
+            helper = self._vllm_helper
+            # Surface patchable hooks for tests so monkeypatched helpers.* propagate.
+            helper._safe_generate = safe_generate
+            helper._scatter_object = _scatter_object
+            helper._time = time
+            helper._is_peft_model_safe = _is_peft_model_safe
+            helper._fallback_generate = self._generate_local
+        if hasattr(self, "_configure_vllm_mode"):
+            try:
+                self._configure_vllm_mode()
+            except Exception as exc:  # pragma: no cover - defensive
+                LOG.debug("vLLM mode configuration failed: %s", exc)
 
     def describe(self) -> Dict[str, Any]:
         """Expose the underlying generation configuration for logging."""

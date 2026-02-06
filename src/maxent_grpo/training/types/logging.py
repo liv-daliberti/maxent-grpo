@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Protocol, Callable, TYPE_CHECKING, Iterator
 
 if TYPE_CHECKING:
@@ -176,6 +176,9 @@ class TrainingScalarStats:
     grad_norm_scalar: Optional[float]
     epoch_progress: float
     vllm_latency_ms: Optional[float]
+    policy_entropy: Optional[float] = None
+    entropy_bonus_coef: Optional[float] = None
+    entropy_bonus_reward_std: Optional[float] = None
 
     @property
     def avg_completion_tokens(self) -> float:
@@ -255,6 +258,8 @@ class RewardLoggingView:
     q_entropy_std: float
     q_entropy_min: float
     q_entropy_max: float
+    reward_quantiles: Dict[str, float] = field(default_factory=dict)
+    per_reward_quantiles: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
 
 @dataclass

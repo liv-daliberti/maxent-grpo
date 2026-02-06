@@ -4,7 +4,7 @@
 # Defaults target 8x A100 with 2 GPUs for vLLM + 6 GPUs for training.
 #
 # Usage:
-#   sbatch ops/slurm/poc_sweep.slurm \
+#   sbatch var/repo/ops/slurm/poc_sweep.slurm \
 #     --export=ALL,HF_TOKEN=...,WANDB_PROJECT=...,WANDB_ENTITY=...
 
 #SBATCH --job-name=maxent_poc_sweep
@@ -149,4 +149,4 @@ else
   SWEEP_ARGS+=(--wandb-group "$TAG")
 fi
 
-python "$ROOT_DIR/tools/run_poc_sweep.py" "${SWEEP_ARGS[@]}"
+python "$ROOT_DIR/var/repo/tools/run_poc_sweep.py" "${SWEEP_ARGS[@]}"

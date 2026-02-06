@@ -22,10 +22,20 @@ import runpy
 from pathlib import Path
 
 
+def _resolve_tool(script_name: str) -> Path:
+    repo_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        repo_root / "var" / "repo" / "tools" / script_name,
+        repo_root / "tools" / script_name,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(f"{script_name} not found in expected locations")
+
+
 def _load_perf_module():
-    return runpy.run_path(
-        str(Path(__file__).resolve().parents[2] / "tools" / "perf_microbench.py")
-    )
+    return runpy.run_path(str(_resolve_tool("perf_microbench.py")))
 
 
 def test_compare_to_baseline_pass_and_fail(tmp_path):

@@ -8,7 +8,7 @@ set -euo pipefail
 # - Tmp + XDG caches: ./var/tmp and ./var/cache/xdg
 
 # Resolve repo root (supports running from anywhere inside the repo)
-ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 cd "$ROOT_DIR"
 VAR_DIR="$ROOT_DIR/var"
 

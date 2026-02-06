@@ -22,7 +22,7 @@ error rather than a generic ``ImportError``.
 Accelerate and DeepSpeed
 ------------------------
 
-The Slurm launcher ``ops/slurm/train.slurm`` expects an Accelerate config file
+The Slurm launcher ``var/repo/ops/slurm/train.slurm`` expects an Accelerate config file
 under ``configs/recipes/accelerate_configs/<name>.yaml``. The ``--accelerator``
 flag in the launcher selects the file, and the resulting config controls
 process counts, mixed precision, and DeepSpeed integration.

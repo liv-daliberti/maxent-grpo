@@ -108,3 +108,4 @@ advantage_clip:
 - 2.5
 ppo_clip_range: 0.10
 clip_range_vf: 0.5
+maxent_policy_entropy: false

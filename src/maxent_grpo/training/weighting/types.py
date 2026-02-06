@@ -599,6 +599,7 @@ class WeightLoggingView:
     """Aggregated entropy statistics for logging."""
 
     entropy: float
+    entropy_norm: float
     entropy_min: float
     entropy_max: float
     advantage_entropy_mean: float

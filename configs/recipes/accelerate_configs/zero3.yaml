@@ -1,7 +1,7 @@
 compute_environment: LOCAL_MACHINE
 debug: false
 distributed_type: DEEPSPEED
-mixed_precision: bf16
+mixed_precision: fp16
 num_machines: 1
 num_processes: 6
 machine_rank: 0
@@ -18,11 +18,9 @@ deepspeed_config:
   # Explicit ZeRO config block to satisfy Accelerate/DeepSpeed
   zero_optimization:
     stage: 3
-    offload_param:
-      device: cpu
-    offload_optimizer:
-      device: cpu
+    # CPU offload disabled for better backward throughput on small models.
     stage3_param_persistence_threshold: 0
+    stage3_gather_16bit_weights_on_model_save: true
     overlap_comm: true
     # Smaller buckets to make ZeRO-3 all-gathers finish more reliably
     reduce_bucket_size: 1e7

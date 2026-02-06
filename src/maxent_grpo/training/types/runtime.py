@@ -79,9 +79,13 @@ else:  # pragma: no cover - runtime dependency loading
 
     TorchDataLoader = require_dataloader("training_types")
     HFAccelerator = require_accelerator("training_types")
-    HFPreTrainedModel, HFPreTrainedTokenizer = require_transformer_base_classes(
-        "training_types"
-    )
+    try:
+        HFPreTrainedModel, HFPreTrainedTokenizer = require_transformer_base_classes(
+            "training_types"
+        )
+    except (ImportError, RuntimeError, ModuleNotFoundError):  # pragma: no cover - stub fallback
+        HFPreTrainedModel = Any
+        HFPreTrainedTokenizer = Any
     try:
         from torch.utils.data import Sampler as TorchSampler
     except (
@@ -266,6 +270,9 @@ class ScoringSettings:
     info_seed_loss_type: str = "infonce"
     info_seed_pooling: str = "mean"
     info_seed_alpha_entropy: float = 0.0
+    policy_entropy_bonus_coef: float = 0.0
+    policy_entropy: bool = False
+    policy_entropy_mode: str = "exact"
 
 
 @dataclass
