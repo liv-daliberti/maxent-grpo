@@ -14,7 +14,7 @@ import tempfile
 import threading
 import time
 import traceback
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from maxent_grpo.patches.vllm import VLLMLogprobResult
 from maxent_grpo.training.runtime.prompts import _truncate_prompt, PROMPT_CHAR_LIMIT
@@ -69,6 +69,18 @@ def _env_int(name: str) -> Optional[int]:
     except (TypeError, ValueError):
         LOG.debug("Invalid %s=%r; ignoring.", name, raw)
         return None
+
+
+def _sync_chunk_bytes() -> int:
+    """Return the max payload size for colocate sync batches (bytes)."""
+    raw = os.getenv("MAXENT_VLLM_COLOCATE_SYNC_CHUNK_MB", "64")
+    try:
+        mb = int(raw)
+    except (TypeError, ValueError):
+        mb = 64
+    if mb <= 0:
+        mb = 64
+    return mb * 1024 * 1024
 
 
 def _filter_kwargs(callable_obj: Any, kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -334,6 +346,166 @@ def _outputs_to_payload(
     return grouped, grouped_meta
 
 
+_PARAM_NAME_ALIASES = (
+    "model.",
+    "module.",
+    "base_model.model.",
+)
+
+
+def _candidate_children(obj: Any) -> List[Any]:
+    if obj is None:
+        return []
+    children: List[Any] = []
+    for attr in (
+        "model",
+        "llm_engine",
+        "_engine",
+        "engine",
+        "model_executor",
+        "executor",
+        "driver_worker",
+        "model_runner",
+        "runner",
+    ):
+        if not hasattr(obj, attr):
+            continue
+        try:
+            value = getattr(obj, attr)
+        except Exception:
+            continue
+        if value is None:
+            continue
+        if isinstance(value, (list, tuple)):
+            children.extend([item for item in value if item is not None])
+        else:
+            children.append(value)
+    return children
+
+
+def _resolve_llm_model(llm: Any) -> Optional[Any]:
+    """Return the first object in the vLLM stack exposing named_parameters()."""
+    if llm is None:
+        return None
+    seen: set[int] = set()
+    stack: List[Any] = [llm]
+    while stack:
+        obj = stack.pop()
+        if obj is None:
+            continue
+        obj_id = id(obj)
+        if obj_id in seen:
+            continue
+        seen.add(obj_id)
+        if callable(getattr(obj, "named_parameters", None)):
+            return obj
+        stack.extend(_candidate_children(obj))
+    return None
+
+
+def _build_param_index(model: Any) -> Dict[str, Any]:
+    index: Dict[str, Any] = {}
+    if model is None or not callable(getattr(model, "named_parameters", None)):
+        return index
+    try:
+        for name, param in model.named_parameters():
+            if name and param is not None:
+                index[name] = param
+    except Exception:
+        return index
+    return index
+
+
+def _lookup_param(name: str, index: Dict[str, Any]) -> Optional[Any]:
+    if name in index:
+        return index[name]
+    for prefix in _PARAM_NAME_ALIASES:
+        if name.startswith(prefix):
+            alt = name[len(prefix) :]
+            if alt in index:
+                return index[alt]
+        alt = f"{prefix}{name}"
+        if alt in index:
+            return index[alt]
+    return None
+
+
+def _apply_param_updates(
+    index: Dict[str, Any],
+    updates: List[Tuple[str, Any]],
+    missing: Optional[set[str]] = None,
+    log_fn: Optional[Callable[[str], None]] = None,
+) -> Tuple[int, int]:
+    if missing is None:
+        missing = set()
+    applied = 0
+    skipped = 0
+    try:
+        import torch
+    except Exception:
+        torch = None  # type: ignore[assignment]
+    for name, tensor in updates:
+        param = _lookup_param(name, index)
+        if param is None:
+            skipped += 1
+            if name not in missing and log_fn is not None:
+                missing.add(name)
+                log_fn(f"worker missing param | name={name}")
+            continue
+        if torch is not None and not isinstance(tensor, torch.Tensor):
+            skipped += 1
+            continue
+        try:
+            if torch is not None:
+                with torch.no_grad():
+                    target = param.data
+                    src = tensor.detach()
+                    if target.shape != src.shape:
+                        skipped += 1
+                        if log_fn is not None:
+                            log_fn(
+                                f"worker param shape mismatch | name={name} "
+                                f"target={tuple(target.shape)} src={tuple(src.shape)}"
+                            )
+                        continue
+                    if target.dtype != src.dtype:
+                        src = src.to(dtype=target.dtype)
+                    if target.device != src.device:
+                        src = src.to(device=target.device)
+                    target.copy_(src)
+            else:
+                param.data.copy_(tensor)
+            applied += 1
+        except Exception:
+            skipped += 1
+            continue
+    return applied, skipped
+
+
+def _reset_prefix_cache_llm(llm: Any) -> None:
+    if llm is None:
+        return
+    for attr in ("reset_prefix_cache",):
+        fn = getattr(llm, attr, None)
+        if callable(fn):
+            try:
+                fn()
+                return
+            except Exception:
+                pass
+    for attr in ("llm_engine", "_engine", "engine"):
+        engine = getattr(llm, attr, None)
+        if engine is None:
+            continue
+        fn = getattr(engine, "reset_prefix_cache", None)
+        if callable(fn):
+            try:
+                fn()
+                return
+            except Exception:
+                pass
+
+
 def _vllm_colocate_worker(conn: Any) -> None:
     """Subprocess worker for vLLM colocate init/generate."""
     try:
@@ -518,12 +690,31 @@ def _vllm_colocate_worker(conn: Any) -> None:
         _send_log("worker SamplingParams available")
         conn.send({"ok": True})
 
+        param_index: Optional[Dict[str, Any]] = None
+        missing_params: set[str] = set()
+
         while True:
             msg = conn.recv()
             if not isinstance(msg, dict):
                 continue
             if msg.get("type") == "shutdown":
                 break
+            if msg.get("type") == "reset_prefix_cache":
+                _reset_prefix_cache_llm(llm)
+                conn.send({"ok": True})
+                continue
+            if msg.get("type") == "update_params":
+                updates = msg.get("params") or []
+                if param_index is None:
+                    model_for_params = _resolve_llm_model(llm)
+                    param_index = _build_param_index(model_for_params)
+                    if not param_index:
+                        _send_log("worker param index empty; update may be skipped")
+                applied, skipped = _apply_param_updates(
+                    param_index or {}, updates, missing_params, _send_log
+                )
+                conn.send({"ok": True, "applied": applied, "skipped": skipped})
+                continue
             if msg.get("type") != "generate":
                 continue
             prompts = msg.get("prompts") or []
@@ -562,6 +753,9 @@ class ColocateVLLMEngine:
         self._init_failed = False
         self._worker_proc: Optional[mp.Process] = None
         self._worker_conn: Optional[Any] = None
+        self._sync_client: Optional["ColocateVLLMClient"] = None
+        self._param_index: Optional[Dict[str, Any]] = None
+        self._missing_params: set[str] = set()
 
     def _resolve_init_mode(self) -> str:
         mode = _init_mode()
@@ -951,6 +1145,79 @@ class ColocateVLLMEngine:
             raise RuntimeError(str(exc)) from exc
         return self._llm
 
+    def sync_client(self) -> "ColocateVLLMClient":
+        if self._sync_client is None:
+            self._sync_client = ColocateVLLMClient(self)
+        return self._sync_client
+
+    def _apply_param_updates(self, updates: List[Tuple[str, Any]]) -> None:
+        if not updates:
+            return
+        if self._resolve_init_mode() == "subprocess":
+            self._ensure_worker()
+            conn = self._worker_conn
+            if conn is None:
+                raise RuntimeError("vLLM colocate worker is unavailable")
+            conn.send({"type": "update_params", "params": updates})
+            resp: Any = None
+            while True:
+                resp = conn.recv()
+                if isinstance(resp, dict) and resp.get("type") == "log":
+                    LOG.info("vLLM colocate worker | %s", resp.get("message"))
+                    continue
+                break
+            if not isinstance(resp, dict) or not resp.get("ok"):
+                err = resp.get("error") if isinstance(resp, dict) else None
+                raise RuntimeError(err or "vLLM colocate param update failed")
+            if isinstance(resp, dict):
+                applied = resp.get("applied")
+                skipped = resp.get("skipped")
+                if applied is not None or skipped is not None:
+                    LOG.info(
+                        "vLLM colocate sync (subprocess) | applied=%s skipped=%s",
+                        applied,
+                        skipped,
+                    )
+            return
+        llm = self._get_llm()
+        if self._param_index is None:
+            model_for_params = _resolve_llm_model(llm)
+            self._param_index = _build_param_index(model_for_params)
+            if not self._param_index:
+                LOG.warning("vLLM colocate param index empty; updates may be skipped.")
+        applied, skipped = _apply_param_updates(
+            self._param_index or {},
+            updates,
+            self._missing_params,
+            lambda msg: LOG.warning("vLLM colocate | %s", msg),
+        )
+        LOG.info(
+            "vLLM colocate sync (in-process) | applied=%s skipped=%s",
+            applied,
+            skipped,
+        )
+
+    def _reset_prefix_cache(self) -> None:
+        if self._resolve_init_mode() == "subprocess":
+            conn = self._worker_conn
+            if conn is None:
+                return
+            try:
+                conn.send({"type": "reset_prefix_cache"})
+                resp: Any = None
+                while True:
+                    resp = conn.recv()
+                    if isinstance(resp, dict) and resp.get("type") == "log":
+                        LOG.info("vLLM colocate worker | %s", resp.get("message"))
+                        continue
+                    break
+                if not isinstance(resp, dict) or not resp.get("ok"):
+                    LOG.debug("vLLM colocate reset_prefix_cache failed: %s", resp)
+            except Exception:
+                LOG.debug("vLLM colocate reset_prefix_cache failed")
+            return
+        _reset_prefix_cache_llm(self._get_llm())
+
     def _build_sampling_params_kwargs(self, request_count: int) -> Dict[str, Any]:
         stop_sequences = (
             self.ctx.gen_stop_sequences
@@ -1113,4 +1380,51 @@ class ColocateVLLMEngine:
         return grouped, grouped_meta
 
 
-__all__ = ["ColocateVLLMEngine"]
+class ColocateVLLMClient:
+    """Local client adapter that mimics TRL's VLLMClient interface."""
+
+    def __init__(self, engine: ColocateVLLMEngine) -> None:
+        self._engine = engine
+        self._buffer: List[Tuple[str, Any]] = []
+        self._buffer_bytes = 0
+        self._chunk_bytes = _sync_chunk_bytes()
+        self._lock = threading.Lock()
+
+    def _tensor_bytes(self, tensor: Any) -> int:
+        try:
+            return int(tensor.numel()) * int(tensor.element_size())
+        except Exception:
+            return 0
+
+    def _flush_locked(self) -> None:
+        if not self._buffer:
+            return
+        updates = self._buffer
+        self._buffer = []
+        self._buffer_bytes = 0
+        self._engine._apply_param_updates(updates)
+
+    def update_named_param(self, name: str, param: Any) -> None:
+        if param is None:
+            return
+        tensor = getattr(param, "detach", None)
+        tensor = tensor() if callable(tensor) else param
+        size = self._tensor_bytes(tensor)
+        with self._lock:
+            if self._buffer and self._buffer_bytes + size > self._chunk_bytes:
+                self._flush_locked()
+            self._buffer.append((name, tensor))
+            self._buffer_bytes += size
+            if self._buffer_bytes >= self._chunk_bytes:
+                self._flush_locked()
+
+    def flush(self) -> None:
+        with self._lock:
+            self._flush_locked()
+
+    def reset_prefix_cache(self) -> None:
+        self.flush()
+        self._engine._reset_prefix_cache()
+
+
+__all__ = ["ColocateVLLMEngine", "ColocateVLLMClient"]

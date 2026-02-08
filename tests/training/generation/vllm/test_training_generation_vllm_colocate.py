@@ -65,6 +65,8 @@ def _install_stub_vllm(monkeypatch, outputs=None):
 
 
 def test_configure_vllm_mode_colocate_disables_sync(monkeypatch):
+    monkeypatch.delenv("MAXENT_VLLM_COLOCATE_SYNC", raising=False)
+
     class _Helper:
         def __init__(self):
             self.batcher = None
@@ -97,6 +99,139 @@ def test_configure_vllm_mode_colocate_disables_sync(monkeypatch):
     assert gen.ctx.vllm_sync_weights is False
     assert isinstance(gen._vllm_colocate_engine, _Engine)
     assert gen._vllm_helper.batcher == gen._vllm_colocate_engine.request_batch
+
+
+def test_configure_vllm_mode_colocate_enables_sync(monkeypatch):
+    monkeypatch.setenv("MAXENT_VLLM_COLOCATE_SYNC", "1")
+    monkeypatch.delenv("MAXENT_VLLM_COLOCATE_SYNC_INTERVAL", raising=False)
+
+    class _Helper:
+        def __init__(self):
+            self.batcher = None
+
+        def set_request_batcher(self, fn):
+            self.batcher = fn
+
+    class _Engine:
+        def __init__(self, ctx, fallback):
+            self.ctx = ctx
+            self.fallback = fallback
+            self.client = object()
+
+        def request_batch(self, prompts, count):
+            return [], None
+
+        def sync_client(self):
+            return self.client
+
+    mod = ModuleType("maxent_grpo.training.rollout.vllm_colocate")
+    mod.ColocateVLLMEngine = _Engine
+    monkeypatch.setitem(sys.modules, mod.__name__, mod)
+
+    gen = vllm_adapter.VLLMGenerationMixin.__new__(vllm_adapter.VLLMGenerationMixin)
+    gen.ctx = SimpleNamespace(
+        use_vllm=True,
+        vllm_mode="colocate",
+        vllm_sync_weights=False,
+        vllm_sync_interval_steps=1,
+    )
+    gen._vllm_helper = _Helper()
+    gen._generate_local = lambda *a, **k: ("local", a, k)
+    gen._vllm_colocate_engine = None
+
+    gen._configure_vllm_mode()
+
+    assert gen.ctx.vllm_sync_weights is True
+    assert gen.ctx.vllm_sync_interval_steps == 10
+    assert gen._vllm_client is gen._vllm_colocate_engine.client
+    assert gen._vllm_sync_ready is True
+    assert gen._vllm_helper.batcher == gen._vllm_colocate_engine.request_batch
+
+
+def test_configure_vllm_mode_colocate_sync_interval_override(monkeypatch):
+    monkeypatch.setenv("MAXENT_VLLM_COLOCATE_SYNC", "1")
+    monkeypatch.setenv("MAXENT_VLLM_COLOCATE_SYNC_INTERVAL", "3")
+
+    class _Helper:
+        def __init__(self):
+            self.batcher = None
+
+        def set_request_batcher(self, fn):
+            self.batcher = fn
+
+    class _Engine:
+        def __init__(self, ctx, fallback):
+            self.ctx = ctx
+            self.fallback = fallback
+
+        def request_batch(self, prompts, count):
+            return [], None
+
+        def sync_client(self):
+            return object()
+
+    mod = ModuleType("maxent_grpo.training.rollout.vllm_colocate")
+    mod.ColocateVLLMEngine = _Engine
+    monkeypatch.setitem(sys.modules, mod.__name__, mod)
+
+    gen = vllm_adapter.VLLMGenerationMixin.__new__(vllm_adapter.VLLMGenerationMixin)
+    gen.ctx = SimpleNamespace(
+        use_vllm=True,
+        vllm_mode="colocate",
+        vllm_sync_weights=False,
+        vllm_sync_interval_steps=1,
+    )
+    gen._vllm_helper = _Helper()
+    gen._generate_local = lambda *a, **k: ("local", a, k)
+    gen._vllm_colocate_engine = None
+
+    gen._configure_vllm_mode()
+
+    assert gen.ctx.vllm_sync_weights is True
+    assert gen.ctx.vllm_sync_interval_steps == 3
+
+
+def test_configure_vllm_mode_colocate_preserves_interval(monkeypatch):
+    monkeypatch.setenv("MAXENT_VLLM_COLOCATE_SYNC", "1")
+    monkeypatch.delenv("MAXENT_VLLM_COLOCATE_SYNC_INTERVAL", raising=False)
+
+    class _Helper:
+        def __init__(self):
+            self.batcher = None
+
+        def set_request_batcher(self, fn):
+            self.batcher = fn
+
+    class _Engine:
+        def __init__(self, ctx, fallback):
+            self.ctx = ctx
+            self.fallback = fallback
+
+        def request_batch(self, prompts, count):
+            return [], None
+
+        def sync_client(self):
+            return object()
+
+    mod = ModuleType("maxent_grpo.training.rollout.vllm_colocate")
+    mod.ColocateVLLMEngine = _Engine
+    monkeypatch.setitem(sys.modules, mod.__name__, mod)
+
+    gen = vllm_adapter.VLLMGenerationMixin.__new__(vllm_adapter.VLLMGenerationMixin)
+    gen.ctx = SimpleNamespace(
+        use_vllm=True,
+        vllm_mode="colocate",
+        vllm_sync_weights=False,
+        vllm_sync_interval_steps=5,
+    )
+    gen._vllm_helper = _Helper()
+    gen._generate_local = lambda *a, **k: ("local", a, k)
+    gen._vllm_colocate_engine = None
+
+    gen._configure_vllm_mode()
+
+    assert gen.ctx.vllm_sync_weights is True
+    assert gen.ctx.vllm_sync_interval_steps == 5
 
 
 def test_colocate_build_llm_uses_env_overrides(monkeypatch):
@@ -187,3 +322,47 @@ def test_colocate_request_batch_parses_logprobs_and_latency(monkeypatch):
     stats = ctx.generation_stats
     assert stats["vllm_latency_calls"] == 1
     assert stats["vllm_last_latency_ms"] == pytest.approx(250.0)
+
+
+def test_colocate_sync_client_buffers_and_flushes(monkeypatch):
+    class _Engine:
+        def __init__(self):
+            self.updates = []
+            self.reset_calls = 0
+
+        def _apply_param_updates(self, updates):
+            self.updates.append(list(updates))
+
+        def _reset_prefix_cache(self):
+            self.reset_calls += 1
+
+    class _Param:
+        def __init__(self, size):
+            self._size = size
+
+        def detach(self):
+            return self
+
+        def numel(self):
+            return self._size
+
+        def element_size(self):
+            return 1
+
+    engine = _Engine()
+    client = vllm_colocate.ColocateVLLMClient(engine)
+    client._chunk_bytes = 10
+
+    client.update_named_param("a", _Param(6))
+    assert engine.updates == []
+
+    client.update_named_param("b", _Param(6))
+    assert len(engine.updates) == 1
+    assert engine.updates[0][0][0] == "a"
+
+    client.flush()
+    assert len(engine.updates) == 2
+    assert engine.updates[1][0][0] == "b"
+
+    client.reset_prefix_cache()
+    assert engine.reset_calls == 1

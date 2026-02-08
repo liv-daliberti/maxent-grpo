@@ -110,5 +110,20 @@ def test_pure_accuracy_reward_math_relaxed_eval_allows_missing_think():
     comps = ["<answer>7</answer>"]
     rewards_train = basic.pure_accuracy_reward_math(comps, ["7"])
     rewards_eval = basic.pure_accuracy_reward_math(comps, ["7"], is_eval=True)
-    assert rewards_train == [0.0]
-    assert rewards_eval == [1.0]
+    assert rewards_train == [0.25]
+    assert rewards_eval == [0.25]
+
+
+def test_pure_accuracy_reward_math_applies_tag_multipliers():
+    import maxent_grpo.rewards.basic as basic
+
+    comps = [
+        "42",  # 0 tags
+        "<think>42",  # 1 tag
+        "<answer>42</answer>",  # 2 tags
+        "<think><think><answer>42</answer>",  # missing </think> (3 unique tags)
+        "<think>...</think><answer>42</answer>",  # 4 tags (override)
+        "<think>...</think><answer>42</answer><answer>extra</answer>",  # >4 tags
+    ]
+    rewards = basic.pure_accuracy_reward_math(comps, ["42"] * len(comps))
+    assert rewards == [0.05, 0.125, 0.25, 0.375, 1.0, 0.25]

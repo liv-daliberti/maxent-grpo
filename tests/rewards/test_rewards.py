@@ -45,8 +45,8 @@ def test_pure_accuracy_reward_relaxes_format_in_eval():
     gold = ["42"]
     out_train = R.pure_accuracy_reward_math([comp], gold)
     out_eval = R.pure_accuracy_reward_math([comp], gold, is_eval=True)
-    assert out_train == [0.0]
-    assert out_eval == [1.0]
+    assert out_train == [0.25]
+    assert out_eval == [0.25]
 
 
 """

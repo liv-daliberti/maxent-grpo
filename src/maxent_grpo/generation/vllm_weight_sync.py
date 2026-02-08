@@ -822,6 +822,19 @@ class VLLMWeightSyncMixin:
             return None
         return _ClientCallable(candidate)
 
+    def _flush_vllm_client(self) -> None:
+        """Flush buffered vLLM updates when the client supports it."""
+        client = self._vllm_client
+        if client is None:
+            return
+        flush = getattr(client, "flush", None)
+        if not callable(flush):
+            return
+        try:
+            flush()
+        except (RuntimeError, ValueError, AttributeError, TypeError) as exc:
+            LOG.debug("Failed to flush vLLM client updates: %s", exc)
+
     def _sync_model_params_to_vllm(
         self,
         model: Any,
@@ -1059,6 +1072,7 @@ class VLLMWeightSyncMixin:
 
     def _reset_vllm_cache(self) -> None:
         """Reset the vLLM prefix cache if the client exposes the hook."""
+        self._flush_vllm_client()
         reset_fn = self._client_callable("reset_prefix_cache")
         if reset_fn is None:
             return

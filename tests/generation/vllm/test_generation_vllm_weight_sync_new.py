@@ -370,6 +370,24 @@ def test_reset_vllm_cache_invokes_client(monkeypatch):
     assert called.get("reset") is True
 
 
+def test_reset_vllm_cache_flushes_before_reset():
+    calls: list[str] = []
+
+    class _Client:
+        def flush(self):
+            calls.append("flush")
+
+        def reset_prefix_cache(self):
+            calls.append("reset")
+
+    helper = vllm.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))
+    helper._vllm_client = _Client()
+
+    helper._reset_vllm_cache()
+
+    assert calls == ["flush", "reset"]
+
+
 def test_sync_standard_params_handles_nameerror_and_children(monkeypatch):
     pushed: list[str] = []
     helper = vllm.VLLMGenerationHelper(_ctx(), lambda *_: ([], None))

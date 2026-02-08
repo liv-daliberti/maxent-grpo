@@ -61,6 +61,23 @@ def _optional_import(module_name: str) -> Any:
         return None
 
 
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _env_int(name: str) -> Optional[int]:
+    raw = os.environ.get(name)
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
 def _zero3_gather_factory(
     accelerator: AcceleratorLike,
 ) -> Callable[[Sequence[Any]], AbstractContextManager[Any]]:
@@ -206,9 +223,10 @@ class VLLMGenerationMixin:
         except ImportError as exc:
             LOG.warning("vLLM colocate requested but unavailable: %s", exc)
             return
-        if getattr(self.ctx, "vllm_sync_weights", False):
+        sync_enabled = _env_flag("MAXENT_VLLM_COLOCATE_SYNC", False)
+        if not sync_enabled and getattr(self.ctx, "vllm_sync_weights", False):
             LOG.warning(
-                "vLLM colocate does not support weight sync; disabling vllm_sync_weights."
+                "vLLM colocate sync disabled; set MAXENT_VLLM_COLOCATE_SYNC=1 to enable."
             )
             try:
                 setattr(self.ctx, "vllm_sync_weights", False)
@@ -224,6 +242,33 @@ class VLLMGenerationMixin:
                 "_request_vllm_batch",
                 self._vllm_colocate_engine.request_batch,
             )
+        if sync_enabled:
+            if not getattr(self.ctx, "vllm_sync_weights", False):
+                setattr(self.ctx, "vllm_sync_weights", True)
+                LOG.info("vLLM colocate sync enabled via MAXENT_VLLM_COLOCATE_SYNC=1.")
+            sync_interval = _env_int("MAXENT_VLLM_COLOCATE_SYNC_INTERVAL")
+            if sync_interval is not None:
+                if sync_interval < 0:
+                    LOG.warning(
+                        "Invalid MAXENT_VLLM_COLOCATE_SYNC_INTERVAL=%s; ignoring.",
+                        sync_interval,
+                    )
+                else:
+                    setattr(self.ctx, "vllm_sync_interval_steps", sync_interval)
+            else:
+                current_interval = getattr(self.ctx, "vllm_sync_interval_steps", None)
+                if current_interval in (None, 1):
+                    setattr(self.ctx, "vllm_sync_interval_steps", 10)
+                    LOG.info(
+                        "vLLM colocate sync interval defaulted to 10 steps. "
+                        "Override via MAXENT_VLLM_COLOCATE_SYNC_INTERVAL."
+                    )
+            try:
+                client = self._vllm_colocate_engine.sync_client()
+                self._vllm_client = client
+                self._vllm_sync_ready = True
+            except Exception as exc:
+                LOG.warning("vLLM colocate sync client unavailable: %s", exc)
         LOG.info("vLLM colocate mode enabled; using in-process vLLM engine.")
 
     def _generate_local(

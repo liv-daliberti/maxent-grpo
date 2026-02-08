@@ -43,6 +43,7 @@ _format_pat: RePattern[str] = re.compile(
     r"(?si)<think>.*?</think>.*?<answer>.*?</answer>"
 )
 _answer_pat: RePattern[str] = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
+_tag_pat: RePattern[str] = re.compile(r"(?i)</?think>|</?answer>")
 
 
 CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
@@ -117,24 +118,53 @@ def _canon_math(s: str) -> str:
     return s
 
 
+def _count_format_tags(text: str) -> tuple[int, int]:
+    """Return (total tag count, unique tag count) for think/answer tags."""
+
+    if not text:
+        return 0, 0
+    try:
+        tags = [tag.lower() for tag in _tag_pat.findall(text)]
+    except re.error:
+        return 0, 0
+    return len(tags), len(set(tags))
+
+
+def _tag_multiplier(tag_total: int, tag_unique: int) -> float:
+    """Return the reward multiplier for the observed tag counts."""
+
+    if tag_total > 4:
+        # Extra tags fall back to the 2-tag reward scale.
+        return 0.5
+    if tag_unique <= 0:
+        return 0.1
+    if tag_unique == 1:
+        return 0.25
+    if tag_unique == 2:
+        return 0.5
+    if tag_unique == 3:
+        return 0.75
+    if tag_unique == 4:
+        return 1.0
+    return 0.5
+
+
 def pure_accuracy_reward_math(
     completions: List[CompletionType], answer: List[str], **_kwargs: Any
 ) -> List[float]:
-    """Binary reward for exact match on a tagged math template.
+    """Reward exact match on a tagged math template with tag-based scaling.
 
-    Strict formatting (``<think>…</think><answer>…</answer>``) is enforced by
-    default. When called with ``is_eval=True`` or ``relaxed_format=True``,
-    the ``<think>`` block is optional and only the ``<answer>`` tag is
-    required. This keeps training strict while avoiding format false-negatives
-    during eval.
+    Correct answers earn a base reward of 0.5, scaled by the number of
+    ``<think>``/``<answer>`` tags present (opening + closing tags counted).
+    Tag count uses the number of unique required tags (``<think>``,
+    ``</think>``, ``<answer>``, ``</answer>``), but outputs containing
+    more than four total tags fall back to the two-tag multiplier.
+    When the answer is correct *and* the full format
+    ``<think>…</think><answer>…</answer>`` is present (exactly four tags),
+    the reward is overridden to 1.0.
     """
 
     outs: List[float] = []
-    relaxed = bool(
-        _kwargs.get("is_eval")
-        or _kwargs.get("relaxed_format")
-        or _kwargs.get("split") in {"eval", "validation", "test"}
-    )
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
         format_ok = bool(_format_pat.match(txt))
@@ -142,15 +172,16 @@ def pure_accuracy_reward_math(
         pred = m.group(1) if m else None
         gold_canon = _canon_math(gold)
         pred_ok = pred is not None and _canon_math(pred) == gold_canon
-        if format_ok and pred_ok:
+        tag_total, tag_unique = _count_format_tags(txt)
+        if format_ok and pred_ok and tag_total == 4 and tag_unique == 4:
             outs.append(1.0)
             continue
-        if not relaxed and not format_ok:
-            txt_canon = _canon_math(txt)
-            outs.append(0.5 if gold_canon and gold_canon in txt_canon else 0.0)
-            continue
         txt_canon = _canon_math(txt)
-        outs.append(0.5 if gold_canon and gold_canon in txt_canon else 0.0)
+        is_correct = bool(pred_ok or (gold_canon and gold_canon in txt_canon))
+        if not is_correct:
+            outs.append(0.0)
+            continue
+        outs.append(0.5 * _tag_multiplier(tag_total, tag_unique))
     return outs
 
 
