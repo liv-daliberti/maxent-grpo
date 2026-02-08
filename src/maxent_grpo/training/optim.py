@@ -58,6 +58,7 @@ else:
 LOG = logging.getLogger(__name__)
 _TWO_NORM = 2.0
 _PARAM_GROUP_LOG_STATE = {"logged": False}
+_DUP_PARAM_LOG_STATE = {"logged": False}
 try:
     torch = require_torch("training_optim")
     _TORCH_IMPORT_ERROR = None
@@ -378,11 +379,13 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     no_decay_markers = ["bias", "LayerNorm.weight"]
     decay_params = []
     no_decay_params = []
+    param_name_map: dict[int, list[str]] = {}
     named_params = getattr(model, "named_parameters", None)
     if callable(named_params):
         for name, param in cast(Iterable[tuple[str, Any]], named_params()):
             if not getattr(param, "requires_grad", True):
                 continue
+            param_name_map.setdefault(id(param), []).append(name)
             if any(marker in name for marker in no_decay_markers):
                 no_decay_params.append(param)
             else:
@@ -418,6 +421,31 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
             weight_decay,
         )
         _PARAM_GROUP_LOG_STATE["logged"] = True
+
+    if not _DUP_PARAM_LOG_STATE["logged"] and param_name_map:
+        dup_names = {pid: names for pid, names in param_name_map.items() if len(names) > 1}
+        decay_ids = {id(param) for param in decay_params}
+        no_decay_ids = {id(param) for param in no_decay_params}
+        overlap_ids = decay_ids & no_decay_ids
+        if dup_names or overlap_ids:
+            examples = []
+            if dup_names:
+                for names in list(dup_names.values())[:5]:
+                    examples.append(", ".join(names[:4]))
+            if overlap_ids:
+                overlap_examples = []
+                for pid in list(overlap_ids)[:5]:
+                    overlap_examples.append(", ".join(param_name_map.get(pid, [])[:4]))
+                if overlap_examples:
+                    examples.append("overlap_groups=" + " | ".join(overlap_examples))
+            LOG.warning(
+                "Detected shared parameters across named_parameters; this can break DeepSpeed ZeRO-3. "
+                "duplicates=%d overlap_groups=%d examples=%s",
+                len(dup_names),
+                len(overlap_ids),
+                "; ".join(examples) if examples else "n/a",
+            )
+        _DUP_PARAM_LOG_STATE["logged"] = True
 
     optimizer_kwargs = {
         "lr": lr,

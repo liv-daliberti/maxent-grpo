@@ -166,7 +166,7 @@ DP=${DP:-1}
 TP=${TP:-1}
 VLLM_PORT=${VLLM_PORT:-29525}
 VLLM_GROUP_PORT=${VLLM_GROUP_PORT:-29535}
-VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-8000}
+VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-4096}
 OPTIONAL_ARGS="${OPTIONAL_ARGS:-}"
 
 # Parse CLI
@@ -341,6 +341,7 @@ fi
 if [[ -n "${VLLM_SYNC_OVERRIDE}" ]]; then
   export MAXENT_VLLM_SYNC_WEIGHTS="${VLLM_SYNC_OVERRIDE}"
 fi
+export USE_VLLM
 
 VLLM_MODE=$(grep -E "^[[:space:]]*vllm_mode:" "$CONFIG_FILE" | head -n1 | awk '{print $2}' | tr -d '"' | tr '[:upper:]' '[:lower:]')
 if [[ -n "${VLLM_MODE_OVERRIDE}" ]]; then
@@ -378,6 +379,26 @@ GPUS_PER_NODE=${GPUS_PER_NODE:-${SLURM_GPUS_ON_NODE:-${CUDA_VISIBLE_COUNT:-8}}}
 if [[ -n "$CUDA_VISIBLE_COUNT" ]] && (( CUDA_VISIBLE_COUNT > 0 )) && (( CUDA_VISIBLE_COUNT < GPUS_PER_NODE )); then
   GPUS_PER_NODE=$CUDA_VISIBLE_COUNT
 fi
+# Hard enforce: world_size=7 with training on GPUs 0-6 and vLLM on GPU7.
+export ENFORCE_WORLD_SIZE7_VLLM_GPU7="${ENFORCE_WORLD_SIZE7_VLLM_GPU7:-1}"
+if [[ "$ENFORCE_WORLD_SIZE7_VLLM_GPU7" == "1" ]] && $USE_VLLM; then
+  if (( GPUS_PER_NODE < 8 )); then
+    echo "Hard-enforce requires 8 visible GPUs (0-7); saw GPUS_PER_NODE=${GPUS_PER_NODE}." >&2
+    exit 1
+  fi
+  if [[ -n "${CUDA_VISIBLE_DEVICES:-}" && "${CUDA_VISIBLE_DEVICES,,}" != "none" ]]; then
+    _enforce_cuda_csv="${CUDA_VISIBLE_DEVICES//[[:space:]]/}"
+    if [[ "$_enforce_cuda_csv" != "0,1,2,3,4,5,6,7" ]]; then
+      echo "Hard-enforce requires CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; got '${CUDA_VISIBLE_DEVICES}'." >&2
+      exit 1
+    fi
+  else
+    export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
+  fi
+  TRAIN_LOCAL_PROCS=7
+  export MAXENT_VLLM_COLOCATE_DEVICE="cuda:7"
+  echo "[enforce] world_size=7 (GPUs 0-6) with vLLM on GPU7."
+fi
 readarray -t NODELIST < <(scontrol show hostnames "$SLURM_JOB_NODELIST")
 MASTER_PORT=${MASTER_PORT:-6000}
 
@@ -405,10 +426,28 @@ fi
 echo "SLURM nodes: ${NODELIST[*]}"
 echo "Train nodes: ${TRAIN_NODES[*]}"
 
-TRAIN_LOCAL_PROCS=${TRAIN_LOCAL_PROCS:-${ACCEL_NUM_PROCS:-$GPUS_PER_NODE}}
+if [[ -z "${TRAIN_LOCAL_PROCS:-}" ]]; then
+  if $USE_VLLM && [[ "$VLLM_MODE" == "colocate" ]]; then
+    if (( GPUS_PER_NODE > 1 )); then
+      TRAIN_LOCAL_PROCS=$((GPUS_PER_NODE-1))
+    else
+      TRAIN_LOCAL_PROCS=$GPUS_PER_NODE
+    fi
+  elif [[ -n "${ACCEL_NUM_PROCS:-}" ]]; then
+    TRAIN_LOCAL_PROCS=$ACCEL_NUM_PROCS
+  else
+    TRAIN_LOCAL_PROCS=$GPUS_PER_NODE
+  fi
+fi
 if (( TRAIN_LOCAL_PROCS > GPUS_PER_NODE )); then
   echo "Requested TRAIN_LOCAL_PROCS=${TRAIN_LOCAL_PROCS} exceeds visible GPUs (${GPUS_PER_NODE})." >&2
   exit 1
+fi
+if [[ "${MAXENT_ENFORCE_GPU_SPLIT:-0}" == "1" && "${USE_VLLM:-false}" == "true" && "${VLLM_MODE:-}" == "colocate" ]]; then
+  if (( TRAIN_LOCAL_PROCS != 7 )); then
+    echo "Enforced GPU split requires TRAIN_LOCAL_PROCS=7 (got ${TRAIN_LOCAL_PROCS})." >&2
+    exit 1
+  fi
 fi
 if (( TRAIN_LOCAL_PROCS <= 0 )); then
   echo "Training GPU count per node must be positive (computed $TRAIN_LOCAL_PROCS)." >&2
@@ -454,7 +493,7 @@ if [[ -n "${MAXENT_LOG_LEVEL_RUN:-}" ]]; then
     critical|fatal) MAXENT_LOG_LEVEL_RUN=50 ;;
   esac
 fi
-export MAXENT_LOG_LEVEL_RUN="${MAXENT_LOG_LEVEL_RUN:-20}"
+export MAXENT_LOG_LEVEL_RUN="${MAXENT_LOG_LEVEL_RUN:-30}"
 export MAXENT_LOG_LEVEL_RUN_NUM="${MAXENT_LOG_LEVEL_RUN}"
 export MAXENT_EVAL_BATCH_TIMEOUT_S="${MAXENT_EVAL_BATCH_TIMEOUT_S:-60}"
 export MAXENT_EVAL_ONLY_RANK0="${MAXENT_EVAL_ONLY_RANK0:-0}"
@@ -466,14 +505,21 @@ fi
 export MAXENT_VLLM_LOG_MIRROR_FILE="${MAXENT_VLLM_LOG_MIRROR_FILE:-$VAR_DIR/artifacts/logs/vllm-${SLURM_JOB_ID}.out}"
 export MAXENT_VLLM_SYNC_LOG_EVERY="${MAXENT_VLLM_SYNC_LOG_EVERY:-1}"
 export MAXENT_VLLM_SYNC_MAX_PARAMS="${MAXENT_VLLM_SYNC_MAX_PARAMS:-200}"
-export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN="${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN:-2048}"
-export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.5}"
+export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN="${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN:-4096}"
+export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.9}"
+export MAXENT_VLLM_COLOCATE_DEVICE="${MAXENT_VLLM_COLOCATE_DEVICE:-cuda:7}"
 export MAXENT_VLLM_COLOCATE_TP="${MAXENT_VLLM_COLOCATE_TP:-1}"
 export MAXENT_VLLM_COLOCATE_ENFORCE_EAGER="${MAXENT_VLLM_COLOCATE_ENFORCE_EAGER:-1}"
 export MAXENT_VLLM_COLOCATE_FORCE_V0="${MAXENT_VLLM_COLOCATE_FORCE_V0:-1}"
 export MAXENT_VLLM_COLOCATE_INIT_MODE="${MAXENT_VLLM_COLOCATE_INIT_MODE:-subprocess}"
 export MAXENT_VLLM_COLOCATE_INIT_TIMEOUT_S="${MAXENT_VLLM_COLOCATE_INIT_TIMEOUT_S:-120}"
 export MAXENT_VLLM_COLOCATE_INIT_STACK_S="${MAXENT_VLLM_COLOCATE_INIT_STACK_S:-30}"
+export MAXENT_GPU_UTIL_WARN_INTERVAL_S="${MAXENT_GPU_UTIL_WARN_INTERVAL_S:-30}"
+export MAXENT_GPU_UTIL_WARN_ZERO_SAMPLES="${MAXENT_GPU_UTIL_WARN_ZERO_SAMPLES:-4}"
+export MAXENT_GPU_UTIL_WARN_LOG="${MAXENT_GPU_UTIL_WARN_LOG:-$VAR_DIR/artifacts/logs/gpu-util-${SLURM_JOB_ID}.log}"
+export MAXENT_ENFORCE_GPU_SPLIT="${MAXENT_ENFORCE_GPU_SPLIT:-1}"
+export MAXENT_TRAIN_GPU_IDS="${MAXENT_TRAIN_GPU_IDS:-0,1,2,3,4,5,6}"
+export MAXENT_VLLM_GPU_ID="${MAXENT_VLLM_GPU_ID:-7}"
 export VLLM_USE_V1="${VLLM_USE_V1:-0}"
 if [[ "${VLLM_USE_V1}" == "1" ]]; then
   export MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND="${MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND:-}"
@@ -482,7 +528,7 @@ else
   export MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND="${MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND:-XFORMERS}"
   export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-XFORMERS}"
 fi
-export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info $VIRTUAL_ENV/bin/accelerate launch \
+export LAUNCHER="ACCELERATE_LOG_LEVEL=${ACCELERATE_LOG_LEVEL:-warning} TRANSFORMERS_VERBOSITY=${TRANSFORMERS_VERBOSITY:-warning} $VIRTUAL_ENV/bin/accelerate launch \
   --config_file ${ACCEL_FILE} \
   --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
   --num_machines ${TRAIN_NUM_MACHINES} \
@@ -526,6 +572,24 @@ mkdir -p "$(dirname "$TRAINING_LOG")"
 srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
   elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
+  if [[ \"\${MAXENT_ENFORCE_GPU_SPLIT:-0}\" == \"1\" && \"\${USE_VLLM:-false}\" == \"true\" && \"\${VLLM_MODE:-}\" == \"colocate\" ]]; then \
+    _train_ids=\"\${MAXENT_TRAIN_GPU_IDS:-0,1,2,3,4,5,6}\"; \
+    _vllm_id=\"\${MAXENT_VLLM_GPU_ID:-7}\"; \
+    if [[ -z \"\${_train_ids}\" || -z \"\${_vllm_id}\" ]]; then \
+      echo \"[error] Enforced GPU split requires MAXENT_TRAIN_GPU_IDS and MAXENT_VLLM_GPU_ID.\" >&2; exit 1; \
+    fi; \
+    _all_visible=\"\${CUDA_VISIBLE_DEVICES:-}\"; \
+    if [[ -z \"\${_all_visible}\" ]]; then \
+      _all_visible=\"$(seq -s, 0 $((GPUS_PER_NODE - 1)))\"; \
+    fi; \
+    case \",\${_all_visible},\" in \
+      *\",\${_vllm_id},\"*) : ;; \
+      *) echo \"[error] Enforced vLLM GPU \${_vllm_id} not in CUDA_VISIBLE_DEVICES=\${_all_visible}\" >&2; exit 1 ;; \
+    esac; \
+    export CUDA_VISIBLE_DEVICES=\"\${_train_ids}\"; \
+    export MAXENT_VLLM_COLOCATE_DEVICE=\"cuda:\${_vllm_id}\"; \
+    echo \"[info] Enforcing training GPUs=\${_train_ids} vLLM GPU=\${_vllm_id}\"; \
+  fi; \
   export VLLM_HOST_IP=\"${VLLM_HOST_IP:-127.0.0.1}\"; \
   # Ensure vLLM colocate stays single-process and avoids implicit DP groups.
   export VLLM_ENABLE_V1_MULTIPROCESSING=\"${VLLM_ENABLE_V1_MULTIPROCESSING:-0}\"; \
@@ -565,6 +629,60 @@ srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
   export MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND=\"${MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND}\"; \
   export VLLM_USE_V1=\"${VLLM_USE_V1}\"; \
   export VLLM_ATTENTION_BACKEND=\"${VLLM_ATTENTION_BACKEND}\"; \
+  export MAXENT_GPU_UTIL_WARN_INTERVAL_S=\"${MAXENT_GPU_UTIL_WARN_INTERVAL_S}\"; \
+  export MAXENT_GPU_UTIL_WARN_ZERO_SAMPLES=\"${MAXENT_GPU_UTIL_WARN_ZERO_SAMPLES}\"; \
+  export MAXENT_GPU_UTIL_WARN_LOG=\"${MAXENT_GPU_UTIL_WARN_LOG}\"; \
+  _start_gpu_util_monitor() { \
+    if ! command -v nvidia-smi >/dev/null 2>&1; then \
+      echo \"[warn] nvidia-smi not found; GPU util monitor disabled.\" >&2; \
+      return 0; \
+    fi; \
+    _gpu_interval=\"\${MAXENT_GPU_UTIL_WARN_INTERVAL_S:-30}\"; \
+    _gpu_zero_samples=\"\${MAXENT_GPU_UTIL_WARN_ZERO_SAMPLES:-4}\"; \
+    _gpu_log=\"\${MAXENT_GPU_UTIL_WARN_LOG:-$VAR_DIR/artifacts/logs/gpu-util-${SLURM_JOB_ID}.log}\"; \
+    _gpu_csv=\"\${CUDA_VISIBLE_DEVICES:-}\"; \
+    _gpu_ids=(); \
+    if [[ -n \"\${_gpu_csv}\" && \"\${_gpu_csv,,}\" != \"none\" ]]; then \
+      IFS=',' read -r -a _gpu_ids <<< \"\${_gpu_csv}\"; \
+    else \
+      while IFS= read -r _gpu_id; do \
+        _gpu_ids+=(\"\${_gpu_id}\"); \
+      done < <(nvidia-smi -L 2>/dev/null | sed -n 's/^GPU \\([0-9]\\+\\).*/\\1/p' || true); \
+    fi; \
+    if [[ \${#_gpu_ids[@]} -eq 0 ]]; then \
+      echo \"[warn] GPU util monitor: no visible GPUs.\" >&2; \
+      return 0; \
+    fi; \
+    mkdir -p \"\$(dirname \"\${_gpu_log}\")\"; \
+    : > \"\${_gpu_log}\"; \
+    ( \
+      declare -A _zero_counts; \
+      for _id in \"\${_gpu_ids[@]}\"; do _zero_counts[\${_id}]=0; done; \
+      while true; do \
+        _ts=\"\$(date '+%Y-%m-%d %H:%M:%S')\"; \
+        while IFS=',' read -r _idx _util; do \
+          _idx=\"\${_idx//[[:space:]]/}\"; \
+          _util=\"\${_util//[[:space:]]/}\"; \
+          if [[ -z \"\${_zero_counts[\${_idx}]+x}\" ]]; then \
+            continue; \
+          fi; \
+          if [[ \"\${_util}\" == \"0\" ]]; then \
+            _zero_counts[\${_idx}]=\$((\${_zero_counts[\${_idx}]} + 1)); \
+            if (( \${_zero_counts[\${_idx}]} >= _gpu_zero_samples )); then \
+              echo \"[\${_ts}] [warn] GPU \${_idx} utilization is 0% for \${_zero_counts[\${_idx}]} samples (interval \${_gpu_interval}s).\" | tee -a \"\${_gpu_log}\" >&2; \
+            fi; \
+          else \
+            _zero_counts[\${_idx}]=0; \
+          fi; \
+        done < <(nvidia-smi --query-gpu=index,utilization.gpu --format=csv,noheader,nounits 2>/dev/null || true); \
+        sleep \"\${_gpu_interval}\"; \
+      done; \
+    ) & \
+    GPU_UTIL_MONITOR_PID=\$!; \
+  }; \
+  _start_gpu_util_monitor; \
+  trap 'if [[ -n \"\${GPU_UTIL_MONITOR_PID:-}\" ]]; then kill \"\${GPU_UTIL_MONITOR_PID}\" 2>/dev/null || true; fi' EXIT; \
+  export TOKENIZERS_PARALLELISM=\"${TOKENIZERS_PARALLELISM:-false}\"; \
   export GRPO_RECIPE=\"${GRPO_RECIPE}\"; \
   export GRPO_RECIPE_USED=\"${GRPO_RECIPE_USED}\"; \
   export PYTHONPATH=\"${ROOT_DIR}/src:\${PYTHONPATH:-}\"; \

@@ -370,6 +370,17 @@ def _vllm_colocate_worker(conn: Any) -> None:
         os.environ["VLLM_DP_RANK"] = "0"
         os.environ["VLLM_DP_RANK_LOCAL"] = "0"
         _send_log("worker env override | RANK=0 WORLD_SIZE=1 LOCAL_RANK=0 SLURM_LOCALID=0")
+
+        # If a specific CUDA device was requested, remap visibility *before*
+        # any torch import so the worker sees only that GPU.
+        device = llm_kwargs.get("device")
+        if isinstance(device, str) and device.startswith("cuda:"):
+            idx = device.split(":", 1)[1]
+            if idx.isdigit():
+                os.environ["CUDA_VISIBLE_DEVICES"] = idx
+                llm_kwargs = dict(llm_kwargs)
+                llm_kwargs["device"] = "cuda:0"
+                _send_log(f"worker CUDA remap | CUDA_VISIBLE_DEVICES={idx} device=cuda:0")
         master_addr = os.getenv("MAXENT_VLLM_COLOCATE_MASTER_ADDR") or "127.0.0.1"
         master_port = os.getenv("MAXENT_VLLM_COLOCATE_MASTER_PORT")
         if not master_port:
@@ -418,17 +429,6 @@ def _vllm_colocate_worker(conn: Any) -> None:
                     _send_log("worker dist preinit done | initialized=True")
             except Exception as exc:
                 _send_log(f"worker dist preinit failed | error={exc}")
-
-        # If a specific CUDA device was requested, remap visibility so vLLM
-        # only sees that GPU (and use cuda:0 inside the worker).
-        device = llm_kwargs.get("device")
-        if isinstance(device, str) and device.startswith("cuda:"):
-            idx = device.split(":", 1)[1]
-            if idx.isdigit():
-                os.environ["CUDA_VISIBLE_DEVICES"] = idx
-                llm_kwargs = dict(llm_kwargs)
-                llm_kwargs["device"] = "cuda:0"
-                _send_log(f"worker CUDA remap | CUDA_VISIBLE_DEVICES={idx} device=cuda:0")
 
         _send_log("worker import vllm start")
         vllm_mod = optional_import("vllm")

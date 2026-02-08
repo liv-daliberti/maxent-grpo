@@ -20,6 +20,7 @@ import logging
 import math
 import os
 import time
+from contextlib import nullcontext
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Dict, Iterator, List, Optional, Tuple, cast
@@ -31,10 +32,41 @@ from maxent_grpo.generation.errors import (
 from maxent_grpo.rewards.basic import _answer_pat, _format_pat
 from maxent_grpo.training.runtime.logging import _log_wandb
 from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
-from .scoring import _refresh_torch, _to_numpy_array
-from .types import RewardSpec, ValidationContext
+from .scoring import (
+    _refresh_torch,
+    _to_numpy_array,
+    build_score_batch,
+    gather_reference_logprobs,
+    reference_from_vllm_meta,
+    reference_stats_from_policy_logprobs,
+    score_model_outputs,
+    token_counts_from_score_batch,
+    vllm_meta_has_logprobs,
+)
+from .types import PromptCompletionBatch, RewardSpec, ValidationContext
 
 LOG = logging.getLogger(__name__)
+_EVAL_LOGPROBS_ENV = "MAXENT_EVAL_LOGPROBS"
+_EVAL_LOGPROBS_WARNED = False
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _eval_logprobs_enabled() -> bool:
+    return _env_flag(_EVAL_LOGPROBS_ENV, False)
+
+
+def _warn_eval_logprobs_unavailable(reason: str) -> None:
+    global _EVAL_LOGPROBS_WARNED
+    if _EVAL_LOGPROBS_WARNED:
+        return
+    LOG.warning("Eval logprob metrics disabled: %s", reason)
+    _EVAL_LOGPROBS_WARNED = True
 
 
 def _deepspeed_zero_stage(accelerator: Any) -> int:
@@ -45,6 +77,334 @@ def _deepspeed_zero_stage(accelerator: Any) -> int:
         return int(getattr(ds_plugin, "zero_stage", 0) or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def _as_tensor_1d(value: Any, device: Any = None) -> Any:
+    """Best-effort conversion to a 1D float tensor."""
+    torch_mod = _refresh_torch()
+    if value is None:
+        return torch_mod.zeros(
+            (0,),
+            dtype=getattr(torch_mod, "float32", None),
+            device=device,
+        )
+    tensor_cls = getattr(torch_mod, "Tensor", None)
+    if tensor_cls is not None and isinstance(value, tensor_cls):
+        tensor = value
+    else:
+        tensor = torch_mod.tensor(
+            getattr(value, "arr", value),
+            dtype=getattr(torch_mod, "float32", None),
+            device=device,
+        )
+    try:
+        return tensor.view(-1)
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        return tensor
+
+
+def _match_tensor_length(tensor: Any, target_len: int, device: Any = None) -> Any:
+    """Pad or truncate a 1D tensor to ``target_len``."""
+    torch_mod = _refresh_torch()
+    if target_len <= 0:
+        return torch_mod.zeros(
+            (0,),
+            dtype=getattr(torch_mod, "float32", None),
+            device=device,
+        )
+    tensor = _as_tensor_1d(tensor, device=device)
+    try:
+        cur_len = int(getattr(tensor, "numel", lambda: 0)())
+    except (TypeError, ValueError):
+        cur_len = 0
+    if cur_len == target_len:
+        return tensor
+    if cur_len == 0:
+        return torch_mod.zeros(
+            (target_len,),
+            dtype=getattr(torch_mod, "float32", None),
+            device=device,
+        )
+    if cur_len == 1:
+        try:
+            scalar_val = float(getattr(tensor[0], "item", lambda: tensor[0])())
+        except (TypeError, ValueError):
+            scalar_val = float(tensor[0])
+        return torch_mod.full(
+            (target_len,),
+            scalar_val,
+            dtype=getattr(torch_mod, "float32", None),
+            device=device,
+        )
+    min_len = min(cur_len, target_len)
+    try:
+        tensor = tensor[:min_len]
+    except (TypeError, ValueError):
+        pass
+    if min_len == target_len:
+        return tensor
+    try:
+        pad_val = float(getattr(tensor[-1], "item", lambda: tensor[-1])())
+    except (TypeError, ValueError):
+        pad_val = float(tensor[-1])
+    pad = torch_mod.full(
+        (target_len - min_len,),
+        pad_val,
+        dtype=getattr(torch_mod, "float32", None),
+        device=device,
+    )
+    try:
+        return torch_mod.cat([tensor, pad], dim=0)
+    except (TypeError, ValueError):
+        return pad
+
+
+def _flatten_eval_meta(
+    grouped_meta: Optional[List[List[Optional[Any]]]],
+    expected_len: int,
+) -> Optional[List[Optional[Any]]]:
+    if not grouped_meta or len(grouped_meta) != expected_len:
+        return None
+    flat: List[Optional[Any]] = []
+    for group in grouped_meta:
+        if group:
+            flat.append(group[0])
+        else:
+            flat.append(None)
+    return flat
+
+
+def _compute_eval_kl_tensor(
+    cur_logp_sum: Any,
+    tok_counts: Any,
+    ref_stats: Any,
+    *,
+    len_norm_ref: bool,
+) -> Optional[Any]:
+    torch_mod = _refresh_torch()
+    cur_tensor = _as_tensor_1d(cur_logp_sum)
+    denom = _as_tensor_1d(tok_counts, device=getattr(cur_tensor, "device", None))
+    try:
+        cur_len = int(getattr(cur_tensor, "numel", lambda: 0)())
+    except (TypeError, ValueError):
+        cur_len = 0
+    if cur_len <= 0:
+        return None
+    denom = _match_tensor_length(denom, cur_len, device=getattr(cur_tensor, "device", None))
+    try:
+        denom = denom.clamp(min=1.0)
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        pass
+    ref_source = getattr(ref_stats, "ref_logp_sum", None) if len_norm_ref else getattr(
+        ref_stats, "ref_logp_sum_raw", None
+    )
+    if ref_source is None:
+        ref_source = getattr(ref_stats, "ref_logp_sum", None)
+    if ref_source is None:
+        return None
+    ref_tensor = _match_tensor_length(
+        ref_source, cur_len, device=getattr(cur_tensor, "device", None)
+    )
+    try:
+        cur_per_tok = cur_tensor / denom
+    except (RuntimeError, TypeError, ValueError):
+        return None
+    if len_norm_ref:
+        ref_per_tok = ref_tensor
+    else:
+        try:
+            ref_per_tok = ref_tensor / denom
+        except (RuntimeError, TypeError, ValueError):
+            return None
+    try:
+        delta = (ref_per_tok - cur_per_tok).clamp(min=-60.0, max=60.0)
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        return None
+    try:
+        return delta.exp() - delta - 1.0
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        return None
+
+
+def _init_eval_score_stats() -> Dict[str, float]:
+    return {
+        "kl_weighted_sum": 0.0,
+        "kl_token_sum": 0.0,
+        "kl_sum": 0.0,
+        "kl_count": 0.0,
+        "entropy_sum": 0.0,
+        "entropy_token_sum": 0.0,
+        "length_sum": 0.0,
+        "length_count": 0.0,
+        "clipped_count": 0.0,
+        "terminated_sum": 0.0,
+        "terminated_count": 0.0,
+    }
+
+
+def _update_eval_score_stats(
+    target: Dict[str, float], update: Dict[str, float]
+) -> None:
+    for key, value in update.items():
+        target[key] = target.get(key, 0.0) + float(value)
+
+
+def _score_eval_batch(
+    ctx: ValidationContext,
+    prompts: List[str],
+    completions: List[str],
+    grouped_meta: Optional[List[List[Optional[Any]]]],
+) -> Optional[Dict[str, float]]:
+    if not _eval_logprobs_enabled():
+        return None
+    runtime = getattr(ctx, "runtime", None)
+    scoring_cfg = getattr(ctx, "scoring", None)
+    generation_cfg = getattr(ctx, "generation", None)
+    if runtime is None or scoring_cfg is None or generation_cfg is None:
+        _warn_eval_logprobs_unavailable("missing runtime/scoring/generation context")
+        return None
+    if not prompts or not completions:
+        return None
+    batching_cfg = getattr(scoring_cfg, "batching", None)
+    if batching_cfg is None:
+        _warn_eval_logprobs_unavailable("missing scoring.batching")
+        return None
+    if not getattr(batching_cfg, "prompt_length_cache_get", None):
+        prompt_cache = getattr(runtime, "prompt_cache_get", None)
+        if callable(prompt_cache):
+            batching_cfg.prompt_length_cache_get = prompt_cache
+    pairs = PromptCompletionBatch(prompts=prompts, completions=completions)
+    reward_stub = SimpleNamespace(pairs=pairs, completion_metadata=None)
+    score_batch = build_score_batch(
+        reward_stub,
+        ctx.tokenizer,
+        generation_cfg,
+        batching_cfg,
+    )
+    if score_batch is None:
+        return None
+    torch_mod = _refresh_torch()
+    no_grad_ctx = getattr(torch_mod, "no_grad", None) or nullcontext
+    entropy_mode = str(
+        getattr(scoring_cfg, "policy_entropy_mode", "exact") or "exact"
+    )
+    with no_grad_ctx():
+        result = score_model_outputs(
+            ctx.model,
+            score_batch,
+            batching_cfg,
+            runtime,
+            return_entropy=True,
+            entropy_mode=entropy_mode,
+        )
+    if result is None:
+        return None
+    if isinstance(result, tuple) and len(result) == 3:
+        cur_logp_sum, _pooled, policy_entropy_sum = result
+    else:
+        cur_logp_sum, _pooled = result  # type: ignore[misc]
+        policy_entropy_sum = None
+    tok_counts = token_counts_from_score_batch(score_batch, runtime, batching_cfg)
+    try:
+        cur_len = int(getattr(cur_logp_sum, "numel", lambda: 0)())
+    except (TypeError, ValueError):
+        cur_len = 0
+    if cur_len > 0:
+        tok_counts = _match_tensor_length(
+            tok_counts, cur_len, device=getattr(cur_logp_sum, "device", None)
+        )
+    ref_source = str(
+        getattr(scoring_cfg, "reference_logprobs_source", "auto") or "auto"
+    ).strip().lower()
+    force_ref_model = ref_source in {
+        "model",
+        "reference",
+        "reference_model",
+        "ref_model",
+    }
+    if _env_flag("MAXENT_FORCE_REF_MODEL", False):
+        force_ref_model = True
+    flat_meta = _flatten_eval_meta(grouped_meta, len(completions))
+    ref_stats = None
+    if flat_meta and not force_ref_model and vllm_meta_has_logprobs(
+        flat_meta, getattr(score_batch, "total_sequences", None)
+    ):
+        ref_stats = reference_from_vllm_meta(
+            flat_meta,
+            int(getattr(score_batch, "total_sequences", len(completions))),
+            runtime.device,
+        )
+    if ref_stats is None and not force_ref_model:
+        try:
+            ref_stats = reference_stats_from_policy_logprobs(cur_logp_sum, tok_counts)
+        except (TypeError, ValueError, RuntimeError):
+            ref_stats = None
+    if ref_stats is None:
+        ref_stats = gather_reference_logprobs(score_batch, runtime, batching_cfg)
+    if ref_stats is None:
+        return None
+    weighting_cfg = getattr(scoring_cfg, "weighting", None)
+    len_norm_ref = bool(getattr(weighting_cfg, "len_norm_ref", False))
+    kl_tensor = _compute_eval_kl_tensor(
+        cur_logp_sum,
+        tok_counts,
+        ref_stats,
+        len_norm_ref=len_norm_ref,
+    )
+    if kl_tensor is None:
+        return None
+    stats: Dict[str, float] = {}
+    try:
+        kl_sum = float(kl_tensor.detach().float().sum().cpu().item())
+        kl_count = float(getattr(kl_tensor, "numel", lambda: 0)())
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        kl_sum = float(kl_tensor.sum())
+        kl_count = float(getattr(kl_tensor, "numel", lambda: 0)())
+    try:
+        tok_sum = float(tok_counts.detach().float().sum().cpu().item())
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        tok_sum = float(tok_counts.sum())
+    try:
+        kl_weighted = float((kl_tensor * tok_counts).detach().float().sum().cpu().item())
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        kl_weighted = float((kl_tensor * tok_counts).sum())
+    stats["kl_sum"] = kl_sum
+    stats["kl_count"] = kl_count
+    stats["kl_token_sum"] = tok_sum
+    stats["kl_weighted_sum"] = kl_weighted
+    if policy_entropy_sum is not None:
+        try:
+            entropy_sum = float(policy_entropy_sum.detach().float().sum().cpu().item())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            entropy_sum = float(policy_entropy_sum.sum())
+        stats["entropy_sum"] = entropy_sum
+        stats["entropy_token_sum"] = tok_sum
+    max_len = int(getattr(generation_cfg, "max_completion_len", 0) or 0)
+    try:
+        length_sum = float(tok_counts.detach().float().sum().cpu().item())
+        length_count = float(getattr(tok_counts, "numel", lambda: 0)())
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        length_sum = float(tok_counts.sum())
+        length_count = float(getattr(tok_counts, "numel", lambda: 0)())
+    stats["length_sum"] = length_sum
+    stats["length_count"] = length_count
+    if max_len > 0:
+        try:
+            clipped = (tok_counts >= max_len).float()
+            clipped_count = float(clipped.sum().detach().cpu().item())
+            terminated_mask = tok_counts < max_len
+            terminated_sum = float(
+                (tok_counts * terminated_mask).detach().float().sum().cpu().item()
+            )
+            terminated_count = float(terminated_mask.detach().float().sum().cpu().item())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            clipped_count = 0.0
+            terminated_sum = 0.0
+            terminated_count = 0.0
+        stats["clipped_count"] = clipped_count
+        stats["terminated_sum"] = terminated_sum
+        stats["terminated_count"] = terminated_count
+    return stats
 
 
 @dataclass
@@ -142,10 +502,13 @@ def _tally_format_issues(
     stats = {"missing_answer": 0.0, "missing_format": 0.0, "total": 0.0}
     for comp in completions:
         stats["total"] += 1.0
-        if not _format_pat.match(comp):
-            stats["missing_format"] += 1.0
-        if not _answer_pat.search(comp):
+        has_answer = bool(_answer_pat.search(comp))
+        has_format = bool(_format_pat.search(comp))
+        if not has_answer:
             stats["missing_answer"] += 1.0
+        # For eval metrics, treat <answer> alone as acceptable format.
+        if not has_format and not has_answer:
+            stats["missing_format"] += 1.0
     return stats
 
 
@@ -243,7 +606,7 @@ def _run_eval_batches(
     batch_size: int,
     ctx: ValidationContext,
     step: int,
-) -> Tuple[List[float], Dict[str, float]]:
+) -> Tuple[List[float], Dict[str, float], Optional[Dict[str, float]]]:
     """Generate completions for the shard rows and log periodic progress.
 
     :param shard: Evaluation shard metadata for the current rank.
@@ -254,8 +617,9 @@ def _run_eval_batches(
     :type ctx: ValidationContext
     :param step: Current training step (for logging tags).
     :type step: int
-    :returns: Flattened list of reward scores produced for the shard.
-    :rtype: list[float]
+    :returns: Flattened list of reward scores produced for the shard, format
+        counts, and optional aggregated logprob stats.
+    :rtype: tuple[list[float], dict[str, float], dict[str, float] | None]
     """
     eval_scores: List[float] = []
     fmt_counts: Dict[str, float] = {
@@ -263,6 +627,9 @@ def _run_eval_batches(
         "missing_format": 0.0,
         "total": 0.0,
     }
+    score_stats: Optional[Dict[str, float]] = (
+        _init_eval_score_stats() if _eval_logprobs_enabled() else None
+    )
     timeout_s = 0.0
     try:
         timeout_s = float(os.getenv("MAXENT_EVAL_BATCH_TIMEOUT_S", "0") or 0)
@@ -299,7 +666,7 @@ def _run_eval_batches(
         prev_request_id_prefix = getattr(ctx, "vllm_request_id_prefix", None)
         setattr(ctx, "vllm_request_id_prefix", request_id_prefix)
         try:
-            grouped, _ = ctx.generator(prompts, 1, target_counts)
+            grouped, grouped_meta = ctx.generator(prompts, 1, target_counts)
         except GenerationServiceError as exc:
             log_generation_service_error(
                 logging.getLogger(__name__), "evaluation", exc
@@ -344,6 +711,12 @@ def _run_eval_batches(
             batch_fmt = _tally_format_issues(completions)
             for k, v in batch_fmt.items():
                 fmt_counts[k] = fmt_counts.get(k, 0.0) + float(v)
+            if score_stats is not None:
+                batch_stats = _score_eval_batch(
+                    ctx, prompts, completions, grouped_meta
+                )
+                if batch_stats is not None:
+                    _update_eval_score_stats(score_stats, batch_stats)
         processed += len(prompts)
         should_log = shard.shard_total and (
             processed >= shard.shard_total or (batch_idx + 1) % shard.log_every == 0
@@ -357,14 +730,17 @@ def _run_eval_batches(
                 shard.shard_total,
                 running_mean,
             )
-    return eval_scores, fmt_counts
+    return eval_scores, fmt_counts, score_stats
 
 
 def _gather_eval_stats(
     accelerator: Any,
     eval_scores: List[float],
     fmt_counts: Optional[Dict[str, float]] = None,
-) -> Tuple[float, float] | Tuple[float, float, Dict[str, float]]:
+    score_stats: Optional[Dict[str, float]] = None,
+) -> Tuple[float, float] | Tuple[float, float, Dict[str, float]] | Tuple[
+    float, float, Dict[str, float], Dict[str, float]
+]:
     """Gather mean reward statistics across all ranks.
 
     :param accelerator: Accelerate handle used to gather objects.
@@ -372,8 +748,9 @@ def _gather_eval_stats(
     :param eval_scores: Reward samples produced locally.
     :type eval_scores: list[float]
     :returns: Tuple containing ``(total_sum, total_count)`` across ranks, and
-        optionally the aggregated ``fmt_counts`` when provided.
-    :rtype: tuple[float, float] | tuple[float, float, dict[str, float]]
+        optionally the aggregated ``fmt_counts``/``score_stats`` when provided.
+    :rtype: tuple[float, float] | tuple[float, float, dict[str, float]] |
+        tuple[float, float, dict[str, float], dict[str, float]]
     """
     local_sum = float(sum(eval_scores))
     local_count = float(len(eval_scores))
@@ -384,7 +761,7 @@ def _gather_eval_stats(
         "total": 0.0,
     }
     gather_fn = getattr(accelerator, "gather_object", None)
-    payload = (local_sum, local_count, fmt_counts)
+    payload = (local_sum, local_count, fmt_counts, score_stats)
     gathered_raw = gather_fn(payload) if callable(gather_fn) else None
     if isinstance(gathered_raw, (list, tuple)):
         gathered = list(gathered_raw)
@@ -397,6 +774,7 @@ def _gather_eval_stats(
         "missing_format": 0.0,
         "total": 0.0,
     }
+    total_score: Dict[str, float] = {}
     for item in gathered:
         # Accept payloads of length 2 (sum, count) or 3 (sum, count, fmt_counts)
         if not isinstance(item, (list, tuple)):
@@ -407,9 +785,14 @@ def _gather_eval_stats(
         if len(item) >= 3 and item[2] is not None:
             for k, v in item[2].items():
                 total_fmt[k] = total_fmt.get(k, 0.0) + float(v)
+        if len(item) >= 4 and item[3] is not None:
+            for k, v in item[3].items():
+                total_score[k] = total_score.get(k, 0.0) + float(v)
     if not provided_fmt:
         return total_sum, total_count
-    return total_sum, total_count, total_fmt
+    if score_stats is None:
+        return total_sum, total_count, total_fmt
+    return total_sum, total_count, total_fmt, total_score
 
 
 def _render_seed_prompts(
@@ -682,7 +1065,7 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
     model.eval()
 
     try:
-        eval_scores, fmt_counts = _run_eval_batches(
+        eval_scores, fmt_counts, score_stats = _run_eval_batches(
             shard,
             evaluation_cfg.batch_size,
             ctx,
@@ -692,8 +1075,11 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
             total_sum = float(sum(eval_scores))
             total_count = float(len(eval_scores))
             total_fmt = fmt_counts
+            total_score = score_stats or {}
         else:
-            gathered_stats = _gather_eval_stats(accelerator, eval_scores, fmt_counts)
+            gathered_stats = _gather_eval_stats(
+                accelerator, eval_scores, fmt_counts, score_stats
+            )
             total_sum, total_count = gathered_stats[:2]
             total_fmt = (
                 gathered_stats[2]
@@ -703,6 +1089,9 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                     "missing_format": 0.0,
                     "total": float(total_count),
                 }
+            )
+            total_score = (
+                gathered_stats[3] if len(gathered_stats) >= 4 else {}
             )
         if shard.is_main:
             mean_reward = total_sum / max(total_count, 1.0)
@@ -744,6 +1133,32 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                 )
                 / max(float(total_fmt.get("total", 0.0)), 1.0),
             }
+            if total_score:
+                kl_token_sum = float(total_score.get("kl_token_sum", 0.0))
+                kl_sum = float(total_score.get("kl_sum", 0.0))
+                kl_count = float(total_score.get("kl_count", 0.0))
+                kl_weighted = float(total_score.get("kl_weighted_sum", 0.0))
+                if kl_token_sum > 0:
+                    eval_metrics["eval/kl"] = kl_weighted / kl_token_sum
+                if kl_count > 0:
+                    eval_metrics["eval/kl_mean"] = kl_sum / kl_count
+                entropy_sum = float(total_score.get("entropy_sum", 0.0))
+                entropy_token_sum = float(total_score.get("entropy_token_sum", 0.0))
+                if entropy_token_sum > 0:
+                    eval_metrics["eval/policy_entropy"] = entropy_sum / entropy_token_sum
+                length_sum = float(total_score.get("length_sum", 0.0))
+                length_count = float(total_score.get("length_count", 0.0))
+                if length_count > 0:
+                    eval_metrics["eval/avg_completion_tokens"] = length_sum / length_count
+                    eval_metrics["eval/completions/clipped_frac"] = float(
+                        total_score.get("clipped_count", 0.0)
+                    ) / length_count
+                terminated_sum = float(total_score.get("terminated_sum", 0.0))
+                terminated_count = float(total_score.get("terminated_count", 0.0))
+                if terminated_count > 0:
+                    eval_metrics["eval/completions/mean_length_terminated"] = (
+                        terminated_sum / terminated_count
+                    )
             _log_wandb(getattr(ctx.logging, "wandb_run", None), eval_metrics, step)
             accel_log = getattr(accelerator, "log", None)
             if callable(accel_log):
@@ -782,6 +1197,16 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
     finally:
         if prev_mode:
             model.train()
+        if callable(wait_for_all):
+            wait_for_all()
+        # Reduce CUDA fragmentation after eval.
+        torch_mod = _refresh_torch()
+        cuda_mod = getattr(torch_mod, "cuda", None)
+        if cuda_mod is not None and getattr(cuda_mod, "is_available", lambda: False)():
+            try:
+                cuda_mod.empty_cache()
+            except (AttributeError, RuntimeError):
+                LOG.debug("Failed to empty CUDA cache after eval.")
         if callable(wait_for_all):
             wait_for_all()
 

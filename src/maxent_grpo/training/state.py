@@ -1158,6 +1158,8 @@ def maybe_checkpoint(
                 logging_cfg.save_steps,
             )
         logging_cfg.save_checkpoint(f"checkpoint-{global_step}")
+        if callable(wait_for_all):
+            wait_for_all()
     if callable(wait_for_all):
         wait_for_all()
 

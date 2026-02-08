@@ -25,6 +25,7 @@ This module exposes two utilities:
 
 from __future__ import annotations
 
+import functools
 import logging
 from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 
@@ -102,6 +103,47 @@ else:  # pragma: no cover - runtime fallback when torch.dtype is missing
     TorchDType = getattr(torch, "dtype", Any)
 
 LOG = logging.getLogger(__name__)
+
+
+def _force_nonreentrant_checkpointing(model: Any) -> bool:
+    """Best-effort enforcement of non-reentrant gradient checkpointing."""
+
+    if model is None:
+        return False
+    checkpoint_mod = getattr(getattr(torch, "utils", None), "checkpoint", None)
+    checkpoint_fn = getattr(checkpoint_mod, "checkpoint", None) if checkpoint_mod else None
+    if checkpoint_fn is None:
+        return False
+    gc_func = functools.partial(checkpoint_fn, use_reentrant=False)
+    set_gc = getattr(model, "_set_gradient_checkpointing", None)
+    if callable(set_gc):
+        try:
+            set_gc(enable=True, gradient_checkpointing_func=gc_func)
+            return True
+        except TypeError:
+            try:
+                set_gc(value=True)
+            except Exception:
+                pass
+    applied = False
+    modules = getattr(model, "modules", None)
+    if callable(modules):
+        for module in modules():
+            if hasattr(module, "gradient_checkpointing"):
+                try:
+                    setattr(module, "_gradient_checkpointing_func", gc_func)
+                    setattr(module, "gradient_checkpointing", True)
+                    applied = True
+                except Exception:
+                    continue
+    if hasattr(model, "gradient_checkpointing"):
+        try:
+            setattr(model, "_gradient_checkpointing_func", gc_func)
+            setattr(model, "gradient_checkpointing", True)
+            applied = True
+        except Exception:
+            pass
+    return applied
 
 
 class ChatMessage(TypedDict):
@@ -223,13 +265,34 @@ def get_model(
         enable_fn = getattr(model, "gradient_checkpointing_enable", None)
         if callable(enable_fn):
             gc_kwargs = getattr(training_args, "gradient_checkpointing_kwargs", None)
-            try:
-                if isinstance(gc_kwargs, dict):
-                    enable_fn(**gc_kwargs)
+            kwargs = dict(gc_kwargs) if isinstance(gc_kwargs, dict) else {}
+            if gc_kwargs is not None and not isinstance(gc_kwargs, dict):
+                LOG.warning(
+                    "Ignoring non-dict gradient_checkpointing_kwargs=%r; forcing use_reentrant=False.",
+                    gc_kwargs,
+                )
+            if kwargs.get("use_reentrant", None) is not False:
+                if kwargs.get("use_reentrant", None) is True:
+                    LOG.warning(
+                        "Forcing use_reentrant=False for gradient checkpointing to avoid ZeRO-3 issues."
+                    )
                 else:
-                    enable_fn()
-            except TypeError:
-                enable_fn()
+                    LOG.info(
+                        "Setting gradient checkpointing to non-reentrant (use_reentrant=False)."
+                    )
+            kwargs["use_reentrant"] = False
+            try:
+                enable_fn(**kwargs)
+            except TypeError as exc:
+                LOG.warning(
+                    "gradient_checkpointing_enable did not accept kwargs (%s); "
+                    "forcing non-reentrant checkpointing manually.",
+                    exc,
+                )
+                if not _force_nonreentrant_checkpointing(model):
+                    LOG.warning(
+                        "Failed to enforce non-reentrant checkpointing; model may still use reentrant mode."
+                    )
     # Optional seed classification head for InfoSeed auxiliary objectives.
     if getattr(training_args, "info_seed_enabled", False):
         num_seeds = max(int(getattr(training_args, "info_seed_num_seeds", 0)), 0)

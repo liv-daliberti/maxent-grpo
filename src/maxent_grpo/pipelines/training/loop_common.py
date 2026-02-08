@@ -331,6 +331,23 @@ def _sanitize_int(
     return clamped
 
 
+def _env_int(name: str) -> Optional[int]:
+    """Parse a positive integer from the environment."""
+
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return None
+    try:
+        parsed = int(raw)
+    except (TypeError, ValueError):
+        LOG.warning("Invalid %s=%r; ignoring.", name, raw)
+        return None
+    if parsed <= 0:
+        LOG.warning("Invalid %s=%r; must be >0; ignoring.", name, raw)
+        return None
+    return parsed
+
+
 def _fallback_optim_handles(training_args: GRPOConfig) -> SimpleNamespace:
     lr = float(getattr(training_args, "learning_rate", 0.0))
 
@@ -542,9 +559,41 @@ def build_generation_settings(cfg: GRPOConfig) -> GenerationSettings:
     if vllm_mode not in {"server", "colocate"}:
         LOG.warning("Unknown vllm_mode=%s; defaulting to server.", vllm_mode)
         vllm_mode = "server"
+    max_prompt_len = int(getattr(cfg, "max_prompt_length", 0) or 0)
+    max_completion_len = int(getattr(cfg, "max_completion_length", 0) or 0)
+    if vllm_mode == "colocate":
+        max_model_len = _env_int("MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN")
+        if max_model_len is not None:
+            allowed_prompt_len = max_model_len
+            if max_completion_len > 0:
+                allowed_prompt_len = max_model_len - max_completion_len
+            if allowed_prompt_len <= 0:
+                LOG.warning(
+                    "MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN=%d leaves no room for "
+                    "max_completion_len=%d; forcing max_prompt_len=1.",
+                    max_model_len,
+                    max_completion_len,
+                )
+                allowed_prompt_len = 1
+            if max_prompt_len <= 0 or max_prompt_len > allowed_prompt_len:
+                LOG.info(
+                    "Clamping max_prompt_len=%s to %d to fit max_model_len=%d "
+                    "and max_completion_len=%d.",
+                    max_prompt_len,
+                    allowed_prompt_len,
+                    max_model_len,
+                    max_completion_len,
+                )
+                max_prompt_len = allowed_prompt_len
+            if max_completion_len >= max_model_len:
+                LOG.warning(
+                    "max_completion_len=%d >= max_model_len=%d; vLLM may truncate completions.",
+                    max_completion_len,
+                    max_model_len,
+                )
     settings = GenerationSettings(
-        max_prompt_len=int(getattr(cfg, "max_prompt_length", 0) or 0),
-        max_completion_len=int(getattr(cfg, "max_completion_length", 0) or 0),
+        max_prompt_len=max_prompt_len,
+        max_completion_len=max_completion_len,
         gen_temperature=cfg.gen_temperature,
         gen_top_p=cfg.gen_top_p,
         use_vllm=cfg.use_vllm,

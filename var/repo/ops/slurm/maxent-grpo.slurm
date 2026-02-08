@@ -120,7 +120,7 @@ export HF_HUB_ENABLE_PROGRESS_BARS=1
 export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
 # Defaults for colocated vLLM KV cache sizing (override via sbatch --export)
 export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN="${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN:-4096}"
-export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.6}"
+export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.9}"
 # Defaults for MaxEnt runs (override via `sbatch --export` or env).
 export VLLM_SERVER_IMPL="${VLLM_SERVER_IMPL:-trl}"
 export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-info}"
@@ -316,6 +316,29 @@ elif $USE_VLLM && [[ "$VLLM_MODE" == "colocate" ]]; then
 fi
 export INLINE_VLLM
 
+# Hard enforce: world_size=7 with training on GPUs 0-6 and vLLM on GPU7.
+export ENFORCE_WORLD_SIZE7_VLLM_GPU7="${ENFORCE_WORLD_SIZE7_VLLM_GPU7:-1}"
+if [[ "$ENFORCE_WORLD_SIZE7_VLLM_GPU7" == "1" && "$INLINE_VLLM" == "true" ]]; then
+  if (( GPUS_PER_NODE < 8 )); then
+    echo "Hard-enforce requires 8 visible GPUs (0-7); saw GPUS_PER_NODE=${GPUS_PER_NODE}." >&2
+    exit 1
+  fi
+  if [[ -n "${CUDA_VISIBLE_DEVICES:-}" && "${CUDA_VISIBLE_DEVICES,,}" != "none" ]]; then
+    _enforce_cuda_csv="${CUDA_VISIBLE_DEVICES//[[:space:]]/}"
+    if [[ "$_enforce_cuda_csv" != "0,1,2,3,4,5,6,7" ]]; then
+      echo "Hard-enforce requires CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; got '${CUDA_VISIBLE_DEVICES}'." >&2
+      exit 1
+    fi
+  else
+    export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
+  fi
+  TRAIN_LOCAL_PROCS=7
+  export INLINE_VLLM_GPU_ID_CSV="7"
+  export INLINE_VLLM_TRAIN_GPUS="0,1,2,3,4,5,6"
+  export MAXENT_VLLM_COLOCATE_DEVICE="cuda:7"
+  echo "[enforce] inline vLLM uses GPU7 only; training GPUs 0-6 (world_size=7)."
+fi
+
 MASTER_ADDR=${TRAIN_NODES[0]}
 TRAIN_NUM_MACHINES=${#TRAIN_NODES[@]}
 if (( TRAIN_NUM_MACHINES <= 0 )); then
@@ -340,8 +363,12 @@ if (( TRAIN_LOCAL_PROCS > GPUS_PER_NODE )); then
   exit 1
 fi
 if $SINGLE_NODE && $USE_VLLM; then
-  # Reserve 2 GPUs for inline vLLM, leaving the rest for training.
-  TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 2 ))
+  if [[ "$ENFORCE_WORLD_SIZE7_VLLM_GPU7" == "1" && "$INLINE_VLLM" == "true" ]]; then
+    TRAIN_LOCAL_PROCS=7
+  else
+    # Reserve 2 GPUs for inline vLLM, leaving the rest for training.
+    TRAIN_LOCAL_PROCS=$(( GPUS_PER_NODE - 2 ))
+  fi
 fi
 if (( TRAIN_LOCAL_PROCS <= 0 )); then
   echo "Training GPU count per node must be positive (computed $TRAIN_LOCAL_PROCS)." >&2
@@ -522,14 +549,22 @@ PY
       ORIGINAL_CUDA_VISIBLE_DEVICES=\"${INLINE_VLLM_FALLBACK_GPUS}\"; \
     fi; \
     IFS=, read -ra ALL_GPU_IDS <<< \"\$ORIGINAL_CUDA_VISIBLE_DEVICES\"; \
-    if [ \"\${#ALL_GPU_IDS[@]}\" -lt 3 ]; then \
-      echo \"Inline vLLM (2 GPUs) plus training requires at least 3 GPUs, saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
+    if [ \"\${ENFORCE_WORLD_SIZE7_VLLM_GPU7:-0}\" = \"1\" ]; then \
+      if [ \"\${#ALL_GPU_IDS[@]}\" -lt 8 ]; then \
+        echo \"Hard-enforce requires 8 GPUs (0-7), saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
+      fi; \
+      INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_ID_CSV:-7}\"; \
+      INLINE_VLLM_TRAIN_GPUS=\"\${INLINE_VLLM_TRAIN_GPUS:-0,1,2,3,4,5,6}\"; \
+    else \
+      if [ \"\${#ALL_GPU_IDS[@]}\" -lt 3 ]; then \
+        echo \"Inline vLLM (2 GPUs) plus training requires at least 3 GPUs, saw: \$ORIGINAL_CUDA_VISIBLE_DEVICES\" >&2; exit 1; \
+      fi; \
+      INLINE_VLLM_GPU_IDS=(\"\${ALL_GPU_IDS[0]}\" \"\${ALL_GPU_IDS[1]}\"); \
+      TRAIN_GPU_IDS=(\"\${ALL_GPU_IDS[@]:2}\"); \
+      INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_IDS[*]}\"; INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_ID_CSV// /,}\"; \
+      INLINE_VLLM_TRAIN_GPUS=\"\${TRAIN_GPU_IDS[*]}\"; \
+      INLINE_VLLM_TRAIN_GPUS=\"\${INLINE_VLLM_TRAIN_GPUS// /,}\"; \
     fi; \
-    INLINE_VLLM_GPU_IDS=(\"\${ALL_GPU_IDS[0]}\" \"\${ALL_GPU_IDS[1]}\"); \
-    TRAIN_GPU_IDS=(\"\${ALL_GPU_IDS[@]:2}\"); \
-    INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_IDS[*]}\"; INLINE_VLLM_GPU_ID_CSV=\"\${INLINE_VLLM_GPU_ID_CSV// /,}\"; \
-    INLINE_VLLM_TRAIN_GPUS=\"\${TRAIN_GPU_IDS[*]}\"; \
-    INLINE_VLLM_TRAIN_GPUS=\"\${INLINE_VLLM_TRAIN_GPUS// /,}\"; \
     export INLINE_VLLM_GPU_ID_CSV INLINE_VLLM_TRAIN_GPUS; \
     echo \"Starting inline vLLM server on GPUs \$INLINE_VLLM_GPU_ID_CSV…\"; \
     echo \"Trainer GPUs: \$INLINE_VLLM_TRAIN_GPUS\"; \

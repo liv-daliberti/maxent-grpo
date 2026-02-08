@@ -1026,6 +1026,9 @@ def run_training_loop(ctx: TrainingLoopContext) -> None:
         eval_reward=getattr(ctx, "eval_reward", None),
         generator=completion_generator.generate,
         logging=ctx.logging,
+        runtime=runtime,
+        generation=ctx.generation,
+        scoring=ctx.scoring,
     )
     configure_accumulation_steps(
         runtime.accelerator, ctx.optimization.schedule.grad_accum_steps

@@ -27,8 +27,11 @@ if TYPE_CHECKING:
         Accelerator,
         EvaluationSettings,
         GenerationFn,
+        GenerationSettings,
         PreTrainedModel,
         PreTrainedTokenizer,
+        RuntimeHandles,
+        ScoringSettings,
         Tensor,
         torch,
     )
@@ -38,8 +41,11 @@ else:  # pragma: no cover - runtime imports are deferred in generation.helpers
     Accelerator: TypeAlias = Any
     EvaluationSettings: TypeAlias = Any
     GenerationFn: TypeAlias = Any
+    GenerationSettings: TypeAlias = Any
     PreTrainedModel: TypeAlias = Any
     PreTrainedTokenizer: TypeAlias = Any
+    RuntimeHandles: TypeAlias = Any
+    ScoringSettings: TypeAlias = Any
     Tensor: TypeAlias = Any
     logging_stub = None
     try:
@@ -301,6 +307,9 @@ class ValidationContext:
     generator: "GenerationFn[Any]"
     logging: "LoggingHandles"
     eval_reward: Optional[RewardSpec] = None
+    runtime: Optional["RuntimeHandles"] = None
+    generation: Optional["GenerationSettings"] = None
+    scoring: Optional["ScoringSettings"] = None
 
 
 @dataclass

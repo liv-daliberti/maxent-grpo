@@ -3,7 +3,7 @@ debug: false
 distributed_type: DEEPSPEED
 mixed_precision: fp16
 num_machines: 1
-num_processes: 6
+num_processes: 7
 machine_rank: 0
 same_network: true
 rdzv_backend: static
@@ -21,7 +21,7 @@ deepspeed_config:
     # CPU offload disabled for better backward throughput on small models.
     stage3_param_persistence_threshold: 0
     stage3_gather_16bit_weights_on_model_save: true
-    overlap_comm: true
+    overlap_comm: false
     # Smaller buckets to make ZeRO-3 all-gathers finish more reliably
     reduce_bucket_size: 1e7
     allgather_bucket_size: 1e7

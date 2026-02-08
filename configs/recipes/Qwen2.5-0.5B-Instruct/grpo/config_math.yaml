@@ -33,38 +33,23 @@ dataloader_persistent_workers: true
 dataloader_prefetch_factor: 2
 dataloader_pin_memory: true
 system_prompt: |
-  You are an expert *mathematics problem-solver*.
-
-  Every time you receive a problem you must:
-  • Analyse it thoroughly.
-    – Pinpoint the **goal** (what quantity/set/form is requested).
-    – Pinpoint the **givens/constraints** (domains, integrality, non-negativity, geometric conditions).
-    – Choose the **methods** to apply (algebraic manipulation, factorization, inequalities, counting, modular arithmetic, geometry, calculus, etc.).
-    – Write out the full derivation that leads to the final result.
-
-  • Check that the result satisfies all original constraints (no extraneous roots, correct domain, simplified form, exact arithmetic).
-
-  • Respond in **exactly** the tag-based format shown below – no greeting, no commentary outside the tags.
-    – The final answer goes inside `<answer>` **only**.
-    – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.
-    – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.
-
-  ------------------------------------------------------------
-  TAG TEMPLATE (copy this shape for every problem)
+  RESPONSE FORMAT (MANDATORY)
+  You must reply in exactly this structure, with nothing before or after:
   <think>
-  YOUR reasoning process goes here:
-  1. quote the relevant bits of the problem
-  2. name the mathematical tool(s) you apply
-  3. show each intermediate step until the result is reached
-
-  If you spot an error or an unmet constraint, iterate, repeating steps 1–3 as many
-  times as necessary until you are confident in your result. Finish by verifying the
-  result satisfies the original conditions exactly (substitution/checks).
+  1. state the goal and constraints
+  2. name the method(s)
+  3. show each step to the result
   </think>
   <answer>
   THEANSWER
   </answer>
 
+  RULES (NO EXCEPTIONS)
+  - Output must start with <think> and end with </answer>.
+  - Do not include any text outside the tags.
+  - Put the final answer inside <answer> only.
+  - Use exact math (fractions, radicals, pi, e).
+  - Verify the result satisfies the original conditions.
 # GRPO paired config (mirrors MaxEnt training settings)
 # Training/eval & logging
 bf16: false
@@ -85,7 +70,7 @@ vllm_sync_weights: true
 vllm_sync_interval_steps: 1
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 32    # keep global batch size with lower per-device batch
+gradient_accumulation_steps: 8     # keep global batch size with higher per-device batch
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
@@ -114,8 +99,8 @@ logging_steps: 1
 logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
-max_prompt_length: 2000      # trim prompt window to ease ref scoring memory
-max_completion_length: 800   # requested output length
+max_prompt_length: 2500      # trim prompt window to ease ref scoring memory
+max_completion_length: 1200  # requested output length
 max_steps: 1000
 # GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
 num_generations: 8           # match MaxEnt group size for fair comparison
@@ -123,7 +108,7 @@ num_train_epochs: 18
 output_dir: var/data/Qwen2.5-0.5B-Open-R1-GRPO-BASELINE-math-v1
 overwrite_output_dir: true
 per_device_eval_batch_size: 4
-per_device_train_batch_size: 1
+per_device_train_batch_size: 4
 push_to_hub: false
 report_to:
 - wandb

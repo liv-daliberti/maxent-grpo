@@ -21,30 +21,21 @@ attn_implementation: sdpa
 dataset_name: open-r1/OpenR1-Math-220k
 zero3_save_16bit_model: true
 dataset_prompt_column: problem
-system_prompt: "You are an expert *mathematics problem-solver*.\n\nEvery time you\
-  \ receive a problem you must:\n\u2022 Analyse it thoroughly.  \n  \u2013 Pinpoint\
-  \ the **goal** (what quantity/set/form is requested).  \n  \u2013 Pinpoint the **givens/constraints**\
-  \ (domains, integrality, non-negativity, geometric conditions).  \n  \u2013 Choose\
-  \ the **methods** to apply (algebraic manipulation, factorization, inequalities,\
-  \ counting, modular arithmetic, geometry, calculus, etc.).  \n  \u2013 Write out\
-  \ the full derivation that leads to the final result.\n\n\u2022 Check that the result\
-  \ satisfies all original constraints (no extraneous roots, correct domain, simplified\
-  \ form, exact arithmetic).\n\n\u2022 Respond in **exactly** the tag-based format\
-  \ shown below \u2013 no greeting, no commentary outside the tags.  \n  \u2013 The\
-  \ final answer goes inside `<answer>` **only**.  \n  \u2013 Use **exact** math (fractions,\
-  \ radicals, \u03C0, e). Avoid unnecessary decimals.  \n  \u2013 Canonical forms:\
-  \ integers as plain numbers; reduced fractions a/b with b>0; simplified radicals;\
-  \ rationalized denominators; sets/tuples with standard notation; intervals in standard\
-  \ notation.  \n  \u2013 If there is **no solution**, write `NO SOLUTION`. If the\
-  \ problem is **underdetermined**, write `I DON'T KNOW`.\n\n\u2022 You have a hard\
-  \ cap of **600 output tokens**. Be concise but complete.\n\n------------------------------------------------------------\n\
-  TAG TEMPLATE (copy this shape for every problem)\n<think>\nYOUR reasoning process\
-  \ goes here:  \n1. quote the relevant bits of the problem  \n2. name the mathematical\
-  \ tool(s) you apply  \n3. show each intermediate step until the result is reached\
-  \  \n   \nIf you spot an error or an unmet constraint, iterate, repeating steps\
-  \ 1\u20133 as many\ntimes as necessary until you are confident in your result. Finish\
-  \ by verifying the\nresult satisfies the original conditions exactly (substitution/checks).\n\
-  </think>\n<answer>\nTHEANSWER\n</answer>\n"
+system_prompt: |
+  TAG TEMPLATE (copy this shape for every problem)
+  <think>
+  YOUR reasoning process goes here:
+  1. state the goal and constraints
+  2. name the method(s)
+  3. show each step to the result
+  </think>
+  <answer>
+  THEANSWER
+  </answer>
+
+  Respond in exactly this tag-based format. No text outside the tags.
+  Put the final answer inside <answer> only. Use exact math (fractions, radicals, pi, e).
+  Verify the result satisfies the original conditions.
 bf16: false
 use_vllm: true
 vllm_mode: colocate

@@ -14,6 +14,8 @@ LOG = logging.getLogger(__name__)
 PROMPT_CHAR_LIMIT = int(
     os.environ.get("MAX_PROMPT_TOKENS", os.environ.get("MAX_PROMPT_CHARS", "2048"))
 )
+DEFAULT_PROMPT_SUFFIX = ""
+DEFAULT_EVAL_PROMPT_SUFFIX = ""
 _TRUNC_STATE = {"warned": False}
 
 
@@ -174,6 +176,25 @@ def sync_trunc_state(state: Dict[str, Any]) -> None:
         _TRUNC_STATE.update(state)
 
 
+def _prompt_suffix_from_env(env_var: str, default: str) -> str:
+    """Resolve a prompt suffix from environment variables."""
+
+    suffix = os.environ.get(env_var)
+    if suffix is None:
+        suffix = default
+    return suffix
+
+
+def append_prompt_suffix(prompt: str) -> str:
+    """Append a format reminder to all prompts."""
+    return prompt
+
+
+def append_eval_prompt_suffix(prompt: str) -> str:
+    """Append a short eval-only format reminder to the prompt."""
+    return prompt
+
+
 # Backwards compatibility for existing imports.
 _truncate_prompt = truncate_prompt
 
@@ -258,13 +279,14 @@ def _to_prompt(
         )
     effective_limit = char_limit if char_limit is not None else PROMPT_CHAR_LIMIT
     min_required = len("USER: ") + len(user) + len("\nASSISTANT:")
-    if effective_limit and effective_limit > 0 and effective_limit < min_required:
-        effective_limit = min_required
+    available_limit = effective_limit
+    if available_limit and available_limit > 0 and available_limit < min_required:
+        available_limit = min_required
     prompt = truncate_prompt(
         prompt,
-        effective_limit,
+        available_limit,
         tokenizer=tokenizer,
-        max_tokens=effective_limit,
+        max_tokens=available_limit,
     )
     # Defensive: ensure the user message survives even if truncation or a template
     # removed it entirely.
@@ -280,11 +302,15 @@ __all__ = [
     "ChatTokenizer",
     "GenerationPenaltyConfig",
     "GenerationPenaltyPassthroughMixin",
+    "DEFAULT_PROMPT_SUFFIX",
+    "DEFAULT_EVAL_PROMPT_SUFFIX",
     "PROMPT_CHAR_LIMIT",
     "_TRUNC_STATE",
     "_prompt_char_limit_from_tokens",
     "_to_prompt",
     "_truncate_prompt",
+    "append_prompt_suffix",
+    "append_eval_prompt_suffix",
     "sync_trunc_state",
     "truncate_prompt",
 ]
