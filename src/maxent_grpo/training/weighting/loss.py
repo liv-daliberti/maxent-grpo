@@ -106,6 +106,9 @@ class SequenceScores:
     pooled_hidden: Optional[Tensor] = None
     seed_aux: Optional["SeedInfoInputs"] = None
     policy_entropy_sum: Optional[Tensor] = None
+    token_logp: Optional[Tensor] = None
+    token_mask: Optional[Tensor] = None
+    old_token_logp: Optional[Tensor] = None
 
 
 @dataclass
@@ -139,6 +142,11 @@ class RatioContext:
     ref_stats: ReferenceLogprobs
     cur_logp_sum: Tensor
     behavior_logp_sum: Tensor
+    cur_token_logp: Optional[Tensor] = None
+    old_token_logp: Optional[Tensor] = None
+    token_mask: Optional[Tensor] = None
+    grpo_loss_type: str = "bnpo"
+    max_completion_length: int = 0
 
 
 @dataclass
@@ -148,6 +156,8 @@ class LossInputConfig:
     clip_cfg: ClipSettings
     weighting_cfg: WeightingSettings
     ref_stats: ReferenceLogprobs
+    grpo_loss_type: str = "bnpo"
+    max_completion_length: int = 0
 
 
 @dataclass
@@ -273,6 +283,13 @@ def build_loss_inputs(
         ref_stats=config.ref_stats,
         cur_logp_sum=scores.cur_logp_sum,
         behavior_logp_sum=scores.behavior_logp_sum,
+        cur_token_logp=getattr(scores, "token_logp", None),
+        old_token_logp=getattr(scores, "old_token_logp", None),
+        token_mask=getattr(scores, "token_mask", None),
+        grpo_loss_type=str(getattr(config, "grpo_loss_type", "bnpo") or "bnpo"),
+        max_completion_length=int(
+            getattr(config, "max_completion_length", 0) or 0
+        ),
     )
     return group_data, ratio_context
 
@@ -605,7 +622,7 @@ def _apply_clip_objective(
     :rtype: tuple[torch.Tensor, float | None]
     """
     clip_cfg = ratio_ctx.clip_cfg
-    if not (clip_cfg.use_clip_objective and clip_cfg.clip_range > 0.0):
+    if not _clip_active(clip_cfg):
         return policy_loss, None
     ratio_for_loss, clipped_ratio_vals = _compute_clip_ratios(ratio_ctx, clip_cfg)
     clip_losses: List[Tensor] = []
@@ -684,7 +701,7 @@ def _grpo_policy_loss_from_groups(
     ratio_ctx: RatioContext,
     group_data: GroupLossData,
 ) -> Tuple[Tensor, Optional[float]]:
-    """Return PPO-style GRPO loss aggregated over prompt groups.
+    """Return PPO-style GRPO loss averaged over sequences (TRL-style).
 
     Uses group-normalized advantages stored in ``group_data.weight_tensor`` and
     PPO ratios derived from behavior log-probabilities. If clipping is disabled,
@@ -693,8 +710,9 @@ def _grpo_policy_loss_from_groups(
     _refresh_torch()
     clip_cfg = ratio_ctx.clip_cfg
     ratio_for_loss, clipped_ratio_vals = _compute_clip_ratios(ratio_ctx, clip_cfg)
-    use_clip = bool(clip_cfg.use_clip_objective and clip_cfg.clip_range > 0.0)
+    use_clip = _clip_active(clip_cfg)
     grpo_losses: List[Tensor] = []
+    total_sequences = 0
     for offset, size in _iter_group_offsets(group_data.group_sizes):
         if size <= 0:
             continue
@@ -716,6 +734,7 @@ def _grpo_policy_loss_from_groups(
                 clipped_len,
             )
             continue
+        total_sequences += min_len
         if (
             min_len < adv_len
             or min_len < ratio_len
@@ -757,13 +776,161 @@ def _grpo_policy_loss_from_groups(
         if isinstance(group_data.weight_tensor, torch.Tensor):
             return group_data.weight_tensor.new_zeros(()), None
         return torch.tensor(0.0), None
-    grpo_loss_tensor = torch.stack(grpo_losses).mean()
+    if total_sequences <= 0:
+        if isinstance(group_data.weight_tensor, torch.Tensor):
+            return group_data.weight_tensor.new_zeros(()), None
+        return torch.tensor(0.0), None
+    grpo_loss_tensor = torch.stack(grpo_losses).sum() / float(total_sequences)
     clip_loss_scalar = (
         float(grpo_loss_tensor.detach().float().cpu().item()) if use_clip else None
     )
     if use_clip:
         grpo_loss_tensor = clip_cfg.clip_objective_coef * grpo_loss_tensor
     return grpo_loss_tensor, clip_loss_scalar
+
+
+def _grpo_policy_loss_from_tokens(
+    ratio_ctx: RatioContext,
+    group_data: GroupLossData,
+) -> Tuple[Tensor, Optional[float]]:
+    """Return PPO-style GRPO loss using per-token ratios and masks.
+
+    This mirrors TRL's per-token PPO objective by computing ratios from
+    per-token log-probs, applying the clipped objective token-wise, and then
+    aggregating according to ``grpo_loss_type``.
+    """
+    _refresh_torch()
+    cur_token_logp = ratio_ctx.cur_token_logp
+    old_token_logp = ratio_ctx.old_token_logp
+    token_mask = ratio_ctx.token_mask
+    if cur_token_logp is None or old_token_logp is None or token_mask is None:
+        raise ValueError("Per-token GRPO loss requires token log-probs and mask.")
+
+    def _ensure_tensor(
+        value: Tensor,
+        *,
+        device: Optional[object] = None,
+        dtype: Optional[object] = None,
+    ) -> Tensor:
+        if isinstance(value, torch.Tensor):
+            tensor = value
+        else:
+            try:
+                tensor = torch.as_tensor(getattr(value, "arr", value))
+            except (TypeError, ValueError, RuntimeError, AttributeError):
+                tensor = torch.tensor(getattr(value, "arr", value))
+        if dtype is not None:
+            try:
+                tensor = tensor.to(dtype=dtype)
+            except (TypeError, ValueError, RuntimeError):
+                pass
+        if device is not None and getattr(tensor, "device", None) != device:
+            try:
+                tensor = tensor.to(device=device)
+            except (TypeError, ValueError, RuntimeError):
+                pass
+        return tensor
+
+    cur_logp = _ensure_tensor(cur_token_logp)
+    if cur_logp.ndim < 2:
+        raise ValueError("Per-token log-probs must be 2-D.")
+    device = getattr(cur_logp, "device", None)
+    dtype = getattr(cur_logp, "dtype", None)
+    old_logp = _ensure_tensor(old_token_logp, device=device, dtype=dtype)
+    mask = _ensure_tensor(token_mask, device=device, dtype=dtype)
+    if old_logp.ndim < 2 or mask.ndim < 2:
+        raise ValueError("Per-token log-probs/mask must be 2-D.")
+
+    batch = min(cur_logp.shape[0], old_logp.shape[0], mask.shape[0])
+    if batch <= 0:
+        return torch.tensor(0.0, device=device, dtype=dtype), None
+    cur_logp = cur_logp[:batch]
+    old_logp = old_logp[:batch]
+    mask = mask[:batch]
+
+    seq_len = min(cur_logp.shape[1], old_logp.shape[1], mask.shape[1])
+    if seq_len <= 0:
+        return torch.tensor(0.0, device=device, dtype=dtype), None
+    cur_logp = cur_logp[:, :seq_len]
+    old_logp = old_logp[:, :seq_len]
+    mask = mask[:, :seq_len]
+
+    adv = group_data.weight_tensor
+    adv = _ensure_tensor(adv, device=device, dtype=dtype).view(-1)
+    adv_count = adv.numel()
+    if adv_count < batch:
+        pad_val = adv[-1] if adv_count > 0 else torch.tensor(0.0, device=device, dtype=dtype)
+        try:
+            pad = torch.full((batch - adv_count,), float(pad_val), device=device, dtype=dtype)
+        except (TypeError, ValueError):
+            pad = torch.full((batch - adv_count,), float(pad_val))
+        adv = torch.cat([adv, pad], dim=0)
+    elif adv_count > batch:
+        adv = adv[:batch]
+
+    adv_base_val = getattr(ratio_ctx.clip_cfg, "clip_adv_baseline", None)
+    adv_base = float(adv_base_val) if adv_base_val is not None else 0.0
+    adv_tensor = adv - adv_base
+    adv_tensor = adv_tensor.view(-1, 1)
+
+    ratio = torch.exp(cur_logp - old_logp)
+    clip_cfg = ratio_ctx.clip_cfg
+    use_clip = _clip_active(clip_cfg)
+    if use_clip:
+        low, high = _clip_ratio_bounds(clip_cfg)
+        clipped_ratio = torch.clamp(ratio, low, high)
+        ratio = _apply_delta_cap(ratio, clip_cfg)
+        obj_unclipped = ratio * adv_tensor
+        obj_clipped = clipped_ratio * adv_tensor
+        try:
+            min_vals = torch.minimum(obj_unclipped, obj_clipped)
+            max_vals = torch.maximum(obj_unclipped, obj_clipped)
+        except (AttributeError, TypeError, ValueError):
+            less_mask = obj_unclipped.le(obj_clipped)
+            greater_mask = obj_unclipped.gt(obj_clipped)
+            min_vals = obj_unclipped * less_mask + obj_clipped * greater_mask
+            max_vals = obj_unclipped * greater_mask + obj_clipped * less_mask
+        try:
+            obj = torch.where(adv_tensor.ge(0), min_vals, max_vals)
+        except (AttributeError, TypeError, ValueError):
+            pos_mask = adv_tensor.ge(0)
+            neg_mask = adv_tensor.lt(0)
+            obj = min_vals * pos_mask + max_vals * neg_mask
+    else:
+        obj = ratio * adv_tensor
+
+    token_loss = -(obj * mask)
+    token_loss_sum = token_loss.sum(dim=1)
+    token_counts = mask.sum(dim=1).clamp(min=1.0)
+
+    loss_type = str(getattr(ratio_ctx, "grpo_loss_type", "bnpo") or "bnpo").lower()
+    if loss_type in {"", "none"}:
+        loss_type = "bnpo"
+
+    def _mean_over_sequences(values: Tensor) -> Tensor:
+        total = int(values.numel()) if hasattr(values, "numel") else len(values)
+        if total <= 0:
+            return torch.tensor(0.0, device=device, dtype=dtype)
+        return values.mean()
+
+    if loss_type == "bnpo":
+        denom = token_counts.sum().clamp(min=1.0)
+        loss_value = token_loss_sum.sum() / denom
+    elif loss_type == "dr_grpo":
+        max_len = int(getattr(ratio_ctx, "max_completion_length", 0) or 0)
+        denom = float(max_len) if max_len > 0 else None
+        if denom is None:
+            denom = float(token_counts.max().item()) if token_counts.numel() > 0 else 1.0
+        per_seq = token_loss_sum / max(denom, 1.0)
+        loss_value = _mean_over_sequences(per_seq)
+    else:
+        per_seq = token_loss_sum / token_counts
+        loss_value = _mean_over_sequences(per_seq)
+
+    clip_loss_scalar = float(loss_value.detach().float().cpu().item()) if use_clip else None
+    if use_clip:
+        loss_value = clip_cfg.clip_objective_coef * loss_value
+    return loss_value, clip_loss_scalar
 
 
 def _kl_terms(ratio_ctx: RatioContext) -> Tuple[Tensor, float, float]:
@@ -777,8 +944,9 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[Tensor, float, float]:
 
     We mirror TRL's GRPOTrainer by using the always-non-negative scalar
     ``exp(ref_logp - cur_logp) - (ref_logp - cur_logp) - 1`` computed on
-    *length-normalized* per-token log-probabilities, then aggregate with a
-    token-weighted mean to avoid overweighting short completions.
+    *per-token* log-probabilities with the completion mask, then aggregate
+    according to the configured loss type. When per-token reference log-probs
+    are unavailable, fall back to the length-normalized per-sequence estimate.
     """
     _refresh_torch()
     def _zero_kl_return(
@@ -800,6 +968,86 @@ def _kl_terms(ratio_ctx: RatioContext) -> Tuple[Tensor, float, float]:
         if isinstance(ratio_ctx.cur_logp_sum, torch.Tensor)
         else None
     )
+    # Prefer TRL-style per-token KL when reference token log-probs are available.
+    cur_token_logp = getattr(ratio_ctx, "cur_token_logp", None)
+    ref_token_logp = getattr(getattr(ratio_ctx, "ref_stats", None), "ref_token_logp", None)
+    token_mask = getattr(ratio_ctx, "token_mask", None)
+    if token_mask is None:
+        token_mask = getattr(getattr(ratio_ctx, "ref_stats", None), "ref_token_mask", None)
+    if cur_token_logp is not None and ref_token_logp is not None and token_mask is not None:
+        def _ensure_tensor(
+            value: Tensor,
+            *,
+            device: Optional[object] = None,
+            dtype: Optional[object] = None,
+        ) -> Tensor:
+            if isinstance(value, torch.Tensor):
+                tensor = value
+            else:
+                try:
+                    tensor = torch.as_tensor(getattr(value, "arr", value))
+                except (TypeError, ValueError, RuntimeError, AttributeError):
+                    tensor = torch.tensor(getattr(value, "arr", value))
+            if dtype is not None:
+                try:
+                    tensor = tensor.to(dtype=dtype)
+                except (TypeError, ValueError, RuntimeError):
+                    pass
+            if device is not None and getattr(tensor, "device", None) != device:
+                try:
+                    tensor = tensor.to(device=device)
+                except (TypeError, ValueError, RuntimeError):
+                    pass
+            return tensor
+
+        cur_logp = _ensure_tensor(cur_token_logp)
+        ref_logp = _ensure_tensor(
+            ref_token_logp,
+            device=getattr(cur_logp, "device", None),
+            dtype=getattr(cur_logp, "dtype", None),
+        )
+        mask = _ensure_tensor(
+            token_mask,
+            device=getattr(cur_logp, "device", None),
+            dtype=getattr(cur_logp, "dtype", None),
+        )
+        if cur_logp.ndim >= 2 and ref_logp.ndim >= 2 and mask.ndim >= 2:
+            batch = min(cur_logp.shape[0], ref_logp.shape[0], mask.shape[0])
+            if batch > 0:
+                cur_logp = cur_logp[:batch]
+                ref_logp = ref_logp[:batch]
+                mask = mask[:batch]
+                seq_len = min(cur_logp.shape[1], ref_logp.shape[1], mask.shape[1])
+                if seq_len > 0:
+                    cur_logp = cur_logp[:, :seq_len]
+                    ref_logp = ref_logp[:, :seq_len]
+                    mask = mask[:, :seq_len]
+                    try:
+                        mask = mask.to(dtype=getattr(cur_logp, "dtype", None))
+                    except (TypeError, ValueError, RuntimeError):
+                        pass
+                    delta = (ref_logp - cur_logp).clamp(min=-60.0, max=60.0)
+                    per_token_kl = delta.exp() - delta - 1.0
+                    masked = per_token_kl * mask
+                    loss_type = str(getattr(ratio_ctx, "grpo_loss_type", "bnpo") or "bnpo").lower()
+                    if loss_type == "grpo":
+                        per_seq = masked.sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
+                        kl_loss_tensor = per_seq.mean()
+                    elif loss_type == "dr_grpo":
+                        max_len = int(getattr(ratio_ctx, "max_completion_length", 0) or 0)
+                        denom = float(max_len) if max_len > 0 else float(seq_len)
+                        kl_loss_tensor = masked.sum() / (
+                            float(masked.shape[0]) * max(denom, 1.0)
+                        )
+                    else:  # bnpo/default
+                        kl_loss_tensor = masked.sum() / mask.sum().clamp(min=1.0)
+                    kl_loss_scalar = float(
+                        kl_loss_tensor.detach().float().cpu().item()
+                    )
+                    weighted_kl_loss_scalar = (
+                        ratio_ctx.weighting_cfg.beta * kl_loss_scalar
+                    )
+                    return kl_loss_tensor, kl_loss_scalar, weighted_kl_loss_scalar
     denom = ratio_ctx.denom_tok_tensor
     if base_device is not None and isinstance(denom, torch.Tensor):
         denom = denom.to(base_device)
@@ -1070,10 +1318,9 @@ def _compute_clip_ratios(
     """
     behavior_log_ratio = ratio_ctx.cur_logp_sum - ratio_ctx.behavior_logp_sum
     ratio_for_loss = behavior_log_ratio.clamp(min=-60.0, max=60.0).exp()
-    clipped_ratio_vals = ratio_for_loss.clamp(
-        min=1.0 - clip_cfg.clip_range,
-        max=1.0 + clip_cfg.clip_range,
-    )
+    ratio_for_loss = _apply_delta_cap(ratio_for_loss, clip_cfg)
+    low, high = _clip_ratio_bounds(clip_cfg)
+    clipped_ratio_vals = ratio_for_loss.clamp(min=low, max=high)
     return ratio_for_loss, clipped_ratio_vals
 
 
@@ -1138,9 +1385,53 @@ def _clip_bounds(clip_cfg: ClipSettings) -> Tuple[float, float]:
     :returns: Tuple containing the log-space bounds.
     :rtype: tuple[float, float]
     """
-    lower = math.log(max(1.0 - clip_cfg.clip_range, 1e-6))
-    upper = math.log(1.0 + clip_cfg.clip_range)
+    low, high = _clip_ratio_bounds(clip_cfg)
+    lower = math.log(max(low, 1e-6))
+    upper = math.log(max(high, 1e-6))
     return lower, upper
+
+
+def _clip_ratio_bounds(clip_cfg: ClipSettings) -> Tuple[float, float]:
+    """Return ratio-space clip bounds using epsilon/epsilon_high and delta."""
+    eps_low = float(getattr(clip_cfg, "clip_range", 0.0) or 0.0)
+    eps_high_raw = getattr(clip_cfg, "clip_range_high", None)
+    eps_high = (
+        float(eps_high_raw)
+        if eps_high_raw is not None
+        else eps_low
+    )
+    low = 1.0 - eps_low
+    high = 1.0 + eps_high
+    return low, high
+
+
+def _apply_delta_cap(ratio: Tensor, clip_cfg: ClipSettings) -> Tensor:
+    """Apply optional delta cap to the unclipped ratio (upper bound only)."""
+    delta_raw = getattr(clip_cfg, "clip_delta", None)
+    if delta_raw is None:
+        return ratio
+    try:
+        delta_val = float(delta_raw)
+    except (TypeError, ValueError):
+        return ratio
+    if delta_val <= 0.0:
+        return ratio
+    try:
+        return torch.clamp(ratio, max=delta_val)
+    except (AttributeError, TypeError, ValueError):
+        ratio_tensor = torch.tensor(getattr(ratio, "arr", ratio))
+        return torch.clamp(ratio_tensor, max=delta_val)
+
+
+def _clip_active(clip_cfg: ClipSettings) -> bool:
+    if not bool(getattr(clip_cfg, "use_clip_objective", False)):
+        return False
+    eps_low = float(getattr(clip_cfg, "clip_range", 0.0) or 0.0)
+    eps_high_raw = getattr(clip_cfg, "clip_range_high", None)
+    eps_high = float(eps_high_raw) if eps_high_raw is not None else 0.0
+    delta_raw = getattr(clip_cfg, "clip_delta", None)
+    delta = float(delta_raw) if delta_raw is not None else 0.0
+    return eps_low > 0.0 or eps_high > 0.0 or delta > 0.0
 
 
 def _tensor_mean_std(tensor: Tensor) -> Tuple[float, float]:
@@ -1235,6 +1526,102 @@ def _ratio_stats_with_ref(
     :returns: Tuple of KL estimate and clipping statistics.
     :rtype: tuple[float, float, float, float, float, float, float]
     """
+    # Prefer TRL-style per-token KL diagnostics when token log-probs/mask exist.
+    cur_token_logp = getattr(ratio_ctx, "cur_token_logp", None)
+    ref_token_logp = getattr(getattr(ratio_ctx, "ref_stats", None), "ref_token_logp", None)
+    token_mask = getattr(ratio_ctx, "token_mask", None)
+    if cur_token_logp is not None and ref_token_logp is not None and token_mask is not None:
+        def _ensure_tensor(
+            value: Tensor,
+            *,
+            device: Optional[object] = None,
+            dtype: Optional[object] = None,
+        ) -> Tensor:
+            if isinstance(value, torch.Tensor):
+                tensor = value
+            else:
+                try:
+                    tensor = torch.as_tensor(getattr(value, "arr", value))
+                except (TypeError, ValueError, RuntimeError, AttributeError):
+                    tensor = torch.tensor(getattr(value, "arr", value))
+            if dtype is not None:
+                try:
+                    tensor = tensor.to(dtype=dtype)
+                except (TypeError, ValueError, RuntimeError):
+                    pass
+            if device is not None and getattr(tensor, "device", None) != device:
+                try:
+                    tensor = tensor.to(device=device)
+                except (TypeError, ValueError, RuntimeError):
+                    pass
+            return tensor
+
+        cur_logp = _ensure_tensor(cur_token_logp)
+        if cur_logp.ndim >= 2:
+            device = getattr(cur_logp, "device", None)
+            dtype = getattr(cur_logp, "dtype", None)
+            ref_logp = _ensure_tensor(ref_token_logp, device=device, dtype=dtype)
+            mask = _ensure_tensor(token_mask, device=device, dtype=dtype)
+            if ref_logp.ndim >= 2 and mask.ndim >= 2:
+                batch = min(cur_logp.shape[0], ref_logp.shape[0], mask.shape[0])
+                if batch > 0:
+                    cur_logp = cur_logp[:batch]
+                    ref_logp = ref_logp[:batch]
+                    mask = mask[:batch]
+                    seq_len = min(cur_logp.shape[1], ref_logp.shape[1], mask.shape[1])
+                    if seq_len > 0:
+                        cur_logp = cur_logp[:, :seq_len]
+                        ref_logp = ref_logp[:, :seq_len]
+                        mask = mask[:, :seq_len]
+                        try:
+                            mask = mask.to(dtype=getattr(cur_logp, "dtype", None))
+                        except (TypeError, ValueError, RuntimeError):
+                            pass
+                        delta = (ref_logp - cur_logp).clamp(min=-60.0, max=60.0)
+                        per_token_kl = delta.exp() - delta - 1.0
+                        masked = per_token_kl * mask
+                        loss_type = str(
+                            getattr(ratio_ctx, "grpo_loss_type", "bnpo") or "bnpo"
+                        ).lower()
+                        if loss_type == "grpo":
+                            per_seq = masked.sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
+                            kl_tensor = per_seq.mean()
+                        elif loss_type == "dr_grpo":
+                            max_len = int(getattr(ratio_ctx, "max_completion_length", 0) or 0)
+                            denom = float(max_len) if max_len > 0 else float(seq_len)
+                            kl_tensor = masked.sum() / (
+                                float(masked.shape[0]) * max(denom, 1.0)
+                            )
+                        else:
+                            kl_tensor = masked.sum() / mask.sum().clamp(min=1.0)
+                        kl_value = float(kl_tensor.detach().float().cpu().item())
+                        token_counts = mask.sum(dim=1).clamp(min=1.0)
+                        per_seq_kl = masked.sum(dim=1) / token_counts
+                        kl_bucket_means, kl_bucket_token_counts = _bucketized_kl_per_token(
+                            token_counts, per_seq_kl
+                        )
+                        log_ratio = (cur_logp - ref_logp).clamp(min=-60.0, max=60.0)
+                        try:
+                            valid_mask = mask.gt(0)
+                            if valid_mask.any():
+                                log_ratio = log_ratio[valid_mask]
+                        except (AttributeError, TypeError, ValueError, RuntimeError):
+                            pass
+                        clip_ratio, low_mean, low_min, high_mean, high_max, region_mean = (
+                            _clip_region_metrics(log_ratio, ratio_ctx.clip_cfg)
+                        )
+                        return (
+                            kl_value,
+                            clip_ratio,
+                            float(low_mean),
+                            float(low_min),
+                            float(high_mean),
+                            float(high_max),
+                            float(region_mean),
+                            kl_bucket_means,
+                            kl_bucket_token_counts,
+                        )
+
     denom_tok_tensor = ratio_ctx.denom_tok_tensor.clamp(min=1.0)
     cur_logp_sum = ratio_ctx.cur_logp_sum
     ref_logp_sum = ratio_ctx.ref_stats.ref_logp_sum
@@ -1478,9 +1865,28 @@ def evaluate_losses(
     """
     _refresh_torch()
     if getattr(ratio_ctx.weighting_cfg, "train_grpo_objective", False):
-        policy_loss, clip_loss_scalar = _grpo_policy_loss_from_groups(
-            ratio_ctx, group_data
+        use_token_loss = (
+            getattr(ratio_ctx, "cur_token_logp", None) is not None
+            and getattr(ratio_ctx, "old_token_logp", None) is not None
+            and getattr(ratio_ctx, "token_mask", None) is not None
         )
+        if use_token_loss:
+            try:
+                policy_loss, clip_loss_scalar = _grpo_policy_loss_from_tokens(
+                    ratio_ctx, group_data
+                )
+            except ValueError as exc:
+                LOG.warning(
+                    "Falling back to sequence-level GRPO loss: %s",
+                    exc,
+                )
+                policy_loss, clip_loss_scalar = _grpo_policy_loss_from_groups(
+                    ratio_ctx, group_data
+                )
+        else:
+            policy_loss, clip_loss_scalar = _grpo_policy_loss_from_groups(
+                ratio_ctx, group_data
+            )
     else:
         policy_loss = _policy_loss_from_groups(group_data)
         policy_loss, clip_loss_scalar = _apply_clip_objective(

@@ -114,6 +114,13 @@ _PROMPT_OBJECTIVE_ENV_VAR = "MAXENT_LOG_PROMPT_OBJECTIVE"
 _PROMPT_OBJECTIVE_PREVIEW_LEN = 160
 _VLLM_LOGPROB_FAIL_AFTER_ENV = "MAXENT_VLLM_LOGPROB_FAIL_AFTER"
 _VLLM_LOGPROB_FALLBACK_ENV = "MAXENT_VLLM_LOGPROB_FALLBACK"
+
+
+def _progress_log_enabled() -> bool:
+    raw = os.getenv("MAXENT_PROGRESS_LOG")
+    if raw is None or not str(raw).strip():
+        return False
+    return str(raw).strip().lower() not in {"0", "false", "no", "off"}
 _scheduled_learning_rate = scheduled_learning_rate
 _epoch_progress = epoch_progress
 _optimizer_step = optimizer_step
@@ -622,7 +629,16 @@ def _train_step(
     gen_stats = getattr(ctx.generation, "generation_stats", None)
     if isinstance(gen_stats, MutableMapping):
         gen_stats["current_step"] = int(state.global_step)
+    prep_start = time.monotonic()
     prepared = prepare_training_batch(ctx, resources.generator, step_info.batch)
+    progress_log = _progress_log_enabled()
+    if progress_log and accelerator.is_main_process:
+        LOG.info(
+            "prepare_training_batch done | %s | global_step=%d | seconds=%.2f",
+            rank_tag,
+            state.global_step,
+            time.monotonic() - prep_start,
+        )
     if prepared is None:
         skip_stage = getattr(ctx.runtime, "_last_skip_stage", "unknown")
         LOG.warning(
@@ -633,6 +649,13 @@ def _train_step(
             state.global_step,
             skip_stage,
         )
+        if progress_log and accelerator.is_main_process:
+            LOG.info(
+                "prepare_training_batch skipped | %s | global_step=%d | stage=%s",
+                rank_tag,
+                state.global_step,
+                skip_stage,
+            )
         try:
             delattr(ctx.runtime, "_last_skip_stage")
         except (AttributeError, TypeError):
@@ -652,6 +675,15 @@ def _train_step(
     )
     _maybe_guard_vllm_logprobs(ctx, prepared, state.global_step)
     state.num_input_tokens_seen += float(prepared.total_input_tokens)
+    if progress_log and accelerator.is_main_process:
+        LOG.info(
+            "Loss evaluation start | %s | global_step=%d | prompts=%d | completions=%d",
+            rank_tag,
+            state.global_step,
+            len(grouped),
+            total_comps,
+        )
+    loss_start = time.monotonic()
     loss_outputs, diagnostics = evaluate_losses(
         *build_loss_inputs(
             prepared.grouped_completions,
@@ -661,6 +693,16 @@ def _train_step(
                 clip_cfg=ctx.scoring.clipping,
                 weighting_cfg=ctx.scoring.weighting,
                 ref_stats=prepared.ref_stats,
+                grpo_loss_type=str(
+                    (
+                        getattr(getattr(ctx, "training_args", None), "loss_type", None)
+                        or getattr(getattr(ctx, "training_args", None), "grpo_loss_type", None)
+                        or "bnpo"
+                    )
+                ),
+                max_completion_length=int(
+                    getattr(ctx.generation, "max_completion_len", 0) or 0
+                ),
             ),
         ),
         seed_inputs=(
@@ -671,6 +713,14 @@ def _train_step(
         info_seed_loss_type=getattr(ctx.scoring, "info_seed_loss_type", "infonce"),
         info_seed_alpha_entropy=getattr(ctx.scoring, "info_seed_alpha_entropy", 0.0),
     )
+    if progress_log and accelerator.is_main_process:
+        LOG.info(
+            "Loss evaluation done | %s | global_step=%d | total_loss=%.4f | seconds=%.2f",
+            rank_tag,
+            state.global_step,
+            getattr(loss_outputs, "total_loss_scalar", 0.0),
+            time.monotonic() - loss_start,
+        )
     _maybe_save_seed_heatmap(
         getattr(prepared, "seed_heatmap", None),
         state.global_step,

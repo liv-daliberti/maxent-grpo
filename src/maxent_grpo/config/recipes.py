@@ -191,6 +191,13 @@ def _split_recipe_payload(
     other_kwargs: Dict[str, Any] = {}
     # Collect fields into the appropriate bucket.
     for key, value in payload.items():
+        if (
+            key == "loss_type"
+            and key not in training_fields
+            and "grpo_loss_type" in training_fields
+        ):
+            training_kwargs["grpo_loss_type"] = value
+            continue
         if key in script_fields:
             script_kwargs[key] = value
         elif key in training_fields:

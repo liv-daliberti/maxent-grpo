@@ -27,7 +27,6 @@
 
 
 set -euo pipefail
-set -x
 
 export ROOT_DIR="$PWD"
 export VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
@@ -106,8 +105,9 @@ export TORCHINDUCTOR_CACHE_DIR="$VAR_DIR/cache/torchinductor"
 export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
 export WANDB_DIR="$VAR_DIR/artifacts/wandb"
 export WANDB_CACHE_DIR="$WANDB_DIR"
-# Force-enable wandb for training jobs so the Transformers callback sees it.
-export WANDB_DISABLED=0
+# Enable external logging by default; override via sbatch --export if needed.
+export WANDB_DISABLED="${WANDB_DISABLED:-0}"
+export WANDB_MODE="${WANDB_MODE:-online}"
 export WANDB_HTTP_TIMEOUT="${WANDB_HTTP_TIMEOUT:-300}"
 export WANDB_RETRY_MAX="${WANDB_RETRY_MAX:-10}"
 export TMPDIR="$VAR_DIR/tmp"
@@ -115,15 +115,21 @@ export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
 export VLLM_NO_USAGE_STATS=1
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 export HF_HUB_ENABLE_HF_TRANSFER=1
-export HF_HUB_ENABLE_PROGRESS_BARS=1
+export HF_HUB_ENABLE_PROGRESS_BARS="${HF_HUB_ENABLE_PROGRESS_BARS:-0}"
 # Enable vLLM prompt dedup unless overridden.
 export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
 # Defaults for colocated vLLM KV cache sizing (override via sbatch --export)
 export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN="${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN:-4096}"
-export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.9}"
+export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.8}"
+export MAXENT_VLLM_COLOCATE_LOG_LEVEL="${MAXENT_VLLM_COLOCATE_LOG_LEVEL:-warning}"
 # Defaults for MaxEnt runs (override via `sbatch --export` or env).
 export VLLM_SERVER_IMPL="${VLLM_SERVER_IMPL:-trl}"
-export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-info}"
+export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-warning}"
+export MAXENT_PROGRESS_LOG="${MAXENT_PROGRESS_LOG:-0}"
+export MAXENT_SCORE_SLICE_LOG="${MAXENT_SCORE_SLICE_LOG:-0}"
+export ACCELERATE_LOG_LEVEL="${ACCELERATE_LOG_LEVEL:-warning}"
+export TRANSFORMERS_VERBOSITY="${TRANSFORMERS_VERBOSITY:-warning}"
+export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$HUGGINGFACE_HUB_CACHE" \
          "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR" \
          "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$WANDB_DIR" "$TMPDIR" \
@@ -402,7 +408,7 @@ if $USE_VLLM_SERVER && ! $INLINE_VLLM; then
   echo "Launching vLLM server: $VLLM_MODEL (rev=${REVISION:-none})"
   if $SINGLE_NODE; then VLLM_GRES=1; else VLLM_GRES=$GPUS_PER_NODE; fi
   srun --nodes=1 --ntasks=1 --gres=gpu:${VLLM_GRES} --nodelist="$VLLM_NODE" \
-    bash -lc "set -euo pipefail; \
+    bash -c "set -euo pipefail; \
     if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
     elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
     export PYTHONNOUSERSITE=1; \
@@ -454,7 +460,7 @@ TRAIN_PROCS=${TRAIN_LOCAL_PROCS}
 
 export ACC_TEE=${ACC_TEE:-3}
 export TRAIN_SEED=${TRAIN_SEED:-42}
-export LAUNCHER="ACCELERATE_LOG_LEVEL=info TRANSFORMERS_VERBOSITY=info NCCL_DEBUG=INFO TORCH_NCCL_ASYNC_ERROR_HANDLING=1 accelerate launch \
+export LAUNCHER="ACCELERATE_LOG_LEVEL=${ACCELERATE_LOG_LEVEL} TRANSFORMERS_VERBOSITY=${TRANSFORMERS_VERBOSITY} NCCL_DEBUG=${NCCL_DEBUG} TORCH_NCCL_ASYNC_ERROR_HANDLING=1 accelerate launch \
   --config_file ${ACCEL_FILE} \
   --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
   --num_machines ${TRAIN_NUM_MACHINES} \
@@ -511,7 +517,7 @@ mkdir -p "$(dirname "$TRAINING_LOG")"
 : > "$TRAINING_LOG"
 export INLINE_VLLM_FALLBACK_GPUS="$(seq -s, 0 $((GPUS_PER_NODE - 1)))"
 
-srun "${SRUN_ARGS[@]}" bash -lc "set -euo pipefail; set -x; \
+srun "${SRUN_ARGS[@]}" bash -c "set -euo pipefail; \
   export VLLM_SERVER_IMPL=\"${VLLM_SERVER_IMPL:-trl}\"; \
   export MAXENT_LOG_LEVEL=\"${MAXENT_LOG_LEVEL:-info}\"; \
   # Prefer async init on loopback (auto) to avoid init_communicator deadlocks.
@@ -619,7 +625,7 @@ PY
     fi; \
     echo 'Inline vLLM is healthy.'; \
   fi; \
-  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; export MAXENT_FAULTHANDLER=1; \
+  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=\"${HF_HUB_ENABLE_PROGRESS_BARS:-1}\"; export PYTHONUNBUFFERED=1; export MAXENT_FAULTHANDLER=1; \
   export TRAINING_LOG=\"$VAR_DIR/artifacts/logs/train_${SLURM_JOB_ID}.log\"; \
   mkdir -p \"$VAR_DIR/artifacts/logs\"; : > \"$TRAINING_LOG\"; \
   echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \

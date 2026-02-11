@@ -242,6 +242,10 @@ class ClipSettings:
     use_clip_objective: bool
     clip_objective_coef: float
     clip_adv_baseline: Optional[float]
+    clip_range_high: Optional[float] = None
+    clip_delta: Optional[float] = None
+    clip_range_high: Optional[float] = None
+    clip_delta: Optional[float] = None
 
 
 @dataclass
@@ -264,7 +268,9 @@ class ScoringSettings:
     clipping: ClipSettings
     batching: BatchingSettings
     reference_logprobs_source: str = "auto"
+    behavior_logprobs_source: str = "model"
     allow_stale_reference_logprobs: bool = False
+    trl_reference_scoring: bool = False
     info_seed_lambda: float = 0.0
     info_seed_temperature: float = 0.1
     info_seed_loss_type: str = "infonce"

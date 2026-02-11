@@ -60,8 +60,6 @@ class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
         per_prompt_counts: Optional[List[int]] = None,
     ) -> Tuple[List[List[str]], Optional[List[List[Optional[VLLMLogprobResult]]]]]:
         """Produce completions, preferring vLLM when configured."""
-        if not prompts:
-            return [], None
         if per_prompt_counts is not None and len(per_prompt_counts) != len(prompts):
             raise ValueError(
                 "per_prompt_counts length must match prompts length in generate()"
@@ -77,6 +75,8 @@ class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
             return self._generate_vllm_collective(
                 prompts, num_samples, per_prompt_counts
             )
+        if not prompts:
+            return [], None
         LOG.debug("CompletionGenerator.generate using local HF path")
         return self._generate_local(prompts, num_samples, per_prompt_counts)
 

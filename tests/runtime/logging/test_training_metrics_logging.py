@@ -169,6 +169,14 @@ def test_build_training_metrics_dict_sets_grpo_vs_maxent_flags():
 def test_build_training_metrics_dict_smoke_emits_metric_sections():
     payload = _payload()
     payload.seed_metrics = {"foo": 0.5}
+    payload.diversity_metrics = {
+        "jaccard": 0.25,
+        "distinct_1": 0.5,
+        "distinct_2": 0.75,
+        "jaccard_micro": 0.2,
+        "distinct_1_micro": 0.4,
+        "distinct_2_micro": 0.6,
+    }
     metrics_dict = metrics.build_training_metrics_dict(payload, global_step=5)
     expected_keys = [
         "train/loss",
@@ -177,6 +185,12 @@ def test_build_training_metrics_dict_smoke_emits_metric_sections():
         "train/reward",
         "train/rewards/r0/mean",
         "train/completions/mean_length_sampled",
+        "train/completions/diversity/jaccard",
+        "train/completions/diversity/distinct_1",
+        "train/completions/diversity/distinct_2",
+        "train/completions/diversity/jaccard_micro",
+        "train/completions/diversity/distinct_1_micro",
+        "train/completions/diversity/distinct_2_micro",
         "train/weight_entropy",
         "train/weighting/tau",
         "train/weighting/q_temperature",

@@ -60,8 +60,8 @@ controller_meta_optimizer: sgd
 controller_meta_truncation_steps: 1
 
 # GRPO trainer config (InfoSeed uses GRPO objective)
-bf16: false
-fp16: true
+bf16: true
+fp16: false
 use_vllm: true
 vllm_mode: server
 vllm_gpu_memory_utilization: 0.9
@@ -82,7 +82,7 @@ logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_prompt_length: 1400
-max_completion_length: 600
+max_completion_length: 500
 max_steps: -1
 num_generations: 4
 num_train_epochs: 3

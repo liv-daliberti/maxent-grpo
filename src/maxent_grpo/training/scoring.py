@@ -24,6 +24,7 @@ import os
 import numbers
 import sys
 import logging
+import time
 from types import TracebackType
 from typing import (
     Any,
@@ -63,6 +64,26 @@ from .types import (
 )
 
 LOG = logging.getLogger(__name__)
+
+
+def _progress_log_enabled() -> bool:
+    raw = os.getenv("MAXENT_PROGRESS_LOG")
+    if raw is None or not str(raw).strip():
+        return False
+    return str(raw).strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _score_slice_log_enabled() -> bool:
+    raw = os.getenv("MAXENT_SCORE_SLICE_LOG")
+    if raw is None or not str(raw).strip():
+        return str(os.getenv("MAXENT_MAX_LOGS", "0")).strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "y",
+            "on",
+        }
+    return str(raw).strip().lower() not in {"0", "false", "no", "off"}
 
 if TYPE_CHECKING:
     import torch as torch_types
@@ -323,6 +344,12 @@ def _weight_is_two_dimensional(weight: object) -> bool:
         return False
     if len(shape) == 2:
         return True
+    # DeepSpeed ZeRO-3 partitions can expose non-2D local shards; rely on the
+    # full parameter shape when available.
+    ds_shape = getattr(weight, "ds_shape", None)
+    ds_shape = _coerce_shape(ds_shape)
+    if ds_shape is not None and len(ds_shape) == 2:
+        return True
     # Some lightweight stubs expose empty 1-D weights for embeddings; treat
     # them as 2-D so reference scoring tests still exercise the forward path.
     if len(shape) == 1:
@@ -342,6 +369,60 @@ def _weight_is_stub_tensor(weight: object) -> bool:
         return False
     # The numpy-backed stub tensors expose an ``arr`` attribute; real torch tensors do not.
     return hasattr(weight, "arr")
+
+
+def _model_has_non2d_embeddings(model: object) -> bool:
+    """Return True when any known embedding weight is not 2-D."""
+    if model is None:
+        return False
+    def _ds_shape_is_2d(weight: object) -> bool:
+        ds_shape = _coerce_shape(getattr(weight, "ds_shape", None))
+        return ds_shape is not None and len(ds_shape) == 2
+
+    base = getattr(model, "module", model)
+    modules: list[object] = []
+    try:
+        modules.append(getattr(base, "embed_tokens", None))
+    except _SCORING_EXCEPTIONS:
+        pass
+    try:
+        get_inp = getattr(base, "get_input_embeddings", None)
+        if callable(get_inp):
+            modules.append(get_inp())
+    except _SCORING_EXCEPTIONS:
+        pass
+    try:
+        get_out = getattr(base, "get_output_embeddings", None)
+        if callable(get_out):
+            modules.append(get_out())
+    except _SCORING_EXCEPTIONS:
+        pass
+    try:
+        modules.append(getattr(base, "lm_head", None))
+    except _SCORING_EXCEPTIONS:
+        pass
+    for module in modules:
+        if module is None:
+            continue
+        weight = getattr(module, "weight", None)
+        if weight is None:
+            continue
+        if _weight_is_stub_tensor(weight):
+            continue
+        status = getattr(weight, "ds_status", None)
+        if status is not None:
+            status_name = getattr(status, "name", None)
+            if isinstance(status_name, str):
+                if status_name.upper() != "AVAILABLE":
+                    if not _ds_shape_is_2d(weight):
+                        return True
+            elif isinstance(status, str):
+                if status.upper() != "AVAILABLE":
+                    if not _ds_shape_is_2d(weight):
+                        return True
+        if not _weight_is_two_dimensional(weight):
+            return True
+    return False
 
 
 def _describe_embedding_module(module: object, name: str) -> str:
@@ -766,17 +847,27 @@ def _tokenize_completions(
     :rtype: CompletionTensors
     """
     _refresh_torch()
+    old_padding_side = getattr(tokenizer, "padding_side", None)
     try:
-        completion_enc = tokenizer(
-            completion_batch,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=generation_cfg.max_completion_len,
-            add_special_tokens=False,
-        )
-    except TypeError:
-        completion_enc = tokenizer(completion_batch)
+        try:
+            if old_padding_side is not None:
+                tokenizer.padding_side = "right"
+            completion_enc = tokenizer(
+                completion_batch,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=generation_cfg.max_completion_len,
+                add_special_tokens=False,
+            )
+        except TypeError:
+            completion_enc = tokenizer(completion_batch)
+    finally:
+        if old_padding_side is not None:
+            try:
+                tokenizer.padding_side = old_padding_side
+            except Exception:
+                pass
     torch_mod = cast(_TorchModuleLike, sys.modules.get("torch", torch))
     ids = _maybe_long_tensor(completion_enc["input_ids"], torch_mod)
     mask = _maybe_long_tensor(completion_enc["attention_mask"], torch_mod)
@@ -881,8 +972,9 @@ def _prepare_prompt_slice(
         for row, (entry, length) in enumerate(zip(prompt_slice, prompt_lengths)):
             if length == 0:
                 continue
-            prompt_ids_arr[row, :length] = entry.input_ids[:length]
-            prompt_mask_arr[row, :length] = entry.attention_mask[:length]
+            start = max_prompt_tokens - length
+            prompt_ids_arr[row, start:start + length] = entry.input_ids[:length]
+            prompt_mask_arr[row, start:start + length] = entry.attention_mask[:length]
 
         def _safe_dtype(dtype: object) -> object | None:
             return (
@@ -938,6 +1030,9 @@ def _slice_tail_window(
 def iter_batch_slices(
     score_batch: ScoreBatch,
     device: TorchDevice,  # kept for API symmetry with callers
+    *,
+    eos_token_id: Optional[int] = None,
+    apply_eos_mask: bool = False,
 ) -> Iterator[Tuple[Tensor, Tensor, Tensor]]:
     """Yield scoring slices for a batch, assembling prompt tensors on demand.
 
@@ -945,6 +1040,10 @@ def iter_batch_slices(
     :type score_batch: ScoreBatch
     :param device: Device where tensors should be materialized.
     :type device: torch.device
+    :param eos_token_id: Optional EOS token id for TRL-style completion masking.
+    :type eos_token_id: int | None
+    :param apply_eos_mask: When ``True``, apply EOS-aware completion masks.
+    :type apply_eos_mask: bool
     :yields: Tuples of ``(input_ids, attention_mask, labels)`` per slice.
     :rtype: Iterator[tuple[Tensor, Tensor, Tensor]]
     """
@@ -1024,6 +1123,19 @@ def iter_batch_slices(
         prompt_mask = as_tensor_typed(prompt_mask, device=device)
         comp_ids_slice = as_tensor_typed(comp_ids_slice, device=device)
         comp_mask_slice = as_tensor_typed(comp_mask_slice, device=device)
+        if apply_eos_mask:
+            completion_mask = _apply_eos_completion_mask(
+                comp_ids_slice, eos_token_id, completion_mask=comp_mask_slice
+            )
+            try:
+                completion_mask = completion_mask * comp_mask_slice
+            except _SCORING_EXCEPTIONS:
+                comp_arr = np.asarray(getattr(comp_mask_slice, "arr", comp_mask_slice))
+                eos_arr = np.asarray(getattr(completion_mask, "arr", completion_mask))
+                completion_mask = as_tensor_typed(
+                    comp_arr * eos_arr, device=getattr(comp_mask_slice, "device", None)
+                )
+            comp_mask_slice = completion_mask
         # Drop completion columns that are padding for every sequence so tail-only
         # scoring keeps real tokens instead of global pad regions.
         comp_tokens_present = None
@@ -1193,14 +1305,17 @@ def _chunked_sequence_logprobs(
     labels: Tensor,
     chunk_size: int,
     gather_full_params: bool = False,  # retained for parity
+    zero_gather_all_ranks: bool = False,
     return_hidden: bool = False,
     pooling: str = "mean",
     return_entropy: bool = False,
     entropy_mode: str = "exact",
-) -> Optional[Tuple[Tensor, Tensor, Optional[Tensor], Optional[Tensor]]]:
+    return_token_logp: bool = False,
+) -> Optional[Tuple[Tensor, Tensor, Optional[Tensor], Optional[Tensor], Optional[Tensor], Optional[Tensor]]]:
     """Compute summed log-probabilities per sequence with optional chunking/pooled states/entropy."""
 
     torch_mod = _refresh_torch()
+    slice_log = _score_slice_log_enabled()
     entropy_mode_norm = str(entropy_mode or "exact").strip().lower()
     if entropy_mode_norm in {"", "none"}:
         entropy_mode_norm = "exact"
@@ -1252,6 +1367,12 @@ def _chunked_sequence_logprobs(
             if return_entropy
             else None
         )
+        if return_token_logp:
+            token_logp = torch_mod.zeros(
+                (len(valid_counts), 0),
+                dtype=getattr(torch_mod, "float32", None),
+            )
+            return logp, tok_tensor, None, entropy_sum, token_logp, token_logp
         return logp, tok_tensor, None, entropy_sum
     shape = getattr(input_ids, "shape", None)
     if shape and len(shape) > 1 and shape[1] == 0:
@@ -1270,6 +1391,12 @@ def _chunked_sequence_logprobs(
             if return_entropy
             else None
         )
+        if return_token_logp:
+            token_logp = torch_mod.zeros(
+                (batch_size, 0),
+                dtype=getattr(torch_mod, "float32", None),
+            )
+            return zero, tok_tensor, None, entropy_sum, token_logp, token_logp
         return zero, tok_tensor, None, entropy_sum
     # DeepSpeed ZeRO-3 shards parameters to 1-D partitions; gather embeddings
     # so the reference forward sees 2-D weights without full-parameter all-gather.
@@ -1413,13 +1540,36 @@ def _chunked_sequence_logprobs(
 
     fsdp_ctx = _summon_fsdp_full_param_context(model)
     stack = ExitStack()
+    if slice_log:
+        LOG.info(
+            "chunked_sequence_logprobs enter gather_ctx | gather_full_params=%s",
+            gather_full_params,
+        )
     stack.enter_context(gather_ctx)
+    if slice_log:
+        LOG.info("chunked_sequence_logprobs entered gather_ctx")
     # Ensure ZeRO-managed params are gathered consistently before the forward pass.
     # The helper is a no-op when DeepSpeed isn't available, but keeps tests and
     # distributed reference scoring behavior aligned.
-    stack.enter_context(_maybe_zero_gather_params(model, enabled=True))
+    if slice_log:
+        LOG.info("chunked_sequence_logprobs enter zero_gather_params")
+    stack.enter_context(
+        _maybe_zero_gather_params(
+            model, enabled=True, gather_all_ranks=zero_gather_all_ranks
+        )
+    )
+    if slice_log:
+        LOG.info("chunked_sequence_logprobs entered zero_gather_params")
+    if slice_log:
+        LOG.info("chunked_sequence_logprobs enter fsdp_ctx")
     stack.enter_context(fsdp_ctx)
+    if slice_log:
+        LOG.info("chunked_sequence_logprobs entered fsdp_ctx")
+    if slice_log:
+        LOG.info("chunked_sequence_logprobs enter zero_gather_embedding")
     stack.enter_context(_maybe_zero_gather_embedding(model))
+    if slice_log:
+        LOG.info("chunked_sequence_logprobs entered zero_gather_embedding")
     config = getattr(model, "config", None)
     padding_idx = _coerce_optional_int(_get_config_value(config, "pad_token_id", None))
     embedding_vocab_size = _get_embedding_vocab_size(model, config)
@@ -1472,6 +1622,13 @@ def _chunked_sequence_logprobs(
         padding_idx = final_padding_idx
     stack.enter_context(pad_ctx)
     with stack:
+        if slice_log:
+            LOG.info(
+                "chunked_sequence_logprobs start | input_ids_shape=%s attention_mask_shape=%s labels_shape=%s",
+                getattr(input_ids, "shape", None),
+                getattr(attention_mask, "shape", None),
+                getattr(labels, "shape", None),
+            )
         LOG.debug(
             "chunked_sequence_logprobs start | gather_full_params=%s return_hidden=%s pooling=%s | "
             "input_ids_shape=%s dtype=%s device=%s | attention_mask_shape=%s | labels_shape=%s dtype=%s device=%s",
@@ -1595,11 +1752,13 @@ def _chunked_sequence_logprobs(
             chunk_limit,
             len(chunk_indices),
         )
-        logp_chunks: list[Tensor] = []
-        tok_chunks: list[Tensor] = []
-        pooled_chunks: list[Tensor] = [] if return_hidden else []
-        entropy_chunks: list[Tensor] = [] if return_entropy else []
-        for idx, (start, end) in enumerate(chunk_indices):
+    logp_chunks: list[Tensor] = []
+    tok_chunks: list[Tensor] = []
+    pooled_chunks: list[Tensor] = [] if return_hidden else []
+    entropy_chunks: list[Tensor] = [] if return_entropy else []
+    token_logp_chunks: list[Tensor] = [] if return_token_logp else []
+    token_mask_chunks: list[Tensor] = [] if return_token_logp else []
+    for idx, (start, end) in enumerate(chunk_indices):
             LOG.debug(
                 "reference scoring chunk begin | chunk=%s | slice=[%s:%s] | rows=%s",
                 idx,
@@ -1607,6 +1766,14 @@ def _chunked_sequence_logprobs(
                 end,
                 end - start,
             )
+            if slice_log:
+                LOG.info(
+                    "chunked_sequence_logprobs forward start | chunk=%s slice=[%s:%s]",
+                    idx,
+                    start,
+                    end,
+                )
+                forward_start = time.monotonic()
             ids_chunk = input_ids[start:end]
             mask_chunk = attention_mask[start:end] if attention_mask is not None else None
             label_chunk = labels[start:end]
@@ -1643,6 +1810,12 @@ def _chunked_sequence_logprobs(
                     if not wants_labels:
                         call_kwargs.pop("labels", None)
                     outputs = call_target(**call_kwargs)
+            if slice_log:
+                LOG.info(
+                    "chunked_sequence_logprobs forward done | chunk=%s seconds=%.2f",
+                    idx,
+                    time.monotonic() - forward_start,
+                )
             outputs_any = cast(Any, outputs)
             logits = getattr(outputs_any, "logits", None)
             if logits is None:
@@ -1677,6 +1850,22 @@ def _chunked_sequence_logprobs(
                 )
                 logp_chunks.append(seq_logp_chunk)
                 tok_chunks.append(tok_tensor_chunk)
+                if return_token_logp:
+                    try:
+                        token_logp_chunk = torch_mod.zeros(
+                            (batch_rows, 0),
+                            dtype=getattr(torch_mod, "float32", None),
+                            device=getattr(seq_logp_chunk, "device", None),
+                        )
+                    except _SCORING_EXCEPTIONS:
+                        token_logp_chunk = torch_mod.tensor(
+                            np.zeros((batch_rows, 0), dtype=float),
+                            dtype=getattr(torch_mod, "float32", None),
+                            device=getattr(seq_logp_chunk, "device", None),
+                        )
+                    token_mask_chunk = token_logp_chunk
+                    token_logp_chunks.append(token_logp_chunk)
+                    token_mask_chunks.append(token_mask_chunk)
                 if return_entropy:
                     try:
                         entropy_chunk = torch_mod.zeros(
@@ -1836,6 +2025,12 @@ def _chunked_sequence_logprobs(
             tok_tensor_chunk = label_mask.sum(dim=1).clamp(min=1)
             logp_chunks.append(seq_logp_chunk)
             tok_chunks.append(tok_tensor_chunk)
+            if return_token_logp:
+                try:
+                    token_logp_chunks.append(cast(Tensor, token_logp))
+                except _SCORING_EXCEPTIONS:
+                    token_logp_chunks.append(torch_mod.tensor(_to_numpy_array(token_logp)))
+                token_mask_chunks.append(cast(Tensor, label_mask))
             if return_entropy:
                 entropy_chunk = None
                 if use_sample_entropy:
@@ -1991,6 +2186,21 @@ def _chunked_sequence_logprobs(
         getattr(tok_tensor, "numel", lambda: None)(),
         logp_sample,
     )
+    if return_token_logp:
+        token_logp: Optional[Tensor] = None
+        token_mask: Optional[Tensor] = None
+        if token_logp_chunks:
+            token_logp = (
+                token_logp_chunks[0]
+                if len(token_logp_chunks) == 1
+                else torch_mod.cat(token_logp_chunks, dim=0)
+            )
+            token_mask = (
+                token_mask_chunks[0]
+                if len(token_mask_chunks) == 1
+                else torch_mod.cat(token_mask_chunks, dim=0)
+            )
+        return seq_logp, tok_tensor, pooled_hidden, entropy_sum, token_logp, token_mask
     return seq_logp, tok_tensor, pooled_hidden, entropy_sum
 
 
@@ -2138,6 +2348,407 @@ def build_score_batch(
     )
 
 
+def selective_log_softmax(logits: Tensor, index: Tensor) -> Tensor:
+    """Memory-efficient log_softmax + gather (TRL-style)."""
+    torch_mod = _refresh_torch()
+    float32 = getattr(torch_mod, "float32", None)
+    float64 = getattr(torch_mod, "float64", None)
+    dtype = getattr(logits, "dtype", None)
+    if dtype in {float32, float64}:
+        try:
+            selected_logits = torch_mod.gather(
+                logits, dim=-1, index=index.unsqueeze(-1)
+            ).squeeze(-1)
+            logsumexp_values = torch_mod.stack(
+                [torch_mod.logsumexp(lg, dim=-1) for lg in logits]
+            )
+            return cast(Tensor, selected_logits - logsumexp_values)
+        except _SCORING_EXCEPTIONS:
+            pass
+    per_token_logps: List[Tensor] = []
+    log_softmax_fn = getattr(getattr(torch_mod, "nn", None), "functional", None)
+    log_softmax = getattr(log_softmax_fn, "log_softmax", None) if log_softmax_fn else None
+    for row_logits, row_labels in zip(logits, index):
+        if callable(log_softmax):
+            row_logps = log_softmax(row_logits, dim=-1)
+        else:
+            logsumexp_fn = getattr(torch_mod, "logsumexp", None)
+            if callable(logsumexp_fn):
+                row_logps = row_logits - logsumexp_fn(row_logits, dim=-1, keepdim=True)
+            else:  # pragma: no cover - best effort fallback
+                row_logps = row_logits
+        row_per_token_logps = row_logps.gather(
+            dim=-1, index=row_labels.unsqueeze(-1)
+        ).squeeze(-1)
+        per_token_logps.append(cast(Tensor, row_per_token_logps))
+    return cast(Tensor, torch_mod.stack(per_token_logps))
+
+
+def _apply_eos_completion_mask(
+    completion_ids: Tensor,
+    eos_token_id: Optional[int],
+    completion_mask: Optional[Tensor] = None,
+) -> Tensor:
+    """Mask completion tokens after the first EOS token (TRL-style)."""
+    torch_mod = _refresh_torch()
+    if eos_token_id is None:
+        if completion_mask is not None:
+            return completion_mask
+        return cast(
+            Tensor,
+            torch_mod.ones_like(
+                completion_ids, dtype=getattr(torch_mod, "long", None)
+            ),
+        )
+    try:
+        is_eos = completion_ids == eos_token_id
+        batch = int(is_eos.size(0))
+        seq_len = int(is_eos.size(1))
+        eos_idx = torch_mod.full(
+            (batch,),
+            seq_len,
+            dtype=getattr(torch_mod, "long", None),
+            device=getattr(completion_ids, "device", None),
+        )
+        any_eos = is_eos.any(dim=1)
+        if bool(any_eos.any()):
+            eos_pos = is_eos.int().argmax(dim=1)
+            eos_idx = eos_idx.clone()
+            eos_idx[any_eos] = eos_pos[any_eos]
+        seq_idx = torch_mod.arange(
+            seq_len, device=getattr(completion_ids, "device", None)
+        ).unsqueeze(0)
+        seq_idx = seq_idx.expand(batch, -1)
+        mask = seq_idx <= eos_idx.unsqueeze(1)
+        to_fn = getattr(mask, "to", None)
+        if callable(to_fn):
+            mask = to_fn(dtype=getattr(torch_mod, "long", None))
+        return cast(Tensor, mask)
+    except _SCORING_EXCEPTIONS:
+        comp_arr = _to_numpy_array(completion_ids)
+        mask_arr = np.ones_like(comp_arr, dtype=np.int64)
+        for row_idx, row in enumerate(comp_arr):
+            eos_positions = np.where(row == eos_token_id)[0]
+            if eos_positions.size:
+                first = int(eos_positions[0])
+                if first + 1 < mask_arr.shape[1]:
+                    mask_arr[row_idx, first + 1 :] = 0
+        return cast(
+            Tensor,
+            torch_mod.tensor(
+                mask_arr,
+                dtype=getattr(torch_mod, "long", None),
+                device=getattr(completion_ids, "device", None),
+            ),
+        )
+
+
+def iter_batch_slices_trl(
+    score_batch: ScoreBatch,
+    runtime: RuntimeHandles,
+    eos_token_id: Optional[int],
+) -> Iterator[Tuple[Tensor, Tensor, Tensor, int]]:
+    """Yield prompt+completion slices for TRL-style logprob computation."""
+    torch_mod = _refresh_torch()
+    state = _SliceState.from_score_batch(score_batch)
+    if state.total_sequences == 0 or state.slice_size <= 0:
+        return
+    device = getattr(runtime, "device", None)
+    as_tensor = getattr(torch_mod, "as_tensor", getattr(torch_mod, "tensor", None))
+    if as_tensor is None:
+        raise AttributeError("torch.as_tensor (or tensor) is required for scoring.")
+    as_tensor_fn = cast(Callable[..., Tensor], as_tensor)
+
+    def _ensure_tensor(obj: object, *, target_device: object | None = None) -> Tensor:
+        is_tensor_fn = getattr(torch_mod, "is_tensor", None)
+        try:
+            if callable(is_tensor_fn) and is_tensor_fn(obj):
+                return cast(Tensor, obj)
+        except _SCORING_EXCEPTIONS:
+            pass
+        tensor_type = getattr(torch_mod, "Tensor", None)
+        if tensor_type is not None and isinstance(obj, tensor_type):
+            return cast(Tensor, obj)
+        tensor_ctor = getattr(torch_mod, "tensor", None)
+        if callable(tensor_ctor):
+            data = getattr(obj, "arr", None)
+            if data is None:
+                data = obj
+            try:
+                return cast(
+                    Tensor,
+                    tensor_ctor(
+                        np.asarray(data),
+                        device=target_device,
+                        dtype=getattr(obj, "dtype", None),
+                    ),
+                )
+            except TypeError:
+                return cast(Tensor, tensor_ctor(np.asarray(data)))
+        return cast(Tensor, obj)
+
+    def as_tensor_typed(*args: object, **kwargs: object) -> Tensor:
+        return cast(Tensor, as_tensor_fn(*args, **kwargs))
+
+    for start in range(0, state.total_sequences, state.slice_size):
+        end = min(start + state.slice_size, state.total_sequences)
+        prompt_slice = state.prompt_entries[start:end]
+        comp_ids_slice = state.completion_ids[start:end]
+        comp_mask_slice = state.completion_mask[start:end]
+        if device is not None:
+            try:
+                comp_ids_slice = comp_ids_slice.to(device)
+                comp_mask_slice = comp_mask_slice.to(device)
+            except (AttributeError, TypeError, ValueError):
+                pass
+        batch_size = len(prompt_slice)
+        if batch_size == 0:
+            continue
+        prompt_ids, prompt_mask, _prompt_lengths = _prepare_prompt_slice(
+            prompt_slice,
+            state.max_prompt_len,
+            state.pad_token_id,
+            comp_ids_slice.dtype,
+            comp_mask_slice.dtype,
+        )
+        if device is not None:
+            try:
+                prompt_ids = prompt_ids.to(device)
+                prompt_mask = prompt_mask.to(device)
+            except (AttributeError, TypeError, ValueError):
+                pass
+        prompt_ids = as_tensor_typed(prompt_ids, device=device)
+        prompt_mask = as_tensor_typed(prompt_mask, device=device)
+        comp_ids_slice = as_tensor_typed(comp_ids_slice, device=device)
+        comp_mask_slice = as_tensor_typed(comp_mask_slice, device=device)
+        full_input_ids = torch_mod.cat([prompt_ids, comp_ids_slice], dim=1)
+        completion_mask = _apply_eos_completion_mask(
+            comp_ids_slice, eos_token_id, completion_mask=None
+        )
+        completion_mask = _ensure_tensor(
+            completion_mask, target_device=getattr(comp_ids_slice, "device", None)
+        )
+        full_attention_mask = torch_mod.cat([prompt_mask, completion_mask], dim=1)
+        logits_to_keep = int(getattr(comp_ids_slice, "shape", [0, 0])[1] or 0)
+        yield full_input_ids, full_attention_mask, completion_mask, logits_to_keep
+
+
+def _trl_get_per_token_logps(
+    model: PreTrainedModel,
+    input_ids: Tensor,
+    attention_mask: Tensor,
+    logits_to_keep: int,
+    *,
+    temperature: Optional[float] = None,
+    batch_size: Optional[int] = None,
+) -> Tensor:
+    """TRL-style per-token log-probabilities for completion tokens."""
+    torch_mod = _refresh_torch()
+    if logits_to_keep <= 0:
+        return cast(
+            Tensor,
+            torch_mod.zeros(
+                (int(getattr(input_ids, "shape", [0])[0] or 0), 0),
+                dtype=getattr(torch_mod, "float32", None),
+                device=getattr(input_ids, "device", None),
+            ),
+        )
+    temp = float(temperature if temperature is not None else 1.0)
+    step = int(batch_size or 0)
+    if step <= 0:
+        step = int(getattr(input_ids, "shape", [0])[0] or 1)
+    all_logps: List[Tensor] = []
+    for i in range(0, int(getattr(input_ids, "shape", [0])[0] or 0), step):
+        input_ids_batch = input_ids[i : i + step]
+        attention_mask_batch = attention_mask[i : i + step]
+        logits = None
+        try:
+            outputs = model(
+                input_ids=input_ids_batch,
+                attention_mask=attention_mask_batch,
+                logits_to_keep=logits_to_keep + 1,
+            )
+            logits = getattr(outputs, "logits", outputs)
+        except TypeError:
+            outputs = model(
+                input_ids=input_ids_batch, attention_mask=attention_mask_batch
+            )
+            logits = getattr(outputs, "logits", outputs)
+        if logits is None:
+            raise ValueError("Model forward returned no logits for TRL scoring.")
+        logits = logits[:, :-1, :]
+        input_ids_batch = input_ids_batch[:, -logits_to_keep:]
+        logits = logits[:, -logits_to_keep:]
+        if temp != 1.0:
+            logits = logits / temp
+        logps = selective_log_softmax(logits, input_ids_batch)
+        all_logps.append(cast(Tensor, logps))
+    return cast(Tensor, torch_mod.cat(all_logps, dim=0))
+
+
+def reference_from_model_trl(
+    score_batch: ScoreBatch,
+    runtime: RuntimeHandles,
+    batching_cfg: BatchingSettings,
+    *,
+    temperature: Optional[float] = None,
+) -> Optional[Tuple[Tensor, Tensor, Optional[Tensor], Optional[Tensor]]]:
+    """Run the frozen reference model using TRL-style log-prob computations."""
+    torch_mod = _refresh_torch()
+    ref_model = runtime.get_ref_model()
+    ref_logp_chunks: List[Tensor] = []
+    ref_tok_chunks: List[Tensor] = []
+    ref_token_logp_chunks: List[Tensor] = []
+    ref_token_mask_chunks: List[Tensor] = []
+    slice_log = _score_slice_log_enabled()
+    progress_log = _progress_log_enabled()
+    eos_token_id = getattr(getattr(runtime, "tokenizer", None), "eos_token_id", None)
+    if progress_log:
+        LOG.info(
+            "reference_from_model_trl start | device=%s slice_prefetch=%s logprob_chunk_size=%s",
+            getattr(runtime, "device", None),
+            getattr(batching_cfg, "slice_prefetch", None),
+            getattr(batching_cfg, "logprob_chunk_size", None),
+        )
+
+    def _log_once(reason: str) -> None:
+        if getattr(reference_from_model_trl, "_diag_logged", False):
+            return
+        LOG.warning("reference_from_model_trl returning None: %s", reason)
+        setattr(reference_from_model_trl, "_diag_logged", True)
+
+    slices_seen = 0
+    slice_iter = iter_batch_slices_trl(score_batch, runtime, eos_token_id)
+    slice_iter = _prefetch_iterator(
+        slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
+    )
+    for slice_inputs, slice_mask, completion_mask, logits_to_keep in slice_iter:
+        slices_seen += 1
+        if slice_log:
+            LOG.info(
+                "reference_from_model_trl slice start | idx=%d inputs_shape=%s mask_shape=%s comp_mask_shape=%s",
+                slices_seen - 1,
+                getattr(slice_inputs, "shape", None),
+                getattr(slice_mask, "shape", None),
+                getattr(completion_mask, "shape", None),
+            )
+            slice_start = time.monotonic()
+        no_grad_ctx = getattr(torch_mod, "no_grad", None) or nullcontext
+        with no_grad_ctx():
+            try:
+                per_token_logps = _trl_get_per_token_logps(
+                    ref_model,
+                    slice_inputs,
+                    slice_mask,
+                    logits_to_keep,
+                    temperature=temperature,
+                    batch_size=getattr(batching_cfg, "logprob_chunk_size", None),
+                )
+            except _SCORING_EXCEPTIONS as exc:
+                _log_once(
+                    f"_trl_get_per_token_logps raised {type(exc).__name__}: {exc}"
+                )
+                return None
+        if per_token_logps is None:
+            _log_once("per_token_logps is None")
+            return None
+        if completion_mask is None:
+            _log_once("completion_mask missing for TRL reference scoring")
+            return None
+        mask_float = completion_mask
+        to_fn = getattr(mask_float, "to", None)
+        if callable(to_fn):
+            try:
+                mask_float = to_fn(dtype=getattr(per_token_logps, "dtype", None))
+            except _SCORING_EXCEPTIONS:
+                pass
+        try:
+            seq_logp = (per_token_logps * mask_float).sum(dim=1)
+            tok_counts = completion_mask.sum(dim=1).clamp(min=1)
+        except _SCORING_EXCEPTIONS as exc:
+            _log_once(f"Failed to reduce per-token logps: {exc}")
+            return None
+        if slice_log:
+            LOG.info(
+                "reference_from_model_trl slice done | idx=%d seconds=%.2f logp_shape=%s tok_shape=%s",
+                slices_seen - 1,
+                time.monotonic() - slice_start,
+                getattr(seq_logp, "shape", None),
+                getattr(tok_counts, "shape", None),
+            )
+        if getattr(seq_logp, "numel", lambda: 0)() == 0 or getattr(
+            tok_counts, "numel", lambda: 0
+        )() == 0:
+            _log_once(
+                f"empty slice tensors | logp_numel={getattr(seq_logp, 'numel', lambda: 0)()} "
+                f"tok_numel={getattr(tok_counts, 'numel', lambda: 0)()}"
+            )
+            return None
+        ref_logp_chunks.append(seq_logp.detach().cpu())
+        ref_tok_chunks.append(
+            tok_counts.to(dtype=getattr(torch_mod, "float32", None)).detach().cpu()
+        )
+        ref_token_logp_chunks.append(per_token_logps.detach())
+        ref_token_mask_chunks.append(completion_mask.detach())
+    if slices_seen == 0:
+        _log_once("iter_batch_slices_trl yielded zero slices")
+        return None
+    if not ref_logp_chunks:
+        _log_once("no reference slices produced any chunks")
+        return None
+    ref_logp = torch_mod.cat(ref_logp_chunks, dim=0).to(runtime.device)
+    ref_tok = torch_mod.cat(ref_tok_chunks, dim=0).to(runtime.device)
+    ref_token_logp = None
+    ref_token_mask = None
+    if ref_token_logp_chunks:
+        max_len = max(getattr(t, "shape", [0, 0])[1] for t in ref_token_logp_chunks)
+        if max_len < 0:
+            max_len = 0
+        padded_logps: List[Tensor] = []
+        padded_masks: List[Tensor] = []
+        for logp_slice, mask_slice in zip(ref_token_logp_chunks, ref_token_mask_chunks):
+            cur_len = getattr(logp_slice, "shape", [0, 0])[1]
+            if cur_len == max_len:
+                padded_logps.append(logp_slice)
+                padded_masks.append(mask_slice)
+                continue
+            pad_len = max_len - cur_len
+            if pad_len <= 0:
+                padded_logps.append(logp_slice[:, :max_len])
+                padded_masks.append(mask_slice[:, :max_len])
+                continue
+            pad_device = getattr(logp_slice, "device", None)
+            pad_dtype = getattr(logp_slice, "dtype", None)
+            try:
+                pad_logp = torch_mod.zeros(
+                    (logp_slice.shape[0], pad_len),
+                    device=pad_device,
+                    dtype=pad_dtype,
+                )
+            except TypeError:
+                pad_logp = torch_mod.zeros((logp_slice.shape[0], pad_len))
+            try:
+                pad_mask = torch_mod.zeros(
+                    (mask_slice.shape[0], pad_len),
+                    device=getattr(mask_slice, "device", None),
+                    dtype=getattr(mask_slice, "dtype", None),
+                )
+            except TypeError:
+                pad_mask = torch_mod.zeros((mask_slice.shape[0], pad_len))
+            padded_logps.append(torch_mod.cat([logp_slice, pad_logp], dim=1))
+            padded_masks.append(torch_mod.cat([mask_slice, pad_mask], dim=1))
+        ref_token_logp = torch_mod.cat(padded_logps, dim=0) if padded_logps else None
+        ref_token_mask = torch_mod.cat(padded_masks, dim=0) if padded_masks else None
+    if progress_log:
+        LOG.info(
+            "reference_from_model_trl done | slices=%d ref_logp_shape=%s ref_tok_shape=%s",
+            slices_seen,
+            getattr(ref_logp, "shape", None),
+            getattr(ref_tok, "shape", None),
+        )
+    return ref_logp, ref_tok, ref_token_logp, ref_token_mask
+
+
 def reference_from_model(
     score_batch: ScoreBatch,
     runtime: RuntimeHandles,
@@ -2155,6 +2766,15 @@ def reference_from_model(
     ref_model = runtime.get_ref_model()
     ref_logp_chunks: List[Tensor] = []
     ref_tok_chunks: List[Tensor] = []
+    slice_log = _score_slice_log_enabled()
+    progress_log = _progress_log_enabled()
+    if progress_log:
+        LOG.info(
+            "reference_from_model start | device=%s slice_prefetch=%s logprob_chunk_size=%s",
+            getattr(runtime, "device", None),
+            getattr(batching_cfg, "slice_prefetch", None),
+            getattr(batching_cfg, "logprob_chunk_size", None),
+        )
 
     def _log_once(reason: str) -> None:
         if getattr(reference_from_model, "_diag_logged", False):
@@ -2163,12 +2783,39 @@ def reference_from_model(
         setattr(reference_from_model, "_diag_logged", True)
 
     slices_seen = 0
-    slice_iter = iter_batch_slices(score_batch, runtime.device)
+    gather_full_params = False
+    try:
+        if _model_has_non2d_embeddings(ref_model):
+            gather_full_params = True
+            if not getattr(reference_from_model, "_forced_full_params_logged", False):
+                LOG.warning(
+                    "Reference scoring detected non-2D embeddings; forcing gather_full_params=True."
+                )
+                setattr(reference_from_model, "_forced_full_params_logged", True)
+    except _SCORING_EXCEPTIONS:
+        pass
+    warned_full_params = False
+    eos_token_id = getattr(getattr(runtime, "tokenizer", None), "eos_token_id", None)
+    slice_iter = iter_batch_slices(
+        score_batch,
+        runtime.device,
+        eos_token_id=eos_token_id,
+        apply_eos_mask=True,
+    )
     slice_iter = _prefetch_iterator(
         slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
     )
     for slice_inputs, slice_mask, slice_labels in slice_iter:
         slices_seen += 1
+        if slice_log:
+            LOG.info(
+                "reference_from_model slice start | idx=%d inputs_shape=%s mask_shape=%s labels_shape=%s",
+                slices_seen - 1,
+                getattr(slice_inputs, "shape", None),
+                getattr(slice_mask, "shape", None),
+                getattr(slice_labels, "shape", None),
+            )
+            slice_start = time.monotonic()
         no_grad_ctx = getattr(torch_mod, "no_grad", None) or nullcontext
         with no_grad_ctx():
             try:
@@ -2178,13 +2825,41 @@ def reference_from_model(
                     attention_mask=slice_mask,
                     labels=slice_labels,
                     chunk_size=batching_cfg.logprob_chunk_size,
-                    gather_full_params=False,
+                    gather_full_params=gather_full_params,
+                    zero_gather_all_ranks=True,
                 )
             except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive diagnostics
-                _log_once(
-                    f"_chunked_sequence_logprobs raised {type(exc).__name__}: {exc}"
-                )
-                return None
+                msg = str(exc) or ""
+                if (
+                    not gather_full_params
+                    and ("weight" in msg and "2-D" in msg)
+                ):
+                    gather_full_params = True
+                    if not warned_full_params:
+                        LOG.warning(
+                            "Reference scoring saw non-2D embedding weight; retrying with gather_full_params=True."
+                        )
+                        warned_full_params = True
+                    try:
+                        result = _chunked_sequence_logprobs(
+                            ref_model,
+                            input_ids=slice_inputs,
+                            attention_mask=slice_mask,
+                            labels=slice_labels,
+                            chunk_size=batching_cfg.logprob_chunk_size,
+                            gather_full_params=gather_full_params,
+                            zero_gather_all_ranks=True,
+                        )
+                    except _SCORING_EXCEPTIONS as exc_retry:
+                        _log_once(
+                            f"_chunked_sequence_logprobs raised {type(exc_retry).__name__}: {exc_retry}"
+                        )
+                        return None
+                else:
+                    _log_once(
+                        f"_chunked_sequence_logprobs raised {type(exc).__name__}: {exc}"
+                    )
+                    return None
         # _chunked_sequence_logprobs normally returns (logp, tok_counts, pooled_hidden).
         if not isinstance(result, (tuple, list)):
             _log_once(
@@ -2200,6 +2875,14 @@ def reference_from_model(
             )
             return None
         ref_logp_slice, ref_tok_slice = seq_result[0], seq_result[1]
+        if slice_log:
+            LOG.info(
+                "reference_from_model slice done | idx=%d seconds=%.2f logp_shape=%s tok_shape=%s",
+                slices_seen - 1,
+                time.monotonic() - slice_start,
+                getattr(ref_logp_slice, "shape", None),
+                getattr(ref_tok_slice, "shape", None),
+            )
         if ref_logp_slice.numel() == 0 or ref_tok_slice.numel() == 0:
             _log_once(
                 f"empty slice tensors | logp_numel={ref_logp_slice.numel()} tok_numel={ref_tok_slice.numel()} "
@@ -2223,6 +2906,13 @@ def reference_from_model(
         return None
     ref_logp = torch_mod.cat(ref_logp_chunks, dim=0).to(runtime.device)
     ref_tok = torch_mod.cat(ref_tok_chunks, dim=0).to(runtime.device)
+    if progress_log:
+        LOG.info(
+            "reference_from_model done | slices=%d ref_logp_shape=%s ref_tok_shape=%s",
+            slices_seen,
+            getattr(ref_logp, "shape", None),
+            getattr(ref_tok, "shape", None),
+        )
     LOG.debug(
         "Reference gather succeeded | slices=%d | ref_logp_shape=%s | ref_tok_shape=%s",
         slices_seen,
@@ -2236,6 +2926,9 @@ def gather_reference_logprobs(
     score_batch: ScoreBatch,
     runtime: RuntimeHandles,
     batching_cfg: BatchingSettings,
+    *,
+    trl_reference_scoring: bool = False,
+    temperature: Optional[float] = None,
 ) -> Optional[ReferenceLogprobs]:
     """Compute log-probabilities by running the frozen reference model.
 
@@ -2245,10 +2938,23 @@ def gather_reference_logprobs(
     :param score_batch: Prepared scoring batch with prompts/completions.
     :param runtime: Runtime handles exposing device, accelerator, and models.
     :param batching_cfg: Batching config controlling logprob chunking.
+    :param trl_reference_scoring: When True, use TRL/open-r1 reference scoring logic.
+    :param temperature: Optional temperature for TRL-style logprob scaling.
     :returns: ``ReferenceLogprobs`` or ``None`` when reference scoring fails.
     :rtype: ReferenceLogprobs | None
     """
     torch_mod = _refresh_torch()
+    progress_log = _progress_log_enabled()
+    slice_log = _score_slice_log_enabled()
+    if progress_log:
+        LOG.info(
+            "gather_reference_logprobs start | device=%s slice_size=%s chunk_size=%s slice_prefetch=%s",
+            getattr(runtime, "device", None),
+            getattr(score_batch, "slice_size", None),
+            getattr(batching_cfg, "logprob_chunk_size", None),
+            getattr(batching_cfg, "slice_prefetch", None),
+        )
+        gather_start = time.monotonic()
 
     def _dim0(obj: object) -> int:
         if obj is None:
@@ -2339,8 +3045,29 @@ def gather_reference_logprobs(
                     _dim0(getattr(score_batch, "completion_attention_mask", None)),
                 )
                 return None
+        if slice_log and isinstance(all_rows, list):
+            LOG.info(
+                "gather_reference_logprobs preflight rows | local_rows=%s all_rows=%s",
+                preflight_rows,
+                all_rows,
+            )
 
-    tensors = reference_from_model(score_batch, runtime, batching_cfg)
+    if progress_log:
+        LOG.info(
+            "gather_reference_logprobs reference_from_model start | trl_reference_scoring=%s",
+            trl_reference_scoring,
+        )
+    if trl_reference_scoring:
+        tensors = reference_from_model_trl(
+            score_batch, runtime, batching_cfg, temperature=temperature
+        )
+    else:
+        tensors = reference_from_model(score_batch, runtime, batching_cfg)
+    if progress_log:
+        LOG.info(
+            "gather_reference_logprobs reference_from_model done | ok=%s",
+            bool(tensors is not None),
+        )
     local_ok = tensors is not None
     global_ok = local_ok
     if num_processes > 1:
@@ -2366,19 +3093,33 @@ def gather_reference_logprobs(
             local_ok,
         )
         return None
+    ref_logp = tensors[0]
+    ref_tok = tensors[1]
+    ref_token_logp = None
+    ref_token_mask = None
+    if isinstance(tensors, (tuple, list)) and len(tensors) >= 4:
+        ref_token_logp = tensors[2]
+        ref_token_mask = tensors[3]
     LOG.debug(
-        "reference_from_model tensors | ref_logp_shape=%s | ref_tok_shape=%s | ref_logp_numel=%s | ref_tok_numel=%s | ref_logp_dtype=%s | ref_tok_dtype=%s | ref_logp_device=%s | ref_tok_device=%s",
-        getattr(tensors[0], "shape", None),
-        getattr(tensors[1], "shape", None),
-        _safe_numel(tensors[0]),
-        _safe_numel(tensors[1]),
-        getattr(tensors[0], "dtype", None),
-        getattr(tensors[1], "dtype", None),
-        getattr(tensors[0], "device", None),
-        getattr(tensors[1], "device", None),
+        "reference_from_model tensors | ref_logp_shape=%s | ref_tok_shape=%s | ref_logp_numel=%s | ref_tok_numel=%s | ref_logp_dtype=%s | ref_tok_dtype=%s | ref_logp_device=%s | ref_tok_device=%s | ref_token_logp_shape=%s | ref_token_mask_shape=%s",
+        getattr(ref_logp, "shape", None),
+        getattr(ref_tok, "shape", None),
+        _safe_numel(ref_logp),
+        _safe_numel(ref_tok),
+        getattr(ref_logp, "dtype", None),
+        getattr(ref_tok, "dtype", None),
+        getattr(ref_logp, "device", None),
+        getattr(ref_tok, "device", None),
+        getattr(ref_token_logp, "shape", None),
+        getattr(ref_token_mask, "shape", None),
     )
     try:
-        stats = finalize_reference_stats(*tensors)
+        stats = finalize_reference_stats(
+            ref_logp,
+            ref_tok,
+            ref_token_logp=ref_token_logp,
+            ref_token_mask=ref_token_mask,
+        )
     except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive diagnostics
         LOG.error(
             "finalize_reference_stats raised %s: %s | ref_logp_shape=%s | ref_tok_shape=%s | ref_logp_dtype=%s | ref_tok_dtype=%s | ref_logp_device=%s | ref_tok_device=%s",
@@ -2399,17 +3140,27 @@ def gather_reference_logprobs(
         _safe_numel(getattr(stats, "ref_logp_sum", None)),
         _safe_numel(getattr(stats, "ref_tok_counts", None)),
     )
+    if progress_log:
+        LOG.info(
+            "gather_reference_logprobs done | seconds=%.2f",
+            time.monotonic() - gather_start,
+        )
     return stats
 
 
 def finalize_reference_stats(
     ref_logp_sum: Tensor,
     ref_tok_counts: Tensor,
+    *,
+    ref_token_logp: Optional[Tensor] = None,
+    ref_token_mask: Optional[Tensor] = None,
 ) -> ReferenceLogprobs:
     """Build a ``ReferenceLogprobs`` object and derived scalars.
 
     :param ref_logp_sum: Per-sequence sum of reference log-probabilities.
     :param ref_tok_counts: Per-sequence token counts.
+    :param ref_token_logp: Optional per-token reference log-probs (completion-only).
+    :param ref_token_mask: Optional per-token completion mask aligned to ``ref_token_logp``.
     :returns: Normalized reference stats and summary scalars.
     :rtype: ReferenceLogprobs
     :raises ValueError: If log-prob tensors cannot be safely normalized.
@@ -2525,6 +3276,8 @@ def finalize_reference_stats(
             ref_logp_sum_raw=ref_logp_raw_tensor,
             ref_logp_mean=ref_logp_mean,
             avg_completion_tokens=avg_completion_tokens,
+            ref_token_logp=ref_token_logp,
+            ref_token_mask=ref_token_mask,
         )
     except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive diagnostics
         LOG.exception(
@@ -2555,7 +3308,13 @@ def token_counts_from_score_batch(
     """
     torch_mod = _refresh_torch()
     tok_chunks: List[Tensor] = []
-    slice_iter = iter_batch_slices(score_batch, runtime.device)
+    eos_token_id = getattr(getattr(runtime, "tokenizer", None), "eos_token_id", None)
+    slice_iter = iter_batch_slices(
+        score_batch,
+        runtime.device,
+        eos_token_id=eos_token_id,
+        apply_eos_mask=True,
+    )
     slice_iter = _prefetch_iterator(slice_iter, getattr(batching_cfg, "slice_prefetch", 0))
     for _slice_inputs, _slice_mask, slice_labels in slice_iter:
         label_mask = slice_labels != -100
@@ -2824,7 +3583,8 @@ def score_model_outputs(
     pooling: str = "mean",
     return_entropy: bool = False,
     entropy_mode: str = "exact",
-) -> Optional[Tuple[Tensor, Optional[Tensor], Optional[Tensor]]]:
+    return_token_logp: bool = False,
+) -> Optional[Tuple[Tensor, Optional[Tensor], Optional[Tensor], Optional[Tensor], Optional[Tensor]]]:
     """Compute current model log-probs for the batch and optional pooled states.
 
     :param model: Current policy model used for scoring.
@@ -2833,16 +3593,35 @@ def score_model_outputs(
     :param runtime: Runtime handles providing device and accelerator state.
     :param return_hidden: When ``True``, also return pooled hidden states.
     :param pooling: Pooling strategy applied to hidden states.
-    :returns: Tuple of ``(cur_logp_sum, pooled_hidden[, policy_entropy_sum])`` or ``None`` if empty.
-    :rtype: tuple[Tensor, Tensor | None] | tuple[Tensor, Tensor | None, Tensor | None] | None
+    :returns: Tuple of ``(cur_logp_sum, pooled_hidden[, policy_entropy_sum][, token_logp, token_mask])``
+        or ``None`` if empty.
+    :rtype: tuple[Tensor, Tensor | None] | tuple[Tensor, Tensor | None, Tensor | None] | tuple[Tensor, Tensor | None, Tensor | None, Tensor | None, Tensor | None] | None
     """
     cur_logp_slices: List[Tensor] = []
     pooled_slices: List[Tensor] = []
     entropy_slices: List[Tensor] = []
-    slice_iter = iter_batch_slices(score_batch, runtime.device)
+    token_logp_slices: List[Tensor] = []
+    token_mask_slices: List[Tensor] = []
+    slice_log = _score_slice_log_enabled()
+    progress_log = _progress_log_enabled()
+    eos_token_id = getattr(getattr(runtime, "tokenizer", None), "eos_token_id", None)
+    slice_iter = iter_batch_slices(
+        score_batch,
+        runtime.device,
+        eos_token_id=eos_token_id,
+        apply_eos_mask=True,
+    )
     slice_iter = _prefetch_iterator(
         slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
     )
+    if progress_log:
+        LOG.info(
+            "score_model_outputs start | total_sequences=%s slice_size=%s device=%s logprob_chunk_size=%s",
+            score_batch.total_sequences,
+            score_batch.slice_size,
+            getattr(runtime.device, "type", runtime.device),
+            getattr(batching_cfg, "logprob_chunk_size", None),
+        )
     LOG.debug(
         "current scoring batch metadata | total_sequences=%s slice_size=%s device=%s",
         score_batch.total_sequences,
@@ -2850,7 +3629,17 @@ def score_model_outputs(
         getattr(runtime.device, "type", runtime.device),
     )
     with _autocast_context(runtime.accelerator, runtime.device):
+        slice_idx = 0
         for slice_inputs, slice_mask, slice_labels in slice_iter:
+            if slice_log:
+                LOG.info(
+                    "score_model_outputs slice start | idx=%d input_ids_shape=%s attention_mask_shape=%s labels_shape=%s",
+                    slice_idx,
+                    getattr(slice_inputs, "shape", None),
+                    getattr(slice_mask, "shape", None),
+                    getattr(slice_labels, "shape", None),
+                )
+                slice_start = time.monotonic()
             LOG.debug(
                 "current scoring slice inputs | input_ids_shape=%s attention_mask_shape=%s labels_shape=%s",
                 getattr(slice_inputs, "shape", None),
@@ -2867,22 +3656,121 @@ def score_model_outputs(
                 pooling=pooling,
                 return_entropy=return_entropy,
                 entropy_mode=entropy_mode,
+                return_token_logp=return_token_logp,
             )
+            if slice_log:
+                if result is None:
+                    LOG.info(
+                        "score_model_outputs slice done | idx=%d seconds=%.2f result=None",
+                        slice_idx,
+                        time.monotonic() - slice_start,
+                    )
+                else:
+                    seq_result = cast(Sequence[Any], result)
+                    logp_slice = seq_result[0] if len(seq_result) >= 1 else None
+                    tok_counts = seq_result[1] if len(seq_result) >= 2 else None
+                    pooled = seq_result[2] if len(seq_result) >= 3 else None
+                    entropy_sum = seq_result[3] if len(seq_result) >= 4 else None
+                    LOG.info(
+                        "score_model_outputs slice done | idx=%d seconds=%.2f logp_shape=%s tok_shape=%s pooled=%s entropy=%s",
+                        slice_idx,
+                        time.monotonic() - slice_start,
+                        getattr(logp_slice, "shape", None),
+                        getattr(tok_counts, "shape", None),
+                        getattr(pooled, "shape", None),
+                        getattr(entropy_sum, "shape", None),
+                    )
             if result is None:
                 return None
-            cur_logp_slice, _tok_counts, pooled, entropy_sum = result
+            cur_logp_slice, _tok_counts, pooled, entropy_sum = result[:4]
+            token_logp = None
+            token_mask = None
+            if return_token_logp and len(result) >= 6:
+                token_logp = result[4]
+                token_mask = result[5]
             cur_logp_slices.append(cur_logp_slice)
             if pooled is not None:
                 pooled_slices.append(pooled.detach())
             if entropy_sum is not None:
                 entropy_slices.append(entropy_sum.detach())
+            if return_token_logp:
+                if token_logp is not None:
+                    token_logp_slices.append(token_logp.detach())
+                if token_mask is not None:
+                    token_mask_slices.append(token_mask.detach())
+            slice_idx += 1
     if not cur_logp_slices:
         return None
     pooled_hidden = torch.cat(pooled_slices, dim=0) if pooled_slices else None
+    token_logp = None
+    token_mask = None
+    if return_token_logp and token_logp_slices:
+        max_len = max(getattr(t, "shape", [0, 0])[1] for t in token_logp_slices)
+        if max_len < 0:
+            max_len = 0
+        padded_logps: List[Tensor] = []
+        padded_masks: List[Tensor] = []
+        for logp_slice, mask_slice in zip(token_logp_slices, token_mask_slices):
+            cur_len = getattr(logp_slice, "shape", [0, 0])[1]
+            if cur_len == max_len:
+                padded_logps.append(logp_slice)
+                padded_masks.append(mask_slice)
+                continue
+            pad_len = max_len - cur_len
+            if pad_len <= 0:
+                padded_logps.append(logp_slice[:, :max_len])
+                padded_masks.append(mask_slice[:, :max_len])
+                continue
+            pad_device = getattr(logp_slice, "device", None)
+            pad_dtype = getattr(logp_slice, "dtype", None)
+            try:
+                pad_logp = torch.zeros(
+                    (logp_slice.shape[0], pad_len),
+                    device=pad_device,
+                    dtype=pad_dtype,
+                )
+            except TypeError:
+                pad_logp = torch.zeros((logp_slice.shape[0], pad_len))
+            try:
+                pad_mask = torch.zeros(
+                    (mask_slice.shape[0], pad_len),
+                    device=getattr(mask_slice, "device", None),
+                    dtype=getattr(mask_slice, "dtype", None),
+                )
+            except TypeError:
+                pad_mask = torch.zeros((mask_slice.shape[0], pad_len))
+            padded_logps.append(torch.cat([logp_slice, pad_logp], dim=1))
+            padded_masks.append(torch.cat([mask_slice, pad_mask], dim=1))
+        token_logp = torch.cat(padded_logps, dim=0) if padded_logps else None
+        token_mask = torch.cat(padded_masks, dim=0) if padded_masks else None
+
     if not return_entropy:
-        return torch.cat(cur_logp_slices, dim=0), pooled_hidden
+        output = torch.cat(cur_logp_slices, dim=0), pooled_hidden, token_logp, token_mask
+        if progress_log:
+            LOG.info(
+                "score_model_outputs done | slices=%d logp_shape=%s pooled=%s token_logp=%s",
+                len(cur_logp_slices),
+                getattr(output[0], "shape", None),
+                getattr(pooled_hidden, "shape", None),
+                getattr(token_logp, "shape", None),
+            )
+        if return_token_logp:
+            return output
+        return output[:2]
     entropy_sum = torch.cat(entropy_slices, dim=0) if entropy_slices else None
-    return torch.cat(cur_logp_slices, dim=0), pooled_hidden, entropy_sum
+    output = torch.cat(cur_logp_slices, dim=0), pooled_hidden, entropy_sum, token_logp, token_mask
+    if progress_log:
+        LOG.info(
+            "score_model_outputs done | slices=%d logp_shape=%s pooled=%s entropy=%s token_logp=%s",
+            len(cur_logp_slices),
+            getattr(output[0], "shape", None),
+            getattr(pooled_hidden, "shape", None),
+            getattr(entropy_sum, "shape", None),
+            getattr(token_logp, "shape", None),
+        )
+    if return_token_logp:
+        return output
+    return output[:3]
 
 
 def summarize_completion_lengths(
@@ -3031,6 +3919,9 @@ def build_sequence_scores(
     *,
     behavior_logp_sum: Optional[Tensor] = None,
     policy_entropy_sum: Optional[Tensor] = None,
+    token_logp: Optional[Tensor] = None,
+    token_mask: Optional[Tensor] = None,
+    old_token_logp: Optional[Tensor] = None,
 ) -> SequenceScores:
     """Return ``SequenceScores`` built from current and reference log-probs.
 
@@ -3117,6 +4008,40 @@ def build_sequence_scores(
             dtype=base_dtype,
             fill_value=0.0,
         )
+    token_logp_tensor: Optional[Tensor] = None
+    token_mask_tensor: Optional[Tensor] = None
+    old_token_logp_tensor: Optional[Tensor] = None
+    if token_logp is not None:
+        token_logp_tensor = _as_torch_tensor(
+            torch_mod,
+            token_logp,
+            device=device,
+            dtype=base_dtype,
+        )
+    if token_mask is not None:
+        token_mask_tensor = _as_torch_tensor(
+            torch_mod,
+            token_mask,
+            device=device,
+            dtype=base_dtype,
+        )
+    if old_token_logp is not None:
+        old_token_logp_tensor = _as_torch_tensor(
+            torch_mod,
+            old_token_logp,
+            device=device,
+            dtype=base_dtype,
+        )
+    if token_logp_tensor is not None and old_token_logp_tensor is None:
+        try:
+            old_token_logp_tensor = token_logp_tensor.detach()
+        except _SCORING_EXCEPTIONS:
+            old_token_logp_tensor = _as_torch_tensor(
+                torch_mod,
+                token_logp_tensor,
+                device=device,
+                dtype=base_dtype,
+            )
     log_ratio_train = cur_tensor - ref_tensor
     if getattr(log_ratio_train, "numel", lambda: 0)() == 0 and cur_len > 0:
         log_ratio_train = torch_mod.zeros(
@@ -3129,4 +4054,7 @@ def build_sequence_scores(
         denom_tok_tensor=denom_tensor,
         pooled_hidden=pooled_hidden,
         policy_entropy_sum=policy_entropy_tensor,
+        token_logp=token_logp_tensor,
+        token_mask=token_mask_tensor,
+        old_token_logp=old_token_logp_tensor,
     )

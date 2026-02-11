@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 import logging
+import os
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING, cast
 
 from maxent_grpo.training.runtime import require_torch, require_transformer_base_classes
@@ -30,6 +31,13 @@ if TYPE_CHECKING:
 else:
     PreTrainedTokenizerType = Any
     Tensor = Any
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 class LocalGenerationMixin:
@@ -134,28 +142,102 @@ class LocalGenerationMixin:
         unwrap = getattr(self.ctx.accelerator, "unwrap_model", None)
         gen_model = unwrap(self.ctx.model) if callable(unwrap) else self.ctx.model
         no_grad = getattr(torch, "no_grad", None) or nullcontext
+        dist = getattr(torch, "distributed", None)
+        dist_initialized = bool(
+            dist
+            and hasattr(dist, "is_available")
+            and hasattr(dist, "is_initialized")
+            and dist.is_available()
+            and dist.is_initialized()
+        )
+        synced_gpus = _env_flag("MAXENT_LOCAL_SYNCED_GPUS", False)
+        disable_dynamo = _env_flag("MAXENT_LOCAL_DISABLE_DYNAMO", dist_initialized)
+        max_new_tokens = self.ctx.max_completion_len
+        max_time: Optional[float] = None
+        env_max_new = os.getenv("MAXENT_LOCAL_MAX_NEW_TOKENS")
+        if env_max_new is not None:
+            try:
+                cap_val = int(env_max_new)
+                if cap_val > 0:
+                    max_new_tokens = min(int(max_new_tokens), cap_val)
+            except (TypeError, ValueError):
+                LOG.warning(
+                    "Invalid MAXENT_LOCAL_MAX_NEW_TOKENS=%r; using max_new_tokens=%s",
+                    env_max_new,
+                    max_new_tokens,
+                )
+        env_max_time = os.getenv("MAXENT_LOCAL_MAX_TIME_S")
+        if env_max_time is not None:
+            try:
+                max_time_val = float(env_max_time)
+                if max_time_val > 0:
+                    max_time = max_time_val
+            except (TypeError, ValueError):
+                LOG.warning(
+                    "Invalid MAXENT_LOCAL_MAX_TIME_S=%r; ignoring max_time override.",
+                    env_max_time,
+                )
+        empty_cache = _env_flag("MAXENT_LOCAL_EMPTY_CACHE", False)
+        if empty_cache and hasattr(torch, "cuda") and torch.cuda.is_available():
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
+        dynamo_ctx = nullcontext()
+        if disable_dynamo:
+            dynamo = getattr(torch, "_dynamo", None)
+            disable_fn = getattr(dynamo, "disable", None) if dynamo is not None else None
+            if callable(disable_fn):
+                dynamo_ctx = disable_fn()
         LOG.debug(
-            "HF generate start | model=%s | max_new_tokens=%s | temp=%.3f | top_p=%.3f | top_k=%s",
+            "HF generate start | model=%s | max_new_tokens=%s | max_time=%s | temp=%.3f | top_p=%.3f | top_k=%s | synced_gpus=%s | disable_dynamo=%s | empty_cache=%s",
             gen_model.__class__.__name__ if gen_model is not None else "None",
-            self.ctx.max_completion_len,
+            max_new_tokens,
+            max_time,
             self.ctx.gen_temperature,
             self.ctx.gen_top_p,
             self.ctx.gen_top_k,
+            synced_gpus,
+            disable_dynamo,
+            empty_cache,
         )
-        with no_grad():
+        with no_grad(), dynamo_ctx:
             generate_fn = getattr(gen_model, "generate", None)
             if callable(generate_fn):
-                gen_out = generate_fn(
-                    **encoder_inputs,
+                gen_cfg = getattr(gen_model, "generation_config", None)
+                if gen_cfg is not None and hasattr(gen_cfg, "synced_gpus"):
+                    try:
+                        setattr(gen_cfg, "synced_gpus", bool(synced_gpus))
+                    except Exception:
+                        pass
+                generate_kwargs = dict(
                     do_sample=True,
                     temperature=self.ctx.gen_temperature,
                     top_p=self.ctx.gen_top_p,
                     top_k=(
                         self.ctx.gen_top_k if self.ctx.gen_top_k is not None else None
                     ),
-                    max_new_tokens=self.ctx.max_completion_len,
+                    max_new_tokens=max_new_tokens,
                     num_return_sequences=1,
+                    synced_gpus=synced_gpus,
                 )
+                if max_time is not None:
+                    generate_kwargs["max_time"] = max_time
+                try:
+                    gen_out = generate_fn(**encoder_inputs, **generate_kwargs)
+                except TypeError as exc:
+                    msg = str(exc)
+                    retry = False
+                    if "synced_gpus" in msg:
+                        generate_kwargs.pop("synced_gpus", None)
+                        retry = True
+                    if "max_time" in msg:
+                        generate_kwargs.pop("max_time", None)
+                        retry = True
+                    if retry:
+                        gen_out = generate_fn(**encoder_inputs, **generate_kwargs)
+                    else:
+                        raise
             else:
                 # Fallback for lightweight stubs without generation support.
                 gen_out = encoder_inputs

@@ -47,6 +47,13 @@ Accelerator = require_accelerator("generation")
 dist = getattr(torch, "distributed", None)
 LOG = logging.getLogger(__name__)
 
+
+def _progress_log_enabled() -> bool:
+    raw = os.getenv("MAXENT_PROGRESS_LOG")
+    if raw is None or not str(raw).strip():
+        return False
+    return str(raw).strip().lower() not in {"0", "false", "no", "off"}
+
 if TYPE_CHECKING:
     from accelerate import Accelerator as AcceleratorLike
 else:
@@ -223,6 +230,31 @@ class VLLMGenerationMixin:
         except ImportError as exc:
             LOG.warning("vLLM colocate requested but unavailable: %s", exc)
             return
+        is_main = bool(
+            getattr(getattr(self.ctx, "accelerator", None), "is_main_process", True)
+        )
+        if is_main:
+            device_hint = os.getenv("MAXENT_VLLM_COLOCATE_DEVICE", "")
+            if not device_hint:
+                local_rank = os.getenv("LOCAL_RANK") or os.getenv("SLURM_LOCALID")
+                if local_rank is not None and str(local_rank).isdigit():
+                    device_hint = f"cuda:{int(local_rank)}"
+                else:
+                    try:
+                        import torch
+
+                        if torch.cuda.is_available():
+                            device_hint = f"cuda:{torch.cuda.current_device()}"
+                    except Exception:
+                        device_hint = ""
+            LOG.info(
+                "vLLM pre-init | CUDA_VISIBLE_DEVICES=%s MAXENT_VLLM_COLOCATE_DEVICE=%s "
+                "LOCAL_RANK=%s SLURM_LOCALID=%s",
+                os.getenv("CUDA_VISIBLE_DEVICES"),
+                device_hint or "auto",
+                os.getenv("LOCAL_RANK"),
+                os.getenv("SLURM_LOCALID"),
+            )
         sync_enabled = _env_flag("MAXENT_VLLM_COLOCATE_SYNC", False)
         if not sync_enabled and getattr(self.ctx, "vllm_sync_weights", False):
             LOG.warning(
@@ -263,12 +295,25 @@ class VLLMGenerationMixin:
                         "vLLM colocate sync interval defaulted to 10 steps. "
                         "Override via MAXENT_VLLM_COLOCATE_SYNC_INTERVAL."
                     )
-            try:
-                client = self._vllm_colocate_engine.sync_client()
-                self._vllm_client = client
-                self._vllm_sync_ready = True
-            except Exception as exc:
-                LOG.warning("vLLM colocate sync client unavailable: %s", exc)
+            is_main = bool(
+                getattr(getattr(self.ctx, "accelerator", None), "is_main_process", True)
+            )
+            if is_main:
+                try:
+                    client = self._vllm_colocate_engine.sync_client()
+                    self._vllm_client = client
+                    self._vllm_sync_ready = True
+                except Exception as exc:
+                    LOG.warning("vLLM colocate sync client unavailable: %s", exc)
+                    self._vllm_client = None
+                    self._vllm_sync_ready = False
+            else:
+                # Avoid initializing colocate sync clients on non-main ranks.
+                self._vllm_client = None
+                self._vllm_sync_ready = False
+                LOG.info(
+                    "Skipping vLLM colocate sync client init on non-main rank."
+                )
         LOG.info("vLLM colocate mode enabled; using in-process vLLM engine.")
 
     def _generate_local(
@@ -436,16 +481,40 @@ class VLLMGenerationMixin:
     def _maybe_sync_vllm_weights(self) -> None:
         """Push current model weights to the vLLM server."""
         accelerator = self.ctx.accelerator
+        progress_log = _progress_log_enabled()
+        rank = getattr(accelerator, "process_index", None)
+        world = getattr(accelerator, "num_processes", None)
+        sync_start = time.monotonic()
+        if progress_log:
+            LOG.info("vLLM weight sync start | rank=%s/%s", rank, world)
         try:
-            self._vllm_helper.maybe_sync_weights(
-                ensure_client=self._ensure_vllm_client,
-                sync_model=lambda model: self._sync_model_params_to_vllm(
-                    model, accelerator
-                ),
+            try:
+                self._vllm_helper.maybe_sync_weights(
+                    ensure_client=self._ensure_vllm_client,
+                    sync_model=lambda model: self._sync_model_params_to_vllm(
+                        model, accelerator
+                    ),
+                )
+            except TypeError:
+                # Allow lightweight stubs without keyword support.
+                self._vllm_helper.maybe_sync_weights()
+        except Exception as exc:
+            if progress_log:
+                LOG.warning(
+                    "vLLM weight sync failed | rank=%s/%s | seconds=%.2f | error=%s",
+                    rank,
+                    world,
+                    time.monotonic() - sync_start,
+                    exc,
+                )
+            raise
+        if progress_log:
+            LOG.info(
+                "vLLM weight sync done | rank=%s/%s | seconds=%.2f",
+                rank,
+                world,
+                time.monotonic() - sync_start,
             )
-        except TypeError:
-            # Allow lightweight stubs without keyword support.
-            self._vllm_helper.maybe_sync_weights()
 
     def _invoke_helper(self, attr: str, *args: Any, **kwargs: Any) -> Any:
         """Call a helper attribute if present, preferring public names when available."""
@@ -968,47 +1037,127 @@ class VLLMGenerationMixin:
         accelerator = self.ctx.accelerator
         if getattr(accelerator, "num_processes", 1) <= 1:
             return self._generate_with_vllm(prompts, num_samples, per_prompt_counts)
-        # Weight sync under ZeRO-3 uses collective gathers; run it on all ranks
-        # before non-main processes block waiting for the scatter payload.
-        vllm_helper = getattr(self, "_vllm_helper", None)
-        maybe_sync = getattr(vllm_helper, "maybe_sync_weights", None) if vllm_helper else None
-        if callable(maybe_sync) and getattr(self.ctx, "vllm_sync_weights", False):
-            try:
-                maybe_sync(
-                    ensure_client=self._ensure_vllm_client,
-                    sync_model=lambda model: self._sync_model_params_to_vllm(
-                        model, accelerator
-                    ),
-                )
-            except TypeError:
-                maybe_sync()
-        flat_prompts, offsets, flat_counts = self._flatten_prompts_for_broadcast(
-            prompts,
-            per_prompt_counts,
-        )
-        if bool(getattr(accelerator, "is_main_process", False)):
-            grouped_all, meta_all = self._generate_with_vllm(
-                flat_prompts,
-                num_samples,
-                flat_counts,
+        prev_disable_fallback = getattr(self.ctx, "vllm_disable_local_fallback", None)
+        try:
+            setattr(self.ctx, "vllm_disable_local_fallback", True)
+        except Exception:
+            prev_disable_fallback = None
+        try:
+            # Weight sync under ZeRO-3 uses collective gathers; run it on all ranks
+            # before non-main processes block waiting for the scatter payload.
+            vllm_helper = getattr(self, "_vllm_helper", None)
+            maybe_sync = getattr(vllm_helper, "maybe_sync_weights", None) if vllm_helper else None
+            sync_weights = bool(getattr(self.ctx, "vllm_sync_weights", False))
+            dist = getattr(torch, "distributed", None)
+            if (
+                getattr(accelerator, "num_processes", 1) > 1
+                and dist is not None
+                and callable(getattr(dist, "is_available", None))
+                and callable(getattr(dist, "is_initialized", None))
+                and dist.is_available()
+                and dist.is_initialized()
+                and callable(getattr(dist, "broadcast_object_list", None))
+            ):
+                payload = [sync_weights] if accelerator.is_main_process else [False]
+                dist.broadcast_object_list(payload, src=0)
+                sync_weights = bool(payload[0])
+                if sync_weights != bool(getattr(self.ctx, "vllm_sync_weights", False)):
+                    try:
+                        setattr(self.ctx, "vllm_sync_weights", sync_weights)
+                    except Exception:
+                        pass
+            if callable(maybe_sync) and sync_weights:
+                try:
+                    maybe_sync(
+                        ensure_client=self._ensure_vllm_client,
+                        sync_model=lambda model: self._sync_model_params_to_vllm(
+                            model, accelerator
+                        ),
+                    )
+                except TypeError:
+                    maybe_sync()
+            flat_prompts, offsets, flat_counts = self._flatten_prompts_for_broadcast(
+                prompts,
+                per_prompt_counts,
             )
-        else:
             grouped_all = None
             meta_all = None
-        scatter_result = self._scatter_vllm_payload(
-            flat_prompts, offsets, grouped_all, meta_all
-        )
-        if isinstance(scatter_result, tuple):
-            if len(scatter_result) != 2:
-                grouped_res, meta_res = [], None
+            status_ok = True
+            status_err = None
+            if bool(getattr(accelerator, "is_main_process", False)):
+                try:
+                    grouped_all, meta_all = self._generate_with_vllm(
+                        flat_prompts,
+                        num_samples,
+                        flat_counts,
+                        # Skip helper-side sync in collective mode; we already handle
+                        # weight sync (or intentionally skip it) above on all ranks.
+                        skip_sync=True,
+                    )
+                except Exception as exc:
+                    status_ok = False
+                    status_err = str(exc)
+            dist = getattr(torch, "distributed", None)
+            if (
+                getattr(accelerator, "num_processes", 1) > 1
+                and dist is not None
+                and callable(getattr(dist, "is_available", None))
+                and callable(getattr(dist, "is_initialized", None))
+                and dist.is_available()
+                and dist.is_initialized()
+                and callable(getattr(dist, "broadcast_object_list", None))
+            ):
+                payload = (
+                    [{"ok": status_ok, "error": status_err}]
+                    if accelerator.is_main_process
+                    else [{"ok": False, "error": None}]
+                )
+                dist.broadcast_object_list(payload, src=0)
+                status_ok = bool(payload[0].get("ok", False))
+                status_err = payload[0].get("error")
+            if not status_ok:
+                if bool(getattr(self.ctx, "vllm_disable_local_fallback", False)):
+                    msg = (
+                        "vLLM collective generate failed and local fallback disabled: "
+                        f"{status_err}"
+                    )
+                    if bool(getattr(accelerator, "is_main_process", False)):
+                        LOG.error(msg)
+                    raise RuntimeError(msg)
+                if bool(getattr(accelerator, "is_main_process", False)):
+                    LOG.warning(
+                        "vLLM collective generate failed on rank 0; "
+                        "falling back to local generation on all ranks: %s",
+                        status_err,
+                    )
+                return self._generate_local(
+                    prompts, num_samples, per_prompt_counts
+                )
+            scatter_result = self._scatter_vllm_payload(
+                flat_prompts, offsets, grouped_all, meta_all
+            )
+            if isinstance(scatter_result, tuple):
+                if len(scatter_result) != 2:
+                    grouped_res, meta_res = [], None
+                else:
+                    grouped_res = scatter_result[0]
+                    meta_res = scatter_result[1]
             else:
-                grouped_res = scatter_result[0]
-                meta_res = scatter_result[1]
-        else:
-            grouped_res, meta_res = scatter_result, None
-        if grouped_res is None:
-            grouped_res = [[] for _ in prompts]
-        return grouped_res, meta_res
+                grouped_res, meta_res = scatter_result, None
+            if grouped_res is None:
+                grouped_res = [[] for _ in prompts]
+            return grouped_res, meta_res
+        finally:
+            if prev_disable_fallback is None:
+                try:
+                    delattr(self.ctx, "vllm_disable_local_fallback")
+                except AttributeError:
+                    pass
+            else:
+                try:
+                    setattr(self.ctx, "vllm_disable_local_fallback", prev_disable_fallback)
+                except Exception:
+                    pass
 
     def generate(
         self,
@@ -1017,8 +1166,6 @@ class VLLMGenerationMixin:
         per_prompt_counts: Optional[List[int]] = None,
     ) -> Tuple[List[List[str]], Optional[List[List[Optional[VLLMLogprobResult]]]]]:
         """Produce completions, preferring vLLM when configured."""
-        if not prompts:
-            return [], None
         if per_prompt_counts is not None and len(per_prompt_counts) != len(prompts):
             raise ValueError(
                 "per_prompt_counts length must match prompts length in generate()"
@@ -1027,6 +1174,8 @@ class VLLMGenerationMixin:
             return self._generate_vllm_collective(
                 prompts, num_samples, per_prompt_counts
             )
+        if not prompts:
+            return [], None
         return self._generate_local(prompts, num_samples, per_prompt_counts)
 
 
@@ -1070,16 +1219,12 @@ def _scatter_object(
     src: int = 0,
 ) -> Any:
     """Scatter python objects from src to all ranks."""
+    mode = os.getenv("MAXENT_SCATTER_MODE", "").strip().lower()
+    prefer_broadcast = mode in {"broadcast", "bcast", "broadcast_object_list"}
     if accelerator.num_processes <= 1:
         if input_list is None:
             return None
         return input_list[0]
-    scatter_fn = getattr(accelerator, "scatter_object", None)
-    if callable(scatter_fn):
-        return scatter_fn(
-            input_list if accelerator.process_index == src else None,
-            src=src,
-        )
     idx = getattr(accelerator, "process_index", None)
     try:
         if input_list is not None and isinstance(idx, int) and idx >= len(input_list):
@@ -1090,6 +1235,33 @@ def _scatter_object(
         # Prefer broadcast-based scatter when possible. Some environments
         # intermittently hang inside scatter_object_list; broadcasting the full
         # payload is slower but tends to be more reliable.
+        broadcast_fn = getattr(dist, "broadcast_object_list", None)
+        if prefer_broadcast and callable(broadcast_fn):
+            try:
+                world_size = int(dist.get_world_size())
+            except (RuntimeError, TypeError, ValueError):
+                world_size = int(getattr(accelerator, "num_processes", 1) or 1)
+            list_ok = input_list is None or (
+                isinstance(input_list, list) and len(input_list) == world_size
+            )
+            if world_size > 0 and list_ok:
+                payload = (
+                    input_list
+                    if accelerator.process_index == src and input_list is not None
+                    else [None for _ in range(world_size)]
+                )
+                try:
+                    broadcast_fn(payload, src)
+                    return payload[int(getattr(accelerator, "process_index", 0))]
+                except (RuntimeError, TypeError, ValueError):
+                    return None
+    scatter_fn = getattr(accelerator, "scatter_object", None)
+    if callable(scatter_fn):
+        return scatter_fn(
+            input_list if accelerator.process_index == src else None,
+            src=src,
+        )
+    if dist is not None and dist.is_available() and dist.is_initialized():
         broadcast_fn = getattr(dist, "broadcast_object_list", None)
         if callable(broadcast_fn):
             try:

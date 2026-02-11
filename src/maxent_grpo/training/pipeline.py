@@ -38,9 +38,11 @@ from __future__ import annotations
 
 import logging
 import math
+import os
+import time
 import sys
 import traceback
-from collections.abc import Sized
+from collections.abc import Iterable, Mapping, Sized
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypeVar, TYPE_CHECKING, cast
 from types import SimpleNamespace
@@ -89,6 +91,13 @@ if TYPE_CHECKING:
     from .weighting.loss import SeedInfoInputs
 
 LOG = logging.getLogger(__name__)
+
+
+def _progress_log_enabled() -> bool:
+    raw = os.getenv("MAXENT_PROGRESS_LOG")
+    if raw is None or not str(raw).strip():
+        return False
+    return str(raw).strip().lower() not in {"0", "false", "no", "off"}
 _REF_LOGPROB_TRACE_LIMIT = 3
 torch = require_torch("training_pipeline")
 
@@ -144,6 +153,178 @@ def _rank_tag(accelerator: Any = None) -> str:
     if world is None:
         return f"rank={rank}"
     return f"rank={rank}/{world}"
+
+
+def _mean(values: List[float]) -> float:
+    """Return the arithmetic mean for a non-empty list, else 0.0."""
+    return float(sum(values)) / float(len(values)) if values else 0.0
+
+
+def _weighted_mean(values: List[float], weights: List[float]) -> float:
+    """Return the weighted mean or 0.0 when weights are empty."""
+    if not values or not weights:
+        return 0.0
+    total_weight = float(sum(weights))
+    if total_weight <= 0.0:
+        return 0.0
+    return float(sum(v * w for v, w in zip(values, weights))) / total_weight
+
+
+def _tokenize_for_diversity(text: str, tokenizer: Any = None) -> List[Any]:
+    """Tokenize a completion for diversity metrics.
+
+    Prefers the configured tokenizer when available; falls back to whitespace.
+    """
+    if not text:
+        return []
+    if tokenizer is not None:
+        try:
+            encode = getattr(tokenizer, "encode", None)
+            if callable(encode):
+                return list(encode(text, add_special_tokens=False))
+            if callable(tokenizer):
+                tokenized = tokenizer(text, add_special_tokens=False)
+                if isinstance(tokenized, dict) and "input_ids" in tokenized:
+                    return list(tokenized["input_ids"])
+                if isinstance(tokenized, (list, tuple)):
+                    return list(tokenized)
+        except Exception:
+            pass
+    return [tok for tok in text.strip().split() if tok]
+
+
+def _completion_diversity_metrics(
+    grouped_completions: List[List[str]],
+    *,
+    tokenizer: Any = None,
+    accelerator: Any = None,
+) -> Dict[str, float]:
+    """Return coarse diversity metrics for grouped completions.
+
+    Metrics are averaged across prompt groups so each prompt contributes equally.
+    When running distributed, gathers group metrics across ranks.
+    """
+    if not grouped_completions:
+        return {}
+
+    def _distinct_n(tokens: List[Any], n: int) -> float:
+        if n <= 0 or len(tokens) < n:
+            return 0.0
+        total = len(tokens) - n + 1
+        if total <= 0:
+            return 0.0
+        ngrams = {tuple(tokens[i : i + n]) for i in range(total)}
+        return float(len(ngrams)) / float(total)
+
+    def _jaccard_distance(sets: List[set[Any]]) -> float:
+        if len(sets) < 2:
+            return 0.0
+        total_dist = 0.0
+        pairs = 0
+        for i in range(len(sets)):
+            for j in range(i + 1, len(sets)):
+                a = sets[i]
+                b = sets[j]
+                union = a | b
+                if not union:
+                    dist = 0.0
+                else:
+                    dist = 1.0 - (len(a & b) / float(len(union)))
+                total_dist += dist
+                pairs += 1
+        return total_dist / float(pairs) if pairs > 0 else 0.0
+
+    group_metrics: List[Dict[str, float]] = []
+    for group in grouped_completions:
+        if not group:
+            continue
+        normalized = [comp.strip() for comp in group if comp is not None]
+        group_size = len(normalized)
+        if group_size <= 0:
+            continue
+        all_tokens: List[Any] = []
+        token_sets: List[set[Any]] = []
+        for comp in normalized:
+            tokens = _tokenize_for_diversity(comp, tokenizer)
+            if tokens:
+                all_tokens.extend(tokens)
+                token_sets.append(set(tokens))
+            else:
+                token_sets.append(set())
+        group_metrics.append(
+            {
+                "group_size": float(group_size),
+                "distinct_1": _distinct_n(all_tokens, 1),
+                "distinct_2": _distinct_n(all_tokens, 2),
+                "jaccard": _jaccard_distance(token_sets),
+            }
+        )
+
+    if not group_metrics:
+        return {}
+
+    if accelerator is not None and getattr(accelerator, "num_processes", 1) > 1:
+        gather_fn = getattr(accelerator, "gather_object", None)
+        if callable(gather_fn):
+            try:
+                gathered = gather_fn(group_metrics)
+                if isinstance(gathered, list):
+                    merged: List[Dict[str, float]] = []
+                    for item in gathered:
+                        if isinstance(item, list):
+                            merged.extend(
+                                [m for m in item if isinstance(m, dict)]
+                            )
+                        elif isinstance(item, dict):
+                            merged.append(item)
+                    if merged:
+                        group_metrics = merged
+            except Exception:
+                pass
+        else:
+            dist = getattr(torch, "distributed", None)
+            if (
+                dist is not None
+                and callable(getattr(dist, "is_available", None))
+                and callable(getattr(dist, "is_initialized", None))
+                and dist.is_available()
+                and dist.is_initialized()
+            ):
+                try:
+                    world = int(getattr(dist, "get_world_size")())
+                except (TypeError, ValueError, RuntimeError):
+                    world = 0
+                if world > 1:
+                    try:
+                        gathered = [None for _ in range(world)]
+                        gather_obj = getattr(dist, "all_gather_object", None)
+                        if callable(gather_obj):
+                            gather_obj(gathered, group_metrics)
+                            merged: List[Dict[str, float]] = []
+                            for item in gathered:
+                                if isinstance(item, list):
+                                    merged.extend(
+                                        [m for m in item if isinstance(m, dict)]
+                                    )
+                                elif isinstance(item, dict):
+                                    merged.append(item)
+                            if merged:
+                                group_metrics = merged
+                    except (RuntimeError, ValueError, TypeError):
+                        pass
+
+    distinct1_vals = [m["distinct_1"] for m in group_metrics if "distinct_1" in m]
+    distinct2_vals = [m["distinct_2"] for m in group_metrics if "distinct_2" in m]
+    jaccard_vals = [m["jaccard"] for m in group_metrics if "jaccard" in m]
+    weights = [m.get("group_size", 0.0) for m in group_metrics]
+    return {
+        "distinct_1": _mean(distinct1_vals),
+        "distinct_2": _mean(distinct2_vals),
+        "jaccard": _mean(jaccard_vals),
+        "distinct_1_micro": _weighted_mean(distinct1_vals, weights),
+        "distinct_2_micro": _weighted_mean(distinct2_vals, weights),
+        "jaccard_micro": _weighted_mean(jaccard_vals, weights),
+    }
 
 
 def _dist_any_flag(accelerator: Any, flag: bool) -> bool:
@@ -371,8 +552,16 @@ def _maybe_apply_entropy_bonus(
     per_reward_values["policy_entropy_per_token"] = entropy_raw_vals
     per_reward_values["entropy_bonus"] = bonus_vals
     moments = RewardMoments(*reward_moments(new_total_utils, ctx.runtime.device))
+    training_args = getattr(ctx, "training_args", None)
+    scale_rewards = True
+    if training_args is not None:
+        scale_rewards = bool(getattr(training_args, "scale_rewards", True))
     advantage_stats = AdvantageStats(
-        *group_advantages(gen_batch.grouped_completions, new_total_utils)
+        *group_advantages(
+            gen_batch.grouped_completions,
+            new_total_utils,
+            scale_rewards=scale_rewards,
+        )
     )
     q_temperature = _resolve_weighting_value(ctx, "q_temperature", 1.0) or 1.0
     q_epsilon = _resolve_weighting_value(ctx, "q_epsilon", 1e-6) or 1e-6
@@ -445,6 +634,7 @@ class PreparedBatch:
     scores: SequenceScores
     seed_metrics: Optional[Dict[str, float]] = None
     seed_heatmap: Optional[Dict[str, Any]] = None
+    diversity_metrics: Optional[Dict[str, float]] = None
 
     @property
     def weight_stats(self) -> WeightStats:
@@ -543,36 +733,84 @@ def _behavior_logp_tensor_from_meta(
     :returns: Tensor of log-prob sums or ``None`` if unavailable.
     :rtype: torch.Tensor | None
     """
-    if not flat_meta or total_sequences <= 0:
+    if total_sequences <= 0:
         return None
-    if len(flat_meta) < total_sequences:
-        LOG.debug(
-            "Behavior log-prob metadata too short | meta_len=%d | sequences=%d",
-            len(flat_meta),
-            total_sequences,
-        )
+    fallback_vals: Optional[List[float]] = None
+    if template_tensor is not None:
+        try:
+            if isinstance(template_tensor, torch.Tensor):
+                fallback_vals = (
+                    template_tensor.detach().float().cpu().view(-1).tolist()
+                )
+            elif hasattr(template_tensor, "tolist"):
+                fallback_raw = template_tensor.tolist()
+                if isinstance(fallback_raw, list) and fallback_raw and isinstance(
+                    fallback_raw[0], list
+                ):
+                    fallback_raw = fallback_raw[0]
+                fallback_vals = [float(val) for val in fallback_raw]
+            else:
+                fallback_vals = [float(val) for val in list(template_tensor)]
+        except (TypeError, ValueError, RuntimeError):
+            fallback_vals = None
+    meta_len = len(flat_meta) if flat_meta else 0
+    if (not flat_meta or meta_len < total_sequences) and not fallback_vals:
+        if meta_len > 0:
+            LOG.debug(
+                "Behavior log-prob metadata too short | meta_len=%d | sequences=%d",
+                meta_len,
+                total_sequences,
+            )
         return None
     logprob_vals: List[float] = []
+    missing = 0
     for idx in range(total_sequences):
-        entry = flat_meta[idx]
+        entry = flat_meta[idx] if flat_meta and idx < meta_len else None
         if entry is None:
+            if fallback_vals is not None and idx < len(fallback_vals):
+                logprob_vals.append(float(fallback_vals[idx]))
+                missing += 1
+                continue
             LOG.debug("Behavior log-prob metadata missing entry at idx=%d", idx)
             return None
         logprob_sum = getattr(entry, "logprob_sum", None)
         if logprob_sum is None and isinstance(entry, dict):
             logprob_sum = entry.get("logprob_sum")
         if logprob_sum is None:
+            if fallback_vals is not None and idx < len(fallback_vals):
+                logprob_vals.append(float(fallback_vals[idx]))
+                missing += 1
+                continue
             LOG.debug("Behavior log-prob metadata missing logprob_sum at idx=%d", idx)
             return None
         try:
             logprob_vals.append(float(logprob_sum))
         except (TypeError, ValueError):
+            if fallback_vals is not None and idx < len(fallback_vals):
+                logprob_vals.append(float(fallback_vals[idx]))
+                missing += 1
+                continue
             LOG.debug(
                 "Behavior log-prob metadata has non-castable value at idx=%d: %s",
                 idx,
                 logprob_sum,
             )
             return None
+    if missing:
+        if not getattr(_behavior_logp_tensor_from_meta, "_warned_partial", False):
+            LOG.warning(
+                "Behavior log-prob metadata missing entries | missing_entries=%d/%d | "
+                "falling back to policy logprobs for missing entries.",
+                missing,
+                total_sequences,
+            )
+            setattr(_behavior_logp_tensor_from_meta, "_warned_partial", True)
+        else:
+            LOG.debug(
+                "Behavior log-prob metadata missing entries | missing_entries=%d/%d",
+                missing,
+                total_sequences,
+            )
     new_tensor = getattr(template_tensor, "new_tensor", None)
     tensor_obj: Optional[Tensor] = None
     if callable(new_tensor):
@@ -612,6 +850,138 @@ def _behavior_logp_tensor_from_meta(
         except (TypeError, ValueError, RuntimeError):
             LOG.debug("Failed to reshape logprob tensor to 1D.")
     return tensor_obj
+
+
+def _coerce_token_logprob_value(value: object) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, Mapping):
+        if "logprob" in value:
+            return _coerce_token_logprob_value(value.get("logprob"))
+        if "log_prob" in value:
+            return _coerce_token_logprob_value(value.get("log_prob"))
+        if len(value) == 1:
+            return _coerce_token_logprob_value(next(iter(value.values())))
+        return None
+    attr_val = getattr(value, "logprob", None)
+    if attr_val is not None:
+        return _coerce_token_logprob_value(attr_val)
+    return None
+
+
+def _extract_token_logprob_seq(entry: Optional[Any]) -> Optional[List[float]]:
+    if entry is None:
+        return None
+    token_logprobs = None
+    if isinstance(entry, Mapping):
+        token_logprobs = entry.get("token_logprobs") or entry.get("logprobs")
+        if isinstance(token_logprobs, Mapping):
+            token_logprobs = token_logprobs.get("token_logprobs") or token_logprobs.get(
+                "logprobs"
+            )
+    else:
+        token_logprobs = getattr(entry, "token_logprobs", None) or getattr(
+            entry, "logprobs", None
+        )
+    if token_logprobs is None:
+        return None
+    if isinstance(token_logprobs, (str, bytes, bytearray)):
+        return None
+    if not isinstance(token_logprobs, Iterable):
+        return None
+    cleaned: List[float] = []
+    for item in token_logprobs:
+        val = _coerce_token_logprob_value(item)
+        if val is None:
+            continue
+        cleaned.append(val)
+    return cleaned if cleaned else None
+
+
+def _token_logp_tensor_from_meta(
+    flat_meta: Optional[List[Optional[Any]]],
+    total_sequences: int,
+    token_mask: Optional[Tensor],
+    fallback_token_logp: Optional[Tensor],
+) -> Optional[Tensor]:
+    """Return per-token log-prob tensor derived from vLLM metadata when available."""
+    if total_sequences <= 0 or not flat_meta:
+        return None
+    meta_len = len(flat_meta)
+    if meta_len <= 0:
+        return None
+    target_len: Optional[int] = None
+    if token_mask is not None:
+        try:
+            target_len = int(getattr(token_mask, "shape", [0, 0])[1])
+        except (TypeError, ValueError, IndexError):
+            target_len = None
+    if target_len is None and fallback_token_logp is not None:
+        try:
+            target_len = int(getattr(fallback_token_logp, "shape", [0, 0])[1])
+        except (TypeError, ValueError, IndexError):
+            target_len = None
+    sequences: List[List[float]] = []
+    missing = 0
+    for idx in range(total_sequences):
+        entry = flat_meta[idx] if idx < meta_len else None
+        seq_vals = _extract_token_logprob_seq(entry)
+        if seq_vals is None:
+            if fallback_token_logp is not None:
+                try:
+                    row = fallback_token_logp[idx].detach().float().cpu().tolist()
+                    if isinstance(row, list):
+                        seq_vals = [float(val) for val in row]
+                    else:
+                        seq_vals = None
+                except (TypeError, ValueError, RuntimeError, AttributeError, IndexError):
+                    seq_vals = None
+            if seq_vals is None:
+                return None
+            missing += 1
+        if target_len is None:
+            target_len = max(len(seq_vals), 0)
+        sequences.append(seq_vals)
+    if target_len is None or target_len <= 0:
+        return None
+    aligned: List[List[float]] = []
+    for seq_vals in sequences:
+        seq_len = len(seq_vals)
+        if seq_len >= target_len:
+            aligned.append(seq_vals[-target_len:])
+        else:
+            pad = [0.0] * (target_len - seq_len)
+            aligned.append(pad + seq_vals)
+    if missing:
+        if not getattr(_token_logp_tensor_from_meta, "_warned_partial", False):
+            LOG.warning(
+                "Token logprob metadata missing entries | missing_entries=%d/%d | "
+                "falling back to policy token logprobs for missing rows.",
+                missing,
+                total_sequences,
+            )
+            setattr(_token_logp_tensor_from_meta, "_warned_partial", True)
+        else:
+            LOG.debug(
+                "Token logprob metadata missing entries | missing_entries=%d/%d",
+                missing,
+                total_sequences,
+            )
+    dtype = None
+    device = None
+    if isinstance(fallback_token_logp, torch.Tensor):
+        dtype = fallback_token_logp.dtype
+        device = fallback_token_logp.device
+    elif isinstance(token_mask, torch.Tensor):
+        device = token_mask.device
+    if dtype is None:
+        dtype = getattr(torch, "float32", None)
+    try:
+        return torch.tensor(aligned, dtype=dtype, device=device)
+    except (TypeError, ValueError, RuntimeError):
+        return None
 
 
 def _collect_batch_stats(
@@ -767,6 +1137,8 @@ def _collect_batch_stats(
                     score_batch_retry,
                     ctx.runtime,
                     batching_cfg_retry,
+                    trl_reference_scoring=trl_reference_scoring,
+                    temperature=ref_temperature,
                 )
                 LOG.debug(
                     "Retry reference gather result | slice_size=%s | chunk_size=%s | result=%s",
@@ -806,6 +1178,10 @@ def _collect_batch_stats(
             getattr(ctx, "settings", SimpleNamespace()), "generation", None
         )
     gen_cfg = cast(GenerationSettings, gen_cfg)
+    trl_reference_scoring = bool(
+        getattr(scoring_cfg, "trl_reference_scoring", False)
+    )
+    ref_temperature = getattr(gen_cfg, "gen_temperature", None)
     if score_batch is None:
         score_batch = build_score_batch(
             reward_comp,
@@ -849,14 +1225,19 @@ def _collect_batch_stats(
         completion_attention_mask.shape if completion_attention_mask is not None else None,
         getattr(score_batch, "pad_token_id", None),
     )
+    weighting_cfg = getattr(scoring_cfg, "weighting", None)
+    grpo_mode = bool(getattr(weighting_cfg, "train_grpo_objective", False))
     ref_meta = getattr(reward_comp, "ref_logprob_meta", None)
     ref_source = str(
         getattr(scoring_cfg, "reference_logprobs_source", "auto") or "auto"
     ).strip().lower()
+    if grpo_mode:
+        ref_source = "model"
+        ref_meta = None
     force_reference_model = ref_source in {"model", "reference_model", "ref_model", "reference"}
     ref_stats_source = "unknown"
     ref_meta_len = len(ref_meta) if ref_meta else 0
-    if ref_source in {"policy", "none"}:
+    if not grpo_mode and ref_source in {"policy", "none"}:
         ref_meta_len = 0
         if cur_logp_sum is not None:
             try:
@@ -879,7 +1260,7 @@ def _collect_batch_stats(
                 "reference scoring may fall back to reference model.",
                 ref_source,
             )
-    elif ref_meta_len and not force_reference_model:
+    elif not grpo_mode and ref_meta_len and not force_reference_model:
         # Prefer reconstructing from metadata; always make an initial attempt.
         ref_stats = _reference_stats_from_meta(
             ref_meta,
@@ -895,7 +1276,12 @@ def _collect_batch_stats(
             )
         if ref_stats is not None:
             ref_stats_source = "vllm_meta"
-    if ref_stats is None and not force_reference_model and cur_logp_sum is not None:
+    if (
+        not grpo_mode
+        and ref_stats is None
+        and not force_reference_model
+        and cur_logp_sum is not None
+    ):
         # Prefer policy logprobs over a reference-model pass when metadata is missing.
         try:
             tok_counts = token_counts_from_score_batch(
@@ -927,6 +1313,8 @@ def _collect_batch_stats(
                 score_batch,
                 ctx.runtime,
                 batching_cfg,
+                trl_reference_scoring=trl_reference_scoring,
+                temperature=ref_temperature,
             )
         except (RuntimeError, AssertionError) as exc:
             LOG.warning("Failed to gather reference logprobs: %s", exc)
@@ -1051,6 +1439,8 @@ def _collect_batch_stats(
                     single_score,
                     ctx.runtime,
                     single_batching,
+                    trl_reference_scoring=trl_reference_scoring,
+                    temperature=ref_temperature,
                 )
             except (RuntimeError, ValueError, TypeError, AssertionError):
                 LOG.warning("Forced minimal reference gather raised an exception; skipping.")
@@ -1063,7 +1453,7 @@ def _collect_batch_stats(
             if not _ref_stats_empty(forced):
                 ref_stats = forced
     if _ref_stats_empty(ref_stats) and last_ref_stats is not None:
-        allow_stale = bool(
+        allow_stale = False if grpo_mode else bool(
             getattr(scoring_cfg, "allow_stale_reference_logprobs", False)
         )
         if not allow_stale:
@@ -1134,9 +1524,10 @@ def _collect_batch_stats(
         ref_stats,
         weighting_cfg,
     )
+    grpo_mode = bool(getattr(weighting_cfg, "train_grpo_objective", False))
     fallback_enabled = bool(
         getattr(weighting_cfg, "allow_empty_weight_fallback", False)
-    )
+    ) and not grpo_mode
     if weight_stats is None or not getattr(weight_stats, "flat_weights", None):
         fallback_weights = None
         if fallback_enabled:
@@ -1150,9 +1541,14 @@ def _collect_batch_stats(
         if fallback_weights is not None:
             weight_stats = fallback_weights
         else:
-            LOG.error(
-                "MaxEnt weighting returned no samples; check reward outputs, `maxent_tau`, or `maxent_q_temperature`."
-            )
+            if grpo_mode:
+                LOG.error(
+                    "GRPO weighting returned no samples; check reward outputs or scale_rewards."
+                )
+            else:
+                LOG.error(
+                    "MaxEnt weighting returned no samples; check reward outputs, `maxent_tau`, or `maxent_q_temperature`."
+                )
             return None
     LOG.debug(
         "Weight stats ready | entropy=%.4f",
@@ -1203,12 +1599,24 @@ def prepare_training_batch(
         if retry_limit <= 0:
             retry_limit = ctx.optimization.schedule.num_generations
         rank_tag = _rank_tag(getattr(ctx.runtime, "accelerator", None))
+        accelerator = getattr(ctx.runtime, "accelerator", None)
+        is_main = bool(getattr(accelerator, "is_main_process", True))
+        progress_log = _progress_log_enabled()
         LOG.debug(
             "Preparing training batch | %s | prompts=%d | retry_limit=%d",
             rank_tag,
             len(batch.get("prompt", [])),
             retry_limit,
         )
+        gen_start = time.monotonic()
+        if progress_log and is_main:
+            LOG.info(
+                "Stage generation start | %s | prompts=%d | num_generations=%d | retry_limit=%d",
+                rank_tag,
+                len(batch.get("prompt", [])),
+                ctx.optimization.schedule.num_generations,
+                retry_limit,
+            )
         try:
             gen_batch = _require_artifact(
                 prepare_generation_batch(
@@ -1241,6 +1649,12 @@ def prepare_training_batch(
         min_group = min((len(group) for group in grouped), default=0)
         max_group = max((len(group) for group in grouped), default=0)
         avg_group = total_comps / max(group_count, 1)
+        runtime_tokenizer = getattr(ctx.runtime, "tokenizer", None)
+        diversity_metrics = _completion_diversity_metrics(
+            grouped,
+            tokenizer=runtime_tokenizer if callable(runtime_tokenizer) else None,
+            accelerator=accelerator,
+        )
         LOG.debug(
             "Generation complete | %s | grouped_prompts=%d | total_completions=%d | empty_groups=%d | min_group=%d | max_group=%d | avg_group_size=%.2f",
             rank_tag,
@@ -1251,12 +1665,31 @@ def prepare_training_batch(
             max_group,
             avg_group,
         )
+        if progress_log and is_main:
+            LOG.info(
+                "Stage generation done | %s | grouped_prompts=%d | total_completions=%d | seconds=%.2f",
+                rank_tag,
+                group_count,
+                total_comps,
+                time.monotonic() - gen_start,
+            )
         q_temperature = _resolve_weighting_value(ctx, "q_temperature", 1.0)
         if q_temperature is None:
             q_temperature = 1.0
         q_epsilon = _resolve_weighting_value(ctx, "q_epsilon", 1e-6)
         if q_epsilon is None:
             q_epsilon = 1e-6
+        reward_start = time.monotonic()
+        if progress_log and is_main:
+            LOG.info(
+                "Stage reward stats start | %s | completions=%d",
+                rank_tag,
+                total_comps,
+            )
+        training_args = getattr(ctx, "training_args", None)
+        scale_rewards = True
+        if training_args is not None:
+            scale_rewards = bool(getattr(training_args, "scale_rewards", True))
         reward_comp = _require_artifact(
             compute_reward_statistics(
                 gen_batch,
@@ -1266,6 +1699,7 @@ def prepare_training_batch(
                 q_epsilon,
                 _resolve_weighting_value(ctx, "beta"),
                 _resolve_weighting_value(ctx, "tau"),
+                scale_rewards=scale_rewards,
             ),
             stage="reward_stats",
         )
@@ -1278,7 +1712,14 @@ def prepare_training_batch(
             reward_mean,
             reward_std,
         )
-        runtime_tokenizer = getattr(ctx.runtime, "tokenizer", None)
+        if progress_log and is_main:
+            LOG.info(
+                "Stage reward stats done | %s | reward_mean=%.4f | reward_std=%.4f | seconds=%.2f",
+                rank_tag,
+                reward_mean,
+                reward_std,
+                time.monotonic() - reward_start,
+            )
         if not callable(runtime_tokenizer):
             # Unit tests often stub `ctx.runtime.tokenizer`; preserve the previous
             # control-flow by letting `_collect_batch_stats` supply the ScoreBatch.
@@ -1340,6 +1781,16 @@ def prepare_training_batch(
         )
         return_entropy = bool(getattr(ctx.scoring, "policy_entropy", False))
         entropy_mode = getattr(ctx.scoring, "policy_entropy_mode", "exact")
+        return_token_logp = bool(
+            getattr(getattr(ctx.scoring, "weighting", None), "train_grpo_objective", False)
+        )
+        score_start = time.monotonic()
+        if progress_log and is_main:
+            LOG.info(
+                "Stage policy scoring start | %s | total_sequences=%d",
+                rank_tag,
+                getattr(score_batch, "total_sequences", 0),
+            )
         try:
             cur_logp_result = _require_artifact(
                 score_model_outputs(
@@ -1351,6 +1802,7 @@ def prepare_training_batch(
                     pooling=getattr(ctx.scoring, "info_seed_pooling", "mean"),
                     return_entropy=return_entropy,
                     entropy_mode=entropy_mode,
+                    return_token_logp=return_token_logp,
                 ),
                 stage="policy_scoring",
             )
@@ -1374,12 +1826,40 @@ def prepare_training_batch(
             rank_tag,
             getattr(logprob_tensor, "shape", None),
         )
+        if progress_log and is_main:
+            LOG.info(
+                "Stage policy scoring done | %s | logprob_shape=%s | seconds=%.2f",
+                rank_tag,
+                getattr(logprob_tensor, "shape", None),
+                time.monotonic() - score_start,
+            )
         policy_entropy_sum = None
+        token_logp = None
+        token_mask = None
         if isinstance(cur_logp_result, tuple):
-            if len(cur_logp_result) >= 3:
-                cur_logp_sum, pooled_hidden, policy_entropy_sum = cur_logp_result
+            if return_entropy:
+                if return_token_logp and len(cur_logp_result) >= 5:
+                    (
+                        cur_logp_sum,
+                        pooled_hidden,
+                        policy_entropy_sum,
+                        token_logp,
+                        token_mask,
+                    ) = cur_logp_result
+                elif len(cur_logp_result) >= 3:
+                    cur_logp_sum, pooled_hidden, policy_entropy_sum = cur_logp_result[:3]
+                else:
+                    cur_logp_sum, pooled_hidden = cur_logp_result[:2]
             else:
-                cur_logp_sum, pooled_hidden = cur_logp_result
+                if return_token_logp and len(cur_logp_result) >= 4:
+                    (
+                        cur_logp_sum,
+                        pooled_hidden,
+                        token_logp,
+                        token_mask,
+                    ) = cur_logp_result
+                else:
+                    cur_logp_sum, pooled_hidden = cur_logp_result[:2]
         else:
             cur_logp_sum, pooled_hidden = cur_logp_result, None
         if callable(runtime_tokenizer):
@@ -1401,11 +1881,25 @@ def prepare_training_batch(
                 stats.prompt_token_count,
                 stats.num_completion_tokens,
             )
-        behavior_tensor = _behavior_logp_tensor_from_meta(
-            getattr(reward_comp, "ref_logprob_meta", None),
-            stats.score_batch.total_sequences,
-            cur_logp_sum,
-        )
+        behavior_source = str(
+            getattr(ctx.scoring, "behavior_logprobs_source", "model") or "model"
+        ).strip().lower()
+        use_vllm_behavior = behavior_source in {"vllm", "metadata", "meta"}
+        behavior_tensor = None
+        if use_vllm_behavior:
+            behavior_tensor = _behavior_logp_tensor_from_meta(
+                getattr(reward_comp, "ref_logprob_meta", None),
+                stats.score_batch.total_sequences,
+                cur_logp_sum,
+            )
+        old_token_logp = None
+        if return_token_logp and use_vllm_behavior:
+            old_token_logp = _token_logp_tensor_from_meta(
+                getattr(reward_comp, "ref_logprob_meta", None),
+                stats.score_batch.total_sequences,
+                token_mask,
+                token_logp,
+            )
         try:
             scores = build_sequence_scores(
                 cur_logp_sum,
@@ -1413,6 +1907,9 @@ def prepare_training_batch(
                 pooled_hidden,
                 behavior_logp_sum=behavior_tensor,
                 policy_entropy_sum=policy_entropy_sum,
+                token_logp=token_logp,
+                token_mask=token_mask,
+                old_token_logp=old_token_logp,
             )
         except TypeError:
             if behavior_tensor is not None:
@@ -1632,6 +2129,7 @@ def prepare_training_batch(
             scores=scores,
             seed_metrics=seed_metrics or None,
             seed_heatmap=seed_heatmap,
+            diversity_metrics=diversity_metrics or None,
         )
     except _SkipBatch as exc:
         skip_stage = getattr(exc, "stage", "unknown")

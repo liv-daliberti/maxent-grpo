@@ -36,7 +36,7 @@ system_prompt: |
   Respond in exactly this tag-based format. No text outside the tags.
   Put the final answer inside <answer> only. Use exact math (fractions, radicals, pi, e).
   Verify the result satisfies the original conditions.
-bf16: false
+bf16: true
 use_vllm: true
 vllm_mode: colocate
 do_eval: false
@@ -60,7 +60,7 @@ logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_prompt_length: 450
-max_completion_length: 750
+max_completion_length: 650
 max_steps: -1
 num_generations: 4
 num_train_epochs: 3

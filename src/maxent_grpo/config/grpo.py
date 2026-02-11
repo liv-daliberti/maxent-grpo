@@ -95,6 +95,7 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_policy_entropy_mode: Which entropy estimator to use ("exact" or "sample").
     :ivar policy_entropy_bonus_coef: Coefficient applied to per-token policy entropy
         when adding an entropy bonus to rewards (GRPO + entropy bonus).
+    :ivar behavior_logprobs_source: Source for behavior-policy log-probs used in PPO ratios.
     :ivar maxent_target_weight_entropy: Target weight entropy for automatic tau tuning.
     :ivar maxent_target_weight_entropy_start: Optional starting entropy target for annealing.
     :ivar maxent_target_weight_entropy_final: Optional final entropy target for annealing.
@@ -107,11 +108,15 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_clip_objective_coef: Scale for the clipped objective component.
     :ivar maxent_clip_adv_baseline: Baseline subtracted before clipping.
     :ivar train_grpo_objective: Disable MaxEnt weighting and run the standard GRPO objective.
+    :ivar scale_rewards: Whether to scale GRPO advantages by group std (TRL default).
     :ivar maxent_clip_range: Override PPO clip range for the MaxEnt objective.
     :ivar kl_target: Target KL value for automatic beta adjustment.
     :ivar kl_horizon: Horizon in optimizer steps for the beta controller.
     :ivar kl_ctl_step_size: Maximum fractional beta change per controller step.
     :ivar clip_range: PPO clip range used for clipping ratios in the custom loop.
+    :ivar clip_range_high: Upper PPO clip range (epsilon_high) for asymmetric clipping.
+    :ivar clip_delta: Optional additional slack for two-sided clipping.
+    :ivar grpo_loss_type: GRPO loss aggregation ("grpo", "bnpo", or "dr_grpo").
     :ivar gen_temperature: Temperature used for candidate generation.
     :ivar gen_top_p: Top-p nucleus sampling used for generation.
     :ivar vllm_mode: vLLM backend mode ("server" or "colocate").
@@ -310,6 +315,26 @@ class GRPOConfig(trl.GRPOConfig):
                 "'model' always scores with the frozen reference model; "
                 "'policy' always uses policy logprobs (no reference model); "
                 "'none' is an alias for 'policy'."
+            )
+        },
+    )
+    maxent_trl_reference_scoring: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "When enabled, use TRL/open-r1-style reference scoring (always run the frozen "
+                "reference model, logits_to_keep + selective_log_softmax, temperature scaling) "
+                "and disable vLLM/policy fallbacks."
+            )
+        },
+    )
+    behavior_logprobs_source: str = field(
+        default="model",
+        metadata={
+            "help": (
+                "Source for behavior-policy log-probs used in PPO ratios: "
+                "'model' uses HF forward-pass log-probs (TRL-style); "
+                "'vllm' uses vLLM metadata when available."
             )
         },
     )
@@ -587,6 +612,16 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    if not isinstance(_base_fields, dict) or "scale_rewards" not in _base_fields:
+        scale_rewards: bool = field(
+            default=True,
+            metadata={
+                "help": (
+                    "Whether to divide group advantages by their standard deviation "
+                    "(mirrors TRL's scale_rewards behavior)."
+                )
+            },
+        )
     force_custom_loop: bool = field(
         default=False,
         metadata={
@@ -616,6 +651,28 @@ class GRPOConfig(trl.GRPOConfig):
     clip_range: float = field(
         default=_BASE_CLIP_RANGE_DEFAULT,
         metadata={"help": "PPO clip range used for clipping ratios in the custom loop."},
+    )
+    clip_range_high: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Upper PPO clip range (epsilon_high). Defaults to clip_range when unset."
+            )
+        },
+    )
+    clip_delta: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional additional slack applied to both clip bounds (two-sided clipping)."
+            )
+        },
+    )
+    grpo_loss_type: str = field(
+        default="bnpo",
+        metadata={
+            "help": "GRPO loss aggregation: 'grpo', 'bnpo', or 'dr_grpo'."
+        },
     )
     info_seed_enabled: bool = field(
         default=False,
@@ -861,6 +918,7 @@ class GRPOConfig(trl.GRPOConfig):
     )
 
     def __post_init__(self) -> None:
+        is_grpo = bool(getattr(self, "train_grpo_objective", False))
         orig_num_generations = getattr(self, "num_generations", None)
         base_post_init: Optional[Callable[[], None]] = getattr(
             super(), "__post_init__", None
@@ -876,6 +934,9 @@ class GRPOConfig(trl.GRPOConfig):
                     "Skipping base __post_init__ (dependency unavailable): %s", exc
                 )
             except ValueError as err:
+                if is_grpo:
+                    # For GRPO runs, preserve TRL's validation behavior without overrides.
+                    raise
                 # Be tolerant of TRL validation errors related to tiny batch sizes
                 # during unit tests. If the error message references generation
                 # divisibility, adjust num_generations down to 1 and continue.
@@ -897,6 +958,38 @@ class GRPOConfig(trl.GRPOConfig):
                     finally:
                         if orig_num_generations is not None:
                             self.num_generations = orig_num_generations
+                elif "generation_batch_size" in msg and "steps_per_generation" in msg:
+                    gen_bs = getattr(self, "generation_batch_size", None)
+                    steps = getattr(self, "steps_per_generation", None)
+                    cleared_attr = None
+                    if gen_bs is not None and steps is not None:
+                        try:
+                            gen_bs_val = int(gen_bs)
+                        except (TypeError, ValueError):
+                            gen_bs_val = None
+                        try:
+                            steps_val = int(steps)
+                        except (TypeError, ValueError):
+                            steps_val = None
+                        if gen_bs_val is None or gen_bs_val <= 0:
+                            setattr(self, "generation_batch_size", None)
+                            cleared_attr = "generation_batch_size"
+                        else:
+                            setattr(self, "steps_per_generation", None)
+                            cleared_attr = "steps_per_generation"
+                    try:
+                        base_post_init()
+                    except ValueError as exc:
+                        LOG.warning(
+                            "Base __post_init__ still failing after generation config override: %s",
+                            exc,
+                        )
+                    else:
+                        if cleared_attr is not None:
+                            LOG.warning(
+                                "Cleared %s to resolve TRL config conflict: generation_batch_size vs steps_per_generation.",
+                                cleared_attr,
+                            )
                 elif "IntervalStrategy" in msg and not isinstance(
                     getattr(self, "eval_strategy", None), str
                 ):
@@ -913,6 +1006,24 @@ class GRPOConfig(trl.GRPOConfig):
         if vllm_mode not in {"server", "colocate"}:
             raise ValueError("vllm_mode must be one of: server, colocate")
         setattr(self, "vllm_mode", vllm_mode)
+        loss_type = str(getattr(self, "grpo_loss_type", "") or "").strip().lower()
+        base_loss_type = getattr(self, "loss_type", None)
+        if not loss_type and base_loss_type is not None:
+            loss_type = str(base_loss_type or "").strip().lower()
+        if not loss_type:
+            loss_type = "bnpo"
+        if loss_type not in {"grpo", "bnpo", "dr_grpo"}:
+            LOG.warning(
+                "Unknown grpo_loss_type=%s; defaulting to 'bnpo'.",
+                loss_type,
+            )
+            loss_type = "bnpo"
+        setattr(self, "grpo_loss_type", loss_type)
+        if base_loss_type is None or str(base_loss_type).strip() == "":
+            try:
+                setattr(self, "loss_type", loss_type)
+            except Exception:
+                pass
         vllm_url = getattr(self, "vllm_url", None)
         if isinstance(vllm_url, str):
             normalized = vllm_url.strip()
@@ -1040,6 +1151,24 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError(
                 "maxent_reference_logprobs_source must be one of: auto, model, policy, none"
             )
+        behavior_source = (
+            str(getattr(self, "behavior_logprobs_source", "model") or "model")
+            .strip()
+            .lower()
+        )
+        if behavior_source in {"metadata", "meta"}:
+            behavior_source = "vllm"
+        if behavior_source not in {"model", "vllm"}:
+            raise ValueError(
+                "behavior_logprobs_source must be one of: model, vllm"
+            )
+        setattr(self, "behavior_logprobs_source", behavior_source)
+        clip_range_high = getattr(self, "clip_range_high", None)
+        if clip_range_high is not None and clip_range_high < 0.0:
+            raise ValueError("clip_range_high must be non-negative when set")
+        clip_delta = getattr(self, "clip_delta", None)
+        if clip_delta is not None and clip_delta < 0.0:
+            raise ValueError("clip_delta must be non-negative when set")
         if (
             self.maxent_score_tail_tokens is not None
             and self.maxent_score_tail_tokens <= 0

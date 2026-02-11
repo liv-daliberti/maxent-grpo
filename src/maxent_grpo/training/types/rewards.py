@@ -183,6 +183,8 @@ class ReferenceLogprobs:
     ref_logp_sum_raw: Tensor
     ref_logp_mean: float
     avg_completion_tokens: float
+    ref_token_logp: Optional[Tensor] = None
+    ref_token_mask: Optional[Tensor] = None
 
 
 @dataclass

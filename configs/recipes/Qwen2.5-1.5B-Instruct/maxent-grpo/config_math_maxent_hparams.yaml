@@ -126,7 +126,7 @@ logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_prompt_length: 2096
-max_completion_length: 3000
+max_completion_length: 2900
 max_steps: 2000
 num_generations: 16
 num_train_epochs: 5

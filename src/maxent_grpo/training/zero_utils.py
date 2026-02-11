@@ -22,6 +22,7 @@ import logging
 import numbers
 import sys
 from contextlib import contextmanager, nullcontext
+import importlib
 from types import SimpleNamespace
 from typing import (
     Any,
@@ -112,6 +113,7 @@ else:  # pragma: no cover - runtime uses optional stubs
 ds_zero = None
 ZeroParamStatus = None
 _DEEPSPEED_READY: Optional[bool] = None
+_DEEPSPEED_ENGINE_CLS: Optional[type] = None
 
 
 def _ensure_deepspeed_ready() -> bool:
@@ -144,6 +146,35 @@ def _ensure_deepspeed_ready() -> bool:
     is_ready = bool(ds_zero_mod is not None and zero_status is not None)
     setattr(module, "_DEEPSPEED_READY", is_ready)
     return is_ready
+
+
+def _deepspeed_engine_cls() -> Optional[type]:
+    """Return the DeepSpeedEngine class when available."""
+    module = sys.modules[__name__]
+    cached = getattr(module, "_DEEPSPEED_ENGINE_CLS", None)
+    if cached is not None:
+        return cached
+    try:
+        from deepspeed.runtime.engine import DeepSpeedEngine
+    except (ImportError, ModuleNotFoundError):
+        setattr(module, "_DEEPSPEED_ENGINE_CLS", None)
+        return None
+    setattr(module, "_DEEPSPEED_ENGINE_CLS", DeepSpeedEngine)
+    return DeepSpeedEngine
+
+
+def _is_deepspeed_engine(model: Optional[object]) -> bool:
+    """Return True when the provided model is a DeepSpeed engine."""
+    if model is None:
+        return False
+    engine_cls = _deepspeed_engine_cls()
+    if engine_cls is not None and isinstance(model, engine_cls):
+        return True
+    # Heuristic fallback: DeepSpeed engine exposes zero_optimization_stage()
+    zero_stage = getattr(model, "zero_optimization_stage", None)
+    if callable(zero_stage):
+        return True
+    return False
 
 
 LOG = logging.getLogger(__name__)
@@ -262,21 +293,90 @@ def _embedding_weight_needing_gather(
     """
     if not _ensure_deepspeed_ready() or model is None:
         return None
+    if _is_deepspeed_engine(model):
+        return None
     base_model = getattr(model, "module", model)
     embedder = getattr(base_model, "get_input_embeddings", lambda: None)()
     weight = getattr(embedder, "weight", None) if embedder is not None else None
     if weight is None:
         return None
+    status = getattr(weight, "ds_status", None)
+    if status is not None:
+        available = getattr(ZeroParamStatus, "AVAILABLE", None)
+        if available is not None:
+            return None if status == available else weight
+        status_name = getattr(status, "name", None)
+        if isinstance(status_name, str):
+            return None if status_name.upper() == "AVAILABLE" else weight
+        if isinstance(status, str):
+            return None if status.upper() == "AVAILABLE" else weight
     if getattr(weight, "ndim", 2) == 2:
         return None
-    status = getattr(weight, "ds_status", None)
-    if (
-        status is not None
-        and ZeroParamStatus is not None
-        and status != ZeroParamStatus.NOT_AVAILABLE
-    ):
-        return None
     return weight
+
+
+def _embedding_weights_needing_gather(
+    model: Optional[PreTrainedModel],
+) -> List[TorchParameter]:
+    """Return all embedding-like weights requiring ZeRO gathering."""
+    if model is None:
+        return []
+    if _is_deepspeed_engine(model):
+        return []
+    base_model = getattr(model, "module", model)
+    modules: list[object] = []
+    try:
+        modules.append(getattr(base_model, "embed_tokens", None))
+    except Exception:
+        pass
+    try:
+        get_inp = getattr(base_model, "get_input_embeddings", None)
+        if callable(get_inp):
+            modules.append(get_inp())
+    except Exception:
+        pass
+    try:
+        get_out = getattr(base_model, "get_output_embeddings", None)
+        if callable(get_out):
+            modules.append(get_out())
+    except Exception:
+        pass
+    try:
+        modules.append(getattr(base_model, "lm_head", None))
+    except Exception:
+        pass
+
+    weights: List[TorchParameter] = []
+    seen: set[int] = set()
+    for module in modules:
+        if module is None:
+            continue
+        weight = getattr(module, "weight", None)
+        if weight is None:
+            continue
+        weight_id = id(weight)
+        if weight_id in seen:
+            continue
+        seen.add(weight_id)
+        status = getattr(weight, "ds_status", None)
+        if status is not None:
+            available = getattr(ZeroParamStatus, "AVAILABLE", None)
+            if available is not None:
+                if status != available:
+                    weights.append(weight)
+                continue
+            status_name = getattr(status, "name", None)
+            if isinstance(status_name, str):
+                if status_name.upper() != "AVAILABLE":
+                    weights.append(weight)
+                continue
+            if isinstance(status, str):
+                if status.upper() != "AVAILABLE":
+                    weights.append(weight)
+                continue
+        if getattr(weight, "ndim", 2) != 2:
+            weights.append(weight)
+    return weights
 
 
 def _gather_callable() -> Optional[GatherCallable]:
@@ -304,6 +404,54 @@ def _call_gather_fn(
 
 
 @contextmanager
+def _disable_hf_deepspeed_zero3_init() -> Iterator[None]:
+    """Temporarily disable HF DeepSpeed ZeRO-3 init for model loading.
+
+    When Accelerate enables DeepSpeed, ``transformers`` installs a global
+    ``hf_deepspeed_config`` that causes subsequent ``from_pretrained`` calls
+    to create partitioned (1-D) parameters. Reference models loaded under
+    that global config are not wrapped by the DeepSpeed engine and cannot run
+    forward passes. Clearing the global config inside this context forces
+    full-parameter initialization for the reference model.
+    """
+
+    modules: list[tuple[Any, str, Any]] = []
+    for module_name in (
+        "transformers.deepspeed",
+        "transformers.integrations.deepspeed",
+    ):
+        try:
+            mod = importlib.import_module(module_name)
+        except (ImportError, ModuleNotFoundError):
+            continue
+        for attr in ("hf_deepspeed_config", "_hf_deepspeed_config_weak_ref"):
+            if hasattr(mod, attr):
+                modules.append((mod, attr, getattr(mod, attr)))
+        unset_fn = getattr(mod, "unset_hf_deepspeed_config", None)
+        if callable(unset_fn):
+            try:
+                unset_fn()
+            except (AttributeError, TypeError, RuntimeError, ValueError):
+                pass
+    if not modules:
+        yield
+        return
+    try:
+        for mod, attr, _value in modules:
+            try:
+                setattr(mod, attr, None)
+            except (AttributeError, TypeError):
+                pass
+        yield
+    finally:
+        for mod, attr, value in modules:
+            try:
+                setattr(mod, attr, value)
+            except (AttributeError, TypeError):
+                pass
+
+
+@contextmanager
 def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]) -> Iterator[None]:
     """Gather ZeRO-sharded embedding weights before a forward pass.
 
@@ -315,16 +463,19 @@ def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]) -> Iterator[N
     if not _ensure_deepspeed_ready() or ds_zero is None:
         yield
         return
+    if _is_deepspeed_engine(model):
+        yield
+        return
     maybe_gather = _gather_callable()
     if maybe_gather is None:
         yield
         return
     gather_fn: GatherCallable = maybe_gather
-    weight = _embedding_weight_needing_gather(model)
-    if weight is None:
+    weights = _embedding_weights_needing_gather(model)
+    if not weights:
         yield
         return
-    gather_ctx = _call_gather_fn(gather_fn, [weight], modifier_rank=None)
+    gather_ctx = _call_gather_fn(gather_fn, weights, modifier_rank=None)
     with gather_ctx:
         yield
 
@@ -349,17 +500,28 @@ def _zero_param_list(model: Optional[TorchModule]) -> List[TorchParameter]:
 
 
 @contextmanager
-def _maybe_zero_gather_params(model: Optional[TorchModule], enabled: bool) -> Iterator[None]:
+def _maybe_zero_gather_params(
+    model: Optional[TorchModule],
+    enabled: bool,
+    gather_all_ranks: bool = False,
+) -> Iterator[None]:
     """Gather ZeRO-partitioned params only when needed.
 
     :param model: Module whose parameters might be partitioned.
     :type model: torch.nn.Module | None
     :param enabled: Whether gathering should be attempted.
     :type enabled: bool
+    :param gather_all_ranks: When True, gather parameters on every rank (avoid
+        modifier-rank-only gathers).
+    :type gather_all_ranks: bool
     :returns: Context manager yielding with parameters gathered when necessary.
     :rtype: contextlib.AbstractContextManager[None]
     """
     if not enabled or model is None or not _ensure_deepspeed_ready() or ds_zero is None:
+        yield
+        return
+    if _is_deepspeed_engine(model):
+        # DeepSpeed engines already manage parameter partitioning; avoid nested GatheredParameters.
         yield
         return
     maybe_gather = _gather_callable()
@@ -388,12 +550,15 @@ def _maybe_zero_gather_params(model: Optional[TorchModule], enabled: bool) -> It
                         empty_cache()
             except (AttributeError, RuntimeError, TypeError):
                 pass
-    gather_ctx = _call_gather_fn(gather_fn, gather_params, modifier_rank=0)
+    modifier_rank = None if gather_all_ranks else 0
+    gather_ctx = _call_gather_fn(gather_fn, gather_params, modifier_rank=modifier_rank)
     with gather_ctx:
         yield
 
 
 __all__ = [
+    "_disable_hf_deepspeed_zero3_init",
+    "_is_deepspeed_engine",
     "_maybe_zero_gather_embedding",
     "_maybe_zero_gather_params",
     "_maybe_patch_zero_no_sync",

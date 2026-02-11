@@ -544,15 +544,41 @@ def _vllm_colocate_worker(conn: Any) -> None:
         _send_log("worker env override | RANK=0 WORLD_SIZE=1 LOCAL_RANK=0 SLURM_LOCALID=0")
 
         # If a specific CUDA device was requested, remap visibility *before*
-        # any torch import so the worker sees only that GPU.
+        # any torch import so the worker sees the requested GPU. By default we
+        # append to existing CUDA_VISIBLE_DEVICES to preserve training ordinals
+        # (needed for CUDA IPC during weight sync).
         device = llm_kwargs.get("device")
         if isinstance(device, str) and device.startswith("cuda:"):
             idx = device.split(":", 1)[1]
             if idx.isdigit():
-                os.environ["CUDA_VISIBLE_DEVICES"] = idx
-                llm_kwargs = dict(llm_kwargs)
-                llm_kwargs["device"] = "cuda:0"
-                _send_log(f"worker CUDA remap | CUDA_VISIBLE_DEVICES={idx} device=cuda:0")
+                remap = _env_bool("MAXENT_VLLM_COLOCATE_REMAP_DEVICE")
+                if remap is None:
+                    remap = True
+                if remap:
+                    visible = os.getenv("CUDA_VISIBLE_DEVICES", "")
+                    visible = visible.strip()
+                    tokens = []
+                    if visible and visible.lower() != "none":
+                        tokens = [tok.strip() for tok in visible.split(",") if tok.strip()]
+                    if idx not in tokens:
+                        tokens.append(idx)
+                    if tokens:
+                        os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(tokens)
+                        new_ord = tokens.index(idx)
+                    else:
+                        os.environ["CUDA_VISIBLE_DEVICES"] = idx
+                        new_ord = 0
+                    llm_kwargs = dict(llm_kwargs)
+                    llm_kwargs["device"] = f"cuda:{new_ord}"
+                    _send_log(
+                        "worker CUDA remap | CUDA_VISIBLE_DEVICES=%s device=cuda:%s (orig=%s)"
+                        % (os.getenv("CUDA_VISIBLE_DEVICES"), new_ord, idx)
+                    )
+                else:
+                    _send_log(
+                        "worker CUDA remap skipped | device=%s CUDA_VISIBLE_DEVICES=%s"
+                        % (device, os.getenv("CUDA_VISIBLE_DEVICES"))
+                    )
         master_addr = os.getenv("MAXENT_VLLM_COLOCATE_MASTER_ADDR") or "127.0.0.1"
         master_port = os.getenv("MAXENT_VLLM_COLOCATE_MASTER_PORT")
         if not master_port:
@@ -756,6 +782,39 @@ class ColocateVLLMEngine:
         self._sync_client: Optional["ColocateVLLMClient"] = None
         self._param_index: Optional[Dict[str, Any]] = None
         self._missing_params: set[str] = set()
+
+    def _local_fallback_allowed(self) -> bool:
+        """Return True if local fallback generation is allowed."""
+        raw = os.getenv("MAXENT_VLLM_DISABLE_LOCAL_FALLBACK")
+        if isinstance(raw, str) and raw.strip().lower() in {"1", "true", "yes", "on"}:
+            return False
+        if bool(getattr(self.ctx, "vllm_disable_local_fallback", False)):
+            return False
+        return True
+
+    def _fallback_or_raise(
+        self,
+        truncated: List[str],
+        request_count: int,
+        reason: Exception | str,
+    ) -> Tuple[
+        Optional[List[List[str]]],
+        Optional[List[List[Optional[VLLMLogprobResult]]]],
+    ]:
+        if self._resolve_init_mode() == "subprocess":
+            try:
+                self._shutdown_worker()
+            except Exception:
+                pass
+        if self._local_fallback_allowed():
+            LOG.warning(
+                "vLLM colocate generate failed (%s); falling back to local generation.",
+                reason,
+            )
+            return self._fallback_generate(truncated, request_count, None)
+        raise RuntimeError(
+            f"vLLM colocate generate failed and local fallback disabled: {reason}"
+        )
 
     def _resolve_init_mode(self) -> str:
         mode = _init_mode()
@@ -1306,8 +1365,7 @@ class ColocateVLLMEngine:
                 self._ensure_worker()
                 params_kwargs = self._build_sampling_params_kwargs(request_count)
             except Exception as exc:
-                LOG.warning("vLLM colocate unavailable (%s); falling back to local generation.", exc)
-                return self._fallback_generate(truncated, request_count, None)
+                return self._fallback_or_raise(truncated, request_count, exc)
 
             start = time.time()
             try:
@@ -1334,11 +1392,7 @@ class ColocateVLLMEngine:
                 grouped = resp.get("grouped") or []
                 grouped_meta = _coerce_logprob_payload(resp.get("meta"))
             except Exception as exc:
-                LOG.warning(
-                    "vLLM colocate generate failed (%s); falling back to local generation.",
-                    exc,
-                )
-                return self._fallback_generate(truncated, request_count, None)
+                return self._fallback_or_raise(truncated, request_count, exc)
             latency_ms = (time.time() - start) * 1000.0
             LOG.info("vLLM colocate generate done | latency_ms=%.2f", latency_ms)
             self._record_latency(latency_ms)
@@ -1347,8 +1401,7 @@ class ColocateVLLMEngine:
                 llm = self._get_llm()
                 params = self._build_sampling_params(request_count)
             except Exception as exc:
-                LOG.warning("vLLM colocate unavailable (%s); falling back to local generation.", exc)
-                return self._fallback_generate(truncated, request_count, None)
+                return self._fallback_or_raise(truncated, request_count, exc)
 
             start = time.time()
             try:
@@ -1361,11 +1414,7 @@ class ColocateVLLMEngine:
                 grouped, grouped_meta_payload = _outputs_to_payload(outputs, request_logprobs)
                 grouped_meta = _coerce_logprob_payload(grouped_meta_payload)
             except Exception as exc:
-                LOG.warning(
-                    "vLLM colocate generate failed (%s); falling back to local generation.",
-                    exc,
-                )
-                return self._fallback_generate(truncated, request_count, None)
+                return self._fallback_or_raise(truncated, request_count, exc)
             latency_ms = (time.time() - start) * 1000.0
             LOG.info("vLLM colocate generate done | latency_ms=%.2f", latency_ms)
             self._record_latency(latency_ms)
@@ -1376,7 +1425,11 @@ class ColocateVLLMEngine:
                 len(grouped),
                 len(prompts),
             )
-            return self._fallback_generate(truncated, request_count, None)
+            return self._fallback_or_raise(
+                truncated,
+                request_count,
+                f"group_count={len(grouped)} prompts={len(prompts)}",
+            )
         return grouped, grouped_meta
 
 

@@ -6,6 +6,7 @@ import importlib
 import os
 import sys
 import logging
+import atexit
 from pathlib import Path
 import signal
 import faulthandler
@@ -26,7 +27,12 @@ __all__ = ["main"]
 
 LOG = logging.getLogger(__name__)
 
-if os.environ.get("MAXENT_FAULTHANDLER", "").strip():
+_fh_requested = bool(os.environ.get("MAXENT_FAULTHANDLER", "").strip())
+_stack_dump_raw = os.environ.get("MAXENT_STACK_DUMP_S", "").strip()
+if _stack_dump_raw:
+    _fh_requested = True
+
+if _fh_requested:
     try:
         faulthandler.enable(all_threads=True)
     except (OSError, RuntimeError, ValueError) as exc:
@@ -36,6 +42,23 @@ if os.environ.get("MAXENT_FAULTHANDLER", "").strip():
             faulthandler.register(signal.SIGUSR1, all_threads=True)
         except (OSError, RuntimeError, ValueError) as exc:
             LOG.warning("Failed to register faulthandler SIGUSR1 handler: %s", exc)
+    if _stack_dump_raw:
+        try:
+            interval = float(_stack_dump_raw)
+        except (TypeError, ValueError):
+            interval = 0.0
+        if interval > 0:
+            try:
+                faulthandler.dump_traceback_later(
+                    interval, repeat=True, all_threads=True
+                )
+            except TypeError:
+                # Python < 3.12 does not accept all_threads for dump_traceback_later.
+                faulthandler.dump_traceback_later(interval, repeat=True)
+            except (OSError, RuntimeError, ValueError) as exc:
+                LOG.warning("Failed to schedule periodic stack dumps: %s", exc)
+            else:
+                atexit.register(faulthandler.cancel_dump_traceback_later)
 
 
 def _resolve_cli_attr(attr_name: str) -> Any:

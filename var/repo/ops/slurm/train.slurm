@@ -26,7 +26,6 @@
 
 
 set -euo pipefail
-set -x
 
 export ROOT_DIR="$PWD"
 export VAR_DIR="${VAR_DIR:-$ROOT_DIR/var}"
@@ -108,13 +107,14 @@ PY
   export TRITON_CACHE_DIR="$VAR_DIR/cache/triton"
   export WANDB_DIR="$VAR_DIR/artifacts/wandb"
   export WANDB_CACHE_DIR="$WANDB_DIR"
-  # Force-enable wandb for training jobs so the Transformers callback sees it.
-  export WANDB_DISABLED=0
+  # Enable external logging by default; override via sbatch --export if needed.
+  export WANDB_DISABLED="${WANDB_DISABLED:-0}"
+  export WANDB_MODE="${WANDB_MODE:-online}"
   export TMPDIR="$VAR_DIR/tmp"
   export VLLM_USAGE_STATS_PATH="$VAR_DIR/cache/vllm/usage_stats.json"
   export VLLM_NO_USAGE_STATS=1
   export HF_HUB_ENABLE_HF_TRANSFER=1
-  export HF_HUB_ENABLE_PROGRESS_BARS=1
+  export HF_HUB_ENABLE_PROGRESS_BARS="${HF_HUB_ENABLE_PROGRESS_BARS:-0}"
   # Enable vLLM prompt dedup unless overridden.
   export MAXENT_VLLM_DEDUP="${MAXENT_VLLM_DEDUP:-1}"
   # Debugging aids for distributed/CUDA failures (override to disable).
@@ -237,6 +237,8 @@ fi
 export GRPO_RECIPE="${GRPO_RECIPE:-$GRPO_RECIPE_PATH}"
 export GRPO_RECIPE_USED="${GRPO_RECIPE_USED:-$GRPO_RECIPE_PATH}"
 export ACCELERATE_CONFIG_FILE="$ACCEL_FILE"
+# Avoid prompt truncation unless explicitly overridden per job.
+export MAX_PROMPT_TOKENS="${MAX_PROMPT_TOKENS:-4096}"
 if [[ "${MAXENT_DRY_RUN:-0}" == "1" ]]; then
   echo "[dry-run] model=$MODEL task=$TASK config=$CONFIG_FILE accelerator=$ACCEL_FILE entrypoint=$TRAIN_ENTRYPOINT"
   exit 0
@@ -459,12 +461,21 @@ WORLD_SIZE=$(( TRAIN_LOCAL_PROCS * TRAIN_NUM_MACHINES ))
 export NCCL_ASYNC_ERROR_HANDLING=1
 # vLLM-specific NCCL overrides are applied only when launching vLLM.
 # Pre-enable NCCL debug for sync failures; override per job if needed.
-export NCCL_DEBUG="${NCCL_DEBUG:-INFO}"
-export NCCL_DEBUG_SUBSYS="${NCCL_DEBUG_SUBSYS:-INIT,NET,COLL}"
+export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
+export NCCL_DEBUG_SUBSYS="${NCCL_DEBUG_SUBSYS:-}"
 export NCCL_BLOCKING_WAIT="${NCCL_BLOCKING_WAIT:-1}"
 export NCCL_TIMEOUT="${NCCL_TIMEOUT:-600}"
-export TORCH_DISTRIBUTED_DEBUG="${TORCH_DISTRIBUTED_DEBUG:-DETAIL}"
+export TORCH_DISTRIBUTED_DEBUG="${TORCH_DISTRIBUTED_DEBUG:-OFF}"
 export TORCH_SHOW_CPP_STACKTRACES="${TORCH_SHOW_CPP_STACKTRACES:-1}"
+export MAXENT_LOCAL_SYNCED_GPUS="${MAXENT_LOCAL_SYNCED_GPUS:-0}"
+# Fail-fast vLLM + conservative settings for stability.
+export MAXENT_VLLM_DISABLE_LOCAL_FALLBACK="${MAXENT_VLLM_DISABLE_LOCAL_FALLBACK:-1}"
+export MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND="${MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND:-XFORMERS}"
+export MAXENT_VLLM_COLOCATE_LOG_LEVEL="${MAXENT_VLLM_COLOCATE_LOG_LEVEL:-warning}"
+export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.8}"
+export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN="${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN:-4096}"
+export MAXENT_VLLM_CONNECT_TIMEOUT="${MAXENT_VLLM_CONNECT_TIMEOUT:-30}"
+export MAXENT_VLLM_READ_TIMEOUT="${MAXENT_VLLM_READ_TIMEOUT:-900}"
 
 # Build Accelerate launcher and training command
 NODELIST_CSV=$(IFS=,; echo "${TRAIN_NODES[*]}")
@@ -473,6 +484,7 @@ export CMD="${TRAIN_ENTRYPOINT} ${OPTIONAL_ARGS}"
 TRAIN_PROCS=${TRAIN_LOCAL_PROCS}
 
 export ACC_TEE=${ACC_TEE:-3}
+export MAXENT_MAX_LOGS="${MAXENT_MAX_LOGS:-0}"
 if [[ -n "${MAXENT_LOG_LEVEL:-}" ]]; then
   case "${MAXENT_LOG_LEVEL}" in
     trace|debug) MAXENT_LOG_LEVEL=10 ;;
@@ -481,6 +493,9 @@ if [[ -n "${MAXENT_LOG_LEVEL:-}" ]]; then
     error) MAXENT_LOG_LEVEL=40 ;;
     critical|fatal) MAXENT_LOG_LEVEL=50 ;;
   esac
+fi
+if [[ "${MAXENT_LOG_LEVEL:-}" =~ ^[0-9]+$ ]] && (( MAXENT_LOG_LEVEL < 30 )) && [[ "${MAXENT_MAX_LOGS:-0}" != "1" ]]; then
+  MAXENT_LOG_LEVEL=30
 fi
 export MAXENT_LOG_LEVEL="${MAXENT_LOG_LEVEL:-30}"
 export MAXENT_LOG_LEVEL_NUM="${MAXENT_LOG_LEVEL}"
@@ -493,8 +508,31 @@ if [[ -n "${MAXENT_LOG_LEVEL_RUN:-}" ]]; then
     critical|fatal) MAXENT_LOG_LEVEL_RUN=50 ;;
   esac
 fi
+if [[ "${MAXENT_LOG_LEVEL_RUN:-}" =~ ^[0-9]+$ ]] && (( MAXENT_LOG_LEVEL_RUN < 30 )) && [[ "${MAXENT_MAX_LOGS:-0}" != "1" ]]; then
+  MAXENT_LOG_LEVEL_RUN=30
+fi
 export MAXENT_LOG_LEVEL_RUN="${MAXENT_LOG_LEVEL_RUN:-30}"
 export MAXENT_LOG_LEVEL_RUN_NUM="${MAXENT_LOG_LEVEL_RUN}"
+export MAXENT_PROGRESS_LOG="${MAXENT_PROGRESS_LOG:-0}"
+export MAXENT_SCATTER_MODE="${MAXENT_SCATTER_MODE:-broadcast}"
+export MAXENT_SCORE_SLICE_LOG="${MAXENT_SCORE_SLICE_LOG:-0}"
+export TORCH_DISABLE_ADDR2LINE="${TORCH_DISABLE_ADDR2LINE:-1}"
+if [[ "${MAXENT_MAX_LOGS:-0}" == "1" ]]; then
+  export MAXENT_LOG_LEVEL=10
+  export MAXENT_LOG_LEVEL_RUN=10
+  export MAXENT_LOG_LEVEL_RUN_NUM=10
+  export ACCELERATE_LOG_LEVEL=debug
+  export TRANSFORMERS_VERBOSITY=debug
+  export NCCL_DEBUG=INFO
+  export NCCL_DEBUG_SUBSYS=ALL
+  export TORCH_DISTRIBUTED_DEBUG=DETAIL
+  export TORCH_SHOW_CPP_STACKTRACES=1
+  export PYTHONFAULTHANDLER=1
+  export MAXENT_FAULTHANDLER=1
+  export MAXENT_STACK_DUMP_S="${MAXENT_STACK_DUMP_S:-60}"
+  export MAXENT_VLLM_COLOCATE_INIT_STACK_S=10
+  export MAXENT_SCORE_SLICE_LOG=1
+fi
 export MAXENT_EVAL_BATCH_TIMEOUT_S="${MAXENT_EVAL_BATCH_TIMEOUT_S:-60}"
 export MAXENT_EVAL_ONLY_RANK0="${MAXENT_EVAL_ONLY_RANK0:-0}"
 if [[ "${MAXENT_EVAL_ONLY_RANK0:-0}" != "0" ]]; then
@@ -504,10 +542,24 @@ else
 fi
 export MAXENT_VLLM_LOG_MIRROR_FILE="${MAXENT_VLLM_LOG_MIRROR_FILE:-$VAR_DIR/artifacts/logs/vllm-${SLURM_JOB_ID}.out}"
 export MAXENT_VLLM_SYNC_LOG_EVERY="${MAXENT_VLLM_SYNC_LOG_EVERY:-1}"
-export MAXENT_VLLM_SYNC_MAX_PARAMS="${MAXENT_VLLM_SYNC_MAX_PARAMS:-200}"
+if [[ -n "${MAXENT_VLLM_SYNC_MAX_PARAMS:-}" ]]; then
+  export MAXENT_VLLM_SYNC_MAX_PARAMS
+fi
+if [[ "${USE_VLLM}" == "true" && "${VLLM_MODE}" == "colocate" ]]; then
+  export MAXENT_VLLM_COLOCATE_SYNC="${MAXENT_VLLM_COLOCATE_SYNC:-1}"
+fi
 export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN="${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN:-4096}"
-export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.9}"
+export MAXENT_VLLM_COLOCATE_GPU_UTIL="${MAXENT_VLLM_COLOCATE_GPU_UTIL:-0.8}"
+export MAXENT_VLLM_COLOCATE_SYNC_INTERVAL="${MAXENT_VLLM_COLOCATE_SYNC_INTERVAL:-1}"
 export MAXENT_VLLM_COLOCATE_DEVICE="${MAXENT_VLLM_COLOCATE_DEVICE:-cuda:7}"
+export MAXENT_VLLM_COLOCATE_REMAP_DEVICE="${MAXENT_VLLM_COLOCATE_REMAP_DEVICE:-0}"
+if [[ "${MAXENT_MAX_LOGS:-0}" == "1" ]]; then
+  export MAXENT_VLLM_COLOCATE_LOG_LEVEL=10
+  export VLLM_LOGGING_LEVEL=DEBUG
+else
+  export MAXENT_VLLM_COLOCATE_LOG_LEVEL="${MAXENT_VLLM_COLOCATE_LOG_LEVEL:-warning}"
+  export VLLM_LOGGING_LEVEL="${VLLM_LOGGING_LEVEL:-WARNING}"
+fi
 export MAXENT_VLLM_COLOCATE_TP="${MAXENT_VLLM_COLOCATE_TP:-1}"
 export MAXENT_VLLM_COLOCATE_ENFORCE_EAGER="${MAXENT_VLLM_COLOCATE_ENFORCE_EAGER:-1}"
 export MAXENT_VLLM_COLOCATE_FORCE_V0="${MAXENT_VLLM_COLOCATE_FORCE_V0:-1}"
@@ -528,7 +580,9 @@ else
   export MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND="${MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND:-XFORMERS}"
   export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-XFORMERS}"
 fi
-export LAUNCHER="ACCELERATE_LOG_LEVEL=${ACCELERATE_LOG_LEVEL:-warning} TRANSFORMERS_VERBOSITY=${TRANSFORMERS_VERBOSITY:-warning} $VIRTUAL_ENV/bin/accelerate launch \
+export ACCELERATE_LOG_LEVEL="${ACCELERATE_LOG_LEVEL:-warning}"
+export TRANSFORMERS_VERBOSITY="${TRANSFORMERS_VERBOSITY:-warning}"
+export LAUNCHER="ACCELERATE_LOG_LEVEL=${ACCELERATE_LOG_LEVEL} TRANSFORMERS_VERBOSITY=${TRANSFORMERS_VERBOSITY} $VIRTUAL_ENV/bin/accelerate launch \
   --config_file ${ACCEL_FILE} \
   --gradient_accumulation_steps ${GRAD_ACC_STEPS} \
   --num_machines ${TRAIN_NUM_MACHINES} \
@@ -569,7 +623,7 @@ export TRAINING_LOG="${TRAINING_LOG:-$VAR_DIR/artifacts/logs/train_${SLURM_JOB_I
 mkdir -p "$(dirname "$TRAINING_LOG")"
 : > "$TRAINING_LOG"
 
-srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
+srun "${SRUN_ARGS[@]}" /bin/bash -c "set -euo pipefail; \
   if [[ '$ENV_MODE' == 'conda' ]]; then if [[ -f '$CONDA_SH' ]]; then source '$CONDA_SH'; fi; conda activate '$CONDA_ENV'; \
   elif [[ -f '$ENV_ACTIVATE' ]]; then source '$ENV_ACTIVATE'; fi; \
   if [[ \"\${MAXENT_ENFORCE_GPU_SPLIT:-0}\" == \"1\" && \"\${USE_VLLM:-false}\" == \"true\" && \"\${VLLM_MODE:-}\" == \"colocate\" ]]; then \
@@ -581,14 +635,16 @@ srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
     _all_visible=\"\${CUDA_VISIBLE_DEVICES:-}\"; \
     if [[ -z \"\${_all_visible}\" ]]; then \
       _all_visible=\"$(seq -s, 0 $((GPUS_PER_NODE - 1)))\"; \
+      export CUDA_VISIBLE_DEVICES=\"\${_all_visible}\"; \
     fi; \
     case \",\${_all_visible},\" in \
       *\",\${_vllm_id},\"*) : ;; \
       *) echo \"[error] Enforced vLLM GPU \${_vllm_id} not in CUDA_VISIBLE_DEVICES=\${_all_visible}\" >&2; exit 1 ;; \
     esac; \
-    export CUDA_VISIBLE_DEVICES=\"\${_train_ids}\"; \
+    export MAXENT_TRAIN_GPU_IDS=\"\${_train_ids}\"; \
+    export MAXENT_VLLM_GPU_ID=\"\${_vllm_id}\"; \
     export MAXENT_VLLM_COLOCATE_DEVICE=\"cuda:\${_vllm_id}\"; \
-    echo \"[info] Enforcing training GPUs=\${_train_ids} vLLM GPU=\${_vllm_id}\"; \
+    echo \"[info] Enforcing training GPUs=\${_train_ids} vLLM GPU=\${_vllm_id} visible=\${_all_visible}\"; \
   fi; \
   export VLLM_HOST_IP=\"${VLLM_HOST_IP:-127.0.0.1}\"; \
   # Ensure vLLM colocate stays single-process and avoids implicit DP groups.
@@ -611,20 +667,26 @@ srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
     fi; \
   fi; \
   export MAXENT_LOG_LEVEL=\"${MAXENT_LOG_LEVEL_RUN_NUM}\"; \
+  export MAXENT_PROGRESS_LOG=\"${MAXENT_PROGRESS_LOG}\"; \
+  export MAXENT_SCATTER_MODE=\"${MAXENT_SCATTER_MODE}\"; \
+  export TORCH_DISABLE_ADDR2LINE=\"${TORCH_DISABLE_ADDR2LINE}\"; \
   export MAXENT_EVAL_BATCH_TIMEOUT_S=\"${MAXENT_EVAL_BATCH_TIMEOUT_S}\"; \
   export MAXENT_EVAL_ONLY_RANK0=\"${MAXENT_EVAL_ONLY_RANK0}\"; \
   export MAXENT_EVAL_FORCE_LOCAL_VLLM=\"${MAXENT_EVAL_FORCE_LOCAL_VLLM}\"; \
   export MAXENT_VLLM_LOG_MIRROR_FILE=\"${MAXENT_VLLM_LOG_MIRROR_FILE}\"; \
   export MAXENT_VLLM_SYNC_LOG_EVERY=\"${MAXENT_VLLM_SYNC_LOG_EVERY}\"; \
-  export MAXENT_VLLM_SYNC_MAX_PARAMS=\"${MAXENT_VLLM_SYNC_MAX_PARAMS}\"; \
+  if [[ -n \"\${MAXENT_VLLM_SYNC_MAX_PARAMS:-}\" ]]; then export MAXENT_VLLM_SYNC_MAX_PARAMS=\"\${MAXENT_VLLM_SYNC_MAX_PARAMS}\"; fi; \
   export MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN=\"${MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN}\"; \
   export MAXENT_VLLM_COLOCATE_GPU_UTIL=\"${MAXENT_VLLM_COLOCATE_GPU_UTIL}\"; \
+  export MAXENT_VLLM_COLOCATE_SYNC_INTERVAL=\"${MAXENT_VLLM_COLOCATE_SYNC_INTERVAL}\"; \
   export MAXENT_VLLM_COLOCATE_TP=\"${MAXENT_VLLM_COLOCATE_TP}\"; \
   export MAXENT_VLLM_COLOCATE_ENFORCE_EAGER=\"${MAXENT_VLLM_COLOCATE_ENFORCE_EAGER}\"; \
   export MAXENT_VLLM_COLOCATE_FORCE_V0=\"${MAXENT_VLLM_COLOCATE_FORCE_V0}\"; \
   export MAXENT_VLLM_COLOCATE_INIT_MODE=\"${MAXENT_VLLM_COLOCATE_INIT_MODE}\"; \
   export MAXENT_VLLM_COLOCATE_INIT_STACK_S=\"${MAXENT_VLLM_COLOCATE_INIT_STACK_S}\"; \
+  export MAXENT_VLLM_COLOCATE_LOG_LEVEL=\"${MAXENT_VLLM_COLOCATE_LOG_LEVEL}\"; \
   export MAXENT_VLLM_COLOCATE_DEVICE=\"\${MAXENT_VLLM_COLOCATE_DEVICE}\"; \
+  export MAXENT_VLLM_COLOCATE_REMAP_DEVICE=\"${MAXENT_VLLM_COLOCATE_REMAP_DEVICE}\"; \
   export MAXENT_VLLM_COLOCATE_INIT_TIMEOUT_S=\"${MAXENT_VLLM_COLOCATE_INIT_TIMEOUT_S}\"; \
   export MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND=\"${MAXENT_VLLM_COLOCATE_ATTENTION_BACKEND}\"; \
   export VLLM_USE_V1=\"${VLLM_USE_V1}\"; \
@@ -640,6 +702,9 @@ srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
     _gpu_interval=\"\${MAXENT_GPU_UTIL_WARN_INTERVAL_S:-30}\"; \
     _gpu_zero_samples=\"\${MAXENT_GPU_UTIL_WARN_ZERO_SAMPLES:-4}\"; \
     _gpu_log=\"\${MAXENT_GPU_UTIL_WARN_LOG:-$VAR_DIR/artifacts/logs/gpu-util-${SLURM_JOB_ID}.log}\"; \
+    if [[ -z \"\${_gpu_interval}\" || \"\${_gpu_interval}\" == \"0\" || \"\${_gpu_zero_samples}\" == \"0\" || \"\${_gpu_log}\" == \"/dev/null\" ]]; then \
+      return 0; \
+    fi; \
     _gpu_csv=\"\${CUDA_VISIBLE_DEVICES:-}\"; \
     _gpu_ids=(); \
     if [[ -n \"\${_gpu_csv}\" && \"\${_gpu_csv,,}\" != \"none\" ]]; then \
@@ -688,11 +753,11 @@ srun "${SRUN_ARGS[@]}" /bin/bash -lc "set -euo pipefail; set -x; \
   export PYTHONPATH=\"${ROOT_DIR}/src:\${PYTHONPATH:-}\"; \
   export PYTHONNOUSERSITE=1; \
   echo 'Trainer node uses python:'; which python || true; python --version || true; \
-  export NCCL_DEBUG=\"\${NCCL_DEBUG:-INFO}\"; \
-  export NCCL_DEBUG_SUBSYS=\"\${NCCL_DEBUG_SUBSYS:-INIT,NET}\"; \
+  export NCCL_DEBUG=\"\${NCCL_DEBUG:-WARN}\"; \
+  export NCCL_DEBUG_SUBSYS=\"\${NCCL_DEBUG_SUBSYS:-}\"; \
   export NCCL_DEBUG_FILE=\"${VAR_DIR}/artifacts/logs/nccl-train-${SLURM_JOB_ID}-%h-%p.log\"; \
   echo \"NCCL env: NCCL_DEBUG=\${NCCL_DEBUG:-} NCCL_DEBUG_SUBSYS=\${NCCL_DEBUG_SUBSYS:-} NCCL_SOCKET_IFNAME=\${NCCL_SOCKET_IFNAME:-} NCCL_P2P_DISABLE=\${NCCL_P2P_DISABLE:-} NCCL_IB_DISABLE=\${NCCL_IB_DISABLE:-} NCCL_DEBUG_FILE=\${NCCL_DEBUG_FILE:-}\"; \
-  echo 'Trainer node has accelerate:'; "$VIRTUAL_ENV/bin/accelerate" --version || which accelerate || true; python - <<'PY'
+  echo 'Trainer node has accelerate:'; which accelerate || true; python - <<'PY'
 import sys
 try:
     import accelerate
@@ -709,7 +774,7 @@ PY
   export PIP_CACHE_DIR=\"$PIP_CACHE_DIR\"; export TORCHINDUCTOR_CACHE_DIR=\"$TORCHINDUCTOR_CACHE_DIR\"; \
   export TRITON_CACHE_DIR=\"$TRITON_CACHE_DIR\"; export WANDB_DIR=\"$WANDB_DIR\"; export TMPDIR=\"$TMPDIR\"; \
   mkdir -p \"$HF_HOME\" \"$XDG_CACHE_HOME\" \"$HUGGINGFACE_HUB_CACHE\" \"$HF_DATASETS_CACHE\" \"$PIP_CACHE_DIR\" \"$TORCHINDUCTOR_CACHE_DIR\" \"$TRITON_CACHE_DIR\" \"$WANDB_DIR\" \"$TMPDIR\"; \
-  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=1; export PYTHONUNBUFFERED=1; export MAXENT_FAULTHANDLER=1; \
+  export HF_HUB_ENABLE_HF_TRANSFER=1; export HF_HUB_ENABLE_PROGRESS_BARS=\"${HF_HUB_ENABLE_PROGRESS_BARS:-0}\"; export PYTHONUNBUFFERED=1; export MAXENT_FAULTHANDLER=1; \
   export TRAINING_LOG=\"$VAR_DIR/artifacts/logs/train_${SLURM_JOB_ID}.log\"; \
   mkdir -p \"$VAR_DIR/artifacts/logs\"; : > \"$TRAINING_LOG\"; \
   echo \"Writing training logs to \$TRAINING_LOG (ACC_TEE=$ACC_TEE)\"; \

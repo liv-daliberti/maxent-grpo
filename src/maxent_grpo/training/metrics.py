@@ -152,6 +152,12 @@ def _slim_metrics(
         "train/completions/mean_length_sampled",
         "train/completions/mean_length_terminated",
         "train/completions/clipped_frac",
+        "train/completions/diversity/jaccard",
+        "train/completions/diversity/jaccard_micro",
+        "train/completions/diversity/distinct_1",
+        "train/completions/diversity/distinct_2",
+        "train/completions/diversity/distinct_1_micro",
+        "train/completions/diversity/distinct_2_micro",
     }
     for key in [k for k in slim if k.startswith("train/completions/")]:
         if key not in keep_completions:
@@ -872,6 +878,13 @@ def build_training_metrics_dict(
             metrics["train/kl"] = float(kl_fallback)
     if payload.seed_metrics:
         metrics.update({f"train/seed/{k}": v for k, v in payload.seed_metrics.items()})
+    if payload.diversity_metrics:
+        metrics.update(
+            {
+                f"train/completions/diversity/{k}": v
+                for k, v in payload.diversity_metrics.items()
+            }
+        )
     return metrics
 
 
@@ -1266,6 +1279,7 @@ def _build_metrics_payload(
         config=config_view,
         scalars=scalar_stats,
         seed_metrics=prepared.seed_metrics,
+        diversity_metrics=prepared.diversity_metrics,
     )
 
 
@@ -1451,6 +1465,15 @@ def log_local_step(
     accumulate_metrics(state, metrics)
     if not emit:
         return
+    if log_like_grpo and _should_log(ctx, state.global_step) and accelerator.is_main_process:
+        LOG.info(
+            "step %d | epoch %.2f | loss=%.4f | tau=%.3f beta=%.3f",
+            state.global_step,
+            log_artifacts.epoch_progress,
+            log_artifacts.loss_outputs.total_loss_scalar,
+            ctx.scoring.weighting.tau,
+            ctx.scoring.weighting.beta,
+        )
     if log_like_grpo:
         if not _should_log(ctx, state.global_step):
             return

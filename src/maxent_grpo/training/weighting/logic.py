@@ -199,6 +199,7 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
         tau_schedule=tau_sched,
         kl_controller=kl_ctl,
         train_grpo_objective=bool(getattr(cfg, "train_grpo_objective", True)),
+        scale_rewards=bool(getattr(cfg, "scale_rewards", True)),
         controller_meta=meta_settings,
         allow_empty_weight_fallback=bool(
             getattr(cfg, "maxent_allow_empty_weight_fallback", False)
@@ -946,7 +947,9 @@ def compute_weight_stats(
                 group_advantages = None
             if group_advantages is not None:
                 weights_grouped, _ = group_advantages(
-                    grouped_completions, list(getattr(reward_comp, "total_utils", []) or [])
+                    grouped_completions,
+                    list(getattr(reward_comp, "total_utils", []) or []),
+                    scale_rewards=bool(getattr(weighting_cfg, "scale_rewards", True)),
                 )
         flat_weights = [weight for group in weights_grouped for weight in group]
         if not flat_weights:

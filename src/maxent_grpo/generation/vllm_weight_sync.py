@@ -453,8 +453,7 @@ class VLLMWeightSyncMixin:
         :type sync_model: Callable[[Any], None] | None
         """
         ctx = self.ctx
-        if not getattr(ctx, "vllm_sync_weights", False):
-            return
+        sync_enabled = bool(getattr(ctx, "vllm_sync_weights", False))
         setattr(self, "_vllm_sync_attempted", False)
         model_obj = getattr(ctx, "model", None)
         params_fn = getattr(model_obj, "parameters", None)
@@ -466,9 +465,15 @@ class VLLMWeightSyncMixin:
                     if params and not any(
                         bool(getattr(param, "requires_grad", True)) for param in params
                     ):
-                        LOG.debug(
-                            "Skipping vLLM weight sync: no trainable parameters detected."
-                        )
+                        if not getattr(self, "_vllm_warn_no_trainable", False):
+                            LOG.warning(
+                                "Skipping vLLM weight sync: no trainable parameters detected."
+                            )
+                            setattr(self, "_vllm_warn_no_trainable", True)
+                        else:
+                            LOG.debug(
+                                "Skipping vLLM weight sync: no trainable parameters detected."
+                            )
                         return
                 else:
                     LOG.debug(
@@ -496,6 +501,22 @@ class VLLMWeightSyncMixin:
         if not world_size:
             world_size = 1
         is_main = getattr(accelerator, "is_main_process", True)
+        # Keep vLLM sync enabled/disabled consistent across ranks to avoid
+        # mismatched collective calls (e.g., during eval).
+        if (
+            getattr(accelerator, "num_processes", 1) > 1
+            and dist is not None
+            and callable(getattr(dist, "is_available", None))
+            and callable(getattr(dist, "is_initialized", None))
+            and dist.is_available()
+            and dist.is_initialized()
+            and callable(getattr(dist, "broadcast_object_list", None))
+        ):
+            payload = [bool(sync_enabled)] if is_main else [False]
+            dist.broadcast_object_list(payload, src=0)
+            sync_enabled = bool(payload[0])
+        if not sync_enabled:
+            return
         disable_sync = bool(getattr(self, "_vllm_sync_disabled", False))
         if (
             getattr(accelerator, "num_processes", 1) > 1
@@ -528,7 +549,17 @@ class VLLMWeightSyncMixin:
                 )
                 sync_interval = None
         if sync_interval is not None and sync_interval <= 0:
-            LOG.debug("Skipping vLLM weight sync: interval set to %s.", sync_interval)
+            if not getattr(self, "_vllm_warn_sync_interval", False):
+                LOG.warning(
+                    "Skipping vLLM weight sync: vllm_sync_interval_steps=%s.",
+                    sync_interval,
+                )
+                setattr(self, "_vllm_warn_sync_interval", True)
+            else:
+                LOG.debug(
+                    "Skipping vLLM weight sync: vllm_sync_interval_steps=%s.",
+                    sync_interval,
+                )
             return
         ensure_fn = ensure_client or self._ensure_vllm_client
         # Decide once (on rank 0) whether to run the ZeRO-3 gather + sync path,

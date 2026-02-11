@@ -1208,6 +1208,8 @@ class VLLMRequestMixin:
         :type missing_indices: list[int]
         """
         ctx = self.ctx
+        if bool(getattr(ctx, "vllm_disable_local_fallback", False)):
+            return
         backfill_enabled = bool(getattr(ctx, "vllm_backfill_local", False))
         if not backfill_enabled:
             return

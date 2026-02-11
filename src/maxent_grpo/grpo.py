@@ -31,21 +31,9 @@ from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 if TYPE_CHECKING:
     from trl import ModelConfig
 
-def _missing_hydra_entry(*_args: Any, **_kwargs: Any) -> None:  # pragma: no cover - fallback stub
-    raise RuntimeError(
-        "Hydra CLI entrypoints are unavailable; install optional CLI dependencies."
-    )
-
-
 try:  # Best-effort to expose CLI helpers when available.
-    from maxent_grpo.cli import hydra_cli, parse_grpo_args
+    from maxent_grpo.cli import parse_grpo_args
 except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover - optional deps may be absent
-    hydra_cli = SimpleNamespace(
-        baseline_entry=_missing_hydra_entry,
-        maxent_entry=_missing_hydra_entry,
-        infoseed_entry=_missing_hydra_entry,
-        hydra_entry=_missing_hydra_entry,
-    )
     parse_grpo_args = None
 
 __all__ = ["cli", "main"]
@@ -90,40 +78,25 @@ def main(
 
     ensure_usercustomize_loaded()
     if script_args is None or training_args is None or model_args is None:
-        # Prefer monkeypatched attributes (used in tests). Only fall back to Hydra when parsing is unavailable or fails.
+        # Prefer monkeypatched attributes (used in tests). Do not fall back to Hydra.
         _parse_grpo_args = parse_grpo_args
-        _hydra_cli = hydra_cli
         if not callable(_parse_grpo_args):
             parsed = _resolve_cli_attr("parse_grpo_args")
             _parse_grpo_args = parsed if callable(parsed) else None
-        if _hydra_cli is None:
-            resolved_hydra = _resolve_cli_attr("hydra_cli")
-            _hydra_cli = resolved_hydra if resolved_hydra is not None else None
         if callable(_parse_grpo_args):
-            try:
-                parser = cast(
-                    Callable[
-                        [],
-                        tuple[GRPOScriptArguments, GRPOConfig, "ModelConfig"],
-                    ],
-                    _parse_grpo_args,
-                )
-                script_args, training_args, model_args = parser()
-            except (
-                RuntimeError,
-                ImportError,
-                ModuleNotFoundError,
-                TypeError,
-                ValueError,
-                AttributeError,
-            ):
-                if _hydra_cli is not None:
-                    return _hydra_cli.baseline_entry()
-                raise
-        elif _hydra_cli is not None:
-            return _hydra_cli.baseline_entry()
+            parser = cast(
+                Callable[
+                    [],
+                    tuple[GRPOScriptArguments, GRPOConfig, "ModelConfig"],
+                ],
+                _parse_grpo_args,
+            )
+            script_args, training_args, model_args = parser()
         else:
-            raise RuntimeError("No CLI parser available")
+            raise RuntimeError(
+                "No CLI parser available. Ensure TRL is installed and "
+                "maxent_grpo.cli.parse_grpo_args is importable."
+            )
     meta_enabled = bool(getattr(training_args, "controller_meta_enabled", False))
     force_custom_loop = bool(getattr(training_args, "force_custom_loop", False))
     if meta_enabled or force_custom_loop:

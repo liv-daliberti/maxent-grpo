@@ -12,6 +12,11 @@ from dataclasses import dataclass
 import logging
 from typing import Callable, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
+try:  # Optional: keep module importable in minimal environments.
+    import torch
+except Exception:  # pragma: no cover - torch optional in some utilities
+    torch = None
+
 _DEFAULT_RETRY_LIMIT = 3
 LOG = logging.getLogger(__name__)
 
@@ -222,15 +227,43 @@ def retry_incomplete_prompts(
     )
     retry_limit = determine_retry_limit(expected_generations, max_retry_rounds)
     retry_round = 0
-    while incomplete_indices and retry_round < retry_limit:
+
+    def _any_rank_incomplete(local_has: bool) -> bool:
+        if torch is None:
+            return local_has
+        dist = getattr(torch, "distributed", None)
+        if (
+            dist is None
+            or not callable(getattr(dist, "is_available", None))
+            or not callable(getattr(dist, "is_initialized", None))
+            or not dist.is_available()
+            or not dist.is_initialized()
+        ):
+            return local_has
+        try:
+            backend = dist.get_backend()
+        except Exception:
+            backend = ""
+        use_cuda = bool(getattr(torch, "cuda", None)) and torch.cuda.is_available()
+        device = torch.device("cuda") if use_cuda and backend == "nccl" else torch.device("cpu")
+        flag = torch.tensor([1 if local_has else 0], device=device, dtype=torch.int32)
+        dist.all_reduce(flag, op=dist.ReduceOp.MAX)
+        return bool(flag.item())
+
+    while retry_round < retry_limit:
+        global_incomplete = _any_rank_incomplete(bool(incomplete_indices))
+        if not global_incomplete:
+            break
         retry_round += 1
+        retry_prompts = [prompts[idx] for idx in incomplete_indices]
+        retry_counts = [
+            max(expected_generations - len(aggregated.completions[idx]), 0)
+            for idx in incomplete_indices
+        ]
         retry_groups, retry_meta = generator(
-            [prompts[idx] for idx in incomplete_indices],
+            retry_prompts,
             expected_generations,
-            [
-                max(expected_generations - len(aggregated.completions[idx]), 0)
-                for idx in incomplete_indices
-            ],
+            retry_counts,
         )
         retry_groups = retry_groups or [[] for _ in incomplete_indices]
         meta_payload: Optional[GroupedMetadata] = None
@@ -299,6 +332,79 @@ def drop_empty_prompt_groups(
     if aggregated_meta is not None:
         aggregated_meta = [aggregated_meta[idx] for idx in keep_indices]
     return prompts, answers, aggregated_comps, aggregated_meta
+
+
+def drop_incomplete_prompt_groups(
+    prompts: List[str],
+    answers: List[str],
+    aggregated_comps: List[List[str]],
+    aggregated_meta: Optional[GroupedMetadata],
+    expected_generations: int,
+    generation_stats: Dict[str, int],
+) -> Tuple[
+    List[str],
+    List[str],
+    List[List[str]],
+    Optional[GroupedMetadata],
+    int,
+]:
+    """Drop prompt groups that do not match the expected completion count.
+
+    TRL assumes a fixed number of completions per prompt. Any prompt group whose
+    completion count differs from ``expected_generations`` is removed from the
+    aligned prompt/answer/completion lists.
+
+    :param prompts: Prompt texts aligned to ``answers`` and grouped completions.
+    :type prompts: list[str]
+    :param answers: Reference answers aligned to prompts.
+    :type answers: list[str]
+    :param aggregated_comps: Grouped completions per prompt (mutable).
+    :type aggregated_comps: list[list[str]]
+    :param aggregated_meta: Optional grouped metadata per prompt.
+    :type aggregated_meta: list[list[object | None]] | None
+    :param expected_generations: Required completions per prompt.
+    :type expected_generations: int
+    :param generation_stats: Mutable statistics dictionary for counters.
+    :type generation_stats: dict[str, int]
+    :returns: Filtered prompts, answers, completions, metadata, and dropped count.
+    :rtype: tuple[list[str], list[str], list[list[str]], list[list[object | None]] | None, int]
+    """
+
+    if expected_generations <= 0:
+        return prompts, answers, aggregated_comps, aggregated_meta, 0
+    drop_indices = [
+        idx
+        for idx, comps in enumerate(aggregated_comps)
+        if len(comps) != expected_generations
+    ]
+    if not drop_indices:
+        # Trim metadata defensively to match completion counts.
+        if aggregated_meta is not None:
+            for idx, comps in enumerate(aggregated_comps):
+                if idx >= len(aggregated_meta):
+                    break
+                meta_group = aggregated_meta[idx]
+                if isinstance(meta_group, list) and len(meta_group) > len(comps):
+                    aggregated_meta[idx] = meta_group[: len(comps)]
+        return prompts, answers, aggregated_comps, aggregated_meta, 0
+    generation_stats.setdefault("dropped_prompts", 0)
+    generation_stats.setdefault("partial_prompts", 0)
+    generation_stats["dropped_prompts"] += len(drop_indices)
+    generation_stats["partial_prompts"] += len(drop_indices)
+    drop_set = set(drop_indices)
+    keep_indices = [idx for idx in range(len(prompts)) if idx not in drop_set]
+    prompts = [prompts[idx] for idx in keep_indices]
+    answers = [answers[idx] for idx in keep_indices]
+    aggregated_comps = [aggregated_comps[idx] for idx in keep_indices]
+    if aggregated_meta is not None:
+        aggregated_meta = [aggregated_meta[idx] for idx in keep_indices]
+        for idx, comps in enumerate(aggregated_comps):
+            if idx >= len(aggregated_meta):
+                break
+            meta_group = aggregated_meta[idx]
+            if isinstance(meta_group, list) and len(meta_group) > len(comps):
+                aggregated_meta[idx] = meta_group[: len(comps)]
+    return prompts, answers, aggregated_comps, aggregated_meta, len(drop_indices)
 
 
 def truncate_to_expected_counts(
@@ -395,6 +501,7 @@ __all__ = [
     "append_completion_group",
     "determine_retry_limit",
     "drop_empty_prompt_groups",
+    "drop_incomplete_prompt_groups",
     "flatten_ref_metadata",
     "pending_generation_indices",
     "retry_incomplete_prompts",

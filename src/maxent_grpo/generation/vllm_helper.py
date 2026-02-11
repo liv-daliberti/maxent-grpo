@@ -208,6 +208,10 @@ class VLLMGenerationHelper(
             and os.getenv("MAXENT_VLLM_FALLBACK_ON_SYNC_FAIL", "1").strip().lower()
             not in {"0", "false", "no", "off"}
         ):
+            if bool(getattr(self.ctx, "vllm_disable_local_fallback", False)):
+                raise RuntimeError(
+                    "vLLM weight sync failed and local fallback is disabled."
+                )
             LOG.warning(
                 "vLLM weight sync failed; falling back to local generation for this batch."
             )
@@ -320,38 +324,109 @@ class VLLMGenerationHelper(
             per_prompt_counts,
         )
         accelerator = self.ctx.accelerator
-        # When ZeRO-3 is active, weight synchronization gathers parameters
-        # collectively even though only rank 0 issues the HTTP requests. Run the
-        # sync hook on every rank before non-main processes block waiting for
-        # the scatter payload.
-        if getattr(self.ctx, "vllm_sync_weights", False):
+        prev_disable_fallback = getattr(self.ctx, "vllm_disable_local_fallback", None)
+        try:
             try:
-                self.maybe_sync_weights(
-                    ensure_client=ensure_client,
-                    sync_model=sync_model or self._sync_model_params_to_vllm,
-                )
-            except TypeError:
-                # Backwards-compatible fallback for lightweight stubs.
-                self.maybe_sync_weights()
-        if accelerator.is_main_process:
-            if ensure_client is None and sync_model is None:
-                grouped_all, meta_all = self.generate(
-                    flat_prompts,
-                    num_samples,
-                    flat_counts,
-                )
+                setattr(self.ctx, "vllm_disable_local_fallback", True)
+            except Exception:
+                prev_disable_fallback = None
+            # Ensure all ranks agree on whether weight sync is enabled before
+            # entering any collectives. Divergent flags can desynchronize
+            # broadcast/scatter ordering and trigger collective mismatches.
+            sync_weights = bool(getattr(self.ctx, "vllm_sync_weights", False))
+            dist = getattr(torch, "distributed", None)
+            if (
+                getattr(accelerator, "num_processes", 1) > 1
+                and dist is not None
+                and callable(getattr(dist, "is_available", None))
+                and callable(getattr(dist, "is_initialized", None))
+                and dist.is_available()
+                and dist.is_initialized()
+                and callable(getattr(dist, "broadcast_object_list", None))
+            ):
+                payload = [bool(sync_weights)] if accelerator.is_main_process else [False]
+                dist.broadcast_object_list(payload, src=0)
+                sync_weights = bool(payload[0])
+                if sync_weights != bool(getattr(self.ctx, "vllm_sync_weights", False)):
+                    try:
+                        setattr(self.ctx, "vllm_sync_weights", sync_weights)
+                    except Exception:
+                        pass
+            # When ZeRO-3 is active, weight synchronization gathers parameters
+            # collectively even though only rank 0 issues the HTTP requests. Run the
+            # sync hook on every rank before non-main processes block waiting for
+            # the scatter payload.
+            if sync_weights:
+                try:
+                    self.maybe_sync_weights(
+                        ensure_client=ensure_client,
+                        sync_model=sync_model or self._sync_model_params_to_vllm,
+                    )
+                except TypeError:
+                    # Backwards-compatible fallback for lightweight stubs.
+                    self.maybe_sync_weights()
+            status_ok = True
+            status_err = None
+            if accelerator.is_main_process:
+                try:
+                    if ensure_client is None and sync_model is None:
+                        grouped_all, meta_all = self.generate(
+                            flat_prompts,
+                            num_samples,
+                            flat_counts,
+                        )
+                    else:
+                        grouped_all, meta_all = self.generate(
+                            flat_prompts,
+                            num_samples,
+                            flat_counts,
+                            ensure_client,
+                            sync_model,
+                        )
+                except Exception as exc:
+                    grouped_all, meta_all = None, None
+                    status_ok = False
+                    status_err = str(exc)
             else:
-                grouped_all, meta_all = self.generate(
-                    flat_prompts,
-                    num_samples,
-                    flat_counts,
-                    ensure_client,
-                    sync_model,
+                grouped_all = None
+                meta_all = None
+            if (
+                getattr(accelerator, "num_processes", 1) > 1
+                and dist is not None
+                and callable(getattr(dist, "is_available", None))
+                and callable(getattr(dist, "is_initialized", None))
+                and dist.is_available()
+                and dist.is_initialized()
+                and callable(getattr(dist, "broadcast_object_list", None))
+            ):
+                payload = (
+                    [{"ok": status_ok, "error": status_err}]
+                    if accelerator.is_main_process
+                    else [{"ok": False, "error": None}]
                 )
-        else:
-            grouped_all = None
-            meta_all = None
-        return self._scatter_vllm_payload(flat_prompts, offsets, grouped_all, meta_all)
+                dist.broadcast_object_list(payload, src=0)
+                status_ok = bool(payload[0].get("ok", False))
+                status_err = payload[0].get("error")
+            if not status_ok:
+                if accelerator.is_main_process:
+                    LOG.warning(
+                        "vLLM collective generate failed on rank 0; "
+                        "falling back to local generation on all ranks: %s",
+                        status_err,
+                    )
+                return self._fallback_generate(prompts, num_samples, per_prompt_counts)
+            return self._scatter_vllm_payload(flat_prompts, offsets, grouped_all, meta_all)
+        finally:
+            if prev_disable_fallback is None:
+                try:
+                    delattr(self.ctx, "vllm_disable_local_fallback")
+                except AttributeError:
+                    pass
+            else:
+                try:
+                    setattr(self.ctx, "vllm_disable_local_fallback", prev_disable_fallback)
+                except Exception:
+                    pass
 
 
 __all__ = [

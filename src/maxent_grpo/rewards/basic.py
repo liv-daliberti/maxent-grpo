@@ -152,14 +152,12 @@ def _tag_multiplier(tag_total: int, tag_unique: int) -> float:
 def pure_accuracy_reward_math(
     completions: List[CompletionType], answer: List[str], **_kwargs: Any
 ) -> List[float]:
-    """Reward exact match on a tagged math template with tag-based scaling.
+    """Reward exact match on a tagged math template with modest format shaping.
 
-    Correct answers earn a base reward of 0.5, scaled by the number of
-    ``<think>``/``<answer>`` tags present (opening + closing tags counted).
-    Tag count uses the number of unique required tags (``<think>``,
-    ``</think>``, ``<answer>``, ``</answer>``), but outputs containing
-    more than four total tags fall back to the two-tag multiplier.
-    When the answer is correct *and* the full format
+    Correct answers earn a base reward that is *not* gated on tags so early
+    learning is less sparse. A small, separate tag-compliance bonus is added
+    (when tags are present) to encourage formatting without dominating
+    correctness. When the answer is correct *and* the full format
     ``<think>…</think><answer>…</answer>`` is present (exactly four tags),
     the reward is overridden to 1.0.
     """
@@ -178,10 +176,13 @@ def pure_accuracy_reward_math(
             continue
         txt_canon = _canon_math(txt)
         is_correct = bool(pred_ok or (gold_canon and gold_canon in txt_canon))
+        tag_bonus = 0.0
+        if tag_total > 0:
+            tag_bonus = 0.05 * _tag_multiplier(tag_total, tag_unique)
         if not is_correct:
-            outs.append(0.0)
+            outs.append(tag_bonus)
             continue
-        outs.append(0.5 * _tag_multiplier(tag_total, tag_unique))
+        outs.append(0.4 + tag_bonus)
     return outs
 
 

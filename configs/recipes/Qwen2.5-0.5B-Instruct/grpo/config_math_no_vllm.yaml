@@ -62,8 +62,8 @@ system_prompt: |
 
 # GRPO paired config (mirrors MaxEnt training settings)
 # Training/eval & logging
-bf16: false
-fp16: true
+bf16: true
+fp16: false
 use_vllm: false           # disable vLLM; use in-process generation
 vllm_mode: server         # use external/inline server launched by the slurm helper
 torch_compile: false      # disabled: torch.compile is unstable with DeepSpeed/ZeRO here
@@ -107,7 +107,7 @@ logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
 max_prompt_length: 1000      # trim prompt window to ease ref scoring memory
-max_completion_length: 500   # cap completions to reduce activation + ref costs
+max_completion_length: 400   # cap completions to reduce activation + ref costs
 maxent_score_tail_tokens: 60 # restrict KL/entropy measurements to the tail of each completion
 max_steps: 64
 # GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.

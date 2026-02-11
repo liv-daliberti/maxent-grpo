@@ -274,6 +274,7 @@ class TrainingMetricsPayload:
     config: LoggingConfigView
     scalars: TrainingScalarStats
     seed_metrics: Optional[Dict[str, float]] = None
+    diversity_metrics: Optional[Dict[str, float]] = None
 
 
 __all__ = [

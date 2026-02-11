@@ -503,7 +503,7 @@ def require_deepspeed(context: str, module: str = "deepspeed") -> ModuleType:
 def get_trl_prepare_deepspeed() -> Optional[Any]:
     """Return TRL's prepare_deepspeed helper when available."""
 
-    utils_module = _optional_dependency("trl.trainer.utils")
+    utils_module = _optional_dependency("trl.models.utils")
     if utils_module is None:
         return None
     prepare = getattr(utils_module, "prepare_deepspeed", None)

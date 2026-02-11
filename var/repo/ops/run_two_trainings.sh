@@ -48,10 +48,10 @@ if [[ "$GRPO_ARGS" != *"--vllm_mode"* ]]; then
   GRPO_ARGS="${GRPO_ARGS:+$GRPO_ARGS }--vllm_mode colocate"
 fi
 if [[ "$MAXENT_ARGS" != *"--vllm_sync_weights"* ]]; then
-  MAXENT_ARGS="${MAXENT_ARGS:+$MAXENT_ARGS }--vllm_sync_weights false"
+  MAXENT_ARGS="${MAXENT_ARGS:+$MAXENT_ARGS }--vllm_sync_weights true"
 fi
 if [[ "$GRPO_ARGS" != *"--vllm_sync_weights"* ]]; then
-  GRPO_ARGS="${GRPO_ARGS:+$GRPO_ARGS }--vllm_sync_weights false"
+  GRPO_ARGS="${GRPO_ARGS:+$GRPO_ARGS }--vllm_sync_weights true"
 fi
 
 SBATCH_ARGS=()

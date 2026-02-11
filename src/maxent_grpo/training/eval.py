@@ -50,6 +50,21 @@ _EVAL_LOGPROBS_ENV = "MAXENT_EVAL_LOGPROBS"
 _EVAL_LOGPROBS_WARNED = False
 
 
+def _progress_log_enabled() -> bool:
+    raw = os.getenv("MAXENT_PROGRESS_LOG")
+    if raw is None or not str(raw).strip():
+        return False
+    return str(raw).strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _eval_rank_tag() -> str:
+    for key in ("RANK", "LOCAL_RANK", "SLURM_PROCID", "SLURM_LOCALID"):
+        val = os.getenv(key)
+        if val is not None and str(val).strip():
+            return f"{key}={val}"
+    return "rank=unknown"
+
+
 def _env_flag(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
     if raw is None:
@@ -257,6 +272,16 @@ def _score_eval_batch(
 ) -> Optional[Dict[str, float]]:
     if not _eval_logprobs_enabled():
         return None
+    progress_log = _progress_log_enabled()
+    rank_tag = _eval_rank_tag()
+    if progress_log:
+        LOG.info(
+            "eval logprobs batch start | %s | prompts=%d completions=%d",
+            rank_tag,
+            len(prompts),
+            len(completions),
+        )
+        batch_start = time.monotonic()
     runtime = getattr(ctx, "runtime", None)
     scoring_cfg = getattr(ctx, "scoring", None)
     generation_cfg = getattr(ctx, "generation", None)
@@ -275,12 +300,22 @@ def _score_eval_batch(
             batching_cfg.prompt_length_cache_get = prompt_cache
     pairs = PromptCompletionBatch(prompts=prompts, completions=completions)
     reward_stub = SimpleNamespace(pairs=pairs, completion_metadata=None)
+    if progress_log:
+        LOG.info("eval logprobs build_score_batch start | %s", rank_tag)
+        build_start = time.monotonic()
     score_batch = build_score_batch(
         reward_stub,
         ctx.tokenizer,
         generation_cfg,
         batching_cfg,
     )
+    if progress_log:
+        LOG.info(
+            "eval logprobs build_score_batch done | %s | seconds=%.2f | ok=%s",
+            rank_tag,
+            time.monotonic() - build_start,
+            bool(score_batch is not None),
+        )
     if score_batch is None:
         return None
     torch_mod = _refresh_torch()
@@ -288,6 +323,14 @@ def _score_eval_batch(
     entropy_mode = str(
         getattr(scoring_cfg, "policy_entropy_mode", "exact") or "exact"
     )
+    if progress_log:
+        LOG.info(
+            "eval logprobs policy score start | %s | total_sequences=%s slice_size=%s",
+            rank_tag,
+            getattr(score_batch, "total_sequences", None),
+            getattr(score_batch, "slice_size", None),
+        )
+        policy_start = time.monotonic()
     with no_grad_ctx():
         result = score_model_outputs(
             ctx.model,
@@ -296,6 +339,13 @@ def _score_eval_batch(
             runtime,
             return_entropy=True,
             entropy_mode=entropy_mode,
+        )
+    if progress_log:
+        LOG.info(
+            "eval logprobs policy score done | %s | seconds=%.2f | ok=%s",
+            rank_tag,
+            time.monotonic() - policy_start,
+            bool(result is not None),
         )
     if result is None:
         return None
@@ -316,31 +366,70 @@ def _score_eval_batch(
     ref_source = str(
         getattr(scoring_cfg, "reference_logprobs_source", "auto") or "auto"
     ).strip().lower()
+    trl_reference_scoring = bool(
+        getattr(scoring_cfg, "trl_reference_scoring", False)
+    )
     force_ref_model = ref_source in {
         "model",
         "reference",
         "reference_model",
         "ref_model",
     }
+    if trl_reference_scoring:
+        force_ref_model = True
     if _env_flag("MAXENT_FORCE_REF_MODEL", False):
         force_ref_model = True
     flat_meta = _flatten_eval_meta(grouped_meta, len(completions))
+    if progress_log:
+        LOG.info(
+            "eval logprobs reference source | %s | ref_source=%s force_ref_model=%s vllm_meta=%s",
+            rank_tag,
+            ref_source,
+            force_ref_model,
+            bool(flat_meta),
+        )
     ref_stats = None
     if flat_meta and not force_ref_model and vllm_meta_has_logprobs(
         flat_meta, getattr(score_batch, "total_sequences", None)
     ):
+        if progress_log:
+            LOG.info("eval logprobs reference from vLLM meta | %s", rank_tag)
         ref_stats = reference_from_vllm_meta(
             flat_meta,
             int(getattr(score_batch, "total_sequences", len(completions))),
             runtime.device,
         )
     if ref_stats is None and not force_ref_model:
+        if progress_log:
+            LOG.info("eval logprobs reference from policy logprobs start | %s", rank_tag)
         try:
             ref_stats = reference_stats_from_policy_logprobs(cur_logp_sum, tok_counts)
         except (TypeError, ValueError, RuntimeError):
             ref_stats = None
+        if progress_log:
+            LOG.info(
+                "eval logprobs reference from policy logprobs done | %s | ok=%s",
+                rank_tag,
+                bool(ref_stats is not None),
+            )
     if ref_stats is None:
-        ref_stats = gather_reference_logprobs(score_batch, runtime, batching_cfg)
+        if progress_log:
+            LOG.info("eval logprobs reference gather start | %s", rank_tag)
+            ref_start = time.monotonic()
+        ref_stats = gather_reference_logprobs(
+            score_batch,
+            runtime,
+            batching_cfg,
+            trl_reference_scoring=trl_reference_scoring,
+            temperature=getattr(generation_cfg, "gen_temperature", None),
+        )
+        if progress_log:
+            LOG.info(
+                "eval logprobs reference gather done | %s | seconds=%.2f | ok=%s",
+                rank_tag,
+                time.monotonic() - ref_start,
+                bool(ref_stats is not None),
+            )
     if ref_stats is None:
         return None
     weighting_cfg = getattr(scoring_cfg, "weighting", None)
@@ -354,6 +443,12 @@ def _score_eval_batch(
     if kl_tensor is None:
         return None
     stats: Dict[str, float] = {}
+    if progress_log:
+        LOG.info(
+            "eval logprobs batch done | %s | seconds=%.2f",
+            rank_tag,
+            time.monotonic() - batch_start,
+        )
     try:
         kl_sum = float(kl_tensor.detach().float().sum().cpu().item())
         kl_count = float(getattr(kl_tensor, "numel", lambda: 0)())
@@ -473,9 +568,21 @@ def _compute_eval_rewards(
     :rtype: list[float]
     """
     total_rewards = [0.0] * len(completions)
-    for reward_weight, reward_fn in zip(
-        reward_spec.reward_weights, reward_spec.reward_funcs
+    progress_log = _progress_log_enabled()
+    rank_tag = _eval_rank_tag() if progress_log else ""
+    for idx, (reward_weight, reward_fn) in enumerate(
+        zip(reward_spec.reward_weights, reward_spec.reward_funcs)
     ):
+        if progress_log:
+            LOG.info(
+                "eval reward fn start | %s | idx=%d | weight=%.3f | fn=%s | n=%d",
+                rank_tag,
+                idx,
+                float(reward_weight),
+                getattr(reward_fn, "__name__", reward_fn.__class__.__name__),
+                len(completions),
+            )
+            fn_start = time.monotonic()
         try:
             reward_scores = reward_fn(completions, answers, is_eval=True, split="eval")
         except TypeError:
@@ -483,6 +590,13 @@ def _compute_eval_rewards(
                 reward_scores = reward_fn(completions, answers)
             except TypeError:
                 reward_scores = reward_fn(completions, answers, is_eval=True)
+        if progress_log:
+            LOG.info(
+                "eval reward fn done | %s | idx=%d | seconds=%.2f",
+                rank_tag,
+                idx,
+                time.monotonic() - fn_start,
+            )
         if reward_weight != 1.0:
             reward_scores = [
                 float(reward_weight) * float(score) for score in reward_scores
@@ -645,6 +759,7 @@ def _run_eval_batches(
     ):
         batch_num = batch_idx + 1
         request_id_prefix = f"eval-s{step}-b{batch_num}-r{shard.rank}"
+        progress_log = _progress_log_enabled()
         logging.getLogger(__name__).info(
             "eval step %d rank %d/%d batch %d/%d start | batch_size=%d",
             step,
@@ -707,14 +822,52 @@ def _run_eval_batches(
             )
         if grouped:
             completions = [grp[0] if grp else "" for grp in grouped]
+            if progress_log:
+                logging.getLogger(__name__).info(
+                    "eval step %d rank %d/%d batch %d reward start | completions=%d",
+                    step,
+                    shard.rank,
+                    max(shard.world_size, 1),
+                    batch_num,
+                    len(completions),
+                )
+                reward_start = time.monotonic()
             eval_scores.extend(_compute_eval_rewards(completions, answers, reward_spec))
+            if progress_log:
+                logging.getLogger(__name__).info(
+                    "eval step %d rank %d/%d batch %d reward done | seconds=%.2f",
+                    step,
+                    shard.rank,
+                    max(shard.world_size, 1),
+                    batch_num,
+                    time.monotonic() - reward_start,
+                )
             batch_fmt = _tally_format_issues(completions)
             for k, v in batch_fmt.items():
                 fmt_counts[k] = fmt_counts.get(k, 0.0) + float(v)
             if score_stats is not None:
+                if progress_log:
+                    logging.getLogger(__name__).info(
+                        "eval step %d rank %d/%d batch %d logprobs start",
+                        step,
+                        shard.rank,
+                        max(shard.world_size, 1),
+                        batch_num,
+                    )
+                    score_start = time.monotonic()
                 batch_stats = _score_eval_batch(
                     ctx, prompts, completions, grouped_meta
                 )
+                if progress_log:
+                    logging.getLogger(__name__).info(
+                        "eval step %d rank %d/%d batch %d logprobs done | seconds=%.2f | ok=%s",
+                        step,
+                        shard.rank,
+                        max(shard.world_size, 1),
+                        batch_num,
+                        time.monotonic() - score_start,
+                        bool(batch_stats is not None),
+                    )
                 if batch_stats is not None:
                     _update_eval_score_stats(score_stats, batch_stats)
         processed += len(prompts)

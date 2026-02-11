@@ -310,6 +310,60 @@ def _checkpoint_has_deepspeed_engine_state(checkpoint_dir: str) -> bool:
     return False
 
 
+def _checkpoint_has_zero_shards(checkpoint_dir: str) -> bool:
+    """Return True when a checkpoint directory contains ZeRO shard files."""
+
+    tag = _read_checkpoint_latest_tag(checkpoint_dir)
+    if not tag:
+        return False
+    tag_dir = os.path.join(checkpoint_dir, tag)
+    if not os.path.isdir(tag_dir):
+        return False
+    try:
+        for name in os.listdir(tag_dir):
+            if name.endswith("_model_states.pt") or name.endswith("_optim_states.pt"):
+                return True
+    except OSError:
+        return False
+    return False
+
+
+def _maybe_convert_zero_checkpoint_to_hf(
+    checkpoint_dir: str,
+    *,
+    max_shard_size: str = "100GB",
+) -> bool:
+    """Attempt to convert ZeRO shards into a consolidated HF weight file."""
+
+    if not _checkpoint_has_zero_shards(checkpoint_dir):
+        return False
+    try:
+        from deepspeed.utils import zero_to_fp32  # type: ignore
+    except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dependency
+        LOG.warning(
+            "DeepSpeed zero_to_fp32 unavailable; cannot consolidate ZeRO shards in %s: %s",
+            checkpoint_dir,
+            exc,
+        )
+        return False
+    safe_serialization = bool(_is_safetensors_available())
+    try:
+        zero_to_fp32.convert_zero_checkpoint_to_fp32_state_dict(
+            checkpoint_dir,
+            checkpoint_dir,
+            max_shard_size=max_shard_size,
+            safe_serialization=safe_serialization,
+        )
+    except (OSError, RuntimeError, TypeError, ValueError) as exc:
+        LOG.warning(
+            "Failed to convert ZeRO shards into consolidated weights for %s: %s",
+            checkpoint_dir,
+            exc,
+        )
+        return False
+    return True
+
+
 def _normalize_checkpoint_dir(path: str) -> str:
     """Promote DeepSpeed tag subfolders (e.g., ``global_step100``/``pytorch_model``) to their parent."""
 
@@ -815,19 +869,44 @@ def build_checkpoint_saver(
                 )
             except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - model save guard
                 LOG.warning("Failed to save model weights to %s: %s", checkpoint_dir, exc)
-            if not _checkpoint_has_hf_weights(checkpoint_dir):
+            hf_has_weights = _checkpoint_has_hf_weights(checkpoint_dir)
+            hf_valid = hf_has_weights and _checkpoint_has_valid_hf_weights(checkpoint_dir)
+            if not hf_has_weights:
                 LOG.warning(
                     "Checkpoint %s does not contain a loadable HF weight file "
                     "(expected model.safetensors or pytorch_model.bin).",
                     checkpoint_dir,
                 )
-            elif not _checkpoint_has_valid_hf_weights(checkpoint_dir):
+            elif not hf_valid:
                 LOG.error(
                     "Checkpoint %s contains invalid HF weight files (e.g., zero-sized tensors). "
                     "Removing the HF weight artifacts to avoid poisoning future resumes.",
                     checkpoint_dir,
                 )
                 _remove_hf_weight_files(checkpoint_dir)
+                hf_has_weights = False
+                hf_valid = False
+            if not hf_valid:
+                try:
+                    ds_state = detect_deepspeed_state(accelerator)
+                except (AttributeError, RuntimeError, TypeError, ValueError):
+                    ds_state = None
+                if ds_state and (ds_state.use_deepspeed or ds_state.zero_stage >= 2):
+                    if _maybe_convert_zero_checkpoint_to_hf(checkpoint_dir):
+                        hf_has_weights = _checkpoint_has_hf_weights(checkpoint_dir)
+                        hf_valid = hf_has_weights and _checkpoint_has_valid_hf_weights(
+                            checkpoint_dir
+                        )
+                        if hf_valid:
+                            LOG.info(
+                                "DeepSpeed ZeRO shards consolidated for checkpoint %s.",
+                                checkpoint_dir,
+                            )
+                        else:
+                            LOG.warning(
+                                "DeepSpeed consolidation completed but HF weights are still missing/invalid in %s.",
+                                checkpoint_dir,
+                            )
             save_tokenizer = getattr(tokenizer, "save_pretrained", None)
             if callable(save_tokenizer):
                 try:

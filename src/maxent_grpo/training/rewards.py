@@ -17,12 +17,14 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
 from maxent_grpo.generation import (
     AggregatedGenerationState,
     drop_empty_prompt_groups,
+    drop_incomplete_prompt_groups,
     flatten_prompt_completions as _flatten_prompt_completions,
     flatten_ref_metadata as _flatten_ref_metadata,
     retry_incomplete_prompts,
@@ -135,13 +137,14 @@ def _sanitize_ref_logprob_meta(
     if missing_idx:
         if not getattr(_sanitize_ref_logprob_meta, "_warned", False):
             LOG.warning(
-                "Dropping incomplete reference logprob metadata | missing_entries=%d/%d | first_missing_idx=%d",
+                "Incomplete reference logprob metadata detected | missing_entries=%d/%d | first_missing_idx=%d | "
+                "keeping metadata for behavior-logprob fallbacks.",
                 len(missing_idx),
                 total_sequences,
                 missing_idx[0],
             )
             setattr(_sanitize_ref_logprob_meta, "_warned", True)
-        return None
+        return flat_meta
     return flat_meta
 
 
@@ -182,6 +185,7 @@ def compute_reward_totals(
     """
     total_utils = [0.0] * len(completion_batch)
     per_reward_values: Dict[str, List[float]] = {}
+    reward_tensors: List[Any] = []
     for idx_reward, (reward_fn, reward_weight) in enumerate(
         zip(reward_spec.reward_funcs, reward_spec.reward_weights)
     ):
@@ -193,9 +197,21 @@ def compute_reward_totals(
             )
         ]
         per_reward_values[reward_key] = reward_values
+        reward_tensor = torch.tensor(
+            reward_values, dtype=getattr(torch, "float32", None)
+        )
         if reward_weight != 1.0:
-            reward_values = [float(reward_weight) * val for val in reward_values]
-        total_utils = [util + val for util, val in zip(total_utils, reward_values)]
+            reward_tensor = reward_tensor * float(reward_weight)
+        reward_tensors.append(reward_tensor)
+    if reward_tensors:
+        stacked = torch.stack(reward_tensors, dim=0)
+        try:
+            total_tensor = torch.nansum(stacked, dim=0)
+        except AttributeError:
+            total_tensor = torch.sum(
+                torch.nan_to_num(stacked, nan=0.0), dim=0
+            )
+        total_utils = [float(val) for val in total_tensor.tolist()]
     return total_utils, per_reward_values
 
 
@@ -250,24 +266,40 @@ def reward_moments(
 def group_advantages(
     grouped_comps: List[List[str]],
     total_utils: List[float],
+    *,
+    scale_rewards: bool = True,
 ) -> Tuple[List[List[float]], List[float]]:
-    """Return centered advantages per prompt group and flattened samples.
+    """Return normalized advantages per prompt group and flattened samples.
 
     :param grouped_comps: Completions grouped by prompt.
     :type grouped_comps: list[list[str]]
     :param total_utils: Flattened utilities aligned with completions.
     :type total_utils: list[float]
+    :param scale_rewards: Whether to divide by group std (TRL default).
+    :type scale_rewards: bool
     :returns: Tuple of grouped advantages and flattened advantage samples.
     :rtype: tuple[list[list[float]], list[float]]
     """
     advantage_grouped: List[List[float]] = []
+    eps = 1e-4
     idx_utils = 0
     for comp_group in grouped_comps:
         size = len(comp_group)
         group_vals = total_utils[idx_utils : idx_utils + size]
         if size > 0:
             baseline = float(sum(group_vals) / size)
-            adv_vals = [val - baseline for val in group_vals]
+            if scale_rewards and size > 1:
+                var = sum((val - baseline) ** 2 for val in group_vals) / float(
+                    size - 1
+                )
+                std = math.sqrt(var)
+            else:
+                std = 0.0
+            if scale_rewards:
+                denom = std + eps
+                adv_vals = [(val - baseline) / denom for val in group_vals]
+            else:
+                adv_vals = [val - baseline for val in group_vals]
             advantage_grouped.append(adv_vals)
         else:
             adv_vals = []
@@ -487,6 +519,16 @@ def prepare_generation_batch(
         aggregated_meta,
         generation_stats,
     )
+    prompts, answers, aggregated_comps, aggregated_meta, mismatch_count = (
+        drop_incomplete_prompt_groups(
+            prompts,
+            answers,
+            aggregated_comps,
+            aggregated_meta,
+            expected_generations,
+            generation_stats,
+        )
+    )
     post_prompt_count = len(prompts)
     post_group_count = len(aggregated_comps) if aggregated_comps is not None else 0
     post_total_comps = (
@@ -511,21 +553,14 @@ def prepare_generation_batch(
             post_prompt_count,
         )
         return None
-    aggregated_comps, aggregated_meta, partial_count = truncate_to_expected_counts(
-        aggregated_comps,
-        aggregated_meta,
-        expected_generations,
-    )
-    LOG.debug(
-        "Truncated completions | %s | prompts=%d | expected=%d | partial=%d",
-        _rank_tag(),
-        len(prompts),
-        expected_generations,
-        partial_count,
-    )
-    if partial_count > 0:
-        generation_stats.setdefault("partial_prompts", 0)
-        generation_stats["partial_prompts"] += partial_count
+    if mismatch_count > 0:
+        LOG.debug(
+            "Dropped incomplete groups | %s | prompts=%d | expected=%d | dropped=%d",
+            _rank_tag(),
+            len(prompts),
+            expected_generations,
+            mismatch_count,
+        )
     completion_info: List[List[dict]] = [
         [{"seed_id": None, "is_seed_aug": False} for _ in group]
         for group in aggregated_comps
@@ -744,6 +779,7 @@ def compute_reward_statistics(
     q_epsilon: float,
     controller_beta: Optional[float] = None,
     controller_tau: Optional[float] = None,
+    scale_rewards: bool = True,
 ) -> Optional[RewardComputation]:
     """Compute utilities, q-distributions, and flattened prompt/completion pairs.
 
@@ -796,7 +832,9 @@ def compute_reward_statistics(
         flat_answers,
     )
     moments = RewardMoments(*reward_moments(total_utils, device))
-    advantage_stats = AdvantageStats(*group_advantages(grouped_comps, total_utils))
+    advantage_stats = AdvantageStats(
+        *group_advantages(grouped_comps, total_utils, scale_rewards=scale_rewards)
+    )
     q_distribution = QDistribution(
         *_group_q_distribution(
             grouped_comps,

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import inspect
+import json
 import logging
 import math
 import os
@@ -34,12 +36,17 @@ from maxent_grpo.training.rewards import (
     load_eval_reward_functions,
 )
 from maxent_grpo.training.runtime.config import VLLMClientConfig
-from maxent_grpo.training.runtime.deps import require_accelerator, require_dataloader
+from maxent_grpo.training.runtime.deps import (
+    get_trl_prepare_deepspeed,
+    require_accelerator,
+    require_dataloader,
+)
 from maxent_grpo.training.runtime.prompts import GenerationPenaltyConfig
 from maxent_grpo.training.runtime.logging import _maybe_init_wandb_run
 from maxent_grpo.training.controller_objective import build_controller_objective
 from maxent_grpo.training.controller_optimizer import ControllerMetaManager
 from maxent_grpo.training.optim import detect_deepspeed_state
+from maxent_grpo.training.zero_utils import _disable_hf_deepspeed_zero3_init
 from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 from maxent_grpo.training.state import (
     build_checkpoint_saver,
@@ -170,9 +177,16 @@ def _build_prompt_cache_fn(
             attn = [1] * len(ids)
         else:
             attn = _normalize_tokens(attn)
+
+        ids = list(ids)
+        attn = list(attn)
+        # TRL keeps the last max_prompt_len tokens (left truncation).
+        if effective_len > 0 and len(ids) > effective_len:
+            ids = ids[-effective_len:]
+            attn = attn[-effective_len:]
         return PromptCacheEntry(
-            input_ids=list(ids),
-            attention_mask=list(attn),
+            input_ids=ids,
+            attention_mask=attn,
         )
 
     if cache_size and cache_size > 0:
@@ -346,6 +360,116 @@ def _env_int(name: str) -> Optional[int]:
         LOG.warning("Invalid %s=%r; must be >0; ignoring.", name, raw)
         return None
     return parsed
+
+
+def _coerce_deepspeed_batch_config(accelerator: Any, training_args: GRPOConfig) -> None:
+    """Ensure DeepSpeed batch-size fields are numeric before DS init."""
+
+    plugin = None
+    try:
+        plugin = accelerator.state.deepspeed_plugin
+    except Exception:
+        try:
+            getter = getattr(accelerator.state, "get_deepspeed_plugin", None)
+            if callable(getter):
+                plugin = getter()
+        except Exception:
+            plugin = None
+    if plugin is None:
+        return
+    cfg = getattr(plugin, "deepspeed_config", None)
+    if isinstance(cfg, str):
+        raw_cfg = cfg
+        cfg_dict: Optional[Dict[str, Any]] = None
+        try:
+            if os.path.isfile(raw_cfg):
+                with open(raw_cfg, "r", encoding="utf-8") as handle:
+                    raw_cfg = handle.read()
+        except OSError as exc:
+            LOG.warning("Failed to read DeepSpeed config path %s: %s", cfg, exc)
+        for loader in (json.loads,):
+            try:
+                parsed = loader(raw_cfg)
+            except (TypeError, ValueError):
+                parsed = None
+            if isinstance(parsed, dict):
+                cfg_dict = parsed
+                break
+        if cfg_dict is None:
+            try:
+                import yaml  # type: ignore[import-not-found]
+
+                parsed = yaml.safe_load(raw_cfg)
+            except Exception:
+                parsed = None
+            if isinstance(parsed, dict):
+                cfg_dict = parsed
+        if cfg_dict is not None:
+            cfg = cfg_dict
+            try:
+                plugin.deepspeed_config = cfg_dict
+            except Exception:
+                pass
+    if not isinstance(cfg, dict):
+        return
+
+    per_device = _sanitize_int(
+        getattr(training_args, "per_device_train_batch_size", None),
+        default=1,
+        minimum=1,
+        maximum=1_000_000,
+        name="per_device_train_batch_size",
+    )
+    grad_accum = _sanitize_int(
+        getattr(training_args, "gradient_accumulation_steps", None),
+        default=1,
+        minimum=1,
+        maximum=1_000_000,
+        name="gradient_accumulation_steps",
+    )
+    world_size = int(getattr(accelerator, "num_processes", 1) or 1)
+    train_batch = per_device * grad_accum * world_size
+
+    def _coerce_int(value: Any) -> Optional[int]:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str):
+            raw = value.strip()
+            if raw.lower() == "auto":
+                return None
+            if raw.isdigit():
+                return int(raw)
+        return None
+
+    changed = False
+    for key in ("train_micro_batch_size_per_gpu", "gradient_accumulation_steps", "train_batch_size"):
+        if key in cfg:
+            coerced = _coerce_int(cfg.get(key))
+            if coerced is not None and coerced != cfg.get(key):
+                cfg[key] = coerced
+                changed = True
+
+    if not isinstance(cfg.get("train_micro_batch_size_per_gpu"), int):
+        cfg["train_micro_batch_size_per_gpu"] = per_device
+        changed = True
+    if not isinstance(cfg.get("gradient_accumulation_steps"), int):
+        cfg["gradient_accumulation_steps"] = grad_accum
+        changed = True
+    if not isinstance(cfg.get("train_batch_size"), int):
+        cfg["train_batch_size"] = train_batch
+        changed = True
+
+    if changed:
+        LOG.info(
+            "[trace] deepspeed_config batch sizes coerced | micro=%s accum=%s train=%s",
+            cfg.get("train_micro_batch_size_per_gpu"),
+            cfg.get("gradient_accumulation_steps"),
+            cfg.get("train_batch_size"),
+        )
 
 
 def _fallback_optim_handles(training_args: GRPOConfig) -> SimpleNamespace:
@@ -631,6 +755,7 @@ def build_scoring_settings(
     if weighting is None:
         weighting = build_weighting_settings(cfg)
 
+    grpo_mode = bool(getattr(cfg, "train_grpo_objective", True))
     clip_range = _sanitize_float(
         getattr(cfg, "clip_range", 0.0),
         default=0.0,
@@ -638,94 +763,173 @@ def build_scoring_settings(
         maximum=1.0,
         name="clip_range",
     )
-    use_clip_objective = bool(
-        getattr(cfg, "maxent_use_clip_objective", False) or clip_range > 0.0
+    clip_range_high = getattr(cfg, "clip_range_high", None)
+    if clip_range_high is not None:
+        clip_range_high = _sanitize_float(
+            clip_range_high,
+            default=clip_range,
+            minimum=0.0,
+            maximum=1.0,
+            name="clip_range_high",
+        )
+    clip_delta = getattr(cfg, "clip_delta", None)
+    if clip_delta is not None:
+        clip_delta = _sanitize_float(
+            clip_delta,
+            default=0.0,
+            minimum=0.0,
+            maximum=10.0,
+            name="clip_delta",
+        )
+    if grpo_mode:
+        use_clip_objective = clip_range > 0.0
+    else:
+        use_clip_objective = bool(
+            getattr(cfg, "maxent_use_clip_objective", False) or clip_range > 0.0
+        )
+        if clip_range > 0.0 and not getattr(cfg, "maxent_use_clip_objective", False):
+            LOG.info(
+                "Enabling clip objective in custom loop because clip_range=%.3f was set.",
+                clip_range,
+            )
+    if grpo_mode:
+        score_tail_tokens = None
+    else:
+        score_tail_tokens = getattr(cfg, "maxent_score_tail_tokens", None)
+        if score_tail_tokens is not None and score_tail_tokens <= 0:
+            score_tail_tokens = None
+        if score_tail_tokens is not None and not weighting.len_norm_ref:
+            LOG.info(
+                "Ignoring maxent_score_tail_tokens=%s because length-normalized reference scoring is disabled.",
+                score_tail_tokens,
+            )
+            score_tail_tokens = None
+    trl_reference_scoring = True if grpo_mode else bool(
+        getattr(cfg, "maxent_trl_reference_scoring", False)
     )
-    if clip_range > 0.0 and not getattr(cfg, "maxent_use_clip_objective", False):
-        LOG.info(
-            "Enabling clip objective in custom loop because clip_range=%.3f was set.",
-            clip_range,
-        )
-    score_tail_tokens = getattr(cfg, "maxent_score_tail_tokens", None)
-    if score_tail_tokens is not None and score_tail_tokens <= 0:
-        score_tail_tokens = None
-    if score_tail_tokens is not None and not weighting.len_norm_ref:
-        LOG.info(
-            "Ignoring maxent_score_tail_tokens=%s because length-normalized reference scoring is disabled.",
-            score_tail_tokens,
-        )
-        score_tail_tokens = None
+    if grpo_mode:
+        logprob_chunk_size = getattr(cfg, "per_device_train_batch_size", 1) or 1
+    else:
+        logprob_chunk_size = getattr(cfg, "maxent_logprob_chunk_size", 0)
+        if trl_reference_scoring and (logprob_chunk_size is None or logprob_chunk_size <= 0):
+            logprob_chunk_size = getattr(cfg, "per_device_train_batch_size", 1) or 1
+    prompt_cache_size = 0 if grpo_mode else _resolve_prompt_cache_size(cfg)
     batching = BatchingSettings(
-        logprob_chunk_size=cfg.maxent_logprob_chunk_size,
-        score_slice=cfg.maxent_logprob_chunk_size,
+        logprob_chunk_size=logprob_chunk_size,
+        score_slice=logprob_chunk_size,
         prompt_length_cache_get=None,
         score_tail_tokens=score_tail_tokens,
-        slice_prefetch=getattr(cfg, "maxent_score_slice_prefetch", 0),
-        prompt_cache_size=_resolve_prompt_cache_size(cfg),
+        slice_prefetch=0 if grpo_mode else getattr(cfg, "maxent_score_slice_prefetch", 0),
+        prompt_cache_size=prompt_cache_size,
     )
     clipping = ClipSettings(
         clip_range=clip_range,
         use_clip_objective=use_clip_objective,
-        clip_objective_coef=float(getattr(cfg, "maxent_clip_objective_coef", 1.0)),
-        clip_adv_baseline=getattr(cfg, "maxent_clip_adv_baseline", None),
+        clip_objective_coef=1.0
+        if grpo_mode
+        else float(getattr(cfg, "maxent_clip_objective_coef", 1.0)),
+        clip_adv_baseline=None
+        if grpo_mode
+        else getattr(cfg, "maxent_clip_adv_baseline", None),
+        clip_range_high=clip_range_high,
+        clip_delta=clip_delta,
     )
-    ref_source = str(
-        getattr(cfg, "maxent_reference_logprobs_source", "auto") or "auto"
-    )
-    if not getattr(cfg, "train_grpo_objective", True) and ref_source.strip().lower() == "auto":
-        if str(os.environ.get("MAXENT_FORCE_REF_MODEL", "")).strip().lower() in {
-            "1",
-            "true",
-            "yes",
-            "y",
-        }:
-            LOG.info(
-                "MaxEnt run detected (train_grpo_objective=false); forcing "
-                "maxent_reference_logprobs_source=model because MAXENT_FORCE_REF_MODEL=1."
-            )
-            ref_source = "model"
-        else:
-            LOG.info(
-                "MaxEnt run detected (train_grpo_objective=false); keeping "
-                "maxent_reference_logprobs_source=auto to allow vLLM logprob metadata."
-            )
-    entropy_bonus_coef = float(getattr(cfg, "policy_entropy_bonus_coef", 0.0) or 0.0)
-    policy_entropy_enabled = bool(getattr(cfg, "maxent_policy_entropy", False))
-    if entropy_bonus_coef != 0.0:
-        policy_entropy_enabled = True
-    entropy_mode = str(
-        getattr(cfg, "maxent_policy_entropy_mode", "exact") or "exact"
-    ).strip().lower()
-    if entropy_mode in {"", "none"}:
-        entropy_mode = "exact"
-    if entropy_mode in {"exact", "full", "distribution"}:
-        entropy_mode = "exact"
-    elif entropy_mode in {
-        "sample",
-        "estimate",
-        "estimated",
-        "approx",
-        "approximate",
-        "token",
-        "token_logp",
-        "nll",
-        "logp",
-    }:
-        entropy_mode = "sample"
+    if grpo_mode:
+        ref_source = "model"
     else:
-        LOG.warning(
-            "Unknown maxent_policy_entropy_mode=%s; falling back to 'exact'.",
-            entropy_mode,
+        ref_source = str(
+            getattr(cfg, "maxent_reference_logprobs_source", "auto") or "auto"
         )
+        if trl_reference_scoring:
+            if ref_source.strip().lower() not in {
+                "model",
+                "reference",
+                "reference_model",
+                "ref_model",
+            }:
+                LOG.info(
+                    "TRL-style reference scoring enabled; forcing maxent_reference_logprobs_source=model "
+                    "(was %s).",
+                    ref_source,
+                )
+            ref_source = "model"
+        if not grpo_mode and ref_source.strip().lower() == "auto":
+            if str(os.environ.get("MAXENT_FORCE_REF_MODEL", "")).strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "y",
+            }:
+                LOG.info(
+                    "MaxEnt run detected (train_grpo_objective=false); forcing "
+                    "maxent_reference_logprobs_source=model because MAXENT_FORCE_REF_MODEL=1."
+                )
+                ref_source = "model"
+            else:
+                LOG.info(
+                    "MaxEnt run detected (train_grpo_objective=false); keeping "
+                    "maxent_reference_logprobs_source=auto to allow vLLM logprob metadata."
+                )
+    if grpo_mode:
+        entropy_bonus_coef = 0.0
+        policy_entropy_enabled = False
         entropy_mode = "exact"
+    else:
+        entropy_bonus_coef = float(getattr(cfg, "policy_entropy_bonus_coef", 0.0) or 0.0)
+        policy_entropy_enabled = bool(getattr(cfg, "maxent_policy_entropy", False))
+        if entropy_bonus_coef != 0.0:
+            policy_entropy_enabled = True
+        entropy_mode = str(
+            getattr(cfg, "maxent_policy_entropy_mode", "exact") or "exact"
+        ).strip().lower()
+        if entropy_mode in {"", "none"}:
+            entropy_mode = "exact"
+        if entropy_mode in {"exact", "full", "distribution"}:
+            entropy_mode = "exact"
+        elif entropy_mode in {
+            "sample",
+            "estimate",
+            "estimated",
+            "approx",
+            "approximate",
+            "token",
+            "token_logp",
+            "nll",
+            "logp",
+        }:
+            entropy_mode = "sample"
+        else:
+            LOG.warning(
+                "Unknown maxent_policy_entropy_mode=%s; falling back to 'exact'.",
+                entropy_mode,
+            )
+            entropy_mode = "exact"
+    if grpo_mode:
+        behavior_source = "model"
+    else:
+        behavior_source = str(
+            getattr(cfg, "behavior_logprobs_source", "model") or "model"
+        ).strip().lower()
+        if behavior_source in {"vllm", "metadata", "meta"}:
+            behavior_source = "vllm"
+        elif behavior_source in {"model", "hf", "policy", "current"}:
+            behavior_source = "model"
+        else:
+            LOG.warning(
+                "Unknown behavior_logprobs_source=%s; defaulting to 'model'.",
+                behavior_source,
+            )
+            behavior_source = "model"
     return ScoringSettings(
         weighting=weighting,
         clipping=clipping,
         batching=batching,
         reference_logprobs_source=ref_source,
-        allow_stale_reference_logprobs=bool(
-            getattr(cfg, "maxent_allow_stale_reference_logprobs", False)
-        ),
+        behavior_logprobs_source=behavior_source,
+        allow_stale_reference_logprobs=False
+        if grpo_mode
+        else bool(getattr(cfg, "maxent_allow_stale_reference_logprobs", False)),
+        trl_reference_scoring=trl_reference_scoring,
         policy_entropy_bonus_coef=entropy_bonus_coef,
         policy_entropy=policy_entropy_enabled,
         policy_entropy_mode=entropy_mode,
@@ -797,17 +1001,29 @@ def build_training_loop_context(
     :rtype: TrainingLoopContext
     """
 
-    ref_source = str(
-        getattr(training_args, "maxent_reference_logprobs_source", "auto") or "auto"
-    ).strip().lower()
-    share_reference_model = bool(
-        getattr(training_args, "maxent_share_reference_model", False)
-        or ref_source in {"policy", "none"}
-    )
+    if force_grpo_objective is not None:
+        training_args.train_grpo_objective = force_grpo_objective
+    grpo_mode = bool(getattr(training_args, "train_grpo_objective", True))
+    if grpo_mode:
+        ref_source = "model"
+        share_reference_model = False
+    else:
+        ref_source = str(
+            getattr(training_args, "maxent_reference_logprobs_source", "auto") or "auto"
+        ).strip().lower()
+        share_reference_model = bool(
+            getattr(training_args, "maxent_share_reference_model", False)
+            or ref_source in {"policy", "none"}
+        )
     reference_model_args = None
     if not share_reference_model:
         reference_model_args = _clone_model_args(model_args)
         if reference_model_args is None:
+            if grpo_mode:
+                raise RuntimeError(
+                    "GRPO mode requires a separate reference model, but model args "
+                    "could not be cloned."
+                )
             share_reference_model = True
         else:
             ref_name = getattr(training_args, "reference_model_name_or_path", None)
@@ -816,8 +1032,6 @@ def build_training_loop_context(
             ref_revision = getattr(training_args, "reference_model_revision", None)
             if ref_revision is not None:
                 setattr(reference_model_args, "model_revision", ref_revision)
-    if force_grpo_objective is not None:
-        training_args.train_grpo_objective = force_grpo_objective
     resume_checkpoint, resume_requested = resolve_resume_checkpoint(training_args)
     resume_state = load_trainer_state_metadata(resume_checkpoint)
     if resume_checkpoint:
@@ -865,9 +1079,14 @@ def build_training_loop_context(
     if not share_reference_model and reference_model_args is not None:
         try:
             LOG.info("[trace] build_training_loop_context: loading reference model")
-            reference_model = get_model(reference_model_args, training_args)
+            with _disable_hf_deepspeed_zero3_init():
+                reference_model = get_model(reference_model_args, training_args)
             LOG.info("[trace] build_training_loop_context: reference model loaded")
         except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - defensive logging
+            if grpo_mode:
+                raise RuntimeError(
+                    "Failed to load GRPO reference model; cannot fall back to the live policy."
+                ) from exc
             LOG.warning(
                 "Unable to load frozen reference model; falling back to the live policy | error=%s",
                 exc,
@@ -875,7 +1094,87 @@ def build_training_loop_context(
             share_reference_model = True
     if reference_model is not None:
         LOG.info("[trace] build_training_loop_context: preparing reference model")
-        reference_model = _prepare_reference_model(reference_model, accelerator.device)
+        ds_state = detect_deepspeed_state(accelerator)
+        prepare_fn = None
+        if ds_state.use_deepspeed or ds_state.zero_stage >= 2:
+            try:
+                from trl.models.utils import prepare_deepspeed as trl_prepare_deepspeed
+
+                prepare_fn = trl_prepare_deepspeed
+            except (ImportError, ModuleNotFoundError, AttributeError):
+                prepare_fn = get_trl_prepare_deepspeed()
+        if ds_state.use_deepspeed or ds_state.zero_stage >= 2:
+            if not callable(prepare_fn):
+                raise RuntimeError(
+                    "DeepSpeed is enabled but TRL prepare_deepspeed is unavailable; "
+                    "cannot continue without a DeepSpeed-wrapped reference model."
+                )
+            # Defer device placement to DeepSpeed to avoid sharding a pre-moved model.
+            reference_model = _prepare_reference_model(reference_model, None)
+            _coerce_deepspeed_batch_config(accelerator, training_args)
+            try:
+                sig = inspect.signature(prepare_fn)
+            except (TypeError, ValueError):
+                sig = None
+            try:
+                if sig is not None and "accelerator" in sig.parameters:
+                    reference_model = prepare_fn(reference_model, accelerator=accelerator)
+                else:
+                    reference_model = prepare_fn(reference_model)
+            except Exception as exc:
+                LOG.error("Failed to wrap reference model with DeepSpeed: %s", exc)
+                raise
+            LOG.info(
+                "[trace] build_training_loop_context: reference model wrapped with DeepSpeed"
+            )
+            if not getattr(build_training_loop_context, "_ref_wrap_logged", False):
+                try:
+                    base_ref = getattr(reference_model, "module", reference_model)
+                    modules = []
+                    try:
+                        modules.append(("embed_tokens", getattr(base_ref, "embed_tokens", None)))
+                    except Exception:
+                        modules.append(("embed_tokens", None))
+                    try:
+                        get_inp = getattr(base_ref, "get_input_embeddings", None)
+                        modules.append(("input_embeddings", get_inp() if callable(get_inp) else None))
+                    except Exception:
+                        modules.append(("input_embeddings", None))
+                    try:
+                        get_out = getattr(base_ref, "get_output_embeddings", None)
+                        modules.append(("output_embeddings", get_out() if callable(get_out) else None))
+                    except Exception:
+                        modules.append(("output_embeddings", None))
+                    try:
+                        modules.append(("lm_head", getattr(base_ref, "lm_head", None)))
+                    except Exception:
+                        modules.append(("lm_head", None))
+                    embed_descs = []
+                    for name, module in modules:
+                        if module is None:
+                            embed_descs.append(f"{name}=None")
+                            continue
+                        weight = getattr(module, "weight", None)
+                        shape = getattr(weight, "shape", None) if weight is not None else None
+                        status = getattr(weight, "ds_status", None) if weight is not None else None
+                        status_name = getattr(status, "name", None) if status is not None else None
+                        ds_status = status_name if status_name is not None else status
+                        embed_descs.append(
+                            f"{name}:{type(module).__name__} shape={shape} ds_status={ds_status}"
+                        )
+                    LOG.info(
+                        "[trace] reference model DS wrap verified | type=%s | %s",
+                        type(reference_model).__name__,
+                        " | ".join(embed_descs),
+                    )
+                except Exception as exc:
+                    LOG.info(
+                        "[trace] reference model DS wrap verification failed: %s",
+                        exc,
+                    )
+                setattr(build_training_loop_context, "_ref_wrap_logged", True)
+        else:
+            reference_model = _prepare_reference_model(reference_model, accelerator.device)
         LOG.info("[trace] build_training_loop_context: reference model prepared")
     LOG.info("[trace] build_training_loop_context: loading tokenizer")
     tokenizer = get_tokenizer(model_args, training_args)
