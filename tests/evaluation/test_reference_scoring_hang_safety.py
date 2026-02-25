@@ -96,8 +96,118 @@ def test_chunked_sequence_logprobs_deepspeed_embed_gather_uses_rank_any(monkeypa
     assert len(gathered_params_calls[0]) == 1
 
 
+def test_chunked_sequence_logprobs_avoids_nested_zero_gather_assert(monkeypatch):
+    """Single gather strategy should avoid nested active_sub_modules failures."""
+    from maxent_grpo.training import scoring as scoring_mod
+    import maxent_grpo.training.zero_utils as zero_utils_mod
+
+    torch = scoring_mod._refresh_torch()
+
+    active_by_param: dict[int, set[int]] = {}
+    gather_calls: list[list[object]] = []
+    token_counter = {"value": 0}
+
+    class _BadActive:
+        def __bool__(self):
+            raise TypeError("cannot coerce active state")
+
+    class _FakeWeight:
+        def __init__(self):
+            self.shape = (8,)
+            self.ds_id = 5
+            self.ds_status = "NOT_AVAILABLE"
+            self.ds_active_sub_modules = _BadActive()
+
+    class _GatheredParameters:
+        def __init__(self, params, modifier_rank=None):
+            del modifier_rank
+            self.params = list(params)
+            gather_calls.append(self.params)
+            token_counter["value"] += 1
+            self.token = token_counter["value"]
+
+        def __enter__(self):
+            for param in self.params:
+                key = id(param)
+                active_by_param.setdefault(key, set()).add(self.token)
+            return None
+
+        def __exit__(self, exc_type, exc, tb):
+            del exc_type, exc, tb
+            for param in self.params:
+                key = id(param)
+                active = active_by_param.get(key, set())
+                if self.token in active:
+                    active.remove(self.token)
+                if active:
+                    raise AssertionError({"active_sub_modules": set(active)})
+                active_by_param[key] = active
+            return False
+
+    deepspeed_stub = ModuleType("deepspeed")
+    deepspeed_stub.zero = SimpleNamespace(
+        is_enabled=lambda: True, GatheredParameters=_GatheredParameters
+    )
+    monkeypatch.setitem(sys.modules, "deepspeed", deepspeed_stub)
+
+    # Keep zero_utils on the same gather implementation so nested contexts would
+    # reproduce the DeepSpeed-style assertion without the lock/strategy fix.
+    monkeypatch.setattr(zero_utils_mod, "_ensure_deepspeed_ready", lambda: True)
+    monkeypatch.setattr(
+        zero_utils_mod,
+        "ds_zero",
+        SimpleNamespace(GatheredParameters=_GatheredParameters),
+    )
+    monkeypatch.setattr(zero_utils_mod, "_is_deepspeed_engine", lambda _m: False)
+    monkeypatch.setattr(zero_utils_mod, "_zero_stage", lambda _m: 0)
+    monkeypatch.setattr(zero_utils_mod, "_gather_callable", lambda: _GatheredParameters)
+
+    weight = _FakeWeight()
+
+    class _Model:
+        def __init__(self):
+            self.config = SimpleNamespace(pad_token_id=0, vocab_size=16)
+            self._emb = SimpleNamespace(weight=weight, padding_idx=0)
+
+        def parameters(self):
+            return [weight]
+
+        def get_input_embeddings(self):
+            return self._emb
+
+        def get_output_embeddings(self):
+            return None
+
+        def forward(self, **_kwargs):
+            raise RuntimeError("stop after gather ctx")
+
+        def __call__(self, **kwargs):
+            return self.forward(**kwargs)
+
+    model = _Model()
+    input_ids = torch.zeros((1, 4), dtype=getattr(torch, "long", None))
+    attention_mask = torch.ones_like(input_ids)
+    labels = torch.full((1, 4), -100, dtype=getattr(torch, "long", None))
+
+    result = scoring_mod._chunked_sequence_logprobs(
+        model,
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        labels=labels,
+        chunk_size=0,
+        gather_full_params=False,
+    )
+
+    # Previously this path could invoke nested GatheredParameters on the same
+    # param (manual gather + helper gather), which triggers active_sub_modules
+    # assertions at context exit.
+    assert result is None
+    assert len(gather_calls) == 1
+    assert gather_calls[0] == [weight]
+
+
 def test_sanitize_ref_logprob_meta_requires_complete_entries():
-    """Drop reference metadata when any entry lacks logprob info."""
+    """Keep partial metadata so behavior-logprob fallbacks can still run."""
     from maxent_grpo.training import rewards as rewards_mod
 
     complete = [
@@ -110,20 +220,22 @@ def test_sanitize_ref_logprob_meta_requires_complete_entries():
     )
     missing = [{"logprob_sum": -1.0, "token_count": 2}, None]
     assert (
-        rewards_mod._sanitize_ref_logprob_meta(list(missing), total_sequences=2) is None
+        rewards_mod._sanitize_ref_logprob_meta(list(missing), total_sequences=2)
+        == missing
     )
     missing_fields = [{"logprob_sum": None, "token_count": 2}]
     assert (
         rewards_mod._sanitize_ref_logprob_meta(
             list(missing_fields), total_sequences=1
         )
-        is None
+        == missing_fields
     )
 
 
 def test_gather_reference_logprobs_returns_none_if_any_rank_fails(monkeypatch):
     """If any rank fails to compute ref logprobs, all ranks must skip."""
     from maxent_grpo.training import scoring as scoring_mod
+    from maxent_grpo.training import scoring_reference as scoring_ref_mod
 
     torch = scoring_mod._refresh_torch()
 
@@ -138,9 +250,13 @@ def test_gather_reference_logprobs_returns_none_if_any_rank_fails(monkeypatch):
         def gather_object(_value):
             return [True, False]
 
-    monkeypatch.setattr(scoring_mod, "reference_from_model", _fake_reference_from_model)
     monkeypatch.setattr(
-        scoring_mod,
+        scoring_ref_mod,
+        "reference_from_model",
+        _fake_reference_from_model,
+    )
+    monkeypatch.setattr(
+        scoring_ref_mod,
         "finalize_reference_stats",
         lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not run")),
     )
@@ -157,6 +273,7 @@ def test_gather_reference_logprobs_returns_none_if_any_rank_fails(monkeypatch):
 def test_gather_reference_logprobs_preflight_skips_when_any_rank_empty(monkeypatch):
     """Preflight must skip reference scoring when any rank would run zero slices."""
     from maxent_grpo.training import scoring as scoring_mod
+    from maxent_grpo.training import scoring_reference as scoring_ref_mod
 
     torch = scoring_mod._refresh_torch()
 
@@ -169,9 +286,11 @@ def test_gather_reference_logprobs_preflight_skips_when_any_rank_empty(monkeypat
             return [value, 0]
 
     monkeypatch.setattr(
-        scoring_mod,
+        scoring_ref_mod,
         "reference_from_model",
-        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("reference_from_model should not run")),
+        lambda *_a, **_k: (_ for _ in ()).throw(
+            AssertionError("reference_from_model should not run")
+        ),
     )
 
     runtime = SimpleNamespace(accelerator=_Accel(), device="cpu")

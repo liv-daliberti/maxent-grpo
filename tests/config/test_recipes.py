@@ -18,7 +18,10 @@ Unit tests for recipe loading helpers.
 
 from __future__ import annotations
 
+import pytest
+
 from maxent_grpo.config.recipes import (
+    _MaxentRecipeSchema,
     _dataclass_field_names,
     _split_recipe_payload,
     load_grpo_recipe,
@@ -45,9 +48,9 @@ def test_split_recipe_payload_routes_fields():
     }
     script, training, model, other = _split_recipe_payload(payload, _ModelCfg)
     assert script == {}
-    assert training == {"reward_funcs": ["foo"], "beta": 0.2}
+    assert training == {"reward_funcs": ["foo"]}
     assert model == {"model_name_or_path": "m", "trust_remote_code": True}
-    assert other == {"extra": "x"}
+    assert other == {"beta": 0.2, "extra": "x"}
 
 
 def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):
@@ -80,3 +83,44 @@ def test_load_grpo_recipe_round_trip(tmp_path, monkeypatch):
     assert cfg.reward_funcs == ["r1"]
     assert cfg.maxent_tau == 0.3
     assert model_cfg.kwargs["model_name_or_path"] == "repo/model"
+
+
+def test_load_grpo_recipe_accepts_maxent_alpha_without_tau(tmp_path):
+    path = tmp_path / "recipe.yaml"
+    path.write_text(
+        "\n".join(
+            [
+                "reward_funcs: ['r1']",
+                "maxent_alpha: 0.01",
+                "dataset_name: ds",
+                "model_name_or_path: repo/model",
+                "train_grpo_objective: false",
+                "output_dir: /tmp/out",
+                "logging_steps: 10",
+                "save_steps: 10",
+                "beta: 0.5",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    class _ModelCfg:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    _, cfg, _ = load_grpo_recipe(str(path), model_config_cls=_ModelCfg)
+    assert cfg.maxent_alpha == 0.01
+
+
+def test_maxent_recipe_schema_requires_alpha_or_tau_for_maxent():
+    with pytest.raises(ValueError, match="maxent_alpha \\(or legacy maxent_tau\\)"):
+        _MaxentRecipeSchema(
+            reward_funcs=["r1"],
+            dataset_name="ds",
+            model_name_or_path="repo/model",
+            train_grpo_objective=False,
+            output_dir="/tmp/out",
+            logging_steps=10,
+            save_steps=10,
+            beta=0.5,
+        )

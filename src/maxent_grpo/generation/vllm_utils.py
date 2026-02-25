@@ -43,13 +43,22 @@ def _resolve_async_mode(
         return async_mode
     raw = os.getenv("MAXENT_VLLM_ASYNC_INIT")
     if raw is None:
-        # Default to async when talking to a loopback server to avoid
-        # POST-first deadlocks during init_communicator.
-        return _is_loopback_host(base_url)
+        # Match open-r1 behavior by default; async init must be explicitly opted in.
+        return False
     raw = raw.strip().lower()
     if raw == "auto":
         return _is_loopback_host(base_url)
     return raw not in {"0", "false", "no", "off"}
+
+
+def _is_already_initialized_error(exc: BaseException) -> bool:
+    """Return True when vLLM reports an already-initialized weight-sync group."""
+    text = str(exc).strip().lower()
+    if not text:
+        return False
+    return "weight update group already initialized" in text or (
+        "already initialized" in text and "communicator" in text
+    )
 
 
 def zero3_gather_factory(
@@ -117,6 +126,7 @@ def init_vllm_client_communicator(
     async_mode: Optional[bool] = None,
     timeout_s: Optional[float] = None,
     log: Optional[Callable[[str], None]] = None,
+    init_fn: Optional[Callable[[], Any]] = None,
 ) -> None:
     """Initialize the vLLM weight-sync communicator with an async-safe handshake.
 
@@ -127,7 +137,7 @@ def init_vllm_client_communicator(
     :param client: TRL VLLMClient instance.
     :type client: Any
     :param async_mode: Whether to use the async handshake. When ``None``, the
-        ``MAXENT_VLLM_ASYNC_INIT`` env var controls the behavior (default True).
+        ``MAXENT_VLLM_ASYNC_INIT`` env var controls the behavior (default False).
     :type async_mode: bool | None
     :param timeout_s: Timeout for the POST and join wait. Defaults to
         ``MAXENT_VLLM_INIT_TIMEOUT_S`` or 60 seconds.
@@ -135,8 +145,8 @@ def init_vllm_client_communicator(
     :param log: Optional logger callback for info messages.
     :type log: Callable[[str], None] | None
     """
-    init_fn = getattr(client, "init_communicator", None)
-    if not callable(init_fn):
+    resolved_init_fn = init_fn or getattr(client, "init_communicator", None)
+    if not callable(resolved_init_fn):
         raise TypeError("VLLMClient.init_communicator is unavailable")
     base_url_hint = getattr(client, "base_url", None)
     async_mode = _resolve_async_mode(async_mode, base_url_hint)
@@ -155,12 +165,12 @@ def init_vllm_client_communicator(
             except Exception as exc:
                 _log(f"vLLM close_communicator failed (ignored): {exc}")
 
-    retries_raw = os.getenv("MAXENT_VLLM_INIT_RETRIES", "1")
+    retries_raw = os.getenv("MAXENT_VLLM_INIT_RETRIES", "2")
     backoff_raw = os.getenv("MAXENT_VLLM_INIT_RETRY_BACKOFF_S", "2.0")
     try:
         retries = max(1, int(retries_raw))
     except (TypeError, ValueError):
-        retries = 1
+        retries = 2
     try:
         backoff_s = max(0.0, float(backoff_raw))
     except (TypeError, ValueError):
@@ -168,7 +178,7 @@ def init_vllm_client_communicator(
 
     def _init_once() -> None:
         if not async_mode:
-            init_fn()
+            resolved_init_fn()
             return
 
         base_url = getattr(client, "base_url", None)
@@ -177,7 +187,7 @@ def init_vllm_client_communicator(
         session = getattr(client, "session", None)
         if not base_url or not host or not group_port or session is None:
             _log("Async vLLM init unavailable; falling back to blocking init_communicator.")
-            init_fn()
+            resolved_init_fn()
             return
 
         timeout = float(
@@ -191,7 +201,7 @@ def init_vllm_client_communicator(
         pynccl_mod = optional_import("vllm.distributed.device_communicators.pynccl")
         if requests_mod is None or vllm_utils_mod is None or pynccl_mod is None:
             _log("Async vLLM init missing dependencies; falling back to blocking init_communicator.")
-            init_fn()
+            resolved_init_fn()
             return
 
         try:
@@ -260,18 +270,32 @@ def init_vllm_client_communicator(
             atexit.register(close_fn)
 
     last_exc: Optional[BaseException] = None
-    for attempt in range(1, retries + 1):
+    attempt = 0
+    used_recoverable_retry = False
+    while True:
+        attempt += 1
         try:
             _init_once()
             return
         except Exception as exc:
             last_exc = exc
+            recoverable = _is_already_initialized_error(exc)
             _log(
-                f"vLLM init_communicator failed (attempt {attempt}/{retries}): {exc}"
+                f"vLLM init_communicator failed (attempt {attempt}): {exc}"
             )
             _close_client()
-            if attempt < retries and backoff_s > 0:
+            should_retry = attempt < retries
+            if recoverable and not used_recoverable_retry:
+                used_recoverable_retry = True
+                should_retry = True
+                _log(
+                    "Detected already-initialized communicator; forced close + retry."
+                )
+            if should_retry and backoff_s > 0:
                 time.sleep(backoff_s)
+            if should_retry:
+                continue
+            break
     if last_exc is not None:
         raise last_exc
 

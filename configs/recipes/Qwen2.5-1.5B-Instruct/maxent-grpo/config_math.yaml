@@ -52,7 +52,6 @@ maxent_logprob_chunk_size: 64  # chunk ref scoring to reduce peak logits memory
 # Prompt cache (auto-sized default; set to 0 to disable or override)
 maxent_prompt_cache_size: 10000
 train_grpo_objective: true
-force_custom_loop: true
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false

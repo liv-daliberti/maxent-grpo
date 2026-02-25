@@ -37,11 +37,12 @@ limitations under the License.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from collections.abc import MutableMapping as MutableMappingABC
 from importlib import import_module
 import logging
 import os
+from urllib.parse import urlparse
 import sys
 from typing import (
     Dict,
@@ -69,7 +70,10 @@ from maxent_grpo.training.runtime.prompts import (
     _prompt_char_limit_from_tokens,
     _to_prompt,
 )
-from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
+from maxent_grpo.training.trl_trainer import (
+    build_custom_grpo_trainer,
+    wrap_trl_trainer,
+)
 from maxent_grpo.utils.deps_guard import ensure_real_dependencies
 
 if TYPE_CHECKING:
@@ -98,6 +102,21 @@ class _LazyModuleProxy:
 
 
 transformers = _LazyModuleProxy("transformers")
+
+
+def _main_process_first(training_args: Any, desc: str) -> Any:
+    """Return a process-ordering context when TrainingArguments provides one."""
+
+    main_process_first = getattr(training_args, "main_process_first", None)
+    if not callable(main_process_first):
+        return nullcontext()
+    try:
+        return main_process_first(local=True, desc=desc)
+    except TypeError:
+        try:
+            return main_process_first(desc=desc)
+        except TypeError:
+            return main_process_first()
 
 
 @contextmanager
@@ -295,6 +314,161 @@ def _ensure_split_mapping(dataset: Any) -> MutableMapping[str, Any]:
     return {"train": dataset}
 
 
+def _resolve_vllm_group_port() -> Optional[int]:
+    """Resolve the vLLM communicator port from launcher environment."""
+
+    for key in ("VLLM_GROUP_PORT", "PORT_FOR_COMMUNICATION"):
+        raw = str(os.getenv(key, "")).strip()
+        if not raw:
+            continue
+        try:
+            port = int(raw)
+        except ValueError:
+            LOG.warning("Ignoring invalid %s=%r (expected integer port).", key, raw)
+            continue
+        if 1 <= port <= 65535:
+            return port
+        LOG.warning("Ignoring out-of-range %s=%r (expected 1..65535).", key, raw)
+    return None
+
+
+@contextmanager
+def _temporary_env(overrides: Dict[str, str]) -> Iterator[None]:
+    """Temporarily set environment variables while preserving prior values."""
+
+    if not overrides:
+        yield
+        return
+    previous: Dict[str, Optional[str]] = {}
+    for key, value in overrides.items():
+        previous[key] = os.environ.get(key)
+        os.environ[key] = value
+    try:
+        yield
+    finally:
+        for key, prior in previous.items():
+            if prior is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prior
+
+
+def _loopback_host(base_url: str) -> bool:
+    try:
+        parsed = urlparse(base_url)
+        host = parsed.hostname or ""
+    except Exception:
+        host = ""
+    if not host:
+        host = base_url
+    host = host.strip().lower()
+    return host in {"localhost", "127.0.0.1", "::1"}
+
+
+def _vllm_client_nccl_overrides(base_url: str) -> Dict[str, str]:
+    """Return conservative NCCL settings for loopback vLLM sync."""
+
+    overrides: Dict[str, str] = {}
+    enable_overrides = (
+        str(os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")).strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    if not enable_overrides:
+        return overrides
+
+    if not _loopback_host(base_url):
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME")
+        if explicit and "NCCL_SOCKET_IFNAME" not in os.environ:
+            overrides["NCCL_SOCKET_IFNAME"] = explicit
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_P2P_DISABLE")
+        if explicit and "NCCL_P2P_DISABLE" not in os.environ:
+            overrides["NCCL_P2P_DISABLE"] = explicit
+        explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_IB_DISABLE")
+        if explicit and "NCCL_IB_DISABLE" not in os.environ:
+            overrides["NCCL_IB_DISABLE"] = explicit
+        return overrides
+
+    if "NCCL_SOCKET_IFNAME" not in os.environ:
+        overrides["NCCL_SOCKET_IFNAME"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME", "lo"
+        )
+    if "NCCL_P2P_DISABLE" not in os.environ:
+        overrides["NCCL_P2P_DISABLE"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_P2P_DISABLE", "1"
+        )
+    if "NCCL_IB_DISABLE" not in os.environ:
+        overrides["NCCL_IB_DISABLE"] = os.getenv(
+            "MAXENT_VLLM_CLIENT_NCCL_IB_DISABLE", "1"
+        )
+    return overrides
+
+
+def _patch_trl_vllm_client_init() -> None:
+    """Patch TRL VLLMClient init handshake to avoid POST-first deadlocks."""
+
+    try:
+        import trl.extras.vllm_client as trl_vllm_client_mod
+    except Exception as exc:  # pragma: no cover - optional dependency path
+        LOG.debug("Skipping vLLM client patch; trl.extras import failed: %s", exc)
+        return
+
+    client_cls = getattr(trl_vllm_client_mod, "VLLMClient", None)
+    if client_cls is None:
+        return
+    if getattr(client_cls, "_maxent_async_init_patch", False):
+        return
+
+    try:
+        from maxent_grpo.generation.vllm_utils import (
+            init_vllm_client_communicator as _init_vllm_client_communicator,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        LOG.warning("Failed to import async vLLM init helper: %s", exc)
+        return
+
+    original_ctor = getattr(client_cls, "__init__", None)
+    original_init_communicator = getattr(client_cls, "init_communicator", None)
+    if not callable(original_ctor) or not callable(original_init_communicator):
+        return
+
+    def _patched_ctor(self: Any, *args: Any, **kwargs: Any) -> None:
+        if "group_port" not in kwargs or kwargs.get("group_port") in (None, 0):
+            resolved_group_port = _resolve_vllm_group_port()
+            if resolved_group_port is not None:
+                kwargs["group_port"] = resolved_group_port
+        original_ctor(self, *args, **kwargs)
+
+    def _patched_init_communicator(self: Any) -> None:
+        bound_original = original_init_communicator.__get__(self, type(self))
+        base_url = str(getattr(self, "base_url", ""))
+        overrides = _vllm_client_nccl_overrides(base_url)
+        if overrides:
+            LOG.info(
+                "vLLM client NCCL overrides applied | %s",
+                ", ".join(f"{k}={v}" for k, v in overrides.items()),
+            )
+        with _temporary_env(overrides):
+            _init_vllm_client_communicator(
+                self,
+                log=LOG.info,
+                init_fn=bound_original,
+            )
+
+    setattr(client_cls, "__init__", _patched_ctor)
+    setattr(client_cls, "init_communicator", _patched_init_communicator)
+    setattr(client_cls, "_maxent_async_init_patch", True)
+
+    try:  # Keep GRPOTrainer's module-local alias in sync if it was imported earlier.
+        import trl.trainer.grpo_trainer as trl_grpo_mod
+
+        if getattr(trl_grpo_mod, "VLLMClient", None) is not client_cls:
+            setattr(trl_grpo_mod, "VLLMClient", client_cls)
+    except Exception:
+        pass
+
+    LOG.info("Applied async vLLM communicator patch to TRL VLLMClient.")
+
+
 def run_baseline_training(
     script_args: GRPOScriptArguments,
     training_args: GRPOConfig,
@@ -325,16 +499,30 @@ def run_baseline_training(
         GRPOTrainer as _GRPOTrainer,
         get_peft_config as _get_peft_config,
     )
+    from trl.data_utils import maybe_apply_chat_template
 
     override = getattr(sys.modules[__name__], "GRPOTrainerOverride", None)
-    trainer_cls = override or _GRPOTrainer
+    if override is not None:
+        trainer_cls = wrap_trl_trainer(override)
+    else:
+        trainer_cls = build_custom_grpo_trainer(_GRPOTrainer)
     # Avoid leaking overrides across calls/tests.
     setattr(sys.modules[__name__], "GRPOTrainerOverride", None)
-    trainer_cls = ensure_weighting_logging(trainer_cls)
     peft_factory = get_peft_config_override or _get_peft_config
 
-    # Ensure TRL's VLLM client honours distributed port overrides before
-    # the trainer instantiates it.
+    # Keep custom communicator patch opt-in to preserve open-r1 parity by default.
+    if bool(getattr(training_args, "use_vllm", False)):
+        patch_vllm_client = (
+            str(os.getenv("MAXENT_TRL_VLLM_CLIENT_PATCH", "0")).strip().lower()
+            in {"1", "true", "yes", "on"}
+        )
+        if patch_vllm_client:
+            _patch_trl_vllm_client_init()
+        else:
+            LOG.info(
+                "Skipping custom TRL vLLM communicator patch "
+                "(MAXENT_TRL_VLLM_CLIENT_PATCH=0)."
+            )
 
     transformers_mod = transformers
     set_seed_fn = getattr(transformers_mod, "set_seed", None)
@@ -436,7 +624,9 @@ def run_baseline_training(
     # Data / model
     raw_ds = get_dataset(script_args)
     pc = getattr(script_args, "dataset_prompt_column", "problem")
-    pc = _resolve_prompt_column(raw_ds, pc)
+    is_grpo = bool(getattr(training_args, "train_grpo_objective", False))
+    if not is_grpo:
+        pc = _resolve_prompt_column(raw_ds, pc)
     sc = getattr(script_args, "dataset_solution_column", "answer")
     dataset_label = getattr(script_args, "dataset_name", None) or getattr(
         script_args, "dataset_mixture", None
@@ -484,15 +674,29 @@ def run_baseline_training(
     char_limit = _prompt_char_limit_from_tokens(
         getattr(training_args, "max_prompt_length", 0)
     )
+    # Keep prompt mapping identical for GRPO and MaxEnt so startup prompt
+    # preprocessing and chat-template behavior stay aligned.
+    use_prompt_messages = True
 
-    def _map_fn(ex: Dict[str, Any]) -> Dict[str, str]:
+    def _make_conversation(ex: Dict[str, Any]) -> Dict[str, Any]:
+        if pc not in ex:
+            raise ValueError(f"Dataset Question Field Error: {pc} is not supported.")
+        prompt: List[Dict[str, str]] = []
+        if training_args.system_prompt is not None:
+            prompt.append({"role": "system", "content": training_args.system_prompt})
+        prompt.append({"role": "user", "content": str(ex[pc])})
+        return {"prompt": prompt, "answer": str(ex.get(sc, ex.get("solution", "")))}
+
+    def _map_fn(ex: Dict[str, Any]) -> Dict[str, Any]:
         """Map a training split example to prompt/answer text.
 
         :param ex: Dataset row containing prompt/answer fields.
         :type ex: dict[str, Any]
         :returns: Mapping with ``prompt``/``answer`` keys for training.
-        :rtype: dict[str, str]
+            :rtype: dict[str, Any]
         """
+        if use_prompt_messages:
+            return _make_conversation(ex)
         prompt_col = pc
         if prompt_col not in ex and prompt_col == "problem" and "prompt" in ex:
             prompt_col = "prompt"
@@ -502,6 +706,7 @@ def run_baseline_training(
             prompt_col,
             training_args.system_prompt,
             char_limit=char_limit,
+            return_messages=use_prompt_messages,
         )
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out
@@ -510,7 +715,8 @@ def run_baseline_training(
     map_fn = getattr(raw_ds, "map", None)
     dataset: MutableMapping[str, Any]
     if callable(map_fn):
-        dataset = _ensure_split_mapping(map_fn(_map_fn))
+        with _main_process_first(training_args, "dataset prompt mapping"):
+            dataset = _ensure_split_mapping(map_fn(_map_fn))
     else:
 
         class _Split:
@@ -549,6 +755,27 @@ def run_baseline_training(
             if callable(remove_columns):
                 dataset[split] = remove_columns("messages")
 
+    if is_grpo:
+        try:
+            rank = int(getattr(training_args, "local_rank", -1) or -1)
+        except (TypeError, ValueError):
+            rank = -1
+        if rank in (-1, 0):
+            try:
+                sample = dataset[getattr(script_args, "dataset_train_split", "train")][0]
+                rendered = maybe_apply_chat_template(
+                    sample, cast(Any, tokenizer)
+                ).get("prompt")
+                if isinstance(rendered, str):
+                    preview = rendered[:400].replace("\n", "\\n")
+                    LOG.info(
+                        "GRPO prompt preview (chat template applied): %s%s",
+                        preview,
+                        "..." if len(rendered) > 400 else "",
+                    )
+            except Exception as exc:
+                LOG.debug("Failed to render GRPO prompt preview: %s", exc)
+
     # Resolve splits
     train_split = getattr(script_args, "dataset_train_split", "train")
     test_split = getattr(script_args, "dataset_test_split", None)
@@ -563,6 +790,15 @@ def run_baseline_training(
     eval_ds = None
     eval_dataset_name = getattr(script_args, "eval_dataset_name", None)
     eval_prompt_col = getattr(script_args, "eval_dataset_prompt_column", None) or pc
+    if is_grpo:
+        configured_eval = getattr(script_args, "eval_dataset_prompt_column", None)
+        if configured_eval and configured_eval != pc:
+            LOG.warning(
+                "GRPO ignores eval_dataset_prompt_column (%s); using dataset_prompt_column (%s) to match open-r1.",
+                configured_eval,
+                pc,
+            )
+        eval_prompt_col = pc
     eval_solution_col = getattr(script_args, "eval_dataset_solution_column", None) or sc
 
     if training_args.do_eval:
@@ -573,7 +809,8 @@ def run_baseline_training(
                 getattr(script_args, "eval_dataset_config", None),
                 eval_split,
             )
-            eval_prompt_col = _resolve_prompt_column(eval_ds_raw, eval_prompt_col)
+            if not is_grpo:
+                eval_prompt_col = _resolve_prompt_column(eval_ds_raw, eval_prompt_col)
             _validate_dataset_columns(
                 eval_ds_raw,
                 prompt_column=eval_prompt_col,
@@ -581,14 +818,31 @@ def run_baseline_training(
                 label=f"eval dataset {eval_dataset_name}:{eval_split}",
             )
 
-            def _map_eval_fn(ex: Dict[str, Any]) -> Dict[str, str]:
+            def _map_eval_fn(ex: Dict[str, Any]) -> Dict[str, Any]:
                 """Convert evaluation dataset rows into prompt/answer pairs.
 
                 :param ex: Evaluation dataset row.
                 :type ex: dict[str, Any]
                 :returns: Prompt-answer mapping used for validation.
-                :rtype: dict[str, str]
+                :rtype: dict[str, Any]
                 """
+                if use_prompt_messages:
+                    if eval_prompt_col not in ex:
+                        raise ValueError(
+                            f"Dataset Question Field Error: {eval_prompt_col} is not supported."
+                        )
+                    prompt: List[Dict[str, str]] = []
+                    if training_args.system_prompt is not None:
+                        prompt.append(
+                            {"role": "system", "content": training_args.system_prompt}
+                        )
+                    prompt.append(
+                        {"role": "user", "content": str(ex[eval_prompt_col])}
+                    )
+                    return {
+                        "prompt": prompt,
+                        "answer": str(ex.get(eval_solution_col, ex.get("solution", ""))),
+                    }
                 prompt_col = eval_prompt_col
                 if prompt_col not in ex and prompt_col == "problem" and "prompt" in ex:
                     prompt_col = "prompt"
@@ -598,21 +852,20 @@ def run_baseline_training(
                     prompt_col,
                     training_args.system_prompt,
                     char_limit=char_limit,
+                    return_messages=use_prompt_messages,
                 )
                 out["answer"] = str(ex.get(eval_solution_col, out.get("answer", "")))
                 return out
 
-            eval_ds = eval_ds_raw.map(_map_eval_fn)
+            with _main_process_first(training_args, "eval dataset prompt mapping"):
+                eval_ds = eval_ds_raw.map(_map_eval_fn)
             if "messages" in _get_column_names(eval_ds):
                 remove_columns = getattr(eval_ds, "remove_columns", None)
                 if callable(remove_columns):
                     eval_ds = remove_columns("messages")
         elif test_split is not None and test_split in dataset:
             full_eval = dataset[test_split]
-            n_total = len(full_eval)
-            # Simple sampler: take 10% up to 1000 items (at least 1)
-            n_keep = min(1000, max(1, int(0.1 * n_total)))
-            eval_ds = full_eval.shuffle(seed=training_args.seed).select(range(n_keep))
+            eval_ds = full_eval
 
     # Rewards
     reward_funcs, reward_weights = load_reward_functions(

@@ -90,10 +90,9 @@ Use the GRPO recipe under ``grpo/`` and the MaxEnt counterpart under
 - GRPO: ``configs/recipes/<model>/grpo/config_math.yaml``
 - MaxEnt: ``configs/recipes/<model>/maxent-grpo/config_math.yaml``
 
-Paired GRPO recipes set ``force_custom_loop: true`` so GRPO runs through the
-same custom loop used by MaxEnt, and they pin
-``maxent_reference_logprobs_source: model`` so both objectives use a frozen
-reference anchor for KL.
+Paired GRPO recipes pin ``maxent_reference_logprobs_source: model`` so both
+objectives use a frozen reference anchor for KL, and they keep optimizer and
+sampling settings aligned with the MaxEnt counterparts.
 
 The paired ``maxent-grpo`` recipes now default to GRPO + entropy bonus (by
 setting ``train_grpo_objective: true`` and a nonzero
@@ -111,7 +110,7 @@ Hydra recipes
 -------------
 
 - Baseline: ``configs/recipes/hydra/baseline_math.yaml``
-- GRPO (custom loop parity): ``configs/recipes/hydra/grpo_custom_math.yaml``
+- GRPO (paired parity): ``configs/recipes/hydra/grpo_custom_math.yaml``
 - MaxEnt-GRPO: ``configs/recipes/hydra/maxent_math.yaml``
 - InfoSeed: ``configs/recipes/hydra/infoseed_math.yaml``
 

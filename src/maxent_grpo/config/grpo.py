@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import MISSING, dataclass, field
-from typing import Callable, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 from .dataset import ScriptArguments, trl
@@ -86,6 +86,8 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar wandb_entity: W&B entity/organization for run tracking.
     :ivar wandb_project: W&B project name.
     :ivar wandb_run_group: W&B group used to cluster related runs.
+    :ivar maxent_alpha: Coefficient for the extra MaxEnt objective term.
+        Set to 0 to force native GRPO loss/pathway parity.
     :ivar maxent_tau: Sequence-level entropy weight used by MaxEnt-GRPO.
     :ivar maxent_q_temperature: Temperature applied when forming listwise q values.
     :ivar maxent_q_epsilon: Minimum support added to q before normalization.
@@ -113,7 +115,7 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar kl_target: Target KL value for automatic beta adjustment.
     :ivar kl_horizon: Horizon in optimizer steps for the beta controller.
     :ivar kl_ctl_step_size: Maximum fractional beta change per controller step.
-    :ivar clip_range: PPO clip range used for clipping ratios in the custom loop.
+    :ivar clip_range: PPO clip range used for clipping ratios in training loss.
     :ivar clip_range_high: Upper PPO clip range (epsilon_high) for asymmetric clipping.
     :ivar clip_delta: Optional additional slack for two-sided clipping.
     :ivar grpo_loss_type: GRPO loss aggregation ("grpo", "bnpo", or "dr_grpo").
@@ -269,6 +271,15 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "Optional checkpoint path to resume training from (mirrors TRL/Trainer)."
+            )
+        },
+    )
+    maxent_alpha: float = field(
+        default=1.0,
+        metadata={
+            "help": (
+                "Coefficient for the extra MaxEnt objective term. "
+                "Set to 0.0 to use the native GRPO loss pathway exactly."
             )
         },
     )
@@ -622,15 +633,6 @@ class GRPOConfig(trl.GRPOConfig):
                 )
             },
         )
-    force_custom_loop: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "Force the custom training loop even when train_grpo_objective=true "
-                "(useful for paired GRPO/MaxEnt comparisons)."
-            )
-        },
-    )
     maxent_allow_empty_weight_fallback: bool = field(
         default=False,
         metadata={
@@ -650,7 +652,7 @@ class GRPOConfig(trl.GRPOConfig):
     )
     clip_range: float = field(
         default=_BASE_CLIP_RANGE_DEFAULT,
-        metadata={"help": "PPO clip range used for clipping ratios in the custom loop."},
+        metadata={"help": "PPO clip range used for clipping ratios in training loss."},
     )
     clip_range_high: Optional[float] = field(
         default=None,
@@ -918,88 +920,13 @@ class GRPOConfig(trl.GRPOConfig):
     )
 
     def __post_init__(self) -> None:
-        is_grpo = bool(getattr(self, "train_grpo_objective", False))
-        orig_num_generations = getattr(self, "num_generations", None)
-        base_post_init: Optional[Callable[[], None]] = getattr(
-            super(), "__post_init__", None
-        )
-        if base_post_init is None:
-            LOG.debug("Skipping base __post_init__ (dependency unavailable): missing")
-        else:
+        base_post_init = getattr(super(), "__post_init__", None)
+        if callable(base_post_init):
             try:
                 base_post_init()
             except (AttributeError, ImportError, ModuleNotFoundError) as exc:
-                # TRL/Transformers may be absent in some test environments; ignore in that case.
-                LOG.debug(
-                    "Skipping base __post_init__ (dependency unavailable): %s", exc
-                )
-            except ValueError as err:
-                if is_grpo:
-                    # For GRPO runs, preserve TRL's validation behavior without overrides.
-                    raise
-                # Be tolerant of TRL validation errors related to tiny batch sizes
-                # during unit tests. If the error message references generation
-                # divisibility, adjust num_generations down to 1 and continue.
-                msg = str(err) or ""
-                if "generations" in msg and "divisible" in msg:
-                    LOG.warning(
-                        "Ignoring num_generations divisibility constraint from base trainer; "
-                        "continuing with %s completions per prompt.",
-                        orig_num_generations,
-                    )
-                    try:
-                        self.num_generations = 1
-                        base_post_init()
-                    except ValueError as exc:
-                        LOG.warning(
-                            "Base __post_init__ still failing after num_generations override: %s",
-                            exc,
-                        )
-                    finally:
-                        if orig_num_generations is not None:
-                            self.num_generations = orig_num_generations
-                elif "generation_batch_size" in msg and "steps_per_generation" in msg:
-                    gen_bs = getattr(self, "generation_batch_size", None)
-                    steps = getattr(self, "steps_per_generation", None)
-                    cleared_attr = None
-                    if gen_bs is not None and steps is not None:
-                        try:
-                            gen_bs_val = int(gen_bs)
-                        except (TypeError, ValueError):
-                            gen_bs_val = None
-                        try:
-                            steps_val = int(steps)
-                        except (TypeError, ValueError):
-                            steps_val = None
-                        if gen_bs_val is None or gen_bs_val <= 0:
-                            setattr(self, "generation_batch_size", None)
-                            cleared_attr = "generation_batch_size"
-                        else:
-                            setattr(self, "steps_per_generation", None)
-                            cleared_attr = "steps_per_generation"
-                    try:
-                        base_post_init()
-                    except ValueError as exc:
-                        LOG.warning(
-                            "Base __post_init__ still failing after generation config override: %s",
-                            exc,
-                        )
-                    else:
-                        if cleared_attr is not None:
-                            LOG.warning(
-                                "Cleared %s to resolve TRL config conflict: generation_batch_size vs steps_per_generation.",
-                                cleared_attr,
-                            )
-                elif "IntervalStrategy" in msg and not isinstance(
-                    getattr(self, "eval_strategy", None), str
-                ):
-                    LOG.warning(
-                        "Skipping base __post_init__ due to IntervalStrategy validation: %s",
-                        err,
-                    )
-                else:
-                    # Re-raise unrelated ValueErrors.
-                    raise
+                # TRL/Transformers may be absent in some test environments.
+                LOG.debug("Skipping base __post_init__ (dependency unavailable): %s", exc)
         vllm_mode = str(getattr(self, "vllm_mode", "server") or "server").strip().lower()
         if vllm_mode in {"inline", "local", "inprocess", "in-process"}:
             vllm_mode = "colocate"
@@ -1114,6 +1041,8 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_q_epsilon must be > 0 to avoid zero weights")
         if self.maxent_q_temperature <= 0.0:
             raise ValueError("maxent_q_temperature must be > 0")
+        if self.maxent_alpha < 0.0:
+            raise ValueError("maxent_alpha must be non-negative")
         if self.policy_entropy_bonus_coef < 0.0:
             raise ValueError("policy_entropy_bonus_coef must be non-negative")
         entropy_mode = (

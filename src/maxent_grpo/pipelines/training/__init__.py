@@ -16,8 +16,29 @@ limitations under the License.
 Training pipelines (baseline GRPO + GRPO/entropy-bonus/MaxEnt).
 """
 
-from .baseline import run_baseline_training
-from .maxent import run_maxent_training
-from .infoseed import run_infoseed_training
+from __future__ import annotations
+
+from typing import Any
 
 __all__ = ["run_baseline_training", "run_maxent_training", "run_infoseed_training"]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy-export training entrypoints to avoid import cycles at module import time."""
+    if name == "run_baseline_training":
+        from .baseline import run_baseline_training
+
+        return run_baseline_training
+    if name == "run_maxent_training":
+        from .maxent import run_maxent_training
+
+        return run_maxent_training
+    if name == "run_infoseed_training":
+        from .infoseed import run_infoseed_training
+
+        return run_infoseed_training
+    raise AttributeError(name)
+
+
+def __dir__() -> list[str]:
+    return sorted(list(globals().keys()) + __all__)

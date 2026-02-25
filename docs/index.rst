@@ -11,8 +11,8 @@ instructions.
 
 Paired GRPO/MaxEnt recipes live under ``configs/recipes/<model>/grpo/`` and
 ``configs/recipes/<model>/maxent-grpo/`` so runs stay comparable. The GRPO
-pairs set ``force_custom_loop: true`` and ``maxent_reference_logprobs_source:
-model`` to keep the objective, loop, and frozen reference anchor aligned. The
+pairs pin ``maxent_reference_logprobs_source: model`` to keep the objective and
+frozen reference anchor aligned. The
 ``maxent-grpo`` recipes now default to GRPO + entropy bonus (and can still
 switch to MaxEnt weighting via ``train_grpo_objective=false``).
 

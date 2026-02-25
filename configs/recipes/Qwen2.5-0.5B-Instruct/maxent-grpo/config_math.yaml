@@ -51,14 +51,10 @@ system_prompt: |
   - Put the final answer inside <answer> only.
   - Use exact math (fractions, radicals, pi, e).
   - Verify the result satisfies the original conditions.
-# MaxEnt knobs: entropy-weighted objective with optional entropy bonus.
-maxent_tau: 0.4
-maxent_target_weight_entropy: 1.2
-maxent_tau_lr: 0.01
-maxent_tau_min: 0.1
-maxent_tau_max: 2.0
-policy_entropy_bonus_coef: 0.001
-maxent_policy_entropy: true
+# Near-parity mode: keep MaxEnt effect very small.
+maxent_alpha: 0.01
+policy_entropy_bonus_coef: 0.0
+maxent_policy_entropy: false
 # Use a sample-based entropy estimate (fast) instead of full-distribution entropy (slow).
 maxent_policy_entropy_mode: sample
 # Scoring/kl settings for the objective.
@@ -72,7 +68,6 @@ maxent_allow_empty_weight_fallback: true
 maxent_clip_adv_baseline: null
 maxent_score_tail_tokens: null
 train_grpo_objective: false
-force_custom_loop: true
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false
@@ -114,29 +109,30 @@ vllm_max_completion_rounds: 2
 vllm_max_retries: 4
 hub_model_id: null
 hub_strategy: "end"
-learning_rate: 5e-6
+learning_rate: 1e-6
 optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
-log_level: info
+log_level: 30
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
 max_prompt_length: 4096      # trim prompt window to ease ref scoring memory
-max_completion_length: 512  # requested output length
+max_completion_length: 768  # requested output length
 max_steps: 1000
-# GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
-num_generations: 7           # align with eval batch divisibility under 7-GPU training
+# GRPO requires >=2 generations to compute advantages.
+# Use 8 so effective train batch sizes across common world sizes (3/4/7/9 GPUs) remain divisible.
+num_generations: 8
 # TRL config guard: keep only one of generation_batch_size or steps_per_generation.
-steps_per_generation: null
+steps_per_generation: 8
 num_train_epochs: 18
 output_dir: var/data/Qwen2.5-0.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 overwrite_output_dir: true
-per_device_eval_batch_size: 4
-per_device_train_batch_size: 4
+per_device_eval_batch_size: 8
+per_device_train_batch_size: 8
 push_to_hub: false
 report_to:
 - wandb
@@ -147,23 +143,23 @@ reward_funcs:
 reward_weights:
 - 1
 
-# Reverse‑KL weight β used inside MaxEnt update
+# Reverse-KL weight beta used inside MaxEnt update
 # Gentle KL controller: keep updates small even when KL is far from target.
-beta: 0.1
+beta: 0.04
 kl_target:        0.2
 kl_horizon:       100
-kl_ctl_step_size: 1.0
+kl_ctl_step_size: 0.0
 
 # Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.5
 ppo_clip_range: 0.05
-clip_range: 0.1
-clip_range_high: 0.1
+clip_range: 0.2
+clip_range_high: 0.2
 clip_delta: 0.0
 save_strategy: steps
 save_steps: 50
 eval_strategy: steps
-eval_steps: 50
+eval_steps: 25
 eval_before_train: true
 save_total_limit: 1000
 seed: 42

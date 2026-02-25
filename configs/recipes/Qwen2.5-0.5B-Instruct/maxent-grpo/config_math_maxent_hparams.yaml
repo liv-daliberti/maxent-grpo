@@ -73,7 +73,7 @@ system_prompt: "You are an expert *mathematics problem-solver*.
   "
 
 # MaxEnt (entropy bonus) knobs: standard GRPO + policy-entropy reward bonus.
-policy_entropy_bonus_coef: 0.3
+policy_entropy_bonus_coef: 0.03
 maxent_policy_entropy: true
 # Scoring/kl settings for the GRPO objective.
 maxent_reference_logprobs_source: model
@@ -82,7 +82,6 @@ maxent_logprob_chunk_size: 1
 maxent_score_slice_prefetch: 1
 maxent_prompt_cache_size: 2048
 train_grpo_objective: true
-force_custom_loop: true
 # Optional clip objective settings (kept aligned with prior MaxEnt runs).
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0

@@ -84,7 +84,6 @@ gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
 train_grpo_objective: true
-force_custom_loop: true
 gen_temperature: 1.0
 gen_top_p: 1.0
 gen_top_k: 0

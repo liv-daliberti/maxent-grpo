@@ -148,6 +148,21 @@ def test_callback_normalizes_logs_when_log_hook_is_bypassed():
     assert all(key.startswith("train/") for key in logs.keys())
 
 
+def test_callback_canonicalizes_completion_metric_aliases():
+    args = SimpleNamespace(num_generations=4, world_size=1)
+    control = SimpleNamespace()
+    logs = {
+        "completions/mean_length": 12.0,
+        "completions/mean_terminated_length": 10.0,
+        "diversity/distinct_1": 0.5,
+    }
+    cb = _WeightingLogCallback()
+    cb.on_log(args=args, state=None, control=control, logs=logs)
+    assert logs["train/completions/mean_length_sampled"] == pytest.approx(12.0)
+    assert logs["train/completions/mean_length_terminated"] == pytest.approx(10.0)
+    assert logs["train/completions/diversity/distinct_1"] == pytest.approx(0.5)
+
+
 def test_callback_attached_when_callback_handler_present():
     class _CallbackTrainer(_StubTrainer):
         def __init__(self):

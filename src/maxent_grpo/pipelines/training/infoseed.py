@@ -1,4 +1,4 @@
-"""InfoSeed-GRPO training entrypoint using the custom training loop."""
+"""InfoSeed-GRPO training entrypoint using the TRL/HF Trainer loop."""
 
 from __future__ import annotations
 
@@ -6,9 +6,10 @@ import logging
 from typing import Any
 
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
-from maxent_grpo.training import run_training_loop
+from maxent_grpo.pipelines.training.baseline import (
+    run_baseline_training as _run_baseline_training,
+)
 from maxent_grpo.utils.deps_guard import ensure_real_dependencies
-from .loop_common import build_training_loop_context
 
 LOG = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ def run_infoseed_training(
     training_args: GRPOConfig,
     model_args: "Any",
 ) -> None:
-    """Run InfoSeed-GRPO training via the custom loop.
+    """Run InfoSeed-GRPO training via the TRL/HF Trainer loop.
 
     :param script_args: Script configuration including dataset and rewards.
     :type script_args: GRPOScriptArguments
@@ -43,15 +44,7 @@ def run_infoseed_training(
         getattr(training_args, "info_seed_num_seeds", 0),
         getattr(training_args, "info_seed_lambda", 0.0),
     )
-    ctx = build_training_loop_context(
-        script_args,
-        training_args,
-        model_args,
-        deps_namespace="infoseed",
-        apply_info_seed_cfg=True,
-        force_grpo_objective=True,
-    )
-    run_training_loop(ctx)
+    return _run_baseline_training(script_args, training_args, model_args)
 
 
 __all__ = ["run_infoseed_training"]

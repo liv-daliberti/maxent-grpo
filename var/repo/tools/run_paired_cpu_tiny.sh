@@ -147,13 +147,12 @@ if [[ -n "${DATASET_NAME}" ]]; then
 fi
 
 run_grpo() {
-  echo "[run] baseline GRPO via custom loop (CPU tiny)"
+  echo "[run] baseline GRPO via shared trainer path (CPU tiny)"
   BASELINE_LOG="${LOG_DIR}/baseline_$(date +%Y%m%d_%H%M%S).log"
   env "${BASE_ENV[@]}" maxent-grpo-maxent \
     maxent.recipe="${GRPO_RECIPE_RENDERED}" \
     "+maxent.training.output_dir=${OUTPUT_DIR_GRPO}" \
     "+maxent.training.train_grpo_objective=true" \
-    "+maxent.training.force_custom_loop=true" \
     "${SCRIPT_DATASET_ARGS[@]/#/+maxent.}" \
     "${BASE_TRAINING_ARGS[@]/#/+maxent.}" | tee "${BASELINE_LOG}"
 }

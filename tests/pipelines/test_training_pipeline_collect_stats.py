@@ -160,6 +160,7 @@ def test_collect_batch_stats_gathers_reference_when_meta_missing(monkeypatch):
     )
     weight_view = metrics_mod.WeightLoggingView(
         entropy=weight_stats.weight_entropy,
+        entropy_norm=0.0,
         entropy_min=weight_stats.weight_entropy_min,
         entropy_max=weight_stats.weight_entropy_max,
         advantage_entropy_mean=weight_entropy_mean,

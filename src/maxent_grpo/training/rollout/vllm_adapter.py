@@ -85,6 +85,13 @@ def _env_int(name: str) -> Optional[int]:
         return None
 
 
+def _use_vllm_collective() -> bool:
+    raw = os.getenv("MAXENT_VLLM_COLLECTIVE")
+    if raw is None:
+        return True
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
 def _zero3_gather_factory(
     accelerator: AcceleratorLike,
 ) -> Callable[[Sequence[Any]], AbstractContextManager[Any]]:
@@ -146,6 +153,13 @@ def _loopback_host(base_url: str) -> bool:
 
 def _vllm_client_nccl_overrides(base_url: str) -> Dict[str, str]:
     overrides: Dict[str, str] = {}
+    enable_overrides = (
+        str(os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")).strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    if not enable_overrides:
+        return overrides
+
     if not _loopback_host(base_url):
         explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME")
         if explicit and "NCCL_SOCKET_IFNAME" not in os.environ:
@@ -1159,6 +1173,9 @@ class VLLMGenerationMixin:
                 except Exception:
                     pass
 
+    def _vllm_collective_enabled(self) -> bool:
+        return _use_vllm_collective()
+
     def generate(
         self,
         prompts: List[str],
@@ -1171,6 +1188,10 @@ class VLLMGenerationMixin:
                 "per_prompt_counts length must match prompts length in generate()"
             )
         if self.ctx.use_vllm:
+            if not self._vllm_collective_enabled():
+                return self._generate_with_vllm(
+                    prompts, num_samples, per_prompt_counts
+                )
             return self._generate_vllm_collective(
                 prompts, num_samples, per_prompt_counts
             )

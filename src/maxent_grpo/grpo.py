@@ -97,14 +97,6 @@ def main(
                 "No CLI parser available. Ensure TRL is installed and "
                 "maxent_grpo.cli.parse_grpo_args is importable."
             )
-    meta_enabled = bool(getattr(training_args, "controller_meta_enabled", False))
-    force_custom_loop = bool(getattr(training_args, "force_custom_loop", False))
-    if meta_enabled or force_custom_loop:
-        training_args.train_grpo_objective = True
-        from maxent_grpo.pipelines.training.maxent import run_maxent_training
-
-        return run_maxent_training(script_args, training_args, model_args)
-
     baseline_mod = sys.modules.get("maxent_grpo.pipelines.training.baseline")
     if baseline_mod and hasattr(baseline_mod, "run_baseline_training"):
         run_baseline_training = baseline_mod.run_baseline_training

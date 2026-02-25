@@ -233,7 +233,9 @@ def _to_prompt(
     prompt_column: str,
     system_prompt: Optional[str],
     char_limit: Optional[int] = None,
-) -> Dict[str, str]:
+    *,
+    return_messages: bool = False,
+) -> Dict[str, Any]:
     """Shared prompt/answer builder used across training pipelines.
 
     :param example: Dataset row containing a prompt and optional answer fields.
@@ -241,8 +243,11 @@ def _to_prompt(
     :param prompt_column: Column name to read the user prompt from.
     :param system_prompt: Optional system prompt prepended to the conversation.
     :param char_limit: Optional character cap applied after formatting.
-    :returns: Mapping with ``prompt`` and ``answer`` string fields.
-    :rtype: dict[str, str]
+    :param return_messages: When True, return the raw conversation list instead
+        of rendering a prompt string (TRL/open-r1 style).
+    :returns: Mapping with ``prompt`` and ``answer`` fields. ``prompt`` is a
+        string unless ``return_messages=True`` (then it is a list of messages).
+    :rtype: dict[str, Any]
     :raises KeyError: If the prompt column is missing from the example.
     """
 
@@ -264,6 +269,12 @@ def _to_prompt(
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": user})
+
+    if return_messages:
+        return {
+            "prompt": messages,
+            "answer": str(example.get("answer", example.get("solution", ""))),
+        }
 
     try:
         apply_fn = getattr(tokenizer, "apply_chat_template", None)

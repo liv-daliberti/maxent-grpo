@@ -136,6 +136,13 @@ def _env_bool(name: str) -> Optional[bool]:
     return None
 
 
+def _use_vllm_collective() -> bool:
+    raw = os.getenv("MAXENT_VLLM_COLLECTIVE")
+    if raw is None:
+        return True
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
 def _resolve_dtype(ctx: Any) -> Optional[str]:
     training_args = getattr(ctx, "training_args", None)
     if training_args is None:
@@ -864,6 +871,24 @@ class ColocateVLLMEngine:
         if dtype_override:
             llm_kwargs["dtype"] = dtype_override
         gpu_util = _env_float("MAXENT_VLLM_COLOCATE_GPU_UTIL")
+        if gpu_util is None:
+            training_args = getattr(self.ctx, "training_args", None)
+            cfg_gpu_util = getattr(training_args, "vllm_gpu_memory_utilization", None)
+            if cfg_gpu_util is not None:
+                try:
+                    gpu_util = float(cfg_gpu_util)
+                except (TypeError, ValueError):
+                    LOG.warning(
+                        "Invalid training_args.vllm_gpu_memory_utilization=%r; ignoring.",
+                        cfg_gpu_util,
+                    )
+                    gpu_util = None
+        if gpu_util is not None and not (0.0 < gpu_util <= 1.0):
+            LOG.warning(
+                "Invalid gpu_memory_utilization=%r; expected (0, 1]; ignoring.",
+                gpu_util,
+            )
+            gpu_util = None
         if gpu_util is not None:
             llm_kwargs["gpu_memory_utilization"] = gpu_util
         tp_size = _env_int("MAXENT_VLLM_COLOCATE_TP")
@@ -877,7 +902,7 @@ class ColocateVLLMEngine:
             enforce_eager = True
         llm_kwargs["enforce_eager"] = enforce_eager
         device_override = os.getenv("MAXENT_VLLM_COLOCATE_DEVICE")
-        if device_override:
+        if device_override and _use_vllm_collective():
             llm_kwargs["device"] = device_override
         else:
             local_rank = os.getenv("LOCAL_RANK") or os.getenv("SLURM_LOCALID")

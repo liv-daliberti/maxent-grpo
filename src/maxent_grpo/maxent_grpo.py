@@ -86,13 +86,13 @@ def main(
     training_args: Any = None,
     model_args: Any = None,
 ) -> Any:
-    """Run the GRPO/MaxEnt trainer when configs are provided, else delegate to Hydra.
+    """Run the GRPO/MaxEnt trainer, parsing TRL-style configs when needed.
 
     :param script_args: Optional GRPO script arguments; when ``None`` they are parsed via CLI.
     :param training_args: Optional GRPO training configuration; parsed when ``None``.
     :param model_args: Optional TRL model configuration; parsed when ``None``.
-    :returns: Result of :func:`run_maxent_training` or Hydra entrypoint invocation.
-    :raises RuntimeError: If no CLI parser or Hydra entrypoint is available.
+    :returns: Result of :func:`run_maxent_training`.
+    :raises RuntimeError: If no CLI parser is available.
     :raises Exception: Propagates parser or training pipeline exceptions.
     """
 
@@ -100,35 +100,17 @@ def main(
 
     if script_args is None or training_args is None or model_args is None:
         _parse_grpo_args = _resolve_cli_attr("parse_grpo_args")
-        _hydra_cli = _resolve_cli_attr("hydra_cli")
         if callable(_parse_grpo_args):
             parse_grpo_args = cast(
                 Callable[[], tuple[Any, Any, Any]],
                 _parse_grpo_args,
             )
-            try:
-                script_args, training_args, model_args = parse_grpo_args()
-            except (
-                ImportError,
-                ModuleNotFoundError,
-                RuntimeError,
-                SystemExit,
-                TypeError,
-                ValueError,
-                AttributeError,
-            ):
-                if _hydra_cli is not None:
-                    maxent_entry = getattr(_hydra_cli, "maxent_entry", None)
-                    if callable(maxent_entry):
-                        return maxent_entry()
-                raise
-        elif _hydra_cli is not None:
-            maxent_entry = getattr(_hydra_cli, "maxent_entry", None)
-            if callable(maxent_entry):
-                return maxent_entry()
-            raise RuntimeError("Hydra CLI entrypoint is unavailable")
+            script_args, training_args, model_args = parse_grpo_args()
         else:
-            raise RuntimeError("No CLI parser available")
+            raise RuntimeError(
+                "No CLI parser available. Ensure TRL is installed and "
+                "maxent_grpo.cli.parse_grpo_args is importable."
+            )
     from maxent_grpo.pipelines.training.maxent import run_maxent_training
 
     return run_maxent_training(script_args, training_args, model_args)

@@ -19,7 +19,7 @@ Slurm (recommended):
 
 Quick flags:
 
-- ``--task maxent`` launches the shared MaxEnt/GRPO pipeline. When ``train_grpo_objective=false`` the run uses the custom loop under ``src/maxent_grpo/training/loop.py``; when ``train_grpo_objective=true`` it defaults to TRL’s GRPOTrainer unless you set ``force_custom_loop=true`` or enable the meta-controller. To run **GRPO + entropy bonus**, keep ``train_grpo_objective=true`` and set ``policy_entropy_bonus_coef>0`` (this mode uses the custom loop so set ``force_custom_loop=true`` in the recipe). Paired GRPO recipes set ``force_custom_loop: true`` so GRPO and MaxEnt execute the same loop for parity.
+- ``--task maxent`` launches the shared MaxEnt/GRPO pipeline on the TRL/HF Trainer loop. Set ``train_grpo_objective=false`` for MaxEnt weighting, or keep ``train_grpo_objective=true`` and set ``policy_entropy_bonus_coef>0`` for GRPO + entropy bonus.
 - ``--task infoseed`` (or a recipe with ``info_seed_enabled=true``) routes through ``src/maxent_grpo/pipelines/training/infoseed.py`` which always uses the custom loop so the auxiliary seed loss can tap the same hooks as MaxEnt. Hydra validation enforces ``info_seed_enabled`` for this command, so keep the flag true unless you switch back to the baseline/MaxEnt recipes.
 - ``--dp/--tp`` set vLLM data/tensor parallel sizes.
 - ``--vllm-port`` / ``--vllm-group-port`` override RPC ports when needed.
@@ -44,10 +44,10 @@ Recipe pairing (reproducible GRPO_RECIPE runs)
 - The baseline and MaxEnt math recipes are paired to stay comparable: both use ``open-r1/OpenR1-Math-220k`` for training and ``HuggingFaceH4/MATH-500`` (``test`` split, ``problem``/``answer`` columns) for evaluation with the same seed (``42``) and eval cadence (``eval_strategy=steps``, ``eval_steps=25``, ``per_device_eval_batch_size=8``).
 - Baseline GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml``
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
-- Paired GRPO recipes set ``force_custom_loop: true`` and ``maxent_reference_logprobs_source: model`` so GRPO runs through the same custom loop with a frozen reference anchor.
+- Paired GRPO recipes pin ``maxent_reference_logprobs_source: model`` and share optimizer/sampling settings with MaxEnt counterparts for parity.
 - The MaxEnt-GRPO recipes now default to **GRPO + entropy bonus**; switch back to MaxEnt weighting by setting ``train_grpo_objective=false``.
 - InfoSeed recipe (custom loop + auxiliary loss): ``configs/recipes/<model>/infoseed/config_math.yaml``. Those keep ``info_seed_enabled: true`` (required for ``train-infoseed``) and default to the InfoSeed variant of the pipeline; flip the flag (or use the MaxEnt/GRPO recipes) to disable seed conditioning entirely.
-- Hydra console wrappers reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so ``GRPO_RECIPE=… maxent-grpo-{baseline,maxent}`` will read the intended sibling. For a custom-loop GRPO run, use ``configs/recipes/hydra/grpo_custom_math.yaml``.
+- Hydra console wrappers reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so ``GRPO_RECIPE=… maxent-grpo-{baseline,maxent}`` will read the intended sibling. For paired GRPO parity settings, use ``configs/recipes/hydra/grpo_custom_math.yaml``.
 
 Logging (Entropy Bonus)
 -----------------------
@@ -122,7 +122,7 @@ Key Files
 ---------
 
 - ``src/maxent_grpo/grpo.py`` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
-- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt entrypoint that detects ``train_grpo_objective`` and either wraps TRL’s trainer (GRPO mode) or drives the fully custom controller-aware loop (MaxEnt weighting or GRPO + entropy bonus, plus GRPO when ``force_custom_loop`` is set).
+- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt/GRPO entrypoint that delegates to the shared baseline pipeline and ``CustomGRPOTrainer`` on the TRL/HF Trainer loop.
 - ``src/maxent_grpo/pipelines/training/infoseed.py`` — InfoSeed pipeline that always runs through the custom loop so auxiliary losses can inspect weight stats.
 - ``src/maxent_grpo/config/`` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
 - ``configs/recipes/`` — ready-to-use YAML configs; see the Recipes page

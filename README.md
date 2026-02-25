@@ -15,7 +15,7 @@ Run the Hydra console scripts from the repo root:
 # Baseline GRPO using the math recipe (static τ/β by default)
 maxent-grpo-baseline baseline.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
 
-# InfoSeed-GRPO using the math recipe (custom loop; τ/β meta-controller enabled)
+# InfoSeed-GRPO using the math recipe (TRL trainer loop; τ/β meta-controller enabled)
 maxent-grpo-infoseed infoseed.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml
 
 # Inline overrides without a YAML recipe
@@ -40,9 +40,9 @@ maxent-grpo-math-eval command=math-eval \
 Paired recipes (GRPO vs MaxEnt): each model ships matched configs under
 `configs/recipes/<model>/grpo/config_math.yaml` and
 `configs/recipes/<model>/maxent-grpo/config_math.yaml` with shared sampling,
-optimizer, and eval settings. The GRPO pairs set `force_custom_loop: true` and
-`maxent_reference_logprobs_source: model` so both objectives run through the
-same custom loop with a frozen reference anchor. For the Hydra preset, use
+optimizer, and eval settings. The GRPO pairs set
+`maxent_reference_logprobs_source: model` so both objectives use the same
+frozen-reference scoring anchor in the shared TRL trainer path. For the Hydra preset, use
 `configs/recipes/hydra/grpo_custom_math.yaml`.
 
 Policy entropy is only computed when requested (``maxent_policy_entropy=true``)
@@ -103,7 +103,7 @@ Notes
 - Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch var/repo/ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`. Pass `--revision <git_commit>` when pointing at Hugging Face repos (e.g., `--model od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1 --revision c929c65`) to evaluate specific training steps without syncing local checkpoints.
 - Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
 - For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
-- Throughput knobs: `dataloader_num_workers`, `dataloader_pin_memory`, `dataloader_prefetch_factor`, `dataloader_persistent_workers` are honored by both the custom loop and the baseline TRL trainer.
+- Throughput knobs: `dataloader_num_workers`, `dataloader_pin_memory`, `dataloader_prefetch_factor`, `dataloader_persistent_workers` are honored by both GRPO and MaxEnt trainer entrypoints.
 - Prompt cache: `maxent_prompt_cache_size` defaults to an auto-sized value (min 10k, max 50k based on batch size); set to 0 to disable or set a non-default size to override.
 - Shared vLLM servers:
   - Every Accelerate rank derives a stable `client_tag` and forwards it via the JSON payload and `X-VLLM-Client-Tag` header so responses can be sharded per rank.

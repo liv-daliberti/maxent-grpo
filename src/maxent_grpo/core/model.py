@@ -180,13 +180,14 @@ def get_tokenizer(
     if training_args.chat_template is not None:
         tokenizer.chat_template = training_args.chat_template
 
-    pad_token = getattr(tokenizer, "pad_token", None)
-    eos_token = getattr(tokenizer, "eos_token", None)
-    if pad_token is None and eos_token is not None:
-        try:
-            setattr(tokenizer, "pad_token", eos_token)
-        except (AttributeError, TypeError, ValueError):
-            LOG.debug("Failed to set tokenizer.pad_token from eos_token.")
+    if not bool(getattr(training_args, "train_grpo_objective", False)):
+        pad_token = getattr(tokenizer, "pad_token", None)
+        eos_token = getattr(tokenizer, "eos_token", None)
+        if pad_token is None and eos_token is not None:
+            try:
+                setattr(tokenizer, "pad_token", eos_token)
+            except (AttributeError, TypeError, ValueError):
+                LOG.debug("Failed to set tokenizer.pad_token from eos_token.")
 
     return tokenizer
 

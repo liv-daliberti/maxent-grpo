@@ -70,6 +70,7 @@ class _BaselineRecipeSchema(_BaseRecipeSchema):
 
 
 class _MaxentRecipeSchema(_BaselineRecipeSchema):
+    maxent_alpha: Optional[float] = None
     maxent_tau: Optional[float] = None
     policy_entropy_bonus_coef: Optional[float] = None
 
@@ -87,8 +88,13 @@ class _MaxentRecipeSchema(_BaselineRecipeSchema):
                     "or enable policy_entropy_bonus_coef>0"
                 )
             return self
-        if self.maxent_tau is None:
-            raise ValueError("maxent_tau is required when train_grpo_objective=false")
+        # ``maxent_alpha`` is the active MaxEnt knob; keep ``maxent_tau`` as a
+        # legacy fallback for older recipes while configs migrate.
+        if self.maxent_alpha is None and self.maxent_tau is None:
+            raise ValueError(
+                "maxent_alpha (or legacy maxent_tau) is required when "
+                "train_grpo_objective=false"
+            )
         return self
 
 

@@ -23,6 +23,7 @@ import numbers
 import sys
 from contextlib import contextmanager, nullcontext
 import importlib
+from threading import RLock
 from types import SimpleNamespace
 from typing import (
     Any,
@@ -114,6 +115,8 @@ ds_zero = None
 ZeroParamStatus = None
 _DEEPSPEED_READY: Optional[bool] = None
 _DEEPSPEED_ENGINE_CLS: Optional[type] = None
+_ZERO_GATHER_LOCK = RLock()
+_ZERO_GATHER_ACTIVE_PARAM_IDS: set[int] = set()
 
 
 def _ensure_deepspeed_ready() -> bool:
@@ -241,6 +244,77 @@ def _zero_partitioning_gradients(model: Optional[TorchModule]) -> bool:
     return False
 
 
+def _zero_status_name(param: object) -> Optional[str]:
+    """Best-effort extraction of the DeepSpeed ZeRO status name."""
+    status = getattr(param, "ds_status", None)
+    if status is None:
+        return None
+    available = getattr(ZeroParamStatus, "AVAILABLE", None)
+    if available is not None and status == available:
+        return "AVAILABLE"
+    status_name = getattr(status, "name", None)
+    if isinstance(status_name, str) and status_name:
+        return status_name.upper()
+    if isinstance(status, str) and status:
+        return status.upper()
+    try:
+        status_text = str(status)
+    except (TypeError, ValueError, RuntimeError):
+        return None
+    if not status_text:
+        return None
+    if "." in status_text:
+        status_text = status_text.rsplit(".", 1)[-1]
+    status_text = status_text.strip().upper()
+    return status_text or None
+
+
+def _zero_param_ready_without_gather(param: object) -> bool:
+    """Return ``True`` when a ZeRO parameter is already materialized."""
+    if _zero_status_name(param) == "AVAILABLE":
+        return True
+    active = getattr(param, "ds_active_sub_modules", None)
+    try:
+        return bool(active)
+    except (TypeError, ValueError, RuntimeError):
+        return False
+
+
+@contextmanager
+def _reserve_zero_gather_params(
+    params: Sequence[TorchParameter],
+) -> Iterator[List[TorchParameter]]:
+    """Reserve parameter ids for a ZeRO gather region.
+
+    Prevents nested ``GatheredParameters`` calls from re-gathering the same
+    parameter while another gather context still owns it.
+
+    :param params: Candidate parameters for a gather region.
+    :type params: Sequence[torch.nn.Parameter]
+    :returns: Reserved subset that is safe to gather in this region.
+    :rtype: Iterator[list[torch.nn.Parameter]]
+    """
+
+    reserved: List[TorchParameter] = []
+    reserved_ids: list[int] = []
+    with _ZERO_GATHER_LOCK:
+        for param in params:
+            param_id = id(param)
+            if param_id in _ZERO_GATHER_ACTIVE_PARAM_IDS:
+                continue
+            _ZERO_GATHER_ACTIVE_PARAM_IDS.add(param_id)
+            reserved.append(param)
+            reserved_ids.append(param_id)
+    try:
+        yield reserved
+    finally:
+        if not reserved_ids:
+            return
+        with _ZERO_GATHER_LOCK:
+            for param_id in reserved_ids:
+                _ZERO_GATHER_ACTIVE_PARAM_IDS.discard(param_id)
+
+
 def _maybe_patch_zero_no_sync(model: Optional[TorchModule]) -> bool:
     """Patch DeepSpeedEngine.no_sync to a no-op when gradients are partitioned.
 
@@ -300,16 +374,11 @@ def _embedding_weight_needing_gather(
     weight = getattr(embedder, "weight", None) if embedder is not None else None
     if weight is None:
         return None
-    status = getattr(weight, "ds_status", None)
-    if status is not None:
-        available = getattr(ZeroParamStatus, "AVAILABLE", None)
-        if available is not None:
-            return None if status == available else weight
-        status_name = getattr(status, "name", None)
-        if isinstance(status_name, str):
-            return None if status_name.upper() == "AVAILABLE" else weight
-        if isinstance(status, str):
-            return None if status.upper() == "AVAILABLE" else weight
+    if _zero_param_ready_without_gather(weight):
+        return None
+    if _zero_status_name(weight) is not None:
+        # Any explicit ZeRO status other than AVAILABLE indicates gather need.
+        return weight
     if getattr(weight, "ndim", 2) == 2:
         return None
     return weight
@@ -358,22 +427,12 @@ def _embedding_weights_needing_gather(
         if weight_id in seen:
             continue
         seen.add(weight_id)
-        status = getattr(weight, "ds_status", None)
-        if status is not None:
-            available = getattr(ZeroParamStatus, "AVAILABLE", None)
-            if available is not None:
-                if status != available:
-                    weights.append(weight)
-                continue
-            status_name = getattr(status, "name", None)
-            if isinstance(status_name, str):
-                if status_name.upper() != "AVAILABLE":
-                    weights.append(weight)
-                continue
-            if isinstance(status, str):
-                if status.upper() != "AVAILABLE":
-                    weights.append(weight)
-                continue
+        if _zero_param_ready_without_gather(weight):
+            continue
+        if _zero_status_name(weight) is not None:
+            # Any explicit ZeRO status other than AVAILABLE indicates gather need.
+            weights.append(weight)
+            continue
         if getattr(weight, "ndim", 2) != 2:
             weights.append(weight)
     return weights
@@ -475,9 +534,13 @@ def _maybe_zero_gather_embedding(model: Optional[PreTrainedModel]) -> Iterator[N
     if not weights:
         yield
         return
-    gather_ctx = _call_gather_fn(gather_fn, weights, modifier_rank=None)
-    with gather_ctx:
-        yield
+    with _reserve_zero_gather_params(weights) as reserved:
+        if not reserved:
+            yield
+            return
+        gather_ctx = _call_gather_fn(gather_fn, reserved, modifier_rank=None)
+        with gather_ctx:
+            yield
 
 
 def _zero_param_list(model: Optional[TorchModule]) -> List[TorchParameter]:
@@ -532,9 +595,22 @@ def _maybe_zero_gather_params(
     params = _zero_param_list(model)
     zero_stage = _zero_stage(model)
     if zero_stage > 0:
-        gather_params = params
+        candidate_params = params
     else:
-        gather_params = [p for p in params if hasattr(p, "ds_id")]
+        candidate_params = [p for p in params if hasattr(p, "ds_id")]
+    gather_params: List[TorchParameter] = []
+    seen_param_ids: set[int] = set()
+    for param in candidate_params:
+        param_id = id(param)
+        if param_id in seen_param_ids:
+            continue
+        seen_param_ids.add(param_id)
+        # Do not nest a gather over parameters already materialized by another
+        # active context; DeepSpeed asserts during repartition when active
+        # sub-modules still hold references.
+        if _zero_param_ready_without_gather(param):
+            continue
+        gather_params.append(param)
     if not gather_params:
         yield
         return
@@ -550,10 +626,14 @@ def _maybe_zero_gather_params(
                         empty_cache()
             except (AttributeError, RuntimeError, TypeError):
                 pass
-    modifier_rank = None if gather_all_ranks else 0
-    gather_ctx = _call_gather_fn(gather_fn, gather_params, modifier_rank=modifier_rank)
-    with gather_ctx:
-        yield
+    with _reserve_zero_gather_params(gather_params) as reserved:
+        if not reserved:
+            yield
+            return
+        modifier_rank = None if gather_all_ranks else 0
+        gather_ctx = _call_gather_fn(gather_fn, reserved, modifier_rank=modifier_rank)
+        with gather_ctx:
+            yield
 
 
 __all__ = [
@@ -562,4 +642,5 @@ __all__ = [
     "_maybe_zero_gather_embedding",
     "_maybe_zero_gather_params",
     "_maybe_patch_zero_no_sync",
+    "_reserve_zero_gather_params",
 ]

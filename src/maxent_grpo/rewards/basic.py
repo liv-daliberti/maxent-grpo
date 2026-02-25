@@ -160,6 +160,11 @@ def pure_accuracy_reward_math(
     correctness. When the answer is correct *and* the full format
     ``<think>…</think><answer>…</answer>`` is present (exactly four tags),
     the reward is overridden to 1.0.
+
+    If no <answer> tag is present, a tiny fallback reward is granted only
+    when the last non-empty line exactly matches the gold answer after
+    canonicalization. This prevents substring false positives while still
+    tolerating minimal outputs during early training.
     """
 
     outs: List[float] = []
@@ -174,15 +179,23 @@ def pure_accuracy_reward_math(
         if format_ok and pred_ok and tag_total == 4 and tag_unique == 4:
             outs.append(1.0)
             continue
-        txt_canon = _canon_math(txt)
-        is_correct = bool(pred_ok or (gold_canon and gold_canon in txt_canon))
+        last_line_match = False
+        if not pred_ok and gold_canon:
+            for line in reversed(txt.splitlines()):
+                last = line.strip()
+                if last:
+                    last_line_match = _canon_math(last) == gold_canon
+                    break
         tag_bonus = 0.0
         if tag_total > 0:
             tag_bonus = 0.05 * _tag_multiplier(tag_total, tag_unique)
-        if not is_correct:
-            outs.append(tag_bonus)
+        if pred_ok:
+            outs.append(0.4 + tag_bonus)
             continue
-        outs.append(0.4 + tag_bonus)
+        if last_line_match:
+            outs.append(0.05)
+            continue
+        outs.append(tag_bonus)
     return outs
 
 

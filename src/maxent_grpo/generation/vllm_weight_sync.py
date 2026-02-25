@@ -108,6 +108,13 @@ def _loopback_host(base_url: str) -> bool:
 
 def _vllm_client_nccl_overrides(base_url: str) -> dict[str, str]:
     overrides: dict[str, str] = {}
+    enable_overrides = (
+        str(os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")).strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    if not enable_overrides:
+        return overrides
+
     if not _loopback_host(base_url):
         explicit = os.getenv("MAXENT_VLLM_CLIENT_NCCL_SOCKET_IFNAME")
         if explicit and "NCCL_SOCKET_IFNAME" not in os.environ:

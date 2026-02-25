@@ -1,9 +1,18 @@
 # Operations Toolkit
 
-Utilities under `var/repo/ops/` keep infrastructure bits out of the repo root and route everything into `var/`:
+Single supported training path:
 
-- `slurm/train.slurm` — primary multi-node launcher for GRPO (and legacy MaxEnt) with optional vLLM server orchestration; `--help` lists dp/tp/port/accelerate knobs.
-- `slurm/maxent-grpo.slurm` — legacy MaxEnt-specific launcher; uses the same env wiring but the MaxEnt entrypoint is currently stubbed.
-Runnable utilities live under `var/repo/tools/` (e.g., `var/repo/tools/bootstrap_env.sh`, `var/repo/tools/ensure_local_path.sh`).
-Repo-local Python bootstrapper: `sitecustomize.py` (at repo root).
-Run commands from the repo root so relative paths to configs, logs, and `var/artifacts/` resolve correctly.
+- `run_dual_4plus4_single_node.sh` submits `slurm/train_dual_4plus4.slurm`.
+- Layout is fixed to one 8-GPU A100 node split as:
+  - GRPO: 1 vLLM GPU + 3 training GPUs
+  - MaxEnt: 1 vLLM GPU + 3 training GPUs
+- Default submit settings are built in:
+  - `SBATCH_ACCOUNT=mltheory`
+  - `SBATCH_PARTITION=mltheory`
+  - `SBATCH_TIME=48:00:00`
+
+Run from repo root:
+
+```bash
+var/repo/ops/run_dual_4plus4_single_node.sh
+```

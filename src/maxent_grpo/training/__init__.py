@@ -87,13 +87,11 @@ _LAZY_ATTRS = {
 LOG = logging.getLogger(__name__)
 
 # Lazy-only declarations to satisfy ``__all__`` without eager imports.
-run_training_loop: Any
 PreparedBatch: Any
 
 __all__: List[str] = [
     "AnalyticControllerObjective",
     "TruncatedBackpropControllerObjective",
-    "run_training_loop",
     "run_maxent_training",
     "TrainingLoopState",
     "StepBatchInfo",
@@ -147,7 +145,6 @@ __all__: List[str] = [
 
 # Try eager resolution when dependencies are available; fall back to lazy __getattr__.
 try:
-    from maxent_grpo.training.loop import run_training_loop
     from maxent_grpo.training.pipeline import PreparedBatch
 except ImportError:
     LOG.debug("Deferring training imports until dependencies are available.")
@@ -198,13 +195,8 @@ def __getattr__(name: str) -> Any:
         value = getattr(module, attr_name)
         globals()[name] = value
         return value
-    if name in {"run_training_loop", "PreparedBatch"}:
-        module_name = (
-            "maxent_grpo.training.loop"
-            if name == "run_training_loop"
-            else "maxent_grpo.training.pipeline"
-        )
-        module = _importlib.import_module(module_name)
+    if name == "PreparedBatch":
+        module = _importlib.import_module("maxent_grpo.training.pipeline")
         value = getattr(module, name)
         globals()[name] = value
         return value
@@ -231,7 +223,6 @@ if TYPE_CHECKING:
     from maxent_grpo.training.controller_objective import (
         TruncatedBackpropControllerObjective as TruncatedBackpropControllerObjective,
     )
-    from maxent_grpo.training.loop import run_training_loop as run_training_loop
     from maxent_grpo.training.pipeline import PreparedBatch as PreparedBatch
     from maxent_grpo.training import pipeline as pipeline
     from maxent_grpo.training import state as state

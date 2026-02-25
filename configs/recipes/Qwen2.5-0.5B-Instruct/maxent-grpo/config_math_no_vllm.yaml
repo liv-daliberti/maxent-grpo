@@ -61,14 +61,13 @@ system_prompt: |
   </answer>
 
 # MaxEnt (entropy bonus) knobs: standard GRPO + policy-entropy reward bonus.
-policy_entropy_bonus_coef: 0.0001
+policy_entropy_bonus_coef: 0.00001
 maxent_policy_entropy: true
 # Scoring/kl settings for the GRPO objective.
 maxent_reference_logprobs_source: model
 maxent_length_normalize_ref: false
 maxent_logprob_chunk_size: 4  # smaller chunks to cut peak logits memory without changing quality
 train_grpo_objective: true
-force_custom_loop: true
 # Optional clip objective settings (kept aligned with prior MaxEnt runs).
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0

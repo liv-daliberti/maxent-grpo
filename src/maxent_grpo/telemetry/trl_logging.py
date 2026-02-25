@@ -44,6 +44,36 @@ def _with_prefix(prefix: str, key: str) -> str:
     return key if key.startswith(prefix) else f"{prefix}{key}"
 
 
+_CANONICAL_COMPLETION_KEYS = {
+    "completions/mean_length": "completions/mean_length_sampled",
+    "completions/min_length": "completions/min_length_sampled",
+    "completions/max_length": "completions/max_length_sampled",
+    "completions/clipped_ratio": "completions/clipped_frac",
+    "completions/mean_terminated_length": "completions/mean_length_terminated",
+    "completions/min_terminated_length": "completions/min_length_terminated",
+    "completions/max_terminated_length": "completions/max_length_terminated",
+}
+
+
+def _canonicalize_rollout_metric_keys(metrics: Dict[str, Any]) -> Dict[str, Any]:
+    """Add canonical metric aliases so GRPO/MaxEnt share one key schema."""
+    normalized = dict(metrics)
+    for mode_prefix in ("train/", "eval/"):
+        for legacy_suffix, canonical_suffix in _CANONICAL_COMPLETION_KEYS.items():
+            legacy_key = f"{mode_prefix}{legacy_suffix}"
+            canonical_key = f"{mode_prefix}{canonical_suffix}"
+            if legacy_key in normalized and canonical_key not in normalized:
+                normalized[canonical_key] = normalized[legacy_key]
+        for key in list(normalized.keys()):
+            if not key.startswith(f"{mode_prefix}diversity/"):
+                continue
+            suffix = key[len(f"{mode_prefix}diversity/") :]
+            canonical_key = f"{mode_prefix}completions/diversity/{suffix}"
+            if canonical_key not in normalized:
+                normalized[canonical_key] = normalized[key]
+    return normalized
+
+
 def _fix_clipped_ratio(metrics: Dict[str, Any], args: Any) -> None:
     """Clamp and normalize TRL's negative clipped_ratio counts into a [0, 1] ratio."""
 
@@ -264,6 +294,7 @@ def _normalize_prefixes(
             out[key] = val
             continue
         out[_with_prefix(prefix, key)] = val
+    out = _canonicalize_rollout_metric_keys(out)
     # Always materialize top-level aliases for weighting scalars so dashboards
     # can rely on `train/tau` and `train/beta` regardless of the upstream key
     # shape (e.g., `weighting/tau`, `train/weighting/tau`, or `tau`).
