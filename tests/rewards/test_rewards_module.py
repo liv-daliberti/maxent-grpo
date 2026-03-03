@@ -18,6 +18,7 @@ Unit tests for rewards module helpers.
 
 from __future__ import annotations
 
+import functools
 from types import SimpleNamespace
 
 import pytest
@@ -26,7 +27,9 @@ from maxent_grpo.rewards import (
     _canon_math,
     _extract_content,
     get_reward_funcs,
+    pure_accuracy_math_correctness,
     pure_accuracy_reward_math,
+    uses_pure_accuracy_math_reward,
 )
 
 
@@ -70,7 +73,7 @@ def test_pure_accuracy_reward_math_handles_multiple_rewards():
         "<think>t</think><answer>2</answer>",
     ]
     rewards = pure_accuracy_reward_math(completions, ["1", "3"])
-    assert rewards == [1.0, 0.0]
+    assert rewards == [1.0, 0.05]
 
 
 def test_pure_accuracy_reward_math_handles_missing_answer(monkeypatch):
@@ -80,7 +83,7 @@ def test_pure_accuracy_reward_math_handles_missing_answer(monkeypatch):
     )
     comps = ["<think>t</think><answer>missing</answer>"]
     rewards = pure_accuracy_reward_math(comps, ["42"])
-    assert rewards == [0.0]
+    assert rewards == [0.05]
 
 
 def test_get_reward_funcs_resolves_known_names():
@@ -101,7 +104,7 @@ def test_pure_accuracy_reward_math_missing_answer_via_basic(monkeypatch):
     )
     comps = ["<think>trace</think><answer>?</answer>"]
     rewards = basic.pure_accuracy_reward_math(comps, ["42"])
-    assert rewards == [0.0]
+    assert rewards == [0.05]
 
 
 def test_pure_accuracy_reward_math_relaxed_eval_allows_missing_think():
@@ -127,3 +130,36 @@ def test_pure_accuracy_reward_math_applies_tag_multipliers():
     ]
     rewards = basic.pure_accuracy_reward_math(comps, ["42"] * len(comps))
     assert rewards == [0.05, 0.125, 0.25, 0.375, 1.0, 0.25]
+
+
+def test_pure_accuracy_math_correctness_ignores_format_bonus():
+    comps = [
+        "<answer>7</answer>",
+        "<think>t</think><answer>8</answer>",
+        "scratch\n7",
+    ]
+    flags = pure_accuracy_math_correctness(comps, ["7", "7", "7"])
+    assert flags == [True, False, False]
+
+
+def test_pure_accuracy_math_correctness_optional_last_line_fallback():
+    comps = ["scratch\n7"]
+    flags = pure_accuracy_math_correctness(
+        comps,
+        ["7"],
+        allow_last_line_fallback=True,
+    )
+    assert flags == [True]
+
+
+def test_uses_pure_accuracy_math_reward_unwraps_partial() -> None:
+    wrapped = functools.partial(pure_accuracy_reward_math)
+    assert uses_pure_accuracy_math_reward([wrapped]) is True
+
+
+def test_uses_pure_accuracy_math_reward_unwraps_decorated_function() -> None:
+    @functools.wraps(pure_accuracy_reward_math)
+    def wrapped(*args, **kwargs):
+        return pure_accuracy_reward_math(*args, **kwargs)
+
+    assert uses_pure_accuracy_math_reward([wrapped]) is True

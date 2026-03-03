@@ -51,10 +51,28 @@ system_prompt: |
   - Put the final answer inside <answer> only.
   - Use exact math (fractions, radicals, pi, e).
   - Verify the result satisfies the original conditions.
-# Near-parity mode: keep MaxEnt effect very small.
-maxent_alpha: 0.01
+# MaxEnt bonus base scale.
+maxent_alpha: 1.0
 policy_entropy_bonus_coef: 0.0
 maxent_policy_entropy: false
+# Apply MaxEnt bonus only where reward exceeds tau:
+# 1{r > tau} * (-log pi_ref)
+maxent_reward_signal_gate: false
+maxent_reward_signal_min_max: 0.0
+maxent_reward_signal_std_threshold: 0.01
+maxent_bonus_positive_only: true
+maxent_bonus_min_reward: 0.4
+# Adapt MaxEnt alpha around the KL budget (raise below target, lower above target).
+maxent_alpha_raise_on_low_kl: true
+maxent_alpha_lower_on_high_kl: true
+maxent_alpha_kl_threshold: 0.04
+maxent_alpha_kl_gain: 1.0
+maxent_alpha_kl_min_multiplier: 0.5
+maxent_alpha_kl_max_multiplier: 2.0
+# On-cusp exploration: scale novelty bonus by 4p(1-p), where
+# p is the fraction of completions with reward >= threshold.
+maxent_cusp_gate: true
+maxent_cusp_reward_threshold: 1.0
 # Use a sample-based entropy estimate (fast) instead of full-distribution entropy (slow).
 maxent_policy_entropy_mode: sample
 # Scoring/kl settings for the objective.
@@ -68,6 +86,7 @@ maxent_allow_empty_weight_fallback: true
 maxent_clip_adv_baseline: null
 maxent_score_tail_tokens: null
 train_grpo_objective: false
+scale_rewards: true
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false

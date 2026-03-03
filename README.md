@@ -146,7 +146,7 @@ Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now liv
 ## Training Flow (MaxEnt Runner)
 1. **Generation** — `maxent_grpo.training.rollout.CompletionGenerator` wraps HF + vLLM; `GenerationContext` carries sampling + accelerator handles.
 2. **Rewards & scoring** — `maxent_grpo.training.rewards` + `maxent_grpo.training.pipeline.prepare_training_batch` build grouped completions, reward stats, reference log-probs, and sequence scores.
-3. **Weighting & loss** — `maxent_grpo.training.weighting.loss` + `maxent_grpo.training.weighting.logic` compute listwise targets/weights (entropy, KL) and loss scalars.
+3. **Weighting & objective** — `maxent_grpo.training.weighting.logic` computes listwise targets/weights (entropy, KL), and `maxent_grpo.training.trl_trainer` applies them in the GRPO/MaxEnt objective.
 4. **Optimization** — `maxent_grpo.training.loop` drives gradient accumulation and schedules; `maxent_grpo.training.optim` + `maxent_grpo.training.state` handle LR schedules, controllers, checkpoints.
 5. **Logging** — `maxent_grpo.training.metrics` and `maxent_grpo.telemetry.wandb` report metrics; logs/checkpoints land under `var/` (logs under `var/artifacts/logs`) by default.
 

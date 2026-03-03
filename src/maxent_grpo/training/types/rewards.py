@@ -175,6 +175,32 @@ class ScoreBatch:
 
 
 @dataclass
+class SeedInfoInputs:
+    """Optional seed-level metadata and pooled representations."""
+
+    seed_ids: Tensor
+    pooled_hidden: Tensor
+    is_seed_aug: Optional[Tensor] = None
+    logits: Optional[Tensor] = None
+
+
+@dataclass
+class SequenceScores:
+    """Bundle sequence-level log-prob statistics."""
+
+    cur_logp_sum: Tensor
+    behavior_logp_sum: Tensor
+    log_ratio_train: Tensor
+    denom_tok_tensor: Tensor
+    pooled_hidden: Optional[Tensor] = None
+    seed_aux: Optional["SeedInfoInputs"] = None
+    policy_entropy_sum: Optional[Tensor] = None
+    token_logp: Optional[Tensor] = None
+    token_mask: Optional[Tensor] = None
+    old_token_logp: Optional[Tensor] = None
+
+
+@dataclass
 class ReferenceLogprobs:
     """Reference-model log-prob summaries."""
 
@@ -345,5 +371,7 @@ __all__ = [
     "RewardComputation",
     "RewardMoments",
     "ScoreBatch",
+    "SeedInfoInputs",
+    "SequenceScores",
     "ValidationContext",
 ]

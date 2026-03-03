@@ -58,13 +58,31 @@ def parse_grpo_args(
                 if idx + 1 < len(cli_args):
                     recipe_path = cli_args[idx + 1]
     if recipe_path:
+        # Prefer TRL parsing so CLI flags override recipe defaults.
+        # This is required for sweep launches that pass per-run knobs (e.g.,
+        # --maxent_alpha, --seed, --max_steps) while selecting a base recipe.
         try:  # pragma: no cover - optional dependency for CLI
-            from trl import ModelConfig
+            from trl import ModelConfig, TrlParser
+            parser: Any
+            try:
+                parser = TrlParser(
+                    cast(Any, (GRPOScriptArguments, GRPOConfig, ModelConfig)),
+                    conflict_handler="resolve",
+                )
+            except TypeError:
+                parser = TrlParser(cast(Any, (GRPOScriptArguments, GRPOConfig, ModelConfig)))
+            cli_args = list(sys.argv[1:])
+            if "--config" not in cli_args:
+                cli_args = ["--config", recipe_path] + cli_args
+            return parser.parse_args_and_config(args=cli_args)
         except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dep
             class ModelConfig:  # type: ignore[no-redef]
                 def __init__(self, **kwargs: Any) -> None:
                     for key, value in kwargs.items():
                         setattr(self, key, value)
+        except (TypeError, AttributeError, ValueError):
+            # Fall back to direct recipe loading when parser wiring is unavailable.
+            pass
         try:
             return load_grpo_recipe(recipe_path, model_config_cls=ModelConfig)
         except TypeError:

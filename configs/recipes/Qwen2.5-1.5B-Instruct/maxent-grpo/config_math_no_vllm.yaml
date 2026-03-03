@@ -12,31 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# MaxEnt‑GRPO math recipe for Qwen 1.5B that mirrors the paired GRPO config
-# with POC-sized defaults while keeping the MaxEnt weighting/controller knobs.
-
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
-resume_from_checkpoint: true
+resume_from_checkpoint: false
 torch_dtype: float16
 attn_implementation: sdpa
 
 # Data training arguments
-dataset_mixture:
-  seed: 42
-  datasets:
-    - id: open-r1/OpenR1-Math-220k
-      split: train
-      columns: [problem, answer]
-      weight: 0.01  # tiny subset for fast POC runs
+dataset_name: open-r1/OpenR1-Math-220k
 dataset_prompt_column: problem
 eval_dataset_name: HuggingFaceH4/MATH-500
-eval_dataset_split: "test[:50]"  # tiny eval subset for fast POC
+eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
-system_prompt: "You are an expert *mathematics problem-solver*.
+system_prompt: |
+  You are an expert *mathematics problem-solver*.
 
   Every time you receive a problem you must:
   • Analyse it thoroughly.
@@ -51,9 +43,6 @@ system_prompt: "You are an expert *mathematics problem-solver*.
     – The final answer goes inside `<answer>` **only**.
     – Use **exact** math (fractions, radicals, π, e). Avoid unnecessary decimals.
     – Canonical forms: integers as plain numbers; reduced fractions a/b with b>0; simplified radicals; rationalized denominators; sets/tuples with standard notation; intervals in standard notation.
-    – If there is **no solution**, write `NO SOLUTION`. If the problem is **underdetermined**, write `I DON'T KNOW`.
-
-  • You have a hard cap of **750 output tokens**. Be concise but complete.
 
   ------------------------------------------------------------
   TAG TEMPLATE (copy this shape for every problem)
@@ -70,22 +59,24 @@ system_prompt: "You are an expert *mathematics problem-solver*.
   <answer>
   THEANSWER
   </answer>
-  "
 
 # MaxEnt (entropy bonus) knobs: standard GRPO + policy-entropy reward bonus.
-policy_entropy_bonus_coef: 0.03
+policy_entropy_bonus_coef: 0.00001
 maxent_policy_entropy: true
 # Scoring/kl settings for the GRPO objective.
 maxent_reference_logprobs_source: model
+# Slowly move the frozen reference toward policy weights after warmup.
+maxent_reference_ema_enabled: true
+maxent_reference_ema_beta: 0.995
+maxent_reference_ema_warmup_steps: 100
+maxent_reference_ema_update_interval: 10
 maxent_length_normalize_ref: false
-maxent_logprob_chunk_size: 1
-maxent_score_slice_prefetch: 1
-maxent_prompt_cache_size: 2048
+maxent_logprob_chunk_size: 4  # smaller chunks to cut peak logits memory without changing quality
 train_grpo_objective: true
 # Optional clip objective settings (kept aligned with prior MaxEnt runs).
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0
-maxent_clip_adv_baseline: 0.25   # 1/num_generations (4) for a gentler clip objective
+maxent_clip_adv_baseline: 0.125  # 1/num_generations (8) for a gentler clip objective
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false
@@ -99,13 +90,17 @@ info_seed_pooling: mean
 # Training/eval & logging
 bf16: true
 fp16: false
-use_vllm: true
-vllm_mode: server
+use_vllm: false           # disable vLLM; use in-process generation
+vllm_mode: server         # use external/inline server launched by the slurm helper
+torch_compile: false      # disabled: torch.compile is unstable with DeepSpeed/ZeRO here
+# Request vLLM logprob metadata so MaxEnt can reconstruct reference stats from vLLM.
+# Request logprob metadata from vLLM (requires a server with logprob support).
 vllm_return_logprobs: true
 vllm_request_logprobs: true
+vllm_sync_weights: false
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 2
+gradient_accumulation_steps: 64    # keep global batch size with lower per-device batch
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
@@ -118,31 +113,33 @@ vllm_stop_sequences:
   - "</answer>\n"
   - "</assistant>"
 vllm_request_timeout: 600
-vllm_url: http://localhost:29525/generate
-hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-poc
-hub_strategy: every_save
+hub_model_id: null
+hub_strategy: "end"
 learning_rate: 1e-6
+optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
-log_level: debug
+log_level: 20
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
+log_like_grpo: true
 lr_scheduler_type: cosine
-max_prompt_length: 1024
-max_completion_length: 400
-max_steps: 200
-num_generations: 4
+max_prompt_length: 1000      # trim prompt window to ease ref scoring memory
+max_completion_length: 400   # cap completions to reduce activation + ref costs
+max_steps: 64
+# GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
+num_generations: 8           # higher sample count for MaxEnt weighting
 num_train_epochs: 1
-output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-poc
+output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 overwrite_output_dir: true
-per_device_eval_batch_size: 1
+per_device_eval_batch_size: 4
 per_device_train_batch_size: 1
-push_to_hub: true
+push_to_hub: false
 report_to:
 - wandb
-wandb_project: huggingface
+wandb_project: open-r1-maxent-grpo
 wandb_entity: ogd3-princeton-university
 reward_funcs:
 - pure_accuracy_math
@@ -150,18 +147,20 @@ reward_weights:
 - 1
 
 # Reverse‑KL weight β used inside MaxEnt update
-beta: 0.04
+# Gentle KL controller: keep updates small even when KL is far from target.
+beta: 0.5
 kl_target:        0.07
 kl_horizon:       500
 kl_ctl_step_size: 1.0
 
-# Misc GRPO knobs (kept consistent with the paired GRPO recipe)
+# Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
 max_grad_norm: 0.15
 ppo_clip_range: 0.05
 save_strategy: steps
-save_steps: 25
+save_steps: 50
 eval_strategy: steps
-eval_steps: 26
+eval_steps: 25
 save_total_limit: 1000
 seed: 42
+vllm_url: "http://localhost:29525/generate"
 warmup_ratio: 0.2

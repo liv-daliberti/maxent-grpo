@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from types import MethodType, SimpleNamespace
-from typing import Any, Dict, List, Tuple
+from types import SimpleNamespace
+from typing import Any, Dict, List
 
 import pytest
 import torch
 
+from maxent_grpo.rewards.basic import pure_accuracy_reward_math
 from maxent_grpo.training import trl_trainer as trainer_mod
 from maxent_grpo.training.trl_trainer import build_custom_grpo_trainer
 
@@ -142,6 +143,12 @@ class _ParentTrainerStub:
         return logs
 
 
+class _AttrWrappedModule(torch.nn.Module):
+    def __init__(self, attr_name: str, module: torch.nn.Module) -> None:
+        super().__init__()
+        setattr(self, attr_name, module)
+
+
 _WrappedTrainer = build_custom_grpo_trainer(_ParentTrainerStub)
 
 
@@ -175,28 +182,6 @@ def _make_args(
     )
 
 
-def _prepared_rollout_stub() -> Any:
-    completion_ids = torch.tensor([[11, 2, 0], [12, 0, 0]], dtype=torch.long)
-    score_batch = SimpleNamespace(
-        prompt_entries=[object(), object()],
-        max_prompt_len=1,
-        pad_token_id=0,
-        completion_ids=completion_ids,
-    )
-    reward_comp = SimpleNamespace(
-        per_reward_values={"reward_0": [0.5, 0.7]},
-        pairs=SimpleNamespace(prompts=["p0", "p1"], completions=["c0", "c1"]),
-        advantage=SimpleNamespace(samples=[0.25, -0.25]),
-    )
-    return SimpleNamespace(
-        batch_stats=SimpleNamespace(score_batch=score_batch),
-        reward_comp=reward_comp,
-        seed_metrics={},
-        diversity_metrics={"distinct_1": 0.33},
-        total_input_tokens=2.0,
-    )
-
-
 def _make_trainer(
     train_grpo_objective: bool,
     *,
@@ -227,7 +212,6 @@ def test_parent_vllm_init_kept_for_native_trl_pathways(
     assert trainer.parent_received_use_vllm is True
     assert trainer.parent_vllm_init_calls == 1
     assert trainer.vllm_client is not None
-    assert trainer._shared_rollout_vllm is False
 
 
 def test_objective_flag_string_values_route_correctly() -> None:
@@ -245,12 +229,10 @@ def test_objective_flag_string_values_route_correctly() -> None:
     assert grpo_like.maxent_enabled is False
     assert grpo_like.parent_received_use_vllm is True
     assert grpo_like.parent_vllm_init_calls == 1
-    assert grpo_like._shared_rollout_vllm is False
 
     assert maxent_like.maxent_enabled is True
     assert maxent_like.parent_received_use_vllm is True
     assert maxent_like.parent_vllm_init_calls == 1
-    assert maxent_like._shared_rollout_vllm is False
 
 
 def test_maxent_alpha_zero_routes_to_native_grpo_path() -> None:
@@ -262,10 +244,8 @@ def test_maxent_alpha_zero_routes_to_native_grpo_path() -> None:
 
     assert trainer.maxent_enabled is True
     assert trainer.maxent_alpha == pytest.approx(0.0)
-    assert trainer._maxent_custom_path is False
     assert trainer.parent_received_use_vllm is True
     assert trainer.parent_vllm_init_calls == 1
-    assert trainer._shared_rollout_vllm is False
 
     loss = trainer.compute_loss(
         model=None,
@@ -290,17 +270,9 @@ def test_maxent_alpha_zero_routes_to_native_grpo_path() -> None:
     assert diversity_keys
 
 
-def test_compute_loss_routes_by_objective(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_compute_loss_routes_by_objective() -> None:
     grpo_trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.1)
     maxent_trainer = _make_trainer(train_grpo_objective=False, maxent_alpha=0.1)
-
-    monkeypatch.setattr(
-        trainer_mod,
-        "maybe_apply_chat_template",
-        lambda example, _tok: {"prompt": example["prompt"]},
-    )
     for trainer in (grpo_trainer, maxent_trainer):
         loss = trainer.compute_loss(
             model=None,
@@ -311,43 +283,9 @@ def test_compute_loss_routes_by_objective(
         assert float(loss.item()) == pytest.approx(0.0)
 
 
-def test_grpo_objective_runner_uses_native_parent_loss(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.1)
-
-    def _should_not_run(self: Any, **_kwargs: Any) -> torch.Tensor:
-        raise AssertionError("Shared MaxEnt loss core should never run for GRPO.")
-
-    trainer._compute_shared_objective_loss = MethodType(_should_not_run, trainer)
-    loss = trainer._compute_grpo_objective_loss(
-        model=None,
-        inputs=[{"prompt": "hello", "answer": "world"}],
-        return_outputs=False,
-        mode="train",
-        ctx=None,
-        prepared=None,
-    )
-    assert float(loss.item()) == pytest.approx(0.0)
-
-
 def test_generate_and_score_routes_by_objective(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        trainer_mod,
-        "maybe_apply_chat_template",
-        lambda example, _tok: {"prompt": example["prompt"]},
-    )
-    monkeypatch.setattr(
-        trainer_mod,
-        "_prepare_prompt_slice",
-        lambda prompt_entries, max_prompt_len, pad_token_id, completion_dtype, prompt_dtype: (
-            torch.zeros((len(prompt_entries), 1), dtype=torch.long),
-            torch.ones((len(prompt_entries), 1), dtype=torch.long),
-            None,
-        ),
-    )
     monkeypatch.setattr(
         trainer_mod,
         "_apply_eos_completion_mask",
@@ -355,45 +293,22 @@ def test_generate_and_score_routes_by_objective(
     )
 
     inputs = [{"prompt": "p0", "answer": "a0"}, {"prompt": "p1", "answer": "a1"}]
-    results: Dict[str, Tuple[Any, List[Dict[str, Any]]]] = {}
+    results: Dict[str, Any] = {}
     for label, is_grpo in (("grpo", True), ("maxent", False)):
         trainer = _make_trainer(
             train_grpo_objective=is_grpo,
             maxent_alpha=0.1,
         )
-        calls: List[Dict[str, Any]] = []
-
-        def _spy_prepare_rollout(
-            self: Any,
-            mode: str,
-            ctx: Any,
-            generator: Any,
-            batch: Dict[str, List[str]],
-            *,
-            use_generation_cache: bool,
-        ) -> Any:
-            calls.append(
-                {
-                    "mode": mode,
-                    "use_generation_cache": use_generation_cache,
-                    "batch_prompts": list(batch["prompt"]),
-                }
-            )
-            return _prepared_rollout_stub()
-
-        trainer._prepare_rollout_batch = MethodType(_spy_prepare_rollout, trainer)
         trainer.model.training = True
         outputs = trainer._generate_and_score_completions(inputs)
         assert isinstance(outputs, dict)
-        results[label] = (trainer, calls)
+        results[label] = trainer
 
-    grpo_trainer, grpo_calls = results["grpo"]
-    maxent_trainer, maxent_calls = results["maxent"]
+    grpo_trainer = results["grpo"]
+    maxent_trainer = results["maxent"]
 
     assert grpo_trainer.parent_generate_calls == 1
-    assert len(grpo_calls) == 0
     assert maxent_trainer.parent_generate_calls == 1
-    assert len(maxent_calls) == 0
     grpo_diversity_keys = [
         key
         for key in grpo_trainer._metrics["train"].keys()
@@ -408,18 +323,11 @@ def test_generate_and_score_routes_by_objective(
     assert maxent_diversity_keys
 
 
-def test_maxent_alpha_applies_advantage_bonus_in_native_path(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_maxent_alpha_applies_advantage_bonus_in_native_path() -> None:
     trainer = _make_trainer(train_grpo_objective=False, maxent_alpha=0.2)
     trainer.model.training = True
     trainer.num_generations = 3
 
-    monkeypatch.setattr(
-        trainer_mod,
-        "maybe_apply_chat_template",
-        lambda example, _tok: {"prompt": example["prompt"]},
-    )
     trainer.processing_class.batch_decode = lambda ids, skip_special_tokens=True: [
         ("alpha beta" if idx % 3 in (0, 1) else "gamma delta")
         for idx in range(len(ids))
@@ -435,3 +343,155 @@ def test_maxent_alpha_applies_advantage_bonus_in_native_path(
     assert float(adv.abs().sum().item()) > 0.0
     assert trainer.parent_generate_calls == 1
     assert trainer._metrics["train"]["maxent/alpha"][-1] == pytest.approx(0.2)
+
+
+def test_eval_logs_pass_at_8_metric() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.num_generations = 8
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [
+            1.0 if idx == 0 else 0.0 for idx, _ in enumerate(prompts)
+        ]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1"} for _ in range(8)]
+    )
+    assert isinstance(outputs, dict)
+    assert trainer.parent_generate_calls == 1
+    assert trainer._metrics["eval"]["pass_at_8"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["mean_at_8"][-1] == pytest.approx(1.0 / 16.0)
+
+
+def test_eval_pass_at_8_ignores_small_shaping_rewards() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.num_generations = 8
+
+    # Wrong-but-formatted samples can carry small positive shaping rewards.
+    # Pass@k should only count solved samples (reward ~= 1.0), not shaping.
+    def _reward_fn(prompts, completions, completion_ids, **kwargs):
+        del completions, completion_ids, kwargs
+        values = [0.05 for _ in prompts]
+        values[8] = 1.0
+        return values
+
+    trainer.reward_funcs = [_reward_fn]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1"} for _ in range(8)]
+    )
+    assert isinstance(outputs, dict)
+    assert trainer.parent_generate_calls == 1
+    assert trainer._metrics["eval"]["pass_at_8"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.0)
+    assert trainer._metrics["eval"]["mean_at_8"][-1] == pytest.approx(1.0 / 16.0)
+
+
+def test_eval_pass_at_8_uses_math_answer_correctness() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.num_generations = 8
+    trainer.reward_funcs = [pure_accuracy_reward_math]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    completions = (
+        ["<answer>42</answer>"] + ["<answer>0</answer>" for _ in range(7)]
+        + ["<answer>0</answer>" for _ in range(8)]
+    )
+    trainer.processing_class.batch_decode = (
+        lambda ids, skip_special_tokens=True: completions[: len(ids)]
+    )
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "42"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "42"} for _ in range(8)]
+    )
+    assert isinstance(outputs, dict)
+    assert trainer.parent_generate_calls == 1
+    assert trainer._metrics["eval"]["pass_at_8"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["mean_at_8"][-1] == pytest.approx(1.0 / 16.0)
+
+
+def test_reference_model_ema_updates_with_warmup_and_interval() -> None:
+    trainer = _make_trainer(train_grpo_objective=False, maxent_alpha=1.0)
+    trainer.model = torch.nn.Linear(2, 1, bias=False)
+    trainer.ref_model = torch.nn.Linear(2, 1, bias=False)
+    trainer.model.train()
+    trainer.ref_model.eval()
+
+    with torch.no_grad():
+        trainer.model.weight.fill_(1.0)
+        trainer.ref_model.weight.zero_()
+
+    trainer.args.maxent_reference_ema_enabled = True
+    trainer.args.maxent_share_reference_model = False
+    trainer.args.maxent_reference_ema_beta = 0.5
+    trainer.args.maxent_reference_ema_warmup_steps = 5
+    trainer.args.maxent_reference_ema_update_interval = 2
+
+    trainer.state.global_step = 4
+    trainer.compute_loss(model=None, inputs=[{"prompt": "p", "answer": "a"}])
+    assert trainer.ref_model.weight.detach().cpu().flatten().tolist() == pytest.approx(
+        [0.0, 0.0]
+    )
+
+    trainer.state.global_step = 5
+    trainer.compute_loss(model=None, inputs=[{"prompt": "p", "answer": "a"}])
+    assert trainer.ref_model.weight.detach().cpu().flatten().tolist() == pytest.approx(
+        [0.5, 0.5]
+    )
+
+    trainer.state.global_step = 6
+    trainer.compute_loss(model=None, inputs=[{"prompt": "p", "answer": "a"}])
+    assert trainer.ref_model.weight.detach().cpu().flatten().tolist() == pytest.approx(
+        [0.5, 0.5]
+    )
+
+    # Same step should not apply EMA twice.
+    trainer.compute_loss(model=None, inputs=[{"prompt": "p", "answer": "a"}])
+    assert trainer.ref_model.weight.detach().cpu().flatten().tolist() == pytest.approx(
+        [0.5, 0.5]
+    )
+
+    trainer.state.global_step = 7
+    trainer.compute_loss(model=None, inputs=[{"prompt": "p", "answer": "a"}])
+    assert trainer.ref_model.weight.detach().cpu().flatten().tolist() == pytest.approx(
+        [0.75, 0.75]
+    )
+    assert trainer._metrics["train"]["maxent/ref_ema_applied"][-1] == pytest.approx(1.0)
+
+
+def test_reference_model_ema_matches_prefixed_parameter_names() -> None:
+    trainer = _make_trainer(train_grpo_objective=False, maxent_alpha=1.0)
+    policy = _AttrWrappedModule("module", torch.nn.Linear(2, 1, bias=False))
+    reference = _AttrWrappedModule("model", torch.nn.Linear(2, 1, bias=False))
+    trainer.model = policy
+    trainer.ref_model = reference
+    trainer.model.train()
+    trainer.ref_model.eval()
+
+    with torch.no_grad():
+        policy.module.weight.fill_(1.0)
+        reference.model.weight.zero_()
+
+    trainer.args.maxent_reference_ema_enabled = True
+    trainer.args.maxent_share_reference_model = False
+    trainer.args.maxent_reference_ema_beta = 0.5
+    trainer.args.maxent_reference_ema_warmup_steps = 0
+    trainer.args.maxent_reference_ema_update_interval = 1
+
+    trainer.state.global_step = 1
+    trainer.compute_loss(model=None, inputs=[{"prompt": "p", "answer": "a"}])
+
+    assert reference.model.weight.detach().cpu().flatten().tolist() == pytest.approx(
+        [0.5, 0.5]
+    )
+    assert trainer._metrics["train"]["maxent/ref_ema_updated_frac"][-1] == pytest.approx(1.0)
+    assert trainer._metrics["train"]["maxent/ref_ema_alias_hit_frac"][-1] == pytest.approx(1.0)

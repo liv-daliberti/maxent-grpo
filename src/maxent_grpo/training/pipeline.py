@@ -47,7 +47,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypeVar, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
-from .weighting.loss import SequenceScores
 from .rewards import (
     _group_q_distribution,
     compute_reward_statistics,
@@ -78,6 +77,8 @@ from .types import (
     RewardComputation,
     RewardMoments,
     ScoreBatch,
+    SeedInfoInputs,
+    SequenceScores,
     Tensor,
     TrainingLoopContext,
     AdvantageStats,
@@ -88,7 +89,6 @@ from .weighting.logic import compute_weight_stats, build_uniform_weight_stats
 
 if TYPE_CHECKING:
     import torch
-    from .weighting.loss import SeedInfoInputs
 
 LOG = logging.getLogger(__name__)
 
@@ -624,7 +624,7 @@ class PreparedBatch:
     :type total_input_tokens: float
     :param scores: Structure containing current-model log-probabilities aligned
         with the reference statistics.
-    :type scores: training.weighting.loss.SequenceScores
+    :type scores: ~maxent_grpo.training.types.rewards.SequenceScores
     """
 
     grouped_completions: List[List[str]]
@@ -1964,23 +1964,15 @@ def prepare_training_batch(
                 is_seed_aug_t = torch_mod.tensor(
                     is_seed_aug, device=pooled_hidden.device, dtype=torch_mod.bool
                 )
-                try:
-                    from .weighting.loss import SeedInfoInputs
-                except (
-                    ImportError,
-                    AttributeError,
-                ):  # pragma: no cover - optional seed support
-                    SeedInfoInputs = None
-                if SeedInfoInputs is not None:
-                    seed_inputs = SeedInfoInputs(
-                        seed_ids=seed_ids_t,
-                        pooled_hidden=pooled_hidden,
-                        is_seed_aug=is_seed_aug_t,
+                seed_inputs = SeedInfoInputs(
+                    seed_ids=seed_ids_t,
+                    pooled_hidden=pooled_hidden,
+                    is_seed_aug=is_seed_aug_t,
+                )
+                if seed_inputs.is_seed_aug is not None and valid_total > 0:
+                    seed_metrics["seed_aug_frac"] = float(aug_total) / float(
+                        valid_total
                     )
-                    if seed_inputs.is_seed_aug is not None and valid_total > 0:
-                        seed_metrics["seed_aug_frac"] = float(aug_total) / float(
-                            valid_total
-                        )
         if seed_inputs is not None:
             seed_head = getattr(ctx.runtime.model, "seed_head", None)
             if callable(seed_head):

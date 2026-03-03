@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from dataclasses import MISSING, dataclass, field
 from typing import Optional
 from urllib.parse import urlparse
@@ -97,6 +98,30 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_policy_entropy_mode: Which entropy estimator to use ("exact" or "sample").
     :ivar policy_entropy_bonus_coef: Coefficient applied to per-token policy entropy
         when adding an entropy bonus to rewards (GRPO + entropy bonus).
+    :ivar maxent_reward_signal_gate: Enable group-level reward-signal gating for MaxEnt reward shaping.
+    :ivar maxent_reward_signal_min_max: Minimum group max reward required for MaxEnt gating.
+    :ivar maxent_reward_signal_std_threshold: Minimum group reward std required for MaxEnt gating.
+    :ivar maxent_bonus_positive_only: Apply MaxEnt bonus only to completions above ``maxent_bonus_min_reward``.
+    :ivar maxent_bonus_min_reward: Reward threshold used when ``maxent_bonus_positive_only`` is enabled.
+    :ivar maxent_cusp_gate: Scale MaxEnt bonus by per-group cusp score ``4p(1-p)``, where
+        ``p`` is the fraction of completions above ``maxent_cusp_reward_threshold``.
+    :ivar maxent_cusp_reward_threshold: Reward threshold used to define per-group
+        success rate ``p`` for cusp gating.
+    :ivar maxent_alpha_raise_on_low_kl: When true, allow adaptive MaxEnt alpha increases
+        while measured train KL remains below ``maxent_alpha_kl_threshold``.
+    :ivar maxent_alpha_lower_on_high_kl: When true, allow adaptive MaxEnt alpha decreases
+        while measured train KL remains above ``maxent_alpha_kl_threshold``.
+    :ivar maxent_alpha_kl_threshold: KL boundary used by adaptive alpha control.
+    :ivar maxent_alpha_kl_gain: Gain for KL-based alpha scaling in both directions.
+    :ivar maxent_alpha_kl_max_multiplier: Upper bound on the adaptive alpha multiplier.
+    :ivar maxent_alpha_kl_min_multiplier: Lower bound on the adaptive alpha multiplier.
+    :ivar maxent_reference_ema_enabled: When true, softly update the frozen TRL
+        reference model from policy weights during training.
+    :ivar maxent_reference_ema_beta: EMA momentum for reference updates. Higher values
+        move the reference model more slowly.
+    :ivar maxent_reference_ema_update_interval: Apply the EMA update every N train steps.
+    :ivar maxent_reference_ema_warmup_steps: Number of train steps to wait before EMA
+        reference updates begin.
     :ivar behavior_logprobs_source: Source for behavior-policy log-probs used in PPO ratios.
     :ivar maxent_target_weight_entropy: Target weight entropy for automatic tau tuning.
     :ivar maxent_target_weight_entropy_start: Optional starting entropy target for annealing.
@@ -200,6 +225,38 @@ class GRPOConfig(trl.GRPOConfig):
             "help": (
                 "When true, reuse the trainable policy weights for reference scoring "
                 "instead of loading a frozen copy."
+            )
+        },
+    )
+    maxent_reference_ema_enabled: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "When true, softly update the frozen TRL reference model from the policy "
+                "weights during training."
+            )
+        },
+    )
+    maxent_reference_ema_beta: float = field(
+        default=0.995,
+        metadata={
+            "help": (
+                "EMA momentum used when updating the reference model "
+                "(ref <- beta * ref + (1 - beta) * policy)."
+            )
+        },
+    )
+    maxent_reference_ema_update_interval: int = field(
+        default=10,
+        metadata={
+            "help": "Apply reference-model EMA updates every N train steps (>=1)."
+        },
+    )
+    maxent_reference_ema_warmup_steps: int = field(
+        default=100,
+        metadata={
+            "help": (
+                "Number of train steps to wait before enabling reference-model EMA updates."
             )
         },
     )
@@ -395,6 +452,127 @@ class GRPOConfig(trl.GRPOConfig):
                 "Coefficient applied to per-token policy entropy when adding an entropy "
                 "bonus to rewards (GRPO + entropy bonus). The entropy bonus is z-scored "
                 "within each prompt group and scaled by the batch reward std. Set to 0 to disable."
+            )
+        },
+    )
+    maxent_reward_signal_gate: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Enable group-level reward-signal gating for MaxEnt reward shaping. "
+                "When enabled, the MaxEnt bonus is only applied to groups where either "
+                "group_max_reward > maxent_reward_signal_min_max or "
+                "group_reward_std > maxent_reward_signal_std_threshold."
+            )
+        },
+    )
+    maxent_reward_signal_min_max: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Group-level max reward threshold used by maxent_reward_signal_gate. "
+                "A group is eligible when its max reward exceeds this value."
+            )
+        },
+    )
+    maxent_reward_signal_std_threshold: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Group-level reward std threshold used by maxent_reward_signal_gate. "
+                "A group is eligible when its reward std exceeds this value."
+            )
+        },
+    )
+    maxent_bonus_positive_only: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, apply the MaxEnt bonus only to completions whose reward "
+                "is greater than maxent_bonus_min_reward."
+            )
+        },
+    )
+    maxent_bonus_min_reward: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Reward threshold used when maxent_bonus_positive_only=true. "
+                "Only completions with reward > threshold receive MaxEnt bonus."
+            )
+        },
+    )
+    maxent_cusp_gate: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, scale the MaxEnt bonus per prompt group by a cusp factor "
+                "c=4p(1-p), where p is the fraction of completions with reward >= "
+                "maxent_cusp_reward_threshold. This concentrates exploration near "
+                "mixed-difficulty groups (on-cusp), and reduces it on all-correct/all-wrong groups."
+            )
+        },
+    )
+    maxent_cusp_reward_threshold: float = field(
+        default=0.4,
+        metadata={
+            "help": (
+                "Reward threshold used to compute per-group success rate p for cusp gating "
+                "(completion is counted as success when reward >= threshold)."
+            )
+        },
+    )
+    maxent_alpha_raise_on_low_kl: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, adaptively increase maxent_alpha when measured train KL is "
+                "below maxent_alpha_kl_threshold."
+            )
+        },
+    )
+    maxent_alpha_lower_on_high_kl: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, adaptively decrease maxent_alpha when measured train KL is "
+                "above maxent_alpha_kl_threshold."
+            )
+        },
+    )
+    maxent_alpha_kl_threshold: float = field(
+        default=0.04,
+        metadata={
+            "help": (
+                "KL boundary used by adaptive alpha control. With maxent_alpha_raise_on_low_kl "
+                "enabled, alpha increases when KL < threshold. With "
+                "maxent_alpha_lower_on_high_kl enabled, alpha decreases when KL > threshold."
+            )
+        },
+    )
+    maxent_alpha_kl_gain: float = field(
+        default=1.0,
+        metadata={
+            "help": (
+                "Gain for KL-based alpha scaling. For low KL, multiplier is "
+                "1 + gain * max(0, (threshold - kl) / threshold). For high KL, multiplier "
+                "is 1 / (1 + gain * max(0, (kl - threshold) / threshold))."
+            )
+        },
+    )
+    maxent_alpha_kl_max_multiplier: float = field(
+        default=2.0,
+        metadata={
+            "help": (
+                "Maximum multiplier applied to maxent_alpha by low-KL adaptive scaling."
+            )
+        },
+    )
+    maxent_alpha_kl_min_multiplier: float = field(
+        default=0.5,
+        metadata={
+            "help": (
+                "Minimum multiplier applied to maxent_alpha by high-KL adaptive scaling."
             )
         },
     )
@@ -1043,8 +1221,42 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_q_temperature must be > 0")
         if self.maxent_alpha < 0.0:
             raise ValueError("maxent_alpha must be non-negative")
+        if not math.isfinite(self.maxent_reference_ema_beta):
+            raise ValueError("maxent_reference_ema_beta must be finite")
+        if not 0.0 <= self.maxent_reference_ema_beta <= 1.0:
+            raise ValueError("maxent_reference_ema_beta must be in [0.0, 1.0]")
+        if self.maxent_reference_ema_update_interval < 1:
+            raise ValueError("maxent_reference_ema_update_interval must be >= 1")
+        if self.maxent_reference_ema_warmup_steps < 0:
+            raise ValueError("maxent_reference_ema_warmup_steps must be >= 0")
         if self.policy_entropy_bonus_coef < 0.0:
             raise ValueError("policy_entropy_bonus_coef must be non-negative")
+        if self.maxent_reward_signal_min_max < 0.0:
+            raise ValueError("maxent_reward_signal_min_max must be non-negative")
+        if self.maxent_reward_signal_std_threshold < 0.0:
+            raise ValueError("maxent_reward_signal_std_threshold must be non-negative")
+        if not math.isfinite(self.maxent_bonus_min_reward):
+            raise ValueError("maxent_bonus_min_reward must be finite")
+        if not math.isfinite(self.maxent_cusp_reward_threshold):
+            raise ValueError("maxent_cusp_reward_threshold must be finite")
+        if not math.isfinite(self.maxent_alpha_kl_threshold):
+            raise ValueError("maxent_alpha_kl_threshold must be finite")
+        if self.maxent_alpha_kl_threshold < 0.0:
+            raise ValueError("maxent_alpha_kl_threshold must be non-negative")
+        if not math.isfinite(self.maxent_alpha_kl_gain):
+            raise ValueError("maxent_alpha_kl_gain must be finite")
+        if self.maxent_alpha_kl_gain < 0.0:
+            raise ValueError("maxent_alpha_kl_gain must be non-negative")
+        if not math.isfinite(self.maxent_alpha_kl_max_multiplier):
+            raise ValueError("maxent_alpha_kl_max_multiplier must be finite")
+        if self.maxent_alpha_kl_max_multiplier < 1.0:
+            raise ValueError("maxent_alpha_kl_max_multiplier must be >= 1.0")
+        if not math.isfinite(self.maxent_alpha_kl_min_multiplier):
+            raise ValueError("maxent_alpha_kl_min_multiplier must be finite")
+        if self.maxent_alpha_kl_min_multiplier <= 0.0:
+            raise ValueError("maxent_alpha_kl_min_multiplier must be > 0.0")
+        if self.maxent_alpha_kl_min_multiplier > 1.0:
+            raise ValueError("maxent_alpha_kl_min_multiplier must be <= 1.0")
         entropy_mode = (
             str(getattr(self, "maxent_policy_entropy_mode", "exact") or "exact")
             .strip()

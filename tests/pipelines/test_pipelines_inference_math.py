@@ -132,6 +132,49 @@ def test_run_math_inference_supports_pass_at_k():
     assert res.num_generations == 2
 
 
+def test_run_math_inference_pass_at_k_uses_answer_correctness():
+    class _Runner(math_inf.PromptRunner):
+        def __init__(self, _spec):
+            pass
+
+        def generate(self, problems):
+            outputs = []
+            for idx, _p in enumerate(problems):
+                if idx == 0:
+                    outputs.append(
+                        [
+                            "<answer>ok</answer>",
+                            "<answer>bad</answer>",
+                        ]
+                    )
+                else:
+                    outputs.append(
+                        [
+                            "<answer>bad</answer>",
+                            "<answer>ok</answer>",
+                        ]
+                    )
+            return outputs
+
+        def close(self):
+            return None
+
+    dataset = [
+        {"problem": "p1", "answer": "ok"},
+        {"problem": "p2", "answer": "ok"},
+    ]
+    spec = math_inf.InferenceModelSpec(model_name_or_path="demo", batch_size=2)
+    res = math_inf.run_math_inference(
+        [spec],
+        math_inf.MathEvalConfig(),
+        dataset=dataset,
+        num_generations=2,
+        runner_factory=lambda _spec: _Runner(_spec),
+    )[0]
+    assert res.pass_at_1 == 0.5
+    assert res.pass_at_k == 1.0
+
+
 def test_resolve_default_device_prefers_mps(monkeypatch):
     class _MPS:
         @staticmethod

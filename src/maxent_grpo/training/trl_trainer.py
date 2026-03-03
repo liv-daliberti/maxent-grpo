@@ -8,83 +8,43 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import replace
 from functools import partial
 import inspect
-from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, Type, cast
 
 import torch
-from accelerate.utils import gather, gather_object
-from trl.data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template
+try:
+    from accelerate.utils import gather
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
+    def gather(value: Any) -> Any:
+        return value
+try:
+    from trl.data_utils import apply_chat_template, is_conversational
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
+    def apply_chat_template(example: Any, _tokenizer: Any) -> Dict[str, str]:
+        return {"text": str(example)}
 
-from maxent_grpo.pipelines.training.loop_common import (
-    _controller_paths,
-    _build_prompt_cache_fn,
-    _resolve_prompt_cache_size,
-    build_evaluation_settings,
-    build_generation_settings,
-    build_scoring_settings,
-    build_weighting_settings,
+    def is_conversational(example: Any) -> bool:
+        return isinstance(example, list)
+
+from maxent_grpo.rewards.basic import (
+    pure_accuracy_math_correctness,
+    uses_pure_accuracy_math_reward,
 )
 from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
-from maxent_grpo.training.controller_objective import (
-    ControllerMetaContext,
-    build_controller_objective,
-)
-from maxent_grpo.training.controller_optimizer import ControllerMetaManager
-from maxent_grpo.training.context_builder import apply_info_seed
-from maxent_grpo.training.trainer_hooks import (
-    _apply_weighting_overrides_from_config,
-    _cache_meta_stats,
-    _log_prompt_objective,
-    _maybe_overwrite_controller_state_from_config,
-    _maybe_save_seed_heatmap,
-)
-from maxent_grpo.training.metrics import (
-    _build_metrics_payload,
-    build_training_metrics_dict,
-    summarize_reward_stats,
-    summarize_weight_stats,
-)
-from maxent_grpo.training.optim import scheduled_learning_rate
-from maxent_grpo.training.pipeline import (
-    _completion_diversity_metrics,
-    prepare_training_batch,
-)
-from maxent_grpo.training.rewards import prepare_generation_batch
-from maxent_grpo.training.rollout import CompletionGenerator, GenerationContext
-from maxent_grpo.training.scoring import (
-    _apply_eos_completion_mask,
-    _prepare_prompt_slice,
-)
-from maxent_grpo.training.state import load_controller_state_chain
-from maxent_grpo.training.types import (
-    ControllerPaths,
-    LogStepArtifacts,
-    LoggingHandles,
-    LoopSettings,
-    OptimizationSchedule,
-    OptimizationSettings,
-    OptimizerHandles,
-    RewardSpec,
-    RuntimeHandles,
-    TrainingLoopContext,
-)
-from maxent_grpo.training.weighting.logic import (
-    apply_meta_controller_update,
-    broadcast_controller_state,
-    maybe_update_beta,
-    maybe_update_tau,
-    save_controller_state,
-)
-from maxent_grpo.training.weighting.loss import (
-    LossInputConfig,
-    build_loss_inputs,
-    evaluate_losses,
-)
+from maxent_grpo.training.pipeline import _completion_diversity_metrics
+from maxent_grpo.training.scoring import _apply_eos_completion_mask
 
 LOG = logging.getLogger(__name__)
+_PASS_METRIC_SUCCESS_REWARD = 1.0
+_PASS_METRIC_EPS = 1e-6
+_EMA_PARAM_NAME_PREFIXES: Tuple[str, ...] = (
+    "_fsdp_wrapped_module.",
+    "_checkpoint_wrapped_module.",
+    "base_model.model.",
+    "module.",
+    "model.",
+)
 
 
 def _build_seed_worker(num_workers: int, rank: int):
@@ -100,20 +60,6 @@ def _build_seed_worker(num_workers: int, rank: int):
     if len(params) <= 1:
         return hf_seed_worker
     return partial(hf_seed_worker, num_workers=num_workers, rank=rank)
-
-try:  # Optional dependency for callback-based controller updates
-    from transformers.trainer_callback import TrainerCallback
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
-    TrainerCallback = None
-
-
-def _nanstd(tensor: torch.Tensor) -> torch.Tensor:
-    """Match TRL's nanstd helper for reward logging."""
-    variance = torch.nanmean((tensor - torch.nanmean(tensor, keepdim=True)) ** 2)
-    count = torch.sum(~torch.isnan(tensor))
-    variance = variance * (count / (count - 1))
-    return torch.sqrt(variance)
-
 
 def _numeric_or_none(value: Any) -> Optional[float]:
     """Best-effort numeric conversion used for logging filters."""
@@ -164,37 +110,51 @@ def _coerce_non_negative_float(value: Any, *, default: float = 0.0) -> float:
     return max(float(numeric), 0.0)
 
 
-def _coerce_examples(inputs: Any) -> List[Dict[str, Any]]:
-    """Normalize trainer inputs into a list of example dicts."""
-    if isinstance(inputs, list):
-        return [cast(Dict[str, Any], ex) for ex in inputs]
-    if isinstance(inputs, dict):
-        values = list(inputs.values())
-        if not values:
-            return [cast(Dict[str, Any], inputs)]
-        batch_len = None
-        for val in values:
-            if isinstance(val, (list, tuple)):
-                batch_len = len(val)
+def _strip_ema_param_prefixes(name: str) -> Tuple[str, int]:
+    """Remove known wrapper prefixes used in policy/reference param names."""
+    clean = str(name)
+    stripped = 0
+    while clean:
+        matched = False
+        for prefix in _EMA_PARAM_NAME_PREFIXES:
+            if clean.startswith(prefix):
+                clean = clean[len(prefix) :]
+                stripped += 1
+                matched = True
                 break
-            if torch.is_tensor(val):
-                batch_len = int(val.size(0)) if val.dim() > 0 else 1
-                break
-        if not batch_len:
-            return [cast(Dict[str, Any], inputs)]
-        batch: List[Dict[str, Any]] = []
-        for idx in range(batch_len):
-            row: Dict[str, Any] = {}
-            for key, val in inputs.items():
-                if isinstance(val, (list, tuple)):
-                    row[key] = val[idx]
-                elif torch.is_tensor(val):
-                    row[key] = val[idx] if val.dim() > 0 else val
-                else:
-                    row[key] = val
-            batch.append(row)
-        return batch
-    return [cast(Dict[str, Any], inputs)]
+        if not matched:
+            break
+    return clean if clean else str(name), stripped
+
+
+def _build_ema_alias_index(
+    params: Dict[str, torch.Tensor]
+) -> Dict[str, List[Tuple[str, torch.Tensor, int]]]:
+    """Index tensors by canonicalized names for alias-aware EMA matching."""
+    by_canonical: Dict[str, List[Tuple[str, torch.Tensor, int]]] = {}
+    for name, param in params.items():
+        canonical, stripped = _strip_ema_param_prefixes(name)
+        by_canonical.setdefault(canonical, []).append((name, param, stripped))
+    for candidates in by_canonical.values():
+        candidates.sort(key=lambda item: (item[2], len(item[0]), item[0]))
+    return by_canonical
+
+
+def _resolve_ema_source_param(
+    ref_name: str,
+    ref_param: torch.Tensor,
+    policy_params: Dict[str, torch.Tensor],
+    policy_alias_index: Dict[str, List[Tuple[str, torch.Tensor, int]]],
+) -> Tuple[Optional[torch.Tensor], bool]:
+    """Return matching policy tensor for ``ref_name`` and whether aliasing was used."""
+    direct = policy_params.get(ref_name)
+    if isinstance(direct, torch.Tensor) and direct.shape == ref_param.shape:
+        return direct, False
+    canonical, _ = _strip_ema_param_prefixes(ref_name)
+    for candidate_name, candidate, _ in policy_alias_index.get(canonical, ()):
+        if isinstance(candidate, torch.Tensor) and candidate.shape == ref_param.shape:
+            return candidate, candidate_name != ref_name
+    return None, False
 
 
 def _strip_mode_prefix(key: str, mode: str) -> str:
@@ -243,49 +203,6 @@ def _legacy_metric_aliases(key: str) -> Tuple[str, ...]:
     return tuple(dict.fromkeys(aliases))
 
 
-class _NoopMetricWriter:
-    def log(self, _metrics: Dict[str, Any], _step: int) -> None:
-        return
-
-    def flush(self) -> None:
-        return
-
-
-if TrainerCallback is not None:  # pragma: no cover - thin wrapper
-
-    class _ControllerUpdateCallback(TrainerCallback):
-        """Trigger controller updates after optimizer steps."""
-
-        def __init__(self) -> None:
-            self._last_step = -1
-
-        def on_step_end(
-            self,
-            args: Any,
-            state: Any,
-            control: Any,
-            **kwargs: Any,
-        ) -> Any:
-            trainer = kwargs.get("trainer")
-            if trainer is None:
-                return control
-            if not getattr(trainer, "maxent_enabled", False):
-                return control
-            step = getattr(state, "global_step", None)
-            if step is None or step == self._last_step:
-                return control
-            self._last_step = int(step)
-            try:
-                trainer._apply_controller_updates()
-            except Exception as exc:  # pragma: no cover - defensive logging
-                LOG.warning("Controller update failed: %s", exc)
-            return control
-
-else:  # pragma: no cover - optional dependency
-
-    _ControllerUpdateCallback = None
-
-
 def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
     """Return a GRPOTrainer subclass with MaxEnt hooks enabled.
 
@@ -331,58 +248,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 else parent_alpha_default,
                 default=parent_alpha_default,
             )
-            # Native TRL pathway policy: always keep parent rollout/compute enabled
-            # and apply MaxEnt only as a small objective adjustment.
-            shared_rollout_requested = False
-            parent_use_vllm_original: Optional[bool] = None
-            disabled_parent_vllm = False
-            parent_vllm_mode = "server"
-
-            # Keep GRPO on the native TRL compute path. Only MaxEnt uses the shared
-            # rollout/loss path and needs parent vLLM init suppressed.
-            if parent_args is not None:
-                try:
-                    parent_use_vllm_original = bool(
-                        getattr(parent_args, "use_vllm", False)
-                    )
-                except (AttributeError, TypeError, ValueError):
-                    parent_use_vllm_original = None
-                try:
-                    parent_vllm_mode = str(
-                        getattr(parent_args, "vllm_mode", "server") or "server"
-                    ).strip().lower()
-                except Exception:
-                    parent_vllm_mode = "server"
-                if parent_use_vllm_original and shared_rollout_requested:
-                    try:
-                        setattr(parent_args, "use_vllm", False)
-                        disabled_parent_vllm = True
-                        LOG.info(
-                            "Shared rollout path: disabling parent TRL vLLM initialization during trainer construction "
-                            "(objective=maxent, vllm_mode=%s).",
-                            parent_vllm_mode,
-                        )
-                    except Exception as exc:
-                        LOG.warning(
-                            "Failed to disable parent TRL vLLM initialization before construction: %s",
-                            exc,
-                        )
-
-            try:
-                super().__init__(*args, **kwargs)
-            finally:
-                if (
-                    disabled_parent_vllm
-                    and parent_args is not None
-                    and parent_use_vllm_original is not None
-                ):
-                    try:
-                        setattr(parent_args, "use_vllm", parent_use_vllm_original)
-                    except Exception as exc:
-                        LOG.warning(
-                            "Failed to restore args.use_vllm after parent construction: %s",
-                            exc,
-                        )
+            super().__init__(*args, **kwargs)
 
             self.maxent_enabled = not _coerce_bool(
                 getattr(getattr(self, "args", None), "train_grpo_objective", True),
@@ -392,21 +258,6 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 getattr(getattr(self, "args", None), "maxent_alpha", parent_maxent_alpha),
                 default=parent_maxent_alpha,
             )
-            # Keep compute path identical to TRL for both GRPO and MaxEnt.
-            self._maxent_custom_path = False
-            self._shared_rollout_vllm = bool(
-                parent_use_vllm_original and shared_rollout_requested
-            )
-            self._shared_rollout_vllm_mode = parent_vllm_mode
-            if self._shared_rollout_vllm:
-                if getattr(self, "vllm_client", None) is not None:
-                    self._release_parent_vllm_client()
-                elif disabled_parent_vllm:
-                    LOG.info(
-                        "Shared rollout path: parent TRL vLLM client initialization skipped; custom rollout client will handle vLLM sync "
-                        "(objective=maxent, vllm_mode=%s).",
-                        parent_vllm_mode,
-                    )
             if not self.maxent_enabled:
                 route_mode = "grpo_native"
             elif self.maxent_alpha > 0.0:
@@ -414,69 +265,15 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             else:
                 route_mode = "maxent_native_alpha0"
             LOG.info(
-                "Objective routing selected | mode=%s | train_grpo_objective=%s | maxent_alpha=%s | shared_rollout_vllm=%s | maxent_custom_path=%s",
+                "Objective routing selected | mode=%s | train_grpo_objective=%s | maxent_alpha=%s",
                 route_mode,
                 getattr(getattr(self, "args", None), "train_grpo_objective", None),
                 self.maxent_alpha,
-                self._shared_rollout_vllm,
-                self._maxent_custom_path,
             )
-            self._maxent_ctx: Optional[TrainingLoopContext] = None
-            self._maxent_generator: Optional[CompletionGenerator] = None
-            self._last_prepared_batch: Any = None
-            self._last_loss_outputs: Any = None
-            self._last_batch_diagnostics: Any = None
-            self._last_reward_view: Any = None
-            self._last_weight_view: Any = None
-            self._last_metrics_mode: Optional[str] = None
-            self._last_lr: float = 0.0
-            self._controller_update_step: int = -1
+            self._last_train_kl_for_alpha: Optional[float] = None
             self._last_grpo_debug_step: Optional[int] = None
-            if self._maxent_custom_path and _ControllerUpdateCallback is not None:
-                try:
-                    self.add_callback(_ControllerUpdateCallback())
-                except Exception as exc:  # pragma: no cover - defensive logging
-                    LOG.debug("Failed to attach controller update callback: %s", exc)
-
-        def _release_parent_vllm_client(self) -> None:
-            """Fallback cleanup when parent TRL initialized a vLLM client.
-
-            TRL initializes `self.vllm_client` during parent construction when
-            `use_vllm=true`. MaxEnt uses a separate shared rollout helper that
-            owns vLLM lifecycle; keeping both clients active can cause duplicate
-            `init_communicator` calls.
-            """
-
-            args = getattr(self, "args", None)
-            if args is None or not bool(getattr(args, "use_vllm", False)):
-                return
-            mode = str(
-                getattr(self, "vllm_mode", getattr(args, "vllm_mode", "")) or ""
-            ).strip().lower()
-            if mode != "server":
-                return
-            client = getattr(self, "vllm_client", None)
-            if client is None:
-                return
-
-            if bool(getattr(self.accelerator, "is_main_process", False)):
-                close_fn = getattr(client, "close_communicator", None)
-                if callable(close_fn):
-                    try:
-                        close_fn()
-                    except Exception as exc:
-                        LOG.warning(
-                            "Failed to close parent TRL vLLM communicator in shared rollout mode: %s",
-                            exc,
-                        )
-            try:
-                self.accelerator.wait_for_everyone()
-            except Exception:
-                pass
-            self.vllm_client = None
-            LOG.info(
-                "Shared rollout path: released parent TRL vLLM client; custom rollout client will handle vLLM sync."
-            )
+            self._last_maxent_flow_log_step: Optional[int] = None
+            self._last_reference_ema_step: Optional[int] = None
 
         def get_train_dataloader(self):  # type: ignore[override]
             # Preserve native TRL batching/sampling behavior for GRPO/MaxEnt while
@@ -530,209 +327,6 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 torch.utils.data.DataLoader(train_dataset, **dataloader_params)
             )
 
-        def _ensure_maxent_context(
-            self,
-        ) -> Tuple[TrainingLoopContext, CompletionGenerator]:
-            ctx = self._maxent_ctx
-            generator = self._maxent_generator
-            if ctx is not None and generator is not None:
-                return ctx, generator
-
-            cfg = getattr(self, "args", None)
-            if cfg is None:
-                raise RuntimeError("CustomGRPOTrainer missing training args/config.")
-
-            weighting = build_weighting_settings(cfg)
-            if hasattr(self, "scale_rewards"):
-                try:
-                    weighting.scale_rewards = bool(self.scale_rewards)
-                except (TypeError, ValueError):
-                    pass
-            scoring = build_scoring_settings(cfg, weighting)
-            generation = build_generation_settings(cfg)
-            evaluation = build_evaluation_settings(cfg)
-            apply_info_seed(generation, scoring, evaluation, cfg)
-
-            penalty = generation.penalty
-            gen_top_k = getattr(cfg, "gen_top_k", None)
-            if gen_top_k is None:
-                gen_top_k = getattr(cfg, "vllm_top_k", None)
-            penalty.gen_top_k = gen_top_k
-            gen_best_of = getattr(cfg, "gen_best_of", None)
-            if gen_best_of is None:
-                gen_best_of = getattr(cfg, "vllm_best_of", None)
-            penalty.gen_best_of = gen_best_of
-            penalty.gen_frequency_penalty = float(
-                getattr(cfg, "gen_frequency_penalty", None)
-                or getattr(cfg, "vllm_frequency_penalty", 0.0)
-                or 0.0
-            )
-            penalty.gen_presence_penalty = float(
-                getattr(cfg, "gen_presence_penalty", None)
-                or getattr(cfg, "vllm_presence_penalty", 0.0)
-                or 0.0
-            )
-            stop_sequences = getattr(cfg, "gen_stop_sequences", None)
-            if stop_sequences is None:
-                stop_sequences = getattr(cfg, "vllm_stop_sequences", None)
-            penalty.gen_stop_sequences = stop_sequences
-
-            cache_size = _resolve_prompt_cache_size(cfg)
-            prompt_cache_get = _build_prompt_cache_fn(
-                self.processing_class,
-                generation.max_prompt_len,
-                cache_size,
-            )
-            scoring.batching.prompt_length_cache_get = prompt_cache_get
-            scoring.batching.prompt_cache_size = cache_size
-
-            train_loader = self.get_train_dataloader()
-            train_sampler = getattr(train_loader, "sampler", None)
-
-            def _get_ref_model() -> Any:
-                ref_model = getattr(self, "ref_model", None)
-                return ref_model if ref_model is not None else self.model
-
-            runtime = RuntimeHandles(
-                accelerator=self.accelerator,
-                model=self.model,
-                tokenizer=self.processing_class,
-                train_loader=train_loader,
-                train_sampler=train_sampler,
-                device=self.accelerator.device,
-                get_ref_model=_get_ref_model,
-                reference_model=getattr(self, "ref_model", None),
-                prompt_cache_get=prompt_cache_get,
-            )
-
-            reward_funcs = list(getattr(self, "reward_funcs", []) or [])
-            reward_weights_raw = getattr(self, "reward_weights", None)
-            if isinstance(reward_weights_raw, torch.Tensor):
-                reward_weights = [
-                    float(val)
-                    for val in reward_weights_raw.detach().cpu().tolist()
-                ]
-            elif reward_weights_raw is None:
-                reward_weights = [1.0 for _ in reward_funcs]
-            else:
-                reward_weights = [float(val) for val in list(reward_weights_raw)]
-            reward = RewardSpec(
-                reward_funcs=reward_funcs,
-                reward_weights=reward_weights,
-            )
-
-            num_epochs = int(getattr(cfg, "num_train_epochs", 1) or 1)
-            num_generations = int(
-                getattr(self, "num_generations", None)
-                or getattr(cfg, "num_generations", 1)
-                or 1
-            )
-            grad_accum_steps = int(
-                getattr(cfg, "gradient_accumulation_steps", 1) or 1
-            )
-            max_grad_norm = float(getattr(cfg, "max_grad_norm", 0.0) or 0.0)
-            total_steps = int(
-                getattr(self.state, "max_steps", 0)
-                or getattr(cfg, "max_steps", 0)
-                or 0
-            )
-            warmup_steps = int(getattr(cfg, "warmup_steps", 0) or 0)
-            lr_scheduler_type = str(
-                getattr(cfg, "lr_scheduler_type", "linear") or "linear"
-            )
-            schedule = OptimizationSchedule(
-                num_epochs=num_epochs,
-                num_generations=num_generations,
-                grad_accum_steps=grad_accum_steps,
-                max_grad_norm=max_grad_norm,
-                steps_per_epoch=None,
-                total_training_steps=total_steps,
-                warmup_steps=warmup_steps,
-                lr_scheduler_type=lr_scheduler_type,
-            )
-            handles = OptimizerHandles(
-                optimizer=cast(Any, self.optimizer),
-                lr_scheduler=self.lr_scheduler,
-                base_optimizer=cast(Any, self.optimizer),
-                learning_rate=float(getattr(cfg, "learning_rate", 0.0) or 0.0),
-            )
-            optimization = OptimizationSettings(schedule=schedule, handles=handles)
-
-            controller_paths = _controller_paths(cfg)
-            controller_objective = build_controller_objective(cfg, weighting)
-            controller_meta_manager = ControllerMetaManager(cfg, weighting)
-            loop_settings = LoopSettings(
-                generation=generation,
-                evaluation=evaluation,
-                optimization=optimization,
-                scoring=scoring,
-                controller=controller_paths,
-                controller_objective=controller_objective,
-                controller_meta_manager=controller_meta_manager,
-            )
-            logging_handles = LoggingHandles(
-                metric_writer=_NoopMetricWriter(),
-                save_checkpoint=lambda _path: None,
-                save_strategy="no",
-                save_steps=0,
-                wandb_run=None,
-            )
-            ctx = TrainingLoopContext(
-                runtime=runtime,
-                reward=reward,
-                settings=loop_settings,
-                logging=logging_handles,
-                training_args=cfg,
-            )
-            controller_loaded = load_controller_state_chain(
-                controller_paths, runtime.accelerator, weighting
-            )
-            _maybe_overwrite_controller_state_from_config(
-                ctx, controller_resumed=controller_loaded
-            )
-            _apply_weighting_overrides_from_config(ctx)
-
-            generation_ctx = GenerationContext(
-                accelerator=runtime.accelerator,
-                model=runtime.model,
-                tokenizer=runtime.tokenizer,
-                generation_stats=generation.generation_stats,
-                device=runtime.device,
-                max_prompt_len=generation.max_prompt_len,
-                max_completion_len=generation.max_completion_len,
-                gen_temperature=generation.gen_temperature,
-                gen_top_p=generation.gen_top_p,
-                use_vllm=generation.use_vllm,
-                vllm_mode=getattr(generation, "vllm_mode", "server"),
-                vllm=generation.vllm,
-                penalty=replace(generation.penalty),
-            )
-            setattr(generation_ctx, "training_args", cfg)
-            fail_fast = getattr(cfg, "vllm_client_tag_fail_fast", None)
-            if fail_fast is not None:
-                setattr(generation_ctx, "vllm_client_tag_fail_fast", fail_fast)
-            sync_interval = getattr(cfg, "vllm_sync_interval_steps", None)
-            if sync_interval is not None:
-                setattr(generation_ctx, "vllm_sync_interval_steps", sync_interval)
-
-            generator = CompletionGenerator(generation_ctx)
-            self._maxent_ctx = ctx
-            self._maxent_generator = generator
-            return ctx, generator
-
-        def _resolve_answer_column(self, mode: str) -> str:
-            cfg = getattr(self, "args", None)
-            if cfg is None:
-                return "answer"
-            if mode == "eval":
-                eval_col = getattr(cfg, "eval_dataset_solution_column", None)
-                if eval_col:
-                    return str(eval_col)
-            col = getattr(cfg, "dataset_solution_column", None)
-            if col:
-                return str(col)
-            return "answer"
-
         def _append_metric_value(
             self,
             mode: str,
@@ -751,6 +345,8 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 store[canonical] = [numeric]
             else:
                 store.setdefault(canonical, []).append(numeric)
+            if mode == "train" and canonical == "kl":
+                setattr(self, "_last_train_kl_for_alpha", float(numeric))
             if not include_legacy_aliases:
                 return
             for alias in _legacy_metric_aliases(canonical):
@@ -760,375 +356,6 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     store[alias] = [numeric]
                 else:
                     store.setdefault(alias, []).append(numeric)
-
-        def _append_metric_dict(
-            self,
-            mode: str,
-            metrics: Dict[str, Any],
-            *,
-            include_legacy_aliases: bool = True,
-        ) -> None:
-            for key, value in metrics.items():
-                self._append_metric_value(
-                    mode,
-                    str(key),
-                    value,
-                    include_legacy_aliases=include_legacy_aliases,
-                )
-
-        def _pack_core_rollout_metrics(
-            self,
-            *,
-            num_tokens: Any,
-            completion_mean_length_sampled: Any,
-            completion_min_length_sampled: Any,
-            completion_max_length_sampled: Any,
-            completion_clipped_frac: Any,
-            completion_mean_length_terminated: Any,
-            completion_min_length_terminated: Any,
-            completion_max_length_terminated: Any,
-            reward_mean: Any,
-            reward_std: Any,
-            frac_reward_zero_std: Any,
-            rewards_per_func: torch.Tensor,
-            reward_func_names: List[str],
-            seed_metrics: Optional[Dict[str, Any]],
-            diversity_metrics: Optional[Dict[str, Any]],
-        ) -> Dict[str, float]:
-            def _coerce(value: Any, default: float = 0.0) -> float:
-                numeric = _numeric_or_none(value)
-                if numeric is None or not math.isfinite(numeric):
-                    return float(default)
-                return float(numeric)
-
-            clipped_frac = _coerce(completion_clipped_frac)
-            clipped_frac = max(0.0, min(1.0, clipped_frac))
-            metrics: Dict[str, float] = {
-                "num_tokens": _coerce(num_tokens),
-                "completions/mean_length_sampled": _coerce(
-                    completion_mean_length_sampled
-                ),
-                "completions/min_length_sampled": _coerce(
-                    completion_min_length_sampled
-                ),
-                "completions/max_length_sampled": _coerce(
-                    completion_max_length_sampled
-                ),
-                "completions/clipped_frac": clipped_frac,
-                "completions/mean_length_terminated": _coerce(
-                    completion_mean_length_terminated
-                ),
-                "completions/min_length_terminated": _coerce(
-                    completion_min_length_terminated
-                ),
-                "completions/max_length_terminated": _coerce(
-                    completion_max_length_terminated
-                ),
-                "reward": _coerce(reward_mean),
-                "reward_std": _coerce(reward_std),
-                "frac_reward_zero_std": _coerce(frac_reward_zero_std),
-                "grpo_objective": 0.0 if self.maxent_enabled else 1.0,
-                "maxent_objective": 1.0 if self.maxent_enabled else 0.0,
-            }
-            num_rewards = rewards_per_func.size(1) if rewards_per_func.ndim == 2 else 0
-            for idx in range(num_rewards):
-                name = (
-                    reward_func_names[idx]
-                    if idx < len(reward_func_names)
-                    else f"reward_{idx}"
-                )
-                mean_rewards = torch.nanmean(rewards_per_func[:, idx]).item()
-                metrics[f"rewards/{name}/mean"] = _coerce(mean_rewards)
-                std_rewards = _nanstd(rewards_per_func[:, idx]).item()
-                metrics[f"rewards/{name}/std"] = _coerce(std_rewards)
-            if seed_metrics:
-                for key, val in seed_metrics.items():
-                    metrics[f"seed/{key}"] = _coerce(val)
-            if diversity_metrics:
-                for key, val in diversity_metrics.items():
-                    metrics[f"completions/diversity/{key}"] = _coerce(val)
-            return metrics
-
-        def _gather_reward_matrix(
-            self,
-            prepared: Any,
-        ) -> Tuple[torch.Tensor, List[str]]:
-            num_rewards = len(getattr(self, "reward_funcs", []) or [])
-            reward_func_names = list(getattr(self, "reward_func_names", []) or [])
-            pairs = prepared.reward_comp.pairs
-            local_count = len(getattr(pairs, "completions", []) or [])
-            rewards_per_func = torch.full(
-                (local_count, num_rewards),
-                torch.nan,
-                device=self.accelerator.device,
-            )
-            for idx in range(num_rewards):
-                reward_key = f"reward_{idx}"
-                reward_vals = prepared.reward_comp.per_reward_values.get(reward_key)
-                if reward_vals is not None:
-                    rewards_per_func[:, idx] = torch.tensor(
-                        reward_vals,
-                        dtype=torch.float32,
-                        device=self.accelerator.device,
-                    )
-            return gather(rewards_per_func), reward_func_names
-
-        def _append_textual_rollout_logs(
-            self,
-            prepared: Any,
-            rewards_per_func: torch.Tensor,
-            reward_func_names: List[str],
-            advantages: Optional[torch.Tensor],
-        ) -> None:
-            pairs = prepared.reward_comp.pairs
-            self._textual_logs["prompt"].extend(gather_object(pairs.prompts))
-            self._textual_logs["completion"].extend(gather_object(pairs.completions))
-            num_rewards = rewards_per_func.size(1) if rewards_per_func.ndim == 2 else 0
-            for idx in range(num_rewards):
-                name = (
-                    reward_func_names[idx]
-                    if idx < len(reward_func_names)
-                    else f"reward_{idx}"
-                )
-                self._textual_logs["rewards"][name].extend(
-                    rewards_per_func[:, idx].tolist()
-                )
-            if advantages is not None:
-                self._textual_logs["advantages"].extend(advantages.tolist())
-
-        def _reset_cached_generation_state(self) -> None:
-            setattr(self, "_maxent_cached_generation_cycle", -1)
-            setattr(self, "_maxent_cached_generation_step", -1)
-            setattr(self, "_maxent_cached_generation_slices", [])
-            setattr(self, "_maxent_cached_generation_cursor", 0)
-
-        def _answer_from_example(self, mode: str, example: Dict[str, Any]) -> str:
-            answer_column = self._resolve_answer_column(mode)
-            fallback_keys = [
-                answer_column,
-                "answer",
-                "solution",
-                "final_answer",
-                "target",
-            ]
-            for key in fallback_keys:
-                if key in example and example[key] is not None:
-                    return str(example[key])
-            return ""
-
-        def _build_prompt_answer_batch(
-            self,
-            mode: str,
-            examples: List[Dict[str, Any]],
-            *,
-            dedupe_grouped_inputs: bool,
-            log_prefix: str,
-        ) -> Dict[str, List[str]]:
-            prompts_all = [
-                maybe_apply_chat_template(example, self.processing_class)["prompt"]
-                for example in examples
-            ]
-            answers_all = [
-                self._answer_from_example(mode, example) for example in examples
-            ]
-            prompts = prompts_all
-            answers = answers_all
-            if dedupe_grouped_inputs:
-                group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
-                if (
-                    group_size > 1
-                    and len(prompts_all) >= group_size
-                    and len(prompts_all) % group_size == 0
-                ):
-                    dedup_ok = True
-                    for start in range(0, len(prompts_all), group_size):
-                        prompt_ref = prompts_all[start]
-                        answer_ref = answers_all[start]
-                        for offset in range(1, group_size):
-                            idx = start + offset
-                            if (
-                                prompts_all[idx] != prompt_ref
-                                or answers_all[idx] != answer_ref
-                            ):
-                                dedup_ok = False
-                                break
-                        if not dedup_ok:
-                            break
-                    if dedup_ok:
-                        prompts = prompts_all[::group_size]
-                        answers = answers_all[::group_size]
-                        if self.accelerator.is_main_process:
-                            LOG.info(
-                                "%s input dedup applied | original=%d unique=%d num_generations=%d",
-                                log_prefix,
-                                len(prompts_all),
-                                len(prompts),
-                                group_size,
-                            )
-            return {"prompt": prompts, "answer": answers}
-
-        def _prepare_training_batch_from_cache(
-            self,
-            mode: str,
-            ctx: TrainingLoopContext,
-            generator: CompletionGenerator,
-            batch: Dict[str, List[str]],
-        ) -> Any:
-            if mode != "train":
-                self._reset_cached_generation_state()
-                return prepare_training_batch(ctx, generator.generate, batch)
-
-            optimizer_step = int(getattr(self.state, "global_step", 0) or 0)
-            num_iterations = max(int(getattr(self, "num_iterations", 1) or 1), 1)
-            generation_cycle = optimizer_step // num_iterations
-            cached_cycle_raw = getattr(self, "_maxent_cached_generation_cycle", -1)
-            try:
-                cached_cycle = int(cached_cycle_raw)
-            except (TypeError, ValueError):
-                cached_cycle = -1
-            cached_slices = cast(
-                List[Dict[str, Any]],
-                getattr(self, "_maxent_cached_generation_slices", []),
-            )
-            if cached_cycle != generation_cycle or not cached_slices:
-                retry_limit = int(getattr(ctx.generation, "vllm_rounds_cfg", 0) or 0)
-                if retry_limit <= 0:
-                    retry_limit = int(
-                        getattr(ctx.optimization.schedule, "num_generations", 1) or 1
-                    )
-                full_gen_batch = prepare_generation_batch(
-                    batch,
-                    generator.generate,
-                    ctx.generation.generation_stats,
-                    int(getattr(ctx.optimization.schedule, "num_generations", 1) or 1),
-                    max_retry_rounds=retry_limit,
-                    seed_augmentation=getattr(ctx.generation, "seed_augmentation", None),
-                )
-                if full_gen_batch is None:
-                    raise RuntimeError(
-                        "prepare_generation_batch returned None while caching MaxEnt generations."
-                    )
-                total_prompts = len(getattr(full_gen_batch, "prompts", []) or [])
-                if total_prompts <= 0:
-                    raise RuntimeError(
-                        "Cached MaxEnt generation batch contained no prompts."
-                    )
-                steps_cfg = int(getattr(self.args, "steps_per_generation", 0) or 0)
-                grad_accum = int(
-                    getattr(self.args, "gradient_accumulation_steps", 1) or 1
-                )
-                target_slices = steps_cfg if steps_cfg > 0 else grad_accum
-                target_slices = max(1, target_slices)
-                target_slices = min(target_slices, total_prompts)
-                chunk_size = max(1, math.ceil(total_prompts / target_slices))
-                grouped_completions = list(
-                    getattr(full_gen_batch, "grouped_completions", []) or []
-                )
-                grouped_ref_meta = getattr(full_gen_batch, "grouped_ref_meta", None)
-                prompts_full = list(getattr(full_gen_batch, "prompts", []) or [])
-                answers_full = list(getattr(full_gen_batch, "answers", []) or [])
-                rebuilt_slices: List[Dict[str, Any]] = []
-                for start in range(0, total_prompts, chunk_size):
-                    end = min(start + chunk_size, total_prompts)
-                    comp_subset = [
-                        list(group) for group in grouped_completions[start:end]
-                    ]
-                    if grouped_ref_meta is None:
-                        meta_subset = None
-                    else:
-                        meta_subset = []
-                        for group in grouped_ref_meta[start:end]:
-                            if group is None:
-                                meta_subset.append(None)
-                            else:
-                                meta_subset.append(list(group))
-                    rebuilt_slices.append(
-                        {
-                            "batch": {
-                                "prompt": prompts_full[start:end],
-                                "answer": answers_full[start:end],
-                            },
-                            "grouped_completions": comp_subset,
-                            "grouped_ref_meta": meta_subset,
-                        }
-                    )
-                setattr(self, "_maxent_cached_generation_cycle", generation_cycle)
-                setattr(self, "_maxent_cached_generation_step", optimizer_step)
-                setattr(self, "_maxent_cached_generation_slices", rebuilt_slices)
-                setattr(self, "_maxent_cached_generation_cursor", 0)
-                cached_slices = rebuilt_slices
-                if self.accelerator.is_main_process:
-                    LOG.info(
-                        "Generation cache refreshed | step=%d cycle=%d num_iterations=%d prompts=%d slices=%d grad_accum=%d steps_per_generation=%d",
-                        optimizer_step,
-                        generation_cycle,
-                        num_iterations,
-                        total_prompts,
-                        len(rebuilt_slices),
-                        grad_accum,
-                        steps_cfg,
-                    )
-
-            cursor = int(getattr(self, "_maxent_cached_generation_cursor", 0) or 0)
-            if not cached_slices:
-                raise RuntimeError("Generation cache is unexpectedly empty.")
-            slice_idx = cursor % len(cached_slices)
-            setattr(self, "_maxent_cached_generation_cursor", cursor + 1)
-            slice_payload = cached_slices[slice_idx]
-            cached_batch = cast(Dict[str, List[str]], slice_payload["batch"])
-            cached_grouped = cast(
-                List[List[str]], slice_payload["grouped_completions"]
-            )
-            cached_meta = cast(
-                Optional[List[Optional[List[Any]]]],
-                slice_payload["grouped_ref_meta"],
-            )
-
-            def _cached_generator(
-                _prompts: List[str],
-                _num_samples: int,
-                per_prompt_counts: Optional[List[int]] = None,
-            ) -> Tuple[
-                List[List[str]],
-                Optional[List[Optional[List[Any]]]],
-            ]:
-                del _prompts, _num_samples, per_prompt_counts
-                grouped_copy = [list(group) for group in cached_grouped]
-                if cached_meta is None:
-                    meta_copy = None
-                else:
-                    meta_copy = []
-                    for group in cached_meta:
-                        if group is None:
-                            meta_copy.append(None)
-                        else:
-                            meta_copy.append(list(group))
-                return grouped_copy, meta_copy
-
-            return prepare_training_batch(ctx, _cached_generator, cached_batch)
-
-        def _prepare_rollout_batch(
-            self,
-            mode: str,
-            ctx: TrainingLoopContext,
-            generator: CompletionGenerator,
-            batch: Dict[str, List[str]],
-            *,
-            use_generation_cache: bool,
-        ) -> Any:
-            if use_generation_cache:
-                prepared = self._prepare_training_batch_from_cache(
-                    mode, ctx, generator, batch
-                )
-            else:
-                if mode != "train":
-                    self._reset_cached_generation_state()
-                prepared = prepare_training_batch(ctx, generator.generate, batch)
-            if prepared is None:
-                raise RuntimeError(
-                    "prepare_training_batch returned None while preparing rollout batch."
-                )
-            return prepared
 
         def _log_grpo_debug(
             self,
@@ -1247,6 +474,304 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             new_beta = max(0.0, current_beta * scale)
             self.beta = new_beta
 
+        def _maybe_update_reference_model_ema(self) -> None:
+            """Soft-update frozen reference weights from the current policy weights."""
+            args = getattr(self, "args", None)
+            if args is None:
+                return
+            if not bool(getattr(self.model, "training", False)):
+                return
+            if not bool(getattr(args, "maxent_reference_ema_enabled", False)):
+                return
+            if bool(getattr(args, "maxent_share_reference_model", False)):
+                if not bool(getattr(self, "_maxent_ref_ema_share_warned", False)):
+                    LOG.warning(
+                        "Reference EMA requested but maxent_share_reference_model=true; skipping EMA updates."
+                    )
+                    setattr(self, "_maxent_ref_ema_share_warned", True)
+                return
+
+            ref_model = getattr(self, "ref_model", None)
+            if ref_model is None:
+                if not bool(getattr(self, "_maxent_ref_ema_missing_warned", False)):
+                    LOG.warning(
+                        "Reference EMA requested but no frozen reference model is available; skipping EMA updates."
+                    )
+                    setattr(self, "_maxent_ref_ema_missing_warned", True)
+                return
+
+            step = int(getattr(self.state, "global_step", 0) or 0)
+            if step <= 0:
+                return
+            if self._last_reference_ema_step == step:
+                return
+
+            warmup_raw = getattr(args, "maxent_reference_ema_warmup_steps", 0)
+            interval_raw = getattr(args, "maxent_reference_ema_update_interval", 1)
+            beta_raw = getattr(args, "maxent_reference_ema_beta", 0.995)
+            try:
+                warmup_steps = int(warmup_raw)
+            except (TypeError, ValueError):
+                warmup_steps = 0
+            if warmup_steps < 0:
+                warmup_steps = 0
+            if step < warmup_steps:
+                return
+            try:
+                update_interval = int(interval_raw)
+            except (TypeError, ValueError):
+                update_interval = 1
+            if update_interval < 1:
+                update_interval = 1
+            if (step - warmup_steps) % update_interval != 0:
+                return
+
+            beta = _numeric_or_none(beta_raw)
+            if beta is None or not math.isfinite(beta):
+                beta = 0.995
+            beta = min(max(float(beta), 0.0), 1.0)
+            alpha = 1.0 - beta
+            if alpha <= 0.0:
+                return
+
+            unwrap_fn = getattr(self.accelerator, "unwrap_model", None)
+            policy_model = self.model
+            if callable(unwrap_fn):
+                try:
+                    policy_model = unwrap_fn(policy_model)
+                except Exception:
+                    policy_model = self.model
+                try:
+                    ref_model = unwrap_fn(ref_model)
+                except Exception:
+                    ref_model = getattr(self, "ref_model", None)
+            if ref_model is None:
+                return
+            if ref_model is policy_model:
+                if not bool(getattr(self, "_maxent_ref_ema_alias_warned", False)):
+                    LOG.warning(
+                        "Reference EMA requested but reference model aliases the policy model; skipping EMA updates."
+                    )
+                    setattr(self, "_maxent_ref_ema_alias_warned", True)
+                return
+
+            policy_named = getattr(policy_model, "named_parameters", None)
+            ref_named = getattr(ref_model, "named_parameters", None)
+            if not callable(policy_named) or not callable(ref_named):
+                return
+
+            try:
+                policy_params = {
+                    str(name): param for name, param in policy_named() if isinstance(param, torch.Tensor)
+                }
+                ref_params = {
+                    str(name): param for name, param in ref_named() if isinstance(param, torch.Tensor)
+                }
+                if not policy_params or not ref_params:
+                    return
+                policy_alias_index = _build_ema_alias_index(policy_params)
+                total_ref = len(ref_params)
+                updated = 0
+                mismatched = 0
+                alias_hits = 0
+                mismatch_examples: List[str] = []
+                with torch.no_grad():
+                    for name, ref_param in ref_params.items():
+                        src_param, alias_used = _resolve_ema_source_param(
+                            name,
+                            ref_param,
+                            policy_params,
+                            policy_alias_index,
+                        )
+                        if not isinstance(src_param, torch.Tensor):
+                            mismatched += 1
+                            if len(mismatch_examples) < 5:
+                                mismatch_examples.append(name)
+                            continue
+                        src_tensor = src_param.detach().to(
+                            device=ref_param.device, dtype=ref_param.dtype
+                        )
+                        ref_param.data.mul_(beta).add_(src_tensor, alpha=alpha)
+                        updated += 1
+                        if alias_used:
+                            alias_hits += 1
+            except Exception as exc:
+                if not bool(getattr(self, "_maxent_ref_ema_error_warned", False)):
+                    LOG.warning(
+                        "Reference EMA update failed once and will be retried on later steps: %s",
+                        exc,
+                    )
+                    setattr(self, "_maxent_ref_ema_error_warned", True)
+                return
+
+            if updated <= 0:
+                if not bool(getattr(self, "_maxent_ref_ema_no_params_warned", False)):
+                    LOG.warning(
+                        "Reference EMA enabled but no compatible parameters were updated."
+                    )
+                    setattr(self, "_maxent_ref_ema_no_params_warned", True)
+                return
+
+            self._last_reference_ema_step = step
+            self._append_metric_value("train", "maxent/ref_ema_applied", 1.0)
+            self._append_metric_value("train", "maxent/ref_ema_beta", beta)
+            self._append_metric_value(
+                "train",
+                "maxent/ref_ema_updated_frac",
+                float(updated) / float(max(total_ref, 1)),
+            )
+            self._append_metric_value(
+                "train",
+                "maxent/ref_ema_alias_hit_frac",
+                float(alias_hits) / float(max(total_ref, 1)),
+            )
+            if mismatched > 0 and not bool(
+                getattr(self, "_maxent_ref_ema_mismatch_warned", False)
+            ):
+                LOG.warning(
+                    "Reference EMA skipped %d/%d reference parameters due to missing/mismatched policy counterparts. "
+                    "sample_missing=%s",
+                    mismatched,
+                    total_ref,
+                    mismatch_examples,
+                )
+                setattr(self, "_maxent_ref_ema_mismatch_warned", True)
+
+        def _resolve_effective_maxent_alpha(
+            self,
+            mode: str,
+        ) -> Tuple[float, float, Optional[float], float, bool, float, float, float]:
+            """Return effective MaxEnt alpha with optional KL-based up/down scaling.
+
+            Returns ``(effective_alpha, multiplier, measured_kl, kl_threshold,
+            kl_control_enabled, direction, min_multiplier, max_multiplier)`` where
+            direction is ``+1`` (raised), ``-1`` (lowered), or ``0`` (unchanged).
+            """
+            del mode
+            base_alpha = float(getattr(self, "maxent_alpha", 0.0) or 0.0)
+            if base_alpha <= 0.0:
+                return 0.0, 1.0, None, 0.0, False, 0.0, 1.0, 1.0
+            args = getattr(self, "args", None)
+            raise_on_low_kl = bool(
+                getattr(args, "maxent_alpha_raise_on_low_kl", False)
+            )
+            lower_on_high_kl = bool(
+                getattr(args, "maxent_alpha_lower_on_high_kl", False)
+            )
+            enabled = raise_on_low_kl or lower_on_high_kl
+            threshold_raw = getattr(args, "maxent_alpha_kl_threshold", 0.04)
+            try:
+                threshold = float(threshold_raw)
+            except (TypeError, ValueError):
+                threshold = 0.04
+            max_mult_raw = getattr(args, "maxent_alpha_kl_max_multiplier", 2.0)
+            try:
+                max_multiplier = float(max_mult_raw)
+            except (TypeError, ValueError):
+                max_multiplier = 2.0
+            if not math.isfinite(max_multiplier) or max_multiplier < 1.0:
+                max_multiplier = 1.0
+
+            min_mult_raw = getattr(args, "maxent_alpha_kl_min_multiplier", 0.5)
+            try:
+                min_multiplier = float(min_mult_raw)
+            except (TypeError, ValueError):
+                min_multiplier = 0.5
+            if not math.isfinite(min_multiplier) or min_multiplier <= 0.0:
+                min_multiplier = 0.5
+            min_multiplier = min(max(min_multiplier, 1e-8), 1.0)
+            if not math.isfinite(threshold) or threshold <= 0.0:
+                return (
+                    base_alpha,
+                    1.0,
+                    None,
+                    threshold,
+                    enabled,
+                    0.0,
+                    min_multiplier,
+                    max_multiplier,
+                )
+            if not enabled:
+                return (
+                    base_alpha,
+                    1.0,
+                    None,
+                    threshold,
+                    False,
+                    0.0,
+                    min_multiplier,
+                    max_multiplier,
+                )
+
+            measured_kl: Optional[float] = None
+            cached_kl = getattr(self, "_last_train_kl_for_alpha", None)
+            if isinstance(cached_kl, (int, float)):
+                measured_kl = float(cached_kl)
+            else:
+                kl_history = self._metrics.get("train", {}).get("kl")
+                if kl_history:
+                    try:
+                        measured_kl = float(kl_history[-1])
+                    except (TypeError, ValueError):
+                        measured_kl = None
+            if measured_kl is None:
+                return (
+                    base_alpha,
+                    1.0,
+                    None,
+                    threshold,
+                    True,
+                    0.0,
+                    min_multiplier,
+                    max_multiplier,
+                )
+            if not math.isfinite(measured_kl):
+                return (
+                    base_alpha,
+                    1.0,
+                    None,
+                    threshold,
+                    True,
+                    0.0,
+                    min_multiplier,
+                    max_multiplier,
+                )
+
+            gain_raw = getattr(args, "maxent_alpha_kl_gain", 1.0)
+            try:
+                gain = float(gain_raw)
+            except (TypeError, ValueError):
+                gain = 1.0
+            if not math.isfinite(gain) or gain < 0.0:
+                gain = 0.0
+
+            direction = 0.0
+            multiplier = 1.0
+            if measured_kl < threshold and raise_on_low_kl:
+                low_kl_frac = max(threshold - measured_kl, 0.0) / max(threshold, 1e-8)
+                multiplier = 1.0 + gain * low_kl_frac
+                direction = 1.0
+            elif measured_kl > threshold and lower_on_high_kl:
+                high_kl_frac = max(measured_kl - threshold, 0.0) / max(
+                    threshold, 1e-8
+                )
+                multiplier = 1.0 / (1.0 + gain * high_kl_frac)
+                direction = -1.0
+            if not math.isfinite(multiplier):
+                multiplier = 1.0
+                direction = 0.0
+            multiplier = min(max(multiplier, min_multiplier), max_multiplier)
+            return (
+                base_alpha * multiplier,
+                multiplier,
+                measured_kl,
+                threshold,
+                True,
+                direction,
+                min_multiplier,
+                max_multiplier,
+            )
+
         def _log_grpo_diversity(
             self,
             outputs: Dict[str, Any],
@@ -1296,10 +821,111 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         float(val),
                     )
 
+        def _log_eval_pass_at_k(
+            self,
+            inputs: List[Dict[str, Any]],
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+        ) -> None:
+            """Log pass@8, pass@1, and mean@8 from grouped eval rollouts."""
+            if mode != "eval":
+                return
+            group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
+            if group_size <= 0:
+                return
+            target_k = 8
+            if group_size < target_k:
+                if not bool(getattr(self, "_pass_at_8_warned", False)):
+                    LOG.warning(
+                        "Skipping eval pass_at_8 metrics because num_generations=%d < 8.",
+                        group_size,
+                    )
+                    setattr(self, "_pass_at_8_warned", True)
+                return
+
+            def _reshape_eval_rollouts(
+                flat_values: torch.Tensor,
+            ) -> Optional[torch.Tensor]:
+                """Reshape generation-major rollouts into prompt-major groups."""
+                usable = (int(flat_values.numel()) // group_size) * group_size
+                if usable <= 0:
+                    return None
+                if usable != int(flat_values.numel()):
+                    flat_values = flat_values[:usable]
+                num_prompts = usable // group_size
+                if num_prompts <= 0:
+                    return None
+                # TRL rollout order is [gen0 prompts..., gen1 prompts..., ...].
+                return flat_values.view(group_size, num_prompts).transpose(0, 1)
+
+            successes: Optional[torch.Tensor] = None
+            reward_funcs = list(getattr(self, "reward_funcs", []) or [])
+            if uses_pure_accuracy_math_reward(reward_funcs):
+                completion_ids = outputs.get("completion_ids")
+                tokenizer = getattr(self, "processing_class", None)
+                decode = getattr(tokenizer, "batch_decode", None)
+                if isinstance(completion_ids, torch.Tensor) and callable(decode):
+                    try:
+                        completions_text = decode(
+                            completion_ids, skip_special_tokens=True
+                        )
+                    except Exception:
+                        completions_text = []
+                    answers = [str(example.get("answer", "")) for example in inputs]
+                    usable_local = min(len(completions_text), len(answers))
+                    usable_local = usable_local - (usable_local % group_size)
+                    if usable_local > 0:
+                        # Paper-facing pass metrics: exact canonical answer match,
+                        # allowing only a final-line exact fallback (no shaping).
+                        correctness_local = pure_accuracy_math_correctness(
+                            completions_text[:usable_local],
+                            answers[:usable_local],
+                            allow_last_line_fallback=True,
+                        )
+                        local_successes = torch.tensor(
+                            correctness_local,
+                            dtype=torch.bool,
+                            device=completion_ids.device,
+                        )
+                        global_successes = gather(local_successes)
+                        grouped_successes = _reshape_eval_rollouts(global_successes)
+                        if grouped_successes is not None:
+                            successes = grouped_successes[:, :target_k]
+            if successes is None:
+                try:
+                    rewards = self._recompute_global_rewards_for_outputs(inputs, outputs)
+                except Exception as exc:
+                    LOG.debug(
+                        "Skipping eval pass@k logging due to reward error: %s", exc
+                    )
+                    return
+                if not isinstance(rewards, torch.Tensor) or rewards.numel() <= 0:
+                    return
+                grouped_rewards = _reshape_eval_rollouts(rewards)
+                if grouped_rewards is None:
+                    return
+                grouped_rewards = grouped_rewards[:, :target_k]
+                # Fallback for non-math/custom reward functions.
+                successes = grouped_rewards >= (
+                    _PASS_METRIC_SUCCESS_REWARD - _PASS_METRIC_EPS
+                )
+            pass_at_8 = float(successes.any(dim=1).to(torch.float32).mean().item())
+            pass_at_1 = float(successes[:, 0].to(torch.float32).mean().item())
+            mean_at_8 = float(successes.to(torch.float32).mean().item())
+            self._append_metric_value(mode, "pass_at_8", pass_at_8)
+            self._append_metric_value(mode, "pass_at_1", pass_at_1)
+            self._append_metric_value(mode, "mean_at_8", mean_at_8)
+
         def _compute_policy_maxent_term(
             self,
             outputs: Dict[str, Any],
         ) -> Optional[torch.Tensor]:
+            """Return sequence-level novelty under the frozen reference policy.
+
+            Computes ``-log pi_ref(a|s)`` (token-averaged over completion tokens)
+            for actions sampled from the current policy, then gathers across ranks.
+            """
             completion_ids = outputs.get("completion_ids")
             if not isinstance(completion_ids, torch.Tensor):
                 return None
@@ -1314,49 +940,69 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             completion_mask = completion_mask.to(
                 device=completion_ids.device, dtype=torch.float32
             )
-            per_token_logps = outputs.get("old_per_token_logps")
-            if not isinstance(per_token_logps, torch.Tensor):
-                prompt_ids = outputs.get("prompt_ids")
-                prompt_mask = outputs.get("prompt_mask")
-                if not isinstance(prompt_ids, torch.Tensor) or not isinstance(
-                    prompt_mask, torch.Tensor
-                ):
-                    return None
-                input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-                attention_mask = torch.cat([prompt_mask, completion_mask.long()], dim=1)
-                logits_to_keep = completion_ids.size(1)
-                batch_size = (
-                    int(getattr(self.args, "per_device_train_batch_size", 1) or 1)
-                    if self.model.training
-                    else int(getattr(self.args, "per_device_eval_batch_size", 1) or 1)
-                )
+            prompt_ids = outputs.get("prompt_ids")
+            prompt_mask = outputs.get("prompt_mask")
+            if not isinstance(prompt_ids, torch.Tensor) or not isinstance(
+                prompt_mask, torch.Tensor
+            ):
+                return None
+            ref_model = getattr(self, "ref_model", None)
+            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+            attention_mask = torch.cat([prompt_mask, completion_mask.long()], dim=1)
+            logits_to_keep = completion_ids.size(1)
+            batch_size = (
+                int(getattr(self.args, "per_device_train_batch_size", 1) or 1)
+                if self.model.training
+                else int(getattr(self.args, "per_device_eval_batch_size", 1) or 1)
+            )
+            per_token_logps: Optional[torch.Tensor]
+            if ref_model is not None:
                 with torch.no_grad():
                     per_token_logps = self._get_per_token_logps(
-                        self.model,
+                        ref_model,
                         input_ids,
                         attention_mask,
                         logits_to_keep,
                         batch_size=batch_size,
                     )
-                outputs["old_per_token_logps"] = per_token_logps.detach()
+            else:
+                if not bool(getattr(self, "_maxent_ref_missing_warned", False)):
+                    LOG.warning(
+                        "No frozen reference model found; falling back to rollout-policy log-probs for MaxEnt novelty shaping."
+                    )
+                    setattr(self, "_maxent_ref_missing_warned", True)
+                per_token_logps = outputs.get("old_per_token_logps")
+                if not isinstance(per_token_logps, torch.Tensor):
+                    with torch.no_grad():
+                        per_token_logps = self._get_per_token_logps(
+                            self.model,
+                            input_ids,
+                            attention_mask,
+                            logits_to_keep,
+                            batch_size=batch_size,
+                        )
+                    if isinstance(per_token_logps, torch.Tensor):
+                        outputs["old_per_token_logps"] = per_token_logps.detach()
             if not isinstance(per_token_logps, torch.Tensor):
                 return None
+            if per_token_logps.ndim != 2:
+                return None
+            if (
+                per_token_logps.size(0) != completion_mask.size(0)
+                or per_token_logps.size(1) != completion_mask.size(1)
+            ):
+                usable_rows = min(per_token_logps.size(0), completion_mask.size(0))
+                usable_cols = min(per_token_logps.size(1), completion_mask.size(1))
+                if usable_rows <= 0 or usable_cols <= 0:
+                    return None
+                per_token_logps = per_token_logps[:usable_rows, :usable_cols]
+                completion_mask = completion_mask[:usable_rows, :usable_cols]
             token_counts = completion_mask.sum(dim=1).clamp(min=1.0)
-            sequence_scores_local = (
+            novelty_local = -(
                 per_token_logps.to(torch.float32) * completion_mask
             ).sum(dim=1) / token_counts
-            sequence_scores = gather(sequence_scores_local)
-            group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
-            if sequence_scores.numel() == 0:
-                return None
-            if sequence_scores.numel() % group_size != 0:
-                return None
-            grouped_scores = sequence_scores.view(-1, group_size)
-            grouped_log_probs = grouped_scores - torch.logsumexp(
-                grouped_scores, dim=1, keepdim=True
-            )
-            surprisal = (-grouped_log_probs).reshape(-1)
-            return torch.nan_to_num(surprisal, nan=0.0, posinf=0.0, neginf=0.0)
+            novelty = gather(novelty_local)
+            return torch.nan_to_num(novelty, nan=0.0, posinf=0.0, neginf=0.0)
 
         def _recompute_global_rewards_for_outputs(
             self,
@@ -1515,33 +1161,164 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if rewards.numel() != maxent_term.numel():
                 return
 
-            alpha = float(self.maxent_alpha)
-            shaped_rewards = rewards + alpha * maxent_term.to(rewards.device)
+            args = getattr(self, "args", None)
+            (
+                alpha,
+                alpha_multiplier,
+                alpha_kl_measure,
+                alpha_kl_threshold,
+                alpha_kl_control_enabled,
+                alpha_direction,
+                alpha_kl_min_multiplier,
+                alpha_kl_max_multiplier,
+            ) = self._resolve_effective_maxent_alpha(mode)
             group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
-            if shaped_rewards.numel() % group_size != 0:
+            if rewards.numel() % group_size != 0:
                 return
-            grouped_rewards = shaped_rewards.view(-1, group_size)
-            mean_grouped_rewards = grouped_rewards.mean(dim=1)
-            std_grouped_rewards = grouped_rewards.std(dim=1)
+            num_prompts = int(rewards.numel()) // group_size
+            if num_prompts <= 0:
+                return
+
+            def _reshape_prompt_groups(flat_values: torch.Tensor) -> torch.Tensor:
+                """Convert generation-major flat rollouts to prompt-major groups."""
+                return flat_values.view(group_size, num_prompts).transpose(0, 1)
+
+            def _flatten_prompt_groups(grouped_values: torch.Tensor) -> torch.Tensor:
+                """Convert prompt-major grouped values back to generation-major flat order."""
+                return grouped_values.transpose(0, 1).reshape(-1)
+
+            grouped_rewards_raw = _reshape_prompt_groups(rewards)
+            grouped_novelty = _reshape_prompt_groups(
+                maxent_term.to(device=rewards.device, dtype=rewards.dtype)
+            )
+            alpha_low_kl_enabled = bool(
+                getattr(args, "maxent_alpha_raise_on_low_kl", False)
+            )
+            alpha_high_kl_enabled = bool(
+                getattr(args, "maxent_alpha_lower_on_high_kl", False)
+            )
+
+            gate_by_signal = bool(
+                getattr(args, "maxent_reward_signal_gate", False)
+            )
+            if gate_by_signal:
+                min_group_max = float(
+                    getattr(args, "maxent_reward_signal_min_max", 0.0) or 0.0
+                )
+                std_threshold = float(
+                    getattr(args, "maxent_reward_signal_std_threshold", 0.0) or 0.0
+                )
+                group_max = grouped_rewards_raw.max(dim=1).values
+                group_std = grouped_rewards_raw.std(dim=1, unbiased=False)
+                eligible_groups = (group_max > min_group_max) | (
+                    group_std > std_threshold
+                )
+            else:
+                eligible_groups = torch.ones(
+                    grouped_rewards_raw.size(0),
+                    dtype=torch.bool,
+                    device=grouped_rewards_raw.device,
+                )
+
+            reward_bonus_mask = eligible_groups.unsqueeze(1).expand_as(
+                grouped_rewards_raw
+            )
+            positive_only = bool(
+                getattr(args, "maxent_bonus_positive_only", False)
+            )
+            if positive_only:
+                min_reward = float(getattr(args, "maxent_bonus_min_reward", 0.0) or 0.0)
+                reward_bonus_mask = reward_bonus_mask & (grouped_rewards_raw > min_reward)
+            cusp_gate_enabled = bool(getattr(args, "maxent_cusp_gate", False))
+            cusp_threshold_raw = getattr(args, "maxent_cusp_reward_threshold", 0.4)
+            try:
+                cusp_threshold = float(cusp_threshold_raw)
+            except (TypeError, ValueError):
+                cusp_threshold = 0.4
+            if not math.isfinite(cusp_threshold):
+                cusp_threshold = 0.4
+
+            bonus_mask = reward_bonus_mask.to(grouped_novelty.dtype)
+            if cusp_gate_enabled:
+                group_success = (grouped_rewards_raw >= cusp_threshold).to(
+                    grouped_novelty.dtype
+                )
+                group_success_rate = group_success.mean(dim=1, keepdim=True)
+                cusp_factor = 4.0 * group_success_rate * (1.0 - group_success_rate)
+                cusp_factor = cusp_factor.clamp(min=0.0, max=1.0)
+            else:
+                group_success_rate = torch.zeros(
+                    (grouped_rewards_raw.size(0), 1),
+                    dtype=grouped_novelty.dtype,
+                    device=grouped_novelty.device,
+                )
+                cusp_factor = torch.ones(
+                    (grouped_rewards_raw.size(0), 1),
+                    dtype=grouped_novelty.dtype,
+                    device=grouped_novelty.device,
+                )
+            mean_grouped_rewards = grouped_rewards_raw.mean(dim=1)
+            std_grouped_rewards = grouped_rewards_raw.std(dim=1)
             is_std_zero = torch.isclose(
                 std_grouped_rewards,
                 torch.zeros_like(std_grouped_rewards),
             )
-            mean_rep = mean_grouped_rewards.repeat_interleave(group_size, dim=0)
-            std_rep = std_grouped_rewards.repeat_interleave(group_size, dim=0)
-            all_advantages = shaped_rewards - mean_rep
-            if bool(getattr(self, "scale_rewards", False)):
-                all_advantages = all_advantages / (std_rep + 1e-4)
+            gathered_advantages: Optional[torch.Tensor]
+            try:
+                gathered_advantages = gather(
+                    advantages.to(device=rewards.device, dtype=rewards.dtype)
+                )
+            except Exception:
+                gathered_advantages = None
+            using_native_advantages = bool(
+                isinstance(gathered_advantages, torch.Tensor)
+                and gathered_advantages.numel() == rewards.numel()
+            )
+            if using_native_advantages:
+                base_advantages = cast(torch.Tensor, gathered_advantages)
+            else:
+                grouped_base_advantages = grouped_rewards_raw - mean_grouped_rewards.unsqueeze(1)
+                if bool(getattr(self, "scale_rewards", False)):
+                    grouped_base_advantages = grouped_base_advantages / (
+                        std_grouped_rewards.unsqueeze(1) + 1e-4
+                    )
+                base_advantages = _flatten_prompt_groups(grouped_base_advantages)
+            # Apply the MaxEnt term after base GRPO advantage scaling so the
+            # entropy signal is not attenuated/amplified by reward std.
+            # Build a per-sample normalized novelty signal and gate it with
+            # the configured correctness/signal mask:
+            #   adv_i += alpha * 1[mask_i] * zscore_group(novelty_i)
+            novelty_centered = grouped_novelty - grouped_novelty.mean(
+                dim=1, keepdim=True
+            )
+            novelty_spread = grouped_novelty.std(dim=1, unbiased=False, keepdim=True)
+            novelty_zscore = novelty_centered / (novelty_spread + 1e-4)
+            reward_bonus_grouped = alpha * novelty_zscore * bonus_mask * cusp_factor
+            reward_bonus = _flatten_prompt_groups(reward_bonus_grouped)
+            all_advantages = base_advantages + reward_bonus
+            reward_bonus_abs_mean = float(reward_bonus.abs().mean().item())
+            reward_bonus_std = float(reward_bonus.std(unbiased=False).item())
+            reward_bonus_nonzero_frac = float(
+                (reward_bonus.abs() > 1e-8).to(torch.float32).mean().item()
+            )
+            base_adv_abs_mean = float(base_advantages.abs().mean().item())
+            final_adv_abs_mean = float(all_advantages.abs().mean().item())
+            flow_bonus_to_base_ratio = reward_bonus_abs_mean / max(base_adv_abs_mean, 1e-8)
+            flow_bonus_to_final_ratio = reward_bonus_abs_mean / max(final_adv_abs_mean, 1e-8)
+            flow_final_minus_base = all_advantages - base_advantages
 
             local_batch_size = int(advantages.size(0))
             start = int(getattr(self.accelerator, "process_index", 0) or 0) * local_batch_size
             end = start + local_batch_size
+            local_adv_before = advantages.detach().to(torch.float32)
             local_advantages = all_advantages[start:end].to(
                 device=advantages.device,
                 dtype=advantages.dtype,
             )
             if local_advantages.numel() != advantages.numel():
                 return
+            local_adv_after = local_advantages.detach().to(torch.float32)
+            local_adv_delta = local_adv_after - local_adv_before
             outputs["advantages"] = local_advantages
 
             metric_store = self._metrics[mode]
@@ -1559,8 +1336,103 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 else:
                     metric_store.setdefault(key, []).append(value)
 
-            reward_bonus = alpha * maxent_term
             self._append_metric_value(mode, "maxent/alpha", alpha)
+            self._append_metric_value(
+                mode,
+                "maxent/base_advantages_from_outputs",
+                1.0 if using_native_advantages else 0.0,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_base",
+                float(self.maxent_alpha),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_multiplier",
+                alpha_multiplier,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_low_kl_enabled",
+                1.0 if alpha_low_kl_enabled else 0.0,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_high_kl_enabled",
+                1.0 if alpha_high_kl_enabled else 0.0,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_kl_control_enabled",
+                1.0 if alpha_kl_control_enabled else 0.0,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_kl_direction",
+                alpha_direction,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_kl_threshold",
+                alpha_kl_threshold,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_kl_min_multiplier",
+                alpha_kl_min_multiplier,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_kl_max_multiplier",
+                alpha_kl_max_multiplier,
+            )
+            if alpha_kl_measure is not None:
+                self._append_metric_value(
+                    mode,
+                    "maxent/alpha_kl_measure",
+                    alpha_kl_measure,
+                )
+            self._append_metric_value(
+                mode,
+                "maxent/reward_signal_gate",
+                1.0 if gate_by_signal else 0.0,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/positive_only",
+                1.0 if positive_only else 0.0,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/cusp_gate",
+                1.0 if cusp_gate_enabled else 0.0,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/cusp_threshold",
+                cusp_threshold,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/cusp_factor_mean",
+                float(cusp_factor.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/cusp_success_rate_mean",
+                float(group_success_rate.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/eligible_group_frac",
+                float(eligible_groups.float().mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/eligible_completion_frac",
+                float(reward_bonus_mask.float().mean().item()),
+            )
             self._append_metric_value(
                 mode,
                 "maxent/policy_surprisal_mean",
@@ -1573,20 +1445,166 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             )
             self._append_metric_value(
                 mode,
+                "maxent/ref_novelty_mean",
+                float(maxent_term.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/ref_novelty_std",
+                float(maxent_term.std(unbiased=False).item()),
+            )
+            self._append_metric_value(
+                mode,
                 "maxent/reward_bonus_mean",
                 float(reward_bonus.mean().item()),
             )
             self._append_metric_value(
                 mode,
                 "maxent/reward_bonus_abs_mean",
-                float(reward_bonus.abs().mean().item()),
+                reward_bonus_abs_mean,
             )
+            self._append_metric_value(
+                mode,
+                "maxent/reward_bonus_std",
+                reward_bonus_std,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/reward_bonus_nonzero_frac",
+                reward_bonus_nonzero_frac,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/base_adv_mean",
+                float(base_advantages.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/base_adv_std",
+                float(base_advantages.std(unbiased=False).item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/base_adv_abs_mean",
+                base_adv_abs_mean,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/final_adv_mean",
+                float(all_advantages.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/final_adv_std",
+                float(all_advantages.std(unbiased=False).item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/final_adv_abs_mean",
+                final_adv_abs_mean,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/final_minus_base_mean",
+                float(flow_final_minus_base.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/final_minus_base_abs_mean",
+                float(flow_final_minus_base.abs().mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/bonus_to_base_abs_ratio",
+                flow_bonus_to_base_ratio,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/bonus_to_final_abs_ratio",
+                flow_bonus_to_final_ratio,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/local_adv_before_mean",
+                float(local_adv_before.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/local_adv_after_mean",
+                float(local_adv_after.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/local_adv_delta_mean",
+                float(local_adv_delta.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/local_adv_delta_abs_mean",
+                float(local_adv_delta.abs().mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/flow/local_adv_delta_nonzero_frac",
+                float(
+                    (local_adv_delta.abs() > 1e-8).to(torch.float32).mean().item()
+                ),
+            )
+            prev_loss = _numeric_or_none(getattr(self, "_last_loss_scalar", None))
+            if prev_loss is not None:
+                self._append_metric_value(
+                    mode,
+                    "maxent/flow/prev_loss_total",
+                    float(prev_loss),
+                )
 
             advantage_log = self._textual_logs.get("advantages")
             if isinstance(advantage_log, list):
                 updated = all_advantages.detach().cpu().tolist()
                 if len(updated) <= len(advantage_log):
                     advantage_log[-len(updated) :] = updated
+
+            if mode == "train" and self.accelerator.is_main_process:
+                step = int(getattr(self.state, "global_step", 0))
+                interval_raw = getattr(args, "maxent_flow_log_interval", 25) if args else 25
+                try:
+                    interval = int(interval_raw)
+                except (TypeError, ValueError):
+                    interval = 25
+                if interval <= 0:
+                    interval = 25
+                should_emit = (
+                    self._last_maxent_flow_log_step != step and step % interval == 0
+                )
+                if should_emit:
+                    self._last_maxent_flow_log_step = step
+                    LOG.info(
+                        "MaxEnt flow | step=%d | alpha=%.6f (x%.3f) | kl_for_alpha=%s | reward_mean=%.6f reward_std=%.6f | "
+                        "bonus_abs_mean=%.6f bonus_nonzero_frac=%.3f | base_adv_abs_mean=%.6f final_adv_abs_mean=%.6f | prev_loss=%s",
+                        step,
+                        alpha,
+                        alpha_multiplier,
+                        alpha_kl_measure,
+                        reward_val,
+                        reward_std_val,
+                        reward_bonus_abs_mean,
+                        reward_bonus_nonzero_frac,
+                        base_adv_abs_mean,
+                        final_adv_abs_mean,
+                        prev_loss,
+                    )
+                if (
+                    alpha > 0.0
+                    and float(reward_bonus_mask.float().mean().item()) > 0.0
+                    and float(cusp_factor.mean().item()) > 0.0
+                    and float(maxent_term.std(unbiased=False).item()) > 1e-6
+                    and reward_bonus_abs_mean <= 1e-8
+                ):
+                    LOG.warning(
+                        "MaxEnt flow anomaly | step=%d | alpha=%.6f but reward_bonus_abs_mean is near zero despite active masks/gates.",
+                        step,
+                        alpha,
+                    )
 
         def _get_per_token_logps(self, *args: Any, **kwargs: Any) -> torch.Tensor:  # type: ignore[override]
             logps = super()._get_per_token_logps(*args, **kwargs)
@@ -1606,205 +1624,6 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     getattr(logps, "shape", None),
                 )
             return logps
-
-        def _compute_shared_objective_loss(
-            self,
-            *,
-            model: Any,
-            inputs: Any,
-            return_outputs: bool,
-            mode: str,
-            ctx: Optional[TrainingLoopContext],
-            prepared: Any,
-        ) -> Any:
-            del model, inputs
-            if not self.maxent_enabled:
-                raise RuntimeError(
-                    "Shared objective loss is MaxEnt-only; GRPO must use TRL native compute_loss."
-                )
-            if ctx is None or prepared is None:
-                raise RuntimeError(
-                    "Shared objective loss requires prepared rollout artifacts."
-                )
-
-            if mode == "train":
-                try:
-                    self.state.num_input_tokens_seen += float(prepared.total_input_tokens)
-                except (AttributeError, TypeError, ValueError):
-                    pass
-
-            loss_outputs, diagnostics = evaluate_losses(
-                *build_loss_inputs(
-                    prepared.grouped_completions,
-                    prepared.weight_stats,
-                    prepared.scores,
-                    LossInputConfig(
-                        clip_cfg=ctx.scoring.clipping,
-                        weighting_cfg=ctx.scoring.weighting,
-                        ref_stats=prepared.ref_stats,
-                        grpo_loss_type=str(
-                            (
-                                getattr(getattr(ctx, "training_args", None), "loss_type", None)
-                                or getattr(
-                                    getattr(ctx, "training_args", None),
-                                    "grpo_loss_type",
-                                    None,
-                                )
-                                or "bnpo"
-                            )
-                        ),
-                        max_completion_length=int(
-                            getattr(ctx.generation, "max_completion_len", 0) or 0
-                        ),
-                    ),
-                ),
-                seed_inputs=(
-                    prepared.scores.seed_aux
-                    if hasattr(prepared.scores, "seed_aux")
-                    else None
-                ),
-                info_seed_lambda=getattr(ctx.scoring, "info_seed_lambda", 0.0),
-                info_seed_temperature=getattr(
-                    ctx.scoring, "info_seed_temperature", 0.1
-                ),
-                info_seed_loss_type=getattr(
-                    ctx.scoring, "info_seed_loss_type", "infonce"
-                ),
-                info_seed_alpha_entropy=getattr(
-                    ctx.scoring, "info_seed_alpha_entropy", 0.0
-                ),
-            )
-            _maybe_save_seed_heatmap(
-                getattr(prepared, "seed_heatmap", None),
-                self.state.global_step,
-            )
-            _log_prompt_objective(ctx, prepared, self.state.global_step)
-
-            current_lr = None
-            scheduler = getattr(self, "lr_scheduler", None)
-            if scheduler is not None and hasattr(scheduler, "get_last_lr"):
-                try:
-                    last_lrs = scheduler.get_last_lr()
-                    if last_lrs:
-                        current_lr = float(last_lrs[0])
-                except (TypeError, ValueError, IndexError):
-                    current_lr = None
-            if current_lr is None:
-                optimizer = getattr(self, "optimizer", None)
-                param_groups = (
-                    getattr(optimizer, "param_groups", None) if optimizer else None
-                )
-                if param_groups:
-                    try:
-                        current_lr = float(param_groups[0].get("lr", 0.0))
-                    except (TypeError, ValueError):
-                        current_lr = None
-            if current_lr is None:
-                current_lr = scheduled_learning_rate(
-                    ctx.optimization.schedule,
-                    ctx.optimization.handles,
-                    int(self.state.global_step),
-                )
-            self._last_lr = float(current_lr)
-
-            log_artifacts = LogStepArtifacts(
-                loss_outputs=loss_outputs,
-                diagnostics=diagnostics,
-                grad_norm_scalar=None,
-                epoch_progress=float(getattr(self.state, "epoch", 0.0) or 0.0),
-            )
-            reward_view = summarize_reward_stats(
-                self.accelerator, getattr(prepared, "reward_comp", None)
-            )
-            weight_view = summarize_weight_stats(
-                self.accelerator, prepared.weight_stats
-            )
-            metric_state = SimpleNamespace(
-                global_step=int(self.state.global_step),
-                num_input_tokens_seen=float(
-                    getattr(self.state, "num_input_tokens_seen", 0.0) or 0.0
-                ),
-                metric_sums={},
-                metric_counts={},
-            )
-            payload = _build_metrics_payload(
-                ctx,
-                metric_state,
-                prepared,
-                log_artifacts,
-                float(current_lr),
-                reward_view=reward_view,
-                weight_view=weight_view,
-            )
-            metrics = build_training_metrics_dict(payload, int(self.state.global_step))
-            rewards_per_func, reward_func_names = self._gather_reward_matrix(prepared)
-
-            def _metric_scalar(key: str, default: float = 0.0) -> float:
-                value = metrics.get(key, default)
-                numeric = _numeric_or_none(value)
-                if numeric is None or not math.isfinite(numeric):
-                    return float(default)
-                return float(numeric)
-
-            core_rollout_metrics = self._pack_core_rollout_metrics(
-                num_tokens=float(getattr(self.state, "num_input_tokens_seen", 0.0) or 0.0),
-                completion_mean_length_sampled=_metric_scalar(
-                    "train/completions/mean_length_sampled"
-                ),
-                completion_min_length_sampled=_metric_scalar(
-                    "train/completions/min_length_sampled"
-                ),
-                completion_max_length_sampled=_metric_scalar(
-                    "train/completions/max_length_sampled"
-                ),
-                completion_clipped_frac=_metric_scalar("train/completions/clipped_frac"),
-                completion_mean_length_terminated=_metric_scalar(
-                    "train/completions/mean_length_terminated"
-                ),
-                completion_min_length_terminated=_metric_scalar(
-                    "train/completions/min_length_terminated"
-                ),
-                completion_max_length_terminated=_metric_scalar(
-                    "train/completions/max_length_terminated"
-                ),
-                reward_mean=_metric_scalar("train/reward"),
-                reward_std=_metric_scalar("train/reward_std"),
-                frac_reward_zero_std=_metric_scalar("train/frac_reward_zero_std"),
-                rewards_per_func=rewards_per_func,
-                reward_func_names=reward_func_names,
-                seed_metrics=prepared.seed_metrics,
-                diversity_metrics=prepared.diversity_metrics,
-            )
-            metrics.update({f"train/{key}": val for key, val in core_rollout_metrics.items()})
-            self._append_metric_dict(mode, metrics)
-
-            adv_samples = getattr(prepared.reward_comp.advantage, "samples", None)
-            adv_global = None
-            if adv_samples is not None:
-                adv_tensor = torch.tensor(
-                    adv_samples, dtype=torch.float32, device=self.accelerator.device
-                )
-                adv_global = gather(adv_tensor)
-            self._append_textual_rollout_logs(
-                prepared,
-                rewards_per_func,
-                reward_func_names,
-                adv_global,
-            )
-
-            self._last_prepared_batch = prepared
-            self._last_loss_outputs = loss_outputs
-            self._last_batch_diagnostics = diagnostics
-            self._last_reward_view = reward_view
-            self._last_weight_view = weight_view
-            self._last_metrics_mode = mode
-
-            if return_outputs:
-                return loss_outputs.loss, {
-                    "loss_outputs": loss_outputs,
-                    "diagnostics": diagnostics,
-                }
-            return loss_outputs.loss
 
         def _compute_grpo_native_loss(
             self,
@@ -1832,42 +1651,6 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     return_outputs=return_outputs,
                 )
 
-        def _compute_grpo_objective_loss(
-            self,
-            *,
-            model: Any,
-            inputs: Any,
-            return_outputs: bool,
-            mode: str,
-            ctx: Optional[TrainingLoopContext],
-            prepared: Any,
-        ) -> Any:
-            del mode, ctx, prepared
-            return self._compute_grpo_native_loss(
-                model=model,
-                inputs=inputs,
-                return_outputs=return_outputs,
-            )
-
-        def _compute_maxent_objective_loss(
-            self,
-            *,
-            model: Any,
-            inputs: Any,
-            return_outputs: bool,
-            mode: str,
-            ctx: Optional[TrainingLoopContext],
-            prepared: Any,
-        ) -> Any:
-            return self._compute_shared_objective_loss(
-                model=model,
-                inputs=inputs,
-                return_outputs=return_outputs,
-                mode=mode,
-                ctx=ctx,
-                prepared=prepared,
-            )
-
         def compute_loss(  # type: ignore[override]
             self,
             model: Any,
@@ -1875,281 +1658,35 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             return_outputs: bool = False,
             num_items_in_batch: Any = None,
         ) -> Any:
-            return self._compute_grpo_native_loss(
+            loss = self._compute_grpo_native_loss(
                 model=model,
                 inputs=inputs,
                 return_outputs=return_outputs,
                 num_items_in_batch=num_items_in_batch,
             )
-
-        def _prepare_inputs(self, inputs: Any) -> Any:  # type: ignore[override]
-            if not self._maxent_custom_path:
-                return super()._prepare_inputs(inputs)
-            return inputs
-
-        def _apply_controller_updates(self) -> None:
-            if not self._maxent_custom_path or not self.model.training:
-                return
-            if self._last_metrics_mode != "train":
-                return
-            if self._last_prepared_batch is None or self._last_loss_outputs is None:
-                return
-            step = int(getattr(self.state, "global_step", 0))
-            if step == self._controller_update_step:
-                return
-            self._controller_update_step = step
-
-            ctx, _ = self._ensure_maxent_context()
-            loss_outputs = self._last_loss_outputs
-            weight_view = self._last_weight_view
-            meta_cfg = getattr(getattr(ctx.scoring, "weighting", None), "controller_meta", None)
-            meta_enabled = bool(getattr(meta_cfg, "enabled", False))
-            if not meta_enabled:
-                maybe_update_beta(ctx.scoring.weighting, loss_outputs.kl_loss_scalar)
-            base_lr = max(float(getattr(ctx.optimization.handles, "learning_rate", 0.0)), 1e-12)
-            lr_scale = float(self._last_lr) / base_lr if base_lr > 0 else 1.0
-            if not meta_enabled:
-                try:
-                    maybe_update_tau(
-                        ctx.scoring.weighting,
-                        weight_view,
-                        step,
-                        lr_scale=lr_scale,
-                    )
-                except TypeError:
-                    maybe_update_tau(ctx.scoring.weighting, weight_view, step)
-
-            controller_manager = getattr(ctx, "controller_meta_manager", None)
-            controller_objective = getattr(ctx, "controller_objective", None)
-            if controller_objective is not None:
-                should_run_meta = (
-                    controller_manager.should_run(step)
-                    if controller_manager
-                    else True
-                )
-            else:
-                should_run_meta = False
-            if controller_objective is not None and should_run_meta:
-                _cache_meta_stats(ctx.scoring.weighting, weight_view, loss_outputs)
-                meta_ctx = ControllerMetaContext(
-                    weighting=ctx.scoring.weighting,
-                    weight_stats=weight_view,
-                    loss_outputs=loss_outputs,
-                    prepared_batch=self._last_prepared_batch,
-                    global_step=step,
-                    lr_scale=lr_scale,
-                    kl_value=loss_outputs.kl_loss_scalar,
-                    backprop_fn=controller_manager.make_backprop_fn()
-                    if controller_manager
-                    else None,
-                )
-                try:
-                    gradients = controller_objective.compute(meta_ctx)
-                except (RuntimeError, ValueError, TypeError) as exc:
-                    gradients = None
-                    LOG.warning("Controller objective failed: %s", exc)
-                if controller_manager:
-                    controller_manager.apply_gradients(gradients, lr_scale=lr_scale)
-                elif gradients and gradients.has_updates():
-                    apply_meta_controller_update(
-                        ctx.scoring.weighting,
-                        tau_grad=gradients.tau_grad,
-                        beta_grad=gradients.beta_grad,
-                        lr_scale=lr_scale,
-                    )
-
-            broadcast_controller_state(self.accelerator, ctx.scoring.weighting)
-            if self.accelerator.is_main_process:
-                save_controller_state(ctx.controller.state_path, ctx.scoring.weighting)
+            # Cache the latest train KL immediately after native TRL loss
+            # computation so adaptive MaxEnt alpha can be evaluated every
+            # optimizer step (the next rollout consumes this cached value).
+            if bool(getattr(self.model, "training", False)):
+                train_metrics = self._metrics.get("train", {})
+                kl_history = train_metrics.get("kl") if isinstance(train_metrics, dict) else None
+                if isinstance(kl_history, list) and kl_history:
+                    kl_value = _numeric_or_none(kl_history[-1])
+                    if kl_value is not None:
+                        setattr(self, "_last_train_kl_for_alpha", float(kl_value))
+                self._maybe_update_reference_model_ema()
+            return loss
 
         def _generate_and_score_completions(  # type: ignore[override]
             self, inputs: List[Dict[str, Any]]
         ) -> Dict[str, Any]:
-            if not self._maxent_custom_path:
-                outputs = super()._generate_and_score_completions(inputs)
-                mode = "train" if self.model.training else "eval"
-                self._log_grpo_diversity(outputs, mode=mode)
-                self._apply_maxent_reward_shaping(inputs, outputs, mode=mode)
-                if not self.maxent_enabled:
-                    self._log_grpo_debug(inputs, outputs, mode=mode)
-                return outputs
-
-            device = self.accelerator.device
+            outputs = super()._generate_and_score_completions(inputs)
             mode = "train" if self.model.training else "eval"
-            ctx, generator = self._ensure_maxent_context()
-
-            examples = _coerce_examples(inputs)
-            if not examples:
-                raise RuntimeError("Empty inputs provided to rollout generation.")
-            batch = self._build_prompt_answer_batch(
-                mode,
-                examples,
-                dedupe_grouped_inputs=True,
-                log_prefix="Rollout",
-            )
-            prepared = self._prepare_rollout_batch(
-                mode,
-                ctx,
-                generator,
-                batch,
-                use_generation_cache=False,
-            )
-
-            score_batch = prepared.batch_stats.score_batch
-            if score_batch is None:
-                raise RuntimeError("prepare_training_batch did not build a ScoreBatch.")
-
-            prompt_ids, prompt_mask, _ = _prepare_prompt_slice(
-                score_batch.prompt_entries,
-                score_batch.max_prompt_len,
-                score_batch.pad_token_id,
-                score_batch.completion_ids.dtype,
-                torch.long,
-            )
-            prompt_ids = prompt_ids.to(device)
-            prompt_mask = prompt_mask.to(device)
-            completion_ids = score_batch.completion_ids.to(device)
-
-            eos_token_id = getattr(self.processing_class, "eos_token_id", None)
-            completion_mask = _apply_eos_completion_mask(completion_ids, eos_token_id)
-            is_eos = (
-                completion_ids == eos_token_id
-                if eos_token_id is not None
-                else torch.zeros_like(completion_ids, dtype=torch.bool)
-            )
-            completion_lengths = completion_mask.sum(1)
-
-            if self.mask_truncated_completions:
-                truncated_completions = ~is_eos.any(dim=1)
-                completion_mask = completion_mask * (
-                    ~truncated_completions
-                ).unsqueeze(1).int()
-
-            attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
-            prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-            logits_to_keep = completion_ids.size(1)
-            batch_size = (
-                self.args.per_device_train_batch_size
-                if mode == "train"
-                else self.args.per_device_eval_batch_size
-            )
-
-            with torch.no_grad():
-                if (
-                    self.num_iterations > 1
-                    or self.args.steps_per_generation
-                    > self.args.gradient_accumulation_steps
-                ):
-                    old_per_token_logps = self._get_per_token_logps(
-                        self.model,
-                        prompt_completion_ids,
-                        attention_mask,
-                        logits_to_keep,
-                        batch_size,
-                    )
-                else:
-                    old_per_token_logps = None
-
-            try:
-                torch.cuda.synchronize()
-                torch.cuda.empty_cache()
-                torch.cuda.ipc_collect()
-            except Exception:
-                pass
-
-            local_count = completion_ids.size(0)
-            rewards_per_func, reward_func_names = self._gather_reward_matrix(prepared)
-            num_rewards = rewards_per_func.size(1) if rewards_per_func.ndim == 2 else 0
-
-            reward_weights_raw = getattr(self, "reward_weights", None)
-            if isinstance(reward_weights_raw, torch.Tensor):
-                reward_weights = reward_weights_raw.to(device).unsqueeze(0)
-            elif reward_weights_raw is None:
-                reward_weights = torch.ones(
-                    (1, num_rewards), dtype=torch.float32, device=device
-                )
-            else:
-                reward_weights = torch.tensor(
-                    list(reward_weights_raw), dtype=torch.float32, device=device
-                ).unsqueeze(0)
-
-            rewards = (rewards_per_func * reward_weights).nansum(dim=1)
-
-            mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
-            std_grouped_rewards = rewards.view(-1, self.num_generations).std(dim=1)
-            is_std_zero = torch.isclose(
-                std_grouped_rewards, torch.zeros_like(std_grouped_rewards)
-            )
-            mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(
-                self.num_generations, dim=0
-            )
-            std_grouped_rewards = std_grouped_rewards.repeat_interleave(
-                self.num_generations, dim=0
-            )
-            advantages = rewards - mean_grouped_rewards
-            if self.scale_rewards:
-                advantages = advantages / (std_grouped_rewards + 1e-4)
-
-            process_slice = slice(
-                self.accelerator.process_index * local_count,
-                (self.accelerator.process_index + 1) * local_count,
-            )
-            all_process_advantages = advantages.clone()
-            advantages = advantages[process_slice]
-
-            if mode == "train":
-                self.state.num_input_tokens_seen += (
-                    self.accelerator.gather(attention_mask.sum()).sum().item()
-                )
-
-            agg_completion_lengths = self.accelerator.gather(completion_lengths)
-            agg_terminated_with_eos = self.accelerator.gather(is_eos.any(dim=1))
-            term_completion_lengths = agg_completion_lengths[agg_terminated_with_eos]
-            clipped_completions_ratio = 1.0 - len(term_completion_lengths) / max(
-                len(agg_completion_lengths), 1
-            )
-            if len(term_completion_lengths) == 0:
-                term_completion_lengths = torch.zeros(1, device=device)
-            rollout_metrics = self._pack_core_rollout_metrics(
-                num_tokens=float(self.state.num_input_tokens_seen),
-                completion_mean_length_sampled=agg_completion_lengths.float().mean().item(),
-                completion_min_length_sampled=agg_completion_lengths.float().min().item(),
-                completion_max_length_sampled=agg_completion_lengths.float().max().item(),
-                completion_clipped_frac=float(clipped_completions_ratio),
-                completion_mean_length_terminated=term_completion_lengths.float()
-                .mean()
-                .item(),
-                completion_min_length_terminated=term_completion_lengths.float()
-                .min()
-                .item(),
-                completion_max_length_terminated=term_completion_lengths.float()
-                .max()
-                .item(),
-                reward_mean=mean_grouped_rewards.mean().item(),
-                reward_std=std_grouped_rewards.mean().item(),
-                frac_reward_zero_std=is_std_zero.float().mean().item(),
-                rewards_per_func=rewards_per_func,
-                reward_func_names=reward_func_names,
-                seed_metrics=prepared.seed_metrics,
-                diversity_metrics=prepared.diversity_metrics,
-            )
-            self._append_metric_dict(mode, rollout_metrics)
-
-            self._append_textual_rollout_logs(
-                prepared,
-                rewards_per_func,
-                reward_func_names,
-                all_process_advantages,
-            )
-
-            outputs = {
-                "prompt_ids": prompt_ids,
-                "prompt_mask": prompt_mask,
-                "completion_ids": completion_ids,
-                "completion_mask": completion_mask,
-                "advantages": advantages,
-                "old_per_token_logps": old_per_token_logps,
-            }
+            self._log_grpo_diversity(outputs, mode=mode)
+            self._log_eval_pass_at_k(inputs, outputs, mode=mode)
+            self._apply_maxent_reward_shaping(inputs, outputs, mode=mode)
+            if not self.maxent_enabled:
+                self._log_grpo_debug(inputs, outputs, mode=mode)
             return outputs
 
     CustomGRPOTrainer.__name__ = "CustomGRPOTrainer"

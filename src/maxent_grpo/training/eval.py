@@ -29,7 +29,12 @@ from maxent_grpo.generation.errors import (
     GenerationServiceError,
     log_generation_service_error,
 )
-from maxent_grpo.rewards.basic import _answer_pat, _format_pat
+from maxent_grpo.rewards.basic import (
+    _answer_pat,
+    _format_pat,
+    pure_accuracy_math_correctness,
+    uses_pure_accuracy_math_reward,
+)
 from maxent_grpo.training.runtime.logging import _log_wandb
 from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
 from .scoring import (
@@ -48,6 +53,8 @@ from .types import PromptCompletionBatch, RewardSpec, ValidationContext
 LOG = logging.getLogger(__name__)
 _EVAL_LOGPROBS_ENV = "MAXENT_EVAL_LOGPROBS"
 _EVAL_LOGPROBS_WARNED = False
+_PASS_METRIC_SUCCESS_REWARD = 1.0
+_PASS_METRIC_EPS = 1e-6
 
 
 def _progress_log_enabled() -> bool:
@@ -1028,9 +1035,24 @@ def _run_seed_eval(
     # Pass@K per base prompt
     pass_counts: Dict[int, int] = {}
     total_per_prompt: Dict[int, int] = {}
-    for r, base_idx_val in zip(rewards, flat_base_idx):
+    pass_from_math_correctness = uses_pure_accuracy_math_reward(reward_spec.reward_funcs)
+    correctness_flags: Optional[List[bool]] = None
+    if pass_from_math_correctness:
+        # Paper-facing pass metric: exact canonical answer match,
+        # allowing only a final-line exact fallback (no shaping rewards).
+        correctness_flags = pure_accuracy_math_correctness(
+            flat_completions,
+            flat_answers,
+            allow_last_line_fallback=True,
+        )
+    for idx, (r, base_idx_val) in enumerate(zip(rewards, flat_base_idx)):
         total_per_prompt[base_idx_val] = total_per_prompt.get(base_idx_val, 0) + 1
-        if r > 0:
+        solved = (
+            bool(correctness_flags[idx])
+            if correctness_flags is not None and idx < len(correctness_flags)
+            else r >= (_PASS_METRIC_SUCCESS_REWARD - _PASS_METRIC_EPS)
+        )
+        if solved:
             pass_counts[base_idx_val] = 1
     pass_at_1 = sum(pass_counts.values()) / max(len(prompts), 1)
     # Seed predictability via seed head if available

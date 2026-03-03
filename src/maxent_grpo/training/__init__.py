@@ -42,6 +42,7 @@ from .types import (
     RewardMoments,
     RewardComputation,
     ScoreBatch,
+    SequenceScores,
     ReferenceLogprobs,
     LossOutputs,
     LossScalarBundle,
@@ -81,7 +82,6 @@ _LAZY_ATTRS = {
         "maxent_grpo.training.context_builder",
         "apply_info_seed_to_evaluation",
     ),
-    "SequenceScores": ("maxent_grpo.training.weighting.loss", "SequenceScores"),
 }
 
 LOG = logging.getLogger(__name__)
@@ -229,4 +229,3 @@ if TYPE_CHECKING:
     from maxent_grpo.training import rollout as rollout
     from maxent_grpo.training import cli as cli
     from maxent_grpo.training import scoring as scoring
-    from maxent_grpo.training.weighting.loss import SequenceScores as SequenceScores

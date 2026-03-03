@@ -2,6 +2,7 @@ import types
 
 import torch
 
+from maxent_grpo.rewards.basic import pure_accuracy_reward_math
 from maxent_grpo.training.eval import run_validation_step
 from maxent_grpo.training.types import (
     EvaluationSettings,
@@ -9,20 +10,6 @@ from maxent_grpo.training.types import (
     ValidationContext,
 )
 from maxent_grpo.training.types.logging import LoggingHandles
-from maxent_grpo.training.weighting.loss import (
-    GroupLossData,
-    RatioContext,
-    SequenceScores,
-    evaluate_losses,
-)
-from maxent_grpo.training.weighting.types import (
-    KlControllerSettings,
-    QDistributionSettings,
-    TauSchedule,
-    WeightNormalizationSettings,
-    WeightStats,
-    WeightingSettings,
-)
 
 
 class _MetricWriter:
@@ -137,80 +124,110 @@ def test_seed_eval_metrics_logged():
     assert "eval_seed/pred_acc" in logged
 
 
-def test_seed_loss_gradients_flow():
-    torch.manual_seed(0)
-    group_sizes = [2]
-    weight_stats = WeightStats(
-        weights_grouped=[[1.0, 1.0]],
-        flat_weights=[1.0, 1.0],
-        weight_entropy=0.0,
-        weight_entropy_min=0.0,
-        weight_entropy_max=0.0,
-        advantage_entropy=[0.0],
+def test_seed_eval_pass_metric_ignores_positive_shaping_only_rewards():
+    prompts = [{"prompt": "q", "answer": "a"}]
+    tokenizer = _DummyTokenizer()
+    model = _DummyModel()
+
+    def _generator(prompts_list, num_samples, per_prompt_counts=None):
+        del num_samples
+        grouped = []
+        for _prompt in prompts_list:
+            count = per_prompt_counts[0] if per_prompt_counts else 1
+            grouped.append(["<answer>wrong</answer>" for _ in range(count)])
+        return grouped, None
+
+    reward_funcs = [lambda completions, answers: [0.05 for _ in completions]]
+    reward_spec = RewardSpec(reward_funcs=reward_funcs, reward_weights=[1.0])
+    writer = _MetricWriter()
+    logging_handles = LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda _: None,
+        save_strategy="no",
+        save_steps=0,
+        wandb_run=None,
     )
-    scores = SequenceScores(
-        cur_logp_sum=torch.tensor([0.0, 0.0], requires_grad=True),
-        behavior_logp_sum=torch.tensor([0.0, 0.0]),
-        log_ratio_train=torch.tensor([0.0, 0.0]),
-        denom_tok_tensor=torch.tensor([1.0, 1.0]),
-        pooled_hidden=torch.randn(2, 4, requires_grad=True),
+    eval_settings = EvaluationSettings(
+        enabled=True,
+        rows=prompts,
+        batch_size=1,
+        every_n_steps=1,
+        seed_eval={
+            "enabled": True,
+            "num_seeds": 1,
+            "samples_per_seed": 2,
+            "template": "\n[seed={seed}]",
+            "pooling": "mean",
+        },
     )
-    group_data, ratio_ctx = (
-        GroupLossData(
-            group_sizes=group_sizes,
-            weight_tensor=torch.tensor(weight_stats.flat_weights),
-            logp_sums=scores.cur_logp_sum,
-            token_counts=scores.denom_tok_tensor,
+    ctx = ValidationContext(
+        evaluation=eval_settings,
+        accelerator=types.SimpleNamespace(
+            num_processes=1, process_index=0, is_main_process=True
         ),
-        RatioContext(
-            log_ratio_train=scores.log_ratio_train,
-            denom_tok_tensor=scores.denom_tok_tensor,
-            clip_cfg=types.SimpleNamespace(
-                clip_range=0.2, use_clip_objective=False, clip_objective_coef=1.0
-            ),
-            weighting_cfg=WeightingSettings(
-                tau=1.0,
-                beta=0.0,
-                normalization=WeightNormalizationSettings(
-                    denom=1.0, len_norm_ref=False
-                ),
-                q_distribution=QDistributionSettings(temperature=1.0, epsilon=1e-6),
-                tau_schedule=TauSchedule(
-                    target_entropy=None,
-                    learning_rate=0.0,
-                    minimum_value=0.0,
-                    maximum_value=0.0,
-                    warmup_steps=0,
-                ),
-                kl_controller=KlControllerSettings(
-                    target=0.0, horizon=1, step_size=0.0
-                ),
-                train_grpo_objective=True,
-            ),
-            ref_stats=types.SimpleNamespace(
-                ref_logp_sum=scores.behavior_logp_sum,
-                ref_tok_counts=scores.denom_tok_tensor,
-                ref_logp_sum_raw=scores.behavior_logp_sum,
-            ),
-            cur_logp_sum=scores.cur_logp_sum,
-            behavior_logp_sum=scores.behavior_logp_sum,
+        model=model,
+        tokenizer=tokenizer,
+        reward=reward_spec,
+        generator=_generator,
+        logging=logging_handles,
+    )
+
+    run_validation_step(1, ctx)
+    logged = dict(writer.logged[-1][1])
+    assert logged["eval_seed/pass_at_1"] == 0.0
+
+
+def test_seed_eval_pass_metric_uses_math_answer_correctness():
+    prompts = [{"prompt": "q", "answer": "7"}]
+    tokenizer = _DummyTokenizer()
+    model = _DummyModel()
+
+    def _generator(prompts_list, num_samples, per_prompt_counts=None):
+        del prompts_list, num_samples
+        grouped = []
+        count = per_prompt_counts[0] if per_prompt_counts else 1
+        grouped.append(
+            ["<answer>7</answer>"] + ["<answer>0</answer>" for _ in range(max(count - 1, 0))]
+        )
+        return grouped, None
+
+    reward_spec = RewardSpec(
+        reward_funcs=[pure_accuracy_reward_math],
+        reward_weights=[1.0],
+    )
+    writer = _MetricWriter()
+    logging_handles = LoggingHandles(
+        metric_writer=writer,
+        save_checkpoint=lambda _: None,
+        save_strategy="no",
+        save_steps=0,
+        wandb_run=None,
+    )
+    eval_settings = EvaluationSettings(
+        enabled=True,
+        rows=prompts,
+        batch_size=1,
+        every_n_steps=1,
+        seed_eval={
+            "enabled": True,
+            "num_seeds": 1,
+            "samples_per_seed": 2,
+            "template": "\n[seed={seed}]",
+            "pooling": "mean",
+        },
+    )
+    ctx = ValidationContext(
+        evaluation=eval_settings,
+        accelerator=types.SimpleNamespace(
+            num_processes=1, process_index=0, is_main_process=True
         ),
+        model=model,
+        tokenizer=tokenizer,
+        reward=reward_spec,
+        generator=_generator,
+        logging=logging_handles,
     )
-    seed_inputs = types.SimpleNamespace(
-        seed_ids=torch.tensor([0, 1]),
-        pooled_hidden=scores.pooled_hidden,
-        is_seed_aug=None,
-        logits=torch.tensor([[0.0, 1.0], [1.0, 0.0]], requires_grad=True),
-    )
-    loss_outputs, _ = evaluate_losses(
-        group_data,
-        ratio_ctx,
-        seed_inputs=seed_inputs,
-        info_seed_lambda=1.0,
-        info_seed_temperature=0.1,
-        info_seed_loss_type="ce",
-        info_seed_alpha_entropy=0.5,
-    )
-    loss_outputs.loss.backward()
-    assert seed_inputs.logits.grad is not None
-    assert scores.cur_logp_sum.grad is not None
+
+    run_validation_step(1, ctx)
+    logged = dict(writer.logged[-1][1])
+    assert logged["eval_seed/pass_at_1"] == 1.0

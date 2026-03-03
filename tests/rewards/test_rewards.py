@@ -31,7 +31,7 @@ def test_pure_accuracy_reward_math_happy_and_mismatch():
     comp_bad = "<think>...</think><answer> 41 </answer>"
     gold = ["42", "42"]
     out = R.pure_accuracy_reward_math([comp_ok, comp_bad], gold)
-    assert out == [1.0, 0.0]
+    assert out == [1.0, 0.05]
 
 
 def test_pure_accuracy_reward_requires_format_tags():

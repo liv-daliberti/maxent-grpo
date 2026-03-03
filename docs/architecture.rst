@@ -23,7 +23,7 @@ Flow Diagram
                 │
                 ▼
       Loss / Optimizer / Controllers
-      (``maxent_grpo.training.weighting.loss`` + ``maxent_grpo.training.loop``)
+      (``maxent_grpo.training.trl_trainer`` + ``maxent_grpo.training.loop``)
          │                    │
          │                    └──► Checkpointing / Controllers
          │                         (``maxent_grpo.training.state``, ``maxent_grpo.training.zero_utils``)
@@ -48,8 +48,8 @@ Reward & Reference Preparation
     stages always receive a fully populated :class:`PreparedBatch`.
 
 Loss / Optimizer
-    :mod:`maxent_grpo.training.weighting.loss` converts the sequence scores into
-    weighted objectives, while :mod:`maxent_grpo.training.loop` handles
+    :mod:`maxent_grpo.training.trl_trainer` consumes sequence scores and applies
+    GRPO/MaxEnt objectives, while :mod:`maxent_grpo.training.loop` handles
     gradient accumulation, learning-rate schedules, adaptive controllers,
     validation, and checkpoint cadence.
 

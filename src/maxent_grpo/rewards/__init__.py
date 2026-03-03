@@ -34,7 +34,9 @@ from .basic import (
     _extract_content,
     _answer_pat,
     get_reward_funcs,
+    pure_accuracy_math_correctness,
     pure_accuracy_reward_math,
+    uses_pure_accuracy_math_reward,
 )
 
 __all__ = [
@@ -44,7 +46,9 @@ __all__ = [
     "_extract_content",
     "_answer_pat",
     "get_reward_funcs",
+    "pure_accuracy_math_correctness",
     "pure_accuracy_reward_math",
+    "uses_pure_accuracy_math_reward",
 ]
 
 # Ensure a top-level "rewards" import resolves to this module.

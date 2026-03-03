@@ -56,6 +56,8 @@ from .rewards import (
     RewardComputation,
     RewardMoments,
     ScoreBatch,
+    SeedInfoInputs,
+    SequenceScores,
     ValidationContext,
 )
 from .logging import (
@@ -122,6 +124,7 @@ __all__ = [
     "ScoreBatch",
     "ScoringSettings",
     "SeedAugmentationConfig",
+    "SeedInfoInputs",
     "StepBatchInfo",
     "StepResources",
     "TauSchedule",
@@ -131,6 +134,7 @@ __all__ = [
     "TrainingLoopState",
     "TrainingMetricsPayload",
     "TrainingScalarStats",
+    "SequenceScores",
     "ValidationContext",
     "WeightLoggingView",
     "WeightNormalizationSettings",

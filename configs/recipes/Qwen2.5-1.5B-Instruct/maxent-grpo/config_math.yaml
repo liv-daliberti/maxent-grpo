@@ -14,6 +14,7 @@
 
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+reference_model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
 resume_from_checkpoint: false
 torch_dtype: float16
@@ -27,10 +28,15 @@ eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
+maxent_prompt_cache_size: 20000
+dataloader_num_workers: 4
+dataloader_persistent_workers: true
+dataloader_prefetch_factor: 2
+dataloader_pin_memory: true
 system_prompt: |
-  TAG TEMPLATE (copy this shape for every problem)
+  RESPONSE FORMAT (MANDATORY)
+  You must reply in exactly this structure, with nothing before or after:
   <think>
-  YOUR reasoning process goes here:
   1. state the goal and constraints
   2. name the method(s)
   3. show each step to the result
@@ -39,19 +45,53 @@ system_prompt: |
   THEANSWER
   </answer>
 
-  Respond in exactly this tag-based format. No text outside the tags.
-  Put the final answer inside <answer> only. Use exact math (fractions, radicals, pi, e).
-  Verify the result satisfies the original conditions.
-# MaxEnt (entropy bonus) knobs: standard GRPO + policy-entropy reward bonus.
-policy_entropy_bonus_coef: 0.0001
-maxent_policy_entropy: true
-# Scoring/kl settings for the GRPO objective.
+  RULES (NO EXCEPTIONS)
+  - Output must start with <think> and end with </answer>.
+  - Do not include any text outside the tags.
+  - Put the final answer inside <answer> only.
+  - Use exact math (fractions, radicals, pi, e).
+  - Verify the result satisfies the original conditions.
+# MaxEnt bonus base scale.
+maxent_alpha: 1.0
+policy_entropy_bonus_coef: 0.0
+maxent_policy_entropy: false
+# Apply MaxEnt bonus only where reward exceeds tau:
+# 1{r > tau} * (-log pi_ref)
+maxent_reward_signal_gate: false
+maxent_reward_signal_min_max: 0.0
+maxent_reward_signal_std_threshold: 0.01
+maxent_bonus_positive_only: true
+maxent_bonus_min_reward: 0.4
+# Adapt MaxEnt alpha around the KL budget (raise below target, lower above target).
+maxent_alpha_raise_on_low_kl: true
+maxent_alpha_lower_on_high_kl: true
+maxent_alpha_kl_threshold: 0.04
+maxent_alpha_kl_gain: 1.0
+maxent_alpha_kl_min_multiplier: 0.5
+maxent_alpha_kl_max_multiplier: 2.0
+# On-cusp exploration: scale novelty bonus by 4p(1-p), where
+# p is the fraction of completions with reward >= threshold.
+maxent_cusp_gate: true
+maxent_cusp_reward_threshold: 1.0
+# Use a sample-based entropy estimate (fast) instead of full-distribution entropy (slow).
+maxent_policy_entropy_mode: sample
+# Scoring/kl settings for the objective.
+# Prefer vLLM logprob metadata when available; fall back as needed.
 maxent_reference_logprobs_source: model
-maxent_length_normalize_ref: false
-maxent_logprob_chunk_size: 64  # chunk ref scoring to reduce peak logits memory
-# Prompt cache (auto-sized default; set to 0 to disable or override)
-maxent_prompt_cache_size: 10000
-train_grpo_objective: true
+maxent_trl_reference_scoring: true
+# Slowly move the frozen reference toward policy weights after warmup.
+maxent_reference_ema_enabled: true
+maxent_reference_ema_beta: 0.995
+maxent_reference_ema_warmup_steps: 100
+maxent_reference_ema_update_interval: 10
+behavior_logprobs_source: model
+maxent_length_normalize_ref: true
+maxent_logprob_chunk_size: 8   # smaller chunks to cut peak logits memory
+maxent_allow_empty_weight_fallback: true
+maxent_clip_adv_baseline: null
+maxent_score_tail_tokens: null
+train_grpo_objective: false
+scale_rewards: true
 
 # InfoSeed (optional; defaults keep it off)
 info_seed_enabled: false
@@ -68,80 +108,84 @@ fp16: false
 use_vllm: true            # enable vLLM server path for generation
 vllm_mode: server         # use external/inline server launched by the slurm helper
 torch_compile: false      # disabled: torch.compile is unstable with DeepSpeed/ZeRO here
-# Request vLLM logprob metadata so MaxEnt can reconstruct reference stats from vLLM.
-# Request logprob metadata from vLLM (requires a server with logprob support).
+# Request vLLM logprob metadata for reference/KL when available.
 vllm_return_logprobs: true
 vllm_request_logprobs: true
-vllm_sync_weights: false
-vllm_sync_interval_steps: 10  # sync weights every N optimizer steps when enabled (0 disables)
+vllm_force_logprobs: true
+vllm_sync_weights: true
+vllm_sync_interval_steps: 1
 vllm_gpu_memory_utilization: 0.9
 do_eval: true
-gradient_accumulation_steps: 32    # match TRL defaults for faster logging feedback
+gradient_accumulation_steps: 8     # keep global batch size with higher per-device batch
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-gen_temperature: 1.0
-gen_top_p: 1.0
+gen_temperature: 0.7
+gen_top_p: 0.9
 gen_top_k: 0
 gen_best_of: 1
 vllm_stop_sequences:
   - "</answer>"
   - "</answer>\n"
   - "</assistant>"
-vllm_request_timeout: 600
-vllm_url: http://localhost:29525/generate/
-hub_model_id: od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
-hub_strategy: every_save
+vllm_request_timeout: 10
+vllm_max_completion_rounds: 2
+vllm_max_retries: 4
+hub_model_id: null
+hub_strategy: "end"
 learning_rate: 1e-6
 optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
-log_level: info
+log_level: 30
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
-max_prompt_length: 2096      # trim prompt window to ease ref scoring memory
-max_completion_length: 1948   # shorter completions to reduce activation + ref costs
-max_steps: 2000
-# GRPO requires >=2 generations to compute advantages; keep this at 2+ even when reducing memory.
-num_generations: 16          # reduce scoring footprint while satisfying GRPO minimum
-num_train_epochs: 5
+max_prompt_length: 4096      # trim prompt window to ease ref scoring memory
+max_completion_length: 768  # requested output length
+max_steps: 1000
+# GRPO requires >=2 generations to compute advantages.
+# Use 8 so effective train batch sizes across common world sizes (3/4/7/9 GPUs) remain divisible.
+num_generations: 8
+# TRL config guard: keep only one of generation_batch_size or steps_per_generation.
+steps_per_generation: 8
+num_train_epochs: 18
 output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
 overwrite_output_dir: true
 per_device_eval_batch_size: 8
-per_device_train_batch_size: 2
-# DataLoader throughput knobs (custom loop + baseline)
-dataloader_num_workers: 4
-dataloader_pin_memory: true
-dataloader_prefetch_factor: 2
-dataloader_persistent_workers: true
-push_to_hub: true
+per_device_train_batch_size: 8
+push_to_hub: false
 report_to:
 - wandb
-wandb_project: huggingface
+wandb_project: open-r1-maxent-grpo
 wandb_entity: ogd3-princeton-university
 reward_funcs:
 - pure_accuracy_math
 reward_weights:
 - 1
 
-# Reverse‑KL weight β used inside MaxEnt update
+# Reverse-KL weight beta used inside MaxEnt update
 # Gentle KL controller: keep updates small even when KL is far from target.
-beta: 0.5
-kl_target:        0.07
-kl_horizon:       500
-kl_ctl_step_size: 1.0
+beta: 0.04
+kl_target:        0.2
+kl_horizon:       100
+kl_ctl_step_size: 0.0
 
 # Misc GRPO‑style knobs (not all consumed by the minimal script, kept for consistency)
-max_grad_norm: 0.15
-ppo_ppo_clip_range: 0.05
+max_grad_norm: 0.5
+ppo_clip_range: 0.05
+clip_range: 0.2
+clip_range_high: 0.2
+clip_delta: 0.0
 save_strategy: steps
 save_steps: 50
 eval_strategy: steps
 eval_steps: 25
+eval_before_train: true
 save_total_limit: 1000
 seed: 42
-warmup_ratio: 0.2
+vllm_url: "http://localhost:29525/generate"
+warmup_ratio: 0.1

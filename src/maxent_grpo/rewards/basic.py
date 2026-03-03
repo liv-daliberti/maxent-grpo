@@ -24,6 +24,7 @@ from typing import (
     List,
     Optional,
     Protocol,
+    Sequence,
     TYPE_CHECKING,
     Union,
     runtime_checkable,
@@ -149,53 +150,119 @@ def _tag_multiplier(tag_total: int, tag_unique: int) -> float:
     return 0.5
 
 
+def _pure_accuracy_math_match_flags(
+    text: str,
+    gold_canon: str,
+) -> tuple[bool, bool]:
+    """Return (answer_tag_match, fallback_last_line_match)."""
+
+    m = _answer_pat.search(text)
+    pred = m.group(1) if m else None
+    pred_ok = pred is not None and _canon_math(pred) == gold_canon
+    last_line_match = False
+    if not pred_ok and gold_canon:
+        for line in reversed(text.splitlines()):
+            last = line.strip()
+            if last:
+                last_canon = _canon_math(last)
+                if last_canon != gold_canon:
+                    # Allow partial/open tags in fallback mode by stripping
+                    # recognized format tags before canonicalizing.
+                    last_canon = _canon_math(_tag_pat.sub("", last))
+                last_line_match = last_canon == gold_canon
+                break
+    return pred_ok, last_line_match
+
+
+def pure_accuracy_math_correctness(
+    completions: List[CompletionType],
+    answer: List[str],
+    *,
+    allow_last_line_fallback: bool = False,
+) -> List[bool]:
+    """Return binary correctness aligned with ``pure_accuracy_reward_math``.
+
+    A completion is considered correct when either:
+    1. ``<answer>...</answer>`` canonicalizes to the gold answer, or
+    2. (optional) no extracted answer matched but the final non-empty line
+       matches.
+    """
+
+    outs: List[bool] = []
+    for comp, gold in zip(completions, answer):
+        txt = _extract_content(comp)
+        gold_canon = _canon_math(gold)
+        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold_canon)
+        if pred_ok:
+            outs.append(True)
+            continue
+        outs.append(bool(allow_last_line_fallback and last_line_match))
+    return outs
+
+
+def uses_pure_accuracy_math_reward(reward_funcs: Sequence[Any]) -> bool:
+    """Return ``True`` when any configured reward resolves to pure math reward."""
+    seen: set[int] = set()
+    pending: List[Any] = list(reward_funcs)
+    while pending:
+        reward_fn = pending.pop()
+        if reward_fn is None:
+            continue
+        fn_id = id(reward_fn)
+        if fn_id in seen:
+            continue
+        seen.add(fn_id)
+        if reward_fn is pure_accuracy_reward_math:
+            return True
+        name = str(getattr(reward_fn, "__name__", "") or "")
+        qualname = str(getattr(reward_fn, "__qualname__", "") or "")
+        if name == "pure_accuracy_reward_math" or qualname.endswith(
+            ".pure_accuracy_reward_math"
+        ):
+            return True
+        wrapped = getattr(reward_fn, "__wrapped__", None)
+        if wrapped is not None and wrapped is not reward_fn:
+            pending.append(wrapped)
+        func = getattr(reward_fn, "func", None)
+        if func is not None and func is not reward_fn:
+            pending.append(func)
+    return False
+
+
 def pure_accuracy_reward_math(
     completions: List[CompletionType], answer: List[str], **_kwargs: Any
 ) -> List[float]:
-    """Reward exact match on a tagged math template with modest format shaping.
+    """Reward exact math matches with a small formatting bonus when wrong.
 
-    Correct answers earn a base reward that is *not* gated on tags so early
-    learning is less sparse. A small, separate tag-compliance bonus is added
-    (when tags are present) to encourage formatting without dominating
-    correctness. When the answer is correct *and* the full format
-    ``<think>…</think><answer>…</answer>`` is present (exactly four tags),
-    the reward is overridden to 1.0.
+    Correctness is detected from ``<answer>...</answer>`` and falls back to the
+    last non-empty line (with known format tags stripped) when needed.
 
-    If no <answer> tag is present, a tiny fallback reward is granted only
-    when the last non-empty line exactly matches the gold answer after
-    canonicalization. This prevents substring false positives while still
-    tolerating minimal outputs during early training.
+    Reward scale for correct outputs:
+    - full ``<think>...</think><answer>...</answer>`` (4 distinct tags): ``1.0``
+    - otherwise: ``0.5 * _tag_multiplier(tag_total, tag_unique)``
+
+    Reward scale for incorrect outputs:
+    - full ``<think>...</think><answer>...</answer>`` (4 distinct tags): ``0.05``
+    - otherwise: ``0.0``
     """
 
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
         format_ok = bool(_format_pat.match(txt))
-        m = _answer_pat.search(txt)
-        pred = m.group(1) if m else None
         gold_canon = _canon_math(gold)
-        pred_ok = pred is not None and _canon_math(pred) == gold_canon
+        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold_canon)
         tag_total, tag_unique = _count_format_tags(txt)
         if format_ok and pred_ok and tag_total == 4 and tag_unique == 4:
             outs.append(1.0)
             continue
-        last_line_match = False
-        if not pred_ok and gold_canon:
-            for line in reversed(txt.splitlines()):
-                last = line.strip()
-                if last:
-                    last_line_match = _canon_math(last) == gold_canon
-                    break
-        tag_bonus = 0.0
-        if tag_total > 0:
-            tag_bonus = 0.05 * _tag_multiplier(tag_total, tag_unique)
-        if pred_ok:
-            outs.append(0.4 + tag_bonus)
+        if not (pred_ok or last_line_match):
+            if format_ok and tag_total == 4 and tag_unique == 4:
+                outs.append(0.05)
+                continue
+            outs.append(0.0)
             continue
-        if last_line_match:
-            outs.append(0.05)
-            continue
-        outs.append(tag_bonus)
+        outs.append(0.5 * _tag_multiplier(tag_total, tag_unique))
     return outs
 
 
@@ -223,5 +290,7 @@ __all__ = [
     "RewardFunction",
     "RewardConfig",
     "get_reward_funcs",
+    "pure_accuracy_math_correctness",
     "pure_accuracy_reward_math",
+    "uses_pure_accuracy_math_reward",
 ]

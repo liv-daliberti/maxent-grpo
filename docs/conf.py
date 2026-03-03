@@ -329,7 +329,7 @@ autodoc_type_aliases = {
     "OptimizationSchedule": "maxent_grpo.training.types.runtime.OptimizationSchedule",
     "OptimizerHandles": "maxent_grpo.training.types.runtime.OptimizerHandles",
     "ScoreBatch": "maxent_grpo.training.types.rewards.ScoreBatch",
-    "SequenceScores": "maxent_grpo.training.weighting.loss.SequenceScores",
+    "SequenceScores": "maxent_grpo.training.types.rewards.SequenceScores",
     "WeightLoggingView": "maxent_grpo.training.weighting.types.WeightLoggingView",
     "WeightStats": "maxent_grpo.training.weighting.types.WeightStats",
     "WeightingConfigLike": "maxent_grpo.training.weighting.types.WeightingConfigLike",

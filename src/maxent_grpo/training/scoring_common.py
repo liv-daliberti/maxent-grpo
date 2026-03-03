@@ -51,7 +51,6 @@ from maxent_grpo.training.runtime import (
     require_transformer_base_classes,
 )
 from .zero_utils import _maybe_zero_gather_params
-from .weighting.loss import SequenceScores
 from .types import (
     BatchingSettings,
     GenerationSettings,
@@ -61,6 +60,7 @@ from .types import (
     RewardComputation,
     RuntimeHandles,
     ScoreBatch,
+    SequenceScores,
 )
 
 LOG = logging.getLogger(__name__)
@@ -744,5 +744,4 @@ def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManage
         except (TypeError, ValueError, RuntimeError):
             return nullcontext()
     return _as_context_manager(result)
-
 

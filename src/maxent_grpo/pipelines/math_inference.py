@@ -104,7 +104,10 @@ if TYPE_CHECKING:
 else:
     PreTrainedModel = Any
 
-from maxent_grpo.rewards.basic import pure_accuracy_reward_math
+from maxent_grpo.rewards.basic import (
+    pure_accuracy_math_correctness,
+    pure_accuracy_reward_math,
+)
 from maxent_grpo.pipelines.base import log_pipeline_banner
 
 try:  # pragma: no cover - optional dependency for import-time availability
@@ -639,8 +642,28 @@ def _normalize_generations(
     return per_example
 
 
-def _score_flags(scores: Sequence[Any]) -> Tuple[bool, bool]:
+def _score_flags(
+    scores: Sequence[Any],
+    *,
+    generations: Optional[Sequence[str]] = None,
+    answer: Optional[str] = None,
+) -> Tuple[bool, bool]:
     """Return booleans indicating Pass@1 and Pass@k correctness."""
+
+    if generations is not None and answer is not None:
+        gens = [str(gen) for gen in generations]
+        if not gens:
+            return False, False
+        # Inference pass@k should report exact-answer correctness, with
+        # final-line fallback for untagged outputs (no shaping rewards).
+        correctness = pure_accuracy_math_correctness(
+            gens,
+            [str(answer)] * len(gens),
+            allow_last_line_fallback=True,
+        )
+        first_ok = bool(correctness[0]) if correctness else False
+        any_ok = any(bool(flag) for flag in correctness)
+        return first_ok, any_ok
 
     if not scores:
         return False, False
@@ -1162,11 +1185,16 @@ def run_math_inference(
                         cached = existing.get(idx)
                         if not cached:
                             continue
-                        pass1_ok, passk_ok = _score_flags(cached.get("scores", []))
+                        cached_generations = cached.get("generations") or []
+                        pass1_ok, passk_ok = _score_flags(
+                            cached.get("scores", []),
+                            generations=cached_generations,
+                            answer=answers[idx],
+                        )
                         correct_first += int(pass1_ok)
                         correct_k += int(passk_ok)
                         if collect_generations:
-                            per_seed_generations[idx] = cached.get("generations") or []
+                            per_seed_generations[idx] = list(cached_generations)
                         LOG.info(
                             "[progress] model=%s seed=%d prompt=%d/%d (cached) pass@1=%s pass@k=%s",
                             spec.resolve_label(),
@@ -1215,7 +1243,11 @@ def run_math_inference(
                                     )[0]
                                     for gen in gens
                                 ]
-                                pass1_ok, passk_ok = _score_flags(scores)
+                                pass1_ok, passk_ok = _score_flags(
+                                    scores,
+                                    generations=gens,
+                                    answer=answer,
+                                )
                                 correct_first += int(pass1_ok)
                                 correct_k += int(passk_ok)
                                 if collect_generations:

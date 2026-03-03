@@ -511,6 +511,21 @@ class _WeightingLoggingMixin:
                 getattr(self, "args", None)
             )
 
+    def _cache_train_kl_for_alpha(self, metrics: Dict[str, Any]) -> None:
+        """Persist latest train KL so adaptive MaxEnt alpha can read it."""
+
+        if not isinstance(metrics, dict):
+            return
+        for key in ("train/kl", "train/loss/kl", "kl"):
+            kl_val = _numeric_or_none(metrics.get(key))
+            if kl_val is None:
+                continue
+            try:
+                setattr(self, "_last_train_kl_for_alpha", float(kl_val))
+            except (AttributeError, RuntimeError, TypeError, ValueError):
+                return
+            return
+
     def log(self, logs: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
         self._init_weighting_logger()
         helper = getattr(self, "_weighting_metric_helper", None)
@@ -539,6 +554,7 @@ class _WeightingLoggingMixin:
         # reintroduce negative clipped_ratio values.
         _fix_clipped_ratio_metrics(self)
         normalized = _normalize_prefixes(merged, is_eval=False)
+        self._cache_train_kl_for_alpha(normalized)
         return cast(Any, super()).log(normalized, *args, **kwargs)
 
 

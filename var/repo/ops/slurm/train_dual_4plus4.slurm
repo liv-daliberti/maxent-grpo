@@ -196,7 +196,9 @@ MAXENT_VLLM_INIT_RETRY_BACKOFF_S="${MAXENT_VLLM_INIT_RETRY_BACKOFF_S:-2}"
 MAXENT_VLLM_INIT_TIMEOUT_S="${MAXENT_VLLM_INIT_TIMEOUT_S:-300}"
 
 VLLM_DTYPE="${VLLM_DTYPE:-bfloat16}"
-VLLM_HEALTH_MAX_ATTEMPTS="${VLLM_HEALTH_MAX_ATTEMPTS:-240}"
+# vLLM cold starts (weight load + compile cache warmup) can exceed 8 minutes on first run.
+# Default to a longer health window: 900 * 2s = 30 minutes.
+VLLM_HEALTH_MAX_ATTEMPTS="${VLLM_HEALTH_MAX_ATTEMPTS:-900}"
 VLLM_HEALTH_INTERVAL_S="${VLLM_HEALTH_INTERVAL_S:-2}"
 ACC_TEE="${ACC_TEE:-3}"
 
@@ -219,6 +221,17 @@ if [[ "$RUN_ONLY" != "both" && "$RUN_ONLY" != "grpo" && "$RUN_ONLY" != "maxent" 
   exit 1
 fi
 
+# In single-stack mode, default to a 4-GPU local layout (vLLM:0, train:1,2,3).
+# This allows maxent-only/grpo-only jobs to run in a 4-GPU allocation.
+if [[ "$RUN_ONLY" == "maxent" ]]; then
+  if [[ "$MAXENT_VLLM_GPU" == "4" ]]; then MAXENT_VLLM_GPU="0"; fi
+  if [[ "$MAXENT_TRAIN_GPUS" == "5,6,7" ]]; then MAXENT_TRAIN_GPUS="1,2,3"; fi
+fi
+if [[ "$RUN_ONLY" == "grpo" ]]; then
+  if [[ "$GRPO_VLLM_GPU" == "4" ]]; then GRPO_VLLM_GPU="0"; fi
+  if [[ "$GRPO_TRAIN_GPUS" == "5,6,7" ]]; then GRPO_TRAIN_GPUS="1,2,3"; fi
+fi
+
 GRPO_CFG="configs/recipes/${MODEL}/grpo/config_${CONFIG_SUFFIX_GRPO}.yaml"
 MAXENT_CFG="configs/recipes/${MODEL}/maxent-grpo/config_${CONFIG_SUFFIX_MAXENT}.yaml"
 ACCEL_FILE="configs/recipes/accelerate_configs/${ACCELERATOR}.yaml"
@@ -238,30 +251,39 @@ if command -v nvidia-smi >/dev/null 2>&1; then
     GPU_COUNT="$detected"
   fi
 fi
-if (( GPU_COUNT < 8 )); then
-  echo "This launcher expects 8 visible GPUs; detected ${GPU_COUNT}." >&2
+MIN_REQUIRED_GPUS=8
+if [[ "$RUN_ONLY" == "grpo" || "$RUN_ONLY" == "maxent" ]]; then
+  MIN_REQUIRED_GPUS=4
+fi
+if (( GPU_COUNT < MIN_REQUIRED_GPUS )); then
+  echo "This launcher expects at least ${MIN_REQUIRED_GPUS} visible GPUs for RUN_ONLY=${RUN_ONLY}; detected ${GPU_COUNT}." >&2
   exit 1
 fi
 MAX_GPU_ID=$((GPU_COUNT - 1))
 
-assert_csv_ids "GRPO_TRAIN_GPUS" "$GRPO_TRAIN_GPUS" "$MAX_GPU_ID"
-assert_csv_ids "MAXENT_TRAIN_GPUS" "$MAXENT_TRAIN_GPUS" "$MAX_GPU_ID"
-[[ "$GRPO_VLLM_GPU" =~ ^[0-9]+$ ]] || { echo "Invalid GRPO_VLLM_GPU=$GRPO_VLLM_GPU" >&2; exit 1; }
-[[ "$MAXENT_VLLM_GPU" =~ ^[0-9]+$ ]] || { echo "Invalid MAXENT_VLLM_GPU=$MAXENT_VLLM_GPU" >&2; exit 1; }
-(( GRPO_VLLM_GPU <= MAX_GPU_ID )) || { echo "GRPO_VLLM_GPU out of range" >&2; exit 1; }
-(( MAXENT_VLLM_GPU <= MAX_GPU_ID )) || { echo "MAXENT_VLLM_GPU out of range" >&2; exit 1; }
+if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
+  assert_csv_ids "GRPO_TRAIN_GPUS" "$GRPO_TRAIN_GPUS" "$MAX_GPU_ID"
+  [[ "$GRPO_VLLM_GPU" =~ ^[0-9]+$ ]] || { echo "Invalid GRPO_VLLM_GPU=$GRPO_VLLM_GPU" >&2; exit 1; }
+  (( GRPO_VLLM_GPU <= MAX_GPU_ID )) || { echo "GRPO_VLLM_GPU out of range" >&2; exit 1; }
+  (( $(csv_count "$GRPO_TRAIN_GPUS") == 3 )) || { echo "GRPO_TRAIN_GPUS must contain exactly 3 GPUs" >&2; exit 1; }
+  contains_id "$GRPO_TRAIN_GPUS" "$GRPO_VLLM_GPU" && { echo "GRPO vLLM GPU overlaps GRPO train GPUs" >&2; exit 1; }
+fi
 
-(( $(csv_count "$GRPO_TRAIN_GPUS") == 3 )) || { echo "GRPO_TRAIN_GPUS must contain exactly 3 GPUs" >&2; exit 1; }
-(( $(csv_count "$MAXENT_TRAIN_GPUS") == 3 )) || { echo "MAXENT_TRAIN_GPUS must contain exactly 3 GPUs" >&2; exit 1; }
+if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" ]]; then
+  assert_csv_ids "MAXENT_TRAIN_GPUS" "$MAXENT_TRAIN_GPUS" "$MAX_GPU_ID"
+  [[ "$MAXENT_VLLM_GPU" =~ ^[0-9]+$ ]] || { echo "Invalid MAXENT_VLLM_GPU=$MAXENT_VLLM_GPU" >&2; exit 1; }
+  (( MAXENT_VLLM_GPU <= MAX_GPU_ID )) || { echo "MAXENT_VLLM_GPU out of range" >&2; exit 1; }
+  (( $(csv_count "$MAXENT_TRAIN_GPUS") == 3 )) || { echo "MAXENT_TRAIN_GPUS must contain exactly 3 GPUs" >&2; exit 1; }
+  contains_id "$MAXENT_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "MaxEnt vLLM GPU overlaps MaxEnt train GPUs" >&2; exit 1; }
+fi
 
-contains_id "$GRPO_TRAIN_GPUS" "$GRPO_VLLM_GPU" && { echo "GRPO vLLM GPU overlaps GRPO train GPUs" >&2; exit 1; }
-contains_id "$MAXENT_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "MaxEnt vLLM GPU overlaps MaxEnt train GPUs" >&2; exit 1; }
-contains_id "$GRPO_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "MaxEnt vLLM GPU overlaps GRPO train GPUs" >&2; exit 1; }
-contains_id "$MAXENT_TRAIN_GPUS" "$GRPO_VLLM_GPU" && { echo "GRPO vLLM GPU overlaps MaxEnt train GPUs" >&2; exit 1; }
-
-for gid in ${GRPO_TRAIN_GPUS//,/ }; do
-  contains_id "$MAXENT_TRAIN_GPUS" "$gid" && { echo "Train GPU overlap between GRPO and MaxEnt: $gid" >&2; exit 1; }
-done
+if [[ "$RUN_ONLY" == "both" ]]; then
+  contains_id "$GRPO_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "MaxEnt vLLM GPU overlaps GRPO train GPUs" >&2; exit 1; }
+  contains_id "$MAXENT_TRAIN_GPUS" "$GRPO_VLLM_GPU" && { echo "GRPO vLLM GPU overlaps MaxEnt train GPUs" >&2; exit 1; }
+  for gid in ${GRPO_TRAIN_GPUS//,/ }; do
+    contains_id "$MAXENT_TRAIN_GPUS" "$gid" && { echo "Train GPU overlap between GRPO and MaxEnt: $gid" >&2; exit 1; }
+  done
+fi
 
 GRPO_MODEL="$(yaml_scalar model_name_or_path "$GRPO_CFG")"
 MAXENT_MODEL="$(yaml_scalar model_name_or_path "$MAXENT_CFG")"
@@ -293,8 +315,12 @@ TRAIN_MAXENT_LOG="$VAR_DIR/artifacts/logs/train-maxent-${SLURM_JOB_ID}.log"
 
 activate_env
 
-echo "[layout] GRPO:   vLLM GPU=${GRPO_VLLM_GPU}, train GPUs=${GRPO_TRAIN_GPUS}, vLLM port=${GRPO_VLLM_PORT}"
-echo "[layout] MaxEnt: vLLM GPU=${MAXENT_VLLM_GPU}, train GPUs=${MAXENT_TRAIN_GPUS}, vLLM port=${MAXENT_VLLM_PORT}"
+if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
+  echo "[layout] GRPO:   vLLM GPU=${GRPO_VLLM_GPU}, train GPUs=${GRPO_TRAIN_GPUS}, vLLM port=${GRPO_VLLM_PORT}"
+fi
+if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" ]]; then
+  echo "[layout] MaxEnt: vLLM GPU=${MAXENT_VLLM_GPU}, train GPUs=${MAXENT_TRAIN_GPUS}, vLLM port=${MAXENT_VLLM_PORT}"
+fi
 echo "[layout] run_group=${RUN_GROUP}"
 
 GRPO_VLLM_PID=""

@@ -66,7 +66,7 @@ from .weighting import WeightLoggingView, WeightStats
 
 if TYPE_CHECKING:  # Avoid importing heavy pipeline/scoring deps at runtime
     from .pipeline import PreparedBatch
-    from .weighting.loss import LossOutputs
+    from .types import LossOutputs
 
 LOG = logging.getLogger(__name__)
 _WANDB_SAMPLE_ROWS = 4
