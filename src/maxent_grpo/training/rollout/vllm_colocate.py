@@ -16,7 +16,7 @@ import time
 import traceback
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from maxent_grpo.patches.vllm import VLLMLogprobResult
+from maxent_grpo.training.patches.vllm import VLLMLogprobResult
 from maxent_grpo.training.runtime.prompts import _truncate_prompt, PROMPT_CHAR_LIMIT
 from maxent_grpo.utils.imports import optional_import
 

@@ -19,15 +19,11 @@ build/
 .venv/
 .local/
 var/*
-!var/repo/
-!var/repo/**
 .cache/
 .conda_pkgs/
 .pip_cache/
 .tmp/
 var/tmp/
-var/repo/data/*
-!var/repo/data/README.md
 wandb/
 .wandb/
 .venv-train/

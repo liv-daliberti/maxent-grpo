@@ -1,4 +1,4 @@
-.PHONY: help install-dev install-local ensure-path venv install-venv conda-local lint format test precommit docs docs-clean clean-local validate-logs
+.PHONY: help install-dev install-local venv install-venv conda-local lint format test precommit docs docs-clean clean-local clean-local-deep smoke
 
 VAR_DIR := $(CURDIR)/var
 export RUFF_CACHE_DIR := $(VAR_DIR)/cache/ruff
@@ -7,7 +7,6 @@ help:
 	@echo "Targets:"
 	@echo "  install-dev  - pip install -e .[dev]"
 	@echo "  install-local- user base under $(PWD)/.local"
-	@echo "  ensure-path  - append $(PWD)/.local/bin to your shell rc"
 	@echo "  conda-local  - create local conda env at ./var/openr1 via configs/environment.yml"
 	@echo "  venv         - create .venv in repo"
 	@echo "  install-venv - install project into .venv"
@@ -17,7 +16,8 @@ help:
 	@echo "  precommit    - pre-commit run -a"
 	@echo "  docs         - build Sphinx HTML to var/docs/_build/html"
 	@echo "  docs-clean   - remove var/docs/_build"
-	@echo "  clean-local  - remove local envs/caches in this repo"
+	@echo "  clean-local  - remove local envs/runtime caches in this repo"
+	@echo "  clean-local-deep - remove additional local cache/chaff directories"
 
 install-dev:
 	pip install -e .[dev]
@@ -27,9 +27,6 @@ install-local:
 	  python -m pip install --upgrade pip; \
 	  pip install --user -e .[dev]
 	@echo "Add to PATH for local scripts: export PATH=\"$(PWD)/.local/bin:$$PATH\""
-
-ensure-path:
-	bash var/repo/tools/ensure_local_path.sh --apply
 
 venv:
 	python -m venv .venv
@@ -113,14 +110,11 @@ docs-clean:
 	rm -rf $(VAR_DIR)/docs/_build
 
 clean-local:
-	rm -rf var .venv .local
+	rm -rf var .venv .local .cache
 
-validate-logs:
-	python var/repo/tools/validate_logs.py
+clean-local-deep: clean-local
+	rm -rf .conda_pkgs .pip_cache .tmp
 
 smoke:
 	HF_HOME=$(VAR_DIR)/cache/huggingface HF_DATASETS_CACHE=$(VAR_DIR)/cache/huggingface/datasets TRANSFORMERS_CACHE=$(VAR_DIR)/cache/huggingface/transformers PIP_CACHE_DIR=$(VAR_DIR)/cache/pip WANDB_DIR=$(VAR_DIR)/logs TMPDIR=$(VAR_DIR)/tmp WANDB_MODE=offline \
-	  python var/repo/tools/smoke_cli.py
-
-eval-math-delta:
-	python var/repo/tools/eval_math_delta.py --baseline baseline --candidate candidate --runner stub --limit 4
+	  bash ops/run_paired_cpu_tiny.sh

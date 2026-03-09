@@ -26,15 +26,7 @@ if TYPE_CHECKING:
 
     from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
 
-__all__ = ["parse_grpo_args", "build_generate_parser"]
-
-
-def build_generate_parser():
-    """Return the argparse parser used by the distilabel generation CLI."""
-
-    from .generate import build_generate_parser as _build_generate_parser
-
-    return _build_generate_parser()
+__all__ = ["parse_grpo_args"]
 
 
 def parse_grpo_args() -> Tuple["GRPOScriptArguments", "GRPOConfig", "ModelConfig"]:

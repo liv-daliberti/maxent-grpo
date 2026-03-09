@@ -70,7 +70,7 @@ def main(
     :param script_args: Dataset/reward script arguments parsed via TRL or provided directly.
     :param training_args: GRPO training configuration produced by TRL.
     :param model_args: Model configuration passed to TRL/transformers trainers.
-    :returns: Training result from :func:`maxent_grpo.pipelines.training.baseline.run_baseline_training`,
+    :returns: Training result from :func:`maxent_grpo.training.baseline.run_baseline_training`,
         or the Hydra CLI invocation result when no args are supplied.
     :raises RuntimeError: If no CLI parser or Hydra entrypoint is available.
     :raises Exception: Propagates parser or training pipeline exceptions.
@@ -97,11 +97,11 @@ def main(
                 "No CLI parser available. Ensure TRL is installed and "
                 "maxent_grpo.cli.parse_grpo_args is importable."
             )
-    baseline_mod = sys.modules.get("maxent_grpo.pipelines.training.baseline")
+    baseline_mod = sys.modules.get("maxent_grpo.training.baseline")
     if baseline_mod and hasattr(baseline_mod, "run_baseline_training"):
         run_baseline_training = baseline_mod.run_baseline_training
     else:
-        from maxent_grpo.pipelines.training.baseline import run_baseline_training
+        from maxent_grpo.training.baseline import run_baseline_training
 
     return run_baseline_training(script_args, training_args, model_args)
 

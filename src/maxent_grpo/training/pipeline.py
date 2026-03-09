@@ -77,7 +77,6 @@ from .types import (
     RewardComputation,
     RewardMoments,
     ScoreBatch,
-    SeedInfoInputs,
     SequenceScores,
     Tensor,
     TrainingLoopContext,
@@ -632,8 +631,6 @@ class PreparedBatch:
     batch_stats: _BatchStats
     total_input_tokens: float
     scores: SequenceScores
-    seed_metrics: Optional[Dict[str, float]] = None
-    seed_heatmap: Optional[Dict[str, Any]] = None
     diversity_metrics: Optional[Dict[str, float]] = None
 
     @property
@@ -1625,9 +1622,6 @@ def prepare_training_batch(
                     ctx.generation.generation_stats,
                     ctx.optimization.schedule.num_generations,
                     max_retry_rounds=retry_limit,
-                    seed_augmentation=getattr(
-                        ctx.generation, "seed_augmentation", None
-                    ),
                 ),
                 stage="generation",
             )
@@ -1771,14 +1765,6 @@ def prepare_training_batch(
                 completion_attention_mask.shape if completion_attention_mask is not None else None,
                 getattr(score_batch, "pad_token_id", None),
             )
-        # Enable pooled hidden states when InfoSeed is active so seed loss can pool per-sequence reps.
-        should_pool = any(
-            [
-                getattr(ctx.scoring, "info_seed_lambda", 0.0) > 0.0,
-                getattr(ctx.scoring, "info_seed_alpha_entropy", 0.0) != 0.0,
-                getattr(ctx.generation, "seed_augmentation", None) is not None,
-            ]
-        )
         return_entropy = bool(getattr(ctx.scoring, "policy_entropy", False))
         entropy_mode = getattr(ctx.scoring, "policy_entropy_mode", "exact")
         return_token_logp = bool(
@@ -1798,8 +1784,7 @@ def prepare_training_batch(
                     score_batch,
                     ctx.scoring.batching,
                     ctx.runtime,
-                    return_hidden=should_pool,
-                    pooling=getattr(ctx.scoring, "info_seed_pooling", "mean"),
+                    return_hidden=False,
                     return_entropy=return_entropy,
                     entropy_mode=entropy_mode,
                     return_token_logp=return_token_logp,
@@ -1926,201 +1911,12 @@ def prepare_training_batch(
                 scores = build_sequence_scores(
                     cur_logp_sum, stats.ref_stats, policy_entropy_sum=policy_entropy_sum
                 )
-        # Optional seed metadata wiring for InfoSeed objectives.
-        seed_inputs: Optional["SeedInfoInputs"] = None
-        seed_metrics: Dict[str, float] = {}
-        seed_heatmap = None
-        completion_meta = getattr(reward_comp, "completion_metadata", None)
-        if pooled_hidden is not None and completion_meta:
-            import torch as torch_mod
-
-            seed_ids = []
-            is_seed_aug = []
-            for meta in reward_comp.completion_metadata or []:
-                if meta:
-                    getter = getattr(meta, "get", None)
-                    raw_seed = cast(
-                        Any, getter("seed_id", -1) if callable(getter) else -1
-                    )
-                    if raw_seed is None:
-                        raw_seed = -1
-                    try:
-                        seed_ids.append(int(raw_seed))
-                    except (TypeError, ValueError):
-                        seed_ids.append(-1)
-                    raw_aug = getter("is_seed_aug", False) if callable(getter) else False
-                    is_seed_aug.append(bool(raw_aug))
-                else:
-                    seed_ids.append(-1)
-                    is_seed_aug.append(False)
-            if seed_ids:
-                valid_total = sum(1 for sid in seed_ids if sid >= 0)
-                aug_total = sum(
-                    1 for sid, aug in zip(seed_ids, is_seed_aug) if sid >= 0 and aug
-                )
-                seed_ids_t = torch_mod.tensor(
-                    seed_ids, device=pooled_hidden.device, dtype=torch_mod.long
-                )
-                is_seed_aug_t = torch_mod.tensor(
-                    is_seed_aug, device=pooled_hidden.device, dtype=torch_mod.bool
-                )
-                seed_inputs = SeedInfoInputs(
-                    seed_ids=seed_ids_t,
-                    pooled_hidden=pooled_hidden,
-                    is_seed_aug=is_seed_aug_t,
-                )
-                if seed_inputs.is_seed_aug is not None and valid_total > 0:
-                    seed_metrics["seed_aug_frac"] = float(aug_total) / float(
-                        valid_total
-                    )
-        if seed_inputs is not None:
-            seed_head = getattr(ctx.runtime.model, "seed_head", None)
-            if callable(seed_head):
-                try:
-                    seed_logits = seed_head(pooled_hidden)
-                    seed_logits_t = cast(Optional["torch.Tensor"], seed_logits)
-                    seed_inputs.logits = seed_logits_t
-                    # Seed prediction accuracy metrics
-                    if seed_logits_t is not None:
-                        valid_mask = seed_inputs.seed_ids >= 0
-                        if valid_mask.any():
-                            preds = seed_logits_t.argmax(dim=-1)
-                            acc = (
-                                (preds[valid_mask] == seed_inputs.seed_ids[valid_mask])
-                                .float()
-                                .mean()
-                                .item()
-                            )
-                            seed_metrics["seed_pred_acc"] = acc
-                            if seed_inputs.is_seed_aug is not None:
-                                aug_mask = valid_mask & seed_inputs.is_seed_aug
-                                if aug_mask.any():
-                                    aug_acc = (
-                                        (
-                                            preds[aug_mask]
-                                            == seed_inputs.seed_ids[aug_mask]
-                                        )
-                                        .float()
-                                        .mean()
-                                        .item()
-                                    )
-                                    seed_metrics["seed_pred_acc_aug"] = aug_acc
-                        # Diversity: average pairwise distance between seed means
-                        try:
-                            unique_seeds = torch_mod.unique(
-                                seed_inputs.seed_ids[valid_mask]
-                            )
-                            if unique_seeds.numel() > 1:
-                                means = []
-                                for sid in unique_seeds:
-                                    sid_mask = valid_mask & (
-                                        seed_inputs.seed_ids == sid
-                                    )
-                                    if sid_mask.any():
-                                        means.append(
-                                            seed_inputs.pooled_hidden[sid_mask].mean(
-                                                dim=0
-                                            )
-                                        )
-                                if len(means) > 1:
-                                    stacked = torch_mod.stack(means)
-                                    pdist = torch_mod.nn.functional.pdist(
-                                        stacked, p=2
-                                    ).mean()
-                                    seed_metrics["seed_diversity_l2"] = float(
-                                        pdist.item()
-                                    )
-                                    cosine = getattr(
-                                        torch_mod.nn.functional,
-                                        "cosine_similarity",
-                                        None,
-                                    )
-                                    if callable(cosine):
-                                        heatmap = cosine(
-                                            stacked.unsqueeze(1),
-                                            stacked.unsqueeze(0),
-                                            dim=-1,
-                                        )
-                                        heatmap_t = cast("torch.Tensor", heatmap)
-                                        seed_heatmap = {
-                                            "labels": [
-                                                int(s.item()) for s in unique_seeds
-                                            ],
-                                            "matrix": heatmap_t.detach()
-                                            .cpu()
-                                            .tolist(),
-                                        }
-                                    else:
-                                        seed_heatmap = None
-                                else:
-                                    seed_heatmap = None
-                            else:
-                                seed_heatmap = None
-                        except (RuntimeError, ValueError, TypeError):
-                            seed_heatmap = None
-                except (RuntimeError, ValueError, TypeError):
-                    seed_inputs.logits = None
-            setattr(scores, "seed_aux", seed_inputs)
-        else:
-            seed_heatmap = None
-        # Per-subset entropy (orig vs seed-aug) derived from weights + metadata.
-        completion_meta = getattr(reward_comp, "completion_metadata", None)
-        if isinstance(completion_meta, list):
-            weight_stats = getattr(stats, "weight_stats", None)
-            weights = (
-                getattr(weight_stats, "flat_weights", None) if weight_stats is not None else None
-            )
-            if weights is not None and len(weights) == len(completion_meta):
-                import math
-
-                accelerator = getattr(ctx.runtime, "accelerator", SimpleNamespace(num_processes=1))
-
-                def _gather_weights(weight_subset: list[float]) -> list[float]:
-                    if getattr(accelerator, "num_processes", 1) <= 1:
-                        return weight_subset
-                    gather_fn = getattr(accelerator, "gather_object", None)
-                    if callable(gather_fn):
-                        gathered = gather_fn(weight_subset)
-                        if not isinstance(gathered, list):
-                            return weight_subset
-                        merged: list[float] = []
-                        for chunk in gathered:
-                            merged.extend(float(v) for v in chunk)
-                        return merged
-                    return weight_subset
-
-                def _entropy(subset_weights: list[float]) -> float:
-                    if not subset_weights:
-                        return 0.0
-                    total = sum(subset_weights)
-                    if total <= 0:
-                        return 0.0
-                    ent = 0.0
-                    for w in subset_weights:
-                        p = w / total
-                        if p > 0:
-                            ent -= p * math.log(p + 1e-12)
-                    return ent
-
-                orig_weights: list[float] = []
-                seed_weights: list[float] = []
-                for w, meta in zip(weights, completion_meta):
-                    if meta and meta.get("is_seed_aug", False):
-                        seed_weights.append(w)
-                    else:
-                        orig_weights.append(w)
-                orig_weights = _gather_weights(orig_weights)
-                seed_weights = _gather_weights(seed_weights)
-                seed_metrics["entropy/orig"] = _entropy(orig_weights)
-                seed_metrics["entropy/seed_aug"] = _entropy(seed_weights)
         return PreparedBatch(
             grouped_completions=gen_batch.grouped_completions,
             reward_comp=reward_comp,
             batch_stats=stats,
             total_input_tokens=stats.prompt_token_count + stats.num_completion_tokens,
             scores=scores,
-            seed_metrics=seed_metrics or None,
-            seed_heatmap=seed_heatmap,
             diversity_metrics=diversity_metrics or None,
         )
     except _SkipBatch as exc:

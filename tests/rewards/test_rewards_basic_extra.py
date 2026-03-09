@@ -16,3 +16,11 @@ def test_get_reward_funcs_unknown_name_raises():
 
 def test_canon_math_strips_wrappers_and_trailing_zeros():
     assert basic_rewards._canon_math("{123.0}") == "123"
+
+
+def test_pure_accuracy_reward_math_accepts_numeric_gold_labels():
+    rewards = basic_rewards.pure_accuracy_reward_math(
+        ["<think>steps</think><answer>42</answer>"],
+        [42.0],
+    )
+    assert rewards == [1.0]

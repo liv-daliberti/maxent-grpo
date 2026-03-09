@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 7B MaxEnt‑GRPO math recipe paired with
-# configs/recipes/Qwen2.5-7B/grpo/config_math_maxent_hparams.yaml
+# 7B MaxEnt‑GRPO math recipe paired with config_math.yaml
 # (same batch size, logging, KL control, prompt lengths, etc.)
 
 # Model arguments

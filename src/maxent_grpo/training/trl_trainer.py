@@ -1,7 +1,9 @@
 """Custom TRL GRPOTrainer wrapper used by the MaxEnt-GRPO pipelines.
 
-This module provides a light subclass hook so we can gradually add MaxEnt/InfoSeed
-behavior while still relying on TRL's Trainer loop and logging cadence.
+This module is the single place where GRPO-vs-MaxEnt objective behavior should
+diverge at runtime. The surrounding training pipeline (dataset mapping, reward
+loading, model/tokenizer setup, trainer wiring, launch entrypoints) is kept
+shared so objective comparisons stay fair and easy to audit.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ import logging
 import math
 from functools import partial
 import inspect
+import re
 from typing import Any, Dict, List, Optional, Tuple, Type, cast
 
 import torch
@@ -31,13 +34,12 @@ from maxent_grpo.rewards.basic import (
     pure_accuracy_math_correctness,
     uses_pure_accuracy_math_reward,
 )
-from maxent_grpo.telemetry.trl_logging import ensure_weighting_logging
-from maxent_grpo.training.pipeline import _completion_diversity_metrics
-from maxent_grpo.training.scoring import _apply_eos_completion_mask
+from maxent_grpo.training.telemetry.trl_logging import ensure_weighting_logging
 
 LOG = logging.getLogger(__name__)
 _PASS_METRIC_SUCCESS_REWARD = 1.0
 _PASS_METRIC_EPS = 1e-6
+_BENCHMARK_SUFFIX_SANITIZER = re.compile(r"[^A-Za-z0-9]+")
 _EMA_PARAM_NAME_PREFIXES: Tuple[str, ...] = (
     "_fsdp_wrapped_module.",
     "_checkpoint_wrapped_module.",
@@ -45,6 +47,218 @@ _EMA_PARAM_NAME_PREFIXES: Tuple[str, ...] = (
     "module.",
     "model.",
 )
+
+
+def _mean(values: List[float]) -> float:
+    """Return the arithmetic mean for a non-empty list, else 0.0."""
+    return float(sum(values)) / float(len(values)) if values else 0.0
+
+
+def _weighted_mean(values: List[float], weights: List[float]) -> float:
+    """Return the weighted mean or 0.0 when weights are empty."""
+    if not values or not weights:
+        return 0.0
+    total_weight = float(sum(weights))
+    if total_weight <= 0.0:
+        return 0.0
+    return float(sum(v * w for v, w in zip(values, weights))) / total_weight
+
+
+def _tokenize_for_diversity(text: str, tokenizer: Any = None) -> List[Any]:
+    """Tokenize a completion for diversity metrics."""
+    if not text:
+        return []
+    if tokenizer is not None:
+        try:
+            encode = getattr(tokenizer, "encode", None)
+            if callable(encode):
+                return list(encode(text, add_special_tokens=False))
+            if callable(tokenizer):
+                tokenized = tokenizer(text, add_special_tokens=False)
+                if isinstance(tokenized, dict) and "input_ids" in tokenized:
+                    return list(tokenized["input_ids"])
+                if isinstance(tokenized, (list, tuple)):
+                    return list(tokenized)
+        except Exception:
+            pass
+    return [tok for tok in text.strip().split() if tok]
+
+
+def _completion_diversity_metrics(
+    grouped_completions: List[List[str]],
+    *,
+    tokenizer: Any = None,
+    accelerator: Any = None,
+) -> Dict[str, float]:
+    """Return coarse diversity metrics for grouped completions."""
+    if not grouped_completions:
+        return {}
+
+    def _distinct_n(tokens: List[Any], n: int) -> float:
+        if n <= 0 or len(tokens) < n:
+            return 0.0
+        total = len(tokens) - n + 1
+        if total <= 0:
+            return 0.0
+        ngrams = {tuple(tokens[i : i + n]) for i in range(total)}
+        return float(len(ngrams)) / float(total)
+
+    def _jaccard_distance(sets: List[set[Any]]) -> float:
+        if len(sets) < 2:
+            return 0.0
+        total_dist = 0.0
+        pairs = 0
+        for i in range(len(sets)):
+            for j in range(i + 1, len(sets)):
+                a = sets[i]
+                b = sets[j]
+                union = a | b
+                if not union:
+                    dist = 0.0
+                else:
+                    dist = 1.0 - (len(a & b) / float(len(union)))
+                total_dist += dist
+                pairs += 1
+        return total_dist / float(pairs) if pairs > 0 else 0.0
+
+    group_metrics: List[Dict[str, float]] = []
+    for group in grouped_completions:
+        if not group:
+            continue
+        normalized = [comp.strip() for comp in group if comp is not None]
+        group_size = len(normalized)
+        if group_size <= 0:
+            continue
+        all_tokens: List[Any] = []
+        token_sets: List[set[Any]] = []
+        for comp in normalized:
+            tokens = _tokenize_for_diversity(comp, tokenizer)
+            if tokens:
+                all_tokens.extend(tokens)
+                token_sets.append(set(tokens))
+            else:
+                token_sets.append(set())
+        group_metrics.append(
+            {
+                "group_size": float(group_size),
+                "distinct_1": _distinct_n(all_tokens, 1),
+                "distinct_2": _distinct_n(all_tokens, 2),
+                "jaccard": _jaccard_distance(token_sets),
+            }
+        )
+
+    if not group_metrics:
+        return {}
+
+    if accelerator is not None and getattr(accelerator, "num_processes", 1) > 1:
+        gather_fn = getattr(accelerator, "gather_object", None)
+        if callable(gather_fn):
+            try:
+                gathered = gather_fn(group_metrics)
+                if isinstance(gathered, list):
+                    merged: List[Dict[str, float]] = []
+                    for item in gathered:
+                        if isinstance(item, list):
+                            merged.extend([m for m in item if isinstance(m, dict)])
+                        elif isinstance(item, dict):
+                            merged.append(item)
+                    if merged:
+                        group_metrics = merged
+            except Exception:
+                pass
+        else:
+            dist = getattr(torch, "distributed", None)
+            if (
+                dist is not None
+                and callable(getattr(dist, "is_available", None))
+                and callable(getattr(dist, "is_initialized", None))
+                and dist.is_available()
+                and dist.is_initialized()
+            ):
+                try:
+                    world = int(getattr(dist, "get_world_size")())
+                except (TypeError, ValueError, RuntimeError):
+                    world = 0
+                if world > 1:
+                    try:
+                        gathered = [None for _ in range(world)]
+                        gather_obj = getattr(dist, "all_gather_object", None)
+                        if callable(gather_obj):
+                            gather_obj(gathered, group_metrics)
+                            merged: List[Dict[str, float]] = []
+                            for item in gathered:
+                                if isinstance(item, list):
+                                    merged.extend([m for m in item if isinstance(m, dict)])
+                                elif isinstance(item, dict):
+                                    merged.append(item)
+                            if merged:
+                                group_metrics = merged
+                    except (RuntimeError, ValueError, TypeError):
+                        pass
+
+    distinct1_vals = [m["distinct_1"] for m in group_metrics if "distinct_1" in m]
+    distinct2_vals = [m["distinct_2"] for m in group_metrics if "distinct_2" in m]
+    jaccard_vals = [m["jaccard"] for m in group_metrics if "jaccard" in m]
+    weights = [m.get("group_size", 0.0) for m in group_metrics]
+    return {
+        "distinct_1": _mean(distinct1_vals),
+        "distinct_2": _mean(distinct2_vals),
+        "jaccard": _mean(jaccard_vals),
+        "distinct_1_micro": _weighted_mean(distinct1_vals, weights),
+        "distinct_2_micro": _weighted_mean(distinct2_vals, weights),
+        "jaccard_micro": _weighted_mean(jaccard_vals, weights),
+    }
+
+
+def _apply_eos_completion_mask(
+    completion_ids: torch.Tensor,
+    eos_token_id: Optional[int],
+    completion_mask: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    """Mask completion tokens after the first EOS token (TRL-style)."""
+    if eos_token_id is None:
+        if completion_mask is not None:
+            return completion_mask
+        return torch.ones_like(completion_ids, dtype=getattr(torch, "long", None))
+
+    try:
+        is_eos = completion_ids == eos_token_id
+        batch = int(is_eos.size(0))
+        seq_len = int(is_eos.size(1))
+        eos_idx = torch.full(
+            (batch,),
+            seq_len,
+            dtype=getattr(torch, "long", None),
+            device=getattr(completion_ids, "device", None),
+        )
+        any_eos = is_eos.any(dim=1)
+        if bool(any_eos.any()):
+            eos_pos = is_eos.int().argmax(dim=1)
+            eos_idx = eos_idx.clone()
+            eos_idx[any_eos] = eos_pos[any_eos]
+        seq_idx = torch.arange(
+            seq_len, device=getattr(completion_ids, "device", None)
+        ).unsqueeze(0)
+        seq_idx = seq_idx.expand(batch, -1)
+        mask = seq_idx <= eos_idx.unsqueeze(1)
+        to_fn = getattr(mask, "to", None)
+        if callable(to_fn):
+            mask = to_fn(dtype=getattr(torch, "long", None))
+        return cast(torch.Tensor, mask)
+    except Exception:
+        # Defensive fallback used for test doubles that only implement a subset
+        # of tensor ops; preserve prior behavior by returning an all-ones mask.
+        return torch.ones_like(completion_ids, dtype=getattr(torch, "long", None))
+
+
+def _metric_suffix_from_benchmark(name: Any) -> str:
+    """Return a metric-safe benchmark suffix (e.g., ``AIME24``)."""
+
+    text = str(name).strip()
+    if not text:
+        return "UNKNOWN"
+    cleaned = _BENCHMARK_SUFFIX_SANITIZER.sub("_", text).strip("_").upper()
+    return cleaned or "UNKNOWN"
 
 
 def _build_seed_worker(num_workers: int, rank: int):
@@ -828,7 +1042,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             *,
             mode: str,
         ) -> None:
-            """Log pass@8, pass@1, and mean@8 from grouped eval rollouts."""
+            """Log global and per-benchmark pass@8/pass@1/mean@1 metrics."""
             if mode != "eval":
                 return
             group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
@@ -858,6 +1072,80 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     return None
                 # TRL rollout order is [gen0 prompts..., gen1 prompts..., ...].
                 return flat_values.view(group_size, num_prompts).transpose(0, 1)
+
+            def _gather_benchmark_ids(
+                expected_flat_count: int,
+            ) -> Optional[torch.Tensor]:
+                """Return prompt-major benchmark ids aligned with ``successes``."""
+                if expected_flat_count <= 0:
+                    return None
+                keys = ("eval_benchmark_id", "benchmark_id")
+                raw_vals: Optional[List[Any]] = None
+                for key in keys:
+                    candidate = [example.get(key) for example in inputs]
+                    if candidate and any(val is not None for val in candidate):
+                        raw_vals = candidate
+                        break
+                if not raw_vals:
+                    return None
+                usable = min(len(raw_vals), expected_flat_count)
+                usable = usable - (usable % group_size)
+                if usable <= 0:
+                    return None
+                ids: List[int] = []
+                for val in raw_vals[:usable]:
+                    try:
+                        ids.append(int(val) if val is not None else -1)
+                    except (TypeError, ValueError):
+                        ids.append(-1)
+                ids_tensor = torch.tensor(
+                    ids,
+                    dtype=torch.long,
+                    device=self.accelerator.device,
+                )
+                ids_global = gather(ids_tensor)
+                grouped_ids = _reshape_eval_rollouts(ids_global)
+                if grouped_ids is None:
+                    return None
+                return grouped_ids[:, 0].to(torch.long)
+
+            def _append_per_benchmark_metrics(successes_tensor: torch.Tensor) -> None:
+                """Append per-benchmark pass metrics when benchmark ids are present."""
+                if successes_tensor.numel() <= 0:
+                    return
+                total_prompts = int(successes_tensor.size(0))
+                benchmark_ids = _gather_benchmark_ids(
+                    total_prompts * int(successes_tensor.size(1))
+                )
+                if not isinstance(benchmark_ids, torch.Tensor):
+                    return
+                if benchmark_ids.numel() != total_prompts:
+                    return
+                id_to_name = getattr(self, "eval_benchmark_id_to_name", {}) or {}
+                unique_ids = torch.unique(benchmark_ids)
+                for bench_id_tensor in unique_ids:
+                    bench_id = int(bench_id_tensor.item())
+                    if bench_id < 0:
+                        continue
+                    mask = benchmark_ids == bench_id_tensor
+                    bench_count = int(mask.to(torch.long).sum().item())
+                    if bench_count <= 0:
+                        continue
+                    bench_successes = successes_tensor[mask]
+                    bench_pass_at_8 = float(
+                        bench_successes.any(dim=1).to(torch.float32).mean().item()
+                    )
+                    bench_pass_at_1 = float(
+                        bench_successes[:, 0].to(torch.float32).mean().item()
+                    )
+                    bench_mean_at_1 = float(
+                        bench_successes[:, :1].to(torch.float32).mean().item()
+                    )
+                    bench_label = id_to_name.get(bench_id, f"BENCH_{bench_id}")
+                    suffix = _metric_suffix_from_benchmark(bench_label)
+                    self._append_metric_value(mode, f"pass_at_8_{suffix}", bench_pass_at_8)
+                    self._append_metric_value(mode, f"pass_at_1_{suffix}", bench_pass_at_1)
+                    self._append_metric_value(mode, f"mean_at_1_{suffix}", bench_mean_at_1)
 
             successes: Optional[torch.Tensor] = None
             reward_funcs = list(getattr(self, "reward_funcs", []) or [])
@@ -912,10 +1200,13 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 )
             pass_at_8 = float(successes.any(dim=1).to(torch.float32).mean().item())
             pass_at_1 = float(successes[:, 0].to(torch.float32).mean().item())
+            mean_at_1 = float(successes[:, :1].to(torch.float32).mean().item())
             mean_at_8 = float(successes.to(torch.float32).mean().item())
             self._append_metric_value(mode, "pass_at_8", pass_at_8)
             self._append_metric_value(mode, "pass_at_1", pass_at_1)
+            self._append_metric_value(mode, "mean_at_1", mean_at_1)
             self._append_metric_value(mode, "mean_at_8", mean_at_8)
+            _append_per_benchmark_metrics(successes)
 
         def _compute_policy_maxent_term(
             self,

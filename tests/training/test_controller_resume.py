@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import json
 import math
-import importlib
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
 
 import pytest
 
-from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
+from maxent_grpo.config import GRPOConfig
 from maxent_grpo.training.state import load_controller_state_chain
 from maxent_grpo.training.weighting.logic import (
     CONTROLLER_STATE_FILENAME,
@@ -140,46 +138,3 @@ def test_controller_resume_handles_missing_fields(tmp_path: Path) -> None:
     assert weighting.beta == pytest.approx(0.15)
     assert getattr(weighting, "_tau_log") == pytest.approx(math.log(max(weighting.tau, 1e-8)))
     assert math.isfinite(getattr(weighting, "_tau_entropy_ema"))
-
-
-@pytest.mark.parametrize(
-    ("module_name", "entrypoint_name"),
-    [
-        ("maxent_grpo.pipelines.training.maxent", "run_maxent_training"),
-        ("maxent_grpo.pipelines.training.infoseed", "run_infoseed_training"),
-    ],
-)
-def test_training_pipelines_delegate_to_baseline(
-    monkeypatch: pytest.MonkeyPatch,
-    module_name: str,
-    entrypoint_name: str,
-) -> None:
-    """MaxEnt/InfoSeed entrypoints should route through baseline training."""
-
-    pytest.importorskip("accelerate.utils")
-    pipeline_module = importlib.import_module(module_name)
-
-    calls: dict[str, Any] = {}
-
-    def _fake_baseline(script_args: Any, training_args: Any, model_args: Any) -> str:
-        calls["script_args"] = script_args
-        calls["training_args"] = training_args
-        calls["model_args"] = model_args
-        return "ok"
-
-    monkeypatch.setattr(pipeline_module, "_run_baseline_training", _fake_baseline)
-    monkeypatch.setattr(pipeline_module, "ensure_real_dependencies", lambda **_: None)
-    if hasattr(pipeline_module, "ensure_hf_repo_ready"):
-        monkeypatch.setattr(pipeline_module, "ensure_hf_repo_ready", lambda *_a, **_k: None)
-
-    script_args = GRPOScriptArguments(dataset_name="dummy")
-    training_args = GRPOConfig()
-    model_args = SimpleNamespace()
-
-    entrypoint = getattr(pipeline_module, entrypoint_name)
-    result = entrypoint(script_args, training_args, model_args)
-
-    assert result == "ok"
-    assert calls["script_args"] is script_args
-    assert calls["training_args"] is training_args
-    assert calls["model_args"] is model_args

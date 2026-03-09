@@ -22,7 +22,7 @@ error rather than a generic ``ImportError``.
 Accelerate and DeepSpeed
 ------------------------
 
-The Slurm launcher ``var/repo/ops/slurm/train.slurm`` expects an Accelerate config file
+The Slurm launcher ``ops/slurm/train_dual_4plus4.slurm`` expects an Accelerate config file
 under ``configs/recipes/accelerate_configs/<name>.yaml``. The ``--accelerator``
 flag in the launcher selects the file, and the resulting config controls
 process counts, mixed precision, and DeepSpeed integration.
@@ -37,12 +37,6 @@ To generate with vLLM during training:
 
 When these are set, the recipe loader infers ``vllm_server_base_url`` (plus host
 and port) from ``vllm_url`` if the server-specific fields are omitted.
-
-For standalone generation, use the distilabel CLI:
-
-.. code-block:: bash
-
-   python -m maxent_grpo.generate --help
 
 Environment Variables
 ---------------------

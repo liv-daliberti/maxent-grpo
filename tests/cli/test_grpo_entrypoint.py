@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from types import ModuleType
 import sys
+import pytest
 
 
 def _install_baseline_stub(monkeypatch):
-    baseline_mod = ModuleType("maxent_grpo.pipelines.training.baseline")
+    baseline_mod = ModuleType("maxent_grpo.training.baseline")
     baseline_mod.run_baseline_training = lambda *_a, **_k: (_a, _k)
     monkeypatch.setitem(
-        sys.modules, "maxent_grpo.pipelines.training.baseline", baseline_mod
+        sys.modules, "maxent_grpo.training.baseline", baseline_mod
     )
     return baseline_mod
 
@@ -47,7 +48,7 @@ def test_main_parses_when_args_missing(monkeypatch):
     assert called["args"] == (("s1", "t1", "m1"), {})
 
 
-def test_main_falls_back_to_hydra(monkeypatch):
+def test_main_parse_error_propagates(monkeypatch):
     import importlib
 
     monkeypatch.delitem(sys.modules, "maxent_grpo.grpo", raising=False)
@@ -56,13 +57,8 @@ def test_main_falls_back_to_hydra(monkeypatch):
     monkeypatch.setattr(
         module, "parse_grpo_args", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
     )
-    called = {}
-    monkeypatch.setattr(
-        module.hydra_cli, "baseline_entry", lambda: called.setdefault("hydra", True)
-    )
-
-    module.main()
-    assert called["hydra"] is True
+    with pytest.raises(RuntimeError, match="boom"):
+        module.main()
 
 
 def test_cli_invokes_main(monkeypatch):

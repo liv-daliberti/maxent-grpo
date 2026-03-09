@@ -25,12 +25,15 @@ def test_main_uses_parsed_args(monkeypatch):
         module,
         "hydra_cli",
         SimpleNamespace(
-            maxent_entry=lambda: (_ for _ in ()).throw(RuntimeError("should not"))
+            _maybe_insert_command=lambda _cmd: (_ for _ in ()).throw(
+                RuntimeError("should not")
+            ),
+            hydra_entry=lambda: (_ for _ in ()).throw(RuntimeError("should not")),
         ),
     )
-    stub_mod = ModuleType("maxent_grpo.pipelines.training.maxent")
-    stub_mod.run_maxent_training = _run
-    monkeypatch.setitem(sys.modules, "maxent_grpo.pipelines.training.maxent", stub_mod)
+    stub_mod = ModuleType("maxent_grpo.training.baseline")
+    stub_mod.run_baseline_training = _run
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", stub_mod)
 
     result = module.main()
     assert result == "ok"
@@ -50,8 +53,17 @@ def test_main_fallbacks_to_hydra(monkeypatch):
         hydra_called["called"] = True
         return "hydra"
 
-    monkeypatch.setattr(module, "hydra_cli", SimpleNamespace(maxent_entry=_hydra_entry))
+    inserted = {}
+    monkeypatch.setattr(
+        module,
+        "hydra_cli",
+        SimpleNamespace(
+            _maybe_insert_command=lambda cmd: inserted.setdefault("command", cmd),
+            hydra_entry=_hydra_entry,
+        ),
+    )
 
     result = module.main()
     assert hydra_called.get("called") is True
+    assert inserted.get("command") == "train-maxent"
     assert result == "hydra"

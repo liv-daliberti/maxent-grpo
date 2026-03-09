@@ -8,7 +8,7 @@ from functools import lru_cache
 import importlib
 import subprocess
 from typing import Any, Dict, Optional, Sequence, Tuple, Union, TYPE_CHECKING
-from maxent_grpo.telemetry.wandb import init_wandb_training
+from maxent_grpo.training.telemetry.wandb import init_wandb_training
 
 from .setup import _optional_dependency
 import sys

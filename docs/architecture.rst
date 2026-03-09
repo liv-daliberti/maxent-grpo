@@ -1,63 +1,55 @@
 Training Architecture
 =====================
 
-The MaxEnt‑GRPO trainer follows a modular flow so each stage can evolve
-independently (e.g., swapping generation backends or integrating new reward
-models).  The diagram below shows the high‑level data path; each stage links to
-its corresponding module in the codebase.
+The training stack now uses one shared path for both GRPO and MaxEnt runs.
+The only intended objective-level divergence is inside
+``maxent_grpo.training.trl_trainer``.
 
 Flow Diagram
 ------------
 
 .. code-block:: text
 
-       Prompts / Dataloader
+       CLI / Slurm Entrypoint
+       (``src/maxent_grpo/grpo.py``)
                 │
                 ▼
-      Generation & vLLM bridge
-      (``maxent_grpo.training.rollout``)
+      Shared Training Pipeline
+      (``maxent_grpo.training.baseline``)
                 │
                 ▼
-      Reward + Reference Prep
-      (``maxent_grpo.training.pipeline.prepare_training_batch``)
+      Dataset + Prompt Mapping
+      (shared ``prompt``/``answer`` transform)
                 │
                 ▼
-      Loss / Optimizer / Controllers
-      (``maxent_grpo.training.trl_trainer`` + ``maxent_grpo.training.loop``)
-         │                    │
-         │                    └──► Checkpointing / Controllers
-         │                         (``maxent_grpo.training.state``, ``maxent_grpo.training.zero_utils``)
-         ▼
-      Metrics & Logging
-      (``maxent_grpo.training.metrics``)
+      Reward Resolution
+      (``maxent_grpo.training.rewards``)
+                │
+                ▼
+      Objective + Loss
+      (``maxent_grpo.training.trl_trainer``)
+                │
+                ▼
+      TRL/HF Optimization + Checkpointing
 
 
 Stage Breakdown
 ---------------
 
-Generation
-    :mod:`maxent_grpo.training.rollout` and
-    :mod:`maxent_grpo.training.rollout.vllm_adapter` construct grouped completions,
-    handling prompt truncation, tokenizer quirks, and optional multi-round
-    vLLM retries.
+Entrypoint
+    ``src/maxent_grpo/grpo.py`` is the canonical trainer entrypoint used for
+    both GRPO and MaxEnt variants.
 
-Reward & Reference Preparation
-    :func:`maxent_grpo.training.pipeline.prepare_training_batch`
-    orchestrates reward computation (:mod:`maxent_grpo.training.rewards`),
-    reference log-prob gathering, weighting, and sequence scoring so downstream
-    stages always receive a fully populated :class:`PreparedBatch`.
+Shared Pipeline
+    :func:`maxent_grpo.training.baseline.run_baseline_training`
+    performs all shared setup (dataset loading, prompt mapping, tokenizer/model,
+    trainer wiring, train/eval, save/resume).
 
-Loss / Optimizer
-    :mod:`maxent_grpo.training.trl_trainer` consumes sequence scores and applies
-    GRPO/MaxEnt objectives, while :mod:`maxent_grpo.training.loop` handles
-    gradient accumulation, learning-rate schedules, adaptive controllers,
-    validation, and checkpoint cadence.
+Rewards
+    :mod:`maxent_grpo.training.rewards` resolves reward functions and weights
+    with identical logic across both objectives.
 
-Logging & Checkpointing
-    :mod:`maxent_grpo.training.metrics` builds structured metric payloads for
-    console or W&B via :mod:`maxent_grpo.telemetry.wandb`, while
-    :mod:`maxent_grpo.training.state` stores controller state, mirrors HF
-    metadata, and manages distributed checkpointing.
-
-This structure makes it clear where to inject new behaviors (e.g., custom
-rewards or logging sinks) without modifying the rest of the pipeline.
+Objective Boundary
+    :mod:`maxent_grpo.training.trl_trainer` contains the objective-specific
+    behavior (GRPO vs MaxEnt). Keep divergence localized here for fair
+    comparisons.

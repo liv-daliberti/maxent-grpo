@@ -107,6 +107,7 @@ def _payload() -> metrics_mod.TrainingMetricsPayload:
     )
     weight_stats = metrics_mod.WeightLoggingView(
         entropy=0.1,
+        entropy_norm=0.1,
         entropy_min=0.0,
         entropy_max=0.2,
         advantage_entropy_mean=0.0,
@@ -302,6 +303,7 @@ def test_build_training_metrics_emits_weight_entropy_key():
     payload = _payload()
     payload.weight_stats = metrics_mod.WeightLoggingView(
         entropy=0.33,
+        entropy_norm=0.33,
         entropy_min=0.1,
         entropy_max=0.5,
         advantage_entropy_mean=0.0,
@@ -348,6 +350,7 @@ def test_build_training_metrics_emits_controller_signals():
     # Make weight entropy non-zero to exercise tau error/loss.
     payload.weight_stats = payload.weight_stats.__class__(
         entropy=0.5,
+        entropy_norm=0.5,
         entropy_min=0.0,
         entropy_max=1.0,
         advantage_entropy_mean=0.0,
@@ -432,23 +435,6 @@ def test_build_training_metrics_preserves_kl_buckets():
     assert metrics["train/kl_per_token_bucket_tokens/33-64"] == pytest.approx(50.0)
 
 
-def test_build_training_metrics_logs_seed_and_entropy_losses():
-    payload = _payload()
-    # Inject seed/info entropy scalars into loss outputs and ensure they surface.
-    payload.loss_outputs = payload.loss_outputs.__class__(
-        total_loss_scalar=1.0,
-        policy_loss_scalar=0.5,
-        kl_loss_scalar=0.1,
-        weighted_kl_loss_scalar=0.1,
-        clip_loss_scalar=None,
-        seed_loss_value=0.25,
-        info_seed_entropy_scalar=0.125,
-    )
-    metrics = metrics_mod.build_training_metrics_dict(payload, global_step=9)
-    assert metrics["train/loss/seed"] == pytest.approx(0.25)
-    assert metrics["train/info_seed/entropy"] == pytest.approx(0.125)
-
-
 def test_build_training_metrics_logs_controller_deltas():
     payload = _payload()
     weighting = payload.config.weighting
@@ -472,8 +458,6 @@ def test_build_training_metrics_logs_clip_and_kl_per_token_zero():
         kl_loss_scalar=0.0,
         weighted_kl_loss_scalar=0.0,
         clip_loss_scalar=0.75,
-        seed_loss_value=None,
-        info_seed_entropy_scalar=None,
     )
     metrics = metrics_mod.build_training_metrics_dict(payload, global_step=4)
     assert metrics["train/loss/clip"] == pytest.approx(0.75)
@@ -567,7 +551,7 @@ def test_log_local_step_accumulates(monkeypatch):
             ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0),
             length_stats=payload.length_stats,
             num_completion_tokens=payload.scalars.tokens.num_completion_tokens,
-            seed_metrics=None,
+            diversity_metrics=None,
         ),
         metrics_mod.LogStepArtifacts(
             loss_outputs=payload.loss_outputs,
@@ -631,7 +615,7 @@ def test_log_training_step_aggregates(monkeypatch):
         ref_stats=SimpleNamespace(ref_logp_mean=0.0, avg_completion_tokens=1.0),
         length_stats=payload.length_stats,
         num_completion_tokens=payload.scalars.tokens.num_completion_tokens,
-        seed_metrics=None,
+        diversity_metrics=None,
     )
     metrics_mod.log_local_step(
         ctx_full,
@@ -715,7 +699,7 @@ def test_log_like_grpo_logs_accumulated_rewards(monkeypatch):
             avg_completion_tokens=payload.scalars.tokens.avg_completion_tokens,
         ),
         num_completion_tokens=payload.scalars.tokens.num_completion_tokens,
-        seed_metrics=None,
+        diversity_metrics=None,
     )
     log_artifacts = metrics_mod.LogStepArtifacts(
         loss_outputs=payload.loss_outputs,

@@ -27,7 +27,6 @@ dependencies:
   - pip:
       - -c constraints.txt
       # Requirements needing extras/direct refs that cannot live in constraints.txt
-      - distilabel[vllm,ray,openai]>=1.5.2
       - huggingface-hub[cli,hf_xet]>=0.30.2,<1.0
       - trl[vllm]==0.18.0
       - lighteval @ git+https://github.com/huggingface/lighteval.git@d3da6b9bbf38104c8b5e1acc86f83541f9a502d1

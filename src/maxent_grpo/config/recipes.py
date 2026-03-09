@@ -34,7 +34,6 @@ from urllib.parse import urlparse
 from pydantic import BaseModel, ConfigDict, PositiveInt, ValidationError, model_validator
 
 from .grpo import GRPOConfig, GRPOScriptArguments
-from .defaults import INFO_SEED_DEFAULTS
 
 LOG = logging.getLogger(__name__)
 
@@ -98,20 +97,9 @@ class _MaxentRecipeSchema(_BaselineRecipeSchema):
         return self
 
 
-class _InfoSeedRecipeSchema(_BaselineRecipeSchema):
-    info_seed_enabled: bool
-
-    @model_validator(mode="after")
-    def _validate_infoseed(self) -> "_InfoSeedRecipeSchema":
-        if not self.info_seed_enabled:
-            raise ValueError("InfoSeed recipes must set info_seed_enabled=true")
-        return self
-
-
 _RECIPE_SCHEMAS = {
     "baseline": _BaselineRecipeSchema,
     "maxent": _MaxentRecipeSchema,
-    "infoseed": _InfoSeedRecipeSchema,
 }
 
 
@@ -124,13 +112,8 @@ def _infer_recipe_kind(recipe_path: Optional[str], payload: Dict[str, Any]) -> s
     base_hint = os.path.basename(path_hint)
     parent_hint = os.path.basename(os.path.dirname(path_hint))
     for hint in (base_hint, parent_hint):
-        if "infoseed" in hint:
-            return "infoseed"
-    for hint in (base_hint, parent_hint):
         if "maxent-grpo" in hint:
             return "maxent"
-    if payload.get("info_seed_enabled"):
-        return "infoseed"
     if payload.get("train_grpo_objective") is False:
         return "maxent"
     return "baseline"
@@ -319,8 +302,6 @@ def load_grpo_recipe(
     if env_wandb_group:
         training_kwargs["wandb_run_group"] = env_wandb_group
     _maybe_infer_vllm_server_overrides(training_kwargs)
-    for key, default_val in INFO_SEED_DEFAULTS.items():
-        training_kwargs.setdefault(key, other_kwargs.get(key, default_val))
     script_args = GRPOScriptArguments(**script_kwargs)
     env_log_level = os.environ.get("MAXENT_LOG_LEVEL")
     if env_log_level:

@@ -1,0 +1,15 @@
+command: train-baseline
+baseline:
+  recipe: configs/recipes/Qwen2.5-0.5B-Instruct/grpo/config_code_mbpp.yaml
+  training:
+    controller_meta_enabled: false
+    controller_meta_method: analytic
+    controller_meta_lr: 0.0
+    controller_meta_update_interval: 1
+
+hydra:
+  run:
+    dir: var/artifacts/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: var/artifacts/outputs/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

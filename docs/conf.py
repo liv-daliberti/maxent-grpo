@@ -225,24 +225,6 @@ tf_utils_mod.logging = getattr(
 transformers_mod.utils = tf_utils_mod
 transformers_mod.set_seed = getattr(transformers_mod, "set_seed", lambda *a, **k: None)
 
-distilabel_mod = _ensure_stub("distilabel")
-pipeline_mod = _ensure_stub("distilabel.pipeline")
-pipeline_mod.Pipeline = getattr(pipeline_mod, "Pipeline", type("Pipeline", (), {}))
-distilabel_mod.pipeline = pipeline_mod
-steps_mod = _ensure_stub("distilabel.steps")
-tasks_mod = _ensure_stub("distilabel.steps.tasks")
-tasks_mod.TextGeneration = getattr(
-    tasks_mod, "TextGeneration", type("TextGeneration", (), {})
-)
-steps_mod.tasks = tasks_mod
-distilabel_mod.steps = steps_mod
-llms_mod = _ensure_stub("distilabel.llms")
-llms_mod.OpenAILLM = getattr(llms_mod, "OpenAILLM", type("OpenAILLM", (), {}))
-distilabel_mod.llms = llms_mod
-
-sys.modules.setdefault("distilabel", distilabel_mod)
-sys.modules.setdefault("distilabel.pipeline", pipeline_mod)
-
 project = "MaxEnt-GRPO"
 author = "Hugging Face + Liv d'Aliberti"
 copyright = f"{datetime.now().year}, {author}"
@@ -316,7 +298,7 @@ autodoc_type_aliases = {
     "GRPOConfig": "maxent_grpo.config.grpo.GRPOConfig",
     "GRPOScriptArguments": "maxent_grpo.config.grpo.GRPOScriptArguments",
     "RewardConfig": "maxent_grpo.rewards.basic.RewardConfig",
-    "GenerationServiceError": "maxent_grpo.generation.errors.GenerationServiceError",
+    "GenerationServiceError": "maxent_grpo.training.generation.errors.GenerationServiceError",
     "LoggingHandles": "maxent_grpo.training.types.logging.LoggingHandles",
     "PromptCacheEntry": "maxent_grpo.training.types.rewards.PromptCacheEntry",
     "ReferenceLogprobs": "maxent_grpo.training.types.rewards.ReferenceLogprobs",
@@ -484,7 +466,7 @@ _DUPLICATE_EXPORTS = {
     "maxent_grpo.rewards": {
         "RewardConfig",
     },
-    "maxent_grpo.generation.vllm": {
+    "maxent_grpo.training.generation.vllm": {
         "GenerationServiceError",
         "VLLMServiceError",
     },

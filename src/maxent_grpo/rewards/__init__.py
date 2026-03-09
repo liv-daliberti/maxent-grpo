@@ -18,7 +18,7 @@ Reward utilities shared across MaxEnt-GRPO components.
 Two layers of rewards are exposed:
 
 ``maxent_grpo.rewards.basic``
-    Lightweight registry used by the baseline GRPO trainer and inference helpers.
+    Lightweight registry used by the baseline GRPO trainer.
 ``maxent_grpo.rewards.maxent``
     Re-exports the richer reward/statistics helpers used inside the MaxEnt runner.
 """
@@ -36,6 +36,7 @@ from .basic import (
     get_reward_funcs,
     pure_accuracy_math_correctness,
     pure_accuracy_reward_math,
+    python_unit_test_reward,
     uses_pure_accuracy_math_reward,
 )
 
@@ -48,6 +49,7 @@ __all__ = [
     "get_reward_funcs",
     "pure_accuracy_math_correctness",
     "pure_accuracy_reward_math",
+    "python_unit_test_reward",
     "uses_pure_accuracy_math_reward",
 ]
 

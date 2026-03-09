@@ -16,10 +16,10 @@ limitations under the License.
 MaxEnt-GRPO Python package namespace.
 
 All public modules live under this package (e.g., ``maxent_grpo.training``,
-``maxent_grpo.pipelines``, ``maxent_grpo.cli``).  Importing :mod:`maxent_grpo`
-exposes those submodules through a light lazy-loader so code can use
-``from maxent_grpo import training`` without pulling heavy dependencies until
-they are actually accessed.
+``maxent_grpo.cli``). Importing :mod:`maxent_grpo` exposes those submodules
+through a light lazy-loader so code can use ``from maxent_grpo import
+training`` without pulling heavy dependencies until they are actually
+accessed.
 """
 
 from __future__ import annotations
@@ -32,11 +32,7 @@ _PUBLIC_SUBMODULES = [
     "cli",
     "config",
     "core",
-    "generation",
-    "patches",
-    "pipelines",
     "rewards",
-    "telemetry",
     "training",
 ]
 _PUBLIC_ATTRS = {
@@ -47,11 +43,7 @@ __all__ = [
     "cli",
     "config",
     "core",
-    "generation",
-    "patches",
-    "pipelines",
     "rewards",
-    "telemetry",
     "training",
     "main",
     "parse_grpo_args",
@@ -98,11 +90,7 @@ if TYPE_CHECKING:  # pragma: no cover - type hints only
     from . import cli as cli
     from . import config as config
     from . import core as core
-    from . import generation as generation
-    from . import patches as patches
-    from . import pipelines as pipelines
     from . import rewards as rewards
-    from . import telemetry as telemetry
     from . import training as training
     from .cli import hydra_cli as hydra_cli
 
@@ -131,10 +119,13 @@ def main(
                 from maxent_grpo.cli import hydra_cli as hydra_mod
 
                 globals()["hydra_cli"] = hydra_mod
-            return hydra_mod.maxent_entry()
-    from maxent_grpo.pipelines.training.maxent import run_maxent_training
+            maybe_insert = getattr(hydra_mod, "_maybe_insert_command", None)
+            if callable(maybe_insert):
+                maybe_insert("train-maxent")
+            return hydra_mod.hydra_entry()
+    from maxent_grpo.training.baseline import run_baseline_training
 
-    return run_maxent_training(script_args, training_args, model_args)
+    return run_baseline_training(script_args, training_args, model_args)
 
 
 def __getattr__(name: str) -> Any:

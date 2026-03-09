@@ -10,7 +10,7 @@ Recipes are **flat** YAML mappings. Fields are routed automatically into three
 config objects based on their dataclass field names:
 
 - ``GRPOScriptArguments`` (dataset, evaluation, reward-related script knobs)
-- ``GRPOConfig`` (training, MaxEnt/InfoSeed, vLLM, logging)
+- ``GRPOConfig`` (training, MaxEnt, vLLM, logging)
 - TRL ``ModelConfig`` (model name, dtype, revision, etc.)
 
 Keys that do not match script or training fields are forwarded to the TRL
@@ -44,7 +44,6 @@ schema validation enforces:
 - MaxEnt recipes must set ``train_grpo_objective: false`` **unless** they opt
   into GRPO + entropy bonus via ``policy_entropy_bonus_coef>0`` under
   ``train-maxent``.
-- InfoSeed recipes must set ``info_seed_enabled: true``.
 
 Validation is skipped during tests and only applies to flat recipe files (not
 Hydra configs).
@@ -89,6 +88,8 @@ Use the GRPO recipe under ``grpo/`` and the MaxEnt counterpart under
 
 - GRPO: ``configs/recipes/<model>/grpo/config_math.yaml``
 - MaxEnt: ``configs/recipes/<model>/maxent-grpo/config_math.yaml``
+- Coding GRPO: ``configs/recipes/<model>/grpo/config_code_mbpp.yaml``
+- Coding MaxEnt: ``configs/recipes/<model>/maxent-grpo/config_code_mbpp.yaml``
 
 Paired GRPO recipes pin ``maxent_reference_logprobs_source: model`` so both
 objectives use a frozen reference anchor for KL, and they keep optimizer and
@@ -112,8 +113,10 @@ Hydra recipes
 - Baseline: ``configs/recipes/hydra/baseline_math.yaml``
 - GRPO (paired parity): ``configs/recipes/hydra/grpo_custom_math.yaml``
 - MaxEnt-GRPO: ``configs/recipes/hydra/maxent_math.yaml``
-- InfoSeed: ``configs/recipes/hydra/infoseed_math.yaml``
+- Coding baseline (MBPP): ``configs/recipes/hydra/baseline_code_mbpp.yaml``
+- Coding GRPO parity (MBPP): ``configs/recipes/hydra/grpo_custom_code_mbpp.yaml``
+- Coding MaxEnt (MBPP): ``configs/recipes/hydra/maxent_code_mbpp.yaml``
 
 Hydra configs bundle ``command=...`` with a recipe path and optional overrides
-under ``baseline`` / ``maxent`` / ``infoseed``. They are a convenient way to
+under ``baseline`` / ``maxent``. They are a convenient way to
 share fully-specified CLI runs without long command lines.

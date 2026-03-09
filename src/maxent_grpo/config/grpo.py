@@ -319,7 +319,7 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "Optional checkpoint path to initialize weights/state from when resuming "
-                "custom MaxEnt/InfoSeed loops."
+                "custom MaxEnt loops."
             )
         },
     )
@@ -853,55 +853,6 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": "GRPO loss aggregation: 'grpo', 'bnpo', or 'dr_grpo'."
         },
-    )
-    info_seed_enabled: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "Enable InfoSeed auxiliary loss and seed-conditioned sampling. "
-                "When false, seed augmentation and seed loss remain disabled."
-            )
-        },
-    )
-    info_seed_num_seeds: int = field(
-        default=0,
-        metadata={
-            "help": "Number of seeds per prompt for InfoSeed augmentation. Ignored when disabled."
-        },
-    )
-    info_seed_lambda: float = field(
-        default=0.0,
-        metadata={"help": "Scaling factor for the InfoSeed auxiliary loss."},
-    )
-    info_seed_temperature: float = field(
-        default=0.1,
-        metadata={"help": "Temperature applied to the InfoSeed contrastive loss."},
-    )
-    info_seed_alpha_entropy: float = field(
-        default=0.0,
-        metadata={
-            "help": (
-                "Optional entropy MI-style weight applied to H(orig)-H(seed_aug); "
-                "kept for compatibility, unused by default."
-            )
-        },
-    )
-    info_seed_prompt_template: str = field(
-        default="\n[seed={seed}]",
-        metadata={
-            "help": (
-                "Template appended to prompts for seed-augmented completions. "
-                "Supports {seed} placeholder; include {prompt} to override full rendering."
-            )
-        },
-    )
-    info_seed_loss_type: str = field(
-        default="infonce",
-        metadata={"help": "Seed loss type: 'ce' or 'infonce'."},
-    )
-    info_seed_pooling: str = field(
-        default="mean",
-        metadata={"help": "Pooling for seed representations: 'mean' or 'last'."},
     )
     kl_target: float = field(
         default=0.0,

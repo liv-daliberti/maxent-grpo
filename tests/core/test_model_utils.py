@@ -68,6 +68,20 @@ def test_get_model_passes_expected_kwargs(monkeypatch):
     assert seen["use_cache"] is False
 
 
+def test_get_tokenizer_sets_pad_token_from_eos(monkeypatch):
+    model_args = SimpleNamespace(
+        model_name_or_path="x", model_revision="main", trust_remote_code=True
+    )
+    training_args = SimpleNamespace(chat_template=None)
+    dummy = SimpleNamespace(chat_template=None, pad_token=None, eos_token="<eos>")
+    monkeypatch.setattr(
+        MU.AutoTokenizer, "from_pretrained", lambda *_a, **_k: dummy
+    )
+
+    tok = MU.get_tokenizer(model_args, training_args)
+    assert getattr(tok, "pad_token", None) == "<eos>"
+
+
 """
 Copyright 2025 Liv d'Aliberti
 

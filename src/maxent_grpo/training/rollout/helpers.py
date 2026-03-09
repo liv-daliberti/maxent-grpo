@@ -22,11 +22,11 @@ import time
 from typing import Any, Callable
 
 import maxent_grpo.training.rollout.vllm_adapter as _vllm_adapter
-from maxent_grpo.patches.vllm import safe_generate
-from maxent_grpo.generation.vllm import VLLMGenerationHelper
+from maxent_grpo.training.patches.vllm import safe_generate
+from maxent_grpo.training.generation.vllm import VLLMGenerationHelper
 from maxent_grpo.training.runtime import require_torch
 from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT, _truncate_prompt
-from maxent_grpo.generation.common import (
+from maxent_grpo.training.generation.common import (
     AggregatedGenerationState as _AggregatedGenerationState,
     append_completion_group as _append_completion_group,
     determine_retry_limit as _determine_retry_limit,

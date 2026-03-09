@@ -72,7 +72,7 @@ def register_lighteval_task(
     """Register a LightEval task configuration in ``configs``.
 
     - Core tasks table: https://github.com/huggingface/lighteval/blob/main/src/lighteval/tasks/tasks_table.jsonl
-    - Custom tasks should live under your project (e.g., var/repo/custom_tasks/ or var/repo/tools/).
+    - Custom tasks should live under your project (e.g., ``tasks/`` or ``ops/``).
 
     :param configs: Mapping where the serialized task spec is stored; mutated
         in place with the new ``task_name`` entry.
@@ -186,10 +186,13 @@ def run_lighteval_job(
 
     cmd = VLLM_SLURM_PREFIX.copy()
     gpu_flags = _build_slurm_gpu_flag(num_gpus)
+    eval_slurm_script = os.getenv(
+        "MAXENT_EVAL_SLURM_SCRIPT", "ops/slurm/evaluate.slurm"
+    )
     cmd_args = [
         *gpu_flags,
         f"--job-name=or1_{benchmark}_{model_name.split('/')[-1]}_{model_revision}",
-        "var/repo/ops/slurm/evaluate.slurm",
+        eval_slurm_script,
         benchmark,
         f'"{task_list}"',
         model_name,

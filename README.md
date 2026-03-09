@@ -5,7 +5,7 @@ A clean GRPO training stack that supports vanilla GRPO, GRPO + entropy bonus, an
 
 ## Quick Start
 
-- Bootstrap the repo-local env + caches: `bash var/repo/tools/bootstrap_env.sh` (wraps `configs/environment.yml`, writes the env to `./var/openr1` and all caches/tmp under `./var`). Equivalent: `make conda-local`.
+- Bootstrap the repo-local env + caches: `make conda-local` (uses `configs/environment.yml`, writes the env to `./var/openr1`, and keeps caches/tmp under `./var`).
 - Activate: `conda activate ./var/openr1`; refresh installs via `pip install -c configs/constraints.txt -e .[dev]`.
 - Authenticate with Hugging Face (`huggingface-cli login` or `export HF_TOKEN=…`) so gated models/datasets can be pulled by vLLM/TRL.
 - Training telemetry / proof of work: public run stats at [wandb.ai ↗](https://api.wandb.ai/links/ogd3-princeton-university/aw6ecc9b).
@@ -15,26 +15,23 @@ Run the Hydra console scripts from the repo root:
 # Baseline GRPO using the math recipe (static τ/β by default)
 maxent-grpo-baseline baseline.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
 
-# InfoSeed-GRPO using the math recipe (TRL trainer loop; τ/β meta-controller enabled)
-maxent-grpo-infoseed infoseed.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml
-
 # Inline overrides without a YAML recipe
 maxent-grpo-baseline command=train-baseline \
   baseline.script.dataset_name=open-r1/OpenR1-Math-220k \
   baseline.training.output_dir=var/data/out
 
-# Generation + inference helpers
-maxent-grpo-generate command=generate \
-  generate.args.hf_dataset=open-r1/OpenR1-Math-220k \
-  generate.args.model=Qwen/Qwen2.5-1.5B-Instruct
-maxent-grpo-math-eval command=math-eval \
-  inference.dataset=math_500 \
-  inference.num_generations=8 \
-  inference.seeds=[0,1,2,3,4] \
-  inference.temperature=0.6 \
-  inference.models='[ {model_name_or_path: od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1} ]' \
-  inference.collect_generations=false \
-  inference.artifacts.root_dir=var/artifacts/inference
+# Coding parity recipes (MBPP train + HumanEval eval) for 0.5B
+maxent-grpo-baseline baseline.recipe=configs/recipes/Qwen2.5-0.5B-Instruct/grpo/config_code_mbpp.yaml
+maxent-grpo command=train-maxent \
+  maxent.recipe=configs/recipes/Qwen2.5-0.5B-Instruct/maxent-grpo/config_code_mbpp.yaml
+
+# Optional: switch eval to APPS without changing the training dataset
+maxent-grpo-baseline \
+  baseline.recipe=configs/recipes/Qwen2.5-0.5B-Instruct/grpo/config_code_mbpp.yaml \
+  baseline.script.eval_dataset_name=codeparrot/apps \
+  baseline.script.eval_dataset_split=test \
+  baseline.script.eval_dataset_prompt_column=question \
+  baseline.script.eval_dataset_solution_column=input_output
 ```
 
 Paired recipes (GRPO vs MaxEnt): each model ships matched configs under
@@ -53,13 +50,13 @@ within each prompt group and scaled by the batch reward std, then added to the
 reward before the loss is built; logs report the bonus mean and its impact on
 the total reward/objective.
 
-All MaxEnt and InfoSeed recipes now enable the τ/β meta-controller (analytic mode) by default so weights stay on target without manual tuning. Override with Hydra/CLI flags such as ``controller_meta_enabled=false`` (fully static), ``controller_meta_method=first_order`` (truncated gradients), or ``controller_meta_lr=0.02`` for per-project retuning. The baseline GRPO recipes keep the controller disabled unless you explicitly flip the flag.
+All MaxEnt recipes now enable the τ/β meta-controller (analytic mode) by default so weights stay on target without manual tuning. Override with Hydra/CLI flags such as ``controller_meta_enabled=false`` (fully static), ``controller_meta_method=first_order`` (truncated gradients), or ``controller_meta_lr=0.02`` for per-project retuning. The baseline GRPO recipes keep the controller disabled unless you explicitly flip the flag.
 
 Examples:
 
 ```bash
 # Disable meta-controller for ablations (MaxEnt pipeline)
-maxent-grpo-maxent maxent.training.controller_meta_enabled=false
+maxent-grpo command=train-maxent maxent.training.controller_meta_enabled=false
 
 # Enable first-order meta updates for baseline GRPO
 maxent-grpo-baseline \
@@ -68,41 +65,16 @@ maxent-grpo-baseline \
   baseline.training.controller_meta_lr=0.02
 ```
 
-The MaxEnt runner is provided as building blocks under `src/maxent_grpo/training/` and a YAML recipe; the convenience CLI (`maxent-grpo-maxent` / `--task maxent`) currently raises until the dedicated launcher is restored.
+The MaxEnt runner uses the same training code path as baseline GRPO; select it with `maxent-grpo command=train-maxent` and MaxEnt-oriented recipe/overrides.
 
-Multi-node training (recommended): `sbatch var/repo/ops/slurm/train.slurm --model Qwen2.5-1.5B-Instruct --task grpo --config math --accelerator zero3 --args "--run_name demo --report_to wandb"`.
-- Inspect `sbatch var/repo/ops/slurm/train.slurm --help` for dp/tp, ports, vLLM mode, and accelerate config knobs. All caches stay under `var/` and run artifacts under `var/artifacts/` by default.
-
-Evaluate math benchmarks locally via `src/inference`:
-```python
-from maxent_grpo.inference import InferenceModelSpec, run_math_eval_inference
-
-specs = [
-    InferenceModelSpec(
-        model_name_or_path="od2961/Qwen2.5-1.5B-Open-R1-GRPO-math-v1",
-        style="grpo",
-        system_prompt="...",  # match the recipe prompt
-    ),
-    InferenceModelSpec(
-        model_name_or_path="od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1",
-        style="maxent",
-        system_prompt="...",
-    ),
-]
-for res in run_math_eval_inference(specs):
-    print(res.label, res.accuracy)
-```
+Slurm training (single-node dual launcher): `sbatch ops/slurm/train_dual_4plus4.slurm --model Qwen2.5-1.5B-Instruct --config math --accelerator zero3 --run-only grpo --grpo-args "--run_name demo --report_to wandb"`.
+- Inspect `sbatch ops/slurm/train_dual_4plus4.slurm --help` for run mode, config overrides, and trainer arg forwarding. All caches stay under `var/` and run artifacts under `var/artifacts/` by default.
 
 Notes
-- Recipes live in `configs/recipes/` (Hydra shortcuts: `configs/recipes/hydra/{baseline,maxent}_math.yaml`).
-- InfoSeed runner: recipe at `configs/recipes/Qwen2.5-1.5B-Instruct/infoseed/config_math.yaml` with Hydra shortcut `configs/recipes/hydra/infoseed_math.yaml`; console alias `maxent-grpo-infoseed`.
-- Inference presets cover `math_500`, `aime24`, `aime25`, `amc`, and `minerva`; override columns/splits via `inference.eval.*` if you use alternative mirrors. The math eval pipeline reports Pass@1, Pass@k (default k=8), and Avg@k averaged across seeds (default seeds: `[0,1,2,3,4]` at temperature 0.6).
-  - Every math eval invocation now persists prompt-level artifacts under `var/artifacts/inference/<model>/<dataset>/<temp>/seed_<n>.jsonl`. Appends are flushed after each prompt so preempted jobs can resume automatically; rerunning `maxent-grpo-math-eval` reuses completed prompts and continues where the previous Slurm job stopped.
-  - The table helper `python var/repo/tools/math_eval_table.py --artifact-root var/artifacts/inference` renders three terminal tables (Pass@1 / Pass@8 / Avg@8) averaged over all seeds using the artifact JSON. Adjust `--precision` or `--min-datasets` to control formatting/filters.
-- Preferred CLI alias for multi-benchmark math inference: `maxent-grpo-math-eval`.
-- Slurm helper to sweep all math benchmarks for a checkpoint: `sbatch var/repo/ops/slurm/infer_math.slurm --model <HF_ID_OR_PATH> --datasets math_500,aime24,aime25,amc,minerva`. Pass `--revision <git_commit>` when pointing at Hugging Face repos (e.g., `--model od2961/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-math-v1 --revision c929c65`) to evaluate specific training steps without syncing local checkpoints.
+- Recipes live in `configs/recipes/` (Hydra shortcuts include `configs/recipes/hydra/{baseline,maxent}_math.yaml` plus MBPP coding variants `baseline_code_mbpp.yaml`, `grpo_custom_code_mbpp.yaml`, and `maxent_code_mbpp.yaml`).
+- Coding reward: use `reward_funcs: [python_unit_tests]` (alias `mbpp_python_tests`) with test-based columns (`test_list` for MBPP, `test` for HumanEval, `input_output` for APPS). Tune execution with env vars `MAXENT_CODE_REWARD_TIMEOUT_S` and `MAXENT_CODE_REWARD_WORKERS`.
 - Set `GRPO_RECIPE=<path>` to point any CLI at a YAML recipe; the TRL parser and Hydra CLI will load it automatically.
-- For LightEval benchmarks via vLLM/Slurm, see `src/core/evaluation.py` (benchmark registry + launcher helper).
+- For LightEval benchmarks via vLLM/Slurm, see `src/maxent_grpo/core/evaluation.py` (benchmark registry + launcher helper).
 - Throughput knobs: `dataloader_num_workers`, `dataloader_pin_memory`, `dataloader_prefetch_factor`, `dataloader_persistent_workers` are honored by both GRPO and MaxEnt trainer entrypoints.
 - Prompt cache: `maxent_prompt_cache_size` defaults to an auto-sized value (min 10k, max 50k based on batch size); set to 0 to disable or set a non-default size to override.
 - Shared vLLM servers:
@@ -111,7 +83,7 @@ Notes
   - **Server requirement:** the vLLM server (or proxy) must copy the `client_tag` back into each prompt group of the JSON response (either at the result level or inside every output). Without that echo the client cannot filter, so you’ll see warnings such as “Skipping policy loss group due to empty log-probs,” `train/grpo_objective` stays at zero, and KL/entropy metrics remain `NaN`.
   - Guard rails: training now stops after `vllm_logprob_fail_after` consecutive steps with missing vLLM logprobs (default 3). Set `vllm_logprob_fallback=true` to switch to reference-model scoring instead, or `vllm_logprob_fail_after=0` to disable. `vllm_client_tag_fail_fast` controls abort-on-client_tag mismatch; env fallbacks are `MAXENT_VLLM_LOGPROB_FAIL_AFTER`, `MAXENT_VLLM_LOGPROB_FALLBACK`, `MAXENT_VLLM_CLIENT_TAG_FAIL_FAST`.
   - Weight sync: set `vllm_sync_interval_steps` to reduce sync stalls (e.g., sync every N optimizer steps; 0 disables sync).
-  - **Verification:** when filtering works you’ll no longer see `vLLM raw groups=96 ...` immediately followed by `Score batch built | total_sequences=16`; the counts match and the controller metrics (`train/delta_tau`, `train/delta_beta`) move off zero even with chunking enabled. For a quick end‑to‑end check on a local model, run `python var/repo/tools/vllm_client_tag_smoke.py --model <HF_ID>` and confirm it logs “server echoed client_tag …” before launching training.
+  - **Verification:** when filtering works you’ll no longer see `vLLM raw groups=96 ...` immediately followed by `Score batch built | total_sequences=16`; the counts match and the controller metrics (`train/delta_tau`, `train/delta_beta`) move off zero even with chunking enabled. For a quick end-to-end sanity check, run `make smoke` and confirm client-tag filtering diagnostics appear before training steps.
 
 
 ## Code Organization
@@ -121,46 +93,34 @@ Notes
 ├─ sitecustomize.py             # repo-local Python bootstrapper (cache dirs)
 ├─ src/
 │  └─ maxent_grpo/              # all code now lives under the namespaced package
-│     ├─ cli/                   # Hydra console entrypoints (baseline/maxent/generate/inference)
-│     ├─ pipelines/             # end-to-end pipelines (baseline GRPO trainer, distilabel generation, math_500 inference)
-│     ├─ training/              # MaxEnt runner: loop, generation, scoring/weighting, optim/state, types
-│     ├─ generation/            # shared HF + vLLM generation helpers
+│     ├─ cli/                   # Hydra console entrypoints (baseline/maxent training)
+│     ├─ training/              # end-to-end GRPO/MaxEnt training + eval stack
+│     │  ├─ generation/         # shared HF + vLLM generation helpers
+│     │  ├─ patches/            # vLLM HTTP helpers used during rollout/scoring
+│     │  ├─ runtime/ops/        # startup/health helpers for runtime services
+│     │  └─ telemetry/          # wandb / metric logging wrappers
 │     ├─ core/                  # dataset/model/evaluation utilities
-│     ├─ telemetry/             # wandb logging wrappers
-│     ├─ patches/               # vLLM HTTP helpers
 │     ├─ rewards.py             # reward registry used by the baseline trainer
-│     ├─ grpo.py / maxent_grpo.py  # TRL-style entrypoints (baseline GRPO + MaxEnt entry)
+│     ├─ grpo.py                 # canonical trainer entrypoint
 ├─ docs/                        # Sphinx guides + API reference
-├─ var/                         # repo-local env, caches, run artifacts (see var/artifacts), data outputs (gitignored)
-│  ├─ repo/                     # tracked repo assets (tools/ops/custom_tasks/data staging)
-│  │  ├─ custom_tasks/           # LightEval custom tasks + task YAML templates
-│  │  ├─ ops/                    # operations toolbox (slurm launchers)
-│  │  ├─ tools/                  # runnable utilities (env bootstrap, eval helpers)
-│  │  └─ data/                   # optional staging area for large datasets/checkpoints
-│  └─ ...                       # artifacts/, cache/, tmp/, etc.
+├─ ops/                         # operational launchers/scripts (Slurm + smoke utilities)
+├─ var/                         # runtime-only env, caches, and artifacts (gitignored)
 ```
 
 Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now live under `var/artifacts/`.
 
 
-## Training Flow (MaxEnt Runner)
-1. **Generation** — `maxent_grpo.training.rollout.CompletionGenerator` wraps HF + vLLM; `GenerationContext` carries sampling + accelerator handles.
-2. **Rewards & scoring** — `maxent_grpo.training.rewards` + `maxent_grpo.training.pipeline.prepare_training_batch` build grouped completions, reward stats, reference log-probs, and sequence scores.
-3. **Weighting & objective** — `maxent_grpo.training.weighting.logic` computes listwise targets/weights (entropy, KL), and `maxent_grpo.training.trl_trainer` applies them in the GRPO/MaxEnt objective.
-4. **Optimization** — `maxent_grpo.training.loop` drives gradient accumulation and schedules; `maxent_grpo.training.optim` + `maxent_grpo.training.state` handle LR schedules, controllers, checkpoints.
-5. **Logging** — `maxent_grpo.training.metrics` and `maxent_grpo.telemetry.wandb` report metrics; logs/checkpoints land under `var/` (logs under `var/artifacts/logs`) by default.
-
-## InfoSeed-GRPO (seed-aware auxiliary, optional)
-- Enable via `info_seed_enabled=True` (Hydra now enforces this for `train-infoseed` recipes); suggested defaults: `info_seed_lambda=0.01`, `info_seed_alpha_entropy=0.5`, `info_seed_num_seeds=4–8`, `info_seed_prompt_template="\n[seed={seed}]"`.
-- Losses: seed-aware contrastive (`info_seed_loss_type=infonce`) or CE over `seed_head` logits (`info_seed_loss_type=ce`); pooling via `info_seed_pooling` (`mean`/`last`).
-- Metrics: logs `seed_pred_acc`, per-subset entropies (orig vs seed-aug), seed diversity (`seed_diversity_l2`), and optional eval-time seed metrics (`eval_seed/*`) when `EvaluationSettings.seed_eval` is configured.
-- Failure modes: high `info_seed_lambda` can produce stylistic hacks. Mitigate by lowering `lambda`, capping entropy, adding dropout/perturbation to seed template tokens, and monitoring `seed_pred_acc` vs. diversity.
-
+## Training Flow (Shared Baseline/MaxEnt Path)
+1. **Entrypoint** — both variants launch `src/maxent_grpo/grpo.py` and call `maxent_grpo.training.baseline.run_baseline_training`.
+2. **Data + prompt mapping** — `baseline.py` loads datasets, resolves prompt/answer columns, and maps to TRL chat-format prompts identically for GRPO and MaxEnt runs.
+3. **Reward resolution** — `maxent_grpo.training.rewards.load_reward_functions` resolves reward callables/weights identically for both runs.
+4. **Trainer objective** — `maxent_grpo.training.trl_trainer` is the objective boundary; this is where GRPO vs MaxEnt behavior diverges.
+5. **Optimization/checkpointing** — TRL/HF trainer handles stepping, metrics, and checkpoint save/resume in the same way for both variants.
 
 ## Environment Notes
 - Transformers/TRL require `huggingface-hub < 1.0`; the launchers repin Hub and small CLI deps (`yq`, `rich`, `markdown-it-py`) inside the repo-local env.
 - vLLM requires a CUDA-enabled PyTorch. The Slurm launcher loads CUDA 12.6 by default and routes all caches/temp dirs into `var/`.
-- The MaxEnt entrypoint (`maxent_grpo.training.run_maxent_training`) delegates to `maxent_grpo.pipelines.training.maxent.run_maxent_training`; compose a custom runner with `maxent_grpo.training.loop`/`maxent_grpo.training.pipeline` if you need finer control.
+- MaxEnt recipes/CLI now invoke the same baseline training pipeline as GRPO; objective behavior differs only inside `maxent_grpo.training.trl_trainer`.
 
 
 ## Troubleshooting
@@ -174,7 +134,7 @@ Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now liv
 - Run `pytest -q` (or `make test`) from the repo root.
 - Type check via `pyright --project configs/pyrightconfig.json`.
 - Optional commit hooks: `pre-commit install` then `pre-commit run -a`.
-- Quick offline smoke (generation → training shim → inference) with isolated caches under `var/`: `make smoke`
+- Quick offline smoke (paired GRPO + MaxEnt training) with isolated caches under `var/`: `make smoke`
 
 
 ## Documentation
@@ -184,15 +144,6 @@ Run artifacts (logs/results/outputs/wandb/details/controller_state.json) now liv
 
 ## Citation
 If you use this work, please cite: “MaxEnt‑GRPO: Maximum-Entropy Group-Relative Policy Optimization (2025).”
-
-Quick eval parity check (shared math_500 pipeline):
-
-```bash
-# stubbed, offline delta comparison between baseline and candidate (math_500 runner)
-make eval-math-delta  # uses var/repo/tools/eval_math_delta.py with a fixed seed/dataset
-# real models: swap stub runner for transformers and point at downloaded dataset
-python var/repo/tools/eval_math_delta.py --baseline /path/to/grpo --candidate /path/to/maxent --runner transformers --dataset /path/to/math_500.jsonl
-```
 
 BibTeX
 ```

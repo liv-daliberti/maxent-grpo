@@ -69,19 +69,6 @@ _LAZY_ATTRS = {
         "maxent_grpo.training.controller_objective",
         "TruncatedBackpropControllerObjective",
     ),
-    "apply_info_seed": ("maxent_grpo.training.context_builder", "apply_info_seed"),
-    "apply_info_seed_to_generation": (
-        "maxent_grpo.training.context_builder",
-        "apply_info_seed_to_generation",
-    ),
-    "apply_info_seed_to_scoring": (
-        "maxent_grpo.training.context_builder",
-        "apply_info_seed_to_scoring",
-    ),
-    "apply_info_seed_to_evaluation": (
-        "maxent_grpo.training.context_builder",
-        "apply_info_seed_to_evaluation",
-    ),
 }
 
 LOG = logging.getLogger(__name__)
@@ -92,7 +79,6 @@ PreparedBatch: Any
 __all__: List[str] = [
     "AnalyticControllerObjective",
     "TruncatedBackpropControllerObjective",
-    "run_maxent_training",
     "TrainingLoopState",
     "StepBatchInfo",
     "StepResources",
@@ -132,15 +118,16 @@ __all__: List[str] = [
     "PromptCacheEntry",
     "SequenceScores",
     "PreparedBatch",
+    "run_baseline_training",
+    "generation",
+    "patches",
     "pipeline",
+    "runtime",
     "state",
     "rollout",
+    "telemetry",
     "cli",
     "scoring",
-    "apply_info_seed",
-    "apply_info_seed_to_generation",
-    "apply_info_seed_to_scoring",
-    "apply_info_seed_to_evaluation",
 ]
 
 # Try eager resolution when dependencies are available; fall back to lazy __getattr__.
@@ -148,23 +135,6 @@ try:
     from maxent_grpo.training.pipeline import PreparedBatch
 except ImportError:
     LOG.debug("Deferring training imports until dependencies are available.")
-
-
-def run_maxent_training(*args: Any, **kwargs: Any) -> Any:
-    """Lazy entrypoint to the MaxEnt training pipeline.
-
-    This wrapper defers importing the full training stack until invoked.
-
-    :param args: Positional arguments forwarded to
-        :func:`maxent_grpo.pipelines.training.maxent.run_maxent_training`.
-    :param kwargs: Keyword arguments forwarded to the training pipeline.
-    :returns: Whatever the underlying training pipeline returns.
-    :raises Exception: Propagates exceptions raised by the training pipeline.
-    """
-
-    from maxent_grpo.pipelines.training.maxent import run_maxent_training as _run_maxent
-
-    return _run_maxent(*args, **kwargs)
 
 
 def __dir__() -> List[str]:
@@ -184,7 +154,18 @@ def __getattr__(name: str) -> Any:
     :raises AttributeError: If the requested name is not a known lazy attribute.
     """
 
-    if name in {"pipeline", "state", "rollout", "cli", "scoring", "optim"}:
+    if name in {
+        "pipeline",
+        "state",
+        "rollout",
+        "cli",
+        "scoring",
+        "optim",
+        "generation",
+        "patches",
+        "runtime",
+        "telemetry",
+    }:
         module = _importlib.import_module(f"maxent_grpo.training.{name}")
         globals()[name] = module
         return module
@@ -200,32 +181,32 @@ def __getattr__(name: str) -> Any:
         value = getattr(module, name)
         globals()[name] = value
         return value
+    if name == "run_baseline_training":
+        module = _importlib.import_module("maxent_grpo.training.baseline")
+        value = getattr(module, name)
+        globals()[name] = value
+        return value
     raise AttributeError(f"module {__name__!s} has no attribute {name!s}")
 
 
 # Statically expose lazy-resolved attributes for linters/IDE while deferring imports.
 if TYPE_CHECKING:
-    from maxent_grpo.training.context_builder import (
-        apply_info_seed as apply_info_seed,
-    )
-    from maxent_grpo.training.context_builder import (
-        apply_info_seed_to_evaluation as apply_info_seed_to_evaluation,
-    )
-    from maxent_grpo.training.context_builder import (
-        apply_info_seed_to_generation as apply_info_seed_to_generation,
-    )
-    from maxent_grpo.training.context_builder import (
-        apply_info_seed_to_scoring as apply_info_seed_to_scoring,
-    )
     from maxent_grpo.training.controller_objective import (
         AnalyticControllerObjective as AnalyticControllerObjective,
     )
     from maxent_grpo.training.controller_objective import (
         TruncatedBackpropControllerObjective as TruncatedBackpropControllerObjective,
     )
+    from maxent_grpo.training.baseline import (
+        run_baseline_training as run_baseline_training,
+    )
     from maxent_grpo.training.pipeline import PreparedBatch as PreparedBatch
+    from maxent_grpo.training import generation as generation
+    from maxent_grpo.training import patches as patches
     from maxent_grpo.training import pipeline as pipeline
+    from maxent_grpo.training import runtime as runtime
     from maxent_grpo.training import state as state
     from maxent_grpo.training import rollout as rollout
+    from maxent_grpo.training import telemetry as telemetry
     from maxent_grpo.training import cli as cli
     from maxent_grpo.training import scoring as scoring

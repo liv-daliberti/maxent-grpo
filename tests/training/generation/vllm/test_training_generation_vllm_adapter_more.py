@@ -10,7 +10,7 @@ import sys
 import pytest
 
 import maxent_grpo.training.rollout.vllm_adapter as vllm_adapter
-from maxent_grpo.generation.vllm import VLLMGenerationHelper
+from maxent_grpo.training.generation.vllm import VLLMGenerationHelper
 
 safe_generate = None
 time = None

@@ -43,7 +43,7 @@ import os
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
 
 from maxent_grpo.training.runtime.logging import _log_wandb
-from maxent_grpo.telemetry.trl_logging import _normalize_prefixes
+from maxent_grpo.training.telemetry.trl_logging import _normalize_prefixes
 from .runtime import resolve_run_metadata
 from .types import (
     Accelerator,
@@ -190,20 +190,6 @@ def _slim_metrics(
         slim.pop("train/reward_without_entropy_bonus", None)
         slim.pop("train/reward_with_entropy_bonus", None)
         _drop_prefix(slim, "train/rewards/entropy_bonus/")
-
-    training_args = getattr(ctx, "training_args", None)
-    if training_args is not None:
-        info_seed_enabled = bool(getattr(training_args, "info_seed_enabled", False))
-        info_seed_num = getattr(training_args, "info_seed_num_seeds", 0) or 0
-        info_seed_lambda = float(getattr(training_args, "info_seed_lambda", 0.0) or 0.0)
-        if not info_seed_enabled and info_seed_num <= 0 and info_seed_lambda == 0.0:
-            _drop_prefix(slim, "train/info_seed/")
-            _drop_prefix(slim, "train/seed/")
-    else:
-        seed_keys = [k for k in slim if k.startswith("train/seed/")]
-        if seed_keys and all(_as_float(slim.get(k)) in (0.0, None) for k in seed_keys):
-            _drop_prefix(slim, "train/info_seed/")
-            _drop_prefix(slim, "train/seed/")
 
     if maxent_objective == 0.0:
         for key in list(slim):
@@ -590,12 +576,6 @@ def _loss_component_block(loss_outputs: "LossOutputs") -> Dict[str, float]:
     clip_loss = loss_outputs.clip_loss_scalar
     if clip_loss is not None:
         metrics["train/loss/clip"] = clip_loss
-    seed_loss = getattr(loss_outputs, "seed_loss_value", None)
-    if seed_loss is not None:
-        metrics["train/loss/seed"] = seed_loss
-    info_entropy = getattr(loss_outputs, "info_seed_entropy_scalar", None)
-    if info_entropy is not None:
-        metrics["train/info_seed/entropy"] = info_entropy
     return metrics
 
 
@@ -876,8 +856,6 @@ def build_training_metrics_dict(
         kl_fallback = getattr(payload.loss_outputs, "kl_loss_scalar", None)
         if isinstance(kl_fallback, (int, float)):
             metrics["train/kl"] = float(kl_fallback)
-    if payload.seed_metrics:
-        metrics.update({f"train/seed/{k}": v for k, v in payload.seed_metrics.items()})
     if payload.diversity_metrics:
         metrics.update(
             {
@@ -1278,7 +1256,6 @@ def _build_metrics_payload(
         length_stats=prepared.length_stats,
         config=config_view,
         scalars=scalar_stats,
-        seed_metrics=prepared.seed_metrics,
         diversity_metrics=prepared.diversity_metrics,
     )
 

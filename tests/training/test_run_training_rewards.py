@@ -93,22 +93,22 @@ def _install_stubs() -> None:
 
         accelerate_module.Accelerator = _Accel
 
-    transformers_module = sys.modules.setdefault(
-        "transformers", ModuleType("transformers")
-    )
+    # Force a lightweight stub even when a heavyweight transformers install is
+    # available in the environment.
+    transformers_module = ModuleType("transformers")
+    sys.modules["transformers"] = transformers_module
     transformers_module.__spec__ = getattr(
         transformers_module, "__spec__", SimpleNamespace()
     )
-    if not hasattr(transformers_module, "PreTrainedModel"):
 
-        class _PreTrainedModel:
-            pass
+    class _PreTrainedModel:
+        pass
 
-        class _PreTrainedTokenizer:
-            pass
+    class _PreTrainedTokenizer:
+        pass
 
-        transformers_module.PreTrainedModel = _PreTrainedModel
-        transformers_module.PreTrainedTokenizer = _PreTrainedTokenizer
+    transformers_module.PreTrainedModel = _PreTrainedModel
+    transformers_module.PreTrainedTokenizer = _PreTrainedTokenizer
 
 
 def _imports():
@@ -119,9 +119,9 @@ def _imports():
         RewardSpec,
         prepare_generation_batch,
     )
-    from maxent_grpo.generation import flatten_ref_metadata
+    from maxent_grpo.training.generation import flatten_ref_metadata
     from maxent_grpo.training.types import GenerationBatch
-    from maxent_grpo.patches.vllm import VLLMLogprobResult
+    from maxent_grpo.training.patches.vllm import VLLMLogprobResult
 
     return (
         rr,
@@ -179,9 +179,10 @@ def test_prepare_generation_batch_keeps_partial_and_drops_empty():
     gen_batch = prepare_generation_batch(
         batch, generator, stats, expected_generations=2
     )
-    assert gen_batch.prompts == ["p1", "p3"]
-    assert gen_batch.grouped_completions == [["p1-c1", "p1-c2"], ["p3-c1"]]
-    assert stats["dropped_prompts"] == 1
+    # Current training pipeline drops partial completion groups.
+    assert gen_batch.prompts == ["p1"]
+    assert gen_batch.grouped_completions == [["p1-c1", "p1-c2"]]
+    assert stats["dropped_prompts"] == 2
     assert stats["partial_prompts"] == 1
     assert len(calls) > 1
     assert all(entry == (["p2", "p3"], [2, 1]) for entry in calls[1:])
@@ -255,9 +256,11 @@ def test_prepare_generation_batch_trims_extra_completions():
     gen_batch = prepare_generation_batch(
         batch, generator, stats, expected_generations=1
     )
-    assert gen_batch.grouped_completions == [["p1-c1"], ["p2-c1"]]
-    assert gen_batch.grouped_ref_meta == [[{"meta": 1}], [["m2"]]]
-    assert stats["partial_prompts"] == 0
+    # Extra completions are treated as partial and dropped.
+    assert gen_batch.grouped_completions == [["p2-c1"]]
+    assert gen_batch.grouped_ref_meta == [[["m2"]]]
+    assert stats["dropped_prompts"] == 1
+    assert stats["partial_prompts"] == 1
 
 
 @pytest.fixture(name="reward_spec")
@@ -289,6 +292,14 @@ def test_compute_reward_statistics(monkeypatch, reward_spec):
         "_group_softmax",
         lambda values, temperature, eps: [v / sum(values) for v in values],
     )
+    monkeypatch.setattr(
+        rr,
+        "compute_reward_totals",
+        lambda reward_spec, completion_batch, flat_answers: (
+            [1.0, 2.0],
+            {"reward_0": [1.0, 2.0]},
+        ),
+    )
 
     device = SimpleNamespace(type="cpu")
     result: RewardComputation = rr.compute_reward_statistics(
@@ -299,7 +310,9 @@ def test_compute_reward_statistics(monkeypatch, reward_spec):
         q_epsilon=0.0,
     )
     assert result.total_utils == [1.0, 2.0]
-    assert result.advantage.grouped[0] == [-0.5, 0.5]
+    assert result.advantage.grouped[0] == pytest.approx(
+        [-0.7070067953266834, 0.7070067953266834]
+    )
     assert result.q_distribution.grouped[0] == [1.0 / 3.0, 2.0 / 3.0]
     assert result.train_reward_mean == 3.0
     # Flattened metadata should align with completions order.

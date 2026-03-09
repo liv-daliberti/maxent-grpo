@@ -11,19 +11,16 @@ overrides under ``train-maxent``).
 from __future__ import annotations
 
 import warnings
-from dataclasses import MISSING, Field as DataclassField, asdict, fields, is_dataclass
+from dataclasses import MISSING, Field as DataclassField, fields
 from typing import Any, Mapping, MutableMapping, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from pydantic.warnings import UnsupportedFieldAttributeWarning
 
 from maxent_grpo.config import GRPOConfig
-from maxent_grpo.pipelines.math_inference import resolve_inference_dataset
 
 __all__ = [
     "validate_training_config",
-    "validate_generation_config",
-    "validate_inference_config",
 ]
 
 warnings.filterwarnings("ignore", category=UnsupportedFieldAttributeWarning)
@@ -43,19 +40,10 @@ _MAXENT_DEFAULTS = {
     if field.name.startswith("maxent_")
 }
 
-_INFO_SEED_DEFAULTS = {
-    field.name: _field_default(field)
-    for field in fields(GRPOConfig)
-    if field.name.startswith("info_seed_") and field.name != "info_seed_enabled"
-}
-
 _DEFAULT_OBJECTIVE_BY_COMMAND = {
     "train-baseline": True,
-    "train-infoseed": True,
     "train-maxent": False,
 }
-
-_INFO_SEED_SUPPORTED = {"train-maxent", "train-infoseed"}
 
 
 class _TrainingSchema(BaseModel):
@@ -66,11 +54,7 @@ class _TrainingSchema(BaseModel):
     train_grpo_objective: bool | None = None
     default_objective: bool | None = Field(default=None)
     maxent_overrides: dict[str, Any] = Field(default_factory=dict)
-    info_seed_enabled: bool | None = None
-    info_seed_overrides: dict[str, Any] = Field(default_factory=dict)
     allow_grpo_with_maxent_overrides: bool = False
-    allow_info_seed: bool = True
-    require_info_seed: bool = False
 
     @model_validator(mode="after")
     def _check_maxent_conflicts(self) -> "_TrainingSchema":
@@ -88,61 +72,6 @@ class _TrainingSchema(BaseModel):
             raise ValueError(
                 "MaxEnt overrides (%s) require train_grpo_objective=false" % knobs
             )
-        if not self.allow_info_seed and self.info_seed_enabled:
-            raise ValueError("InfoSeed is not supported for this command")
-        if self.require_info_seed and not self.info_seed_enabled:
-            raise ValueError("train-infoseed requires info_seed_enabled=true")
-        if (not self.info_seed_enabled) and self.info_seed_overrides:
-            knobs = ", ".join(sorted(self.info_seed_overrides))
-            raise ValueError(
-                "InfoSeed overrides (%s) require info_seed_enabled=true" % knobs
-            )
-        return self
-
-
-class _GenerationSchema(BaseModel):
-    """Schema enforcing minimal requirements for generation jobs."""
-
-    model_config = ConfigDict(extra="allow")
-
-    hf_dataset: str
-    model: str
-    vllm_server_url: str = "http://localhost:8000/v1"
-    num_generations: PositiveInt = 1
-    max_new_tokens: PositiveInt = 1
-    input_batch_size: PositiveInt = 1
-    client_replicas: PositiveInt = 1
-
-    @model_validator(mode="after")
-    def _check_url(self) -> "_GenerationSchema":
-        if not str(self.vllm_server_url).strip():
-            raise ValueError("vllm_server_url must be provided for generation jobs")
-        return self
-
-
-class _InferenceModelSchema(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    model_name_or_path: str
-
-
-class _InferenceSchema(BaseModel):
-    """Schema validating inference command payloads."""
-
-    model_config = ConfigDict(extra="allow")
-
-    models: list[_InferenceModelSchema]
-    dataset: str = "math_500"
-    eval: dict[str, Any] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def _validate_dataset(self) -> "_InferenceSchema":
-        if not self.models:
-            raise ValueError("inference.models must contain at least one model spec")
-        try:
-            resolve_inference_dataset(self.dataset, self.eval)
-        except ValueError as exc:  # pragma: no cover - errors exercised in tests
-            raise ValueError(str(exc)) from exc
         return self
 
 
@@ -155,10 +84,8 @@ def _training_values(payload: Any) -> MutableMapping[str, Any]:
     attr_names = set(_MAXENT_DEFAULTS)
     attr_names |= {
         "train_grpo_objective",
-        "info_seed_enabled",
         "policy_entropy_bonus_coef",
     }
-    attr_names |= set(_INFO_SEED_DEFAULTS)
     for name in attr_names:
         if hasattr(payload, name):
             values[name] = getattr(payload, name)
@@ -181,28 +108,6 @@ def _maxent_overrides(values: Mapping[str, Any]) -> dict[str, Any]:
     return overrides
 
 
-def _info_seed_overrides(values: Mapping[str, Any]) -> dict[str, Any]:
-    overrides: dict[str, Any] = {}
-    for name, default in _INFO_SEED_DEFAULTS.items():
-        if name not in values:
-            continue
-        value = values[name]
-        if value == default:
-            continue
-        overrides[name] = value
-    return overrides
-
-
-def _payload_mapping(payload: Any) -> MutableMapping[str, Any]:
-    if isinstance(payload, Mapping):
-        return {key: payload[key] for key in payload}
-    if is_dataclass(payload) and not isinstance(payload, type):
-        return asdict(payload)
-    if hasattr(payload, "__dict__"):
-        return dict(payload.__dict__)
-    return {}
-
-
 def _source_hint(command: str, *, recipe: str | None, training_args: Any) -> str:
     """Return a short string pointing at the config origin for error messages."""
 
@@ -210,13 +115,6 @@ def _source_hint(command: str, *, recipe: str | None, training_args: Any) -> str
     recipe_path = recipe or getattr(training_args, "recipe_path", None)
     if recipe_path:
         hints.append(str(recipe_path))
-    return " | ".join(hints)
-
-
-def _command_hint(command: str, source: str | None = None) -> str:
-    hints = [command]
-    if source:
-        hints.append(source)
     return " | ".join(hints)
 
 
@@ -269,65 +167,11 @@ def validate_training_config(
         "train_grpo_objective": values.get("train_grpo_objective"),
         "default_objective": _DEFAULT_OBJECTIVE_BY_COMMAND.get(command),
         "maxent_overrides": _maxent_overrides(values),
-        "info_seed_enabled": values.get("info_seed_enabled"),
-        "info_seed_overrides": _info_seed_overrides(values),
         "allow_grpo_with_maxent_overrides": allow_grpo_with_maxent_overrides,
-        "allow_info_seed": command in _INFO_SEED_SUPPORTED,
-        "require_info_seed": command == "train-infoseed",
     }
     try:
         _TrainingSchema(**schema_payload)
     except ValidationError as exc:
         message = _format_validation_errors(exc.errors())
         hint = _source_hint(command, recipe=source, training_args=training_args)
-        raise ValueError(f"{hint}: {message}") from exc
-
-
-def validate_generation_config(
-    config: Mapping[str, Any] | Any,
-    *,
-    command: str = "generate",
-    source: str | None = None,
-) -> None:
-    """Validate generation command payloads before invoking pipelines.
-
-    :param config: Mapping or object carrying generation options (e.g., a Hydra
-        config block or :class:`DistilabelGenerationConfig`-like object).
-    :param command: Command label included in error messages.
-    :param source: Optional hint describing where the config came from.
-    :returns: ``None``. Raises on invalid payloads.
-    :raises ValueError: If required fields are missing or invalid.
-    """
-
-    values = _payload_mapping(config)
-    try:
-        _GenerationSchema(**values)
-    except ValidationError as exc:
-        message = _format_validation_errors(exc.errors())
-        hint = _command_hint(command, source)
-        raise ValueError(f"{hint}: {message}") from exc
-
-
-def validate_inference_config(
-    config: Mapping[str, Any] | Any,
-    *,
-    command: str = "inference",
-    source: str | None = None,
-) -> None:
-    """Validate inference command payloads prior to execution.
-
-    :param config: Mapping or object carrying inference options (Hydra config or
-        an object with attributes like ``models`` and ``dataset``).
-    :param command: Command label included in error messages.
-    :param source: Optional hint describing where the config came from.
-    :returns: ``None``. Raises on invalid payloads.
-    :raises ValueError: If required fields are missing or invalid.
-    """
-
-    values = _payload_mapping(config)
-    try:
-        _InferenceSchema(**values)
-    except ValidationError as exc:
-        message = _format_validation_errors(exc.errors())
-        hint = _command_hint(command, source)
         raise ValueError(f"{hint}: {message}") from exc

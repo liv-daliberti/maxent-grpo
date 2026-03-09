@@ -14,7 +14,6 @@ from . import deps as _deps
 from .config import (
     GenerationSamplingConfig,
     MaxEntOptions,
-    SeedAugmentationConfig,
     VLLMClientConfig,
 )
 
@@ -77,7 +76,6 @@ __all__ = [
     "DeepSpeedPlugin",
     "GenerationSamplingConfig",
     "MaxEntOptions",
-    "SeedAugmentationConfig",
     "VLLMClientConfig",
     "_import_module",
     "_optional_dependency",

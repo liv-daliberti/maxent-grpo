@@ -42,17 +42,6 @@ def _reload_cli_trl() -> ModuleType:
     return module
 
 
-def _load_maxent_entry_module() -> ModuleType:
-    """Load the MaxEnt GRPO entry module from its source path for testing."""
-    root = Path(__file__).resolve().parents[2]
-    path = root / "src" / "maxent_grpo" / "maxent_grpo.py"
-    spec = importlib.util.spec_from_file_location("maxent_grpo_entry_module", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec and spec.loader
-    spec.loader.exec_module(module)
-    return module
-
-
 def test_parse_grpo_args_uses_trl_parser(monkeypatch):
     calls = {}
 
@@ -85,24 +74,25 @@ def test_cli_parse_grpo_args_wrapper(monkeypatch):
 def test_grpo_cli_invokes_main(monkeypatch):
     module = importlib.reload(importlib.import_module("maxent_grpo.grpo"))
     called = {}
-    baseline_mod = ModuleType("maxent_grpo.pipelines.training.baseline")
+    baseline_mod = ModuleType("maxent_grpo.training.baseline")
     baseline_mod.run_baseline_training = lambda *args: called.setdefault("args", args)
     monkeypatch.setitem(
-        sys.modules, "maxent_grpo.pipelines.training.baseline", baseline_mod
+        sys.modules, "maxent_grpo.training.baseline", baseline_mod
     )
     module.main("s", "t", "m")
     assert called.get("args") == ("s", "t", "m")
 
 
-def test_maxent_entrypoint_calls_training_runner(monkeypatch):
-    module = _load_maxent_entry_module()
+def test_package_entrypoint_calls_training_runner(monkeypatch):
+    import maxent_grpo as entry
+
     called = {}
-    maxent_stub = ModuleType("maxent_grpo.pipelines.training.maxent")
-    maxent_stub.run_maxent_training = lambda *args: called.setdefault("args", args)
+    baseline_stub = ModuleType("maxent_grpo.training.baseline")
+    baseline_stub.run_baseline_training = lambda *args: called.setdefault("args", args)
     monkeypatch.setitem(
-        sys.modules, "maxent_grpo.pipelines.training.maxent", maxent_stub
+        sys.modules, "maxent_grpo.training.baseline", baseline_stub
     )
-    module.main("s_args", "t_args", "m_args")
+    entry.main("s_args", "t_args", "m_args")
     assert called.get("args") == ("s_args", "t_args", "m_args")
 
 

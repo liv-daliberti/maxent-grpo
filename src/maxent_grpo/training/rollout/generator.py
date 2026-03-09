@@ -6,7 +6,7 @@ import time
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
+from maxent_grpo.training.patches.vllm import VLLMLogprobResult, safe_generate
 
 from .context import GenerationContext
 from .distributed import _scatter_object

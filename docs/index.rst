@@ -35,7 +35,6 @@ Guides
    architecture
    guides/cli
    guides/training
-   guides/generation
    guides/evaluation
    guides/runtime
    recipes

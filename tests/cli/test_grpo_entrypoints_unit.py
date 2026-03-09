@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import types
 from types import SimpleNamespace
+import pytest
 
 import maxent_grpo.grpo as grpo
 
@@ -27,7 +28,7 @@ def test_main_parses_args_when_missing(monkeypatch):
 
     monkeypatch.setitem(
         sys.modules,
-        "maxent_grpo.pipelines.training.baseline",
+        "maxent_grpo.training.baseline",
         types.SimpleNamespace(run_baseline_training=_run_baseline_training),
     )
 
@@ -36,16 +37,12 @@ def test_main_parses_args_when_missing(monkeypatch):
     assert captured["args"] == parsed
 
 
-def test_main_delegates_to_hydra_on_parse_failure(monkeypatch):
-    # Force parse_grpo_args to raise so hydra_cli baseline_entry is used.
+def test_main_parse_error_propagates(monkeypatch):
     monkeypatch.setattr(
         grpo, "parse_grpo_args", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
     )
-    sentinel = object()
-    monkeypatch.setattr(grpo.hydra_cli, "baseline_entry", lambda: sentinel)
-
-    result = grpo.main()
-    assert result is sentinel
+    with pytest.raises(RuntimeError, match="boom"):
+        grpo.main()
 
 
 def test_main_uses_provided_args(monkeypatch):
@@ -60,7 +57,7 @@ def test_main_uses_provided_args(monkeypatch):
 
     monkeypatch.setitem(
         sys.modules,
-        "maxent_grpo.pipelines.training.baseline",
+        "maxent_grpo.training.baseline",
         types.SimpleNamespace(run_baseline_training=_run_baseline_training),
     )
 

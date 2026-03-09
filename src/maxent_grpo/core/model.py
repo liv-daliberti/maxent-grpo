@@ -31,7 +31,6 @@ from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 
 try:  # pragma: no cover - optional dependency
     import torch
-    import torch.nn as nn
 except Exception:  # pragma: no cover - allow stubbed environments
     class _TorchStub:
         float16 = "float16"
@@ -41,13 +40,7 @@ except Exception:  # pragma: no cover - allow stubbed environments
         class dtype:  # noqa: N801 - mimic torch.dtype
             pass
 
-    class _NNStub:
-        class Linear:  # pragma: no cover - stubbed fallback
-            def __init__(self, *_args: Any, **_kwargs: Any) -> None:
-                raise RuntimeError("torch is required for nn.Linear")
-
     torch = _TorchStub()  # type: ignore[assignment]
-    nn = _NNStub()  # type: ignore[assignment]
 
 try:  # pragma: no cover - optional dependency
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -180,14 +173,14 @@ def get_tokenizer(
     if training_args.chat_template is not None:
         tokenizer.chat_template = training_args.chat_template
 
-    if not bool(getattr(training_args, "train_grpo_objective", False)):
-        pad_token = getattr(tokenizer, "pad_token", None)
-        eos_token = getattr(tokenizer, "eos_token", None)
-        if pad_token is None and eos_token is not None:
-            try:
-                setattr(tokenizer, "pad_token", eos_token)
-            except (AttributeError, TypeError, ValueError):
-                LOG.debug("Failed to set tokenizer.pad_token from eos_token.")
+    # Keep tokenizer setup identical across GRPO and MaxEnt paths.
+    pad_token = getattr(tokenizer, "pad_token", None)
+    eos_token = getattr(tokenizer, "eos_token", None)
+    if pad_token is None and eos_token is not None:
+        try:
+            setattr(tokenizer, "pad_token", eos_token)
+        except (AttributeError, TypeError, ValueError):
+            LOG.debug("Failed to set tokenizer.pad_token from eos_token.")
 
     return tokenizer
 
@@ -294,13 +287,6 @@ def get_model(
                     LOG.warning(
                         "Failed to enforce non-reentrant checkpointing; model may still use reentrant mode."
                     )
-    # Optional seed classification head for InfoSeed auxiliary objectives.
-    if getattr(training_args, "info_seed_enabled", False):
-        num_seeds = max(int(getattr(training_args, "info_seed_num_seeds", 0)), 0)
-        hidden_size = getattr(getattr(model, "config", None), "hidden_size", None)
-        if num_seeds > 0 and hidden_size:
-            if not hasattr(model, "seed_head"):
-                setattr(model, "seed_head", nn.Linear(hidden_size, num_seeds))
     if getattr(training_args, "torch_compile", False):
         # torch.compile is fragile with DeepSpeed/ZeRO wrapping; skip when deepspeed config is present.
         prev_suppress = None

@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import importlib
-from types import ModuleType, SimpleNamespace
+from types import ModuleType
 import sys
+import pytest
 
 
 def _install_baseline_stub(monkeypatch):
     """Install a baseline trainer stub to avoid importing heavy deps."""
-    stub = ModuleType("maxent_grpo.pipelines.training.baseline")
+    stub = ModuleType("maxent_grpo.training.baseline")
     stub.run_baseline_training = lambda *args, **kwargs: ("ran", args, kwargs)
-    monkeypatch.setitem(sys.modules, "maxent_grpo.pipelines.training.baseline", stub)
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", stub)
     return stub
 
 
@@ -37,22 +38,14 @@ def test_main_parse_fallback(monkeypatch):
     assert called["args"][0] == ("s1", "t1", "m1")
 
 
-def test_main_hydra_fallback(monkeypatch):
+def test_main_parse_error_propagates(monkeypatch):
     _install_baseline_stub(monkeypatch)
     mod = importlib.reload(importlib.import_module("maxent_grpo.grpo"))
-    hydra_called = {}
     monkeypatch.setattr(
         mod, "parse_grpo_args", lambda: (_ for _ in ()).throw(RuntimeError("fail"))
     )
-
-    def _hydra():
-        hydra_called["ok"] = True
-        return "hydra"
-
-    monkeypatch.setattr(mod, "hydra_cli", SimpleNamespace(baseline_entry=_hydra))
-    res = mod.main()
-    assert hydra_called.get("ok") is True
-    assert res == "hydra"
+    with pytest.raises(RuntimeError, match="fail"):
+        mod.main()
 
 
 def test_cli_delegates_to_main(monkeypatch):

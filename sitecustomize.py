@@ -17,7 +17,6 @@ limitations under the License.
 from __future__ import annotations
 
 import os
-import sys
 import warnings
 from pathlib import Path
 
@@ -40,13 +39,6 @@ _VAR_ROOT.mkdir(parents=True, exist_ok=True)
 _PYCACHE_DIR = _VAR_ROOT / "pycache"
 _PYCACHE_DIR.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("PYTHONPYCACHEPREFIX", str(_PYCACHE_DIR))
-
-# Keep repo-managed helpers (var/repo/{tools,custom_tasks}) importable.
-_REPO_ASSETS_ROOT = _VAR_ROOT / "repo"
-if _REPO_ASSETS_ROOT.exists():
-    repo_assets = str(_REPO_ASSETS_ROOT)
-    if repo_assets not in sys.path:
-        sys.path.insert(0, repo_assets)
 
 _CACHE_ROOT = _VAR_ROOT / "cache"
 _CACHE_ROOT.mkdir(parents=True, exist_ok=True)

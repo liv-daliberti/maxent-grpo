@@ -353,7 +353,7 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     * All other trainable parameters share a decay group with
       ``weight_decay=cfg.weight_decay``.
     * Optimizer hyperparameters (learning rate, betas, epsilon) are taken from
-      the GRPO/TrainingArguments instance so that MaxEnt/InfoSeed runs stay
+      the GRPO/TrainingArguments instance so that MaxEnt runs stay
       aligned with the baseline GRPO trainer.
 
     :param model: Model whose parameters will be optimized.

@@ -13,7 +13,6 @@ from .setup import (
     DeepSpeedPlugin,
     GenerationSamplingConfig,
     MaxEntOptions,
-    SeedAugmentationConfig,
     VLLMClientConfig,
     _maybe_create_deepspeed_plugin,
     get_trl_prepare_deepspeed,
@@ -43,6 +42,11 @@ from .prompts import (
     _truncate_prompt,
     truncate_prompt,
 )
+from .ops import (
+    StartupStatus,
+    classify_vllm_startup_log,
+    should_trigger_v0_fallback,
+)
 
 __all__ = [
     "PROMPT_CHAR_LIMIT",
@@ -65,8 +69,10 @@ __all__ = [
     "GenerationPenaltyPassthroughMixin",
     "GenerationSamplingConfig",
     "MaxEntOptions",
-    SeedAugmentationConfig.__name__,
     "VLLMClientConfig",
+    "StartupStatus",
+    "classify_vllm_startup_log",
+    "should_trigger_v0_fallback",
     "get_trl_prepare_deepspeed",
     "require_accelerator",
     "require_dataloader",

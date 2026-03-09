@@ -175,16 +175,6 @@ class ScoreBatch:
 
 
 @dataclass
-class SeedInfoInputs:
-    """Optional seed-level metadata and pooled representations."""
-
-    seed_ids: Tensor
-    pooled_hidden: Tensor
-    is_seed_aug: Optional[Tensor] = None
-    logits: Optional[Tensor] = None
-
-
-@dataclass
 class SequenceScores:
     """Bundle sequence-level log-prob statistics."""
 
@@ -193,7 +183,6 @@ class SequenceScores:
     log_ratio_train: Tensor
     denom_tok_tensor: Tensor
     pooled_hidden: Optional[Tensor] = None
-    seed_aux: Optional["SeedInfoInputs"] = None
     policy_entropy_sum: Optional[Tensor] = None
     token_logp: Optional[Tensor] = None
     token_mask: Optional[Tensor] = None
@@ -232,10 +221,6 @@ class LossOutputs:
     scalars: LossScalarBundle
     log_ratio_train: Tensor
     denom_tok_tensor: Tensor
-    seed_loss: Optional[Tensor] = None
-    seed_loss_scalar: Optional[float] = None
-    info_seed_entropy_term: Optional[Tensor] = None
-    info_seed_entropy_scalar: Optional[float] = None
 
     @property
     def total_loss_scalar(self) -> float:
@@ -281,19 +266,6 @@ class LossOutputs:
         :rtype: float
         """
         return self.scalars.weighted_kl_loss
-
-    @property
-    def seed_loss_value(self) -> Optional[float]:
-        """Convenience accessor for the auxiliary seed loss scalar."""
-
-        return self.seed_loss_scalar
-
-    @property
-    def info_seed_entropy_value(self) -> Optional[float]:
-        """Convenience accessor for the MI-style entropy term scalar."""
-
-        return self.info_seed_entropy_scalar
-
 
 @dataclass
 class LengthStats:
@@ -371,7 +343,6 @@ __all__ = [
     "RewardComputation",
     "RewardMoments",
     "ScoreBatch",
-    "SeedInfoInputs",
     "SequenceScores",
     "ValidationContext",
 ]

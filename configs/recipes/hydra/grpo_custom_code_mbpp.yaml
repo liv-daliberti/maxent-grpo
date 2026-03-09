@@ -1,0 +1,6 @@
+command: train-maxent
+maxent:
+  recipe: configs/recipes/Qwen2.5-0.5B-Instruct/grpo/config_code_mbpp.yaml
+  training:
+    train_grpo_objective: true
+    controller_meta_enabled: false

@@ -1,6 +1,4 @@
-"""
-Smoke tests for console script entrypoints (baseline and maxent).
-"""
+"""Smoke tests for console script entrypoints."""
 
 from __future__ import annotations
 
@@ -32,4 +30,14 @@ def test_console_script_baseline(monkeypatch):
 def test_console_script_maxent(monkeypatch):
     from maxent_grpo.cli import hydra_cli
 
-    _call_entry(hydra_cli.maxent_entry, "train-maxent", monkeypatch)
+    hydra_cli.hydra = hydra_cli._HydraStub()
+    calls = {}
+    monkeypatch.setattr(
+        hydra_cli,
+        "hydra_main",
+        lambda cfg=None: calls.setdefault("argv", list(sys.argv)) or "ok",
+    )
+    monkeypatch.setattr(sys, "argv", ["prog", "command=train-maxent"])
+    hydra_cli.hydra_entry()
+    argv = calls.get("argv", [])
+    assert any(arg.startswith("command=train-maxent") for arg in argv[1:])

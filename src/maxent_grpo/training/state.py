@@ -750,7 +750,7 @@ def build_checkpoint_saver(
     :param tokenizer: Tokenizer to serialize alongside checkpoints.
     :param state_ref: Mutable state dict used for cross-callback coordination.
     :param base_trainer_state: Optional base trainer state JSON to merge into saves.
-    :param controller_cfg: Optional controller state paths for MaxEnt/InfoSeed.
+    :param controller_cfg: Optional controller state paths for MaxEnt.
     :returns: Callable ``save_checkpoint(name: str) -> None``.
     :rtype: Callable[[str], None]
     """
@@ -1252,7 +1252,7 @@ def check_stop_condition(
     :type schedule: training.types.OptimizationSchedule
     :param loop_state: Mutable training loop state whose ``stop_training`` flag
         should be updated when the threshold is crossed.
-    :type loop_state: training.loop.TrainingLoopState
+    :type loop_state: training.types.TrainingLoopState
     :returns: ``None``.
     """
     if (

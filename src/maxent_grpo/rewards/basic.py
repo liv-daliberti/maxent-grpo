@@ -13,11 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Baseline-friendly reward registry used by GRPO training and inference.
+Baseline-friendly reward registry used by GRPO training.
 """
 
 from __future__ import annotations
 
+import ast
+import json
+import os
+import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from typing import (
     Any,
     Dict,
@@ -45,6 +51,9 @@ _format_pat: RePattern[str] = re.compile(
 )
 _answer_pat: RePattern[str] = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
 _tag_pat: RePattern[str] = re.compile(r"(?i)</?think>|</?answer>")
+_python_block_pat: RePattern[str] = re.compile(r"```python\s*(.*?)```", re.IGNORECASE | re.DOTALL)
+_code_block_pat: RePattern[str] = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
+_def_name_pat: RePattern[str] = re.compile(r"def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 
 
 CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
@@ -74,11 +83,402 @@ def _extract_content(comp: CompletionType) -> str:
     return str(comp)
 
 
-def _canon_math(s: str) -> str:
+def _extract_python_code(text: str) -> str:
+    """Extract a Python snippet from answer/code fences or return raw text."""
+
+    if not text:
+        return ""
+    python_blocks = _python_block_pat.findall(text)
+    if python_blocks:
+        return str(python_blocks[-1]).strip()
+    generic_blocks = _code_block_pat.findall(text)
+    if generic_blocks:
+        return str(generic_blocks[-1]).strip()
+    answer_match = _answer_pat.search(text)
+    if answer_match:
+        return str(answer_match.group(1)).strip()
+    return str(text).strip()
+
+
+def _extract_prompt_text(prompt: Any) -> str:
+    """Return user-facing prompt text from string/chat prompt shapes."""
+
+    if isinstance(prompt, str):
+        return prompt
+    if isinstance(prompt, list):
+        for message in reversed(prompt):
+            if not isinstance(message, dict):
+                continue
+            if str(message.get("role", "")).lower() == "user":
+                return str(message.get("content", ""))
+        for message in reversed(prompt):
+            if isinstance(message, dict) and "content" in message:
+                return str(message.get("content", ""))
+    if isinstance(prompt, dict):
+        for key in ("prompt", "question", "text"):
+            if key in prompt:
+                return str(prompt.get(key, ""))
+    return str(prompt) if prompt is not None else ""
+
+
+def _parse_answer_payload(raw: Any) -> Any:
+    """Best-effort parse for list/dict payloads serialized as strings."""
+
+    if raw is None:
+        return None
+    if isinstance(raw, (list, dict)):
+        return raw
+    if not isinstance(raw, str):
+        return raw
+    text = raw.strip()
+    if not text:
+        return ""
+    try:
+        return json.loads(text)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        pass
+    try:
+        return ast.literal_eval(text)
+    except (SyntaxError, ValueError):
+        return text
+
+
+def _normalize_text_lines(value: Any) -> List[str]:
+    """Normalize strings/lists into comparable stripped lines."""
+
+    if value is None:
+        return []
+    if isinstance(value, list):
+        out: List[str] = []
+        for item in value:
+            out.extend(_normalize_text_lines(item))
+        return out
+    text = str(value).strip()
+    if not text:
+        return []
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def _outputs_match(predicted: Any, expected: Any) -> bool:
+    """Return whether predicted and expected outputs match after normalization."""
+
+    pred_lines = _normalize_text_lines(predicted)
+    exp_lines = _normalize_text_lines(expected)
+    return pred_lines == exp_lines
+
+
+def _extract_mbpp_tests(payload: Any) -> Optional[List[str]]:
+    """Extract MBPP-style ``assert`` tests from payload when present."""
+
+    if isinstance(payload, dict):
+        if "test_list" in payload:
+            return _extract_mbpp_tests(payload.get("test_list"))
+        return None
+    if isinstance(payload, list):
+        tests = [str(item).strip() for item in payload if str(item).strip()]
+        if tests and all("assert" in test for test in tests):
+            return tests
+        return None
+    if isinstance(payload, str):
+        text = payload.strip()
+        if not text:
+            return None
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if lines and all("assert" in line for line in lines):
+            return lines
+    return None
+
+
+def _extract_humaneval_test(payload: Any) -> Optional[str]:
+    """Extract HumanEval-style test program body containing ``check``."""
+
+    if isinstance(payload, dict):
+        test_field = payload.get("test")
+        if isinstance(test_field, str) and "def check" in test_field:
+            return test_field
+        return None
+    if isinstance(payload, str):
+        text = payload.strip()
+        if "def check" in text:
+            return text
+    return None
+
+
+def _extract_apps_cases(payload: Any) -> Optional[tuple[List[Any], List[Any]]]:
+    """Extract APPS-style IO pairs from an ``input_output`` payload."""
+
+    data = payload
+    if isinstance(data, dict) and "input_output" in data:
+        data = data.get("input_output")
+    if isinstance(data, str):
+        parsed = _parse_answer_payload(data)
+        data = parsed if parsed is not None else data
+    if not isinstance(data, dict):
+        return None
+    inputs = data.get("inputs")
+    outputs = data.get("outputs")
+    if not isinstance(inputs, list) or not isinstance(outputs, list):
+        return None
+    if not inputs or len(inputs) != len(outputs):
+        return None
+    return inputs, outputs
+
+
+def _parse_entry_point(prompt_text: str, explicit: Optional[str]) -> Optional[str]:
+    """Return function name for HumanEval checks from explicit value or prompt."""
+
+    if explicit:
+        return explicit.strip() or None
+    if not prompt_text:
+        return None
+    match = _def_name_pat.search(prompt_text)
+    if match is None:
+        return None
+    return str(match.group(1))
+
+
+def _run_script(script: str, timeout_s: float) -> Optional[str]:
+    """Execute a Python snippet in isolated mode and return stdout."""
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-I", "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=max(0.1, timeout_s),
+            check=False,
+        )
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+    stdout = proc.stdout.strip()
+    if not stdout:
+        return None
+    return stdout.splitlines()[-1].strip()
+
+
+def _score_mbpp_code(code: str, tests: List[str], timeout_s: float) -> float:
+    """Execute MBPP assertions and return pass fraction in ``[0, 1]``."""
+
+    if not code or not tests:
+        return 0.0
+    script = (
+        "code = "
+        + json.dumps(code)
+        + "\n"
+        + "tests = "
+        + json.dumps(tests)
+        + "\n"
+        + "ns = {}\n"
+        + "passed = 0\n"
+        + "total = len(tests)\n"
+        + "try:\n"
+        + "    exec(code, ns, ns)\n"
+        + "except BaseException:\n"
+        + "    print('0.0')\n"
+        + "    raise SystemExit(0)\n"
+        + "for test in tests:\n"
+        + "    try:\n"
+        + "        exec(test, ns, ns)\n"
+        + "        passed += 1\n"
+        + "    except BaseException:\n"
+        + "        pass\n"
+        + "print(str((passed / total) if total else 0.0))\n"
+    )
+    raw = _run_script(script, timeout_s)
+    if raw is None:
+        return 0.0
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _score_humaneval_code(
+    code: str,
+    test_program: str,
+    entry_point: Optional[str],
+    timeout_s: float,
+) -> float:
+    """Execute HumanEval checks and return binary pass/fail score."""
+
+    if not code or not test_program or not entry_point:
+        return 0.0
+    script = (
+        "code = "
+        + json.dumps(code)
+        + "\n"
+        + "test_program = "
+        + json.dumps(test_program)
+        + "\n"
+        + "entry_point = "
+        + json.dumps(entry_point)
+        + "\n"
+        + "ns = {}\n"
+        + "try:\n"
+        + "    exec(code, ns, ns)\n"
+        + "    exec(test_program, ns, ns)\n"
+        + "    candidate = ns.get(entry_point)\n"
+        + "    checker = ns.get('check')\n"
+        + "    if candidate is None or not callable(checker):\n"
+        + "        raise RuntimeError('missing entry point/check')\n"
+        + "    checker(candidate)\n"
+        + "    print('1.0')\n"
+        + "except BaseException:\n"
+        + "    print('0.0')\n"
+    )
+    raw = _run_script(script, timeout_s)
+    return 1.0 if raw == "1.0" else 0.0
+
+
+def _score_apps_code(
+    code: str,
+    cases: tuple[List[Any], List[Any]],
+    timeout_s: float,
+) -> float:
+    """Execute APPS stdin/stdout tests and return pass fraction."""
+
+    if not code:
+        return 0.0
+    inputs, outputs = cases
+    total = len(inputs)
+    if total <= 0:
+        return 0.0
+    passed = 0
+    per_case_timeout = max(0.1, timeout_s / max(1, total))
+    for case_input, expected in zip(inputs, outputs):
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-I", "-c", code],
+                input=str(case_input),
+                capture_output=True,
+                text=True,
+                timeout=per_case_timeout,
+                check=False,
+            )
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            continue
+        if proc.returncode != 0:
+            continue
+        if _outputs_match(proc.stdout, expected):
+            passed += 1
+    return float(passed) / float(total)
+
+
+def _score_python_unit_tests_sample(
+    completion: CompletionType,
+    answer_payload: Any,
+    prompt_text: str,
+    explicit_entry_point: Optional[str],
+    timeout_s: float,
+) -> float:
+    """Score one completion against MBPP/HumanEval/APPS payloads."""
+
+    text = _extract_content(completion)
+    code = _extract_python_code(text)
+    if not code:
+        return 0.0
+
+    parsed_payload = _parse_answer_payload(answer_payload)
+    mbpp_tests = _extract_mbpp_tests(parsed_payload)
+    if mbpp_tests:
+        return _score_mbpp_code(code, mbpp_tests, timeout_s)
+
+    test_program = _extract_humaneval_test(parsed_payload)
+    if test_program:
+        entry = _parse_entry_point(prompt_text, explicit_entry_point)
+        return _score_humaneval_code(code, test_program, entry, timeout_s)
+
+    apps_cases = _extract_apps_cases(parsed_payload)
+    if apps_cases is not None:
+        return _score_apps_code(code, apps_cases, timeout_s)
+
+    return 0.0
+
+
+def python_unit_test_reward(
+    completions: List[CompletionType],
+    answer: List[Any],
+    *,
+    prompts: Optional[List[Any]] = None,
+    entry_point: Optional[List[Any]] = None,
+    **_kwargs: Any,
+) -> List[float]:
+    """Run local Python-unit-test rewards for MBPP/HumanEval/APPS payloads.
+
+    Supports:
+    - MBPP: ``answer`` is ``test_list`` (list of ``assert`` strings)
+    - HumanEval: ``answer`` is ``test`` code containing ``def check(...)``
+    - APPS: ``answer`` is ``input_output`` payload with ``inputs``/``outputs``
+    """
+
+    batch_size = min(len(completions), len(answer))
+    if batch_size <= 0:
+        return []
+
+    timeout_raw = os.environ.get("MAXENT_CODE_REWARD_TIMEOUT_S", "6.0")
+    try:
+        timeout_s = float(timeout_raw)
+    except (TypeError, ValueError):
+        timeout_s = 6.0
+    timeout_s = max(0.5, timeout_s)
+
+    prompts_list = prompts if isinstance(prompts, list) else []
+    entry_points = entry_point if isinstance(entry_point, list) else []
+
+    default_workers = min(8, max(1, (os.cpu_count() or 1)))
+    workers_raw = os.environ.get("MAXENT_CODE_REWARD_WORKERS")
+    if workers_raw is None:
+        workers = default_workers
+    else:
+        try:
+            workers = int(workers_raw)
+        except (TypeError, ValueError):
+            workers = default_workers
+    workers = max(1, min(workers, batch_size))
+
+    def _eval_one(idx: int) -> float:
+        prompt_text = (
+            _extract_prompt_text(prompts_list[idx])
+            if idx < len(prompts_list)
+            else ""
+        )
+        explicit_entry: Optional[str] = None
+        if idx < len(entry_points):
+            candidate = entry_points[idx]
+            if candidate is not None:
+                explicit_entry = str(candidate)
+        return _score_python_unit_tests_sample(
+            completions[idx],
+            answer[idx],
+            prompt_text,
+            explicit_entry,
+            timeout_s,
+        )
+
+    if workers <= 1:
+        return [_eval_one(i) for i in range(batch_size)]
+
+    rewards = [0.0] * batch_size
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        future_to_idx = {pool.submit(_eval_one, i): i for i in range(batch_size)}
+        for future, idx in future_to_idx.items():
+            try:
+                rewards[idx] = float(future.result())
+            except (TypeError, ValueError, RuntimeError):
+                rewards[idx] = 0.0
+    return rewards
+
+
+def _canon_math(s: Any) -> str:
     """Canonicalize simple math answers for exact-match comparison."""
 
     if s is None:
         return ""
+    if not isinstance(s, str):
+        try:
+            s = str(s)
+        except Exception:
+            return ""
     s = s.strip()
     replacements = {
         "π": r"\pi",
@@ -282,6 +682,8 @@ def get_reward_funcs(
 
     registry = {
         "pure_accuracy_math": pure_accuracy_reward_math,
+        "python_unit_tests": python_unit_test_reward,
+        "mbpp_python_tests": python_unit_test_reward,
     }
     return [registry[name] for name in script_args.reward_funcs]
 
@@ -292,5 +694,6 @@ __all__ = [
     "get_reward_funcs",
     "pure_accuracy_math_correctness",
     "pure_accuracy_reward_math",
+    "python_unit_test_reward",
     "uses_pure_accuracy_math_reward",
 ]

@@ -25,21 +25,17 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Dict, Iterator, List, Optional, Tuple, cast
 
-from maxent_grpo.generation.errors import (
+from maxent_grpo.training.generation.errors import (
     GenerationServiceError,
     log_generation_service_error,
 )
 from maxent_grpo.rewards.basic import (
     _answer_pat,
     _format_pat,
-    pure_accuracy_math_correctness,
-    uses_pure_accuracy_math_reward,
 )
 from maxent_grpo.training.runtime.logging import _log_wandb
-from .run_helpers import _batch_tokenize_pairs, _prepare_labels_for_ce
 from .scoring import (
     _refresh_torch,
-    _to_numpy_array,
     build_score_batch,
     gather_reference_logprobs,
     reference_from_vllm_meta,
@@ -53,8 +49,6 @@ from .types import PromptCompletionBatch, RewardSpec, ValidationContext
 LOG = logging.getLogger(__name__)
 _EVAL_LOGPROBS_ENV = "MAXENT_EVAL_LOGPROBS"
 _EVAL_LOGPROBS_WARNED = False
-_PASS_METRIC_SUCCESS_REWARD = 1.0
-_PASS_METRIC_EPS = 1e-6
 
 
 def _progress_log_enabled() -> bool:
@@ -522,17 +516,6 @@ class _EvalShardInfo:
     rank: int
 
 
-@dataclass
-class _SeedEvalConfig:
-    """Parsed seed-eval options."""
-
-    enabled: bool
-    num_seeds: int
-    samples_per_seed: int
-    template: str
-    pooling: str
-
-
 def _iter_eval_batches(
     evaluation_rows: List[dict],
     batch_size: int,
@@ -955,222 +938,6 @@ def _gather_eval_stats(
     return total_sum, total_count, total_fmt, total_score
 
 
-def _render_seed_prompts(
-    prompts: List[str], num_seeds: int, template: str
-) -> Tuple[List[str], List[int], List[int]]:
-    """Expand prompts with seed template; return prompts, seeds, base indices."""
-
-    rendered: List[str] = []
-    seed_ids: List[int] = []
-    base_idx: List[int] = []
-    for base_idx_val, prompt in enumerate(prompts):
-        for seed in range(1, num_seeds + 1):
-            if "{prompt}" in template:
-                rendered_prompt = template.format(prompt=prompt, seed=seed)
-            else:
-                rendered_prompt = f"{prompt}{template.format(seed=seed)}"
-            rendered.append(rendered_prompt)
-            seed_ids.append(seed)
-            base_idx.append(base_idx_val)
-    return rendered, seed_ids, base_idx
-
-
-def _pool_hidden(hidden: Any, mask: Any, pooling: str) -> Any:
-    """Pool hidden states according to the configured mode."""
-
-    if pooling == "last":
-        return hidden[:, -1, :]
-    mask = mask.unsqueeze(-1).type_as(hidden)
-    return (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
-
-
-def _run_seed_eval(
-    ctx: ValidationContext,
-    shard: _EvalShardInfo,
-    seed_cfg: _SeedEvalConfig,
-) -> Optional[Dict[str, float]]:
-    """Run multi-seed eval to measure pass@k, predictability, and diversity."""
-
-    if (
-        not seed_cfg.enabled
-        or seed_cfg.num_seeds <= 0
-        or seed_cfg.samples_per_seed <= 0
-    ):
-        return None
-    torch_mod = _refresh_torch()
-    prompts = [row["prompt"] for row in shard.rows]
-    answers = [row.get("answer", "") for row in shard.rows]
-    if not prompts:
-        return None
-    rendered_prompts, seed_ids, base_indices = _render_seed_prompts(
-        prompts, seed_cfg.num_seeds, seed_cfg.template
-    )
-    per_prompt_counts = [seed_cfg.samples_per_seed] * len(rendered_prompts)
-    grouped, _ = ctx.generator(
-        rendered_prompts,
-        seed_cfg.samples_per_seed,
-        per_prompt_counts,
-    )
-    if not grouped:
-        return None
-    # Flatten completions, align answers/seed ids.
-    flat_completions: List[str] = []
-    flat_answers: List[str] = []
-    flat_seed_ids: List[int] = []
-    flat_base_idx: List[int] = []
-    flat_prompts_for_pairs: List[str] = []
-    for comps, seed_id, base_idx_val, rendered_prompt in zip(
-        grouped, seed_ids, base_indices, rendered_prompts
-    ):
-        for comp in comps:
-            flat_completions.append(comp)
-            flat_answers.append(answers[base_idx_val])
-            flat_seed_ids.append(seed_id)
-            flat_base_idx.append(base_idx_val)
-            flat_prompts_for_pairs.append(rendered_prompt)
-    if not flat_completions:
-        return None
-    reward_spec = ctx.eval_reward or ctx.reward
-    rewards = _compute_eval_rewards(flat_completions, flat_answers, reward_spec)
-    # Pass@K per base prompt
-    pass_counts: Dict[int, int] = {}
-    total_per_prompt: Dict[int, int] = {}
-    pass_from_math_correctness = uses_pure_accuracy_math_reward(reward_spec.reward_funcs)
-    correctness_flags: Optional[List[bool]] = None
-    if pass_from_math_correctness:
-        # Paper-facing pass metric: exact canonical answer match,
-        # allowing only a final-line exact fallback (no shaping rewards).
-        correctness_flags = pure_accuracy_math_correctness(
-            flat_completions,
-            flat_answers,
-            allow_last_line_fallback=True,
-        )
-    for idx, (r, base_idx_val) in enumerate(zip(rewards, flat_base_idx)):
-        total_per_prompt[base_idx_val] = total_per_prompt.get(base_idx_val, 0) + 1
-        solved = (
-            bool(correctness_flags[idx])
-            if correctness_flags is not None and idx < len(correctness_flags)
-            else r >= (_PASS_METRIC_SUCCESS_REWARD - _PASS_METRIC_EPS)
-        )
-        if solved:
-            pass_counts[base_idx_val] = 1
-    pass_at_1 = sum(pass_counts.values()) / max(len(prompts), 1)
-    # Seed predictability via seed head if available
-    seed_pred_acc = None
-    diversity_l2 = None
-    seed_head = getattr(ctx.model, "seed_head", None)
-    tokenizer = getattr(ctx, "tokenizer", None)
-    if callable(seed_head) and tokenizer is not None:
-        input_ids, attn, prompt_lengths = _batch_tokenize_pairs(
-            tokenizer, flat_prompts_for_pairs, flat_completions
-        )
-        labels = _prepare_labels_for_ce(input_ids.clone(), prompt_lengths)
-        input_ids = input_ids.to(ctx.model.device)
-        attn = attn.to(ctx.model.device)
-        labels = labels.to(ctx.model.device)
-        with torch_mod.no_grad():
-            call_target = ctx.model if callable(ctx.model) else getattr(ctx.model, "forward", None)
-            if not callable(call_target):
-                raise TypeError("Model is not callable and lacks a forward method")
-            outputs = cast(
-                Any,
-                call_target(
-                input_ids=input_ids,
-                attention_mask=attn,
-                labels=labels,
-                output_hidden_states=True,
-            ),
-            )
-            hidden_states = getattr(outputs, "hidden_states", None)
-            if not hidden_states:
-                raise TypeError("Model outputs missing hidden_states")
-            hidden = hidden_states[-1]
-            pooled = _pool_hidden(hidden, attn, seed_cfg.pooling)
-            logits = seed_head(pooled)
-            logits_any = cast(Any, logits)
-            preds = getattr(torch_mod, "as_tensor", torch_mod.tensor)(
-                logits_any.argmax(dim=-1)
-            ).view(-1)
-            sid_tensor = getattr(torch_mod, "as_tensor", torch_mod.tensor)(
-                flat_seed_ids, device=preds.device
-            ).view(-1)
-            seq_len = 0
-            shape = getattr(pooled, "shape", None)
-            if shape and len(shape) > 0:
-                seq_len = int(shape[0])
-            valid_len = int(
-                min(preds.numel(), sid_tensor.numel(), seq_len or preds.numel())
-            )
-            if valid_len > 0:
-                preds = preds[:valid_len]
-                sid_tensor = sid_tensor[:valid_len]
-                try:
-                    pooled = pooled[:valid_len]
-                except (
-                    TypeError,
-                    AttributeError,
-                    RuntimeError,
-                ):  # pragma: no cover - defensive
-                    LOG.debug("Failed to trim pooled seed predictions for valid length.")
-            valid_mask = sid_tensor >= 0
-            if valid_mask.any() and preds.numel() > 0:
-                try:
-                    seed_pred_acc = (
-                        (preds[valid_mask] == sid_tensor[valid_mask])
-                        .float()
-                        .mean()
-                        .item()
-                    )
-                except (TypeError, ValueError, RuntimeError):
-                    # Fall back to numpy-style masking when stubs are present.
-                    import numpy as _np
-
-                    preds_arr = _to_numpy_array(preds)
-                    mask_arr = _to_numpy_array(valid_mask).astype(bool)
-                    sid_arr = _to_numpy_array(sid_tensor)
-                    try:
-                        seed_pred_acc = float(
-                            _np.mean(preds_arr[mask_arr] == sid_arr[mask_arr])
-                        )
-                    except (TypeError, ValueError, RuntimeError):
-                        seed_pred_acc = None
-                # Diversity across seeds (mean pooled representations per seed)
-                unique_sids = torch_mod.unique(sid_tensor[valid_mask])
-                if unique_sids.numel() > 1:
-                    means = []
-                    pooled_any = cast(Any, pooled)
-                    for sid in unique_sids:
-                        m = pooled_any[sid_tensor == sid].mean(dim=0)
-                        means.append(m)
-                    if len(means) > 1:
-                        try:
-                            stacked = torch_mod.stack(means)
-                        except TypeError:
-                            stacked = torch_mod.stack(
-                                [torch_mod.tensor(getattr(m, "arr", m)) for m in means]
-                            )
-                        pdist_fn = getattr(
-                            getattr(torch_mod, "nn", SimpleNamespace()),
-                            "functional",
-                            None,
-                        )
-                        pdist = getattr(pdist_fn, "pdist", None) if pdist_fn else None
-                        if callable(pdist):
-                            try:
-                                pdist_val = cast(Any, pdist(stacked, p=2))
-                                diversity_l2 = float(pdist_val.mean().item())
-                            except (TypeError, ValueError, RuntimeError):
-                                diversity_l2 = None
-    metrics = {
-        "eval_seed/pass_at_1": pass_at_1,
-    }
-    if seed_pred_acc is not None:
-        metrics["eval_seed/pred_acc"] = float(seed_pred_acc)
-    if diversity_l2 is not None:
-        metrics["eval_seed/diversity_l2"] = float(diversity_l2)
-    return metrics
-
-
 def run_validation_step(step: int, ctx: ValidationContext) -> None:
     """Generate single completions on the eval set and log mean reward.
 
@@ -1341,32 +1108,6 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                     accel_log(eval_metrics, step=step)
                 except TypeError:
                     accel_log(eval_metrics)
-            seed_cfg_raw = getattr(evaluation_cfg, "seed_eval", None)
-            if isinstance(seed_cfg_raw, dict):
-                seed_cfg = _SeedEvalConfig(
-                    enabled=bool(seed_cfg_raw.get("enabled", False)),
-                    num_seeds=int(seed_cfg_raw.get("num_seeds", 0)),
-                    samples_per_seed=int(seed_cfg_raw.get("samples_per_seed", 0)),
-                    template=str(seed_cfg_raw.get("template", "\n[seed={seed}]")),
-                    pooling=str(seed_cfg_raw.get("pooling", "mean")),
-                )
-                seed_metrics = _run_seed_eval(ctx, shard, seed_cfg)
-                if seed_metrics:
-                    logging.getLogger(__name__).info(
-                        "eval seed metrics @ step %d | %s",
-                        step,
-                        seed_metrics,
-                    )
-                    ctx.logging.log_metrics(seed_metrics, step)
-                    _log_wandb(
-                        getattr(ctx.logging, "wandb_run", None), seed_metrics, step
-                    )
-                    accel_log = getattr(accelerator, "log", None)
-                    if callable(accel_log):
-                        try:
-                            accel_log(seed_metrics, step=step)
-                        except TypeError:
-                            accel_log(seed_metrics)
         if eval_only_rank0 and callable(wait_for_all):
             wait_for_all()
     finally:

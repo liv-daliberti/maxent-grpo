@@ -22,21 +22,21 @@ from typing import (
     cast,
 )
 
-from maxent_grpo.generation.common import (
+from maxent_grpo.training.generation.common import (
     AggregatedGenerationState as _AggregatedGenerationState,
     retry_incomplete_prompts as _retry_incomplete_prompts_impl,
     seed_generation_groups as _seed_generation_groups_impl,
 )
-from maxent_grpo.generation.vllm import (
+from maxent_grpo.training.generation.vllm import (
     VLLMGenerationHelper,
     _VLLMGenerationState as _BaseVLLMGenerationState,
 )
-from maxent_grpo.generation.vllm_utils import (
+from maxent_grpo.training.generation.vllm_utils import (
     import_vllm_client_cls as _shared_import_vllm_client_cls,
     init_vllm_client_communicator as _shared_init_vllm_client_communicator,
     zero3_gather_factory as _shared_zero3_gather_factory,
 )
-from maxent_grpo.patches.vllm import VLLMLogprobResult, safe_generate
+from maxent_grpo.training.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime import require_accelerator, require_torch
 from maxent_grpo.training.runtime.prompts import _truncate_prompt
 

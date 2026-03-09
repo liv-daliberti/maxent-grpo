@@ -1,4 +1,4 @@
-"""Dataset loading helpers for the InfoSeed runner."""
+"""Dataset loading helpers for the training pipeline."""
 
 from __future__ import annotations
 

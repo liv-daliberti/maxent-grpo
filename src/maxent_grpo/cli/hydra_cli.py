@@ -24,30 +24,16 @@ import sys
 import types
 from contextlib import nullcontext
 from dataclasses import dataclass, field, is_dataclass
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, TypedDict, cast
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING, cast
 from collections.abc import Mapping
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
 
-from maxent_grpo.cli.config_validation import (
-    validate_generation_config,
-    validate_inference_config,
-    validate_training_config,
-)
+from maxent_grpo.cli.config_validation import validate_training_config
 from maxent_grpo.config import (
     GRPOConfig,
     GRPOScriptArguments,
     load_grpo_recipe,
-)
-from maxent_grpo.pipelines.generation.distilabel import (
-    DistilabelGenerationConfig,
-    run_generation_job,
-)
-from maxent_grpo.pipelines.math_inference import (
-    InferenceArtifactConfig,
-    InferenceModelSpec,
-    resolve_inference_dataset,
-    run_math_inference,
 )
 
 
@@ -166,91 +152,17 @@ class MaxentCommand:
 
 
 @dataclass
-class InfoSeedCommand:
-    """GRPO training command options for the InfoSeed recipe."""
-
-    recipe: Optional[str] = None
-    script: Dict[str, Any] = field(default_factory=dict)
-    training: Dict[str, Any] = field(default_factory=dict)
-    model: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class GenerateCommand:
-    """Generation job configuration block.
-
-    :param args: Keyword arguments forwarded to :class:`DistilabelGenerationConfig`.
-    """
-
-    args: Dict[str, Any] = field(default_factory=dict)
-
-
-class _GenerationArgsRequired(TypedDict):
-    hf_dataset: str
-    model: str
-
-
-class _GenerationArgs(_GenerationArgsRequired, total=False):
-    hf_dataset_config: Optional[str]
-    hf_dataset_split: str
-    prompt_column: str
-    prompt_template: str
-    vllm_server_url: str
-    temperature: Optional[float]
-    top_p: Optional[float]
-    max_new_tokens: int
-    num_generations: int
-    input_batch_size: int
-    client_replicas: int
-    timeout: int
-    retries: int
-    hf_output_dataset: Optional[str]
-    private: bool
-
-
-@dataclass
-class InferenceCommand:
-    """Inference job configuration block.
-
-    :param models: Sequence of model specs to evaluate.
-    :param dataset: Named inference preset to evaluate.
-    :param eval: Evaluation configuration overrides for math benchmarks.
-    :param seeds: RNG seeds to average metrics over.
-    :param num_generations: Number of completions per prompt (Pass@k with k=num_generations).
-    :param temperature: Temperature override for rollout sampling.
-    :param limit: Optional cap on number of items to evaluate.
-    :param collect_generations: Whether to return collected generations.
-    :param artifacts: Artifact persistence/resume configuration.
-    """
-
-    models: List[Dict[str, Any]] = field(default_factory=list)
-    dataset: str = "math_500"
-    eval: Dict[str, Any] = field(default_factory=dict)
-    seeds: List[int] = field(default_factory=lambda: [0, 1, 2, 3, 4])
-    num_generations: int = 8
-    temperature: float = 0.6
-    limit: Optional[int] = None
-    collect_generations: bool = False
-    artifacts: InferenceArtifactConfig = field(default_factory=InferenceArtifactConfig)
-
-
-@dataclass
 class HydraRootConfig:
     """Hydra root configuration covering all supported CLI commands.
 
     :param command: Name of the subcommand to run.
     :param baseline: Baseline training command configuration.
     :param maxent: MaxEnt training command configuration.
-    :param generate: Generation job configuration.
-    :param inference: Inference job configuration.
     """
 
     command: str = "train-baseline"
     baseline: BaselineCommand = field(default_factory=BaselineCommand)
     maxent: MaxentCommand = field(default_factory=MaxentCommand)
-    infoseed: InfoSeedCommand = field(default_factory=InfoSeedCommand)
-    generate: GenerateCommand = field(default_factory=GenerateCommand)
-    inference: InferenceCommand = field(default_factory=InferenceCommand)
 
 
 _HYDRA_CONFIG_NAME = "maxent_grpo_cli"
@@ -309,14 +221,14 @@ def _maybe_insert_command(default_command: str) -> None:
         sys.argv.insert(1, f"command={default_command}")
 
 
-def _resolve_recipe_path(cmd: BaselineCommand | MaxentCommand | InfoSeedCommand) -> Optional[str]:
+def _resolve_recipe_path(cmd: BaselineCommand | MaxentCommand) -> Optional[str]:
     """Return the explicit recipe path or fall back to ``$GRPO_RECIPE``."""
 
     return getattr(cmd, "recipe", None) or os.environ.get("GRPO_RECIPE")
 
 
 def _build_grpo_configs(
-    cmd: BaselineCommand | MaxentCommand | InfoSeedCommand,
+    cmd: BaselineCommand | MaxentCommand,
 ) -> tuple[GRPOScriptArguments, GRPOConfig, Any]:
     """Construct GRPO config objects from a command block.
 
@@ -384,16 +296,6 @@ def _apply_overrides(target: Any, overrides: Optional[Mapping[str, Any]]) -> Any
     return target
 
 
-def _payload_mapping(payload: Any) -> Dict[str, Any]:
-    if isinstance(payload, Mapping):
-        return dict(payload)
-    if is_dataclass(payload) and not isinstance(payload, type):
-        return dict(payload.__dict__)
-    if hasattr(payload, "__dict__"):
-        return dict(payload.__dict__)
-    return {}
-
-
 def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
     """Dispatch hydra-configured subcommands (direct-call friendly).
 
@@ -436,12 +338,9 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
             cmd = arg.split("=", 1)[1]
             root.command = cmd
             break
-    is_test = (
-        os.environ.get("PYTEST_CURRENT_TEST") is not None
-        and os.environ.get("MAXENT_ALLOW_HYDRA_EXEC", "0") != "1"
-    )
-
     if cmd == "train-baseline":
+        from maxent_grpo.training.baseline import run_baseline_training
+
         script_args, training_args, model_args = _build_grpo_configs(root.baseline)
         baseline_recipe = _resolve_recipe_path(root.baseline)
         validate_training_config(
@@ -449,17 +348,9 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
             command="train-baseline",
             source=baseline_recipe,
         )
-        if getattr(training_args, "controller_meta_enabled", False):
-            from maxent_grpo.pipelines.training.maxent import run_maxent_training
-
-            training_args.train_grpo_objective = True
-            run_maxent_training(script_args, training_args, model_args)
-        else:
-            from maxent_grpo.pipelines.training.baseline import run_baseline_training
-
-            run_baseline_training(script_args, training_args, model_args)
+        run_baseline_training(script_args, training_args, model_args)
     elif cmd == "train-maxent":
-        from maxent_grpo.pipelines.training.maxent import run_maxent_training
+        from maxent_grpo.training.baseline import run_baseline_training
 
         script_args, training_args, model_args = _build_grpo_configs(root.maxent)
         maxent_recipe = _resolve_recipe_path(root.maxent)
@@ -468,54 +359,7 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
             command="train-maxent",
             source=maxent_recipe,
         )
-        run_maxent_training(script_args, training_args, model_args)
-    elif cmd == "train-infoseed":
-        from maxent_grpo.pipelines.training.infoseed import run_infoseed_training
-
-        script_args, training_args, model_args = _build_grpo_configs(root.infoseed)
-        infoseed_recipe = _resolve_recipe_path(root.infoseed)
-        validate_training_config(
-            training_args,
-            command="train-infoseed",
-            source=infoseed_recipe,
-        )
-        run_infoseed_training(script_args, training_args, model_args)
-    elif cmd == "generate":
-        gen_payload = (
-            root.generate.args
-            if isinstance(root.generate, GenerateCommand)
-            else root.generate
-        )
-        gen_args = cast(_GenerationArgs, _payload_mapping(gen_payload))
-        validate_generation_config(gen_args, command="generate")
-        gen_cfg = DistilabelGenerationConfig(**gen_args)
-        if is_test:
-            return "ok"
-        run_generation_job(gen_cfg)
-    elif cmd in ("inference", "math-eval", "math_eval"):
-        validate_inference_config(root.inference, command=cmd)
-        if not root.inference.models:
-            raise ValueError("inference.models must contain at least one model spec")
-        specs = [InferenceModelSpec(**spec) for spec in root.inference.models]
-        dataset_name = getattr(root.inference, "dataset", None) or "math_500"
-        eval_cfg = resolve_inference_dataset(
-            dataset_name,
-            root.inference.eval,
-        )
-        if is_test:
-            return "ok"
-        results = run_math_inference(
-            specs,
-            eval_cfg=eval_cfg,
-            limit=root.inference.limit,
-            collect_generations=root.inference.collect_generations,
-            num_generations=root.inference.num_generations,
-            seeds=root.inference.seeds,
-            temperature=root.inference.temperature,
-            dataset_id=dataset_name,
-            artifact_config=root.inference.artifacts,
-        )
-        print(OmegaConf.to_yaml(OmegaConf.create([r.__dict__ for r in results])))
+        run_baseline_training(script_args, training_args, model_args)
     else:
         raise ValueError(f"Unsupported command: {cmd}")
 
@@ -534,47 +378,6 @@ def baseline_entry() -> None:
     :returns: ``None`` after dispatching to Hydra.
     """
     _maybe_insert_command("train-baseline")
-    _invoke_hydra_cli()
-
-
-def maxent_entry() -> None:
-    """Console script wrapper for MaxEnt training.
-
-    :returns: ``None`` after dispatching to Hydra.
-    """
-    _maybe_insert_command("train-maxent")
-    _invoke_hydra_cli()
-
-
-def generate_entry() -> None:
-    """Console script wrapper for dataset generation.
-
-    :returns: ``None`` after dispatching to Hydra.
-    """
-    _maybe_insert_command("generate")
-    _invoke_hydra_cli()
-
-
-def inference_entry() -> None:
-    """Console script wrapper for math inference evaluation.
-
-    :returns: ``None`` after dispatching to Hydra.
-    """
-    _maybe_insert_command("inference")
-    _invoke_hydra_cli()
-
-
-def math_eval_entry() -> None:
-    """Console script wrapper for multi-benchmark math inference."""
-
-    _maybe_insert_command("math-eval")
-    _invoke_hydra_cli()
-
-
-def infoseed_entry() -> None:
-    """Console script wrapper for InfoSeed training."""
-
-    _maybe_insert_command("train-infoseed")
     _invoke_hydra_cli()
 
 

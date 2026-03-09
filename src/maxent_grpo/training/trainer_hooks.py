@@ -7,7 +7,6 @@ runtime path.
 
 from __future__ import annotations
 
-import json
 import logging
 import math
 import os
@@ -298,23 +297,6 @@ def _apply_weighting_overrides_from_config(ctx: TrainingLoopContext) -> None:
         weighting.allow_empty_weight_fallback = bool(fallback_flag)
 
 
-def _maybe_save_seed_heatmap(seed_heatmap: Optional[dict], step: int) -> None:
-    """Persist a correlation heatmap when enabled via env flag."""
-
-    if not seed_heatmap:
-        return
-    if os.environ.get("INFOSEED_SAVE_HEATMAP", "0") not in {"1", "true", "True"}:
-        return
-    out_dir = os.environ.get("INFOSEED_HEATMAP_DIR", "var/artifacts/logs/seed_heatmaps")
-    try:
-        os.makedirs(out_dir, exist_ok=True)
-        path = os.path.join(out_dir, f"seed_heatmap_step{int(step)}.json")
-        with open(path, "w", encoding="utf-8") as handle:
-            json.dump(seed_heatmap, handle)
-    except (OSError, TypeError, ValueError):
-        LOG.warning("Failed to save seed heatmap at step %d", step)
-
-
 def _cache_meta_stats(weighting_cfg: Any, weight_view: Any, loss_outputs: Any) -> None:
     """Cache scalar summaries used by meta-controller objectives."""
 
@@ -345,5 +327,4 @@ __all__ = [
     "_cache_meta_stats",
     "_log_prompt_objective",
     "_maybe_overwrite_controller_state_from_config",
-    "_maybe_save_seed_heatmap",
 ]

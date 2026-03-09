@@ -1,28 +1,30 @@
-# Tests layout
+# Tests Layout
 
-This repository uses a hybrid layout: subpackages for discovery + pytest markers for selection.
-Markers are auto-applied in `tests/conftest.py` based on path and filename tokens.
+The test tree is organized around the GRPO/MaxEnt training + eval workflow.
 
 ## Structure
 
 - `tests/cli/`: CLI entrypoints and console scripts
 - `tests/config/`: configuration and recipe validation
 - `tests/core/`: core utilities and data/model helpers
-- `tests/evaluation/`: inference, evaluation, scoring
-- `tests/generation/`: generation helpers (see `tests/generation/vllm/` for vLLM)
-- `tests/ops/`: ops/tooling, perf, validation scripts
-- `tests/pipelines/`: pipeline orchestration/integration
-- `tests/rewards/`: reward logic (see `tests/rewards/weighting/` for weighting)
-- `tests/runtime/`: runtime/deps/setup/logging helpers
-- `tests/training/`: training loop, optim, metrics, and helpers
+- `tests/evaluation/`: evaluation and scoring behavior
+- `tests/rewards/`: reward logic (including weighting helpers)
+- `tests/training/`: training-centric coverage
+- `tests/training/generation/`: generation helpers used by training
+- `tests/training/generation/vllm/`: vLLM integration behavior
+- `tests/training/pipeline/`: training pipeline orchestration/parity checks
+- `tests/training/runtime/`: runtime/dependency checks
+- `tests/training/runtime/logging/`: training telemetry/logging behavior
+- `tests/training/runtime/ops/`: training ops/tooling helpers
+- `tests/training/runtime/setup/`: environment/setup behavior
 
 ## Markers
 
-- `cli`, `config`, `core`, `evaluation`, `generation`, `pipelines`, `runtime`, `ops`, `training`, `rewards`, `vllm`
-- `logging`, `setup` are added from subdirectories or filename tokens
-- `integration` is added for pipeline tests and files containing "integration"
+- `cli`, `config`, `core`, `evaluation`, `training`, `rewards`, `vllm`
+- `generation`, `runtime`, `logging`, `ops`, `setup`, `pipelines` are retained for focused selection
+- `integration` for cross-module and external-interface tests
 
 Examples:
-- `pytest -m "generation and vllm"`
+- `pytest tests/training/generation/vllm -q`
 - `pytest -m "training and not slow"`
-- `pytest tests/cli -m "integration"`
+- `pytest tests/evaluation -q`

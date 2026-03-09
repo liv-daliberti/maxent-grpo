@@ -10,22 +10,20 @@ Slurm (recommended):
 
 .. code-block:: bash
 
-   sbatch var/repo/ops/slurm/train.slurm \
+   sbatch ops/slurm/train_dual_4plus4.slurm \
      --model Qwen2.5-1.5B-Instruct \
-     --task grpo \
      --config math \
      --accelerator zero3 \
-     --args "--run_name demo --report_to wandb"
+     --run-only grpo \
+     --grpo-args "--run_name demo --report_to wandb"
 
 Quick flags:
 
-- ``--task maxent`` launches the shared MaxEnt/GRPO pipeline on the TRL/HF Trainer loop. Set ``train_grpo_objective=false`` for MaxEnt weighting, or keep ``train_grpo_objective=true`` and set ``policy_entropy_bonus_coef>0`` for GRPO + entropy bonus.
-- ``--task infoseed`` (or a recipe with ``info_seed_enabled=true``) routes through ``src/maxent_grpo/pipelines/training/infoseed.py`` which always uses the custom loop so the auxiliary seed loss can tap the same hooks as MaxEnt. Hydra validation enforces ``info_seed_enabled`` for this command, so keep the flag true unless you switch back to the baseline/MaxEnt recipes.
-- ``--dp/--tp`` set vLLM data/tensor parallel sizes.
-- ``--vllm-port`` / ``--vllm-group-port`` override RPC ports when needed.
-- ``--args "…"`` passes raw CLI to the trainer (quote the entire string).
+- ``--run-only both|grpo|maxent`` controls which stack(s) launch in the 8-GPU job.
+- ``--grpo-config`` / ``--maxent-config`` override config suffixes per stack.
+- ``--grpo-args`` / ``--maxent-args`` pass raw trainer CLI flags through to each stack.
 - Authenticate with Hugging Face ahead of time (``huggingface-cli login`` or ``export HF_TOKEN=...``); the launcher forwards ``HF_TOKEN`` to every node for gated repos.
-- See every option via ``sbatch var/repo/ops/slurm/train.slurm --help``.
+- See every option via ``sbatch ops/slurm/train_dual_4plus4.slurm --help``.
 
 Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
 
@@ -35,8 +33,8 @@ Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
    maxent-grpo-baseline command=train-baseline training.output_dir=var/data/out
 
    # MaxEnt-GRPO using a YAML recipe
-   GRPO_RECIPE=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml \
-     maxent-grpo-maxent
+   maxent-grpo command=train-maxent \
+     maxent.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml
 
 Recipe pairing (reproducible GRPO_RECIPE runs)
 ----------------------------------------------
@@ -46,8 +44,7 @@ Recipe pairing (reproducible GRPO_RECIPE runs)
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
 - Paired GRPO recipes pin ``maxent_reference_logprobs_source: model`` and share optimizer/sampling settings with MaxEnt counterparts for parity.
 - The MaxEnt-GRPO recipes now default to **GRPO + entropy bonus**; switch back to MaxEnt weighting by setting ``train_grpo_objective=false``.
-- InfoSeed recipe (custom loop + auxiliary loss): ``configs/recipes/<model>/infoseed/config_math.yaml``. Those keep ``info_seed_enabled: true`` (required for ``train-infoseed``) and default to the InfoSeed variant of the pipeline; flip the flag (or use the MaxEnt/GRPO recipes) to disable seed conditioning entirely.
-- Hydra console wrappers reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so ``GRPO_RECIPE=… maxent-grpo-{baseline,maxent}`` will read the intended sibling. For paired GRPO parity settings, use ``configs/recipes/hydra/grpo_custom_math.yaml``.
+- Hydra shortcuts reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so both ``maxent-grpo-baseline`` and ``maxent-grpo command=train-maxent`` read sibling configs. For paired GRPO parity settings, use ``configs/recipes/hydra/grpo_custom_math.yaml``.
 
 Logging (Entropy Bonus)
 -----------------------
@@ -68,42 +65,33 @@ near zero even though it changes the per-sample ranking. Per-reward stats includ
 What the Slurm launcher does
 ----------------------------
 
-``var/repo/ops/slurm/train.slurm`` is the orchestrator. It:
+``ops/slurm/train_dual_4plus4.slurm`` is the orchestrator. It:
 
-- Boots a conda env (default ``./var/openr1``) or arbitrary venv depending on ``ENV_MODE``.
-- Loads CUDA 12.6 modules (editable) and exports ``CUDA_HOME``, ``PATH``, ``LD_LIBRARY_PATH``.
-- Redirects all Hugging Face / pip / torch caches into ``var/`` so jobs stay self‑contained.
-- Parses your YAML recipe to discover ``use_vllm``, the model ID, gradient accumulation, and vLLM mode.
-- Splits nodes between training and vLLM automatically:
-  - single node → GPU 0 hosts vLLM, remaining GPUs run Accelerate.
-  - multi‑node → reserves the last node for vLLM (data/tensor parallel controlled by ``--dp/--tp``).
-- Launches ``trl.scripts.vllm_serve`` with health checks, then fans out ``accelerate launch`` across remaining nodes/GPUs.
-- Auto‑wires ``--vllm_server_host/port`` into the trainer if you did not pass them manually.
-- Streams logs to ``var/artifacts/logs/train_<jobid>.log`` and ``var/artifacts/logs/vllm-<jobid>.out`` alongside the Slurm stdout/err files.
+- Activates the local env (default ``./var/openr1``) and routes caches/temp dirs into ``var/cache``.
+- Resolves paired GRPO/MaxEnt recipes plus the selected Accelerate config.
+- Supports dual-stack mode (both GRPO + MaxEnt concurrently) or single-stack mode via ``--run-only``.
+- Launches dedicated vLLM + training processes per active stack with health checks and log fan-out.
+- Streams logs under ``var/artifacts/logs/`` alongside Slurm stdout/err.
 
 Entrypoint and vLLM parameters
 ------------------------------
 
-- ``--task grpo|maxent`` toggles the trainer file (``src/maxent_grpo/grpo.py`` vs ``src/maxent_grpo/maxent_grpo.py``).
-- ``--model/--config`` pair selects the YAML under ``configs/recipes/<model>/<task>/config_<suffix>.yaml``.
+- ``--model/--config`` selects paired GRPO + MaxEnt YAML files under ``configs/recipes/<model>/``.
+- ``--grpo-config`` and ``--maxent-config`` override suffixes independently when needed.
 - ``--accelerator`` chooses the Accelerate config under ``configs/recipes/accelerate_configs/``.
-- ``--args`` lets you append any CLI flag supported by the trainer.
-- vLLM knobs:
-  - ``--dp``, ``--tp`` set data/tensor parallel width on the server node.
-  - ``--vllm-port`` and ``--vllm-group-port`` control HTTP and NCCL RPC ports.
-  - Environment variables like ``VLLM_MODEL``, ``VLLM_MODE``, ``VLLM_MAX_LEN``, ``VLLM_MEM_UTIL`` are honoured when exporting extra options.
-- The launcher reads ``use_vllm`` from the YAML; disable it in the recipe to keep everything inline.
+- ``--grpo-args`` / ``--maxent-args`` append stack-specific trainer flags.
+- GPU/port topology is controlled by environment variables (for example ``GRPO_VLLM_GPU``, ``GRPO_TRAIN_GPUS``, ``MAXENT_VLLM_GPU``, ``MAXENT_TRAIN_GPUS``, ``GRPO_VLLM_PORT``, ``MAXENT_VLLM_PORT``).
 
 Slurm specifics
 ---------------
 
-``var/repo/ops/slurm/train.slurm`` ships with a conservative SBATCH header. Update account, partition, GPU type/count, and walltime for your site.
+``ops/slurm/train_dual_4plus4.slurm`` ships with a conservative SBATCH header. Update account, partition, GPU type/count, and walltime for your site.
 
 .. code-block:: bash
 
-   #SBATCH --job-name=open_r1
+   #SBATCH --job-name=open_r1_dual_4plus4
    #SBATCH --nodes=1
-   #SBATCH --gres=gpu:8
+   #SBATCH --gres=gpu:a100:8
    #SBATCH --account=mltheory
    #SBATCH --partition=mltheory
    #SBATCH --ntasks-per-node=1
@@ -112,18 +100,12 @@ Slurm specifics
    #SBATCH --output=var/artifacts/logs/%x-%j.out
    #SBATCH --error=var/artifacts/logs/%x-%j.err
 
-On submission the script:
-
-- Reserves GPUs/nodes based on the header.
-- Optionally spins up a dedicated vLLM node (multi‑node) or a single GPU on the training node (inline).
-- Launches Accelerate with ``--num_machines``/``--num_processes`` derived from the available training GPUs.
+On submission the script reserves an 8-GPU node (default) and launches one vLLM + one trainer per active stack.
 
 Key Files
 ---------
 
 - ``src/maxent_grpo/grpo.py`` — trainer wiring (dataset → tokenizer/model → TRL GRPOTrainer)
-- ``src/maxent_grpo/maxent_grpo.py`` — MaxEnt/GRPO entrypoint that delegates to the shared baseline pipeline and ``CustomGRPOTrainer`` on the TRL/HF Trainer loop.
-- ``src/maxent_grpo/pipelines/training/infoseed.py`` — InfoSeed pipeline that always runs through the custom loop so auxiliary losses can inspect weight stats.
 - ``src/maxent_grpo/config/`` — configuration dataclasses (ScriptArguments, GRPOConfig, …)
 - ``configs/recipes/`` — ready-to-use YAML configs; see the Recipes page
 
@@ -228,8 +210,7 @@ Common Flags
 - ``--num_generations`` and ``--max_completion_length`` for candidate sampling
 - ``--init_kl_coeff``, ``--kl_target``, ``--kl_horizon`` for trust region
 - ``--report_to wandb`` plus ``wandb_*`` fields for logging
-- InfoSeed extras (only when ``info_seed_enabled``): ``info_seed_num_seeds``, ``info_seed_lambda``, ``info_seed_temperature``, ``info_seed_prompt_template``, ``info_seed_loss_type`` – set ``info_seed_enabled=false`` (CLI or YAML) to drop the augmentation entirely.
-- MaxEnt extras (when using ``src/maxent_grpo/maxent_grpo.py``): ``--maxent_tau``, ``--maxent_q_temperature``, ``--maxent_q_epsilon``, ``--maxent_length_normalize_ref``, and ``--policy_entropy_bonus_coef`` (GRPO + entropy bonus), plus optional controllers below.
+- MaxEnt extras: ``--maxent_tau``, ``--maxent_q_temperature``, ``--maxent_q_epsilon``, ``--maxent_length_normalize_ref``, and ``--policy_entropy_bonus_coef`` (GRPO + entropy bonus), plus optional controllers below.
 
 Adaptive Controllers (MaxEnt)
 -----------------------------
@@ -270,7 +251,7 @@ Meta-Controller (τ/β)
   .. code-block:: bash
 
      # Disable meta-controller in the MaxEnt Hydra template
-     maxent-grpo-maxent maxent.training.controller_meta_enabled=false
+     maxent-grpo command=train-maxent maxent.training.controller_meta_enabled=false
 
      # Enable first-order meta updates for the baseline GRPO template
      maxent-grpo-baseline \

@@ -167,7 +167,10 @@ def test_run_validation_step_synchronizes_all_ranks(rte):
             logging=logging_handles,
         )
         run_training_eval.run_validation_step(2, ctx)
-        assert waits == [is_main, is_main], "all ranks must wait before and after eval"
+        # Current eval path syncs once before evaluation and twice in teardown.
+        assert waits == [is_main, is_main, is_main], (
+            "all ranks must synchronize around eval execution and teardown"
+        )
         assert model.training is True
 
 
@@ -249,6 +252,7 @@ def test_log_eval_start_only_logs_on_main_rank(rte, caplog):
         world_size=2,
         log_every=1,
         is_main=False,
+        rank=1,
     )
     run_training_eval._log_eval_start(5, shard_non_main, batch_size=4)
     assert "eval step" not in caplog.text
@@ -261,6 +265,7 @@ def test_log_eval_start_only_logs_on_main_rank(rte, caplog):
         world_size=2,
         log_every=1,
         is_main=True,
+        rank=0,
     )
     run_training_eval._log_eval_start(6, shard_main, batch_size=8)
     assert "eval step 6" in caplog.text

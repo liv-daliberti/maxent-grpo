@@ -23,7 +23,7 @@ attn_implementation: sdpa
 # Data training arguments
 dataset_name: open-r1/OpenR1-Math-220k
 dataset_prompt_column: problem
-eval_dataset_name: HuggingFaceH4/MATH-500
+eval_dataset_name: aime24,amc,math
 eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
@@ -88,15 +88,6 @@ maxent_score_tail_tokens: null
 train_grpo_objective: false
 scale_rewards: true
 
-# InfoSeed (optional; defaults keep it off)
-info_seed_enabled: false
-info_seed_num_seeds: 0
-info_seed_lambda: 0.0
-info_seed_alpha_entropy: 0.0
-info_seed_prompt_template: "\n[seed={seed}]"
-info_seed_loss_type: infonce
-info_seed_pooling: mean
-
 # Training/eval & logging
 bf16: true
 fp16: false
@@ -128,7 +119,7 @@ vllm_max_completion_rounds: 2
 vllm_max_retries: 4
 hub_model_id: null
 hub_strategy: "end"
-learning_rate: 1e-6
+learning_rate: 5e-7
 optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
@@ -141,7 +132,7 @@ log_like_grpo: true
 lr_scheduler_type: cosine
 max_prompt_length: 4096      # trim prompt window to ease ref scoring memory
 max_completion_length: 768  # requested output length
-max_steps: 1000
+max_steps: 2000
 # GRPO requires >=2 generations to compute advantages.
 # Use 8 so effective train batch sizes across common world sizes (3/4/7/9 GPUs) remain divisible.
 num_generations: 8
