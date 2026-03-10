@@ -24,7 +24,6 @@ from types import SimpleNamespace
 import pytest
 
 
-
 @pytest.fixture
 def weighting_mod():
     """Load training.weighting module."""

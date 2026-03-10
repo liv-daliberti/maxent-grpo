@@ -82,7 +82,11 @@ else:  # pragma: no cover - runtime dependency loading
         HFPreTrainedModel, HFPreTrainedTokenizer = require_transformer_base_classes(
             "training_types"
         )
-    except (ImportError, RuntimeError, ModuleNotFoundError):  # pragma: no cover - stub fallback
+    except (
+        ImportError,
+        RuntimeError,
+        ModuleNotFoundError,
+    ):  # pragma: no cover - stub fallback
         HFPreTrainedModel = Any
         HFPreTrainedTokenizer = Any
     try:
@@ -118,8 +122,7 @@ class GenerationFn(Protocol[LogprobT]):
         prompts: List[str],
         num_samples: int,
         per_prompt_counts: Optional[List[int]] = None,
-    ) -> GenerationResult[LogprobT]:
-        ...
+    ) -> GenerationResult[LogprobT]: ...
 
 
 @dataclass

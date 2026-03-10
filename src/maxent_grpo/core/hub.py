@@ -34,15 +34,15 @@ from typing import Any, List, Optional, TYPE_CHECKING
 
 try:  # pragma: no cover - optional dependency or incomplete install
     from transformers import AutoConfig
-except ModuleNotFoundError:  # pragma: no cover - bubble up missing dependency
-    raise
-except (ImportError, RuntimeError, AttributeError):  # pragma: no cover
+except (ModuleNotFoundError, ImportError, RuntimeError, AttributeError):  # pragma: no cover
+
     class AutoConfig:  # type: ignore[no-redef]
         """Fallback stub when transformers is missing or incomplete."""
 
         @staticmethod
         def from_pretrained(*_args: Any, **_kwargs: Any) -> Any:
             raise RuntimeError("transformers is not installed or lacks AutoConfig")
+
 
 if TYPE_CHECKING:  # pragma: no cover - import types without runtime dependency
     from huggingface_hub import (
@@ -161,7 +161,9 @@ def push_to_hub_revision(
         commits = list_repo_commits(training_args.hub_model_id)
         initial_commit = commits[-1] if commits else None
         base_rev: Optional[str] = (
-            getattr(initial_commit, "commit_id", None) if initial_commit is not None else None
+            getattr(initial_commit, "commit_id", None)
+            if initial_commit is not None
+            else None
         )
     except HfHubHTTPError:
         # Fall back to default branch tip
@@ -220,7 +222,9 @@ def ensure_hf_repo_ready(training_args: "GRPOConfig") -> None:
         return
     repo_id = getattr(training_args, "hub_model_id", None)
     if not repo_id:
-        logger.warning("push_to_hub requested but hub_model_id is unset; skipping preflight")
+        logger.warning(
+            "push_to_hub requested but hub_model_id is unset; skipping preflight"
+        )
         return
     revision = getattr(training_args, "hub_model_revision", None) or "main"
     try:
@@ -230,12 +234,20 @@ def ensure_hf_repo_ready(training_args: "GRPOConfig") -> None:
             base_rev = list_repo_commits(repo_id)[-1].commit_id
         except (IndexError, HfHubHTTPError):
             base_rev = None
-        create_branch(repo_id=repo_id, branch=revision, revision=base_rev, exist_ok=True)
-        logger.info("Verified Hugging Face repo %s (revision %s) is ready", repo_url, revision)
+        create_branch(
+            repo_id=repo_id, branch=revision, revision=base_rev, exist_ok=True
+        )
+        logger.info(
+            "Verified Hugging Face repo %s (revision %s) is ready", repo_url, revision
+        )
     except RuntimeError as exc:
         logger.warning("Skipping Hub preflight: %s", exc)
         return
-    except (HfHubHTTPError, OSError, ValueError) as exc:  # pragma: no cover - network dependent
+    except (
+        HfHubHTTPError,
+        OSError,
+        ValueError,
+    ) as exc:  # pragma: no cover - network dependent
         raise RuntimeError(
             "Failed to preflight Hugging Face Hub access; check credentials/network"
         ) from exc
@@ -361,7 +373,11 @@ def get_gpu_count_for_vllm(
         config = AutoConfig.from_pretrained(
             model_name, revision=safe_revision, trust_remote_code=True
         )
-    except (OSError, RuntimeError, ValueError) as exc:  # pragma: no cover - network dependent
+    except (
+        OSError,
+        RuntimeError,
+        ValueError,
+    ) as exc:  # pragma: no cover - network dependent
         logger.warning(
             "Unable to load config for %s (revision %s): %s; using num_gpus=%d",
             model_name,

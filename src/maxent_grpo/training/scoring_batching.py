@@ -6,16 +6,45 @@
 """Batch construction and slice materialization helpers for scoring."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
-from . import scoring_common as _common
+from dataclasses import dataclass as _dataclass
+from functools import lru_cache
+import numbers
+import sys
+from typing import Callable, Iterator, List, Optional, Tuple, cast
 
-for _name in dir(_common):
-    if _name.startswith("__"):
-        continue
-    globals().setdefault(_name, getattr(_common, _name))
-del _name
+import numpy as np
 
+from .scoring_common import (
+    LOG,
+    TorchDType,
+    TorchDevice,
+    _LongDTypeProxy,
+    _SCORING_EXCEPTIONS,
+    _TorchModuleLike,
+    _maybe_long_tensor,
+    _prefetch_iterator,
+    _refresh_torch,
+    _resolve_dtype,
+    _to_numpy_array,
+)
+from .types import (
+    BatchingSettings,
+    GenerationSettings,
+    LengthStats,
+    PreTrainedTokenizer,
+    PromptCacheEntry,
+    ReferenceLogprobs,
+    RewardComputation,
+    RuntimeHandles,
+    ScoreBatch,
+    Tensor,
+)
+
+dataclass = _dataclass
 torch = _refresh_torch()
+
 
 @dataclass
 class CompletionTensors:
@@ -244,8 +273,8 @@ def _prepare_prompt_slice(
             if length == 0:
                 continue
             start = max_prompt_tokens - length
-            prompt_ids_arr[row, start:start + length] = entry.input_ids[:length]
-            prompt_mask_arr[row, start:start + length] = entry.attention_mask[:length]
+            prompt_ids_arr[row, start : start + length] = entry.input_ids[:length]
+            prompt_mask_arr[row, start : start + length] = entry.attention_mask[:length]
 
         def _safe_dtype(dtype: object) -> object | None:
             return (
@@ -416,9 +445,9 @@ def iter_batch_slices(
         except _SCORING_EXCEPTIONS as exc:
             LOG.debug("Failed to compute completion token presence mask: %s", exc)
         if comp_tokens_present is None:
-            comp_tokens_arr = np.asarray(
-                getattr(comp_mask_slice, "arr", comp_mask_slice)
-            ) != 0
+            comp_tokens_arr = (
+                np.asarray(getattr(comp_mask_slice, "arr", comp_mask_slice)) != 0
+            )
             col_activity = comp_tokens_arr.any(axis=0)
             active_idx_np = np.nonzero(col_activity)[0]
             active_comp_columns = [int(idx) for idx in active_idx_np.tolist()]
@@ -428,11 +457,13 @@ def iter_batch_slices(
                 last_valid_idx = 0
         else:
             try:
-                nonzero_cols = torch_mod.nonzero(comp_tokens_present, as_tuple=False).view(
-                    -1
-                )
+                nonzero_cols = torch_mod.nonzero(
+                    comp_tokens_present, as_tuple=False
+                ).view(-1)
                 active_comp_columns = [int(idx.item()) for idx in nonzero_cols]
-                last_valid_idx = active_comp_columns[-1] + 1 if active_comp_columns else 0
+                last_valid_idx = (
+                    active_comp_columns[-1] + 1 if active_comp_columns else 0
+                )
             except _SCORING_EXCEPTIONS:
                 active_comp_columns = []
                 last_valid_idx = 0
@@ -447,8 +478,14 @@ def iter_batch_slices(
         labels_tensor = full_input_ids.clone()
         for idx, plen in enumerate(prompt_lengths):
             labels_tensor[idx, :plen] = -100
-        prompt_width = getattr(prompt_ids, "shape", [0, 0])[1] if prompt_ids is not None else 0
-        comp_width = getattr(comp_ids_slice, "shape", [0, 0])[1] if comp_ids_slice is not None else 0
+        prompt_width = (
+            getattr(prompt_ids, "shape", [0, 0])[1] if prompt_ids is not None else 0
+        )
+        comp_width = (
+            getattr(comp_ids_slice, "shape", [0, 0])[1]
+            if comp_ids_slice is not None
+            else 0
+        )
         if comp_width > 0:
             comp_slice = slice(prompt_width, prompt_width + comp_width)
             comp_labels = labels_tensor[:, comp_slice]
@@ -463,9 +500,10 @@ def iter_batch_slices(
                 pad_mask = None
             if pad_mask is None:
                 try:
-                    pad_mask_arr = np.asarray(
-                        getattr(comp_mask_slice, "arr", comp_mask_slice)
-                    ) == 0
+                    pad_mask_arr = (
+                        np.asarray(getattr(comp_mask_slice, "arr", comp_mask_slice))
+                        == 0
+                    )
                     has_padding = bool(pad_mask_arr.any())
                 except _SCORING_EXCEPTIONS:
                     pad_mask_arr = None
@@ -477,9 +515,10 @@ def iter_batch_slices(
                     updated_labels = comp_labels.masked_fill(pad_mask, -100)
                 except _SCORING_EXCEPTIONS:
                     if pad_mask_arr is None:
-                        pad_mask_arr = np.asarray(
-                            getattr(comp_mask_slice, "arr", comp_mask_slice)
-                        ) == 0
+                        pad_mask_arr = (
+                            np.asarray(getattr(comp_mask_slice, "arr", comp_mask_slice))
+                            == 0
+                        )
                     comp_arr = np.asarray(getattr(comp_labels, "arr", comp_labels))
                     comp_arr[pad_mask_arr] = -100
                     updated_labels = as_tensor_typed(
@@ -536,7 +575,9 @@ def iter_batch_slices(
             labels_tensor, device=target_device, dtype=target_dtype
         )
         input_ids_out = _ensure_tensor(input_ids_out, target_device=target_device)
-        attention_mask_out = _ensure_tensor(attention_mask_out, target_device=target_device)
+        attention_mask_out = _ensure_tensor(
+            attention_mask_out, target_device=target_device
+        )
         labels_out = _ensure_tensor(labels_out, target_device=target_device)
         # Some lightweight stubs do not preserve the requested dtype object on
         # the Tensor wrapper (they store only the underlying numpy dtype). For
@@ -573,6 +614,7 @@ def build_score_batch(
     total_sequences = len(prompt_batch)
     if total_sequences == 0:
         return None
+
     def _coerce_int(value: object, default: int = 0) -> int:
         if isinstance(value, numbers.Integral):
             return int(value)
@@ -590,12 +632,15 @@ def build_score_batch(
             return int(str(value))
         except (TypeError, ValueError):
             return default
+
     prompt_length_cache_fn: Callable[[str], PromptCacheEntry]
     prompt_length_cache = getattr(batching_cfg, "prompt_length_cache_get", None)
     if not callable(prompt_length_cache) and callable(batching_cfg):
         prompt_length_cache = batching_cfg
     if callable(prompt_length_cache):
-        prompt_length_cache_fn = cast(Callable[[str], PromptCacheEntry], prompt_length_cache)
+        prompt_length_cache_fn = cast(
+            Callable[[str], PromptCacheEntry], prompt_length_cache
+        )
     else:
 
         def _default_prompt_length_cache(_p: str) -> PromptCacheEntry:
@@ -630,7 +675,9 @@ def build_score_batch(
                 try:
                     raw_ids = raw_ids.tolist()
                 except _SCORING_EXCEPTIONS as exc:
-                    LOG.debug("Failed to convert completion metadata token_ids: %s", exc)
+                    LOG.debug(
+                        "Failed to convert completion metadata token_ids: %s", exc
+                    )
             if isinstance(raw_ids, list) and raw_ids and isinstance(raw_ids[0], list):
                 raw_ids = raw_ids[0]
             if not isinstance(raw_ids, list):
@@ -657,7 +704,9 @@ def build_score_batch(
             completion_tensors = _completion_tensors_from_token_ids(
                 token_ids,
                 pad_token_id=pad_token_id,
-                max_length=_coerce_int(getattr(generation_cfg, "max_completion_len", 0), 0),
+                max_length=_coerce_int(
+                    getattr(generation_cfg, "max_completion_len", 0), 0
+                ),
             )
             LOG.debug(
                 "Using pre-tokenized completion token_ids from completion_metadata | sequences=%d",
@@ -709,9 +758,7 @@ def _apply_eos_completion_mask(
             return completion_mask
         return cast(
             Tensor,
-            torch_mod.ones_like(
-                completion_ids, dtype=getattr(torch_mod, "long", None)
-            ),
+            torch_mod.ones_like(completion_ids, dtype=getattr(torch_mod, "long", None)),
         )
     try:
         is_eos = completion_ids == eos_token_id
@@ -876,7 +923,9 @@ def token_counts_from_score_batch(
         eos_token_id=eos_token_id,
         apply_eos_mask=True,
     )
-    slice_iter = _prefetch_iterator(slice_iter, getattr(batching_cfg, "slice_prefetch", 0))
+    slice_iter = _prefetch_iterator(
+        slice_iter, getattr(batching_cfg, "slice_prefetch", 0)
+    )
     for _slice_inputs, _slice_mask, slice_labels in slice_iter:
         label_mask = slice_labels != -100
         tok = label_mask.sum(dim=1).clamp(min=1)
@@ -890,9 +939,9 @@ def token_counts_from_score_batch(
             return cast(
                 Tensor,
                 torch_mod.zeros(
-                (0,),
-                dtype=getattr(torch_mod, "float32", None),
-                device=runtime.device,
+                    (0,),
+                    dtype=getattr(torch_mod, "float32", None),
+                    device=runtime.device,
                 ),
             )
         except _SCORING_EXCEPTIONS:
@@ -963,4 +1012,3 @@ def summarize_completion_lengths(
         ),
         num_completion_tokens,
     )
-

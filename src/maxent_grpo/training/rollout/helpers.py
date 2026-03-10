@@ -117,7 +117,9 @@ def _gather_object_list_wrapper(accelerator: Any, value: Any) -> Any:
     return _vllm_adapter.gather_object_list(accelerator, value)
 
 
-def _broadcast_object_list_wrapper(accelerator: Any, payload: Any, *, src: int = 0) -> Any:
+def _broadcast_object_list_wrapper(
+    accelerator: Any, payload: Any, *, src: int = 0
+) -> Any:
     _refresh_vllm_globals()
     return _vllm_adapter.broadcast_object_list(accelerator, payload, src=src)
 

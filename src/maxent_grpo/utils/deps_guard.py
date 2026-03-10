@@ -13,7 +13,11 @@ def _check_modules(names: Iterable[str]) -> list[str]:
     for name in names:
         try:
             importlib.import_module(name)
-        except (ImportError, OSError, RuntimeError) as exc:  # pragma: no cover - environment dependent
+        except (
+            ImportError,
+            OSError,
+            RuntimeError,
+        ) as exc:  # pragma: no cover - environment dependent
             failures.append(f"{name} (import failed: {exc})")
     return failures
 

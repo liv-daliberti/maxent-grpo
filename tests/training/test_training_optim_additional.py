@@ -118,8 +118,12 @@ def test_build_optimization_handles_applies_weight_decay_param_groups(monkeypatc
     assert handles.optimizer.param_groups is param_groups
     assert len(param_groups) == 2
 
-    decay_group = next(pg for pg in param_groups if pg["weight_decay"] == pytest.approx(0.1))
-    no_decay_group = next(pg for pg in param_groups if pg["weight_decay"] == pytest.approx(0.0))
+    decay_group = next(
+        pg for pg in param_groups if pg["weight_decay"] == pytest.approx(0.1)
+    )
+    no_decay_group = next(
+        pg for pg in param_groups if pg["weight_decay"] == pytest.approx(0.0)
+    )
 
     # layer1.weight should be in the decay group
     assert any(p.name == "layer1.weight" for p in decay_group["params"])

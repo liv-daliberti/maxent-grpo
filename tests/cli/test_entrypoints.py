@@ -16,9 +16,7 @@ def test_grpo_main_runs_with_explicit_args(monkeypatch):
     called = {}
     baseline_mod = ModuleType("maxent_grpo.training.baseline")
     baseline_mod.run_baseline_training = lambda *args: called.setdefault("args", args)
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_mod
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_mod)
 
     grpo.main("script", "train", "model")
     assert called["args"] == ("script", "train", "model")
@@ -30,9 +28,7 @@ def test_grpo_main_parses_args_when_missing(monkeypatch):
     baseline_mod = ModuleType("maxent_grpo.training.baseline")
     called = {}
     baseline_mod.run_baseline_training = lambda *args: called.setdefault("args", args)
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_mod
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_mod)
     monkeypatch.setattr(grpo, "parse_grpo_args", lambda: ("s", "t", "m"))
 
     grpo.main()
@@ -57,9 +53,7 @@ def test_maxent_main_runs_with_explicit_args(monkeypatch):
     baseline_stub.run_baseline_training = lambda *args, **kwargs: called.setdefault(
         "args", (args, kwargs)
     )
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_stub
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_stub)
 
     maxent_mod.main("s_args", "t_args", "m_args")
     assert called["args"] == (("s_args", "t_args", "m_args"), {})
@@ -73,9 +67,7 @@ def test_maxent_main_parses_args_when_missing(monkeypatch):
     baseline_stub.run_baseline_training = lambda *args, **kwargs: called.setdefault(
         "args", (args, kwargs)
     )
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_stub
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_stub)
     monkeypatch.setattr(maxent_mod, "parse_grpo_args", lambda: ("s", "t", "m"))
 
     maxent_mod.main()

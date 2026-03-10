@@ -69,7 +69,9 @@ def _entropy_from_probs(probs: Optional[List[float]]) -> float:
     return float(-sum(val * math.log(val) for val in normalized))
 
 
-def _per_sequence_kl_values(scores: Any, ref_stats: Any, weighting_cfg: Any) -> List[float]:
+def _per_sequence_kl_values(
+    scores: Any, ref_stats: Any, weighting_cfg: Any
+) -> List[float]:
     """Return per-sequence KL estimates for prompt-level diagnostics."""
 
     if scores is None or ref_stats is None or weighting_cfg is None:
@@ -119,7 +121,9 @@ def _prompt_preview(text: str) -> str:
     return compact[: _PROMPT_OBJECTIVE_PREVIEW_LEN - 1] + "..."
 
 
-def _build_prompt_objective_entries(prepared: Any, weighting_cfg: Any) -> List[Dict[str, Any]]:
+def _build_prompt_objective_entries(
+    prepared: Any, weighting_cfg: Any
+) -> List[Dict[str, Any]]:
     """Return per-prompt summaries of reward, KL, and entropy."""
 
     if prepared is None or weighting_cfg is None:
@@ -145,7 +149,8 @@ def _build_prompt_objective_entries(prepared: Any, weighting_cfg: Any) -> List[D
     prompt_texts = list(getattr(prompt_pairs, "prompts", []) or [])
     weight_groups = getattr(weight_stats, "weights_grouped", None) or []
     use_weight_entropy = not (
-        weighting_cfg is not None and getattr(weighting_cfg, "train_grpo_objective", False)
+        weighting_cfg is not None
+        and getattr(weighting_cfg, "train_grpo_objective", False)
     )
 
     kl_values = _per_sequence_kl_values(
@@ -162,7 +167,9 @@ def _build_prompt_objective_entries(prepared: Any, weighting_cfg: Any) -> List[D
             continue
         reward_slice = rewards_flat[offset : offset + size]
         kl_slice = kl_values[offset : offset + size] if kl_values else []
-        reward_mean = float(sum(reward_slice) / len(reward_slice)) if reward_slice else 0.0
+        reward_mean = (
+            float(sum(reward_slice) / len(reward_slice)) if reward_slice else 0.0
+        )
         kl_mean = float(sum(kl_slice) / len(kl_slice)) if kl_slice else 0.0
         q_entropy = _entropy_from_probs(q_grouped[idx] if idx < len(q_grouped) else [])
         weight_entropy = (

@@ -17,18 +17,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sized
-from contextlib import ExitStack, nullcontext
-from dataclasses import dataclass
-import inspect
+from contextlib import nullcontext
 import os
 import numbers
 import sys
 import logging
-import time
 from types import TracebackType
 from typing import (
     Any,
-    Callable,
     ContextManager,
     Iterator,
     List,
@@ -40,27 +36,14 @@ from typing import (
     TypeVar,
     cast,
 )
-from functools import lru_cache
 import queue
 import threading
 import numpy as np
-from numpy.typing import ArrayLike, DTypeLike
+from numpy.typing import DTypeLike
 
 from maxent_grpo.training.runtime import (
     require_torch,
     require_transformer_base_classes,
-)
-from .zero_utils import _maybe_zero_gather_params
-from .types import (
-    BatchingSettings,
-    GenerationSettings,
-    LengthStats,
-    PromptCacheEntry,
-    ReferenceLogprobs,
-    RewardComputation,
-    RuntimeHandles,
-    ScoreBatch,
-    SequenceScores,
 )
 
 LOG = logging.getLogger(__name__)
@@ -85,11 +68,14 @@ def _score_slice_log_enabled() -> bool:
         }
     return str(raw).strip().lower() not in {"0", "false", "no", "off"}
 
+
 if TYPE_CHECKING:
     import torch as torch_types
     from torch import Tensor as TorchTensor, device as TorchDevice, dtype as TorchDType
     from transformers.modeling_utils import PreTrainedModel as PreTrainedModel
-    from transformers.tokenization_utils import PreTrainedTokenizer as PreTrainedTokenizer
+    from transformers.tokenization_utils import (
+        PreTrainedTokenizer as PreTrainedTokenizer,
+    )
 else:  # pragma: no cover - runtime uses optional torch/transformers stubs
     torch_types = None
     TorchTensor = Any
@@ -105,13 +91,17 @@ class _TorchModuleLike(Protocol):
 
     def tensor(self, data: object, *args: Any, **kwargs: Any) -> Any: ...
     def as_tensor(self, data: object, *args: Any, **kwargs: Any) -> Any: ...
-    def full(self, size: Tuple[int, ...], fill_value: float, *args: Any, **kwargs: Any) -> Any: ...
+    def full(
+        self, size: Tuple[int, ...], fill_value: float, *args: Any, **kwargs: Any
+    ) -> Any: ...
     def ones(self, size: Tuple[int, ...], *args: Any, **kwargs: Any) -> Any: ...
     def zeros(self, size: Tuple[int, ...], *args: Any, **kwargs: Any) -> Any: ...
     def arange(self, *args: Any, **kwargs: Any) -> Any: ...
     def cat(self, tensors: Sequence[Any], dim: int = ...) -> Any: ...
     def nonzero(self, input_tensor: Any, *, as_tuple: bool = ...) -> Any: ...
+
     nn: Any
+
     def no_grad(self) -> ContextManager[Any]: ...
     def unique(self, values: Any) -> Any: ...
     def stack(self, tensors: Sequence[Any], dim: int = ...) -> Any: ...
@@ -124,6 +114,7 @@ class _DistModuleLike(Protocol):
     def is_initialized(self) -> bool: ...
     def get_world_size(self) -> int: ...
     def all_gather_object(self, object_list: List[object], obj: object) -> None: ...
+
 
 torch = cast(_TorchModuleLike, require_torch("training_scoring"))
 _REQUIRED_TORCH_ATTRS = ("tensor", "full", "ones_like", "zeros", "cat")
@@ -194,7 +185,9 @@ def _prefetch_iterator(iterator: Iterable[T], buffer_size: int) -> Iterator[T]:
         finally:
             q.put(sentry)
 
-    thread = threading.Thread(target=_producer, name="score-slice-prefetch", daemon=True)
+    thread = threading.Thread(
+        target=_producer, name="score-slice-prefetch", daemon=True
+    )
     thread.start()
     try:
         while True:
@@ -211,7 +204,9 @@ def _prefetch_iterator(iterator: Iterable[T], buffer_size: int) -> Iterator[T]:
 torch = _refresh_torch()
 
 
-def _get_config_value(config: object, key: str, default: object | None = None) -> object | None:
+def _get_config_value(
+    config: object, key: str, default: object | None = None
+) -> object | None:
     """Return a config value from either Mapping or object-style configs."""
     if isinstance(config, Mapping):
         return config.get(key, default)
@@ -305,7 +300,10 @@ class _PadTokenGuard:
                             num_embeddings = size[0]
                             if isinstance(num_embeddings, numbers.Integral):
                                 num_embeddings_int = int(num_embeddings)
-                                if num_embeddings_int > 0 and new_value_int >= num_embeddings_int:
+                                if (
+                                    num_embeddings_int > 0
+                                    and new_value_int >= num_embeddings_int
+                                ):
                                     new_value = num_embeddings_int - 1
             except _SCORING_EXCEPTIONS:
                 # If anything goes wrong while inspecting sizes, fall back to
@@ -375,6 +373,7 @@ def _model_has_non2d_embeddings(model: object) -> bool:
     """Return True when any known embedding weight is not 2-D."""
     if model is None:
         return False
+
     def _ds_shape_is_2d(weight: object) -> bool:
         ds_shape = _coerce_shape(getattr(weight, "ds_shape", None))
         return ds_shape is not None and len(ds_shape) == 2
@@ -441,14 +440,11 @@ def _describe_embedding_module(module: object, name: str) -> str:
                 shape = None
     padding_idx = getattr(module, "padding_idx", None)
     return (
-        f"{name}={type(module).__name__} weight_shape={shape} "
-        f"padding_idx={padding_idx}"
+        f"{name}={type(module).__name__} weight_shape={shape} padding_idx={padding_idx}"
     )
 
 
-def _get_embedding_vocab_size(
-    model: PreTrainedModel, config: object
-) -> Optional[int]:
+def _get_embedding_vocab_size(model: PreTrainedModel, config: object) -> Optional[int]:
     """Return the vocab size exposed by the model's embedding weights."""
     embedding_module = getattr(model, "embed_tokens", None)
     if embedding_module is None and hasattr(model, "get_input_embeddings"):
@@ -540,7 +536,11 @@ def _size_hint(tensor_obj: object, dim: int) -> int:
                 return 0
         return 0
     try:
-        size_val = shape[dim] if dim is not None else (shape[0] if isinstance(shape, tuple) else shape)
+        size_val = (
+            shape[dim]
+            if dim is not None
+            else (shape[0] if isinstance(shape, tuple) else shape)
+        )
         return int(cast(Any, size_val))
     except (TypeError, ValueError, IndexError):
         return 0
@@ -675,7 +675,11 @@ def _resolve_dtype(dtype: object) -> Optional[np.dtype]:
 Tensor = TorchTensor
 try:
     _ = require_transformer_base_classes("training_scoring")
-except (ImportError, RuntimeError, ModuleNotFoundError):  # pragma: no cover - stub fallback
+except (
+    ImportError,
+    RuntimeError,
+    ModuleNotFoundError,
+):  # pragma: no cover - stub fallback
     _ = (Any, Any)
 
 
@@ -686,7 +690,9 @@ def _as_context_manager(value: object | None) -> ContextManager[object]:
     return nullcontext()
 
 
-def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManager[object]:
+def _autocast_context(
+    accelerator: object, device: TorchDevice
+) -> ContextManager[object]:
     """Return the right autocast context for the current accelerator/device.
 
     :param accelerator: Accelerator handle exposing an optional ``autocast``.
@@ -744,4 +750,3 @@ def _autocast_context(accelerator: object, device: TorchDevice) -> ContextManage
         except (TypeError, ValueError, RuntimeError):
             return nullcontext()
     return _as_context_manager(result)
-

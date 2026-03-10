@@ -1,6 +1,7 @@
 """Weight synchronization helpers split out from the main vLLM helper."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import inspect
 import logging
@@ -40,6 +41,8 @@ def _env_int(name: str, default: int) -> int:
         return int(raw)
     except (TypeError, ValueError):
         return default
+
+
 SimpleNamespace = _SimpleNamespace  # Exposed for tests that monkeypatch this module
 
 
@@ -108,10 +111,9 @@ def _loopback_host(base_url: str) -> bool:
 
 def _vllm_client_nccl_overrides(base_url: str) -> dict[str, str]:
     overrides: dict[str, str] = {}
-    enable_overrides = (
-        str(os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")).strip().lower()
-        in {"1", "true", "yes", "on"}
-    )
+    enable_overrides = str(
+        os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")
+    ).strip().lower() in {"1", "true", "yes", "on"}
     if not enable_overrides:
         return overrides
 
@@ -374,7 +376,6 @@ class VLLMWeightSyncMixin:
                 self._vllm_client = None
                 self._vllm_sync_ready = False
                 return False
-            init_fn = cast(Callable[..., Any], init_attr)
 
             override_host = os.getenv("MAXENT_VLLM_CLIENT_HOST", "").strip()
             if override_host:
@@ -494,13 +495,23 @@ class VLLMWeightSyncMixin:
         dist = getattr(torch, "distributed", None)
         rank = getattr(accelerator, "process_index", None)
         local_rank = getattr(accelerator, "local_process_index", None)
-        if rank is None and dist is not None and dist.is_available() and dist.is_initialized():
+        if (
+            rank is None
+            and dist is not None
+            and dist.is_available()
+            and dist.is_initialized()
+        ):
             try:
                 rank = dist.get_rank()
             except Exception:
                 rank = None
         world_size = getattr(accelerator, "num_processes", None)
-        if not world_size and dist is not None and dist.is_available() and dist.is_initialized():
+        if (
+            not world_size
+            and dist is not None
+            and dist.is_available()
+            and dist.is_initialized()
+        ):
             try:
                 world_size = dist.get_world_size()
             except Exception:
@@ -719,7 +730,9 @@ class VLLMWeightSyncMixin:
                     )
             return
 
-        if current_step is not None and self._last_vllm_synced_step == int(current_step):
+        if current_step is not None and self._last_vllm_synced_step == int(
+            current_step
+        ):
             return
         start = time.monotonic()
         _log_sync_info(
@@ -869,7 +882,8 @@ class VLLMWeightSyncMixin:
         if not callable(flush):
             return
         try:
-            flush()
+            flush_fn = cast(Callable[[], None], flush)
+            flush_fn()  # pylint: disable=not-callable
         except (RuntimeError, ValueError, AttributeError, TypeError) as exc:
             LOG.debug("Failed to flush vLLM client updates: %s", exc)
 
@@ -1037,7 +1051,9 @@ class VLLMWeightSyncMixin:
                             if self._sync_log_should_stop():
                                 return
                     for child_name, child in children:
-                        child_prefix = f"{prefix}.{child_name}" if prefix else child_name
+                        child_prefix = (
+                            f"{prefix}.{child_name}" if prefix else child_name
+                        )
                         _walk(child, child_prefix)
 
                 _walk(model)
@@ -1195,9 +1211,7 @@ class VLLMWeightSyncMixin:
         )
         named_children = getattr(model, "named_children", None)
         if callable(named_children):
-            for child_name, child in cast(
-                Iterable[tuple[str, Any]], named_children()
-            ):
+            for child_name, child in cast(Iterable[tuple[str, Any]], named_children()):
                 child_prefix = f"{prefix}{child_name}."
                 self._sync_standard_params(
                     child, gather_factory, child_prefix, visited=visited

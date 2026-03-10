@@ -17,6 +17,7 @@ Baseline-friendly reward registry used by GRPO training.
 """
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import ast
 import json
@@ -51,7 +52,9 @@ _format_pat: RePattern[str] = re.compile(
 )
 _answer_pat: RePattern[str] = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
 _tag_pat: RePattern[str] = re.compile(r"(?i)</?think>|</?answer>")
-_python_block_pat: RePattern[str] = re.compile(r"```python\s*(.*?)```", re.IGNORECASE | re.DOTALL)
+_python_block_pat: RePattern[str] = re.compile(
+    r"```python\s*(.*?)```", re.IGNORECASE | re.DOTALL
+)
 _code_block_pat: RePattern[str] = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
 _def_name_pat: RePattern[str] = re.compile(r"def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 
@@ -67,8 +70,7 @@ class RewardFunction(Protocol):
         completions: List[CompletionType],
         answer: List[str],
         **kwargs: Any,
-    ) -> List[float]:
-        ...
+    ) -> List[float]: ...
 
 
 def _extract_content(comp: CompletionType) -> str:
@@ -438,9 +440,7 @@ def python_unit_test_reward(
 
     def _eval_one(idx: int) -> float:
         prompt_text = (
-            _extract_prompt_text(prompts_list[idx])
-            if idx < len(prompts_list)
-            else ""
+            _extract_prompt_text(prompts_list[idx]) if idx < len(prompts_list) else ""
         )
         explicit_entry: Optional[str] = None
         if idx < len(entry_points):
@@ -492,10 +492,12 @@ def _canon_math(s: Any) -> str:
     }
     for src, dst in replacements.items():
         s = s.replace(src, dst)
+
     def _normalize_frac(match: re.Match[str]) -> str:
         num = match.group(1).strip()
         den = match.group(2).strip()
         return f"({num})/({den})"
+
     s = re.sub(r"\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}", _normalize_frac, s)
     # Strip common LaTeX wrappers that should not affect equality.
     s = (
@@ -649,7 +651,8 @@ def pure_accuracy_reward_math(
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
-        format_ok = bool(_format_pat.match(txt))
+        # Allow harmless leading/trailing whitespace around the tag payload.
+        format_ok = bool(_format_pat.fullmatch(txt.strip()))
         gold_canon = _canon_math(gold)
         pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold_canon)
         tag_total, tag_unique = _count_format_tags(txt)

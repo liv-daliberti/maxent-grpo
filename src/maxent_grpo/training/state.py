@@ -48,6 +48,7 @@ if TYPE_CHECKING:
 else:
     GRPOConfigType = object
 
+
 class ControllerPathsLike(Protocol):
     """Minimal controller path settings used by checkpoint helpers."""
 
@@ -108,7 +109,9 @@ def _checkpoint_has_hf_weights(checkpoint_dir: str) -> bool:
         "pytorch_model.bin",
         "pytorch_model.bin.index.json",
     )
-    return any(os.path.isfile(os.path.join(checkpoint_dir, name)) for name in candidates)
+    return any(
+        os.path.isfile(os.path.join(checkpoint_dir, name)) for name in candidates
+    )
 
 
 def _safetensors_header_has_valid_tensors(path: str) -> bool:
@@ -339,7 +342,10 @@ def _maybe_convert_zero_checkpoint_to_hf(
         return False
     try:
         from deepspeed.utils import zero_to_fp32  # type: ignore
-    except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover - optional dependency
+    except (
+        ImportError,
+        ModuleNotFoundError,
+    ) as exc:  # pragma: no cover - optional dependency
         LOG.warning(
             "DeepSpeed zero_to_fp32 unavailable; cannot consolidate ZeRO shards in %s: %s",
             checkpoint_dir,
@@ -667,10 +673,12 @@ def load_trainer_state_metadata(checkpoint_path: Optional[str]) -> Dict[str, obj
             ):
                 if key in raw:
                     metadata[key] = raw[key]
-        except (OSError, ValueError, TypeError) as exc:  # pragma: no cover - best-effort
-            LOG.warning(
-                "Failed to read trainer state from %s: %s", state_file, exc
-            )
+        except (
+            OSError,
+            ValueError,
+            TypeError,
+        ) as exc:  # pragma: no cover - best-effort
+            LOG.warning("Failed to read trainer state from %s: %s", state_file, exc)
     if "global_step" not in metadata:
         step = _parse_checkpoint_step(checkpoint_path)
         if step is not None:
@@ -702,7 +710,12 @@ def _write_trainer_state_json(
     if num_input_tokens_seen is not None:
         payload["num_input_tokens_seen"] = float(num_input_tokens_seen)
     if base_state:
-        for key in ("best_model_checkpoint", "best_metric", "best_global_step", "log_history"):
+        for key in (
+            "best_model_checkpoint",
+            "best_metric",
+            "best_global_step",
+            "log_history",
+        ):
             if key in base_state:
                 payload[key] = base_state[key]
     if accelerator is not None:
@@ -724,7 +737,11 @@ def _write_trainer_state_json(
     try:
         with open(state_path, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, indent=2)
-    except (OSError, TypeError, ValueError) as exc:  # pragma: no cover - filesystem errors
+    except (
+        OSError,
+        TypeError,
+        ValueError,
+    ) as exc:  # pragma: no cover - filesystem errors
         LOG.warning("Failed to write trainer_state.json to %s: %s", checkpoint_dir, exc)
 
 
@@ -782,7 +799,9 @@ def build_checkpoint_saver(
         try:
             os.makedirs(checkpoint_dir, exist_ok=True)
         except OSError as exc:  # pragma: no cover - filesystem guard
-            LOG.warning("Failed to create checkpoint directory %s: %s", checkpoint_dir, exc)
+            LOG.warning(
+                "Failed to create checkpoint directory %s: %s", checkpoint_dir, exc
+            )
             return
         wait_for_all = getattr(accelerator, "wait_for_everyone", None)
         if callable(wait_for_all):
@@ -791,8 +810,15 @@ def build_checkpoint_saver(
         if callable(save_state_fn):
             try:
                 save_state_fn(checkpoint_dir)
-            except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - accelerator dependent
-                LOG.warning("Failed to save accelerator state to %s: %s", checkpoint_dir, exc)
+            except (
+                OSError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ) as exc:  # pragma: no cover - accelerator dependent
+                LOG.warning(
+                    "Failed to save accelerator state to %s: %s", checkpoint_dir, exc
+                )
 
         state_dict: Optional[Dict[str, object]] = None
         get_state_dict_fn = getattr(accelerator, "get_state_dict", None)
@@ -813,7 +839,9 @@ def build_checkpoint_saver(
                 except (AttributeError, RuntimeError, TypeError, ValueError):
                     unwrapped = model
                 if unwrapped is not model:
-                    if ds_state and (ds_state.use_deepspeed or ds_state.zero_stage >= 2):
+                    if ds_state and (
+                        ds_state.use_deepspeed or ds_state.zero_stage >= 2
+                    ):
                         LOG.warning(
                             "Skipping unwrapped model state_dict gather under DeepSpeed for %s; "
                             "use ZeRO shards or enable 16-bit gathering on save.",
@@ -824,21 +852,30 @@ def build_checkpoint_saver(
             for candidate in candidates:
                 try:
                     gathered = get_state_dict_fn(candidate)
-                except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - backend specific
+                except (
+                    AttributeError,
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                ) as exc:  # pragma: no cover - backend specific
                     LOG.warning(
                         "Failed to gather consolidated model state_dict for %s: %s",
                         checkpoint_dir,
                         exc,
                     )
                     continue
-                state_dict_candidate = gathered if isinstance(gathered, Mapping) else None
-                if (
-                    state_dict_candidate is not None
-                    and not isinstance(state_dict_candidate, dict)
+                state_dict_candidate = (
+                    gathered if isinstance(gathered, Mapping) else None
+                )
+                if state_dict_candidate is not None and not isinstance(
+                    state_dict_candidate, dict
                 ):
                     state_dict_candidate = dict(state_dict_candidate)
                 if _state_dict_has_zero_sized_tensors(state_dict_candidate):
-                    if ds_state and (ds_state.use_deepspeed or ds_state.zero_stage >= 2):
+                    if ds_state and (
+                        ds_state.use_deepspeed or ds_state.zero_stage >= 2
+                    ):
                         LOG.warning(
                             "Accelerator returned an invalid consolidated state_dict for %s "
                             "(zero-sized tensors detected); skipping fallback under DeepSpeed.",
@@ -867,10 +904,19 @@ def build_checkpoint_saver(
                     checkpoint_dir=checkpoint_dir,
                     state_dict=state_dict,
                 )
-            except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - model save guard
-                LOG.warning("Failed to save model weights to %s: %s", checkpoint_dir, exc)
+            except (
+                OSError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ) as exc:  # pragma: no cover - model save guard
+                LOG.warning(
+                    "Failed to save model weights to %s: %s", checkpoint_dir, exc
+                )
             hf_has_weights = _checkpoint_has_hf_weights(checkpoint_dir)
-            hf_valid = hf_has_weights and _checkpoint_has_valid_hf_weights(checkpoint_dir)
+            hf_valid = hf_has_weights and _checkpoint_has_valid_hf_weights(
+                checkpoint_dir
+            )
             if not hf_has_weights:
                 LOG.warning(
                     "Checkpoint %s does not contain a loadable HF weight file "
@@ -911,8 +957,16 @@ def build_checkpoint_saver(
             if callable(save_tokenizer):
                 try:
                     save_tokenizer(checkpoint_dir)
-                except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - tokenizer optional
-                    LOG.warning("Failed to save tokenizer to %s: %s", checkpoint_dir, exc)
+                except (
+                    AttributeError,
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                ) as exc:  # pragma: no cover - tokenizer optional
+                    LOG.warning(
+                        "Failed to save tokenizer to %s: %s", checkpoint_dir, exc
+                    )
             else:  # pragma: no cover - tokenizer optional
                 LOG.warning(
                     "Failed to save tokenizer to %s: %s",
@@ -934,7 +988,12 @@ def build_checkpoint_saver(
                             "Optimizer state_dict unavailable; skipping optimizer.pt for %s",
                             checkpoint_dir,
                         )
-                except (OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - optimizer optional
+                except (
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                ) as exc:  # pragma: no cover - optimizer optional
                     LOG.warning(
                         "Failed to save optimizer state to %s: %s",
                         checkpoint_dir,
@@ -944,7 +1003,9 @@ def build_checkpoint_saver(
                 try:
                     from maxent_grpo.core.hub import push_to_hub_revision
 
-                    push_args = SimpleNamespace(**getattr(training_args, "__dict__", {}))
+                    push_args = SimpleNamespace(
+                        **getattr(training_args, "__dict__", {})
+                    )
                     push_args.output_dir = checkpoint_dir
                     push_args.push_to_hub_revision = True
                     push_to_hub_revision(
@@ -952,7 +1013,13 @@ def build_checkpoint_saver(
                         extra_ignore_patterns=[],
                         include_checkpoints=True,
                     )
-                except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:  # pragma: no cover - optional hub deps
+                except (
+                    ImportError,
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                ) as exc:  # pragma: no cover - optional hub deps
                     LOG.warning(
                         "Failed to push checkpoint %s to Hub: %s",
                         checkpoint_dir,
@@ -973,7 +1040,9 @@ def build_checkpoint_saver(
                 base_state=base_trainer_state,
                 accelerator=accelerator,
             )
-            controller_state_src = getattr(controller_cfg, "state_path", None) if controller_cfg else None
+            controller_state_src = (
+                getattr(controller_cfg, "state_path", None) if controller_cfg else None
+            )
             if controller_state_src and os.path.isfile(controller_state_src):
                 dst_path = os.path.join(checkpoint_dir, CONTROLLER_STATE_FILENAME)
                 try:
@@ -1171,7 +1240,12 @@ def maybe_load_accelerator_state(
             load_state_fn(resume_state_path)
             accelerator.wait_for_everyone()
             LOG.info("Loaded accelerator state from %s", resume_state_path)
-        except (AssertionError, OSError, RuntimeError, ValueError) as exc:  # pragma: no cover - environment dependent
+        except (
+            AssertionError,
+            OSError,
+            RuntimeError,
+            ValueError,
+        ) as exc:  # pragma: no cover - environment dependent
             LOG.warning(
                 "Failed to load accelerator state from %s: %s", resume_state_path, exc
             )

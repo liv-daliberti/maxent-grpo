@@ -2,6 +2,7 @@
 
 VAR_DIR := $(CURDIR)/var
 export RUFF_CACHE_DIR := $(VAR_DIR)/cache/ruff
+export PYLINTHOME ?= $(VAR_DIR)/cache/pylint
 
 help:
 	@echo "Targets:"
@@ -85,7 +86,7 @@ conda-local:
 	echo "Activate with: conda activate $$VAR_DIR/openr1"
 
 lint:
-	mkdir -p $(RUFF_CACHE_DIR)
+	mkdir -p $(RUFF_CACHE_DIR) $(PYLINTHOME)
 	ruff check .
 	pylint --rcfile=.pylintrc src
 

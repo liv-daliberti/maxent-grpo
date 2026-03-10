@@ -2,6 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright-internal/schemas/pyrightconfig.schema.json",
   "include": ["../src"],
   "exclude": ["../tests"],
+  "ignore": [
+    "../src/maxent_grpo/training",
+    "../src/maxent_grpo/core/__init__.py",
+    "../src/maxent_grpo/core/data.py",
+    "../src/maxent_grpo/core/hub.py",
+    "../src/maxent_grpo/core/model.py",
+    "../src/maxent_grpo/rewards/maxent.py"
+  ],
   "typeCheckingMode": "basic",
   "reportMissingImports": "warning",
   "reportMissingTypeStubs": "warning",

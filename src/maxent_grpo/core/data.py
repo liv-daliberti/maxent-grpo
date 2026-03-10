@@ -57,7 +57,10 @@ else:
                 "The 'datasets' package is missing concatenate_datasets."
             )
         concatenate_datasets = _concatenate
-    except (ModuleNotFoundError, AttributeError):  # pragma: no cover - optional dependency
+    except (
+        ModuleNotFoundError,
+        AttributeError,
+    ):  # pragma: no cover - optional dependency
 
         class _DatasetsStub:
             """Lightweight stub so imports succeed when ``datasets`` is absent."""
@@ -83,6 +86,7 @@ else:
                 "The 'datasets' package is required for dataset concatenation. "
                 "Install with `pip install datasets`."
             )
+
 
 try:  # pragma: no cover - convenience re-export for callers/tests
     from maxent_grpo.config.dataset import ScriptArguments
@@ -126,9 +130,12 @@ def _dataset_load_retry_settings() -> tuple[int, float, float]:
             return default
 
     retries = max(0, _read_int("MAXENT_HF_DATASET_RETRIES", _DEFAULT_HF_RETRIES))
-    sleep_s = max(0.0, _read_float("MAXENT_HF_DATASET_RETRY_SLEEP", _DEFAULT_HF_RETRY_SLEEP))
+    sleep_s = max(
+        0.0, _read_float("MAXENT_HF_DATASET_RETRY_SLEEP", _DEFAULT_HF_RETRY_SLEEP)
+    )
     max_sleep_s = max(
-        sleep_s, _read_float("MAXENT_HF_DATASET_RETRY_MAX_SLEEP", _DEFAULT_HF_RETRY_MAX_SLEEP)
+        sleep_s,
+        _read_float("MAXENT_HF_DATASET_RETRY_MAX_SLEEP", _DEFAULT_HF_RETRY_MAX_SLEEP),
     )
     return retries, sleep_s, max_sleep_s
 
@@ -150,7 +157,12 @@ def _load_dataset_with_retries(*args: Any, **kwargs: Any) -> Any:
     for attempt in range(retries + 1):
         try:
             return datasets.load_dataset(*args, **kwargs)
-        except (ConnectionError, OSError, RuntimeError, ValueError) as exc:  # pragma: no cover - network failures are environment dependent
+        except (
+            ConnectionError,
+            OSError,
+            RuntimeError,
+            ValueError,
+        ) as exc:  # pragma: no cover - network failures are environment dependent
             last_exc = exc
             if attempt >= retries or not _should_retry_dataset_load(exc):
                 raise

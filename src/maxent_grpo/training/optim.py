@@ -36,7 +36,14 @@ from .types import (
 
 try:
     require_torch("training_optim")
-except (ImportError, ModuleNotFoundError, RuntimeError, AttributeError, TypeError, ValueError):
+except (
+    ImportError,
+    ModuleNotFoundError,
+    RuntimeError,
+    AttributeError,
+    TypeError,
+    ValueError,
+):
     pass
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
@@ -55,6 +62,7 @@ else:
         class DistributedType:
             DEEPSPEED = "deepspeed"
 
+
 LOG = logging.getLogger(__name__)
 _TWO_NORM = 2.0
 _PARAM_GROUP_LOG_STATE = {"logged": False}
@@ -62,7 +70,12 @@ _DUP_PARAM_LOG_STATE = {"logged": False}
 try:
     torch = require_torch("training_optim")
     _TORCH_IMPORT_ERROR = None
-except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as exc:  # pragma: no cover - optional dep
+except (
+    ImportError,
+    ModuleNotFoundError,
+    AttributeError,
+    RuntimeError,
+) as exc:  # pragma: no cover - optional dep
     _TORCH_IMPORT_ERROR = exc
 
     class _TorchStub:
@@ -81,7 +94,9 @@ except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as exc: 
     torch = _TorchStub()
 
 
-def _filter_optimizer_kwargs(optimizer_cls: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+def _filter_optimizer_kwargs(
+    optimizer_cls: Any, kwargs: dict[str, Any]
+) -> dict[str, Any]:
     """Drop optimizer kwargs unsupported by lightweight stubs or callables."""
     try:
         signature = inspect.signature(optimizer_cls)
@@ -179,7 +194,9 @@ def scheduled_learning_rate(
         return base_lr * (float(step) / float(warmup_steps))
     decay_steps = max(total_steps - warmup_steps, 1)
     progress = min(max(step - warmup_steps, 0), decay_steps) / float(decay_steps)
-    scheduler_type = str(getattr(schedule, "lr_scheduler_type", "cosine") or "cosine").lower()
+    scheduler_type = str(
+        getattr(schedule, "lr_scheduler_type", "cosine") or "cosine"
+    ).lower()
     if scheduler_type in {"constant", "constant_with_warmup"}:
         return base_lr
     if scheduler_type in {"linear", "linear_decay", "linear_with_warmup"}:
@@ -374,7 +391,9 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     optim_name = str(getattr(cfg, "optim", "adamw_torch") or "adamw_torch").lower()
 
     optim_mod = getattr(torch, "optim", None)
-    torch_adamw_cls = getattr(optim_mod, "AdamW", None) if optim_mod is not None else None
+    torch_adamw_cls = (
+        getattr(optim_mod, "AdamW", None) if optim_mod is not None else None
+    )
 
     no_decay_markers = ["bias", "LayerNorm.weight"]
     decay_params = []
@@ -423,7 +442,9 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
         _PARAM_GROUP_LOG_STATE["logged"] = True
 
     if not _DUP_PARAM_LOG_STATE["logged"] and param_name_map:
-        dup_names = {pid: names for pid, names in param_name_map.items() if len(names) > 1}
+        dup_names = {
+            pid: names for pid, names in param_name_map.items() if len(names) > 1
+        }
         decay_ids = {id(param) for param in decay_params}
         no_decay_ids = {id(param) for param in no_decay_params}
         overlap_ids = decay_ids & no_decay_ids
@@ -454,7 +475,10 @@ def build_optimization_handles(model: Any, cfg: Any) -> OptimizerHandles:
     }
     optimizer_cls = None
     using_bnb = False
-    if any(key in optim_name for key in ["adamw_bnb", "adamw_8bit"]) and "paged" not in optim_name:
+    if (
+        any(key in optim_name for key in ["adamw_bnb", "adamw_8bit"])
+        and "paged" not in optim_name
+    ):
         try:
             import bitsandbytes as bnb
 

@@ -39,6 +39,7 @@ limitations under the License.
 #
 #   This module detects that schema and decodes it if a tokenizer is provided.
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import json
 import time
@@ -61,7 +62,10 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from maxent_grpo.training.generation.errors import GenerationServiceError, ServiceErrorPayload
+from maxent_grpo.training.generation.errors import (
+    GenerationServiceError,
+    ServiceErrorPayload,
+)
 
 try:
     import requests as _requests
@@ -258,7 +262,9 @@ def _extract_logprob_info(entry: Dict[str, Any]) -> Optional[VLLMLogprobResult]:
     if not isinstance(entry, dict):
         return None
     metadata = entry.get("metadata")
-    meta_dict: Optional[Dict[str, Any]] = metadata if isinstance(metadata, dict) else None
+    meta_dict: Optional[Dict[str, Any]] = (
+        metadata if isinstance(metadata, dict) else None
+    )
     meta_seq = None
     logprob_sum = None
     token_count = None
@@ -277,7 +283,11 @@ def _extract_logprob_info(entry: Dict[str, Any]) -> Optional[VLLMLogprobResult]:
         if token_count is None and meta_seq:
             token_count = len(meta_seq)
         if logprob_sum is not None:
-            inferred = token_count if token_count is not None else _infer_token_count(entry, meta_seq)
+            inferred = (
+                token_count
+                if token_count is not None
+                else _infer_token_count(entry, meta_seq)
+            )
             return VLLMLogprobResult(
                 logprob_sum=float(logprob_sum),
                 token_count=max(1, int(inferred)),
@@ -418,7 +428,8 @@ def _parse_nonstream_json(
                     ]
                     if prompt_logs is not None:
                         prompt_logs = [
-                            _metadata_from_token_ids(list(ids)) for ids in completion_ids
+                            _metadata_from_token_ids(list(ids))
+                            for ids in completion_ids
                         ]
                     _append_group(decoded, prompt_logs)
                     continue
@@ -451,7 +462,9 @@ def _parse_nonstream_json(
                 if isinstance(flat_logprobs, list) and idx < len(flat_logprobs):
                     payload_entry.setdefault("logprobs", flat_logprobs[idx])
                 if isinstance(flat_cum_logprob, list) and idx < len(flat_cum_logprob):
-                    payload_entry.setdefault("cumulative_logprob", flat_cum_logprob[idx])
+                    payload_entry.setdefault(
+                        "cumulative_logprob", flat_cum_logprob[idx]
+                    )
                 if isinstance(flat_token_ids, list) and idx < len(flat_token_ids):
                     payload_entry.setdefault("token_ids", flat_token_ids[idx])
                 logs = [_extract_logprob_info(payload_entry)]
@@ -524,9 +537,7 @@ def _find_client_tag(candidate: Any, depth: int = 0) -> Optional[str]:
     return None
 
 
-def _filter_result_outputs_for_tag(
-    entry: Any, client_tag: str
-) -> bool:
+def _filter_result_outputs_for_tag(entry: Any, client_tag: str) -> bool:
     """Filter per-output metadata for a single prompt entry."""
 
     if not isinstance(entry, dict):
@@ -564,7 +575,9 @@ def _filter_result_outputs_for_tag(
     return True
 
 
-def _filter_response_for_client_tag(data: JsonDict, client_tag: Optional[str]) -> JsonDict:
+def _filter_response_for_client_tag(
+    data: JsonDict, client_tag: Optional[str]
+) -> JsonDict:
     """Remove prompt groups that do not match ``client_tag`` when provided."""
 
     if not client_tag or not isinstance(data, dict):
@@ -886,13 +899,19 @@ def safe_generate(
         stop_event = threading.Event()
         heartbeat_sec = float(os.getenv("MAXENT_VLLM_REQUEST_HEARTBEAT_SEC", "30"))
         if heartbeat_sec > 0:
-            def _heartbeat() -> None:
-                while not stop_event.wait(heartbeat_sec):
-                    elapsed = time.perf_counter() - attempt_start
+
+            def _heartbeat(
+                _stop_event: threading.Event = stop_event,
+                _heartbeat_sec: float = heartbeat_sec,
+                _attempt_start: float = attempt_start,
+                _attempt: int = attempt,
+            ) -> None:
+                while not _stop_event.wait(_heartbeat_sec):
+                    elapsed = time.perf_counter() - _attempt_start
                     LOG.warning(
                         "vLLM request in-flight | req_id=%s | attempt=%d/%d | elapsed_s=%.1f | url=%s",
                         effective_request_id,
-                        attempt + 1,
+                        _attempt + 1,
                         max_retries,
                         elapsed,
                         url,
@@ -968,7 +987,9 @@ def safe_generate(
                     effective_request_id,
                     attempt + 1,
                     decode_ms,
-                    list(payload.keys()) if isinstance(payload, dict) else type(payload).__name__,
+                    list(payload.keys())
+                    if isinstance(payload, dict)
+                    else type(payload).__name__,
                 )
                 payload = _filter_response_for_client_tag(payload, client_tag)
                 grouped, meta = _parse_nonstream_json(
@@ -1046,7 +1067,7 @@ def safe_generate(
                 timeout,
             )
             if attempt < max_retries - 1:
-                delay = backoff * (backoff_multiplier ** attempt)
+                delay = backoff * (backoff_multiplier**attempt)
                 time.sleep(delay)
             else:
                 LOG.error(

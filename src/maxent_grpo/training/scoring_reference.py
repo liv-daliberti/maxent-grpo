@@ -7,22 +7,44 @@
 
 from __future__ import annotations
 
-from . import scoring_common as _common
+from collections.abc import Iterable, Mapping, Sized
+from contextlib import nullcontext
+import numbers
+import time
+from typing import Any, List, Optional, Sequence, Tuple, cast
+
+import numpy as np
+from numpy.typing import ArrayLike
+
 from .scoring_batching import iter_batch_slices, iter_batch_slices_trl
 from .scoring_logprob import (
     _as_torch_tensor,
     _chunked_sequence_logprobs,
-    _match_tensor_length,
     _trl_get_per_token_logps,
 )
-
-for _name in dir(_common):
-    if _name.startswith("__"):
-        continue
-    globals().setdefault(_name, getattr(_common, _name))
-del _name
+from .scoring_common import (
+    LOG,
+    TorchDevice,
+    _SCORING_EXCEPTIONS,
+    _dist_all,
+    _dist_collective_ready,
+    _model_has_non2d_embeddings,
+    _prefetch_iterator,
+    _progress_log_enabled,
+    _refresh_torch,
+    _score_slice_log_enabled,
+    _to_numpy_array,
+)
+from .types import (
+    BatchingSettings,
+    ReferenceLogprobs,
+    RuntimeHandles,
+    ScoreBatch,
+    Tensor,
+)
 
 torch = _refresh_torch()
+
 
 def reference_from_model_trl(
     score_batch: ScoreBatch,
@@ -114,9 +136,10 @@ def reference_from_model_trl(
                 getattr(seq_logp, "shape", None),
                 getattr(tok_counts, "shape", None),
             )
-        if getattr(seq_logp, "numel", lambda: 0)() == 0 or getattr(
-            tok_counts, "numel", lambda: 0
-        )() == 0:
+        if (
+            getattr(seq_logp, "numel", lambda: 0)() == 0
+            or getattr(tok_counts, "numel", lambda: 0)() == 0
+        ):
             _log_once(
                 f"empty slice tensors | logp_numel={getattr(seq_logp, 'numel', lambda: 0)()} "
                 f"tok_numel={getattr(tok_counts, 'numel', lambda: 0)()}"
@@ -266,12 +289,11 @@ def reference_from_model(
                     gather_full_params=gather_full_params,
                     zero_gather_all_ranks=True,
                 )
-            except _SCORING_EXCEPTIONS as exc:  # pragma: no cover - defensive diagnostics
+            except (
+                _SCORING_EXCEPTIONS
+            ) as exc:  # pragma: no cover - defensive diagnostics
                 msg = str(exc) or ""
-                if (
-                    not gather_full_params
-                    and ("weight" in msg and "2-D" in msg)
-                ):
+                if not gather_full_params and ("weight" in msg and "2-D" in msg):
                     gather_full_params = True
                     if not warned_full_params:
                         LOG.warning(
@@ -402,7 +424,9 @@ def gather_reference_logprobs(
             try:
                 return int(shape[0])
             except _SCORING_EXCEPTIONS as exc:
-                LOG.debug("Failed to read shape[0] from tensor; falling back to len: %s", exc)
+                LOG.debug(
+                    "Failed to read shape[0] from tensor; falling back to len: %s", exc
+                )
         if isinstance(obj, Sized):
             try:
                 return int(len(obj))
@@ -459,7 +483,9 @@ def gather_reference_logprobs(
         if all_rows is None:
             dist = _dist_collective_ready(torch_mod)
             if dist is not None:
-                gathered: List[Any] = [None for _ in range(max(int(dist.get_world_size()), 1))]
+                gathered: List[Any] = [
+                    None for _ in range(max(int(dist.get_world_size()), 1))
+                ]
                 try:
                     dist.all_gather_object(gathered, int(preflight_rows))
                     all_rows = gathered
@@ -624,7 +650,9 @@ def finalize_reference_stats(
 
         # If numpy conversion dropped elements (e.g., CUDA+bfloat16 -> empty array),
         # retry with a CPU float32 view so we do not lose reference stats.
-        logp_numel_val = float(logp_numel) if isinstance(logp_numel, numbers.Real) else 0.0
+        logp_numel_val = (
+            float(logp_numel) if isinstance(logp_numel, numbers.Real) else 0.0
+        )
         tok_numel_val = float(tok_numel) if isinstance(tok_numel, numbers.Real) else 0.0
         if getattr(logp_arr_raw, "size", 0) == 0 and (
             logp_numel_val > 0.0 or tok_numel_val > 0.0
@@ -678,9 +706,7 @@ def finalize_reference_stats(
             tok_arr = np.asarray([0.0])
         invalid_mask = ~np.isfinite(tok_arr) | (tok_arr < 0)
         if invalid_mask.any():
-            finite_replaced = np.nan_to_num(
-                tok_arr, nan=0.0, posinf=0.0, neginf=0.0
-            )
+            finite_replaced = np.nan_to_num(tok_arr, nan=0.0, posinf=0.0, neginf=0.0)
             tok_arr = np.maximum(finite_replaced, 0.0)
             LOG.debug(
                 "Clamped %d invalid reference token counts to non-negative finite values.",
@@ -940,10 +966,11 @@ def vllm_meta_has_logprobs(
         token_count = getattr(entry, "token_count", None)
         if isinstance(entry, dict):
             if logprob_sum is None:
-                logprob_sum = entry.get("logprob_sum") or entry.get("cumulative_logprob")
+                logprob_sum = entry.get("logprob_sum") or entry.get(
+                    "cumulative_logprob"
+                )
             if token_count is None:
                 token_count = entry.get("token_count")
         if logprob_sum is None or token_count is None:
             return False
     return True
-

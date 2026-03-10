@@ -76,9 +76,7 @@ def test_grpo_cli_invokes_main(monkeypatch):
     called = {}
     baseline_mod = ModuleType("maxent_grpo.training.baseline")
     baseline_mod.run_baseline_training = lambda *args: called.setdefault("args", args)
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_mod
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_mod)
     module.main("s", "t", "m")
     assert called.get("args") == ("s", "t", "m")
 
@@ -89,9 +87,7 @@ def test_package_entrypoint_calls_training_runner(monkeypatch):
     called = {}
     baseline_stub = ModuleType("maxent_grpo.training.baseline")
     baseline_stub.run_baseline_training = lambda *args: called.setdefault("args", args)
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_stub
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_stub)
     entry.main("s_args", "t_args", "m_args")
     assert called.get("args") == ("s_args", "t_args", "m_args")
 

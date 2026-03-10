@@ -42,13 +42,17 @@ def test_grpo_config_validates_tau_bounds():
         GRPOConfig(maxent_tau_min=-0.1)
 
 
-def test_grpo_config_preserves_num_generations_on_divisibility_warning(monkeypatch, caplog):
+def test_grpo_config_preserves_num_generations_on_divisibility_warning(
+    monkeypatch, caplog
+):
     """Resume divisibility errors from the base class should not overwrite num_generations."""
 
     def _failing_post_init(self):
         raise ValueError("num_generations must be divisible by tensor parallelism")
 
-    monkeypatch.setattr(trl.GRPOConfig, "__post_init__", _failing_post_init, raising=False)
+    monkeypatch.setattr(
+        trl.GRPOConfig, "__post_init__", _failing_post_init, raising=False
+    )
     caplog.set_level("WARNING")
 
     cfg = GRPOConfig(num_generations=16)

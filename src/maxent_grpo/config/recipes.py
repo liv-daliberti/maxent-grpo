@@ -31,7 +31,13 @@ from dataclasses import fields
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type, cast
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, PositiveInt, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    PositiveInt,
+    ValidationError,
+    model_validator,
+)
 
 from .grpo import GRPOConfig, GRPOScriptArguments
 
@@ -134,7 +140,9 @@ def _format_recipe_errors(errors: Sequence[Mapping[str, Any]]) -> str:
     return "; ".join(parts)
 
 
-def _validate_recipe_payload(payload: Dict[str, Any], recipe_path: Optional[str]) -> None:
+def _validate_recipe_payload(
+    payload: Dict[str, Any], recipe_path: Optional[str]
+) -> None:
     # Skip schema validation under pytest to keep lightweight test envs working
     # even when pydantic version/config handling differs.
     if os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules:
@@ -277,7 +285,7 @@ def load_grpo_recipe(
         script_kwargs,
         training_kwargs,
         model_kwargs,
-        other_kwargs,
+        _other_kwargs,
     ) = _split_recipe_payload(cfg_payload, model_config_cls)
     env_vllm_url = os.environ.get("MAXENT_VLLM_URL") or os.environ.get("VLLM_URL")
     if env_vllm_url and training_kwargs.get("use_vllm"):

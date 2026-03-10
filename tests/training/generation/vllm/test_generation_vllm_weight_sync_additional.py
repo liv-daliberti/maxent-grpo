@@ -76,7 +76,8 @@ def test_maybe_sync_weights_respects_step_and_stats(monkeypatch):
     # Guard against NameError in maybe_sync_weights when inspecting the callable.
     monkeypatch.setattr(
         __import__(
-            "maxent_grpo.training.generation.vllm_weight_sync", fromlist=["SimpleNamespace"]
+            "maxent_grpo.training.generation.vllm_weight_sync",
+            fromlist=["SimpleNamespace"],
         ),
         "SimpleNamespace",
         SimpleNamespace,

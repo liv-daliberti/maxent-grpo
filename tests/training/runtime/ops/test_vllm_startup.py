@@ -26,7 +26,10 @@ DEBUG 02-24 00:15:52 [utils.py:475] Waiting for 1 local, 0 remote core engine pr
 DEBUG 02-24 00:16:02 [utils.py:475] Waiting for 1 local, 0 remote core engine proc(s) to start.
 DEBUG 02-24 00:16:12 [utils.py:475] Waiting for 1 local, 0 remote core engine proc(s) to start.
 """
-    assert classify_vllm_startup_log(log_text, stall_threshold=3) is StartupStatus.CORE_ENGINE_STALL
+    assert (
+        classify_vllm_startup_log(log_text, stall_threshold=3)
+        is StartupStatus.CORE_ENGINE_STALL
+    )
 
 
 def test_classify_vllm_startup_post_init_stall_signature() -> None:

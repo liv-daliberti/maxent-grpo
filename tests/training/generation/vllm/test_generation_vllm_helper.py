@@ -116,7 +116,9 @@ def test_sync_standard_params_skips_without_named_parameters(monkeypatch):
 def test_init_falls_back_when_vllm_import_fails(monkeypatch):
     """Ensure helper uses local fallbacks when vllm import raises."""
     existing = sys.modules.get("maxent_grpo.training.generation.vllm")
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
 
     real_import = builtins.__import__
 
@@ -130,7 +132,9 @@ def test_init_falls_back_when_vllm_import_fails(monkeypatch):
     assert helper._safe_generate is safe_generate
     assert helper._time is time
     if existing is not None:
-        monkeypatch.setitem(sys.modules, "maxent_grpo.training.generation.vllm", existing)
+        monkeypatch.setitem(
+            sys.modules, "maxent_grpo.training.generation.vllm", existing
+        )
 
 
 def test_generate_respects_explicit_sync_hooks(monkeypatch):
@@ -226,7 +230,9 @@ def test_prompt_char_limit_falls_back_on_import_failure(monkeypatch):
     helper = _make_helper(prompt_char_limit=None)
     helper.ctx.max_prompt_len = None
     existing = sys.modules.get("maxent_grpo.training.generation.vllm")
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
 
     real_import = builtins.__import__
 
@@ -240,7 +246,9 @@ def test_prompt_char_limit_falls_back_on_import_failure(monkeypatch):
 
     assert helper._prompt_char_limit() == vllm_requests._DEFAULT_PROMPT_CHAR_LIMIT
     if existing is not None:
-        monkeypatch.setitem(sys.modules, "maxent_grpo.training.generation.vllm", existing)
+        monkeypatch.setitem(
+            sys.modules, "maxent_grpo.training.generation.vllm", existing
+        )
 
 
 def test_prompt_char_limit_uses_default_when_import_raises(monkeypatch):

@@ -9,7 +9,10 @@ from types import SimpleNamespace, ModuleType
 
 import pytest
 
-from maxent_grpo.training.generation.errors import GenerationServiceError, ServiceErrorPayload
+from maxent_grpo.training.generation.errors import (
+    GenerationServiceError,
+    ServiceErrorPayload,
+)
 from maxent_grpo.training.generation.vllm_requests import (
     VLLMRequestMixin,
     _DEFAULT_PROMPT_CHAR_LIMIT,
@@ -32,7 +35,9 @@ def _ctx(**overrides):
 
 def test_prompt_char_limit_falls_back_on_import_error(monkeypatch):
     # Ensure import of maxent_grpo.training.generation.vllm fails to hit the ImportError branch.
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
     ctx = _ctx(prompt_char_limit=None, max_prompt_len=0)
     dummy = _Dummy(ctx)
     assert dummy._prompt_char_limit() == _DEFAULT_PROMPT_CHAR_LIMIT
@@ -51,7 +56,9 @@ def test_prompt_char_limit_falls_back_on_missing_attr(monkeypatch):
 def test_prompt_char_limit_prefers_imported_constant(monkeypatch):
     """When PROMPT_CHAR_LIMIT is importable, it should be returned."""
 
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
     vllm_mod = ModuleType("maxent_grpo.training.generation.vllm")
     vllm_mod.PROMPT_CHAR_LIMIT = 17
     monkeypatch.setitem(sys.modules, "maxent_grpo.training.generation.vllm", vllm_mod)
@@ -74,7 +81,9 @@ def test_prompt_char_limit_handles_attribute_error(monkeypatch):
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr("builtins.__import__", fake_import)
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
     ctx = _ctx(prompt_char_limit=None, max_prompt_len=0)
     dummy = _Dummy(ctx)
     assert dummy._prompt_char_limit() == _DEFAULT_PROMPT_CHAR_LIMIT
@@ -96,7 +105,9 @@ def test_prompt_char_limit_uses_approx_when_default_disabled(monkeypatch):
     monkeypatch.setattr(
         "maxent_grpo.training.generation.vllm_requests._DEFAULT_PROMPT_CHAR_LIMIT", -1
     )
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
     pkg = sys.modules.get("maxent_grpo.training.generation")
     if pkg is not None and hasattr(pkg, "vllm"):
         monkeypatch.delattr(pkg, "vllm", raising=False)

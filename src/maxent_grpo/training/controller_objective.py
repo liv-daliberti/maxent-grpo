@@ -47,8 +47,12 @@ class ControllerMetaContext:
             token_counts = getattr(scores, "denom_tok_tensor", None)
             if entropy_sum is not None and token_counts is not None:
                 try:
-                    entropy_total = float(entropy_sum.detach().float().sum().cpu().item())
-                    token_total = float(token_counts.detach().float().sum().cpu().item())
+                    entropy_total = float(
+                        entropy_sum.detach().float().sum().cpu().item()
+                    )
+                    token_total = float(
+                        token_counts.detach().float().sum().cpu().item()
+                    )
                 except (AttributeError, RuntimeError, TypeError, ValueError):
                     try:
                         entropy_total = float(entropy_sum.sum())

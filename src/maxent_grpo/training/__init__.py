@@ -60,6 +60,7 @@ from .types import (
     StepResources,
     TrainingLoopState,
 )
+
 _LAZY_ATTRS = {
     "AnalyticControllerObjective": (
         "maxent_grpo.training.controller_objective",

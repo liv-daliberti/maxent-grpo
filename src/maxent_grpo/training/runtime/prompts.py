@@ -1,11 +1,22 @@
 """Prompt-related helpers and sampling penalties."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Protocol, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    TYPE_CHECKING,
+    Union,
+    cast,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
     from transformers.tokenization_utils import PreTrainedTokenizer
@@ -138,7 +149,10 @@ def truncate_prompt(
             if isinstance(ids, list) and len(ids) > token_limit:
                 decode = getattr(tokenizer, "decode", None)
                 if callable(decode):
-                    truncated = decode(ids[:token_limit], skip_special_tokens=False)
+                    decode_fn = cast(Callable[..., str], decode)
+                    truncated = decode_fn(  # pylint: disable=not-callable
+                        ids[:token_limit], skip_special_tokens=False
+                    )
                     if not _TRUNC_STATE.get("warned_tokens", False):
                         LOG.warning(
                             "Prompt length exceeded %d tokens; truncating. "

@@ -33,6 +33,10 @@ jobs:
       - name: Run CLI smoke
         run: python tools/smoke_cli.py
 
+      - name: Clean stale runtime logs
+        run: |
+          rm -rf var/artifacts/logs
+
       - name: Validate training logs (if present)
         run: python tools/validate_training_logs.py --allow-missing
 

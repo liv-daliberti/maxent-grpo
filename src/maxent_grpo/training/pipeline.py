@@ -35,6 +35,7 @@ caller can skip the problematic batch gracefully.
 """
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import logging
 import math
@@ -44,7 +45,7 @@ import sys
 import traceback
 from collections.abc import Iterable, Mapping, Sized
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, TypeVar, TYPE_CHECKING, cast
+from typing import Any, Callable, Dict, List, Optional, TypeVar, TYPE_CHECKING, cast
 from types import SimpleNamespace
 
 from .rewards import (
@@ -97,6 +98,8 @@ def _progress_log_enabled() -> bool:
     if raw is None or not str(raw).strip():
         return False
     return str(raw).strip().lower() not in {"0", "false", "no", "off"}
+
+
 _REF_LOGPROB_TRACE_LIMIT = 3
 torch = require_torch("training_pipeline")
 
@@ -266,14 +269,13 @@ def _completion_diversity_metrics(
         gather_fn = getattr(accelerator, "gather_object", None)
         if callable(gather_fn):
             try:
-                gathered = gather_fn(group_metrics)
+                gather_fn_typed = cast(Callable[[Any], Any], gather_fn)
+                gathered = gather_fn_typed(group_metrics)  # pylint: disable=not-callable
                 if isinstance(gathered, list):
                     merged: List[Dict[str, float]] = []
                     for item in gathered:
                         if isinstance(item, list):
-                            merged.extend(
-                                [m for m in item if isinstance(m, dict)]
-                            )
+                            merged.extend([m for m in item if isinstance(m, dict)])
                         elif isinstance(item, dict):
                             merged.append(item)
                     if merged:
@@ -407,7 +409,9 @@ def _maybe_apply_entropy_bonus(
     try:
         bonus_coef = float(bonus_coef)
     except (TypeError, ValueError):
-        LOG.warning("Invalid policy_entropy_bonus_coef=%s; skipping entropy bonus.", bonus_coef)
+        LOG.warning(
+            "Invalid policy_entropy_bonus_coef=%s; skipping entropy bonus.", bonus_coef
+        )
         return reward_comp
     if bonus_coef == 0.0 or not math.isfinite(bonus_coef):
         return reward_comp
@@ -509,7 +513,9 @@ def _maybe_apply_entropy_bonus(
             zscored[offset:n] = entropy_per_tok[offset:n]
         entropy_per_tok = zscored
     try:
-        entropy_per_tok = torch.nan_to_num(entropy_per_tok, nan=0.0, posinf=0.0, neginf=0.0)
+        entropy_per_tok = torch.nan_to_num(
+            entropy_per_tok, nan=0.0, posinf=0.0, neginf=0.0
+        )
     except (AttributeError, TypeError, RuntimeError):
         isfinite = getattr(torch, "isfinite", None)
         if callable(isfinite):
@@ -736,13 +742,13 @@ def _behavior_logp_tensor_from_meta(
     if template_tensor is not None:
         try:
             if isinstance(template_tensor, torch.Tensor):
-                fallback_vals = (
-                    template_tensor.detach().float().cpu().view(-1).tolist()
-                )
+                fallback_vals = template_tensor.detach().float().cpu().view(-1).tolist()
             elif hasattr(template_tensor, "tolist"):
                 fallback_raw = template_tensor.tolist()
-                if isinstance(fallback_raw, list) and fallback_raw and isinstance(
-                    fallback_raw[0], list
+                if (
+                    isinstance(fallback_raw, list)
+                    and fallback_raw
+                    and isinstance(fallback_raw[0], list)
                 ):
                     fallback_raw = fallback_raw[0]
                 fallback_vals = [float(val) for val in fallback_raw]
@@ -824,7 +830,9 @@ def _behavior_logp_tensor_from_meta(
             tensor_obj = None
     if tensor_obj is None:
         torch_mod = sys.modules.get("torch")
-        tensor_fn = getattr(torch_mod, "tensor", None) if torch_mod is not None else None
+        tensor_fn = (
+            getattr(torch_mod, "tensor", None) if torch_mod is not None else None
+        )
         if callable(tensor_fn):
             try:
                 tensor_obj = cast(
@@ -933,7 +941,13 @@ def _token_logp_tensor_from_meta(
                         seq_vals = [float(val) for val in row]
                     else:
                         seq_vals = None
-                except (TypeError, ValueError, RuntimeError, AttributeError, IndexError):
+                except (
+                    TypeError,
+                    ValueError,
+                    RuntimeError,
+                    AttributeError,
+                    IndexError,
+                ):
                     seq_vals = None
             if seq_vals is None:
                 return None
@@ -1053,6 +1067,7 @@ def _collect_batch_stats(
         length = len(data)
         is_empty = length == 0
         if is_empty and not getattr(_collect_batch_stats, "_ref_diag_logged", False):
+
             def _describe(obj: Any) -> str:
                 if obj is None:
                     return "None"
@@ -1074,7 +1089,9 @@ def _collect_batch_stats(
                 _describe(getattr(candidate, "ref_tok_counts", None)),
             )
             setattr(_collect_batch_stats, "_ref_diag_logged", True)
-        elif not is_empty and not getattr(_collect_batch_stats, "_ref_diag_logged_success", False):
+        elif not is_empty and not getattr(
+            _collect_batch_stats, "_ref_diag_logged_success", False
+        ):
             LOG.debug(
                 "Reference stats non-empty | ref_logp_sum_raw_shape=%s | ref_tok_counts_shape=%s",
                 getattr(getattr(candidate, "ref_logp_sum_raw", None), "shape", None),
@@ -1085,10 +1102,14 @@ def _collect_batch_stats(
         tok_counts = getattr(candidate, "ref_tok_counts", None)
         if tok_counts is not None:
             tok_numel = _safe_numel(tok_counts)
-            logp_sum_raw_numel = _safe_numel(getattr(candidate, "ref_logp_sum_raw", None))
+            logp_sum_raw_numel = _safe_numel(
+                getattr(candidate, "ref_logp_sum_raw", None)
+            )
             logp_sum_numel = _safe_numel(getattr(candidate, "ref_logp_sum", None))
-            if tok_numel and tok_numel > 0 and (
-                logp_sum_raw_numel == 0 or logp_sum_numel == 0
+            if (
+                tok_numel
+                and tok_numel > 0
+                and (logp_sum_raw_numel == 0 or logp_sum_numel == 0)
             ):
                 LOG.debug(
                     "Reference stats: allowing zero-length logp_sum because tok_counts exist | tok_numel=%s | logp_sum_raw_numel=%s | logp_sum_numel=%s",
@@ -1144,7 +1165,12 @@ def _collect_batch_stats(
                     _describe_ref(result),
                 )
                 return result
-            except (RuntimeError, ValueError, TypeError, AssertionError) as exc:  # pragma: no cover - best-effort logging
+            except (
+                RuntimeError,
+                ValueError,
+                TypeError,
+                AssertionError,
+            ) as exc:  # pragma: no cover - best-effort logging
                 LOG.warning("Retry reference gather failed: %s", exc)
                 return None
         finally:
@@ -1152,6 +1178,7 @@ def _collect_batch_stats(
                 score_batch_retry.slice_size = original_slice
             if original_chunk is not None:
                 batching_cfg_retry.logprob_chunk_size = original_chunk
+
     scoring_cfg = getattr(ctx, "scoring", None)
     if scoring_cfg is None:
         scoring_cfg = getattr(
@@ -1165,8 +1192,8 @@ def _collect_batch_stats(
         if callable(runtime_cache):
             batching_cfg.prompt_length_cache_get = runtime_cache
         else:
-            batching_cfg.prompt_length_cache_get = lambda _p, _cls=PromptCacheEntry: _cls(
-                input_ids=[], attention_mask=[]
+            batching_cfg.prompt_length_cache_get = (
+                lambda _p, _cls=PromptCacheEntry: _cls(input_ids=[], attention_mask=[])
             )
     batching_cfg = cast(BatchingSettings, batching_cfg)
     gen_cfg = getattr(ctx, "generation", None)
@@ -1175,9 +1202,7 @@ def _collect_batch_stats(
             getattr(ctx, "settings", SimpleNamespace()), "generation", None
         )
     gen_cfg = cast(GenerationSettings, gen_cfg)
-    trl_reference_scoring = bool(
-        getattr(scoring_cfg, "trl_reference_scoring", False)
-    )
+    trl_reference_scoring = bool(getattr(scoring_cfg, "trl_reference_scoring", False))
     ref_temperature = getattr(gen_cfg, "gen_temperature", None)
     if score_batch is None:
         score_batch = build_score_batch(
@@ -1219,19 +1244,30 @@ def _collect_batch_stats(
         getattr(score_batch, "max_prompt_len", None),
         getattr(score_batch, "slice_size", None),
         completion_ids.shape if completion_ids is not None else None,
-        completion_attention_mask.shape if completion_attention_mask is not None else None,
+        (
+            completion_attention_mask.shape
+            if completion_attention_mask is not None
+            else None
+        ),
         getattr(score_batch, "pad_token_id", None),
     )
     weighting_cfg = getattr(scoring_cfg, "weighting", None)
     grpo_mode = bool(getattr(weighting_cfg, "train_grpo_objective", False))
     ref_meta = getattr(reward_comp, "ref_logprob_meta", None)
-    ref_source = str(
-        getattr(scoring_cfg, "reference_logprobs_source", "auto") or "auto"
-    ).strip().lower()
+    ref_source = (
+        str(getattr(scoring_cfg, "reference_logprobs_source", "auto") or "auto")
+        .strip()
+        .lower()
+    )
     if grpo_mode:
         ref_source = "model"
         ref_meta = None
-    force_reference_model = ref_source in {"model", "reference_model", "ref_model", "reference"}
+    force_reference_model = ref_source in {
+        "model",
+        "reference_model",
+        "ref_model",
+        "reference",
+    }
     ref_stats_source = "unknown"
     ref_meta_len = len(ref_meta) if ref_meta else 0
     if not grpo_mode and ref_source in {"policy", "none"}:
@@ -1241,9 +1277,13 @@ def _collect_batch_stats(
                 tok_counts = token_counts_from_score_batch(
                     score_batch, ctx.runtime, batching_cfg
                 )
-                ref_stats = reference_stats_from_policy_logprobs(cur_logp_sum, tok_counts)
+                ref_stats = reference_stats_from_policy_logprobs(
+                    cur_logp_sum, tok_counts
+                )
                 ref_stats_source = "policy_logprobs"
-                if not getattr(_collect_batch_stats, "_policy_ref_forced_warned", False):
+                if not getattr(
+                    _collect_batch_stats, "_policy_ref_forced_warned", False
+                ):
                     LOG.info(
                         "Reference logprobs source=%s; using policy logprobs as reference (no frozen reference model).",
                         ref_source,
@@ -1293,7 +1333,12 @@ def _collect_batch_stats(
                     "maxent_reference_logprobs_source=model to force a reference-model pass)."
                 )
                 setattr(_collect_batch_stats, "_policy_ref_warned", True)
-        except (RuntimeError, ValueError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive diagnostics
+        except (
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+        ) as exc:  # pragma: no cover - defensive diagnostics
             LOG.warning("Policy-logprob reference fallback failed: %s", exc)
 
     needs_ref_model_local = bool(force_reference_model or ref_stats is None)
@@ -1323,7 +1368,11 @@ def _collect_batch_stats(
                     _REF_LOGPROB_TRACE_LIMIT,
                     traceback.format_exc(),
                 )
-        except (ValueError, TypeError, AttributeError):  # pragma: no cover - defensive diag
+        except (
+            ValueError,
+            TypeError,
+            AttributeError,
+        ):  # pragma: no cover - defensive diag
             LOG.error(
                 "Unexpected exception during gather_reference_logprobs: %s",
                 traceback.format_exc(),
@@ -1353,6 +1402,7 @@ def _collect_batch_stats(
             LOG.debug(
                 "Reference gather ran for ZeRO alignment but returned None; keeping metadata-derived stats."
             )
+
     def _safe_numel(tensor: Any) -> Any:
         numel_fn = getattr(tensor, "numel", None)
         if callable(numel_fn):
@@ -1382,9 +1432,21 @@ def _collect_batch_stats(
         getattr(getattr(ref_stats, "ref_logp_sum_raw", None), "shape", None),
         getattr(getattr(ref_stats, "ref_logp_sum", None), "shape", None),
         getattr(getattr(ref_stats, "ref_tok_counts", None), "shape", None),
-        _safe_numel(getattr(ref_stats, "ref_logp_sum_raw", None)) if ref_stats is not None else None,
-        _safe_numel(getattr(ref_stats, "ref_logp_sum", None)) if ref_stats is not None else None,
-        _safe_numel(getattr(ref_stats, "ref_tok_counts", None)) if ref_stats is not None else None,
+        (
+            _safe_numel(getattr(ref_stats, "ref_logp_sum_raw", None))
+            if ref_stats is not None
+            else None
+        ),
+        (
+            _safe_numel(getattr(ref_stats, "ref_logp_sum", None))
+            if ref_stats is not None
+            else None
+        ),
+        (
+            _safe_numel(getattr(ref_stats, "ref_tok_counts", None))
+            if ref_stats is not None
+            else None
+        ),
     )
 
     fallback_guard = getattr(_collect_batch_stats, "_fallback_warned", False)
@@ -1440,7 +1502,9 @@ def _collect_batch_stats(
                     temperature=ref_temperature,
                 )
             except (RuntimeError, ValueError, TypeError, AssertionError):
-                LOG.warning("Forced minimal reference gather raised an exception; skipping.")
+                LOG.warning(
+                    "Forced minimal reference gather raised an exception; skipping."
+                )
                 forced = None
             else:
                 LOG.debug(
@@ -1450,8 +1514,10 @@ def _collect_batch_stats(
             if not _ref_stats_empty(forced):
                 ref_stats = forced
     if _ref_stats_empty(ref_stats) and last_ref_stats is not None:
-        allow_stale = False if grpo_mode else bool(
-            getattr(scoring_cfg, "allow_stale_reference_logprobs", False)
+        allow_stale = (
+            False
+            if grpo_mode
+            else bool(getattr(scoring_cfg, "allow_stale_reference_logprobs", False))
         )
         if not allow_stale:
             LOG.warning(
@@ -1522,15 +1588,14 @@ def _collect_batch_stats(
         weighting_cfg,
     )
     grpo_mode = bool(getattr(weighting_cfg, "train_grpo_objective", False))
-    fallback_enabled = bool(
-        getattr(weighting_cfg, "allow_empty_weight_fallback", False)
-    ) and not grpo_mode
+    fallback_enabled = (
+        bool(getattr(weighting_cfg, "allow_empty_weight_fallback", False))
+        and not grpo_mode
+    )
     if weight_stats is None or not getattr(weight_stats, "flat_weights", None):
         fallback_weights = None
         if fallback_enabled:
-            fallback_weights = build_uniform_weight_stats(
-                gen_batch.grouped_completions
-            )
+            fallback_weights = build_uniform_weight_stats(gen_batch.grouped_completions)
             if fallback_weights is not None:
                 LOG.warning(
                     "MaxEnt weighting returned no samples; falling back to uniform GRPO weights for this batch."
@@ -1754,7 +1819,9 @@ def prepare_training_batch(
                 return None
             score_batch = _require_artifact(score_batch, stage="score_batch")
             completion_ids = getattr(score_batch, "completion_ids", None)
-            completion_attention_mask = getattr(score_batch, "completion_attention_mask", None)
+            completion_attention_mask = getattr(
+                score_batch, "completion_attention_mask", None
+            )
             LOG.debug(
                 "Score batch built | %s | total_sequences=%d | max_prompt_len=%s | slice_size=%s | comp_ids_shape=%s | comp_mask_shape=%s | pad_id=%s",
                 rank_tag,
@@ -1762,13 +1829,19 @@ def prepare_training_batch(
                 getattr(score_batch, "max_prompt_len", None),
                 getattr(score_batch, "slice_size", None),
                 completion_ids.shape if completion_ids is not None else None,
-                completion_attention_mask.shape if completion_attention_mask is not None else None,
+                (
+                    completion_attention_mask.shape
+                    if completion_attention_mask is not None
+                    else None
+                ),
                 getattr(score_batch, "pad_token_id", None),
             )
         return_entropy = bool(getattr(ctx.scoring, "policy_entropy", False))
         entropy_mode = getattr(ctx.scoring, "policy_entropy_mode", "exact")
         return_token_logp = bool(
-            getattr(getattr(ctx.scoring, "weighting", None), "train_grpo_objective", False)
+            getattr(
+                getattr(ctx.scoring, "weighting", None), "train_grpo_objective", False
+            )
         )
         score_start = time.monotonic()
         if progress_log and is_main:
@@ -1832,7 +1905,9 @@ def prepare_training_batch(
                         token_mask,
                     ) = cur_logp_result
                 elif len(cur_logp_result) >= 3:
-                    cur_logp_sum, pooled_hidden, policy_entropy_sum = cur_logp_result[:3]
+                    cur_logp_sum, pooled_hidden, policy_entropy_sum = cur_logp_result[
+                        :3
+                    ]
                 else:
                     cur_logp_sum, pooled_hidden = cur_logp_result[:2]
             else:
@@ -1866,9 +1941,11 @@ def prepare_training_batch(
                 stats.prompt_token_count,
                 stats.num_completion_tokens,
             )
-        behavior_source = str(
-            getattr(ctx.scoring, "behavior_logprobs_source", "model") or "model"
-        ).strip().lower()
+        behavior_source = (
+            str(getattr(ctx.scoring, "behavior_logprobs_source", "model") or "model")
+            .strip()
+            .lower()
+        )
         use_vllm_behavior = behavior_source in {"vllm", "metadata", "meta"}
         behavior_tensor = None
         if use_vllm_behavior:

@@ -7,28 +7,35 @@ shared so objective comparisons stay fair and easy to audit.
 """
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import logging
 import math
 from functools import partial
 import inspect
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
 
 import torch
+
 try:
     from accelerate.utils import gather
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
+
     def gather(value: Any) -> Any:
         return value
+
+
 try:
     from trl.data_utils import apply_chat_template, is_conversational
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
+
     def apply_chat_template(example: Any, _tokenizer: Any) -> Dict[str, str]:
         return {"text": str(example)}
 
     def is_conversational(example: Any) -> bool:
         return isinstance(example, list)
+
 
 from maxent_grpo.rewards.basic import (
     pure_accuracy_math_correctness,
@@ -154,7 +161,8 @@ def _completion_diversity_metrics(
         gather_fn = getattr(accelerator, "gather_object", None)
         if callable(gather_fn):
             try:
-                gathered = gather_fn(group_metrics)
+                gather_fn_typed = cast(Callable[[Any], Any], gather_fn)
+                gathered = gather_fn_typed(group_metrics)  # pylint: disable=not-callable
                 if isinstance(gathered, list):
                     merged: List[Dict[str, float]] = []
                     for item in gathered:
@@ -188,7 +196,9 @@ def _completion_diversity_metrics(
                             merged: List[Dict[str, float]] = []
                             for item in gathered:
                                 if isinstance(item, list):
-                                    merged.extend([m for m in item if isinstance(m, dict)])
+                                    merged.extend(
+                                        [m for m in item if isinstance(m, dict)]
+                                    )
                                 elif isinstance(item, dict):
                                     merged.append(item)
                             if merged:
@@ -275,6 +285,7 @@ def _build_seed_worker(num_workers: int, rank: int):
         return hf_seed_worker
     return partial(hf_seed_worker, num_workers=num_workers, rank=rank)
 
+
 def _numeric_or_none(value: Any) -> Optional[float]:
     """Best-effort numeric conversion used for logging filters."""
     if isinstance(value, bool):
@@ -342,7 +353,7 @@ def _strip_ema_param_prefixes(name: str) -> Tuple[str, int]:
 
 
 def _build_ema_alias_index(
-    params: Dict[str, torch.Tensor]
+    params: Dict[str, torch.Tensor],
 ) -> Dict[str, List[Tuple[str, torch.Tensor, int]]]:
     """Index tensors by canonicalized names for alias-aware EMA matching."""
     by_canonical: Dict[str, List[Tuple[str, torch.Tensor, int]]] = {}
@@ -457,9 +468,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             maxent_requested = self._is_maxent_requested(parent_args)
             parent_alpha_default = 1.0 if maxent_requested else 0.0
             parent_maxent_alpha = _coerce_non_negative_float(
-                getattr(parent_args, "maxent_alpha", parent_alpha_default)
-                if parent_args is not None
-                else parent_alpha_default,
+                (
+                    getattr(parent_args, "maxent_alpha", parent_alpha_default)
+                    if parent_args is not None
+                    else parent_alpha_default
+                ),
                 default=parent_alpha_default,
             )
             super().__init__(*args, **kwargs)
@@ -469,7 +482,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 default=True,
             )
             self.maxent_alpha = _coerce_non_negative_float(
-                getattr(getattr(self, "args", None), "maxent_alpha", parent_maxent_alpha),
+                getattr(
+                    getattr(self, "args", None), "maxent_alpha", parent_maxent_alpha
+                ),
                 default=parent_maxent_alpha,
             )
             if not self.maxent_enabled:
@@ -500,8 +515,12 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             try:
                 from transformers.utils import is_datasets_available
-            except Exception:  # pragma: no cover - transformers is required for training
-                is_datasets_available = lambda: False  # type: ignore
+            except (
+                Exception
+            ):  # pragma: no cover - transformers is required for training
+
+                def is_datasets_available() -> bool:
+                    return False
 
             if is_datasets_available():
                 try:
@@ -509,7 +528,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 except Exception:
                     datasets = None  # type: ignore
                 if datasets is not None and isinstance(train_dataset, datasets.Dataset):
-                    train_dataset = self._remove_unused_columns(train_dataset, description="training")
+                    train_dataset = self._remove_unused_columns(
+                        train_dataset, description="training"
+                    )
                 else:
                     data_collator = self._get_collator_with_removed_columns(
                         data_collator, description="training"
@@ -530,7 +551,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if not isinstance(train_dataset, torch.utils.data.IterableDataset):
                 dataloader_params["sampler"] = self._get_train_sampler()
                 dataloader_params["drop_last"] = self.args.dataloader_drop_last
-                dataloader_params["prefetch_factor"] = self.args.dataloader_prefetch_factor
+                dataloader_params["prefetch_factor"] = (
+                    self.args.dataloader_prefetch_factor
+                )
                 worker_init_fn = _build_seed_worker(
                     self.args.dataloader_num_workers, self.args.process_index
                 )
@@ -623,7 +646,6 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 if isinstance(completion_ids, torch.Tensor)
                 else local_expected
             )
-            local_dropped = max(local_expected - local_actual, 0)
             try:
                 counts = torch.tensor(
                     [local_expected, local_actual],
@@ -686,7 +708,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if scale <= 0.0:
                 scale = 1e-6
             new_beta = max(0.0, current_beta * scale)
-            self.beta = new_beta
+            self.beta = new_beta  # pylint: disable=attribute-defined-outside-init
 
         def _maybe_update_reference_model_ema(self) -> None:
             """Soft-update frozen reference weights from the current policy weights."""
@@ -775,11 +797,19 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 return
 
             try:
+                policy_named_fn = cast(
+                    Callable[[], Iterable[tuple[str, Any]]], policy_named
+                )
+                ref_named_fn = cast(Callable[[], Iterable[tuple[str, Any]]], ref_named)
                 policy_params = {
-                    str(name): param for name, param in policy_named() if isinstance(param, torch.Tensor)
+                    str(name): param
+                    for name, param in policy_named_fn()
+                    if isinstance(param, torch.Tensor)
                 }
                 ref_params = {
-                    str(name): param for name, param in ref_named() if isinstance(param, torch.Tensor)
+                    str(name): param
+                    for name, param in ref_named_fn()  # pylint: disable=not-callable
+                    if isinstance(param, torch.Tensor)
                 }
                 if not policy_params or not ref_params:
                     return
@@ -866,9 +896,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if base_alpha <= 0.0:
                 return 0.0, 1.0, None, 0.0, False, 0.0, 1.0, 1.0
             args = getattr(self, "args", None)
-            raise_on_low_kl = bool(
-                getattr(args, "maxent_alpha_raise_on_low_kl", False)
-            )
+            raise_on_low_kl = bool(getattr(args, "maxent_alpha_raise_on_low_kl", False))
             lower_on_high_kl = bool(
                 getattr(args, "maxent_alpha_lower_on_high_kl", False)
             )
@@ -966,9 +994,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 multiplier = 1.0 + gain * low_kl_frac
                 direction = 1.0
             elif measured_kl > threshold and lower_on_high_kl:
-                high_kl_frac = max(measured_kl - threshold, 0.0) / max(
-                    threshold, 1e-8
-                )
+                high_kl_frac = max(measured_kl - threshold, 0.0) / max(threshold, 1e-8)
                 multiplier = 1.0 / (1.0 + gain * high_kl_frac)
                 direction = -1.0
             if not math.isfinite(multiplier):
@@ -1000,14 +1026,13 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if not callable(decode):
                 return
             try:
-                completions_text = decode(
+                decode_fn = cast(Callable[..., List[str]], decode)
+                completions_text = decode_fn(  # pylint: disable=not-callable
                     completion_ids, skip_special_tokens=True
                 )
             except Exception:
                 return
-            group_size = max(
-                int(getattr(self, "num_generations", 1) or 1), 1
-            )
+            group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
             usable = len(completions_text) - (len(completions_text) % group_size)
             if usable <= 0:
                 return
@@ -1143,9 +1168,15 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     )
                     bench_label = id_to_name.get(bench_id, f"BENCH_{bench_id}")
                     suffix = _metric_suffix_from_benchmark(bench_label)
-                    self._append_metric_value(mode, f"pass_at_8_{suffix}", bench_pass_at_8)
-                    self._append_metric_value(mode, f"pass_at_1_{suffix}", bench_pass_at_1)
-                    self._append_metric_value(mode, f"mean_at_1_{suffix}", bench_mean_at_1)
+                    self._append_metric_value(
+                        mode, f"pass_at_8_{suffix}", bench_pass_at_8
+                    )
+                    self._append_metric_value(
+                        mode, f"pass_at_1_{suffix}", bench_pass_at_1
+                    )
+                    self._append_metric_value(
+                        mode, f"mean_at_1_{suffix}", bench_mean_at_1
+                    )
 
             successes: Optional[torch.Tensor] = None
             reward_funcs = list(getattr(self, "reward_funcs", []) or [])
@@ -1155,7 +1186,8 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 decode = getattr(tokenizer, "batch_decode", None)
                 if isinstance(completion_ids, torch.Tensor) and callable(decode):
                     try:
-                        completions_text = decode(
+                        decode_fn = cast(Callable[..., List[str]], decode)
+                        completions_text = decode_fn(  # pylint: disable=not-callable
                             completion_ids, skip_special_tokens=True
                         )
                     except Exception:
@@ -1182,7 +1214,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                             successes = grouped_successes[:, :target_k]
             if successes is None:
                 try:
-                    rewards = self._recompute_global_rewards_for_outputs(inputs, outputs)
+                    rewards = self._recompute_global_rewards_for_outputs(
+                        inputs, outputs
+                    )
                 except Exception as exc:
                     LOG.debug(
                         "Skipping eval pass@k logging due to reward error: %s", exc
@@ -1278,10 +1312,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 return None
             if per_token_logps.ndim != 2:
                 return None
-            if (
-                per_token_logps.size(0) != completion_mask.size(0)
-                or per_token_logps.size(1) != completion_mask.size(1)
-            ):
+            if per_token_logps.size(0) != completion_mask.size(
+                0
+            ) or per_token_logps.size(1) != completion_mask.size(1):
                 usable_rows = min(per_token_logps.size(0), completion_mask.size(0))
                 usable_cols = min(per_token_logps.size(1), completion_mask.size(1))
                 if usable_rows <= 0 or usable_cols <= 0:
@@ -1289,9 +1322,10 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 per_token_logps = per_token_logps[:usable_rows, :usable_cols]
                 completion_mask = completion_mask[:usable_rows, :usable_cols]
             token_counts = completion_mask.sum(dim=1).clamp(min=1.0)
-            novelty_local = -(
-                per_token_logps.to(torch.float32) * completion_mask
-            ).sum(dim=1) / token_counts
+            novelty_local = (
+                -(per_token_logps.to(torch.float32) * completion_mask).sum(dim=1)
+                / token_counts
+            )
             novelty = gather(novelty_local)
             return torch.nan_to_num(novelty, nan=0.0, posinf=0.0, neginf=0.0)
 
@@ -1339,7 +1373,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 completions = completions_text
 
             completion_ids_list = [
-                [int(tok.item()) for tok, keep in zip(row, mask_row) if int(keep.item()) != 0]
+                [
+                    int(tok.item())
+                    for tok, keep in zip(row, mask_row)
+                    if int(keep.item()) != 0
+                ]
                 for row, mask_row in zip(completion_ids, completion_mask)
             ]
             rewards_per_func_local = torch.zeros(
@@ -1355,7 +1393,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             ]
             reward_kwargs = {key: [example[key] for example in inputs] for key in keys}
             reward_processing_classes = list(
-                getattr(self, "reward_processing_classes", [None] * len(self.reward_funcs))
+                getattr(
+                    self, "reward_processing_classes", [None] * len(self.reward_funcs)
+                )
             )
 
             for i, reward_func in enumerate(self.reward_funcs):
@@ -1368,7 +1408,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     if reward_processing_class is None:
                         return None
                     if is_conversational(inputs[0]):
-                        messages = [{"messages": p + c} for p, c in zip(prompts, completions)]
+                        messages = [
+                            {"messages": p + c} for p, c in zip(prompts, completions)
+                        ]
                         texts = [
                             apply_chat_template(x, reward_processing_class)["text"]
                             for x in messages
@@ -1384,7 +1426,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     )
                     reward_inputs = super()._prepare_inputs(reward_inputs)
                     with torch.inference_mode():
-                        rewards_per_func_local[:, i] = reward_func(**reward_inputs).logits[:, 0]
+                        rewards_per_func_local[:, i] = reward_func(
+                            **reward_inputs
+                        ).logits[:, 0]
                 else:
                     if not callable(reward_func):
                         return None
@@ -1407,7 +1451,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             rewards_per_func = gather(rewards_per_func_local)
             reward_weights = getattr(self, "reward_weights", None)
             if isinstance(reward_weights, torch.Tensor):
-                weights = reward_weights.to(device=rewards_per_func.device, dtype=torch.float32)
+                weights = reward_weights.to(
+                    device=rewards_per_func.device, dtype=torch.float32
+                )
             elif isinstance(reward_weights, (list, tuple)):
                 weights = torch.tensor(
                     list(reward_weights),
@@ -1489,9 +1535,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 getattr(args, "maxent_alpha_lower_on_high_kl", False)
             )
 
-            gate_by_signal = bool(
-                getattr(args, "maxent_reward_signal_gate", False)
-            )
+            gate_by_signal = bool(getattr(args, "maxent_reward_signal_gate", False))
             if gate_by_signal:
                 min_group_max = float(
                     getattr(args, "maxent_reward_signal_min_max", 0.0) or 0.0
@@ -1514,12 +1558,12 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             reward_bonus_mask = eligible_groups.unsqueeze(1).expand_as(
                 grouped_rewards_raw
             )
-            positive_only = bool(
-                getattr(args, "maxent_bonus_positive_only", False)
-            )
+            positive_only = bool(getattr(args, "maxent_bonus_positive_only", False))
             if positive_only:
                 min_reward = float(getattr(args, "maxent_bonus_min_reward", 0.0) or 0.0)
-                reward_bonus_mask = reward_bonus_mask & (grouped_rewards_raw > min_reward)
+                reward_bonus_mask = reward_bonus_mask & (
+                    grouped_rewards_raw > min_reward
+                )
             cusp_gate_enabled = bool(getattr(args, "maxent_cusp_gate", False))
             cusp_threshold_raw = getattr(args, "maxent_cusp_reward_threshold", 0.4)
             try:
@@ -1568,7 +1612,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if using_native_advantages:
                 base_advantages = cast(torch.Tensor, gathered_advantages)
             else:
-                grouped_base_advantages = grouped_rewards_raw - mean_grouped_rewards.unsqueeze(1)
+                grouped_base_advantages = (
+                    grouped_rewards_raw - mean_grouped_rewards.unsqueeze(1)
+                )
                 if bool(getattr(self, "scale_rewards", False)):
                     grouped_base_advantages = grouped_base_advantages / (
                         std_grouped_rewards.unsqueeze(1) + 1e-4
@@ -1594,12 +1640,19 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             )
             base_adv_abs_mean = float(base_advantages.abs().mean().item())
             final_adv_abs_mean = float(all_advantages.abs().mean().item())
-            flow_bonus_to_base_ratio = reward_bonus_abs_mean / max(base_adv_abs_mean, 1e-8)
-            flow_bonus_to_final_ratio = reward_bonus_abs_mean / max(final_adv_abs_mean, 1e-8)
+            flow_bonus_to_base_ratio = reward_bonus_abs_mean / max(
+                base_adv_abs_mean, 1e-8
+            )
+            flow_bonus_to_final_ratio = reward_bonus_abs_mean / max(
+                final_adv_abs_mean, 1e-8
+            )
             flow_final_minus_base = all_advantages - base_advantages
 
             local_batch_size = int(advantages.size(0))
-            start = int(getattr(self.accelerator, "process_index", 0) or 0) * local_batch_size
+            start = (
+                int(getattr(self.accelerator, "process_index", 0) or 0)
+                * local_batch_size
+            )
             end = start + local_batch_size
             local_adv_before = advantages.detach().to(torch.float32)
             local_advantages = all_advantages[start:end].to(
@@ -1837,9 +1890,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             self._append_metric_value(
                 mode,
                 "maxent/flow/local_adv_delta_nonzero_frac",
-                float(
-                    (local_adv_delta.abs() > 1e-8).to(torch.float32).mean().item()
-                ),
+                float((local_adv_delta.abs() > 1e-8).to(torch.float32).mean().item()),
             )
             prev_loss = _numeric_or_none(getattr(self, "_last_loss_scalar", None))
             if prev_loss is not None:
@@ -1857,7 +1908,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             if mode == "train" and self.accelerator.is_main_process:
                 step = int(getattr(self.state, "global_step", 0))
-                interval_raw = getattr(args, "maxent_flow_log_interval", 25) if args else 25
+                interval_raw = (
+                    getattr(args, "maxent_flow_log_interval", 25) if args else 25
+                )
                 try:
                     interval = int(interval_raw)
                 except (TypeError, ValueError):
@@ -1960,7 +2013,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             # optimizer step (the next rollout consumes this cached value).
             if bool(getattr(self.model, "training", False)):
                 train_metrics = self._metrics.get("train", {})
-                kl_history = train_metrics.get("kl") if isinstance(train_metrics, dict) else None
+                kl_history = (
+                    train_metrics.get("kl") if isinstance(train_metrics, dict) else None
+                )
                 if isinstance(kl_history, list) and kl_history:
                     kl_value = _numeric_or_none(kl_history[-1])
                     if kl_value is not None:

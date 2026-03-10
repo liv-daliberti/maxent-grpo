@@ -12,7 +12,10 @@ from typing import Any, Callable, List, Mapping, Optional, Tuple, cast
 
 try:  # pragma: no cover - optional dependency guard for stripped test envs
     from datasets import load_from_disk as _hf_load_from_disk
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback when datasets is unavailable
+except (
+    ImportError,
+    ModuleNotFoundError,
+):  # pragma: no cover - fallback when datasets is unavailable
     _hf_load_from_disk = None
 
 from maxent_grpo.core.data import get_dataset, load_dataset_split
@@ -22,6 +25,7 @@ from maxent_grpo.training.runtime.prompts import (
 )
 
 LOG = logging.getLogger(__name__)
+
 
 def _stable_hash(value: Any) -> str:
     """Return a short, stable hash for arbitrarily typed values."""
@@ -79,7 +83,11 @@ def _format_eval_row(
 ) -> dict:
     example_map = dict(example)
     prompt_col = prompt_column
-    if prompt_col not in example_map and prompt_col == "problem" and "prompt" in example_map:
+    if (
+        prompt_col not in example_map
+        and prompt_col == "problem"
+        and "prompt" in example_map
+    ):
         prompt_col = "prompt"
     out = _to_prompt(
         example_map,
@@ -233,7 +241,12 @@ def load_datasets(
             mapped = mapped.filter(_is_valid, desc="Filter")
         return mapped
 
-    if dataset is None and accelerator is not None and not is_main_process and cache_enabled:
+    if (
+        dataset is None
+        and accelerator is not None
+        and not is_main_process
+        and cache_enabled
+    ):
         _wait_for_everyone()
         if os.path.isdir(cache_path) and _hf_load_from_disk:
             dataset = _hf_load_from_disk(cache_path)
@@ -282,9 +295,7 @@ def load_datasets(
     eval_rows = _normalize_eval_rows(getattr(script_args, "eval_rows", None))
     if eval_rows is None and getattr(training_args, "do_eval", False):
         eval_dataset_name = getattr(script_args, "eval_dataset_name", None)
-        eval_prompt_col = (
-            getattr(script_args, "eval_dataset_prompt_column", None) or pc
-        )
+        eval_prompt_col = getattr(script_args, "eval_dataset_prompt_column", None) or pc
         eval_solution_col = (
             getattr(script_args, "eval_dataset_solution_column", None) or sc
         )
@@ -359,7 +370,9 @@ def resolve_dataloader_kwargs(training_args: Any) -> dict:
             try:
                 kwargs["prefetch_factor"] = int(prefetch)
             except (TypeError, ValueError):
-                LOG.warning("Invalid dataloader_prefetch_factor=%s; ignoring.", prefetch)
+                LOG.warning(
+                    "Invalid dataloader_prefetch_factor=%s; ignoring.", prefetch
+                )
         else:
             LOG.debug("Ignoring dataloader_prefetch_factor because num_workers=0.")
     persistent = getattr(training_args, "dataloader_persistent_workers", None)

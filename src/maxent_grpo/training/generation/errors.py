@@ -108,4 +108,8 @@ def log_generation_service_error(
     )
 
 
-__all__ = ["GenerationServiceError", "ServiceErrorPayload", "log_generation_service_error"]
+__all__ = [
+    "GenerationServiceError",
+    "ServiceErrorPayload",
+    "log_generation_service_error",
+]

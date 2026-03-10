@@ -225,9 +225,7 @@ def test_sanitize_ref_logprob_meta_requires_complete_entries():
     )
     missing_fields = [{"logprob_sum": None, "token_count": 2}]
     assert (
-        rewards_mod._sanitize_ref_logprob_meta(
-            list(missing_fields), total_sequences=1
-        )
+        rewards_mod._sanitize_ref_logprob_meta(list(missing_fields), total_sequences=1)
         == missing_fields
     )
 
@@ -266,7 +264,8 @@ def test_gather_reference_logprobs_returns_none_if_any_rank_fails(monkeypatch):
     batching_cfg = SimpleNamespace(logprob_chunk_size=0)
 
     assert (
-        scoring_mod.gather_reference_logprobs(score_batch, runtime, batching_cfg) is None
+        scoring_mod.gather_reference_logprobs(score_batch, runtime, batching_cfg)
+        is None
     )
 
 
@@ -304,11 +303,14 @@ def test_gather_reference_logprobs_preflight_skips_when_any_rank_empty(monkeypat
     batching_cfg = SimpleNamespace(logprob_chunk_size=0)
 
     assert (
-        scoring_mod.gather_reference_logprobs(score_batch, runtime, batching_cfg) is None
+        scoring_mod.gather_reference_logprobs(score_batch, runtime, batching_cfg)
+        is None
     )
 
 
-def test_collect_batch_stats_skips_when_any_rank_missing_score_batch_under_zero(monkeypatch):
+def test_collect_batch_stats_skips_when_any_rank_missing_score_batch_under_zero(
+    monkeypatch,
+):
     """Avoid ZeRO deadlocks when ScoreBatch construction diverges across ranks."""
     from maxent_grpo.training import pipeline as pipeline_mod
     from maxent_grpo.training.runtime import require_torch
@@ -353,7 +355,9 @@ def test_collect_batch_stats_skips_when_any_rank_missing_score_batch_under_zero(
     monkeypatch.setattr(
         pipeline_mod,
         "build_score_batch",
-        lambda *_a, **_k: SimpleNamespace(total_sequences=1, prompt_entries=[], max_prompt_len=4),
+        lambda *_a, **_k: SimpleNamespace(
+            total_sequences=1, prompt_entries=[], max_prompt_len=4
+        ),
     )
 
     assert pipeline_mod._collect_batch_stats(ctx, gen_batch, reward_comp) is None
@@ -425,8 +429,12 @@ def test_collect_batch_stats_runs_reference_gather_for_zero_alignment(monkeypatc
     )
     gather_calls = {"count": 0}
 
-    monkeypatch.setattr(pipeline_mod, "build_score_batch", lambda *_a, **_k: score_batch)
-    monkeypatch.setattr(pipeline_mod, "_reference_stats_from_meta", lambda *_a, **_k: ref_stats)
+    monkeypatch.setattr(
+        pipeline_mod, "build_score_batch", lambda *_a, **_k: score_batch
+    )
+    monkeypatch.setattr(
+        pipeline_mod, "_reference_stats_from_meta", lambda *_a, **_k: ref_stats
+    )
 
     def _fake_gather(*_a, **_k):
         gather_calls["count"] += 1

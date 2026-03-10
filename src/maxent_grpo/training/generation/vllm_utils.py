@@ -1,6 +1,7 @@
 """Shared vLLM helper utilities reused across generation modules."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 from contextlib import AbstractContextManager, nullcontext
 import logging
@@ -36,9 +37,7 @@ def _is_loopback_host(base_url: Optional[str]) -> bool:
     return host in {"localhost", "127.0.0.1", "::1"}
 
 
-def _resolve_async_mode(
-    async_mode: Optional[bool], base_url: Optional[str]
-) -> bool:
+def _resolve_async_mode(async_mode: Optional[bool], base_url: Optional[str]) -> bool:
     if async_mode is not None:
         return async_mode
     raw = os.getenv("MAXENT_VLLM_ASYNC_INIT")
@@ -120,6 +119,7 @@ def import_vllm_client_cls(
         return None
     return getattr(vllm_module, "VLLMClient", None)
 
+
 def init_vllm_client_communicator(
     client: Any,
     *,
@@ -186,7 +186,9 @@ def init_vllm_client_communicator(
         group_port = getattr(client, "group_port", None)
         session = getattr(client, "session", None)
         if not base_url or not host or not group_port or session is None:
-            _log("Async vLLM init unavailable; falling back to blocking init_communicator.")
+            _log(
+                "Async vLLM init unavailable; falling back to blocking init_communicator."
+            )
             resolved_init_fn()
             return
 
@@ -200,7 +202,9 @@ def init_vllm_client_communicator(
         vllm_utils_mod = optional_import("vllm.distributed.utils")
         pynccl_mod = optional_import("vllm.distributed.device_communicators.pynccl")
         if requests_mod is None or vllm_utils_mod is None or pynccl_mod is None:
-            _log("Async vLLM init missing dependencies; falling back to blocking init_communicator.")
+            _log(
+                "Async vLLM init missing dependencies; falling back to blocking init_communicator."
+            )
             resolved_init_fn()
             return
 
@@ -280,17 +284,13 @@ def init_vllm_client_communicator(
         except Exception as exc:
             last_exc = exc
             recoverable = _is_already_initialized_error(exc)
-            _log(
-                f"vLLM init_communicator failed (attempt {attempt}): {exc}"
-            )
+            _log(f"vLLM init_communicator failed (attempt {attempt}): {exc}")
             _close_client()
             should_retry = attempt < retries
             if recoverable and not used_recoverable_retry:
                 used_recoverable_retry = True
                 should_retry = True
-                _log(
-                    "Detected already-initialized communicator; forced close + retry."
-                )
+                _log("Detected already-initialized communicator; forced close + retry.")
             if should_retry and backoff_s > 0:
                 time.sleep(backoff_s)
             if should_retry:

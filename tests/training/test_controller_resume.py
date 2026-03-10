@@ -55,7 +55,11 @@ def _context_stub(training_args: GRPOConfig) -> SimpleNamespace:
         broadcast_object_list=lambda payload, src=0: payload,
     )
     runtime = SimpleNamespace(accelerator=accelerator, device="cpu")
-    return SimpleNamespace(controller=controller, runtime=runtime, scoring=SimpleNamespace(weighting=weighting))
+    return SimpleNamespace(
+        controller=controller,
+        runtime=runtime,
+        scoring=SimpleNamespace(weighting=weighting),
+    )
 
 
 @pytest.fixture
@@ -107,7 +111,9 @@ def test_controller_resume_loads_saved_meta_fields(
     training_args.train_grpo_objective = False
     ctx = _context_stub(training_args)
 
-    load_controller_state_chain(ctx.controller, ctx.runtime.accelerator, ctx.scoring.weighting)
+    load_controller_state_chain(
+        ctx.controller, ctx.runtime.accelerator, ctx.scoring.weighting
+    )
 
     weighting = ctx.scoring.weighting
     assert weighting.tau == pytest.approx(expected_tau)
@@ -131,10 +137,14 @@ def test_controller_resume_handles_missing_fields(tmp_path: Path) -> None:
     training_args.train_grpo_objective = False
     ctx = _context_stub(training_args)
 
-    load_controller_state_chain(ctx.controller, ctx.runtime.accelerator, ctx.scoring.weighting)
+    load_controller_state_chain(
+        ctx.controller, ctx.runtime.accelerator, ctx.scoring.weighting
+    )
 
     weighting = ctx.scoring.weighting
     assert weighting.tau == pytest.approx(0.25)
     assert weighting.beta == pytest.approx(0.15)
-    assert getattr(weighting, "_tau_log") == pytest.approx(math.log(max(weighting.tau, 1e-8)))
+    assert getattr(weighting, "_tau_log") == pytest.approx(
+        math.log(max(weighting.tau, 1e-8))
+    )
     assert math.isfinite(getattr(weighting, "_tau_entropy_ema"))

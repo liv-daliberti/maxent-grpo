@@ -222,7 +222,9 @@ class WeightingSettings:
     kl_controller: KlControllerSettings
     train_grpo_objective: bool
     scale_rewards: bool = True
-    controller_meta: ControllerMetaSettings = field(default_factory=ControllerMetaSettings)
+    controller_meta: ControllerMetaSettings = field(
+        default_factory=ControllerMetaSettings
+    )
     controller_state: Optional["TorchControllerState"] = None
     allow_empty_weight_fallback: bool = False
 
@@ -644,10 +646,14 @@ class TorchControllerState:
         )
         with ctx:
             self.tau_param.copy_(
-                self.torch.tensor(float(tau), dtype=getattr(self.tau_param, "dtype", None))
+                self.torch.tensor(
+                    float(tau), dtype=getattr(self.tau_param, "dtype", None)
+                )
             )
             self.beta_param.copy_(
-                self.torch.tensor(float(beta), dtype=getattr(self.beta_param, "dtype", None))
+                self.torch.tensor(
+                    float(beta), dtype=getattr(self.beta_param, "dtype", None)
+                )
             )
 
     def tau_tensor(self, detach: bool = False) -> Any:

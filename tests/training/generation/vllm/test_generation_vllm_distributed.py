@@ -13,11 +13,15 @@ def test_current_torch_prefers_vllm_module(monkeypatch):
     sentinel = SimpleNamespace(torch="stub")
     monkeypatch.setitem(sys.modules, "maxent_grpo.training.generation.vllm", sentinel)
     assert dist._current_torch() == "stub"
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
 
 
 def test_current_torch_falls_back_to_module(monkeypatch):
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
     # Should return the module-level torch when no shim is present.
     assert dist._current_torch() is dist.torch
 

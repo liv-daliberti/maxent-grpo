@@ -1,6 +1,7 @@
 """vLLM-focused helpers split away from the local generation path."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import importlib
 import sys
@@ -53,6 +54,7 @@ def _progress_log_enabled() -> bool:
     if raw is None or not str(raw).strip():
         return False
     return str(raw).strip().lower() not in {"0", "false", "no", "off"}
+
 
 if TYPE_CHECKING:
     from accelerate import Accelerator as AcceleratorLike
@@ -153,10 +155,9 @@ def _loopback_host(base_url: str) -> bool:
 
 def _vllm_client_nccl_overrides(base_url: str) -> Dict[str, str]:
     overrides: Dict[str, str] = {}
-    enable_overrides = (
-        str(os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")).strip().lower()
-        in {"1", "true", "yes", "on"}
-    )
+    enable_overrides = str(
+        os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")
+    ).strip().lower() in {"1", "true", "yes", "on"}
     if not enable_overrides:
         return overrides
 
@@ -255,8 +256,6 @@ class VLLMGenerationMixin:
                     device_hint = f"cuda:{int(local_rank)}"
                 else:
                     try:
-                        import torch
-
                         if torch.cuda.is_available():
                             device_hint = f"cuda:{torch.cuda.current_device()}"
                     except Exception:
@@ -325,9 +324,7 @@ class VLLMGenerationMixin:
                 # Avoid initializing colocate sync clients on non-main ranks.
                 self._vllm_client = None
                 self._vllm_sync_ready = False
-                LOG.info(
-                    "Skipping vLLM colocate sync client init on non-main rank."
-                )
+                LOG.info("Skipping vLLM colocate sync client init on non-main rank.")
         LOG.info("vLLM colocate mode enabled; using in-process vLLM engine.")
 
     def _generate_local(
@@ -391,6 +388,7 @@ class VLLMGenerationMixin:
     def _vllm_base_url(self, url: str) -> str:
         """Delegate to the shared vLLM helper to normalize the base URL."""
         base_url_fn_obj = getattr(self._vllm_helper, "vllm_base_url", None)
+
         def _fallback_normalized(value: str) -> str:
             resolved = self._invoke_helper("_vllm_base_url", value)
             return str(resolved) if resolved is not None else value
@@ -951,9 +949,9 @@ class VLLMGenerationMixin:
             if grouped is None:
                 grouped = []
             if isinstance(grouped, list):
-                return cast(
-                    List[List[str]], grouped
-                ), cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+                return cast(List[List[str]], grouped), cast(
+                    Optional[List[List[Optional[VLLMLogprobResult]]]], meta
+                )
         return [], None
 
     def _execute_vllm_request(
@@ -1013,9 +1011,9 @@ class VLLMGenerationMixin:
             if grouped is None:
                 return [], cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
             if isinstance(grouped, list):
-                return cast(
-                    List[List[str]], grouped
-                ), cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+                return cast(List[List[str]], grouped), cast(
+                    Optional[List[List[Optional[VLLMLogprobResult]]]], meta
+                )
             return grouped, meta
         return [], None
 
@@ -1034,9 +1032,9 @@ class VLLMGenerationMixin:
             if grouped is None:
                 return [], cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
             if isinstance(grouped, list):
-                return cast(
-                    List[List[str]], grouped
-                ), cast(Optional[List[List[Optional[VLLMLogprobResult]]]], meta)
+                return cast(List[List[str]], grouped), cast(
+                    Optional[List[List[Optional[VLLMLogprobResult]]]], meta
+                )
             return grouped, meta
         return [], None
 
@@ -1060,20 +1058,24 @@ class VLLMGenerationMixin:
             # Weight sync under ZeRO-3 uses collective gathers; run it on all ranks
             # before non-main processes block waiting for the scatter payload.
             vllm_helper = getattr(self, "_vllm_helper", None)
-            maybe_sync = getattr(vllm_helper, "maybe_sync_weights", None) if vllm_helper else None
+            maybe_sync = (
+                getattr(vllm_helper, "maybe_sync_weights", None)
+                if vllm_helper
+                else None
+            )
             sync_weights = bool(getattr(self.ctx, "vllm_sync_weights", False))
-            dist = getattr(torch, "distributed", None)
+            dist_mod = getattr(torch, "distributed", None)
             if (
                 getattr(accelerator, "num_processes", 1) > 1
-                and dist is not None
-                and callable(getattr(dist, "is_available", None))
-                and callable(getattr(dist, "is_initialized", None))
-                and dist.is_available()
-                and dist.is_initialized()
-                and callable(getattr(dist, "broadcast_object_list", None))
+                and dist_mod is not None
+                and callable(getattr(dist_mod, "is_available", None))
+                and callable(getattr(dist_mod, "is_initialized", None))
+                and dist_mod.is_available()
+                and dist_mod.is_initialized()
+                and callable(getattr(dist_mod, "broadcast_object_list", None))
             ):
                 payload = [sync_weights] if accelerator.is_main_process else [False]
-                dist.broadcast_object_list(payload, src=0)
+                dist_mod.broadcast_object_list(payload, src=0)
                 sync_weights = bool(payload[0])
                 if sync_weights != bool(getattr(self.ctx, "vllm_sync_weights", False)):
                     try:
@@ -1111,22 +1113,22 @@ class VLLMGenerationMixin:
                 except Exception as exc:
                     status_ok = False
                     status_err = str(exc)
-            dist = getattr(torch, "distributed", None)
+            dist_mod = getattr(torch, "distributed", None)
             if (
                 getattr(accelerator, "num_processes", 1) > 1
-                and dist is not None
-                and callable(getattr(dist, "is_available", None))
-                and callable(getattr(dist, "is_initialized", None))
-                and dist.is_available()
-                and dist.is_initialized()
-                and callable(getattr(dist, "broadcast_object_list", None))
+                and dist_mod is not None
+                and callable(getattr(dist_mod, "is_available", None))
+                and callable(getattr(dist_mod, "is_initialized", None))
+                and dist_mod.is_available()
+                and dist_mod.is_initialized()
+                and callable(getattr(dist_mod, "broadcast_object_list", None))
             ):
                 payload = (
                     [{"ok": status_ok, "error": status_err}]
                     if accelerator.is_main_process
                     else [{"ok": False, "error": None}]
                 )
-                dist.broadcast_object_list(payload, src=0)
+                dist_mod.broadcast_object_list(payload, src=0)
                 status_ok = bool(payload[0].get("ok", False))
                 status_err = payload[0].get("error")
             if not status_ok:
@@ -1144,9 +1146,7 @@ class VLLMGenerationMixin:
                         "falling back to local generation on all ranks: %s",
                         status_err,
                     )
-                return self._generate_local(
-                    prompts, num_samples, per_prompt_counts
-                )
+                return self._generate_local(prompts, num_samples, per_prompt_counts)
             scatter_result = self._scatter_vllm_payload(
                 flat_prompts, offsets, grouped_all, meta_all
             )
@@ -1169,7 +1169,9 @@ class VLLMGenerationMixin:
                     pass
             else:
                 try:
-                    setattr(self.ctx, "vllm_disable_local_fallback", prev_disable_fallback)
+                    setattr(
+                        self.ctx, "vllm_disable_local_fallback", prev_disable_fallback
+                    )
                 except Exception:
                     pass
 
@@ -1189,9 +1191,7 @@ class VLLMGenerationMixin:
             )
         if self.ctx.use_vllm:
             if not self._vllm_collective_enabled():
-                return self._generate_with_vllm(
-                    prompts, num_samples, per_prompt_counts
-                )
+                return self._generate_with_vllm(prompts, num_samples, per_prompt_counts)
             return self._generate_vllm_collective(
                 prompts, num_samples, per_prompt_counts
             )

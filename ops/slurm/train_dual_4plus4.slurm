@@ -196,11 +196,18 @@ MAXENT_VLLM_INIT_RETRY_BACKOFF_S="${MAXENT_VLLM_INIT_RETRY_BACKOFF_S:-2}"
 MAXENT_VLLM_INIT_TIMEOUT_S="${MAXENT_VLLM_INIT_TIMEOUT_S:-300}"
 
 VLLM_DTYPE="${VLLM_DTYPE:-bfloat16}"
+VLLM_ENFORCE_EAGER="${VLLM_ENFORCE_EAGER:-false}"
 # vLLM cold starts (weight load + compile cache warmup) can exceed 8 minutes on first run.
 # Default to a longer health window: 900 * 2s = 30 minutes.
 VLLM_HEALTH_MAX_ATTEMPTS="${VLLM_HEALTH_MAX_ATTEMPTS:-900}"
 VLLM_HEALTH_INTERVAL_S="${VLLM_HEALTH_INTERVAL_S:-2}"
 ACC_TEE="${ACC_TEE:-3}"
+TRAIN_NUM_PROCESSES="${TRAIN_NUM_PROCESSES:-3}"
+
+if ! [[ "$TRAIN_NUM_PROCESSES" =~ ^[0-9]+$ ]] || (( TRAIN_NUM_PROCESSES < 1 )); then
+  echo "TRAIN_NUM_PROCESSES must be a positive integer (got: $TRAIN_NUM_PROCESSES)" >&2
+  exit 1
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -351,7 +358,7 @@ start_vllm() {
     export CUDA_VISIBLE_DEVICES="$gpu_id"
     export VLLM_INIT_COMMUNICATOR_TIMEOUT
     cmd=(
-      trl vllm-serve
+      python -m trl.scripts.vllm_serve
       --model "$model_id"
       --host 127.0.0.1
       --port "$port"
@@ -359,6 +366,7 @@ start_vllm() {
       --data_parallel_size 1
       --max_model_len "$max_len"
       --dtype "$VLLM_DTYPE"
+      --enforce_eager "$VLLM_ENFORCE_EAGER"
     )
     if [[ -n "$revision" ]]; then
       cmd+=(--revision "$revision")
@@ -423,10 +431,10 @@ launch_train() {
     export VLLM_INIT_COMMUNICATOR_TIMEOUT
 
     launch=(
-      accelerate launch
+      python -m accelerate.commands.launch
       --config_file "$ACCEL_FILE_ABS"
       --num_machines 1
-      --num_processes 3
+      --num_processes "$TRAIN_NUM_PROCESSES"
       --main_process_ip 127.0.0.1
       --main_process_port "$main_port"
       --machine_rank 0

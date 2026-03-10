@@ -27,7 +27,9 @@ def test_prompt_char_limit_import_failure(monkeypatch):
             raise ImportError("boom")
         return real_import(name, globals, locals, fromlist, level)
 
-    monkeypatch.delitem(sys.modules, "maxent_grpo.training.generation.vllm", raising=False)
+    monkeypatch.delitem(
+        sys.modules, "maxent_grpo.training.generation.vllm", raising=False
+    )
     monkeypatch.setattr(builtins, "__import__", _failing_import)
     assert req._prompt_char_limit() == vllm_requests._DEFAULT_PROMPT_CHAR_LIMIT
 

@@ -187,7 +187,8 @@ def test_seed_eval_pass_metric_uses_math_answer_correctness():
         grouped = []
         count = per_prompt_counts[0] if per_prompt_counts else 1
         grouped.append(
-            ["<answer>7</answer>"] + ["<answer>0</answer>" for _ in range(max(count - 1, 0))]
+            ["<answer>7</answer>"]
+            + ["<answer>0</answer>" for _ in range(max(count - 1, 0))]
         )
         return grouped, None
 

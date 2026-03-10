@@ -156,15 +156,17 @@ def test_build_training_metrics_dict_includes_weighting():
 def test_build_training_metrics_dict_covers_lengths_and_rewards():
     payload = _payload()
     # Introduce an out-of-range clipped ratio to ensure clamping occurs.
-    payload.length_stats = payload.length_stats.__class__(**{
-        "min_length": 1.0,
-        "mean_length": 2.0,
-        "max_length": 3.0,
-        "clipped_ratio": -5.0,
-        "min_terminated": 0.5,
-        "mean_terminated": 1.0,
-        "max_terminated": 1.5,
-    })
+    payload.length_stats = payload.length_stats.__class__(
+        **{
+            "min_length": 1.0,
+            "mean_length": 2.0,
+            "max_length": 3.0,
+            "clipped_ratio": -5.0,
+            "min_terminated": 0.5,
+            "mean_terminated": 1.0,
+            "max_terminated": 1.5,
+        }
+    )
     result = metrics_mod.build_training_metrics_dict(payload, global_step=10)
     # Completion metrics present and clipped_ratio clamped to [0, 1].
     assert result["train/completions/mean_length_sampled"] == pytest.approx(2.0)
@@ -220,9 +222,7 @@ def test_log_like_grpo_mode_skips_gathers():
     metrics_mod.summarize_reward_stats(accel, reward_comp)
     assert gather_calls  # Cross-rank gather occurs when disabled.
     gather_calls.clear()
-    metrics_mod.summarize_reward_stats(
-        accel, reward_comp, log_like_grpo=True
-    )
+    metrics_mod.summarize_reward_stats(accel, reward_comp, log_like_grpo=True)
     assert gather_calls == []
 
 
@@ -378,15 +378,17 @@ def test_build_training_metrics_emits_clip_diagnostics_and_clamps_lengths():
         kl_token_count_by_len_bucket={},
     )
     # Force an invalid clipped_ratio in length stats to exercise clamping.
-    payload.length_stats = payload.length_stats.__class__(**{
-        "min_length": 1.0,
-        "mean_length": 2.0,
-        "max_length": 3.0,
-        "clipped_ratio": 5.0,  # out of range
-        "min_terminated": 0.5,
-        "mean_terminated": 1.0,
-        "max_terminated": 1.5,
-    })
+    payload.length_stats = payload.length_stats.__class__(
+        **{
+            "min_length": 1.0,
+            "mean_length": 2.0,
+            "max_length": 3.0,
+            "clipped_ratio": 5.0,  # out of range
+            "min_terminated": 0.5,
+            "mean_terminated": 1.0,
+            "max_terminated": 1.5,
+        }
+    )
     metrics = metrics_mod.build_training_metrics_dict(payload, global_step=4)
     assert metrics["train/clip_ratio"] == pytest.approx(0.75)
     assert metrics["train/clip_ratio/low_mean"] == pytest.approx(0.1)
@@ -670,10 +672,14 @@ def test_log_like_grpo_logs_accumulated_rewards(monkeypatch):
     ctx = SimpleNamespace(
         runtime=SimpleNamespace(accelerator=accelerator),
         logging=logging_handles,
-        scoring=SimpleNamespace(weighting=_weighting_stub(), clipping=SimpleNamespace()),
+        scoring=SimpleNamespace(
+            weighting=_weighting_stub(), clipping=SimpleNamespace()
+        ),
         generation=SimpleNamespace(use_vllm=False, generation_stats={}),
         optimization=SimpleNamespace(
-            schedule=SimpleNamespace(steps_per_epoch=100, num_generations=0, num_epochs=1)
+            schedule=SimpleNamespace(
+                steps_per_epoch=100, num_generations=0, num_epochs=1
+            )
         ),
         training_args=SimpleNamespace(
             log_like_grpo=True,

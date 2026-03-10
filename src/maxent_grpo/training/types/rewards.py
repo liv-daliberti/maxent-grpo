@@ -267,6 +267,7 @@ class LossOutputs:
         """
         return self.scalars.weighted_kl_loss
 
+
 @dataclass
 class LengthStats:
     """Summary of completion lengths for metrics."""

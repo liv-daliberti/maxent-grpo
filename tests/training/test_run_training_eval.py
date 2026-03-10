@@ -25,7 +25,6 @@ from typing import Any, Dict, List, Tuple
 import pytest
 
 
-
 class _StubMetricWriter:
     def __init__(self):
         self.logged: List[Tuple[Dict[str, Any], int]] = []

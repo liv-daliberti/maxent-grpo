@@ -36,7 +36,9 @@ def test_load_reward_functions_falls_back_to_training_when_script_empty():
 
 
 def test_load_reward_functions_handles_single_string():
-    script_args = SimpleNamespace(reward_funcs="pure_accuracy_math", reward_weights=None)
+    script_args = SimpleNamespace(
+        reward_funcs="pure_accuracy_math", reward_weights=None
+    )
     training_args = SimpleNamespace(
         reward_funcs=["pure_accuracy_math"], reward_weights=[0.9]
     )

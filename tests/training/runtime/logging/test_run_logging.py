@@ -25,7 +25,6 @@ from typing import Dict, Any
 import pytest
 
 
-
 class _StubMetricWriter:
     def __init__(self, capture: Dict[str, Any]):
         self.capture = capture

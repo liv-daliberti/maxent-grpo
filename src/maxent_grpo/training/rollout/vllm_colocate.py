@@ -1,6 +1,7 @@
 """In-process (colocated) vLLM generation helpers for the custom loop."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught,protected-access
 
 import atexit
 import faulthandler
@@ -111,7 +112,9 @@ def _resolve_model_id(ctx: Any) -> Optional[str]:
         if isinstance(name, str) and name:
             return name
         cfg = getattr(model, "config", None)
-        cfg_name = getattr(cfg, "name_or_path", None) or getattr(cfg, "_name_or_path", None)
+        cfg_name = getattr(cfg, "name_or_path", None) or getattr(
+            cfg, "_name_or_path", None
+        )
         if isinstance(cfg_name, str) and cfg_name:
             return cfg_name
     training_args = getattr(ctx, "training_args", None)
@@ -321,11 +324,15 @@ def _outputs_to_payload(
     outputs: Any, want_logprobs: bool
 ) -> Tuple[List[List[str]], Optional[List[List[Optional[Dict[str, Any]]]]]]:
     grouped: List[List[str]] = []
-    grouped_meta: Optional[List[List[Optional[Dict[str, Any]]]]] = [] if want_logprobs else None
+    grouped_meta: Optional[List[List[Optional[Dict[str, Any]]]]] = (
+        [] if want_logprobs else None
+    )
     for output in outputs:
         seqs = getattr(output, "outputs", None) or []
         group: List[str] = []
-        meta_group: Optional[List[Optional[Dict[str, Any]]]] = [] if grouped_meta is not None else None
+        meta_group: Optional[List[Optional[Dict[str, Any]]]] = (
+            [] if grouped_meta is not None else None
+        )
         for seq in seqs:
             text = getattr(seq, "text", None)
             if text is None:
@@ -337,7 +344,9 @@ def _outputs_to_payload(
                     seq, "output_token_ids", None
                 )
                 token_count = len(token_ids) if token_ids is not None else None
-                token_logprobs = _extract_logprob_sequence(getattr(seq, "logprobs", None))
+                token_logprobs = _extract_logprob_sequence(
+                    getattr(seq, "logprobs", None)
+                )
                 if logprob_sum is None:
                     logprob_sum = _sum_logprobs(token_logprobs)
                 meta_group.append(
@@ -516,6 +525,7 @@ def _reset_prefix_cache_llm(llm: Any) -> None:
 def _vllm_colocate_worker(conn: Any) -> None:
     """Subprocess worker for vLLM colocate init/generate."""
     try:
+
         def _send_log(message: str) -> None:
             try:
                 conn.send({"type": "log", "message": message})
@@ -548,7 +558,9 @@ def _vllm_colocate_worker(conn: Any) -> None:
         os.environ["VLLM_DP_SIZE"] = "1"
         os.environ["VLLM_DP_RANK"] = "0"
         os.environ["VLLM_DP_RANK_LOCAL"] = "0"
-        _send_log("worker env override | RANK=0 WORLD_SIZE=1 LOCAL_RANK=0 SLURM_LOCALID=0")
+        _send_log(
+            "worker env override | RANK=0 WORLD_SIZE=1 LOCAL_RANK=0 SLURM_LOCALID=0"
+        )
 
         # If a specific CUDA device was requested, remap visibility *before*
         # any torch import so the worker sees the requested GPU. By default we
@@ -566,7 +578,9 @@ def _vllm_colocate_worker(conn: Any) -> None:
                     visible = visible.strip()
                     tokens = []
                     if visible and visible.lower() != "none":
-                        tokens = [tok.strip() for tok in visible.split(",") if tok.strip()]
+                        tokens = [
+                            tok.strip() for tok in visible.split(",") if tok.strip()
+                        ]
                     if idx not in tokens:
                         tokens.append(idx)
                     if tokens:
@@ -615,10 +629,17 @@ def _vllm_colocate_worker(conn: Any) -> None:
                 import torch
 
                 dist = getattr(torch, "distributed", None)
-                if dist is not None and dist.is_available() and not dist.is_initialized():
+                if (
+                    dist is not None
+                    and dist.is_available()
+                    and not dist.is_initialized()
+                ):
                     init_method = os.getenv("MAXENT_VLLM_COLOCATE_INIT_METHOD")
                     if not init_method:
-                        store_dir = os.getenv("MAXENT_VLLM_COLOCATE_STORE_DIR") or tempfile.gettempdir()
+                        store_dir = (
+                            os.getenv("MAXENT_VLLM_COLOCATE_STORE_DIR")
+                            or tempfile.gettempdir()
+                        )
                         fd, path = tempfile.mkstemp(prefix="vllm-init-", dir=store_dir)
                         os.close(fd)
                         init_method = f"file://{path}"
@@ -660,7 +681,11 @@ def _vllm_colocate_worker(conn: Any) -> None:
 
             torch_version = getattr(torch, "__version__", None)
             cuda_version = getattr(torch, "version", None)
-            cuda_version = getattr(cuda_version, "cuda", None) if cuda_version is not None else None
+            cuda_version = (
+                getattr(cuda_version, "cuda", None)
+                if cuda_version is not None
+                else None
+            )
             cudnn_version = None
             if hasattr(torch, "backends") and hasattr(torch.backends, "cudnn"):
                 cudnn_version = getattr(torch.backends.cudnn, "version", None)
@@ -676,7 +701,9 @@ def _vllm_colocate_worker(conn: Any) -> None:
 
             if torch.cuda.is_available() and hasattr(torch.cuda, "mem_get_info"):
                 free_mem, total_mem = torch.cuda.mem_get_info()
-                _send_log(f"worker cuda mem pre-init | free_mem={free_mem} total_mem={total_mem}")
+                _send_log(
+                    f"worker cuda mem pre-init | free_mem={free_mem} total_mem={total_mem}"
+                )
         except Exception:
             pass
         _send_log(f"worker LLM init start | model={model_id} kwargs={llm_kwargs}")
@@ -714,7 +741,9 @@ def _vllm_colocate_worker(conn: Any) -> None:
 
             if torch.cuda.is_available() and hasattr(torch.cuda, "mem_get_info"):
                 free_mem, total_mem = torch.cuda.mem_get_info()
-                _send_log(f"worker cuda mem post-init | free_mem={free_mem} total_mem={total_mem}")
+                _send_log(
+                    f"worker cuda mem post-init | free_mem={free_mem} total_mem={total_mem}"
+                )
         except Exception:
             pass
         params_cls = getattr(vllm_mod, "SamplingParams", None)
@@ -752,7 +781,9 @@ def _vllm_colocate_worker(conn: Any) -> None:
                 continue
             prompts = msg.get("prompts") or []
             params_kwargs = msg.get("params_kwargs") or {}
-            request_logprobs = bool(msg.get("request_logprobs", request_logprobs_default))
+            request_logprobs = bool(
+                msg.get("request_logprobs", request_logprobs_default)
+            )
             params_kwargs = _filter_kwargs(params_cls, params_kwargs)
             params = params_cls(**params_kwargs)
             outputs = llm.generate(prompts, params)
@@ -1013,7 +1044,9 @@ class ColocateVLLMEngine:
         removed = sorted(set(pre_filter) - set(llm_kwargs))
         if removed:
             LOG.info("vLLM colocate llm_kwargs filtered | removed=%s", removed)
-        LOG.info("vLLM colocate LLM init start | model=%s kwargs=%s", model_id, llm_kwargs)
+        LOG.info(
+            "vLLM colocate LLM init start | model=%s kwargs=%s", model_id, llm_kwargs
+        )
         started = time.time()
         llm = llm_cls(model=model_id, **llm_kwargs)
         elapsed = time.time() - started
@@ -1354,9 +1387,9 @@ class ColocateVLLMEngine:
         if not isinstance(stats, dict):
             return
         stats["vllm_last_latency_ms"] = float(latency_ms)
-        stats["vllm_latency_total_ms"] = float(stats.get("vllm_latency_total_ms", 0.0)) + float(
-            latency_ms
-        )
+        stats["vllm_latency_total_ms"] = float(
+            stats.get("vllm_latency_total_ms", 0.0)
+        ) + float(latency_ms)
         stats["vllm_latency_calls"] = int(stats.get("vllm_latency_calls", 0)) + 1
 
     def request_batch(
@@ -1436,7 +1469,9 @@ class ColocateVLLMEngine:
                     request_count,
                 )
                 outputs = llm.generate(truncated, params)
-                grouped, grouped_meta_payload = _outputs_to_payload(outputs, request_logprobs)
+                grouped, grouped_meta_payload = _outputs_to_payload(
+                    outputs, request_logprobs
+                )
                 grouped_meta = _coerce_logprob_payload(grouped_meta_payload)
             except Exception as exc:
                 return self._fallback_or_raise(truncated, request_count, exc)

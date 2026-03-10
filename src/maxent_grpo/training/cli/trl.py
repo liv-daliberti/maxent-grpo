@@ -63,6 +63,7 @@ def parse_grpo_args(
         # --maxent_alpha, --seed, --max_steps) while selecting a base recipe.
         try:  # pragma: no cover - optional dependency for CLI
             from trl import ModelConfig, TrlParser
+
             parser: Any
             try:
                 parser = TrlParser(
@@ -70,12 +71,15 @@ def parse_grpo_args(
                     conflict_handler="resolve",
                 )
             except TypeError:
-                parser = TrlParser(cast(Any, (GRPOScriptArguments, GRPOConfig, ModelConfig)))
+                parser = TrlParser(
+                    cast(Any, (GRPOScriptArguments, GRPOConfig, ModelConfig))
+                )
             cli_args = list(sys.argv[1:])
             if "--config" not in cli_args:
                 cli_args = ["--config", recipe_path] + cli_args
             return parser.parse_args_and_config(args=cli_args)
         except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dep
+
             class ModelConfig:  # type: ignore[no-redef]
                 def __init__(self, **kwargs: Any) -> None:
                     for key, value in kwargs.items():

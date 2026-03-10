@@ -76,6 +76,15 @@ def test_pure_accuracy_reward_math_handles_multiple_rewards():
     assert rewards == [1.0, 0.05]
 
 
+def test_pure_accuracy_reward_math_allows_outer_whitespace():
+    completions = [
+        "\n  <think>t</think><answer>1</answer>  ",
+        "\n<think>t</think><answer>2</answer>\n",
+    ]
+    rewards = pure_accuracy_reward_math(completions, ["1", "3"])
+    assert rewards == [1.0, 0.05]
+
+
 def test_pure_accuracy_reward_math_handles_missing_answer(monkeypatch):
     # Force the answer extractor to fail even when the format regex matches.
     monkeypatch.setattr(

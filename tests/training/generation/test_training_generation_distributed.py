@@ -155,7 +155,9 @@ def test_scatter_broadcast_works_with_none_on_non_src(monkeypatch):
             for idx, val in enumerate(self.last_payload):
                 payload[idx] = val
 
-        def scatter_object_list(self, *_a, **_k):  # pragma: no cover - should not be used
+        def scatter_object_list(
+            self, *_a, **_k
+        ):  # pragma: no cover - should not be used
             raise AssertionError("scatter_object_list should not be used")
 
     dist = _Dist()

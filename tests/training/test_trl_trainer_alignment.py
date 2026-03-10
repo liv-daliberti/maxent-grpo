@@ -51,7 +51,9 @@ class _ParentTrainerStub:
         )
         self.accelerator = _FakeAccelerator()
         self.reward_funcs = [
-            lambda prompts, completions, completion_ids, **kwargs: [0.0 for _ in prompts]
+            lambda prompts, completions, completion_ids, **kwargs: [
+                0.0 for _ in prompts
+            ]
         ]
         self.reward_func_names = ["reward_0"]
         self.reward_weights = torch.tensor([1.0], dtype=torch.float32)
@@ -113,7 +115,9 @@ class _ParentTrainerStub:
         completion_mask = torch.ones_like(completion_ids)
         advantages = torch.zeros((total,), dtype=torch.float32)
         old_per_token_logps = (
-            torch.arange(total, dtype=torch.float32).unsqueeze(1).repeat(1, completion_ids.size(1))
+            torch.arange(total, dtype=torch.float32)
+            .unsqueeze(1)
+            .repeat(1, completion_ids.size(1))
             * 0.01
         )
         return {
@@ -289,7 +293,9 @@ def test_generate_and_score_routes_by_objective(
     monkeypatch.setattr(
         trainer_mod,
         "_apply_eos_completion_mask",
-        lambda completion_ids, eos_token_id: torch.ones_like(completion_ids, dtype=torch.long),
+        lambda completion_ids, eos_token_id: torch.ones_like(
+            completion_ids, dtype=torch.long
+        ),
     )
 
     inputs = [{"prompt": "p0", "answer": "a0"}, {"prompt": "p1", "answer": "a1"}]
@@ -402,7 +408,8 @@ def test_eval_pass_at_8_uses_math_answer_correctness() -> None:
     trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
 
     completions = (
-        ["<answer>42</answer>"] + ["<answer>0</answer>" for _ in range(7)]
+        ["<answer>42</answer>"]
+        + ["<answer>0</answer>" for _ in range(7)]
         + ["<answer>0</answer>" for _ in range(8)]
     )
     trainer.processing_class.batch_decode = (
@@ -493,5 +500,9 @@ def test_reference_model_ema_matches_prefixed_parameter_names() -> None:
     assert reference.model.weight.detach().cpu().flatten().tolist() == pytest.approx(
         [0.5, 0.5]
     )
-    assert trainer._metrics["train"]["maxent/ref_ema_updated_frac"][-1] == pytest.approx(1.0)
-    assert trainer._metrics["train"]["maxent/ref_ema_alias_hit_frac"][-1] == pytest.approx(1.0)
+    assert trainer._metrics["train"]["maxent/ref_ema_updated_frac"][
+        -1
+    ] == pytest.approx(1.0)
+    assert trainer._metrics["train"]["maxent/ref_ema_alias_hit_frac"][
+        -1
+    ] == pytest.approx(1.0)

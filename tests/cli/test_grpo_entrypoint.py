@@ -10,9 +10,7 @@ import pytest
 def _install_baseline_stub(monkeypatch):
     baseline_mod = ModuleType("maxent_grpo.training.baseline")
     baseline_mod.run_baseline_training = lambda *_a, **_k: (_a, _k)
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_mod
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_mod)
     return baseline_mod
 
 

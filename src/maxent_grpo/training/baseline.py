@@ -36,6 +36,7 @@ limitations under the License.
 # The module is import‑light: heavy libs are imported lazily inside functions.
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 from contextlib import contextmanager, nullcontext
 from collections.abc import MutableMapping as MutableMappingABC
@@ -155,6 +156,7 @@ def _force_vllm_dtype(training_args: GRPOConfig) -> Iterator[None]:
     finally:
         if orig_llm is not None:
             grpo_mod.LLM = orig_llm
+
 
 LOG = logging.getLogger(__name__)
 
@@ -301,9 +303,7 @@ def _validate_dataset_columns(
 
     col_map = _collect_dataset_columns(dataset)
     if not col_map:
-        LOG.debug(
-            "Unable to infer columns for %s; skipping early validation.", label
-        )
+        LOG.debug("Unable to infer columns for %s; skipping early validation.", label)
         return
     message_only = {"messages", "message"}
     if all(cols and set(cols).issubset(message_only) for cols in col_map.values()):
@@ -314,12 +314,14 @@ def _validate_dataset_columns(
         return
     missing_by_split: Dict[str, List[str]] = {}
     for split, cols in col_map.items():
-        if "messages" in cols and prompt_column not in cols and solution_column not in cols:
+        if (
+            "messages" in cols
+            and prompt_column not in cols
+            and solution_column not in cols
+        ):
             continue
         missing = [
-            name
-            for name in (prompt_column, solution_column)
-            if name not in cols
+            name for name in (prompt_column, solution_column) if name not in cols
         ]
         if missing:
             missing_by_split[split] = missing
@@ -422,7 +424,9 @@ def _resolve_eval_dataset_spec(
     if preset is not None:
         dataset_name = str(preset.get("dataset_name") or dataset_name)
         raw_dataset_config = preset.get("dataset_config")
-        dataset_config = str(raw_dataset_config) if raw_dataset_config is not None else None
+        dataset_config = (
+            str(raw_dataset_config) if raw_dataset_config is not None else None
+        )
         dataset_split = str(preset.get("split") or default_split)
         prompt_column = str(preset.get("prompt_column") or default_prompt_column)
         solution_column = str(preset.get("solution_column") or default_solution_column)
@@ -503,10 +507,9 @@ def _vllm_client_nccl_overrides(base_url: str) -> Dict[str, str]:
     """Return conservative NCCL settings for loopback vLLM sync."""
 
     overrides: Dict[str, str] = {}
-    enable_overrides = (
-        str(os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")).strip().lower()
-        in {"1", "true", "yes", "on"}
-    )
+    enable_overrides = str(
+        os.getenv("MAXENT_VLLM_CLIENT_NCCL_OVERRIDES", "0")
+    ).strip().lower() in {"1", "true", "yes", "on"}
     if not enable_overrides:
         return overrides
 
@@ -573,7 +576,10 @@ def _patch_trl_vllm_client_init() -> None:
         original_ctor(self, *args, **kwargs)
 
     def _patched_init_communicator(self: Any) -> None:
-        bound_original = original_init_communicator.__get__(self, type(self))
+        bound_original = cast(
+            Callable[[], None],
+            original_init_communicator.__get__(self, type(self)),
+        )
         base_url = str(getattr(self, "base_url", ""))
         overrides = _vllm_client_nccl_overrides(base_url)
         if overrides:
@@ -651,10 +657,9 @@ def run_baseline_training(
 
     # Keep custom communicator patch opt-in to preserve open-r1 parity by default.
     if bool(getattr(training_args, "use_vllm", False)):
-        patch_vllm_client = (
-            str(os.getenv("MAXENT_TRL_VLLM_CLIENT_PATCH", "0")).strip().lower()
-            in {"1", "true", "yes", "on"}
-        )
+        patch_vllm_client = str(
+            os.getenv("MAXENT_TRL_VLLM_CLIENT_PATCH", "0")
+        ).strip().lower() in {"1", "true", "yes", "on"}
         if patch_vllm_client:
             _patch_trl_vllm_client_init()
         else:
@@ -690,7 +695,9 @@ def run_baseline_training(
         # Normalize dataloader settings onto training_args for TRL/Trainer usage.
         try:
             training_args.dataloader_num_workers = int(
-                dl_kwargs.get("num_workers", getattr(training_args, "dataloader_num_workers", 0))
+                dl_kwargs.get(
+                    "num_workers", getattr(training_args, "dataloader_num_workers", 0)
+                )
             )
         except (AttributeError, TypeError, ValueError) as exc:
             LOG.debug("Failed to set dataloader_num_workers: %s", exc)
@@ -899,9 +906,9 @@ def run_baseline_training(
     if rank in (-1, 0):
         try:
             sample = dataset[getattr(script_args, "dataset_train_split", "train")][0]
-            rendered = maybe_apply_chat_template(
-                sample, cast(Any, tokenizer)
-            ).get("prompt")
+            rendered = maybe_apply_chat_template(sample, cast(Any, tokenizer)).get(
+                "prompt"
+            )
             if isinstance(rendered, str):
                 preview = rendered[:400].replace("\n", "\\n")
                 LOG.info(
@@ -948,7 +955,9 @@ def run_baseline_training(
                     spec_benchmark,
                 ) = _resolve_eval_dataset_spec(
                     spec,
-                    default_dataset_config=getattr(script_args, "eval_dataset_config", None),
+                    default_dataset_config=getattr(
+                        script_args, "eval_dataset_config", None
+                    ),
                     default_split=eval_split,
                     default_prompt_column=eval_prompt_col,
                     default_solution_column=eval_solution_col,
@@ -990,11 +999,12 @@ def run_baseline_training(
                         prompt: List[Dict[str, str]] = []
                         if training_args.system_prompt is not None:
                             prompt.append(
-                                {"role": "system", "content": training_args.system_prompt}
+                                {
+                                    "role": "system",
+                                    "content": training_args.system_prompt,
+                                }
                             )
-                        prompt.append(
-                            {"role": "user", "content": str(ex[prompt_col])}
-                        )
+                        prompt.append({"role": "user", "content": str(ex[prompt_col])})
                         return {
                             "prompt": prompt,
                             "answer": str(ex.get(solution_col, ex.get("solution", ""))),

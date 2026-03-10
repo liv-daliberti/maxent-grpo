@@ -1,6 +1,7 @@
 """Assemble the vLLMGenerationHelper from dedicated mixins."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import logging
 import os
@@ -111,7 +112,9 @@ class VLLMGenerationHelper(
         if not getattr(ctx, "_maxent_vllm_helper_logged", False):
             sync_weights = bool(getattr(ctx, "vllm_sync_weights", False))
             backend_note = (
-                "frozen server (no weight sync)" if not sync_weights else "live weight sync"
+                "frozen server (no weight sync)"
+                if not sync_weights
+                else "live weight sync"
             )
             LOG.info(
                 "vLLM helper configured | use_vllm=%s | endpoint=%s | request_logprobs=%s | sync_weights=%s (%s)",
@@ -193,7 +196,10 @@ class VLLMGenerationHelper(
             num_samples,
         )
         sync_fn = self.maybe_sync_weights
-        using_default_sync = getattr(sync_fn, "__func__", None) is VLLMGenerationHelper.maybe_sync_weights
+        using_default_sync = (
+            getattr(sync_fn, "__func__", None)
+            is VLLMGenerationHelper.maybe_sync_weights
+        )
         try:
             if ensure_client is None and sync_model is None:
                 sync_fn()
@@ -217,9 +223,9 @@ class VLLMGenerationHelper(
             )
             stats = getattr(self.ctx, "generation_stats", None)
             if isinstance(stats, dict):
-                stats["vllm_sync_fail_fallbacks"] = int(
-                    stats.get("vllm_sync_fail_fallbacks", 0)
-                ) + 1
+                stats["vllm_sync_fail_fallbacks"] = (
+                    int(stats.get("vllm_sync_fail_fallbacks", 0)) + 1
+                )
             return self._fallback_generate(prompts, num_samples, per_prompt_counts)
         stats = self.ctx.generation_stats
         if getattr(self.ctx, "vllm_sync_weights", False):
@@ -344,7 +350,9 @@ class VLLMGenerationHelper(
                 and dist.is_initialized()
                 and callable(getattr(dist, "broadcast_object_list", None))
             ):
-                payload = [bool(sync_weights)] if accelerator.is_main_process else [False]
+                payload = (
+                    [bool(sync_weights)] if accelerator.is_main_process else [False]
+                )
                 dist.broadcast_object_list(payload, src=0)
                 sync_weights = bool(payload[0])
                 if sync_weights != bool(getattr(self.ctx, "vllm_sync_weights", False)):
@@ -415,7 +423,9 @@ class VLLMGenerationHelper(
                         status_err,
                     )
                 return self._fallback_generate(prompts, num_samples, per_prompt_counts)
-            return self._scatter_vllm_payload(flat_prompts, offsets, grouped_all, meta_all)
+            return self._scatter_vllm_payload(
+                flat_prompts, offsets, grouped_all, meta_all
+            )
         finally:
             if prev_disable_fallback is None:
                 try:
@@ -424,7 +434,9 @@ class VLLMGenerationHelper(
                     pass
             else:
                 try:
-                    setattr(self.ctx, "vllm_disable_local_fallback", prev_disable_fallback)
+                    setattr(
+                        self.ctx, "vllm_disable_local_fallback", prev_disable_fallback
+                    )
                 except Exception:
                     pass
 

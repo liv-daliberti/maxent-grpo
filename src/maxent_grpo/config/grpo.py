@@ -28,7 +28,7 @@ import json
 import logging
 import math
 from dataclasses import MISSING, dataclass, field
-from typing import Optional
+from typing import Any, Callable, Optional, cast
 from urllib.parse import urlparse
 
 from .dataset import ScriptArguments, trl
@@ -215,9 +215,7 @@ class GRPOConfig(trl.GRPOConfig):
     )
     reference_model_revision: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Optional revision/branch for the frozen reference model."
-        },
+        metadata={"help": "Optional revision/branch for the frozen reference model."},
     )
     maxent_share_reference_model: bool = field(
         default=False,
@@ -850,9 +848,7 @@ class GRPOConfig(trl.GRPOConfig):
     )
     grpo_loss_type: str = field(
         default="bnpo",
-        metadata={
-            "help": "GRPO loss aggregation: 'grpo', 'bnpo', or 'dr_grpo'."
-        },
+        metadata={"help": "GRPO loss aggregation: 'grpo', 'bnpo', or 'dr_grpo'."},
     )
     kl_target: float = field(
         default=0.0,
@@ -1052,11 +1048,16 @@ class GRPOConfig(trl.GRPOConfig):
         base_post_init = getattr(super(), "__post_init__", None)
         if callable(base_post_init):
             try:
-                base_post_init()
+                post_init_fn = cast(Callable[[], Any], base_post_init)
+                post_init_fn()  # pylint: disable=not-callable
             except (AttributeError, ImportError, ModuleNotFoundError) as exc:
                 # TRL/Transformers may be absent in some test environments.
-                LOG.debug("Skipping base __post_init__ (dependency unavailable): %s", exc)
-        vllm_mode = str(getattr(self, "vllm_mode", "server") or "server").strip().lower()
+                LOG.debug(
+                    "Skipping base __post_init__ (dependency unavailable): %s", exc
+                )
+        vllm_mode = (
+            str(getattr(self, "vllm_mode", "server") or "server").strip().lower()
+        )
         if vllm_mode in {"inline", "local", "inprocess", "in-process"}:
             vllm_mode = "colocate"
         if vllm_mode not in {"server", "colocate"}:
@@ -1078,7 +1079,7 @@ class GRPOConfig(trl.GRPOConfig):
         if base_loss_type is None or str(base_loss_type).strip() == "":
             try:
                 setattr(self, "loss_type", loss_type)
-            except Exception:
+            except (AttributeError, TypeError, ValueError):
                 pass
         vllm_url = getattr(self, "vllm_url", None)
         if isinstance(vllm_url, str):
@@ -1100,14 +1101,13 @@ class GRPOConfig(trl.GRPOConfig):
             ):
                 normalized = f"{parsed.scheme}://{parsed.netloc}/generate"
                 setattr(self, "vllm_url", normalized)
+
         def _parse_stop_sequences(raw: object) -> Optional[list[str]]:
             if raw is None:
                 return None
             if isinstance(raw, (list, tuple)):
                 cleaned = [
-                    str(item)
-                    for item in raw
-                    if item is not None and str(item).strip()
+                    str(item) for item in raw if item is not None and str(item).strip()
                 ]
                 return cleaned or None
             if isinstance(raw, str):
@@ -1251,9 +1251,7 @@ class GRPOConfig(trl.GRPOConfig):
         if behavior_source in {"metadata", "meta"}:
             behavior_source = "vllm"
         if behavior_source not in {"model", "vllm"}:
-            raise ValueError(
-                "behavior_logprobs_source must be one of: model, vllm"
-            )
+            raise ValueError("behavior_logprobs_source must be one of: model, vllm")
         setattr(self, "behavior_logprobs_source", behavior_source)
         clip_range_high = getattr(self, "clip_range_high", None)
         if clip_range_high is not None and clip_range_high < 0.0:

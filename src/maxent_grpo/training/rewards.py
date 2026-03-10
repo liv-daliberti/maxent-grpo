@@ -15,6 +15,7 @@
 """Reward and generation helpers extracted from the training loop."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import logging
 import math
@@ -29,7 +30,6 @@ from maxent_grpo.training.generation import (
     flatten_ref_metadata as _flatten_ref_metadata,
     retry_incomplete_prompts,
     seed_generation_groups,
-    truncate_to_expected_counts,
 )
 from maxent_grpo.training.generation.errors import (
     GenerationServiceError,
@@ -88,7 +88,9 @@ def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optiona
         if token_count is None:
             token_count = meta_entry.get("token_count") or meta_entry.get("num_tokens")
             if token_count is None:
-                tok_logs = meta_entry.get("token_logprobs") or meta_entry.get("logprobs")
+                tok_logs = meta_entry.get("token_logprobs") or meta_entry.get(
+                    "logprobs"
+                )
                 if tok_logs is not None:
                     try:
                         token_count = len(tok_logs)
@@ -208,9 +210,7 @@ def compute_reward_totals(
         try:
             total_tensor = torch.nansum(stacked, dim=0)
         except AttributeError:
-            total_tensor = torch.sum(
-                torch.nan_to_num(stacked, nan=0.0), dim=0
-            )
+            total_tensor = torch.sum(torch.nan_to_num(stacked, nan=0.0), dim=0)
         total_utils = [float(val) for val in total_tensor.tolist()]
     return total_utils, per_reward_values
 
@@ -230,8 +230,6 @@ def reward_moments(
     if not total_utils:
         return 0.0, 0.0
     try:
-        import math
-
         mean_val = sum(total_utils) / len(total_utils)
         train_reward_mean = float(mean_val)
         if len(total_utils) > 1:
@@ -289,9 +287,7 @@ def group_advantages(
         if size > 0:
             baseline = float(sum(group_vals) / size)
             if scale_rewards and size > 1:
-                var = sum((val - baseline) ** 2 for val in group_vals) / float(
-                    size - 1
-                )
+                var = sum((val - baseline) ** 2 for val in group_vals) / float(size - 1)
                 std = math.sqrt(var)
             else:
                 std = 0.0
@@ -356,7 +352,9 @@ def prepare_generation_batch(
         per_prompt_repr = "none"
         if per_prompt_counts is not None:
             try:
-                per_prompt_repr = f"len={len(per_prompt_counts)} first3={list(per_prompt_counts)[:3]}"
+                per_prompt_repr = (
+                    f"len={len(per_prompt_counts)} first3={list(per_prompt_counts)[:3]}"
+                )
             except (TypeError, ValueError):
                 per_prompt_repr = str(per_prompt_counts)
         LOG.debug(
@@ -547,7 +545,9 @@ def prepare_generation_batch(
             expected_generations,
             mismatch_count,
         )
-    completion_info: List[List[dict]] = [[{} for _ in group] for group in aggregated_comps]
+    completion_info: List[List[dict]] = [
+        [{} for _ in group] for group in aggregated_comps
+    ]
     if aggregated_meta is not None:
         # Propagate token-id metadata (when available) into completion_info.
         # Some generation backends include token ids or other structured info
@@ -564,7 +564,9 @@ def prepare_generation_batch(
                     return None
             return entry if isinstance(entry, dict) else None
 
-        def _extract_token_ids(entry_dict: Optional[Dict[str, Any]]) -> Optional[List[int]]:
+        def _extract_token_ids(
+            entry_dict: Optional[Dict[str, Any]],
+        ) -> Optional[List[int]]:
             if not entry_dict:
                 return None
             token_ids = entry_dict.get("token_ids")
@@ -578,7 +580,11 @@ def prepare_generation_batch(
                     token_ids = token_ids.tolist()
                 except (AttributeError, TypeError, ValueError) as exc:
                     LOG.debug("Failed to coerce token_ids to list: %s", exc)
-            if isinstance(token_ids, list) and token_ids and isinstance(token_ids[0], list):
+            if (
+                isinstance(token_ids, list)
+                and token_ids
+                and isinstance(token_ids[0], list)
+            ):
                 token_ids = token_ids[0]
             if not isinstance(token_ids, list):
                 return None
@@ -597,7 +603,9 @@ def prepare_generation_batch(
             if not isinstance(meta_group, list) or not meta_group:
                 continue
             for comp_idx in range(len(comp_group)):
-                meta_entry = meta_group[comp_idx] if comp_idx < len(meta_group) else None
+                meta_entry = (
+                    meta_group[comp_idx] if comp_idx < len(meta_group) else None
+                )
                 meta_dict = _meta_to_dict(meta_entry)
                 token_ids = _extract_token_ids(meta_dict)
                 if token_ids is not None:

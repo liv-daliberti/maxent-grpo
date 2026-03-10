@@ -4,7 +4,6 @@ from typing import Any
 class DistributedType(str, Enum):
     DEEPSPEED = "deepspeed"
 
-
 class AcceleratorState:
     distributed_type: Any
     deepspeed_plugin: Any

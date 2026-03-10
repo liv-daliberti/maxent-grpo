@@ -1,6 +1,7 @@
 [MASTER]
 ignore=__pycache__
 init-hook='import sys, os; sys.path.insert(0, os.path.abspath("src"))'
+persistent=no
 ignored-modules=
     torch,
     transformers,

@@ -128,9 +128,7 @@ def test_hydra_main_runs_baseline(monkeypatch):
     baseline_mod = SimpleNamespace(
         run_baseline_training=lambda *args: calls.setdefault("baseline", args)
     )
-    monkeypatch.setitem(
-        sys.modules, "maxent_grpo.training.baseline", baseline_mod
-    )
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.baseline", baseline_mod)
     monkeypatch.setattr(hydra_cli, "_build_grpo_configs", lambda _cmd: ("s", "t", "m"))
 
     cfg = hydra_cli.HydraRootConfig(command="train-baseline")
@@ -163,9 +161,7 @@ def test_hydra_main_runs_maxent(monkeypatch):
         ("train-maxent", "maxent"),
     ],
 )
-def test_hydra_recipes_route_to_expected_pipeline(
-    monkeypatch, command, recipe_key
-):
+def test_hydra_recipes_route_to_expected_pipeline(monkeypatch, command, recipe_key):
     from maxent_grpo.cli import hydra_cli
 
     hydra_cli.hydra = _stub_hydra_module()
@@ -295,6 +291,7 @@ def test_entrypoints_insert_command(monkeypatch):
     sys.argv = ["prog", "command=train-maxent"]
     hydra_cli.hydra_entry()
     assert any(arg.startswith("command=train-maxent") for arg in calls[-1])
+
 
 def test_maybe_insert_command_skips_when_present(monkeypatch):
     from maxent_grpo.cli import hydra_cli

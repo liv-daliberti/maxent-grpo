@@ -188,16 +188,14 @@ def test_seed_and_retry_incomplete_prompts(monkeypatch):
         assert remaining == [1]
         return completions, metas
 
-    out_groups, out_meta = (
-        helpers.CompletionGenerator._retry_incomplete_prompts(
-            None,
-            ["p1", "p2"],
-            _generator,
-            expected_generations=1,
-            aggregated_comps=grouped,
-            aggregated_meta=meta,
-            max_retry_rounds=1,
-        )
+    out_groups, out_meta = helpers.CompletionGenerator._retry_incomplete_prompts(
+        None,
+        ["p1", "p2"],
+        _generator,
+        expected_generations=1,
+        aggregated_comps=grouped,
+        aggregated_meta=meta,
+        max_retry_rounds=1,
     )
     assert out_groups[1] == ["b"]
     assert out_meta[1] == ["m1"]
@@ -499,20 +497,16 @@ def test_record_vllm_latency_accumulates():
 
 
 def test_coalesce_grouped_outputs_and_merge_chunk():
-    merged, merged_meta = (
-        helpers.CompletionGenerator._merge_group_chunk(
-            [["a"], ["b"]], [[["ma"]], [["mb"]]], requested_n=1
-        )
+    merged, merged_meta = helpers.CompletionGenerator._merge_group_chunk(
+        [["a"], ["b"]], [[["ma"]], [["mb"]]], requested_n=1
     )
     assert merged == ["a"]
     assert merged_meta == [["ma"]]
-    groups, meta = (
-        helpers.CompletionGenerator._coalesce_grouped_outputs(
-            [["a"], ["b"], ["c"], ["d"]],
-            prompt_count=2,
-            requested_n=2,
-            meta=[[["ma"]], [["mb"]], [["mc"]], [["md"]]],
-        )
+    groups, meta = helpers.CompletionGenerator._coalesce_grouped_outputs(
+        [["a"], ["b"], ["c"], ["d"]],
+        prompt_count=2,
+        requested_n=2,
+        meta=[[["ma"]], [["mb"]], [["mc"]], [["md"]]],
     )
     assert len(groups) == 2
     assert meta is not None and len(meta) == 2

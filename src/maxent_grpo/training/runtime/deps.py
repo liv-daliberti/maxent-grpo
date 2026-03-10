@@ -1,6 +1,7 @@
 """Dependency loading utilities used by the training runtime."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import logging
 import os
@@ -45,7 +46,12 @@ def _install_torch_stub(hint: str) -> ModuleType:
 
     try:
         import numpy as _np
-    except (ImportError, ModuleNotFoundError, OSError, RuntimeError):  # pragma: no cover - be defensive
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        OSError,
+        RuntimeError,
+    ):  # pragma: no cover - be defensive
         _np = None
 
     class _StubDType:
@@ -211,7 +217,9 @@ def _install_torch_stub(hint: str) -> ModuleType:
         def ge(self, other: Any) -> "_StubTensor":
             return self.__ge__(other)
 
-        def __array__(self, dtype: Any = None) -> Any:  # pragma: no cover - numpy interop
+        def __array__(
+            self, dtype: Any = None
+        ) -> Any:  # pragma: no cover - numpy interop
             if _np is None:
                 return self.arr
             return self.arr.astype(dtype) if dtype is not None else self.arr
@@ -221,17 +229,41 @@ def _install_torch_stub(hint: str) -> ModuleType:
 
     def _zeros(shape: Any, dtype: Any = None) -> _StubTensor:
         if _np is None:
-            return _wrap([0 for _ in range(int(shape[0]) if isinstance(shape, (list, tuple)) else 1)], dtype)
+            return _wrap(
+                [
+                    0
+                    for _ in range(
+                        int(shape[0]) if isinstance(shape, (list, tuple)) else 1
+                    )
+                ],
+                dtype,
+            )
         return _wrap(_np.zeros(shape), dtype=dtype)
 
     def _ones(shape: Any, dtype: Any = None) -> _StubTensor:
         if _np is None:
-            return _wrap([1 for _ in range(int(shape[0]) if isinstance(shape, (list, tuple)) else 1)], dtype)
+            return _wrap(
+                [
+                    1
+                    for _ in range(
+                        int(shape[0]) if isinstance(shape, (list, tuple)) else 1
+                    )
+                ],
+                dtype,
+            )
         return _wrap(_np.ones(shape), dtype=dtype)
 
     def _full(shape: Any, fill_value: float, dtype: Any = None) -> _StubTensor:
         if _np is None:
-            return _wrap([fill_value for _ in range(int(shape[0]) if isinstance(shape, (list, tuple)) else 1)], dtype)
+            return _wrap(
+                [
+                    fill_value
+                    for _ in range(
+                        int(shape[0]) if isinstance(shape, (list, tuple)) else 1
+                    )
+                ],
+                dtype,
+            )
         return _wrap(_np.full(shape, fill_value), dtype=dtype)
 
     def _arange(*args: Any, **_kwargs: Any) -> _StubTensor:
@@ -263,6 +295,7 @@ def _install_torch_stub(hint: str) -> ModuleType:
     stub.as_tensor = _wrap
     stub.zeros = _zeros
     stub.ones = _ones
+
     def _shape_from(value: Any) -> Any:
         shape = getattr(value, "shape", None)
         if shape is not None:
@@ -319,9 +352,16 @@ def _install_torch_stub(hint: str) -> ModuleType:
     nn_mod = sys.modules.setdefault("torch.nn", ModuleType("torch.nn"))
     if not hasattr(nn_mod, "Module"):
         nn_mod.Module = object
+    stub_nn = getattr(stub, "nn", None)
+    stub_linear = getattr(stub_nn, "Linear", None)
     if not hasattr(nn_mod, "Linear"):
-        nn_mod.Linear = stub.nn.Linear
-    nn_fn_mod = sys.modules.setdefault("torch.nn.functional", ModuleType("torch.nn.functional"))
+        if callable(stub_linear):
+            nn_mod.Linear = stub_linear
+        else:
+            nn_mod.Linear = lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError(hint))
+    nn_fn_mod = sys.modules.setdefault(
+        "torch.nn.functional", ModuleType("torch.nn.functional")
+    )
     setattr(nn_mod, "functional", nn_fn_mod)
     optim_mod = sys.modules.setdefault("torch.optim", ModuleType("torch.optim"))
     if not hasattr(optim_mod, "Optimizer"):
@@ -329,14 +369,18 @@ def _install_torch_stub(hint: str) -> ModuleType:
     if not hasattr(optim_mod, "AdamW"):
         optim_mod.AdamW = None
     utils_mod = sys.modules.setdefault("torch.utils", ModuleType("torch.utils"))
-    data_mod = sys.modules.setdefault("torch.utils.data", ModuleType("torch.utils.data"))
+    data_mod = sys.modules.setdefault(
+        "torch.utils.data", ModuleType("torch.utils.data")
+    )
     if not hasattr(data_mod, "DataLoader"):
+
         class _DataLoader:  # pragma: no cover - stubbed fallback
             def __init__(self, *_args: Any, **_kwargs: Any) -> None:
                 raise RuntimeError(hint)
 
         data_mod.DataLoader = _DataLoader
     if not hasattr(data_mod, "Sampler"):
+
         class _Sampler:  # pragma: no cover - stubbed fallback
             pass
 

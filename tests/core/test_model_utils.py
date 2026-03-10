@@ -27,9 +27,7 @@ def test_get_tokenizer_applies_chat_template(monkeypatch):
         chat_template="SYS: {{ system }}\nUSER: {{ input }}"
     )
     dummy = SimpleNamespace(chat_template=None)
-    monkeypatch.setattr(
-        MU.AutoTokenizer, "from_pretrained", lambda *_a, **_k: dummy
-    )
+    monkeypatch.setattr(MU.AutoTokenizer, "from_pretrained", lambda *_a, **_k: dummy)
     tok = MU.get_tokenizer(model_args, training_args)
     assert getattr(tok, "chat_template", None) is not None
 
@@ -74,9 +72,7 @@ def test_get_tokenizer_sets_pad_token_from_eos(monkeypatch):
     )
     training_args = SimpleNamespace(chat_template=None)
     dummy = SimpleNamespace(chat_template=None, pad_token=None, eos_token="<eos>")
-    monkeypatch.setattr(
-        MU.AutoTokenizer, "from_pretrained", lambda *_a, **_k: dummy
-    )
+    monkeypatch.setattr(MU.AutoTokenizer, "from_pretrained", lambda *_a, **_k: dummy)
 
     tok = MU.get_tokenizer(model_args, training_args)
     assert getattr(tok, "pad_token", None) == "<eos>"

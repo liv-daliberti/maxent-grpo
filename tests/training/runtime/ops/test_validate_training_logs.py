@@ -23,8 +23,16 @@ import runpy
 from pathlib import Path
 
 
+def _repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    raise FileNotFoundError("Unable to locate repository root from test path")
+
+
 def _resolve_tool(script_name: str) -> Path:
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = _repo_root()
     candidates = [
         repo_root / "var" / "repo" / "tools" / script_name,
         repo_root / "tools" / script_name,

@@ -37,20 +37,52 @@ class ControllerMetaManager:
         if not self.enabled:
             disable_reason = "controller_meta_enabled flag is false"
         self.update_interval = max(
-            1, int(getattr(meta_cfg, "update_interval", getattr(cfg, "controller_meta_update_interval", 1)))
+            1,
+            int(
+                getattr(
+                    meta_cfg,
+                    "update_interval",
+                    getattr(cfg, "controller_meta_update_interval", 1),
+                )
+            ),
         )
         legacy_lr = float(getattr(meta_cfg, "learning_rate", cfg.controller_meta_lr))
-        tau_lr = float(getattr(meta_cfg, "tau_learning_rate", getattr(cfg, "controller_meta_tau_lr", 0.0)))
-        beta_lr = float(getattr(meta_cfg, "beta_learning_rate", getattr(cfg, "controller_meta_beta_lr", 0.0)))
+        tau_lr = float(
+            getattr(
+                meta_cfg,
+                "tau_learning_rate",
+                getattr(cfg, "controller_meta_tau_lr", 0.0),
+            )
+        )
+        beta_lr = float(
+            getattr(
+                meta_cfg,
+                "beta_learning_rate",
+                getattr(cfg, "controller_meta_beta_lr", 0.0),
+            )
+        )
         self.tau_learning_rate = tau_lr if tau_lr > 0.0 else legacy_lr
         self.beta_learning_rate = beta_lr if beta_lr > 0.0 else legacy_lr
         self.learning_rate = max(self.tau_learning_rate, self.beta_learning_rate, 0.0)
-        self.beta_grad_clip = float(getattr(meta_cfg, "beta_grad_clip", getattr(cfg, "controller_meta_beta_grad_clip", 0.0)))
+        self.beta_grad_clip = float(
+            getattr(
+                meta_cfg,
+                "beta_grad_clip",
+                getattr(cfg, "controller_meta_beta_grad_clip", 0.0),
+            )
+        )
         self.method = str(getattr(meta_cfg, "method", "analytic") or "analytic").lower()
         self.optimizer = str(getattr(meta_cfg, "optimizer", "sgd") or "sgd").lower()
-        self.objective_name = str(getattr(meta_cfg, "objective", cfg.controller_meta_objective))
+        self.objective_name = str(
+            getattr(meta_cfg, "objective", cfg.controller_meta_objective)
+        )
         self.analytic_steps = max(
-            1, int(getattr(meta_cfg, "analytic_steps", cfg.controller_meta_analytic_steps or 1))
+            1,
+            int(
+                getattr(
+                    meta_cfg, "analytic_steps", cfg.controller_meta_analytic_steps or 1
+                )
+            ),
         )
         self.truncation_steps = max(
             1,
@@ -58,11 +90,21 @@ class ControllerMetaManager:
                 getattr(
                     meta_cfg,
                     "truncation_steps",
-                    getattr(cfg, "controller_meta_truncation_steps", cfg.controller_meta_analytic_steps or 1),
+                    getattr(
+                        cfg,
+                        "controller_meta_truncation_steps",
+                        cfg.controller_meta_analytic_steps or 1,
+                    ),
                 )
             ),
         )
-        self.use_hessian = bool(getattr(meta_cfg, "use_hessian", getattr(cfg, "controller_meta_use_hessian", False)))
+        self.use_hessian = bool(
+            getattr(
+                meta_cfg,
+                "use_hessian",
+                getattr(cfg, "controller_meta_use_hessian", False),
+            )
+        )
         self._torch = None
         self._controller_state = getattr(weighting, "controller_state", None)
         self._meta_optimizer = None
@@ -100,7 +142,12 @@ class ControllerMetaManager:
                 if not params:
                     raise RuntimeError("controller_state missing parameters")
                 self._meta_optimizer = self._build_optimizer()
-            except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as exc:  # pragma: no cover
+            except (
+                ImportError,
+                ModuleNotFoundError,
+                AttributeError,
+                RuntimeError,
+            ) as exc:  # pragma: no cover
                 LOG.warning(
                     "Controller meta-optimizer falling back to analytic updates: %s",
                     exc,
@@ -111,7 +158,9 @@ class ControllerMetaManager:
         if self.tau_learning_rate <= 0.0 and self.beta_learning_rate <= 0.0:
             self.enabled = False
             disable_reason = "controller_meta learning rates <= 0"
-        proc_index = getattr(cfg, "process_index", getattr(cfg, "local_process_index", 0))
+        proc_index = getattr(
+            cfg, "process_index", getattr(cfg, "local_process_index", 0)
+        )
         if proc_index in (0, None):
             if self.enabled:
                 update_mode = self.optimizer if self._requires_optimizer else "analytic"
@@ -138,7 +187,9 @@ class ControllerMetaManager:
             return False
         return (global_step + 1) % self.update_interval == 0
 
-    def make_backprop_fn(self) -> Optional[Callable[[int], Optional[ControllerGradients]]]:
+    def make_backprop_fn(
+        self,
+    ) -> Optional[Callable[[int], Optional[ControllerGradients]]]:
         """Return a callback that computes gradients via autograd."""
 
         if not (
@@ -149,6 +200,7 @@ class ControllerMetaManager:
         ):
             return None
         state = self._controller_state
+
         def _backprop_fn(_inner_steps: int) -> Optional[ControllerGradients]:
             tau_param = state.tau_param
             beta_param = state.beta_param
@@ -162,13 +214,21 @@ class ControllerMetaManager:
                 val = tau_grad.detach() if hasattr(tau_grad, "detach") else tau_grad
                 try:
                     tau_grad_val = float(val.item())
-                except (AttributeError, TypeError, ValueError):  # pragma: no cover - numeric fallback
+                except (
+                    AttributeError,
+                    TypeError,
+                    ValueError,
+                ):  # pragma: no cover - numeric fallback
                     tau_grad_val = float(val)
             if beta_grad is not None:
                 val = beta_grad.detach() if hasattr(beta_grad, "detach") else beta_grad
                 try:
                     beta_grad_val = float(val.item())
-                except (AttributeError, TypeError, ValueError):  # pragma: no cover - numeric fallback
+                except (
+                    AttributeError,
+                    TypeError,
+                    ValueError,
+                ):  # pragma: no cover - numeric fallback
                     beta_grad_val = float(val)
             if tau_grad_val is None and beta_grad_val is None:
                 return None
@@ -196,8 +256,14 @@ class ControllerMetaManager:
             if self.method in ("analytic", "analytic_grad", "potential"):
                 self._set_optimizer_grads(gradients)
             self._apply_optimizer_step(lr_scale)
-            setattr(self._weighting, "_meta_last_tau_grad", float(gradients.tau_grad or 0.0))
-            setattr(self._weighting, "_meta_last_beta_grad", float(gradients.beta_grad or 0.0))
+            setattr(
+                self._weighting, "_meta_last_tau_grad", float(gradients.tau_grad or 0.0)
+            )
+            setattr(
+                self._weighting,
+                "_meta_last_beta_grad",
+                float(gradients.beta_grad or 0.0),
+            )
             meta_cfg = getattr(self._weighting, "controller_meta", None)
             if meta_cfg:
                 meta_cfg.last_tau_grad = float(gradients.tau_grad or 0.0)
@@ -227,19 +293,27 @@ class ControllerMetaManager:
                 return torch_mod.tensor(float(value), dtype=dtype)
 
         # tau: gradient-descent style update (tau -= lr * tau_grad)
-        if isinstance(gradients.tau_grad, (int, float)) and math.isfinite(float(gradients.tau_grad)):
-            state.tau_param.grad = _as_grad_tensor(state.tau_param, float(gradients.tau_grad))
+        if isinstance(gradients.tau_grad, (int, float)) and math.isfinite(
+            float(gradients.tau_grad)
+        ):
+            state.tau_param.grad = _as_grad_tensor(
+                state.tau_param, float(gradients.tau_grad)
+            )
 
         # beta: "tighten KL when kl > target" update (beta += lr * beta_grad),
         # so we flip sign to match optimizer descent convention.
-        if isinstance(gradients.beta_grad, (int, float)) and math.isfinite(float(gradients.beta_grad)):
+        if isinstance(gradients.beta_grad, (int, float)) and math.isfinite(
+            float(gradients.beta_grad)
+        ):
             grad_update_val = float(gradients.beta_grad)
             clip = float(self.beta_grad_clip or 0.0)
             if clip > 0.0 and math.isfinite(clip):
                 grad_update_val = max(min(grad_update_val, clip), -clip)
             state.beta_param.grad = _as_grad_tensor(state.beta_param, -grad_update_val)
 
-    def _manual_update(self, gradients: ControllerGradients, *, lr_scale: float) -> None:
+    def _manual_update(
+        self, gradients: ControllerGradients, *, lr_scale: float
+    ) -> None:
         meta_cfg = getattr(self._weighting, "controller_meta", None)
         base_lr = 0.0
         if meta_cfg is not None:
@@ -277,7 +351,11 @@ class ControllerMetaManager:
                 tau_projected = True
             self._weighting.tau = float(new_tau)
             try:
-                setattr(self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8)))
+                setattr(
+                    self._weighting,
+                    "_tau_log",
+                    math.log(max(self._weighting.tau, 1e-8)),
+                )
             except (AttributeError, TypeError, ValueError) as exc:
                 LOG.debug("Failed to update _tau_log after manual tau update: %s", exc)
             updated = True
@@ -356,7 +434,11 @@ class ControllerMetaManager:
         raise RuntimeError(f"Unsupported controller_meta_optimizer={self.optimizer}")
 
     def _apply_optimizer_step(self, lr_scale: float) -> None:
-        if self._controller_state is None or self._meta_optimizer is None or self._torch is None:
+        if (
+            self._controller_state is None
+            or self._meta_optimizer is None
+            or self._torch is None
+        ):
             return
         for group in self._meta_optimizer.param_groups:
             base_lr = group.get("base_lr", self.learning_rate)
@@ -399,7 +481,9 @@ class ControllerMetaManager:
         self._weighting.tau = tau_val
         self._weighting.beta = max(0.0, beta_val)
         try:
-            setattr(self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8)))
+            setattr(
+                self._weighting, "_tau_log", math.log(max(self._weighting.tau, 1e-8))
+            )
         except (AttributeError, TypeError, ValueError) as exc:
             LOG.debug("Failed to update _tau_log after optimizer step: %s", exc)
         state.zero_grad()

@@ -1,6 +1,7 @@
 """Public CompletionGenerator that wires local and vLLM helpers together."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import time
 import logging
@@ -69,7 +70,9 @@ class CompletionGenerator(LocalGenerationMixin, VLLMGenerationMixin):
             len(prompts),
             num_samples,
             getattr(self.ctx, "use_vllm", False),
-            f"len={len(per_prompt_counts)}" if per_prompt_counts is not None else "none",
+            f"len={len(per_prompt_counts)}"
+            if per_prompt_counts is not None
+            else "none",
         )
         if self.ctx.use_vllm:
             return self._generate_vllm_collective(

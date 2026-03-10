@@ -1,6 +1,7 @@
 """Local HF generation helpers split from the vLLM adapter."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 from contextlib import nullcontext
 import logging
@@ -16,8 +17,14 @@ LOG = logging.getLogger(__name__)
 
 torch = require_torch("generation")
 try:
-    PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes("generation")
-except (ImportError, RuntimeError, ModuleNotFoundError):  # pragma: no cover - stub fallback
+    PreTrainedModel, PreTrainedTokenizer = require_transformer_base_classes(
+        "generation"
+    )
+except (
+    ImportError,
+    RuntimeError,
+    ModuleNotFoundError,
+):  # pragma: no cover - stub fallback
     PreTrainedModel = Any
     PreTrainedTokenizer = Any
 
@@ -186,7 +193,9 @@ class LocalGenerationMixin:
         dynamo_ctx = nullcontext()
         if disable_dynamo:
             dynamo = getattr(torch, "_dynamo", None)
-            disable_fn = getattr(dynamo, "disable", None) if dynamo is not None else None
+            disable_fn = (
+                getattr(dynamo, "disable", None) if dynamo is not None else None
+            )
             if callable(disable_fn):
                 dynamo_ctx = disable_fn()
         LOG.debug(

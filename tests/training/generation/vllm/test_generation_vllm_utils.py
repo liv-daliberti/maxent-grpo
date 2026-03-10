@@ -28,7 +28,11 @@ def test_init_vllm_client_communicator_recovers_from_already_initialized(
     monkeypatch.setenv("MAXENT_VLLM_INIT_RETRY_BACKOFF_S", "0")
 
     client = _FlakyClient(
-        [RuntimeError("Weight update group already initialized. Call close_communicator first.")]
+        [
+            RuntimeError(
+                "Weight update group already initialized. Call close_communicator first."
+            )
+        ]
     )
     init_vllm_client_communicator(client)
 

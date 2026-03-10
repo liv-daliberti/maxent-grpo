@@ -40,7 +40,17 @@ import sys
 import math
 import json
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Callable, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Callable,
+    TYPE_CHECKING,
+)
 
 from maxent_grpo.training.runtime.logging import _log_wandb
 from maxent_grpo.training.telemetry.trl_logging import _normalize_prefixes
@@ -117,7 +127,7 @@ def _drop_prefix(metrics: Dict[str, Any], prefix: str) -> None:
 
 def _slim_metrics(
     metrics: Dict[str, Any],
-    ctx: TrainingLoopContext,
+    _ctx: TrainingLoopContext,
 ) -> Dict[str, Any]:
     """Return a compact metrics dict for W&B/console logging."""
     slim = dict(metrics)
@@ -203,7 +213,11 @@ def _slim_metrics(
             for key in [k for k in slim if k.startswith("train/tau_")]:
                 slim.pop(key, None)
     else:
-        for key in ("train/weight_entropy_min", "train/weight_entropy_max", "train/weight_entropy_ema"):
+        for key in (
+            "train/weight_entropy_min",
+            "train/weight_entropy_max",
+            "train/weight_entropy_ema",
+        ):
             slim.pop(key, None)
         for key in ("train/q_entropy_min", "train/q_entropy_max"):
             slim.pop(key, None)
@@ -227,7 +241,9 @@ def _filter_metrics(
 def _log_like_grpo_enabled(training_args: Any) -> bool:
     """Return ``True`` when GRPO-style per-rank logging is requested."""
 
-    flag_val = getattr(training_args, "log_like_grpo", False) if training_args else False
+    flag_val = (
+        getattr(training_args, "log_like_grpo", False) if training_args else False
+    )
     if isinstance(flag_val, bool):
         return flag_val
     try:
@@ -239,7 +255,9 @@ def _log_like_grpo_enabled(training_args: Any) -> bool:
 def _logging_controls(ctx: TrainingLoopContext) -> tuple[str, int, bool]:
     """Return logging cadence (strategy, steps, first-step flag)."""
     training_args = getattr(ctx, "training_args", None)
-    strategy = str(getattr(training_args, "logging_strategy", "steps") or "steps").lower()
+    strategy = str(
+        getattr(training_args, "logging_strategy", "steps") or "steps"
+    ).lower()
     steps = int(getattr(training_args, "logging_steps", 1) or 1)
     first_step = bool(getattr(training_args, "logging_first_step", True))
     if steps <= 0:
@@ -254,7 +272,9 @@ def _should_log(ctx: TrainingLoopContext, step: int) -> bool:
         return False
     if strategy in {"epoch", "epochs"}:
         if not _LOG_STRATEGY_WARNED["epoch"]:
-            LOG.warning("logging_strategy=epoch is not supported in the custom loop; disabling step logs.")
+            LOG.warning(
+                "logging_strategy=epoch is not supported in the custom loop; disabling step logs."
+            )
             _LOG_STRATEGY_WARNED["epoch"] = True
         return False
     if step == 0:
@@ -336,6 +356,7 @@ def _log_entropy_bonus_impact(
         bonus_std_str,
     )
 
+
 try:  # Optional dependency
     import wandb
 except ImportError:  # pragma: no cover - optional logging backend
@@ -405,6 +426,7 @@ def _quantile_stats(
             val = sorted_vals[lo] * (1.0 - frac) + sorted_vals[hi] * frac
         stats[f"p{int(q * 100):02d}"] = float(val)
     return stats
+
 
 def _gather_list_for_metrics(
     accelerator: Accelerator,
@@ -730,8 +752,7 @@ def _weighting_config_block(
             1.0
             if (
                 (not meta_enabled)
-                and
-                weighting.tau_target_entropy is not None
+                and weighting.tau_target_entropy is not None
                 and global_step > max(0, weighting.tau_warmup_steps)
             )
             else 0.0
@@ -761,15 +782,11 @@ def _weighting_config_block(
     metrics["train/weighting/tau_lr"] = metrics["train/tau_lr"]
     metrics["train/weighting/tau_min"] = metrics["train/tau_min"]
     metrics["train/weighting/tau_max"] = metrics["train/tau_max"]
-    metrics[
-        "train/weighting/tau_warmup_steps"
-    ] = metrics["train/tau_warmup_steps"]
-    metrics[
-        "train/weighting/tau_target_entropy"
-    ] = metrics["train/tau_target_entropy"]
-    metrics[
-        "train/weighting/tau_schedule_active"
-    ] = metrics["train/tau_schedule_active"]
+    metrics["train/weighting/tau_warmup_steps"] = metrics["train/tau_warmup_steps"]
+    metrics["train/weighting/tau_target_entropy"] = metrics["train/tau_target_entropy"]
+    metrics["train/weighting/tau_schedule_active"] = metrics[
+        "train/tau_schedule_active"
+    ]
     metrics["train/weighting/delta_tau"] = metrics["train/delta_tau"]
     metrics["train/weighting/delta_tau_abs"] = metrics["train/delta_tau_abs"]
     metrics["train/weighting/delta_beta"] = metrics["train/delta_beta"]
@@ -798,12 +815,16 @@ def _weighting_config_block(
     meta_cfg = getattr(weighting, "controller_meta", None)
     meta_enabled = bool(getattr(meta_cfg, "enabled", False))
     metrics["train/meta/enabled"] = 1.0 if meta_enabled else 0.0
-    metrics["train/meta/lr"] = float(getattr(meta_cfg, "learning_rate", 0.0)) if meta_cfg else 0.0
+    metrics["train/meta/lr"] = (
+        float(getattr(meta_cfg, "learning_rate", 0.0)) if meta_cfg else 0.0
+    )
     metrics["train/meta/update_interval"] = float(
         getattr(meta_cfg, "update_interval", 0.0) if meta_cfg else 0.0
     )
     metrics["train/meta/truncation_steps"] = float(
-        getattr(meta_cfg, "truncation_steps", getattr(meta_cfg, "analytic_steps", 0)) if meta_cfg else 0.0
+        getattr(meta_cfg, "truncation_steps", getattr(meta_cfg, "analytic_steps", 0))
+        if meta_cfg
+        else 0.0
     )
     metrics["train/meta/use_hessian"] = (
         1.0 if meta_cfg and getattr(meta_cfg, "use_hessian", False) else 0.0
@@ -812,7 +833,9 @@ def _weighting_config_block(
     beta_grad = float(getattr(weighting, "_meta_last_beta_grad", 0.0))
     metrics["train/meta/tau_grad"] = tau_grad
     metrics["train/meta/beta_grad"] = beta_grad
-    metrics["train/meta/grad_norm"] = math.sqrt(tau_grad * tau_grad + beta_grad * beta_grad)
+    metrics["train/meta/grad_norm"] = math.sqrt(
+        tau_grad * tau_grad + beta_grad * beta_grad
+    )
     metrics["train/meta/loss"] = float(getattr(weighting, "_meta_last_loss", 0.0))
     metrics["train/meta/tau_projected"] = (
         1.0 if getattr(weighting, "_meta_tau_projected", False) else 0.0
@@ -820,9 +843,7 @@ def _weighting_config_block(
     metrics["train/meta/beta_projected"] = (
         1.0 if getattr(weighting, "_meta_beta_projected", False) else 0.0
     )
-    metrics.setdefault(
-        "train/weighting/tau_loss", metrics.get("train/tau_loss", 0.0)
-    )
+    metrics.setdefault("train/weighting/tau_loss", metrics.get("train/tau_loss", 0.0))
     metrics["train/kl_controller/target"] = metrics["train/kl_controller_target"]
     metrics["train/kl_controller/horizon"] = metrics["train/kl_controller_horizon"]
     metrics["train/kl_controller/step_size"] = metrics["train/kl_controller_step_size"]
@@ -1080,7 +1101,9 @@ def _summarize_weight_stats(
         if denom <= 0.0:
             entropy_norm_vals.append(0.0)
             continue
-        filtered = [max(float(w), 1e-12) for w in weight_group if isinstance(w, (int, float))]
+        filtered = [
+            max(float(w), 1e-12) for w in weight_group if isinstance(w, (int, float))
+        ]
         if not filtered:
             entropy_norm_vals.append(0.0)
             continue
@@ -1150,9 +1173,7 @@ def summarize_weight_stats(
     :rtype: WeightLoggingView
     """
 
-    return _summarize_weight_stats(
-        accelerator, weight_stats, skip_global=log_like_grpo
-    )
+    return _summarize_weight_stats(accelerator, weight_stats, skip_global=log_like_grpo)
 
 
 def _build_metrics_payload(
@@ -1442,7 +1463,11 @@ def log_local_step(
     accumulate_metrics(state, metrics)
     if not emit:
         return
-    if log_like_grpo and _should_log(ctx, state.global_step) and accelerator.is_main_process:
+    if (
+        log_like_grpo
+        and _should_log(ctx, state.global_step)
+        and accelerator.is_main_process
+    ):
         LOG.info(
             "step %d | epoch %.2f | loss=%.4f | tau=%.3f beta=%.3f",
             state.global_step,

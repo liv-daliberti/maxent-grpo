@@ -150,12 +150,8 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
     )
     tau_sched = TauSchedule(
         target_entropy=getattr(cfg, "maxent_target_weight_entropy", None),
-        target_entropy_start=getattr(
-            cfg, "maxent_target_weight_entropy_start", None
-        ),
-        target_entropy_final=getattr(
-            cfg, "maxent_target_weight_entropy_final", None
-        ),
+        target_entropy_start=getattr(cfg, "maxent_target_weight_entropy_start", None),
+        target_entropy_final=getattr(cfg, "maxent_target_weight_entropy_final", None),
         target_entropy_horizon=int(
             getattr(cfg, "maxent_target_weight_entropy_horizon", 0)
         ),
@@ -180,12 +176,8 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
         objective=str(
             getattr(cfg, "controller_meta_objective", "potential") or "potential"
         ),
-        analytic_steps=max(
-            1, int(getattr(cfg, "controller_meta_analytic_steps", 1))
-        ),
-        optimizer=str(
-            getattr(cfg, "controller_meta_optimizer", "sgd") or "sgd"
-        ),
+        analytic_steps=max(1, int(getattr(cfg, "controller_meta_analytic_steps", 1))),
+        optimizer=str(getattr(cfg, "controller_meta_optimizer", "sgd") or "sgd"),
         truncation_steps=max(
             1, int(getattr(cfg, "controller_meta_truncation_steps", 1))
         ),
@@ -393,8 +385,12 @@ def weight_vector_from_q(
                 return [1.0 / len(logp_values)] * len(logp_values)
         q_tensor = q_tensor.clamp(min=1e-12)
         if controller_state is not None:
-            tau_tensor = controller_state.tau_tensor(detach=not weighting_cfg.controller_meta.enabled)
-            beta_tensor = controller_state.beta_tensor(detach=not weighting_cfg.controller_meta.enabled)
+            tau_tensor = controller_state.tau_tensor(
+                detach=not weighting_cfg.controller_meta.enabled
+            )
+            beta_tensor = controller_state.beta_tensor(
+                detach=not weighting_cfg.controller_meta.enabled
+            )
             denom_tensor = tau_tensor + beta_tensor
             denom_tensor = denom_tensor.clamp(min=1e-8)
             log_weight_terms = torch_mod.log(q_tensor) / denom_tensor
@@ -406,7 +402,9 @@ def weight_vector_from_q(
                 except (RuntimeError, TypeError, ValueError, AttributeError):
                     return [1.0 / len(logp_values)] * len(logp_values)
             if include_reference_term:
-                log_weight_terms = log_weight_terms + (beta_tensor / denom_tensor) * ref_tensor
+                log_weight_terms = (
+                    log_weight_terms + (beta_tensor / denom_tensor) * ref_tensor
+                )
         else:
             log_weight_terms = torch.log(q_tensor) / safe_denom
             if include_reference_term and beta > 0.0:
@@ -444,7 +442,8 @@ def weight_vector_from_q(
             log_terms = [math.log(max(q, 1e-12)) / safe_denom for q in q_values]
             if include_reference_term and beta > 0.0:
                 log_terms = [
-                    lt + (beta / safe_denom) * lp for lt, lp in zip(log_terms, logp_values)
+                    lt + (beta / safe_denom) * lp
+                    for lt, lp in zip(log_terms, logp_values)
                 ]
             max_term = max(log_terms)
             exp_terms = [math.exp(lt - max_term) for lt in log_terms]
@@ -498,7 +497,9 @@ def maybe_update_beta(weighting_cfg: WeightingSettings, measured_kl: float) -> N
     _sync_controller_state(weighting_cfg)
 
 
-def _resolve_target_entropy(weighting_cfg: WeightingSettings, global_step: int) -> Optional[float]:
+def _resolve_target_entropy(
+    weighting_cfg: WeightingSettings, global_step: int
+) -> Optional[float]:
     """Compute the active target entropy, honoring optional annealing settings."""
 
     schedule = getattr(weighting_cfg, "tau_schedule", None)

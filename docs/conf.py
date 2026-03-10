@@ -205,9 +205,7 @@ tokenization_utils_base_mod.PreTrainedTokenizerBase = getattr(
     "PreTrainedTokenizerBase",
     transformers_mod.PreTrainedTokenizerBase,
 )
-transformers_mod.tokenization_utils_base = (
-    tokenization_utils_base_mod
-)
+transformers_mod.tokenization_utils_base = tokenization_utils_base_mod
 tf_utils_mod = _ensure_stub("transformers.utils")
 tf_utils_mod.logging = getattr(
     tf_utils_mod,
@@ -605,7 +603,10 @@ def _skip_external_members(app, what, name, obj, skip, options):
             return True
     if module_name.startswith("accelerate."):
         return True
-    if current_module in _DUPLICATE_EXPORTS and name in _DUPLICATE_EXPORTS[current_module]:
+    if (
+        current_module in _DUPLICATE_EXPORTS
+        and name in _DUPLICATE_EXPORTS[current_module]
+    ):
         if module_name and module_name != current_module:
             return True
     return skip

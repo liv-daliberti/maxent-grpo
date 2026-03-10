@@ -32,6 +32,7 @@ from typing import Any, Callable, List, Optional, cast
 try:  # pragma: no cover - optional dependency for lightweight imports
     import trl
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dep
+
     class _TRLStub:
         """Lightweight TRL shim for environments without the dependency."""
 

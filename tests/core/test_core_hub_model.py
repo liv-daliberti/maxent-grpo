@@ -36,9 +36,7 @@ def test_push_to_hub_revision_handles_missing_commits(monkeypatch):
 
     def _list_commits(repo_id):
         assert repo_id == "org/repo"
-        raise importlib.import_module("maxent_grpo.core.hub").HfHubHTTPError(
-            "oops"
-        )
+        raise importlib.import_module("maxent_grpo.core.hub").HfHubHTTPError("oops")
 
     monkeypatch.setattr(
         "maxent_grpo.core.hub.create_repo", lambda **_: "https://hub/repo"
@@ -55,7 +53,9 @@ def test_push_to_hub_revision_handles_missing_commits(monkeypatch):
 
     monkeypatch.setattr("maxent_grpo.core.hub.upload_folder", _upload_folder)
 
-    result = importlib.import_module("maxent_grpo.core.hub").push_to_hub_revision(_Args())
+    result = importlib.import_module("maxent_grpo.core.hub").push_to_hub_revision(
+        _Args()
+    )
     assert result is future
     assert calls["create_branch"]["revision"] is None
     assert "checkpoint-*" in calls["upload_folder"]["ignore_patterns"]
@@ -78,9 +78,7 @@ def test_check_hub_revision_exists_raises_when_readme_present(monkeypatch):
     )
 
     with pytest.raises(ValueError):
-        importlib.import_module("maxent_grpo.core.hub").check_hub_revision_exists(
-            args
-        )
+        importlib.import_module("maxent_grpo.core.hub").check_hub_revision_exists(args)
 
 
 def test_get_param_count_from_repo_id_handles_patterns_and_fallback(monkeypatch):

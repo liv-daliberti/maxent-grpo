@@ -54,7 +54,9 @@ def test_grpo_cli_with_meta_still_uses_baseline(monkeypatch):
     called = {}
     monkeypatch.setattr(
         "maxent_grpo.training.baseline.run_baseline_training",
-        lambda script, training, model: called.setdefault("args", (script, training, model)),
+        lambda script, training, model: called.setdefault(
+            "args", (script, training, model)
+        ),
     )
 
     result = grpo_cli.main()

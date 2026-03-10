@@ -146,4 +146,3 @@ def test_get_model_preserves_nonstring_dtype(monkeypatch):
     assert kwargs["torch_dtype"] is dtype_obj
     assert kwargs["use_cache"] is True
     assert kwargs["device_map"] is None
-

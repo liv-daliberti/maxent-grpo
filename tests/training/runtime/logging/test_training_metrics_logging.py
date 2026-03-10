@@ -72,7 +72,11 @@ def _payload() -> TrainingMetricsPayload:
         q_entropy_max=0.0,
     )
     loss_scalars = LossScalarBundle(
-        total_loss=1.0, policy_loss=0.8, clip_loss=None, kl_loss=0.05, weighted_kl_loss=0.025
+        total_loss=1.0,
+        policy_loss=0.8,
+        clip_loss=None,
+        kl_loss=0.05,
+        weighted_kl_loss=0.025,
     )
     loss_outputs = LossOutputs(
         loss=None,

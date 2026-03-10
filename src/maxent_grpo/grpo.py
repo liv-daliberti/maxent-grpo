@@ -22,7 +22,6 @@ if __package__ is None or __package__ == "":
     sys.path.insert(0, project_src_str)
 
 from typing import TYPE_CHECKING, Any, Callable, Optional, cast
-from types import SimpleNamespace
 
 from maxent_grpo.cli._test_hooks import ensure_usercustomize_loaded
 
@@ -33,7 +32,11 @@ if TYPE_CHECKING:
 
 try:  # Best-effort to expose CLI helpers when available.
     from maxent_grpo.cli import parse_grpo_args
-except (ImportError, ModuleNotFoundError, AttributeError):  # pragma: no cover - optional deps may be absent
+except (
+    ImportError,
+    ModuleNotFoundError,
+    AttributeError,
+):  # pragma: no cover - optional deps may be absent
     parse_grpo_args = None
 
 __all__ = ["cli", "main"]

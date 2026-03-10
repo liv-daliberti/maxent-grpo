@@ -118,11 +118,15 @@ def _wandb_error_types() -> Tuple[type[BaseException], ...]:
     error_list: list[type[BaseException]] = []
 
     modules = []
-    if (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules) and "wandb.errors" not in sys.modules:
+    if (
+        os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules
+    ) and "wandb.errors" not in sys.modules:
         return base_exceptions
     for name in ("wandb.errors", "wandb.errors.errors"):
         mod = sys.modules.get(name)
-        if mod is None and not (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+        if mod is None and not (
+            os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules
+        ):
             try:
                 mod = importlib.import_module(name)
             except (ImportError, ModuleNotFoundError, ValueError):

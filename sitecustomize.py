@@ -33,6 +33,60 @@ warnings.filterwarnings(
     module=r"transformers\.utils\.hub",
 )
 
+
+def _patch_vllm_guided_decoding_params() -> None:
+    """Backfill ``vllm.sampling_params.GuidedDecodingParams`` when absent.
+
+    Some cluster images expose a vLLM build where TRL's expected symbol is not
+    present. TRL imports this symbol at module import time (even if guided
+    decoding is unused), so define a tiny compatibility placeholder to allow
+    server-mode training to boot.
+    """
+
+    try:
+        import vllm.sampling_params as _sp  # type: ignore[import-not-found]
+    except Exception:
+        return
+
+    if hasattr(_sp, "GuidedDecodingParams"):
+        return
+
+    class GuidedDecodingParams:  # pragma: no cover - runtime compatibility shim
+        """Compatibility placeholder for TRL imports on older vLLM builds."""
+
+        def __init__(self, **kwargs: object) -> None:
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    setattr(_sp, "GuidedDecodingParams", GuidedDecodingParams)
+
+
+_patch_vllm_guided_decoding_params()
+
+
+def _patch_vllm_get_open_port() -> None:
+    """Backfill ``vllm.utils.get_open_port`` when absent."""
+
+    try:
+        import socket
+        import vllm.utils as _vu  # type: ignore[import-not-found]
+    except Exception:
+        return
+
+    if hasattr(_vu, "get_open_port"):
+        return
+
+    def get_open_port() -> int:  # pragma: no cover - runtime compatibility shim
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("", 0))
+            sock.listen(1)
+            return int(sock.getsockname()[1])
+
+    setattr(_vu, "get_open_port", get_open_port)
+
+
+_patch_vllm_get_open_port()
+
 _ROOT_DIR = Path(__file__).resolve().parent
 _VAR_ROOT = _ROOT_DIR / "var"
 _VAR_ROOT.mkdir(parents=True, exist_ok=True)

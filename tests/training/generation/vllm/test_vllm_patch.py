@@ -386,7 +386,11 @@ def test_extract_logprob_info_returns_none_when_missing():
 def test_extract_logprob_info_uses_metadata_block():
     entry = {
         "text": "x",
-        "metadata": {"logprob_sum": -1.5, "token_count": 3, "token_logprobs": [-0.5] * 3},
+        "metadata": {
+            "logprob_sum": -1.5,
+            "token_count": 3,
+            "token_logprobs": [-0.5] * 3,
+        },
     }
     info = VP._extract_logprob_info(entry)
     assert info is not None

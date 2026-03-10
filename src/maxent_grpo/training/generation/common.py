@@ -7,6 +7,7 @@ of truth instead of maintaining divergent copies.
 """
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 from dataclasses import dataclass
 import logging
@@ -19,6 +20,7 @@ except Exception:  # pragma: no cover - torch optional in some utilities
 
 _DEFAULT_RETRY_LIMIT = 3
 LOG = logging.getLogger(__name__)
+
 
 @runtime_checkable
 class _TrlPayloadConvertible(Protocol):
@@ -245,7 +247,11 @@ def retry_incomplete_prompts(
         except Exception:
             backend = ""
         use_cuda = bool(getattr(torch, "cuda", None)) and torch.cuda.is_available()
-        device = torch.device("cuda") if use_cuda and backend == "nccl" else torch.device("cpu")
+        device = (
+            torch.device("cuda")
+            if use_cuda and backend == "nccl"
+            else torch.device("cpu")
+        )
         flag = torch.tensor([1 if local_has else 0], device=device, dtype=torch.int32)
         dist.all_reduce(flag, op=dist.ReduceOp.MAX)
         return bool(flag.item())

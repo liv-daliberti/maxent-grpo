@@ -1,6 +1,7 @@
 """Request/retry helpers separated from vLLM weight sync and scatter logic."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import hashlib
 import logging
@@ -10,7 +11,10 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 from urllib.parse import urlparse
 
-from maxent_grpo.training.generation.errors import GenerationServiceError, ServiceErrorPayload
+from maxent_grpo.training.generation.errors import (
+    GenerationServiceError,
+    ServiceErrorPayload,
+)
 from maxent_grpo.training.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime.prompts import _truncate_prompt
 from maxent_grpo.training.runtime.logging import _wandb_error_types
@@ -77,8 +81,6 @@ def _record_logprob_status(ctx: Any, has_payload: bool) -> None:
     else:
         stats["vllm_logprobs_missing_rounds"] += 1
         stats["vllm_logprobs_missing_consecutive"] += 1
-
-
 
 
 def _hash_prompts(prompts: List[str]) -> str:
@@ -195,7 +197,10 @@ def _resolve_default_limit() -> int:
         try:
             return int(env_val)
         except (TypeError, ValueError):
-            LOG.debug("Invalid MAX_PROMPT_TOKENS/MAX_PROMPT_CHARS=%s; using defaults.", env_val)
+            LOG.debug(
+                "Invalid MAX_PROMPT_TOKENS/MAX_PROMPT_CHARS=%s; using defaults.",
+                env_val,
+            )
     try:
         from maxent_grpo.training.runtime import prompts as prompts_mod
 
@@ -227,9 +232,7 @@ def _normalize_vllm_url(raw_url: Optional[str]) -> str:
         base = f"{parsed.scheme}://{parsed.netloc}"
         if parsed.path in ("", "/"):
             normalized = f"{base}/generate/"
-            LOG.warning(
-                "vllm_url missing /generate; normalizing to %s", normalized
-            )
+            LOG.warning("vllm_url missing /generate; normalizing to %s", normalized)
             return normalized
         if parsed.path in ("/v1", "/v1/"):
             normalized = f"{base}/generate/"
@@ -239,9 +242,7 @@ def _normalize_vllm_url(raw_url: Optional[str]) -> str:
                 normalized,
             )
             return normalized
-    raise ValueError(
-        f"vllm_url must point to the /generate endpoint (got {raw!r})."
-    )
+    raise ValueError(f"vllm_url must point to the /generate endpoint (got {raw!r}).")
 
 
 class VLLMRequestMixin:
@@ -455,7 +456,9 @@ class VLLMRequestMixin:
         ctx = self.ctx
         attempt = 0
         inner_retries_override = None
-        disable_inner = os.environ.get("MAXENT_VLLM_DISABLE_INNER_RETRIES", "1").strip().lower() not in {
+        disable_inner = os.environ.get(
+            "MAXENT_VLLM_DISABLE_INNER_RETRIES", "1"
+        ).strip().lower() not in {
             "0",
             "false",
             "no",
@@ -505,9 +508,7 @@ class VLLMRequestMixin:
                     state.round_limit,
                     len(pending_indices),
                     remaining_counts[:8],
-                    _hash_prompts(
-                        [state.prompts[idx] for idx in pending_indices[:4]]
-                    ),
+                    _hash_prompts([state.prompts[idx] for idx in pending_indices[:4]]),
                 )
                 if attempt > 1:
                     ctx.generation_stats["vllm_retry_rounds"] += 1
@@ -517,11 +518,12 @@ class VLLMRequestMixin:
                     if _is_client_tag_error(err) and _client_tag_fail_fast_enabled(ctx):
                         stats = getattr(self.ctx, "generation_stats", None)
                         if isinstance(stats, dict):
-                            stats["vllm_client_tag_errors"] = int(
-                                stats.get("vllm_client_tag_errors", 0)
-                            ) + 1
+                            stats["vllm_client_tag_errors"] = (
+                                int(stats.get("vllm_client_tag_errors", 0)) + 1
+                            )
                         LOG.error(
-                            "vLLM client_tag mismatch detected; aborting retries: %s", err
+                            "vLLM client_tag mismatch detected; aborting retries: %s",
+                            err,
                         )
                         raise
                     pending_count = len(pending_indices)
@@ -569,7 +571,10 @@ class VLLMRequestMixin:
                 remaining = state.pending_indices()
                 if remaining:
                     self._record_vllm_failure(state, remaining)
-            LOG.info("vLLM rounds loop done | remaining_prompts=%d", len(state.pending_indices()))
+            LOG.info(
+                "vLLM rounds loop done | remaining_prompts=%d",
+                len(state.pending_indices()),
+            )
         finally:
             if inner_retries_override is not None:
                 try:
@@ -631,7 +636,9 @@ class VLLMRequestMixin:
     ) -> None:
         metrics: Dict[str, Any] = {
             "generation/retry_attempts": 1,
-            "generation/retry_status_code": status_code if status_code is not None else -1,
+            "generation/retry_status_code": status_code
+            if status_code is not None
+            else -1,
             "generation/retry_attempt_index": attempt,
             "generation/retry_pending": pending_count,
         }
@@ -820,7 +827,9 @@ class VLLMRequestMixin:
                     _record_logprob_status(self.ctx, has_logprob_payload)
                 if not has_logprob_payload:
                     warned = getattr(self.ctx, "_vllm_logprobs_missing_warned", False)
-                    if not warned and bool(getattr(self.ctx, "vllm_request_logprobs", False)):
+                    if not warned and bool(
+                        getattr(self.ctx, "vllm_request_logprobs", False)
+                    ):
                         LOG.warning(
                             "vLLM logprob metadata requested but missing from responses; "
                             "continuing without vLLM logprobs. "

@@ -15,6 +15,7 @@
 """Utilities to safely integrate DeepSpeed ZeRO with optional dependencies."""
 
 from __future__ import annotations
+# pylint: disable=broad-exception-caught
 
 import importlib.machinery
 import importlib.util
@@ -308,8 +309,6 @@ def _reserve_zero_gather_params(
     try:
         yield reserved
     finally:
-        if not reserved_ids:
-            return
         with _ZERO_GATHER_LOCK:
             for param_id in reserved_ids:
                 _ZERO_GATHER_ACTIVE_PARAM_IDS.discard(param_id)

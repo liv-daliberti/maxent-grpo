@@ -26,7 +26,6 @@ registered tasks. vLLM launch on Slurm requires a specific environment
 bootstrap (see ``VLLM_SLURM_PREFIX``) to source system profiles and set ``$HOME``.
 """
 
-
 from __future__ import annotations
 
 import base64

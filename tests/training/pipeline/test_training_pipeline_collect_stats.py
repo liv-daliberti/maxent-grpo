@@ -42,9 +42,10 @@ def test_collect_batch_stats_rebuilds_ref_stats_on_mismatch(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "compute_weight_stats",
-        lambda grouped_completions, reward_comp, ref_stats, weighting_cfg: SimpleNamespace(
-            flat_weights=[0.5]
-        ),
+        lambda grouped_completions,
+        reward_comp,
+        ref_stats,
+        weighting_cfg: SimpleNamespace(flat_weights=[0.5]),
     )
     monkeypatch.setattr(
         pipeline,
@@ -220,9 +221,7 @@ def test_collect_batch_stats_gathers_reference_when_meta_missing(monkeypatch):
         ),
     )
     metrics = metrics_mod.build_training_metrics_dict(payload, global_step=3)
-    assert metrics["train/weight_entropy"] == pytest.approx(
-        weight_stats.weight_entropy
-    )
+    assert metrics["train/weight_entropy"] == pytest.approx(weight_stats.weight_entropy)
     assert metrics["train/completions/mean_length_sampled"] == pytest.approx(
         length_stats.mean_length
     )

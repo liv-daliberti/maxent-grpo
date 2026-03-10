@@ -31,7 +31,8 @@ from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 
 try:  # pragma: no cover - optional dependency
     import torch
-except Exception:  # pragma: no cover - allow stubbed environments
+except (ImportError, OSError):  # pragma: no cover - allow stubbed environments
+
     class _TorchStub:
         float16 = "float16"
         bfloat16 = "bfloat16"
@@ -44,8 +45,11 @@ except Exception:  # pragma: no cover - allow stubbed environments
 
 try:  # pragma: no cover - optional dependency
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    from transformers.tokenization_utils import PreTrainedTokenizer as _PreTrainedTokenizer
-except Exception:  # pragma: no cover - allow stubbed environments
+    from transformers.tokenization_utils import (
+        PreTrainedTokenizer as _PreTrainedTokenizer,
+    )
+except (ImportError, OSError):  # pragma: no cover - allow stubbed environments
+
     class AutoModelForCausalLM:  # type: ignore[no-redef]
         @classmethod
         def from_pretrained(cls, *_args: Any, **_kwargs: Any) -> Any:
@@ -59,13 +63,15 @@ except Exception:  # pragma: no cover - allow stubbed environments
     class _PreTrainedTokenizer:  # type: ignore[no-redef]
         pass
 
+
 try:  # pragma: no cover - optional dependency
     from trl import (
         ModelConfig,
         get_kbit_device_map,
         get_quantization_config,
     )
-except Exception:  # pragma: no cover - allow stubbed environments
+except (ImportError, OSError):  # pragma: no cover - allow stubbed environments
+
     class ModelConfig:  # type: ignore[no-redef]
         pass
 
@@ -74,6 +80,7 @@ except Exception:  # pragma: no cover - allow stubbed environments
 
     def get_quantization_config(*_args: Any, **_kwargs: Any) -> Any:
         return None
+
 
 from maxent_grpo.config import GRPOConfig
 
@@ -104,7 +111,9 @@ def _force_nonreentrant_checkpointing(model: Any) -> bool:
     if model is None:
         return False
     checkpoint_mod = getattr(getattr(torch, "utils", None), "checkpoint", None)
-    checkpoint_fn = getattr(checkpoint_mod, "checkpoint", None) if checkpoint_mod else None
+    checkpoint_fn = (
+        getattr(checkpoint_mod, "checkpoint", None) if checkpoint_mod else None
+    )
     if checkpoint_fn is None:
         return False
     gc_func = functools.partial(checkpoint_fn, use_reentrant=False)
@@ -116,7 +125,7 @@ def _force_nonreentrant_checkpointing(model: Any) -> bool:
         except TypeError:
             try:
                 set_gc(value=True)
-            except Exception:
+            except (AttributeError, TypeError, ValueError):
                 pass
     applied = False
     modules = getattr(model, "modules", None)
@@ -127,14 +136,14 @@ def _force_nonreentrant_checkpointing(model: Any) -> bool:
                     setattr(module, "_gradient_checkpointing_func", gc_func)
                     setattr(module, "gradient_checkpointing", True)
                     applied = True
-                except Exception:
+                except (AttributeError, TypeError, ValueError, RuntimeError):
                     continue
     if hasattr(model, "gradient_checkpointing"):
         try:
             setattr(model, "_gradient_checkpointing_func", gc_func)
             setattr(model, "gradient_checkpointing", True)
             applied = True
-        except Exception:
+        except (AttributeError, TypeError, ValueError, RuntimeError):
             pass
     return applied
 
@@ -308,7 +317,9 @@ def get_model(
                 )
                 try:
                     if dynamo_config is not None:
-                        dynamo_config.suppress_errors = True  # fall back to eager on compile errors
+                        dynamo_config.suppress_errors = (
+                            True  # fall back to eager on compile errors
+                        )
                 except (AttributeError, TypeError):
                     LOG.debug("Failed to set torch._dynamo suppress_errors flag.")
             except (ImportError, AttributeError, RuntimeError):
@@ -330,5 +341,7 @@ def get_model(
                     try:
                         dynamo_config.suppress_errors = prev_suppress
                     except (AttributeError, TypeError):
-                        LOG.debug("Failed to restore torch._dynamo suppress_errors flag.")
+                        LOG.debug(
+                            "Failed to restore torch._dynamo suppress_errors flag."
+                        )
     return cast(AutoModelForCausalLMType, model)

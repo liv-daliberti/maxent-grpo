@@ -19,6 +19,7 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional depend
 
 LOG = logging.getLogger(__name__)
 
+
 def _numeric_or_none(value: Any) -> Optional[float]:
     """Return a finite float or ``None`` when conversion fails."""
 
@@ -106,7 +107,9 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 
     _WeightingLogCallbackBase = _TrainerCallback
 else:
-    _WeightingLogCallbackBase = TrainerCallback if TrainerCallback is not None else object
+    _WeightingLogCallbackBase = (
+        TrainerCallback if TrainerCallback is not None else object
+    )
 
 
 class _WeightingLogCallback(_WeightingLogCallbackBase):
@@ -263,13 +266,13 @@ def _normalize_prefixes(
             out[f"{prefix}{key}"] = val
             continue
         if key.startswith("eval_rewards/"):
-            out[f"eval/{key[len('eval_'):]}"] = val
+            out[f"eval/{key[len('eval_') :]}"] = val
             continue
         if key.startswith("completions/"):
             out[f"{prefix}{key}"] = val
             continue
         if key.startswith("eval_completions/"):
-            out[f"eval/{key[len('eval_'):]}"] = val
+            out[f"eval/{key[len('eval_') :]}"] = val
             continue
         if key == "frac_reward_zero_std":
             out[f"{prefix}reward/zero_fraction"] = val
@@ -284,7 +287,7 @@ def _normalize_prefixes(
             out[f"{prefix}weighting/tau"] = val
             continue
         if key.startswith("kl_controller_"):
-            out[f"{prefix}kl_controller/{key[len('kl_controller_'):] }"] = val
+            out[f"{prefix}kl_controller/{key[len('kl_controller_') :]}"] = val
             continue
         if key.startswith("train/weighting/"):
             if key.endswith("tau"):
@@ -306,8 +309,6 @@ def _normalize_prefixes(
     if beta_key in out:
         out.setdefault(f"{alias_prefix}/beta", out[beta_key])
     return out
-
-
 
 
 class _WeightingMetricHelper:
@@ -470,14 +471,22 @@ class _WeightingMetricHelper:
         }
         meta_enabled = _bool_flag(getattr(args, "controller_meta_enabled", None))
         meta_lr = _numeric_or_none(getattr(args, "controller_meta_lr", None)) or 0.0
-        meta_interval = _numeric_or_none(
-            getattr(args, "controller_meta_update_interval", None)
-        ) or 0.0
-        meta_trunc = _numeric_or_none(
-            getattr(args, "controller_meta_truncation_steps", None)
-            or getattr(args, "controller_meta_analytic_steps", None)
-        ) or 0.0
-        meta_use_hessian = 1.0 if _bool_flag(getattr(args, "controller_meta_use_hessian", None)) else 0.0
+        meta_interval = (
+            _numeric_or_none(getattr(args, "controller_meta_update_interval", None))
+            or 0.0
+        )
+        meta_trunc = (
+            _numeric_or_none(
+                getattr(args, "controller_meta_truncation_steps", None)
+                or getattr(args, "controller_meta_analytic_steps", None)
+            )
+            or 0.0
+        )
+        meta_use_hessian = (
+            1.0
+            if _bool_flag(getattr(args, "controller_meta_use_hessian", None))
+            else 0.0
+        )
         metrics.update(
             {
                 "train/meta/enabled": 1.0 if meta_enabled else 0.0,
@@ -619,7 +628,9 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
                         TypeError,
                         ValueError,
                     ) as err:  # pragma: no cover - defensive
-                        LOG.debug("Failed to capture loss components for logging: %s", err)
+                        LOG.debug(
+                            "Failed to capture loss components for logging: %s", err
+                        )
                 loss_value = loss[0]
             try:
                 # Capture a precise scalar before upstream rounding.
@@ -630,7 +641,9 @@ def ensure_weighting_logging(trainer_cls: type) -> type:
                 LOG.debug("Failed to capture precise loss scalar: %s", err)
             return loss
 
-    class WeightingLoggedTrainer(_LossCaptureMixin, _WeightingLoggingMixin, trainer_cls):
+    class WeightingLoggedTrainer(
+        _LossCaptureMixin, _WeightingLoggingMixin, trainer_cls
+    ):
         _MAXENT_WEIGHTING_LOGGING = True
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:

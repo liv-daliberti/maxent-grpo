@@ -71,9 +71,15 @@ def should_trigger_v0_fallback(
 
 
 def _build_parser() -> ArgumentParser:
-    parser = ArgumentParser(description="Classify vLLM startup health from log content.")
-    parser.add_argument("--log", type=Path, required=True, help="Path to the vLLM log file.")
-    parser.add_argument("--attempt", type=int, default=0, help="Current health-check attempt index.")
+    parser = ArgumentParser(
+        description="Classify vLLM startup health from log content."
+    )
+    parser.add_argument(
+        "--log", type=Path, required=True, help="Path to the vLLM log file."
+    )
+    parser.add_argument(
+        "--attempt", type=int, default=0, help="Current health-check attempt index."
+    )
     parser.add_argument(
         "--min-attempts",
         type=int,
@@ -91,7 +97,11 @@ def _build_parser() -> ArgumentParser:
 
 def main() -> int:
     args = _build_parser().parse_args()
-    text = args.log.read_text(encoding="utf-8", errors="ignore") if args.log.exists() else ""
+    text = (
+        args.log.read_text(encoding="utf-8", errors="ignore")
+        if args.log.exists()
+        else ""
+    )
     if should_trigger_v0_fallback(
         text,
         attempt=args.attempt,

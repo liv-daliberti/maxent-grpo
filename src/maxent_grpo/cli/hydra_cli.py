@@ -264,9 +264,7 @@ def _merge_mapping(
             and not isinstance(value, str)
             and isinstance(merged.get(key), Mapping)
         ):
-            merged[key] = _merge_mapping(
-                merged[key], value
-            )
+            merged[key] = _merge_mapping(merged[key], value)
         else:
             merged[key] = value
     return merged
@@ -278,10 +276,7 @@ def _apply_overrides(target: Any, overrides: Optional[Mapping[str, Any]]) -> Any
     for key, value in overrides.items():
         if value is None:
             continue
-        if (
-            isinstance(value, Mapping)
-            and not isinstance(value, str)
-        ):
+        if isinstance(value, Mapping) and not isinstance(value, str):
             current = getattr(target, key, None)
             if isinstance(current, Mapping):
                 setattr(target, key, _merge_mapping(current, value))

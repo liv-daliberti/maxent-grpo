@@ -30,7 +30,11 @@ def _weighting(train_grpo: bool = False) -> WeightingSettings:
         normalization=WeightNormalizationSettings(denom=1.0, len_norm_ref=True),
         q_distribution=QDistributionSettings(temperature=1.0, epsilon=1e-6),
         tau_schedule=TauSchedule(
-            target_entropy=0.4, learning_rate=0.1, minimum_value=0.0, maximum_value=1.0, warmup_steps=0
+            target_entropy=0.4,
+            learning_rate=0.1,
+            minimum_value=0.0,
+            maximum_value=1.0,
+            warmup_steps=0,
         ),
         kl_controller=KlControllerSettings(target=0.3, horizon=8, step_size=0.1),
         train_grpo_objective=train_grpo,
@@ -93,4 +97,3 @@ def test_build_controller_objective_handles_unknown_methods():
     weighting.controller_meta.method = "unknown"
     objective = build_controller_objective(cfg, weighting)
     assert isinstance(objective, AnalyticControllerObjective)
-
