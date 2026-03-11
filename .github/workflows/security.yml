@@ -12,6 +12,12 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    env:
+      PYTHONNOUSERSITE: "1"
+      PYTHONPATH: ./src
+      XDG_CACHE_HOME: ${{ github.workspace }}/var/cache/xdg
+      PIP_CACHE_DIR: ${{ github.workspace }}/var/cache/pip
+      TMPDIR: ${{ github.workspace }}/var/tmp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,13 +29,16 @@ jobs:
 
       - name: Install tooling
         run: |
+          mkdir -p "$XDG_CACHE_HOME" "$PIP_CACHE_DIR" "$TMPDIR"
           python -m pip install --upgrade pip
-          pip install -r configs/requirements-dev.txt
+          python -m pip install -r configs/requirements-dev.txt
+          python -m pip install -e . --no-deps
+          python -m pip install -c configs/constraints.txt "torch==2.8.0"
 
-      - name: pip-audit (constraints + dev)
+      - name: pip-audit (installed environment)
         run: |
-          pip-audit --progress-spinner off -r configs/constraints.txt -r configs/requirements-dev.txt
+          python -m pip_audit -l --progress-spinner off --skip-editable
 
-      - name: Bandit (focused paths)
+      - name: Bandit (focused paths, medium+)
         run: |
-          bandit -q -r src/utils src/pipelines
+          python -m bandit -q -ll -r src/maxent_grpo

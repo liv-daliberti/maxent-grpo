@@ -91,6 +91,9 @@ def test_build_controller_objective_handles_unknown_methods():
     cfg = GRPOConfig()
     weighting = _weighting()
     weighting.controller_meta.enabled = True
+    weighting.controller_meta.method = "first_order"
+    objective = build_controller_objective(cfg, weighting)
+    assert isinstance(objective, TruncatedBackpropControllerObjective)
     weighting.controller_meta.method = "truncated"
     objective = build_controller_objective(cfg, weighting)
     assert isinstance(objective, TruncatedBackpropControllerObjective)

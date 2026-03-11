@@ -47,8 +47,9 @@ Validation
 ----------
 
 Before launch, ``maxent_grpo.cli.config_validation`` ensures MaxEnt overrides
-are only used with ``train_grpo_objective=false`` except for GRPO + entropy-bonus
-runs where ``policy_entropy_bonus_coef>0``.
+are only used with ``objective=maxent_entropy`` or
+``objective=maxent_listwise`` except for GRPO + entropy-bonus runs where
+``objective=grpo_entropy_bonus`` and ``policy_entropy_bonus_coef>0``.
 
 Examples
 --------
@@ -56,3 +57,6 @@ Examples
 Hydra recipe presets live under ``configs/recipes/hydra/``.
 For custom-loop GRPO parity runs, use
 ``configs/recipes/hydra/grpo_custom_math.yaml``.
+For explicit trainer-level MaxEnt variants, use
+``configs/recipes/hydra/maxent_entropy_math.yaml`` or
+``configs/recipes/hydra/maxent_listwise_math.yaml``.

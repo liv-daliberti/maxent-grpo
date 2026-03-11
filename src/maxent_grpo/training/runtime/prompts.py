@@ -222,7 +222,7 @@ def _prompt_char_limit_from_tokens(max_prompt_len: int) -> int:
     """
 
     if max_prompt_len and max_prompt_len > 0:
-        return int(max_prompt_len)
+        return max(int(max_prompt_len), int(PROMPT_CHAR_LIMIT))
     return PROMPT_CHAR_LIMIT
 
 

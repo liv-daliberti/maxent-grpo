@@ -25,11 +25,15 @@ limitations under the License.
 from __future__ import annotations
 
 import json
+import importlib
 import logging
 import math
+import sys
 from dataclasses import MISSING, dataclass, field
 from typing import Any, Callable, Optional, cast
 from urllib.parse import urlparse
+
+from maxent_grpo.objectives import normalize_objective, resolve_objective_routing
 
 from .dataset import ScriptArguments, trl
 
@@ -68,6 +72,62 @@ def _parse_log_level(value: int | str | None) -> Optional[int]:
     return None
 
 
+def _resolve_interval_strategy_cls() -> type[Any] | None:
+    """Best-effort resolve of ``transformers.training_args.IntervalStrategy``."""
+
+    module = sys.modules.get("transformers.training_args")
+    if module is None:
+        try:
+            module = importlib.import_module("transformers.training_args")
+        except (
+            ImportError,
+            ModuleNotFoundError,
+            AttributeError,
+            OSError,
+            RuntimeError,
+        ):
+            module = None
+    if module is None:
+        return None
+    interval_cls = getattr(module, "IntervalStrategy", None)
+    return interval_cls if isinstance(interval_cls, type) else None
+
+
+def _normalize_eval_strategy(value: Any) -> Any:
+    """Convert config aliases into a value accepted by upstream TrainingArguments."""
+
+    if value is None:
+        value = "no"
+    elif isinstance(value, str):
+        value = value.strip().lower() or "no"
+    else:
+        raw_value = getattr(value, "value", None)
+        value = raw_value if raw_value is not None else str(value).strip().lower()
+        if not value:
+            value = "no"
+    interval_cls = _resolve_interval_strategy_cls()
+    if interval_cls is None or isinstance(value, interval_cls):
+        return value
+    try:
+        return interval_cls(value)
+    except (TypeError, ValueError):
+        return value
+
+
+def _coerce_eval_strategy_for_base(value: Any) -> str:
+    """Collapse aliases/custom objects into a string accepted by upstream base config."""
+
+    if value is None:
+        return "no"
+    if isinstance(value, str):
+        candidate = value.strip().lower()
+        return candidate or "no"
+    raw_value = getattr(value, "value", None)
+    candidate = raw_value if raw_value is not None else str(value)
+    candidate = str(candidate).strip().lower()
+    return candidate or "no"
+
+
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
     """GRPO configuration extended for MaxEnt-GRPO experiments.
@@ -87,8 +147,11 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar wandb_entity: W&B entity/organization for run tracking.
     :ivar wandb_project: W&B project name.
     :ivar wandb_run_group: W&B group used to cluster related runs.
-    :ivar maxent_alpha: Coefficient for the extra MaxEnt objective term.
-        Set to 0 to force native GRPO loss/pathway parity.
+    :ivar objective: Canonical objective selector. ``grpo`` keeps the native
+        GRPO loss, ``grpo_entropy_bonus`` adds a reward-side entropy bonus,
+        ``maxent_entropy`` applies entropy regularization in the loss, and
+        ``maxent_listwise`` uses tau/q/beta listwise weighting.
+    :ivar maxent_alpha: Coefficient for the entropy-regularized MaxEnt loss.
     :ivar maxent_tau: Sequence-level entropy weight used by MaxEnt-GRPO.
     :ivar maxent_q_temperature: Temperature applied when forming listwise q values.
     :ivar maxent_q_epsilon: Minimum support added to q before normalization.
@@ -96,17 +159,10 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_logprob_chunk_size: Mini-batch size when computing log-probs.
     :ivar maxent_policy_entropy: Whether to compute policy entropy during scoring.
     :ivar maxent_policy_entropy_mode: Which entropy estimator to use ("exact" or "sample").
+        ``sample`` is only valid for logging or GRPO reward-side entropy bonuses;
+        entropy-regularized MaxEnt loss requires ``exact``.
     :ivar policy_entropy_bonus_coef: Coefficient applied to per-token policy entropy
         when adding an entropy bonus to rewards (GRPO + entropy bonus).
-    :ivar maxent_reward_signal_gate: Enable group-level reward-signal gating for MaxEnt reward shaping.
-    :ivar maxent_reward_signal_min_max: Minimum group max reward required for MaxEnt gating.
-    :ivar maxent_reward_signal_std_threshold: Minimum group reward std required for MaxEnt gating.
-    :ivar maxent_bonus_positive_only: Apply MaxEnt bonus only to completions above ``maxent_bonus_min_reward``.
-    :ivar maxent_bonus_min_reward: Reward threshold used when ``maxent_bonus_positive_only`` is enabled.
-    :ivar maxent_cusp_gate: Scale MaxEnt bonus by per-group cusp score ``4p(1-p)``, where
-        ``p`` is the fraction of completions above ``maxent_cusp_reward_threshold``.
-    :ivar maxent_cusp_reward_threshold: Reward threshold used to define per-group
-        success rate ``p`` for cusp gating.
     :ivar maxent_alpha_raise_on_low_kl: When true, allow adaptive MaxEnt alpha increases
         while measured train KL remains below ``maxent_alpha_kl_threshold``.
     :ivar maxent_alpha_lower_on_high_kl: When true, allow adaptive MaxEnt alpha decreases
@@ -134,9 +190,10 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_use_clip_objective: Blend a PPO-style clipped objective into the loss.
     :ivar maxent_clip_objective_coef: Scale for the clipped objective component.
     :ivar maxent_clip_adv_baseline: Baseline subtracted before clipping.
-    :ivar train_grpo_objective: Disable MaxEnt weighting and run the standard GRPO objective.
     :ivar scale_rewards: Whether to scale GRPO advantages by group std (TRL default).
     :ivar maxent_clip_range: Override PPO clip range for the MaxEnt objective.
+    :ivar beta: Optional alias for the KL coefficient used by legacy GRPO/Open-R1
+        configs. When provided, it is mirrored to ``init_kl_coeff``.
     :ivar kl_target: Target KL value for automatic beta adjustment.
     :ivar kl_horizon: Horizon in optimizer steps for the beta controller.
     :ivar kl_ctl_step_size: Maximum fractional beta change per controller step.
@@ -181,6 +238,16 @@ class GRPOConfig(trl.GRPOConfig):
     callbacks: list[str] = field(
         default_factory=lambda: [],
         metadata={"help": "The callbacks to run during training."},
+    )
+    # Keep this parser-friendly for HfArgumentParser/TrlParser. A broader type
+    # like `Any` breaks YAML/CLI coercion before __post_init__ can normalize it.
+    eval_strategy: Optional[str] = field(
+        default=None,
+        metadata={"help": "Optional evaluation strategy alias."},
+    )
+    num_generations: int = field(
+        default=8,
+        metadata={"help": "Number of completions sampled per prompt."},
     )
     reward_funcs: list[str] = field(
         default_factory=lambda: ["pure_accuracy_math"],
@@ -329,12 +396,31 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
-    maxent_alpha: float = field(
-        default=1.0,
+    objective: str = field(
+        default="maxent_entropy",
         metadata={
             "help": (
-                "Coefficient for the extra MaxEnt objective term. "
-                "Set to 0.0 to use the native GRPO loss pathway exactly."
+                "Training objective: 'grpo', 'grpo_entropy_bonus', "
+                "'maxent_entropy', or 'maxent_listwise'."
+            )
+        },
+    )
+    maxent_alpha: float = field(
+        default=0.0,
+        metadata={
+            "help": (
+                "Coefficient for the entropy-regularized MaxEnt loss. "
+                "Only used when objective='maxent_entropy'."
+            )
+        },
+    )
+    maxent_objective_variant: str = field(
+        default="entropy",
+        init=False,
+        metadata={
+            "help": (
+                "Legacy/internal alias derived from objective. "
+                "Not intended as a public config field."
             )
         },
     )
@@ -439,7 +525,9 @@ class GRPOConfig(trl.GRPOConfig):
                 "Entropy estimator to use when policy entropy is requested. "
                 "'exact' computes full-distribution entropy (slow, uses log_softmax); "
                 "'sample' uses the negative log-prob of sampled tokens as an unbiased "
-                "entropy estimator (fast, matches generation entropy on average)."
+                "scalar entropy estimator (fast, matches generation entropy on average) "
+                "but is only valid for logging or GRPO reward bonuses. "
+                "Entropy-regularized MaxEnt loss requires 'exact'."
             )
         },
     )
@@ -450,73 +538,6 @@ class GRPOConfig(trl.GRPOConfig):
                 "Coefficient applied to per-token policy entropy when adding an entropy "
                 "bonus to rewards (GRPO + entropy bonus). The entropy bonus is z-scored "
                 "within each prompt group and scaled by the batch reward std. Set to 0 to disable."
-            )
-        },
-    )
-    maxent_reward_signal_gate: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "Enable group-level reward-signal gating for MaxEnt reward shaping. "
-                "When enabled, the MaxEnt bonus is only applied to groups where either "
-                "group_max_reward > maxent_reward_signal_min_max or "
-                "group_reward_std > maxent_reward_signal_std_threshold."
-            )
-        },
-    )
-    maxent_reward_signal_min_max: float = field(
-        default=0.0,
-        metadata={
-            "help": (
-                "Group-level max reward threshold used by maxent_reward_signal_gate. "
-                "A group is eligible when its max reward exceeds this value."
-            )
-        },
-    )
-    maxent_reward_signal_std_threshold: float = field(
-        default=0.0,
-        metadata={
-            "help": (
-                "Group-level reward std threshold used by maxent_reward_signal_gate. "
-                "A group is eligible when its reward std exceeds this value."
-            )
-        },
-    )
-    maxent_bonus_positive_only: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "When true, apply the MaxEnt bonus only to completions whose reward "
-                "is greater than maxent_bonus_min_reward."
-            )
-        },
-    )
-    maxent_bonus_min_reward: float = field(
-        default=0.0,
-        metadata={
-            "help": (
-                "Reward threshold used when maxent_bonus_positive_only=true. "
-                "Only completions with reward > threshold receive MaxEnt bonus."
-            )
-        },
-    )
-    maxent_cusp_gate: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "When true, scale the MaxEnt bonus per prompt group by a cusp factor "
-                "c=4p(1-p), where p is the fraction of completions with reward >= "
-                "maxent_cusp_reward_threshold. This concentrates exploration near "
-                "mixed-difficulty groups (on-cusp), and reduces it on all-correct/all-wrong groups."
-            )
-        },
-    )
-    maxent_cusp_reward_threshold: float = field(
-        default=0.4,
-        metadata={
-            "help": (
-                "Reward threshold used to compute per-group success rate p for cusp gating "
-                "(completion is counted as success when reward >= threshold)."
             )
         },
     )
@@ -720,43 +741,46 @@ class GRPOConfig(trl.GRPOConfig):
     )
     controller_meta_objective: str = field(
         default="potential",
+        init=False,
         metadata={
             "help": (
-                "Name of the objective optimized by the meta-controller. The default "
-                "optimizes the regularized potential."
+                "Internal controller objective label kept for runtime compatibility."
             )
         },
     )
     controller_meta_analytic_steps: int = field(
         default=1,
+        init=False,
         metadata={
             "help": (
-                "Number of inner steps to include when computing analytic meta-gradients."
+                "Internal analytic-step count kept for runtime compatibility."
             )
         },
     )
     controller_meta_optimizer: str = field(
         default="sgd",
+        init=False,
         metadata={
             "help": (
-                "Optimizer used for the meta-controller when truncated/first-order "
-                "updates are enabled. Supported: 'sgd', 'adam', 'adamw'."
+                "Internal controller optimizer label kept for runtime compatibility."
             )
         },
     )
     controller_meta_truncation_steps: int = field(
         default=1,
+        init=False,
         metadata={
             "help": (
-                "Number of truncated inner steps used for first-order/backprop-based meta updates."
+                "Internal controller truncation horizon kept for runtime compatibility."
             )
         },
     )
     controller_meta_use_hessian: bool = field(
         default=False,
+        init=False,
         metadata={
             "help": (
-                "Whether to include second-order (Hessian) information when approximating meta-gradients."
+                "Internal controller Hessian toggle kept for runtime compatibility."
             )
         },
     )
@@ -793,9 +817,11 @@ class GRPOConfig(trl.GRPOConfig):
     )
     train_grpo_objective: bool = field(
         default=False,
+        init=False,
         metadata={
             "help": (
-                "When true, disable the MaxEnt reference weighting term and train with the standard GRPO objective."
+                "Legacy/internal alias derived from objective. "
+                "Not intended as a public config field."
             )
         },
     )
@@ -850,6 +876,15 @@ class GRPOConfig(trl.GRPOConfig):
         default="bnpo",
         metadata={"help": "GRPO loss aggregation: 'grpo', 'bnpo', or 'dr_grpo'."},
     )
+    beta: Optional[float] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional alias for the KL coefficient used by weighting logic. "
+                "Mirrored to init_kl_coeff for compatibility with legacy configs."
+            )
+        },
+    )
     kl_target: float = field(
         default=0.0,
         metadata={
@@ -868,6 +903,15 @@ class GRPOConfig(trl.GRPOConfig):
         default=0.0,
         metadata={
             "help": "Maximum fractional change allowed per β controller update. Zero disables adaptation.",
+        },
+    )
+    grpo_beta_controller_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Enable the local β controller for baseline GRPO. Keep false to match "
+                "native TRL/Open-R1 GRPO behavior."
+            )
         },
     )
     gen_temperature: float = field(
@@ -1045,16 +1089,66 @@ class GRPOConfig(trl.GRPOConfig):
     )
 
     def __post_init__(self) -> None:
+        def _sync_beta_alias() -> None:
+            beta_value = getattr(self, "beta", None)
+            if beta_value is None:
+                beta_value = getattr(self, "init_kl_coeff", None)
+            elif getattr(self, "init_kl_coeff", None) is None:
+                try:
+                    beta_value = float(beta_value)
+                except (TypeError, ValueError):
+                    return
+            if beta_value is None:
+                return
+            try:
+                beta_value = float(beta_value)
+            except (TypeError, ValueError):
+                return
+            setattr(self, "beta", beta_value)
+            if hasattr(self, "init_kl_coeff"):
+                try:
+                    setattr(self, "init_kl_coeff", beta_value)
+                except (AttributeError, TypeError, ValueError):
+                    pass
+
+        _sync_beta_alias()
+        base_eval_strategy = _coerce_eval_strategy_for_base(
+            getattr(self, "eval_strategy", None)
+        )
+        setattr(self, "eval_strategy", base_eval_strategy)
+        if hasattr(self, "evaluation_strategy"):
+            try:
+                setattr(self, "evaluation_strategy", base_eval_strategy)
+            except (AttributeError, TypeError, ValueError):
+                pass
         base_post_init = getattr(super(), "__post_init__", None)
         if callable(base_post_init):
             try:
                 post_init_fn = cast(Callable[[], Any], base_post_init)
                 post_init_fn()  # pylint: disable=not-callable
+            except ValueError as exc:
+                if "num_generations" in str(exc) and "divisible" in str(exc):
+                    LOG.warning(
+                        "Ignoring num_generations divisibility constraint from base config: %s",
+                        exc,
+                    )
+                else:
+                    raise
             except (AttributeError, ImportError, ModuleNotFoundError) as exc:
                 # TRL/Transformers may be absent in some test environments.
                 LOG.debug(
                     "Skipping base __post_init__ (dependency unavailable): %s", exc
                 )
+        normalized_eval_strategy = _normalize_eval_strategy(
+            getattr(self, "eval_strategy", base_eval_strategy)
+        )
+        _sync_beta_alias()
+        setattr(self, "eval_strategy", normalized_eval_strategy)
+        if hasattr(self, "evaluation_strategy"):
+            try:
+                setattr(self, "evaluation_strategy", normalized_eval_strategy)
+            except (AttributeError, TypeError, ValueError):
+                pass
         vllm_mode = (
             str(getattr(self, "vllm_mode", "server") or "server").strip().lower()
         )
@@ -1147,6 +1241,12 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_tau_max must be >= maxent_tau_min")
         if self.maxent_tau_lr < 0.0:
             raise ValueError("maxent_tau_lr must be non-negative")
+        beta_value = getattr(self, "beta", None)
+        if beta_value is not None:
+            if not math.isfinite(beta_value):
+                raise ValueError("beta must be finite")
+            if beta_value < 0.0:
+                raise ValueError("beta must be non-negative")
         if (
             self.maxent_tau_warmup_steps is not None
             and self.maxent_tau_warmup_steps < -1
@@ -1172,6 +1272,33 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_q_temperature must be > 0")
         if self.maxent_alpha < 0.0:
             raise ValueError("maxent_alpha must be non-negative")
+        objective = normalize_objective(
+            getattr(self, "objective", "maxent_entropy"),
+            default="maxent_entropy",
+        )
+        setattr(self, "objective", objective)
+        routing = resolve_objective_routing(
+            objective=objective,
+            train_grpo_objective=getattr(self, "train_grpo_objective", None),
+            maxent_objective_variant=getattr(self, "maxent_objective_variant", None),
+            maxent_alpha=getattr(self, "maxent_alpha", 0.0),
+            policy_entropy_bonus_coef=getattr(
+                self, "policy_entropy_bonus_coef", 0.0
+            ),
+        )
+        setattr(self, "train_grpo_objective", routing.train_grpo_objective)
+        setattr(self, "maxent_objective_variant", routing.maxent_objective_variant)
+        if objective == "grpo" and self.policy_entropy_bonus_coef > 0.0:
+            raise ValueError(
+                "objective='grpo' does not use policy_entropy_bonus_coef; "
+                "use objective='grpo_entropy_bonus' instead"
+            )
+        if objective == "grpo_entropy_bonus" and self.policy_entropy_bonus_coef <= 0.0:
+            raise ValueError(
+                "objective='grpo_entropy_bonus' requires policy_entropy_bonus_coef > 0"
+            )
+        if routing.uses_listwise_loss and self.maxent_tau <= 0.0:
+            raise ValueError("listwise MaxEnt requires maxent_tau > 0")
         if not math.isfinite(self.maxent_reference_ema_beta):
             raise ValueError("maxent_reference_ema_beta must be finite")
         if not 0.0 <= self.maxent_reference_ema_beta <= 1.0:
@@ -1182,14 +1309,8 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_reference_ema_warmup_steps must be >= 0")
         if self.policy_entropy_bonus_coef < 0.0:
             raise ValueError("policy_entropy_bonus_coef must be non-negative")
-        if self.maxent_reward_signal_min_max < 0.0:
-            raise ValueError("maxent_reward_signal_min_max must be non-negative")
-        if self.maxent_reward_signal_std_threshold < 0.0:
-            raise ValueError("maxent_reward_signal_std_threshold must be non-negative")
-        if not math.isfinite(self.maxent_bonus_min_reward):
-            raise ValueError("maxent_bonus_min_reward must be finite")
-        if not math.isfinite(self.maxent_cusp_reward_threshold):
-            raise ValueError("maxent_cusp_reward_threshold must be finite")
+        if self.policy_entropy_bonus_coef > 0.0:
+            setattr(self, "maxent_policy_entropy", True)
         if not math.isfinite(self.maxent_alpha_kl_threshold):
             raise ValueError("maxent_alpha_kl_threshold must be finite")
         if self.maxent_alpha_kl_threshold < 0.0:
@@ -1232,6 +1353,11 @@ class GRPOConfig(trl.GRPOConfig):
         else:
             raise ValueError("maxent_policy_entropy_mode must be one of: exact, sample")
         setattr(self, "maxent_policy_entropy_mode", entropy_mode)
+        if routing.uses_entropy_regularized_loss and entropy_mode != "exact":
+            raise ValueError(
+                "Entropy-regularized MaxEnt requires maxent_policy_entropy_mode='exact'; "
+                "sample mode is only valid for logging or GRPO reward bonuses."
+            )
         if self.maxent_logprob_chunk_size < 0:
             raise ValueError("maxent_logprob_chunk_size must be non-negative")
         ref_source = (

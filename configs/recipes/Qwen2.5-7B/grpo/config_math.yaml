@@ -63,7 +63,7 @@ gradient_accumulation_steps: 2
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-train_grpo_objective: true
+objective: grpo
 gen_temperature: 1.0          # paper setting
 gen_top_p: 1.0
 gen_top_k: 0

@@ -1111,8 +1111,19 @@ class VLLMGenerationMixin:
                         skip_sync=True,
                     )
                 except Exception as exc:
-                    status_ok = False
-                    status_err = str(exc)
+                    if isinstance(exc, TypeError) and "skip_sync" in str(exc):
+                        try:
+                            grouped_all, meta_all = self._generate_with_vllm(
+                                flat_prompts,
+                                num_samples,
+                                flat_counts,
+                            )
+                        except Exception as retry_exc:
+                            status_ok = False
+                            status_err = str(retry_exc)
+                    else:
+                        status_ok = False
+                        status_err = str(exc)
             dist_mod = getattr(torch, "distributed", None)
             if (
                 getattr(accelerator, "num_processes", 1) > 1

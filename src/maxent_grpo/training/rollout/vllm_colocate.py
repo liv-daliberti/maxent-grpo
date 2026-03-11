@@ -1003,7 +1003,11 @@ class ColocateVLLMEngine:
         self._configure_vllm_env()
         model_id = _resolve_model_id(self.ctx)
         if not model_id:
-            raise RuntimeError("Unable to resolve model ID for vLLM colocate")
+            model_id = "unknown-model"
+            LOG.warning(
+                "Unable to resolve model ID for vLLM colocate; using placeholder '%s'.",
+                model_id,
+            )
         LOG.info("vLLM colocate resolved model_id=%s", model_id)
         llm_kwargs = self._build_llm_kwargs()
         LOG.info("vLLM colocate llm_kwargs pre-filter | %s", llm_kwargs)
@@ -1047,10 +1051,8 @@ class ColocateVLLMEngine:
         LOG.info(
             "vLLM colocate LLM init start | model=%s kwargs=%s", model_id, llm_kwargs
         )
-        started = time.time()
         llm = llm_cls(model=model_id, **llm_kwargs)
-        elapsed = time.time() - started
-        LOG.info("vLLM colocate LLM init done | elapsed_s=%.2f", elapsed)
+        LOG.info("vLLM colocate LLM init done")
         return llm
 
     def _shutdown_worker(self) -> None:

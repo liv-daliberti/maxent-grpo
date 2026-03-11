@@ -48,6 +48,7 @@ _LOGIC_EXPORTS = {
     "save_controller_state",
     "split_reference_logprobs",
     "split_reference_token_counts",
+    "weight_matrix_from_q",
     "weight_vector_from_q",
 }
 
@@ -79,6 +80,7 @@ if TYPE_CHECKING:  # pragma: no cover - only for static analysis
         save_controller_state,
         split_reference_logprobs,
         split_reference_token_counts,
+        weight_matrix_from_q,
         weight_vector_from_q,
     )
 
@@ -106,6 +108,7 @@ __all__ = [
     "save_controller_state",
     "split_reference_logprobs",
     "split_reference_token_counts",
+    "weight_matrix_from_q",
     "weight_vector_from_q",
 ]
 

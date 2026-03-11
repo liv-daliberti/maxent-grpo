@@ -2,5 +2,13 @@ command: train-maxent
 maxent:
   recipe: configs/recipes/Qwen2.5-0.5B-Instruct/grpo/config_code_mbpp.yaml
   training:
-    train_grpo_objective: true
+    objective: grpo
     controller_meta_enabled: false
+    output_dir: var/data/Qwen2.5-0.5B-Open-R1-GRPO-code-mbpp-v1
+
+hydra:
+  run:
+    dir: var/artifacts/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: var/artifacts/outputs/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

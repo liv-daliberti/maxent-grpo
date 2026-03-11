@@ -394,9 +394,7 @@ def drop_incomplete_prompt_groups(
                     aggregated_meta[idx] = meta_group[: len(comps)]
         return prompts, answers, aggregated_comps, aggregated_meta, 0
     generation_stats.setdefault("dropped_prompts", 0)
-    generation_stats.setdefault("partial_prompts", 0)
     generation_stats["dropped_prompts"] += len(drop_indices)
-    generation_stats["partial_prompts"] += len(drop_indices)
     drop_set = set(drop_indices)
     keep_indices = [idx for idx in range(len(prompts)) if idx not in drop_set]
     prompts = [prompts[idx] for idx in keep_indices]
@@ -431,8 +429,9 @@ def truncate_to_expected_counts(
     :param expected_generations: Desired completions per prompt; values <= 0
         skip trimming.
     :type expected_generations: int
-    :returns: Tuple of trimmed completions, trimmed metadata, and the number of
-        prompts that still have fewer completions than requested.
+    :returns: Tuple of grouped completions, grouped metadata, and the number of
+        non-empty prompts whose completion count differs from the requested
+        value.
     :rtype: tuple[list[list[str]], list[list[object | None]] | None, int]
     """
 
@@ -440,17 +439,14 @@ def truncate_to_expected_counts(
         return aggregated_comps, aggregated_meta, 0
     partial_count = 0
     for idx, comps in enumerate(aggregated_comps):
-        if len(comps) > expected_generations:
-            aggregated_comps[idx] = comps[:expected_generations]
-        if 0 < len(aggregated_comps[idx]) < expected_generations:
+        comp_count = len(comps)
+        if 0 < comp_count != expected_generations:
             partial_count += 1
         if aggregated_meta is None or idx >= len(aggregated_meta):
             continue
         meta_group = aggregated_meta[idx]
-        if isinstance(meta_group, list) and len(meta_group) > len(
-            aggregated_comps[idx]
-        ):
-            aggregated_meta[idx] = meta_group[: len(aggregated_comps[idx])]
+        if isinstance(meta_group, list) and len(meta_group) > comp_count:
+            aggregated_meta[idx] = meta_group[:comp_count]
     return aggregated_comps, aggregated_meta, partial_count
 
 

@@ -39,6 +39,8 @@ from pydantic import (
     model_validator,
 )
 
+from maxent_grpo.objectives import normalize_objective, resolve_objective_routing
+
 from .grpo import GRPOConfig, GRPOScriptArguments
 
 LOG = logging.getLogger(__name__)
@@ -64,11 +66,12 @@ class _BaseRecipeSchema(BaseModel):
 
 
 class _BaselineRecipeSchema(_BaseRecipeSchema):
-    train_grpo_objective: bool
+    objective: str = "grpo"
     beta: Optional[float] = None
 
     @model_validator(mode="after")
     def _ensure_beta_alias(self) -> "_BaselineRecipeSchema":
+        self.objective = normalize_objective(self.objective, default="grpo")
         if self.beta is None:
             raise ValueError("Recipe must define beta")
         return self
@@ -81,25 +84,58 @@ class _MaxentRecipeSchema(_BaselineRecipeSchema):
 
     @model_validator(mode="after")
     def _validate_maxent_flags(self) -> "_MaxentRecipeSchema":
-        if self.train_grpo_objective:
-            bonus = self.policy_entropy_bonus_coef
-            try:
-                bonus = float(bonus) if bonus is not None else 0.0
-            except (TypeError, ValueError):
-                bonus = 0.0
-            if bonus <= 0.0:
+        routing = resolve_objective_routing(
+            objective=self.objective,
+            train_grpo_objective=None,
+            maxent_objective_variant=None,
+            maxent_alpha=self.maxent_alpha,
+            policy_entropy_bonus_coef=self.policy_entropy_bonus_coef,
+            default_variant="entropy",
+        )
+        self.objective = routing.objective
+        if routing.objective in {"grpo", "grpo_entropy_bonus"}:
+            if not routing.uses_entropy_bonus_rewards:
+                if routing.objective == "grpo_entropy_bonus":
+                    raise ValueError(
+                        "objective=grpo_entropy_bonus requires policy_entropy_bonus_coef > 0"
+                    )
                 raise ValueError(
-                    "MaxEnt recipes must set train_grpo_objective=false "
-                    "or enable policy_entropy_bonus_coef>0"
+                    "MaxEnt recipes must use objective=maxent_entropy, "
+                    "objective=maxent_listwise, or objective=grpo_entropy_bonus"
+                )
+            tau = self.maxent_tau
+            try:
+                tau_value = float(tau) if tau is not None else 0.0
+            except (TypeError, ValueError):
+                tau_value = 0.0
+            if tau_value > 0.0:
+                raise ValueError(
+                    "GRPO + entropy bonus keeps the native GRPO loss; leave maxent_tau at 0"
+                )
+            if routing.maxent_alpha > 0.0:
+                raise ValueError(
+                    "GRPO + entropy bonus keeps the native GRPO loss; set maxent_alpha to 0"
                 )
             return self
-        # ``maxent_alpha`` is the active MaxEnt knob; keep ``maxent_tau`` as a
-        # legacy fallback for older recipes while configs migrate.
-        if self.maxent_alpha is None and self.maxent_tau is None:
+        if (
+            routing.objective == "maxent_entropy"
+            and self.maxent_alpha is None
+            and self.maxent_tau is None
+        ):
             raise ValueError(
                 "maxent_alpha (or legacy maxent_tau) is required when "
-                "train_grpo_objective=false"
+                "objective=maxent_entropy"
             )
+        if routing.uses_listwise_loss:
+            tau = self.maxent_tau
+            try:
+                tau_value = float(tau) if tau is not None else 0.0
+            except (TypeError, ValueError):
+                tau_value = 0.0
+            if tau_value <= 0.0:
+                raise ValueError("listwise MaxEnt requires maxent_tau > 0")
+            if routing.maxent_alpha > 0.0:
+                raise ValueError("listwise MaxEnt does not use maxent_alpha; set it to 0")
         return self
 
 
@@ -120,9 +156,67 @@ def _infer_recipe_kind(recipe_path: Optional[str], payload: Dict[str, Any]) -> s
     for hint in (base_hint, parent_hint):
         if "maxent-grpo" in hint:
             return "maxent"
+    objective = payload.get("objective")
+    if objective is not None and normalize_objective(objective) in {
+        "maxent_entropy",
+        "maxent_listwise",
+        "grpo_entropy_bonus",
+    }:
+        return "maxent"
     if payload.get("train_grpo_objective") is False:
         return "maxent"
     return "baseline"
+
+
+_REMOVED_RECIPE_KEYS = {
+    "maxent_reward_signal_gate",
+    "maxent_reward_signal_min_max",
+    "maxent_reward_signal_std_threshold",
+    "maxent_bonus_positive_only",
+    "maxent_bonus_min_reward",
+    "maxent_cusp_gate",
+    "maxent_cusp_reward_threshold",
+    "controller_meta_objective",
+    "controller_meta_analytic_steps",
+    "controller_meta_optimizer",
+    "controller_meta_truncation_steps",
+    "controller_meta_use_hessian",
+}
+
+
+def _normalize_recipe_objective_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize legacy objective selectors before schema validation/loading."""
+
+    normalized = dict(payload)
+    removed_keys = sorted(_REMOVED_RECIPE_KEYS.intersection(normalized))
+    if removed_keys:
+        raise ValueError(
+            "Recipe uses removed training keys: " + ", ".join(removed_keys)
+        )
+    if "objective" in normalized:
+        normalized["objective"] = normalize_objective(
+            normalized.get("objective"),
+            default="maxent_entropy",
+        )
+    elif any(
+        key in normalized
+        for key in (
+            "train_grpo_objective",
+            "maxent_objective_variant",
+            "policy_entropy_bonus_coef",
+        )
+    ):
+        routing = resolve_objective_routing(
+            train_grpo_objective=normalized.get("train_grpo_objective"),
+            maxent_objective_variant=normalized.get("maxent_objective_variant"),
+            maxent_alpha=normalized.get("maxent_alpha"),
+            policy_entropy_bonus_coef=normalized.get("policy_entropy_bonus_coef"),
+            default_objective="maxent_entropy",
+        )
+        normalized["objective"] = routing.objective
+    normalized.pop("train_grpo_objective", None)
+    normalized.pop("maxent_objective_variant", None)
+    return normalized
 
 
 def _format_recipe_errors(errors: Sequence[Mapping[str, Any]]) -> str:
@@ -275,7 +369,7 @@ def load_grpo_recipe(
     if not isinstance(cfg, dict):
         raise ValueError(f"Recipe {recipe_path} did not resolve to a mapping.")
 
-    cfg_payload = cast(Dict[str, Any], cfg)
+    cfg_payload = _normalize_recipe_objective_payload(cast(Dict[str, Any], cfg))
     _validate_recipe_payload(cfg_payload, resolved_path)
 
     # Persist the resolved path so downstream logging can surface it consistently.

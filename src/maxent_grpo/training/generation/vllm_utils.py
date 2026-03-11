@@ -151,6 +151,26 @@ def init_vllm_client_communicator(
     base_url_hint = getattr(client, "base_url", None)
     async_mode = _resolve_async_mode(async_mode, base_url_hint)
 
+    def _invoke_init_with_fallback() -> None:
+        """Invoke ``init_communicator`` across known TRL signature variants."""
+
+        try:
+            resolved_init_fn()
+            return
+        except TypeError as first_exc:
+            call_patterns = (
+                (client, getattr(client, "base_url", None)),
+                (client,),
+                (getattr(client, "base_url", None),),
+            )
+            for args in call_patterns:
+                try:
+                    resolved_init_fn(*args)
+                    return
+                except TypeError:
+                    continue
+            raise first_exc
+
     def _log(msg: str) -> None:
         if log is not None:
             log(msg)
@@ -178,7 +198,7 @@ def init_vllm_client_communicator(
 
     def _init_once() -> None:
         if not async_mode:
-            resolved_init_fn()
+            _invoke_init_with_fallback()
             return
 
         base_url = getattr(client, "base_url", None)
@@ -189,7 +209,7 @@ def init_vllm_client_communicator(
             _log(
                 "Async vLLM init unavailable; falling back to blocking init_communicator."
             )
-            resolved_init_fn()
+            _invoke_init_with_fallback()
             return
 
         timeout = float(
@@ -205,7 +225,7 @@ def init_vllm_client_communicator(
             _log(
                 "Async vLLM init missing dependencies; falling back to blocking init_communicator."
             )
-            resolved_init_fn()
+            _invoke_init_with_fallback()
             return
 
         try:

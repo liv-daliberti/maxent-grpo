@@ -23,7 +23,7 @@ Minimal example:
    model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
    dataset_name: open-r1/OpenR1-Math-220k
    output_dir: var/data/out
-   train_grpo_objective: false
+   objective: maxent_listwise
    maxent_tau: 0.2
 
 Loading and Validation
@@ -41,8 +41,9 @@ For flat recipes (no top-level ``script`` / ``training`` / ``model`` keys),
 schema validation enforces:
 
 - Baseline recipes must set ``beta``.
-- MaxEnt recipes must set ``train_grpo_objective: false`` **unless** they opt
-  into GRPO + entropy bonus via ``policy_entropy_bonus_coef>0`` under
+- MaxEnt recipes must use ``objective: maxent_entropy`` or
+  ``objective: maxent_listwise`` unless they opt into GRPO + entropy bonus via
+  ``objective: grpo_entropy_bonus`` with ``policy_entropy_bonus_coef>0`` under
   ``train-maxent``.
 
 Validation is skipped during tests and only applies to flat recipe files (not
@@ -95,10 +96,18 @@ Paired GRPO recipes pin ``maxent_reference_logprobs_source: model`` so both
 objectives use a frozen reference anchor for KL, and they keep optimizer and
 sampling settings aligned with the MaxEnt counterparts.
 
-The paired ``maxent-grpo`` recipes now default to GRPO + entropy bonus (by
-setting ``train_grpo_objective: true`` and a nonzero
-``policy_entropy_bonus_coef``). Switch back to MaxEnt weighting by setting
-``train_grpo_objective: false``.
+The paired Qwen 0.5B/1.5B ``maxent-grpo`` recipes default to trainer-level
+entropy MaxEnt (``objective: maxent_entropy``) and keep
+``maxent_policy_entropy_mode: exact`` so the entropy term uses the correct
+backpropagated gradient. The frozen reference-model anchor remains matched to
+GRPO through ``maxent_reference_logprobs_source: model`` and the same
+beta-weighted KL term.
+
+The older Qwen 7B ``maxent-grpo`` math recipe still uses the GRPO +
+entropy-bonus path. For trainer-level MaxEnt variants:
+
+- ``objective: maxent_entropy`` enables token-entropy regularization via ``maxent_alpha``.
+- ``objective: maxent_listwise`` enables the tau/q/beta listwise weighting objective.
 
 Tips
 ----
@@ -120,3 +129,9 @@ Hydra recipes
 Hydra configs bundle ``command=...`` with a recipe path and optional overrides
 under ``baseline`` / ``maxent``. They are a convenient way to
 share fully-specified CLI runs without long command lines.
+
+For a clean three-way math comparison on the shared 1.5B base recipe, use:
+
+- GRPO parity: ``configs/recipes/hydra/grpo_custom_math.yaml``
+- Entropy MaxEnt: ``configs/recipes/hydra/maxent_entropy_math.yaml``
+- Listwise MaxEnt: ``configs/recipes/hydra/maxent_listwise_math.yaml``

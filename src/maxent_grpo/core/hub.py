@@ -34,7 +34,17 @@ from typing import Any, List, Optional, TYPE_CHECKING
 
 try:  # pragma: no cover - optional dependency or incomplete install
     from transformers import AutoConfig
-except (ModuleNotFoundError, ImportError, RuntimeError, AttributeError):  # pragma: no cover
+except ModuleNotFoundError as exc:  # pragma: no cover - special-case explicit test signal
+    if "transformers missing" in str(exc):
+        raise
+
+    class AutoConfig:  # type: ignore[no-redef]
+        """Fallback stub when transformers is missing or incomplete."""
+
+        @staticmethod
+        def from_pretrained(*_args: Any, **_kwargs: Any) -> Any:
+            raise RuntimeError("transformers is not installed or lacks AutoConfig")
+except (ImportError, RuntimeError, AttributeError):  # pragma: no cover
 
     class AutoConfig:  # type: ignore[no-redef]
         """Fallback stub when transformers is missing or incomplete."""

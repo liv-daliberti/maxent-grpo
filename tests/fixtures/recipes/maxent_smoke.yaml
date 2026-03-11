@@ -2,7 +2,7 @@ model_name_or_path: Stub/Model
 model_revision: main
 dataset_name: stub/dataset
 dataset_prompt_column: prompt
-train_grpo_objective: false
+objective: maxent_listwise
 output_dir: var/tests/maxent_smoke
 maxent_tau: 0.3
 maxent_q_temperature: 1.0

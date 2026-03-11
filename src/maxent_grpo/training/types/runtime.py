@@ -200,6 +200,7 @@ class EvaluationSettings:
     rows: List[Dict[str, str]]
     batch_size: int
     every_n_steps: Optional[int]
+    seed_eval: Optional[Dict[str, Any]] = None
 
 
 @dataclass

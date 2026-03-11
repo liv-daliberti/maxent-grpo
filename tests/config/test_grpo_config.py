@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -30,6 +31,11 @@ def test_grpo_config_eval_alias_sets_eval_strategy(monkeypatch):
     cfg2 = GRPOConfig(eval_strategy=_Interval("epoch"))
     assert isinstance(cfg2.eval_strategy, _Interval)
     assert str(cfg2.eval_strategy) == "epoch"
+
+
+def test_grpo_config_eval_strategy_field_is_parser_friendly():
+    field_type = GRPOConfig.__dataclass_fields__["eval_strategy"].type
+    assert field_type is not Any
 
 
 def test_grpo_script_arguments_defaults():

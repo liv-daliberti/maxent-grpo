@@ -85,6 +85,56 @@ trl_mod.TrlParser = getattr(
     type("TrlParser", (), {"__call__": lambda self, *a, **k: None}),
 )
 
+pydantic_mod = _ensure_stub("pydantic")
+
+
+class _ValidationError(Exception):
+    def errors(self):
+        return []
+
+
+class _BaseModel:
+    model_config = {}
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+def _config_dict(**kwargs):
+    return dict(kwargs)
+
+
+def _field(*, default=None, default_factory=None, **_kwargs):
+    if default_factory is not None:
+        return default_factory()
+    return default
+
+
+def _model_validator(*_args, **_kwargs):
+    def _decorator(func):
+        return func
+
+    return _decorator
+
+
+pydantic_mod.BaseModel = getattr(pydantic_mod, "BaseModel", _BaseModel)
+pydantic_mod.ConfigDict = getattr(pydantic_mod, "ConfigDict", _config_dict)
+pydantic_mod.Field = getattr(pydantic_mod, "Field", _field)
+pydantic_mod.PositiveInt = getattr(pydantic_mod, "PositiveInt", int)
+pydantic_mod.ValidationError = getattr(
+    pydantic_mod, "ValidationError", _ValidationError
+)
+pydantic_mod.model_validator = getattr(
+    pydantic_mod, "model_validator", _model_validator
+)
+pydantic_warnings_mod = _ensure_stub("pydantic.warnings")
+pydantic_warnings_mod.UnsupportedFieldAttributeWarning = getattr(
+    pydantic_warnings_mod,
+    "UnsupportedFieldAttributeWarning",
+    type("UnsupportedFieldAttributeWarning", (Warning,), {}),
+)
+
 accelerate_mod = _ensure_stub("accelerate")
 accelerate_mod.Accelerator = getattr(
     accelerate_mod,
@@ -263,6 +313,7 @@ for _ext in _optional_exts:
 
 autosummary_generate = True
 autosummary_generate_overwrite = True
+autosummary_imported_members = False
 # Avoid evaluating typing annotations (safer with mocked deps)
 # Render type hints in the description (cleaner signatures on RTD)
 autodoc_typehints = "description"
@@ -371,8 +422,12 @@ autodoc_mock_imports = [
     "vllm",
     "wandb",
     "numpy",
+    "pandas",
     "requests",
+    "scipy",
+    "sklearn",
     "huggingface_hub",
+    "pydantic",
 ]
 
 templates_path = ["_templates"]
@@ -438,6 +493,7 @@ pygments_dark_style = "monokai"
 # Silence autosummary import noise for optional modules
 suppress_warnings = [
     "autodoc.import_object",
+    "ref.python",
 ]
 
 # Make TODOs visible in the rendered docs (fun callouts)
@@ -464,25 +520,49 @@ _DUPLICATE_EXPORTS = {
     "maxent_grpo.rewards": {
         "RewardConfig",
     },
+    "maxent_grpo.rewards.maxent": {
+        "AggregatedGenerationState",
+        "ControllerMetaSettings",
+        "ControllerStateSnapshot",
+        "KlControllerSettings",
+        "QDistributionSettings",
+        "TauSchedule",
+        "WeightNormalizationSettings",
+    },
     "maxent_grpo.training.generation.vllm": {
         "GenerationServiceError",
         "VLLMServiceError",
     },
     "maxent_grpo.training": {
+        "AdvantageStats",
+        "BatchingSettings",
+        "ControllerPaths",
         "DataLoader",
+        "GenerationBatch",
         "GenerationSettings",
         "LoggingHandles",
+        "LoggingConfigView",
+        "LoopSettings",
+        "LossScalarBundle",
         "MetricState",
+        "OptimizationSettings",
         "PreparedBatch",
+        "PromptCompletionBatch",
         "PromptCacheEntry",
+        "QDistribution",
         "ReferenceLogprobs",
         "RewardComputation",
+        "RewardComponentStats",
+        "RewardMoments",
+        "RuntimeHandles",
         "ScoringSettings",
         "StepBatchInfo",
         "StepResources",
+        "TokenUsageStats",
         "TrainingLoopContext",
         "TrainingMetricsPayload",
         "TrainingLoopState",
+        "TrainingScalarStats",
         "ValidationContext",
         "BatchDiagnostics",
         "ClipSettings",
@@ -496,20 +576,28 @@ _DUPLICATE_EXPORTS = {
         "ScoreBatch",
         "SequenceScores",
     },
+    "maxent_grpo.training.metrics": {
+        "LogStepArtifacts",
+    },
     "maxent_grpo.training.types": {
+        "ControllerMetaSettings",
+        "ControllerStateSnapshot",
         "DataLoader",
         "GenerationFn",
         "GenerationSettings",
+        "KlControllerSettings",
         "LoggingHandles",
         "MetricState",
         "Optimizer",
         "PromptCacheEntry",
         "PreparedBatch",
+        "QDistributionSettings",
         "ReferenceLogprobs",
         "RewardComputation",
         "ScoringSettings",
         "StepBatchInfo",
         "StepResources",
+        "TauSchedule",
         "Tensor",
         "TrainingLoopContext",
         "TrainingMetricsPayload",
@@ -528,6 +616,7 @@ _DUPLICATE_EXPORTS = {
         "SeedAugmentationConfig",
         "WeightLoggingView",
         "WeightStats",
+        "WeightNormalizationSettings",
         "WeightingSettings",
     },
     "maxent_grpo.training.types.runtime": {
@@ -540,6 +629,7 @@ _DUPLICATE_EXPORTS = {
     },
     "maxent_grpo.training.runtime": {
         "GenerationPenaltyConfig",
+        "StartupStatus",
         "VLLMClientConfig",
     },
     "maxent_grpo.training.runtime.config": {
@@ -550,7 +640,11 @@ _DUPLICATE_EXPORTS = {
         "VLLMClientConfig",
     },
     "maxent_grpo.training.run_helpers": {
+        "ChatTokenizer",
+        "GenerationPenaltyPassthroughMixin",
+        "GenerationSamplingConfig",
         "GenerationPenaltyConfig",
+        "MaxEntOptions",
         "SeedAugmentationConfig",
         "VLLMClientConfig",
     },
@@ -577,39 +671,50 @@ _CANONICAL_TYPE_ALIASES = {
 def _resolve_autodoc_module(app) -> str | None:
     """Best-effort module name for the current autodoc context."""
 
-    if not app.env:
+    try:
+        env = getattr(app, "env", None)
+        if env is None:
+            env = getattr(app, "builder", None)
+            env = getattr(env, "env", None)
+        if env is None:
+            return None
+        temp_data = getattr(env, "temp_data", None) or {}
+        current_module = temp_data.get("autodoc:module")
+        if current_module:
+            if current_module.endswith(".__init__"):
+                return current_module[: -len(".__init__")]
+            return current_module
+        docname = getattr(env, "docname", None)
+        if not docname:
+            return None
+        docname = docname.replace("/", ".")
+        if docname.startswith("_autosummary."):
+            return docname[len("_autosummary.") :]
         return None
-    current_module = app.env.temp_data.get("autodoc:module")
-    if current_module:
-        if current_module.endswith(".__init__"):
-            return current_module[: -len(".__init__")]
-        return current_module
-    docname = getattr(app.env, "docname", None)
-    if not docname:
+    except Exception:
         return None
-    docname = docname.replace("/", ".")
-    if docname.startswith("_autosummary."):
-        return docname[len("_autosummary.") :]
-    return None
 
 
 def _skip_external_members(app, what, name, obj, skip, options):
     """Skip documenting external or duplicate members with noisy docstrings."""
 
-    module_name = getattr(obj, "__module__", "") or ""
-    current_module = _resolve_autodoc_module(app)
-    if current_module and name in _CANONICAL_TYPE_ALIASES:
-        if current_module != _CANONICAL_TYPE_ALIASES[name]:
+    try:
+        module_name = getattr(obj, "__module__", "") or ""
+        current_module = _resolve_autodoc_module(app)
+        if current_module and name in _CANONICAL_TYPE_ALIASES:
+            if current_module != _CANONICAL_TYPE_ALIASES[name]:
+                return True
+        if module_name.startswith("accelerate."):
             return True
-    if module_name.startswith("accelerate."):
-        return True
-    if (
-        current_module in _DUPLICATE_EXPORTS
-        and name in _DUPLICATE_EXPORTS[current_module]
-    ):
-        if module_name and module_name != current_module:
-            return True
-    return skip
+        if (
+            current_module in _DUPLICATE_EXPORTS
+            and name in _DUPLICATE_EXPORTS[current_module]
+        ):
+            if module_name and module_name != current_module:
+                return True
+        return skip
+    except Exception:
+        return skip
 
 
 def setup(app):

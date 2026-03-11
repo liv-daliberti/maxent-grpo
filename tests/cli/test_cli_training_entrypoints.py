@@ -12,6 +12,9 @@ import maxent_grpo as maxent_cli
 
 
 def _stubbed_args(**training_overrides):
+    if "train_grpo_objective" in training_overrides and "objective" not in training_overrides:
+        train_grpo = bool(training_overrides.pop("train_grpo_objective"))
+        training_overrides["objective"] = "grpo" if train_grpo else "maxent_entropy"
     script_args = GRPOScriptArguments(dataset_name="dummy")
     training_args = GRPOConfig(**training_overrides)
     model_args = SimpleNamespace()

@@ -12,6 +12,17 @@ concurrency:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    env:
+      PYTHONNOUSERSITE: "1"
+      PYTHONPATH: ./src
+      XDG_CACHE_HOME: ${{ github.workspace }}/var/cache/xdg
+      PIP_CACHE_DIR: ${{ github.workspace }}/var/cache/pip
+      HF_HOME: ${{ github.workspace }}/var/cache/huggingface
+      HUGGINGFACE_HUB_CACHE: ${{ github.workspace }}/var/cache/huggingface/hub
+      HF_HUB_CACHE: ${{ github.workspace }}/var/cache/huggingface/hub
+      HF_DATASETS_CACHE: ${{ github.workspace }}/var/cache/huggingface/datasets
+      TRANSFORMERS_CACHE: ${{ github.workspace }}/var/cache/huggingface/transformers
+      TMPDIR: ${{ github.workspace }}/var/tmp
     strategy:
       matrix:
         mode: [cpu, stubbed]
@@ -26,19 +37,21 @@ jobs:
 
       - name: Install tooling
         run: |
+          mkdir -p "$XDG_CACHE_HOME" "$PIP_CACHE_DIR" "$HF_HOME" "$HUGGINGFACE_HUB_CACHE" "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE" "$TMPDIR"
           python -m pip install --upgrade pip
-          pip install -r configs/requirements-dev.txt
+          python -m pip install -r configs/requirements-dev.txt
 
       - name: Install project (cpu)
         if: ${{ matrix.mode == 'cpu' }}
-        run: pip install -c configs/constraints.txt -e .[dev]
+        run: |
+          python -m pip install -e . --no-deps
+          python -m pip install -c configs/constraints.txt "torch==2.8.0"
 
       - name: Install project (stubbed)
         if: ${{ matrix.mode == 'stubbed' }}
-        run: pip install -e . --no-deps
+        run: python -m pip install -e . --no-deps
 
       - name: Run tests
         env:
-          PYTHONPATH: ./src
           MAXENT_DISTRIBUTED_STUBS: ${{ matrix.mode == 'stubbed' && '1' || '0' }}
-        run: pytest -q --cov=src --cov-report=term-missing --cov-report=xml -c pytest.ini
+        run: python -m pytest -q --cov=src --cov-report=term-missing --cov-report=xml -c pytest.ini

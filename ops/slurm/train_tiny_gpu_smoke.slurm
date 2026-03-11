@@ -20,7 +20,7 @@ cd "$ROOT_DIR"
 
 mkdir -p var/artifacts/logs var/e2e/out/slurm_tiny
 
-ENV_ACTIVATE="${ENV_ACTIVATE:-$ROOT_DIR/var/e2e-venv/bin/activate}"
+ENV_ACTIVATE="${ENV_ACTIVATE:-$ROOT_DIR/var/openr1/bin/activate}"
 if [[ ! -f "$ENV_ACTIVATE" ]]; then
   echo "Missing virtualenv activation script: $ENV_ACTIVATE" >&2
   exit 1
@@ -34,9 +34,9 @@ export TOKENIZERS_PARALLELISM=false
 export WANDB_DISABLED=true
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
-EXTERNAL_SITE_PACKAGES="${EXTERNAL_SITE_PACKAGES:-/n/fs/similarity/kalshi/markets_pipeline/.runtime/qwen_vllm/venv/lib/python3.11/site-packages}"
-VENV_SITE_PACKAGES="${VENV_SITE_PACKAGES:-$ROOT_DIR/var/e2e-venv/lib/python3.11/site-packages}"
-if [[ -d "$EXTERNAL_SITE_PACKAGES" ]]; then
+EXTERNAL_SITE_PACKAGES="${EXTERNAL_SITE_PACKAGES:-}"
+VENV_SITE_PACKAGES="${VENV_SITE_PACKAGES:-$ROOT_DIR/var/openr1/lib/python3.11/site-packages}"
+if [[ -n "$EXTERNAL_SITE_PACKAGES" && -d "$EXTERNAL_SITE_PACKAGES" ]]; then
   export PYTHONPATH="$ROOT_DIR/var/e2e/shims:$ROOT_DIR/src:$VENV_SITE_PACKAGES:$EXTERNAL_SITE_PACKAGES:${PYTHONPATH:-}"
 else
   export PYTHONPATH="$ROOT_DIR/var/e2e/shims:$ROOT_DIR/src:$VENV_SITE_PACKAGES:${PYTHONPATH:-}"

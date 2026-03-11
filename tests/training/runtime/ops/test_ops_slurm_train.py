@@ -19,12 +19,22 @@ def _resolve_train_slurm() -> Path:
     raise FileNotFoundError("Slurm training launcher not found in expected locations")
 
 
+def _resolve_tiny_smoke_slurm() -> Path:
+    repo_root = Path(__file__).resolve().parents[4]
+    candidate = repo_root / "ops" / "slurm" / "train_tiny_gpu_smoke.slurm"
+    if candidate.exists():
+        return candidate
+    raise FileNotFoundError("Tiny smoke Slurm launcher not found in expected location")
+
+
 def test_slurm_launcher_uses_shared_grpo_entrypoint():
     script = _resolve_train_slurm().read_text()
     assert 'launch_train "grpo-train" "src/maxent_grpo/grpo.py"' in script
     assert 'launch_train "maxent-train" "src/maxent_grpo/grpo.py"' in script
     assert "/grpo/config_" in script
     assert "/maxent-grpo/config_" in script
+    assert "/n/fs/similarity/kalshi" not in script
+    assert 'EXTRA_SITE_PACKAGES="${EXTRA_SITE_PACKAGES:-}"' in script
 
 
 def test_slurm_launcher_help_text(tmp_path):
@@ -43,3 +53,11 @@ def test_slurm_launcher_help_text(tmp_path):
     assert result.returncode == 0, result.stderr
     assert "Usage:" in result.stdout
     assert ("--run-only" in result.stdout) or ("--task" in result.stdout)
+
+
+def test_tiny_smoke_launcher_keeps_site_packages_repo_local():
+    script = _resolve_tiny_smoke_slurm().read_text()
+    assert "/n/fs/similarity/kalshi" not in script
+    assert 'ENV_ACTIVATE="${ENV_ACTIVATE:-$ROOT_DIR/var/openr1/bin/activate}"' in script
+    assert 'VENV_SITE_PACKAGES="${VENV_SITE_PACKAGES:-$ROOT_DIR/var/openr1/lib/python3.11/site-packages}"' in script
+    assert 'EXTERNAL_SITE_PACKAGES="${EXTERNAL_SITE_PACKAGES:-}"' in script

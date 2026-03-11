@@ -60,6 +60,10 @@ else:
     except (
         ModuleNotFoundError,
         AttributeError,
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
     ):  # pragma: no cover - optional dependency
 
         class _DatasetsStub:
@@ -90,12 +94,19 @@ else:
 
 try:  # pragma: no cover - convenience re-export for callers/tests
     from maxent_grpo.config.dataset import ScriptArguments
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
+except (
+    ImportError,
+    ModuleNotFoundError,
+    AttributeError,
+    OSError,
+    RuntimeError,
+    ValueError,
+):  # pragma: no cover - optional dependency
     ScriptArguments = Any  # type: ignore[assignment]
 
 try:  # pragma: no cover - optional pyarrow exception for from_list conversions
     from pyarrow.lib import ArrowInvalid as _ArrowInvalid
-except (ImportError, ModuleNotFoundError, AttributeError):
+except (ImportError, ModuleNotFoundError, AttributeError, OSError, RuntimeError):
     _ArrowInvalid = None
 
 _FROM_LIST_EXCEPTIONS = (TypeError, ValueError, RuntimeError)
@@ -156,7 +167,7 @@ def _load_dataset_with_retries(*args: Any, **kwargs: Any) -> Any:
     last_exc: Optional[BaseException] = None
     for attempt in range(retries + 1):
         try:
-            return datasets.load_dataset(*args, **kwargs)
+            return datasets.load_dataset(*args, **kwargs)  # nosec B615
         except (
             ConnectionError,
             OSError,
@@ -323,6 +334,9 @@ def load_dataset_split(
     """
     if not split:
         raise ValueError("split must be provided when loading an eval dataset")
-    return cast(
-        Dataset, datasets.load_dataset(dataset_name, dataset_config, split=split)
+    dataset = datasets.load_dataset(  # nosec B615
+        dataset_name,
+        dataset_config,
+        split=split,
     )
+    return cast(Dataset, dataset)

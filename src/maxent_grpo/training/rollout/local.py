@@ -69,9 +69,19 @@ class LocalGenerationMixin:
             limit_base = getattr(helpers_mod, "PROMPT_CHAR_LIMIT", PROMPT_CHAR_LIMIT)
         except ImportError:
             limit_base = PROMPT_CHAR_LIMIT
-        if self.ctx.max_prompt_len and self.ctx.max_prompt_len > 0:
-            return int(self.ctx.max_prompt_len)
-        return int(limit_base) if limit_base is not None else 0
+        limit_env = int(limit_base) if isinstance(limit_base, int) else 0
+        approx_limit = (
+            int(self.ctx.max_prompt_len) * 4
+            if self.ctx.max_prompt_len and self.ctx.max_prompt_len > 0
+            else 0
+        )
+        if limit_env <= 0 and approx_limit <= 0:
+            return 0
+        if limit_env <= 0:
+            return approx_limit
+        if approx_limit <= 0:
+            return limit_env
+        return max(limit_env, approx_limit)
 
     def _build_local_prompt_requests(
         self,

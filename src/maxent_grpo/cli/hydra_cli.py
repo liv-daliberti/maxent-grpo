@@ -291,6 +291,59 @@ def _apply_overrides(target: Any, overrides: Optional[Mapping[str, Any]]) -> Any
     return target
 
 
+def _apply_command_objective_default(
+    training_args: Any,
+    *,
+    command: str,
+    command_cfg: BaselineCommand | MaxentCommand,
+    recipe_path: Optional[str],
+) -> None:
+    """Apply command-specific objective defaults for recipe-less invocations.
+
+    This keeps CLI semantics intuitive:
+    - ``train-baseline`` defaults to native GRPO objective.
+    - ``train-maxent`` defaults to MaxEnt objective.
+
+    Explicit overrides (``training.objective=...``) and recipe-driven configs
+    are preserved.
+    """
+
+    if recipe_path:
+        return
+    training_overrides = getattr(command_cfg, "training", None)
+    if (
+        isinstance(training_overrides, Mapping)
+        and (
+            "objective" in training_overrides
+            or "train_grpo_objective" in training_overrides
+        )
+    ):
+        return
+    desired: Optional[str] = None
+    if command == "train-baseline":
+        desired = "grpo"
+    elif command == "train-maxent":
+        desired = "maxent_entropy"
+    if desired is None:
+        return
+    if isinstance(training_args, dict):
+        training_args["objective"] = desired
+        training_args["train_grpo_objective"] = desired in {
+            "grpo",
+            "grpo_entropy_bonus",
+        }
+        return
+    try:
+        setattr(training_args, "objective", desired)
+        setattr(
+            training_args,
+            "train_grpo_objective",
+            desired in {"grpo", "grpo_entropy_bonus"},
+        )
+    except (AttributeError, TypeError):
+        return
+
+
 def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
     """Dispatch hydra-configured subcommands (direct-call friendly).
 
@@ -338,6 +391,12 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
 
         script_args, training_args, model_args = _build_grpo_configs(root.baseline)
         baseline_recipe = _resolve_recipe_path(root.baseline)
+        _apply_command_objective_default(
+            training_args,
+            command=cmd,
+            command_cfg=root.baseline,
+            recipe_path=baseline_recipe,
+        )
         validate_training_config(
             training_args,
             command="train-baseline",
@@ -349,6 +408,12 @@ def hydra_main(cfg: Optional[DictConfig] = None) -> Any:
 
         script_args, training_args, model_args = _build_grpo_configs(root.maxent)
         maxent_recipe = _resolve_recipe_path(root.maxent)
+        _apply_command_objective_default(
+            training_args,
+            command=cmd,
+            command_cfg=root.maxent,
+            recipe_path=maxent_recipe,
+        )
         validate_training_config(
             training_args,
             command="train-maxent",

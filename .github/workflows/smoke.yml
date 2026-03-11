@@ -12,6 +12,17 @@ concurrency:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    env:
+      PYTHONNOUSERSITE: "1"
+      PYTHONPATH: ./src
+      XDG_CACHE_HOME: ${{ github.workspace }}/var/cache/xdg
+      PIP_CACHE_DIR: ${{ github.workspace }}/var/cache/pip
+      HF_HOME: ${{ github.workspace }}/var/cache/huggingface
+      HUGGINGFACE_HUB_CACHE: ${{ github.workspace }}/var/cache/huggingface/hub
+      HF_HUB_CACHE: ${{ github.workspace }}/var/cache/huggingface/hub
+      HF_DATASETS_CACHE: ${{ github.workspace }}/var/cache/huggingface/datasets
+      TRANSFORMERS_CACHE: ${{ github.workspace }}/var/cache/huggingface/transformers
+      TMPDIR: ${{ github.workspace }}/var/tmp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,12 +34,13 @@ jobs:
 
       - name: Install project (no deps)
         run: |
+          mkdir -p "$XDG_CACHE_HOME" "$PIP_CACHE_DIR" "$HF_HOME" "$HUGGINGFACE_HUB_CACHE" "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE" "$TMPDIR"
           python -m pip install --upgrade pip
-          pip install -e . --no-deps
+          python -m pip install -e . --no-deps
 
       - name: Install smoke dependencies
         run: |
-          pip install "numpy>=1.26.4" "pydantic>=2" "torch==2.8.0"
+          python -m pip install "numpy>=1.26.4" "pydantic>=2" "torch==2.8.0"
 
       - name: Run CLI smoke
         run: python tools/smoke_cli.py

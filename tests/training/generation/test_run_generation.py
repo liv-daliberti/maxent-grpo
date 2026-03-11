@@ -89,7 +89,7 @@ transformers_module = sys.modules.setdefault("transformers", ModuleType("transfo
 transformers_module.__spec__ = getattr(
     transformers_module, "__spec__", SimpleNamespace()
 )
-if not hasattr(transformers_module, "PreTrainedModel"):
+if "PreTrainedModel" not in getattr(transformers_module, "__dict__", {}):
 
     class _PreTrainedModel:
         pass

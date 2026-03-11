@@ -46,9 +46,22 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 
 ENV_MODE="${ENV_MODE:-venv}"
 CONDA_SH="${CONDA_SH:-/usr/local/anaconda3/2024.02/etc/profile.d/conda.sh}"
-CONDA_ENV="${CONDA_ENV:-$VAR_DIR/openr1}"
+CONDA_ENV="${CONDA_ENV:-/n/fs/similarity/.conda/envs/openr1}"
 ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
 VIRTUAL_ENV="${VIRTUAL_ENV:-$VAR_DIR/openr1}"
+PYTHON_OVERLAY_DIR="${PYTHON_OVERLAY_DIR:-$VAR_DIR/python_overlay}"
+DATASET_SITE_PACKAGES="${DATASET_SITE_PACKAGES:-/n/fs/similarity/.conda/envs/openr1/lib/python3.11/site-packages}"
+EXTRA_SITE_PACKAGES="${EXTRA_SITE_PACKAGES:-$HOME/.local/lib/python3.11/site-packages:/n/fs/similarity/kalshi/markets_pipeline/.runtime/qwen_vllm/venv/lib/python3.11/site-packages}"
+
+prepare_python_overlay() {
+  mkdir -p "$PYTHON_OVERLAY_DIR"
+  if [[ -d "$DATASET_SITE_PACKAGES/datasets" ]]; then
+    ln -sfn "$DATASET_SITE_PACKAGES/datasets" "$PYTHON_OVERLAY_DIR/datasets"
+  fi
+  if [[ -d "$DATASET_SITE_PACKAGES/pyarrow" ]]; then
+    ln -sfn "$DATASET_SITE_PACKAGES/pyarrow" "$PYTHON_OVERLAY_DIR/pyarrow"
+  fi
+}
 
 activate_env() {
   if [[ "$ENV_MODE" == "conda" ]]; then
@@ -61,9 +74,25 @@ activate_env() {
     # shellcheck disable=SC1090
     source "$ENV_ACTIVATE"
   fi
-  export VIRTUAL_ENV
-  export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
+  if [[ "$ENV_MODE" == "conda" ]]; then
+    export VIRTUAL_ENV="${CONDA_PREFIX:-$CONDA_ENV}"
+  else
+    export VIRTUAL_ENV
+    export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
+  fi
   export PYTHONNOUSERSITE=1
+  prepare_python_overlay
+  local resolved_extra_paths="${EXTRA_SITE_PACKAGES:-}"
+  if [[ -d "$PYTHON_OVERLAY_DIR" ]]; then
+    resolved_extra_paths="${PYTHON_OVERLAY_DIR}${resolved_extra_paths:+:${resolved_extra_paths}}"
+  fi
+  if [[ -n "$resolved_extra_paths" ]]; then
+    if [[ -n "${PYTHONPATH:-}" ]]; then
+      export PYTHONPATH="${resolved_extra_paths}:${PYTHONPATH}"
+    else
+      export PYTHONPATH="${resolved_extra_paths}"
+    fi
+  fi
 }
 
 to_abs_path() {
@@ -356,9 +385,10 @@ start_vllm() {
   (
     activate_env
     export CUDA_VISIBLE_DEVICES="$gpu_id"
+    export PYTHONPATH="$ROOT_DIR:${PYTHONPATH:-}"
     export VLLM_INIT_COMMUNICATOR_TIMEOUT
     cmd=(
-      python -m trl.scripts.vllm_serve
+      python "$ROOT_DIR/tools/vllm_serve_compat.py"
       --model "$model_id"
       --host 127.0.0.1
       --port "$port"

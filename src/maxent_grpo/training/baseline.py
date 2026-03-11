@@ -38,13 +38,17 @@ limitations under the License.
 from __future__ import annotations
 # pylint: disable=broad-exception-caught
 
+import atexit
 from contextlib import contextmanager, nullcontext
 from collections.abc import MutableMapping as MutableMappingABC
 from importlib import import_module
+import json
 import logging
 import os
-from urllib.parse import urlparse
 import sys
+import threading
+import time
+from urllib.parse import urlparse
 from typing import (
     Dict,
     Optional,
@@ -66,7 +70,7 @@ from maxent_grpo.rewards.basic import get_reward_funcs as _compat_get_reward_fun
 from maxent_grpo.core.data import get_dataset, load_dataset_split
 from maxent_grpo.core.hub import ensure_hf_repo_ready
 from maxent_grpo.core.model import get_model, get_tokenizer
-from maxent_grpo.training.runtime import log_run_header
+from maxent_grpo.training.runtime import log_run_header, require_torch
 from maxent_grpo.training.runtime.prompts import (
     PROMPT_CHAR_LIMIT,
     _prompt_char_limit_from_tokens,
@@ -104,6 +108,94 @@ class _LazyModuleProxy:
 
 
 transformers = _LazyModuleProxy("transformers")
+
+
+def _guided_decoding_kwargs(guided_decoding: Any) -> Dict[str, Any]:
+    """Extract vLLM guided-decoding fields across version variants."""
+
+    kwargs = dict(getattr(guided_decoding, "kwargs", {}) or {})
+    for name in (
+        "json",
+        "regex",
+        "choice",
+        "grammar",
+        "json_object",
+        "disable_fallback",
+        "disable_any_whitespace",
+        "disable_additional_properties",
+        "whitespace_pattern",
+        "structural_tag",
+    ):
+        if name not in kwargs:
+            value = getattr(guided_decoding, name, None)
+            if value is not None:
+                kwargs[name] = value
+    return kwargs
+
+
+def _patch_vllm_guided_decoding_compat() -> None:
+    """Bridge TRL 0.18 guided decoding onto vLLM 0.16 structured outputs."""
+
+    try:
+        sampling_params_mod = import_module("vllm.sampling_params")
+    except Exception:
+        return
+
+    structured_outputs_cls = getattr(
+        sampling_params_mod, "StructuredOutputsParams", None
+    )
+    if structured_outputs_cls is None:
+        return
+
+    guided_cls = getattr(sampling_params_mod, "GuidedDecodingParams", None)
+    if guided_cls is None:
+        class GuidedDecodingParams:
+            def __init__(self, backend: Optional[str] = None, **kwargs: Any) -> None:
+                self.backend = backend
+                self.kwargs = dict(kwargs)
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+
+        guided_cls = GuidedDecodingParams
+        setattr(sampling_params_mod, "GuidedDecodingParams", guided_cls)
+
+    vllm_mod = import_module("vllm")
+    original_sampling_params = getattr(vllm_mod, "SamplingParams", None)
+    if original_sampling_params is None:
+        return
+
+    def _guided_to_structured_outputs(guided_decoding: Any) -> Any:
+        if guided_decoding is None:
+            return None
+        if isinstance(guided_decoding, structured_outputs_cls):
+            return guided_decoding
+        structured = structured_outputs_cls(
+            **_guided_decoding_kwargs(guided_decoding)
+        )
+        backend = getattr(guided_decoding, "backend", None)
+        if backend is not None:
+            try:
+                setattr(structured, "_backend", backend)
+            except Exception:
+                pass
+        return structured
+
+    def _compat_sampling_params(*args: Any, **kwargs: Any) -> Any:
+        if "guided_decoding" in kwargs and "structured_outputs" not in kwargs:
+            kwargs["structured_outputs"] = _guided_to_structured_outputs(
+                kwargs.pop("guided_decoding")
+            )
+        else:
+            kwargs.pop("guided_decoding", None)
+        return original_sampling_params(*args, **kwargs)
+
+    for module_name in ("trl.trainer.grpo_trainer", "trl.scripts.vllm_serve"):
+        module = sys.modules.get(module_name)
+        if module is None or getattr(module, "_maxent_guided_decoding_patch", False):
+            continue
+        setattr(module, "GuidedDecodingParams", guided_cls)
+        setattr(module, "SamplingParams", _compat_sampling_params)
+        setattr(module, "_maxent_guided_decoding_patch", True)
 
 
 def _main_process_first(training_args: Any, desc: str) -> Any:
@@ -159,6 +251,7 @@ def _force_vllm_dtype(training_args: GRPOConfig) -> Iterator[None]:
 
 
 LOG = logging.getLogger(__name__)
+_VLLM_BATCH_UPDATE_PREFIX = "__maxent_vllm_batch__:"
 
 GRPOTrainerOverride: Optional[type] = None
 get_peft_config_override: Optional[Any] = (
@@ -540,6 +633,98 @@ def _vllm_client_nccl_overrides(base_url: str) -> Dict[str, str]:
     return overrides
 
 
+def _vllm_sync_chunk_bytes() -> int:
+    """Return the max weight-sync batch size for server-mode vLLM updates."""
+
+    raw = os.getenv("MAXENT_VLLM_SYNC_CHUNK_MB", "64")
+    try:
+        mb = int(raw)
+    except (TypeError, ValueError):
+        mb = 64
+    if mb <= 0:
+        mb = 64
+    return mb * 1024 * 1024
+
+
+def _encode_vllm_batched_update(
+    names: list[str],
+    dtypes: list[str],
+    shapes: list[list[int]],
+) -> dict[str, Any]:
+    """Encode batched vLLM weight metadata through TRL's legacy request model."""
+
+    return {
+        "name": _VLLM_BATCH_UPDATE_PREFIX
+        + json.dumps(
+            {"names": names, "dtypes": dtypes, "shapes": shapes},
+            separators=(",", ":"),
+        ),
+        "dtype": dtypes[0] if dtypes else "float16",
+        "shape": shapes[0] if shapes else [0],
+    }
+
+
+def _tensor_nbytes(tensor: Any) -> int:
+    """Best-effort tensor size in bytes for batching decisions."""
+
+    try:
+        return int(tensor.numel()) * int(tensor.element_size())
+    except Exception:
+        return 0
+
+
+def _import_builtin_vllm_weight_transfer() -> Optional[type]:
+    """Return vLLM's built-in NCCL transfer engine when available."""
+
+    try:
+        nccl_engine_mod = import_module(
+            "vllm.distributed.weight_transfer.nccl_engine"
+        )
+        gpu_worker_mod = import_module("vllm.v1.worker.gpu_worker")
+    except Exception:
+        return None
+
+    engine_cls = getattr(nccl_engine_mod, "NCCLWeightTransferEngine", None)
+    if engine_cls is None:
+        return None
+    if not (
+        callable(getattr(engine_cls, "trainer_init", None))
+        or callable(getattr(engine_cls, "init_process_group", None))
+    ):
+        return None
+    if not callable(getattr(engine_cls, "trainer_send_weights", None)):
+        return None
+    worker_cls = getattr(gpu_worker_mod, "GPUWorker", None)
+    if worker_cls is not None:
+        if not callable(getattr(worker_cls, "init_weight_transfer_engine", None)):
+            return None
+        if not callable(getattr(worker_cls, "update_weights", None)):
+            return None
+    return engine_cls
+
+
+def _builtin_weight_transfer_trainer_init(
+    engine_cls: type,
+    init_info: dict[str, Any],
+) -> Any:
+    """Initialize trainer-side vLLM weight transfer across version variants."""
+
+    trainer_init = getattr(engine_cls, "trainer_init", None)
+    if callable(trainer_init):
+        return trainer_init(init_info)
+    legacy_init = getattr(engine_cls, "init_process_group", None)
+    if callable(legacy_init):
+        return legacy_init(init_info)
+    raise RuntimeError("Built-in vLLM weight transfer lacks trainer init entrypoint")
+
+
+def _clear_vllm_client_buffer(client: Any) -> None:
+    """Reset any buffered trainer-side weight updates."""
+
+    setattr(client, "_maxent_weight_buffer", [])
+    setattr(client, "_maxent_weight_buffer_bytes", 0)
+
+
 def _patch_trl_vllm_client_init() -> None:
     """Patch TRL VLLMClient init handshake to avoid POST-first deadlocks."""
 
@@ -565,8 +750,18 @@ def _patch_trl_vllm_client_init() -> None:
 
     original_ctor = getattr(client_cls, "__init__", None)
     original_init_communicator = getattr(client_cls, "init_communicator", None)
-    if not callable(original_ctor) or not callable(original_init_communicator):
+    original_update_named_param = getattr(client_cls, "update_named_param", None)
+    original_update_model_params = getattr(client_cls, "update_model_params", None)
+    original_reset_prefix_cache = getattr(client_cls, "reset_prefix_cache", None)
+    original_close_communicator = getattr(client_cls, "close_communicator", None)
+    if (
+        not callable(original_ctor)
+        or not callable(original_init_communicator)
+        or not callable(original_update_named_param)
+    ):
         return
+
+    builtin_weight_transfer = _import_builtin_vllm_weight_transfer()
 
     def _patched_ctor(self: Any, *args: Any, **kwargs: Any) -> None:
         if "group_port" not in kwargs or kwargs.get("group_port") in (None, 0):
@@ -574,12 +769,15 @@ def _patch_trl_vllm_client_init() -> None:
             if resolved_group_port is not None:
                 kwargs["group_port"] = resolved_group_port
         original_ctor(self, *args, **kwargs)
+        _clear_vllm_client_buffer(self)
+        setattr(
+            self,
+            "_maxent_weight_chunk_bytes",
+            0 if builtin_weight_transfer is not None else _vllm_sync_chunk_bytes(),
+        )
+        setattr(self, "_maxent_builtin_weight_transfer", builtin_weight_transfer is not None)
 
     def _patched_init_communicator(self: Any) -> None:
-        bound_original = cast(
-            Callable[[], None],
-            original_init_communicator.__get__(self, type(self)),
-        )
         base_url = str(getattr(self, "base_url", ""))
         overrides = _vllm_client_nccl_overrides(base_url)
         if overrides:
@@ -588,14 +786,237 @@ def _patch_trl_vllm_client_init() -> None:
                 ", ".join(f"{k}={v}" for k, v in overrides.items()),
             )
         with _temporary_env(overrides):
-            _init_vllm_client_communicator(
-                self,
-                log=LOG.info,
-                init_fn=bound_original,
+            if builtin_weight_transfer is None:
+                bound_original = cast(
+                    Callable[[], None],
+                    original_init_communicator.__get__(self, type(self)),
+                )
+                _init_vllm_client_communicator(
+                    self,
+                    log=LOG.info,
+                    init_fn=bound_original,
+                )
+                return
+
+            timeout = float(os.getenv("MAXENT_VLLM_INIT_TIMEOUT_S", "60"))
+            retries_raw = os.getenv("MAXENT_VLLM_INIT_RETRIES", "2")
+            backoff_raw = os.getenv("MAXENT_VLLM_INIT_RETRY_BACKOFF_S", "2.0")
+            try:
+                retries = max(1, int(retries_raw))
+            except (TypeError, ValueError):
+                retries = 2
+            try:
+                backoff_s = max(0.0, float(backoff_raw))
+            except (TypeError, ValueError):
+                backoff_s = 2.0
+
+            host = str(getattr(self, "host", "") or "").strip()
+            if not host:
+                raise RuntimeError("vLLM client host is unavailable for weight sync")
+            group_port = getattr(self, "group_port", None)
+            if group_port in (None, 0):
+                raise RuntimeError("vLLM group_port is unavailable for weight sync")
+
+            def _close_local_group() -> None:
+                if getattr(self, "pynccl_comm", None) is not None:
+                    try:
+                        delattr(self, "pynccl_comm")
+                    except Exception:
+                        setattr(self, "pynccl_comm", None)
+
+            last_error: Optional[BaseException] = None
+            for attempt in range(1, retries + 1):
+                _close_local_group()
+                try:
+                    response = self.session.get(
+                        f"{self.base_url}/get_world_size/",
+                        timeout=timeout,
+                    )
+                    response.raise_for_status()
+                    vllm_world_size = int(response.json()["world_size"])
+                    world_size = vllm_world_size + 1
+                    init_url = f"{self.base_url}/init_communicator/"
+                    payload = {
+                        "host": host,
+                        "port": int(group_port),
+                        "world_size": world_size,
+                    }
+                    post_resp = self.session.post(
+                        init_url,
+                        json=payload,
+                        timeout=timeout,
+                    )
+                    if post_resp.status_code != 200:
+                        raise RuntimeError(
+                            "vLLM init_communicator POST failed: "
+                            f"{post_resp.status_code} {getattr(post_resp, 'text', '')}"
+                        )
+                    # Match TRL's original init ordering: let the server accept
+                    # the init request first, then join the NCCL group locally.
+                    time.sleep(0.1)
+                    comm = _builtin_weight_transfer_trainer_init(
+                        builtin_weight_transfer,
+                        {
+                            "master_address": host,
+                            "master_port": int(group_port),
+                            "rank_offset": 1,
+                            "world_size": world_size,
+                        }
+                    )
+                    self.rank = 0
+                    self.pynccl_comm = comm
+                    if self.pynccl_comm is None:
+                        raise RuntimeError(
+                            "vLLM trainer weight-transfer init produced no communicator"
+                        )
+                    atexit.register(self.close_communicator)
+                    return
+                except Exception as exc:
+                    last_error = exc
+                    LOG.info(
+                        "vLLM init_communicator failed (attempt %d): %s",
+                        attempt,
+                        exc,
+                    )
+                    _close_local_group()
+                    if attempt >= retries:
+                        break
+                    time.sleep(backoff_s)
+            if last_error is not None:
+                raise RuntimeError(str(last_error)) from last_error
+
+    def _flush_weight_buffer(self: Any) -> None:
+        buffer = list(getattr(self, "_maxent_weight_buffer", []) or [])
+        if not buffer:
+            return
+        if builtin_weight_transfer is None:
+            raise RuntimeError("Built-in vLLM weight transfer is unavailable")
+        if getattr(self, "pynccl_comm", None) is None:
+            raise RuntimeError(
+                "Communicator not initialized. Call `init_communicator` first."
             )
+        names = [str(name) for name, _ in buffer]
+        dtypes = [str(weight.dtype).split(".")[-1] for _, weight in buffer]
+        shapes = [list(tuple(weight.shape)) for _, weight in buffer]
+        url = f"{self.base_url}/update_named_param/"
+        response_holder: Dict[str, Any] = {}
+
+        def _post_update() -> None:
+            try:
+                response_holder["resp"] = self.session.post(
+                    url,
+                    json=_encode_vllm_batched_update(names, dtypes, shapes),
+                )
+            except Exception as exc:
+                response_holder["error"] = exc
+
+        post_thread = threading.Thread(target=_post_update, daemon=True)
+        post_thread.start()
+        builtin_weight_transfer.trainer_send_weights(
+            iter(buffer),
+            self.pynccl_comm,
+            src=0,
+            packed=True,
+        )
+        post_thread.join()
+        post_error = response_holder.get("error")
+        if post_error is not None:
+            raise RuntimeError(f"vLLM update_named_param POST failed: {post_error}")
+        response = response_holder.get("resp")
+        if response is None:
+            raise RuntimeError("vLLM update_named_param POST returned no response")
+        if response.status_code != 200:
+            raise RuntimeError(f"Request failed: {response.status_code}, {response.text}")
+        _clear_vllm_client_buffer(self)
+
+    def _patched_update_named_param(self: Any, name: str, weights: Any) -> None:
+        if builtin_weight_transfer is None:
+            dtype, shape = str(weights.dtype), tuple(weights.shape)
+            url = f"{self.base_url}/update_named_param/"
+            response = self.session.post(
+                url,
+                json={"name": name, "dtype": dtype, "shape": shape},
+            )
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"Request failed: {response.status_code}, {response.text}"
+                )
+
+            # vLLM's NCCL broadcast is launched asynchronously on the current
+            # CUDA stream. Replacing the broken store-backed barrier with a
+            # stream sync keeps the source buffer valid until the transfer is
+            # complete.
+            self.pynccl_comm.broadcast(weights, src=self.rank)
+            require_torch("baseline_vllm_weight_sync").cuda.current_stream(
+                device=weights.device
+            ).synchronize()
+            return
+
+        if weights is None:
+            return
+        tensor = getattr(weights, "detach", None)
+        tensor = tensor() if callable(tensor) else weights
+        weight_buffer = list(getattr(self, "_maxent_weight_buffer", []) or [])
+        weight_buffer.append((str(name), tensor))
+        setattr(self, "_maxent_weight_buffer", weight_buffer)
+        total_bytes = int(getattr(self, "_maxent_weight_buffer_bytes", 0) or 0)
+        total_bytes += _tensor_nbytes(tensor)
+        setattr(self, "_maxent_weight_buffer_bytes", total_bytes)
+        chunk_bytes = int(
+            getattr(self, "_maxent_weight_chunk_bytes", _vllm_sync_chunk_bytes()) or 0
+        )
+        if chunk_bytes > 0 and total_bytes >= chunk_bytes:
+            _flush_weight_buffer(self)
+
+    def _patched_update_model_params(self: Any, model: Any) -> None:
+        if builtin_weight_transfer is None or not callable(original_update_model_params):
+            if callable(original_update_model_params):
+                original_update_model_params(self, model)
+            return
+        original_update_model_params(self, model)
+        _flush_weight_buffer(self)
+
+    def _patched_reset_prefix_cache(self: Any) -> Any:
+        if builtin_weight_transfer is not None:
+            _flush_weight_buffer(self)
+        if callable(original_reset_prefix_cache):
+            return original_reset_prefix_cache(self)
+        return None
+
+    def _patched_close_communicator(self: Any) -> Any:
+        if builtin_weight_transfer is None:
+            if callable(original_close_communicator):
+                return original_close_communicator(self)
+            return None
+        try:
+            _flush_weight_buffer(self)
+        except Exception:
+            LOG.debug("Failed to flush pending vLLM weights during shutdown.")
+        _clear_vllm_client_buffer(self)
+        if getattr(self, "pynccl_comm", None) is not None:
+            try:
+                delattr(self, "pynccl_comm")
+            except Exception:
+                setattr(self, "pynccl_comm", None)
+        session = getattr(self, "session", None)
+        close = getattr(session, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception:
+                LOG.debug("Failed to close vLLM client session cleanly.")
+        return None
 
     setattr(client_cls, "__init__", _patched_ctor)
     setattr(client_cls, "init_communicator", _patched_init_communicator)
+    setattr(client_cls, "update_named_param", _patched_update_named_param)
+    setattr(client_cls, "flush", _flush_weight_buffer)
+    if callable(original_update_model_params):
+        setattr(client_cls, "update_model_params", _patched_update_model_params)
+    if callable(original_reset_prefix_cache):
+        setattr(client_cls, "reset_prefix_cache", _patched_reset_prefix_cache)
+    if callable(original_close_communicator):
+        setattr(client_cls, "close_communicator", _patched_close_communicator)
     setattr(client_cls, "_maxent_async_init_patch", True)
 
     try:  # Keep GRPOTrainer's module-local alias in sync if it was imported earlier.
@@ -639,12 +1060,16 @@ def run_baseline_training(
         )
 
     # Import selected pieces lazily to keep module import light-weight
+    if bool(getattr(training_args, "use_vllm", False)):
+        _patch_vllm_guided_decoding_compat()
     from transformers.trainer_utils import get_last_checkpoint
     from trl import (
         GRPOTrainer as _GRPOTrainer,
         get_peft_config as _get_peft_config,
     )
     from trl.data_utils import maybe_apply_chat_template
+    if bool(getattr(training_args, "use_vllm", False)):
+        _patch_vllm_guided_decoding_compat()
 
     override = getattr(sys.modules[__name__], "GRPOTrainerOverride", None)
     if override is not None:
@@ -747,7 +1172,14 @@ def run_baseline_training(
         set_verbosity = getattr(datasets_logging, "set_verbosity", None)
         if callable(set_verbosity):
             set_verbosity(log_level)
-    except (ImportError, ModuleNotFoundError, AttributeError) as exc:
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        AttributeError,
+        OSError,
+        RuntimeError,
+        ValueError,
+    ) as exc:
         LOG.debug("Skipping datasets logging setup: %s", exc)
     tf_logging_module = getattr(
         getattr(transformers_mod, "utils", None), "logging", None

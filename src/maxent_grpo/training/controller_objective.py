@@ -149,7 +149,7 @@ def build_controller_objective(
     method = str(getattr(meta_cfg, "method", "analytic") or "analytic").lower()
     if method in ("analytic", "analytic_grad", "potential"):
         return AnalyticControllerObjective()
-    if method in ("truncated", "truncated_backprop", "backprop"):
+    if method in ("first_order", "truncated", "truncated_backprop", "backprop"):
         steps = getattr(meta_cfg, "truncation_steps", None)
         if steps is None or steps <= 0:
             steps = getattr(meta_cfg, "analytic_steps", 1)

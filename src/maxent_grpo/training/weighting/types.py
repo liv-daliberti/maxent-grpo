@@ -601,12 +601,12 @@ class WeightStats:
 class WeightLoggingView:
     """Aggregated entropy statistics for logging."""
 
-    entropy: float
-    entropy_norm: float
-    entropy_min: float
-    entropy_max: float
-    advantage_entropy_mean: float
-    advantage_entropy_std: float
+    entropy: float = 0.0
+    entropy_norm: float = 0.0
+    entropy_min: float = 0.0
+    entropy_max: float = 0.0
+    advantage_entropy_mean: float = 0.0
+    advantage_entropy_std: float = 0.0
 
 
 class TorchControllerState:

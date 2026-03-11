@@ -353,7 +353,9 @@ class _WeightingMetricHelper:
         args = getattr(trainer, "args", self._args)
         tau = float(self._current_tau(trainer))
         beta = float(self._current_beta(trainer))
-        denom = max(tau + beta, 1.0)
+        denom = _numeric_or_none(getattr(trainer, "weight_norm_denom", None))
+        if denom is None:
+            denom = max(tau + beta, 1.0)
         delta_tau = tau - self._prev_tau if self._prev_tau is not None else 0.0
         delta_beta = beta - self._prev_beta if self._prev_beta is not None else 0.0
         self._prev_tau = tau

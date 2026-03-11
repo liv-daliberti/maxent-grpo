@@ -14,6 +14,7 @@
 
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+reference_model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 model_revision: main
 resume_from_checkpoint: false
 torch_dtype: float16
@@ -55,6 +56,10 @@ vllm_return_logprobs: true
 vllm_request_logprobs: true
 # Force frozen reference-model scoring for KL/GRPO trust region.
 maxent_reference_logprobs_source: model
+maxent_trl_reference_scoring: true
+behavior_logprobs_source: model
+policy_entropy_bonus_coef: 0.0
+maxent_length_normalize_ref: true
 maxent_policy_entropy: false
 vllm_sync_weights: false
 vllm_sync_interval_steps: 10  # sync weights every N optimizer steps when enabled (0 disables)
@@ -64,7 +69,7 @@ gradient_accumulation_steps: 32    # match TRL defaults for faster logging feedb
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-train_grpo_objective: true
+objective: grpo
 gen_temperature: 1.0
 gen_top_p: 1.0
 gen_top_k: 0

@@ -12,9 +12,12 @@ instructions.
 Paired GRPO/MaxEnt recipes live under ``configs/recipes/<model>/grpo/`` and
 ``configs/recipes/<model>/maxent-grpo/`` so runs stay comparable. The GRPO
 pairs pin ``maxent_reference_logprobs_source: model`` to keep the objective and
-frozen reference anchor aligned. The
-``maxent-grpo`` recipes now default to GRPO + entropy bonus (and can still
-switch to MaxEnt weighting via ``train_grpo_objective=false``).
+frozen reference anchor aligned. The Qwen 0.5B/1.5B ``maxent-grpo`` recipes
+default to trainer-level entropy MaxEnt
+(``objective=maxent_entropy``) with
+``maxent_policy_entropy_mode=exact``; the frozen reference still enters through
+the same KL term used by GRPO. The older Qwen 7B ``maxent-grpo`` math recipe
+remains a GRPO + entropy-bonus run.
 
 Get Started
 -----------

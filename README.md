@@ -34,23 +34,37 @@ maxent-grpo-baseline \
   baseline.script.eval_dataset_solution_column=input_output
 ```
 
-Paired recipes (GRPO vs MaxEnt): each model ships matched configs under
+Paired recipes (GRPO vs MaxEnt): the Qwen 0.5B/1.5B pairs under
 `configs/recipes/<model>/grpo/config_math.yaml` and
-`configs/recipes/<model>/maxent-grpo/config_math.yaml` with shared sampling,
-optimizer, and eval settings. The GRPO pairs set
-`maxent_reference_logprobs_source: model` so both objectives use the same
-frozen-reference scoring anchor in the shared TRL trainer path. For the Hydra preset, use
-`configs/recipes/hydra/grpo_custom_math.yaml`.
+`configs/recipes/<model>/maxent-grpo/config_math.yaml` keep the comparison
+settings aligned on sampling, frozen-reference/KL, optimizer, and eval knobs.
+For the cleanest three-way comparison, use the Hydra presets
+`configs/recipes/hydra/grpo_custom_math.yaml`,
+`configs/recipes/hydra/maxent_entropy_math.yaml`, and
+`configs/recipes/hydra/maxent_listwise_math.yaml`, which layer
+objective-specific overrides on top of the same GRPO base recipe.
 
-Policy entropy is only computed when requested (``maxent_policy_entropy=true``)
-or when the **GRPO + entropy bonus** mode is enabled via
-``policy_entropy_bonus_coef>0``. In the entropy‑bonus mode the policy entropy
-is extracted from the same scoring pass (no extra forward passes), **z‑scored**
-within each prompt group and scaled by the batch reward std, then added to the
-reward before the loss is built; logs report the bonus mean and its impact on
-the total reward/objective.
+The shipped Qwen 0.5B/1.5B `maxent-grpo` recipes default to
+entropy-regularized MaxEnt (`objective: maxent_entropy`). In that mode the trainer always uses the
+exact policy entropy gradient in the loss, so the recipe must keep
+`maxent_policy_entropy_mode: exact`. The separate **GRPO + entropy bonus** mode
+is still available through `policy_entropy_bonus_coef>0`; that reward-side path
+adds a z-scored entropy bonus before the GRPO loss is built. The older Qwen 7B
+`maxent-grpo` math recipe still uses that GRPO + entropy-bonus route.
 
-All MaxEnt recipes now enable the τ/β meta-controller (analytic mode) by default so weights stay on target without manual tuning. Override with Hydra/CLI flags such as ``controller_meta_enabled=false`` (fully static), ``controller_meta_method=first_order`` (truncated gradients), or ``controller_meta_lr=0.02`` for per-project retuning. The baseline GRPO recipes keep the controller disabled unless you explicitly flip the flag.
+For both native GRPO and entropy-regularized MaxEnt, the reference model stays
+in play through the same beta-weighted KL term. The entropy term itself is
+on-policy, but the trust-region anchor remains the frozen reference model via
+`maxent_reference_logprobs_source: model` and `maxent_trl_reference_scoring: true`.
+
+The paired flat recipes keep `controller_meta_enabled: false` by default so
+GRPO vs MaxEnt comparisons stay static unless you explicitly opt in. The Hydra
+convenience presets `configs/recipes/hydra/maxent_math.yaml` and
+`configs/recipes/hydra/maxent_code_mbpp.yaml` do enable the analytic τ/β
+meta-controller by default. Override with Hydra/CLI flags such as
+`controller_meta_enabled=false` (fully static),
+`controller_meta_method=first_order` (truncated gradients), or
+`controller_meta_lr=0.02` for per-project retuning.
 
 Examples:
 

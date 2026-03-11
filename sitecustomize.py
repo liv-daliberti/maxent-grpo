@@ -32,6 +32,11 @@ warnings.filterwarnings(
     category=FutureWarning,
     module=r"transformers\.utils\.hub",
 )
+warnings.filterwarnings(
+    "ignore",
+    message=r"A NumPy version >=1\.21\.6 and <1\.28\.0 is required for this version of SciPy.*",
+    category=UserWarning,
+)
 
 
 def _patch_vllm_guided_decoding_params() -> None:

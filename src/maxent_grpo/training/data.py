@@ -15,6 +15,10 @@ try:  # pragma: no cover - optional dependency guard for stripped test envs
 except (
     ImportError,
     ModuleNotFoundError,
+    AttributeError,
+    OSError,
+    RuntimeError,
+    ValueError,
 ):  # pragma: no cover - fallback when datasets is unavailable
     _hf_load_from_disk = None
 

@@ -30,6 +30,7 @@ from maxent_grpo.training.generation import (
     flatten_ref_metadata as _flatten_ref_metadata,
     retry_incomplete_prompts,
     seed_generation_groups,
+    truncate_to_expected_counts,
 )
 from maxent_grpo.training.generation.errors import (
     GenerationServiceError,
@@ -206,12 +207,28 @@ def compute_reward_totals(
             reward_tensor = reward_tensor * float(reward_weight)
         reward_tensors.append(reward_tensor)
     if reward_tensors:
-        stacked = torch.stack(reward_tensors, dim=0)
-        try:
-            total_tensor = torch.nansum(stacked, dim=0)
-        except AttributeError:
-            total_tensor = torch.sum(torch.nan_to_num(stacked, nan=0.0), dim=0)
-        total_utils = [float(val) for val in total_tensor.tolist()]
+        stack_fn = getattr(torch, "stack", None)
+        if callable(stack_fn):
+            stacked = stack_fn(reward_tensors, dim=0)
+            try:
+                total_tensor = torch.nansum(stacked, dim=0)
+            except AttributeError:
+                total_tensor = torch.sum(torch.nan_to_num(stacked, nan=0.0), dim=0)
+            total_utils = [float(val) for val in total_tensor.tolist()]
+        else:
+            # Fallback path used by lightweight torch doubles in unit tests.
+            total_utils = [0.0] * len(completion_batch)
+            for tensor in reward_tensors:
+                tolist_fn = getattr(tensor, "tolist", None)
+                values = tolist_fn() if callable(tolist_fn) else tensor
+                for idx, raw in enumerate(values):
+                    try:
+                        val = float(raw)
+                    except (TypeError, ValueError):
+                        val = 0.0
+                    if math.isnan(val) or math.isinf(val):
+                        val = 0.0
+                    total_utils[idx] += val
     return total_utils, per_reward_values
 
 
@@ -503,6 +520,14 @@ def prepare_generation_batch(
         aggregated_meta,
         generation_stats,
     )
+    aggregated_comps, aggregated_meta, partial_count = truncate_to_expected_counts(
+        aggregated_comps,
+        aggregated_meta,
+        expected_generations,
+    )
+    if partial_count > 0:
+        generation_stats.setdefault("partial_prompts", 0)
+        generation_stats["partial_prompts"] += int(partial_count)
     prompts, answers, aggregated_comps, aggregated_meta, mismatch_count = (
         drop_incomplete_prompt_groups(
             prompts,

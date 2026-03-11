@@ -14,9 +14,11 @@ import math
 from functools import partial
 import inspect
 import re
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
 
 import torch
+import torch.nn.functional as F
 
 try:
     from accelerate.utils import gather
@@ -41,7 +43,20 @@ from maxent_grpo.rewards.basic import (
     pure_accuracy_math_correctness,
     uses_pure_accuracy_math_reward,
 )
+from maxent_grpo.objectives import resolve_objective_routing
+from maxent_grpo.training.controller_objective import (
+    ControllerMetaContext,
+    build_controller_objective,
+)
 from maxent_grpo.training.telemetry.trl_logging import ensure_weighting_logging
+from maxent_grpo.training.weighting import (
+    apply_meta_controller_update,
+    collect_weight_entropy,
+    maybe_update_beta,
+    maybe_update_tau,
+    weight_matrix_from_q,
+)
+from maxent_grpo.training.weighting.logic import build_weighting_settings
 
 LOG = logging.getLogger(__name__)
 _PASS_METRIC_SUCCESS_REWARD = 1.0
@@ -69,6 +84,22 @@ def _weighted_mean(values: List[float], weights: List[float]) -> float:
     if total_weight <= 0.0:
         return 0.0
     return float(sum(v * w for v, w in zip(values, weights))) / total_weight
+
+
+def _nanmin_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    """Return the min value while ignoring NaNs."""
+    finite = tensor[~torch.isnan(tensor)]
+    if finite.numel() == 0:
+        return torch.tensor(float("nan"), dtype=tensor.dtype, device=tensor.device)
+    return finite.min()
+
+
+def _nanmax_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    """Return the max value while ignoring NaNs."""
+    finite = tensor[~torch.isnan(tensor)]
+    if finite.numel() == 0:
+        return torch.tensor(float("nan"), dtype=tensor.dtype, device=tensor.device)
+    return finite.max()
 
 
 def _tokenize_for_diversity(text: str, tokenizer: Any = None) -> List[Any]:
@@ -335,6 +366,152 @@ def _coerce_non_negative_float(value: Any, *, default: float = 0.0) -> float:
     return max(float(numeric), 0.0)
 
 
+def _reshape_prompt_major_tensor(
+    tensor: torch.Tensor,
+    group_size: int,
+) -> Optional[torch.Tensor]:
+    """Reshape prompt-major flat rollouts into ``[prompts, generations, ...]``."""
+    if group_size <= 0:
+        return None
+    total_rows = int(tensor.size(0))
+    if total_rows <= 0 or total_rows % group_size != 0:
+        return None
+    num_prompts = total_rows // group_size
+    if num_prompts <= 0:
+        return None
+    shape = (num_prompts, group_size) + tuple(tensor.shape[1:])
+    return tensor.reshape(shape).contiguous()
+
+
+def _flatten_prompt_major_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    """Convert a prompt-major ``[prompts, generations, ...]`` tensor to flat order."""
+    if tensor.dim() < 2:
+        return tensor.reshape(-1)
+    shape = (-1,) + tuple(tensor.shape[2:])
+    return tensor.reshape(shape).contiguous()
+
+
+def _resolve_prompt_group_sizes(
+    tensor_dict: Dict[str, Optional[torch.Tensor]],
+    group_size: int,
+) -> Tuple[int, int]:
+    """Infer flat row count and prompt count for listwise prompt groups."""
+    if group_size <= 0:
+        raise ValueError("group_size must be positive")
+    for key in (
+        "completion_ids",
+        "completion_mask",
+        "advantages",
+        "old_per_token_logps",
+        "prompt_ids",
+        "prompt_mask",
+    ):
+        tensor = tensor_dict.get(key)
+        if isinstance(tensor, torch.Tensor):
+            total_rows = int(tensor.size(0))
+            break
+    else:
+        raise ValueError("Listwise prompt grouping requires flat rollout tensors.")
+    usable = (total_rows // group_size) * group_size
+    if usable <= 0:
+        raise ValueError("Listwise prompt grouping requires at least one full prompt group.")
+    if usable != total_rows:
+        raise ValueError(
+            "Listwise prompt grouping requires the flat batch size to be divisible by num_generations."
+        )
+    return total_rows, total_rows // group_size
+
+
+def _shuffle_listwise_tensor_dict(
+    tensor_dict: Dict[str, Optional[torch.Tensor]],
+    group_size: int,
+) -> Dict[str, Optional[torch.Tensor]]:
+    """Shuffle prompt groups while preserving candidate order within each group."""
+    total_rows, num_prompts = _resolve_prompt_group_sizes(tensor_dict, group_size)
+    permutation_device: Optional[torch.device] = None
+    for tensor in tensor_dict.values():
+        if isinstance(tensor, torch.Tensor):
+            permutation_device = tensor.device
+            break
+    permutation = torch.randperm(num_prompts, device=permutation_device)
+    shuffled: Dict[str, Optional[torch.Tensor]] = {}
+    for key, tensor in tensor_dict.items():
+        if tensor is None:
+            shuffled[key] = None
+        elif int(tensor.size(0)) == total_rows:
+            grouped = _reshape_prompt_major_tensor(tensor, group_size)
+            if grouped is None:
+                raise ValueError(f"Could not reshape listwise tensor {key!r} for shuffling.")
+            shuffled[key] = _flatten_prompt_major_tensor(grouped[permutation])
+        elif int(tensor.size(0)) == num_prompts:
+            shuffled[key] = tensor[permutation]
+        else:
+            shuffled[key] = tensor
+    return shuffled
+
+
+def _normalize_listwise_q_targets(
+    q_grouped: torch.Tensor,
+    *,
+    num_prompts: int,
+    group_size: int,
+    context: str,
+) -> torch.Tensor:
+    """Validate listwise q targets and project them onto the simplex."""
+    if q_grouped.dim() != 2:
+        raise ValueError(f"{context} requires rank-2 listwise q targets.")
+    expected_shape = (num_prompts, group_size)
+    actual_shape = (int(q_grouped.size(0)), int(q_grouped.size(1)))
+    if actual_shape != expected_shape:
+        raise ValueError(
+            f"{context} requires listwise q targets with shape {expected_shape}, "
+            f"got {actual_shape}."
+        )
+    if not torch.isfinite(q_grouped).all():
+        raise ValueError(f"{context} requires finite listwise q targets.")
+    if (q_grouped < 0).any():
+        raise ValueError(f"{context} requires non-negative listwise q targets.")
+    row_sums = q_grouped.sum(dim=1, keepdim=True)
+    if (row_sums <= 0).any():
+        raise ValueError(f"{context} requires listwise q targets with positive mass.")
+    return q_grouped / row_sums
+
+
+def _split_listwise_tensor_dict(
+    tensor_dict: Dict[str, Optional[torch.Tensor]],
+    num_chunks: int,
+    group_size: int,
+) -> List[Dict[str, Optional[torch.Tensor]]]:
+    """Split buffered listwise tensors by whole prompt groups."""
+    if num_chunks <= 0:
+        raise ValueError("num_chunks must be positive")
+    total_rows, num_prompts = _resolve_prompt_group_sizes(tensor_dict, group_size)
+    if num_prompts % num_chunks != 0:
+        raise ValueError(
+            "Listwise prompt groups must split evenly across steps_per_generation."
+        )
+    prompts_per_chunk = num_prompts // num_chunks
+    rows_per_chunk = prompts_per_chunk * group_size
+    chunks: List[Dict[str, Optional[torch.Tensor]]] = []
+    for chunk_idx in range(num_chunks):
+        row_start = chunk_idx * rows_per_chunk
+        row_end = (chunk_idx + 1) * rows_per_chunk
+        prompt_start = chunk_idx * prompts_per_chunk
+        prompt_end = (chunk_idx + 1) * prompts_per_chunk
+        chunk: Dict[str, Optional[torch.Tensor]] = {}
+        for key, tensor in tensor_dict.items():
+            if tensor is None:
+                chunk[key] = None
+            elif int(tensor.size(0)) == total_rows:
+                chunk[key] = tensor[row_start:row_end]
+            elif int(tensor.size(0)) == num_prompts:
+                chunk[key] = tensor[prompt_start:prompt_end]
+            else:
+                chunk[key] = tensor
+        chunks.append(chunk)
+    return chunks
+
+
 def _strip_ema_param_prefixes(name: str) -> Tuple[str, int]:
     """Remove known wrapper prefixes used in policy/reference param names."""
     clean = str(name)
@@ -363,6 +540,25 @@ def _build_ema_alias_index(
     for candidates in by_canonical.values():
         candidates.sort(key=lambda item: (item[2], len(item[0]), item[0]))
     return by_canonical
+
+
+def _selected_logps_and_entropy(
+    logits: torch.Tensor,
+    token_ids: torch.Tensor,
+    *,
+    entropy_mode: str,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Return selected token log-probs and a differentiable entropy term."""
+    log_probs = F.log_softmax(logits, dim=-1)
+    selected_logps = torch.gather(
+        log_probs, dim=-1, index=token_ids.unsqueeze(-1)
+    ).squeeze(-1)
+    if entropy_mode == "sample":
+        entropy = -selected_logps
+    else:
+        probs = log_probs.exp()
+        entropy = -(probs * log_probs).sum(dim=-1)
+    return selected_logps, entropy
 
 
 def _resolve_ema_source_param(
@@ -455,17 +651,22 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 return init_args[2]
             return None
 
-        @staticmethod
-        def _is_maxent_requested(training_args: Any) -> bool:
-            """Return True when requested objective is MaxEnt (not vanilla GRPO)."""
-            return not _coerce_bool(
-                getattr(training_args, "train_grpo_objective", True),
-                default=True,
-            )
-
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             parent_args = self._resolve_parent_training_args(args, kwargs)
-            maxent_requested = self._is_maxent_requested(parent_args)
+            parent_routing = resolve_objective_routing(
+                objective=getattr(parent_args, "objective", None),
+                train_grpo_objective=getattr(
+                    parent_args, "train_grpo_objective", True
+                ),
+                maxent_objective_variant=getattr(
+                    parent_args, "maxent_objective_variant", None
+                ),
+                maxent_alpha=getattr(parent_args, "maxent_alpha", None),
+                policy_entropy_bonus_coef=getattr(
+                    parent_args, "policy_entropy_bonus_coef", 0.0
+                ),
+            )
+            maxent_requested = parent_routing.maxent_requested
             parent_alpha_default = 1.0 if maxent_requested else 0.0
             parent_maxent_alpha = _coerce_non_negative_float(
                 (
@@ -477,32 +678,177 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             )
             super().__init__(*args, **kwargs)
 
-            self.maxent_enabled = not _coerce_bool(
-                getattr(getattr(self, "args", None), "train_grpo_objective", True),
-                default=True,
-            )
-            self.maxent_alpha = _coerce_non_negative_float(
-                getattr(
+            self.objective_routing = resolve_objective_routing(
+                objective=getattr(getattr(self, "args", None), "objective", None),
+                train_grpo_objective=getattr(
+                    getattr(self, "args", None), "train_grpo_objective", True
+                ),
+                maxent_objective_variant=getattr(
+                    getattr(self, "args", None), "maxent_objective_variant", None
+                ),
+                maxent_alpha=getattr(
                     getattr(self, "args", None), "maxent_alpha", parent_maxent_alpha
                 ),
-                default=parent_maxent_alpha,
+                policy_entropy_bonus_coef=getattr(
+                    getattr(self, "args", None), "policy_entropy_bonus_coef", 0.0
+                ),
             )
-            if not self.maxent_enabled:
-                route_mode = "grpo_native"
-            elif self.maxent_alpha > 0.0:
-                route_mode = "maxent_native_plus_alpha"
-            else:
-                route_mode = "maxent_native_alpha0"
+            self.maxent_enabled = self.objective_routing.maxent_requested
+            self.maxent_objective_variant = (
+                self.objective_routing.maxent_objective_variant
+            )
+            self.maxent_alpha = self.objective_routing.maxent_alpha
+            controller_meta_requested = bool(
+                getattr(getattr(self, "args", None), "controller_meta_enabled", False)
+            )
+            self._controller_meta_requested = controller_meta_requested
+            if self.objective_routing.uses_listwise_loss:
+                configured_tau = _coerce_non_negative_float(
+                    getattr(getattr(self, "args", None), "maxent_tau", 0.0),
+                    default=0.0,
+                )
+                if configured_tau <= 0.0:
+                    raise ValueError("Listwise MaxEnt requires maxent_tau > 0.")
+            self._maxent_weighting = (
+                build_weighting_settings(getattr(self, "args", None))
+                if (
+                    (self.maxent_enabled or controller_meta_requested)
+                    and getattr(self, "args", None) is not None
+                )
+                else None
+            )
+            self._maxent_controller_objective = (
+                build_controller_objective(
+                    getattr(self, "args", None), self._maxent_weighting
+                )
+                if self._maxent_weighting is not None
+                else None
+            )
+            self._sync_weighting_scalars()
+            route_mode = self.objective_routing.route_mode
             LOG.info(
-                "Objective routing selected | mode=%s | train_grpo_objective=%s | maxent_alpha=%s",
+                "Objective routing selected | mode=%s | objective=%s | "
+                "maxent_variant=%s | maxent_alpha=%s",
                 route_mode,
-                getattr(getattr(self, "args", None), "train_grpo_objective", None),
+                getattr(getattr(self, "args", None), "objective", None),
+                self.maxent_objective_variant,
                 self.maxent_alpha,
             )
+            if controller_meta_requested and not self.objective_routing.uses_listwise_loss:
+                LOG.info(
+                    "Controller meta enabled for objective=%s; beta updates stay active, "
+                    "but tau only affects listwise MaxEnt.",
+                    route_mode,
+                )
+            if self.objective_routing.uses_listwise_loss:
+                if self.maxent_alpha > 0.0:
+                    LOG.info(
+                        "Listwise MaxEnt selected; maxent_alpha=%.4f is inactive in this objective.",
+                        self.maxent_alpha,
+                    )
+            elif self.maxent_enabled and self.maxent_objective_variant == "entropy":
+                if float(getattr(getattr(self, "args", None), "maxent_tau", 0.0) or 0.0) > 0.0:
+                    LOG.info(
+                        "Entropy-regularized MaxEnt selected; listwise tau/q weighting knobs stay inactive."
+                    )
+            self._step = 0
+            self._buffered_inputs: Optional[List[Dict[str, Optional[torch.Tensor]]]] = None
             self._last_train_kl_for_alpha: Optional[float] = None
             self._last_grpo_debug_step: Optional[int] = None
-            self._last_maxent_flow_log_step: Optional[int] = None
             self._last_reference_ema_step: Optional[int] = None
+
+        def _sync_weighting_scalars(self) -> None:
+            """Expose controller scalars on the trainer for logging helpers."""
+            weighting = getattr(self, "_maxent_weighting", None)
+            if weighting is None:
+                return
+            tau_val = float(getattr(weighting, "tau", 0.0) or 0.0)
+            beta_val = float(getattr(weighting, "beta", 0.0) or 0.0)
+            denom_val = float(getattr(weighting, "denom", 1.0) or 1.0)
+            self.tau = tau_val  # pylint: disable=attribute-defined-outside-init
+            self.maxent_tau = tau_val  # pylint: disable=attribute-defined-outside-init
+            self.beta = beta_val  # pylint: disable=attribute-defined-outside-init
+            self.weight_norm_denom = (
+                denom_val  # pylint: disable=attribute-defined-outside-init
+            )
+
+        def _maybe_apply_controller_meta(
+            self,
+            *,
+            mode: str,
+            kl_value: Optional[float],
+            weight_entropy: Optional[float] = None,
+            total_loss: Optional[float] = None,
+        ) -> bool:
+            """Apply one meta-controller update when the active route enables it."""
+            if mode != "train":
+                return False
+            weighting = getattr(self, "_maxent_weighting", None)
+            meta_objective = getattr(self, "_maxent_controller_objective", None)
+            if weighting is None or meta_objective is None:
+                return False
+
+            update_interval = max(
+                1,
+                int(
+                    getattr(
+                        getattr(weighting, "controller_meta", None),
+                        "update_interval",
+                        1,
+                    )
+                    or 1
+                ),
+            )
+            global_step = int(getattr(self.state, "global_step", 0) or 0)
+            if global_step % update_interval != 0:
+                return False
+
+            weight_stats = SimpleNamespace()
+            if isinstance(weight_entropy, (int, float)) and math.isfinite(weight_entropy):
+                weight_stats = SimpleNamespace(weight_entropy=float(weight_entropy))
+            loss_outputs = SimpleNamespace(
+                kl_loss_scalar=(
+                    float(kl_value)
+                    if isinstance(kl_value, (int, float)) and math.isfinite(kl_value)
+                    else None
+                ),
+                total_loss_scalar=(
+                    float(total_loss)
+                    if isinstance(total_loss, (int, float)) and math.isfinite(total_loss)
+                    else None
+                ),
+            )
+            grads = meta_objective.compute(
+                ControllerMetaContext(
+                    weighting=weighting,
+                    weight_stats=weight_stats,
+                    loss_outputs=loss_outputs,
+                    global_step=global_step,
+                    kl_value=kl_value,
+                )
+            )
+            if grads is None:
+                return False
+            updated = apply_meta_controller_update(
+                weighting,
+                tau_grad=grads.tau_grad,
+                beta_grad=grads.beta_grad,
+            )
+            if not updated:
+                return False
+            if isinstance(getattr(grads, "tau_grad", None), (int, float)):
+                self._append_metric_value(
+                    mode,
+                    "meta/tau_grad",
+                    float(getattr(grads, "tau_grad", 0.0) or 0.0),
+                )
+            if isinstance(getattr(grads, "beta_grad", None), (int, float)):
+                self._append_metric_value(
+                    mode,
+                    "meta/beta_grad",
+                    float(getattr(grads, "beta_grad", 0.0) or 0.0),
+                )
+            return True
 
         def get_train_dataloader(self):  # type: ignore[override]
             # Preserve native TRL batching/sampling behavior for GRPO/MaxEnt while
@@ -563,6 +909,44 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             return self.accelerator.prepare(
                 torch.utils.data.DataLoader(train_dataset, **dataloader_params)
             )
+
+        def _prepare_inputs(self, generation_batch: Any) -> Any:  # type: ignore[override]
+            if not self.objective_routing.uses_listwise_loss:
+                return super()._prepare_inputs(generation_batch)
+
+            mode = "train" if self.model.training else "eval"
+            if mode == "train":
+                generate_every = self.args.steps_per_generation * self.num_iterations
+                if self._step % generate_every == 0 or self._buffered_inputs is None:
+                    generated = self._generate_and_score_completions(generation_batch)
+                    group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
+                    _, num_prompts = _resolve_prompt_group_sizes(generated, group_size)
+                    q_targets = generated.get("maxent_listwise_q")
+                    if not isinstance(q_targets, torch.Tensor):
+                        raise ValueError(
+                            "Listwise MaxEnt rollout generation must provide maxent_listwise_q targets."
+                        )
+                    generated["maxent_listwise_q"] = _normalize_listwise_q_targets(
+                        q_targets,
+                        num_prompts=num_prompts,
+                        group_size=group_size,
+                        context="Listwise MaxEnt rollout generation",
+                    )
+                    generated = _shuffle_listwise_tensor_dict(
+                        generated,
+                        group_size,
+                    )
+                    self._buffered_inputs = _split_listwise_tensor_dict(
+                        generated,
+                        int(getattr(self.args, "steps_per_generation", 1) or 1),
+                        group_size,
+                    )
+                inputs = self._buffered_inputs[
+                    self._step % int(getattr(self.args, "steps_per_generation", 1) or 1)
+                ]
+                self._step += 1
+                return inputs
+            return self._generate_and_score_completions(generation_batch)
 
         def _append_metric_value(
             self,
@@ -677,8 +1061,12 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
         def _maybe_update_grpo_beta(self, mode: str) -> None:
             if self.maxent_enabled:
                 return
+            if getattr(self, "_maxent_controller_objective", None) is not None:
+                return
             args = getattr(self, "args", None)
             if args is None:
+                return
+            if not bool(getattr(args, "grpo_beta_controller_enabled", False)):
                 return
             kl_target = float(getattr(args, "kl_target", 0.0) or 0.0)
             kl_horizon = int(getattr(args, "kl_horizon", 0) or 0)
@@ -1086,7 +1474,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             def _reshape_eval_rollouts(
                 flat_values: torch.Tensor,
             ) -> Optional[torch.Tensor]:
-                """Reshape generation-major rollouts into prompt-major groups."""
+                """Reshape prompt-major flat rollouts into prompt-major groups."""
                 usable = (int(flat_values.numel()) // group_size) * group_size
                 if usable <= 0:
                     return None
@@ -1095,8 +1483,8 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 num_prompts = usable // group_size
                 if num_prompts <= 0:
                     return None
-                # TRL rollout order is [gen0 prompts..., gen1 prompts..., ...].
-                return flat_values.view(group_size, num_prompts).transpose(0, 1)
+                # TRL rollout order is prompt-major: [p0g0, p0g1, ..., p1g0, p1g1, ...].
+                return flat_values.view(num_prompts, group_size)
 
             def _gather_benchmark_ids(
                 expected_flat_count: int,
@@ -1242,94 +1630,43 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             self._append_metric_value(mode, "mean_at_8", mean_at_8)
             _append_per_benchmark_metrics(successes)
 
-        def _compute_policy_maxent_term(
+        def _get_per_token_logps_and_entropy(
             self,
-            outputs: Dict[str, Any],
-        ) -> Optional[torch.Tensor]:
-            """Return sequence-level novelty under the frozen reference policy.
-
-            Computes ``-log pi_ref(a|s)`` (token-averaged over completion tokens)
-            for actions sampled from the current policy, then gathers across ranks.
-            """
-            completion_ids = outputs.get("completion_ids")
-            if not isinstance(completion_ids, torch.Tensor):
-                return None
-            completion_mask = outputs.get("completion_mask")
-            if not isinstance(completion_mask, torch.Tensor):
-                completion_mask = _apply_eos_completion_mask(
-                    completion_ids,
-                    getattr(self.processing_class, "eos_token_id", None),
+            model: Any,
+            input_ids: torch.Tensor,
+            attention_mask: torch.Tensor,
+            logits_to_keep: int,
+            *,
+            entropy_mode: str,
+            batch_size: Optional[int] = None,
+        ) -> Tuple[torch.Tensor, torch.Tensor]:
+            """Compute selected-token log-probs and entropy on the completion span."""
+            chunk_size = int(batch_size or input_ids.size(0) or 1)
+            all_logps: List[torch.Tensor] = []
+            all_entropy: List[torch.Tensor] = []
+            for start in range(0, int(input_ids.size(0)), chunk_size):
+                stop = start + chunk_size
+                input_ids_batch = input_ids[start:stop]
+                attention_mask_batch = attention_mask[start:stop]
+                logits = model(
+                    input_ids=input_ids_batch,
+                    attention_mask=attention_mask_batch,
+                    logits_to_keep=logits_to_keep + 1,
+                ).logits
+                logits = logits[:, :-1, :]
+                token_ids = input_ids_batch[:, -logits_to_keep:]
+                logits = logits[:, -logits_to_keep:]
+                logits = logits / self.temperature
+                logps, entropy = _selected_logps_and_entropy(
+                    logits,
+                    token_ids,
+                    entropy_mode=entropy_mode,
                 )
-            if not isinstance(completion_mask, torch.Tensor):
-                return None
-            completion_mask = completion_mask.to(
-                device=completion_ids.device, dtype=torch.float32
-            )
-            prompt_ids = outputs.get("prompt_ids")
-            prompt_mask = outputs.get("prompt_mask")
-            if not isinstance(prompt_ids, torch.Tensor) or not isinstance(
-                prompt_mask, torch.Tensor
-            ):
-                return None
-            ref_model = getattr(self, "ref_model", None)
-            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-            attention_mask = torch.cat([prompt_mask, completion_mask.long()], dim=1)
-            logits_to_keep = completion_ids.size(1)
-            batch_size = (
-                int(getattr(self.args, "per_device_train_batch_size", 1) or 1)
-                if self.model.training
-                else int(getattr(self.args, "per_device_eval_batch_size", 1) or 1)
-            )
-            per_token_logps: Optional[torch.Tensor]
-            if ref_model is not None:
-                with torch.no_grad():
-                    per_token_logps = self._get_per_token_logps(
-                        ref_model,
-                        input_ids,
-                        attention_mask,
-                        logits_to_keep,
-                        batch_size=batch_size,
-                    )
-            else:
-                if not bool(getattr(self, "_maxent_ref_missing_warned", False)):
-                    LOG.warning(
-                        "No frozen reference model found; falling back to rollout-policy log-probs for MaxEnt novelty shaping."
-                    )
-                    setattr(self, "_maxent_ref_missing_warned", True)
-                per_token_logps = outputs.get("old_per_token_logps")
-                if not isinstance(per_token_logps, torch.Tensor):
-                    with torch.no_grad():
-                        per_token_logps = self._get_per_token_logps(
-                            self.model,
-                            input_ids,
-                            attention_mask,
-                            logits_to_keep,
-                            batch_size=batch_size,
-                        )
-                    if isinstance(per_token_logps, torch.Tensor):
-                        outputs["old_per_token_logps"] = per_token_logps.detach()
-            if not isinstance(per_token_logps, torch.Tensor):
-                return None
-            if per_token_logps.ndim != 2:
-                return None
-            if per_token_logps.size(0) != completion_mask.size(
-                0
-            ) or per_token_logps.size(1) != completion_mask.size(1):
-                usable_rows = min(per_token_logps.size(0), completion_mask.size(0))
-                usable_cols = min(per_token_logps.size(1), completion_mask.size(1))
-                if usable_rows <= 0 or usable_cols <= 0:
-                    return None
-                per_token_logps = per_token_logps[:usable_rows, :usable_cols]
-                completion_mask = completion_mask[:usable_rows, :usable_cols]
-            token_counts = completion_mask.sum(dim=1).clamp(min=1.0)
-            novelty_local = (
-                -(per_token_logps.to(torch.float32) * completion_mask).sum(dim=1)
-                / token_counts
-            )
-            novelty = gather(novelty_local)
-            return torch.nan_to_num(novelty, nan=0.0, posinf=0.0, neginf=0.0)
+                all_logps.append(logps)
+                all_entropy.append(entropy)
+            return torch.cat(all_logps, dim=0), torch.cat(all_entropy, dim=0)
 
-        def _recompute_global_rewards_for_outputs(
+        def _recompute_local_rewards_for_outputs(
             self,
             inputs: List[Dict[str, Any]],
             outputs: Dict[str, Any],
@@ -1448,507 +1785,396 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         device=completion_ids.device,
                     )
 
-            rewards_per_func = gather(rewards_per_func_local)
             reward_weights = getattr(self, "reward_weights", None)
             if isinstance(reward_weights, torch.Tensor):
                 weights = reward_weights.to(
-                    device=rewards_per_func.device, dtype=torch.float32
+                    device=rewards_per_func_local.device, dtype=torch.float32
                 )
             elif isinstance(reward_weights, (list, tuple)):
                 weights = torch.tensor(
                     list(reward_weights),
                     dtype=torch.float32,
-                    device=rewards_per_func.device,
+                    device=rewards_per_func_local.device,
                 )
             else:
                 weights = torch.ones(
                     (len(self.reward_funcs),),
                     dtype=torch.float32,
-                    device=rewards_per_func.device,
+                    device=rewards_per_func_local.device,
                 )
-            if weights.numel() != rewards_per_func.size(1):
+            if weights.numel() != rewards_per_func_local.size(1):
                 weights = torch.ones(
-                    (rewards_per_func.size(1),),
+                    (rewards_per_func_local.size(1),),
                     dtype=torch.float32,
-                    device=rewards_per_func.device,
+                    device=rewards_per_func_local.device,
                 )
-            rewards = (rewards_per_func * weights.unsqueeze(0)).nansum(dim=1)
+            rewards = (rewards_per_func_local * weights.unsqueeze(0)).nansum(dim=1)
             return torch.nan_to_num(rewards, nan=0.0, posinf=0.0, neginf=0.0)
 
-        def _apply_maxent_reward_shaping(
+        def _recompute_global_rewards_for_outputs(
             self,
             inputs: List[Dict[str, Any]],
             outputs: Dict[str, Any],
-            *,
-            mode: str,
+        ) -> Optional[torch.Tensor]:
+            rewards_local = self._recompute_local_rewards_for_outputs(inputs, outputs)
+            if not isinstance(rewards_local, torch.Tensor):
+                return None
+            rewards = gather(rewards_local)
+            return torch.nan_to_num(rewards, nan=0.0, posinf=0.0, neginf=0.0)
+
+        def _prepare_listwise_rollout_targets(
+            self,
+            inputs: List[Dict[str, Any]],
+            outputs: Dict[str, Any],
         ) -> None:
-            if not self.maxent_enabled or self.maxent_alpha <= 0.0:
+            """Cache per-prompt listwise q targets on rollout outputs."""
+            rewards = self._recompute_local_rewards_for_outputs(inputs, outputs)
+            if not isinstance(rewards, torch.Tensor):
                 return
-            advantages = outputs.get("advantages")
-            if not isinstance(advantages, torch.Tensor):
+            if rewards.numel() <= 0:
                 return
-            try:
-                rewards = self._recompute_global_rewards_for_outputs(inputs, outputs)
-                maxent_term = self._compute_policy_maxent_term(outputs)
-            except Exception as exc:
-                LOG.warning("Skipping MaxEnt reward shaping due to error: %s", exc)
-                return
-            if rewards is None or maxent_term is None:
-                return
-            if rewards.numel() != maxent_term.numel():
-                return
-
-            args = getattr(self, "args", None)
-            (
-                alpha,
-                alpha_multiplier,
-                alpha_kl_measure,
-                alpha_kl_threshold,
-                alpha_kl_control_enabled,
-                alpha_direction,
-                alpha_kl_min_multiplier,
-                alpha_kl_max_multiplier,
-            ) = self._resolve_effective_maxent_alpha(mode)
             group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
-            if rewards.numel() % group_size != 0:
-                return
-            num_prompts = int(rewards.numel()) // group_size
-            if num_prompts <= 0:
-                return
-
-            def _reshape_prompt_groups(flat_values: torch.Tensor) -> torch.Tensor:
-                """Convert generation-major flat rollouts to prompt-major groups."""
-                return flat_values.view(group_size, num_prompts).transpose(0, 1)
-
-            def _flatten_prompt_groups(grouped_values: torch.Tensor) -> torch.Tensor:
-                """Convert prompt-major grouped values back to generation-major flat order."""
-                return grouped_values.transpose(0, 1).reshape(-1)
-
-            grouped_rewards_raw = _reshape_prompt_groups(rewards)
-            grouped_novelty = _reshape_prompt_groups(
-                maxent_term.to(device=rewards.device, dtype=rewards.dtype)
+            gathered_rewards = gather(rewards)
+            if not isinstance(gathered_rewards, torch.Tensor):
+                gathered_rewards = torch.as_tensor(
+                    gathered_rewards,
+                    device=rewards.device,
+                    dtype=rewards.dtype,
+                )
+            grouped_rewards = _reshape_prompt_major_tensor(gathered_rewards, group_size)
+            if grouped_rewards is None:
+                raise ValueError(
+                    "Listwise MaxEnt rollout rewards must arrive as whole prompt "
+                    f"groups with flat batch size divisible by num_generations={group_size}."
+                )
+            temperature = _coerce_non_negative_float(
+                getattr(getattr(self, "args", None), "maxent_q_temperature", 1.0),
+                default=1.0,
             )
-            alpha_low_kl_enabled = bool(
-                getattr(args, "maxent_alpha_raise_on_low_kl", False)
+            epsilon = _coerce_non_negative_float(
+                getattr(getattr(self, "args", None), "maxent_q_epsilon", 1e-6),
+                default=1e-6,
             )
-            alpha_high_kl_enabled = bool(
-                getattr(args, "maxent_alpha_lower_on_high_kl", False)
-            )
-
-            gate_by_signal = bool(getattr(args, "maxent_reward_signal_gate", False))
-            if gate_by_signal:
-                min_group_max = float(
-                    getattr(args, "maxent_reward_signal_min_max", 0.0) or 0.0
-                )
-                std_threshold = float(
-                    getattr(args, "maxent_reward_signal_std_threshold", 0.0) or 0.0
-                )
-                group_max = grouped_rewards_raw.max(dim=1).values
-                group_std = grouped_rewards_raw.std(dim=1, unbiased=False)
-                eligible_groups = (group_max > min_group_max) | (
-                    group_std > std_threshold
-                )
-            else:
-                eligible_groups = torch.ones(
-                    grouped_rewards_raw.size(0),
-                    dtype=torch.bool,
-                    device=grouped_rewards_raw.device,
-                )
-
-            reward_bonus_mask = eligible_groups.unsqueeze(1).expand_as(
-                grouped_rewards_raw
-            )
-            positive_only = bool(getattr(args, "maxent_bonus_positive_only", False))
-            if positive_only:
-                min_reward = float(getattr(args, "maxent_bonus_min_reward", 0.0) or 0.0)
-                reward_bonus_mask = reward_bonus_mask & (
-                    grouped_rewards_raw > min_reward
-                )
-            cusp_gate_enabled = bool(getattr(args, "maxent_cusp_gate", False))
-            cusp_threshold_raw = getattr(args, "maxent_cusp_reward_threshold", 0.4)
-            try:
-                cusp_threshold = float(cusp_threshold_raw)
-            except (TypeError, ValueError):
-                cusp_threshold = 0.4
-            if not math.isfinite(cusp_threshold):
-                cusp_threshold = 0.4
-
-            bonus_mask = reward_bonus_mask.to(grouped_novelty.dtype)
-            if cusp_gate_enabled:
-                group_success = (grouped_rewards_raw >= cusp_threshold).to(
-                    grouped_novelty.dtype
-                )
-                group_success_rate = group_success.mean(dim=1, keepdim=True)
-                cusp_factor = 4.0 * group_success_rate * (1.0 - group_success_rate)
-                cusp_factor = cusp_factor.clamp(min=0.0, max=1.0)
-            else:
-                group_success_rate = torch.zeros(
-                    (grouped_rewards_raw.size(0), 1),
-                    dtype=grouped_novelty.dtype,
-                    device=grouped_novelty.device,
-                )
-                cusp_factor = torch.ones(
-                    (grouped_rewards_raw.size(0), 1),
-                    dtype=grouped_novelty.dtype,
-                    device=grouped_novelty.device,
-                )
-            mean_grouped_rewards = grouped_rewards_raw.mean(dim=1)
-            std_grouped_rewards = grouped_rewards_raw.std(dim=1)
-            is_std_zero = torch.isclose(
-                std_grouped_rewards,
-                torch.zeros_like(std_grouped_rewards),
-            )
-            gathered_advantages: Optional[torch.Tensor]
-            try:
-                gathered_advantages = gather(
-                    advantages.to(device=rewards.device, dtype=rewards.dtype)
-                )
-            except Exception:
-                gathered_advantages = None
-            using_native_advantages = bool(
-                isinstance(gathered_advantages, torch.Tensor)
-                and gathered_advantages.numel() == rewards.numel()
-            )
-            if using_native_advantages:
-                base_advantages = cast(torch.Tensor, gathered_advantages)
-            else:
-                grouped_base_advantages = (
-                    grouped_rewards_raw - mean_grouped_rewards.unsqueeze(1)
-                )
-                if bool(getattr(self, "scale_rewards", False)):
-                    grouped_base_advantages = grouped_base_advantages / (
-                        std_grouped_rewards.unsqueeze(1) + 1e-4
+            q_grouped = torch.softmax(grouped_rewards / max(temperature, 1e-8), dim=1)
+            if epsilon > 0.0:
+                max_eps = max((1.0 / float(max(q_grouped.size(1), 1))) - 1e-8, 0.0)
+                epsilon = min(epsilon, max_eps)
+                if epsilon > 0.0:
+                    q_grouped = q_grouped * (1.0 - epsilon * q_grouped.size(1)) + epsilon
+                    q_grouped = q_grouped / q_grouped.sum(dim=1, keepdim=True).clamp(
+                        min=1e-12
                     )
-                base_advantages = _flatten_prompt_groups(grouped_base_advantages)
-            # Apply the MaxEnt term after base GRPO advantage scaling so the
-            # entropy signal is not attenuated/amplified by reward std.
-            # Build a per-sample normalized novelty signal and gate it with
-            # the configured correctness/signal mask:
-            #   adv_i += alpha * 1[mask_i] * zscore_group(novelty_i)
-            novelty_centered = grouped_novelty - grouped_novelty.mean(
-                dim=1, keepdim=True
-            )
-            novelty_spread = grouped_novelty.std(dim=1, unbiased=False, keepdim=True)
-            novelty_zscore = novelty_centered / (novelty_spread + 1e-4)
-            reward_bonus_grouped = alpha * novelty_zscore * bonus_mask * cusp_factor
-            reward_bonus = _flatten_prompt_groups(reward_bonus_grouped)
-            all_advantages = base_advantages + reward_bonus
-            reward_bonus_abs_mean = float(reward_bonus.abs().mean().item())
-            reward_bonus_std = float(reward_bonus.std(unbiased=False).item())
-            reward_bonus_nonzero_frac = float(
-                (reward_bonus.abs() > 1e-8).to(torch.float32).mean().item()
-            )
-            base_adv_abs_mean = float(base_advantages.abs().mean().item())
-            final_adv_abs_mean = float(all_advantages.abs().mean().item())
-            flow_bonus_to_base_ratio = reward_bonus_abs_mean / max(
-                base_adv_abs_mean, 1e-8
-            )
-            flow_bonus_to_final_ratio = reward_bonus_abs_mean / max(
-                final_adv_abs_mean, 1e-8
-            )
-            flow_final_minus_base = all_advantages - base_advantages
-
-            local_batch_size = int(advantages.size(0))
-            start = (
-                int(getattr(self.accelerator, "process_index", 0) or 0)
-                * local_batch_size
-            )
-            end = start + local_batch_size
-            local_adv_before = advantages.detach().to(torch.float32)
-            local_advantages = all_advantages[start:end].to(
-                device=advantages.device,
-                dtype=advantages.dtype,
-            )
-            if local_advantages.numel() != advantages.numel():
-                return
-            local_adv_after = local_advantages.detach().to(torch.float32)
-            local_adv_delta = local_adv_after - local_adv_before
-            outputs["advantages"] = local_advantages
-
-            metric_store = self._metrics[mode]
-            reward_val = float(mean_grouped_rewards.mean().item())
-            reward_std_val = float(std_grouped_rewards.mean().item())
-            reward_zero_std = float(is_std_zero.float().mean().item())
-            for key, value in (
-                ("reward", reward_val),
-                ("reward_std", reward_std_val),
-                ("frac_reward_zero_std", reward_zero_std),
-            ):
-                bucket = metric_store.get(key)
-                if isinstance(bucket, list) and bucket:
-                    bucket[-1] = value
-                else:
-                    metric_store.setdefault(key, []).append(value)
-
-            self._append_metric_value(mode, "maxent/alpha", alpha)
-            self._append_metric_value(
-                mode,
-                "maxent/base_advantages_from_outputs",
-                1.0 if using_native_advantages else 0.0,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_base",
-                float(self.maxent_alpha),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_multiplier",
-                alpha_multiplier,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_low_kl_enabled",
-                1.0 if alpha_low_kl_enabled else 0.0,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_high_kl_enabled",
-                1.0 if alpha_high_kl_enabled else 0.0,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_kl_control_enabled",
-                1.0 if alpha_kl_control_enabled else 0.0,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_kl_direction",
-                alpha_direction,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_kl_threshold",
-                alpha_kl_threshold,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_kl_min_multiplier",
-                alpha_kl_min_multiplier,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/alpha_kl_max_multiplier",
-                alpha_kl_max_multiplier,
-            )
-            if alpha_kl_measure is not None:
-                self._append_metric_value(
-                    mode,
-                    "maxent/alpha_kl_measure",
-                    alpha_kl_measure,
+            local_count = int(rewards.size(0))
+            process_index = int(getattr(self.accelerator, "process_index", 0) or 0)
+            process_start = process_index * local_count
+            process_stop = process_start + local_count
+            total_count = int(gathered_rewards.size(0))
+            if process_stop > total_count:
+                raise ValueError(
+                    "Listwise MaxEnt gathered reward totals are shorter than the "
+                    "current rank slice."
                 )
-            self._append_metric_value(
-                mode,
-                "maxent/reward_signal_gate",
-                1.0 if gate_by_signal else 0.0,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/positive_only",
-                1.0 if positive_only else 0.0,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/cusp_gate",
-                1.0 if cusp_gate_enabled else 0.0,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/cusp_threshold",
-                cusp_threshold,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/cusp_factor_mean",
-                float(cusp_factor.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/cusp_success_rate_mean",
-                float(group_success_rate.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/eligible_group_frac",
-                float(eligible_groups.float().mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/eligible_completion_frac",
-                float(reward_bonus_mask.float().mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/policy_surprisal_mean",
-                float(maxent_term.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/policy_surprisal_std",
-                float(maxent_term.std(unbiased=False).item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/ref_novelty_mean",
-                float(maxent_term.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/ref_novelty_std",
-                float(maxent_term.std(unbiased=False).item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/reward_bonus_mean",
-                float(reward_bonus.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/reward_bonus_abs_mean",
-                reward_bonus_abs_mean,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/reward_bonus_std",
-                reward_bonus_std,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/reward_bonus_nonzero_frac",
-                reward_bonus_nonzero_frac,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/base_adv_mean",
-                float(base_advantages.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/base_adv_std",
-                float(base_advantages.std(unbiased=False).item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/base_adv_abs_mean",
-                base_adv_abs_mean,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/final_adv_mean",
-                float(all_advantages.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/final_adv_std",
-                float(all_advantages.std(unbiased=False).item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/final_adv_abs_mean",
-                final_adv_abs_mean,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/final_minus_base_mean",
-                float(flow_final_minus_base.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/final_minus_base_abs_mean",
-                float(flow_final_minus_base.abs().mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/bonus_to_base_abs_ratio",
-                flow_bonus_to_base_ratio,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/bonus_to_final_abs_ratio",
-                flow_bonus_to_final_ratio,
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/local_adv_before_mean",
-                float(local_adv_before.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/local_adv_after_mean",
-                float(local_adv_after.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/local_adv_delta_mean",
-                float(local_adv_delta.mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/local_adv_delta_abs_mean",
-                float(local_adv_delta.abs().mean().item()),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/flow/local_adv_delta_nonzero_frac",
-                float((local_adv_delta.abs() > 1e-8).to(torch.float32).mean().item()),
-            )
-            prev_loss = _numeric_or_none(getattr(self, "_last_loss_scalar", None))
-            if prev_loss is not None:
-                self._append_metric_value(
-                    mode,
-                    "maxent/flow/prev_loss_total",
-                    float(prev_loss),
+            if process_start % group_size != 0:
+                raise ValueError(
+                    "Listwise MaxEnt requires each rank slice to begin on a whole "
+                    "prompt-group boundary after reward gathering."
                 )
+            local_rewards = gathered_rewards[process_start:process_stop]
+            local_q = q_grouped.reshape(-1)[process_start:process_stop]
+            local_grouped_rewards = _reshape_prompt_major_tensor(local_rewards, group_size)
+            local_q_grouped = _reshape_prompt_major_tensor(local_q, group_size)
+            if local_grouped_rewards is None or local_q_grouped is None:
+                raise ValueError(
+                    "Listwise MaxEnt local rollout slice must contain whole prompt "
+                    "groups after reward gathering."
+                )
+            outputs["maxent_listwise_q"] = _normalize_listwise_q_targets(
+                local_q_grouped.detach(),
+                num_prompts=int(local_grouped_rewards.size(0)),
+                group_size=group_size,
+                context="Listwise MaxEnt rollout targets",
+            )
+            outputs["maxent_listwise_rewards"] = local_grouped_rewards.detach()
 
-            advantage_log = self._textual_logs.get("advantages")
-            if isinstance(advantage_log, list):
-                updated = all_advantages.detach().cpu().tolist()
-                if len(updated) <= len(advantage_log):
-                    advantage_log[-len(updated) :] = updated
-
-            if mode == "train" and self.accelerator.is_main_process:
-                step = int(getattr(self.state, "global_step", 0))
-                interval_raw = (
-                    getattr(args, "maxent_flow_log_interval", 25) if args else 25
-                )
-                try:
-                    interval = int(interval_raw)
-                except (TypeError, ValueError):
-                    interval = 25
-                if interval <= 0:
-                    interval = 25
-                should_emit = (
-                    self._last_maxent_flow_log_step != step and step % interval == 0
-                )
-                if should_emit:
-                    self._last_maxent_flow_log_step = step
-                    LOG.info(
-                        "MaxEnt flow | step=%d | alpha=%.6f (x%.3f) | kl_for_alpha=%s | reward_mean=%.6f reward_std=%.6f | "
-                        "bonus_abs_mean=%.6f bonus_nonzero_frac=%.3f | base_adv_abs_mean=%.6f final_adv_abs_mean=%.6f | prev_loss=%s",
-                        step,
-                        alpha,
-                        alpha_multiplier,
-                        alpha_kl_measure,
-                        reward_val,
-                        reward_std_val,
-                        reward_bonus_abs_mean,
-                        reward_bonus_nonzero_frac,
-                        base_adv_abs_mean,
-                        final_adv_abs_mean,
-                        prev_loss,
-                    )
-                if (
-                    alpha > 0.0
-                    and float(reward_bonus_mask.float().mean().item()) > 0.0
-                    and float(cusp_factor.mean().item()) > 0.0
-                    and float(maxent_term.std(unbiased=False).item()) > 1e-6
-                    and reward_bonus_abs_mean <= 1e-8
-                ):
+        def _resolve_listwise_reference_model(self) -> Tuple[Optional[Any], bool]:
+            """Return the frozen reference model and whether to use it in weights."""
+            args = getattr(self, "args", None)
+            ref_source = str(
+                getattr(args, "maxent_reference_logprobs_source", "auto") or "auto"
+            ).strip().lower()
+            if ref_source == "none":
+                ref_source = "policy"
+            if bool(getattr(args, "maxent_trl_reference_scoring", False)):
+                ref_source = "model"
+            ref_model = getattr(self, "ref_model", None)
+            if ref_source == "model":
+                if ref_model is not None and ref_model is not self.model:
+                    return ref_model, True
+                if not bool(getattr(self, "_maxent_listwise_ref_warned", False)):
                     LOG.warning(
-                        "MaxEnt flow anomaly | step=%d | alpha=%.6f but reward_bonus_abs_mean is near zero despite active masks/gates.",
-                        step,
-                        alpha,
+                        "Listwise MaxEnt requested reference weighting but no independent frozen reference model is available; falling back to q-only weights."
                     )
+                    setattr(self, "_maxent_listwise_ref_warned", True)
+                return None, False
+            if ref_source == "auto" and ref_model is not None and ref_model is not self.model:
+                return ref_model, True
+            return None, False
+
+        def _compute_listwise_maxent_loss(self, model: Any, inputs: Any) -> torch.Tensor:
+            """Match the sampled candidate distribution to the tau/q/beta posterior."""
+            if bool(getattr(self, "use_liger_loss", False)):
+                raise NotImplementedError(
+                    "Listwise MaxEnt loss is not implemented for liger loss."
+                )
+
+            q_grouped = inputs.get("maxent_listwise_q")
+            if not isinstance(q_grouped, torch.Tensor) or q_grouped.numel() <= 0:
+                raise ValueError(
+                    "Listwise MaxEnt requires rollout q targets from _generate_and_score_completions."
+                )
+
+            prompt_ids, prompt_mask = inputs["prompt_ids"], inputs["prompt_mask"]
+            completion_ids, completion_mask = (
+                inputs["completion_ids"],
+                inputs["completion_mask"],
+            )
+            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+            attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
+            logits_to_keep = completion_ids.size(1)
+            mode = "train" if self.model.training else "eval"
+
+            configured_batch_size = (
+                int(getattr(self.args, "per_device_train_batch_size", 1) or 1)
+                if self.model.training
+                else int(getattr(self.args, "per_device_eval_batch_size", 1) or 1)
+            )
+            chunk_size = int(
+                getattr(self.args, "maxent_logprob_chunk_size", 0)
+                or configured_batch_size
+                or 1
+            )
+            per_token_logps = self._get_per_token_logps(
+                model,
+                input_ids,
+                attention_mask,
+                logits_to_keep,
+                batch_size=chunk_size,
+            )
+            seq_logps = (per_token_logps * completion_mask).sum(dim=1)
+            group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
+            seq_logps_grouped = _reshape_prompt_major_tensor(seq_logps, group_size)
+            token_counts_grouped = _reshape_prompt_major_tensor(
+                completion_mask.sum(dim=1).to(torch.float32),
+                group_size,
+            )
+            if seq_logps_grouped is None or token_counts_grouped is None:
+                raise ValueError("Listwise MaxEnt could not reshape sequence log-probs.")
+
+            old_per_token_logps = (
+                per_token_logps.detach()
+                if inputs["old_per_token_logps"] is None
+                else inputs["old_per_token_logps"].to(
+                    device=per_token_logps.device,
+                    dtype=per_token_logps.dtype,
+                )
+            )
+            old_seq_logps_grouped = _reshape_prompt_major_tensor(
+                (old_per_token_logps * completion_mask).sum(dim=1),
+                group_size,
+            )
+            if old_seq_logps_grouped is None:
+                raise ValueError("Listwise MaxEnt could not reshape behavior log-probs.")
+
+            num_prompts = int(seq_logps_grouped.size(0))
+            if int(token_counts_grouped.size(0)) != num_prompts:
+                raise ValueError("Listwise MaxEnt token counts are misaligned with prompts.")
+            if int(old_seq_logps_grouped.size(0)) != num_prompts:
+                raise ValueError("Listwise MaxEnt behavior log-probs are misaligned with prompts.")
+            q_grouped = _normalize_listwise_q_targets(
+                q_grouped.to(
+                    device=seq_logps_grouped.device,
+                    dtype=seq_logps_grouped.dtype,
+                ),
+                num_prompts=num_prompts,
+                group_size=group_size,
+                context="Listwise MaxEnt loss",
+            )
+
+            weighting = getattr(self, "_maxent_weighting", None)
+            if weighting is None:
+                raise ValueError("Listwise MaxEnt requires initialized weighting settings.")
+
+            ref_model, include_reference_term = self._resolve_listwise_reference_model()
+            ref_seq_logps_grouped = torch.zeros_like(seq_logps_grouped)
+            measured_kl: Optional[torch.Tensor] = None
+            if include_reference_term and ref_model is not None:
+                with torch.no_grad():
+                    ref_per_token_logps = self._get_per_token_logps(
+                        ref_model,
+                        input_ids,
+                        attention_mask,
+                        logits_to_keep,
+                        batch_size=chunk_size,
+                    )
+                per_token_kl = (
+                    torch.exp(ref_per_token_logps - per_token_logps)
+                    - (ref_per_token_logps - per_token_logps)
+                    - 1
+                )
+                measured_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum().clamp(
+                    min=1.0
+                )
+                ref_seq_logps = (ref_per_token_logps * completion_mask).sum(dim=1)
+                if bool(getattr(weighting, "len_norm_ref", True)):
+                    ref_seq_logps = ref_seq_logps / completion_mask.sum(dim=1).clamp(
+                        min=1.0
+                    )
+                ref_seq_logps_grouped = _reshape_prompt_major_tensor(
+                    ref_seq_logps,
+                    int(q_grouped.size(1)),
+                )
+                if ref_seq_logps_grouped is None:
+                    raise ValueError(
+                        "Listwise MaxEnt could not reshape reference log-probs."
+                    )
+                if int(ref_seq_logps_grouped.size(0)) != num_prompts:
+                    raise ValueError(
+                        "Listwise MaxEnt reference log-probs are misaligned with prompts."
+                    )
+
+            weights_grouped = weight_matrix_from_q(
+                q_grouped,
+                ref_seq_logps_grouped,
+                token_counts_grouped,
+                weighting,
+                include_reference_term=include_reference_term,
+                normalize_by_tokens=False,
+            ).to(
+                device=seq_logps_grouped.device,
+                dtype=seq_logps_grouped.dtype,
+            )
+            weights_grouped_list = weights_grouped.detach().cpu().tolist()
+            log_probs_grouped = torch.log_softmax(seq_logps_grouped, dim=1)
+            policy_loss = -(weights_grouped * log_probs_grouped).sum(dim=1).mean()
+            loss = policy_loss
+
+            clip_loss: Optional[torch.Tensor] = None
+            if bool(getattr(self.args, "maxent_use_clip_objective", False)):
+                clip_coef = _coerce_non_negative_float(
+                    getattr(self.args, "maxent_clip_objective_coef", 1.0),
+                    default=1.0,
+                )
+                if clip_coef > 0.0:
+                    clip_range = getattr(self.args, "maxent_clip_range", None)
+                    clip_low = (
+                        _coerce_non_negative_float(clip_range, default=self.epsilon_low)
+                        if clip_range is not None
+                        else float(self.epsilon_low)
+                    )
+                    clip_high = (
+                        _coerce_non_negative_float(clip_range, default=self.epsilon_high)
+                        if clip_range is not None
+                        else float(self.epsilon_high)
+                    )
+                    baseline = getattr(self.args, "maxent_clip_adv_baseline", None)
+                    if baseline is None:
+                        baseline_value = 1.0 / float(max(weights_grouped.size(1), 1))
+                    else:
+                        baseline_value = float(baseline)
+                    clip_adv = weights_grouped - baseline_value
+                    seq_ratio = torch.exp(seq_logps_grouped - old_seq_logps_grouped)
+                    seq_ratio_clipped = torch.clamp(
+                        seq_ratio,
+                        1.0 - clip_low,
+                        1.0 + clip_high,
+                    )
+                    clip_obj = torch.min(
+                        seq_ratio * clip_adv,
+                        seq_ratio_clipped * clip_adv,
+                    )
+                    clip_loss = -clip_obj.sum(dim=1).mean()
+                    loss = loss + clip_coef * clip_loss
+
+                    is_low_clipped = (seq_ratio < 1.0 - clip_low) & (clip_adv < 0.0)
+                    is_high_clipped = (seq_ratio > 1.0 + clip_high) & (clip_adv > 0.0)
+                    clip_region = is_low_clipped | is_high_clipped
+                    self._append_metric_value(
+                        mode,
+                        "clip_ratio/low_mean",
+                        is_low_clipped.to(torch.float32).mean().item(),
+                    )
+                    self._append_metric_value(
+                        mode,
+                        "clip_ratio/high_mean",
+                        is_high_clipped.to(torch.float32).mean().item(),
+                    )
+                    self._append_metric_value(
+                        mode,
+                        "clip_ratio/region_mean",
+                        clip_region.to(torch.float32).mean().item(),
+                    )
+
+            weight_entropy, entropy_min, entropy_max, _ = collect_weight_entropy(
+                weights_grouped_list
+            )
+            self._append_metric_value(mode, "loss/policy", float(policy_loss.item()))
+            self._append_metric_value(
+                mode, "weight_entropy", float(weight_entropy), include_legacy_aliases=False
+            )
+            self._append_metric_value(
+                mode, "weight_entropy_min", float(entropy_min), include_legacy_aliases=False
+            )
+            self._append_metric_value(
+                mode, "weight_entropy_max", float(entropy_max), include_legacy_aliases=False
+            )
+            self._append_metric_value(mode, "maxent/objective_variant_listwise", 1.0)
+            self._append_metric_value(mode, "maxent/objective_variant_entropy", 0.0)
+            self._append_metric_value(
+                mode,
+                "maxent/listwise_weight_mean",
+                float(weights_grouped.mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/listwise_weight_std",
+                float(weights_grouped.to(torch.float32).std(unbiased=False).item()),
+            )
+            if clip_loss is not None:
+                self._append_metric_value(mode, "loss/clip", float(clip_loss.item()))
+            if measured_kl is not None:
+                kl_value = float(self.accelerator.gather(measured_kl).nanmean().item())
+                self._append_metric_value(mode, "kl", kl_value)
+            else:
+                kl_value = None
+
+            if mode == "train":
+                meta_objective = getattr(self, "_maxent_controller_objective", None)
+                if meta_objective is not None:
+                    self._maybe_apply_controller_meta(
+                        mode=mode,
+                        kl_value=kl_value,
+                        weight_entropy=weight_entropy,
+                        total_loss=float(loss.item()),
+                    )
+                else:
+                    maybe_update_tau(
+                        weighting,
+                        SimpleNamespace(weight_entropy=weight_entropy),
+                        global_step=int(getattr(self.state, "global_step", 0) or 0),
+                    )
+                    if include_reference_term and kl_value is not None:
+                        maybe_update_beta(weighting, measured_kl=kl_value)
+                self._sync_weighting_scalars()
+                self._append_metric_value(mode, "tau", float(self.tau))
+                self._append_metric_value(mode, "beta", float(self.beta))
+                self._append_metric_value(
+                    mode,
+                    "weight_norm_denom",
+                    float(getattr(weighting, "denom", 1.0)),
+                    include_legacy_aliases=False,
+                )
+
+            return loss
 
         def _get_per_token_logps(self, *args: Any, **kwargs: Any) -> torch.Tensor:  # type: ignore[override]
             logps = super()._get_per_token_logps(*args, **kwargs)
@@ -1968,6 +2194,239 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     getattr(logps, "shape", None),
                 )
             return logps
+
+        def _compute_maxent_loss(self, model: Any, inputs: Any) -> torch.Tensor:
+            """TRL-style GRPO loss with a true entropy regularizer in the loss."""
+            if bool(getattr(self, "use_liger_loss", False)):
+                raise NotImplementedError(
+                    "MaxEnt loss regularization is not implemented for liger loss."
+                )
+
+            prompt_ids, prompt_mask = inputs["prompt_ids"], inputs["prompt_mask"]
+            completion_ids, completion_mask = (
+                inputs["completion_ids"],
+                inputs["completion_mask"],
+            )
+            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+            attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
+            logits_to_keep = completion_ids.size(1)
+            mode = "train" if self.model.training else "eval"
+
+            configured_batch_size = (
+                int(getattr(self.args, "per_device_train_batch_size", 1) or 1)
+                if self.model.training
+                else int(getattr(self.args, "per_device_eval_batch_size", 1) or 1)
+            )
+            chunk_size = int(
+                getattr(self.args, "maxent_logprob_chunk_size", 0)
+                or configured_batch_size
+                or 1
+            )
+            requested_entropy_mode = str(
+                getattr(self.args, "maxent_policy_entropy_mode", "exact") or "exact"
+            )
+            entropy_mode = requested_entropy_mode.strip().lower() or "exact"
+            if entropy_mode != "exact":
+                if not bool(
+                    getattr(self, "_maxent_sample_entropy_loss_warned", False)
+                ):
+                    LOG.warning(
+                        "Entropy-regularized MaxEnt requested maxent_policy_entropy_mode=%s, "
+                        "but the training loss uses exact entropy. The sample estimator is "
+                        "only valid for logging or GRPO reward bonuses, not direct "
+                        "entropy-loss gradients.",
+                        requested_entropy_mode,
+                    )
+                    setattr(self, "_maxent_sample_entropy_loss_warned", True)
+                entropy_mode = "exact"
+
+            per_token_logps, per_token_entropy = self._get_per_token_logps_and_entropy(
+                model,
+                input_ids,
+                attention_mask,
+                logits_to_keep,
+                entropy_mode=entropy_mode,
+                batch_size=chunk_size,
+            )
+
+            per_token_kl: Optional[torch.Tensor] = None
+            kl_value: Optional[float] = None
+            if self.beta != 0.0:
+                with torch.no_grad():
+                    if self.ref_model is not None:
+                        ref_per_token_logps = self._get_per_token_logps(
+                            self.ref_model,
+                            input_ids,
+                            attention_mask,
+                            logits_to_keep,
+                            batch_size=chunk_size,
+                        )
+                    else:
+                        with self.accelerator.unwrap_model(self.model).disable_adapter():
+                            ref_per_token_logps = self._get_per_token_logps(
+                                self.model,
+                                input_ids,
+                                attention_mask,
+                                logits_to_keep,
+                                batch_size=chunk_size,
+                            )
+                per_token_kl = (
+                    torch.exp(ref_per_token_logps - per_token_logps)
+                    - (ref_per_token_logps - per_token_logps)
+                    - 1
+                )
+
+            advantages = inputs["advantages"]
+            old_per_token_logps = (
+                per_token_logps.detach()
+                if inputs["old_per_token_logps"] is None
+                else inputs["old_per_token_logps"]
+            )
+            coef_1 = torch.exp(per_token_logps - old_per_token_logps)
+            coef_2 = torch.clamp(
+                coef_1, 1 - self.epsilon_low, 1 + self.epsilon_high
+            )
+
+            if self.args.delta is not None:
+                coef_1 = torch.clamp(coef_1, max=self.args.delta)
+
+            per_token_loss1 = coef_1 * advantages.unsqueeze(1)
+            per_token_loss2 = coef_2 * advantages.unsqueeze(1)
+            per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
+            if per_token_kl is not None:
+                per_token_loss = per_token_loss + self.beta * per_token_kl
+
+            (
+                alpha,
+                alpha_multiplier,
+                alpha_kl_measure,
+                alpha_kl_threshold,
+                alpha_kl_control_enabled,
+                alpha_direction,
+                alpha_kl_min_multiplier,
+                alpha_kl_max_multiplier,
+            ) = self._resolve_effective_maxent_alpha(mode)
+            per_token_loss = per_token_loss - alpha * per_token_entropy
+
+            if self.loss_type == "grpo":
+                loss = (
+                    (per_token_loss * completion_mask).sum(-1)
+                    / completion_mask.sum(-1).clamp(min=1.0)
+                ).mean()
+            elif self.loss_type == "bnpo":
+                loss = (per_token_loss * completion_mask).sum() / completion_mask.sum().clamp(
+                    min=1.0
+                )
+            elif self.loss_type == "dr_grpo":
+                loss = (per_token_loss * completion_mask).sum() / (
+                    per_token_loss.size(0) * self.max_completion_length
+                )
+            else:
+                raise ValueError(f"Unknown loss type: {self.loss_type}")
+
+            if per_token_kl is not None:
+                mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
+                kl_value = float(self.accelerator.gather(mean_kl).nanmean().item())
+                self._append_metric_value(
+                    mode,
+                    "kl",
+                    kl_value,
+                )
+
+            is_low_clipped = (coef_1 < 1 - self.epsilon_low) & (
+                advantages.unsqueeze(1) < 0
+            )
+            is_high_clipped = (coef_1 > 1 + self.epsilon_high) & (
+                advantages.unsqueeze(1) > 0
+            )
+            is_region_clipped = is_low_clipped | is_high_clipped
+
+            low_clip = (is_low_clipped * completion_mask).sum() / completion_mask.sum()
+            high_clip = (is_high_clipped * completion_mask).sum() / completion_mask.sum()
+            clip_ratio = (is_region_clipped * completion_mask).sum() / completion_mask.sum()
+
+            gathered_low_clip = self.accelerator.gather(low_clip)
+            self._append_metric_value(
+                mode, "clip_ratio/low_mean", gathered_low_clip.nanmean().item()
+            )
+            self._append_metric_value(
+                mode, "clip_ratio/low_min", _nanmin_tensor(gathered_low_clip).item()
+            )
+            gathered_high_clip = self.accelerator.gather(high_clip)
+            self._append_metric_value(
+                mode, "clip_ratio/high_mean", gathered_high_clip.nanmean().item()
+            )
+            self._append_metric_value(
+                mode, "clip_ratio/high_max", _nanmax_tensor(gathered_high_clip).item()
+            )
+            gathered_clip_ratio = self.accelerator.gather(clip_ratio)
+            self._append_metric_value(
+                mode, "clip_ratio/region_mean", gathered_clip_ratio.nanmean().item()
+            )
+
+            entropy_mask = completion_mask.to(
+                device=per_token_entropy.device, dtype=per_token_entropy.dtype
+            )
+            mean_entropy = (per_token_entropy * entropy_mask).sum() / entropy_mask.sum().clamp(
+                min=1.0
+            )
+            entropy_per_seq = (
+                (per_token_entropy * entropy_mask).sum(dim=1)
+                / entropy_mask.sum(dim=1).clamp(min=1.0)
+            )
+            gathered_entropy = self.accelerator.gather(mean_entropy)
+            gathered_entropy_per_seq = self.accelerator.gather(entropy_per_seq)
+            self._append_metric_value(mode, "maxent/alpha", alpha)
+            self._append_metric_value(mode, "maxent/alpha_base", float(self.maxent_alpha))
+            self._append_metric_value(mode, "maxent/alpha_multiplier", alpha_multiplier)
+            self._append_metric_value(mode, "maxent/objective_variant_entropy", 1.0)
+            self._append_metric_value(mode, "maxent/objective_variant_listwise", 0.0)
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_kl_control_enabled",
+                1.0 if alpha_kl_control_enabled else 0.0,
+            )
+            self._append_metric_value(mode, "maxent/alpha_kl_direction", alpha_direction)
+            self._append_metric_value(mode, "maxent/alpha_kl_threshold", alpha_kl_threshold)
+            self._append_metric_value(
+                mode, "maxent/alpha_kl_min_multiplier", alpha_kl_min_multiplier
+            )
+            self._append_metric_value(
+                mode, "maxent/alpha_kl_max_multiplier", alpha_kl_max_multiplier
+            )
+            if alpha_kl_measure is not None:
+                self._append_metric_value(
+                    mode, "maxent/alpha_kl_measure", alpha_kl_measure
+                )
+            self._append_metric_value(
+                mode, "maxent/policy_entropy_mean", gathered_entropy.nanmean().item()
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/policy_entropy_std",
+                gathered_entropy_per_seq.to(torch.float32).std(unbiased=False).item(),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/loss_entropy_bonus",
+                (-alpha * gathered_entropy.nanmean()).item(),
+            )
+            if mode == "train" and getattr(self, "_maxent_controller_objective", None) is not None:
+                self._maybe_apply_controller_meta(
+                    mode=mode,
+                    kl_value=kl_value,
+                    total_loss=float(loss.item()),
+                )
+                self._sync_weighting_scalars()
+                self._append_metric_value(mode, "tau", float(self.tau))
+                self._append_metric_value(mode, "beta", float(self.beta))
+                self._append_metric_value(
+                    mode,
+                    "weight_norm_denom",
+                    float(getattr(self, "weight_norm_denom", 1.0)),
+                    include_legacy_aliases=False,
+                )
+            return loss
 
         def _compute_grpo_native_loss(
             self,
@@ -2002,12 +2461,40 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             return_outputs: bool = False,
             num_items_in_batch: Any = None,
         ) -> Any:
-            loss = self._compute_grpo_native_loss(
-                model=model,
-                inputs=inputs,
-                return_outputs=return_outputs,
-                num_items_in_batch=num_items_in_batch,
+            native_grpo_route = False
+            trl_prepared_inputs = isinstance(inputs, dict) and all(
+                key in inputs
+                for key in (
+                    "prompt_ids",
+                    "prompt_mask",
+                    "completion_ids",
+                    "completion_mask",
+                    "advantages",
+                )
             )
+            if self.objective_routing.uses_listwise_loss and trl_prepared_inputs:
+                if return_outputs:
+                    raise ValueError(
+                        "The custom listwise MaxEnt GRPOTrainer does not support returning outputs"
+                    )
+                loss = self._compute_listwise_maxent_loss(model=model, inputs=inputs)
+            elif (
+                self.objective_routing.uses_entropy_regularized_loss
+                and trl_prepared_inputs
+            ):
+                if return_outputs:
+                    raise ValueError(
+                        "The custom MaxEnt GRPOTrainer does not support returning outputs"
+                    )
+                loss = self._compute_maxent_loss(model=model, inputs=inputs)
+            else:
+                native_grpo_route = True
+                loss = self._compute_grpo_native_loss(
+                    model=model,
+                    inputs=inputs,
+                    return_outputs=return_outputs,
+                    num_items_in_batch=num_items_in_batch,
+                )
             # Cache the latest train KL immediately after native TRL loss
             # computation so adaptive MaxEnt alpha can be evaluated every
             # optimizer step (the next rollout consumes this cached value).
@@ -2020,7 +2507,30 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     kl_value = _numeric_or_none(kl_history[-1])
                     if kl_value is not None:
                         setattr(self, "_last_train_kl_for_alpha", float(kl_value))
-                self._maybe_update_reference_model_ema()
+                else:
+                    kl_value = None
+                if (
+                    native_grpo_route
+                    and getattr(self, "_maxent_controller_objective", None) is not None
+                ):
+                    loss_value = loss[0] if isinstance(loss, tuple) else loss
+                    self._maybe_apply_controller_meta(
+                        mode="train",
+                        kl_value=kl_value,
+                        total_loss=_numeric_or_none(loss_value),
+                    )
+                    self._sync_weighting_scalars()
+                    self._append_metric_value("train", "tau", float(self.tau))
+                    self._append_metric_value("train", "beta", float(self.beta))
+                    self._append_metric_value(
+                        "train",
+                        "weight_norm_denom",
+                        float(getattr(self, "weight_norm_denom", 1.0)),
+                        include_legacy_aliases=False,
+                    )
+                if self.maxent_enabled:
+                    self._sync_weighting_scalars()
+                    self._maybe_update_reference_model_ema()
             return loss
 
         def _generate_and_score_completions(  # type: ignore[override]
@@ -2028,9 +2538,10 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
         ) -> Dict[str, Any]:
             outputs = super()._generate_and_score_completions(inputs)
             mode = "train" if self.model.training else "eval"
+            if self.objective_routing.uses_listwise_loss:
+                self._prepare_listwise_rollout_targets(inputs, outputs)
             self._log_grpo_diversity(outputs, mode=mode)
             self._log_eval_pass_at_k(inputs, outputs, mode=mode)
-            self._apply_maxent_reward_shaping(inputs, outputs, mode=mode)
             if not self.maxent_enabled:
                 self._log_grpo_debug(inputs, outputs, mode=mode)
             return outputs

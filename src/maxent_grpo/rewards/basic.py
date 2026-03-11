@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import ast
 import json
+import math
 import os
 import subprocess
 import sys
@@ -68,7 +69,7 @@ class RewardFunction(Protocol):
     def __call__(
         self,
         completions: List[CompletionType],
-        answer: List[str],
+        *args: Any,
         **kwargs: Any,
     ) -> List[float]: ...
 
@@ -585,6 +586,7 @@ def pure_accuracy_math_correctness(
     """Return binary correctness aligned with ``pure_accuracy_reward_math``.
 
     A completion is considered correct when either:
+
     1. ``<answer>...</answer>`` canonicalizes to the gold answer, or
     2. (optional) no extracted answer matched but the final non-empty line
        matches.
@@ -600,6 +602,182 @@ def pure_accuracy_math_correctness(
             continue
         outs.append(bool(allow_last_line_fallback and last_line_match))
     return outs
+
+
+def accuracy_reward(
+    completions: List[CompletionType],
+    answer: List[str],
+    **_kwargs: Any,
+) -> List[float]:
+    """Open-R1-style accuracy reward (1.0 exact math match else 0.0).
+
+    This keeps compatibility with Open-R1 reward names while using the same
+    canonicalization/extraction logic as ``pure_accuracy_reward_math``.
+    """
+
+    outs: List[float] = []
+    for comp, gold in zip(completions, answer):
+        txt = _extract_content(comp)
+        gold_canon = _canon_math(gold)
+        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold_canon)
+        outs.append(1.0 if (pred_ok or last_line_match) else 0.0)
+    return outs
+
+
+def format_reward(completions: List[CompletionType], **_kwargs: Any) -> List[float]:
+    """Open-R1-compatible strict think/answer formatting reward."""
+
+    pattern = re.compile(
+        r"^<think>\n.*?\n</think>\n<answer>\n.*?\n</answer>$",
+        re.DOTALL | re.MULTILINE,
+    )
+    contents = [_extract_content(comp) for comp in completions]
+    return [1.0 if pattern.match(content) else 0.0 for content in contents]
+
+
+def tag_count_reward(completions: List[CompletionType], **_kwargs: Any) -> List[float]:
+    """Open-R1-compatible partial credit based on expected tag counts."""
+
+    def _count_tags(text: str) -> float:
+        count = 0.0
+        if text.count("<think>\n") == 1:
+            count += 0.25
+        if text.count("\n</think>\n") == 1:
+            count += 0.25
+        if text.count("\n<answer>\n") == 1:
+            count += 0.25
+        if text.count("\n</answer>") == 1:
+            count += 0.25
+        return count
+
+    return [_count_tags(_extract_content(comp)) for comp in completions]
+
+
+def reasoning_steps_reward(
+    completions: List[CompletionType], **_kwargs: Any
+) -> List[float]:
+    """Reward explicit step-by-step structure in natural language."""
+
+    pattern = r"(Step \d+:|^\d+\.|\n-|\n\*|First,|Second,|Next,|Finally,)"
+    contents = [_extract_content(comp) for comp in completions]
+    matches = [len(re.findall(pattern, content)) for content in contents]
+    return [min(1.0, count / 3.0) for count in matches]
+
+
+def get_cosine_scaled_reward(
+    min_value_wrong: float = -1.0,
+    max_value_wrong: float = -0.5,
+    min_value_correct: float = 0.5,
+    max_value_correct: float = 1.0,
+    max_len: int = 1000,
+) -> RewardFunction:
+    """Return a length-scaled reward closure compatible with Open-R1 configs."""
+
+    def _reward(
+        completions: List[CompletionType],
+        answer: List[str],
+        **_kwargs: Any,
+    ) -> List[float]:
+        contents = [_extract_content(comp) for comp in completions]
+        correctness = [bool(val) for val in accuracy_reward(completions, answer)]
+        denom = max(float(max_len), 1.0)
+        outs: List[float] = []
+        for content, is_correct in zip(contents, correctness):
+            progress = float(len(content)) / denom
+            cosine = math.cos(progress * math.pi)
+            if is_correct:
+                lo, hi = min_value_correct, max_value_correct
+            else:
+                # Mirror Open-R1 behavior for incorrect responses.
+                lo, hi = max_value_wrong, min_value_wrong
+            reward = lo + 0.5 * (hi - lo) * (1.0 + cosine)
+            outs.append(float(reward))
+        return outs
+
+    return _reward
+
+
+def get_repetition_penalty_reward(
+    ngram_size: int,
+    max_penalty: float,
+) -> RewardFunction:
+    """Return an Open-R1-style repetition penalty reward closure."""
+
+    if max_penalty > 0:
+        raise ValueError(f"max_penalty {max_penalty} should not be positive")
+    n = max(int(ngram_size), 1)
+
+    def _reward(completions: List[CompletionType], **_kwargs: Any) -> List[float]:
+        outs: List[float] = []
+        for comp in completions:
+            text = _extract_content(comp).strip()
+            if not text:
+                outs.append(0.0)
+                continue
+            words = text.lower().split()
+            if len(words) < n:
+                outs.append(0.0)
+                continue
+            total = len(words) - n + 1
+            ngrams = {tuple(words[i : i + n]) for i in range(total)}
+            scaling = 1.0 - (len(ngrams) / float(total))
+            outs.append(float(scaling * max_penalty))
+        return outs
+
+    return _reward
+
+
+def len_reward(
+    completions: List[CompletionType],
+    answer: List[str],
+    **_kwargs: Any,
+) -> List[float]:
+    """Length-based reward that discourages verbose incorrect outputs."""
+
+    contents = [_extract_content(comp) for comp in completions]
+    correctness = [bool(val) for val in accuracy_reward(completions, answer)]
+    lengths = [len(content) for content in contents]
+    if not lengths:
+        return []
+    min_len = min(lengths)
+    max_len = max(lengths)
+    if max_len == min_len:
+        return [0.0] * len(lengths)
+    outs: List[float] = []
+    denom = float(max_len - min_len)
+    for length, is_correct in zip(lengths, correctness):
+        lambda_val = 0.5 - ((float(length) - float(min_len)) / denom)
+        if is_correct:
+            outs.append(float(lambda_val))
+        else:
+            outs.append(float(min(0.0, lambda_val)))
+    return outs
+
+
+def get_code_format_reward(language: str = "python") -> RewardFunction:
+    """Return Open-R1-compatible code-format reward closure."""
+
+    def _reward(completions: List[CompletionType], **_kwargs: Any) -> List[float]:
+        pattern = re.compile(
+            rf"^<think>\n.*?\n</think>\n<answer>\n.*?```{re.escape(language)}.*?```.*?\n</answer>$",
+            re.DOTALL | re.MULTILINE,
+        )
+        contents = [_extract_content(comp) for comp in completions]
+        return [1.0 if pattern.match(content) else 0.0 for content in contents]
+
+    return _reward
+
+
+def binary_code_reward(
+    completions: List[CompletionType],
+    answer: List[Any],
+    **kwargs: Any,
+) -> List[float]:
+    """Binary wrapper around ``python_unit_test_reward`` for compatibility."""
+
+    scores = python_unit_test_reward(completions, answer, **kwargs)
+    threshold = 0.99
+    return [1.0 if score > threshold else 0.0 for score in scores]
 
 
 def uses_pure_accuracy_math_reward(reward_funcs: Sequence[Any]) -> bool:
@@ -683,7 +861,35 @@ def get_reward_funcs(
 ) -> List["RewardFunction"]:
     """Resolve reward function callables from names."""
 
+    cosine_reward = get_cosine_scaled_reward(
+        min_value_wrong=float(getattr(script_args, "cosine_min_value_wrong", -1.0)),
+        max_value_wrong=float(getattr(script_args, "cosine_max_value_wrong", -0.5)),
+        min_value_correct=float(
+            getattr(script_args, "cosine_min_value_correct", 0.5)
+        ),
+        max_value_correct=float(getattr(script_args, "cosine_max_value_correct", 1.0)),
+        max_len=int(getattr(script_args, "cosine_max_len", 1000)),
+    )
+    repetition_reward = get_repetition_penalty_reward(
+        ngram_size=int(getattr(script_args, "repetition_n_grams", 3)),
+        max_penalty=float(getattr(script_args, "repetition_max_penalty", -1.0)),
+    )
+    code_format_reward = get_code_format_reward(
+        language=str(getattr(script_args, "code_language", "python"))
+    )
     registry = {
+        # Open-R1-compatible aliases.
+        "accuracy": accuracy_reward,
+        "format": format_reward,
+        "tag_count": tag_count_reward,
+        "reasoning_steps": reasoning_steps_reward,
+        "cosine": cosine_reward,
+        "repetition_penalty": repetition_reward,
+        "length": len_reward,
+        "code": python_unit_test_reward,
+        "binary_code": binary_code_reward,
+        "code_format": code_format_reward,
+        # Native/extended names.
         "pure_accuracy_math": pure_accuracy_reward_math,
         "python_unit_tests": python_unit_test_reward,
         "mbpp_python_tests": python_unit_test_reward,
@@ -694,9 +900,18 @@ def get_reward_funcs(
 __all__ = [
     "RewardFunction",
     "RewardConfig",
+    "accuracy_reward",
+    "format_reward",
     "get_reward_funcs",
+    "tag_count_reward",
+    "reasoning_steps_reward",
+    "get_cosine_scaled_reward",
+    "get_repetition_penalty_reward",
+    "len_reward",
+    "get_code_format_reward",
     "pure_accuracy_math_correctness",
     "pure_accuracy_reward_math",
     "python_unit_test_reward",
+    "binary_code_reward",
     "uses_pure_accuracy_math_reward",
 ]

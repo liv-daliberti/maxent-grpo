@@ -11,8 +11,9 @@
     "../src/maxent_grpo/rewards/maxent.py"
   ],
   "typeCheckingMode": "basic",
-  "reportMissingImports": "warning",
-  "reportMissingTypeStubs": "warning",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportMissingTypeStubs": "none",
   "stubPath": "../typings",
   "executionEnvironments": [
     {

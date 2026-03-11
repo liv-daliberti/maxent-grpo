@@ -30,8 +30,11 @@ from maxent_grpo.training.generation.errors import (
     log_generation_service_error,
 )
 from maxent_grpo.rewards.basic import (
+    _canon_math,
+    _pure_accuracy_math_match_flags,
     _answer_pat,
     _format_pat,
+    uses_pure_accuracy_math_reward,
 )
 from maxent_grpo.training.runtime.logging import _log_wandb
 from .scoring import (
@@ -946,6 +949,146 @@ def _gather_eval_stats(
     return total_sum, total_count, total_fmt, total_score
 
 
+def _seed_eval_enabled(raw: Any) -> bool:
+    """Return whether seed-eval metrics are enabled from a config value."""
+
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, (int, float)):
+        return bool(raw)
+    if isinstance(raw, str):
+        return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return False
+
+
+def _seed_eval_config(evaluation_cfg: Any) -> Optional[Dict[str, Any]]:
+    """Normalize optional seed-eval settings from ``EvaluationSettings``."""
+
+    raw_cfg = getattr(evaluation_cfg, "seed_eval", None)
+    if not isinstance(raw_cfg, dict):
+        return None
+    if not _seed_eval_enabled(raw_cfg.get("enabled", False)):
+        return None
+    try:
+        num_seeds = max(1, int(raw_cfg.get("num_seeds", 1)))
+    except (TypeError, ValueError):
+        num_seeds = 1
+    try:
+        samples_per_seed = max(1, int(raw_cfg.get("samples_per_seed", 1)))
+    except (TypeError, ValueError):
+        samples_per_seed = 1
+    template = raw_cfg.get("template", "\n[seed={seed}]")
+    if not isinstance(template, str):
+        template = "\n[seed={seed}]"
+    return {
+        "num_seeds": num_seeds,
+        "samples_per_seed": samples_per_seed,
+        "template": template,
+    }
+
+
+def _compute_seed_eval_metrics(ctx: ValidationContext) -> Dict[str, float]:
+    """Compute auxiliary seed-eval metrics from multi-sample generations."""
+
+    cfg = _seed_eval_config(ctx.evaluation)
+    rows = getattr(ctx.evaluation, "rows", None) or []
+    if cfg is None or not rows:
+        return {}
+
+    num_seeds = int(cfg["num_seeds"])
+    samples_per_seed = int(cfg["samples_per_seed"])
+    template = str(cfg["template"])
+    prompts: List[str] = []
+    answers: List[str] = []
+    for row in rows:
+        prompt = str(row.get("prompt", ""))
+        answer = str(row.get("answer", ""))
+        for seed in range(num_seeds):
+            try:
+                suffix = template.format(seed=seed)
+            except (KeyError, ValueError):
+                suffix = f"\n[seed={seed}]"
+            prompts.append(f"{prompt}{suffix}")
+            answers.append(answer)
+    if not prompts:
+        return {}
+
+    per_prompt_counts = [samples_per_seed] * len(prompts)
+    generator = ctx.generator
+    try:
+        grouped, _grouped_meta = generator(prompts, samples_per_seed, per_prompt_counts)
+    except TypeError:
+        try:
+            grouped, _grouped_meta = generator(
+                prompts,
+                samples_per_seed,
+                per_prompt_counts=per_prompt_counts,
+            )
+        except TypeError:
+            grouped, _grouped_meta = generator(prompts, samples_per_seed)
+    except GenerationServiceError as exc:
+        log_generation_service_error(logging.getLogger(__name__), "evaluation", exc)
+        raise
+    if not grouped:
+        return {}
+
+    flat_completions: List[str] = []
+    flat_answers: List[str] = []
+    group_sizes: List[int] = []
+    for idx, completion_group in enumerate(grouped):
+        if not isinstance(completion_group, list) or not completion_group:
+            continue
+        valid_group = [str(comp) for comp in completion_group[:samples_per_seed]]
+        if not valid_group:
+            continue
+        flat_completions.extend(valid_group)
+        flat_answers.extend([answers[idx]] * len(valid_group))
+        group_sizes.append(len(valid_group))
+    if not flat_completions:
+        return {}
+
+    reward_spec = ctx.eval_reward or ctx.reward
+    flat_scores = _compute_eval_rewards(flat_completions, flat_answers, reward_spec)
+    reward_funcs = list(getattr(reward_spec, "reward_funcs", []) or [])
+    pure_math_mode = uses_pure_accuracy_math_reward(reward_funcs)
+    if pure_math_mode:
+        solved_flags_flat = []
+        for completion, answer in zip(flat_completions, flat_answers):
+            gold_canon = _canon_math(answer)
+            pred_ok, last_line_match = _pure_accuracy_math_match_flags(
+                str(completion),
+                gold_canon,
+            )
+            solved_flags_flat.append(bool(pred_ok or last_line_match))
+    else:
+        solved_threshold = 0.999
+        solved_flags_flat = [
+            float(score) >= solved_threshold for score in flat_scores
+        ]
+    offset = 0
+    pass_hits = 0
+    pass_total = 0
+    solved_total = 0
+    solved_count = 0
+    for group_size in group_sizes:
+        group_scores = flat_scores[offset : offset + group_size]
+        group_flags = solved_flags_flat[offset : offset + group_size]
+        offset += group_size
+        if not group_scores:
+            continue
+        pass_total += 1
+        if group_flags and group_flags[0]:
+            pass_hits += 1
+        solved_total += sum(1 for flag in group_flags if flag)
+        solved_count += len(group_flags)
+    if pass_total <= 0 or solved_count <= 0:
+        return {}
+    return {
+        "eval_seed/pass_at_1": float(pass_hits) / float(pass_total),
+        "eval_seed/pred_acc": float(solved_total) / float(solved_count),
+    }
+
+
 def run_validation_step(step: int, ctx: ValidationContext) -> None:
     """Generate single completions on the eval set and log mean reward.
 
@@ -1054,21 +1197,6 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                 float(total_fmt.get("missing_format", 0.0))
                 / max(float(total_fmt.get("total", 0.0)), 1.0),
             )
-            ctx.logging.log_metrics(
-                {
-                    "eval/mean_reward": mean_reward,
-                    "eval/samples": sample_total,
-                    "eval/format/missing_answer_frac": float(
-                        total_fmt.get("missing_answer", 0.0)
-                    )
-                    / max(float(total_fmt.get("total", 0.0)), 1.0),
-                    "eval/format/missing_format_frac": float(
-                        total_fmt.get("missing_format", 0.0)
-                    )
-                    / max(float(total_fmt.get("total", 0.0)), 1.0),
-                },
-                step,
-            )
             eval_metrics = {
                 "eval/mean_reward": mean_reward,
                 "eval/samples": sample_total,
@@ -1111,6 +1239,10 @@ def run_validation_step(step: int, ctx: ValidationContext) -> None:
                     eval_metrics["eval/completions/mean_length_terminated"] = (
                         terminated_sum / terminated_count
                     )
+            seed_eval_metrics = _compute_seed_eval_metrics(ctx)
+            if seed_eval_metrics:
+                eval_metrics.update(seed_eval_metrics)
+            ctx.logging.log_metrics(eval_metrics, step)
             _log_wandb(getattr(ctx.logging, "wandb_run", None), eval_metrics, step)
             accel_log = getattr(accelerator, "log", None)
             if callable(accel_log):

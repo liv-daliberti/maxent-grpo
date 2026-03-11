@@ -57,7 +57,7 @@ maxent_length_normalize_ref: false
 maxent_logprob_chunk_size: 2  # cap ref/policy scoring slices to lighten per-forward memory
 maxent_score_slice_prefetch: 2     # overlap CPU slice prep with reference/policy scoring
 maxent_prompt_cache_size: 2048     # memoize prompt tokenization for repeated prompts
-train_grpo_objective: true
+objective: grpo_entropy_bonus
 # Optional clip objective settings (kept aligned with prior MaxEnt runs).
 maxent_use_clip_objective: true
 maxent_clip_objective_coef: 1.0

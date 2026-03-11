@@ -67,6 +67,22 @@ def _install_torch_stub(hint: str) -> ModuleType:
             self.arr = _np.array(data) if _np is not None else data
             self.dtype = dtype
 
+        @property
+        def shape(self) -> Any:
+            if _np is None:
+                try:
+                    return (len(self.arr),)
+                except TypeError:
+                    return ()
+            return self.arr.shape
+
+        @property
+        def ndim(self) -> int:
+            return len(self.shape)
+
+        def dim(self) -> int:
+            return self.ndim
+
         def detach(self) -> "_StubTensor":
             return self
 
@@ -79,6 +95,13 @@ def _install_torch_stub(hint: str) -> ModuleType:
         def to(self, *_args: Any, **_kwargs: Any) -> "_StubTensor":
             return self
 
+        def clone(self) -> "_StubTensor":
+            if _np is None:
+                if isinstance(self.arr, list):
+                    return _StubTensor(list(self.arr), dtype=self.dtype)
+                return _StubTensor(self.arr, dtype=self.dtype)
+            return _StubTensor(self.arr.copy(), dtype=self.dtype)
+
         def view(self, *shape: int) -> "_StubTensor":
             if _np is None:
                 return self
@@ -86,6 +109,24 @@ def _install_torch_stub(hint: str) -> ModuleType:
 
         def reshape(self, *shape: int) -> "_StubTensor":
             return self.view(*shape)
+
+        def unsqueeze(self, dim: int) -> "_StubTensor":
+            if _np is None:
+                return _StubTensor([self.arr], dtype=self.dtype)
+            return _StubTensor(_np.expand_dims(self.arr, axis=dim), dtype=self.dtype)
+
+        def repeat(self, *sizes: int) -> "_StubTensor":
+            if len(sizes) == 1 and isinstance(sizes[0], (list, tuple)):
+                sizes = tuple(int(size) for size in sizes[0])
+            if _np is None:
+                data = self.arr
+                for size in reversed(tuple(int(size) for size in sizes)):
+                    data = [data for _ in range(size)]
+                return _StubTensor(data, dtype=self.dtype)
+            return _StubTensor(
+                _np.tile(self.arr, tuple(int(size) for size in sizes)),
+                dtype=self.dtype,
+            )
 
         def clamp(
             self,
@@ -135,6 +176,21 @@ def _install_torch_stub(hint: str) -> ModuleType:
             if _np is None:
                 return self
             return _StubTensor(self.arr.sum(axis=dim), dtype=self.dtype)
+
+        def mean(self, dim: Optional[int] = None) -> "_StubTensor":
+            if _np is None:
+                return self
+            return _StubTensor(self.arr.mean(axis=dim), dtype=self.dtype)
+
+        def log(self) -> "_StubTensor":
+            if _np is None:
+                return self
+            return _StubTensor(_np.log(self.arr), dtype=self.dtype)
+
+        def exp(self) -> "_StubTensor":
+            if _np is None:
+                return self
+            return _StubTensor(_np.exp(self.arr), dtype=self.dtype)
 
         def max(self) -> Any:
             if _np is None:
@@ -286,6 +342,110 @@ def _install_torch_stub(hint: str) -> ModuleType:
         arrs = [_np.array(getattr(t, "arr", t)) for t in tensors]
         return _wrap(_np.stack(arrs, axis=dim))
 
+    def _sum(tensor: Any, dim: int | None = None) -> _StubTensor:
+        data = getattr(tensor, "arr", tensor)
+        if _np is None:
+            if isinstance(data, (list, tuple)):
+                return _wrap(sum(float(v) for v in data))
+            try:
+                return _wrap(float(data))
+            except (TypeError, ValueError):
+                return _wrap(0.0)
+        return _wrap(_np.sum(_np.array(data), axis=dim))
+
+    def _nansum(tensor: Any, dim: int | None = None) -> _StubTensor:
+        data = getattr(tensor, "arr", tensor)
+        if _np is None:
+            return _sum(data, dim=dim)
+        return _wrap(_np.nansum(_np.array(data), axis=dim))
+
+    def _clamp(
+        tensor: Any,
+        min_value: Optional[float] = None,
+        max_value: Optional[float] = None,
+        **kwargs: Any,
+    ) -> _StubTensor:
+        value = tensor if isinstance(tensor, _StubTensor) else _wrap(tensor)
+        return value.clamp(min_value=min_value, max_value=max_value, **kwargs)
+
+    def _log(tensor: Any) -> _StubTensor:
+        value = tensor if isinstance(tensor, _StubTensor) else _wrap(tensor)
+        return value.log()
+
+    def _exp(tensor: Any) -> _StubTensor:
+        value = tensor if isinstance(tensor, _StubTensor) else _wrap(tensor)
+        return value.exp()
+
+    def _softmax(tensor: Any, dim: int = -1) -> _StubTensor:
+        value = getattr(tensor, "arr", tensor)
+        if _np is None:
+            return tensor if isinstance(tensor, _StubTensor) else _wrap(tensor)
+        arr = _np.array(value, dtype=float)
+        shifted = arr - _np.max(arr, axis=dim, keepdims=True)
+        exp_vals = _np.exp(shifted)
+        denom = _np.sum(exp_vals, axis=dim, keepdims=True)
+        return _wrap(exp_vals / denom)
+
+    def _randn(*shape: int) -> _StubTensor:
+        if _np is None:
+            size = int(shape[0]) if shape else 1
+            return _wrap([0.0 for _ in range(size)])
+        normalized_shape = shape or (1,)
+        return _wrap(_np.random.randn(*normalized_shape))
+
+    class _Module:
+        """Minimal torch.nn.Module compatible with test doubles."""
+
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            self.training = True
+
+        def forward(self, *_args: Any, **_kwargs: Any) -> Any:
+            raise TypeError("Module stub is not callable without a forward method")
+
+        def __call__(self, *args: Any, **kwargs: Any) -> Any:
+            return self.forward(*args, **kwargs)
+
+        def eval(self) -> "_Module":
+            self.training = False
+            return self
+
+        def train(self, mode: bool = True) -> "_Module":
+            self.training = bool(mode)
+            return self
+
+        def parameters(self) -> list[Any]:
+            return []
+
+    class _Linear(_Module):
+        """Simple Linear stub that preserves output shape semantics."""
+
+        def __init__(
+            self, in_features: int, out_features: int, *_args: Any, **_kwargs: Any
+        ) -> None:
+            super().__init__()
+            self.in_features = int(in_features)
+            self.out_features = int(out_features)
+            if _np is None:
+                self.weight = _wrap(
+                    [[0.0 for _ in range(self.in_features)] for _ in range(self.out_features)]
+                )
+                self.bias = _wrap([0.0 for _ in range(self.out_features)])
+            else:
+                self.weight = _wrap(_np.zeros((self.out_features, self.in_features)))
+                self.bias = _wrap(_np.zeros((self.out_features,)))
+
+        def forward(self, *args: Any, **_kwargs: Any) -> _StubTensor:
+            inputs = args[0] if args else None
+            data = getattr(inputs, "arr", inputs)
+            if _np is None:
+                return _wrap([0.0 for _ in range(self.out_features)])
+            array = _np.array(data)
+            if array.ndim == 0:
+                out_shape = (self.out_features,)
+            else:
+                out_shape = tuple(array.shape[:-1]) + (self.out_features,)
+            return _wrap(_np.zeros(out_shape))
+
     stub = ModuleType("torch")
     stub.__MAXENT_STUB__ = True
     stub.__spec__ = getattr(stub, "__spec__", None) or ModuleSpec("torch", loader=None)
@@ -315,6 +475,13 @@ def _install_torch_stub(hint: str) -> ModuleType:
     stub.arange = _arange
     stub.cat = _cat
     stub.stack = _stack
+    stub.sum = _sum
+    stub.nansum = _nansum
+    stub.clamp = _clamp
+    stub.log = _log
+    stub.exp = _exp
+    stub.softmax = _softmax
+    stub.randn = _randn
     stub.float32 = _StubDType("float32", _np.float32 if _np is not None else None)
     stub.float16 = _StubDType("float16", _np.float16 if _np is not None else None)
     stub.bfloat16 = _StubDType("bfloat16")
@@ -341,8 +508,8 @@ def _install_torch_stub(hint: str) -> ModuleType:
     stub.distributed = None
     stub.__version__ = "0.0.0-stub"
     stub.nn = SimpleNamespace(
-        Module=object,
-        Linear=lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError(hint)),
+        Module=_Module,
+        Linear=_Linear,
         utils=SimpleNamespace(clip_grad_norm_=lambda *_a, **_k: 0.0),
         functional=SimpleNamespace(),
     )
@@ -351,7 +518,7 @@ def _install_torch_stub(hint: str) -> ModuleType:
     sys.modules["torch"] = stub
     nn_mod = sys.modules.setdefault("torch.nn", ModuleType("torch.nn"))
     if not hasattr(nn_mod, "Module"):
-        nn_mod.Module = object
+        nn_mod.Module = _Module
     stub_nn = getattr(stub, "nn", None)
     stub_linear = getattr(stub_nn, "Linear", None)
     if not hasattr(nn_mod, "Linear"):
@@ -547,13 +714,14 @@ def require_deepspeed(context: str, module: str = "deepspeed") -> ModuleType:
 def get_trl_prepare_deepspeed() -> Optional[Any]:
     """Return TRL's prepare_deepspeed helper when available."""
 
-    utils_module = _optional_dependency("trl.models.utils")
-    if utils_module is None:
-        return None
-    prepare = getattr(utils_module, "prepare_deepspeed", None)
-    if not callable(prepare):
-        return None
-    return prepare
+    for module_name in ("trl.models.utils", "trl.trainer.utils"):
+        utils_module = _optional_dependency(module_name)
+        if utils_module is None:
+            continue
+        prepare = getattr(utils_module, "prepare_deepspeed", None)
+        if callable(prepare):
+            return prepare
+    return None
 
 
 def _maybe_create_deepspeed_plugin() -> Optional[DeepSpeedPlugin]:

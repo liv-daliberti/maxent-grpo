@@ -43,8 +43,14 @@ Recipe pairing (reproducible GRPO_RECIPE runs)
 - Baseline GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml``
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
 - Paired GRPO recipes pin ``maxent_reference_logprobs_source: model`` and share optimizer/sampling settings with MaxEnt counterparts for parity.
-- The MaxEnt-GRPO recipes now default to **GRPO + entropy bonus**; switch back to MaxEnt weighting by setting ``train_grpo_objective=false``.
-- Hydra shortcuts reference the same pair: ``configs/recipes/hydra/baseline_math.yaml`` and ``configs/recipes/hydra/maxent_math.yaml`` so both ``maxent-grpo-baseline`` and ``maxent-grpo command=train-maxent`` read sibling configs. For paired GRPO parity settings, use ``configs/recipes/hydra/grpo_custom_math.yaml``.
+- Trainer-level MaxEnt recipes should now set ``objective`` explicitly:
+  ``maxent_entropy`` for token-entropy regularization and ``maxent_listwise``
+  for tau/q/beta weighting.
+- For a clean three-way comparison on the shared 1.5B math recipe, use:
+  ``configs/recipes/hydra/grpo_custom_math.yaml``,
+  ``configs/recipes/hydra/maxent_entropy_math.yaml``, and
+  ``configs/recipes/hydra/maxent_listwise_math.yaml``.
+- ``configs/recipes/hydra/maxent_math.yaml`` remains available as the higher-control MaxEnt preset.
 
 Logging (Entropy Bonus)
 -----------------------
@@ -239,13 +245,17 @@ Meta-Controller (τ/β)
   uses a lightweight analytic update; flip ``controller_meta_method`` to
   ``first_order`` or ``truncated_backprop`` to run the meta-optimizer loop and
   differentiate through the controller loss.
-- ``controller_meta_lr`` sets the meta learning rate. ``controller_meta_update_interval``
-  controls how often meta steps run (every N policy steps). ``controller_meta_objective``
-  is currently informational (the regularized potential is always optimized),
-  ``controller_meta_optimizer`` chooses the meta optimizer (currently ``sgd``),
-  ``controller_meta_truncation_steps`` (or ``controller_meta_analytic_steps``)
-  controls the truncated horizon, and ``controller_meta_use_hessian`` toggles
-  whether second-order approximations are permitted.
+- ``controller_meta_lr`` sets the shared meta learning rate.
+  ``controller_meta_tau_lr`` and ``controller_meta_beta_lr`` optionally override
+  that base rate for the individual τ and β updates, while
+  ``controller_meta_beta_grad_clip`` clips the raw β update signal
+  ``(kl - kl_target)`` before the optimizer step.
+- ``controller_meta_update_interval`` controls how often meta steps run (every
+  N policy steps).
+- The richer experimental surface from earlier revisions is no longer public:
+  the controller objective, optimizer choice, truncation horizon, and Hessian
+  toggles are fixed internally to the supported trainer path instead of being
+  user-facing knobs.
   Example Hydra overrides:
 
   .. code-block:: bash

@@ -45,6 +45,6 @@ def test_drop_empty_prompt_groups_and_truncate():
     trimmed, trimmed_meta, partial = common.truncate_to_expected_counts(
         comps2, meta2, expected_generations=1
     )
-    assert trimmed == [["c1"]]
-    assert partial == 0
-    assert trimmed_meta and trimmed_meta[0] == [None]
+    assert trimmed == [["c1", "c2"]]
+    assert partial == 1
+    assert trimmed_meta and trimmed_meta[0] == [None, None]

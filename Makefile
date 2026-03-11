@@ -21,12 +21,12 @@ help:
 	@echo "  clean-local-deep - remove additional local cache/chaff directories"
 
 install-dev:
-	pip install -e .[dev]
+	PYTHONNOUSERSITE=1 pip install -e .[dev]
 
 install-local:
 	export PYTHONUSERBASE=$(PWD)/.local; \
-	  python -m pip install --upgrade pip; \
-	  pip install --user -e .[dev]
+	  PYTHONNOUSERSITE=1 python -m pip install --upgrade pip; \
+	  PYTHONNOUSERSITE=1 pip install --user -e .[dev]
 	@echo "Add to PATH for local scripts: export PATH=\"$(PWD)/.local/bin:$$PATH\""
 
 venv:
@@ -34,7 +34,7 @@ venv:
 	@echo "Activate with: source .venv/bin/activate"
 
 install-venv: venv
-	. .venv/bin/activate && pip install -e .[dev]
+	. .venv/bin/activate && PYTHONNOUSERSITE=1 pip install -e .[dev]
 
 conda-local:
 	@set -euo pipefail; \
@@ -68,7 +68,7 @@ conda-local:
 	  cd "$$ROOT_DIR/configs" && \
 	    CONDARC="$$CONDARC" CONDA_PKGS_DIRS="$$CONDA_PKGS_DIRS" CONDA_ENVS_DIRS="$$CONDA_ENVS_DIRS" \
 	    CONDA_NOTICES_PATH="$$VAR_DIR/conda/notices" CONDA_NO_PLUGINS=true \
-	    PIP_CACHE_DIR="$$PIP_CACHE_DIR" TMPDIR="$$TMPDIR" \
+	    PIP_CACHE_DIR="$$PIP_CACHE_DIR" TMPDIR="$$TMPDIR" PYTHONNOUSERSITE=1 \
 	    conda env create -p "$$VAR_DIR/openr1" -f environment.yml; \
 	  echo "✅ Env created at: $$VAR_DIR/openr1"; \
 	fi; \
@@ -77,11 +77,13 @@ conda-local:
 	export PIP_CACHE_DIR="$$PIP_CACHE_DIR"
 	export TMPDIR="$$TMPDIR"
 	export HF_HOME="$$HF_HOME"
+	export PYTHONNOUSERSITE=1
 	EOF
 	cat > "$$DEACTIVATE_HOOK" <<-'EOF'
 	unset PIP_CACHE_DIR
 	unset TMPDIR
 	unset HF_HOME
+	unset PYTHONNOUSERSITE
 	EOF
 	echo "Activate with: conda activate $$VAR_DIR/openr1"
 

@@ -68,7 +68,7 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-train_grpo_objective: true
+objective: grpo
 gen_temperature: 0.7
 gen_top_p: 0.95
 gen_top_k: 0
@@ -78,7 +78,7 @@ vllm_max_completion_rounds: 2
 vllm_max_retries: 4
 hub_model_id: null
 hub_strategy: "end"
-learning_rate: 1e-6
+learning_rate: 1.5e-6
 optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
@@ -90,7 +90,7 @@ logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
 max_prompt_length: 2048
-max_completion_length: 768
+max_completion_length: 512
 max_steps: 1000
 num_generations: 8
 steps_per_generation: 8
@@ -110,8 +110,8 @@ reward_weights:
 - 1
 
 # Reverse-KL weight beta used by GRPO's KL regularization
-beta: 0.04
-kl_target:        0.2
+beta: 0.08
+kl_target:        0.08
 kl_horizon:       100
 kl_ctl_step_size: 0.0
 

@@ -201,6 +201,9 @@ def _resolve_default_limit() -> int:
                 "Invalid MAX_PROMPT_TOKENS/MAX_PROMPT_CHARS=%s; using defaults.",
                 env_val,
             )
+    # A non-positive default explicitly disables the static fallback limit.
+    if int(_DEFAULT_PROMPT_CHAR_LIMIT) <= 0:
+        return int(_DEFAULT_PROMPT_CHAR_LIMIT)
     try:
         from maxent_grpo.training.runtime import prompts as prompts_mod
 
@@ -383,14 +386,14 @@ class VLLMRequestMixin:
         for prompt, count in zip(prompts, target_counts):
             if prompt in seen:
                 existing_idx = seen[prompt]
-                if count > unique_counts[existing_idx]:
-                    unique_counts[existing_idx] = count
                 mapping.append(existing_idx)
                 continue
             seen[prompt] = len(unique_prompts)
             mapping.append(seen[prompt])
             unique_prompts.append(prompt)
             unique_counts.append(count)
+        if len(unique_prompts) == len(prompts):
+            return unique_prompts, unique_counts, None
         return unique_prompts, unique_counts, mapping
 
     def prepare_vllm_targets(
@@ -858,15 +861,21 @@ class VLLMRequestMixin:
         if isinstance(limit_override, int) and limit_override > 0:
             return limit_override
         max_len = getattr(self.ctx, "max_prompt_len", None)
-        if isinstance(max_len, int) and max_len > 0:
-            return int(max_len)
+        approx_limit = int(max_len) * 4 if isinstance(max_len, int) and max_len > 0 else 0
         try:
             from maxent_grpo.training.generation import vllm as _vllm_mod
 
             limit_const = getattr(_vllm_mod, "PROMPT_CHAR_LIMIT", base_limit)
         except (ImportError, AttributeError, RuntimeError):
             limit_const = base_limit
-        return int(limit_const) if limit_const is not None else base_limit
+        env_limit = int(limit_const) if isinstance(limit_const, int) else int(base_limit)
+        if env_limit <= 0 and approx_limit <= 0:
+            return 0
+        if env_limit <= 0:
+            return approx_limit
+        if approx_limit <= 0:
+            return env_limit
+        return max(env_limit, approx_limit)
 
     def _request_vllm_batch(
         self,
@@ -988,7 +997,7 @@ class VLLMRequestMixin:
             else ctx.vllm_stop_sequences
         )
         top_k = ctx.gen_top_k if ctx.gen_top_k is not None else ctx.vllm_top_k
-        if top_k is None or top_k == 0:
+        if top_k == 0:
             top_k = -1
         best_of = ctx.gen_best_of if ctx.gen_best_of is not None else ctx.vllm_best_of
         backoff_multiplier = getattr(ctx, "vllm_backoff_multiplier", 2.0)
@@ -1008,7 +1017,7 @@ class VLLMRequestMixin:
         if model_label:
             metadata["model_id"] = model_label
         client_tag = _resolve_client_tag(ctx)
-        url = _normalize_vllm_url(getattr(ctx, "vllm_url", ""))
+        url = str(getattr(ctx, "vllm_url", "") or "")
         request_kwargs: Dict[str, Any] = {
             "prompts": prompts,
             "url": url,

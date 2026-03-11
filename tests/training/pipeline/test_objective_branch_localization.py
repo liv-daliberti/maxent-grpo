@@ -13,10 +13,18 @@ def _read(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
 
 
+def _repo_root() -> Path:
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "src" / "maxent_grpo").exists():
+            return parent
+    raise RuntimeError("Unable to locate repository root from test path")
+
+
 def test_train_objective_flag_not_used_in_shared_pipeline_files() -> None:
-    repo = Path(__file__).resolve().parents[2]
+    repo = _repo_root()
     shared_files = [
-        repo / "src" / "maxent_grpo" / "pipelines" / "training" / "baseline.py",
+        repo / "src" / "maxent_grpo" / "training" / "baseline.py",
         repo / "src" / "maxent_grpo" / "core" / "model.py",
     ]
     for path in shared_files:
@@ -28,7 +36,7 @@ def test_train_objective_flag_not_used_in_shared_pipeline_files() -> None:
 
 
 def test_train_objective_flag_stays_in_trl_trainer() -> None:
-    repo = Path(__file__).resolve().parents[2]
+    repo = _repo_root()
     trainer_text = _read(
         str(repo / "src" / "maxent_grpo" / "training" / "trl_trainer.py")
     )

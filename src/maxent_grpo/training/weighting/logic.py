@@ -22,6 +22,7 @@ import math
 import os
 from typing import Any, List, Optional, Tuple, cast
 
+from maxent_grpo.objectives import resolve_objective_routing
 from maxent_grpo.training.runtime import require_torch
 from ..types import ReferenceLogprobs, RewardComputation
 from .types import (
@@ -101,7 +102,7 @@ def _maybe_init_controller_state(weighting_cfg: WeightingSettings) -> None:
             float(weighting_cfg.beta),
             requires_grad=False,
         )
-    except (RuntimeError, TypeError, ValueError):
+    except (AttributeError, RuntimeError, TypeError, ValueError):
         weighting_cfg.controller_state = None
 
 
@@ -120,7 +121,17 @@ def _sync_controller_state(weighting_cfg: WeightingConfigLike) -> None:
 def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
     """Convenience builder for WeightingSettings from GRPOConfig."""
 
+    routing = resolve_objective_routing(
+        objective=getattr(cfg, "objective", None),
+        train_grpo_objective=getattr(cfg, "train_grpo_objective", True),
+        maxent_objective_variant=getattr(cfg, "maxent_objective_variant", None),
+        maxent_alpha=getattr(cfg, "maxent_alpha", 0.0),
+        policy_entropy_bonus_coef=getattr(cfg, "policy_entropy_bonus_coef", 0.0),
+    )
     tau = float(getattr(cfg, "maxent_tau", 0.0))
+    train_grpo_objective = routing.train_grpo_objective
+    if routing.uses_listwise_loss and tau <= 0.0:
+        raise ValueError("listwise MaxEnt requires maxent_tau > 0")
     beta_source = getattr(cfg, "beta", None)
     if beta_source is None:
         beta_source = getattr(cfg, "init_kl_coeff", None)
@@ -134,9 +145,12 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
     normalization = WeightingSettings.__annotations__.get(
         "normalization", WeightNormalizationSettings
     )
-    denom = float(tau + beta)
-    if not math.isfinite(denom) or denom <= 0.0:
+    if train_grpo_objective:
         denom = 1.0
+    else:
+        denom = float(tau)
+        if not math.isfinite(denom) or denom <= 0.0:
+            denom = 1.0
     normalization = WeightNormalizationSettings(
         denom=denom,
         len_norm_ref=bool(getattr(cfg, "maxent_length_normalize_ref", True)),
@@ -173,15 +187,11 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
         beta_learning_rate=float(getattr(cfg, "controller_meta_beta_lr", 0.0)),
         beta_grad_clip=float(getattr(cfg, "controller_meta_beta_grad_clip", 0.0)),
         update_interval=max(1, int(getattr(cfg, "controller_meta_update_interval", 1))),
-        objective=str(
-            getattr(cfg, "controller_meta_objective", "potential") or "potential"
-        ),
-        analytic_steps=max(1, int(getattr(cfg, "controller_meta_analytic_steps", 1))),
-        optimizer=str(getattr(cfg, "controller_meta_optimizer", "sgd") or "sgd"),
-        truncation_steps=max(
-            1, int(getattr(cfg, "controller_meta_truncation_steps", 1))
-        ),
-        use_hessian=bool(getattr(cfg, "controller_meta_use_hessian", False)),
+        objective="potential",
+        analytic_steps=1,
+        optimizer="sgd",
+        truncation_steps=1,
+        use_hessian=False,
     )
     settings = WeightingSettings(
         tau=tau,
@@ -190,7 +200,7 @@ def build_weighting_settings(cfg: GRPOConfig) -> WeightingSettings:
         q_distribution=q_dist,
         tau_schedule=tau_sched,
         kl_controller=kl_ctl,
-        train_grpo_objective=bool(getattr(cfg, "train_grpo_objective", True)),
+        train_grpo_objective=train_grpo_objective,
         scale_rewards=bool(getattr(cfg, "scale_rewards", True)),
         controller_meta=meta_settings,
         allow_empty_weight_fallback=bool(
@@ -277,10 +287,14 @@ def split_reference_token_counts(
     """
     counts_grouped: List[List[float]] = []
     offset = 0
+    count_values = _to_float_list(getattr(ref_stats, "ref_tok_counts", None))
     for comps in grouped_completions:
         comp_count = len(comps)
-        count_slice = cast(Any, ref_stats.ref_tok_counts)[offset : offset + comp_count]
-        counts_grouped.append(cast(Any, count_slice).tolist())
+        count_slice = count_values[offset : offset + comp_count]
+        slice_list = list(count_slice)
+        if len(slice_list) < comp_count:
+            slice_list.extend([0.0] * (comp_count - len(slice_list)))
+        counts_grouped.append(slice_list)
         offset += comp_count
     return counts_grouped
 
@@ -346,6 +360,10 @@ def weight_vector_from_q(
 ) -> List[float]:
     """Convert listwise q-values and reference log-probs into normalized weights.
 
+    ``q_values`` are already normalized probabilities. Any q-temperature should
+    be applied upstream when those targets are constructed so the listwise
+    posterior does not silently reapply the same temperature here.
+
     Optionally normalize by token counts so each token contributes equally,
     mitigating length bias when reference log-probabilities are length-sensitive.
 
@@ -370,7 +388,7 @@ def weight_vector_from_q(
     beta = weighting_cfg.beta
     safe_denom = weighting_cfg.denom
     if safe_denom <= 0.0:
-        safe_denom = tau + beta  # fallback if denom was stale
+        safe_denom = tau  # fallback if denom was stale
     if safe_denom <= 0.0:
         safe_denom = 1e-8
     controller_state = getattr(weighting_cfg, "controller_state", None)
@@ -391,8 +409,7 @@ def weight_vector_from_q(
             beta_tensor = controller_state.beta_tensor(
                 detach=not weighting_cfg.controller_meta.enabled
             )
-            denom_tensor = tau_tensor + beta_tensor
-            denom_tensor = denom_tensor.clamp(min=1e-8)
+            denom_tensor = tau_tensor.clamp(min=1e-8)
             log_weight_terms = torch_mod.log(q_tensor) / denom_tensor
             try:
                 ref_tensor = torch_mod.tensor(logp_values, dtype=torch_mod.float32)
@@ -402,9 +419,7 @@ def weight_vector_from_q(
                 except (RuntimeError, TypeError, ValueError, AttributeError):
                     return [1.0 / len(logp_values)] * len(logp_values)
             if include_reference_term:
-                log_weight_terms = (
-                    log_weight_terms + (beta_tensor / denom_tensor) * ref_tensor
-                )
+                log_weight_terms = log_weight_terms + (beta_tensor * ref_tensor) / denom_tensor
         else:
             log_weight_terms = torch.log(q_tensor) / safe_denom
             if include_reference_term and beta > 0.0:
@@ -415,7 +430,7 @@ def weight_vector_from_q(
                         ref_tensor = torch.tensor(logp_values)
                     except (RuntimeError, TypeError, ValueError, AttributeError):
                         return [1.0 / len(logp_values)] * len(logp_values)
-                log_weight_terms = log_weight_terms + (beta / safe_denom) * ref_tensor
+                log_weight_terms = log_weight_terms + (beta * ref_tensor) / safe_denom
         probs = torch_mod.softmax(log_weight_terms, dim=0)
         if controller_state is not None:
             controller_state.last_weights = probs
@@ -442,7 +457,7 @@ def weight_vector_from_q(
             log_terms = [math.log(max(q, 1e-12)) / safe_denom for q in q_values]
             if include_reference_term and beta > 0.0:
                 log_terms = [
-                    lt + (beta / safe_denom) * lp
+                    lt + (beta * lp) / safe_denom
                     for lt, lp in zip(log_terms, logp_values)
                 ]
             max_term = max(log_terms)
@@ -456,6 +471,63 @@ def weight_vector_from_q(
             return probs
         except (TypeError, ValueError, ZeroDivisionError):
             return [1.0 / len(logp_values)] * len(logp_values)
+
+
+def weight_matrix_from_q(
+    q_values: Any,
+    logp_values: Any,
+    token_counts: Optional[Any],
+    weighting_cfg: WeightingSettings,
+    *,
+    include_reference_term: bool = True,
+    normalize_by_tokens: bool = True,
+) -> Any:
+    """Vectorized listwise weights for ``[prompts, generations]`` tensors."""
+
+    try:
+        q_tensor = torch.as_tensor(q_values)
+        logp_tensor = torch.as_tensor(
+            logp_values,
+            device=q_tensor.device,
+            dtype=q_tensor.dtype,
+        )
+    except (RuntimeError, TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("weight_matrix_from_q requires tensor-like q/logp values") from exc
+    if q_tensor.dim() != 2 or logp_tensor.shape != q_tensor.shape:
+        raise ValueError("weight_matrix_from_q requires q/logp tensors with matching rank-2 shapes")
+
+    safe_denom = float(getattr(weighting_cfg, "denom", 0.0) or 0.0)
+    if safe_denom <= 0.0:
+        safe_denom = float(getattr(weighting_cfg, "tau", 0.0) or 0.0)
+    if safe_denom <= 0.0:
+        safe_denom = 1e-8
+    beta = float(getattr(weighting_cfg, "beta", 0.0) or 0.0)
+
+    q_tensor = q_tensor.clamp(min=1e-12)
+    log_weight_terms = torch.log(q_tensor) / safe_denom
+    if include_reference_term and beta > 0.0:
+        log_weight_terms = log_weight_terms + (beta * logp_tensor) / safe_denom
+    probs = torch.softmax(log_weight_terms, dim=1)
+
+    controller_state = getattr(weighting_cfg, "controller_state", None)
+    if controller_state is not None:
+        controller_state.last_weights = probs.detach()
+
+    if normalize_by_tokens and token_counts is not None:
+        try:
+            token_tensor = torch.as_tensor(
+                token_counts,
+                device=q_tensor.device,
+                dtype=q_tensor.dtype,
+            )
+        except (RuntimeError, TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("weight_matrix_from_q requires tensor-like token counts") from exc
+        if token_tensor.shape != q_tensor.shape:
+            raise ValueError("weight_matrix_from_q requires token counts to match q/logp shape")
+        token_tensor = token_tensor.clamp(min=1.0)
+        probs = probs * token_tensor
+        probs = probs / probs.sum(dim=1, keepdim=True).clamp(min=1e-12)
+    return probs
 
 
 def maybe_update_beta(weighting_cfg: WeightingSettings, measured_kl: float) -> None:
@@ -490,10 +562,9 @@ def maybe_update_beta(weighting_cfg: WeightingSettings, measured_kl: float) -> N
     new_beta = max(0.0, float(weighting_cfg.beta) * scale)
     weighting_cfg.beta = new_beta
     if weighting_cfg.train_grpo_objective:
-        weighting_cfg.denom = new_beta if new_beta > 0 else 1.0
+        weighting_cfg.denom = 1.0
     else:
-        denom_sum = weighting_cfg.tau + new_beta
-        weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+        weighting_cfg.denom = weighting_cfg.tau if weighting_cfg.tau > 0 else 1.0
     _sync_controller_state(weighting_cfg)
 
 
@@ -556,7 +627,15 @@ def apply_meta_controller_update(
     if not getattr(meta_cfg, "enabled", False):
         return False
     method = str(getattr(meta_cfg, "method", "")).lower()
-    if method not in ("analytic", "analytic_grad"):
+    if method not in (
+        "analytic",
+        "analytic_grad",
+        "potential",
+        "first_order",
+        "truncated",
+        "truncated_backprop",
+        "backprop",
+    ):
         return False
     legacy_lr = float(getattr(meta_cfg, "learning_rate", 0.0))
     base_lr_tau = float(getattr(meta_cfg, "tau_learning_rate", 0.0))
@@ -625,8 +704,7 @@ def apply_meta_controller_update(
         if weighting_cfg.train_grpo_objective:
             weighting_cfg.denom = 1.0
         else:
-            denom_sum = weighting_cfg.tau + weighting_cfg.beta
-            weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+            weighting_cfg.denom = weighting_cfg.tau if weighting_cfg.tau > 0 else 1.0
         _sync_controller_state(weighting_cfg)
     return updated
 
@@ -693,13 +771,15 @@ def maybe_update_tau(
         return
     tau_log = tau_log + effective_tau_lr * error
     new_tau = math.exp(tau_log)
-    new_tau = min(max(new_tau, weighting_cfg.tau_min), weighting_cfg.tau_max)
+    new_tau = max(new_tau, weighting_cfg.tau_min)
+    tau_max = float(weighting_cfg.tau_max)
+    if tau_max > 0.0:
+        new_tau = min(new_tau, tau_max)
     weighting_cfg.tau = new_tau
     if weighting_cfg.train_grpo_objective:
         weighting_cfg.denom = 1.0
     else:
-        denom_sum = new_tau + weighting_cfg.beta
-        weighting_cfg.denom = denom_sum if denom_sum > 0 else 1.0
+        weighting_cfg.denom = new_tau if new_tau > 0 else 1.0
     setattr(weighting_cfg, "_tau_log", math.log(max(new_tau, 1e-8)))
     _sync_controller_state(weighting_cfg)
 
@@ -750,8 +830,7 @@ def broadcast_controller_state(
             if getattr(weighting_cfg, "train_grpo_objective", False):
                 denom_val = 1.0
             else:
-                denom_sum = weighting_cfg.tau + weighting_cfg.beta
-                denom_val = denom_sum if denom_sum > 0 else 1.0
+                denom_val = weighting_cfg.tau if weighting_cfg.tau > 0 else 1.0
             setattr(weighting_cfg, "denom", denom_val)
             if math.isfinite(entropy_ema):
                 setattr(weighting_cfg, "_tau_entropy_ema", float(entropy_ema))
@@ -804,8 +883,7 @@ def broadcast_controller_state(
         if getattr(weighting_cfg, "train_grpo_objective", False):
             denom_val = 1.0
         else:
-            denom_sum = weighting_cfg.tau + weighting_cfg.beta
-            denom_val = denom_sum if denom_sum > 0 else 1.0
+            denom_val = weighting_cfg.tau if weighting_cfg.tau > 0 else 1.0
         setattr(weighting_cfg, "denom", denom_val)
         if isinstance(entropy_ema, (int, float)) and math.isfinite(entropy_ema):
             setattr(weighting_cfg, "_tau_entropy_ema", float(entropy_ema))
@@ -979,7 +1057,7 @@ def compute_weight_stats(
                 tok_counts,
                 weighting_cfg,
                 include_reference_term=include_ref_term,
-                normalize_by_tokens=not weighting_cfg.len_norm_ref,
+                normalize_by_tokens=False,
             )
         )
     flat_weights = [weight for group in weights_grouped for weight in group]

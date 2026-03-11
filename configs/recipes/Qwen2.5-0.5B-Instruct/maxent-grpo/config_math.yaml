@@ -51,41 +51,31 @@ system_prompt: |
   - Put the final answer inside <answer> only.
   - Use exact math (fractions, radicals, pi, e).
   - Verify the result satisfies the original conditions.
-# MaxEnt bonus base scale.
-maxent_alpha: 1.0
+# MaxEnt objective scale.
+objective: maxent_entropy
+maxent_alpha: 0.02
 policy_entropy_bonus_coef: 0.0
-maxent_policy_entropy: false
-# Apply MaxEnt bonus only where reward exceeds tau:
-# 1{r > tau} * (-log pi_ref)
-maxent_reward_signal_gate: false
-maxent_reward_signal_min_max: 0.0
-maxent_reward_signal_std_threshold: 0.01
-maxent_bonus_positive_only: true
-maxent_bonus_min_reward: 0.4
+maxent_policy_entropy: true
 # Adapt MaxEnt alpha around the KL budget (raise below target, lower above target).
 maxent_alpha_raise_on_low_kl: true
 maxent_alpha_lower_on_high_kl: true
-maxent_alpha_kl_threshold: 0.04
-maxent_alpha_kl_gain: 1.0
+maxent_alpha_kl_threshold: 0.08
+maxent_alpha_kl_gain: 0.5
 maxent_alpha_kl_min_multiplier: 0.5
-maxent_alpha_kl_max_multiplier: 2.0
-# On-cusp exploration: scale novelty bonus by 4p(1-p), where
-# p is the fraction of completions with reward >= threshold.
-maxent_cusp_gate: true
-maxent_cusp_reward_threshold: 1.0
-# Use a sample-based entropy estimate (fast) instead of full-distribution entropy (slow).
-maxent_policy_entropy_mode: sample
+maxent_alpha_kl_max_multiplier: 1.5
+# Entropy-regularized MaxEnt uses the exact entropy gradient in the loss.
+maxent_policy_entropy_mode: exact
 # Scoring/kl settings for the objective.
 # Prefer vLLM logprob metadata when available; fall back as needed.
 maxent_reference_logprobs_source: model
 maxent_trl_reference_scoring: true
+maxent_reference_ema_enabled: false
 behavior_logprobs_source: model
 maxent_length_normalize_ref: true
 maxent_logprob_chunk_size: 8   # smaller chunks to cut peak logits memory
 maxent_allow_empty_weight_fallback: true
 maxent_clip_adv_baseline: null
 maxent_score_tail_tokens: null
-train_grpo_objective: false
 scale_rewards: true
 
 # Training/eval & logging
@@ -119,7 +109,7 @@ vllm_max_completion_rounds: 2
 vllm_max_retries: 4
 hub_model_id: null
 hub_strategy: "end"
-learning_rate: 5e-7
+learning_rate: 1e-6
 optim: adamw_torch_fused
 adam_beta2: 0.99
 adam_epsilon: 1e-06
@@ -131,7 +121,7 @@ logging_strategy: steps
 log_like_grpo: true
 lr_scheduler_type: cosine
 max_prompt_length: 4096      # trim prompt window to ease ref scoring memory
-max_completion_length: 768  # requested output length
+max_completion_length: 512  # keep rollouts shorter so reward signal arrives faster
 max_steps: 2000
 # GRPO requires >=2 generations to compute advantages.
 # Use 8 so effective train batch sizes across common world sizes (3/4/7/9 GPUs) remain divisible.
@@ -149,14 +139,18 @@ report_to:
 wandb_project: open-r1-maxent-grpo
 wandb_entity: ogd3-princeton-university
 reward_funcs:
-- pure_accuracy_math
+- accuracy
+- format
+- tag_count
 reward_weights:
-- 1
+- 1.0
+- 0.1
+- 0.1
 
 # Reverse-KL weight beta used inside MaxEnt update
 # Gentle KL controller: keep updates small even when KL is far from target.
-beta: 0.04
-kl_target:        0.2
+beta: 0.08
+kl_target:        0.08
 kl_horizon:       100
 kl_ctl_step_size: 0.0
 

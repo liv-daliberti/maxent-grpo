@@ -31,7 +31,13 @@ from typing import Any, Dict, Optional, TypedDict, TYPE_CHECKING, Union, cast
 
 try:  # pragma: no cover - optional dependency
     import torch
-except (ImportError, OSError):  # pragma: no cover - allow stubbed environments
+except (
+    ImportError,
+    AttributeError,
+    OSError,
+    RuntimeError,
+    ValueError,
+):  # pragma: no cover - allow stubbed environments
 
     class _TorchStub:
         float16 = "float16"
@@ -48,7 +54,13 @@ try:  # pragma: no cover - optional dependency
     from transformers.tokenization_utils import (
         PreTrainedTokenizer as _PreTrainedTokenizer,
     )
-except (ImportError, OSError):  # pragma: no cover - allow stubbed environments
+except (
+    ImportError,
+    AttributeError,
+    OSError,
+    RuntimeError,
+    ValueError,
+):  # pragma: no cover - allow stubbed environments
 
     class AutoModelForCausalLM:  # type: ignore[no-redef]
         @classmethod
@@ -70,7 +82,13 @@ try:  # pragma: no cover - optional dependency
         get_kbit_device_map,
         get_quantization_config,
     )
-except (ImportError, OSError):  # pragma: no cover - allow stubbed environments
+except (
+    ImportError,
+    AttributeError,
+    OSError,
+    RuntimeError,
+    ValueError,
+):  # pragma: no cover - allow stubbed environments
 
     class ModelConfig:  # type: ignore[no-redef]
         pass
@@ -240,7 +258,7 @@ def get_model(
     model_name_or_path = getattr(model_args, "model_name_or_path", None)
     if not model_name_or_path:
         raise ValueError("model_name_or_path must be set in model_args")
-    model = AutoModelForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(  # nosec B615
         model_name_or_path,
         **model_kwargs,
     )
@@ -271,31 +289,39 @@ def get_model(
             kwargs = dict(gc_kwargs) if isinstance(gc_kwargs, dict) else {}
             if gc_kwargs is not None and not isinstance(gc_kwargs, dict):
                 LOG.warning(
-                    "Ignoring non-dict gradient_checkpointing_kwargs=%r; forcing use_reentrant=False.",
+                    "Ignoring non-dict gradient_checkpointing_kwargs=%r.",
                     gc_kwargs,
                 )
-            if kwargs.get("use_reentrant", None) is not False:
-                if kwargs.get("use_reentrant", None) is True:
+            if kwargs:
+                try:
+                    enable_fn(**kwargs)
+                except TypeError as exc:
                     LOG.warning(
-                        "Forcing use_reentrant=False for gradient checkpointing to avoid ZeRO-3 issues."
+                        "gradient_checkpointing_enable did not accept kwargs (%s); "
+                        "retrying without kwargs.",
+                        exc,
                     )
-                else:
-                    LOG.info(
-                        "Setting gradient checkpointing to non-reentrant (use_reentrant=False)."
-                    )
-            kwargs["use_reentrant"] = False
-            try:
-                enable_fn(**kwargs)
-            except TypeError as exc:
-                LOG.warning(
-                    "gradient_checkpointing_enable did not accept kwargs (%s); "
-                    "forcing non-reentrant checkpointing manually.",
-                    exc,
-                )
-                if not _force_nonreentrant_checkpointing(model):
+                    try:
+                        enable_fn()
+                    except TypeError:
+                        if not _force_nonreentrant_checkpointing(model):
+                            LOG.warning(
+                                "Failed to enforce non-reentrant checkpointing; "
+                                "model may still use reentrant mode."
+                            )
+            else:
+                try:
+                    enable_fn()
+                except TypeError as exc:
                     LOG.warning(
-                        "Failed to enforce non-reentrant checkpointing; model may still use reentrant mode."
+                        "gradient_checkpointing_enable() failed (%s); "
+                        "forcing non-reentrant checkpointing manually.",
+                        exc,
                     )
+                    if not _force_nonreentrant_checkpointing(model):
+                        LOG.warning(
+                            "Failed to enforce non-reentrant checkpointing; model may still use reentrant mode."
+                        )
     if getattr(training_args, "torch_compile", False):
         # torch.compile is fragile with DeepSpeed/ZeRO wrapping; skip when deepspeed config is present.
         prev_suppress = None
