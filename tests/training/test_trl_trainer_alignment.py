@@ -17,6 +17,8 @@ pytestmark = pytest.mark.skipif(
     reason="requires real torch",
 )
 
+_LOG_DELTA_CLAMP = float(getattr(trainer_mod, "_LOG_DELTA_CLAMP", 5.0))
+
 
 class _FakeAccelerator:
     def __init__(self) -> None:
@@ -246,10 +248,13 @@ def _make_args(
         controller_meta_beta_grad_clip=0.0,
         controller_meta_update_interval=1,
         grpo_beta_controller_enabled=False,
+        maxent_beta_controller_enabled=False,
         maxent_tau=maxent_tau,
         maxent_q_temperature=1.0,
         maxent_q_epsilon=1e-6,
         maxent_length_normalize_ref=True,
+        maxent_length_normalize_policy=False,
+        maxent_alpha_disable_outside_trust_zone=False,
         maxent_logprob_chunk_size=0,
         maxent_reference_logprobs_source="auto",
         maxent_trl_reference_scoring=False,
@@ -710,9 +715,11 @@ def test_entropy_maxent_keeps_reference_model_in_the_kl_term() -> None:
     completion_ids = inputs["completion_ids"][0]
     per_token_logp = logp_policy[completion_ids]
     per_token_ref = logp_ref[completion_ids]
-    per_token_kl = torch.exp(per_token_ref - per_token_logp) - (
-        per_token_ref - per_token_logp
-    ) - 1.0
+    delta = (per_token_ref - per_token_logp).clamp(
+        min=-_LOG_DELTA_CLAMP,
+        max=_LOG_DELTA_CLAMP,
+    )
+    per_token_kl = torch.exp(delta) - delta - 1.0
     expected_kl = float(per_token_kl.mean().item())
     expected_entropy = float((-(torch.softmax(logits_policy, dim=0) * logp_policy)).sum())
     expected_loss = 0.3 * expected_kl - 0.2 * expected_entropy
@@ -721,6 +728,128 @@ def test_entropy_maxent_keeps_reference_model_in_the_kl_term() -> None:
     assert trainer._metrics["train"]["kl"][-1] == pytest.approx(expected_kl, rel=1e-5)
     assert trainer._metrics["train"]["maxent/policy_entropy_mean"][-1] == pytest.approx(
         expected_entropy, rel=1e-5
+    )
+
+
+def test_entropy_maxent_uses_current_batch_kl_to_lower_alpha() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.2,
+        maxent_objective_variant="entropy",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=3)
+    trainer.ref_model = _FixedLogitModel([4.0, -4.0, -4.0])
+    trainer.beta = 0.3
+    trainer.args.beta = 0.3
+    trainer.args.maxent_alpha_lower_on_high_kl = True
+    trainer.args.maxent_alpha_kl_threshold = 0.04
+    trainer.args.maxent_alpha_kl_min_multiplier = 0.1
+    trainer._last_train_kl_for_alpha = 0.0
+    _install_real_logprob_scorer(trainer)
+
+    inputs = {
+        "prompt_ids": torch.zeros((1, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((1, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((1, 2), dtype=torch.long),
+        "advantages": torch.zeros((1,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    trainer.compute_loss(
+        model=trainer.model,
+        inputs=inputs,
+        return_outputs=False,
+    )
+
+    logits_policy = torch.zeros(3, dtype=torch.float32)
+    logits_ref = torch.tensor([4.0, -4.0, -4.0], dtype=torch.float32)
+    logp_policy = torch.log_softmax(logits_policy, dim=0)
+    logp_ref = torch.log_softmax(logits_ref, dim=0)
+    completion_ids = inputs["completion_ids"][0]
+    delta = (logp_ref[completion_ids] - logp_policy[completion_ids]).clamp(
+        min=-_LOG_DELTA_CLAMP,
+        max=_LOG_DELTA_CLAMP,
+    )
+    expected_kl = float((torch.exp(delta) - delta - 1.0).mean().item())
+    threshold = 0.04
+    expected_multiplier = 1.0 / (
+        1.0 + max(expected_kl - threshold, 0.0) / threshold
+    )
+    expected_multiplier = min(max(expected_multiplier, 0.1), 2.0)
+    expected_alpha = 0.2 * expected_multiplier
+
+    assert trainer._metrics["train"]["maxent/alpha"][-1] == pytest.approx(
+        expected_alpha, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/alpha_multiplier"][-1] == pytest.approx(
+        expected_multiplier, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/alpha_kl_measure"][-1] == pytest.approx(
+        expected_kl, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/alpha_kl_direction"][-1] == pytest.approx(
+        -1.0
+    )
+    assert trainer._metrics["train"]["maxent/alpha_trust_zone_blocked"][-1] == pytest.approx(
+        0.0
+    )
+
+
+def test_entropy_maxent_disables_alpha_outside_trust_zone() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.2,
+        maxent_objective_variant="entropy",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=3)
+    trainer.ref_model = _FixedLogitModel([4.0, -4.0, -4.0])
+    trainer.beta = 0.3
+    trainer.args.beta = 0.3
+    trainer.args.maxent_alpha_lower_on_high_kl = True
+    trainer.args.maxent_alpha_kl_threshold = 0.04
+    trainer.args.maxent_alpha_kl_min_multiplier = 0.1
+    trainer.args.maxent_alpha_disable_outside_trust_zone = True
+    trainer._last_train_kl_for_alpha = 0.0
+    _install_real_logprob_scorer(trainer)
+
+    inputs = {
+        "prompt_ids": torch.zeros((1, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((1, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((1, 2), dtype=torch.long),
+        "advantages": torch.zeros((1,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    trainer.compute_loss(
+        model=trainer.model,
+        inputs=inputs,
+        return_outputs=False,
+    )
+
+    logits_policy = torch.zeros(3, dtype=torch.float32)
+    logits_ref = torch.tensor([4.0, -4.0, -4.0], dtype=torch.float32)
+    logp_policy = torch.log_softmax(logits_policy, dim=0)
+    logp_ref = torch.log_softmax(logits_ref, dim=0)
+    completion_ids = inputs["completion_ids"][0]
+    delta = (logp_ref[completion_ids] - logp_policy[completion_ids]).clamp(
+        min=-_LOG_DELTA_CLAMP,
+        max=_LOG_DELTA_CLAMP,
+    )
+    expected_kl = float((torch.exp(delta) - delta - 1.0).mean().item())
+
+    assert expected_kl > 0.04
+    assert trainer._metrics["train"]["maxent/alpha"][-1] == pytest.approx(0.0)
+    assert trainer._metrics["train"]["maxent/alpha_multiplier"][-1] == pytest.approx(0.0)
+    assert trainer._metrics["train"]["maxent/alpha_kl_measure"][-1] == pytest.approx(
+        expected_kl, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/alpha_kl_direction"][-1] == pytest.approx(
+        -1.0
+    )
+    assert trainer._metrics["train"]["maxent/alpha_trust_zone_blocked"][-1] == pytest.approx(
+        1.0
     )
 
 
@@ -939,6 +1068,41 @@ def test_listwise_prepare_inputs_preserves_whole_prompt_groups() -> None:
         )
 
 
+def test_listwise_prepare_inputs_reuses_full_batch_when_local_groups_do_not_split() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.num_generations = 4
+    trainer.args.num_generations = 4
+    trainer.args.steps_per_generation = 4
+    trainer.args.per_device_train_batch_size = 1
+    trainer.model.training = True
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [
+            float(idx) for idx, _ in enumerate(prompts)
+        ]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    generation_batch = [
+        {"prompt": "p0", "answer": "a0"},
+        {"prompt": "p0", "answer": "a0"},
+        {"prompt": "p0", "answer": "a0"},
+        {"prompt": "p0", "answer": "a0"},
+    ]
+
+    chunks = [trainer._prepare_inputs(generation_batch) for _ in range(4)]
+
+    assert trainer.parent_generate_calls == 1
+    for chunk in chunks:
+        assert chunk["prompt_ids"].shape[0] == 4
+        assert chunk["completion_ids"].shape[0] == 4
+        assert chunk["maxent_listwise_q"].shape == (1, 4)
+        assert float(chunk["maxent_listwise_loss_scale"].item()) == pytest.approx(0.25)
+
+
 def test_listwise_prepare_inputs_rejects_incomplete_prompt_groups() -> None:
     trainer = _make_trainer(
         train_grpo_objective=False,
@@ -1004,6 +1168,45 @@ def test_listwise_maxent_loss_matches_q_weighted_sequence_cross_entropy() -> Non
     assert trainer._metrics["train"]["weight_entropy"][-1] == pytest.approx(
         -(0.8 * math.log(0.8) + 0.2 * math.log(0.2)),
         rel=1e-5,
+    )
+
+
+def test_listwise_maxent_loss_applies_reuse_scale() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model = _FixedLogitModel([math.log(0.75), math.log(0.25)])
+    trainer.args.maxent_tau = 1.0
+    trainer.args.beta = 0.0
+    trainer.args.maxent_q_temperature = 1.0
+    trainer.args.maxent_reference_logprobs_source = "none"
+    trainer.args.maxent_trl_reference_scoring = False
+    _refresh_weighting(trainer)
+    _install_real_logprob_scorer(trainer)
+
+    prepared = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0], [1, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((2, 2), dtype=torch.long),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+        "old_per_token_logps": None,
+        "maxent_listwise_q": torch.tensor([[0.8, 0.2]], dtype=torch.float32),
+        "maxent_listwise_loss_scale": torch.tensor(0.25, dtype=torch.float32),
+    }
+
+    loss = trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
+    expected_probs = torch.tensor([0.9, 0.1], dtype=torch.float32)
+    expected_loss = -(
+        0.8 * math.log(float(expected_probs[0]))
+        + 0.2 * math.log(float(expected_probs[1]))
+    )
+
+    assert float(loss.item()) == pytest.approx(expected_loss * 0.25, rel=1e-5)
+    assert trainer._metrics["train"]["maxent/listwise_loss_scale"][-1] == pytest.approx(
+        0.25
     )
 
 
@@ -1261,6 +1464,52 @@ def test_listwise_reference_length_normalization_removes_length_bias() -> None:
     )
 
 
+def test_listwise_policy_length_normalization_removes_length_bias() -> None:
+    trainer_raw = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer_norm = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    for trainer in (trainer_raw, trainer_norm):
+        trainer.model = _UniformPolicyModel(vocab_size=2)
+        trainer.args.maxent_tau = 1.0
+        trainer.args.beta = 0.0
+        trainer.args.maxent_reference_logprobs_source = "none"
+        trainer.args.maxent_trl_reference_scoring = False
+        _refresh_weighting(trainer)
+        _install_real_logprob_scorer(trainer)
+    trainer_norm.args.maxent_length_normalize_policy = True
+
+    prepared = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0], [0, 0]], dtype=torch.long),
+        "completion_mask": torch.tensor([[1, 0], [1, 1]], dtype=torch.long),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+        "old_per_token_logps": None,
+        "maxent_listwise_q": torch.tensor([[0.5, 0.5]], dtype=torch.float32),
+    }
+
+    raw_loss = trainer_raw.compute_loss(
+        model=trainer_raw.model,
+        inputs=prepared,
+        return_outputs=False,
+    )
+    normalized_loss = trainer_norm.compute_loss(
+        model=trainer_norm.model,
+        inputs=prepared,
+        return_outputs=False,
+    )
+
+    assert float(normalized_loss.item()) == pytest.approx(math.log(2.0), rel=1e-5)
+    assert float(normalized_loss.item()) < float(raw_loss.item())
+
+
 def test_listwise_tau_update_moves_toward_target_weight_entropy() -> None:
     trainer = _make_trainer(
         train_grpo_objective=False,
@@ -1294,6 +1543,82 @@ def test_listwise_tau_update_moves_toward_target_weight_entropy() -> None:
     trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
 
     assert trainer.tau > before
+
+
+def test_listwise_beta_controller_is_disabled_by_default() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=2)
+    trainer.ref_model = _FixedLogitModel([math.log(0.75), math.log(0.25)])
+    trainer.args.maxent_tau = 1.0
+    trainer.args.beta = 0.3
+    trainer.beta = 0.3
+    trainer.args.kl_target = 0.07
+    trainer.args.kl_horizon = 500
+    trainer.args.kl_ctl_step_size = 1.0
+    trainer.args.maxent_beta_controller_enabled = False
+    trainer.args.maxent_reference_logprobs_source = "model"
+    trainer.args.maxent_trl_reference_scoring = False
+    _refresh_weighting(trainer)
+    _install_real_logprob_scorer(trainer)
+
+    prepared = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0], [1, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((2, 2), dtype=torch.long),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+        "old_per_token_logps": None,
+        "maxent_listwise_q": torch.tensor([[0.5, 0.5]], dtype=torch.float32),
+    }
+
+    trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
+
+    assert trainer._metrics["train"]["kl"][-1] > 0.0
+    assert trainer.beta == pytest.approx(0.3)
+    assert trainer._metrics["train"]["beta"][-1] == pytest.approx(0.3)
+    assert trainer._metrics["train"]["kl_controller_enabled"][-1] == pytest.approx(0.0)
+
+
+def test_listwise_beta_controller_requires_explicit_opt_in() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=2)
+    trainer.ref_model = _FixedLogitModel([math.log(0.75), math.log(0.25)])
+    trainer.args.maxent_tau = 1.0
+    trainer.args.beta = 0.3
+    trainer.beta = 0.3
+    trainer.args.kl_target = 0.07
+    trainer.args.kl_horizon = 500
+    trainer.args.kl_ctl_step_size = 1.0
+    trainer.args.maxent_beta_controller_enabled = True
+    trainer.args.maxent_reference_logprobs_source = "model"
+    trainer.args.maxent_trl_reference_scoring = False
+    _refresh_weighting(trainer)
+    _install_real_logprob_scorer(trainer)
+
+    prepared = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0], [1, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((2, 2), dtype=torch.long),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+        "old_per_token_logps": None,
+        "maxent_listwise_q": torch.tensor([[0.5, 0.5]], dtype=torch.float32),
+    }
+
+    trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
+
+    assert trainer._metrics["train"]["kl"][-1] > 0.0
+    assert trainer.beta != pytest.approx(0.3)
+    assert trainer._metrics["train"]["beta"][-1] != pytest.approx(0.3)
+    assert trainer._metrics["train"]["kl_controller_enabled"][-1] == pytest.approx(1.0)
 
 
 def test_eval_logs_pass_at_8_metric() -> None:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Submit one 8-GPU node that runs both GRPO and MaxEnt concurrently:
-# - GRPO:  3 train + 1 vLLM (GPUs 0-3)
-# - MaxEnt:3 train + 1 vLLM (GPUs 4-7)
+# Submit one node for the experiment launcher:
+# - default: GRPO + entropy-MaxEnt concurrently on 8 GPUs
+# - single-stack modes: grpo | maxent | listwise on 4 GPUs via the same Slurm script
 
 set -euo pipefail
 
@@ -12,8 +12,9 @@ if [[ ! -f "$SLURM_SCRIPT" ]]; then
   exit 1
 fi
 
-MODEL="${MODEL:-Qwen2.5-0.5B-Instruct}"
 CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
+MODEL="${MODEL:-}"
+RECIPE_PROFILE="${RECIPE_PROFILE:-experiment}"
 ACCELERATOR="${ACCELERATOR:-zero3}"
 JOB_NAME="${JOB_NAME:-open_r1_dual_4plus4}"
 RUN_ONLY="$(echo "${RUN_ONLY:-both}" | tr '[:upper:]' '[:lower:]')"
@@ -22,13 +23,32 @@ SBATCH_PARTITION="${SBATCH_PARTITION:-mltheory}"
 SBATCH_ACCOUNT="${SBATCH_ACCOUNT:-mltheory}"
 SBATCH_TIME="${SBATCH_TIME:-48:00:00}"
 SBATCH_CONSTRAINT="${SBATCH_CONSTRAINT:-}"
-SBATCH_GRES="${SBATCH_GRES:-gpu:a100:8}"
-SBATCH_CPUS_PER_TASK="${SBATCH_CPUS_PER_TASK:-64}"
-SBATCH_MEM="${SBATCH_MEM:-256G}"
+if [[ "$RUN_ONLY" == "both" ]]; then
+  SBATCH_GRES_DEFAULT="gpu:a100:8"
+  SBATCH_CPUS_DEFAULT="64"
+  SBATCH_MEM_DEFAULT="256G"
+else
+  SBATCH_GRES_DEFAULT="gpu:a100:4"
+  # Allow two 4-GPU single-stack jobs to share one 8xA100 node.
+  SBATCH_CPUS_DEFAULT="48"
+  SBATCH_MEM_DEFAULT="240G"
+fi
+SBATCH_GRES="${SBATCH_GRES:-$SBATCH_GRES_DEFAULT}"
+SBATCH_CPUS_PER_TASK="${SBATCH_CPUS_PER_TASK:-$SBATCH_CPUS_DEFAULT}"
+SBATCH_MEM="${SBATCH_MEM:-$SBATCH_MEM_DEFAULT}"
 
 GRPO_ARGS="${GRPO_ARGS:-}"
 MAXENT_ARGS="${MAXENT_ARGS:-}"
 DRY_RUN="${DRY_RUN:-0}"
+SBATCH_DEPENDENCY="${SBATCH_DEPENDENCY:-}"
+
+if [[ -z "$MODEL" ]]; then
+  case "$CONFIG_SUFFIX" in
+    math) MODEL="Qwen2.5-1.5B-Instruct" ;;
+    code_mbpp) MODEL="Qwen2.5-0.5B-Instruct" ;;
+    *) MODEL="Qwen2.5-1.5B-Instruct" ;;
+  esac
+fi
 
 cmd=(
   sbatch
@@ -42,11 +62,13 @@ if [[ -n "$SBATCH_PARTITION" ]]; then cmd+=(--partition "$SBATCH_PARTITION"); fi
 if [[ -n "$SBATCH_ACCOUNT" ]]; then cmd+=(--account "$SBATCH_ACCOUNT"); fi
 if [[ -n "$SBATCH_TIME" ]]; then cmd+=(--time "$SBATCH_TIME"); fi
 if [[ -n "$SBATCH_CONSTRAINT" ]]; then cmd+=(--constraint "$SBATCH_CONSTRAINT"); fi
+if [[ -n "$SBATCH_DEPENDENCY" ]]; then cmd+=(--dependency "$SBATCH_DEPENDENCY"); fi
 
 cmd+=(
   "$SLURM_SCRIPT"
   --model "$MODEL"
   --config "$CONFIG_SUFFIX"
+  --recipe-profile "$RECIPE_PROFILE"
   --accelerator "$ACCELERATOR"
   --run-only "$RUN_ONLY"
 )

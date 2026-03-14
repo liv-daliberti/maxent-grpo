@@ -4,7 +4,17 @@ maxent:
   training:
     objective: grpo
     controller_meta_enabled: false
-    num_generations: 2
+    num_generations: 8
+    steps_per_generation: 4
+    max_steps: 2000
+    learning_rate: 1.25e-6
+    beta: 0.3
+    max_grad_norm: 0.1
+    warmup_ratio: 0.01
+    eval_before_train: true
+    eval_steps: 50
+    save_steps: 100
+    push_to_hub: false
     output_dir: var/data/Qwen2.5-1.5B-Open-R1-GRPO-BASELINE-math-v1
 
 hydra:

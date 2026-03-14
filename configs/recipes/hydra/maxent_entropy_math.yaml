@@ -3,13 +3,29 @@ maxent:
   recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
   training:
     objective: maxent_entropy
-    maxent_alpha: 0.2
-    num_generations: 2
+    maxent_alpha: 0.005
+    num_generations: 8
+    steps_per_generation: 4
+    max_steps: 2000
+    learning_rate: 1.25e-6
+    beta: 0.3
+    maxent_beta_controller_enabled: false
+    max_grad_norm: 0.1
     maxent_policy_entropy: true
     maxent_policy_entropy_mode: exact
+    maxent_alpha_lower_on_high_kl: true
+    maxent_alpha_kl_threshold: 0.04
+    maxent_alpha_kl_gain: 8.0
+    maxent_alpha_kl_min_multiplier: 0.1
+    maxent_alpha_disable_outside_trust_zone: true
     policy_entropy_bonus_coef: 0.0
     maxent_reference_ema_enabled: false
     controller_meta_enabled: false
+    warmup_ratio: 0.01
+    eval_before_train: true
+    eval_steps: 50
+    save_steps: 100
+    push_to_hub: false
     output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Entropy-math-v1
 
 hydra:

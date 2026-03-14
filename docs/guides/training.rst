@@ -11,19 +11,20 @@ Slurm (recommended):
 .. code-block:: bash
 
    sbatch ops/slurm/train_dual_4plus4.slurm \
-     --model Qwen2.5-1.5B-Instruct \
      --config math \
      --accelerator zero3 \
-     --run-only grpo \
-     --grpo-args "--run_name demo --report_to wandb"
+     --run-only both
 
 Quick flags:
 
-- ``--run-only both|grpo|maxent`` controls which stack(s) launch in the 8-GPU job.
+- ``--run-only both|grpo|maxent|listwise`` controls which experiment stack(s) launch.
 - ``--grpo-config`` / ``--maxent-config`` override config suffixes per stack.
+- ``--recipe-profile experiment|paired`` selects rendered experiment presets or the legacy paired flat recipes. The default is ``experiment``.
 - ``--grpo-args`` / ``--maxent-args`` pass raw trainer CLI flags through to each stack.
 - Authenticate with Hugging Face ahead of time (``huggingface-cli login`` or ``export HF_TOKEN=...``); the launcher forwards ``HF_TOKEN`` to every node for gated repos.
 - See every option via ``sbatch ops/slurm/train_dual_4plus4.slurm --help``.
+
+For the full three-way comparison, submit ``ops/run_experiment_triplet_single_node.sh``. It launches one pair job (GRPO + entropy MaxEnt) and one listwise job under the same W&B run group.
 
 Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
 
@@ -39,7 +40,7 @@ Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
 Recipe pairing (reproducible GRPO_RECIPE runs)
 ----------------------------------------------
 
-- The baseline and MaxEnt math recipes are paired to stay comparable: both use ``open-r1/OpenR1-Math-220k`` for training and ``HuggingFaceH4/MATH-500`` (``test`` split, ``problem``/``answer`` columns) for evaluation with the same seed (``42``) and eval cadence (``eval_strategy=steps``, ``eval_steps=25``, ``per_device_eval_batch_size=8``).
+- The baseline and MaxEnt math recipes are paired to stay comparable: both use ``open-r1/OpenR1-Math-220k`` for training and the inline eval suite ``aime24,amc,math`` (``test`` split, ``problem``/``answer`` columns) with the same seed (``42``) and eval cadence (``eval_strategy=steps``, ``eval_steps=25``, ``per_device_eval_batch_size=8``).
 - Baseline GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml``
 - MaxEnt-GRPO recipe: ``configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml``
 - Paired GRPO recipes pin ``maxent_reference_logprobs_source: model`` and share optimizer/sampling settings with MaxEnt counterparts for parity.
@@ -75,7 +76,7 @@ What the Slurm launcher does
 
 - Activates the local env (default ``./var/openr1``) and routes caches/temp dirs into ``var/cache``.
 - Resolves paired GRPO/MaxEnt recipes plus the selected Accelerate config.
-- Supports dual-stack mode (both GRPO + MaxEnt concurrently) or single-stack mode via ``--run-only``.
+- Supports dual-stack mode (GRPO + entropy MaxEnt concurrently) or single-stack mode via ``--run-only``.
 - Launches dedicated vLLM + training processes per active stack with health checks and log fan-out.
 - Streams logs under ``var/artifacts/logs/`` alongside Slurm stdout/err.
 

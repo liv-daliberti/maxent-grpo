@@ -61,6 +61,7 @@ from maxent_grpo.training.weighting.logic import build_weighting_settings
 LOG = logging.getLogger(__name__)
 _PASS_METRIC_SUCCESS_REWARD = 1.0
 _PASS_METRIC_EPS = 1e-6
+_LOG_DELTA_CLAMP = 5.0
 _BENCHMARK_SUFFIX_SANITIZER = re.compile(r"[^A-Za-z0-9]+")
 _EMA_PARAM_NAME_PREFIXES: Tuple[str, ...] = (
     "_fsdp_wrapped_module.",
@@ -100,6 +101,12 @@ def _nanmax_tensor(tensor: torch.Tensor) -> torch.Tensor:
     if finite.numel() == 0:
         return torch.tensor(float("nan"), dtype=tensor.dtype, device=tensor.device)
     return finite.max()
+
+
+def _clamp_log_delta(delta: torch.Tensor) -> torch.Tensor:
+    """Clamp log-probability deltas before exponentiating."""
+
+    return delta.float().clamp(min=-_LOG_DELTA_CLAMP, max=_LOG_DELTA_CLAMP)
 
 
 def _tokenize_for_diversity(text: str, tokenizer: Any = None) -> List[Any]:
@@ -487,9 +494,21 @@ def _split_listwise_tensor_dict(
         raise ValueError("num_chunks must be positive")
     total_rows, num_prompts = _resolve_prompt_group_sizes(tensor_dict, group_size)
     if num_prompts % num_chunks != 0:
-        raise ValueError(
-            "Listwise prompt groups must split evenly across steps_per_generation."
-        )
+        # When the local rollout only contains too few whole prompt groups to
+        # split across microsteps, reuse the full prompt-group batch for each
+        # microstep and attenuate each reuse so one full reuse cycle matches
+        # the intended total loss contribution of a normally split rollout.
+        scale = torch.tensor(1.0 / float(num_chunks), dtype=torch.float32)
+        for tensor in tensor_dict.values():
+            if isinstance(tensor, torch.Tensor):
+                scale = scale.to(device=tensor.device)
+                break
+        chunks: List[Dict[str, Optional[torch.Tensor]]] = []
+        for _ in range(num_chunks):
+            chunk = dict(tensor_dict)
+            chunk["maxent_listwise_loss_scale"] = scale
+            chunks.append(chunk)
+        return chunks
     prompts_per_chunk = num_prompts // num_chunks
     rows_per_chunk = prompts_per_chunk * group_size
     chunks: List[Dict[str, Optional[torch.Tensor]]] = []
@@ -920,6 +939,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 if self._step % generate_every == 0 or self._buffered_inputs is None:
                     generated = self._generate_and_score_completions(generation_batch)
                     group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
+                    steps_per_generation = int(
+                        getattr(self.args, "steps_per_generation", 1) or 1
+                    )
                     _, num_prompts = _resolve_prompt_group_sizes(generated, group_size)
                     q_targets = generated.get("maxent_listwise_q")
                     if not isinstance(q_targets, torch.Tensor):
@@ -936,9 +958,25 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         generated,
                         group_size,
                     )
+                    if (
+                        num_prompts % steps_per_generation != 0
+                        and not bool(
+                            getattr(self, "_listwise_batch_reuse_warned", False)
+                        )
+                    ):
+                        LOG.warning(
+                            "Listwise MaxEnt local rollout prompt groups (%d) do not divide "
+                            "steps_per_generation (%d); reusing the full local listwise batch "
+                            "across microsteps with a per-microstep loss scale of 1/%d. "
+                            "Increase the local prompt-group count to avoid this fallback.",
+                            num_prompts,
+                            steps_per_generation,
+                            steps_per_generation,
+                        )
+                        setattr(self, "_listwise_batch_reuse_warned", True)
                     self._buffered_inputs = _split_listwise_tensor_dict(
                         generated,
-                        int(getattr(self.args, "steps_per_generation", 1) or 1),
+                        steps_per_generation,
                         group_size,
                     )
                 inputs = self._buffered_inputs[
@@ -1272,23 +1310,29 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
         def _resolve_effective_maxent_alpha(
             self,
             mode: str,
-        ) -> Tuple[float, float, Optional[float], float, bool, float, float, float]:
+            *,
+            measured_kl_override: Optional[float] = None,
+        ) -> Tuple[float, float, Optional[float], float, bool, float, float, float, bool]:
             """Return effective MaxEnt alpha with optional KL-based up/down scaling.
 
             Returns ``(effective_alpha, multiplier, measured_kl, kl_threshold,
-            kl_control_enabled, direction, min_multiplier, max_multiplier)`` where
-            direction is ``+1`` (raised), ``-1`` (lowered), or ``0`` (unchanged).
+            kl_control_enabled, direction, min_multiplier, max_multiplier,
+            trust_zone_blocked)`` where direction is ``+1`` (raised), ``-1``
+            (lowered/blocked), or ``0`` (unchanged).
             """
             del mode
             base_alpha = float(getattr(self, "maxent_alpha", 0.0) or 0.0)
             if base_alpha <= 0.0:
-                return 0.0, 1.0, None, 0.0, False, 0.0, 1.0, 1.0
+                return 0.0, 1.0, None, 0.0, False, 0.0, 1.0, 1.0, False
             args = getattr(self, "args", None)
             raise_on_low_kl = bool(getattr(args, "maxent_alpha_raise_on_low_kl", False))
             lower_on_high_kl = bool(
                 getattr(args, "maxent_alpha_lower_on_high_kl", False)
             )
-            enabled = raise_on_low_kl or lower_on_high_kl
+            trust_zone_gate_enabled = bool(
+                getattr(args, "maxent_alpha_disable_outside_trust_zone", False)
+            )
+            enabled = raise_on_low_kl or lower_on_high_kl or trust_zone_gate_enabled
             threshold_raw = getattr(args, "maxent_alpha_kl_threshold", 0.04)
             try:
                 threshold = float(threshold_raw)
@@ -1320,6 +1364,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     0.0,
                     min_multiplier,
                     max_multiplier,
+                    False,
                 )
             if not enabled:
                 return (
@@ -1331,19 +1376,23 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     0.0,
                     min_multiplier,
                     max_multiplier,
+                    False,
                 )
 
             measured_kl: Optional[float] = None
-            cached_kl = getattr(self, "_last_train_kl_for_alpha", None)
-            if isinstance(cached_kl, (int, float)):
-                measured_kl = float(cached_kl)
+            if isinstance(measured_kl_override, (int, float)):
+                measured_kl = float(measured_kl_override)
             else:
-                kl_history = self._metrics.get("train", {}).get("kl")
-                if kl_history:
-                    try:
-                        measured_kl = float(kl_history[-1])
-                    except (TypeError, ValueError):
-                        measured_kl = None
+                cached_kl = getattr(self, "_last_train_kl_for_alpha", None)
+                if isinstance(cached_kl, (int, float)):
+                    measured_kl = float(cached_kl)
+                else:
+                    kl_history = self._metrics.get("train", {}).get("kl")
+                    if kl_history:
+                        try:
+                            measured_kl = float(kl_history[-1])
+                        except (TypeError, ValueError):
+                            measured_kl = None
             if measured_kl is None:
                 return (
                     base_alpha,
@@ -1354,17 +1403,43 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     0.0,
                     min_multiplier,
                     max_multiplier,
+                    False,
                 )
             if not math.isfinite(measured_kl):
+                if trust_zone_gate_enabled:
+                    return (
+                        0.0,
+                        0.0,
+                        measured_kl,
+                        threshold,
+                        True,
+                        -1.0,
+                        min_multiplier,
+                        max_multiplier,
+                        True,
+                    )
+                if lower_on_high_kl:
+                    return (
+                        base_alpha * min_multiplier,
+                        min_multiplier,
+                        measured_kl,
+                        threshold,
+                        True,
+                        -1.0,
+                        min_multiplier,
+                        max_multiplier,
+                        False,
+                    )
                 return (
                     base_alpha,
                     1.0,
-                    None,
+                    measured_kl,
                     threshold,
                     True,
                     0.0,
                     min_multiplier,
                     max_multiplier,
+                    False,
                 )
 
             gain_raw = getattr(args, "maxent_alpha_kl_gain", 1.0)
@@ -1377,10 +1452,15 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             direction = 0.0
             multiplier = 1.0
+            trust_zone_blocked = False
             if measured_kl < threshold and raise_on_low_kl:
                 low_kl_frac = max(threshold - measured_kl, 0.0) / max(threshold, 1e-8)
                 multiplier = 1.0 + gain * low_kl_frac
                 direction = 1.0
+            elif measured_kl > threshold and trust_zone_gate_enabled:
+                multiplier = 0.0
+                direction = -1.0
+                trust_zone_blocked = True
             elif measured_kl > threshold and lower_on_high_kl:
                 high_kl_frac = max(measured_kl - threshold, 0.0) / max(threshold, 1e-8)
                 multiplier = 1.0 / (1.0 + gain * high_kl_frac)
@@ -1388,9 +1468,14 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if not math.isfinite(multiplier):
                 multiplier = 1.0
                 direction = 0.0
-            multiplier = min(max(multiplier, min_multiplier), max_multiplier)
+                trust_zone_blocked = False
+            if trust_zone_blocked:
+                effective_alpha = 0.0
+            else:
+                multiplier = min(max(multiplier, min_multiplier), max_multiplier)
+                effective_alpha = base_alpha * multiplier
             return (
-                base_alpha * multiplier,
+                effective_alpha,
                 multiplier,
                 measured_kl,
                 threshold,
@@ -1398,6 +1483,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 direction,
                 min_multiplier,
                 max_multiplier,
+                trust_zone_blocked,
             )
 
         def _log_grpo_diversity(
@@ -1990,6 +2076,14 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 raise ValueError("Listwise MaxEnt token counts are misaligned with prompts.")
             if int(old_seq_logps_grouped.size(0)) != num_prompts:
                 raise ValueError("Listwise MaxEnt behavior log-probs are misaligned with prompts.")
+            policy_seq_logps_grouped = seq_logps_grouped
+            behavior_seq_logps_grouped = old_seq_logps_grouped
+            if bool(getattr(self.args, "maxent_length_normalize_policy", False)):
+                token_denoms = token_counts_grouped.to(seq_logps_grouped.dtype).clamp(
+                    min=1.0
+                )
+                policy_seq_logps_grouped = seq_logps_grouped / token_denoms
+                behavior_seq_logps_grouped = old_seq_logps_grouped / token_denoms
             q_grouped = _normalize_listwise_q_targets(
                 q_grouped.to(
                     device=seq_logps_grouped.device,
@@ -2016,11 +2110,13 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         logits_to_keep,
                         batch_size=chunk_size,
                     )
+                # Guard the exponentials against rare runaway log-prob deltas.
+                kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
                 per_token_kl = (
-                    torch.exp(ref_per_token_logps - per_token_logps)
-                    - (ref_per_token_logps - per_token_logps)
+                    torch.exp(kl_delta)
+                    - kl_delta
                     - 1
-                )
+                ).to(per_token_logps.dtype)
                 measured_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum().clamp(
                     min=1.0
                 )
@@ -2054,7 +2150,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 dtype=seq_logps_grouped.dtype,
             )
             weights_grouped_list = weights_grouped.detach().cpu().tolist()
-            log_probs_grouped = torch.log_softmax(seq_logps_grouped, dim=1)
+            log_probs_grouped = torch.log_softmax(policy_seq_logps_grouped, dim=1)
             policy_loss = -(weights_grouped * log_probs_grouped).sum(dim=1).mean()
             loss = policy_loss
 
@@ -2082,7 +2178,10 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     else:
                         baseline_value = float(baseline)
                     clip_adv = weights_grouped - baseline_value
-                    seq_ratio = torch.exp(seq_logps_grouped - old_seq_logps_grouped)
+                    log_seq_ratio = _clamp_log_delta(
+                        policy_seq_logps_grouped - behavior_seq_logps_grouped
+                    )
+                    seq_ratio = torch.exp(log_seq_ratio).to(seq_logps_grouped.dtype)
                     seq_ratio_clipped = torch.clamp(
                         seq_ratio,
                         1.0 - clip_low,
@@ -2117,6 +2216,18 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             weight_entropy, entropy_min, entropy_max, _ = collect_weight_entropy(
                 weights_grouped_list
             )
+            loss_scale_raw = inputs.get("maxent_listwise_loss_scale")
+            loss_scale_value = 1.0
+            if isinstance(loss_scale_raw, torch.Tensor):
+                if loss_scale_raw.numel() != 1:
+                    raise ValueError("Listwise MaxEnt loss scale must be scalar.")
+                loss_scale_value = float(loss_scale_raw.detach().cpu().item())
+            elif isinstance(loss_scale_raw, (int, float)):
+                loss_scale_value = float(loss_scale_raw)
+            if not math.isfinite(loss_scale_value) or loss_scale_value <= 0.0:
+                raise ValueError("Listwise MaxEnt loss scale must be finite and positive.")
+            if loss_scale_value != 1.0:
+                loss = loss * loss.new_tensor(loss_scale_value)
             self._append_metric_value(mode, "loss/policy", float(policy_loss.item()))
             self._append_metric_value(
                 mode, "weight_entropy", float(weight_entropy), include_legacy_aliases=False
@@ -2139,6 +2250,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 "maxent/listwise_weight_std",
                 float(weights_grouped.to(torch.float32).std(unbiased=False).item()),
             )
+            self._append_metric_value(
+                mode,
+                "maxent/listwise_loss_scale",
+                loss_scale_value,
+            )
             if clip_loss is not None:
                 self._append_metric_value(mode, "loss/clip", float(clip_loss.item()))
             if measured_kl is not None:
@@ -2149,6 +2265,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             if mode == "train":
                 meta_objective = getattr(self, "_maxent_controller_objective", None)
+                beta_controller_enabled = bool(
+                    getattr(self.args, "maxent_beta_controller_enabled", False)
+                )
                 if meta_objective is not None:
                     self._maybe_apply_controller_meta(
                         mode=mode,
@@ -2162,9 +2281,25 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         SimpleNamespace(weight_entropy=weight_entropy),
                         global_step=int(getattr(self.state, "global_step", 0) or 0),
                     )
-                    if include_reference_term and kl_value is not None:
+                    if (
+                        beta_controller_enabled
+                        and include_reference_term
+                        and kl_value is not None
+                    ):
                         maybe_update_beta(weighting, measured_kl=kl_value)
                 self._sync_weighting_scalars()
+                self._append_metric_value(
+                    mode,
+                    "kl_controller/enabled",
+                    1.0 if beta_controller_enabled else 0.0,
+                    include_legacy_aliases=False,
+                )
+                self._append_metric_value(
+                    mode,
+                    "kl_controller_enabled",
+                    1.0 if beta_controller_enabled else 0.0,
+                    include_legacy_aliases=False,
+                )
                 self._append_metric_value(mode, "tau", float(self.tau))
                 self._append_metric_value(mode, "beta", float(self.beta))
                 self._append_metric_value(
@@ -2270,11 +2405,24 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                                 logits_to_keep,
                                 batch_size=chunk_size,
                             )
+                # Guard the exponentials against rare runaway log-prob deltas.
+                kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
                 per_token_kl = (
-                    torch.exp(ref_per_token_logps - per_token_logps)
-                    - (ref_per_token_logps - per_token_logps)
+                    torch.exp(kl_delta)
+                    - kl_delta
                     - 1
-                )
+                ).to(per_token_logps.dtype)
+            current_batch_kl_measure: Optional[float] = None
+            if mode == "train" and per_token_kl is not None:
+                mean_kl_for_alpha = (
+                    (per_token_kl.detach() * completion_mask).sum()
+                    / completion_mask.sum().clamp(min=1.0)
+                ).to(torch.float32)
+                gathered_kl_for_alpha = self.accelerator.gather(mean_kl_for_alpha)
+                if torch.isfinite(gathered_kl_for_alpha).all():
+                    current_batch_kl_measure = float(gathered_kl_for_alpha.mean().item())
+                else:
+                    current_batch_kl_measure = float("inf")
 
             advantages = inputs["advantages"]
             old_per_token_logps = (
@@ -2282,7 +2430,8 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 if inputs["old_per_token_logps"] is None
                 else inputs["old_per_token_logps"]
             )
-            coef_1 = torch.exp(per_token_logps - old_per_token_logps)
+            log_ratio = _clamp_log_delta(per_token_logps - old_per_token_logps)
+            coef_1 = torch.exp(log_ratio).to(per_token_logps.dtype)
             coef_2 = torch.clamp(
                 coef_1, 1 - self.epsilon_low, 1 + self.epsilon_high
             )
@@ -2305,7 +2454,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 alpha_direction,
                 alpha_kl_min_multiplier,
                 alpha_kl_max_multiplier,
-            ) = self._resolve_effective_maxent_alpha(mode)
+                alpha_trust_zone_blocked,
+            ) = self._resolve_effective_maxent_alpha(
+                mode,
+                measured_kl_override=current_batch_kl_measure,
+            )
             per_token_loss = per_token_loss - alpha * per_token_entropy
 
             if self.loss_type == "grpo":
@@ -2386,6 +2539,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 "maxent/alpha_kl_control_enabled",
                 1.0 if alpha_kl_control_enabled else 0.0,
             )
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_trust_zone_blocked",
+                1.0 if alpha_trust_zone_blocked else 0.0,
+            )
             self._append_metric_value(mode, "maxent/alpha_kl_direction", alpha_direction)
             self._append_metric_value(mode, "maxent/alpha_kl_threshold", alpha_kl_threshold)
             self._append_metric_value(
@@ -2454,6 +2612,144 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     return_outputs=return_outputs,
                 )
 
+        def _compute_stable_grpo_loss(self, model: Any, inputs: Any) -> torch.Tensor:
+            """GRPO loss using the same stabilized exponentials as the MaxEnt path."""
+            if bool(getattr(self, "use_liger_loss", False)):
+                raise NotImplementedError(
+                    "Stable GRPO loss is not implemented for liger loss."
+                )
+
+            prompt_ids, prompt_mask = inputs["prompt_ids"], inputs["prompt_mask"]
+            completion_ids, completion_mask = (
+                inputs["completion_ids"],
+                inputs["completion_mask"],
+            )
+            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+            attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
+            logits_to_keep = completion_ids.size(1)
+            mode = "train" if self.model.training else "eval"
+
+            configured_batch_size = (
+                int(getattr(self.args, "per_device_train_batch_size", 1) or 1)
+                if self.model.training
+                else int(getattr(self.args, "per_device_eval_batch_size", 1) or 1)
+            )
+            chunk_size = int(
+                getattr(self.args, "maxent_logprob_chunk_size", 0)
+                or configured_batch_size
+                or 1
+            )
+            per_token_logps = self._get_per_token_logps(
+                model,
+                input_ids,
+                attention_mask,
+                logits_to_keep,
+                batch_size=chunk_size,
+            )
+
+            per_token_kl: Optional[torch.Tensor] = None
+            if self.beta != 0.0:
+                with torch.no_grad():
+                    if self.ref_model is not None:
+                        ref_per_token_logps = self._get_per_token_logps(
+                            self.ref_model,
+                            input_ids,
+                            attention_mask,
+                            logits_to_keep,
+                            batch_size=chunk_size,
+                        )
+                    else:
+                        with self.accelerator.unwrap_model(self.model).disable_adapter():
+                            ref_per_token_logps = self._get_per_token_logps(
+                                self.model,
+                                input_ids,
+                                attention_mask,
+                                logits_to_keep,
+                                batch_size=chunk_size,
+                            )
+                kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
+                per_token_kl = (
+                    torch.exp(kl_delta)
+                    - kl_delta
+                    - 1
+                ).to(per_token_logps.dtype)
+
+            advantages = inputs["advantages"]
+            old_per_token_logps = (
+                per_token_logps.detach()
+                if inputs["old_per_token_logps"] is None
+                else inputs["old_per_token_logps"]
+            )
+            log_ratio = _clamp_log_delta(per_token_logps - old_per_token_logps)
+            coef_1 = torch.exp(log_ratio).to(per_token_logps.dtype)
+            coef_2 = torch.clamp(
+                coef_1, 1 - self.epsilon_low, 1 + self.epsilon_high
+            )
+
+            if self.args.delta is not None:
+                coef_1 = torch.clamp(coef_1, max=self.args.delta)
+
+            per_token_loss1 = coef_1 * advantages.unsqueeze(1)
+            per_token_loss2 = coef_2 * advantages.unsqueeze(1)
+            per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
+            if per_token_kl is not None:
+                per_token_loss = per_token_loss + self.beta * per_token_kl
+
+            if self.loss_type == "grpo":
+                loss = (
+                    (per_token_loss * completion_mask).sum(-1)
+                    / completion_mask.sum(-1).clamp(min=1.0)
+                ).mean()
+            elif self.loss_type == "bnpo":
+                loss = (per_token_loss * completion_mask).sum() / completion_mask.sum().clamp(
+                    min=1.0
+                )
+            elif self.loss_type == "dr_grpo":
+                loss = (per_token_loss * completion_mask).sum() / (
+                    per_token_loss.size(0) * self.max_completion_length
+                )
+            else:
+                raise ValueError(f"Unknown loss type: {self.loss_type}")
+
+            if per_token_kl is not None:
+                mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
+                kl_value = float(self.accelerator.gather(mean_kl).nanmean().item())
+                self._append_metric_value(mode, "kl", kl_value)
+
+            is_low_clipped = (coef_1 < 1 - self.epsilon_low) & (
+                advantages.unsqueeze(1) < 0
+            )
+            is_high_clipped = (coef_1 > 1 + self.epsilon_high) & (
+                advantages.unsqueeze(1) > 0
+            )
+            is_region_clipped = is_low_clipped | is_high_clipped
+
+            low_clip = (is_low_clipped * completion_mask).sum() / completion_mask.sum()
+            high_clip = (is_high_clipped * completion_mask).sum() / completion_mask.sum()
+            clip_ratio = (is_region_clipped * completion_mask).sum() / completion_mask.sum()
+
+            gathered_low_clip = self.accelerator.gather(low_clip)
+            self._append_metric_value(
+                mode, "clip_ratio/low_mean", gathered_low_clip.nanmean().item()
+            )
+            self._append_metric_value(
+                mode, "clip_ratio/low_min", _nanmin_tensor(gathered_low_clip).item()
+            )
+            gathered_high_clip = self.accelerator.gather(high_clip)
+            self._append_metric_value(
+                mode, "clip_ratio/high_mean", gathered_high_clip.nanmean().item()
+            )
+            self._append_metric_value(
+                mode, "clip_ratio/high_max", _nanmax_tensor(gathered_high_clip).item()
+            )
+            gathered_clip_ratio = self.accelerator.gather(clip_ratio)
+            self._append_metric_value(
+                mode, "clip_ratio/region_mean", gathered_clip_ratio.nanmean().item()
+            )
+            self._append_metric_value(mode, "maxent/objective_variant_entropy", 0.0)
+            self._append_metric_value(mode, "maxent/objective_variant_listwise", 0.0)
+            return loss
+
         def compute_loss(  # type: ignore[override]
             self,
             model: Any,
@@ -2488,13 +2784,16 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     )
                 loss = self._compute_maxent_loss(model=model, inputs=inputs)
             else:
-                native_grpo_route = True
-                loss = self._compute_grpo_native_loss(
-                    model=model,
-                    inputs=inputs,
-                    return_outputs=return_outputs,
-                    num_items_in_batch=num_items_in_batch,
-                )
+                if trl_prepared_inputs and not return_outputs:
+                    loss = self._compute_stable_grpo_loss(model=model, inputs=inputs)
+                else:
+                    native_grpo_route = True
+                    loss = self._compute_grpo_native_loss(
+                        model=model,
+                        inputs=inputs,
+                        return_outputs=return_outputs,
+                        num_items_in_batch=num_items_in_batch,
+                    )
             # Cache the latest train KL immediately after native TRL loss
             # computation so adaptive MaxEnt alpha can be evaluated every
             # optimizer step (the next rollout consumes this cached value).

@@ -446,7 +446,14 @@ class _WeightingMetricHelper:
             "train/kl_controller/enabled": (
                 1.0
                 if (
-                    _numeric_or_none(getattr(args, "kl_target", None))
+                    (
+                        _bool_flag(getattr(args, "grpo_beta_controller_enabled", None))
+                        if train_grpo_flag
+                        else _bool_flag(
+                            getattr(args, "maxent_beta_controller_enabled", None)
+                        )
+                    )
+                    and _numeric_or_none(getattr(args, "kl_target", None))
                     not in {None, 0.0}
                     and _numeric_or_none(getattr(args, "kl_horizon", None))
                     not in {
@@ -461,7 +468,14 @@ class _WeightingMetricHelper:
             "train/kl_controller_enabled": (
                 1.0
                 if (
-                    _numeric_or_none(getattr(args, "kl_target", None))
+                    (
+                        _bool_flag(getattr(args, "grpo_beta_controller_enabled", None))
+                        if train_grpo_flag
+                        else _bool_flag(
+                            getattr(args, "maxent_beta_controller_enabled", None)
+                        )
+                    )
+                    and _numeric_or_none(getattr(args, "kl_target", None))
                     not in {None, 0.0}
                     and _numeric_or_none(getattr(args, "kl_horizon", None))
                     not in {None, 0.0}

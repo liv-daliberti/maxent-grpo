@@ -156,6 +156,8 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_q_temperature: Temperature applied when forming listwise q values.
     :ivar maxent_q_epsilon: Minimum support added to q before normalization.
     :ivar maxent_length_normalize_ref: Length-normalize reference log-probs.
+    :ivar maxent_length_normalize_policy: Length-normalize policy/behavior sequence
+        log-probs inside the listwise loss.
     :ivar maxent_logprob_chunk_size: Mini-batch size when computing log-probs.
     :ivar maxent_policy_entropy: Whether to compute policy entropy during scoring.
     :ivar maxent_policy_entropy_mode: Which entropy estimator to use ("exact" or "sample").
@@ -171,6 +173,9 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_alpha_kl_gain: Gain for KL-based alpha scaling in both directions.
     :ivar maxent_alpha_kl_max_multiplier: Upper bound on the adaptive alpha multiplier.
     :ivar maxent_alpha_kl_min_multiplier: Lower bound on the adaptive alpha multiplier.
+    :ivar maxent_alpha_disable_outside_trust_zone: When true, disable the entropy
+        bonus on batches whose measured KL is non-finite or exceeds
+        ``maxent_alpha_kl_threshold``.
     :ivar maxent_reference_ema_enabled: When true, softly update the frozen TRL
         reference model from policy weights during training.
     :ivar maxent_reference_ema_beta: EMA momentum for reference updates. Higher values
@@ -197,6 +202,8 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar kl_target: Target KL value for automatic beta adjustment.
     :ivar kl_horizon: Horizon in optimizer steps for the beta controller.
     :ivar kl_ctl_step_size: Maximum fractional beta change per controller step.
+    :ivar maxent_beta_controller_enabled: Enable adaptive beta updates for MaxEnt
+        objectives. Keep false for a fixed-beta comparison.
     :ivar clip_range: PPO clip range used for clipping ratios in training loss.
     :ivar clip_range_high: Upper PPO clip range (epsilon_high) for asymmetric clipping.
     :ivar clip_delta: Optional additional slack for two-sided clipping.
@@ -448,6 +455,15 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    maxent_length_normalize_policy: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Whether to length-normalize policy and behavior sequence log-probs "
+                "inside the listwise MaxEnt loss."
+            )
+        },
+    )
     maxent_logprob_chunk_size: int = field(
         default=0,
         metadata={
@@ -592,6 +608,15 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": (
                 "Minimum multiplier applied to maxent_alpha by high-KL adaptive scaling."
+            )
+        },
+    )
+    maxent_alpha_disable_outside_trust_zone: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, set the effective maxent_alpha to zero on batches whose "
+                "measured KL is non-finite or exceeds maxent_alpha_kl_threshold."
             )
         },
     )
@@ -911,6 +936,15 @@ class GRPOConfig(trl.GRPOConfig):
             "help": (
                 "Enable the local β controller for baseline GRPO. Keep false to match "
                 "native TRL/Open-R1 GRPO behavior."
+            )
+        },
+    )
+    maxent_beta_controller_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Enable adaptive β updates for MaxEnt objectives. Keep false for a "
+                "fixed-β comparison against GRPO."
             )
         },
     )

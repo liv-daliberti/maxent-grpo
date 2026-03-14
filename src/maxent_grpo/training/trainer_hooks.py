@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 
 _PROMPT_OBJECTIVE_ENV_VAR = "MAXENT_LOG_PROMPT_OBJECTIVE"
 _PROMPT_OBJECTIVE_PREVIEW_LEN = 160
+_LOG_DELTA_CLAMP = 5.0
 
 
 def _prompt_objective_logging_enabled(ctx: TrainingLoopContext) -> bool:
@@ -105,7 +106,10 @@ def _per_sequence_kl_values(
     else:
         ref_per_tok = ref_tensor / denom
 
-    delta = (ref_per_tok - cur_per_tok).clamp(min=-60.0, max=60.0)
+    delta = (ref_per_tok - cur_per_tok).clamp(
+        min=-_LOG_DELTA_CLAMP,
+        max=_LOG_DELTA_CLAMP,
+    )
     per_seq = delta.exp() - delta - 1.0
     return per_seq.detach().cpu().tolist()
 

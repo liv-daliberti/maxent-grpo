@@ -19,9 +19,9 @@ Quickstart
 
    make conda-local && conda activate ./var/openr1
    pip install -c configs/constraints.txt -e .[dev]
-   sbatch ops/slurm/train_dual_4plus4.slurm --model Qwen2.5-1.5B-Instruct --config math --accelerator zero3 --run-only grpo
+   sbatch ops/slurm/train_dual_4plus4.slurm --config math --accelerator zero3 --run-only both
 
-``ops/slurm/train_dual_4plus4.slurm`` provisions runtime caches under ``./var/`` and dispatches GRPO/MaxEnt training (together or separately via ``--run-only``). For a no-Slurm smoke test, use the Hydra console scripts instead:
+``ops/slurm/train_dual_4plus4.slurm`` provisions runtime caches under ``./var/`` and dispatches the experiment-profile stacks: GRPO + entropy-MaxEnt together, or a single stack via ``--run-only grpo|maxent|listwise``. For the full three-way comparison, use ``ops/run_experiment_triplet_single_node.sh``. For a no-Slurm smoke test, use the Hydra console scripts instead:
 
 .. code-block:: bash
 

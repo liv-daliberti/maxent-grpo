@@ -12,6 +12,7 @@ maxent:
     policy_entropy_bonus_coef: 0.0
     maxent_reference_ema_enabled: false
     controller_meta_enabled: false
+    push_to_hub: false
     output_dir: var/data/Qwen2.5-0.5B-Open-R1-MaxEnt-Listwise-code-mbpp-v1
 
 hydra:

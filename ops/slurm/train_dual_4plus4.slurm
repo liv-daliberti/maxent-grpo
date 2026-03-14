@@ -1,15 +1,16 @@
 #!/bin/bash
-# Single-node dual training launcher:
-# - GRPO on GPUs 0-3 (vLLM:0, train:1,2,3)
-# - MaxEnt on GPUs 4-7 (vLLM:4, train:5,6,7)
+# Single-node experiment launcher:
+# - GRPO + entropy-MaxEnt concurrently on one 8-GPU node, or
+# - single-stack GRPO / entropy-MaxEnt / listwise-MaxEnt on 4 GPUs.
 #
-# Both stacks run concurrently in one 8-GPU allocation.
+# The default recipe profile renders the explicit three-way experiment presets
+# onto the requested base recipe so the Slurm path matches the documented
+# GRPO / MaxEnt / listwise-MaxEnt comparison.
 
 #SBATCH --job-name=open_r1_dual_4plus4
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --exclusive
 #SBATCH --gres=gpu:a100:8
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=256G
@@ -51,7 +52,7 @@ ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
 VIRTUAL_ENV="${VIRTUAL_ENV:-$VAR_DIR/openr1}"
 PYTHON_OVERLAY_DIR="${PYTHON_OVERLAY_DIR:-$VAR_DIR/python_overlay}"
 DATASET_SITE_PACKAGES="${DATASET_SITE_PACKAGES:-/n/fs/similarity/.conda/envs/openr1/lib/python3.11/site-packages}"
-EXTRA_SITE_PACKAGES="${EXTRA_SITE_PACKAGES:-$HOME/.local/lib/python3.11/site-packages:/n/fs/similarity/kalshi/markets_pipeline/.runtime/qwen_vllm/venv/lib/python3.11/site-packages}"
+EXTRA_SITE_PACKAGES="${EXTRA_SITE_PACKAGES:-}"
 
 prepare_python_overlay() {
   mkdir -p "$PYTHON_OVERLAY_DIR"
@@ -61,6 +62,36 @@ prepare_python_overlay() {
   if [[ -d "$DATASET_SITE_PACKAGES/pyarrow" ]]; then
     ln -sfn "$DATASET_SITE_PACKAGES/pyarrow" "$PYTHON_OVERLAY_DIR/pyarrow"
   fi
+}
+
+discover_runtime_site_packages() {
+  PYTHONNOUSERSITE="" python - <<'PY'
+import os
+import sys
+
+required_modules = ("trl", "vllm")
+seen = set()
+paths = []
+for raw in sys.path:
+    path = os.path.abspath(raw or ".")
+    if path in seen or not os.path.isdir(path):
+        continue
+    seen.add(path)
+    if any(os.path.isdir(os.path.join(path, mod)) for mod in required_modules):
+        paths.append(path)
+print(":".join(paths))
+PY
+}
+
+has_runtime_modules() {
+  PYTHONNOUSERSITE=1 python - <<'PY'
+import importlib.util
+import sys
+
+required_modules = ("trl", "vllm")
+missing = [name for name in required_modules if importlib.util.find_spec(name) is None]
+raise SystemExit(1 if missing else 0)
+PY
 }
 
 activate_env() {
@@ -80,9 +111,16 @@ activate_env() {
     export VIRTUAL_ENV
     export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
   fi
+  local discovered_runtime_paths=""
+  if ! has_runtime_modules; then
+    discovered_runtime_paths="$(discover_runtime_site_packages || true)"
+  fi
   export PYTHONNOUSERSITE=1
   prepare_python_overlay
   local resolved_extra_paths="${EXTRA_SITE_PACKAGES:-}"
+  if [[ -n "$discovered_runtime_paths" ]]; then
+    resolved_extra_paths="${discovered_runtime_paths}${resolved_extra_paths:+:${resolved_extra_paths}}"
+  fi
   if [[ -d "$PYTHON_OVERLAY_DIR" ]]; then
     resolved_extra_paths="${PYTHON_OVERLAY_DIR}${resolved_extra_paths:+:${resolved_extra_paths}}"
   fi
@@ -178,27 +216,130 @@ append_flag_value() {
   fi
 }
 
+default_model_for_suffix() {
+  local suffix="$1"
+  case "$suffix" in
+    math) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
+    code_mbpp) printf '%s\n' "Qwen2.5-0.5B-Instruct" ;;
+    *) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
+  esac
+}
+
+default_output_dir_for_stack() {
+  local model="$1"
+  local stack="$2"
+  local suffix="$3"
+  local suffix_slug="${suffix//_/-}"
+  local label=""
+  case "$stack" in
+    grpo) label="GRPO-BASELINE" ;;
+    maxent) label="MaxEnt-Entropy" ;;
+    listwise) label="MaxEnt-Listwise" ;;
+    *) echo "Unknown stack for output dir: $stack" >&2; return 1 ;;
+  esac
+  printf 'var/data/%s-Open-R1-%s-%s-v1\n' "$model" "$label" "$suffix_slug"
+}
+
+render_experiment_recipe() {
+  local base_recipe="$1"
+  local preset_path="$2"
+  local output_dir="$3"
+  local dst="$4"
+  python - "$base_recipe" "$preset_path" "$output_dir" "$dst" <<'PY'
+import os
+import sys
+
+base_recipe, preset_path, output_dir, dst = sys.argv[1:5]
+
+try:
+    from omegaconf import OmegaConf
+except Exception:
+    OmegaConf = None
+
+try:
+    import yaml
+except Exception:
+    yaml = None
+
+
+def _load(path: str):
+    if OmegaConf is not None:
+        return OmegaConf.to_container(OmegaConf.load(path), resolve=False)
+    if yaml is None:
+        raise SystemExit("Missing omegaconf/yaml; cannot render experiment recipe")
+    with open(path, "r", encoding="utf-8") as handle:
+        return yaml.safe_load(handle) or {}
+
+
+def _save(payload, path: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if OmegaConf is not None:
+        OmegaConf.save(config=OmegaConf.create(payload), f=path)
+        return
+    if yaml is None:
+        raise SystemExit("Missing omegaconf/yaml; cannot save experiment recipe")
+    with open(path, "w", encoding="utf-8") as handle:
+        yaml.safe_dump(payload, handle, sort_keys=False)
+
+
+base_cfg = _load(base_recipe) or {}
+preset_cfg = _load(preset_path) or {}
+command_block = preset_cfg.get("maxent") or preset_cfg.get("baseline") or {}
+for section in ("script", "training", "model"):
+    overrides = command_block.get(section) or {}
+    if isinstance(overrides, dict):
+        base_cfg.update(overrides)
+base_cfg["output_dir"] = output_dir
+_save(base_cfg, dst)
+PY
+}
+
+resolve_profile_preset() {
+  local stack="$1"
+  local suffix="$2"
+  case "$stack" in
+    grpo) printf 'configs/recipes/hydra/grpo_custom_%s.yaml\n' "$suffix" ;;
+    maxent) printf 'configs/recipes/hydra/maxent_entropy_%s.yaml\n' "$suffix" ;;
+    listwise) printf 'configs/recipes/hydra/maxent_listwise_%s.yaml\n' "$suffix" ;;
+    *) echo "Unknown experiment stack: $stack" >&2; return 1 ;;
+  esac
+}
+
+resolve_accelerator_name() {
+  local requested="$1"
+  if [[ "$requested" == "zero3" ]]; then
+    if ! PYTHONNOUSERSITE=1 python -c "import deepspeed" >/dev/null 2>&1; then
+      printf '%s\n' "ddp"
+      return 0
+    fi
+  fi
+  printf '%s\n' "$requested"
+}
+
 if [[ "$*" == *"--help"* ]]; then
   cat <<'USAGE'
 Usage: sbatch ops/slurm/train_dual_4plus4.slurm [options]
 
 Options:
-  --model MODEL               Recipe model directory (default: Qwen2.5-0.5B-Instruct)
+  --model MODEL               Recipe model directory (default depends on --config)
   --config SUFFIX             Config suffix for both GRPO and MaxEnt (default: math)
   --grpo-config SUFFIX        Optional GRPO config suffix override
   --maxent-config SUFFIX      Optional MaxEnt config suffix override
+  --recipe-profile MODE       experiment | paired (default: experiment)
   --accelerator NAME          Accelerate config name (default: zero3)
   --grpo-args "ARGS"          Extra GRPO args
-  --maxent-args "ARGS"        Extra MaxEnt args
-  --run-only MODE             both | grpo | maxent (default: both)
+  --maxent-args "ARGS"        Extra entropy-MaxEnt args (also used for listwise)
+  --run-only MODE             both | grpo | maxent | listwise (default: both)
 USAGE
   exit 0
 fi
 
-MODEL="${MODEL:-Qwen2.5-0.5B-Instruct}"
 CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
 CONFIG_SUFFIX_GRPO="${CONFIG_SUFFIX_GRPO:-$CONFIG_SUFFIX}"
 CONFIG_SUFFIX_MAXENT="${CONFIG_SUFFIX_MAXENT:-$CONFIG_SUFFIX}"
+MODEL_EXPLICIT=0
+MODEL="${MODEL:-}"
+RECIPE_PROFILE="$(echo "${RECIPE_PROFILE:-experiment}" | tr '[:upper:]' '[:lower:]')"
 ACCELERATOR="${ACCELERATOR:-zero3}"
 GRPO_ARGS="${GRPO_ARGS:-}"
 MAXENT_ARGS="${MAXENT_ARGS:-}"
@@ -240,10 +381,11 @@ fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --model) MODEL="$2"; shift 2 ;;
+    --model) MODEL="$2"; MODEL_EXPLICIT=1; shift 2 ;;
     --config) CONFIG_SUFFIX="$2"; CONFIG_SUFFIX_GRPO="$2"; CONFIG_SUFFIX_MAXENT="$2"; shift 2 ;;
     --grpo-config) CONFIG_SUFFIX_GRPO="$2"; shift 2 ;;
     --maxent-config) CONFIG_SUFFIX_MAXENT="$2"; shift 2 ;;
+    --recipe-profile) RECIPE_PROFILE="$(echo "$2" | tr '[:upper:]' '[:lower:]')"; shift 2 ;;
     --accelerator) ACCELERATOR="$2"; shift 2 ;;
     --grpo-args) GRPO_ARGS="$2"; shift 2 ;;
     --maxent-args) MAXENT_ARGS="$2"; shift 2 ;;
@@ -252,14 +394,39 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$RUN_ONLY" != "both" && "$RUN_ONLY" != "grpo" && "$RUN_ONLY" != "maxent" ]]; then
-  echo "RUN_ONLY must be both|grpo|maxent" >&2
+if (( ! MODEL_EXPLICIT )); then
+  MODEL="$(default_model_for_suffix "$CONFIG_SUFFIX")"
+fi
+
+if [[ "$RECIPE_PROFILE" != "experiment" && "$RECIPE_PROFILE" != "paired" ]]; then
+  echo "RECIPE_PROFILE must be experiment|paired" >&2
   exit 1
 fi
 
+if [[ "$RUN_ONLY" != "both" && "$RUN_ONLY" != "grpo" && "$RUN_ONLY" != "maxent" && "$RUN_ONLY" != "listwise" ]]; then
+  echo "RUN_ONLY must be both|grpo|maxent|listwise" >&2
+  exit 1
+fi
+
+USE_GRPO_STACK=0
+USE_SECONDARY_STACK=0
+if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
+  USE_GRPO_STACK=1
+fi
+if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" ]]; then
+  USE_SECONDARY_STACK=1
+fi
+
+SECONDARY_STACK_TAG="maxent"
+SECONDARY_STACK_LABEL="MaxEnt"
+if [[ "$RUN_ONLY" == "listwise" ]]; then
+  SECONDARY_STACK_TAG="listwise"
+  SECONDARY_STACK_LABEL="Listwise MaxEnt"
+fi
+
 # In single-stack mode, default to a 4-GPU local layout (vLLM:0, train:1,2,3).
-# This allows maxent-only/grpo-only jobs to run in a 4-GPU allocation.
-if [[ "$RUN_ONLY" == "maxent" ]]; then
+# This allows grpo/maxent/listwise single-stack jobs to run in a 4-GPU allocation.
+if [[ "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" ]]; then
   if [[ "$MAXENT_VLLM_GPU" == "4" ]]; then MAXENT_VLLM_GPU="0"; fi
   if [[ "$MAXENT_TRAIN_GPUS" == "5,6,7" ]]; then MAXENT_TRAIN_GPUS="1,2,3"; fi
 fi
@@ -268,17 +435,55 @@ if [[ "$RUN_ONLY" == "grpo" ]]; then
   if [[ "$GRPO_TRAIN_GPUS" == "5,6,7" ]]; then GRPO_TRAIN_GPUS="1,2,3"; fi
 fi
 
-GRPO_CFG="configs/recipes/${MODEL}/grpo/config_${CONFIG_SUFFIX_GRPO}.yaml"
-MAXENT_CFG="configs/recipes/${MODEL}/maxent-grpo/config_${CONFIG_SUFFIX_MAXENT}.yaml"
-ACCEL_FILE="configs/recipes/accelerate_configs/${ACCELERATOR}.yaml"
+RECIPE_RENDER_DIR="$VAR_DIR/artifacts/rendered_recipes/${SLURM_JOB_ID:-manual}"
+mkdir -p "$RECIPE_RENDER_DIR"
 
-[[ -f "$GRPO_CFG" ]] || { echo "Missing config: $GRPO_CFG" >&2; exit 1; }
-[[ -f "$MAXENT_CFG" ]] || { echo "Missing config: $MAXENT_CFG" >&2; exit 1; }
-[[ -f "$ACCEL_FILE" ]] || { echo "Missing accelerate config: $ACCEL_FILE" >&2; exit 1; }
+GRPO_CFG=""
+MAXENT_CFG=""
+if [[ "$RECIPE_PROFILE" == "experiment" ]]; then
+  if (( USE_GRPO_STACK )); then
+    GRPO_BASE_CFG="configs/recipes/${MODEL}/grpo/config_${CONFIG_SUFFIX_GRPO}.yaml"
+    GRPO_PRESET_CFG="$(resolve_profile_preset grpo "$CONFIG_SUFFIX_GRPO")"
+    [[ -f "$GRPO_BASE_CFG" ]] || { echo "Missing base config: $GRPO_BASE_CFG" >&2; exit 1; }
+    [[ -f "$GRPO_PRESET_CFG" ]] || { echo "Missing experiment preset: $GRPO_PRESET_CFG" >&2; exit 1; }
+    GRPO_CFG="$RECIPE_RENDER_DIR/grpo_${CONFIG_SUFFIX_GRPO}.yaml"
+    render_experiment_recipe \
+      "$GRPO_BASE_CFG" \
+      "$GRPO_PRESET_CFG" \
+      "$(default_output_dir_for_stack "$MODEL" "grpo" "$CONFIG_SUFFIX_GRPO")" \
+      "$GRPO_CFG"
+  fi
+  if (( USE_SECONDARY_STACK )); then
+    MAXENT_BASE_CFG="configs/recipes/${MODEL}/grpo/config_${CONFIG_SUFFIX_MAXENT}.yaml"
+    MAXENT_PRESET_CFG="$(resolve_profile_preset "$SECONDARY_STACK_TAG" "$CONFIG_SUFFIX_MAXENT")"
+    [[ -f "$MAXENT_BASE_CFG" ]] || { echo "Missing base config: $MAXENT_BASE_CFG" >&2; exit 1; }
+    [[ -f "$MAXENT_PRESET_CFG" ]] || { echo "Missing experiment preset: $MAXENT_PRESET_CFG" >&2; exit 1; }
+    MAXENT_CFG="$RECIPE_RENDER_DIR/${SECONDARY_STACK_TAG}_${CONFIG_SUFFIX_MAXENT}.yaml"
+    render_experiment_recipe \
+      "$MAXENT_BASE_CFG" \
+      "$MAXENT_PRESET_CFG" \
+      "$(default_output_dir_for_stack "$MODEL" "$SECONDARY_STACK_TAG" "$CONFIG_SUFFIX_MAXENT")" \
+      "$MAXENT_CFG"
+  fi
+else
+  if (( USE_GRPO_STACK )); then
+    GRPO_CFG="configs/recipes/${MODEL}/grpo/config_${CONFIG_SUFFIX_GRPO}.yaml"
+    [[ -f "$GRPO_CFG" ]] || { echo "Missing config: $GRPO_CFG" >&2; exit 1; }
+  fi
+  if (( USE_SECONDARY_STACK )); then
+    MAXENT_CFG="configs/recipes/${MODEL}/maxent-grpo/config_${CONFIG_SUFFIX_MAXENT}.yaml"
+    [[ -f "$MAXENT_CFG" ]] || { echo "Missing config: $MAXENT_CFG" >&2; exit 1; }
+  fi
+fi
 
-GRPO_CFG_ABS="$(to_abs_path "$GRPO_CFG")"
-MAXENT_CFG_ABS="$(to_abs_path "$MAXENT_CFG")"
-ACCEL_FILE_ABS="$(to_abs_path "$ACCEL_FILE")"
+GRPO_CFG_ABS=""
+MAXENT_CFG_ABS=""
+if [[ -n "$GRPO_CFG" ]]; then
+  GRPO_CFG_ABS="$(to_abs_path "$GRPO_CFG")"
+fi
+if [[ -n "$MAXENT_CFG" ]]; then
+  MAXENT_CFG_ABS="$(to_abs_path "$MAXENT_CFG")"
+fi
 
 GPU_COUNT=8
 if command -v nvidia-smi >/dev/null 2>&1; then
@@ -288,7 +493,7 @@ if command -v nvidia-smi >/dev/null 2>&1; then
   fi
 fi
 MIN_REQUIRED_GPUS=8
-if [[ "$RUN_ONLY" == "grpo" || "$RUN_ONLY" == "maxent" ]]; then
+if [[ "$RUN_ONLY" == "grpo" || "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" ]]; then
   MIN_REQUIRED_GPUS=4
 fi
 if (( GPU_COUNT < MIN_REQUIRED_GPUS )); then
@@ -297,43 +502,63 @@ if (( GPU_COUNT < MIN_REQUIRED_GPUS )); then
 fi
 MAX_GPU_ID=$((GPU_COUNT - 1))
 
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
+if (( USE_GRPO_STACK )); then
   assert_csv_ids "GRPO_TRAIN_GPUS" "$GRPO_TRAIN_GPUS" "$MAX_GPU_ID"
   [[ "$GRPO_VLLM_GPU" =~ ^[0-9]+$ ]] || { echo "Invalid GRPO_VLLM_GPU=$GRPO_VLLM_GPU" >&2; exit 1; }
   (( GRPO_VLLM_GPU <= MAX_GPU_ID )) || { echo "GRPO_VLLM_GPU out of range" >&2; exit 1; }
-  (( $(csv_count "$GRPO_TRAIN_GPUS") == 3 )) || { echo "GRPO_TRAIN_GPUS must contain exactly 3 GPUs" >&2; exit 1; }
+  (( $(csv_count "$GRPO_TRAIN_GPUS") == TRAIN_NUM_PROCESSES )) || {
+    echo "GRPO_TRAIN_GPUS must contain exactly ${TRAIN_NUM_PROCESSES} GPUs" >&2
+    exit 1
+  }
   contains_id "$GRPO_TRAIN_GPUS" "$GRPO_VLLM_GPU" && { echo "GRPO vLLM GPU overlaps GRPO train GPUs" >&2; exit 1; }
 fi
 
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" ]]; then
+if (( USE_SECONDARY_STACK )); then
   assert_csv_ids "MAXENT_TRAIN_GPUS" "$MAXENT_TRAIN_GPUS" "$MAX_GPU_ID"
   [[ "$MAXENT_VLLM_GPU" =~ ^[0-9]+$ ]] || { echo "Invalid MAXENT_VLLM_GPU=$MAXENT_VLLM_GPU" >&2; exit 1; }
   (( MAXENT_VLLM_GPU <= MAX_GPU_ID )) || { echo "MAXENT_VLLM_GPU out of range" >&2; exit 1; }
-  (( $(csv_count "$MAXENT_TRAIN_GPUS") == 3 )) || { echo "MAXENT_TRAIN_GPUS must contain exactly 3 GPUs" >&2; exit 1; }
-  contains_id "$MAXENT_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "MaxEnt vLLM GPU overlaps MaxEnt train GPUs" >&2; exit 1; }
+  (( $(csv_count "$MAXENT_TRAIN_GPUS") == TRAIN_NUM_PROCESSES )) || {
+    echo "MAXENT_TRAIN_GPUS must contain exactly ${TRAIN_NUM_PROCESSES} GPUs" >&2
+    exit 1
+  }
+  contains_id "$MAXENT_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "${SECONDARY_STACK_LABEL} vLLM GPU overlaps ${SECONDARY_STACK_LABEL} train GPUs" >&2; exit 1; }
 fi
 
-if [[ "$RUN_ONLY" == "both" ]]; then
-  contains_id "$GRPO_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "MaxEnt vLLM GPU overlaps GRPO train GPUs" >&2; exit 1; }
-  contains_id "$MAXENT_TRAIN_GPUS" "$GRPO_VLLM_GPU" && { echo "GRPO vLLM GPU overlaps MaxEnt train GPUs" >&2; exit 1; }
+if (( USE_GRPO_STACK )) && (( USE_SECONDARY_STACK )) && [[ "$RUN_ONLY" == "both" ]]; then
+  contains_id "$GRPO_TRAIN_GPUS" "$MAXENT_VLLM_GPU" && { echo "${SECONDARY_STACK_LABEL} vLLM GPU overlaps GRPO train GPUs" >&2; exit 1; }
+  contains_id "$MAXENT_TRAIN_GPUS" "$GRPO_VLLM_GPU" && { echo "GRPO vLLM GPU overlaps ${SECONDARY_STACK_LABEL} train GPUs" >&2; exit 1; }
   for gid in ${GRPO_TRAIN_GPUS//,/ }; do
-    contains_id "$MAXENT_TRAIN_GPUS" "$gid" && { echo "Train GPU overlap between GRPO and MaxEnt: $gid" >&2; exit 1; }
+    contains_id "$MAXENT_TRAIN_GPUS" "$gid" && { echo "Train GPU overlap between GRPO and ${SECONDARY_STACK_LABEL}: $gid" >&2; exit 1; }
   done
 fi
 
-GRPO_MODEL="$(yaml_scalar model_name_or_path "$GRPO_CFG")"
-MAXENT_MODEL="$(yaml_scalar model_name_or_path "$MAXENT_CFG")"
-GRPO_REV="$(yaml_scalar model_revision "$GRPO_CFG")"
-MAXENT_REV="$(yaml_scalar model_revision "$MAXENT_CFG")"
-GRPO_MODEL="${GRPO_MODEL:-$MODEL}"
-MAXENT_MODEL="${MAXENT_MODEL:-$MODEL}"
-GRPO_MAX_LEN="${GRPO_MAX_LEN:-$(infer_max_model_len "$GRPO_CFG")}" 
-MAXENT_MAX_LEN="${MAXENT_MAX_LEN:-$(infer_max_model_len "$MAXENT_CFG")}" 
+GRPO_MODEL="${MODEL}"
+MAXENT_MODEL="${MODEL}"
+GRPO_REV=""
+MAXENT_REV=""
+GRPO_MAX_LEN=""
+MAXENT_MAX_LEN=""
+if [[ -n "$GRPO_CFG" ]]; then
+  GRPO_MODEL="$(yaml_scalar model_name_or_path "$GRPO_CFG")"
+  GRPO_REV="$(yaml_scalar model_revision "$GRPO_CFG")"
+  GRPO_MODEL="${GRPO_MODEL:-$MODEL}"
+  GRPO_MAX_LEN="${GRPO_MAX_LEN:-$(infer_max_model_len "$GRPO_CFG")}"
+fi
+if [[ -n "$MAXENT_CFG" ]]; then
+  MAXENT_MODEL="$(yaml_scalar model_name_or_path "$MAXENT_CFG")"
+  MAXENT_REV="$(yaml_scalar model_revision "$MAXENT_CFG")"
+  MAXENT_MODEL="${MAXENT_MODEL:-$MODEL}"
+  MAXENT_MAX_LEN="${MAXENT_MAX_LEN:-$(infer_max_model_len "$MAXENT_CFG")}"
+fi
 
 STAMP="$(date +%Y%m%d_%H%M%S)"
 RUN_GROUP="${WANDB_RUN_GROUP:-dual_4plus4_${MODEL//\//-}_${STAMP}}"
 GRPO_RUN_NAME="${GRPO_RUN_NAME:-${RUN_GROUP}-grpo}"
-MAXENT_RUN_NAME="${MAXENT_RUN_NAME:-${RUN_GROUP}-maxent}"
+if [[ "$SECONDARY_STACK_TAG" == "listwise" ]]; then
+  MAXENT_RUN_NAME="${LISTWISE_RUN_NAME:-${MAXENT_RUN_NAME:-${RUN_GROUP}-listwise}}"
+else
+  MAXENT_RUN_NAME="${MAXENT_RUN_NAME:-${RUN_GROUP}-maxent}"
+fi
 
 GRPO_ARGS="$(append_flag_value "$GRPO_ARGS" "--run_name" "$GRPO_RUN_NAME")"
 GRPO_ARGS="$(append_flag_value "$GRPO_ARGS" "--wandb_run_group" "$RUN_GROUP")"
@@ -341,22 +566,28 @@ MAXENT_ARGS="$(append_flag_value "$MAXENT_ARGS" "--run_name" "$MAXENT_RUN_NAME")
 MAXENT_ARGS="$(append_flag_value "$MAXENT_ARGS" "--wandb_run_group" "$RUN_GROUP")"
 
 VLLM_GRPO_LOG="$VAR_DIR/artifacts/logs/vllm-grpo-${SLURM_JOB_ID}.out"
-VLLM_MAXENT_LOG="$VAR_DIR/artifacts/logs/vllm-maxent-${SLURM_JOB_ID}.out"
+VLLM_MAXENT_LOG="$VAR_DIR/artifacts/logs/vllm-${SECONDARY_STACK_TAG}-${SLURM_JOB_ID}.out"
 TRAIN_GRPO_LOG="$VAR_DIR/artifacts/logs/train-grpo-${SLURM_JOB_ID}.log"
-TRAIN_MAXENT_LOG="$VAR_DIR/artifacts/logs/train-maxent-${SLURM_JOB_ID}.log"
+TRAIN_MAXENT_LOG="$VAR_DIR/artifacts/logs/train-${SECONDARY_STACK_TAG}-${SLURM_JOB_ID}.log"
 : > "$VLLM_GRPO_LOG"
 : > "$VLLM_MAXENT_LOG"
 : > "$TRAIN_GRPO_LOG"
 : > "$TRAIN_MAXENT_LOG"
 
 activate_env
+RESOLVED_ACCELERATOR="$(resolve_accelerator_name "$ACCELERATOR")"
+ACCEL_FILE="configs/recipes/accelerate_configs/${RESOLVED_ACCELERATOR}.yaml"
+[[ -f "$ACCEL_FILE" ]] || { echo "Missing accelerate config: $ACCEL_FILE" >&2; exit 1; }
+ACCEL_FILE_ABS="$(to_abs_path "$ACCEL_FILE")"
 
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
+if (( USE_GRPO_STACK )); then
   echo "[layout] GRPO:   vLLM GPU=${GRPO_VLLM_GPU}, train GPUs=${GRPO_TRAIN_GPUS}, vLLM port=${GRPO_VLLM_PORT}"
 fi
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" ]]; then
-  echo "[layout] MaxEnt: vLLM GPU=${MAXENT_VLLM_GPU}, train GPUs=${MAXENT_TRAIN_GPUS}, vLLM port=${MAXENT_VLLM_PORT}"
+if (( USE_SECONDARY_STACK )); then
+  echo "[layout] ${SECONDARY_STACK_LABEL}: vLLM GPU=${MAXENT_VLLM_GPU}, train GPUs=${MAXENT_TRAIN_GPUS}, vLLM port=${MAXENT_VLLM_PORT}"
 fi
+echo "[layout] recipe_profile=${RECIPE_PROFILE}"
+echo "[layout] accelerator_requested=${ACCELERATOR} accelerator_resolved=${RESOLVED_ACCELERATOR}"
 echo "[layout] run_group=${RUN_GROUP}"
 
 GRPO_VLLM_PID=""
@@ -487,12 +718,12 @@ launch_train() {
   LAST_BG_PID="$!"
 }
 
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
+if (( USE_GRPO_STACK )); then
   start_vllm "grpo-vllm" "$GRPO_VLLM_GPU" "$GRPO_MODEL" "$GRPO_REV" "$GRPO_VLLM_PORT" "$GRPO_MAX_LEN" "$VLLM_GRPO_LOG"
   GRPO_VLLM_PID="$LAST_BG_PID"
 fi
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" ]]; then
-  start_vllm "maxent-vllm" "$MAXENT_VLLM_GPU" "$MAXENT_MODEL" "$MAXENT_REV" "$MAXENT_VLLM_PORT" "$MAXENT_MAX_LEN" "$VLLM_MAXENT_LOG"
+if (( USE_SECONDARY_STACK )); then
+  start_vllm "${SECONDARY_STACK_TAG}-vllm" "$MAXENT_VLLM_GPU" "$MAXENT_MODEL" "$MAXENT_REV" "$MAXENT_VLLM_PORT" "$MAXENT_MAX_LEN" "$VLLM_MAXENT_LOG"
   MAXENT_VLLM_PID="$LAST_BG_PID"
 fi
 
@@ -500,15 +731,15 @@ if [[ -n "$GRPO_VLLM_PID" ]]; then
   wait_vllm_health "grpo-vllm" "$GRPO_VLLM_PORT" "$GRPO_VLLM_PID" "$VLLM_GRPO_LOG"
 fi
 if [[ -n "$MAXENT_VLLM_PID" ]]; then
-  wait_vllm_health "maxent-vllm" "$MAXENT_VLLM_PORT" "$MAXENT_VLLM_PID" "$VLLM_MAXENT_LOG"
+  wait_vllm_health "${SECONDARY_STACK_TAG}-vllm" "$MAXENT_VLLM_PORT" "$MAXENT_VLLM_PID" "$VLLM_MAXENT_LOG"
 fi
 
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
+if (( USE_GRPO_STACK )); then
   launch_train "grpo-train" "src/maxent_grpo/grpo.py" "$GRPO_CFG_ABS" "$GRPO_TRAIN_GPUS" "$GRPO_MASTER_PORT" "$GRPO_GROUP_PORT" "$GRPO_VLLM_PORT" "$GRPO_ARGS" "$TRAIN_GRPO_LOG"
   GRPO_TRAIN_PID="$LAST_BG_PID"
 fi
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" ]]; then
-  launch_train "maxent-train" "src/maxent_grpo/grpo.py" "$MAXENT_CFG_ABS" "$MAXENT_TRAIN_GPUS" "$MAXENT_MASTER_PORT" "$MAXENT_GROUP_PORT" "$MAXENT_VLLM_PORT" "$MAXENT_ARGS" "$TRAIN_MAXENT_LOG"
+if (( USE_SECONDARY_STACK )); then
+  launch_train "${SECONDARY_STACK_TAG}-train" "src/maxent_grpo/grpo.py" "$MAXENT_CFG_ABS" "$MAXENT_TRAIN_GPUS" "$MAXENT_MASTER_PORT" "$MAXENT_GROUP_PORT" "$MAXENT_VLLM_PORT" "$MAXENT_ARGS" "$TRAIN_MAXENT_LOG"
   MAXENT_TRAIN_PID="$LAST_BG_PID"
 fi
 

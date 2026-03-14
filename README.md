@@ -81,8 +81,10 @@ maxent-grpo-baseline \
 
 The MaxEnt runner uses the same training code path as baseline GRPO; select it with `maxent-grpo command=train-maxent` and MaxEnt-oriented recipe/overrides.
 
-Slurm training (single-node dual launcher): `sbatch ops/slurm/train_dual_4plus4.slurm --model Qwen2.5-1.5B-Instruct --config math --accelerator zero3 --run-only grpo --grpo-args "--run_name demo --report_to wandb"`.
-- Inspect `sbatch ops/slurm/train_dual_4plus4.slurm --help` for run mode, config overrides, and trainer arg forwarding. All caches stay under `var/` and run artifacts under `var/artifacts/` by default.
+Slurm training defaults to the explicit experiment profile now. The dual launcher runs the GRPO + entropy-MaxEnt pair, and `RUN_ONLY=listwise` uses the listwise preset on the same stack:
+`sbatch ops/slurm/train_dual_4plus4.slurm --config math --accelerator zero3 --run-only both`.
+- For the full three-way comparison, submit `ops/run_experiment_triplet_single_node.sh`, which launches the pair job plus a separate listwise job under one shared W&B run group.
+- Inspect `sbatch ops/slurm/train_dual_4plus4.slurm --help` for run mode, recipe-profile overrides, and trainer arg forwarding. All caches stay under `var/` and run artifacts under `var/artifacts/` by default.
 
 Notes
 - Recipes live in `configs/recipes/` (Hydra shortcuts include `configs/recipes/hydra/{baseline,maxent}_math.yaml` plus MBPP coding variants `baseline_code_mbpp.yaml`, `grpo_custom_code_mbpp.yaml`, and `maxent_code_mbpp.yaml`).

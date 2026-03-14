@@ -4,6 +4,7 @@ maxent:
   training:
     objective: grpo
     controller_meta_enabled: false
+    push_to_hub: false
     output_dir: var/data/Qwen2.5-0.5B-Open-R1-GRPO-code-mbpp-v1
 
 hydra:

@@ -23,7 +23,7 @@ attn_implementation: sdpa
 # Data training arguments
 dataset_name: open-r1/OpenR1-Math-220k
 dataset_prompt_column: problem
-eval_dataset_name: HuggingFaceH4/MATH-500
+eval_dataset_name: aime24,amc,math
 eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
