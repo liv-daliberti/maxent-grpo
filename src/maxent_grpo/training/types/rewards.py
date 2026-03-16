@@ -122,6 +122,10 @@ class RewardComputation:
     ref_logprob_meta: Optional[List[Optional[Any]]] = None
     completion_metadata: Optional[List[Dict[str, Any]]] = None
     entropy_bonus_scale: Optional[float] = None
+    seed_semantic_entropies: Optional[List[float]] = None
+    seed_advantage_scales: Optional[List[float]] = None
+    seed_alpha_effective: Optional[float] = None
+    seed_max_possible_entropy: Optional[float] = None
 
     @property
     def advantage_samples(self) -> List[float]:

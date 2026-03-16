@@ -7,7 +7,13 @@ import yaml
 _OBJECTIVE_SPECIFIC_TRAINING_KEYS = {
     "objective",
     "maxent_alpha",
+    "maxent_alpha_disable_outside_trust_zone",
+    "maxent_alpha_kl_gain",
+    "maxent_alpha_kl_threshold",
+    "maxent_alpha_lower_on_high_kl",
+    "maxent_alpha_raise_on_low_kl",
     "maxent_length_normalize_ref",
+    "maxent_length_normalize_policy",
     "maxent_policy_entropy",
     "maxent_policy_entropy_mode",
     "maxent_q_epsilon",
@@ -125,7 +131,7 @@ def test_math_objective_triplet_hydra_presets_are_explicit_and_aligned() -> None
         grpo_output_dir="var/data/Qwen2.5-1.5B-Open-R1-GRPO-BASELINE-math-v1",
         entropy_output_dir="var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Entropy-math-v1",
         listwise_output_dir="var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Listwise-math-v1",
-        explicit_num_generations=2,
+        explicit_num_generations=8,
     )
     _assert_triplet_only_differs_on_objective_specific_keys(
         "maxent",
@@ -134,6 +140,44 @@ def test_math_objective_triplet_hydra_presets_are_explicit_and_aligned() -> None
         listwise_cfg=listwise_cfg,
         repo=repo,
     )
+
+
+def test_math_stable_objective_triplet_hydra_presets_are_explicit_and_aligned() -> None:
+    repo = _repo_root()
+    grpo_cfg = _load_yaml(repo / "configs/recipes/hydra/grpo_custom_math_stable.yaml")
+    entropy_cfg = _load_yaml(
+        repo / "configs/recipes/hydra/maxent_entropy_math_stable.yaml"
+    )
+    listwise_cfg = _load_yaml(
+        repo / "configs/recipes/hydra/maxent_listwise_math_stable.yaml"
+    )
+    _assert_triplet(
+        grpo_cfg=grpo_cfg,
+        entropy_cfg=entropy_cfg,
+        listwise_cfg=listwise_cfg,
+        shared_recipe="configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math_stable.yaml",
+        grpo_output_dir="var/data/Qwen2.5-1.5B-Open-R1-GRPO-BASELINE-math-stable-v1",
+        entropy_output_dir="var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Entropy-math-stable-v1",
+        listwise_output_dir="var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Listwise-math-stable-v1",
+        explicit_num_generations=8,
+    )
+    _assert_triplet_only_differs_on_objective_specific_keys(
+        "maxent",
+        grpo_cfg=grpo_cfg,
+        entropy_cfg=entropy_cfg,
+        listwise_cfg=listwise_cfg,
+        repo=repo,
+    )
+    merged_listwise = _merged_training_payload("maxent", listwise_cfg, repo)
+    merged_grpo = _merged_training_payload("maxent", grpo_cfg, repo)
+    assert merged_listwise["maxent_length_normalize_ref"] is True
+    assert merged_listwise["maxent_length_normalize_policy"] is True
+    assert merged_grpo["gradient_accumulation_steps"] == 40
+    assert merged_grpo["max_completion_length"] == 1750
+    assert merged_grpo["eval_steps"] == 32
+    assert merged_grpo["greedy_eval_enabled"] is True
+    assert merged_grpo["eval_greedy_only_enabled"] is True
+    assert merged_grpo["truncate_completions_at_first_boxed_answer"] is True
 
 
 def test_code_objective_triplet_hydra_presets_are_explicit_and_aligned() -> None:
@@ -157,6 +201,60 @@ def test_code_objective_triplet_hydra_presets_are_explicit_and_aligned() -> None
         listwise_cfg=listwise_cfg,
         repo=repo,
     )
+
+
+def test_seed_grpo_math_hydra_preset_is_explicit_and_aligned() -> None:
+    repo = _repo_root()
+    seed_cfg = _load_yaml(repo / "configs/recipes/hydra/seed_grpo_math.yaml")
+    assert seed_cfg["command"] == "train-maxent"
+    assert (
+        seed_cfg["maxent"]["recipe"]
+        == "configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml"
+    )
+    training = seed_cfg["maxent"]["training"]
+    assert training["objective"] == "grpo"
+    assert training["grpo_loss_type"] == "dr_grpo"
+    assert training["num_generations"] == 8
+    assert training["scale_rewards"] is False
+    assert training["seed_grpo_enabled"] is True
+    assert training["seed_grpo_alpha"] == 0.0417
+    assert training["seed_grpo_alpha_normalize_by_max_entropy"] is True
+    assert training["seed_grpo_length_normalize_logprobs"] is True
+    assert (
+        training["output_dir"] == "var/data/Qwen2.5-1.5B-Open-R1-SEED-GRPO-math-v1"
+    )
+    assert seed_cfg["hydra"]["run"]["dir"]
+    assert seed_cfg["hydra"]["sweep"]["dir"]
+    assert seed_cfg["hydra"]["sweep"]["subdir"] == "${hydra.job.num}"
+
+
+def test_seed_grpo_math_stable_hydra_preset_is_explicit_and_aligned() -> None:
+    repo = _repo_root()
+    seed_cfg = _load_yaml(repo / "configs/recipes/hydra/seed_grpo_math_stable.yaml")
+    assert seed_cfg["command"] == "train-maxent"
+    assert (
+        seed_cfg["maxent"]["recipe"]
+        == "configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math_stable.yaml"
+    )
+    training = seed_cfg["maxent"]["training"]
+    assert training["objective"] == "grpo"
+    assert training["grpo_loss_type"] == "dr_grpo"
+    assert training["num_generations"] == 8
+    assert training["scale_rewards"] is False
+    assert training["beta"] == 0.08
+    assert training["grpo_beta_controller_enabled"] is False
+    assert training["maxent_beta_controller_enabled"] is False
+    assert training["seed_grpo_enabled"] is True
+    assert training["seed_grpo_alpha"] == 0.0417
+    assert training["seed_grpo_alpha_normalize_by_max_entropy"] is True
+    assert training["seed_grpo_length_normalize_logprobs"] is True
+    assert (
+        training["output_dir"]
+        == "var/data/Qwen2.5-1.5B-Open-R1-SEED-GRPO-math-stable-v1"
+    )
+    assert seed_cfg["hydra"]["run"]["dir"]
+    assert seed_cfg["hydra"]["sweep"]["dir"]
+    assert seed_cfg["hydra"]["sweep"]["subdir"] == "${hydra.job.num}"
 
 
 def test_listwise_triplet_presets_keep_whole_prompt_groups_per_microbatch() -> None:
@@ -183,6 +281,7 @@ def test_entropy_recipe_files_are_explicit_about_variant() -> None:
         repo / "configs/recipes/Qwen2.5-0.5B-Instruct/maxent-grpo/config_math.yaml",
         repo / "configs/recipes/Qwen2.5-0.5B-Instruct/maxent-grpo/config_code_mbpp.yaml",
         repo / "configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml",
+        repo / "configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math_stable.yaml",
     ]
     for path in recipe_paths:
         payload = _load_yaml(path)

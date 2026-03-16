@@ -17,14 +17,14 @@ Slurm (recommended):
 
 Quick flags:
 
-- ``--run-only both|grpo|maxent|listwise`` controls which experiment stack(s) launch.
+- ``--run-only both|grpo|maxent|listwise|seed`` controls which experiment stack(s) launch.
 - ``--grpo-config`` / ``--maxent-config`` override config suffixes per stack.
 - ``--recipe-profile experiment|paired`` selects rendered experiment presets or the legacy paired flat recipes. The default is ``experiment``.
 - ``--grpo-args`` / ``--maxent-args`` pass raw trainer CLI flags through to each stack.
 - Authenticate with Hugging Face ahead of time (``huggingface-cli login`` or ``export HF_TOKEN=...``); the launcher forwards ``HF_TOKEN`` to every node for gated repos.
 - See every option via ``sbatch ops/slurm/train_dual_4plus4.slurm --help``.
 
-For the full three-way comparison, submit ``ops/run_experiment_triplet_single_node.sh``. It launches one pair job (GRPO + entropy MaxEnt) and one listwise job under the same W&B run group.
+For the full four-way comparison, submit ``ops/run_experiment_quartet_single_node.sh``. It launches listwise + entropy MaxEnt first, then SEED-GRPO + GRPO under the same W&B run group. See :doc:`../methods` for the exact preset-to-method mapping.
 
 Local smoke tests (no Slurm) can use the Hydra console scripts. Examples:
 
@@ -47,10 +47,11 @@ Recipe pairing (reproducible GRPO_RECIPE runs)
 - Trainer-level MaxEnt recipes should now set ``objective`` explicitly:
   ``maxent_entropy`` for token-entropy regularization and ``maxent_listwise``
   for tau/q/beta weighting.
-- For a clean three-way comparison on the shared 1.5B math recipe, use:
+- For a clean four-way comparison on the shared 1.5B math recipe, use:
   ``configs/recipes/hydra/grpo_custom_math.yaml``,
-  ``configs/recipes/hydra/maxent_entropy_math.yaml``, and
-  ``configs/recipes/hydra/maxent_listwise_math.yaml``.
+  ``configs/recipes/hydra/maxent_entropy_math.yaml``,
+  ``configs/recipes/hydra/maxent_listwise_math.yaml``, and
+  ``configs/recipes/hydra/seed_grpo_math.yaml``.
 - ``configs/recipes/hydra/maxent_math.yaml`` remains available as the higher-control MaxEnt preset.
 
 Logging (Entropy Bonus)

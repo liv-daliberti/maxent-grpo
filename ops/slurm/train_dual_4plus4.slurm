@@ -1,7 +1,7 @@
 #!/bin/bash
 # Single-node experiment launcher:
 # - GRPO + entropy-MaxEnt concurrently on one 8-GPU node, or
-# - single-stack GRPO / entropy-MaxEnt / listwise-MaxEnt on 4 GPUs.
+# - single-stack GRPO / entropy-MaxEnt / listwise-MaxEnt / SEED-GRPO on 4 GPUs.
 #
 # The default recipe profile renders the explicit three-way experiment presets
 # onto the requested base recipe so the Slurm path matches the documented
@@ -219,7 +219,7 @@ append_flag_value() {
 default_model_for_suffix() {
   local suffix="$1"
   case "$suffix" in
-    math) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
+    math|math_stable) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
     code_mbpp) printf '%s\n' "Qwen2.5-0.5B-Instruct" ;;
     *) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
   esac
@@ -235,6 +235,7 @@ default_output_dir_for_stack() {
     grpo) label="GRPO-BASELINE" ;;
     maxent) label="MaxEnt-Entropy" ;;
     listwise) label="MaxEnt-Listwise" ;;
+    seed) label="SEED-GRPO" ;;
     *) echo "Unknown stack for output dir: $stack" >&2; return 1 ;;
   esac
   printf 'var/data/%s-Open-R1-%s-%s-v1\n' "$model" "$label" "$suffix_slug"
@@ -301,6 +302,7 @@ resolve_profile_preset() {
     grpo) printf 'configs/recipes/hydra/grpo_custom_%s.yaml\n' "$suffix" ;;
     maxent) printf 'configs/recipes/hydra/maxent_entropy_%s.yaml\n' "$suffix" ;;
     listwise) printf 'configs/recipes/hydra/maxent_listwise_%s.yaml\n' "$suffix" ;;
+    seed) printf 'configs/recipes/hydra/seed_grpo_%s.yaml\n' "$suffix" ;;
     *) echo "Unknown experiment stack: $stack" >&2; return 1 ;;
   esac
 }
@@ -328,8 +330,8 @@ Options:
   --recipe-profile MODE       experiment | paired (default: experiment)
   --accelerator NAME          Accelerate config name (default: zero3)
   --grpo-args "ARGS"          Extra GRPO args
-  --maxent-args "ARGS"        Extra entropy-MaxEnt args (also used for listwise)
-  --run-only MODE             both | grpo | maxent | listwise (default: both)
+  --maxent-args "ARGS"        Extra secondary-stack args (used for maxent/listwise/seed)
+  --run-only MODE             both | grpo | maxent | listwise | seed (default: both)
 USAGE
   exit 0
 fi
@@ -403,8 +405,8 @@ if [[ "$RECIPE_PROFILE" != "experiment" && "$RECIPE_PROFILE" != "paired" ]]; the
   exit 1
 fi
 
-if [[ "$RUN_ONLY" != "both" && "$RUN_ONLY" != "grpo" && "$RUN_ONLY" != "maxent" && "$RUN_ONLY" != "listwise" ]]; then
-  echo "RUN_ONLY must be both|grpo|maxent|listwise" >&2
+if [[ "$RUN_ONLY" != "both" && "$RUN_ONLY" != "grpo" && "$RUN_ONLY" != "maxent" && "$RUN_ONLY" != "listwise" && "$RUN_ONLY" != "seed" ]]; then
+  echo "RUN_ONLY must be both|grpo|maxent|listwise|seed" >&2
   exit 1
 fi
 
@@ -413,7 +415,7 @@ USE_SECONDARY_STACK=0
 if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "grpo" ]]; then
   USE_GRPO_STACK=1
 fi
-if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" ]]; then
+if [[ "$RUN_ONLY" == "both" || "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" || "$RUN_ONLY" == "seed" ]]; then
   USE_SECONDARY_STACK=1
 fi
 
@@ -422,11 +424,14 @@ SECONDARY_STACK_LABEL="MaxEnt"
 if [[ "$RUN_ONLY" == "listwise" ]]; then
   SECONDARY_STACK_TAG="listwise"
   SECONDARY_STACK_LABEL="Listwise MaxEnt"
+elif [[ "$RUN_ONLY" == "seed" ]]; then
+  SECONDARY_STACK_TAG="seed"
+  SECONDARY_STACK_LABEL="SEED-GRPO"
 fi
 
 # In single-stack mode, default to a 4-GPU local layout (vLLM:0, train:1,2,3).
 # This allows grpo/maxent/listwise single-stack jobs to run in a 4-GPU allocation.
-if [[ "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" ]]; then
+if [[ "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" || "$RUN_ONLY" == "seed" ]]; then
   if [[ "$MAXENT_VLLM_GPU" == "4" ]]; then MAXENT_VLLM_GPU="0"; fi
   if [[ "$MAXENT_TRAIN_GPUS" == "5,6,7" ]]; then MAXENT_TRAIN_GPUS="1,2,3"; fi
 fi
@@ -493,7 +498,7 @@ if command -v nvidia-smi >/dev/null 2>&1; then
   fi
 fi
 MIN_REQUIRED_GPUS=8
-if [[ "$RUN_ONLY" == "grpo" || "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" ]]; then
+if [[ "$RUN_ONLY" == "grpo" || "$RUN_ONLY" == "maxent" || "$RUN_ONLY" == "listwise" || "$RUN_ONLY" == "seed" ]]; then
   MIN_REQUIRED_GPUS=4
 fi
 if (( GPU_COUNT < MIN_REQUIRED_GPUS )); then
@@ -556,6 +561,8 @@ RUN_GROUP="${WANDB_RUN_GROUP:-dual_4plus4_${MODEL//\//-}_${STAMP}}"
 GRPO_RUN_NAME="${GRPO_RUN_NAME:-${RUN_GROUP}-grpo}"
 if [[ "$SECONDARY_STACK_TAG" == "listwise" ]]; then
   MAXENT_RUN_NAME="${LISTWISE_RUN_NAME:-${MAXENT_RUN_NAME:-${RUN_GROUP}-listwise}}"
+elif [[ "$SECONDARY_STACK_TAG" == "seed" ]]; then
+  MAXENT_RUN_NAME="${SEED_RUN_NAME:-${MAXENT_RUN_NAME:-${RUN_GROUP}-seed}}"
 else
   MAXENT_RUN_NAME="${MAXENT_RUN_NAME:-${RUN_GROUP}-maxent}"
 fi

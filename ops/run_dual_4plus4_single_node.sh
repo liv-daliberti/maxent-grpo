@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Submit one node for the experiment launcher:
 # - default: GRPO + entropy-MaxEnt concurrently on 8 GPUs
-# - single-stack modes: grpo | maxent | listwise on 4 GPUs via the same Slurm script
+# - single-stack modes: grpo | maxent | listwise | seed on 4 GPUs via the same Slurm script
 
 set -euo pipefail
 
@@ -44,7 +44,7 @@ SBATCH_DEPENDENCY="${SBATCH_DEPENDENCY:-}"
 
 if [[ -z "$MODEL" ]]; then
   case "$CONFIG_SUFFIX" in
-    math) MODEL="Qwen2.5-1.5B-Instruct" ;;
+    math|math_stable) MODEL="Qwen2.5-1.5B-Instruct" ;;
     code_mbpp) MODEL="Qwen2.5-0.5B-Instruct" ;;
     *) MODEL="Qwen2.5-1.5B-Instruct" ;;
   esac

@@ -16,6 +16,7 @@ limitations under the License.
 
 from __future__ import annotations
 
+import math
 from types import SimpleNamespace
 
 import pytest
@@ -130,3 +131,69 @@ def test_compute_reward_statistics_produces_components(monkeypatch):
     assert isinstance(comp, RewardComputation)
     assert comp.total_utils and comp.per_reward_values
     assert len(comp.q_distribution.samples) == len(comp.total_utils)
+
+
+def test_compute_seed_grpo_statistics_matches_official_scaling() -> None:
+    gen_batch = GenerationBatch(
+        prompts=["p"],
+        answers=["3"],
+        grouped_completions=[["The answer is \\boxed{3}.", "Also \\boxed{3}.", "Unsure."]],
+        grouped_ref_meta=[
+            [
+                {"logprob_sum": -1.0, "token_count": 1},
+                {"logprob_sum": -2.0, "token_count": 1},
+                {"logprob_sum": -3.0, "token_count": 1},
+            ]
+        ],
+    )
+
+    entropies, scales, alpha_eff, max_entropy = rw._compute_seed_grpo_statistics(
+        gen_batch,
+        alpha=0.0417,
+        normalize_by_max_entropy=True,
+        length_normalize_logprobs=True,
+        num_generations=4,
+    )
+
+    norm = math.log(math.exp(-1.0) + math.exp(-2.0) + math.exp(-3.0))
+    p_cluster = math.exp(math.log(math.exp(-1.0) + math.exp(-2.0)) - norm)
+    p_missing = math.exp(-3.0 - norm)
+    expected_entropy = -(p_cluster * math.log(p_cluster) + p_missing * math.log(p_missing))
+    expected_alpha = 0.0417 / math.log(4.0)
+    expected_scale = 1.0 / (1.0 + expected_alpha * expected_entropy)
+
+    assert entropies == pytest.approx([expected_entropy])
+    assert scales == pytest.approx([expected_scale])
+    assert alpha_eff == pytest.approx(expected_alpha)
+    assert max_entropy == pytest.approx(math.log(4.0))
+
+
+def test_compute_seed_grpo_statistics_treats_all_missing_answers_as_unique() -> None:
+    gen_batch = GenerationBatch(
+        prompts=["p"],
+        answers=["3"],
+        grouped_completions=[["No final answer.", "Still no answer."]],
+        grouped_ref_meta=[
+            [
+                {"logprob_sum": -1.0, "token_count": 1},
+                {"logprob_sum": -1.0, "token_count": 1},
+            ]
+        ],
+    )
+
+    entropies, scales, alpha_eff, max_entropy = rw._compute_seed_grpo_statistics(
+        gen_batch,
+        alpha=0.0417,
+        normalize_by_max_entropy=True,
+        length_normalize_logprobs=True,
+        num_generations=2,
+    )
+
+    expected_entropy = math.log(2.0)
+    expected_alpha = 0.0417 / math.log(2.0)
+    expected_scale = 1.0 / (1.0 + expected_alpha * expected_entropy)
+
+    assert entropies == pytest.approx([expected_entropy])
+    assert scales == pytest.approx([expected_scale])
+    assert alpha_eff == pytest.approx(expected_alpha)
+    assert max_entropy == pytest.approx(math.log(2.0))

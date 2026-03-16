@@ -258,6 +258,15 @@ class RewardLoggingView:
     q_entropy_std: float
     q_entropy_min: float
     q_entropy_max: float
+    semantic_entropy_mean: float = 0.0
+    semantic_entropy_std: float = 0.0
+    semantic_entropy_min: float = 0.0
+    semantic_entropy_max: float = 0.0
+    advantage_scale_mean: float = 1.0
+    advantage_scale_min: float = 1.0
+    advantage_scale_max: float = 1.0
+    seed_alpha_effective: float = 0.0
+    seed_max_possible_entropy: float = 0.0
     reward_quantiles: Dict[str, float] = field(default_factory=dict)
     per_reward_quantiles: Dict[str, Dict[str, float]] = field(default_factory=dict)
 

@@ -19,6 +19,7 @@ def test_resolve_run_metadata_prefers_env_and_caches(monkeypatch):
     meta = rt_log.resolve_run_metadata()
     assert meta["run/git_sha"] == "envsha"
     assert meta["run/recipe_path"] == "used.yml"
+    assert meta["run/method_name"] == "unknown"
     # cached path should be reused even if env changes
     monkeypatch.setenv("MAXENT_GIT_SHA", "ignored")
     assert rt_log.resolve_run_metadata() is meta
@@ -38,6 +39,7 @@ def test_resolve_run_metadata_falls_back_to_git(monkeypatch):
     meta = rt_log.resolve_run_metadata()
     assert meta["run/git_sha"] == "abc123"
     assert meta["run/recipe_path"] == "unknown"
+    assert meta["run/method_slug"] == "unknown"
 
 
 def test_maybe_init_wandb_run_skips_when_report_to_missing(monkeypatch):
@@ -63,7 +65,12 @@ def test_maybe_init_wandb_run_offline_for_non_main(monkeypatch):
 def test_maybe_init_wandb_run_injects_metadata(monkeypatch):
     rt_log._RUN_META_CACHE.clear()
     training_args = SimpleNamespace(
-        report_to=["wandb"], run_name="run-name", recipe_path="recipe.yaml"
+        report_to=["wandb"],
+        run_name="run-name",
+        recipe_path="recipe.yaml",
+        objective="grpo",
+        grpo_loss_type="dr_grpo",
+        seed_grpo_enabled=False,
     )
     accelerator = SimpleNamespace(is_main_process=True)
     monkeypatch.setenv("MAXENT_GIT_SHA", "deadbeef")
@@ -88,8 +95,10 @@ def test_maybe_init_wandb_run_injects_metadata(monkeypatch):
     meta = rt_log._RUN_META_CACHE
     assert meta["run/git_sha"] == "deadbeef"
     assert meta["run/recipe_path"] == "recipe.yaml"
+    assert meta["run/method_name"] == "Dr.GRPO"
     assert wandb_inst.kwargs["config"]["run/git_sha"] == "deadbeef"
     assert wandb_inst.kwargs["config"]["run/recipe_path"] == "recipe.yaml"
+    assert wandb_inst.kwargs["config"]["run/method_name"] == "Dr.GRPO"
 
 
 def test_log_run_header_logs_and_returns_meta(monkeypatch, caplog):
@@ -97,9 +106,17 @@ def test_log_run_header_logs_and_returns_meta(monkeypatch, caplog):
     monkeypatch.setenv("MAXENT_GIT_SHA", "gitsha123")
     monkeypatch.setenv("GRPO_RECIPE_USED", "recipe.yml")
     caplog.set_level("INFO")
-    meta = rt_log.log_run_header(SimpleNamespace(recipe_path=None))
+    meta = rt_log.log_run_header(
+        SimpleNamespace(
+            recipe_path=None,
+            objective="maxent_listwise",
+            grpo_loss_type="dr_grpo",
+            seed_grpo_enabled=False,
+        )
+    )
     assert meta["run/git_sha"] == "gitsha123"
     assert meta["run/recipe_path"] == "recipe.yml"
+    assert meta["run/method_name"] == "Listwise MaxEnt (Dr.GRPO loss)"
     assert "Run metadata" in caplog.text
 
 

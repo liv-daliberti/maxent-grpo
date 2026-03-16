@@ -49,6 +49,7 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar, TYPE_CHECKING, 
 from types import SimpleNamespace
 
 from .rewards import (
+    _apply_group_scales,
     _group_q_distribution,
     compute_reward_statistics,
     group_advantages,
@@ -561,13 +562,16 @@ def _maybe_apply_entropy_bonus(
     scale_rewards = True
     if training_args is not None:
         scale_rewards = bool(getattr(training_args, "scale_rewards", True))
-    advantage_stats = AdvantageStats(
-        *group_advantages(
-            gen_batch.grouped_completions,
-            new_total_utils,
-            scale_rewards=scale_rewards,
-        )
+    advantage_grouped, advantage_samples = group_advantages(
+        gen_batch.grouped_completions,
+        new_total_utils,
+        scale_rewards=scale_rewards,
     )
+    advantage_grouped, advantage_samples = _apply_group_scales(
+        advantage_grouped,
+        getattr(reward_comp, "seed_advantage_scales", None),
+    )
+    advantage_stats = AdvantageStats(advantage_grouped, advantage_samples)
     q_temperature = _resolve_weighting_value(ctx, "q_temperature", 1.0) or 1.0
     q_epsilon = _resolve_weighting_value(ctx, "q_epsilon", 1e-6) or 1e-6
     q_distribution = QDistribution(
@@ -596,6 +600,18 @@ def _maybe_apply_entropy_bonus(
             ref_logprob_meta=getattr(reward_comp, "ref_logprob_meta", None),
             completion_metadata=getattr(reward_comp, "completion_metadata", None),
             entropy_bonus_scale=reward_std,
+            seed_semantic_entropies=getattr(
+                reward_comp, "seed_semantic_entropies", None
+            ),
+            seed_advantage_scales=getattr(
+                reward_comp, "seed_advantage_scales", None
+            ),
+            seed_alpha_effective=getattr(
+                reward_comp, "seed_alpha_effective", None
+            ),
+            seed_max_possible_entropy=getattr(
+                reward_comp, "seed_max_possible_entropy", None
+            ),
         )
     return reward_comp
 
@@ -1759,6 +1775,35 @@ def prepare_training_batch(
                 _resolve_weighting_value(ctx, "beta"),
                 _resolve_weighting_value(ctx, "tau"),
                 scale_rewards=scale_rewards,
+                seed_grpo_enabled=bool(
+                    getattr(training_args, "seed_grpo_enabled", False)
+                )
+                if training_args is not None
+                else False,
+                seed_grpo_alpha=float(
+                    getattr(training_args, "seed_grpo_alpha", 0.0417)
+                )
+                if training_args is not None
+                else 0.0417,
+                seed_grpo_alpha_normalize_by_max_entropy=bool(
+                    getattr(
+                        training_args,
+                        "seed_grpo_alpha_normalize_by_max_entropy",
+                        True,
+                    )
+                )
+                if training_args is not None
+                else True,
+                seed_grpo_length_normalize_logprobs=bool(
+                    getattr(training_args, "seed_grpo_length_normalize_logprobs", True)
+                )
+                if training_args is not None
+                else True,
+                seed_grpo_num_generations=int(
+                    getattr(training_args, "num_generations", 0) or 0
+                )
+                if training_args is not None
+                else 0,
             ),
             stage="reward_stats",
         )

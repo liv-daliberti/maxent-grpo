@@ -38,7 +38,12 @@ from maxent_grpo.training.generation.errors import (
 )
 from maxent_grpo.training.runtime import require_torch
 from .run_helpers import _group_softmax
-from maxent_grpo.rewards.basic import RewardConfig, get_reward_funcs
+from maxent_grpo.rewards.basic import (
+    RewardConfig,
+    _answer_pat,
+    _extract_boxed_answer,
+    get_reward_funcs,
+)
 from .types import (
     AdvantageStats,
     GenerationBatch,
@@ -81,22 +86,29 @@ def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optiona
         return None, None
     logprob_sum = getattr(meta_entry, "logprob_sum", None)
     token_count = getattr(meta_entry, "token_count", None)
+    token_logprobs = getattr(meta_entry, "token_logprobs", None)
     if isinstance(meta_entry, dict):
         if logprob_sum is None:
             logprob_sum = meta_entry.get("logprob_sum") or meta_entry.get(
                 "cumulative_logprob"
             )
+        if token_logprobs is None:
+            token_logprobs = meta_entry.get("token_logprobs") or meta_entry.get(
+                "logprobs"
+            )
         if token_count is None:
             token_count = meta_entry.get("token_count") or meta_entry.get("num_tokens")
             if token_count is None:
-                tok_logs = meta_entry.get("token_logprobs") or meta_entry.get(
-                    "logprobs"
-                )
-                if tok_logs is not None:
+                if token_logprobs is not None:
                     try:
-                        token_count = len(tok_logs)
+                        token_count = len(token_logprobs)
                     except (TypeError, ValueError):
                         token_count = None
+    if logprob_sum is None and token_logprobs is not None:
+        try:
+            logprob_sum = float(sum(float(val) for val in token_logprobs))
+        except (TypeError, ValueError):
+            logprob_sum = None
     return logprob_sum, token_count
 
 
@@ -276,6 +288,198 @@ def reward_moments(
         else:
             train_reward_std = 0.0
         return train_reward_mean, train_reward_std
+
+
+def _seed_extract_answer(text: str) -> Optional[str]:
+    """Return the raw final answer string used for SEED-GRPO clustering."""
+
+    boxed = _extract_boxed_answer(text)
+    if boxed is not None:
+        answer = str(boxed).strip()
+        return answer or None
+    match = _answer_pat.search(text)
+    if match is None:
+        return None
+    answer = str(match.group(1)).strip()
+    return answer or None
+
+
+def _seed_semantic_ids_by_answers(answers_list: List[str]) -> List[int]:
+    """Match the official SEED-GRPO exact-answer clustering rule."""
+
+    answer_to_id: Dict[str, int] = {}
+    semantic_ids: List[int] = []
+    for answer in answers_list:
+        if answer not in answer_to_id:
+            answer_to_id[answer] = len(answer_to_id)
+        semantic_ids.append(answer_to_id[answer])
+    return semantic_ids
+
+
+def _seed_logsumexp(values: List[float]) -> float:
+    """Return a numerically stable log-sum-exp over ``values``."""
+
+    if not values:
+        return float("-inf")
+    max_val = max(values)
+    if not math.isfinite(max_val):
+        return max_val
+    total = sum(math.exp(val - max_val) for val in values)
+    if total <= 0.0:
+        return float("-inf")
+    return max_val + math.log(total)
+
+
+def _seed_logsumexp_by_id(
+    semantic_ids: List[int], log_likelihoods: List[float]
+) -> List[float]:
+    """Aggregate normalized cluster log-mass by semantic id."""
+
+    if not semantic_ids or not log_likelihoods or len(semantic_ids) != len(log_likelihoods):
+        return []
+    norm = _seed_logsumexp(log_likelihoods)
+    if not math.isfinite(norm):
+        raise ValueError("SEED-GRPO requires finite completion log-likelihoods.")
+    unique_ids = sorted(set(int(uid) for uid in semantic_ids))
+    cluster_log_probs: List[float] = []
+    for uid in unique_ids:
+        cluster_vals = [
+            float(log_likelihoods[idx])
+            for idx, semantic_id in enumerate(semantic_ids)
+            if int(semantic_id) == uid
+        ]
+        cluster_log_probs.append(_seed_logsumexp(cluster_vals) - norm)
+    return cluster_log_probs
+
+
+def _seed_predictive_entropy_rao(cluster_log_probs: List[float]) -> float:
+    """Return Rao-style predictive entropy over normalized cluster mass."""
+
+    entropy = 0.0
+    for log_prob in cluster_log_probs:
+        if not math.isfinite(log_prob):
+            continue
+        prob = math.exp(log_prob)
+        entropy -= prob * log_prob
+    return float(entropy)
+
+
+def _compute_seed_grpo_statistics(
+    gen_batch: GenerationBatch,
+    *,
+    alpha: float,
+    normalize_by_max_entropy: bool,
+    length_normalize_logprobs: bool,
+    num_generations: Optional[int],
+) -> Tuple[List[float], List[float], float, float]:
+    """Return per-prompt semantic entropies and advantage scales for SEED-GRPO."""
+
+    grouped_comps = list(getattr(gen_batch, "grouped_completions", []) or [])
+    grouped_meta = list(getattr(gen_batch, "grouped_ref_meta", []) or [])
+    if not grouped_comps:
+        return [], [], 0.0, 0.0
+    if len(grouped_meta) < len(grouped_comps):
+        raise ValueError(
+            "SEED-GRPO requires generation logprob metadata for every prompt group."
+        )
+
+    generation_count = int(num_generations or 0)
+    if generation_count <= 0:
+        generation_count = max((len(group) for group in grouped_comps), default=0)
+    max_possible_entropy = math.log(generation_count) if generation_count > 1 else 0.0
+    effective_alpha = float(alpha)
+    if normalize_by_max_entropy and max_possible_entropy > 0.0:
+        effective_alpha = effective_alpha / max_possible_entropy
+
+    entropies: List[float] = []
+    scales: List[float] = []
+    for prompt_idx, comp_group in enumerate(grouped_comps):
+        meta_group = grouped_meta[prompt_idx]
+        if not isinstance(meta_group, list) or len(meta_group) < len(comp_group):
+            raise ValueError(
+                "SEED-GRPO requires generation logprob metadata aligned with completions."
+            )
+        question_answers: List[str] = []
+        log_liks: List[float] = []
+        for comp_text, meta_entry in zip(comp_group, meta_group):
+            answer = _seed_extract_answer(str(comp_text))
+            question_answers.append(answer if answer is not None else "NO_ANSWER_FOUND")
+            logprob_sum, token_count = _extract_ref_logprob_fields(meta_entry)
+            if logprob_sum is None:
+                raise ValueError(
+                    "SEED-GRPO requires per-completion generation logprob metadata."
+                )
+            try:
+                log_lik = float(logprob_sum)
+                if length_normalize_logprobs:
+                    denom = float(token_count) if token_count is not None else 0.0
+                    if math.isfinite(denom) and denom > 0.0:
+                        log_lik = log_lik / denom
+                log_liks.append(log_lik)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    "SEED-GRPO requires finite generation log-probabilities."
+                ) from exc
+
+        if all(answer == "NO_ANSWER_FOUND" for answer in question_answers):
+            semantic_ids = list(range(len(question_answers)))
+        else:
+            no_answer_indices = [
+                idx
+                for idx, answer in enumerate(question_answers)
+                if answer == "NO_ANSWER_FOUND"
+            ]
+            valid_answers = [
+                answer for answer in question_answers if answer != "NO_ANSWER_FOUND"
+            ]
+            valid_indices = [
+                idx
+                for idx, answer in enumerate(question_answers)
+                if answer != "NO_ANSWER_FOUND"
+            ]
+            if no_answer_indices:
+                valid_semantic_ids = _seed_semantic_ids_by_answers(valid_answers)
+                semantic_ids = [-1] * len(question_answers)
+                for valid_pos, question_idx in enumerate(valid_indices):
+                    semantic_ids[question_idx] = valid_semantic_ids[valid_pos]
+                max_id = max(valid_semantic_ids, default=-1)
+                for extra_offset, question_idx in enumerate(no_answer_indices):
+                    semantic_ids[question_idx] = max_id + 1 + extra_offset
+            else:
+                semantic_ids = _seed_semantic_ids_by_answers(question_answers)
+
+        cluster_log_probs = _seed_logsumexp_by_id(semantic_ids, log_liks)
+        entropy = _seed_predictive_entropy_rao(cluster_log_probs)
+        scale = 1.0 / (1.0 + effective_alpha * entropy)
+        entropies.append(float(entropy))
+        scales.append(float(scale))
+
+    return entropies, scales, float(effective_alpha), float(max_possible_entropy)
+
+
+def _apply_group_scales(
+    advantage_grouped: List[List[float]],
+    group_scales: Optional[List[float]],
+) -> Tuple[List[List[float]], List[float]]:
+    """Scale grouped advantages by per-prompt multipliers."""
+
+    if not group_scales:
+        flat: List[float] = []
+        for group in advantage_grouped:
+            flat.extend(group)
+        return advantage_grouped, flat
+    scaled_grouped: List[List[float]] = []
+    scaled_flat: List[float] = []
+    for idx, group in enumerate(advantage_grouped):
+        scale = (
+            float(group_scales[idx])
+            if idx < len(group_scales) and math.isfinite(float(group_scales[idx]))
+            else 1.0
+        )
+        scaled_group = [float(scale) * float(value) for value in group]
+        scaled_grouped.append(scaled_group)
+        scaled_flat.extend(scaled_group)
+    return scaled_grouped, scaled_flat
 
 
 def group_advantages(
@@ -708,6 +912,11 @@ def compute_reward_statistics(
     controller_beta: Optional[float] = None,
     controller_tau: Optional[float] = None,
     scale_rewards: bool = True,
+    seed_grpo_enabled: bool = False,
+    seed_grpo_alpha: float = 0.0417,
+    seed_grpo_alpha_normalize_by_max_entropy: bool = True,
+    seed_grpo_length_normalize_logprobs: bool = True,
+    seed_grpo_num_generations: Optional[int] = None,
 ) -> Optional[RewardComputation]:
     """Compute utilities, q-distributions, and flattened prompt/completion pairs.
 
@@ -760,9 +969,31 @@ def compute_reward_statistics(
         flat_answers,
     )
     moments = RewardMoments(*reward_moments(total_utils, device))
-    advantage_stats = AdvantageStats(
-        *group_advantages(grouped_comps, total_utils, scale_rewards=scale_rewards)
+    advantage_grouped, advantage_samples = group_advantages(
+        grouped_comps, total_utils, scale_rewards=scale_rewards
     )
+    seed_semantic_entropies: Optional[List[float]] = None
+    seed_advantage_scales: Optional[List[float]] = None
+    seed_alpha_effective: Optional[float] = None
+    seed_max_possible_entropy: Optional[float] = None
+    if seed_grpo_enabled:
+        (
+            seed_semantic_entropies,
+            seed_advantage_scales,
+            seed_alpha_effective,
+            seed_max_possible_entropy,
+        ) = _compute_seed_grpo_statistics(
+            gen_batch,
+            alpha=seed_grpo_alpha,
+            normalize_by_max_entropy=seed_grpo_alpha_normalize_by_max_entropy,
+            length_normalize_logprobs=seed_grpo_length_normalize_logprobs,
+            num_generations=seed_grpo_num_generations,
+        )
+        advantage_grouped, advantage_samples = _apply_group_scales(
+            advantage_grouped,
+            seed_advantage_scales,
+        )
+    advantage_stats = AdvantageStats(advantage_grouped, advantage_samples)
     q_distribution = QDistribution(
         *_group_q_distribution(
             grouped_comps,
@@ -829,6 +1060,10 @@ def compute_reward_statistics(
         moments=moments,
         ref_logprob_meta=flat_ref_meta,
         completion_metadata=completion_metadata,
+        seed_semantic_entropies=seed_semantic_entropies,
+        seed_advantage_scales=seed_advantage_scales,
+        seed_alpha_effective=seed_alpha_effective,
+        seed_max_possible_entropy=seed_max_possible_entropy,
     )
 
 

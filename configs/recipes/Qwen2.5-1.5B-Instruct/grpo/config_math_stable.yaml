@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Stable 1.5B math backbone for fair quartet comparisons.
+# It keeps the same model/datasets/eval sets as config_math.yaml, but adds
+# shared stabilizers that prevent the observed 3k-token garbage collapse:
+# - shorter rollout cap
+# - rollout-behavior KL anchor
+# - less brittle math reward
+# - lightweight greedy-only in-training eval
+# - stop scoring/training after the first boxed answer
+
 # Model arguments
 model_name_or_path: Qwen/Qwen2.5-Math-1.5B
 reference_model_name_or_path: Qwen/Qwen2.5-Math-1.5B
@@ -30,34 +39,10 @@ eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
-maxent_prompt_cache_size: 20000
-dataloader_num_workers: 4
-dataloader_persistent_workers: true
-dataloader_prefetch_factor: 2
-dataloader_pin_memory: true
 system_prompt: |
   Please reason step by step, and put your final answer within \boxed{}.
 
-# Paired MaxEnt config on the same Dr.GRPO backbone.
-objective: maxent_entropy
-maxent_alpha: 0.005
-policy_entropy_bonus_coef: 0.0
-maxent_policy_entropy: true
-maxent_policy_entropy_mode: exact
-maxent_alpha_raise_on_low_kl: false
-maxent_alpha_lower_on_high_kl: false
-maxent_reference_logprobs_source: model
-maxent_trl_reference_scoring: true
-maxent_reference_ema_enabled: false
-behavior_logprobs_source: model
-maxent_length_normalize_ref: false
-maxent_length_normalize_policy: false
-maxent_allow_empty_weight_fallback: true
-maxent_clip_adv_baseline: null
-maxent_score_tail_tokens: null
-scale_rewards: false
-
-# Training/eval & logging
+# Shared runtime settings
 bf16: true
 fp16: false
 use_vllm: true
@@ -65,16 +50,25 @@ vllm_mode: colocate
 torch_compile: false
 vllm_return_logprobs: true
 vllm_request_logprobs: true
+maxent_reference_logprobs_source: model
+maxent_trl_reference_scoring: true
+behavior_logprobs_source: model
+maxent_logprob_chunk_size: 2
+policy_entropy_bonus_coef: 0.0
+maxent_length_normalize_ref: true
+maxent_length_normalize_policy: true
+maxent_policy_entropy: false
 vllm_sync_weights: false
 vllm_gpu_memory_utilization: 0.35
-# Score rollout batches in smaller slices to reduce peak logits memory without
-# changing the exact loss computation.
-maxent_logprob_chunk_size: 2
 do_eval: true
-gradient_accumulation_steps: 16
+# Quartet single-stack runs use 3 trainer GPUs plus 1 vLLM GPU.
+# With per_device_train_batch_size: 8 keeping one prompt-group/device, 40 grad
+# accumulation steps gives an effective prompt batch of about 120/grouped prompts.
+gradient_accumulation_steps: 40
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
+objective: grpo
 grpo_loss_type: dr_grpo
 num_iterations: 1
 gen_temperature: 1.0
@@ -99,27 +93,32 @@ logging_steps: 1
 logging_strategy: steps
 log_like_grpo: true
 max_prompt_length: 1024
-max_completion_length: 3000
+max_completion_length: 1750
 max_steps: -1
 num_generations: 8
 num_train_epochs: 20
-output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-GRPO-BASELINE-math-v1
+output_dir: var/data/Qwen2.5-1.5B-Open-R1-GRPO-BASELINE-math-stable-v1
 overwrite_output_dir: true
 per_device_train_batch_size: 8
 per_device_eval_batch_size: 8
+dataloader_num_workers: 4
+dataloader_pin_memory: true
+dataloader_prefetch_factor: 2
+dataloader_persistent_workers: true
 push_to_hub: false
 report_to:
 - wandb
-wandb_project: open-r1-maxent-grpo
+wandb_project: huggingface
 wandb_entity: ogd3-princeton-university
 reward_funcs:
-- boxed_accuracy_math
+- accuracy
 reward_weights:
 - 1
-beta: 0.0
-kl_target: 0.0
-kl_horizon: 0
-kl_ctl_step_size: 0.0
+scale_rewards: false
+beta: 0.08
+kl_target: 0.07
+kl_horizon: 500
+kl_ctl_step_size: 1.0
 grpo_beta_controller_enabled: false
 maxent_beta_controller_enabled: false
 max_grad_norm: 1.0
@@ -128,7 +127,10 @@ clip_range: 0.2
 clip_range_high: 0.2
 save_strategy: "no"
 eval_strategy: steps
-eval_steps: 16
+eval_steps: 32
+greedy_eval_enabled: true
+eval_greedy_only_enabled: true
+truncate_completions_at_first_boxed_answer: true
 save_total_limit: 1000
 seed: 42
 warmup_ratio: 0.0

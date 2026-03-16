@@ -26,6 +26,25 @@ def test_resolve_run_metadata_caches(monkeypatch):
     assert meta2 is meta1
 
 
+def test_resolve_run_metadata_enriches_unknown_method_fields(monkeypatch):
+    monkeypatch.setenv("MAXENT_GIT_SHA", "sha1")
+    rt_logging._RUN_META_CACHE.clear()
+    meta = rt_logging.resolve_run_metadata(SimpleNamespace(recipe_path="r1"))
+    assert meta["run/method_name"] == "unknown"
+
+    enriched = rt_logging.resolve_run_metadata(
+        SimpleNamespace(
+            recipe_path="r1",
+            objective="grpo",
+            grpo_loss_type="dr_grpo",
+            seed_grpo_enabled=True,
+        )
+    )
+    assert enriched is meta
+    assert enriched["run/method_name"] == "SEED-GRPO (Dr.GRPO loss)"
+    assert enriched["run/method_slug"] == "seed_grpo__dr_grpo"
+
+
 def test_wandb_error_types_and_log(monkeypatch, caplog):
     # No wandb installed -> defaults
     rt_logging._wandb_error_types.cache_clear()

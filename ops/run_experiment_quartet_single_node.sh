@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Submit the three-way experiment presets as single-stack jobs:
-# - listwise MaxEnt
-# - entropy MaxEnt
-# - GRPO (after the first two finish)
+# Submit the four-way experiment presets as 4-GPU single-stack jobs in two waves:
+# - wave 1: listwise MaxEnt + entropy MaxEnt
+# - wave 2: SEED-GRPO + GRPO after wave 1 succeeds
 
 set -euo pipefail
 
@@ -16,10 +15,12 @@ fi
 CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
 MODEL="${MODEL:-}"
 RECIPE_PROFILE="${RECIPE_PROFILE:-experiment}"
-GRPO_JOB_NAME="${GRPO_JOB_NAME:-open_r1_triplet_grpo}"
-MAXENT_JOB_NAME="${MAXENT_JOB_NAME:-open_r1_triplet_maxent}"
-LISTWISE_JOB_NAME="${LISTWISE_JOB_NAME:-open_r1_triplet_listwise}"
+GRPO_JOB_NAME="${GRPO_JOB_NAME:-open_r1_quartet_grpo}"
+SEED_JOB_NAME="${SEED_JOB_NAME:-open_r1_quartet_seed}"
+MAXENT_JOB_NAME="${MAXENT_JOB_NAME:-open_r1_quartet_maxent}"
+LISTWISE_JOB_NAME="${LISTWISE_JOB_NAME:-open_r1_quartet_listwise}"
 GRPO_ARGS="${GRPO_ARGS:-}"
+SEED_ARGS="${SEED_ARGS:-}"
 MAXENT_ARGS="${MAXENT_ARGS:-}"
 LISTWISE_ARGS="${LISTWISE_ARGS:-}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -33,6 +34,9 @@ LISTWISE_MASTER_PORT="${LISTWISE_MASTER_PORT:-6001}"
 ENTROPY_VLLM_PORT="${ENTROPY_VLLM_PORT:-8002}"
 ENTROPY_GROUP_PORT="${ENTROPY_GROUP_PORT:-29537}"
 ENTROPY_MASTER_PORT="${ENTROPY_MASTER_PORT:-6002}"
+SEED_VLLM_PORT="${SEED_VLLM_PORT:-8003}"
+SEED_GROUP_PORT="${SEED_GROUP_PORT:-29538}"
+SEED_MASTER_PORT="${SEED_MASTER_PORT:-6003}"
 GRPO_VLLM_PORT="${GRPO_VLLM_PORT:-8000}"
 GRPO_GROUP_PORT="${GRPO_GROUP_PORT:-29535}"
 GRPO_MASTER_PORT="${GRPO_MASTER_PORT:-6000}"
@@ -45,14 +49,15 @@ if [[ -z "$MODEL" ]]; then
   esac
 fi
 
-RUN_GROUP="${WANDB_RUN_GROUP:-triplet_${MODEL//\//-}_${CONFIG_SUFFIX}_$(date +%Y%m%d_%H%M%S)}"
+RUN_GROUP="${WANDB_RUN_GROUP:-quartet_${MODEL//\//-}_${CONFIG_SUFFIX}_$(date +%Y%m%d_%H%M%S)}"
 
-echo "[triplet] run_group=${RUN_GROUP}"
-echo "[triplet] listwise job: ${LISTWISE_JOB_NAME} (listwise maxent)"
-echo "[triplet] maxent job:   ${MAXENT_JOB_NAME} (entropy maxent)"
-echo "[triplet] grpo job:     ${GRPO_JOB_NAME}"
+echo "[quartet] run_group=${RUN_GROUP}"
+echo "[quartet] wave1 listwise job: ${LISTWISE_JOB_NAME}"
+echo "[quartet] wave1 maxent job:   ${MAXENT_JOB_NAME}"
+echo "[quartet] wave2 seed job:     ${SEED_JOB_NAME}"
+echo "[quartet] wave2 grpo job:     ${GRPO_JOB_NAME}"
 
-submit_triplet_job() {
+submit_quartet_job() {
   local stack="$1"
   local job_name="$2"
   local variant_args="$3"
@@ -87,6 +92,10 @@ submit_triplet_job() {
       stack_vllm_port="$LISTWISE_VLLM_PORT"
       stack_group_port="$LISTWISE_GROUP_PORT"
       stack_master_port="$LISTWISE_MASTER_PORT"
+    elif [[ "$stack" == "seed" ]]; then
+      stack_vllm_port="$SEED_VLLM_PORT"
+      stack_group_port="$SEED_GROUP_PORT"
+      stack_master_port="$SEED_MASTER_PORT"
     fi
     output="$(
       env \
@@ -123,14 +132,19 @@ submit_triplet_job() {
   printf '%s\n' "$job_id"
 }
 
-listwise_output_and_id="$(submit_triplet_job "listwise" "$LISTWISE_JOB_NAME" "$LISTWISE_ARGS")"
+listwise_output_and_id="$(submit_quartet_job "listwise" "$LISTWISE_JOB_NAME" "$LISTWISE_ARGS")"
 printf '%s\n' "$listwise_output_and_id"
 LISTWISE_JOB_ID="$(printf '%s\n' "$listwise_output_and_id" | tail -n 1)"
 
-maxent_output_and_id="$(submit_triplet_job "maxent" "$MAXENT_JOB_NAME" "$MAXENT_ARGS")"
+maxent_output_and_id="$(submit_quartet_job "maxent" "$MAXENT_JOB_NAME" "$MAXENT_ARGS")"
 printf '%s\n' "$maxent_output_and_id"
 MAXENT_JOB_ID="$(printf '%s\n' "$maxent_output_and_id" | tail -n 1)"
 
-GRPO_DEPENDENCY="afterany:${LISTWISE_JOB_ID}:${MAXENT_JOB_ID}"
-grpo_output_and_id="$(submit_triplet_job "grpo" "$GRPO_JOB_NAME" "$GRPO_ARGS" "$GRPO_DEPENDENCY")"
+WAVE2_DEPENDENCY="afterok:${LISTWISE_JOB_ID}:${MAXENT_JOB_ID}"
+
+seed_output_and_id="$(submit_quartet_job "seed" "$SEED_JOB_NAME" "$SEED_ARGS" "$WAVE2_DEPENDENCY")"
+printf '%s\n' "$seed_output_and_id"
+SEED_JOB_ID="$(printf '%s\n' "$seed_output_and_id" | tail -n 1)"
+
+grpo_output_and_id="$(submit_quartet_job "grpo" "$GRPO_JOB_NAME" "$GRPO_ARGS" "$WAVE2_DEPENDENCY")"
 printf '%s\n' "$grpo_output_and_id"

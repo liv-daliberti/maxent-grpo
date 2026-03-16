@@ -167,6 +167,98 @@ class _ParentTrainerStub:
         return logs
 
 
+class _GreedyEvalModel(torch.nn.Module):
+    def __init__(self, completion_ids: torch.Tensor) -> None:
+        super().__init__()
+        self._completion_ids = completion_ids.clone()
+        self.training = False
+
+    def eval(self):
+        self.training = False
+        return self
+
+    def train(self, mode: bool = True):
+        self.training = bool(mode)
+        return self
+
+    def generate(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        do_sample: bool,
+        max_new_tokens: int,
+        num_return_sequences: int,
+        **kwargs: Any,
+    ) -> torch.Tensor:
+        del attention_mask, kwargs
+        assert do_sample is False
+        assert num_return_sequences == 1
+        assert max_new_tokens >= int(self._completion_ids.size(1))
+        if input_ids.size(0) != self._completion_ids.size(0):
+            raise AssertionError("unexpected greedy eval batch size")
+        return torch.cat([input_ids, self._completion_ids.to(input_ids.device)], dim=1)
+
+
+class _ToyTokenizer:
+    def __init__(
+        self,
+        *,
+        text_to_ids: Dict[str, List[int]] | None = None,
+        ids_to_text: Dict[tuple[int, ...], str] | None = None,
+        pad_token_id: int = 0,
+        eos_token_id: int = 2,
+    ) -> None:
+        self.text_to_ids = dict(text_to_ids or {})
+        self.ids_to_text = dict(ids_to_text or {})
+        self.pad_token_id = pad_token_id
+        self.eos_token_id = eos_token_id
+
+    def encode(self, text: str, add_special_tokens: bool = False) -> List[int]:
+        del add_special_tokens
+        if text in self.text_to_ids:
+            return list(self.text_to_ids[text])
+        raise KeyError(text)
+
+    def decode(self, ids: Any, skip_special_tokens: bool = True) -> str:
+        del skip_special_tokens
+        if isinstance(ids, torch.Tensor):
+            seq = tuple(int(x) for x in ids.tolist())
+        else:
+            seq = tuple(int(x) for x in ids)
+        return self.ids_to_text.get(seq, "")
+
+    def batch_decode(self, ids: Any, skip_special_tokens: bool = True) -> List[str]:
+        if isinstance(ids, torch.Tensor):
+            rows = ids.tolist()
+        else:
+            rows = list(ids)
+        return [self.decode(row, skip_special_tokens=skip_special_tokens) for row in rows]
+
+    def __call__(
+        self,
+        *,
+        text: List[str],
+        return_tensors: str,
+        padding: bool,
+        padding_side: str,
+        add_special_tokens: bool,
+    ) -> Dict[str, torch.Tensor]:
+        del return_tensors, padding, padding_side, add_special_tokens
+        rows = [self.encode(item) for item in text]
+        max_len = max(len(row) for row in rows)
+        input_ids = torch.full(
+            (len(rows), max_len),
+            self.pad_token_id,
+            dtype=torch.long,
+        )
+        attention_mask = torch.zeros((len(rows), max_len), dtype=torch.long)
+        for idx, row in enumerate(rows):
+            width = len(row)
+            input_ids[idx, -width:] = torch.tensor(row, dtype=torch.long)
+            attention_mask[idx, -width:] = 1
+        return {"input_ids": input_ids, "attention_mask": attention_mask}
+
+
 class _UniformPolicyModel(torch.nn.Module):
     def __init__(self, vocab_size: int = 3) -> None:
         super().__init__()
@@ -270,6 +362,9 @@ def _make_args(
         maxent_reference_ema_beta=0.995,
         maxent_reference_ema_warmup_steps=100,
         maxent_reference_ema_update_interval=10,
+        greedy_eval_enabled=False,
+        eval_greedy_only_enabled=False,
+        truncate_completions_at_first_boxed_answer=False,
     )
 
 
@@ -1430,6 +1525,81 @@ def test_listwise_maxent_uses_reference_logprobs_in_target_weights() -> None:
     assert trainer._metrics["train"]["kl"][-1] > 0.0
 
 
+def test_listwise_maxent_falls_back_to_behavior_logprobs_for_reference_weights() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=2)
+    trainer.ref_model = None
+    trainer.args.maxent_tau = 1.0
+    trainer.args.beta = 1.0
+    trainer.beta = 1.0
+    trainer.args.maxent_q_temperature = 1.0
+    trainer.args.maxent_length_normalize_ref = False
+    trainer.args.maxent_reference_logprobs_source = "model"
+    trainer.args.maxent_trl_reference_scoring = False
+    _refresh_weighting(trainer)
+    _install_real_logprob_scorer(trainer)
+
+    prepared = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0], [1, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((2, 2), dtype=torch.long),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+        "old_per_token_logps": torch.tensor(
+            [
+                [math.log(0.75), math.log(0.75)],
+                [math.log(0.25), math.log(0.25)],
+            ],
+            dtype=torch.float32,
+        ),
+        "maxent_listwise_q": torch.tensor([[0.5, 0.5]], dtype=torch.float32),
+    }
+
+    loss = trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
+    expected_weights = torch.tensor([0.9, 0.1], dtype=torch.float32)
+
+    assert float(loss.item()) == pytest.approx(math.log(2.0), rel=1e-5)
+    assert trainer._metrics["train"]["weight_entropy"][-1] == pytest.approx(
+        float(-(expected_weights * expected_weights.log()).sum().item()),
+        rel=1e-5,
+    )
+    assert trainer._metrics["train"]["kl"][-1] > 0.0
+
+
+@pytest.mark.parametrize("train_grpo_objective", [True, False])
+def test_loss_uses_behavior_logprobs_as_kl_reference_without_ref_model(
+    train_grpo_objective: bool,
+) -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=train_grpo_objective,
+        maxent_alpha=0.0,
+        maxent_objective_variant="entropy",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=2)
+    trainer.ref_model = None
+    trainer.args.beta = 1.0
+    trainer.beta = 1.0
+    trainer.args.maxent_reference_logprobs_source = "model"
+    trainer.args.maxent_trl_reference_scoring = False
+    prepared = {
+        "prompt_ids": torch.zeros((1, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((1, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0]], dtype=torch.long),
+        "completion_mask": torch.ones((1, 2), dtype=torch.long),
+        "advantages": torch.zeros((1,), dtype=torch.float32),
+        "old_per_token_logps": torch.full((1, 2), math.log(0.25), dtype=torch.float32),
+    }
+
+    loss = trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
+
+    assert float(loss.item()) > 0.0
+    assert trainer._metrics["train"]["kl"][-1] > 0.0
+
+
 def test_listwise_reference_length_normalization_removes_length_bias() -> None:
     trainer = _make_trainer(
         train_grpo_objective=False,
@@ -1719,6 +1889,176 @@ def test_eval_pass_at_8_uses_math_answer_correctness() -> None:
     assert trainer._metrics["eval"]["pass_at_8"][-1] == pytest.approx(0.5)
     assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.5)
     assert trainer._metrics["eval"]["mean_at_8"][-1] == pytest.approx(1.0 / 16.0)
+
+
+def test_eval_logs_greedy_pass_at_1_metric() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [
+            1.0 if completion == "decoded-greedy-0" else 0.0
+            for completion in completions
+        ]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    sampled = ["decoded-sampled"] * 16
+    decode_state = {"mode": "sampled"}
+
+    def _decode(ids, skip_special_tokens=True):
+        del ids, skip_special_tokens
+        if decode_state["mode"] == "sampled":
+            return sampled[:16]
+        return ["decoded-greedy-0", "decoded-greedy-1"]
+
+    trainer.processing_class = SimpleNamespace(
+        eos_token_id=2,
+        pad_token_id=0,
+        batch_decode=_decode,
+    )
+    trainer.model = _GreedyEvalModel(
+        torch.tensor([[7, 7], [8, 8]], dtype=torch.long)
+    )
+
+    original = trainer._recompute_local_rewards_for_outputs
+
+    def _wrapped_rewards(inputs, outputs):
+        decode_state["mode"] = "greedy" if len(inputs) == 2 else "sampled"
+        try:
+            return original(inputs, outputs)
+        finally:
+            decode_state["mode"] = "sampled"
+
+    trainer._recompute_local_rewards_for_outputs = _wrapped_rewards
+
+    trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0", "benchmark_id": 0} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1", "benchmark_id": 1} for _ in range(8)]
+    )
+
+    assert trainer._metrics["eval"]["greedy/pass_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["greedy/mean_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["greedy/reward"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["greedy/pass_at_1_BENCH_0"][-1] == pytest.approx(1.0)
+    assert trainer._metrics["eval"]["greedy/pass_at_1_BENCH_1"][-1] == pytest.approx(0.0)
+
+
+def test_truncate_completions_at_first_boxed_answer_slices_outputs() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.truncate_completions_at_first_boxed_answer = True
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={
+            r"Work \boxed{42}": [11, 12, 13],
+        },
+        ids_to_text={
+            (11, 12, 13, 14, 15): r"Work \boxed{42} trailing tail",
+            (11, 12, 13): r"Work \boxed{42}",
+            (21, 22): "No box here",
+        },
+    )
+    trainer.reward_funcs = [lambda prompts, completions, completion_ids, **kwargs: [1.0, 0.0]]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+    outputs = {
+        "completion_ids": torch.tensor([[11, 12, 13, 14, 15], [21, 22, 0, 0, 0]], dtype=torch.long),
+        "completion_mask": torch.tensor([[1, 1, 1, 1, 1], [1, 1, 0, 0, 0]], dtype=torch.long),
+        "old_per_token_logps": torch.tensor(
+            [[0.1, 0.2, 0.3, 0.4, 0.5], [0.6, 0.7, 0.0, 0.0, 0.0]],
+            dtype=torch.float32,
+        ),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+    }
+
+    trainer._maybe_truncate_completions_at_first_boxed_answer(
+        [{"prompt": "p0", "answer": "42"}, {"prompt": "p1", "answer": "0"}],
+        outputs,
+        mode="train",
+        group_size=2,
+    )
+
+    assert outputs["completion_ids"].tolist() == [[11, 12, 13], [21, 22, 0]]
+    assert outputs["completion_mask"].tolist() == [[1, 1, 1], [1, 1, 0]]
+    assert torch.allclose(
+        outputs["old_per_token_logps"],
+        torch.tensor([[0.1, 0.2, 0.3], [0.6, 0.7, 0.0]], dtype=torch.float32),
+    )
+    assert trainer._metrics["train"]["completions/boxed_stop_ratio"][-1] == pytest.approx(0.5)
+
+
+def test_eval_greedy_only_bypasses_sampled_eval_rollout() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+        ids_to_text={
+            (7, 7): "decoded-greedy-0",
+            (8, 8): "decoded-greedy-1",
+        },
+    )
+    trainer.model = _GreedyEvalModel(torch.tensor([[7, 7], [8, 8]], dtype=torch.long))
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [
+            1.0 if completion == "decoded-greedy-0" else 0.0
+            for completion in completions
+        ]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0", "benchmark_id": 0} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1", "benchmark_id": 1} for _ in range(8)]
+    )
+
+    assert trainer.parent_generate_calls == 0
+    assert outputs["completion_ids"].shape[0] == 2
+    assert trainer._metrics["eval"]["greedy/pass_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.5)
+    assert "pass_at_8" not in trainer._metrics["eval"]
+
+
+def test_listwise_eval_greedy_only_uses_lightweight_loss_path() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+        ids_to_text={
+            (7, 7): "decoded-greedy-0",
+            (8, 8): "decoded-greedy-1",
+        },
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=9)
+    trainer.model.generate = _GreedyEvalModel(  # type: ignore[attr-defined]
+        torch.tensor([[7, 7], [8, 8]], dtype=torch.long)
+    ).generate
+    trainer.model.training = False
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [1.0, 0.0]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1"} for _ in range(8)]
+    )
+
+    loss = trainer.compute_loss(model=trainer.model, inputs=outputs, return_outputs=False)
+
+    assert isinstance(loss, torch.Tensor)
+    assert torch.isfinite(loss)
 
 
 def test_reference_model_ema_updates_with_warmup_and_interval() -> None:

@@ -153,6 +153,7 @@ def test_validate_training_config_accepts_grpo_parity_preset_payloads() -> None:
     preset_paths = [
         repo / "configs/recipes/hydra/grpo_custom_math.yaml",
         repo / "configs/recipes/hydra/grpo_custom_code_mbpp.yaml",
+        repo / "configs/recipes/hydra/seed_grpo_math.yaml",
     ]
     for preset_path in preset_paths:
         with preset_path.open("r", encoding="utf-8") as handle:
@@ -164,6 +165,16 @@ def test_validate_training_config_accepts_grpo_parity_preset_payloads() -> None:
         assert isinstance(payload, dict)
         payload.update(block.get("training", {}))
         validate_training_config(payload, command="train-maxent", source=str(preset_path))
+
+
+def test_validate_training_config_rejects_seed_grpo_on_maxent_objective() -> None:
+    overrides = {
+        "objective": "maxent_entropy",
+        "maxent_alpha": 0.2,
+        "seed_grpo_enabled": True,
+    }
+    with pytest.raises(ValueError, match="seed_grpo_enabled requires objective=grpo"):
+        validate_training_config(overrides, command="train-maxent")
 
 
 def test_validate_training_config_accepts_baseline_preset_payloads() -> None:

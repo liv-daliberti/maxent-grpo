@@ -29,7 +29,11 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
 
 
 try:
-    from trl.data_utils import apply_chat_template, is_conversational
+    from trl.data_utils import (
+        apply_chat_template,
+        is_conversational,
+        maybe_apply_chat_template,
+    )
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
 
     def apply_chat_template(example: Any, _tokenizer: Any) -> Dict[str, str]:
@@ -38,11 +42,16 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
     def is_conversational(example: Any) -> bool:
         return isinstance(example, list)
 
+    def maybe_apply_chat_template(example: Any, _tokenizer: Any) -> Dict[str, str]:
+        return {"prompt": str(example)}
+
 
 from maxent_grpo.rewards.basic import (
     pure_accuracy_math_correctness,
+    truncate_after_first_boxed_answer,
     uses_pure_accuracy_math_reward,
 )
+from maxent_grpo.methods import resolve_method_spec_from_args
 from maxent_grpo.objectives import resolve_objective_routing
 from maxent_grpo.training.controller_objective import (
     ControllerMetaContext,
@@ -299,6 +308,147 @@ def _apply_eos_completion_mask(
         return torch.ones_like(completion_ids, dtype=getattr(torch, "long", None))
 
 
+def _normalize_text_for_prefix_match(text: str) -> str:
+    """Normalize text for lightweight decode-prefix comparisons."""
+
+    return " ".join(str(text).split()).strip()
+
+
+def _build_prompt_text(example: Dict[str, Any], tokenizer: Any) -> str:
+    """Render a prompt dict into the text passed to generation."""
+
+    prompt = example.get("prompt", "")
+    if is_conversational(prompt):
+        try:
+            rendered = maybe_apply_chat_template(prompt, tokenizer)
+        except Exception:
+            rendered = {"prompt": str(prompt)}
+        if isinstance(rendered, dict):
+            prompt_text = rendered.get("prompt")
+            if prompt_text is None:
+                prompt_text = rendered.get("text")
+            if prompt_text is not None:
+                return str(prompt_text)
+        return str(rendered)
+    return str(prompt)
+
+
+def _token_prefix_search_order(target_len: int, max_len: int) -> List[int]:
+    """Return a small symmetric search window around a candidate prefix length."""
+
+    if max_len <= 0:
+        return []
+    bounded = max(1, min(target_len, max_len))
+    order = [bounded]
+    radius = 1
+    while radius <= 8:
+        lower = bounded - radius
+        upper = bounded + radius
+        if lower >= 1:
+            order.append(lower)
+        if upper <= max_len:
+            order.append(upper)
+        radius += 1
+    if max_len not in order:
+        order.append(max_len)
+    return order
+
+
+def _find_token_prefix_len_for_text(
+    tokenizer: Any,
+    token_ids: List[int],
+    target_text: str,
+) -> Optional[int]:
+    """Best-effort map a decoded text prefix back onto token prefix length."""
+
+    if not token_ids:
+        return None
+    normalized_target = _normalize_text_for_prefix_match(target_text)
+    if not normalized_target:
+        return None
+    encode = getattr(tokenizer, "encode", None)
+    decode = getattr(tokenizer, "decode", None)
+    if not callable(encode) or not callable(decode):
+        return None
+    try:
+        encoded = list(encode(target_text, add_special_tokens=False))
+    except Exception:
+        encoded = []
+    search_order = _token_prefix_search_order(len(encoded), len(token_ids))
+    if not search_order:
+        search_order = list(range(1, len(token_ids) + 1))
+    for prefix_len in search_order:
+        try:
+            decoded = decode(token_ids[:prefix_len], skip_special_tokens=True)
+        except Exception:
+            continue
+        if _normalize_text_for_prefix_match(decoded) == normalized_target:
+            return prefix_len
+    return None
+
+
+def _pad_completion_rows(
+    rows: List[List[int]],
+    *,
+    pad_token_id: int,
+    device: torch.device,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Pad variable-length completion token rows and return ids + mask tensors."""
+
+    if not rows:
+        empty = torch.empty((0, 0), dtype=torch.long, device=device)
+        return empty, empty
+    max_len = max(len(row) for row in rows)
+    if max_len <= 0:
+        empty = torch.empty((len(rows), 0), dtype=torch.long, device=device)
+        mask = torch.empty((len(rows), 0), dtype=torch.long, device=device)
+        return empty, mask
+    completion_ids = torch.full(
+        (len(rows), max_len),
+        int(pad_token_id),
+        dtype=torch.long,
+        device=device,
+    )
+    completion_mask = torch.zeros(
+        (len(rows), max_len),
+        dtype=torch.long,
+        device=device,
+    )
+    for idx, row in enumerate(rows):
+        if not row:
+            continue
+        width = len(row)
+        completion_ids[idx, :width] = torch.tensor(
+            row,
+            dtype=torch.long,
+            device=device,
+        )
+        completion_mask[idx, :width] = 1
+    return completion_ids, completion_mask
+
+
+def _pad_logprob_rows(
+    rows: List[torch.Tensor],
+    *,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> torch.Tensor:
+    """Pad per-token log-prob rows with zeros to a dense tensor."""
+
+    if not rows:
+        return torch.empty((0, 0), dtype=dtype, device=device)
+    max_len = max(int(row.numel()) for row in rows)
+    if max_len <= 0:
+        return torch.empty((len(rows), 0), dtype=dtype, device=device)
+    padded = torch.zeros((len(rows), max_len), dtype=dtype, device=device)
+    for idx, row in enumerate(rows):
+        width = int(row.numel())
+        if width <= 0:
+            continue
+        padded[idx, :width] = row.to(device=device, dtype=dtype)
+    return padded
+
+
 def _metric_suffix_from_benchmark(name: Any) -> str:
     """Return a metric-safe benchmark suffix (e.g., ``AIME24``)."""
 
@@ -307,6 +457,38 @@ def _metric_suffix_from_benchmark(name: Any) -> str:
         return "UNKNOWN"
     cleaned = _BENCHMARK_SUFFIX_SANITIZER.sub("_", text).strip("_").upper()
     return cleaned or "UNKNOWN"
+
+
+def _gather_eval_benchmark_ids_for_prompts(
+    trainer: Any,
+    prompt_inputs: List[Dict[str, Any]],
+    *,
+    device: torch.device,
+) -> Optional[torch.Tensor]:
+    """Return gathered prompt-major benchmark ids when present."""
+
+    if not prompt_inputs:
+        return None
+    keys = ("eval_benchmark_id", "benchmark_id")
+    raw_vals: Optional[List[Any]] = None
+    for key in keys:
+        candidate = [example.get(key) for example in prompt_inputs]
+        if candidate and any(val is not None for val in candidate):
+            raw_vals = candidate
+            break
+    if not raw_vals:
+        return None
+    ids: List[int] = []
+    for val in raw_vals:
+        try:
+            ids.append(int(val) if val is not None else -1)
+        except (TypeError, ValueError):
+            ids.append(-1)
+    ids_tensor = torch.tensor(ids, dtype=torch.long, device=device)
+    gathered = gather(ids_tensor)
+    if not isinstance(gathered, torch.Tensor) or gathered.numel() <= 0:
+        return None
+    return gathered.to(torch.long)
 
 
 def _build_seed_worker(num_workers: int, rank: int):
@@ -712,6 +894,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     getattr(self, "args", None), "policy_entropy_bonus_coef", 0.0
                 ),
             )
+            self.method_spec = resolve_method_spec_from_args(
+                getattr(self, "args", None)
+            )
             self.maxent_enabled = self.objective_routing.maxent_requested
             self.maxent_objective_variant = (
                 self.objective_routing.maxent_objective_variant
@@ -753,6 +938,17 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 self.maxent_objective_variant,
                 self.maxent_alpha,
             )
+            if self.method_spec is not None:
+                LOG.info(
+                    "Resolved training method | name=%s | family=%s | backend=%s | "
+                    "objective=%s | seed_grpo=%s | slug=%s",
+                    self.method_spec.canonical_name,
+                    self.method_spec.family,
+                    self.method_spec.loss_backend,
+                    self.method_spec.objective,
+                    self.method_spec.seed_grpo_enabled,
+                    self.method_spec.slug,
+                )
             if controller_meta_requested and not self.objective_routing.uses_listwise_loss:
                 LOG.info(
                     "Controller meta enabled for objective=%s; beta updates stay active, "
@@ -1015,6 +1211,46 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     store[alias] = [numeric]
                 else:
                     store.setdefault(alias, []).append(numeric)
+
+        def _set_latest_metric_value(
+            self,
+            mode: str,
+            key: str,
+            value: Any,
+            *,
+            include_legacy_aliases: bool = True,
+        ) -> None:
+            """Replace the most recent metric sample for a key, appending if absent."""
+
+            numeric = _numeric_or_none(value)
+            if numeric is None:
+                return
+            normalized = _strip_mode_prefix(str(key), mode)
+            canonical = _canonical_metric_key(normalized)
+            store = self._metrics[mode]
+            if canonical == "num_tokens":
+                store[canonical] = [numeric]
+            else:
+                bucket = store.setdefault(canonical, [])
+                if bucket:
+                    bucket[-1] = numeric
+                else:
+                    bucket.append(numeric)
+            if mode == "train" and canonical == "kl":
+                setattr(self, "_last_train_kl_for_alpha", float(numeric))
+            if not include_legacy_aliases:
+                return
+            for alias in _legacy_metric_aliases(canonical):
+                if alias == canonical:
+                    continue
+                if canonical == "num_tokens":
+                    store[alias] = [numeric]
+                    continue
+                alias_bucket = store.setdefault(alias, [])
+                if alias_bucket:
+                    alias_bucket[-1] = numeric
+                else:
+                    alias_bucket.append(numeric)
 
         def _log_grpo_debug(
             self,
@@ -1534,6 +1770,387 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         float(val),
                     )
 
+        def _recompute_grouped_advantages(
+            self,
+            inputs: List[Dict[str, Any]],
+            outputs: Dict[str, Any],
+            *,
+            group_size: Optional[int] = None,
+        ) -> Optional[torch.Tensor]:
+            """Recompute local GRPO-style advantages after completion postprocessing."""
+
+            rewards_local = self._recompute_local_rewards_for_outputs(inputs, outputs)
+            if not isinstance(rewards_local, torch.Tensor) or rewards_local.numel() <= 0:
+                return None
+            rewards = gather(rewards_local)
+            if not isinstance(rewards, torch.Tensor) or rewards.numel() <= 0:
+                return None
+            effective_group = max(
+                int(group_size or getattr(self, "num_generations", 1) or 1),
+                1,
+            )
+            if int(rewards.numel()) % effective_group != 0:
+                return None
+            grouped_rewards = rewards.view(-1, effective_group)
+            mean_grouped_rewards = grouped_rewards.mean(dim=1)
+            std_grouped_rewards = grouped_rewards.std(dim=1)
+            repeated_means = mean_grouped_rewards.repeat_interleave(
+                effective_group, dim=0
+            )
+            repeated_stds = std_grouped_rewards.repeat_interleave(
+                effective_group, dim=0
+            )
+            advantages = rewards - repeated_means
+            if bool(getattr(self, "scale_rewards", False)):
+                advantages = advantages / (repeated_stds + 1e-4)
+            local_count = len(inputs)
+            process_index = int(getattr(self.accelerator, "process_index", 0) or 0)
+            process_slice = slice(
+                process_index * local_count,
+                (process_index + 1) * local_count,
+            )
+            outputs["advantages"] = advantages[process_slice].to(
+                device=rewards_local.device,
+                dtype=torch.float32,
+            )
+            return rewards_local
+
+        def _maybe_truncate_completions_at_first_boxed_answer(
+            self,
+            inputs: List[Dict[str, Any]],
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+            group_size: Optional[int] = None,
+            update_logged_metrics: bool = True,
+        ) -> None:
+            """Trim generated completions at the first valid boxed answer when configured."""
+
+            args = getattr(self, "args", None)
+            if not bool(
+                getattr(args, "truncate_completions_at_first_boxed_answer", False)
+            ):
+                return
+            completion_ids = outputs.get("completion_ids")
+            if not isinstance(completion_ids, torch.Tensor):
+                return
+            completion_mask = outputs.get("completion_mask")
+            if not isinstance(completion_mask, torch.Tensor):
+                completion_mask = _apply_eos_completion_mask(
+                    completion_ids,
+                    getattr(self.processing_class, "eos_token_id", None),
+                )
+            if not isinstance(completion_mask, torch.Tensor):
+                return
+            tokenizer = getattr(self, "processing_class", None)
+            decode = getattr(tokenizer, "decode", None)
+            if not callable(decode):
+                return
+
+            old_per_token_logps = outputs.get("old_per_token_logps")
+            old_log_rows: List[torch.Tensor] = []
+            truncated_rows: List[List[int]] = []
+            trimmed = 0
+            for row, mask_row in zip(completion_ids, completion_mask):
+                active_len = int(mask_row.to(torch.long).sum().item())
+                active_ids = [
+                    int(tok.item()) for tok in row[:active_len]
+                ]
+                if active_len <= 0:
+                    truncated_rows.append([])
+                    if isinstance(old_per_token_logps, torch.Tensor):
+                        old_log_rows.append(
+                            old_per_token_logps.new_zeros((0,))
+                        )
+                    continue
+                try:
+                    text = str(decode(active_ids, skip_special_tokens=True))
+                except Exception:
+                    text = ""
+                truncated_text = truncate_after_first_boxed_answer(text)
+                prefix_len = _find_token_prefix_len_for_text(
+                    tokenizer,
+                    active_ids,
+                    truncated_text,
+                )
+                if (
+                    truncated_text
+                    and truncated_text != text
+                    and prefix_len is not None
+                    and 0 < prefix_len < active_len
+                ):
+                    active_ids = active_ids[:prefix_len]
+                    trimmed += 1
+                truncated_rows.append(active_ids)
+                if isinstance(old_per_token_logps, torch.Tensor):
+                    old_log_rows.append(
+                        old_per_token_logps[
+                            len(old_log_rows), : len(active_ids)
+                        ].detach()
+                    )
+            if trimmed <= 0:
+                return
+
+            pad_token_id = getattr(tokenizer, "pad_token_id", None)
+            if pad_token_id is None:
+                pad_token_id = getattr(tokenizer, "eos_token_id", 0)
+            new_completion_ids, new_completion_mask = _pad_completion_rows(
+                truncated_rows,
+                pad_token_id=int(pad_token_id or 0),
+                device=completion_ids.device,
+            )
+            outputs["completion_ids"] = new_completion_ids
+            outputs["completion_mask"] = new_completion_mask
+            if isinstance(old_per_token_logps, torch.Tensor):
+                outputs["old_per_token_logps"] = _pad_logprob_rows(
+                    old_log_rows,
+                    device=old_per_token_logps.device,
+                    dtype=old_per_token_logps.dtype,
+                )
+
+            rewards_local = self._recompute_grouped_advantages(
+                inputs,
+                outputs,
+                group_size=group_size,
+            )
+            if update_logged_metrics:
+                if isinstance(rewards_local, torch.Tensor) and rewards_local.numel() > 0:
+                    gathered_rewards = gather(rewards_local.to(torch.float32))
+                    if (
+                        isinstance(gathered_rewards, torch.Tensor)
+                        and gathered_rewards.numel() > 0
+                    ):
+                        effective_group = max(
+                            int(group_size or getattr(self, "num_generations", 1) or 1),
+                            1,
+                        )
+                        if int(gathered_rewards.numel()) % effective_group == 0:
+                            grouped_rewards = gathered_rewards.view(-1, effective_group)
+                            reward_mean = grouped_rewards.mean(dim=1)
+                            reward_std = grouped_rewards.std(dim=1)
+                            self._set_latest_metric_value(
+                                mode,
+                                "reward",
+                                float(reward_mean.mean().item()),
+                            )
+                            self._set_latest_metric_value(
+                                mode,
+                                "reward_std",
+                                float(reward_std.mean().item()),
+                            )
+                            self._set_latest_metric_value(
+                                mode,
+                                "frac_reward_zero_std",
+                                float(
+                                    torch.isclose(
+                                        reward_std,
+                                        torch.zeros_like(reward_std),
+                                    )
+                                    .to(torch.float32)
+                                    .mean()
+                                    .item()
+                                ),
+                            )
+
+                completion_lengths = new_completion_mask.sum(dim=1).to(torch.float32)
+                gathered_lengths = gather(completion_lengths)
+                if (
+                    isinstance(gathered_lengths, torch.Tensor)
+                    and gathered_lengths.numel() > 0
+                ):
+                    self._set_latest_metric_value(
+                        mode,
+                        "completions/mean_length",
+                        float(gathered_lengths.mean().item()),
+                    )
+                    self._set_latest_metric_value(
+                        mode,
+                        "completions/min_length",
+                        float(gathered_lengths.min().item()),
+                    )
+                    self._set_latest_metric_value(
+                        mode,
+                        "completions/max_length",
+                        float(gathered_lengths.max().item()),
+                    )
+                trim_ratio = float(trimmed) / float(max(len(truncated_rows), 1))
+                self._append_metric_value(
+                    mode,
+                    "completions/boxed_stop_ratio",
+                    trim_ratio,
+                )
+
+        def _prepare_greedy_eval_prompt_batch(
+            self,
+            inputs: List[Dict[str, Any]],
+        ) -> Tuple[List[Dict[str, Any]], torch.Tensor, torch.Tensor]:
+            """Deduplicate prompt-major eval groups and tokenize one prompt per group."""
+
+            group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
+            usable = len(inputs) - (len(inputs) % group_size)
+            if usable <= 0:
+                raise ValueError("Greedy eval requires at least one full prompt group.")
+            prompt_inputs = list(inputs[:usable:group_size])
+            tokenizer = getattr(self, "processing_class", None)
+            prompts_text = [
+                _build_prompt_text(example, tokenizer) for example in prompt_inputs
+            ]
+            prompt_tensors = tokenizer(
+                text=prompts_text,
+                return_tensors="pt",
+                padding=True,
+                padding_side="left",
+                add_special_tokens=False,
+            )
+            prompt_tensors = super()._prepare_inputs(prompt_tensors)
+            prompt_ids = prompt_tensors["input_ids"]
+            prompt_mask = prompt_tensors["attention_mask"]
+            max_prompt_length = getattr(self, "max_prompt_length", None)
+            if max_prompt_length is not None:
+                prompt_ids = prompt_ids[:, -max_prompt_length :]
+                prompt_mask = prompt_mask[:, -max_prompt_length :]
+            return prompt_inputs, prompt_ids, prompt_mask
+
+        def _generate_greedy_eval_outputs(
+            self,
+            inputs: List[Dict[str, Any]],
+        ) -> Dict[str, Any]:
+            """Generate one greedy completion per prompt for lightweight eval."""
+
+            prompt_inputs, prompt_ids, prompt_mask = self._prepare_greedy_eval_prompt_batch(
+                inputs
+            )
+            tokenizer = getattr(self, "processing_class", None)
+            eos_token_id = getattr(tokenizer, "eos_token_id", None)
+            pad_token_id = getattr(tokenizer, "pad_token_id", None)
+            if pad_token_id is None:
+                pad_token_id = eos_token_id
+            max_new_tokens = int(
+                getattr(self, "max_completion_length", 0)
+                or getattr(getattr(self, "args", None), "max_completion_length", 0)
+                or 0
+            )
+            if max_new_tokens <= 0:
+                raise ValueError("Greedy eval requires a positive max_completion_length.")
+
+            unwrap_fn = getattr(self.accelerator, "unwrap_model", None)
+            gen_model = self.model
+            if callable(unwrap_fn):
+                try:
+                    gen_model = unwrap_fn(gen_model)
+                except Exception:
+                    gen_model = self.model
+            generate_fn = getattr(gen_model, "generate", None)
+            if not callable(generate_fn):
+                raise ValueError("Greedy eval requires model.generate to be available.")
+            was_training = bool(getattr(gen_model, "training", False))
+            if was_training:
+                gen_model.eval()
+            generate_kwargs: Dict[str, Any] = {
+                "input_ids": prompt_ids,
+                "attention_mask": prompt_mask,
+                "do_sample": False,
+                "max_new_tokens": max_new_tokens,
+                "num_return_sequences": 1,
+            }
+            if pad_token_id is not None:
+                generate_kwargs["pad_token_id"] = int(pad_token_id)
+            if eos_token_id is not None:
+                generate_kwargs["eos_token_id"] = int(eos_token_id)
+            if getattr(self.accelerator, "num_processes", 1) > 1:
+                generate_kwargs["synced_gpus"] = True
+            try:
+                with torch.inference_mode():
+                    try:
+                        generated = generate_fn(**generate_kwargs)
+                    except TypeError as exc:
+                        if "synced_gpus" not in str(exc):
+                            raise
+                        generate_kwargs.pop("synced_gpus", None)
+                        generated = generate_fn(**generate_kwargs)
+            finally:
+                if was_training:
+                    gen_model.train()
+
+            sequences = getattr(generated, "sequences", generated)
+            if not isinstance(sequences, torch.Tensor):
+                raise ValueError("Greedy eval generation did not return tensor sequences.")
+            prompt_width = int(prompt_ids.size(1))
+            completion_ids = sequences[:, prompt_width:].contiguous()
+            completion_mask = _apply_eos_completion_mask(completion_ids, eos_token_id)
+            outputs: Dict[str, Any] = {
+                "prompt_ids": prompt_ids,
+                "prompt_mask": prompt_mask,
+                "completion_ids": completion_ids,
+                "completion_mask": completion_mask,
+                "advantages": torch.zeros(
+                    (completion_ids.size(0),),
+                    dtype=torch.float32,
+                    device=completion_ids.device,
+                ),
+                "old_per_token_logps": None,
+                "_greedy_eval_precomputed": True,
+                "_eval_prompt_inputs": prompt_inputs,
+            }
+            self._maybe_truncate_completions_at_first_boxed_answer(
+                prompt_inputs,
+                outputs,
+                mode="eval",
+                group_size=1,
+                update_logged_metrics=False,
+            )
+
+            rewards_local = self._recompute_local_rewards_for_outputs(
+                prompt_inputs,
+                outputs,
+            )
+            if isinstance(rewards_local, torch.Tensor) and rewards_local.numel() > 0:
+                gathered_rewards = gather(rewards_local.to(torch.float32))
+                if isinstance(gathered_rewards, torch.Tensor) and gathered_rewards.numel() > 0:
+                    self._append_metric_value(
+                        "eval",
+                        "reward",
+                        float(gathered_rewards.mean().item()),
+                    )
+                    self._append_metric_value("eval", "reward_std", 0.0)
+                    self._append_metric_value("eval", "frac_reward_zero_std", 1.0)
+
+            completion_lengths = outputs["completion_mask"].sum(dim=1).to(torch.float32)
+            gathered_lengths = gather(completion_lengths)
+            if isinstance(gathered_lengths, torch.Tensor) and gathered_lengths.numel() > 0:
+                self._append_metric_value(
+                    "eval",
+                    "completions/mean_length",
+                    float(gathered_lengths.mean().item()),
+                )
+                self._append_metric_value(
+                    "eval",
+                    "completions/min_length",
+                    float(gathered_lengths.min().item()),
+                )
+                self._append_metric_value(
+                    "eval",
+                    "completions/max_length",
+                    float(gathered_lengths.max().item()),
+                )
+                self._append_metric_value("eval", "completions/clipped_ratio", 0.0)
+                self._append_metric_value(
+                    "eval",
+                    "completions/mean_terminated_length",
+                    float(gathered_lengths.mean().item()),
+                )
+                self._append_metric_value(
+                    "eval",
+                    "completions/min_terminated_length",
+                    float(gathered_lengths.min().item()),
+                )
+                self._append_metric_value(
+                    "eval",
+                    "completions/max_terminated_length",
+                    float(gathered_lengths.max().item()),
+                )
+            return outputs
+
         def _log_eval_pass_at_k(
             self,
             inputs: List[Dict[str, Any]],
@@ -1715,6 +2332,271 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             self._append_metric_value(mode, "mean_at_1", mean_at_1)
             self._append_metric_value(mode, "mean_at_8", mean_at_8)
             _append_per_benchmark_metrics(successes)
+
+        def _log_eval_greedy_metrics(
+            self,
+            inputs: List[Dict[str, Any]],
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+        ) -> None:
+            """Log a deterministic greedy pass@1 eval beside sampled metrics."""
+            if mode != "eval":
+                return
+            args = getattr(self, "args", None)
+            if not bool(getattr(args, "greedy_eval_enabled", False)):
+                return
+            precomputed = bool(outputs.get("_greedy_eval_precomputed", False))
+            if precomputed:
+                prompt_inputs = outputs.get("_eval_prompt_inputs")
+                completion_ids = outputs.get("completion_ids")
+                completion_mask = outputs.get("completion_mask")
+                if not isinstance(prompt_inputs, list):
+                    return
+                if not isinstance(completion_ids, torch.Tensor) or not isinstance(
+                    completion_mask, torch.Tensor
+                ):
+                    return
+                greedy_outputs = {
+                    "completion_ids": completion_ids,
+                    "completion_mask": completion_mask,
+                }
+            else:
+                prompt_ids = outputs.get("prompt_ids")
+                prompt_mask = outputs.get("prompt_mask")
+                if not isinstance(prompt_ids, torch.Tensor) or not isinstance(
+                    prompt_mask, torch.Tensor
+                ):
+                    return
+                group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
+                usable = min(
+                    len(inputs),
+                    int(prompt_ids.size(0)),
+                    int(prompt_mask.size(0)),
+                )
+                usable = usable - (usable % group_size)
+                if usable <= 0:
+                    return
+                prompt_inputs = list(inputs[:usable:group_size])
+                prompt_ids = prompt_ids[:usable:group_size].contiguous()
+                prompt_mask = prompt_mask[:usable:group_size].contiguous()
+                if prompt_ids.numel() <= 0 or not prompt_inputs:
+                    return
+
+                unwrap_fn = getattr(self.accelerator, "unwrap_model", None)
+                gen_model = self.model
+                if callable(unwrap_fn):
+                    try:
+                        gen_model = unwrap_fn(gen_model)
+                    except Exception:
+                        gen_model = self.model
+                generate_fn = getattr(gen_model, "generate", None)
+                if not callable(generate_fn):
+                    if not bool(
+                        getattr(self, "_greedy_eval_generate_warned", False)
+                    ):
+                        LOG.warning(
+                            "Skipping greedy eval metrics because model.generate is unavailable."
+                        )
+                        setattr(self, "_greedy_eval_generate_warned", True)
+                    return
+
+                tokenizer = getattr(self, "processing_class", None)
+                eos_token_id = getattr(tokenizer, "eos_token_id", None)
+                pad_token_id = getattr(tokenizer, "pad_token_id", None)
+                if pad_token_id is None:
+                    pad_token_id = eos_token_id
+                max_new_tokens = int(
+                    getattr(self, "max_completion_length", 0)
+                    or getattr(args, "max_completion_length", 0)
+                    or 0
+                )
+                if max_new_tokens <= 0:
+                    if not bool(
+                        getattr(self, "_greedy_eval_length_warned", False)
+                    ):
+                        LOG.warning(
+                            "Skipping greedy eval metrics because max_completion_length is invalid."
+                        )
+                        setattr(self, "_greedy_eval_length_warned", True)
+                    return
+
+                was_training = bool(getattr(gen_model, "training", False))
+                if was_training:
+                    gen_model.eval()
+                generate_kwargs: Dict[str, Any] = {
+                    "input_ids": prompt_ids,
+                    "attention_mask": prompt_mask,
+                    "do_sample": False,
+                    "max_new_tokens": max_new_tokens,
+                    "num_return_sequences": 1,
+                }
+                if pad_token_id is not None:
+                    generate_kwargs["pad_token_id"] = int(pad_token_id)
+                if eos_token_id is not None:
+                    generate_kwargs["eos_token_id"] = int(eos_token_id)
+                if getattr(self.accelerator, "num_processes", 1) > 1:
+                    generate_kwargs["synced_gpus"] = True
+                try:
+                    with torch.inference_mode():
+                        try:
+                            generated = generate_fn(**generate_kwargs)
+                        except TypeError as exc:
+                            if "synced_gpus" not in str(exc):
+                                raise
+                            generate_kwargs.pop("synced_gpus", None)
+                            generated = generate_fn(**generate_kwargs)
+                except Exception as exc:
+                    if not bool(
+                        getattr(self, "_greedy_eval_failed_warned", False)
+                    ):
+                        LOG.warning(
+                            "Skipping greedy eval metrics because greedy generation failed: %s",
+                            exc,
+                        )
+                        setattr(self, "_greedy_eval_failed_warned", True)
+                    return
+                finally:
+                    if was_training:
+                        gen_model.train()
+
+                sequences = getattr(generated, "sequences", generated)
+                if not isinstance(sequences, torch.Tensor):
+                    return
+                prompt_width = int(prompt_ids.size(1))
+                if int(sequences.size(1)) < prompt_width:
+                    return
+                completion_ids = sequences[:, prompt_width:].contiguous()
+                completion_mask = _apply_eos_completion_mask(
+                    completion_ids,
+                    eos_token_id,
+                )
+                greedy_outputs = {
+                    "completion_ids": completion_ids,
+                    "completion_mask": completion_mask,
+                }
+                self._maybe_truncate_completions_at_first_boxed_answer(
+                    prompt_inputs,
+                    greedy_outputs,
+                    mode=mode,
+                    group_size=1,
+                    update_logged_metrics=False,
+                )
+                completion_ids = greedy_outputs["completion_ids"]
+                completion_mask = greedy_outputs["completion_mask"]
+
+            rewards = self._recompute_local_rewards_for_outputs(
+                prompt_inputs,
+                greedy_outputs,
+            )
+            if not isinstance(rewards, torch.Tensor) or rewards.numel() <= 0:
+                return
+            global_rewards = gather(rewards.to(torch.float32))
+            if isinstance(global_rewards, torch.Tensor) and global_rewards.numel() > 0:
+                self._append_metric_value(
+                    mode,
+                    "greedy/reward",
+                    float(global_rewards.mean().item()),
+                )
+
+            reward_funcs = list(getattr(self, "reward_funcs", []) or [])
+            successes: Optional[torch.Tensor] = None
+            if uses_pure_accuracy_math_reward(reward_funcs):
+                tokenizer = getattr(self, "processing_class", None)
+                decode = getattr(tokenizer, "batch_decode", None)
+                if callable(decode):
+                    try:
+                        decode_fn = cast(Callable[..., List[str]], decode)
+                        completions_text = decode_fn(
+                            completion_ids, skip_special_tokens=True
+                        )
+                    except Exception:
+                        completions_text = []
+                    answers = [str(example.get("answer", "")) for example in prompt_inputs]
+                    usable_local = min(len(completions_text), len(answers))
+                    if usable_local > 0:
+                        correctness_local = pure_accuracy_math_correctness(
+                            completions_text[:usable_local],
+                            answers[:usable_local],
+                            allow_last_line_fallback=True,
+                        )
+                        successes = gather(
+                            torch.tensor(
+                                correctness_local,
+                                dtype=torch.bool,
+                                device=completion_ids.device,
+                            )
+                        )
+            if successes is None:
+                successes = gather(
+                    (rewards >= (_PASS_METRIC_SUCCESS_REWARD - _PASS_METRIC_EPS)).to(
+                        torch.bool
+                    )
+                )
+            if not isinstance(successes, torch.Tensor) or successes.numel() <= 0:
+                return
+            successes = successes.to(torch.bool)
+            pass_at_1 = float(successes.to(torch.float32).mean().item())
+            self._append_metric_value(mode, "greedy/pass_at_1", pass_at_1)
+            self._append_metric_value(mode, "greedy/mean_at_1", pass_at_1)
+            if bool(getattr(args, "eval_greedy_only_enabled", False)):
+                self._append_metric_value(mode, "pass_at_1", pass_at_1)
+                self._append_metric_value(mode, "mean_at_1", pass_at_1)
+
+            try:
+                completion_lengths = completion_mask.sum(dim=1).to(torch.float32)
+                gathered_lengths = gather(completion_lengths)
+                if (
+                    isinstance(gathered_lengths, torch.Tensor)
+                    and gathered_lengths.numel() > 0
+                ):
+                    self._append_metric_value(
+                        mode,
+                        "greedy/completions/mean_length",
+                        float(gathered_lengths.mean().item()),
+                    )
+            except Exception:
+                pass
+
+            benchmark_ids = _gather_eval_benchmark_ids_for_prompts(
+                self,
+                prompt_inputs,
+                device=completion_ids.device,
+            )
+            if not isinstance(benchmark_ids, torch.Tensor):
+                return
+            if benchmark_ids.numel() != successes.numel():
+                return
+            id_to_name = getattr(self, "eval_benchmark_id_to_name", {}) or {}
+            for bench_id_tensor in torch.unique(benchmark_ids):
+                bench_id = int(bench_id_tensor.item())
+                if bench_id < 0:
+                    continue
+                mask = benchmark_ids == bench_id_tensor
+                bench_count = int(mask.to(torch.long).sum().item())
+                if bench_count <= 0:
+                    continue
+                bench_pass_at_1 = float(
+                    successes[mask].to(torch.float32).mean().item()
+                )
+                bench_label = id_to_name.get(bench_id, f"BENCH_{bench_id}")
+                suffix = _metric_suffix_from_benchmark(bench_label)
+                self._append_metric_value(
+                    mode,
+                    f"greedy/pass_at_1_{suffix}",
+                    bench_pass_at_1,
+                )
+                if bool(getattr(args, "eval_greedy_only_enabled", False)):
+                    self._append_metric_value(
+                        mode,
+                        f"pass_at_1_{suffix}",
+                        bench_pass_at_1,
+                    )
+                    self._append_metric_value(
+                        mode,
+                        f"mean_at_1_{suffix}",
+                        bench_pass_at_1,
+                    )
 
         def _get_per_token_logps_and_entropy(
             self,
@@ -1998,10 +2880,12 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     return ref_model, True
                 if not bool(getattr(self, "_maxent_listwise_ref_warned", False)):
                     LOG.warning(
-                        "Listwise MaxEnt requested reference weighting but no independent frozen reference model is available; falling back to q-only weights."
+                        "Listwise MaxEnt requested reference weighting but no independent "
+                        "frozen reference model is available; using rollout behavior "
+                        "log-probs as the reference term."
                     )
                     setattr(self, "_maxent_listwise_ref_warned", True)
-                return None, False
+                return None, True
             if ref_source == "auto" and ref_model is not None and ref_model is not self.model:
                 return ref_model, True
             return None, False
@@ -2101,41 +2985,56 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             ref_model, include_reference_term = self._resolve_listwise_reference_model()
             ref_seq_logps_grouped = torch.zeros_like(seq_logps_grouped)
             measured_kl: Optional[torch.Tensor] = None
-            if include_reference_term and ref_model is not None:
-                with torch.no_grad():
-                    ref_per_token_logps = self._get_per_token_logps(
-                        ref_model,
-                        input_ids,
-                        attention_mask,
-                        logits_to_keep,
-                        batch_size=chunk_size,
-                    )
-                # Guard the exponentials against rare runaway log-prob deltas.
-                kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
-                per_token_kl = (
-                    torch.exp(kl_delta)
-                    - kl_delta
-                    - 1
-                ).to(per_token_logps.dtype)
-                measured_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum().clamp(
-                    min=1.0
-                )
-                ref_seq_logps = (ref_per_token_logps * completion_mask).sum(dim=1)
-                if bool(getattr(weighting, "len_norm_ref", True)):
-                    ref_seq_logps = ref_seq_logps / completion_mask.sum(dim=1).clamp(
+            if include_reference_term:
+                if ref_model is not None:
+                    with torch.no_grad():
+                        ref_per_token_logps = self._get_per_token_logps(
+                            ref_model,
+                            input_ids,
+                            attention_mask,
+                            logits_to_keep,
+                            batch_size=chunk_size,
+                        )
+                    # Guard the exponentials against rare runaway log-prob deltas.
+                    kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
+                    per_token_kl = (
+                        torch.exp(kl_delta)
+                        - kl_delta
+                        - 1
+                    ).to(per_token_logps.dtype)
+                    measured_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum().clamp(
                         min=1.0
                     )
-                ref_seq_logps_grouped = _reshape_prompt_major_tensor(
-                    ref_seq_logps,
-                    int(q_grouped.size(1)),
-                )
-                if ref_seq_logps_grouped is None:
-                    raise ValueError(
-                        "Listwise MaxEnt could not reshape reference log-probs."
+                    ref_seq_logps = (ref_per_token_logps * completion_mask).sum(dim=1)
+                    if bool(getattr(weighting, "len_norm_ref", True)):
+                        ref_seq_logps = ref_seq_logps / completion_mask.sum(dim=1).clamp(
+                            min=1.0
+                        )
+                    ref_seq_logps_grouped = _reshape_prompt_major_tensor(
+                        ref_seq_logps,
+                        int(q_grouped.size(1)),
                     )
-                if int(ref_seq_logps_grouped.size(0)) != num_prompts:
-                    raise ValueError(
-                        "Listwise MaxEnt reference log-probs are misaligned with prompts."
+                    if ref_seq_logps_grouped is None:
+                        raise ValueError(
+                            "Listwise MaxEnt could not reshape reference log-probs."
+                        )
+                    if int(ref_seq_logps_grouped.size(0)) != num_prompts:
+                        raise ValueError(
+                            "Listwise MaxEnt reference log-probs are misaligned with prompts."
+                        )
+                else:
+                    # Reuse the rollout behavior log-probs as a fixed reference term when
+                    # no separate frozen model is available. This preserves listwise
+                    # weighting signal on full-model runs without allocating another copy.
+                    ref_seq_logps_grouped = behavior_seq_logps_grouped.detach()
+                    kl_delta = _clamp_log_delta(old_per_token_logps - per_token_logps)
+                    per_token_kl = (
+                        torch.exp(kl_delta)
+                        - kl_delta
+                        - 1
+                    ).to(per_token_logps.dtype)
+                    measured_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum().clamp(
+                        min=1.0
                     )
 
             weights_grouped = weight_matrix_from_q(
@@ -2397,14 +3296,21 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                             batch_size=chunk_size,
                         )
                     else:
-                        with self.accelerator.unwrap_model(self.model).disable_adapter():
-                            ref_per_token_logps = self._get_per_token_logps(
-                                self.model,
-                                input_ids,
-                                attention_mask,
-                                logits_to_keep,
-                                batch_size=chunk_size,
+                        old_ref = inputs.get("old_per_token_logps")
+                        if isinstance(old_ref, torch.Tensor):
+                            ref_per_token_logps = old_ref.to(
+                                device=per_token_logps.device,
+                                dtype=per_token_logps.dtype,
                             )
+                        else:
+                            with self.accelerator.unwrap_model(self.model).disable_adapter():
+                                ref_per_token_logps = self._get_per_token_logps(
+                                    self.model,
+                                    input_ids,
+                                    attention_mask,
+                                    logits_to_keep,
+                                    batch_size=chunk_size,
+                                )
                 # Guard the exponentials against rare runaway log-prob deltas.
                 kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
                 per_token_kl = (
@@ -2659,14 +3565,21 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                             batch_size=chunk_size,
                         )
                     else:
-                        with self.accelerator.unwrap_model(self.model).disable_adapter():
-                            ref_per_token_logps = self._get_per_token_logps(
-                                self.model,
-                                input_ids,
-                                attention_mask,
-                                logits_to_keep,
-                                batch_size=chunk_size,
+                        old_ref = inputs.get("old_per_token_logps")
+                        if isinstance(old_ref, torch.Tensor):
+                            ref_per_token_logps = old_ref.to(
+                                device=per_token_logps.device,
+                                dtype=per_token_logps.dtype,
                             )
+                        else:
+                            with self.accelerator.unwrap_model(self.model).disable_adapter():
+                                ref_per_token_logps = self._get_per_token_logps(
+                                    self.model,
+                                    input_ids,
+                                    attention_mask,
+                                    logits_to_keep,
+                                    batch_size=chunk_size,
+                                )
                 kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
                 per_token_kl = (
                     torch.exp(kl_delta)
@@ -2768,7 +3681,22 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     "advantages",
                 )
             )
-            if self.objective_routing.uses_listwise_loss and trl_prepared_inputs:
+            lightweight_eval = bool(
+                (not getattr(self.model, "training", False))
+                and trl_prepared_inputs
+                and getattr(
+                    getattr(self, "args", None),
+                    "eval_greedy_only_enabled",
+                    False,
+                )
+            )
+            if lightweight_eval:
+                if return_outputs:
+                    raise ValueError(
+                        "The lightweight greedy eval path does not support returning outputs"
+                    )
+                loss = self._compute_stable_grpo_loss(model=model, inputs=inputs)
+            elif self.objective_routing.uses_listwise_loss and trl_prepared_inputs:
                 if return_outputs:
                     raise ValueError(
                         "The custom listwise MaxEnt GRPOTrainer does not support returning outputs"
@@ -2835,12 +3763,28 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
         def _generate_and_score_completions(  # type: ignore[override]
             self, inputs: List[Dict[str, Any]]
         ) -> Dict[str, Any]:
-            outputs = super()._generate_and_score_completions(inputs)
             mode = "train" if self.model.training else "eval"
+            if mode == "eval" and bool(
+                getattr(getattr(self, "args", None), "eval_greedy_only_enabled", False)
+            ):
+                outputs = self._generate_greedy_eval_outputs(inputs)
+                self._log_grpo_diversity(outputs, mode=mode)
+                self._log_eval_greedy_metrics(inputs, outputs, mode=mode)
+                if not self.maxent_enabled:
+                    self._log_grpo_debug(inputs, outputs, mode=mode)
+                return outputs
+
+            outputs = super()._generate_and_score_completions(inputs)
+            self._maybe_truncate_completions_at_first_boxed_answer(
+                inputs,
+                outputs,
+                mode=mode,
+            )
             if self.objective_routing.uses_listwise_loss:
                 self._prepare_listwise_rollout_targets(inputs, outputs)
             self._log_grpo_diversity(outputs, mode=mode)
             self._log_eval_pass_at_k(inputs, outputs, mode=mode)
+            self._log_eval_greedy_metrics(inputs, outputs, mode=mode)
             if not self.maxent_enabled:
                 self._log_grpo_debug(inputs, outputs, mode=mode)
             return outputs

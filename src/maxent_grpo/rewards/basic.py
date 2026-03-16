@@ -53,6 +53,7 @@ _format_pat: RePattern[str] = re.compile(
 )
 _answer_pat: RePattern[str] = re.compile(r"(?si)<answer>\s*(.*?)\s*</answer>")
 _tag_pat: RePattern[str] = re.compile(r"(?i)</?think>|</?answer>")
+_boxed_pat: RePattern[str] = re.compile(r"\\(?:boxed|fbox)\s*")
 _python_block_pat: RePattern[str] = re.compile(
     r"```python\s*(.*?)```", re.IGNORECASE | re.DOTALL
 )
@@ -160,6 +161,109 @@ def _normalize_text_lines(value: Any) -> List[str]:
     if not text:
         return []
     return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def _iter_boxed_answers(text: str) -> List[tuple[str, int]]:
+    """Return parsed boxed/fbox payloads and their exclusive end offsets."""
+
+    if not text:
+        return []
+    matches: List[tuple[str, int]] = []
+    cursor = 0
+    while True:
+        match = _boxed_pat.search(text, cursor)
+        if match is None:
+            break
+        idx = match.end()
+        while idx < len(text) and text[idx].isspace():
+            idx += 1
+        candidate: Optional[str] = None
+        next_cursor = idx + 1
+        end_offset = idx
+        if idx < len(text) and text[idx] == "{":
+            depth = 0
+            end = idx
+            while end < len(text):
+                char = text[end]
+                if char == "{":
+                    depth += 1
+                elif char == "}":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = text[idx + 1 : end].strip()
+                        next_cursor = end + 1
+                        end_offset = end + 1
+                        break
+                end += 1
+        else:
+            end = idx
+            while end < len(text) and not text[end].isspace():
+                if text[end] in ",;.!?":
+                    break
+                end += 1
+            candidate = text[idx:end].strip()
+            next_cursor = max(end, idx + 1)
+            end_offset = end
+        if candidate:
+            matches.append((candidate, end_offset))
+        cursor = next_cursor
+    return matches
+
+
+def _extract_boxed_answer(text: str) -> Optional[str]:
+    """Return the last ``\\boxed{...}``/``\\fbox{...}`` payload when present."""
+
+    matches = _iter_boxed_answers(text)
+    if not matches:
+        return None
+    return matches[-1][0]
+
+
+def truncate_after_first_boxed_answer(text: str) -> str:
+    """Trim a completion immediately after the first valid boxed answer."""
+
+    matches = _iter_boxed_answers(text)
+    if not matches:
+        return text
+    _, end_offset = matches[0]
+    return text[:end_offset].rstrip()
+
+
+def _gold_math_candidates(gold: Any) -> List[str]:
+    """Return canonical gold-answer candidates from scalar/list payloads."""
+
+    seen: set[str] = set()
+    normalized: List[str] = []
+    flat_candidates: List[str] = []
+    work: List[Any] = [_parse_answer_payload(gold)]
+    while work:
+        item = work.pop(0)
+        if item is None:
+            continue
+        if isinstance(item, list):
+            work.extend(item)
+            continue
+        if isinstance(item, dict):
+            for key in (
+                "answer",
+                "answers",
+                "final_answer",
+                "final_answers",
+                "solution",
+            ):
+                if key in item:
+                    work.append(item.get(key))
+                    break
+            else:
+                flat_candidates.extend(_normalize_text_lines(item))
+            continue
+        flat_candidates.extend(_normalize_text_lines(item))
+    for candidate in flat_candidates:
+        canon = _canon_math(candidate)
+        if canon and canon not in seen:
+            seen.add(canon)
+            normalized.append(canon)
+    return normalized
 
 
 def _outputs_match(predicted: Any, expected: Any) -> bool:
@@ -493,6 +597,9 @@ def _canon_math(s: Any) -> str:
     }
     for src, dst in replacements.items():
         s = s.replace(src, dst)
+    boxed = _extract_boxed_answer(s)
+    if boxed is not None:
+        s = boxed
 
     def _normalize_frac(match: re.Match[str]) -> str:
         num = match.group(1).strip()
@@ -555,31 +662,39 @@ def _tag_multiplier(tag_total: int, tag_unique: int) -> float:
 
 def _pure_accuracy_math_match_flags(
     text: str,
-    gold_canon: str,
+    gold: Any,
 ) -> tuple[bool, bool]:
     """Return (answer_tag_match, fallback_last_line_match)."""
 
-    m = _answer_pat.search(text)
-    pred = m.group(1) if m else None
-    pred_ok = pred is not None and _canon_math(pred) == gold_canon
+    gold_canons = _gold_math_candidates(gold)
+    if not gold_canons:
+        return False, False
+    pred_candidates: List[str] = []
+    match = _answer_pat.search(text)
+    if match is not None:
+        pred_candidates.append(str(match.group(1)))
+    boxed = _extract_boxed_answer(text)
+    if boxed is not None:
+        pred_candidates.append(boxed)
+    pred_ok = any(_canon_math(pred) in gold_canons for pred in pred_candidates)
     last_line_match = False
-    if not pred_ok and gold_canon:
+    if not pred_ok:
         for line in reversed(text.splitlines()):
             last = line.strip()
             if last:
                 last_canon = _canon_math(last)
-                if last_canon != gold_canon:
+                if last_canon not in gold_canons:
                     # Allow partial/open tags in fallback mode by stripping
                     # recognized format tags before canonicalizing.
                     last_canon = _canon_math(_tag_pat.sub("", last))
-                last_line_match = last_canon == gold_canon
+                last_line_match = last_canon in gold_canons
                 break
     return pred_ok, last_line_match
 
 
 def pure_accuracy_math_correctness(
     completions: List[CompletionType],
-    answer: List[str],
+    answer: List[Any],
     *,
     allow_last_line_fallback: bool = False,
 ) -> List[bool]:
@@ -595,8 +710,7 @@ def pure_accuracy_math_correctness(
     outs: List[bool] = []
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
-        gold_canon = _canon_math(gold)
-        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold_canon)
+        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold)
         if pred_ok:
             outs.append(True)
             continue
@@ -606,21 +720,49 @@ def pure_accuracy_math_correctness(
 
 def accuracy_reward(
     completions: List[CompletionType],
-    answer: List[str],
+    answer: List[Any],
     **_kwargs: Any,
 ) -> List[float]:
     """Open-R1-style accuracy reward (1.0 exact math match else 0.0).
 
     This keeps compatibility with Open-R1 reward names while using the same
-    canonicalization/extraction logic as ``pure_accuracy_reward_math``.
+    canonicalization/extraction logic as ``pure_accuracy_reward_math``,
+    including boxed answers and list-valued gold labels.
     """
 
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
-        gold_canon = _canon_math(gold)
-        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold_canon)
+        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold)
         outs.append(1.0 if (pred_ok or last_line_match) else 0.0)
+    return outs
+
+
+def boxed_accuracy_reward_math(
+    completions: List[CompletionType],
+    answer: List[Any],
+    **_kwargs: Any,
+) -> List[float]:
+    """Dr.GRPO-style binary reward based on boxed final answers.
+
+    A completion is rewarded when its final ``\\boxed{...}`` (or ``<answer>`` for
+    compatibility) matches one of the canonical gold answers. Plain unboxed
+    answers do not receive credit.
+    """
+
+    outs: List[float] = []
+    for comp, gold in zip(completions, answer):
+        txt = _extract_content(comp)
+        gold_canons = _gold_math_candidates(gold)
+        pred = _extract_boxed_answer(txt)
+        if pred is None:
+            match = _answer_pat.search(txt)
+            pred = str(match.group(1)) if match is not None else None
+        outs.append(
+            1.0
+            if pred is not None and _canon_math(pred) in gold_canons
+            else 0.0
+        )
     return outs
 
 
@@ -810,7 +952,7 @@ def uses_pure_accuracy_math_reward(reward_funcs: Sequence[Any]) -> bool:
 
 
 def pure_accuracy_reward_math(
-    completions: List[CompletionType], answer: List[str], **_kwargs: Any
+    completions: List[CompletionType], answer: List[Any], **_kwargs: Any
 ) -> List[float]:
     """Reward exact math matches with a small formatting bonus when wrong.
 
@@ -831,8 +973,7 @@ def pure_accuracy_reward_math(
         txt = _extract_content(comp)
         # Allow harmless leading/trailing whitespace around the tag payload.
         format_ok = bool(_format_pat.fullmatch(txt.strip()))
-        gold_canon = _canon_math(gold)
-        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold_canon)
+        pred_ok, last_line_match = _pure_accuracy_math_match_flags(txt, gold)
         tag_total, tag_unique = _count_format_tags(txt)
         if format_ok and pred_ok and tag_total == 4 and tag_unique == 4:
             outs.append(1.0)
@@ -890,6 +1031,7 @@ def get_reward_funcs(
         "binary_code": binary_code_reward,
         "code_format": code_format_reward,
         # Native/extended names.
+        "boxed_accuracy_math": boxed_accuracy_reward_math,
         "pure_accuracy_math": pure_accuracy_reward_math,
         "python_unit_tests": python_unit_test_reward,
         "mbpp_python_tests": python_unit_test_reward,
@@ -903,6 +1045,7 @@ __all__ = [
     "accuracy_reward",
     "format_reward",
     "get_reward_funcs",
+    "boxed_accuracy_reward_math",
     "tag_count_reward",
     "reasoning_steps_reward",
     "get_cosine_scaled_reward",
@@ -913,5 +1056,6 @@ __all__ = [
     "pure_accuracy_reward_math",
     "python_unit_test_reward",
     "binary_code_reward",
+    "truncate_after_first_boxed_answer",
     "uses_pure_accuracy_math_reward",
 ]

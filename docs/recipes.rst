@@ -130,8 +130,12 @@ Hydra configs bundle ``command=...`` with a recipe path and optional overrides
 under ``baseline`` / ``maxent``. They are a convenient way to
 share fully-specified CLI runs without long command lines.
 
-For a clean three-way math comparison on the shared 1.5B base recipe, use:
+For a clean four-way math comparison on the shared 1.5B base recipe, use:
 
 - GRPO parity: ``configs/recipes/hydra/grpo_custom_math.yaml``
 - Entropy MaxEnt: ``configs/recipes/hydra/maxent_entropy_math.yaml``
 - Listwise MaxEnt: ``configs/recipes/hydra/maxent_listwise_math.yaml``
+- SEED-GRPO: ``configs/recipes/hydra/seed_grpo_math.yaml``
+
+See :doc:`methods` for the exact mapping from these presets to algorithm family
+vs loss backend.

@@ -1,38 +1,39 @@
-# Method family: entropy-regularized MaxEnt
+# Method family: listwise MaxEnt
 # Loss backend: Dr.GRPO (`grpo_loss_type: dr_grpo`)
-# Canonical label: Entropy MaxEnt (Dr.GRPO loss)
+# Canonical label: Listwise MaxEnt (Dr.GRPO loss)
 command: train-maxent
 maxent:
-  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
+  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math_stable.yaml
   training:
-    objective: maxent_entropy
-    maxent_alpha: 0.005
+    objective: maxent_listwise
+    maxent_alpha: 0.0
     num_generations: 8
     max_steps: -1
     num_train_epochs: 20
     learning_rate: 1e-6
-    beta: 0.0
+    beta: 0.08
     scale_rewards: false
     grpo_loss_type: dr_grpo
     num_iterations: 1
+    grpo_beta_controller_enabled: false
     maxent_beta_controller_enabled: false
     max_grad_norm: 1.0
     clip_range: 0.2
     ppo_clip_range: 0.2
-    maxent_policy_entropy: true
-    maxent_policy_entropy_mode: exact
-    maxent_alpha_raise_on_low_kl: false
-    maxent_alpha_lower_on_high_kl: false
-    maxent_length_normalize_ref: false
-    maxent_length_normalize_policy: false
+    maxent_tau: 0.2
+    maxent_q_temperature: 1.0
+    maxent_q_epsilon: 1e-6
+    maxent_length_normalize_ref: true
+    maxent_length_normalize_policy: true
+    maxent_policy_entropy: false
     policy_entropy_bonus_coef: 0.0
     maxent_reference_ema_enabled: false
     controller_meta_enabled: false
     warmup_ratio: 0.0
-    eval_steps: 16
+    eval_steps: 32
     save_strategy: "no"
     push_to_hub: false
-    output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Entropy-math-v1
+    output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Listwise-math-stable-v1
 
 hydra:
   run:

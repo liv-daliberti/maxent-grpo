@@ -8,6 +8,7 @@ from functools import lru_cache
 import importlib
 import subprocess
 from typing import Any, Dict, Optional, Sequence, Tuple, Union, TYPE_CHECKING
+from maxent_grpo.methods import resolve_method_spec_from_args
 from maxent_grpo.training.telemetry.wandb import init_wandb_training
 
 from .setup import _optional_dependency
@@ -80,15 +81,24 @@ def _git_sha() -> str:
 
 
 def resolve_run_metadata(training_args: Any | None = None) -> Dict[str, str]:
-    """Return run-level metadata (git SHA, recipe path) for logging consistency.
+    """Return run-level metadata for logging consistency.
 
-    :param training_args: Optional training config used to read ``recipe_path``.
-    :returns: Mapping with ``run/git_sha`` and ``run/recipe_path`` keys.
+    :param training_args: Optional training config used to read recipe/method fields.
+    :returns: Mapping with git SHA, recipe path, and resolved method identity.
     :rtype: dict[str, str]
     """
 
-    if _RUN_META_CACHE:
-        return _RUN_META_CACHE
+    if not _RUN_META_CACHE:
+        _RUN_META_CACHE.update(
+            {
+                "run/git_sha": _git_sha(),
+                "run/recipe_path": "unknown",
+                "run/method_name": "unknown",
+                "run/method_family": "unknown",
+                "run/method_backend": "unknown",
+                "run/method_slug": "unknown",
+            }
+        )
     recipe_path = None
     if training_args is not None:
         recipe_path = getattr(training_args, "recipe_path", None)
@@ -97,12 +107,14 @@ def resolve_run_metadata(training_args: Any | None = None) -> Dict[str, str]:
         or os.environ.get("GRPO_RECIPE_USED")
         or os.environ.get("GRPO_RECIPE")
     )
-    _RUN_META_CACHE.update(
-        {
-            "run/git_sha": _git_sha(),
-            "run/recipe_path": recipe_path or "unknown",
-        }
-    )
+    if recipe_path:
+        _RUN_META_CACHE["run/recipe_path"] = recipe_path
+    method_spec = resolve_method_spec_from_args(training_args)
+    if method_spec is not None:
+        _RUN_META_CACHE["run/method_name"] = method_spec.canonical_name
+        _RUN_META_CACHE["run/method_family"] = method_spec.family
+        _RUN_META_CACHE["run/method_backend"] = method_spec.loss_backend
+        _RUN_META_CACHE["run/method_slug"] = method_spec.slug
     return _RUN_META_CACHE
 
 
@@ -261,6 +273,10 @@ def _maybe_init_wandb_run(
     wandb_config = dict(wandb_config)
     wandb_config.setdefault("run/git_sha", run_meta["run/git_sha"])
     wandb_config.setdefault("run/recipe_path", run_meta["run/recipe_path"])
+    wandb_config.setdefault("run/method_name", run_meta["run/method_name"])
+    wandb_config.setdefault("run/method_family", run_meta["run/method_family"])
+    wandb_config.setdefault("run/method_backend", run_meta["run/method_backend"])
+    wandb_config.setdefault("run/method_slug", run_meta["run/method_slug"])
     wandb_kwargs: Dict[str, Any] = {
         "config": wandb_config,
         "dir": os.environ.get("WANDB_DIR") or os.path.join("var", "artifacts", "wandb"),
@@ -277,9 +293,11 @@ def _maybe_init_wandb_run(
     if group:
         wandb_kwargs["group"] = group
     LOG.info(
-        "W&B run metadata | git_sha=%s | recipe=%s",
+        "W&B run metadata | git_sha=%s | recipe=%s | method=%s | backend=%s",
         run_meta["run/git_sha"],
         run_meta["run/recipe_path"],
+        run_meta["run/method_name"],
+        run_meta["run/method_backend"],
     )
     if "PYTEST_CURRENT_TEST" in os.environ and "WANDB_MODE" not in os.environ:
         # Avoid network calls in test runs unless explicitly requested.
@@ -297,7 +315,7 @@ def _maybe_init_wandb_run(
 
 
 def log_run_header(training_args: Any | None = None) -> Dict[str, str]:
-    """Log a consistent run header with git SHA and recipe path.
+    """Log a consistent run header with recipe and resolved method identity.
 
     :param training_args: Optional training config used to resolve metadata.
     :returns: Metadata dictionary emitted to the logs.
@@ -306,9 +324,13 @@ def log_run_header(training_args: Any | None = None) -> Dict[str, str]:
 
     meta = resolve_run_metadata(training_args)
     LOG.info(
-        "Run metadata | git_sha=%s | recipe=%s",
+        "Run metadata | git_sha=%s | recipe=%s | method=%s | family=%s | backend=%s | slug=%s",
         meta["run/git_sha"],
         meta["run/recipe_path"],
+        meta["run/method_name"],
+        meta["run/method_family"],
+        meta["run/method_backend"],
+        meta["run/method_slug"],
     )
     return meta
 

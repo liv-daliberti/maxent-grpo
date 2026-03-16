@@ -33,6 +33,7 @@ from dataclasses import MISSING, dataclass, field
 from typing import Any, Callable, Optional, cast
 from urllib.parse import urlparse
 
+from maxent_grpo.methods import normalize_grpo_loss_type
 from maxent_grpo.objectives import normalize_objective, resolve_objective_routing
 
 from .dataset import ScriptArguments, trl
@@ -196,6 +197,12 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar maxent_clip_objective_coef: Scale for the clipped objective component.
     :ivar maxent_clip_adv_baseline: Baseline subtracted before clipping.
     :ivar scale_rewards: Whether to scale GRPO advantages by group std (TRL default).
+    :ivar seed_grpo_enabled: Enable SEED-GRPO semantic-entropy advantage scaling.
+    :ivar seed_grpo_alpha: Base alpha used by the official SEED-GRPO implementation.
+    :ivar seed_grpo_alpha_normalize_by_max_entropy: Divide ``seed_grpo_alpha`` by
+        ``log(num_generations)`` to match the official SEED-GRPO code path.
+    :ivar seed_grpo_length_normalize_logprobs: Use mean token log-probabilities
+        when computing SEED-GRPO semantic entropy.
     :ivar maxent_clip_range: Override PPO clip range for the MaxEnt objective.
     :ivar beta: Optional alias for the KL coefficient used by legacy GRPO/Open-R1
         configs. When provided, it is mirrored to ``init_kl_coeff``.
@@ -210,6 +217,14 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar grpo_loss_type: GRPO loss aggregation ("grpo", "bnpo", or "dr_grpo").
     :ivar gen_temperature: Temperature used for candidate generation.
     :ivar gen_top_p: Top-p nucleus sampling used for generation.
+    :ivar greedy_eval_enabled: Run an additional deterministic greedy eval pass
+        alongside the existing sampled eval metrics.
+    :ivar eval_greedy_only_enabled: Replace the sampled in-training eval rollout
+        path with a single greedy completion per prompt. This is much lighter
+        than pass@k eval and is intended for frequent training-time checks.
+    :ivar truncate_completions_at_first_boxed_answer: When true, trim sampled or
+        greedy completions at the first syntactically valid ``\\boxed{...}`` or
+        ``\\fbox{...}`` answer before rewards, logging, and loss consume them.
     :ivar vllm_mode: vLLM backend mode ("server" or "colocate").
     :ivar vllm_url: Base URL for the vLLM ``/generate`` endpoint.
     :ivar vllm_max_completion_rounds: Maximum number of retries to top off completions.
@@ -407,8 +422,9 @@ class GRPOConfig(trl.GRPOConfig):
         default="maxent_entropy",
         metadata={
             "help": (
-                "Training objective: 'grpo', 'grpo_entropy_bonus', "
-                "'maxent_entropy', or 'maxent_listwise'."
+                "Algorithm-family selector: 'grpo', 'grpo_entropy_bonus', "
+                "'maxent_entropy', or 'maxent_listwise'. Combine with "
+                "grpo_loss_type to distinguish GRPO vs Dr.GRPO backends."
             )
         },
     )
@@ -860,6 +876,42 @@ class GRPOConfig(trl.GRPOConfig):
                 )
             },
         )
+    seed_grpo_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Enable SEED-GRPO semantic-entropy scaling of grouped advantages. "
+                "This is intended for GRPO/Dr.GRPO-style objectives."
+            )
+        },
+    )
+    seed_grpo_alpha: float = field(
+        default=0.0417,
+        metadata={
+            "help": (
+                "Base alpha used by the official SEED-GRPO implementation before "
+                "optional normalization by log(num_generations)."
+            )
+        },
+    )
+    seed_grpo_alpha_normalize_by_max_entropy: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "When true, divide seed_grpo_alpha by log(num_generations) so the "
+                "effective coefficient matches the official SEED-GRPO code."
+            )
+        },
+    )
+    seed_grpo_length_normalize_logprobs: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "When true, compute SEED-GRPO semantic entropy from mean token "
+                "log-probabilities, matching the official implementation."
+            )
+        },
+    )
     maxent_allow_empty_weight_fallback: bool = field(
         default=False,
         metadata={
@@ -899,7 +951,12 @@ class GRPOConfig(trl.GRPOConfig):
     )
     grpo_loss_type: str = field(
         default="bnpo",
-        metadata={"help": "GRPO loss aggregation: 'grpo', 'bnpo', or 'dr_grpo'."},
+        metadata={
+            "help": (
+                "Loss-backend selector orthogonal to objective: "
+                "'grpo', 'bnpo', or 'dr_grpo'."
+            )
+        },
     )
     beta: Optional[float] = field(
         default=None,
@@ -955,6 +1012,33 @@ class GRPOConfig(trl.GRPOConfig):
     gen_top_p: float = field(
         default=0.9,
         metadata={"help": "Top-p used for candidate generation."},
+    )
+    greedy_eval_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Run an extra greedy eval pass (temperature=0 / do_sample=False) "
+                "in addition to the default sampled eval metrics."
+            )
+        },
+    )
+    eval_greedy_only_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Use only one greedy completion per prompt during trainer.evaluate "
+                "instead of the full sampled pass@k rollout path."
+            )
+        },
+    )
+    truncate_completions_at_first_boxed_answer: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Trim completions at the first valid boxed answer before scoring "
+                "and loss computation."
+            )
+        },
     )
     vllm_mode: str = field(
         default="server",
@@ -1195,9 +1279,9 @@ class GRPOConfig(trl.GRPOConfig):
         base_loss_type = getattr(self, "loss_type", None)
         if not loss_type and base_loss_type is not None:
             loss_type = str(base_loss_type or "").strip().lower()
-        if not loss_type:
-            loss_type = "bnpo"
-        if loss_type not in {"grpo", "bnpo", "dr_grpo"}:
+        try:
+            loss_type = normalize_grpo_loss_type(loss_type, default="bnpo")
+        except ValueError:
             LOG.warning(
                 "Unknown grpo_loss_type=%s; defaulting to 'bnpo'.",
                 loss_type,
@@ -1306,6 +1390,10 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_q_temperature must be > 0")
         if self.maxent_alpha < 0.0:
             raise ValueError("maxent_alpha must be non-negative")
+        if not math.isfinite(self.seed_grpo_alpha):
+            raise ValueError("seed_grpo_alpha must be finite")
+        if self.seed_grpo_alpha < 0.0:
+            raise ValueError("seed_grpo_alpha must be non-negative")
         objective = normalize_objective(
             getattr(self, "objective", "maxent_entropy"),
             default="maxent_entropy",
@@ -1330,6 +1418,10 @@ class GRPOConfig(trl.GRPOConfig):
         if objective == "grpo_entropy_bonus" and self.policy_entropy_bonus_coef <= 0.0:
             raise ValueError(
                 "objective='grpo_entropy_bonus' requires policy_entropy_bonus_coef > 0"
+            )
+        if self.seed_grpo_enabled and not routing.train_grpo_objective:
+            raise ValueError(
+                "seed_grpo_enabled requires a GRPO/Dr.GRPO-style objective, not MaxEnt."
             )
         if routing.uses_listwise_loss and self.maxent_tau <= 0.0:
             raise ValueError("listwise MaxEnt requires maxent_tau > 0")

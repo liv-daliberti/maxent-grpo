@@ -647,6 +647,15 @@ def _reward_metric_block(payload: TrainingMetricsPayload) -> Dict[str, float]:
         "train/q_entropy_std": reward_stats.q_entropy_std,
         "train/q_entropy_min": reward_stats.q_entropy_min,
         "train/q_entropy_max": reward_stats.q_entropy_max,
+        "train/seed_grpo/semantic_entropy_mean": reward_stats.semantic_entropy_mean,
+        "train/seed_grpo/semantic_entropy_std": reward_stats.semantic_entropy_std,
+        "train/seed_grpo/semantic_entropy_min": reward_stats.semantic_entropy_min,
+        "train/seed_grpo/semantic_entropy_max": reward_stats.semantic_entropy_max,
+        "train/seed_grpo/advantage_scale_mean": reward_stats.advantage_scale_mean,
+        "train/seed_grpo/advantage_scale_min": reward_stats.advantage_scale_min,
+        "train/seed_grpo/advantage_scale_max": reward_stats.advantage_scale_max,
+        "train/seed_grpo/alpha_effective": reward_stats.seed_alpha_effective,
+        "train/seed_grpo/max_possible_entropy": reward_stats.seed_max_possible_entropy,
     }
     for quantile_key, value in reward_stats.reward_quantiles.items():
         metrics[f"train/reward_{quantile_key}"] = value
@@ -1005,6 +1014,42 @@ def _summarize_reward_stats(
     q_entropy_mean, q_entropy_std = _mean_std(q_entropies)
     q_entropy_min = min(q_entropies) if q_entropies else 0.0
     q_entropy_max = max(q_entropies) if q_entropies else 0.0
+    seed_entropies = _gather_list_for_metrics(
+        accelerator,
+        list(getattr(reward_comp, "seed_semantic_entropies", []) or []),
+        skip_global=skip_global,
+    )
+    semantic_entropy_mean, semantic_entropy_std = _mean_std(seed_entropies)
+    semantic_entropy_min = min(seed_entropies) if seed_entropies else 0.0
+    semantic_entropy_max = max(seed_entropies) if seed_entropies else 0.0
+    seed_scales = _gather_list_for_metrics(
+        accelerator,
+        list(getattr(reward_comp, "seed_advantage_scales", []) or []),
+        skip_global=skip_global,
+    )
+    advantage_scale_mean, _ = _mean_std(seed_scales)
+    advantage_scale_min = min(seed_scales) if seed_scales else 1.0
+    advantage_scale_max = max(seed_scales) if seed_scales else 1.0
+    alpha_effective_vals = _gather_list_for_metrics(
+        accelerator,
+        (
+            [float(getattr(reward_comp, "seed_alpha_effective", 0.0) or 0.0)]
+            if getattr(reward_comp, "seed_alpha_effective", None) is not None
+            else []
+        ),
+        skip_global=skip_global,
+    )
+    seed_alpha_effective, _ = _mean_std(alpha_effective_vals)
+    max_entropy_vals = _gather_list_for_metrics(
+        accelerator,
+        (
+            [float(getattr(reward_comp, "seed_max_possible_entropy", 0.0) or 0.0)]
+            if getattr(reward_comp, "seed_max_possible_entropy", None) is not None
+            else []
+        ),
+        skip_global=skip_global,
+    )
+    seed_max_possible_entropy, _ = _mean_std(max_entropy_vals)
     reward_quantiles = _quantile_stats(
         all_rewards, (0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0)
     )
@@ -1029,6 +1074,15 @@ def _summarize_reward_stats(
         q_entropy_std=q_entropy_std,
         q_entropy_min=q_entropy_min,
         q_entropy_max=q_entropy_max,
+        semantic_entropy_mean=semantic_entropy_mean,
+        semantic_entropy_std=semantic_entropy_std,
+        semantic_entropy_min=semantic_entropy_min,
+        semantic_entropy_max=semantic_entropy_max,
+        advantage_scale_mean=advantage_scale_mean,
+        advantage_scale_min=advantage_scale_min,
+        advantage_scale_max=advantage_scale_max,
+        seed_alpha_effective=seed_alpha_effective,
+        seed_max_possible_entropy=seed_max_possible_entropy,
         reward_quantiles=reward_quantiles,
         per_reward_quantiles=per_reward_quantiles,
     )

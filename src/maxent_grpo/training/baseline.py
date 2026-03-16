@@ -273,7 +273,7 @@ get_reward_funcs = _compat_get_reward_funcs
 _EVAL_DATASET_PRESETS: Dict[str, Dict[str, Optional[str]]] = {
     "math_500": {
         "dataset_name": "HuggingFaceH4/MATH-500",
-        "dataset_config": None,
+        "dataset_config": "default",
         "split": "test",
         "prompt_column": "problem",
         "solution_column": "answer",
@@ -300,10 +300,17 @@ _EVAL_DATASET_PRESETS: Dict[str, Dict[str, Optional[str]]] = {
         "solution_column": "answer",
     },
     "minerva": {
-        "dataset_name": "svc-huggingface/minerva-math",
-        "dataset_config": None,
+        "dataset_name": "math-ai/minervamath",
+        "dataset_config": "default",
         "split": "test",
-        "prompt_column": "problem",
+        "prompt_column": "question",
+        "solution_column": "answer",
+    },
+    "olympiad_bench": {
+        "dataset_name": "knoveleng/OlympiadBench",
+        "dataset_config": "default",
+        "split": "train",
+        "prompt_column": "question",
         "solution_column": "answer",
     },
 }
@@ -313,6 +320,9 @@ _EVAL_DATASET_ALIASES = {
     "aime_2024": "aime24",
     "aime_25": "aime25",
     "aime_2025": "aime25",
+    "olympiadbench": "olympiad_bench",
+    "olympiad": "olympiad_bench",
+    "oly": "olympiad_bench",
 }
 
 

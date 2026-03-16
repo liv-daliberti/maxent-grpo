@@ -35,6 +35,7 @@ Guides
    :maxdepth: 2
    :caption: Guides
 
+   methods
    architecture
    guides/cli
    guides/training

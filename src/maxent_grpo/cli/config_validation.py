@@ -117,6 +117,10 @@ def _training_values(payload: Any) -> MutableMapping[str, Any]:
         "train_grpo_objective",
         "maxent_objective_variant",
         "policy_entropy_bonus_coef",
+        "seed_grpo_enabled",
+        "seed_grpo_alpha",
+        "seed_grpo_alpha_normalize_by_max_entropy",
+        "seed_grpo_length_normalize_logprobs",
     }
     for name in attr_names:
         if hasattr(payload, name):
@@ -244,6 +248,28 @@ def _validate_entropy_objective_settings(values: Mapping[str, Any]) -> None:
             )
 
 
+def _validate_seed_grpo_settings(values: Mapping[str, Any]) -> None:
+    """Reject SEED-GRPO knobs that are incompatible with the selected objective."""
+
+    seed_enabled = bool(values.get("seed_grpo_enabled", False))
+    alpha = _numeric_or_none(values.get("seed_grpo_alpha"))
+    if alpha is not None and alpha < 0.0:
+        raise ValueError("seed_grpo_alpha must be non-negative")
+    if not seed_enabled:
+        return
+    routing = resolve_objective_routing(
+        objective=values.get("objective"),
+        train_grpo_objective=values.get("train_grpo_objective"),
+        maxent_objective_variant=values.get("maxent_objective_variant"),
+        maxent_alpha=values.get("maxent_alpha"),
+        policy_entropy_bonus_coef=values.get("policy_entropy_bonus_coef"),
+    )
+    if not routing.train_grpo_objective:
+        raise ValueError(
+            "seed_grpo_enabled requires objective=grpo or objective=grpo_entropy_bonus"
+        )
+
+
 def _source_hint(command: str, *, recipe: str | None, training_args: Any) -> str:
     """Return a short string pointing at the config origin for error messages."""
 
@@ -321,6 +347,7 @@ def validate_training_config(
         _validate_removed_training_keys(effective_values)
         _validate_listwise_microbatch_shape(effective_values)
         _validate_entropy_objective_settings(effective_values)
+        _validate_seed_grpo_settings(effective_values)
     except ValidationError as exc:
         message = _format_validation_errors(exc.errors())
         hint = _source_hint(command, recipe=source, training_args=training_args)

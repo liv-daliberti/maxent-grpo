@@ -1,12 +1,12 @@
-# Method family: entropy-regularized MaxEnt
+# Method family: SEED-GRPO
 # Loss backend: Dr.GRPO (`grpo_loss_type: dr_grpo`)
-# Canonical label: Entropy MaxEnt (Dr.GRPO loss)
+# Canonical label: SEED-GRPO (Dr.GRPO loss)
 command: train-maxent
 maxent:
   recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math.yaml
   training:
-    objective: maxent_entropy
-    maxent_alpha: 0.005
+    objective: grpo
+    controller_meta_enabled: false
     num_generations: 8
     max_steps: -1
     num_train_epochs: 20
@@ -15,24 +15,19 @@ maxent:
     scale_rewards: false
     grpo_loss_type: dr_grpo
     num_iterations: 1
-    maxent_beta_controller_enabled: false
     max_grad_norm: 1.0
     clip_range: 0.2
     ppo_clip_range: 0.2
-    maxent_policy_entropy: true
-    maxent_policy_entropy_mode: exact
-    maxent_alpha_raise_on_low_kl: false
-    maxent_alpha_lower_on_high_kl: false
-    maxent_length_normalize_ref: false
-    maxent_length_normalize_policy: false
-    policy_entropy_bonus_coef: 0.0
-    maxent_reference_ema_enabled: false
-    controller_meta_enabled: false
+    seed_grpo_enabled: true
+    # Official SEED-GRPO code uses alpha = 0.0417 / log(G), which is ~0.02 at G=8.
+    seed_grpo_alpha: 0.0417
+    seed_grpo_alpha_normalize_by_max_entropy: true
+    seed_grpo_length_normalize_logprobs: true
     warmup_ratio: 0.0
     eval_steps: 16
     save_strategy: "no"
     push_to_hub: false
-    output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Entropy-math-v1
+    output_dir: var/data/Qwen2.5-1.5B-Open-R1-SEED-GRPO-math-v1
 
 hydra:
   run:
