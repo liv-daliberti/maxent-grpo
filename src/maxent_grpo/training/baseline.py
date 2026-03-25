@@ -71,10 +71,15 @@ from maxent_grpo.core.data import get_dataset, load_dataset_split
 from maxent_grpo.core.hub import ensure_hf_repo_ready
 from maxent_grpo.core.model import get_model, get_tokenizer
 from maxent_grpo.training.runtime import log_run_header, require_torch
+from maxent_grpo.training.seed_paper_eval_callback import SeedPaperEvalCallback
 from maxent_grpo.training.runtime.prompts import (
     PROMPT_CHAR_LIMIT,
     _prompt_char_limit_from_tokens,
     _to_prompt,
+)
+from maxent_grpo.training.scoring_common import (
+    _coerce_optional_int,
+    _get_embedding_vocab_size,
 )
 from maxent_grpo.training.trl_trainer import (
     build_custom_grpo_trainer,
@@ -108,6 +113,32 @@ class _LazyModuleProxy:
 
 
 transformers = _LazyModuleProxy("transformers")
+
+
+def _maybe_align_model_tokenizer_vocab(model: Any, tokenizer: Any) -> None:
+    """Resize model embeddings when tokenizer exposes additional addressable ids."""
+
+    try:
+        tokenizer_size = _coerce_optional_int(len(tokenizer))
+    except Exception:
+        tokenizer_size = None
+    if not isinstance(tokenizer_size, int) or tokenizer_size <= 0:
+        return
+
+    config = getattr(model, "config", None)
+    model_vocab_size = _get_embedding_vocab_size(model, config)
+    if isinstance(model_vocab_size, int) and model_vocab_size >= tokenizer_size:
+        return
+
+    resize_fn = getattr(model, "resize_token_embeddings", None)
+    if not callable(resize_fn):
+        return
+    LOG.info(
+        "Resizing model token embeddings from %s to tokenizer size %s to align special tokens.",
+        model_vocab_size,
+        tokenizer_size,
+    )
+    resize_fn(int(tokenizer_size))
 
 
 def _guided_decoding_kwargs(guided_decoding: Any) -> Dict[str, Any]:
@@ -735,6 +766,129 @@ def _clear_vllm_client_buffer(client: Any) -> None:
     setattr(client, "_maxent_weight_buffer_bytes", 0)
 
 
+def _resolve_vllm_client_generate_boundary(client: Any) -> Dict[str, Any]:
+    """Resolve tokenizer/model boundary metadata for live server-mode rollouts."""
+
+    cached = getattr(client, "_maxent_generate_boundary", None)
+    if isinstance(cached, dict):
+        return cached
+
+    model_id = str(os.getenv("MAXENT_VLLM_SERVER_MODEL_NAME", "") or "").strip()
+    if not model_id:
+        boundary = {
+            "model_id": None,
+            "tokenizer_limit": None,
+            "model_limit": None,
+            "blocked_token_ids": [],
+        }
+        setattr(client, "_maxent_generate_boundary", boundary)
+        return boundary
+
+    tokenizer_limit_env = _coerce_optional_int(
+        os.getenv("MAXENT_VLLM_SERVER_TOKENIZER_VOCAB_LIMIT")
+    )
+    model_limit_env = _coerce_optional_int(
+        os.getenv("MAXENT_VLLM_SERVER_MODEL_VOCAB_LIMIT")
+    )
+    tokenizer_limit = (
+        int(tokenizer_limit_env)
+        if isinstance(tokenizer_limit_env, int) and tokenizer_limit_env > 0
+        else None
+    )
+    model_limit = (
+        int(model_limit_env)
+        if isinstance(model_limit_env, int) and model_limit_env > 0
+        else None
+    )
+
+    if tokenizer_limit is None or model_limit is None:
+        try:
+            transformers_mod = import_module("transformers")
+            auto_tokenizer = getattr(transformers_mod, "AutoTokenizer")
+            auto_config = getattr(transformers_mod, "AutoConfig")
+            tokenizer = auto_tokenizer.from_pretrained(model_id, trust_remote_code=True)
+            config = auto_config.from_pretrained(model_id, trust_remote_code=True)
+        except Exception as exc:
+            raise RuntimeError(
+                "Failed to resolve vLLM token boundary for live server-mode rollouts "
+                f"(model={model_id}): {exc}"
+            ) from exc
+
+        if tokenizer_limit is None:
+            tokenizer_limit = max(
+                int(getattr(tokenizer, "vocab_size", 0) or 0),
+                int(len(tokenizer)),
+            )
+        if model_limit is None:
+            model_limit = int(getattr(config, "vocab_size", 0) or 0)
+
+    if tokenizer_limit <= 0 or model_limit <= 0:
+        raise RuntimeError(
+            "Resolved invalid vLLM token boundary values "
+            f"(model={model_id}, tokenizer_limit={tokenizer_limit}, model_limit={model_limit})"
+        )
+
+    blocked_token_ids: List[int] = []
+    if model_limit > tokenizer_limit:
+        blocked_token_ids = list(range(int(tokenizer_limit), int(model_limit)))
+
+    boundary = {
+        "model_id": model_id,
+        "tokenizer_limit": int(tokenizer_limit),
+        "model_limit": int(model_limit),
+        "blocked_token_ids": blocked_token_ids,
+    }
+    setattr(client, "_maxent_generate_boundary", boundary)
+    if not bool(getattr(client, "_maxent_generate_boundary_logged", False)):
+        LOG.warning(
+            "Patched TRL VLLMClient.generate boundary | model=%s tokenizer_limit=%d model_limit=%d blocked_tail=%d",
+            model_id,
+            int(tokenizer_limit),
+            int(model_limit),
+            len(blocked_token_ids),
+        )
+        setattr(client, "_maxent_generate_boundary_logged", True)
+    return boundary
+
+
+def _normalize_vllm_generate_url(base_url: str) -> str:
+    """Return the canonical /generate endpoint for a vLLM server base URL."""
+
+    base = str(base_url or "").strip()
+    if not base:
+        raise RuntimeError("vLLM client base_url is unavailable")
+    if base.endswith("/generate/"):
+        return base
+    if base.endswith("/generate"):
+        return f"{base}/"
+    return f"{base.rstrip('/')}/generate/"
+
+
+def _validate_vllm_completion_ids(
+    completion_ids: List[List[int]],
+    *,
+    tokenizer_limit: Optional[int],
+    model_id: Optional[str],
+) -> None:
+    """Fail fast when live rollouts contain tokenizer-inaccessible token IDs."""
+
+    if not isinstance(tokenizer_limit, int) or tokenizer_limit <= 0:
+        return
+    invalid_tokens = [
+        int(token_id)
+        for sequence in completion_ids
+        for token_id in sequence
+        if int(token_id) < 0 or int(token_id) >= int(tokenizer_limit)
+    ]
+    if not invalid_tokens:
+        return
+    sample = invalid_tokens[:16]
+    raise RuntimeError(
+        "Detected completion token ids outside the tokenizer-addressable range "
+        f"(model={model_id or 'unknown'}, tokenizer_limit={int(tokenizer_limit)}, sample={sample})"
+    )
+
+
 def _patch_trl_vllm_client_init() -> None:
     """Patch TRL VLLMClient init handshake to avoid POST-first deadlocks."""
 
@@ -764,10 +918,12 @@ def _patch_trl_vllm_client_init() -> None:
     original_update_model_params = getattr(client_cls, "update_model_params", None)
     original_reset_prefix_cache = getattr(client_cls, "reset_prefix_cache", None)
     original_close_communicator = getattr(client_cls, "close_communicator", None)
+    original_generate = getattr(client_cls, "generate", None)
     if (
         not callable(original_ctor)
         or not callable(original_init_communicator)
         or not callable(original_update_named_param)
+        or not callable(original_generate)
     ):
         return
 
@@ -786,6 +942,56 @@ def _patch_trl_vllm_client_init() -> None:
             0 if builtin_weight_transfer is not None else _vllm_sync_chunk_bytes(),
         )
         setattr(self, "_maxent_builtin_weight_transfer", builtin_weight_transfer is not None)
+        setattr(self, "_maxent_generate_boundary", None)
+
+    def _patched_generate(
+        self: Any,
+        prompts: List[str],
+        n: int = 1,
+        repetition_penalty: float = 1.0,
+        temperature: float = 1.0,
+        top_p: float = 1.0,
+        top_k: int = -1,
+        min_p: float = 0.0,
+        max_tokens: int = 16,
+        guided_decoding_regex: Optional[str] = None,
+    ) -> List[List[int]]:
+        boundary = _resolve_vllm_client_generate_boundary(self)
+        blocked_token_ids = list(boundary.get("blocked_token_ids") or [])
+        url = _normalize_vllm_generate_url(getattr(self, "base_url", ""))
+        payload: Dict[str, Any] = {
+            "prompts": prompts,
+            "n": int(n),
+            "repetition_penalty": float(repetition_penalty),
+            "temperature": float(temperature),
+            "top_p": float(top_p),
+            "top_k": int(top_k),
+            "min_p": float(min_p),
+            "max_tokens": int(max_tokens),
+            "guided_decoding_regex": guided_decoding_regex,
+        }
+        if blocked_token_ids:
+            payload["blocked_token_ids"] = blocked_token_ids
+        response = self.session.post(url, json=payload)
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Request failed: {response.status_code}, {response.text}"
+            )
+        response_payload = response.json()
+        raw_completion_ids = response_payload.get("completion_ids")
+        if not isinstance(raw_completion_ids, list):
+            raise RuntimeError("vLLM generate response missing completion_ids")
+        completion_ids: List[List[int]] = []
+        for idx, item in enumerate(raw_completion_ids):
+            if not isinstance(item, list):
+                raise RuntimeError(f"completion_ids[{idx}] is not a list")
+            completion_ids.append([int(token_id) for token_id in item])
+        _validate_vllm_completion_ids(
+            completion_ids,
+            tokenizer_limit=cast(Optional[int], boundary.get("tokenizer_limit")),
+            model_id=cast(Optional[str], boundary.get("model_id")),
+        )
+        return completion_ids
 
     def _patched_init_communicator(self: Any) -> None:
         base_url = str(getattr(self, "base_url", ""))
@@ -1018,6 +1224,7 @@ def _patch_trl_vllm_client_init() -> None:
         return None
 
     setattr(client_cls, "__init__", _patched_ctor)
+    setattr(client_cls, "generate", _patched_generate)
     setattr(client_cls, "init_communicator", _patched_init_communicator)
     setattr(client_cls, "update_named_param", _patched_update_named_param)
     setattr(client_cls, "flush", _flush_weight_buffer)
@@ -1248,6 +1455,7 @@ def run_baseline_training(
             resize_fn = getattr(model, "resize_token_embeddings", None)
             if callable(resize_fn):
                 resize_fn(len(tokenizer))
+    _maybe_align_model_tokenizer_vocab(model, tokenizer)
     config = getattr(model, "config", None)
     if config is not None and getattr(config, "pad_token_id", None) is None:
         setattr(config, "pad_token_id", tokenizer.pad_token_id)
@@ -1558,6 +1766,10 @@ def run_baseline_training(
                 "eval_benchmark_name_to_id",
                 dict(eval_benchmark_name_to_id),
             )
+        if bool(getattr(training_args, "seed_paper_eval_enabled", False)) and hasattr(
+            trainer, "add_callback"
+        ):
+            trainer.add_callback(SeedPaperEvalCallback(training_args))
 
     # Train
     logger = logging.getLogger(__name__)
@@ -1596,6 +1808,20 @@ def run_baseline_training(
         training_args.resume_from_checkpoint = last_ckpt
     else:
         training_args.resume_from_checkpoint = None
+    if bool(getattr(training_args, "seed_paper_eval_enabled", False)):
+        eval_strategy = str(getattr(training_args, "eval_strategy", "") or "").strip().lower()
+        built_in_eval_enabled = bool(getattr(training_args, "do_eval", False)) and eval_strategy not in {
+            "",
+            "no",
+            "none",
+        }
+        if not built_in_eval_enabled and hasattr(training_args, "eval_on_start"):
+            setattr(
+                training_args,
+                "seed_paper_eval_on_start",
+                bool(getattr(training_args, "eval_on_start", False)),
+            )
+            setattr(training_args, "eval_on_start", False)
     train_result = trainer.train(resume_from_checkpoint=last_ckpt)
     if hasattr(trainer, "log_metrics"):
         trainer.log_metrics("train", train_result.metrics)
@@ -1605,21 +1831,22 @@ def run_baseline_training(
         trainer.save_state()
 
     # Save
-    try:
-        trainer.save_model(training_args.output_dir)
-    except TypeError:
-        trainer.save_model()
-    if getattr(trainer, "accelerator", None) is not None and getattr(
-        trainer.accelerator, "is_main_process", False
-    ):
-        if hasattr(trainer, "create_model_card"):
-            trainer.create_model_card(
-                dataset_name=script_args.dataset_name, tags=["open-r1"]
-            )
-        if hasattr(trainer, "model") and hasattr(trainer.model, "config"):
-            trainer.model.config.use_cache = True
-            if hasattr(trainer.model.config, "save_pretrained"):
-                trainer.model.config.save_pretrained(training_args.output_dir)
+    if bool(getattr(training_args, "final_model_save_enabled", True)):
+        try:
+            trainer.save_model(training_args.output_dir)
+        except TypeError:
+            trainer.save_model()
+        if getattr(trainer, "accelerator", None) is not None and getattr(
+            trainer.accelerator, "is_main_process", False
+        ):
+            if hasattr(trainer, "create_model_card"):
+                trainer.create_model_card(
+                    dataset_name=script_args.dataset_name, tags=["open-r1"]
+                )
+            if hasattr(trainer, "model") and hasattr(trainer.model, "config"):
+                trainer.model.config.use_cache = True
+                if hasattr(trainer.model.config, "save_pretrained"):
+                    trainer.model.config.save_pretrained(training_args.output_dir)
 
     # Eval
     if training_args.do_eval and eval_ds is not None:

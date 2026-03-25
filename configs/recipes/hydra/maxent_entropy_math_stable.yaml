@@ -11,7 +11,7 @@ maxent:
     max_steps: -1
     num_train_epochs: 20
     learning_rate: 1e-6
-    beta: 0.08
+    beta: 0.0
     scale_rewards: false
     grpo_loss_type: dr_grpo
     num_iterations: 1
@@ -33,7 +33,11 @@ maxent:
     maxent_reference_ema_enabled: false
     controller_meta_enabled: false
     warmup_ratio: 0.0
-    eval_steps: 32
+    eval_on_start: true
+    eval_steps: 10
+    seed_paper_eval_enabled: true
+    seed_paper_eval_fail_on_error: true
+    seed_paper_eval_template: "no"
     save_strategy: "no"
     push_to_hub: false
     output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Entropy-math-stable-v1

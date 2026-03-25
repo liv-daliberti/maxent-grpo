@@ -40,7 +40,13 @@ def test_get_reward_funcs_requires_known_name():
 
 def test_open_r1_reward_aliases_resolve():
     cfg = SimpleNamespace(
-        reward_funcs=["accuracy", "boxed_accuracy_math", "format", "tag_count"],
+        reward_funcs=[
+            "accuracy",
+            "boxed_accuracy_math",
+            "seed_paper_boxed_accuracy_math",
+            "format",
+            "tag_count",
+        ],
         cosine_min_value_wrong=-1.0,
         cosine_max_value_wrong=-0.5,
         cosine_min_value_correct=0.5,
@@ -51,11 +57,12 @@ def test_open_r1_reward_aliases_resolve():
         code_language="python",
     )
     funcs = rewards.get_reward_funcs(cfg)
-    assert len(funcs) == 4
+    assert len(funcs) == 5
     assert callable(funcs[0])
     assert callable(funcs[1])
     assert callable(funcs[2])
     assert callable(funcs[3])
+    assert callable(funcs[4])
 
 
 def test_open_r1_math_alias_behavior():

@@ -449,7 +449,16 @@ def _get_embedding_vocab_size(model: PreTrainedModel, config: object) -> Optiona
     embedding_module = getattr(model, "embed_tokens", None)
     if embedding_module is None and hasattr(model, "get_input_embeddings"):
         embedding_module = model.get_input_embeddings()
+    candidates: list[int] = []
+    num_embeddings = _coerce_optional_int(getattr(embedding_module, "num_embeddings", None))
+    if isinstance(num_embeddings, int) and num_embeddings > 0:
+        candidates.append(int(num_embeddings))
     weight = getattr(embedding_module, "weight", None)
+    ds_shape = _coerce_shape(getattr(weight, "ds_shape", None))
+    if ds_shape is not None and len(ds_shape) >= 1:
+        ds_rows = _coerce_optional_int(ds_shape[0])
+        if isinstance(ds_rows, int) and ds_rows > 0:
+            candidates.append(int(ds_rows))
     if weight is not None:
         size_fn = getattr(weight, "size", None)
         if callable(size_fn):
@@ -457,14 +466,20 @@ def _get_embedding_vocab_size(model: PreTrainedModel, config: object) -> Optiona
                 size_value = size_fn(0)
                 size_value_int = _coerce_optional_int(size_value)
                 if size_value_int is not None:
-                    return size_value_int
+                    candidates.append(int(size_value_int))
             except (TypeError, AttributeError, IndexError) as exc:
                 LOG.debug(
                     "Failed to read embedding weight size; falling back to config vocab_size: %s",
                     exc,
                 )
     config_value = _get_config_value(config, "vocab_size", None)
-    return _coerce_optional_int(config_value)
+    config_value_int = _coerce_optional_int(config_value)
+    if isinstance(config_value_int, int) and config_value_int > 0:
+        candidates.append(int(config_value_int))
+    if not candidates:
+        return None
+    # Prefer the full vocabulary size when ZeRO/FSDP exposes local shard sizes.
+    return max(candidates)
 
 
 def _maybe_long_tensor(value: object, torch_mod: _TorchModuleLike) -> Tensor:

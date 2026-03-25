@@ -15,6 +15,11 @@ from maxent_grpo.training.generation.errors import (
     GenerationServiceError,
     ServiceErrorPayload,
 )
+from maxent_grpo.training.generation.vocab_guard import (
+    merge_invalid_token_block_logit_bias,
+    resolve_blocked_token_ids,
+    resolve_allowed_token_ids,
+)
 from maxent_grpo.training.patches.vllm import VLLMLogprobResult, safe_generate
 from maxent_grpo.training.runtime.prompts import _truncate_prompt
 from maxent_grpo.training.runtime.logging import _wandb_error_types
@@ -1018,6 +1023,12 @@ class VLLMRequestMixin:
             metadata["model_id"] = model_label
         client_tag = _resolve_client_tag(ctx)
         url = str(getattr(ctx, "vllm_url", "") or "")
+        logit_bias = merge_invalid_token_block_logit_bias(
+            ctx,
+            getattr(ctx, "vllm_logit_bias", None),
+        )
+        allowed_token_ids = resolve_allowed_token_ids(ctx)
+        blocked_token_ids = resolve_blocked_token_ids(ctx)
         request_kwargs: Dict[str, Any] = {
             "prompts": prompts,
             "url": url,
@@ -1030,7 +1041,9 @@ class VLLMRequestMixin:
             "frequency_penalty": ctx.gen_frequency_penalty,
             "presence_penalty": ctx.gen_presence_penalty,
             "stop": stop_sequences,
-            "logit_bias": ctx.vllm_logit_bias,
+            "logit_bias": logit_bias,
+            "allowed_token_ids": allowed_token_ids,
+            "blocked_token_ids": blocked_token_ids,
             "guided_json": ctx.vllm_guided_json,
             "guided_regex": ctx.vllm_guided_regex,
             "request_id_prefix": ctx.vllm_request_id_prefix,

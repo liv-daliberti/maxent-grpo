@@ -1226,6 +1226,24 @@ def test_run_local_model_uses_top_k_none(monkeypatch):
     assert generator.ctx.model.called is True
 
 
+def test_run_local_model_blocks_tokenizer_inaccessible_ids(monkeypatch):
+    class _GenModel:
+        def generate(self, **kwargs):
+            assert kwargs["bad_words_ids"] == [[5], [6], [7]]
+            return [[0]]
+
+    tok = SimpleNamespace(decode=lambda ids, skip_special_tokens=True: "ok")
+    accel = SimpleNamespace(unwrap_model=lambda m: m)
+    generator = _make_generator(model=_GenModel(), accelerator=accel, tokenizer=tok)
+    monkeypatch.setattr(
+        "maxent_grpo.training.rollout.local.resolve_blocked_token_ids",
+        lambda ctx: [5, 6, 7],
+    )
+    enc, lens = {"input_ids": [[1]], "attention_mask": [[1]]}, [1]
+    out = generator._run_local_model(enc, lens)
+    assert out == ["ok"]
+
+
 def test_backfill_missing_respects_need_zero(monkeypatch):
     stats = {"vllm_backfilled_prompts": 0}
     generator = _make_generator(use_vllm=True, generation_stats=stats)

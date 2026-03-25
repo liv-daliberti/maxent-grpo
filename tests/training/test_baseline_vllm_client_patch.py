@@ -27,6 +27,7 @@ class _FakeSession:
         self.post_calls: list[tuple[str, dict, float | None]] = []
         self.closed = False
         self._events = events if events is not None else []
+        self.generate_response_payload: dict = {"completion_ids": [[1, 2, 3]]}
 
     def get(self, url: str, timeout: float | None = None) -> _FakeResponse:
         self.get_calls.append((url, timeout))
@@ -41,6 +42,8 @@ class _FakeSession:
     ) -> _FakeResponse:
         self.post_calls.append((url, json or {}, timeout))
         self._events.append(("post", url))
+        if url.endswith("/generate/"):
+            return _FakeResponse(payload=dict(self.generate_response_payload))
         return _FakeResponse()
 
     def close(self) -> None:
@@ -244,3 +247,109 @@ def test_patch_vllm_guided_decoding_compat_remaps_structured_outputs(monkeypatch
     assert structured_outputs.regex == "a+"
     assert structured_outputs._backend == "outlines"
     assert result["kwargs"]["structured_outputs"] is structured_outputs
+
+
+def test_patch_trl_vllm_client_generate_attaches_boundary_fields(monkeypatch):
+    trl_root = ModuleType("trl")
+    trl_extras = ModuleType("trl.extras")
+    trl_vllm_client = ModuleType("trl.extras.vllm_client")
+    trl_vllm_client.VLLMClient = _FakeClient
+    trl_trainer = ModuleType("trl.trainer")
+    trl_grpo = ModuleType("trl.trainer.grpo_trainer")
+    trl_grpo.VLLMClient = _FakeClient
+    transformers_mod = ModuleType("transformers")
+
+    class _FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(*_args, **_kwargs):
+            class _Tok:
+                vocab_size = 3
+
+                def __len__(self):
+                    return 5
+
+            return _Tok()
+
+    class _FakeAutoConfig:
+        @staticmethod
+        def from_pretrained(*_args, **_kwargs):
+            return SimpleNamespace(vocab_size=10)
+
+    transformers_mod.AutoTokenizer = _FakeAutoTokenizer
+    transformers_mod.AutoConfig = _FakeAutoConfig
+
+    for name, module in (
+        ("trl", trl_root),
+        ("trl.extras", trl_extras),
+        ("trl.extras.vllm_client", trl_vllm_client),
+        ("trl.trainer", trl_trainer),
+        ("trl.trainer.grpo_trainer", trl_grpo),
+        ("transformers", transformers_mod),
+    ):
+        monkeypatch.setitem(sys.modules, name, module)
+
+    monkeypatch.setenv("MAXENT_VLLM_SERVER_MODEL_NAME", "Qwen/test")
+
+    baseline._patch_trl_vllm_client_init()
+
+    client = _FakeClient(base_url="http://127.0.0.1:8000")
+    completions = client.generate(["hello"], n=2, max_tokens=7)
+
+    assert completions == [[1, 2, 3]]
+    generate_url, payload, _timeout = client.session.post_calls[-1]
+    assert generate_url == "http://127.0.0.1:8000/generate/"
+    assert payload["prompts"] == ["hello"]
+    assert payload["n"] == 2
+    assert payload["max_tokens"] == 7
+    assert payload["blocked_token_ids"] == [5, 6, 7, 8, 9]
+    assert "logit_bias" not in payload
+
+
+def test_patch_trl_vllm_client_generate_rejects_invalid_completion_ids(monkeypatch):
+    trl_root = ModuleType("trl")
+    trl_extras = ModuleType("trl.extras")
+    trl_vllm_client = ModuleType("trl.extras.vllm_client")
+    trl_vllm_client.VLLMClient = _FakeClient
+    trl_trainer = ModuleType("trl.trainer")
+    trl_grpo = ModuleType("trl.trainer.grpo_trainer")
+    trl_grpo.VLLMClient = _FakeClient
+    transformers_mod = ModuleType("transformers")
+
+    class _FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(*_args, **_kwargs):
+            class _Tok:
+                vocab_size = 3
+
+                def __len__(self):
+                    return 5
+
+            return _Tok()
+
+    class _FakeAutoConfig:
+        @staticmethod
+        def from_pretrained(*_args, **_kwargs):
+            return SimpleNamespace(vocab_size=10)
+
+    transformers_mod.AutoTokenizer = _FakeAutoTokenizer
+    transformers_mod.AutoConfig = _FakeAutoConfig
+
+    for name, module in (
+        ("trl", trl_root),
+        ("trl.extras", trl_extras),
+        ("trl.extras.vllm_client", trl_vllm_client),
+        ("trl.trainer", trl_trainer),
+        ("trl.trainer.grpo_trainer", trl_grpo),
+        ("transformers", transformers_mod),
+    ):
+        monkeypatch.setitem(sys.modules, name, module)
+
+    monkeypatch.setenv("MAXENT_VLLM_SERVER_MODEL_NAME", "Qwen/test")
+
+    baseline._patch_trl_vllm_client_init()
+
+    client = _FakeClient(base_url="http://127.0.0.1:8000")
+    client.session.generate_response_payload = {"completion_ids": [[7]]}
+
+    with pytest.raises(RuntimeError, match="tokenizer-addressable range"):
+        client.generate(["hello"])

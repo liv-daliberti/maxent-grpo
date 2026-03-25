@@ -16,6 +16,7 @@ def _install_stub_vllm(monkeypatch, outputs=None):
 
     class DummyLLM:
         last_init = None
+        last_params = None
 
         def __init__(
             self,
@@ -36,6 +37,7 @@ def _install_stub_vllm(monkeypatch, outputs=None):
             }
 
         def generate(self, prompts, params):
+            DummyLLM.last_params = getattr(params, "kwargs", None)
             if outputs is not None:
                 return outputs
             return [
@@ -322,6 +324,51 @@ def test_colocate_request_batch_parses_logprobs_and_latency(monkeypatch):
     stats = ctx.generation_stats
     assert stats["vllm_latency_calls"] == 1
     assert stats["vllm_last_latency_ms"] == pytest.approx(250.0)
+
+
+def test_colocate_build_sampling_params_applies_vocab_guard(monkeypatch):
+    _, dummy_llm = _install_stub_vllm(monkeypatch)
+    monkeypatch.setattr(
+        vllm_colocate,
+        "merge_invalid_token_block_logit_bias",
+        lambda ctx, bias: {"151665": -100.0},
+    )
+    monkeypatch.setattr(
+        vllm_colocate,
+        "resolve_allowed_token_ids",
+        lambda ctx: [0, 1, 2],
+    )
+    monkeypatch.setattr(
+        vllm_colocate,
+        "resolve_blocked_token_ids",
+        lambda ctx: [5, 6],
+    )
+
+    ctx = SimpleNamespace(
+        prompt_char_limit=10,
+        gen_temperature=0.5,
+        gen_top_p=0.9,
+        gen_top_k=None,
+        gen_best_of=None,
+        gen_frequency_penalty=0.0,
+        gen_presence_penalty=0.0,
+        max_completion_len=5,
+        vllm_request_logprobs=False,
+        vllm_stop_sequences=None,
+        vllm_logit_bias=None,
+        vllm_guided_json=None,
+        vllm_guided_regex=None,
+        generation_stats={},
+    )
+    engine = vllm_colocate.ColocateVLLMEngine(ctx, lambda *a, **k: ([], None))
+    grouped, meta = engine.request_batch(["prompt"], 1)
+
+    assert grouped == [["prompt-out"]]
+    assert meta is None
+    assert dummy_llm.last_params is not None
+    assert dummy_llm.last_params["logit_bias"] == {"151665": -100.0}
+    assert dummy_llm.last_params["allowed_token_ids"] == [0, 1, 2]
+    assert dummy_llm.last_params["_bad_words_token_ids"] == [[5], [6]]
 
 
 def test_colocate_sync_client_buffers_and_flushes(monkeypatch):

@@ -20,12 +20,16 @@ from __future__ import annotations
 # pylint: disable=broad-exception-caught
 
 import ast
+import importlib
 import json
+import logging
 import math
 import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
+from pathlib import Path
 from typing import (
     Any,
     Dict,
@@ -59,6 +63,8 @@ _python_block_pat: RePattern[str] = re.compile(
 )
 _code_block_pat: RePattern[str] = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
 _def_name_pat: RePattern[str] = re.compile(r"def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+
+_LOG = logging.getLogger(__name__)
 
 
 CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
@@ -766,6 +772,117 @@ def boxed_accuracy_reward_math(
     return outs
 
 
+def get_missing_boxed_answer_penalty_reward(
+    penalty: float = -0.05,
+) -> RewardFunction:
+    """Return a fixed penalty when no boxed answer is present in the completion."""
+
+    penalty_value = float(min(penalty, 0.0))
+
+    def _reward(
+        completions: List[CompletionType],
+        **_kwargs: Any,
+    ) -> List[float]:
+        outs: List[float] = []
+        for comp in completions:
+            txt = _extract_content(comp)
+            outs.append(0.0 if _extract_boxed_answer(txt) is not None else penalty_value)
+        return outs
+
+    return _reward
+
+
+@lru_cache(maxsize=1)
+def _seed_paper_boxed_reward_fn() -> Any:
+    """Load the official SEED paper boxed reward function from the repo-local checkout."""
+
+    repo_dir = Path(
+        os.environ.get(
+            "MAXENT_SEED_PAPER_REPO_DIR",
+            str(
+                Path(__file__).resolve().parents[3]
+                / "var"
+                / "seed_paper_eval"
+                / "external"
+                / "SEED-GRPO"
+            ),
+        )
+    )
+    if not repo_dir.exists():
+        raise FileNotFoundError(
+            "Official SEED-GRPO checkout not found for reward parity at "
+            f"{repo_dir}. Run the repo-local SEED paper eval preparation first."
+        )
+    paper_site_packages = (
+        Path(__file__).resolve().parents[3]
+        / "var"
+        / "seed_paper_eval"
+        / "paper_venv"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    if paper_site_packages.exists():
+        paper_site_packages_str = str(paper_site_packages)
+        if paper_site_packages_str not in sys.path:
+            sys.path.insert(0, paper_site_packages_str)
+        # Keep training reward parity on the same symbolic stack as the official
+        # paper eval. A newer sympy/antlr runtime in e2e-venv produced listwise-
+        # only comparison failures and noisier zero rewards.
+        for prefix in ("antlr4", "math_verify", "sympy", "understand_r1_zero"):
+            for module_name in tuple(sys.modules):
+                if module_name != prefix and not module_name.startswith(f"{prefix}."):
+                    continue
+                module = sys.modules.get(module_name)
+                module_file = getattr(module, "__file__", None)
+                if module_file and str(module_file).startswith(paper_site_packages_str):
+                    continue
+                sys.modules.pop(module_name, None)
+    else:
+        _LOG.warning(
+            "SEED paper reward parity requested, but paper site-packages were not found at %s.",
+            paper_site_packages,
+        )
+    repo_dir_str = str(repo_dir)
+    if repo_dir_str not in sys.path:
+        sys.path.insert(0, repo_dir_str)
+    if os.environ.get("MAXENT_SEED_PAPER_SUPPRESS_GRADER_LOGS", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+    }:
+        for logger_name in ("math_verify", "math_verify.grader"):
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(logging.CRITICAL)
+            logger.propagate = False
+    grader = importlib.import_module("understand_r1_zero.math_grader")
+    reward_fn = getattr(grader, "boxed_reward_fn", None)
+    if not callable(reward_fn):
+        raise RuntimeError(
+            f"Official SEED boxed_reward_fn is unavailable in {repo_dir}."
+        )
+    return reward_fn
+
+
+def seed_paper_boxed_accuracy_reward_math(
+    completions: List[CompletionType],
+    answer: List[Any],
+    **_kwargs: Any,
+) -> List[float]:
+    """Official SEED paper boxed accuracy reward with the same grader as eval."""
+
+    reward_fn = _seed_paper_boxed_reward_fn()
+    outs: List[float] = []
+    for comp, gold in zip(completions, answer):
+        txt = _extract_content(comp)
+        try:
+            _info, reward = reward_fn(txt, gold, fast=False)
+            outs.append(float(reward))
+        except Exception:
+            outs.append(0.0)
+    return outs
+
+
 def format_reward(completions: List[CompletionType], **_kwargs: Any) -> List[float]:
     """Open-R1-compatible strict think/answer formatting reward."""
 
@@ -1018,6 +1135,9 @@ def get_reward_funcs(
     code_format_reward = get_code_format_reward(
         language=str(getattr(script_args, "code_language", "python"))
     )
+    missing_boxed_answer_penalty_reward = get_missing_boxed_answer_penalty_reward(
+        penalty=float(getattr(script_args, "missing_boxed_answer_penalty", -0.05))
+    )
     registry = {
         # Open-R1-compatible aliases.
         "accuracy": accuracy_reward,
@@ -1032,6 +1152,8 @@ def get_reward_funcs(
         "code_format": code_format_reward,
         # Native/extended names.
         "boxed_accuracy_math": boxed_accuracy_reward_math,
+        "seed_paper_boxed_accuracy_math": seed_paper_boxed_accuracy_reward_math,
+        "missing_boxed_answer_penalty_math": missing_boxed_answer_penalty_reward,
         "pure_accuracy_math": pure_accuracy_reward_math,
         "python_unit_tests": python_unit_test_reward,
         "mbpp_python_tests": python_unit_test_reward,
@@ -1045,7 +1167,9 @@ __all__ = [
     "accuracy_reward",
     "format_reward",
     "get_reward_funcs",
+    "get_missing_boxed_answer_penalty_reward",
     "boxed_accuracy_reward_math",
+    "seed_paper_boxed_accuracy_reward_math",
     "tag_count_reward",
     "reasoning_steps_reward",
     "get_cosine_scaled_reward",

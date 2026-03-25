@@ -17,6 +17,11 @@ import time
 import traceback
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from maxent_grpo.training.generation.vocab_guard import (
+    merge_invalid_token_block_logit_bias,
+    resolve_blocked_token_ids,
+    resolve_allowed_token_ids,
+)
 from maxent_grpo.training.patches.vllm import VLLMLogprobResult
 from maxent_grpo.training.runtime.prompts import _truncate_prompt, PROMPT_CHAR_LIMIT
 from maxent_grpo.utils.imports import optional_import
@@ -1355,6 +1360,12 @@ class ColocateVLLMEngine:
             if getattr(self.ctx, "gen_best_of", None) is not None
             else getattr(self.ctx, "vllm_best_of", None)
         )
+        logit_bias = merge_invalid_token_block_logit_bias(
+            self.ctx,
+            getattr(self.ctx, "vllm_logit_bias", None),
+        )
+        allowed_token_ids = resolve_allowed_token_ids(self.ctx)
+        blocked_token_ids = resolve_blocked_token_ids(self.ctx)
         params_kwargs: Dict[str, Any] = {
             "temperature": self.ctx.gen_temperature,
             "top_p": self.ctx.gen_top_p,
@@ -1365,7 +1376,9 @@ class ColocateVLLMEngine:
             "frequency_penalty": getattr(self.ctx, "gen_frequency_penalty", 0.0),
             "presence_penalty": getattr(self.ctx, "gen_presence_penalty", 0.0),
             "stop": stop_sequences,
-            "logit_bias": getattr(self.ctx, "vllm_logit_bias", None),
+            "logit_bias": logit_bias,
+            "allowed_token_ids": allowed_token_ids,
+            "blocked_token_ids": blocked_token_ids,
             "guided_json": getattr(self.ctx, "vllm_guided_json", None),
             "guided_regex": getattr(self.ctx, "vllm_guided_regex", None),
         }
@@ -1381,8 +1394,19 @@ class ColocateVLLMEngine:
         if params_cls is None:
             raise RuntimeError("vllm.SamplingParams is unavailable")
         params_kwargs = self._build_sampling_params_kwargs(request_count)
+        blocked_token_ids = list(params_kwargs.pop("blocked_token_ids", []) or [])
         params_kwargs = _filter_kwargs(params_cls, params_kwargs)
-        return params_cls(**params_kwargs)
+        params = params_cls(**params_kwargs)
+        if blocked_token_ids:
+            bad_words = [[int(token_id)] for token_id in blocked_token_ids]
+            try:
+                setattr(params, "_bad_words_token_ids", bad_words)
+            except Exception:
+                pass
+            kwargs = getattr(params, "kwargs", None)
+            if isinstance(kwargs, dict):
+                kwargs["_bad_words_token_ids"] = bad_words
+        return params
 
     def _record_latency(self, latency_ms: float) -> None:
         stats = getattr(self.ctx, "generation_stats", None)

@@ -93,6 +93,34 @@ _DEBUG_METRIC_FIELDS = (
 )
 
 
+def _rich_completion_wandb_enabled(training_args: Any) -> bool:
+    """Return whether enriched completion tables should also go to W&B."""
+    if training_args is None:
+        return False
+    return bool(getattr(training_args, "rich_log_completions_to_wandb", False))
+
+
+def _rich_completion_sync_enabled(training_args: Any) -> bool:
+    """Return whether ranks should synchronize after rich completion logging."""
+    if training_args is None:
+        return True
+    return bool(
+        getattr(training_args, "rich_log_completions_synchronize_ranks", True)
+    )
+
+
+def _wait_after_rich_completion_logging(
+    accelerator: Any,
+    training_args: Any,
+) -> None:
+    """Synchronize ranks after rich completion logging when configured."""
+    if not _rich_completion_sync_enabled(training_args):
+        return
+    wait_for_all = getattr(accelerator, "wait_for_everyone", None)
+    if callable(wait_for_all):
+        wait_for_all()
+
+
 def _as_float(value: Any) -> Optional[float]:
     """Return a finite float or ``None`` when conversion fails."""
     if isinstance(value, bool):
@@ -1561,7 +1589,13 @@ def log_local_step(
         if training_args is None:
             log_completions = True
         else:
-            log_completions = getattr(training_args, "log_completions", False)
+            log_completions = bool(
+                getattr(
+                    training_args,
+                    "rich_log_completions",
+                    getattr(training_args, "log_completions", False),
+                )
+            )
         if log_completions:
             _log_sample_table(ctx, state, prepared)
         return
@@ -1602,23 +1636,176 @@ def _build_sample_table(
     reward_values = prepared.reward_comp.per_reward_values
     reward_keys = sorted(reward_values.keys())
     advantages = prepared.reward_comp.advantage_samples
-    columns = ["step", "prompt", "completion", "advantage"] + [
+    total_utils = list(getattr(prepared.reward_comp, "total_utils", []) or [])
+    q_grouped = list(getattr(prepared.reward_comp, "q_grouped", []) or [])
+    weight_groups = list(getattr(getattr(prepared, "weight_stats", None), "weights_grouped", []) or [])
+
+    def _flatten_groups(groups: Any, *, fill: float = float("nan")) -> List[float]:
+        flat: List[float] = []
+        for group in groups or []:
+            if not isinstance(group, list):
+                continue
+            for value in group:
+                try:
+                    flat.append(float(value))
+                except (TypeError, ValueError):
+                    flat.append(fill)
+        return flat
+
+    def _weight_mass_proxy(group: Any) -> List[float]:
+        if not isinstance(group, list) or not group:
+            return []
+        weights: List[float] = []
+        for value in group:
+            try:
+                weights.append(float(value))
+            except (TypeError, ValueError):
+                weights.append(0.0)
+        if any(val < 0.0 for val in weights):
+            positives = [max(val, 0.0) for val in weights]
+            pos_total = sum(positives)
+            if pos_total > 0.0:
+                return [val / pos_total for val in positives]
+        nonneg_total = sum(max(val, 0.0) for val in weights)
+        if nonneg_total > 0.0 and all(val >= 0.0 for val in weights):
+            return [max(val, 0.0) / nonneg_total for val in weights]
+        abs_total = sum(abs(val) for val in weights)
+        if abs_total > 0.0:
+            return [abs(val) / abs_total for val in weights]
+        return [float("nan")] * len(weights)
+
+    q_samples = _flatten_groups(q_grouped)
+    weight_raw_samples = _flatten_groups(weight_groups)
+    weight_mass_samples = _flatten_groups(
+        [_weight_mass_proxy(group) for group in weight_groups]
+    )
+    prompt_index_samples: List[int] = []
+    completion_index_samples: List[int] = []
+    group_size_samples: List[int] = []
+    reward_rank_samples: List[int] = []
+    group_offset = 0
+    for prompt_idx, completion_group in enumerate(
+        getattr(prepared, "grouped_completions", []) or []
+    ):
+        group_size = len(completion_group)
+        if group_size <= 0:
+            continue
+        reward_slice = total_utils[group_offset : group_offset + group_size]
+        reward_order = sorted(
+            range(group_size),
+            key=lambda idx: (-float(reward_slice[idx]), idx),
+        )
+        reward_rank = {local_idx: rank + 1 for rank, local_idx in enumerate(reward_order)}
+        for local_idx in range(group_size):
+            prompt_index_samples.append(prompt_idx)
+            completion_index_samples.append(local_idx)
+            group_size_samples.append(group_size)
+            reward_rank_samples.append(reward_rank.get(local_idx, local_idx + 1))
+        group_offset += group_size
+
+    columns = [
+        "step",
+        "prompt_index",
+        "completion_index",
+        "group_size",
+        "reward_rank_desc",
+        "prompt",
+        "completion",
+        "reward_total",
+        "advantage",
+        "q_mass",
+        "update_weight_raw",
+        "update_mass_proxy",
+    ] + [
         f"reward/{key}" for key in reward_keys
     ]
     rows: List[List[Any]] = []
     for idx in range(max_rows):
         prompt = prompts[idx]
         completion = completions[idx]
+        prompt_index = (
+            int(prompt_index_samples[idx])
+            if idx < len(prompt_index_samples)
+            else -1
+        )
+        completion_index = (
+            int(completion_index_samples[idx])
+            if idx < len(completion_index_samples)
+            else -1
+        )
+        group_size = (
+            int(group_size_samples[idx])
+            if idx < len(group_size_samples)
+            else 0
+        )
+        reward_rank_desc = (
+            int(reward_rank_samples[idx])
+            if idx < len(reward_rank_samples)
+            else -1
+        )
+        reward_total = (
+            float(total_utils[idx]) if idx < len(total_utils) else float("nan")
+        )
         advantage_val = (
             float(advantages[idx]) if idx < len(advantages) else float("nan")
         )
-        row: List[Any] = [step, prompt, completion, advantage_val]
+        q_mass = float(q_samples[idx]) if idx < len(q_samples) else float("nan")
+        update_weight_raw = (
+            float(weight_raw_samples[idx])
+            if idx < len(weight_raw_samples)
+            else float("nan")
+        )
+        update_mass_proxy = (
+            float(weight_mass_samples[idx])
+            if idx < len(weight_mass_samples)
+            else float("nan")
+        )
+        row: List[Any] = [
+            step,
+            prompt_index,
+            completion_index,
+            group_size,
+            reward_rank_desc,
+            prompt,
+            completion,
+            reward_total,
+            advantage_val,
+            q_mass,
+            update_weight_raw,
+            update_mass_proxy,
+        ]
         for key in reward_keys:
             values = reward_values.get(key, [])
             reward_val = float(values[idx]) if idx < len(values) else float("nan")
             row.append(reward_val)
         rows.append(row)
     return columns, rows
+
+
+def _write_sample_table_sidecar(
+    *,
+    output_dir: str,
+    table_key: str,
+    step: int,
+    columns: Sequence[str],
+    rows: Sequence[Sequence[Any]],
+) -> Optional[str]:
+    """Persist the full completion table locally for deterministic downstream analysis."""
+    if not output_dir:
+        return None
+    try:
+        sidecar_dir = os.path.join(output_dir, "rich_completions")
+        os.makedirs(sidecar_dir, exist_ok=True)
+        payload = {"columns": list(columns), "data": [list(row) for row in rows]}
+        path = os.path.join(
+            sidecar_dir,
+            f"{table_key}_step_{int(step):06d}.json",
+        )
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle)
+        return path
+    except OSError:
+        return None
 
 
 def _log_sample_table(
@@ -1636,6 +1823,7 @@ def _log_sample_table(
         completions, and reward components to display.
     :type prepared: PreparedBatch
     """
+    training_args = getattr(ctx, "training_args", None)
     wandb_run = ctx.logging.wandb_run
     accelerator = ctx.runtime.accelerator
     wandb_mod = _get_wandb()
@@ -1653,22 +1841,60 @@ def _log_sample_table(
                 return {"columns": columns, "rows": rows}
 
         wandb_mod = _FallbackWandb()
-    if wandb_run is None or not accelerator.is_main_process:
+    if not accelerator.is_main_process:
+        _wait_after_rich_completion_logging(accelerator, training_args)
         return
-    pairs = prepared.reward_comp.pairs
+    pairs = getattr(prepared.reward_comp, "pairs", None)
+    if pairs is None:
+        _wait_after_rich_completion_logging(accelerator, training_args)
+        return
     if not pairs.prompts or not pairs.completions:
+        _wait_after_rich_completion_logging(accelerator, training_args)
         return
-    max_rows = min(len(pairs.prompts), len(pairs.completions), _WANDB_SAMPLE_ROWS)
-    if max_rows <= 0:
+    total_rows = min(len(pairs.prompts), len(pairs.completions))
+    if total_rows <= 0:
+        _wait_after_rich_completion_logging(accelerator, training_args)
         return
-    columns, rows = _build_sample_table(prepared, state.global_step, max_rows)
+    columns, rows = _build_sample_table(prepared, state.global_step, total_rows)
     if not rows:
+        _wait_after_rich_completion_logging(accelerator, training_args)
         return
-    table = wandb_mod.Table(columns=columns, rows=rows)
+    table_key = "rich_completions"
+    if training_args is not None:
+        key_value = getattr(training_args, "rich_log_completions_key", table_key)
+        if isinstance(key_value, str) and key_value.strip():
+            table_key = key_value.strip()
+    sidecar_path = None
+    if training_args is not None:
+        output_dir = getattr(training_args, "output_dir", None)
+        if isinstance(output_dir, str) and output_dir.strip():
+            sidecar_path = _write_sample_table_sidecar(
+                output_dir=output_dir.strip(),
+                table_key=table_key,
+                step=state.global_step,
+                columns=columns,
+                rows=rows,
+            )
+    LOG.info(
+        "Logging enriched completion table | key=%s step=%d columns=%s rows=%d sidecar=%s",
+        table_key,
+        state.global_step,
+        columns,
+        len(rows),
+        sidecar_path or "<none>",
+    )
+    if wandb_run is None or not _rich_completion_wandb_enabled(training_args):
+        _wait_after_rich_completion_logging(accelerator, training_args)
+        return
     try:
-        wandb_run.log({"completions": table}, step=state.global_step)
+        wandb_run.log(
+            {table_key: wandb_mod.Table(columns=columns, rows=rows[:_WANDB_SAMPLE_ROWS])},
+            step=state.global_step,
+        )
     except WandbError:
+        _wait_after_rich_completion_logging(accelerator, training_args)
         return
+    _wait_after_rich_completion_logging(accelerator, training_args)
 
 
 def log_training_step(
@@ -1749,7 +1975,13 @@ def log_training_step(
     if training_args is None:
         log_completions = True
     else:
-        log_completions = getattr(training_args, "log_completions", False)
+        log_completions = bool(
+            getattr(
+                training_args,
+                "rich_log_completions",
+                getattr(training_args, "log_completions", False),
+            )
+        )
     if log_completions:
         _log_sample_table(ctx, state, prepared)
 

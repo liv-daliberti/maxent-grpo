@@ -1,12 +1,70 @@
 import importlib
+import importlib.util
 import inspect
 import json
 import logging
+import os
 from typing import Any, Optional
 
 
 _VLLM_BATCH_UPDATE_PREFIX = "__maxent_vllm_batch__:"
 _LOG = logging.getLogger(__name__)
+_LEGACY_WEIGHT_SYNC_WORKER_NAME = "LegacyWeightSyncWorker"
+
+os.environ.setdefault("VLLM_NO_USAGE_STATS", "1")
+
+
+def _patch_transformers_utils() -> None:
+    """Backfill TRL-expected helpers missing from older Transformers builds."""
+
+    try:
+        transformers_utils = importlib.import_module("transformers.utils")
+    except Exception:
+        return
+    if hasattr(transformers_utils, "is_rich_available"):
+        return
+
+    def _is_rich_available() -> bool:
+        return importlib.util.find_spec("rich") is not None
+
+    setattr(transformers_utils, "is_rich_available", _is_rich_available)
+
+
+def _engine_arg_fields() -> set[str]:
+    try:
+        arg_utils = importlib.import_module("vllm.engine.arg_utils")
+    except Exception:
+        return set()
+    engine_args_cls = getattr(arg_utils, "EngineArgs", None)
+    fields = getattr(engine_args_cls, "__dataclass_fields__", None)
+    if not isinstance(fields, dict):
+        return set()
+    return set(fields)
+
+
+def _llm_supports_kwarg(name: str) -> bool:
+    return name in _engine_arg_fields()
+
+
+def _legacy_weight_sync_worker_cls(vllm_serve: Any) -> type:
+    cached = globals().get(_LEGACY_WEIGHT_SYNC_WORKER_NAME)
+    if isinstance(cached, type):
+        return cached
+
+    worker_mod = importlib.import_module("vllm.worker.worker")
+    base_worker_cls = getattr(worker_mod, "Worker", None)
+    extension_cls = getattr(vllm_serve, "WeightSyncWorkerExtension", None)
+    if base_worker_cls is None or extension_cls is None:
+        raise RuntimeError("Failed to construct legacy weight-sync worker class")
+
+    legacy_cls = type(
+        _LEGACY_WEIGHT_SYNC_WORKER_NAME,
+        (extension_cls, base_worker_cls),
+        {},
+    )
+    legacy_cls.__module__ = __name__
+    globals()[_LEGACY_WEIGHT_SYNC_WORKER_NAME] = legacy_cls
+    return legacy_cls
 
 
 def _guided_decoding_kwargs(guided_decoding: Any) -> dict[str, Any]:
@@ -137,6 +195,50 @@ def _build_update_request_model() -> Any:
     return _UpdateRequest
 
 
+def _build_generate_request_model() -> Any:
+    pydantic_mod = importlib.import_module("pydantic")
+    base_model = getattr(pydantic_mod, "BaseModel")
+
+    class _GenerateRequest(base_model):
+        prompts: list[str]
+        n: int = 1
+        repetition_penalty: float = 1.0
+        temperature: float = 1.0
+        top_p: float = 1.0
+        top_k: int = -1
+        min_p: float = 0.0
+        max_tokens: int = 16
+        frequency_penalty: float = 0.0
+        presence_penalty: float = 0.0
+        best_of: Optional[int] = None
+        stop: Optional[list[str]] = None
+        logit_bias: Optional[dict[str, float]] = None
+        allowed_token_ids: Optional[list[int]] = None
+        blocked_token_ids: Optional[list[int]] = None
+        guided_decoding_regex: Optional[str] = None
+        guided_regex: Optional[str] = None
+        guided_json: Optional[str] = None
+        logprobs: Optional[int] = None
+        return_logprobs: bool = False
+        stream: bool = False
+        request_id: Optional[str] = None
+        client_tag: Optional[str] = None
+
+    return _GenerateRequest
+
+
+def _build_generate_response_model() -> Any:
+    pydantic_mod = importlib.import_module("pydantic")
+    base_model = getattr(pydantic_mod, "BaseModel")
+
+    class _GenerateResponse(base_model):
+        completion_ids: list[list[int]]
+        logprobs: Optional[list[Any]] = None
+        cumulative_logprobs: Optional[list[Optional[float]]] = None
+
+    return _GenerateResponse
+
+
 def _normalize_update_request(request: Any) -> tuple[list[str], list[str], list[tuple[int, ...]]]:
     names = getattr(request, "names", None)
     dtypes = getattr(request, "dtypes", None)
@@ -173,7 +275,101 @@ def _normalize_update_request(request: Any) -> tuple[list[str], list[str], list[
     return [str(name)], [str(dtype)], [tuple(shape)]
 
 
+def _normalize_logit_bias(raw: Any) -> Optional[dict[int, float]]:
+    if not isinstance(raw, dict):
+        return None
+    normalized: dict[int, float] = {}
+    for key, value in raw.items():
+        try:
+            normalized[int(key)] = float(value)
+        except (TypeError, ValueError):
+            continue
+    return normalized or None
+
+
+def _normalize_allowed_token_ids(raw: Any) -> Optional[list[int]]:
+    if not isinstance(raw, list):
+        return None
+    normalized: list[int] = []
+    for value in raw:
+        try:
+            token_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if token_id >= 0:
+            normalized.append(token_id)
+    return normalized or None
+
+
+def _normalize_blocked_token_ids(raw: Any) -> Optional[list[int]]:
+    if not isinstance(raw, list):
+        return None
+    normalized: list[int] = []
+    for value in raw:
+        try:
+            token_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if token_id >= 0:
+            normalized.append(token_id)
+    return normalized or None
+
+
+def _blocked_tail_to_allowed_token_ids(
+    blocked_token_ids: Optional[list[int]],
+) -> Optional[list[int]]:
+    """Translate a contiguous blocked tail into native allowed_token_ids.
+
+    vLLM 0.7.2 supports ``allowed_token_ids`` natively, but there is no
+    built-in ``blocked_token_ids`` or token-id bad-words hook. Our server-mode
+    trainer sends the blocked tail as ``range(tokenizer_limit, model_limit)``.
+    Convert that into the equivalent allowed prefix ``[0, tokenizer_limit)`` so
+    the engine enforces the boundary via its real logits-processor path.
+    """
+
+    if not blocked_token_ids:
+        return None
+    blocked = sorted(set(int(token_id) for token_id in blocked_token_ids))
+    if not blocked:
+        return None
+    start = blocked[0]
+    end = blocked[-1]
+    if start <= 0:
+        raise ValueError("blocked_token_ids tail must start above 0")
+    expected = list(range(start, end + 1))
+    if blocked != expected:
+        raise ValueError(
+            "blocked_token_ids must form one contiguous tail range to derive "
+            "allowed_token_ids safely"
+        )
+    return list(range(start))
+
+
+def _extract_output_logprobs(output: Any) -> Optional[list[float]]:
+    raw = getattr(output, "logprobs", None)
+    if raw is None:
+        return None
+    if isinstance(raw, dict):
+        raw = raw.get("token_logprobs")
+    if not isinstance(raw, list):
+        return None
+    cleaned: list[float] = []
+    for item in raw:
+        try:
+            if isinstance(item, dict):
+                value = item.get("logprob")
+            else:
+                value = getattr(item, "logprob", item)
+            if value is None:
+                continue
+            cleaned.append(float(value))
+        except (TypeError, ValueError):
+            continue
+    return cleaned or None
+
+
 def _patch_blocking_init_communicator() -> Any:
+    _patch_transformers_utils()
     vllm_serve = importlib.import_module("trl.scripts.vllm_serve")
     _patch_sampling_params_factory(vllm_serve)
     uvicorn_mod = importlib.import_module("uvicorn")
@@ -184,13 +380,20 @@ def _patch_blocking_init_communicator() -> Any:
     from fastapi.routing import APIRoute
     builtin_weight_transfer = _import_builtin_weight_transfer()
     update_request_model = _build_update_request_model()
+    generate_request_model = _build_generate_request_model()
+    generate_response_model = _build_generate_response_model()
 
-    def _rebuild_route(route: APIRoute, endpoint: Any, path: str | None = None) -> None:
+    def _rebuild_route(
+        route: APIRoute,
+        endpoint: Any,
+        path: str | None = None,
+        response_model: Any | None = None,
+    ) -> None:
         APIRoute.__init__(
             route,
             path or route.path,
             endpoint,
-            response_model=route.response_model,
+            response_model=response_model if response_model is not None else route.response_model,
             status_code=route.status_code,
             tags=route.tags,
             dependencies=route.dependencies,
@@ -215,6 +418,140 @@ def _patch_blocking_init_communicator() -> Any:
             openapi_extra=route.openapi_extra,
             generate_unique_id_function=route.generate_unique_id_function,
         )
+
+    def _make_generate_endpoint(
+        endpoint: Any,
+        connections: list[Any],
+        script_args: Any,
+    ) -> Any:
+        async def _patched_generate(request: Any) -> dict[str, Any]:
+            guided_regex = getattr(request, "guided_regex", None) or getattr(
+                request, "guided_decoding_regex", None
+            )
+            guided_json = getattr(request, "guided_json", None)
+            guided_decoding = None
+            guided_cls = getattr(vllm_serve, "GuidedDecodingParams", None)
+            if guided_cls is not None:
+                if guided_json is not None:
+                    guided_decoding = guided_cls(backend="outlines", json=guided_json)
+                elif guided_regex is not None:
+                    guided_decoding = guided_cls(backend="outlines", regex=guided_regex)
+
+            sampling_kwargs: dict[str, Any] = {
+                "n": int(getattr(request, "n", 1)),
+                "repetition_penalty": float(getattr(request, "repetition_penalty", 1.0)),
+                "temperature": float(getattr(request, "temperature", 1.0)),
+                "top_p": float(getattr(request, "top_p", 1.0)),
+                "top_k": int(getattr(request, "top_k", -1)),
+                "min_p": float(getattr(request, "min_p", 0.0)),
+                "max_tokens": int(getattr(request, "max_tokens", 16)),
+                "frequency_penalty": float(getattr(request, "frequency_penalty", 0.0)),
+                "presence_penalty": float(getattr(request, "presence_penalty", 0.0)),
+                "guided_decoding": guided_decoding,
+            }
+            best_of = getattr(request, "best_of", None)
+            if best_of is not None:
+                sampling_kwargs["best_of"] = int(best_of)
+            stop = getattr(request, "stop", None)
+            if stop:
+                sampling_kwargs["stop"] = list(stop)
+            logit_bias = _normalize_logit_bias(getattr(request, "logit_bias", None))
+            if logit_bias:
+                sampling_kwargs["logit_bias"] = logit_bias
+            allowed_token_ids = _normalize_allowed_token_ids(
+                getattr(request, "allowed_token_ids", None)
+            )
+            blocked_token_ids = _normalize_blocked_token_ids(
+                getattr(request, "blocked_token_ids", None)
+            )
+            if blocked_token_ids:
+                derived_allowed = _blocked_tail_to_allowed_token_ids(
+                    blocked_token_ids
+                )
+                if allowed_token_ids:
+                    blocked_set = set(blocked_token_ids)
+                    merged_allowed = [
+                        token_id
+                        for token_id in allowed_token_ids
+                        if token_id not in blocked_set
+                    ]
+                    if len(merged_allowed) != len(allowed_token_ids):
+                        _LOG.warning(
+                            "Filtered %d blocked token ids out of allowed_token_ids on /generate.",
+                            len(allowed_token_ids) - len(merged_allowed),
+                        )
+                    allowed_token_ids = merged_allowed
+                else:
+                    allowed_token_ids = derived_allowed
+                    _LOG.warning(
+                        "Translated blocked_token_ids tail (%d blocked) into allowed_token_ids (%d allowed) on /generate.",
+                        len(blocked_token_ids),
+                        len(allowed_token_ids or []),
+                    )
+            if allowed_token_ids:
+                sampling_kwargs["allowed_token_ids"] = allowed_token_ids
+            logprobs = getattr(request, "logprobs", None)
+            return_logprobs = bool(getattr(request, "return_logprobs", False))
+            if logprobs is not None or return_logprobs:
+                sampling_kwargs["logprobs"] = int(logprobs or 1)
+
+            sampling_params = vllm_serve.SamplingParams(**sampling_kwargs)
+            chunked_prompts = vllm_serve.chunk_list(
+                request.prompts, script_args.data_parallel_size
+            )
+            for connection, prompts in zip(connections, chunked_prompts):
+                if not prompts:
+                    prompts = ["<placeholder>"]
+                kwargs = {"prompts": prompts, "sampling_params": sampling_params}
+                connection.send({"type": "call", "method": "generate", "kwargs": kwargs})
+
+            all_outputs = [connection.recv() for connection in connections]
+            all_outputs = [
+                output for output, prompts in zip(all_outputs, chunked_prompts) if prompts
+            ]
+            completion_ids: list[list[int]] = []
+            flat_logprobs: list[Optional[list[float]]] = []
+            flat_cumulative: list[Optional[float]] = []
+            have_logprobs = False
+            for outputs in importlib.import_module("itertools").chain.from_iterable(all_outputs):
+                for output in outputs.outputs:
+                    completion_ids.append(list(output.token_ids))
+                    token_logprobs = _extract_output_logprobs(output)
+                    cumulative = getattr(output, "cumulative_logprob", None)
+                    if token_logprobs is not None or cumulative is not None:
+                        have_logprobs = True
+                    flat_logprobs.append(token_logprobs)
+                    try:
+                        flat_cumulative.append(None if cumulative is None else float(cumulative))
+                    except (TypeError, ValueError):
+                        flat_cumulative.append(None)
+
+            response: dict[str, Any] = {"completion_ids": completion_ids}
+            if have_logprobs:
+                if any(item is not None for item in flat_logprobs):
+                    response["logprobs"] = flat_logprobs
+                if any(item is not None for item in flat_cumulative):
+                    response["cumulative_logprobs"] = flat_cumulative
+            return response
+
+        _patched_generate.__name__ = getattr(endpoint, "__name__", "generate")
+        _patched_generate.__doc__ = getattr(endpoint, "__doc__", None)
+        _patched_generate.__signature__ = inspect.Signature(
+            parameters=[
+                inspect.Parameter(
+                    "request",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=generate_request_model,
+                )
+            ],
+            return_annotation=generate_response_model,
+        )
+        _patched_generate.__annotations__ = {
+            "request": generate_request_model,
+            "return": generate_response_model,
+        }
+        setattr(_patched_generate, "_maxent_generate_patch", True)
+        return _patched_generate
 
     def _make_init_endpoint(
         endpoint: Any,
@@ -372,6 +709,19 @@ def _patch_blocking_init_communicator() -> Any:
                 else inspect.Signature.empty
             )
 
+            if getattr(route, "path", None) == "/generate/":
+                script_args = closure.get("script_args")
+                if script_args is None:
+                    continue
+                if getattr(endpoint, "_maxent_generate_patch", False):
+                    continue
+                _rebuild_route(
+                    route,
+                    _make_generate_endpoint(endpoint, connections, script_args),
+                    response_model=generate_response_model,
+                )
+                continue
+
             if getattr(route, "path", None) == "/init_communicator/":
                 script_args = closure.get("script_args")
                 if script_args is None:
@@ -412,6 +762,8 @@ def _patch_worker_ack(vllm_serve: Any) -> None:
     if llm_cls is None:
         raise RuntimeError("Failed to locate vLLM LLM class for worker patch")
     builtin_weight_transfer = _import_builtin_weight_transfer()
+    supports_worker_extension_cls = _llm_supports_kwarg("worker_extension_cls")
+    supports_worker_cls = _llm_supports_kwarg("worker_cls")
 
     def _patched_llm_worker(
         script_args: Any,
@@ -436,9 +788,16 @@ def _patch_worker_ack(vllm_serve: Any) -> None:
             "max_model_len": script_args.max_model_len,
         }
         if builtin_weight_transfer is None:
-            llm_kwargs["worker_extension_cls"] = (
-                "trl.scripts.vllm_serve.WeightSyncWorkerExtension"
-            )
+            if supports_worker_extension_cls:
+                llm_kwargs["worker_extension_cls"] = (
+                    "trl.scripts.vllm_serve.WeightSyncWorkerExtension"
+                )
+            elif supports_worker_cls:
+                llm_kwargs["worker_cls"] = _legacy_weight_sync_worker_cls(vllm_serve)
+            else:
+                raise RuntimeError(
+                    "vLLM runtime does not support either worker_extension_cls or worker_cls"
+                )
         else:
             llm_kwargs["weight_transfer_config"] = {"backend": "nccl"}
 

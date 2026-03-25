@@ -1,0 +1,40 @@
+# Method family: baseline GRPO
+# Loss backend: Dr.GRPO (`grpo_loss_type: dr_grpo`)
+# Canonical label: Dr.GRPO
+command: train-maxent
+maxent:
+  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math_fair.yaml
+  training:
+    objective: grpo
+    controller_meta_enabled: false
+    num_generations: 8
+    # 3 trainer GPUs x 40 grad-accum steps = 120 prompt-groups effective batch.
+    gradient_accumulation_steps: 40
+    max_steps: -1
+    num_train_epochs: 20
+    learning_rate: 1e-6
+    beta: 0.0
+    scale_rewards: false
+    grpo_loss_type: dr_grpo
+    dr_grpo_denominator_mode: fixed_max
+    num_iterations: 1
+    max_grad_norm: 1.0
+    clip_range: 0.2
+    ppo_clip_range: 0.2
+    warmup_ratio: 0.0
+    eval_on_start: true
+    eval_steps: 25
+    seed_paper_eval_enabled: true
+    seed_paper_eval_fail_on_error: true
+    seed_paper_eval_template: "qwen_math"
+    save_strategy: "steps"
+    save_steps: 25
+    push_to_hub: false
+    output_dir: var/data/Qwen2.5-1.5B-Open-R1-GRPO-BASELINE-math-fair-v1
+
+hydra:
+  run:
+    dir: var/artifacts/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: var/artifacts/outputs/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

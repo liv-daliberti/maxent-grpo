@@ -39,7 +39,7 @@ GRPO_MASTER_PORT="${GRPO_MASTER_PORT:-6000}"
 
 if [[ -z "$MODEL" ]]; then
   case "$CONFIG_SUFFIX" in
-    math|math_stable) MODEL="Qwen2.5-1.5B-Instruct" ;;
+    math|math_fair|math_stable) MODEL="Qwen2.5-1.5B-Instruct" ;;
     code_mbpp) MODEL="Qwen2.5-0.5B-Instruct" ;;
     *) MODEL="Qwen2.5-1.5B-Instruct" ;;
   esac

@@ -11,14 +11,20 @@ from __future__ import annotations
 
 import logging
 import math
+import os
+import json
+from contextlib import contextmanager, nullcontext
+from collections.abc import Mapping
 from functools import partial
 import inspect
 import re
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Type, cast
 
 import torch
 import torch.nn.functional as F
+
+AutoModelForCausalLM = None  # type: ignore[assignment]
 
 try:
     from accelerate.utils import gather
@@ -45,6 +51,10 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover - test fallback
     def maybe_apply_chat_template(example: Any, _tokenizer: Any) -> Dict[str, str]:
         return {"prompt": str(example)}
 
+_trl_create_reference_model = None
+_trl_prepare_deepspeed = None
+_trl_prepare_fsdp = None
+
 
 from maxent_grpo.rewards.basic import (
     pure_accuracy_math_correctness,
@@ -53,6 +63,7 @@ from maxent_grpo.rewards.basic import (
 )
 from maxent_grpo.methods import resolve_method_spec_from_args
 from maxent_grpo.objectives import resolve_objective_routing
+from maxent_grpo.training.rewards import _compute_seed_grpo_statistics
 from maxent_grpo.training.controller_objective import (
     ControllerMetaContext,
     build_controller_objective,
@@ -66,10 +77,57 @@ from maxent_grpo.training.weighting import (
     weight_matrix_from_q,
 )
 from maxent_grpo.training.weighting.logic import build_weighting_settings
+from maxent_grpo.training.scoring_common import (
+    _coerce_optional_int,
+    _get_config_value,
+    _get_embedding_vocab_size,
+)
 
 LOG = logging.getLogger(__name__)
 _PASS_METRIC_SUCCESS_REWARD = 1.0
 _PASS_METRIC_EPS = 1e-6
+
+
+@contextmanager
+def _adapter_disabled_context(model: Any):
+    """Disable adapters when the model exposes a supported API.
+
+    This trainer runs both plain Transformers models and PEFT-enabled models.
+    Older PEFT integrations expose ``disable_adapter()`` as a context manager,
+    while newer Transformers PEFT shims expose ``disable_adapters()`` /
+    ``enable_adapters()`` as imperative methods. Plain base models expose
+    neither and should be treated as a no-op.
+    """
+
+    disable_adapter = getattr(model, "disable_adapter", None)
+    if callable(disable_adapter):
+        with disable_adapter():
+            yield
+        return
+
+    disable_adapters = getattr(model, "disable_adapters", None)
+    enable_adapters = getattr(model, "enable_adapters", None)
+    if callable(disable_adapters) and callable(enable_adapters):
+        try:
+            disable_adapters()
+        except ValueError as exc:
+            if "PEFT is not installed" in str(exc):
+                with nullcontext():
+                    yield
+                return
+            raise
+        try:
+            yield
+        finally:
+            try:
+                enable_adapters()
+            except ValueError as exc:
+                if "PEFT is not installed" not in str(exc):
+                    raise
+        return
+
+    with nullcontext():
+        yield
 _LOG_DELTA_CLAMP = 5.0
 _BENCHMARK_SUFFIX_SANITIZER = re.compile(r"[^A-Za-z0-9]+")
 _EMA_PARAM_NAME_PREFIXES: Tuple[str, ...] = (
@@ -116,6 +174,98 @@ def _clamp_log_delta(delta: torch.Tensor) -> torch.Tensor:
     """Clamp log-probability deltas before exponentiating."""
 
     return delta.float().clamp(min=-_LOG_DELTA_CLAMP, max=_LOG_DELTA_CLAMP)
+
+
+def _resolve_vocab_size_limit(model: Any) -> Optional[int]:
+    """Return the smallest positive vocab-size limit exposed by the model."""
+
+    config = getattr(model, "config", None)
+    embedding_vocab_size = _get_embedding_vocab_size(model, config)
+    config_vocab_size = _coerce_optional_int(_get_config_value(config, "vocab_size", None))
+    attr_vocab_size = _coerce_optional_int(getattr(model, "vocab_size", None))
+    candidates = [
+        int(value)
+        for value in (embedding_vocab_size, config_vocab_size, attr_vocab_size)
+        if isinstance(value, int) and int(value) > 0
+    ]
+    if not candidates:
+        return None
+    return max(candidates)
+
+
+def _resolve_tokenizer_vocab_limit(tokenizer: Any) -> Optional[int]:
+    """Return the full positive vocab-size limit exposed by the tokenizer."""
+
+    candidates: List[int] = []
+    vocab_size = _coerce_optional_int(getattr(tokenizer, "vocab_size", None))
+    if isinstance(vocab_size, int) and vocab_size > 0:
+        candidates.append(int(vocab_size))
+    try:
+        tokenizer_len = _coerce_optional_int(len(tokenizer))
+    except Exception:
+        tokenizer_len = None
+    if isinstance(tokenizer_len, int) and tokenizer_len > 0:
+        candidates.append(int(tokenizer_len))
+    if not candidates:
+        return None
+    # `tokenizer.vocab_size` often excludes added special tokens while
+    # `len(tokenizer)` includes them; use the larger addressable range.
+    return max(candidates)
+
+
+def _resolve_token_id_upper_bound(model: Any, tokenizer: Any = None) -> Optional[int]:
+    """Return a conservative upper bound for valid token IDs."""
+
+    candidates: List[int] = []
+    model_limit = _resolve_vocab_size_limit(model)
+    if isinstance(model_limit, int) and model_limit > 0:
+        candidates.append(int(model_limit))
+    tokenizer_limit = _resolve_tokenizer_vocab_limit(tokenizer)
+    if isinstance(tokenizer_limit, int) and tokenizer_limit > 0:
+        candidates.append(int(tokenizer_limit))
+    if not candidates:
+        return None
+    return min(candidates)
+
+
+def _mask_invalid_logit_columns(
+    logits: torch.Tensor,
+    *,
+    valid_vocab_size: Optional[int],
+) -> torch.Tensor:
+    """Mask logit columns that correspond to tokenizer-inaccessible token IDs.
+
+    Some Qwen checkpoints expose larger output embeddings than the tokenizer can
+    address. Leaving those extra columns active lets entropy-regularized losses
+    push probability mass into dead token rows, which later surface as sampled
+    token IDs outside the tokenizer range.
+    """
+
+    if not isinstance(valid_vocab_size, int) or valid_vocab_size <= 0:
+        return logits
+    if logits.ndim < 1:
+        return logits
+    last_dim = int(logits.size(-1))
+    if last_dim <= valid_vocab_size:
+        return logits
+    masked = logits.clone()
+    mask_value = torch.finfo(masked.dtype).min
+    masked[..., valid_vocab_size:] = mask_value
+    return masked
+
+
+def _entropy_normalization_scale(valid_vocab_size: Optional[int]) -> float:
+    """Return the log-vocab normalization constant for exact entropy metrics."""
+
+    if not isinstance(valid_vocab_size, int) or valid_vocab_size <= 1:
+        return 1.0
+    try:
+        scale = float(math.log(float(valid_vocab_size)))
+    except (TypeError, ValueError, OverflowError):
+        return 1.0
+    if not math.isfinite(scale) or scale <= 0.0:
+        return 1.0
+    return scale
 
 
 def _tokenize_for_diversity(text: str, tokenizer: Any = None) -> List[Any]:
@@ -267,6 +417,103 @@ def _completion_diversity_metrics(
     }
 
 
+def _is_main_process(trainer: Any) -> bool:
+    """Return whether the active trainer rank should emit shared metrics."""
+
+    accelerator = getattr(trainer, "accelerator", None)
+    return bool(getattr(accelerator, "is_main_process", True))
+
+
+def _use_lightweight_greedy_eval(trainer: Any, mode: str) -> bool:
+    """Return whether training-time eval is using the lightweight greedy path."""
+
+    if mode != "eval":
+        return False
+    args = getattr(trainer, "args", None)
+    return bool(getattr(args, "eval_greedy_only_enabled", False))
+
+
+def _use_sharded_prompt_major_greedy_eval(trainer: Any, mode: str) -> bool:
+    """Return whether greedy-only eval should shard prompt-major batches across ranks."""
+
+    if not _use_lightweight_greedy_eval(trainer, mode):
+        return False
+    args = getattr(trainer, "args", None)
+    if not bool(getattr(args, "disable_distributed_sampler", False)):
+        return False
+    accelerator = getattr(trainer, "accelerator", None)
+    try:
+        num_processes = int(getattr(accelerator, "num_processes", 1) or 1)
+    except (TypeError, ValueError):
+        num_processes = 1
+    return num_processes > 1
+
+
+def _use_local_only_lightweight_eval_metrics(trainer: Any, mode: str) -> bool:
+    """Return whether greedy-only eval should stay main-rank-only for metrics."""
+
+    return _use_lightweight_greedy_eval(
+        trainer, mode
+    ) and not _use_sharded_prompt_major_greedy_eval(trainer, mode)
+
+
+def _use_local_only_eval_diversity_metrics(trainer: Any, mode: str) -> bool:
+    """Return whether eval diversity logging should stay local to main rank.
+
+    Full eval still runs through the standard Trainer loop, but completion
+    diversity logging is auxiliary and uses Python-object gathers that have been
+    the concrete failure mode under DDP. When eval inputs are replicated across
+    ranks (the stable math configs set ``disable_distributed_sampler=True``), we
+    can compute those diversity summaries on the main rank only without any
+    cross-rank synchronization.
+    """
+
+    if mode != "eval":
+        return False
+    args = getattr(trainer, "args", None)
+    if not bool(getattr(args, "disable_distributed_sampler", False)):
+        return False
+    accelerator = getattr(trainer, "accelerator", None)
+    try:
+        num_processes = int(getattr(accelerator, "num_processes", 1) or 1)
+    except (TypeError, ValueError):
+        num_processes = 1
+    return num_processes > 1
+
+
+def _metric_tensor_for_logging(
+    trainer: Any,
+    value: Any,
+    *,
+    mode: str,
+) -> Optional[torch.Tensor]:
+    """Return a metric tensor for logging, avoiding DDP gathers in local-only eval."""
+
+    if not isinstance(value, torch.Tensor):
+        return None
+    if _use_sharded_prompt_major_greedy_eval(trainer, mode):
+        gathered = gather(value)
+        if not isinstance(gathered, torch.Tensor):
+            return None
+        return gathered
+    if _use_local_only_lightweight_eval_metrics(trainer, mode):
+        if not _is_main_process(trainer):
+            return None
+        return value
+    gathered = gather(value)
+    return gathered if isinstance(gathered, torch.Tensor) else None
+
+
+def _local_metric_tensor(value: Any) -> Optional[torch.Tensor]:
+    """Return a detached local metric tensor without any distributed gather."""
+
+    if not isinstance(value, torch.Tensor):
+        return None
+    if value.numel() <= 0:
+        return None
+    return value.detach()
+
+
 def _apply_eos_completion_mask(
     completion_ids: torch.Tensor,
     eos_token_id: Optional[int],
@@ -315,12 +562,51 @@ def _normalize_text_for_prefix_match(text: str) -> str:
 
 
 def _build_prompt_text(example: Dict[str, Any], tokenizer: Any) -> str:
-    """Render a prompt dict into the text passed to generation."""
+    """Render one trainer example into the exact text sent to generation."""
+
+    if not isinstance(example, dict):
+        return str(example)
 
     prompt = example.get("prompt", "")
-    if is_conversational(prompt):
+    if isinstance(prompt, list) and prompt:
+        first_message = prompt[0]
+        last_message = prompt[-1]
+        if (
+            isinstance(first_message, dict)
+            and isinstance(last_message, dict)
+            and "role" in first_message
+            and "content" in first_message
+            and "role" in last_message
+        ):
+            apply_chat_template = getattr(tokenizer, "apply_chat_template", None)
+            if callable(apply_chat_template):
+                try:
+                    last_role = str(last_message.get("role", ""))
+                    add_generation_prompt = last_role == "user"
+                    continue_final_message = last_role == "assistant"
+                    return str(
+                        apply_chat_template(
+                            prompt,
+                            tokenize=False,
+                            add_generation_prompt=add_generation_prompt,
+                            continue_final_message=continue_final_message,
+                        )
+                    )
+                except Exception:
+                    pass
+
+    conversational_example: Dict[str, Any] | None = None
+    if "prompt" in example:
+        conversational_example = {"prompt": prompt}
+    elif "messages" in example:
+        conversational_example = {"messages": example.get("messages")}
+
+    if (
+        isinstance(conversational_example, dict)
+        and is_conversational(conversational_example)
+    ):
         try:
-            rendered = maybe_apply_chat_template(prompt, tokenizer)
+            rendered = maybe_apply_chat_template(conversational_example, tokenizer)
         except Exception:
             rendered = {"prompt": str(prompt)}
         if isinstance(rendered, dict):
@@ -331,6 +617,136 @@ def _build_prompt_text(example: Dict[str, Any], tokenizer: Any) -> str:
                 return str(prompt_text)
         return str(rendered)
     return str(prompt)
+
+
+def _normalize_group_mass_proxy(values: Sequence[float]) -> List[float]:
+    """Convert a per-group signal into a non-negative mass proxy."""
+    cleaned: List[float] = []
+    for value in values:
+        try:
+            cleaned.append(float(value))
+        except (TypeError, ValueError):
+            cleaned.append(float("nan"))
+    if not cleaned:
+        return []
+    if all(math.isfinite(val) and val >= 0.0 for val in cleaned):
+        total = sum(cleaned)
+        if total > 0.0:
+            return [val / total for val in cleaned]
+    positives = [max(val, 0.0) if math.isfinite(val) else 0.0 for val in cleaned]
+    pos_total = sum(positives)
+    if pos_total > 0.0:
+        return [val / pos_total for val in positives]
+    return [float("nan")] * len(cleaned)
+
+
+def _build_rich_rollout_rows(
+    *,
+    step: int,
+    group_size: int,
+    prompt_texts: Sequence[str],
+    completion_texts: Sequence[str],
+    rewards: Sequence[float],
+    advantages: Sequence[float],
+    q_values: Optional[Sequence[float]] = None,
+) -> tuple[list[str], list[list[Any]]]:
+    """Build prompt-major rollout rows for within-group distribution analysis."""
+    total_rows = min(
+        len(prompt_texts),
+        len(completion_texts),
+        len(rewards),
+        len(advantages),
+    )
+    if total_rows <= 0:
+        return [], []
+    q_flat = list(q_values or [])
+    columns = [
+        "step",
+        "prompt_index",
+        "completion_index",
+        "group_size",
+        "reward_rank_desc",
+        "prompt",
+        "completion",
+        "reward_total",
+        "advantage",
+        "q_mass",
+        "update_weight_raw",
+        "update_mass_proxy",
+    ]
+    rows: List[List[Any]] = []
+    effective_group = max(int(group_size), 1)
+    for start in range(0, total_rows, effective_group):
+        stop = min(start + effective_group, total_rows)
+        local_rewards = [float(rewards[idx]) for idx in range(start, stop)]
+        local_advantages = [float(advantages[idx]) for idx in range(start, stop)]
+        local_q = (
+            [float(q_flat[idx]) for idx in range(start, stop)]
+            if len(q_flat) >= stop
+            else [float("nan")] * (stop - start)
+        )
+        reward_order = sorted(
+            range(stop - start),
+            key=lambda idx: (-local_rewards[idx], idx),
+        )
+        reward_rank = {local_idx: rank + 1 for rank, local_idx in enumerate(reward_order)}
+        use_q_mass = all(math.isfinite(val) for val in local_q)
+        local_proxy = (
+            _normalize_group_mass_proxy(local_q)
+            if use_q_mass
+            else _normalize_group_mass_proxy(local_advantages)
+        )
+        prompt_index = start // effective_group
+        for local_idx, row_idx in enumerate(range(start, stop)):
+            q_mass = local_q[local_idx] if use_q_mass else float("nan")
+            update_weight_raw = q_mass if use_q_mass else local_advantages[local_idx]
+            update_mass_proxy = (
+                local_proxy[local_idx]
+                if local_idx < len(local_proxy)
+                else float("nan")
+            )
+            rows.append(
+                [
+                    int(step),
+                    int(prompt_index),
+                    int(local_idx),
+                    int(stop - start),
+                    int(reward_rank.get(local_idx, local_idx + 1)),
+                    str(prompt_texts[row_idx]),
+                    str(completion_texts[row_idx]),
+                    float(local_rewards[local_idx]),
+                    float(local_advantages[local_idx]),
+                    float(q_mass),
+                    float(update_weight_raw),
+                    float(update_mass_proxy),
+                ]
+            )
+    return columns, rows
+
+
+def _write_rich_rollout_sidecar(
+    *,
+    output_dir: str,
+    table_key: str,
+    step: int,
+    columns: Sequence[str],
+    rows: Sequence[Sequence[Any]],
+) -> Optional[str]:
+    """Persist prompt-major rollout rows for downstream figure generation."""
+    if not output_dir:
+        return None
+    try:
+        sidecar_dir = os.path.join(output_dir, "rich_completions")
+        os.makedirs(sidecar_dir, exist_ok=True)
+        path = os.path.join(sidecar_dir, f"{table_key}_step_{int(step):06d}.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(
+                {"columns": list(columns), "data": [list(row) for row in rows]},
+                handle,
+            )
+        return path
+    except OSError:
+        return None
 
 
 def _token_prefix_search_order(target_len: int, max_len: int) -> List[int]:
@@ -464,6 +880,7 @@ def _gather_eval_benchmark_ids_for_prompts(
     prompt_inputs: List[Dict[str, Any]],
     *,
     device: torch.device,
+    local_only: bool = False,
 ) -> Optional[torch.Tensor]:
     """Return gathered prompt-major benchmark ids when present."""
 
@@ -485,10 +902,35 @@ def _gather_eval_benchmark_ids_for_prompts(
         except (TypeError, ValueError):
             ids.append(-1)
     ids_tensor = torch.tensor(ids, dtype=torch.long, device=device)
+    if local_only:
+        if not _is_main_process(trainer):
+            return None
+        return ids_tensor
     gathered = gather(ids_tensor)
     if not isinstance(gathered, torch.Tensor) or gathered.numel() <= 0:
         return None
     return gathered.to(torch.long)
+
+
+def _empty_dataset_like(dataset: Any) -> Any:
+    """Return an empty dataset preserving the input dataset type when possible."""
+
+    if dataset is None:
+        return []
+    select_fn = getattr(dataset, "select", None)
+    if callable(select_fn):
+        try:
+            return select_fn([])
+        except Exception:
+            pass
+    if isinstance(dataset, list):
+        return []
+    if isinstance(dataset, tuple):
+        return tuple()
+    try:
+        return dataset[:0]
+    except Exception:
+        return []
 
 
 def _build_seed_worker(num_workers: int, rank: int):
@@ -825,6 +1267,15 @@ def _legacy_metric_aliases(key: str) -> Tuple[str, ...]:
     return tuple(dict.fromkeys(aliases))
 
 
+def _supports_adapter_disabled_reference(model: Any) -> bool:
+    """Return whether the model exposes an adapter-disable reference path."""
+
+    return callable(getattr(model, "disable_adapter", None)) or (
+        callable(getattr(model, "disable_adapters", None))
+        and callable(getattr(model, "enable_adapters", None))
+    )
+
+
 def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
     """Return a GRPOTrainer subclass with MaxEnt hooks enabled.
 
@@ -902,6 +1353,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 self.objective_routing.maxent_objective_variant
             )
             self.maxent_alpha = self.objective_routing.maxent_alpha
+            self._maybe_initialize_reference_model_for_maxent()
             controller_meta_requested = bool(
                 getattr(getattr(self, "args", None), "controller_meta_enabled", False)
             )
@@ -949,6 +1401,65 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     self.method_spec.seed_grpo_enabled,
                     self.method_spec.slug,
                 )
+
+        def evaluation_loop(  # type: ignore[override]
+            self,
+            dataloader: Any,
+            description: str,
+            prediction_loss_only: Optional[bool] = None,
+            ignore_keys: Optional[List[str]] = None,
+            metric_key_prefix: str = "eval",
+        ) -> Any:
+            if _use_lightweight_greedy_eval(self, "eval"):
+                original_include = getattr(self.args, "include_for_metrics", None)
+                filtered_include: Any = original_include
+                if original_include is not None:
+                    filtered_include = tuple(
+                        item for item in original_include if item != "inputs"
+                    )
+                try:
+                    if original_include is not None:
+                        self.args.include_for_metrics = filtered_include
+                    return super().evaluation_loop(
+                        dataloader,
+                        description,
+                        prediction_loss_only=True,
+                        ignore_keys=ignore_keys,
+                        metric_key_prefix=metric_key_prefix,
+                    )
+                finally:
+                    if original_include is not None:
+                        self.args.include_for_metrics = original_include
+            return super().evaluation_loop(
+                dataloader,
+                description,
+                prediction_loss_only=prediction_loss_only,
+                ignore_keys=ignore_keys,
+                metric_key_prefix=metric_key_prefix,
+            )
+
+        def prediction_step(  # type: ignore[override]
+            self,
+            model: Any,
+            inputs: Dict[str, Any],
+            prediction_loss_only: bool,
+            ignore_keys: Optional[List[str]] = None,
+        ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
+            if _use_lightweight_greedy_eval(self, "eval") and not bool(
+                getattr(model, "training", False)
+            ):
+                # Greedy-only eval should do the minimum work required to log
+                # pass@1 metrics: prepare one greedy completion per prompt and
+                # skip the extra eval loss computation that the Trainer would
+                # otherwise perform for every batch.
+                self._prepare_inputs(inputs)
+                return None, None, None
+            return super().prediction_step(
+                model,
+                inputs,
+                prediction_loss_only,
+                ignore_keys=ignore_keys,
+            )
             if controller_meta_requested and not self.objective_routing.uses_listwise_loss:
                 LOG.info(
                     "Controller meta enabled for objective=%s; beta updates stay active, "
@@ -971,6 +1482,300 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             self._last_train_kl_for_alpha: Optional[float] = None
             self._last_grpo_debug_step: Optional[int] = None
             self._last_reference_ema_step: Optional[int] = None
+
+        def _entropy_alpha_kl_control_requested(self) -> bool:
+            """Return whether entropy-MaxEnt KL-based alpha control is active."""
+
+            args = getattr(self, "args", None)
+            return bool(
+                getattr(args, "maxent_alpha_raise_on_low_kl", False)
+                or getattr(args, "maxent_alpha_lower_on_high_kl", False)
+                or getattr(args, "maxent_alpha_disable_outside_trust_zone", False)
+            )
+
+        def _dr_grpo_denominator_mode(self) -> str:
+            """Return the normalized Dr.GRPO denominator mode."""
+
+            args = getattr(self, "args", None)
+            mode = str(
+                getattr(args, "dr_grpo_denominator_mode", "fixed_max") or "fixed_max"
+            ).strip().lower()
+            return "active_tokens" if mode == "active_tokens" else "fixed_max"
+
+        def _dr_grpo_loss_denominator(
+            self,
+            completion_mask: torch.Tensor,
+            *,
+            loss_tensor: torch.Tensor,
+            mode: str,
+        ) -> torch.Tensor:
+            """Return the denominator used by the Dr.GRPO loss."""
+
+            denominator_mode = self._dr_grpo_denominator_mode()
+            if denominator_mode == "active_tokens":
+                denominator = completion_mask.sum().clamp(min=1).to(loss_tensor.dtype)
+            else:
+                max_completion_length = int(
+                    getattr(self, "max_completion_length", 0)
+                    or getattr(getattr(self, "args", None), "max_completion_length", 0)
+                    or completion_mask.size(1)
+                    or 1
+                )
+                denominator = loss_tensor.new_tensor(
+                    float(max(loss_tensor.size(0) * max(max_completion_length, 1), 1))
+                )
+            self._append_metric_value(
+                mode,
+                "loss/dr_grpo_denominator",
+                float(denominator.detach().item()),
+                include_legacy_aliases=False,
+            )
+            self._append_metric_value(
+                mode,
+                "loss/dr_grpo_denominator_active_tokens",
+                1.0 if denominator_mode == "active_tokens" else 0.0,
+                include_legacy_aliases=False,
+            )
+            return denominator
+
+        def _should_force_reference_model_for_maxent(self) -> bool:
+            """Return whether MaxEnt should materialize a frozen reference model."""
+
+            if not bool(getattr(self, "maxent_enabled", False)):
+                return False
+            args = getattr(self, "args", None)
+            if bool(getattr(args, "maxent_share_reference_model", False)):
+                return False
+            if getattr(self, "ref_model", None) is not None:
+                return False
+            unwrapped_model = getattr(self, "model", None)
+            unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+            if callable(unwrap_fn):
+                try:
+                    unwrapped_model = unwrap_fn(unwrapped_model)
+                except Exception:
+                    unwrapped_model = getattr(self, "model", None)
+            if _supports_adapter_disabled_reference(unwrapped_model):
+                return False
+
+            ref_source = str(
+                getattr(args, "maxent_reference_logprobs_source", "auto") or "auto"
+            ).strip().lower()
+            force_model_reference = bool(
+                getattr(args, "maxent_trl_reference_scoring", False)
+            ) or ref_source in {
+                "model",
+                "reference",
+                "reference_model",
+                "ref_model",
+            }
+            needs_entropy_kl_measure = bool(
+                self.objective_routing.uses_entropy_regularized_loss
+                and (
+                    float(getattr(self, "beta", 0.0) or 0.0) != 0.0
+                    or self._entropy_alpha_kl_control_requested()
+                )
+            )
+            return bool(force_model_reference or needs_entropy_kl_measure)
+
+        def _maybe_initialize_reference_model_for_maxent(self) -> None:
+            """Materialize a frozen reference model when MaxEnt needs one and TRL skipped it."""
+
+            if not self._should_force_reference_model_for_maxent():
+                return
+            global AutoModelForCausalLM
+            global _trl_create_reference_model
+            global _trl_prepare_deepspeed
+            global _trl_prepare_fsdp
+
+            if _trl_create_reference_model is None:
+                try:
+                    from trl.models import create_reference_model as _create_reference_model
+                    from trl.models import prepare_deepspeed as _prepare_deepspeed
+                    from trl.models import prepare_fsdp as _prepare_fsdp
+
+                    _trl_create_reference_model = _create_reference_model
+                    _trl_prepare_deepspeed = _prepare_deepspeed
+                    _trl_prepare_fsdp = _prepare_fsdp
+                except Exception:
+                    _trl_create_reference_model = None
+                    _trl_prepare_deepspeed = None
+                    _trl_prepare_fsdp = None
+            if AutoModelForCausalLM is None:
+                try:
+                    from transformers import AutoModelForCausalLM as _AutoModelForCausalLM
+
+                    AutoModelForCausalLM = _AutoModelForCausalLM  # type: ignore[assignment]
+                except Exception:
+                    AutoModelForCausalLM = None  # type: ignore[assignment]
+
+            policy_model = getattr(self, "model", None)
+            unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+            unwrapped_policy = policy_model
+            if callable(unwrap_fn):
+                try:
+                    unwrapped_policy = unwrap_fn(policy_model)
+                except Exception:
+                    unwrapped_policy = policy_model
+
+            ref_model: Any = None
+            if (
+                not bool(getattr(self, "is_deepspeed_enabled", False))
+                and not bool(getattr(self, "is_fsdp_enabled", False))
+                and callable(_trl_create_reference_model)
+            ):
+                try:
+                    ref_model = _trl_create_reference_model(unwrapped_policy)
+                except Exception as exc:
+                    LOG.warning(
+                        "Failed to clone a frozen reference model for MaxEnt KL measurement; "
+                        "retrying from pretrained weights: %s",
+                        exc,
+                    )
+
+            if ref_model is None and AutoModelForCausalLM is not None:
+                args = getattr(self, "args", None)
+                model_init_kwargs_raw = getattr(args, "model_init_kwargs", None)
+                model_init_kwargs = (
+                    dict(model_init_kwargs_raw)
+                    if isinstance(model_init_kwargs_raw, Mapping)
+                    else {}
+                )
+                ref_revision = getattr(args, "reference_model_revision", None)
+                if ref_revision:
+                    model_init_kwargs["revision"] = ref_revision
+                model_id = (
+                    getattr(args, "reference_model_name_or_path", None)
+                    or getattr(getattr(unwrapped_policy, "config", None), "_name_or_path", None)
+                    or getattr(unwrapped_policy, "name_or_path", None)
+                )
+                if model_id:
+                    try:
+                        ref_model = AutoModelForCausalLM.from_pretrained(
+                            model_id,
+                            **model_init_kwargs,
+                        )
+                    except Exception as exc:
+                        LOG.warning(
+                            "Failed to load a frozen reference model for MaxEnt KL measurement "
+                            "from %s: %s",
+                            model_id,
+                            exc,
+                        )
+
+            if ref_model is None:
+                if not bool(getattr(self, "_maxent_missing_ref_model_warned", False)):
+                    LOG.warning(
+                        "MaxEnt requested model-based KL measurement, but no frozen reference "
+                        "model could be initialized. KL metrics may collapse to rollout behavior."
+                    )
+                    setattr(self, "_maxent_missing_ref_model_warned", True)
+                return
+
+            for param in getattr(ref_model, "parameters", lambda: [])():
+                try:
+                    param.requires_grad = False
+                except (AttributeError, RuntimeError):
+                    continue
+            eval_fn = getattr(ref_model, "eval", None)
+            if callable(eval_fn):
+                eval_fn()
+            if bool(getattr(self, "is_deepspeed_enabled", False)) and callable(
+                _trl_prepare_deepspeed
+            ):
+                ref_model = _trl_prepare_deepspeed(ref_model, self.accelerator)
+            elif bool(getattr(self, "is_fsdp_enabled", False)) and callable(
+                _trl_prepare_fsdp
+            ):
+                ref_model = _trl_prepare_fsdp(ref_model, self.accelerator)
+            else:
+                prepare_model = getattr(self.accelerator, "prepare_model", None)
+                if callable(prepare_model):
+                    try:
+                        ref_model = prepare_model(
+                            ref_model,
+                            evaluation_mode=True,
+                        )
+                    except TypeError:
+                        ref_model = prepare_model(ref_model)
+                else:
+                    prepare = getattr(self.accelerator, "prepare", None)
+                    if callable(prepare):
+                        ref_model = prepare(ref_model)
+            self.ref_model = ref_model  # pylint: disable=attribute-defined-outside-init
+            LOG.info(
+                "Materialized a frozen reference model for MaxEnt KL measurement despite beta=0."
+            )
+
+        def _should_use_model_reference_logprobs(
+            self,
+            *,
+            default_to_model_reference: bool,
+        ) -> bool:
+            """Return whether the current loss should score against a model-based reference."""
+
+            args = getattr(self, "args", None)
+            ref_source = str(
+                getattr(args, "maxent_reference_logprobs_source", "auto") or "auto"
+            ).strip().lower()
+            if ref_source == "none":
+                ref_source = "policy"
+            if bool(getattr(args, "maxent_trl_reference_scoring", False)):
+                return True
+            if ref_source in {"model", "reference", "reference_model", "ref_model"}:
+                return True
+            if ref_source == "policy":
+                return False
+            if ref_source == "auto":
+                if getattr(self, "ref_model", None) is not None:
+                    return True
+                unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+                unwrapped_model = getattr(self, "model", None)
+                if callable(unwrap_fn):
+                    try:
+                        unwrapped_model = unwrap_fn(unwrapped_model)
+                    except Exception:
+                        unwrapped_model = getattr(self, "model", None)
+                if _supports_adapter_disabled_reference(unwrapped_model):
+                    return True
+                return default_to_model_reference
+            return default_to_model_reference
+
+        def _get_reference_per_token_logps(
+            self,
+            input_ids: torch.Tensor,
+            attention_mask: torch.Tensor,
+            logits_to_keep: int,
+            *,
+            batch_size: int,
+        ) -> Optional[torch.Tensor]:
+            """Return per-token log-probs from the frozen/model-based reference path."""
+
+            if getattr(self, "ref_model", None) is not None:
+                return self._get_per_token_logps(
+                    self.ref_model,
+                    input_ids,
+                    attention_mask,
+                    logits_to_keep,
+                    batch_size=batch_size,
+                )
+            unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+            unwrapped_model = getattr(self, "model", None)
+            if callable(unwrap_fn):
+                try:
+                    unwrapped_model = unwrap_fn(unwrapped_model)
+                except Exception:
+                    unwrapped_model = getattr(self, "model", None)
+            if not _supports_adapter_disabled_reference(unwrapped_model):
+                return None
+            with _adapter_disabled_context(unwrapped_model):
+                return self._get_per_token_logps(
+                    self.model,
+                    input_ids,
+                    attention_mask,
+                    logits_to_keep,
+                    batch_size=batch_size,
+                )
 
         def _sync_weighting_scalars(self) -> None:
             """Expose controller scalars on the trainer for logging helpers."""
@@ -1125,6 +1930,127 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 torch.utils.data.DataLoader(train_dataset, **dataloader_params)
             )
 
+        def get_eval_dataloader(self, eval_dataset: Optional[Any] = None):  # type: ignore[override]
+            """Use a prompt-major loader for greedy-only eval, sharded across ranks."""
+
+            eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
+            lightweight_eval = _use_lightweight_greedy_eval(self, "eval")
+            if not lightweight_eval:
+                setattr(self, "_local_only_eval_prompt_major_loader_active", False)
+                setattr(self, "_sharded_eval_prompt_major_loader_active", False)
+                return super().get_eval_dataloader(eval_dataset)
+
+            if eval_dataset is None:
+                raise ValueError("Trainer: evaluation requires an eval_dataset.")
+
+            sharded_eval = _use_sharded_prompt_major_greedy_eval(self, "eval")
+            setattr(self, "_local_only_eval_prompt_major_loader_active", True)
+            setattr(self, "_sharded_eval_prompt_major_loader_active", bool(sharded_eval))
+            prompt_major_dataset = eval_dataset
+            data_collator = self.data_collator
+
+            try:
+                from transformers.utils import is_datasets_available
+            except Exception:  # pragma: no cover - transformers is required for training
+
+                def is_datasets_available() -> bool:
+                    return False
+
+            if is_datasets_available():
+                try:
+                    import datasets
+                except Exception:
+                    datasets = None  # type: ignore
+                if datasets is not None and isinstance(
+                    prompt_major_dataset, datasets.Dataset
+                ):
+                    prompt_major_dataset = self._remove_unused_columns(
+                        prompt_major_dataset,
+                        description="evaluation",
+                    )
+                else:
+                    trim_collator = getattr(
+                        self,
+                        "_get_collator_with_removed_columns",
+                        None,
+                    )
+                    if callable(trim_collator):
+                        data_collator = trim_collator(
+                            data_collator,
+                            description="evaluation",
+                        )
+            else:
+                trim_collator = getattr(
+                    self,
+                    "_get_collator_with_removed_columns",
+                    None,
+                )
+                if callable(trim_collator):
+                    data_collator = trim_collator(
+                        data_collator,
+                        description="evaluation",
+                    )
+
+            dataloader_params = {
+                "batch_size": int(
+                    getattr(self.args, "per_device_eval_batch_size", 0)
+                    or getattr(self.args, "eval_batch_size", 0)
+                    or 1
+                ),
+                "collate_fn": data_collator,
+                "num_workers": int(getattr(self.args, "dataloader_num_workers", 0) or 0),
+                "pin_memory": bool(
+                    getattr(self.args, "dataloader_pin_memory", False)
+                ),
+                "persistent_workers": bool(
+                    getattr(self.args, "dataloader_persistent_workers", False)
+                ),
+            }
+
+            if not isinstance(prompt_major_dataset, torch.utils.data.IterableDataset):
+                if sharded_eval:
+                    accelerator = getattr(self, "accelerator", None)
+                    try:
+                        num_processes = int(
+                            getattr(accelerator, "num_processes", 1) or 1
+                        )
+                    except (TypeError, ValueError):
+                        num_processes = 1
+                    try:
+                        process_index = int(
+                            getattr(accelerator, "process_index", 0) or 0
+                        )
+                    except (TypeError, ValueError):
+                        process_index = 0
+                    dataloader_params["sampler"] = (
+                        torch.utils.data.distributed.DistributedSampler(
+                            prompt_major_dataset,
+                            num_replicas=max(num_processes, 1),
+                            rank=max(process_index, 0),
+                            shuffle=False,
+                            drop_last=False,
+                        )
+                    )
+                else:
+                    dataloader_params["sampler"] = torch.utils.data.SequentialSampler(
+                        prompt_major_dataset
+                    )
+                dataloader_params["drop_last"] = False
+                if dataloader_params["num_workers"] > 0:
+                    prefetch = getattr(self.args, "dataloader_prefetch_factor", None)
+                    if prefetch is not None:
+                        dataloader_params["prefetch_factor"] = int(prefetch)
+                    worker_init_fn = _build_seed_worker(
+                        dataloader_params["num_workers"],
+                        int(getattr(self.args, "process_index", 0) or 0),
+                    )
+                    if worker_init_fn is not None:
+                        dataloader_params["worker_init_fn"] = worker_init_fn
+
+            # Keep this dataloader fully local. ``accelerator.prepare`` would shard or
+            # wrap it again, which defeats the goal of rank-0-only prompt-major eval.
+            return torch.utils.data.DataLoader(prompt_major_dataset, **dataloader_params)
+
         def _prepare_inputs(self, generation_batch: Any) -> Any:  # type: ignore[override]
             if not self.objective_routing.uses_listwise_loss:
                 return super()._prepare_inputs(generation_batch)
@@ -1262,7 +2188,8 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             if mode != "train":
                 return
             step = int(getattr(self.state, "global_step", 0))
-            if self._last_grpo_debug_step == step:
+            last_logged_step = getattr(self, "_last_grpo_debug_step", None)
+            if last_logged_step == step:
                 return
             self._last_grpo_debug_step = step
 
@@ -1752,6 +2679,12 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 completions_text[i : i + group_size]
                 for i in range(0, usable, group_size)
             ]
+            local_only_eval = (
+                _use_local_only_lightweight_eval_metrics(self, mode)
+                or _use_local_only_eval_diversity_metrics(self, mode)
+            )
+            if local_only_eval and not _is_main_process(self):
+                return
             use_tokenizer = (
                 tokenizer
                 if callable(getattr(tokenizer, "encode", None)) or callable(tokenizer)
@@ -1760,7 +2693,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             metrics = _completion_diversity_metrics(
                 grouped,
                 tokenizer=use_tokenizer,
-                accelerator=self.accelerator,
+                accelerator=None if local_only_eval else self.accelerator,
             )
             if metrics:
                 for key, val in metrics.items():
@@ -1769,6 +2702,115 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         f"completions/diversity/{key}",
                         float(val),
                     )
+
+        def _maybe_log_rich_rollout_sidecar(
+            self,
+            inputs: List[Dict[str, Any]],
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+        ) -> None:
+            """Write prompt-major rollout rows for distribution figures."""
+            if mode != "train":
+                return
+            args = getattr(self, "args", None)
+            if not bool(getattr(args, "rich_log_completions", False)):
+                return
+            if not _is_main_process(self):
+                return
+            output_dir = getattr(args, "output_dir", None)
+            if not isinstance(output_dir, str) or not output_dir.strip():
+                return
+            completion_ids = outputs.get("completion_ids")
+            completion_mask = outputs.get("completion_mask")
+            advantages = outputs.get("advantages")
+            tokenizer = getattr(self, "processing_class", None)
+            decode = getattr(tokenizer, "decode", None)
+            if not isinstance(completion_ids, torch.Tensor) or not isinstance(
+                completion_mask, torch.Tensor
+            ):
+                return
+            if not isinstance(advantages, torch.Tensor):
+                return
+            if not callable(decode):
+                return
+            rewards_local = self._recompute_local_rewards_for_outputs(inputs, outputs)
+            if not isinstance(rewards_local, torch.Tensor) or rewards_local.numel() <= 0:
+                return
+            total_rows = min(
+                int(completion_ids.size(0)),
+                int(completion_mask.size(0)),
+                int(advantages.numel()),
+                int(rewards_local.numel()),
+                len(inputs),
+            )
+            if total_rows <= 0:
+                return
+            prompt_texts = [
+                _build_prompt_text(example, tokenizer)
+                for example in inputs[:total_rows]
+            ]
+            completion_texts: List[str] = []
+            for row_idx in range(total_rows):
+                mask_row = completion_mask[row_idx].to(torch.long)
+                active_ids = [
+                    int(tok.item())
+                    for tok, keep in zip(completion_ids[row_idx], mask_row)
+                    if int(keep.item()) != 0
+                ]
+                try:
+                    completion_text = str(decode(active_ids, skip_special_tokens=True))
+                except Exception:
+                    completion_text = ""
+                completion_texts.append(completion_text)
+            q_grouped = outputs.get("maxent_listwise_q")
+            q_values: Optional[List[float]] = None
+            if isinstance(q_grouped, torch.Tensor) and q_grouped.numel() > 0:
+                try:
+                    q_values = [
+                        float(val)
+                        for val in q_grouped.detach().to(torch.float32).reshape(-1).tolist()
+                    ][:total_rows]
+                except Exception:
+                    q_values = None
+            step_value = int(getattr(getattr(self, "state", None), "global_step", 0) or 0)
+            if mode == "train":
+                step_value += 1
+            columns, rows = _build_rich_rollout_rows(
+                step=step_value,
+                group_size=max(int(getattr(self, "num_generations", 1) or 1), 1),
+                prompt_texts=prompt_texts,
+                completion_texts=completion_texts,
+                rewards=[
+                    float(val)
+                    for val in rewards_local[:total_rows].detach().to(torch.float32).tolist()
+                ],
+                advantages=[
+                    float(val)
+                    for val in advantages[:total_rows].detach().to(torch.float32).tolist()
+                ],
+                q_values=q_values,
+            )
+            if not rows:
+                return
+            table_key = str(
+                getattr(args, "rich_log_completions_key", "rich_completions")
+                or "rich_completions"
+            ).strip()
+            path = _write_rich_rollout_sidecar(
+                output_dir=output_dir.strip(),
+                table_key=table_key,
+                step=step_value,
+                columns=columns,
+                rows=rows,
+            )
+            if path:
+                LOG.info(
+                    "Wrote rich rollout sidecar | step=%d rows=%d path=%s",
+                    step_value,
+                    len(rows),
+                    path,
+                )
 
         def _recompute_grouped_advantages(
             self,
@@ -1814,6 +2856,554 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 dtype=torch.float32,
             )
             return rewards_local
+
+        def _maybe_backfill_old_per_token_logps(
+            self,
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+        ) -> None:
+            """Populate rollout behavior log-probs when the parent TRL path omits them.
+
+            TRL intentionally skips ``old_per_token_logps`` when the current rollout can
+            reuse the policy log-probs in the loss. SEED-GRPO needs those rollout
+            log-probs earlier, during advantage scaling, so backfill them from the
+            current policy before any truncation/postprocessing changes the sequence.
+            """
+
+            if mode != "train":
+                return
+            if isinstance(outputs.get("old_per_token_logps"), torch.Tensor):
+                return
+            args = getattr(self, "args", None)
+            if not bool(getattr(args, "seed_grpo_enabled", False)):
+                return
+            prompt_ids = outputs.get("prompt_ids")
+            prompt_mask = outputs.get("prompt_mask")
+            completion_ids = outputs.get("completion_ids")
+            completion_mask = outputs.get("completion_mask")
+            if not isinstance(prompt_ids, torch.Tensor) or not isinstance(
+                prompt_mask, torch.Tensor
+            ):
+                return
+            if not isinstance(completion_ids, torch.Tensor) or not isinstance(
+                completion_mask, torch.Tensor
+            ):
+                return
+            logits_to_keep = int(completion_ids.size(1))
+            if logits_to_keep <= 0:
+                return
+            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+            attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
+            configured_batch_size = int(
+                getattr(args, "per_device_train_batch_size", 1) or 1
+            )
+            chunk_size = int(
+                getattr(args, "maxent_logprob_chunk_size", 0)
+                or configured_batch_size
+                or 1
+            )
+            behavior_source = str(
+                getattr(args, "behavior_logprobs_source", "model") or "model"
+            ).strip().lower()
+            if behavior_source not in {"", "model"} and not bool(
+                getattr(self, "_seed_grpo_behavior_source_warned", False)
+            ):
+                LOG.warning(
+                    "SEED-GRPO requested behavior_logprobs_source=%s, but the shared "
+                    "trainer rollout did not return per-token behavior log-probs. "
+                    "Recomputing them from the current policy for rollout parity.",
+                    behavior_source,
+                )
+                setattr(self, "_seed_grpo_behavior_source_warned", True)
+            if not bool(getattr(self, "_seed_grpo_backfill_preflight_logged", False)):
+                tokenizer = getattr(self, "processing_class", None)
+                upper_bound = _resolve_token_id_upper_bound(
+                    getattr(self, "model", None),
+                    tokenizer,
+                )
+
+                def _token_range_stats(
+                    tensor: torch.Tensor,
+                ) -> Tuple[Optional[int], Optional[int], int]:
+                    try:
+                        min_token = int(tensor.min().item())
+                        max_token = int(tensor.max().item())
+                    except Exception:
+                        min_token = None
+                        max_token = None
+                    invalid_count = 0
+                    if isinstance(upper_bound, int) and upper_bound > 0:
+                        try:
+                            invalid_count = int(
+                                ((tensor < 0) | (tensor >= upper_bound))
+                                .to(torch.long)
+                                .sum()
+                                .item()
+                            )
+                        except Exception:
+                            invalid_count = 0
+                    return min_token, max_token, invalid_count
+
+                prompt_min, prompt_max, prompt_invalid = _token_range_stats(prompt_ids)
+                completion_min, completion_max, completion_invalid = _token_range_stats(
+                    completion_ids
+                )
+                LOG.info(
+                    "SEED-GRPO backfill preflight | upper_bound=%s | "
+                    "prompt_ids[min=%s max=%s invalid=%d] | "
+                    "completion_ids[min=%s max=%s invalid=%d]",
+                    upper_bound,
+                    prompt_min,
+                    prompt_max,
+                    prompt_invalid,
+                    completion_min,
+                    completion_max,
+                    completion_invalid,
+                )
+                setattr(self, "_seed_grpo_backfill_preflight_logged", True)
+            try:
+                with torch.no_grad():
+                    old_per_token_logps = self._get_per_token_logps(
+                        self.model,
+                        input_ids,
+                        attention_mask,
+                        logits_to_keep,
+                        batch_size=chunk_size,
+                    )
+            except Exception as exc:
+                if not bool(getattr(self, "_seed_grpo_backfill_warned", False)):
+                    LOG.warning(
+                        "SEED-GRPO could not backfill rollout log-prob metadata; "
+                        "falling back to unscaled GRPO advantages: %s",
+                        exc,
+                    )
+                    setattr(self, "_seed_grpo_backfill_warned", True)
+                return
+            if not isinstance(old_per_token_logps, torch.Tensor):
+                return
+            outputs["old_per_token_logps"] = old_per_token_logps.detach().to(
+                device=completion_ids.device,
+                dtype=torch.float32,
+            )
+            self._append_metric_value(
+                "train",
+                "seed_grpo/behavior_logprobs_backfilled",
+                1.0,
+                include_legacy_aliases=False,
+            )
+
+        def _sanitize_rollout_token_ids(
+            self,
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+        ) -> None:
+            """Clamp rollout token ids into the train-time model vocab range.
+
+            This keeps the shared rollout pipeline robust when tokenizer/vLLM ids
+            exceed the policy model vocab, which otherwise crashes later log-prob
+            gathers with CUDA index assertions.
+            """
+
+            del mode
+            setattr(self, "_last_rollout_invalid_token_id_count", 0.0)
+            unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+            base_model = getattr(self, "model", None)
+            if callable(unwrap_fn):
+                try:
+                    base_model = unwrap_fn(base_model)
+                except Exception:
+                    base_model = getattr(self, "model", None)
+            tokenizer = getattr(self, "processing_class", None)
+            vocab_size = _resolve_token_id_upper_bound(base_model, tokenizer)
+            if not isinstance(vocab_size, int) or vocab_size <= 0:
+                return
+            replacement_id = _coerce_optional_int(getattr(tokenizer, "pad_token_id", None))
+            if replacement_id is None or replacement_id < 0 or replacement_id >= vocab_size:
+                replacement_id = _coerce_optional_int(getattr(tokenizer, "eos_token_id", None))
+            if replacement_id is None or replacement_id < 0 or replacement_id >= vocab_size:
+                replacement_id = max(vocab_size - 1, 0)
+
+            total_invalid = 0
+            details: List[str] = []
+            for key in ("prompt_ids", "completion_ids"):
+                tensor = outputs.get(key)
+                if not isinstance(tensor, torch.Tensor):
+                    continue
+                if tensor.dtype.is_floating_point or tensor.dtype == torch.bool:
+                    continue
+                invalid_mask = (tensor < 0) | (tensor >= vocab_size)
+                invalid_count = int(invalid_mask.to(torch.long).sum().item())
+                if invalid_count <= 0:
+                    continue
+                total_invalid += invalid_count
+                try:
+                    invalid_vals = tensor[invalid_mask]
+                    min_invalid = int(invalid_vals.min().item())
+                    max_invalid = int(invalid_vals.max().item())
+                except Exception:
+                    min_invalid = 0
+                    max_invalid = 0
+                sanitized = tensor.clone()
+                sanitized[invalid_mask] = int(replacement_id)
+                outputs[key] = sanitized
+                details.append(
+                    f"{key}:count={invalid_count}:min={min_invalid}:max={max_invalid}"
+                )
+
+            if total_invalid <= 0:
+                return
+            setattr(self, "_last_rollout_invalid_token_id_count", float(total_invalid))
+            self._append_metric_value(
+                "train",
+                "rollout/invalid_token_id_count",
+                float(total_invalid),
+                include_legacy_aliases=False,
+            )
+            self._append_metric_value(
+                "train",
+                "rollout/invalid_token_id_replacement",
+                float(replacement_id),
+                include_legacy_aliases=False,
+            )
+            if not bool(getattr(self, "_invalid_rollout_token_ids_warned", False)):
+                LOG.warning(
+                    "Sanitized %d rollout token ids outside model vocab_size=%d using replacement_id=%d (%s)",
+                    total_invalid,
+                    vocab_size,
+                    replacement_id,
+                    ", ".join(details),
+                )
+                setattr(self, "_invalid_rollout_token_ids_warned", True)
+            fatal_flag = str(
+                os.getenv("MAXENT_FATAL_INVALID_ROLLOUT_TOKEN_IDS", "0")
+            ).strip().lower()
+            if fatal_flag in {"1", "true", "yes", "on"}:
+                self._append_metric_value(
+                    "train",
+                    "rollout/invalid_token_id_guard_triggered",
+                    1.0,
+                    include_legacy_aliases=False,
+                )
+                raise RuntimeError(
+                    "Detected rollout token ids outside the tokenizer-addressable "
+                    f"range (count={total_invalid}, vocab_size={vocab_size}, "
+                    f"replacement_id={replacement_id})."
+                )
+
+        def _maybe_apply_seed_grpo_advantages(
+            self,
+            inputs: List[Dict[str, Any]],
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+            group_size: Optional[int] = None,
+        ) -> None:
+            """Apply SEED-GRPO semantic-entropy scaling to prepared advantages."""
+
+            if mode != "train":
+                return
+            args = getattr(self, "args", None)
+            if not bool(getattr(args, "seed_grpo_enabled", False)):
+                return
+            advantages = outputs.get("advantages")
+            completion_ids = outputs.get("completion_ids")
+            completion_mask = outputs.get("completion_mask")
+            old_per_token_logps = outputs.get("old_per_token_logps")
+            if not isinstance(advantages, torch.Tensor):
+                return
+            if not isinstance(completion_ids, torch.Tensor):
+                return
+            if not isinstance(completion_mask, torch.Tensor):
+                return
+            if not isinstance(old_per_token_logps, torch.Tensor):
+                if not bool(getattr(self, "_seed_grpo_missing_logprobs_warned", False)):
+                    LOG.warning(
+                        "SEED-GRPO enabled but rollout log-prob metadata is missing; "
+                        "falling back to unscaled GRPO advantages."
+                    )
+                    setattr(self, "_seed_grpo_missing_logprobs_warned", True)
+                return
+            if old_per_token_logps.ndim != 2:
+                if not bool(
+                    getattr(self, "_seed_grpo_logprob_rank_mismatch_warned", False)
+                ):
+                    LOG.warning(
+                        "SEED-GRPO requires a rank-2 per-token logprob tensor; got shape=%s. "
+                        "Falling back to unscaled GRPO advantages.",
+                        getattr(old_per_token_logps, "shape", None),
+                    )
+                    setattr(
+                        self,
+                        "_seed_grpo_logprob_rank_mismatch_warned",
+                        True,
+                    )
+                return
+            if int(old_per_token_logps.size(0)) != int(completion_ids.size(0)):
+                if not bool(
+                    getattr(self, "_seed_grpo_logprob_row_mismatch_warned", False)
+                ):
+                    LOG.warning(
+                        "SEED-GRPO requires rollout logprobs aligned with completions; "
+                        "got logprob_rows=%d completion_rows=%d. Falling back to unscaled GRPO advantages.",
+                        int(old_per_token_logps.size(0)),
+                        int(completion_ids.size(0)),
+                    )
+                    setattr(
+                        self,
+                        "_seed_grpo_logprob_row_mismatch_warned",
+                        True,
+                    )
+                return
+            try:
+                required_width = int(
+                    completion_mask.to(torch.long).sum(dim=1).max().item()
+                )
+            except Exception:
+                required_width = 0
+            if required_width > int(old_per_token_logps.size(1)):
+                if not bool(
+                    getattr(self, "_seed_grpo_logprob_width_mismatch_warned", False)
+                ):
+                    LOG.warning(
+                        "SEED-GRPO requires rollout logprobs wide enough for active completion tokens; "
+                        "got logprob_width=%d required_width=%d. Falling back to unscaled GRPO advantages.",
+                        int(old_per_token_logps.size(1)),
+                        required_width,
+                    )
+                    setattr(
+                        self,
+                        "_seed_grpo_logprob_width_mismatch_warned",
+                        True,
+                    )
+                return
+            tokenizer = getattr(self, "processing_class", None)
+            decode = getattr(tokenizer, "decode", None)
+            if not callable(decode):
+                return
+            effective_group = max(
+                int(group_size or getattr(self, "num_generations", 1) or 1),
+                1,
+            )
+            total = int(completion_ids.size(0))
+            if total <= 0 or total % effective_group != 0:
+                if not bool(getattr(self, "_seed_grpo_group_shape_warned", False)):
+                    LOG.warning(
+                        "SEED-GRPO requires local rollout batches to contain whole "
+                        "prompt groups; got batch=%d with num_generations=%d. "
+                        "Falling back to unscaled GRPO advantages.",
+                        total,
+                        effective_group,
+                    )
+                    setattr(self, "_seed_grpo_group_shape_warned", True)
+                return
+
+            grouped_completions: List[List[str]] = []
+            grouped_ref_meta: List[List[Dict[str, Any]]] = []
+            for start in range(0, total, effective_group):
+                completion_group: List[str] = []
+                meta_group: List[Dict[str, Any]] = []
+                for row_idx in range(start, start + effective_group):
+                    mask_row = completion_mask[row_idx].to(torch.long)
+                    active_len = int(mask_row.sum().item())
+                    active_ids = [
+                        int(tok.item())
+                        for tok, keep in zip(completion_ids[row_idx], mask_row)
+                        if int(keep.item()) != 0
+                    ]
+                    try:
+                        completion_text = str(
+                            decode(active_ids, skip_special_tokens=True)
+                        )
+                    except Exception:
+                        completion_text = ""
+                    completion_group.append(completion_text)
+                    token_logps = old_per_token_logps[row_idx, :active_len]
+                    logprob_sum = (
+                        float(token_logps.sum().item()) if active_len > 0 else 0.0
+                    )
+                    meta_group.append(
+                        {
+                            "logprob_sum": logprob_sum,
+                            "token_count": active_len,
+                        }
+                    )
+                grouped_completions.append(completion_group)
+                grouped_ref_meta.append(meta_group)
+
+            try:
+                (
+                    semantic_entropies,
+                    advantage_scales,
+                    alpha_effective,
+                    max_possible_entropy,
+                ) = _compute_seed_grpo_statistics(
+                    SimpleNamespace(
+                        grouped_completions=grouped_completions,
+                        grouped_ref_meta=grouped_ref_meta,
+                    ),
+                    alpha=float(getattr(args, "seed_grpo_alpha", 0.0417) or 0.0417),
+                    normalize_by_max_entropy=bool(
+                        getattr(
+                            args,
+                            "seed_grpo_alpha_normalize_by_max_entropy",
+                            True,
+                        )
+                    ),
+                    length_normalize_logprobs=bool(
+                        getattr(args, "seed_grpo_length_normalize_logprobs", True)
+                    ),
+                    num_generations=int(
+                        getattr(args, "num_generations", effective_group)
+                        or effective_group
+                    ),
+                )
+            except Exception as exc:
+                if not bool(getattr(self, "_seed_grpo_compute_warned", False)):
+                    LOG.warning(
+                        "SEED-GRPO scaling failed during rollout prep; falling back "
+                        "to unscaled GRPO advantages. Error: %s",
+                        exc,
+                    )
+                    setattr(self, "_seed_grpo_compute_warned", True)
+                return
+
+            if not advantage_scales:
+                return
+            repeated_scales = torch.tensor(
+                [
+                    float(scale)
+                    for scale in advantage_scales
+                    for _ in range(effective_group)
+                ],
+                device=advantages.device,
+                dtype=advantages.dtype,
+            )
+            if int(repeated_scales.numel()) != int(advantages.numel()):
+                return
+            outputs["advantages"] = advantages * repeated_scales
+            outputs["seed_grpo_semantic_entropies"] = torch.tensor(
+                semantic_entropies,
+                device=advantages.device,
+                dtype=torch.float32,
+            )
+            outputs["seed_grpo_advantage_scales"] = torch.tensor(
+                advantage_scales,
+                device=advantages.device,
+                dtype=torch.float32,
+            )
+
+            # Keep SEED diagnostics rank-local. These metrics are not used for
+            # correctness, and cross-rank gathers here can desync collectives if
+            # one rank bails out of SEED scaling earlier than another.
+            local_entropies = _local_metric_tensor(outputs["seed_grpo_semantic_entropies"])
+            if isinstance(local_entropies, torch.Tensor) and local_entropies.numel() > 0:
+                self._append_metric_value(
+                    mode,
+                    "seed_grpo/semantic_entropy_mean",
+                    float(local_entropies.mean().item()),
+                )
+                self._append_metric_value(
+                    mode,
+                    "seed_grpo/semantic_entropy_min",
+                    float(local_entropies.min().item()),
+                )
+                self._append_metric_value(
+                    mode,
+                    "seed_grpo/semantic_entropy_max",
+                    float(local_entropies.max().item()),
+                )
+            local_scales = _local_metric_tensor(outputs["seed_grpo_advantage_scales"])
+            if isinstance(local_scales, torch.Tensor) and local_scales.numel() > 0:
+                self._append_metric_value(
+                    mode,
+                    "seed_grpo/advantage_scale_mean",
+                    float(local_scales.mean().item()),
+                )
+                self._append_metric_value(
+                    mode,
+                    "seed_grpo/advantage_scale_min",
+                    float(local_scales.min().item()),
+                )
+                self._append_metric_value(
+                    mode,
+                    "seed_grpo/advantage_scale_max",
+                    float(local_scales.max().item()),
+                )
+            self._append_metric_value(
+                mode,
+                "seed_grpo/alpha_effective",
+                float(alpha_effective),
+            )
+            self._append_metric_value(
+                mode,
+                "seed_grpo/max_possible_entropy",
+                float(max_possible_entropy),
+            )
+
+        def _maybe_apply_seed_grpo_advantages_in_loss(
+            self,
+            inputs: Dict[str, Any],
+            *,
+            completion_ids: torch.Tensor,
+            completion_mask: torch.Tensor,
+            behavior_logps: torch.Tensor,
+            mode: str,
+        ) -> Tuple[torch.Tensor, torch.Tensor]:
+            """Apply SEED-GRPO scaling from the normal loss-path logprobs.
+
+            The shared rollout path can omit ``old_per_token_logps`` when the
+            current policy and rollout behavior are the same. For SEED-GRPO we
+            only need grouped logprob sums/token counts, so defer that scaling to
+            the loss path and reuse the already-computed policy logprobs instead
+            of running a second scorer pass immediately after generation.
+            """
+
+            advantages = inputs.get("advantages")
+            if not isinstance(advantages, torch.Tensor):
+                return advantages, behavior_logps
+            args = getattr(self, "args", None)
+            if mode != "train" or not bool(getattr(args, "seed_grpo_enabled", False)):
+                return advantages, behavior_logps
+            if not isinstance(behavior_logps, torch.Tensor):
+                return advantages, behavior_logps
+            scaled_batch_ids = getattr(self, "_seed_grpo_scaled_batch_ids", None)
+            if not isinstance(scaled_batch_ids, set):
+                scaled_batch_ids = set()
+                setattr(self, "_seed_grpo_scaled_batch_ids", scaled_batch_ids)
+            if id(inputs) in scaled_batch_ids:
+                existing_advantages = inputs.get("advantages")
+                existing_logps = inputs.get("old_per_token_logps")
+                if isinstance(existing_advantages, torch.Tensor) and isinstance(
+                    existing_logps, torch.Tensor
+                ):
+                    return existing_advantages, existing_logps
+                return advantages, behavior_logps
+
+            seed_outputs: Dict[str, Any] = {
+                "advantages": advantages,
+                "completion_ids": completion_ids,
+                "completion_mask": completion_mask,
+                "old_per_token_logps": behavior_logps,
+            }
+            self._maybe_apply_seed_grpo_advantages([], seed_outputs, mode=mode)
+            scaled_advantages = seed_outputs.get("advantages")
+            scaled_logps = seed_outputs.get("old_per_token_logps")
+            if not isinstance(scaled_advantages, torch.Tensor):
+                scaled_advantages = advantages
+            if not isinstance(scaled_logps, torch.Tensor):
+                scaled_logps = behavior_logps
+            inputs["advantages"] = scaled_advantages
+            inputs["old_per_token_logps"] = scaled_logps.detach()
+            scaled_batch_ids.add(id(inputs))
+            self._append_metric_value(
+                mode,
+                "seed_grpo/behavior_logprobs_deferred_to_loss",
+                1.0,
+                include_legacy_aliases=False,
+            )
+            return scaled_advantages, scaled_logps
 
         def _maybe_truncate_completions_at_first_boxed_answer(
             self,
@@ -1908,14 +3498,24 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     dtype=old_per_token_logps.dtype,
                 )
 
-            rewards_local = self._recompute_grouped_advantages(
-                inputs,
-                outputs,
-                group_size=group_size,
+            skip_advantage_recompute = _use_lightweight_greedy_eval(
+                self,
+                mode,
             )
+            rewards_local: Optional[torch.Tensor] = None
+            if not skip_advantage_recompute:
+                rewards_local = self._recompute_grouped_advantages(
+                    inputs,
+                    outputs,
+                    group_size=group_size,
+                )
             if update_logged_metrics:
                 if isinstance(rewards_local, torch.Tensor) and rewards_local.numel() > 0:
-                    gathered_rewards = gather(rewards_local.to(torch.float32))
+                    gathered_rewards = _metric_tensor_for_logging(
+                        self,
+                        rewards_local.to(torch.float32),
+                        mode=mode,
+                    )
                     if (
                         isinstance(gathered_rewards, torch.Tensor)
                         and gathered_rewards.numel() > 0
@@ -1953,7 +3553,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                             )
 
                 completion_lengths = new_completion_mask.sum(dim=1).to(torch.float32)
-                gathered_lengths = gather(completion_lengths)
+                gathered_lengths = _metric_tensor_for_logging(
+                    self,
+                    completion_lengths,
+                    mode=mode,
+                )
                 if (
                     isinstance(gathered_lengths, torch.Tensor)
                     and gathered_lengths.numel() > 0
@@ -1973,12 +3577,16 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         "completions/max_length",
                         float(gathered_lengths.max().item()),
                     )
-                trim_ratio = float(trimmed) / float(max(len(truncated_rows), 1))
-                self._append_metric_value(
-                    mode,
-                    "completions/boxed_stop_ratio",
-                    trim_ratio,
-                )
+                if not (
+                    _use_local_only_lightweight_eval_metrics(self, mode)
+                    and not _is_main_process(self)
+                ):
+                    trim_ratio = float(trimmed) / float(max(len(truncated_rows), 1))
+                    self._append_metric_value(
+                        mode,
+                        "completions/boxed_stop_ratio",
+                        trim_ratio,
+                    )
 
         def _prepare_greedy_eval_prompt_batch(
             self,
@@ -1986,11 +3594,20 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
         ) -> Tuple[List[Dict[str, Any]], torch.Tensor, torch.Tensor]:
             """Deduplicate prompt-major eval groups and tokenize one prompt per group."""
 
-            group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
-            usable = len(inputs) - (len(inputs) % group_size)
-            if usable <= 0:
-                raise ValueError("Greedy eval requires at least one full prompt group.")
-            prompt_inputs = list(inputs[:usable:group_size])
+            if bool(
+                getattr(self, "_local_only_eval_prompt_major_loader_active", False)
+            ):
+                prompt_inputs = list(inputs)
+            else:
+                group_size = max(int(getattr(self, "num_generations", 1) or 1), 1)
+                usable = len(inputs) - (len(inputs) % group_size)
+                if usable <= 0:
+                    raise ValueError(
+                        "Greedy eval requires at least one full prompt group."
+                    )
+                prompt_inputs = list(inputs[:usable:group_size])
+            if not prompt_inputs:
+                raise ValueError("Greedy eval requires at least one prompt example.")
             tokenizer = getattr(self, "processing_class", None)
             prompts_text = [
                 _build_prompt_text(example, tokenizer) for example in prompt_inputs
@@ -2002,7 +3619,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 padding_side="left",
                 add_special_tokens=False,
             )
-            prompt_tensors = super()._prepare_inputs(prompt_tensors)
+            prompt_tensors = self._move_prompt_tensors_to_device(prompt_tensors)
             prompt_ids = prompt_tensors["input_ids"]
             prompt_mask = prompt_tensors["attention_mask"]
             max_prompt_length = getattr(self, "max_prompt_length", None)
@@ -2010,6 +3627,38 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 prompt_ids = prompt_ids[:, -max_prompt_length :]
                 prompt_mask = prompt_mask[:, -max_prompt_length :]
             return prompt_inputs, prompt_ids, prompt_mask
+
+        def _move_prompt_tensors_to_device(self, value: Any) -> Any:
+            """Move tokenizer outputs to device without re-entering TRL batch prep."""
+
+            device = getattr(getattr(self, "accelerator", None), "device", None)
+            if device is None:
+                device = getattr(getattr(self, "args", None), "device", None)
+            if isinstance(value, torch.Tensor):
+                return value.to(device=device) if device is not None else value
+            move_fn = getattr(value, "to", None)
+            if callable(move_fn) and not isinstance(value, (str, bytes)):
+                if device is None:
+                    return value
+                try:
+                    return move_fn(device=device)
+                except TypeError:
+                    try:
+                        return move_fn(device)
+                    except TypeError:
+                        pass
+            if isinstance(value, Mapping):
+                return {
+                    key: self._move_prompt_tensors_to_device(item)
+                    for key, item in value.items()
+                }
+            if isinstance(value, list):
+                return [self._move_prompt_tensors_to_device(item) for item in value]
+            if isinstance(value, tuple):
+                return tuple(
+                    self._move_prompt_tensors_to_device(item) for item in value
+                )
+            return value
 
         def _generate_greedy_eval_outputs(
             self,
@@ -2020,6 +3669,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             prompt_inputs, prompt_ids, prompt_mask = self._prepare_greedy_eval_prompt_batch(
                 inputs
             )
+            lightweight_eval = _use_lightweight_greedy_eval(self, "eval")
             tokenizer = getattr(self, "processing_class", None)
             eos_token_id = getattr(tokenizer, "eos_token_id", None)
             pad_token_id = getattr(tokenizer, "pad_token_id", None)
@@ -2057,7 +3707,10 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 generate_kwargs["pad_token_id"] = int(pad_token_id)
             if eos_token_id is not None:
                 generate_kwargs["eos_token_id"] = int(eos_token_id)
-            if getattr(self.accelerator, "num_processes", 1) > 1:
+            if (
+                getattr(self.accelerator, "num_processes", 1) > 1
+                and not lightweight_eval
+            ):
                 generate_kwargs["synced_gpus"] = True
             try:
                 with torch.inference_mode():
@@ -2105,7 +3758,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 outputs,
             )
             if isinstance(rewards_local, torch.Tensor) and rewards_local.numel() > 0:
-                gathered_rewards = gather(rewards_local.to(torch.float32))
+                gathered_rewards = _metric_tensor_for_logging(
+                    self,
+                    rewards_local.to(torch.float32),
+                    mode="eval",
+                )
                 if isinstance(gathered_rewards, torch.Tensor) and gathered_rewards.numel() > 0:
                     self._append_metric_value(
                         "eval",
@@ -2116,7 +3773,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     self._append_metric_value("eval", "frac_reward_zero_std", 1.0)
 
             completion_lengths = outputs["completion_mask"].sum(dim=1).to(torch.float32)
-            gathered_lengths = gather(completion_lengths)
+            gathered_lengths = _metric_tensor_for_logging(
+                self,
+                completion_lengths,
+                mode="eval",
+            )
             if isinstance(gathered_lengths, torch.Tensor) and gathered_lengths.numel() > 0:
                 self._append_metric_value(
                     "eval",
@@ -2346,6 +4007,10 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             args = getattr(self, "args", None)
             if not bool(getattr(args, "greedy_eval_enabled", False)):
                 return
+            lightweight_eval = _use_lightweight_greedy_eval(self, mode)
+            local_only_eval = _use_local_only_lightweight_eval_metrics(self, mode)
+            if local_only_eval and not _is_main_process(self):
+                return
             precomputed = bool(outputs.get("_greedy_eval_precomputed", False))
             if precomputed:
                 prompt_inputs = outputs.get("_eval_prompt_inputs")
@@ -2435,7 +4100,10 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     generate_kwargs["pad_token_id"] = int(pad_token_id)
                 if eos_token_id is not None:
                     generate_kwargs["eos_token_id"] = int(eos_token_id)
-                if getattr(self.accelerator, "num_processes", 1) > 1:
+                if (
+                    getattr(self.accelerator, "num_processes", 1) > 1
+                    and not lightweight_eval
+                ):
                     generate_kwargs["synced_gpus"] = True
                 try:
                     with torch.inference_mode():
@@ -2491,7 +4159,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             )
             if not isinstance(rewards, torch.Tensor) or rewards.numel() <= 0:
                 return
-            global_rewards = gather(rewards.to(torch.float32))
+            global_rewards = (
+                rewards.to(torch.float32)
+                if local_only_eval
+                else gather(rewards.to(torch.float32))
+            )
             if isinstance(global_rewards, torch.Tensor) and global_rewards.numel() > 0:
                 self._append_metric_value(
                     mode,
@@ -2520,18 +4192,24 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                             answers[:usable_local],
                             allow_last_line_fallback=True,
                         )
-                        successes = gather(
-                            torch.tensor(
-                                correctness_local,
-                                dtype=torch.bool,
-                                device=completion_ids.device,
-                            )
+                        local_successes = torch.tensor(
+                            correctness_local,
+                            dtype=torch.bool,
+                            device=completion_ids.device,
+                        )
+                        successes = (
+                            local_successes
+                            if local_only_eval
+                            else gather(local_successes)
                         )
             if successes is None:
-                successes = gather(
-                    (rewards >= (_PASS_METRIC_SUCCESS_REWARD - _PASS_METRIC_EPS)).to(
-                        torch.bool
-                    )
+                local_successes = (
+                    rewards >= (_PASS_METRIC_SUCCESS_REWARD - _PASS_METRIC_EPS)
+                ).to(torch.bool)
+                successes = (
+                    local_successes
+                    if local_only_eval
+                    else gather(local_successes)
                 )
             if not isinstance(successes, torch.Tensor) or successes.numel() <= 0:
                 return
@@ -2545,7 +4223,9 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             try:
                 completion_lengths = completion_mask.sum(dim=1).to(torch.float32)
-                gathered_lengths = gather(completion_lengths)
+                gathered_lengths = (
+                    completion_lengths if local_only_eval else gather(completion_lengths)
+                )
                 if (
                     isinstance(gathered_lengths, torch.Tensor)
                     and gathered_lengths.numel() > 0
@@ -2562,6 +4242,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 self,
                 prompt_inputs,
                 device=completion_ids.device,
+                local_only=local_only_eval,
             )
             if not isinstance(benchmark_ids, torch.Tensor):
                 return
@@ -2612,10 +4293,26 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             chunk_size = int(batch_size or input_ids.size(0) or 1)
             all_logps: List[torch.Tensor] = []
             all_entropy: List[torch.Tensor] = []
+            mode = "train" if bool(getattr(model, "training", False)) else "eval"
+            unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+            base_model = model
+            if callable(unwrap_fn):
+                try:
+                    base_model = unwrap_fn(model)
+                except Exception:
+                    base_model = model
+            tokenizer = getattr(self, "processing_class", None)
+            vocab_size = _resolve_token_id_upper_bound(base_model, tokenizer)
             for start in range(0, int(input_ids.size(0)), chunk_size):
                 stop = start + chunk_size
                 input_ids_batch = input_ids[start:stop]
                 attention_mask_batch = attention_mask[start:stop]
+                input_ids_batch = self._sanitize_scoring_token_ids(
+                    input_ids_batch,
+                    upper_bound=vocab_size,
+                    mode=mode,
+                    context="model_input",
+                )
                 logits = model(
                     input_ids=input_ids_batch,
                     attention_mask=attention_mask_batch,
@@ -2625,6 +4322,27 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 token_ids = input_ids_batch[:, -logits_to_keep:]
                 logits = logits[:, -logits_to_keep:]
                 logits = logits / self.temperature
+                if isinstance(vocab_size, int) and int(logits.size(-1)) > vocab_size:
+                    if not bool(
+                        getattr(self, "_invalid_logit_columns_warned_entropy", False)
+                    ):
+                        LOG.warning(
+                            "Masking %d tokenizer-inaccessible logit columns in exact-entropy scoring (valid_vocab_size=%d, logits_width=%d).",
+                            int(logits.size(-1)) - vocab_size,
+                            vocab_size,
+                            int(logits.size(-1)),
+                        )
+                        setattr(self, "_invalid_logit_columns_warned_entropy", True)
+                    logits = _mask_invalid_logit_columns(
+                        logits,
+                        valid_vocab_size=vocab_size,
+                    )
+                token_ids = self._sanitize_scoring_token_ids(
+                    token_ids,
+                    upper_bound=int(logits.size(-1)),
+                    mode=mode,
+                    context="token_select",
+                )
                 logps, entropy = _selected_logps_and_entropy(
                     logits,
                     token_ids,
@@ -2696,7 +4414,24 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 for key in inputs[0]
                 if key not in {"prompt", "completion", "completion_ids"}
             ]
-            reward_kwargs = {key: [example[key] for example in inputs] for key in keys}
+
+            def _reward_value_for_key(example: Dict[str, Any], key: str) -> Any:
+                if key in example:
+                    return example[key]
+                if key == "answer":
+                    return example.get("solution")
+                if key == "solution":
+                    return example.get("answer")
+                return None
+
+            reward_kwargs = {
+                key: [_reward_value_for_key(example, key) for example in inputs]
+                for key in keys
+            }
+            if "answer" not in reward_kwargs and "solution" in reward_kwargs:
+                reward_kwargs["answer"] = list(reward_kwargs["solution"])
+            if "solution" not in reward_kwargs and "answer" in reward_kwargs:
+                reward_kwargs["solution"] = list(reward_kwargs["answer"])
             reward_processing_classes = list(
                 getattr(
                     self, "reward_processing_classes", [None] * len(self.reward_funcs)
@@ -2864,31 +4599,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             )
             outputs["maxent_listwise_rewards"] = local_grouped_rewards.detach()
 
-        def _resolve_listwise_reference_model(self) -> Tuple[Optional[Any], bool]:
-            """Return the frozen reference model and whether to use it in weights."""
-            args = getattr(self, "args", None)
-            ref_source = str(
-                getattr(args, "maxent_reference_logprobs_source", "auto") or "auto"
-            ).strip().lower()
-            if ref_source == "none":
-                ref_source = "policy"
-            if bool(getattr(args, "maxent_trl_reference_scoring", False)):
-                ref_source = "model"
-            ref_model = getattr(self, "ref_model", None)
-            if ref_source == "model":
-                if ref_model is not None and ref_model is not self.model:
-                    return ref_model, True
-                if not bool(getattr(self, "_maxent_listwise_ref_warned", False)):
-                    LOG.warning(
-                        "Listwise MaxEnt requested reference weighting but no independent "
-                        "frozen reference model is available; using rollout behavior "
-                        "log-probs as the reference term."
-                    )
-                    setattr(self, "_maxent_listwise_ref_warned", True)
-                return None, True
-            if ref_source == "auto" and ref_model is not None and ref_model is not self.model:
-                return ref_model, True
-            return None, False
+        def _resolve_listwise_reference_mode(self) -> bool:
+            """Return whether listwise MaxEnt should include a reference term."""
+            return self._should_use_model_reference_logprobs(
+                default_to_model_reference=False
+            )
 
         def _compute_listwise_maxent_loss(self, model: Any, inputs: Any) -> torch.Tensor:
             """Match the sampled candidate distribution to the tau/q/beta posterior."""
@@ -2977,24 +4692,43 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 group_size=group_size,
                 context="Listwise MaxEnt loss",
             )
+            skip_zero_variance_groups = bool(
+                getattr(self.args, "maxent_listwise_skip_zero_variance_groups", False)
+            )
+            neutral_group_mask = (
+                (
+                    q_grouped.to(torch.float32).amax(dim=1)
+                    - q_grouped.to(torch.float32).amin(dim=1)
+                )
+                <= 1e-8
+            ) if skip_zero_variance_groups else torch.zeros(
+                num_prompts,
+                device=q_grouped.device,
+                dtype=torch.bool,
+            )
+            active_group_mask = ~neutral_group_mask
+            active_group_count = int(active_group_mask.to(torch.int64).sum().item())
 
             weighting = getattr(self, "_maxent_weighting", None)
             if weighting is None:
                 raise ValueError("Listwise MaxEnt requires initialized weighting settings.")
 
-            ref_model, include_reference_term = self._resolve_listwise_reference_model()
+            include_reference_term = self._resolve_listwise_reference_mode()
             ref_seq_logps_grouped = torch.zeros_like(seq_logps_grouped)
             measured_kl: Optional[torch.Tensor] = None
             if include_reference_term:
-                if ref_model is not None:
-                    with torch.no_grad():
-                        ref_per_token_logps = self._get_per_token_logps(
-                            ref_model,
-                            input_ids,
-                            attention_mask,
-                            logits_to_keep,
-                            batch_size=chunk_size,
-                        )
+                with torch.no_grad():
+                    ref_per_token_logps = self._get_reference_per_token_logps(
+                        input_ids,
+                        attention_mask,
+                        logits_to_keep,
+                        batch_size=chunk_size,
+                    )
+                if ref_per_token_logps is not None:
+                    ref_per_token_logps = ref_per_token_logps.to(
+                        device=per_token_logps.device,
+                        dtype=per_token_logps.dtype,
+                    )
                     # Guard the exponentials against rare runaway log-prob deltas.
                     kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
                     per_token_kl = (
@@ -3023,6 +4757,13 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                             "Listwise MaxEnt reference log-probs are misaligned with prompts."
                         )
                 else:
+                    if not bool(getattr(self, "_maxent_listwise_ref_warned", False)):
+                        LOG.warning(
+                            "Listwise MaxEnt requested reference weighting but no model-based "
+                            "reference path is available; using rollout behavior log-probs "
+                            "as the reference term."
+                        )
+                        setattr(self, "_maxent_listwise_ref_warned", True)
                     # Reuse the rollout behavior log-probs as a fixed reference term when
                     # no separate frozen model is available. This preserves listwise
                     # weighting signal on full-model runs without allocating another copy.
@@ -3048,9 +4789,23 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 device=seq_logps_grouped.device,
                 dtype=seq_logps_grouped.dtype,
             )
+            if bool(neutral_group_mask.any().item()):
+                uniform_weights = torch.full_like(
+                    weights_grouped,
+                    1.0 / float(max(weights_grouped.size(1), 1)),
+                )
+                weights_grouped = torch.where(
+                    neutral_group_mask.unsqueeze(1),
+                    uniform_weights,
+                    weights_grouped,
+                )
             weights_grouped_list = weights_grouped.detach().cpu().tolist()
             log_probs_grouped = torch.log_softmax(policy_seq_logps_grouped, dim=1)
-            policy_loss = -(weights_grouped * log_probs_grouped).sum(dim=1).mean()
+            per_group_policy_loss = -(weights_grouped * log_probs_grouped).sum(dim=1)
+            if active_group_count > 0:
+                policy_loss = per_group_policy_loss[active_group_mask].mean()
+            else:
+                policy_loss = (per_group_policy_loss * 0.0).sum()
             loss = policy_loss
 
             clip_loss: Optional[torch.Tensor] = None
@@ -3090,7 +4845,11 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                         seq_ratio * clip_adv,
                         seq_ratio_clipped * clip_adv,
                     )
-                    clip_loss = -clip_obj.sum(dim=1).mean()
+                    per_group_clip_loss = -clip_obj.sum(dim=1)
+                    if active_group_count > 0:
+                        clip_loss = per_group_clip_loss[active_group_mask].mean()
+                    else:
+                        clip_loss = (per_group_clip_loss * 0.0).sum()
                     loss = loss + clip_coef * clip_loss
 
                     is_low_clipped = (seq_ratio < 1.0 - clip_low) & (clip_adv < 0.0)
@@ -3151,14 +4910,28 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             )
             self._append_metric_value(
                 mode,
+                "maxent/listwise_neutral_group_frac",
+                float(neutral_group_mask.to(torch.float32).mean().item()),
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/listwise_active_group_frac",
+                float(active_group_mask.to(torch.float32).mean().item()),
+            )
+            self._append_metric_value(
+                mode,
                 "maxent/listwise_loss_scale",
                 loss_scale_value,
             )
             if clip_loss is not None:
                 self._append_metric_value(mode, "loss/clip", float(clip_loss.item()))
             if measured_kl is not None:
-                kl_value = float(self.accelerator.gather(measured_kl).nanmean().item())
-                self._append_metric_value(mode, "kl", kl_value)
+                gathered_kl = _metric_tensor_for_logging(self, measured_kl, mode=mode)
+                if isinstance(gathered_kl, torch.Tensor) and gathered_kl.numel() > 0:
+                    kl_value = float(gathered_kl.nanmean().item())
+                    self._append_metric_value(mode, "kl", kl_value)
+                else:
+                    kl_value = None
             else:
                 kl_value = None
 
@@ -3210,8 +4983,166 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             return loss
 
+        def _sanitize_scoring_token_ids(
+            self,
+            token_ids: torch.Tensor,
+            *,
+            upper_bound: Optional[int],
+            mode: str,
+            context: str,
+        ) -> torch.Tensor:
+            """Clamp scorer token ids into range before model/gather indexing."""
+
+            if not isinstance(token_ids, torch.Tensor):
+                return token_ids
+            if token_ids.dtype.is_floating_point or token_ids.dtype == torch.bool:
+                return token_ids
+            if not isinstance(upper_bound, int) or upper_bound <= 0:
+                return token_ids
+
+            tokenizer = getattr(self, "processing_class", None)
+            replacement_id = _coerce_optional_int(getattr(tokenizer, "pad_token_id", None))
+            if (
+                replacement_id is None
+                or replacement_id < 0
+                or replacement_id >= upper_bound
+            ):
+                replacement_id = _coerce_optional_int(
+                    getattr(tokenizer, "eos_token_id", None)
+                )
+            if (
+                replacement_id is None
+                or replacement_id < 0
+                or replacement_id >= upper_bound
+            ):
+                replacement_id = max(upper_bound - 1, 0)
+
+            invalid_mask = (token_ids < 0) | (token_ids >= upper_bound)
+            invalid_count = int(invalid_mask.to(torch.long).sum().item())
+            if invalid_count <= 0:
+                return token_ids
+
+            try:
+                invalid_vals = token_ids[invalid_mask]
+                min_invalid = int(invalid_vals.min().item())
+                max_invalid = int(invalid_vals.max().item())
+            except Exception:
+                min_invalid = 0
+                max_invalid = 0
+
+            sanitized = token_ids.clone()
+            sanitized[invalid_mask] = int(replacement_id)
+            self._append_metric_value(
+                mode,
+                "scoring/invalid_token_id_count",
+                float(invalid_count),
+                include_legacy_aliases=False,
+            )
+            self._append_metric_value(
+                mode,
+                f"scoring/{context}_invalid_token_id_count",
+                float(invalid_count),
+                include_legacy_aliases=False,
+            )
+            self._append_metric_value(
+                mode,
+                "scoring/invalid_token_id_replacement",
+                float(replacement_id),
+                include_legacy_aliases=False,
+            )
+            warned_contexts = getattr(self, "_invalid_scoring_token_ids_warned_contexts", None)
+            if not isinstance(warned_contexts, set):
+                warned_contexts = set()
+                setattr(self, "_invalid_scoring_token_ids_warned_contexts", warned_contexts)
+            if context not in warned_contexts:
+                LOG.warning(
+                    "Sanitized %d scoring token ids for %s outside upper_bound=%d using replacement_id=%d (min=%d max=%d)",
+                    invalid_count,
+                    context,
+                    upper_bound,
+                    replacement_id,
+                    min_invalid,
+                    max_invalid,
+                )
+                warned_contexts.add(context)
+            return sanitized
+
         def _get_per_token_logps(self, *args: Any, **kwargs: Any) -> torch.Tensor:  # type: ignore[override]
-            logps = super()._get_per_token_logps(*args, **kwargs)
+            model = args[0] if len(args) >= 1 else kwargs.get("model")
+            input_ids = args[1] if len(args) >= 2 else kwargs.get("input_ids")
+            attention_mask = args[2] if len(args) >= 3 else kwargs.get("attention_mask")
+            logits_to_keep = args[3] if len(args) >= 4 else kwargs.get("logits_to_keep")
+            batch_size = args[4] if len(args) >= 5 else kwargs.get("batch_size")
+            if not isinstance(input_ids, torch.Tensor) or not isinstance(attention_mask, torch.Tensor):
+                logps = super()._get_per_token_logps(*args, **kwargs)
+            else:
+                chunk_size = int(batch_size or input_ids.size(0) or 1)
+                mode = "train" if bool(getattr(model, "training", False)) else "eval"
+                unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+                base_model = model
+                if callable(unwrap_fn):
+                    try:
+                        base_model = unwrap_fn(model)
+                    except Exception:
+                        base_model = model
+                tokenizer = getattr(self, "processing_class", None)
+                vocab_size = _resolve_token_id_upper_bound(base_model, tokenizer)
+                all_logps: List[torch.Tensor] = []
+                for start in range(0, int(input_ids.size(0)), chunk_size):
+                    stop = start + chunk_size
+                    input_ids_batch = input_ids[start:stop]
+                    attention_mask_batch = attention_mask[start:stop]
+                    input_ids_batch = self._sanitize_scoring_token_ids(
+                        input_ids_batch,
+                        upper_bound=vocab_size,
+                        mode=mode,
+                        context="model_input",
+                    )
+                    try:
+                        outputs = model(
+                            input_ids=input_ids_batch,
+                            attention_mask=attention_mask_batch,
+                            logits_to_keep=int(logits_to_keep) + 1,
+                        )
+                    except TypeError:
+                        outputs = model(
+                            input_ids=input_ids_batch,
+                            attention_mask=attention_mask_batch,
+                        )
+                    logits = getattr(outputs, "logits", outputs)
+                    logits = logits[:, :-1, :]
+                    token_ids = input_ids_batch[:, -int(logits_to_keep) :]
+                    logits = logits[:, -int(logits_to_keep) :]
+                    logits = logits / self.temperature
+                    if isinstance(vocab_size, int) and int(logits.size(-1)) > vocab_size:
+                        if not bool(
+                            getattr(self, "_invalid_logit_columns_warned_logps", False)
+                        ):
+                            LOG.warning(
+                                "Masking %d tokenizer-inaccessible logit columns in shared logprob scoring (valid_vocab_size=%d, logits_width=%d).",
+                                int(logits.size(-1)) - vocab_size,
+                                vocab_size,
+                                int(logits.size(-1)),
+                            )
+                            setattr(self, "_invalid_logit_columns_warned_logps", True)
+                        logits = _mask_invalid_logit_columns(
+                            logits,
+                            valid_vocab_size=vocab_size,
+                        )
+                    token_ids = self._sanitize_scoring_token_ids(
+                        token_ids,
+                        upper_bound=int(logits.size(-1)),
+                        mode=mode,
+                        context="token_select",
+                    )
+                    log_probs = F.log_softmax(logits, dim=-1)
+                    chunk_logps = torch.gather(
+                        log_probs,
+                        dim=-1,
+                        index=token_ids.unsqueeze(-1),
+                    ).squeeze(-1)
+                    all_logps.append(chunk_logps)
+                logps = torch.cat(all_logps, dim=0)
             if self.maxent_enabled:
                 return logps
             if self.accelerator.is_main_process:
@@ -3260,6 +5191,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 getattr(self.args, "maxent_policy_entropy_mode", "exact") or "exact"
             )
             entropy_mode = requested_entropy_mode.strip().lower() or "exact"
+            args = getattr(self, "args", None)
             if entropy_mode != "exact":
                 if not bool(
                     getattr(self, "_maxent_sample_entropy_loss_warned", False)
@@ -3274,6 +5206,17 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     setattr(self, "_maxent_sample_entropy_loss_warned", True)
                 entropy_mode = "exact"
 
+            unwrap_fn = getattr(getattr(self, "accelerator", None), "unwrap_model", None)
+            base_model = model
+            if callable(unwrap_fn):
+                try:
+                    base_model = unwrap_fn(model)
+                except Exception:
+                    base_model = model
+            tokenizer = getattr(self, "processing_class", None)
+            valid_vocab_size = _resolve_token_id_upper_bound(base_model, tokenizer)
+            entropy_normalization_scale = _entropy_normalization_scale(valid_vocab_size)
+
             per_token_logps, per_token_entropy = self._get_per_token_logps_and_entropy(
                 model,
                 input_ids,
@@ -3285,15 +5228,25 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             per_token_kl: Optional[torch.Tensor] = None
             kl_value: Optional[float] = None
-            if self.beta != 0.0:
+            alpha_kl_control_requested = self._entropy_alpha_kl_control_requested()
+            if self.beta != 0.0 or alpha_kl_control_requested:
+                use_model_reference = self._should_use_model_reference_logprobs(
+                    default_to_model_reference=alpha_kl_control_requested
+                )
                 with torch.no_grad():
-                    if self.ref_model is not None:
-                        ref_per_token_logps = self._get_per_token_logps(
-                            self.ref_model,
+                    if use_model_reference:
+                        ref_per_token_logps = self._get_reference_per_token_logps(
                             input_ids,
                             attention_mask,
                             logits_to_keep,
                             batch_size=chunk_size,
+                        )
+                    else:
+                        ref_per_token_logps = None
+                    if ref_per_token_logps is not None:
+                        ref_per_token_logps = ref_per_token_logps.to(
+                            device=per_token_logps.device,
+                            dtype=per_token_logps.dtype,
                         )
                     else:
                         old_ref = inputs.get("old_per_token_logps")
@@ -3303,14 +5256,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                                 dtype=per_token_logps.dtype,
                             )
                         else:
-                            with self.accelerator.unwrap_model(self.model).disable_adapter():
-                                ref_per_token_logps = self._get_per_token_logps(
-                                    self.model,
-                                    input_ids,
-                                    attention_mask,
-                                    logits_to_keep,
-                                    batch_size=chunk_size,
-                                )
+                            ref_per_token_logps = per_token_logps.detach()
                 # Guard the exponentials against rare runaway log-prob deltas.
                 kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
                 per_token_kl = (
@@ -3330,11 +5276,18 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 else:
                     current_batch_kl_measure = float("inf")
 
-            advantages = inputs["advantages"]
             old_per_token_logps = (
                 per_token_logps.detach()
                 if inputs["old_per_token_logps"] is None
                 else inputs["old_per_token_logps"]
+            )
+            advantages = inputs["advantages"]
+            advantages, old_per_token_logps = self._maybe_apply_seed_grpo_advantages_in_loss(
+                inputs,
+                completion_ids=completion_ids,
+                completion_mask=completion_mask,
+                behavior_logps=old_per_token_logps.detach(),
+                mode=mode,
             )
             log_ratio = _clamp_log_delta(per_token_logps - old_per_token_logps)
             coef_1 = torch.exp(log_ratio).to(per_token_logps.dtype)
@@ -3365,32 +5318,64 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 mode,
                 measured_kl_override=current_batch_kl_measure,
             )
-            per_token_loss = per_token_loss - alpha * per_token_entropy
-
+            completion_mask_f = completion_mask.to(
+                device=per_token_entropy.device,
+                dtype=per_token_entropy.dtype,
+            )
+            token_count_per_seq = completion_mask_f.sum(dim=1).clamp(min=1.0)
+            mean_entropy = (per_token_entropy * completion_mask_f).sum() / completion_mask_f.sum().clamp(
+                min=1.0
+            )
+            entropy_per_seq = (
+                (per_token_entropy * completion_mask_f).sum(dim=1) / token_count_per_seq
+            )
+            mean_entropy_per_seq = entropy_per_seq.mean()
             if self.loss_type == "grpo":
                 loss = (
                     (per_token_loss * completion_mask).sum(-1)
                     / completion_mask.sum(-1).clamp(min=1.0)
                 ).mean()
+                entropy_bonus_basis = mean_entropy_per_seq / entropy_normalization_scale
             elif self.loss_type == "bnpo":
                 loss = (per_token_loss * completion_mask).sum() / completion_mask.sum().clamp(
                     min=1.0
                 )
+                entropy_bonus_basis = mean_entropy / entropy_normalization_scale
             elif self.loss_type == "dr_grpo":
-                loss = (per_token_loss * completion_mask).sum() / (
-                    per_token_loss.size(0) * self.max_completion_length
+                loss = (per_token_loss * completion_mask).sum() / self._dr_grpo_loss_denominator(
+                    completion_mask,
+                    loss_tensor=per_token_loss,
+                    mode=mode,
                 )
+                # Under fixed-denominator Dr.GRPO, a raw per-token entropy bonus
+                # creates a spurious incentive to emit longer completions. Apply
+                # the bonus on sequence-mean entropy instead so each sample gets
+                # equal entropy weight regardless of realized length.
+                entropy_bonus_basis = mean_entropy_per_seq / entropy_normalization_scale
             else:
                 raise ValueError(f"Unknown loss type: {self.loss_type}")
+            alpha_before_invalid_guard = float(alpha)
+            invalid_rollout_token_count = float(
+                getattr(self, "_last_rollout_invalid_token_id_count", 0.0) or 0.0
+            )
+            invalid_rollout_bonus_blocked = (
+                invalid_rollout_token_count > 0.0 and alpha_before_invalid_guard > 0.0
+            )
+            if invalid_rollout_bonus_blocked:
+                alpha = 0.0
+            entropy_bonus = alpha * entropy_bonus_basis
+            loss = loss - entropy_bonus
 
             if per_token_kl is not None:
                 mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
-                kl_value = float(self.accelerator.gather(mean_kl).nanmean().item())
-                self._append_metric_value(
-                    mode,
-                    "kl",
-                    kl_value,
-                )
+                gathered_kl = _metric_tensor_for_logging(self, mean_kl, mode=mode)
+                if isinstance(gathered_kl, torch.Tensor) and gathered_kl.numel() > 0:
+                    kl_value = float(gathered_kl.nanmean().item())
+                    self._append_metric_value(
+                        mode,
+                        "kl",
+                        kl_value,
+                    )
 
             is_low_clipped = (coef_1 < 1 - self.epsilon_low) & (
                 advantages.unsqueeze(1) < 0
@@ -3404,42 +5389,55 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             high_clip = (is_high_clipped * completion_mask).sum() / completion_mask.sum()
             clip_ratio = (is_region_clipped * completion_mask).sum() / completion_mask.sum()
 
-            gathered_low_clip = self.accelerator.gather(low_clip)
-            self._append_metric_value(
-                mode, "clip_ratio/low_mean", gathered_low_clip.nanmean().item()
-            )
-            self._append_metric_value(
-                mode, "clip_ratio/low_min", _nanmin_tensor(gathered_low_clip).item()
-            )
-            gathered_high_clip = self.accelerator.gather(high_clip)
-            self._append_metric_value(
-                mode, "clip_ratio/high_mean", gathered_high_clip.nanmean().item()
-            )
-            self._append_metric_value(
-                mode, "clip_ratio/high_max", _nanmax_tensor(gathered_high_clip).item()
-            )
-            gathered_clip_ratio = self.accelerator.gather(clip_ratio)
-            self._append_metric_value(
-                mode, "clip_ratio/region_mean", gathered_clip_ratio.nanmean().item()
-            )
+            gathered_low_clip = _metric_tensor_for_logging(self, low_clip, mode=mode)
+            if isinstance(gathered_low_clip, torch.Tensor) and gathered_low_clip.numel() > 0:
+                self._append_metric_value(
+                    mode, "clip_ratio/low_mean", gathered_low_clip.nanmean().item()
+                )
+                self._append_metric_value(
+                    mode, "clip_ratio/low_min", _nanmin_tensor(gathered_low_clip).item()
+                )
+            gathered_high_clip = _metric_tensor_for_logging(self, high_clip, mode=mode)
+            if isinstance(gathered_high_clip, torch.Tensor) and gathered_high_clip.numel() > 0:
+                self._append_metric_value(
+                    mode, "clip_ratio/high_mean", gathered_high_clip.nanmean().item()
+                )
+                self._append_metric_value(
+                    mode, "clip_ratio/high_max", _nanmax_tensor(gathered_high_clip).item()
+                )
+            gathered_clip_ratio = _metric_tensor_for_logging(self, clip_ratio, mode=mode)
+            if isinstance(gathered_clip_ratio, torch.Tensor) and gathered_clip_ratio.numel() > 0:
+                self._append_metric_value(
+                    mode, "clip_ratio/region_mean", gathered_clip_ratio.nanmean().item()
+                )
 
-            entropy_mask = completion_mask.to(
-                device=per_token_entropy.device, dtype=per_token_entropy.dtype
+            gathered_entropy = _metric_tensor_for_logging(self, mean_entropy, mode=mode)
+            gathered_entropy_per_seq = _metric_tensor_for_logging(
+                self, entropy_per_seq, mode=mode
             )
-            mean_entropy = (per_token_entropy * entropy_mask).sum() / entropy_mask.sum().clamp(
-                min=1.0
-            )
-            entropy_per_seq = (
-                (per_token_entropy * entropy_mask).sum(dim=1)
-                / entropy_mask.sum(dim=1).clamp(min=1.0)
-            )
-            gathered_entropy = self.accelerator.gather(mean_entropy)
-            gathered_entropy_per_seq = self.accelerator.gather(entropy_per_seq)
             self._append_metric_value(mode, "maxent/alpha", alpha)
             self._append_metric_value(mode, "maxent/alpha_base", float(self.maxent_alpha))
+            self._append_metric_value(
+                mode,
+                "maxent/alpha_before_invalid_token_guard",
+                alpha_before_invalid_guard,
+                include_legacy_aliases=False,
+            )
             self._append_metric_value(mode, "maxent/alpha_multiplier", alpha_multiplier)
             self._append_metric_value(mode, "maxent/objective_variant_entropy", 1.0)
             self._append_metric_value(mode, "maxent/objective_variant_listwise", 0.0)
+            self._append_metric_value(
+                mode,
+                "maxent/invalid_rollout_bonus_blocked",
+                1.0 if invalid_rollout_bonus_blocked else 0.0,
+                include_legacy_aliases=False,
+            )
+            self._append_metric_value(
+                mode,
+                "maxent/rollout_invalid_token_id_count",
+                invalid_rollout_token_count,
+                include_legacy_aliases=False,
+            )
             self._append_metric_value(
                 mode,
                 "maxent/alpha_kl_control_enabled",
@@ -3462,19 +5460,88 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 self._append_metric_value(
                     mode, "maxent/alpha_kl_measure", alpha_kl_measure
                 )
-            self._append_metric_value(
-                mode, "maxent/policy_entropy_mean", gathered_entropy.nanmean().item()
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/policy_entropy_std",
-                gathered_entropy_per_seq.to(torch.float32).std(unbiased=False).item(),
-            )
-            self._append_metric_value(
-                mode,
-                "maxent/loss_entropy_bonus",
-                (-alpha * gathered_entropy.nanmean()).item(),
-            )
+            if isinstance(gathered_entropy, torch.Tensor) and gathered_entropy.numel() > 0:
+                raw_entropy_metric = (
+                    gathered_entropy_per_seq.nanmean()
+                    if self.loss_type in {"grpo", "dr_grpo"}
+                    and isinstance(gathered_entropy_per_seq, torch.Tensor)
+                    and gathered_entropy_per_seq.numel() > 0
+                    else gathered_entropy.nanmean()
+                )
+                normalized_entropy_metric = raw_entropy_metric / entropy_normalization_scale
+                normalized_entropy_token = gathered_entropy.nanmean() / entropy_normalization_scale
+                self._append_metric_value(
+                    mode, "maxent/policy_entropy_mean", raw_entropy_metric.item()
+                )
+                self._append_metric_value(
+                    mode,
+                    "maxent/policy_entropy_mean_token",
+                    gathered_entropy.nanmean().item(),
+                    include_legacy_aliases=False,
+                )
+                self._append_metric_value(
+                    mode,
+                    "maxent/policy_entropy_mean_normalized",
+                    normalized_entropy_metric.item(),
+                    include_legacy_aliases=False,
+                )
+                self._append_metric_value(
+                    mode,
+                    "maxent/policy_entropy_mean_token_normalized",
+                    normalized_entropy_token.item(),
+                    include_legacy_aliases=False,
+                )
+                if (
+                    isinstance(gathered_entropy_per_seq, torch.Tensor)
+                    and gathered_entropy_per_seq.numel() > 0
+                ):
+                    normalized_entropy_seq = (
+                        gathered_entropy_per_seq.nanmean() / entropy_normalization_scale
+                    )
+                    self._append_metric_value(
+                        mode,
+                        "maxent/policy_entropy_mean_seq",
+                        gathered_entropy_per_seq.nanmean().item(),
+                        include_legacy_aliases=False,
+                    )
+                    self._append_metric_value(
+                        mode,
+                        "maxent/policy_entropy_mean_seq_normalized",
+                        normalized_entropy_seq.item(),
+                        include_legacy_aliases=False,
+                    )
+                self._append_metric_value(
+                    mode,
+                    "maxent/entropy_bonus_length_normalized",
+                    1.0 if self.loss_type in {"grpo", "dr_grpo"} else 0.0,
+                    include_legacy_aliases=False,
+                )
+                self._append_metric_value(
+                    mode,
+                    "maxent/entropy_normalization_log_vocab",
+                    entropy_normalization_scale,
+                    include_legacy_aliases=False,
+                )
+                self._append_metric_value(
+                    mode,
+                    "maxent/valid_vocab_size",
+                    float(valid_vocab_size) if valid_vocab_size is not None else 0.0,
+                    include_legacy_aliases=False,
+                )
+                self._append_metric_value(
+                    mode,
+                    "maxent/loss_entropy_bonus",
+                    (-alpha * normalized_entropy_metric).item(),
+                )
+            if (
+                isinstance(gathered_entropy_per_seq, torch.Tensor)
+                and gathered_entropy_per_seq.numel() > 0
+            ):
+                self._append_metric_value(
+                    mode,
+                    "maxent/policy_entropy_std",
+                    gathered_entropy_per_seq.to(torch.float32).std(unbiased=False).item(),
+                )
             if mode == "train" and getattr(self, "_maxent_controller_objective", None) is not None:
                 self._maybe_apply_controller_meta(
                     mode=mode,
@@ -3555,14 +5622,23 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
 
             per_token_kl: Optional[torch.Tensor] = None
             if self.beta != 0.0:
+                use_model_reference = self._should_use_model_reference_logprobs(
+                    default_to_model_reference=False
+                )
                 with torch.no_grad():
-                    if self.ref_model is not None:
-                        ref_per_token_logps = self._get_per_token_logps(
-                            self.ref_model,
+                    if use_model_reference:
+                        ref_per_token_logps = self._get_reference_per_token_logps(
                             input_ids,
                             attention_mask,
                             logits_to_keep,
                             batch_size=chunk_size,
+                        )
+                    else:
+                        ref_per_token_logps = None
+                    if ref_per_token_logps is not None:
+                        ref_per_token_logps = ref_per_token_logps.to(
+                            device=per_token_logps.device,
+                            dtype=per_token_logps.dtype,
                         )
                     else:
                         old_ref = inputs.get("old_per_token_logps")
@@ -3572,14 +5648,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                                 dtype=per_token_logps.dtype,
                             )
                         else:
-                            with self.accelerator.unwrap_model(self.model).disable_adapter():
-                                ref_per_token_logps = self._get_per_token_logps(
-                                    self.model,
-                                    input_ids,
-                                    attention_mask,
-                                    logits_to_keep,
-                                    batch_size=chunk_size,
-                                )
+                            ref_per_token_logps = per_token_logps.detach()
                 kl_delta = _clamp_log_delta(ref_per_token_logps - per_token_logps)
                 per_token_kl = (
                     torch.exp(kl_delta)
@@ -3587,11 +5656,18 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     - 1
                 ).to(per_token_logps.dtype)
 
-            advantages = inputs["advantages"]
             old_per_token_logps = (
                 per_token_logps.detach()
                 if inputs["old_per_token_logps"] is None
                 else inputs["old_per_token_logps"]
+            )
+            advantages = inputs["advantages"]
+            advantages, old_per_token_logps = self._maybe_apply_seed_grpo_advantages_in_loss(
+                inputs,
+                completion_ids=completion_ids,
+                completion_mask=completion_mask,
+                behavior_logps=old_per_token_logps.detach(),
+                mode=mode,
             )
             log_ratio = _clamp_log_delta(per_token_logps - old_per_token_logps)
             coef_1 = torch.exp(log_ratio).to(per_token_logps.dtype)
@@ -3618,16 +5694,20 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                     min=1.0
                 )
             elif self.loss_type == "dr_grpo":
-                loss = (per_token_loss * completion_mask).sum() / (
-                    per_token_loss.size(0) * self.max_completion_length
+                loss = (per_token_loss * completion_mask).sum() / self._dr_grpo_loss_denominator(
+                    completion_mask,
+                    loss_tensor=per_token_loss,
+                    mode=mode,
                 )
             else:
                 raise ValueError(f"Unknown loss type: {self.loss_type}")
 
             if per_token_kl is not None:
                 mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
-                kl_value = float(self.accelerator.gather(mean_kl).nanmean().item())
-                self._append_metric_value(mode, "kl", kl_value)
+                gathered_kl = _metric_tensor_for_logging(self, mean_kl, mode=mode)
+                if isinstance(gathered_kl, torch.Tensor) and gathered_kl.numel() > 0:
+                    kl_value = float(gathered_kl.nanmean().item())
+                    self._append_metric_value(mode, "kl", kl_value)
 
             is_low_clipped = (coef_1 < 1 - self.epsilon_low) & (
                 advantages.unsqueeze(1) < 0
@@ -3641,24 +5721,27 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
             high_clip = (is_high_clipped * completion_mask).sum() / completion_mask.sum()
             clip_ratio = (is_region_clipped * completion_mask).sum() / completion_mask.sum()
 
-            gathered_low_clip = self.accelerator.gather(low_clip)
-            self._append_metric_value(
-                mode, "clip_ratio/low_mean", gathered_low_clip.nanmean().item()
-            )
-            self._append_metric_value(
-                mode, "clip_ratio/low_min", _nanmin_tensor(gathered_low_clip).item()
-            )
-            gathered_high_clip = self.accelerator.gather(high_clip)
-            self._append_metric_value(
-                mode, "clip_ratio/high_mean", gathered_high_clip.nanmean().item()
-            )
-            self._append_metric_value(
-                mode, "clip_ratio/high_max", _nanmax_tensor(gathered_high_clip).item()
-            )
-            gathered_clip_ratio = self.accelerator.gather(clip_ratio)
-            self._append_metric_value(
-                mode, "clip_ratio/region_mean", gathered_clip_ratio.nanmean().item()
-            )
+            gathered_low_clip = _metric_tensor_for_logging(self, low_clip, mode=mode)
+            if isinstance(gathered_low_clip, torch.Tensor) and gathered_low_clip.numel() > 0:
+                self._append_metric_value(
+                    mode, "clip_ratio/low_mean", gathered_low_clip.nanmean().item()
+                )
+                self._append_metric_value(
+                    mode, "clip_ratio/low_min", _nanmin_tensor(gathered_low_clip).item()
+                )
+            gathered_high_clip = _metric_tensor_for_logging(self, high_clip, mode=mode)
+            if isinstance(gathered_high_clip, torch.Tensor) and gathered_high_clip.numel() > 0:
+                self._append_metric_value(
+                    mode, "clip_ratio/high_mean", gathered_high_clip.nanmean().item()
+                )
+                self._append_metric_value(
+                    mode, "clip_ratio/high_max", _nanmax_tensor(gathered_high_clip).item()
+                )
+            gathered_clip_ratio = _metric_tensor_for_logging(self, clip_ratio, mode=mode)
+            if isinstance(gathered_clip_ratio, torch.Tensor) and gathered_clip_ratio.numel() > 0:
+                self._append_metric_value(
+                    mode, "clip_ratio/region_mean", gathered_clip_ratio.nanmean().item()
+                )
             self._append_metric_value(mode, "maxent/objective_variant_entropy", 0.0)
             self._append_metric_value(mode, "maxent/objective_variant_listwise", 0.0)
             return loss
@@ -3768,20 +5851,29 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 getattr(getattr(self, "args", None), "eval_greedy_only_enabled", False)
             ):
                 outputs = self._generate_greedy_eval_outputs(inputs)
-                self._log_grpo_diversity(outputs, mode=mode)
                 self._log_eval_greedy_metrics(inputs, outputs, mode=mode)
-                if not self.maxent_enabled:
-                    self._log_grpo_debug(inputs, outputs, mode=mode)
                 return outputs
 
             outputs = super()._generate_and_score_completions(inputs)
+            self._sanitize_rollout_token_ids(outputs, mode=mode)
             self._maybe_truncate_completions_at_first_boxed_answer(
                 inputs,
                 outputs,
                 mode=mode,
             )
+            defer_seed_scaling = mode == "train" and bool(
+                getattr(getattr(self, "args", None), "seed_grpo_enabled", False)
+            )
+            if not defer_seed_scaling:
+                self._maybe_backfill_old_per_token_logps(outputs, mode=mode)
+                self._maybe_apply_seed_grpo_advantages(
+                    inputs,
+                    outputs,
+                    mode=mode,
+                )
             if self.objective_routing.uses_listwise_loss:
                 self._prepare_listwise_rollout_targets(inputs, outputs)
+            self._maybe_log_rich_rollout_sidecar(inputs, outputs, mode=mode)
             self._log_grpo_diversity(outputs, mode=mode)
             self._log_eval_pass_at_k(inputs, outputs, mode=mode)
             self._log_eval_greedy_metrics(inputs, outputs, mode=mode)

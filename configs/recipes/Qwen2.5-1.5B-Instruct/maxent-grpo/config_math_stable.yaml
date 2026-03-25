@@ -40,7 +40,23 @@ dataloader_persistent_workers: true
 dataloader_prefetch_factor: 2
 dataloader_pin_memory: true
 system_prompt: |
-  Please reason step by step, and put your final answer within \boxed{}.
+  Solve the problem and respond in exactly this format:
+  <think>
+  step-by-step reasoning
+  </think>
+  <answer>
+  \boxed{FINAL_ANSWER}
+  </answer>
+
+  Requirements:
+  - Output must start with <think> and end with </answer>.
+  - Put the final answer inside <answer> as a single boxed expression.
+  - Do not add any text after the final answer.
+  - Use exact math notation (fractions, radicals, pi, e) when appropriate.
+chat_template: |
+  {%- for message in messages -%}
+  {{- message['content'] -}}
+  {%- endfor -%}
 
 # Stable entropy-MaxEnt config on the same Dr.GRPO backbone.
 objective: maxent_entropy
@@ -75,24 +91,28 @@ vllm_request_logprobs: true
 vllm_sync_weights: false
 vllm_gpu_memory_utilization: 0.35
 maxent_logprob_chunk_size: 2
-do_eval: true
+do_eval: false
 gradient_accumulation_steps: 40
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
 grpo_loss_type: dr_grpo
+dr_grpo_denominator_mode: active_tokens
 num_iterations: 1
 gen_temperature: 1.0
 gen_top_p: 1.0
 gen_top_k: -1
 vllm_top_k: -1
 gen_best_of: 1
+vllm_stop_sequences:
+  - "</answer>"
+  - "</answer>\n"
 vllm_request_timeout: 600
 hub_model_id: null
 hub_strategy: "end"
 learning_rate: 1e-6
 lr_scheduler_type: constant
-optim: adamw_torch_fused
+optim: adamw_torch
 adam_beta1: 0.9
 adam_beta2: 0.95
 adam_epsilon: 1e-08
@@ -104,7 +124,7 @@ logging_steps: 1
 logging_strategy: steps
 log_like_grpo: true
 max_prompt_length: 1024
-max_completion_length: 1750
+max_completion_length: 3000
 max_steps: -1
 num_generations: 8
 num_train_epochs: 20
@@ -118,11 +138,18 @@ report_to:
 wandb_project: open-r1-maxent-grpo
 wandb_entity: ogd3-princeton-university
 reward_funcs:
-- accuracy
+- seed_paper_boxed_accuracy_math
+- missing_boxed_answer_penalty_math
 reward_weights:
 - 1
-beta: 0.08
-kl_target: 0.07
+- 1
+eval_reward_funcs:
+- seed_paper_boxed_accuracy_math
+eval_reward_weights:
+- 1
+missing_boxed_answer_penalty: -0.05
+beta: 0.0
+kl_target: 0.0
 kl_horizon: 500
 kl_ctl_step_size: 1.0
 grpo_beta_controller_enabled: false
@@ -132,8 +159,13 @@ ppo_clip_range: 0.2
 clip_range: 0.2
 clip_range_high: 0.2
 save_strategy: "no"
-eval_strategy: steps
-eval_steps: 32
+save_steps: 1
+# Built-in trainer eval is disabled for these math runs; official paper eval is
+# scheduled directly by SeedPaperEvalCallback on start and every eval_steps.
+eval_strategy: "no"
+eval_on_start: true
+eval_steps: 10
+seed_paper_eval_template: "no"
 greedy_eval_enabled: true
 eval_greedy_only_enabled: true
 truncate_completions_at_first_boxed_answer: true

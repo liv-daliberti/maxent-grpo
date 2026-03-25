@@ -89,15 +89,17 @@ def _extract_ref_logprob_fields(meta_entry: Any) -> Tuple[Optional[Any], Optiona
     token_logprobs = getattr(meta_entry, "token_logprobs", None)
     if isinstance(meta_entry, dict):
         if logprob_sum is None:
-            logprob_sum = meta_entry.get("logprob_sum") or meta_entry.get(
-                "cumulative_logprob"
-            )
+            logprob_sum = meta_entry.get("logprob_sum")
+            if logprob_sum is None:
+                logprob_sum = meta_entry.get("cumulative_logprob")
         if token_logprobs is None:
-            token_logprobs = meta_entry.get("token_logprobs") or meta_entry.get(
-                "logprobs"
-            )
+            token_logprobs = meta_entry.get("token_logprobs")
+            if token_logprobs is None:
+                token_logprobs = meta_entry.get("logprobs")
         if token_count is None:
-            token_count = meta_entry.get("token_count") or meta_entry.get("num_tokens")
+            token_count = meta_entry.get("token_count")
+            if token_count is None:
+                token_count = meta_entry.get("num_tokens")
             if token_count is None:
                 if token_logprobs is not None:
                     try:
@@ -1092,6 +1094,21 @@ def _has_recipe_path(obj: Any) -> bool:
     return bool(getattr(obj, "recipe_path", None))
 
 
+def _build_reward_proxy(source: Any, reward_names: List[str]) -> RewardConfig:
+    """Preserve source config attributes when instantiating reward helpers."""
+
+    proxy_data: Dict[str, Any] = {"reward_funcs": list(reward_names)}
+    if source is not None:
+        try:
+            source_data = vars(source)
+        except TypeError:
+            source_data = None
+        if isinstance(source_data, dict):
+            proxy_data.update(source_data)
+    proxy_data["reward_funcs"] = list(reward_names)
+    return cast(RewardConfig, SimpleNamespace(**proxy_data))
+
+
 def load_reward_functions(
     script_args: Any, tokenizer: Any, training_args: Any = None
 ) -> Tuple[list, list]:
@@ -1120,13 +1137,16 @@ def load_reward_functions(
     if use_training:
         reward_names = training_names
         weight_source = training_weights
+        proxy_source = training_args
     elif script_names:
         reward_names = script_names
         weight_source = script_weights
+        proxy_source = script_args
     else:
         reward_names = ["pure_accuracy_math"]
         weight_source = None
-    proxy = cast(RewardConfig, SimpleNamespace(reward_funcs=reward_names))
+        proxy_source = script_args if script_args is not None else training_args
+    proxy = _build_reward_proxy(proxy_source, reward_names)
     reward_funcs = get_reward_funcs(proxy, None, tokenizer)
     reward_weights = weight_source
     if reward_weights is None or len(reward_weights) != len(reward_funcs):
@@ -1167,6 +1187,7 @@ def load_eval_reward_functions(
     if script_eval_names:
         reward_names = script_eval_names
         weight_source = script_eval_weights
+        proxy_source = script_args
     else:
         use_training = False
         if training_names:
@@ -1175,13 +1196,16 @@ def load_eval_reward_functions(
         if script_train_names and not use_training:
             reward_names = script_train_names
             weight_source = script_train_weights
+            proxy_source = script_args
         elif training_names:
             reward_names = training_names
             weight_source = training_weights
+            proxy_source = training_args
         else:
             reward_names = ["pure_accuracy_math"]
             weight_source = None
-    proxy = cast(RewardConfig, SimpleNamespace(reward_funcs=reward_names))
+            proxy_source = script_args if script_args is not None else training_args
+    proxy = _build_reward_proxy(proxy_source, reward_names)
     reward_funcs = get_reward_funcs(proxy, None, tokenizer)
 
     reward_weights = weight_source

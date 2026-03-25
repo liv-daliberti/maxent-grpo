@@ -13,6 +13,7 @@ from maxent_grpo.training.generation.errors import (
     GenerationServiceError,
     ServiceErrorPayload,
 )
+import maxent_grpo.training.generation.vocab_guard as vocab_guard
 from maxent_grpo.training.generation.vllm_requests import (
     VLLMRequestMixin,
     _DEFAULT_PROMPT_CHAR_LIMIT,
@@ -128,6 +129,61 @@ def test_prepare_vllm_targets_with_dedup(monkeypatch):
     assert prompts == ["a", "b"]
     assert counts == [1, 2]
     assert mapping == [0, 1, 0]
+
+
+def test_build_vllm_request_kwargs_blocks_model_only_token_ids():
+    class _Tok:
+        vocab_size = 3
+
+        def __len__(self):
+            return 5
+
+    ctx = _ctx(
+        tokenizer=_Tok(),
+        model=SimpleNamespace(config=SimpleNamespace(vocab_size=10)),
+        vllm_logit_bias={"1": -1.0},
+    )
+    dummy = _Dummy(ctx)
+
+    kwargs = dummy._build_vllm_request_kwargs(["p"], 1)
+
+    assert kwargs["logit_bias"]["1"] == pytest.approx(-1.0)
+    assert kwargs["allowed_token_ids"] == [0, 1, 2, 3, 4]
+    assert kwargs["blocked_token_ids"] == [5, 6, 7, 8, 9]
+    for token_id in range(5, 10):
+        assert kwargs["logit_bias"][str(token_id)] == pytest.approx(-1.0e9)
+
+
+def test_build_vllm_request_kwargs_uses_served_model_vocab_limit_in_server_mode(
+    monkeypatch,
+):
+    class _Tok:
+        vocab_size = 3
+
+        def __len__(self):
+            return 5
+
+    ctx = _ctx(
+        tokenizer=_Tok(),
+        model=SimpleNamespace(config=SimpleNamespace(vocab_size=5)),
+        use_vllm=True,
+        vllm_mode="server",
+        model_name="Qwen/Qwen2.5-Math-1.5B",
+    )
+    dummy = _Dummy(ctx)
+
+    monkeypatch.setattr(
+        vocab_guard,
+        "_resolve_served_model_vocab_limit",
+        lambda _ctx: 10,
+    )
+
+    kwargs = dummy._build_vllm_request_kwargs(["p"], 1)
+
+    assert kwargs["allowed_token_ids"] == [0, 1, 2, 3, 4]
+    assert kwargs["blocked_token_ids"] == [5, 6, 7, 8, 9]
+    for token_id in range(5, 10):
+        assert kwargs["logit_bias"][str(token_id)] == pytest.approx(-1.0e9)
 
 
 def test_prompt_char_limit_prefers_override():

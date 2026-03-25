@@ -44,6 +44,21 @@ export TRITON_CACHE_DIR="${TRITON_CACHE_DIR:-$CACHE_ROOT/triton}"
 export TORCHINDUCTOR_CACHE_DIR="${TORCHINDUCTOR_CACHE_DIR:-$CACHE_ROOT/torchinductor}"
 export TMPDIR="${TMPDIR:-$CACHE_ROOT/tmp}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+export VLLM_NO_USAGE_STATS="${VLLM_NO_USAGE_STATS:-1}"
+
+WANDB_ROOT="${WANDB_ROOT:-$VAR_DIR/wandb}"
+mkdir -p \
+  "$WANDB_ROOT/runs" \
+  "$WANDB_ROOT/data" \
+  "$WANDB_ROOT/cache" \
+  "$WANDB_ROOT/artifacts"
+export WANDB_DIR="${WANDB_DIR:-$WANDB_ROOT/runs}"
+export WANDB_DATA_DIR="${WANDB_DATA_DIR:-$WANDB_ROOT/data}"
+export WANDB_CACHE_DIR="${WANDB_CACHE_DIR:-$WANDB_ROOT/cache}"
+export WANDB_ARTIFACT_DIR="${WANDB_ARTIFACT_DIR:-$WANDB_ROOT/artifacts}"
+export WANDB__SERVICE_WAIT="${WANDB__SERVICE_WAIT:-300}"
+export WANDB_INIT_TIMEOUT="${WANDB_INIT_TIMEOUT:-300}"
+export WANDB_START_METHOD="${WANDB_START_METHOD:-thread}"
 
 ENV_MODE="${ENV_MODE:-venv}"
 CONDA_SH="${CONDA_SH:-/usr/local/anaconda3/2024.02/etc/profile.d/conda.sh}"
@@ -52,7 +67,8 @@ ENV_ACTIVATE="${ENV_ACTIVATE:-$VAR_DIR/openr1/bin/activate}"
 VIRTUAL_ENV="${VIRTUAL_ENV:-$VAR_DIR/openr1}"
 PYTHON_OVERLAY_DIR="${PYTHON_OVERLAY_DIR:-$VAR_DIR/python_overlay}"
 DATASET_SITE_PACKAGES="${DATASET_SITE_PACKAGES:-/n/fs/similarity/.conda/envs/openr1/lib/python3.11/site-packages}"
-EXTRA_SITE_PACKAGES="${EXTRA_SITE_PACKAGES:-}"
+REPO_RUNTIME_SITE_PACKAGES="${REPO_RUNTIME_SITE_PACKAGES:-$VAR_DIR/e2e-venv/lib/python3.11/site-packages:$VAR_DIR/seed_paper_eval/paper_venv/lib/python3.11/site-packages}"
+EXTRA_SITE_PACKAGES="${EXTRA_SITE_PACKAGES:-$REPO_RUNTIME_SITE_PACKAGES}"
 
 prepare_python_overlay() {
   mkdir -p "$PYTHON_OVERLAY_DIR"
@@ -65,11 +81,12 @@ prepare_python_overlay() {
 }
 
 discover_runtime_site_packages() {
-  PYTHONNOUSERSITE="" python - <<'PY'
+  MAXENT_RUNTIME_PREFIX="$VAR_DIR" PYTHONNOUSERSITE="" python - <<'PY'
 import os
 import sys
 
 required_modules = ("trl", "vllm")
+repo_prefix = os.path.abspath(os.environ.get("MAXENT_RUNTIME_PREFIX", ""))
 seen = set()
 paths = []
 for raw in sys.path:
@@ -77,6 +94,8 @@ for raw in sys.path:
     if path in seen or not os.path.isdir(path):
         continue
     seen.add(path)
+    if repo_prefix and not path.startswith(repo_prefix):
+        continue
     if any(os.path.isdir(os.path.join(path, mod)) for mod in required_modules):
         paths.append(path)
 print(":".join(paths))
@@ -84,10 +103,19 @@ PY
 }
 
 has_runtime_modules() {
-  PYTHONNOUSERSITE=1 python - <<'PY'
+  MAXENT_RUNTIME_EXTRA_PATHS="${1:-}" PYTHONNOUSERSITE=1 python - <<'PY'
 import importlib.util
+import os
 import sys
 
+extra_paths = [
+    os.path.abspath(path)
+    for path in os.environ.get("MAXENT_RUNTIME_EXTRA_PATHS", "").split(":")
+    if path
+]
+for path in reversed(extra_paths):
+    if os.path.isdir(path) and path not in sys.path:
+        sys.path.insert(0, path)
 required_modules = ("trl", "vllm")
 missing = [name for name in required_modules if importlib.util.find_spec(name) is None]
 raise SystemExit(1 if missing else 0)
@@ -111,13 +139,13 @@ activate_env() {
     export VIRTUAL_ENV
     export PATH="$VIRTUAL_ENV/bin:${PATH:-}"
   fi
+  local resolved_extra_paths="${EXTRA_SITE_PACKAGES:-}"
   local discovered_runtime_paths=""
-  if ! has_runtime_modules; then
+  if ! has_runtime_modules "$resolved_extra_paths"; then
     discovered_runtime_paths="$(discover_runtime_site_packages || true)"
   fi
   export PYTHONNOUSERSITE=1
   prepare_python_overlay
-  local resolved_extra_paths="${EXTRA_SITE_PACKAGES:-}"
   if [[ -n "$discovered_runtime_paths" ]]; then
     resolved_extra_paths="${discovered_runtime_paths}${resolved_extra_paths:+:${resolved_extra_paths}}"
   fi
@@ -216,10 +244,16 @@ append_flag_value() {
   fi
 }
 
+is_truthy_flag() {
+  local raw
+  raw="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
+  [[ "$raw" == "1" || "$raw" == "true" || "$raw" == "yes" || "$raw" == "on" ]]
+}
+
 default_model_for_suffix() {
   local suffix="$1"
   case "$suffix" in
-    math|math_stable) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
+    math|math_fair|math_stable) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
     code_mbpp) printf '%s\n' "Qwen2.5-0.5B-Instruct" ;;
     *) printf '%s\n' "Qwen2.5-1.5B-Instruct" ;;
   esac
@@ -352,12 +386,25 @@ GRPO_TRAIN_GPUS="${GRPO_TRAIN_GPUS:-1,2,3}"
 MAXENT_VLLM_GPU="${MAXENT_VLLM_GPU:-4}"
 MAXENT_TRAIN_GPUS="${MAXENT_TRAIN_GPUS:-5,6,7}"
 
-GRPO_VLLM_PORT="${GRPO_VLLM_PORT:-8000}"
-MAXENT_VLLM_PORT="${MAXENT_VLLM_PORT:-8001}"
-GRPO_GROUP_PORT="${GRPO_GROUP_PORT:-29535}"
-MAXENT_GROUP_PORT="${MAXENT_GROUP_PORT:-29536}"
-GRPO_MASTER_PORT="${GRPO_MASTER_PORT:-6000}"
-MAXENT_MASTER_PORT="${MAXENT_MASTER_PORT:-6001}"
+JOB_PORT_SEED="${SLURM_JOB_ID:-0}"
+if [[ "$JOB_PORT_SEED" =~ ^[0-9]+$ ]]; then
+  JOB_PORT_OFFSET=$(( (JOB_PORT_SEED % 1000) * 10 ))
+else
+  JOB_PORT_OFFSET=0
+fi
+GRPO_VLLM_PORT_DEFAULT=$((18000 + JOB_PORT_OFFSET))
+MAXENT_VLLM_PORT_DEFAULT=$((18001 + JOB_PORT_OFFSET))
+GRPO_GROUP_PORT_DEFAULT=$((28000 + JOB_PORT_OFFSET))
+MAXENT_GROUP_PORT_DEFAULT=$((28001 + JOB_PORT_OFFSET))
+GRPO_MASTER_PORT_DEFAULT=$((38000 + JOB_PORT_OFFSET))
+MAXENT_MASTER_PORT_DEFAULT=$((38001 + JOB_PORT_OFFSET))
+
+GRPO_VLLM_PORT="${GRPO_VLLM_PORT:-$GRPO_VLLM_PORT_DEFAULT}"
+MAXENT_VLLM_PORT="${MAXENT_VLLM_PORT:-$MAXENT_VLLM_PORT_DEFAULT}"
+GRPO_GROUP_PORT="${GRPO_GROUP_PORT:-$GRPO_GROUP_PORT_DEFAULT}"
+MAXENT_GROUP_PORT="${MAXENT_GROUP_PORT:-$MAXENT_GROUP_PORT_DEFAULT}"
+GRPO_MASTER_PORT="${GRPO_MASTER_PORT:-$GRPO_MASTER_PORT_DEFAULT}"
+MAXENT_MASTER_PORT="${MAXENT_MASTER_PORT:-$MAXENT_MASTER_PORT_DEFAULT}"
 VLLM_INIT_COMMUNICATOR_TIMEOUT="${VLLM_INIT_COMMUNICATOR_TIMEOUT:-300}"
 
 # Prefer the async TRL vLLM communicator patch to avoid startup handshake stalls.
@@ -366,6 +413,7 @@ MAXENT_VLLM_ASYNC_INIT="${MAXENT_VLLM_ASYNC_INIT:-auto}"
 MAXENT_VLLM_INIT_RETRIES="${MAXENT_VLLM_INIT_RETRIES:-3}"
 MAXENT_VLLM_INIT_RETRY_BACKOFF_S="${MAXENT_VLLM_INIT_RETRY_BACKOFF_S:-2}"
 MAXENT_VLLM_INIT_TIMEOUT_S="${MAXENT_VLLM_INIT_TIMEOUT_S:-300}"
+MAXENT_VLLM_TOKEN_BOUNDARY_SMOKE="${MAXENT_VLLM_TOKEN_BOUNDARY_SMOKE:-1}"
 
 VLLM_DTYPE="${VLLM_DTYPE:-bfloat16}"
 VLLM_ENFORCE_EAGER="${VLLM_ENFORCE_EAGER:-false}"
@@ -572,14 +620,37 @@ GRPO_ARGS="$(append_flag_value "$GRPO_ARGS" "--wandb_run_group" "$RUN_GROUP")"
 MAXENT_ARGS="$(append_flag_value "$MAXENT_ARGS" "--run_name" "$MAXENT_RUN_NAME")"
 MAXENT_ARGS="$(append_flag_value "$MAXENT_ARGS" "--wandb_run_group" "$RUN_GROUP")"
 
+STEP0_PAPER_EVAL_GPU="${MAXENT_STEP0_PAPER_EVAL_GPU:-0}"
+STEP0_PAPER_EVAL_ENABLED="${MAXENT_STEP0_PAPER_EVAL_ENABLED:-auto}"
+STEP0_PAPER_EVAL_WORKSPACE_DIR="${MAXENT_STEP0_PAPER_EVAL_WORKSPACE_DIR:-$VAR_DIR/seed_paper_eval}"
+STEP0_PAPER_EVAL_RESULTS_DIR="${MAXENT_STEP0_PAPER_EVAL_RESULTS_DIR:-$VAR_DIR/artifacts/seed_paper_eval/${SLURM_JOB_ID:-manual}}"
+STEP0_PAPER_EVAL_TEMPLATE="${MAXENT_STEP0_PAPER_EVAL_TEMPLATE:-}"
+STEP0_PAPER_EVAL_TASKS="${MAXENT_STEP0_PAPER_EVAL_TASKS:-}"
+STEP0_PAPER_EVAL_MAX_TEST="${MAXENT_STEP0_PAPER_EVAL_MAX_TEST:-}"
+STEP0_PAPER_EVAL_PASS_AT_8_ENABLED="${MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_ENABLED:-auto}"
+STEP0_PAPER_EVAL_PASS_AT_8_SAMPLES="${MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_SAMPLES:-8}"
+STEP0_PAPER_EVAL_PASS_AT_8_TEMPERATURE="${MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_TEMPERATURE:-1.0}"
+STEP0_PAPER_EVAL_PASS_AT_8_TOP_P="${MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_TOP_P:-1.0}"
+STEP0_PAPER_EVAL_EXPECTED_PROFILE="${MAXENT_STEP0_PAPER_EVAL_EXPECTED_PROFILE:-}"
+STEP0_PAPER_EVAL_ENFORCE_EXPECTED="${MAXENT_STEP0_PAPER_EVAL_ENFORCE_EXPECTED:-1}"
+STEP0_PAPER_EVAL_RUNTIME_SWAP_SPACE="${MAXENT_STEP0_PAPER_EVAL_RUNTIME_SWAP_SPACE:-0}"
+STEP0_PAPER_EVAL_WANDB_ENABLED="${MAXENT_STEP0_PAPER_EVAL_WANDB_ENABLED:-0}"
+STEP0_PAPER_EVAL_WANDB_PROJECT="${MAXENT_STEP0_PAPER_EVAL_WANDB_PROJECT:-${WANDB_PROJECT:-huggingface}}"
+STEP0_PAPER_EVAL_WANDB_ENTITY="${MAXENT_STEP0_PAPER_EVAL_WANDB_ENTITY:-${WANDB_ENTITY:-ogd3-princeton-university}}"
+STEP0_PAPER_EVAL_WANDB_GROUP="${MAXENT_STEP0_PAPER_EVAL_WANDB_GROUP:-$RUN_GROUP}"
+STEP0_PAPER_EVAL_WANDB_RUN_NAME="${MAXENT_STEP0_PAPER_EVAL_WANDB_RUN_NAME:-${SLURM_JOB_NAME:-step0}-step0-paper-eval}"
+STEP0_PAPER_EVAL_WANDB_JOB_TYPE="${MAXENT_STEP0_PAPER_EVAL_WANDB_JOB_TYPE:-step0_paper_eval}"
+
 VLLM_GRPO_LOG="$VAR_DIR/artifacts/logs/vllm-grpo-${SLURM_JOB_ID}.out"
 VLLM_MAXENT_LOG="$VAR_DIR/artifacts/logs/vllm-${SECONDARY_STACK_TAG}-${SLURM_JOB_ID}.out"
 TRAIN_GRPO_LOG="$VAR_DIR/artifacts/logs/train-grpo-${SLURM_JOB_ID}.log"
 TRAIN_MAXENT_LOG="$VAR_DIR/artifacts/logs/train-${SECONDARY_STACK_TAG}-${SLURM_JOB_ID}.log"
+STEP0_PAPER_EVAL_LOG="$VAR_DIR/artifacts/logs/step0-paper-eval-${SLURM_JOB_ID}.log"
 : > "$VLLM_GRPO_LOG"
 : > "$VLLM_MAXENT_LOG"
 : > "$TRAIN_GRPO_LOG"
 : > "$TRAIN_MAXENT_LOG"
+: > "$STEP0_PAPER_EVAL_LOG"
 
 activate_env
 RESOLVED_ACCELERATOR="$(resolve_accelerator_name "$ACCELERATOR")"
@@ -596,6 +667,8 @@ fi
 echo "[layout] recipe_profile=${RECIPE_PROFILE}"
 echo "[layout] accelerator_requested=${ACCELERATOR} accelerator_resolved=${RESOLVED_ACCELERATOR}"
 echo "[layout] run_group=${RUN_GROUP}"
+echo "[layout] wandb_dir=${WANDB_DIR}"
+echo "[layout] wandb_data_dir=${WANDB_DATA_DIR}"
 
 GRPO_VLLM_PID=""
 MAXENT_VLLM_PID=""
@@ -667,6 +740,38 @@ wait_vllm_health() {
   return 1
 }
 
+run_vllm_token_boundary_smoke() {
+  local label="$1"
+  local port="$2"
+  local model_id="$3"
+  local log_file="$4"
+  if ! is_truthy_flag "${MAXENT_VLLM_TOKEN_BOUNDARY_SMOKE:-0}"; then
+    return 0
+  fi
+  (
+    activate_env
+    export PYTHONPATH="$ROOT_DIR/src:${PYTHONPATH:-}"
+    cmd=(
+      python "$ROOT_DIR/tools/vllm_token_boundary_smoke.py"
+      --model-name "$model_id"
+      --url "http://127.0.0.1:${port}/generate"
+    )
+    echo "[$label] ${cmd[*]}"
+    exec "${cmd[@]}"
+  ) >> "$log_file" 2>&1
+  (
+    activate_env
+    export PYTHONPATH="$ROOT_DIR/src:${PYTHONPATH:-}"
+    cmd=(
+      python "$ROOT_DIR/tools/vllm_trl_client_boundary_smoke.py"
+      --model-name "$model_id"
+      --url "http://127.0.0.1:${port}/generate"
+    )
+    echo "[$label-trl-client] ${cmd[*]}"
+    exec "${cmd[@]}"
+  ) >> "$log_file" 2>&1
+}
+
 launch_train() {
   local label="$1"
   local entrypoint="$2"
@@ -677,6 +782,7 @@ launch_train() {
   local vllm_port="$7"
   local extra_args="$8"
   local log_file="$9"
+  local model_id="${10}"
 
   (
     activate_env
@@ -687,10 +793,13 @@ launch_train() {
     export VLLM_MODE=server
     export MAXENT_VLLM_URL="http://127.0.0.1:${vllm_port}/generate"
     export VLLM_URL="$MAXENT_VLLM_URL"
+    export MAXENT_VLLM_SERVER_MODEL_NAME="$model_id"
     export VLLM_GROUP_PORT="$group_port"
     export PORT_FOR_COMMUNICATION="$group_port"
     export GRPO_RECIPE="$recipe"
     export GRPO_RECIPE_USED="$recipe"
+    export SEED_PAPER_EVAL_MODEL_NAME="$model_id"
+    export MAXENT_STEP0_PAPER_EVAL_RESULTS_DIR="$STEP0_PAPER_EVAL_RESULTS_DIR"
     export MAXENT_TRL_VLLM_CLIENT_PATCH
     export MAXENT_VLLM_ASYNC_INIT
     export MAXENT_VLLM_INIT_RETRIES
@@ -725,6 +834,161 @@ launch_train() {
   LAST_BG_PID="$!"
 }
 
+select_step0_paper_eval_model() {
+  if (( USE_GRPO_STACK )) && [[ -n "$GRPO_MODEL" ]]; then
+    printf '%s\n' "$GRPO_MODEL"
+    return 0
+  fi
+  if (( USE_SECONDARY_STACK )) && [[ -n "$MAXENT_MODEL" ]]; then
+    printf '%s\n' "$MAXENT_MODEL"
+    return 0
+  fi
+  printf '%s\n' "$MODEL"
+}
+
+is_qwen_math_1_5b_model() {
+  local model_id="$1"
+  [[ "$model_id" == "Qwen/Qwen2.5-Math-1.5B" || "$model_id" == "Qwen2.5-Math-1.5B" ]]
+}
+
+should_run_step0_paper_eval() {
+  local model_id="$1"
+  local requested
+  requested="$(printf '%s' "$STEP0_PAPER_EVAL_ENABLED" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$requested" == "0" || "$requested" == "false" || "$requested" == "no" || "$requested" == "off" ]]; then
+    return 1
+  fi
+  if [[ "$requested" == "1" || "$requested" == "true" || "$requested" == "yes" || "$requested" == "on" ]]; then
+    return 0
+  fi
+  if ! is_qwen_math_1_5b_model "$model_id"; then
+    return 1
+  fi
+  case "${CONFIG_SUFFIX_GRPO,,},${CONFIG_SUFFIX_MAXENT,,}" in
+    *math*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+should_run_step0_paper_eval_pass_at_8() {
+  local requested
+  requested="$(printf '%s' "$STEP0_PAPER_EVAL_PASS_AT_8_ENABLED" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$requested" == "0" || "$requested" == "false" || "$requested" == "no" || "$requested" == "off" ]]; then
+    return 1
+  fi
+  if [[ "$requested" == "1" || "$requested" == "true" || "$requested" == "yes" || "$requested" == "on" ]]; then
+    return 0
+  fi
+  case "${CONFIG_SUFFIX_GRPO,,},${CONFIG_SUFFIX_MAXENT,,}" in
+    *math_fair*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+run_step0_paper_eval() {
+  local model_id="$1"
+  local log_file="$2"
+  local cmd=(
+    python "$ROOT_DIR/tools/seed_paper_eval.py"
+    --model-name "$model_id"
+    --workspace-dir "$STEP0_PAPER_EVAL_WORKSPACE_DIR"
+    --results-dir "$STEP0_PAPER_EVAL_RESULTS_DIR"
+  )
+  if [[ -n "$STEP0_PAPER_EVAL_TEMPLATE" ]]; then
+    cmd+=(--template "$STEP0_PAPER_EVAL_TEMPLATE")
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_TASKS" ]]; then
+    cmd+=(--tasks "$STEP0_PAPER_EVAL_TASKS")
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_MAX_TEST" ]]; then
+    cmd+=(--max-test "$STEP0_PAPER_EVAL_MAX_TEST")
+  fi
+  if should_run_step0_paper_eval_pass_at_8; then
+    cmd+=(--pass-at-8)
+    cmd+=(--pass-at-8-samples "$STEP0_PAPER_EVAL_PASS_AT_8_SAMPLES")
+    cmd+=(--pass-at-8-temperature "$STEP0_PAPER_EVAL_PASS_AT_8_TEMPERATURE")
+    cmd+=(--pass-at-8-top-p "$STEP0_PAPER_EVAL_PASS_AT_8_TOP_P")
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_EXPECTED_PROFILE" ]]; then
+    cmd+=(
+      --expected-profile "$STEP0_PAPER_EVAL_EXPECTED_PROFILE"
+    )
+    if is_truthy_flag "$STEP0_PAPER_EVAL_ENFORCE_EXPECTED"; then
+      cmd+=(--enforce-expected)
+    fi
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_RUNTIME_SWAP_SPACE" ]]; then
+    cmd+=(--runtime-swap-space "$STEP0_PAPER_EVAL_RUNTIME_SWAP_SPACE")
+  fi
+  if is_truthy_flag "$STEP0_PAPER_EVAL_WANDB_ENABLED"; then
+    cmd+=(--wandb)
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_WANDB_PROJECT" ]]; then
+    cmd+=(--wandb-project "$STEP0_PAPER_EVAL_WANDB_PROJECT")
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_WANDB_ENTITY" ]]; then
+    cmd+=(--wandb-entity "$STEP0_PAPER_EVAL_WANDB_ENTITY")
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_WANDB_GROUP" ]]; then
+    cmd+=(--wandb-group "$STEP0_PAPER_EVAL_WANDB_GROUP")
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_WANDB_RUN_NAME" ]]; then
+    cmd+=(--wandb-run-name "$STEP0_PAPER_EVAL_WANDB_RUN_NAME")
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_WANDB_JOB_TYPE" ]]; then
+    cmd+=(--wandb-job-type "$STEP0_PAPER_EVAL_WANDB_JOB_TYPE")
+  fi
+  (
+    activate_env
+    mkdir -p "$STEP0_PAPER_EVAL_RESULTS_DIR"
+    export CUDA_VISIBLE_DEVICES="$STEP0_PAPER_EVAL_GPU"
+    export PYTHONPATH="$ROOT_DIR/src:${PYTHONPATH:-}"
+    echo "[step0-paper-eval] CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
+    echo "[step0-paper-eval] ${cmd[*]}"
+    exec "${cmd[@]}"
+  ) >> "$log_file" 2>&1
+}
+
+STEP0_PAPER_EVAL_MODEL="$(select_step0_paper_eval_model)"
+if [[ -z "$STEP0_PAPER_EVAL_TEMPLATE" ]]; then
+  case "${CONFIG_SUFFIX_GRPO,,},${CONFIG_SUFFIX_MAXENT,,}" in
+    *math_fair*)
+      STEP0_PAPER_EVAL_TEMPLATE="qwen_math"
+      ;;
+  esac
+fi
+if [[ -z "$STEP0_PAPER_EVAL_EXPECTED_PROFILE" && -z "$STEP0_PAPER_EVAL_TEMPLATE" ]] && is_qwen_math_1_5b_model "$STEP0_PAPER_EVAL_MODEL"; then
+  STEP0_PAPER_EVAL_EXPECTED_PROFILE="table2_qwen2_5_math_1_5b"
+fi
+
+if should_run_step0_paper_eval "$STEP0_PAPER_EVAL_MODEL"; then
+  echo "[step0-paper-eval] enabled model=${STEP0_PAPER_EVAL_MODEL}"
+  echo "[step0-paper-eval] workspace=${STEP0_PAPER_EVAL_WORKSPACE_DIR}"
+  echo "[step0-paper-eval] results=${STEP0_PAPER_EVAL_RESULTS_DIR}"
+  echo "[step0-paper-eval] log=${STEP0_PAPER_EVAL_LOG}"
+  if [[ -n "$STEP0_PAPER_EVAL_TEMPLATE" ]]; then
+    echo "[step0-paper-eval] template=${STEP0_PAPER_EVAL_TEMPLATE}"
+  fi
+  if should_run_step0_paper_eval_pass_at_8; then
+    echo "[step0-paper-eval] sampled_metrics=pass_at_8,mean_at_8 n=${STEP0_PAPER_EVAL_PASS_AT_8_SAMPLES} temp=${STEP0_PAPER_EVAL_PASS_AT_8_TEMPERATURE} top_p=${STEP0_PAPER_EVAL_PASS_AT_8_TOP_P}"
+  fi
+  if [[ -n "$STEP0_PAPER_EVAL_EXPECTED_PROFILE" ]]; then
+    echo "[step0-paper-eval] expected_profile=${STEP0_PAPER_EVAL_EXPECTED_PROFILE} enforce=${STEP0_PAPER_EVAL_ENFORCE_EXPECTED}"
+  fi
+  run_step0_paper_eval "$STEP0_PAPER_EVAL_MODEL" "$STEP0_PAPER_EVAL_LOG"
+  echo "[step0-paper-eval] completed"
+else
+  echo "[step0-paper-eval] skipped"
+fi
+
 if (( USE_GRPO_STACK )); then
   start_vllm "grpo-vllm" "$GRPO_VLLM_GPU" "$GRPO_MODEL" "$GRPO_REV" "$GRPO_VLLM_PORT" "$GRPO_MAX_LEN" "$VLLM_GRPO_LOG"
   GRPO_VLLM_PID="$LAST_BG_PID"
@@ -736,17 +1000,19 @@ fi
 
 if [[ -n "$GRPO_VLLM_PID" ]]; then
   wait_vllm_health "grpo-vllm" "$GRPO_VLLM_PORT" "$GRPO_VLLM_PID" "$VLLM_GRPO_LOG"
+  run_vllm_token_boundary_smoke "grpo-vllm-smoke" "$GRPO_VLLM_PORT" "$GRPO_MODEL" "$VLLM_GRPO_LOG"
 fi
 if [[ -n "$MAXENT_VLLM_PID" ]]; then
   wait_vllm_health "${SECONDARY_STACK_TAG}-vllm" "$MAXENT_VLLM_PORT" "$MAXENT_VLLM_PID" "$VLLM_MAXENT_LOG"
+  run_vllm_token_boundary_smoke "${SECONDARY_STACK_TAG}-vllm-smoke" "$MAXENT_VLLM_PORT" "$MAXENT_MODEL" "$VLLM_MAXENT_LOG"
 fi
 
 if (( USE_GRPO_STACK )); then
-  launch_train "grpo-train" "src/maxent_grpo/grpo.py" "$GRPO_CFG_ABS" "$GRPO_TRAIN_GPUS" "$GRPO_MASTER_PORT" "$GRPO_GROUP_PORT" "$GRPO_VLLM_PORT" "$GRPO_ARGS" "$TRAIN_GRPO_LOG"
+  launch_train "grpo-train" "src/maxent_grpo/grpo.py" "$GRPO_CFG_ABS" "$GRPO_TRAIN_GPUS" "$GRPO_MASTER_PORT" "$GRPO_GROUP_PORT" "$GRPO_VLLM_PORT" "$GRPO_ARGS" "$TRAIN_GRPO_LOG" "$GRPO_MODEL"
   GRPO_TRAIN_PID="$LAST_BG_PID"
 fi
 if (( USE_SECONDARY_STACK )); then
-  launch_train "${SECONDARY_STACK_TAG}-train" "src/maxent_grpo/grpo.py" "$MAXENT_CFG_ABS" "$MAXENT_TRAIN_GPUS" "$MAXENT_MASTER_PORT" "$MAXENT_GROUP_PORT" "$MAXENT_VLLM_PORT" "$MAXENT_ARGS" "$TRAIN_MAXENT_LOG"
+  launch_train "${SECONDARY_STACK_TAG}-train" "src/maxent_grpo/grpo.py" "$MAXENT_CFG_ABS" "$MAXENT_TRAIN_GPUS" "$MAXENT_MASTER_PORT" "$MAXENT_GROUP_PORT" "$MAXENT_VLLM_PORT" "$MAXENT_ARGS" "$TRAIN_MAXENT_LOG" "$MAXENT_MODEL"
   MAXENT_TRAIN_PID="$LAST_BG_PID"
 fi
 
@@ -770,6 +1036,7 @@ fi
 
 echo "[summary] grpo_status=${grpo_status} maxent_status=${maxent_status}"
 echo "[summary] logs:"
+echo "  $STEP0_PAPER_EVAL_LOG"
 echo "  $VLLM_GRPO_LOG"
 echo "  $VLLM_MAXENT_LOG"
 echo "  $TRAIN_GRPO_LOG"

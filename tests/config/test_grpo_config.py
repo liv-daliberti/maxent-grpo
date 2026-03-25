@@ -43,9 +43,30 @@ def test_grpo_script_arguments_defaults():
     assert args.dataset_prompt_column == "problem"
 
 
+def test_grpo_config_syncs_loss_type_from_grpo_loss_type():
+    cfg = GRPOConfig(grpo_loss_type="dr_grpo")
+    assert cfg.grpo_loss_type == "dr_grpo"
+    assert getattr(cfg, "loss_type", None) == "dr_grpo"
+
+
+def test_grpo_config_normalizes_dr_grpo_denominator_mode():
+    cfg = GRPOConfig(dr_grpo_denominator_mode="tokens")
+    assert cfg.dr_grpo_denominator_mode == "active_tokens"
+
+
 def test_grpo_config_validates_tau_bounds():
     with pytest.raises(ValueError):
         GRPOConfig(maxent_tau_min=-0.1)
+
+
+def test_grpo_config_rejects_positive_missing_boxed_answer_penalty():
+    with pytest.raises(ValueError):
+        GRPOConfig(missing_boxed_answer_penalty=0.1)
+
+
+def test_grpo_config_final_model_save_enabled_defaults_true():
+    cfg = GRPOConfig()
+    assert cfg.final_model_save_enabled is True
 
 
 def test_grpo_config_preserves_num_generations_on_divisibility_warning(

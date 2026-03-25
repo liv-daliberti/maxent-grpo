@@ -27,6 +27,26 @@ from __future__ import annotations
 from importlib import import_module
 from types import ModuleType
 from typing import Any, Dict, TYPE_CHECKING, Tuple
+import importlib.util
+
+
+def _patch_transformers_utils() -> None:
+    """Backfill TRL-expected helpers missing from older Transformers builds."""
+
+    try:
+        transformers_utils = import_module("transformers.utils")
+    except Exception:
+        return
+    if hasattr(transformers_utils, "is_rich_available"):
+        return
+
+    def _is_rich_available() -> bool:
+        return importlib.util.find_spec("rich") is not None
+
+    setattr(transformers_utils, "is_rich_available", _is_rich_available)
+
+
+_patch_transformers_utils()
 
 _PUBLIC_SUBMODULES = [
     "cli",

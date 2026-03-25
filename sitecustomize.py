@@ -127,6 +127,12 @@ _ENV_PATH_DEFAULTS = {
     "HF_HUB_CACHE": _CACHE_ROOT / "huggingface" / "hub",
     "HF_DATASETS_CACHE": _CACHE_ROOT / "huggingface" / "datasets",
     "TRANSFORMERS_CACHE": _CACHE_ROOT / "huggingface" / "transformers",
+    "HF_ASSETS_CACHE": _CACHE_ROOT / "huggingface" / "assets",
+    "TORCH_HOME": _CACHE_ROOT / "torch",
+    "WANDB_DIR": _VAR_ROOT / "wandb" / "runs",
+    "WANDB_CACHE_DIR": _VAR_ROOT / "wandb" / "cache",
+    "WANDB_CONFIG_DIR": _VAR_ROOT / "wandb" / "config",
+    "WANDB_DATA_DIR": _VAR_ROOT / "wandb" / "data",
 }
 for _env, _path in _ENV_PATH_DEFAULTS.items():
     _setdefault_dir(_env, _path)

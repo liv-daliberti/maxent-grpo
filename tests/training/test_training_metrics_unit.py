@@ -19,6 +19,7 @@ Unit tests for training.metrics helper functions.
 from __future__ import annotations
 
 from contextlib import nullcontext
+import json
 from types import SimpleNamespace
 from typing import Any, Dict
 
@@ -503,6 +504,99 @@ def test_log_training_metrics_calls_writer(monkeypatch):
     result = metrics_mod.log_training_metrics(handles, global_step=5, payload=payload)
     assert logged["metrics"] == result
     assert logged["step"] == 5
+
+
+def test_build_sample_table_includes_distribution_columns():
+    prepared = SimpleNamespace(
+        grouped_completions=[["c1", "c2"], ["c3"]],
+        reward_comp=SimpleNamespace(
+            pairs=SimpleNamespace(
+                prompts=["p1", "p1", "p2"],
+                completions=["c1", "c2", "c3"],
+            ),
+            per_reward_values={"acc": [1.0, 0.0, 1.0]},
+            advantage_samples=[0.5, -0.5, 0.75],
+            total_utils=[1.0, 0.0, 1.0],
+            q_grouped=[[0.7, 0.3], [1.0]],
+        ),
+        weight_stats=SimpleNamespace(weights_grouped=[[0.6, 0.4], [1.0]]),
+    )
+    columns, rows = metrics_mod._build_sample_table(prepared, step=5, max_rows=3)
+    col_idx = {name: idx for idx, name in enumerate(columns)}
+    assert "prompt_index" in col_idx
+    assert "completion_index" in col_idx
+    assert "group_size" in col_idx
+    assert "reward_total" in col_idx
+    assert "q_mass" in col_idx
+    assert "update_weight_raw" in col_idx
+    assert "update_mass_proxy" in col_idx
+    assert rows[0][col_idx["prompt_index"]] == 0
+    assert rows[0][col_idx["completion_index"]] == 0
+    assert rows[0][col_idx["group_size"]] == 2
+    assert rows[0][col_idx["reward_total"]] == pytest.approx(1.0)
+    assert rows[0][col_idx["q_mass"]] == pytest.approx(0.7)
+    assert rows[0][col_idx["update_weight_raw"]] == pytest.approx(0.6)
+    assert rows[0][col_idx["update_mass_proxy"]] == pytest.approx(0.6)
+    assert rows[1][col_idx["reward_rank_desc"]] == 2
+
+
+def test_write_sample_table_sidecar_persists_full_rows(tmp_path):
+    path = metrics_mod._write_sample_table_sidecar(
+        output_dir=str(tmp_path),
+        table_key="rich_completions",
+        step=7,
+        columns=["step", "prompt_index"],
+        rows=[[7, 0], [7, 1]],
+    )
+    assert path is not None
+    payload = json.loads((tmp_path / "rich_completions" / "rich_completions_step_000007.json").read_text(encoding="utf-8"))
+    assert payload["columns"] == ["step", "prompt_index"]
+    assert payload["data"] == [[7, 0], [7, 1]]
+
+
+def test_rich_completion_logging_helpers_respect_defaults() -> None:
+    assert metrics_mod._rich_completion_wandb_enabled(None) is False
+    assert metrics_mod._rich_completion_sync_enabled(None) is True
+    args = SimpleNamespace(
+        rich_log_completions_to_wandb=True,
+        rich_log_completions_synchronize_ranks=False,
+    )
+    assert metrics_mod._rich_completion_wandb_enabled(args) is True
+    assert metrics_mod._rich_completion_sync_enabled(args) is False
+
+
+def test_log_sample_table_waits_on_non_main_rank(monkeypatch, tmp_path) -> None:
+    wait_calls = []
+
+    class _Accel:
+        is_main_process = False
+
+        def wait_for_everyone(self):
+            wait_calls.append("wait")
+
+    ctx = SimpleNamespace(
+        runtime=SimpleNamespace(accelerator=_Accel()),
+        logging=SimpleNamespace(wandb_run=None),
+        training_args=SimpleNamespace(
+            output_dir=str(tmp_path),
+            rich_log_completions_to_wandb=False,
+            rich_log_completions_synchronize_ranks=True,
+            rich_log_completions_key="rich_completions",
+        ),
+    )
+    prepared = SimpleNamespace(
+        reward_comp=SimpleNamespace(
+            pairs=SimpleNamespace(prompts=["p"], completions=["c"]),
+            per_reward_values={},
+            advantage_samples=[0.0],
+            total_utils=[0.0],
+            q_grouped=[[1.0]],
+        ),
+        weight_stats=SimpleNamespace(weights_grouped=[[1.0]]),
+        grouped_completions=[["c"]],
+    )
+    metrics_mod._log_sample_table(ctx, SimpleNamespace(global_step=3), prepared)
+    assert wait_calls == ["wait"]
 
 
 def test_log_local_step_accumulates(monkeypatch):

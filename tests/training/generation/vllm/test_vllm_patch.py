@@ -124,6 +124,31 @@ def test_safe_generate_text_list_with_cumulative_logprobs(monkeypatch):
     assert meta[1][0].token_count == 3
 
 
+def test_safe_generate_regroups_flat_text_list_for_multiple_samples(monkeypatch):
+    payload = {
+        "text": ["a1", "a2", "a3", "b1", "b2", "b3"],
+        "cumulative_logprobs": [-0.1, -0.2, -0.3, -0.4, -0.5, -0.6],
+        "token_ids": [[1], [2], [3], [4], [5], [6]],
+    }
+
+    def fake_post(url, json, timeout, stream, headers):
+        return R(200, payload)
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    texts, meta, _ = VP.safe_generate(
+        prompts=["p1", "p2"],
+        n=3,
+        stream=False,
+        return_logprobs=True,
+    )
+    assert texts == [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
+    assert meta is not None
+    assert [entry.logprob_sum for entry in meta[0]] == [-0.1, -0.2, -0.3]
+    assert [entry.logprob_sum for entry in meta[1]] == [-0.4, -0.5, -0.6]
+    assert [entry.token_count for entry in meta[0]] == [1, 1, 1]
+    assert [entry.token_count for entry in meta[1]] == [1, 1, 1]
+
+
 def test_safe_generate_with_logprobs(monkeypatch):
     payload = {
         "results": [
@@ -503,6 +528,8 @@ def test_safe_generate_payload_and_request_id(monkeypatch):
         presence_penalty=0.4,
         stop=["</s>"],
         logit_bias={"42": -1.0},
+        allowed_token_ids=[0, 1, 2],
+        blocked_token_ids=[7, 8],
         guided_json="{}",
         guided_regex="foo.*",
         request_id_prefix="pref",
@@ -516,6 +543,10 @@ def test_safe_generate_payload_and_request_id(monkeypatch):
     assert payload["presence_penalty"] == 0.4
     assert payload["stop"] == ["</s>"]
     assert payload["logit_bias"] == {"42": -1.0}
+    assert payload["allowed_token_ids"] == [0, 1, 2]
+    assert payload["sampling_params"]["allowed_token_ids"] == [0, 1, 2]
+    assert payload["blocked_token_ids"] == [7, 8]
+    assert payload["sampling_params"]["_bad_words_token_ids"] == [[7], [8]]
     assert payload["guided_json"] == "{}"
     assert payload["guided_regex"] == "foo.*"
     assert payload["request_id"].startswith("pref-")
@@ -543,6 +574,26 @@ def test_safe_generate_retries_then_fails(monkeypatch):
     assert extras["backoff_initial"] == pytest.approx(0.0)
     assert extras["backoff_multiplier"] == pytest.approx(2.0)
     assert extras["elapsed_ms"] >= 0.0
+
+
+def test_safe_generate_preserves_request_payload_across_parse_retries(monkeypatch):
+    attempts = []
+    payloads = []
+
+    def fake_post(url, json, timeout, stream, headers):
+        attempts.append(1)
+        payloads.append(json)
+        return R(200, {"completion_ids": [[1, 2, 3]]})
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    monkeypatch.setattr(VP.time, "sleep", lambda *_args, **_kwargs: None)
+    with pytest.raises(VP.GenerationServiceError) as exc_info:
+        VP.safe_generate(prompts=["p"], max_retries=2, backoff=0.0)
+    assert len(attempts) == 2
+    assert payloads[0]["prompts"] == ["p"]
+    assert payloads[1]["prompts"] == ["p"]
+    assert "completion_ids" not in payloads[1]
+    assert "token IDs but no tokenizer" in str(exc_info.value.payload.exception_message)
 
 
 def test_safe_generate_failure_carries_metadata(monkeypatch):

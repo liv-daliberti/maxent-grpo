@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Submit the four-way experiment presets as 4-GPU single-stack jobs in two waves:
-# - wave 1: listwise MaxEnt + entropy MaxEnt
-# - wave 2: SEED-GRPO + GRPO after wave 1 succeeds
+# - wave 1: GRPO + listwise MaxEnt (priority pair)
+# - wave 2: entropy MaxEnt + SEED-GRPO after wave 1 succeeds
 
 set -euo pipefail
 
@@ -12,7 +12,7 @@ if [[ ! -f "$DUAL_WRAPPER" ]]; then
   exit 1
 fi
 
-CONFIG_SUFFIX="${CONFIG_SUFFIX:-math}"
+CONFIG_SUFFIX="${CONFIG_SUFFIX:-math_fair}"
 MODEL="${MODEL:-}"
 RECIPE_PROFILE="${RECIPE_PROFILE:-experiment}"
 GRPO_JOB_NAME="${GRPO_JOB_NAME:-open_r1_quartet_grpo}"
@@ -25,6 +25,10 @@ MAXENT_ARGS="${MAXENT_ARGS:-}"
 LISTWISE_ARGS="${LISTWISE_ARGS:-}"
 DRY_RUN="${DRY_RUN:-0}"
 SINGLE_STACK_GRES="${SINGLE_STACK_GRES:-gpu:a100:4}"
+SINGLE_STACK_PARTITION="${SINGLE_STACK_PARTITION:-mltheory}"
+SINGLE_STACK_ACCOUNT="${SINGLE_STACK_ACCOUNT:-mltheory}"
+SINGLE_STACK_CPUS_PER_TASK="${SINGLE_STACK_CPUS_PER_TASK:-48}"
+SINGLE_STACK_MEM="${SINGLE_STACK_MEM:-240G}"
 SINGLE_STACK_NUM_PROCESSES="${SINGLE_STACK_NUM_PROCESSES:-3}"
 SINGLE_STACK_VLLM_GPU="${SINGLE_STACK_VLLM_GPU:-0}"
 SINGLE_STACK_TRAIN_GPUS="${SINGLE_STACK_TRAIN_GPUS:-1,2,3}"
@@ -43,7 +47,7 @@ GRPO_MASTER_PORT="${GRPO_MASTER_PORT:-6000}"
 
 if [[ -z "$MODEL" ]]; then
   case "$CONFIG_SUFFIX" in
-    math|math_stable) MODEL="Qwen2.5-1.5B-Instruct" ;;
+    math|math_fair|math_stable) MODEL="Qwen2.5-1.5B-Instruct" ;;
     code_mbpp) MODEL="Qwen2.5-0.5B-Instruct" ;;
     *) MODEL="Qwen2.5-1.5B-Instruct" ;;
   esac
@@ -52,10 +56,10 @@ fi
 RUN_GROUP="${WANDB_RUN_GROUP:-quartet_${MODEL//\//-}_${CONFIG_SUFFIX}_$(date +%Y%m%d_%H%M%S)}"
 
 echo "[quartet] run_group=${RUN_GROUP}"
+echo "[quartet] wave1 grpo job:     ${GRPO_JOB_NAME}"
 echo "[quartet] wave1 listwise job: ${LISTWISE_JOB_NAME}"
-echo "[quartet] wave1 maxent job:   ${MAXENT_JOB_NAME}"
+echo "[quartet] wave2 maxent job:   ${MAXENT_JOB_NAME}"
 echo "[quartet] wave2 seed job:     ${SEED_JOB_NAME}"
-echo "[quartet] wave2 grpo job:     ${GRPO_JOB_NAME}"
 
 submit_quartet_job() {
   local stack="$1"
@@ -70,7 +74,11 @@ submit_quartet_job() {
         MODEL="$MODEL" \
         CONFIG_SUFFIX="$CONFIG_SUFFIX" \
         RECIPE_PROFILE="$RECIPE_PROFILE" \
+        SBATCH_PARTITION="$SINGLE_STACK_PARTITION" \
+        SBATCH_ACCOUNT="$SINGLE_STACK_ACCOUNT" \
         SBATCH_GRES="$SINGLE_STACK_GRES" \
+        SBATCH_CPUS_PER_TASK="$SINGLE_STACK_CPUS_PER_TASK" \
+        SBATCH_MEM="$SINGLE_STACK_MEM" \
         TRAIN_NUM_PROCESSES="$SINGLE_STACK_NUM_PROCESSES" \
         GRPO_VLLM_GPU="$SINGLE_STACK_VLLM_GPU" \
         GRPO_TRAIN_GPUS="$SINGLE_STACK_TRAIN_GPUS" \
@@ -103,7 +111,11 @@ submit_quartet_job() {
         MODEL="$MODEL" \
         CONFIG_SUFFIX="$CONFIG_SUFFIX" \
         RECIPE_PROFILE="$RECIPE_PROFILE" \
+        SBATCH_PARTITION="$SINGLE_STACK_PARTITION" \
+        SBATCH_ACCOUNT="$SINGLE_STACK_ACCOUNT" \
         SBATCH_GRES="$SINGLE_STACK_GRES" \
+        SBATCH_CPUS_PER_TASK="$SINGLE_STACK_CPUS_PER_TASK" \
+        SBATCH_MEM="$SINGLE_STACK_MEM" \
         TRAIN_NUM_PROCESSES="$SINGLE_STACK_NUM_PROCESSES" \
         MAXENT_VLLM_GPU="$SINGLE_STACK_VLLM_GPU" \
         MAXENT_TRAIN_GPUS="$SINGLE_STACK_TRAIN_GPUS" \
@@ -132,19 +144,19 @@ submit_quartet_job() {
   printf '%s\n' "$job_id"
 }
 
+grpo_output_and_id="$(submit_quartet_job "grpo" "$GRPO_JOB_NAME" "$GRPO_ARGS")"
+printf '%s\n' "$grpo_output_and_id"
+GRPO_JOB_ID="$(printf '%s\n' "$grpo_output_and_id" | tail -n 1)"
+
 listwise_output_and_id="$(submit_quartet_job "listwise" "$LISTWISE_JOB_NAME" "$LISTWISE_ARGS")"
 printf '%s\n' "$listwise_output_and_id"
 LISTWISE_JOB_ID="$(printf '%s\n' "$listwise_output_and_id" | tail -n 1)"
 
-maxent_output_and_id="$(submit_quartet_job "maxent" "$MAXENT_JOB_NAME" "$MAXENT_ARGS")"
+WAVE2_DEPENDENCY="afterok:${GRPO_JOB_ID}:${LISTWISE_JOB_ID}"
+
+maxent_output_and_id="$(submit_quartet_job "maxent" "$MAXENT_JOB_NAME" "$MAXENT_ARGS" "$WAVE2_DEPENDENCY")"
 printf '%s\n' "$maxent_output_and_id"
 MAXENT_JOB_ID="$(printf '%s\n' "$maxent_output_and_id" | tail -n 1)"
 
-WAVE2_DEPENDENCY="afterok:${LISTWISE_JOB_ID}:${MAXENT_JOB_ID}"
-
 seed_output_and_id="$(submit_quartet_job "seed" "$SEED_JOB_NAME" "$SEED_ARGS" "$WAVE2_DEPENDENCY")"
 printf '%s\n' "$seed_output_and_id"
-SEED_JOB_ID="$(printf '%s\n' "$seed_output_and_id" | tail -n 1)"
-
-grpo_output_and_id="$(submit_quartet_job "grpo" "$GRPO_JOB_NAME" "$GRPO_ARGS" "$WAVE2_DEPENDENCY")"
-printf '%s\n' "$grpo_output_and_id"

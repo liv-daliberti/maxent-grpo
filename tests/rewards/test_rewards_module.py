@@ -27,8 +27,10 @@ from maxent_grpo.rewards import (
     _canon_math,
     _extract_content,
     get_reward_funcs,
+    get_missing_boxed_answer_penalty_reward,
     pure_accuracy_math_correctness,
     pure_accuracy_reward_math,
+    seed_paper_boxed_accuracy_reward_math,
     uses_pure_accuracy_math_reward,
 )
 
@@ -101,6 +103,27 @@ def test_get_reward_funcs_resolves_known_names():
     assert funcs[0] is pure_accuracy_reward_math
     with pytest.raises(KeyError):
         get_reward_funcs(SimpleNamespace(reward_funcs=["unknown"]))
+
+
+def test_get_reward_funcs_resolves_seed_paper_reward() -> None:
+    args = SimpleNamespace(reward_funcs=["seed_paper_boxed_accuracy_math"])
+    funcs = get_reward_funcs(args)
+    assert funcs[0] is seed_paper_boxed_accuracy_reward_math
+
+
+def test_get_reward_funcs_resolves_missing_boxed_answer_penalty() -> None:
+    args = SimpleNamespace(
+        reward_funcs=["missing_boxed_answer_penalty_math"],
+        missing_boxed_answer_penalty=-0.125,
+    )
+    funcs = get_reward_funcs(args)
+    rewards = funcs[0]([r"Work \boxed{1}", "No final answer"])
+    assert rewards == [0.0, -0.125]
+
+
+def test_missing_boxed_answer_penalty_reward_clamps_positive_values() -> None:
+    reward_fn = get_missing_boxed_answer_penalty_reward(0.3)
+    assert reward_fn(["still missing"]) == [0.0]
 
 
 def test_pure_accuracy_reward_math_missing_answer_via_basic(monkeypatch):

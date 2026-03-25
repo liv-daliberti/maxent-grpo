@@ -8,6 +8,7 @@ import logging
 import os
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING, cast
 
+from maxent_grpo.training.generation.vocab_guard import resolve_blocked_token_ids
 from maxent_grpo.training.runtime import require_torch, require_transformer_base_classes
 from maxent_grpo.training.runtime.prompts import PROMPT_CHAR_LIMIT, _truncate_prompt
 
@@ -240,6 +241,11 @@ class LocalGenerationMixin:
                     num_return_sequences=1,
                     synced_gpus=synced_gpus,
                 )
+                blocked_token_ids = resolve_blocked_token_ids(self.ctx)
+                if blocked_token_ids:
+                    generate_kwargs["bad_words_ids"] = [
+                        [int(token_id)] for token_id in blocked_token_ids
+                    ]
                 if max_time is not None:
                     generate_kwargs["max_time"] = max_time
                 try:

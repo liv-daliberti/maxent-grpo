@@ -75,6 +75,53 @@ def test_parse_grpo_args_prefers_recipe_loader(monkeypatch):
     assert calls["model_cls"] is trl_mod.ModelConfig
 
 
+def test_parse_grpo_args_does_not_swallow_value_errors_from_overrides(monkeypatch):
+    monkeypatch.delenv("GRPO_RECIPE", raising=False)
+
+    class _Parser:
+        def __init__(self, args, **kwargs):
+            self.args = args
+
+        def parse_args_and_config(self, args=None):
+            raise ValueError("bad override set")
+
+    _install_trl_stub(monkeypatch, _Parser)
+
+    def _loader(path, model_config_cls):
+        raise AssertionError("recipe fallback should not run on parse ValueError")
+
+    monkeypatch.setattr(cli_trl, "load_grpo_recipe", _loader)
+
+    with pytest.raises(ValueError, match="bad override set"):
+        cli_trl.parse_grpo_args("recipe.yml")
+
+
+def test_parse_grpo_args_falls_back_when_parser_wiring_breaks(monkeypatch):
+    monkeypatch.delenv("GRPO_RECIPE", raising=False)
+    calls = {}
+
+    class _Parser:
+        def __init__(self, args, **kwargs):
+            self.args = args
+
+        def parse_args_and_config(self, args=None):
+            raise TypeError("parser wiring unavailable")
+
+    trl_mod = _install_trl_stub(monkeypatch, _Parser)
+
+    def _loader(path, model_config_cls):
+        calls["path"] = path
+        calls["model_cls"] = model_config_cls
+        return ("args", "cfg", "model")
+
+    monkeypatch.setattr(cli_trl, "load_grpo_recipe", _loader)
+
+    result = cli_trl.parse_grpo_args("recipe.yml")
+    assert result == ("args", "cfg", "model")
+    assert calls["path"] == "recipe.yml"
+    assert calls["model_cls"] is trl_mod.ModelConfig
+
+
 def test_parse_grpo_args_invokes_trl_parser(monkeypatch):
     monkeypatch.delenv("GRPO_RECIPE", raising=False)
     parsed = ("script_args", "grpo_cfg", "model_cfg")

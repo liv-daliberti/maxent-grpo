@@ -1,0 +1,55 @@
+# Method family: listwise MaxEnt
+# Loss backend: Dr.GRPO (`grpo_loss_type: dr_grpo`)
+# Canonical label: Listwise MaxEnt (Dr.GRPO loss)
+command: train-maxent
+maxent:
+  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math_fair.yaml
+  training:
+    objective: maxent_listwise
+    maxent_alpha: 0.0
+    num_generations: 8
+    # 3 trainer GPUs x 40 grad-accum steps = 120 prompt-groups effective batch.
+    gradient_accumulation_steps: 40
+    max_steps: -1
+    num_train_epochs: 20
+    learning_rate: 1e-6
+    beta: 0.08
+    scale_rewards: false
+    grpo_loss_type: dr_grpo
+    dr_grpo_denominator_mode: fixed_max
+    num_iterations: 1
+    maxent_beta_controller_enabled: false
+    max_grad_norm: 1.0
+    clip_range: 0.2
+    ppo_clip_range: 0.2
+    maxent_tau: 0.5
+    maxent_q_temperature: 2.0
+    maxent_q_epsilon: 1e-6
+    maxent_listwise_skip_zero_variance_groups: true
+    maxent_use_clip_objective: true
+    maxent_clip_objective_coef: 1.0
+    maxent_reference_logprobs_source: model
+    maxent_trl_reference_scoring: true
+    maxent_length_normalize_ref: true
+    maxent_length_normalize_policy: true
+    maxent_policy_entropy: false
+    policy_entropy_bonus_coef: 0.0
+    maxent_reference_ema_enabled: false
+    controller_meta_enabled: false
+    warmup_ratio: 0.0
+    eval_on_start: true
+    eval_steps: 25
+    seed_paper_eval_enabled: true
+    seed_paper_eval_fail_on_error: true
+    seed_paper_eval_template: "qwen_math"
+    save_strategy: "steps"
+    save_steps: 25
+    push_to_hub: false
+    output_dir: var/data/Qwen2.5-1.5B-Open-R1-MaxEnt-Listwise-math-fair-v1
+
+hydra:
+  run:
+    dir: var/artifacts/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: var/artifacts/outputs/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

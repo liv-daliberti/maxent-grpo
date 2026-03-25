@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from contextlib import contextmanager
 import math
 from types import SimpleNamespace
 from typing import Any, Dict, List
@@ -25,6 +26,7 @@ class _FakeAccelerator:
         self.device = torch.device("cpu")
         self.process_index = 0
         self.is_main_process = True
+        self.num_processes = 1
 
     def gather(self, value: torch.Tensor) -> torch.Tensor:
         return value
@@ -34,6 +36,68 @@ class _FakeAccelerator:
 
     def wait_for_everyone(self) -> None:
         return
+
+    def prepare(self, value: Any) -> Any:
+        return value
+
+
+def test_adapter_disabled_context_is_noop_for_plain_model() -> None:
+    model = object()
+
+    with trainer_mod._adapter_disabled_context(model):
+        pass
+
+
+def test_adapter_disabled_context_supports_transformers_peft_hooks() -> None:
+    events: List[str] = []
+
+    class _Model:
+        def disable_adapters(self) -> None:
+            events.append("disable")
+
+        def enable_adapters(self) -> None:
+            events.append("enable")
+
+    with trainer_mod._adapter_disabled_context(_Model()):
+        events.append("body")
+
+    assert events == ["disable", "body", "enable"]
+
+
+def test_adapter_disabled_context_treats_missing_peft_as_noop() -> None:
+    events: List[str] = []
+
+    class _Model:
+        def disable_adapters(self) -> None:
+            events.append("disable_attempt")
+            raise ValueError("PEFT is not installed. Please install it with `pip install peft`")
+
+        def enable_adapters(self) -> None:
+            events.append("enable_attempt")
+            raise ValueError("PEFT is not installed. Please install it with `pip install peft`")
+
+    with trainer_mod._adapter_disabled_context(_Model()):
+        events.append("body")
+
+    assert events == ["disable_attempt", "body"]
+
+
+def test_adapter_disabled_context_supports_legacy_disable_adapter_contextmanager() -> None:
+    events: List[str] = []
+
+    class _Model:
+        @contextmanager
+        def disable_adapter(self):
+            events.append("disable")
+            try:
+                yield
+            finally:
+                events.append("enable")
+
+    with trainer_mod._adapter_disabled_context(_Model()):
+        events.append("body")
+
+    assert events == ["disable", "body", "enable"]
 
 
 class _FakeVLLMClient:
@@ -104,6 +168,7 @@ class _ParentTrainerStub:
         self.callback_handler = SimpleNamespace(callbacks=[])
         self._train_batch_size = 1
         self.train_dataset = []
+        self.eval_dataset = []
         self.data_collator = lambda x: x
         self._step = 0
         self._buffered_inputs = None
@@ -167,6 +232,34 @@ class _ParentTrainerStub:
         return logs
 
 
+class _ParentTrainerWithEvalLoop(_ParentTrainerStub):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.eval_loop_calls: List[Dict[str, Any]] = []
+
+    def evaluation_loop(
+        self,
+        dataloader: Any,
+        description: str,
+        prediction_loss_only: Any = None,
+        ignore_keys: Any = None,
+        metric_key_prefix: str = "eval",
+    ) -> Any:
+        del dataloader
+        self.eval_loop_calls.append(
+            {
+                "description": description,
+                "prediction_loss_only": prediction_loss_only,
+                "ignore_keys": ignore_keys,
+                "metric_key_prefix": metric_key_prefix,
+                "include_for_metrics": tuple(
+                    getattr(self.args, "include_for_metrics", ()) or ()
+                ),
+            }
+        )
+        return SimpleNamespace(metrics={}, num_samples=0)
+
+
 class _GreedyEvalModel(torch.nn.Module):
     def __init__(self, completion_ids: torch.Tensor) -> None:
         super().__init__()
@@ -207,11 +300,15 @@ class _ToyTokenizer:
         ids_to_text: Dict[tuple[int, ...], str] | None = None,
         pad_token_id: int = 0,
         eos_token_id: int = 2,
+        vocab_size: int | None = None,
+        tokenizer_length: int | None = None,
     ) -> None:
         self.text_to_ids = dict(text_to_ids or {})
         self.ids_to_text = dict(ids_to_text or {})
         self.pad_token_id = pad_token_id
         self.eos_token_id = eos_token_id
+        self.vocab_size = vocab_size
+        self.tokenizer_length = tokenizer_length
 
     def encode(self, text: str, add_special_tokens: bool = False) -> List[int]:
         del add_special_tokens
@@ -233,6 +330,18 @@ class _ToyTokenizer:
         else:
             rows = list(ids)
         return [self.decode(row, skip_special_tokens=skip_special_tokens) for row in rows]
+
+    def __len__(self) -> int:
+        if isinstance(self.tokenizer_length, int) and self.tokenizer_length > 0:
+            return int(self.tokenizer_length)
+        if isinstance(self.vocab_size, int) and self.vocab_size > 0:
+            return int(self.vocab_size)
+        maxima = [self.pad_token_id, self.eos_token_id]
+        for row in self.text_to_ids.values():
+            maxima.extend(int(tok) for tok in row)
+        for row in self.ids_to_text.keys():
+            maxima.extend(int(tok) for tok in row)
+        return (max(maxima) + 1) if maxima else 0
 
     def __call__(
         self,
@@ -259,6 +368,51 @@ class _ToyTokenizer:
         return {"input_ids": input_ids, "attention_mask": attention_mask}
 
 
+class _ToyBatchEncoding:
+    def __init__(self, payload: Dict[str, torch.Tensor]) -> None:
+        self.payload = payload
+        self.moved_to: Any = None
+
+    def to(self, device: Any = None, **kwargs: Any) -> "_ToyBatchEncoding":
+        target = device if device is not None else kwargs.get("device")
+        self.moved_to = target
+        if target is not None:
+            self.payload = {
+                key: value.to(device=target) if isinstance(value, torch.Tensor) else value
+                for key, value in self.payload.items()
+            }
+        return self
+
+    def __getitem__(self, key: str) -> torch.Tensor:
+        return self.payload[key]
+
+
+class _ToyBatchEncodingTokenizer(_ToyTokenizer):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.last_batch_encoding: _ToyBatchEncoding | None = None
+
+    def __call__(
+        self,
+        *,
+        text: List[str],
+        return_tensors: str,
+        padding: bool,
+        padding_side: str,
+        add_special_tokens: bool,
+    ) -> _ToyBatchEncoding:
+        payload = super().__call__(
+            text=text,
+            return_tensors=return_tensors,
+            padding=padding,
+            padding_side=padding_side,
+            add_special_tokens=add_special_tokens,
+        )
+        batch = _ToyBatchEncoding(payload)
+        self.last_batch_encoding = batch
+        return batch
+
+
 class _UniformPolicyModel(torch.nn.Module):
     def __init__(self, vocab_size: int = 3) -> None:
         super().__init__()
@@ -281,6 +435,7 @@ class _FixedLogitModel(torch.nn.Module):
     def __init__(self, logits: List[float]) -> None:
         super().__init__()
         self._logits = torch.tensor(logits, dtype=torch.float32)
+        self.vocab_size = int(len(logits))
         self.training = True
 
     def forward(
@@ -302,6 +457,7 @@ class _AttrWrappedModule(torch.nn.Module):
 
 
 _WrappedTrainer = build_custom_grpo_trainer(_ParentTrainerStub)
+_WrappedTrainerWithEvalLoop = build_custom_grpo_trainer(_ParentTrainerWithEvalLoop)
 
 
 def _make_args(
@@ -355,6 +511,7 @@ def _make_args(
         maxent_clip_objective_coef=1.0,
         maxent_clip_adv_baseline=None,
         maxent_clip_range=None,
+        dr_grpo_denominator_mode="fixed_max",
         beta=0.0,
         delta=None,
         maxent_reference_ema_enabled=True,
@@ -362,9 +519,13 @@ def _make_args(
         maxent_reference_ema_beta=0.995,
         maxent_reference_ema_warmup_steps=100,
         maxent_reference_ema_update_interval=10,
+        reference_model_name_or_path=None,
+        reference_model_revision=None,
+        model_init_kwargs=None,
         greedy_eval_enabled=False,
         eval_greedy_only_enabled=False,
         truncate_completions_at_first_boxed_answer=False,
+        include_for_metrics=(),
     )
 
 
@@ -489,6 +650,28 @@ def test_maxent_alpha_zero_routes_to_native_grpo_path() -> None:
         if key.startswith("completions/diversity/")
     ]
     assert diversity_keys
+
+
+def test_maxent_initializes_reference_model_for_alpha_kl_control(monkeypatch) -> None:
+    sentinel_ref = _FixedLogitModel([2.0, -2.0, -2.0])
+    calls = []
+
+    def _fake_create_reference_model(model: Any) -> Any:
+        calls.append(model)
+        return sentinel_ref
+
+    monkeypatch.setattr(trainer_mod, "_trl_create_reference_model", _fake_create_reference_model)
+    args = _make_args(
+        train_grpo_objective=False,
+        maxent_alpha=0.2,
+        maxent_objective_variant="entropy",
+    )
+    args.maxent_alpha_lower_on_high_kl = True
+
+    trainer = _WrappedTrainer(args=args)
+
+    assert len(calls) == 1
+    assert trainer.ref_model is sentinel_ref
 
 
 def test_compute_loss_routes_by_objective() -> None:
@@ -653,11 +836,15 @@ def test_maxent_alpha_applies_true_entropy_loss_in_native_path() -> None:
     assert float(adv.abs().sum().item()) == pytest.approx(0.0)
     loss = trainer.compute_loss(model=trainer.model, inputs=outputs, return_outputs=False)
     expected_entropy = math.log(3.0)
-    assert float(loss.item()) == pytest.approx(-0.2 * expected_entropy, rel=1e-5)
+    expected_entropy_normalized = 1.0
+    assert float(loss.item()) == pytest.approx(-0.2 * expected_entropy_normalized, rel=1e-5)
     assert trainer.parent_generate_calls == 1
     assert trainer._metrics["train"]["maxent/alpha"][-1] == pytest.approx(0.2)
     assert trainer._metrics["train"]["maxent/policy_entropy_mean"][-1] == pytest.approx(
         expected_entropy, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/policy_entropy_mean_normalized"][-1] == pytest.approx(
+        expected_entropy_normalized, rel=1e-5
     )
     assert trainer._metrics["train"]["maxent/objective_variant_entropy"][-1] == pytest.approx(
         1.0
@@ -685,6 +872,7 @@ def test_entropy_maxent_forces_exact_entropy_when_sample_mode_is_requested() -> 
     logits = torch.tensor([4.0, -4.0, -4.0], dtype=torch.float32)
     probs = torch.softmax(logits, dim=0)
     exact_entropy = float((-(probs * probs.log())).sum().item())
+    exact_entropy_normalized = exact_entropy / math.log(3.0)
     sample_cross_entropy = float(
         -0.5
         * (
@@ -693,10 +881,13 @@ def test_entropy_maxent_forces_exact_entropy_when_sample_mode_is_requested() -> 
         )
     )
 
-    assert float(loss.item()) == pytest.approx(-0.2 * exact_entropy, rel=1e-5)
+    assert float(loss.item()) == pytest.approx(-0.2 * exact_entropy_normalized, rel=1e-5)
     assert float(loss.item()) != pytest.approx(-0.2 * sample_cross_entropy, rel=1e-3)
     assert trainer._metrics["train"]["maxent/policy_entropy_mean"][-1] == pytest.approx(
         exact_entropy, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/policy_entropy_mean_normalized"][-1] == pytest.approx(
+        exact_entropy_normalized, rel=1e-5
     )
 
 
@@ -817,12 +1008,98 @@ def test_entropy_maxent_keeps_reference_model_in_the_kl_term() -> None:
     per_token_kl = torch.exp(delta) - delta - 1.0
     expected_kl = float(per_token_kl.mean().item())
     expected_entropy = float((-(torch.softmax(logits_policy, dim=0) * logp_policy)).sum())
-    expected_loss = 0.3 * expected_kl - 0.2 * expected_entropy
+    expected_entropy_normalized = expected_entropy / math.log(3.0)
+    expected_loss = 0.3 * expected_kl - 0.2 * expected_entropy_normalized
 
     assert float(loss.item()) == pytest.approx(expected_loss, rel=1e-5)
     assert trainer._metrics["train"]["kl"][-1] == pytest.approx(expected_kl, rel=1e-5)
     assert trainer._metrics["train"]["maxent/policy_entropy_mean"][-1] == pytest.approx(
         expected_entropy, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/policy_entropy_mean_normalized"][-1] == pytest.approx(
+        expected_entropy_normalized, rel=1e-5
+    )
+
+
+def test_entropy_maxent_dr_grpo_normalizes_bonus_by_sequence_length() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.2,
+        maxent_objective_variant="entropy",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=3)
+    trainer.ref_model = None
+    trainer.beta = 0.0
+    trainer.args.beta = 0.0
+    trainer.loss_type = "dr_grpo"
+    trainer.max_completion_length = 4
+    _install_real_logprob_scorer(trainer)
+
+    inputs = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0, 0, 0], [0, 1, 2, 0]], dtype=torch.long),
+        "completion_mask": torch.tensor([[1, 0, 0, 0], [1, 1, 1, 1]], dtype=torch.long),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    loss = trainer.compute_loss(
+        model=trainer.model,
+        inputs=inputs,
+        return_outputs=False,
+    )
+
+    logits_policy = torch.zeros(3, dtype=torch.float32)
+    logp_policy = torch.log_softmax(logits_policy, dim=0)
+    expected_entropy = float((-(torch.softmax(logits_policy, dim=0) * logp_policy)).sum())
+    expected_entropy_normalized = expected_entropy / math.log(3.0)
+    expected_loss = -0.2 * expected_entropy_normalized
+
+    assert float(loss.item()) == pytest.approx(expected_loss, rel=1e-5)
+    assert trainer._metrics["train"]["maxent/policy_entropy_mean"][-1] == pytest.approx(
+        expected_entropy, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/policy_entropy_mean_seq"][-1] == pytest.approx(
+        expected_entropy, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/policy_entropy_mean_normalized"][-1] == pytest.approx(
+        expected_entropy_normalized, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/policy_entropy_mean_seq_normalized"][-1] == pytest.approx(
+        expected_entropy_normalized, rel=1e-5
+    )
+    assert trainer._metrics["train"]["maxent/entropy_bonus_length_normalized"][-1] == pytest.approx(
+        1.0
+    )
+
+
+def test_stable_grpo_dr_grpo_can_normalize_by_active_tokens() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model = _UniformPolicyModel(vocab_size=3)
+    trainer.ref_model = None
+    trainer.beta = 0.0
+    trainer.args.beta = 0.0
+    trainer.loss_type = "dr_grpo"
+    trainer.max_completion_length = 8
+    trainer.args.dr_grpo_denominator_mode = "active_tokens"
+    _install_real_logprob_scorer(trainer)
+
+    inputs = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0, 0, 0], [0, 1, 2, 0]], dtype=torch.long),
+        "completion_mask": torch.tensor([[1, 0, 0, 0], [1, 1, 1, 1]], dtype=torch.long),
+        "advantages": torch.ones((2,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    loss = trainer._compute_stable_grpo_loss(trainer.model, inputs)
+
+    assert float(loss.item()) == pytest.approx(-1.0, rel=1e-5)
+    assert trainer._metrics["train"]["loss/dr_grpo_denominator"][-1] == pytest.approx(5.0)
+    assert trainer._metrics["train"]["loss/dr_grpo_denominator_active_tokens"][-1] == pytest.approx(
+        1.0
     )
 
 
@@ -946,6 +1223,81 @@ def test_entropy_maxent_disables_alpha_outside_trust_zone() -> None:
     assert trainer._metrics["train"]["maxent/alpha_trust_zone_blocked"][-1] == pytest.approx(
         1.0
     )
+
+
+def test_entropy_maxent_uses_current_batch_kl_for_alpha_control_without_kl_penalty() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.2,
+        maxent_objective_variant="entropy",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=3)
+    trainer.ref_model = _FixedLogitModel([4.0, -4.0, -4.0])
+    trainer.beta = 0.0
+    trainer.args.beta = 0.0
+    trainer.args.maxent_alpha_lower_on_high_kl = True
+    trainer.args.maxent_alpha_kl_threshold = 0.04
+    trainer.args.maxent_alpha_kl_min_multiplier = 0.1
+    _install_real_logprob_scorer(trainer)
+
+    inputs = {
+        "prompt_ids": torch.zeros((1, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((1, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((1, 2), dtype=torch.long),
+        "advantages": torch.zeros((1,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    trainer.compute_loss(
+        model=trainer.model,
+        inputs=inputs,
+        return_outputs=False,
+    )
+
+    assert trainer._metrics["train"]["maxent/alpha_kl_control_enabled"][-1] == pytest.approx(1.0)
+    assert trainer._metrics["train"]["maxent/alpha_kl_measure"][-1] > 0.04
+    assert trainer._metrics["train"]["maxent/alpha"][-1] < 0.2
+
+
+def test_entropy_maxent_blocks_bonus_when_rollout_contains_invalid_tokens() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.2,
+        maxent_objective_variant="entropy",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=3)
+    trainer.beta = 0.0
+    trainer.args.beta = 0.0
+    setattr(trainer, "_last_rollout_invalid_token_id_count", 2.0)
+
+    inputs = {
+        "prompt_ids": torch.zeros((1, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((1, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((1, 2), dtype=torch.long),
+        "advantages": torch.zeros((1,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    loss = trainer.compute_loss(
+        model=trainer.model,
+        inputs=inputs,
+        return_outputs=False,
+    )
+
+    assert float(loss.item()) == pytest.approx(0.0, rel=1e-6)
+    assert trainer._metrics["train"]["maxent/alpha_before_invalid_token_guard"][-1] == pytest.approx(
+        0.2
+    )
+    assert trainer._metrics["train"]["maxent/alpha"][-1] == pytest.approx(0.0)
+    assert trainer._metrics["train"]["maxent/invalid_rollout_bonus_blocked"][-1] == pytest.approx(
+        1.0
+    )
+    assert trainer._metrics["train"]["maxent/rollout_invalid_token_id_count"][-1] == pytest.approx(
+        2.0
+    )
+    assert trainer._metrics["train"]["maxent/loss_entropy_bonus"][-1] == pytest.approx(0.0)
 
 
 def test_entropy_controller_meta_updates_beta_from_kl() -> None:
@@ -1570,6 +1922,92 @@ def test_listwise_maxent_falls_back_to_behavior_logprobs_for_reference_weights()
     assert trainer._metrics["train"]["kl"][-1] > 0.0
 
 
+def test_listwise_maxent_skips_uniform_q_groups_even_with_reference_weights() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=2)
+    trainer.ref_model = _FixedLogitModel([math.log(0.75), math.log(0.25)])
+    trainer.args.maxent_tau = 1.0
+    trainer.args.beta = 1.0
+    trainer.beta = 1.0
+    trainer.args.maxent_listwise_skip_zero_variance_groups = True
+    trainer.args.maxent_reference_logprobs_source = "model"
+    trainer.args.maxent_trl_reference_scoring = False
+    _refresh_weighting(trainer)
+    _install_real_logprob_scorer(trainer)
+
+    prepared = {
+        "prompt_ids": torch.zeros((2, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+        "completion_ids": torch.tensor([[0, 0], [1, 1]], dtype=torch.long),
+        "completion_mask": torch.ones((2, 2), dtype=torch.long),
+        "advantages": torch.zeros((2,), dtype=torch.float32),
+        "old_per_token_logps": None,
+        "maxent_listwise_q": torch.tensor([[0.5, 0.5]], dtype=torch.float32),
+    }
+
+    loss = trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
+
+    assert float(loss.item()) == pytest.approx(0.0, abs=1e-7)
+    assert trainer._metrics["train"]["maxent/listwise_neutral_group_frac"][-1] == pytest.approx(
+        1.0
+    )
+    assert trainer._metrics["train"]["maxent/listwise_active_group_frac"][-1] == pytest.approx(
+        0.0
+    )
+
+
+def test_listwise_maxent_only_averages_active_groups() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model = _FixedLogitModel([math.log(0.75), math.log(0.25)])
+    trainer.args.maxent_tau = 1.0
+    trainer.args.beta = 0.0
+    trainer.args.maxent_listwise_skip_zero_variance_groups = True
+    trainer.args.maxent_reference_logprobs_source = "none"
+    trainer.args.maxent_trl_reference_scoring = False
+    _refresh_weighting(trainer)
+    _install_real_logprob_scorer(trainer)
+
+    prepared = {
+        "prompt_ids": torch.zeros((4, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((4, 1), dtype=torch.long),
+        "completion_ids": torch.tensor(
+            [[0, 0], [1, 1], [0, 0], [1, 1]],
+            dtype=torch.long,
+        ),
+        "completion_mask": torch.ones((4, 2), dtype=torch.long),
+        "advantages": torch.zeros((4,), dtype=torch.float32),
+        "old_per_token_logps": None,
+        "maxent_listwise_q": torch.tensor(
+            [[0.8, 0.2], [0.5, 0.5]],
+            dtype=torch.float32,
+        ),
+    }
+
+    loss = trainer.compute_loss(model=trainer.model, inputs=prepared, return_outputs=False)
+    seq_prob_0 = 0.75**2
+    seq_prob_1 = 0.25**2
+    seq_total = seq_prob_0 + seq_prob_1
+    expected_active_only = -(
+        0.8 * math.log(seq_prob_0 / seq_total) + 0.2 * math.log(seq_prob_1 / seq_total)
+    )
+
+    assert float(loss.item()) == pytest.approx(expected_active_only, rel=1e-6)
+    assert trainer._metrics["train"]["maxent/listwise_neutral_group_frac"][-1] == pytest.approx(
+        0.5
+    )
+    assert trainer._metrics["train"]["maxent/listwise_active_group_frac"][-1] == pytest.approx(
+        0.5
+    )
+
+
 @pytest.mark.parametrize("train_grpo_objective", [True, False])
 def test_loss_uses_behavior_logprobs_as_kl_reference_without_ref_model(
     train_grpo_objective: bool,
@@ -1946,6 +2384,537 @@ def test_eval_logs_greedy_pass_at_1_metric() -> None:
     assert trainer._metrics["eval"]["greedy/pass_at_1_BENCH_1"][-1] == pytest.approx(0.0)
 
 
+def test_recompute_local_rewards_aliases_answer_and_solution_for_mixed_eval_rows() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    captured: Dict[str, Any] = {}
+
+    def _reward(
+        prompts, completions, completion_ids, answer, solution=None, **kwargs
+    ):
+        del prompts, completions, completion_ids, kwargs
+        captured["answer"] = list(answer)
+        captured["solution"] = list(solution) if solution is not None else None
+        return [1.0, 0.0]
+
+    trainer.reward_funcs = [_reward]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+    trainer.processing_class = SimpleNamespace(
+        eos_token_id=2,
+        batch_decode=lambda ids, skip_special_tokens=True: [
+            "decoded-0",
+            "decoded-1",
+        ],
+    )
+
+    rewards = trainer._recompute_local_rewards_for_outputs(
+        [
+            {"prompt": "p0", "solution": "a0", "eval_benchmark_id": 0},
+            {"prompt": "p1", "answer": "a1", "eval_benchmark_id": 1},
+        ],
+        {
+            "completion_ids": torch.tensor([[7, 8], [9, 10]], dtype=torch.long),
+            "completion_mask": torch.tensor([[1, 1], [1, 1]], dtype=torch.long),
+        },
+    )
+
+    assert rewards is not None
+    assert captured["answer"] == ["a0", "a1"]
+    assert captured["solution"] == ["a0", "a1"]
+    assert rewards.tolist() == pytest.approx([1.0, 0.0])
+
+
+def test_seed_grpo_scales_prepared_advantages_and_logs_metrics() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.seed_grpo_enabled = True
+    trainer.args.seed_grpo_alpha = 10.0
+    trainer.args.seed_grpo_alpha_normalize_by_max_entropy = False
+    trainer.args.seed_grpo_length_normalize_logprobs = False
+    trainer.num_generations = 2
+    trainer.processing_class = _ToyTokenizer(
+        ids_to_text={
+            (11, 11): "\\boxed{1}",
+            (12, 12): "\\boxed{2}",
+            (13, 13): "\\boxed{3}",
+            (14, 14): "\\boxed{3}",
+        }
+    )
+    outputs: Dict[str, Any] = {
+        "advantages": torch.ones((4,), dtype=torch.float32),
+        "completion_ids": torch.tensor(
+            [[11, 11], [12, 12], [13, 13], [14, 14]],
+            dtype=torch.long,
+        ),
+        "completion_mask": torch.ones((4, 2), dtype=torch.long),
+        "old_per_token_logps": torch.zeros((4, 2), dtype=torch.float32),
+    }
+    trainer._maybe_apply_seed_grpo_advantages([], outputs, mode="train")
+
+    scale_diverse = 1.0 / (1.0 + 10.0 * math.log(2.0))
+    assert outputs["advantages"][:2].tolist() == pytest.approx(
+        [scale_diverse, scale_diverse],
+        rel=1e-5,
+    )
+    assert outputs["advantages"][2:].tolist() == pytest.approx([1.0, 1.0], rel=1e-5)
+    assert trainer._metrics["train"]["seed_grpo/semantic_entropy_mean"][-1] == pytest.approx(
+        math.log(2.0) / 2.0,
+        rel=1e-5,
+    )
+    assert trainer._metrics["train"]["seed_grpo/advantage_scale_min"][-1] == pytest.approx(
+        scale_diverse,
+        rel=1e-5,
+    )
+    assert trainer._metrics["train"]["seed_grpo/advantage_scale_max"][-1] == pytest.approx(
+        1.0,
+        rel=1e-5,
+    )
+
+
+def test_seed_grpo_logs_local_metrics_without_distributed_gather(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.seed_grpo_enabled = True
+    trainer.args.seed_grpo_alpha = 10.0
+    trainer.args.seed_grpo_alpha_normalize_by_max_entropy = False
+    trainer.args.seed_grpo_length_normalize_logprobs = False
+    trainer.num_generations = 2
+    trainer.processing_class = _ToyTokenizer(
+        ids_to_text={
+            (11, 11): "\\boxed{1}",
+            (12, 12): "\\boxed{2}",
+            (13, 13): "\\boxed{3}",
+            (14, 14): "\\boxed{3}",
+        }
+    )
+    outputs: Dict[str, Any] = {
+        "advantages": torch.ones((4,), dtype=torch.float32),
+        "completion_ids": torch.tensor(
+            [[11, 11], [12, 12], [13, 13], [14, 14]],
+            dtype=torch.long,
+        ),
+        "completion_mask": torch.ones((4, 2), dtype=torch.long),
+        "old_per_token_logps": torch.zeros((4, 2), dtype=torch.float32),
+    }
+
+    def _fail_gather(value: Any) -> Any:
+        raise AssertionError(f"unexpected distributed gather for {type(value)!r}")
+
+    monkeypatch.setattr(trainer_mod, "gather", _fail_gather)
+
+    trainer._maybe_apply_seed_grpo_advantages([], outputs, mode="train")
+
+    assert trainer._metrics["train"]["seed_grpo/semantic_entropy_mean"][-1] == pytest.approx(
+        math.log(2.0) / 2.0,
+        rel=1e-5,
+    )
+    assert trainer._metrics["train"]["seed_grpo/advantage_scale_max"][-1] == pytest.approx(
+        1.0,
+        rel=1e-5,
+    )
+
+
+def test_seed_grpo_defers_rollout_logprobs_to_loss_in_shared_trainer(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.seed_grpo_enabled = True
+    trainer.args.seed_grpo_alpha = 10.0
+    trainer.args.seed_grpo_alpha_normalize_by_max_entropy = False
+    trainer.args.seed_grpo_length_normalize_logprobs = False
+    trainer.num_generations = 2
+    trainer.processing_class = _ToyTokenizer(
+        ids_to_text={
+            (11, 11): "\\boxed{1}",
+            (12, 12): "\\boxed{2}",
+            (13, 13): "\\boxed{3}",
+            (14, 14): "\\boxed{3}",
+        }
+    )
+
+    def _fake_parent_generate(
+        self: Any,
+        inputs: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        del inputs
+        return {
+            "prompt_ids": torch.zeros((4, 1), dtype=torch.long),
+            "prompt_mask": torch.ones((4, 1), dtype=torch.long),
+            "completion_ids": torch.tensor(
+                [[11, 11], [12, 12], [13, 13], [14, 14]],
+                dtype=torch.long,
+            ),
+            "completion_mask": torch.ones((4, 2), dtype=torch.long),
+            "advantages": torch.ones((4,), dtype=torch.float32),
+            "old_per_token_logps": None,
+        }
+
+    monkeypatch.setattr(
+        _ParentTrainerStub,
+        "_generate_and_score_completions",
+        _fake_parent_generate,
+    )
+
+    with caplog.at_level("WARNING"):
+        outputs = trainer._generate_and_score_completions(
+            [
+                {"prompt": "p0", "answer": "1"},
+                {"prompt": "p0", "answer": "1"},
+                {"prompt": "p1", "answer": "3"},
+                {"prompt": "p1", "answer": "3"},
+            ]
+        )
+
+    assert outputs["old_per_token_logps"] is None
+    assert outputs["advantages"].tolist() == pytest.approx([1.0, 1.0, 1.0, 1.0])
+    assert "_seed_grpo_deferred_to_loss" not in outputs
+    assert not any(
+        "rollout log-prob metadata is missing" in record.message
+        for record in caplog.records
+    )
+
+
+def test_seed_grpo_sanitizes_invalid_rollout_token_ids_before_deferred_loss(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.seed_grpo_enabled = True
+    trainer.args.seed_grpo_alpha = 1.0
+    trainer.num_generations = 1
+    trainer.model = SimpleNamespace(
+        training=True,
+        config=SimpleNamespace(vocab_size=5),
+    )
+    trainer.processing_class = _ToyTokenizer(
+        pad_token_id=0,
+        eos_token_id=2,
+        ids_to_text={(1, 0): "\\boxed{1}"},
+        vocab_size=5,
+    )
+
+    def _fake_parent_generate(
+        self: Any,
+        inputs: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        del inputs
+        return {
+            "prompt_ids": torch.tensor([[6], [1]], dtype=torch.long),
+            "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+            "completion_ids": torch.tensor([[1, 9], [3, 4]], dtype=torch.long),
+            "completion_mask": torch.ones((2, 2), dtype=torch.long),
+            "advantages": torch.ones((2,), dtype=torch.float32),
+            "old_per_token_logps": None,
+        }
+
+    monkeypatch.setattr(
+        _ParentTrainerStub,
+        "_generate_and_score_completions",
+        _fake_parent_generate,
+    )
+
+    with caplog.at_level("WARNING"):
+        outputs = trainer._generate_and_score_completions(
+            [{"prompt": "p0", "answer": "1"}, {"prompt": "p1", "answer": "1"}]
+        )
+
+    assert outputs["prompt_ids"].tolist() == [[0], [1]]
+    assert outputs["completion_ids"].tolist() == [[1, 0], [3, 4]]
+    assert trainer._metrics["train"]["rollout/invalid_token_id_count"][-1] == pytest.approx(
+        2.0
+    )
+    assert "_seed_grpo_deferred_to_loss" not in outputs
+    assert any("Sanitized 2 rollout token ids" in record.message for record in caplog.records)
+
+
+def test_seed_grpo_invalid_rollout_tokens_can_fail_fast_when_guard_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.seed_grpo_enabled = True
+    trainer.args.seed_grpo_alpha = 1.0
+    trainer.num_generations = 1
+    trainer.model = SimpleNamespace(
+        training=True,
+        config=SimpleNamespace(vocab_size=5),
+    )
+    trainer.processing_class = _ToyTokenizer(
+        pad_token_id=0,
+        eos_token_id=2,
+        ids_to_text={(1, 0): "\\boxed{1}"},
+        vocab_size=5,
+    )
+
+    def _fake_parent_generate(
+        self: Any,
+        inputs: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        del inputs
+        return {
+            "prompt_ids": torch.tensor([[6], [1]], dtype=torch.long),
+            "prompt_mask": torch.ones((2, 1), dtype=torch.long),
+            "completion_ids": torch.tensor([[1, 9], [3, 4]], dtype=torch.long),
+            "completion_mask": torch.ones((2, 2), dtype=torch.long),
+            "advantages": torch.ones((2,), dtype=torch.float32),
+            "old_per_token_logps": None,
+        }
+
+    monkeypatch.setattr(
+        _ParentTrainerStub,
+        "_generate_and_score_completions",
+        _fake_parent_generate,
+    )
+    monkeypatch.setenv("MAXENT_FATAL_INVALID_ROLLOUT_TOKEN_IDS", "1")
+
+    with pytest.raises(RuntimeError, match="Detected rollout token ids outside"):
+        trainer._generate_and_score_completions(
+            [{"prompt": "p0", "answer": "1"}, {"prompt": "p1", "answer": "1"}]
+        )
+
+
+def test_seed_grpo_scales_advantages_from_loss_path_when_rollout_logprobs_deferred() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.seed_grpo_enabled = True
+    trainer.args.seed_grpo_alpha = 10.0
+    trainer.args.seed_grpo_alpha_normalize_by_max_entropy = False
+    trainer.args.seed_grpo_length_normalize_logprobs = False
+    trainer.num_generations = 2
+    trainer.processing_class = _ToyTokenizer(
+        ids_to_text={
+            (11, 11): "\\boxed{1}",
+            (12, 12): "\\boxed{2}",
+            (13, 13): "\\boxed{3}",
+            (14, 14): "\\boxed{3}",
+        }
+    )
+
+    expected_old_logps = torch.full((4, 2), -0.25, dtype=torch.float32)
+
+    def _fake_get_per_token_logps(
+        model: Any,
+        prompt_completion_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        logits_to_keep: int,
+        batch_size: int,
+    ) -> torch.Tensor:
+        del model, attention_mask, batch_size
+        assert prompt_completion_ids.shape == (4, 3)
+        assert logits_to_keep == 2
+        return expected_old_logps.clone()
+
+    trainer._get_per_token_logps = _fake_get_per_token_logps
+    inputs: Dict[str, Any] = {
+        "prompt_ids": torch.zeros((4, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((4, 1), dtype=torch.long),
+        "completion_ids": torch.tensor(
+            [[11, 11], [12, 12], [13, 13], [14, 14]],
+            dtype=torch.long,
+        ),
+        "completion_mask": torch.ones((4, 2), dtype=torch.long),
+        "advantages": torch.ones((4,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    loss = trainer._compute_stable_grpo_loss(SimpleNamespace(training=True), inputs)
+
+    scale_diverse = 1.0 / (1.0 + 10.0 * math.log(2.0))
+    assert torch.isfinite(loss)
+    assert torch.allclose(inputs["old_per_token_logps"], expected_old_logps)
+    assert inputs["advantages"][:2].tolist() == pytest.approx(
+        [scale_diverse, scale_diverse],
+        rel=1e-5,
+    )
+    assert inputs["advantages"][2:].tolist() == pytest.approx([1.0, 1.0], rel=1e-5)
+    assert "_seed_grpo_scaled" not in inputs
+    assert trainer._metrics["train"][
+        "seed_grpo/behavior_logprobs_deferred_to_loss"
+    ][-1] == pytest.approx(1.0)
+
+
+def test_seed_grpo_loss_path_scaling_is_idempotent_without_batch_sentinels() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.seed_grpo_enabled = True
+    trainer.args.seed_grpo_alpha = 10.0
+    trainer.args.seed_grpo_alpha_normalize_by_max_entropy = False
+    trainer.args.seed_grpo_length_normalize_logprobs = False
+    trainer.num_generations = 2
+    trainer.processing_class = _ToyTokenizer(
+        ids_to_text={
+            (11, 11): "\\boxed{1}",
+            (12, 12): "\\boxed{2}",
+            (13, 13): "\\boxed{3}",
+            (14, 14): "\\boxed{3}",
+        }
+    )
+
+    expected_old_logps = torch.full((4, 2), -0.25, dtype=torch.float32)
+
+    def _fake_get_per_token_logps(
+        model: Any,
+        prompt_completion_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        logits_to_keep: int,
+        batch_size: int,
+    ) -> torch.Tensor:
+        del model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size
+        return expected_old_logps.clone()
+
+    trainer._get_per_token_logps = _fake_get_per_token_logps
+    inputs: Dict[str, Any] = {
+        "prompt_ids": torch.zeros((4, 1), dtype=torch.long),
+        "prompt_mask": torch.ones((4, 1), dtype=torch.long),
+        "completion_ids": torch.tensor(
+            [[11, 11], [12, 12], [13, 13], [14, 14]],
+            dtype=torch.long,
+        ),
+        "completion_mask": torch.ones((4, 2), dtype=torch.long),
+        "advantages": torch.ones((4,), dtype=torch.float32),
+        "old_per_token_logps": None,
+    }
+
+    first_loss = trainer._compute_stable_grpo_loss(SimpleNamespace(training=True), inputs)
+    first_advantages = inputs["advantages"].clone()
+    first_old_logps = inputs["old_per_token_logps"].clone()
+    second_loss = trainer._compute_stable_grpo_loss(SimpleNamespace(training=True), inputs)
+
+    assert torch.isfinite(first_loss)
+    assert torch.isfinite(second_loss)
+    assert torch.allclose(inputs["advantages"], first_advantages)
+    assert torch.allclose(inputs["old_per_token_logps"], first_old_logps)
+    assert "_seed_grpo_scaled" not in inputs
+
+
+def test_shared_logprob_scorer_sanitizes_invalid_model_input_ids() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.processing_class = _ToyTokenizer(pad_token_id=0, eos_token_id=2)
+    trainer.model = _UniformPolicyModel(vocab_size=5)
+    trainer.model.config = SimpleNamespace(vocab_size=5, pad_token_id=0, eos_token_id=2)
+
+    logps = trainer._get_per_token_logps(
+        trainer.model,
+        torch.tensor([[6, 1, 9]], dtype=torch.long),
+        torch.ones((1, 3), dtype=torch.long),
+        2,
+        1,
+    )
+
+    assert logps.shape == (1, 2)
+    assert torch.isfinite(logps).all()
+    assert trainer._metrics["train"]["scoring/invalid_token_id_count"][-1] == pytest.approx(
+        2.0
+    )
+    assert trainer._metrics["train"]["scoring/model_input_invalid_token_id_count"][-1] == pytest.approx(
+        2.0
+    )
+
+
+def test_shared_logprob_scorer_uses_tokenizer_limit_when_model_limit_missing() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.processing_class = _ToyTokenizer(
+        pad_token_id=0,
+        eos_token_id=2,
+        vocab_size=5,
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=5)
+
+    logps = trainer._get_per_token_logps(
+        trainer.model,
+        torch.tensor([[6, 1, 9]], dtype=torch.long),
+        torch.ones((1, 3), dtype=torch.long),
+        2,
+        1,
+    )
+
+    assert logps.shape == (1, 2)
+    assert torch.isfinite(logps).all()
+    assert trainer._metrics["train"]["scoring/invalid_token_id_count"][-1] == pytest.approx(
+        2.0
+    )
+
+
+def test_shared_logprob_scorer_allows_added_special_token_ids_within_tokenizer_length() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.processing_class = _ToyTokenizer(
+        pad_token_id=6,
+        eos_token_id=6,
+        vocab_size=5,
+        tokenizer_length=7,
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=7)
+    trainer.model.config = SimpleNamespace(vocab_size=7, pad_token_id=6, eos_token_id=6)
+
+    logps = trainer._get_per_token_logps(
+        trainer.model,
+        torch.tensor([[6, 1, 6]], dtype=torch.long),
+        torch.ones((1, 3), dtype=torch.long),
+        2,
+        1,
+    )
+
+    assert logps.shape == (1, 2)
+    assert torch.isfinite(logps).all()
+    assert trainer._metrics["train"].get("scoring/invalid_token_id_count", []) == []
+
+
+def test_entropy_scorer_sanitizes_invalid_selection_ids() -> None:
+    trainer = _make_trainer(train_grpo_objective=False, maxent_alpha=0.1)
+    trainer.processing_class = _ToyTokenizer(
+        pad_token_id=0,
+        eos_token_id=2,
+        vocab_size=5,
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=3)
+    trainer.model.config = SimpleNamespace(vocab_size=5, pad_token_id=0, eos_token_id=2)
+
+    logps, entropy = trainer._get_per_token_logps_and_entropy(
+        trainer.model,
+        torch.tensor([[1, 4, 2]], dtype=torch.long),
+        torch.ones((1, 3), dtype=torch.long),
+        2,
+        entropy_mode="exact",
+        batch_size=1,
+    )
+
+    assert logps.shape == (1, 2)
+    assert entropy.shape == (1, 2)
+    assert torch.isfinite(logps).all()
+    assert torch.isfinite(entropy).all()
+    assert trainer._metrics["train"]["scoring/token_select_invalid_token_id_count"][-1] == pytest.approx(
+        1.0
+    )
+
+
+def test_entropy_scorer_masks_tokenizer_inaccessible_logit_columns() -> None:
+    trainer = _make_trainer(train_grpo_objective=False, maxent_alpha=0.1)
+    trainer.processing_class = _ToyTokenizer(
+        pad_token_id=0,
+        eos_token_id=2,
+        vocab_size=3,
+        tokenizer_length=5,
+    )
+    trainer.model = _FixedLogitModel([0.0, 0.0, 0.0, 0.0, 0.0, 100.0, 100.0])
+    trainer.model.config = SimpleNamespace(vocab_size=7, pad_token_id=0, eos_token_id=2)
+
+    logps, entropy = trainer._get_per_token_logps_and_entropy(
+        trainer.model,
+        torch.tensor([[0, 1, 2]], dtype=torch.long),
+        torch.ones((1, 3), dtype=torch.long),
+        2,
+        entropy_mode="exact",
+        batch_size=1,
+    )
+
+    expected = math.log(5.0)
+    assert logps.shape == (1, 2)
+    assert entropy.shape == (1, 2)
+    assert torch.isfinite(logps).all()
+    assert torch.isfinite(entropy).all()
+    assert logps[0, 0].item() == pytest.approx(-expected, rel=1e-5)
+    assert logps[0, 1].item() == pytest.approx(-expected, rel=1e-5)
+    assert entropy[0, 0].item() == pytest.approx(expected, rel=1e-5)
+    assert entropy[0, 1].item() == pytest.approx(expected, rel=1e-5)
+
+
 def test_truncate_completions_at_first_boxed_answer_slices_outputs() -> None:
     trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
     trainer.args.truncate_completions_at_first_boxed_answer = True
@@ -2022,6 +2991,184 @@ def test_eval_greedy_only_bypasses_sampled_eval_rollout() -> None:
     assert "pass_at_8" not in trainer._metrics["eval"]
 
 
+def test_eval_greedy_only_handles_conversational_prompt_examples() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"chat-p0": [31], "chat-p1": [32]},
+        ids_to_text={
+            (7, 7): "decoded-greedy-0",
+            (8, 8): "decoded-greedy-1",
+        },
+    )
+    trainer.model = _GreedyEvalModel(torch.tensor([[7, 7], [8, 8]], dtype=torch.long))
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [
+            1.0 if completion == "decoded-greedy-0" else 0.0
+            for completion in completions
+        ]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+    trainer.processing_class.apply_chat_template = (  # type: ignore[attr-defined]
+        lambda messages, **kwargs: "chat-p0"
+        if messages[0]["content"] == "Problem 0"
+        else "chat-p1"
+    )
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": [{"role": "user", "content": "Problem 0"}], "answer": "a0"} for _ in range(8)]
+        + [{"prompt": [{"role": "user", "content": "Problem 1"}], "answer": "a1"} for _ in range(8)]
+    )
+
+    assert trainer.parent_generate_calls == 0
+    assert outputs["completion_ids"].shape[0] == 2
+    assert trainer._metrics["eval"]["greedy/pass_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.5)
+
+
+def test_eval_greedy_only_multi_rank_local_only_mode_skips_collectives(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+        ids_to_text={
+            (7, 7): "decoded-greedy-0",
+            (8, 8): "decoded-greedy-1",
+        },
+    )
+    trainer.model = _GreedyEvalModel(torch.tensor([[7, 7], [8, 8]], dtype=torch.long))
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [
+            1.0 if completion == "decoded-greedy-0" else 0.0
+            for completion in completions
+        ]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    def _boom(value: torch.Tensor) -> torch.Tensor:
+        del value
+        raise AssertionError("lightweight multi-rank eval should not call gather")
+
+    monkeypatch.setattr(trainer_mod, "gather", _boom)
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0", "benchmark_id": 0} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1", "benchmark_id": 1} for _ in range(8)]
+    )
+
+    assert outputs["completion_ids"].shape[0] == 2
+    assert trainer._metrics["eval"]["greedy/pass_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.5)
+    assert trainer._metrics["eval"]["greedy/pass_at_1_BENCH_0"][-1] == pytest.approx(1.0)
+    assert trainer._metrics["eval"]["greedy/pass_at_1_BENCH_1"][-1] == pytest.approx(0.0)
+
+
+def test_eval_greedy_only_multi_rank_non_main_skips_metric_logging(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = False
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+        ids_to_text={
+            (7, 7): "decoded-greedy-0",
+            (8, 8): "decoded-greedy-1",
+        },
+    )
+    trainer.model = _GreedyEvalModel(torch.tensor([[7, 7], [8, 8]], dtype=torch.long))
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [
+            1.0 if completion == "decoded-greedy-0" else 0.0
+            for completion in completions
+        ]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    def _boom(value: torch.Tensor) -> torch.Tensor:
+        del value
+        raise AssertionError("non-main lightweight eval should not call gather")
+
+    monkeypatch.setattr(trainer_mod, "gather", _boom)
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0", "benchmark_id": 0} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1", "benchmark_id": 1} for _ in range(8)]
+    )
+
+    assert outputs["completion_ids"].shape[0] == 2
+    assert "greedy/pass_at_1" not in trainer._metrics["eval"]
+
+
+def test_eval_greedy_only_prompt_prep_does_not_reenter_parent_prepare_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.num_generations = 8
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+    )
+
+    def _boom(self: Any, inputs: Any) -> Any:
+        del self, inputs
+        raise AssertionError("parent _prepare_inputs should not be used")
+
+    monkeypatch.setattr(_ParentTrainerStub, "_prepare_inputs", _boom)
+
+    prompt_inputs, prompt_ids, prompt_mask = trainer._prepare_greedy_eval_prompt_batch(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1"} for _ in range(8)]
+    )
+
+    assert [item["prompt"] for item in prompt_inputs] == ["p0", "p1"]
+    assert prompt_ids.tolist() == [[31], [32]]
+    assert prompt_mask.tolist() == [[1], [1]]
+
+
+def test_eval_greedy_only_prompt_prep_moves_batchencoding_like_tokenizer_outputs() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.num_generations = 8
+    trainer.processing_class = _ToyBatchEncodingTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+    )
+
+    prompt_inputs, prompt_ids, prompt_mask = trainer._prepare_greedy_eval_prompt_batch(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1"} for _ in range(8)]
+    )
+
+    assert [item["prompt"] for item in prompt_inputs] == ["p0", "p1"]
+    assert prompt_ids.tolist() == [[31], [32]]
+    assert prompt_mask.tolist() == [[1], [1]]
+    assert trainer.processing_class.last_batch_encoding is not None
+    assert trainer.processing_class.last_batch_encoding.moved_to == torch.device("cpu")
+
+
 def test_listwise_eval_greedy_only_uses_lightweight_loss_path() -> None:
     trainer = _make_trainer(
         train_grpo_objective=False,
@@ -2059,6 +3206,415 @@ def test_listwise_eval_greedy_only_uses_lightweight_loss_path() -> None:
 
     assert isinstance(loss, torch.Tensor)
     assert torch.isfinite(loss)
+
+
+def test_listwise_eval_greedy_only_compute_loss_skips_accelerator_gathers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+        ids_to_text={
+            (7, 7): "decoded-greedy-0",
+            (8, 8): "decoded-greedy-1",
+        },
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=9)
+    trainer.model.generate = _GreedyEvalModel(  # type: ignore[attr-defined]
+        torch.tensor([[7, 7], [8, 8]], dtype=torch.long)
+    ).generate
+    trainer.model.training = False
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [1.0, 0.0]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    def _boom(value: torch.Tensor) -> torch.Tensor:
+        del value
+        raise AssertionError("lightweight listwise eval loss should not call accelerator.gather")
+
+    monkeypatch.setattr(trainer.accelerator, "gather", _boom)
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1"} for _ in range(8)]
+    )
+
+    loss = trainer.compute_loss(model=trainer.model, inputs=outputs, return_outputs=False)
+
+    assert isinstance(loss, torch.Tensor)
+    assert torch.isfinite(loss)
+
+
+def test_lightweight_eval_prediction_step_returns_no_tensors_for_trainer_gather() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+
+    seen: Dict[str, Any] = {}
+    trainer._prepare_inputs = lambda inputs: inputs  # type: ignore[method-assign]
+    trainer.compute_loss = lambda *args, **kwargs: (_ for _ in ()).throw(  # type: ignore[method-assign]
+        AssertionError("lightweight greedy eval should not compute eval loss")
+    )
+
+    loss, logits, labels = trainer.prediction_step(
+        trainer.model,
+        {"prompt_ids": torch.ones((2, 1), dtype=torch.long)},
+        prediction_loss_only=False,
+    )
+
+    assert loss is None
+    assert logits is None
+    assert labels is None
+
+
+def test_eval_greedy_only_skips_diversity_logging_and_debug() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31], "p1": [32]},
+        ids_to_text={
+            (7, 7): "decoded-greedy-0",
+            (8, 8): "decoded-greedy-1",
+        },
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=9)
+    trainer.model.generate = _GreedyEvalModel(  # type: ignore[attr-defined]
+        torch.tensor([[7, 7], [8, 8]], dtype=torch.long)
+    ).generate
+    trainer.model.training = False
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [1.0, 0.0]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+    trainer._log_grpo_diversity = lambda *args, **kwargs: (_ for _ in ()).throw(  # type: ignore[method-assign]
+        AssertionError("greedy-only eval should not log diversity metrics")
+    )
+    trainer._log_grpo_debug = lambda *args, **kwargs: (_ for _ in ()).throw(  # type: ignore[method-assign]
+        AssertionError("greedy-only eval should not log debug metrics")
+    )
+
+    outputs = trainer._generate_and_score_completions(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+        + [{"prompt": "p1", "answer": "a1"} for _ in range(8)]
+    )
+
+    assert isinstance(outputs, dict)
+    assert trainer._metrics["eval"]["pass_at_1"][-1] == pytest.approx(0.5)
+
+
+def test_eval_greedy_only_truncation_skips_grouped_advantage_recompute() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31]},
+        ids_to_text={(7, 7): "step\n\\boxed{1}\nextra"},
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=9)
+    trainer.model.generate = _GreedyEvalModel(  # type: ignore[attr-defined]
+        torch.tensor([[7, 7]], dtype=torch.long)
+    ).generate
+    trainer.model.training = False
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [1.0]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+    trainer._recompute_grouped_advantages = lambda *args, **kwargs: (_ for _ in ()).throw(  # type: ignore[method-assign]
+        AssertionError("greedy-only eval should not recompute grouped advantages")
+    )
+
+    outputs = trainer._generate_greedy_eval_outputs(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+    )
+
+    assert isinstance(outputs, dict)
+    assert outputs["advantages"].shape[0] == 1
+
+
+def test_log_grpo_debug_tolerates_missing_last_step_attribute() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    if hasattr(trainer, "_last_grpo_debug_step"):
+        delattr(trainer, "_last_grpo_debug_step")
+    trainer.state.global_step = 7
+    trainer._metrics["train"]["reward_std"] = [0.25]
+
+    trainer._log_grpo_debug(
+        [{"prompt": "p0", "answer": "1"}],
+        {
+            "completion_ids": torch.tensor([[1, 2]], dtype=torch.long),
+            "completion_mask": torch.tensor([[1, 1]], dtype=torch.long),
+            "advantages": torch.tensor([0.5], dtype=torch.float32),
+        },
+        mode="train",
+    )
+
+    assert trainer._last_grpo_debug_step == 7
+
+
+def test_eval_greedy_only_generate_skips_synced_gpus_in_local_only_mode() -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+    trainer.num_generations = 8
+    trainer.max_completion_length = 4
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={"p0": [31]},
+        ids_to_text={(7, 7): "decoded-greedy-0"},
+    )
+    trainer.model = _UniformPolicyModel(vocab_size=9)
+    seen: Dict[str, Any] = {}
+
+    def _fake_generate(**kwargs: Any) -> torch.Tensor:
+        seen.update(kwargs)
+        return torch.tensor([[31, 7, 7]], dtype=torch.long)
+
+    trainer.model.generate = _fake_generate  # type: ignore[attr-defined]
+    trainer.model.training = False
+    trainer.reward_funcs = [
+        lambda prompts, completions, completion_ids, **kwargs: [1.0]
+    ]
+    trainer.reward_weights = torch.tensor([1.0], dtype=torch.float32)
+
+    outputs = trainer._generate_greedy_eval_outputs(
+        [{"prompt": "p0", "answer": "a0"} for _ in range(8)]
+    )
+
+    assert isinstance(outputs, dict)
+    assert "synced_gpus" not in seen
+
+
+def test_get_eval_dataloader_lightweight_eval_shards_prompt_major_loader_on_main_rank() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+    trainer.eval_dataset = [
+        {"prompt": "p0", "answer": "a0", "eval_benchmark_id": 0},
+        {"prompt": "p1", "answer": "a1", "eval_benchmark_id": 1},
+        {"prompt": "p2", "answer": "a2", "eval_benchmark_id": 2},
+    ]
+
+    dataloader = trainer.get_eval_dataloader()
+    batch = next(iter(dataloader))
+
+    assert trainer._local_only_eval_prompt_major_loader_active is True
+    assert trainer._sharded_eval_prompt_major_loader_active is True
+    assert len(dataloader.dataset) == 3
+    assert isinstance(batch, list)
+    assert len(batch) == 1
+    assert batch[0]["prompt"] == "p0"
+
+
+def test_get_eval_dataloader_lightweight_eval_shards_prompt_major_loader_on_non_main_rank() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = False
+    trainer.accelerator.process_index = 1
+    trainer.eval_dataset = [
+        {"prompt": "p0", "answer": "a0", "eval_benchmark_id": 0},
+        {"prompt": "p1", "answer": "a1", "eval_benchmark_id": 1},
+        {"prompt": "p2", "answer": "a2", "eval_benchmark_id": 2},
+    ]
+
+    dataloader = trainer.get_eval_dataloader()
+    batch = next(iter(dataloader))
+
+    assert trainer._local_only_eval_prompt_major_loader_active is True
+    assert trainer._sharded_eval_prompt_major_loader_active is True
+    assert len(dataloader.dataset) == 3
+    assert isinstance(batch, list)
+    assert len(batch) == 1
+    assert batch[0]["prompt"] == "p1"
+
+
+def test_prepare_greedy_eval_prompt_batch_uses_prompt_major_loader_without_dedup() -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+    trainer.processing_class = _ToyTokenizer(
+        text_to_ids={
+            "p0": [10, 11],
+            "p1": [20, 21],
+        }
+    )
+    trainer._local_only_eval_prompt_major_loader_active = True
+
+    prompt_inputs, prompt_ids, prompt_mask = trainer._prepare_greedy_eval_prompt_batch(
+        [
+            {"prompt": "p0", "answer": "a0"},
+            {"prompt": "p1", "answer": "a1"},
+        ]
+    )
+
+    assert len(prompt_inputs) == 2
+    assert prompt_ids.shape == (2, 2)
+    assert prompt_mask.shape == (2, 2)
+
+
+def test_metric_tensor_for_logging_gathers_under_sharded_lightweight_eval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(train_grpo_objective=True, maxent_alpha=0.0)
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = False
+
+    seen: Dict[str, Any] = {}
+
+    def _fake_gather(value: torch.Tensor) -> torch.Tensor:
+        seen["called"] = True
+        return value + 10.0
+
+    monkeypatch.setattr(trainer_mod, "gather", _fake_gather)
+
+    result = trainer_mod._metric_tensor_for_logging(
+        trainer,
+        torch.tensor([1.0, 2.0], dtype=torch.float32),
+        mode="eval",
+    )
+
+    assert seen["called"] is True
+    assert isinstance(result, torch.Tensor)
+    assert result.tolist() == pytest.approx([11.0, 12.0])
+
+
+def test_lightweight_eval_evaluation_loop_forces_prediction_loss_only_and_skips_input_metrics() -> None:
+    trainer = _WrappedTrainerWithEvalLoop(
+        args=_make_args(
+            False,
+            maxent_alpha=0.0,
+            maxent_objective_variant="listwise",
+        )
+    )
+    trainer.model.training = False
+    trainer.args.greedy_eval_enabled = True
+    trainer.args.eval_greedy_only_enabled = True
+    trainer.args.disable_distributed_sampler = True
+    trainer.args.include_for_metrics = ("inputs", "loss")
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+
+    trainer.evaluation_loop(
+        dataloader=[],
+        description="Evaluation",
+        prediction_loss_only=False,
+        ignore_keys=None,
+        metric_key_prefix="eval",
+    )
+
+    assert trainer.eval_loop_calls
+    call = trainer.eval_loop_calls[-1]
+    assert call["prediction_loss_only"] is True
+    assert call["include_for_metrics"] == ("loss",)
+    assert trainer.args.include_for_metrics == ("inputs", "loss")
+
+
+def test_full_eval_diversity_logging_stays_local_only_with_replicated_eval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trainer = _make_trainer(
+        train_grpo_objective=False,
+        maxent_alpha=0.0,
+        maxent_objective_variant="listwise",
+    )
+    trainer.model.training = False
+    trainer.args.eval_greedy_only_enabled = False
+    trainer.args.disable_distributed_sampler = True
+    trainer.accelerator.num_processes = 3
+    trainer.accelerator.is_main_process = True
+    trainer.num_generations = 2
+
+    captured: Dict[str, Any] = {}
+
+    def _fake_diversity_metrics(
+        grouped_completions: List[List[str]],
+        *,
+        tokenizer: Any = None,
+        accelerator: Any = None,
+    ) -> Dict[str, float]:
+        captured["grouped"] = grouped_completions
+        captured["tokenizer"] = tokenizer
+        captured["accelerator"] = accelerator
+        return {"distinct_1": 0.5}
+
+    monkeypatch.setattr(
+        trainer_mod,
+        "_completion_diversity_metrics",
+        _fake_diversity_metrics,
+    )
+
+    outputs = {
+        "completion_ids": torch.tensor(
+            [[1, 2], [3, 4], [5, 6], [7, 8]],
+            dtype=torch.long,
+        )
+    }
+
+    trainer._log_grpo_diversity(outputs, mode="eval")
+
+    assert captured["accelerator"] is None
+    assert captured["grouped"] == [["decoded", "decoded"], ["decoded", "decoded"]]
+    metric_key = "completions/diversity/distinct_1"
+    assert trainer._metrics["eval"][metric_key][-1] == pytest.approx(0.5)
 
 
 def test_reference_model_ema_updates_with_warmup_and_interval() -> None:

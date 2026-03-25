@@ -131,6 +131,7 @@ class DummyTrainer:
         self.eval_dataset = eval_dataset
         self.accelerator = SimpleNamespace(is_main_process=True)
         self.logged = []
+        self.save_model_calls = []
         DummyTrainer.last_instance = self
 
     def train(self, resume_from_checkpoint=None):
@@ -147,6 +148,7 @@ class DummyTrainer:
         return None
 
     def save_model(self, *_args, **_kwargs):
+        self.save_model_calls.append((_args, _kwargs))
         return None
 
     def create_model_card(self, *args, **_kwargs):
@@ -278,3 +280,82 @@ def test_grpo_main_prefers_dedicated_eval_dataset(monkeypatch):
         assert any("SYS" in content for content in contents)
         assert any("eval question" in content for content in contents)
     assert captured_eval.rows[0]["answer"] == "7"
+
+
+def test_grpo_main_skips_final_model_save_when_disabled(monkeypatch):
+    raw_ds = FakeDatasetDict(
+        {
+            "train": FakeSplit([{"problem": "train question", "answer": "42"}]),
+        }
+    )
+
+    monkeypatch.setattr(baseline, "get_dataset", lambda _args: raw_ds)
+    monkeypatch.setattr(
+        baseline, "get_tokenizer", lambda *args, **kwargs: DummyTokenizer()
+    )
+    monkeypatch.setattr(baseline, "get_model", lambda *args, **kwargs: DummyModel())
+    monkeypatch.setattr(
+        baseline,
+        "get_reward_funcs",
+        lambda *args, **kwargs: [lambda comps, answers: [1.0] * len(comps)],
+    )
+    monkeypatch.setattr(
+        baseline.transformers, "set_seed", lambda *_args, **_kwargs: None, raising=False
+    )
+    dummy_tf_logging = SimpleNamespace(
+        set_verbosity=lambda *args, **kwargs: None,
+        enable_default_handler=lambda *args, **kwargs: None,
+        enable_explicit_format=lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        baseline.transformers,
+        "utils",
+        SimpleNamespace(logging=dummy_tf_logging),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        trainer_utils, "get_last_checkpoint", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(
+        baseline, "ensure_real_dependencies", lambda *args, **kwargs: None
+    )
+    dummy_trl = SimpleNamespace(
+        GRPOTrainer=DummyTrainer,
+        get_peft_config=lambda *args, **kwargs: None,
+    )
+    monkeypatch.setitem(sys.modules, "trl", dummy_trl)
+    trl_data_utils = ModuleType("trl.data_utils")
+    trl_data_utils.maybe_apply_chat_template = (
+        lambda example, *_args, **_kwargs: example
+    )
+    monkeypatch.setitem(sys.modules, "trl.data_utils", trl_data_utils)
+    baseline.GRPOTrainerOverride = dummy_trl.GRPOTrainer
+
+    script_args = SimpleNamespace(
+        dataset_name="train/ds",
+        dataset_prompt_column="problem",
+        dataset_solution_column="answer",
+        dataset_train_split="train",
+        eval_dataset_name=None,
+        eval_dataset_config=None,
+        eval_dataset_split="test",
+        eval_dataset_prompt_column="problem",
+        eval_dataset_solution_column="answer",
+    )
+    training_args = DummyTrainingArgs(
+        seed=0,
+        system_prompt="SYS",
+        do_eval=False,
+        return_reward=True,
+        resume_from_checkpoint=False,
+        output_dir="tmp-out",
+        push_to_hub=False,
+        benchmarks=[],
+        final_model_save_enabled=False,
+    )
+    model_args = SimpleNamespace()
+
+    grpo.main(script_args, training_args, model_args)
+
+    assert DummyTrainer.last_instance is not None
+    assert DummyTrainer.last_instance.save_model_calls == []

@@ -110,6 +110,24 @@ def test_load_reward_functions_respects_training_override_with_recipe(monkeypatc
     assert weights == [1.0]
 
 
+def test_load_reward_functions_preserves_custom_reward_attrs(monkeypatch):
+    seen_penalties = []
+
+    def _fake_get_reward_funcs(proxy, *_args, **_kwargs):
+        seen_penalties.append(getattr(proxy, "missing_boxed_answer_penalty", None))
+        return [lambda *_, **__: 0.0]
+
+    monkeypatch.setattr(rewards_mod, "get_reward_funcs", _fake_get_reward_funcs)
+    script_args = SimpleNamespace(
+        reward_funcs=["missing_boxed_answer_penalty_math"],
+        missing_boxed_answer_penalty=-0.125,
+    )
+
+    load_reward_functions(script_args, None, None)
+
+    assert seen_penalties == [-0.125]
+
+
 def test_eval_reward_funcs_override_and_fallback():
     training_args = SimpleNamespace(
         reward_funcs=["pure_accuracy_math"], reward_weights=[1.0]

@@ -7,6 +7,7 @@ A clean GRPO training stack that supports vanilla GRPO, GRPO + entropy bonus, an
 
 - Bootstrap the repo-local env + caches: `make conda-local` (uses `configs/environment.yml`, writes the env to `./var/openr1`, and keeps caches/tmp under `./var`).
 - Activate: `conda activate ./var/openr1`; refresh installs via `pip install -c configs/constraints.txt -e .[dev]`.
+- For ad hoc shell/Python commands, first run `source ops/repo_env.sh` so Hugging Face, W&B, Torch, tmp, and pip caches stay under `./var` instead of `~/.cache`.
 - Authenticate with Hugging Face (`huggingface-cli login` or `export HF_TOKEN=…`) so gated models/datasets can be pulled by vLLM/TRL.
 - Training telemetry / proof of work: public run stats at [wandb.ai ↗](https://api.wandb.ai/links/ogd3-princeton-university/aw6ecc9b).
 

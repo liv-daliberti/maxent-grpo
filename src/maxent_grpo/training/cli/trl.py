@@ -84,8 +84,11 @@ def parse_grpo_args(
                 def __init__(self, **kwargs: Any) -> None:
                     for key, value in kwargs.items():
                         setattr(self, key, value)
-        except (TypeError, AttributeError, ValueError):
+        except (TypeError, AttributeError):
             # Fall back to direct recipe loading when parser wiring is unavailable.
+            # Do not swallow ValueError here: parse/validation errors from the
+            # CLI override set must surface to callers so smoke runs cannot
+            # silently degrade back to the full base recipe.
             pass
         try:
             return load_grpo_recipe(recipe_path, model_config_cls=ModelConfig)

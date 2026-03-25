@@ -489,6 +489,50 @@ def _parse_nonstream_json(
     raise RuntimeError(f"Unknown vLLM response format: {data}")
 
 
+def _regroup_flat_single_completion_groups(
+    grouped: GenerationResults,
+    meta: GenerationLogprobGroups,
+    *,
+    prompt_count: int,
+    samples_per_prompt: int,
+) -> Tuple[GenerationResults, GenerationLogprobGroups]:
+    """Regroup flat one-completion entries into prompt-major groups.
+
+    Older /generate variants can return a flat ``text`` array of length
+    ``prompt_count * samples_per_prompt`` even when ``n > 1``.  The parser above
+    normalizes that into one completion per group, so callers expecting
+    prompt-major grouping need a second pass.
+    """
+
+    if samples_per_prompt <= 1 or prompt_count <= 0:
+        return grouped, meta
+    if len(grouped) == prompt_count:
+        return grouped, meta
+    expected_groups = prompt_count * samples_per_prompt
+    if len(grouped) != expected_groups:
+        return grouped, meta
+    if any(len(prompt_outputs) != 1 for prompt_outputs in grouped):
+        return grouped, meta
+    if meta is not None and len(meta) != len(grouped):
+        return grouped, meta
+
+    regrouped: GenerationResults = []
+    regrouped_meta: GenerationLogprobGroups = [] if meta is not None else None
+    for prompt_idx in range(prompt_count):
+        start = prompt_idx * samples_per_prompt
+        stop = start + samples_per_prompt
+        flat_outputs = grouped[start:stop]
+        regrouped.append([sample_outputs[0] for sample_outputs in flat_outputs])
+        if regrouped_meta is not None:
+            regrouped_meta.append(
+                [
+                    sample_meta[0] if sample_meta else None
+                    for sample_meta in meta[start:stop]
+                ]
+            )
+    return regrouped, regrouped_meta
+
+
 # ─────────────────── POST /generate helper ────────────────────────────────────
 # ─────────────────── logging setup ───────────────────────────────────────────
 LOG = logging.getLogger(__name__)
@@ -644,6 +688,8 @@ def safe_generate(
     presence_penalty: Optional[float] = None,
     stop: Optional[List[str]] = None,
     logit_bias: Optional[Dict[str, float]] = None,
+    allowed_token_ids: Optional[List[int]] = None,
+    blocked_token_ids: Optional[List[int]] = None,
     guided_json: Optional[str] = None,
     guided_regex: Optional[str] = None,
     request_id: Optional[str] = None,
@@ -687,6 +733,10 @@ def safe_generate(
     :type stop: list[str] | None
     :param logit_bias: Token-level logit bias forwarded to vLLM.
     :type logit_bias: dict[str, float] | None
+    :param allowed_token_ids: Optional hard allowlist of token IDs forwarded to vLLM.
+    :type allowed_token_ids: list[int] | None
+    :param blocked_token_ids: Optional hard denylist of token IDs forwarded to vLLM.
+    :type blocked_token_ids: list[int] | None
     :param guided_json: Optional JSON schema string for constrained decoding.
     :type guided_json: str | None
     :param guided_regex: Optional regex constraint for decoding.
@@ -767,6 +817,18 @@ def safe_generate(
         payload["stop"] = stop
     if logit_bias:
         payload["logit_bias"] = logit_bias
+        payload["sampling_params"]["logit_bias"] = logit_bias
+    if allowed_token_ids:
+        payload["allowed_token_ids"] = allowed_token_ids
+        payload["sampling_params"]["allowed_token_ids"] = allowed_token_ids
+    if blocked_token_ids:
+        normalized_blocked = [int(token_id) for token_id in blocked_token_ids]
+        payload["blocked_token_ids"] = normalized_blocked
+        # Older vLLM builds honor the private bad-words token field more
+        # reliably than allowed_token_ids for hard token suppression.
+        payload["sampling_params"]["_bad_words_token_ids"] = [
+            [token_id] for token_id in normalized_blocked
+        ]
     if guided_json:
         payload["guided_json"] = guided_json
     if guided_regex:
@@ -980,22 +1042,30 @@ def safe_generate(
                     r.headers.get("content-type") if hasattr(r, "headers") else None,
                 )
                 decode_start = time.perf_counter()
-                payload = r.json()
+                response_payload = r.json()
                 decode_ms = (time.perf_counter() - decode_start) * 1000.0
                 LOG.debug(
                     "vLLM response JSON decoded | req_id=%s | attempt=%d | decode_ms=%.2f | payload_keys=%s",
                     effective_request_id,
                     attempt + 1,
                     decode_ms,
-                    list(payload.keys())
-                    if isinstance(payload, dict)
-                    else type(payload).__name__,
+                    list(response_payload.keys())
+                    if isinstance(response_payload, dict)
+                    else type(response_payload).__name__,
                 )
-                payload = _filter_response_for_client_tag(payload, client_tag)
+                response_payload = _filter_response_for_client_tag(
+                    response_payload, client_tag
+                )
                 grouped, meta = _parse_nonstream_json(
-                    payload,
+                    response_payload,
                     tokenizer,
                     want_logprobs=return_logprobs,
+                )
+                grouped, meta = _regroup_flat_single_completion_groups(
+                    grouped,
+                    meta,
+                    prompt_count=len(prompts),
+                    samples_per_prompt=int(n),
                 )
                 if return_logprobs:
                     if meta is None:

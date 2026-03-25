@@ -215,6 +215,12 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar clip_range_high: Upper PPO clip range (epsilon_high) for asymmetric clipping.
     :ivar clip_delta: Optional additional slack for two-sided clipping.
     :ivar grpo_loss_type: GRPO loss aggregation ("grpo", "bnpo", or "dr_grpo").
+    :ivar dr_grpo_denominator_mode: Denominator used by Dr.GRPO. ``fixed_max`` matches
+        the original batch_size * max_completion_length normalization, while
+        ``active_tokens`` normalizes by the realized number of completion tokens.
+    :ivar missing_boxed_answer_penalty: Auxiliary penalty applied by
+        ``missing_boxed_answer_penalty_math`` when a completion never emits a
+        boxed final answer. Keep non-positive.
     :ivar gen_temperature: Temperature used for candidate generation.
     :ivar gen_top_p: Top-p nucleus sampling used for generation.
     :ivar greedy_eval_enabled: Run an additional deterministic greedy eval pass
@@ -256,6 +262,102 @@ class GRPOConfig(trl.GRPOConfig):
     eval_before_train: bool = field(
         default=False,
         metadata={"help": "Run evaluation once before training starts (step 0)."},
+    )
+    seed_paper_eval_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Run the official SEED paper-style benchmark suite against the "
+                "live vLLM server whenever trainer evaluation fires, or directly "
+                "on the configured eval cadence when built-in trainer eval is disabled."
+            )
+        },
+    )
+    seed_paper_eval_template: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional prompt template for the live SEED paper eval "
+                "(for example 'no' or 'qwen_math')."
+            )
+        },
+    )
+    seed_paper_eval_tasks: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Optional comma-separated task list for the live SEED paper eval."
+            )
+        },
+    )
+    seed_paper_eval_workspace_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Optional workspace dir for the live SEED paper eval wrapper."},
+    )
+    seed_paper_eval_results_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Optional results root for the live SEED paper eval wrapper."},
+    )
+    seed_paper_eval_python: Optional[str] = field(
+        default=None,
+        metadata={"help": "Optional Python executable for the live SEED paper eval wrapper."},
+    )
+    seed_paper_eval_max_test: int = field(
+        default=999999,
+        metadata={"help": "Maximum examples per task for the live SEED paper eval."},
+    )
+    seed_paper_eval_vllm_batch_size: int = field(
+        default=32,
+        metadata={"help": "Prompt batch size for live SEED paper eval via /generate."},
+    )
+    seed_paper_eval_timeout_s: int = field(
+        default=14400,
+        metadata={"help": "Timeout in seconds for each live SEED paper eval invocation."},
+    )
+    seed_paper_eval_pass_at_8_enabled: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, the SEED paper eval also runs a sampled n=8 pass and "
+                "logs pass_at_8 / mean_at_8 with the official template+grader path."
+            )
+        },
+    )
+    seed_paper_eval_pass_at_8_samples: int = field(
+        default=8,
+        metadata={
+            "help": "Number of samples used for SEED paper eval pass_at_8 / mean_at_8."
+        },
+    )
+    seed_paper_eval_pass_at_8_temperature: float = field(
+        default=1.0,
+        metadata={
+            "help": "Sampling temperature used for SEED paper eval pass_at_8 / mean_at_8."
+        },
+    )
+    seed_paper_eval_pass_at_8_top_p: float = field(
+        default=1.0,
+        metadata={
+            "help": "Top-p used for SEED paper eval pass_at_8 / mean_at_8."
+        },
+    )
+    seed_paper_eval_fail_on_error: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, fail training if a scheduled live SEED paper eval "
+                "does not complete and log successfully."
+            )
+        },
+    )
+    final_model_save_enabled: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "When false, skip the end-of-training save_model/save_pretrained "
+                "writes. Checkpoint cadence via save_strategy/save_steps is unaffected."
+            )
+        },
     )
     callbacks: list[str] = field(
         default_factory=lambda: [],
@@ -920,6 +1022,16 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    maxent_listwise_skip_zero_variance_groups: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When enabled for listwise MaxEnt, prompt groups whose q-targets are "
+                "uniform (for example all rewards equal) contribute no policy update. "
+                "This matches GRPO-style zero-advantage semantics for zero-variance groups."
+            )
+        },
+    )
     maxent_clip_range: Optional[float] = field(
         default=None,
         metadata={
@@ -955,6 +1067,25 @@ class GRPOConfig(trl.GRPOConfig):
             "help": (
                 "Loss-backend selector orthogonal to objective: "
                 "'grpo', 'bnpo', or 'dr_grpo'."
+            )
+        },
+    )
+    dr_grpo_denominator_mode: str = field(
+        default="fixed_max",
+        metadata={
+            "help": (
+                "Normalization used by Dr.GRPO losses: "
+                "'fixed_max' divides by batch_size * max_completion_length; "
+                "'active_tokens' divides by the realized number of completion tokens."
+            )
+        },
+    )
+    missing_boxed_answer_penalty: float = field(
+        default=-0.05,
+        metadata={
+            "help": (
+                "Penalty returned by missing_boxed_answer_penalty_math when no boxed "
+                "final answer is found. Keep <= 0.0; set to 0.0 to disable."
             )
         },
     )
@@ -1205,6 +1336,44 @@ class GRPOConfig(trl.GRPOConfig):
         default=False,
         metadata={"help": "Log prompt/completion samples when W&B logging is enabled."},
     )
+    rich_log_completions: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Emit the repo's enriched prompt/completion tables with prompt-group "
+                "mass columns. This is separate from TRL's built-in log_completions path."
+            )
+        },
+    )
+    rich_log_completions_key: str = field(
+        default="rich_completions",
+        metadata={
+            "help": (
+                "W&B key used for enriched prompt/completion tables. Kept separate "
+                "from TRL's default 'completions' key to avoid schema collisions."
+            )
+        },
+    )
+    rich_log_completions_to_wandb: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When rich_log_completions is enabled, also forward a small preview "
+                "table to W&B. Disabled by default so large multi-rank runs only "
+                "persist local sidecars."
+            )
+        },
+    )
+    rich_log_completions_synchronize_ranks: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "Insert a rank synchronization point after rich completion logging "
+                "so non-main workers do not race ahead while rank 0 is writing "
+                "sidecars or W&B artifacts."
+            )
+        },
+    )
 
     def __post_init__(self) -> None:
         def _sync_beta_alias() -> None:
@@ -1288,11 +1457,36 @@ class GRPOConfig(trl.GRPOConfig):
             )
             loss_type = "bnpo"
         setattr(self, "grpo_loss_type", loss_type)
-        if base_loss_type is None or str(base_loss_type).strip() == "":
-            try:
-                setattr(self, "loss_type", loss_type)
-            except (AttributeError, TypeError, ValueError):
-                pass
+        try:
+            setattr(self, "loss_type", loss_type)
+        except (AttributeError, TypeError, ValueError):
+            pass
+        dr_grpo_denominator_mode = str(
+            getattr(self, "dr_grpo_denominator_mode", "fixed_max") or "fixed_max"
+        ).strip().lower()
+        if dr_grpo_denominator_mode in {
+            "",
+            "fixed",
+            "fixed_max",
+            "max",
+            "max_completion_length",
+            "paper",
+        }:
+            dr_grpo_denominator_mode = "fixed_max"
+        elif dr_grpo_denominator_mode in {
+            "active",
+            "active_tokens",
+            "tokens",
+            "token_count",
+            "mean_active_tokens",
+            "mean_active_per_sequence",
+        }:
+            dr_grpo_denominator_mode = "active_tokens"
+        else:
+            raise ValueError(
+                "dr_grpo_denominator_mode must be one of: fixed_max, active_tokens"
+            )
+        setattr(self, "dr_grpo_denominator_mode", dr_grpo_denominator_mode)
         vllm_url = getattr(self, "vllm_url", None)
         if isinstance(vllm_url, str):
             normalized = vllm_url.strip()
@@ -1390,6 +1584,8 @@ class GRPOConfig(trl.GRPOConfig):
             raise ValueError("maxent_q_temperature must be > 0")
         if self.maxent_alpha < 0.0:
             raise ValueError("maxent_alpha must be non-negative")
+        if self.missing_boxed_answer_penalty > 0.0:
+            raise ValueError("missing_boxed_answer_penalty must be <= 0.0")
         if not math.isfinite(self.seed_grpo_alpha):
             raise ValueError("seed_grpo_alpha must be finite")
         if self.seed_grpo_alpha < 0.0:

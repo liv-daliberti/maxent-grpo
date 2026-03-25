@@ -8,6 +8,8 @@ maxent:
     objective: grpo
     controller_meta_enabled: false
     num_generations: 8
+    # 3 trainer GPUs x 40 grad-accum steps = 120 prompt-groups effective batch.
+    gradient_accumulation_steps: 40
     max_steps: -1
     num_train_epochs: 20
     learning_rate: 1e-6
@@ -24,7 +26,11 @@ maxent:
     seed_grpo_alpha_normalize_by_max_entropy: true
     seed_grpo_length_normalize_logprobs: true
     warmup_ratio: 0.0
-    eval_steps: 16
+    eval_on_start: true
+    eval_steps: 10
+    seed_paper_eval_enabled: true
+    seed_paper_eval_fail_on_error: true
+    seed_paper_eval_template: "no"
     save_strategy: "no"
     push_to_hub: false
     output_dir: var/data/Qwen2.5-1.5B-Open-R1-SEED-GRPO-math-v1
