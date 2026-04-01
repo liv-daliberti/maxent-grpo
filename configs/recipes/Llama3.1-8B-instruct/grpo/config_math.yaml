@@ -21,6 +21,7 @@ attn_implementation: sdpa
 dataset_name: open-r1/OpenR1-Math-220k
 zero3_save_16bit_model: true
 dataset_prompt_column: problem
+prompt_template: null
 system_prompt: |
   TAG TEMPLATE (copy this shape for every problem)
   <think>

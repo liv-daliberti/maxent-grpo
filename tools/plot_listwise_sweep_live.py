@@ -265,6 +265,7 @@ def _draw_heatmap(
                     "tau": tau,
                     "beta": beta,
                     "avg": None,
+                    "pass_at_1_avg": None,
                     "pass_at_8_avg": None,
                     "mean_at_8_avg": None,
                     "avg_len_mean": None,
@@ -344,7 +345,7 @@ def _draw_leaderboard(
         summary_lines.append(
             "Best so far: "
             f"τ={float(best['tau']):.2f}, β={float(best['beta']):.2f}, "
-            f"avg={float(best['avg']):.4f}, pass@8={float(best['pass_at_8_avg']):.4f}, "
+            f"pass@1={float(best.get('pass_at_1_avg', best['avg'])):.4f}, pass@8={float(best['pass_at_8_avg']):.4f}, "
             f"seeds={int(best.get('seed_completed_count', 1))}/{int(best.get('seed_count', 1))}"
         )
     else:
@@ -358,7 +359,7 @@ def _draw_leaderboard(
         parts.append(_text(left, top + 18 * idx, line, **{"font-size": "12", "fill": "#374151"}))
 
     table_top = top + 76
-    headers = ["Rank", "(τ, β)", "seeds", "step", "avg", "pass@8", "mean@8", "avg len", "status"]
+    headers = ["Rank", "(τ, β)", "seeds", "step", "pass@1", "pass@8", "mean@8", "avg len", "status"]
     col_x = [
         left,
         left + 52,
@@ -381,7 +382,7 @@ def _draw_leaderboard(
             f"({float(row['tau']):.2f}, {float(row['beta']):.2f})",
             f"{int(row.get('seed_completed_count', 1))}/{int(row.get('seed_count', 1))}",
             str(int(row["step"])) if row.get("step") is not None else "",
-            f"{float(row['avg']):.4f}",
+            f"{float(row.get('pass_at_1_avg', row['avg'])):.4f}",
             f"{float(row['pass_at_8_avg']):.4f}",
             f"{float(row['mean_at_8_avg']):.4f}",
             f"{float(row['avg_len_mean']):.1f}",
@@ -435,12 +436,12 @@ def _plot_svg(rows: list[dict[str, Any]], output_path: Path, title: str) -> None
         y0=top_y,
         width=half_w,
         height=panel_h,
-        title="Current Avg",
+        title="Current Pass@1 Avg",
         rows=rows,
         taus=taus,
         betas=betas,
-        metric="avg",
-        subtitle="Higher is better. Value shown is the mean across completed seeds for that point.",
+        metric="pass_at_1_avg",
+        subtitle="Higher is better. This is the official single-sample SEED score averaged across completed seeds.",
     )
     _draw_heatmap(
         parts,
@@ -548,6 +549,7 @@ def _summary_payload(
             "seed_count": int(best.get("seed_count", 1)),
             "seed_completed_count": int(best.get("seed_completed_count", 1)),
             "avg": float(best["avg"]),
+            "pass_at_1_avg": float(best.get("pass_at_1_avg", best["avg"])),
             "pass_at_8_avg": float(best["pass_at_8_avg"]),
             "mean_at_8_avg": float(best["mean_at_8_avg"]),
             "avg_len_mean": float(best["avg_len_mean"]),

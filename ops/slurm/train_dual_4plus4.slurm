@@ -961,7 +961,7 @@ STEP0_PAPER_EVAL_MODEL="$(select_step0_paper_eval_model)"
 if [[ -z "$STEP0_PAPER_EVAL_TEMPLATE" ]]; then
   case "${CONFIG_SUFFIX_GRPO,,},${CONFIG_SUFFIX_MAXENT,,}" in
     *math_fair*)
-      STEP0_PAPER_EVAL_TEMPLATE="qwen_math"
+      STEP0_PAPER_EVAL_TEMPLATE="no"
       ;;
   esac
 fi

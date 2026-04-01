@@ -687,6 +687,7 @@ def safe_generate(
     frequency_penalty: Optional[float] = None,
     presence_penalty: Optional[float] = None,
     stop: Optional[List[str]] = None,
+    include_stop_str_in_output: bool = False,
     logit_bias: Optional[Dict[str, float]] = None,
     allowed_token_ids: Optional[List[int]] = None,
     blocked_token_ids: Optional[List[int]] = None,
@@ -731,6 +732,9 @@ def safe_generate(
     :type presence_penalty: float | None
     :param stop: Stop sequences used to truncate completions.
     :type stop: list[str] | None
+    :param include_stop_str_in_output: Whether matched stop strings should
+        remain in the returned text.
+    :type include_stop_str_in_output: bool
     :param logit_bias: Token-level logit bias forwarded to vLLM.
     :type logit_bias: dict[str, float] | None
     :param allowed_token_ids: Optional hard allowlist of token IDs forwarded to vLLM.
@@ -815,6 +819,10 @@ def safe_generate(
         payload["presence_penalty"] = presence_penalty
     if stop:
         payload["stop"] = stop
+        payload["sampling_params"]["stop"] = stop
+    if include_stop_str_in_output:
+        payload["include_stop_str_in_output"] = True
+        payload["sampling_params"]["include_stop_str_in_output"] = True
     if logit_bias:
         payload["logit_bias"] = logit_bias
         payload["sampling_params"]["logit_bias"] = logit_bias

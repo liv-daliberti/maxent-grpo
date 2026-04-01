@@ -2178,6 +2178,136 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 else:
                     alias_bucket.append(numeric)
 
+        def _recompute_completion_metrics(
+            self,
+            outputs: Dict[str, Any],
+            *,
+            mode: str,
+        ) -> None:
+            """Overwrite TRL completion metrics with correctly gathered values."""
+
+            completion_ids = outputs.get("completion_ids")
+            completion_mask = outputs.get("completion_mask")
+            if not isinstance(completion_ids, torch.Tensor) or not isinstance(
+                completion_mask, torch.Tensor
+            ):
+                return
+            try:
+                completion_lengths = completion_mask.sum(dim=1).to(torch.float32)
+            except Exception:
+                return
+            gathered_lengths = _metric_tensor_for_logging(
+                self,
+                completion_lengths,
+                mode=mode,
+            )
+            if not isinstance(gathered_lengths, torch.Tensor) or gathered_lengths.numel() <= 0:
+                return
+            self._set_latest_metric_value(
+                mode,
+                "completions/mean_length",
+                float(gathered_lengths.mean().item()),
+            )
+            self._set_latest_metric_value(
+                mode,
+                "completions/min_length",
+                float(gathered_lengths.min().item()),
+            )
+            self._set_latest_metric_value(
+                mode,
+                "completions/max_length",
+                float(gathered_lengths.max().item()),
+            )
+
+            terminated_mask: Optional[torch.Tensor] = None
+            eos_token_id = _coerce_optional_int(
+                getattr(getattr(self, "processing_class", None), "eos_token_id", None)
+            )
+            if eos_token_id is not None:
+                try:
+                    active_eos = (completion_ids == int(eos_token_id)) & completion_mask.to(
+                        dtype=torch.bool
+                    )
+                    terminated_mask = active_eos.any(dim=1)
+                except Exception:
+                    terminated_mask = None
+            max_completion_length = int(
+                getattr(self, "max_completion_length", 0)
+                or getattr(getattr(self, "args", None), "max_completion_length", 0)
+                or 0
+            )
+            if max_completion_length > 0:
+                try:
+                    shorter_than_cap = completion_lengths.to(torch.long) < int(
+                        max_completion_length
+                    )
+                    terminated_mask = (
+                        shorter_than_cap
+                        if terminated_mask is None
+                        else (terminated_mask | shorter_than_cap)
+                    )
+                except Exception:
+                    pass
+            if not isinstance(terminated_mask, torch.Tensor):
+                return
+            gathered_terminated = _metric_tensor_for_logging(
+                self,
+                terminated_mask.to(torch.bool),
+                mode=mode,
+            )
+            if (
+                not isinstance(gathered_terminated, torch.Tensor)
+                or gathered_terminated.numel() <= 0
+            ):
+                return
+            total = int(min(gathered_lengths.numel(), gathered_terminated.numel()))
+            if total <= 0:
+                return
+            gathered_lengths = gathered_lengths[:total]
+            gathered_terminated = gathered_terminated[:total].to(torch.bool)
+            term_completion_lengths = gathered_lengths[gathered_terminated]
+            clipped_ratio = 1.0 - (
+                float(term_completion_lengths.numel()) / float(max(total, 1))
+            )
+            self._set_latest_metric_value(
+                mode,
+                "completions/clipped_ratio",
+                clipped_ratio,
+            )
+            if term_completion_lengths.numel() <= 0:
+                zero_val = 0.0
+                self._set_latest_metric_value(
+                    mode,
+                    "completions/mean_terminated_length",
+                    zero_val,
+                )
+                self._set_latest_metric_value(
+                    mode,
+                    "completions/min_terminated_length",
+                    zero_val,
+                )
+                self._set_latest_metric_value(
+                    mode,
+                    "completions/max_terminated_length",
+                    zero_val,
+                )
+                return
+            self._set_latest_metric_value(
+                mode,
+                "completions/mean_terminated_length",
+                float(term_completion_lengths.mean().item()),
+            )
+            self._set_latest_metric_value(
+                mode,
+                "completions/min_terminated_length",
+                float(term_completion_lengths.min().item()),
+            )
+            self._set_latest_metric_value(
+                mode,
+                "completions/max_terminated_length",
+                float(term_completion_lengths.max().item()),
+            )
+
         def _log_grpo_debug(
             self,
             inputs: List[Dict[str, Any]],
@@ -5873,6 +6003,7 @@ def build_custom_grpo_trainer(parent_cls: Type[Any]) -> Type[Any]:
                 )
             if self.objective_routing.uses_listwise_loss:
                 self._prepare_listwise_rollout_targets(inputs, outputs)
+            self._recompute_completion_metrics(outputs, mode=mode)
             self._maybe_log_rich_rollout_sidecar(inputs, outputs, mode=mode)
             self._log_grpo_diversity(outputs, mode=mode)
             self._log_eval_pass_at_k(inputs, outputs, mode=mode)

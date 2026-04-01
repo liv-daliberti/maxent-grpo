@@ -28,7 +28,7 @@ import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
+from functools import lru_cache, wraps
 from pathlib import Path
 from typing import (
     Any,
@@ -79,6 +79,19 @@ class RewardFunction(Protocol):
         *args: Any,
         **kwargs: Any,
     ) -> List[float]: ...
+
+
+def _bind_reward_kwargs(reward_fn: RewardFunction, /, **bound_kwargs: Any) -> RewardFunction:
+    """Return a named wrapper that pre-binds keyword args for a reward fn."""
+
+    @wraps(reward_fn)
+    def _wrapped(*args: Any, **kwargs: Any) -> List[float]:
+        merged_kwargs = dict(bound_kwargs)
+        merged_kwargs.update(kwargs)
+        return reward_fn(*args, **merged_kwargs)
+
+    setattr(_wrapped, "keywords", dict(bound_kwargs))
+    return _wrapped
 
 
 def _extract_content(comp: CompletionType) -> str:
@@ -864,9 +877,79 @@ def _seed_paper_boxed_reward_fn() -> Any:
     return reward_fn
 
 
+@lru_cache(maxsize=1)
+def _seed_paper_answer_tag_reward_fn() -> Any:
+    """Load the official SEED paper answer-tag reward function from the repo-local checkout."""
+
+    repo_dir = Path(
+        os.environ.get(
+            "MAXENT_SEED_PAPER_REPO_DIR",
+            str(
+                Path(__file__).resolve().parents[3]
+                / "var"
+                / "seed_paper_eval"
+                / "external"
+                / "SEED-GRPO"
+            ),
+        )
+    )
+    if not repo_dir.exists():
+        raise FileNotFoundError(
+            "Official SEED-GRPO checkout not found for reward parity at "
+            f"{repo_dir}. Run the repo-local SEED paper eval preparation first."
+        )
+    paper_site_packages = (
+        Path(__file__).resolve().parents[3]
+        / "var"
+        / "seed_paper_eval"
+        / "paper_venv"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    if paper_site_packages.exists():
+        paper_site_packages_str = str(paper_site_packages)
+        if paper_site_packages_str not in sys.path:
+            sys.path.insert(0, paper_site_packages_str)
+        for prefix in ("antlr4", "math_verify", "sympy", "understand_r1_zero"):
+            for module_name in tuple(sys.modules):
+                if module_name != prefix and not module_name.startswith(f"{prefix}."):
+                    continue
+                module = sys.modules.get(module_name)
+                module_file = getattr(module, "__file__", None)
+                if module_file and str(module_file).startswith(paper_site_packages_str):
+                    continue
+                sys.modules.pop(module_name, None)
+    else:
+        _LOG.warning(
+            "SEED paper answer-tag reward parity requested, but paper site-packages were not found at %s.",
+            paper_site_packages,
+        )
+    repo_dir_str = str(repo_dir)
+    if repo_dir_str not in sys.path:
+        sys.path.insert(0, repo_dir_str)
+    if os.environ.get("MAXENT_SEED_PAPER_SUPPRESS_GRADER_LOGS", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+    }:
+        for logger_name in ("math_verify", "math_verify.grader"):
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(logging.CRITICAL)
+            logger.propagate = False
+    grader = importlib.import_module("understand_r1_zero.math_grader")
+    reward_fn = getattr(grader, "answer_tag_reward_fn", None)
+    if not callable(reward_fn):
+        raise RuntimeError(
+            f"Official SEED answer_tag_reward_fn is unavailable in {repo_dir}."
+        )
+    return reward_fn
+
+
 def seed_paper_boxed_accuracy_reward_math(
     completions: List[CompletionType],
     answer: List[Any],
+    fast: bool = False,
     **_kwargs: Any,
 ) -> List[float]:
     """Official SEED paper boxed accuracy reward with the same grader as eval."""
@@ -876,7 +959,27 @@ def seed_paper_boxed_accuracy_reward_math(
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
         try:
-            _info, reward = reward_fn(txt, gold, fast=False)
+            _info, reward = reward_fn(txt, gold, fast=fast)
+            outs.append(float(reward))
+        except Exception:
+            outs.append(0.0)
+    return outs
+
+
+def seed_paper_answer_tag_accuracy_reward_math(
+    completions: List[CompletionType],
+    answer: List[Any],
+    fast: bool = False,
+    **_kwargs: Any,
+) -> List[float]:
+    """Official SEED paper answer-tag accuracy reward with the same grader as eval."""
+
+    reward_fn = _seed_paper_answer_tag_reward_fn()
+    outs: List[float] = []
+    for comp, gold in zip(completions, answer):
+        txt = _extract_content(comp)
+        try:
+            _info, reward = reward_fn(txt, gold, fast=fast)
             outs.append(float(reward))
         except Exception:
             outs.append(0.0)
@@ -1135,6 +1238,9 @@ def get_reward_funcs(
     code_format_reward = get_code_format_reward(
         language=str(getattr(script_args, "code_language", "python"))
     )
+    seed_paper_reward_fast = bool(
+        getattr(script_args, "seed_paper_reward_fast", False)
+    )
     missing_boxed_answer_penalty_reward = get_missing_boxed_answer_penalty_reward(
         penalty=float(getattr(script_args, "missing_boxed_answer_penalty", -0.05))
     )
@@ -1152,7 +1258,14 @@ def get_reward_funcs(
         "code_format": code_format_reward,
         # Native/extended names.
         "boxed_accuracy_math": boxed_accuracy_reward_math,
-        "seed_paper_boxed_accuracy_math": seed_paper_boxed_accuracy_reward_math,
+        "seed_paper_boxed_accuracy_math": _bind_reward_kwargs(
+            seed_paper_boxed_accuracy_reward_math,
+            fast=seed_paper_reward_fast,
+        ),
+        "seed_paper_answer_tag_accuracy_math": _bind_reward_kwargs(
+            seed_paper_answer_tag_accuracy_reward_math,
+            fast=seed_paper_reward_fast,
+        ),
         "missing_boxed_answer_penalty_math": missing_boxed_answer_penalty_reward,
         "pure_accuracy_math": pure_accuracy_reward_math,
         "python_unit_tests": python_unit_test_reward,
@@ -1170,6 +1283,7 @@ __all__ = [
     "get_missing_boxed_answer_penalty_reward",
     "boxed_accuracy_reward_math",
     "seed_paper_boxed_accuracy_reward_math",
+    "seed_paper_answer_tag_accuracy_reward_math",
     "tag_count_reward",
     "reasoning_steps_reward",
     "get_cosine_scaled_reward",

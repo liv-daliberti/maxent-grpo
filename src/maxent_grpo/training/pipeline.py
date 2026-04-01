@@ -1775,6 +1775,16 @@ def prepare_training_batch(
                 _resolve_weighting_value(ctx, "beta"),
                 _resolve_weighting_value(ctx, "tau"),
                 scale_rewards=scale_rewards,
+                zero_truncated_completion_rewards=bool(
+                    getattr(training_args, "zero_truncated_completion_rewards", False)
+                )
+                if training_args is not None
+                else False,
+                max_completion_len=int(
+                    getattr(training_args, "max_completion_length", 0) or 0
+                )
+                if training_args is not None
+                else 0,
                 seed_grpo_enabled=bool(
                     getattr(training_args, "seed_grpo_enabled", False)
                 )

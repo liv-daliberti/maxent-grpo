@@ -1,0 +1,5 @@
+defaults:
+  - _self_
+
+baseline:
+  recipe: configs/recipes/Qwen2.5-1.5B-Instruct/grpo/config_math_oat_parity_r1.yaml

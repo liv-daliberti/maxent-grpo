@@ -35,6 +35,7 @@ from urllib.parse import urlparse
 
 from maxent_grpo.methods import normalize_grpo_loss_type
 from maxent_grpo.objectives import normalize_objective, resolve_objective_routing
+from maxent_grpo.prompt_templates import normalize_prompt_template
 
 from .dataset import ScriptArguments, trl
 
@@ -138,7 +139,9 @@ class GRPOConfig(trl.GRPOConfig):
 
     :ivar benchmarks: Benchmarks to run after training completes.
     :ivar callbacks: Callback identifiers executed during training.
-    :ivar chat_template: Optional chat template string used to render prompts.
+    :ivar chat_template: Optional legacy chat template string used to render prompts.
+    :ivar prompt_template: Training-side prompt template selector. Supports the
+        official SEED-GRPO templates ``qwen_math``, ``no``, and ``r1``.
     :ivar hub_model_revision: Hub model branch to push artifacts to.
     :ivar num_completions_to_print: Number of completions to print for inspection.
     :ivar overwrite_hub_revision: Whether to overwrite the destination Hub branch.
@@ -246,6 +249,15 @@ class GRPOConfig(trl.GRPOConfig):
     :ivar vllm_presence_penalty: Presence penalty applied during sampling.
     :ivar vllm_top_k: Top-k sampling parameter forwarded to vLLM.
     :ivar vllm_stop_sequences: Stop sequences for vLLM (JSON list or ``'||'``-delimited string).
+    :ivar vllm_include_stop_str_in_output: Preserve matched stop strings in the
+        returned vLLM text. OAT enables this for the ``r1`` math template so
+        answer-tag grading still sees ``</answer>``.
+    :ivar seed_paper_reward_fast: Use the OAT/SEED "fast" math verifier path for
+        online binary math rewards. When false, the grader also runs the slower
+        ``math_verify``-style fallback.
+    :ivar zero_truncated_completion_rewards: Zero sequence rewards for
+        completions that hit the generation length cap, matching OAT's math RL
+        actor behavior.
     :ivar eval_before_train: Run evaluation once before training begins (step 0).
     :ivar disable_distributed_sampler: Disable the DistributedSampler to avoid double sharding.
     :ivar dataloader_num_workers: Number of worker processes for the training dataloader.
@@ -388,9 +400,27 @@ class GRPOConfig(trl.GRPOConfig):
             "help": "Optional weights aligned with reward_funcs (defaults to 1.0 each)."
         },
     )
+    seed_paper_reward_fast: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "When true, bind SEED-paper math rewards to the OAT-style fast "
+                "verifier path instead of the slower math_verify fallback."
+            )
+        },
+    )
     chat_template: Optional[str] = field(
         default=None,
         metadata={"help": "The chat template to use."},
+    )
+    prompt_template: Optional[str] = field(
+        default="no",
+        metadata={
+            "help": (
+                "Training-side prompt template. Supported values: qwen_math, no, r1. "
+                "Set to null to keep the legacy system_prompt/chat_template path."
+            )
+        },
     )
     hub_model_revision: Optional[str] = field(
         default="main", metadata={"help": "The Hub model branch to push the model to."}
@@ -1298,6 +1328,24 @@ class GRPOConfig(trl.GRPOConfig):
             )
         },
     )
+    vllm_include_stop_str_in_output: Optional[bool] = field(
+        default=None,
+        metadata={
+            "help": (
+                "When true, preserve matched stop strings in vLLM outputs. "
+                "None lets prompt-template defaults apply."
+            )
+        },
+    )
+    zero_truncated_completion_rewards: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Zero rewards for completions that stop because they hit the "
+                "generation length cap."
+            )
+        },
+    )
     dataloader_num_workers: int = field(
         default=0,
         metadata={"help": "Number of worker processes for the training DataLoader."},
@@ -1399,6 +1447,14 @@ class GRPOConfig(trl.GRPOConfig):
                     pass
 
         _sync_beta_alias()
+        setattr(
+            self,
+            "prompt_template",
+            normalize_prompt_template(
+                getattr(self, "prompt_template", None),
+                default=None,
+            ),
+        )
         base_eval_strategy = _coerce_eval_strategy_for_base(
             getattr(self, "eval_strategy", None)
         )

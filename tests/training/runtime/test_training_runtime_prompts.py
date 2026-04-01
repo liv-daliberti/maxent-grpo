@@ -49,6 +49,70 @@ def test_to_prompt_chat_template(monkeypatch):
     assert out["answer"] == "42"
 
 
+def test_to_prompt_seed_no_template_ignores_chat_template():
+    class _Tok:
+        def apply_chat_template(self, *args, **kwargs):
+            raise AssertionError("chat template should not be used")
+
+    example = {"prompt": "hi", "answer": "42"}
+    out = prompts._to_prompt(
+        example,
+        _Tok(),
+        "prompt",
+        system_prompt="SYS",
+        char_limit=50,
+        prompt_template="no",
+    )
+    assert out["prompt"] == "hi"
+    assert out["answer"] == "42"
+
+
+def test_to_prompt_seed_qwen_math_template_matches_official_string():
+    class _Tok:
+        def apply_chat_template(self, *args, **kwargs):
+            raise AssertionError("chat template should not be used")
+
+    example = {"prompt": "Solve x+1=2", "answer": "1"}
+    out = prompts._to_prompt(
+        example,
+        _Tok(),
+        "prompt",
+        system_prompt=None,
+        char_limit=500,
+        prompt_template="qwen_math",
+    )
+    assert out["prompt"] == (
+        "<|im_start|>system\nPlease reason step by step, and put your final answer "
+        "within \\boxed{}.<|im_end|>\n<|im_start|>user\nSolve x+1=2<|im_end|>\n"
+        "<|im_start|>assistant\n"
+    )
+
+
+def test_to_prompt_seed_r1_template_matches_official_string():
+    class _Tok:
+        def apply_chat_template(self, *args, **kwargs):
+            raise AssertionError("chat template should not be used")
+
+    example = {"prompt": "Solve x+1=2", "answer": "1"}
+    out = prompts._to_prompt(
+        example,
+        _Tok(),
+        "prompt",
+        system_prompt=None,
+        char_limit=500,
+        prompt_template="r1",
+    )
+    assert out["prompt"] == (
+        "A conversation between User and Assistant. The User asks a question, and "
+        "the Assistant solves it. The Assistant first thinks about the reasoning "
+        "process in the mind and then provides the User with the answer. The "
+        "reasoning process is enclosed within <think> </think> and answer is "
+        "enclosed within <answer> </answer> tags, respectively, i.e., <think> "
+        "reasoning process here </think> <answer> answer here </answer>.\nUser: "
+        "Solve x+1=2\nAssistant: <think>"
+    )
+
+
 def test_to_prompt_fallback_text(monkeypatch):
     class _Tok:
         def apply_chat_template(self, *args, **kwargs):

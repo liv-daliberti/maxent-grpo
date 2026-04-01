@@ -20,6 +20,7 @@ def test_live_sweep_dashboard_renders_with_partial_results(tmp_path: Path) -> No
             "summary_path": "/tmp/sum-a.json",
             "step": 25,
             "avg": 0.35,
+            "pass_at_1_avg": 0.35,
             "pass_at_8_avg": 0.52,
             "mean_at_8_avg": 0.20,
             "avg_len_mean": 3200.0,
@@ -38,6 +39,7 @@ def test_live_sweep_dashboard_renders_with_partial_results(tmp_path: Path) -> No
             "summary_path": None,
             "step": None,
             "avg": None,
+            "pass_at_1_avg": None,
             "pass_at_8_avg": None,
             "mean_at_8_avg": None,
             "avg_len_mean": None,
@@ -56,6 +58,7 @@ def test_live_sweep_dashboard_renders_with_partial_results(tmp_path: Path) -> No
             "summary_path": "/tmp/sum-c.json",
             "step": 50,
             "avg": 0.38,
+            "pass_at_1_avg": 0.38,
             "pass_at_8_avg": 0.55,
             "mean_at_8_avg": 0.23,
             "avg_len_mean": 2800.0,
@@ -74,6 +77,7 @@ def test_live_sweep_dashboard_renders_with_partial_results(tmp_path: Path) -> No
             "summary_path": None,
             "step": None,
             "avg": None,
+            "pass_at_1_avg": None,
             "pass_at_8_avg": None,
             "mean_at_8_avg": None,
             "avg_len_mean": None,
@@ -110,6 +114,7 @@ def test_live_sweep_dashboard_aggregates_multiple_seeds_per_cell(tmp_path: Path)
             "summary_path": "/tmp/sum-a.json",
             "step": 50,
             "avg": 0.40,
+            "pass_at_1_avg": 0.40,
             "pass_at_8_avg": 0.52,
             "mean_at_8_avg": 0.21,
             "avg_len_mean": 3200.0,
@@ -129,6 +134,7 @@ def test_live_sweep_dashboard_aggregates_multiple_seeds_per_cell(tmp_path: Path)
             "summary_path": "/tmp/sum-b.json",
             "step": 50,
             "avg": 0.44,
+            "pass_at_1_avg": 0.44,
             "pass_at_8_avg": 0.56,
             "mean_at_8_avg": 0.25,
             "avg_len_mean": 3000.0,
@@ -148,6 +154,7 @@ def test_live_sweep_dashboard_aggregates_multiple_seeds_per_cell(tmp_path: Path)
             "summary_path": "/tmp/sum-c.json",
             "step": 50,
             "avg": 0.39,
+            "pass_at_1_avg": 0.39,
             "pass_at_8_avg": 0.49,
             "mean_at_8_avg": 0.20,
             "avg_len_mean": 2800.0,
@@ -169,3 +176,4 @@ def test_live_sweep_dashboard_aggregates_multiple_seeds_per_cell(tmp_path: Path)
     assert summary["best"]["seed_count"] == 2
     assert summary["best"]["seed_completed_count"] == 2
     assert summary["best"]["avg"] == pytest.approx(0.42)
+    assert summary["best"]["pass_at_1_avg"] == pytest.approx(0.42)

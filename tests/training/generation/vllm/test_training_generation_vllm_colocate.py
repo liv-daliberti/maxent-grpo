@@ -364,11 +364,41 @@ def test_colocate_build_sampling_params_applies_vocab_guard(monkeypatch):
     grouped, meta = engine.request_batch(["prompt"], 1)
 
     assert grouped == [["prompt-out"]]
-    assert meta is None
+    assert meta is not None
     assert dummy_llm.last_params is not None
     assert dummy_llm.last_params["logit_bias"] == {"151665": -100.0}
     assert dummy_llm.last_params["allowed_token_ids"] == [0, 1, 2]
     assert dummy_llm.last_params["_bad_words_token_ids"] == [[5], [6]]
+
+
+def test_colocate_forwards_include_stop_str_in_output(monkeypatch):
+    _mod, dummy_llm = _install_stub_vllm(monkeypatch)
+
+    ctx = SimpleNamespace(
+        prompt_char_limit=10,
+        gen_temperature=0.5,
+        gen_top_p=0.9,
+        gen_top_k=None,
+        gen_best_of=None,
+        gen_frequency_penalty=0.0,
+        gen_presence_penalty=0.0,
+        max_completion_len=5,
+        vllm_request_logprobs=False,
+        vllm_stop_sequences=["</answer>"],
+        vllm_include_stop_str_in_output=True,
+        vllm_logit_bias=None,
+        vllm_guided_json=None,
+        vllm_guided_regex=None,
+        generation_stats={},
+    )
+    engine = vllm_colocate.ColocateVLLMEngine(ctx, lambda *a, **k: ([], None))
+    grouped, meta = engine.request_batch(["prompt"], 1)
+
+    assert grouped == [["prompt-out"]]
+    assert meta is not None
+    assert dummy_llm.last_params is not None
+    assert dummy_llm.last_params["stop"] == ["</answer>"]
+    assert dummy_llm.last_params["include_stop_str_in_output"] is True
 
 
 def test_colocate_sync_client_buffers_and_flushes(monkeypatch):

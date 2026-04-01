@@ -15,6 +15,8 @@ _OBJECTIVE_ALIASES: Final[dict[str, str]] = {
     "grpo_native": "grpo",
     "entropy_bonus": "grpo_entropy_bonus",
     "maxent": "maxent_entropy",
+    "maxent_tokenwise": "maxent_entropy",
+    "tokenwise": "maxent_entropy",
     "entropy": "maxent_entropy",
     "listwise": "maxent_listwise",
 }

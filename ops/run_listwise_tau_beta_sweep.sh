@@ -2,11 +2,11 @@
 # Submit a short listwise tau/beta sweep on the 1.5B math_fair backbone.
 #
 # Defaults:
-# - resource profile: interim/general-compute A6000s
+# - resource profile: interim/general-compute A6000s on the non-lowprio path
 # - objective: listwise only
 # - grid: tau in {0.35, 0.50, 0.70}, beta in {0.04, 0.08, 0.12}
 # - short horizon: 50 steps
-# - reduced official eval for tuning: aime,amc,math
+# - official eval suite: aime,amc,math,minerva,olympiad_bench
 
 set -euo pipefail
 
@@ -21,7 +21,7 @@ CONFIG_SUFFIX="${CONFIG_SUFFIX:-math_fair}"
 MODEL="${MODEL:-Qwen2.5-1.5B-Instruct}"
 RECIPE_PROFILE="${RECIPE_PROFILE:-experiment}"
 RESOURCE_PROFILE="${RESOURCE_PROFILE:-interim_a6000}"
-SBATCH_PARTITION="${SBATCH_PARTITION:-lowprio}"
+SBATCH_PARTITION="${SBATCH_PARTITION:-all}"
 SBATCH_ACCOUNT="${SBATCH_ACCOUNT:-allcs}"
 SBATCH_GRES="${SBATCH_GRES:-gpu:a6000:4}"
 SBATCH_CPUS_PER_TASK="${SBATCH_CPUS_PER_TASK:-32}"
@@ -34,7 +34,8 @@ TAU_VALUES="${TAU_VALUES:-0.35,0.50,0.70}"
 BETA_VALUES="${BETA_VALUES:-0.04,0.08,0.12}"
 SWEEP_MAX_STEPS="${SWEEP_MAX_STEPS:-50}"
 SWEEP_EVAL_STEPS="${SWEEP_EVAL_STEPS:-25}"
-SWEEP_TASKS="${SWEEP_TASKS:-aime,amc,math}"
+SWEEP_TASKS="${SWEEP_TASKS:-aime,amc,math,minerva,olympiad_bench}"
+TRAIN_LIVE_EVAL_TEMPLATE="${TRAIN_LIVE_EVAL_TEMPLATE:-no}"
 SWEEP_MAX_TEST="${SWEEP_MAX_TEST:-}"
 SWEEP_SEEDS="${SWEEP_SEEDS:-${SWEEP_SEED:-42}}"
 MAXENT_ARGS_BASE="${MAXENT_ARGS_BASE:-}"
@@ -82,6 +83,7 @@ build_variant_args() {
   args+=" --save_strategy no"
   args+=" --final_model_save_enabled false"
   args+=" --seed_paper_eval_tasks $SWEEP_TASKS"
+  args+=" --seed_paper_eval_template $TRAIN_LIVE_EVAL_TEMPLATE"
   args+=" --seed $seed"
   args+=" --output_dir $output_dir"
   args+=" --run_name $run_name"
@@ -109,6 +111,7 @@ submit_sweep_job() {
       MODEL="$MODEL" \
       CONFIG_SUFFIX="$CONFIG_SUFFIX" \
       RECIPE_PROFILE="$RECIPE_PROFILE" \
+      MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$TRAIN_LIVE_EVAL_TEMPLATE" \
       MAXENT_STEP0_PAPER_EVAL_TASKS="$SWEEP_TASKS" \
       RESOURCE_PROFILE="$RESOURCE_PROFILE" \
       SBATCH_PARTITION="$SBATCH_PARTITION" \

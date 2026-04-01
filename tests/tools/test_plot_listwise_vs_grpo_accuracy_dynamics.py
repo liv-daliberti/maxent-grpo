@@ -19,11 +19,40 @@ def test_accuracy_dynamics_plot_renders(tmp_path: Path) -> None:
         dist.GroupRecord(step=2, prompt_index=0, rewards=[1.0, 0.0, 0.0, 0.0], mass=[0.4, 0.2, 0.2, 0.2]),
     ]
     summary = mod._plot_svg(
-        grpo_steps=mod._aggregate_metrics(grpo_records),
-        listwise_steps=mod._aggregate_metrics(listwise_records),
+        grpo_steps=mod._aggregate_metrics(
+            grpo_records,
+            official_by_step={
+                1: {
+                    "official_pass_at_1": 0.25,
+                    "official_pass_at_8": 0.50,
+                    "official_mean_at_8": 0.20,
+                },
+                2: {
+                    "official_pass_at_1": 0.50,
+                    "official_pass_at_8": 0.75,
+                    "official_mean_at_8": 0.40,
+                },
+            },
+        ),
+        listwise_steps=mod._aggregate_metrics(
+            listwise_records,
+            official_by_step={
+                1: {
+                    "official_pass_at_1": 0.30,
+                    "official_pass_at_8": 0.60,
+                    "official_mean_at_8": 0.25,
+                },
+                2: {
+                    "official_pass_at_1": 0.55,
+                    "official_pass_at_8": 0.80,
+                    "official_mean_at_8": 0.45,
+                },
+            },
+        ),
         output_path=tmp_path / "accuracy_dynamics.svg",
     )
     assert (tmp_path / "accuracy_dynamics.svg").exists()
     encoded = json.dumps(summary)
-    assert "rollout_accuracy" in encoded
-    assert "prompt_pass_at_8" in encoded
+    assert "official_pass_at_1" in encoded
+    assert "official_pass_at_8" in encoded
+    assert "official_mean_at_8" in encoded

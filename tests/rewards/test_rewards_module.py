@@ -108,7 +108,22 @@ def test_get_reward_funcs_resolves_known_names():
 def test_get_reward_funcs_resolves_seed_paper_reward() -> None:
     args = SimpleNamespace(reward_funcs=["seed_paper_boxed_accuracy_math"])
     funcs = get_reward_funcs(args)
-    assert funcs[0] is seed_paper_boxed_accuracy_reward_math
+    assert callable(funcs[0])
+    assert funcs[0].__name__ == "seed_paper_boxed_accuracy_reward_math"
+    assert funcs[0].__wrapped__ is seed_paper_boxed_accuracy_reward_math
+    assert funcs[0].keywords == {"fast": False}
+
+
+def test_get_reward_funcs_binds_oat_fast_seed_paper_reward() -> None:
+    args = SimpleNamespace(
+        reward_funcs=["seed_paper_answer_tag_accuracy_math"],
+        seed_paper_reward_fast=True,
+    )
+    funcs = get_reward_funcs(args)
+    assert callable(funcs[0])
+    assert funcs[0].__name__ == "seed_paper_answer_tag_accuracy_reward_math"
+    assert funcs[0].__wrapped__.__name__ == "seed_paper_answer_tag_accuracy_reward_math"
+    assert funcs[0].keywords == {"fast": True}
 
 
 def test_get_reward_funcs_resolves_missing_boxed_answer_penalty() -> None:

@@ -59,6 +59,33 @@ def test_get_dataset_single_name(monkeypatch):
     assert "train" in out
 
 
+def test_get_dataset_single_local_saved_dir(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_load_from_disk(path):
+        calls["path"] = path
+        return {"train": FakeDS(3)}
+
+    monkeypatch.setattr(
+        D,
+        "datasets",
+        SimpleNamespace(
+            load_from_disk=fake_load_from_disk,
+            load_dataset=lambda *_args, **_kwargs: {"train": FakeDS(1)},
+        ),
+    )
+    local_ds = tmp_path / "math_12k"
+    local_ds.mkdir()
+    (local_ds / "dataset_dict.json").write_text("{}", encoding="utf-8")
+
+    args = SimpleNamespace(
+        dataset_name=str(local_ds), dataset_config=None, dataset_mixture=None
+    )
+    out = D.get_dataset(args)
+    assert "train" in out
+    assert calls["path"] == str(local_ds)
+
+
 def test_get_dataset_mixture_weights_and_split(monkeypatch):
     # Two datasets, with weights 0.5 each, total should sum and split
     loads = {}
@@ -125,6 +152,30 @@ def test_load_dataset_split_guards(monkeypatch):
     monkeypatch.setattr(D.datasets, "load_dataset", fake_load_dataset)
     with pytest.raises(ValueError):
         D.load_dataset_split("repo/name", split="")
+
+
+def test_load_dataset_split_local_saved_dir(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_load_from_disk(path):
+        calls["path"] = path
+        return {"test": ["ok"]}
+
+    monkeypatch.setattr(
+        D,
+        "datasets",
+        SimpleNamespace(
+            load_from_disk=fake_load_from_disk,
+            load_dataset=lambda *_args, **_kwargs: ["unexpected"],
+        ),
+    )
+    local_ds = tmp_path / "evaluation_suite"
+    local_ds.mkdir()
+    (local_ds / "dataset_dict.json").write_text("{}", encoding="utf-8")
+
+    out = D.load_dataset_split(str(local_ds), split="test")
+    assert out == ["ok"]
+    assert calls["path"] == str(local_ds)
 
 
 """

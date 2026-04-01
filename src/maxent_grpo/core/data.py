@@ -34,6 +34,7 @@ import logging
 import os
 import random
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 from collections.abc import Mapping
 
@@ -121,6 +122,18 @@ _DEFAULT_HF_RETRY_SLEEP = 2.0
 _DEFAULT_HF_RETRY_MAX_SLEEP = 60.0
 
 
+def _is_saved_hf_dataset_dir(candidate: Any) -> bool:
+    """Return True when ``candidate`` looks like ``datasets.save_to_disk`` output."""
+
+    try:
+        path = Path(candidate)
+    except TypeError:
+        return False
+    return path.is_dir() and (
+        (path / "dataset_dict.json").is_file() or (path / "state.json").is_file()
+    )
+
+
 def _dataset_load_retry_settings() -> tuple[int, float, float]:
     def _read_int(name: str, default: int) -> int:
         raw = os.environ.get(name)
@@ -163,6 +176,12 @@ def _should_retry_dataset_load(exc: BaseException) -> bool:
 
 
 def _load_dataset_with_retries(*args: Any, **kwargs: Any) -> Any:
+    if args and _is_saved_hf_dataset_dir(args[0]):
+        split = kwargs.pop("split", None)
+        dataset = datasets.load_from_disk(str(args[0]))  # type: ignore[attr-defined]
+        if split is None:
+            return dataset
+        return dataset[split]
     retries, sleep_s, max_sleep_s = _dataset_load_retry_settings()
     last_exc: Optional[BaseException] = None
     for attempt in range(retries + 1):
@@ -334,9 +353,5 @@ def load_dataset_split(
     """
     if not split:
         raise ValueError("split must be provided when loading an eval dataset")
-    dataset = datasets.load_dataset(  # nosec B615
-        dataset_name,
-        dataset_config,
-        split=split,
-    )
+    dataset = _load_dataset_with_retries(dataset_name, dataset_config, split=split)
     return cast(Dataset, dataset)

@@ -18,6 +18,11 @@ from typing import (
     cast,
 )
 
+from maxent_grpo.prompt_templates import (
+    normalize_prompt_template,
+    render_prompt_template,
+)
+
 if TYPE_CHECKING:  # pragma: no cover - type checking only
     from transformers.tokenization_utils import PreTrainedTokenizer
 
@@ -249,6 +254,7 @@ def _to_prompt(
     char_limit: Optional[int] = None,
     *,
     return_messages: bool = False,
+    prompt_template: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Shared prompt/answer builder used across training pipelines.
 
@@ -259,6 +265,9 @@ def _to_prompt(
     :param char_limit: Optional character cap applied after formatting.
     :param return_messages: When True, return the raw conversation list instead
         of rendering a prompt string (TRL/open-r1 style).
+    :param prompt_template: Optional SEED-style prompt template selector. When
+        set, the prompt is rendered directly as a string and bypasses tokenizer
+        chat templating.
     :returns: Mapping with ``prompt`` and ``answer`` fields. ``prompt`` is a
         string unless ``return_messages=True`` (then it is a list of messages).
     :rtype: dict[str, Any]
@@ -279,6 +288,20 @@ def _to_prompt(
     _require_prompt_column(example, resolved_column)
     user_val = example.get(resolved_column)
     user = "" if user_val is None else str(user_val)
+    active_prompt_template = normalize_prompt_template(prompt_template, default=None)
+    if active_prompt_template is not None:
+        effective_limit = char_limit if char_limit is not None else PROMPT_CHAR_LIMIT
+        prompt = render_prompt_template(user, active_prompt_template)
+        prompt = truncate_prompt(
+            prompt,
+            effective_limit,
+            tokenizer=tokenizer,
+            max_tokens=effective_limit,
+        )
+        return {
+            "prompt": prompt,
+            "answer": str(example.get("answer", example.get("solution", ""))),
+        }
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})

@@ -21,10 +21,12 @@ TRAIN_NUM_PROCESSES="${TRAIN_NUM_PROCESSES:-3}"
 SINGLE_STACK_VLLM_GPU="${SINGLE_STACK_VLLM_GPU:-0}"
 SINGLE_STACK_TRAIN_GPUS="${SINGLE_STACK_TRAIN_GPUS:-1,2,3}"
 TRAIN_STEPS="${TRAIN_STEPS:-50}"
+TRAIN_LIVE_EVAL_TEMPLATE="${TRAIN_LIVE_EVAL_TEMPLATE:-no}"
 RUN_GROUP="${WANDB_RUN_GROUP:-full_eval_${MODEL//\//-}_${CONFIG_SUFFIX}_$(date +%Y%m%d_%H%M%S)}"
 PIPELINE_ROOT="${PIPELINE_ROOT:-var/artifacts/full_eval_pairs/${RUN_GROUP}}"
 DATA_ROOT="${DATA_ROOT:-var/data/full_eval_pairs/${RUN_GROUP}}"
 TASKS="${TASKS:-aime,amc,math,minerva,olympiad_bench}"
+EVAL_TEMPLATE="${EVAL_TEMPLATE:-no}"
 PASS_AT_8_SAMPLES="${PASS_AT_8_SAMPLES:-8}"
 LISTWISE_TAU="${LISTWISE_TAU:-0.5}"
 LISTWISE_BETA="${LISTWISE_BETA:-0.08}"
@@ -58,6 +60,7 @@ COMMON_TRAIN_ARGS=(
   "--final_model_save_enabled true"
   "--seed_paper_eval_enabled false"
   "--seed_paper_eval_pass_at_8_enabled false"
+  "--seed_paper_eval_template ${TRAIN_LIVE_EVAL_TEMPLATE}"
   "--eval_on_start false"
   "--logging_steps 1"
   "--logging_first_step true"
@@ -90,6 +93,7 @@ submit_train_job() {
         SBATCH_MEM="$SBATCH_MEM" \
         SBATCH_TIME="$SBATCH_TIME" \
         TRAIN_NUM_PROCESSES="$TRAIN_NUM_PROCESSES" \
+        MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$TRAIN_LIVE_EVAL_TEMPLATE" \
         GRPO_VLLM_GPU="$SINGLE_STACK_VLLM_GPU" \
         GRPO_TRAIN_GPUS="$SINGLE_STACK_TRAIN_GPUS" \
         MAXENT_STEP0_PAPER_EVAL_ENABLED=0 \
@@ -115,6 +119,7 @@ submit_train_job() {
         SBATCH_MEM="$SBATCH_MEM" \
         SBATCH_TIME="$SBATCH_TIME" \
         TRAIN_NUM_PROCESSES="$TRAIN_NUM_PROCESSES" \
+        MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$TRAIN_LIVE_EVAL_TEMPLATE" \
         MAXENT_VLLM_GPU="$SINGLE_STACK_VLLM_GPU" \
         MAXENT_TRAIN_GPUS="$SINGLE_STACK_TRAIN_GPUS" \
         MAXENT_STEP0_PAPER_EVAL_ENABLED=0 \
@@ -159,7 +164,7 @@ submit_eval_job() {
       --mem "$EVAL_SBATCH_MEM" \
       --time "$EVAL_SBATCH_TIME" \
       --dependency "afterok:${dependency_job_id}" \
-      --export "ALL,MODEL_PATH=${model_path},RESULTS_DIR=${results_dir},TASKS=${TASKS},PASS_AT_8_SAMPLES=${PASS_AT_8_SAMPLES},VLLM_PORT=${port}" \
+      --export "ALL,MODEL_PATH=${model_path},RESULTS_DIR=${results_dir},TASKS=${TASKS},TEMPLATE=${EVAL_TEMPLATE},PASS_AT_8_SAMPLES=${PASS_AT_8_SAMPLES},VLLM_PORT=${port}" \
       "$EVAL_SLURM_SCRIPT"
   )"
   printf '%s\n' "$output"

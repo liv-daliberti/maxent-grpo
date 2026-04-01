@@ -153,7 +153,7 @@ def test_math_objective_triplet_hydra_presets_are_explicit_and_aligned() -> None
     assert merged_grpo["eval_steps"] == 10
     merged_listwise = _merged_training_payload("maxent", listwise_cfg, repo)
     merged_entropy = _merged_training_payload("maxent", entropy_cfg, repo)
-    assert merged_listwise["beta"] == 0.08
+    assert merged_listwise["beta"] == 0.0
     assert merged_listwise["maxent_tau"] == 0.5
     assert merged_listwise["maxent_q_temperature"] == 2.0
     assert merged_listwise["maxent_use_clip_objective"] is True
@@ -262,7 +262,7 @@ def test_math_fair_objective_quartet_hydra_presets_are_explicit_and_aligned() ->
         assert cfg["maxent"]["training"]["eval_steps"] == 25
         assert cfg["maxent"]["training"]["seed_paper_eval_enabled"] is True
         assert cfg["maxent"]["training"]["seed_paper_eval_fail_on_error"] is True
-        assert cfg["maxent"]["training"]["seed_paper_eval_template"] == "qwen_math"
+        assert cfg["maxent"]["training"]["seed_paper_eval_template"] == "no"
         assert cfg["maxent"]["training"]["push_to_hub"] is False
 
     merged_grpo = _merged_training_payload("maxent", grpo_cfg, repo)
@@ -270,11 +270,10 @@ def test_math_fair_objective_quartet_hydra_presets_are_explicit_and_aligned() ->
     merged_listwise = _merged_training_payload("maxent", listwise_cfg, repo)
     merged_seed = _merged_training_payload("maxent", seed_cfg, repo)
 
-    assert merged_grpo["system_prompt"].strip() == (
-        "Please reason step by step, and put your final answer within \\boxed{}."
-    )
-    assert "<|im_start|>{{ message['role'] }}" in merged_grpo["chat_template"]
-    assert merged_grpo["seed_paper_eval_template"] == "qwen_math"
+    assert merged_grpo["prompt_template"] == "no"
+    assert merged_grpo["system_prompt"] is None
+    assert merged_grpo["chat_template"] is None
+    assert merged_grpo["seed_paper_eval_template"] == "no"
     assert merged_grpo["reward_funcs"] == ["seed_paper_boxed_accuracy_math"]
     assert merged_grpo["eval_reward_funcs"] == ["seed_paper_boxed_accuracy_math"]
     assert merged_grpo["do_eval"] is False
@@ -352,8 +351,9 @@ def test_seed_grpo_math_hydra_preset_is_explicit_and_aligned() -> None:
     assert merged["gradient_accumulation_steps"] == 40
     assert merged["reward_funcs"] == ["seed_paper_boxed_accuracy_math"]
     assert merged["eval_reward_funcs"] == ["seed_paper_boxed_accuracy_math"]
+    assert merged["prompt_template"] == "no"
     assert merged["system_prompt"] is None
-    assert "message['content']" in merged["chat_template"]
+    assert merged["chat_template"] is None
     assert seed_cfg["hydra"]["run"]["dir"]
     assert seed_cfg["hydra"]["sweep"]["dir"]
     assert seed_cfg["hydra"]["sweep"]["subdir"] == "${hydra.job.num}"

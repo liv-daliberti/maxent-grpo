@@ -36,6 +36,7 @@ def _base_script_args() -> SimpleNamespace:
 def _base_training_args() -> SimpleNamespace:
     return SimpleNamespace(
         max_prompt_length=0,
+        prompt_template=None,
         system_prompt="[SYS]",
         seed=42,
         do_eval=True,
@@ -109,3 +110,24 @@ def test_load_datasets_samples_test_split_when_no_eval(monkeypatch):
     rng.shuffle(indices)
     expected_answers = {test_rows[idx]["answer"] for idx in indices[:expected_keep]}
     assert {row["answer"] for row in eval_rows} == expected_answers
+
+
+def test_load_datasets_uses_seed_prompt_template(monkeypatch):
+    script_args = _base_script_args()
+    script_args.dataset = {
+        "train": [{"problem": "train prompt", "answer": "train_answer"}],
+        "test": [{"problem": "held-out prompt", "answer": "held_answer"}],
+    }
+    training_args = _base_training_args()
+    training_args.prompt_template = "qwen_math"
+    tokenizer = _ChatTokenizerStub()
+
+    monkeypatch.setattr(training_data, "get_dataset", lambda args: args.dataset)
+
+    train_ds, eval_rows = training_data.load_datasets(
+        script_args,
+        training_args,
+        tokenizer,
+    )
+    assert train_ds[0]["prompt"].startswith("<|im_start|>system\nPlease reason")
+    assert eval_rows[0]["prompt"].startswith("<|im_start|>system\nPlease reason")

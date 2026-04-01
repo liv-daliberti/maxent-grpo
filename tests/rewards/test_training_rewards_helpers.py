@@ -133,6 +133,49 @@ def test_compute_reward_statistics_produces_components(monkeypatch):
     assert len(comp.q_distribution.samples) == len(comp.total_utils)
 
 
+def test_compute_reward_statistics_zeroes_truncated_completion_rewards(monkeypatch):
+    monkeypatch.setattr(
+        rw,
+        "reward_moments",
+        lambda total_utils, device: (sum(total_utils), 0.0),
+    )
+    monkeypatch.setattr(
+        rw,
+        "_group_softmax",
+        lambda vals, temperature, eps: [1.0 / len(vals) for _ in vals],
+    )
+
+    def _reward_fn(completions, answers, **_):
+        del completions, answers
+        return [1.0, 1.0]
+
+    gen_batch = GenerationBatch(
+        prompts=["p"],
+        answers=["a"],
+        grouped_completions=[["c1", "c2"]],
+        grouped_ref_meta=None,
+        grouped_completion_info=[
+            [
+                {"finish_reason": "length", "token_count": 3000},
+                {"finish_reason": "stop", "token_count": 12},
+            ]
+        ],
+    )
+    reward_spec = RewardSpec(reward_funcs=[_reward_fn], reward_weights=[1.0])
+    comp = rw.compute_reward_statistics(
+        gen_batch,
+        reward_spec,
+        SimpleNamespace(type="cpu"),
+        q_temperature=1.0,
+        q_epsilon=1e-6,
+        zero_truncated_completion_rewards=True,
+        max_completion_len=3000,
+    )
+
+    assert comp is not None
+    assert comp.total_utils == [0.0, 1.0]
+
+
 def test_compute_seed_grpo_statistics_matches_official_scaling() -> None:
     gen_batch = GenerationBatch(
         prompts=["p"],

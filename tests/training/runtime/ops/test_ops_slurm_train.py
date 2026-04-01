@@ -152,20 +152,24 @@ def test_listwise_sweep_wrapper_targets_general_compute_short_grid() -> None:
     script = (repo_root / "ops" / "run_listwise_tau_beta_sweep.sh").read_text()
     assert 'CONFIG_SUFFIX="${CONFIG_SUFFIX:-math_fair}"' in script
     assert 'RESOURCE_PROFILE="${RESOURCE_PROFILE:-interim_a6000}"' in script
+    assert 'SBATCH_PARTITION="${SBATCH_PARTITION:-all}"' in script
     assert 'TAU_VALUES="${TAU_VALUES:-0.35,0.50,0.70}"' in script
     assert 'BETA_VALUES="${BETA_VALUES:-0.04,0.08,0.12}"' in script
     assert 'SWEEP_SEEDS="${SWEEP_SEEDS:-${SWEEP_SEED:-42}}"' in script
     assert 'SWEEP_MAX_STEPS="${SWEEP_MAX_STEPS:-50}"' in script
     assert 'SWEEP_EVAL_STEPS="${SWEEP_EVAL_STEPS:-25}"' in script
-    assert 'SWEEP_TASKS="${SWEEP_TASKS:-aime,amc,math}"' in script
+    assert 'SWEEP_TASKS="${SWEEP_TASKS:-aime,amc,math,minerva,olympiad_bench}"' in script
+    assert 'TRAIN_LIVE_EVAL_TEMPLATE="${TRAIN_LIVE_EVAL_TEMPLATE:-no}"' in script
     assert 'RUN_ONLY="listwise"' in script
     assert '--maxent_tau $tau' in script
     assert '--beta $beta' in script
     assert '--save_strategy no' in script
     assert '--final_model_save_enabled false' in script
+    assert '--seed_paper_eval_template $TRAIN_LIVE_EVAL_TEMPLATE' in script
     assert '--output_dir $output_dir' in script
     assert '--seed $seed' in script
     assert '--seed_paper_eval_tasks $SWEEP_TASKS' in script
+    assert 'MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$TRAIN_LIVE_EVAL_TEMPLATE"' in script
     assert 'run_name="${RUN_GROUP}-seed${seed_slug}-tau${tau_slug}-beta${beta_slug}"' in script
     assert "printf 'tau\\tbeta\\tseed\\tjob_id\\tjob_name\\trun_name\\toutput_dir\\n' > \"$MANIFEST_PATH\"" in script
     assert 'python $SCRIPT_DIR/../tools/listwise_sweep_report.py --manifest $MANIFEST_PATH' in script
@@ -182,6 +186,9 @@ def test_full_eval_pair_wrapper_propagates_listwise_knobs_and_eval_resources() -
     assert 'EVAL_SBATCH_CPUS_PER_TASK="${EVAL_SBATCH_CPUS_PER_TASK:-16}"' in script
     assert 'EVAL_SBATCH_MEM="${EVAL_SBATCH_MEM:-96G}"' in script
     assert 'EVAL_SBATCH_TIME="${EVAL_SBATCH_TIME:-24:00:00}"' in script
+    assert 'TRAIN_LIVE_EVAL_TEMPLATE="${TRAIN_LIVE_EVAL_TEMPLATE:-no}"' in script
+    assert '--seed_paper_eval_template ${TRAIN_LIVE_EVAL_TEMPLATE}' in script
+    assert 'MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$TRAIN_LIVE_EVAL_TEMPLATE"' in script
     assert '--maxent_tau ${LISTWISE_TAU}' in script
     assert '--beta ${LISTWISE_BETA}' in script
     assert '--maxent_q_temperature ${LISTWISE_Q_TEMPERATURE}' in script
@@ -204,16 +211,27 @@ def test_full_eval_richsidecar_wrapper_targets_mltheory_long_run() -> None:
     assert 'TRAIN_NUM_EPOCHS="${TRAIN_NUM_EPOCHS:-20}"' in script
     assert 'TRAIN_EVAL_STEPS="${TRAIN_EVAL_STEPS:-25}"' in script
     assert 'TRAIN_SAVE_STEPS="${TRAIN_SAVE_STEPS:-25}"' in script
-    assert 'TRAIN_LIVE_EVAL_ENABLED="${TRAIN_LIVE_EVAL_ENABLED:-true}"' in script
+    assert 'TRAIN_LIVE_EVAL_ENABLED="${TRAIN_LIVE_EVAL_ENABLED:-false}"' in script
     assert 'TRAIN_LIVE_PASS_AT_8_ENABLED="${TRAIN_LIVE_PASS_AT_8_ENABLED:-false}"' in script
     assert 'TRAIN_LIVE_EVAL_FAIL_ON_ERROR="${TRAIN_LIVE_EVAL_FAIL_ON_ERROR:-false}"' in script
+    assert 'TRAIN_RICH_SIDECAR_ENABLED="${TRAIN_RICH_SIDECAR_ENABLED:-false}"' in script
+    assert 'TRAIN_LIVE_EVAL_TEMPLATE="${TRAIN_LIVE_EVAL_TEMPLATE:-no}"' in script
+    assert 'SUBMIT_FINAL_EVAL_JOBS="${SUBMIT_FINAL_EVAL_JOBS:-false}"' in script
+    assert 'SUBMIT_FINAL_EVAL_PLOT="${SUBMIT_FINAL_EVAL_PLOT:-false}"' in script
+    assert 'SUBMIT_RICH_SIDECAR_PLOT="${SUBMIT_RICH_SIDECAR_PLOT:-false}"' in script
     assert 'LISTWISE_TAU="${LISTWISE_TAU:-0.35}"' in script
     assert 'LISTWISE_BETA="${LISTWISE_BETA:-0.12}"' in script
     assert 'LISTWISE_Q_TEMPERATURE="${LISTWISE_Q_TEMPERATURE:-2.0}"' in script
-    assert '--rich_log_completions true' in script
+    assert '--rich_log_completions ${TRAIN_RICH_SIDECAR_ENABLED}' in script
     assert '--seed_paper_eval_enabled ${TRAIN_LIVE_EVAL_ENABLED}' in script
     assert '--seed_paper_eval_pass_at_8_enabled ${TRAIN_LIVE_PASS_AT_8_ENABLED}' in script
     assert '--seed_paper_eval_fail_on_error ${TRAIN_LIVE_EVAL_FAIL_ON_ERROR}' in script
+    assert '--seed_paper_eval_template ${TRAIN_LIVE_EVAL_TEMPLATE}' in script
+    assert 'STEP0_PAPER_EVAL_TEMPLATE="${STEP0_PAPER_EVAL_TEMPLATE:-}"' in script
+    assert 'MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$step0_template_env"' in script
+    assert 'if is_truthy "$SUBMIT_FINAL_EVAL_JOBS"; then' in script
+    assert 'if is_truthy "$SUBMIT_FINAL_EVAL_PLOT"; then' in script
+    assert 'if is_truthy "$SUBMIT_RICH_SIDECAR_PLOT"; then' in script
     assert '--maxent_tau ${LISTWISE_TAU}' in script
     assert '--beta ${LISTWISE_BETA}' in script
     assert '--maxent_q_temperature ${LISTWISE_Q_TEMPERATURE}' in script
@@ -276,8 +294,9 @@ def test_math_triplet_presets_use_dr_grpo_defaults() -> None:
     assert "reward_funcs:" in base_math
     assert "- seed_paper_boxed_accuracy_math" in base_math
     assert "eval_reward_funcs:" in base_math
+    assert 'prompt_template: "no"' in base_math
     assert "system_prompt: null" in base_math
-    assert "chat_template:" in base_math
+    assert "chat_template: null" in base_math
     assert "maxent_logprob_chunk_size: 2" in base_math
     assert "save_steps: 1" in base_math
     for contents in (grpo, entropy, seed):
@@ -404,7 +423,7 @@ def test_math_stable_quartet_presets_use_shared_stabilizers() -> None:
     assert "seed_grpo_alpha: 0.0417" in seed
 
 
-def test_math_fair_quartet_presets_use_qwen_math_shared_backbone() -> None:
+def test_math_fair_quartet_presets_use_paper_no_template_shared_backbone() -> None:
     repo_root = Path(__file__).resolve().parents[4]
     base_math = (
         repo_root
@@ -449,13 +468,14 @@ def test_math_fair_quartet_presets_use_qwen_math_shared_backbone() -> None:
     assert 'STEP0_PAPER_EVAL_PASS_AT_8_ENABLED="${MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_ENABLED:-auto}"' in slurm
     assert 'cmd+=(--pass-at-8)' in slurm
     assert 'cmd+=(--pass-at-8-samples "$STEP0_PAPER_EVAL_PASS_AT_8_SAMPLES")' in slurm
-    assert 'STEP0_PAPER_EVAL_TEMPLATE="qwen_math"' in slurm
+    assert 'STEP0_PAPER_EVAL_TEMPLATE="no"' in slurm
 
     assert "model_name_or_path: Qwen/Qwen2.5-Math-1.5B" in base_math
     assert "dataset_name: axon-rl/MATH-lvl3to5-8k" in base_math
-    assert "Please reason step by step, and put your final answer within \\boxed{}." in base_math
-    assert "<|im_start|>{{ message['role'] }}" in base_math
-    assert 'seed_paper_eval_template: "qwen_math"' in base_math
+    assert 'prompt_template: "no"' in base_math
+    assert "system_prompt: null" in base_math
+    assert "chat_template: null" in base_math
+    assert 'seed_paper_eval_template: "no"' in base_math
     assert "seed_paper_eval_pass_at_8_enabled: true" in base_math
     assert "seed_paper_eval_pass_at_8_samples: 8" in base_math
     assert "dr_grpo_denominator_mode: fixed_max" in base_math
@@ -471,7 +491,7 @@ def test_math_fair_quartet_presets_use_qwen_math_shared_backbone() -> None:
         assert "dr_grpo_denominator_mode: fixed_max" in contents
         assert "eval_on_start: true" in contents
         assert "eval_steps: 25" in contents
-        assert 'seed_paper_eval_template: "qwen_math"' in contents
+        assert 'seed_paper_eval_template: "no"' in contents
         assert 'save_strategy: "steps"' in contents
         assert "save_steps: 25" in contents
         assert "push_to_hub: false" in contents
@@ -482,6 +502,6 @@ def test_math_fair_quartet_presets_use_qwen_math_shared_backbone() -> None:
     assert "maxent_use_clip_objective: true" in listwise
     assert "maxent_clip_objective_coef: 1.0" in listwise
     assert "maxent_reference_logprobs_source: model" in listwise
-    assert 'seed_paper_eval_template: "qwen_math"' in listwise
+    assert 'seed_paper_eval_template: "no"' in listwise
     assert "seed_grpo_enabled: true" in seed
     assert "seed_grpo_alpha: 0.0417" in seed

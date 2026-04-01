@@ -66,6 +66,7 @@ def test_build_official_eval_command_uses_paper_settings(tmp_path: Path) -> None
         python_executable=tmp_path / "python",
         workspace_dir=tmp_path / "workspace",
         seed_repo_dir=tmp_path / "seed",
+        dataset_dir=tmp_path / "seed" / "datasets" / "evaluation_suite",
         results_dir=tmp_path / "results",
         requirements_file=tmp_path / "requirements.txt",
         seed_repo_url="https://example.com/seed.git",
@@ -79,8 +80,12 @@ def test_build_official_eval_command_uses_paper_settings(tmp_path: Path) -> None
         max_model_len=4096,
         vllm_url=None,
         vllm_batch_size=32,
+        vllm_use_rollout_token_guard=False,
+        vllm_stop_sequences=None,
         n_samples=1,
         max_test=999999,
+        prompt_start=None,
+        prompt_end=None,
         save_outputs=False,
         auto_install=True,
         prepare_only=False,
@@ -123,6 +128,7 @@ def test_build_launch_command_wraps_srun_when_requested(tmp_path: Path) -> None:
         python_executable=tmp_path / "python",
         workspace_dir=tmp_path / "workspace",
         seed_repo_dir=tmp_path / "seed",
+        dataset_dir=tmp_path / "seed" / "datasets" / "evaluation_suite",
         results_dir=tmp_path / "results",
         requirements_file=tmp_path / "requirements.txt",
         seed_repo_url="https://example.com/seed.git",
@@ -136,8 +142,12 @@ def test_build_launch_command_wraps_srun_when_requested(tmp_path: Path) -> None:
         max_model_len=4096,
         vllm_url=None,
         vllm_batch_size=32,
+        vllm_use_rollout_token_guard=False,
+        vllm_stop_sequences=None,
         n_samples=1,
         max_test=1,
+        prompt_start=None,
+        prompt_end=None,
         save_outputs=False,
         auto_install=True,
         prepare_only=False,
@@ -167,6 +177,7 @@ def test_build_official_eval_command_appends_runtime_workarounds(tmp_path: Path)
         python_executable=tmp_path / "python",
         workspace_dir=tmp_path / "workspace",
         seed_repo_dir=tmp_path / "seed",
+        dataset_dir=tmp_path / "seed" / "datasets" / "evaluation_suite",
         results_dir=tmp_path / "results",
         requirements_file=tmp_path / "requirements.txt",
         seed_repo_url="https://example.com/seed.git",
@@ -180,8 +191,12 @@ def test_build_official_eval_command_appends_runtime_workarounds(tmp_path: Path)
         max_model_len=4096,
         vllm_url=None,
         vllm_batch_size=32,
+        vllm_use_rollout_token_guard=False,
+        vllm_stop_sequences=None,
         n_samples=1,
         max_test=1,
+        prompt_start=None,
+        prompt_end=None,
         save_outputs=False,
         auto_install=True,
         prepare_only=False,
@@ -427,6 +442,7 @@ def test_run_vllm_server_eval_passes_tokenizer_to_safe_generate(
         python_executable=tmp_path / "python",
         workspace_dir=tmp_path / "workspace",
         seed_repo_dir=tmp_path / "seed",
+        dataset_dir=tmp_path / "seed" / "datasets" / "evaluation_suite",
         results_dir=tmp_path / "results",
         requirements_file=tmp_path / "requirements.txt",
         seed_repo_url="https://example.com/seed.git",
@@ -440,8 +456,12 @@ def test_run_vllm_server_eval_passes_tokenizer_to_safe_generate(
         max_model_len=4096,
         vllm_url="http://127.0.0.1:8000/generate",
         vllm_batch_size=32,
+        vllm_use_rollout_token_guard=False,
+        vllm_stop_sequences=None,
         n_samples=1,
         max_test=1,
+        prompt_start=None,
+        prompt_end=None,
         save_outputs=False,
         auto_install=True,
         prepare_only=False,
@@ -465,6 +485,124 @@ def test_run_vllm_server_eval_passes_tokenizer_to_safe_generate(
     assert captured["model_name"] == "Qwen/Qwen2.5-Math-1.5B"
     assert isinstance(captured["tokenizer"], DummyTokenizer)
     assert summary["results"] == {"aime": 1.0}
+
+
+def test_run_vllm_server_eval_uses_oat_r1_stop_controls(
+    monkeypatch, tmp_path: Path
+) -> None:
+    captured: dict[str, object] = {}
+
+    class DummyTokenizer:
+        pass
+
+    def _fake_from_pretrained(model_name: str):
+        captured["model_name"] = model_name
+        return DummyTokenizer()
+
+    def _fake_safe_generate(**kwargs):
+        captured["stop"] = kwargs.get("stop")
+        captured["include_stop_str_in_output"] = kwargs.get(
+            "include_stop_str_in_output"
+        )
+        return [["</think> <answer>1</answer>"]], [[None]], 1.0
+
+    class FakeDataset(dict):
+        pass
+
+    def _fake_load_from_disk(path: str):
+        del path
+        return FakeDataset(
+            {
+                "aime": {
+                    "problem": ["What is 1?"],
+                    "answer": ["1"],
+                }
+            }
+        )
+
+    def _fake_reward_fn(model_output, gt, fast=False):
+        del fast
+        return {"formatted": True}, float(model_output == "</think> <answer>1</answer>")
+
+    import sys
+
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        SimpleNamespace(
+            AutoTokenizer=SimpleNamespace(from_pretrained=_fake_from_pretrained)
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "datasets",
+        SimpleNamespace(load_from_disk=_fake_load_from_disk),
+    )
+    understand_pkg = ModuleType("understand_r1_zero")
+    grader_mod = ModuleType("understand_r1_zero.math_grader")
+    grader_mod.answer_tag_reward_fn = _fake_reward_fn
+    grader_mod.answer_tag_reward_fn_for_orz = _fake_reward_fn
+    grader_mod.boxed_reward_fn = _fake_reward_fn
+    training_pkg = ModuleType("maxent_grpo.training")
+    patches_pkg = ModuleType("maxent_grpo.training.patches")
+    vllm_patch_mod = ModuleType("maxent_grpo.training.patches.vllm")
+    vllm_patch_mod.safe_generate = _fake_safe_generate
+    patches_pkg.vllm = vllm_patch_mod
+    training_pkg.patches = patches_pkg
+    monkeypatch.setitem(sys.modules, "understand_r1_zero", understand_pkg)
+    monkeypatch.setitem(sys.modules, "understand_r1_zero.math_grader", grader_mod)
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training", training_pkg)
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.patches", patches_pkg)
+    monkeypatch.setitem(sys.modules, "maxent_grpo.training.patches.vllm", vllm_patch_mod)
+
+    config = SeedPaperEvalConfig(
+        python_executable=tmp_path / "python",
+        workspace_dir=tmp_path / "workspace",
+        seed_repo_dir=tmp_path / "seed",
+        dataset_dir=tmp_path / "seed" / "datasets" / "evaluation_suite",
+        results_dir=tmp_path / "results",
+        requirements_file=tmp_path / "requirements.txt",
+        seed_repo_url="https://example.com/seed.git",
+        seed_repo_commit="deadbeef",
+        model_name="Qwen/Qwen2.5-Math-1.5B",
+        template="r1",
+        tasks=("aime",),
+        temperature=0.0,
+        top_p=1.0,
+        max_tokens=3000,
+        max_model_len=4096,
+        vllm_url="http://127.0.0.1:8000/generate",
+        vllm_batch_size=32,
+        vllm_use_rollout_token_guard=False,
+        vllm_stop_sequences=None,
+        n_samples=1,
+        max_test=1,
+        prompt_start=None,
+        prompt_end=None,
+        save_outputs=False,
+        auto_install=True,
+        prepare_only=False,
+        use_srun=False,
+        srun_args=(),
+        expected_profile=None,
+        expected_tolerance=1e-6,
+        enforce_expected=False,
+        runtime_enforce_eager=False,
+        runtime_disable_async_output_proc=False,
+        runtime_gpu_memory_utilization=None,
+        runtime_swap_space=None,
+        wandb_enabled=False,
+        wandb_project=None,
+        wandb_entity=None,
+        wandb_group=None,
+        wandb_run_name=None,
+        wandb_job_type=None,
+    )
+    _run_vllm_server_eval(config)
+
+    assert captured["model_name"] == "Qwen/Qwen2.5-Math-1.5B"
+    assert captured["stop"] == ["</answer>"]
+    assert captured["include_stop_str_in_output"] is True
 
 
 def test_run_vllm_server_eval_emits_pass_at_8_and_mean_at_8(
@@ -548,6 +686,7 @@ def test_run_vllm_server_eval_emits_pass_at_8_and_mean_at_8(
         python_executable=tmp_path / "python",
         workspace_dir=tmp_path / "workspace",
         seed_repo_dir=tmp_path / "seed",
+        dataset_dir=tmp_path / "seed" / "datasets" / "evaluation_suite",
         results_dir=tmp_path / "results",
         requirements_file=tmp_path / "requirements.txt",
         seed_repo_url="https://example.com/seed.git",
@@ -561,8 +700,12 @@ def test_run_vllm_server_eval_emits_pass_at_8_and_mean_at_8(
         max_model_len=4096,
         vllm_url="http://127.0.0.1:8000/generate",
         vllm_batch_size=32,
+        vllm_use_rollout_token_guard=False,
+        vllm_stop_sequences=None,
         n_samples=1,
         max_test=2,
+        prompt_start=None,
+        prompt_end=None,
         save_outputs=False,
         auto_install=True,
         prepare_only=False,
@@ -683,6 +826,7 @@ def test_run_vllm_server_eval_saves_single_and_pass_at_8_outputs(
         python_executable=tmp_path / "python",
         workspace_dir=tmp_path / "workspace",
         seed_repo_dir=tmp_path / "seed",
+        dataset_dir=tmp_path / "seed" / "datasets" / "evaluation_suite",
         results_dir=results_dir,
         requirements_file=tmp_path / "requirements.txt",
         seed_repo_url="https://example.com/seed.git",
@@ -696,8 +840,12 @@ def test_run_vllm_server_eval_saves_single_and_pass_at_8_outputs(
         max_model_len=4096,
         vllm_url="http://127.0.0.1:8000/generate",
         vllm_batch_size=32,
+        vllm_use_rollout_token_guard=False,
+        vllm_stop_sequences=None,
         n_samples=1,
         max_test=1,
+        prompt_start=None,
+        prompt_end=None,
         save_outputs=True,
         auto_install=True,
         prepare_only=False,

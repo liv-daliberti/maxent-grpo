@@ -48,6 +48,7 @@ import os
 import sys
 import threading
 import time
+from types import SimpleNamespace
 from urllib.parse import urlparse
 from typing import (
     Dict,
@@ -64,6 +65,10 @@ from typing import (
     TYPE_CHECKING,
 )
 from maxent_grpo.config import GRPOConfig, GRPOScriptArguments
+from maxent_grpo.prompt_templates import (
+    normalize_prompt_template,
+    resolve_generation_stop_settings,
+)
 from maxent_grpo.training.rewards import load_reward_functions
 from maxent_grpo.training.data import resolve_dataloader_kwargs
 from maxent_grpo.rewards.basic import get_reward_funcs as _compat_get_reward_funcs
@@ -245,8 +250,11 @@ def _main_process_first(training_args: Any, desc: str) -> Any:
 
 
 @contextmanager
-def _force_vllm_dtype(training_args: GRPOConfig) -> Iterator[None]:
-    """Ensure colocated vLLM uses the requested dtype instead of model defaults."""
+def _force_vllm_dtype(
+    training_args: GRPOConfig,
+    tokenizer: Optional[Any] = None,
+) -> Iterator[None]:
+    """Ensure TRL vLLM init respects local dtype and colocate engine overrides."""
 
     dtype_override = None
     if getattr(training_args, "fp16", False):
@@ -267,9 +275,219 @@ def _force_vllm_dtype(training_args: GRPOConfig) -> Iterator[None]:
         return
 
     orig_llm = getattr(grpo_mod, "LLM", None)
+    use_colocate_wrapper = (
+        bool(getattr(training_args, "use_vllm", False))
+        and str(getattr(training_args, "vllm_mode", "server") or "server").strip().lower()
+        == "colocate"
+    )
+
+    class _TRLColocateContextProxy:
+        """Small adapter exposing the attrs expected by the local colocate engine."""
+
+        def __init__(
+            self,
+            args_obj: GRPOConfig,
+            tokenizer_obj: Optional[Any],
+            model_id: Optional[str],
+        ) -> None:
+            self.training_args = args_obj
+            self.tokenizer = tokenizer_obj
+            self.generation_stats: Dict[str, Any] = {}
+            # The TRL constructor path does not have access to the local generator fallback.
+            self.vllm_disable_local_fallback = True
+            self.prompt_char_limit = PROMPT_CHAR_LIMIT
+            self.max_prompt_len = int(getattr(args_obj, "max_prompt_length", 0) or 0)
+            if isinstance(model_id, str) and model_id:
+                self.model_name_or_path = model_id
+                self.model_id = model_id
+                self.vllm_model_id = model_id
+
+        def __getattr__(self, name: str) -> Any:
+            return getattr(self.training_args, name)
+
+    @contextmanager
+    def _temporary_attr_overrides(target: Any, overrides: Dict[str, Any]) -> Iterator[None]:
+        previous: Dict[str, Any] = {}
+        missing: List[str] = []
+        for key, value in overrides.items():
+            if hasattr(target, key):
+                previous[key] = getattr(target, key)
+            else:
+                missing.append(key)
+            setattr(target, key, value)
+        try:
+            yield
+        finally:
+            for key in overrides:
+                if key in previous:
+                    setattr(target, key, previous[key])
+                else:
+                    try:
+                        delattr(target, key)
+                    except AttributeError:
+                        if key not in missing:
+                            raise
+
+    class _TRLColocateSyncModel:
+        """Expose TRL's expected ``load_weights`` surface via the local sync client."""
+
+        def __init__(self, sync_client: Any) -> None:
+            self._sync_client = sync_client
+
+        def load_weights(self, named_params: List[tuple[str, Any]]) -> None:
+            self._sync_client.ensure_ready()
+            for name, param in named_params:
+                self._sync_client.update_named_param(name, param)
+
+    class _TRLColocateLLMWrapper:
+        """Thin adapter so TRL can drive the local subprocess-isolated colocate engine."""
+
+        def __init__(self, ctx: Any, tokenizer_obj: Optional[Any]) -> None:
+            from maxent_grpo.training.rollout.vllm_colocate import ColocateVLLMEngine
+
+            self._ctx = ctx
+            self._tokenizer = tokenizer_obj
+            self._engine = ColocateVLLMEngine(
+                ctx,
+                lambda *_args, **_kwargs: (_raise_no_local_fallback(), None),
+            )
+            self._sync_client = self._engine.sync_client()
+            sync_model = _TRLColocateSyncModel(self._sync_client)
+            self.llm_engine = SimpleNamespace(
+                model_executor=SimpleNamespace(
+                    driver_worker=SimpleNamespace(
+                        model_runner=SimpleNamespace(model=sync_model)
+                    )
+                )
+            )
+
+        def _encode_completion(self, text: str) -> List[int]:
+            if self._tokenizer is None:
+                raise RuntimeError("Tokenizer unavailable for colocated vLLM completion encoding.")
+            encoded = self._tokenizer(
+                text,
+                add_special_tokens=False,
+                return_attention_mask=False,
+            )
+            if isinstance(encoded, MutableMappingABC):
+                token_ids = encoded.get("input_ids")
+            else:
+                token_ids = getattr(encoded, "input_ids", None)
+            if token_ids is None:
+                raise RuntimeError("Tokenizer did not return input_ids for colocated vLLM output.")
+            return [int(token_id) for token_id in token_ids]
+
+        def _token_ids_from_meta(self, entry: Any) -> Optional[List[int]]:
+            raw_output = None
+            token_ids = None
+            if isinstance(entry, MutableMappingABC):
+                token_ids = entry.get("token_ids")
+                raw_output = entry.get("raw_output")
+            else:
+                token_ids = getattr(entry, "token_ids", None)
+                raw_output = getattr(entry, "raw_output", None)
+            if token_ids is None and isinstance(raw_output, MutableMappingABC):
+                token_ids = raw_output.get("token_ids")
+            if token_ids is None:
+                return None
+            try:
+                return [int(token_id) for token_id in token_ids]
+            except (TypeError, ValueError):
+                return None
+
+        def generate(self, prompts: List[str], sampling_params: Any = None, use_tqdm: bool = False) -> List[Any]:
+            del use_tqdm
+            request_count = max(1, int(getattr(sampling_params, "n", 1) or 1))
+            guided = getattr(sampling_params, "guided_decoding", None)
+            guided_regex = getattr(guided, "regex", None) if guided is not None else None
+            stop_sequences = getattr(sampling_params, "stop", None)
+            overrides = {
+                "gen_temperature": float(
+                    getattr(sampling_params, "temperature", getattr(self._ctx, "gen_temperature", 1.0))
+                ),
+                "gen_top_p": float(
+                    getattr(sampling_params, "top_p", getattr(self._ctx, "gen_top_p", 1.0))
+                ),
+                "gen_top_k": int(
+                    getattr(sampling_params, "top_k", getattr(self._ctx, "gen_top_k", -1))
+                ),
+                "gen_min_p": float(
+                    getattr(sampling_params, "min_p", getattr(self._ctx, "gen_min_p", 0.0))
+                ),
+                "gen_repetition_penalty": float(
+                    getattr(
+                        sampling_params,
+                        "repetition_penalty",
+                        getattr(self._ctx, "gen_repetition_penalty", 1.0),
+                    )
+                ),
+                "gen_frequency_penalty": float(
+                    getattr(
+                        sampling_params,
+                        "frequency_penalty",
+                        getattr(self._ctx, "gen_frequency_penalty", 0.0),
+                    )
+                ),
+                "gen_presence_penalty": float(
+                    getattr(
+                        sampling_params,
+                        "presence_penalty",
+                        getattr(self._ctx, "gen_presence_penalty", 0.0),
+                    )
+                ),
+                "max_completion_len": int(
+                    getattr(
+                        sampling_params,
+                        "max_tokens",
+                        getattr(self._ctx, "max_completion_len", 0),
+                    )
+                ),
+                "gen_stop_sequences": stop_sequences,
+                "vllm_guided_regex": guided_regex,
+            }
+            with _temporary_attr_overrides(self._ctx, overrides):
+                grouped, grouped_meta = self._engine.request_batch(
+                    list(prompts), request_count
+                )
+            if grouped is None:
+                raise RuntimeError("Colocated vLLM returned no outputs.")
+            meta_groups = list(grouped_meta or [])
+            if len(meta_groups) < len(grouped):
+                meta_groups.extend([] for _ in range(len(grouped) - len(meta_groups)))
+            return [
+                SimpleNamespace(
+                    outputs=[
+                        SimpleNamespace(token_ids=token_ids)
+                        for idx, text in enumerate(prompt_outputs)
+                        for token_ids in [
+                            (
+                                self._token_ids_from_meta(meta_group[idx])
+                                if idx < len(meta_group)
+                                else None
+                            )
+                            or self._encode_completion(text)
+                        ]
+                    ]
+                )
+                for prompt_outputs, meta_group in zip(grouped, meta_groups)
+            ]
+
+        def reset_prefix_cache(self) -> None:
+            self._sync_client.reset_prefix_cache()
+
+    def _raise_no_local_fallback() -> None:
+        raise RuntimeError("Local fallback generation is unavailable in TRL colocate mode.")
 
     def _patched_llm(*args: Any, **kwargs: Any) -> Any:
         kwargs.setdefault("dtype", dtype_override)
+        if use_colocate_wrapper:
+            model_id = kwargs.get("model")
+            if not isinstance(model_id, str) and args:
+                first_arg = args[0]
+                if isinstance(first_arg, str):
+                    model_id = first_arg
+            ctx = _TRLColocateContextProxy(training_args, tokenizer, model_id)
+            return _TRLColocateLLMWrapper(ctx, tokenizer)
         return _LLM(*args, **kwargs)
 
     if orig_llm is not None:
@@ -1316,6 +1534,23 @@ def run_baseline_training(
         set_seed_fn(training_args.seed)
     if not getattr(training_args, "return_reward", False):
         setattr(training_args, "return_reward", True)
+    active_prompt_template = normalize_prompt_template(
+        getattr(training_args, "prompt_template", None),
+        default=None,
+    )
+    template_stop_sequences, template_include_stop = resolve_generation_stop_settings(
+        active_prompt_template
+    )
+    if (
+        getattr(training_args, "vllm_stop_sequences", None) in (None, [], "")
+        and template_stop_sequences
+    ):
+        setattr(training_args, "vllm_stop_sequences", list(template_stop_sequences))
+    if (
+        getattr(training_args, "vllm_include_stop_str_in_output", None) is None
+        and template_include_stop
+    ):
+        setattr(training_args, "vllm_include_stop_str_in_output", True)
     # Keep stop sequences aligned across train/eval and vLLM/HF generation.
     vllm_stops = getattr(training_args, "vllm_stop_sequences", None)
     if getattr(training_args, "gen_stop_sequences", None) in (None, []):
@@ -1469,8 +1704,8 @@ def run_baseline_training(
         getattr(training_args, "max_prompt_length", 0)
     )
     # Keep prompt mapping identical for GRPO and MaxEnt so startup prompt
-    # preprocessing and chat-template behavior stay aligned.
-    use_prompt_messages = True
+    # preprocessing and prompt-format behavior stay aligned.
+    use_prompt_messages = active_prompt_template is None
 
     def _make_conversation(ex: Dict[str, Any]) -> Dict[str, Any]:
         if pc not in ex:
@@ -1501,6 +1736,7 @@ def run_baseline_training(
             training_args.system_prompt,
             char_limit=char_limit,
             return_messages=use_prompt_messages,
+            prompt_template=active_prompt_template,
         )
         out["answer"] = str(ex.get(sc, out.get("answer", "")))
         return out
@@ -1556,9 +1792,13 @@ def run_baseline_training(
     if rank in (-1, 0):
         try:
             sample = dataset[getattr(script_args, "dataset_train_split", "train")][0]
-            rendered = maybe_apply_chat_template(sample, cast(Any, tokenizer)).get(
-                "prompt"
-            )
+            sample_prompt = sample.get("prompt") if isinstance(sample, dict) else None
+            if isinstance(sample_prompt, str):
+                rendered = sample_prompt
+            else:
+                rendered = maybe_apply_chat_template(sample, cast(Any, tokenizer)).get(
+                    "prompt"
+                )
             if isinstance(rendered, str):
                 preview = rendered[:400].replace("\n", "\\n")
                 LOG.info(
@@ -1675,6 +1915,7 @@ def run_baseline_training(
                         training_args.system_prompt,
                         char_limit=char_limit,
                         return_messages=use_prompt_messages,
+                        prompt_template=active_prompt_template,
                     )
                     out["answer"] = str(ex.get(solution_col, out.get("answer", "")))
                     out["eval_benchmark"] = benchmark_label
@@ -1731,7 +1972,7 @@ def run_baseline_training(
         LOG.debug("Failed to attach reward_weights to training_args: %s", exc)
 
     # Trainer
-    with _force_vllm_dtype(training_args):
+    with _force_vllm_dtype(training_args, tokenizer):
         trainer = trainer_cls(
             model=model,
             reward_funcs=reward_funcs,

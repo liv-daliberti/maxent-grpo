@@ -131,6 +131,7 @@ def build_row(entry: SweepEntry, results_root: Path) -> dict[str, Any]:
         "step": None,
         "train_step": train_step,
         "avg": None,
+        "pass_at_1_avg": None,
         "pass_at_8_avg": None,
         "mean_at_8_avg": None,
         "avg_len_mean": None,
@@ -141,6 +142,7 @@ def build_row(entry: SweepEntry, results_root: Path) -> dict[str, Any]:
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     row["step"] = int(summary_path.parent.name.split("-")[-1])
     row["avg"] = summary.get("avg")
+    row["pass_at_1_avg"] = summary.get("avg")
     row["pass_at_8_avg"] = summary.get("pass_at_8_avg")
     row["mean_at_8_avg"] = summary.get("mean_at_8_avg")
     row["avg_len_mean"] = _mean_mapping(summary.get("avg_lens"))
@@ -234,6 +236,7 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "step": max(step_values) if step_values else None,
                 "train_step": max(train_step_values) if train_step_values else None,
                 "avg": _mean_metric(completed, "avg"),
+                "pass_at_1_avg": _mean_metric(completed, "pass_at_1_avg"),
                 "pass_at_8_avg": _mean_metric(completed, "pass_at_8_avg"),
                 "mean_at_8_avg": _mean_metric(completed, "mean_at_8_avg"),
                 "avg_len_mean": _mean_metric(completed, "avg_len_mean"),
@@ -251,7 +254,11 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def rank_key(row: dict[str, Any]) -> tuple[float, float, float, float]:
-    avg = float(row["avg"]) if row.get("avg") is not None else float("-inf")
+    avg = (
+        float(row["pass_at_1_avg"])
+        if row.get("pass_at_1_avg") is not None
+        else (float(row["avg"]) if row.get("avg") is not None else float("-inf"))
+    )
     pass_at_8_avg = (
         float(row["pass_at_8_avg"])
         if row.get("pass_at_8_avg") is not None
@@ -277,7 +284,7 @@ def format_table(rows: list[dict[str, Any]]) -> str:
         "beta",
         "seeds",
         "step",
-        "avg",
+        "pass_at_1_avg",
         "pass_at_8_avg",
         "mean_at_8_avg",
         "avg_len_mean",
@@ -297,7 +304,9 @@ def format_table(rows: list[dict[str, Any]]) -> str:
                         f"{int(row.get('seed_completed_count', 1))}/{int(row.get('seed_count', 1))}"
                     ),
                     "" if row["step"] is None else str(row["step"]),
-                    "" if row["avg"] is None else f"{float(row['avg']):.4f}",
+                    ""
+                    if row.get("pass_at_1_avg") is None
+                    else f"{float(row['pass_at_1_avg']):.4f}",
                     ""
                     if row["pass_at_8_avg"] is None
                     else f"{float(row['pass_at_8_avg']):.4f}",
@@ -333,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"tau={best['tau']:.4f}",
                 f"beta={best['beta']:.4f}",
                 f"seeds={best.get('seed_completed_count', 1)}/{best.get('seed_count', 1)}",
-                f"avg={best['avg']}",
+                f"pass_at_1_avg={best.get('pass_at_1_avg', best['avg'])}",
                 f"pass_at_8_avg={best['pass_at_8_avg']}",
                 f"mean_at_8_avg={best['mean_at_8_avg']}",
                 f"run_name={best['run_name']}",

@@ -24,6 +24,7 @@ def test_build_live_seed_paper_eval_command_uses_repo_local_paths(
         seed_paper_eval_workspace_dir=None,
         seed_paper_eval_results_dir=None,
         seed_paper_eval_python=None,
+        seed_paper_reward_fast=True,
         seed_paper_eval_pass_at_8_enabled=True,
         seed_paper_eval_pass_at_8_samples=8,
         seed_paper_eval_pass_at_8_temperature=1.0,
@@ -38,6 +39,7 @@ def test_build_live_seed_paper_eval_command_uses_repo_local_paths(
     assert "no" in command
     assert "--vllm-batch-size" in command
     assert "32" in command
+    assert "--seed-paper-reward-fast" in command
     assert "--pass-at-8" in command
     assert "--pass-at-8-samples" in command
     assert "8" in command
@@ -429,3 +431,118 @@ def test_live_seed_paper_eval_failure_logs_prefixed_training_step_without_wandb_
     assert payload["paper_eval/ok"] == 0.0
     assert ("paper_eval/training_step", None) in fake_run.defined_metrics
     assert ("paper_eval/*", "paper_eval/training_step") in fake_run.defined_metrics
+
+
+def test_live_seed_paper_eval_worker_rank_waits_for_shared_result(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("MAXENT_VLLM_URL", "http://127.0.0.1:8001/generate")
+    monkeypatch.setenv("RANK", "1")
+    monkeypatch.setenv("WORLD_SIZE", "2")
+
+    args = SimpleNamespace(
+        run_name="direct-run",
+        model_name_or_path="Qwen/Qwen2.5-Math-1.5B",
+        seed_paper_eval_enabled=True,
+        seed_paper_eval_template="no",
+        seed_paper_eval_tasks=None,
+        seed_paper_eval_max_test=999999,
+        seed_paper_eval_vllm_batch_size=32,
+        seed_paper_eval_workspace_dir=str(tmp_path / "workspace"),
+        seed_paper_eval_results_dir=str(tmp_path / "results"),
+        seed_paper_eval_python="/usr/bin/python3",
+        seed_paper_eval_timeout_s=5,
+        seed_paper_eval_fail_on_error=True,
+        do_eval=False,
+        eval_strategy="no",
+        eval_on_start=False,
+        seed_paper_eval_on_start=False,
+        eval_steps=25,
+    )
+    coord_dir = seed_eval_cb._coordination_dir(args, step=25)
+    coord_dir.mkdir(parents=True)
+    seed_eval_cb._write_json_atomic(
+        coord_dir / "result.json",
+        {"ok": True, "error": None, "rank": 0, "step": 25, "world_size": 2},
+    )
+    seed_eval_cb._write_json_atomic(
+        coord_dir / "released-rank00000.json",
+        {"rank": 0, "world_size": 2, "pid": 1000, "step": 25},
+    )
+
+    def _unexpected_run(*args, **kwargs):
+        raise AssertionError("worker rank should not launch subprocess")
+
+    monkeypatch.setattr(seed_eval_cb.subprocess, "run", _unexpected_run)
+
+    callback = SeedPaperEvalCallback(args)
+    callback._run_live_eval(25)
+
+    assert 25 in callback._seen_steps
+    arrival = coord_dir / "arrived-rank00001.json"
+    assert arrival.exists()
+    release = coord_dir / "released-rank00001.json"
+    assert release.exists()
+
+
+def test_live_seed_paper_eval_rank_zero_writes_shared_result(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("MAXENT_VLLM_URL", "http://127.0.0.1:8001/generate")
+    monkeypatch.setenv("RANK", "0")
+    monkeypatch.setenv("WORLD_SIZE", "2")
+
+    args = SimpleNamespace(
+        run_name="direct-run",
+        model_name_or_path="Qwen/Qwen2.5-Math-1.5B",
+        seed_paper_eval_enabled=True,
+        seed_paper_eval_template="no",
+        seed_paper_eval_tasks=None,
+        seed_paper_eval_max_test=999999,
+        seed_paper_eval_vllm_batch_size=32,
+        seed_paper_eval_workspace_dir=str(tmp_path / "workspace"),
+        seed_paper_eval_results_dir=str(tmp_path / "results"),
+        seed_paper_eval_python="/usr/bin/python3",
+        seed_paper_eval_timeout_s=5,
+        seed_paper_eval_fail_on_error=True,
+        do_eval=False,
+        eval_strategy="no",
+        eval_on_start=False,
+        seed_paper_eval_on_start=False,
+        eval_steps=25,
+    )
+    summary_dir = tmp_path / "results" / "direct-run" / "step-000025"
+    summary_dir.mkdir(parents=True)
+    (summary_dir / "seed_paper_eval_20260319T000025Z.summary.json").write_text(
+        json.dumps({"results": {"aime": 0.2}, "avg": 0.2}),
+        encoding="utf-8",
+    )
+    coord_dir = seed_eval_cb._coordination_dir(args, step=25)
+    coord_dir.mkdir(parents=True)
+    seed_eval_cb._write_json_atomic(
+        coord_dir / "arrived-rank00001.json",
+        {"rank": 1, "world_size": 2, "pid": 999, "step": 25},
+    )
+    seed_eval_cb._write_json_atomic(
+        coord_dir / "released-rank00001.json",
+        {"rank": 1, "world_size": 2, "pid": 999, "step": 25},
+    )
+    calls: list[list[str]] = []
+
+    def _fake_run(command, **kwargs):
+        calls.append(list(command))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(seed_eval_cb.subprocess, "run", _fake_run)
+
+    callback = SeedPaperEvalCallback(args)
+    callback._run_live_eval(25)
+
+    assert len(calls) == 1
+    payload = json.loads((coord_dir / "result.json").read_text(encoding="utf-8"))
+    assert payload["ok"] is True
+    assert 25 in callback._seen_steps
+    release = coord_dir / "released-rank00000.json"
+    assert release.exists()

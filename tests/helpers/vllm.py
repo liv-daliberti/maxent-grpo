@@ -32,6 +32,7 @@ _DEFAULT_CTX: Dict[str, Any] = {
     "vllm_retry_sleep": 0.0,
     "vllm_backfill_local": False,
     "vllm_stop_sequences": None,
+    "vllm_include_stop_str_in_output": False,
     "vllm_top_k": None,
     "vllm_best_of": None,
     "vllm_logit_bias": None,

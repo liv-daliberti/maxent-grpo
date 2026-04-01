@@ -67,6 +67,7 @@ def _dataset_cache_path(
         "prompt_column": prompt_column,
         "solution_column": solution_column,
         "char_limit": int(char_limit or 0),
+        "prompt_template": getattr(training_args, "prompt_template", None),
         "system_prompt_hash": _stable_hash(
             getattr(training_args, "system_prompt", "") or ""
         ),
@@ -82,6 +83,7 @@ def _format_eval_row(
     prompt_column: str,
     solution_column: str,
     tokenizer: Any,
+    prompt_template: Optional[str],
     system_prompt: Optional[str],
     char_limit: int,
 ) -> dict:
@@ -99,6 +101,7 @@ def _format_eval_row(
         prompt_col,
         system_prompt,
         char_limit=char_limit,
+        prompt_template=prompt_template,
     )
     answer = example_map.get(solution_column, out.get("answer", ""))
     out["answer"] = "" if answer is None else str(answer)
@@ -168,6 +171,7 @@ def load_datasets(
     char_limit = _prompt_char_limit_from_tokens(
         getattr(training_args, "max_prompt_length", 0)
     )
+    prompt_template = getattr(training_args, "prompt_template", None)
 
     def _map_fn(ex: Mapping[str, Any]) -> dict:
         ex_map = dict(ex)
@@ -180,6 +184,7 @@ def load_datasets(
             prompt_col,
             getattr(training_args, "system_prompt", None),
             char_limit=char_limit,
+            prompt_template=prompt_template,
         )
         answer = ex_map.get(sc, out.get("answer", ""))
         out["answer"] = "" if answer is None else str(answer)
@@ -316,6 +321,7 @@ def load_datasets(
                     prompt_column=eval_prompt_col,
                     solution_column=eval_solution_col,
                     tokenizer=tokenizer,
+                    prompt_template=prompt_template,
                     system_prompt=getattr(training_args, "system_prompt", None),
                     char_limit=char_limit,
                 )

@@ -41,7 +41,7 @@ maxent:
     eval_steps: 25
     seed_paper_eval_enabled: true
     seed_paper_eval_fail_on_error: true
-    seed_paper_eval_template: "qwen_math"
+    seed_paper_eval_template: "no"
     save_strategy: "steps"
     save_steps: 25
     push_to_hub: false

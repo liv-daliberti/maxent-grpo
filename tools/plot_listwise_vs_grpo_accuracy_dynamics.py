@@ -33,9 +33,9 @@ class StepMetrics:
     total_groups: int
     informative_groups: int
     informative_share: float
-    rollout_accuracy: float
-    prompt_pass_at_8: float
-    mean_correct_rollouts: float
+    official_pass_at_1: float
+    official_pass_at_8: float
+    official_mean_at_8: float
     mean_incorrect_mass: float
     mean_top1_mass: float
     mean_effective_rollouts: float
@@ -48,6 +48,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--grpo-run", required=True)
     parser.add_argument("--listwise-run", required=True)
     parser.add_argument("--wandb-root", default=str(dist.DEFAULT_WANDB_ROOT))
+    parser.add_argument(
+        "--results-root",
+        default=str(REPO_ROOT / "var" / "artifacts" / "seed_paper_eval" / "live"),
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--summary-json", default=None)
     parser.add_argument("--max-groups", type=int, default=0)
@@ -60,27 +64,65 @@ def _mean(values: Sequence[float]) -> float:
     return float(sum(valid) / len(valid)) if valid else float("nan")
 
 
-def _aggregate_metrics(records: Sequence[dist.GroupRecord]) -> List[StepMetrics]:
+def _latest_summary_per_step(results_dir: Path) -> Dict[int, Path]:
+    summaries = sorted(results_dir.glob("step-*/seed_paper_eval_*.summary.json"))
+    by_step: Dict[int, Path] = {}
+    for summary_path in summaries:
+        try:
+            step = int(summary_path.parent.name.split("-")[-1])
+        except (TypeError, ValueError):
+            continue
+        current = by_step.get(step)
+        if current is None or summary_path.name > current.name:
+            by_step[step] = summary_path
+    return by_step
+
+
+def _load_official_metrics(results_root: Path, run_name: str) -> Dict[int, Dict[str, float]]:
+    results_dir = results_root / run_name
+    if not results_dir.exists():
+        return {}
+    by_step: Dict[int, Dict[str, float]] = {}
+    for step, summary_path in _latest_summary_per_step(results_dir).items():
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        by_step[step] = {
+            "official_pass_at_1": float(summary["avg"])
+            if summary.get("avg") is not None
+            else float("nan"),
+            "official_pass_at_8": float(summary["pass_at_8_avg"])
+            if summary.get("pass_at_8_avg") is not None
+            else float("nan"),
+            "official_mean_at_8": float(summary["mean_at_8_avg"])
+            if summary.get("mean_at_8_avg") is not None
+            else float("nan"),
+        }
+    return by_step
+
+
+def _aggregate_metrics(
+    records: Sequence[dist.GroupRecord],
+    *,
+    official_by_step: Dict[int, Dict[str, float]] | None = None,
+) -> List[StepMetrics]:
     by_step: Dict[int, List[dist.GroupRecord]] = {}
     for record in records:
         by_step.setdefault(int(record.step), []).append(record)
 
     results: List[StepMetrics] = []
-    for step in sorted(by_step):
-        step_records = by_step[step]
+    all_steps = sorted(set(by_step) | set((official_by_step or {}).keys()))
+    for step in all_steps:
+        step_records = by_step.get(step, [])
         informative = [record for record in step_records if dist._is_informative(record)]
-        rollout_rewards = [float(reward) for record in step_records for reward in record.rewards]
-        correct_counts = [sum(1 for reward in record.rewards if float(reward) > 0.0) for record in step_records]
-        pass_at_8 = [1.0 if count > 0 else 0.0 for count in correct_counts]
+        official = (official_by_step or {}).get(step, {})
         results.append(
             StepMetrics(
                 step=step,
                 total_groups=len(step_records),
                 informative_groups=len(informative),
                 informative_share=(len(informative) / len(step_records)) if step_records else float("nan"),
-                rollout_accuracy=_mean(rollout_rewards),
-                prompt_pass_at_8=_mean(pass_at_8),
-                mean_correct_rollouts=_mean(correct_counts),
+                official_pass_at_1=float(official.get("official_pass_at_1", float("nan"))),
+                official_pass_at_8=float(official.get("official_pass_at_8", float("nan"))),
+                official_mean_at_8=float(official.get("official_mean_at_8", float("nan"))),
                 mean_incorrect_mass=_mean([dyn._incorrect_mass(record) for record in informative]),
                 mean_top1_mass=_mean([dyn._top1_mass(record) for record in informative]),
                 mean_effective_rollouts=_mean([dyn._effective_rollouts(record) for record in informative]),
@@ -117,31 +159,31 @@ def _plot_svg(
 
     metric_map = {
         "rollout_accuracy": (
-            [(item.step, item.rollout_accuracy) for item in grpo_steps],
-            [(item.step, item.rollout_accuracy) for item in listwise_steps],
+            [(item.step, item.official_pass_at_1) for item in grpo_steps],
+            [(item.step, item.official_pass_at_1) for item in listwise_steps],
             0.0,
             1.0,
-            "Rollout Accuracy",
-            "Average correctness across all sampled rollouts at that training step.",
-            "mean reward / rollout",
+            "Official SEED Pass@1",
+            "Single-sample official SEED benchmark score from the live eval callback.",
+            "official pass@1",
         ),
         "prompt_pass_at_8": (
-            [(item.step, item.prompt_pass_at_8) for item in grpo_steps],
-            [(item.step, item.prompt_pass_at_8) for item in listwise_steps],
+            [(item.step, item.official_pass_at_8) for item in grpo_steps],
+            [(item.step, item.official_pass_at_8) for item in listwise_steps],
             0.0,
             1.0,
-            "Prompt Pass@8",
-            "Fraction of prompt groups at that step with at least one correct rollout.",
-            "share of groups with >=1 correct",
+            "Official SEED Pass@8",
+            "Eight-sample official SEED success rate from the live eval callback.",
+            "official pass@8",
         ),
-        "informative_share": (
-            [(item.step, item.informative_share) for item in grpo_steps],
-            [(item.step, item.informative_share) for item in listwise_steps],
+        "official_mean_at_8": (
+            [(item.step, item.official_mean_at_8) for item in grpo_steps],
+            [(item.step, item.official_mean_at_8) for item in listwise_steps],
             0.0,
             1.0,
-            "Informative-Group Share",
-            "Fraction of groups with mixed rewards. Higher means more real rank signal.",
-            "share of mixed-reward groups",
+            "Official SEED Mean@8",
+            "Average success rate across the 8 sampled official SEED responses.",
+            "official mean@8",
         ),
         "mean_incorrect_mass": (
             [(item.step, item.mean_incorrect_mass) for item in grpo_steps],
@@ -175,7 +217,7 @@ def _plot_svg(
     panels = [
         ("rollout_accuracy", outer, outer + header_h),
         ("prompt_pass_at_8", outer + panel_w + panel_gap_x, outer + header_h),
-        ("informative_share", outer + 2 * (panel_w + panel_gap_x), outer + header_h),
+        ("official_mean_at_8", outer + 2 * (panel_w + panel_gap_x), outer + header_h),
         ("mean_incorrect_mass", outer, outer + header_h + panel_h + panel_gap_y),
         ("mean_top1_mass", outer + panel_w + panel_gap_x, outer + header_h + panel_h + panel_gap_y),
         ("mean_effective_rollouts", outer + 2 * (panel_w + panel_gap_x), outer + header_h + panel_h + panel_gap_y),
@@ -188,13 +230,13 @@ def _plot_svg(
         dyn._text(
             outer,
             52,
-            "Top row shows actual step-level correctness on the training prompt groups. Bottom row shows how each method distributes update mass.",
+            "Top row shows official live SEED eval metrics. Bottom row shows sidecar-derived update-mass diagnostics on the training prompt groups.",
             **{"font-size": "12", "fill": "#444"},
         ),
         dyn._text(
             outer,
             69,
-            "All points come from the same rich completion records used for the within-prompt plots.",
+            "Pass@1 / mean@8 / pass@8 come from official SEED summaries when available; mass panels still come from rich completion records.",
             **{"font-size": "12", "fill": "#444"},
         ),
     ]
@@ -243,13 +285,26 @@ def _plot_svg(
             y_max=y_hi,
         )
 
-    grpo_last = grpo_steps[-1] if grpo_steps else None
-    listwise_last = listwise_steps[-1] if listwise_steps else None
+    def _latest_official(items: Sequence[StepMetrics]) -> StepMetrics | None:
+        for item in reversed(items):
+            if any(
+                math.isfinite(value)
+                for value in (
+                    item.official_pass_at_1,
+                    item.official_mean_at_8,
+                    item.official_pass_at_8,
+                )
+            ):
+                return item
+        return None
+
+    grpo_last = _latest_official(grpo_steps)
+    listwise_last = _latest_official(listwise_steps)
     footer = (
-        f"Latest available: GRPO step {grpo_last.step if grpo_last else 'NA'} "
-        f"(acc={grpo_last.rollout_accuracy:.3f}, pass@8={grpo_last.prompt_pass_at_8:.3f}) | "
+        f"Latest official SEED eval: GRPO step {grpo_last.step if grpo_last else 'NA'} "
+        f"(pass@1={grpo_last.official_pass_at_1:.3f}, mean@8={grpo_last.official_mean_at_8:.3f}, pass@8={grpo_last.official_pass_at_8:.3f}) | "
         f"Listwise step {listwise_last.step if listwise_last else 'NA'} "
-        f"(acc={listwise_last.rollout_accuracy:.3f}, pass@8={listwise_last.prompt_pass_at_8:.3f})"
+        f"(pass@1={listwise_last.official_pass_at_1:.3f}, mean@8={listwise_last.official_mean_at_8:.3f}, pass@8={listwise_last.official_pass_at_8:.3f})"
         if grpo_last and listwise_last
         else "Latest available metrics unavailable."
     )
@@ -267,8 +322,11 @@ def _plot_svg(
 def main() -> int:
     args = _parse_args()
     wandb_root = Path(args.wandb_root)
+    results_root = Path(args.results_root)
     grpo_dir = dist._resolve_run(str(args.grpo_run), wandb_root)
     listwise_dir = dist._resolve_run(str(args.listwise_run), wandb_root)
+    grpo_run_name = dist._read_run_name(grpo_dir) or grpo_dir.name
+    listwise_run_name = dist._read_run_name(listwise_dir) or listwise_dir.name
     grpo_records, _ = dist._load_records(
         grpo_dir,
         label="grpo",
@@ -286,8 +344,14 @@ def main() -> int:
 
     output_path = Path(args.output)
     summary = _plot_svg(
-        grpo_steps=_aggregate_metrics(grpo_records),
-        listwise_steps=_aggregate_metrics(listwise_records),
+        grpo_steps=_aggregate_metrics(
+            grpo_records,
+            official_by_step=_load_official_metrics(results_root, grpo_run_name),
+        ),
+        listwise_steps=_aggregate_metrics(
+            listwise_records,
+            official_by_step=_load_official_metrics(results_root, listwise_run_name),
+        ),
         output_path=output_path.with_suffix(".svg"),
     )
     _write_png_from_svg(output_path.with_suffix(".svg"), output_path.with_suffix(".png"))

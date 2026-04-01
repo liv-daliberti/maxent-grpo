@@ -38,6 +38,7 @@ class VLLMClientConfig:
     presence_penalty: float = 0.0
     top_k: Optional[int] = None
     stop_sequences: Optional[List[str]] = None
+    include_stop_str_in_output: bool = False
     timeout: float = 120.0
     max_retries: int = 3
     backoff: float = 1.0
@@ -110,6 +111,11 @@ class GenerationSamplingConfig:
     def vllm_stop_sequences(self) -> Optional[List[str]]:
         """Backward-compatible accessor for stop sequences."""
         return self.vllm.stop_sequences
+
+    @property
+    def vllm_include_stop_str_in_output(self) -> bool:
+        """Whether vLLM should preserve matched stop strings in output text."""
+        return bool(getattr(self.vllm, "include_stop_str_in_output", False))
 
     @property
     def vllm_timeout(self) -> float:

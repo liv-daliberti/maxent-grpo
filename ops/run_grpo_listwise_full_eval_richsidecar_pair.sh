@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Submit a long GRPO + listwise pair with rich sidecars, periodic live paper eval,
-# final full pass@8 eval, and rich-sidecar comparison plots.
+# Submit a long GRPO + listwise pair. Live eval, final eval jobs, and
+# rich-sidecar diagnostics can be re-enabled with env toggles when needed.
 
 set -euo pipefail
 
@@ -18,6 +18,8 @@ SBATCH_GRES="${SBATCH_GRES:-gpu:a100:4}"
 SBATCH_CPUS_PER_TASK="${SBATCH_CPUS_PER_TASK:-48}"
 SBATCH_MEM="${SBATCH_MEM:-240G}"
 SBATCH_TIME="${SBATCH_TIME:-7-00:00:00}"
+SBATCH_NODELIST="${SBATCH_NODELIST:-}"
+SBATCH_EXCLUDE="${SBATCH_EXCLUDE:-}"
 TRAIN_NUM_PROCESSES="${TRAIN_NUM_PROCESSES:-3}"
 SINGLE_STACK_VLLM_GPU="${SINGLE_STACK_VLLM_GPU:-0}"
 SINGLE_STACK_TRAIN_GPUS="${SINGLE_STACK_TRAIN_GPUS:-1,2,3}"
@@ -27,14 +29,26 @@ TRAIN_EVAL_STEPS="${TRAIN_EVAL_STEPS:-25}"
 TRAIN_SAVE_STEPS="${TRAIN_SAVE_STEPS:-25}"
 TRAIN_SAVE_TOTAL_LIMIT="${TRAIN_SAVE_TOTAL_LIMIT:-1000}"
 TRAIN_EVAL_ON_START="${TRAIN_EVAL_ON_START:-true}"
-TRAIN_LIVE_EVAL_ENABLED="${TRAIN_LIVE_EVAL_ENABLED:-true}"
+TRAIN_LIVE_EVAL_ENABLED="${TRAIN_LIVE_EVAL_ENABLED:-false}"
 TRAIN_LIVE_PASS_AT_8_ENABLED="${TRAIN_LIVE_PASS_AT_8_ENABLED:-false}"
 TRAIN_LIVE_EVAL_FAIL_ON_ERROR="${TRAIN_LIVE_EVAL_FAIL_ON_ERROR:-false}"
+TRAIN_RICH_SIDECAR_ENABLED="${TRAIN_RICH_SIDECAR_ENABLED:-false}"
+TRAIN_LIVE_EVAL_TEMPLATE="${TRAIN_LIVE_EVAL_TEMPLATE:-no}"
+SUBMIT_FINAL_EVAL_JOBS="${SUBMIT_FINAL_EVAL_JOBS:-false}"
+SUBMIT_FINAL_EVAL_PLOT="${SUBMIT_FINAL_EVAL_PLOT:-false}"
+SUBMIT_RICH_SIDECAR_PLOT="${SUBMIT_RICH_SIDECAR_PLOT:-false}"
+STEP0_PAPER_EVAL_ENABLED="${STEP0_PAPER_EVAL_ENABLED:-0}"
+STEP0_PAPER_EVAL_PASS_AT_8_ENABLED="${STEP0_PAPER_EVAL_PASS_AT_8_ENABLED:-0}"
+STEP0_PAPER_EVAL_TEMPLATE="${STEP0_PAPER_EVAL_TEMPLATE:-}"
+STEP0_PAPER_EVAL_EXPECTED_PROFILE="${STEP0_PAPER_EVAL_EXPECTED_PROFILE:-}"
 TASKS="${TASKS:-aime,amc,math,minerva,olympiad_bench}"
+EVAL_TEMPLATE="${EVAL_TEMPLATE:-no}"
 PASS_AT_8_SAMPLES="${PASS_AT_8_SAMPLES:-8}"
 LISTWISE_TAU="${LISTWISE_TAU:-0.35}"
 LISTWISE_BETA="${LISTWISE_BETA:-0.12}"
 LISTWISE_Q_TEMPERATURE="${LISTWISE_Q_TEMPERATURE:-2.0}"
+GRPO_EXTRA_ARGS="${GRPO_EXTRA_ARGS:-}"
+LISTWISE_EXTRA_ARGS="${LISTWISE_EXTRA_ARGS:-}"
 EVAL_SBATCH_GRES="${EVAL_SBATCH_GRES:-gpu:a100:1}"
 EVAL_SBATCH_CPUS_PER_TASK="${EVAL_SBATCH_CPUS_PER_TASK:-16}"
 EVAL_SBATCH_MEM="${EVAL_SBATCH_MEM:-96G}"
@@ -43,6 +57,22 @@ RICH_PLOT_SBATCH_CPUS_PER_TASK="${RICH_PLOT_SBATCH_CPUS_PER_TASK:-8}"
 RICH_PLOT_SBATCH_MEM="${RICH_PLOT_SBATCH_MEM:-32G}"
 RICH_PLOT_SBATCH_TIME="${RICH_PLOT_SBATCH_TIME:-02:00:00}"
 DRY_RUN="${DRY_RUN:-0}"
+
+is_truthy() {
+  local raw
+  raw="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
+  [[ "$raw" == "1" || "$raw" == "true" || "$raw" == "yes" || "$raw" == "on" ]]
+}
+
+if is_truthy "$SUBMIT_FINAL_EVAL_PLOT" && ! is_truthy "$SUBMIT_FINAL_EVAL_JOBS"; then
+  echo "SUBMIT_FINAL_EVAL_PLOT requires SUBMIT_FINAL_EVAL_JOBS=true" >&2
+  exit 1
+fi
+
+if is_truthy "$SUBMIT_RICH_SIDECAR_PLOT" && ! is_truthy "$TRAIN_RICH_SIDECAR_ENABLED"; then
+  echo "SUBMIT_RICH_SIDECAR_PLOT requires TRAIN_RICH_SIDECAR_ENABLED=true" >&2
+  exit 1
+fi
 
 RUN_GROUP="${WANDB_RUN_GROUP:-full_eval_richsidecar_${MODEL//\//-}_${CONFIG_SUFFIX}_mltheory_bestlistwise_$(date +%Y%m%d_%H%M%S)}"
 PIPELINE_ROOT="${PIPELINE_ROOT:-var/artifacts/full_eval_pairs/${RUN_GROUP}}"
@@ -78,25 +108,28 @@ COMMON_TRAIN_ARGS=(
   "--seed_paper_eval_enabled ${TRAIN_LIVE_EVAL_ENABLED}"
   "--seed_paper_eval_pass_at_8_enabled ${TRAIN_LIVE_PASS_AT_8_ENABLED}"
   "--seed_paper_eval_fail_on_error ${TRAIN_LIVE_EVAL_FAIL_ON_ERROR}"
+  "--seed_paper_eval_template ${TRAIN_LIVE_EVAL_TEMPLATE}"
   "--eval_on_start ${TRAIN_EVAL_ON_START}"
   "--eval_steps ${TRAIN_EVAL_STEPS}"
   "--logging_steps 1"
   "--logging_first_step true"
   "--log_completions false"
-  "--rich_log_completions true"
+  "--rich_log_completions ${TRAIN_RICH_SIDECAR_ENABLED}"
   "--rich_log_completions_to_wandb false"
   "--rich_log_completions_synchronize_ranks true"
   "--rich_log_completions_key rich_completions"
 )
 
-GRPO_ARGS="${GRPO_ARGS:-${COMMON_TRAIN_ARGS[*]} --output_dir ${GRPO_OUTPUT_DIR} --run_name ${GRPO_RUN_NAME}}"
-LISTWISE_ARGS="${LISTWISE_ARGS:-${COMMON_TRAIN_ARGS[*]} --output_dir ${LISTWISE_OUTPUT_DIR} --run_name ${LISTWISE_RUN_NAME} --maxent_tau ${LISTWISE_TAU} --beta ${LISTWISE_BETA} --maxent_q_temperature ${LISTWISE_Q_TEMPERATURE}}"
+GRPO_ARGS="${GRPO_ARGS:-${COMMON_TRAIN_ARGS[*]} --output_dir ${GRPO_OUTPUT_DIR} --run_name ${GRPO_RUN_NAME} ${GRPO_EXTRA_ARGS}}"
+LISTWISE_ARGS="${LISTWISE_ARGS:-${COMMON_TRAIN_ARGS[*]} --output_dir ${LISTWISE_OUTPUT_DIR} --run_name ${LISTWISE_RUN_NAME} --maxent_tau ${LISTWISE_TAU} --beta ${LISTWISE_BETA} --maxent_q_temperature ${LISTWISE_Q_TEMPERATURE} ${LISTWISE_EXTRA_ARGS}}"
 
 submit_train_job() {
   local stack="$1"
   local job_name="$2"
   local variant_args="$3"
   local output=""
+  local step0_template_env="${STEP0_PAPER_EVAL_TEMPLATE:-}"
+  local step0_expected_profile_env="${STEP0_PAPER_EVAL_EXPECTED_PROFILE:-}"
   if [[ "$stack" == "grpo" ]]; then
     output="$(
       env \
@@ -110,11 +143,15 @@ submit_train_job() {
         SBATCH_CPUS_PER_TASK="$SBATCH_CPUS_PER_TASK" \
         SBATCH_MEM="$SBATCH_MEM" \
         SBATCH_TIME="$SBATCH_TIME" \
+        SBATCH_NODELIST="$SBATCH_NODELIST" \
+        SBATCH_EXCLUDE="$SBATCH_EXCLUDE" \
         TRAIN_NUM_PROCESSES="$TRAIN_NUM_PROCESSES" \
+        MAXENT_STEP0_PAPER_EVAL_ENABLED="$STEP0_PAPER_EVAL_ENABLED" \
+        MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_ENABLED="$STEP0_PAPER_EVAL_PASS_AT_8_ENABLED" \
+        MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$step0_template_env" \
+        MAXENT_STEP0_PAPER_EVAL_EXPECTED_PROFILE="$step0_expected_profile_env" \
         GRPO_VLLM_GPU="$SINGLE_STACK_VLLM_GPU" \
         GRPO_TRAIN_GPUS="$SINGLE_STACK_TRAIN_GPUS" \
-        MAXENT_STEP0_PAPER_EVAL_ENABLED=0 \
-        MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_ENABLED=0 \
         JOB_NAME="$job_name" \
         RUN_ONLY="$stack" \
         MAXENT_ARGS="" \
@@ -135,11 +172,15 @@ submit_train_job() {
         SBATCH_CPUS_PER_TASK="$SBATCH_CPUS_PER_TASK" \
         SBATCH_MEM="$SBATCH_MEM" \
         SBATCH_TIME="$SBATCH_TIME" \
+        SBATCH_NODELIST="$SBATCH_NODELIST" \
+        SBATCH_EXCLUDE="$SBATCH_EXCLUDE" \
         TRAIN_NUM_PROCESSES="$TRAIN_NUM_PROCESSES" \
+        MAXENT_STEP0_PAPER_EVAL_ENABLED="$STEP0_PAPER_EVAL_ENABLED" \
+        MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_ENABLED="$STEP0_PAPER_EVAL_PASS_AT_8_ENABLED" \
+        MAXENT_STEP0_PAPER_EVAL_TEMPLATE="$step0_template_env" \
+        MAXENT_STEP0_PAPER_EVAL_EXPECTED_PROFILE="$step0_expected_profile_env" \
         MAXENT_VLLM_GPU="$SINGLE_STACK_VLLM_GPU" \
         MAXENT_TRAIN_GPUS="$SINGLE_STACK_TRAIN_GPUS" \
-        MAXENT_STEP0_PAPER_EVAL_ENABLED=0 \
-        MAXENT_STEP0_PAPER_EVAL_PASS_AT_8_ENABLED=0 \
         JOB_NAME="$job_name" \
         RUN_ONLY="$stack" \
         GRPO_ARGS="" \
@@ -180,7 +221,7 @@ submit_eval_job() {
       --mem "$EVAL_SBATCH_MEM" \
       --time "$EVAL_SBATCH_TIME" \
       --dependency "afterok:${dependency_job_id}" \
-      --export "ALL,MODEL_PATH=${model_path},RESULTS_DIR=${results_dir},TASKS=${TASKS},PASS_AT_8_SAMPLES=${PASS_AT_8_SAMPLES},VLLM_PORT=${port}" \
+      --export "ALL,MODEL_PATH=${model_path},RESULTS_DIR=${results_dir},TASKS=${TASKS},TEMPLATE=${EVAL_TEMPLATE},PASS_AT_8_SAMPLES=${PASS_AT_8_SAMPLES},VLLM_PORT=${port}" \
       "$EVAL_SLURM_SCRIPT"
   )"
   printf '%s\n' "$output"
@@ -262,6 +303,7 @@ echo "[full-eval-rich] run_group=${RUN_GROUP}"
 echo "[full-eval-rich] listwise_tau=${LISTWISE_TAU} beta=${LISTWISE_BETA} q_temperature=${LISTWISE_Q_TEMPERATURE}"
 echo "[full-eval-rich] train_max_steps=${TRAIN_MAX_STEPS} train_num_epochs=${TRAIN_NUM_EPOCHS}"
 echo "[full-eval-rich] live_eval_enabled=${TRAIN_LIVE_EVAL_ENABLED} live_pass_at_8=${TRAIN_LIVE_PASS_AT_8_ENABLED} eval_steps=${TRAIN_EVAL_STEPS}"
+echo "[full-eval-rich] rich_sidecar_training=${TRAIN_RICH_SIDECAR_ENABLED} final_eval_jobs=${SUBMIT_FINAL_EVAL_JOBS} final_eval_plot=${SUBMIT_FINAL_EVAL_PLOT} rich_sidecar_plot=${SUBMIT_RICH_SIDECAR_PLOT}"
 
 grpo_output_and_id="$(submit_train_job "grpo" "$GRPO_JOB_NAME" "$GRPO_ARGS")"
 printf '%s\n' "$grpo_output_and_id"
@@ -275,18 +317,25 @@ if [[ "$DRY_RUN" == "1" ]]; then
   exit 0
 fi
 
-mkdir -p "$GRPO_RESULTS_DIR" "$LISTWISE_RESULTS_DIR"
+GRPO_EVAL_JOB_ID=""
+LISTWISE_EVAL_JOB_ID=""
+PLOT_JOB_ID=""
+RICH_PLOT_JOB_ID=""
 
-grpo_eval_output_and_id="$(submit_eval_job "$GRPO_EVAL_JOB_NAME" "$GRPO_JOB_ID" "$GRPO_OUTPUT_DIR" "$GRPO_RESULTS_DIR" "8127")"
-printf '%s\n' "$grpo_eval_output_and_id"
-GRPO_EVAL_JOB_ID="$(printf '%s\n' "$grpo_eval_output_and_id" | tail -n 1)"
+if is_truthy "$SUBMIT_FINAL_EVAL_JOBS"; then
+  mkdir -p "$GRPO_RESULTS_DIR" "$LISTWISE_RESULTS_DIR"
 
-listwise_eval_output_and_id="$(submit_eval_job "$LISTWISE_EVAL_JOB_NAME" "$LISTWISE_JOB_ID" "$LISTWISE_OUTPUT_DIR" "$LISTWISE_RESULTS_DIR" "8128")"
-printf '%s\n' "$listwise_eval_output_and_id"
-LISTWISE_EVAL_JOB_ID="$(printf '%s\n' "$listwise_eval_output_and_id" | tail -n 1)"
+  grpo_eval_output_and_id="$(submit_eval_job "$GRPO_EVAL_JOB_NAME" "$GRPO_JOB_ID" "$GRPO_OUTPUT_DIR" "$GRPO_RESULTS_DIR" "8127")"
+  printf '%s\n' "$grpo_eval_output_and_id"
+  GRPO_EVAL_JOB_ID="$(printf '%s\n' "$grpo_eval_output_and_id" | tail -n 1)"
 
-PLOT_CMD=$(
-  cat <<EOF
+  listwise_eval_output_and_id="$(submit_eval_job "$LISTWISE_EVAL_JOB_NAME" "$LISTWISE_JOB_ID" "$LISTWISE_OUTPUT_DIR" "$LISTWISE_RESULTS_DIR" "8128")"
+  printf '%s\n' "$listwise_eval_output_and_id"
+  LISTWISE_EVAL_JOB_ID="$(printf '%s\n' "$listwise_eval_output_and_id" | tail -n 1)"
+
+  if is_truthy "$SUBMIT_FINAL_EVAL_PLOT"; then
+    PLOT_CMD=$(
+      cat <<EOF
 cd '$ROOT_DIR' && source ops/repo_env.sh && \
 python tools/plot_listwise_vs_grpo_eval_pass8.py \
   --grpo-pass8-json '$GRPO_RESULTS_DIR/seed_paper_eval_outputs_pass_at_8_n${PASS_AT_8_SAMPLES}.json' \
@@ -298,42 +347,80 @@ python tools/plot_listwise_vs_grpo_eval_pass8.py \
   --summary-json '$PLOT_SUMMARY_JSON' && \
 convert '$PLOT_OUTPUT_SVG' '$PLOT_OUTPUT_PNG'
 EOF
-)
+    )
 
-PLOT_OUTPUT="$(
-  sbatch \
-    --job-name "$PLOT_JOB_NAME" \
-    --nodes 1 \
-    --partition "$SBATCH_PARTITION" \
-    --account "$SBATCH_ACCOUNT" \
-    --cpus-per-task 4 \
-    --mem 16G \
-    --time 02:00:00 \
-    --dependency "afterok:${GRPO_EVAL_JOB_ID}:${LISTWISE_EVAL_JOB_ID}" \
-    --wrap "$PLOT_CMD"
-)"
-printf '%s\n' "$PLOT_OUTPUT"
-PLOT_JOB_ID="$(printf '%s\n' "$PLOT_OUTPUT" | awk '/Submitted batch job/ {print $4}' | tail -n 1)"
+    PLOT_OUTPUT="$(
+      sbatch \
+        --job-name "$PLOT_JOB_NAME" \
+        --nodes 1 \
+        --partition "$SBATCH_PARTITION" \
+        --account "$SBATCH_ACCOUNT" \
+        --cpus-per-task 4 \
+        --mem 16G \
+        --time 02:00:00 \
+        --dependency "afterok:${GRPO_EVAL_JOB_ID}:${LISTWISE_EVAL_JOB_ID}" \
+        --wrap "$PLOT_CMD"
+    )"
+    printf '%s\n' "$PLOT_OUTPUT"
+    PLOT_JOB_ID="$(printf '%s\n' "$PLOT_OUTPUT" | awk '/Submitted batch job/ {print $4}' | tail -n 1)"
+  else
+    echo "[full-eval-rich] plot_eval_pass8=skipped"
+  fi
+else
+  echo "[full-eval-rich] eval_grpo=skipped"
+  echo "[full-eval-rich] eval_listwise=skipped"
+  echo "[full-eval-rich] plot_eval_pass8=skipped"
+fi
 
-rich_plot_output_and_id="$(submit_rich_plot_job "${GRPO_JOB_ID}:${LISTWISE_JOB_ID}")"
-printf '%s\n' "$rich_plot_output_and_id"
-RICH_PLOT_JOB_ID="$(printf '%s\n' "$rich_plot_output_and_id" | tail -n 1)"
+if is_truthy "$SUBMIT_RICH_SIDECAR_PLOT"; then
+  rich_plot_output_and_id="$(submit_rich_plot_job "${GRPO_JOB_ID}:${LISTWISE_JOB_ID}")"
+  printf '%s\n' "$rich_plot_output_and_id"
+  RICH_PLOT_JOB_ID="$(printf '%s\n' "$rich_plot_output_and_id" | tail -n 1)"
+else
+  echo "[full-eval-rich] plot_rich_sidecar=skipped"
+fi
 
 MANIFEST_PATH="$PIPELINE_ROOT/manifest.tsv"
-cat >"$MANIFEST_PATH" <<EOF
+{
+cat <<EOF
 role	job_id	path
 train_grpo	${GRPO_JOB_ID}	${GRPO_OUTPUT_DIR}
 train_listwise	${LISTWISE_JOB_ID}	${LISTWISE_OUTPUT_DIR}
+EOF
+if [[ -n "$GRPO_EVAL_JOB_ID" ]]; then
+cat <<EOF
 eval_grpo	${GRPO_EVAL_JOB_ID}	${GRPO_RESULTS_DIR}
+EOF
+fi
+if [[ -n "$LISTWISE_EVAL_JOB_ID" ]]; then
+cat <<EOF
 eval_listwise	${LISTWISE_EVAL_JOB_ID}	${LISTWISE_RESULTS_DIR}
+EOF
+fi
+if [[ -n "$PLOT_JOB_ID" ]]; then
+cat <<EOF
 plot_eval_pass8	${PLOT_JOB_ID}	${PLOT_OUTPUT_PNG}
+EOF
+fi
+if [[ -n "$RICH_PLOT_JOB_ID" ]]; then
+cat <<EOF
 plot_rich_sidecar	${RICH_PLOT_JOB_ID}	${RICH_PLOT_SENTINEL}
 EOF
+fi
+} >"$MANIFEST_PATH"
 
 echo "[full-eval-rich] manifest=${MANIFEST_PATH}"
 echo "[full-eval-rich] train_grpo=${GRPO_JOB_ID}"
 echo "[full-eval-rich] train_listwise=${LISTWISE_JOB_ID}"
-echo "[full-eval-rich] eval_grpo=${GRPO_EVAL_JOB_ID}"
-echo "[full-eval-rich] eval_listwise=${LISTWISE_EVAL_JOB_ID}"
-echo "[full-eval-rich] plot_eval_pass8=${PLOT_JOB_ID}"
-echo "[full-eval-rich] plot_rich_sidecar=${RICH_PLOT_JOB_ID}"
+if [[ -n "$GRPO_EVAL_JOB_ID" ]]; then
+  echo "[full-eval-rich] eval_grpo=${GRPO_EVAL_JOB_ID}"
+fi
+if [[ -n "$LISTWISE_EVAL_JOB_ID" ]]; then
+  echo "[full-eval-rich] eval_listwise=${LISTWISE_EVAL_JOB_ID}"
+fi
+if [[ -n "$PLOT_JOB_ID" ]]; then
+  echo "[full-eval-rich] plot_eval_pass8=${PLOT_JOB_ID}"
+fi
+if [[ -n "$RICH_PLOT_JOB_ID" ]]; then
+  echo "[full-eval-rich] plot_rich_sidecar=${RICH_PLOT_JOB_ID}"
+fi

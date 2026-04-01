@@ -184,6 +184,118 @@ def _call_reward_fn(
             return reward_fn(completions, answers, is_eval=is_eval)
 
 
+def _extract_completion_runtime_info(
+    entry_dict: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Return compact completion metadata needed by scoring and truncation logic."""
+
+    if not entry_dict:
+        return {}
+    info: Dict[str, Any] = {}
+    raw_output = entry_dict.get("raw_output")
+    raw_dict = raw_output if isinstance(raw_output, dict) else {}
+
+    token_ids = entry_dict.get("token_ids")
+    if token_ids is None:
+        token_ids = raw_dict.get("token_ids") or raw_dict.get("output_token_ids")
+    if hasattr(token_ids, "tolist"):
+        try:
+            token_ids = token_ids.tolist()
+        except (AttributeError, TypeError, ValueError):
+            token_ids = None
+    if (
+        isinstance(token_ids, list)
+        and token_ids
+        and isinstance(token_ids[0], list)
+    ):
+        token_ids = token_ids[0]
+    if isinstance(token_ids, list):
+        coerced_ids: List[int] = []
+        for val in token_ids:
+            try:
+                coerced_ids.append(int(val))
+            except (TypeError, ValueError):
+                coerced_ids = []
+                break
+        if coerced_ids:
+            info["token_ids"] = coerced_ids
+
+    token_count = entry_dict.get("token_count")
+    if token_count is None:
+        token_count = raw_dict.get("token_count") or raw_dict.get("num_tokens")
+    if token_count is None and "token_ids" in info:
+        token_count = len(info["token_ids"])
+    if token_count is not None:
+        try:
+            info["token_count"] = int(token_count)
+        except (TypeError, ValueError):
+            pass
+
+    finish_reason = entry_dict.get("finish_reason")
+    if finish_reason is None:
+        finish_reason = raw_dict.get("finish_reason") or raw_dict.get("finishReason")
+    if finish_reason is not None:
+        info["finish_reason"] = str(finish_reason)
+
+    stop_reason = entry_dict.get("stop_reason")
+    if stop_reason is None:
+        stop_reason = raw_dict.get("stop_reason") or raw_dict.get("stopReason")
+    if stop_reason is not None:
+        info["stop_reason"] = str(stop_reason)
+
+    if str(info.get("finish_reason", "")).strip().lower() == "length":
+        info["truncated"] = True
+    return info
+
+
+def _completion_was_truncated(
+    metadata: Optional[Dict[str, Any]],
+    *,
+    max_completion_len: Optional[int],
+) -> bool:
+    """Return ``True`` when completion metadata indicates a length stop."""
+
+    if not isinstance(metadata, dict):
+        return False
+    truncated = metadata.get("truncated")
+    if truncated is not None:
+        return bool(truncated)
+    finish_reason = metadata.get("finish_reason")
+    if isinstance(finish_reason, str) and finish_reason.strip().lower() == "length":
+        return True
+    if max_completion_len is None or int(max_completion_len) <= 0:
+        return False
+    token_count = metadata.get("token_count")
+    if token_count is None:
+        token_ids = metadata.get("token_ids")
+        if isinstance(token_ids, list):
+            token_count = len(token_ids)
+    try:
+        return int(token_count) >= int(max_completion_len)
+    except (TypeError, ValueError):
+        return False
+
+
+def _zero_truncated_completion_rewards(
+    total_utils: List[float],
+    completion_metadata: Optional[List[Dict[str, Any]]],
+    *,
+    max_completion_len: Optional[int],
+) -> List[float]:
+    """Zero sequence rewards for samples that appear truncated."""
+
+    if not total_utils or not completion_metadata:
+        return total_utils
+    adjusted = list(total_utils)
+    for idx, metadata in enumerate(completion_metadata[: len(adjusted)]):
+        if _completion_was_truncated(
+            metadata,
+            max_completion_len=max_completion_len,
+        ):
+            adjusted[idx] = 0.0
+    return adjusted
+
+
 def compute_reward_totals(
     reward_spec: RewardSpec,
     completion_batch: List[str],
@@ -841,6 +953,9 @@ def prepare_generation_batch(
                 token_ids = _extract_token_ids(meta_dict)
                 if token_ids is not None:
                     completion_info[prompt_idx][comp_idx]["token_ids"] = token_ids
+                runtime_info = _extract_completion_runtime_info(meta_dict)
+                if runtime_info:
+                    completion_info[prompt_idx][comp_idx].update(runtime_info)
     return GenerationBatch(
         prompts=prompts,
         answers=answers,
@@ -914,6 +1029,8 @@ def compute_reward_statistics(
     controller_beta: Optional[float] = None,
     controller_tau: Optional[float] = None,
     scale_rewards: bool = True,
+    zero_truncated_completion_rewards: bool = False,
+    max_completion_len: Optional[int] = None,
     seed_grpo_enabled: bool = False,
     seed_grpo_alpha: float = 0.0417,
     seed_grpo_alpha_normalize_by_max_entropy: bool = True,
@@ -970,6 +1087,12 @@ def compute_reward_statistics(
         pair_batch.completions,
         flat_answers,
     )
+    if zero_truncated_completion_rewards:
+        total_utils = _zero_truncated_completion_rewards(
+            total_utils,
+            completion_metadata,
+            max_completion_len=max_completion_len,
+        )
     moments = RewardMoments(*reward_moments(total_utils, device))
     advantage_grouped, advantage_samples = group_advantages(
         grouped_comps, total_utils, scale_rewards=scale_rewards

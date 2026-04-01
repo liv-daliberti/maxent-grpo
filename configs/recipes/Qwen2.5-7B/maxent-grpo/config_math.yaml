@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 7B MaxEnt‑GRPO math recipe paired with config_math.yaml
+# 7B Qwen2.5-Math base MaxEnt-GRPO math recipe paired with config_math.yaml
 # (same batch size, logging, KL control, prompt lengths, etc.)
 
 # Model arguments
-model_name_or_path: Qwen/Qwen2.5-7B
+model_name_or_path: Qwen/Qwen2.5-Math-7B
 model_revision: main
 resume_from_checkpoint: true
 torch_dtype: float16
 attn_implementation: sdpa
-reference_model_name_or_path: Qwen/Qwen2.5-7B
+reference_model_name_or_path: Qwen/Qwen2.5-Math-7B
 reference_model_revision: main
 maxent_share_reference_model: false
 
@@ -33,6 +33,7 @@ eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
+prompt_template: null
 system_prompt: |
   TAG TEMPLATE (copy this shape for every problem)
   <think>
@@ -85,13 +86,13 @@ vllm_stop_sequences:
   - "</assistant>"
 vllm_request_timeout: 600
 vllm_url: http://localhost:29525/generate
-hub_model_id: od2961/Qwen2.5-7B-Open-R1-MaxEnt-GRPO-math-2k
+hub_model_id: od2961/Qwen2.5-Math-7B-Open-R1-MaxEnt-GRPO-math-2k
 hub_strategy: every_save
 learning_rate: 1e-6
 adam_beta2: 0.99
 adam_epsilon: 1e-06
 log_completions: true
-log_level: info
+log_level: 20
 logging_first_step: true
 logging_steps: 1
 logging_strategy: steps
@@ -101,7 +102,7 @@ max_completion_length: 3996
 max_steps: 2000              # matches the paired MaxEnt 2k math run
 num_generations: 16          # paper setting
 num_train_epochs: 5
-output_dir: var/data/Qwen2.5-7B-Open-R1-MaxEnt-GRPO-math-2k
+output_dir: var/data/Qwen2.5-Math-7B-Open-R1-MaxEnt-GRPO-math-2k
 overwrite_output_dir: true
 per_device_eval_batch_size: 8
 per_device_train_batch_size: 1

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import atexit
 import faulthandler
+import gc
 import inspect
 import logging
 import multiprocessing as mp
@@ -329,41 +330,61 @@ def _outputs_to_payload(
     outputs: Any, want_logprobs: bool
 ) -> Tuple[List[List[str]], Optional[List[List[Optional[Dict[str, Any]]]]]]:
     grouped: List[List[str]] = []
-    grouped_meta: Optional[List[List[Optional[Dict[str, Any]]]]] = (
-        [] if want_logprobs else None
-    )
+    grouped_meta: List[List[Optional[Dict[str, Any]]]] = []
     for output in outputs:
         seqs = getattr(output, "outputs", None) or []
         group: List[str] = []
-        meta_group: Optional[List[Optional[Dict[str, Any]]]] = (
-            [] if grouped_meta is not None else None
-        )
+        meta_group: List[Optional[Dict[str, Any]]] = []
         for seq in seqs:
             text = getattr(seq, "text", None)
             if text is None:
                 text = str(getattr(seq, "text", ""))
             group.append(text)
-            if meta_group is not None:
-                logprob_sum = getattr(seq, "cumulative_logprob", None)
-                token_ids = getattr(seq, "token_ids", None) or getattr(
-                    seq, "output_token_ids", None
-                )
-                token_count = len(token_ids) if token_ids is not None else None
-                token_logprobs = _extract_logprob_sequence(
-                    getattr(seq, "logprobs", None)
-                )
-                if logprob_sum is None:
-                    logprob_sum = _sum_logprobs(token_logprobs)
+            logprob_sum = getattr(seq, "cumulative_logprob", None)
+            token_ids = getattr(seq, "token_ids", None) or getattr(
+                seq, "output_token_ids", None
+            )
+            if token_ids is not None:
+                try:
+                    token_ids = [int(token_id) for token_id in token_ids]
+                except (TypeError, ValueError):
+                    token_ids = None
+            token_count = len(token_ids) if token_ids is not None else None
+            token_logprobs = _extract_logprob_sequence(getattr(seq, "logprobs", None))
+            finish_reason = getattr(seq, "finish_reason", None)
+            stop_reason = getattr(seq, "stop_reason", None)
+            if logprob_sum is None and want_logprobs:
+                logprob_sum = _sum_logprobs(token_logprobs)
+            raw_output: Optional[Dict[str, Any]] = None
+            if token_ids is not None:
+                raw_output = {
+                    "token_ids": list(token_ids),
+                    "token_count": int(token_count or 0),
+                }
+                if finish_reason is not None:
+                    raw_output["finish_reason"] = finish_reason
+                if stop_reason is not None:
+                    raw_output["stop_reason"] = stop_reason
+            if (
+                logprob_sum is None
+                and token_count is None
+                and token_logprobs is None
+                and raw_output is None
+            ):
+                meta_group.append(None)
+            else:
                 meta_group.append(
                     {
-                        "logprob_sum": logprob_sum,
+                        "logprob_sum": logprob_sum if want_logprobs else None,
                         "token_count": token_count,
-                        "token_logprobs": token_logprobs,
+                        "token_logprobs": token_logprobs if want_logprobs else None,
+                        "raw_output": raw_output,
                     }
                 )
         grouped.append(group)
-        if meta_group is not None:
-            grouped_meta.append(meta_group)
+        grouped_meta.append(meta_group)
+    if not any(any(entry is not None for entry in group) for group in grouped_meta):
+        return grouped, None
     return grouped, grouped_meta
 
 
@@ -906,6 +927,12 @@ class ColocateVLLMEngine:
         dtype_override = _resolve_dtype(self.ctx)
         if dtype_override:
             llm_kwargs["dtype"] = dtype_override
+        prefix_caching = _env_bool("MAXENT_VLLM_COLOCATE_ENABLE_PREFIX_CACHING")
+        if prefix_caching is not None:
+            llm_kwargs["enable_prefix_caching"] = prefix_caching
+        sleep_mode = _env_bool("MAXENT_VLLM_COLOCATE_ENABLE_SLEEP_MODE")
+        if sleep_mode is not None:
+            llm_kwargs["enable_sleep_mode"] = sleep_mode
         gpu_util = _env_float("MAXENT_VLLM_COLOCATE_GPU_UTIL")
         if gpu_util is None:
             training_args = getattr(self.ctx, "training_args", None)
@@ -989,6 +1016,8 @@ class ColocateVLLMEngine:
                 "MAXENT_VLLM_COLOCATE_TP",
                 "MAXENT_VLLM_COLOCATE_MAX_MODEL_LEN",
                 "MAXENT_VLLM_COLOCATE_ENFORCE_EAGER",
+                "MAXENT_VLLM_COLOCATE_ENABLE_PREFIX_CACHING",
+                "MAXENT_VLLM_COLOCATE_ENABLE_SLEEP_MODE",
                 "MAXENT_VLLM_COLOCATE_FORCE_V0",
                 "MAXENT_VLLM_COLOCATE_DEVICE",
                 "MAXENT_VLLM_COLOCATE_INIT_TIMEOUT_S",
@@ -1274,6 +1303,51 @@ class ColocateVLLMEngine:
             self._sync_client = ColocateVLLMClient(self)
         return self._sync_client
 
+    def _stabilize_parent_cuda_state(self) -> None:
+        """Best-effort parent-side cleanup before vLLM memory profiling starts."""
+
+        try:
+            gc.collect()
+        except Exception:
+            pass
+        try:
+            import torch
+
+            cuda_mod = getattr(torch, "cuda", None)
+            if cuda_mod is None or not cuda_mod.is_available():
+                return
+            synchronize = getattr(cuda_mod, "synchronize", None)
+            empty_cache = getattr(cuda_mod, "empty_cache", None)
+            ipc_collect = getattr(cuda_mod, "ipc_collect", None)
+            for _ in range(2):
+                if callable(synchronize):
+                    try:
+                        synchronize()
+                    except Exception:
+                        pass
+                if callable(empty_cache):
+                    try:
+                        empty_cache()
+                    except Exception:
+                        pass
+                if callable(ipc_collect):
+                    try:
+                        ipc_collect()
+                    except Exception:
+                        pass
+                time.sleep(0.05)
+        except Exception:
+            pass
+
+    def ensure_ready(self) -> None:
+        """Initialize the colocate worker/engine before parameter streaming begins."""
+
+        self._stabilize_parent_cuda_state()
+        if self._resolve_init_mode() == "subprocess":
+            self._ensure_worker()
+            return
+        self._get_llm()
+
     def _apply_param_updates(self, updates: List[Tuple[str, Any]]) -> None:
         if not updates:
             return
@@ -1370,12 +1444,17 @@ class ColocateVLLMEngine:
             "temperature": self.ctx.gen_temperature,
             "top_p": self.ctx.gen_top_p,
             "top_k": top_k,
+            "min_p": getattr(self.ctx, "gen_min_p", 0.0),
             "max_tokens": self.ctx.max_completion_len,
             "n": int(request_count),
             "best_of": best_of,
+            "repetition_penalty": getattr(self.ctx, "gen_repetition_penalty", 1.0),
             "frequency_penalty": getattr(self.ctx, "gen_frequency_penalty", 0.0),
             "presence_penalty": getattr(self.ctx, "gen_presence_penalty", 0.0),
             "stop": stop_sequences,
+            "include_stop_str_in_output": bool(
+                getattr(self.ctx, "vllm_include_stop_str_in_output", False)
+            ),
             "logit_bias": logit_bias,
             "allowed_token_ids": allowed_token_ids,
             "blocked_token_ids": blocked_token_ids,
@@ -1556,6 +1635,10 @@ class ColocateVLLMClient:
             self._buffer_bytes += size
             if self._buffer_bytes >= self._chunk_bytes:
                 self._flush_locked()
+
+    def ensure_ready(self) -> None:
+        with self._lock:
+            self._engine.ensure_ready()
 
     def flush(self) -> None:
         with self._lock:

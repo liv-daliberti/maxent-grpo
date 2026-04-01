@@ -30,16 +30,14 @@ eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
+prompt_template: "no"
 maxent_prompt_cache_size: 20000
 dataloader_num_workers: 4
 dataloader_persistent_workers: true
 dataloader_prefetch_factor: 2
 dataloader_pin_memory: true
 system_prompt: null
-chat_template: |
-  {%- for message in messages -%}
-  {{- message['content'] -}}
-  {%- endfor -%}
+chat_template: null
 
 # Paired MaxEnt config on the same Dr.GRPO backbone.
 objective: maxent_entropy

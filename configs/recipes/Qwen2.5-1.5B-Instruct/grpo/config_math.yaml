@@ -30,11 +30,9 @@ eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
+prompt_template: "no"
 system_prompt: null
-chat_template: |
-  {%- for message in messages -%}
-  {{- message['content'] -}}
-  {%- endfor -%}
+chat_template: null
 
 # Dr.GRPO-style training/eval settings
 bf16: true

@@ -23,6 +23,12 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
 import re
 
+from maxent_grpo.prompt_templates import (
+    apply_no_template,
+    apply_qwen_math_template,
+    apply_r1_template,
+    resolve_generation_stop_settings,
+)
 
 SEED_GRPO_REPO_URL = "https://github.com/Dreamer312/SEED-GRPO.git"
 SEED_GRPO_REPO_COMMIT = "325cb1a20bb60f8efd4cdc77a1565491c29fd289"
@@ -90,6 +96,7 @@ class SeedPaperEvalConfig:
     python_executable: Path
     workspace_dir: Path
     seed_repo_dir: Path
+    dataset_dir: Path
     results_dir: Path
     requirements_file: Path
     seed_repo_url: str
@@ -103,8 +110,12 @@ class SeedPaperEvalConfig:
     max_model_len: int
     vllm_url: str | None
     vllm_batch_size: int
+    vllm_use_rollout_token_guard: bool
+    vllm_stop_sequences: tuple[str, ...] | None
     n_samples: int
     max_test: int
+    prompt_start: int | None
+    prompt_end: int | None
     save_outputs: bool
     auto_install: bool
     prepare_only: bool
@@ -123,6 +134,7 @@ class SeedPaperEvalConfig:
     wandb_group: str | None
     wandb_run_name: str | None
     wandb_job_type: str | None
+    seed_paper_reward_fast: bool = False
     pass_at_8_enabled: bool = False
     pass_at_8_samples: int = DEFAULT_PASS_AT_8_SAMPLES
     pass_at_8_temperature: float = DEFAULT_PASS_AT_8_TEMPERATURE
@@ -217,6 +229,36 @@ def resolve_template(
     return DEFAULT_TEMPLATE
 
 
+def _parse_stop_sequences_arg(raw: object) -> tuple[str, ...] | None:
+    if raw is None:
+        return None
+    if isinstance(raw, (list, tuple)):
+        cleaned = [str(item) for item in raw if item is not None and str(item).strip()]
+        return tuple(cleaned) if cleaned else None
+    if isinstance(raw, str):
+        stripped = raw.strip()
+        if not stripped:
+            return None
+        parsed_val: object | None
+        try:
+            parsed_val = json.loads(stripped)
+        except (TypeError, ValueError):
+            parsed_val = None
+        if isinstance(parsed_val, list):
+            cleaned = [
+                str(item) for item in parsed_val if item is not None and str(item).strip()
+            ]
+            return tuple(cleaned) if cleaned else None
+        if isinstance(parsed_val, str):
+            stripped = parsed_val.strip()
+        if "||" in stripped:
+            parts = [part.strip() for part in stripped.split("||")]
+            cleaned = [part for part in parts if part]
+            return tuple(cleaned) if cleaned else None
+        return (stripped,)
+    return (str(raw),)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -240,6 +282,14 @@ def build_parser() -> argparse.ArgumentParser:
             "aime,amc,math,minerva,olympiad_bench."
         ),
     )
+    parser.add_argument(
+        "--dataset-dir",
+        type=Path,
+        help=(
+            "Override the evaluation dataset directory. Defaults to the official "
+            "SEED evaluation suite under the checked-out repo."
+        ),
+    )
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
@@ -258,8 +308,47 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_VLLM_BATCH_SIZE,
         help="Prompt batch size used when --vllm-url is evaluating a live server.",
     )
+    parser.add_argument(
+        "--vllm-use-rollout-token-guard",
+        action="store_true",
+        help=(
+            "When --vllm-url is set, forward the same tokenizer/model token-boundary "
+            "guarding used by rollout generation."
+        ),
+    )
+    parser.add_argument(
+        "--vllm-stop-sequences",
+        help=(
+            "Optional stop sequences forwarded to the live vLLM server. Accepts a "
+            "JSON list or '||'-delimited string to match training config parsing."
+        ),
+    )
+    parser.add_argument(
+        "--seed-paper-reward-fast",
+        action="store_true",
+        help=(
+            "Use the OAT/SEED fast verifier path for answer grading instead of "
+            "the slower math_verify-style fallback."
+        ),
+    )
     parser.add_argument("--n-samples", type=int, default=1)
     parser.add_argument("--max-test", type=int, default=999999)
+    parser.add_argument(
+        "--prompt-start",
+        type=int,
+        help=(
+            "Optional inclusive prompt start index within each selected task. "
+            "Used for prompt-range subshards."
+        ),
+    )
+    parser.add_argument(
+        "--prompt-end",
+        type=int,
+        help=(
+            "Optional exclusive prompt end index within each selected task. "
+            "Used for prompt-range subshards."
+        ),
+    )
     parser.add_argument(
         "--pass-at-8",
         action="store_true",
@@ -458,6 +547,17 @@ def parse_args(argv: Sequence[str] | None = None) -> SeedPaperEvalConfig:
     args = build_parser().parse_args(argv)
     if int(args.pass_at_8_samples) < 1:
         raise ValueError("--pass-at-8-samples must be >= 1.")
+    if args.prompt_start is not None and int(args.prompt_start) < 0:
+        raise ValueError("--prompt-start must be >= 0 when provided.")
+    if args.prompt_end is not None and int(args.prompt_end) < 0:
+        raise ValueError("--prompt-end must be >= 0 when provided.")
+    if (
+        args.prompt_start is not None
+        and args.prompt_end is not None
+        and int(args.prompt_end) < int(args.prompt_start)
+    ):
+        raise ValueError("--prompt-end must be >= --prompt-start.")
+    vllm_stop_sequences = _parse_stop_sequences_arg(args.vllm_stop_sequences)
     root = repo_root()
     workspace_dir = (
         args.workspace_dir.resolve()
@@ -488,6 +588,11 @@ def parse_args(argv: Sequence[str] | None = None) -> SeedPaperEvalConfig:
         python_executable=python_executable,
         workspace_dir=workspace_dir,
         seed_repo_dir=seed_repo_dir,
+        dataset_dir=(
+            args.dataset_dir.resolve()
+            if args.dataset_dir is not None
+            else seed_repo_dir / "datasets" / "evaluation_suite"
+        ),
         results_dir=results_dir,
         requirements_file=requirements_file,
         seed_repo_url=args.seed_repo_url,
@@ -501,8 +606,14 @@ def parse_args(argv: Sequence[str] | None = None) -> SeedPaperEvalConfig:
         max_model_len=args.max_model_len,
         vllm_url=str(args.vllm_url).strip() if args.vllm_url else None,
         vllm_batch_size=int(args.vllm_batch_size),
+        vllm_use_rollout_token_guard=bool(args.vllm_use_rollout_token_guard),
+        vllm_stop_sequences=vllm_stop_sequences,
         n_samples=args.n_samples,
         max_test=args.max_test,
+        prompt_start=(
+            int(args.prompt_start) if args.prompt_start is not None else None
+        ),
+        prompt_end=int(args.prompt_end) if args.prompt_end is not None else None,
         save_outputs=bool(args.save_outputs),
         auto_install=not args.no_install,
         prepare_only=bool(args.prepare_only),
@@ -529,6 +640,7 @@ def parse_args(argv: Sequence[str] | None = None) -> SeedPaperEvalConfig:
         wandb_group=str(args.wandb_group) if args.wandb_group else None,
         wandb_run_name=str(args.wandb_run_name) if args.wandb_run_name else None,
         wandb_job_type=str(args.wandb_job_type) if args.wandb_job_type else None,
+        seed_paper_reward_fast=bool(args.seed_paper_reward_fast),
         pass_at_8_enabled=bool(args.pass_at_8),
         pass_at_8_samples=int(args.pass_at_8_samples),
         pass_at_8_temperature=float(args.pass_at_8_temperature),
@@ -538,28 +650,6 @@ def parse_args(argv: Sequence[str] | None = None) -> SeedPaperEvalConfig:
 
 def shell_join(parts: Iterable[object]) -> str:
     return " ".join(shlex.quote(str(part)) for part in parts)
-
-
-def apply_qwen_math_template(question: str) -> str:
-    return (
-        "<|im_start|>system\nPlease reason step by step, and put your final answer "
-        "within \\boxed{}.<|im_end|>\n<|im_start|>user\n"
-        + question
-        + "<|im_end|>\n<|im_start|>assistant\n"
-    )
-
-
-def apply_r1_template(question: str) -> str:
-    return (
-        "A conversation between User and Assistant. The User asks a question, and "
-        "the Assistant solves it. The Assistant first thinks about the reasoning "
-        "process in the mind and then provides the User with the answer. The "
-        "reasoning process is enclosed within <think> </think> and answer is "
-        "enclosed within <answer> </answer> tags, respectively, i.e., <think> "
-        "reasoning process here </think> <answer> answer here </answer>.\nUser: "
-        + question
-        + "\nAssistant: <think>"
-    )
 
 
 def apply_prime_zero_template(question: str) -> str:
@@ -687,10 +777,9 @@ def ensure_seed_repo(config: SeedPaperEvalConfig) -> None:
                 config.seed_repo_commit,
             ]
         )
-        dataset_dir = config.seed_repo_dir / "datasets" / "evaluation_suite"
         eval_script = config.seed_repo_dir / "evaluate_model.py"
-        if not dataset_dir.exists():
-            raise FileNotFoundError(f"Official evaluation suite missing at {dataset_dir}")
+        if not config.dataset_dir.exists():
+            raise FileNotFoundError(f"Official evaluation suite missing at {config.dataset_dir}")
         if not eval_script.exists():
             raise FileNotFoundError(f"Official eval script missing at {eval_script}")
 
@@ -841,14 +930,13 @@ def gpu_is_available(python_executable: Path) -> bool:
 
 
 def build_official_eval_command(config: SeedPaperEvalConfig) -> list[str]:
-    dataset_dir = config.seed_repo_dir / "datasets" / "evaluation_suite"
     command = [
         str(config.python_executable),
         "-u",
         str(config.seed_repo_dir / "evaluate_model.py"),
         f"--model_name={config.model_name}",
         f"--template={config.template}",
-        f"--dataset_name={dataset_dir}",
+        f"--dataset_name={config.dataset_dir}",
         f"--temperature={config.temperature}",
         f"--top_p={config.top_p}",
         f"--max_tokens={config.max_tokens}",
@@ -1122,7 +1210,9 @@ def _resolve_template_runtime(
     print("Using template:", template, flush=True)
     if template in {"qwen_math", "no"}:
         reward_fn = boxed_reward_fn
-        apply_template = apply_qwen_math_template if template == "qwen_math" else (lambda x: x)
+        apply_template = (
+            apply_qwen_math_template if template == "qwen_math" else apply_no_template
+        )
         return apply_template, reward_fn
     if template == "r1":
         return apply_r1_template, answer_tag_reward_fn
@@ -1167,6 +1257,85 @@ def _resolve_template_runtime(
     raise ValueError(f"Unsupported template: {template}")
 
 
+def _token_count_from_logprob_entry(logprob_entry: object) -> int | None:
+    """Recover a true token count from vLLM metadata when available."""
+
+    if logprob_entry is None:
+        return None
+    direct_count = getattr(logprob_entry, "token_count", None)
+    if direct_count is not None:
+        try:
+            return int(direct_count)
+        except (TypeError, ValueError):
+            pass
+    raw_output = getattr(logprob_entry, "raw_output", None)
+    if isinstance(raw_output, dict):
+        raw_count = raw_output.get("token_count") or raw_output.get("num_tokens")
+        if raw_count is not None:
+            try:
+                return int(raw_count)
+            except (TypeError, ValueError):
+                pass
+        token_ids = raw_output.get("token_ids") or raw_output.get("output_token_ids")
+        if isinstance(token_ids, list):
+            return int(len(token_ids))
+    return None
+
+
+def _build_vllm_eval_generate_controls(
+    config: SeedPaperEvalConfig,
+    tokenizer: Any,
+) -> dict[str, Any]:
+    controls: dict[str, Any] = {}
+    template_stops, template_include_stop = resolve_generation_stop_settings(
+        config.template
+    )
+    stop_sequences = list(config.vllm_stop_sequences) if config.vllm_stop_sequences else None
+    if stop_sequences is None and template_stops:
+        stop_sequences = list(template_stops)
+    if stop_sequences:
+        controls["stop"] = stop_sequences
+    if template_include_stop:
+        controls["include_stop_str_in_output"] = True
+    if not config.vllm_use_rollout_token_guard:
+        return controls
+
+    from transformers import AutoConfig
+
+    try:
+        tokenizer_limit = max(
+            int(getattr(tokenizer, "vocab_size", 0) or 0),
+            int(len(tokenizer)),
+        )
+    except Exception:
+        tokenizer_limit = int(getattr(tokenizer, "vocab_size", 0) or 0)
+    if tokenizer_limit <= 0:
+        return controls
+
+    try:
+        model_config = AutoConfig.from_pretrained(config.model_name, trust_remote_code=True)
+        model_limit = int(getattr(model_config, "vocab_size", 0) or 0)
+    except Exception as exc:
+        print(
+            f"Warning: failed to resolve model vocab limit for rollout token guard: {exc}",
+            flush=True,
+        )
+        return controls
+    if model_limit <= tokenizer_limit:
+        return controls
+
+    blocked_token_ids = list(range(int(tokenizer_limit), int(model_limit)))
+    controls["allowed_token_ids"] = list(range(int(tokenizer_limit)))
+    controls["blocked_token_ids"] = blocked_token_ids
+    print(
+        "Using rollout-style vLLM token guard "
+        f"(tokenizer_limit={tokenizer_limit}, model_limit={model_limit}, "
+        f"blocked_tail={len(blocked_token_ids)}).",
+        flush=True,
+    )
+    return controls
+
+
 def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
     from datasets import load_from_disk
     import numpy as np
@@ -1177,18 +1346,25 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
         raise ValueError("vLLM server eval requires config.vllm_url to be set.")
     if config.save_outputs:
         config.results_dir.mkdir(parents=True, exist_ok=True)
-    dataset_dir = config.seed_repo_dir / "datasets" / "evaluation_suite"
     apply_template, reward_fn = _resolve_template_runtime(config)
     eval_tokenizer = AutoTokenizer.from_pretrained(config.model_name)
+    vllm_generate_controls = _build_vllm_eval_generate_controls(config, eval_tokenizer)
+    if vllm_generate_controls.get("stop"):
+        print(
+            f"Using vLLM stop sequences: {list(vllm_generate_controls['stop'])}",
+            flush=True,
+        )
 
-    print("Loading official SEED evaluation suite from:", dataset_dir, flush=True)
-    datasets_by_task = load_from_disk(str(dataset_dir))
+    print("Loading official SEED evaluation suite from:", config.dataset_dir, flush=True)
+    datasets_by_task = load_from_disk(str(config.dataset_dir))
     results: dict[str, float] = {}
     pass_at_8: dict[str, float] = {}
     mean_at_8: dict[str, float] = {}
     avg_lens: dict[str, float] = {}
     max_lens: dict[str, float] = {}
     formatted: dict[str, float] = {}
+    task_prompt_counts: dict[str, int] = {}
+    task_prompt_ranges: dict[str, dict[str, int]] = {}
     requested_tasks = set(config.tasks)
     saved_single_outputs: list[dict[str, object]] = []
     saved_pass_at_8_outputs: list[dict[str, object]] = []
@@ -1196,10 +1372,33 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
     for task_name, dataset in datasets_by_task.items():
         if task_name not in requested_tasks:
             continue
-        prompts_raw = list(dataset["problem"][: config.max_test])
-        targets = list(dataset["answer"][: config.max_test])
+        full_prompts_raw = list(dataset["problem"][: config.max_test])
+        full_targets = list(dataset["answer"][: config.max_test])
+        shard_start = int(config.prompt_start or 0)
+        shard_end = (
+            min(int(config.prompt_end), len(full_prompts_raw))
+            if config.prompt_end is not None
+            else len(full_prompts_raw)
+        )
+        if shard_end < shard_start:
+            raise ValueError(
+                f"Invalid prompt range for {task_name}: "
+                f"start={shard_start} end={shard_end}"
+            )
+        prompts_raw = full_prompts_raw[shard_start:shard_end]
+        targets = full_targets[shard_start:shard_end]
+        task_prompt_counts[task_name] = len(prompts_raw)
+        task_prompt_ranges[task_name] = {
+            "start": shard_start,
+            "end": shard_end,
+            "available": len(full_prompts_raw),
+        }
         prompts = [apply_template(prompt) for prompt in prompts_raw]
-        print(f"inference for {task_name}", flush=True)
+        print(
+            f"inference for {task_name} prompts[{shard_start}:{shard_end}] "
+            f"of {len(full_prompts_raw)}",
+            flush=True,
+        )
         batch_scores: list[float] = []
         batch_formatted: list[float] = []
         batch_lengths: list[list[int]] = []
@@ -1217,6 +1416,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                 tokenizer=eval_tokenizer,
                 return_logprobs=True,
                 timeout=max(600.0, float(config.max_tokens)),
+                **vllm_generate_controls,
             )
             if len(grouped_outputs) != len(prompt_batch):
                 raise RuntimeError(
@@ -1232,16 +1432,20 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                 if logprob_groups is not None and row_idx < len(logprob_groups):
                     logprobs_for_prompt = logprob_groups[row_idx]
                 for sample_idx, model_output in enumerate(outputs_for_prompt):
-                    info, reward = reward_fn(model_output, gt, fast=False)
+                    info, reward = reward_fn(
+                        model_output,
+                        gt,
+                        fast=bool(config.seed_paper_reward_fast),
+                    )
                     rewards.append(float(reward))
                     infos.append(info)
-                    token_count = None
+                    logprob_entry = None
                     if (
                         logprobs_for_prompt is not None
                         and sample_idx < len(logprobs_for_prompt)
-                        and logprobs_for_prompt[sample_idx] is not None
                     ):
-                        token_count = getattr(logprobs_for_prompt[sample_idx], "token_count", None)
+                        logprob_entry = logprobs_for_prompt[sample_idx]
+                    token_count = _token_count_from_logprob_entry(logprob_entry)
                     if token_count is None:
                         token_count = len(str(model_output))
                     lengths.append(int(token_count))
@@ -1299,7 +1503,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                     saved_single_outputs.append(
                         {
                             "task_name": str(task_name),
-                            "prompt_index": int(start + row_idx),
+                            "prompt_index": int(shard_start + start + row_idx),
                             "prompt_raw": str(prompts_raw[start + row_idx]),
                             "prompt": str(prompt_batch[row_idx]),
                             "gt": str(gt),
@@ -1332,6 +1536,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                     tokenizer=eval_tokenizer,
                     return_logprobs=bool(config.save_outputs),
                     timeout=max(600.0, float(config.max_tokens)),
+                    **vllm_generate_controls,
                 )
                 if len(grouped_outputs) != len(prompt_batch):
                     raise RuntimeError(
@@ -1348,7 +1553,11 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                     ):
                         sampled_logprobs_for_prompt = sampled_logprob_groups[row_idx]
                     for model_output in outputs_for_prompt:
-                        _, reward = reward_fn(model_output, gt, fast=False)
+                        _, reward = reward_fn(
+                            model_output,
+                            gt,
+                            fast=bool(config.seed_paper_reward_fast),
+                        )
                         rewards.append(float(reward))
                     if not rewards:
                         sampled_pass_scores.append(0.0)
@@ -1375,12 +1584,8 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                                     "sample_index": int(sample_idx),
                                     "text": str(model_output),
                                     "reward": float(rewards[sample_idx]),
-                                    "token_count": (
-                                        int(getattr(logprob_entry, "token_count"))
-                                        if logprob_entry is not None
-                                        and getattr(logprob_entry, "token_count", None)
-                                        is not None
-                                        else None
+                                    "token_count": _token_count_from_logprob_entry(
+                                        logprob_entry
                                     ),
                                     "logprob_sum": (
                                         float(getattr(logprob_entry, "logprob_sum"))
@@ -1399,7 +1604,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                         saved_pass_at_8_outputs.append(
                             {
                                 "task_name": str(task_name),
-                                "prompt_index": int(start + row_idx),
+                                "prompt_index": int(shard_start + start + row_idx),
                                 "prompt_raw": str(prompts_raw[start + row_idx]),
                                 "prompt": str(prompt_batch[row_idx]),
                                 "gt": str(gt),
@@ -1439,8 +1644,14 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
         "avg_lens": avg_lens,
         "max_lens": max_lens,
         "formatted": formatted,
+        "task_prompt_counts": task_prompt_counts,
+        "task_prompt_ranges": task_prompt_ranges,
         "vllm_url": config.vllm_url,
         "vllm_batch_size": int(config.vllm_batch_size),
+        "vllm_use_rollout_token_guard": bool(config.vllm_use_rollout_token_guard),
+        "vllm_stop_sequences": list(config.vllm_stop_sequences)
+        if config.vllm_stop_sequences is not None
+        else None,
         "pass_at_8_config": {
             "enabled": bool(config.pass_at_8_enabled),
             "samples": int(config.pass_at_8_samples),
@@ -1562,7 +1773,7 @@ def write_metadata(
         "seed_repo_url": config.seed_repo_url,
         "seed_repo_commit": config.seed_repo_commit,
         "seed_repo_dir": str(config.seed_repo_dir),
-        "dataset_dir": str(config.seed_repo_dir / "datasets" / "evaluation_suite"),
+        "dataset_dir": str(config.dataset_dir),
         "python_executable": str(config.python_executable),
         "command": list(command),
         "official_command": list(official_command),
@@ -1732,11 +1943,23 @@ def run_and_tee(
             list(command),
             cwd=str(cwd),
             env=env,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=False,
             bufsize=0,
         )
+        if process.stdin is not None:
+            try:
+                process.stdin.write(b"y\n")
+                process.stdin.flush()
+            except BrokenPipeError:
+                pass
+            finally:
+                try:
+                    process.stdin.close()
+                except Exception:
+                    pass
         assert process.stdout is not None
         read_chunk = getattr(process.stdout, "read1", process.stdout.read)
         while True:

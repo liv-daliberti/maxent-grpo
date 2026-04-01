@@ -37,6 +37,20 @@ def test_to_prompt_with_system_and_template():
     assert out["answer"] == "2"
 
 
+def test_to_prompt_with_seed_no_template():
+    ex = {"problem": "sum 1+1", "answer": "2"}
+    tok = DummyTok(template_ok=True)
+    out = baseline._to_prompt(
+        ex,
+        tok,
+        prompt_column="problem",
+        system_prompt="SYS",
+        prompt_template="no",
+    )
+    assert out["prompt"] == "sum 1+1"
+    assert out["answer"] == "2"
+
+
 def test_to_prompt_fallback_string_format():
     ex = {"problem": "q", "solution": "a"}
     tok = DummyTok(template_ok=False)

@@ -59,6 +59,28 @@ def test_safe_generate_parses_choices(monkeypatch):
     assert latency >= 0.0
 
 
+def test_safe_generate_forwards_include_stop_str_in_output(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json, timeout, stream, headers):
+        del url, timeout, stream, headers
+        captured["payload"] = json
+        return R(200, {"choices": [{"text": "A"}]})
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    VP.safe_generate(
+        prompts=["p"],
+        stream=False,
+        stop=["</answer>"],
+        include_stop_str_in_output=True,
+    )
+    payload = captured["payload"]
+    assert payload["stop"] == ["</answer>"]
+    assert payload["include_stop_str_in_output"] is True
+    assert payload["sampling_params"]["stop"] == ["</answer>"]
+    assert payload["sampling_params"]["include_stop_str_in_output"] is True
+
+
 def test_safe_generate_decodes_token_ids(monkeypatch):
     class Tok:
         def decode(self, ids, skip_special_tokens=True):

@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -71,6 +72,21 @@ def _resolve_vllm_url() -> str | None:
         value = os.environ.get(key)
         if value and value.strip():
             return value.strip()
+    return None
+
+
+def _env_int(keys: tuple[str, ...]) -> int | None:
+    for key in keys:
+        raw = os.environ.get(key)
+        if raw is None:
+            continue
+        text = str(raw).strip()
+        if not text:
+            continue
+        try:
+            return int(text)
+        except (TypeError, ValueError):
+            continue
     return None
 
 
@@ -152,6 +168,8 @@ def build_live_seed_paper_eval_command(
     batch_size = getattr(training_args, "seed_paper_eval_vllm_batch_size", None)
     if batch_size is not None:
         command.extend(["--vllm-batch-size", str(int(batch_size))])
+    if bool(getattr(training_args, "seed_paper_reward_fast", False)):
+        command.append("--seed-paper-reward-fast")
     if bool(getattr(training_args, "seed_paper_eval_pass_at_8_enabled", False)):
         command.append("--pass-at-8")
         pass_at_8_samples = getattr(
@@ -178,6 +196,109 @@ def build_live_seed_paper_eval_command(
         if pass_at_8_top_p is not None:
             command.extend(["--pass-at-8-top-p", str(float(pass_at_8_top_p))])
     return command, results_dir
+
+
+def _resolve_process_rank(training_args: Any) -> int:
+    value = _env_int(("RANK", "SLURM_PROCID"))
+    if value is not None:
+        return max(0, value)
+    raw = getattr(training_args, "process_index", None)
+    try:
+        return max(0, int(raw))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _resolve_world_size(training_args: Any) -> int:
+    value = _env_int(("WORLD_SIZE", "SLURM_NTASKS"))
+    if value is not None:
+        return max(1, value)
+    raw = getattr(training_args, "world_size", None)
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _coordination_dir(training_args: Any, *, step: int) -> Path:
+    _, results_dir = build_live_seed_paper_eval_command(training_args, step=step)
+    return results_dir / "_coord"
+
+
+def _write_json_atomic(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f"{path.name}.tmp-{os.getpid()}")
+    tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tmp_path.replace(path)
+
+
+def _wait_for_rank_arrivals(
+    coord_dir: Path,
+    *,
+    world_size: int,
+    timeout_s: int,
+) -> None:
+    deadline = time.monotonic() + max(1, timeout_s)
+    while time.monotonic() < deadline:
+        arrivals = list(coord_dir.glob("arrived-rank*.json"))
+        if len(arrivals) >= world_size:
+            return
+        time.sleep(1.0)
+    raise TimeoutError(
+        f"Timed out waiting for {world_size} ranks to enter live SEED eval under {coord_dir}"
+    )
+
+
+def _mark_rank_release(
+    coord_dir: Path,
+    *,
+    rank: int,
+    world_size: int,
+    step: int,
+) -> None:
+    release_path = coord_dir / f"released-rank{rank:05d}.json"
+    _write_json_atomic(
+        release_path,
+        {"rank": rank, "world_size": world_size, "pid": os.getpid(), "step": int(step)},
+    )
+
+
+def _wait_for_rank_releases(
+    coord_dir: Path,
+    *,
+    world_size: int,
+    timeout_s: int,
+) -> None:
+    deadline = time.monotonic() + max(1, timeout_s)
+    while time.monotonic() < deadline:
+        releases = list(coord_dir.glob("released-rank*.json"))
+        if len(releases) >= world_size:
+            return
+        time.sleep(1.0)
+    raise TimeoutError(
+        f"Timed out waiting for {world_size} ranks to leave live SEED eval under {coord_dir}"
+    )
+
+
+def _wait_for_result_payload(
+    result_path: Path,
+    *,
+    timeout_s: int,
+) -> dict[str, object]:
+    deadline = time.monotonic() + max(1, timeout_s)
+    last_error: Exception | None = None
+    while time.monotonic() < deadline:
+        if result_path.exists():
+            try:
+                return json.loads(result_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as exc:
+                last_error = exc
+        time.sleep(1.0)
+    if last_error is not None:
+        raise TimeoutError(
+            f"Timed out waiting for a valid live SEED eval result payload at {result_path}: {last_error}"
+        ) from last_error
+    raise TimeoutError(f"Timed out waiting for live SEED eval result payload at {result_path}")
 
 
 def _latest_summary_path(results_dir: Path) -> Path | None:
@@ -305,16 +426,16 @@ class SeedPaperEvalCallback(TrainerCallback):
         except (TypeError, ValueError):
             return 0
 
-    def _run_live_eval(self, step: int) -> None:
+    def _run_live_eval_once(self, step: int) -> tuple[bool, str | None]:
         if step in self._seen_steps:
-            return
+            return True, None
         vllm_url = _resolve_vllm_url()
         if not vllm_url:
             LOG.warning(
                 "Skipping live SEED paper eval at step %s because no vLLM URL is available.",
                 step,
             )
-            return
+            return True, None
         command, results_dir = build_live_seed_paper_eval_command(
             self.training_args,
             step=step,
@@ -346,6 +467,7 @@ class SeedPaperEvalCallback(TrainerCallback):
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
             _log_summary_to_wandb(summary=summary, summary_path=summary_path, step=step)
             self._seen_steps.add(step)
+            return True, None
         except Exception as exc:
             LOG.warning("Live SEED paper eval failed at step %s: %s", step, exc)
             run = _wandb_run()
@@ -368,12 +490,68 @@ class SeedPaperEvalCallback(TrainerCallback):
                 run.summary["paper_eval/latest_step"] = int(step)
                 run.summary["paper_eval/status"] = "failed"
                 run.summary["paper_eval/source"] = "live"
-            if bool(
-                getattr(self.training_args, "seed_paper_eval_fail_on_error", False)
-            ):
+            return False, str(exc)
+
+    def _run_live_eval(self, step: int) -> None:
+        rank = _resolve_process_rank(self.training_args)
+        world_size = _resolve_world_size(self.training_args)
+        timeout_s = int(
+            getattr(self.training_args, "seed_paper_eval_timeout_s", 14400) or 14400
+        )
+        fail_on_error = bool(
+            getattr(self.training_args, "seed_paper_eval_fail_on_error", False)
+        )
+        if world_size <= 1:
+            ok, error = self._run_live_eval_once(step)
+            if not ok and fail_on_error:
                 raise RuntimeError(
-                    f"Live SEED paper eval failed at step {step}: {exc}"
-                ) from exc
+                    f"Live SEED paper eval failed at step {step}: {error}"
+                )
+            return
+
+        coord_dir = _coordination_dir(self.training_args, step=step)
+        coord_dir.mkdir(parents=True, exist_ok=True)
+        arrival_path = coord_dir / f"arrived-rank{rank:05d}.json"
+        _write_json_atomic(
+            arrival_path,
+            {"rank": rank, "world_size": world_size, "pid": os.getpid(), "step": int(step)},
+        )
+        result_path = coord_dir / "result.json"
+
+        ok = False
+        error: str | None = None
+        if rank == 0:
+            _wait_for_rank_arrivals(coord_dir, world_size=world_size, timeout_s=timeout_s)
+            ok, error = self._run_live_eval_once(step)
+            _write_json_atomic(
+                result_path,
+                {
+                    "ok": bool(ok),
+                    "error": error,
+                    "rank": rank,
+                    "step": int(step),
+                    "world_size": world_size,
+                },
+            )
+        else:
+            payload = _wait_for_result_payload(result_path, timeout_s=timeout_s + 300)
+            ok = bool(payload.get("ok"))
+            error_obj = payload.get("error")
+            error = str(error_obj) if error_obj is not None else None
+
+        # Hold every rank here until all peers have fully observed the eval result
+        # and are ready to return to the trainer. Without this exit rendezvous,
+        # rank 0 can enter checkpoint save collectives while other ranks are still
+        # unwinding the eval callback, which can deadlock NCCL.
+        _mark_rank_release(coord_dir, rank=rank, world_size=world_size, step=step)
+        _wait_for_rank_releases(coord_dir, world_size=world_size, timeout_s=timeout_s + 300)
+        if ok:
+            self._seen_steps.add(step)
+            return
+        if fail_on_error:
+            raise RuntimeError(
+                f"Live SEED paper eval failed at step {step}: {error}"
+            )
 
     def on_train_begin(
         self,
@@ -386,8 +564,6 @@ class SeedPaperEvalCallback(TrainerCallback):
         _ = kwargs
         if not bool(getattr(self.training_args, "seed_paper_eval_enabled", False)):
             return control
-        if not bool(getattr(state, "is_world_process_zero", True)):
-            return control
         if self._built_in_eval_enabled():
             return control
         trigger_on_start = getattr(
@@ -399,9 +575,12 @@ class SeedPaperEvalCallback(TrainerCallback):
             step = int(getattr(state, "global_step", 0) or 0)
             synced_step0 = False
             if step == 0:
-                synced_step0 = _sync_step0_summary_to_current_run(self.training_args)
-                if synced_step0:
+                step0_results_dir = _resolve_step0_results_dir(self.training_args)
+                if step0_results_dir is not None and _latest_summary_path(step0_results_dir) is not None:
+                    synced_step0 = True
                     self._seen_steps.add(0)
+                    if bool(getattr(state, "is_world_process_zero", True)):
+                        _sync_step0_summary_to_current_run(self.training_args)
             if not synced_step0:
                 self._run_live_eval(step)
         return control
@@ -416,8 +595,6 @@ class SeedPaperEvalCallback(TrainerCallback):
         _ = args
         _ = kwargs
         if not bool(getattr(self.training_args, "seed_paper_eval_enabled", False)):
-            return control
-        if not bool(getattr(state, "is_world_process_zero", True)):
             return control
         if self._built_in_eval_enabled():
             return control
@@ -438,8 +615,6 @@ class SeedPaperEvalCallback(TrainerCallback):
         _ = kwargs
         if not bool(getattr(self.training_args, "seed_paper_eval_enabled", False)):
             return control
-        if not bool(getattr(state, "is_world_process_zero", True)):
-            return control
         if not self._built_in_eval_enabled():
             return control
         step = int(getattr(state, "global_step", 0) or 0)
@@ -456,8 +631,6 @@ class SeedPaperEvalCallback(TrainerCallback):
         _ = args
         _ = kwargs
         if not bool(getattr(self.training_args, "seed_paper_eval_enabled", False)):
-            return control
-        if not bool(getattr(state, "is_world_process_zero", True)):
             return control
         if self._built_in_eval_enabled():
             return control

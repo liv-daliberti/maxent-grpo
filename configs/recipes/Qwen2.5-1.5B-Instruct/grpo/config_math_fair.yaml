@@ -32,16 +32,9 @@ eval_dataset_split: test
 eval_dataset_prompt_column: problem
 eval_dataset_solution_column: answer
 disable_distributed_sampler: true
-system_prompt: |
-  Please reason step by step, and put your final answer within \boxed{}.
-chat_template: |-
-  {%- for message in messages -%}
-  <|im_start|>{{ message['role'] }}
-  {{ message['content'] }}<|im_end|>
-  {%- if not loop.last %}{{ '\n' }}{%- endif -%}
-  {%- endfor -%}
-  {%- if add_generation_prompt %}{{ '\n' }}<|im_start|>assistant
-  {%- endif -%}
+prompt_template: "no"
+system_prompt: null
+chat_template: null
 
 # Dr.GRPO-style training/eval settings
 bf16: true
@@ -132,7 +125,7 @@ save_strategy: "steps"
 save_steps: 25
 eval_strategy: "no"
 eval_steps: 25
-seed_paper_eval_template: "qwen_math"
+seed_paper_eval_template: "no"
 seed_paper_eval_pass_at_8_enabled: true
 seed_paper_eval_pass_at_8_samples: 8
 seed_paper_eval_pass_at_8_temperature: 1.0

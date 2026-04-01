@@ -1041,6 +1041,9 @@ class VLLMRequestMixin:
             "frequency_penalty": ctx.gen_frequency_penalty,
             "presence_penalty": ctx.gen_presence_penalty,
             "stop": stop_sequences,
+            "include_stop_str_in_output": bool(
+                getattr(ctx, "vllm_include_stop_str_in_output", False)
+            ),
             "logit_bias": logit_bias,
             "allowed_token_ids": allowed_token_ids,
             "blocked_token_ids": blocked_token_ids,

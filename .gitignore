@@ -28,6 +28,8 @@ wandb/
 .wandb/
 .venv-train/
 .venv-lighteval/
+datasets/
+slurm-*.out
 # Sphinx docs build
 _build/
 docs/_build/

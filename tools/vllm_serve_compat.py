@@ -160,6 +160,13 @@ def _patch_get_open_port() -> None:
 
 
 def _import_builtin_weight_transfer() -> Optional[type]:
+    if os.getenv("MAXENT_DISABLE_BUILTIN_WEIGHT_TRANSFER", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        return None
     try:
         nccl_engine_mod = importlib.import_module(
             "vllm.distributed.weight_transfer.nccl_engine"

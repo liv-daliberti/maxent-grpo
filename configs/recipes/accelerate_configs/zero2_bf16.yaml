@@ -1,0 +1,27 @@
+compute_environment: LOCAL_MACHINE
+debug: false
+distributed_type: DEEPSPEED
+mixed_precision: bf16
+num_machines: 1
+num_processes: 8
+machine_rank: 0
+same_network: true
+rdzv_backend: static
+tpu_use_cluster: false
+tpu_use_sudo: false
+tpu_env: []
+use_cpu: false
+downcast_bf16: "no"
+main_training_function: main
+deepspeed_config:
+  deepspeed_multinode_launcher: standard
+  zero_optimization:
+    stage: 2
+    contiguous_gradients: true
+    overlap_comm: true
+    reduce_scatter: true
+    reduce_bucket_size: 5e8
+    allgather_bucket_size: 5e8
+  zero_stage: 2
+  zero3_init_flag: false
+  zero3_save_16bit_model: false

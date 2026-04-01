@@ -60,6 +60,7 @@ def test_listwise_sweep_report_picks_best_available_summary(tmp_path: Path) -> N
     assert rows[0]["run_name"] == "run-b"
     assert rows[0]["tau"] == 0.5
     assert rows[0]["beta"] == 0.08
+    assert rows[0]["pass_at_1_avg"] == pytest.approx(0.43)
     assert rows[-1]["run_name"] == "run-c"
     assert rows[-1]["status"] == "pending"
 
@@ -110,3 +111,4 @@ def test_listwise_sweep_report_aggregates_seed_repeats(tmp_path: Path) -> None:
     assert rows[0]["seed_completed_count"] == 2
     assert rows[0]["seeds"] == [41, 42]
     assert rows[0]["avg"] == pytest.approx(0.42)
+    assert rows[0]["pass_at_1_avg"] == pytest.approx(0.42)

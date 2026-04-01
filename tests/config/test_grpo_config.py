@@ -99,3 +99,8 @@ def test_grpo_config_appends_generate_suffix_for_plain_hosts():
 def test_grpo_config_preserves_custom_vllm_paths():
     cfg = GRPOConfig(vllm_url="http://localhost:29525/custom/path")
     assert cfg.vllm_url == "http://localhost:29525/custom/path"
+
+
+def test_grpo_config_preserves_vllm_include_stop_str_setting():
+    cfg = GRPOConfig(vllm_include_stop_str_in_output=True)
+    assert cfg.vllm_include_stop_str_in_output is True

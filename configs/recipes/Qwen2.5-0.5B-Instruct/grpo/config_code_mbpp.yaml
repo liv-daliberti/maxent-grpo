@@ -30,6 +30,7 @@ eval_dataset_split: test
 eval_dataset_prompt_column: prompt
 eval_dataset_solution_column: test
 disable_distributed_sampler: true
+prompt_template: null
 maxent_prompt_cache_size: 20000
 dataloader_num_workers: 4
 dataloader_persistent_workers: true

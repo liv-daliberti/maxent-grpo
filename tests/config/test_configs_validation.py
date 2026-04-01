@@ -276,6 +276,7 @@ def test_paired_recipes_keep_sampling_reference_and_kl_settings_aligned(
         ), field
 
     for field in (
+        "prompt_template",
         "system_prompt",
         "use_vllm",
         "vllm_mode",
