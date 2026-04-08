@@ -354,7 +354,7 @@ resolve_accelerator_name() {
 
 if [[ "$*" == *"--help"* ]]; then
   cat <<'USAGE'
-Usage: sbatch ops/slurm/train_dual_4plus4.slurm [options]
+Usage: sbatch archive/trl/ops/slurm/train_dual_4plus4.slurm [options]
 
 Options:
   --model MODEL               Recipe model directory (default depends on --config)

@@ -693,6 +693,7 @@ def safe_generate(
     blocked_token_ids: Optional[List[int]] = None,
     guided_json: Optional[str] = None,
     guided_regex: Optional[str] = None,
+    seed: Optional[int] = None,
     request_id: Optional[str] = None,
     request_id_prefix: Optional[str] = None,
     timeout: Optional[float] = None,
@@ -745,6 +746,8 @@ def safe_generate(
     :type guided_json: str | None
     :param guided_regex: Optional regex constraint for decoding.
     :type guided_regex: str | None
+    :param seed: Optional deterministic sampling seed forwarded to vLLM.
+    :type seed: int | None
     :param request_id: Explicit request identifier to forward to vLLM.
     :type request_id: str | None
     :param request_id_prefix: Prefix used when auto-generating ``request_id``.
@@ -841,6 +844,9 @@ def safe_generate(
         payload["guided_json"] = guided_json
     if guided_regex:
         payload["guided_regex"] = guided_regex
+    if seed is not None:
+        payload["seed"] = int(seed)
+        payload["sampling_params"]["seed"] = int(seed)
     if client_tag:
         payload["client_tag"] = client_tag
 

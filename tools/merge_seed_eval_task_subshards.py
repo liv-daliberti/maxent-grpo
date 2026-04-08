@@ -224,6 +224,8 @@ def main() -> int:
     first_summary = shard_summaries[0]
     if isinstance(first_summary.get("pass_at_8_config"), dict):
         merged_summary["pass_at_8_config"] = first_summary["pass_at_8_config"]
+    if "sampling_seed" in first_summary:
+        merged_summary["sampling_seed"] = first_summary["sampling_seed"]
     if "vllm_batch_size" in first_summary:
         merged_summary["vllm_batch_size"] = int(first_summary["vllm_batch_size"])
     if "vllm_url" in first_summary:

@@ -15,4 +15,4 @@ export PURE_SEED_GRPO_ALPHA="${PURE_SEED_GRPO_ALPHA:-0.0417}"
 export PURE_SEED_GRPO_ALPHA_NORMALIZE_BY_MAX_ENTROPY="${PURE_SEED_GRPO_ALPHA_NORMALIZE_BY_MAX_ENTROPY:-1}"
 export PURE_SEED_GRPO_LENGTH_NORMALIZE_LOGPROBS="${PURE_SEED_GRPO_LENGTH_NORMALIZE_LOGPROBS:-1}"
 
-exec "$ROOT_DIR/ops/run_drgrpo_1p5b_pure_single_node.sh" "$@"
+exec "$ROOT_DIR/archive/trl/ops/run_drgrpo_1p5b_pure_single_node.sh" "$@"

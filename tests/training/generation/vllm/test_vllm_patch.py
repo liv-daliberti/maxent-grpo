@@ -576,6 +576,21 @@ def test_safe_generate_payload_and_request_id(monkeypatch):
     assert meta is None
 
 
+def test_safe_generate_forwards_seed(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json, timeout, stream, headers):
+        del url, timeout, stream, headers
+        captured["payload"] = json
+        return R(200, {"choices": [{"text": "ok"}]})
+
+    monkeypatch.setattr(VP.requests, "post", fake_post)
+    VP.safe_generate(prompts=["p"], seed=7, max_retries=1)
+    payload = captured["payload"]
+    assert payload["seed"] == 7
+    assert payload["sampling_params"]["seed"] == 7
+
+
 def test_safe_generate_retries_then_fails(monkeypatch):
     attempts = []
 

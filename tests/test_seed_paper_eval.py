@@ -724,6 +724,7 @@ def test_run_vllm_server_eval_emits_pass_at_8_and_mean_at_8(
         wandb_group=None,
         wandb_run_name=None,
         wandb_job_type=None,
+        sampling_seed=17,
         pass_at_8_enabled=True,
         pass_at_8_samples=8,
         pass_at_8_temperature=1.0,
@@ -733,11 +734,14 @@ def test_run_vllm_server_eval_emits_pass_at_8_and_mean_at_8(
     assert len(captured_calls) == 2
     assert captured_calls[0]["n"] == 1
     assert captured_calls[1]["n"] == 8
+    assert captured_calls[0]["seed"] == 17
+    assert captured_calls[1]["seed"] == 17
     assert summary["results"] == {"aime": 0.5}
     assert summary["pass_at_8"] == {"aime": 1.0}
     assert summary["pass_at_8_avg"] == 1.0
     assert summary["mean_at_8"] == {"aime": 0.5625}
     assert summary["mean_at_8_avg"] == 0.5625
+    assert summary["sampling_seed"] == 17
 
 
 def test_run_vllm_server_eval_saves_single_and_pass_at_8_outputs(
@@ -864,6 +868,7 @@ def test_run_vllm_server_eval_saves_single_and_pass_at_8_outputs(
         wandb_group=None,
         wandb_run_name=None,
         wandb_job_type=None,
+        sampling_seed=23,
         pass_at_8_enabled=True,
         pass_at_8_samples=8,
         pass_at_8_temperature=1.0,
@@ -878,7 +883,9 @@ def test_run_vllm_server_eval_saves_single_and_pass_at_8_outputs(
     assert pass8_path.exists()
     single_payload = json.loads(single_path.read_text(encoding="utf-8"))
     pass8_payload = json.loads(pass8_path.read_text(encoding="utf-8"))
+    assert single_payload[0]["sampling_seed"] == 23
     assert single_payload[0]["samples"][0]["logprob_sum"] == -1.25
     assert single_payload[0]["samples"][0]["token_ids"] == [1, 2, 3]
+    assert pass8_payload[0]["sampling_seed"] == 23
     assert len(pass8_payload[0]["samples"]) == 8
     assert pass8_payload[0]["samples"][0]["token_count"] == 2

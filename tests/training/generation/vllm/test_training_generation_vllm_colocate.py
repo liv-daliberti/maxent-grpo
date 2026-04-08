@@ -66,8 +66,52 @@ def _install_stub_vllm(monkeypatch, outputs=None):
     return mod, DummyLLM
 
 
-def test_configure_vllm_mode_colocate_disables_sync(monkeypatch):
+def test_configure_vllm_mode_colocate_preserves_configured_sync(monkeypatch):
     monkeypatch.delenv("MAXENT_VLLM_COLOCATE_SYNC", raising=False)
+
+    class _Helper:
+        def __init__(self):
+            self.batcher = None
+
+        def set_request_batcher(self, fn):
+            self.batcher = fn
+
+    class _Engine:
+        def __init__(self, ctx, fallback):
+            self.ctx = ctx
+            self.fallback = fallback
+            self.client = object()
+
+        def request_batch(self, prompts, count):
+            return [], None
+
+        def sync_client(self):
+            return self.client
+
+    mod = ModuleType("maxent_grpo.training.rollout.vllm_colocate")
+    mod.ColocateVLLMEngine = _Engine
+    monkeypatch.setitem(sys.modules, mod.__name__, mod)
+
+    gen = vllm_adapter.VLLMGenerationMixin.__new__(vllm_adapter.VLLMGenerationMixin)
+    gen.ctx = SimpleNamespace(
+        use_vllm=True, vllm_mode="colocate", vllm_sync_weights=True
+    )
+    gen._vllm_helper = _Helper()
+    gen._generate_local = lambda *a, **k: ("local", a, k)
+    gen._vllm_colocate_engine = None
+
+    gen._configure_vllm_mode()
+
+    assert gen.ctx.vllm_sync_weights is True
+    assert gen.ctx.vllm_sync_interval_steps == 10
+    assert gen._vllm_client is gen._vllm_colocate_engine.client
+    assert gen._vllm_sync_ready is True
+    assert isinstance(gen._vllm_colocate_engine, _Engine)
+    assert gen._vllm_helper.batcher == gen._vllm_colocate_engine.request_batch
+
+
+def test_configure_vllm_mode_colocate_env_can_disable_sync(monkeypatch):
+    monkeypatch.setenv("MAXENT_VLLM_COLOCATE_SYNC", "0")
 
     class _Helper:
         def __init__(self):
@@ -144,7 +188,7 @@ def test_configure_vllm_mode_colocate_enables_sync(monkeypatch):
     gen._configure_vllm_mode()
 
     assert gen.ctx.vllm_sync_weights is True
-    assert gen.ctx.vllm_sync_interval_steps == 10
+    assert gen.ctx.vllm_sync_interval_steps == 1
     assert gen._vllm_client is gen._vllm_colocate_engine.client
     assert gen._vllm_sync_ready is True
     assert gen._vllm_helper.batcher == gen._vllm_colocate_engine.request_batch

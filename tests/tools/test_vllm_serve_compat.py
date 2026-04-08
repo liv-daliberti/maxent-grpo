@@ -26,3 +26,9 @@ def test_blocked_tail_to_allowed_token_ids_contiguous_tail():
 def test_blocked_tail_to_allowed_token_ids_rejects_non_contiguous_tail():
     with pytest.raises(ValueError, match="contiguous tail range"):
         _MODULE._blocked_tail_to_allowed_token_ids([5, 7, 8, 9])
+
+
+def test_build_generate_request_model_accepts_seed():
+    model = _MODULE._build_generate_request_model()
+    request = model(prompts=["hello"], seed=13)
+    assert request.seed == 13

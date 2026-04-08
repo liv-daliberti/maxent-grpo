@@ -24,4 +24,4 @@ export TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-128}"
 export TRAIN_BATCH_SIZE_PER_DEVICE="${TRAIN_BATCH_SIZE_PER_DEVICE:-8}"
 export ROLLOUT_BATCH_SIZE="${ROLLOUT_BATCH_SIZE:-128}"
 
-exec "$ROOT_DIR/ops/run_drgrpo_1p5b_pure_single_node.sh" "$@"
+exec "$ROOT_DIR/archive/trl/ops/run_drgrpo_1p5b_pure_single_node.sh" "$@"

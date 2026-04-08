@@ -1,56 +1,60 @@
 Runtime Setup
 =============
 
-This page summarizes runtime dependencies and the main environment knobs used
-by MaxEnt-GRPO.
+This page summarizes the canonical runtime for the active OAT training path.
 
-Dependencies
-------------
-
-Training requires the usual ML stack (torch, transformers, trl, datasets) plus
-Accelerate for multi-GPU launches. Optional integrations include:
-
-- DeepSpeed (ZeRO and large-scale training)
-- vLLM (external generation server)
-- Weights & Biases (logging)
-- peft / bitsandbytes (adapter or quantized training)
-
-Optional imports are guarded in ``maxent_grpo.utils.imports`` and
-``maxent_grpo.training.runtime`` so missing dependencies raise a descriptive
-error rather than a generic ``ImportError``.
-
-Accelerate and DeepSpeed
-------------------------
-
-The Slurm launcher ``ops/slurm/train_dual_4plus4.slurm`` expects an Accelerate config file
-under ``configs/recipes/accelerate_configs/<name>.yaml``. The ``--accelerator``
-flag in the launcher selects the file, and the resulting config controls
-process counts, mixed precision, and DeepSpeed integration.
-
-vLLM Connectivity
------------------
-
-To generate with vLLM during training:
-
-- Set ``use_vllm: true`` and ``vllm_mode: server`` in the recipe.
-- Provide a ``vllm_url`` (e.g., ``http://host:port/generate``).
-
-When these are set, the recipe loader infers ``vllm_server_base_url`` (plus host
-and port) from ``vllm_url`` if the server-specific fields are omitted.
-
-Environment Variables
+Canonical OAT Runtime
 ---------------------
 
-Common overrides you may want to set:
+The working environment is the repo-local ``paper310`` runtime used by the
+README-flash OAT launchers:
 
-- ``GRPO_RECIPE``: default recipe path for the Hydra CLI.
-- ``MAXENT_LOG_LEVEL``: overrides ``log_level`` in training configs.
-- ``MAXENT_TAU`` / ``MAXENT_Q_TEMPERATURE`` / ``MAXENT_Q_EPS`` /
-  ``MAXENT_LENGTH_NORM_REF``: defaults for MaxEnt runtime options.
-- ``MAXENT_DATASET_CACHE_DIR``: base directory for cached dataset transforms.
-- ``MAXENT_HF_DATASET_RETRIES`` / ``MAXENT_HF_DATASET_RETRY_SLEEP`` /
-  ``MAXENT_HF_DATASET_RETRY_MAX_SLEEP``: dataset download retry policy.
-- ``MAXENT_FAULTHANDLER``: enable Python faulthandler in the MaxEnt entrypoint.
+- ``python==3.10.20``
+- ``torch==2.6.0``
+- ``transformers==4.51.3``
+- ``vllm==0.8.4``
+- ``oat-llm==0.1.3.post1``
+- ``deepspeed==0.16.8``
+- ``flash-attn==2.7.4.post1`` via the launch-time overlay
 
-There are additional toggles throughout the codebase; search for ``MAXENT_`` in
-``src/maxent_grpo`` to discover them.
+The canonical interpreter is:
+
+- ``var/seed_paper_eval/paper310/bin/python``
+
+Validate the runtime with:
+
+.. code-block:: bash
+
+   python tools/audit_oat_setup.py
+
+Why This Matters
+----------------
+
+The upstream OAT training path proved sensitive to version drift. This
+repository now keeps one canonical runtime for the active launchers so the
+baseline DR.GRPO path and the listwise explorer overlay share the same working
+stack.
+
+Active Launchers
+----------------
+
+- ``ops/run_oat_zero_exact_1p5b_upstream.sh``
+- ``ops/run_oat_zero_explorer_1p5b_upstream.sh``
+- ``ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm``
+- ``ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_explorer_node302.slurm``
+
+Environment Notes
+-----------------
+
+- Flash attention is installed at launch time into a local overlay, rather than
+  being assumed to exist globally.
+- The OAT launchers route caches and temporary files into ``var/`` or
+  node-local scratch instead of relying on ambient home-directory state.
+- The explorer path reuses the same runtime and only switches the learner
+  objective to ``maxent_listwise``.
+
+Archived Runtime Surface
+------------------------
+
+Older TRL/Hydra launchers and other retired training wrappers are kept under
+``archive/trl/``. They are not part of the active runtime contract anymore.

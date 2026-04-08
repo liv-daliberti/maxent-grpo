@@ -268,15 +268,24 @@ class VLLMGenerationMixin:
                 os.getenv("LOCAL_RANK"),
                 os.getenv("SLURM_LOCALID"),
             )
-        sync_enabled = _env_flag("MAXENT_VLLM_COLOCATE_SYNC", False)
-        if not sync_enabled and getattr(self.ctx, "vllm_sync_weights", False):
-            LOG.warning(
-                "vLLM colocate sync disabled; set MAXENT_VLLM_COLOCATE_SYNC=1 to enable."
-            )
-            try:
-                setattr(self.ctx, "vllm_sync_weights", False)
-            except Exception:
-                pass
+        configured_sync = bool(getattr(self.ctx, "vllm_sync_weights", False))
+        raw_sync_override = os.getenv("MAXENT_VLLM_COLOCATE_SYNC")
+        if raw_sync_override is None:
+            sync_enabled = configured_sync
+        else:
+            sync_enabled = _env_flag("MAXENT_VLLM_COLOCATE_SYNC", False)
+            if sync_enabled != configured_sync:
+                LOG.warning(
+                    "vLLM colocate sync override changed vllm_sync_weights from %s to %s "
+                    "via MAXENT_VLLM_COLOCATE_SYNC=%r.",
+                    configured_sync,
+                    sync_enabled,
+                    raw_sync_override,
+                )
+                try:
+                    setattr(self.ctx, "vllm_sync_weights", sync_enabled)
+                except Exception:
+                    pass
         self._vllm_colocate_engine = ColocateVLLMEngine(self.ctx, self._generate_local)
         batcher = getattr(self._vllm_helper, "set_request_batcher", None)
         if callable(batcher):
@@ -290,7 +299,7 @@ class VLLMGenerationMixin:
         if sync_enabled:
             if not getattr(self.ctx, "vllm_sync_weights", False):
                 setattr(self.ctx, "vllm_sync_weights", True)
-                LOG.info("vLLM colocate sync enabled via MAXENT_VLLM_COLOCATE_SYNC=1.")
+                LOG.info("vLLM colocate sync enabled.")
             sync_interval = _env_int("MAXENT_VLLM_COLOCATE_SYNC_INTERVAL")
             if sync_interval is not None:
                 if sync_interval < 0:
@@ -302,7 +311,7 @@ class VLLMGenerationMixin:
                     setattr(self.ctx, "vllm_sync_interval_steps", sync_interval)
             else:
                 current_interval = getattr(self.ctx, "vllm_sync_interval_steps", None)
-                if current_interval in (None, 1):
+                if current_interval is None:
                     setattr(self.ctx, "vllm_sync_interval_steps", 10)
                     LOG.info(
                         "vLLM colocate sync interval defaulted to 10 steps. "
@@ -325,6 +334,11 @@ class VLLMGenerationMixin:
                 self._vllm_client = None
                 self._vllm_sync_ready = False
                 LOG.info("Skipping vLLM colocate sync client init on non-main rank.")
+        elif is_main:
+            LOG.warning(
+                "vLLM colocate weight sync is disabled; rollouts will use stale vLLM "
+                "weights and can drift off-policy."
+            )
         LOG.info("vLLM colocate mode enabled; using in-process vLLM engine.")
 
     def _generate_local(

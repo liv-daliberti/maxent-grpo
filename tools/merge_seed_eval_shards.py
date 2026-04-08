@@ -166,6 +166,8 @@ def main() -> int:
     first_summary = shard_summaries[tasks[0]]
     if isinstance(first_summary.get("pass_at_8_config"), dict):
         merged_summary["pass_at_8_config"] = first_summary["pass_at_8_config"]
+    if "sampling_seed" in first_summary:
+        merged_summary["sampling_seed"] = first_summary["sampling_seed"]
 
     saved_output_paths: dict[str, str] = {}
     if single_records:

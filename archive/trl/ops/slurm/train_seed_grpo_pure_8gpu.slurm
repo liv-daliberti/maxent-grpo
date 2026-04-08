@@ -37,4 +37,4 @@ echo "[slurm] pure_checkout=${PURE_DRGRPO_ROOT}"
 echo "[slurm] pure_python=${PURE_DRGRPO_PYTHON}"
 echo "[slurm] save_path=${SAVE_PATH}"
 
-exec "$ROOT_DIR/ops/run_seed_grpo_1p5b_pure_single_node.sh" "$@"
+exec "$ROOT_DIR/archive/trl/ops/run_seed_grpo_1p5b_pure_single_node.sh" "$@"

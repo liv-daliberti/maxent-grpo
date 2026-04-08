@@ -17,4 +17,4 @@ export PURE_MAXENT_ALPHA_KL_THRESHOLD="${PURE_MAXENT_ALPHA_KL_THRESHOLD:-0.07}"
 export PURE_MAXENT_ALPHA_KL_GAIN="${PURE_MAXENT_ALPHA_KL_GAIN:-0.5}"
 export PURE_MAXENT_ALPHA_DISABLE_OUTSIDE_TRUST_ZONE="${PURE_MAXENT_ALPHA_DISABLE_OUTSIDE_TRUST_ZONE:-1}"
 
-exec "$ROOT_DIR/ops/run_drgrpo_1p5b_pure_single_node.sh" "$@"
+exec "$ROOT_DIR/archive/trl/ops/run_drgrpo_1p5b_pure_single_node.sh" "$@"

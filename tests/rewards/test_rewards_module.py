@@ -126,6 +126,50 @@ def test_get_reward_funcs_binds_oat_fast_seed_paper_reward() -> None:
     assert funcs[0].keywords == {"fast": True}
 
 
+def test_seed_paper_answer_tag_reward_uses_oat_parity_helper(monkeypatch) -> None:
+    import maxent_grpo.rewards.basic as basic
+
+    calls = []
+
+    def _fake_call(reward_name, text, gold, fast):
+        calls.append((reward_name, text, gold, fast))
+        return {"formatted": True}, 0.75
+
+    monkeypatch.setattr(basic, "_call_seed_paper_reward_oat_parity", _fake_call)
+    rewards = basic.seed_paper_answer_tag_accuracy_reward_math(
+        ["<answer>7</answer>"],
+        ["7"],
+        fast=True,
+    )
+    assert rewards == [0.75]
+    assert calls == [("answer_tag_reward_fn", "<answer>7</answer>", "7", True)]
+
+
+def test_seed_paper_reward_timeout_falls_back_to_zero(monkeypatch) -> None:
+    import multiprocessing as mp
+
+    import maxent_grpo.rewards.basic as basic
+
+    class _DummyAsyncResult:
+        def get(self, timeout):  # noqa: ANN001
+            raise mp.TimeoutError
+
+    class _DummyPool:
+        def apply_async(self, fn, args):  # noqa: ANN001
+            _ = (fn, args)
+            return _DummyAsyncResult()
+
+    monkeypatch.setattr(basic, "_seed_paper_reward_pool", lambda: _DummyPool())
+    info, reward = basic._call_seed_paper_reward_oat_parity(
+        "answer_tag_reward_fn",
+        "<answer>7</answer>",
+        "7",
+        True,
+    )
+    assert info == {"formatted": False}
+    assert reward == 0.0
+
+
 def test_get_reward_funcs_resolves_missing_boxed_answer_penalty() -> None:
     args = SimpleNamespace(
         reward_funcs=["missing_boxed_answer_penalty_math"],

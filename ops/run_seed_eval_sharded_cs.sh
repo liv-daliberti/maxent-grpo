@@ -31,7 +31,10 @@ MERGE_TIME="${MERGE_TIME:-01:00:00}"
 MERGE_EXTRA_ARGS="${MERGE_EXTRA_ARGS:-}"
 
 TRAIN_OUTPUT_DIR="${TRAIN_OUTPUT_DIR:-$ROOT_DIR/var/data/drgrpo_1p5b_oat_parity_trl_r1_20260331_144832}"
+MODEL_ROOT="${MODEL_ROOT:-$TRAIN_OUTPUT_DIR}"
+MODEL_STEP_FORMATS="${MODEL_STEP_FORMATS:-checkpoint-%d}"
 BASE_MODEL_PATH="${BASE_MODEL_PATH:-Qwen/Qwen2.5-Math-1.5B}"
+PREFER_STEP0_MODEL_ARTIFACT="${PREFER_STEP0_MODEL_ARTIFACT:-0}"
 STEPS="${STEPS:-0,50,100}"
 TEMPLATES="${TEMPLATES:-no,qwen_math,r1}"
 TASKS="${TASKS:-aime,amc,math,minerva,olympiad_bench}"
@@ -41,6 +44,7 @@ PASS_AT_8_SAMPLES="${PASS_AT_8_SAMPLES:-8}"
 VLLM_DTYPE="${VLLM_DTYPE:-bfloat16}"
 VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-4096}"
 VLLM_BATCH_SIZE="${VLLM_BATCH_SIZE:-32}"
+SAMPLING_SEED="${SAMPLING_SEED:-}"
 
 mkdir -p "$RESULT_ROOT" "$LOG_DIR"
 ln -sfn "$RESULT_ROOT" "$CURRENT_LINK"
@@ -141,16 +145,26 @@ first_task_root_summary() {
 
 model_path_for_step() {
   local step="$1"
-  if [[ "$step" == "0" ]]; then
+  local formats=()
+  split_csv "$MODEL_STEP_FORMATS" formats
+  local candidate rel_path raw_format
+  if [[ "$step" == "0" ]] && ! is_truthy "$PREFER_STEP0_MODEL_ARTIFACT"; then
     printf '%s\n' "$BASE_MODEL_PATH"
     return 0
   fi
-  local checkpoint_path="$TRAIN_OUTPUT_DIR/checkpoint-${step}"
-  if [[ ! -d "$checkpoint_path" ]]; then
-    echo "Missing checkpoint for step ${step}: $checkpoint_path" >&2
-    exit 1
-  fi
-  printf '%s\n' "$checkpoint_path"
+  for raw_format in "${formats[@]}"; do
+    raw_format="${raw_format//[[:space:]]/}"
+    [[ -n "$raw_format" ]] || continue
+    rel_path="$(printf "$raw_format" "$step")"
+    candidate="$MODEL_ROOT/$rel_path"
+    if [[ -d "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  echo "Missing model artifact for step ${step} under ${MODEL_ROOT}." >&2
+  echo "Checked MODEL_STEP_FORMATS=${MODEL_STEP_FORMATS}" >&2
+  exit 1
 }
 
 submit_task_job() {
@@ -162,7 +176,7 @@ submit_task_job() {
   local prompt_start="${6:-}"
   local prompt_end="${7:-}"
   local export_vars
-  export_vars="ALL,ROOT_DIR=${ROOT_DIR},MODEL_PATH=${model_path},RESULTS_DIR=${results_dir},TASKS=${task_name},TEMPLATE=${template_name},PASS_AT_8_SAMPLES=${PASS_AT_8_SAMPLES},VLLM_DTYPE=${VLLM_DTYPE},VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN},VLLM_BATCH_SIZE=${VLLM_BATCH_SIZE},PROMPT_START=${prompt_start},PROMPT_END=${prompt_end}"
+  export_vars="ALL,ROOT_DIR=${ROOT_DIR},MODEL_PATH=${model_path},RESULTS_DIR=${results_dir},TASKS=${task_name},TEMPLATE=${template_name},PASS_AT_8_SAMPLES=${PASS_AT_8_SAMPLES},VLLM_DTYPE=${VLLM_DTYPE},VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN},VLLM_BATCH_SIZE=${VLLM_BATCH_SIZE},PROMPT_START=${prompt_start},PROMPT_END=${prompt_end},SAMPLING_SEED=${SAMPLING_SEED}"
   local output
   output="$(
     sbatch \

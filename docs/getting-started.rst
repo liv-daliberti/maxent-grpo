@@ -1,59 +1,73 @@
 Overview
 ========
 
-MaxEnt‑GRPO is a clean training stack for GRPO with optional maximum‑entropy weighting and a GRPO + entropy‑bonus mode. It targets practical math training and evaluation while keeping code simple and production‑oriented.
+The canonical training path in this repository is now the upstream OAT
+README-flash stack plus a local listwise maxent-explorer overlay.
 
-Install
-=======
+Active baseline launcher:
 
-- Python 3.10+ recommended
-- GPU with recent CUDA when training
-- A working vLLM server if your training recipe uses server-side rollouts
+- ``ops/run_oat_zero_exact_1p5b_upstream.sh``
+- ``ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm``
+
+Active explorer launcher:
+
+- ``ops/run_oat_zero_explorer_1p5b_upstream.sh``
+- ``ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_explorer_node302.slurm``
+
+Retired TRL/Hydra orchestration and older noncanonical launchers are archived
+under ``archive/trl/``.
+
+Canonical Runtime
+=================
+
+The working runtime is the repo-local ``paper310`` environment:
+
+- ``python==3.10.20``
+- ``torch==2.6.0``
+- ``transformers==4.51.3``
+- ``vllm==0.8.4``
+- ``oat-llm==0.1.3.post1``
+- ``deepspeed==0.16.8``
+- ``flash-attn==2.7.4.post1`` via the launch-time overlay
+
+Validate it before training:
+
+.. code-block:: bash
+
+   python tools/audit_oat_setup.py
 
 Quickstart
 ==========
 
-1) Create the local environment and launch training:
+1. Launch the canonical baseline:
 
 .. code-block:: bash
 
-   make conda-local && conda activate ./var/openr1
-   pip install -c configs/constraints.txt -e .[dev]
-   sbatch ops/slurm/train_dual_4plus4.slurm --config math --accelerator zero3 --run-only both
+   sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm
 
-``ops/slurm/train_dual_4plus4.slurm`` provisions runtime caches under ``./var/`` and dispatches the experiment-profile stacks: GRPO + entropy-MaxEnt together, or a single stack via ``--run-only grpo|maxent|listwise|seed``. For the full four-way comparison, use ``ops/run_experiment_quartet_single_node.sh``. See :doc:`methods` for the exact mapping from presets to algorithm family vs loss backend. For a no-Slurm smoke test, use the Hydra console scripts instead:
+2. Launch the listwise maxent-explorer variant on the same stack:
 
 .. code-block:: bash
 
-   # Baseline GRPO with inline overrides
-   maxent-grpo-baseline command=train-baseline training.output_dir=var/data/out
+   sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_explorer_node302.slurm
 
-   # MaxEnt-GRPO using a YAML recipe
-   maxent-grpo command=train-maxent \
-     maxent.recipe=configs/recipes/Qwen2.5-1.5B-Instruct/maxent-grpo/config_math.yaml
+3. For local shell launches instead of Slurm:
 
-2) Inspect training setup and launch details in Guides → Training.
+.. code-block:: bash
 
-The Hydra convenience MaxEnt presets can enable the τ/β meta-controller
-(analytic mode) so weighting parameters track entropy/KL targets
-automatically. Check the recipe and disable it via
-``--controller_meta_enabled false`` (or set the YAML field) when you need
-fixed hyperparameters for ablations; re-enable and tune with
-``controller_meta_method``, ``controller_meta_lr``, and friends when you want
-the learned controller back. The paired flat GRPO/MaxEnt recipes keep the
-controller off unless you override the flag.
+   bash ops/run_oat_zero_exact_1p5b_upstream.sh
+   bash ops/run_oat_zero_explorer_1p5b_upstream.sh
 
-What’s Inside
-=============
+What Is Archived
+================
 
-- ``src/maxent_grpo/grpo.py``: Minimal GRPO training entrypoint
-- ``src/maxent_grpo/config/``: Dataclasses for all runtime configuration
-- ``src/rewards.py``: Reward functions and registry
-- ``configs/recipes/…``: Example YAML recipes
+- ``archive/trl/ops/`` keeps retired orchestration wrappers and experiment launchers.
+- ``archive/trl/ops/slurm/`` keeps retired Slurm entrypoints.
+- ``src/maxent_grpo/`` remains in the repo for reference and historical work, but it is not the canonical training front door anymore.
 
 Quick Links
 ===========
 
-- `Training Guide <guides/training>`_ — launch training, shape rewards, configure datasets.
-- `Evaluation <guides/evaluation>`_ — run LightEval benchmarks with vLLM and Slurm helpers.
-- `API Reference <api>`_ — browse modules and configuration dataclasses.
+- `OAT Upstream DR.GRPO <guides/oat-upstream-drgrpo>`_ - exact working stack and explorer overlay.
+- `Training Guide <guides/training>`_ - canonical launch flow plus archive notes.
+- `Runtime <guides/runtime>`_ - pinned runtime and validation checks.

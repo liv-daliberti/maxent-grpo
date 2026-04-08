@@ -209,6 +209,7 @@ def _build_generate_request_model() -> Any:
     class _GenerateRequest(base_model):
         prompts: list[str]
         n: int = 1
+        seed: Optional[int] = None
         repetition_penalty: float = 1.0
         temperature: float = 1.0
         top_p: float = 1.0
@@ -459,6 +460,9 @@ def _patch_blocking_init_communicator() -> Any:
             best_of = getattr(request, "best_of", None)
             if best_of is not None:
                 sampling_kwargs["best_of"] = int(best_of)
+            seed = getattr(request, "seed", None)
+            if seed is not None:
+                sampling_kwargs["seed"] = int(seed)
             stop = getattr(request, "stop", None)
             if stop:
                 sampling_kwargs["stop"] = list(stop)

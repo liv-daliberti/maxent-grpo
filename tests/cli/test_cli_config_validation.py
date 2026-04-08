@@ -66,6 +66,7 @@ def test_validate_training_config_allows_shared_grpo_scoring_knobs() -> None:
         "objective": "grpo",
         "maxent_reference_logprobs_source": "model",
         "maxent_logprob_chunk_size": 8,
+        "maxent_backward_chunk_size": 4,
         "maxent_allow_empty_weight_fallback": True,
         "maxent_alpha": 0.0,
     }

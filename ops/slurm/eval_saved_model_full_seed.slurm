@@ -12,6 +12,13 @@ fi
 cd "$ROOT_DIR"
 source "$ROOT_DIR/ops/repo_env.sh"
 
+if ! command -v ninja >/dev/null 2>&1; then
+  FALLBACK_NINJA_BIN="/n/fs/similarity/kalshi/markets_pipeline/.runtime/qwen_vllm/venv/bin"
+  if [[ -x "$FALLBACK_NINJA_BIN/ninja" ]]; then
+    export PATH="$PATH:$FALLBACK_NINJA_BIN"
+  fi
+fi
+
 MODEL_PATH="${MODEL_PATH:?MODEL_PATH is required}"
 RESULTS_DIR="${RESULTS_DIR:?RESULTS_DIR is required}"
 TASKS="${TASKS:-aime,amc,math,minerva,olympiad_bench}"
@@ -33,6 +40,7 @@ VLLM_HEALTH_WAIT_LOOPS="${VLLM_HEALTH_WAIT_LOOPS:-240}"
 VLLM_HEALTH_WAIT_SLEEP_S="${VLLM_HEALTH_WAIT_SLEEP_S:-5}"
 PROMPT_START="${PROMPT_START:-}"
 PROMPT_END="${PROMPT_END:-}"
+SAMPLING_SEED="${SAMPLING_SEED:-}"
 
 mkdir -p "$RESULTS_DIR"
 
@@ -134,6 +142,9 @@ if [[ -n "$PROMPT_START" ]]; then
 fi
 if [[ -n "$PROMPT_END" ]]; then
   eval_cmd+=(--prompt-end "$PROMPT_END")
+fi
+if [[ -n "$SAMPLING_SEED" ]]; then
+  eval_cmd+=(--sampling-seed "$SAMPLING_SEED")
 fi
 
 "${eval_cmd[@]}" 2>&1 | tee "$EVAL_STDOUT_LOG"

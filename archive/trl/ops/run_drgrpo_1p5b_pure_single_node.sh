@@ -9,8 +9,9 @@ PYTHON_BIN="${PURE_DRGRPO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/pyt
 PYTHON_LIB_DIR="${PURE_DRGRPO_PYTHON_LIB_DIR:-$ROOT_DIR/var/seed_paper_eval/paper310/lib}"
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 SAVE_PATH="${SAVE_PATH:-$ROOT_DIR/var/data/drgrpo_1p5b_pure_oat_r1_${RUN_STAMP}}"
-SAVE_STEPS="${SAVE_STEPS:-50}"
+SAVE_STEPS="${SAVE_STEPS:--1}"
 MAX_SAVE_NUM="${MAX_SAVE_NUM:-10}"
+SAVE_CKPT="${SAVE_CKPT:-0}"
 WB_PROJECT="${WB_PROJECT:-oat-zero}"
 WB_RUN_NAME="${WB_RUN_NAME:-qwen2.5-Math-1.5b-drgrpo-r1template}"
 PURE_OBJECTIVE="${PURE_OBJECTIVE:-grpo}"
@@ -31,6 +32,15 @@ PURE_SEED_GRPO_ENABLED="${PURE_SEED_GRPO_ENABLED:-0}"
 PURE_SEED_GRPO_ALPHA="${PURE_SEED_GRPO_ALPHA:-0.0417}"
 PURE_SEED_GRPO_ALPHA_NORMALIZE_BY_MAX_ENTROPY="${PURE_SEED_GRPO_ALPHA_NORMALIZE_BY_MAX_ENTROPY:-1}"
 PURE_SEED_GRPO_LENGTH_NORMALIZE_LOGPROBS="${PURE_SEED_GRPO_LENGTH_NORMALIZE_LOGPROBS:-1}"
+PURE_VERIFIER_VERSION="${PURE_VERIFIER_VERSION:-fast}"
+PURE_CORRECT_REWARD="${PURE_CORRECT_REWARD:-1.0}"
+PURE_INCORRECT_REWARD="${PURE_INCORRECT_REWARD:-0.0}"
+PURE_DRGRPO_PRECISION="${PURE_DRGRPO_PRECISION:-fp16}"
+PURE_DRGRPO_ENABLE_FLASH_ATTN="${PURE_DRGRPO_ENABLE_FLASH_ATTN:-1}"
+PURE_DRGRPO_BOOTSTRAP_FLASH_ATTN="${PURE_DRGRPO_BOOTSTRAP_FLASH_ATTN:-1}"
+PURE_DRGRPO_FLASH_ATTN_VERSION="${PURE_DRGRPO_FLASH_ATTN_VERSION:-2.7.0.post2}"
+PURE_DRGRPO_FLASH_ATTN_MAX_JOBS="${PURE_DRGRPO_FLASH_ATTN_MAX_JOBS:-8}"
+PURE_DRGRPO_FLASH_ATTN_CACHE_ROOT="${PURE_DRGRPO_FLASH_ATTN_CACHE_ROOT:-$ROOT_DIR/var/cache/pure_flash_attn}"
 PROMPT_DATA="${PROMPT_DATA:-$ROOT_DIR/datasets/train/math_12k}"
 EVAL_DATA="${EVAL_DATA:-$PURE_DRGRPO_ROOT/datasets/evaluation_suite}"
 EVAL_STEPS="${EVAL_STEPS:-16}"
@@ -64,6 +74,27 @@ if [[ ! -d "$EVAL_DATA" ]]; then
   exit 1
 fi
 
+case "$PURE_VERIFIER_VERSION" in
+  fast|math_verify) ;;
+  *)
+    echo "PURE_VERIFIER_VERSION must be one of: fast, math_verify" >&2
+    exit 1
+    ;;
+esac
+
+case "$PURE_DRGRPO_PRECISION" in
+  bf16|bfloat16)
+    precision_flag=(--bf16)
+    ;;
+  fp16|float16)
+    precision_flag=(--no-bf16)
+    ;;
+  *)
+    echo "PURE_DRGRPO_PRECISION must be one of: fp16, bf16" >&2
+    exit 1
+    ;;
+esac
+
 mkdir -p "$SAVE_PATH"
 
 export CUDA_VISIBLE_DEVICES
@@ -89,11 +120,121 @@ if [[ -d "$PYTHON_LIB_DIR" ]]; then
   export LD_LIBRARY_PATH="${PYTHON_LIB_DIR}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 fi
 
+torch_cuda_version="$("$PYTHON_BIN" - <<'PY' | tail -n 1
+import torch
+
+print(torch.version.cuda or "")
+PY
+)"
+
+if [[ -z "${PURE_DRGRPO_CUDA_HOME:-}" && -n "$torch_cuda_version" ]]; then
+  if [[ -x "/usr/local/cuda-${torch_cuda_version}/bin/nvcc" ]]; then
+    PURE_DRGRPO_CUDA_HOME="/usr/local/cuda-${torch_cuda_version}"
+  fi
+fi
+
+if [[ -n "${PURE_DRGRPO_CUDA_HOME:-}" ]]; then
+  export CUDA_HOME="$PURE_DRGRPO_CUDA_HOME"
+  export CUDACXX="$CUDA_HOME/bin/nvcc"
+  export PATH="$CUDA_HOME/bin:${PATH}"
+  if [[ -d "$CUDA_HOME/lib64" ]]; then
+    export LD_LIBRARY_PATH="$CUDA_HOME/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  fi
+fi
+
+flash_attn_runtime_key="$("$PYTHON_BIN" - <<'PY' | tail -n 1
+import re
+import sys
+
+import torch
+
+torch_version = re.sub(r"[^0-9A-Za-z._-]+", "_", torch.__version__)
+cuda_version = re.sub(r"[^0-9A-Za-z._-]+", "_", torch.version.cuda or "cpu")
+print(f"py{sys.version_info.major}{sys.version_info.minor}_torch{torch_version}_cu{cuda_version}")
+PY
+)"
+FLASH_ATTN_OVERLAY_DIR="${PURE_DRGRPO_FLASH_ATTN_OVERLAY_DIR:-$PURE_DRGRPO_FLASH_ATTN_CACHE_ROOT/$flash_attn_runtime_key}"
+
+prepend_pythonpath() {
+  local new_path="$1"
+  if [[ -n "${PYTHONPATH:-}" ]]; then
+    export PYTHONPATH="${new_path}:$PYTHONPATH"
+  else
+    export PYTHONPATH="${new_path}"
+  fi
+}
+
+flash_attn_importable() {
+  "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
+import flash_attn
+PY
+}
+
+flash_attn_location() {
+  "$PYTHON_BIN" - <<'PY'
+import flash_attn
+
+print(flash_attn.__file__)
+PY
+}
+
+bootstrap_flash_attn() {
+  local install_lock="$FLASH_ATTN_OVERLAY_DIR.install.lock"
+
+  mkdir -p "$FLASH_ATTN_OVERLAY_DIR"
+  prepend_pythonpath "$FLASH_ATTN_OVERLAY_DIR"
+
+  if flash_attn_importable; then
+    return 0
+  fi
+
+  if [[ "$PURE_DRGRPO_BOOTSTRAP_FLASH_ATTN" != "1" ]]; then
+    return 1
+  fi
+
+  if ! command -v nvidia-smi >/dev/null 2>&1 || ! nvidia-smi -L >/dev/null 2>&1; then
+    echo "[pure-drgrpo] flash-attn bootstrap requires a visible GPU on the training node." >&2
+    return 1
+  fi
+
+  exec 9>"$install_lock"
+  flock 9
+
+  if flash_attn_importable; then
+    return 0
+  fi
+
+  if [[ -n "${CUDA_HOME:-}" && -x "${CUDA_HOME}/bin/nvcc" ]]; then
+    echo "[pure-drgrpo] flash-attn build using CUDA_HOME=${CUDA_HOME}"
+    "${CUDA_HOME}/bin/nvcc" --version | tail -n 1
+  fi
+
+  echo "[pure-drgrpo] installing flash-attn==${PURE_DRGRPO_FLASH_ATTN_VERSION} into ${FLASH_ATTN_OVERLAY_DIR}..."
+  MAX_JOBS="$PURE_DRGRPO_FLASH_ATTN_MAX_JOBS" \
+    "$PYTHON_BIN" -m pip install \
+      --upgrade \
+      --no-build-isolation \
+      --no-deps \
+      --target "$FLASH_ATTN_OVERLAY_DIR" \
+      "flash-attn==${PURE_DRGRPO_FLASH_ATTN_VERSION}"
+
+  flash_attn_importable
+}
+
 flash_attn_flag=(--no-flash-attn)
-if [[ "${PURE_DRGRPO_ENABLE_FLASH_ATTN:-0}" == "1" ]]; then
-  flash_attn_flag=(--flash-attn)
+flash_attn_status="disabled"
+flash_attn_path=""
+if [[ "$PURE_DRGRPO_ENABLE_FLASH_ATTN" == "1" ]]; then
+  if bootstrap_flash_attn; then
+    flash_attn_flag=(--flash-attn)
+    flash_attn_status="enabled"
+    flash_attn_path="$(flash_attn_location)"
+  else
+    echo "[pure-drgrpo] failed to make flash-attn available while PURE_DRGRPO_ENABLE_FLASH_ATTN=1." >&2
+    exit 1
+  fi
 else
-  echo "[pure-drgrpo] flash_attn is unavailable in the pure runtime; disabling the optional flag while keeping the upstream OAT/Dr.GRPO backend." >&2
+  echo "[pure-drgrpo] flash-attn disabled via PURE_DRGRPO_ENABLE_FLASH_ATTN=${PURE_DRGRPO_ENABLE_FLASH_ATTN}." >&2
 fi
 
 if [[ "${PURE_DRGRPO_PREBUILD_FUSED_ADAM:-1}" == "1" ]]; then
@@ -123,7 +264,7 @@ PY
 fi
 
 save_ckpt_flag=()
-if [[ "${SAVE_CKPT:-1}" == "1" ]]; then
+if [[ "$SAVE_CKPT" == "1" ]]; then
   save_ckpt_flag=(--save-ckpt)
 fi
 
@@ -167,7 +308,7 @@ cmd=(
   --vllm_gpu_ratio 0.35
   --gradient-checkpointing
   "${flash_attn_flag[@]}"
-  --bf16
+  "${precision_flag[@]}"
   --rnd-seed
   --learning_rate 0.000001
   --lr_scheduler constant
@@ -193,6 +334,9 @@ cmd=(
   --oracle math
   --pretrain Qwen/Qwen2.5-Math-1.5B
   --prompt_template r1
+  --verifier_version "$PURE_VERIFIER_VERSION"
+  --correct_reward "$PURE_CORRECT_REWARD"
+  --incorrect_reward "$PURE_INCORRECT_REWARD"
   --zero-stage 2
   --ref_offload
   --prompt_data "$PROMPT_DATA"
@@ -238,7 +382,7 @@ echo "[pure-drgrpo] python=${PYTHON_BIN}"
 echo "[pure-drgrpo] checkout=${PURE_DRGRPO_ROOT}"
 echo "[pure-drgrpo] save_path=${SAVE_PATH}"
 echo "[pure-drgrpo] save_steps=${SAVE_STEPS}"
-echo "[pure-drgrpo] save_ckpt=${SAVE_CKPT:-1}"
+echo "[pure-drgrpo] save_ckpt=${SAVE_CKPT}"
 echo "[pure-drgrpo] max_save_num=${MAX_SAVE_NUM}"
 echo "[pure-drgrpo] objective=${PURE_OBJECTIVE}"
 echo "[pure-drgrpo] beta=${PURE_BETA}"
@@ -258,6 +402,17 @@ echo "[pure-drgrpo] seed_grpo_enabled=${PURE_SEED_GRPO_ENABLED}"
 echo "[pure-drgrpo] seed_grpo_alpha=${PURE_SEED_GRPO_ALPHA}"
 echo "[pure-drgrpo] seed_grpo_alpha_normalize_by_max_entropy=${PURE_SEED_GRPO_ALPHA_NORMALIZE_BY_MAX_ENTROPY}"
 echo "[pure-drgrpo] seed_grpo_length_normalize_logprobs=${PURE_SEED_GRPO_LENGTH_NORMALIZE_LOGPROBS}"
+echo "[pure-drgrpo] verifier_version=${PURE_VERIFIER_VERSION}"
+echo "[pure-drgrpo] correct_reward=${PURE_CORRECT_REWARD}"
+echo "[pure-drgrpo] incorrect_reward=${PURE_INCORRECT_REWARD}"
+echo "[pure-drgrpo] precision=${PURE_DRGRPO_PRECISION}"
+echo "[pure-drgrpo] torch_cuda_version=${torch_cuda_version:-none}"
+echo "[pure-drgrpo] cuda_home=${CUDA_HOME:-unset}"
+echo "[pure-drgrpo] flash_attn_status=${flash_attn_status}"
+echo "[pure-drgrpo] flash_attn_overlay=${FLASH_ATTN_OVERLAY_DIR}"
+if [[ -n "$flash_attn_path" ]]; then
+  echo "[pure-drgrpo] flash_attn_path=${flash_attn_path}"
+fi
 echo "[pure-drgrpo] wb_project=${WB_PROJECT}"
 echo "[pure-drgrpo] wb_run_name=${WB_RUN_NAME}"
 echo "[pure-drgrpo] prompt_data=${PROMPT_DATA}"

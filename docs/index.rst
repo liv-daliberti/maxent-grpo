@@ -1,23 +1,14 @@
 MaxEnt-GRPO
 ===========
 
-MaxEnt-GRPO is a clean GRPO training stack with optional maximum-entropy
-weighting and a GRPO + entropy-bonus mode. It targets practical math training
-and evaluation while keeping the implementation approachable for production
-use. See the README_ on GitHub for the full project overview and quick start
-instructions.
+This documentation now treats the upstream OAT stack as the canonical training
+surface for the repository. The active path is the README-flash
+``understand-r1-zero`` baseline plus the local listwise maxent-explorer
+overlay on top of it.
 
-.. _README: https://github.com/huggingface/open-r1#readme
-
-Paired GRPO/MaxEnt recipes live under ``configs/recipes/<model>/grpo/`` and
-``configs/recipes/<model>/maxent-grpo/`` so runs stay comparable. The GRPO
-pairs pin ``maxent_reference_logprobs_source: model`` to keep the objective and
-frozen reference anchor aligned. The Qwen 0.5B/1.5B ``maxent-grpo`` recipes
-default to trainer-level entropy MaxEnt
-(``objective=maxent_entropy``) with
-``maxent_policy_entropy_mode=exact``; the frozen reference still enters through
-the same KL term used by GRPO. The older Qwen 7B ``maxent-grpo`` math recipe
-remains a GRPO + entropy-bonus run.
+Older TRL/Hydra orchestration and pre-canonical launchers are still retained
+under ``archive/trl/``, but they are no longer presented as the default way to
+train in this repo.
 
 Get Started
 -----------
@@ -37,10 +28,11 @@ Guides
 
    methods
    architecture
-   guides/cli
+   guides/oat-upstream-drgrpo
    guides/training
-   guides/evaluation
    guides/runtime
+   guides/evaluation
+   guides/cli
    recipes
 
 Reference
@@ -52,8 +44,9 @@ Reference
 
    api
 
-Project Links
+Project Notes
 -------------
 
-- Source code: https://github.com/huggingface/open-r1
-- README: https://github.com/huggingface/open-r1#readme
+- Active launchers live in ``ops/`` and are OAT-only.
+- Retired launchers live in ``archive/trl/``.
+- The runtime audit entrypoint is ``tools/audit_oat_setup.py``.

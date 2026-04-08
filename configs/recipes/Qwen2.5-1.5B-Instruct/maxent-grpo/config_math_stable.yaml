@@ -89,7 +89,8 @@ vllm_mode: colocate
 torch_compile: false
 vllm_return_logprobs: true
 vllm_request_logprobs: true
-vllm_sync_weights: false
+vllm_sync_weights: true
+vllm_sync_interval_steps: 1
 vllm_gpu_memory_utilization: 0.35
 maxent_logprob_chunk_size: 2
 do_eval: false

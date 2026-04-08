@@ -76,7 +76,8 @@ policy_entropy_bonus_coef: 0.0
 maxent_length_normalize_ref: true
 maxent_length_normalize_policy: true
 maxent_policy_entropy: false
-vllm_sync_weights: false
+vllm_sync_weights: true
+vllm_sync_interval_steps: 1
 vllm_gpu_memory_utilization: 0.35
 do_eval: false
 # Quartet single-stack runs use 3 trainer GPUs plus 1 vLLM GPU.

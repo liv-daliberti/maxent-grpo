@@ -62,4 +62,4 @@ echo "[slurm] output_dir=${OUTPUT_DIR}"
 echo "[slurm] run_name=${RUN_NAME}"
 echo "[slurm] python=$(command -v python)"
 
-exec "$ROOT_DIR/ops/run_drgrpo_1p5b_oat_parity_single_node.sh" "$@"
+exec "$ROOT_DIR/archive/trl/ops/run_drgrpo_1p5b_oat_parity_single_node.sh" "$@"

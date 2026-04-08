@@ -139,6 +139,7 @@ class SeedPaperEvalConfig:
     pass_at_8_samples: int = DEFAULT_PASS_AT_8_SAMPLES
     pass_at_8_temperature: float = DEFAULT_PASS_AT_8_TEMPERATURE
     pass_at_8_top_p: float = DEFAULT_PASS_AT_8_TOP_P
+    sampling_seed: int | None = None
 
 
 def repo_root() -> Path:
@@ -379,6 +380,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--save-outputs",
         action="store_true",
         help="Forward save=True to the official script so it stores raw generations.",
+    )
+    parser.add_argument(
+        "--sampling-seed",
+        type=int,
+        help=(
+            "Optional deterministic sampling seed forwarded to the live vLLM "
+            "server when --vllm-url is used."
+        ),
     )
     parser.add_argument(
         "--prepare-only",
@@ -645,6 +654,9 @@ def parse_args(argv: Sequence[str] | None = None) -> SeedPaperEvalConfig:
         pass_at_8_samples=int(args.pass_at_8_samples),
         pass_at_8_temperature=float(args.pass_at_8_temperature),
         pass_at_8_top_p=float(args.pass_at_8_top_p),
+        sampling_seed=(
+            int(args.sampling_seed) if args.sampling_seed is not None else None
+        ),
     )
 
 
@@ -1413,6 +1425,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                 temperature=config.temperature,
                 top_p=config.top_p,
                 n=config.n_samples,
+                seed=config.sampling_seed,
                 tokenizer=eval_tokenizer,
                 return_logprobs=True,
                 timeout=max(600.0, float(config.max_tokens)),
@@ -1508,6 +1521,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                             "prompt": str(prompt_batch[row_idx]),
                             "gt": str(gt),
                             "mode": "single",
+                            "sampling_seed": config.sampling_seed,
                             "n_samples": int(config.n_samples),
                             "temperature": float(config.temperature),
                             "top_p": float(config.top_p),
@@ -1533,6 +1547,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                     temperature=config.pass_at_8_temperature,
                     top_p=config.pass_at_8_top_p,
                     n=config.pass_at_8_samples,
+                    seed=config.sampling_seed,
                     tokenizer=eval_tokenizer,
                     return_logprobs=bool(config.save_outputs),
                     timeout=max(600.0, float(config.max_tokens)),
@@ -1609,6 +1624,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
                                 "prompt": str(prompt_batch[row_idx]),
                                 "gt": str(gt),
                                 "mode": "pass_at_8",
+                                "sampling_seed": config.sampling_seed,
                                 "n_samples": int(config.pass_at_8_samples),
                                 "temperature": float(config.pass_at_8_temperature),
                                 "top_p": float(config.pass_at_8_top_p),
@@ -1652,6 +1668,7 @@ def _run_vllm_server_eval(config: SeedPaperEvalConfig) -> dict[str, object]:
         "vllm_stop_sequences": list(config.vllm_stop_sequences)
         if config.vllm_stop_sequences is not None
         else None,
+        "sampling_seed": config.sampling_seed,
         "pass_at_8_config": {
             "enabled": bool(config.pass_at_8_enabled),
             "samples": int(config.pass_at_8_samples),
@@ -1790,6 +1807,7 @@ def write_metadata(
         "n_samples": config.n_samples,
         "max_test": config.max_test,
         "save_outputs": config.save_outputs,
+        "sampling_seed": config.sampling_seed,
         "pass_at_8_enabled": config.pass_at_8_enabled,
         "pass_at_8_samples": config.pass_at_8_samples,
         "pass_at_8_temperature": config.pass_at_8_temperature,

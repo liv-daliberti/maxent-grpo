@@ -19,11 +19,13 @@ Baseline-friendly reward registry used by GRPO training.
 from __future__ import annotations
 # pylint: disable=broad-exception-caught
 
+import atexit
 import ast
 import importlib
 import json
 import logging
 import math
+import multiprocessing as mp
 import os
 import subprocess
 import sys
@@ -65,6 +67,8 @@ _code_block_pat: RePattern[str] = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
 _def_name_pat: RePattern[str] = re.compile(r"def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 
 _LOG = logging.getLogger(__name__)
+_SEED_PAPER_REWARD_POOL: Optional[Any] = None
+_SEED_PAPER_REWARD_POOL_PID: Optional[int] = None
 
 
 CompletionType = Union[str, List[Dict[str, str]], Dict[str, Any]]
@@ -806,36 +810,53 @@ def get_missing_boxed_answer_penalty_reward(
 
 
 @lru_cache(maxsize=1)
-def _seed_paper_boxed_reward_fn() -> Any:
-    """Load the official SEED paper boxed reward function from the repo-local checkout."""
+def _seed_paper_repo_dir() -> Path:
+    """Resolve the repo-local official grader checkout used for OAT parity."""
 
-    repo_dir = Path(
-        os.environ.get(
-            "MAXENT_SEED_PAPER_REPO_DIR",
-            str(
-                Path(__file__).resolve().parents[3]
-                / "var"
-                / "seed_paper_eval"
-                / "external"
-                / "SEED-GRPO"
-            ),
-        )
-    )
-    if not repo_dir.exists():
+    root_dir = Path(__file__).resolve().parents[3]
+    override = os.environ.get("MAXENT_SEED_PAPER_REPO_DIR")
+    if override:
+        repo_dir = Path(override)
+        if repo_dir.exists():
+            return repo_dir
         raise FileNotFoundError(
-            "Official SEED-GRPO checkout not found for reward parity at "
-            f"{repo_dir}. Run the repo-local SEED paper eval preparation first."
+            "MAXENT_SEED_PAPER_REPO_DIR points to a missing checkout at "
+            f"{repo_dir}."
         )
-    paper_site_packages = (
-        Path(__file__).resolve().parents[3]
-        / "var"
-        / "seed_paper_eval"
-        / "paper_venv"
-        / "lib"
-        / f"python{sys.version_info.major}.{sys.version_info.minor}"
-        / "site-packages"
+
+    candidates = (
+        root_dir / "var" / "external" / "understand-r1-zero",
+        root_dir / "var" / "seed_paper_eval" / "external" / "SEED-GRPO",
     )
-    if paper_site_packages.exists():
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "Official OAT/SEED checkout not found for reward parity. Checked: "
+        + ", ".join(str(path) for path in candidates)
+    )
+
+
+@lru_cache(maxsize=1)
+def _seed_paper_site_packages_dir() -> Optional[Path]:
+    """Return the paper eval site-packages dir when a repo-local env is available."""
+
+    root_dir = Path(__file__).resolve().parents[3]
+    for env_name in ("paper310", "paper_venv"):
+        lib_dir = root_dir / "var" / "seed_paper_eval" / env_name / "lib"
+        if not lib_dir.exists():
+            continue
+        matches = sorted(lib_dir.glob("python*/site-packages"))
+        if matches:
+            return matches[0]
+    return None
+
+
+def _prepare_seed_paper_import_paths(repo_dir: Path) -> None:
+    """Match the official symbolic stack before importing the grader module."""
+
+    paper_site_packages = _seed_paper_site_packages_dir()
+    if paper_site_packages is not None and paper_site_packages.exists():
         paper_site_packages_str = str(paper_site_packages)
         if paper_site_packages_str not in sys.path:
             sys.path.insert(0, paper_site_packages_str)
@@ -853,8 +874,7 @@ def _seed_paper_boxed_reward_fn() -> Any:
                 sys.modules.pop(module_name, None)
     else:
         _LOG.warning(
-            "SEED paper reward parity requested, but paper site-packages were not found at %s.",
-            paper_site_packages,
+            "SEED paper reward parity requested, but no paper site-packages dir was found."
         )
     repo_dir_str = str(repo_dir)
     if repo_dir_str not in sys.path:
@@ -868,82 +888,123 @@ def _seed_paper_boxed_reward_fn() -> Any:
             logger = logging.getLogger(logger_name)
             logger.setLevel(logging.CRITICAL)
             logger.propagate = False
+
+
+@lru_cache(maxsize=4)
+def _load_seed_paper_reward_fn(reward_name: str) -> Any:
+    """Load an official SEED/OAT reward function from the repo-local checkout."""
+
+    repo_dir = _seed_paper_repo_dir()
+    _prepare_seed_paper_import_paths(repo_dir)
     grader = importlib.import_module("understand_r1_zero.math_grader")
-    reward_fn = getattr(grader, "boxed_reward_fn", None)
+    reward_fn = getattr(grader, reward_name, None)
     if not callable(reward_fn):
         raise RuntimeError(
-            f"Official SEED boxed_reward_fn is unavailable in {repo_dir}."
+            f"Official SEED/OAT reward function {reward_name} is unavailable in {repo_dir}."
         )
     return reward_fn
 
 
 @lru_cache(maxsize=1)
-def _seed_paper_answer_tag_reward_fn() -> Any:
-    """Load the official SEED paper answer-tag reward function from the repo-local checkout."""
+def _seed_paper_boxed_reward_fn() -> Any:
+    """Load the official boxed reward function from the repo-local checkout."""
 
-    repo_dir = Path(
-        os.environ.get(
-            "MAXENT_SEED_PAPER_REPO_DIR",
-            str(
-                Path(__file__).resolve().parents[3]
-                / "var"
-                / "seed_paper_eval"
-                / "external"
-                / "SEED-GRPO"
-            ),
-        )
-    )
-    if not repo_dir.exists():
-        raise FileNotFoundError(
-            "Official SEED-GRPO checkout not found for reward parity at "
-            f"{repo_dir}. Run the repo-local SEED paper eval preparation first."
-        )
-    paper_site_packages = (
-        Path(__file__).resolve().parents[3]
-        / "var"
-        / "seed_paper_eval"
-        / "paper_venv"
-        / "lib"
-        / f"python{sys.version_info.major}.{sys.version_info.minor}"
-        / "site-packages"
-    )
-    if paper_site_packages.exists():
-        paper_site_packages_str = str(paper_site_packages)
-        if paper_site_packages_str not in sys.path:
-            sys.path.insert(0, paper_site_packages_str)
-        for prefix in ("antlr4", "math_verify", "sympy", "understand_r1_zero"):
-            for module_name in tuple(sys.modules):
-                if module_name != prefix and not module_name.startswith(f"{prefix}."):
-                    continue
-                module = sys.modules.get(module_name)
-                module_file = getattr(module, "__file__", None)
-                if module_file and str(module_file).startswith(paper_site_packages_str):
-                    continue
-                sys.modules.pop(module_name, None)
+    return _load_seed_paper_reward_fn("boxed_reward_fn")
+
+
+@lru_cache(maxsize=1)
+def _seed_paper_answer_tag_reward_fn() -> Any:
+    """Load the official answer-tag reward function from the repo-local checkout."""
+
+    return _load_seed_paper_reward_fn("answer_tag_reward_fn")
+
+
+def _seed_paper_reward_worker(
+    reward_name: str,
+    text: str,
+    gold: Any,
+    fast: bool,
+) -> Any:
+    """Worker entrypoint for OAT-style reward calls in a separate process."""
+
+    reward_fn = _load_seed_paper_reward_fn(reward_name)
+    return reward_fn(text, gold, fast=fast)
+
+
+def _close_seed_paper_reward_pool() -> None:
+    """Close the lazy OAT-parity reward pool for the current process."""
+
+    global _SEED_PAPER_REWARD_POOL
+    global _SEED_PAPER_REWARD_POOL_PID
+
+    pool = _SEED_PAPER_REWARD_POOL
+    pool_pid = _SEED_PAPER_REWARD_POOL_PID
+    _SEED_PAPER_REWARD_POOL = None
+    _SEED_PAPER_REWARD_POOL_PID = None
+    if pool is None:
+        return
+    if pool_pid is not None and pool_pid != os.getpid():
+        return
+    try:
+        pool.terminate()
+    except Exception:
+        return
+    try:
+        pool.join()
+    except Exception:
+        pass
+
+
+atexit.register(_close_seed_paper_reward_pool)
+
+
+def _seed_paper_reward_pool() -> Any:
+    """Return a process-local worker pool mirroring OAT's `Pool(2)` reward path."""
+
+    global _SEED_PAPER_REWARD_POOL
+    global _SEED_PAPER_REWARD_POOL_PID
+
+    current_pid = os.getpid()
+    if (
+        _SEED_PAPER_REWARD_POOL is not None
+        and _SEED_PAPER_REWARD_POOL_PID == current_pid
+    ):
+        return _SEED_PAPER_REWARD_POOL
+
+    if _SEED_PAPER_REWARD_POOL is not None and _SEED_PAPER_REWARD_POOL_PID != current_pid:
+        _SEED_PAPER_REWARD_POOL = None
+        _SEED_PAPER_REWARD_POOL_PID = None
     else:
-        _LOG.warning(
-            "SEED paper answer-tag reward parity requested, but paper site-packages were not found at %s.",
-            paper_site_packages,
+        _close_seed_paper_reward_pool()
+    ctx = (
+        mp.get_context("fork")
+        if "fork" in mp.get_all_start_methods()
+        else mp.get_context()
+    )
+    _SEED_PAPER_REWARD_POOL = ctx.Pool(2)
+    _SEED_PAPER_REWARD_POOL_PID = current_pid
+    return _SEED_PAPER_REWARD_POOL
+
+
+def _call_seed_paper_reward_oat_parity(
+    reward_name: str,
+    text: str,
+    gold: Any,
+    fast: bool,
+) -> tuple[dict[str, Any], float]:
+    """Mirror OAT's `MATHOracle.get_reward` timeout behavior for a single sample."""
+
+    try:
+        async_result = _seed_paper_reward_pool().apply_async(
+            _seed_paper_reward_worker,
+            (reward_name, text, gold, fast),
         )
-    repo_dir_str = str(repo_dir)
-    if repo_dir_str not in sys.path:
-        sys.path.insert(0, repo_dir_str)
-    if os.environ.get("MAXENT_SEED_PAPER_SUPPRESS_GRADER_LOGS", "1").strip().lower() not in {
-        "0",
-        "false",
-        "no",
-    }:
-        for logger_name in ("math_verify", "math_verify.grader"):
-            logger = logging.getLogger(logger_name)
-            logger.setLevel(logging.CRITICAL)
-            logger.propagate = False
-    grader = importlib.import_module("understand_r1_zero.math_grader")
-    reward_fn = getattr(grader, "answer_tag_reward_fn", None)
-    if not callable(reward_fn):
-        raise RuntimeError(
-            f"Official SEED answer_tag_reward_fn is unavailable in {repo_dir}."
-        )
-    return reward_fn
+        info, reward = async_result.get(timeout=1.0)
+        return dict(info), float(reward)
+    except mp.TimeoutError:
+        return {"formatted": False}, 0.0
+    except Exception:
+        return {"formatted": False}, 0.0
 
 
 def seed_paper_boxed_accuracy_reward_math(
@@ -952,17 +1013,18 @@ def seed_paper_boxed_accuracy_reward_math(
     fast: bool = False,
     **_kwargs: Any,
 ) -> List[float]:
-    """Official SEED paper boxed accuracy reward with the same grader as eval."""
+    """Official OAT/SEED boxed reward with the same timeout wrapper as training."""
 
-    reward_fn = _seed_paper_boxed_reward_fn()
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
-        try:
-            _info, reward = reward_fn(txt, gold, fast=fast)
-            outs.append(float(reward))
-        except Exception:
-            outs.append(0.0)
+        _info, reward = _call_seed_paper_reward_oat_parity(
+            "boxed_reward_fn",
+            txt,
+            gold,
+            fast,
+        )
+        outs.append(float(reward))
     return outs
 
 
@@ -972,17 +1034,18 @@ def seed_paper_answer_tag_accuracy_reward_math(
     fast: bool = False,
     **_kwargs: Any,
 ) -> List[float]:
-    """Official SEED paper answer-tag accuracy reward with the same grader as eval."""
+    """Official OAT/SEED answer-tag reward with the same timeout wrapper as training."""
 
-    reward_fn = _seed_paper_answer_tag_reward_fn()
     outs: List[float] = []
     for comp, gold in zip(completions, answer):
         txt = _extract_content(comp)
-        try:
-            _info, reward = reward_fn(txt, gold, fast=fast)
-            outs.append(float(reward))
-        except Exception:
-            outs.append(0.0)
+        _info, reward = _call_seed_paper_reward_oat_parity(
+            "answer_tag_reward_fn",
+            txt,
+            gold,
+            fast,
+        )
+        outs.append(float(reward))
     return outs
 
 
