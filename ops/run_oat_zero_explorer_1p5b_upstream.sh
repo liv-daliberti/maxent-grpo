@@ -15,8 +15,9 @@ export OAT_ZERO_MAX_SAVE_NUM="${OAT_ZERO_MAX_SAVE_NUM:-999999}"
 export OAT_ZERO_MAX_SAVE_MEM="${OAT_ZERO_MAX_SAVE_MEM:-99999999}"
 
 # Reuse the exact README-flash runtime and launcher, but switch the learner onto
-# the listwise MaxEnt objective with the current Dr.GRPO-token-primary +
-# listwise-sequence-aux setup.
+# the listwise MaxEnt objective with the paper-style closed-form weights and a
+# simpler hybrid: standard Dr.GRPO token PPO as the primary update plus a
+# lambda-scaled sequence-level listwise auxiliary.
 export OAT_ZERO_OBJECTIVE="${OAT_ZERO_OBJECTIVE:-maxent_listwise}"
 export OAT_ZERO_BETA="${OAT_ZERO_BETA:-0}"
 export OAT_ZERO_MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-0.1}"
@@ -58,13 +59,14 @@ export OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY="${OAT_ZERO_MAXENT_LENGTH_NORMALI
 export OAT_ZERO_MAXENT_LISTWISE_SKIP_ZERO_VARIANCE_GROUPS="${OAT_ZERO_MAXENT_LISTWISE_SKIP_ZERO_VARIANCE_GROUPS:-1}"
 export OAT_ZERO_MAXENT_USE_CLIP_OBJECTIVE="${OAT_ZERO_MAXENT_USE_CLIP_OBJECTIVE:-1}"
 export OAT_ZERO_MAXENT_CLIP_OBJECTIVE_COEF="${OAT_ZERO_MAXENT_CLIP_OBJECTIVE_COEF:-1.0}"
-# Preserve Dr.GRPO-scale update mass on mixed prompt groups while still letting
-# listwise weights decide how that mass is distributed across sampled rollouts.
-export OAT_ZERO_MAXENT_CLIP_PRESERVE_REWARD_MASS="${OAT_ZERO_MAXENT_CLIP_PRESERVE_REWARD_MASS:-1}"
+# Keep the sequence auxiliary mathematically clean by default. The active
+# comparison now uses the closed-form listwise weights directly instead of the
+# extra reward-mass-preserving heuristic.
+export OAT_ZERO_MAXENT_CLIP_PRESERVE_REWARD_MASS="${OAT_ZERO_MAXENT_CLIP_PRESERVE_REWARD_MASS:-0}"
 export OAT_ZERO_MAXENT_CLIP_MODE="${OAT_ZERO_MAXENT_CLIP_MODE:-sequence}"
 export OAT_ZERO_MAXENT_TOKEN_SURROGATE_PRIMARY="${OAT_ZERO_MAXENT_TOKEN_SURROGATE_PRIMARY:-0}"
 export OAT_ZERO_MAXENT_DRGRPO_TOKEN_PRIMARY="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_PRIMARY:-1}"
-export OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF="${OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF:-0.1}"
+export OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF="${OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF:-0.01}"
 export OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS:-0}"
 export OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL:-1}"
 export OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS_MAX_STEPS="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS_MAX_STEPS:-16}"

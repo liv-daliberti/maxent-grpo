@@ -832,20 +832,22 @@ def compute_listwise_weights(
     tau: float,
     beta: float,
 ) -> torch.Tensor:
-    """Return listwise MaxEnt posterior weights for each prompt group."""
+    """Return paper-style listwise MaxEnt posterior weights for each prompt group."""
 
     if q_grouped.shape != ref_seq_logps_grouped.shape:
         raise ValueError("q_grouped and ref_seq_logps_grouped must have matching shapes.")
     safe_tau = max(coerce_non_negative_float(tau, default=0.0), 1e-8)
+    safe_beta = coerce_non_negative_float(beta, default=0.0)
+    safe_temperature = max(safe_tau + safe_beta, 1e-8)
     positive_q = q_grouped > 0
     neg_inf = torch.full_like(q_grouped, torch.finfo(q_grouped.dtype).min)
     log_terms = torch.where(
         positive_q,
-        torch.log(q_grouped.clamp(min=1e-12)) / safe_tau,
+        torch.log(q_grouped.clamp(min=1e-12)) / safe_temperature,
         neg_inf,
     )
-    if beta > 0.0:
-        ref_term = (float(beta) * ref_seq_logps_grouped) / safe_tau
+    if safe_beta > 0.0:
+        ref_term = (safe_beta * ref_seq_logps_grouped) / safe_temperature
         log_terms = torch.where(positive_q, log_terms + ref_term, neg_inf)
     return torch.softmax(log_terms, dim=1)
 

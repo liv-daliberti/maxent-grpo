@@ -2674,7 +2674,23 @@ class ZeroMathLearner(PPOLearner):
                     infos["drgrpo_primary_loss"] = drgrpo_pg_loss.detach()
                     infos["pg_loss"] = drgrpo_pg_loss.detach()
                     loss = drgrpo_pg_loss
-                    infos["objective_effective_total_loss"] = drgrpo_pg_loss.detach()
+                    infos["listwise_bonus_loss_raw"] = policy_loss.detach()
+                    infos["listwise_bonus_loss_weighted"] = policy_loss.detach()
+                    infos["listwise_bonus_loss_effective"] = (
+                        float(sequence_aux_coef) * policy_loss.detach()
+                    )
+                    infos["listwise_helpfulness_proxy"] = (
+                        torch.abs(infos["listwise_bonus_loss_effective"])
+                        / (torch.abs(infos["drgrpo_primary_loss"]) + 1e-8)
+                    )
+                    infos["listwise_helpfulness_proxy_valid"] = torch.tensor(
+                        1.0,
+                        device=policy_seq_logps_grouped.device,
+                    )
+                    infos["objective_effective_total_loss"] = (
+                        infos["drgrpo_primary_loss"]
+                        + infos["listwise_bonus_loss_effective"]
+                    )
                     pg_clipfrac = masked_mean(
                         (pg_losses2 > pg_losses).float(),
                         mb_response_masks,
@@ -2707,6 +2723,10 @@ class ZeroMathLearner(PPOLearner):
                     )
                 elif not token_surrogate_primary:
                     infos["pg_loss"] = policy_loss.detach()
+                    infos["listwise_bonus_loss_raw"] = policy_loss.detach()
+                    infos["listwise_bonus_loss_weighted"] = policy_loss.detach()
+                    infos["listwise_bonus_loss_effective"] = policy_loss.detach()
+                    infos["objective_effective_total_loss"] = policy_loss.detach()
 
                 clip_loss = None
                 clip_low = clip_high = None
@@ -2801,15 +2821,17 @@ class ZeroMathLearner(PPOLearner):
                                 clip_loss = (per_group_clip_loss * 0.0).sum()
                             loss = loss + clip_coef * clip_loss
                             infos["clip_loss"] = clip_loss.detach()
-                            infos["listwise_bonus_loss_raw"] = clip_loss.detach()
+                            infos["listwise_bonus_loss_raw"] = (
+                                infos["listwise_bonus_loss_raw"] + clip_loss.detach()
+                            )
                             infos["listwise_bonus_loss_weighted"] = (
-                                float(clip_coef) * clip_loss.detach()
+                                infos["listwise_bonus_loss_weighted"]
+                                + float(clip_coef) * clip_loss.detach()
                             )
                             if drgrpo_token_primary:
                                 infos["listwise_bonus_loss_effective"] = (
                                     float(sequence_aux_coef)
-                                    * float(clip_coef)
-                                    * clip_loss.detach()
+                                    * infos["listwise_bonus_loss_weighted"]
                                 )
                                 infos["listwise_helpfulness_proxy"] = (
                                     torch.abs(infos["listwise_bonus_loss_effective"])
@@ -2828,10 +2850,10 @@ class ZeroMathLearner(PPOLearner):
                                 )
                             else:
                                 infos["listwise_bonus_loss_effective"] = (
-                                    float(clip_coef) * clip_loss.detach()
+                                    infos["listwise_bonus_loss_weighted"]
                                 )
                                 infos["objective_effective_total_loss"] = (
-                                    loss.detach()
+                                    infos["listwise_bonus_loss_effective"]
                                 )
 
                             is_low_clipped = (seq_ratio < 1.0 - clip_low) & (

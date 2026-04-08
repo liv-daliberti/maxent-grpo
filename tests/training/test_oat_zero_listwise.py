@@ -142,7 +142,7 @@ def test_iter_budgeted_row_chunks_falls_back_to_single_rows_for_long_sequences()
     ) == [(0, 1), (1, 2), (2, 3), (3, 4)]
 
 
-def test_compute_listwise_weights_uses_tau_q_and_beta() -> None:
+def test_compute_listwise_weights_matches_paper_closed_form() -> None:
     q_grouped = torch.tensor([[0.8, 0.2]], dtype=torch.float32)
     ref_seq_logps_grouped = torch.tensor([[1.0, 0.0]], dtype=torch.float32)
     weights = compute_listwise_weights(
@@ -152,7 +152,7 @@ def test_compute_listwise_weights_uses_tau_q_and_beta() -> None:
         beta=0.08,
     )
     expected = torch.softmax(
-        (torch.log(q_grouped) + 0.08 * ref_seq_logps_grouped) / 0.5,
+        (torch.log(q_grouped) + 0.08 * ref_seq_logps_grouped) / (0.5 + 0.08),
         dim=1,
     )
     assert torch.allclose(weights, expected, atol=1e-6, rtol=1e-6)
@@ -987,7 +987,7 @@ def test_oat_zero_explorer_launcher_defaults_to_drgrpo_token_primary_combo() -> 
         in script_source
     )
     assert (
-        'export OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF="${OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF:-0.1}"'
+        'export OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF="${OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF:-0.01}"'
         in script_source
     )
     assert (
