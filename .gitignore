@@ -30,6 +30,12 @@ wandb/
 .venv-lighteval/
 datasets/
 slurm-*.out
+# Vendored understand-r1-zero local artifacts
+understand-r1-zero/.git/
+understand-r1-zero/__pycache__/
+understand-r1-zero/.pytest_cache/
+understand-r1-zero/oat-output/
+understand-r1-zero/datasets/**/cache-*
 # Sphinx docs build
 _build/
 docs/_build/
