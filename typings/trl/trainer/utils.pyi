@@ -1,3 +1,0 @@
-from typing import Any
-
-def prepare_deepspeed(*args: Any, **kwargs: Any) -> Any: ...

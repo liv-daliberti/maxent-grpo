@@ -29,8 +29,9 @@ export WANDB_CONFIG_DIR="${WANDB_CONFIG_DIR:-$MAXENT_GRPO_VAR_ROOT/wandb/config}
 export WANDB_DATA_DIR="${WANDB_DATA_DIR:-$MAXENT_GRPO_VAR_ROOT/wandb/data}"
 export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-$MAXENT_GRPO_VAR_ROOT/pycache}"
 
-if [[ ":${PYTHONPATH:-}:" != *":$MAXENT_GRPO_ROOT:"* ]]; then
-  export PYTHONPATH="$MAXENT_GRPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+_maxent_src_root="${MAXENT_GRPO_ROOT}/src"
+if [[ ":${PYTHONPATH:-}:" != *":${_maxent_src_root}:"* ]]; then
+  export PYTHONPATH="${_maxent_src_root}${PYTHONPATH:+:$PYTHONPATH}"
 fi
 
 mkdir -p \
@@ -51,3 +52,4 @@ mkdir -p \
   "$PYTHONPYCACHEPREFIX"
 
 unset _maxent_repo_root
+unset _maxent_src_root

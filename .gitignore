@@ -6,42 +6,27 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 *.egg-info/
-.pytest_cache/
 .coverage
-.mypy_cache/
 .ruff_cache/
 
 # Build artifacts
 dist/
 build/
 
-# Local environments and caches (kept inside repo)
+# Local environments and caches
 .venv/
 .local/
 var/*
 .cache/
-.conda_pkgs/
-.pip_cache/
 .tmp/
 var/tmp/
 wandb/
 .wandb/
-.venv-train/
-.venv-lighteval/
-datasets/
 slurm-*.out
-# Vendored understand-r1-zero local artifacts
-understand-r1-zero/.git/
-understand-r1-zero/__pycache__/
-understand-r1-zero/.pytest_cache/
-understand-r1-zero/oat-output/
-understand-r1-zero/datasets/**/cache-*
-# Sphinx docs build
-_build/
-docs/_build/
-docs/_autosummary/
+datasets/**/cache-*
+datasets/train/
 
-# Legacy spill directories (should be rare)
+# Generated spill directories
 torchinductor_*/
 results/
 details/
@@ -49,9 +34,6 @@ outputs/
 logs/
 trainer_output/
 controller_state.json
-
-# Python bytecode caches
-__pycache__/
 
 # Generated files
 condaenv.*.requirements.txt

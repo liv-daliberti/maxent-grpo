@@ -1,7 +1,6 @@
 #!/bin/bash
-# Run the upstream understand-r1-zero Qwen2.5-Math-1.5B README recipe on node302
-# with the README training stack, on-node flash-attn bootstrap, and the local
-# listwise MaxEnt explorer objective layered on top of the proven DR.GRPO path.
+# Run the minimal 1.5B OAT Dr.GRPO-Explorer recipe on node302 with the README
+# training stack, on-node flash-attn bootstrap, and the exact DrX explorer path.
 
 #SBATCH --job-name=u_r1z_q15b_rfe
 #SBATCH --nodes=1
@@ -20,20 +19,19 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
-REPO_DIR="${ROOT_DIR}/understand-r1-zero"
 README_PYTHON="${ROOT_DIR}/var/seed_paper_eval/paper310/bin/python"
 HOST_TAG="${SLURMD_NODENAME:-$(hostname -s)}"
 
 source "${ROOT_DIR}/ops/repo_env.sh"
 
-export OAT_ZERO_UPSTREAM_ROOT="${REPO_DIR}"
+export OAT_ZERO_SOURCE_ROOT="${ROOT_DIR}/src"
 export OAT_ZERO_PYTHON="${OAT_ZERO_PYTHON:-${README_PYTHON}}"
 export OAT_ZERO_ENABLE_FLASH_ATTN=1
 export OAT_ZERO_FLASH_ATTN_VERSION="${OAT_ZERO_FLASH_ATTN_VERSION:-2.7.4.post1}"
 export OAT_ZERO_PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-r1}"
 export OAT_ZERO_N_GPU="${OAT_ZERO_N_GPU:-8}"
-export OAT_ZERO_PROMPT_DATA="${REPO_DIR}/datasets/train/math_12k"
-export OAT_ZERO_EVAL_DATA="${REPO_DIR}/datasets/evaluation_suite"
+export OAT_ZERO_PROMPT_DATA="${ROOT_DIR}/datasets/train/math_12k"
+export OAT_ZERO_EVAL_DATA="${ROOT_DIR}/datasets/evaluation_suite"
 export OAT_ZERO_EVAL_STEPS="${OAT_ZERO_EVAL_STEPS:-16}"
 export OAT_ZERO_SAVE_STEPS="${OAT_ZERO_SAVE_STEPS:-${OAT_ZERO_EVAL_STEPS}}"
 export OAT_ZERO_SAVE_FROM="${OAT_ZERO_SAVE_FROM:-0}"
@@ -50,8 +48,7 @@ export WANDB_START_METHOD="${WANDB_START_METHOD:-thread}"
 
 echo "[slurm] host=$(hostname)"
 echo "[slurm] job_id=${SLURM_JOB_ID:-}"
-echo "[slurm] repo_dir=${REPO_DIR}"
-echo "[slurm] oat_zero_upstream_root=${OAT_ZERO_UPSTREAM_ROOT}"
+echo "[slurm] source_root=${OAT_ZERO_SOURCE_ROOT}"
 echo "[slurm] oat_zero_python=${OAT_ZERO_PYTHON}"
 echo "[slurm] oat_zero_enable_flash_attn=${OAT_ZERO_ENABLE_FLASH_ATTN}"
 echo "[slurm] oat_zero_flash_attn_version=${OAT_ZERO_FLASH_ATTN_VERSION}"

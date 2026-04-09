@@ -4,18 +4,19 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/ops/repo_env.sh"
 
-CANONICAL_UPSTREAM_ROOT="${ROOT_DIR}/understand-r1-zero"
+CANONICAL_SOURCE_ROOT="${ROOT_DIR}/src"
 CANONICAL_PYTHON_BIN="${ROOT_DIR}/var/seed_paper_eval/paper310/bin/python"
 CANONICAL_PYTHON_LIB_DIR="${ROOT_DIR}/var/seed_paper_eval/paper310/lib"
+TRAINER_MODULE="${OAT_ZERO_TRAINER_MODULE:-oat_drgrpo.train_zero_math}"
 
-UPSTREAM_ROOT="${OAT_ZERO_UPSTREAM_ROOT:-$CANONICAL_UPSTREAM_ROOT}"
+SOURCE_ROOT="${OAT_ZERO_SOURCE_ROOT:-$CANONICAL_SOURCE_ROOT}"
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 SAVE_PATH="${SAVE_PATH:-$ROOT_DIR/var/data/oat_zero_exact_1p5b_${RUN_STAMP}}"
 WB_PROJECT="${OAT_ZERO_WB_PROJECT:-oat-zero}"
 WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-Math-1.5b-r1-zero-exact-${RUN_STAMP}}"
 USE_WB="${OAT_ZERO_USE_WB:-1}"
 PROMPT_DATA="${OAT_ZERO_PROMPT_DATA:-$ROOT_DIR/datasets/train/math_12k}"
-EVAL_DATA="${OAT_ZERO_EVAL_DATA:-$UPSTREAM_ROOT/datasets/evaluation_suite}"
+EVAL_DATA="${OAT_ZERO_EVAL_DATA:-$ROOT_DIR/datasets/evaluation_suite}"
 PRETRAIN="${OAT_ZERO_PRETRAIN:-Qwen/Qwen2.5-Math-1.5B}"
 VERIFIER_VERSION="${OAT_ZERO_VERIFIER_VERSION:-fast}"
 INPUT_KEY="${OAT_ZERO_INPUT_KEY:-problem}"
@@ -56,6 +57,7 @@ IGNORE_NO_EOS="${OAT_ZERO_IGNORE_NO_EOS:-0}"
 MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-0.5}"
 MAXENT_Q_TEMPERATURE="${OAT_ZERO_MAXENT_Q_TEMPERATURE:-2.0}"
 MAXENT_Q_EPSILON="${OAT_ZERO_MAXENT_Q_EPSILON:-1e-6}"
+MAXENT_CANDIDATE_KL_COEF="${OAT_ZERO_MAXENT_CANDIDATE_KL_COEF:-0.0}"
 MAXENT_LOGPROB_CHUNK_SIZE="${OAT_ZERO_MAXENT_LOGPROB_CHUNK_SIZE:-2}"
 MAXENT_BACKWARD_CHUNK_SIZE="${OAT_ZERO_MAXENT_BACKWARD_CHUNK_SIZE:-4}"
 MAXENT_BACKWARD_TOKEN_BUDGET="${OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET:-8192}"
@@ -125,8 +127,8 @@ PYTHON_LIB_DIR="${OAT_ZERO_PYTHON_LIB_DIR:-$CANONICAL_PYTHON_LIB_DIR}"
 LOCAL_CACHE_ROOT="${OAT_ZERO_LOCAL_CACHE_ROOT:-$LOCAL_ROOT/cache}"
 LOCAL_JOB_ROOT="${OAT_ZERO_LOCAL_JOB_ROOT:-$LOCAL_ROOT/job_${SLURM_JOB_ID:-manual}}"
 
-if [[ ! -f "$UPSTREAM_ROOT/train_zero_math.py" ]]; then
-  echo "Missing canonical upstream checkout at $UPSTREAM_ROOT" >&2
+if [[ ! -f "$SOURCE_ROOT/oat_drgrpo/train_zero_math.py" ]]; then
+  echo "Missing trainer source tree at $SOURCE_ROOT/oat_drgrpo" >&2
   exit 1
 fi
 
@@ -555,7 +557,7 @@ prepend_pythonpath() {
   fi
 }
 
-prepend_pythonpath "$UPSTREAM_ROOT"
+prepend_pythonpath "$SOURCE_ROOT"
 
 flash_attn_importable() {
   "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
@@ -626,7 +628,7 @@ else
 fi
 
 echo "[oat-zero-exact] host=$(hostname)"
-echo "[oat-zero-exact] upstream_root=${UPSTREAM_ROOT}"
+echo "[oat-zero-exact] source_root=${SOURCE_ROOT}"
 echo "[oat-zero-exact] python=${PYTHON_BIN}"
 echo "[oat-zero-exact] runtime_probe=$(runtime_probe "$PYTHON_BIN")"
 echo "[oat-zero-exact] local_root=${LOCAL_ROOT}"
@@ -682,6 +684,7 @@ echo "[oat-zero-exact] maxent_target_weight_entropy_final=${MAXENT_TARGET_WEIGHT
 echo "[oat-zero-exact] maxent_target_weight_entropy_horizon=${MAXENT_TARGET_WEIGHT_ENTROPY_HORIZON}"
 echo "[oat-zero-exact] maxent_q_temperature=${MAXENT_Q_TEMPERATURE}"
 echo "[oat-zero-exact] maxent_q_epsilon=${MAXENT_Q_EPSILON}"
+echo "[oat-zero-exact] maxent_candidate_kl_coef=${MAXENT_CANDIDATE_KL_COEF}"
 echo "[oat-zero-exact] maxent_logprob_chunk_size=${MAXENT_LOGPROB_CHUNK_SIZE}"
 echo "[oat-zero-exact] maxent_backward_chunk_size=${MAXENT_BACKWARD_CHUNK_SIZE}"
 echo "[oat-zero-exact] maxent_backward_token_budget=${MAXENT_BACKWARD_TOKEN_BUDGET}"
@@ -816,6 +819,7 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     "${maxent_tau_controller_flag[@]}"
     --maxent-q-temperature "$MAXENT_Q_TEMPERATURE"
     --maxent-q-epsilon "$MAXENT_Q_EPSILON"
+    --maxent-candidate-kl-coef "$MAXENT_CANDIDATE_KL_COEF"
     --maxent-clip-objective-coef "$MAXENT_CLIP_OBJECTIVE_COEF"
     --maxent-clip-mode "$MAXENT_CLIP_MODE"
     --maxent-reference-logprobs-source "$MAXENT_REFERENCE_LOGPROBS_SOURCE"
@@ -879,7 +883,7 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
 fi
 
 cmd=(
-  "$PYTHON_BIN" train_zero_math.py
+  "$PYTHON_BIN" -m "$TRAINER_MODULE"
   --critic_type drgrpo
   --gpus "$N_GPU"
   --enable_prefix_caching
@@ -968,8 +972,6 @@ if [[ "$USE_WB" == "1" ]]; then
 fi
 
 echo "[oat-zero-exact] ${cmd[*]}"
-
-cd "$UPSTREAM_ROOT"
 
 if [[ "$SMOKE_MODE" != "1" ]]; then
   exec "${cmd[@]}"
