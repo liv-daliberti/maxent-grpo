@@ -50,6 +50,7 @@ from .listwise import (ListwiseControllerState,
                        compute_listwise_centered_advantages,
                        compute_listwise_clip_advantages,
                        compute_sequence_clip_coefficients,
+                       compute_sequence_level_clip_surrogate,
                        compute_listwise_sequence_coefficients,
                        compute_token_level_clip_loss,
                        compute_listwise_weights,
@@ -217,8 +218,8 @@ class ZeroMathArgs(PPOArgs):
     maxent_q_epsilon: float = 1e-6
     maxent_candidate_kl_coef: float = 0.0
     maxent_exact_drx_weight_source: Literal[
-        "clipped", "unclipped", "local_linear"
-    ] = field(default="clipped")
+        "sequence_clipped", "clipped", "unclipped", "local_linear"
+    ] = field(default="sequence_clipped")
     maxent_length_normalize_ref: bool = True
     maxent_length_normalize_policy: bool = True
     maxent_listwise_skip_zero_variance_groups: bool = True
@@ -350,13 +351,14 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     if args.maxent_candidate_kl_coef < 0:
         raise ValueError("maxent_candidate_kl_coef must be non-negative")
     if args.maxent_exact_drx_weight_source not in {
+        "sequence_clipped",
         "clipped",
         "unclipped",
         "local_linear",
     }:
         raise ValueError(
             "maxent_exact_drx_weight_source must be one of: "
-            "clipped, unclipped, local_linear"
+            "sequence_clipped, clipped, unclipped, local_linear"
         )
     if args.maxent_branch_grad_diagnostics_interval <= 0:
         raise ValueError("maxent_branch_grad_diagnostics_interval must be positive")
@@ -2292,7 +2294,11 @@ class ZeroMathLearner(PPOLearner):
         group_size: int,
         behavior_seq_logps_grouped: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor | None]:
-        if self.args.beta <= 0:
+        need_sequence_reference = (
+            float(getattr(self.args, "maxent_candidate_kl_coef", 0.0)) > 0.0
+        )
+        need_token_reference = float(self.args.beta) > 0.0
+        if not need_sequence_reference and not need_token_reference:
             return torch.zeros_like(behavior_seq_logps_grouped), None
         if self.args.maxent_reference_logprobs_source == "behavior":
             return behavior_seq_logps_grouped.detach(), None
@@ -2316,7 +2322,7 @@ class ZeroMathLearner(PPOLearner):
             length_normalize=bool(self.args.maxent_length_normalize_ref),
             context="reference log-probs",
         )
-        return ref_seq_logps_grouped, ref_logps
+        return ref_seq_logps_grouped, (ref_logps if need_token_reference else None)
 
     def _listwise_learning_step(self, trajectory):
         args: ZeroMathArgs = self.args
@@ -2565,6 +2571,17 @@ class ZeroMathLearner(PPOLearner):
                     device=new_logps.device,
                     dtype=new_logps.dtype,
                 )
+                probe_row_advantages_grouped = reshape_prompt_major_tensor(
+                    probe_row_advantages.to(
+                        device=policy_seq_logps_grouped.device,
+                        dtype=policy_seq_logps_grouped.dtype,
+                    ),
+                    group_size,
+                )
+                if probe_row_advantages_grouped is None:
+                    raise ValueError(
+                        "Could not reshape the Dr.GRPO row advantages into prompt groups."
+                    )
                 probe_log_ratio = (
                     new_logps - mb_behavior_logps.to(new_logps.dtype)
                 ).clamp(-40.0, 40.0)
@@ -2600,9 +2617,21 @@ class ZeroMathLearner(PPOLearner):
                     float(args.beta) * probe_drgrpo_reg_row_loss
                 )
                 exact_drx_weight_source = str(
-                    getattr(args, "maxent_exact_drx_weight_source", "clipped")
+                    getattr(args, "maxent_exact_drx_weight_source", "sequence_clipped")
                 )
-                if exact_drx_weight_source == "clipped":
+                probe_drgrpo_utility_grouped = None
+                if exact_drx_weight_source == "sequence_clipped":
+                    probe_drgrpo_utility_grouped, _, _, _ = (
+                        compute_sequence_level_clip_surrogate(
+                            policy_seq_logps_grouped=policy_seq_logps_grouped.detach(),
+                            behavior_seq_logps_grouped=behavior_seq_grouped.detach(),
+                            row_advantages_grouped=probe_row_advantages_grouped,
+                            valid_row_mask_grouped=grouped_loss_masks,
+                            clip_low=float(args.cliprange),
+                            clip_high=float(args.cliprange),
+                        )
+                    )
+                elif exact_drx_weight_source == "clipped":
                     probe_drgrpo_weight_scores = -probe_drgrpo_row_loss
                 elif exact_drx_weight_source == "unclipped":
                     probe_drgrpo_weight_scores = aggregate_masked_row_values(
@@ -2627,17 +2656,18 @@ class ZeroMathLearner(PPOLearner):
                         "Unsupported maxent_exact_drx_weight_source: "
                         f"{exact_drx_weight_source}"
                     )
-                probe_drgrpo_utility_grouped = reshape_prompt_major_tensor(
-                    probe_drgrpo_weight_scores.to(
-                        device=policy_seq_logps_grouped.device,
-                        dtype=policy_seq_logps_grouped.dtype,
-                    ),
-                    group_size,
-                )
                 if probe_drgrpo_utility_grouped is None:
-                    raise ValueError(
-                        "Could not reshape the Dr.GRPO per-candidate utilities into prompt groups."
+                    probe_drgrpo_utility_grouped = reshape_prompt_major_tensor(
+                        probe_drgrpo_weight_scores.to(
+                            device=policy_seq_logps_grouped.device,
+                            dtype=policy_seq_logps_grouped.dtype,
+                        ),
+                        group_size,
                     )
+                    if probe_drgrpo_utility_grouped is None:
+                        raise ValueError(
+                            "Could not reshape the Dr.GRPO per-candidate utilities into prompt groups."
+                        )
                 valid_group_counts = grouped_loss_masks.to(torch.int64).sum(dim=1)
                 neutral_group_mask = torch.zeros(
                     int(prompt_batch_inds.numel()),
@@ -2842,6 +2872,7 @@ class ZeroMathLearner(PPOLearner):
                 weighted_drgrpo_delta_adv_flat = None
                 drgrpo_active_row_mask = None
                 drgrpo_active_row_count = None
+                global_drgrpo_active_row_count = None
                 weighted_drgrpo_pg_loss = None
                 if drgrpo_token_primary:
                     if float(args.beta) > 0.0:
@@ -2858,10 +2889,23 @@ class ZeroMathLearner(PPOLearner):
                     drgrpo_active_row_mask = (
                         mb_loss_masks.to(torch.bool) & valid_row_mask
                     )
-                    drgrpo_active_row_count = max(
-                        int(drgrpo_active_row_mask.to(torch.int64).sum().item()),
-                        1,
+                    local_drgrpo_active_row_count = int(
+                        drgrpo_active_row_mask.to(torch.int64).sum().item()
                     )
+                    drgrpo_active_row_count = max(local_drgrpo_active_row_count, 1)
+                    global_drgrpo_active_row_count = drgrpo_active_row_count
+                    if dist.is_available() and dist.is_initialized():
+                        drgrpo_active_row_count_tensor = torch.tensor(
+                            float(local_drgrpo_active_row_count),
+                            device=new_logps.device,
+                        )
+                        dist.all_reduce(
+                            drgrpo_active_row_count_tensor, op=dist.ReduceOp.SUM
+                        )
+                        global_drgrpo_active_row_count = max(
+                            int(drgrpo_active_row_count_tensor.item()),
+                            1,
+                        )
                     weight_row_flat = flatten_prompt_major_tensor(target_weights_grouped).to(
                         device=new_logps.device,
                         dtype=new_logps.dtype,
@@ -3278,11 +3322,11 @@ class ZeroMathLearner(PPOLearner):
                         token_clip_enabled = (
                             weighted_drgrpo_row_adv_flat is not None
                             and drgrpo_active_row_mask is not None
-                            and drgrpo_active_row_count is not None
+                            and global_drgrpo_active_row_count is not None
                         )
                         token_clip_adv_for_backward = weighted_drgrpo_row_adv_flat
                         token_clip_active_row_mask = drgrpo_active_row_mask
-                        token_clip_row_count_normalizer = drgrpo_active_row_count
+                        token_clip_row_count_normalizer = global_drgrpo_active_row_count
                         token_clip_coef_for_backward = 1.0
                     elif (
                         effective_clip_mode == "token"
@@ -3306,7 +3350,7 @@ class ZeroMathLearner(PPOLearner):
                         and raw_seq_coeffs_grouped is not None
                         and drgrpo_row_adv_flat is not None
                         and drgrpo_active_row_mask is not None
-                        and drgrpo_active_row_count is not None
+                        and global_drgrpo_active_row_count is not None
                     ):
                         grad_probe_infos = self._probe_listwise_branch_gradient_metrics(
                             input_ids=mb_input_ids,
@@ -3317,7 +3361,7 @@ class ZeroMathLearner(PPOLearner):
                             behavior_logps=mb_behavior_logps,
                             row_advantages=drgrpo_row_adv_flat,
                             active_row_mask=drgrpo_active_row_mask,
-                            active_row_count_normalizer=drgrpo_active_row_count,
+                            active_row_count_normalizer=global_drgrpo_active_row_count,
                             clip_low=0.0 if clip_low is None else clip_low,
                             clip_high=0.0 if clip_high is None else clip_high,
                             sequence_aux_coef=(

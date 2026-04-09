@@ -1113,6 +1113,67 @@ def compute_sequence_clip_coefficients(
     return torch.where(valid_group_mask, coeffs, torch.zeros_like(coeffs))
 
 
+def compute_sequence_level_clip_surrogate(
+    *,
+    policy_seq_logps_grouped: torch.Tensor,
+    behavior_seq_logps_grouped: torch.Tensor,
+    row_advantages_grouped: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor | None = None,
+    clip_low: float = 0.0,
+    clip_high: float = 0.0,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return per-candidate sequence PPO surrogates plus clipping masks."""
+
+    if policy_seq_logps_grouped.shape != behavior_seq_logps_grouped.shape:
+        raise ValueError(
+            "policy_seq_logps_grouped and behavior_seq_logps_grouped must have matching shapes."
+        )
+    if policy_seq_logps_grouped.shape != row_advantages_grouped.shape:
+        raise ValueError(
+            "policy_seq_logps_grouped and row_advantages_grouped must have matching shapes."
+        )
+    if valid_row_mask_grouped is None:
+        valid_group_mask = torch.ones_like(row_advantages_grouped, dtype=torch.bool)
+    else:
+        if valid_row_mask_grouped.shape != row_advantages_grouped.shape:
+            raise ValueError(
+                "valid_row_mask_grouped must match the grouped advantage shape."
+            )
+        valid_group_mask = valid_row_mask_grouped.to(torch.bool)
+
+    safe_clip_low = coerce_non_negative_float(clip_low, default=0.0)
+    safe_clip_high = coerce_non_negative_float(clip_high, default=0.0)
+    log_seq_ratio = (
+        policy_seq_logps_grouped - behavior_seq_logps_grouped
+    ).clamp(-40.0, 40.0)
+    seq_ratio = torch.exp(log_seq_ratio).to(policy_seq_logps_grouped.dtype)
+    clipped_seq_ratio = torch.clamp(
+        seq_ratio,
+        1.0 - safe_clip_low,
+        1.0 + safe_clip_high,
+    )
+    row_advantages_grouped = row_advantages_grouped.to(
+        device=policy_seq_logps_grouped.device,
+        dtype=policy_seq_logps_grouped.dtype,
+    )
+    surrogate = torch.min(
+        seq_ratio * row_advantages_grouped,
+        clipped_seq_ratio * row_advantages_grouped,
+    )
+    surrogate = torch.where(valid_group_mask, surrogate, torch.zeros_like(surrogate))
+    is_low_clipped = (
+        (seq_ratio < 1.0 - safe_clip_low)
+        & (row_advantages_grouped < 0.0)
+        & valid_group_mask
+    )
+    is_high_clipped = (
+        (seq_ratio > 1.0 + safe_clip_high)
+        & (row_advantages_grouped > 0.0)
+        & valid_group_mask
+    )
+    return surrogate, seq_ratio, is_low_clipped, is_high_clipped
+
+
 def compute_listwise_sequence_coefficients(
     *,
     policy_seq_logps_grouped: torch.Tensor,

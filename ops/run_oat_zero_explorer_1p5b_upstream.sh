@@ -20,10 +20,11 @@ export OAT_ZERO_MAX_SAVE_MEM="${OAT_ZERO_MAX_SAVE_MEM:-99999999}"
 export OAT_ZERO_OBJECTIVE="${OAT_ZERO_OBJECTIVE:-maxent_listwise}"
 export OAT_ZERO_BETA="${OAT_ZERO_BETA:-0}"
 export OAT_ZERO_MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-0.2}"
-# In the practical DrX recipe, tau is the only inner sharpness knob. The legacy
-# reward-softmax q temperature is kept at 1.0 for compatibility but is inactive
-# in the Dr.GRPO-utility lift path.
-export OAT_ZERO_MAXENT_TAU_LEARNABLE="${OAT_ZERO_MAXENT_TAU_LEARNABLE:-0}"
+# In the practical DrX recipe, tau is the only inner sharpness knob. Learn it
+# against the target weight-entropy schedule instead of freezing it at the
+# initial value. The legacy reward-softmax q temperature is kept at 1.0 for
+# compatibility but is inactive in the Dr.GRPO-utility lift path.
+export OAT_ZERO_MAXENT_TAU_LEARNABLE="${OAT_ZERO_MAXENT_TAU_LEARNABLE:-1}"
 export OAT_ZERO_MAXENT_TAU_CONTROLLER_ENABLED="${OAT_ZERO_MAXENT_TAU_CONTROLLER_ENABLED:-0}"
 export OAT_ZERO_MAXENT_TAU_LR="${OAT_ZERO_MAXENT_TAU_LR:-0.02}"
 export OAT_ZERO_MAXENT_TAU_MIN="${OAT_ZERO_MAXENT_TAU_MIN:-0.01}"
@@ -33,9 +34,9 @@ export OAT_ZERO_IGNORE_NO_EOS="${OAT_ZERO_IGNORE_NO_EOS:-0}"
 export OAT_ZERO_MAXENT_Q_TEMPERATURE="${OAT_ZERO_MAXENT_Q_TEMPERATURE:-1.0}"
 export OAT_ZERO_MAXENT_Q_EPSILON="${OAT_ZERO_MAXENT_Q_EPSILON:-1e-6}"
 export OAT_ZERO_MAXENT_CANDIDATE_KL_COEF="${OAT_ZERO_MAXENT_CANDIDATE_KL_COEF:-0.0}"
-# Default back to the theory-faithful exact DrX recipe: candidate weights come
-# from the clipped detached Dr.GRPO surrogate itself.
-export OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE="${OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE:-clipped}"
+# Default to the cleaner exact DrX split: sequence-clipped candidate utilities
+# choose prompt-local weights, while the outer optimizer keeps the token clip.
+export OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE="${OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE:-sequence_clipped}"
 # Keep the explorer comparison aligned with baseline Dr.GRPO unless a run
 # explicitly opts into a different actor memory split.
 export OAT_ZERO_VLLM_GPU_RATIO="${OAT_ZERO_VLLM_GPU_RATIO:-0.35}"
@@ -50,10 +51,11 @@ export OAT_ZERO_MAX_NORM="${OAT_ZERO_MAX_NORM:-1.0}"
 export OAT_ZERO_MAXENT_LOGPROB_CHUNK_SIZE="${OAT_ZERO_MAXENT_LOGPROB_CHUNK_SIZE:-1}"
 export OAT_ZERO_MAXENT_BACKWARD_CHUNK_SIZE="${OAT_ZERO_MAXENT_BACKWARD_CHUNK_SIZE:-4}"
 export OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET="${OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET:-4096}"
-# Match the practical DrX weighting path: candidate distributions are built from full
-# sequence log-probabilities, not length-normalized averages.
-export OAT_ZERO_MAXENT_LENGTH_NORMALIZE_REF="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_REF:-0}"
-export OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY:-0}"
+# Keep the candidate-level scoring signal utility-dense rather than length-biased.
+# The shared exact launcher already defaults these to 1; keep the explorer recipe
+# aligned so the next DrX run length-normalizes both policy and reference seq scores.
+export OAT_ZERO_MAXENT_LENGTH_NORMALIZE_REF="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_REF:-1}"
+export OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY:-1}"
 # Keep the informative-group metric split available. In the exact weighted
 # DrX path, neutral groups naturally reduce to uniform candidate weights and
 # zero Dr.GRPO advantages, so this flag now mainly affects diagnostics rather
