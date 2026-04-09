@@ -15,12 +15,12 @@ export OAT_ZERO_MAX_SAVE_NUM="${OAT_ZERO_MAX_SAVE_NUM:-999999}"
 export OAT_ZERO_MAX_SAVE_MEM="${OAT_ZERO_MAX_SAVE_MEM:-99999999}"
 
 # Reuse the exact README-flash runtime and launcher, but switch the learner onto
-# the exact DrX objective: an entropic lift over per-candidate Dr.GRPO surrogate
+# the DrX objective: an entropic lift over per-candidate Dr.GRPO surrogate
 # utilities with a prompt-local candidate trust region.
 export OAT_ZERO_OBJECTIVE="${OAT_ZERO_OBJECTIVE:-maxent_listwise}"
 export OAT_ZERO_BETA="${OAT_ZERO_BETA:-0}"
 export OAT_ZERO_MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-0.2}"
-# In the exact DrX recipe, tau is the only inner sharpness knob. The legacy
+# In the practical DrX recipe, tau is the only inner sharpness knob. The legacy
 # reward-softmax q temperature is kept at 1.0 for compatibility but is inactive
 # in the Dr.GRPO-utility lift path.
 export OAT_ZERO_MAXENT_TAU_LEARNABLE="${OAT_ZERO_MAXENT_TAU_LEARNABLE:-0}"
@@ -33,6 +33,9 @@ export OAT_ZERO_IGNORE_NO_EOS="${OAT_ZERO_IGNORE_NO_EOS:-0}"
 export OAT_ZERO_MAXENT_Q_TEMPERATURE="${OAT_ZERO_MAXENT_Q_TEMPERATURE:-1.0}"
 export OAT_ZERO_MAXENT_Q_EPSILON="${OAT_ZERO_MAXENT_Q_EPSILON:-1e-6}"
 export OAT_ZERO_MAXENT_CANDIDATE_KL_COEF="${OAT_ZERO_MAXENT_CANDIDATE_KL_COEF:-0.0}"
+# Default back to the theory-faithful exact DrX recipe: candidate weights come
+# from the clipped detached Dr.GRPO surrogate itself.
+export OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE="${OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE:-clipped}"
 # Keep the explorer comparison aligned with baseline Dr.GRPO unless a run
 # explicitly opts into a different actor memory split.
 export OAT_ZERO_VLLM_GPU_RATIO="${OAT_ZERO_VLLM_GPU_RATIO:-0.35}"
@@ -47,7 +50,7 @@ export OAT_ZERO_MAX_NORM="${OAT_ZERO_MAX_NORM:-1.0}"
 export OAT_ZERO_MAXENT_LOGPROB_CHUNK_SIZE="${OAT_ZERO_MAXENT_LOGPROB_CHUNK_SIZE:-1}"
 export OAT_ZERO_MAXENT_BACKWARD_CHUNK_SIZE="${OAT_ZERO_MAXENT_BACKWARD_CHUNK_SIZE:-4}"
 export OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET="${OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET:-4096}"
-# Match the exact DrX derivation: candidate distributions are built from full
+# Match the practical DrX weighting path: candidate distributions are built from full
 # sequence log-probabilities, not length-normalized averages.
 export OAT_ZERO_MAXENT_LENGTH_NORMALIZE_REF="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_REF:-0}"
 export OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY:-0}"

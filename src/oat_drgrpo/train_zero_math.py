@@ -216,6 +216,9 @@ class ZeroMathArgs(PPOArgs):
     maxent_q_temperature: float = 2.0
     maxent_q_epsilon: float = 1e-6
     maxent_candidate_kl_coef: float = 0.0
+    maxent_exact_drx_weight_source: Literal[
+        "clipped", "unclipped", "local_linear"
+    ] = field(default="clipped")
     maxent_length_normalize_ref: bool = True
     maxent_length_normalize_policy: bool = True
     maxent_listwise_skip_zero_variance_groups: bool = True
@@ -346,6 +349,15 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError("maxent_sequence_aux_coef must be non-negative")
     if args.maxent_candidate_kl_coef < 0:
         raise ValueError("maxent_candidate_kl_coef must be non-negative")
+    if args.maxent_exact_drx_weight_source not in {
+        "clipped",
+        "unclipped",
+        "local_linear",
+    }:
+        raise ValueError(
+            "maxent_exact_drx_weight_source must be one of: "
+            "clipped, unclipped, local_linear"
+        )
     if args.maxent_branch_grad_diagnostics_interval <= 0:
         raise ValueError("maxent_branch_grad_diagnostics_interval must be positive")
     if args.maxent_branch_grad_diagnostics_max_steps < 0:
@@ -569,6 +581,9 @@ class ZeroMathLearner(PPOLearner):
                 "maxent_q_temperature": float(args.maxent_q_temperature),
                 "maxent_q_epsilon": float(args.maxent_q_epsilon),
                 "maxent_candidate_kl_coef": float(args.maxent_candidate_kl_coef),
+                "maxent_exact_drx_weight_source": str(
+                    args.maxent_exact_drx_weight_source
+                ),
                 "maxent_length_normalize_ref": bool(args.maxent_length_normalize_ref),
                 "maxent_length_normalize_policy": bool(
                     args.maxent_length_normalize_policy
@@ -2325,7 +2340,7 @@ class ZeroMathLearner(PPOLearner):
         logging.info(f"learn data size {input_ids.shape}")
         if self.strategy.is_rank_0():
             logging.info(
-                "listwise runtime config: tau=%s beta=%s candidate_kl_coef=%s q_temperature=%s "
+                "listwise runtime config: tau=%s beta=%s candidate_kl_coef=%s exact_drx_weight_source=%s q_temperature=%s "
                 "q_epsilon=%s length_normalize_ref=%s "
                 "length_normalize_policy=%s skip_zero_variance_groups=%s "
                 "use_clip_objective=%s clip_objective_coef=%s clip_range=%s "
@@ -2340,6 +2355,7 @@ class ZeroMathLearner(PPOLearner):
                 float(args.maxent_tau),
                 float(args.beta),
                 float(args.maxent_candidate_kl_coef),
+                str(args.maxent_exact_drx_weight_source),
                 float(args.maxent_q_temperature),
                 float(args.maxent_q_epsilon),
                 bool(args.maxent_length_normalize_ref),
@@ -2549,6 +2565,11 @@ class ZeroMathLearner(PPOLearner):
                     device=new_logps.device,
                     dtype=new_logps.dtype,
                 )
+                probe_log_ratio = (
+                    new_logps - mb_behavior_logps.to(new_logps.dtype)
+                ).clamp(-40.0, 40.0)
+                probe_token_ratio = torch.exp(probe_log_ratio).to(new_logps.dtype)
+                probe_token_advantages = probe_row_advantages.unsqueeze(1)
                 probe_drgrpo_pg_row_loss, _, _, _ = compute_token_level_clip_loss(
                     new_logps=new_logps,
                     behavior_logps=mb_behavior_logps.to(new_logps.dtype),
@@ -2578,8 +2599,36 @@ class ZeroMathLearner(PPOLearner):
                 probe_drgrpo_row_loss = probe_drgrpo_pg_row_loss + (
                     float(args.beta) * probe_drgrpo_reg_row_loss
                 )
+                exact_drx_weight_source = str(
+                    getattr(args, "maxent_exact_drx_weight_source", "clipped")
+                )
+                if exact_drx_weight_source == "clipped":
+                    probe_drgrpo_weight_scores = -probe_drgrpo_row_loss
+                elif exact_drx_weight_source == "unclipped":
+                    probe_drgrpo_weight_scores = aggregate_masked_row_values(
+                        probe_token_ratio * probe_token_advantages,
+                        mb_response_masks,
+                        constant_normalizer=self._listwise_token_clip_constant_normalizer(),
+                    ).to(
+                        device=new_logps.device,
+                        dtype=new_logps.dtype,
+                    )
+                elif exact_drx_weight_source == "local_linear":
+                    probe_drgrpo_weight_scores = aggregate_masked_row_values(
+                        torch.ones_like(new_logps) * probe_token_advantages,
+                        mb_response_masks,
+                        constant_normalizer=self._listwise_token_clip_constant_normalizer(),
+                    ).to(
+                        device=new_logps.device,
+                        dtype=new_logps.dtype,
+                    )
+                else:
+                    raise ValueError(
+                        "Unsupported maxent_exact_drx_weight_source: "
+                        f"{exact_drx_weight_source}"
+                    )
                 probe_drgrpo_utility_grouped = reshape_prompt_major_tensor(
-                    (-probe_drgrpo_row_loss).to(
+                    probe_drgrpo_weight_scores.to(
                         device=policy_seq_logps_grouped.device,
                         dtype=policy_seq_logps_grouped.dtype,
                     ),
@@ -3150,16 +3199,14 @@ class ZeroMathLearner(PPOLearner):
                             stats["clip_ratio_low"].append(zero_stat)
                             stats["clip_ratio_high"].append(zero_stat)
                             stats["clip_ratio_region"].append(zero_stat)
-                skip_zero_signal_update = (
-                    global_active_group_count <= 0 and not drgrpo_token_primary
-                )
-                skip_listwise_backward = skip_zero_signal_update and not drgrpo_token_primary
+                skip_zero_signal_update = global_active_group_count <= 0
+                skip_listwise_backward = skip_zero_signal_update
                 if local_grad_step == 1 and global_active_group_count <= 0:
                     if drgrpo_token_primary:
                         logging.info(
                             "listwise minibatch has no reward-distinguishing prompt "
-                            "groups across any rank; continuing with the exact "
-                            "DrX weighted Dr.GRPO token update."
+                            "groups across any rank; skipping the exact DrX "
+                            "weighted Dr.GRPO update."
                         )
                     else:
                         logging.info(
@@ -3329,7 +3376,7 @@ class ZeroMathLearner(PPOLearner):
 
                 if local_grad_step % self.strategy.grad_acc_step == 0:
                     update_index = max(local_grad_step // grad_acc_step, 1)
-                    if skip_zero_signal_update and not drgrpo_token_primary:
+                    if skip_zero_signal_update:
                         if not self._listwise_zero_signal_skip_warned:
                             logging.warning(
                                 "Skipping a zero-signal listwise optimizer step "
@@ -3349,7 +3396,7 @@ class ZeroMathLearner(PPOLearner):
                             self._listwise_grad_norm_logging_disabled_warned = True
                     stats["policy_grad_norm"].append(torch.tensor(0.0))
 
-                if drgrpo_token_primary or not skip_zero_signal_update:
+                if not skip_zero_signal_update:
                     self.strategy.optimizer_step(
                         self.optimizer, self.model, self.scheduler
                     )

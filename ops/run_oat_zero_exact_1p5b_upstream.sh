@@ -58,6 +58,7 @@ MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-0.5}"
 MAXENT_Q_TEMPERATURE="${OAT_ZERO_MAXENT_Q_TEMPERATURE:-2.0}"
 MAXENT_Q_EPSILON="${OAT_ZERO_MAXENT_Q_EPSILON:-1e-6}"
 MAXENT_CANDIDATE_KL_COEF="${OAT_ZERO_MAXENT_CANDIDATE_KL_COEF:-0.0}"
+MAXENT_EXACT_DRX_WEIGHT_SOURCE="${OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE:-clipped}"
 MAXENT_LOGPROB_CHUNK_SIZE="${OAT_ZERO_MAXENT_LOGPROB_CHUNK_SIZE:-2}"
 MAXENT_BACKWARD_CHUNK_SIZE="${OAT_ZERO_MAXENT_BACKWARD_CHUNK_SIZE:-4}"
 MAXENT_BACKWARD_TOKEN_BUDGET="${OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET:-8192}"
@@ -202,6 +203,14 @@ case "$MAXENT_CLIP_MODE" in
   sequence|token|none) ;;
   *)
     echo "OAT_ZERO_MAXENT_CLIP_MODE must be one of: sequence, token, none" >&2
+    exit 1
+    ;;
+esac
+
+case "$MAXENT_EXACT_DRX_WEIGHT_SOURCE" in
+  clipped|unclipped|local_linear) ;;
+  *)
+    echo "OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE must be one of: clipped, unclipped, local_linear" >&2
     exit 1
     ;;
 esac
@@ -685,6 +694,7 @@ echo "[oat-zero-exact] maxent_target_weight_entropy_horizon=${MAXENT_TARGET_WEIG
 echo "[oat-zero-exact] maxent_q_temperature=${MAXENT_Q_TEMPERATURE}"
 echo "[oat-zero-exact] maxent_q_epsilon=${MAXENT_Q_EPSILON}"
 echo "[oat-zero-exact] maxent_candidate_kl_coef=${MAXENT_CANDIDATE_KL_COEF}"
+echo "[oat-zero-exact] maxent_exact_drx_weight_source=${MAXENT_EXACT_DRX_WEIGHT_SOURCE}"
 echo "[oat-zero-exact] maxent_logprob_chunk_size=${MAXENT_LOGPROB_CHUNK_SIZE}"
 echo "[oat-zero-exact] maxent_backward_chunk_size=${MAXENT_BACKWARD_CHUNK_SIZE}"
 echo "[oat-zero-exact] maxent_backward_token_budget=${MAXENT_BACKWARD_TOKEN_BUDGET}"
@@ -820,6 +830,7 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     --maxent-q-temperature "$MAXENT_Q_TEMPERATURE"
     --maxent-q-epsilon "$MAXENT_Q_EPSILON"
     --maxent-candidate-kl-coef "$MAXENT_CANDIDATE_KL_COEF"
+    --maxent-exact-drx-weight-source "$MAXENT_EXACT_DRX_WEIGHT_SOURCE"
     --maxent-clip-objective-coef "$MAXENT_CLIP_OBJECTIVE_COEF"
     --maxent-clip-mode "$MAXENT_CLIP_MODE"
     --maxent-reference-logprobs-source "$MAXENT_REFERENCE_LOGPROBS_SOURCE"
