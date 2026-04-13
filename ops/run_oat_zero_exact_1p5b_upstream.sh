@@ -12,6 +12,8 @@ TRAINER_MODULE="${OAT_ZERO_TRAINER_MODULE:-oat_drgrpo.train_zero_math}"
 SOURCE_ROOT="${OAT_ZERO_SOURCE_ROOT:-$CANONICAL_SOURCE_ROOT}"
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 SAVE_PATH="${SAVE_PATH:-$ROOT_DIR/var/data/oat_zero_exact_1p5b_${RUN_STAMP}}"
+RESUME_DIR="${OAT_ZERO_RESUME_DIR:-}"
+RESUME_TAG="${OAT_ZERO_RESUME_TAG:-}"
 WB_PROJECT="${OAT_ZERO_WB_PROJECT:-oat-zero}"
 WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-Math-1.5b-r1-zero-exact-${RUN_STAMP}}"
 USE_WB="${OAT_ZERO_USE_WB:-1}"
@@ -24,6 +26,14 @@ OUTPUT_KEY="${OAT_ZERO_OUTPUT_KEY:-answer}"
 N_GPU="${OAT_ZERO_N_GPU:-8}"
 PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-r1}"
 OBJECTIVE="${OAT_ZERO_OBJECTIVE:-grpo}"
+SEED="${OAT_ZERO_SEED:-42}"
+if [[ -n "${OAT_ZERO_RND_SEED:-}" ]]; then
+  RND_SEED="${OAT_ZERO_RND_SEED}"
+elif [[ -n "${OAT_ZERO_SEED:-}" ]]; then
+  RND_SEED=0
+else
+  RND_SEED=1
+fi
 COLLOCATE="${OAT_ZERO_COLLOCATE:-1}"
 ZERO_STAGE="${OAT_ZERO_ZERO_STAGE:-2}"
 ADAM_OFFLOAD="${OAT_ZERO_ADAM_OFFLOAD:-0}"
@@ -45,23 +55,46 @@ VLLM_GPU_RATIO="${OAT_ZERO_VLLM_GPU_RATIO:-0.35}"
 EVAL_STEPS="${OAT_ZERO_EVAL_STEPS:-16}"
 SAVE_STEPS="${OAT_ZERO_SAVE_STEPS:-$EVAL_STEPS}"
 SAVE_FROM="${OAT_ZERO_SAVE_FROM:-0}"
-SAVE_CKPT="${OAT_ZERO_SAVE_CKPT:-0}"
+SAVE_CKPT="${OAT_ZERO_SAVE_CKPT:-1}"
 SAVE_INITIAL_MODEL="${OAT_ZERO_SAVE_INITIAL_MODEL:-1}"
 ALLOW_NO_SAVE="${OAT_ZERO_ALLOW_NO_SAVE:-0}"
+REQUIRE_FULL_EVAL_CHECKPOINTS="${OAT_ZERO_REQUIRE_FULL_EVAL_CHECKPOINTS:-1}"
 MAX_SAVE_NUM="${OAT_ZERO_MAX_SAVE_NUM:-999999}"
 MAX_SAVE_MEM="${OAT_ZERO_MAX_SAVE_MEM:-99999999}"
 ALLOW_NO_EVAL="${OAT_ZERO_ALLOW_NO_EVAL:-0}"
 MAX_EVAL_STEPS_ALLOWED="${OAT_ZERO_MAX_EVAL_STEPS_ALLOWED:-1000}"
 MAX_NORM="${OAT_ZERO_MAX_NORM:-1.0}"
 IGNORE_NO_EOS="${OAT_ZERO_IGNORE_NO_EOS:-0}"
-MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-0.5}"
+MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-1.0}"
 MAXENT_Q_TEMPERATURE="${OAT_ZERO_MAXENT_Q_TEMPERATURE:-2.0}"
 MAXENT_Q_EPSILON="${OAT_ZERO_MAXENT_Q_EPSILON:-1e-6}"
 MAXENT_CANDIDATE_KL_COEF="${OAT_ZERO_MAXENT_CANDIDATE_KL_COEF:-0.0}"
-MAXENT_EXACT_DRX_WEIGHT_SOURCE="${OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE:-sequence_clipped}"
+MAXENT_SEMANTIC_SIMILARITY_THRESHOLD="${OAT_ZERO_MAXENT_SEMANTIC_SIMILARITY_THRESHOLD:-0.90}"
+MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS="${OAT_ZERO_MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS:-512}"
+MAXENT_COMPETITIVE_MODE_TAU="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_TAU:-0.05}"
+MAXENT_COMPETITIVE_MODE_GAP="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_GAP:-0.10}"
+MAXENT_COMPETITIVE_MODE_TOP_K="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_TOP_K:-3}"
+MAXENT_COMPETITIVE_MODE_BUDGET_MAX="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_BUDGET_MAX:-0.10}"
+MAXENT_COMPETITIVE_MODE_BUDGET_SCALE="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_BUDGET_SCALE:-0.05}"
+MAXENT_COMPETITIVE_MODE_INTRA_TAU="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_INTRA_TAU:-0.01}"
+MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC="${OAT_ZERO_MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC:-0.5}"
+MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY:-1}"
+MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA="${OAT_ZERO_MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA:-24}"
+MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP="${OAT_ZERO_MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP:-0.0}"
+DEEPSPEED_ALLGATHER_BUCKET_SIZE="${OAT_ZERO_DEEPSPEED_ALLGATHER_BUCKET_SIZE:-}"
+DEEPSPEED_REDUCE_BUCKET_SIZE="${OAT_ZERO_DEEPSPEED_REDUCE_BUCKET_SIZE:-}"
+DEEPSPEED_OVERLAP_COMM="${OAT_ZERO_DEEPSPEED_OVERLAP_COMM:-}"
+DEEPSPEED_CONTIGUOUS_GRADIENTS="${OAT_ZERO_DEEPSPEED_CONTIGUOUS_GRADIENTS:-}"
+DEEPSPEED_REDUCE_SCATTER="${OAT_ZERO_DEEPSPEED_REDUCE_SCATTER:-}"
+DEEPSPEED_USE_MULTI_RANK_BUCKET_ALLREDUCE="${OAT_ZERO_DEEPSPEED_USE_MULTI_RANK_BUCKET_ALLREDUCE:-}"
+DEEPSPEED_ALLGATHER_PARTITIONS="${OAT_ZERO_DEEPSPEED_ALLGATHER_PARTITIONS:-}"
+MAXENT_EXACT_DRX_WEIGHT_SOURCE="${OAT_ZERO_MAXENT_EXACT_DRX_WEIGHT_SOURCE:-unclipped}"
 MAXENT_LOGPROB_CHUNK_SIZE="${OAT_ZERO_MAXENT_LOGPROB_CHUNK_SIZE:-2}"
 MAXENT_BACKWARD_CHUNK_SIZE="${OAT_ZERO_MAXENT_BACKWARD_CHUNK_SIZE:-4}"
-MAXENT_BACKWARD_TOKEN_BUDGET="${OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET:-8192}"
+MAXENT_BACKWARD_TOKEN_BUDGET="${OAT_ZERO_MAXENT_BACKWARD_TOKEN_BUDGET:-4096}"
+# Projection/reference sequence scoring can still use length normalization, but
+# the exact-DrX `sequence_clipped` utility source is evaluated on raw
+# completion-level sequence scores inside the learner.
 MAXENT_LENGTH_NORMALIZE_REF="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_REF:-1}"
 MAXENT_LENGTH_NORMALIZE_POLICY="${OAT_ZERO_MAXENT_LENGTH_NORMALIZE_POLICY:-1}"
 MAXENT_LISTWISE_SKIP_ZERO_VARIANCE_GROUPS="${OAT_ZERO_MAXENT_LISTWISE_SKIP_ZERO_VARIANCE_GROUPS:-1}"
@@ -72,18 +105,20 @@ MAXENT_CLIP_MODE="${OAT_ZERO_MAXENT_CLIP_MODE:-sequence}"
 MAXENT_TOKEN_SURROGATE_PRIMARY="${OAT_ZERO_MAXENT_TOKEN_SURROGATE_PRIMARY:-0}"
 MAXENT_DRGRPO_TOKEN_PRIMARY="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_PRIMARY:-0}"
 MAXENT_SEQUENCE_AUX_COEF="${OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF:-1.0}"
+MAXENT_NEUTRAL_PROJECTION_COEF="${OAT_ZERO_MAXENT_NEUTRAL_PROJECTION_COEF:-0.0}"
 MAXENT_BRANCH_GRAD_DIAGNOSTICS="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS:-0}"
 MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL:-1}"
 MAXENT_BRANCH_GRAD_DIAGNOSTICS_MAX_STEPS="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS_MAX_STEPS:-0}"
 MAXENT_REFERENCE_LOGPROBS_SOURCE="${OAT_ZERO_MAXENT_REFERENCE_LOGPROBS_SOURCE:-model}"
-MAXENT_TARGET_WEIGHT_ENTROPY="${OAT_ZERO_MAXENT_TARGET_WEIGHT_ENTROPY:-}"
-MAXENT_TARGET_WEIGHT_ENTROPY_START="${OAT_ZERO_MAXENT_TARGET_WEIGHT_ENTROPY_START:-}"
-MAXENT_TARGET_WEIGHT_ENTROPY_PEAK="${OAT_ZERO_MAXENT_TARGET_WEIGHT_ENTROPY_PEAK:-}"
-MAXENT_TARGET_WEIGHT_ENTROPY_PEAK_STEP="${OAT_ZERO_MAXENT_TARGET_WEIGHT_ENTROPY_PEAK_STEP:-0}"
-MAXENT_TARGET_WEIGHT_ENTROPY_FINAL="${OAT_ZERO_MAXENT_TARGET_WEIGHT_ENTROPY_FINAL:-}"
-MAXENT_TARGET_WEIGHT_ENTROPY_HORIZON="${OAT_ZERO_MAXENT_TARGET_WEIGHT_ENTROPY_HORIZON:-0}"
+MAXENT_TAU_ADAPTATION_METRIC="${OAT_ZERO_MAXENT_TAU_ADAPTATION_METRIC:-semantic_entropy_mu}"
+MAXENT_TAU_TARGET_METRIC="${OAT_ZERO_MAXENT_TAU_TARGET_METRIC:-}"
+MAXENT_TAU_TARGET_METRIC_START="${OAT_ZERO_MAXENT_TAU_TARGET_METRIC_START:-}"
+MAXENT_TAU_TARGET_METRIC_PEAK="${OAT_ZERO_MAXENT_TAU_TARGET_METRIC_PEAK:-}"
+MAXENT_TAU_TARGET_METRIC_PEAK_STEP="${OAT_ZERO_MAXENT_TAU_TARGET_METRIC_PEAK_STEP:-0}"
+MAXENT_TAU_TARGET_METRIC_FINAL="${OAT_ZERO_MAXENT_TAU_TARGET_METRIC_FINAL:-}"
+MAXENT_TAU_TARGET_METRIC_HORIZON="${OAT_ZERO_MAXENT_TAU_TARGET_METRIC_HORIZON:-0}"
 MAXENT_TAU_LEARNABLE="${OAT_ZERO_MAXENT_TAU_LEARNABLE:-0}"
-MAXENT_TAU_CONTROLLER_ENABLED="${OAT_ZERO_MAXENT_TAU_CONTROLLER_ENABLED:-1}"
+MAXENT_TAU_CONTROLLER_ENABLED="${OAT_ZERO_MAXENT_TAU_CONTROLLER_ENABLED:-0}"
 MAXENT_TAU_LR="${OAT_ZERO_MAXENT_TAU_LR:-0.0}"
 MAXENT_TAU_MIN="${OAT_ZERO_MAXENT_TAU_MIN:-0.0}"
 MAXENT_TAU_MAX="${OAT_ZERO_MAXENT_TAU_MAX:-0.0}"
@@ -143,6 +178,16 @@ if [[ ! -d "$EVAL_DATA" ]]; then
   exit 1
 fi
 
+if [[ -n "$RESUME_DIR" ]] && [[ ! -d "$RESUME_DIR" ]]; then
+  echo "Missing resume checkpoint directory at $RESUME_DIR" >&2
+  exit 1
+fi
+
+if [[ -z "$RESUME_DIR" ]] && [[ -n "$RESUME_TAG" ]]; then
+  echo "OAT_ZERO_RESUME_TAG requires OAT_ZERO_RESUME_DIR to be set" >&2
+  exit 1
+fi
+
 case "$OBJECTIVE" in
   grpo|maxent_listwise) ;;
   *)
@@ -174,6 +219,19 @@ case "$IGNORE_NO_EOS" in
     exit 1
     ;;
 esac
+
+case "$RND_SEED" in
+  0|1) ;;
+  *)
+    echo "OAT_ZERO_RND_SEED must be 0 or 1" >&2
+    exit 1
+    ;;
+esac
+
+if ! [[ "$SEED" =~ ^-?[0-9]+$ ]]; then
+  echo "OAT_ZERO_SEED must be an integer" >&2
+  exit 1
+fi
 
 case "$MAXENT_TAU_LEARNABLE" in
   0|1) ;;
@@ -243,6 +301,14 @@ case "$ALLOW_NO_SAVE" in
   0|1) ;;
   *)
     echo "OAT_ZERO_ALLOW_NO_SAVE must be 0 or 1" >&2
+    exit 1
+    ;;
+esac
+
+case "$REQUIRE_FULL_EVAL_CHECKPOINTS" in
+  0|1) ;;
+  *)
+    echo "OAT_ZERO_REQUIRE_FULL_EVAL_CHECKPOINTS must be 0 or 1" >&2
     exit 1
     ;;
 esac
@@ -360,6 +426,21 @@ fi
 if (( SAVE_STEPS <= 0 )) && [[ "$ALLOW_NO_SAVE" != "1" ]]; then
   echo "Checkpoint saving must stay enabled: OAT_ZERO_SAVE_STEPS must be > 0. To override intentionally, set OAT_ZERO_ALLOW_NO_SAVE=1." >&2
   exit 1
+fi
+
+if [[ "$REQUIRE_FULL_EVAL_CHECKPOINTS" == "1" ]] && [[ "$ALLOW_NO_EVAL" != "1" ]] && [[ "$ALLOW_NO_SAVE" != "1" ]]; then
+  if (( SAVE_STEPS != EVAL_STEPS )); then
+    echo "Full checkpoint saves must happen at every eval: OAT_ZERO_SAVE_STEPS=${SAVE_STEPS} must equal OAT_ZERO_EVAL_STEPS=${EVAL_STEPS}. To override intentionally, set OAT_ZERO_REQUIRE_FULL_EVAL_CHECKPOINTS=0." >&2
+    exit 1
+  fi
+  if (( SAVE_FROM > EVAL_STEPS )); then
+    echo "Full checkpoint saves must start no later than the first eval: OAT_ZERO_SAVE_FROM=${SAVE_FROM} must be <= OAT_ZERO_EVAL_STEPS=${EVAL_STEPS}. To override intentionally, set OAT_ZERO_REQUIRE_FULL_EVAL_CHECKPOINTS=0." >&2
+    exit 1
+  fi
+  if [[ "$SAVE_CKPT" != "1" ]]; then
+    echo "Full checkpoints must be enabled at eval boundaries: OAT_ZERO_SAVE_CKPT must be 1. To override intentionally, set OAT_ZERO_REQUIRE_FULL_EVAL_CHECKPOINTS=0." >&2
+    exit 1
+  fi
 fi
 
 if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
@@ -643,6 +724,8 @@ echo "[oat-zero-exact] runtime_probe=$(runtime_probe "$PYTHON_BIN")"
 echo "[oat-zero-exact] local_root=${LOCAL_ROOT}"
 echo "[oat-zero-exact] local_job_root=${LOCAL_JOB_ROOT}"
 echo "[oat-zero-exact] save_path=${SAVE_PATH}"
+echo "[oat-zero-exact] resume_dir=${RESUME_DIR:-<unset>}"
+echo "[oat-zero-exact] resume_tag=${RESUME_TAG:-<unset>}"
 echo "[oat-zero-exact] wb_project=${WB_PROJECT}"
 echo "[oat-zero-exact] wb_run_name=${WB_RUN_NAME}"
 echo "[oat-zero-exact] use_wb=${USE_WB}"
@@ -670,6 +753,13 @@ echo "[oat-zero-exact] rollout_batch_size_per_device=${ROLLOUT_BATCH_SIZE_PER_DE
 echo "[oat-zero-exact] pi_buffer_maxlen_per_device=${PI_BUFFER_MAXLEN_PER_DEVICE}"
 echo "[oat-zero-exact] vllm_gpu_ratio=${VLLM_GPU_RATIO}"
 echo "[oat-zero-exact] max_norm=${MAX_NORM}"
+echo "[oat-zero-exact] ds_allgather_bucket_size=${DEEPSPEED_ALLGATHER_BUCKET_SIZE:-<unset>}"
+echo "[oat-zero-exact] ds_reduce_bucket_size=${DEEPSPEED_REDUCE_BUCKET_SIZE:-<unset>}"
+echo "[oat-zero-exact] ds_overlap_comm=${DEEPSPEED_OVERLAP_COMM:-<unset>}"
+echo "[oat-zero-exact] ds_contiguous_gradients=${DEEPSPEED_CONTIGUOUS_GRADIENTS:-<unset>}"
+echo "[oat-zero-exact] ds_reduce_scatter=${DEEPSPEED_REDUCE_SCATTER:-<unset>}"
+echo "[oat-zero-exact] ds_use_multi_rank_bucket_allreduce=${DEEPSPEED_USE_MULTI_RANK_BUCKET_ALLREDUCE:-<unset>}"
+echo "[oat-zero-exact] ds_allgather_partitions=${DEEPSPEED_ALLGATHER_PARTITIONS:-<unset>}"
 echo "[oat-zero-exact] pytorch_cuda_alloc_conf=${PYTORCH_CUDA_ALLOC_CONF:-<unset>}"
 echo "[oat-zero-exact] eval_steps=${EVAL_STEPS}"
 echo "[oat-zero-exact] save_steps=${SAVE_STEPS}"
@@ -677,6 +767,7 @@ echo "[oat-zero-exact] save_from=${SAVE_FROM}"
 echo "[oat-zero-exact] save_ckpt=${SAVE_CKPT}"
 echo "[oat-zero-exact] save_initial_model=${SAVE_INITIAL_MODEL}"
 echo "[oat-zero-exact] allow_no_save=${ALLOW_NO_SAVE}"
+echo "[oat-zero-exact] require_full_eval_checkpoints=${REQUIRE_FULL_EVAL_CHECKPOINTS}"
 echo "[oat-zero-exact] max_save_num=${MAX_SAVE_NUM}"
 echo "[oat-zero-exact] max_save_mem=${MAX_SAVE_MEM}"
 echo "[oat-zero-exact] allow_no_eval=${ALLOW_NO_EVAL}"
@@ -684,16 +775,29 @@ echo "[oat-zero-exact] max_eval_steps_allowed=${MAX_EVAL_STEPS_ALLOWED}"
 echo "[oat-zero-exact] maxent_tau=${MAXENT_TAU}"
 echo "[oat-zero-exact] maxent_tau_learnable=${MAXENT_TAU_LEARNABLE}"
 echo "[oat-zero-exact] maxent_tau_controller_enabled=${MAXENT_TAU_CONTROLLER_ENABLED}"
+echo "[oat-zero-exact] maxent_tau_adaptation_metric=${MAXENT_TAU_ADAPTATION_METRIC}"
 echo "[oat-zero-exact] ignore_no_eos=${IGNORE_NO_EOS}"
-echo "[oat-zero-exact] maxent_target_weight_entropy=${MAXENT_TARGET_WEIGHT_ENTROPY:-<unset>}"
-echo "[oat-zero-exact] maxent_target_weight_entropy_start=${MAXENT_TARGET_WEIGHT_ENTROPY_START:-<unset>}"
-echo "[oat-zero-exact] maxent_target_weight_entropy_peak=${MAXENT_TARGET_WEIGHT_ENTROPY_PEAK:-<unset>}"
-echo "[oat-zero-exact] maxent_target_weight_entropy_peak_step=${MAXENT_TARGET_WEIGHT_ENTROPY_PEAK_STEP}"
-echo "[oat-zero-exact] maxent_target_weight_entropy_final=${MAXENT_TARGET_WEIGHT_ENTROPY_FINAL:-<unset>}"
-echo "[oat-zero-exact] maxent_target_weight_entropy_horizon=${MAXENT_TARGET_WEIGHT_ENTROPY_HORIZON}"
+echo "[oat-zero-exact] maxent_tau_target_metric=${MAXENT_TAU_TARGET_METRIC:-<unset>}"
+echo "[oat-zero-exact] maxent_tau_target_metric_start=${MAXENT_TAU_TARGET_METRIC_START:-<unset>}"
+echo "[oat-zero-exact] maxent_tau_target_metric_peak=${MAXENT_TAU_TARGET_METRIC_PEAK:-<unset>}"
+echo "[oat-zero-exact] maxent_tau_target_metric_peak_step=${MAXENT_TAU_TARGET_METRIC_PEAK_STEP}"
+echo "[oat-zero-exact] maxent_tau_target_metric_final=${MAXENT_TAU_TARGET_METRIC_FINAL:-<unset>}"
+echo "[oat-zero-exact] maxent_tau_target_metric_horizon=${MAXENT_TAU_TARGET_METRIC_HORIZON}"
 echo "[oat-zero-exact] maxent_q_temperature=${MAXENT_Q_TEMPERATURE}"
 echo "[oat-zero-exact] maxent_q_epsilon=${MAXENT_Q_EPSILON}"
 echo "[oat-zero-exact] maxent_candidate_kl_coef=${MAXENT_CANDIDATE_KL_COEF}"
+echo "[oat-zero-exact] maxent_semantic_similarity_threshold=${MAXENT_SEMANTIC_SIMILARITY_THRESHOLD}"
+echo "[oat-zero-exact] maxent_semantic_embedding_max_tokens=${MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS}"
+echo "[oat-zero-exact] maxent_competitive_mode_tau=${MAXENT_COMPETITIVE_MODE_TAU}"
+echo "[oat-zero-exact] maxent_competitive_mode_gap=${MAXENT_COMPETITIVE_MODE_GAP}"
+echo "[oat-zero-exact] maxent_competitive_mode_top_k=${MAXENT_COMPETITIVE_MODE_TOP_K}"
+echo "[oat-zero-exact] maxent_competitive_mode_budget_max=${MAXENT_COMPETITIVE_MODE_BUDGET_MAX}"
+echo "[oat-zero-exact] maxent_competitive_mode_budget_scale=${MAXENT_COMPETITIVE_MODE_BUDGET_SCALE}"
+echo "[oat-zero-exact] maxent_competitive_mode_intra_tau=${MAXENT_COMPETITIVE_MODE_INTRA_TAU}"
+echo "[oat-zero-exact] maxent_prompt_select_min_alpha_frac=${MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC}"
+echo "[oat-zero-exact] maxent_competitive_mode_positive_only=${MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY}"
+echo "[oat-zero-exact] maxent_semantic_guard_max_expected_len_delta=${MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA}"
+echo "[oat-zero-exact] maxent_semantic_guard_max_expected_format_drop=${MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP}"
 echo "[oat-zero-exact] maxent_exact_drx_weight_source=${MAXENT_EXACT_DRX_WEIGHT_SOURCE}"
 echo "[oat-zero-exact] maxent_logprob_chunk_size=${MAXENT_LOGPROB_CHUNK_SIZE}"
 echo "[oat-zero-exact] maxent_backward_chunk_size=${MAXENT_BACKWARD_CHUNK_SIZE}"
@@ -708,6 +812,7 @@ echo "[oat-zero-exact] maxent_clip_mode=${MAXENT_CLIP_MODE}"
 echo "[oat-zero-exact] maxent_token_surrogate_primary=${MAXENT_TOKEN_SURROGATE_PRIMARY}"
 echo "[oat-zero-exact] maxent_drgrpo_token_primary=${MAXENT_DRGRPO_TOKEN_PRIMARY}"
 echo "[oat-zero-exact] maxent_sequence_aux_coef=${MAXENT_SEQUENCE_AUX_COEF}"
+echo "[oat-zero-exact] maxent_neutral_projection_coef=${MAXENT_NEUTRAL_PROJECTION_COEF}"
 echo "[oat-zero-exact] maxent_branch_grad_diagnostics=${MAXENT_BRANCH_GRAD_DIAGNOSTICS}"
 echo "[oat-zero-exact] maxent_branch_grad_diagnostics_interval=${MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL}"
 echo "[oat-zero-exact] maxent_branch_grad_diagnostics_max_steps=${MAXENT_BRANCH_GRAD_DIAGNOSTICS_MAX_STEPS}"
@@ -772,6 +877,11 @@ if [[ "$MAXENT_LISTWISE_SKIP_ZERO_VARIANCE_GROUPS" == "1" ]]; then
   maxent_skip_zero_variance_flag=(--maxent-listwise-skip-zero-variance-groups)
 fi
 
+maxent_competitive_mode_positive_only_flag=(--no-maxent-competitive-mode-positive-only)
+if [[ "$MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY" == "1" ]]; then
+  maxent_competitive_mode_positive_only_flag=(--maxent-competitive-mode-positive-only)
+fi
+
 maxent_use_clip_objective_flag=(--no-maxent-use-clip-objective)
 if [[ "$MAXENT_USE_CLIP_OBJECTIVE" == "1" ]]; then
   maxent_use_clip_objective_flag=(--maxent-use-clip-objective)
@@ -830,15 +940,28 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     --maxent-q-temperature "$MAXENT_Q_TEMPERATURE"
     --maxent-q-epsilon "$MAXENT_Q_EPSILON"
     --maxent-candidate-kl-coef "$MAXENT_CANDIDATE_KL_COEF"
+    --maxent-semantic-similarity-threshold "$MAXENT_SEMANTIC_SIMILARITY_THRESHOLD"
+    --maxent-semantic-embedding-max-tokens "$MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS"
+    --maxent-competitive-mode-tau "$MAXENT_COMPETITIVE_MODE_TAU"
+    --maxent-competitive-mode-gap "$MAXENT_COMPETITIVE_MODE_GAP"
+    --maxent-competitive-mode-top-k "$MAXENT_COMPETITIVE_MODE_TOP_K"
+    --maxent-competitive-mode-budget-max "$MAXENT_COMPETITIVE_MODE_BUDGET_MAX"
+    --maxent-competitive-mode-budget-scale "$MAXENT_COMPETITIVE_MODE_BUDGET_SCALE"
+    --maxent-competitive-mode-intra-tau "$MAXENT_COMPETITIVE_MODE_INTRA_TAU"
+    --maxent-prompt-select-min-alpha-frac "$MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC"
+    "${maxent_competitive_mode_positive_only_flag[@]}"
+    --maxent-semantic-guard-max-expected-len-delta "$MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA"
+    --maxent-semantic-guard-max-expected-format-drop "$MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP"
     --maxent-exact-drx-weight-source "$MAXENT_EXACT_DRX_WEIGHT_SOURCE"
     --maxent-clip-objective-coef "$MAXENT_CLIP_OBJECTIVE_COEF"
     --maxent-clip-mode "$MAXENT_CLIP_MODE"
     --maxent-reference-logprobs-source "$MAXENT_REFERENCE_LOGPROBS_SOURCE"
+    --maxent-tau-adaptation-metric "$MAXENT_TAU_ADAPTATION_METRIC"
     --maxent-tau-lr "$MAXENT_TAU_LR"
     --maxent-tau-min "$MAXENT_TAU_MIN"
     --maxent-tau-max "$MAXENT_TAU_MAX"
     --maxent-tau-warmup-steps "$MAXENT_TAU_WARMUP_STEPS"
-    --maxent-target-weight-entropy-horizon "$MAXENT_TARGET_WEIGHT_ENTROPY_HORIZON"
+    --maxent-tau-target-metric-horizon "$MAXENT_TAU_TARGET_METRIC_HORIZON"
     --kl_target "$KL_TARGET"
     --kl_horizon "$KL_HORIZON"
     --kl_ctl_step_size "$KL_CTL_STEP_SIZE"
@@ -850,30 +973,31 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     "${maxent_token_surrogate_primary_flag[@]}"
     "${maxent_drgrpo_token_primary_flag[@]}"
     --maxent-sequence-aux-coef "$MAXENT_SEQUENCE_AUX_COEF"
+    --maxent-neutral-projection-coef "$MAXENT_NEUTRAL_PROJECTION_COEF"
     "${maxent_branch_grad_diagnostics_flag[@]}"
     --maxent-branch-grad-diagnostics-interval "$MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL"
     --maxent-branch-grad-diagnostics-max-steps "$MAXENT_BRANCH_GRAD_DIAGNOSTICS_MAX_STEPS"
     "${maxent_beta_controller_flag[@]}"
   )
-  if [[ -n "$MAXENT_TARGET_WEIGHT_ENTROPY" ]]; then
+  if [[ -n "$MAXENT_TAU_TARGET_METRIC" ]]; then
     objective_args+=(
-      --maxent-target-weight-entropy "$MAXENT_TARGET_WEIGHT_ENTROPY"
+      --maxent-tau-target-metric "$MAXENT_TAU_TARGET_METRIC"
     )
   fi
-  if [[ -n "$MAXENT_TARGET_WEIGHT_ENTROPY_START" ]]; then
+  if [[ -n "$MAXENT_TAU_TARGET_METRIC_START" ]]; then
     objective_args+=(
-      --maxent-target-weight-entropy-start "$MAXENT_TARGET_WEIGHT_ENTROPY_START"
+      --maxent-tau-target-metric-start "$MAXENT_TAU_TARGET_METRIC_START"
     )
   fi
-  if [[ -n "$MAXENT_TARGET_WEIGHT_ENTROPY_PEAK" ]]; then
+  if [[ -n "$MAXENT_TAU_TARGET_METRIC_PEAK" ]]; then
     objective_args+=(
-      --maxent-target-weight-entropy-peak "$MAXENT_TARGET_WEIGHT_ENTROPY_PEAK"
-      --maxent-target-weight-entropy-peak-step "$MAXENT_TARGET_WEIGHT_ENTROPY_PEAK_STEP"
+      --maxent-tau-target-metric-peak "$MAXENT_TAU_TARGET_METRIC_PEAK"
+      --maxent-tau-target-metric-peak-step "$MAXENT_TAU_TARGET_METRIC_PEAK_STEP"
     )
   fi
-  if [[ -n "$MAXENT_TARGET_WEIGHT_ENTROPY_FINAL" ]]; then
+  if [[ -n "$MAXENT_TAU_TARGET_METRIC_FINAL" ]]; then
     objective_args+=(
-      --maxent-target-weight-entropy-final "$MAXENT_TARGET_WEIGHT_ENTROPY_FINAL"
+      --maxent-tau-target-metric-final "$MAXENT_TAU_TARGET_METRIC_FINAL"
     )
   fi
   if [[ "$MAXENT_LOGPROB_CHUNK_SIZE" -gt 0 ]]; then
@@ -893,6 +1017,13 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
   fi
 fi
 
+seed_args=()
+if [[ "$RND_SEED" == "1" ]]; then
+  seed_args+=(--rnd-seed)
+else
+  seed_args+=(--seed "$SEED")
+fi
+
 cmd=(
   "$PYTHON_BIN" -m "$TRAINER_MODULE"
   --critic_type drgrpo
@@ -903,7 +1034,7 @@ cmd=(
   --shm_size_mb "$SHM_SIZE_MB"
   --gradient-checkpointing
   --bf16
-  --rnd-seed
+  "${seed_args[@]}"
   --learning_rate "$LEARNING_RATE"
   --lr_scheduler constant
   --num_ppo_epochs "$NUM_PPO_EPOCHS"
@@ -945,6 +1076,17 @@ cmd=(
   --eval_data "$EVAL_DATA"
   --eval_input_key input
 )
+
+if [[ -n "$RESUME_DIR" ]]; then
+  cmd+=(
+    --resume_dir "$RESUME_DIR"
+  )
+  if [[ -n "$RESUME_TAG" ]]; then
+    cmd+=(
+      --resume_tag "$RESUME_TAG"
+    )
+  fi
+fi
 
 if [[ "$VLLM_SLEEP" == "1" ]]; then
   cmd+=(--vllm_sleep)

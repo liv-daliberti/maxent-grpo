@@ -28,14 +28,14 @@ _CLIP_MODE_ALIASES = {
     "off": "none",
     "disabled": "none",
 }
-_TAU_ENTROPY_EMA_DECAY = 0.9
+_TAU_METRIC_EMA_DECAY = 0.9
 
 
 @dataclass
 class ListwiseControllerState:
     """Mutable controller history used by adaptive tau updates."""
 
-    tau_entropy_ema: float | None = None
+    tau_metric_ema: float | None = None
     tau_log: float | None = None
 
 
@@ -48,6 +48,65 @@ class SanitizedTokenIdsResult:
     replacement_id: int | None = None
     min_invalid: int | None = None
     max_invalid: int | None = None
+
+
+
+@dataclass
+class DrXTargetBundle:
+    """Grouped DrX objects: utility, posterior target, and optimization gates."""
+
+    utility_grouped: torch.Tensor
+    w_star_grouped: torch.Tensor
+    token_target_grouped: torch.Tensor
+    projection_target_grouped: torch.Tensor
+    informative_group_mask: torch.Tensor
+    neutral_group_mask: torch.Tensor
+    contributing_group_mask: torch.Tensor
+    projection_group_scale: torch.Tensor
+    semantic_diagnostics: "SemanticWeightDiagnostics | None" = None
+
+
+@dataclass
+class SemanticClusterBundle:
+    """Semantic cluster assignments and masses for one prompt-major minibatch."""
+
+    cluster_ids_grouped: torch.Tensor
+    num_clusters_per_group: torch.Tensor
+    semantic_entropy_grouped: torch.Tensor
+    semantic_valid_row_mask_grouped: torch.Tensor
+
+
+@dataclass
+class SemanticWeightDiagnostics:
+    """Grouped diagnostics for residual competitive-mode semantic weighting."""
+
+    mode_count_grouped: torch.Tensor
+    eligible_mode_count_grouped: torch.Tensor
+    eligible_mode_frac_grouped: torch.Tensor
+    best_score_grouped: torch.Tensor
+    second_score_grouped: torch.Tensor
+    competitive_gap_grouped: torch.Tensor
+    explore_budget_grouped: torch.Tensor
+    explore_budget_saturated_grouped: torch.Tensor
+    explore_applied_group_mask: torch.Tensor
+    prompt_selected_group_mask: torch.Tensor
+    prompt_rejected_low_opp_group_mask: torch.Tensor
+    prompt_rejected_nonpositive_group_mask: torch.Tensor
+    prompt_rejected_len_guard_group_mask: torch.Tensor
+    prompt_rejected_format_guard_group_mask: torch.Tensor
+    moved_mass_l1_grouped: torch.Tensor
+    alpha_raw_grouped: torch.Tensor
+    alpha_applied_grouped: torch.Tensor
+    expected_utility_q_grouped: torch.Tensor
+    expected_utility_explore_target_grouped: torch.Tensor
+    expected_utility_final_w_grouped: torch.Tensor
+    expected_len_q_grouped: torch.Tensor
+    expected_len_explore_target_grouped: torch.Tensor
+    expected_len_final_w_grouped: torch.Tensor
+    expected_format_q_grouped: torch.Tensor
+    expected_format_explore_target_grouped: torch.Tensor
+    expected_format_final_w_grouped: torch.Tensor
+
 
 
 def normalize_oat_objective(value: object) -> str:
@@ -367,30 +426,43 @@ def resolve_listwise_target_entropy(
     return peak + (final - peak) * down_frac
 
 
+def update_listwise_tau_metric_ema(
+    state: ListwiseControllerState | None,
+    *,
+    measured_metric: float | None,
+) -> float | None:
+    """Update and return the smoothed controller statistic for tau adaptation."""
+
+    if state is None:
+        return None
+    if not isinstance(measured_metric, (int, float)) or not math.isfinite(
+        float(measured_metric)
+    ):
+        return None
+    if (
+        not isinstance(state.tau_metric_ema, (int, float))
+        or not math.isfinite(state.tau_metric_ema)
+    ):
+        state.tau_metric_ema = float(measured_metric)
+    else:
+        state.tau_metric_ema = (
+            _TAU_METRIC_EMA_DECAY * float(state.tau_metric_ema)
+            + (1.0 - _TAU_METRIC_EMA_DECAY) * float(measured_metric)
+        )
+    return float(state.tau_metric_ema)
+
+
 def update_listwise_tau_entropy_ema(
     state: ListwiseControllerState | None,
     *,
     measured_entropy: float | None,
 ) -> float | None:
-    """Update and return the smoothed weight-entropy statistic for tau control."""
+    """Backward-compatible alias for the old tau-entropy EMA helper."""
 
-    if state is None:
-        return None
-    if not isinstance(measured_entropy, (int, float)) or not math.isfinite(
-        float(measured_entropy)
-    ):
-        return None
-    if (
-        not isinstance(state.tau_entropy_ema, (int, float))
-        or not math.isfinite(state.tau_entropy_ema)
-    ):
-        state.tau_entropy_ema = float(measured_entropy)
-    else:
-        state.tau_entropy_ema = (
-            _TAU_ENTROPY_EMA_DECAY * float(state.tau_entropy_ema)
-            + (1.0 - _TAU_ENTROPY_EMA_DECAY) * float(measured_entropy)
-        )
-    return float(state.tau_entropy_ema)
+    return update_listwise_tau_metric_ema(
+        state,
+        measured_metric=measured_entropy,
+    )
 
 
 def clamp_listwise_tau(
@@ -411,23 +483,23 @@ def clamp_listwise_tau(
 def compute_learnable_tau_loss(
     tau_log: torch.Tensor,
     *,
-    measured_entropy: float | torch.Tensor | None,
-    target_entropy: float | torch.Tensor | None,
+    measured_metric: float | torch.Tensor | None,
+    target_metric: float | torch.Tensor | None,
 ) -> torch.Tensor | None:
-    """Return the SAC-style log-tau objective for entropy matching."""
+    """Return the SAC-style log-tau objective for scalar-metric matching."""
 
-    if measured_entropy is None or target_entropy is None:
+    if measured_metric is None or target_metric is None:
         return None
     if tau_log.numel() != 1:
         raise ValueError("tau_log must contain exactly one scalar value")
 
     measured = torch.as_tensor(
-        measured_entropy,
+        measured_metric,
         device=tau_log.device,
         dtype=tau_log.dtype,
     )
     target = torch.as_tensor(
-        target_entropy,
+        target_metric,
         device=tau_log.device,
         dtype=tau_log.dtype,
     )
@@ -439,37 +511,37 @@ def compute_learnable_tau_loss(
 def maybe_update_listwise_tau(
     current_tau: float,
     *,
-    measured_entropy: float | None,
+    measured_metric: float | None,
     global_step: int,
     state: ListwiseControllerState | None,
-    target_entropy: float | None,
-    target_entropy_start: float | None,
-    target_entropy_peak: float | None,
-    target_entropy_peak_step: int,
-    target_entropy_final: float | None,
-    target_entropy_horizon: int,
+    target_metric: float | None,
+    target_metric_start: float | None,
+    target_metric_peak: float | None,
+    target_metric_peak_step: int,
+    target_metric_final: float | None,
+    target_metric_horizon: int,
     tau_lr: float,
     tau_min: float,
     tau_max: float,
     tau_warmup_steps: int,
 ) -> float:
-    """Return the next tau under the simple entropy-target controller."""
+    """Return the next tau under the simple scalar-target controller."""
 
     active_target = resolve_listwise_target_entropy(
-        target_entropy=target_entropy,
-        target_entropy_start=target_entropy_start,
-        target_entropy_peak=target_entropy_peak,
-        target_entropy_peak_step=target_entropy_peak_step,
-        target_entropy_final=target_entropy_final,
-        target_entropy_horizon=target_entropy_horizon,
+        target_entropy=target_metric,
+        target_entropy_start=target_metric_start,
+        target_entropy_peak=target_metric_peak,
+        target_entropy_peak_step=target_metric_peak_step,
+        target_entropy_final=target_metric_final,
+        target_entropy_horizon=target_metric_horizon,
         global_step=global_step,
     )
     if active_target is None:
         return float(current_tau)
     if global_step <= max(0, int(tau_warmup_steps)):
         return float(current_tau)
-    if not isinstance(measured_entropy, (int, float)) or not math.isfinite(
-        float(measured_entropy)
+    if not isinstance(measured_metric, (int, float)) or not math.isfinite(
+        float(measured_metric)
     ):
         return float(current_tau)
     safe_tau_lr = float(tau_lr)
@@ -480,14 +552,14 @@ def maybe_update_listwise_tau(
         state = ListwiseControllerState()
     if not isinstance(state.tau_log, (int, float)) or not math.isfinite(state.tau_log):
         state.tau_log = math.log(max(float(current_tau), 1e-8))
-    ema_entropy = update_listwise_tau_entropy_ema(
+    ema_metric = update_listwise_tau_metric_ema(
         state,
-        measured_entropy=float(measured_entropy),
+        measured_metric=float(measured_metric),
     )
-    if ema_entropy is None:
+    if ema_metric is None:
         return float(current_tau)
 
-    error = float(active_target) - float(ema_entropy)
+    error = float(active_target) - float(ema_metric)
     if abs(error) < 1e-12:
         return float(current_tau)
     tau_log = float(state.tau_log) + safe_tau_lr * error
@@ -872,6 +944,523 @@ def compute_listwise_weights(
     return torch.softmax(log_terms, dim=1)
 
 
+
+
+def _safe_logsumexp(values: torch.Tensor, *, dim: int, keepdim: bool = False) -> torch.Tensor:
+    return torch.logsumexp(values, dim=dim, keepdim=keepdim)
+
+
+def build_semantic_cluster_bundle(
+    *,
+    final_answer_keys_grouped: Sequence[Sequence[str | None]],
+    valid_row_mask_grouped: torch.Tensor,
+    reasoning_signature_keys_grouped: Sequence[Sequence[str | None]] | None = None,
+) -> SemanticClusterBundle:
+    """Cluster candidates by final-answer key and optional reasoning signature.
+
+    The returned semantic entropy is the *normalized empirical cluster entropy*
+    induced by the observed sample counts inside each prompt group. The coarse
+    cluster key is always the normalized final answer string. When a compressed
+    structural reasoning signature is available, rows with the same answer key
+    are further split by the tuple ``(answer_key, reasoning_signature)``.
+    Rows without a usable signature fall back to an answer-only bucket so they
+    stay eligible for the semantic path without receiving free diversity credit
+    from verbose traces.
+
+        H_sem_norm = H(counts / sum counts) / log K,
+
+    with the convention H_sem_norm = 0 when K <= 1.
+    """
+
+    if valid_row_mask_grouped.dim() != 2:
+        raise ValueError("valid_row_mask_grouped must have shape [prompts, group].")
+    num_prompts, group_size = valid_row_mask_grouped.shape
+    if len(final_answer_keys_grouped) != num_prompts:
+        raise ValueError("final_answer_keys_grouped must match num_prompts.")
+    if reasoning_signature_keys_grouped is not None and len(reasoning_signature_keys_grouped) != num_prompts:
+        raise ValueError("reasoning_signature_keys_grouped must match num_prompts.")
+
+    cluster_ids = torch.full(
+        (num_prompts, group_size),
+        -1,
+        device=valid_row_mask_grouped.device,
+        dtype=torch.long,
+    )
+    num_clusters = torch.zeros(
+        (num_prompts,),
+        device=valid_row_mask_grouped.device,
+        dtype=torch.long,
+    )
+    semantic_entropy = torch.zeros(
+        (num_prompts,),
+        device=valid_row_mask_grouped.device,
+        dtype=torch.float32,
+    )
+    valid_mask = valid_row_mask_grouped.to(torch.bool)
+    semantic_valid_mask = torch.zeros_like(valid_mask, dtype=torch.bool)
+
+    for p in range(num_prompts):
+        keys = list(final_answer_keys_grouped[p])
+        if len(keys) != group_size:
+            raise ValueError("Each prompt must provide one final-answer key per candidate.")
+        if reasoning_signature_keys_grouped is None:
+            signatures = [None] * group_size
+        else:
+            signatures = list(reasoning_signature_keys_grouped[p])
+            if len(signatures) != group_size:
+                raise ValueError(
+                    "Each prompt must provide one reasoning signature per candidate."
+                )
+        answer_has_signature: dict[str, bool] = {}
+        for key, signature in zip(keys, signatures):
+            if key is None or signature is None:
+                continue
+            answer_has_signature[key] = True
+        cluster_key_to_id: dict[str, int] = {}
+        cluster_counts: list[int] = []
+        next_cluster = 0
+        for i in range(group_size):
+            if not bool(valid_mask[p, i].item()):
+                continue
+            key = keys[i]
+            if key is None:
+                # Missing or malformed answers should not receive semantic
+                # entropy credit as singleton clusters.
+                continue
+            signature = signatures[i]
+            if signature is None and answer_has_signature.get(key, False):
+                # If this answer bucket already has a structural signature from
+                # another row, an unlabeled row should keep its base token mass
+                # but should not create extra semantic entropy by pretending to
+                # be a new reasoning category.
+                continue
+            if signature is None:
+                cluster_key = f"answer::{key}"
+            else:
+                cluster_key = f"answer::{key}||sig::{signature}"
+            assigned = cluster_key_to_id.get(cluster_key)
+            if assigned is None:
+                assigned = next_cluster
+                next_cluster += 1
+                cluster_key_to_id[cluster_key] = assigned
+                cluster_counts.append(1)
+            else:
+                cluster_counts[assigned] = cluster_counts[assigned] + 1
+            cluster_ids[p, i] = assigned
+            semantic_valid_mask[p, i] = True
+        num_clusters[p] = next_cluster
+        if next_cluster > 1:
+            counts = torch.tensor(
+                cluster_counts,
+                device=valid_row_mask_grouped.device,
+                dtype=torch.float32,
+            )
+            probs = counts / counts.sum().clamp(min=1e-12)
+            semantic_entropy[p] = -(
+                probs * probs.clamp(min=1e-12).log()
+            ).sum() / math.log(float(next_cluster))
+        else:
+            semantic_entropy[p] = 0.0
+    return SemanticClusterBundle(
+        cluster_ids_grouped=cluster_ids,
+        num_clusters_per_group=num_clusters,
+        semantic_entropy_grouped=semantic_entropy,
+        semantic_valid_row_mask_grouped=semantic_valid_mask,
+    )
+
+def compute_normalized_semantic_cluster_entropy(
+    *,
+    candidate_probs_grouped: torch.Tensor,
+    cluster_ids_grouped: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor | None = None,
+    normalizer_group_size: int | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return normalized semantic entropy and observed cluster counts per prompt.
+
+    The entropy is computed over cluster masses induced by ``candidate_probs_grouped``:
+
+        M_k = sum_{i in C_k} p_i,
+        H_sem_norm(M) = H(M) / log G,
+
+    where ``G`` defaults to the observed cluster count ``K`` unless
+    ``normalizer_group_size`` is provided explicitly. This allows callers to
+    reproduce paper-style normalization by the fixed rollout count rather than
+    the number of observed semantic clusters.
+    """
+
+    if candidate_probs_grouped.shape != cluster_ids_grouped.shape:
+        raise ValueError("candidate_probs_grouped and cluster_ids_grouped must match.")
+    if valid_row_mask_grouped is None:
+        valid_mask = torch.ones_like(candidate_probs_grouped, dtype=torch.bool)
+    else:
+        if valid_row_mask_grouped.shape != candidate_probs_grouped.shape:
+            raise ValueError("valid_row_mask_grouped must match candidate_probs_grouped.")
+        valid_mask = valid_row_mask_grouped.to(torch.bool)
+
+    probs_grouped = torch.where(
+        valid_mask,
+        candidate_probs_grouped.to(torch.float32),
+        torch.zeros_like(candidate_probs_grouped, dtype=torch.float32),
+    )
+    probs_grouped = probs_grouped / probs_grouped.sum(dim=1, keepdim=True).clamp(min=1e-12)
+
+    num_prompts = int(candidate_probs_grouped.size(0))
+    entropy = torch.zeros((num_prompts,), device=candidate_probs_grouped.device, dtype=torch.float32)
+    cluster_count = torch.zeros((num_prompts,), device=candidate_probs_grouped.device, dtype=torch.float32)
+    safe_normalizer_group_size = (
+        None
+        if normalizer_group_size is None
+        else max(int(normalizer_group_size), 0)
+    )
+
+    for p in range(num_prompts):
+        valid_clusters = cluster_ids_grouped[p][valid_mask[p] & (cluster_ids_grouped[p] >= 0)]
+        if valid_clusters.numel() <= 0:
+            continue
+        unique_clusters = torch.unique(valid_clusters, sorted=True)
+        k = int(unique_clusters.numel())
+        cluster_count[p] = float(k)
+        normalizer_count = (
+            k if safe_normalizer_group_size is None else safe_normalizer_group_size
+        )
+        if k <= 1 or normalizer_count <= 1:
+            entropy[p] = 0.0
+            continue
+        masses = []
+        for cid in unique_clusters.tolist():
+            member_mask = valid_mask[p] & (cluster_ids_grouped[p] == cid)
+            masses.append(probs_grouped[p][member_mask].sum())
+        masses_t = torch.stack(masses).clamp(min=1e-12)
+        masses_t = masses_t / masses_t.sum().clamp(min=1e-12)
+        entropy[p] = -(masses_t * masses_t.log()).sum() / math.log(
+            float(normalizer_count)
+        )
+
+    return entropy, cluster_count
+
+
+
+def compute_semantic_cluster_weights_from_utilities(
+    *,
+    utility_grouped: torch.Tensor,
+    ref_seq_logps_grouped: torch.Tensor,
+    cluster_ids_grouped: torch.Tensor,
+    candidate_lengths_grouped: torch.Tensor | None = None,
+    candidate_formatted_grouped: torch.Tensor | None = None,
+    tau: float,
+    mode_tau: float,
+    mode_gap: float,
+    mode_top_k: int,
+    budget_grouped: torch.Tensor | None = None,
+    budget_max: float = 0.0,
+    intra_tau: float = 1e-2,
+    candidate_kl_coef: float,
+    prompt_select_min_alpha_frac: float = 0.0,
+    positive_only: bool = False,
+    max_expected_len_delta: float = float("inf"),
+    max_expected_format_drop: float = 0.0,
+    valid_row_mask_grouped: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, SemanticWeightDiagnostics]:
+    """Return baseline-plus-residual competitive semantic weights.
+
+    The baseline DrX posterior ``q`` remains primary. Semantic structure only
+    re-allocates a small prompt-local residual budget over *competitive* semantic
+    modes: modes close enough in score to the best observed mode and limited by
+    a top-k cap. Rows without a semantic label keep their exact baseline mass.
+    """
+
+    if utility_grouped.shape != ref_seq_logps_grouped.shape:
+        raise ValueError("utility_grouped and ref_seq_logps_grouped must have matching shapes.")
+    if cluster_ids_grouped.shape != utility_grouped.shape:
+        raise ValueError("cluster_ids_grouped must match grouped utilities.")
+    if candidate_lengths_grouped is not None and candidate_lengths_grouped.shape != utility_grouped.shape:
+        raise ValueError("candidate_lengths_grouped must match grouped utilities.")
+    if candidate_formatted_grouped is not None and candidate_formatted_grouped.shape != utility_grouped.shape:
+        raise ValueError("candidate_formatted_grouped must match grouped utilities.")
+    if valid_row_mask_grouped is None:
+        valid_mask = torch.ones_like(utility_grouped, dtype=torch.bool)
+    else:
+        if valid_row_mask_grouped.shape != utility_grouped.shape:
+            raise ValueError("valid_row_mask_grouped must match the grouped utility shape.")
+        valid_mask = valid_row_mask_grouped.to(torch.bool)
+    if candidate_lengths_grouped is None:
+        candidate_lengths = torch.zeros_like(utility_grouped)
+    else:
+        candidate_lengths = candidate_lengths_grouped.to(
+            device=utility_grouped.device,
+            dtype=utility_grouped.dtype,
+        )
+    if candidate_formatted_grouped is None:
+        candidate_formatted = torch.zeros_like(utility_grouped)
+    else:
+        candidate_formatted = candidate_formatted_grouped.to(
+            device=utility_grouped.device,
+            dtype=utility_grouped.dtype,
+        )
+    semantic_valid_mask = valid_mask & (cluster_ids_grouped >= 0)
+    if budget_grouped is None:
+        budget_values = torch.zeros(
+            int(utility_grouped.size(0)),
+            device=utility_grouped.device,
+            dtype=utility_grouped.dtype,
+        )
+    else:
+        if budget_grouped.dim() != 1 or int(
+            budget_grouped.numel()
+        ) != int(utility_grouped.size(0)):
+            raise ValueError(
+                "budget_grouped must provide one value per prompt group."
+            )
+        budget_values = budget_grouped.to(
+            device=utility_grouped.device,
+            dtype=utility_grouped.dtype,
+        ).clamp(min=0.0)
+    safe_mode_tau = max(coerce_non_negative_float(mode_tau, default=0.0), 1e-8)
+    safe_mode_gap = coerce_non_negative_float(mode_gap, default=0.0)
+    safe_mode_top_k = max(int(mode_top_k), 1)
+    safe_budget_max = coerce_non_negative_float(budget_max, default=0.0)
+    safe_intra_tau = max(coerce_non_negative_float(intra_tau, default=0.0), 1e-8)
+    safe_candidate_kl = coerce_non_negative_float(candidate_kl_coef, default=0.0)
+    safe_select_min_alpha_frac = min(
+        max(coerce_non_negative_float(prompt_select_min_alpha_frac, default=0.0), 0.0),
+        1.0,
+    )
+    positive_only = bool(positive_only)
+    safe_max_expected_len_delta = float(max_expected_len_delta)
+    if not math.isfinite(safe_max_expected_len_delta):
+        safe_max_expected_len_delta = float("inf")
+    safe_max_expected_format_drop = coerce_non_negative_float(
+        max_expected_format_drop,
+        default=0.0,
+    )
+    num_prompts = int(utility_grouped.size(0))
+    base_weights = compute_listwise_weights_from_utilities(
+        utility_grouped=utility_grouped,
+        ref_seq_logps_grouped=ref_seq_logps_grouped,
+        tau=tau,
+        candidate_kl_coef=candidate_kl_coef,
+        valid_row_mask_grouped=valid_mask,
+    )
+    weights = base_weights.clone()
+    mode_count_grouped = torch.zeros((num_prompts,), device=utility_grouped.device, dtype=utility_grouped.dtype)
+    eligible_mode_count_grouped = torch.zeros_like(mode_count_grouped)
+    eligible_mode_frac_grouped = torch.zeros_like(mode_count_grouped)
+    best_score_grouped = torch.zeros_like(mode_count_grouped)
+    second_score_grouped = torch.zeros_like(mode_count_grouped)
+    competitive_gap_grouped = torch.zeros_like(mode_count_grouped)
+    explore_budget_grouped = torch.zeros_like(mode_count_grouped)
+    explore_budget_saturated_grouped = torch.zeros_like(mode_count_grouped)
+    explore_applied_group_mask = torch.zeros((num_prompts,), device=utility_grouped.device, dtype=torch.bool)
+    prompt_selected_group_mask = torch.zeros_like(explore_applied_group_mask)
+    prompt_rejected_low_opp_group_mask = torch.zeros_like(explore_applied_group_mask)
+    prompt_rejected_nonpositive_group_mask = torch.zeros_like(explore_applied_group_mask)
+    prompt_rejected_len_guard_group_mask = torch.zeros_like(explore_applied_group_mask)
+    prompt_rejected_format_guard_group_mask = torch.zeros_like(explore_applied_group_mask)
+    moved_mass_l1_grouped = torch.zeros_like(mode_count_grouped)
+    alpha_raw_grouped = torch.zeros_like(mode_count_grouped)
+    alpha_applied_grouped = torch.zeros_like(mode_count_grouped)
+    expected_utility_q_grouped = (
+        base_weights * torch.where(valid_mask, utility_grouped, torch.zeros_like(utility_grouped))
+    ).sum(dim=1)
+    expected_utility_explore_target_grouped = expected_utility_q_grouped.clone()
+    expected_utility_final_w_grouped = expected_utility_q_grouped.clone()
+    expected_len_q_grouped = (
+        base_weights * torch.where(valid_mask, candidate_lengths, torch.zeros_like(candidate_lengths))
+    ).sum(dim=1)
+    expected_len_explore_target_grouped = expected_len_q_grouped.clone()
+    expected_len_final_w_grouped = expected_len_q_grouped.clone()
+    expected_format_q_grouped = (
+        base_weights
+        * torch.where(valid_mask, candidate_formatted, torch.zeros_like(candidate_formatted))
+    ).sum(dim=1)
+    expected_format_explore_target_grouped = expected_format_q_grouped.clone()
+    expected_format_final_w_grouped = expected_format_q_grouped.clone()
+
+    for p in range(num_prompts):
+        semantic_idx = torch.where(semantic_valid_mask[p])[0]
+        if semantic_idx.numel() <= 0:
+            continue
+
+        row_clusters = cluster_ids_grouped[p, semantic_idx]
+        unique_clusters = torch.unique(row_clusters[row_clusters >= 0], sorted=True)
+        num_clusters = int(unique_clusters.numel())
+        mode_count_grouped[p] = float(num_clusters)
+        if num_clusters <= 1:
+            continue
+
+        member_mode_logits_all = utility_grouped[p, semantic_idx]
+        if safe_candidate_kl > 0.0:
+            member_mode_logits_all = member_mode_logits_all + (
+                safe_candidate_kl * ref_seq_logps_grouped[p, semantic_idx]
+            )
+
+        cluster_scores = []
+        cluster_member_masks = []
+        for cid in unique_clusters.tolist():
+            mask = row_clusters == cid
+            cluster_member_masks.append(mask)
+            member_mode_logits = member_mode_logits_all[mask]
+            cluster_scores.append(member_mode_logits.max().to(utility_grouped.dtype))
+
+        cluster_scores_t = torch.stack(cluster_scores).to(dtype=utility_grouped.dtype)
+        sorted_scores, sorted_idx = torch.sort(cluster_scores_t, descending=True)
+        best_score_grouped[p] = sorted_scores[0]
+        second_score_grouped[p] = sorted_scores[1] if num_clusters > 1 else sorted_scores[0]
+        competitive_gap_grouped[p] = (
+            best_score_grouped[p] - second_score_grouped[p]
+            if num_clusters > 1
+            else torch.zeros_like(best_score_grouped[p])
+        )
+
+        alpha_p = torch.clamp(budget_values[p], min=0.0, max=safe_budget_max).to(
+            dtype=utility_grouped.dtype
+        )
+        alpha_raw = (
+            alpha_p / safe_budget_max
+            if safe_budget_max > 0.0
+            else torch.zeros_like(alpha_p)
+        )
+        alpha_raw_grouped[p] = alpha_raw
+        if safe_budget_max > 0.0:
+            explore_budget_saturated_grouped[p] = (
+                alpha_raw >= (1.0 - 1e-8)
+            )
+        if float(alpha_raw.item()) < safe_select_min_alpha_frac:
+            prompt_rejected_low_opp_group_mask[p] = True
+            continue
+        if positive_only and float(best_score_grouped[p].item()) <= 0.0:
+            prompt_rejected_nonpositive_group_mask[p] = True
+            continue
+
+        eligible_mask = cluster_scores_t >= (cluster_scores_t.max() - safe_mode_gap)
+        if positive_only:
+            eligible_mask = eligible_mask & (cluster_scores_t > 0.0)
+        if safe_mode_top_k < num_clusters:
+            topk_mask = torch.zeros_like(eligible_mask, dtype=torch.bool)
+            topk_mask[sorted_idx[:safe_mode_top_k]] = True
+            eligible_mask = eligible_mask & topk_mask
+        eligible_count = int(eligible_mask.to(torch.int64).sum().item())
+        eligible_mode_count_grouped[p] = float(eligible_count)
+        eligible_mode_frac_grouped[p] = float(eligible_count) / float(max(num_clusters, 1))
+        if eligible_count < 2:
+            if positive_only and int((cluster_scores_t > 0.0).to(torch.int64).sum().item()) < 2:
+                prompt_rejected_nonpositive_group_mask[p] = True
+            continue
+
+        if float(alpha_p.item()) <= 0.0:
+            prompt_rejected_low_opp_group_mask[p] = True
+            continue
+
+        eligible_scores = cluster_scores_t[eligible_mask]
+        cluster_mass = torch.softmax(eligible_scores / safe_mode_tau, dim=0)
+        semantic_group_weights = torch.zeros(
+            (int(semantic_idx.numel()),),
+            device=utility_grouped.device,
+            dtype=utility_grouped.dtype,
+        )
+        eligible_positions = torch.where(eligible_mask)[0]
+        for cluster_mass_idx, cluster_pos in enumerate(eligible_positions.tolist()):
+            mask = cluster_member_masks[cluster_pos]
+            member_mode_logits = member_mode_logits_all[mask].to(utility_grouped.dtype)
+            within = torch.softmax(member_mode_logits / safe_intra_tau, dim=0)
+            semantic_group_weights[mask] = (
+                cluster_mass[cluster_mass_idx].to(utility_grouped.dtype) * within
+            )
+
+        semantic_base_mass = base_weights[p, semantic_idx].sum()
+        if float(semantic_base_mass.item()) <= 1e-12:
+            continue
+        semantic_explore_target = semantic_base_mass * semantic_group_weights
+        semantic_q = base_weights[p, semantic_idx]
+        semantic_explore_full = base_weights[p].clone()
+        semantic_explore_full[semantic_idx] = semantic_explore_target
+        expected_utility_explore_target_grouped[p] = (
+            semantic_explore_full
+            * torch.where(valid_mask[p], utility_grouped[p], torch.zeros_like(utility_grouped[p]))
+        ).sum()
+        expected_len_explore_target_grouped[p] = (
+            semantic_explore_full
+            * torch.where(valid_mask[p], candidate_lengths[p], torch.zeros_like(candidate_lengths[p]))
+        ).sum()
+        expected_format_explore_target_grouped[p] = (
+            semantic_explore_full
+            * torch.where(valid_mask[p], candidate_formatted[p], torch.zeros_like(candidate_formatted[p]))
+        ).sum()
+        if (
+            float(expected_len_explore_target_grouped[p].item())
+            > float(expected_len_q_grouped[p].item()) + safe_max_expected_len_delta + 1e-6
+        ):
+            prompt_rejected_len_guard_group_mask[p] = True
+            continue
+        if (
+            float(expected_format_explore_target_grouped[p].item()) + safe_max_expected_format_drop + 1e-6
+            < float(expected_format_q_grouped[p].item())
+        ):
+            prompt_rejected_format_guard_group_mask[p] = True
+            continue
+
+        prompt_selected_group_mask[p] = True
+        alpha_applied_grouped[p] = alpha_p
+        explore_budget_grouped[p] = alpha_p
+        weights[p, semantic_idx] = (
+            (1.0 - alpha_p) * semantic_q + alpha_p * semantic_explore_target
+        )
+        explore_applied_group_mask[p] = True
+        moved_mass_l1_grouped[p] = 0.5 * torch.abs(weights[p] - base_weights[p]).sum()
+        expected_utility_final_w_grouped[p] = (
+            weights[p]
+            * torch.where(valid_mask[p], utility_grouped[p], torch.zeros_like(utility_grouped[p]))
+        ).sum()
+        expected_len_final_w_grouped[p] = (
+            weights[p]
+            * torch.where(valid_mask[p], candidate_lengths[p], torch.zeros_like(candidate_lengths[p]))
+        ).sum()
+        expected_format_final_w_grouped[p] = (
+            weights[p]
+            * torch.where(valid_mask[p], candidate_formatted[p], torch.zeros_like(candidate_formatted[p]))
+        ).sum()
+
+    row_sums = weights.sum(dim=1, keepdim=True)
+    uniform_weights = torch.where(
+        valid_mask,
+        1.0
+        / valid_mask.to(dtype=utility_grouped.dtype)
+        .sum(dim=1, keepdim=True)
+        .clamp(min=1.0),
+        torch.zeros_like(weights),
+    )
+    weights = torch.where(row_sums > 0, weights / row_sums.clamp(min=1e-12), uniform_weights)
+    weights = torch.where(valid_mask, weights, torch.zeros_like(weights))
+    diagnostics = SemanticWeightDiagnostics(
+        mode_count_grouped=mode_count_grouped,
+        eligible_mode_count_grouped=eligible_mode_count_grouped,
+        eligible_mode_frac_grouped=eligible_mode_frac_grouped,
+        best_score_grouped=best_score_grouped,
+        second_score_grouped=second_score_grouped,
+        competitive_gap_grouped=competitive_gap_grouped,
+        explore_budget_grouped=explore_budget_grouped,
+        explore_budget_saturated_grouped=explore_budget_saturated_grouped,
+        explore_applied_group_mask=explore_applied_group_mask,
+        prompt_selected_group_mask=prompt_selected_group_mask,
+        prompt_rejected_low_opp_group_mask=prompt_rejected_low_opp_group_mask,
+        prompt_rejected_nonpositive_group_mask=prompt_rejected_nonpositive_group_mask,
+        prompt_rejected_len_guard_group_mask=prompt_rejected_len_guard_group_mask,
+        prompt_rejected_format_guard_group_mask=prompt_rejected_format_guard_group_mask,
+        moved_mass_l1_grouped=moved_mass_l1_grouped,
+        alpha_raw_grouped=alpha_raw_grouped,
+        alpha_applied_grouped=alpha_applied_grouped,
+        expected_utility_q_grouped=expected_utility_q_grouped,
+        expected_utility_explore_target_grouped=expected_utility_explore_target_grouped,
+        expected_utility_final_w_grouped=expected_utility_final_w_grouped,
+        expected_len_q_grouped=expected_len_q_grouped,
+        expected_len_explore_target_grouped=expected_len_explore_target_grouped,
+        expected_len_final_w_grouped=expected_len_final_w_grouped,
+        expected_format_q_grouped=expected_format_q_grouped,
+        expected_format_explore_target_grouped=expected_format_explore_target_grouped,
+        expected_format_final_w_grouped=expected_format_final_w_grouped,
+    )
+    return weights, diagnostics
+
 def compute_listwise_weights_from_utilities(
     *,
     utility_grouped: torch.Tensor,
@@ -920,6 +1509,229 @@ def compute_listwise_weights_from_utilities(
         torch.zeros_like(weights_grouped),
     )
     return torch.where(has_valid, weights_grouped, uniform_weights)
+
+
+
+
+def compute_drx_group_masks(
+    *,
+    utility_grouped: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor,
+    neutral_eps: float = 1e-8,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return informative/neutral/contributing masks for grouped DrX utilities."""
+
+    if utility_grouped.shape != valid_row_mask_grouped.shape:
+        raise ValueError(
+            "utility_grouped and valid_row_mask_grouped must have matching shapes."
+        )
+
+    valid_mask = valid_row_mask_grouped.to(torch.bool)
+    contributing_group_mask = valid_mask.any(dim=1)
+
+    dtype_info = torch.finfo(utility_grouped.dtype)
+    valid_max = torch.where(
+        valid_mask,
+        utility_grouped,
+        torch.full_like(utility_grouped, dtype_info.min),
+    ).amax(dim=1)
+    valid_min = torch.where(
+        valid_mask,
+        utility_grouped,
+        torch.full_like(utility_grouped, dtype_info.max),
+    ).amin(dim=1)
+    valid_count = valid_mask.to(torch.int64).sum(dim=1)
+
+    neutral_group_mask = contributing_group_mask & (
+        (valid_count <= 1) | ((valid_max - valid_min) <= float(neutral_eps))
+    )
+    informative_group_mask = contributing_group_mask & (~neutral_group_mask)
+    return informative_group_mask, neutral_group_mask, contributing_group_mask
+
+
+def build_drx_target_bundle(
+    *,
+    utility_grouped: torch.Tensor,
+    ref_seq_logps_grouped: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor,
+    tau: float,
+    competitive_mode_tau: float = 0.05,
+    competitive_mode_gap: float = 0.10,
+    competitive_mode_top_k: int = 3,
+    competitive_mode_budget_grouped: torch.Tensor | None = None,
+    competitive_mode_budget_max: float = 0.10,
+    competitive_mode_intra_tau: float = 0.01,
+    candidate_lengths_grouped: torch.Tensor | None = None,
+    candidate_formatted_grouped: torch.Tensor | None = None,
+    prompt_select_min_alpha_frac: float = 0.0,
+    competitive_mode_positive_only: bool = False,
+    semantic_guard_max_expected_len_delta: float = float("inf"),
+    semantic_guard_max_expected_format_drop: float = 0.0,
+    candidate_kl_coef: float,
+    cluster_ids_grouped: torch.Tensor | None = None,
+    neutral_eps: float = 1e-8,
+    neutral_projection_coef: float = 0.0,
+) -> DrXTargetBundle:
+    """Build grouped DrX objects with optional competitive-mode semantic remixing.
+
+    When ``cluster_ids_grouped`` is provided, the baseline DrX candidate posterior
+    remains primary and semantic structure only reallocates a bounded residual
+    budget over competitive semantic modes.
+    """
+
+    if utility_grouped.shape != ref_seq_logps_grouped.shape:
+        raise ValueError(
+            "utility_grouped and ref_seq_logps_grouped must have matching shapes."
+        )
+    if utility_grouped.shape != valid_row_mask_grouped.shape:
+        raise ValueError(
+            "utility_grouped and valid_row_mask_grouped must have matching shapes."
+        )
+
+    informative_group_mask, neutral_group_mask, contributing_group_mask = (
+        compute_drx_group_masks(
+            utility_grouped=utility_grouped,
+            valid_row_mask_grouped=valid_row_mask_grouped,
+            neutral_eps=neutral_eps,
+        )
+    )
+
+    semantic_diagnostics = None
+    if cluster_ids_grouped is None:
+        w_star_grouped = compute_listwise_weights_from_utilities(
+            utility_grouped=utility_grouped,
+            ref_seq_logps_grouped=ref_seq_logps_grouped,
+            tau=tau,
+            candidate_kl_coef=candidate_kl_coef,
+            valid_row_mask_grouped=valid_row_mask_grouped,
+        )
+    else:
+        w_star_grouped, semantic_diagnostics = compute_semantic_cluster_weights_from_utilities(
+            utility_grouped=utility_grouped,
+            ref_seq_logps_grouped=ref_seq_logps_grouped,
+            cluster_ids_grouped=cluster_ids_grouped,
+            tau=tau,
+            mode_tau=competitive_mode_tau,
+            mode_gap=competitive_mode_gap,
+            mode_top_k=competitive_mode_top_k,
+            budget_grouped=competitive_mode_budget_grouped,
+            budget_max=competitive_mode_budget_max,
+            intra_tau=competitive_mode_intra_tau,
+            candidate_lengths_grouped=candidate_lengths_grouped,
+            candidate_formatted_grouped=candidate_formatted_grouped,
+            candidate_kl_coef=candidate_kl_coef,
+            prompt_select_min_alpha_frac=prompt_select_min_alpha_frac,
+            positive_only=competitive_mode_positive_only,
+            max_expected_len_delta=semantic_guard_max_expected_len_delta,
+            max_expected_format_drop=semantic_guard_max_expected_format_drop,
+            valid_row_mask_grouped=valid_row_mask_grouped,
+        )
+
+    target_mass_grouped = (
+        w_star_grouped * valid_row_mask_grouped.to(dtype=w_star_grouped.dtype)
+    ).sum(dim=1)
+    has_target_mass_mask = target_mass_grouped > 1e-8
+    contributing_target_group_mask = contributing_group_mask & has_target_mass_mask
+    effective_neutral_group_mask = neutral_group_mask & has_target_mass_mask
+    token_group_mask = informative_group_mask & has_target_mass_mask
+    # The projection sidecar is an optional weak neutral-group regularizer. When
+    # disabled, neutral groups remain true no-op groups instead of contributing
+    # zero-weighted targets that make diagnostics look active.
+    projection_enabled = float(max(neutral_projection_coef, 0.0)) > 0.0
+    projection_group_mask = effective_neutral_group_mask
+    if not projection_enabled:
+        projection_group_mask = torch.zeros_like(projection_group_mask)
+
+    token_target_grouped = torch.where(
+        token_group_mask[:, None],
+        w_star_grouped,
+        torch.zeros_like(w_star_grouped),
+    )
+    projection_target_grouped = torch.where(
+        projection_group_mask[:, None],
+        w_star_grouped,
+        torch.zeros_like(w_star_grouped),
+    )
+
+    proj_scale = (
+        torch.full(
+            (utility_grouped.size(0),),
+            float(max(neutral_projection_coef, 0.0)),
+            device=utility_grouped.device,
+            dtype=utility_grouped.dtype,
+        )
+        * projection_group_mask.to(dtype=utility_grouped.dtype)
+    )
+
+    return DrXTargetBundle(
+        utility_grouped=utility_grouped,
+        w_star_grouped=w_star_grouped,
+        token_target_grouped=token_target_grouped,
+        projection_target_grouped=projection_target_grouped,
+        informative_group_mask=token_group_mask,
+        neutral_group_mask=effective_neutral_group_mask,
+        contributing_group_mask=contributing_target_group_mask,
+        projection_group_scale=proj_scale,
+        semantic_diagnostics=semantic_diagnostics,
+    )
+
+
+def compute_drx_projection_sequence_coefficients(
+    *,
+    policy_seq_logps_grouped: torch.Tensor,
+    projection_target_grouped: torch.Tensor,
+    projection_group_scale: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor,
+    normalizer_total_group_weight: Optional[float] = None,
+) -> torch.Tensor:
+    """Return exact d(loss)/d(seq_logp) coeffs for KL(w* || p^pi)."""
+
+    if policy_seq_logps_grouped.shape != projection_target_grouped.shape:
+        raise ValueError(
+            "policy_seq_logps_grouped and projection_target_grouped must match."
+        )
+    if policy_seq_logps_grouped.shape != valid_row_mask_grouped.shape:
+        raise ValueError(
+            "valid_row_mask_grouped must match the grouped sequence shape."
+        )
+    if projection_group_scale.dim() != 1 or int(projection_group_scale.numel()) != int(
+        policy_seq_logps_grouped.size(0)
+    ):
+        raise ValueError(
+            "projection_group_scale must match the prompt-group dimension."
+        )
+
+    valid_mask = valid_row_mask_grouped.to(torch.bool)
+    policy_log_probs_grouped = masked_group_log_softmax(
+        policy_seq_logps_grouped,
+        valid_mask,
+    )
+    policy_probs_grouped = torch.where(
+        valid_mask,
+        torch.exp(policy_log_probs_grouped),
+        torch.zeros_like(policy_log_probs_grouped),
+    )
+
+    target_mass_grouped = (
+        projection_target_grouped * valid_mask.to(projection_target_grouped.dtype)
+    ).sum(dim=1, keepdim=True)
+
+    coeffs = target_mass_grouped * policy_probs_grouped - projection_target_grouped
+    coeffs = torch.where(valid_mask, coeffs, torch.zeros_like(coeffs))
+
+    scale = projection_group_scale.to(
+        device=policy_seq_logps_grouped.device,
+        dtype=policy_seq_logps_grouped.dtype,
+    )
+    if normalizer_total_group_weight is None:
+        total_weight = float(scale.sum().item())
+    else:
+        total_weight = float(normalizer_total_group_weight)
+    if total_weight <= 0.0:
+        return torch.zeros_like(coeffs)
+
+    coeffs = coeffs * (scale[:, None] / float(total_weight))
+    return coeffs
 
 
 def compute_listwise_centered_advantages(
@@ -1111,67 +1923,6 @@ def compute_sequence_clip_coefficients(
     coeffs = torch.where(clipped_region, torch.zeros_like(coeffs), coeffs)
     coeffs = coeffs * active_scale
     return torch.where(valid_group_mask, coeffs, torch.zeros_like(coeffs))
-
-
-def compute_sequence_level_clip_surrogate(
-    *,
-    policy_seq_logps_grouped: torch.Tensor,
-    behavior_seq_logps_grouped: torch.Tensor,
-    row_advantages_grouped: torch.Tensor,
-    valid_row_mask_grouped: torch.Tensor | None = None,
-    clip_low: float = 0.0,
-    clip_high: float = 0.0,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Return per-candidate sequence PPO surrogates plus clipping masks."""
-
-    if policy_seq_logps_grouped.shape != behavior_seq_logps_grouped.shape:
-        raise ValueError(
-            "policy_seq_logps_grouped and behavior_seq_logps_grouped must have matching shapes."
-        )
-    if policy_seq_logps_grouped.shape != row_advantages_grouped.shape:
-        raise ValueError(
-            "policy_seq_logps_grouped and row_advantages_grouped must have matching shapes."
-        )
-    if valid_row_mask_grouped is None:
-        valid_group_mask = torch.ones_like(row_advantages_grouped, dtype=torch.bool)
-    else:
-        if valid_row_mask_grouped.shape != row_advantages_grouped.shape:
-            raise ValueError(
-                "valid_row_mask_grouped must match the grouped advantage shape."
-            )
-        valid_group_mask = valid_row_mask_grouped.to(torch.bool)
-
-    safe_clip_low = coerce_non_negative_float(clip_low, default=0.0)
-    safe_clip_high = coerce_non_negative_float(clip_high, default=0.0)
-    log_seq_ratio = (
-        policy_seq_logps_grouped - behavior_seq_logps_grouped
-    ).clamp(-40.0, 40.0)
-    seq_ratio = torch.exp(log_seq_ratio).to(policy_seq_logps_grouped.dtype)
-    clipped_seq_ratio = torch.clamp(
-        seq_ratio,
-        1.0 - safe_clip_low,
-        1.0 + safe_clip_high,
-    )
-    row_advantages_grouped = row_advantages_grouped.to(
-        device=policy_seq_logps_grouped.device,
-        dtype=policy_seq_logps_grouped.dtype,
-    )
-    surrogate = torch.min(
-        seq_ratio * row_advantages_grouped,
-        clipped_seq_ratio * row_advantages_grouped,
-    )
-    surrogate = torch.where(valid_group_mask, surrogate, torch.zeros_like(surrogate))
-    is_low_clipped = (
-        (seq_ratio < 1.0 - safe_clip_low)
-        & (row_advantages_grouped < 0.0)
-        & valid_group_mask
-    )
-    is_high_clipped = (
-        (seq_ratio > 1.0 + safe_clip_high)
-        & (row_advantages_grouped > 0.0)
-        & valid_group_mask
-    )
-    return surrogate, seq_ratio, is_low_clipped, is_high_clipped
 
 
 def compute_listwise_sequence_coefficients(

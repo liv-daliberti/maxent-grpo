@@ -987,6 +987,261 @@ def extract_answer(passage: str) -> str:
     return None
 
 
+
+
+def _clean_symbolic_cluster_candidate(candidate: str | None) -> str | None:
+    """Return a compact final-answer candidate, or ``None`` for non-answer text."""
+
+    if candidate is None:
+        return None
+    candidate = str(candidate).strip()
+    if not candidate:
+        return None
+    # The semantic cluster path should not reward free-form malformed generations.
+    # Keep only compact answer strings, not multi-line traces or stray tags.
+    if "\n" in candidate or "\r" in candidate or "<" in candidate or ">" in candidate:
+        return None
+    if len(candidate) > 160:
+        return None
+    candidate = re.sub(
+        r"^\s*(?:the\s+)?(?:final\s+)?answer\s*(?:is|=|:)\s*",
+        "",
+        candidate,
+        flags=re.IGNORECASE,
+    ).strip()
+    return candidate or None
+
+
+def _extract_r1_reasoning_and_answer_sections(
+    model_response: str,
+) -> tuple[str | None, str | None]:
+    """Return ``(<think> body, <answer> body)`` for an R1-style trace.
+
+    Training prompts already end inside an open ``<think>`` tag, so many model
+    responses begin with reasoning text and only emit the closing ``</think>``
+    before ``<answer>``. We accept both:
+
+    1. full tagged traces containing ``<think>...</think><answer>...</answer>``
+    2. response-only continuations containing ``... </think> <answer>...</answer>``
+    """
+
+    if "<answer>" not in model_response or "</answer>" not in model_response:
+        return None, None
+    try:
+        prefix, answer_suffix = model_response.split("<answer>", 1)
+        answer = answer_suffix.split("</answer>", 1)[0].strip()
+        reasoning = None
+        if "<think>" in prefix and "</think>" in prefix:
+            reasoning = prefix.split("<think>", 1)[1].split("</think>", 1)[0].strip()
+        elif "</think>" in prefix:
+            reasoning = prefix.split("</think>", 1)[0].strip()
+        else:
+            return None, None
+        answer = (
+            answer
+        )
+    except Exception:
+        return None, None
+    return reasoning or None, answer or None
+
+
+def extract_reasoning_trace_for_clustering(
+    model_response: str,
+    *,
+    template: str = "r1",
+) -> str | None:
+    """Return a conservative reasoning-trace string for semantic clustering.
+
+    The semantic-cluster path should only compare traces that match the expected
+    output format. Malformed or answer-only generations return ``None`` so they
+    do not receive semantic diversity credit. Response-only R1 continuations
+    that close an already-open prompt-level ``<think>`` tag are accepted.
+    """
+
+    try:
+        if template == "r1":
+            reasoning, _ = _extract_r1_reasoning_and_answer_sections(model_response)
+            return reasoning
+        return None
+    except Exception:
+        return None
+
+
+_REASONING_SIGNATURE_MAX_UNIQUE_STATES = 6
+_REASONING_SIGNATURE_MAX_STATE_CHARS = 96
+_REASONING_SIGNATURE_MATH_MARKER_PATTERN = re.compile(
+    r"(?:=|\\approx|\\neq|\\leq?|\\geq?|<|>|\\to|->|=>|\\Rightarrow|\\implies|\\frac|\\sqrt|\\cdot|\\times|\\div|[+\-*/^])",
+    flags=re.IGNORECASE,
+)
+_REASONING_SIGNATURE_LEADING_TEXT_PATTERN = re.compile(
+    r"^(?:step\s*\d+\s*[:.)-]?\s*|"
+    r"let\s+me\s+\w+(?:\s+\w+){0,4}\s*[:.)-]?\s*|"
+    r"(?:so|thus|therefore|hence|then|now|next|finally|since|because)\s+|"
+    r"(?:and\s+)?after\s+some\s+thought\s+we\s+get\s+|"
+    r"the\s+(?:answer|result)\s*(?:is|=|:)\s*|"
+    r"we\s+(?:start\s+with|have|get|know|obtain|find|see|rewrite|compute|deduce)\s+|"
+    r"this\s+(?:gives|means|implies|yields)\s+)+",
+    flags=re.IGNORECASE,
+)
+
+
+def _looks_symbolic_reasoning_chunk(candidate: str | None) -> bool:
+    if candidate is None:
+        return False
+    candidate = str(candidate).strip()
+    if not candidate:
+        return False
+    if _REASONING_SIGNATURE_MATH_MARKER_PATTERN.search(candidate) is None:
+        return False
+    return re.search(r"[0-9a-zA-Z\\]", candidate) is not None
+
+
+def _normalize_reasoning_signature_state(candidate: str | None) -> str | None:
+    if candidate is None:
+        return None
+    candidate = str(candidate).strip()
+    if not candidate:
+        return None
+    candidate = candidate.replace("\r", " ").replace("\n", " ")
+    candidate = candidate.replace("\\left", "").replace("\\right", "")
+    candidate = candidate.replace("\\!", "").replace("\\,", " ")
+    candidate = candidate.replace("−", "-").replace("–", "-").replace("—", "-")
+    candidate = candidate.replace("×", "\\times").replace("÷", "\\div")
+    candidate = candidate.replace("∴", " therefore ").replace("⇒", " => ")
+    candidate = candidate.replace("→", " -> ")
+    candidate = re.sub(r"\s+", " ", candidate).strip()
+    if ":" in candidate:
+        prefix, suffix = candidate.split(":", 1)
+        if _looks_symbolic_reasoning_chunk(suffix) and not _looks_symbolic_reasoning_chunk(
+            prefix
+        ):
+            candidate = suffix.strip()
+    previous = None
+    while previous != candidate:
+        previous = candidate
+        candidate = _REASONING_SIGNATURE_LEADING_TEXT_PATTERN.sub("", candidate).strip()
+    candidate = re.sub(r"^\((.+)\)$", r"\1", candidate).strip()
+    candidate = re.sub(r"\s*([=<>+\-*/^])\s*", r"\1", candidate)
+    candidate = re.sub(r"\s*(\\(?:times|cdot|div|to|approx|neq|leq?|geq?))\s*", r"\1", candidate)
+    candidate = re.sub(r"\s*,\s*", ",", candidate)
+    candidate = candidate.strip(" .;,:")
+    if not _looks_symbolic_reasoning_chunk(candidate):
+        return None
+    if len(candidate) > _REASONING_SIGNATURE_MAX_STATE_CHARS:
+        return None
+    return candidate or None
+
+
+def _candidate_reasoning_signature_chunks(reasoning_trace: str) -> list[str]:
+    chunks: list[str] = []
+    normalized_trace = str(reasoning_trace).replace("\r", "\n")
+    for line in normalized_trace.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        sentence_pieces = re.split(r"(?<=[.;])\s+", line)
+        for piece in sentence_pieces:
+            piece = piece.strip()
+            if not piece:
+                continue
+            if piece.count("=") > 1 or (
+                "," in piece and _looks_symbolic_reasoning_chunk(piece)
+            ):
+                subpieces = [subpiece.strip() for subpiece in piece.split(",")]
+            else:
+                subpieces = [piece]
+            for subpiece in subpieces:
+                if subpiece:
+                    chunks.append(subpiece)
+    return chunks
+
+
+def extract_reasoning_signature_for_clustering(
+    model_response: str,
+    *,
+    template: str = "r1",
+) -> str | None:
+    """Return a short structural reasoning sketch for semantic clustering.
+
+    The sketch keeps a few distinct normalized symbolic states from the trace,
+    removes duplicates, and sorts them so narration order alone does not create
+    a new semantic category.
+    """
+
+    reasoning_trace = extract_reasoning_trace_for_clustering(
+        model_response,
+        template=template,
+    )
+    if reasoning_trace is None:
+        return None
+    seen_states: set[str] = set()
+    for candidate in _candidate_reasoning_signature_chunks(reasoning_trace):
+        normalized_state = _normalize_reasoning_signature_state(candidate)
+        if normalized_state is None or normalized_state in seen_states:
+            continue
+        seen_states.add(normalized_state)
+    if not seen_states:
+        return None
+    selected_states = sorted(seen_states)
+    if len(selected_states) > _REASONING_SIGNATURE_MAX_UNIQUE_STATES:
+        selected_states = selected_states[:_REASONING_SIGNATURE_MAX_UNIQUE_STATES]
+    return " || ".join(selected_states) or None
+
+
+def extract_normalized_final_answer_for_clustering(model_response: str, *, template: str = "r1") -> str | None:
+    """Best-effort normalized final answer string for same-answer semantic gating.
+
+    This helper is intentionally conservative: if we can extract and normalize a final
+    answer, we use it as the first-pass semantic gate before any embedding-based split.
+    """
+
+    try:
+        candidate = None
+        if template == "r1":
+            # Match the training reward's strict formatting gate. Without this,
+            # unformatted traces become unique raw-text clusters and receive
+            # semantic entropy credit.
+            _, candidate = _extract_r1_reasoning_and_answer_sections(model_response)
+            if candidate is None:
+                return None
+        else:
+            candidate = extract_answer(model_response)
+        if candidate is None:
+            return None
+        extracted = extract_answer(candidate) if "\\boxed" in candidate else candidate
+        extracted = _clean_symbolic_cluster_candidate(extracted)
+        if extracted is None:
+            return None
+        normalized = normalize_final_answer(extracted)
+        normalized = _normalize(normalized)
+        if normalized is None:
+            normalized = normalize_final_answer(extracted)
+        if normalized is None:
+            return None
+        normalized = str(normalized).strip().lower()
+        return normalized or None
+    except Exception:
+        return None
+
+
+def is_response_formatted_for_reward(
+    model_response: str,
+    *,
+    template: str = "r1",
+) -> bool:
+    """Return whether ``model_response`` satisfies the reward-format gate.
+
+    This mirrors the format-only branch of the training reward functions without
+    requiring ground-truth answers. It is used for learner-side safety guards
+    that compare the expected formatted mass under baseline and semantic explore
+    targets.
+    """
+
+    if template == "r1":
+        reasoning, answer = _extract_r1_reasoning_and_answer_sections(model_response)
+        return reasoning is not None and answer is not None
+    return extract_answer(model_response) is not None
+
 def grade(model_answer: str, gt_answer: str, fast: bool = True):
     if "\\boxed" in gt_answer:
         gt_answer = extract_answer(gt_answer)

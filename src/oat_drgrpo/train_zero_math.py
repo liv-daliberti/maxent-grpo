@@ -50,11 +50,14 @@ from .listwise import (ListwiseControllerState,
                        compute_listwise_centered_advantages,
                        compute_listwise_clip_advantages,
                        compute_sequence_clip_coefficients,
-                       compute_sequence_level_clip_surrogate,
                        compute_listwise_sequence_coefficients,
                        compute_token_level_clip_loss,
                        compute_listwise_weights,
                        compute_listwise_weights_from_utilities,
+                       build_drx_target_bundle,
+                       compute_drx_projection_sequence_coefficients,
+                       build_semantic_cluster_bundle,
+                       compute_normalized_semantic_cluster_entropy,
                        flatten_prompt_major_tensor,
                        gather_selected_logps_chunked,
                        iter_budgeted_row_chunks,
@@ -71,8 +74,12 @@ from .listwise import (ListwiseControllerState,
                        resolve_token_id_upper_bound,
                        reshape_prompt_major_tensor,
                        sanitize_scoring_token_ids,
-                       update_listwise_tau_entropy_ema)
-from .math_grader import answer_tag_reward_fn, boxed_reward_fn
+                       update_listwise_tau_metric_ema)
+from .math_grader import (answer_tag_reward_fn, boxed_reward_fn,
+                          extract_normalized_final_answer_for_clustering,
+                          extract_reasoning_signature_for_clustering,
+                          extract_reasoning_trace_for_clustering)
+from .semantic_features import build_candidate_response_features
 from tqdm import tqdm
 
 """
@@ -136,6 +143,66 @@ def _stack_scalar_stats(
                 torch.tensor([float(value)], device=target_device, dtype=torch.float32)
             )
     return torch.cat(stacked)
+
+
+def _concat_vector_stats(
+    values: list[float | torch.Tensor],
+    *,
+    device: torch.device | None = None,
+) -> torch.Tensor:
+    """Concatenate vector-valued stats once at the end of a learning step."""
+
+    target_device = device
+    if target_device is None:
+        for value in values:
+            if isinstance(value, torch.Tensor):
+                target_device = value.device
+                break
+    if target_device is None:
+        target_device = torch.device("cpu")
+    if not values:
+        return torch.empty(0, dtype=torch.float32, device=target_device)
+    pieces: list[torch.Tensor] = []
+    for value in values:
+        if isinstance(value, torch.Tensor):
+            pieces.append(
+                value.detach().to(device=target_device, dtype=torch.float32).reshape(-1)
+            )
+        else:
+            pieces.append(
+                torch.tensor([float(value)], device=target_device, dtype=torch.float32)
+            )
+    return torch.cat(pieces, dim=0) if pieces else torch.empty(
+        0,
+        dtype=torch.float32,
+        device=target_device,
+    )
+
+
+def _all_gather_variable_length_1d_tensor(values: torch.Tensor) -> torch.Tensor:
+    """Gather a 1D tensor with variable local length across distributed ranks."""
+
+    flat = values.reshape(-1)
+    if not dist.is_available() or not dist.is_initialized():
+        return flat
+    length = torch.tensor([flat.numel()], device=flat.device, dtype=torch.int64)
+    world_size = dist.get_world_size()
+    gathered_lengths = [torch.zeros_like(length) for _ in range(world_size)]
+    dist.all_gather(gathered_lengths, length)
+    max_length = int(torch.stack(gathered_lengths).max().item())
+    if max_length <= 0:
+        return flat.new_zeros((0,), dtype=flat.dtype)
+    padded = flat.new_zeros((max_length,), dtype=flat.dtype)
+    if flat.numel() > 0:
+        padded[: flat.numel()] = flat
+    gathered = [flat.new_zeros((max_length,), dtype=flat.dtype) for _ in range(world_size)]
+    dist.all_gather(gathered, padded)
+    chunks = []
+    for shard, shard_length in zip(gathered, gathered_lengths):
+        shard_count = int(shard_length.item())
+        if shard_count > 0:
+            chunks.append(shard[:shard_count])
+    return torch.cat(chunks, dim=0) if chunks else flat.new_zeros((0,), dtype=flat.dtype)
 
 
 """
@@ -234,16 +301,42 @@ class ZeroMathArgs(PPOArgs):
     maxent_token_surrogate_primary: bool = False
     maxent_drgrpo_token_primary: bool = False
     maxent_sequence_aux_coef: float = 1.0
+    maxent_neutral_projection_coef: float = 0.0
+    maxent_semantic_similarity_threshold: float = 0.90
+    maxent_semantic_embedding_max_tokens: int = 256
+    maxent_competitive_mode_tau: float = 0.05
+    maxent_competitive_mode_gap: float = 0.10
+    maxent_competitive_mode_top_k: int = 3
+    maxent_competitive_mode_budget_max: float = 0.10
+    maxent_competitive_mode_budget_scale: float = 0.05
+    maxent_competitive_mode_intra_tau: float = 0.01
+    maxent_prompt_select_min_alpha_frac: float = 0.5
+    maxent_competitive_mode_positive_only: bool = True
+    maxent_semantic_guard_max_expected_len_delta: float = 24.0
+    maxent_semantic_guard_max_expected_format_drop: float = 0.0
     maxent_branch_grad_diagnostics: bool = False
     maxent_branch_grad_diagnostics_interval: int = 1
     maxent_branch_grad_diagnostics_max_steps: int = 0
     maxent_logprob_chunk_size: int = 2
     maxent_backward_chunk_size: int = 4
-    maxent_backward_token_budget: int = 8192
+    maxent_backward_token_budget: int = 4096
     baseline_zero_adv_response_tokens: int = 8
     maxent_reference_logprobs_source: Literal["model", "behavior"] = field(
         default="model"
     )
+    maxent_tau_adaptation_metric: Literal[
+        "semantic_entropy_mu",
+        "exploration_gain_any_correct",
+        "exploration_gain_drgrpo",
+    ] = field(default="semantic_entropy_mu")
+    maxent_tau_target_metric: float | None = None
+    maxent_tau_target_metric_start: float | None = None
+    maxent_tau_target_metric_peak: float | None = None
+    maxent_tau_target_metric_peak_step: int = 0
+    maxent_tau_target_metric_final: float | None = None
+    maxent_tau_target_metric_horizon: int = 0
+    # Deprecated legacy tau-controller target fields. Keep them here only so
+    # older launchers fail loudly instead of silently driving tau from H(w*).
     maxent_target_weight_entropy: float | None = None
     maxent_target_weight_entropy_start: float | None = None
     maxent_target_weight_entropy_peak: float | None = None
@@ -251,7 +344,7 @@ class ZeroMathArgs(PPOArgs):
     maxent_target_weight_entropy_final: float | None = None
     maxent_target_weight_entropy_horizon: int = 0
     maxent_tau_learnable: bool = False
-    maxent_tau_controller_enabled: bool = True
+    maxent_tau_controller_enabled: bool = False
     maxent_tau_lr: float = 0.0
     maxent_tau_min: float = 0.0
     maxent_tau_max: float = 0.0
@@ -277,35 +370,44 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     args.maxent_clip_mode = normalize_maxent_clip_mode(
         getattr(args, "maxent_clip_mode", "sequence")
     )
-    if args.maxent_target_weight_entropy is not None and not math.isfinite(
-        float(args.maxent_target_weight_entropy)
+    if args.maxent_tau_adaptation_metric not in {
+        "semantic_entropy_mu",
+        "exploration_gain_any_correct",
+        "exploration_gain_drgrpo",
+    }:
+        raise ValueError(
+            "maxent_tau_adaptation_metric must be one of: "
+            "semantic_entropy_mu, exploration_gain_any_correct, exploration_gain_drgrpo"
+        )
+    if args.maxent_tau_target_metric is not None and not math.isfinite(
+        float(args.maxent_tau_target_metric)
     ):
-        raise ValueError("maxent_target_weight_entropy must be finite when set")
-    if args.maxent_target_weight_entropy_start is not None and not math.isfinite(
-        float(args.maxent_target_weight_entropy_start)
+        raise ValueError("maxent_tau_target_metric must be finite when set")
+    if args.maxent_tau_target_metric_start is not None and not math.isfinite(
+        float(args.maxent_tau_target_metric_start)
     ):
-        raise ValueError("maxent_target_weight_entropy_start must be finite when set")
-    if args.maxent_target_weight_entropy_peak is not None and not math.isfinite(
-        float(args.maxent_target_weight_entropy_peak)
+        raise ValueError("maxent_tau_target_metric_start must be finite when set")
+    if args.maxent_tau_target_metric_peak is not None and not math.isfinite(
+        float(args.maxent_tau_target_metric_peak)
     ):
-        raise ValueError("maxent_target_weight_entropy_peak must be finite when set")
-    if args.maxent_target_weight_entropy_peak_step < 0:
-        raise ValueError("maxent_target_weight_entropy_peak_step must be non-negative")
-    if args.maxent_target_weight_entropy_final is not None and not math.isfinite(
-        float(args.maxent_target_weight_entropy_final)
+        raise ValueError("maxent_tau_target_metric_peak must be finite when set")
+    if args.maxent_tau_target_metric_peak_step < 0:
+        raise ValueError("maxent_tau_target_metric_peak_step must be non-negative")
+    if args.maxent_tau_target_metric_final is not None and not math.isfinite(
+        float(args.maxent_tau_target_metric_final)
     ):
-        raise ValueError("maxent_target_weight_entropy_final must be finite when set")
-    if args.maxent_target_weight_entropy_horizon < 0:
-        raise ValueError("maxent_target_weight_entropy_horizon must be non-negative")
+        raise ValueError("maxent_tau_target_metric_final must be finite when set")
+    if args.maxent_tau_target_metric_horizon < 0:
+        raise ValueError("maxent_tau_target_metric_horizon must be non-negative")
     if (
-        args.maxent_target_weight_entropy_peak is not None
-        and args.maxent_target_weight_entropy_horizon > 0
-        and args.maxent_target_weight_entropy_peak_step
-        > args.maxent_target_weight_entropy_horizon
+        args.maxent_tau_target_metric_peak is not None
+        and args.maxent_tau_target_metric_horizon > 0
+        and args.maxent_tau_target_metric_peak_step
+        > args.maxent_tau_target_metric_horizon
     ):
         raise ValueError(
-            "maxent_target_weight_entropy_peak_step must be <= "
-            "maxent_target_weight_entropy_horizon"
+            "maxent_tau_target_metric_peak_step must be <= "
+            "maxent_tau_target_metric_horizon"
         )
     if args.maxent_tau_lr < 0:
         raise ValueError("maxent_tau_lr must be non-negative")
@@ -350,6 +452,30 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError("maxent_sequence_aux_coef must be non-negative")
     if args.maxent_candidate_kl_coef < 0:
         raise ValueError("maxent_candidate_kl_coef must be non-negative")
+    if args.maxent_neutral_projection_coef < 0:
+        raise ValueError("maxent_neutral_projection_coef must be non-negative")
+    if not math.isfinite(float(args.maxent_semantic_similarity_threshold)):
+        raise ValueError("maxent_semantic_similarity_threshold must be finite")
+    if int(args.maxent_semantic_embedding_max_tokens) <= 0:
+        raise ValueError("maxent_semantic_embedding_max_tokens must be positive")
+    if args.maxent_competitive_mode_tau <= 0:
+        raise ValueError("maxent_competitive_mode_tau must be positive")
+    if args.maxent_competitive_mode_gap < 0:
+        raise ValueError("maxent_competitive_mode_gap must be non-negative")
+    if args.maxent_competitive_mode_top_k <= 0:
+        raise ValueError("maxent_competitive_mode_top_k must be positive")
+    if args.maxent_competitive_mode_budget_max < 0:
+        raise ValueError("maxent_competitive_mode_budget_max must be non-negative")
+    if args.maxent_competitive_mode_budget_scale <= 0:
+        raise ValueError("maxent_competitive_mode_budget_scale must be positive")
+    if args.maxent_competitive_mode_intra_tau <= 0:
+        raise ValueError("maxent_competitive_mode_intra_tau must be positive")
+    if not 0.0 <= float(args.maxent_prompt_select_min_alpha_frac) <= 1.0:
+        raise ValueError("maxent_prompt_select_min_alpha_frac must be in [0, 1]")
+    if args.maxent_semantic_guard_max_expected_len_delta < 0:
+        raise ValueError("maxent_semantic_guard_max_expected_len_delta must be non-negative")
+    if args.maxent_semantic_guard_max_expected_format_drop < 0:
+        raise ValueError("maxent_semantic_guard_max_expected_format_drop must be non-negative")
     if args.maxent_exact_drx_weight_source not in {
         "sequence_clipped",
         "clipped",
@@ -397,15 +523,34 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         and args.maxent_tau_max < args.maxent_tau_min
     ):
         raise ValueError("maxent_tau_max must be >= maxent_tau_min when both are positive")
+    legacy_tau_target_fields = (
+        args.maxent_target_weight_entropy,
+        args.maxent_target_weight_entropy_start,
+        args.maxent_target_weight_entropy_peak,
+        args.maxent_target_weight_entropy_final,
+        args.maxent_target_weight_entropy_peak_step
+        if int(args.maxent_target_weight_entropy_peak_step) != 0
+        else None,
+        args.maxent_target_weight_entropy_horizon
+        if int(args.maxent_target_weight_entropy_horizon) != 0
+        else None,
+    )
+    using_legacy_tau_target = any(value is not None for value in legacy_tau_target_fields)
     if bool(args.maxent_tau_learnable) or bool(args.maxent_tau_controller_enabled):
+        if using_legacy_tau_target:
+            raise ValueError(
+                "Adaptive listwise tau no longer accepts "
+                "maxent_target_weight_entropy*; use maxent_tau_target_metric* "
+                "with maxent_tau_adaptation_metric set to a rollout-side signal."
+            )
         if (
-            args.maxent_target_weight_entropy is None
-            and args.maxent_target_weight_entropy_start is None
-            and args.maxent_target_weight_entropy_peak is None
-            and args.maxent_target_weight_entropy_final is None
+            args.maxent_tau_target_metric is None
+            and args.maxent_tau_target_metric_start is None
+            and args.maxent_tau_target_metric_peak is None
+            and args.maxent_tau_target_metric_final is None
         ):
             raise ValueError(
-                "Adaptive listwise tau requires a target weight entropy."
+                "Adaptive listwise tau requires maxent_tau_target_metric* to be set."
             )
         if args.maxent_tau_lr <= 0:
             raise ValueError("Adaptive listwise tau requires maxent_tau_lr > 0")
@@ -616,6 +761,15 @@ class ZeroMathLearner(PPOLearner):
                     args.maxent_drgrpo_token_primary
                 ),
                 "maxent_sequence_aux_coef": float(args.maxent_sequence_aux_coef),
+                "maxent_neutral_projection_coef": float(
+                    args.maxent_neutral_projection_coef
+                ),
+                "maxent_semantic_similarity_threshold": float(
+                    args.maxent_semantic_similarity_threshold
+                ),
+                "maxent_semantic_embedding_max_tokens": int(
+                    args.maxent_semantic_embedding_max_tokens
+                ),
                 "maxent_branch_grad_diagnostics": bool(
                     args.maxent_branch_grad_diagnostics
                 ),
@@ -632,6 +786,35 @@ class ZeroMathLearner(PPOLearner):
                 ),
                 "maxent_reference_logprobs_source": str(
                     args.maxent_reference_logprobs_source
+                ),
+                "maxent_tau_adaptation_metric": str(
+                    args.maxent_tau_adaptation_metric
+                ),
+                "maxent_tau_target_metric": (
+                    None
+                    if args.maxent_tau_target_metric is None
+                    else float(args.maxent_tau_target_metric)
+                ),
+                "maxent_tau_target_metric_start": (
+                    None
+                    if args.maxent_tau_target_metric_start is None
+                    else float(args.maxent_tau_target_metric_start)
+                ),
+                "maxent_tau_target_metric_peak": (
+                    None
+                    if args.maxent_tau_target_metric_peak is None
+                    else float(args.maxent_tau_target_metric_peak)
+                ),
+                "maxent_tau_target_metric_peak_step": int(
+                    args.maxent_tau_target_metric_peak_step
+                ),
+                "maxent_tau_target_metric_final": (
+                    None
+                    if args.maxent_tau_target_metric_final is None
+                    else float(args.maxent_tau_target_metric_final)
+                ),
+                "maxent_tau_target_metric_horizon": int(
+                    args.maxent_tau_target_metric_horizon
                 ),
             }
             if not bool(args.maxent_tau_learnable) and not bool(
@@ -739,8 +922,8 @@ class ZeroMathLearner(PPOLearner):
     def _maybe_update_learnable_tau(
         self,
         *,
-        measured_entropy: float | None,
-        target_entropy: float | None,
+        measured_metric: float | None,
+        target_metric: float | None,
         global_step: int,
     ) -> tuple[float, float | None]:
         if self._fixed_listwise_tau is not None:
@@ -748,19 +931,19 @@ class ZeroMathLearner(PPOLearner):
         current_tau = self._sync_maxent_tau_from_state()
         if self._maxent_tau_log is None or self._maxent_tau_optimizer is None:
             return current_tau, None
-        if target_entropy is None:
+        if target_metric is None:
             return current_tau, None
         if global_step <= max(0, int(self.args.maxent_tau_warmup_steps)):
             return current_tau, None
-        if not isinstance(measured_entropy, (int, float)) or not math.isfinite(
-            float(measured_entropy)
+        if not isinstance(measured_metric, (int, float)) or not math.isfinite(
+            float(measured_metric)
         ):
             return current_tau, None
 
         tau_loss = compute_learnable_tau_loss(
             self._maxent_tau_log,
-            measured_entropy=float(measured_entropy),
-            target_entropy=float(target_entropy),
+            measured_metric=float(measured_metric),
+            target_metric=float(target_metric),
         )
         if tau_loss is None:
             return current_tau, None
@@ -770,6 +953,32 @@ class ZeroMathLearner(PPOLearner):
         tau_loss.backward()
         self._maxent_tau_optimizer.step()
         return self._sync_maxent_tau_from_state(), tau_loss_value
+
+    def _resolve_tau_target_metric(self, *, global_step: int) -> float | None:
+        return resolve_listwise_target_entropy(
+            target_entropy=self.args.maxent_tau_target_metric,
+            target_entropy_start=self.args.maxent_tau_target_metric_start,
+            target_entropy_peak=self.args.maxent_tau_target_metric_peak,
+            target_entropy_peak_step=self.args.maxent_tau_target_metric_peak_step,
+            target_entropy_final=self.args.maxent_tau_target_metric_final,
+            target_entropy_horizon=self.args.maxent_tau_target_metric_horizon,
+            global_step=int(global_step),
+        )
+
+    def _select_tau_adaptation_metric(
+        self,
+        *,
+        semantic_entropy_mu: float | None,
+        exploration_gain_any_correct: float | None,
+        exploration_gain_drgrpo: float | None,
+    ) -> tuple[str, float | None]:
+        metric_name = str(self.args.maxent_tau_adaptation_metric)
+        metric_map = {
+            "semantic_entropy_mu": semantic_entropy_mu,
+            "exploration_gain_any_correct": exploration_gain_any_correct,
+            "exploration_gain_drgrpo": exploration_gain_drgrpo,
+        }
+        return metric_name, metric_map.get(metric_name)
 
     def _use_instrumented_grpo_learning_step(self) -> bool:
         return self.objective == "grpo" and (
@@ -1299,6 +1508,27 @@ class ZeroMathLearner(PPOLearner):
             base_model = next_model
         return base_model
 
+    def _unwrap_hidden_state_model(self, model: torch.nn.Module) -> torch.nn.Module:
+        """Return the deepest safe module for hidden-state extraction.
+
+        OAT's ``LLM`` wrapper accepts only a logits-oriented forward signature,
+        while the underlying HuggingFace model exposes ``output_hidden_states``.
+        For semantic trace embeddings we want that deeper model, not the wrapper.
+        """
+
+        base_model = self._unwrap_scoring_model(model)
+        visited = {id(base_model)}
+        while hasattr(base_model, "model"):
+            next_model = getattr(base_model, "model")
+            if not isinstance(next_model, torch.nn.Module):
+                break
+            next_id = id(next_model)
+            if next_id in visited:
+                break
+            visited.add(next_id)
+            base_model = next_model
+        return base_model
+
     def _resolve_scoring_vocab_upper_bound(
         self, model: torch.nn.Module
     ) -> int | None:
@@ -1465,6 +1695,27 @@ class ZeroMathLearner(PPOLearner):
             dist.all_reduce(token_counts, op=dist.ReduceOp.MAX)
         return [max(int(count), 1) for count in token_counts.tolist()]
 
+    def _synchronized_last_valid_token_pos(
+        self,
+        last_valid_token_pos: int,
+        *,
+        device: torch.device,
+    ) -> int:
+        safe_last_valid_token_pos = max(int(last_valid_token_pos), 1)
+        if (
+            dist.is_available()
+            and dist.is_initialized()
+            and dist.get_world_size() > 1
+        ):
+            synced = torch.tensor(
+                [safe_last_valid_token_pos],
+                device=device,
+                dtype=torch.int64,
+            )
+            dist.all_reduce(synced, op=dist.ReduceOp.MAX)
+            safe_last_valid_token_pos = max(int(synced.item()), 1)
+        return safe_last_valid_token_pos
+
     def _logprob_token_chunk_size(self) -> int:
         # Keep vocab-softmax work on short sequence slices so listwise runs fit on
         # smaller GPUs without changing the baseline DR.GRPO path.
@@ -1476,6 +1727,7 @@ class ZeroMathLearner(PPOLearner):
         att_mask: torch.Tensor,
         response_masks: torch.Tensor,
         *extra_tensors: torch.Tensor | None,
+        synchronize_last_valid_token_pos: bool = False,
     ) -> tuple[int, list[torch.Tensor | None]]:
         valid_token_count_per_pos = att_mask.sum(0)
         last_valid_token_pos = torch.where(valid_token_count_per_pos == 0)[0]
@@ -1483,6 +1735,14 @@ class ZeroMathLearner(PPOLearner):
             last_valid_token_pos = int(last_valid_token_pos[0].item())
         else:
             last_valid_token_pos = int(att_mask.shape[1])
+        if synchronize_last_valid_token_pos:
+            # Keep listwise backward/autograd chunks aligned across ranks so one
+            # straggler does not spend minutes in a much longer FlashAttention
+            # recompute while the other ranks have already entered NCCL collectives.
+            last_valid_token_pos = self._synchronized_last_valid_token_pos(
+                last_valid_token_pos,
+                device=att_mask.device,
+            )
         trimmed: list[torch.Tensor | None] = [
             input_ids[:, :last_valid_token_pos],
             att_mask[:, :last_valid_token_pos],
@@ -1745,6 +2005,7 @@ class ZeroMathLearner(PPOLearner):
                     att_mask[row_inds],
                     response_masks[row_inds],
                     behavior_logps[row_inds],
+                    synchronize_last_valid_token_pos=True,
                 )
                 max_clip_chunk_size_used = max(max_clip_chunk_size_used, int(row_inds.numel()))
             else:
@@ -1759,6 +2020,7 @@ class ZeroMathLearner(PPOLearner):
                     input_ids[row_inds],
                     att_mask[row_inds],
                     response_masks[row_inds],
+                    synchronize_last_valid_token_pos=True,
                 )
             vocab_upper_bound = self._resolve_scoring_vocab_upper_bound(self.model)
             chunk_input_ids = self._sanitize_scoring_token_ids(
@@ -1909,6 +2171,7 @@ class ZeroMathLearner(PPOLearner):
                     att_mask[row_inds],
                     response_masks[row_inds],
                     behavior_logps[row_inds],
+                    synchronize_last_valid_token_pos=True,
                 )
                 max_clip_chunk_size_used = max(
                     max_clip_chunk_size_used,
@@ -1926,6 +2189,7 @@ class ZeroMathLearner(PPOLearner):
                     input_ids[row_inds],
                     att_mask[row_inds],
                     response_masks[row_inds],
+                    synchronize_last_valid_token_pos=True,
                 )
             vocab_upper_bound = self._resolve_scoring_vocab_upper_bound(self.model)
             chunk_input_ids = self._sanitize_scoring_token_ids(
@@ -2222,6 +2486,7 @@ class ZeroMathLearner(PPOLearner):
                 att_mask[row_inds],
                 response_masks[row_inds],
                 behavior_logps[row_inds],
+                synchronize_last_valid_token_pos=True,
             )
             vocab_upper_bound = self._resolve_scoring_vocab_upper_bound(self.model)
             chunk_input_ids = self._sanitize_scoring_token_ids(
@@ -2285,6 +2550,253 @@ class ZeroMathLearner(PPOLearner):
             grouped_seq_logps = grouped_seq_logps / token_counts.clamp(min=1.0)
         return grouped_seq_logps, token_counts
 
+
+
+    def _response_texts_grouped(
+        self,
+        input_ids: torch.Tensor,
+        response_masks: torch.Tensor,
+        group_size: int,
+    ) -> list[list[str]]:
+        label_ids = input_ids[:, 1:]
+        rows: list[str] = []
+        for row_ids, row_mask in zip(label_ids, response_masks):
+            token_ids = row_ids[row_mask.to(torch.bool)].detach().cpu().tolist()
+            rows.append(self.tokenizer.decode(token_ids, skip_special_tokens=True))
+        grouped = [rows[i:i+group_size] for i in range(0, len(rows), group_size)]
+        return grouped
+
+    def _semantic_cluster_inputs(
+        self,
+        input_ids: torch.Tensor,
+        response_masks: torch.Tensor,
+        group_size: int,
+    ) -> tuple[
+        list[list[str | None]],
+        list[list[str | None]],
+        list[list[str | None]],
+    ]:
+        response_texts_grouped = self._response_texts_grouped(input_ids, response_masks, group_size)
+        final_answer_keys_grouped: list[list[str | None]] = []
+        reasoning_trace_texts_grouped: list[list[str | None]] = []
+        reasoning_signature_keys_grouped: list[list[str | None]] = []
+        for prompt_rows in response_texts_grouped:
+            final_answer_keys_grouped.append([
+                extract_normalized_final_answer_for_clustering(
+                    row_text,
+                    template=str(self.args.prompt_template),
+                )
+                for row_text in prompt_rows
+            ])
+            reasoning_trace_texts_grouped.append([
+                extract_reasoning_trace_for_clustering(
+                    row_text,
+                    template=str(self.args.prompt_template),
+                )
+                for row_text in prompt_rows
+            ])
+            reasoning_signature_keys_grouped.append([
+                extract_reasoning_signature_for_clustering(
+                    row_text,
+                    template=str(self.args.prompt_template),
+                )
+                for row_text in prompt_rows
+            ])
+        return (
+            final_answer_keys_grouped,
+            reasoning_trace_texts_grouped,
+            reasoning_signature_keys_grouped,
+        )
+
+    def _semantic_trace_embeddings_grouped(
+        self,
+        *,
+        reasoning_trace_texts_grouped: list[list[str | None]],
+        valid_row_mask_grouped: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if valid_row_mask_grouped.dim() != 2:
+            raise ValueError("valid_row_mask_grouped must have shape [prompts, group].")
+        num_prompts, group_size = valid_row_mask_grouped.shape
+        if len(reasoning_trace_texts_grouped) != num_prompts:
+            raise ValueError(
+                "reasoning_trace_texts_grouped must match the prompt-major minibatch shape."
+            )
+        trace_model_wrapper = self.ref_model if self.ref_model is not None else self.model
+        if trace_model_wrapper is None:
+            return (
+                torch.zeros(
+                    (num_prompts, group_size, 1),
+                    device=valid_row_mask_grouped.device,
+                    dtype=torch.float32,
+                ),
+                torch.zeros_like(valid_row_mask_grouped, dtype=torch.bool),
+                torch.tensor(
+                    0.0,
+                    device=valid_row_mask_grouped.device,
+                    dtype=torch.float32,
+                ),
+            )
+        trace_model = self._unwrap_hidden_state_model(trace_model_wrapper)
+
+        flat_texts: list[str] = []
+        flat_positions: list[tuple[int, int]] = []
+        valid_mask = valid_row_mask_grouped.to(torch.bool)
+        for p in range(num_prompts):
+            prompt_rows = reasoning_trace_texts_grouped[p]
+            if len(prompt_rows) != group_size:
+                raise ValueError(
+                    "Each prompt must provide one reasoning trace per candidate."
+                )
+            for i in range(group_size):
+                if not bool(valid_mask[p, i].item()):
+                    continue
+                trace_text = prompt_rows[i]
+                if trace_text is None:
+                    continue
+                trace_text = str(trace_text).strip()
+                if not trace_text:
+                    continue
+                flat_texts.append(trace_text)
+                flat_positions.append((p, i))
+
+        if not flat_texts:
+            return (
+                torch.zeros(
+                    (num_prompts, group_size, 1),
+                    device=valid_row_mask_grouped.device,
+                    dtype=torch.float32,
+                ),
+                torch.zeros_like(valid_row_mask_grouped, dtype=torch.bool),
+                torch.tensor(
+                    0.0,
+                    device=valid_row_mask_grouped.device,
+                    dtype=torch.float32,
+                ),
+            )
+
+        batch_size = max(int(self.args.train_batch_size_per_device), 1)
+        max_tokens = max(int(self.args.maxent_semantic_embedding_max_tokens), 1)
+        model_vocab_upper_bound = self._resolve_scoring_vocab_upper_bound(trace_model)
+        pooled_batches: list[torch.Tensor] = []
+        batch_positions_all: list[list[tuple[int, int]]] = []
+        truncated_trace_count = 0
+        attempted_trace_count = 0
+
+        with torch.no_grad():
+            for start in range(0, len(flat_texts), batch_size):
+                end = min(start + batch_size, len(flat_texts))
+                batch_texts = flat_texts[start:end]
+                batch_positions = flat_positions[start:end]
+                batch_tokenized_no_trunc = self.tokenizer(
+                    batch_texts,
+                    add_special_tokens=True,
+                    truncation=False,
+                )
+                truncated_trace_count += sum(
+                    1
+                    for token_ids in batch_tokenized_no_trunc["input_ids"]
+                    if len(token_ids) > max_tokens
+                )
+                attempted_trace_count += len(batch_texts)
+                encoded = self.tokenizer(
+                    batch_texts,
+                    padding=True,
+                    truncation=True,
+                    max_length=max_tokens,
+                    return_tensors="pt",
+                    add_special_tokens=True,
+                )
+                trace_input_ids = encoded["input_ids"].to(valid_row_mask_grouped.device)
+                trace_att_mask = encoded["attention_mask"].to(
+                    valid_row_mask_grouped.device
+                )
+                trace_input_ids = self._sanitize_scoring_token_ids(
+                    trace_input_ids,
+                    upper_bound=model_vocab_upper_bound,
+                    context="semantic_trace_input",
+                )
+                position_ids = trace_att_mask.long().cumsum(-1) - 1
+                position_ids.masked_fill_(trace_att_mask == 0, 1)
+                model_outputs = None
+                model_call_kwargs = {
+                    "input_ids": trace_input_ids,
+                    "attention_mask": trace_att_mask,
+                    "position_ids": position_ids,
+                    "return_dict": True,
+                }
+                last_type_error: TypeError | None = None
+                for optional_kwargs in (
+                    {"output_hidden_states": True, "use_cache": False},
+                    {"output_hidden_states": True},
+                    {},
+                ):
+                    try:
+                        model_outputs = trace_model(
+                            **model_call_kwargs,
+                            **optional_kwargs,
+                        )
+                        break
+                    except TypeError as exc:
+                        last_type_error = exc
+                if model_outputs is None:
+                    if last_type_error is not None:
+                        raise last_type_error
+                    raise RuntimeError(
+                        "Trace embedding model did not return outputs for semantic clustering."
+                    )
+                hidden_states = getattr(model_outputs, "hidden_states", None)
+                last_hidden = None
+                if hidden_states is not None and len(hidden_states) > 0:
+                    last_hidden = hidden_states[-1]
+                else:
+                    last_hidden = getattr(model_outputs, "last_hidden_state", None)
+                if last_hidden is None and isinstance(model_outputs, (tuple, list)):
+                    if len(model_outputs) > 0 and isinstance(
+                        model_outputs[0], torch.Tensor
+                    ):
+                        last_hidden = model_outputs[0]
+                if last_hidden is None:
+                    get_embeddings = getattr(trace_model, "get_input_embeddings", None)
+                    if not callable(get_embeddings):
+                        raise RuntimeError(
+                            "Trace embedding model does not expose hidden states or input embeddings."
+                        )
+                    embedding_module = get_embeddings()
+                    last_hidden = embedding_module(trace_input_ids)
+                last_hidden = last_hidden.to(torch.float32)
+                trace_att_mask_f = trace_att_mask.to(torch.float32)
+                pooled = (
+                    last_hidden * trace_att_mask_f.unsqueeze(-1)
+                ).sum(dim=1) / trace_att_mask_f.sum(dim=1, keepdim=True).clamp(min=1.0)
+                pooled = pooled / pooled.norm(dim=1, keepdim=True).clamp(min=1e-12)
+                pooled_batches.append(pooled)
+                batch_positions_all.append(batch_positions)
+
+        embedding_dim = int(pooled_batches[0].shape[-1])
+        reasoning_trace_embeddings_grouped = torch.zeros(
+            (num_prompts, group_size, embedding_dim),
+            device=valid_row_mask_grouped.device,
+            dtype=torch.float32,
+        )
+        reasoning_trace_valid_row_mask_grouped = torch.zeros_like(
+            valid_row_mask_grouped,
+            dtype=torch.bool,
+        )
+        for pooled, batch_positions in zip(pooled_batches, batch_positions_all):
+            for offset, (p, i) in enumerate(batch_positions):
+                reasoning_trace_embeddings_grouped[p, i] = pooled[offset]
+                reasoning_trace_valid_row_mask_grouped[p, i] = True
+        semantic_trace_truncated_frac = torch.tensor(
+            float(truncated_trace_count) / float(max(attempted_trace_count, 1)),
+            device=valid_row_mask_grouped.device,
+            dtype=torch.float32,
+        )
+        return (
+            reasoning_trace_embeddings_grouped,
+            reasoning_trace_valid_row_mask_grouped,
+            semantic_trace_truncated_frac,
+        )
+
     def _reference_seq_logps_grouped(
         self,
         *,
@@ -2294,11 +2806,15 @@ class ZeroMathLearner(PPOLearner):
         group_size: int,
         behavior_seq_logps_grouped: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor | None]:
-        need_sequence_reference = (
-            float(getattr(self.args, "maxent_candidate_kl_coef", 0.0)) > 0.0
+        needs_reference_scores = (
+            float(self.args.beta) > 0.0
+            or coerce_non_negative_float(
+                getattr(self.args, "maxent_candidate_kl_coef", 0.0),
+                default=0.0,
+            )
+            > 0.0
         )
-        need_token_reference = float(self.args.beta) > 0.0
-        if not need_sequence_reference and not need_token_reference:
+        if not needs_reference_scores:
             return torch.zeros_like(behavior_seq_logps_grouped), None
         if self.args.maxent_reference_logprobs_source == "behavior":
             return behavior_seq_logps_grouped.detach(), None
@@ -2322,13 +2838,14 @@ class ZeroMathLearner(PPOLearner):
             length_normalize=bool(self.args.maxent_length_normalize_ref),
             context="reference log-probs",
         )
-        return ref_seq_logps_grouped, (ref_logps if need_token_reference else None)
+        return ref_seq_logps_grouped, ref_logps
 
     def _listwise_learning_step(self, trajectory):
         args: ZeroMathArgs = self.args
         self._enforce_fixed_listwise_hparams()
         infos = {}
         stats = defaultdict(list)
+        prompt_diag_stats = defaultdict(list)
 
         device = torch.cuda.current_device()
         input_ids = trajectory["input_ids"].to(device)
@@ -2353,7 +2870,16 @@ class ZeroMathLearner(PPOLearner):
                 "clip_adv_baseline=%s clip_preserve_reward_mass=%s "
                 "clip_mode=%s token_surrogate_primary=%s "
                 "drgrpo_token_primary=%s sequence_aux_coef=%s "
-                "exact_drx_weighted_drgrpo=%s "
+                "exact_drx_weighted_drgrpo=%s neutral_projection_coef=%s "
+                "semantic_similarity_threshold=%s "
+                "semantic_embedding_max_tokens=%s "
+                "competitive_mode_tau=%s competitive_mode_gap=%s "
+                "competitive_mode_top_k=%s competitive_mode_budget_max=%s "
+                "competitive_mode_budget_scale=%s competitive_mode_intra_tau=%s "
+                "prompt_select_min_alpha_frac=%s competitive_mode_positive_only=%s "
+                "semantic_guard_max_expected_len_delta=%s "
+                "semantic_guard_max_expected_format_drop=%s "
+                "tau_adaptation_metric=%s "
                 "branch_grad_diagnostics=%s branch_grad_interval=%s "
                 "branch_grad_max_steps=%s "
                 "logprob_chunk_size=%s backward_chunk_size=%s "
@@ -2385,6 +2911,20 @@ class ZeroMathLearner(PPOLearner):
                 bool(args.maxent_drgrpo_token_primary),
                 float(args.maxent_sequence_aux_coef),
                 bool(args.maxent_drgrpo_token_primary),
+                float(args.maxent_neutral_projection_coef),
+                float(args.maxent_semantic_similarity_threshold),
+                int(args.maxent_semantic_embedding_max_tokens),
+                float(args.maxent_competitive_mode_tau),
+                float(args.maxent_competitive_mode_gap),
+                int(args.maxent_competitive_mode_top_k),
+                float(args.maxent_competitive_mode_budget_max),
+                float(args.maxent_competitive_mode_budget_scale),
+                float(args.maxent_competitive_mode_intra_tau),
+                float(args.maxent_prompt_select_min_alpha_frac),
+                bool(args.maxent_competitive_mode_positive_only),
+                float(args.maxent_semantic_guard_max_expected_len_delta),
+                float(args.maxent_semantic_guard_max_expected_format_drop),
+                str(args.maxent_tau_adaptation_metric),
                 bool(args.maxent_branch_grad_diagnostics),
                 int(args.maxent_branch_grad_diagnostics_interval),
                 int(args.maxent_branch_grad_diagnostics_max_steps),
@@ -2405,12 +2945,93 @@ class ZeroMathLearner(PPOLearner):
             getattr(args, "maxent_candidate_kl_coef", 0.0),
             default=0.0,
         )
+        exact_drx_weight_source = str(
+            getattr(args, "maxent_exact_drx_weight_source", "sequence_clipped")
+        )
+        neutral_projection_coef = coerce_non_negative_float(
+            getattr(args, "maxent_neutral_projection_coef", 0.0),
+            default=0.0,
+        )
+        competitive_mode_tau = coerce_non_negative_float(
+            getattr(args, "maxent_competitive_mode_tau", 0.05),
+            default=0.05,
+        )
+        competitive_mode_gap = coerce_non_negative_float(
+            getattr(args, "maxent_competitive_mode_gap", 0.10),
+            default=0.10,
+        )
+        competitive_mode_top_k = max(
+            int(getattr(args, "maxent_competitive_mode_top_k", 3)),
+            1,
+        )
+        competitive_mode_budget_max = coerce_non_negative_float(
+            getattr(args, "maxent_competitive_mode_budget_max", 0.10),
+            default=0.10,
+        )
+        competitive_mode_budget_scale = max(
+            coerce_non_negative_float(
+                getattr(args, "maxent_competitive_mode_budget_scale", 0.05),
+                default=0.05,
+            ),
+            1e-8,
+        )
+        competitive_mode_intra_tau = max(
+            coerce_non_negative_float(
+                getattr(args, "maxent_competitive_mode_intra_tau", 0.01),
+                default=0.01,
+            ),
+            1e-8,
+        )
+        prompt_select_min_alpha_frac = min(
+            max(
+                coerce_non_negative_float(
+                    getattr(args, "maxent_prompt_select_min_alpha_frac", 0.5),
+                    default=0.5,
+                ),
+                0.0,
+            ),
+            1.0,
+        )
+        competitive_mode_positive_only = bool(
+            getattr(args, "maxent_competitive_mode_positive_only", True)
+        )
+        semantic_guard_max_expected_len_delta = coerce_non_negative_float(
+            getattr(args, "maxent_semantic_guard_max_expected_len_delta", 24.0),
+            default=24.0,
+        )
+        semantic_guard_max_expected_format_drop = coerce_non_negative_float(
+            getattr(args, "maxent_semantic_guard_max_expected_format_drop", 0.0),
+            default=0.0,
+        )
         reward_values = final_rewards.squeeze(1)
         grouped_reward_values = reshape_prompt_major_tensor(reward_values, group_size)
         if grouped_reward_values is None:
             raise ValueError(
                 "Listwise MaxEnt requires rollout data in prompt-major order with "
                 "flat batch size divisible by num_samples."
+            )
+        response_length_values, formatted_values = build_candidate_response_features(
+            trajectory["action_ids"],
+            tokenizer=self.tokenizer,
+            template=args.prompt_template,
+            device=device,
+            dtype=reward_values.dtype,
+        )
+        grouped_response_length_values = reshape_prompt_major_tensor(
+            response_length_values,
+            group_size,
+        )
+        if grouped_response_length_values is None:
+            raise ValueError(
+                "Could not reshape per-candidate response lengths into prompt groups."
+            )
+        grouped_formatted_values = reshape_prompt_major_tensor(
+            formatted_values,
+            group_size,
+        )
+        if grouped_formatted_values is None:
+            raise ValueError(
+                "Could not reshape per-candidate formatted indicators into prompt groups."
             )
         q_grouped = None
         if not drgrpo_token_primary:
@@ -2441,6 +3062,13 @@ class ZeroMathLearner(PPOLearner):
             length_normalize=bool(args.maxent_length_normalize_policy),
             context="behavior log-probs",
         )
+        behavior_seq_logps_grouped_raw, _ = self._sequence_logps_grouped(
+            behavior_logps,
+            response_masks,
+            group_size,
+            length_normalize=False,
+            context="behavior log-probs (raw)",
+        )
         ref_seq_logps_grouped, ref_logps = self._reference_seq_logps_grouped(
             input_ids=input_ids,
             att_mask=att_mask,
@@ -2448,6 +3076,18 @@ class ZeroMathLearner(PPOLearner):
             group_size=group_size,
             behavior_seq_logps_grouped=behavior_seq_logps_grouped,
         )
+        if ref_logps is not None:
+            ref_seq_logps_grouped_raw, _ = self._sequence_logps_grouped(
+                ref_logps,
+                response_masks,
+                group_size,
+                length_normalize=False,
+                context="reference log-probs (raw)",
+            )
+        elif bool(ref_seq_logps_grouped.abs().sum().item()):
+            ref_seq_logps_grouped_raw = behavior_seq_logps_grouped_raw.detach()
+        else:
+            ref_seq_logps_grouped_raw = torch.zeros_like(behavior_seq_logps_grouped_raw)
         logging.info(
             "listwise prep ready: behavior_seq=%s ref_seq=%s ref_logps=%s",
             tuple(behavior_seq_logps_grouped.shape),
@@ -2539,6 +3179,24 @@ class ZeroMathLearner(PPOLearner):
                     length_normalize=length_normalize_policy,
                     context="behavior log-probs",
                 )
+                if drgrpo_token_primary and exact_drx_weight_source == "sequence_clipped":
+                    policy_seq_logps_grouped_raw, _ = self._sequence_logps_grouped(
+                        new_logps,
+                        mb_response_masks,
+                        group_size,
+                        length_normalize=False,
+                        context="policy log-probs (raw)",
+                    )
+                    behavior_seq_grouped_raw, _ = self._sequence_logps_grouped(
+                        mb_behavior_logps,
+                        mb_response_masks,
+                        group_size,
+                        length_normalize=False,
+                        context="behavior log-probs (raw)",
+                    )
+                else:
+                    policy_seq_logps_grouped_raw = None
+                    behavior_seq_grouped_raw = None
                 grouped_loss_masks = reshape_prompt_major_tensor(
                     mb_loss_masks.to(torch.bool),
                     group_size,
@@ -2559,7 +3217,21 @@ class ZeroMathLearner(PPOLearner):
                     device=policy_seq_logps_grouped.device,
                     dtype=policy_seq_logps_grouped.dtype,
                 )
+                mb_ref_seq_grouped_raw = ref_seq_logps_grouped_raw[prompt_batch_inds].to(
+                    device=policy_seq_logps_grouped.device,
+                    dtype=policy_seq_logps_grouped.dtype,
+                )
                 mb_reward_grouped = grouped_reward_values[prompt_batch_inds].to(
+                    device=policy_seq_logps_grouped.device,
+                    dtype=policy_seq_logps_grouped.dtype,
+                )
+                mb_response_len_grouped = grouped_response_length_values[
+                    prompt_batch_inds
+                ].to(
+                    device=policy_seq_logps_grouped.device,
+                    dtype=policy_seq_logps_grouped.dtype,
+                )
+                mb_formatted_grouped = grouped_formatted_values[prompt_batch_inds].to(
                     device=policy_seq_logps_grouped.device,
                     dtype=policy_seq_logps_grouped.dtype,
                 )
@@ -2571,17 +3243,6 @@ class ZeroMathLearner(PPOLearner):
                     device=new_logps.device,
                     dtype=new_logps.dtype,
                 )
-                probe_row_advantages_grouped = reshape_prompt_major_tensor(
-                    probe_row_advantages.to(
-                        device=policy_seq_logps_grouped.device,
-                        dtype=policy_seq_logps_grouped.dtype,
-                    ),
-                    group_size,
-                )
-                if probe_row_advantages_grouped is None:
-                    raise ValueError(
-                        "Could not reshape the Dr.GRPO row advantages into prompt groups."
-                    )
                 probe_log_ratio = (
                     new_logps - mb_behavior_logps.to(new_logps.dtype)
                 ).clamp(-40.0, 40.0)
@@ -2616,47 +3277,72 @@ class ZeroMathLearner(PPOLearner):
                 probe_drgrpo_row_loss = probe_drgrpo_pg_row_loss + (
                     float(args.beta) * probe_drgrpo_reg_row_loss
                 )
-                exact_drx_weight_source = str(
-                    getattr(args, "maxent_exact_drx_weight_source", "sequence_clipped")
+                probe_row_advantages_grouped = reshape_prompt_major_tensor(
+                    probe_row_advantages.to(
+                        device=policy_seq_logps_grouped.device,
+                        dtype=policy_seq_logps_grouped.dtype,
+                    ),
+                    group_size,
                 )
-                probe_drgrpo_utility_grouped = None
+                if probe_row_advantages_grouped is None:
+                    raise ValueError(
+                        "Could not reshape the Dr.GRPO row advantages into prompt groups."
+                    )
                 if exact_drx_weight_source == "sequence_clipped":
-                    probe_drgrpo_utility_grouped, _, _, _ = (
-                        compute_sequence_level_clip_surrogate(
-                            policy_seq_logps_grouped=policy_seq_logps_grouped.detach(),
-                            behavior_seq_logps_grouped=behavior_seq_grouped.detach(),
-                            row_advantages_grouped=probe_row_advantages_grouped,
-                            valid_row_mask_grouped=grouped_loss_masks,
-                            clip_low=float(args.cliprange),
-                            clip_high=float(args.cliprange),
+                    if (
+                        policy_seq_logps_grouped_raw is None
+                        or behavior_seq_grouped_raw is None
+                    ):
+                        raise ValueError(
+                            "sequence_clipped DrX weights require raw sequence log-probs."
                         )
+                    probe_log_seq_ratio = (
+                        policy_seq_logps_grouped_raw.detach()
+                        - behavior_seq_grouped_raw.detach()
+                    ).clamp(-40.0, 40.0)
+                    probe_seq_ratio = torch.exp(probe_log_seq_ratio).to(
+                        policy_seq_logps_grouped_raw.dtype
                     )
-                elif exact_drx_weight_source == "clipped":
-                    probe_drgrpo_weight_scores = -probe_drgrpo_row_loss
-                elif exact_drx_weight_source == "unclipped":
-                    probe_drgrpo_weight_scores = aggregate_masked_row_values(
-                        probe_token_ratio * probe_token_advantages,
-                        mb_response_masks,
-                        constant_normalizer=self._listwise_token_clip_constant_normalizer(),
-                    ).to(
-                        device=new_logps.device,
-                        dtype=new_logps.dtype,
+                    probe_seq_ratio_clipped = torch.clamp(
+                        probe_seq_ratio,
+                        1.0 - float(args.cliprange),
+                        1.0 + float(args.cliprange),
                     )
-                elif exact_drx_weight_source == "local_linear":
-                    probe_drgrpo_weight_scores = aggregate_masked_row_values(
-                        torch.ones_like(new_logps) * probe_token_advantages,
-                        mb_response_masks,
-                        constant_normalizer=self._listwise_token_clip_constant_normalizer(),
-                    ).to(
-                        device=new_logps.device,
-                        dtype=new_logps.dtype,
+                    probe_drgrpo_utility_grouped = torch.min(
+                        probe_seq_ratio * probe_row_advantages_grouped,
+                        probe_seq_ratio_clipped * probe_row_advantages_grouped,
+                    )
+                    probe_drgrpo_utility_grouped = torch.where(
+                        grouped_loss_masks,
+                        probe_drgrpo_utility_grouped,
+                        torch.zeros_like(probe_drgrpo_utility_grouped),
                     )
                 else:
-                    raise ValueError(
-                        "Unsupported maxent_exact_drx_weight_source: "
-                        f"{exact_drx_weight_source}"
-                    )
-                if probe_drgrpo_utility_grouped is None:
+                    if exact_drx_weight_source == "clipped":
+                        probe_drgrpo_weight_scores = -probe_drgrpo_row_loss
+                    elif exact_drx_weight_source == "unclipped":
+                        probe_drgrpo_weight_scores = aggregate_masked_row_values(
+                            probe_token_ratio * probe_token_advantages,
+                            mb_response_masks,
+                            constant_normalizer=self._listwise_token_clip_constant_normalizer(),
+                        ).to(
+                            device=new_logps.device,
+                            dtype=new_logps.dtype,
+                        )
+                    elif exact_drx_weight_source == "local_linear":
+                        probe_drgrpo_weight_scores = aggregate_masked_row_values(
+                            torch.ones_like(new_logps) * probe_token_advantages,
+                            mb_response_masks,
+                            constant_normalizer=self._listwise_token_clip_constant_normalizer(),
+                        ).to(
+                            device=new_logps.device,
+                            dtype=new_logps.dtype,
+                        )
+                    else:
+                        raise ValueError(
+                            "Unsupported maxent_exact_drx_weight_source: "
+                            f"{exact_drx_weight_source}"
+                        )
                     probe_drgrpo_utility_grouped = reshape_prompt_major_tensor(
                         probe_drgrpo_weight_scores.to(
                             device=policy_seq_logps_grouped.device,
@@ -2751,18 +3437,274 @@ class ZeroMathLearner(PPOLearner):
                     dist.all_reduce(active_row_count_tensor, op=dist.ReduceOp.SUM)
                     global_active_row_count = int(active_row_count_tensor.item())
 
+
                 current_tau = self._sync_maxent_tau_from_state()
                 if drgrpo_token_primary:
-                    weights_grouped = compute_listwise_weights_from_utilities(
+                    (
+                        final_answer_keys_grouped,
+                        reasoning_trace_texts_grouped,
+                        reasoning_signature_keys_grouped,
+                    ) = self._semantic_cluster_inputs(
+                        mb_input_ids,
+                        mb_response_masks,
+                        group_size,
+                    )
+                    semantic_trace_truncated_frac = torch.tensor(
+                        0.0,
+                        device=policy_seq_logps_grouped.device,
+                        dtype=torch.float32,
+                    )
+                    semantic_cluster_bundle = build_semantic_cluster_bundle(
+                        final_answer_keys_grouped=final_answer_keys_grouped,
+                        valid_row_mask_grouped=grouped_loss_masks.detach(),
+                        reasoning_signature_keys_grouped=reasoning_signature_keys_grouped,
+                    )
+                    answer_key_extracted_mask_grouped = torch.tensor(
+                        [
+                            [answer_key is not None for answer_key in prompt_keys]
+                            for prompt_keys in final_answer_keys_grouped
+                        ],
+                        device=policy_seq_logps_grouped.device,
+                        dtype=torch.bool,
+                    ) & grouped_loss_masks
+                    trace_extracted_mask_grouped = torch.tensor(
+                        [
+                            [trace_text is not None for trace_text in prompt_rows]
+                            for prompt_rows in reasoning_trace_texts_grouped
+                        ],
+                        device=policy_seq_logps_grouped.device,
+                        dtype=torch.bool,
+                    ) & grouped_loss_masks
+                    signature_extracted_mask_grouped = torch.tensor(
+                        [
+                            [signature is not None for signature in prompt_rows]
+                            for prompt_rows in reasoning_signature_keys_grouped
+                        ],
+                        device=policy_seq_logps_grouped.device,
+                        dtype=torch.bool,
+                    ) & grouped_loss_masks
+                    semantic_valid_row_mask_grouped = (
+                        semantic_cluster_bundle.semantic_valid_row_mask_grouped.to(
+                            device=policy_seq_logps_grouped.device
+                        )
+                    )
+                    semantic_answer_key_extracted_count = answer_key_extracted_mask_grouped.to(
+                        torch.float32
+                    ).sum()
+                    semantic_trace_extracted_count = trace_extracted_mask_grouped.to(
+                        torch.float32
+                    ).sum()
+                    semantic_signature_extracted_count = signature_extracted_mask_grouped.to(
+                        torch.float32
+                    ).sum()
+                    semantic_valid_row_count = semantic_valid_row_mask_grouped.to(
+                        torch.float32
+                    ).sum()
+                    valid_row_count_for_semantics = grouped_loss_masks.to(
+                        torch.float32
+                    ).sum().clamp(min=1.0)
+                    stats["listwise_semantic_answer_key_extracted_frac"].append(
+                        (
+                            semantic_answer_key_extracted_count
+                            / valid_row_count_for_semantics
+                        ).detach()
+                    )
+                    stats["listwise_semantic_trace_extracted_frac"].append(
+                        (
+                            semantic_trace_extracted_count
+                            / valid_row_count_for_semantics
+                        ).detach()
+                    )
+                    stats["listwise_semantic_signature_extracted_frac"].append(
+                        (
+                            semantic_signature_extracted_count
+                            / valid_row_count_for_semantics
+                        ).detach()
+                    )
+                    stats["listwise_semantic_cluster_valid_frac"].append(
+                        (semantic_valid_row_count / valid_row_count_for_semantics).detach()
+                    )
+                    stats["listwise_semantic_trace_truncated_frac"].append(
+                        semantic_trace_truncated_frac.detach()
+                    )
+                    semantic_ref_seq_grouped = (
+                        mb_ref_seq_grouped_raw
+                        if exact_drx_weight_source == "sequence_clipped"
+                        else mb_ref_seq_grouped
+                    ).detach()
+                    if behavior_seq_grouped_raw is None:
+                        behavior_seq_grouped_raw, _ = self._sequence_logps_grouped(
+                            mb_behavior_logps,
+                            mb_response_masks,
+                            group_size,
+                            length_normalize=False,
+                            context="behavior log-probs (raw semantic entropy)",
+                        )
+                    behavior_log_probs_grouped_raw = masked_group_log_softmax(
+                        behavior_seq_grouped_raw.to(
+                            device=policy_seq_logps_grouped.device,
+                            dtype=policy_seq_logps_grouped.dtype,
+                        ),
+                        grouped_loss_masks,
+                    )
+                    behavior_probs_grouped_raw = torch.where(
+                        grouped_loss_masks,
+                        torch.exp(behavior_log_probs_grouped_raw),
+                        torch.zeros_like(behavior_log_probs_grouped_raw),
+                    )
+                    utility_dtype_info = torch.finfo(probe_drgrpo_utility_grouped.dtype)
+                    best_drgrpo_utility_grouped = torch.where(
+                        grouped_loss_masks,
+                        probe_drgrpo_utility_grouped.detach(),
+                        torch.full_like(
+                            probe_drgrpo_utility_grouped,
+                            utility_dtype_info.min,
+                        ),
+                    ).amax(dim=1)
+                    has_valid_group = grouped_loss_masks.any(dim=1)
+                    best_drgrpo_utility_grouped = torch.where(
+                        has_valid_group,
+                        best_drgrpo_utility_grouped,
+                        torch.zeros_like(best_drgrpo_utility_grouped),
+                    )
+                    behavior_expected_drgrpo_utility_grouped = (
+                        behavior_probs_grouped_raw.detach()
+                        * torch.where(
+                            grouped_loss_masks,
+                            probe_drgrpo_utility_grouped.detach(),
+                            torch.zeros_like(probe_drgrpo_utility_grouped),
+                        )
+                    ).sum(dim=1)
+                    exploration_gain_drgrpo_t = (
+                        best_drgrpo_utility_grouped
+                        - behavior_expected_drgrpo_utility_grouped
+                    )
+                    semantic_alpha_raw_grouped = torch.clamp(
+                        exploration_gain_drgrpo_t.detach()
+                        / float(competitive_mode_budget_scale),
+                        min=0.0,
+                        max=1.0,
+                    )
+                    semantic_explore_budget_grouped = (
+                        float(competitive_mode_budget_max)
+                        * semantic_alpha_raw_grouped
+                        * active_group_mask.to(
+                            dtype=policy_seq_logps_grouped.dtype
+                        )
+                    )
+                    drx_bundle = build_drx_target_bundle(
                         utility_grouped=probe_drgrpo_utility_grouped.detach(),
-                        ref_seq_logps_grouped=mb_ref_seq_grouped,
+                        ref_seq_logps_grouped=semantic_ref_seq_grouped,
+                        valid_row_mask_grouped=grouped_loss_masks.detach(),
+                        cluster_ids_grouped=semantic_cluster_bundle.cluster_ids_grouped.detach(),
+                        candidate_lengths_grouped=mb_response_len_grouped.detach(),
+                        candidate_formatted_grouped=mb_formatted_grouped.detach(),
+                        competitive_mode_tau=competitive_mode_tau,
+                        competitive_mode_gap=competitive_mode_gap,
+                        competitive_mode_top_k=competitive_mode_top_k,
+                        competitive_mode_budget_grouped=semantic_explore_budget_grouped.detach(),
+                        competitive_mode_budget_max=competitive_mode_budget_max,
+                        competitive_mode_intra_tau=competitive_mode_intra_tau,
+                        prompt_select_min_alpha_frac=prompt_select_min_alpha_frac,
+                        competitive_mode_positive_only=competitive_mode_positive_only,
+                        semantic_guard_max_expected_len_delta=semantic_guard_max_expected_len_delta,
+                        semantic_guard_max_expected_format_drop=semantic_guard_max_expected_format_drop,
                         tau=current_tau,
                         candidate_kl_coef=candidate_kl_coef,
-                        valid_row_mask_grouped=grouped_loss_masks,
-                    ).to(
+                        neutral_eps=1e-8,
+                        neutral_projection_coef=neutral_projection_coef,
+                    )
+                    weights_grouped = drx_bundle.w_star_grouped.to(
                         device=policy_seq_logps_grouped.device,
                         dtype=policy_seq_logps_grouped.dtype,
                     )
+                    informative_group_mask = drx_bundle.informative_group_mask.to(
+                        device=policy_seq_logps_grouped.device
+                    )
+                    neutral_group_mask = drx_bundle.neutral_group_mask.to(
+                        device=policy_seq_logps_grouped.device
+                    )
+                    contributing_group_mask = drx_bundle.contributing_group_mask.to(
+                        device=policy_seq_logps_grouped.device
+                    )
+                    active_group_mask = informative_group_mask
+                    active_group_count = int(active_group_mask.to(torch.int64).sum().item())
+                    contributing_group_count = int(contributing_group_mask.to(torch.int64).sum().item())
+                    global_active_group_count = active_group_count
+                    if dist.is_available() and dist.is_initialized():
+                        active_group_count_tensor = torch.tensor(
+                            float(active_group_count),
+                            device=policy_seq_logps_grouped.device,
+                        )
+                        dist.all_reduce(active_group_count_tensor, op=dist.ReduceOp.SUM)
+                        global_active_group_count = int(active_group_count_tensor.item())
+                    global_contributing_group_count = contributing_group_count
+                    if dist.is_available() and dist.is_initialized():
+                        contributing_group_count_tensor = torch.tensor(
+                            float(contributing_group_count),
+                            device=policy_seq_logps_grouped.device,
+                        )
+                        dist.all_reduce(contributing_group_count_tensor, op=dist.ReduceOp.SUM)
+                        global_contributing_group_count = int(contributing_group_count_tensor.item())
+                    active_row_mask = active_group_mask.repeat_interleave(group_size)
+                    active_row_count = int(active_row_mask.to(torch.int64).sum().item())
+                    global_active_row_count = active_row_count
+                    if dist.is_available() and dist.is_initialized():
+                        active_row_count_tensor = torch.tensor(
+                            float(active_row_count),
+                            device=policy_seq_logps_grouped.device,
+                        )
+                        dist.all_reduce(active_row_count_tensor, op=dist.ReduceOp.SUM)
+                        global_active_row_count = int(active_row_count_tensor.item())
+
+                    target_weights_grouped = torch.where(
+                        grouped_loss_masks,
+                        weights_grouped,
+                        torch.zeros_like(weights_grouped),
+                    )
+                    token_target_weights_grouped = torch.where(
+                        grouped_loss_masks,
+                        drx_bundle.token_target_grouped.to(
+                            device=policy_seq_logps_grouped.device,
+                            dtype=policy_seq_logps_grouped.dtype,
+                        ),
+                        torch.zeros_like(weights_grouped),
+                    )
+                    projection_target_grouped = torch.where(
+                        grouped_loss_masks,
+                        drx_bundle.projection_target_grouped.to(
+                            device=policy_seq_logps_grouped.device,
+                            dtype=policy_seq_logps_grouped.dtype,
+                        ),
+                        torch.zeros_like(weights_grouped),
+                    )
+                    projection_group_scale = drx_bundle.projection_group_scale.to(
+                        device=policy_seq_logps_grouped.device,
+                        dtype=policy_seq_logps_grouped.dtype,
+                    )
+                    # Normalize projection CE by the number of projection-eligible
+                    # groups, not by the sum of scale coefficients. Otherwise a
+                    # neutral scale such as 0.10 cancels out of both numerator and
+                    # denominator and is no longer a real strength knob.
+                    local_projection_group_weight = contributing_group_mask.to(
+                        dtype=projection_group_scale.dtype
+                    ).sum()
+                    local_projection_scale_mass = projection_group_scale.sum()
+                    global_projection_group_weight = float(
+                        local_projection_group_weight.item()
+                    )
+                    global_projection_scale_mass = float(
+                        local_projection_scale_mass.item()
+                    )
+                    if dist.is_available() and dist.is_initialized():
+                        projection_group_weight_tensor = local_projection_group_weight.detach().clone()
+                        dist.all_reduce(projection_group_weight_tensor, op=dist.ReduceOp.SUM)
+                        global_projection_group_weight = float(projection_group_weight_tensor.item())
+                        projection_scale_mass_tensor = local_projection_scale_mass.detach().clone()
+                        dist.all_reduce(projection_scale_mass_tensor, op=dist.ReduceOp.SUM)
+                        global_projection_scale_mass = float(
+                            projection_scale_mass_tensor.item()
+                        )
                 else:
                     weights_grouped = compute_listwise_weights(
                         q_grouped=mb_q_grouped,
@@ -2788,11 +3730,298 @@ class ZeroMathLearner(PPOLearner):
                             uniform_weights,
                             weights_grouped,
                         )
-                target_weights_grouped = torch.where(
-                    grouped_loss_masks,
-                    weights_grouped,
-                    torch.zeros_like(weights_grouped),
-                )
+                    target_weights_grouped = torch.where(
+                        grouped_loss_masks,
+                        weights_grouped,
+                        torch.zeros_like(weights_grouped),
+                    )
+                    token_target_weights_grouped = target_weights_grouped
+                    projection_target_grouped = target_weights_grouped
+                    projection_group_scale = active_group_mask.to(
+                        device=policy_seq_logps_grouped.device,
+                        dtype=policy_seq_logps_grouped.dtype,
+                    )
+                    global_projection_group_weight = float(max(global_active_group_count, 0))
+                    global_projection_scale_mass = global_projection_group_weight
+
+                if drgrpo_token_primary:
+                    cluster_ids_grouped = semantic_cluster_bundle.cluster_ids_grouped.to(
+                        device=weights_grouped.device
+                    )
+                    if behavior_seq_grouped_raw is None:
+                        behavior_seq_grouped_raw, _ = self._sequence_logps_grouped(
+                            mb_behavior_logps,
+                            mb_response_masks,
+                            group_size,
+                            length_normalize=False,
+                            context="behavior log-probs (raw semantic entropy)",
+                        )
+                    behavior_log_probs_grouped_raw = masked_group_log_softmax(
+                        behavior_seq_grouped_raw.to(
+                            device=weights_grouped.device,
+                            dtype=weights_grouped.dtype,
+                        ),
+                        grouped_loss_masks,
+                    )
+                    behavior_probs_grouped_raw = torch.where(
+                        grouped_loss_masks,
+                        torch.exp(behavior_log_probs_grouped_raw),
+                        torch.zeros_like(behavior_log_probs_grouped_raw),
+                    )
+                    semantic_cluster_entropy_t, semantic_cluster_count_t = (
+                        compute_normalized_semantic_cluster_entropy(
+                            candidate_probs_grouped=behavior_probs_grouped_raw.detach(),
+                            cluster_ids_grouped=cluster_ids_grouped,
+                            valid_row_mask_grouped=grouped_loss_masks,
+                            normalizer_group_size=group_size,
+                        )
+                    )
+                    stats["listwise_semantic_cluster_entropy"].append(
+                        semantic_cluster_entropy_t.mean().detach()
+                    )
+                    stats["listwise_semantic_cluster_entropy_norm"].append(
+                        semantic_cluster_entropy_t.mean().detach()
+                    )
+                    stats["listwise_semantic_cluster_count"].append(
+                        semantic_cluster_count_t.mean().detach()
+                    )
+                    semantic_diag = drx_bundle.semantic_diagnostics
+                    if semantic_diag is not None:
+                        stats["listwise_semantic_competitive_mode_count"].append(
+                            semantic_diag.mode_count_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_competitive_mode_eligible_count"].append(
+                            semantic_diag.eligible_mode_count_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_competitive_mode_eligible_frac"].append(
+                            semantic_diag.eligible_mode_frac_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_competitive_mode_best_score"].append(
+                            semantic_diag.best_score_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_competitive_mode_second_score"].append(
+                            semantic_diag.second_score_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_competitive_mode_gap"].append(
+                            semantic_diag.competitive_gap_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_explore_budget_mean"].append(
+                            semantic_diag.explore_budget_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_explore_budget_saturated_frac"].append(
+                            semantic_diag.explore_budget_saturated_grouped.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_explore_applied_group_frac"].append(
+                            semantic_diag.explore_applied_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_prompt_selected_frac"].append(
+                            semantic_diag.prompt_selected_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_prompt_rejected_low_opp_frac"].append(
+                            semantic_diag.prompt_rejected_low_opp_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_prompt_rejected_nonpositive_frac"].append(
+                            semantic_diag.prompt_rejected_nonpositive_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_prompt_rejected_len_guard_frac"].append(
+                            semantic_diag.prompt_rejected_len_guard_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_prompt_rejected_format_guard_frac"].append(
+                            semantic_diag.prompt_rejected_format_guard_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_moved_mass_l1"].append(
+                            semantic_diag.moved_mass_l1_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_alpha_raw_mean"].append(
+                            semantic_diag.alpha_raw_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_alpha_applied_mean"].append(
+                            semantic_diag.alpha_applied_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_utility_q"].append(
+                            semantic_diag.expected_utility_q_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_utility_explore_target"].append(
+                            semantic_diag.expected_utility_explore_target_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_utility_final_w"].append(
+                            semantic_diag.expected_utility_final_w_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_len_q"].append(
+                            semantic_diag.expected_len_q_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_len_explore_target"].append(
+                            semantic_diag.expected_len_explore_target_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_len_final_w"].append(
+                            semantic_diag.expected_len_final_w_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_format_q"].append(
+                            semantic_diag.expected_format_q_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_format_explore_target"].append(
+                            semantic_diag.expected_format_explore_target_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_expected_format_final_w"].append(
+                            semantic_diag.expected_format_final_w_grouped.mean().detach()
+                        )
+
+                    correct_indicator_grouped = (
+                        (mb_reward_grouped > 0.0) & grouped_loss_masks
+                    ).to(weights_grouped.dtype)
+                    any_correct_grouped = correct_indicator_grouped.any(dim=1).to(
+                        weights_grouped.dtype
+                    )
+                    behavior_correct_mass_grouped = (
+                        behavior_probs_grouped_raw.detach() * correct_indicator_grouped
+                    ).sum(dim=1)
+                    exploration_gain_any_correct_t = (
+                        any_correct_grouped - behavior_correct_mass_grouped
+                    )
+
+                    utility_dtype_info = torch.finfo(probe_drgrpo_utility_grouped.dtype)
+                    best_drgrpo_utility_grouped = torch.where(
+                        grouped_loss_masks,
+                        probe_drgrpo_utility_grouped.detach(),
+                        torch.full_like(
+                            probe_drgrpo_utility_grouped,
+                            utility_dtype_info.min,
+                        ),
+                    ).amax(dim=1)
+                    has_valid_group = grouped_loss_masks.any(dim=1)
+                    best_drgrpo_utility_grouped = torch.where(
+                        has_valid_group,
+                        best_drgrpo_utility_grouped,
+                        torch.zeros_like(best_drgrpo_utility_grouped),
+                    )
+                    behavior_expected_drgrpo_utility_grouped = (
+                        behavior_probs_grouped_raw.detach()
+                        * torch.where(
+                            grouped_loss_masks,
+                            probe_drgrpo_utility_grouped.detach(),
+                            torch.zeros_like(probe_drgrpo_utility_grouped),
+                        )
+                    ).sum(dim=1)
+                    exploration_gain_drgrpo_t = (
+                        best_drgrpo_utility_grouped
+                        - behavior_expected_drgrpo_utility_grouped
+                    )
+
+                    gain_group_mask = semantic_cluster_count_t > 0.0
+
+                    def _masked_prompt_mean(
+                        values: torch.Tensor,
+                        mask: torch.Tensor,
+                    ) -> torch.Tensor:
+                        mask_f = mask.to(values.dtype)
+                        return (values * mask_f).sum() / mask_f.sum().clamp(min=1.0)
+
+                    def _masked_prompt_corr(
+                        lhs: torch.Tensor,
+                        rhs: torch.Tensor,
+                        mask: torch.Tensor,
+                    ) -> torch.Tensor:
+                        if int(mask.to(torch.int64).sum().item()) < 2:
+                            return lhs.new_zeros(())
+                        lhs_sel = lhs[mask].to(torch.float32)
+                        rhs_sel = rhs[mask].to(torch.float32)
+                        lhs_centered = lhs_sel - lhs_sel.mean()
+                        rhs_centered = rhs_sel - rhs_sel.mean()
+                        denom = lhs_centered.norm() * rhs_centered.norm()
+                        if float(denom.item()) <= 1e-12:
+                            return lhs.new_zeros(())
+                        return (
+                            (lhs_centered * rhs_centered).sum() / denom
+                        ).to(dtype=lhs.dtype, device=lhs.device)
+
+                    gain_group_count = int(gain_group_mask.to(torch.int64).sum().item())
+                    semantic_entropy_prompt_mean_local = _masked_prompt_mean(
+                        semantic_cluster_entropy_t.detach(),
+                        gain_group_mask,
+                    )
+                    exploration_gain_any_correct_mean_local = _masked_prompt_mean(
+                        exploration_gain_any_correct_t.detach(),
+                        gain_group_mask,
+                    )
+                    exploration_gain_drgrpo_mean_local = _masked_prompt_mean(
+                        exploration_gain_drgrpo_t.detach(),
+                        gain_group_mask,
+                    )
+
+                    if bool(gain_group_mask.any().item()):
+                        prompt_diag_stats["listwise_semantic_entropy_prompt"].append(
+                            semantic_cluster_entropy_t.detach()[gain_group_mask]
+                        )
+                        prompt_diag_stats[
+                            "listwise_semantic_exploration_gain_any_correct_prompt"
+                        ].append(
+                            exploration_gain_any_correct_t.detach()[gain_group_mask]
+                        )
+                        prompt_diag_stats[
+                            "listwise_semantic_exploration_gain_drgrpo_prompt"
+                        ].append(
+                            exploration_gain_drgrpo_t.detach()[gain_group_mask]
+                        )
+
+                    stats["listwise_semantic_exploration_gain_any_correct"].append(
+                        exploration_gain_any_correct_mean_local
+                    )
+                    stats["listwise_semantic_exploration_gain_drgrpo"].append(
+                        exploration_gain_drgrpo_mean_local
+                    )
+                    ref_available = bool(candidate_kl_coef > 0.0)
+                    ref_semantic_entropy_t = torch.zeros_like(semantic_cluster_entropy_t)
+                    semantic_entropy_gain_t = semantic_cluster_entropy_t
+                    if ref_available:
+                        ref_log_probs_grouped = masked_group_log_softmax(
+                            semantic_ref_seq_grouped.to(
+                                device=weights_grouped.device,
+                                dtype=weights_grouped.dtype,
+                            ),
+                            grouped_loss_masks,
+                        )
+                        ref_probs_grouped = torch.where(
+                            grouped_loss_masks,
+                            torch.exp(ref_log_probs_grouped),
+                            torch.zeros_like(ref_log_probs_grouped),
+                        )
+                        ref_semantic_entropy_t, _ = compute_normalized_semantic_cluster_entropy(
+                            candidate_probs_grouped=ref_probs_grouped.detach(),
+                            cluster_ids_grouped=cluster_ids_grouped,
+                            valid_row_mask_grouped=grouped_loss_masks,
+                            normalizer_group_size=group_size,
+                        )
+                        semantic_entropy_gain_t = (
+                            semantic_cluster_entropy_t - ref_semantic_entropy_t
+                        )
+                    stats["listwise_semantic_cluster_entropy_ref"].append(
+                        ref_semantic_entropy_t.mean().detach()
+                    )
+                    stats["listwise_semantic_cluster_entropy_gain"].append(
+                        semantic_entropy_gain_t.mean().detach()
+                    )
+                    stats["listwise_semantic_cluster_ref_available"].append(
+                        torch.tensor(
+                            1.0 if ref_available else 0.0,
+                            device=weights_grouped.device,
+                            dtype=weights_grouped.dtype,
+                        )
+                    )
+
                 (
                     active_weight_entropy,
                     active_weight_entropy_min,
@@ -2827,16 +4056,24 @@ class ZeroMathLearner(PPOLearner):
                     torch.exp(policy_log_probs_grouped),
                     torch.zeros_like(policy_log_probs_grouped),
                 )
-                per_group_policy_loss = -(
+                per_group_projection_ce = -(
                     target_weights_grouped * policy_log_probs_grouped
                 ).sum(dim=1)
-                ce_group_mask = (
-                    contributing_group_mask if drgrpo_token_primary else active_group_mask
-                )
-                if bool(ce_group_mask.any().item()):
-                    policy_loss = per_group_policy_loss[ce_group_mask].mean()
+                projection_ce_loss = (per_group_projection_ce * 0.0).sum()
+                if drgrpo_token_primary and global_projection_group_weight > 0.0:
+                    projection_ce_loss = (
+                        projection_group_scale.detach() * per_group_projection_ce
+                    ).sum() / max(global_projection_group_weight, 1e-8)
                 else:
-                    policy_loss = (per_group_policy_loss * 0.0).sum()
+                    ce_group_mask = active_group_mask
+                    if bool(ce_group_mask.any().item()):
+                        projection_ce_loss = per_group_projection_ce[ce_group_mask].mean()
+                projection_ce_loss_effective = projection_ce_loss
+                if drgrpo_token_primary:
+                    projection_ce_loss_effective = (
+                        float(sequence_aux_coef) * projection_ce_loss
+                    )
+
                 listwise_centered_adv_grouped = compute_listwise_centered_advantages(
                     weights_grouped=target_weights_grouped,
                     behavior_seq_logps_grouped=behavior_seq_grouped,
@@ -2845,11 +4082,15 @@ class ZeroMathLearner(PPOLearner):
                     device=policy_seq_logps_grouped.device,
                     dtype=policy_seq_logps_grouped.dtype,
                 )
-                loss = policy_loss
-                zero_component = policy_loss.detach() * 0.0
-                infos["listwise_ce_loss"] = policy_loss.detach()
+                loss = projection_ce_loss
+                zero_component = projection_ce_loss.detach() * 0.0
+                infos["listwise_ce_loss"] = projection_ce_loss.detach()
+                infos["listwise_projection_ce_loss"] = projection_ce_loss.detach()
+                infos["listwise_projection_ce_loss_effective"] = (
+                    projection_ce_loss_effective.detach()
+                )
                 infos["drgrpo_primary_loss"] = zero_component
-                infos["listwise_ce_reference_loss"] = policy_loss.detach()
+                infos["listwise_ce_reference_loss"] = projection_ce_loss.detach()
                 infos["listwise_bonus_loss_raw"] = zero_component
                 infos["listwise_bonus_loss_weighted"] = zero_component
                 infos["listwise_bonus_loss_effective"] = zero_component
@@ -2858,7 +4099,9 @@ class ZeroMathLearner(PPOLearner):
                 infos["listwise_auto_scale_factor"] = zero_component
                 infos["listwise_raw_to_drgrpo_ratio"] = zero_component
                 infos["listwise_post_scale_ratio"] = zero_component
-                infos["objective_effective_total_loss"] = policy_loss.detach()
+                infos["objective_effective_total_loss"] = (
+                    projection_ce_loss_effective.detach()
+                )
                 infos["clip_loss"] = zero_component
                 infos["listwise_adv_abs_mean"] = zero_component
                 infos["listwise_adv_abs_mean_scaled"] = zero_component
@@ -2872,7 +4115,7 @@ class ZeroMathLearner(PPOLearner):
                 weighted_drgrpo_delta_adv_flat = None
                 drgrpo_active_row_mask = None
                 drgrpo_active_row_count = None
-                global_drgrpo_active_row_count = None
+                global_drgrpo_active_row_count = 0
                 weighted_drgrpo_pg_loss = None
                 if drgrpo_token_primary:
                     if float(args.beta) > 0.0:
@@ -2886,31 +4129,26 @@ class ZeroMathLearner(PPOLearner):
                     drgrpo_pg_loss = (probe_drgrpo_pg_row_loss * mb_loss_masks).mean()
                     infos["drgrpo_pg_loss"] = drgrpo_pg_loss.detach()
                     infos["drgrpo_primary_loss"] = drgrpo_pg_loss.detach()
-                    drgrpo_active_row_mask = (
-                        mb_loss_masks.to(torch.bool) & valid_row_mask
-                    )
-                    local_drgrpo_active_row_count = int(
-                        drgrpo_active_row_mask.to(torch.int64).sum().item()
-                    )
-                    drgrpo_active_row_count = max(local_drgrpo_active_row_count, 1)
+
+                    token_active_row_mask_grouped = informative_group_mask[:, None] & grouped_loss_masks
+                    drgrpo_active_row_mask = flatten_prompt_major_tensor(
+                        token_active_row_mask_grouped
+                    ).to(torch.bool)
+                    drgrpo_active_row_count = int(drgrpo_active_row_mask.to(torch.int64).sum().item())
                     global_drgrpo_active_row_count = drgrpo_active_row_count
                     if dist.is_available() and dist.is_initialized():
                         drgrpo_active_row_count_tensor = torch.tensor(
-                            float(local_drgrpo_active_row_count),
-                            device=new_logps.device,
+                            float(drgrpo_active_row_count),
+                            device=policy_seq_logps_grouped.device,
                         )
-                        dist.all_reduce(
-                            drgrpo_active_row_count_tensor, op=dist.ReduceOp.SUM
-                        )
-                        global_drgrpo_active_row_count = max(
-                            int(drgrpo_active_row_count_tensor.item()),
-                            1,
-                        )
-                    weight_row_flat = flatten_prompt_major_tensor(target_weights_grouped).to(
+                        dist.all_reduce(drgrpo_active_row_count_tensor, op=dist.ReduceOp.SUM)
+                        global_drgrpo_active_row_count = int(drgrpo_active_row_count_tensor.item())
+
+                    token_weight_row_flat = flatten_prompt_major_tensor(token_target_weights_grouped).to(
                         device=new_logps.device,
                         dtype=new_logps.dtype,
                     )
-                    weighted_drgrpo_multiplier_flat = float(group_size) * weight_row_flat
+                    weighted_drgrpo_multiplier_flat = float(group_size) * token_weight_row_flat
                     weighted_drgrpo_row_adv_flat = (
                         weighted_drgrpo_multiplier_flat * drgrpo_row_adv_flat
                     )
@@ -2926,9 +4164,13 @@ class ZeroMathLearner(PPOLearner):
                         clip_high=float(args.cliprange),
                         constant_normalizer=self._listwise_token_clip_constant_normalizer(),
                     )
-                    weighted_drgrpo_pg_loss = (
-                        weighted_drgrpo_pg_row_loss * mb_loss_masks
-                    ).mean()
+                    if bool(drgrpo_active_row_mask.any().item()):
+                        weighted_drgrpo_pg_loss = (
+                            weighted_drgrpo_pg_row_loss[drgrpo_active_row_mask]
+                        ).mean()
+                    else:
+                        weighted_drgrpo_pg_loss = (weighted_drgrpo_pg_row_loss * 0.0).sum()
+
                     pg_clipfrac = masked_mean(
                         (
                             torch.clamp(
@@ -2991,7 +4233,7 @@ class ZeroMathLearner(PPOLearner):
                         listwise_weight_deviation = zero_component
                     infos["pg_loss"] = weighted_drgrpo_pg_loss.detach()
                     infos["combined_token_pg_loss"] = weighted_drgrpo_pg_loss.detach()
-                    loss = weighted_drgrpo_pg_loss
+                    loss = weighted_drgrpo_pg_loss + projection_ce_loss_effective
                     infos["listwise_adv_abs_mean"] = listwise_adv_abs_mean.detach()
                     infos["listwise_adv_abs_mean_scaled"] = (
                         listwise_delta_adv_abs_mean.detach()
@@ -3021,9 +4263,7 @@ class ZeroMathLearner(PPOLearner):
                         1.0,
                         device=policy_seq_logps_grouped.device,
                     )
-                    infos["objective_effective_total_loss"] = (
-                        weighted_drgrpo_pg_loss.detach()
-                    )
+                    infos["objective_effective_total_loss"] = loss.detach()
                 elif not token_surrogate_primary:
                     infos["pg_loss"] = policy_loss.detach()
                     infos["listwise_bonus_loss_raw"] = policy_loss.detach()
@@ -3243,14 +4483,23 @@ class ZeroMathLearner(PPOLearner):
                             stats["clip_ratio_low"].append(zero_stat)
                             stats["clip_ratio_high"].append(zero_stat)
                             stats["clip_ratio_region"].append(zero_stat)
-                skip_zero_signal_update = global_active_group_count <= 0
+                has_token_signal = global_drgrpo_active_row_count > 0
+                has_projection_signal = (
+                    float(sequence_aux_coef) > 0.0
+                    and global_projection_group_weight > 0.0
+                    and global_projection_scale_mass > 0.0
+                )
+                if drgrpo_token_primary:
+                    skip_zero_signal_update = not (has_token_signal or has_projection_signal)
+                else:
+                    skip_zero_signal_update = global_active_group_count <= 0
                 skip_listwise_backward = skip_zero_signal_update
-                if local_grad_step == 1 and global_active_group_count <= 0:
+                if local_grad_step == 1 and skip_zero_signal_update:
                     if drgrpo_token_primary:
                         logging.info(
-                            "listwise minibatch has no reward-distinguishing prompt "
-                            "groups across any rank; skipping the exact DrX "
-                            "weighted Dr.GRPO update."
+                            "listwise minibatch has no informative token signal and no "
+                            "projection signal across any rank; skipping the exact DrX "
+                            "update."
                         )
                     else:
                         logging.info(
@@ -3269,11 +4518,29 @@ class ZeroMathLearner(PPOLearner):
                             dtype=target_weights_grouped.dtype,
                         )
                     elif drgrpo_token_primary:
-                        seq_coeffs_grouped = torch.zeros_like(
-                            target_weights_grouped,
-                            device=target_weights_grouped.device,
-                            dtype=target_weights_grouped.dtype,
-                        )
+                        if (
+                            float(sequence_aux_coef) > 0.0
+                            and global_projection_group_weight > 0.0
+                            and global_projection_scale_mass > 0.0
+                        ):
+                            seq_coeffs_grouped = compute_drx_projection_sequence_coefficients(
+                                policy_seq_logps_grouped=policy_seq_logps_grouped.detach(),
+                                projection_target_grouped=projection_target_grouped.detach(),
+                                projection_group_scale=projection_group_scale.detach(),
+                                valid_row_mask_grouped=grouped_loss_masks.detach(),
+                                normalizer_total_group_weight=global_projection_group_weight,
+                            ).to(
+                                device=target_weights_grouped.device,
+                                dtype=target_weights_grouped.dtype,
+                            )
+                            seq_coeffs_grouped = float(sequence_aux_coef) * seq_coeffs_grouped
+                        else:
+                            seq_coeffs_grouped = torch.zeros_like(
+                                target_weights_grouped,
+                                device=target_weights_grouped.device,
+                                dtype=target_weights_grouped.dtype,
+                            )
+                        raw_seq_coeffs_grouped = seq_coeffs_grouped
                     else:
                         seq_coeffs_grouped = compute_listwise_sequence_coefficients(
                             policy_seq_logps_grouped=policy_seq_logps_grouped.detach(),
@@ -3322,7 +4589,7 @@ class ZeroMathLearner(PPOLearner):
                         token_clip_enabled = (
                             weighted_drgrpo_row_adv_flat is not None
                             and drgrpo_active_row_mask is not None
-                            and global_drgrpo_active_row_count is not None
+                            and global_drgrpo_active_row_count > 0
                         )
                         token_clip_adv_for_backward = weighted_drgrpo_row_adv_flat
                         token_clip_active_row_mask = drgrpo_active_row_mask
@@ -3350,7 +4617,7 @@ class ZeroMathLearner(PPOLearner):
                         and raw_seq_coeffs_grouped is not None
                         and drgrpo_row_adv_flat is not None
                         and drgrpo_active_row_mask is not None
-                        and global_drgrpo_active_row_count is not None
+                        and global_drgrpo_active_row_count > 0
                     ):
                         grad_probe_infos = self._probe_listwise_branch_gradient_metrics(
                             input_ids=mb_input_ids,
@@ -3724,17 +4991,14 @@ class ZeroMathLearner(PPOLearner):
                         infos["kl3"] = masked_mean(kl3, mb_response_masks).detach()
                         measured_kl_value = float(infos["kl3"].cpu().item())
 
-                    active_target_entropy = resolve_listwise_target_entropy(
-                        target_entropy=args.maxent_target_weight_entropy,
-                        target_entropy_start=args.maxent_target_weight_entropy_start,
-                        target_entropy_peak=args.maxent_target_weight_entropy_peak,
-                        target_entropy_peak_step=args.maxent_target_weight_entropy_peak_step,
-                        target_entropy_final=args.maxent_target_weight_entropy_final,
-                        target_entropy_horizon=args.maxent_target_weight_entropy_horizon,
+                    active_tau_target_metric = self._resolve_tau_target_metric(
                         global_step=int(self.global_step),
                     )
                     reduced_weight_entropy = None
                     reduced_kl_value = None
+                    reduced_semantic_entropy_mu = None
+                    reduced_exploration_gain_any_correct = None
+                    reduced_exploration_gain_drgrpo = None
                     tau_loss_value = None
                     if not skip_zero_signal_update:
                         # Tau only controls informative prompt groups. Neutral
@@ -3753,31 +5017,90 @@ class ZeroMathLearner(PPOLearner):
                                 reduced_weight_entropy,
                                 device=policy_seq_logps_grouped.device,
                             )
+                        reduced_semantic_entropy_mu = self._distributed_weighted_mean_scalar(
+                            semantic_entropy_prompt_mean_local,
+                            weight=gain_group_count,
+                        )
+                        reduced_exploration_gain_any_correct = (
+                            self._distributed_weighted_mean_scalar(
+                                exploration_gain_any_correct_mean_local,
+                                weight=gain_group_count,
+                            )
+                        )
+                        reduced_exploration_gain_drgrpo = (
+                            self._distributed_weighted_mean_scalar(
+                                exploration_gain_drgrpo_mean_local,
+                                weight=gain_group_count,
+                            )
+                        )
+                        tau_metric_name, tau_metric_value = (
+                            self._select_tau_adaptation_metric(
+                                semantic_entropy_mu=reduced_semantic_entropy_mu,
+                                exploration_gain_any_correct=(
+                                    reduced_exploration_gain_any_correct
+                                ),
+                                exploration_gain_drgrpo=reduced_exploration_gain_drgrpo,
+                            )
+                        )
+                        if tau_metric_value is not None:
+                            infos["listwise_tau_adaptation_metric_value"] = torch.tensor(
+                                float(tau_metric_value),
+                                device=policy_seq_logps_grouped.device,
+                            )
+                        infos["listwise_tau_adaptation_metric_is_semantic_entropy_mu"] = torch.tensor(
+                            1.0 if tau_metric_name == "semantic_entropy_mu" else 0.0,
+                            device=policy_seq_logps_grouped.device,
+                        )
+                        infos["listwise_tau_adaptation_metric_is_exploration_gain_any_correct"] = torch.tensor(
+                            1.0
+                            if tau_metric_name == "exploration_gain_any_correct"
+                            else 0.0,
+                            device=policy_seq_logps_grouped.device,
+                        )
+                        infos["listwise_tau_adaptation_metric_is_exploration_gain_drgrpo"] = torch.tensor(
+                            1.0 if tau_metric_name == "exploration_gain_drgrpo" else 0.0,
+                            device=policy_seq_logps_grouped.device,
+                        )
+                        if reduced_semantic_entropy_mu is not None:
+                            infos["listwise_tau_signal_semantic_entropy_mu"] = torch.tensor(
+                                float(reduced_semantic_entropy_mu),
+                                device=policy_seq_logps_grouped.device,
+                            )
+                        if reduced_exploration_gain_any_correct is not None:
+                            infos["listwise_tau_signal_exploration_gain_any_correct"] = torch.tensor(
+                                float(reduced_exploration_gain_any_correct),
+                                device=policy_seq_logps_grouped.device,
+                            )
+                        if reduced_exploration_gain_drgrpo is not None:
+                            infos["listwise_tau_signal_exploration_gain_drgrpo"] = torch.tensor(
+                                float(reduced_exploration_gain_drgrpo),
+                                device=policy_seq_logps_grouped.device,
+                            )
                         if bool(args.maxent_tau_learnable):
-                            update_listwise_tau_entropy_ema(
+                            update_listwise_tau_metric_ema(
                                 self._maxent_controller_state,
-                                measured_entropy=reduced_weight_entropy,
+                                measured_metric=tau_metric_value,
                             )
                             with torch.enable_grad():
                                 args.maxent_tau, tau_loss_value = (
                                     self._maybe_update_learnable_tau(
-                                        measured_entropy=reduced_weight_entropy,
-                                        target_entropy=active_target_entropy,
+                                        measured_metric=tau_metric_value,
+                                        target_metric=active_tau_target_metric,
                                         global_step=int(self.global_step),
                                     )
                                 )
                         elif bool(args.maxent_tau_controller_enabled):
                             args.maxent_tau = maybe_update_listwise_tau(
                                 args.maxent_tau,
-                                measured_entropy=reduced_weight_entropy,
+                                measured_metric=tau_metric_value,
                                 global_step=int(self.global_step),
                                 state=self._maxent_controller_state,
-                                target_entropy=args.maxent_target_weight_entropy,
-                                target_entropy_start=args.maxent_target_weight_entropy_start,
-                                target_entropy_peak=args.maxent_target_weight_entropy_peak,
-                                target_entropy_peak_step=args.maxent_target_weight_entropy_peak_step,
-                                target_entropy_final=args.maxent_target_weight_entropy_final,
-                                target_entropy_horizon=args.maxent_target_weight_entropy_horizon,
+                                target_metric=args.maxent_tau_target_metric,
+                                target_metric_start=args.maxent_tau_target_metric_start,
+                                target_metric_peak=args.maxent_tau_target_metric_peak,
+                                target_metric_peak_step=args.maxent_tau_target_metric_peak_step,
+                                target_metric_final=args.maxent_tau_target_metric_final,
+                                target_metric_horizon=args.maxent_tau_target_metric_horizon,
                                 tau_lr=args.maxent_tau_lr,
                                 tau_min=args.maxent_tau_min,
                                 tau_max=args.maxent_tau_max,
@@ -3821,27 +5144,21 @@ class ZeroMathLearner(PPOLearner):
                             tau_loss_value,
                             device=policy_seq_logps_grouped.device,
                         )
-                    if active_target_entropy is not None:
-                        infos["listwise_target_weight_entropy"] = torch.tensor(
-                            float(active_target_entropy),
+                    if active_tau_target_metric is not None:
+                        infos["listwise_tau_target_metric"] = torch.tensor(
+                            float(active_tau_target_metric),
                             device=policy_seq_logps_grouped.device,
                         )
-                        infos["target_weight_entropy"] = infos[
-                            "listwise_target_weight_entropy"
-                        ]
-                    tau_entropy_ema = getattr(
-                        self._maxent_controller_state, "tau_entropy_ema", None
+                    tau_metric_ema = getattr(
+                        self._maxent_controller_state, "tau_metric_ema", None
                     )
-                    if isinstance(tau_entropy_ema, (int, float)) and math.isfinite(
-                        float(tau_entropy_ema)
+                    if isinstance(tau_metric_ema, (int, float)) and math.isfinite(
+                        float(tau_metric_ema)
                     ):
-                        infos["listwise_weight_entropy_ema"] = torch.tensor(
-                            float(tau_entropy_ema),
+                        infos["listwise_tau_metric_ema"] = torch.tensor(
+                            float(tau_metric_ema),
                             device=policy_seq_logps_grouped.device,
                         )
-                        infos["weight_entropy_ema"] = infos[
-                            "listwise_weight_entropy_ema"
-                        ]
 
         scalar_stat_device = (
             next(
@@ -3890,6 +5207,305 @@ class ZeroMathLearner(PPOLearner):
                 stats["listwise_weight_entropy_all_max"],
                 device=scalar_stat_device,
             ).max()
+        if stats["listwise_semantic_cluster_entropy"]:
+            infos["listwise_semantic_cluster_entropy"] = _stack_scalar_stats(
+                stats["listwise_semantic_cluster_entropy"],
+                device=scalar_stat_device,
+            ).mean()
+            infos["listwise_semantic_cluster_entropy_norm"] = infos[
+                "listwise_semantic_cluster_entropy"
+            ]
+        if stats["listwise_semantic_cluster_count"]:
+            infos["listwise_semantic_cluster_count"] = _stack_scalar_stats(
+                stats["listwise_semantic_cluster_count"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_competitive_mode_count"]:
+            infos["listwise_semantic_competitive_mode_count"] = _stack_scalar_stats(
+                stats["listwise_semantic_competitive_mode_count"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_competitive_mode_eligible_count"]:
+            infos["listwise_semantic_competitive_mode_eligible_count"] = _stack_scalar_stats(
+                stats["listwise_semantic_competitive_mode_eligible_count"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_competitive_mode_eligible_frac"]:
+            infos["listwise_semantic_competitive_mode_eligible_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_competitive_mode_eligible_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_competitive_mode_best_score"]:
+            infos["listwise_semantic_competitive_mode_best_score"] = _stack_scalar_stats(
+                stats["listwise_semantic_competitive_mode_best_score"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_competitive_mode_second_score"]:
+            infos["listwise_semantic_competitive_mode_second_score"] = _stack_scalar_stats(
+                stats["listwise_semantic_competitive_mode_second_score"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_competitive_mode_gap"]:
+            infos["listwise_semantic_competitive_mode_gap"] = _stack_scalar_stats(
+                stats["listwise_semantic_competitive_mode_gap"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_explore_budget_mean"]:
+            infos["listwise_semantic_explore_budget_mean"] = _stack_scalar_stats(
+                stats["listwise_semantic_explore_budget_mean"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_explore_budget_saturated_frac"]:
+            infos["listwise_semantic_explore_budget_saturated_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_explore_budget_saturated_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_explore_applied_group_frac"]:
+            infos["listwise_semantic_explore_applied_group_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_explore_applied_group_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_prompt_selected_frac"]:
+            infos["listwise_semantic_prompt_selected_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_prompt_selected_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_prompt_rejected_low_opp_frac"]:
+            infos["listwise_semantic_prompt_rejected_low_opp_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_prompt_rejected_low_opp_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_prompt_rejected_nonpositive_frac"]:
+            infos["listwise_semantic_prompt_rejected_nonpositive_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_prompt_rejected_nonpositive_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_prompt_rejected_len_guard_frac"]:
+            infos["listwise_semantic_prompt_rejected_len_guard_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_prompt_rejected_len_guard_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_prompt_rejected_format_guard_frac"]:
+            infos["listwise_semantic_prompt_rejected_format_guard_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_prompt_rejected_format_guard_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_moved_mass_l1"]:
+            infos["listwise_semantic_moved_mass_l1"] = _stack_scalar_stats(
+                stats["listwise_semantic_moved_mass_l1"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_alpha_raw_mean"]:
+            infos["listwise_semantic_alpha_raw_mean"] = _stack_scalar_stats(
+                stats["listwise_semantic_alpha_raw_mean"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_alpha_applied_mean"]:
+            infos["listwise_semantic_alpha_applied_mean"] = _stack_scalar_stats(
+                stats["listwise_semantic_alpha_applied_mean"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_utility_q"]:
+            infos["listwise_semantic_expected_utility_q"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_utility_q"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_utility_explore_target"]:
+            infos["listwise_semantic_expected_utility_explore_target"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_utility_explore_target"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_utility_final_w"]:
+            infos["listwise_semantic_expected_utility_final_w"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_utility_final_w"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_len_q"]:
+            infos["listwise_semantic_expected_len_q"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_len_q"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_len_explore_target"]:
+            infos["listwise_semantic_expected_len_explore_target"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_len_explore_target"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_len_final_w"]:
+            infos["listwise_semantic_expected_len_final_w"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_len_final_w"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_format_q"]:
+            infos["listwise_semantic_expected_format_q"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_format_q"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_format_explore_target"]:
+            infos["listwise_semantic_expected_format_explore_target"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_format_explore_target"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_expected_format_final_w"]:
+            infos["listwise_semantic_expected_format_final_w"] = _stack_scalar_stats(
+                stats["listwise_semantic_expected_format_final_w"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_answer_key_extracted_frac"]:
+            infos["listwise_semantic_answer_key_extracted_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_answer_key_extracted_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_trace_extracted_frac"]:
+            infos["listwise_semantic_trace_extracted_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_trace_extracted_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_signature_extracted_frac"]:
+            infos["listwise_semantic_signature_extracted_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_signature_extracted_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_cluster_valid_frac"]:
+            infos["listwise_semantic_cluster_valid_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_cluster_valid_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_trace_truncated_frac"]:
+            infos["listwise_semantic_trace_truncated_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_trace_truncated_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_cluster_entropy_ref"]:
+            infos["listwise_semantic_cluster_entropy_ref"] = _stack_scalar_stats(
+                stats["listwise_semantic_cluster_entropy_ref"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_cluster_entropy_gain"]:
+            infos["listwise_semantic_cluster_entropy_gain"] = _stack_scalar_stats(
+                stats["listwise_semantic_cluster_entropy_gain"],
+                device=scalar_stat_device,
+            ).mean()
+        semantic_prompt_entropy = _concat_vector_stats(
+            prompt_diag_stats["listwise_semantic_entropy_prompt"],
+            device=scalar_stat_device,
+        )
+        semantic_prompt_gain_any = _concat_vector_stats(
+            prompt_diag_stats["listwise_semantic_exploration_gain_any_correct_prompt"],
+            device=scalar_stat_device,
+        )
+        semantic_prompt_gain_drgrpo = _concat_vector_stats(
+            prompt_diag_stats["listwise_semantic_exploration_gain_drgrpo_prompt"],
+            device=scalar_stat_device,
+        )
+        if semantic_prompt_entropy.numel() > 0:
+            semantic_prompt_entropy = _all_gather_variable_length_1d_tensor(
+                semantic_prompt_entropy
+            )
+            semantic_prompt_gain_any = _all_gather_variable_length_1d_tensor(
+                semantic_prompt_gain_any
+            )
+            semantic_prompt_gain_drgrpo = _all_gather_variable_length_1d_tensor(
+                semantic_prompt_gain_drgrpo
+            )
+
+            def _prompt_corr(lhs: torch.Tensor, rhs: torch.Tensor) -> torch.Tensor:
+                if lhs.numel() < 2 or rhs.numel() < 2:
+                    return lhs.new_zeros(())
+                lhs_centered = lhs - lhs.mean()
+                rhs_centered = rhs - rhs.mean()
+                denom = lhs_centered.norm() * rhs_centered.norm()
+                if float(denom.item()) <= 1e-12:
+                    return lhs.new_zeros(())
+                return (lhs_centered * rhs_centered).sum() / denom
+
+            def _entropy_split_means(
+                entropy: torch.Tensor,
+                values: torch.Tensor,
+            ) -> tuple[torch.Tensor, torch.Tensor]:
+                if entropy.numel() < 2 or values.numel() < 2:
+                    mean_value = (
+                        values.mean() if values.numel() > 0 else values.new_zeros(())
+                    )
+                    return mean_value, mean_value
+                order = torch.argsort(entropy)
+                low_count = max(int(order.numel() // 2), 1)
+                high_count = max(int(order.numel() - low_count), 1)
+                low_idx = order[:low_count]
+                high_idx = order[-high_count:]
+                return values[low_idx].mean(), values[high_idx].mean()
+
+            infos["listwise_semantic_exploration_prompt_count"] = torch.tensor(
+                float(semantic_prompt_entropy.numel()),
+                device=scalar_stat_device,
+                dtype=torch.float32,
+            )
+            infos["listwise_semantic_exploration_entropy_std"] = semantic_prompt_entropy.std(
+                unbiased=False
+            )
+            infos["listwise_semantic_exploration_gain_any_correct_std"] = (
+                semantic_prompt_gain_any.std(unbiased=False)
+            )
+            infos["listwise_semantic_exploration_gain_drgrpo_std"] = (
+                semantic_prompt_gain_drgrpo.std(unbiased=False)
+            )
+            infos["listwise_semantic_exploration_gain_any_correct_corr"] = _prompt_corr(
+                semantic_prompt_entropy,
+                semantic_prompt_gain_any,
+            )
+            infos["listwise_semantic_exploration_gain_drgrpo_corr"] = _prompt_corr(
+                semantic_prompt_entropy,
+                semantic_prompt_gain_drgrpo,
+            )
+            low_any, high_any = _entropy_split_means(
+                semantic_prompt_entropy,
+                semantic_prompt_gain_any,
+            )
+            low_drgrpo, high_drgrpo = _entropy_split_means(
+                semantic_prompt_entropy,
+                semantic_prompt_gain_drgrpo,
+            )
+            infos["listwise_semantic_exploration_gain_any_correct_low_entropy"] = (
+                low_any
+            )
+            infos["listwise_semantic_exploration_gain_any_correct_high_entropy"] = (
+                high_any
+            )
+            infos["listwise_semantic_exploration_gain_any_correct_high_minus_low"] = (
+                high_any - low_any
+            )
+            infos["listwise_semantic_exploration_gain_drgrpo_low_entropy"] = (
+                low_drgrpo
+            )
+            infos["listwise_semantic_exploration_gain_drgrpo_high_entropy"] = (
+                high_drgrpo
+            )
+            infos["listwise_semantic_exploration_gain_drgrpo_high_minus_low"] = (
+                high_drgrpo - low_drgrpo
+            )
+        if stats["listwise_semantic_exploration_gain_any_correct"]:
+            infos["listwise_semantic_exploration_gain_any_correct"] = (
+                _stack_scalar_stats(
+                    stats["listwise_semantic_exploration_gain_any_correct"],
+                    device=scalar_stat_device,
+                ).mean()
+            )
+        if stats["listwise_semantic_exploration_gain_drgrpo"]:
+            infos["listwise_semantic_exploration_gain_drgrpo"] = _stack_scalar_stats(
+                stats["listwise_semantic_exploration_gain_drgrpo"],
+                device=scalar_stat_device,
+            ).mean()
+        if semantic_prompt_entropy.numel() > 0:
+            infos["listwise_semantic_exploration_gain_any_correct"] = (
+                semantic_prompt_gain_any.mean()
+            )
+            infos["listwise_semantic_exploration_gain_drgrpo"] = (
+                semantic_prompt_gain_drgrpo.mean()
+            )
+        if stats["listwise_semantic_cluster_ref_available"]:
+            infos["listwise_semantic_cluster_ref_available"] = _stack_scalar_stats(
+                stats["listwise_semantic_cluster_ref_available"],
+                device=scalar_stat_device,
+            ).mean()
         infos["logprobs_diff_max"] = _stack_scalar_stats(
             stats["logprobs_diff_max"],
             device=scalar_stat_device,
@@ -3940,6 +5556,67 @@ class ZeroMathLearner(PPOLearner):
             "listwise_grad_ratio_unscaled": 0.0,
             "listwise_grad_ratio_scaled": 0.0,
             "listwise_grad_cosine": 0.0,
+            "listwise_projection_ce_loss_effective": 0.0,
+            "listwise_semantic_cluster_entropy": 0.0,
+            "listwise_semantic_cluster_entropy_norm": 0.0,
+            "listwise_semantic_cluster_count": 0.0,
+            "listwise_semantic_competitive_mode_count": 0.0,
+            "listwise_semantic_competitive_mode_eligible_count": 0.0,
+            "listwise_semantic_competitive_mode_eligible_frac": 0.0,
+            "listwise_semantic_competitive_mode_best_score": 0.0,
+            "listwise_semantic_competitive_mode_second_score": 0.0,
+            "listwise_semantic_competitive_mode_gap": 0.0,
+            "listwise_semantic_answer_key_extracted_frac": 0.0,
+            "listwise_semantic_trace_extracted_frac": 0.0,
+            "listwise_semantic_signature_extracted_frac": 0.0,
+            "listwise_semantic_cluster_valid_frac": 0.0,
+            "listwise_semantic_trace_truncated_frac": 0.0,
+            "listwise_semantic_cluster_entropy_ref": 0.0,
+            "listwise_semantic_cluster_entropy_gain": 0.0,
+            "listwise_semantic_exploration_gain_any_correct": 0.0,
+            "listwise_semantic_exploration_gain_drgrpo": 0.0,
+            "listwise_semantic_exploration_gain_any_correct_corr": 0.0,
+            "listwise_semantic_exploration_gain_drgrpo_corr": 0.0,
+            "listwise_semantic_exploration_prompt_count": 0.0,
+            "listwise_semantic_exploration_entropy_std": 0.0,
+            "listwise_semantic_exploration_gain_any_correct_std": 0.0,
+            "listwise_semantic_exploration_gain_drgrpo_std": 0.0,
+            "listwise_semantic_exploration_gain_any_correct_low_entropy": 0.0,
+            "listwise_semantic_exploration_gain_any_correct_high_entropy": 0.0,
+            "listwise_semantic_exploration_gain_any_correct_high_minus_low": 0.0,
+            "listwise_semantic_exploration_gain_drgrpo_low_entropy": 0.0,
+            "listwise_semantic_exploration_gain_drgrpo_high_entropy": 0.0,
+            "listwise_semantic_exploration_gain_drgrpo_high_minus_low": 0.0,
+            "listwise_semantic_cluster_ref_available": 0.0,
+            "listwise_semantic_explore_budget_mean": 0.0,
+            "listwise_semantic_explore_budget_saturated_frac": 0.0,
+            "listwise_semantic_explore_applied_group_frac": 0.0,
+            "listwise_semantic_prompt_selected_frac": 0.0,
+            "listwise_semantic_prompt_rejected_low_opp_frac": 0.0,
+            "listwise_semantic_prompt_rejected_nonpositive_frac": 0.0,
+            "listwise_semantic_prompt_rejected_len_guard_frac": 0.0,
+            "listwise_semantic_prompt_rejected_format_guard_frac": 0.0,
+            "listwise_semantic_moved_mass_l1": 0.0,
+            "listwise_semantic_alpha_raw_mean": 0.0,
+            "listwise_semantic_alpha_applied_mean": 0.0,
+            "listwise_semantic_expected_utility_q": 0.0,
+            "listwise_semantic_expected_utility_explore_target": 0.0,
+            "listwise_semantic_expected_utility_final_w": 0.0,
+            "listwise_semantic_expected_len_q": 0.0,
+            "listwise_semantic_expected_len_explore_target": 0.0,
+            "listwise_semantic_expected_len_final_w": 0.0,
+            "listwise_semantic_expected_format_q": 0.0,
+            "listwise_semantic_expected_format_explore_target": 0.0,
+            "listwise_semantic_expected_format_final_w": 0.0,
+            "listwise_tau_target_metric": 0.0,
+            "listwise_tau_metric_ema": 0.0,
+            "listwise_tau_adaptation_metric_value": 0.0,
+            "listwise_tau_adaptation_metric_is_semantic_entropy_mu": 0.0,
+            "listwise_tau_adaptation_metric_is_exploration_gain_any_correct": 0.0,
+            "listwise_tau_adaptation_metric_is_exploration_gain_drgrpo": 0.0,
+            "listwise_tau_signal_semantic_entropy_mu": 0.0,
+            "listwise_tau_signal_exploration_gain_any_correct": 0.0,
+            "listwise_tau_signal_exploration_gain_drgrpo": 0.0,
         }
         for key, default in optional_logging_metrics.items():
             infos.setdefault(
