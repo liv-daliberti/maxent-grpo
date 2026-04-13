@@ -312,6 +312,9 @@ class ZeroMathArgs(PPOArgs):
     maxent_competitive_mode_intra_tau: float = 0.01
     maxent_prompt_select_min_alpha_frac: float = 0.5
     maxent_competitive_mode_positive_only: bool = True
+    maxent_verified_distinct_bonus_coef: float = 0.5
+    maxent_verified_distinct_min_modes: int = 2
+    maxent_verified_distinct_reward_threshold: float = 0.999
     maxent_semantic_guard_max_expected_len_delta: float = 24.0
     maxent_semantic_guard_max_expected_format_drop: float = 0.0
     maxent_branch_grad_diagnostics: bool = False
@@ -472,6 +475,12 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError("maxent_competitive_mode_intra_tau must be positive")
     if not 0.0 <= float(args.maxent_prompt_select_min_alpha_frac) <= 1.0:
         raise ValueError("maxent_prompt_select_min_alpha_frac must be in [0, 1]")
+    if args.maxent_verified_distinct_bonus_coef < 0:
+        raise ValueError("maxent_verified_distinct_bonus_coef must be non-negative")
+    if args.maxent_verified_distinct_min_modes < 2:
+        raise ValueError("maxent_verified_distinct_min_modes must be >= 2")
+    if not 0.0 <= float(args.maxent_verified_distinct_reward_threshold) <= 1.0:
+        raise ValueError("maxent_verified_distinct_reward_threshold must be in [0, 1]")
     if args.maxent_semantic_guard_max_expected_len_delta < 0:
         raise ValueError("maxent_semantic_guard_max_expected_len_delta must be non-negative")
     if args.maxent_semantic_guard_max_expected_format_drop < 0:
@@ -2877,6 +2886,8 @@ class ZeroMathLearner(PPOLearner):
                 "competitive_mode_top_k=%s competitive_mode_budget_max=%s "
                 "competitive_mode_budget_scale=%s competitive_mode_intra_tau=%s "
                 "prompt_select_min_alpha_frac=%s competitive_mode_positive_only=%s "
+                "verified_distinct_bonus_coef=%s verified_distinct_min_modes=%s "
+                "verified_distinct_reward_threshold=%s "
                 "semantic_guard_max_expected_len_delta=%s "
                 "semantic_guard_max_expected_format_drop=%s "
                 "tau_adaptation_metric=%s "
@@ -2922,6 +2933,9 @@ class ZeroMathLearner(PPOLearner):
                 float(args.maxent_competitive_mode_intra_tau),
                 float(args.maxent_prompt_select_min_alpha_frac),
                 bool(args.maxent_competitive_mode_positive_only),
+                float(args.maxent_verified_distinct_bonus_coef),
+                int(args.maxent_verified_distinct_min_modes),
+                float(args.maxent_verified_distinct_reward_threshold),
                 float(args.maxent_semantic_guard_max_expected_len_delta),
                 float(args.maxent_semantic_guard_max_expected_format_drop),
                 str(args.maxent_tau_adaptation_metric),
@@ -2995,6 +3009,24 @@ class ZeroMathLearner(PPOLearner):
         competitive_mode_positive_only = bool(
             getattr(args, "maxent_competitive_mode_positive_only", True)
         )
+        verified_distinct_bonus_coef = coerce_non_negative_float(
+            getattr(args, "maxent_verified_distinct_bonus_coef", 0.5),
+            default=0.5,
+        )
+        verified_distinct_min_modes = max(
+            int(getattr(args, "maxent_verified_distinct_min_modes", 2)),
+            2,
+        )
+        verified_distinct_reward_threshold = min(
+            max(
+                coerce_non_negative_float(
+                    getattr(args, "maxent_verified_distinct_reward_threshold", 0.999),
+                    default=0.999,
+                ),
+                0.0,
+            ),
+            1.0,
+        )
         semantic_guard_max_expected_len_delta = coerce_non_negative_float(
             getattr(args, "maxent_semantic_guard_max_expected_len_delta", 24.0),
             default=24.0,
@@ -3033,6 +3065,10 @@ class ZeroMathLearner(PPOLearner):
             raise ValueError(
                 "Could not reshape per-candidate formatted indicators into prompt groups."
             )
+        reward_scale_denom = max(abs(float(args.reward_scale)), 1e-8)
+        grouped_correctness_values = (
+            grouped_reward_values / reward_scale_denom
+        ).clamp(min=0.0, max=1.0)
         q_grouped = None
         if not drgrpo_token_primary:
             q_grouped = build_listwise_q_targets(
@@ -3597,6 +3633,9 @@ class ZeroMathLearner(PPOLearner):
                         ref_seq_logps_grouped=semantic_ref_seq_grouped,
                         valid_row_mask_grouped=grouped_loss_masks.detach(),
                         cluster_ids_grouped=semantic_cluster_bundle.cluster_ids_grouped.detach(),
+                        candidate_correctness_grouped=grouped_correctness_values[
+                            prompt_batch_inds
+                        ].detach(),
                         candidate_lengths_grouped=mb_response_len_grouped.detach(),
                         candidate_formatted_grouped=mb_formatted_grouped.detach(),
                         competitive_mode_tau=competitive_mode_tau,
@@ -3607,6 +3646,9 @@ class ZeroMathLearner(PPOLearner):
                         competitive_mode_intra_tau=competitive_mode_intra_tau,
                         prompt_select_min_alpha_frac=prompt_select_min_alpha_frac,
                         competitive_mode_positive_only=competitive_mode_positive_only,
+                        verified_distinct_bonus_coef=verified_distinct_bonus_coef,
+                        verified_distinct_min_modes=verified_distinct_min_modes,
+                        verified_distinct_reward_threshold=verified_distinct_reward_threshold,
                         semantic_guard_max_expected_len_delta=semantic_guard_max_expected_len_delta,
                         semantic_guard_max_expected_format_drop=semantic_guard_max_expected_format_drop,
                         tau=current_tau,
@@ -3796,6 +3838,12 @@ class ZeroMathLearner(PPOLearner):
                         stats["listwise_semantic_competitive_mode_eligible_frac"].append(
                             semantic_diag.eligible_mode_frac_grouped.mean().detach()
                         )
+                        stats["listwise_semantic_distinct_correct_mode_count"].append(
+                            semantic_diag.distinct_correct_mode_count_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_distinct_correct_mode_frac"].append(
+                            semantic_diag.distinct_correct_mode_frac_grouped.mean().detach()
+                        )
                         stats["listwise_semantic_competitive_mode_best_score"].append(
                             semantic_diag.best_score_grouped.mean().detach()
                         )
@@ -3815,6 +3863,11 @@ class ZeroMathLearner(PPOLearner):
                         )
                         stats["listwise_semantic_explore_applied_group_frac"].append(
                             semantic_diag.explore_applied_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_verified_bonus_applied_group_frac"].append(
+                            semantic_diag.verified_bonus_applied_group_mask.to(
                                 semantic_diag.explore_budget_grouped.dtype
                             ).mean().detach()
                         )
@@ -3843,6 +3896,16 @@ class ZeroMathLearner(PPOLearner):
                                 semantic_diag.explore_budget_grouped.dtype
                             ).mean().detach()
                         )
+                        stats["listwise_semantic_prompt_rejected_verified_bonus_len_guard_frac"].append(
+                            semantic_diag.prompt_rejected_verified_bonus_len_guard_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
+                        stats["listwise_semantic_prompt_rejected_verified_bonus_format_guard_frac"].append(
+                            semantic_diag.prompt_rejected_verified_bonus_format_guard_group_mask.to(
+                                semantic_diag.explore_budget_grouped.dtype
+                            ).mean().detach()
+                        )
                         stats["listwise_semantic_moved_mass_l1"].append(
                             semantic_diag.moved_mass_l1_grouped.mean().detach()
                         )
@@ -3851,6 +3914,9 @@ class ZeroMathLearner(PPOLearner):
                         )
                         stats["listwise_semantic_alpha_applied_mean"].append(
                             semantic_diag.alpha_applied_grouped.mean().detach()
+                        )
+                        stats["listwise_semantic_verified_bonus_mean"].append(
+                            semantic_diag.verified_bonus_grouped.mean().detach()
                         )
                         stats["listwise_semantic_expected_utility_q"].append(
                             semantic_diag.expected_utility_q_grouped.mean().detach()
@@ -5235,6 +5301,16 @@ class ZeroMathLearner(PPOLearner):
                 stats["listwise_semantic_competitive_mode_eligible_frac"],
                 device=scalar_stat_device,
             ).mean()
+        if stats["listwise_semantic_distinct_correct_mode_count"]:
+            infos["listwise_semantic_distinct_correct_mode_count"] = _stack_scalar_stats(
+                stats["listwise_semantic_distinct_correct_mode_count"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_distinct_correct_mode_frac"]:
+            infos["listwise_semantic_distinct_correct_mode_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_distinct_correct_mode_frac"],
+                device=scalar_stat_device,
+            ).mean()
         if stats["listwise_semantic_competitive_mode_best_score"]:
             infos["listwise_semantic_competitive_mode_best_score"] = _stack_scalar_stats(
                 stats["listwise_semantic_competitive_mode_best_score"],
@@ -5265,6 +5341,11 @@ class ZeroMathLearner(PPOLearner):
                 stats["listwise_semantic_explore_applied_group_frac"],
                 device=scalar_stat_device,
             ).mean()
+        if stats["listwise_semantic_verified_bonus_applied_group_frac"]:
+            infos["listwise_semantic_verified_bonus_applied_group_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_verified_bonus_applied_group_frac"],
+                device=scalar_stat_device,
+            ).mean()
         if stats["listwise_semantic_prompt_selected_frac"]:
             infos["listwise_semantic_prompt_selected_frac"] = _stack_scalar_stats(
                 stats["listwise_semantic_prompt_selected_frac"],
@@ -5290,6 +5371,16 @@ class ZeroMathLearner(PPOLearner):
                 stats["listwise_semantic_prompt_rejected_format_guard_frac"],
                 device=scalar_stat_device,
             ).mean()
+        if stats["listwise_semantic_prompt_rejected_verified_bonus_len_guard_frac"]:
+            infos["listwise_semantic_prompt_rejected_verified_bonus_len_guard_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_prompt_rejected_verified_bonus_len_guard_frac"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_prompt_rejected_verified_bonus_format_guard_frac"]:
+            infos["listwise_semantic_prompt_rejected_verified_bonus_format_guard_frac"] = _stack_scalar_stats(
+                stats["listwise_semantic_prompt_rejected_verified_bonus_format_guard_frac"],
+                device=scalar_stat_device,
+            ).mean()
         if stats["listwise_semantic_moved_mass_l1"]:
             infos["listwise_semantic_moved_mass_l1"] = _stack_scalar_stats(
                 stats["listwise_semantic_moved_mass_l1"],
@@ -5303,6 +5394,11 @@ class ZeroMathLearner(PPOLearner):
         if stats["listwise_semantic_alpha_applied_mean"]:
             infos["listwise_semantic_alpha_applied_mean"] = _stack_scalar_stats(
                 stats["listwise_semantic_alpha_applied_mean"],
+                device=scalar_stat_device,
+            ).mean()
+        if stats["listwise_semantic_verified_bonus_mean"]:
+            infos["listwise_semantic_verified_bonus_mean"] = _stack_scalar_stats(
+                stats["listwise_semantic_verified_bonus_mean"],
                 device=scalar_stat_device,
             ).mean()
         if stats["listwise_semantic_expected_utility_q"]:
@@ -5563,6 +5659,8 @@ class ZeroMathLearner(PPOLearner):
             "listwise_semantic_competitive_mode_count": 0.0,
             "listwise_semantic_competitive_mode_eligible_count": 0.0,
             "listwise_semantic_competitive_mode_eligible_frac": 0.0,
+            "listwise_semantic_distinct_correct_mode_count": 0.0,
+            "listwise_semantic_distinct_correct_mode_frac": 0.0,
             "listwise_semantic_competitive_mode_best_score": 0.0,
             "listwise_semantic_competitive_mode_second_score": 0.0,
             "listwise_semantic_competitive_mode_gap": 0.0,
@@ -5591,14 +5689,18 @@ class ZeroMathLearner(PPOLearner):
             "listwise_semantic_explore_budget_mean": 0.0,
             "listwise_semantic_explore_budget_saturated_frac": 0.0,
             "listwise_semantic_explore_applied_group_frac": 0.0,
+            "listwise_semantic_verified_bonus_applied_group_frac": 0.0,
             "listwise_semantic_prompt_selected_frac": 0.0,
             "listwise_semantic_prompt_rejected_low_opp_frac": 0.0,
             "listwise_semantic_prompt_rejected_nonpositive_frac": 0.0,
             "listwise_semantic_prompt_rejected_len_guard_frac": 0.0,
             "listwise_semantic_prompt_rejected_format_guard_frac": 0.0,
+            "listwise_semantic_prompt_rejected_verified_bonus_len_guard_frac": 0.0,
+            "listwise_semantic_prompt_rejected_verified_bonus_format_guard_frac": 0.0,
             "listwise_semantic_moved_mass_l1": 0.0,
             "listwise_semantic_alpha_raw_mean": 0.0,
             "listwise_semantic_alpha_applied_mean": 0.0,
+            "listwise_semantic_verified_bonus_mean": 0.0,
             "listwise_semantic_expected_utility_q": 0.0,
             "listwise_semantic_expected_utility_explore_target": 0.0,
             "listwise_semantic_expected_utility_final_w": 0.0,
