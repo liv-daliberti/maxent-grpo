@@ -306,13 +306,13 @@ class ZeroMathArgs(PPOArgs):
     maxent_semantic_embedding_max_tokens: int = 256
     maxent_competitive_mode_tau: float = 0.05
     maxent_competitive_mode_gap: float = 0.10
-    maxent_competitive_mode_top_k: int = 3
+    maxent_competitive_mode_top_k: int = 6
     maxent_competitive_mode_budget_max: float = 0.10
     maxent_competitive_mode_budget_scale: float = 0.05
     maxent_competitive_mode_intra_tau: float = 0.01
     maxent_prompt_select_min_alpha_frac: float = 0.5
     maxent_competitive_mode_positive_only: bool = True
-    maxent_verified_distinct_bonus_coef: float = 0.5
+    maxent_verified_distinct_bonus_coef: float = 0.0
     maxent_verified_distinct_min_modes: int = 2
     maxent_verified_distinct_reward_threshold: float = 0.999
     maxent_semantic_guard_max_expected_len_delta: float = 24.0
@@ -2975,7 +2975,7 @@ class ZeroMathLearner(PPOLearner):
             default=0.10,
         )
         competitive_mode_top_k = max(
-            int(getattr(args, "maxent_competitive_mode_top_k", 3)),
+            int(getattr(args, "maxent_competitive_mode_top_k", 6)),
             1,
         )
         competitive_mode_budget_max = coerce_non_negative_float(
@@ -3010,7 +3010,7 @@ class ZeroMathLearner(PPOLearner):
             getattr(args, "maxent_competitive_mode_positive_only", True)
         )
         verified_distinct_bonus_coef = coerce_non_negative_float(
-            getattr(args, "maxent_verified_distinct_bonus_coef", 0.5),
+            getattr(args, "maxent_verified_distinct_bonus_coef", 0.0),
             default=0.5,
         )
         verified_distinct_min_modes = max(

@@ -1,6 +1,7 @@
 import torch
 
 from oat_drgrpo.listwise import (
+    build_semantic_cluster_bundle,
     compute_listwise_weights_from_utilities,
     compute_semantic_cluster_weights_from_utilities,
 )
@@ -95,6 +96,72 @@ def _cluster_mass(
 ) -> torch.Tensor:
     mask = cluster_ids_grouped[0] == cluster_id
     return weights_grouped[0, mask].sum()
+
+
+def test_same_answer_signatures_merge_when_jaccard_is_high():
+    bundle = build_semantic_cluster_bundle(
+        final_answer_keys_grouped=[["42", "42"]],
+        reasoning_signature_keys_grouped=[
+            [
+                "x=2 || y=3 || z=5 || w=7",
+                "x=2 || y=3 || z=5",
+            ]
+        ],
+        valid_row_mask_grouped=torch.tensor([[True, True]], dtype=torch.bool),
+    )
+
+    torch.testing.assert_close(
+        bundle.cluster_ids_grouped,
+        torch.tensor([[0, 0]], dtype=torch.long),
+    )
+    torch.testing.assert_close(
+        bundle.num_clusters_per_group,
+        torch.tensor([1], dtype=torch.long),
+    )
+
+
+def test_same_answer_signatures_split_when_jaccard_is_low():
+    bundle = build_semantic_cluster_bundle(
+        final_answer_keys_grouped=[["42", "42"]],
+        reasoning_signature_keys_grouped=[
+            [
+                "x=2 || y=3 || z=5 || w=7",
+                "x=2 || q=11",
+            ]
+        ],
+        valid_row_mask_grouped=torch.tensor([[True, True]], dtype=torch.bool),
+    )
+
+    torch.testing.assert_close(
+        bundle.cluster_ids_grouped,
+        torch.tensor([[0, 1]], dtype=torch.long),
+    )
+    torch.testing.assert_close(
+        bundle.num_clusters_per_group,
+        torch.tensor([2], dtype=torch.long),
+    )
+
+
+def test_different_answers_do_not_merge_even_with_identical_signatures():
+    bundle = build_semantic_cluster_bundle(
+        final_answer_keys_grouped=[["42", "43"]],
+        reasoning_signature_keys_grouped=[
+            [
+                "x=2 || y=3 || z=5",
+                "x=2 || y=3 || z=5",
+            ]
+        ],
+        valid_row_mask_grouped=torch.tensor([[True, True]], dtype=torch.bool),
+    )
+
+    torch.testing.assert_close(
+        bundle.cluster_ids_grouped,
+        torch.tensor([[0, 1]], dtype=torch.long),
+    )
+    torch.testing.assert_close(
+        bundle.num_clusters_per_group,
+        torch.tensor([2], dtype=torch.long),
+    )
 
 
 def test_falls_back_to_baseline_when_fewer_than_two_eligible_modes():

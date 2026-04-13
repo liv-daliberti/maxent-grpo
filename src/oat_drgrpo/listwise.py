@@ -29,6 +29,7 @@ _CLIP_MODE_ALIASES = {
     "disabled": "none",
 }
 _TAU_METRIC_EMA_DECAY = 0.9
+_SIGNATURE_JACCARD_MERGE_THRESHOLD = 0.7
 
 
 @dataclass
@@ -956,19 +957,50 @@ def _safe_logsumexp(values: torch.Tensor, *, dim: int, keepdim: bool = False) ->
     return torch.logsumexp(values, dim=dim, keepdim=keepdim)
 
 
+def _split_reasoning_signature_states(signature: str | None) -> frozenset[str]:
+    """Return the normalized symbolic states encoded in ``signature``."""
+
+    if signature is None:
+        return frozenset()
+    states = [
+        piece.strip()
+        for piece in str(signature).split("||")
+        if piece is not None and str(piece).strip()
+    ]
+    return frozenset(states)
+
+
+def _reasoning_signature_jaccard(
+    left_states: frozenset[str],
+    right_states: frozenset[str],
+) -> float:
+    """Return Jaccard overlap between two signature-state sets."""
+
+    if not left_states or not right_states:
+        return 0.0
+    union_size = len(left_states | right_states)
+    if union_size <= 0:
+        return 0.0
+    return float(len(left_states & right_states)) / float(union_size)
+
+
 def build_semantic_cluster_bundle(
     *,
     final_answer_keys_grouped: Sequence[Sequence[str | None]],
     valid_row_mask_grouped: torch.Tensor,
     reasoning_signature_keys_grouped: Sequence[Sequence[str | None]] | None = None,
+    signature_jaccard_merge_threshold: float = _SIGNATURE_JACCARD_MERGE_THRESHOLD,
 ) -> SemanticClusterBundle:
-    """Cluster candidates by final-answer key and optional reasoning signature.
+    """Cluster candidates by final-answer key and fuzzy reasoning signature.
 
     The returned semantic entropy is the *normalized empirical cluster entropy*
     induced by the observed sample counts inside each prompt group. The coarse
     cluster key is always the normalized final answer string. When a compressed
     structural reasoning signature is available, rows with the same answer key
-    are further split by the tuple ``(answer_key, reasoning_signature)``.
+    are further split only when their sets of normalized symbolic states have
+    low overlap. Same-answer rows whose signature-state Jaccard overlap is at
+    least ``signature_jaccard_merge_threshold`` are merged into the same
+    semantic mode.
     Rows without a usable signature fall back to an answer-only bucket so they
     stay eligible for the semantic path without receiving free diversity credit
     from verbose traces.
@@ -1004,6 +1036,16 @@ def build_semantic_cluster_bundle(
     )
     valid_mask = valid_row_mask_grouped.to(torch.bool)
     semantic_valid_mask = torch.zeros_like(valid_mask, dtype=torch.bool)
+    safe_signature_merge_threshold = min(
+        max(
+            coerce_non_negative_float(
+                signature_jaccard_merge_threshold,
+                default=_SIGNATURE_JACCARD_MERGE_THRESHOLD,
+            ),
+            0.0,
+        ),
+        1.0,
+    )
 
     for p in range(num_prompts):
         keys = list(final_answer_keys_grouped[p])
@@ -1022,7 +1064,9 @@ def build_semantic_cluster_bundle(
             if key is None or signature is None:
                 continue
             answer_has_signature[key] = True
-        cluster_key_to_id: dict[str, int] = {}
+        answer_only_cluster_to_id: dict[str, int] = {}
+        cluster_answer_keys: list[str] = []
+        cluster_signature_state_sets: list[list[frozenset[str]]] = []
         cluster_counts: list[int] = []
         next_cluster = 0
         for i in range(group_size):
@@ -1040,18 +1084,44 @@ def build_semantic_cluster_bundle(
                 # but should not create extra semantic entropy by pretending to
                 # be a new reasoning category.
                 continue
+            assigned: int | None = None
             if signature is None:
-                cluster_key = f"answer::{key}"
+                assigned = answer_only_cluster_to_id.get(key)
+                if assigned is None:
+                    assigned = next_cluster
+                    next_cluster += 1
+                    answer_only_cluster_to_id[key] = assigned
+                    cluster_answer_keys.append(key)
+                    cluster_signature_state_sets.append([])
+                    cluster_counts.append(1)
+                else:
+                    cluster_counts[assigned] = cluster_counts[assigned] + 1
             else:
-                cluster_key = f"answer::{key}||sig::{signature}"
-            assigned = cluster_key_to_id.get(cluster_key)
-            if assigned is None:
-                assigned = next_cluster
-                next_cluster += 1
-                cluster_key_to_id[cluster_key] = assigned
-                cluster_counts.append(1)
-            else:
-                cluster_counts[assigned] = cluster_counts[assigned] + 1
+                signature_states = _split_reasoning_signature_states(signature)
+                best_similarity = -1.0
+                for cluster_idx, answer_key in enumerate(cluster_answer_keys):
+                    if answer_key != key:
+                        continue
+                    member_state_sets = cluster_signature_state_sets[cluster_idx]
+                    if not member_state_sets:
+                        continue
+                    for existing_states in member_state_sets:
+                        similarity = _reasoning_signature_jaccard(
+                            signature_states,
+                            existing_states,
+                        )
+                        if similarity >= safe_signature_merge_threshold and similarity > best_similarity:
+                            assigned = cluster_idx
+                            best_similarity = similarity
+                if assigned is None:
+                    assigned = next_cluster
+                    next_cluster += 1
+                    cluster_answer_keys.append(key)
+                    cluster_signature_state_sets.append([signature_states])
+                    cluster_counts.append(1)
+                else:
+                    cluster_counts[assigned] = cluster_counts[assigned] + 1
+                    cluster_signature_state_sets[assigned].append(signature_states)
             cluster_ids[p, i] = assigned
             semantic_valid_mask[p, i] = True
         num_clusters[p] = next_cluster
