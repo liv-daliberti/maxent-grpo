@@ -260,6 +260,36 @@ def add_public_drx_training_metrics(logs_dict: dict[str, Any]) -> dict[str, Any]
     _copy_metric(
         enriched,
         logs_dict,
+        "drx/objective/semantic_adv_abs_all_wrong",
+        "train/listwise_exact_semantic_adv_abs_mean_all_wrong",
+    )
+    _copy_metric(
+        enriched,
+        logs_dict,
+        "drx/objective/semantic_adv_abs_mixed",
+        "train/listwise_exact_semantic_adv_abs_mean_mixed",
+    )
+    _copy_metric(
+        enriched,
+        logs_dict,
+        "drx/objective/semantic_adv_abs_all_correct",
+        "train/listwise_exact_semantic_adv_abs_mean_all_correct",
+    )
+    _copy_metric(
+        enriched,
+        logs_dict,
+        "drx/objective/semantic_effective_group_frac",
+        "train/listwise_exact_semantic_effective_group_frac",
+    )
+    _copy_metric(
+        enriched,
+        logs_dict,
+        "drx/objective/semantic_correctness_adv_cosine",
+        "train/listwise_exact_semantic_correctness_adv_cosine",
+    )
+    _copy_metric(
+        enriched,
+        logs_dict,
         "drx/objective/drgrpo_adv_abs_mean",
         "train/drgrpo_adv_abs_mean",
     )

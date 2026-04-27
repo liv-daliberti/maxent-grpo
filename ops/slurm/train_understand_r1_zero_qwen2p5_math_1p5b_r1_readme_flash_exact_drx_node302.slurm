@@ -22,6 +22,7 @@ set -euo pipefail
 ROOT_DIR="${ROOT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 README_PYTHON="${ROOT_DIR}/var/seed_paper_eval/paper310/bin/python"
 HOST_TAG="${SLURMD_NODENAME:-$(hostname -s)}"
+export RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 
 source "${ROOT_DIR}/ops/repo_env.sh"
 
@@ -44,7 +45,7 @@ export OAT_ZERO_SAVE_INITIAL_MODEL="${OAT_ZERO_SAVE_INITIAL_MODEL:-1}"
 export OAT_ZERO_MAX_SAVE_NUM="${OAT_ZERO_MAX_SAVE_NUM:-999999}"
 export OAT_ZERO_MAX_SAVE_MEM="${OAT_ZERO_MAX_SAVE_MEM:-99999999}"
 export OAT_ZERO_WB_PROJECT="${OAT_ZERO_WB_PROJECT:-oat-zero}"
-export OAT_ZERO_WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-Math-1.5b-r1-zero-readmeflash-drx-grpo-node302}"
+export OAT_ZERO_WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-Math-1.5b-r1-zero-readmeflash-drx-outputmaxent-lam010-node302-${RUN_STAMP}}"
 export OAT_ZERO_LOCAL_ROOT="${OAT_ZERO_LOCAL_ROOT:-/tmp/${USER}/maxent-grpo-oat-zero-${HOST_TAG}-readmeflash-exact-drx}"
 export OAT_ZERO_SHM_SIZE_MB="${OAT_ZERO_SHM_SIZE_MB:-20000}"
 export WANDB__SERVICE_WAIT="${WANDB__SERVICE_WAIT:-300}"

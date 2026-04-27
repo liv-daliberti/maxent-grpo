@@ -368,9 +368,9 @@ def test_build_drx_target_bundle_separates_informative_and_neutral_groups():
     torch.testing.assert_close(bundle.projection_group_scale, _tensor([0.0, 0.7]))
 
 
-def test_quality_centered_semantic_drx_utility_balanced_mix_has_zero_gate():
+def test_quality_centered_semantic_drx_utility_balanced_mix_uses_half_gate():
     reward_grouped = _tensor([[1.0, 0.0, 0.5, 1.0]])
-    cluster_ids_grouped = torch.tensor([[0, 1, 2, 2]], dtype=torch.long)
+    output_entropy_grouped = _tensor([[2.0, 0.0, 1.0, 1.0]])
     candidate_correctness_grouped = _tensor([[1.0, 0.0, 0.0, 1.0]])
     valid_row_mask_grouped = torch.tensor([[True, True, True, True]], dtype=torch.bool)
     ref_seq_logps_grouped = _tensor([[0.2, -0.4, 0.1, -0.2]])
@@ -378,7 +378,7 @@ def test_quality_centered_semantic_drx_utility_balanced_mix_has_zero_gate():
     utility_grouped, quality_grouped, semantic_diag = (
         compute_quality_centered_semantic_drx_utilities(
             reward_grouped=reward_grouped,
-            cluster_ids_grouped=cluster_ids_grouped,
+            output_entropy_grouped=output_entropy_grouped,
             semantic_entropy_lambda=0.1,
             candidate_correctness_grouped=candidate_correctness_grouped,
             valid_row_mask_grouped=valid_row_mask_grouped,
@@ -390,10 +390,7 @@ def test_quality_centered_semantic_drx_utility_balanced_mix_has_zero_gate():
     expected_quality = _tensor([[1.0, 0.0, 0.5, 1.0]])
     torch.testing.assert_close(quality_grouped, expected_quality, atol=1e-6, rtol=0.0)
 
-    cluster_probs = _tensor([0.25, 0.25, 0.5])
-    entropy = -(cluster_probs * torch.log(cluster_probs)).sum()
-    rare_bonus = max(0.0, float(-torch.log(cluster_probs[0]) - entropy))
-    expected_bonus = _tensor([[rare_bonus, rare_bonus, 0.0, 0.0]])
+    expected_bonus = _tensor([[1.0, -1.0, 0.0, 0.0]])
     torch.testing.assert_close(
         semantic_diag.semantic_surprisal_grouped,
         expected_bonus,
@@ -402,12 +399,12 @@ def test_quality_centered_semantic_drx_utility_balanced_mix_has_zero_gate():
     )
     torch.testing.assert_close(
         semantic_diag.semantic_gate_grouped,
-        torch.zeros((1,), dtype=torch.float32),
+        _tensor([0.5]),
         atol=1e-6,
         rtol=0.0,
     )
 
-    expected_utility = expected_quality
+    expected_utility = expected_quality + 0.1 * 0.5 * expected_bonus
     torch.testing.assert_close(
         utility_grouped,
         expected_utility,
@@ -432,26 +429,25 @@ def test_quality_centered_semantic_drx_utility_balanced_mix_has_zero_gate():
     )
 
 
-def test_quality_centered_semantic_drx_utility_tanh_gate_tracks_correctness_rate():
+def test_quality_centered_semantic_drx_utility_gate_tracks_unsolved_fraction():
     reward_grouped = _tensor(
         [
             [1.0, 0.0, 0.0, 0.0],
             [1.0, 1.0, 1.0, 0.0],
         ]
     )
-    cluster_ids_grouped = torch.tensor(
+    output_entropy_grouped = _tensor(
         [
-            [0, 1, 2, 2],
-            [0, 1, 2, 2],
-        ],
-        dtype=torch.long,
+            [4.0, 2.0, 2.0, 2.0],
+            [4.0, 2.0, 2.0, 2.0],
+        ]
     )
     valid_row_mask_grouped = torch.ones_like(reward_grouped, dtype=torch.bool)
 
     utility_grouped, quality_grouped, semantic_diag = (
         compute_quality_centered_semantic_drx_utilities(
             reward_grouped=reward_grouped,
-            cluster_ids_grouped=cluster_ids_grouped,
+            output_entropy_grouped=output_entropy_grouped,
             semantic_entropy_lambda=0.1,
             candidate_correctness_grouped=reward_grouped,
             valid_row_mask_grouped=valid_row_mask_grouped,
@@ -460,16 +456,13 @@ def test_quality_centered_semantic_drx_utility_tanh_gate_tracks_correctness_rate
         )
     )
 
-    cluster_probs = _tensor([0.25, 0.25, 0.5])
-    entropy = -(cluster_probs * torch.log(cluster_probs)).sum()
-    rare_bonus = max(0.0, float(-torch.log(cluster_probs[0]) - entropy))
     expected_surprisal = _tensor(
         [
-            [rare_bonus, rare_bonus, 0.0, 0.0],
-            [rare_bonus, rare_bonus, 0.0, 0.0],
+            [1.0, -1.0 / 3.0, -1.0 / 3.0, -1.0 / 3.0],
+            [1.0, -1.0 / 3.0, -1.0 / 3.0, -1.0 / 3.0],
         ]
     )
-    expected_gates = -torch.tanh(4.0 * (_tensor([0.25, 0.75]) - 0.5))
+    expected_gates = _tensor([0.75, 0.25])
 
     torch.testing.assert_close(quality_grouped, reward_grouped)
     torch.testing.assert_close(
@@ -492,15 +485,15 @@ def test_quality_centered_semantic_drx_utility_tanh_gate_tracks_correctness_rate
     )
 
 
-def test_quality_centered_semantic_drx_utility_ignores_candidate_length():
+def test_quality_centered_semantic_drx_utility_uses_centered_output_entropy():
     reward_grouped = _tensor([[0.0, 0.0, 0.0, 0.0]])
-    cluster_ids_grouped = torch.tensor([[0, 1, 2, 2]], dtype=torch.long)
+    output_entropy_grouped = _tensor([[3.0, 3.0, 1.0, 1.0]])
     candidate_correctness_grouped = _tensor([[0.0, 0.0, 0.0, 0.0]])
     valid_row_mask_grouped = torch.tensor([[True, True, True, True]], dtype=torch.bool)
 
     utility_grouped, _, semantic_diag = compute_quality_centered_semantic_drx_utilities(
         reward_grouped=reward_grouped,
-        cluster_ids_grouped=cluster_ids_grouped,
+        output_entropy_grouped=output_entropy_grouped,
         semantic_entropy_lambda=0.1,
         candidate_correctness_grouped=candidate_correctness_grouped,
         valid_row_mask_grouped=valid_row_mask_grouped,
@@ -508,10 +501,7 @@ def test_quality_centered_semantic_drx_utility_ignores_candidate_length():
         semantic_correctness_sharpness=4.0,
     )
 
-    cluster_probs = _tensor([0.25, 0.25, 0.5])
-    entropy = -(cluster_probs * torch.log(cluster_probs)).sum()
-    rare_bonus = max(0.0, float(-torch.log(cluster_probs[0]) - entropy))
-    expected_bonus = _tensor([[rare_bonus, rare_bonus, 0.0, 0.0]])
+    expected_bonus = _tensor([[1.0, 1.0, -1.0, -1.0]])
     torch.testing.assert_close(
         semantic_diag.semantic_surprisal_grouped,
         expected_bonus,
@@ -519,12 +509,7 @@ def test_quality_centered_semantic_drx_utility_ignores_candidate_length():
         rtol=0.0,
     )
 
-    expected_gate = -torch.tanh(_tensor([4.0 * (0.0 - 0.5)]))[0]
-    expected_utility = _tensor(
-        [[0.1 * expected_gate * rare_bonus, 0.1 * expected_gate * rare_bonus, 0.0, 0.0]]
-    )
-    expected_utility[0, 1] = 0.1 * rare_bonus
-    expected_utility[0, 1] *= expected_gate * (50.0 / 50.0) ** 2
+    expected_utility = _tensor([[0.1, 0.1, -0.1, -0.1]])
     torch.testing.assert_close(
         utility_grouped,
         expected_utility,

@@ -33,6 +33,7 @@ from .ppo_clip import (
 )
 from .semantic_utility import (
     SemanticDrxUtilityDiagnostics as SemanticDrxUtilityDiagnostics,
+    compute_normalized_centered_output_entropy_scores as compute_normalized_centered_output_entropy_scores,
     compute_quality_centered_semantic_drx_utilities as compute_quality_centered_semantic_drx_utilities,
 )
 from .semantic_remix import (

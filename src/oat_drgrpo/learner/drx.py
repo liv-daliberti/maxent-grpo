@@ -1045,13 +1045,31 @@ class ZeroMathDrxMixin(
                     stats["listwise_semantic_trace_truncated_frac"].append(
                         semantic_trace_truncated_frac.detach()
                     )
+                    if behavior_seq_grouped_raw is None:
+                        behavior_seq_grouped_raw, _ = self._sequence_logps_grouped(
+                            mb_behavior_logps,
+                            mb_response_masks,
+                            group_size,
+                            length_normalize=False,
+                            context="behavior log-probs (raw)",
+                        )
+                    output_entropy_grouped = (
+                        -behavior_seq_grouped_raw.detach().to(
+                            device=policy_seq_logps_grouped.device,
+                            dtype=policy_seq_logps_grouped.dtype,
+                        )
+                        / token_counts_grouped.to(
+                            device=policy_seq_logps_grouped.device,
+                            dtype=policy_seq_logps_grouped.dtype,
+                        ).clamp(min=1.0)
+                    ).clamp(min=0.0)
                     (
                         exact_quality_utility_grouped,
                         exact_quality_grouped,
                         exact_semantic_drx_diag,
                     ) = compute_quality_centered_semantic_drx_utilities(
                         reward_grouped=mb_reward_grouped.detach(),
-                        cluster_ids_grouped=semantic_cluster_bundle.cluster_ids_grouped.detach(),
+                        output_entropy_grouped=output_entropy_grouped.detach(),
                         semantic_entropy_lambda=float(args.semantic_entropy_lambda),
                         candidate_correctness_grouped=mb_correctness_grouped.detach(),
                         valid_row_mask_grouped=grouped_loss_masks.detach(),
@@ -1143,6 +1161,107 @@ class ZeroMathDrxMixin(
                             device=policy_seq_logps_grouped.device,
                             dtype=torch.float32,
                         )
+                    valid_group_mask = grouped_loss_masks.detach().any(dim=1)
+                    valid_count_grouped = (
+                        grouped_loss_masks.detach()
+                        .to(torch.float32)
+                        .sum(dim=1)
+                        .clamp(min=1.0)
+                    )
+                    correctness_frac_grouped = (
+                        torch.where(
+                            grouped_loss_masks.detach(),
+                            exact_quality_for_adv_grouped.to(torch.float32),
+                            torch.zeros_like(exact_quality_for_adv_grouped).to(
+                                torch.float32
+                            ),
+                        ).sum(dim=1)
+                        / valid_count_grouped
+                    )
+                    semantic_adv_abs_grouped = (
+                        torch.where(
+                            grouped_loss_masks.detach(),
+                            exact_semantic_adv_grouped.abs().to(torch.float32),
+                            torch.zeros_like(exact_semantic_adv_grouped).to(
+                                torch.float32
+                            ),
+                        ).sum(dim=1)
+                        / valid_count_grouped
+                    )
+                    all_wrong_group_mask = valid_group_mask & (
+                        correctness_frac_grouped <= 1e-8
+                    )
+                    all_correct_group_mask = valid_group_mask & (
+                        correctness_frac_grouped >= 1.0 - 1e-8
+                    )
+                    mixed_group_mask = (
+                        valid_group_mask
+                        & ~all_wrong_group_mask
+                        & ~all_correct_group_mask
+                    )
+
+                    def _mean_group_or_zero(mask: torch.Tensor) -> torch.Tensor:
+                        if bool(mask.any().item()):
+                            return (
+                                semantic_adv_abs_grouped[mask]
+                                .mean()
+                                .detach()
+                                .to(torch.float32)
+                            )
+                        return torch.tensor(
+                            0.0,
+                            device=policy_seq_logps_grouped.device,
+                            dtype=torch.float32,
+                        )
+
+                    semantic_adv_abs_all_wrong = _mean_group_or_zero(
+                        all_wrong_group_mask
+                    )
+                    semantic_adv_abs_mixed = _mean_group_or_zero(mixed_group_mask)
+                    semantic_adv_abs_all_correct = _mean_group_or_zero(
+                        all_correct_group_mask
+                    )
+                    if bool(valid_group_mask.any().item()):
+                        semantic_effective_group_frac = (
+                            (
+                                valid_group_mask
+                                & (semantic_adv_abs_grouped > 1e-8)
+                            )
+                            .to(torch.float32)
+                            .sum()
+                            / valid_group_mask.to(torch.float32).sum().clamp(min=1.0)
+                        ).detach()
+                    else:
+                        semantic_effective_group_frac = torch.tensor(
+                            0.0,
+                            device=policy_seq_logps_grouped.device,
+                            dtype=torch.float32,
+                        )
+                    if correctness_adv_valid_values.numel() > 0:
+                        cosine_denom = (
+                            correctness_adv_valid_values.norm()
+                            * semantic_adv_valid_values.norm()
+                        )
+                        if bool((cosine_denom > 1e-12).item()):
+                            semantic_correctness_adv_cosine = (
+                                (
+                                    correctness_adv_valid_values
+                                    * semantic_adv_valid_values
+                                ).sum()
+                                / cosine_denom
+                            ).detach().to(torch.float32)
+                        else:
+                            semantic_correctness_adv_cosine = torch.tensor(
+                                0.0,
+                                device=policy_seq_logps_grouped.device,
+                                dtype=torch.float32,
+                            )
+                    else:
+                        semantic_correctness_adv_cosine = torch.tensor(
+                            0.0,
+                            device=policy_seq_logps_grouped.device,
+                            dtype=torch.float32,
+                        )
                     stats["listwise_exact_quality_mean"].append(
                         (
                             quality_valid_values.mean().detach().to(torch.float32)
@@ -1204,6 +1323,21 @@ class ZeroMathDrxMixin(
                     stats["listwise_exact_semantic_adv_fraction"].append(
                         semantic_adv_abs_mean
                         / (semantic_adv_abs_mean + correctness_adv_abs_mean + 1e-8)
+                    )
+                    stats["listwise_exact_semantic_adv_abs_mean_all_wrong"].append(
+                        semantic_adv_abs_all_wrong
+                    )
+                    stats["listwise_exact_semantic_adv_abs_mean_mixed"].append(
+                        semantic_adv_abs_mixed
+                    )
+                    stats["listwise_exact_semantic_adv_abs_mean_all_correct"].append(
+                        semantic_adv_abs_all_correct
+                    )
+                    stats["listwise_exact_semantic_effective_group_frac"].append(
+                        semantic_effective_group_frac
+                    )
+                    stats["listwise_exact_semantic_correctness_adv_cosine"].append(
+                        semantic_correctness_adv_cosine
                     )
                     stats["listwise_exact_utility_mean"].append(
                         (
@@ -4163,13 +4297,25 @@ class ZeroMathDrxMixin(
                 stats["listwise_semantic_trace_truncated_frac"].append(
                     semantic_trace_truncated_frac.detach()
                 )
+                prompt_token_counts_grouped = (
+                    prompt_response_masks.to(dtype=policy_seq_logps_grouped.dtype)
+                    .sum(dim=2)
+                    .clamp(min=1.0)
+                )
+                output_entropy_grouped = (
+                    -prompt_behavior_seq_raw.detach().to(
+                        device=device,
+                        dtype=policy_seq_logps_grouped.dtype,
+                    )
+                    / prompt_token_counts_grouped.to(device=device)
+                ).clamp(min=0.0)
                 (
                     exact_quality_utility_grouped,
                     exact_quality_grouped,
                     exact_semantic_drx_diag,
                 ) = compute_quality_centered_semantic_drx_utilities(
                     reward_grouped=mb_reward_grouped.detach(),
-                    cluster_ids_grouped=semantic_cluster_bundle.cluster_ids_grouped.detach(),
+                    output_entropy_grouped=output_entropy_grouped.detach(),
                     semantic_entropy_lambda=float(args.semantic_entropy_lambda),
                     candidate_correctness_grouped=mb_correctness_grouped.detach(),
                     valid_row_mask_grouped=grouped_loss_masks_prompt.detach(),
@@ -4249,6 +4395,85 @@ class ZeroMathDrxMixin(
                     semantic_adv_abs_mean = self._listwise_scalar(0.0).to(
                         torch.float32
                     )
+                valid_group_mask = grouped_loss_masks_prompt.detach().any(dim=1)
+                valid_count_grouped = (
+                    grouped_loss_masks_prompt.detach()
+                    .to(torch.float32)
+                    .sum(dim=1)
+                    .clamp(min=1.0)
+                )
+                correctness_frac_grouped = (
+                    torch.where(
+                        grouped_loss_masks_prompt.detach(),
+                        exact_quality_for_adv_grouped.to(torch.float32),
+                        torch.zeros_like(exact_quality_for_adv_grouped).to(
+                            torch.float32
+                        ),
+                    ).sum(dim=1)
+                    / valid_count_grouped
+                )
+                semantic_adv_abs_grouped = (
+                    torch.where(
+                        grouped_loss_masks_prompt.detach(),
+                        exact_semantic_adv_grouped.abs().to(torch.float32),
+                        torch.zeros_like(exact_semantic_adv_grouped).to(torch.float32),
+                    ).sum(dim=1)
+                    / valid_count_grouped
+                )
+                all_wrong_group_mask = valid_group_mask & (
+                    correctness_frac_grouped <= 1e-8
+                )
+                all_correct_group_mask = valid_group_mask & (
+                    correctness_frac_grouped >= 1.0 - 1e-8
+                )
+                mixed_group_mask = (
+                    valid_group_mask & ~all_wrong_group_mask & ~all_correct_group_mask
+                )
+
+                def _mean_group_or_zero(mask: torch.Tensor) -> torch.Tensor:
+                    if bool(mask.any().item()):
+                        return semantic_adv_abs_grouped[mask].mean().detach().to(
+                            torch.float32
+                        )
+                    return self._listwise_scalar(0.0).to(torch.float32)
+
+                semantic_adv_abs_all_wrong = _mean_group_or_zero(all_wrong_group_mask)
+                semantic_adv_abs_mixed = _mean_group_or_zero(mixed_group_mask)
+                semantic_adv_abs_all_correct = _mean_group_or_zero(
+                    all_correct_group_mask
+                )
+                if bool(valid_group_mask.any().item()):
+                    semantic_effective_group_frac = (
+                        (valid_group_mask & (semantic_adv_abs_grouped > 1e-8))
+                        .to(torch.float32)
+                        .sum()
+                        / valid_group_mask.to(torch.float32).sum().clamp(min=1.0)
+                    ).detach()
+                else:
+                    semantic_effective_group_frac = self._listwise_scalar(0.0).to(
+                        torch.float32
+                    )
+                if correctness_adv_valid_values.numel() > 0:
+                    cosine_denom = (
+                        correctness_adv_valid_values.norm()
+                        * semantic_adv_valid_values.norm()
+                    )
+                    if bool((cosine_denom > 1e-12).item()):
+                        semantic_correctness_adv_cosine = (
+                            (
+                                correctness_adv_valid_values
+                                * semantic_adv_valid_values
+                            ).sum()
+                            / cosine_denom
+                        ).detach().to(torch.float32)
+                    else:
+                        semantic_correctness_adv_cosine = self._listwise_scalar(0.0).to(
+                            torch.float32
+                        )
+                else:
+                    semantic_correctness_adv_cosine = self._listwise_scalar(0.0).to(
+                        torch.float32
+                    )
                 stats["listwise_exact_quality_mean"].append(
                     (
                         quality_valid_values.mean().detach().to(torch.float32)
@@ -4291,6 +4516,21 @@ class ZeroMathDrxMixin(
                 stats["listwise_exact_semantic_adv_fraction"].append(
                     semantic_adv_abs_mean
                     / (semantic_adv_abs_mean + correctness_adv_abs_mean + 1e-8)
+                )
+                stats["listwise_exact_semantic_adv_abs_mean_all_wrong"].append(
+                    semantic_adv_abs_all_wrong
+                )
+                stats["listwise_exact_semantic_adv_abs_mean_mixed"].append(
+                    semantic_adv_abs_mixed
+                )
+                stats["listwise_exact_semantic_adv_abs_mean_all_correct"].append(
+                    semantic_adv_abs_all_correct
+                )
+                stats["listwise_exact_semantic_effective_group_frac"].append(
+                    semantic_effective_group_frac
+                )
+                stats["listwise_exact_semantic_correctness_adv_cosine"].append(
+                    semantic_correctness_adv_cosine
                 )
                 stats["listwise_exact_utility_mean"].append(
                     (

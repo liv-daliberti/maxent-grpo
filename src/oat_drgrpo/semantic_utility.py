@@ -107,6 +107,7 @@ def compute_semantic_cluster_surprisal_scores(
         else:
             semantic_entropy[p] = 0.0
         prompt_entropy = float(semantic_entropy[p].item())
+        max_surprisal = math.log(max(float(active_count[p].item()), 1.0))
         for row_idx in torch.where(prompt_active_mask)[0].tolist():
             cluster_id = int(cluster_ids_grouped[p, row_idx].item())
             cluster_prob = cluster_mass_map.get(cluster_id, 0.0) / max(
@@ -116,7 +117,11 @@ def compute_semantic_cluster_surprisal_scores(
             row_cluster_prob[p, row_idx] = float(cluster_prob)
             if cluster_prob > 0.0:
                 centered_surprisal = -math.log(cluster_prob) - prompt_entropy
-                semantic_surprisal[p, row_idx] = float(max(0.0, centered_surprisal))
+                positive_surprisal = max(0.0, centered_surprisal)
+                if max_surprisal > 0.0:
+                    semantic_surprisal[p, row_idx] = float(
+                        min(positive_surprisal / max_surprisal, 1.0)
+                    )
 
     diagnostics = SemanticDrxUtilityDiagnostics(
         row_cluster_prob_grouped=row_cluster_prob,
@@ -132,21 +137,52 @@ def compute_semantic_cluster_surprisal_scores(
     return semantic_surprisal, diagnostics
 
 
+def compute_normalized_centered_output_entropy_scores(
+    *,
+    output_entropy_grouped: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Return per-prompt centered output-entropy scores in ``[-1, 1]``."""
+
+    if valid_row_mask_grouped is None:
+        valid_mask = torch.ones_like(output_entropy_grouped, dtype=torch.bool)
+    else:
+        if valid_row_mask_grouped.shape != output_entropy_grouped.shape:
+            raise ValueError("valid_row_mask_grouped must match output_entropy_grouped.")
+        valid_mask = valid_row_mask_grouped.to(torch.bool)
+
+    entropy = torch.where(
+        valid_mask,
+        output_entropy_grouped.to(torch.float32),
+        torch.zeros_like(output_entropy_grouped, dtype=torch.float32),
+    )
+    denom = valid_mask.to(torch.float32).sum(dim=1, keepdim=True).clamp(min=1.0)
+    centered = entropy - (entropy.sum(dim=1, keepdim=True) / denom)
+    centered = torch.where(valid_mask, centered, torch.zeros_like(centered))
+    max_abs = centered.abs().amax(dim=1, keepdim=True)
+    normalized = torch.where(
+        max_abs > 1e-8,
+        centered / max_abs.clamp(min=1e-8),
+        torch.zeros_like(centered),
+    )
+    return torch.where(valid_mask, normalized.clamp(min=-1.0, max=1.0), 0.0)
+
+
 def compute_quality_centered_semantic_drx_utilities(
     *,
     reward_grouped: torch.Tensor,
-    cluster_ids_grouped: torch.Tensor,
+    output_entropy_grouped: torch.Tensor,
     semantic_entropy_lambda: float,
     candidate_correctness_grouped: torch.Tensor | None = None,
     valid_row_mask_grouped: torch.Tensor | None = None,
     semantic_correctness_target_frac: float = 0.5,
     semantic_correctness_sharpness: float = 4.0,
 ) -> tuple[torch.Tensor, torch.Tensor, SemanticDrxUtilityDiagnostics]:
-    """Return exact-listwise utilities with correctness-rate-gated semantics."""
+    """Return exact-listwise utilities with gated output-entropy exploration."""
 
-    if reward_grouped.shape != cluster_ids_grouped.shape:
+    if reward_grouped.shape != output_entropy_grouped.shape:
         raise ValueError(
-            "reward_grouped and cluster_ids_grouped must have matching shapes."
+            "reward_grouped and output_entropy_grouped must have matching shapes."
         )
     if (
         candidate_correctness_grouped is not None
@@ -168,13 +204,9 @@ def compute_quality_centered_semantic_drx_utilities(
         reward_grouped.to(torch.float32).clamp(min=0.0, max=1.0),
         torch.zeros_like(reward_grouped, dtype=torch.float32),
     )
-    semantic_surprisal_grouped, semantic_diag = (
-        compute_semantic_cluster_surprisal_scores(
-            quality_grouped=quality_grouped,
-            cluster_ids_grouped=cluster_ids_grouped,
-            valid_row_mask_grouped=valid_mask,
-            mass_from_quality=False,
-        )
+    semantic_surprisal_grouped = compute_normalized_centered_output_entropy_scores(
+        output_entropy_grouped=output_entropy_grouped.detach(),
+        valid_row_mask_grouped=valid_mask,
     )
     if candidate_correctness_grouped is None:
         correctness_grouped = quality_grouped
@@ -187,14 +219,8 @@ def compute_quality_centered_semantic_drx_utilities(
     valid_count = valid_mask.to(torch.float32).sum(dim=1).clamp(min=1.0)
     correct_count = (valid_mask & correct_row_mask).to(torch.float32).sum(dim=1)
     correctness_frac = correct_count / valid_count
-    semantic_target = min(
-        max(float(semantic_correctness_target_frac), 0.0),
-        1.0,
-    )
-    semantic_sharpness = max(float(semantic_correctness_sharpness), 0.0)
-    semantic_gate_grouped = -torch.tanh(
-        semantic_sharpness * (correctness_frac - semantic_target)
-    ).to(dtype=quality_grouped.dtype)
+    del semantic_correctness_target_frac, semantic_correctness_sharpness
+    semantic_gate_grouped = (1.0 - correctness_frac).to(dtype=quality_grouped.dtype)
     semantic_surprisal_adjusted = semantic_surprisal_grouped.to(
         dtype=quality_grouped.dtype
     )
@@ -208,15 +234,30 @@ def compute_quality_centered_semantic_drx_utilities(
     )
     utility_grouped = utility_grouped.to(dtype=utility_dtype)
     adjusted_diag = SemanticDrxUtilityDiagnostics(
-        row_cluster_prob_grouped=semantic_diag.row_cluster_prob_grouped,
-        semantic_entropy_grouped=semantic_diag.semantic_entropy_grouped,
+        row_cluster_prob_grouped=torch.zeros_like(quality_grouped),
+        semantic_entropy_grouped=(
+            torch.where(
+                valid_mask,
+                output_entropy_grouped.to(torch.float32),
+                torch.zeros_like(output_entropy_grouped, dtype=torch.float32),
+            ).sum(dim=1)
+            / valid_mask.to(torch.float32).sum(dim=1).clamp(min=1.0)
+        ),
         semantic_surprisal_grouped=semantic_surprisal_adjusted,
-        semantic_valid_row_mask_grouped=semantic_diag.semantic_valid_row_mask_grouped,
-        active_row_mask_grouped=semantic_diag.active_row_mask_grouped,
-        quality_grouped=semantic_diag.quality_grouped,
-        active_mass_grouped=semantic_diag.active_mass_grouped,
-        active_count_grouped=semantic_diag.active_count_grouped,
-        active_cluster_count_grouped=semantic_diag.active_cluster_count_grouped,
+        semantic_valid_row_mask_grouped=valid_mask,
+        active_row_mask_grouped=valid_mask,
+        quality_grouped=quality_grouped,
+        active_mass_grouped=torch.where(
+            valid_mask,
+            output_entropy_grouped.to(torch.float32),
+            torch.zeros_like(output_entropy_grouped, dtype=torch.float32),
+        ).sum(dim=1),
+        active_count_grouped=valid_mask.to(torch.float32).sum(dim=1),
+        active_cluster_count_grouped=torch.zeros(
+            (quality_grouped.size(0),),
+            device=quality_grouped.device,
+            dtype=torch.float32,
+        ),
         semantic_gate_grouped=semantic_gate_grouped,
     )
     return utility_grouped, quality_grouped.to(dtype=utility_dtype), adjusted_diag

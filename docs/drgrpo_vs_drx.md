@@ -17,10 +17,12 @@ Dr.X-GRPO:
 - primary update: token-level Dr.GRPO PPO ratio with centered Dr.X rewards
 - token advantage: `A_i = R_i - mean_j R_j`
 - Dr.X reward:
-  `R_i = correctness(q, o_i) + lambda * g(p_correct) * semantic_surprisal_i`
-- semantic gate:
-  `g(p_correct) = -tanh(k * (p_correct - target_correct_frac))`
-- semantic gate defaults: `target_correct_frac=0.5`, `k=4.0`
+  `R_i = correctness(q, o_i) + lambda * (1 - p_correct) * h_i`
+- entropy gate:
+  `1 - p_correct`, so output-entropy exploration turns off for all-correct
+  groups
+- output entropy score: `h_i` is the sampled output's per-token old-policy
+  self-information, centered within the prompt group and normalized to `[-1, 1]`
 - token normalization: OAT Dr.GRPO constant max-length normalizer
 - token loss denominator: all valid rows in the minibatch, matching OAT Dr.GRPO;
   zero-advantage rows contribute zero numerator but remain in the mean
@@ -57,8 +59,7 @@ maxent_drgrpo_token_length_normalizer=max_length
 maxent_exact_drx_weight_source=sequence_clipped
 maxent_use_clip_objective=0
 maxent_sequence_aux_coef=0.0
-maxent_semantic_correctness_target_frac=0.5
-maxent_semantic_correctness_sharpness=4.0
+semantic_entropy_lambda=0.10
 maxent_semantic_remix_mode=anchor_rare
 ```
 
@@ -98,23 +99,30 @@ OAT_ZERO_RESUME_TAG
 
 ## Semantics
 
-Dr.X-GRPO keeps the semantic signal without a separate length-tempering layer.
-The semantic term is gated by the group's correctness rate:
+Dr.X-GRPO keeps a pure MaxEnt-style output entropy signal without a separate
+length-tempering layer. For each sampled output:
 
-- mostly wrong groups: `g(p_correct) > 0`, so rare/distinct semantic modes
-  receive positive utility
-- near the target correctness fraction: `g(p_correct) ~= 0`, so the update is
-  mostly correctness-driven
-- mostly right groups: `g(p_correct) < 0`, so rare/distinct semantic modes
-  receive negative utility and the policy consolidates
+```text
+raw_entropy_i = -mean_t log pi_old(o_{i,t} | q, o_{i,<t})
+h_i = normalize_j(raw_entropy_i - mean_j raw_entropy_j)
+```
+
+The entropy term is gated by the group's correctness rate:
+
+- mostly wrong groups: `g(p_correct) > 0`, so above-average output entropy
+  receives positive utility
+- mixed groups: correctness still dominates while above-average output entropy
+  receives a small exploration tilt
+- all-correct groups: `g(p_correct) = 0`, so the update stops rewarding
+  exploration once the prompt group is solved
 
 The centered reward expands linearly:
 
 ```text
 A_i = R_i - mean_j R_j
     = correctness_i - mean_j correctness_j
-      + lambda * g(p_correct) *
-        (semantic_surprisal_i - mean_j semantic_surprisal_j)
+      + lambda * (1 - p_correct) *
+        (h_i - mean_j h_j)
 ```
 
 The public Dr.X launcher disables the extra listwise clip objective and the Dr.X
