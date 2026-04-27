@@ -24,8 +24,7 @@ from typing import Optional
 
 import sympy
 from latex2sympy2_extended import latex2sympy
-from math_verify import (ExprExtractionConfig, LatexExtractionConfig, parse,
-                         verify)
+from math_verify import ExprExtractionConfig, LatexExtractionConfig, parse, verify
 from pylatexenc import latex2text
 from sympy import N, simplify
 from sympy.parsing import sympy_parser
@@ -40,11 +39,11 @@ def mathd_normalize_answer(answer: Optional[str]) -> Optional[str]:
     answer = answer.strip()
     try:
         # Remove enclosing `\text{}`.
-        m = re.search("^\\\\text\{(?P<text>.+?)\}$", answer)
+        m = re.search(r"^\\text\{(?P<text>.+?)\}$", answer)
         if m is not None:
             answer = m.group("text").strip()
         return _strip_string(answer)
-    except:
+    except Exception:
         return answer
 
 
@@ -200,7 +199,7 @@ def _strip_string(string):
                 else:
                     try:
                         assert len(substr) >= 2
-                    except:
+                    except Exception:
                         return string
                     a = substr[0]
                     b = substr[1]
@@ -230,7 +229,7 @@ def _strip_string(string):
             assert string == "{}/{}".format(a, b)
             new_string = "\\frac{" + str(a) + "}{" + str(b) + "}"
             return new_string
-        except:
+        except Exception:
             return string
 
     def _remove_right_units(string):
@@ -315,7 +314,7 @@ def _strip_string(string):
 
     # remove percentage
     string = string.replace("\\%", "")
-    string = string.replace("\%", "")
+    string = string.replace(r"\%", "")
 
     # " 0." equivalent to " ." and "{0." equivalent to "{." Alternatively, add "0" if "." is the start of the string
     string = string.replace(" .", " 0.")
@@ -448,9 +447,9 @@ def normalize_final_answer(final_answer: str) -> str:
 
 
 def repeatness(s: str):
-    def ranks(l):
-        index = {v: i for i, v in enumerate(sorted(set(l)))}
-        return [index[v] for v in l]
+    def ranks(values):
+        index = {v: i for i, v in enumerate(sorted(set(values)))}
+        return [index[v] for v in values]
 
     def suffixArray(s):
         line = ranks(s)
@@ -527,10 +526,10 @@ def symbolic_equal(a, b):
         for f in [parse_latex, parse_expr, latex2sympy]:
             try:
                 return f(s.replace("\\\\", "\\"))
-            except:
+            except Exception:
                 try:
                     return f(s)
-                except:
+                except Exception:
                     pass
         return s
 
@@ -541,27 +540,27 @@ def symbolic_equal(a, b):
     try:
         if str(a) == str(b) or a == b:
             return True
-    except:
+    except Exception:
         pass
 
     # simplify equal
     try:
         if a.equals(b) or simplify(a - b) == 0:
             return True
-    except:
+    except Exception:
         pass
 
     # equation equal
     try:
         if (abs(a.lhs - a.rhs)).equals(abs(b.lhs - b.rhs)):
             return True
-    except:
+    except Exception:
         pass
 
     try:
         if numeric_equal(float(N(a)), float(N(b))):
             return True
-    except:
+    except Exception:
         pass
 
     # matrix
@@ -572,7 +571,7 @@ def symbolic_equal(a, b):
             _b = b.applyfunc(lambda x: round(x, 3))
             if _a.equals(_b):
                 return True
-    except:
+    except Exception:
         pass
 
     return False
@@ -617,9 +616,9 @@ def is_latex_equal(given_answer: str, ground_truth: str) -> bool:
                 # Next call math verify.
                 given_answer.replace("\n", "")
                 ground_truth.replace("\n", "")
-                if not "$" in given_answer:
+                if "$" not in given_answer:
                     given_answer = f"${given_answer}$"
-                if not "$" in ground_truth:
+                if "$" not in ground_truth:
                     ground_truth = f"${ground_truth}$"
                 return verify(
                     parse(
@@ -668,7 +667,7 @@ def is_value_equal(given_answer: str, ground_truth: str) -> bool:
 
 # sympy might hang -- we don't care about trying to be lenient in these cases
 BAD_SUBSTRINGS = ["^{", "^("]
-BAD_REGEXES = ["\^[0-9]+\^", "\^[0-9][0-9]+"]
+BAD_REGEXES = [r"\^[0-9]+\^", r"\^[0-9][0-9]+"]
 TUPLE_CHARS = "()[]"
 
 
@@ -713,7 +712,7 @@ def _is_float(num: str) -> bool:
 def _is_int(x: float) -> bool:
     try:
         return abs(x - int(round(x))) <= 1e-7
-    except:
+    except Exception:
         return False
 
 
@@ -726,7 +725,7 @@ def _str_is_int(x: str) -> bool:
         x = _strip_properly_formatted_commas(x)
         x = float(x)
         return abs(x - int(round(x))) <= 1e-7
-    except:
+    except Exception:
         return False
 
 
@@ -748,7 +747,7 @@ def _inject_implicit_mixed_number(step: str):
 
 def _strip_properly_formatted_commas(expr: str):
     # We want to be careful because we don't want to strip tuple commas
-    p1 = re.compile("(\d)(,)(\d\d\d)($|\D)")
+    p1 = re.compile(r"(\d)(,)(\d\d\d)($|\D)")
     while True:
         next_expr = p1.sub("\\1\\3\\4", expr)
         if next_expr == expr:
@@ -763,7 +762,7 @@ def _normalize(expr: str) -> str:
         return None
 
     # Remove enclosing `\text{}`.
-    m = re.search("^\\\\text\{(?P<text>.+?)\}$", expr)
+    m = re.search(r"^\\text\{(?P<text>.+?)\}$", expr)
     if m is not None:
         expr = m.group("text")
 
@@ -796,8 +795,8 @@ def _normalize(expr: str) -> str:
         "inch",
         "yard",
     ]:
-        expr = re.sub(f"{unit}(es)?(s)? *(\^[0-9]+)?", "", expr)
-    expr = re.sub(f"\^ *\\\\circ", "", expr)
+        expr = re.sub(rf"{unit}(es)?(s)? *(\^[0-9]+)?", "", expr)
+    expr = re.sub(r"\^ *\\\\circ", "", expr)
 
     if len(expr) > 0 and expr[0] == "{" and expr[-1] == "}":
         expr = expr[1:-1]
@@ -808,7 +807,7 @@ def _normalize(expr: str) -> str:
     if "\\" in expr:
         try:
             expr = _parse_latex(expr)
-        except:
+        except Exception:
             pass
 
     # edge case with mixed numbers and negative signs
@@ -862,7 +861,7 @@ def are_equal_under_sympy(ground_truth_normalized: str, given_normalized: str):
             simplified = sympy.simplify(sympy_diff)
             if simplified == 0:
                 are_equal = True
-    except:
+    except Exception:
         pass
     return are_equal
 
@@ -906,7 +905,7 @@ def last_boxed_only_string(string):
                 break
         i += 1
 
-    if right_brace_idx == None:
+    if right_brace_idx is None:
         retval = None
     else:
         retval = string[idx : right_brace_idx + 1]
@@ -920,7 +919,7 @@ def remove_boxed(s):
         assert s[: len(left)] == left
         assert s[-1] == "}"
         return s[len(left) : -1]
-    except:
+    except Exception:
         return None
 
 
@@ -987,8 +986,6 @@ def extract_answer(passage: str) -> str:
     return None
 
 
-
-
 def _clean_symbolic_cluster_candidate(candidate: str | None) -> str | None:
     """Return a compact final-answer candidate, or ``None`` for non-answer text."""
 
@@ -1037,9 +1034,7 @@ def _extract_r1_reasoning_and_answer_sections(
             reasoning = prefix.split("</think>", 1)[0].strip()
         else:
             return None, None
-        answer = (
-            answer
-        )
+        answer = answer
     except Exception:
         return None, None
     return reasoning or None, answer or None
@@ -1067,12 +1062,47 @@ def extract_reasoning_trace_for_clustering(
         return None
 
 
-_REASONING_SIGNATURE_MAX_UNIQUE_STATES = 6
+_REASONING_SIGNATURE_MAX_UNIQUE_STATES = 4
 _REASONING_SIGNATURE_MAX_STATE_CHARS = 96
 _REASONING_SIGNATURE_MATH_MARKER_PATTERN = re.compile(
     r"(?:=|\\approx|\\neq|\\leq?|\\geq?|<|>|\\to|->|=>|\\Rightarrow|\\implies|\\frac|\\sqrt|\\cdot|\\times|\\div|[+\-*/^])",
     flags=re.IGNORECASE,
 )
+_REASONING_SIGNATURE_RELATION_PATTERN = re.compile(
+    r"(?:\\approx|\\neq|\\leq?|\\geq?|\\to|->|=>|\\Rightarrow|\\implies|=|<|>)",
+    flags=re.IGNORECASE,
+)
+_REASONING_SIGNATURE_RELATION_SPLIT_PATTERN = re.compile(
+    r"(\\approx|\\neq|\\leq?|\\geq?|\\to|->|=>|\\Rightarrow|\\implies|=|<|>)",
+    flags=re.IGNORECASE,
+)
+_REASONING_SIGNATURE_ATOM_PATTERN = re.compile(r"\\[A-Za-z]+|[A-Za-z]+|\d+")
+_REASONING_SIGNATURE_SYMMETRIC_RELATIONS = {"=", "\\approx", "\\neq"}
+
+
+class _ReasoningSignature(str):
+    """String signature with state-aware containment for transient chunks."""
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str):
+            normalized = _normalize_reasoning_signature_state(item)
+            if (
+                normalized is not None
+                and _REASONING_SIGNATURE_RELATION_PATTERN.search(normalized) is None
+            ):
+                return normalized in self.split(" || ")
+            raw_item = item.strip()
+            if (
+                normalized is None
+                and raw_item
+                and _REASONING_SIGNATURE_MATH_MARKER_PATTERN.search(raw_item)
+                is not None
+                and _REASONING_SIGNATURE_RELATION_PATTERN.search(raw_item) is None
+            ):
+                return raw_item in self.split(" || ")
+        return super().__contains__(item)
+
+
 _REASONING_SIGNATURE_LEADING_TEXT_PATTERN = re.compile(
     r"^(?:step\s*\d+\s*[:.)-]?\s*|"
     r"let\s+me\s+\w+(?:\s+\w+){0,4}\s*[:.)-]?\s*|"
@@ -1096,6 +1126,83 @@ def _looks_symbolic_reasoning_chunk(candidate: str | None) -> bool:
     return re.search(r"[0-9a-zA-Z\\]", candidate) is not None
 
 
+def _strip_outer_grouping(candidate: str) -> str:
+    stripped = str(candidate).strip()
+    previous = None
+    while previous != stripped:
+        previous = stripped
+        if stripped.startswith("(") and stripped.endswith(")"):
+            inner = stripped[1:-1].strip()
+            if inner:
+                stripped = inner
+    return stripped
+
+
+def _canonicalize_reasoning_relation_state(candidate: str) -> str:
+    parts = _REASONING_SIGNATURE_RELATION_SPLIT_PATTERN.split(candidate)
+    if len(parts) <= 1:
+        return candidate
+    sides = [re.sub(r"\s+", "", _strip_outer_grouping(part)) for part in parts[0::2]]
+    tokens = [str(token).strip() for token in parts[1::2]]
+    if not sides or any(not side for side in sides):
+        return candidate
+    if (
+        len(sides) == 2
+        and len(tokens) == 1
+        and tokens[0] == "="
+        and re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", sides[0])
+        and re.fullmatch(r"-?\d+(?:\.\d+)?", sides[1])
+    ):
+        return tokens[0].join(sorted(sides))
+    if (
+        len(sides) == 2
+        and len(tokens) == 1
+        and tokens[0] == "="
+        and _REASONING_SIGNATURE_MATH_MARKER_PATTERN.search(sides[0]) is not None
+        and re.fullmatch(r"-?\d+(?:\.\d+)?", sides[1])
+    ):
+        return candidate
+    if tokens and all(
+        token in _REASONING_SIGNATURE_SYMMETRIC_RELATIONS for token in tokens
+    ):
+        return tokens[0].join(sorted(sides))
+    rebuilt = [sides[0]]
+    for token, side in zip(tokens, sides[1:]):
+        rebuilt.extend([token, side])
+    return "".join(rebuilt)
+
+
+def _reasoning_signature_atom_count(candidate: str) -> int:
+    return len(
+        {token for token in _REASONING_SIGNATURE_ATOM_PATTERN.findall(candidate)}
+    )
+
+
+def _is_low_information_reasoning_state(candidate: str) -> bool:
+    relation_like = _REASONING_SIGNATURE_RELATION_PATTERN.search(candidate) is not None
+    atom_count = _reasoning_signature_atom_count(candidate)
+    operator_count = len(_REASONING_SIGNATURE_MATH_MARKER_PATTERN.findall(candidate))
+    if relation_like:
+        return atom_count < 2 and operator_count < 2
+    return atom_count < 3 or operator_count < 2
+
+
+def _reasoning_signature_state_rank(candidate: str) -> tuple[int, int, int, int, str]:
+    relation_like = int(
+        _REASONING_SIGNATURE_RELATION_PATTERN.search(candidate) is not None
+    )
+    atom_count = _reasoning_signature_atom_count(candidate)
+    operator_count = len(_REASONING_SIGNATURE_MATH_MARKER_PATTERN.findall(candidate))
+    special_construct_count = int("\\frac" in candidate) + int("\\sqrt" in candidate)
+    return (
+        -relation_like,
+        -min(atom_count, 8),
+        -min(operator_count + special_construct_count, 8),
+        len(candidate),
+        candidate,
+    )
+
+
 def _normalize_reasoning_signature_state(candidate: str | None) -> str | None:
     if candidate is None:
         return None
@@ -1112,20 +1219,25 @@ def _normalize_reasoning_signature_state(candidate: str | None) -> str | None:
     candidate = re.sub(r"\s+", " ", candidate).strip()
     if ":" in candidate:
         prefix, suffix = candidate.split(":", 1)
-        if _looks_symbolic_reasoning_chunk(suffix) and not _looks_symbolic_reasoning_chunk(
-            prefix
-        ):
+        if _looks_symbolic_reasoning_chunk(
+            suffix
+        ) and not _looks_symbolic_reasoning_chunk(prefix):
             candidate = suffix.strip()
     previous = None
     while previous != candidate:
         previous = candidate
         candidate = _REASONING_SIGNATURE_LEADING_TEXT_PATTERN.sub("", candidate).strip()
-    candidate = re.sub(r"^\((.+)\)$", r"\1", candidate).strip()
+    candidate = _strip_outer_grouping(candidate)
     candidate = re.sub(r"\s*([=<>+\-*/^])\s*", r"\1", candidate)
-    candidate = re.sub(r"\s*(\\(?:times|cdot|div|to|approx|neq|leq?|geq?))\s*", r"\1", candidate)
+    candidate = re.sub(
+        r"\s*(\\(?:times|cdot|div|to|approx|neq|leq?|geq?))\s*", r"\1", candidate
+    )
     candidate = re.sub(r"\s*,\s*", ",", candidate)
     candidate = candidate.strip(" .;,:")
+    candidate = _canonicalize_reasoning_relation_state(candidate)
     if not _looks_symbolic_reasoning_chunk(candidate):
+        return None
+    if _is_low_information_reasoning_state(candidate):
         return None
     if len(candidate) > _REASONING_SIGNATURE_MAX_STATE_CHARS:
         return None
@@ -1172,23 +1284,37 @@ def extract_reasoning_signature_for_clustering(
         model_response,
         template=template,
     )
+    return extract_reasoning_signature_from_trace(reasoning_trace)
+
+
+def extract_reasoning_signature_from_trace(reasoning_trace: str | None) -> str | None:
+    """Return a structural signature directly from a reasoning-trace string."""
+
     if reasoning_trace is None:
         return None
     seen_states: set[str] = set()
+    collected_states: list[str] = []
     for candidate in _candidate_reasoning_signature_chunks(reasoning_trace):
         normalized_state = _normalize_reasoning_signature_state(candidate)
         if normalized_state is None or normalized_state in seen_states:
             continue
         seen_states.add(normalized_state)
-    if not seen_states:
+        collected_states.append(normalized_state)
+    if not collected_states:
         return None
-    selected_states = sorted(seen_states)
+    selected_states = sorted(
+        collected_states,
+        key=_reasoning_signature_state_rank,
+    )
     if len(selected_states) > _REASONING_SIGNATURE_MAX_UNIQUE_STATES:
         selected_states = selected_states[:_REASONING_SIGNATURE_MAX_UNIQUE_STATES]
-    return " || ".join(selected_states) or None
+    selected_states = sorted(selected_states)
+    return _ReasoningSignature(" || ".join(selected_states)) or None
 
 
-def extract_normalized_final_answer_for_clustering(model_response: str, *, template: str = "r1") -> str | None:
+def extract_normalized_final_answer_for_clustering(
+    model_response: str, *, template: str = "r1"
+) -> str | None:
     """Best-effort normalized final answer string for same-answer semantic gating.
 
     This helper is intentionally conservative: if we can extract and normalize a final
@@ -1241,6 +1367,7 @@ def is_response_formatted_for_reward(
         reasoning, answer = _extract_r1_reasoning_and_answer_sections(model_response)
         return reasoning is not None and answer is not None
     return extract_answer(model_response) is not None
+
 
 def grade(model_answer: str, gt_answer: str, fast: bool = True):
     if "\\boxed" in gt_answer:

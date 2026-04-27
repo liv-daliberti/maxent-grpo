@@ -1,22 +1,34 @@
 # Minimal OAT 1.5B Training Tree
 
-This repository is intentionally cut down to one thing:
+This repository is being cleaned down to one shareable comparison:
 
 - 1.5B OAT Dr.GRPO
-- 1.5B OAT Dr.GRPO-Explorer
+- 1.5B OAT Dr.X-GRPO
 
 The live code is under `src/oat_drgrpo/`:
 
 - `train_zero_math.py`: the patched OAT learner
-- `listwise.py`: the Explorer / DrX prompt-group helpers
+- `learner/`: Dr.GRPO and Dr.X learner mixins split out from the
+  original monolithic trainer
+- `listwise.py`: prompt-group compatibility facade for listwise helpers
+- `drx_targets.py`, `semantic_remix.py`, `semantic_utility.py`: Dr.X target
+  construction and semantic utility/remix helpers
+- `stats_utils.py`, `logging_utils.py`, `runtime.py`, `templates.py`: shared
+  runtime, metrics, and prompt-format support
 - `math_grader.py`: the verifiable-math reward/grader
 
-The only retained launch surface is:
+The active launch surface is:
 
 - `ops/run_oat_zero_exact_1p5b_upstream.sh`
-- `ops/run_oat_zero_explorer_1p5b_upstream.sh`
+- `ops/run_oat_zero_exact_drx_1p5b_upstream.sh`
 - `ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm`
-- `ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_explorer_node302.slurm`
+- `ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_exact_drx_node302.slurm`
+
+See:
+
+- `docs/drgrpo_vs_drx.md` for the comparison contract.
+- `docs/repo_cleanup.md` for the cleanup roadmap.
+- `ops/README.md` for the active launcher/evaluation scripts.
 
 Datasets used by those scripts live under:
 
@@ -102,10 +114,10 @@ Baseline Dr.GRPO:
 sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm
 ```
 
-Explorer / DrX:
+Dr.X-GRPO:
 
 ```bash
-sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_explorer_node302.slurm
+sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_exact_drx_node302.slurm
 ```
 
 The launcher logs the resolved config at startup, including:
@@ -114,7 +126,7 @@ The launcher logs the resolved config at startup, including:
 - source root
 - prompt/eval datasets
 - batch geometry
-- exact explorer knobs such as `tau`, `candidate_kl_coef`, and `maxent_exact_drx_weight_source`
+- Dr.X-GRPO knobs such as semantic token advantage source, token length normalizer, and semantic clustering method
 
 Logs are written to:
 
@@ -128,7 +140,8 @@ Minimal syntax/import checks:
 ```bash
 source ops/repo_env.sh
 python -m py_compile src/oat_drgrpo/train_zero_math.py src/oat_drgrpo/listwise.py src/oat_drgrpo/math_grader.py
-bash -n ops/run_oat_zero_exact_1p5b_upstream.sh ops/run_oat_zero_explorer_1p5b_upstream.sh
+python -m ruff check src tests
+bash -n ops/run_oat_zero_exact_1p5b_upstream.sh ops/run_oat_zero_exact_drx_1p5b_upstream.sh
 ```
 
 If you want to sanity-check the exact launcher without submitting a long job, inspect the startup banner in the Slurm log. The exact launcher also bootstraps `flash-attn==2.7.4.post1` on-node when needed.

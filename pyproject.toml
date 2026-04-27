@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "oat-drgrpo-1p5b"
 version = "0.1.0"
-description = "Minimal 1.5B OAT Dr.GRPO and Dr.GRPO-Explorer training tree"
+description = "Minimal 1.5B OAT Dr.GRPO and Dr.X-GRPO training tree"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
@@ -22,9 +22,45 @@ dependencies = [
   "tqdm",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "black",
+  "isort",
+  "pytest",
+  "ruff",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 zip-safe = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = [
+  "var",
+  "datasets",
+  ".cache",
+  ".local",
+  ".tmp",
+]
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = [
+  # Keep line-length advisory-only for generated argument/help strings and
+  # long metric keys.
+  "E501",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -26,6 +26,9 @@ OUTPUT_KEY="${OAT_ZERO_OUTPUT_KEY:-answer}"
 N_GPU="${OAT_ZERO_N_GPU:-8}"
 PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-r1}"
 OBJECTIVE="${OAT_ZERO_OBJECTIVE:-grpo}"
+CRITIC_TYPE="${OAT_ZERO_CRITIC_TYPE:-drgrpo}"
+SEED_DRGRPO_ENTROPY_PENALTY_ALPHA="${OAT_ZERO_SEED_DRGRPO_ENTROPY_PENALTY_ALPHA:-0.0417}"
+SEMANTIC_ENTROPY_LAMBDA="${OAT_ZERO_SEMANTIC_ENTROPY_LAMBDA:-0.05}"
 SEED="${OAT_ZERO_SEED:-42}"
 if [[ -n "${OAT_ZERO_RND_SEED:-}" ]]; then
   RND_SEED="${OAT_ZERO_RND_SEED}"
@@ -65,23 +68,43 @@ ALLOW_NO_EVAL="${OAT_ZERO_ALLOW_NO_EVAL:-0}"
 MAX_EVAL_STEPS_ALLOWED="${OAT_ZERO_MAX_EVAL_STEPS_ALLOWED:-1000}"
 MAX_NORM="${OAT_ZERO_MAX_NORM:-1.0}"
 IGNORE_NO_EOS="${OAT_ZERO_IGNORE_NO_EOS:-0}"
-MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-1.0}"
+MAXENT_TAU="${OAT_ZERO_MAXENT_TAU:-0.3}"
 MAXENT_Q_TEMPERATURE="${OAT_ZERO_MAXENT_Q_TEMPERATURE:-2.0}"
 MAXENT_Q_EPSILON="${OAT_ZERO_MAXENT_Q_EPSILON:-1e-6}"
 MAXENT_CANDIDATE_KL_COEF="${OAT_ZERO_MAXENT_CANDIDATE_KL_COEF:-0.0}"
-MAXENT_SEMANTIC_SIMILARITY_THRESHOLD="${OAT_ZERO_MAXENT_SEMANTIC_SIMILARITY_THRESHOLD:-0.90}"
+MAXENT_SEMANTIC_SIMILARITY_THRESHOLD="${OAT_ZERO_MAXENT_SEMANTIC_SIMILARITY_THRESHOLD:-0.75}"
+MAXENT_SEMANTIC_EMBEDDING_SIMILARITY_THRESHOLD="${OAT_ZERO_MAXENT_SEMANTIC_EMBEDDING_SIMILARITY_THRESHOLD:-0.9}"
+MAXENT_SEMANTIC_CLUSTER_METHOD="${OAT_ZERO_MAXENT_SEMANTIC_CLUSTER_METHOD:-default}"
 MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS="${OAT_ZERO_MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS:-512}"
+MAXENT_SEMANTIC_CLUSTER_MAX_TOKENS="${OAT_ZERO_MAXENT_SEMANTIC_CLUSTER_MAX_TOKENS:-0}"
+MAXENT_SEMANTIC_SPECTRAL_MAX_CLUSTERS="${OAT_ZERO_MAXENT_SEMANTIC_SPECTRAL_MAX_CLUSTERS:-0}"
+MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN="${OAT_ZERO_MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN:-0.05}"
+MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC="${OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC:-0.5}"
+MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS="${OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS:-4.0}"
+MAXENT_SEMANTIC_REMIX_MODE="${OAT_ZERO_MAXENT_SEMANTIC_REMIX_MODE:-competitive}"
+MAXENT_REWARD_SHAPING_ALPHA="${OAT_ZERO_MAXENT_REWARD_SHAPING_ALPHA:-0.0}"
+MAXENT_TIEBREAK_ANCHOR="${OAT_ZERO_MAXENT_TIEBREAK_ANCHOR:-hybrid}"
+MAXENT_TIEBREAK_CLIP_MAX="${OAT_ZERO_MAXENT_TIEBREAK_CLIP_MAX:-1.0}"
 MAXENT_COMPETITIVE_MODE_TAU="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_TAU:-0.05}"
 MAXENT_COMPETITIVE_MODE_GAP="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_GAP:-0.10}"
-MAXENT_COMPETITIVE_MODE_TOP_K="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_TOP_K:-6}"
+MAXENT_COMPETITIVE_MODE_TOP_K="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_TOP_K:-3}"
 MAXENT_COMPETITIVE_MODE_BUDGET_MAX="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_BUDGET_MAX:-0.10}"
 MAXENT_COMPETITIVE_MODE_BUDGET_SCALE="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_BUDGET_SCALE:-0.05}"
 MAXENT_COMPETITIVE_MODE_INTRA_TAU="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_INTRA_TAU:-0.01}"
 MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC="${OAT_ZERO_MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC:-0.5}"
 MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY="${OAT_ZERO_MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY:-1}"
-MAXENT_VERIFIED_DISTINCT_BONUS_COEF="${OAT_ZERO_MAXENT_VERIFIED_DISTINCT_BONUS_COEF:-0.0}"
-MAXENT_VERIFIED_DISTINCT_MIN_MODES="${OAT_ZERO_MAXENT_VERIFIED_DISTINCT_MIN_MODES:-2}"
-MAXENT_VERIFIED_DISTINCT_REWARD_THRESHOLD="${OAT_ZERO_MAXENT_VERIFIED_DISTINCT_REWARD_THRESHOLD:-0.999}"
+MAXENT_CORRECTNESS_SCHEDULE_ENABLED="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_ENABLED:-1}"
+MAXENT_CORRECTNESS_SCHEDULE_EMA_DECAY="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_EMA_DECAY:-0.997}"
+MAXENT_CORRECTNESS_SCHEDULE_LOW="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_LOW:-0.45}"
+MAXENT_CORRECTNESS_SCHEDULE_HIGH="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_HIGH:-0.90}"
+MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_EARLY="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_EARLY:-0.18}"
+MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_LATE="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_LATE:-0.06}"
+MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_EARLY="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_EARLY:-0.20}"
+MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_LATE="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_LATE:-0.50}"
+MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_EARLY="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_EARLY:-0.08}"
+MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_LATE="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_LATE:-0.03}"
+MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_EARLY="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_EARLY:-0.03}"
+MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_LATE="${OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_LATE:-0.005}"
 MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA="${OAT_ZERO_MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA:-24}"
 MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP="${OAT_ZERO_MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP:-0.0}"
 DEEPSPEED_ALLGATHER_BUCKET_SIZE="${OAT_ZERO_DEEPSPEED_ALLGATHER_BUCKET_SIZE:-}"
@@ -105,8 +128,10 @@ MAXENT_USE_CLIP_OBJECTIVE="${OAT_ZERO_MAXENT_USE_CLIP_OBJECTIVE:-1}"
 MAXENT_CLIP_OBJECTIVE_COEF="${OAT_ZERO_MAXENT_CLIP_OBJECTIVE_COEF:-1.0}"
 MAXENT_CLIP_PRESERVE_REWARD_MASS="${OAT_ZERO_MAXENT_CLIP_PRESERVE_REWARD_MASS:-0}"
 MAXENT_CLIP_MODE="${OAT_ZERO_MAXENT_CLIP_MODE:-sequence}"
-MAXENT_TOKEN_SURROGATE_PRIMARY="${OAT_ZERO_MAXENT_TOKEN_SURROGATE_PRIMARY:-0}"
+MAXENT_TOKEN_CLIP_PRIMARY="${OAT_ZERO_MAXENT_TOKEN_CLIP_PRIMARY:-0}"
 MAXENT_DRGRPO_TOKEN_PRIMARY="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_PRIMARY:-0}"
+MAXENT_DRGRPO_TOKEN_ADVANTAGE_SOURCE="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_ADVANTAGE_SOURCE:-weighted}"
+MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER:-max_length}"
 MAXENT_SEQUENCE_AUX_COEF="${OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF:-1.0}"
 MAXENT_NEUTRAL_PROJECTION_COEF="${OAT_ZERO_MAXENT_NEUTRAL_PROJECTION_COEF:-0.0}"
 MAXENT_BRANCH_GRAD_DIAGNOSTICS="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS:-0}"
@@ -199,6 +224,30 @@ case "$OBJECTIVE" in
     ;;
 esac
 
+case "$CRITIC_TYPE" in
+  ppo|grpo|drgrpo) ;;
+  *)
+    echo "OAT_ZERO_CRITIC_TYPE must be one of: ppo, grpo, drgrpo" >&2
+    exit 1
+    ;;
+esac
+
+case "$MAXENT_TIEBREAK_ANCHOR" in
+  hybrid|behavior|reference) ;;
+  *)
+    echo "OAT_ZERO_MAXENT_TIEBREAK_ANCHOR must be one of: hybrid, behavior, reference" >&2
+    exit 1
+    ;;
+esac
+
+case "$MAXENT_SEMANTIC_REMIX_MODE" in
+  competitive|anchor_rare) ;;
+  *)
+    echo "OAT_ZERO_MAXENT_SEMANTIC_REMIX_MODE must be one of: competitive, anchor_rare" >&2
+    exit 1
+    ;;
+esac
+
 case "$MAXENT_REFERENCE_LOGPROBS_SOURCE" in
   model|behavior) ;;
   *)
@@ -219,6 +268,22 @@ case "$IGNORE_NO_EOS" in
   0|1) ;;
   *)
     echo "OAT_ZERO_IGNORE_NO_EOS must be 0 or 1" >&2
+    exit 1
+    ;;
+esac
+
+case "$MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY" in
+  0|1) ;;
+  *)
+    echo "OAT_ZERO_MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY must be 0 or 1" >&2
+    exit 1
+    ;;
+esac
+
+case "$MAXENT_CORRECTNESS_SCHEDULE_ENABLED" in
+  0|1) ;;
+  *)
+    echo "OAT_ZERO_MAXENT_CORRECTNESS_SCHEDULE_ENABLED must be 0 or 1" >&2
     exit 1
     ;;
 esac
@@ -446,6 +511,7 @@ if [[ "$REQUIRE_FULL_EVAL_CHECKPOINTS" == "1" ]] && [[ "$ALLOW_NO_EVAL" != "1" ]
   fi
 fi
 
+ROW_SHARDED_EXACT_DRX=0
 if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
   if (( NUM_SAMPLES <= 1 )); then
     echo "Listwise MaxEnt requires OAT_ZERO_NUM_SAMPLES > 1" >&2
@@ -455,8 +521,15 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     echo "Listwise MaxEnt requires OAT_ZERO_TRAIN_BATCH_SIZE_PER_DEVICE > 0" >&2
     exit 1
   fi
-  if (( TRAIN_BATCH_SIZE_PER_DEVICE % NUM_SAMPLES != 0 )); then
-    echo "Listwise MaxEnt requires OAT_ZERO_TRAIN_BATCH_SIZE_PER_DEVICE to be divisible by OAT_ZERO_NUM_SAMPLES" >&2
+  if (( TRAIN_BATCH_SIZE_PER_DEVICE < NUM_SAMPLES )); then
+    ROW_SHARDED_EXACT_DRX=1
+  fi
+  if (( TRAIN_BATCH_SIZE_PER_DEVICE % NUM_SAMPLES != 0 )) && (( ROW_SHARDED_EXACT_DRX == 0 )); then
+    echo "Listwise MaxEnt requires OAT_ZERO_TRAIN_BATCH_SIZE_PER_DEVICE to be divisible by OAT_ZERO_NUM_SAMPLES, unless enabling the row-sharded exact DrX path with OAT_ZERO_TRAIN_BATCH_SIZE_PER_DEVICE < OAT_ZERO_NUM_SAMPLES." >&2
+    exit 1
+  fi
+  if (( ROW_SHARDED_EXACT_DRX == 1 )) && (( N_GPU != NUM_SAMPLES )); then
+    echo "The row-sharded exact DrX path currently requires OAT_ZERO_N_GPU == OAT_ZERO_NUM_SAMPLES so each rank owns exactly one candidate row." >&2
     exit 1
   fi
 fi
@@ -731,6 +804,7 @@ echo "[oat-zero-exact] resume_dir=${RESUME_DIR:-<unset>}"
 echo "[oat-zero-exact] resume_tag=${RESUME_TAG:-<unset>}"
 echo "[oat-zero-exact] wb_project=${WB_PROJECT}"
 echo "[oat-zero-exact] wb_run_name=${WB_RUN_NAME}"
+echo "[oat-zero-exact] wandb_run_id=${OAT_ZERO_WANDB_RUN_ID:-${WANDB_RUN_ID:-<unset>}}"
 echo "[oat-zero-exact] use_wb=${USE_WB}"
 echo "[oat-zero-exact] prompt_data=${PROMPT_DATA}"
 echo "[oat-zero-exact] eval_data=${EVAL_DATA}"
@@ -775,6 +849,7 @@ echo "[oat-zero-exact] max_save_num=${MAX_SAVE_NUM}"
 echo "[oat-zero-exact] max_save_mem=${MAX_SAVE_MEM}"
 echo "[oat-zero-exact] allow_no_eval=${ALLOW_NO_EVAL}"
 echo "[oat-zero-exact] max_eval_steps_allowed=${MAX_EVAL_STEPS_ALLOWED}"
+echo "[oat-zero-exact] critic_type=${CRITIC_TYPE}"
 echo "[oat-zero-exact] maxent_tau=${MAXENT_TAU}"
 echo "[oat-zero-exact] maxent_tau_learnable=${MAXENT_TAU_LEARNABLE}"
 echo "[oat-zero-exact] maxent_tau_controller_enabled=${MAXENT_TAU_CONTROLLER_ENABLED}"
@@ -790,7 +865,19 @@ echo "[oat-zero-exact] maxent_q_temperature=${MAXENT_Q_TEMPERATURE}"
 echo "[oat-zero-exact] maxent_q_epsilon=${MAXENT_Q_EPSILON}"
 echo "[oat-zero-exact] maxent_candidate_kl_coef=${MAXENT_CANDIDATE_KL_COEF}"
 echo "[oat-zero-exact] maxent_semantic_similarity_threshold=${MAXENT_SEMANTIC_SIMILARITY_THRESHOLD}"
+echo "[oat-zero-exact] maxent_semantic_embedding_similarity_threshold=${MAXENT_SEMANTIC_EMBEDDING_SIMILARITY_THRESHOLD}"
+echo "[oat-zero-exact] maxent_semantic_cluster_method=${MAXENT_SEMANTIC_CLUSTER_METHOD}"
 echo "[oat-zero-exact] maxent_semantic_embedding_max_tokens=${MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS}"
+echo "[oat-zero-exact] maxent_semantic_cluster_max_tokens=${MAXENT_SEMANTIC_CLUSTER_MAX_TOKENS}"
+echo "[oat-zero-exact] maxent_semantic_spectral_max_clusters=${MAXENT_SEMANTIC_SPECTRAL_MAX_CLUSTERS}"
+echo "[oat-zero-exact] maxent_semantic_spectral_eigengap_min=${MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN}"
+echo "[oat-zero-exact] maxent_semantic_correctness_target_frac=${MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC}"
+echo "[oat-zero-exact] maxent_semantic_correctness_sharpness=${MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS}"
+echo "[oat-zero-exact] maxent_semantic_remix_mode=${MAXENT_SEMANTIC_REMIX_MODE}"
+echo "[oat-zero-exact] semantic_entropy_lambda=${SEMANTIC_ENTROPY_LAMBDA}"
+echo "[oat-zero-exact] maxent_reward_shaping_alpha=${MAXENT_REWARD_SHAPING_ALPHA}"
+echo "[oat-zero-exact] maxent_tiebreak_anchor=${MAXENT_TIEBREAK_ANCHOR}"
+echo "[oat-zero-exact] maxent_tiebreak_clip_max=${MAXENT_TIEBREAK_CLIP_MAX}"
 echo "[oat-zero-exact] maxent_competitive_mode_tau=${MAXENT_COMPETITIVE_MODE_TAU}"
 echo "[oat-zero-exact] maxent_competitive_mode_gap=${MAXENT_COMPETITIVE_MODE_GAP}"
 echo "[oat-zero-exact] maxent_competitive_mode_top_k=${MAXENT_COMPETITIVE_MODE_TOP_K}"
@@ -799,9 +886,18 @@ echo "[oat-zero-exact] maxent_competitive_mode_budget_scale=${MAXENT_COMPETITIVE
 echo "[oat-zero-exact] maxent_competitive_mode_intra_tau=${MAXENT_COMPETITIVE_MODE_INTRA_TAU}"
 echo "[oat-zero-exact] maxent_prompt_select_min_alpha_frac=${MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC}"
 echo "[oat-zero-exact] maxent_competitive_mode_positive_only=${MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY}"
-echo "[oat-zero-exact] maxent_verified_distinct_bonus_coef=${MAXENT_VERIFIED_DISTINCT_BONUS_COEF}"
-echo "[oat-zero-exact] maxent_verified_distinct_min_modes=${MAXENT_VERIFIED_DISTINCT_MIN_MODES}"
-echo "[oat-zero-exact] maxent_verified_distinct_reward_threshold=${MAXENT_VERIFIED_DISTINCT_REWARD_THRESHOLD}"
+echo "[oat-zero-exact] maxent_correctness_schedule_enabled=${MAXENT_CORRECTNESS_SCHEDULE_ENABLED}"
+echo "[oat-zero-exact] maxent_correctness_schedule_ema_decay=${MAXENT_CORRECTNESS_SCHEDULE_EMA_DECAY}"
+echo "[oat-zero-exact] maxent_correctness_schedule_low=${MAXENT_CORRECTNESS_SCHEDULE_LOW}"
+echo "[oat-zero-exact] maxent_correctness_schedule_high=${MAXENT_CORRECTNESS_SCHEDULE_HIGH}"
+echo "[oat-zero-exact] maxent_correctness_schedule_budget_max_early=${MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_EARLY}"
+echo "[oat-zero-exact] maxent_correctness_schedule_budget_max_late=${MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_LATE}"
+echo "[oat-zero-exact] maxent_correctness_schedule_prompt_select_min_alpha_frac_early=${MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_EARLY}"
+echo "[oat-zero-exact] maxent_correctness_schedule_prompt_select_min_alpha_frac_late=${MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_LATE}"
+echo "[oat-zero-exact] maxent_correctness_schedule_mode_tau_early=${MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_EARLY}"
+echo "[oat-zero-exact] maxent_correctness_schedule_mode_tau_late=${MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_LATE}"
+echo "[oat-zero-exact] maxent_correctness_schedule_intra_tau_early=${MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_EARLY}"
+echo "[oat-zero-exact] maxent_correctness_schedule_intra_tau_late=${MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_LATE}"
 echo "[oat-zero-exact] maxent_semantic_guard_max_expected_len_delta=${MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA}"
 echo "[oat-zero-exact] maxent_semantic_guard_max_expected_format_drop=${MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP}"
 echo "[oat-zero-exact] maxent_exact_drx_weight_source=${MAXENT_EXACT_DRX_WEIGHT_SOURCE}"
@@ -815,8 +911,11 @@ echo "[oat-zero-exact] maxent_use_clip_objective=${MAXENT_USE_CLIP_OBJECTIVE}"
 echo "[oat-zero-exact] maxent_clip_objective_coef=${MAXENT_CLIP_OBJECTIVE_COEF}"
 echo "[oat-zero-exact] maxent_clip_preserve_reward_mass=${MAXENT_CLIP_PRESERVE_REWARD_MASS}"
 echo "[oat-zero-exact] maxent_clip_mode=${MAXENT_CLIP_MODE}"
-echo "[oat-zero-exact] maxent_token_surrogate_primary=${MAXENT_TOKEN_SURROGATE_PRIMARY}"
+echo "[oat-zero-exact] maxent_token_clip_primary=${MAXENT_TOKEN_CLIP_PRIMARY}"
 echo "[oat-zero-exact] maxent_drgrpo_token_primary=${MAXENT_DRGRPO_TOKEN_PRIMARY}"
+echo "[oat-zero-exact] maxent_drgrpo_token_advantage_source=${MAXENT_DRGRPO_TOKEN_ADVANTAGE_SOURCE}"
+echo "[oat-zero-exact] maxent_drgrpo_token_length_normalizer=${MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER}"
+echo "[oat-zero-exact] row_sharded_exact_drx=${ROW_SHARDED_EXACT_DRX}"
 echo "[oat-zero-exact] maxent_sequence_aux_coef=${MAXENT_SEQUENCE_AUX_COEF}"
 echo "[oat-zero-exact] maxent_neutral_projection_coef=${MAXENT_NEUTRAL_PROJECTION_COEF}"
 echo "[oat-zero-exact] maxent_branch_grad_diagnostics=${MAXENT_BRANCH_GRAD_DIAGNOSTICS}"
@@ -888,6 +987,11 @@ if [[ "$MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY" == "1" ]]; then
   maxent_competitive_mode_positive_only_flag=(--maxent-competitive-mode-positive-only)
 fi
 
+maxent_correctness_schedule_enabled_flag=(--no-maxent-correctness-schedule-enabled)
+if [[ "$MAXENT_CORRECTNESS_SCHEDULE_ENABLED" == "1" ]]; then
+  maxent_correctness_schedule_enabled_flag=(--maxent-correctness-schedule-enabled)
+fi
+
 maxent_use_clip_objective_flag=(--no-maxent-use-clip-objective)
 if [[ "$MAXENT_USE_CLIP_OBJECTIVE" == "1" ]]; then
   maxent_use_clip_objective_flag=(--maxent-use-clip-objective)
@@ -898,9 +1002,9 @@ if [[ "$MAXENT_CLIP_PRESERVE_REWARD_MASS" == "1" ]]; then
   maxent_clip_preserve_reward_mass_flag=(--maxent-clip-preserve-reward-mass)
 fi
 
-maxent_token_surrogate_primary_flag=(--no-maxent-token-surrogate-primary)
-if [[ "$MAXENT_TOKEN_SURROGATE_PRIMARY" == "1" ]]; then
-  maxent_token_surrogate_primary_flag=(--maxent-token-surrogate-primary)
+maxent_token_clip_primary_flag=(--no-maxent-token-clip-primary)
+if [[ "$MAXENT_TOKEN_CLIP_PRIMARY" == "1" ]]; then
+  maxent_token_clip_primary_flag=(--maxent-token-clip-primary)
 fi
 
 maxent_drgrpo_token_primary_flag=(--no-maxent-drgrpo-token-primary)
@@ -947,7 +1051,19 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     --maxent-q-epsilon "$MAXENT_Q_EPSILON"
     --maxent-candidate-kl-coef "$MAXENT_CANDIDATE_KL_COEF"
     --maxent-semantic-similarity-threshold "$MAXENT_SEMANTIC_SIMILARITY_THRESHOLD"
+    --maxent-semantic-embedding-similarity-threshold "$MAXENT_SEMANTIC_EMBEDDING_SIMILARITY_THRESHOLD"
+    --maxent-semantic-cluster-method "$MAXENT_SEMANTIC_CLUSTER_METHOD"
     --maxent-semantic-embedding-max-tokens "$MAXENT_SEMANTIC_EMBEDDING_MAX_TOKENS"
+    --maxent-semantic-cluster-max-tokens "$MAXENT_SEMANTIC_CLUSTER_MAX_TOKENS"
+    --maxent-semantic-spectral-max-clusters "$MAXENT_SEMANTIC_SPECTRAL_MAX_CLUSTERS"
+    --maxent-semantic-spectral-eigengap-min "$MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN"
+    --maxent-semantic-correctness-target-frac "$MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC"
+    --maxent-semantic-correctness-sharpness "$MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS"
+    --maxent-semantic-remix-mode "$MAXENT_SEMANTIC_REMIX_MODE"
+    --semantic-entropy-lambda "$SEMANTIC_ENTROPY_LAMBDA"
+    --maxent-reward-shaping-alpha "$MAXENT_REWARD_SHAPING_ALPHA"
+    --maxent-tiebreak-anchor "$MAXENT_TIEBREAK_ANCHOR"
+    --maxent-tiebreak-clip-max "$MAXENT_TIEBREAK_CLIP_MAX"
     --maxent-competitive-mode-tau "$MAXENT_COMPETITIVE_MODE_TAU"
     --maxent-competitive-mode-gap "$MAXENT_COMPETITIVE_MODE_GAP"
     --maxent-competitive-mode-top-k "$MAXENT_COMPETITIVE_MODE_TOP_K"
@@ -956,9 +1072,18 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     --maxent-competitive-mode-intra-tau "$MAXENT_COMPETITIVE_MODE_INTRA_TAU"
     --maxent-prompt-select-min-alpha-frac "$MAXENT_PROMPT_SELECT_MIN_ALPHA_FRAC"
     "${maxent_competitive_mode_positive_only_flag[@]}"
-    --maxent-verified-distinct-bonus-coef "$MAXENT_VERIFIED_DISTINCT_BONUS_COEF"
-    --maxent-verified-distinct-min-modes "$MAXENT_VERIFIED_DISTINCT_MIN_MODES"
-    --maxent-verified-distinct-reward-threshold "$MAXENT_VERIFIED_DISTINCT_REWARD_THRESHOLD"
+    "${maxent_correctness_schedule_enabled_flag[@]}"
+    --maxent-correctness-schedule-ema-decay "$MAXENT_CORRECTNESS_SCHEDULE_EMA_DECAY"
+    --maxent-correctness-schedule-low "$MAXENT_CORRECTNESS_SCHEDULE_LOW"
+    --maxent-correctness-schedule-high "$MAXENT_CORRECTNESS_SCHEDULE_HIGH"
+    --maxent-correctness-schedule-budget-max-early "$MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_EARLY"
+    --maxent-correctness-schedule-budget-max-late "$MAXENT_CORRECTNESS_SCHEDULE_BUDGET_MAX_LATE"
+    --maxent-correctness-schedule-prompt-select-min-alpha-frac-early "$MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_EARLY"
+    --maxent-correctness-schedule-prompt-select-min-alpha-frac-late "$MAXENT_CORRECTNESS_SCHEDULE_PROMPT_SELECT_MIN_ALPHA_FRAC_LATE"
+    --maxent-correctness-schedule-mode-tau-early "$MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_EARLY"
+    --maxent-correctness-schedule-mode-tau-late "$MAXENT_CORRECTNESS_SCHEDULE_MODE_TAU_LATE"
+    --maxent-correctness-schedule-intra-tau-early "$MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_EARLY"
+    --maxent-correctness-schedule-intra-tau-late "$MAXENT_CORRECTNESS_SCHEDULE_INTRA_TAU_LATE"
     --maxent-semantic-guard-max-expected-len-delta "$MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_LEN_DELTA"
     --maxent-semantic-guard-max-expected-format-drop "$MAXENT_SEMANTIC_GUARD_MAX_EXPECTED_FORMAT_DROP"
     --maxent-exact-drx-weight-source "$MAXENT_EXACT_DRX_WEIGHT_SOURCE"
@@ -979,8 +1104,10 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     "${maxent_skip_zero_variance_flag[@]}"
     "${maxent_use_clip_objective_flag[@]}"
     "${maxent_clip_preserve_reward_mass_flag[@]}"
-    "${maxent_token_surrogate_primary_flag[@]}"
+    "${maxent_token_clip_primary_flag[@]}"
     "${maxent_drgrpo_token_primary_flag[@]}"
+    --maxent-drgrpo-token-advantage-source "$MAXENT_DRGRPO_TOKEN_ADVANTAGE_SOURCE"
+    --maxent-drgrpo-token-length-normalizer "$MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER"
     --maxent-sequence-aux-coef "$MAXENT_SEQUENCE_AUX_COEF"
     --maxent-neutral-projection-coef "$MAXENT_NEUTRAL_PROJECTION_COEF"
     "${maxent_branch_grad_diagnostics_flag[@]}"
@@ -1030,12 +1157,12 @@ seed_args=()
 if [[ "$RND_SEED" == "1" ]]; then
   seed_args+=(--rnd-seed)
 else
-  seed_args+=(--seed "$SEED")
+  seed_args+=(--no-rnd-seed --seed "$SEED")
 fi
 
 cmd=(
   "$PYTHON_BIN" -m "$TRAINER_MODULE"
-  --critic_type drgrpo
+  --critic_type "$CRITIC_TYPE"
   --gpus "$N_GPU"
   --enable_prefix_caching
   --vllm_gpu_ratio "$VLLM_GPU_RATIO"

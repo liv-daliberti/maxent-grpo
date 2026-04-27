@@ -11,6 +11,11 @@ def _tensor(values):
     return torch.tensor(values, dtype=torch.float32)
 
 
+def _unit_embeddings(values) -> torch.Tensor:
+    embeddings = torch.tensor(values, dtype=torch.float32)
+    return embeddings / embeddings.norm(dim=-1, keepdim=True).clamp(min=1e-12)
+
+
 def _base_weights(
     utility_grouped: torch.Tensor,
     ref_seq_logps_grouped: torch.Tensor,
@@ -33,6 +38,7 @@ def _run_semantic(
     cluster_ids_grouped: torch.Tensor,
     *,
     ref_seq_logps_grouped: torch.Tensor | None = None,
+    semantic_mass_weights_grouped: torch.Tensor | None = None,
     candidate_correctness_grouped: torch.Tensor | None = None,
     candidate_lengths_grouped: torch.Tensor | None = None,
     candidate_formatted_grouped: torch.Tensor | None = None,
@@ -46,12 +52,10 @@ def _run_semantic(
     candidate_kl_coef: float = 0.0,
     prompt_select_min_alpha_frac: float = 0.0,
     positive_only: bool = False,
-    verified_distinct_bonus_coef: float = 0.0,
-    verified_distinct_min_modes: int = 2,
-    verified_distinct_reward_threshold: float = 0.999,
     max_expected_len_delta: float = float("inf"),
     max_expected_format_drop: float = 0.0,
     valid_row_mask_grouped: torch.Tensor | None = None,
+    semantic_remix_mode: str = "competitive",
 ) -> tuple[torch.Tensor, object]:
     if ref_seq_logps_grouped is None:
         ref_seq_logps_grouped = torch.zeros_like(utility_grouped)
@@ -67,6 +71,7 @@ def _run_semantic(
         utility_grouped=utility_grouped,
         ref_seq_logps_grouped=ref_seq_logps_grouped,
         cluster_ids_grouped=cluster_ids_grouped,
+        semantic_mass_weights_grouped=semantic_mass_weights_grouped,
         candidate_correctness_grouped=candidate_correctness_grouped,
         candidate_lengths_grouped=candidate_lengths_grouped,
         candidate_formatted_grouped=candidate_formatted_grouped,
@@ -80,12 +85,10 @@ def _run_semantic(
         candidate_kl_coef=candidate_kl_coef,
         prompt_select_min_alpha_frac=prompt_select_min_alpha_frac,
         positive_only=positive_only,
-        verified_distinct_bonus_coef=verified_distinct_bonus_coef,
-        verified_distinct_min_modes=verified_distinct_min_modes,
-        verified_distinct_reward_threshold=verified_distinct_reward_threshold,
         max_expected_len_delta=max_expected_len_delta,
         max_expected_format_drop=max_expected_format_drop,
         valid_row_mask_grouped=valid_row_mask_grouped,
+        semantic_remix_mode=semantic_remix_mode,
     )
 
 
@@ -139,6 +142,53 @@ def test_same_answer_signatures_split_when_jaccard_is_low():
     torch.testing.assert_close(
         bundle.num_clusters_per_group,
         torch.tensor([2], dtype=torch.long),
+    )
+
+
+def test_same_answer_rows_merge_when_embedding_cosine_is_high():
+    bundle = build_semantic_cluster_bundle(
+        final_answer_keys_grouped=[["42", "42"]],
+        reasoning_signature_keys_grouped=[["a || b", "x || y"]],
+        reasoning_trace_embeddings_grouped=_unit_embeddings(
+            [[[1.0, 0.0], [0.95, 0.05]]]
+        ),
+        reasoning_trace_valid_row_mask_grouped=torch.tensor(
+            [[True, True]], dtype=torch.bool
+        ),
+        valid_row_mask_grouped=torch.tensor([[True, True]], dtype=torch.bool),
+        signature_jaccard_merge_threshold=0.75,
+        embedding_cosine_merge_threshold=0.9,
+    )
+
+    torch.testing.assert_close(
+        bundle.cluster_ids_grouped,
+        torch.tensor([[0, 0]], dtype=torch.long),
+    )
+    torch.testing.assert_close(
+        bundle.num_clusters_per_group,
+        torch.tensor([1], dtype=torch.long),
+    )
+
+
+def test_rows_without_any_semantic_signal_stay_conservative_when_bucket_has_embedding():
+    bundle = build_semantic_cluster_bundle(
+        final_answer_keys_grouped=[["42", "42"]],
+        reasoning_signature_keys_grouped=[[None, None]],
+        reasoning_trace_embeddings_grouped=_unit_embeddings([[[1.0, 0.0], [0.0, 1.0]]]),
+        reasoning_trace_valid_row_mask_grouped=torch.tensor(
+            [[True, False]], dtype=torch.bool
+        ),
+        valid_row_mask_grouped=torch.tensor([[True, True]], dtype=torch.bool),
+        embedding_cosine_merge_threshold=0.9,
+    )
+
+    torch.testing.assert_close(
+        bundle.cluster_ids_grouped,
+        torch.tensor([[0, -1]], dtype=torch.long),
+    )
+    torch.testing.assert_close(
+        bundle.semantic_valid_row_mask_grouped,
+        torch.tensor([[True, False]], dtype=torch.bool),
     )
 
 
@@ -262,6 +312,105 @@ def test_unlabeled_rows_preserve_exact_baseline_mass():
     torch.testing.assert_close(weights[0, 3], base[0, 3], atol=1e-7, rtol=0.0)
 
 
+def test_anchor_rare_remix_boosts_underrepresented_semantic_modes_from_base_weights():
+    utility = _tensor([[1.0, 0.99, 0.20]])
+    ref = torch.zeros_like(utility)
+    cluster_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
+    valid = torch.ones_like(utility, dtype=torch.bool)
+    budget = _tensor([1.0])
+
+    base = _base_weights(utility, ref, valid_row_mask_grouped=valid)
+    weights, diag = _run_semantic(
+        utility,
+        cluster_ids,
+        ref_seq_logps_grouped=ref,
+        valid_row_mask_grouped=valid,
+        budget_grouped=budget,
+        budget_max=1.0,
+        semantic_remix_mode="anchor_rare",
+    )
+
+    assert bool(diag.explore_applied_group_mask[0].item())
+    assert _cluster_mass(weights, cluster_ids, 1) > _cluster_mass(base, cluster_ids, 1)
+
+
+def test_anchor_rare_remix_ignores_candidate_correctness_labels():
+    utility = _tensor([[1.0, 0.99, 0.20]])
+    cluster_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
+    budget = _tensor([1.0])
+
+    weights_zeros, _ = _run_semantic(
+        utility,
+        cluster_ids,
+        candidate_correctness_grouped=_tensor([[0.0, 0.0, 0.0]]),
+        budget_grouped=budget,
+        budget_max=1.0,
+        semantic_remix_mode="anchor_rare",
+    )
+    weights_ones, _ = _run_semantic(
+        utility,
+        cluster_ids,
+        candidate_correctness_grouped=_tensor([[1.0, 1.0, 1.0]]),
+        budget_grouped=budget,
+        budget_max=1.0,
+        semantic_remix_mode="anchor_rare",
+    )
+
+    torch.testing.assert_close(weights_zeros, weights_ones, atol=1e-7, rtol=0.0)
+
+
+def test_anchor_rare_remix_preserves_unlabeled_baseline_mass():
+    utility = _tensor([[1.0, 0.99, 0.20, 0.10]])
+    ref = torch.zeros_like(utility)
+    cluster_ids = torch.tensor([[0, 0, 1, -1]], dtype=torch.long)
+    valid = torch.ones_like(utility, dtype=torch.bool)
+    budget = _tensor([1.0])
+
+    base = _base_weights(utility, ref, valid_row_mask_grouped=valid)
+    weights, _ = _run_semantic(
+        utility,
+        cluster_ids,
+        ref_seq_logps_grouped=ref,
+        valid_row_mask_grouped=valid,
+        budget_grouped=budget,
+        budget_max=1.0,
+        semantic_remix_mode="anchor_rare",
+    )
+
+    torch.testing.assert_close(weights[0, 3], base[0, 3], atol=1e-7, rtol=0.0)
+
+
+def test_anchor_rare_remix_can_use_external_anchor_mass_weights():
+    utility = _tensor([[0.90, 0.80, 1.20]])
+    ref = torch.zeros_like(utility)
+    cluster_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
+    valid = torch.ones_like(utility, dtype=torch.bool)
+    budget = _tensor([1.0])
+    external_anchor_mass = _tensor([[0.49, 0.49, 0.02]])
+
+    weights_default, _ = _run_semantic(
+        utility,
+        cluster_ids,
+        ref_seq_logps_grouped=ref,
+        valid_row_mask_grouped=valid,
+        budget_grouped=budget,
+        budget_max=1.0,
+        semantic_remix_mode="anchor_rare",
+    )
+    weights_anchor, _ = _run_semantic(
+        utility,
+        cluster_ids,
+        ref_seq_logps_grouped=ref,
+        semantic_mass_weights_grouped=external_anchor_mass,
+        valid_row_mask_grouped=valid,
+        budget_grouped=budget,
+        budget_max=1.0,
+        semantic_remix_mode="anchor_rare",
+    )
+
+    assert weights_anchor[0, 2] > weights_default[0, 2]
+
+
 def test_only_labeled_semantic_mass_is_remixed():
     utility = _tensor([[1.0, 0.97, 0.96, 0.20]])
     ref = torch.zeros_like(utility)
@@ -287,7 +436,12 @@ def test_only_labeled_semantic_mass_is_remixed():
         atol=1e-6,
         rtol=0.0,
     )
-    assert float(torch.abs(weights[0, semantic_mask] - base[0, semantic_mask]).sum().item()) > 0.0
+    assert (
+        float(
+            torch.abs(weights[0, semantic_mask] - base[0, semantic_mask]).sum().item()
+        )
+        > 0.0
+    )
 
 
 def test_gap_excludes_low_utility_modes_from_semantic_exploration():
@@ -353,10 +507,27 @@ def test_within_mode_near_ties_use_smooth_positive_split():
         budget_grouped=budget,
         budget_max=1.0,
         mode_gap=1.0,
-        intra_tau=0.01,
     )
 
     assert float(weights[0, 0].item()) > float(weights[0, 1].item()) > 0.0
+
+
+def test_length_does_not_override_soft_within_mode_split():
+    utility = _tensor([[0.95, 1.0, 0.97]])
+    cluster_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
+    lengths = _tensor([[4.0, 12.0, 20.0]])
+    budget = _tensor([1.0])
+
+    weights, _ = _run_semantic(
+        utility,
+        cluster_ids,
+        candidate_lengths_grouped=lengths,
+        budget_grouped=budget,
+        budget_max=1.0,
+        mode_gap=1.0,
+    )
+
+    assert float(weights[0, 1].item()) > float(weights[0, 0].item()) > 0.0
 
 
 def test_final_weights_are_normalized_and_nonnegative():
@@ -505,7 +676,7 @@ def test_positive_only_filter_excludes_nonpositive_modes():
     )
 
 
-def test_verified_bonus_requires_multiple_distinct_correct_modes():
+def test_distinct_correct_mode_count_requires_multiple_distinct_correct_modes():
     utility = _tensor([[1.0, 0.98, 0.96]])
     cluster_ids = torch.tensor([[0, 1, 2]], dtype=torch.long)
     correctness = _tensor([[1.0, 0.0, 0.0]])
@@ -518,51 +689,32 @@ def test_verified_bonus_requires_multiple_distinct_correct_modes():
         budget_grouped=budget,
         budget_max=0.10,
         prompt_select_min_alpha_frac=0.5,
-        verified_distinct_bonus_coef=0.5,
     )
 
     assert float(diag.distinct_correct_mode_count_grouped[0].item()) == 1.0
-    assert float(diag.verified_bonus_grouped[0].item()) == 0.0
-    assert not bool(diag.verified_bonus_applied_group_mask[0].item())
     torch.testing.assert_close(weights.sum(dim=1), torch.ones(1), atol=1e-6, rtol=0.0)
 
 
-def test_verified_bonus_increases_moved_mass_for_multiple_correct_modes():
+def test_distinct_correct_mode_count_recognizes_multiple_correct_modes():
     utility = _tensor([[1.0, 0.99, 0.97]])
     cluster_ids = torch.tensor([[0, 1, 2]], dtype=torch.long)
     correctness = _tensor([[1.0, 1.0, 0.0]])
     budget = _tensor([0.10])
 
-    weights_no_bonus, diag_no_bonus = _run_semantic(
+    weights, diag = _run_semantic(
         utility,
         cluster_ids,
         candidate_correctness_grouped=correctness,
         budget_grouped=budget,
         budget_max=0.10,
         prompt_select_min_alpha_frac=0.5,
-        verified_distinct_bonus_coef=0.0,
-    )
-    weights_bonus, diag_bonus = _run_semantic(
-        utility,
-        cluster_ids,
-        candidate_correctness_grouped=correctness,
-        budget_grouped=budget,
-        budget_max=0.10,
-        prompt_select_min_alpha_frac=0.5,
-        verified_distinct_bonus_coef=0.5,
     )
 
-    assert float(diag_bonus.distinct_correct_mode_count_grouped[0].item()) == 2.0
-    assert bool(diag_bonus.verified_bonus_applied_group_mask[0].item())
-    assert float(diag_bonus.verified_bonus_grouped[0].item()) > 0.0
-    assert float(diag_bonus.moved_mass_l1_grouped[0].item()) > float(
-        diag_no_bonus.moved_mass_l1_grouped[0].item()
-    )
-    torch.testing.assert_close(weights_no_bonus.sum(dim=1), torch.ones(1), atol=1e-6, rtol=0.0)
-    torch.testing.assert_close(weights_bonus.sum(dim=1), torch.ones(1), atol=1e-6, rtol=0.0)
+    assert float(diag.distinct_correct_mode_count_grouped[0].item()) == 2.0
+    torch.testing.assert_close(weights.sum(dim=1), torch.ones(1), atol=1e-6, rtol=0.0)
 
 
-def test_verified_bonus_counts_distinct_modes_not_duplicate_members():
+def test_distinct_correct_mode_count_counts_distinct_modes_not_duplicate_members():
     utility = _tensor([[1.0, 0.999, 0.98]])
     cluster_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
     correctness = _tensor([[1.0, 1.0, 0.0]])
@@ -575,35 +727,6 @@ def test_verified_bonus_counts_distinct_modes_not_duplicate_members():
         budget_grouped=budget,
         budget_max=0.10,
         prompt_select_min_alpha_frac=0.5,
-        verified_distinct_bonus_coef=0.5,
     )
 
     assert float(diag.distinct_correct_mode_count_grouped[0].item()) == 1.0
-    assert not bool(diag.verified_bonus_applied_group_mask[0].item())
-
-
-def test_verified_bonus_is_dropped_when_format_guard_would_fail():
-    utility = _tensor([[0.99, 0.98, 1.0]])
-    cluster_ids = torch.tensor([[0, 1, 2]], dtype=torch.long)
-    correctness = _tensor([[1.0, 1.0, 0.0]])
-    formatted = _tensor([[0.0, 0.0, 1.0]])
-    budget = _tensor([0.10])
-
-    weights, diag = _run_semantic(
-        utility,
-        cluster_ids,
-        candidate_correctness_grouped=correctness,
-        candidate_formatted_grouped=formatted,
-        budget_grouped=budget,
-        budget_max=0.10,
-        prompt_select_min_alpha_frac=0.5,
-        verified_distinct_bonus_coef=0.5,
-        mode_gap=0.10,
-        max_expected_format_drop=0.0,
-    )
-
-    assert bool(diag.prompt_selected_group_mask[0].item())
-    assert bool(diag.prompt_rejected_verified_bonus_format_guard_group_mask[0].item())
-    assert not bool(diag.verified_bonus_applied_group_mask[0].item())
-    assert float(diag.verified_bonus_grouped[0].item()) == 0.0
-    torch.testing.assert_close(weights.sum(dim=1), torch.ones(1), atol=1e-6, rtol=0.0)
