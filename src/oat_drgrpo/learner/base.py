@@ -428,14 +428,22 @@ class ZeroMathLearnerBaseMixin:
             self._logprob_token_chunk_size(),
             max(int(shifted_logits.size(1)), 1),
         )
-        entropy_chunks = []
-        for start in range(0, int(shifted_logits.size(1)), token_chunk_size):
-            stop = min(start + token_chunk_size, int(shifted_logits.size(1)))
-            chunk_logits = shifted_logits[:, start:stop, :]
-            chunk_logits_fp32 = (
-                chunk_logits
-                if chunk_logits.dtype == torch.float32
-                else chunk_logits.float()
+        batch_chunk_size = min(8, max(int(shifted_logits.size(0)), 1))
+        batch_entropy_chunks = []
+        for batch_start in range(0, int(shifted_logits.size(0)), batch_chunk_size):
+            batch_stop = min(
+                batch_start + batch_chunk_size,
+                int(shifted_logits.size(0)),
             )
-            entropy_chunks.append(entropy_from_logits(chunk_logits_fp32))
-        return torch.cat(entropy_chunks, dim=1)
+            token_entropy_chunks = []
+            for start in range(0, int(shifted_logits.size(1)), token_chunk_size):
+                stop = min(start + token_chunk_size, int(shifted_logits.size(1)))
+                chunk_logits = shifted_logits[batch_start:batch_stop, start:stop, :]
+                chunk_logits_fp32 = (
+                    chunk_logits
+                    if chunk_logits.dtype == torch.float32
+                    else chunk_logits.float()
+                )
+                token_entropy_chunks.append(entropy_from_logits(chunk_logits_fp32))
+            batch_entropy_chunks.append(torch.cat(token_entropy_chunks, dim=1))
+        return torch.cat(batch_entropy_chunks, dim=0)

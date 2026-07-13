@@ -6,7 +6,8 @@ import functools
 import itertools
 import logging
 import time
-from multiprocessing import Pool, TimeoutError
+from multiprocessing import TimeoutError
+from multiprocessing.pool import ThreadPool
 from typing import Any
 
 import numpy as np
@@ -15,9 +16,14 @@ import tree
 from oat.algorithms.ppo import PPOActor
 from oat.oracles.base import PreferenceOracleBase, RewardOracleBase
 from oat.types import Metric, TrajectoryData
+from transformers import AutoTokenizer
 
 from .args import ZeroMathArgs
-from .math_grader import answer_tag_reward_fn, boxed_reward_fn
+from .math_grader import (
+    answer_tag_reward_fn,
+    boxed_reward_fn,
+    extract_normalized_final_answer_for_clustering,
+)
 
 
 class MATHOracle(RewardOracleBase, PreferenceOracleBase):
@@ -33,7 +39,9 @@ class MATHOracle(RewardOracleBase, PreferenceOracleBase):
             math_reward_fn,
             fast=verifier_version == "fast",
         )
-        self.mp_pool = Pool(2)
+        # Avoid forking from the actor process after vLLM/CUDA initialization:
+        # native state corruption here can surface later inside tokenizer/NCCL.
+        self.mp_pool = ThreadPool(2)
 
     def get_reward(
         self,
@@ -77,6 +85,7 @@ class MATHOracle(RewardOracleBase, PreferenceOracleBase):
 class ZeroMathActor(PPOActor):
     def __init__(self, ipc_server, vllm_args, args: ZeroMathArgs) -> None:
         super().__init__(ipc_server, vllm_args, args)
+        self._prompt_token_id_cache: dict[str, list[int]] = {}
         # OAT 0.0.9 configures actor sampling in __init__, while newer OAT
         # versions populate these fields in init(actor_id, save_path).
         if hasattr(self, "sampling_params"):
@@ -87,12 +96,32 @@ class ZeroMathActor(PPOActor):
         self._configure_math_actor()
 
     def _configure_math_actor(self) -> None:
+        if not hasattr(self, "_prompt_token_id_cache"):
+            self._prompt_token_id_cache = {}
+        if not hasattr(self, "prompt_tokenizer"):
+            try:
+                self.prompt_tokenizer = AutoTokenizer.from_pretrained(
+                    self.args.pretrain,
+                    trust_remote_code=True,
+                    use_fast=False,
+                )
+                logging.info(
+                    "actor prompt tokenizer type=%s is_fast=%s",
+                    type(self.prompt_tokenizer).__name__,
+                    getattr(self.prompt_tokenizer, "is_fast", None),
+                )
+            except Exception:
+                logging.exception(
+                    "Failed to load slow prompt tokenizer; falling back to actor tokenizer"
+                )
+                self.prompt_tokenizer = self.tokenizer
+
         self.oracle = MATHOracle(
             template=self.args.prompt_template,
             verifier_version=self.args.verifier_version,
         )
 
-        if self.args.prompt_template in ["qwen_math", "no"]:
+        if self.args.prompt_template in ["qwen_boxed", "qwen_math", "no"]:
             self.sampling_params.stop = None
             self.sampling_params.stop_token_ids = None
             self.eval_sampling_params.stop = None
@@ -102,6 +131,89 @@ class ZeroMathActor(PPOActor):
             self.sampling_params.include_stop_str_in_output = True
             self.eval_sampling_params.stop = ["</answer>"]
             self.eval_sampling_params.include_stop_str_in_output = True
+
+    def _encode_formatted_prompts(
+        self, formatted_prompts: list[str]
+    ) -> list[list[int]]:
+        """Encode prompts once in the actor before handing them to vLLM."""
+
+        prompt_tokenizer = getattr(self, "prompt_tokenizer", self.tokenizer)
+        bos_token = getattr(prompt_tokenizer, "bos_token", None) or getattr(
+            self.tokenizer, "bos_token", None
+        )
+        tokenized_prompts = []
+        for prompt in formatted_prompts:
+            if bos_token:
+                prompt = prompt.removeprefix(bos_token)
+            cached_ids = self._prompt_token_id_cache.get(prompt)
+            if cached_ids is None:
+                cached_ids = list(prompt_tokenizer.encode(prompt))
+                self._prompt_token_id_cache[prompt] = cached_ids
+            tokenized_prompts.append(list(cached_ids))
+        return tokenized_prompts
+
+    def generate_for_mode_coverage(
+        self,
+        formatted_prompts: list[str],
+        refs: list[str],
+        n: int,
+        temperature: float,
+    ) -> dict[str, list]:
+        """Sample n completions per prompt and return per-prompt rewards and answer keys.
+
+        Used by the learner to compute sampled mode-coverage metrics during training
+        without saving a checkpoint. Scoring uses the same oracle as training rollouts.
+        """
+        import vllm
+
+        params = vllm.SamplingParams(
+            n=n,
+            temperature=temperature,
+            max_tokens=self.eval_sampling_params.max_tokens,
+            stop=self.eval_sampling_params.stop,
+            stop_token_ids=self.eval_sampling_params.stop_token_ids,
+            include_stop_str_in_output=getattr(
+                self.eval_sampling_params, "include_stop_str_in_output", False
+            ),
+        )
+
+        outputs = self.generate(formatted_prompts, params)
+
+        # Flatten: score all (prompt, response) pairs in one oracle call.
+        all_responses: list[str] = []
+        all_refs_flat: list[str] = []
+        counts: list[int] = []
+        for output, ref in zip(outputs, refs):
+            for sample in output.outputs:
+                all_responses.append(sample.text.strip())
+                all_refs_flat.append(ref)
+            counts.append(len(output.outputs))
+
+        rewards_tensor, _ = self.oracle.get_reward(
+            [""] * len(all_responses),
+            all_responses,
+            all_refs_flat,
+        )
+        rewards_flat = rewards_tensor.tolist()
+
+        answer_keys_flat = [
+            extract_normalized_final_answer_for_clustering(
+                resp,
+                template=self.args.prompt_template,
+                gt_answer=ref,
+            )
+            for resp, ref in zip(all_responses, all_refs_flat)
+        ]
+
+        per_prompt_rewards: list[list[float]] = []
+        per_prompt_keys: list[list] = []
+        idx = 0
+        for count in counts:
+            per_prompt_rewards.append(rewards_flat[idx : idx + count])
+            per_prompt_keys.append(answer_keys_flat[idx : idx + count])
+            idx += count
+
+        return {"rewards": per_prompt_rewards, "answer_keys": per_prompt_keys}
 
     def step(
         self,
@@ -116,7 +228,8 @@ class ZeroMathActor(PPOActor):
         logging.info("actor start")
 
         st = time.time()
-        outputs = self.generate(formatted_prompts, self.sampling_params)
+        formatted_prompt_token_ids = self._encode_formatted_prompts(formatted_prompts)
+        outputs = self.generate(formatted_prompt_token_ids, self.sampling_params)
 
         candidates = []
         prompt_token_ids = []
@@ -172,6 +285,7 @@ class ZeroMathActor(PPOActor):
         trajectory_data = []
         for i in range(len(candidates)):
             prompt = prompts[i]
+            reference = references[i] if references is not None else None
             candidates_per_prompt = candidates[i]
             for j in range(len(candidates_per_prompt)):
                 reward = rewards[i][j].item()
@@ -179,18 +293,18 @@ class ZeroMathActor(PPOActor):
                     reward = 0
                 dense_rewards = [0] * len(response_ids[i][j])
                 dense_rewards[-1] = reward
-                trajectory_data.append(
-                    TrajectoryData(
-                        prompt=prompt,
-                        prompt_ids=prompt_token_ids[i],
-                        response=candidates_per_prompt[j],
-                        response_ids=response_ids[i][j],
-                        response_logprobs=response_logprobs[i][j],
-                        rewards=dense_rewards,
-                        loss_mask=not no_eos[i][j] if self.args.ignore_no_eos else True,
-                        info=info,
-                    )
+                trajectory = TrajectoryData(
+                    prompt=prompt,
+                    prompt_ids=prompt_token_ids[i],
+                    response=candidates_per_prompt[j],
+                    response_ids=response_ids[i][j],
+                    response_logprobs=response_logprobs[i][j],
+                    rewards=dense_rewards,
+                    loss_mask=not no_eos[i][j] if self.args.ignore_no_eos else True,
+                    info=info,
                 )
+                setattr(trajectory, "reference", reference)
+                trajectory_data.append(trajectory)
         logging.info("actor finished data_len=%s", len(trajectory_data))
         handle = self.ipc_client.serialize_ipc(trajectory_data)
         return handle

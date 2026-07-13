@@ -6,6 +6,7 @@ import torch
 from oat_drgrpo.templates import (
     TEMPLATE_FACTORY,
     apply_no_template,
+    apply_qwen_boxed_template,
     apply_qwen_math_template,
     apply_r1_template,
     build_response_token_prefix_mask,
@@ -17,6 +18,8 @@ def test_prompt_templates_expose_expected_prompt_shapes():
     question = "What is 2+2?"
 
     assert apply_no_template(question) == question
+    assert "Do not explain" in apply_qwen_boxed_template(question)
+    assert apply_qwen_boxed_template(question).endswith("<|im_start|>assistant\n")
     assert "\\boxed{}" in apply_qwen_math_template(question)
     assert apply_qwen_math_template(question).endswith("<|im_start|>assistant\n")
     assert "<think>" in apply_r1_template(question)

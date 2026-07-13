@@ -15,20 +15,50 @@ SAVE_PATH="${SAVE_PATH:-$ROOT_DIR/var/data/oat_zero_exact_1p5b_${RUN_STAMP}}"
 RESUME_DIR="${OAT_ZERO_RESUME_DIR:-}"
 RESUME_TAG="${OAT_ZERO_RESUME_TAG:-}"
 WB_PROJECT="${OAT_ZERO_WB_PROJECT:-oat-zero}"
-WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-Math-1.5b-r1-zero-exact-${RUN_STAMP}}"
+# Canonical tasks are the exact multi-answer ModeBench pair. OAT_ZERO_TASK
+# picks the domain; both datasets are generated deterministically on first use.
+TASK="${OAT_ZERO_TASK:-countdown}"
+case "$TASK" in
+  countdown)
+    DEFAULT_DATA_ROOT="$ROOT_DIR/var/data/exact_countdown_easy3_probe"
+    ;;
+  graph_coloring)
+    DEFAULT_DATA_ROOT="$ROOT_DIR/var/data/exact_answer_mode_probe"
+    ;;
+  *)
+    echo "Unknown OAT_ZERO_TASK=${TASK}; use countdown or graph_coloring." >&2
+    exit 1
+    ;;
+esac
+WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-1.5b-instruct-${TASK}-exact-${RUN_STAMP}}"
 USE_WB="${OAT_ZERO_USE_WB:-1}"
-PROMPT_DATA="${OAT_ZERO_PROMPT_DATA:-$ROOT_DIR/datasets/train/math_12k}"
-EVAL_DATA="${OAT_ZERO_EVAL_DATA:-$ROOT_DIR/datasets/evaluation_suite}"
-PRETRAIN="${OAT_ZERO_PRETRAIN:-Qwen/Qwen2.5-Math-1.5B}"
+PROMPT_DATA="${OAT_ZERO_PROMPT_DATA:-$DEFAULT_DATA_ROOT/train}"
+EVAL_DATA="${OAT_ZERO_EVAL_DATA:-$DEFAULT_DATA_ROOT/eval}"
+PRETRAIN="${OAT_ZERO_PRETRAIN:-Qwen/Qwen2.5-1.5B-Instruct}"
 VERIFIER_VERSION="${OAT_ZERO_VERIFIER_VERSION:-fast}"
 INPUT_KEY="${OAT_ZERO_INPUT_KEY:-problem}"
 OUTPUT_KEY="${OAT_ZERO_OUTPUT_KEY:-answer}"
+MAX_TRAIN="${OAT_ZERO_MAX_TRAIN:-9999999}"
+MAX_QUERIES="${OAT_ZERO_MAX_QUERIES:-$MAX_TRAIN}"
+PROMPT_MAX_LENGTH="${OAT_ZERO_PROMPT_MAX_LENGTH:-256}"
+GENERATE_MAX_LENGTH="${OAT_ZERO_GENERATE_MAX_LENGTH:-256}"
+SAMPLING_TEMPERATURE="${OAT_ZERO_TEMPERATURE:-1}"
+SAMPLING_TOP_P="${OAT_ZERO_TOP_P:-1}"
+EVAL_BATCH_SIZE="${OAT_ZERO_EVAL_BATCH_SIZE:-200}"
+EVAL_TEMPERATURE="${OAT_ZERO_EVAL_TEMPERATURE:-0}"
+EVAL_GENERATE_MAX_LENGTH="${OAT_ZERO_EVAL_GENERATE_MAX_LENGTH:-256}"
+EVAL_MODE_COVERAGE_K="${OAT_ZERO_EVAL_MODE_COVERAGE_K:-32}"
+EVAL_MODE_COVERAGE_TEMPERATURE="${OAT_ZERO_EVAL_MODE_COVERAGE_TEMPERATURE:-1.0}"
+TEST_SPLIT="${OAT_ZERO_TEST_SPLIT:-all}"
 N_GPU="${OAT_ZERO_N_GPU:-8}"
-PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-r1}"
+NUM_GPUS_PER_ACTOR="${OAT_ZERO_NUM_GPUS_PER_ACTOR:-1}"
+PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-qwen_math}"
 OBJECTIVE="${OAT_ZERO_OBJECTIVE:-grpo}"
 CRITIC_TYPE="${OAT_ZERO_CRITIC_TYPE:-drgrpo}"
-SEED_DRGRPO_ENTROPY_PENALTY_ALPHA="${OAT_ZERO_SEED_DRGRPO_ENTROPY_PENALTY_ALPHA:-0.0417}"
+XDR_TAU="${OAT_ZERO_XDR_TAU:-inf}"
+SEED_ENTROPY_ALPHA="${OAT_ZERO_SEED_ENTROPY_ALPHA:-0.0}"
 SEMANTIC_ENTROPY_LAMBDA="${OAT_ZERO_SEMANTIC_ENTROPY_LAMBDA:-0.05}"
+POLICY_ENTROPY_COEF="${OAT_ZERO_POLICY_ENTROPY_COEF:-0.0}"
 SEED="${OAT_ZERO_SEED:-42}"
 if [[ -n "${OAT_ZERO_RND_SEED:-}" ]]; then
   RND_SEED="${OAT_ZERO_RND_SEED}"
@@ -81,6 +111,8 @@ MAXENT_SEMANTIC_SPECTRAL_MAX_CLUSTERS="${OAT_ZERO_MAXENT_SEMANTIC_SPECTRAL_MAX_C
 MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN="${OAT_ZERO_MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN:-0.05}"
 MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC="${OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC:-0.5}"
 MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS="${OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS:-4.0}"
+MAXENT_SEMANTIC_CORRECTNESS_ANSWER_LEVEL="${OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_ANSWER_LEVEL:-0}"
+MAXENT_SEMANTIC_CORRECTNESS_MIN_ANSWER_COUNT="${OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_MIN_ANSWER_COUNT:-1}"
 MAXENT_SEMANTIC_REMIX_MODE="${OAT_ZERO_MAXENT_SEMANTIC_REMIX_MODE:-competitive}"
 MAXENT_REWARD_SHAPING_ALPHA="${OAT_ZERO_MAXENT_REWARD_SHAPING_ALPHA:-0.0}"
 MAXENT_TIEBREAK_ANCHOR="${OAT_ZERO_MAXENT_TIEBREAK_ANCHOR:-hybrid}"
@@ -133,6 +165,11 @@ MAXENT_DRGRPO_TOKEN_PRIMARY="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_PRIMARY:-0}"
 MAXENT_DRGRPO_TOKEN_ADVANTAGE_SOURCE="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_ADVANTAGE_SOURCE:-weighted}"
 MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER="${OAT_ZERO_MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER:-max_length}"
 MAXENT_SEQUENCE_AUX_COEF="${OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF:-1.0}"
+MAXENT_SEQUENCE_AUX_GROUP_FILTER="${OAT_ZERO_MAXENT_SEQUENCE_AUX_GROUP_FILTER:-all}"
+MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_DROP="${OAT_ZERO_MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_DROP:-1000000000}"
+MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_GAIN="${OAT_ZERO_MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_GAIN:-1000000000}"
+MAXENT_SEQUENCE_AUX_MAX_EXPECTED_FORMAT_DROP="${OAT_ZERO_MAXENT_SEQUENCE_AUX_MAX_EXPECTED_FORMAT_DROP:-1.0}"
+MAXENT_SEQUENCE_AUX_MIN_EXPECTED_CORRECTNESS_DELTA="${OAT_ZERO_MAXENT_SEQUENCE_AUX_MIN_EXPECTED_CORRECTNESS_DELTA:--1.0}"
 MAXENT_NEUTRAL_PROJECTION_COEF="${OAT_ZERO_MAXENT_NEUTRAL_PROJECTION_COEF:-0.0}"
 MAXENT_BRANCH_GRAD_DIAGNOSTICS="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS:-0}"
 MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL="${OAT_ZERO_MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL:-1}"
@@ -196,6 +233,37 @@ if [[ ! -f "$SOURCE_ROOT/oat_drgrpo/train_zero_math.py" ]]; then
   exit 1
 fi
 
+# Auto-generate the canonical ModeBench dataset when the task-default root is
+# in use and the data has not been materialized yet. Generation is
+# deterministic given the seed, so regenerated data is identical across runs.
+if [[ "$PROMPT_DATA" == "$DEFAULT_DATA_ROOT/train" ]] \
+  && { [[ ! -f "$DEFAULT_DATA_ROOT/train/dataset_dict.json" ]] \
+    || [[ ! -f "$DEFAULT_DATA_ROOT/eval/dataset_dict.json" ]]; }; then
+  echo "[oat-zero-exact] generating ${TASK} dataset at ${DEFAULT_DATA_ROOT}"
+  case "$TASK" in
+    countdown)
+      "$PYTHON_BIN" "$ROOT_DIR/ops/make_exact_countdown_mode_data.py" \
+        --output-root "$DEFAULT_DATA_ROOT" \
+        --train-size "${OAT_ZERO_COUNTDOWN_MODE_TRAIN_SIZE:-384}" \
+        --eval-size "${OAT_ZERO_COUNTDOWN_MODE_EVAL_SIZE:-128}" \
+        --number-count "${OAT_ZERO_COUNTDOWN_MODE_NUMBER_COUNT:-3}" \
+        --max-value "${OAT_ZERO_COUNTDOWN_MODE_MAX_VALUE:-12}" \
+        --multi-min-modes "${OAT_ZERO_COUNTDOWN_MODE_MULTI_MIN_MODES:-2}" \
+        --multi-max-modes "${OAT_ZERO_COUNTDOWN_MODE_MULTI_MAX_MODES:-8}" \
+        --seed "${OAT_ZERO_COUNTDOWN_MODE_DATA_SEED:-0}" \
+        --overwrite
+      ;;
+    graph_coloring)
+      "$PYTHON_BIN" "$ROOT_DIR/ops/make_exact_answer_mode_data.py" \
+        --output-root "$DEFAULT_DATA_ROOT" \
+        --train-size "${OAT_ZERO_ANSWER_MODE_TRAIN_SIZE:-192}" \
+        --eval-size "${OAT_ZERO_ANSWER_MODE_EVAL_SIZE:-96}" \
+        --seed "${OAT_ZERO_ANSWER_MODE_DATA_SEED:-0}" \
+        --overwrite
+      ;;
+  esac
+fi
+
 if [[ ! -d "$PROMPT_DATA" ]]; then
   echo "Missing prompt dataset at $PROMPT_DATA" >&2
   exit 1
@@ -241,9 +309,9 @@ case "$MAXENT_TIEBREAK_ANCHOR" in
 esac
 
 case "$MAXENT_SEMANTIC_REMIX_MODE" in
-  competitive|anchor_rare) ;;
+  competitive|correctness_conditioned|anchor_rare) ;;
   *)
-    echo "OAT_ZERO_MAXENT_SEMANTIC_REMIX_MODE must be one of: competitive, anchor_rare" >&2
+    echo "OAT_ZERO_MAXENT_SEMANTIC_REMIX_MODE must be one of: competitive, correctness_conditioned, anchor_rare" >&2
     exit 1
     ;;
 esac
@@ -280,6 +348,19 @@ case "$MAXENT_COMPETITIVE_MODE_POSITIVE_ONLY" in
     ;;
 esac
 
+case "$MAXENT_SEMANTIC_CORRECTNESS_ANSWER_LEVEL" in
+  0|1) ;;
+  *)
+    echo "OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_ANSWER_LEVEL must be 0 or 1" >&2
+    exit 1
+    ;;
+esac
+
+if ! [[ "$MAXENT_SEMANTIC_CORRECTNESS_MIN_ANSWER_COUNT" =~ ^[0-9]+$ ]] || (( MAXENT_SEMANTIC_CORRECTNESS_MIN_ANSWER_COUNT < 1 )); then
+  echo "OAT_ZERO_MAXENT_SEMANTIC_CORRECTNESS_MIN_ANSWER_COUNT must be positive" >&2
+  exit 1
+fi
+
 case "$MAXENT_CORRECTNESS_SCHEDULE_ENABLED" in
   0|1) ;;
   *)
@@ -300,6 +381,21 @@ if ! [[ "$SEED" =~ ^-?[0-9]+$ ]]; then
   echo "OAT_ZERO_SEED must be an integer" >&2
   exit 1
 fi
+
+for int_var_name in \
+  MAX_TRAIN \
+  MAX_QUERIES \
+  PROMPT_MAX_LENGTH \
+  GENERATE_MAX_LENGTH \
+  EVAL_BATCH_SIZE \
+  EVAL_GENERATE_MAX_LENGTH
+do
+  int_var_value="${!int_var_name}"
+  if ! [[ "$int_var_value" =~ ^[0-9]+$ ]] || (( int_var_value <= 0 )); then
+    echo "OAT_ZERO_${int_var_name} must be a positive integer" >&2
+    exit 1
+  fi
+done
 
 case "$MAXENT_TAU_LEARNABLE" in
   0|1) ;;
@@ -812,8 +908,18 @@ echo "[oat-zero-exact] pretrain=${PRETRAIN}"
 echo "[oat-zero-exact] verifier_version=${VERIFIER_VERSION}"
 echo "[oat-zero-exact] input_key=${INPUT_KEY}"
 echo "[oat-zero-exact] output_key=${OUTPUT_KEY}"
+echo "[oat-zero-exact] max_train=${MAX_TRAIN}"
+echo "[oat-zero-exact] max_queries=${MAX_QUERIES}"
 echo "[oat-zero-exact] prompt_template=${PROMPT_TEMPLATE}"
+echo "[oat-zero-exact] num_gpus_per_actor=${NUM_GPUS_PER_ACTOR}"
+echo "[oat-zero-exact] prompt_max_length=${PROMPT_MAX_LENGTH}"
+echo "[oat-zero-exact] generate_max_length=${GENERATE_MAX_LENGTH}"
+echo "[oat-zero-exact] sampling_temperature=${SAMPLING_TEMPERATURE}"
+echo "[oat-zero-exact] sampling_top_p=${SAMPLING_TOP_P}"
 echo "[oat-zero-exact] objective=${OBJECTIVE}"
+echo "[oat-zero-exact] policy_entropy_coef=${POLICY_ENTROPY_COEF}"
+echo "[oat-zero-exact] xdr_tau=${XDR_TAU}"
+echo "[oat-zero-exact] seed_entropy_alpha=${SEED_ENTROPY_ALPHA}"
 echo "[oat-zero-exact] collocate=${COLLOCATE}"
 echo "[oat-zero-exact] zero_stage=${ZERO_STAGE}"
 echo "[oat-zero-exact] adam_offload=${ADAM_OFFLOAD}"
@@ -839,6 +945,12 @@ echo "[oat-zero-exact] ds_use_multi_rank_bucket_allreduce=${DEEPSPEED_USE_MULTI_
 echo "[oat-zero-exact] ds_allgather_partitions=${DEEPSPEED_ALLGATHER_PARTITIONS:-<unset>}"
 echo "[oat-zero-exact] pytorch_cuda_alloc_conf=${PYTORCH_CUDA_ALLOC_CONF:-<unset>}"
 echo "[oat-zero-exact] eval_steps=${EVAL_STEPS}"
+echo "[oat-zero-exact] eval_batch_size=${EVAL_BATCH_SIZE}"
+echo "[oat-zero-exact] eval_temperature=${EVAL_TEMPERATURE}"
+echo "[oat-zero-exact] eval_generate_max_length=${EVAL_GENERATE_MAX_LENGTH}"
+echo "[oat-zero-exact] eval_mode_coverage_k=${EVAL_MODE_COVERAGE_K}"
+echo "[oat-zero-exact] eval_mode_coverage_temperature=${EVAL_MODE_COVERAGE_TEMPERATURE}"
+echo "[oat-zero-exact] test_split=${TEST_SPLIT}"
 echo "[oat-zero-exact] save_steps=${SAVE_STEPS}"
 echo "[oat-zero-exact] save_from=${SAVE_FROM}"
 echo "[oat-zero-exact] save_ckpt=${SAVE_CKPT}"
@@ -873,6 +985,8 @@ echo "[oat-zero-exact] maxent_semantic_spectral_max_clusters=${MAXENT_SEMANTIC_S
 echo "[oat-zero-exact] maxent_semantic_spectral_eigengap_min=${MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN}"
 echo "[oat-zero-exact] maxent_semantic_correctness_target_frac=${MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC}"
 echo "[oat-zero-exact] maxent_semantic_correctness_sharpness=${MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS}"
+echo "[oat-zero-exact] maxent_semantic_correctness_answer_level=${MAXENT_SEMANTIC_CORRECTNESS_ANSWER_LEVEL}"
+echo "[oat-zero-exact] maxent_semantic_correctness_min_answer_count=${MAXENT_SEMANTIC_CORRECTNESS_MIN_ANSWER_COUNT}"
 echo "[oat-zero-exact] maxent_semantic_remix_mode=${MAXENT_SEMANTIC_REMIX_MODE}"
 echo "[oat-zero-exact] semantic_entropy_lambda=${SEMANTIC_ENTROPY_LAMBDA}"
 echo "[oat-zero-exact] maxent_reward_shaping_alpha=${MAXENT_REWARD_SHAPING_ALPHA}"
@@ -917,6 +1031,11 @@ echo "[oat-zero-exact] maxent_drgrpo_token_advantage_source=${MAXENT_DRGRPO_TOKE
 echo "[oat-zero-exact] maxent_drgrpo_token_length_normalizer=${MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER}"
 echo "[oat-zero-exact] row_sharded_exact_drx=${ROW_SHARDED_EXACT_DRX}"
 echo "[oat-zero-exact] maxent_sequence_aux_coef=${MAXENT_SEQUENCE_AUX_COEF}"
+echo "[oat-zero-exact] maxent_sequence_aux_group_filter=${MAXENT_SEQUENCE_AUX_GROUP_FILTER}"
+echo "[oat-zero-exact] maxent_sequence_aux_max_expected_len_drop=${MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_DROP}"
+echo "[oat-zero-exact] maxent_sequence_aux_max_expected_len_gain=${MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_GAIN}"
+echo "[oat-zero-exact] maxent_sequence_aux_max_expected_format_drop=${MAXENT_SEQUENCE_AUX_MAX_EXPECTED_FORMAT_DROP}"
+echo "[oat-zero-exact] maxent_sequence_aux_min_expected_correctness_delta=${MAXENT_SEQUENCE_AUX_MIN_EXPECTED_CORRECTNESS_DELTA}"
 echo "[oat-zero-exact] maxent_neutral_projection_coef=${MAXENT_NEUTRAL_PROJECTION_COEF}"
 echo "[oat-zero-exact] maxent_branch_grad_diagnostics=${MAXENT_BRANCH_GRAD_DIAGNOSTICS}"
 echo "[oat-zero-exact] maxent_branch_grad_diagnostics_interval=${MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL}"
@@ -1012,6 +1131,11 @@ if [[ "$MAXENT_DRGRPO_TOKEN_PRIMARY" == "1" ]]; then
   maxent_drgrpo_token_primary_flag=(--maxent-drgrpo-token-primary)
 fi
 
+maxent_semantic_correctness_answer_level_flag=(--no-maxent-semantic-correctness-answer-level)
+if [[ "$MAXENT_SEMANTIC_CORRECTNESS_ANSWER_LEVEL" == "1" ]]; then
+  maxent_semantic_correctness_answer_level_flag=(--maxent-semantic-correctness-answer-level)
+fi
+
 maxent_branch_grad_diagnostics_flag=(--no-maxent-branch-grad-diagnostics)
 if [[ "$MAXENT_BRANCH_GRAD_DIAGNOSTICS" == "1" ]]; then
   maxent_branch_grad_diagnostics_flag=(--maxent-branch-grad-diagnostics)
@@ -1040,6 +1164,9 @@ fi
 objective_args=(
   --objective "$OBJECTIVE"
   --beta "$BETA"
+  --policy-entropy-coef "$POLICY_ENTROPY_COEF"
+  --xdr-tau "$XDR_TAU"
+  --seed-entropy-alpha "$SEED_ENTROPY_ALPHA"
 )
 
 if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
@@ -1059,6 +1186,8 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     --maxent-semantic-spectral-eigengap-min "$MAXENT_SEMANTIC_SPECTRAL_EIGENGAP_MIN"
     --maxent-semantic-correctness-target-frac "$MAXENT_SEMANTIC_CORRECTNESS_TARGET_FRAC"
     --maxent-semantic-correctness-sharpness "$MAXENT_SEMANTIC_CORRECTNESS_SHARPNESS"
+    "${maxent_semantic_correctness_answer_level_flag[@]}"
+    --maxent-semantic-correctness-min-answer-count "$MAXENT_SEMANTIC_CORRECTNESS_MIN_ANSWER_COUNT"
     --maxent-semantic-remix-mode "$MAXENT_SEMANTIC_REMIX_MODE"
     --semantic-entropy-lambda "$SEMANTIC_ENTROPY_LAMBDA"
     --maxent-reward-shaping-alpha "$MAXENT_REWARD_SHAPING_ALPHA"
@@ -1109,6 +1238,11 @@ if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
     --maxent-drgrpo-token-advantage-source "$MAXENT_DRGRPO_TOKEN_ADVANTAGE_SOURCE"
     --maxent-drgrpo-token-length-normalizer "$MAXENT_DRGRPO_TOKEN_LENGTH_NORMALIZER"
     --maxent-sequence-aux-coef "$MAXENT_SEQUENCE_AUX_COEF"
+    --maxent-sequence-aux-group-filter "$MAXENT_SEQUENCE_AUX_GROUP_FILTER"
+    --maxent-sequence-aux-max-expected-len-drop "$MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_DROP"
+    --maxent-sequence-aux-max-expected-len-gain "$MAXENT_SEQUENCE_AUX_MAX_EXPECTED_LEN_GAIN"
+    --maxent-sequence-aux-max-expected-format-drop "$MAXENT_SEQUENCE_AUX_MAX_EXPECTED_FORMAT_DROP"
+    --maxent-sequence-aux-min-expected-correctness-delta "$MAXENT_SEQUENCE_AUX_MIN_EXPECTED_CORRECTNESS_DELTA"
     --maxent-neutral-projection-coef "$MAXENT_NEUTRAL_PROJECTION_COEF"
     "${maxent_branch_grad_diagnostics_flag[@]}"
     --maxent-branch-grad-diagnostics-interval "$MAXENT_BRANCH_GRAD_DIAGNOSTICS_INTERVAL"
@@ -1164,6 +1298,7 @@ cmd=(
   "$PYTHON_BIN" -m "$TRAINER_MODULE"
   --critic_type "$CRITIC_TYPE"
   --gpus "$N_GPU"
+  --num_gpus_per_actor "$NUM_GPUS_PER_ACTOR"
   --enable_prefix_caching
   --vllm_gpu_ratio "$VLLM_GPU_RATIO"
   "${flash_attn_flag[@]}"
@@ -1188,13 +1323,14 @@ cmd=(
   --train_split train
   --input_key "$INPUT_KEY"
   --output_key "$OUTPUT_KEY"
-  --max-train 9999999
+  --max-train "$MAX_TRAIN"
+  --max_queries "$MAX_QUERIES"
   --num_prompt_epoch "$NUM_PROMPT_EPOCH"
-  --prompt_max_length 1024
+  --prompt_max_length "$PROMPT_MAX_LENGTH"
   --num_samples "$NUM_SAMPLES"
-  --temperature 1
-  --top_p 1
-  --generate_max_length 3000
+  --temperature "$SAMPLING_TEMPERATURE"
+  --top_p "$SAMPLING_TOP_P"
+  --generate_max_length "$GENERATE_MAX_LENGTH"
   --save_path "$SAVE_PATH"
   --save_steps "$SAVE_STEPS"
   --save_from "$SAVE_FROM"
@@ -1205,12 +1341,15 @@ cmd=(
   --rollout_batch_size "$ROLLOUT_BATCH_SIZE"
   --rollout_batch_size_per_device "$ROLLOUT_BATCH_SIZE_PER_DEVICE"
   --pi_buffer_maxlen_per_device "$PI_BUFFER_MAXLEN_PER_DEVICE"
-  --eval_batch_size 200
+  --eval_batch_size "$EVAL_BATCH_SIZE"
   --eval_steps "$EVAL_STEPS"
-  --eval_temperature 0
-  --eval_generate_max_length 3000
+  --eval_temperature "$EVAL_TEMPERATURE"
+  --eval_generate_max_length "$EVAL_GENERATE_MAX_LENGTH"
+  --eval_mode_coverage_k "$EVAL_MODE_COVERAGE_K"
+  --eval_mode_coverage_temperature "$EVAL_MODE_COVERAGE_TEMPERATURE"
   --eval_data "$EVAL_DATA"
   --eval_input_key input
+  --test_split "$TEST_SPLIT"
 )
 
 if [[ -n "$RESUME_DIR" ]]; then

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Any, Optional
 
 import torch
@@ -21,6 +22,39 @@ class DrXTargetBundle:
     contributing_group_mask: torch.Tensor
     projection_group_scale: torch.Tensor
     semantic_diagnostics: Any | None = None
+
+
+@dataclass
+class SequenceAuxProjectionDiagnostics:
+    """Pre-backprop diagnostics for the sequence projection target."""
+
+    eligible_group_mask: torch.Tensor
+    kept_group_mask: torch.Tensor
+    rejected_group_filter_group_mask: torch.Tensor
+    rejected_len_guard_group_mask: torch.Tensor
+    rejected_len_gain_guard_group_mask: torch.Tensor
+    rejected_format_guard_group_mask: torch.Tensor
+    rejected_correctness_guard_group_mask: torch.Tensor
+    all_wrong_group_mask: torch.Tensor
+    mixed_group_mask: torch.Tensor
+    all_correct_group_mask: torch.Tensor
+    target_mass_grouped: torch.Tensor
+    behavior_mass_grouped: torch.Tensor
+    target_expected_len_grouped: torch.Tensor
+    behavior_expected_len_grouped: torch.Tensor
+    target_expected_format_grouped: torch.Tensor
+    behavior_expected_format_grouped: torch.Tensor
+    target_expected_correctness_grouped: torch.Tensor
+    behavior_expected_correctness_grouped: torch.Tensor
+    target_correct_mass_grouped: torch.Tensor
+    behavior_correct_mass_grouped: torch.Tensor
+    target_wrong_mass_grouped: torch.Tensor
+    behavior_wrong_mass_grouped: torch.Tensor
+    moved_mass_l1_grouped: torch.Tensor
+    moved_mass_to_correct_grouped: torch.Tensor
+    moved_mass_from_correct_grouped: torch.Tensor
+    moved_mass_to_wrong_grouped: torch.Tensor
+    moved_mass_from_wrong_grouped: torch.Tensor
 
 
 def _masked_group_log_softmax(
@@ -49,6 +83,29 @@ def _masked_group_log_softmax(
     log_denom = torch.log(exp_shifted.sum(dim=1, keepdim=True).clamp(min=1e-12))
     log_probs = shifted - log_denom
     return torch.where(valid_mask, log_probs, torch.zeros_like(log_probs))
+
+
+def _normalize_grouped_probs(
+    probs_grouped: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor,
+    *,
+    eps: float = 1e-8,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    if probs_grouped.shape != valid_row_mask_grouped.shape:
+        raise ValueError("probs_grouped must match valid_row_mask_grouped.")
+    valid_mask = valid_row_mask_grouped.to(torch.bool)
+    safe_probs = torch.where(
+        valid_mask.to(device=probs_grouped.device),
+        probs_grouped,
+        torch.zeros_like(probs_grouped),
+    )
+    mass_grouped = safe_probs.sum(dim=1)
+    normalized = torch.where(
+        mass_grouped[:, None] > float(eps),
+        safe_probs / mass_grouped[:, None].clamp(min=float(eps)),
+        torch.zeros_like(safe_probs),
+    )
+    return normalized, mass_grouped
 
 
 def compute_drx_group_masks(
@@ -107,7 +164,7 @@ def build_drgrpo_token_active_row_mask(
         raise ValueError("informative_group_mask must have one entry per prompt group.")
 
     valid_row_mask = valid_row_mask_grouped.to(torch.bool)
-    if str(advantage_source) == "utility_centered":
+    if str(advantage_source) in {"utility_centered", "maxent_centered"}:
         centered_advantages = utility_centered_advantages_grouped.to(
             device=valid_row_mask.device
         )
@@ -119,6 +176,348 @@ def build_drgrpo_token_active_row_mask(
         ]
         & valid_row_mask
     )
+
+
+def build_token_primary_sequence_aux_projection(
+    *,
+    token_target_grouped: torch.Tensor,
+    projection_target_grouped: torch.Tensor,
+    informative_group_mask: torch.Tensor,
+    projection_group_scale: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return the exact MaxEnt sequence-aux target for token-primary Dr.X."""
+
+    if token_target_grouped.shape != projection_target_grouped.shape:
+        raise ValueError(
+            "token_target_grouped and projection_target_grouped must match."
+        )
+    if token_target_grouped.shape != valid_row_mask_grouped.shape:
+        raise ValueError("valid_row_mask_grouped must match grouped targets.")
+    if informative_group_mask.dim() != 1:
+        raise ValueError("informative_group_mask must be one-dimensional.")
+    if int(informative_group_mask.numel()) != int(token_target_grouped.size(0)):
+        raise ValueError("informative_group_mask must have one entry per group.")
+    if projection_group_scale.dim() != 1 or int(projection_group_scale.numel()) != int(
+        token_target_grouped.size(0)
+    ):
+        raise ValueError("projection_group_scale must have one entry per group.")
+
+    valid_mask = valid_row_mask_grouped.to(torch.bool)
+    informative_mask = informative_group_mask.to(
+        device=token_target_grouped.device,
+        dtype=torch.bool,
+    )
+    target_grouped = torch.where(
+        informative_mask[:, None],
+        token_target_grouped,
+        projection_target_grouped,
+    )
+    target_grouped = torch.where(
+        valid_mask.to(device=target_grouped.device),
+        target_grouped,
+        torch.zeros_like(target_grouped),
+    )
+
+    projection_scale = projection_group_scale.to(
+        device=target_grouped.device,
+        dtype=target_grouped.dtype,
+    )
+    informative_scale = torch.ones_like(projection_scale)
+    group_scale = torch.where(
+        informative_mask.to(device=projection_scale.device),
+        informative_scale,
+        projection_scale,
+    )
+    return target_grouped, group_scale
+
+
+def apply_sequence_aux_projection_gates(
+    *,
+    sequence_aux_target_grouped: torch.Tensor,
+    sequence_aux_group_scale: torch.Tensor,
+    behavior_probs_grouped: torch.Tensor,
+    valid_row_mask_grouped: torch.Tensor,
+    candidate_correctness_grouped: torch.Tensor | None = None,
+    candidate_lengths_grouped: torch.Tensor | None = None,
+    candidate_formatted_grouped: torch.Tensor | None = None,
+    group_filter: str = "all",
+    max_expected_len_drop: float = float("inf"),
+    max_expected_len_gain: float = float("inf"),
+    max_expected_format_drop: float = 1.0,
+    min_expected_correctness_delta: float = -1.0,
+    correctness_threshold: float = 0.999,
+    eps: float = 1e-8,
+) -> tuple[torch.Tensor, torch.Tensor, SequenceAuxProjectionDiagnostics]:
+    """Gate sequence-aux projection targets and report target-vs-behavior stats.
+
+    The helper is intentionally conservative: rejected groups have their target
+    mass and CE scale zeroed instead of being renormalized into the remaining
+    groups. This keeps the aux coefficient as a real strength knob.
+    """
+
+    if sequence_aux_target_grouped.shape != valid_row_mask_grouped.shape:
+        raise ValueError("sequence_aux_target_grouped must match valid rows.")
+    if behavior_probs_grouped.shape != sequence_aux_target_grouped.shape:
+        raise ValueError("behavior_probs_grouped must match sequence aux target.")
+    if sequence_aux_group_scale.dim() != 1 or int(
+        sequence_aux_group_scale.numel()
+    ) != int(sequence_aux_target_grouped.size(0)):
+        raise ValueError("sequence_aux_group_scale must have one entry per group.")
+    if (
+        candidate_correctness_grouped is not None
+        and candidate_correctness_grouped.shape != sequence_aux_target_grouped.shape
+    ):
+        raise ValueError("candidate_correctness_grouped must match grouped target.")
+    if (
+        candidate_lengths_grouped is not None
+        and candidate_lengths_grouped.shape != sequence_aux_target_grouped.shape
+    ):
+        raise ValueError("candidate_lengths_grouped must match grouped target.")
+    if (
+        candidate_formatted_grouped is not None
+        and candidate_formatted_grouped.shape != sequence_aux_target_grouped.shape
+    ):
+        raise ValueError("candidate_formatted_grouped must match grouped target.")
+
+    group_filter_normalized = str(group_filter).strip().lower()
+    if group_filter_normalized not in {"all", "mixed", "has_correct"}:
+        raise ValueError(
+            "group_filter must be one of: all, mixed, has_correct"
+        )
+
+    valid_mask = valid_row_mask_grouped.to(torch.bool)
+    target_grouped = torch.where(
+        valid_mask.to(device=sequence_aux_target_grouped.device),
+        sequence_aux_target_grouped,
+        torch.zeros_like(sequence_aux_target_grouped),
+    )
+    target_probs_grouped, target_mass_grouped = _normalize_grouped_probs(
+        target_grouped,
+        valid_mask,
+        eps=eps,
+    )
+    behavior_probs_grouped, behavior_mass_grouped = _normalize_grouped_probs(
+        behavior_probs_grouped.to(
+            device=sequence_aux_target_grouped.device,
+            dtype=sequence_aux_target_grouped.dtype,
+        ),
+        valid_mask,
+        eps=eps,
+    )
+
+    if candidate_correctness_grouped is None:
+        candidate_correctness = torch.zeros_like(target_probs_grouped)
+    else:
+        candidate_correctness = candidate_correctness_grouped.to(
+            device=target_probs_grouped.device,
+            dtype=target_probs_grouped.dtype,
+        )
+    if candidate_lengths_grouped is None:
+        candidate_lengths = torch.zeros_like(target_probs_grouped)
+    else:
+        candidate_lengths = candidate_lengths_grouped.to(
+            device=target_probs_grouped.device,
+            dtype=target_probs_grouped.dtype,
+        )
+    if candidate_formatted_grouped is None:
+        candidate_formatted = torch.zeros_like(target_probs_grouped)
+    else:
+        candidate_formatted = candidate_formatted_grouped.to(
+            device=target_probs_grouped.device,
+            dtype=target_probs_grouped.dtype,
+        )
+
+    correct_mask = (
+        candidate_correctness >= float(correctness_threshold)
+    ) & valid_mask.to(device=target_probs_grouped.device)
+    valid_count_grouped = valid_mask.to(device=target_probs_grouped.device).sum(dim=1)
+    correct_count_grouped = correct_mask.to(torch.int64).sum(dim=1)
+    has_valid_group_mask = valid_count_grouped > 0
+    all_wrong_group_mask = has_valid_group_mask & (correct_count_grouped == 0)
+    all_correct_group_mask = has_valid_group_mask & (
+        correct_count_grouped == valid_count_grouped
+    )
+    mixed_group_mask = (
+        has_valid_group_mask
+        & (correct_count_grouped > 0)
+        & (correct_count_grouped < valid_count_grouped)
+    )
+    has_correct_group_mask = has_valid_group_mask & (correct_count_grouped > 0)
+
+    target_expected_len_grouped = (target_probs_grouped * candidate_lengths).sum(dim=1)
+    behavior_expected_len_grouped = (
+        behavior_probs_grouped * candidate_lengths
+    ).sum(dim=1)
+    target_expected_format_grouped = (
+        target_probs_grouped * candidate_formatted
+    ).sum(dim=1)
+    behavior_expected_format_grouped = (
+        behavior_probs_grouped * candidate_formatted
+    ).sum(dim=1)
+    target_expected_correctness_grouped = (
+        target_probs_grouped * candidate_correctness
+    ).sum(dim=1)
+    behavior_expected_correctness_grouped = (
+        behavior_probs_grouped * candidate_correctness
+    ).sum(dim=1)
+
+    correct_mask_f = correct_mask.to(target_probs_grouped.dtype)
+    wrong_mask_f = (
+        valid_mask.to(device=target_probs_grouped.device) & (~correct_mask)
+    ).to(target_probs_grouped.dtype)
+    target_correct_mass_grouped = (target_probs_grouped * correct_mask_f).sum(dim=1)
+    behavior_correct_mass_grouped = (behavior_probs_grouped * correct_mask_f).sum(
+        dim=1
+    )
+    target_wrong_mass_grouped = (target_probs_grouped * wrong_mask_f).sum(dim=1)
+    behavior_wrong_mass_grouped = (behavior_probs_grouped * wrong_mask_f).sum(dim=1)
+
+    mass_delta_grouped = target_probs_grouped - behavior_probs_grouped
+    moved_mass_l1_grouped = 0.5 * mass_delta_grouped.abs().sum(dim=1)
+    moved_mass_to_correct_grouped = (
+        mass_delta_grouped.clamp(min=0.0) * correct_mask_f
+    ).sum(dim=1)
+    moved_mass_from_correct_grouped = (
+        (-mass_delta_grouped).clamp(min=0.0) * correct_mask_f
+    ).sum(dim=1)
+    moved_mass_to_wrong_grouped = (
+        mass_delta_grouped.clamp(min=0.0) * wrong_mask_f
+    ).sum(dim=1)
+    moved_mass_from_wrong_grouped = (
+        (-mass_delta_grouped).clamp(min=0.0) * wrong_mask_f
+    ).sum(dim=1)
+
+    group_scale = sequence_aux_group_scale.to(
+        device=target_probs_grouped.device,
+        dtype=target_probs_grouped.dtype,
+    )
+    eligible_group_mask = (
+        has_valid_group_mask
+        & (target_mass_grouped > float(eps))
+        & (group_scale > 0.0)
+    )
+    if group_filter_normalized == "mixed":
+        filter_group_mask = mixed_group_mask
+    elif group_filter_normalized == "has_correct":
+        filter_group_mask = has_correct_group_mask
+    else:
+        filter_group_mask = has_valid_group_mask
+
+    safe_max_expected_len_drop = float(max_expected_len_drop)
+    if math.isfinite(safe_max_expected_len_drop):
+        if safe_max_expected_len_drop < 0:
+            raise ValueError("max_expected_len_drop must be non-negative.")
+        len_guard_group_mask = (
+            target_expected_len_grouped + 1e-6
+        ) >= behavior_expected_len_grouped - safe_max_expected_len_drop
+    else:
+        len_guard_group_mask = torch.ones_like(eligible_group_mask)
+
+    safe_max_expected_len_gain = float(max_expected_len_gain)
+    if math.isfinite(safe_max_expected_len_gain):
+        if safe_max_expected_len_gain < 0:
+            raise ValueError("max_expected_len_gain must be non-negative.")
+        len_gain_guard_group_mask = (
+            target_expected_len_grouped
+        ) <= behavior_expected_len_grouped + safe_max_expected_len_gain + 1e-6
+    else:
+        len_gain_guard_group_mask = torch.ones_like(eligible_group_mask)
+
+    safe_max_expected_format_drop = float(max_expected_format_drop)
+    if math.isfinite(safe_max_expected_format_drop):
+        if safe_max_expected_format_drop < 0:
+            raise ValueError("max_expected_format_drop must be non-negative.")
+        format_guard_group_mask = (
+            target_expected_format_grouped + safe_max_expected_format_drop + 1e-6
+        ) >= behavior_expected_format_grouped
+    else:
+        format_guard_group_mask = torch.ones_like(eligible_group_mask)
+
+    safe_min_expected_correctness_delta = float(min_expected_correctness_delta)
+    if (
+        safe_min_expected_correctness_delta < -1.0
+        or safe_min_expected_correctness_delta > 1.0
+    ):
+        raise ValueError("min_expected_correctness_delta must be in [-1, 1].")
+    correctness_guard_group_mask = (
+        target_expected_correctness_grouped + 1e-6
+    ) >= behavior_expected_correctness_grouped + safe_min_expected_correctness_delta
+
+    kept_group_mask = (
+        eligible_group_mask
+        & filter_group_mask
+        & len_guard_group_mask
+        & len_gain_guard_group_mask
+        & format_guard_group_mask
+        & correctness_guard_group_mask
+    )
+    rejected_group_filter_group_mask = eligible_group_mask & (~filter_group_mask)
+    rejected_len_guard_group_mask = (
+        eligible_group_mask & filter_group_mask & (~len_guard_group_mask)
+    )
+    rejected_len_gain_guard_group_mask = (
+        eligible_group_mask
+        & filter_group_mask
+        & len_guard_group_mask
+        & (~len_gain_guard_group_mask)
+    )
+    rejected_format_guard_group_mask = (
+        eligible_group_mask
+        & filter_group_mask
+        & len_guard_group_mask
+        & len_gain_guard_group_mask
+        & (~format_guard_group_mask)
+    )
+    rejected_correctness_guard_group_mask = (
+        eligible_group_mask
+        & filter_group_mask
+        & len_guard_group_mask
+        & len_gain_guard_group_mask
+        & format_guard_group_mask
+        & (~correctness_guard_group_mask)
+    )
+
+    gated_target_grouped = torch.where(
+        kept_group_mask[:, None],
+        target_grouped,
+        torch.zeros_like(target_grouped),
+    )
+    gated_group_scale = torch.where(
+        kept_group_mask,
+        group_scale,
+        torch.zeros_like(group_scale),
+    )
+    diagnostics = SequenceAuxProjectionDiagnostics(
+        eligible_group_mask=eligible_group_mask,
+        kept_group_mask=kept_group_mask,
+        rejected_group_filter_group_mask=rejected_group_filter_group_mask,
+        rejected_len_guard_group_mask=rejected_len_guard_group_mask,
+        rejected_len_gain_guard_group_mask=rejected_len_gain_guard_group_mask,
+        rejected_format_guard_group_mask=rejected_format_guard_group_mask,
+        rejected_correctness_guard_group_mask=rejected_correctness_guard_group_mask,
+        all_wrong_group_mask=all_wrong_group_mask,
+        mixed_group_mask=mixed_group_mask,
+        all_correct_group_mask=all_correct_group_mask,
+        target_mass_grouped=target_mass_grouped,
+        behavior_mass_grouped=behavior_mass_grouped,
+        target_expected_len_grouped=target_expected_len_grouped,
+        behavior_expected_len_grouped=behavior_expected_len_grouped,
+        target_expected_format_grouped=target_expected_format_grouped,
+        behavior_expected_format_grouped=behavior_expected_format_grouped,
+        target_expected_correctness_grouped=target_expected_correctness_grouped,
+        behavior_expected_correctness_grouped=behavior_expected_correctness_grouped,
+        target_correct_mass_grouped=target_correct_mass_grouped,
+        behavior_correct_mass_grouped=behavior_correct_mass_grouped,
+        target_wrong_mass_grouped=target_wrong_mass_grouped,
+        behavior_wrong_mass_grouped=behavior_wrong_mass_grouped,
+        moved_mass_l1_grouped=moved_mass_l1_grouped,
+        moved_mass_to_correct_grouped=moved_mass_to_correct_grouped,
+        moved_mass_from_correct_grouped=moved_mass_from_correct_grouped,
+        moved_mass_to_wrong_grouped=moved_mass_to_wrong_grouped,
+        moved_mass_from_wrong_grouped=moved_mass_from_wrong_grouped,
+    )
+    return gated_target_grouped, gated_group_scale, diagnostics
 
 
 def apply_neutral_tiebreak_to_advantages(
@@ -270,9 +669,12 @@ def build_drx_target_bundle(
     candidate_kl_coef: float,
     cluster_ids_grouped: torch.Tensor | None = None,
     semantic_mass_weights_grouped: torch.Tensor | None = None,
+    answer_ids_grouped: torch.Tensor | None = None,
     neutral_eps: float = 1e-8,
     neutral_projection_coef: float = 0.0,
     semantic_remix_mode: str = "competitive",
+    semantic_correctness_answer_level: bool = False,
+    semantic_correctness_min_answer_count: int = 1,
 ) -> DrXTargetBundle:
     """Build grouped DrX objects with optional competitive-mode semantic remixing.
 
@@ -317,6 +719,7 @@ def build_drx_target_bundle(
                 ref_seq_logps_grouped=ref_seq_logps_grouped,
                 cluster_ids_grouped=cluster_ids_grouped,
                 semantic_mass_weights_grouped=semantic_mass_weights_grouped,
+                answer_ids_grouped=answer_ids_grouped,
                 candidate_correctness_grouped=candidate_correctness_grouped,
                 tau=tau,
                 mode_tau=competitive_mode_tau,
@@ -337,6 +740,8 @@ def build_drx_target_bundle(
                 max_expected_format_drop=semantic_guard_max_expected_format_drop,
                 valid_row_mask_grouped=valid_row_mask_grouped,
                 semantic_remix_mode=semantic_remix_mode,
+                correctness_answer_level=semantic_correctness_answer_level,
+                correctness_min_answer_count=semantic_correctness_min_answer_count,
             )
         )
 

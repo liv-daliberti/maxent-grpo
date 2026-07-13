@@ -20,7 +20,9 @@ from .listwise import (
 @dataclass
 class ZeroMathArgs(PPOArgs):
     # Template.
-    prompt_template: Literal["qwen_math", "no", "r1"] = field(default="qwen_math")
+    prompt_template: Literal["qwen_boxed", "qwen_math", "no", "r1"] = field(
+        default="qwen_math"
+    )
     # Evaluation benchmarks used.
     test_split: str = "all"
     # Verifier.
@@ -31,6 +33,13 @@ class ZeroMathArgs(PPOArgs):
         "maxent_listwise",
     ] = field(default="grpo")
     semantic_entropy_lambda: float = 0.05
+    policy_entropy_coef: float = 0.0
+    # xDr.GRPO candidate-level tempered aggregation on the grpo objective.
+    # inf disables the reweighting and reproduces Dr.GRPO bit-for-bit.
+    xdr_tau: float = math.inf
+    # SEED-Dr.GRPO per-prompt semantic-entropy scaling on the grpo objective.
+    # 0 disables the scaling and reproduces Dr.GRPO exactly.
+    seed_entropy_alpha: float = 0.0
     maxent_tau: float = 0.3
     maxent_q_temperature: float = 2.0
     maxent_q_epsilon: float = 1e-6
@@ -49,16 +58,23 @@ class ZeroMathArgs(PPOArgs):
     maxent_clip_mode: Literal["sequence", "token", "none"] = field(default="sequence")
     maxent_token_clip_primary: bool = False
     maxent_drgrpo_token_primary: bool = False
-    maxent_drgrpo_token_advantage_source: Literal["weighted", "utility_centered"] = (
-        field(default="weighted")
-    )
+    maxent_drgrpo_token_advantage_source: Literal[
+        "weighted", "utility_centered", "maxent_centered"
+    ] = field(default="weighted")
     maxent_drgrpo_token_length_normalizer: Literal["max_length", "response_length"] = (
         field(default="max_length")
     )
     maxent_sequence_aux_coef: float = 1.0
+    maxent_sequence_aux_group_filter: Literal["all", "mixed", "has_correct"] = field(
+        default="all"
+    )
+    maxent_sequence_aux_max_expected_len_drop: float = math.inf
+    maxent_sequence_aux_max_expected_len_gain: float = math.inf
+    maxent_sequence_aux_max_expected_format_drop: float = 1.0
+    maxent_sequence_aux_min_expected_correctness_delta: float = -1.0
     maxent_neutral_projection_coef: float = 0.0
     maxent_semantic_cluster_method: Literal[
-        "default", "greedy", "connected_components", "spectral"
+        "default", "answer_family", "greedy", "connected_components", "spectral"
     ] = field(default="default")
     maxent_semantic_similarity_threshold: float = 0.75
     maxent_semantic_embedding_similarity_threshold: float = 0.9
@@ -68,9 +84,11 @@ class ZeroMathArgs(PPOArgs):
     maxent_semantic_spectral_eigengap_min: float = 0.05
     maxent_semantic_correctness_target_frac: float = 0.5
     maxent_semantic_correctness_sharpness: float = 4.0
-    maxent_semantic_remix_mode: Literal["competitive", "anchor_rare"] = field(
-        default="competitive"
-    )
+    maxent_semantic_correctness_answer_level: bool = False
+    maxent_semantic_correctness_min_answer_count: int = 1
+    maxent_semantic_remix_mode: Literal[
+        "competitive", "correctness_conditioned", "anchor_rare"
+    ] = field(default="competitive")
     maxent_reward_shaping_alpha: float = 0.0
     maxent_tiebreak_anchor: Literal["hybrid", "behavior", "reference"] = field(
         default="hybrid"
@@ -104,6 +122,8 @@ class ZeroMathArgs(PPOArgs):
     maxent_logprob_chunk_size: int = 2
     maxent_backward_chunk_size: int = 4
     maxent_backward_token_budget: int = 4096
+    eval_mode_coverage_k: int = 0
+    eval_mode_coverage_temperature: float = 1.0
     baseline_zero_adv_response_tokens: int = 8
     maxent_reference_logprobs_source: Literal["model", "behavior"] = field(
         default="model"
@@ -173,6 +193,21 @@ def build_fixed_listwise_config(args: ZeroMathArgs) -> dict[str, object]:
             args.maxent_drgrpo_token_length_normalizer
         ),
         "maxent_sequence_aux_coef": float(args.maxent_sequence_aux_coef),
+        "maxent_sequence_aux_group_filter": str(
+            args.maxent_sequence_aux_group_filter
+        ),
+        "maxent_sequence_aux_max_expected_len_drop": float(
+            args.maxent_sequence_aux_max_expected_len_drop
+        ),
+        "maxent_sequence_aux_max_expected_len_gain": float(
+            args.maxent_sequence_aux_max_expected_len_gain
+        ),
+        "maxent_sequence_aux_max_expected_format_drop": float(
+            args.maxent_sequence_aux_max_expected_format_drop
+        ),
+        "maxent_sequence_aux_min_expected_correctness_delta": float(
+            args.maxent_sequence_aux_min_expected_correctness_delta
+        ),
         "maxent_neutral_projection_coef": float(args.maxent_neutral_projection_coef),
         "maxent_semantic_cluster_method": str(args.maxent_semantic_cluster_method),
         "maxent_semantic_similarity_threshold": float(
@@ -198,6 +233,12 @@ def build_fixed_listwise_config(args: ZeroMathArgs) -> dict[str, object]:
         ),
         "maxent_semantic_correctness_sharpness": float(
             args.maxent_semantic_correctness_sharpness
+        ),
+        "maxent_semantic_correctness_answer_level": bool(
+            args.maxent_semantic_correctness_answer_level
+        ),
+        "maxent_semantic_correctness_min_answer_count": int(
+            args.maxent_semantic_correctness_min_answer_count
         ),
         "maxent_semantic_remix_mode": str(args.maxent_semantic_remix_mode),
         "maxent_reward_shaping_alpha": float(args.maxent_reward_shaping_alpha),
@@ -328,10 +369,40 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError(
             "maxent_semantic_correctness_sharpness must be finite and non-negative"
         )
+    if int(args.maxent_semantic_correctness_min_answer_count) < 1:
+        raise ValueError(
+            "maxent_semantic_correctness_min_answer_count must be positive"
+        )
     if args.maxent_reward_shaping_alpha < 0:
         raise ValueError("maxent_reward_shaping_alpha must be non-negative")
     if args.semantic_entropy_lambda < 0:
         raise ValueError("semantic_entropy_lambda must be non-negative")
+    if args.policy_entropy_coef < 0:
+        raise ValueError("policy_entropy_coef must be non-negative")
+    if math.isnan(args.xdr_tau) or args.xdr_tau <= 0:
+        raise ValueError("xdr_tau must be positive (use inf to disable)")
+    if math.isfinite(args.xdr_tau):
+        if args.objective != "grpo":
+            raise ValueError("finite xdr_tau requires objective=grpo")
+        if args.critic_type != "drgrpo":
+            raise ValueError("finite xdr_tau requires critic_type=drgrpo")
+        if getattr(args, "reinforce_update", False):
+            raise ValueError(
+                "finite xdr_tau is incompatible with reinforce_update: the "
+                "xdr utilities assume the clipped Dr.GRPO surrogate"
+            )
+    if math.isnan(args.seed_entropy_alpha) or args.seed_entropy_alpha < 0:
+        raise ValueError("seed_entropy_alpha must be non-negative")
+    if args.seed_entropy_alpha > 0:
+        if args.objective != "grpo":
+            raise ValueError("seed_entropy_alpha requires objective=grpo")
+        if args.critic_type != "drgrpo":
+            raise ValueError("seed_entropy_alpha requires critic_type=drgrpo")
+        if math.isfinite(args.xdr_tau):
+            raise ValueError(
+                "seed_entropy_alpha and finite xdr_tau are separate "
+                "comparative arms; enable at most one"
+            )
     if args.maxent_tiebreak_clip_max < 0:
         raise ValueError("maxent_tiebreak_clip_max must be non-negative")
     if args.baseline_zero_adv_response_tokens < 0:
@@ -434,13 +505,43 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError("maxent_backward_token_budget must be non-negative")
     if args.maxent_sequence_aux_coef < 0:
         raise ValueError("maxent_sequence_aux_coef must be non-negative")
+    if args.maxent_sequence_aux_group_filter not in {
+        "all",
+        "mixed",
+        "has_correct",
+    }:
+        raise ValueError(
+            "maxent_sequence_aux_group_filter must be one of: "
+            "all, mixed, has_correct"
+        )
+    if args.maxent_sequence_aux_max_expected_len_drop < 0:
+        raise ValueError(
+            "maxent_sequence_aux_max_expected_len_drop must be non-negative"
+        )
+    if args.maxent_sequence_aux_max_expected_len_gain < 0:
+        raise ValueError(
+            "maxent_sequence_aux_max_expected_len_gain must be non-negative"
+        )
+    if args.maxent_sequence_aux_max_expected_format_drop < 0:
+        raise ValueError(
+            "maxent_sequence_aux_max_expected_format_drop must be non-negative"
+        )
+    if (
+        not -1.0
+        <= float(args.maxent_sequence_aux_min_expected_correctness_delta)
+        <= 1.0
+    ):
+        raise ValueError(
+            "maxent_sequence_aux_min_expected_correctness_delta must be in [-1, 1]"
+        )
     if args.maxent_drgrpo_token_advantage_source not in {
         "weighted",
         "utility_centered",
+        "maxent_centered",
     }:
         raise ValueError(
             "maxent_drgrpo_token_advantage_source must be one of: "
-            "weighted, utility_centered"
+            "weighted, utility_centered, maxent_centered"
         )
     if args.maxent_drgrpo_token_length_normalizer not in {
         "max_length",

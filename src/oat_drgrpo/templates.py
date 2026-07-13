@@ -17,6 +17,16 @@ def apply_qwen_math_template(question: str) -> str:
     )
 
 
+def apply_qwen_boxed_template(question: str) -> str:
+    return (
+        "<|im_start|>system\n"
+        "Return only the final answer inside \\boxed{}. Do not explain."
+        "<|im_end|>\n<|im_start|>user\n"
+        + question
+        + "<|im_end|>\n<|im_start|>assistant\n"
+    )
+
+
 def apply_r1_template(question: str) -> str:
     return (
         "A conversation between User and Assistant. The User asks a question, "
@@ -34,6 +44,7 @@ def apply_no_template(question: str) -> str:
 
 
 TEMPLATE_FACTORY: dict[str, Callable[[str], str]] = {
+    "qwen_boxed": apply_qwen_boxed_template,
     "qwen_math": apply_qwen_math_template,
     "r1": apply_r1_template,
     "no": apply_no_template,

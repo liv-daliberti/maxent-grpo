@@ -17,6 +17,8 @@ class SemanticWeightDiagnostics:
     eligible_mode_frac_grouped: torch.Tensor
     distinct_correct_mode_count_grouped: torch.Tensor
     distinct_correct_mode_frac_grouped: torch.Tensor
+    distinct_correct_answer_count_grouped: torch.Tensor
+    correctness_min_answer_rejected_group_mask: torch.Tensor
     best_score_grouped: torch.Tensor
     second_score_grouped: torch.Tensor
     competitive_gap_grouped: torch.Tensor
@@ -96,6 +98,7 @@ def compute_semantic_cluster_weights_from_utilities(
     ref_seq_logps_grouped: torch.Tensor,
     cluster_ids_grouped: torch.Tensor,
     semantic_mass_weights_grouped: torch.Tensor | None = None,
+    answer_ids_grouped: torch.Tensor | None = None,
     candidate_correctness_grouped: torch.Tensor | None = None,
     candidate_lengths_grouped: torch.Tensor | None = None,
     candidate_formatted_grouped: torch.Tensor | None = None,
@@ -116,6 +119,8 @@ def compute_semantic_cluster_weights_from_utilities(
     max_expected_format_drop: float = 0.0,
     valid_row_mask_grouped: torch.Tensor | None = None,
     semantic_remix_mode: str = "competitive",
+    correctness_answer_level: bool = False,
+    correctness_min_answer_count: int = 1,
 ) -> tuple[torch.Tensor, SemanticWeightDiagnostics]:
     """Return baseline-plus-residual competitive semantic weights."""
 
@@ -136,6 +141,11 @@ def compute_semantic_cluster_weights_from_utilities(
         and semantic_mass_weights_grouped.shape != utility_grouped.shape
     ):
         raise ValueError("semantic_mass_weights_grouped must match grouped utilities.")
+    if (
+        answer_ids_grouped is not None
+        and answer_ids_grouped.shape != utility_grouped.shape
+    ):
+        raise ValueError("answer_ids_grouped must match grouped utilities.")
     if (
         candidate_correctness_grouped is not None
         and candidate_correctness_grouped.shape != utility_grouped.shape
@@ -181,6 +191,13 @@ def compute_semantic_cluster_weights_from_utilities(
             dtype=utility_grouped.dtype,
         )
     semantic_valid_mask = valid_mask & (cluster_ids_grouped >= 0)
+    if answer_ids_grouped is None:
+        answer_ids = torch.full_like(cluster_ids_grouped, -1)
+    else:
+        answer_ids = answer_ids_grouped.to(
+            device=cluster_ids_grouped.device,
+            dtype=torch.long,
+        )
     if budget_grouped is None:
         budget_values = torch.zeros(
             int(utility_grouped.size(0)),
@@ -212,6 +229,7 @@ def compute_semantic_cluster_weights_from_utilities(
         default=0.0,
     )
     safe_verified_distinct_min_modes = max(int(verified_distinct_min_modes), 2)
+    safe_correctness_min_answer_count = max(int(correctness_min_answer_count), 1)
     safe_verified_distinct_reward_threshold = min(
         max(
             coerce_non_negative_float(
@@ -270,6 +288,10 @@ def compute_semantic_cluster_weights_from_utilities(
     eligible_mode_frac_grouped = torch.zeros_like(mode_count_grouped)
     distinct_correct_mode_count_grouped = torch.zeros_like(mode_count_grouped)
     distinct_correct_mode_frac_grouped = torch.zeros_like(mode_count_grouped)
+    distinct_correct_answer_count_grouped = torch.zeros_like(mode_count_grouped)
+    correctness_min_answer_rejected_group_mask = torch.zeros(
+        (num_prompts,), device=utility_grouped.device, dtype=torch.bool
+    )
     best_score_grouped = torch.zeros_like(mode_count_grouped)
     second_score_grouped = torch.zeros_like(mode_count_grouped)
     competitive_gap_grouped = torch.zeros_like(mode_count_grouped)
@@ -379,6 +401,205 @@ def compute_semantic_cluster_weights_from_utilities(
         alpha_raw_grouped[p] = alpha_raw
         if safe_budget_max > 0.0:
             explore_budget_saturated_grouped[p] = alpha_raw >= (1.0 - 1e-8)
+
+        if normalized_semantic_remix_mode == "correctness_conditioned":
+            semantic_q = base_weights[p, semantic_idx]
+            semantic_base_mass = semantic_q.sum()
+            if float(semantic_base_mass.item()) <= 1e-12:
+                continue
+
+            semantic_correct_mask = (
+                candidate_correctness[p, semantic_idx]
+                >= safe_verified_distinct_reward_threshold
+            )
+            correct_cluster_mask = (
+                cluster_correctness_t >= safe_verified_distinct_reward_threshold
+            )
+            correct_cluster_count = int(
+                correct_cluster_mask.to(torch.int64).sum().item()
+            )
+            eligible_mode_count_grouped[p] = float(correct_cluster_count)
+            eligible_mode_frac_grouped[p] = float(correct_cluster_count) / float(
+                max(num_clusters, 1)
+            )
+            distinct_correct_mode_count_grouped[p] = float(correct_cluster_count)
+            distinct_correct_mode_frac_grouped[p] = float(correct_cluster_count) / float(
+                max(num_clusters, 1)
+            )
+            if correct_cluster_count <= 0:
+                prompt_rejected_nonpositive_group_mask[p] = True
+                continue
+            if safe_budget_max <= 0.0:
+                prompt_rejected_low_opp_group_mask[p] = True
+                continue
+
+            correct_scores = cluster_scores_t[correct_cluster_mask]
+            sorted_correct_scores, _ = torch.sort(correct_scores, descending=True)
+            best_score_grouped[p] = sorted_correct_scores[0]
+            second_score_grouped[p] = (
+                sorted_correct_scores[1]
+                if correct_cluster_count > 1
+                else sorted_correct_scores[0]
+            )
+            competitive_gap_grouped[p] = (
+                best_score_grouped[p] - second_score_grouped[p]
+                if correct_cluster_count > 1
+                else torch.zeros_like(best_score_grouped[p])
+            )
+
+            alpha_p = torch.as_tensor(
+                safe_budget_max,
+                device=utility_grouped.device,
+                dtype=utility_grouped.dtype,
+            )
+            alpha_raw = torch.ones_like(alpha_p)
+            alpha_raw_grouped[p] = alpha_raw
+            explore_budget_saturated_grouped[p] = True
+            if float(alpha_raw.item()) < safe_select_min_alpha_frac:
+                prompt_rejected_low_opp_group_mask[p] = True
+                continue
+
+            target_semantic = torch.zeros_like(semantic_q)
+            if correctness_answer_level:
+                correct_answer_ids = torch.unique(
+                    answer_ids[p, semantic_idx][semantic_correct_mask]
+                )
+                correct_answer_ids = correct_answer_ids[correct_answer_ids >= 0]
+                correct_answer_count = int(correct_answer_ids.numel())
+                distinct_correct_answer_count_grouped[p] = float(correct_answer_count)
+                if correct_answer_count < safe_correctness_min_answer_count:
+                    correctness_min_answer_rejected_group_mask[p] = True
+                    prompt_rejected_nonpositive_group_mask[p] = True
+                    continue
+                answer_mass = 1.0 / float(correct_answer_count)
+                for answer_id in correct_answer_ids.tolist():
+                    correct_member_mask = (
+                        semantic_correct_mask
+                        & (answer_ids[p, semantic_idx] == int(answer_id))
+                    )
+                    if not bool(correct_member_mask.any().item()):
+                        continue
+                    member_mode_logits = member_mode_logits_all[
+                        correct_member_mask
+                    ].to(utility_grouped.dtype)
+                    within = torch.softmax(member_mode_logits / safe_intra_tau, dim=0)
+                    target_semantic[correct_member_mask] = (
+                        torch.as_tensor(
+                            answer_mass,
+                            device=utility_grouped.device,
+                            dtype=utility_grouped.dtype,
+                        )
+                        * within
+                    )
+            else:
+                correct_cluster_positions = torch.where(correct_cluster_mask)[0]
+                cluster_mass = torch.full(
+                    (correct_cluster_count,),
+                    1.0 / float(correct_cluster_count),
+                    device=utility_grouped.device,
+                    dtype=utility_grouped.dtype,
+                )
+                for cluster_mass_idx, cluster_pos in enumerate(
+                    correct_cluster_positions.tolist()
+                ):
+                    member_mask = cluster_member_masks[cluster_pos]
+                    correct_member_mask = member_mask & semantic_correct_mask
+                    if not bool(correct_member_mask.any().item()):
+                        continue
+                    member_mode_logits = member_mode_logits_all[
+                        correct_member_mask
+                    ].to(utility_grouped.dtype)
+                    within = torch.softmax(member_mode_logits / safe_intra_tau, dim=0)
+                    target_semantic[correct_member_mask] = (
+                        cluster_mass[cluster_mass_idx].to(utility_grouped.dtype)
+                        * within
+                    )
+
+            target_mass = target_semantic.sum()
+            if float(target_mass.item()) <= 1e-12:
+                prompt_rejected_nonpositive_group_mask[p] = True
+                continue
+            semantic_explore_target = semantic_base_mass * (
+                target_semantic / target_mass.clamp(min=1e-12)
+            )
+            semantic_explore_full = base_weights[p].clone()
+            semantic_explore_full[semantic_idx] = semantic_explore_target
+            expected_utility_explore_target_grouped[p] = (
+                semantic_explore_full
+                * torch.where(
+                    valid_mask[p],
+                    utility_grouped[p],
+                    torch.zeros_like(utility_grouped[p]),
+                )
+            ).sum()
+            expected_len_explore_target_grouped[p] = (
+                semantic_explore_full
+                * torch.where(
+                    valid_mask[p],
+                    candidate_lengths[p],
+                    torch.zeros_like(candidate_lengths[p]),
+                )
+            ).sum()
+            expected_format_explore_target_grouped[p] = (
+                semantic_explore_full
+                * torch.where(
+                    valid_mask[p],
+                    candidate_formatted[p],
+                    torch.zeros_like(candidate_formatted[p]),
+                )
+            ).sum()
+            if (
+                float(expected_len_explore_target_grouped[p].item())
+                > float(expected_len_q_grouped[p].item())
+                + safe_max_expected_len_delta
+                + 1e-6
+            ):
+                prompt_rejected_len_guard_group_mask[p] = True
+                continue
+            if float(
+                expected_format_explore_target_grouped[p].item()
+            ) + safe_max_expected_format_drop + 1e-6 < float(
+                expected_format_q_grouped[p].item()
+            ):
+                prompt_rejected_format_guard_group_mask[p] = True
+                continue
+
+            prompt_selected_group_mask[p] = True
+            alpha_applied_grouped[p] = alpha_p
+            explore_budget_grouped[p] = alpha_p
+            weights[p, semantic_idx] = (
+                1.0 - alpha_p
+            ) * semantic_q + alpha_p * semantic_explore_target
+            explore_applied_group_mask[p] = True
+            moved_mass_l1_grouped[p] = (
+                0.5 * torch.abs(weights[p] - base_weights[p]).sum()
+            )
+            expected_utility_final_w_grouped[p] = (
+                weights[p]
+                * torch.where(
+                    valid_mask[p],
+                    utility_grouped[p],
+                    torch.zeros_like(utility_grouped[p]),
+                )
+            ).sum()
+            expected_len_final_w_grouped[p] = (
+                weights[p]
+                * torch.where(
+                    valid_mask[p],
+                    candidate_lengths[p],
+                    torch.zeros_like(candidate_lengths[p]),
+                )
+            ).sum()
+            expected_format_final_w_grouped[p] = (
+                weights[p]
+                * torch.where(
+                    valid_mask[p],
+                    candidate_formatted[p],
+                    torch.zeros_like(candidate_formatted[p]),
+                )
+            ).sum()
+            continue
+
         if float(alpha_raw.item()) < safe_select_min_alpha_frac:
             prompt_rejected_low_opp_group_mask[p] = True
             continue
@@ -760,6 +981,8 @@ def compute_semantic_cluster_weights_from_utilities(
         eligible_mode_frac_grouped=eligible_mode_frac_grouped,
         distinct_correct_mode_count_grouped=distinct_correct_mode_count_grouped,
         distinct_correct_mode_frac_grouped=distinct_correct_mode_frac_grouped,
+        distinct_correct_answer_count_grouped=distinct_correct_answer_count_grouped,
+        correctness_min_answer_rejected_group_mask=correctness_min_answer_rejected_group_mask,
         best_score_grouped=best_score_grouped,
         second_score_grouped=second_score_grouped,
         competitive_gap_grouped=competitive_gap_grouped,

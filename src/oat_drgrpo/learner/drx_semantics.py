@@ -64,6 +64,7 @@ class ZeroMathDrxSemanticMixin:
         input_ids: torch.Tensor,
         response_masks: torch.Tensor,
         group_size: int,
+        references_grouped: list[list[Any | None]] | None = None,
     ) -> tuple[
         list[list[str | None]],
         list[list[str | None]],
@@ -81,14 +82,20 @@ class ZeroMathDrxSemanticMixin:
         final_answer_keys_grouped: list[list[str | None]] = []
         reasoning_trace_texts_grouped: list[list[str | None]] = []
         reasoning_signature_keys_grouped: list[list[str | None]] = []
-        for prompt_rows in response_texts_grouped:
+        for prompt_index, prompt_rows in enumerate(response_texts_grouped):
+            prompt_refs = (
+                [None] * len(prompt_rows)
+                if references_grouped is None
+                else list(references_grouped[prompt_index])
+            )
             final_answer_keys_grouped.append(
                 [
                     extract_normalized_final_answer_for_clustering(
                         row_text,
                         template=str(self.args.prompt_template),
+                        gt_answer=prompt_refs[row_index],
                     )
-                    for row_text in prompt_rows
+                    for row_index, row_text in enumerate(prompt_rows)
                 ]
             )
             prompt_reasoning_traces: list[str | None] = []
@@ -309,6 +316,7 @@ class ZeroMathDrxSemanticMixin:
         input_ids: torch.Tensor,
         response_masks: torch.Tensor,
         group_size: int,
+        references_grouped: list[list[Any | None]] | None = None,
     ) -> list[list[str | None]]:
         """Return SEED-style answer-only cluster keys."""
 
@@ -318,12 +326,18 @@ class ZeroMathDrxSemanticMixin:
             group_size,
         )
         final_answer_keys_grouped: list[list[str | None]] = []
-        for prompt_rows in response_texts_grouped:
+        for prompt_index, prompt_rows in enumerate(response_texts_grouped):
+            prompt_refs = (
+                [None] * len(prompt_rows)
+                if references_grouped is None
+                else list(references_grouped[prompt_index])
+            )
             prompt_answers: list[str | None] = []
-            for row_text in prompt_rows:
+            for row_index, row_text in enumerate(prompt_rows):
                 answer = extract_normalized_final_answer_for_clustering(
                     row_text,
                     template=str(self.args.prompt_template),
+                    gt_answer=prompt_refs[row_index],
                 )
                 prompt_answers.append(answer)
             final_answer_keys_grouped.append(prompt_answers)

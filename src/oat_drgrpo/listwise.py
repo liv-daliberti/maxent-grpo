@@ -91,6 +91,10 @@ _SEMANTIC_REMIX_MODE_ALIASES = {
     "default": "competitive",
     "competitive": "competitive",
     "competitive_modes": "competitive",
+    "correct_cluster": "correctness_conditioned",
+    "correct_clusters": "correctness_conditioned",
+    "correctness_conditioned": "correctness_conditioned",
+    "correctness_conditioned_clusters": "correctness_conditioned",
     "anchor": "anchor_rare",
     "anchor_rare": "anchor_rare",
     "anchor_rare_full": "anchor_rare_full",
@@ -104,6 +108,11 @@ _SEMANTIC_CLUSTER_METHOD_ALIASES = {
     "": "default",
     "default": "default",
     "auto": "default",
+    "answer": "answer_family",
+    "answer_family": "answer_family",
+    "answer_only": "answer_family",
+    "exact_answer": "answer_family",
+    "final_answer": "answer_family",
     "greedy": "greedy",
     "threshold": "greedy",
     "connected": "connected_components",
@@ -194,10 +203,15 @@ def normalize_semantic_remix_mode(value: object) -> str:
     else:
         candidate = str(value).strip().lower()
     normalized = _SEMANTIC_REMIX_MODE_ALIASES.get(candidate, candidate)
-    if normalized not in {"competitive", "anchor_rare", "anchor_rare_full"}:
+    if normalized not in {
+        "competitive",
+        "correctness_conditioned",
+        "anchor_rare",
+        "anchor_rare_full",
+    }:
         raise ValueError(
             "maxent_semantic_remix_mode must be one of: competitive, "
-            "anchor_rare, anchor_rare_full"
+            "correctness_conditioned, anchor_rare, anchor_rare_full"
         )
     return normalized
 
@@ -210,10 +224,16 @@ def normalize_semantic_cluster_method(value: object) -> str:
     else:
         candidate = str(value).strip().lower()
     normalized = _SEMANTIC_CLUSTER_METHOD_ALIASES.get(candidate, candidate)
-    if normalized not in {"default", "greedy", "connected_components", "spectral"}:
+    if normalized not in {
+        "default",
+        "answer_family",
+        "greedy",
+        "connected_components",
+        "spectral",
+    }:
         raise ValueError(
-            "maxent_semantic_cluster_method must be one of: default, greedy, "
-            "connected_components, spectral"
+            "maxent_semantic_cluster_method must be one of: default, answer_family, "
+            "greedy, connected_components, spectral"
         )
     return normalized
 
@@ -2021,6 +2041,50 @@ def compute_listwise_centered_advantages(
     )
     advantages = weights_grouped - (target_mass_grouped * behavior_probs_grouped)
     return torch.where(valid_group_mask, advantages, torch.zeros_like(advantages))
+
+
+def compute_maxent_centered_advantages(
+    *,
+    weights_grouped: torch.Tensor,
+    temperature: float,
+    valid_row_mask_grouped: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Return a GRPO-scaled centered advantage induced by a MaxEnt target.
+
+    For a prompt with K valid sampled completions and MaxEnt candidate target
+    ``w*``, this returns ``K * temperature * (w* - 1/K)``. The temperature
+    should match the denominator used to construct ``w*``; for the current
+    closed form that is ``maxent_tau + maxent_candidate_kl_coef``.
+    """
+
+    if valid_row_mask_grouped is None:
+        valid_mask = torch.ones_like(weights_grouped, dtype=torch.bool)
+    else:
+        if valid_row_mask_grouped.shape != weights_grouped.shape:
+            raise ValueError(
+                "valid_row_mask_grouped must match the grouped weight shape."
+            )
+        valid_mask = valid_row_mask_grouped.to(torch.bool)
+
+    dtype = weights_grouped.dtype
+    valid_f = valid_mask.to(dtype=dtype)
+    valid_count = valid_f.sum(dim=1, keepdim=True).clamp(min=1.0)
+    uniform = torch.where(
+        valid_mask,
+        1.0 / valid_count,
+        torch.zeros_like(weights_grouped),
+    )
+    target = torch.where(valid_mask, weights_grouped, torch.zeros_like(weights_grouped))
+    target_mass = target.sum(dim=1, keepdim=True)
+    target_probs = torch.where(
+        target_mass > 1e-8,
+        target / target_mass.clamp(min=1e-8),
+        uniform,
+    )
+
+    safe_temperature = max(coerce_non_negative_float(temperature, default=0.0), 0.0)
+    advantages = valid_count * float(safe_temperature) * (target_probs - uniform)
+    return torch.where(valid_mask, advantages, torch.zeros_like(advantages))
 
 
 def compute_group_centered_advantages(

@@ -22,6 +22,7 @@ TASK_ORDER: tuple[str, ...] = (
     "minerva",
     "olympiad_bench",
 )
+KNOWN_TASKS: tuple[str, ...] = TASK_ORDER + ("modebench",)
 DEFAULT_TEMPLATE_SWEEP: tuple[str, ...] = ("no", "r1", "qwen_math")
 DEFAULT_PASS_KS: tuple[int, ...] = (1, 8, 16, 32, 64, 128)
 
@@ -31,6 +32,7 @@ DEFAULT_CHUNK_SIZES: dict[str, int] = {
     "amc": 8,
     "math": 8,
     "minerva": 6,
+    "modebench": 8,
     "olympiad_bench": 6,
 }
 TASK_COST_WEIGHTS: dict[str, float] = {
@@ -38,6 +40,7 @@ TASK_COST_WEIGHTS: dict[str, float] = {
     "amc": 1.0,
     "math": 1.15,
     "minerva": 1.2,
+    "modebench": 1.0,
     "olympiad_bench": 1.25,
 }
 
@@ -113,7 +116,7 @@ def _parse_chunk_size_overrides(raw_values: Sequence[str]) -> dict[str, int]:
             raise ValueError(f"Invalid --chunk-size value '{raw}'. Expected task=size.")
         task, size_text = raw.split("=", 1)
         task = task.strip()
-        if task not in TASK_ORDER:
+        if task not in KNOWN_TASKS:
             raise ValueError(f"Unknown task '{task}' in --chunk-size override.")
         size = int(size_text.strip())
         if size <= 0:
@@ -174,12 +177,15 @@ def _build_shards(
 ) -> list[ShardSpec]:
     from datasets import load_from_disk
 
-    selected_tasks = set(tasks or TASK_ORDER)
+    task_order = list(tasks or TASK_ORDER)
+    selected_tasks = set(task_order)
     datasets_by_task = load_from_disk(str(dataset_root))
     shards: list[ShardSpec] = []
-    for task in TASK_ORDER:
+    for task in task_order:
         if task not in selected_tasks:
             continue
+        if task not in datasets_by_task:
+            raise ValueError(f"Dataset root {dataset_root} does not contain task {task}.")
         dataset = datasets_by_task[task]
         total = len(dataset)
         chunk_size = min(int(chunk_sizes[task]), total)
@@ -257,6 +263,8 @@ def _normalize_template_name(template: str) -> str:
     normalized = str(template).strip()
     alias_map = {
         "r1": "r1",
+        "qwen_boxed": "qwen_boxed",
+        "qwen-boxed": "qwen_boxed",
         "qwen_math": "qwen_math",
         "qwen-math": "qwen_math",
         "no": "no",
@@ -589,6 +597,13 @@ def _select_task_template(template: str) -> Callable[[str], str]:
             + question
             + "<|im_end|>\n<|im_start|>assistant\n"
         )
+    if template in {"qwen_boxed", "qwen-boxed"}:
+        return lambda question: (
+            "<|im_start|>system\nReturn only the final answer inside \\boxed{}. "
+            "Do not explain.<|im_end|>\n<|im_start|>user\n"
+            + question
+            + "<|im_end|>\n<|im_start|>assistant\n"
+        )
     if template in {"no", "raw"}:
         return lambda question: question
     raise ValueError(f"Unsupported template '{template}'.")
@@ -601,7 +616,7 @@ def _get_reward_fn(
 
     if template == "r1":
         return answer_tag_reward_fn
-    if template in {"qwen_math", "qwen-math", "no", "raw"}:
+    if template in {"qwen_boxed", "qwen-boxed", "qwen_math", "qwen-math", "no", "raw"}:
         return boxed_reward_fn
     raise ValueError(f"Unsupported template '{template}'.")
 
@@ -621,6 +636,7 @@ def _annotate_trace_semantic_metrics(
     attempts: list[dict[str, Any]],
     template: str,
     similarity_threshold: float,
+    gt_answer: Any = None,
 ) -> dict[str, Any]:
     """Attach semantic-cluster metadata to sampled trace attempts.
 
@@ -659,6 +675,7 @@ def _annotate_trace_semantic_metrics(
         extract_normalized_final_answer_for_clustering(
             str(attempt.get("text", "")),
             template=template,
+            gt_answer=gt_answer,
         )
         for attempt in attempts
     ]
@@ -1091,6 +1108,7 @@ def _evaluate_loaded_shard(
                     attempts=attempt_seed_records,
                     template=template,
                     similarity_threshold=float(semantic_similarity_threshold),
+                    gt_answer=answers[row_index],
                 )
                 semantic_summaries.append(
                     {
@@ -2044,7 +2062,7 @@ def _main_impl(args: argparse.Namespace) -> int:
     chunk_sizes = DEFAULT_CHUNK_SIZES | _parse_chunk_size_overrides(args.chunk_size)
     tasks = [part.strip() for part in args.tasks.split(",") if part.strip()]
     tasks = tasks or list(TASK_ORDER)
-    unknown_tasks = sorted(set(tasks).difference(TASK_ORDER))
+    unknown_tasks = sorted(set(tasks).difference(KNOWN_TASKS))
     if unknown_tasks:
         raise ValueError(f"Unknown tasks requested: {unknown_tasks}")
 
@@ -2202,7 +2220,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hf-token", default=os.environ.get("HF_TOKEN", ""))
     parser.add_argument("--force-download", action="store_true")
     parser.add_argument("--local-files-only", action="store_true")
-    parser.add_argument("--dataset-root", default="datasets/evaluation_suite")
+    parser.add_argument("--dataset-root", required=True)
     parser.add_argument("--output-root", default="")
     parser.add_argument("--tasks", default=",".join(TASK_ORDER))
     parser.add_argument("--chunk-size", action="append", default=[])

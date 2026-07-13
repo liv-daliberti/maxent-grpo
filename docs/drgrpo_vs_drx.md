@@ -29,7 +29,8 @@ Dr.X-GRPO:
 - zero-signal cadence: valid zero-advantage batches still run a zero-loss
   backward/optimizer step, matching Dr.GRPO optimizer cadence
 - extra listwise clip objective: off
-- Dr.X projection/sequence auxiliary objective: off
+- Dr.X projection/sequence auxiliary objective: on in the fixed MaxEnt-test
+  recipe with `maxent_sequence_aux_coef=0.05`; off only for the legacy control
 - semantic remix: `anchor_rare`
 - explicit length penalties: removed from the Dr.X utility
 - launcher: `ops/run_oat_zero_exact_drx_1p5b_upstream.sh`
@@ -58,7 +59,7 @@ maxent_drgrpo_token_advantage_source=utility_centered
 maxent_drgrpo_token_length_normalizer=max_length
 maxent_exact_drx_weight_source=sequence_clipped
 maxent_use_clip_objective=0
-maxent_sequence_aux_coef=0.0
+maxent_sequence_aux_coef=0.05
 semantic_entropy_lambda=0.10
 maxent_semantic_remix_mode=anchor_rare
 ```
@@ -76,11 +77,13 @@ defaulting to `src/`. They validate the canonical `paper310` runtime before
 launching unless you explicitly point `OAT_ZERO_PYTHON` and
 `OAT_ZERO_PYTHON_LIB_DIR` at another compatible environment.
 
-Required data defaults:
+Required data defaults (ModeBench; both datasets are generated
+deterministically on first use, and `OAT_ZERO_TASK` selects the domain):
 
 ```text
-OAT_ZERO_PROMPT_DATA=datasets/train/math_12k
-OAT_ZERO_EVAL_DATA=datasets/evaluation_suite
+OAT_ZERO_TASK=countdown            # or graph_coloring
+OAT_ZERO_PROMPT_DATA=var/data/exact_countdown_mode_probe/train   # derived from OAT_ZERO_TASK
+OAT_ZERO_EVAL_DATA=var/data/exact_countdown_mode_probe/eval      # derived from OAT_ZERO_TASK
 OAT_ZERO_INPUT_KEY=problem
 OAT_ZERO_OUTPUT_KEY=answer
 ```
@@ -125,29 +128,37 @@ A_i = R_i - mean_j R_j
         (h_i - mean_j h_j)
 ```
 
-The public Dr.X launcher disables the extra listwise clip objective and the Dr.X
-projection/sequence auxiliary objective. The primary token update uses the same
-constant max-length normalization as OAT Dr.GRPO; any length behavior should come
-from the data/rewards, not an accidental response-length rescaling or explicit
-utility penalty. When centered Dr.X rewards produce zero token signal but valid
+The public Dr.X launcher disables the extra listwise clip objective but enables
+the Dr.X projection/sequence auxiliary objective at a small coefficient. In the
+fixed recipe, that auxiliary objective projects the active MaxEnt candidate
+target for informative groups and uses the neutral projection target only for
+neutral groups. The primary token update still uses the same constant max-length
+normalization as OAT Dr.GRPO; any length behavior should come from the
+data/rewards, not an accidental response-length rescaling or explicit utility
+penalty. When centered Dr.X rewards produce zero token signal but valid
 denominator rows, Dr.X still performs a zero-loss backward/optimizer step so the
 optimizer cadence matches Dr.GRPO.
 
-## Evaluation
-
-Run the node302 model grid:
+To reproduce the legacy failed recipe, override:
 
 ```bash
-sbatch ops/slurm/eval_model_grid_node302_8gpu.slurm
+OAT_ZERO_MAXENT_SEQUENCE_AUX_COEF=0.0 \
+  sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_exact_drx_node302.slurm
 ```
 
-The underlying script defaults to comparing:
+## Evaluation
 
-```text
-drgrpo,drx_grpo
+Evaluate trained checkpoints with the answer-mode coverage tooling:
+
+```bash
+RUN_STAMP_PREFIX=<stamp> ops/run_countdown_comparative_eval.sh   # on a GPU node
+var/seed_paper_eval/paper310/bin/python ops/analyze_countdown_comparative.py \
+  --output-root var/artifacts --stamp-prefix <stamp>
 ```
 
-via `PASSK_SWEEP_MODEL_FAMILIES`.
+This reports pass@K, mean@K, distinct@K, and coverage@K per arm, plus the
+prompt-clustered regression of each treatment arm against the Dr.GRPO
+baseline.
 
 ## W&B Metrics
 

@@ -206,6 +206,18 @@ def add_public_drx_training_metrics(logs_dict: dict[str, Any]) -> dict[str, Any]
     _copy_metric(
         enriched,
         logs_dict,
+        "drx/semantic/distinct_correct_answer_count",
+        "train/listwise_semantic_distinct_correct_answer_count",
+    )
+    _copy_metric(
+        enriched,
+        logs_dict,
+        "drx/semantic/min_answer_rejected_frac",
+        "train/listwise_semantic_correctness_min_answer_rejected_frac",
+    )
+    _copy_metric(
+        enriched,
+        logs_dict,
         "drx/semantic/cluster_entropy",
         "train/listwise_semantic_cluster_entropy",
     )

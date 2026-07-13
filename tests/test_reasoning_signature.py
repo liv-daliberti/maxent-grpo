@@ -8,6 +8,7 @@ pytest.importorskip("math_verify")
 pytest.importorskip("pylatexenc")
 
 from oat_drgrpo.math_grader import (
+    extract_reasoning_trace_for_clustering,
     extract_reasoning_signature_for_clustering,
     extract_reasoning_signature_from_trace,
 )
@@ -43,3 +44,35 @@ def test_reasoning_signature_can_be_built_from_truncated_trace_text():
     states = signature.split(" || ")
     assert len(states) == 4
     assert "2=x" in states
+
+
+def test_qwen_math_trace_uses_freeform_symbolic_work():
+    response = (
+        "To solve the problem, add the two numbers:\n"
+        "16 + 18 = 34\n"
+        "So the final answer is \\boxed{34}."
+    )
+
+    trace = extract_reasoning_trace_for_clustering(response, template="qwen_math")
+    signature = extract_reasoning_signature_for_clustering(
+        response,
+        template="qwen_math",
+    )
+
+    assert trace == response
+    assert signature is not None
+    assert "16+18=34" in signature
+
+
+def test_qwen_math_trace_rejects_answer_only_outputs():
+    assert (
+        extract_reasoning_trace_for_clustering("\\boxed{34}", template="qwen_math")
+        is None
+    )
+    assert (
+        extract_reasoning_signature_for_clustering(
+            "\\boxed{34}",
+            template="qwen_math",
+        )
+        is None
+    )

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Run the minimal 1.5B OAT Dr.GRPO recipe on node302 with the README training
-# stack and on-node flash-attn bootstrap.
+# stack and on-node flash-attn bootstrap. Trains on the exact multi-answer
+# ModeBench data (OAT_ZERO_TASK=countdown|graph_coloring; default countdown).
 
 #SBATCH --job-name=u_r1z_q15b_rf
 #SBATCH --nodes=1
@@ -28,10 +29,9 @@ export OAT_ZERO_SOURCE_ROOT="${ROOT_DIR}/src"
 export OAT_ZERO_PYTHON="${OAT_ZERO_PYTHON:-${README_PYTHON}}"
 export OAT_ZERO_ENABLE_FLASH_ATTN=1
 export OAT_ZERO_FLASH_ATTN_VERSION="${OAT_ZERO_FLASH_ATTN_VERSION:-2.7.4.post1}"
-export OAT_ZERO_PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-r1}"
+export OAT_ZERO_PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-qwen_math}"
 export OAT_ZERO_N_GPU="${OAT_ZERO_N_GPU:-8}"
-export OAT_ZERO_PROMPT_DATA="${ROOT_DIR}/datasets/train/math_12k"
-export OAT_ZERO_EVAL_DATA="${ROOT_DIR}/datasets/evaluation_suite"
+export OAT_ZERO_TASK="${OAT_ZERO_TASK:-countdown}"
 export OAT_ZERO_EVAL_STEPS="${OAT_ZERO_EVAL_STEPS:-16}"
 export OAT_ZERO_SAVE_STEPS="${OAT_ZERO_SAVE_STEPS:-${OAT_ZERO_EVAL_STEPS}}"
 export OAT_ZERO_SAVE_FROM="${OAT_ZERO_SAVE_FROM:-0}"
@@ -41,7 +41,7 @@ export OAT_ZERO_SAVE_INITIAL_MODEL="${OAT_ZERO_SAVE_INITIAL_MODEL:-1}"
 export OAT_ZERO_MAX_SAVE_NUM="${OAT_ZERO_MAX_SAVE_NUM:-999999}"
 export OAT_ZERO_MAX_SAVE_MEM="${OAT_ZERO_MAX_SAVE_MEM:-99999999}"
 export OAT_ZERO_WB_PROJECT="${OAT_ZERO_WB_PROJECT:-oat-zero}"
-export OAT_ZERO_WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-Math-1.5b-r1-zero-readmeflash-node302}"
+export OAT_ZERO_WB_RUN_NAME="${OAT_ZERO_WB_RUN_NAME:-qwen2.5-1.5b-instruct-${OAT_ZERO_TASK}-readmeflash-node302}"
 export OAT_ZERO_LOCAL_ROOT="${OAT_ZERO_LOCAL_ROOT:-/tmp/${USER}/maxent-grpo-oat-zero-${HOST_TAG}-readmeflash}"
 export OAT_ZERO_SHM_SIZE_MB="${OAT_ZERO_SHM_SIZE_MB:-20000}"
 export WANDB__SERVICE_WAIT="${WANDB__SERVICE_WAIT:-300}"

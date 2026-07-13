@@ -13,6 +13,8 @@ import torch
 from oat.utils.ops import masked_mean
 
 from ..listwise import cap_last_valid_token_pos_for_zero_advantage
+from ..seed_weights import compute_seed_row_weights
+from ..xdr import compute_xdr_row_weights, xdr_group_diagnostics
 
 
 class ZeroMathGrpoMixin:
@@ -59,9 +61,13 @@ class ZeroMathGrpoMixin:
         returns: torch.Tensor | None = None,
         values: torch.Tensor | None = None,
         policy_vocab_upper_bound: int | None = None,
+        row_weights: torch.Tensor | None = None,
+        extra_infos: dict[str, torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
         args = self.args
         infos: dict[str, torch.Tensor] = {}
+        if extra_infos:
+            infos.update(extra_infos)
         if advantages.ndim == 1:
             advantages = advantages[:, None]
 
@@ -96,6 +102,9 @@ class ZeroMathGrpoMixin:
                 mb_response_masks = response_masks[mini_batch_inds]
                 mb_logps = logps[mini_batch_inds]
                 mb_loss_masks = loss_masks[mini_batch_inds]
+                mb_row_weights = (
+                    row_weights[mini_batch_inds] if row_weights is not None else None
+                )
 
                 mb_valid_token_count_per_pos = mb_att_mask.sum(0)
                 mb_last_valid_token_pos = torch.where(
@@ -174,10 +183,40 @@ class ZeroMathGrpoMixin:
                 base_pg_loss = self.masked_aggregator(
                     pg_loss_max, mb_response_masks, axis=1
                 )
-                base_pg_loss = (base_pg_loss * mb_loss_masks).mean()
+                if mb_row_weights is None:
+                    base_pg_loss = (base_pg_loss * mb_loss_masks).mean()
+                else:
+                    # xDr.GRPO: per-candidate tempered aggregation weights
+                    # (G * softmax(U/tau) per prompt group, detached). Only the
+                    # pg-loss aggregation is reweighted; the entropy bonus and
+                    # tokenwise KL penalty keep their uniform 1/G aggregation.
+                    base_pg_loss = (
+                        base_pg_loss * mb_loss_masks * mb_row_weights
+                    ).mean()
                 pg_loss = base_pg_loss
                 infos["pg_loss"] = pg_loss.detach()
                 loss = pg_loss
+                policy_entropy_coef = float(
+                    getattr(args, "policy_entropy_coef", 0.0) or 0.0
+                )
+                entropy_for_loss = None
+                if policy_entropy_coef != 0.0:
+                    token_entropy = self._chunked_entropy_from_logits(logits)
+                    if token_entropy.shape != mb_response_masks.shape:
+                        token_entropy = token_entropy[
+                            ..., : mb_response_masks.shape[-1]
+                        ]
+                    entropy_by_row = self.masked_aggregator(
+                        token_entropy, mb_response_masks, axis=1
+                    )
+                    entropy_for_loss = (entropy_by_row * mb_loss_masks).mean()
+                    entropy_loss = -policy_entropy_coef * entropy_for_loss
+                    infos["policy_entropy_coef"] = torch.tensor(
+                        policy_entropy_coef,
+                        device=loss.device,
+                    )
+                    infos["policy_entropy_loss"] = entropy_loss.detach()
+                    loss = loss + entropy_loss
                 if args.beta > 0:
                     if ref_logps is None:
                         raise ValueError(
@@ -195,10 +234,22 @@ class ZeroMathGrpoMixin:
                     loss += reg_loss
 
                 with torch.no_grad():
-                    entropy = self._chunked_entropy_from_logits(logits)
-                    if entropy.shape != mb_response_masks.shape:
-                        entropy = entropy[..., : mb_response_masks.shape[-1]]
-                    entropy = masked_mean(entropy, mb_response_masks)
+                    # Always log token-level masked-mean entropy so the
+                    # train/entropy key has identical semantics across arms
+                    # regardless of whether the entropy bonus is active.
+                    if entropy_for_loss is None:
+                        token_entropy_for_log = self._chunked_entropy_from_logits(
+                            logits
+                        )
+                    else:
+                        token_entropy_for_log = token_entropy.detach()
+                    if token_entropy_for_log.shape != mb_response_masks.shape:
+                        token_entropy_for_log = token_entropy_for_log[
+                            ..., : mb_response_masks.shape[-1]
+                        ]
+                    entropy = masked_mean(
+                        token_entropy_for_log, mb_response_masks
+                    )
                     infos["entropy"] = entropy
 
                 self.strategy.backward(loss, self.model, self.optimizer)
@@ -425,6 +476,68 @@ class ZeroMathGrpoMixin:
             advantages = self.compute_monte_carlo_advantages(rewards, response_masks)[
                 :, None
             ]
+        row_weights = None
+        extra_infos: dict[str, torch.Tensor] = {}
+        xdr_tau = float(getattr(args, "xdr_tau", math.inf))
+        seed_alpha = float(getattr(args, "seed_entropy_alpha", 0.0) or 0.0)
+        if math.isfinite(xdr_tau) and self.args.critic_type == "drgrpo":
+            # xDr.GRPO: per-candidate Dr.GRPO utilities at the rollout policy
+            # (ratio=1): U_i = A_i * T_i / T_max. Weights are computed once per
+            # rollout batch and frozen for the update, like the advantages.
+            row_weights = compute_xdr_row_weights(
+                advantages,
+                response_masks.sum(dim=1),
+                num_samples=args.num_samples,
+                tau=xdr_tau,
+                t_max=int(args.generate_max_length),
+                loss_masks=loss_masks,
+            )
+            extra_infos.update(
+                xdr_group_diagnostics(
+                    row_weights, final_rewards, num_samples=args.num_samples
+                )
+            )
+        elif seed_alpha > 0 and self.args.critic_type == "drgrpo":
+            # SEED-Dr.GRPO: per-prompt semantic-entropy scaling. Cluster the
+            # group by canonical final answer, weight clusters by the policy's
+            # length-normalized sequence likelihood, and scale the prompt's
+            # rows by (1 + (alpha/log G) * H_sem)^{-1}. The per-row references
+            # must reach the clusterer so modebench answers (countdown
+            # expressions, colorings) reduce to canonical mode keys rather
+            # than surface forms.
+            num_rows = int(input_ids.size(0))
+            references = list(trajectory.get("references") or [])
+            references = (references + [None] * num_rows)[:num_rows]
+            references_grouped = [
+                references[i : i + args.num_samples]
+                for i in range(0, num_rows, args.num_samples)
+            ]
+            seq_logp_sums = (logps * response_masks.float()).sum(dim=1)
+            token_counts_raw = response_masks.sum(dim=1)
+            token_counts = token_counts_raw.clamp(min=1).float()
+            answer_keys_grouped = self._seed_answer_keys_grouped(
+                input_ids,
+                response_masks,
+                args.num_samples,
+                references_grouped,
+            )
+            answer_keys = [
+                key for group in answer_keys_grouped for key in group
+            ]
+            # Rows with no response tokens would otherwise take the maximal
+            # normalized logp of exactly 0; exclude them from the cluster
+            # softmax alongside loss-masked rows.
+            effective_masks = loss_masks * (token_counts_raw > 0).float()
+            row_weights = compute_seed_row_weights(
+                seq_logp_sums / token_counts,
+                answer_keys,
+                num_samples=args.num_samples,
+                alpha=seed_alpha,
+                loss_masks=effective_masks,
+            )
+            extra_infos["seed_prompt_scale_mean"] = row_weights.view(
+                -1, args.num_samples
+            )[:, 0].mean().detach()
         return self._baseline_update_with_precomputed_advantages(
             input_ids=input_ids,
             att_mask=att_mask,
@@ -438,6 +551,8 @@ class ZeroMathGrpoMixin:
             returns=returns if self.args.critic_type == "ppo" else None,
             values=values if self.args.critic_type == "ppo" else None,
             policy_vocab_upper_bound=policy_vocab_upper_bound,
+            row_weights=row_weights,
+            extra_infos=extra_infos,
         )
 
     # Dr. GRPO Modification 2: remove difficulty bias by computing the MC

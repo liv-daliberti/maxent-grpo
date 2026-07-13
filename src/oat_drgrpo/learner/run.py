@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
@@ -27,6 +28,36 @@ from ..resume_state import (
     resolve_resume_progress_state,
 )
 from ..templates import apply_prompt_template_to_example, collate_eval_prompt_items
+
+
+def _parse_answer_mode_count(ref: str) -> int:
+    """Extract the number of valid answer modes from a modebench reference JSON."""
+    try:
+        spec = json.loads(ref) if isinstance(ref, str) else ref
+        return max(int(spec.get("num_completions", 1)), 1)
+    except Exception:
+        return 1
+
+
+def _compute_mode_coverage_metrics(
+    rewards: list[float],
+    answer_keys: list,
+    answer_mode_count: int,
+) -> dict[str, float]:
+    k = len(rewards)
+    correct_keys = {
+        str(key)
+        for reward, key in zip(rewards, answer_keys)
+        if float(reward) > 0.0 and key is not None
+    }
+    distinct = len(correct_keys)
+    total = max(int(answer_mode_count), 1)
+    return {
+        "any_correct_at_k": float(any(float(r) > 0.0 for r in rewards)),
+        "mean_at_k": float(sum(float(r) for r in rewards) / k),
+        "distinct_correct_modes_at_k": float(distinct),
+        "mode_coverage_at_k": float(distinct) / float(total),
+    }
 
 
 class ZeroMathRunMixin:
@@ -609,21 +640,29 @@ class ZeroMathRunMixin:
                         )
 
                 if self.steps % self.update_interval == 0:
+                    logging.info("pre-learning start step=%s", self.steps)
                     self._pre_learning()
+                    logging.info("learn start step=%s", self.steps)
                     train_info = self.learn(self.steps // self.update_interval)
+                    logging.info("post-learning start step=%s", self.steps)
                     self._post_learning()
+                    logging.info("post-learning done step=%s", self.steps)
 
                     if (
                         self.steps // self.update_interval
                     ) % self.args.sync_params_every == 0:
+                        logging.info("sync params to actors start step=%s", self.steps)
                         self.sync_params_to_actors()
+                        logging.info("sync params to actors done step=%s", self.steps)
 
                     if (
                         self.steps // self.update_interval
                     ) % self.args.buffer_clear_every == 0:
                         self.pi_buffer.clear()
 
+                    logging.info("eval/log start step=%s", self.steps)
                     self.eval_and_log(train_info)
+                    logging.info("eval/log done step=%s", self.steps)
 
                 progress_bar.update()
                 self.steps += 1
@@ -793,4 +832,148 @@ class ZeroMathRunMixin:
                 "eval/average/response_tok_len": np.mean(lens),
             }
         )
+
+        if self.args.eval_mode_coverage_k > 0:
+            mc_coverages = []
+            for benchmark_name, dataset in self.eval_dataset_dict.items():
+                mc = self.evaluate_mode_coverage(
+                    dataset,
+                    benchmark_name,
+                    steps,
+                    k=self.args.eval_mode_coverage_k,
+                    temperature=self.args.eval_mode_coverage_temperature,
+                )
+                all_metrics.update(mc)
+                cov_key = f"eval/{benchmark_name}/sampled_mode_coverage_at_{self.args.eval_mode_coverage_k}"
+                if cov_key in mc:
+                    mc_coverages.append(mc[cov_key])
+            if mc_coverages:
+                all_metrics[f"eval/average/sampled_mode_coverage_at_{self.args.eval_mode_coverage_k}"] = float(
+                    np.mean(mc_coverages)
+                )
+
         return all_metrics
+
+    def evaluate_mode_coverage(
+        self,
+        dataset,
+        benchmark_name: str,
+        steps: int,
+        *,
+        k: int,
+        temperature: float,
+    ) -> dict[str, float]:
+        """Sampled mode-coverage eval: K completions per prompt at T=temperature.
+
+        Runs on the live vLLM engine without saving a checkpoint. All distributed
+        ranks participate in the barriers; only rank 0 drives actor inference.
+        Results are broadcast from rank 0 so that the subsequent all_reduce in
+        eval_and_log produces correct per-run values.
+        """
+        self._pre_evaluate()
+        try:
+            metrics = self._run_sampled_mode_coverage(
+                dataset, benchmark_name, steps, k=k, temperature=temperature
+            )
+        finally:
+            self._post_evaluate()
+        # All ranks must call broadcast the same number of times (once per key).
+        # Non-rank-0 processes return {} from _run_sampled_mode_coverage, so
+        # pre-populate the canonical keys with 0.0 on every rank before broadcast.
+        canonical_keys = [
+            f"eval/{benchmark_name}/sampled_mode_coverage_at_{k}",
+            f"eval/{benchmark_name}/sampled_any_correct_at_{k}",
+            f"eval/{benchmark_name}/sampled_mean_at_{k}",
+            f"eval/{benchmark_name}/sampled_distinct_correct_at_{k}",
+        ]
+        for key in canonical_keys:
+            metrics.setdefault(key, 0.0)
+        metrics = self.strategy.broadcast(metrics)
+        return metrics
+
+    def _run_sampled_mode_coverage(
+        self,
+        dataset,
+        benchmark_name: str,
+        steps: int,
+        *,
+        k: int,
+        temperature: float,
+    ) -> dict[str, float]:
+        if not self.strategy.is_rank_0():
+            return {}
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.args.eval_batch_size,
+            shuffle=False,
+            drop_last=False,
+            collate_fn=self.eval_dataloader_collate_fn,
+        )
+
+        logging.info(
+            "Starting sampled mode-coverage eval %s/%s: %s (%s prompts, K=%s, T=%s) at step %s",
+            benchmark_name,
+            len(self.eval_dataset_dict),
+            benchmark_name,
+            len(dataset),
+            k,
+            temperature,
+            steps,
+        )
+
+        per_prompt_metrics: list[dict[str, float]] = []
+        futs: list = []
+        pending_refs: list[list[str]] = []
+
+        for i, (batch_formatted, _batch_raw, batch_refs) in enumerate(dataloader):
+            actor = self.actors[i % len(self.actors)]
+            fut = actor.futures.generate_for_mode_coverage(
+                list(batch_formatted), list(batch_refs), k, temperature
+            )
+            futs.append(fut)
+            pending_refs.append(list(batch_refs))
+            if len(futs) == len(self.actors) or i == len(dataloader) - 1:
+                for fut, refs_batch in zip(futs, pending_refs):
+                    result = fut.result()
+                    for rewards, answer_keys, ref in zip(
+                        result["rewards"], result["answer_keys"], refs_batch
+                    ):
+                        mode_count = _parse_answer_mode_count(ref)
+                        per_prompt_metrics.append(
+                            _compute_mode_coverage_metrics(rewards, answer_keys, mode_count)
+                        )
+                futs.clear()
+                pending_refs.clear()
+
+        if not per_prompt_metrics:
+            return {}
+
+        mean: dict[str, float] = {
+            key: float(sum(m[key] for m in per_prompt_metrics) / len(per_prompt_metrics))
+            for key in per_prompt_metrics[0]
+        }
+
+        logging.info(
+            "Finished sampled mode-coverage eval %s: "
+            "mode_cov@%s=%.4f any_correct@%s=%.4f mean@%s=%.4f distinct@%s=%.4f at step %s",
+            benchmark_name,
+            k,
+            mean["mode_coverage_at_k"],
+            k,
+            mean["any_correct_at_k"],
+            k,
+            mean["mean_at_k"],
+            k,
+            mean["distinct_correct_modes_at_k"],
+            steps,
+        )
+
+        return {
+            f"eval/{benchmark_name}/sampled_mode_coverage_at_{k}": mean["mode_coverage_at_k"],
+            f"eval/{benchmark_name}/sampled_any_correct_at_{k}": mean["any_correct_at_k"],
+            f"eval/{benchmark_name}/sampled_mean_at_{k}": mean["mean_at_k"],
+            f"eval/{benchmark_name}/sampled_distinct_correct_at_{k}": mean[
+                "distinct_correct_modes_at_k"
+            ],
+        }

@@ -17,6 +17,7 @@ from ..args import ZeroMathArgs, build_fixed_listwise_config
 from ..controllers import ListwiseControllerState
 from ..listwise import normalize_oat_objective
 from ..runtime import patch_oat_learner_datetime, resolve_fixed_oat_exp_suffix
+from ..trajectory_dataset import ZeroMathTrajectoryDataset
 
 
 class ZeroMathInitMixin:
@@ -33,6 +34,7 @@ class ZeroMathInitMixin:
             )
         with patch_oat_learner_datetime(fixed_exp_suffix):
             super()._init(args, actors)
+        self.dataset_builder = ZeroMathTrajectoryDataset
         args.use_wb = requested_use_wb
         if hasattr(self, "strategy") and hasattr(self.strategy, "args"):
             self.strategy.args.use_wb = requested_use_wb

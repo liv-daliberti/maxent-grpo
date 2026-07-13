@@ -17,7 +17,9 @@ from ..args import ZeroMathArgs
 from ..correctness_schedule import build_correctness_scheduled_settings
 from ..drx_targets import (
     apply_neutral_tiebreak_to_advantages,
+    apply_sequence_aux_projection_gates,
     build_drgrpo_token_active_row_mask,
+    build_token_primary_sequence_aux_projection,
     compute_drx_projection_sequence_coefficients,
 )
 from ..listwise import (
@@ -29,6 +31,7 @@ from ..listwise import (
     coerce_non_negative_float,
     compute_group_centered_advantages,
     compute_listwise_centered_advantages,
+    compute_maxent_centered_advantages,
     compute_listwise_weights,
     compute_normalized_semantic_cluster_entropy,
     flatten_prompt_major_tensor,
@@ -60,6 +63,257 @@ from .drx_semantics import ZeroMathDrxSemanticMixin
 _VERIFIED_CORRECTNESS_SCHEDULE_THRESHOLD = 0.999
 
 
+def _sequence_aux_masked_mean(
+    values: torch.Tensor,
+    mask: torch.Tensor,
+) -> torch.Tensor:
+    weights = mask.to(device=values.device, dtype=values.dtype)
+    return (values * weights).sum() / weights.sum().clamp(min=1.0)
+
+
+def _sequence_aux_masked_frac(
+    mask: torch.Tensor,
+    denom_mask: torch.Tensor,
+    *,
+    dtype: torch.dtype = torch.float32,
+) -> torch.Tensor:
+    numerator = (mask & denom_mask).to(dtype=dtype).sum()
+    denominator = denom_mask.to(dtype=dtype).sum().clamp(min=1.0)
+    return numerator / denominator
+
+
+def _append_sequence_aux_projection_diagnostics(
+    stats: dict[str, list[float | torch.Tensor]],
+    diagnostics,
+) -> None:
+    eligible_group_mask = diagnostics.eligible_group_mask
+    kept_group_mask = diagnostics.kept_group_mask
+    stat_dtype = diagnostics.target_expected_len_grouped.dtype
+
+    stats["listwise_sequence_aux_eligible_group_frac"].append(
+        eligible_group_mask.to(torch.float32).mean().detach()
+    )
+    stats["listwise_sequence_aux_kept_group_frac"].append(
+        kept_group_mask.to(torch.float32).mean().detach()
+    )
+    stats["listwise_sequence_aux_kept_frac_of_eligible"].append(
+        _sequence_aux_masked_frac(kept_group_mask, eligible_group_mask).detach()
+    )
+    stats["listwise_sequence_aux_rejected_group_filter_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.rejected_group_filter_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+    stats["listwise_sequence_aux_rejected_len_guard_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.rejected_len_guard_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+    stats["listwise_sequence_aux_rejected_len_gain_guard_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.rejected_len_gain_guard_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+    stats["listwise_sequence_aux_rejected_format_guard_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.rejected_format_guard_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+    stats["listwise_sequence_aux_rejected_correctness_guard_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.rejected_correctness_guard_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+    stats["listwise_sequence_aux_all_wrong_group_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.all_wrong_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+    stats["listwise_sequence_aux_mixed_group_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.mixed_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+    stats["listwise_sequence_aux_all_correct_group_frac"].append(
+        _sequence_aux_masked_frac(
+            diagnostics.all_correct_group_mask,
+            eligible_group_mask,
+        ).detach()
+    )
+
+    target_mass = diagnostics.target_mass_grouped.to(stat_dtype)
+    target_mass_eligible = target_mass * eligible_group_mask.to(
+        device=target_mass.device,
+        dtype=target_mass.dtype,
+    )
+    target_mass_denom = target_mass_eligible.sum().clamp(min=1e-8)
+    for key, group_mask in (
+        ("all_wrong", diagnostics.all_wrong_group_mask),
+        ("mixed", diagnostics.mixed_group_mask),
+        ("all_correct", diagnostics.all_correct_group_mask),
+    ):
+        stats[f"listwise_sequence_aux_target_mass_{key}_frac"].append(
+            (
+                target_mass_eligible
+                * group_mask.to(device=target_mass.device, dtype=target_mass.dtype)
+            )
+            .sum()
+            .div(target_mass_denom)
+            .detach()
+        )
+
+    scalar_pairs = {
+        "target_expected_len": diagnostics.target_expected_len_grouped,
+        "behavior_expected_len": diagnostics.behavior_expected_len_grouped,
+        "expected_len_delta": (
+            diagnostics.target_expected_len_grouped
+            - diagnostics.behavior_expected_len_grouped
+        ),
+        "target_expected_format": diagnostics.target_expected_format_grouped,
+        "behavior_expected_format": diagnostics.behavior_expected_format_grouped,
+        "expected_format_delta": (
+            diagnostics.target_expected_format_grouped
+            - diagnostics.behavior_expected_format_grouped
+        ),
+        "target_expected_correctness": diagnostics.target_expected_correctness_grouped,
+        "behavior_expected_correctness": (
+            diagnostics.behavior_expected_correctness_grouped
+        ),
+        "expected_correctness_delta": (
+            diagnostics.target_expected_correctness_grouped
+            - diagnostics.behavior_expected_correctness_grouped
+        ),
+        "correct_mass_delta": (
+            diagnostics.target_correct_mass_grouped
+            - diagnostics.behavior_correct_mass_grouped
+        ),
+        "wrong_mass_delta": (
+            diagnostics.target_wrong_mass_grouped
+            - diagnostics.behavior_wrong_mass_grouped
+        ),
+        "moved_mass_l1": diagnostics.moved_mass_l1_grouped,
+        "moved_mass_to_correct": diagnostics.moved_mass_to_correct_grouped,
+        "moved_mass_from_correct": diagnostics.moved_mass_from_correct_grouped,
+        "moved_mass_to_wrong": diagnostics.moved_mass_to_wrong_grouped,
+        "moved_mass_from_wrong": diagnostics.moved_mass_from_wrong_grouped,
+    }
+    for suffix, values in scalar_pairs.items():
+        stats[f"listwise_sequence_aux_{suffix}"].append(
+            _sequence_aux_masked_mean(values, eligible_group_mask).detach()
+        )
+
+
+def _append_semantic_remix_diagnostics(
+    stats: dict[str, list[float | torch.Tensor]],
+    diagnostics,
+) -> None:
+    stats["listwise_semantic_competitive_mode_count"].append(
+        diagnostics.mode_count_grouped.mean().detach()
+    )
+    stats["listwise_semantic_competitive_mode_eligible_count"].append(
+        diagnostics.eligible_mode_count_grouped.mean().detach()
+    )
+    stats["listwise_semantic_competitive_mode_eligible_frac"].append(
+        diagnostics.eligible_mode_frac_grouped.mean().detach()
+    )
+    stats["listwise_semantic_distinct_correct_mode_count"].append(
+        diagnostics.distinct_correct_mode_count_grouped.mean().detach()
+    )
+    stats["listwise_semantic_distinct_correct_mode_frac"].append(
+        diagnostics.distinct_correct_mode_frac_grouped.mean().detach()
+    )
+    stats["listwise_semantic_distinct_correct_answer_count"].append(
+        diagnostics.distinct_correct_answer_count_grouped.mean().detach()
+    )
+    stats["listwise_semantic_correctness_min_answer_rejected_frac"].append(
+        diagnostics.correctness_min_answer_rejected_group_mask.to(torch.float32)
+        .mean()
+        .detach()
+    )
+    stats["listwise_semantic_competitive_mode_best_score"].append(
+        diagnostics.best_score_grouped.mean().detach()
+    )
+    stats["listwise_semantic_competitive_mode_second_score"].append(
+        diagnostics.second_score_grouped.mean().detach()
+    )
+    stats["listwise_semantic_competitive_mode_gap"].append(
+        diagnostics.competitive_gap_grouped.mean().detach()
+    )
+    stats["listwise_semantic_explore_budget_mean"].append(
+        diagnostics.explore_budget_grouped.mean().detach()
+    )
+    stats["listwise_semantic_explore_budget_saturated_frac"].append(
+        diagnostics.explore_budget_saturated_grouped.to(torch.float32).mean().detach()
+    )
+    stats["listwise_semantic_explore_applied_group_frac"].append(
+        diagnostics.explore_applied_group_mask.to(torch.float32).mean().detach()
+    )
+    stats["listwise_semantic_prompt_selected_frac"].append(
+        diagnostics.prompt_selected_group_mask.to(torch.float32).mean().detach()
+    )
+    stats["listwise_semantic_prompt_rejected_low_opp_frac"].append(
+        diagnostics.prompt_rejected_low_opp_group_mask.to(torch.float32).mean().detach()
+    )
+    stats["listwise_semantic_prompt_rejected_nonpositive_frac"].append(
+        diagnostics.prompt_rejected_nonpositive_group_mask.to(torch.float32)
+        .mean()
+        .detach()
+    )
+    stats["listwise_semantic_prompt_rejected_len_guard_frac"].append(
+        diagnostics.prompt_rejected_len_guard_group_mask.to(torch.float32)
+        .mean()
+        .detach()
+    )
+    stats["listwise_semantic_prompt_rejected_format_guard_frac"].append(
+        diagnostics.prompt_rejected_format_guard_group_mask.to(torch.float32)
+        .mean()
+        .detach()
+    )
+    stats["listwise_semantic_moved_mass_l1"].append(
+        diagnostics.moved_mass_l1_grouped.mean().detach()
+    )
+    stats["listwise_semantic_alpha_raw_mean"].append(
+        diagnostics.alpha_raw_grouped.mean().detach()
+    )
+    stats["listwise_semantic_alpha_applied_mean"].append(
+        diagnostics.alpha_applied_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_utility_q"].append(
+        diagnostics.expected_utility_q_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_utility_explore_target"].append(
+        diagnostics.expected_utility_explore_target_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_utility_final_w"].append(
+        diagnostics.expected_utility_final_w_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_len_q"].append(
+        diagnostics.expected_len_q_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_len_explore_target"].append(
+        diagnostics.expected_len_explore_target_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_len_final_w"].append(
+        diagnostics.expected_len_final_w_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_format_q"].append(
+        diagnostics.expected_format_q_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_format_explore_target"].append(
+        diagnostics.expected_format_explore_target_grouped.mean().detach()
+    )
+    stats["listwise_semantic_expected_format_final_w"].append(
+        diagnostics.expected_format_final_w_grouped.mean().detach()
+    )
+
+
 def build_runtime_semantic_cluster_bundle(
     *,
     args: Any,
@@ -79,6 +333,40 @@ def build_runtime_semantic_cluster_bundle(
         reasoning_trace_embeddings_grouped=reasoning_trace_embeddings_grouped,
         reasoning_trace_valid_row_mask_grouped=reasoning_trace_valid_row_mask_grouped,
     )
+
+
+def build_answer_ids_grouped(
+    *,
+    final_answer_keys_grouped,
+    valid_row_mask_grouped: torch.Tensor,
+) -> torch.Tensor:
+    """Encode normalized final-answer keys as prompt-local ids."""
+
+    if valid_row_mask_grouped.dim() != 2:
+        raise ValueError("valid_row_mask_grouped must have shape [prompts, group].")
+    num_prompts, group_size = valid_row_mask_grouped.shape
+    if len(final_answer_keys_grouped) != num_prompts:
+        raise ValueError("final_answer_keys_grouped must match num_prompts.")
+    answer_ids = torch.full(
+        (num_prompts, group_size),
+        -1,
+        device=valid_row_mask_grouped.device,
+        dtype=torch.long,
+    )
+    valid_mask = valid_row_mask_grouped.to(torch.bool)
+    for p, prompt_keys in enumerate(final_answer_keys_grouped):
+        if len(prompt_keys) != group_size:
+            raise ValueError("Each prompt must provide one answer key per candidate.")
+        key_to_id: dict[str, int] = {}
+        for i, key in enumerate(prompt_keys):
+            if key is None or not bool(valid_mask[p, i].item()):
+                continue
+            answer_id = key_to_id.get(key)
+            if answer_id is None:
+                answer_id = len(key_to_id)
+                key_to_id[key] = answer_id
+            answer_ids[p, i] = int(answer_id)
+    return answer_ids
 
 
 class ZeroMathDrxMixin(
@@ -120,6 +408,18 @@ class ZeroMathDrxMixin(
         device = torch.cuda.current_device()
         input_ids = trajectory["input_ids"].to(device)
         att_mask = trajectory["attention_mask"].to(device)
+        raw_trajectory_references = trajectory.get("references")
+        trajectory_references = (
+            [None] * int(input_ids.size(0))
+            if raw_trajectory_references is None
+            else list(raw_trajectory_references)
+        )
+        if len(trajectory_references) < int(input_ids.size(0)):
+            trajectory_references.extend(
+                [None] * (int(input_ids.size(0)) - len(trajectory_references))
+            )
+        elif len(trajectory_references) > int(input_ids.size(0)):
+            trajectory_references = trajectory_references[: int(input_ids.size(0))]
         final_rewards = (
             torch.tensor([r[-1] for r in trajectory["rewards"]])
             .to(device)
@@ -522,6 +822,7 @@ class ZeroMathDrxMixin(
                 behavior_seq_logps_grouped_raw=behavior_seq_logps_grouped_raw,
                 ref_seq_logps_grouped=ref_seq_logps_grouped,
                 ref_seq_logps_grouped_raw=ref_seq_logps_grouped_raw,
+                references=trajectory_references,
             )
 
         total_rows = int(input_ids.size(0))
@@ -552,6 +853,13 @@ class ZeroMathDrxMixin(
                 prompt_batch_inds = (
                     mini_batch_inds.reshape(-1, group_size)[:, 0] // group_size
                 )
+                mb_references_grouped = [
+                    [
+                        trajectory_references[int(row_index)]
+                        for row_index in prompt_row.detach().cpu().tolist()
+                    ]
+                    for prompt_row in mini_batch_inds.reshape(-1, group_size)
+                ]
 
                 (
                     _,
@@ -666,6 +974,23 @@ class ZeroMathDrxMixin(
                 ].to(
                     device=policy_seq_logps_grouped.device,
                     dtype=policy_seq_logps_grouped.dtype,
+                )
+                mb_formatted_grouped = grouped_formatted_values[prompt_batch_inds].to(
+                    device=policy_seq_logps_grouped.device,
+                    dtype=policy_seq_logps_grouped.dtype,
+                )
+                gain_group_count = 0
+                semantic_entropy_prompt_mean_local = self._listwise_scalar(
+                    0.0,
+                    device=policy_seq_logps_grouped.device,
+                )
+                exploration_gain_any_correct_mean_local = self._listwise_scalar(
+                    0.0,
+                    device=policy_seq_logps_grouped.device,
+                )
+                exploration_gain_drgrpo_mean_local = self._listwise_scalar(
+                    0.0,
+                    device=policy_seq_logps_grouped.device,
                 )
                 mb_advantage = advantages[mini_batch_inds].to(
                     device=new_logps.device,
@@ -948,6 +1273,7 @@ class ZeroMathDrxMixin(
                         mb_input_ids,
                         mb_response_masks,
                         group_size,
+                        references_grouped=mb_references_grouped,
                     )
                     (
                         reasoning_trace_embeddings_grouped,
@@ -1650,6 +1976,10 @@ class ZeroMathDrxMixin(
                             device=policy_seq_logps_grouped.device
                         )
                     )
+                    answer_ids_grouped = build_answer_ids_grouped(
+                        final_answer_keys_grouped=final_answer_keys_grouped,
+                        valid_row_mask_grouped=grouped_loss_masks,
+                    ).to(device=policy_seq_logps_grouped.device)
                     drx_bundle = build_drx_target_bundle(
                         utility_grouped=exact_quality_utility_grouped.detach().to(
                             device=policy_seq_logps_grouped.device,
@@ -1663,15 +1993,35 @@ class ZeroMathDrxMixin(
                         competitive_mode_budget_grouped=semantic_explore_budget_grouped.detach(),
                         competitive_mode_budget_max=effective_competitive_mode_budget_max,
                         competitive_mode_intra_tau=effective_competitive_mode_intra_tau,
+                        candidate_correctness_grouped=mb_correctness_grouped.detach(),
+                        candidate_lengths_grouped=token_counts_grouped.detach(),
+                        candidate_formatted_grouped=mb_formatted_grouped.detach(),
                         prompt_select_min_alpha_frac=effective_prompt_select_min_alpha_frac,
                         competitive_mode_positive_only=competitive_mode_positive_only,
                         semantic_guard_max_expected_len_delta=semantic_guard_max_expected_len_delta,
                         semantic_guard_max_expected_format_drop=semantic_guard_max_expected_format_drop,
                         tau=current_tau,
                         candidate_kl_coef=candidate_kl_coef,
+                        cluster_ids_grouped=cluster_ids_grouped,
+                        semantic_mass_weights_grouped=semantic_mass_weights_grouped,
+                        answer_ids_grouped=answer_ids_grouped,
                         neutral_eps=1e-8,
                         neutral_projection_coef=neutral_projection_coef,
                         semantic_remix_mode=str(args.maxent_semantic_remix_mode),
+                        semantic_correctness_answer_level=bool(
+                            getattr(
+                                args,
+                                "maxent_semantic_correctness_answer_level",
+                                False,
+                            )
+                        ),
+                        semantic_correctness_min_answer_count=int(
+                            getattr(
+                                args,
+                                "maxent_semantic_correctness_min_answer_count",
+                                1,
+                            )
+                        ),
                     )
                     weights_grouped = drx_bundle.w_star_grouped.to(
                         device=policy_seq_logps_grouped.device,
@@ -1751,14 +2101,85 @@ class ZeroMathDrxMixin(
                         device=policy_seq_logps_grouped.device,
                         dtype=policy_seq_logps_grouped.dtype,
                     )
+                    (
+                        sequence_aux_target_grouped,
+                        sequence_aux_group_scale,
+                    ) = build_token_primary_sequence_aux_projection(
+                        token_target_grouped=token_target_weights_grouped,
+                        projection_target_grouped=projection_target_grouped,
+                        informative_group_mask=active_group_mask,
+                        projection_group_scale=projection_group_scale,
+                        valid_row_mask_grouped=grouped_loss_masks,
+                    )
+                    (
+                        sequence_aux_target_grouped,
+                        sequence_aux_group_scale,
+                        sequence_aux_diagnostics,
+                    ) = apply_sequence_aux_projection_gates(
+                        sequence_aux_target_grouped=sequence_aux_target_grouped,
+                        sequence_aux_group_scale=sequence_aux_group_scale,
+                        behavior_probs_grouped=behavior_probs_grouped_raw.detach(),
+                        valid_row_mask_grouped=grouped_loss_masks,
+                        candidate_correctness_grouped=mb_correctness_grouped.detach(),
+                        candidate_lengths_grouped=token_counts_grouped.detach(),
+                        candidate_formatted_grouped=mb_formatted_grouped.detach(),
+                        group_filter=getattr(
+                            args, "maxent_sequence_aux_group_filter", "all"
+                        ),
+                        max_expected_len_drop=getattr(
+                            args,
+                            "maxent_sequence_aux_max_expected_len_drop",
+                            float("inf"),
+                        ),
+                        max_expected_len_gain=getattr(
+                            args,
+                            "maxent_sequence_aux_max_expected_len_gain",
+                            float("inf"),
+                        ),
+                        max_expected_format_drop=getattr(
+                            args,
+                            "maxent_sequence_aux_max_expected_format_drop",
+                            1.0,
+                        ),
+                        min_expected_correctness_delta=getattr(
+                            args,
+                            "maxent_sequence_aux_min_expected_correctness_delta",
+                            -1.0,
+                        ),
+                        correctness_threshold=_VERIFIED_CORRECTNESS_SCHEDULE_THRESHOLD,
+                    )
+                    _append_sequence_aux_projection_diagnostics(
+                        stats,
+                        sequence_aux_diagnostics,
+                    )
+                    semantic_cluster_entropy_t, semantic_cluster_count_t = (
+                        compute_normalized_semantic_cluster_entropy(
+                            candidate_probs_grouped=behavior_probs_grouped_raw.detach(),
+                            cluster_ids_grouped=cluster_ids_grouped,
+                            valid_row_mask_grouped=grouped_loss_masks,
+                            normalizer_group_size=group_size,
+                        )
+                    )
+                    stats["listwise_semantic_cluster_entropy"].append(
+                        semantic_cluster_entropy_t.mean().detach()
+                    )
+                    stats["listwise_semantic_cluster_entropy_norm"].append(
+                        semantic_cluster_entropy_t.mean().detach()
+                    )
+                    stats["listwise_semantic_cluster_count"].append(
+                        semantic_cluster_count_t.mean().detach()
+                    )
+                    semantic_diag = drx_bundle.semantic_diagnostics
+                    if semantic_diag is not None:
+                        _append_semantic_remix_diagnostics(stats, semantic_diag)
                     # Normalize projection CE by the number of projection-eligible
                     # groups, not by the sum of scale coefficients. Otherwise a
                     # neutral scale such as 0.10 cancels out of both numerator and
                     # denominator and is no longer a real strength knob.
                     local_projection_group_weight = contributing_group_mask.to(
-                        dtype=projection_group_scale.dtype
+                        dtype=sequence_aux_group_scale.dtype
                     ).sum()
-                    local_projection_scale_mass = projection_group_scale.sum()
+                    local_projection_scale_mass = sequence_aux_group_scale.sum()
                     global_projection_group_weight = float(
                         local_projection_group_weight.item()
                     )
@@ -1824,6 +2245,8 @@ class ZeroMathDrxMixin(
                         device=policy_seq_logps_grouped.device,
                         dtype=policy_seq_logps_grouped.dtype,
                     )
+                    sequence_aux_target_grouped = projection_target_grouped
+                    sequence_aux_group_scale = projection_group_scale
                     global_projection_group_weight = float(
                         max(global_active_group_count, 0)
                     )
@@ -1849,6 +2272,47 @@ class ZeroMathDrxMixin(
                         grouped_loss_masks,
                         torch.exp(behavior_log_probs_grouped_raw),
                         torch.zeros_like(behavior_log_probs_grouped_raw),
+                    )
+                    (
+                        sequence_aux_target_grouped,
+                        sequence_aux_group_scale,
+                        sequence_aux_diagnostics,
+                    ) = apply_sequence_aux_projection_gates(
+                        sequence_aux_target_grouped=sequence_aux_target_grouped,
+                        sequence_aux_group_scale=sequence_aux_group_scale,
+                        behavior_probs_grouped=behavior_probs_grouped_raw.detach(),
+                        valid_row_mask_grouped=grouped_loss_masks,
+                        candidate_correctness_grouped=mb_correctness_grouped.detach(),
+                        candidate_lengths_grouped=token_counts_grouped.detach(),
+                        candidate_formatted_grouped=mb_formatted_grouped.detach(),
+                        group_filter=getattr(
+                            args, "maxent_sequence_aux_group_filter", "all"
+                        ),
+                        max_expected_len_drop=getattr(
+                            args,
+                            "maxent_sequence_aux_max_expected_len_drop",
+                            float("inf"),
+                        ),
+                        max_expected_len_gain=getattr(
+                            args,
+                            "maxent_sequence_aux_max_expected_len_gain",
+                            float("inf"),
+                        ),
+                        max_expected_format_drop=getattr(
+                            args,
+                            "maxent_sequence_aux_max_expected_format_drop",
+                            1.0,
+                        ),
+                        min_expected_correctness_delta=getattr(
+                            args,
+                            "maxent_sequence_aux_min_expected_correctness_delta",
+                            -1.0,
+                        ),
+                        correctness_threshold=_VERIFIED_CORRECTNESS_SCHEDULE_THRESHOLD,
+                    )
+                    _append_sequence_aux_projection_diagnostics(
+                        stats,
+                        sequence_aux_diagnostics,
                     )
                     semantic_cluster_entropy_t, semantic_cluster_count_t = (
                         compute_normalized_semantic_cluster_entropy(
@@ -1887,6 +2351,20 @@ class ZeroMathDrxMixin(
                         )
                         stats["listwise_semantic_distinct_correct_mode_frac"].append(
                             semantic_diag.distinct_correct_mode_frac_grouped.mean().detach()
+                        )
+                        stats[
+                            "listwise_semantic_distinct_correct_answer_count"
+                        ].append(
+                            semantic_diag.distinct_correct_answer_count_grouped.mean().detach()
+                        )
+                        stats[
+                            "listwise_semantic_correctness_min_answer_rejected_frac"
+                        ].append(
+                            semantic_diag.correctness_min_answer_rejected_group_mask.to(
+                                torch.float32
+                            )
+                            .mean()
+                            .detach()
                         )
                         stats["listwise_semantic_competitive_mode_best_score"].append(
                             semantic_diag.best_score_grouped.mean().detach()
@@ -2224,12 +2702,12 @@ class ZeroMathDrxMixin(
                     torch.zeros_like(policy_log_probs_grouped),
                 )
                 per_group_projection_ce = -(
-                    target_weights_grouped * policy_log_probs_grouped
+                    sequence_aux_target_grouped * policy_log_probs_grouped
                 ).sum(dim=1)
                 projection_ce_loss = (per_group_projection_ce * 0.0).sum()
                 if drgrpo_token_primary and global_projection_group_weight > 0.0:
                     projection_ce_loss = (
-                        projection_group_scale.detach() * per_group_projection_ce
+                        sequence_aux_group_scale.detach() * per_group_projection_ce
                     ).sum() / max(global_projection_group_weight, 1e-8)
                 else:
                     ce_group_mask = active_group_mask
@@ -2288,6 +2766,9 @@ class ZeroMathDrxMixin(
                 global_drgrpo_signal_row_count = 0
                 weighted_drgrpo_pg_loss = None
                 if drgrpo_token_primary:
+                    drgrpo_advantage_source = str(
+                        args.maxent_drgrpo_token_advantage_source
+                    )
                     if float(args.beta) > 0.0:
                         raise NotImplementedError(
                             "The exact DrX utility-lift path currently requires beta=0 "
@@ -2295,32 +2776,43 @@ class ZeroMathDrxMixin(
                             "surrogate. Candidate-level trust should use "
                             "maxent_candidate_kl_coef."
                         )
-                    if (
-                        str(args.maxent_drgrpo_token_advantage_source)
-                        == "utility_centered"
-                    ):
+                    if drgrpo_advantage_source == "utility_centered":
                         drgrpo_row_adv_flat = flatten_prompt_major_tensor(
                             exact_centered_advantages_grouped
                         ).to(device=new_logps.device, dtype=new_logps.dtype)
+                        drgrpo_active_advantages_grouped = exact_centered_advantages_grouped
+                    elif drgrpo_advantage_source == "maxent_centered":
+                        maxent_centered_advantages_grouped = (
+                            compute_maxent_centered_advantages(
+                                weights_grouped=target_weights_grouped.detach(),
+                                temperature=float(current_tau) + float(candidate_kl_coef),
+                                valid_row_mask_grouped=grouped_loss_masks.detach(),
+                            ).to(
+                                device=policy_seq_logps_grouped.device,
+                                dtype=policy_seq_logps_grouped.dtype,
+                            )
+                        )
+                        drgrpo_row_adv_flat = flatten_prompt_major_tensor(
+                            maxent_centered_advantages_grouped
+                        ).to(device=new_logps.device, dtype=new_logps.dtype)
+                        drgrpo_active_advantages_grouped = maxent_centered_advantages_grouped
                     else:
                         drgrpo_row_adv_flat = probe_row_advantages
+                        drgrpo_active_advantages_grouped = torch.zeros_like(
+                            exact_centered_advantages_grouped,
+                            device=policy_seq_logps_grouped.device,
+                            dtype=policy_seq_logps_grouped.dtype,
+                        )
                     drgrpo_pg_loss = (probe_drgrpo_pg_row_loss * mb_loss_masks).mean()
                     infos["drgrpo_pg_loss"] = drgrpo_pg_loss.detach()
                     infos["drgrpo_primary_loss"] = drgrpo_pg_loss.detach()
 
                     token_active_row_mask_grouped = build_drgrpo_token_active_row_mask(
-                        advantage_source=str(args.maxent_drgrpo_token_advantage_source),
+                        advantage_source=drgrpo_advantage_source,
                         informative_group_mask=informative_group_mask,
                         valid_row_mask_grouped=grouped_loss_masks,
                         utility_centered_advantages_grouped=(
-                            exact_centered_advantages_grouped.to(
-                                device=policy_seq_logps_grouped.device,
-                                dtype=policy_seq_logps_grouped.dtype,
-                            )
-                            if str(args.maxent_drgrpo_token_advantage_source)
-                            == "utility_centered"
-                            else torch.zeros_like(
-                                exact_centered_advantages_grouped,
+                            drgrpo_active_advantages_grouped.to(
                                 device=policy_seq_logps_grouped.device,
                                 dtype=policy_seq_logps_grouped.dtype,
                             )
@@ -2345,10 +2837,10 @@ class ZeroMathDrxMixin(
                             drgrpo_active_row_count_tensor.item()
                         )
 
-                    if (
-                        str(args.maxent_drgrpo_token_advantage_source)
-                        == "utility_centered"
-                    ):
+                    if drgrpo_advantage_source in {
+                        "utility_centered",
+                        "maxent_centered",
+                    }:
                         weighted_drgrpo_multiplier_flat = torch.ones_like(
                             drgrpo_row_adv_flat
                         )
@@ -2524,6 +3016,12 @@ class ZeroMathDrxMixin(
                     infos["listwise_aux_loss_weighted"] = loss.detach()
                     infos["listwise_aux_loss_effective"] = loss.detach()
                     infos["objective_effective_total_loss"] = loss.detach()
+                if drgrpo_token_primary:
+                    infos["listwise_projection_to_pg_loss_ratio"] = torch.abs(
+                        projection_ce_loss_effective.detach()
+                    ) / (torch.abs(infos["combined_token_pg_loss"]) + 1e-8)
+                else:
+                    infos["listwise_projection_to_pg_loss_ratio"] = zero_component
 
                 clip_loss = None
                 clip_low = clip_high = None
@@ -2793,8 +3291,8 @@ class ZeroMathDrxMixin(
                         ):
                             seq_coeffs_grouped = compute_drx_projection_sequence_coefficients(
                                 policy_seq_logps_grouped=policy_seq_logps_grouped.detach(),
-                                projection_target_grouped=projection_target_grouped.detach(),
-                                projection_group_scale=projection_group_scale.detach(),
+                                projection_target_grouped=sequence_aux_target_grouped.detach(),
+                                projection_group_scale=sequence_aux_group_scale.detach(),
                                 valid_row_mask_grouped=grouped_loss_masks.detach(),
                                 normalizer_total_group_weight=global_projection_group_weight,
                             ).to(
@@ -3151,6 +3649,15 @@ class ZeroMathDrxMixin(
                             device=policy_seq_logps_grouped.device,
                         )
                     )
+                    infos["listwise_drgrpo_token_advantage_source_maxent_centered"] = (
+                        torch.tensor(
+                            1.0
+                            if str(args.maxent_drgrpo_token_advantage_source)
+                            == "maxent_centered"
+                            else 0.0,
+                            device=policy_seq_logps_grouped.device,
+                        )
+                    )
                     infos["listwise_drgrpo_token_length_normalizer_response"] = (
                         torch.tensor(
                             1.0
@@ -3352,6 +3859,7 @@ class ZeroMathDrxMixin(
         behavior_seq_logps_grouped_raw: torch.Tensor,
         ref_seq_logps_grouped: torch.Tensor,
         ref_seq_logps_grouped_raw: torch.Tensor,
+        references: list[Any | None],
     ) -> dict[str, torch.Tensor]:
         args: ZeroMathArgs = self.args
         infos: dict[str, torch.Tensor] = {}
@@ -3393,6 +3901,14 @@ class ZeroMathDrxMixin(
                 "the same number of prompt groups in the local rollout batch."
             )
         local_prompt_count = int(gathered_prompt_counts[0].item())
+        local_references_grouped = [
+            references[index : index + group_size]
+            for index in range(0, len(references), group_size)
+        ]
+        gathered_references_by_rank: list[list[list[Any | None]]] = [
+            [] for _ in range(world_size)
+        ]
+        dist.all_gather_object(gathered_references_by_rank, local_references_grouped)
 
         gathered_input_widths = self._all_gather_same_shape_tensor(
             torch.tensor(
@@ -3703,10 +4219,12 @@ class ZeroMathDrxMixin(
                 prompt_loss_mask_batches: list[torch.Tensor] = []
                 prompt_reward_batches: list[torch.Tensor] = []
                 prompt_correctness_batches: list[torch.Tensor] = []
+                prompt_formatted_batches: list[torch.Tensor] = []
                 prompt_behavior_seq_batches: list[torch.Tensor] = []
                 prompt_behavior_seq_raw_batches: list[torch.Tensor] = []
                 prompt_ref_seq_batches: list[torch.Tensor] = []
                 prompt_ref_seq_raw_batches: list[torch.Tensor] = []
+                prompt_references_grouped: list[list[Any | None]] = []
 
                 for global_prompt_id_t in prompt_batch_ids:
                     global_prompt_id = int(global_prompt_id_t.item())
@@ -3714,6 +4232,12 @@ class ZeroMathDrxMixin(
                     owner_prompt_idx = global_prompt_id % local_prompt_count
                     prompt_owner_ranks.append(owner_rank)
                     prompt_owner_indices.append(owner_prompt_idx)
+                    try:
+                        prompt_references_grouped.append(
+                            list(gathered_references_by_rank[owner_rank][owner_prompt_idx])
+                        )
+                    except Exception:
+                        prompt_references_grouped.append([None] * group_size)
 
                     if rank == owner_rank:
                         owner_input_ids = grouped_input_ids[owner_prompt_idx]
@@ -3725,6 +4249,9 @@ class ZeroMathDrxMixin(
                         )
                         owner_reward_values = grouped_reward_values[owner_prompt_idx]
                         owner_correctness_values = grouped_correctness_values[
+                            owner_prompt_idx
+                        ]
+                        owner_formatted_values = grouped_formatted_values[
                             owner_prompt_idx
                         ]
                         owner_behavior_seq = behavior_seq_logps_grouped[
@@ -3743,6 +4270,7 @@ class ZeroMathDrxMixin(
                         owner_loss_masks = None
                         owner_reward_values = None
                         owner_correctness_values = None
+                        owner_formatted_values = None
                         owner_behavior_seq = None
                         owner_behavior_seq_raw = None
                         owner_ref_seq = None
@@ -3811,6 +4339,15 @@ class ZeroMathDrxMixin(
                             device=device,
                         )
                     )
+                    prompt_formatted_batches.append(
+                        self._broadcast_tensor_from_owner(
+                            owner_formatted_values,
+                            src_rank=owner_rank,
+                            shape=(group_size,),
+                            dtype=grouped_formatted_values.dtype,
+                            device=device,
+                        )
+                    )
                     prompt_behavior_seq_batches.append(
                         self._broadcast_tensor_from_owner(
                             owner_behavior_seq,
@@ -3857,6 +4394,7 @@ class ZeroMathDrxMixin(
                 prompt_correctness_values = torch.stack(
                     prompt_correctness_batches, dim=0
                 )
+                prompt_formatted_values = torch.stack(prompt_formatted_batches, dim=0)
                 prompt_behavior_seq = torch.stack(prompt_behavior_seq_batches, dim=0)
                 prompt_behavior_seq_raw = torch.stack(
                     prompt_behavior_seq_raw_batches, dim=0
@@ -4079,6 +4617,10 @@ class ZeroMathDrxMixin(
                     device=device,
                     dtype=policy_seq_logps_grouped.dtype,
                 )
+                mb_formatted_grouped = prompt_formatted_values.to(
+                    device=device,
+                    dtype=policy_seq_logps_grouped.dtype,
+                )
                 probe_row_advantages_grouped = prompt_advantages.to(
                     device=device,
                     dtype=policy_seq_logps_grouped.dtype,
@@ -4211,6 +4753,7 @@ class ZeroMathDrxMixin(
                     flatten_prompt_major_tensor(prompt_input_ids),
                     flatten_prompt_major_tensor(prompt_response_masks),
                     group_size,
+                    references_grouped=prompt_references_grouped,
                 )
                 (
                     reasoning_trace_embeddings_grouped,
@@ -4796,6 +5339,10 @@ class ZeroMathDrxMixin(
                 cluster_ids_grouped = semantic_cluster_bundle.cluster_ids_grouped.to(
                     device=device
                 )
+                answer_ids_grouped = build_answer_ids_grouped(
+                    final_answer_keys_grouped=final_answer_keys_grouped,
+                    valid_row_mask_grouped=grouped_loss_masks_prompt,
+                ).to(device=device)
                 drx_bundle = build_drx_target_bundle(
                     utility_grouped=exact_quality_utility_grouped.detach().to(
                         device=device,
@@ -4809,15 +5356,35 @@ class ZeroMathDrxMixin(
                     competitive_mode_budget_grouped=semantic_explore_budget_grouped.detach(),
                     competitive_mode_budget_max=effective_competitive_mode_budget_max,
                     competitive_mode_intra_tau=effective_competitive_mode_intra_tau,
+                    candidate_correctness_grouped=mb_correctness_grouped.detach(),
+                    candidate_lengths_grouped=prompt_token_counts_grouped.detach(),
+                    candidate_formatted_grouped=mb_formatted_grouped.detach(),
                     prompt_select_min_alpha_frac=effective_prompt_select_min_alpha_frac,
                     competitive_mode_positive_only=competitive_mode_positive_only,
                     semantic_guard_max_expected_len_delta=semantic_guard_max_expected_len_delta,
                     semantic_guard_max_expected_format_drop=semantic_guard_max_expected_format_drop,
                     tau=current_tau,
                     candidate_kl_coef=candidate_kl_coef,
+                    cluster_ids_grouped=cluster_ids_grouped,
+                    semantic_mass_weights_grouped=semantic_mass_weights_grouped,
+                    answer_ids_grouped=answer_ids_grouped,
                     neutral_eps=1e-8,
                     neutral_projection_coef=neutral_projection_coef,
                     semantic_remix_mode=str(args.maxent_semantic_remix_mode),
+                    semantic_correctness_answer_level=bool(
+                        getattr(
+                            args,
+                            "maxent_semantic_correctness_answer_level",
+                            False,
+                        )
+                    ),
+                    semantic_correctness_min_answer_count=int(
+                        getattr(
+                            args,
+                            "maxent_semantic_correctness_min_answer_count",
+                            1,
+                        )
+                    ),
                 )
                 weights_grouped = drx_bundle.w_star_grouped.to(
                     device=device,
@@ -4860,13 +5427,64 @@ class ZeroMathDrxMixin(
                     device=device,
                     dtype=policy_seq_logps_grouped.dtype,
                 )
+                (
+                    sequence_aux_target_grouped,
+                    sequence_aux_group_scale,
+                ) = build_token_primary_sequence_aux_projection(
+                    token_target_grouped=token_target_weights_grouped,
+                    projection_target_grouped=projection_target_grouped,
+                    informative_group_mask=active_group_mask,
+                    projection_group_scale=projection_group_scale,
+                    valid_row_mask_grouped=grouped_loss_masks_prompt,
+                )
+                (
+                    sequence_aux_target_grouped,
+                    sequence_aux_group_scale,
+                    sequence_aux_diagnostics,
+                ) = apply_sequence_aux_projection_gates(
+                    sequence_aux_target_grouped=sequence_aux_target_grouped,
+                    sequence_aux_group_scale=sequence_aux_group_scale,
+                    behavior_probs_grouped=behavior_probs_grouped_raw.detach(),
+                    valid_row_mask_grouped=grouped_loss_masks_prompt,
+                    candidate_correctness_grouped=mb_correctness_grouped.detach(),
+                    candidate_lengths_grouped=prompt_token_counts_grouped.detach(),
+                    candidate_formatted_grouped=mb_formatted_grouped.detach(),
+                    group_filter=getattr(
+                        args, "maxent_sequence_aux_group_filter", "all"
+                    ),
+                    max_expected_len_drop=getattr(
+                        args,
+                        "maxent_sequence_aux_max_expected_len_drop",
+                        float("inf"),
+                    ),
+                    max_expected_len_gain=getattr(
+                        args,
+                        "maxent_sequence_aux_max_expected_len_gain",
+                        float("inf"),
+                    ),
+                    max_expected_format_drop=getattr(
+                        args,
+                        "maxent_sequence_aux_max_expected_format_drop",
+                        1.0,
+                    ),
+                    min_expected_correctness_delta=getattr(
+                        args,
+                        "maxent_sequence_aux_min_expected_correctness_delta",
+                        -1.0,
+                    ),
+                    correctness_threshold=_VERIFIED_CORRECTNESS_SCHEDULE_THRESHOLD,
+                )
+                _append_sequence_aux_projection_diagnostics(
+                    stats,
+                    sequence_aux_diagnostics,
+                )
                 global_projection_group_weight = float(
-                    contributing_group_mask.to(projection_group_scale.dtype)
+                    contributing_group_mask.to(sequence_aux_group_scale.dtype)
                     .sum()
                     .item()
                 )
                 global_projection_scale_mass = float(
-                    projection_group_scale.sum().item()
+                    sequence_aux_group_scale.sum().item()
                 )
 
                 semantic_cluster_entropy_t, semantic_cluster_count_t = (
@@ -4894,8 +5512,22 @@ class ZeroMathDrxMixin(
                     stats["listwise_semantic_distinct_correct_mode_count"].append(
                         semantic_diag.distinct_correct_mode_count_grouped.mean().detach()
                     )
+                    stats[
+                        "listwise_semantic_distinct_correct_answer_count"
+                    ].append(
+                        semantic_diag.distinct_correct_answer_count_grouped.mean().detach()
+                    )
+                    stats[
+                        "listwise_semantic_correctness_min_answer_rejected_frac"
+                    ].append(
+                        semantic_diag.correctness_min_answer_rejected_group_mask.to(
+                            torch.float32
+                        )
+                        .mean()
+                        .detach()
+                    )
                     stats["listwise_semantic_competitive_mode_top_score"].append(
-                        semantic_diag.top_score_grouped.mean().detach()
+                        semantic_diag.best_score_grouped.mean().detach()
                     )
                     stats["listwise_semantic_competitive_mode_second_score"].append(
                         semantic_diag.second_score_grouped.mean().detach()
@@ -5095,12 +5727,12 @@ class ZeroMathDrxMixin(
                     torch.zeros_like(policy_log_probs_grouped),
                 )
                 per_group_projection_ce = -(
-                    target_weights_grouped * policy_log_probs_grouped
+                    sequence_aux_target_grouped * policy_log_probs_grouped
                 ).sum(dim=1)
                 projection_ce_loss = (per_group_projection_ce * 0.0).sum()
                 if global_projection_group_weight > 0.0:
                     projection_ce_loss = (
-                        projection_group_scale.detach() * per_group_projection_ce
+                        sequence_aux_group_scale.detach() * per_group_projection_ce
                     ).sum() / max(global_projection_group_weight, 1e-8)
                 projection_ce_loss_effective = (
                     float(sequence_aux_coef) * projection_ce_loss
@@ -5214,20 +5846,37 @@ class ZeroMathDrxMixin(
                 infos["drgrpo_pg_loss"] = drgrpo_pg_loss.detach()
                 infos["drgrpo_primary_loss"] = drgrpo_pg_loss.detach()
 
-                if str(args.maxent_drgrpo_token_advantage_source) == "utility_centered":
+                drgrpo_advantage_source = str(
+                    args.maxent_drgrpo_token_advantage_source
+                )
+                if drgrpo_advantage_source == "utility_centered":
                     drgrpo_token_adv_grouped = exact_centered_advantages_grouped.to(
                         device=device,
                         dtype=policy_seq_logps_grouped.dtype,
                     )
-                    weighted_drgrpo_multiplier_grouped = torch.ones_like(
-                        drgrpo_token_adv_grouped
+                elif drgrpo_advantage_source == "maxent_centered":
+                    drgrpo_token_adv_grouped = compute_maxent_centered_advantages(
+                        weights_grouped=target_weights_grouped.detach(),
+                        temperature=float(current_tau) + float(candidate_kl_coef),
+                        valid_row_mask_grouped=grouped_loss_masks_prompt.detach(),
+                    ).to(
+                        device=device,
+                        dtype=policy_seq_logps_grouped.dtype,
                     )
-                    weighted_drgrpo_row_adv_grouped = drgrpo_token_adv_grouped
                 else:
                     drgrpo_token_adv_grouped = prompt_advantages.to(
                         device=device,
                         dtype=policy_seq_logps_grouped.dtype,
                     )
+                if drgrpo_advantage_source in {
+                    "utility_centered",
+                    "maxent_centered",
+                }:
+                    weighted_drgrpo_multiplier_grouped = torch.ones_like(
+                        drgrpo_token_adv_grouped
+                    )
+                    weighted_drgrpo_row_adv_grouped = drgrpo_token_adv_grouped
+                else:
                     weighted_drgrpo_multiplier_grouped = float(
                         group_size
                     ) * token_target_weights_grouped.to(
@@ -5238,7 +5887,7 @@ class ZeroMathDrxMixin(
                         weighted_drgrpo_multiplier_grouped * drgrpo_token_adv_grouped
                     )
                 token_active_row_mask_grouped = build_drgrpo_token_active_row_mask(
-                    advantage_source=str(args.maxent_drgrpo_token_advantage_source),
+                    advantage_source=drgrpo_advantage_source,
                     informative_group_mask=informative_group_mask,
                     valid_row_mask_grouped=grouped_loss_masks_prompt,
                     utility_centered_advantages_grouped=drgrpo_token_adv_grouped,
@@ -5361,6 +6010,9 @@ class ZeroMathDrxMixin(
                         weighted_drgrpo_pg_loss.detach()
                         + projection_ce_loss_effective.detach()
                     )
+                    infos["listwise_projection_to_pg_loss_ratio"] = torch.abs(
+                        projection_ce_loss_effective.detach()
+                    ) / (torch.abs(infos["combined_token_pg_loss"]) + 1e-8)
                 else:
                     infos["pg_loss"] = projection_ce_loss.detach()
                     infos["combined_token_pg_loss"] = zero_component
@@ -5375,6 +6027,7 @@ class ZeroMathDrxMixin(
                         0.0,
                         device=device,
                     )
+                    infos["listwise_projection_to_pg_loss_ratio"] = zero_component
                     if (
                         effective_clip_mode == "sequence"
                         and clip_adv_grouped is not None
@@ -5511,8 +6164,8 @@ class ZeroMathDrxMixin(
                         ):
                             seq_coeffs_grouped = compute_drx_projection_sequence_coefficients(
                                 policy_seq_logps_grouped=policy_seq_logps_grouped.detach(),
-                                projection_target_grouped=projection_target_grouped.detach(),
-                                projection_group_scale=projection_group_scale.detach(),
+                                projection_target_grouped=sequence_aux_target_grouped.detach(),
+                                projection_group_scale=sequence_aux_group_scale.detach(),
                                 valid_row_mask_grouped=grouped_loss_masks_prompt.detach(),
                                 normalizer_total_group_weight=global_projection_group_weight,
                             ).to(
@@ -5707,6 +6360,24 @@ class ZeroMathDrxMixin(
                 infos["listwise_drgrpo_token_active_row_count_global"] = torch.tensor(
                     float(global_drgrpo_active_row_count),
                     device=device,
+                )
+                infos["listwise_drgrpo_token_advantage_source_utility_centered"] = (
+                    torch.tensor(
+                        1.0
+                        if str(args.maxent_drgrpo_token_advantage_source)
+                        == "utility_centered"
+                        else 0.0,
+                        device=device,
+                    )
+                )
+                infos["listwise_drgrpo_token_advantage_source_maxent_centered"] = (
+                    torch.tensor(
+                        1.0
+                        if str(args.maxent_drgrpo_token_advantage_source)
+                        == "maxent_centered"
+                        else 0.0,
+                        device=device,
+                    )
                 )
                 infos["listwise_sequence_aux_coef"] = torch.tensor(
                     float(sequence_aux_coef),

@@ -56,7 +56,8 @@ def test_parse_seed_list_allows_zero_and_deduplicates():
 
 
 def test_parse_template_list_normalizes_aliases_and_preserves_order():
-    assert _parse_template_list("qwen-math,no,raw,r1,qwen_math") == [
+    assert _parse_template_list("qwen-boxed,qwen-math,no,raw,r1,qwen_math") == [
+        "qwen_boxed",
         "qwen_math",
         "no",
         "r1",

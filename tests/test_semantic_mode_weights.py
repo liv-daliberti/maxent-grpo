@@ -39,6 +39,7 @@ def _run_semantic(
     *,
     ref_seq_logps_grouped: torch.Tensor | None = None,
     semantic_mass_weights_grouped: torch.Tensor | None = None,
+    answer_ids_grouped: torch.Tensor | None = None,
     candidate_correctness_grouped: torch.Tensor | None = None,
     candidate_lengths_grouped: torch.Tensor | None = None,
     candidate_formatted_grouped: torch.Tensor | None = None,
@@ -56,6 +57,8 @@ def _run_semantic(
     max_expected_format_drop: float = 0.0,
     valid_row_mask_grouped: torch.Tensor | None = None,
     semantic_remix_mode: str = "competitive",
+    correctness_answer_level: bool = False,
+    correctness_min_answer_count: int = 1,
 ) -> tuple[torch.Tensor, object]:
     if ref_seq_logps_grouped is None:
         ref_seq_logps_grouped = torch.zeros_like(utility_grouped)
@@ -72,6 +75,7 @@ def _run_semantic(
         ref_seq_logps_grouped=ref_seq_logps_grouped,
         cluster_ids_grouped=cluster_ids_grouped,
         semantic_mass_weights_grouped=semantic_mass_weights_grouped,
+        answer_ids_grouped=answer_ids_grouped,
         candidate_correctness_grouped=candidate_correctness_grouped,
         candidate_lengths_grouped=candidate_lengths_grouped,
         candidate_formatted_grouped=candidate_formatted_grouped,
@@ -89,6 +93,8 @@ def _run_semantic(
         max_expected_format_drop=max_expected_format_drop,
         valid_row_mask_grouped=valid_row_mask_grouped,
         semantic_remix_mode=semantic_remix_mode,
+        correctness_answer_level=correctness_answer_level,
+        correctness_min_answer_count=correctness_min_answer_count,
     )
 
 
@@ -409,6 +415,116 @@ def test_anchor_rare_remix_can_use_external_anchor_mass_weights():
     )
 
     assert weights_anchor[0, 2] > weights_default[0, 2]
+
+
+def test_correctness_conditioned_remix_moves_mixed_groups_to_correct_clusters():
+    utility = _tensor([[0.0, 1.0, 1.0]])
+    cluster_ids = torch.tensor([[0, 1, 2]], dtype=torch.long)
+    correctness = _tensor([[0.0, 1.0, 1.0]])
+
+    weights, diag = _run_semantic(
+        utility,
+        cluster_ids,
+        candidate_correctness_grouped=correctness,
+        budget_grouped=_tensor([0.0]),
+        budget_max=1.0,
+        semantic_remix_mode="correctness_conditioned",
+    )
+
+    torch.testing.assert_close(weights, _tensor([[0.0, 0.5, 0.5]]))
+    assert bool(diag.explore_applied_group_mask[0].item())
+    assert float(diag.distinct_correct_mode_count_grouped[0].item()) == 2.0
+
+
+def test_correctness_conditioned_remix_equalizes_all_correct_cluster_mass():
+    utility = _tensor([[1.0, 1.0, 1.0]])
+    cluster_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
+    correctness = _tensor([[1.0, 1.0, 1.0]])
+
+    weights, diag = _run_semantic(
+        utility,
+        cluster_ids,
+        candidate_correctness_grouped=correctness,
+        budget_grouped=_tensor([0.0]),
+        budget_max=1.0,
+        semantic_remix_mode="correctness_conditioned",
+    )
+
+    torch.testing.assert_close(_cluster_mass(weights, cluster_ids, 0), _tensor(0.5))
+    torch.testing.assert_close(_cluster_mass(weights, cluster_ids, 1), _tensor(0.5))
+    assert bool(diag.explore_applied_group_mask[0].item())
+    assert float(diag.distinct_correct_mode_count_grouped[0].item()) == 2.0
+
+
+def test_correctness_conditioned_answer_level_does_not_reward_same_answer_splits():
+    utility = _tensor([[1.0, 1.0, 1.0]])
+    cluster_ids = torch.tensor([[0, 1, 2]], dtype=torch.long)
+    answer_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
+    correctness = _tensor([[1.0, 1.0, 1.0]])
+
+    weights, diag = _run_semantic(
+        utility,
+        cluster_ids,
+        answer_ids_grouped=answer_ids,
+        candidate_correctness_grouped=correctness,
+        budget_grouped=_tensor([0.0]),
+        budget_max=1.0,
+        semantic_remix_mode="correctness_conditioned",
+        correctness_answer_level=True,
+    )
+
+    torch.testing.assert_close(weights[0, :2].sum(), _tensor(0.5))
+    torch.testing.assert_close(weights[0, 2], _tensor(0.5))
+    torch.testing.assert_close(weights[0, 0], weights[0, 1])
+    assert bool(diag.explore_applied_group_mask[0].item())
+    assert float(diag.distinct_correct_answer_count_grouped[0].item()) == 2.0
+    assert not bool(diag.correctness_min_answer_rejected_group_mask[0].item())
+
+
+def test_correctness_conditioned_answer_level_can_require_multiple_answers():
+    utility = _tensor([[1.0, 0.9, 0.1]])
+    cluster_ids = torch.tensor([[0, 1, 2]], dtype=torch.long)
+    answer_ids = torch.tensor([[0, 0, 1]], dtype=torch.long)
+    correctness = _tensor([[1.0, 1.0, 0.0]])
+
+    base = _base_weights(utility, torch.zeros_like(utility))
+    weights, diag = _run_semantic(
+        utility,
+        cluster_ids,
+        answer_ids_grouped=answer_ids,
+        candidate_correctness_grouped=correctness,
+        budget_grouped=_tensor([0.0]),
+        budget_max=1.0,
+        semantic_remix_mode="correctness_conditioned",
+        correctness_answer_level=True,
+        correctness_min_answer_count=2,
+    )
+
+    torch.testing.assert_close(weights, base)
+    assert not bool(diag.explore_applied_group_mask[0].item())
+    assert bool(diag.prompt_rejected_nonpositive_group_mask[0].item())
+    assert float(diag.distinct_correct_answer_count_grouped[0].item()) == 1.0
+    assert bool(diag.correctness_min_answer_rejected_group_mask[0].item())
+
+
+def test_correctness_conditioned_remix_leaves_all_wrong_groups_on_baseline():
+    utility = _tensor([[0.2, 0.1, 0.0]])
+    cluster_ids = torch.tensor([[0, 1, 2]], dtype=torch.long)
+    correctness = _tensor([[0.0, 0.0, 0.0]])
+
+    base = _base_weights(utility, torch.zeros_like(utility))
+    weights, diag = _run_semantic(
+        utility,
+        cluster_ids,
+        candidate_correctness_grouped=correctness,
+        budget_grouped=_tensor([1.0]),
+        budget_max=1.0,
+        semantic_remix_mode="correctness_conditioned",
+    )
+
+    torch.testing.assert_close(weights, base)
+    assert not bool(diag.explore_applied_group_mask[0].item())
+    assert bool(diag.prompt_rejected_nonpositive_group_mask[0].item())
 
 
 def test_only_labeled_semantic_mass_is_remixed():

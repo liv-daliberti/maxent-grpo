@@ -7,6 +7,7 @@ from typing import Any
 import torch
 
 from .listwise import (
+    build_answer_family_semantic_cluster_bundle,
     build_connected_component_semantic_cluster_bundle,
     build_semantic_cluster_bundle,
     build_spectral_semantic_cluster_bundle,
@@ -52,6 +53,11 @@ def build_runtime_semantic_cluster_bundle(
             embedding_cosine_merge_threshold=float(
                 args.maxent_semantic_embedding_similarity_threshold
             ),
+        )
+    if resolved_method == "answer_family":
+        return build_answer_family_semantic_cluster_bundle(
+            final_answer_keys_grouped=final_answer_keys_grouped,
+            valid_row_mask_grouped=valid_row_mask_grouped.detach(),
         )
     if resolved_method == "connected_components":
         cluster_builder = (

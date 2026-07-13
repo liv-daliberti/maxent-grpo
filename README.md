@@ -1,9 +1,10 @@
-# Minimal OAT 1.5B Training Tree
+# Group-Level Exploration in GRPO (xDr.GRPO)
 
-This repository is being cleaned down to one shareable comparison:
-
-- 1.5B OAT Dr.GRPO
-- 1.5B OAT Dr.X-GRPO
+This repository holds the matched comparative for the paper under `paper/`
+(*Exploration Should Act at the Group Level in RL LLM Fine-Tuning*): Dr.GRPO,
+xDr.GRPO (candidate-level tempered aggregation), SEED-Dr.GRPO, and
+Token-MaxEnt Dr.GRPO, trained and evaluated on the exact multi-answer
+ModeBench pair (Countdown arithmetic and graph-coloring completion).
 
 The live code is under `src/oat_drgrpo/`:
 
@@ -19,21 +20,43 @@ The live code is under `src/oat_drgrpo/`:
 
 The active launch surface is:
 
+- `ops/submit_countdown_comparative.sh`: the paper's matched comparative
+  (Dr.GRPO vs xDr.GRPO tau sweep plus the Token-MaxEnt control) on the
+  ModeBench data, with `ops/run_countdown_comparative_eval.sh` and
+  `ops/analyze_countdown_comparative.py` for the seed-matched evaluation and
+  prompt-clustered regression analysis
 - `ops/run_oat_zero_exact_1p5b_upstream.sh`
 - `ops/run_oat_zero_exact_drx_1p5b_upstream.sh`
+- `ops/run_oat_zero_tiny_probe.sh`
 - `ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm`
 - `ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_exact_drx_node302.slurm`
+- `ops/slurm/train_tiny_probe_node302.slurm`
 
 See:
 
 - `docs/drgrpo_vs_drx.md` for the comparison contract.
-- `docs/repo_cleanup.md` for the cleanup roadmap.
 - `ops/README.md` for the active launcher/evaluation scripts.
 
-Datasets used by those scripts live under:
+Training and evaluation use the exact multi-answer ModeBench pair — Countdown
+arithmetic and graph-coloring completion — generated deterministically on
+first use into:
 
-- `datasets/train/math_12k`
-- `datasets/evaluation_suite`
+- `var/data/exact_countdown_easy3_probe` (via `ops/make_exact_countdown_mode_data.py`)
+- `var/data/exact_answer_mode_probe` (via `ops/make_exact_answer_mode_data.py`)
+
+Select the domain with `OAT_ZERO_TASK=countdown|graph_coloring` (default
+`countdown`).
+
+## Paper
+
+The NeurIPS-format draft of the xDr.GRPO paper (*Exploration Should Act at
+the Group Level in RL LLM Fine-Tuning*) lives under `paper/`:
+
+- `paper/main.tex` — the paper source
+- `paper/example_paper.bib` — bibliography
+- `paper/Makefile` — build (`make` in `paper/` produces `main.pdf`)
+
+See `paper/README.md` for build requirements and provenance notes.
 
 ## Environment Setup
 
@@ -95,16 +118,25 @@ This keeps caches and runtime state under `var/` instead of spilling into home-d
 
 ## Data Layout
 
-The kept launchers expect:
+The kept launchers generate and consume the ModeBench datasets under:
 
 ```text
-datasets/
-  train/
-    math_12k/
-  evaluation_suite/
+var/data/
+  exact_countdown_easy3_probe/
+    train/
+    eval/
+  exact_answer_mode_probe/
+    train/
+    eval/
 ```
 
-The default training prompt column is `problem`, and the default evaluation answer column is `answer`.
+Each root is a HuggingFace `DatasetDict` written by the corresponding
+`ops/make_exact_*_data.py` generator (regenerated automatically by the
+launchers when missing; generation is deterministic given the seed). The
+training prompt column is `problem`; the `answer` column holds the JSON
+verifier spec (task, numbers/graph, target, and the prompt's number of valid
+answer modes), which the grader in `src/oat_drgrpo/math_grader.py` consumes
+directly.
 
 ## Running Jobs
 
