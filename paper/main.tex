@@ -432,21 +432,49 @@ The current model scale is intentionally small, so we treat the experiment as a 
 
 The benchmark also makes the failure mode we target directly visible, which yields an \emph{ordered} prediction rather than a single accuracy comparison. A policy can be perfectly accurate on these tasks while knowing only one way to be right: when $[2,3,4]$ reaches $10$ through both $2\times3+4$ and $3\times4-2$, outcome reward is indifferent between a policy that can produce either mode and one that has collapsed onto a single expression, and the asymmetric negative-advantage gradients of uniform aggregation actively push toward the latter (Section~\ref{sec:where-exploration}). The prediction is therefore: \drgrpo and \method should be roughly comparable on \texttt{pass@1}, \texttt{pass@8}, and \texttt{mean@8}, while \method should retain strictly more of the valid answer set as measured by \texttt{distinct@8} and \texttt{coverage@8}. Coverage gains \emph{with} accuracy losses, or accuracy gains \emph{without} coverage gains, would both contradict the mechanism and will be reported as such. This framing keeps the empirical claim aligned with the mechanism: \method should improve learning when candidate-level exploration creates better within-prompt comparisons, and the regression estimates whether that effect is visible in the completed runs.
 
-\subsection{Threats to Validity and Expected Failure Modes}
-
-Several threats could limit the interpretation of the proposed comparison. First, although the verifier is exact --- expressions are evaluated with rational arithmetic and colorings are checked against the enumerated valid set, so false positives are essentially ruled out --- the strict answer-extraction gate can produce false negatives on malformed but semantically correct outputs. We will therefore inspect a sample of rejected completions from each domain and report robustness to stricter and more permissive extraction rules. Relatedly, what counts as a \emph{distinct} mode is a canonicalization convention (commutative operands are merged; operator identity is preserved), and coverage results should be read relative to that convention. Second, the study could overstate the effect of xDr.GRPO if the two methods receive unequal hyperparameter tuning or if checkpoint selection is based on the same evaluation splits used for final reporting. To reduce this risk, all main runs will use a matched training budget, shared evaluation harness, and a pre-specified checkpoint-selection rule. Third, \texttt{pass@8} and \texttt{coverage@8} may reward diversity without necessarily reflecting better single-solution reasoning, while \texttt{mean@8} may penalize exploratory methods that produce one strong answer and several weak alternatives. We therefore interpret improvements jointly across \texttt{pass@1}, \texttt{pass@8}, \texttt{mean@8}, and \texttt{coverage@8}, and use the single-mode control split as a guardrail that single-answer performance is preserved. Finally, as the current experiment uses a relatively small 0.5B model on synthetic tasks whose full answer sets are enumerable, a positive effect should be interpreted as evidence that candidate-level exploration changes the learning signal under this controlled setting, not as a claim that xDr.GRPO will dominate at larger scales, on natural reasoning corpora, or under different reward models. In cases where the method improves sampled metrics but not greedy accuracy, or where gains appear only in one task domain, we will report this as a
-failure mode rather than as broad evidence of superior reasoning.
+Threats to validity and expected failure modes are discussed in
+Appendix~\ref{app:threats}.
 
 \section{Results at the 0.5B Scale}
 \label{sec:results}
 
-Table~\ref{tab:main-results} reports the pooled two-domain regression of
-Equation~\ref{eq:regression-main}: $4{,}032$ prompt-level observations per arm pair,
-$224$ prompt clusters, with task-domain, training-seed, and evaluation-seed fixed
-effects. Descriptively, the \drgrpo baseline reaches \texttt{pass@8} $\approx 0.41$ on
-Countdown and $\approx 0.65$ on graph coloring, with \texttt{coverage@8} $\approx 0.12$
-on both --- trained policies that solve many prompts while retaining only a small
-fraction of each prompt's valid answer set.
+Table~\ref{tab:descriptive} reports the raw per-domain accuracy and coverage of every
+arm, averaged over the $3\times 3$ seed grid; Table~\ref{tab:main-results} reports the
+pooled two-domain regression of Equation~\ref{eq:regression-main}: $4{,}032$
+prompt-level observations per arm pair, $224$ prompt clusters, with task-domain,
+training-seed, and evaluation-seed fixed effects. Descriptively, the \drgrpo baseline
+solves many prompts (\texttt{pass@8} $0.40$ on Countdown, $0.65$ on graph coloring)
+while retaining only a small fraction of each prompt's valid answer set
+(\texttt{coverage@8} $\approx 0.12$ on both).
+
+\begin{table}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4.5pt}
+  \begin{tabular}{@{}l ccc ccc@{}}
+    \toprule
+    & \multicolumn{3}{c}{\textbf{Countdown}} & \multicolumn{3}{c}{\textbf{Graph coloring}} \\
+    \cmidrule(lr){2-4} \cmidrule(l){5-7}
+    \textbf{Arm} & \texttt{pass@8} & \texttt{mean@8} & \texttt{cov@8} & \texttt{pass@8} & \texttt{mean@8} & \texttt{cov@8} \\
+    \midrule
+    Dr.GRPO                & .401 & .297 & .124 & .649 & .341 & .123 \\
+    xDr.GRPO $\tau{=}0.05$ & \textbf{.491} & .302 & \textbf{.175} & \textbf{.713} & .316 & \textbf{.166} \\
+    xDr.GRPO $\tau{=}0.1$  & .435 & .300 & .149 & .626 & .331 & .126 \\
+    xDr.GRPO $\tau{=}0.25$ & .486 & \textbf{.313} & .160 & .630 & .340 & .126 \\
+    xDr.GRPO $\tau{=}0.5$  & .424 & .304 & .129 & .591 & .334 & .115 \\
+    xDr.GRPO $\tau{=}1$    & .412 & .311 & .131 & .601 & .335 & .115 \\
+    xDr.GRPO $\tau{=}2$    & .470 & .295 & .150 & .559 & \textbf{.343} & .112 \\
+    SEED-Dr.GRPO           & .378 & .296 & .121 & .634 & .339 & .124 \\
+    Token-MaxEnt Dr.GRPO   & .000 & .000 & .000 & .678 & .294 & .151 \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Descriptive accuracy and coverage by domain} (means over three
+  training seeds $\times$ three evaluation seeds on the held-out multi-answer splits;
+  best per column in bold). These raw levels show the size and direction of the
+  observed differences; Table~\ref{tab:main-results} tests which of them survive the
+  matched-seed regression with clustered uncertainty.}
+  \label{tab:descriptive}
+\end{table}
 
 \paragraph{The pre-registered primary is null.}
 At the primary temperature $\tau=0.5$, every outcome is statistically flat
@@ -1220,5 +1248,12 @@ This yields the observation-level table
 required by Equation~\ref{eq:regression-main}. Aggregate accuracy and coverage tables are
 derived from
 the same records, so the descriptive and regression results are guaranteed to agree.
+
+% =====================================================================
+\section{Threats to Validity and Expected Failure Modes}
+\label{app:threats}
+
+Several threats could limit the interpretation of the proposed comparison. First, although the verifier is exact --- expressions are evaluated with rational arithmetic and colorings are checked against the enumerated valid set, so false positives are essentially ruled out --- the strict answer-extraction gate can produce false negatives on malformed but semantically correct outputs. We will therefore inspect a sample of rejected completions from each domain and report robustness to stricter and more permissive extraction rules. Relatedly, what counts as a \emph{distinct} mode is a canonicalization convention (commutative operands are merged; operator identity is preserved), and coverage results should be read relative to that convention. Second, the study could overstate the effect of xDr.GRPO if the two methods receive unequal hyperparameter tuning or if checkpoint selection is based on the same evaluation splits used for final reporting. To reduce this risk, all main runs will use a matched training budget, shared evaluation harness, and a pre-specified checkpoint-selection rule. Third, \texttt{pass@8} and \texttt{coverage@8} may reward diversity without necessarily reflecting better single-solution reasoning, while \texttt{mean@8} may penalize exploratory methods that produce one strong answer and several weak alternatives. We therefore interpret improvements jointly across \texttt{pass@1}, \texttt{pass@8}, \texttt{mean@8}, and \texttt{coverage@8}, and use the single-mode control split as a guardrail that single-answer performance is preserved. Finally, as the current experiment uses a relatively small 0.5B model on synthetic tasks whose full answer sets are enumerable, a positive effect should be interpreted as evidence that candidate-level exploration changes the learning signal under this controlled setting, not as a claim that xDr.GRPO will dominate at larger scales, on natural reasoning corpora, or under different reward models. In cases where the method improves sampled metrics but not greedy accuracy, or where gains appear only in one task domain, we will report this as a
+failure mode rather than as broad evidence of superior reasoning.
 
 \end{document}
