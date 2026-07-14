@@ -496,6 +496,8 @@ baseline, the attenuation mechanism of Section~\ref{sec:where-exploration}(iii).
     & \multicolumn{2}{c}{\texttt{pass@8}} & \multicolumn{2}{c}{\texttt{mean@8}} & \multicolumn{2}{c}{\texttt{coverage@8}} \\
     \textbf{Arm} & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] \\
     \midrule
+    Dr.GRPO (baseline level) & \multicolumn{2}{c}{$.507$} & \multicolumn{2}{c}{$.316$} & \multicolumn{2}{c}{$.123$} \\
+    \midrule
     xDr.GRPO $\tau{=}0.05$ & $+.079^{***}$ & $[.046,.111]$ & $-.008$ & $[-.023,.007]$ & $+.048^{***}$ & $[.036,.059]$ \\
     xDr.GRPO $\tau{=}0.1$  & $+.009$ & $[-.020,.039]$ & $-.003$ & $[-.017,.011]$ & $+.016^{**}$ & $[.006,.026]$ \\
     xDr.GRPO $\tau{=}0.25$ & $+.040$ & $[.004,.077]$ & $+.009$ & $[-.010,.029]$ & $+.022^{***}$ & $[.013,.031]$ \\
@@ -509,7 +511,9 @@ baseline, the attenuation mechanism of Section~\ref{sec:where-exploration}(iii).
   \caption{\textbf{Pooled two-domain treatment effects vs.\ \drgrpo} (Countdown +
   graph coloring; $4{,}032$ observations and $224$ prompt clusters per pair;
   task-domain, training-seed, and evaluation-seed fixed effects; prompt-clustered
-  standard errors). The primary arm reports its raw $p$-value; all other arms are
+  standard errors). The first row gives the \drgrpo baseline's pooled absolute
+  levels; every $\hat\gamma$ below it is a difference from that arm, so the baseline's
+  own coefficient is zero by construction. The primary arm reports its raw $p$-value; all other arms are
   exploratory with Holm adjustment within outcome:
   $^{**} p<0.01$, $^{***} p<10^{-3}$ after adjustment. Full estimates including
   \texttt{distinct@8}, greedy \texttt{pass@1}, and the run-clustered robustness pass
