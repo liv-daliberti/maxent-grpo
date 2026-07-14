@@ -95,9 +95,16 @@ def discover_runs(root: Path, artifacts: Path, run_data_root: Path, stamp: str):
 
 
 def load_series(run_dir: Path) -> dict[str, dict[int, float]]:
-    """Map metric key -> {step: value} from a run's train_metrics.jsonl."""
-    path = run_dir / "train_metrics.jsonl"
-    if not path.is_file():
+    """Map metric key -> {step: value} from a run's train_metrics.jsonl.
+
+    The learner's save_path carries OAT's experiment suffix, so the file
+    normally lives one level down in the newest debug_* directory.
+    """
+    candidates = [run_dir / "train_metrics.jsonl"] + sorted(
+        run_dir.glob("debug_*/train_metrics.jsonl"), reverse=True
+    )
+    path = next((p for p in candidates if p.is_file()), None)
+    if path is None:
         print(f"[sidecar] no train_metrics.jsonl in {run_dir}", file=sys.stderr)
         return {}
     series: dict[str, dict[int, float]] = defaultdict(dict)

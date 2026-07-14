@@ -74,7 +74,7 @@ Paper under double-blind review
 
 \begin{abstract}
 
- What role should exploration take in GRPO-style reasoning RL? Existing exploration mechanisms act either by (1) scaling entire prompts with uncertainty estimates or by (2) increasing token-level stochasticity. Yet, under GRPO, RL learns from groups: for each prompt, the policy samples several completions and the update is driven by comparisons inside that prompt-local set. To align exploration with model update, we introduce \emph{\method}, a maximum-entropy variant of \drgrpo that places exploration directly on the sampled candidate distribution. For each prompt, \method constructs a target distribution over completions by combining reward-induced group fit with candidate-level Shannon entropy. The resulting target has a closed form and gives a clean way to separate prompt-level, token-level, and candidate-level regularization. We evaluate this design with a matched multi-seed regression analysis on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- in which every prompt admits several verifiably distinct valid answers, using aggregate accuracy and answer-mode coverage as descriptive evidence and regression coefficients to estimate effect size and uncertainty across task domains, training seeds, and evaluation seeds.
+ What role should exploration take in GRPO-style reasoning RL? Existing exploration mechanisms act either by (1) scaling entire prompts with uncertainty estimates or by (2) increasing token-level stochasticity. Yet, under GRPO, RL learns from groups: for each prompt, the policy samples several completions and the update is driven by comparisons inside that prompt-local set. To align exploration with model update, we introduce \emph{\method}, a maximum-entropy variant of \drgrpo that places exploration directly on the sampled candidate distribution. For each prompt, \method constructs a target distribution over completions by combining reward-induced group fit with candidate-level Shannon entropy. The resulting target has a closed form and gives a clean way to separate prompt-level, token-level, and candidate-level regularization. We evaluate this design with a matched multi-seed regression analysis on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- in which every prompt admits several verifiably distinct valid answers, using aggregate accuracy and answer-mode coverage as descriptive evidence and regression coefficients to estimate effect size and uncertainty across task domains, training seeds, and evaluation seeds. At the 0.5B scale, the pre-registered primary temperature is null, but exploratory aggressive temperatures show the pre-registered ordered signature of candidate-level exploration: $+4.8$ points of answer-mode coverage and $+7.9$ points \texttt{pass@8} (Holm-adjusted $p<10^{-4}$) at statistically flat per-sample accuracy, while prompt-level uncertainty scaling matches the baseline and token-level entropy regularization is harmful.
 \end{abstract}
 
 \section{Introduction}
@@ -436,6 +436,86 @@ The benchmark also makes the failure mode we target directly visible, which yiel
 
 Several threats could limit the interpretation of the proposed comparison. First, although the verifier is exact --- expressions are evaluated with rational arithmetic and colorings are checked against the enumerated valid set, so false positives are essentially ruled out --- the strict answer-extraction gate can produce false negatives on malformed but semantically correct outputs. We will therefore inspect a sample of rejected completions from each domain and report robustness to stricter and more permissive extraction rules. Relatedly, what counts as a \emph{distinct} mode is a canonicalization convention (commutative operands are merged; operator identity is preserved), and coverage results should be read relative to that convention. Second, the study could overstate the effect of xDr.GRPO if the two methods receive unequal hyperparameter tuning or if checkpoint selection is based on the same evaluation splits used for final reporting. To reduce this risk, all main runs will use a matched training budget, shared evaluation harness, and a pre-specified checkpoint-selection rule. Third, \texttt{pass@8} and \texttt{coverage@8} may reward diversity without necessarily reflecting better single-solution reasoning, while \texttt{mean@8} may penalize exploratory methods that produce one strong answer and several weak alternatives. We therefore interpret improvements jointly across \texttt{pass@1}, \texttt{pass@8}, \texttt{mean@8}, and \texttt{coverage@8}, and use the single-mode control split as a guardrail that single-answer performance is preserved. Finally, as the current experiment uses a relatively small 0.5B model on synthetic tasks whose full answer sets are enumerable, a positive effect should be interpreted as evidence that candidate-level exploration changes the learning signal under this controlled setting, not as a claim that xDr.GRPO will dominate at larger scales, on natural reasoning corpora, or under different reward models. In cases where the method improves sampled metrics but not greedy accuracy, or where gains appear only in one task domain, we will report this as a
 failure mode rather than as broad evidence of superior reasoning.
+
+\section{Results at the 0.5B Scale}
+\label{sec:results}
+
+Table~\ref{tab:main-results} reports the pooled two-domain regression of
+Equation~\ref{eq:regression-main}: $4{,}032$ prompt-level observations per arm pair,
+$224$ prompt clusters, with task-domain, training-seed, and evaluation-seed fixed
+effects. Descriptively, the \drgrpo baseline reaches \texttt{pass@8} $\approx 0.41$ on
+Countdown and $\approx 0.65$ on graph coloring, with \texttt{coverage@8} $\approx 0.12$
+on both --- trained policies that solve many prompts while retaining only a small
+fraction of each prompt's valid answer set.
+
+\paragraph{The pre-registered primary is null.}
+At the primary temperature $\tau=0.5$, every outcome is statistically flat
+($|\hat\gamma| \le 1.6$ points, all $p \ge 0.14$). We report this first and without
+qualification: at the temperature we pre-specified, candidate-level tempering does not
+measurably change learning at this scale.
+
+\paragraph{The exploratory low-$\tau$ arms show the pre-registered ordered signature.}
+At $\tau=0.05$, \texttt{coverage@8} rises by $+4.8$ points
+[$3.6, 5.9$] and \texttt{pass@8} by $+7.9$ points [$4.6, 11.1$] (both Holm-adjusted
+$p<10^{-4}$), while \texttt{mean@8} ($-0.8$ points, $p=0.28$) and greedy
+\texttt{pass@1} ($+0.9$ points, $p=0.27$) are statistically unchanged, and
+\texttt{distinct@8} rises by $+0.24$ modes [$0.18, 0.29$]. This is precisely the
+ordered prediction of Section~\ref{sec:interpreting-current-run}: more of the valid
+answer set at no per-sample accuracy cost. The effect is monotone toward aggressive
+tempering ($\tau=0.25$: coverage $+2.2$ points, Holm $p<10^{-4}$; $\tau=0.1$: $+1.6$,
+Holm $p=0.007$; $\tau\ge 0.5$: null) and survives the run-clustered robustness pass at
+$\tau=0.05$ (coverage $p<10^{-4}$, \texttt{pass@8} $p=0.0006$). Because these
+temperatures were exploratory under our pre-registration, we treat them as
+hypothesis-generating and have pre-registered $\tau=0.05$ as the primary for the 3B
+replication (Appendix~\ref{app:quartet-settings}).
+
+\paragraph{Where exploration enters determines whether it works.}
+The prompt-level arm (\seeddrgrpo) is indistinguishable from the baseline on every
+outcome ($|\hat\gamma| \le 1.9$ points, all adjusted $p = 1$) --- as the theory
+predicts, since its within-group weights are uniform and the group-relative comparison
+is unchanged. The token-level arm (\tokmaxdrgrpo) is significantly \emph{harmful}
+($-21.7$ points \texttt{pass@8}, $-19.0$ \texttt{mean@8}, $-5.9$ \texttt{coverage@8},
+all $p<10^{-4}$), driven by degenerate policies on Countdown. Among the three places an
+exploration regularizer can act, only the candidate level moved coverage, and only the
+candidate level did so without an accuracy cost.
+
+\paragraph{Mechanism.}
+Figure~\ref{fig:exploration-sidecar} shows the training-time diagnostics. The
+$\tau=0.05$ weights concentrate only mildly (effective active rollouts
+$\approx 15$ of $G=16$) --- tempered aggregation at the best-performing temperature is a
+small asymmetric perturbation of uniform weighting, not a drift toward best-of-$G$ ---
+while spending consistently less aggregation mass on incorrect candidates than the
+baseline, the attenuation mechanism of Section~\ref{sec:where-exploration}(iii).
+
+\begin{table}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4.5pt}
+  \begin{tabular}{@{}l r@{ }l r@{ }l r@{ }l@{}}
+    \toprule
+    & \multicolumn{2}{c}{\texttt{pass@8}} & \multicolumn{2}{c}{\texttt{mean@8}} & \multicolumn{2}{c}{\texttt{coverage@8}} \\
+    \textbf{Arm} & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] \\
+    \midrule
+    xDr.GRPO $\tau{=}0.05$ & $+.079^{***}$ & $[.046,.111]$ & $-.008$ & $[-.023,.007]$ & $+.048^{***}$ & $[.036,.059]$ \\
+    xDr.GRPO $\tau{=}0.1$  & $+.009$ & $[-.020,.039]$ & $-.003$ & $[-.017,.011]$ & $+.016^{**}$ & $[.006,.026]$ \\
+    xDr.GRPO $\tau{=}0.25$ & $+.040$ & $[.004,.077]$ & $+.009$ & $[-.010,.029]$ & $+.022^{***}$ & $[.013,.031]$ \\
+    xDr.GRPO $\tau{=}0.5$ (primary) & $-.012$ & $[-.043,.019]$ & $+.001$ & $[-.015,.017]$ & $-.001$ & $[-.009,.008]$ \\
+    xDr.GRPO $\tau{=}1$    & $-.014$ & $[-.037,.008]$ & $+.006$ & $[-.008,.020]$ & $+.001$ & $[-.006,.008]$ \\
+    xDr.GRPO $\tau{=}2$    & $+.000$ & $[-.032,.033]$ & $-.000$ & $[-.011,.010]$ & $+.010$ & $[.001,.019]$ \\
+    SEED-Dr.GRPO           & $-.019$ & $[-.042,.003]$ & $-.001$ & $[-.011,.009]$ & $-.001$ & $[-.008,.006]$ \\
+    Token-MaxEnt Dr.GRPO   & $-.217^{***}$ & $[-.277,-.157]$ & $-.190^{***}$ & $[-.231,-.148]$ & $-.059^{***}$ & $[-.079,-.038]$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Pooled two-domain treatment effects vs.\ \drgrpo} (Countdown +
+  graph coloring; $4{,}032$ observations and $224$ prompt clusters per pair;
+  task-domain, training-seed, and evaluation-seed fixed effects; prompt-clustered
+  standard errors). The primary arm reports its raw $p$-value; all other arms are
+  exploratory with Holm adjustment within outcome:
+  $^{**} p<0.01$, $^{***} p<10^{-3}$ after adjustment. Full estimates including
+  \texttt{distinct@8}, greedy \texttt{pass@1}, and the run-clustered robustness pass
+  are in \texttt{paper/results/}.}
+  \label{tab:main-results}
+\end{table}
 
 \bibliographystyle{plainnat}
 \bibliography{example_paper}
