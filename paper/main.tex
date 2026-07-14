@@ -453,26 +453,31 @@ while retaining only a small fraction of each prompt's valid answer set
   \setlength{\tabcolsep}{4.5pt}
   \begin{tabular}{@{}l ccc ccc@{}}
     \toprule
-    & \multicolumn{3}{c}{\textbf{Countdown}} & \multicolumn{3}{c}{\textbf{Graph coloring}} \\
-    \cmidrule(lr){2-4} \cmidrule(l){5-7}
-    \textbf{Arm} & \texttt{pass@8} & \texttt{mean@8} & \texttt{cov@8} & \texttt{pass@8} & \texttt{mean@8} & \texttt{cov@8} \\
+    & \multicolumn{4}{c}{\textbf{Countdown}} & \multicolumn{4}{c}{\textbf{Graph coloring}} \\
+    \cmidrule(lr){2-5} \cmidrule(l){6-9}
+    \textbf{Arm} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} \\
     \midrule
-    Dr.GRPO                & .401 & .297 & .124 & .649 & .341 & .123 \\
-    xDr.GRPO $\tau{=}0.05$ & \textbf{.491} & .302 & \textbf{.175} & \textbf{.713} & .316 & \textbf{.166} \\
-    xDr.GRPO $\tau{=}0.1$  & .435 & .300 & .149 & .626 & .331 & .126 \\
-    xDr.GRPO $\tau{=}0.25$ & .486 & \textbf{.313} & .160 & .630 & .340 & .126 \\
-    xDr.GRPO $\tau{=}0.5$  & .424 & .304 & .129 & .591 & .334 & .115 \\
-    xDr.GRPO $\tau{=}1$    & .412 & .311 & .131 & .601 & .335 & .115 \\
-    xDr.GRPO $\tau{=}2$    & .470 & .295 & .150 & .559 & \textbf{.343} & .112 \\
-    SEED-Dr.GRPO           & .378 & .296 & .121 & .634 & .339 & .124 \\
-    Token-MaxEnt Dr.GRPO   & .000 & .000 & .000 & .678 & .294 & .151 \\
+    Dr.GRPO                & .401 & .297 & .124 & .496 & .649 & .341 & .123 & .770 \\
+    xDr.GRPO $\tau{=}0.05$ & \textbf{.491} & .302 & \textbf{.175} & \textbf{.703} & \textbf{.713} & .316 & \textbf{.166} & \textbf{1.043} \\
+    xDr.GRPO $\tau{=}0.1$  & .435 & .300 & .149 & .589 & .626 & .331 & .126 & .791 \\
+    xDr.GRPO $\tau{=}0.25$ & .486 & \textbf{.313} & .160 & .652 & .630 & .340 & .126 & .784 \\
+    xDr.GRPO $\tau{=}0.5$  & .424 & .304 & .129 & .516 & .591 & .334 & .115 & .719 \\
+    xDr.GRPO $\tau{=}1$    & .412 & .311 & .131 & .516 & .601 & .335 & .115 & .730 \\
+    xDr.GRPO $\tau{=}2$    & .470 & .295 & .150 & .614 & .559 & \textbf{.343} & .112 & .691 \\
+    SEED-Dr.GRPO           & .378 & .296 & .121 & .473 & .634 & .339 & .124 & .788 \\
+    Token-MaxEnt Dr.GRPO   & .000 & .000 & .000 & .000 & .678 & .294 & .151 & .962 \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Descriptive accuracy and coverage by domain} (means over three
-  training seeds $\times$ three evaluation seeds on the held-out multi-answer splits;
-  best per column in bold). These raw levels show the size and direction of the
-  observed differences; Table~\ref{tab:main-results} tests which of them survive the
-  matched-seed regression with clustered uncertainty.}
+  \caption{\textbf{Descriptive accuracy and diversity by domain} (\texttt{pass@8},
+  \texttt{mean@8}, \texttt{coverage@8}, and \texttt{distinct@8}: distinct correct
+  modes per prompt; means over three training seeds $\times$ three evaluation seeds on
+  the held-out multi-answer splits; best per column in bold). These raw levels show
+  the size and direction of the observed differences; Table~\ref{tab:main-results}
+  tests which of them survive the matched-seed regression with clustered uncertainty.
+  Diversity appears in three views: unconditional \texttt{distinct@8} here and in the
+  regression ($+0.24$ modes at $\tau{=}0.05$, Holm $p<10^{-4}$), \texttt{coverage@8}
+  normalizing by each prompt's number of valid modes, and the conditional
+  per-solved-prompt view of Table~\ref{tab:conditional-diversity}.}
   \label{tab:descriptive}
 \end{table}
 
