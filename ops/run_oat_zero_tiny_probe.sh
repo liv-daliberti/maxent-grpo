@@ -16,6 +16,21 @@ case "$TINY_MODEL" in
     DEFAULT_PROMPT_TEMPLATE="qwen_math"
     MODEL_TAG="qwen25_0p5b_instruct"
     ;;
+  qwen2.5-1.5b-instruct|qwen25-1.5b-instruct|qwen-1.5b)
+    DEFAULT_PRETRAIN="Qwen/Qwen2.5-1.5B-Instruct"
+    DEFAULT_PROMPT_TEMPLATE="qwen_math"
+    MODEL_TAG="qwen25_1p5b_instruct"
+    ;;
+  qwen2.5-3b-instruct|qwen25-3b-instruct|qwen-3b)
+    DEFAULT_PRETRAIN="Qwen/Qwen2.5-3B-Instruct"
+    DEFAULT_PROMPT_TEMPLATE="qwen_math"
+    MODEL_TAG="qwen25_3b_instruct"
+    ;;
+  qwen2.5-7b-instruct|qwen25-7b-instruct|qwen-7b)
+    DEFAULT_PRETRAIN="Qwen/Qwen2.5-7B-Instruct"
+    DEFAULT_PROMPT_TEMPLATE="qwen_math"
+    MODEL_TAG="qwen25_7b_instruct"
+    ;;
   smollm2-135m|smollm2-135m-instruct|smol-135m)
     DEFAULT_PRETRAIN="HuggingFaceTB/SmolLM2-135M-Instruct"
     DEFAULT_PROMPT_TEMPLATE="no"
@@ -32,7 +47,7 @@ case "$TINY_MODEL" in
     ;;
   *)
     echo "Unknown OAT_ZERO_TINY_MODEL=${TINY_MODEL}" >&2
-    echo "Use qwen2.5-0.5b-instruct, smollm2-135m, or custom." >&2
+    echo "Use qwen2.5-{0.5b,1.5b,3b,7b}-instruct, smollm2-135m, or custom." >&2
     exit 1
     ;;
 esac

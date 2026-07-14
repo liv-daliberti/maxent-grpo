@@ -84,9 +84,9 @@ Reinforcement learning (RL) has become a central component in the post-training 
 
 This question holds particular significance for Group Relative Policy Optimization (GRPO). GRPO-style methods sample multiple completions for the same prompt, compute rewards within that prompt-local group, and update the policy from the resulting relative signal \citep{shao2024deepseekmath,liu2025understanding}. The model does not learn from a single completion in isolation but rather from the structure of a sampled set. Exploration is therefore critical in  two respects: it determines which reasoning paths are available for comparison, and it affects how informative the resulting group-relative update can be. Prior work on self-consistency and related sampling methods shows that diverse reasoning paths can materially improve reasoning performance, suggesting that useful alternatives matter even when only one final answer is selected \citep{wang2023selfconsistency,lin2025cppo}.
 
-A mismatch arises because the supervision in GRPO is groupwise, while most exploration mechanisms are not. Some methods act at the prompt level, for example by using semantic uncertainty to scale the update for an entire question \citep{seedgrpo,farquhar2024detecting}. Others act at the token level, for example by encouraging higher-entropy next-token distributions during generation or optimization \citep{wen2024etpo}. Both can be useful, but neither directly regularizes the prompt-local distribution over sampled completions, which is the object GRPO uses to assign credit. Raising sampling temperature can increase surface-level variation, but it does not ensure that the group contains meaningfully different or useful reasoning paths. This strategy can just as easily create redundant or incorrect strategies, noisy off-policy completions, or higher-variance updates.
+A mismatch arises because the supervision in GRPO is groupwise, while most exploration mechanisms are not. Some methods act at the prompt level, for example by using semantic uncertainty to scale the update for an entire question \citep{chen2025seedgrpo,farquhar2024detecting}. Others act at the token level, for example by adding a next-token entropy bonus to the loss \citep{williams1991entropy,mnih2016a3c} or by entropy-regularized token-level objectives for language agents \citep{wen2024etpo}. Both can be useful, but neither directly regularizes the prompt-local distribution over sampled completions, which is the object GRPO uses to assign credit. Raising sampling temperature can increase surface-level variation, but it does not ensure that the group contains meaningfully different or useful reasoning paths. This strategy can just as easily create redundant or incorrect strategies, noisy off-policy completions, or higher-variance updates.
 
-We propose \textbf{\method}, a candidate-level maximum-entropy formulation built on the \drgrpo backbone \citep{liu2025understanding}. The core idea is simple: if GRPO learns from a group, exploration should be expressed on that same group. For each prompt, \method constructs a distribution over the sampled completions. This distribution balances three forces: higher probability for higher-reward candidates, Shannon entropy over the candidate set, and an optional reverse-KL trust region to a frozen reference policy. The resulting target distribution has a closed form, can be trained with a sequence-level cross-entropy loss, and preserves compatibility with the standard prompt-group rollout pipeline.
+We propose \textbf{\method}, a candidate-level maximum-entropy formulation built on the \drgrpo backbone \citep{liu2025understanding}. The core idea is simple: if GRPO learns from a group, exploration should be expressed on that same group. For each prompt, \method constructs a distribution over the sampled completions. This distribution balances two forces: higher probability for higher-reward candidates and Shannon entropy over the candidate set (an optional reference tilt toward the base model is analyzed in Appendix~\ref{app:reference-tilt} but not used in our experiments). The resulting weights have a closed form, are computed once per rollout batch and frozen for the update exactly as advantages are, and preserve compatibility with the standard prompt-group rollout pipeline: only the aggregation weights of the \drgrpo surrogate change.
 
 Our evaluation is designed to match this conceptual claim. Rather than relying solely on pooled accuracy tables or best-checkpoint summaries, we evaluate the method with a regression-based analysis over matched runs. Each observation corresponds to a method, training seed, evaluation seed, task domain, prompt, and sampled completion or prompt-level aggregate. The coefficient on the \method indicator estimates the accuracy and coverage lift relative to \drgrpo after controlling for task-domain and seed effects. This approach allows us to report not only whether \method improves aggregate performance, but also the size of the estimated effect and the remaining uncertainty.
 
@@ -96,13 +96,13 @@ Our contributions are as follows. \textbf{(i)} We identify a structural mismatch
 \label{sec:related-work}
 
 \textbf{KL-regularized and maximum-entropy policy optimization.}
-A broad line of work views policy optimization through KL-regularized or mirror-descent updates. Classical examples include REPS, MPO/V-MPO, MDPO, TRPO, and PPO, which use relative-entropy or trust-region constraints to stabilize policy improvement \citep{reps,mpo,vmpo,mdpo,trpo,schulman2017ppo}. This perspective has been formalized in regularized RL and policy mirror-descent frameworks \citep{geist2019regmdp,zhan2023pmd,vieillard2020kl}. Maximum-entropy RL adds an explicit entropy term to the control objective, yielding softened or Boltzmann-style solutions and connecting RL to control-as-inference and KL-control \citep{haarnoja18b,levine2018control,ziebart2008maximum,todorov2006}. Our formulation builds on this tradition, but applies entropy directly to a \emph{finite set of sampled candidates} rather than to the full token-level action distribution.
+A broad line of work views policy optimization through KL-regularized or mirror-descent updates. Classical examples include REPS, MPO/V-MPO, MDPO, TRPO, and PPO, which use relative-entropy or trust-region constraints to stabilize policy improvement \citep{reps,mpo,vmpo,mdpo,trpo,schulman2017ppo}. This perspective has been formalized in regularized RL and policy mirror-descent frameworks \citep{geist2019regmdp,zhan2023pmd,vieillard2020kl}. Maximum-entropy RL adds an explicit entropy term to the control objective, yielding softened or Boltzmann-style solutions and connecting RL to control-as-inference and KL-control \citep{haarnoja18b,levine2018control,ziebart2008maximum,todorov2006}. Two closer relatives deserve note. Exponential advantage weighting of the form $w\propto\exp(A/\tau)$ is the E-step of reward-weighted and advantage-weighted regression \citep{peters2007rwr,peng2019awr}, and the log-sum-exp aggregation our objective reduces to is the \emph{entropic risk measure} of risk-sensitive control \citep{howard1972risk,mihatsch2002risk}. Our formulation builds on this tradition, but applies the exponential weights and the entropy term directly to a \emph{finite set of sampled candidates} within a prompt group, rather than to the full token-level action distribution or to a replay buffer of trajectories.
 
 \textbf{Preference optimization and groupwise supervision for language models.}
 Recent post-training methods for language models often optimize KL-regularized objectives induced by preferences or rankings. DPO, SimPO, ORPO, and KTO recast alignment as preference optimization without relying on standard on-policy RL pipelines \citep{dpo,simpo,orpo,kto}. In parallel, group methods such as LiPO and PRO emphasize supervision over sets of candidate responses rather than isolated pairwise comparisons \citep{liu2024lipo,song2024pro}. \method is complementary to these approaches: it retains an on-policy GRPO-style training loop, but introduces a prompt-local target distribution over sampled completions and regularizes that distribution directly.
 
 \textbf{GRPO and its variants.}
-GRPO is a critic-free, PPO-style post-training method that samples a group of completions, forms group-relative learning signals, and broadcasts them across tokens within each completion \citep{shao2024deepseekmath}. Dr.GRPO revisits this update and motivates a corrected backbone that reduces optimization pathologies in R1-Zero-style training \citep{liu2025understanding}. Several recent variants then modify where exploration or uncertainty enters the GRPO pipeline. SEED-GRPO uses semantic entropy to scale updates at the prompt level \citep{seedgrpo,farquhar2024detecting}, while Info-GRPO and token-level entropy methods introduce diversity through latent conditioning or local token-distribution regularization \citep{infogrpo,oord2018cpc,wen2024etpo}. Our method differs in where it intervenes: it regularizes the \emph{distribution over sampled candidates} itself, yielding a closed-form prompt-local target and a direct candidate-level view of exploration in GRPO-style reasoning RL.
+GRPO is a critic-free, PPO-style post-training method that samples a group of completions, forms group-relative learning signals, and broadcasts them across tokens within each completion \citep{shao2024deepseekmath}. Dr.GRPO revisits this update and motivates a corrected backbone that reduces optimization pathologies in R1-Zero-style training \citep{liu2025understanding}. Several recent variants then modify where exploration or uncertainty enters the GRPO pipeline. SEED-GRPO uses semantic entropy to scale updates at the prompt level \citep{chen2025seedgrpo,farquhar2024detecting}, Info-GRPO introduces diversity through latent conditioning \citep{infogrpo,oord2018cpc}, and token-level entropy interventions range from the classic loss-side entropy bonus \citep{williams1991entropy,mnih2016a3c} to soft-Bellman objectives that carry a KL-to-reference regularizer inside the token-level backup \citep{wen2024etpo}. Our method differs in where it intervenes: it regularizes the \emph{distribution over sampled candidates} itself, yielding a closed-form prompt-local target and a direct candidate-level view of exploration in GRPO-style reasoning RL.
 
 \section{Where Exploration Enters the Objective}
 \label{sec:where-exploration}
@@ -203,13 +203,17 @@ is the \emph{same per-candidate Dr.GRPO gradient, reweighted}:
 =
 \sum_{i=1}^G w^\star_{x,i}(\theta)\,\nabla_\theta \Ubar_{x,i}(\theta),
 \end{equation}
-with $w^\star$ treated as a constant (i.e.\ \texttt{stop\_gradient} in code). The rollout
+with $w^\star$ entering as a constant: the implementation computes the weights once per
+rollout batch at the rollout policy --- where the clipped utility reduces to the closed form
+$A_{x,i}T_{x,i}/T_{\max}$ --- and freezes them for the update, exactly as the advantages are
+frozen (Remark~\ref{rem:frozen-weights}). The rollout
 pipeline, reward function, clipping, and tokenwise surrogate are untouched. \emph{Only the
 aggregation weights change.}
 
 \paragraph{Why this is exploration, and why Dr.GRPO has none.}
 Equation~\eqref{eq:xdr-lse} is a tempered log-sum-exp: the \emph{entropic risk measure} of
-the candidate utilities, with $\tau+\lambda$ as inverse risk-sensitivity. Its second-order
+the candidate utilities \citep{howard1972risk,mihatsch2002risk}, with $\tau+\lambda$ as
+inverse risk-sensitivity. Its second-order
 expansion (Proposition~\ref{prop:variance-expansion}) makes the mechanism explicit:
 \begin{equation}
 \label{eq:variance-expansion-main}
@@ -244,18 +248,25 @@ distribution (Token-MaxEnt Dr.GRPO).
 
 \emph{(iii) The mechanism is asymmetric gradient attenuation.} Because
 $w^\star_{x,i}\propto \exp(\Ubar_{x,i}/\tau)$ and $\Ubar_{x,i}$ is increasing in $A_{x,i}$,
-negative-advantage candidates receive \emph{exponentially downweighted} gradients. Negative
-(unlikelihood-style) gradients are the dominant driver of policy-entropy collapse in
-verifiable-reward RL; attenuating them preserves policy entropy over training. This is
-directly what Figure~\ref{fig:exploration-sidecar} measures: xDr.GRPO sustains a higher
-effective number of active rollouts and a lower incorrect-mass share.
+negative-advantage candidates receive \emph{exponentially downweighted} gradients. How such
+attenuation interacts with policy-entropy dynamics under verifiable rewards is genuinely
+contested: entropy collapse has been traced to high-covariance updates on confident
+\emph{positive}-advantage tokens \citep{cui2025entropy}, and sequence-level negative
+reinforcement alone can even preserve entropy \citep{zhu2025negative}, while negative
+gradients applied to \emph{low-probability} tokens are a documented entropy-collapsing and
+likelihood-displacing force whose selective attenuation helps
+\citep{park2025cliplow,huang2025lowprob,deng2025negativegrad}. Our reweighting acts at the
+candidate level rather than the token level, so we treat its net entropy effect as an
+empirical question --- Figure~\ref{fig:exploration-sidecar} measures it directly through the
+effective number of active rollouts and the incorrect-mass share, logged identically for
+every arm.
 
 \paragraph{The family, end to end.}
 The temperature interpolates between two known regimes:
 \begin{center}
 \begin{tabular}{@{}lll@{}}
 \toprule
-$\tau \to 0$ & $w^\star \to \mathbf{1}\{i = \argmax_i \Ubar_{x,i}\}$ & best-of-$G$ distillation (RAFT-style) \\
+$\tau \to 0$ & $w^\star \to \mathbf{1}\{i = \argmax_i \Ubar_{x,i}\}$ & best-of-$G$ distillation (RAFT-style, \citealp{dong2023raft}) \\
 $0 < \tau < \infty$ & tilted softmax over utilities & \textbf{xDr.GRPO} \\
 $\tau \to \infty$ & $w^\star \to \mathbf{u}$ & \textbf{Dr.GRPO} \\
 \bottomrule
@@ -263,9 +274,12 @@ $\tau \to \infty$ & $w^\star \to \mathbf{u}$ & \textbf{Dr.GRPO} \\
 \end{center}
 Our empirical claim is that the optimum lies in the \emph{interior}: rejection-sampling-style
 concentration discards the comparative signal that makes GRPO work, while uniform
-aggregation over-weights negative candidates and collapses policy entropy. Section~\ref{sec:experimental-design}
-tests this with a sweep over $\tau$ in which Dr.GRPO appears as the $\tau=\infty$ endpoint of
-the same code path.
+aggregation spends a fixed share of every update on negative candidates --- whether that
+degrades the sampled group is exactly what the diagnostics of
+Figure~\ref{fig:exploration-sidecar} test. Section~\ref{sec:experimental-design}
+tests this with a sweep over $\tau$ in which Dr.GRPO appears as the $\tau=\infty$ endpoint
+of the same family, run through the same launcher with the reweighting disabled
+(Remark~\ref{rem:frozen-weights}).
 
 \paragraph{Degenerate groups need no special handling.}
 If all sampled rewards are equal, then $A_{x,i}=0$ for all $i$, hence $\Ubar_{x,i}=0$,
@@ -282,10 +296,10 @@ We organize the comparison around where exploration enters an otherwise shared G
 \drgrpo is the scalar-weight baseline. It centers rewards within each prompt group, assigns each sampled completion a scalar advantage, and applies the clipped \drgrpo surrogate \citep{shao2024deepseekmath,liu2025understanding}. It therefore uses group-relative information, but collapses the group before optimization.
 
 \paragraph{\method.}
-\method is the candidate-level variant. It constructs a prompt-local target distribution over sampled completions and trains the policy to match that distribution. This method directly regularizes the object being compared inside GRPO: the set of sampled candidates for a prompt.
+\method is the candidate-level variant. It constructs a prompt-local weight distribution over the sampled completions and reweights each candidate's \drgrpo update by it. This method directly regularizes the object being compared inside GRPO: the set of sampled candidates for a prompt.
 
 \paragraph{\tokmaxdrgrpo.}
-Token-level MaxEnt keeps the \drgrpo backbone but adds entropy regularization at the next-token objective, encouraging locally higher-entropy token distributions during optimization \citep{wen2024etpo}. This approach tests whether token-level stochasticity alone can provide the same benefit as candidate-level exploration.
+Token-level MaxEnt keeps the \drgrpo backbone but adds the classic entropy bonus to the next-token objective \citep{williams1991entropy,mnih2016a3c}, encouraging locally higher-entropy token distributions during optimization; entropy-regularized token-level objectives for language agents pursue the same intuition through a soft-Bellman formulation \citep{wen2024etpo}. This approach tests whether token-level stochasticity alone can provide the same benefit as candidate-level exploration.
 
 \paragraph{\seeddrgrpo.}
 SEED-style \drgrpo preserves the clipped \drgrpo update but rescales prompt updates using semantic uncertainty, following semantic-entropy approaches that estimate uncertainty over answer meaning rather than over individual token choices \citep{chen2025seedgrpo,farquhar2024detecting}. This technique thus tests a prompt-level intervention.
@@ -303,7 +317,7 @@ Each prompt presents three distinct integers drawn from $\{2,\dots,12\}$ and an 
 \paragraph{Graph-coloring completion.}
 Each prompt presents a small undirected graph (vertices $1$ through $n$), its edge list, and a partial coloring with hidden vertices, and asks the model to return colors from $\{1,2,3\}$ for the hidden vertices, boxed, such that no edge has equal colors at both endpoints. All valid colorings consistent with the partial assignment are enumerated exactly; a prompt's answer modes are its distinct valid completions.
 
-In both domains, prompts are filtered so that every training and evaluation item admits several modes (between $2$ and $8$ for Countdown), which makes the pair a direct probe of whether a training objective finds \emph{more of the valid answer set} rather than one answer more reliably. The problem scale is calibrated so that the base policy earns reward often enough to bootstrap: three-number Countdown gives an untrained small model a workable success rate, whereas four-number variants yield almost no rewarded rollouts and hence no learning signal. The released configurations use $384$ training prompts and $128$ held-out evaluation prompts for Countdown ($192$/$96$ for graph coloring), generated deterministically from fixed seeds, plus optional single-mode control splits in which each prompt has exactly one valid answer. The primary paired comparison is \drgrpo versus \method, fine-tuning Qwen2.5-0.5B-Instruct policies. For each method, we train three independent seeds per domain and evaluate each trained checkpoint with three evaluation seeds.
+In both domains, prompts are filtered so that every training and evaluation item admits several modes (between $2$ and $8$ for Countdown), which makes the pair a direct probe of whether a training objective finds \emph{more of the valid answer set} rather than one answer more reliably. The problem scale is calibrated so that the base policy earns reward often enough to bootstrap: three-number Countdown gives an untrained small model a workable success rate, whereas four-number variants yield almost no rewarded rollouts and hence no learning signal. The released configurations use $384$ training prompts and $128$ held-out evaluation prompts for Countdown ($192$/$96$ for graph coloring), generated deterministically from fixed seeds, plus optional single-mode control splits in which each prompt has exactly one valid answer. Evaluation prompts are excluded from the training pool by problem identity (numbers and target for Countdown; graph, edge set, and partial coloring for graph coloring), so no evaluation item is ever trained on. In the released Countdown configuration the evaluation split's mode counts concentrate at five modes per prompt (median $5$, range $2$--$8$) with targets in $[1,36]$. The primary paired comparison is \drgrpo versus \method, fine-tuning Qwen2.5-0.5B-Instruct policies with $G=16$ rollouts per prompt during training. For each method, we train three independent seeds per domain and evaluate each trained checkpoint with three evaluation seeds; evaluation draws $K=8$ sampled completions per prompt at temperature $1.0$ (independent of the training group size) plus one greedy completion, always from the final saved checkpoint --- a rule fixed before any evaluation was run.
 
 All methods use the same base model, prompt format, reward extraction logic, rollout budget, and evaluation harness. Correctness is verifiable and binary: the boxed expression is normalized, parsed, and evaluated with exact rational arithmetic, and receives reward $1$ if and only if it equals the target and uses each given number exactly once. Mode identity is never part of the training reward --- the trainer sees correctness only --- so any difference in how many distinct modes a method discovers is attributable to the training objective rather than to mode-aware supervision.
 
@@ -385,7 +399,11 @@ will treat an absolute gain of 3 to 5 points on \texttt{pass@8},
 \texttt{mean@8}, or \texttt{coverage@8} as the smallest practically meaningful effect. If the
 estimated MDE is larger than this range, the experiment will be reported as
 underpowered and interpreted descriptively rather than as strong evidence for
-or against xDr.GRPO.
+or against xDr.GRPO. With $128$ evaluation prompts per domain and binary
+prompt-level outcomes, realistic prompt-clustered standard errors fall in the
+$0.013$--$0.027$ range, corresponding to minimum detectable effects of roughly
+$4$--$8$ accuracy points; effects smaller than that are beyond this design's
+resolution and will be treated as such.
 
 
 \begin{table}[t]
@@ -451,8 +469,9 @@ A_{x,i} = r_{x,i} - \bar r_x
 \Bigl[-\bigl(1-\tfrac1G\bigr),\; 1-\tfrac1G\Bigr].
 \]
 The implementation also supports standard-deviation scaling,
-$A_{x,i} = (r_{x,i}-\bar r_x)/(\operatorname{Std}(\{r_{x,j}\}_j)+10^{-4})$, but this is
-disabled in every released recipe (\texttt{scale\_rewards}=\texttt{false}), consistent
+$A_{x,i} = (r_{x,i}-\bar r_x)/(\operatorname{Std}(\{r_{x,j}\}_j)+10^{-8})$, but this is
+disabled in every released recipe (the \texttt{critic\_type}=\texttt{drgrpo} setting
+selects the unscaled advantage and the constant-normalizer aggregator below), consistent
 with the Dr.GRPO correction \citep{liu2025understanding}.
 
 Let $m_{x,i,t}\in\{0,1\}$ be the completion-token mask, $\log\mu_{x,i,t}$ the rollout
@@ -461,9 +480,7 @@ tokenwise importance ratio and its clipped version are
 \[
 c_{x,i,t}
 =
-\exp\!\Bigl(
-\operatorname{clip}\bigl(\log \pi_{\theta,x,i,t}-\log \mu_{x,i,t},\,-5,\,5\bigr)
-\Bigr),
+\exp\!\bigl(\log \pi_{\theta,x,i,t}-\log \mu_{x,i,t}\bigr),
 \qquad
 \tilde c_{x,i,t}
 =
@@ -478,7 +495,7 @@ D_{x,i,t}
 \delta_{x,i,t}
 =
 \operatorname{clip}\bigl(
-\log \pi_{\mathrm{ref},x,i,t}-\log \pi_{\theta,x,i,t},\,-5,\,5
+\log \pi_{\mathrm{ref},x,i,t}-\log \pi_{\theta,x,i,t},\,-40,\,40
 \bigr),
 \]
 weighted by $\beta\ge 0$. This is the \emph{only} mechanism in the paper that constrains
@@ -579,16 +596,35 @@ entirely in $A_{x,i}$; the aggregation across the group is a plain mean.}
 SEED preserves the clipped surrogate but rescales each prompt's advantages by semantic
 predictive entropy. Let $c(i)$ be the semantic answer cluster of completion $i$ and
 \[
-\ell_{x,i} = \frac{1}{|y_{x,i}|}\sum_t m_{x,i,t}\log\pi_{\theta,x,i,t},
+\ell_{x,i} = \frac{1}{|y_{x,i}|}\sum_t m_{x,i,t}\log\mu_{x,i,t},
 \qquad
 p_{x,c} = \frac{\sum_{i:\,c(i)=c}\exp(\ell_{x,i})}{\sum_{j=1}^G \exp(\ell_{x,j})},
 \qquad
 H^{\mathrm{sem}}_x = -\sum_c p_{x,c}\log p_{x,c}.
 \]
-We length-normalize $\ell_{x,i}$ (see Appendix~\ref{app:reference-tilt} for why). The
+We length-normalize $\ell_{x,i}$ (see Appendix~\ref{app:reference-tilt} for why), and
+evaluate it at the rollout policy $\mu$, matching the frozen-weight convention of
+Remark~\ref{rem:frozen-weights} (at the single update of the released one-epoch recipe,
+$\mu = \pi_\theta$). Semantic clusters are the canonical answer modes of the verifier ---
+countdown expressions reduce to canonical ASTs, colorings to completion strings --- and
+completions with no extractable answer form singleton clusters. The
 prompt-level scaling is $s_x = (1+\alpha_{\mathrm{eff}} H^{\mathrm{sem}}_x)^{-1}$ with
 $\alpha_{\mathrm{eff}} = \alpha/\log G$, giving $a_{x,i} = s_x/G$. Note that $s_x$ does not
 depend on $i$: SEED reweights \emph{prompts}, and remains uniform \emph{within} the group.
+
+\paragraph{Fidelity to, and one departure from, the released SEED-GRPO.} The functional
+form above matches the released SEED-GRPO implementation, which likewise scales advantages
+by $(1+\alpha' H^{\mathrm{sem}})^{-1}$ with length-normalized sequence likelihoods and the
+Shannon entropy of the likelihood-weighted cluster masses (rather than the Monte-Carlo
+estimator $-\tfrac1K\sum_k \log p_{c(k)}$ written in that paper), and which also assigns
+unparseable completions to singleton clusters \citep{chen2025seedgrpo}. The one deliberate
+departure is the sensitivity: the released SEED-GRPO default corresponds to
+$\alpha \approx 0.04$ in our parameterization, which caps the prompt rescaling at about
+$4\%$ even at maximal semantic entropy --- a perturbation of \drgrpo far below this study's
+minimum detectable effect. We instead run the arm at $\alpha = 1$, which reaches
+$s_x = \tfrac12$ at maximal entropy, so that the prompt-level mechanism is actually
+testable at our sample sizes; results for this arm should be read as testing the
+\emph{mechanism at a visible dose}, not the original tuning.
 
 \subsection{Token-MaxEnt Dr.GRPO}
 \label{app:objective-token-maxent}
@@ -601,7 +637,10 @@ Token-MaxEnt keeps $a_{x,i}=1/G$ and adds an exact next-token entropy bonus with
 \qquad
 R(\theta) = -\frac{\alpha}{|\mathcal A|\,G\,T_{\max}}\sum_{x,i,t} m_{x,i,t}\,\mathcal H_{x,i,t}(\pi_\theta).
 \]
-Entropy here acts on the next-token distribution, not on the sampled group.
+This is the classic loss-side policy-entropy bonus \citep{williams1991entropy,mnih2016a3c}
+placed on the \drgrpo backbone, with the entropy computed exactly over the vocabulary (no
+sampling estimate) and aggregated with the same constant $T_{\max}$ normalizer as the
+surrogate. Entropy here acts on the next-token distribution, not on the sampled group.
 
 \subsection{xDr.GRPO}
 \label{app:objective-xdrgrpo}
@@ -636,26 +675,38 @@ Remark~\ref{rem:detach}.
 \paragraph{Diff against the baseline.} The entire implementation delta is:
 
 \begin{verbatim}
-    # per_cand_utility: [num_prompts, G]  -- the clipped Dr.GRPO surrogate,
-    #                                        summed over tokens, divided by T_max
-    U = per_cand_utility(logp, logp_rollout, adv, mask, T_max)   # shared
+    # Utilities at the rollout policy (importance ratio 1): the clipped
+    # surrogate reduces to U_i = A_i * T_i / T_max per candidate.
+    U = adv * response_token_counts / T_max          # [num_prompts, G]
 
-    # --- Dr.GRPO ---
-    # w = torch.full_like(U, 1.0 / G)
+    # --- Dr.GRPO (tau = inf) ---
+    # the reweighting below is skipped entirely; the baseline loss
+    # aggregation runs unchanged.
 
-    # --- xDr.GRPO ---
-    logits = U / kappa
-    if lam > 0:
-        logits = logits + (lam / kappa) * log_pi_ref_group   # [num_prompts, G]
-    w = torch.softmax(logits, dim=-1).detach()               # <-- detach is required
-
-    loss = -(w * U).sum(dim=-1).mean()
+    # --- xDr.GRPO (finite tau) ---
+    w = G * torch.softmax(U / tau, dim=-1).detach()  # <-- detach is required
+    loss = -(w * U_theta * loss_masks).mean()        # per-row reweighting
 \end{verbatim}
 
-\noindent Rollouts, rewards, clipping, masking, optimizer, and the tokenwise KL term are
-untouched. Setting \texttt{kappa} $=\infty$ reproduces Dr.GRPO bit-for-bit through the same
-code path, which is how the $\tau=\infty$ arm of the sweep in
-Appendix~\ref{app:tau-range} is run.
+\noindent Here $U_\theta$ denotes the tokenwise clipped surrogate recomputed at the
+current parameters inside the update loop; only its per-row aggregation weight changes.
+Rollouts, rewards, clipping, masking, optimizer, and the tokenwise KL term are untouched.
+
+\begin{remark}[Weights are frozen at the rollout policy]
+\label{rem:frozen-weights}
+The released implementation computes $w^\star_x$ once per rollout batch from the
+utilities evaluated at the rollout policy $\mu$ --- where the importance ratio is $1$ and
+$\Ubar_{x,i} = A_{x,i}\,T_{x,i}/T_{\max}$ exactly --- and holds them fixed for the update,
+exactly as the advantages themselves are. Under the released recipe (one optimization
+epoch, weights consumed at the first gradient step where $\pi_\theta=\mu$) this coincides
+with $w^\star(\theta)$; in multi-epoch configurations the two diverge and
+$w^\star(\theta)$ would need recomputing per step. Setting $\tau=\infty$ disables the
+reweighting entirely, leaving the baseline aggregation \emph{bit-for-bit} unchanged; the
+$\tau=\infty$ arm of the sweep in Appendix~\ref{app:tau-range} is run through the same
+launcher with the reweighting skipped. The reference tilt ($\lambda>0$,
+Appendix~\ref{app:reference-tilt}) is presented for generality; the released
+implementation fixes $\lambda=0$.
+\end{remark}
 
 \paragraph{Degenerate groups.} If all rewards in a group are equal then $A_{x,i}=0$ for all
 $i$, hence $\Ubar_{x,i}=0$, $w^\star_x$ is uniform (or purely reference-tilted), and the
@@ -667,16 +718,25 @@ matching Dr.GRPO. No prompt-skipping heuristic is used.
 
 All matched recipes use
 \[
-G=8,\qquad
-\texttt{grpo\_loss\_type}=\texttt{dr\_grpo},\qquad
-\texttt{scale\_rewards}=\texttt{false},\qquad
+G=16,\qquad
+\texttt{critic\_type}=\texttt{drgrpo},\qquad
 \beta=0,\qquad
-\lambda=0 .
+\lambda=0 ,
 \]
-With $\beta=0$ the tokenwise KL term vanishes; with $\lambda=0$ the reference tilt vanishes
-and $\kappa=\tau$. The comparison therefore isolates a single axis: the aggregation weight
-$a_{x,i}$ (uniform for Dr.GRPO, prompt-rescaled uniform for SEED, uniform-plus-token-entropy
-for Token-MaxEnt, tempered-softmax for xDr.GRPO).
+with a learning rate of $2\times 10^{-7}$, a training budget of $9{,}216$ prompt
+consumptions, one optimization epoch per rollout batch, and sampling temperature $1$.
+The group size and learning rate were calibrated on the \drgrpo baseline alone, before
+any cross-method comparison: at $G=8$ most groups contain no correct sample at this model
+scale (starving the group-relative signal entirely), and at learning rates
+$\ge 10^{-6}$ the policy's training success rate collapses toward zero within a run,
+independent of method. The remaining pre-specified constants are the Token-MaxEnt
+coefficient $\alpha=0.01$, the SEED sensitivity $\alpha=1$, and the primary
+xDr.GRPO temperature $\tau=0.5$ (the remaining grid points are reported as
+exploratory, with Holm-adjusted $p$-values). With $\beta=0$ the tokenwise KL term
+vanishes; with $\lambda=0$ the reference tilt vanishes and $\kappa=\tau$. The comparison
+therefore isolates a single axis: the aggregation weight $a_{x,i}$ (uniform for Dr.GRPO,
+prompt-rescaled uniform for SEED, uniform-plus-token-entropy for Token-MaxEnt,
+tempered-softmax for xDr.GRPO).
 
 
 % =====================================================================
@@ -887,16 +947,21 @@ candidates still disagree. This is optimism in the face of uncertainty, applied 
 object GRPO uses for credit assignment.
 \emph{(iii)} Mechanically, $w^\star_{x,i}\propto\exp(\Ubar_{x,i}/\tau)$ and $\Ubar_{x,i}$ is
 increasing in $A_{x,i}$, so negative-advantage candidates receive exponentially attenuated
-gradients. Negative (unlikelihood-style) gradients are the dominant driver of
-policy-entropy collapse under verifiable rewards; attenuating them is what sustains the
-higher effective rollout count and lower incorrect-mass share in
-Figure~\ref{fig:exploration-sidecar}.
+gradients. The theory establishes the attenuation, not its downstream effect on policy
+entropy: the token-level literature attributes entropy collapse variously to
+high-covariance positive-advantage updates \citep{cui2025entropy} --- with sequence-level
+negative reinforcement alone even \emph{preserving} entropy \citep{zhu2025negative} --- and
+to negative gradients on low-probability tokens
+\citep{park2025cliplow,huang2025lowprob,deng2025negativegrad}. Whether candidate-level
+attenuation sustains a higher effective rollout count and a lower incorrect-mass share is
+what Figure~\ref{fig:exploration-sidecar} is designed to measure.
 \end{remark}
 
 \subsection{Stability under utility perturbation}
 
-The utilities $\Ubar_i$ are computed from noisy verifier rewards and clipped importance
-ratios, so the aggregation weights must not be brittle in them. They are not: the entropy
+The utilities $\Ubar_i$ are computed from noisy verifier rewards (and, in multi-epoch
+configurations, drifting importance ratios), so the aggregation weights must not be brittle
+in them. They are not: the entropy
 weight controls the Lipschitz constant directly.
 
 \begin{proposition}[Coordinatewise stability]
@@ -952,30 +1017,29 @@ value is at most $\kappa\cdot\varepsilon/\kappa = \varepsilon$.
 \label{app:tau-range}
 
 \paragraph{Boundedness.}
-Each summand of \eqref{eq:utility-app} satisfies
-$|\!\min(c_{x,i,t}A_{x,i},\,\tilde c_{x,i,t}A_{x,i})| \le \rho\,|A_{x,i}|$ with
-$\rho := \max\bigl(1+\epsilon_{\mathrm{high}},\, e^{5}\bigr)$: for $A_{x,i}\ge 0$ the
-minimum is dominated by the clipped branch, bounded by $(1+\epsilon_{\mathrm{high}})A_{x,i}$,
-while for $A_{x,i}<0$ it is dominated by the unclipped branch, whose ratio is capped at
-$e^{5}$ by the log-ratio clip of Appendix~\ref{app:common-rollout}. Since the mask has at
-most $T_{\max}$ active positions and $|A_{x,i}|\le 1-\tfrac1G$,
+The utilities that enter the aggregation weights are evaluated at the rollout policy
+(Remark~\ref{rem:frozen-weights}), where the importance ratio is exactly $1$ and every
+summand of \eqref{eq:utility-app} equals $A_{x,i}$ on active positions. Since the mask has
+at most $T_{\max}$ active positions and $|A_{x,i}|\le 1-\tfrac1G$,
 \[
-M_x \;=\; \max_i\,\bigl|\Ubar_{x,i}(\theta)\bigr| \;\le\; \rho\,\Bigl(1-\frac1G\Bigr).
+M_x \;=\; \max_i\,\bigl|\Ubar_{x,i}\bigr| \;=\; \max_i\, |A_{x,i}|\,\frac{T_{x,i}}{T_{\max}}
+\;\le\; 1-\frac1G
 \]
-The $e^5$ factor is a worst-case off-policy bound; in the on-policy regime used here (a
-single optimization epoch per rollout batch), the measured ratios concentrate near $1$ and
-the effective bound is $M_x \lesssim (1+\epsilon_{\mathrm{high}})(1-\tfrac1G) \approx 1$.
-This uniform boundedness is what Proposition~\ref{prop:variance-expansion} uses, and it
-also justifies treating $[-1,1]$ as the utility scale when choosing $\tau$.
+exactly, with no clipping argument required. (For the general current-$\theta$ surrogate
+the positive branch is still bounded by $(1+\epsilon_{\mathrm{high}})|A_{x,i}|$, but the
+unclipped negative branch is unbounded in principle; the released weights never evaluate
+it off-policy.) This uniform boundedness is what
+Proposition~\ref{prop:variance-expansion} uses, and it justifies treating $[-1,1]$ as the
+utility scale when choosing $\tau$.
 
 \paragraph{Practical range of $\tau$.}
 The weights depend on the utilities only through $\Ubar_{x,i}/\kappa$, so the meaningful
-scale for $\tau$ is the within-group utility spread, which for binary rewards and $G=8$ is
+scale for $\tau$ is the within-group utility spread, which for binary rewards and $G=16$ is
 of order $10^{-1}$ after the $T_{\max}$ normalization. The sweep uses the grid
 $\tau \in \{0.05, 0.1, 0.25, 0.5, 1, 2, \infty\}$ with $\lambda=0$
-(Table~\ref{tab:matched-run-design}), where the $\tau=\infty$ arm sets \texttt{kappa}
-$=\infty$ in the code path of Appendix~\ref{app:objective-xdrgrpo} and reproduces Dr.GRPO
-bit-for-bit. Values of $\tau$ far below the utility spread approach the best-of-$G$ corner
+(Table~\ref{tab:matched-run-design}), where the $\tau=\infty$ arm disables the reweighting
+entirely and runs the identical baseline code path
+(Remark~\ref{rem:frozen-weights}), reproducing Dr.GRPO bit-for-bit. Values of $\tau$ far below the utility spread approach the best-of-$G$ corner
 and inherit its instability (Proposition~\ref{prop:stability}); values far above it are
 indistinguishable from Dr.GRPO by Proposition~\ref{prop:drgrpo-limit}. Reported $\tau$
 values should be read relative to the utility scale $M_x\le 1$ above.
@@ -1000,15 +1064,15 @@ weight $a_{x,i}$ of \eqref{eq:general-form} differs.
     Base model & Qwen2.5-0.5B-Instruct. \\
     Training data & Synthetic exact multi-answer Countdown arithmetic (384 train / 128 eval prompts, 2--8 modes) and graph-coloring completion (192 / 96), regenerated deterministically from fixed seeds. \\
     Prompting & Single-boxed-answer instruction prompt per domain, identical in training and evaluation. \\
-    Rollouts & $G=8$ completions per prompt; shared sampling temperature, max prompt length, and max completion length across methods. \\
-    Optimization & Shared learning rate, optimizer, batch size, training budget, and checkpoint cadence across methods. \\
+    Rollouts & $G=16$ completions per prompt for every arm; sampling temperature $1.0$, top-$p$ $1.0$; prompt length $\le 256$ tokens; completion budget $T_{\max}=192$ tokens; one prompt group per learner step. \\
+    Optimization & Constant learning rate $2\times 10^{-7}$ (Adam), one optimization epoch per rollout batch (\texttt{num\_ppo\_epochs}=1), PPO clip range $\epsilon=0.2$ (symmetric), gradient-norm clip $1.0$, bfloat16; training budget $9{,}216$ prompt consumptions per run; \texttt{critic\_type}=\texttt{drgrpo} (constant $T_{\max}$ normalizer, mean-only advantages); $\beta=0$, no KL pseudo-reward, so no reference model enters training. \\
     Main paired methods & Dr.GRPO and xDr.GRPO. \\
     Additional baselines & SEED-Dr.GRPO and Token-MaxEnt Dr.GRPO, same backbone (Appendix~\ref{app:drgrpo-backend}). \\
-    xDr.GRPO hyperparameters & $\tau \in \{0.05, 0.1, 0.25, 0.5, 1, 2, \infty\}$; $\lambda=0$ and $\beta=0$ in all main runs. $\tau=\infty$ \emph{is} the Dr.GRPO arm. \\
-    Training seeds & Three independent fine-tuning seeds per method and per $\tau$. \\
-    Evaluation seeds & Three stochastic evaluation seeds per trained checkpoint. \\
+    Arm-specific settings & xDr.GRPO: $\tau \in \{0.05, 0.1, 0.25, 0.5, 1, 2, \infty\}$ with $\tau=0.5$ pre-specified as primary (remaining grid points exploratory, Holm-adjusted); $\lambda=0$; $\tau=\infty$ \emph{is} the Dr.GRPO arm. SEED-Dr.GRPO: $\alpha=1$ (Appendix~\ref{app:objective-seed}). Token-MaxEnt: $\alpha=0.01$. \\
+    Training seeds & Three independent fine-tuning seeds (43, 44, 45) per method and per $\tau$. \\
+    Evaluation seeds & Three stochastic evaluation seeds per trained checkpoint; $K=8$ sampled completions per prompt at temperature $1.0$, plus one greedy pass. \\
     Evaluation splits & Held-out multi-answer split per domain; optional single-mode control split. \\
-    Checkpoint selection & Pre-specified rule, fixed before evaluation, not tuned on the evaluation splits. \\
+    Checkpoint selection & Final saved checkpoint of each run; rule fixed before any evaluation, not tuned on the evaluation splits. \\
     Primary estimand & Coefficient on the method indicator in Equation~\ref{eq:regression-main}. \\
     \bottomrule
   \end{tabularx}
@@ -1021,34 +1085,43 @@ weight $a_{x,i}$ of \eqref{eq:general-form} differs.
 
 \paragraph{Objective-specific difference.}
 Dr.GRPO aggregates per-candidate utilities uniformly within each prompt group. xDr.GRPO
-aggregates the \emph{same} utilities with the tempered, optionally reference-tilted softmax
-weights of \eqref{eq:xdr-weights-app}, detached from the computation graph. SEED-Dr.GRPO
+aggregates the \emph{same} utilities with the tempered softmax weights of
+\eqref{eq:xdr-weights-app}, computed at the rollout policy and frozen per rollout batch
+(Remark~\ref{rem:frozen-weights}). SEED-Dr.GRPO
 rescales whole prompts by semantic entropy; Token-MaxEnt Dr.GRPO adds a next-token entropy
 bonus. Nothing else changes.
 
 \paragraph{Diagnostics.}
-For each training step we log, per prompt group: the per-candidate utilities
-$\{\Ubar_{x,i}\}$, the realized aggregation weights $\{a_{x,i}\}$, the effective number of
-active rollouts $\exp\bigl(H(a_x)\bigr)$, and the share of aggregation mass falling on
-incorrect rollouts $\sum_{i:\,r_{x,i}=0} a_{x,i}$. Because Dr.GRPO also has an explicit
-$a_{x,i}$ under \eqref{eq:general-form} (namely $1/G$), these three diagnostics are defined
-identically for every method in the quartet and are directly comparable ---
-Figure~\ref{fig:exploration-sidecar} plots exactly these quantities.
+The candidate-level diagnostics are defined for every method through the realized
+aggregation weights $a_{x,i}$ of \eqref{eq:general-form}: the effective number of active
+rollouts $\exp\bigl(H(a_x)\bigr)$, with $a_x$ normalized within the prompt group over the
+rows that train, and the share of aggregation mass falling on incorrect rollouts
+$\sum_{i:\,r_{x,i}=0} a_{x,i}$. Because Dr.GRPO also has an explicit $a_{x,i}$ under
+\eqref{eq:general-form} (namely $1/G$), the training loop computes both quantities
+identically for every arm at every step --- uniform weights for Dr.GRPO and Token-MaxEnt,
+the prompt-rescaled uniform weights for SEED (whose within-group distribution is uniform,
+so its curves coincide with the baseline's by construction), and the tempered softmax
+weights for xDr.GRPO --- and logs them under a shared key, so the curves are directly
+comparable. Figure~\ref{fig:exploration-sidecar} plots exactly these quantities.
 
 \begin{figure}[h]
   \centering
-  % PLACEHOLDER (reconstructed): no figure environment for
-  % fig:exploration-sidecar appeared in the provided source, but it is
-  % referenced from Section 3, Appendix B, and the Diagnostics paragraph
-  % above. Replace with the real exploration side-car diagnostics plot.
-  \fbox{\parbox[c][0.32\linewidth][c]{0.9\linewidth}{\centering
-    \texttt{[placeholder: exploration side-car diagnostics ---}\\
-    \texttt{effective active rollouts and incorrect-mass share}\\
-    \texttt{vs.\ training step, xDr.GRPO vs.\ Dr.GRPO]}
-  }}
+  % Generated by ops/plot_exploration_sidecar.py from the per-step
+  % train_metrics.jsonl each learner writes; falls back to a placeholder
+  % until a training round run with the metrics sink has been plotted.
+  \IfFileExists{figures/exploration_sidecar.pdf}{%
+    \includegraphics[width=\linewidth]{figures/exploration_sidecar}%
+  }{%
+    \fbox{\parbox[c][0.32\linewidth][c]{0.9\linewidth}{\centering
+      \texttt{[pending: run ops/plot\_exploration\_sidecar.py on a}\\
+      \texttt{training round that wrote train\_metrics.jsonl]}
+    }}%
+  }
   \caption{\textbf{Candidate-level exploration diagnostics.} Effective number of active
-  rollouts $\exp(H(a_x))$ and incorrect-mass share over training, logged identically for
-  every method in the quartet.}
+  rollouts $\exp(H(a_x))$ (left; uniform aggregation sits at the number of valid rollouts
+  per group) and incorrect-mass share (right) over training. Lines are means over the
+  three training seeds, bands are seed min--max, and both quantities are computed from the
+  realized aggregation weights logged identically for every method in the quartet.}
   \label{fig:exploration-sidecar}
 \end{figure}
 

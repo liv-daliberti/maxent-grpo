@@ -149,10 +149,15 @@ def _synthetic_graph_rows(
     split_tag: str,
     prompt_style: str,
     balance_hidden_color: bool,
+    exclude: set[tuple[int, tuple[tuple[int, int], ...], str]] | None = None,
 ) -> list[dict[str, str]]:
     rng = random.Random(seed)
     rows: list[dict[str, str]] = []
-    seen: set[tuple[int, tuple[tuple[int, int], ...], str]] = set()
+    # Seed the dedup set with prior splits' identities so evaluation prompts
+    # are genuinely held out from training.
+    seen: set[tuple[int, tuple[tuple[int, int], ...], str]] = (
+        set(exclude) if exclude else set()
+    )
     hidden_color_counts: dict[int, int] = {1: 0, 2: 0, 3: 0}
     hidden_color_limits: dict[int, int] = {}
     if balance_hidden_color:
@@ -286,6 +291,15 @@ def main() -> None:
         split_tag="train_multi_answer",
         **common,
     )
+    def _row_identity(row: dict[str, str]) -> tuple:
+        spec = json.loads(row["answer"])
+        return (
+            int(spec["n"]),
+            tuple(tuple(edge) for edge in spec["edges"]),
+            _graph_color_string(spec["partial_colors"]),
+        )
+
+    train_identities = {_row_identity(row) for row in train_rows}
     eval_multi_rows = _synthetic_graph_rows(
         args.eval_size,
         seed=args.seed + 10_000,
@@ -294,6 +308,7 @@ def main() -> None:
         max_completions=args.multi_max_completions,
         min_solutions=args.multi_min_completions,
         split_tag="eval_multi_answer",
+        exclude=train_identities,
         **common,
     )
     eval_splits = {
@@ -319,6 +334,7 @@ def main() -> None:
             max_completions=1,
             min_solutions=1,
             split_tag="eval_unique_answer",
+            exclude=train_identities,
             **common,
         )
         if "unique_answer" in eval_splits

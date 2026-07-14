@@ -762,11 +762,41 @@ class ZeroMathRunMixin:
                 if sample_summary:
                     self.strategy.print(sample_summary)
                 self.strategy.pprint(logs_dict)
+                self._append_train_metrics_jsonl(logs_dict)
                 if self._wandb is not None:
                     self._wandb.log(
                         filter_wandb_logs_for_public_comparison(logs_dict),
                         step=int(self.steps),
                     )
+
+    def _append_train_metrics_jsonl(self, logs_dict: dict[str, Any]) -> None:
+        """Persist per-step scalar training metrics to train_metrics.jsonl.
+
+        The comparative recipes run with wandb disabled, but the exploration
+        side-car figure needs per-step aggregation diagnostics
+        (train/agg_eff_rollouts, train/agg_incorrect_mass) from every arm, so
+        rank 0 appends one JSON record per logging step under save_path. The
+        sink is best-effort: logging must never kill a training run, so any
+        failure is warned once and then ignored.
+        """
+        try:
+            record: dict[str, float] = {}
+            for key, value in logs_dict.items():
+                scalar = self._coerce_log_float(value)
+                if scalar is not None:
+                    record[str(key)] = scalar
+            if not record:
+                return
+            path = os.path.join(self.save_path, "train_metrics.jsonl")
+            with open(path, "a", encoding="utf-8") as sink:
+                sink.write(json.dumps(record, sort_keys=True) + "\n")
+        except Exception:
+            if not getattr(self, "_train_metrics_jsonl_failed_warned", False):
+                logging.exception(
+                    "Failed to append train_metrics.jsonl; continuing without "
+                    "the per-step metrics sink."
+                )
+                self._train_metrics_jsonl_failed_warned = True
 
     def eval_dataloader_collate_fn(self, item_list):
         return collate_eval_prompt_items(

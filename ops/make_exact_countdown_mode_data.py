@@ -47,7 +47,11 @@ def _synthetic_countdown_rows(
     max_value: int,
     min_modes: int,
     max_modes: int | None,
+    exclude: set[tuple[tuple[int, ...], int]] | None = None,
 ) -> list[dict[str, str | int]]:
+    """Sample `limit` problems; `exclude` holds (numbers, target) identities of
+    previously drawn splits so evaluation prompts are genuinely held out —
+    train and eval otherwise sample from the same exhaustive pool."""
     rng = random.Random(seed)
     number_count = max(3, min(int(number_count), 4))
     number_upper = max(6, min(int(max_value), 14))
@@ -61,6 +65,8 @@ def _synthetic_countdown_rows(
             if abs(target) > number_upper * max(number_count, 1):
                 continue
             if not expressions:
+                continue
+            if exclude and (tuple(numbers), int(target)) in exclude:
                 continue
             keys = _canonical_expression_keys(numbers, target, expressions)
             if len(keys) < int(min_modes):
@@ -135,12 +141,17 @@ def main() -> None:
         max_modes=args.multi_max_modes,
         **common,
     )
+    train_identities = {
+        (tuple(json.loads(row["answer"])["numbers"]), int(json.loads(row["answer"])["target"]))
+        for row in train_rows
+    }
     eval_multi_rows = _synthetic_countdown_rows(
         args.eval_size,
         seed=args.seed + 10_000,
         split_tag="eval_multi_answer",
         min_modes=args.multi_min_modes,
         max_modes=args.multi_max_modes,
+        exclude=train_identities,
         **common,
     )
 
@@ -152,6 +163,7 @@ def main() -> None:
             split_tag="eval_unique_answer",
             min_modes=1,
             max_modes=1,
+            exclude=train_identities,
             **common,
         )
         eval_splits["unique_answer"] = Dataset.from_list(eval_unique_rows)

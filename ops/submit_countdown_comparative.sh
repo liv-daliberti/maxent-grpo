@@ -15,15 +15,26 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STAMP_PREFIX="${RUN_STAMP_PREFIX:-countdown_comparative_$(date +%Y%m%d_%H%M%S)}"
 TASK="${OAT_ZERO_COMPARATIVE_TASK:-countdown}"
+# Model scale for every arm (tiny-probe model preset name).
+MODEL="${OAT_ZERO_COMPARATIVE_MODEL:-qwen2.5-0.5b-instruct}"
+# countdown data preset: easy3 (3 numbers, 2-8 modes, 384/128 — calibrated for
+# 0.5B) or countdown4 (4 numbers, 2-8 modes, 1024/256 — the larger pool for
+# 3B-scale models; a 0.5B gets no reward signal on it).
+DATA_PRESET="${OAT_ZERO_COMPARATIVE_DATA_PRESET:-easy3}"
 TRAIN_SEEDS_CSV="${OAT_ZERO_TRAIN_SEEDS:-43,44,45}"
 XDR_TAUS_CSV="${OAT_ZERO_XDR_TAUS:-0.05,0.1,0.25,0.5,1,2}"
 INCLUDE_TOKEN_ENTROPY_ARM="${OAT_ZERO_INCLUDE_TOKEN_ENTROPY_ARM:-1}"
 INCLUDE_SEED_ARM="${OAT_ZERO_INCLUDE_SEED_ARM:-1}"
 SEED_ENTROPY_ALPHA="${OAT_ZERO_SEED_ENTROPY_ALPHA:-1.0}"
-MAX_TRAIN="${OAT_ZERO_MAX_TRAIN:-3072}"
+# Stable recipe from the stabilization sweep (stab_sweep_1432): at lr 5e-6
+# the policy's success rate collapses to zero within a run; at 2e-7 it rises
+# and holds. The 3x prompt budget compensates the smaller steps.
+LEARNING_RATE="${OAT_ZERO_LEARNING_RATE:-0.0000002}"
+MAX_TRAIN="${OAT_ZERO_MAX_TRAIN:-9216}"
 MAX_QUERIES="${OAT_ZERO_MAX_QUERIES:-100000}"
-# Paper protocol: G = 8 rollouts per prompt for every arm.
-NUM_SAMPLES="${OAT_ZERO_NUM_SAMPLES:-8}"
+# G = 16 rollouts per prompt for every arm (G=8 leaves most groups without a
+# correct sample at this model scale, starving the group-relative signal).
+NUM_SAMPLES="${OAT_ZERO_NUM_SAMPLES:-16}"
 TRAIN_NODELIST="${OAT_ZERO_TRAIN_NODELIST:-node105,node302}"
 TRAIN_GRES="${OAT_ZERO_TRAIN_GRES:-gpu:1}"
 # Short walltime: these 0.5B arms finish in a few hours, and a tight limit
@@ -34,11 +45,24 @@ REBUILD_DATA="${OAT_ZERO_COMPARATIVE_REBUILD:-0}"
 
 case "$TASK" in
   countdown)
-    # easy3 configuration (3 numbers, 2-8 modes): the 4-number probe config
-    # gives Qwen2.5-0.5B-Instruct no reward signal at all (all-zero groups),
-    # so nothing trains. easy3 is the config the repo's successful countdown
-    # runs used.
-    DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$ROOT_DIR/var/data/exact_countdown_easy3_probe}"
+    case "$DATA_PRESET" in
+      easy3)
+        DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$ROOT_DIR/var/data/exact_countdown_easy3_probe}"
+        CD_TRAIN_SIZE="${OAT_ZERO_COUNTDOWN_MODE_TRAIN_SIZE:-384}"
+        CD_EVAL_SIZE="${OAT_ZERO_COUNTDOWN_MODE_EVAL_SIZE:-128}"
+        CD_NUMBER_COUNT="${OAT_ZERO_COUNTDOWN_MODE_NUMBER_COUNT:-3}"
+        ;;
+      countdown4)
+        DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$ROOT_DIR/var/data/exact_countdown4_probe}"
+        CD_TRAIN_SIZE="${OAT_ZERO_COUNTDOWN_MODE_TRAIN_SIZE:-1024}"
+        CD_EVAL_SIZE="${OAT_ZERO_COUNTDOWN_MODE_EVAL_SIZE:-256}"
+        CD_NUMBER_COUNT="${OAT_ZERO_COUNTDOWN_MODE_NUMBER_COUNT:-4}"
+        ;;
+      *)
+        echo "Unknown OAT_ZERO_COMPARATIVE_DATA_PRESET=${DATA_PRESET}; use easy3 or countdown4." >&2
+        exit 1
+        ;;
+    esac
     ;;
   graph_coloring)
     DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$ROOT_DIR/var/data/exact_answer_mode_probe}"
@@ -57,9 +81,9 @@ if [[ "$REBUILD_DATA" == "1" ]] || [[ ! -f "$DATA_ROOT/train/dataset_dict.json" 
       "$ROOT_DIR/var/seed_paper_eval/paper310/bin/python" \
         "$ROOT_DIR/ops/make_exact_countdown_mode_data.py" \
         --output-root "$DATA_ROOT" \
-        --train-size "${OAT_ZERO_COUNTDOWN_MODE_TRAIN_SIZE:-384}" \
-        --eval-size "${OAT_ZERO_COUNTDOWN_MODE_EVAL_SIZE:-128}" \
-        --number-count "${OAT_ZERO_COUNTDOWN_MODE_NUMBER_COUNT:-3}" \
+        --train-size "$CD_TRAIN_SIZE" \
+        --eval-size "$CD_EVAL_SIZE" \
+        --number-count "$CD_NUMBER_COUNT" \
         --max-value "${OAT_ZERO_COUNTDOWN_MODE_MAX_VALUE:-12}" \
         --multi-min-modes "${OAT_ZERO_COUNTDOWN_MODE_MULTI_MIN_MODES:-2}" \
         --multi-max-modes "${OAT_ZERO_COUNTDOWN_MODE_MULTI_MAX_MODES:-8}" \
@@ -92,7 +116,7 @@ submit_arm() {
   export_vars+=",RUN_STAMP=${run_stamp}"
   export_vars+=",OAT_ZERO_SEED=${seed}"
   export_vars+=",OAT_ZERO_TINY_VARIANT=${variant}"
-  export_vars+=",OAT_ZERO_TINY_MODEL=qwen2.5-0.5b-instruct"
+  export_vars+=",OAT_ZERO_TINY_MODEL=${MODEL}"
   export_vars+=",OAT_ZERO_TINY_DATA_ROOT=${DATA_ROOT}"
   export_vars+=",OAT_ZERO_NUM_SAMPLES=${NUM_SAMPLES}"
   export_vars+=",OAT_ZERO_MAX_TRAIN=${MAX_TRAIN}"
@@ -112,9 +136,18 @@ submit_arm() {
   export_vars+=",OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=${OAT_ZERO_EVAL_GENERATE_MAX_LENGTH:-192}"
   export_vars+=",OAT_ZERO_EVAL_BATCH_SIZE=${OAT_ZERO_EVAL_BATCH_SIZE:-64}"
   export_vars+=",OAT_ZERO_LOCAL_ROOT=${local_root}"
-  # Pin the method knobs on every arm: --export=ALL would otherwise leak a
-  # stray OAT_ZERO_XDR_TAU / OAT_ZERO_SEED_ENTROPY_ALPHA from the submitting
-  # shell into the baseline arms.
+  # Pin every method knob on every arm: --export=ALL would otherwise let a
+  # stray export in the submitting shell silently change an arm's objective
+  # (e.g. give the baseline an entropy bonus, or flip arms onto the maxent
+  # code path), voiding the matched design.
+  export_vars+=",OAT_ZERO_OBJECTIVE=grpo"
+  export_vars+=",OAT_ZERO_RND_SEED=0"
+  export_vars+=",OAT_ZERO_LEARNING_RATE=${LEARNING_RATE}"
+  if [[ "$variant" == "grpo_entropy" ]]; then
+    export_vars+=",OAT_ZERO_POLICY_ENTROPY_COEF=${OAT_ZERO_TOKEN_ENTROPY_COEF:-0.01}"
+  else
+    export_vars+=",OAT_ZERO_POLICY_ENTROPY_COEF=0.0"
+  fi
   if [[ -n "$xdr_tau" ]]; then
     export_vars+=",OAT_ZERO_XDR_TAU=${xdr_tau}"
   else
@@ -136,6 +169,8 @@ IFS=',' read -r -a xdr_taus <<< "$XDR_TAUS_CSV"
 
 echo "[comparative] stamp_prefix=${STAMP_PREFIX}"
 echo "[comparative] task=${TASK}"
+echo "[comparative] model=${MODEL}"
+echo "[comparative] data_preset=${DATA_PRESET}"
 echo "[comparative] data_root=${DATA_ROOT}"
 echo "[comparative] train_seeds=${TRAIN_SEEDS_CSV}"
 echo "[comparative] xdr_taus=${XDR_TAUS_CSV}"
@@ -143,6 +178,12 @@ echo "[comparative] num_samples=${NUM_SAMPLES}"
 echo "[comparative] include_token_entropy_arm=${INCLUDE_TOKEN_ENTROPY_ARM}"
 
 manifest="$ROOT_DIR/var/artifacts/${STAMP_PREFIX}_comparative_jobs.tsv"
+if [[ -f "$manifest" ]]; then
+  echo "Manifest ${manifest} already exists; pick a fresh RUN_STAMP_PREFIX" >&2
+  echo "instead of resubmitting under an old stamp (mixed-environment runs" >&2
+  echo "would be indistinguishable in the analysis)." >&2
+  exit 1
+fi
 printf "arm\tseed\tjob_id\trun_stamp\n" > "$manifest"
 
 for seed in "${train_seeds[@]}"; do

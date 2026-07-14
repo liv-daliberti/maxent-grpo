@@ -3,7 +3,7 @@ import math
 import pytest
 import torch
 
-from oat_drgrpo.xdr import compute_xdr_row_weights, xdr_group_diagnostics
+from oat_drgrpo.xdr import aggregation_group_diagnostics, compute_xdr_row_weights
 
 
 def _weights(adv, counts, *, g=4, tau=0.25, t_max=256):
@@ -90,9 +90,9 @@ def test_invalid_tau_raises():
 
 def test_diagnostics_uniform_weights():
     rewards = torch.tensor([1.0, 0.0, 0.0, 0.0])
-    diag = xdr_group_diagnostics(torch.ones(4), rewards, num_samples=4)
-    assert torch.allclose(diag["xdr_eff_rollouts"], torch.tensor(4.0))
-    assert torch.allclose(diag["xdr_incorrect_mass"], torch.tensor(0.75))
+    diag = aggregation_group_diagnostics(torch.ones(4), rewards, num_samples=4)
+    assert torch.allclose(diag["agg_eff_rollouts"], torch.tensor(4.0))
+    assert torch.allclose(diag["agg_incorrect_mass"], torch.tensor(0.75))
 
 
 def test_diagnostics_concentrated_weights():
@@ -100,9 +100,40 @@ def test_diagnostics_concentrated_weights():
     # zero incorrect mass (up to the clamp used inside the entropy).
     w = torch.tensor([4.0, 0.0, 0.0, 0.0])
     rewards = torch.tensor([1.0, 0.0, 0.0, 0.0])
-    diag = xdr_group_diagnostics(w, rewards, num_samples=4)
-    assert float(diag["xdr_eff_rollouts"]) == pytest.approx(1.0, abs=1e-4)
-    assert float(diag["xdr_incorrect_mass"]) == pytest.approx(0.0, abs=1e-6)
+    diag = aggregation_group_diagnostics(w, rewards, num_samples=4)
+    assert float(diag["agg_eff_rollouts"]) == pytest.approx(1.0, abs=1e-4)
+    assert float(diag["agg_incorrect_mass"]) == pytest.approx(0.0, abs=1e-6)
+
+
+def test_diagnostics_masked_group_normalizes_over_valid_rows():
+    # A prompt group with one loss-masked row (weight 0) is a distribution
+    # over the three valid rows: uniform weights give 3 effective rollouts.
+    w = torch.tensor([1.0, 1.0, 1.0, 0.0])
+    rewards = torch.tensor([1.0, 0.0, 0.0, 0.0])
+    diag = aggregation_group_diagnostics(w, rewards, num_samples=4)
+    assert float(diag["agg_eff_rollouts"]) == pytest.approx(3.0, abs=1e-4)
+    assert float(diag["agg_incorrect_mass"]) == pytest.approx(2.0 / 3.0, abs=1e-6)
+
+
+def test_diagnostics_drop_all_masked_groups_from_means():
+    # First group fully masked, second group uniform: means come from the
+    # second group only.
+    w = torch.tensor([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0])
+    rewards = torch.tensor([1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0])
+    diag = aggregation_group_diagnostics(w, rewards, num_samples=4)
+    assert float(diag["agg_eff_rollouts"]) == pytest.approx(4.0, abs=1e-4)
+    assert float(diag["agg_incorrect_mass"]) == pytest.approx(0.5, abs=1e-6)
+
+
+def test_diagnostics_seed_style_prompt_scale_is_uniform_within_group():
+    # SEED weights are s_x on every row of a prompt; the within-group
+    # distribution is uniform regardless of s_x, so the diagnostics match the
+    # Dr.GRPO baseline exactly.
+    w = torch.tensor([0.5, 0.5, 0.5, 0.5])
+    rewards = torch.tensor([1.0, 1.0, 0.0, 0.0])
+    diag = aggregation_group_diagnostics(w, rewards, num_samples=4)
+    assert float(diag["agg_eff_rollouts"]) == pytest.approx(4.0, abs=1e-4)
+    assert float(diag["agg_incorrect_mass"]) == pytest.approx(0.5, abs=1e-6)
 
 
 def test_weighted_mean_reduces_to_uniform_mean_for_unit_weights():

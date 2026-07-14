@@ -14,7 +14,7 @@ from oat.utils.ops import masked_mean
 
 from ..listwise import cap_last_valid_token_pos_for_zero_advantage
 from ..seed_weights import compute_seed_row_weights
-from ..xdr import compute_xdr_row_weights, xdr_group_diagnostics
+from ..xdr import aggregation_group_diagnostics, compute_xdr_row_weights
 
 
 class ZeroMathGrpoMixin:
@@ -492,11 +492,6 @@ class ZeroMathGrpoMixin:
                 t_max=int(args.generate_max_length),
                 loss_masks=loss_masks,
             )
-            extra_infos.update(
-                xdr_group_diagnostics(
-                    row_weights, final_rewards, num_samples=args.num_samples
-                )
-            )
         elif seed_alpha > 0 and self.args.critic_type == "drgrpo":
             # SEED-Dr.GRPO: per-prompt semantic-entropy scaling. Cluster the
             # group by canonical final answer, weight clusters by the policy's
@@ -538,6 +533,22 @@ class ZeroMathGrpoMixin:
             extra_infos["seed_prompt_scale_mean"] = row_weights.view(
                 -1, args.num_samples
             )[:, 0].mean().detach()
+        if self.args.critic_type in ("grpo", "drgrpo"):
+            # Aggregation diagnostics (effective active rollouts, incorrect-
+            # mass share) are defined identically for every quartet arm from
+            # the realized per-row aggregation weights: uniform for Dr.GRPO
+            # and Token-MaxEnt, prompt-rescaled uniform for SEED, tempered
+            # softmax for xDr.GRPO. Masking by loss_masks restricts each
+            # group's distribution to the rows that actually train (a no-op
+            # for xdr weights, which already zero masked rows).
+            diag_weights = (
+                row_weights if row_weights is not None else torch.ones_like(loss_masks)
+            ) * loss_masks
+            extra_infos.update(
+                aggregation_group_diagnostics(
+                    diag_weights, final_rewards, num_samples=args.num_samples
+                )
+            )
         return self._baseline_update_with_precomputed_advantages(
             input_ids=input_ids,
             att_mask=att_mask,
