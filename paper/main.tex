@@ -732,7 +732,10 @@ $\ge 10^{-6}$ the policy's training success rate collapses toward zero within a 
 independent of method. The remaining pre-specified constants are the Token-MaxEnt
 coefficient $\alpha=0.01$, the SEED sensitivity $\alpha=1$, and the primary
 xDr.GRPO temperature $\tau=0.5$ (the remaining grid points are reported as
-exploratory, with Holm-adjusted $p$-values). With $\beta=0$ the tokenwise KL term
+exploratory, with Holm-adjusted $p$-values). For the larger-scale replication
+(Qwen2.5-3B-Instruct on the four-number Countdown pool), the primary
+temperature is pre-registered as $\tau=0.05$, fixed on the basis of the
+0.5B exploratory results before any 3B run was started. With $\beta=0$ the tokenwise KL term
 vanishes; with $\lambda=0$ the reference tilt vanishes and $\kappa=\tau$. The comparison
 therefore isolates a single axis: the aggregation weight $a_{x,i}$ (uniform for Dr.GRPO,
 prompt-rescaled uniform for SEED, uniform-plus-token-entropy for Token-MaxEnt,
