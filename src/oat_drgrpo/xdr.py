@@ -32,9 +32,17 @@ def compute_xdr_row_weights(
     tau: float,
     t_max: int,
     loss_masks: torch.Tensor | None = None,
+    per_group_tau: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Per-row weights over each prompt group: softmax(U/tau) scaled to the
     number of participating rows.
+
+    When ``per_group_tau`` is given (mode-adaptive tempering), each prompt
+    group uses its own temperature and the scalar ``tau`` only validates the
+    configuration; the adaptive rule tau_x = tau0/log(1+kappa_x) sharpens the
+    weights on prompts where more distinct correct modes were observed, since
+    those are the prompts where uniform aggregation's negative gradients
+    endanger the most modes.
 
     Args:
         advantages: [N] or [N, 1] per-sequence scalar advantages, prompt-major
@@ -73,7 +81,18 @@ def compute_xdr_row_weights(
             f"{num_samples}; prompt groups must be intact"
         )
     utilities = (adv * counts / float(t_max)).view(-1, num_samples)
-    logits = utilities / float(tau)
+    if per_group_tau is not None:
+        tau_vec = per_group_tau.detach().reshape(-1, 1).float()
+        if tau_vec.numel() != utilities.shape[0]:
+            raise ValueError(
+                f"per_group_tau has {tau_vec.numel()} entries for "
+                f"{utilities.shape[0]} groups"
+            )
+        if bool((tau_vec <= 0).any()) or not bool(torch.isfinite(tau_vec).all()):
+            raise ValueError("per_group_tau entries must be finite and positive")
+        logits = utilities / tau_vec
+    else:
+        logits = utilities / float(tau)
     if loss_masks is None:
         weights = torch.softmax(logits, dim=1)
         return (float(num_samples) * weights).reshape(-1)

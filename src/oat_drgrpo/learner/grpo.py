@@ -484,6 +484,40 @@ class ZeroMathGrpoMixin:
             # xDr.GRPO: per-candidate Dr.GRPO utilities at the rollout policy
             # (ratio=1): U_i = A_i * T_i / T_max. Weights are computed once per
             # rollout batch and frozen for the update, like the advantages.
+            per_group_tau = None
+            if bool(getattr(args, "xdr_mode_adaptive", False)):
+                # Mode-adaptive tempering: tau_x = tau0 / log(1 + kappa_x),
+                # with kappa_x the number of distinct canonical answer modes
+                # observed among the group's correct candidates. Prompts where
+                # more modes are already in play get sharper attenuation of
+                # negative-advantage gradients (they have the most to lose).
+                num_rows = int(input_ids.size(0))
+                refs = list(trajectory.get("references") or [])
+                refs = (refs + [None] * num_rows)[:num_rows]
+                refs_grouped = [
+                    refs[i : i + args.num_samples]
+                    for i in range(0, num_rows, args.num_samples)
+                ]
+                keys_grouped = self._seed_answer_keys_grouped(
+                    input_ids, response_masks, args.num_samples, refs_grouped
+                )
+                correct = (
+                    final_rewards.detach().reshape(-1, args.num_samples) > 0
+                )
+                kappas = []
+                for g, group_keys in enumerate(keys_grouped):
+                    modes = {
+                        key if key is not None else ("__u__", g, i)
+                        for i, key in enumerate(group_keys)
+                        if bool(correct[g, i])
+                    }
+                    kappas.append(max(len(modes), 1))
+                per_group_tau = xdr_tau / torch.log1p(
+                    torch.tensor(
+                        kappas, dtype=torch.float32, device=final_rewards.device
+                    )
+                )
+                extra_infos["xdr_adaptive_tau_mean"] = per_group_tau.mean().detach()
             row_weights = compute_xdr_row_weights(
                 advantages,
                 response_masks.sum(dim=1),
@@ -491,6 +525,7 @@ class ZeroMathGrpoMixin:
                 tau=xdr_tau,
                 t_max=int(args.generate_max_length),
                 loss_masks=loss_masks,
+                per_group_tau=per_group_tau,
             )
         elif seed_alpha > 0 and self.args.critic_type == "drgrpo":
             # SEED-Dr.GRPO: per-prompt semantic-entropy scaling. Cluster the

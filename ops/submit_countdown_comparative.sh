@@ -25,6 +25,10 @@ TRAIN_SEEDS_CSV="${OAT_ZERO_TRAIN_SEEDS:-43,44,45}"
 XDR_TAUS_CSV="${OAT_ZERO_XDR_TAUS:-0.05,0.1,0.25,0.5,1,2}"
 INCLUDE_TOKEN_ENTROPY_ARM="${OAT_ZERO_INCLUDE_TOKEN_ENTROPY_ARM:-1}"
 INCLUDE_SEED_ARM="${OAT_ZERO_INCLUDE_SEED_ARM:-1}"
+# Mode-adaptive tempering arm: tau_x = tau0/log(1+kappa_x) from observed
+# distinct correct modes per group.
+INCLUDE_XDR_ADAPT_ARM="${OAT_ZERO_INCLUDE_XDR_ADAPT_ARM:-0}"
+XDR_ADAPT_TAU0="${OAT_ZERO_XDR_ADAPT_TAU0:-0.05}"
 SEED_ENTROPY_ALPHA="${OAT_ZERO_SEED_ENTROPY_ALPHA:-1.0}"
 # Stable recipe from the stabilization sweep (stab_sweep_1432): at lr 5e-6
 # the policy's success rate collapses to zero within a run; at 2e-7 it rises
@@ -143,6 +147,11 @@ submit_arm() {
   export_vars+=",OAT_ZERO_OBJECTIVE=grpo"
   export_vars+=",OAT_ZERO_RND_SEED=0"
   export_vars+=",OAT_ZERO_LEARNING_RATE=${LEARNING_RATE}"
+  if [[ "$variant" == "xdr_adapt" ]]; then
+    export_vars+=",OAT_ZERO_XDR_MODE_ADAPTIVE=1"
+  else
+    export_vars+=",OAT_ZERO_XDR_MODE_ADAPTIVE=0"
+  fi
   if [[ "$variant" == "grpo_entropy" ]]; then
     export_vars+=",OAT_ZERO_POLICY_ENTROPY_COEF=${OAT_ZERO_TOKEN_ENTROPY_COEF:-0.01}"
   else
@@ -202,6 +211,12 @@ for seed in "${train_seeds[@]}"; do
     job_id="$(submit_arm grpo_entropy grpo_entropy "$seed")"
     printf "grpo_entropy\t%s\t%s\t%s\n" "$seed" "$job_id" "${STAMP_PREFIX}_grpo_entropy_s${seed}" >> "$manifest"
     echo "[comparative] grpo_entropy seed=${seed} job=${job_id}"
+  fi
+
+  if [[ "$INCLUDE_XDR_ADAPT_ARM" == "1" ]]; then
+    job_id="$(submit_arm xdr_adapt xdr_adapt "$seed" "$XDR_ADAPT_TAU0")"
+    printf "xdr_adapt\t%s\t%s\t%s\n" "$seed" "$job_id" "${STAMP_PREFIX}_xdr_adapt_s${seed}" >> "$manifest"
+    echo "[comparative] xdr_adapt seed=${seed} job=${job_id}"
   fi
 
   if [[ "$INCLUDE_SEED_ARM" == "1" ]]; then

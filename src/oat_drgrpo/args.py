@@ -37,6 +37,9 @@ class ZeroMathArgs(PPOArgs):
     # xDr.GRPO candidate-level tempered aggregation on the grpo objective.
     # inf disables the reweighting and reproduces Dr.GRPO bit-for-bit.
     xdr_tau: float = math.inf
+    # Mode-adaptive tempering: per-prompt tau_x = xdr_tau / log(1 + kappa_x),
+    # kappa_x = distinct correct answer modes observed in the group.
+    xdr_mode_adaptive: bool = False
     # SEED-Dr.GRPO per-prompt semantic-entropy scaling on the grpo objective.
     # 0 disables the scaling and reproduces Dr.GRPO exactly.
     seed_entropy_alpha: float = 0.0
@@ -391,6 +394,8 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "finite xdr_tau is incompatible with reinforce_update: the "
                 "xdr utilities assume the clipped Dr.GRPO surrogate"
             )
+    if getattr(args, "xdr_mode_adaptive", False) and not math.isfinite(args.xdr_tau):
+        raise ValueError("xdr_mode_adaptive requires a finite xdr_tau (tau0)")
     if math.isnan(args.seed_entropy_alpha) or args.seed_entropy_alpha < 0:
         raise ValueError("seed_entropy_alpha must be non-negative")
     if args.seed_entropy_alpha > 0:

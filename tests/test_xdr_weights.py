@@ -172,3 +172,31 @@ def test_all_masked_group_yields_zero_weights():
         loss_masks=masks,
     )
     assert torch.equal(w, torch.zeros(4))
+
+
+def test_per_group_tau_sharpens_high_kappa_groups():
+    # Two identical groups; the second gets a smaller (sharper) temperature,
+    # so its top candidate takes more weight.
+    adv = torch.tensor([0.75, -0.25, -0.25, -0.25] * 2)
+    counts = torch.full((8,), 32.0)
+    taus = torch.tensor([0.25, 0.05])
+    w = compute_xdr_row_weights(
+        adv, counts, num_samples=4, tau=0.25, t_max=256, per_group_tau=taus
+    )
+    assert w[4] > w[0]
+    assert torch.allclose(w.view(2, 4).sum(dim=1), torch.full((2,), 4.0))
+
+
+def test_per_group_tau_validation():
+    adv = torch.tensor([0.5, -0.5, 0.25, -0.25])
+    counts = torch.full((4,), 32.0)
+    with pytest.raises(ValueError):
+        compute_xdr_row_weights(
+            adv, counts, num_samples=4, tau=0.25, t_max=256,
+            per_group_tau=torch.tensor([0.1, 0.1]),
+        )
+    with pytest.raises(ValueError):
+        compute_xdr_row_weights(
+            adv, counts, num_samples=4, tau=0.25, t_max=256,
+            per_group_tau=torch.tensor([0.0]),
+        )

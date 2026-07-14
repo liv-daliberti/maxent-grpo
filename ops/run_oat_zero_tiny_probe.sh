@@ -70,6 +70,13 @@ case "$VARIANT" in
     export OAT_ZERO_XDR_TAU="${OAT_ZERO_XDR_TAU:-0.25}"
     VARIANT_TAG="xdr"
     ;;
+  xdr_adapt)
+    export OAT_ZERO_OBJECTIVE="${OAT_ZERO_OBJECTIVE:-grpo}"
+    export OAT_ZERO_POLICY_ENTROPY_COEF="${OAT_ZERO_POLICY_ENTROPY_COEF:-0.0}"
+    export OAT_ZERO_XDR_TAU="${OAT_ZERO_XDR_TAU:-0.05}"
+    export OAT_ZERO_XDR_MODE_ADAPTIVE=1
+    VARIANT_TAG="xdr_adapt"
+    ;;
   seed)
     export OAT_ZERO_OBJECTIVE="${OAT_ZERO_OBJECTIVE:-grpo}"
     export OAT_ZERO_POLICY_ENTROPY_COEF="${OAT_ZERO_POLICY_ENTROPY_COEF:-0.0}"

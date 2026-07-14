@@ -56,6 +56,7 @@ PROMPT_TEMPLATE="${OAT_ZERO_PROMPT_TEMPLATE:-qwen_math}"
 OBJECTIVE="${OAT_ZERO_OBJECTIVE:-grpo}"
 CRITIC_TYPE="${OAT_ZERO_CRITIC_TYPE:-drgrpo}"
 XDR_TAU="${OAT_ZERO_XDR_TAU:-inf}"
+XDR_MODE_ADAPTIVE="${OAT_ZERO_XDR_MODE_ADAPTIVE:-0}"
 SEED_ENTROPY_ALPHA="${OAT_ZERO_SEED_ENTROPY_ALPHA:-0.0}"
 SEMANTIC_ENTROPY_LAMBDA="${OAT_ZERO_SEMANTIC_ENTROPY_LAMBDA:-0.05}"
 POLICY_ENTROPY_COEF="${OAT_ZERO_POLICY_ENTROPY_COEF:-0.0}"
@@ -1168,6 +1169,9 @@ objective_args=(
   --xdr-tau "$XDR_TAU"
   --seed-entropy-alpha "$SEED_ENTROPY_ALPHA"
 )
+if [[ "$XDR_MODE_ADAPTIVE" == "1" ]]; then
+  objective_args+=(--xdr-mode-adaptive)
+fi
 
 if [[ "$OBJECTIVE" == "maxent_listwise" ]]; then
   objective_args+=(
