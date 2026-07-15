@@ -787,7 +787,12 @@ because all eight land on the same answer. The baseline's failure on hard multi-
 prompts is not a capability gap that more sampling could paper over; it is precisely a
 collapse of the sampled candidate distribution, the object \method regularizes. This
 is a one-seed descriptive observation, and testing whether candidate-level exploration
-lifts this floor is the natural next experiment.
+lifts this floor is the natural next experiment. We have pre-registered exactly that
+test (\texttt{paper/preregistration/mix3b\_exploration\_floor.md}: \drgrpo vs.\
+\method $\tau=0.05$, three seeds per arm on the same mixed pool, primary outcome
+hard-stratum \texttt{pass@8}, easy-stratum accuracy as guardrail, interpretation
+rules fixed before launch), with the disclosed probe run reused as one baseline
+seed.
 
 \bibliographystyle{plainnat}
 \bibliography{example_paper}
