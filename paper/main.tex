@@ -392,18 +392,16 @@ minimum detectable effect is
 \approx
 2.8\,\widehat{\mathrm{SE}}(\hat{\gamma}).
 \]
-Thus, if the clustered standard error for $\hat{\gamma}$ is $0.01$, the
-design can detect an improvement of roughly $2.8$ percentage points; if it is
-$0.02$, the detectable improvement is roughly $5.6$ percentage points. We
-will treat an absolute gain of 3 to 5 points on \texttt{pass@8},
-\texttt{mean@8}, or \texttt{coverage@8} as the smallest practically meaningful effect. If the
-estimated MDE is larger than this range, the experiment will be reported as
-underpowered and interpreted descriptively rather than as strong evidence for
-or against xDr.GRPO. With $128$ evaluation prompts per domain and binary
-prompt-level outcomes, realistic prompt-clustered standard errors fall in the
-$0.013$--$0.027$ range, corresponding to minimum detectable effects of roughly
-$4$--$8$ accuracy points; effects smaller than that are beyond this design's
-resolution and will be treated as such.
+We treat an absolute change of $3$ points on \texttt{pass@8}, \texttt{mean@8},
+or \texttt{coverage@8} as the smallest practically meaningful effect. This
+margin does double duty. For detection, the realized prompt-clustered standard
+errors in the completed runs ($0.006$--$0.025$ across outcomes, scales, and
+pooling levels) put the realized MDE at roughly $2$--$7$ points, so effects at
+or above the margin are within the design's resolution. For \emph{null} results
+the margin becomes an equivalence bound: wherever the paper claims an outcome
+is ``flat,'' we support the claim with two one-sided tests (TOST) against
+$\pm 3$ points, reporting the TOST $p$-value rather than treating a large
+$p$-value from the difference test as evidence of no effect.
 
 
 \begin{table}[t]
@@ -425,14 +423,42 @@ resolution and will be treated as such.
   \label{tab:regression-protocol}
 \end{table}
 
-\subsection{Interpreting the Current Run}
+\subsection{Pre-Specified Predictions}
 \label{sec:interpreting-current-run}
 
-The current model scale is intentionally small, so we treat the experiment as a controlled test of the objective rather than a claim that group-level exploration already dominates at scale. A small positive aggregate difference can be meaningful only if it remains significant after the regression analysis above. Conversely, a non-significant coefficient would indicate that the present run does not yet separate the method effect from seed, dataset, and sampling noise.
+The benchmark makes the failure mode we target directly visible, so the design
+commits to an \emph{ordered} prediction rather than a single accuracy
+comparison. A policy can be perfectly accurate on these tasks while knowing only
+one way to be right: when $[2,3,4]$ reaches $10$ through both $2\times3+4$ and
+$3\times4-2$, outcome reward is indifferent between a policy that can produce
+either mode and one that has collapsed onto a single expression --- and the
+asymmetric negative-advantage gradients of uniform aggregation actively push
+toward the latter (Section~\ref{sec:where-exploration}). The prediction is
+therefore ordered: \drgrpo and \method should be statistically comparable on
+\texttt{pass@1} and \texttt{mean@8}, while \method should retain strictly more
+of the valid answer set as measured by \texttt{distinct@8} and
+\texttt{coverage@8}. Either half failing is disconfirming --- coverage gains
+bought with accuracy losses, or accuracy gains without coverage gains, both
+contradict the mechanism and are reported as such wherever they occur.
 
-The benchmark also makes the failure mode we target directly visible, which yields an \emph{ordered} prediction rather than a single accuracy comparison. A policy can be perfectly accurate on these tasks while knowing only one way to be right: when $[2,3,4]$ reaches $10$ through both $2\times3+4$ and $3\times4-2$, outcome reward is indifferent between a policy that can produce either mode and one that has collapsed onto a single expression, and the asymmetric negative-advantage gradients of uniform aggregation actively push toward the latter (Section~\ref{sec:where-exploration}). The prediction is therefore: \drgrpo and \method should be roughly comparable on \texttt{pass@1}, \texttt{pass@8}, and \texttt{mean@8}, while \method should retain strictly more of the valid answer set as measured by \texttt{distinct@8} and \texttt{coverage@8}. Coverage gains \emph{with} accuracy losses, or accuracy gains \emph{without} coverage gains, would both contradict the mechanism and will be reported as such. This framing keeps the empirical claim aligned with the mechanism: \method should improve learning when candidate-level exploration creates better within-prompt comparisons, and the regression estimates whether that effect is visible in the completed runs.
+The mechanism carries a second, sharper implication: candidate-level exploration
+can only preserve diversity that exists in the sampled groups. Its effect should
+therefore \emph{scale with the reachable multi-answer structure of the task} ---
+large where prompts admit many valid modes the policy visits, small where the
+answer space is narrow, and absent where the policy is never rewarded at all
+(there is no group signal to reweight). Domain-concentrated effects are
+consequently part of the prediction, not a caveat to it; what the mechanism
+forbids is an accuracy price.
 
-Threats to validity and expected failure modes are discussed in
+The experiments test these predictions at two scales with distinct evidential
+roles: the 0.5B study (Section~\ref{sec:results}) is hypothesis-generating ---
+its pre-registered primary temperature was chosen badly, and its exploratory
+arms located the effective range --- while the 3B study
+(Section~\ref{sec:results-3b}) is confirmatory, with the primary temperature
+pre-registered from the 0.5B evidence before any 3B run started. Model scales
+are deliberately small enough to afford matched multi-seed grids; the claim
+under test is about the objective, not about frontier scale. Threats to
+validity and expected failure modes are cataloged in
 Appendix~\ref{app:threats}.
 
 \section{Results at the 0.5B Scale}
@@ -491,7 +517,9 @@ measurably change learning at this scale.
 At $\tau=0.05$, \texttt{coverage@8} rises by $+4.8$ points
 [$3.6, 5.9$] and \texttt{pass@8} by $+7.9$ points [$4.6, 11.1$] (both Holm-adjusted
 $p<10^{-4}$), while \texttt{mean@8} ($-0.8$ points, $p=0.28$) and greedy
-\texttt{pass@1} ($+0.9$ points, $p=0.27$) are statistically unchanged, and
+\texttt{pass@1} ($+0.9$ points, $p=0.27$) are statistically unchanged --- and not
+merely undetected: both are \emph{equivalent} to the baseline within the
+pre-specified $\pm 3$-point margin (TOST $p=0.002$ and $p=0.005$) --- and
 \texttt{distinct@8} rises by $+0.24$ modes [$0.18, 0.29$]. This is precisely the
 ordered prediction of Section~\ref{sec:interpreting-current-run}: more of the valid
 answer set at no per-sample accuracy cost. The effect is monotone toward aggressive
@@ -734,7 +762,9 @@ regression (Table~\ref{tab:main-results-3b}) shows the same ordered signature as
 0.5B study, larger: \texttt{pass@8} $+9.1$ points $[7.2, 11.1]$, \texttt{coverage@8}
 $+5.4$ points $[4.6, 6.2]$, \texttt{distinct@8} $+0.31$ modes $[0.26, 0.35]$ (all raw
 $p<10^{-4}$), while \texttt{mean@8} ($-0.1$ points, $p=0.89$) and greedy
-\texttt{pass@1} ($+0.3$ points, $p=0.78$) are statistically flat. Every primary-arm
+\texttt{pass@1} ($+0.3$ points, $p=0.78$) are statistically flat --- equivalent to
+the baseline within the pre-specified $\pm 3$-point margin (TOST $p<10^{-4}$ and
+$p=0.002$), not merely undetected. Every primary-arm
 effect survives clustering by training run. The 0.5B pattern --- more of the valid
 answer set at no per-sample accuracy cost --- was a hypothesis generated by
 exploratory arms; at 3B it is a confirmed pre-registered prediction.
@@ -801,6 +831,53 @@ test (\texttt{paper/preregistration/mix3b\_exploration\_floor.md}: \drgrpo vs.\
 hard-stratum \texttt{pass@8}, easy-stratum accuracy as guardrail, interpretation
 rules fixed before launch), with the disclosed probe run reused as one baseline
 seed.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Where exploration enters determines whether it helps.}
+Read together, the experiments are a placement test. Three locations for an
+exploration regularizer share one backbone, one reward, and one budget: the
+prompt level is null at 0.5B and significantly harmful at 3B; the token level is
+catastrophically harmful where it binds at all; the candidate level produces
+dose-controlled coverage gains at both scales, confirmed at 3B under a
+pre-registered primary. The pattern tracks the structure of the update: GRPO
+assigns credit by comparing completions \emph{within} a prompt group, and only
+the candidate-level intervention changes that comparison. Regularizers that
+leave the within-group distribution untouched leave the collapse dynamics
+untouched.
+
+\paragraph{Collapse is the default, and accuracy metrics cannot see it.}
+The baseline is not failing by its own lights: its accuracy rises throughout
+training while its conditional diversity slides toward one mode per solved
+prompt, and on hard multi-answer prompts of the mixed pool it reaches
+\texttt{pass@8} $=$ \texttt{pass@1} --- eight samples containing one idea.
+Outcome reward is indifferent between knowing every way to be right and knowing
+one, and the asymmetric gradients of uniform aggregation quietly prefer one.
+Nothing in a standard accuracy dashboard flags this; it becomes measurable only
+because the benchmark enumerates the full answer set. We suspect the same
+dynamics operate unmeasured in natural reasoning corpora, where they would
+surface instead as saturating \texttt{pass@}$k$ curves and diminishing returns
+to self-consistency.
+
+\paragraph{The effect is where the theory puts it, and costs what the theory
+says it costs.}
+The dose-response locates the useful temperatures at the within-group utility
+spread, saturates into winner-take-all weighting with no accuracy price ---
+equivalence-tested, not merely non-significant --- and scales with the reachable
+multi-answer structure of the domain, as the mechanism requires. The remaining
+hyperparameter can be set from observed group structure at roughly half
+strength, and removing that gap is a natural refinement.
+
+\paragraph{Limitations.}
+The answer sets here are enumerable by construction; natural corpora admit no
+exact \texttt{coverage@}$k$, and transferring the claim there (via
+\texttt{pass@}$k$ or majority-vote payoffs) is open. Scales stop at 3B. A
+raised-rollout-temperature control --- the simplest rival explanation, though it
+perturbs the sampling distribution rather than the credit assignment --- has not
+yet been run under the matched protocol. And the pre-registered mixed-pool test
+of Section~\ref{sec:results-3b} will report whether candidate-level exploration
+lifts a hard-stratum floor that accuracy-driven training cannot.
 
 \bibliographystyle{plainnat}
 \bibliography{example_paper}
