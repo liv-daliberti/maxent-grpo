@@ -568,20 +568,27 @@ baseline, the attenuation mechanism of Section~\ref{sec:where-exploration}(iii).
 \paragraph{A finer dose-response, and where the useful range comes from.}
 The grid above stops at $\tau=0.05$, its best point, which raises the question of
 what lies below. A follow-up round on Countdown extends the sweep to
-$\tau\in\{0.01, 0.02, 0.03, 0.04\}$ under the identical protocol (new matched
+$\tau\in\{0.001, 0.01, 0.02, 0.03, 0.04\}$ under the identical protocol (new matched
 \drgrpo baseline, three training seeds, three evaluation seeds; all arms
 exploratory, Holm-adjusted). Figure~\ref{fig:dose-response} plots both rounds.
-The effect keeps \emph{growing} as $\tau$ falls: at $\tau=0.01$,
+The effect keeps \emph{growing} as $\tau$ falls and then plateaus: at $\tau=0.01$,
 \texttt{pass@8} $+15.2$ points $[10.8, 19.6]$, \texttt{coverage@8} $+6.6$
 $[4.9, 8.3]$, \texttt{distinct@8} $+0.28$ $[0.21, 0.35]$ (all Holm
 $p<10^{-4}$, run-robust) --- roughly double the $\tau=0.05$ effect --- with
-\texttt{mean@8} ($-0.2$, $p=0.88$) and greedy \texttt{pass@1} flat. There is no
-collapse anywhere in the tested range: even $50\times$ more aggressive tempering
-than the original best point buys coverage without an accuracy price. This is the
-behavior Appendix~\ref{app:tau-range} predicts: with $|A| \cdot T_i/T_{\max}$
+\texttt{mean@8} ($-0.2$, $p=0.88$) and greedy \texttt{pass@1} flat; at
+$\tau=0.001$, fifty times sharper still and effectively winner-take-all
+weighting, the estimates are statistically indistinguishable from $\tau=0.01$
+(\texttt{pass@8} $+16.4$ $[11.5, 21.3]$, \texttt{coverage@8} $+6.5$,
+\texttt{mean@8} $+2.6$, n.s.; greedy $+4.7$, raw $p=0.03$, Holm n.s.). There is
+no collapse anywhere in the tested range --- $500\times$ more aggressive
+tempering than the original best point buys coverage without an accuracy price.
+Both the location of the rise and the plateau are the behavior
+Appendix~\ref{app:tau-range} predicts: with $|A| \cdot T_i/T_{\max}$
 utilities and short completions, the within-group utility spread is
-$\mathcal{O}(10^{-2})$, so temperatures of that order are where reweighting is
-substantive, and the empirical optimum lands exactly on that scale. Two honest
+$\mathcal{O}(10^{-2})$, so temperatures of that order are where reweighting
+becomes substantive, and once $\tau$ falls well below the spread the softmax
+saturates toward argmax weighting --- the flat segment from $0.01$ to $0.001$ is
+saturation, not a new mechanism. Two honest
 wrinkles: $\tau=0.02$ shows a significant \texttt{mean@8} cost ($-3.7$ points
 $[-5.4, -1.9]$, Holm $p=2\times 10^{-4}$) although both neighbors are flat, and
 $\tau=0.04$ dips (\texttt{pass@8} $+2.4$, n.s.), so the curve is noisy at the
@@ -612,8 +619,9 @@ default, not a replacement for the tuned value.
   fine round ($\tau \le 0.04$); open markers: the original grid ($\tau \ge 0.05$);
   each round is estimated against its own matched baseline under the identical
   protocol. The diamond shows the mode-adaptive arm ($\tau_x = \tau_0/\log(1+\kappa_x)$,
-  no fixed abscissa). Effects grow monotonically in tempering strength down to
-  $\tau=0.01$ with no accuracy cost at the extremes; the dashed line marks zero.}
+  no fixed abscissa). Effects grow with tempering strength and plateau below
+  $\tau \approx 0.01$; even $\tau=0.001$ --- effectively winner-take-all
+  weighting --- shows no accuracy cost. The dashed line marks zero.}
   \label{fig:dose-response}
 \end{figure}
 
@@ -1094,7 +1102,7 @@ exploratory, with Holm-adjusted $p$-values). For the larger-scale replication
 $G=32$; Section~\ref{sec:results-3b}), the primary
 temperature is pre-registered as $\tau=0.05$, fixed on the basis of the
 0.5B exploratory results before any 3B run was started. The fine-temperature
-round of Figure~\ref{fig:dose-response} adds $\tau\in\{0.01,0.02,0.03,0.04\}$
+round of Figure~\ref{fig:dose-response} adds $\tau\in\{0.001,0.01,0.02,0.03,0.04\}$
 and the mode-adaptive arm ($\tau_x=\tau_0/\log(1+\kappa_x)$, $\tau_0=0.05$,
 $\kappa_x$ = observed distinct correct modes in the prompt's rollout group,
 computed per rollout batch alongside the frozen weights) at 0.5B on Countdown,

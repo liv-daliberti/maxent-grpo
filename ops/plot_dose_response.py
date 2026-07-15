@@ -24,6 +24,7 @@ GRID = ROOT / "var/artifacts/cdcomp4_countdown_only_regression.json"
 OUT = ROOT / "paper/figures/dose_response"
 
 TAU = {
+    "xdr_tau0p001": 0.001,
     "xdr_tau0p01": 0.01, "xdr_tau0p02": 0.02, "xdr_tau0p03": 0.03,
     "xdr_tau0p04": 0.04, "xdr_tau0p05": 0.05, "xdr_tau0p1": 0.1,
     "xdr_tau0p25": 0.25, "xdr_tau0p5": 0.5, "xdr_tau1": 1.0, "xdr_tau2": 2.0,
@@ -94,9 +95,9 @@ def main():
                         xytext=(-1, 7), ha="right", fontsize=7, color=ADAPT,
                         annotation_clip=False)
         ax.set_xscale("log")
-        ax.set_xticks([0.01, 0.05, 0.25, 1.0])
-        ax.set_xticklabels(["0.01", "0.05", "0.25", "1"])
-        ax.set_xlim(0.007, 5.6)
+        ax.set_xticks([0.001, 0.01, 0.05, 0.25, 1.0])
+        ax.set_xticklabels(["0.001", "0.01", "0.05", "0.25", "1"])
+        ax.set_xlim(0.0007, 5.6)
         ax.set_xlabel(r"temperature $\tau$")
         ax.set_ylabel(label)
         ax.grid(axis="y", color="#dddddd", lw=0.5, zorder=0)
