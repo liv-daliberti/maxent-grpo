@@ -806,28 +806,15 @@ information. The intermediate temperature $\tau=0.25$ shows intermediate effects
 the monotone dose-response of the 0.5B grid.
 
 \paragraph{The mechanism, unchanged at scale.}
-Figure~\ref{fig:exploration-sidecar-3b} repeats the training-time diagnostics of
-Figure~\ref{fig:exploration-sidecar} on the 3B graph-coloring grid ($G=32$). The
-picture is the same: the $\tau=0.05$ weights keep roughly $30$ of $32$ rollouts
-effectively active --- a small asymmetric perturbation of uniform aggregation, not
-a drift toward best-of-$G$ --- while spending consistently less aggregation mass
-on incorrect candidates than every uniform-weight arm throughout training, the
-attenuation mechanism of Section~\ref{sec:where-exploration}(iii). The $\tau=0.25$
-and SEED curves coincide with the baseline's, matching their null-to-harmful
-outcome estimates.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/exploration_sidecar_3b}
-  \caption{\textbf{Candidate-level exploration diagnostics at 3B} (graph coloring,
-  $G=32$; lines are means over three training seeds, bands seed min--max, computed
-  from the realized aggregation weights logged identically for every arm).
-  Effective number of active rollouts $\exp(H(a_x))$ (left) and incorrect-mass
-  share (right) over training: tempered aggregation at $\tau=0.05$ concentrates
-  only mildly while consistently attenuating the weight on incorrect candidates,
-  reproducing the 0.5B mechanism of Figure~\ref{fig:exploration-sidecar} at scale.}
-  \label{fig:exploration-sidecar-3b}
-\end{figure}
+The bottom row of Figure~\ref{fig:exploration-sidecar} shows the training-time
+diagnostics on the 3B graph-coloring grid ($G=32$), directly under their 0.5B
+counterparts. The picture is the same: the $\tau=0.05$ weights keep roughly $30$
+of $32$ rollouts effectively active --- a small asymmetric perturbation of uniform
+aggregation, not a drift toward best-of-$G$ --- while spending consistently less
+aggregation mass on incorrect candidates than every uniform-weight arm throughout
+training, the attenuation mechanism of
+Section~\ref{sec:where-exploration}(iii). The $\tau=0.25$ and SEED curves
+coincide with the baseline's, matching their null-to-harmful outcome estimates.
 
 \paragraph{A single-answer guardrail.}
 On the graph-coloring \emph{single-mode} control split, where diversity has no
@@ -1638,11 +1625,15 @@ comparable. Figure~\ref{fig:exploration-sidecar} plots exactly these quantities.
       \texttt{training round that wrote train\_metrics.jsonl]}
     }}%
   }
-  \caption{\textbf{Candidate-level exploration diagnostics.} Effective number of active
-  rollouts $\exp(H(a_x))$ (left; uniform aggregation sits at the number of valid rollouts
-  per group) and incorrect-mass share (right) over training. Lines are means over the
-  three training seeds, bands are seed min--max, and both quantities are computed from the
-  realized aggregation weights logged identically for every method in the quartet.}
+  \caption{\textbf{Candidate-level exploration diagnostics at both scales.} Effective
+  number of active rollouts $\exp(H(a_x))$ (left; uniform aggregation sits at the number
+  of valid rollouts per group) and incorrect-mass share (right) over training, on graph
+  coloring at 0.5B with $G=16$ (top row) and in the 3B replication with $G=32$ (bottom
+  row). Lines are means over the three training seeds, bands are seed min--max, and both
+  quantities are computed from the realized aggregation weights logged identically for
+  every method. At both scales the $\tau=0.05$ weights concentrate only mildly while
+  spending consistently less aggregation mass on incorrect candidates; the $\tau=0.25$
+  and SEED curves coincide with the baseline's, matching their outcome estimates.}
   \label{fig:exploration-sidecar}
 \end{figure}
 

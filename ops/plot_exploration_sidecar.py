@@ -153,7 +153,13 @@ def rolling(values: list[float], window: int) -> list[float]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stamp-prefix", required=True)
+    parser.add_argument(
+        "--stamp-prefix",
+        required=True,
+        action="append",
+        help="stamp, or 'row label=stamp'; repeat the flag for a multi-row "
+        "figure (one row of panels per stamp)",
+    )
     parser.add_argument("--run-data-root", type=Path, default=Path("var/data"))
     parser.add_argument("--artifacts-root", type=Path, default=Path("var/artifacts"))
     parser.add_argument(
@@ -168,24 +174,31 @@ def main() -> None:
     args = parser.parse_args()
 
     wanted = [arm.strip() for arm in args.arms.split(",") if arm.strip()]
-    runs: dict[str, list[dict[str, dict[int, float]]]] = defaultdict(list)
-    for arm, _seed, run_dir in discover_runs(
-        Path.cwd(), args.artifacts_root, args.run_data_root, args.stamp_prefix
-    ):
-        if arm not in wanted:
-            continue
-        series = load_series(run_dir)
-        if series:
-            runs[arm].append(series)
-
-    missing = [arm for arm in wanted if not runs.get(arm)]
-    if missing:
-        print(
-            f"[sidecar] WARNING: no metric data for arms: {', '.join(missing)} "
-            "(runs may predate the train_metrics.jsonl sink)",
-            file=sys.stderr,
-        )
-    if not runs:
+    rows: list[tuple[str, dict[str, list[dict[str, dict[int, float]]]]]] = []
+    for spec in args.stamp_prefix:
+        label, _, stamp = spec.rpartition("=")
+        stamp = stamp.strip()
+        label = label.strip()
+        runs: dict[str, list[dict[str, dict[int, float]]]] = defaultdict(list)
+        for arm, _seed, run_dir in discover_runs(
+            Path.cwd(), args.artifacts_root, args.run_data_root, stamp
+        ):
+            if arm not in wanted:
+                continue
+            series = load_series(run_dir)
+            if series:
+                runs[arm].append(series)
+        missing = [arm for arm in wanted if not runs.get(arm)]
+        if missing:
+            print(
+                f"[sidecar] WARNING: {stamp}: no metric data for arms: "
+                f"{', '.join(missing)} (runs may predate the "
+                "train_metrics.jsonl sink)",
+                file=sys.stderr,
+            )
+        if runs:
+            rows.append((label, runs))
+    if not rows:
         raise SystemExit("no plottable data found; nothing written")
 
     colors: dict[str, str] = {}
@@ -213,34 +226,45 @@ def main() -> None:
             "pdf.fonttype": 42,
         }
     )
-    fig, axes = plt.subplots(1, 2, figsize=(6.75, 2.3), constrained_layout=True)
-    for axis, (primary, _legacy, title) in zip(axes, METRICS):
-        for arm in wanted:
-            if not runs.get(arm):
-                continue
-            per_seed = [series[primary] for series in runs[arm] if series.get(primary)]
-            if not per_seed:
-                continue
-            steps, mean, low, high = seed_band(per_seed)
-            mean = rolling(mean, args.smooth)
-            low = rolling(low, args.smooth)
-            high = rolling(high, args.smooth)
-            axis.fill_between(steps, low, high, color=colors[arm], alpha=0.14, linewidth=0)
-            axis.plot(
-                steps,
-                mean,
-                color=colors[arm],
-                linewidth=1.6,
-                label=arm_label(arm),
-                solid_capstyle="round",
-            )
-        axis.set_title(title, loc="left")
-        axis.set_xlabel("Learner step")
-        axis.grid(True, linewidth=0.4, alpha=0.25)
-        axis.spines[["top", "right"]].set_visible(False)
-        axis.margins(x=0.01)
-    axes[1].set_ylim(bottom=0)
-    axes[0].legend(frameon=False, handlelength=1.6, borderaxespad=0.0)
+    n_rows = len(rows)
+    fig, axes = plt.subplots(
+        n_rows, 2, figsize=(6.75, 2.3 * n_rows), constrained_layout=True,
+        squeeze=False,
+    )
+    for row_idx, (row_label, runs) in enumerate(rows):
+        for axis, (primary, _legacy, title) in zip(axes[row_idx], METRICS):
+            for arm in wanted:
+                if not runs.get(arm):
+                    continue
+                per_seed = [
+                    series[primary] for series in runs[arm] if series.get(primary)
+                ]
+                if not per_seed:
+                    continue
+                steps, mean, low, high = seed_band(per_seed)
+                mean = rolling(mean, args.smooth)
+                low = rolling(low, args.smooth)
+                high = rolling(high, args.smooth)
+                axis.fill_between(
+                    steps, low, high, color=colors[arm], alpha=0.14, linewidth=0
+                )
+                axis.plot(
+                    steps,
+                    mean,
+                    color=colors[arm],
+                    linewidth=1.6,
+                    label=arm_label(arm),
+                    solid_capstyle="round",
+                )
+            panel_title = f"{title} --- {row_label}" if row_label else title
+            axis.set_title(panel_title.replace("---", "—"), loc="left")
+            if row_idx == n_rows - 1:
+                axis.set_xlabel("Learner step")
+            axis.grid(True, linewidth=0.4, alpha=0.25)
+            axis.spines[["top", "right"]].set_visible(False)
+            axis.margins(x=0.01)
+        axes[row_idx][1].set_ylim(bottom=0)
+    axes[0][0].legend(frameon=False, handlelength=1.6, borderaxespad=0.0)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.output)
