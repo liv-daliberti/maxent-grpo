@@ -15,6 +15,11 @@
 from typing import Any
 
 import torch
+
+from . import fused_adam_shim as _fused_adam_shim
+
+_FUSED_ADAM_SHIM_INSTALLED = _fused_adam_shim.install()
+
 from oat.algorithms.ppo import PPOLearner
 from oat.args import default_args_validation, get_default_args
 

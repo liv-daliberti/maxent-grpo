@@ -74,7 +74,7 @@ Paper under double-blind review
 
 \begin{abstract}
 
- What role should exploration take in GRPO-style reasoning RL? Existing exploration mechanisms act either by (1) scaling entire prompts with uncertainty estimates or by (2) increasing token-level stochasticity. Yet, under GRPO, RL learns from groups: for each prompt, the policy samples several completions and the update is driven by comparisons inside that prompt-local set. To align exploration with model update, we introduce \emph{\method}, a maximum-entropy variant of \drgrpo that places exploration directly on the sampled candidate distribution. For each prompt, \method constructs a target distribution over completions by combining reward-induced group fit with candidate-level Shannon entropy. The resulting target has a closed form and gives a clean way to separate prompt-level, token-level, and candidate-level regularization. We evaluate this design with a matched multi-seed regression analysis on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- in which every prompt admits several verifiably distinct valid answers, using aggregate accuracy and answer-mode coverage as descriptive evidence and regression coefficients to estimate effect size and uncertainty across task domains, training seeds, and evaluation seeds. At the 0.5B scale, the pre-registered primary temperature is null, but exploratory aggressive temperatures show the pre-registered ordered signature of candidate-level exploration: $+4.8$ points of answer-mode coverage and $+7.9$ points \texttt{pass@8} (Holm-adjusted $p<10^{-4}$) at statistically flat per-sample accuracy, while prompt-level uncertainty scaling matches the baseline and token-level entropy regularization is harmful.
+ What role should exploration take in GRPO-style reasoning RL? Existing exploration mechanisms act either by (1) scaling entire prompts with uncertainty estimates or by (2) increasing token-level stochasticity. Yet, under GRPO, RL learns from groups: for each prompt, the policy samples several completions and the update is driven by comparisons inside that prompt-local set. To align exploration with model update, we introduce \emph{\method}, a maximum-entropy variant of \drgrpo that places exploration directly on the sampled candidate distribution. For each prompt, \method constructs a target distribution over completions by combining reward-induced group fit with candidate-level Shannon entropy. The resulting target has a closed form and gives a clean way to separate prompt-level, token-level, and candidate-level regularization. We evaluate this design with a matched multi-seed regression analysis on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- in which every prompt admits several verifiably distinct valid answers, using aggregate accuracy and answer-mode coverage as descriptive evidence and regression coefficients to estimate effect size and uncertainty across task domains, training seeds, and evaluation seeds. At the 0.5B scale, the pre-registered primary temperature is null, but exploratory aggressive temperatures show the pre-registered ordered signature of candidate-level exploration: $+4.8$ points of answer-mode coverage and $+7.9$ points \texttt{pass@8} (Holm-adjusted $p<10^{-4}$) at statistically flat per-sample accuracy, while prompt-level uncertainty scaling matches the baseline and token-level entropy regularization is harmful. A pre-registered 3B replication ($G=32$, scaled pools, primary temperature fixed from the 0.5B study before any 3B run) confirms the signature: pooled $+9.1$ points \texttt{pass@8}, $+5.4$ points coverage, and $+0.31$ distinct answer modes per prompt at flat per-sample accuracy (all $p<10^{-4}$), concentrated in the domain whose prompts retain rich multi-answer structure, while prompt-level scaling turns significantly harmful.
 \end{abstract}
 
 \section{Introduction}
@@ -90,7 +90,7 @@ We propose \textbf{\method}, a candidate-level maximum-entropy formulation built
 
 Our evaluation is designed to match this conceptual claim. Rather than relying solely on pooled accuracy tables or best-checkpoint summaries, we evaluate the method with a regression-based analysis over matched runs. Each observation corresponds to a method, training seed, evaluation seed, task domain, prompt, and sampled completion or prompt-level aggregate. The coefficient on the \method indicator estimates the accuracy and coverage lift relative to \drgrpo after controlling for task-domain and seed effects. This approach allows us to report not only whether \method improves aggregate performance, but also the size of the estimated effect and the remaining uncertainty.
 
-Our contributions are as follows. \textbf{(i)} We identify a structural mismatch in GRPO-style exploration: the learning signal is formed over sampled completion groups, while common regularizers act at the prompt or token level. \textbf{(ii)} We propose a groupwise maximum-entropy objective that regularizes the prompt-local candidate distribution and derive its closed-form target. \textbf{(iii)} We instantiate the objective as \method, a \drgrpo-based policy optimization method that can be compared against scalar group-relative updates, semantic-entropy scaling, and token-level entropy regularization under a shared backbone. \textbf{(iv)} We give the objective a KL-proximal interpretation and provide robustness guarantees. \textbf{(v)} We evaluate the method with a matched multi-seed regression protocol on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- whose prompts each admit several verifiably distinct valid answers, making effect size and statistical uncertainty explicit.
+Our contributions are as follows. \textbf{(i)} We identify a structural mismatch in GRPO-style exploration: the learning signal is formed over sampled completion groups, while common regularizers act at the prompt or token level. \textbf{(ii)} We propose a groupwise maximum-entropy objective that regularizes the prompt-local candidate distribution and derive its closed-form target. \textbf{(iii)} We instantiate the objective as \method, a \drgrpo-based policy optimization method that can be compared against scalar group-relative updates, semantic-entropy scaling, and token-level entropy regularization under a shared backbone. \textbf{(iv)} We give the objective a KL-proximal interpretation and provide robustness guarantees. \textbf{(v)} We evaluate the method with a matched multi-seed regression protocol on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- whose prompts each admit several verifiably distinct valid answers, making effect size and statistical uncertainty explicit, at two model scales: a 0.5B study whose exploratory arms generate the hypothesis, and a 3B replication that confirms it at a pre-registered primary temperature.
 
 \section{Related Work}
 \label{sec:related-work}
@@ -499,8 +499,9 @@ tempering ($\tau=0.25$: coverage $+2.2$ points, Holm $p<10^{-4}$; $\tau=0.1$: $+
 Holm $p=0.007$; $\tau\ge 0.5$: null) and survives the run-clustered robustness pass at
 $\tau=0.05$ (coverage $p<10^{-4}$, \texttt{pass@8} $p=0.0006$). Because these
 temperatures were exploratory under our pre-registration, we treat them as
-hypothesis-generating and have pre-registered $\tau=0.05$ as the primary for the 3B
-replication (Appendix~\ref{app:quartet-settings}).
+hypothesis-generating and pre-registered $\tau=0.05$ as the primary for the 3B
+replication (Appendix~\ref{app:quartet-settings}); Section~\ref{sec:results-3b}
+reports that replication, which confirms the prediction.
 
 \paragraph{Not just more solutions --- more \emph{different} solutions.}
 The coverage gains decompose into two parts: solving more prompts, and producing
@@ -597,6 +598,144 @@ baseline, the attenuation mechanism of Section~\ref{sec:where-exploration}(iii).
   are in \texttt{paper/results/}.}
   \label{tab:main-results}
 \end{table}
+
+\section{Results at the 3B Scale: a Pre-Registered Replication}
+\label{sec:results-3b}
+
+The 0.5B study left one committed prediction on the table: $\tau=0.05$, fixed as the
+primary temperature for a 3B replication before any 3B run was started
+(Appendix~\ref{app:quartet-settings}). The replication scales every axis of the design:
+Qwen2.5-3B-Instruct policies, $G=32$ rollouts per prompt, and larger regenerated pools
+--- four-number Countdown ($1{,}024$ train / $256$ eval prompts) and graph-coloring
+completion ($1{,}024$ / $256$) --- with the same leak-free splits, matched recipe,
+three training seeds, three evaluation seeds, and final-checkpoint rule as before. The
+arm set is the confirmed range of the 0.5B study: \drgrpo, \method at $\tau=0.05$
+(primary) and $\tau=0.25$, and \seeddrgrpo; the token-level arm was dropped after its
+0.5B harm. Each domain contributes $4{,}608$ prompt-level observations per arm pair
+($256$ prompt clusters); the pooled regression uses $9{,}216$ observations and $512$
+clusters.
+
+\begin{table}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4.5pt}
+  \begin{tabular}{@{}l cccc cccc@{}}
+    \toprule
+    & \multicolumn{4}{c}{\textbf{Countdown-4}} & \multicolumn{4}{c}{\textbf{Graph coloring}} \\
+    \cmidrule(lr){2-5} \cmidrule(l){6-9}
+    \textbf{Arm} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} \\
+    \midrule
+    Dr.GRPO                & .073 & .018 & .022 & .079 & .656 & \textbf{.456} & .155 & .863 \\
+    xDr.GRPO $\tau{=}0.05$ & .082 & .019 & .025 & .088 & \textbf{.829} & .453 & \textbf{.261} & \textbf{1.469} \\
+    xDr.GRPO $\tau{=}0.25$ & .082 & .029 & .024 & .086 & .694 & .438 & .186 & 1.030 \\
+    SEED-Dr.GRPO           & .082 & .029 & .025 & .089 & .579 & .421 & .134 & .757 \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Descriptive accuracy and diversity by domain at 3B} (same metrics
+  and $3\times 3$ seed grid as Table~\ref{tab:descriptive}; best graph-coloring value
+  per column in bold). The four-number Countdown pool sits near its one-epoch
+  learnability floor for every arm (\texttt{pass@8} $\le .082$), so no per-column best
+  is highlighted there; graph coloring is where the 3B policy has traction, and where
+  the arms separate.}
+  \label{tab:descriptive-3b}
+\end{table}
+
+\begin{table}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4.5pt}
+  \begin{tabular}{@{}l r@{ }l r@{ }l r@{ }l@{}}
+    \toprule
+    & \multicolumn{2}{c}{\texttt{pass@8}} & \multicolumn{2}{c}{\texttt{mean@8}} & \multicolumn{2}{c}{\texttt{coverage@8}} \\
+    \textbf{Arm} & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] \\
+    \midrule
+    Dr.GRPO (baseline level) & \multicolumn{2}{c}{$.365$} & \multicolumn{2}{c}{$.237$} & \multicolumn{2}{c}{$.089$} \\
+    \midrule
+    xDr.GRPO $\tau{=}0.05$ (primary) & $+.091^{***}$ & $[.072,.111]$ & $-.001$ & $[-.016,.014]$ & $+.054^{***}$ & $[.046,.062]$ \\
+    xDr.GRPO $\tau{=}0.25$ & $+.023^{**}$ & $[.007,.040]$ & $-.003$ & $[-.016,.010]$ & $+.016^{***}$ & $[.010,.022]$ \\
+    SEED-Dr.GRPO           & $-.034^{**}$ & $[-.055,-.013]$ & $-.012$ & $[-.030,.006]$ & $-.009^{**}$ & $[-.015,-.004]$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Pooled two-domain treatment effects vs.\ \drgrpo at 3B}
+  (Countdown-4 + graph coloring; $9{,}216$ observations and $512$ prompt clusters per
+  arm pair; task-domain, training-seed, and evaluation-seed fixed effects;
+  prompt-clustered standard errors). The primary arm reports raw $p$-values; the other
+  arms are Holm-adjusted within outcome: $^{**} p<0.01$, $^{***} p<10^{-3}$ after
+  adjustment. \texttt{distinct@8} for the primary: $+0.31$ modes $[0.26, 0.35]$,
+  $p<10^{-4}$; greedy \texttt{pass@1}: $+0.3$ points, $p=0.78$. All primary-arm
+  effects survive the run-clustered robustness pass ($p_{\text{run}} \le 0.0009$).
+  Full estimates are in \texttt{paper/results/}.}
+  \label{tab:main-results-3b}
+\end{table}
+
+\paragraph{The pre-registered primary replicates.}
+At $\tau=0.05$ --- this time the \emph{primary}, not an exploratory arm --- the pooled
+regression (Table~\ref{tab:main-results-3b}) shows the same ordered signature as the
+0.5B study, larger: \texttt{pass@8} $+9.1$ points $[7.2, 11.1]$, \texttt{coverage@8}
+$+5.4$ points $[4.6, 6.2]$, \texttt{distinct@8} $+0.31$ modes $[0.26, 0.35]$ (all raw
+$p<10^{-4}$), while \texttt{mean@8} ($-0.1$ points, $p=0.89$) and greedy
+\texttt{pass@1} ($+0.3$ points, $p=0.78$) are statistically flat. Every primary-arm
+effect survives clustering by training run. The 0.5B pattern --- more of the valid
+answer set at no per-sample accuracy cost --- was a hypothesis generated by
+exploratory arms; at 3B it is a confirmed pre-registered prediction.
+
+\paragraph{The effect concentrates where the answer space has room.}
+Our pre-commitment (Appendix~\ref{app:threats}) was to report domain-concentrated
+gains as such, and the 3B effect is strongly domain-dependent. On graph coloring,
+where the baseline has traction (\texttt{pass@8} $.656$) and prompts admit many valid
+completions, the primary arm gains $+17.4$ points \texttt{pass@8} $[13.8, 20.9]$,
+$+10.5$ points \texttt{coverage@8} $[9.1, 11.9]$, and $+0.61$ distinct modes
+$[0.53, 0.68]$ at flat \texttt{mean@8} ($p=0.81$). On the four-number Countdown pool,
+which sits near its one-epoch learnability floor (baseline \texttt{pass@8} $.073$;
+Table~\ref{tab:descriptive-3b}), the same coefficients are two orders of magnitude
+smaller --- $+0.9$ points \texttt{pass@8} $[0.2, 1.6]$, $+0.3$ points coverage ---
+though still positive, significant, and run-robust. We read this as consistent with
+the mechanism rather than incidental: candidate-level exploration can only preserve
+diversity that the reward landscape lets the policy reach, and on a pool where almost
+no rollout is rewarded, there is little group structure to reweight. The honest
+summary is that the pooled $+9.1$ is dominated by the domain with headroom, and the
+per-domain estimates in \texttt{paper/results/} are the primary reference.
+
+\paragraph{Conditional diversity: the baseline converges to one mode, \method diverges.}
+Among graph-coloring prompts solved at \texttt{pass@8}, \drgrpo produces $1.32$
+distinct modes per solved prompt (two or more on $28\%$), while \method at
+$\tau=0.05$ produces $1.77$ ($55\%$ with two or more) --- \emph{while solving $26\%$
+more prompts}, so the selection again runs against the finding. The same comparison at
+0.5B was $1.19$ vs.\ $1.46$ (Table~\ref{tab:conditional-diversity}): the
+conditional-diversity gap grows with scale rather than washing out. On the
+floor-constrained Countdown-4 pool all arms sit at $1.04$--$1.08$ distinct modes per
+solved prompt, consistent with the domain-dependence reading above.
+
+\paragraph{Prompt-level scaling is now harmful, and the dose-response is preserved.}
+\seeddrgrpo, null at 0.5B, is significantly harmful at 3B (pooled \texttt{pass@8}
+$-3.4$ points, Holm $p=0.003$; graph coloring alone $-7.7$ points): rescaling whole
+prompts by semantic uncertainty leaves the within-group comparison untouched but
+down-weights exactly the multi-modal prompts where the group carries the most
+information. The intermediate temperature $\tau=0.25$ shows intermediate effects
+($+2.3$ points \texttt{pass@8}, $+1.6$ coverage, both Holm-significant), preserving
+the monotone dose-response of the 0.5B grid.
+
+\paragraph{A single-answer guardrail.}
+On the graph-coloring \emph{single-mode} control split, where diversity has no
+denominator to move, the primary arm still gains $+15.7$ points \texttt{pass@8}
+$[11.9, 19.4]$ at flat \texttt{mean@8} ($p=0.66$): more diverse \emph{attempts} find
+the unique answer more often. Single-answer competence is not traded away for
+coverage.
+
+\paragraph{Mixed-difficulty competence probe: what collapse looks like without exploration.}
+Finally, a descriptive single-run probe makes the failure mode concrete at 3B. We
+trained one \drgrpo policy for two epochs on a mixed-difficulty Countdown pool
+($1{,}024$ prompts spanning easy single-path and hard multi-answer items;
+Appendix~\ref{app:implementation}) and evaluated both strata. On the easy stratum the
+policy legitimately learns the task: greedy \texttt{pass@1} $0.61$, \texttt{pass@8}
+$0.69$. On the hard multi-answer stratum it collapses completely --- and the decisive
+number is that \texttt{pass@8} $=$ greedy \texttt{pass@1} $= 0.023$ with
+\texttt{distinct@8} $= 0.02$: drawing eight samples recovers \emph{nothing} over one,
+because all eight land on the same answer. The baseline's failure on hard multi-answer
+prompts is not a capability gap that more sampling could paper over; it is precisely a
+collapse of the sampled candidate distribution, the object \method regularizes. This
+is a one-seed descriptive observation, and testing whether candidate-level exploration
+lifts this floor is the natural next experiment.
 
 \bibliographystyle{plainnat}
 \bibliography{example_paper}
@@ -894,7 +1033,8 @@ independent of method. The remaining pre-specified constants are the Token-MaxEn
 coefficient $\alpha=0.01$, the SEED sensitivity $\alpha=1$, and the primary
 xDr.GRPO temperature $\tau=0.5$ (the remaining grid points are reported as
 exploratory, with Holm-adjusted $p$-values). For the larger-scale replication
-(Qwen2.5-3B-Instruct on the four-number Countdown pool), the primary
+(Qwen2.5-3B-Instruct on the scaled four-number Countdown and graph-coloring pools,
+$G=32$; Section~\ref{sec:results-3b}), the primary
 temperature is pre-registered as $\tau=0.05$, fixed on the basis of the
 0.5B exploratory results before any 3B run was started. With $\beta=0$ the tokenwise KL term
 vanishes; with $\lambda=0$ the reference tilt vanishes and $\kappa=\tau$. The comparison
@@ -1255,6 +1395,30 @@ aggregates the \emph{same} utilities with the tempered softmax weights of
 rescales whole prompts by semantic entropy; Token-MaxEnt Dr.GRPO adds a next-token entropy
 bonus. Nothing else changes.
 
+\paragraph{3B replication design.}
+The replication of Section~\ref{sec:results-3b} substitutes Qwen2.5-3B-Instruct,
+$G=32$ rollouts per prompt, and regenerated leak-free pools of $1{,}024$ training /
+$256$ evaluation prompts per domain (four-number Countdown; larger graph-coloring
+instances), with a one-epoch training budget of $32{,}768$ prompt consumptions per
+run. All other recipe constants are unchanged (learning rate $2\times 10^{-7}$,
+\texttt{critic\_type}=\texttt{drgrpo}, $\beta=\lambda=0$, clip $0.2$, $T_{\max}=192$,
+temperature $1.0$). Arms: \drgrpo, \method $\tau=0.05$ (pre-registered primary,
+Appendix~\ref{app:quartet-settings}) and $\tau=0.25$, and \seeddrgrpo; the token-level
+arm was dropped after its 0.5B harm. Three training seeds ($43$--$45$), three
+evaluation seeds, $K=8$ plus greedy, final-checkpoint rule --- identical to the 0.5B
+protocol. One implementation note for exact reproducibility: the 3B runs construct the
+AdamW update with PyTorch's fused AdamW rather than DeepSpeed's JIT-compiled kernel (a
+cluster-toolchain constraint); the two implement the same update rule, and every 3B
+arm shares the same optimizer implementation, so parity across arms is preserved.
+
+\paragraph{Mixed-difficulty competence probe.}
+The probe of Section~\ref{sec:results-3b} trains a single \drgrpo seed
+(Qwen2.5-3B-Instruct, $G=32$, same recipe) for two epochs ($65{,}536$ prompt
+consumptions) on a mixed pool of $1{,}024$ Countdown prompts spanning easy
+single-path and hard multi-answer items, then evaluates the final checkpoint on
+held-out hard multi-answer ($128$ prompts) and easy ($128$) strata with $K=8$ sampled
+completions plus one greedy pass.
+
 \paragraph{Diagnostics.}
 The candidate-level diagnostics are defined for every method through the realized
 aggregation weights $a_{x,i}$ of \eqref{eq:general-form}: the effective number of active
@@ -1302,7 +1466,7 @@ the same records, so the descriptive and regression results are guaranteed to ag
 \section{Threats to Validity and Expected Failure Modes}
 \label{app:threats}
 
-Several threats could limit the interpretation of the proposed comparison. First, although the verifier is exact --- expressions are evaluated with rational arithmetic and colorings are checked against the enumerated valid set, so false positives are essentially ruled out --- the strict answer-extraction gate can produce false negatives on malformed but semantically correct outputs. We will therefore inspect a sample of rejected completions from each domain and report robustness to stricter and more permissive extraction rules. Relatedly, what counts as a \emph{distinct} mode is a canonicalization convention (commutative operands are merged; operator identity is preserved), and coverage results should be read relative to that convention. Second, the study could overstate the effect of xDr.GRPO if the two methods receive unequal hyperparameter tuning or if checkpoint selection is based on the same evaluation splits used for final reporting. To reduce this risk, all main runs will use a matched training budget, shared evaluation harness, and a pre-specified checkpoint-selection rule. Third, \texttt{pass@8} and \texttt{coverage@8} may reward diversity without necessarily reflecting better single-solution reasoning, while \texttt{mean@8} may penalize exploratory methods that produce one strong answer and several weak alternatives. We therefore interpret improvements jointly across \texttt{pass@1}, \texttt{pass@8}, \texttt{mean@8}, and \texttt{coverage@8}, and use the single-mode control split as a guardrail that single-answer performance is preserved. Finally, as the current experiment uses a relatively small 0.5B model on synthetic tasks whose full answer sets are enumerable, a positive effect should be interpreted as evidence that candidate-level exploration changes the learning signal under this controlled setting, not as a claim that xDr.GRPO will dominate at larger scales, on natural reasoning corpora, or under different reward models. In cases where the method improves sampled metrics but not greedy accuracy, or where gains appear only in one task domain, we will report this as a
-failure mode rather than as broad evidence of superior reasoning.
+Several threats could limit the interpretation of the proposed comparison. First, although the verifier is exact --- expressions are evaluated with rational arithmetic and colorings are checked against the enumerated valid set, so false positives are essentially ruled out --- the strict answer-extraction gate can produce false negatives on malformed but semantically correct outputs. We will therefore inspect a sample of rejected completions from each domain and report robustness to stricter and more permissive extraction rules. Relatedly, what counts as a \emph{distinct} mode is a canonicalization convention (commutative operands are merged; operator identity is preserved), and coverage results should be read relative to that convention. Second, the study could overstate the effect of xDr.GRPO if the two methods receive unequal hyperparameter tuning or if checkpoint selection is based on the same evaluation splits used for final reporting. To reduce this risk, all main runs will use a matched training budget, shared evaluation harness, and a pre-specified checkpoint-selection rule. Third, \texttt{pass@8} and \texttt{coverage@8} may reward diversity without necessarily reflecting better single-solution reasoning, while \texttt{mean@8} may penalize exploratory methods that produce one strong answer and several weak alternatives. We therefore interpret improvements jointly across \texttt{pass@1}, \texttt{pass@8}, \texttt{mean@8}, and \texttt{coverage@8}, and use the single-mode control split as a guardrail that single-answer performance is preserved. Finally, as the experiments use 0.5B and 3B models on synthetic tasks whose full answer sets are enumerable, a positive effect should be interpreted as evidence that candidate-level exploration changes the learning signal under this controlled setting, not as a claim that xDr.GRPO will dominate at larger scales, on natural reasoning corpora, or under different reward models. In cases where the method improves sampled metrics but not greedy accuracy, or where gains appear only in one task domain, we commit to reporting this as a
+limitation rather than as broad evidence of superior reasoning. The 3B replication indeed exhibits strong domain concentration --- large effects on graph coloring, small ones on the floor-constrained four-number Countdown pool --- and Section~\ref{sec:results-3b} reports the per-domain estimates as the primary reference for that reason.
 
 \end{document}

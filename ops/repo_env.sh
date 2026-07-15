@@ -13,6 +13,21 @@ export MAXENT_GRPO_ROOT="${MAXENT_GRPO_ROOT:-$_maxent_repo_root}"
 export MAXENT_GRPO_VAR_ROOT="${MAXENT_GRPO_VAR_ROOT:-$MAXENT_GRPO_ROOT/var}"
 
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$MAXENT_GRPO_VAR_ROOT/cache/xdg}"
+# Shared, NFS-hosted torch extension cache: compute-node /tmp is wiped on
+# reboot/maintenance, and DeepSpeed's fused_adam JIT build does not succeed in
+# the default job environment, so jobs must load the prebuilt extension from
+# here (built once via var/artifacts/tools/build_ext.sh). CUDA on PATH so a
+# rebuild is possible when the cache is cold.
+export TORCH_EXTENSIONS_DIR="${TORCH_EXTENSIONS_DIR:-$MAXENT_GRPO_VAR_ROOT/cache/torch_extensions}"
+export CUDA_HOME="${CUDA_HOME:-$MAXENT_GRPO_ROOT/var/cuda124_toolkit}"
+# Pin the arch list so torch emits the same extension build file as the
+# prebuilt shared cache (arch autodetection would dirty the ninja check and
+# force a rebuild on every node).
+export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-7.5;8.0}"
+case ":$PATH:" in
+  *":$CUDA_HOME/bin:"*) ;;
+  *) export PATH="$CUDA_HOME/bin:$PATH" ;;
+esac
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$MAXENT_GRPO_VAR_ROOT/config}"
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-$MAXENT_GRPO_VAR_ROOT/cache/pip}"
 export TMPDIR="${TMPDIR:-$MAXENT_GRPO_VAR_ROOT/tmp}"
