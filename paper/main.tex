@@ -825,12 +825,31 @@ because all eight land on the same answer. The baseline's failure on hard multi-
 prompts is not a capability gap that more sampling could paper over; it is precisely a
 collapse of the sampled candidate distribution, the object \method regularizes. This
 is a one-seed descriptive observation, and testing whether candidate-level exploration
-lifts this floor is the natural next experiment. We have pre-registered exactly that
+lifts this floor is the natural next experiment. We pre-registered exactly that
 test (\texttt{paper/preregistration/mix3b\_exploration\_floor.md}: \drgrpo vs.\
 \method $\tau=0.05$, three seeds per arm on the same mixed pool, primary outcome
 hard-stratum \texttt{pass@8}, easy-stratum accuracy as guardrail, interpretation
 rules fixed before launch), with the disclosed probe run reused as one baseline
 seed.
+
+\paragraph{The pre-registered floor test: a null primary, and the boundary it draws.}
+The registered primary is null: hard-stratum \texttt{pass@8} moves $+1.7$ points
+$[-0.2, +3.7]$ ($p=0.08$), and the registered sensitivity pass excluding the
+disclosed probe seed leaves $+0.3$ points ($p=0.86$). Candidate-level
+exploration did \emph{not} lift the collapse floor. We report this exactly as
+the registration commits us to: an honest boundary of the mechanism ---
+tempered aggregation reweights reward signal that the rollouts contain, and on
+prompts where essentially every group is all-zero-reward there is nothing to
+reweight. This is the zero-signal endpoint of the domain-scaling prediction of
+Section~\ref{sec:interpreting-current-run}, observed rather than assumed. The
+guardrail, meanwhile, passes with room to spare: on the \emph{same} runs'
+easy stratum, \method shows the usual signature --- \texttt{pass@8} $+5.1$
+points $[1.7, 8.6]$ ($p=0.004$, run-robust), \texttt{distinct@8} $+6.7$ points,
+\texttt{mean@8} and greedy flat --- so the null is specific to the absence of
+signal, not a failure of the method on this pool. Lifting the floor itself
+appears to require interventions that create signal --- curricula, denser
+rewards, or larger groups --- after which candidate-level exploration can
+preserve what they find.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -875,9 +894,12 @@ exact \texttt{coverage@}$k$, and transferring the claim there (via
 \texttt{pass@}$k$ or majority-vote payoffs) is open. Scales stop at 3B. A
 raised-rollout-temperature control --- the simplest rival explanation, though it
 perturbs the sampling distribution rather than the credit assignment --- has not
-yet been run under the matched protocol. And the pre-registered mixed-pool test
-of Section~\ref{sec:results-3b} will report whether candidate-level exploration
-lifts a hard-stratum floor that accuracy-driven training cannot.
+yet been run under the matched protocol. Finally, the pre-registered mixed-pool
+test returned a null primary (Section~\ref{sec:results-3b}): candidate-level
+exploration preserves and widens the reward signal that sampling finds, but it
+does not create signal on strata where rollouts are never rewarded. The method's
+scope is credit assignment, not discovery; pairing it with interventions that
+manufacture signal on hard strata is the natural next step.
 
 \bibliographystyle{plainnat}
 \bibliography{example_paper}
