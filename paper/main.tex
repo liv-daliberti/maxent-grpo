@@ -565,6 +565,58 @@ small asymmetric perturbation of uniform weighting, not a drift toward best-of-$
 while spending consistently less aggregation mass on incorrect candidates than the
 baseline, the attenuation mechanism of Section~\ref{sec:where-exploration}(iii).
 
+\paragraph{A finer dose-response, and where the useful range comes from.}
+The grid above stops at $\tau=0.05$, its best point, which raises the question of
+what lies below. A follow-up round on Countdown extends the sweep to
+$\tau\in\{0.01, 0.02, 0.03, 0.04\}$ under the identical protocol (new matched
+\drgrpo baseline, three training seeds, three evaluation seeds; all arms
+exploratory, Holm-adjusted). Figure~\ref{fig:dose-response} plots both rounds.
+The effect keeps \emph{growing} as $\tau$ falls: at $\tau=0.01$,
+\texttt{pass@8} $+15.2$ points $[10.8, 19.6]$, \texttt{coverage@8} $+6.6$
+$[4.9, 8.3]$, \texttt{distinct@8} $+0.28$ $[0.21, 0.35]$ (all Holm
+$p<10^{-4}$, run-robust) --- roughly double the $\tau=0.05$ effect --- with
+\texttt{mean@8} ($-0.2$, $p=0.88$) and greedy \texttt{pass@1} flat. There is no
+collapse anywhere in the tested range: even $50\times$ more aggressive tempering
+than the original best point buys coverage without an accuracy price. This is the
+behavior Appendix~\ref{app:tau-range} predicts: with $|A| \cdot T_i/T_{\max}$
+utilities and short completions, the within-group utility spread is
+$\mathcal{O}(10^{-2})$, so temperatures of that order are where reweighting is
+substantive, and the empirical optimum lands exactly on that scale. Two honest
+wrinkles: $\tau=0.02$ shows a significant \texttt{mean@8} cost ($-3.7$ points
+$[-5.4, -1.9]$, Holm $p=2\times 10^{-4}$) although both neighbors are flat, and
+$\tau=0.04$ dips (\texttt{pass@8} $+2.4$, n.s.), so the curve is noisy at the
+transition between regimes; we report the envelope, not a smoothed trend.
+
+\paragraph{Mode-adaptive tempering.}
+Fixing $\tau$ requires knowing the utility scale in advance. Classical maximum-entropy
+methods set the temperature from the size of the action space; the natural analogue
+here is to set it from the \emph{observed} answer-mode structure. In the
+\emph{mode-adaptive} arm the temperature is per-prompt,
+$\tau_x = \tau_0 / \log(1+\kappa_x)$, where $\kappa_x$ is the number of distinct
+correct canonical modes observed in the prompt's own rollout group and $\tau_0=0.05$
+(the pre-registered 3B primary); prompts whose groups reveal more distinct solutions
+get sharper tempering, and prompts with $\kappa_x \le 1$ fall back to $\tau_0$. With
+no per-task tuning, this arm recovers a significant share of the effect ---
+\texttt{pass@8} $+5.7$ $[1.7, 9.7]$ (Holm $p=0.01$), \texttt{coverage@8} $+3.8$
+$[2.2, 5.4]$, \texttt{distinct@8} $+0.16$, flat greedy --- but remains weaker than a
+well-chosen fixed temperature and its run-clustered robustness is borderline
+($p_{\text{run}}=0.05$ for \texttt{pass@8}). We read it as a usable no-tuning
+default, not a replacement for the tuned value.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/dose_response}
+  \caption{\textbf{Dose-response of candidate-level tempering} (0.5B Countdown,
+  multi-answer split): treatment effect vs.\ \drgrpo with 95\% prompt-clustered CIs,
+  for \texttt{pass@8} (left) and \texttt{coverage@8} (right). Filled markers: the
+  fine round ($\tau \le 0.04$); open markers: the original grid ($\tau \ge 0.05$);
+  each round is estimated against its own matched baseline under the identical
+  protocol. The diamond shows the mode-adaptive arm ($\tau_x = \tau_0/\log(1+\kappa_x)$,
+  no fixed abscissa). Effects grow monotonically in tempering strength down to
+  $\tau=0.01$ with no accuracy cost at the extremes; the dashed line marks zero.}
+  \label{fig:dose-response}
+\end{figure}
+
 \begin{table}[t]
   \centering
   \small
@@ -1036,7 +1088,12 @@ exploratory, with Holm-adjusted $p$-values). For the larger-scale replication
 (Qwen2.5-3B-Instruct on the scaled four-number Countdown and graph-coloring pools,
 $G=32$; Section~\ref{sec:results-3b}), the primary
 temperature is pre-registered as $\tau=0.05$, fixed on the basis of the
-0.5B exploratory results before any 3B run was started. With $\beta=0$ the tokenwise KL term
+0.5B exploratory results before any 3B run was started. The fine-temperature
+round of Figure~\ref{fig:dose-response} adds $\tau\in\{0.01,0.02,0.03,0.04\}$
+and the mode-adaptive arm ($\tau_x=\tau_0/\log(1+\kappa_x)$, $\tau_0=0.05$,
+$\kappa_x$ = observed distinct correct modes in the prompt's rollout group,
+computed per rollout batch alongside the frozen weights) at 0.5B on Countdown,
+all exploratory with a fresh matched baseline. With $\beta=0$ the tokenwise KL term
 vanishes; with $\lambda=0$ the reference tilt vanishes and $\kappa=\tau$. The comparison
 therefore isolates a single axis: the aggregation weight $a_{x,i}$ (uniform for Dr.GRPO,
 prompt-rescaled uniform for SEED, uniform-plus-token-entropy for Token-MaxEnt,
