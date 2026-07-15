@@ -24,6 +24,7 @@ GRID = ROOT / "var/artifacts/cdcomp4_countdown_only_regression.json"
 OUT = ROOT / "paper/figures/dose_response"
 
 TAU = {
+    "xdr_tau0p0001": 0.0001,
     "xdr_tau0p001": 0.001,
     "xdr_tau0p01": 0.01, "xdr_tau0p02": 0.02, "xdr_tau0p03": 0.03,
     "xdr_tau0p04": 0.04, "xdr_tau0p05": 0.05, "xdr_tau0p1": 0.1,
@@ -86,6 +87,19 @@ def main():
             filled = p[4] == "fine"
             ax.plot(p[0], p[1], marker="o", ms=4.5, mec=HUE,
                     mfc=HUE if filled else "white", mew=1.0, zorder=4)
+        z = next(
+            (r for r in fine
+             if r["outcome"] == outcome and r["treatment"] == "xdr_tau0"),
+            None,
+        )
+        if z:
+            zg, zl, zh = 100 * z["gamma"], 100 * z["ci_low"], 100 * z["ci_high"]
+            ax.errorbar([2.6e-5], [zg], yerr=[[zg - zl], [zh - zg]], fmt="s",
+                        ms=4.5, color=HUE, mfc="white", ecolor=HUE,
+                        elinewidth=0.9, capsize=2.0, zorder=4)
+            ax.annotate(r"$\tau{=}0$", (2.6e-5, zg), textcoords="offset points",
+                        xytext=(0, 7), ha="center", fontsize=7, color=HUE,
+                        annotation_clip=False)
         a = adapt_row(fine, outcome)
         if a:
             ax.errorbar([3.6], [a[0]], yerr=[[a[0] - a[1]], [a[2] - a[0]]],
@@ -95,9 +109,9 @@ def main():
                         xytext=(-1, 7), ha="right", fontsize=7, color=ADAPT,
                         annotation_clip=False)
         ax.set_xscale("log")
-        ax.set_xticks([0.001, 0.01, 0.05, 0.25, 1.0])
-        ax.set_xticklabels(["0.001", "0.01", "0.05", "0.25", "1"])
-        ax.set_xlim(0.0007, 5.6)
+        ax.set_xticks([0.0001, 0.001, 0.01, 0.1, 1.0])
+        ax.set_xticklabels([r"$10^{-4}$", r"$10^{-3}$", r"$10^{-2}$", r"$10^{-1}$", "1"])
+        ax.set_xlim(1.5e-5, 5.6)
         ax.set_xlabel(r"temperature $\tau$")
         ax.set_ylabel(label)
         ax.grid(axis="y", color="#dddddd", lw=0.5, zorder=0)
