@@ -805,6 +805,30 @@ information. The intermediate temperature $\tau=0.25$ shows intermediate effects
 ($+2.3$ points \texttt{pass@8}, $+1.6$ coverage, both Holm-significant), preserving
 the monotone dose-response of the 0.5B grid.
 
+\paragraph{The mechanism, unchanged at scale.}
+Figure~\ref{fig:exploration-sidecar-3b} repeats the training-time diagnostics of
+Figure~\ref{fig:exploration-sidecar} on the 3B graph-coloring grid ($G=32$). The
+picture is the same: the $\tau=0.05$ weights keep roughly $30$ of $32$ rollouts
+effectively active --- a small asymmetric perturbation of uniform aggregation, not
+a drift toward best-of-$G$ --- while spending consistently less aggregation mass
+on incorrect candidates than every uniform-weight arm throughout training, the
+attenuation mechanism of Section~\ref{sec:where-exploration}(iii). The $\tau=0.25$
+and SEED curves coincide with the baseline's, matching their null-to-harmful
+outcome estimates.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/exploration_sidecar_3b}
+  \caption{\textbf{Candidate-level exploration diagnostics at 3B} (graph coloring,
+  $G=32$; lines are means over three training seeds, bands seed min--max, computed
+  from the realized aggregation weights logged identically for every arm).
+  Effective number of active rollouts $\exp(H(a_x))$ (left) and incorrect-mass
+  share (right) over training: tempered aggregation at $\tau=0.05$ concentrates
+  only mildly while consistently attenuating the weight on incorrect candidates,
+  reproducing the 0.5B mechanism of Figure~\ref{fig:exploration-sidecar} at scale.}
+  \label{fig:exploration-sidecar-3b}
+\end{figure}
+
 \paragraph{A single-answer guardrail.}
 On the graph-coloring \emph{single-mode} control split, where diversity has no
 denominator to move, the primary arm still gains $+15.7$ points \texttt{pass@8}
