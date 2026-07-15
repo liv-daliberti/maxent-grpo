@@ -83,9 +83,54 @@ def test_invalid_tau_raises():
     with pytest.raises(ValueError):
         _weights([0.0] * 4, [32] * 4, g=4, tau=math.inf)
     with pytest.raises(ValueError):
-        _weights([0.0] * 4, [32] * 4, g=4, tau=0.0)
-    with pytest.raises(ValueError):
         _weights([0.0] * 4, [32] * 4, g=4, tau=-1.0)
+
+
+def test_tau_zero_is_uniform_over_argmax_set():
+    # Single strict maximum: all mass on it.
+    w = _weights([0.75, -0.25, -0.25, -0.25], [32, 32, 32, 32], g=4, tau=0.0)
+    assert torch.equal(w, torch.tensor([4.0, 0.0, 0.0, 0.0]))
+    # Exact two-way tie at the top: mass split evenly over the tied set.
+    w = _weights([0.5, 0.5, -0.5, -0.5], [32, 32, 32, 32], g=4, tau=0.0)
+    assert torch.equal(w, torch.tensor([2.0, 2.0, 0.0, 0.0]))
+    # Degenerate all-equal group: exactly uniform, matching Dr.GRPO.
+    w = _weights([0.0] * 4, [32] * 4, g=4, tau=0.0)
+    assert torch.equal(w, torch.ones(4))
+
+
+def test_tau_zero_matches_small_tau_limit():
+    adv = [0.75, -0.25, -0.25, -0.25, 0.5, 0.5, -0.5, -0.5]
+    counts = [10, 20, 30, 40, 50, 60, 70, 80]
+    w_zero = _weights(adv, counts, g=4, tau=0.0)
+    w_tiny = _weights(adv, counts, g=4, tau=1e-6)
+    assert torch.allclose(w_zero, w_tiny, atol=1e-5)
+
+
+def test_tau_zero_masked_argmax_over_valid_rows():
+    # The unmasked maximum (row 0) is masked out; the argmax set is computed
+    # over valid rows only, and weights sum to n_valid.
+    masks = torch.tensor([0.0, 1.0, 1.0, 1.0])
+    w = compute_xdr_row_weights(
+        torch.tensor([0.75, 0.5, 0.5, -0.5]),
+        torch.tensor([32.0, 32.0, 32.0, 32.0]),
+        num_samples=4,
+        tau=0.0,
+        t_max=256,
+        loss_masks=masks,
+    )
+    assert torch.equal(w, torch.tensor([0.0, 1.5, 1.5, 0.0]))
+
+
+def test_tau_zero_all_masked_group_stays_zero():
+    w = compute_xdr_row_weights(
+        torch.tensor([0.5, -0.5, 0.25, -0.25]),
+        torch.tensor([32.0, 32.0, 32.0, 32.0]),
+        num_samples=4,
+        tau=0.0,
+        t_max=256,
+        loss_masks=torch.zeros(4),
+    )
+    assert torch.equal(w, torch.zeros(4))
 
 
 def test_diagnostics_uniform_weights():

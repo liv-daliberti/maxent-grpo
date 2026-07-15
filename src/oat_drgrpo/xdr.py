@@ -58,12 +58,19 @@ def compute_xdr_row_weights(
             valid-row count, so they sum to n_valid exactly as the uniform
             Dr.GRPO aggregation effectively does. Masked rows get weight 0.
 
+    tau = 0 is the exact tau -> 0+ limit of the softmax: uniform weights over
+    each group's argmax set (the valid rows whose utility exactly equals the
+    group maximum) and zero elsewhere. Ties are exact by construction here
+    (identical advantage and token count), so the limit is well defined.
+
     Returns:
         Detached float tensor [N]; for fully valid groups the weights sum to
         G, so uniform groups (equal utilities) yield exactly 1.0 per row.
     """
-    if not math.isfinite(tau) or tau <= 0:
-        raise ValueError(f"xdr tau must be finite and positive, got {tau}")
+    if not math.isfinite(tau) or tau < 0:
+        raise ValueError(
+            f"xdr tau must be finite and non-negative (0 = argmax limit), got {tau}"
+        )
     if num_samples <= 0:
         raise ValueError(f"num_samples must be positive, got {num_samples}")
     if t_max <= 0:
@@ -81,6 +88,26 @@ def compute_xdr_row_weights(
             f"{num_samples}; prompt groups must be intact"
         )
     utilities = (adv * counts / float(t_max)).view(-1, num_samples)
+    if per_group_tau is None and tau == 0.0:
+        # Exact argmax-set limit: uniform over the valid rows whose utility
+        # equals the group max, zero elsewhere; weights sum to n_valid.
+        if loss_masks is None:
+            umax = utilities.max(dim=1, keepdim=True).values
+            hard = (utilities == umax).float()
+            hard = hard / hard.sum(dim=1, keepdim=True)
+            return (float(num_samples) * hard).reshape(-1)
+        valid = (loss_masks.detach().reshape(-1).float() > 0).view(
+            -1, num_samples
+        )
+        masked_u = torch.where(
+            valid, utilities, torch.full_like(utilities, float("-inf"))
+        )
+        umax = masked_u.max(dim=1, keepdim=True).values
+        hard = ((masked_u == umax) & valid).float()
+        denom = hard.sum(dim=1, keepdim=True).clamp_min(1.0)
+        n_valid = valid.float().sum(dim=1, keepdim=True)
+        # All-masked groups have n_valid = 0 and stay at weight 0.
+        return (hard / denom * n_valid).reshape(-1)
     if per_group_tau is not None:
         tau_vec = per_group_tau.detach().reshape(-1, 1).float()
         if tau_vec.numel() != utilities.shape[0]:

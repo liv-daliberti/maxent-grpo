@@ -382,8 +382,10 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError("semantic_entropy_lambda must be non-negative")
     if args.policy_entropy_coef < 0:
         raise ValueError("policy_entropy_coef must be non-negative")
-    if math.isnan(args.xdr_tau) or args.xdr_tau <= 0:
-        raise ValueError("xdr_tau must be positive (use inf to disable)")
+    if math.isnan(args.xdr_tau) or args.xdr_tau < 0:
+        raise ValueError(
+            "xdr_tau must be non-negative (0 = exact argmax limit; inf disables)"
+        )
     if math.isfinite(args.xdr_tau):
         if args.objective != "grpo":
             raise ValueError("finite xdr_tau requires objective=grpo")
@@ -394,8 +396,12 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "finite xdr_tau is incompatible with reinforce_update: the "
                 "xdr utilities assume the clipped Dr.GRPO surrogate"
             )
-    if getattr(args, "xdr_mode_adaptive", False) and not math.isfinite(args.xdr_tau):
-        raise ValueError("xdr_mode_adaptive requires a finite xdr_tau (tau0)")
+    if getattr(args, "xdr_mode_adaptive", False) and (
+        not math.isfinite(args.xdr_tau) or args.xdr_tau <= 0
+    ):
+        raise ValueError(
+            "xdr_mode_adaptive requires a finite positive xdr_tau (tau0)"
+        )
     if math.isnan(args.seed_entropy_alpha) or args.seed_entropy_alpha < 0:
         raise ValueError("seed_entropy_alpha must be non-negative")
     if args.seed_entropy_alpha > 0:
