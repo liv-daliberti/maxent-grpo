@@ -734,7 +734,7 @@ $-12.2$ points $[-15.9, -8.5]$, Holm $p<10^{-4}$; greedy flat), and
 $\tau=0.01$ a marginal one ($-3.3$, raw $p=0.04$, Holm n.s.), so the
 accuracy-neutral optimum sits at $\tau \approx 0.01$--$0.05$ rather than
 extending to the boundary as at 0.5B. A plausible mechanism is the tie
-structure of Section~\ref{sec:results}: 3B completions are longer, exact
+structure of Section~\ref{sec:dose-response}: 3B completions are longer, exact
 utility ties are rarer, and near-argmax weighting therefore concentrates
 harder than at 0.5B. By the ordered-prediction criterion of
 Section~\ref{sec:interpreting-current-run}, the $\tau=0.001$ point buys
@@ -798,6 +798,7 @@ signal, not a failure of the method on this pool. Lifting the floor itself
 appears to require interventions that create signal --- curricula, denser
 rewards, or larger groups --- after which candidate-level exploration can
 preserve what they find.
+
 
 \section{Discussion}
 \label{sec:discussion}
@@ -1559,15 +1560,16 @@ comparable. Figure~\ref{fig:exploration-sidecar} plots exactly these quantities.
     }}%
   }
   \caption{\textbf{Candidate-level exploration diagnostics at both scales.}
-  Effective number of active rollouts $\exp(H(a_x))$ (left; uniform aggregation
-  sits at the number of valid rollouts per group) and incorrect-mass share
-  (right) over training, on graph coloring at 0.5B with $G=16$ (top row) and in
-  the 3B replication with $G=32$ (bottom row). Lines are means over the three
-  training seeds, bands are seed min--max, computed from the realized
-  aggregation weights logged identically for every method. At both scales the
-  $\tau=0.05$ weights concentrate only mildly while spending consistently less
-  aggregation mass on incorrect candidates; the $\tau=0.25$ and SEED curves
-  coincide with the baseline's, matching their outcome estimates.}
+  Effective number of active rollouts $\exp(H(a_x))$ (left; uniform
+  aggregation sits at the number of valid rollouts per group) and
+  incorrect-mass share (right) over training, on graph coloring at 0.5B
+  with $G=16$ (top row) and in the 3B replication with $G=32$ (bottom
+  row). Lines are means over the three training seeds, bands seed
+  min--max, computed from the realized aggregation weights logged
+  identically for every method. At both scales the $\tau=0.05$ weights
+  concentrate only mildly while spending consistently less aggregation
+  mass on incorrect candidates; the $\tau=0.25$ and SEED curves coincide
+  with the baseline's, matching their outcome estimates.}
   \label{fig:exploration-sidecar}
 \end{figure}
 
