@@ -256,30 +256,30 @@ reinforcement alone can even preserve entropy \citep{zhu2025negative}, while neg
 gradients applied to \emph{low-probability} tokens are a documented entropy-collapsing and
 likelihood-displacing force whose selective attenuation helps
 \citep{park2025cliplow,huang2025lowprob,deng2025negativegrad}. Our reweighting acts at the
-candidate level rather than the token level, so we treat its net entropy effect as an
-empirical question --- Figure~\ref{fig:exploration-sidecar} measures it directly through the
-effective number of active rollouts and the incorrect-mass share, logged identically for
-every arm.
+candidate level rather than the token level, so we treat its net effect as an empirical
+question: Section~\ref{sec:results} tests the outcomes, and the training-time diagnostics
+of the realized aggregation weights --- the effective number of active rollouts and the
+incorrect-mass share, logged identically for every arm --- are reported in
+Appendix~\ref{app:implementation} (Figure~\ref{fig:exploration-sidecar}).
 
 \paragraph{The family, end to end.}
 The temperature interpolates between two known regimes:
 \begin{center}
 \begin{tabular}{@{}lll@{}}
 \toprule
-$\tau \to 0$ & $w^\star \to \mathbf{1}\{i = \argmax_i \Ubar_{x,i}\}$ & best-of-$G$ distillation (RAFT-style, \citealp{dong2023raft}) \\
+$\tau \to 0$ & $w^\star \to$ uniform on $\argmax_i \Ubar_{x,i}$ & argmax-set aggregation (best-of-$G$, RAFT-style, \citealp{dong2023raft}) \\
 $0 < \tau < \infty$ & tilted softmax over utilities & \textbf{xDr.GRPO} \\
 $\tau \to \infty$ & $w^\star \to \mathbf{u}$ & \textbf{Dr.GRPO} \\
 \bottomrule
 \end{tabular}
 \end{center}
-Our empirical claim is that the optimum lies in the \emph{interior}: rejection-sampling-style
-concentration discards the comparative signal that makes GRPO work, while uniform
-aggregation spends a fixed share of every update on negative candidates --- whether that
-degrades the sampled group is exactly what the diagnostics of
-Figure~\ref{fig:exploration-sidecar} test. Section~\ref{sec:experimental-design}
-tests this with a sweep over $\tau$ in which Dr.GRPO appears as the $\tau=\infty$ endpoint
-of the same family, run through the same launcher with the reweighting disabled
-(Remark~\ref{rem:frozen-weights}).
+Where in this family the optimum sits is an empirical question: aggressive concentration
+risks discarding the comparative signal that makes GRPO work, while uniform aggregation
+spends a fixed share of every update on negative candidates.
+Section~\ref{sec:results} sweeps $\tau$ end to end --- including the exact $\tau=0$
+boundary, computed in closed form over the argmax set --- with Dr.GRPO as the
+$\tau=\infty$ endpoint of the same family, run through the same launcher with the
+reweighting disabled (Remark~\ref{rem:frozen-weights}).
 
 \paragraph{Degenerate groups need no special handling.}
 If all sampled rewards are equal, then $A_{x,i}=0$ for all $i$, hence $\Ubar_{x,i}=0$,
@@ -287,28 +287,13 @@ $w^\star_x$ is uniform (or reference-tilted), and $\nabla_\theta\mathcal G_x=0$.
 prompts contribute no gradient automatically, matching Dr.GRPO's behavior; no
 prompt-skipping heuristic is required.
 
-\section{Compared Methods}
-\label{sec:quartet-methods}
-
-We organize the comparison around where exploration enters an otherwise shared GRPO-style training pipeline. The rollout interface, reward function, base model, reference model, and optimization budget are held fixed. The methods differ only in the ways they transform a prompt-local group of sampled completions into an update.
-
-\paragraph{\drgrpo.}
-\drgrpo is the scalar-weight baseline. It centers rewards within each prompt group, assigns each sampled completion a scalar advantage, and applies the clipped \drgrpo surrogate \citep{shao2024deepseekmath,liu2025understanding}. It therefore uses group-relative information, but collapses the group before optimization.
-
-\paragraph{\method.}
-\method is the candidate-level variant. It constructs a prompt-local weight distribution over the sampled completions and reweights each candidate's \drgrpo update by it. This method directly regularizes the object being compared inside GRPO: the set of sampled candidates for a prompt.
-
-\paragraph{\tokmaxdrgrpo.}
-Token-level MaxEnt keeps the \drgrpo backbone but adds the classic entropy bonus to the next-token objective \citep{williams1991entropy,mnih2016a3c}, encouraging locally higher-entropy token distributions during optimization; entropy-regularized token-level objectives for language agents pursue the same intuition through a soft-Bellman formulation \citep{wen2024etpo}. This approach tests whether token-level stochasticity alone can provide the same benefit as candidate-level exploration.
-
-\paragraph{\seeddrgrpo.}
-SEED-style \drgrpo preserves the clipped \drgrpo update but rescales prompt updates using semantic uncertainty, following semantic-entropy approaches that estimate uncertainty over answer meaning rather than over individual token choices \citep{chen2025seedgrpo,farquhar2024detecting}. This technique thus tests a prompt-level intervention.
-
-Together, these methods form a clean axis: no extra exploration beyond rollout sampling (\drgrpo), prompt-level uncertainty scaling (\seeddrgrpo), token-level entropy regularization (\tokmaxdrgrpo), and candidate-level distribution matching (\method). The main paired regression analysis focuses on the completed \drgrpo versus \method runs; the same regression specification extends directly to the full quartet by replacing the binary method indicator with method fixed effects.
-
 \section{Experimental Design}
 \label{sec:experimental-design}
 
+\paragraph{Compared methods.}
+The comparison is organized around \emph{where} exploration enters an otherwise shared GRPO-style pipeline: the rollout interface, reward function, base model, and optimization budget are held fixed, and the methods differ only in how a prompt-local group of sampled completions becomes an update. \drgrpo is the scalar-weight baseline --- clipped surrogate, uniform aggregation, the $\tau=\infty$ member of the family \citep{shao2024deepseekmath,liu2025understanding}. \method is the candidate-level variant, reweighting each candidate's \drgrpo update by the tempered group-local distribution of Equation~\ref{eq:xdr-closed-form}. \seeddrgrpo rescales whole prompts by semantic uncertainty, following semantic-entropy approaches that estimate uncertainty over answer meaning \citep{chen2025seedgrpo,farquhar2024detecting} --- a prompt-level intervention. \tokmaxdrgrpo adds the classic next-token entropy bonus to the same backbone \citep{williams1991entropy,mnih2016a3c}, the token-level intervention pursued by entropy-regularized objectives for language agents \citep{wen2024etpo}. Together they span a clean axis: no exploration beyond rollout sampling, prompt-level, token-level, and candidate-level. The main paired regression focuses on \drgrpo versus \method; the same specification extends to the full quartet by replacing the binary method indicator with method fixed effects.
+
+\paragraph{Testbed.}
 We evaluate \method in verifiable reasoning tasks with \emph{multiple valid solutions per prompt}. The testbed consists of two synthetic exact multi-answer domains, generated by exhaustive enumeration so that the full set of valid answers for every prompt is known.
 
 \paragraph{Countdown arithmetic.}
@@ -451,7 +436,7 @@ consequently part of the prediction, not a caveat to it; what the mechanism
 forbids is an accuracy price.
 
 The experiments test these predictions at two scales with distinct evidential
-roles: the 0.5B study (Section~\ref{sec:results}) is hypothesis-generating ---
+roles: the 0.5B study (Section~\ref{sec:results-05b}) is hypothesis-generating ---
 its pre-registered primary temperature was chosen badly, and its exploratory
 arms located the effective range --- while the 3B study
 (Section~\ref{sec:results-3b}) is confirmatory, with the primary temperature
@@ -461,51 +446,28 @@ under test is about the objective, not about frontier scale. Threats to
 validity and expected failure modes are cataloged in
 Appendix~\ref{app:threats}.
 
-\section{Results at the 0.5B Scale}
+\section{Results}
 \label{sec:results}
 
-Table~\ref{tab:descriptive} reports the raw per-domain accuracy and coverage of every
-arm, averaged over the $3\times 3$ seed grid; Table~\ref{tab:main-results} reports the
-pooled two-domain regression of Equation~\ref{eq:regression-main}: $4{,}032$
-prompt-level observations per arm pair, $224$ prompt clusters, with task-domain,
-training-seed, and evaluation-seed fixed effects. Descriptively, the \drgrpo baseline
+The two scales play the distinct evidential roles fixed in
+Section~\ref{sec:interpreting-current-run}: the 0.5B study generates the hypothesis ---
+its pre-registered primary temperature is null, and its exploratory arms locate the
+effective range --- and the 3B study confirms it under a primary fixed before any 3B run.
+We report them in that order, then characterize the effect's dose-response and its
+boundary.
+
+\subsection{Hypothesis Generation at 0.5B}
+\label{sec:results-05b}
+
+Table~\ref{tab:main-results} reports the pooled two-domain regression of
+Equation~\ref{eq:regression-main}: $4{,}032$ prompt-level observations per arm pair,
+$224$ prompt clusters, with task-domain, training-seed, and evaluation-seed fixed
+effects. (Raw per-domain accuracy and diversity levels for every arm, averaged over the
+$3\times 3$ seed grid, are in Table~\ref{tab:descriptive},
+Appendix~\ref{app:supplementary-results}.) Descriptively, the \drgrpo baseline
 solves many prompts (\texttt{pass@8} $0.40$ on Countdown, $0.65$ on graph coloring)
 while retaining only a small fraction of each prompt's valid answer set
 (\texttt{coverage@8} $\approx 0.12$ on both).
-
-\begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{4.5pt}
-  \begin{tabular}{@{}l cccc cccc@{}}
-    \toprule
-    & \multicolumn{4}{c}{\textbf{Countdown}} & \multicolumn{4}{c}{\textbf{Graph coloring}} \\
-    \cmidrule(lr){2-5} \cmidrule(l){6-9}
-    \textbf{Arm} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} \\
-    \midrule
-    Dr.GRPO                & .401 & .297 & .124 & .496 & .649 & .341 & .123 & .770 \\
-    xDr.GRPO $\tau{=}0.05$ & \textbf{.491} & .302 & \textbf{.175} & \textbf{.703} & \textbf{.713} & .316 & \textbf{.166} & \textbf{1.043} \\
-    xDr.GRPO $\tau{=}0.1$  & .435 & .300 & .149 & .589 & .626 & .331 & .126 & .791 \\
-    xDr.GRPO $\tau{=}0.25$ & .486 & \textbf{.313} & .160 & .652 & .630 & .340 & .126 & .784 \\
-    xDr.GRPO $\tau{=}0.5$  & .424 & .304 & .129 & .516 & .591 & .334 & .115 & .719 \\
-    xDr.GRPO $\tau{=}1$    & .412 & .311 & .131 & .516 & .601 & .335 & .115 & .730 \\
-    xDr.GRPO $\tau{=}2$    & .470 & .295 & .150 & .614 & .559 & \textbf{.343} & .112 & .691 \\
-    SEED-Dr.GRPO           & .378 & .296 & .121 & .473 & .634 & .339 & .124 & .788 \\
-    Token-MaxEnt Dr.GRPO   & .000 & .000 & .000 & .000 & .678 & .294 & .151 & .962 \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Descriptive accuracy and diversity by domain} (\texttt{pass@8},
-  \texttt{mean@8}, \texttt{coverage@8}, and \texttt{distinct@8}: distinct correct
-  modes per prompt; means over three training seeds $\times$ three evaluation seeds on
-  the held-out multi-answer splits; best per column in bold). These raw levels show
-  the size and direction of the observed differences; Table~\ref{tab:main-results}
-  tests which of them survive the matched-seed regression with clustered uncertainty.
-  Diversity appears in three views: unconditional \texttt{distinct@8} here and in the
-  regression ($+0.24$ modes at $\tau{=}0.05$, Holm $p<10^{-4}$), \texttt{coverage@8}
-  normalizing by each prompt's number of valid modes, and the conditional
-  per-solved-prompt view of Table~\ref{tab:conditional-diversity}.}
-  \label{tab:descriptive}
-\end{table}
 
 \paragraph{The pre-registered primary is null.}
 At the primary temperature $\tau=0.5$, every outcome is statistically flat
@@ -532,48 +494,20 @@ replication (Appendix~\ref{app:quartet-settings}); Section~\ref{sec:results-3b}
 reports that replication, which confirms the prediction.
 
 \paragraph{Not just more solutions --- more \emph{different} solutions.}
-The coverage gains decompose into two parts: solving more prompts, and producing
-genuinely different solutions on the prompts that are solved.
-Table~\ref{tab:conditional-diversity} conditions on the latter: among prompts an arm
-solves at \texttt{pass@8}, the \drgrpo baseline behaves close to one-way-per-prompt
-($1.24$ distinct modes on Countdown, $1.19$ on graph coloring; $77$--$82\%$ of its
-solved prompts show exactly one mode across all eight samples), while \method at
-$\tau=0.05$ produces $1.43$--$1.46$ distinct modes and finds two or more on $35$--$37\%$
-of solved prompts --- \emph{while also solving $\sim$20\% more prompts}. This
-conditional comparison is descriptive (arms solve different prompt sets, so we do not
-attach inference to it; the unconditional \texttt{distinct@8} and \texttt{coverage@8}
-in Table~\ref{tab:main-results} carry the statistics), but the selection runs
-\emph{against} the finding: the \method solved sets include harder marginal prompts,
-where diversity should if anything be lower. The token-entropy control on graph
-coloring reaches similar conditional diversity ($1.42$) at a large accuracy cost ---
-diversity via degeneracy rather than via credit assignment.
-
-\begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{5pt}
-  \begin{tabular}{@{}l cc cc@{}}
-    \toprule
-    & \multicolumn{2}{c}{\textbf{Countdown}} & \multicolumn{2}{c}{\textbf{Graph coloring}} \\
-    \cmidrule(lr){2-3} \cmidrule(l){4-5}
-    \textbf{Arm} & distinct/solved & $\ge 2$ modes & distinct/solved & $\ge 2$ modes \\
-    \midrule
-    Dr.GRPO                & 1.24 & 23\% & 1.19 & 18\% \\
-    xDr.GRPO $\tau{=}0.05$ & \textbf{1.43} & \textbf{35\%} & \textbf{1.46} & \textbf{37\%} \\
-    xDr.GRPO $\tau{=}0.25$ & 1.34 & 31\% & 1.24 & 22\% \\
-    SEED-Dr.GRPO           & 1.25 & 23\% & 1.24 & 21\% \\
-    Token-MaxEnt Dr.GRPO   & --   & --   & 1.42 & 34\% \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Conditional solution diversity} (0.5B): among prompts solved at
-  \texttt{pass@8}, the mean number of distinct canonical solution modes across the
-  eight samples, and the share of solved prompts with at least two distinct modes
-  (pooled over the $3\times 3$ seed grid; Token-MaxEnt solves no Countdown prompts).
-  Descriptive companion to Table~\ref{tab:main-results}: uniform aggregation converges
-  toward a single mode per prompt; tempered candidate-level aggregation retains
-  several.}
-  \label{tab:conditional-diversity}
-\end{table}
+The coverage gains decompose into solving more prompts and producing genuinely
+different solutions on the prompts that are solved. Conditioning on the latter
+(Table~\ref{tab:conditional-diversity}, Appendix~\ref{app:supplementary-results}):
+among prompts solved at \texttt{pass@8}, the \drgrpo baseline behaves close to
+one-way-per-prompt ($1.19$--$1.24$ distinct modes; $77$--$82\%$ of its solved prompts
+show exactly one mode across all eight samples), while \method at $\tau=0.05$ produces
+$1.43$--$1.46$ distinct modes and finds two or more on $35$--$37\%$ of solved prompts
+--- \emph{while also solving $\sim$20\% more prompts}. The conditional comparison is
+descriptive (arms solve different prompt sets; the unconditional \texttt{distinct@8}
+and \texttt{coverage@8} in Table~\ref{tab:main-results} carry the statistics), but the
+selection runs \emph{against} the finding, since the \method solved sets include harder
+marginal prompts. The token-entropy control on graph coloring reaches similar
+conditional diversity ($1.42$) at a large accuracy cost --- diversity via degeneracy
+rather than via credit assignment.
 
 \paragraph{Where exploration enters determines whether it works.}
 The prompt-level arm (\seeddrgrpo) is indistinguishable from the baseline on every
@@ -584,104 +518,6 @@ is unchanged. The token-level arm (\tokmaxdrgrpo) is significantly \emph{harmful
 all $p<10^{-4}$), driven by degenerate policies on Countdown. Among the three places an
 exploration regularizer can act, only the candidate level moved coverage, and only the
 candidate level did so without an accuracy cost.
-
-\paragraph{Mechanism.}
-Figure~\ref{fig:exploration-sidecar} shows the training-time diagnostics. The
-$\tau=0.05$ weights concentrate only mildly (effective active rollouts
-$\approx 15$ of $G=16$) --- tempered aggregation at the best-performing temperature is a
-small asymmetric perturbation of uniform weighting, not a drift toward best-of-$G$ ---
-while spending consistently less aggregation mass on incorrect candidates than the
-baseline, the attenuation mechanism of Section~\ref{sec:where-exploration}(iii).
-
-\begin{figure}[t]
-  \centering
-  % Generated by ops/plot_exploration_sidecar.py from the per-step
-  % train_metrics.jsonl each learner writes (one row of panels per
-  % --stamp-prefix); falls back to a placeholder until rendered.
-  \IfFileExists{figures/exploration_sidecar.pdf}{%
-    \includegraphics[width=\linewidth]{figures/exploration_sidecar}%
-  }{%
-    \fbox{\parbox[c][0.32\linewidth][c]{0.9\linewidth}{\centering
-      \texttt{[pending: run ops/plot\_exploration\_sidecar.py on a}\\
-      \texttt{training round that wrote train\_metrics.jsonl]}
-    }}%
-  }
-  \caption{\textbf{Candidate-level exploration diagnostics at both scales.} Effective
-  number of active rollouts $\exp(H(a_x))$ (left; uniform aggregation sits at the number
-  of valid rollouts per group) and incorrect-mass share (right) over training, on graph
-  coloring at 0.5B with $G=16$ (top row) and in the 3B replication with $G=32$ (bottom
-  row). Lines are means over the three training seeds, bands are seed min--max, and both
-  quantities are computed from the realized aggregation weights logged identically for
-  every method. At both scales the $\tau=0.05$ weights concentrate only mildly while
-  spending consistently less aggregation mass on incorrect candidates; the $\tau=0.25$
-  and SEED curves coincide with the baseline's, matching their outcome estimates.}
-  \label{fig:exploration-sidecar}
-\end{figure}
-
-\paragraph{A finer dose-response, and where the useful range comes from.}
-The grid above stops at $\tau=0.05$, its best point, which raises the question of
-what lies below. A follow-up round on Countdown extends the sweep to
-$\tau\in\{0.0001, 0.001, 0.01, 0.02, 0.03, 0.04\}$ \emph{and to the family's
-boundary member} $\tau=0$ --- exact argmax-set aggregation, computed in closed
-form rather than through the softmax --- under the identical protocol (new
-matched \drgrpo baseline, three training seeds, three evaluation seeds; all arms
-exploratory, Holm-adjusted). Figure~\ref{fig:dose-response} plots both rounds.
-The effect keeps \emph{growing} as $\tau$ falls and then plateaus: at $\tau=0.01$,
-\texttt{pass@8} $+15.2$ points $[10.8, 19.6]$, \texttt{coverage@8} $+6.6$
-$[4.9, 8.3]$, \texttt{distinct@8} $+0.28$ $[0.21, 0.35]$ (all Holm
-$p<10^{-4}$, run-robust) --- roughly double the $\tau=0.05$ effect --- with
-\texttt{mean@8} ($-0.2$, $p=0.88$) and greedy \texttt{pass@1} flat; $\tau=0.001$
-is statistically indistinguishable (\texttt{pass@8} $+16.4$ $[11.5, 21.3]$). The
-plateau extends to the boundary itself: exact argmax-set weighting ($\tau=0$)
-retains \texttt{pass@8} $+12.4$ $[7.3, 17.6]$, \texttt{coverage@8} $+4.4$, and
-\texttt{distinct@8} $+0.18$ at dead-flat \texttt{mean@8} ($+0.1$, $p=0.94$),
-with $\tau=0.0001$ matching it. There is no cliff anywhere on the axis: every
-member of the family, from near-uniform to exact argmax, buys coverage without
-an accuracy price. Both the location of the rise and the saturation are the
-behavior Appendix~\ref{app:tau-range} predicts: with $|A| \cdot T_i/T_{\max}$
-utilities and short completions, the within-group utility spread is
-$\mathcal{O}(10^{-2})$, so temperatures of that order are where reweighting
-becomes substantive, and once $\tau$ falls well below the spread the softmax
-saturates toward the argmax-set limit --- exact utility ties (identical
-advantage and length) keep even $\tau=0$ spreading weight over several
-candidates per group, which is why the boundary holds no degeneracy. Two honest
-wrinkles: $\tau=0.02$ shows a significant \texttt{mean@8} cost ($-3.7$ points
-$[-5.4, -1.9]$, Holm $p=2\times 10^{-4}$) although both neighbors are flat, and
-$\tau=0.04$ dips (\texttt{pass@8} $+2.4$, n.s.), so the curve is noisy at the
-transition between regimes; we report the envelope, not a smoothed trend.
-
-\paragraph{Mode-adaptive tempering.}
-Fixing $\tau$ requires knowing the utility scale in advance. Classical maximum-entropy
-methods set the temperature from the size of the action space; the natural analogue
-here is to set it from the \emph{observed} answer-mode structure. In the
-\emph{mode-adaptive} arm the temperature is per-prompt,
-$\tau_x = \tau_0 / \log(1+\kappa_x)$, where $\kappa_x$ is the number of distinct
-correct canonical modes observed in the prompt's own rollout group and $\tau_0=0.05$
-(the pre-registered 3B primary); prompts whose groups reveal more distinct solutions
-get sharper tempering, and prompts with $\kappa_x \le 1$ fall back to $\tau_0$. With
-no per-task tuning, this arm recovers a significant share of the effect ---
-\texttt{pass@8} $+5.7$ $[1.7, 9.7]$ (Holm $p=0.01$), \texttt{coverage@8} $+3.8$
-$[2.2, 5.4]$, \texttt{distinct@8} $+0.16$, flat greedy --- but remains weaker than a
-well-chosen fixed temperature and its run-clustered robustness is borderline
-($p_{\text{run}}=0.05$ for \texttt{pass@8}). We read it as a usable no-tuning
-default, not a replacement for the tuned value.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/dose_response}
-  \caption{\textbf{Dose-response of candidate-level tempering} (0.5B Countdown,
-  multi-answer split): treatment effect vs.\ \drgrpo with 95\% prompt-clustered CIs,
-  for \texttt{pass@8} (left) and \texttt{coverage@8} (right). Filled markers: the
-  fine round ($\tau \le 0.04$); open markers: the original grid ($\tau \ge 0.05$);
-  each round is estimated against its own matched baseline under the identical
-  protocol. The diamond shows the mode-adaptive arm ($\tau_x = \tau_0/\log(1+\kappa_x)$,
-  no fixed abscissa); the open square is the family's boundary member
-  $\tau=0$, exact argmax-set aggregation. Effects grow with tempering strength
-  and plateau below $\tau \approx 0.01$; the plateau extends through
-  $\tau=0.0001$ to exact $\tau=0$ with no accuracy cost anywhere on the axis.
-  The dashed line marks zero.}
-  \label{fig:dose-response}
-\end{figure}
 
 \begin{table}[t]
   \centering
@@ -717,7 +553,54 @@ default, not a replacement for the tuned value.
   \label{tab:main-results}
 \end{table}
 
-\section{Results at the 3B Scale: a Pre-Registered Replication}
+
+\subsection{Dose-Response of Tempering}
+\label{sec:dose-response}
+
+A follow-up round on 0.5B Countdown maps the full temperature axis: it adds
+$\tau\in\{0.0001, 0.001, 0.01, 0.02, 0.03, 0.04\}$, the family's boundary
+member $\tau=0$ (exact argmax-set aggregation, computed in closed form), and a
+\emph{mode-adaptive} arm ($\tau_x = \tau_0/\log(1+\kappa_x)$ with $\kappa_x$
+the distinct correct modes observed in the prompt's own rollout group,
+$\tau_0=0.05$), each with a fresh matched baseline, three training seeds, and
+three evaluation seeds (all exploratory, Holm-adjusted). The top row of
+Figure~\ref{fig:dose-response} shows the result: effects rise as $\tau$ falls,
+plateau at $\tau=0.01$--$0.001$ (\texttt{pass@8} $+15.2$ $[10.8, 19.6]$ and
+$+16.4$ $[11.5, 21.3]$; \texttt{coverage@8} $+6.6$; all Holm $p<10^{-4}$,
+run-robust) at flat \texttt{mean@8}, and hold through exact $\tau=0$
+(\texttt{pass@8} $+12.4$ $[7.3, 17.6]$, \texttt{mean@8} $+0.1$, $p=0.94$):
+at 0.5B there is no cliff anywhere on the axis, because exact utility ties
+(identical advantage and length) keep even argmax-set weighting spread over
+several candidates per group. Both the location of the rise and the saturation
+match the utility-spread argument of Appendix~\ref{app:tau-range}. Two honest
+wrinkles: $\tau=0.02$ shows a significant \texttt{mean@8} cost ($-3.7$
+$[-5.4, -1.9]$, Holm $p=2\times 10^{-4}$) though both neighbors are flat, and
+$\tau=0.04$ dips (n.s.); we report the envelope, not a smoothed trend. The
+no-tuning mode-adaptive arm recovers roughly half the tuned effect
+(\texttt{pass@8} $+5.7$ $[1.7, 9.7]$, Holm $p=0.01$; run-robustness borderline,
+$p_{\text{run}}=0.05$) --- a usable default, not a replacement. The 3B sweep
+(bottom row) is taken up in Section~\ref{sec:results-3b}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/dose_response}
+  \caption{\textbf{Dose-response of candidate-level tempering at both scales}
+  (multi-answer splits): treatment effect vs.\ \drgrpo with 95\% prompt-clustered
+  CIs, for \texttt{pass@8} (left) and \texttt{coverage@8} (right).
+  \textbf{Top row:} 0.5B Countdown --- filled markers: same-round arms; open
+  markers: earlier-round arms; each round is estimated against its own matched
+  baseline; the open square is exact argmax-set aggregation ($\tau=0$) and the
+  diamond the mode-adaptive arm (no fixed abscissa). \textbf{Bottom row:} the 3B
+  graph-coloring sweep. Both scales show the same shape --- a rise to a plateau
+  below $\tau\approx 0.01$ --- with larger amplitudes at 3B. At 0.5B the plateau
+  extends through exact $\tau=0$ with no accuracy cost; at 3B the extreme end
+  trades \texttt{mean@8} for coverage (Section~\ref{sec:results-3b}), so the
+  accuracy-neutral optimum sits at $\tau\approx 0.01$--$0.05$. Dashed lines mark
+  zero.}
+  \label{fig:dose-response}
+\end{figure}
+
+\subsection{Pre-Registered Confirmation at 3B}
 \label{sec:results-3b}
 
 The 0.5B study left one committed prediction on the table: $\tau=0.05$, fixed as the
@@ -750,7 +633,8 @@ clusters.
     \bottomrule
   \end{tabular}
   \caption{\textbf{Descriptive accuracy and diversity by domain at 3B} (same metrics
-  and $3\times 3$ seed grid as Table~\ref{tab:descriptive}; best graph-coloring value
+  and $3\times 3$ seed grid as the 0.5B Table~\ref{tab:descriptive} of
+  Appendix~\ref{app:supplementary-results}; best graph-coloring value
   per column in bold). The four-number Countdown pool sits near its one-epoch
   learnability floor for every arm (\texttt{pass@8} $\le .082$), so no per-column best
   is highlighted there; graph coloring is where the 3B policy has traction, and where
@@ -833,18 +717,41 @@ prompts by semantic uncertainty leaves the within-group comparison untouched but
 down-weights exactly the multi-modal prompts where the group carries the most
 information. The intermediate temperature $\tau=0.25$ shows intermediate effects
 ($+2.3$ points \texttt{pass@8}, $+1.6$ coverage, both Holm-significant), preserving
-the monotone dose-response of the 0.5B grid.
+the monotone dose-response of the 0.5B grid (Section~\ref{sec:dose-response}).
 
-\paragraph{The mechanism, unchanged at scale.}
-The bottom row of Figure~\ref{fig:exploration-sidecar} shows the training-time
-diagnostics on the 3B graph-coloring grid ($G=32$), directly under their 0.5B
-counterparts. The picture is the same: the $\tau=0.05$ weights keep roughly $30$
-of $32$ rollouts effectively active --- a small asymmetric perturbation of uniform
-aggregation, not a drift toward best-of-$G$ --- while spending consistently less
-aggregation mass on incorrect candidates than every uniform-weight arm throughout
-training, the attenuation mechanism of
-Section~\ref{sec:where-exploration}(iii). The $\tau=0.25$ and SEED curves
-coincide with the baseline's, matching their null-to-harmful outcome estimates.
+\paragraph{The full dose-response at 3B.}
+A follow-up sweep on graph coloring ($\tau \in \{0.001, 0.01, 1\}$, three seeds
+each, exploratory with Holm adjustment; Figure~\ref{fig:dose-response}, bottom
+row) fills in the curve, and the 0.5B shape replicates at roughly twice the
+amplitude: effects rise to a plateau at $\tau = 0.01$--$0.001$
+(\texttt{pass@8} $+22.9$ $[19.0, 26.8]$ and $+21.6$ $[17.6, 25.5]$;
+\texttt{coverage@8} $+14.0$ and $+14.7$; \texttt{distinct@8} $+0.83$ and
+$+0.89$; all Holm $p<10^{-4}$, run-robust), decline through $\tau=0.25$, and
+bounce mildly at $\tau=1$ ($+7.9$). One scale difference matters, and we flag
+it rather than average it away: \emph{at 3B the extreme end is no longer free}.
+$\tau=0.001$ pays a significant per-sample accuracy cost (\texttt{mean@8}
+$-12.2$ points $[-15.9, -8.5]$, Holm $p<10^{-4}$; greedy flat), and
+$\tau=0.01$ a marginal one ($-3.3$, raw $p=0.04$, Holm n.s.), so the
+accuracy-neutral optimum sits at $\tau \approx 0.01$--$0.05$ rather than
+extending to the boundary as at 0.5B. A plausible mechanism is the tie
+structure of Section~\ref{sec:results}: 3B completions are longer, exact
+utility ties are rarer, and near-argmax weighting therefore concentrates
+harder than at 0.5B. By the ordered-prediction criterion of
+Section~\ref{sec:interpreting-current-run}, the $\tau=0.001$ point buys
+coverage \emph{with} accuracy and is reported as lying past the mechanism's
+accuracy-neutral range at this scale.
+
+\paragraph{The mechanism, unchanged across scales.}
+The training-time diagnostics --- computed from the realized aggregation weights,
+logged identically for every arm at both scales --- show the same picture at 0.5B
+($G=16$) and 3B ($G=32$): the $\tau=0.05$ weights concentrate only mildly, keeping
+roughly $15$ of $16$ and $30$ of $32$ rollouts effectively active --- a small
+asymmetric perturbation of uniform aggregation, not a drift toward best-of-$G$ ---
+while spending consistently less aggregation mass on incorrect candidates than every
+uniform-weight arm throughout training, the attenuation mechanism of
+Section~\ref{sec:where-exploration}(iii). The $\tau=0.25$ and SEED curves coincide
+with the baseline's, matching their null-to-harmful outcome estimates
+(Figure~\ref{fig:exploration-sidecar}, Appendix~\ref{app:implementation}).
 
 \paragraph{A single-answer guardrail.}
 On the graph-coloring \emph{single-mode} control split, where diversity has no
@@ -1642,6 +1549,29 @@ so its curves coincide with the baseline's by construction), and the tempered so
 weights for xDr.GRPO --- and logs them under a shared key, so the curves are directly
 comparable. Figure~\ref{fig:exploration-sidecar} plots exactly these quantities.
 
+\begin{figure}[h]
+  \centering
+  \IfFileExists{figures/exploration_sidecar.pdf}{%
+    \includegraphics[width=\linewidth]{figures/exploration_sidecar}%
+  }{%
+    \fbox{\parbox[c][0.32\linewidth][c]{0.9\linewidth}{\centering
+      \texttt{[pending: run ops/plot\_exploration\_sidecar.py]}
+    }}%
+  }
+  \caption{\textbf{Candidate-level exploration diagnostics at both scales.}
+  Effective number of active rollouts $\exp(H(a_x))$ (left; uniform aggregation
+  sits at the number of valid rollouts per group) and incorrect-mass share
+  (right) over training, on graph coloring at 0.5B with $G=16$ (top row) and in
+  the 3B replication with $G=32$ (bottom row). Lines are means over the three
+  training seeds, bands are seed min--max, computed from the realized
+  aggregation weights logged identically for every method. At both scales the
+  $\tau=0.05$ weights concentrate only mildly while spending consistently less
+  aggregation mass on incorrect candidates; the $\tau=0.25$ and SEED curves
+  coincide with the baseline's, matching their outcome estimates.}
+  \label{fig:exploration-sidecar}
+\end{figure}
+
+
 \paragraph{Regression-ready logging.}
 For each evaluation we log the method, $\tau$, training seed, evaluation seed, task
 domain, prompt identifier, sampled-completion index, the normalized predicted answer and
@@ -1650,6 +1580,78 @@ This yields the observation-level table
 required by Equation~\ref{eq:regression-main}. Aggregate accuracy and coverage tables are
 derived from
 the same records, so the descriptive and regression results are guaranteed to agree.
+
+% =====================================================================
+\section{Supplementary Results}
+\label{app:supplementary-results}
+
+The descriptive per-domain accuracy and diversity levels of every 0.5B arm,
+and the conditional per-solved-prompt diversity comparison, referenced from
+Section~\ref{sec:results-05b}.
+
+\begin{table}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4.5pt}
+  \begin{tabular}{@{}l cccc cccc@{}}
+    \toprule
+    & \multicolumn{4}{c}{\textbf{Countdown}} & \multicolumn{4}{c}{\textbf{Graph coloring}} \\
+    \cmidrule(lr){2-5} \cmidrule(l){6-9}
+    \textbf{Arm} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} \\
+    \midrule
+    Dr.GRPO                & .401 & .297 & .124 & .496 & .649 & .341 & .123 & .770 \\
+    xDr.GRPO $\tau{=}0.05$ & \textbf{.491} & .302 & \textbf{.175} & \textbf{.703} & \textbf{.713} & .316 & \textbf{.166} & \textbf{1.043} \\
+    xDr.GRPO $\tau{=}0.1$  & .435 & .300 & .149 & .589 & .626 & .331 & .126 & .791 \\
+    xDr.GRPO $\tau{=}0.25$ & .486 & \textbf{.313} & .160 & .652 & .630 & .340 & .126 & .784 \\
+    xDr.GRPO $\tau{=}0.5$  & .424 & .304 & .129 & .516 & .591 & .334 & .115 & .719 \\
+    xDr.GRPO $\tau{=}1$    & .412 & .311 & .131 & .516 & .601 & .335 & .115 & .730 \\
+    xDr.GRPO $\tau{=}2$    & .470 & .295 & .150 & .614 & .559 & \textbf{.343} & .112 & .691 \\
+    SEED-Dr.GRPO           & .378 & .296 & .121 & .473 & .634 & .339 & .124 & .788 \\
+    Token-MaxEnt Dr.GRPO   & .000 & .000 & .000 & .000 & .678 & .294 & .151 & .962 \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Descriptive accuracy and diversity by domain} (\texttt{pass@8},
+  \texttt{mean@8}, \texttt{coverage@8}, and \texttt{distinct@8}: distinct correct
+  modes per prompt; means over three training seeds $\times$ three evaluation seeds on
+  the held-out multi-answer splits; best per column in bold). These raw levels show
+  the size and direction of the observed differences; Table~\ref{tab:main-results}
+  tests which of them survive the matched-seed regression with clustered uncertainty.
+  Diversity appears in three views: unconditional \texttt{distinct@8} here and in the
+  regression ($+0.24$ modes at $\tau{=}0.05$, Holm $p<10^{-4}$), \texttt{coverage@8}
+  normalizing by each prompt's number of valid modes, and the conditional
+  per-solved-prompt view of Table~\ref{tab:conditional-diversity}.}
+  \label{tab:descriptive}
+\end{table}
+
+
+\begin{table}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}l cc cc@{}}
+    \toprule
+    & \multicolumn{2}{c}{\textbf{Countdown}} & \multicolumn{2}{c}{\textbf{Graph coloring}} \\
+    \cmidrule(lr){2-3} \cmidrule(l){4-5}
+    \textbf{Arm} & distinct/solved & $\ge 2$ modes & distinct/solved & $\ge 2$ modes \\
+    \midrule
+    Dr.GRPO                & 1.24 & 23\% & 1.19 & 18\% \\
+    xDr.GRPO $\tau{=}0.05$ & \textbf{1.43} & \textbf{35\%} & \textbf{1.46} & \textbf{37\%} \\
+    xDr.GRPO $\tau{=}0.25$ & 1.34 & 31\% & 1.24 & 22\% \\
+    SEED-Dr.GRPO           & 1.25 & 23\% & 1.24 & 21\% \\
+    Token-MaxEnt Dr.GRPO   & --   & --   & 1.42 & 34\% \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Conditional solution diversity} (0.5B): among prompts solved at
+  \texttt{pass@8}, the mean number of distinct canonical solution modes across the
+  eight samples, and the share of solved prompts with at least two distinct modes
+  (pooled over the $3\times 3$ seed grid; Token-MaxEnt solves no Countdown prompts).
+  Descriptive companion to Table~\ref{tab:main-results}: uniform aggregation converges
+  toward a single mode per prompt; tempered candidate-level aggregation retains
+  several.}
+  \label{tab:conditional-diversity}
+\end{table}
+
+
 
 % =====================================================================
 \section{Threats to Validity and Expected Failure Modes}
