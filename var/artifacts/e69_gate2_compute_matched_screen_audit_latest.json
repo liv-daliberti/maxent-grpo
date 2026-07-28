@@ -1,7 +1,10 @@
 {
   "curves": {
     "math_dev": {
-      "grpo": {}
+      "grpo": {},
+      "verified_entropy_gated_singleton_escape_canonical": {},
+      "verified_first_global_replay_canonical": {},
+      "verified_route_successor": {}
     },
     "mathir": {
       "grpo": {
@@ -50,7 +53,7 @@
     "graph_coloring/verified_entropy_gated_singleton_escape_canonical/job30159715: run directory absent",
     "graph_coloring/verified_first_global_replay_canonical/job30159714: run directory absent",
     "graph_coloring/verified_route_successor/job30159716: run directory absent",
-    "math_dev/grpo/job30159729: latest step 1/2304",
+    "math_dev/grpo/job30159729: latest step 58/2304",
     "math_dev/grpo/job30159729: missing evaluation pass 0",
     "math_dev/grpo/job30159729: missing evaluation pass 1",
     "math_dev/grpo/job30159729: missing evaluation pass 2",
@@ -58,29 +61,36 @@
     "math_dev/grpo/job30159729: missing evaluation pass 4",
     "math_dev/grpo/job30159729: missing evaluation pass 5",
     "math_dev/grpo/job30159729: missing evaluation pass 6",
-    "math_dev/verified_first_global_replay_canonical/job30159730: run directory absent",
-    "mathir/grpo/job30159725: latest step 3/2304",
+    "math_dev/verified_first_global_replay_canonical/job30160101: latest step 1/2304",
+    "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 0",
+    "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 1",
+    "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 2",
+    "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 3",
+    "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 4",
+    "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 5",
+    "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 6",
+    "mathir/grpo/job30159725: latest step 215/2304",
     "mathir/grpo/job30159725: missing evaluation pass 1",
     "mathir/grpo/job30159725: missing evaluation pass 2",
     "mathir/grpo/job30159725: missing evaluation pass 3",
     "mathir/grpo/job30159725: missing evaluation pass 4",
     "mathir/grpo/job30159725: missing evaluation pass 5",
     "mathir/grpo/job30159725: missing evaluation pass 6",
-    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: latest step 4/2304",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: latest step 213/2304",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 1",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 2",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 3",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 4",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 5",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 6",
-    "mathir/verified_first_global_replay_canonical/job30159726: latest step 3/2304",
+    "mathir/verified_first_global_replay_canonical/job30159726: latest step 210/2304",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 1",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 2",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 3",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 4",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 5",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 6",
-    "mathir/verified_route_successor/job30159728: latest step 4/2304",
+    "mathir/verified_route_successor/job30159728: latest step 216/2304",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 1",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 2",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 3",
@@ -98,6 +108,8 @@
       "domain": "countdown",
       "job_id": 30159717,
       "run_dir": null,
+      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -105,6 +117,8 @@
       "domain": "countdown",
       "job_id": 30159718,
       "run_dir": null,
+      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -112,6 +126,8 @@
       "domain": "countdown",
       "job_id": 30159719,
       "run_dir": null,
+      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -119,6 +135,8 @@
       "domain": "countdown",
       "job_id": 30159720,
       "run_dir": null,
+      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -126,6 +144,8 @@
       "domain": "graph_coloring",
       "job_id": 30159713,
       "run_dir": null,
+      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -133,6 +153,8 @@
       "domain": "graph_coloring",
       "job_id": 30159714,
       "run_dir": null,
+      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -140,6 +162,8 @@
       "domain": "graph_coloring",
       "job_id": 30159715,
       "run_dir": null,
+      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -147,6 +171,8 @@
       "domain": "graph_coloring",
       "job_id": 30159716,
       "run_dir": null,
+      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -155,6 +181,32 @@
       "evaluations": {},
       "job_id": 30159729,
       "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_mde69_gate2_compute_matched_05b_6pass_grpo_s43/debug_job30159729",
+      "run_stamp": "mde69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "seed": 43,
+      "terminal": false,
+      "training": {
+        "fixed_control_charged_response_tokens": 2850816,
+        "fixed_control_groups": 174,
+        "fixed_control_realized_prompt_tokens": 267456,
+        "fixed_control_realized_response_tokens": 2093433,
+        "fixed_control_rows": 2784,
+        "latest_step": 58,
+        "records": 58,
+        "replay_charged_response_tokens": 950272,
+        "replay_realized_prompt_tokens": 4349,
+        "replay_realized_response_tokens": 22794,
+        "replay_records": 56,
+        "route_terminal": {}
+      }
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "domain": "math_dev",
+      "evaluations": {},
+      "job_id": 30160101,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_mde69_gate2_math_endpoint_repair_verified_first_global_replay_canonical_s43/debug_job30160101",
+      "run_stamp": "mde69_gate2_math_endpoint_repair_verified_first_global_replay_canonical_s43",
+      "seed": 43,
       "terminal": false,
       "training": {
         "fixed_control_charged_response_tokens": 49152,
@@ -172,13 +224,6 @@
       }
     },
     {
-      "arm": "verified_first_global_replay_canonical",
-      "domain": "math_dev",
-      "job_id": 30159730,
-      "run_dir": null,
-      "terminal": false
-    },
-    {
       "arm": "grpo",
       "domain": "mathir",
       "evaluations": {
@@ -191,19 +236,21 @@
       },
       "job_id": 30159725,
       "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_mie69_gate2_compute_matched_05b_6pass_grpo_s43/debug_job30159725",
+      "run_stamp": "mie69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 9216,
-        "fixed_control_groups": 9,
-        "fixed_control_realized_prompt_tokens": 27312,
-        "fixed_control_realized_response_tokens": 1982,
-        "fixed_control_rows": 144,
-        "latest_step": 3,
-        "records": 3,
-        "replay_charged_response_tokens": 3072,
-        "replay_realized_prompt_tokens": 0,
-        "replay_realized_response_tokens": 0,
-        "replay_records": 0,
+        "fixed_control_charged_response_tokens": 660480,
+        "fixed_control_groups": 645,
+        "fixed_control_realized_prompt_tokens": 1985232,
+        "fixed_control_realized_response_tokens": 112821,
+        "fixed_control_rows": 10320,
+        "latest_step": 215,
+        "records": 215,
+        "replay_charged_response_tokens": 220160,
+        "replay_realized_prompt_tokens": 44081,
+        "replay_realized_response_tokens": 956,
+        "replay_records": 211,
         "route_terminal": {}
       }
     },
@@ -220,19 +267,21 @@
       },
       "job_id": 30159726,
       "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_mie69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43/debug_job30159726",
+      "run_stamp": "mie69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+      "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 9216,
-        "fixed_control_groups": 9,
-        "fixed_control_realized_prompt_tokens": 27312,
-        "fixed_control_realized_response_tokens": 1982,
-        "fixed_control_rows": 144,
-        "latest_step": 3,
-        "records": 3,
-        "replay_charged_response_tokens": 3072,
-        "replay_realized_prompt_tokens": 0,
-        "replay_realized_response_tokens": 0,
-        "replay_records": 0,
+        "fixed_control_charged_response_tokens": 645120,
+        "fixed_control_groups": 630,
+        "fixed_control_realized_prompt_tokens": 1938864,
+        "fixed_control_realized_response_tokens": 88105,
+        "fixed_control_rows": 10080,
+        "latest_step": 210,
+        "records": 210,
+        "replay_charged_response_tokens": 215040,
+        "replay_realized_prompt_tokens": 42087,
+        "replay_realized_response_tokens": 892,
+        "replay_records": 206,
         "route_terminal": {}
       }
     },
@@ -249,19 +298,21 @@
       },
       "job_id": 30159727,
       "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_entropy_gated_singleton_escape_canonical_mie69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43/debug_job30159727",
+      "run_stamp": "mie69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+      "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 12288,
-        "fixed_control_groups": 12,
-        "fixed_control_realized_prompt_tokens": 36912,
-        "fixed_control_realized_response_tokens": 2561,
-        "fixed_control_rows": 192,
-        "latest_step": 4,
-        "records": 4,
-        "replay_charged_response_tokens": 4096,
-        "replay_realized_prompt_tokens": 0,
-        "replay_realized_response_tokens": 0,
-        "replay_records": 0,
+        "fixed_control_charged_response_tokens": 654336,
+        "fixed_control_groups": 639,
+        "fixed_control_realized_prompt_tokens": 1966848,
+        "fixed_control_realized_response_tokens": 88974,
+        "fixed_control_rows": 10224,
+        "latest_step": 213,
+        "records": 213,
+        "replay_charged_response_tokens": 218112,
+        "replay_realized_prompt_tokens": 42840,
+        "replay_realized_response_tokens": 908,
+        "replay_records": 209,
         "route_terminal": {}
       }
     },
@@ -278,22 +329,24 @@
       },
       "job_id": 30159728,
       "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_route_successor_mie69_gate2_compute_matched_05b_6pass_verified_route_successor_s43/debug_job30159728",
+      "run_stamp": "mie69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+      "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 12288,
-        "fixed_control_groups": 12,
-        "fixed_control_realized_prompt_tokens": 36912,
-        "fixed_control_realized_response_tokens": 1211,
-        "fixed_control_rows": 192,
-        "latest_step": 4,
-        "records": 4,
-        "replay_charged_response_tokens": 4096,
-        "replay_realized_prompt_tokens": 0,
-        "replay_realized_response_tokens": 0,
-        "replay_records": 0,
+        "fixed_control_charged_response_tokens": 663552,
+        "fixed_control_groups": 648,
+        "fixed_control_realized_prompt_tokens": 1994064,
+        "fixed_control_realized_response_tokens": 46074,
+        "fixed_control_rows": 10368,
+        "latest_step": 216,
+        "records": 216,
+        "replay_charged_response_tokens": 221184,
+        "replay_realized_prompt_tokens": 40306,
+        "replay_realized_response_tokens": 852,
+        "replay_records": 212,
         "route_terminal": {
-          "cross_prompt_replay_groups": 0.0,
-          "cross_prompt_replay_updates": 0.0,
+          "cross_prompt_replay_groups": 200.0,
+          "cross_prompt_replay_updates": 200.0,
           "post_replay_cross_prompt_neutral_reproductions": 0.0,
           "proposal_graduations": 0.0
         }
@@ -304,6 +357,8 @@
       "domain": "python_factor",
       "job_id": 30159721,
       "run_dir": null,
+      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -311,6 +366,8 @@
       "domain": "python_factor",
       "job_id": 30159722,
       "run_dir": null,
+      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -318,6 +375,8 @@
       "domain": "python_factor",
       "job_id": 30159723,
       "run_dir": null,
+      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+      "seed": 43,
       "terminal": false
     },
     {
@@ -325,13 +384,24 @@
       "domain": "python_factor",
       "job_id": 30159724,
       "run_dir": null,
+      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+      "seed": 43,
       "terminal": false
+    }
+  ],
+  "repairs": [
+    {
+      "attempt_selection": "exclude_invalid_preoptimizer_job_use_exact_replacement",
+      "identity": "/n/fs/similarity/maxent-grpo/var/artifacts/e69_gate2_math_endpoint_repair_identity.json",
+      "identity_sha256": "c3856ebd21194570f39b2c0717f2b7f779f329dc6ba2056de752398812502ecf",
+      "invalid_job_id": 30159730,
+      "replacement_job_id": 30160101
     }
   ],
   "route_terminal": {
     "mathir": {
-      "cross_prompt_replay_groups": 0.0,
-      "cross_prompt_replay_updates": 0.0,
+      "cross_prompt_replay_groups": 200.0,
+      "cross_prompt_replay_updates": 200.0,
       "post_replay_cross_prompt_neutral_reproductions": 0.0,
       "proposal_graduations": 0.0
     }
@@ -342,7 +412,7 @@
     "expected_physical_runs": 18,
     "integrity_violations": 0,
     "observed_physical_runs": 18,
-    "pending_items": 49,
+    "pending_items": 56,
     "terminal_physical_runs": 0
   },
   "violations": []

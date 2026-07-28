@@ -447,3 +447,20 @@ def test_e69_gate2_math_endpoint_repair_is_single_preoptimizer_correction():
         '"terminal_outcomes_observed_before_repair": False',
     ):
         assert literal in launcher
+
+    gate2_audit = (
+        ROOT / "ops/route_successor/audit_e69_gate2_screen.py"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "e69_gate2_math_endpoint_repair_identity.json",
+        "excluded Gate 2 job unexpectedly has a run directory",
+        'jobs["math_dev"][matches[0]] = replacement',
+        '"repairs": repairs',
+    ):
+        assert literal in gate2_audit
+
+    gate3_launcher = (
+        ROOT / "ops/route_successor/launch_e69_gate3_confirmatory.sh"
+    ).read_text(encoding="utf-8")
+    assert 'for row in gate2_audit["physical_runs"]' in gate3_launcher
+    assert '"run_stamp": row["run_stamp"]' in gate3_launcher

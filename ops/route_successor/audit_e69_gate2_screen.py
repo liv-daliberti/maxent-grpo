@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import hashlib
 import json
 import math
 import os
@@ -17,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 IDENTITY = ROOT / "var/artifacts/e69_gate2_compute_matched_screen_identity.json"
 OUT_JSON = ROOT / "var/artifacts/e69_gate2_compute_matched_screen_audit_latest.json"
 OUT_MD = ROOT / "paper/results/e69_gate2_compute_matched_screen_live.md"
+REPAIR_IDENTITY = (
+    ROOT / "var/artifacts/e69_gate2_math_endpoint_repair_identity.json"
+)
 PASSES = (0, 1, 2, 3, 4, 5, 6)
 POOL_SIZE = {
     "graph_coloring": 192,
@@ -73,6 +77,75 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
         json.dump(payload, handle, indent=2, sort_keys=True)
         handle.write("\n")
     os.replace(temporary, path)
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _effective_jobs(
+    identity: dict[str, Any],
+) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]], list[str]]:
+    """Resolve prospectively recorded pre-optimizer job replacements."""
+
+    jobs = {
+        domain: [dict(row) for row in rows]
+        for domain, rows in identity["jobs"].items()
+    }
+    repairs: list[dict[str, Any]] = []
+    violations: list[str] = []
+    if not REPAIR_IDENTITY.is_file():
+        return jobs, repairs, violations
+    repair = json.loads(REPAIR_IDENTITY.read_text(encoding="utf-8"))
+    if (
+        repair.get("schema")
+        != "e69_gate2_math_endpoint_startup_repair_v1"
+        or repair.get("original_identity_sha256") != _sha256(IDENTITY)
+        or repair.get("invalid_job", {}).get("job_id") != 30159730
+        or repair.get("invalid_job", {}).get("optimizer_records") != 0
+        or repair.get("terminal_outcomes_observed_before_repair") is not False
+    ):
+        violations.append("E69 Gate 2 MATH endpoint repair identity mismatch")
+        return jobs, repairs, violations
+    replacement = dict(repair["replacement"])
+    if (
+        replacement.get("arm") != ENDPOINT
+        or int(replacement.get("seed", -1)) != 43
+    ):
+        violations.append("E69 Gate 2 MATH endpoint replacement cell mismatch")
+        return jobs, repairs, violations
+    matches = [
+        index
+        for index, row in enumerate(jobs["math_dev"])
+        if int(row["job_id"]) == 30159730
+    ]
+    if len(matches) != 1:
+        violations.append("E69 Gate 2 invalid MATH endpoint cell is not unique")
+        return jobs, repairs, violations
+    original = jobs["math_dev"][matches[0]]
+    if _run_dir(str(original["run_stamp"]), int(original["job_id"])) is not None:
+        violations.append("excluded Gate 2 job unexpectedly has a run directory")
+        return jobs, repairs, violations
+    failure_log = ROOT / "var/artifacts/logs/xdr_train-30159730.err"
+    failure_text = (
+        failure_log.read_text(encoding="utf-8", errors="replace")
+        if failure_log.is_file()
+        else ""
+    )
+    if str(repair["invalid_job"]["failure"]) not in failure_text:
+        violations.append("excluded Gate 2 job failure signature is absent")
+        return jobs, repairs, violations
+    jobs["math_dev"][matches[0]] = replacement
+    repairs.append(
+        {
+            "invalid_job_id": 30159730,
+            "replacement_job_id": int(replacement["job_id"]),
+            "identity": str(REPAIR_IDENTITY.resolve()),
+            "identity_sha256": _sha256(REPAIR_IDENTITY),
+            "attempt_selection": repair["attempt_selection"],
+        }
+    )
+    return jobs, repairs, violations
 
 
 def _run_dir(run_stamp: str, job_id: int) -> Path | None:
@@ -422,6 +495,14 @@ def _write_markdown(payload: dict[str, Any]) -> None:
         lines.extend(["", "## Frozen gate checks", ""])
         for name, passed in payload["outcome_gate"]["checks"].items():
             lines.append(f"- {'PASS' if passed else 'FAIL'} — {name}")
+    if payload.get("repairs"):
+        lines.extend(["", "## Pre-optimizer infrastructure repair", ""])
+        for repair in payload["repairs"]:
+            lines.append(
+                f"- Excluded job {repair['invalid_job_id']} and used exact "
+                f"replacement job {repair['replacement_job_id']} under the "
+                "prospectively recorded startup-repair identity."
+            )
     if payload.get("pending"):
         lines.extend(["", "## Pending", ""])
         lines.extend(f"- {value}" for value in payload["pending"])
@@ -444,7 +525,9 @@ def main() -> None:
     physical_runs: list[dict[str, Any]] = []
     curves: dict[str, dict[str, dict[int, dict[str, float]]]] = defaultdict(dict)
     route_terminal: dict[str, dict[str, float]] = {}
-    for domain, jobs in identity["jobs"].items():
+    effective_jobs, repairs, repair_violations = _effective_jobs(identity)
+    violations.extend(repair_violations)
+    for domain, jobs in effective_jobs.items():
         expected_step = POOL_SIZE[domain] * 6
         response_limit = 1024 if domain == "math_dev" else (
             64 if domain == "mathir" else 192
@@ -460,7 +543,9 @@ def main() -> None:
                     {
                         "domain": domain,
                         "arm": arm,
+                        "seed": int(job["seed"]),
                         "job_id": job_id,
+                        "run_stamp": str(job["run_stamp"]),
                         "run_dir": None,
                         "terminal": False,
                     }
@@ -508,7 +593,9 @@ def main() -> None:
                 {
                     "domain": domain,
                     "arm": arm,
+                    "seed": int(job["seed"]),
                     "job_id": job_id,
+                    "run_stamp": str(job["run_stamp"]),
                     "run_dir": str(run_dir.resolve()),
                     "terminal": terminal,
                     "training": training,
@@ -562,6 +649,7 @@ def main() -> None:
             for domain, arms in curves.items()
         },
         "route_terminal": route_terminal,
+        "repairs": repairs,
         "outcome_gate": outcome_gate,
         "pending": sorted(set(pending)),
         "violations": sorted(set(violations)),

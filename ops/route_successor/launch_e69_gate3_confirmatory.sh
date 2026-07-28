@@ -154,6 +154,14 @@ def digest(raw):
 
 identity_path = pathlib.Path(sys.argv[1])
 gate2 = json.loads(pathlib.Path(sys.argv[4]).read_text(encoding="utf-8"))
+gate2_audit = json.loads(pathlib.Path(sys.argv[5]).read_text(encoding="utf-8"))
+if (
+    gate2.get("schema") != "e69_gate2_compute_matched_screen_v1"
+    or
+    gate2_audit.get("status") != "pass"
+    or gate2_audit.get("summary", {}).get("integrity_violations") != 0
+):
+    raise SystemExit("Gate 3 identity requires a clean passing Gate 2 audit")
 domains = ("graph_coloring", "countdown", "python_factor", "mathir", "math_dev")
 manifests = [pathlib.Path(raw) for raw in sys.argv[12:17]]
 jobs = {}
@@ -168,11 +176,22 @@ for domain, manifest in zip(domains, manifests):
         else "verified_route_successor"
     )
     wanted = {"grpo", successor}
-    reused = [
-        row
-        for row in gate2["jobs"][domain]
-        if int(row["seed"]) == 43 and row["arm"] in wanted
-    ]
+    reused = []
+    for row in gate2_audit["physical_runs"]:
+        if (
+            row["domain"] == domain
+            and int(row.get("seed", 43)) == 43
+            and row["arm"] in wanted
+            and row.get("terminal") is True
+        ):
+            reused.append(
+                {
+                    "arm": row["arm"],
+                    "seed": 43,
+                    "job_id": int(row["job_id"]),
+                    "run_stamp": row["run_stamp"],
+                }
+            )
     if len(reused) != 2:
         raise SystemExit(f"{domain} does not have exactly two reusable seed-43 jobs")
     new = [
