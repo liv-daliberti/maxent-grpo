@@ -9,7 +9,10 @@ from oat_drgrpo.math_route import (
     validate_math_route_response,
     validate_math_route_trace,
 )
-from oat_drgrpo.math_grader import validated_math_route_signature
+from oat_drgrpo.math_grader import (
+    validated_exploration_identity,
+    validated_math_route_signature,
+)
 
 
 def _trace(steps, final):
@@ -141,10 +144,13 @@ def test_route_block_must_be_unique_and_valid_json():
     validation = validate_math_route_response(response, "What is 10 percent?")
     assert validation is not None
     assert validation.terminal_value == Fraction(1, 10)
-    assert validate_math_route_response(
-        response + f"<route>{trace}</route>",
-        "What is 10 percent?",
-    ) is None
+    assert (
+        validate_math_route_response(
+            response + f"<route>{trace}</route>",
+            "What is 10 percent?",
+        )
+        is None
+    )
 
 
 def test_route_admission_requires_task_reward_and_terminal_answer_agreement():
@@ -173,9 +179,7 @@ def test_route_admission_requires_task_reward_and_terminal_answer_agreement():
         )
     )
 
-    accepted = (
-        f"<route>{correct_trace}</route> Therefore the answer is \\\\boxed{{13}}"
-    )
+    accepted = f"<route>{correct_trace}</route> Therefore the answer is \\\\boxed{{13}}"
     mismatched = (
         f"<route>{wrong_terminal_trace}</route> Therefore the answer is \\\\boxed{{13}}"
     )
@@ -187,3 +191,51 @@ def test_route_admission_requires_task_reward_and_terminal_answer_agreement():
     assert signature is not None
     assert validated_math_route_signature(mismatched, problem, "13") is None
     assert validated_math_route_signature(task_wrong, problem, "13") is None
+
+
+def test_correct_answer_without_route_keeps_endpoint_but_has_no_route_key():
+    response = r"The answer is \boxed{8}."
+    identity = validated_exploration_identity(
+        response,
+        "What is 2 plus 6?",
+        "8",
+        fast=True,
+    )
+
+    assert identity is not None
+    assert identity.verifier == "math_verify"
+    assert identity.endpoint_key == "math-answer:8"
+    assert identity.route_signature is None
+
+
+def test_actor_task_verdict_can_be_reused_without_weakening_route_execution():
+    problem = "What is 2 plus 6?"
+    valid = (
+        r"\boxed{8}"
+        '<route>{"version":"math-route-v1","steps":['
+        '{"id":"s1","op":"source","value":"2"},'
+        '{"id":"s2","op":"source","value":"6"},'
+        '{"id":"s3","op":"add","args":["s1","s2"]}],'
+        '"final":"s3"}</route>'
+    )
+    identity = validated_exploration_identity(
+        valid,
+        problem,
+        "not consulted",
+        fast=True,
+        task_verified=True,
+    )
+    assert identity is not None
+    assert identity.endpoint_key == "math-answer:8"
+    assert identity.route_signature == "math-route:math-route-v1:add(input,input)"
+
+    wrong_trace = valid.replace('"value":"6"', '"value":"7"')
+    wrong_identity = validated_exploration_identity(
+        wrong_trace,
+        problem,
+        "not consulted",
+        fast=True,
+        task_verified=True,
+    )
+    assert wrong_identity is not None
+    assert wrong_identity.route_signature is None

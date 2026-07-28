@@ -65,9 +65,7 @@ class ZeroMathArgs(PPOArgs):
     # formulation: at each sampled response state it maximizes entropy over
     # non-EOS content tokens, does not importance-differentiate state
     # visitation, and averages within each response before averaging rows.
-    maxent_objective: Literal[
-        "sequence", "conditional_token_mean"
-    ] = "sequence"
+    maxent_objective: Literal["sequence", "conditional_token_mean"] = "sequence"
     maxent_control_target_ratio: float = 0.0
     maxent_control_target_entropy: float = 0.0
     maxent_control_warmup_steps: int = 64
@@ -243,7 +241,15 @@ class ZeroMathArgs(PPOArgs):
         "modebench_outcome",
         "math_verified_answer",
         "math_strategy_qwen72",
+        "verified_route",
     ] = "modebench_outcome"
+    # E69 maintains a prompt-local endpoint bank plus a separate global route
+    # library. Routes replay only after independent neutral reproduction on at
+    # least this many prompts. Proposal admission is support-only and must pass
+    # an anchor-relative mean-token-log-probability trust check.
+    verified_route_replay_capacity_per_route: int = 16
+    verified_route_recurring_min_neutral_prompts: int = 2
+    verified_route_proposal_max_mean_logprob_drop: float = 2.0
     # ``math_verified_answer`` is an external-validity track, not a
     # multi-mode strategy claim. The ordinary MATH verifier maps every
     # reward-positive solution for a prompt to one shared ``correct`` outcome.
@@ -326,12 +332,12 @@ def resolve_canonical_action_task(args: ZeroMathArgs) -> str:
 
     requested = str(getattr(args, "canonical_action_task", "none"))
     if requested not in {"none", "graph_coloring", "countdown"}:
-        raise ValueError("canonical_action_task must be none, graph_coloring, or countdown")
+        raise ValueError(
+            "canonical_action_task must be none, graph_coloring, or countdown"
+        )
     legacy_graph = bool(getattr(args, "canonical_graph_actions", False))
     if legacy_graph and requested not in {"none", "graph_coloring"}:
-        raise ValueError(
-            "canonical_graph_actions conflicts with canonical_action_task"
-        )
+        raise ValueError("canonical_graph_actions conflicts with canonical_action_task")
     return "graph_coloring" if legacy_graph else requested
 
 
@@ -381,9 +387,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             )
     maxent_objective = str(getattr(args, "maxent_objective", "sequence"))
     if maxent_objective not in {"sequence", "conditional_token_mean"}:
-        raise ValueError(
-            "maxent_objective must be sequence or conditional_token_mean"
-        )
+        raise ValueError("maxent_objective must be sequence or conditional_token_mean")
     diayn_num_options = int(getattr(args, "diayn_num_options", 0) or 0)
     diayn_beta = float(getattr(args, "diayn_mi_beta", 0.0) or 0.0)
     if diayn_num_options < 0:
@@ -392,24 +396,18 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError("diayn_mi_beta must be finite and non-negative")
     if diayn_num_options <= 1 and diayn_beta > 0:
         raise ValueError("diayn_mi_beta requires diayn_num_options > 1")
-    outcome_collision_coef = float(
-        getattr(args, "outcome_collision_coef", 0.0) or 0.0
-    )
+    outcome_collision_coef = float(getattr(args, "outcome_collision_coef", 0.0) or 0.0)
     outcome_collision_outside_centering = bool(
         getattr(args, "outcome_collision_outside_centering", False)
     )
     if not math.isfinite(outcome_collision_coef) or outcome_collision_coef < 0:
-        raise ValueError(
-            "outcome_collision_coef must be finite and non-negative"
-        )
+        raise ValueError("outcome_collision_coef must be finite and non-negative")
     if outcome_collision_outside_centering and outcome_collision_coef <= 0:
         raise ValueError(
             "outcome_collision_outside_centering requires a positive "
             "outcome_collision_coef"
         )
-    semantic_shannon_coef = float(
-        getattr(args, "semantic_shannon_coef", 0.0) or 0.0
-    )
+    semantic_shannon_coef = float(getattr(args, "semantic_shannon_coef", 0.0) or 0.0)
     semantic_shannon_surprisal_clip = float(
         getattr(args, "semantic_shannon_surprisal_clip", 5.0)
     )
@@ -500,9 +498,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             0.9,
         )
     )
-    online_canonical_replay = bool(
-        getattr(args, "online_canonical_replay", False)
-    )
+    online_canonical_replay = bool(getattr(args, "online_canonical_replay", False))
     online_canonical_replay_alpha = float(
         getattr(args, "online_canonical_replay_alpha", 0.1)
     )
@@ -576,6 +572,15 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     online_canonical_key_mode = str(
         getattr(args, "online_canonical_key_mode", "modebench_outcome")
     )
+    verified_route_replay_capacity_per_route = int(
+        getattr(args, "verified_route_replay_capacity_per_route", 16)
+    )
+    verified_route_recurring_min_neutral_prompts = int(
+        getattr(args, "verified_route_recurring_min_neutral_prompts", 2)
+    )
+    verified_route_proposal_max_mean_logprob_drop = float(
+        getattr(args, "verified_route_proposal_max_mean_logprob_drop", 2.0)
+    )
     math_strategy_gate_task_reward = bool(
         getattr(args, "math_strategy_gate_task_reward", False)
     )
@@ -583,8 +588,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         getattr(args, "math_strategy_allow_unstructured_inference", False)
     )
     online_canonical_bank_active = (
-        online_canonical_bank_alpha > 0.0
-        or online_canonical_novelty_beta > 0.0
+        online_canonical_bank_alpha > 0.0 or online_canonical_novelty_beta > 0.0
     )
     online_canonical_objective_active = (
         online_canonical_bank_active or online_canonical_replay
@@ -610,9 +614,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         math.isnan(online_canonical_dual_max_alpha)
         or online_canonical_dual_max_alpha <= 0
     ):
-        raise ValueError(
-            "online_canonical_dual_max_alpha must be positive or +inf"
-        )
+        raise ValueError("online_canonical_dual_max_alpha must be positive or +inf")
     if (
         not math.isfinite(online_canonical_dual_target_ratio)
         or not 0 <= online_canonical_dual_target_ratio <= 1
@@ -624,9 +626,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         not math.isfinite(online_canonical_dual_ema_decay)
         or not 0 <= online_canonical_dual_ema_decay < 1
     ):
-        raise ValueError(
-            "online_canonical_dual_ema_decay must be finite and in [0, 1)"
-        )
+        raise ValueError("online_canonical_dual_ema_decay must be finite and in [0, 1)")
     if online_canonical_policy_entropy_warmup_steps <= 0:
         raise ValueError(
             "online_canonical_policy_entropy_warmup_steps must be positive"
@@ -636,16 +636,13 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         or not 0 <= online_canonical_policy_entropy_ema_decay < 1
     ):
         raise ValueError(
-            "online_canonical_policy_entropy_ema_decay must be finite and "
-            "in [0, 1)"
+            "online_canonical_policy_entropy_ema_decay must be finite and in [0, 1)"
         )
     if (
         not math.isfinite(online_canonical_replay_alpha)
         or online_canonical_replay_alpha <= 0
     ):
-        raise ValueError(
-            "online_canonical_replay_alpha must be finite and positive"
-        )
+        raise ValueError("online_canonical_replay_alpha must be finite and positive")
     if online_canonical_replay_objective not in {
         "bank_balance",
         "verified_likelihood",
@@ -658,22 +655,16 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "split_mass_balance_per_rollout"
         )
     if online_canonical_replay_warmup_steps <= 0:
-        raise ValueError(
-            "online_canonical_replay_warmup_steps must be positive"
-        )
+        raise ValueError("online_canonical_replay_warmup_steps must be positive")
     if online_canonical_replay_capacity < 2:
-        raise ValueError(
-            "online_canonical_replay_capacity must be at least two"
-        )
+        raise ValueError("online_canonical_replay_capacity must be at least two")
     if online_canonical_replay_global_groups_per_step < 0:
         raise ValueError(
-            "online_canonical_replay_global_groups_per_step must be "
-            "non-negative"
+            "online_canonical_replay_global_groups_per_step must be non-negative"
         )
     if online_canonical_replay_global_bootstrap_steps < 0:
         raise ValueError(
-            "online_canonical_replay_global_bootstrap_steps must be "
-            "non-negative"
+            "online_canonical_replay_global_bootstrap_steps must be non-negative"
         )
     if (
         online_canonical_replay_global_groups_per_step > 0
@@ -705,16 +696,13 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "online_canonical_replay_mass_alpha must be finite and positive"
         )
     if online_canonical_replay_mass_warmup_steps <= 0:
-        raise ValueError(
-            "online_canonical_replay_mass_warmup_steps must be positive"
-        )
+        raise ValueError("online_canonical_replay_mass_warmup_steps must be positive")
     if (
         not math.isfinite(online_canonical_replay_mass_ema_decay)
         or not 0 <= online_canonical_replay_mass_ema_decay < 1
     ):
         raise ValueError(
-            "online_canonical_replay_mass_ema_decay must be finite and "
-            "in [0, 1)"
+            "online_canonical_replay_mass_ema_decay must be finite and in [0, 1)"
         )
     if online_canonical_counterfactual_anchor_max_tokens <= 0:
         raise ValueError(
@@ -739,9 +727,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         )
     )
     if (
-        not math.isfinite(
-            online_canonical_counterfactual_sampling_temperature
-        )
+        not math.isfinite(online_canonical_counterfactual_sampling_temperature)
         or online_canonical_counterfactual_sampling_temperature <= 0
     ):
         raise ValueError(
@@ -756,31 +742,31 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         if online_canonical_key_mode not in {
             "modebench_outcome",
             "math_verified_answer",
+            "verified_route",
         }:
             raise ValueError(
                 "online canonical replay currently requires "
                 "online_canonical_key_mode=modebench_outcome or "
-                "math_verified_answer"
+                "math_verified_answer or verified_route"
             )
     if online_canonical_counterfactual_proposals:
         if not online_canonical_replay:
             raise ValueError(
                 "counterfactual canonical proposals require canonical replay"
             )
-        if online_canonical_key_mode != "modebench_outcome":
+        if online_canonical_key_mode not in {
+            "modebench_outcome",
+            "verified_route",
+        }:
             raise ValueError(
                 "counterfactual canonical proposals require executable "
-                "ModeBench outcome keys"
+                "ModeBench outcome keys or verified route identities"
             )
         if (
-            online_canonical_bank_alpha != 0.0
-            or online_canonical_novelty_beta != 0.0
-        ) and not (
-            online_canonical_counterfactual_separate_objective_support
-        ):
+            online_canonical_bank_alpha != 0.0 or online_canonical_novelty_beta != 0.0
+        ) and not (online_canonical_counterfactual_separate_objective_support):
             raise ValueError(
-                "proposal support cannot feed an on-policy "
-                "canonical-bank advantage"
+                "proposal support cannot feed an on-policy canonical-bank advantage"
             )
         if not bool(getattr(args, "online_evaluation", False)):
             raise ValueError(
@@ -793,9 +779,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         )
     if online_canonical_counterfactual_singleton_entropy_gate:
         if not online_canonical_counterfactual_proposals:
-            raise ValueError(
-                "singleton entropy gate requires counterfactual proposals"
-            )
+            raise ValueError("singleton entropy gate requires counterfactual proposals")
         if not semantic_shannon_open_set_inverse_adaptation:
             raise ValueError(
                 "singleton entropy gate requires model-derived open-set "
@@ -809,9 +793,8 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "canonical policy-entropy adaptation and Haarnoja dual control "
             "are separate treatments"
         )
-    if (
-        online_canonical_policy_entropy_adaptation
-        and bool(getattr(args, "maxent_inverse_adaptation", False))
+    if online_canonical_policy_entropy_adaptation and bool(
+        getattr(args, "maxent_inverse_adaptation", False)
     ):
         raise ValueError(
             "direct inverse MaxEnt and canonical policy-entropy adaptation "
@@ -820,8 +803,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     if online_canonical_policy_entropy_adaptation:
         if not online_canonical_bank_active or online_canonical_bank_alpha <= 0:
             raise ValueError(
-                "canonical policy-entropy adaptation requires a positive "
-                "bank alpha"
+                "canonical policy-entropy adaptation requires a positive bank alpha"
             )
     if online_canonical_dual_target_ratio > 0:
         if not online_canonical_bank_active or online_canonical_bank_alpha <= 0:
@@ -840,11 +822,79 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         "modebench_outcome",
         "math_verified_answer",
         "math_strategy_qwen72",
+        "verified_route",
     }:
         raise ValueError(
             "online_canonical_key_mode must be modebench_outcome, "
-            "math_verified_answer, or math_strategy_qwen72"
+            "math_verified_answer, math_strategy_qwen72, or verified_route"
         )
+    if verified_route_replay_capacity_per_route <= 0:
+        raise ValueError("verified_route_replay_capacity_per_route must be positive")
+    if verified_route_recurring_min_neutral_prompts < 2:
+        raise ValueError(
+            "verified_route_recurring_min_neutral_prompts must be at least two"
+        )
+    if (
+        not math.isfinite(verified_route_proposal_max_mean_logprob_drop)
+        or verified_route_proposal_max_mean_logprob_drop < 0
+    ):
+        raise ValueError(
+            "verified_route_proposal_max_mean_logprob_drop must be finite and "
+            "non-negative"
+        )
+    if online_canonical_key_mode == "verified_route":
+        modebench_contract = (
+            args.prompt_template == "qwen_boxed"
+            and args.verifier_version == "fast"
+            and args.test_split == "multi_answer"
+        )
+        math_route_contract = (
+            args.prompt_template == "qwen_math_route"
+            and args.verifier_version == "math_verify"
+            and args.test_split == "math_dev"
+        )
+        if not (modebench_contract or math_route_contract):
+            raise ValueError(
+                "verified-route mode requires either executable ModeBench "
+                "(qwen_boxed, fast, multi_answer) or sealed route-development "
+                "MATH (qwen_math_route, math_verify, math_dev)"
+            )
+        if online_canonical_bank_alpha != 0.0 or online_canonical_novelty_beta != 0.0:
+            raise ValueError(
+                "verified-route neutral learning keeps canonical advantages "
+                "at zero and uses conservative replay only"
+            )
+        if online_canonical_counterfactual_proposals and not (
+            online_canonical_counterfactual_separate_objective_support
+        ):
+            raise ValueError(
+                "verified-route proposals require a separate support store"
+            )
+        if online_canonical_counterfactual_proposals and not math.isclose(
+            online_canonical_counterfactual_sampling_temperature,
+            float(args.temperature),
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "verified-route proposal and neutral temperatures must match "
+                "for the anchor-relative likelihood trust check"
+            )
+        if online_canonical_replay:
+            if online_canonical_replay_objective != ("verified_likelihood_per_rollout"):
+                raise ValueError(
+                    "verified-route replay requires verified_likelihood_per_rollout"
+                )
+            if online_canonical_replay_global_groups_per_step != 1:
+                raise ValueError(
+                    "verified-route replay requires exactly one fixed-budget "
+                    "global replay group per optimizer update"
+                )
+            if online_canonical_replay_global_bootstrap_steps != 0:
+                raise ValueError(
+                    "verified-route replay does not use a finite endpoint "
+                    "bootstrap phase"
+                )
     if math_strategy_gate_task_reward:
         if online_canonical_key_mode != "math_strategy_qwen72":
             raise ValueError(
@@ -865,9 +915,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         )
     if online_canonical_objective_active:
         if args.critic_type != "drgrpo":
-            raise ValueError(
-                "online canonical bank requires critic_type=drgrpo"
-            )
+            raise ValueError("online canonical bank requires critic_type=drgrpo")
         if online_canonical_key_mode == "modebench_outcome":
             if (
                 args.prompt_template != "qwen_boxed"
@@ -891,7 +939,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                     "prompt_template=qwen_math, "
                     "verifier_version=math_verify, and test_split=math"
                 )
-        elif (
+        elif online_canonical_key_mode == "math_strategy_qwen72" and (
             args.prompt_template != "qwen_math"
             or args.verifier_version != "math_verify"
             or args.test_split != "math"
@@ -907,9 +955,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         or math_strategy_gate_task_reward
     ):
         if not str(getattr(args, "math_strategy_endpoint", "")).strip():
-            raise ValueError(
-                "math_strategy_qwen72 requires math_strategy_endpoint"
-            )
+            raise ValueError("math_strategy_qwen72 requires math_strategy_endpoint")
         if int(getattr(args, "math_strategy_timeout_seconds", 600)) <= 0:
             raise ValueError("math_strategy_timeout_seconds must be positive")
         if int(getattr(args, "math_strategy_workers", 4)) <= 0:
@@ -917,27 +963,18 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         if int(getattr(args, "math_strategy_max_item_chars", 4000)) < 600:
             raise ValueError("math_strategy_max_item_chars must be at least 600")
     if not math.isfinite(semantic_shannon_coef) or semantic_shannon_coef < 0:
-        raise ValueError(
-            "semantic_shannon_coef must be finite and non-negative"
-        )
+        raise ValueError("semantic_shannon_coef must be finite and non-negative")
     if (
         not math.isfinite(semantic_shannon_surprisal_clip)
         or semantic_shannon_surprisal_clip <= 0
     ):
-        raise ValueError(
-            "semantic_shannon_surprisal_clip must be finite and positive"
-        )
+        raise ValueError("semantic_shannon_surprisal_clip must be finite and positive")
     if (
         not math.isfinite(semantic_shannon_pseudocount)
         or semantic_shannon_pseudocount <= 0
     ):
-        raise ValueError(
-            "semantic_shannon_pseudocount must be finite and positive"
-        )
-    if (
-        semantic_shannon_separate_advantage
-        and semantic_shannon_coef <= 0
-    ):
+        raise ValueError("semantic_shannon_pseudocount must be finite and positive")
+    if semantic_shannon_separate_advantage and semantic_shannon_coef <= 0:
         raise ValueError(
             "semantic_shannon_separate_advantage requires a positive "
             "semantic_shannon_coef"
@@ -994,9 +1031,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "success-conditioned signed semantic advantage"
         )
     if semantic_shannon_open_set_warmup_steps <= 0:
-        raise ValueError(
-            "semantic_shannon_open_set_warmup_steps must be positive"
-        )
+        raise ValueError("semantic_shannon_open_set_warmup_steps must be positive")
     if (
         not math.isfinite(semantic_shannon_open_set_ema_decay)
         or not 0 <= semantic_shannon_open_set_ema_decay < 1
@@ -1008,10 +1043,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         getattr(args, "xdr_task_advantage_weights", False)
     )
     if xdr_task_advantage_weights:
-        if (
-            not math.isfinite(float(args.xdr_tau))
-            or float(args.xdr_tau) <= 0
-        ):
+        if not math.isfinite(float(args.xdr_tau)) or float(args.xdr_tau) <= 0:
             raise ValueError(
                 "xdr_task_advantage_weights requires a finite positive xdr_tau"
             )
@@ -1028,8 +1060,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     if outcome_collision_coef > 0:
         if semantic_shannon_coef > 0:
             raise ValueError(
-                "outcome-collision and semantic Shannon shaping are "
-                "separate treatments"
+                "outcome-collision and semantic Shannon shaping are separate treatments"
             )
         if diayn_num_options > 1:
             raise ValueError(
@@ -1079,10 +1110,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             raise ValueError(
                 "semantic Shannon shaping and token entropy are separate treatments"
             )
-        if (
-            math.isfinite(float(args.xdr_tau))
-            and not xdr_task_advantage_weights
-        ):
+        if math.isfinite(float(args.xdr_tau)) and not xdr_task_advantage_weights:
             raise ValueError(
                 "semantic Shannon shaping and signed-surrogate xDr are "
                 "separate treatments"
@@ -1091,13 +1119,9 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         open_set_split_replay_composition = (
             semantic_shannon_open_set_inverse_adaptation
             and online_canonical_replay
-            and online_canonical_replay_objective
-            == "split_mass_balance_per_rollout"
+            and online_canonical_replay_objective == "split_mass_balance_per_rollout"
         )
-        if (
-            semantic_shannon_coef > 0
-            and not open_set_split_replay_composition
-        ):
+        if semantic_shannon_coef > 0 and not open_set_split_replay_composition:
             raise ValueError(
                 "online canonical bank and semantic Shannon are separate "
                 "treatments except for open-set semantic inverse adaptation "
@@ -1108,9 +1132,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "online canonical bank and outcome collision are separate treatments"
             )
         if diayn_num_options > 1:
-            raise ValueError(
-                "online canonical bank and DIAYN are separate treatments"
-            )
+            raise ValueError("online canonical bank and DIAYN are separate treatments")
         inverse_fixed_canonical_hybrid = (
             bool(getattr(args, "maxent_inverse_adaptation", False))
             and str(getattr(args, "maxent_objective", "sequence"))
@@ -1125,9 +1147,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "a fixed canonical coefficient"
             )
         if float(args.seed_entropy_alpha) > 0:
-            raise ValueError(
-                "online canonical bank and SEED are separate treatments"
-            )
+            raise ValueError("online canonical bank and SEED are separate treatments")
         if float(args.policy_entropy_coef) > 0:
             raise ValueError(
                 "online canonical bank and token entropy are separate treatments"
@@ -1144,9 +1164,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "DIAYN answer-option MI and direct MaxEnt are separate treatments"
             )
         if float(args.seed_entropy_alpha) > 0:
-            raise ValueError(
-                "DIAYN answer-option MI and SEED are separate treatments"
-            )
+            raise ValueError("DIAYN answer-option MI and SEED are separate treatments")
         if float(args.policy_entropy_coef) > 0:
             raise ValueError(
                 "DIAYN answer-option MI and token-entropy control are separate treatments"
@@ -1185,9 +1203,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     canonical_graph_actions = canonical_task == "graph_coloring"
     canonical_action_count = int(args.canonical_graph_action_count)
     canonical_learner_sampling = bool(args.canonical_graph_learner_sampling)
-    canonical_fixed_shape_sampling = bool(
-        args.canonical_graph_fixed_shape_sampling
-    )
+    canonical_fixed_shape_sampling = bool(args.canonical_graph_fixed_shape_sampling)
     replicated_freeform_sampling = bool(args.replicated_freeform_sampling)
     if replicated_freeform_sampling:
         if canonical_actions:
@@ -1196,12 +1212,9 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             )
         if int(args.rollout_batch_size_per_device) != 1:
             raise ValueError(
-                "replicated free-form sampling requires "
-                "rollout_batch_size_per_device=1"
+                "replicated free-form sampling requires rollout_batch_size_per_device=1"
             )
-        if int(args.num_gpus_per_actor) <= 1 and not bool(
-            args.local_actor_weight_sync
-        ):
+        if int(args.num_gpus_per_actor) <= 1 and not bool(args.local_actor_weight_sync):
             raise ValueError(
                 "replicated free-form sampling requires a multi-GPU actor or "
                 "local_actor_weight_sync"
@@ -1218,27 +1231,19 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "local_actor_weight_sync requires replicated_freeform_sampling"
             )
         if int(args.num_gpus_per_actor) != 1:
-            raise ValueError(
-                "local_actor_weight_sync requires num_gpus_per_actor=1"
-            )
+            raise ValueError("local_actor_weight_sync requires num_gpus_per_actor=1")
     if int(args.vllm_sleep_level) not in {1, 2}:
         raise ValueError("vllm_sleep_level must be 1 or 2")
     if int(args.vllm_sleep_level) == 2:
         if not bool(args.vllm_sleep):
             raise ValueError("vllm_sleep_level=2 requires vllm_sleep")
         if not bool(args.local_actor_weight_sync):
-            raise ValueError(
-                "vllm_sleep_level=2 requires local_actor_weight_sync"
-            )
+            raise ValueError("vllm_sleep_level=2 requires local_actor_weight_sync")
         if int(args.sync_params_every) != 1:
-            raise ValueError(
-                "vllm_sleep_level=2 requires sync_params_every=1"
-            )
+            raise ValueError("vllm_sleep_level=2 requires sync_params_every=1")
     if canonical_actions:
         if online_canonical_bank_active:
-            raise ValueError(
-                "online growing-support banks require free-form rollouts"
-            )
+            raise ValueError("online growing-support banks require free-form rollouts")
         if outcome_collision_coef > 0:
             raise ValueError(
                 "outcome-collision shaping currently requires free-form rollouts"
@@ -1248,15 +1253,15 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "semantic Shannon shaping currently requires free-form rollouts"
             )
         if diayn_num_options > 1:
-            raise ValueError("DIAYN answer options currently require free-form rollouts")
+            raise ValueError(
+                "DIAYN answer options currently require free-form rollouts"
+            )
         if maxent_objective != "sequence":
             raise ValueError(
                 "canonical finite policies require maxent_objective=sequence"
             )
         required_template = (
-            "qwen_graph_digits"
-            if canonical_graph_actions
-            else "qwen_countdown_digits"
+            "qwen_graph_digits" if canonical_graph_actions else "qwen_countdown_digits"
         )
         if args.prompt_template != required_template:
             raise ValueError(
@@ -1280,9 +1285,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         if int(args.top_k) != -1:
             raise ValueError("canonical actions require top_k=-1")
         if not math.isfinite(float(args.temperature)) or float(args.temperature) <= 0:
-            raise ValueError(
-                "canonical actions require finite positive temperature"
-            )
+            raise ValueError("canonical actions require finite positive temperature")
         if canonical_learner_sampling and int(args.rollout_batch_size) != 1:
             raise ValueError(
                 "canonical learner-side sampling requires rollout_batch_size=1"
@@ -1440,13 +1443,8 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         if int(args.maxent_inverse_warmup_steps) <= 0:
             raise ValueError("maxent_inverse_warmup_steps must be positive")
         inverse_ema_decay = float(args.maxent_inverse_ema_decay)
-        if (
-            not math.isfinite(inverse_ema_decay)
-            or not 0 <= inverse_ema_decay < 1
-        ):
-            raise ValueError(
-                "maxent_inverse_ema_decay must be finite and in [0, 1)"
-            )
+        if not math.isfinite(inverse_ema_decay) or not 0 <= inverse_ema_decay < 1:
+            raise ValueError("maxent_inverse_ema_decay must be finite and in [0, 1)")
         if bool(args.online_canonical_policy_entropy_adaptation):
             raise ValueError(
                 "direct inverse MaxEnt and canonical policy-entropy "

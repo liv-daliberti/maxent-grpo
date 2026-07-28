@@ -33,6 +33,7 @@ from ..canonical_replay import (
 )
 from ..math_grader import (
     extract_normalized_final_answer,
+    validated_exploration_identity,
     validated_modebench_outcome_key,
 )
 from ..math_strategy_canonicalizer import MathStrategyCanonicalizer
@@ -61,6 +62,7 @@ from ..semantic_shannon import (
 )
 from ..seed_weights import compute_seed_row_weights
 from ..tensor_utils import cap_last_valid_token_pos_for_zero_advantage
+from ..verified_route_library import VerifiedRouteLibrary
 from ..xdr import aggregation_group_diagnostics, compute_xdr_row_weights
 
 
@@ -189,9 +191,7 @@ class ZeroMathGrpoMixin:
         if pad_token_id is None:
             pad_token_id = getattr(self.tokenizer, "eos_token_id", None)
         if pad_token_id is None:
-            raise RuntimeError(
-                "canonical replay requires a tokenizer pad or EOS token"
-            )
+            raise RuntimeError("canonical replay requires a tokenizer pad or EOS token")
         return materialize_canonical_replay_batch(
             groups,
             pad_token_id=int(pad_token_id),
@@ -230,17 +230,11 @@ class ZeroMathGrpoMixin:
             replay.response_masks[start:stop],
             need_entropy=False,
         )
-        replay_mask = replay.response_masks[start:stop].to(
-            replay_logps.dtype
-        )
+        replay_mask = replay.response_masks[start:stop].to(replay_logps.dtype)
         token_counts = replay_mask.sum(dim=1)
         if not bool(token_counts.gt(0).all()):
-            raise RuntimeError(
-                "canonical replay materialized an empty response"
-            )
-        return (
-            (replay_logps * replay_mask).sum(dim=1) / token_counts
-        )
+            raise RuntimeError("canonical replay materialized an empty response")
+        return (replay_logps * replay_mask).sum(dim=1) / token_counts
 
     def _baseline_update_with_precomputed_advantages(
         self,
@@ -259,9 +253,7 @@ class ZeroMathGrpoMixin:
         policy_vocab_upper_bound: int | None = None,
         row_weights: torch.Tensor | None = None,
         extra_infos: dict[str, torch.Tensor] | None = None,
-        canonical_replay_groups: (
-            list[VerifiedCanonicalReplayGroup] | None
-        ) = None,
+        canonical_replay_groups: (list[VerifiedCanonicalReplayGroup] | None) = None,
     ) -> dict[str, torch.Tensor]:
         args = self.args
         canonical_task = resolve_canonical_action_task(args)
@@ -292,17 +284,13 @@ class ZeroMathGrpoMixin:
                     num_samples=int(args.num_samples),
                     learner_world_size=learner_world_size,
                     train_batch_size=int(args.train_batch_size),
-                    train_batch_size_per_device=int(
-                        args.train_batch_size_per_device
-                    ),
+                    train_batch_size_per_device=int(args.train_batch_size_per_device),
                 )
             except ValueError as error:
                 raise RuntimeError(
                     f"invalid replicated update layout: {error}"
                 ) from error
-            local_candidate_count = (
-                replicated_layout.local_candidate_count
-            )
+            local_candidate_count = replicated_layout.local_candidate_count
             if int(self.strategy.grad_acc_step) != int(
                 replicated_layout.micro_batches_per_rank
             ):
@@ -879,12 +867,8 @@ class ZeroMathGrpoMixin:
                                     )
                                 ]
                             )
-                        replay_objective = str(
-                            args.online_canonical_replay_objective
-                        )
-                        replay_alpha = float(
-                            replay_controller.current_alpha
-                        )
+                        replay_objective = str(args.online_canonical_replay_objective)
+                        replay_alpha = float(replay_controller.current_alpha)
                         replay_mass_alpha = 0.0
                         split_result = None
                         if replay_objective == "bank_balance":
@@ -899,23 +883,17 @@ class ZeroMathGrpoMixin:
                                     replay.group_sizes,
                                 )
                             )
-                        elif replay_objective == (
-                            "verified_likelihood_per_rollout"
-                        ):
+                        elif replay_objective == ("verified_likelihood_per_rollout"):
                             replay_result = (
                                 canonical_replay_uniform_verified_likelihood_loss(
                                     detached_scores,
                                     replay.group_sizes,
                                 )
                             )
-                        elif replay_objective == (
-                            "split_mass_balance_per_rollout"
-                        ):
-                            split_result = (
-                                canonical_replay_split_mass_balance_loss(
-                                    detached_scores,
-                                    replay.group_sizes,
-                                )
+                        elif replay_objective == ("split_mass_balance_per_rollout"):
+                            split_result = canonical_replay_split_mass_balance_loss(
+                                detached_scores,
+                                replay.group_sizes,
                             )
                             mass_controller = getattr(
                                 self,
@@ -927,9 +905,7 @@ class ZeroMathGrpoMixin:
                                     "split canonical replay lacks its "
                                     "verified-mass controller"
                                 )
-                            replay_mass_alpha = float(
-                                mass_controller.current_alpha
-                            )
+                            replay_mass_alpha = float(mass_controller.current_alpha)
                             replay_result = None
                         else:
                             raise RuntimeError(
@@ -960,12 +936,11 @@ class ZeroMathGrpoMixin:
                             )
                         ):
                             raise RuntimeError(
-                                "canonical replay produced a non-finite loss "
-                                "or sensor"
+                                "canonical replay produced a non-finite loss or sensor"
                             )
-                        reward_estimator_scale = float(
-                            args.num_samples - 1
-                        ) / float(args.num_samples)
+                        reward_estimator_scale = float(args.num_samples - 1) / float(
+                            args.num_samples
+                        )
                         replay_objective_scale = (
                             1.0 / float(args.num_samples)
                             if replay_objective
@@ -988,23 +963,25 @@ class ZeroMathGrpoMixin:
                             * reward_estimator_scale
                             * replay_objective_scale
                         )
-                        if not bool(
-                            torch.isfinite(replay_weighted_loss)
-                        ):
+                        if not bool(torch.isfinite(replay_weighted_loss)):
                             raise RuntimeError(
                                 "unprojected canonical replay coefficient "
                                 "exceeded the live loss arithmetic range"
                             )
                         score_gradients = (
                             (
-                                split_result.mass_score_gradients
-                                * replay_mass_alpha
-                                + split_result.balance_score_gradients
-                                * replay_alpha
+                                (
+                                    split_result.mass_score_gradients
+                                    * replay_mass_alpha
+                                    + split_result.balance_score_gradients
+                                    * replay_alpha
+                                )
+                                if split_result is not None
+                                else replay_result.score_gradients * replay_alpha
                             )
-                            if split_result is not None
-                            else replay_result.score_gradients * replay_alpha
-                        ).to(input_ids.device).detach()
+                            .to(input_ids.device)
+                            .detach()
+                        )
                         replay_backward_scale = (
                             reward_estimator_scale
                             * replay_objective_scale
@@ -1019,27 +996,19 @@ class ZeroMathGrpoMixin:
                                 start + replay_chunk_size,
                                 replay_row_count,
                             )
-                            live_scores = (
-                                self._score_canonical_replay_rows(
-                                    replay,
-                                    start=start,
-                                    stop=stop,
-                                    policy_vocab_upper_bound=(
-                                        policy_vocab_upper_bound
-                                    ),
-                                )
+                            live_scores = self._score_canonical_replay_rows(
+                                replay,
+                                start=start,
+                                stop=stop,
+                                policy_vocab_upper_bound=(policy_vocab_upper_bound),
                             )
                             exact_gradient_surrogate = (
-                                live_scores
-                                * score_gradients[start:stop]
+                                live_scores * score_gradients[start:stop]
                             ).sum()
                             replay_backward_loss = (
-                                exact_gradient_surrogate
-                                * replay_backward_scale
+                                exact_gradient_surrogate * replay_backward_scale
                             )
-                            if not bool(
-                                torch.isfinite(replay_backward_loss)
-                            ):
+                            if not bool(torch.isfinite(replay_backward_loss)):
                                 raise RuntimeError(
                                     "canonical replay produced a non-finite "
                                     "chunked backward scalar"
@@ -1059,12 +1028,8 @@ class ZeroMathGrpoMixin:
                     # memory, not the objective gradient.
                     infos.update(
                         {
-                            "canonical_replay_actuator_loss": (
-                                actuator_loss.detach()
-                            ),
-                            "canonical_replay_balance_loss": (
-                                balance_loss.detach()
-                            ),
+                            "canonical_replay_actuator_loss": (actuator_loss.detach()),
+                            "canonical_replay_balance_loss": (balance_loss.detach()),
                             "canonical_replay_weighted_loss": (
                                 replay_weighted_loss.detach()
                             ),
@@ -1138,12 +1103,10 @@ class ZeroMathGrpoMixin:
                                 )
                             ),
                             "canonical_replay_score_gradient_sum": (
-                                (
-                                    score_gradients.sum()
-                                    if split_result is not None
-                                    else replay_result.score_gradients.sum().to(
-                                        input_ids.device
-                                    )
+                                score_gradients.sum()
+                                if split_result is not None
+                                else replay_result.score_gradients.sum().to(
+                                    input_ids.device
                                 )
                             ),
                             "canonical_replay_objective_scale": torch.tensor(
@@ -1244,15 +1207,9 @@ class ZeroMathGrpoMixin:
                             balance_loss,
                         ),
                     ):
-                        stats[key].append(
-                            float(value.detach().cpu().item())
-                        )
-                    stats["canonical_replay_alpha_used"].append(
-                        replay_alpha
-                    )
-                    stats["canonical_replay_mass_alpha_used"].append(
-                        replay_mass_alpha
-                    )
+                        stats[key].append(float(value.detach().cpu().item()))
+                    stats["canonical_replay_alpha_used"].append(replay_alpha)
+                    stats["canonical_replay_mass_alpha_used"].append(replay_mass_alpha)
                     stats["canonical_replay_eligible_groups"].append(
                         float(
                             split_result.balance_eligible_groups
@@ -1427,9 +1384,7 @@ class ZeroMathGrpoMixin:
         semantic_shannon_separate_advantage: torch.Tensor | None = None
         online_canonical_infos: dict[str, torch.Tensor] = {}
         online_canonical_advantage: torch.Tensor | None = None
-        canonical_replay_groups: list[
-            VerifiedCanonicalReplayGroup
-        ] = []
+        canonical_replay_groups: list[VerifiedCanonicalReplayGroup] = []
         canonical_behavior_infos: dict[str, torch.Tensor] = {}
         if canonical_actions:
             expected_count = int(args.canonical_graph_action_count)
@@ -1627,9 +1582,7 @@ class ZeroMathGrpoMixin:
                 ),
             }
 
-        semantic_shannon_tracker = getattr(
-            self, "_semantic_shannon_tracker", None
-        )
+        semantic_shannon_tracker = getattr(self, "_semantic_shannon_tracker", None)
         if semantic_shannon_tracker is not None:
             if not isinstance(semantic_shannon_tracker, SemanticShannonTracker):
                 raise RuntimeError("invalid semantic Shannon tracker")
@@ -1646,23 +1599,16 @@ class ZeroMathGrpoMixin:
             semantic_shannon_use_success_conditioned_signed = bool(
                 getattr(
                     args,
-                    (
-                        "semantic_shannon_"
-                        "success_conditioned_signed_advantage"
-                    ),
+                    ("semantic_shannon_success_conditioned_signed_advantage"),
                     False,
                 )
             )
             if (
-                (
-                    semantic_shannon_use_quality_gate
-                    or semantic_shannon_use_success_conditioned_signed
-                )
-                and not semantic_shannon_use_separate_advantage
-            ):
+                semantic_shannon_use_quality_gate
+                or semantic_shannon_use_success_conditioned_signed
+            ) and not semantic_shannon_use_separate_advantage:
                 raise RuntimeError(
-                    "semantic Shannon gated modes require the separate "
-                    "advantage path"
+                    "semantic Shannon gated modes require the separate advantage path"
                 )
             if (
                 semantic_shannon_use_quality_gate
@@ -1686,9 +1632,7 @@ class ZeroMathGrpoMixin:
                 references_grouped,
             )
             answer_keys = [key for group in answer_keys_grouped for key in group]
-            semantic_task_rewards = (
-                task_final_rewards.detach().view(-1).cpu().tolist()
-            )
+            semantic_task_rewards = task_final_rewards.detach().view(-1).cpu().tolist()
             if (
                 str(
                     getattr(
@@ -1721,55 +1665,61 @@ class ZeroMathGrpoMixin:
                 (
                     separate_advantages,
                     success_conditioned_signed_diagnostics,
-                ) = (
-                    semantic_shannon_tracker.score_success_conditioned_signed_advantages_and_update(
-                        prompt_token_ids=prompt_token_ids,
-                        answer_keys=answer_keys,
-                        task_rewards=semantic_task_rewards,
-                        active_mask=loss_masks.detach().view(-1).cpu().tolist(),
-                        num_samples=int(args.num_samples),
-                    )
+                ) = semantic_shannon_tracker.score_success_conditioned_signed_advantages_and_update(
+                    prompt_token_ids=prompt_token_ids,
+                    answer_keys=answer_keys,
+                    task_rewards=semantic_task_rewards,
+                    active_mask=loss_masks.detach().view(-1).cpu().tolist(),
+                    num_samples=int(args.num_samples),
                 )
-                semantic_shannon_separate_advantage = torch.tensor(
-                    separate_advantages,
-                    dtype=final_rewards.dtype,
-                    device=final_rewards.device,
-                ).reshape_as(final_rewards).detach()
+                semantic_shannon_separate_advantage = (
+                    torch.tensor(
+                        separate_advantages,
+                        dtype=final_rewards.dtype,
+                        device=final_rewards.device,
+                    )
+                    .reshape_as(final_rewards)
+                    .detach()
+                )
             elif semantic_shannon_use_quality_gate:
                 (
                     separate_advantages,
                     quality_gated_diagnostics,
-                ) = (
-                    semantic_shannon_tracker.score_quality_gated_advantages_and_update(
-                        prompt_token_ids=prompt_token_ids,
-                        answer_keys=answer_keys,
-                        task_rewards=semantic_task_rewards,
-                        active_mask=loss_masks.detach().view(-1).cpu().tolist(),
-                        num_samples=int(args.num_samples),
-                    )
+                ) = semantic_shannon_tracker.score_quality_gated_advantages_and_update(
+                    prompt_token_ids=prompt_token_ids,
+                    answer_keys=answer_keys,
+                    task_rewards=semantic_task_rewards,
+                    active_mask=loss_masks.detach().view(-1).cpu().tolist(),
+                    num_samples=int(args.num_samples),
                 )
-                semantic_shannon_separate_advantage = torch.tensor(
-                    separate_advantages,
-                    dtype=final_rewards.dtype,
-                    device=final_rewards.device,
-                ).reshape_as(final_rewards).detach()
+                semantic_shannon_separate_advantage = (
+                    torch.tensor(
+                        separate_advantages,
+                        dtype=final_rewards.dtype,
+                        device=final_rewards.device,
+                    )
+                    .reshape_as(final_rewards)
+                    .detach()
+                )
             elif semantic_shannon_use_separate_advantage:
                 (
                     separate_advantages,
                     diagnostics,
                     advantage_diagnostics,
-                ) = (
-                    semantic_shannon_tracker.score_separate_advantages_and_update(
-                        prompt_token_ids=prompt_token_ids,
-                        answer_keys=answer_keys,
-                        num_samples=int(args.num_samples),
-                    )
+                ) = semantic_shannon_tracker.score_separate_advantages_and_update(
+                    prompt_token_ids=prompt_token_ids,
+                    answer_keys=answer_keys,
+                    num_samples=int(args.num_samples),
                 )
-                semantic_shannon_separate_advantage = torch.tensor(
-                    separate_advantages,
-                    dtype=final_rewards.dtype,
-                    device=final_rewards.device,
-                ).reshape_as(final_rewards).detach()
+                semantic_shannon_separate_advantage = (
+                    torch.tensor(
+                        separate_advantages,
+                        dtype=final_rewards.dtype,
+                        device=final_rewards.device,
+                    )
+                    .reshape_as(final_rewards)
+                    .detach()
+                )
             else:
                 bonuses, diagnostics = semantic_shannon_tracker.score_and_update(
                     prompt_token_ids=prompt_token_ids,
@@ -1802,9 +1752,7 @@ class ZeroMathGrpoMixin:
                 ),
                 "semantic_shannon_success_conditioned_signed_advantage_active": (
                     torch.tensor(
-                        float(
-                            semantic_shannon_use_success_conditioned_signed
-                        ),
+                        float(semantic_shannon_use_success_conditioned_signed),
                         device=final_rewards.device,
                     )
                 ),
@@ -1893,9 +1841,7 @@ class ZeroMathGrpoMixin:
                 )
             if quality_gated_diagnostics is not None:
                 quality_values = {
-                    field_name: getattr(
-                        quality_gated_diagnostics, field_name
-                    )
+                    field_name: getattr(quality_gated_diagnostics, field_name)
                     for field_name in (
                         "raw_all_row_advantage_mean",
                         "raw_all_row_advantage_min",
@@ -1997,8 +1943,7 @@ class ZeroMathGrpoMixin:
                 semantic_shannon_infos.update(
                     {
                         (
-                            "semantic_shannon_success_conditioned_signed_"
-                            f"{name}"
+                            f"semantic_shannon_success_conditioned_signed_{name}"
                         ): torch.tensor(value, device=final_rewards.device)
                         for name, value in signed_values.items()
                     }
@@ -2046,9 +1991,7 @@ class ZeroMathGrpoMixin:
                     }
                 )
 
-        online_canonical_bank = getattr(
-            self, "_online_canonical_bank", None
-        )
+        online_canonical_bank = getattr(self, "_online_canonical_bank", None)
         if online_canonical_bank is not None:
             if not isinstance(online_canonical_bank, OnlineCanonicalBank):
                 raise RuntimeError("invalid online canonical bank")
@@ -2058,26 +2001,15 @@ class ZeroMathGrpoMixin:
             online_canonical_replay_active = bool(
                 getattr(args, "online_canonical_replay", False)
             )
-            online_canonical_objective_active = (
-                online_canonical_bank_objective_active
-                or online_canonical_replay_active
-            )
             num_rows = int(input_ids.size(0))
             response_texts: list[str] = []
             response_token_ids: list[list[int]] = []
             label_ids = input_ids[:, 1:]
             for row_ids, row_mask in zip(label_ids, response_masks):
-                token_ids = (
-                    row_ids[row_mask.to(torch.bool)]
-                    .detach()
-                    .cpu()
-                    .tolist()
-                )
+                token_ids = row_ids[row_mask.to(torch.bool)].detach().cpu().tolist()
                 response_token_ids.append(token_ids)
                 response_texts.append(
-                    self.tokenizer.decode(
-                        token_ids, skip_special_tokens=True
-                    )
+                    self.tokenizer.decode(token_ids, skip_special_tokens=True)
                 )
             key_mode = str(
                 getattr(
@@ -2086,10 +2018,9 @@ class ZeroMathGrpoMixin:
                     "modebench_outcome",
                 )
             )
-            if key_mode == "math_strategy_qwen72":
+            if key_mode in {"math_strategy_qwen72", "verified_route"}:
                 response_texts = [
-                    str(value)
-                    for value in list(trajectory.get("responses") or [])
+                    str(value) for value in list(trajectory.get("responses") or [])
                 ]
                 if len(response_texts) != num_rows:
                     raise RuntimeError(
@@ -2107,6 +2038,8 @@ class ZeroMathGrpoMixin:
                 task_final_rewards.detach().view(-1).gt(0).cpu().tolist()
             )
             math_strategy_diagnostics = None
+            route_verifier_ids: list[str | None] = [None] * num_rows
+            route_signatures: list[str | None] = [None] * num_rows
             if key_mode == "modebench_outcome":
                 references = list(trajectory.get("references") or [])
                 references = (references + [None] * num_rows)[:num_rows]
@@ -2124,47 +2057,65 @@ class ZeroMathGrpoMixin:
                 # accepted outcome per prompt. This enables verified-mass
                 # replay while making multi-mode balance structurally
                 # ineligible; it does not claim to verify reasoning routes.
-                outcome_keys = math_verified_answer_outcome_keys(
-                    task_reward_positive
-                )
+                outcome_keys = math_verified_answer_outcome_keys(task_reward_positive)
             elif key_mode == "math_strategy_qwen72":
-                canonicalizer = getattr(
-                    self, "_math_strategy_canonicalizer", None
-                )
-                if not isinstance(
-                    canonicalizer, MathStrategyCanonicalizer
-                ):
-                    raise RuntimeError(
-                        "MATH strategy key mode lacks its canonicalizer"
-                    )
+                canonicalizer = getattr(self, "_math_strategy_canonicalizer", None)
+                if not isinstance(canonicalizer, MathStrategyCanonicalizer):
+                    raise RuntimeError("MATH strategy key mode lacks its canonicalizer")
                 prompt_texts = [
-                    str(value)
-                    for value in list(trajectory.get("prompts") or [])
+                    str(value) for value in list(trajectory.get("prompts") or [])
                 ]
                 if len(prompt_texts) != num_rows:
                     raise RuntimeError(
                         "MATH strategy canonicalization requires one raw "
                         "problem per trajectory row"
                     )
-                outcome_keys, math_strategy_diagnostics = (
-                    canonicalizer.canonicalize(
-                        prompt_token_ids=prompt_token_ids,
-                        prompt_texts=prompt_texts,
-                        response_texts=response_texts,
-                        task_reward_positive=task_reward_positive,
-                        active_mask=(
-                            loss_masks.detach().view(-1).cpu().tolist()
-                        ),
-                        num_samples=int(args.num_samples),
-                    )
+                outcome_keys, math_strategy_diagnostics = canonicalizer.canonicalize(
+                    prompt_token_ids=prompt_token_ids,
+                    prompt_texts=prompt_texts,
+                    response_texts=response_texts,
+                    task_reward_positive=task_reward_positive,
+                    active_mask=(loss_masks.detach().view(-1).cpu().tolist()),
+                    num_samples=int(args.num_samples),
                 )
+            elif key_mode == "verified_route":
+                references = list(trajectory.get("references") or [])
+                references = (references + [None] * num_rows)[:num_rows]
+                prompt_texts = [
+                    str(value) for value in list(trajectory.get("prompts") or [])
+                ]
+                if len(prompt_texts) != num_rows:
+                    raise RuntimeError(
+                        "verified-route canonicalization requires one raw "
+                        "problem per trajectory row"
+                    )
+                identities = [
+                    validated_exploration_identity(
+                        response_texts[row_index],
+                        prompt_texts[row_index],
+                        references[row_index],
+                        fast=(str(args.verifier_version) != "math_verify"),
+                        task_verified=bool(task_reward_positive[row_index]),
+                    )
+                    for row_index in range(num_rows)
+                ]
+                outcome_keys = [
+                    (identity.endpoint_key if identity is not None else None)
+                    for identity in identities
+                ]
+                route_verifier_ids = [
+                    (identity.verifier if identity is not None else None)
+                    for identity in identities
+                ]
+                route_signatures = [
+                    (identity.route_signature if identity is not None else None)
+                    for identity in identities
+                ]
             else:
                 raise RuntimeError(
                     f"unsupported online canonical key mode: {key_mode!r}"
                 )
-            validator_admitted = [
-                key is not None for key in outcome_keys
-            ]
+            validator_admitted = [key is not None for key in outcome_keys]
             validator_positive_actor_negative_rows = [
                 index
                 for index, (verified, rewarded) in enumerate(
@@ -2200,14 +2151,63 @@ class ZeroMathGrpoMixin:
             # fatal training condition.
             outcome_keys = [
                 key if (key is not None and rewarded) else None
-                for key, rewarded in zip(
-                    outcome_keys, task_reward_positive
-                )
+                for key, rewarded in zip(outcome_keys, task_reward_positive)
             ]
+            if key_mode == "verified_route":
+                verified_route_library = getattr(
+                    self,
+                    "_verified_route_library",
+                    None,
+                )
+                if not isinstance(
+                    verified_route_library,
+                    VerifiedRouteLibrary,
+                ):
+                    raise RuntimeError(
+                        "verified-route key mode lacks its route library"
+                    )
+                action_logprob_rows = list(trajectory.get("action_logprobs") or [])
+                if len(action_logprob_rows) != num_rows:
+                    raise RuntimeError(
+                        "verified-route tracking requires actor log "
+                        "probabilities for every row"
+                    )
+                model_mean_logprobs: list[float] = []
+                for row_index, values in enumerate(action_logprob_rows):
+                    row_values = [float(value) for value in list(values)]
+                    if route_signatures[row_index] is not None and not row_values:
+                        raise RuntimeError(
+                            "verified neutral route lacks behavior log probabilities"
+                        )
+                    model_mean_logprobs.append(
+                        (sum(row_values) / len(row_values) if row_values else 0.0)
+                    )
+                route_signatures = [
+                    (route if endpoint_key is not None else None)
+                    for route, endpoint_key in zip(
+                        route_signatures,
+                        outcome_keys,
+                    )
+                ]
+                route_verifier_ids = [
+                    (verifier if endpoint_key is not None else None)
+                    for verifier, endpoint_key in zip(
+                        route_verifier_ids,
+                        outcome_keys,
+                    )
+                ]
+                verified_route_library.observe_neutral(
+                    prompt_token_ids=prompt_token_ids,
+                    verifier_ids=route_verifier_ids,
+                    endpoint_keys=outcome_keys,
+                    route_signatures=route_signatures,
+                    response_token_ids=response_token_ids,
+                    model_mean_logprobs=model_mean_logprobs,
+                    task_verified=task_reward_positive,
+                    active_mask=(loss_masks.detach().view(-1).cpu().tolist()),
+                )
             admitted = [key is not None for key in outcome_keys]
-            if bool(
-                getattr(args, "math_strategy_gate_task_reward", False)
-            ):
+            if bool(getattr(args, "math_strategy_gate_task_reward", False)):
                 if key_mode != "math_strategy_qwen72":
                     raise RuntimeError(
                         "MATH strategy reward gate reached a non-MATH key mode"
@@ -2219,44 +2219,44 @@ class ZeroMathGrpoMixin:
                         admitted,
                     )
                 )
-            bank_advantages, bank_diagnostics = (
-                online_canonical_bank.score_and_update(
-                    prompt_token_ids=prompt_token_ids,
-                    outcome_keys=outcome_keys,
-                    task_rewards=(
-                        task_final_rewards.detach().view(-1).cpu().tolist()
-                    ),
-                    active_mask=loss_masks.detach().view(-1).cpu().tolist(),
-                    num_samples=int(args.num_samples),
-                    entropy_alpha_override=(
-                        getattr(
-                            self,
-                            "_online_canonical_alpha_controller",
-                            None,
-                        ).current_alpha
-                        if getattr(
-                            self,
-                            "_online_canonical_alpha_controller",
-                            None,
-                        )
-                        is not None
-                        else None
-                    ),
-                    response_token_ids=(
-                        response_token_ids
-                        if online_canonical_replay_active
-                        else None
-                    ),
-                )
+            bank_advantages, bank_diagnostics = online_canonical_bank.score_and_update(
+                prompt_token_ids=prompt_token_ids,
+                outcome_keys=outcome_keys,
+                task_rewards=(task_final_rewards.detach().view(-1).cpu().tolist()),
+                active_mask=loss_masks.detach().view(-1).cpu().tolist(),
+                num_samples=int(args.num_samples),
+                entropy_alpha_override=(
+                    getattr(
+                        self,
+                        "_online_canonical_alpha_controller",
+                        None,
+                    ).current_alpha
+                    if getattr(
+                        self,
+                        "_online_canonical_alpha_controller",
+                        None,
+                    )
+                    is not None
+                    else None
+                ),
+                response_token_ids=(
+                    response_token_ids if online_canonical_replay_active else None
+                ),
             )
             if online_canonical_bank_objective_active:
-                online_canonical_advantage = torch.tensor(
-                    bank_advantages,
-                    dtype=final_rewards.dtype,
-                    device=final_rewards.device,
-                ).reshape_as(final_rewards).detach()
+                online_canonical_advantage = (
+                    torch.tensor(
+                        bank_advantages,
+                        dtype=final_rewards.dtype,
+                        device=final_rewards.device,
+                    )
+                    .reshape_as(final_rewards)
+                    .detach()
+                )
             canonical_replay_used_global_scheduler = False
             canonical_replay_used_prompt_local_scheduler = False
+            verified_route_replay_used = False
+            verified_route_endpoint_fallback_used = False
             if online_canonical_replay_active:
                 replay_min_modes = (
                     1
@@ -2267,44 +2267,63 @@ class ZeroMathGrpoMixin:
                     }
                     else 2
                 )
-                if (
-                    int(
-                        args.online_canonical_replay_global_groups_per_step
+                if key_mode == "verified_route":
+                    verified_route_library = getattr(
+                        self,
+                        "_verified_route_library",
+                        None,
                     )
-                    > 0
-                ):
-                    if (
-                        int(
-                            args.online_canonical_replay_global_bootstrap_steps
+                    if not isinstance(
+                        verified_route_library,
+                        VerifiedRouteLibrary,
+                    ):
+                        raise RuntimeError(
+                            "verified-route replay lacks its route library"
                         )
-                        > 0
-                        and not (
-                            online_canonical_bank
-                            .global_replay_bootstrap_active
+                    canonical_replay_used_global_scheduler = True
+                    canonical_replay_groups = (
+                        verified_route_library.scheduled_cross_prompt_replay_groups(
+                            prompt_token_ids,
                         )
+                    )
+                    verified_route_replay_used = bool(canonical_replay_groups)
+                    if not canonical_replay_groups:
+                        # Graph has no domain-independent executable route;
+                        # early cold-start batches in other domains may not yet
+                        # have a route recurring on two neutral prompts. Keep
+                        # the exact fixed compute budget with the independently
+                        # verified endpoint bank until route replay is eligible.
+                        canonical_replay_groups = (
+                            online_canonical_bank.scheduled_global_replay_groups(
+                                min_modes=1,
+                            )
+                        )
+                        verified_route_endpoint_fallback_used = bool(
+                            canonical_replay_groups
+                        )
+                elif int(args.online_canonical_replay_global_groups_per_step) > 0:
+                    if int(
+                        args.online_canonical_replay_global_bootstrap_steps
+                    ) > 0 and not (
+                        online_canonical_bank.global_replay_bootstrap_active
                     ):
                         canonical_replay_used_prompt_local_scheduler = True
-                        canonical_replay_groups = (
-                            online_canonical_bank.replay_groups(
-                                prompt_token_ids,
-                                min_modes=replay_min_modes,
-                            )
+                        canonical_replay_groups = online_canonical_bank.replay_groups(
+                            prompt_token_ids,
+                            min_modes=(replay_min_modes),
                         )
                     else:
                         canonical_replay_used_global_scheduler = True
                         canonical_replay_groups = (
-                            online_canonical_bank
-                            .scheduled_global_replay_groups(
+                            online_canonical_bank.scheduled_global_replay_groups(
                                 min_modes=replay_min_modes,
                             )
                         )
                 else:
                     canonical_replay_used_prompt_local_scheduler = True
-                    canonical_replay_groups = (
-                        online_canonical_bank.replay_groups(
-                            prompt_token_ids,
-                            min_modes=replay_min_modes,
-                        )
+                    canonical_replay_groups = online_canonical_bank.replay_groups(
+                        prompt_token_ids,
+                        min_modes=replay_min_modes,
                     )
             online_canonical_infos = {
                 f"online_canonical_{name}": torch.tensor(
@@ -2336,6 +2355,66 @@ class ZeroMathGrpoMixin:
                     "support_at_least_two_prompt_fraction",
                 )
             }
+            if key_mode == "verified_route":
+                verified_route_library = getattr(
+                    self,
+                    "_verified_route_library",
+                    None,
+                )
+                if not isinstance(
+                    verified_route_library,
+                    VerifiedRouteLibrary,
+                ):
+                    raise RuntimeError(
+                        "verified-route telemetry lacks its route library"
+                    )
+                route_diagnostics = verified_route_library.diagnostics()
+                online_canonical_infos.update(
+                    {
+                        f"verified_route_{name}": torch.tensor(
+                            float(getattr(route_diagnostics, name)),
+                            device=final_rewards.device,
+                        )
+                        for name in (
+                            "neutral_rows_observed",
+                            "neutral_routes_observed",
+                            "proposal_rows_admitted",
+                            "proposal_rows_rejected_trust",
+                            "proposal_graduations",
+                            "distinct_routes",
+                            "recurring_routes",
+                            "distinct_source_prompts",
+                            "cross_prompt_neutral_reproductions",
+                            "cross_prompt_replay_updates",
+                            "cross_prompt_replay_groups",
+                            "cross_prompt_replay_rows",
+                        )
+                    }
+                )
+                online_canonical_infos.update(
+                    {
+                        "verified_route_replay_used": torch.tensor(
+                            float(verified_route_replay_used),
+                            device=final_rewards.device,
+                        ),
+                        "verified_route_endpoint_fallback_used": torch.tensor(
+                            float(verified_route_endpoint_fallback_used),
+                            device=final_rewards.device,
+                        ),
+                        "verified_route_proposal_rows_to_ppo": torch.tensor(
+                            0.0,
+                            device=final_rewards.device,
+                        ),
+                        "verified_route_gold_support_feedback": torch.tensor(
+                            0.0,
+                            device=final_rewards.device,
+                        ),
+                        "verified_route_eval_feedback": torch.tensor(
+                            0.0,
+                            device=final_rewards.device,
+                        ),
+                    }
+                )
             if online_canonical_replay_active:
                 online_canonical_infos.update(
                     {
@@ -2367,24 +2446,18 @@ class ZeroMathGrpoMixin:
                         ),
                         "canonical_replay_global_scheduler_active": torch.tensor(
                             float(
-                                int(
-                                    args.online_canonical_replay_global_groups_per_step
-                                )
+                                int(args.online_canonical_replay_global_groups_per_step)
                                 > 0
                             ),
                             device=final_rewards.device,
                         ),
                         "canonical_replay_global_groups_per_step": torch.tensor(
-                            int(
-                                args.online_canonical_replay_global_groups_per_step
-                            ),
+                            int(args.online_canonical_replay_global_groups_per_step),
                             dtype=torch.float32,
                             device=final_rewards.device,
                         ),
                         "canonical_replay_global_bootstrap_steps": torch.tensor(
-                            int(
-                                args.online_canonical_replay_global_bootstrap_steps
-                            ),
+                            int(args.online_canonical_replay_global_bootstrap_steps),
                             dtype=torch.float32,
                             device=final_rewards.device,
                         ),
@@ -2394,35 +2467,25 @@ class ZeroMathGrpoMixin:
                             device=final_rewards.device,
                         ),
                         "canonical_replay_global_bootstrap_active": torch.tensor(
-                            float(
-                                online_canonical_bank
-                                .global_replay_bootstrap_active
-                            ),
+                            float(online_canonical_bank.global_replay_bootstrap_active),
                             device=final_rewards.device,
                         ),
                         "canonical_replay_prompt_local_phase_active": torch.tensor(
                             float(
-                                int(
-                                    args.online_canonical_replay_global_bootstrap_steps
-                                )
+                                int(args.online_canonical_replay_global_bootstrap_steps)
                                 > 0
                                 and not (
-                                    online_canonical_bank
-                                    .global_replay_bootstrap_active
+                                    online_canonical_bank.global_replay_bootstrap_active
                                 )
                             ),
                             device=final_rewards.device,
                         ),
                         "canonical_replay_schedule_used_global": torch.tensor(
-                            float(
-                                canonical_replay_used_global_scheduler
-                            ),
+                            float(canonical_replay_used_global_scheduler),
                             device=final_rewards.device,
                         ),
                         "canonical_replay_schedule_used_prompt_local": torch.tensor(
-                            float(
-                                canonical_replay_used_prompt_local_scheduler
-                            ),
+                            float(canonical_replay_used_prompt_local_scheduler),
                             device=final_rewards.device,
                         ),
                     }
@@ -2451,47 +2514,43 @@ class ZeroMathGrpoMixin:
                         )
                     }
                 )
-            online_canonical_infos[
-                "math_strategy_raw_task_reward_mean"
-            ] = raw_task_final_rewards.detach().mean()
-            online_canonical_infos[
-                "math_strategy_gated_task_reward_mean"
-            ] = task_final_rewards.detach().mean()
-            online_canonical_infos[
-                "math_strategy_task_reward_gate_active"
-            ] = torch.tensor(
-                float(
-                    bool(
-                        getattr(
-                            args,
-                            "math_strategy_gate_task_reward",
-                            False,
-                        )
-                    )
-                ),
-                device=final_rewards.device,
+            online_canonical_infos["math_strategy_raw_task_reward_mean"] = (
+                raw_task_final_rewards.detach().mean()
             )
-            online_canonical_infos[
-                "online_canonical_task_reward_mean"
-            ] = task_final_rewards.detach().mean()
-            online_canonical_infos[
-                "online_canonical_reward_sent_to_centering_mean"
-            ] = final_rewards.detach().mean()
+            online_canonical_infos["math_strategy_gated_task_reward_mean"] = (
+                task_final_rewards.detach().mean()
+            )
+            online_canonical_infos["math_strategy_task_reward_gate_active"] = (
+                torch.tensor(
+                    float(
+                        bool(
+                            getattr(
+                                args,
+                                "math_strategy_gate_task_reward",
+                                False,
+                            )
+                        )
+                    ),
+                    device=final_rewards.device,
+                )
+            )
+            online_canonical_infos["online_canonical_task_reward_mean"] = (
+                task_final_rewards.detach().mean()
+            )
+            online_canonical_infos["online_canonical_reward_sent_to_centering_mean"] = (
+                final_rewards.detach().mean()
+            )
             online_canonical_infos.update(
                 {
                     "online_canonical_validator_positive_actor_negative_rows": (
                         torch.tensor(
-                            len(
-                                validator_positive_actor_negative_rows
-                            ),
+                            len(validator_positive_actor_negative_rows),
                             device=final_rewards.device,
                         )
                     ),
                     "online_canonical_actor_positive_validator_negative_rows": (
                         torch.tensor(
-                            len(
-                                actor_positive_validator_negative_rows
-                            ),
+                            len(actor_positive_validator_negative_rows),
                             device=final_rewards.device,
                         )
                     ),
@@ -2830,12 +2889,8 @@ class ZeroMathGrpoMixin:
             )
             combined_advantages = advantages.detach()
             base_advantage_rms = torch.sqrt(base_advantages.square().mean())
-            semantic_advantage_rms = torch.sqrt(
-                semantic_advantages.square().mean()
-            )
-            combined_advantage_rms = torch.sqrt(
-                combined_advantages.square().mean()
-            )
+            semantic_advantage_rms = torch.sqrt(semantic_advantages.square().mean())
+            combined_advantage_rms = torch.sqrt(combined_advantages.square().mean())
             outcome_collision_infos.update(
                 {
                     "outcome_collision_outside_base_advantage_mean": (
@@ -3027,9 +3082,7 @@ class ZeroMathGrpoMixin:
                 getattr(args, "xdr_task_advantage_weights", False)
             )
             xdr_weight_advantages = (
-                task_advantages_for_xdr
-                if xdr_task_advantage_weights
-                else advantages
+                task_advantages_for_xdr if xdr_task_advantage_weights else advantages
             )
             extra_infos["xdr_task_advantage_weights_active"] = torch.tensor(
                 float(xdr_task_advantage_weights),

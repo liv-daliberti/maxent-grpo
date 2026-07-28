@@ -71,10 +71,13 @@ The neutral policy is task-reward-first:
 
 - ordinary verified task reward is unchanged;
 - invalid or incorrect responses never enter the route bank;
-- route novelty is a separate, bounded advantage term;
+- route influence is confined to a separate, bounded verified-replay term;
 - counterfactual proposals are eligible only for verified singleton groups;
 - proposal PPO rows remain disabled;
 - at most one proposal may be admitted per optimizer update;
+- every proposal attempt uses the neutral policy's sampling temperature so
+  anchor-relative model likelihoods are comparable; attempts differ only by
+  an isolated deterministic request seed;
 - proposal generation and its token budget are charged to the experiment's
   compute accounting;
 - novelty cannot turn a task-reward failure into a positive task example.
@@ -119,10 +122,19 @@ it does not authorize inspecting MATH-500 scores.
 
 ### Gate 2: compute-matched one-seed screen
 
-Compare the neutral task-first control and exactly one route-aware successor
-with seed 43 and six prompt passes on Graph, Countdown, Python, MathIR, and the
-sealed MATH12K route-dev split. Match training prompts, sampled tokens, proposal
-tokens, optimizer updates, evaluation cadence, and checkpoint choice.
+Compare four frozen arms with seed 43 and six prompt passes on Graph,
+Countdown, Python, MathIR, and the sealed MATH12K route-dev split:
+
+1. Dr.GRPO;
+2. E66 endpoint-only replay;
+3. E68 separated-support endpoint proposals; and
+4. the E69 hierarchical verified-route successor.
+
+Match training prompts, total sampled tokens (including sampling-only control
+requests), proposal/replay tokens, verifier calls, optimizer updates,
+evaluation cadence, and checkpoint choice. Sampling-only control rows are
+discarded before replay and PPO and are separately counted; they exist only to
+remove extra-inference compute as a treatment confound.
 
 Advance only if:
 

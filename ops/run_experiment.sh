@@ -118,6 +118,9 @@ ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS="${OAT_ZERO_ONLINE_CANONICAL_C
 ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS:-3}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE:-1.0}"
 ONLINE_CANONICAL_KEY_MODE="${OAT_ZERO_ONLINE_CANONICAL_KEY_MODE:-modebench_outcome}"
+VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE="${OAT_ZERO_VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE:-16}"
+VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS="${OAT_ZERO_VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS:-2}"
+VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP="${OAT_ZERO_VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP:-2.0}"
 # Variant presets pin controller enablement so an inherited shell variable
 # cannot silently turn a fixed-tau arm into a feedback arm.
 export OAT_ZERO_XDR_TAU_CONTROL_TARGET_RATIO=0.0
@@ -163,6 +166,9 @@ export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE="$ONLINE_CANONICAL_KEY_MODE"
+export OAT_ZERO_VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE="$VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE"
+export OAT_ZERO_VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS="$VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS"
+export OAT_ZERO_VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP="$VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP"
 export OAT_ZERO_CANONICAL_GRAPH_ACTIONS="${OAT_ZERO_CANONICAL_GRAPH_ACTIONS:-0}"
 export OAT_ZERO_CANONICAL_ACTION_TASK="${OAT_ZERO_CANONICAL_ACTION_TASK:-none}"
 export OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT="${OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT:-3}"
@@ -512,6 +518,46 @@ case "$VARIANT" in
     export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE="$ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE"
     VARIANT_TAG="verified_entropy_gated_singleton_escape_canonical"
     ;;
+  verified_route_successor)
+    # E69: ordinary task reward remains the only on-policy advantage. A
+    # separate explorer may add one independently verified singleton escape,
+    # but proposals never enter PPO or neutral objective counts. Only routes
+    # reproduced by the neutral policy on at least two prompts become eligible
+    # for one fixed-budget cross-prompt replay group per update.
+    export OAT_ZERO_POLICY_ENTROPY_COEF=0.0
+    export OAT_ZERO_XDR_TAU=inf
+    export OAT_ZERO_SEED_ENTROPY_ALPHA=0.0
+    export OAT_ZERO_MAXENT_ALPHA=0.0
+    export OAT_ZERO_MAXENT_INVERSE_ADAPTATION=0
+    export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.0
+    export OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE=0
+    export OAT_ZERO_SEMANTIC_SHANNON_QUALITY_GATED_ADVANTAGE=0
+    export OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE=0
+    export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=0
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT="$ONLINE_CANONICAL_BANK_PSEUDOCOUNT"
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP="$ONLINE_CANONICAL_BANK_SURPRISAL_CLIP"
+    export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=verified_route
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA="$ONLINE_CANONICAL_REPLAY_ALPHA"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY="$ONLINE_CANONICAL_REPLAY_CAPACITY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS="$ONLINE_CANONICAL_REPLAY_WARMUP_STEPS"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY="$ONLINE_CANONICAL_REPLAY_EMA_DECAY"
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=1
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=0
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS="$ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS"
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS="$ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS"
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE="$ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE"
+    export OAT_ZERO_VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE="$VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE"
+    export OAT_ZERO_VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS="$VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS"
+    export OAT_ZERO_VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP="$VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP"
+    VARIANT_TAG="verified_route_successor"
+    ;;
   maxent_length_dual)
     export OAT_ZERO_POLICY_ENTROPY_COEF=0.0
     export OAT_ZERO_XDR_TAU=inf
@@ -657,7 +703,7 @@ case "$VARIANT" in
     ;;
   *)
     echo "Unknown OAT_ZERO_VARIANT=${VARIANT}" >&2
-    echo "Use grpo, xdr, xdr_adapt, xdr_tau_control, xdr_sac_dual, maxent, maxent_control, maxent_dual, maxent_inverse, maxent_inverse_canonical, maxent_inverse_canonical_replay, open_set_split_canonical, verified_first_split_canonical, verified_first_global_replay_canonical, verified_first_bootstrap_local_canonical, verified_counterfactual_canonical, maxent_length_dual, grpo_entropy, seed, diayn, outcome_collision, outcome_collision_outside_centering, semantic_shannon, semantic_shannon_advantage, quality_gated_semantic_novelty, success_conditioned_signed_semantic_shannon, signal_first_semantic_balance, online_canonical_maxent, online_canonical_haarnoja, or online_canonical_policy_entropy." >&2
+    echo "Use grpo, xdr, xdr_adapt, xdr_tau_control, xdr_sac_dual, maxent, maxent_control, maxent_dual, maxent_inverse, maxent_inverse_canonical, maxent_inverse_canonical_replay, open_set_split_canonical, verified_first_split_canonical, verified_first_global_replay_canonical, verified_first_bootstrap_local_canonical, verified_counterfactual_canonical, verified_entropy_gated_singleton_escape_canonical, verified_route_successor, maxent_length_dual, grpo_entropy, seed, diayn, outcome_collision, outcome_collision_outside_centering, semantic_shannon, semantic_shannon_advantage, quality_gated_semantic_novelty, success_conditioned_signed_semantic_shannon, signal_first_semantic_balance, online_canonical_maxent, online_canonical_haarnoja, or online_canonical_policy_entropy." >&2
     exit 1
     ;;
 esac

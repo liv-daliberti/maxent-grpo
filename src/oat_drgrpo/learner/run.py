@@ -37,7 +37,12 @@ from ..canonical_actions import (
     decode_canonical_action_response,
 )
 from ..logging_utils import filter_wandb_logs
-from ..math_grader import boxed_reward_fn, validated_modebench_outcome_key
+from ..math_grader import (
+    VerifiedExplorationIdentity,
+    boxed_reward_fn,
+    validated_exploration_identity,
+    validated_modebench_outcome_key,
+)
 from ..online_canonical_bank import OnlineCanonicalBank
 from ..replicated_group import validate_replicated_group_layout
 from ..resume_state import (
@@ -53,6 +58,7 @@ from ..templates import (
 from ..verified_transformations import (
     derive_validator_preserving_counterfactuals,
 )
+from ..verified_route_library import VerifiedRouteLibrary
 
 
 def _derive_freeform_request_seed(
@@ -81,14 +87,11 @@ def _derive_freeform_request_seed(
     if not isinstance(stream, str) or not stream:
         raise ValueError("free-form request stream must be a non-empty string")
     payload = (
-        f"replicated-freeform-v1|{int(base_seed)}|"
-        f"{int(prompt_batch_index)}|{stream}"
+        f"replicated-freeform-v1|{int(base_seed)}|{int(prompt_batch_index)}|{stream}"
     ).encode("utf-8")
     # Keep the value exactly representable in IEEE-754 telemetry while leaving
     # a collision-resistant namespace for long multi-domain campaigns.
-    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") & (
-        (1 << 52) - 1
-    )
+    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") & ((1 << 52) - 1)
 
 
 def _parse_answer_mode_count(ref: str) -> int:
@@ -113,6 +116,24 @@ def _parse_public_seed_key(ref: str) -> str | None:
         return None
 
 
+def _trajectory_mean_logprob(trajectory: TrajectoryData) -> float:
+    values = [float(value) for value in trajectory.response_logprobs]
+    if not values or any(not math.isfinite(value) or value > 1e-8 for value in values):
+        raise RuntimeError(
+            "proposal trust checking requires finite non-positive response "
+            "log probabilities"
+        )
+    return float(sum(values) / len(values))
+
+
+def _exploration_support_key(
+    identity: VerifiedExplorationIdentity,
+) -> str:
+    """Prefer transferable route identity, with endpoint fallback for Graph."""
+
+    return str(identity.route_signature or identity.endpoint_key)
+
+
 def _compute_mode_coverage_metrics(
     rewards: list[float],
     answer_keys: list,
@@ -127,9 +148,7 @@ def _compute_mode_coverage_metrics(
     }
     distinct = len(correct_keys)
     nonseed_keys = (
-        correct_keys - {str(public_seed_key)}
-        if public_seed_key is not None
-        else set()
+        correct_keys - {str(public_seed_key)} if public_seed_key is not None else set()
     )
     total = int(answer_mode_count)
     return {
@@ -388,6 +407,14 @@ class ZeroMathRunMixin:
         the neutral PPO batch.
         """
 
+        key_mode = str(
+            getattr(
+                self.args,
+                "online_canonical_key_mode",
+                "modebench_outcome",
+            )
+        )
+        verified_route_mode = key_mode == "verified_route"
         metrics = {
             "actor/counterfactual_proposal_enabled": 1.0,
             "actor/counterfactual_proposal_anchor_available": 0.0,
@@ -435,42 +462,61 @@ class ZeroMathRunMixin:
             "actor/counterfactual_proposal_singleton_entropy_gate_known_support": 0.0,
             "actor/counterfactual_proposal_singleton_entropy_gate_gold_feedback": 0.0,
             "actor/counterfactual_proposal_singleton_entropy_gate_eval_feedback": 0.0,
+            "actor/counterfactual_proposal_verified_route_mode": float(
+                verified_route_mode
+            ),
+            "actor/counterfactual_proposal_trust_checked_rows": 0.0,
+            "actor/counterfactual_proposal_trust_rejected_rows": 0.0,
+            "actor/counterfactual_proposal_max_admissions_per_update": (
+                1.0 if verified_route_mode else 0.0
+            ),
         }
         empty_payload: dict[str, list[Any]] = {
             "prompt_token_ids": [],
             "outcome_keys": [],
             "response_token_ids": [],
         }
-        if (
-            len(raw_prompts) != 1
-            or len(processed_prompts) != 1
-            or len(refs) != 1
-        ):
-            raise RuntimeError(
-                "counterfactual proposals require one current prompt"
+        if verified_route_mode:
+            empty_payload.update(
+                {
+                    "endpoint_keys": [],
+                    "route_signatures": [],
+                    "verifier_ids": [],
+                    "proposal_mean_logprobs": [],
+                    "anchor_mean_logprobs": [],
+                }
             )
+        if len(raw_prompts) != 1 or len(processed_prompts) != 1 or len(refs) != 1:
+            raise RuntimeError("counterfactual proposals require one current prompt")
         if len(neutral_feedback) != int(self.args.num_samples):
             raise RuntimeError(
                 "counterfactual proposal source group is not one neutral "
                 "rollout-width group"
             )
         if not bool(getattr(self.args, "online_evaluation", False)):
-            raise RuntimeError(
-                "counterfactual proposals require validator references"
-            )
+            raise RuntimeError("counterfactual proposals require validator references")
         bank = getattr(self, "_online_canonical_bank", None)
         if not isinstance(bank, OnlineCanonicalBank):
             raise RuntimeError(
                 "counterfactual proposals require an online canonical bank"
+            )
+        metrics["actor/counterfactual_proposal_max_admissions_per_update"] = (
+            1.0 if verified_route_mode else float(bank.replay_capacity)
+        )
+        route_library = getattr(self, "_verified_route_library", None)
+        if verified_route_mode and not isinstance(
+            route_library,
+            VerifiedRouteLibrary,
+        ):
+            raise RuntimeError(
+                "verified-route proposals require a verified route library"
             )
 
         neutral_prompt_rows = [
             tuple(int(token_id) for token_id in trajectory.prompt_ids)
             for trajectory in neutral_feedback
         ]
-        if not neutral_prompt_rows[0] or (
-            len(set(neutral_prompt_rows)) != 1
-        ):
+        if not neutral_prompt_rows[0] or (len(set(neutral_prompt_rows)) != 1):
             raise RuntimeError(
                 "neutral proposal source rows do not share one non-empty prompt"
             )
@@ -484,6 +530,11 @@ class ZeroMathRunMixin:
                 "counterfactual proposal lookup returned multiple prompt banks"
             )
         prior_candidates: dict[str, tuple[int, ...]] = {}
+        prior_candidate_identities: dict[
+            str,
+            VerifiedExplorationIdentity,
+        ] = {}
+        prior_candidate_mean_logprobs: dict[str, float] = {}
         if groups:
             group = groups[0]
             if len(group.outcome_keys) != len(group.response_token_ids):
@@ -497,6 +548,23 @@ class ZeroMathRunMixin:
                     group.response_token_ids,
                 )
             }
+        if verified_route_mode:
+            assert isinstance(route_library, VerifiedRouteLibrary)
+            route_exemplars = route_library.prompt_exemplars(neutral_prompt_token_ids)
+            if route_exemplars:
+                # Once a prompt has executable route support, singleton and
+                # novelty decisions are made in route space rather than
+                # double-counting its prompt-local endpoint.
+                prior_candidates = {}
+            for exemplar in route_exemplars:
+                support_key = exemplar.route_signature
+                prior_candidates[support_key] = exemplar.response_token_ids
+                prior_candidate_identities[support_key] = VerifiedExplorationIdentity(
+                    verifier=exemplar.verifier,
+                    endpoint_key=exemplar.endpoint_key,
+                    route_signature=exemplar.route_signature,
+                )
+                prior_candidate_mean_logprobs[support_key] = exemplar.model_mean_logprob
 
         # Bootstrap on the current neutral group. A one-pass training set does
         # not revisit a prompt, so requiring a bank entry from an earlier
@@ -506,6 +574,11 @@ class ZeroMathRunMixin:
         # only supply an exemplar to the separate proposal query.
         current_candidates: dict[str, tuple[int, ...]] = {}
         current_candidate_surfaces: dict[str, str] = {}
+        current_candidate_identities: dict[
+            str,
+            VerifiedExplorationIdentity,
+        ] = {}
+        current_candidate_mean_logprobs: dict[str, float] = {}
         neutral_task_positive_rows = 0
         neutral_validator_positive_rows = 0
         neutral_disagreement_rows = 0
@@ -515,21 +588,34 @@ class ZeroMathRunMixin:
                 rewards and float(rewards[-1]) > 0.0
             )
             neutral_task_positive_rows += int(task_positive)
-            outcome_key = validated_modebench_outcome_key(
-                str(trajectory.response),
-                refs[0],
+            identity = (
+                validated_exploration_identity(
+                    str(trajectory.response),
+                    raw_prompts[0],
+                    refs[0],
+                    fast=(str(self.args.verifier_version) != "math_verify"),
+                    task_verified=task_positive,
+                )
+                if verified_route_mode
+                else None
+            )
+            outcome_key = (
+                _exploration_support_key(identity)
+                if identity is not None
+                else validated_modebench_outcome_key(
+                    str(trajectory.response),
+                    refs[0],
+                )
+                if not verified_route_mode
+                else None
             )
             validator_positive = outcome_key is not None
             neutral_validator_positive_rows += int(validator_positive)
-            neutral_disagreement_rows += int(
-                validator_positive != task_positive
-            )
+            neutral_disagreement_rows += int(validator_positive != task_positive)
             if not (validator_positive and task_positive):
                 continue
             assert outcome_key is not None
-            response_ids = tuple(
-                int(token_id) for token_id in trajectory.response_ids
-            )
+            response_ids = tuple(int(token_id) for token_id in trajectory.response_ids)
             if not response_ids:
                 raise RuntimeError(
                     "validator-positive neutral anchor has an empty token response"
@@ -537,9 +623,41 @@ class ZeroMathRunMixin:
             previous = current_candidates.get(outcome_key)
             if previous is None or response_ids < previous:
                 current_candidates[outcome_key] = response_ids
-                current_candidate_surfaces[outcome_key] = str(
-                    trajectory.response
-                )
+                current_candidate_surfaces[outcome_key] = str(trajectory.response)
+                if identity is not None:
+                    current_candidate_identities[outcome_key] = identity
+                    current_candidate_mean_logprobs[outcome_key] = (
+                        _trajectory_mean_logprob(trajectory)
+                    )
+        if verified_route_mode and any(
+            identity.route_signature is not None
+            for identity in current_candidate_identities.values()
+        ):
+            route_keys = {
+                key
+                for key, identity in current_candidate_identities.items()
+                if identity.route_signature is not None
+            }
+            current_candidates = {
+                key: value
+                for key, value in current_candidates.items()
+                if key in route_keys
+            }
+            current_candidate_surfaces = {
+                key: value
+                for key, value in current_candidate_surfaces.items()
+                if key in route_keys
+            }
+            current_candidate_identities = {
+                key: value
+                for key, value in current_candidate_identities.items()
+                if key in route_keys
+            }
+            current_candidate_mean_logprobs = {
+                key: value
+                for key, value in current_candidate_mean_logprobs.items()
+                if key in route_keys
+            }
         metrics.update(
             {
                 "actor/counterfactual_proposal_neutral_task_reward_positive_rows": (
@@ -565,26 +683,35 @@ class ZeroMathRunMixin:
 
         if current_candidates:
             anchor_candidates = current_candidates
-            metrics[
-                "actor/counterfactual_proposal_anchor_from_current_neutral"
-            ] = 1.0
-        elif prior_candidates:
+            metrics["actor/counterfactual_proposal_anchor_from_current_neutral"] = 1.0
+        elif prior_candidates and not verified_route_mode:
             anchor_candidates = prior_candidates
-            metrics[
-                "actor/counterfactual_proposal_anchor_from_prior_bank"
-            ] = 1.0
+            metrics["actor/counterfactual_proposal_anchor_from_prior_bank"] = 1.0
         else:
             return empty_payload, metrics
         anchor_keys = sorted(anchor_candidates)
-        anchor_index = (
-            max(int(self._prompt_batches_consumed_total) - 1, 0)
-            % len(anchor_keys)
+        anchor_index = max(int(self._prompt_batches_consumed_total) - 1, 0) % len(
+            anchor_keys
         )
         anchor_key = anchor_keys[anchor_index]
+        anchor_mean_logprob = (
+            current_candidate_mean_logprobs.get(anchor_key)
+            if verified_route_mode
+            else None
+        )
+        if verified_route_mode and anchor_mean_logprob is None:
+            raise RuntimeError(
+                "verified-route proposals require a current neutral anchor likelihood"
+            )
 
         metrics["actor/counterfactual_proposal_anchor_available"] = 1.0
         known_keys = set(prior_candidates) | set(current_candidates)
         novel_candidates: dict[str, tuple[int, ...]] = {}
+        novel_candidate_identities: dict[
+            str,
+            VerifiedExplorationIdentity,
+        ] = {}
+        novel_candidate_mean_logprobs: dict[str, float] = {}
         singleton_entropy_gate = bool(
             getattr(
                 self.args,
@@ -592,12 +719,18 @@ class ZeroMathRunMixin:
                 False,
             )
         )
-        metrics[
-            "actor/counterfactual_proposal_singleton_entropy_gate_enabled"
-        ] = float(singleton_entropy_gate)
+        metrics["actor/counterfactual_proposal_singleton_entropy_gate_enabled"] = float(
+            singleton_entropy_gate
+        )
         metrics[
             "actor/counterfactual_proposal_singleton_entropy_gate_known_support"
         ] = float(len(known_keys))
+        if verified_route_mode and len(known_keys) != 1:
+            # E69 keeps E68's actuator-identifiability rule but does not make
+            # route admission depend on a task-reward novelty coefficient:
+            # the explorer only searches from an exactly singleton verified
+            # support set, while the neutral learner remains task-first.
+            return empty_payload, metrics
         if singleton_entropy_gate:
             tracker = getattr(self, "_semantic_shannon_tracker", None)
             diagnostics_method = getattr(
@@ -620,8 +753,7 @@ class ZeroMathRunMixin:
             }
             for source, suffix in metric_map.items():
                 metrics[
-                    "actor/counterfactual_proposal_singleton_entropy_gate_"
-                    f"{suffix}"
+                    f"actor/counterfactual_proposal_singleton_entropy_gate_{suffix}"
                 ] = float(gate[source])
             # Exactly one discovered valid mode is an actuator-identifiability
             # condition, not a desired task support. As soon as a second
@@ -645,33 +777,37 @@ class ZeroMathRunMixin:
                 skip_special_tokens=True,
             )
         transformed_surfaces = (
-            derive_validator_preserving_counterfactuals(
+            []
+            if verified_route_mode
+            else derive_validator_preserving_counterfactuals(
                 anchor_surface,
                 refs[0],
             )
         )
-        metrics[
-            "actor/counterfactual_proposal_transform_candidate_surfaces"
-        ] = float(len(transformed_surfaces))
+        metrics["actor/counterfactual_proposal_transform_candidate_surfaces"] = float(
+            len(transformed_surfaces)
+        )
         transformed_known = 0
         transformed_validator_positive = 0
         transformed_tokenization_rejections = 0
         future_known_keys = set(prior_candidates) | set(current_candidates)
-        transform_replay_capacity_slots = max(
-            int(bank.replay_capacity) - len(future_known_keys),
-            0,
+        transform_replay_capacity_slots = (
+            1
+            if verified_route_mode
+            else max(
+                int(bank.replay_capacity) - len(future_known_keys),
+                0,
+            )
         )
-        if singleton_entropy_gate:
+        if singleton_entropy_gate or verified_route_mode:
             transform_replay_capacity_slots = min(
                 transform_replay_capacity_slots,
                 1,
             )
-        metrics[
-            "actor/counterfactual_proposal_transform_replay_capacity_slots"
-        ] = float(transform_replay_capacity_slots)
-        max_response_tokens = int(
-            getattr(self.args, "generate_max_length", 0)
+        metrics["actor/counterfactual_proposal_transform_replay_capacity_slots"] = (
+            float(transform_replay_capacity_slots)
         )
+        max_response_tokens = int(getattr(self.args, "generate_max_length", 0))
         for surface in transformed_surfaces:
             outcome_key = validated_modebench_outcome_key(
                 surface,
@@ -691,8 +827,7 @@ class ZeroMathRunMixin:
                 )
             )
             if not response_ids or (
-                max_response_tokens > 0
-                and len(response_ids) > max_response_tokens
+                max_response_tokens > 0 and len(response_ids) > max_response_tokens
             ):
                 transformed_tokenization_rejections += 1
                 continue
@@ -715,9 +850,7 @@ class ZeroMathRunMixin:
         if len(novel_candidates) > transform_replay_capacity_slots:
             novel_candidates = {
                 key: novel_candidates[key]
-                for key in sorted(novel_candidates)[
-                    :transform_replay_capacity_slots
-                ]
+                for key in sorted(novel_candidates)[:transform_replay_capacity_slots]
             }
         metrics.update(
             {
@@ -743,21 +876,18 @@ class ZeroMathRunMixin:
             return (
                 {
                     "prompt_token_ids": [
-                        list(neutral_prompt_token_ids)
-                        for _ in outcome_keys
+                        list(neutral_prompt_token_ids) for _ in outcome_keys
                     ],
                     "outcome_keys": outcome_keys,
                     "response_token_ids": [
-                        list(novel_candidates[key])
-                        for key in outcome_keys
+                        list(novel_candidates[key]) for key in outcome_keys
                     ],
                 },
                 metrics,
             )
         if transform_replay_capacity_slots == 0:
             metrics[
-                "actor/counterfactual_proposal_"
-                "transform_replay_capacity_exhausted"
+                "actor/counterfactual_proposal_transform_replay_capacity_exhausted"
             ] = 1.0
             return empty_payload, metrics
 
@@ -768,37 +898,37 @@ class ZeroMathRunMixin:
         known_alternate_rows = 0
         novel_candidate_rows = 0
         generation_time = 0.0
-        max_attempts = int(
-            self.args.online_canonical_counterfactual_max_attempts
-        )
+        max_attempts = int(self.args.online_canonical_counterfactual_max_attempts)
         base_sampling_temperature = float(
             self.args.online_canonical_counterfactual_sampling_temperature
         )
-        metrics[
-            "actor/counterfactual_proposal_max_attempts"
-        ] = float(max_attempts)
-        metrics[
-            "actor/counterfactual_proposal_sampling_temperature"
-        ] = base_sampling_temperature
-        metrics[
-            "actor/counterfactual_proposal_temperature_step"
-        ] = 0.2
-        metrics[
-            "actor/counterfactual_proposal_last_temperature"
-        ] = base_sampling_temperature
+        metrics["actor/counterfactual_proposal_max_attempts"] = float(max_attempts)
+        metrics["actor/counterfactual_proposal_sampling_temperature"] = (
+            base_sampling_temperature
+        )
+        metrics["actor/counterfactual_proposal_temperature_step"] = (
+            0.0 if verified_route_mode else 0.2
+        )
+        metrics["actor/counterfactual_proposal_last_temperature"] = (
+            base_sampling_temperature
+        )
         proposal_request_seeds: list[int] = []
         for attempt_index in range(max_attempts):
             # Preserve the original task grammar. R4's answer-conditioned
             # query copied the anchor; R5's stronger conditioned query made
-            # most samples invalid. A fixed temperature sweep over the
-            # untouched model distribution searches outside the collision
-            # without exposing a target mode, support size, or gold answer.
+            # most samples invalid. Repeated untouched-model requests search
+            # outside the collision without exposing a target mode, support
+            # size, or gold answer. Legacy endpoint proposals retain their
+            # registered temperature sweep. Verified-route proposals remain
+            # at the neutral temperature so likelihoods are comparable.
             sampling_temperature = (
-                base_sampling_temperature + 0.2 * attempt_index
+                base_sampling_temperature
+                if verified_route_mode
+                else base_sampling_temperature + 0.2 * attempt_index
             )
-            metrics[
-                "actor/counterfactual_proposal_last_temperature"
-            ] = sampling_temperature
+            metrics["actor/counterfactual_proposal_last_temperature"] = (
+                sampling_temperature
+            )
             proposal_request_seed = _derive_freeform_request_seed(
                 base_seed=int(self.args.seed),
                 prompt_batch_index=int(self._prompt_batches_consumed_total),
@@ -824,9 +954,7 @@ class ZeroMathRunMixin:
                     f"{self.args.num_samples}"
                 )
             metrics["actor/counterfactual_proposal_groups_generated"] += 1.0
-            metrics[
-                "actor/counterfactual_proposal_original_prompt_groups"
-            ] += 1.0
+            metrics["actor/counterfactual_proposal_original_prompt_groups"] += 1.0
             metrics["actor/counterfactual_proposal_rows_generated"] += float(
                 len(proposal_feedback)
             )
@@ -837,9 +965,26 @@ class ZeroMathRunMixin:
                 )
                 if task_positive:
                     task_positive_rows += 1
-                outcome_key = validated_modebench_outcome_key(
-                    str(trajectory.response),
-                    refs[0],
+                identity = (
+                    validated_exploration_identity(
+                        str(trajectory.response),
+                        raw_prompts[0],
+                        refs[0],
+                        fast=(str(self.args.verifier_version) != "math_verify"),
+                        task_verified=task_positive,
+                    )
+                    if verified_route_mode
+                    else None
+                )
+                outcome_key = (
+                    _exploration_support_key(identity)
+                    if identity is not None
+                    else validated_modebench_outcome_key(
+                        str(trajectory.response),
+                        refs[0],
+                    )
+                    if not verified_route_mode
+                    else None
                 )
                 validator_positive = outcome_key is not None
                 if validator_positive:
@@ -862,19 +1007,40 @@ class ZeroMathRunMixin:
                     raise RuntimeError(
                         "validator-positive proposal has an empty token response"
                     )
+                proposal_mean_logprob = (
+                    _trajectory_mean_logprob(trajectory)
+                    if verified_route_mode
+                    else None
+                )
+                if verified_route_mode:
+                    assert proposal_mean_logprob is not None
+                    assert anchor_mean_logprob is not None
+                    metrics["actor/counterfactual_proposal_trust_checked_rows"] += 1.0
+                    max_drop = float(
+                        self.args.verified_route_proposal_max_mean_logprob_drop
+                    )
+                    if proposal_mean_logprob < anchor_mean_logprob - max_drop:
+                        metrics[
+                            "actor/counterfactual_proposal_trust_rejected_rows"
+                        ] += 1.0
+                        continue
                 novel_candidate_rows += 1
                 previous = novel_candidates.get(outcome_key)
                 if previous is None or response_ids < previous:
                     novel_candidates[outcome_key] = response_ids
+                    if identity is not None:
+                        novel_candidate_identities[outcome_key] = identity
+                    if proposal_mean_logprob is not None:
+                        novel_candidate_mean_logprobs[outcome_key] = (
+                            proposal_mean_logprob
+                        )
             if novel_candidates:
-                metrics[
-                    "actor/counterfactual_proposal_success_attempt"
-                ] = float(attempt_index + 1)
+                metrics["actor/counterfactual_proposal_success_attempt"] = float(
+                    attempt_index + 1
+                )
                 break
 
-        metrics["actor/counterfactual_proposal_generate_time"] = (
-            generation_time
-        )
+        metrics["actor/counterfactual_proposal_generate_time"] = generation_time
         metrics["actor/counterfactual_proposal_request_seed_min"] = float(
             min(proposal_request_seeds)
         )
@@ -883,9 +1049,7 @@ class ZeroMathRunMixin:
         )
         metrics["actor/counterfactual_proposal_seed_isolation_active"] = 1.0
         if not novel_candidates:
-            metrics[
-                "actor/counterfactual_proposal_attempts_exhausted"
-            ] = 1.0
+            metrics["actor/counterfactual_proposal_attempts_exhausted"] = 1.0
 
         if disagreement_rows:
             logging.warning(
@@ -894,11 +1058,17 @@ class ZeroMathRunMixin:
                 disagreement_rows,
             )
         if len(novel_candidates) > transform_replay_capacity_slots:
-            novel_candidates = {
-                key: novel_candidates[key]
-                for key in sorted(novel_candidates)[
-                    :transform_replay_capacity_slots
-                ]
+            retained_keys = sorted(novel_candidates)[:transform_replay_capacity_slots]
+            novel_candidates = {key: novel_candidates[key] for key in retained_keys}
+            novel_candidate_identities = {
+                key: novel_candidate_identities[key]
+                for key in retained_keys
+                if key in novel_candidate_identities
+            }
+            novel_candidate_mean_logprobs = {
+                key: novel_candidate_mean_logprobs[key]
+                for key in retained_keys
+                if key in novel_candidate_mean_logprobs
             }
         metrics.update(
             {
@@ -926,18 +1096,37 @@ class ZeroMathRunMixin:
             }
         )
         outcome_keys = sorted(novel_candidates)
-        return (
-            {
-                "prompt_token_ids": [
-                    list(neutral_prompt_token_ids) for _ in outcome_keys
-                ],
-                "outcome_keys": outcome_keys,
-                "response_token_ids": [
-                    list(novel_candidates[key]) for key in outcome_keys
-                ],
-            },
-            metrics,
-        )
+        if verified_route_mode and (
+            set(outcome_keys) != set(novel_candidate_identities)
+            or set(outcome_keys) != set(novel_candidate_mean_logprobs)
+        ):
+            raise RuntimeError("verified-route proposal metadata is incomplete")
+        payload: dict[str, list[Any]] = {
+            "prompt_token_ids": [list(neutral_prompt_token_ids) for _ in outcome_keys],
+            "outcome_keys": outcome_keys,
+            "response_token_ids": [list(novel_candidates[key]) for key in outcome_keys],
+        }
+        if verified_route_mode:
+            payload.update(
+                {
+                    "endpoint_keys": [
+                        novel_candidate_identities[key].endpoint_key
+                        for key in outcome_keys
+                    ],
+                    "route_signatures": [
+                        novel_candidate_identities[key].route_signature
+                        for key in outcome_keys
+                    ],
+                    "verifier_ids": [
+                        novel_candidate_identities[key].verifier for key in outcome_keys
+                    ],
+                    "proposal_mean_logprobs": [
+                        novel_candidate_mean_logprobs[key] for key in outcome_keys
+                    ],
+                    "anchor_mean_logprobs": [anchor_mean_logprob for _ in outcome_keys],
+                }
+            )
+        return payload, metrics
 
     def _sample_replicated_freeform_feedback(
         self,
@@ -970,9 +1159,7 @@ class ZeroMathRunMixin:
                 num_samples=int(self.args.num_samples),
                 learner_world_size=world_size,
                 train_batch_size=int(self.args.train_batch_size),
-                train_batch_size_per_device=int(
-                    self.args.train_batch_size_per_device
-                ),
+                train_batch_size_per_device=int(self.args.train_batch_size_per_device),
             )
         except ValueError as error:
             raise RuntimeError(
@@ -1061,33 +1248,169 @@ class ZeroMathRunMixin:
             )
         ):
             if not isinstance(proposal_admission, dict):
-                raise RuntimeError(
-                    "counterfactual proposal admission broadcast failed"
-                )
+                raise RuntimeError("counterfactual proposal admission broadcast failed")
             bank = getattr(self, "_online_canonical_bank", None)
             if not isinstance(bank, OnlineCanonicalBank):
                 raise RuntimeError(
                     "counterfactual proposals require an online canonical bank"
                 )
-            objective_outcomes_before = bank.tracked_outcome_count
-            admission = bank.admit_verified_proposals(
-                prompt_token_ids=proposal_admission["prompt_token_ids"],
-                outcome_keys=proposal_admission["outcome_keys"],
-                response_token_ids=proposal_admission["response_token_ids"],
+            key_mode = str(
+                getattr(
+                    self.args,
+                    "online_canonical_key_mode",
+                    "modebench_outcome",
+                )
             )
+            verified_route_mode = key_mode == "verified_route"
+            base_payload_fields = (
+                "prompt_token_ids",
+                "outcome_keys",
+                "response_token_ids",
+            )
+            route_payload_fields = (
+                "endpoint_keys",
+                "route_signatures",
+                "verifier_ids",
+                "proposal_mean_logprobs",
+                "anchor_mean_logprobs",
+            )
+            payload_fields = base_payload_fields + (
+                route_payload_fields if verified_route_mode else ()
+            )
+            if any(
+                field not in proposal_admission
+                or not isinstance(proposal_admission[field], list)
+                for field in payload_fields
+            ):
+                raise RuntimeError(
+                    "counterfactual proposal admission payload is incomplete"
+                )
+            proposal_count = len(proposal_admission["outcome_keys"])
+            if any(
+                len(proposal_admission[field]) != proposal_count
+                for field in payload_fields
+            ):
+                raise RuntimeError(
+                    "counterfactual proposal admission fields are misaligned"
+                )
+            if verified_route_mode and proposal_count > 1:
+                raise RuntimeError(
+                    "verified-route actuator may admit at most one proposal per update"
+                )
+            objective_outcomes_before = bank.tracked_outcome_count
+            admitted_new_outcomes = 0
+            stored_exemplars = 0
+            route_admitted = 0
+            route_rejected_trust = 0
+            route_already_known = 0
+            endpoint_fallback_admitted = 0
+            route_library: VerifiedRouteLibrary | None = None
+            if verified_route_mode:
+                route_library = getattr(
+                    self,
+                    "_verified_route_library",
+                    None,
+                )
+                if not isinstance(route_library, VerifiedRouteLibrary):
+                    raise RuntimeError(
+                        "verified-route proposal admission lacks its route library"
+                    )
+                for row_index in range(proposal_count):
+                    route_signature = proposal_admission["route_signatures"][row_index]
+                    if route_signature is None:
+                        endpoint_admission = bank.admit_verified_proposals(
+                            prompt_token_ids=[
+                                proposal_admission["prompt_token_ids"][row_index]
+                            ],
+                            outcome_keys=[
+                                proposal_admission["endpoint_keys"][row_index]
+                            ],
+                            response_token_ids=[
+                                proposal_admission["response_token_ids"][row_index]
+                            ],
+                        )
+                        admitted_new_outcomes += endpoint_admission.new_outcomes
+                        stored_exemplars += endpoint_admission.stored_exemplars
+                        endpoint_fallback_admitted += endpoint_admission.new_outcomes
+                        continue
+                    verifier = proposal_admission["verifier_ids"][row_index]
+                    endpoint_key = proposal_admission["endpoint_keys"][row_index]
+                    proposal_mean_logprob = proposal_admission[
+                        "proposal_mean_logprobs"
+                    ][row_index]
+                    anchor_mean_logprob = proposal_admission["anchor_mean_logprobs"][
+                        row_index
+                    ]
+                    if not all(
+                        isinstance(value, str) and value
+                        for value in (
+                            verifier,
+                            endpoint_key,
+                            route_signature,
+                        )
+                    ) or not all(
+                        isinstance(value, (int, float)) and not isinstance(value, bool)
+                        for value in (
+                            proposal_mean_logprob,
+                            anchor_mean_logprob,
+                        )
+                    ):
+                        raise RuntimeError(
+                            "verified-route proposal admission metadata is invalid"
+                        )
+                    route_admission = route_library.admit_proposal(
+                        prompt_token_ids=proposal_admission["prompt_token_ids"][
+                            row_index
+                        ],
+                        verifier=verifier,
+                        endpoint_key=endpoint_key,
+                        route_signature=route_signature,
+                        response_token_ids=proposal_admission["response_token_ids"][
+                            row_index
+                        ],
+                        proposal_mean_logprob=float(proposal_mean_logprob),
+                        anchor_mean_logprob=float(anchor_mean_logprob),
+                    )
+                    route_admitted += int(route_admission.admitted)
+                    route_rejected_trust += int(route_admission.rejected_trust)
+                    route_already_known += int(route_admission.already_known)
+                    admitted_new_outcomes += int(route_admission.admitted)
+                    stored_exemplars += int(route_admission.admitted)
+            else:
+                admission = bank.admit_verified_proposals(
+                    prompt_token_ids=proposal_admission["prompt_token_ids"],
+                    outcome_keys=proposal_admission["outcome_keys"],
+                    response_token_ids=proposal_admission["response_token_ids"],
+                )
+                admitted_new_outcomes = admission.new_outcomes
+                stored_exemplars = admission.stored_exemplars
             objective_outcome_delta = (
                 bank.tracked_outcome_count - objective_outcomes_before
+            )
+            if verified_route_mode and objective_outcome_delta != 0:
+                raise RuntimeError(
+                    "verified-route proposals changed the neutral objective support"
+                )
+            route_diagnostics = (
+                route_library.diagnostics() if route_library is not None else None
             )
             actor_info.update(
                 {
                     "actor/counterfactual_proposal_admitted_new_outcomes": (
-                        float(admission.new_outcomes)
+                        float(admitted_new_outcomes)
                     ),
                     "actor/counterfactual_proposal_stored_exemplars": float(
-                        admission.stored_exemplars
+                        stored_exemplars
                     ),
                     "actor/counterfactual_proposal_cumulative_new_outcomes": (
-                        float(bank.proposal_new_outcomes)
+                        float(
+                            bank.proposal_new_outcomes
+                            + (
+                                route_diagnostics.proposal_rows_admitted
+                                if route_diagnostics is not None
+                                else 0
+                            )
+                        )
                     ),
                     "actor/counterfactual_proposal_bank_mean_support": float(
                         bank.replay_mean_support_per_prompt
@@ -1101,11 +1424,21 @@ class ZeroMathRunMixin:
                     "actor/counterfactual_proposal_objective_support_separated": float(
                         bank.separate_proposal_objective_support
                     ),
-                    "actor/counterfactual_proposal_conditioned_rows_sent_to_ppo": (
-                        0.0
-                    ),
+                    "actor/counterfactual_proposal_conditioned_rows_sent_to_ppo": (0.0),
                     "actor/counterfactual_proposal_neutral_ppo_rows": float(
                         len(feedback_data)
+                    ),
+                    "actor/counterfactual_proposal_route_admitted": float(
+                        route_admitted
+                    ),
+                    "actor/counterfactual_proposal_route_rejected_trust": float(
+                        route_rejected_trust
+                    ),
+                    "actor/counterfactual_proposal_route_already_known": float(
+                        route_already_known
+                    ),
+                    "actor/counterfactual_proposal_endpoint_fallback_admitted": (
+                        float(endpoint_fallback_admitted)
                     ),
                 }
             )
@@ -1528,13 +1861,9 @@ class ZeroMathRunMixin:
             raise ValueError(
                 "unconstrained run cannot resume a length-constrained checkpoint"
             )
-        semantic_shannon_tracker = getattr(
-            self, "_semantic_shannon_tracker", None
-        )
+        semantic_shannon_tracker = getattr(self, "_semantic_shannon_tracker", None)
         semantic_shannon_state_key = "semantic_shannon_tracker_state"
-        saved_semantic_shannon = resume_states.get(
-            semantic_shannon_state_key
-        )
+        saved_semantic_shannon = resume_states.get(semantic_shannon_state_key)
         if semantic_shannon_tracker is not None:
             if not isinstance(saved_semantic_shannon, dict):
                 raise ValueError(
@@ -1545,24 +1874,17 @@ class ZeroMathRunMixin:
             raise ValueError(
                 "non-semantic-Shannon run cannot resume a semantic Shannon checkpoint"
             )
-        online_canonical_bank = getattr(
-            self, "_online_canonical_bank", None
-        )
+        online_canonical_bank = getattr(self, "_online_canonical_bank", None)
         online_canonical_state_key = "online_canonical_bank_state"
-        saved_online_canonical = resume_states.get(
-            online_canonical_state_key
-        )
+        saved_online_canonical = resume_states.get(online_canonical_state_key)
         if online_canonical_bank is not None:
             if isinstance(saved_online_canonical, dict):
                 online_canonical_bank.load_state_dict(saved_online_canonical)
-            elif (
-                online_canonical_bank.objective_active
-                or bool(
-                    getattr(
-                        online_canonical_bank,
-                        "retain_exemplars",
-                        False,
-                    )
+            elif online_canonical_bank.objective_active or bool(
+                getattr(
+                    online_canonical_bank,
+                    "retain_exemplars",
+                    False,
                 )
             ):
                 raise ValueError(
@@ -1576,6 +1898,25 @@ class ZeroMathRunMixin:
         elif saved_online_canonical is not None:
             raise ValueError(
                 "regular run cannot resume an online canonical bank checkpoint"
+            )
+        verified_route_library = getattr(
+            self,
+            "_verified_route_library",
+            None,
+        )
+        verified_route_state_key = "verified_route_library_state"
+        saved_verified_routes = resume_states.get(verified_route_state_key)
+        if verified_route_library is not None:
+            if not isinstance(verified_route_library, VerifiedRouteLibrary):
+                raise RuntimeError("invalid verified route library")
+            if not isinstance(saved_verified_routes, dict):
+                raise ValueError(
+                    "verified-route run cannot resume without route-library state"
+                )
+            verified_route_library.load_state_dict(saved_verified_routes)
+        elif saved_verified_routes is not None:
+            raise ValueError(
+                "non-route run cannot resume a verified route library checkpoint"
             )
         math_strategy_canonicalizer = getattr(
             self, "_math_strategy_canonicalizer", None
@@ -1620,21 +1961,15 @@ class ZeroMathRunMixin:
             "_canonical_replay_controller",
             None,
         )
-        replay_controller_state_key = (
-            "canonical_replay_controller_state"
-        )
-        saved_replay_controller = resume_states.get(
-            replay_controller_state_key
-        )
+        replay_controller_state_key = "canonical_replay_controller_state"
+        saved_replay_controller = resume_states.get(replay_controller_state_key)
         if replay_controller is not None:
             if not isinstance(saved_replay_controller, dict):
                 raise ValueError(
                     "canonical replay checkpoint is missing its inverse "
                     "controller state"
                 )
-            replay_controller.load_state_dict(
-                saved_replay_controller
-            )
+            replay_controller.load_state_dict(saved_replay_controller)
         elif saved_replay_controller is not None:
             raise ValueError(
                 "non-replay run cannot resume a canonical replay checkpoint"
@@ -1654,9 +1989,7 @@ class ZeroMathRunMixin:
                 )
             replay_mass_controller.load_state_dict(saved_replay_mass)
         elif saved_replay_mass is not None:
-            raise ValueError(
-                "non-split replay run cannot resume a mass controller"
-            )
+            raise ValueError("non-split replay run cannot resume a mass controller")
 
     def _record_progress_metric(
         self,
@@ -1970,9 +2303,7 @@ class ZeroMathRunMixin:
     ) -> None:
         """Advance canonical alpha from the configured detached sensor."""
 
-        controller = getattr(
-            self, "_online_canonical_alpha_controller", None
-        )
+        controller = getattr(self, "_online_canonical_alpha_controller", None)
         if controller is None:
             return
         if getattr(controller, "observation_metric_key", None) == "entropy":
@@ -1983,16 +2314,10 @@ class ZeroMathRunMixin:
                     "finite train/entropy observation"
                 )
             reduced = self.strategy.all_reduce(
-                {
-                    "online_canonical_policy_entropy_observed": (
-                        local_entropy
-                    )
-                }
+                {"online_canonical_policy_entropy_observed": (local_entropy)}
             )
             global_entropy = self._coerce_log_float(
-                reduced.get(
-                    "online_canonical_policy_entropy_observed"
-                )
+                reduced.get("online_canonical_policy_entropy_observed")
             )
             if global_entropy is None:
                 raise RuntimeError(
@@ -2004,9 +2329,7 @@ class ZeroMathRunMixin:
         ratio_key = controller.observation_metric_key
         eligibility_key = controller.eligibility_metric_key
         local_ratio = self._coerce_log_float(train_info.get(ratio_key))
-        local_eligibility = self._coerce_log_float(
-            train_info.get(eligibility_key)
-        )
+        local_eligibility = self._coerce_log_float(train_info.get(eligibility_key))
         if local_ratio is None or local_eligibility is None:
             raise RuntimeError(
                 "online canonical dual control requires normalized bank "
@@ -2041,9 +2364,7 @@ class ZeroMathRunMixin:
         global_ratio = global_weighted_ratio / global_weight
         diagnostics = controller.observe(global_ratio)
         diagnostics["online_canonical_dual_observation_skipped"] = 0.0
-        diagnostics[
-            "online_canonical_dual_global_eligibility_weight"
-        ] = global_weight
+        diagnostics["online_canonical_dual_global_eligibility_weight"] = global_weight
         train_info.update(diagnostics)
 
     def _update_canonical_replay_controller(
@@ -2061,22 +2382,17 @@ class ZeroMathRunMixin:
             return
         entropy_key = controller.observation_metric_key
         eligibility_key = "canonical_replay_eligible_groups"
-        local_weight = self._coerce_log_float(
-            train_info.get(eligibility_key)
-        )
+        local_weight = self._coerce_log_float(train_info.get(eligibility_key))
         if local_weight is None:
             local_weight = 0.0
         if local_weight < 0:
             raise RuntimeError(
                 "canonical replay eligibility weight must be non-negative"
             )
-        local_entropy = self._coerce_log_float(
-            train_info.get(entropy_key)
-        )
+        local_entropy = self._coerce_log_float(train_info.get(entropy_key))
         if local_weight > 0 and local_entropy is None:
             raise RuntimeError(
-                "eligible canonical replay update lacks its model-entropy "
-                "sensor"
+                "eligible canonical replay update lacks its model-entropy sensor"
             )
         reduced = self.strategy.all_reduce(
             {
@@ -2094,8 +2410,7 @@ class ZeroMathRunMixin:
         )
         if global_weight is None or global_weighted_entropy is None:
             raise RuntimeError(
-                "canonical replay controller received invalid distributed "
-                "diagnostics"
+                "canonical replay controller received invalid distributed diagnostics"
             )
         if global_weight <= 0:
             train_info.update(controller.idle_diagnostics())
@@ -2103,9 +2418,7 @@ class ZeroMathRunMixin:
         global_entropy = global_weighted_entropy / global_weight
         diagnostics = controller.observe(global_entropy)
         diagnostics["canonical_replay_observation_skipped"] = 0.0
-        diagnostics[
-            "canonical_replay_global_eligibility_weight"
-        ] = global_weight
+        diagnostics["canonical_replay_global_eligibility_weight"] = global_weight
         train_info.update(diagnostics)
 
     def _update_canonical_replay_mass_controller(
@@ -2130,9 +2443,7 @@ class ZeroMathRunMixin:
         if local_weight is None:
             local_weight = 0.0
         if local_weight < 0:
-            raise RuntimeError(
-                "canonical replay mass eligibility must be non-negative"
-            )
+            raise RuntimeError("canonical replay mass eligibility must be non-negative")
         if local_weight > 0 and local_surprisal is None:
             raise RuntimeError(
                 "active canonical replay mass update lacks verified surprisal"
@@ -2161,9 +2472,7 @@ class ZeroMathRunMixin:
             return
         diagnostics = controller.observe(global_weighted / global_weight)
         diagnostics["canonical_replay_mass_observation_skipped"] = 0.0
-        diagnostics[
-            "canonical_replay_mass_global_eligibility_weight"
-        ] = global_weight
+        diagnostics["canonical_replay_mass_global_eligibility_weight"] = global_weight
         train_info.update(diagnostics)
 
     def learn(self, learning_round: int):
@@ -2473,19 +2782,26 @@ class ZeroMathRunMixin:
         diayn_tracker = getattr(self, "_diayn_mi_tracker", None)
         if diayn_tracker is not None:
             client_state["diayn_mi_tracker_state"] = diayn_tracker.state_dict()
-        semantic_shannon_tracker = getattr(
-            self, "_semantic_shannon_tracker", None
-        )
+        semantic_shannon_tracker = getattr(self, "_semantic_shannon_tracker", None)
         if semantic_shannon_tracker is not None:
             client_state["semantic_shannon_tracker_state"] = (
                 semantic_shannon_tracker.state_dict()
             )
-        online_canonical_bank = getattr(
-            self, "_online_canonical_bank", None
-        )
+        online_canonical_bank = getattr(self, "_online_canonical_bank", None)
         if online_canonical_bank is not None:
             client_state["online_canonical_bank_state"] = (
                 online_canonical_bank.state_dict()
+            )
+        verified_route_library = getattr(
+            self,
+            "_verified_route_library",
+            None,
+        )
+        if verified_route_library is not None:
+            if not isinstance(verified_route_library, VerifiedRouteLibrary):
+                raise RuntimeError("invalid verified route library")
+            client_state["verified_route_library_state"] = (
+                verified_route_library.state_dict()
             )
         math_strategy_canonicalizer = getattr(
             self, "_math_strategy_canonicalizer", None
@@ -3229,9 +3545,7 @@ class ZeroMathRunMixin:
         # Non-rank-0 processes return {} from _run_sampled_mode_coverage, so
         # pre-populate the canonical keys with 0.0 on every rank before broadcast.
         canonical_keys = []
-        metrics_to_broadcast = [
-            (metric, "neutral") for metric in MODE_COVERAGE_METRICS
-        ]
+        metrics_to_broadcast = [(metric, "neutral") for metric in MODE_COVERAGE_METRICS]
         run_args = getattr(self, "args", None)
         if int(getattr(run_args, "diayn_num_options", 0) or 0) > 1:
             metrics_to_broadcast.extend(
@@ -3368,9 +3682,7 @@ class ZeroMathRunMixin:
                 self._append_mode_coverage_draw_jsonl(
                     {
                         "schema_version": 2,
-                        "evaluation_kind": (
-                            "fixed_seed_sampled_k_latent_binding"
-                        ),
+                        "evaluation_kind": ("fixed_seed_sampled_k_latent_binding"),
                         "benchmark": benchmark_name,
                         "step": int(steps),
                         "draw_index": draw_index,

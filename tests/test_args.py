@@ -90,6 +90,9 @@ def _args(**overrides):
         "online_canonical_replay_mass_warmup_steps": 64,
         "online_canonical_replay_mass_ema_decay": 0.9,
         "online_canonical_key_mode": "modebench_outcome",
+        "verified_route_replay_capacity_per_route": 16,
+        "verified_route_recurring_min_neutral_prompts": 2,
+        "verified_route_proposal_max_mean_logprob_drop": 2.0,
         "verified_discovery_tracking": True,
         "math_strategy_gate_task_reward": False,
         "math_strategy_allow_unstructured_inference": False,
@@ -184,18 +187,13 @@ def test_inverse_maxent_accepts_label_free_conditional_entropy_control():
 def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
     fields = ZeroMathArgs.__dataclass_fields__
     assert (
-        fields[
-            "online_canonical_counterfactual_separate_objective_support"
-        ].default
+        fields["online_canonical_counterfactual_separate_objective_support"].default
         is False
     )
     assert fields["online_canonical_counterfactual_max_attempts"].default == 3
-    assert (
-        fields[
-            "online_canonical_counterfactual_sampling_temperature"
-        ].default
-        == pytest.approx(1.0)
-    )
+    assert fields[
+        "online_canonical_counterfactual_sampling_temperature"
+    ].default == pytest.approx(1.0)
     args = _args(
         xdr_tau=float("inf"),
         test_split="multi_answer",
@@ -220,9 +218,7 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
     with pytest.raises(ValueError, match="temperature must be finite"):
         validate_zero_math_args(
             _args(
-                online_canonical_counterfactual_sampling_temperature=float(
-                    "inf"
-                ),
+                online_canonical_counterfactual_sampling_temperature=float("inf"),
             )
         )
 
@@ -364,9 +360,7 @@ def test_canonical_direct_maxent_composition_requires_e52_contract(overrides):
         ),
     ],
 )
-def test_inverse_maxent_rejects_invalid_or_confounded_control(
-    overrides, message
-):
+def test_inverse_maxent_rejects_invalid_or_confounded_control(overrides, message):
     with pytest.raises(ValueError, match=message):
         validate_zero_math_args(_args(**overrides))
 
@@ -513,14 +507,9 @@ def test_semantic_shannon_accepts_frozen_freeform_defaults():
     assert fields["semantic_shannon_pseudocount"].default == pytest.approx(1.0)
     assert fields["semantic_shannon_separate_advantage"].default is False
     assert fields["semantic_shannon_quality_gated_advantage"].default is False
-    assert fields["semantic_shannon_quality_gated_cap"].default == pytest.approx(
-        0.05
-    )
+    assert fields["semantic_shannon_quality_gated_cap"].default == pytest.approx(0.05)
     assert (
-        fields[
-            "semantic_shannon_success_conditioned_signed_advantage"
-        ].default
-        is False
+        fields["semantic_shannon_success_conditioned_signed_advantage"].default is False
     )
     assert fields[
         "semantic_shannon_success_conditioned_signed_cap"
@@ -539,8 +528,7 @@ def test_semantic_shannon_accepts_frozen_freeform_defaults():
 
 def test_online_canonical_bank_requires_executable_modebench_contract():
     assert (
-        ZeroMathArgs.__dataclass_fields__["verified_discovery_tracking"].default
-        is True
+        ZeroMathArgs.__dataclass_fields__["verified_discovery_tracking"].default is True
     )
     args = _args(
         xdr_tau=float("inf"),
@@ -615,6 +603,98 @@ def test_online_canonical_verified_answer_math_contract_is_explicitly_single_mod
         )
 
 
+def test_verified_route_mode_accepts_only_frozen_modebench_or_math_dev_contract():
+    modebench = _args(
+        xdr_tau=float("inf"),
+        online_canonical_replay=True,
+        online_canonical_replay_objective="verified_likelihood_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+        online_canonical_key_mode="verified_route",
+        prompt_template="qwen_boxed",
+        verifier_version="fast",
+        test_split="multi_answer",
+    )
+    assert validate_zero_math_args(modebench) is modebench
+
+    math_dev = _args(
+        xdr_tau=float("inf"),
+        online_canonical_replay=True,
+        online_canonical_replay_objective="verified_likelihood_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+        online_canonical_key_mode="verified_route",
+        prompt_template="qwen_math_route",
+        verifier_version="math_verify",
+        test_split="math_dev",
+    )
+    assert validate_zero_math_args(math_dev) is math_dev
+
+    with pytest.raises(ValueError, match="sealed route-development"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                online_canonical_key_mode="verified_route",
+                prompt_template="qwen_math_route",
+                verifier_version="math_verify",
+                test_split="math",
+            )
+        )
+    with pytest.raises(ValueError, match="exactly one fixed-budget"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                online_canonical_replay=True,
+                online_canonical_replay_objective=("verified_likelihood_per_rollout"),
+                online_canonical_replay_global_groups_per_step=2,
+                online_canonical_key_mode="verified_route",
+                test_split="multi_answer",
+            )
+        )
+    with pytest.raises(ValueError, match="canonical advantages at zero"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                online_canonical_replay=True,
+                online_canonical_replay_objective=("verified_likelihood_per_rollout"),
+                online_canonical_replay_global_groups_per_step=1,
+                online_canonical_key_mode="verified_route",
+                online_canonical_novelty_beta=0.1,
+                test_split="multi_answer",
+            )
+        )
+    with pytest.raises(ValueError, match="separate support store"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                online_evaluation=True,
+                online_canonical_replay=True,
+                online_canonical_replay_objective=("verified_likelihood_per_rollout"),
+                online_canonical_replay_global_groups_per_step=1,
+                online_canonical_counterfactual_proposals=True,
+                online_canonical_key_mode="verified_route",
+                test_split="multi_answer",
+                replicated_freeform_sampling=True,
+                local_actor_weight_sync=True,
+            )
+        )
+    with pytest.raises(ValueError, match="temperatures must match"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                online_evaluation=True,
+                online_canonical_replay=True,
+                online_canonical_replay_objective=("verified_likelihood_per_rollout"),
+                online_canonical_replay_global_groups_per_step=1,
+                online_canonical_counterfactual_proposals=True,
+                online_canonical_counterfactual_separate_objective_support=True,
+                online_canonical_counterfactual_sampling_temperature=1.2,
+                online_canonical_key_mode="verified_route",
+                test_split="multi_answer",
+                replicated_freeform_sampling=True,
+                local_actor_weight_sync=True,
+            )
+        )
+
+
 def test_math_strategy_task_reward_gate_requires_audited_math_mode():
     args = _args(
         xdr_tau=float("inf"),
@@ -661,20 +741,17 @@ def test_online_canonical_dual_requires_valid_bank_alpha_and_bounds():
         test_split="multi_answer",
     )
     assert validate_zero_math_args(args) is args
-    assert (
-        validate_zero_math_args(
-            _args(
-                xdr_tau=float("inf"),
-                online_canonical_bank_alpha=0.1,
-                online_canonical_novelty_beta=0.5,
-                online_canonical_dual_target_ratio=0.8,
-                online_canonical_dual_min_alpha=0.1,
-                online_canonical_dual_max_alpha=float("inf"),
-                test_split="multi_answer",
-            )
-        ).online_canonical_dual_max_alpha
-        == float("inf")
-    )
+    assert validate_zero_math_args(
+        _args(
+            xdr_tau=float("inf"),
+            online_canonical_bank_alpha=0.1,
+            online_canonical_novelty_beta=0.5,
+            online_canonical_dual_target_ratio=0.8,
+            online_canonical_dual_min_alpha=0.1,
+            online_canonical_dual_max_alpha=float("inf"),
+            test_split="multi_answer",
+        )
+    ).online_canonical_dual_max_alpha == float("inf")
 
     with pytest.raises(ValueError, match="positive bank alpha"):
         validate_zero_math_args(
@@ -783,9 +860,7 @@ def test_canonical_replay_accepts_target_free_inverse_direct_entropy_hybrid():
         maxent_inverse_adaptation=True,
         online_canonical_novelty_beta=0.5,
         online_canonical_replay=True,
-        online_canonical_replay_objective=(
-            "split_mass_balance_per_rollout"
-        ),
+        online_canonical_replay_objective=("split_mass_balance_per_rollout"),
         test_split="multi_answer",
     )
     assert validate_zero_math_args(split) is split
@@ -806,9 +881,7 @@ def test_global_verified_replay_requires_replay_and_accepts_fixed_compute_budget
         xdr_tau=float("inf"),
         online_canonical_novelty_beta=0.5,
         online_canonical_replay=True,
-        online_canonical_replay_objective=(
-            "split_mass_balance_per_rollout"
-        ),
+        online_canonical_replay_objective=("split_mass_balance_per_rollout"),
         online_canonical_replay_global_groups_per_step=1,
         test_split="multi_answer",
     )
@@ -832,9 +905,7 @@ def test_global_verified_replay_requires_replay_and_accepts_fixed_compute_budget
     bootstrap = _args(
         xdr_tau=float("inf"),
         online_canonical_replay=True,
-        online_canonical_replay_objective=(
-            "split_mass_balance_per_rollout"
-        ),
+        online_canonical_replay_objective=("split_mass_balance_per_rollout"),
         online_canonical_replay_global_groups_per_step=1,
         online_canonical_replay_global_bootstrap_steps=64,
         test_split="multi_answer",

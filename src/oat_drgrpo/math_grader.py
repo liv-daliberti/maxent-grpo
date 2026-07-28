@@ -113,9 +113,7 @@ math_verify_parser.timeout = _thread_compatible_math_verify_timeout
 math_verify_grader.timeout = _thread_compatible_math_verify_timeout
 
 
-_math_verify_sympy_solve_and_compare = (
-    math_verify_grader.sympy_solve_and_compare
-)
+_math_verify_sympy_solve_and_compare = math_verify_grader.sympy_solve_and_compare
 
 
 def _robust_math_verify_sympy_solve_and_compare(
@@ -189,9 +187,7 @@ def _robust_math_verify_sympy_solve_and_compare(
     return not unmatched
 
 
-math_verify_grader.sympy_solve_and_compare = (
-    _robust_math_verify_sympy_solve_and_compare
-)
+math_verify_grader.sympy_solve_and_compare = _robust_math_verify_sympy_solve_and_compare
 
 
 def collect_threaded_math_rewards(
@@ -1658,9 +1654,7 @@ def validated_modebench_exploration_identity(
         if validation is None:
             return None
         solution = validation.solution
-        endpoint = (
-            f"mathir-solution:{solution.numerator}/{solution.denominator}"
-        )
+        endpoint = f"mathir-solution:{solution.numerator}/{solution.denominator}"
         return VerifiedExplorationIdentity(
             verifier,
             endpoint,
@@ -1671,9 +1665,7 @@ def validated_modebench_exploration_identity(
         if validation is None:
             return None
         solution = validation.solution
-        endpoint = (
-            f"mathir-solution:{solution.numerator}/{solution.denominator}"
-        )
+        endpoint = f"mathir-solution:{solution.numerator}/{solution.denominator}"
         return VerifiedExplorationIdentity(
             verifier,
             endpoint,
@@ -1710,10 +1702,7 @@ def validated_modebench_exploration_identity(
             if value != target or Counter(used_numbers) != expected_numbers:
                 continue
             endpoint = f"countdown-value:{value.numerator}/{value.denominator}"
-            route = (
-                "countdown-route:v1:"
-                + _canonical_countdown_route_ast(parsed)
-            )
+            route = "countdown-route:v1:" + _canonical_countdown_route_ast(parsed)
             return VerifiedExplorationIdentity(verifier, endpoint, route)
         except Exception:
             continue
@@ -1886,6 +1875,7 @@ def validated_math_route_signature(
     gt_answer: Any,
     *,
     fast: bool = False,
+    task_verified: bool | None = None,
 ) -> str | None:
     """Return an executable route identity only for a task-correct response.
 
@@ -1896,8 +1886,14 @@ def validated_math_route_signature(
     """
 
     try:
-        _info, reward = boxed_reward_fn(model_response, gt_answer, fast=fast)
-        if float(reward) <= 0.0:
+        if task_verified is None:
+            _info, reward = boxed_reward_fn(
+                model_response,
+                gt_answer,
+                fast=fast,
+            )
+            task_verified = float(reward) > 0.0
+        if not bool(task_verified):
             return None
         validation = validate_math_route_response(model_response, problem)
         if validation is None:
@@ -1909,6 +1905,62 @@ def validated_math_route_signature(
         if not grade(model_answer, terminal_answer, fast=fast):
             return None
         return validation.route_signature
+    except Exception:
+        return None
+
+
+def validated_exploration_identity(
+    model_response: str,
+    problem: str,
+    gt_answer: Any,
+    *,
+    fast: bool = False,
+    task_verified: bool | None = None,
+) -> VerifiedExplorationIdentity | None:
+    """Return the endpoint/route pair for ModeBench or free-form MATH.
+
+    ModeBench references always remain on their exact executable validator
+    path. Free-form MATH may reuse the actor's already-computed task verdict,
+    but route admission still independently executes the restricted trace and
+    checks its terminal value against the boxed response. Thus a task-correct
+    response without a valid route retains an endpoint identity and ordinary
+    reward while contributing no route identity.
+    """
+
+    if _parse_modebench_spec(gt_answer) is not None:
+        return validated_modebench_exploration_identity(
+            model_response,
+            gt_answer,
+        )
+    try:
+        if task_verified is None:
+            _info, reward = boxed_reward_fn(
+                model_response,
+                gt_answer,
+                fast=fast,
+            )
+            task_verified = float(reward) > 0.0
+        if not bool(task_verified):
+            return None
+        endpoint = extract_normalized_final_answer(
+            model_response,
+            template="qwen_math_route",
+            gt_answer=gt_answer,
+        )
+        if endpoint is None:
+            return None
+        route = validated_math_route_signature(
+            model_response,
+            problem,
+            gt_answer,
+            fast=fast,
+            task_verified=True,
+        )
+        return VerifiedExplorationIdentity(
+            verifier="math_verify",
+            endpoint_key=f"math-answer:{endpoint}",
+            route_signature=route,
+        )
     except Exception:
         return None
 

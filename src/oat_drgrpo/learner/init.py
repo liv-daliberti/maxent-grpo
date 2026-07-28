@@ -34,6 +34,7 @@ from ..online_canonical_controller import (
 from ..runtime import patch_oat_learner_datetime, resolve_fixed_oat_exp_suffix
 from ..semantic_shannon import SemanticShannonTracker
 from ..trajectory_dataset import ZeroMathTrajectoryDataset
+from ..verified_route_library import VerifiedRouteLibrary
 from ..xdr_tau_controller import XdrTauController
 from ..xdr_sac_dual_controller import XdrSacDualController
 
@@ -340,9 +341,7 @@ class ZeroMathInitMixin:
                         False,
                     )
                 ),
-                float(
-                    getattr(args, "semantic_shannon_quality_gated_cap", 0.05)
-                ),
+                float(getattr(args, "semantic_shannon_quality_gated_cap", 0.05)),
                 bool(
                     getattr(
                         args,
@@ -380,17 +379,16 @@ class ZeroMathInitMixin:
                 ),
             )
         self._online_canonical_bank: OnlineCanonicalBank | None = None
-        self._math_strategy_canonicalizer: (
-            MathStrategyCanonicalizer | None
-        ) = None
+        self._verified_route_library: VerifiedRouteLibrary | None = None
+        self._math_strategy_canonicalizer: MathStrategyCanonicalizer | None = None
         self._online_canonical_alpha_controller: (
             OnlineCanonicalDualController
             | OnlineCanonicalPolicyEntropyController
             | None
         ) = None
-        self._canonical_replay_controller: (
-            CanonicalReplayInverseController | None
-        ) = None
+        self._canonical_replay_controller: CanonicalReplayInverseController | None = (
+            None
+        )
         self._canonical_replay_mass_controller: (
             CanonicalReplayLikelihoodController | None
         ) = None
@@ -400,9 +398,7 @@ class ZeroMathInitMixin:
         online_canonical_novelty_beta = float(
             getattr(args, "online_canonical_novelty_beta", 0.0) or 0.0
         )
-        online_canonical_replay = bool(
-            getattr(args, "online_canonical_replay", False)
-        )
+        online_canonical_replay = bool(getattr(args, "online_canonical_replay", False))
         online_canonical_objective_active = (
             online_canonical_bank_alpha > 0.0
             or online_canonical_novelty_beta > 0.0
@@ -411,21 +407,14 @@ class ZeroMathInitMixin:
         verified_discovery_tracking = bool(
             getattr(args, "verified_discovery_tracking", True)
         )
-        if (
-            online_canonical_objective_active
-            or verified_discovery_tracking
-        ):
+        if online_canonical_objective_active or verified_discovery_tracking:
             self._online_canonical_bank = OnlineCanonicalBank(
                 entropy_alpha=online_canonical_bank_alpha,
                 novelty_beta=online_canonical_novelty_beta,
                 pseudocount=float(args.online_canonical_bank_pseudocount),
-                surprisal_clip=float(
-                    args.online_canonical_bank_surprisal_clip
-                ),
+                surprisal_clip=float(args.online_canonical_bank_surprisal_clip),
                 retain_exemplars=online_canonical_replay,
-                replay_capacity=int(
-                    args.online_canonical_replay_capacity
-                ),
+                replay_capacity=int(args.online_canonical_replay_capacity),
                 global_replay_groups_per_step=int(
                     args.online_canonical_replay_global_groups_per_step
                 ),
@@ -458,27 +447,17 @@ class ZeroMathInitMixin:
                     str(args.online_canonical_key_mode),
                 )
             if online_canonical_replay:
-                self._canonical_replay_controller = (
-                    CanonicalReplayInverseController(
-                        base_alpha=float(
-                            args.online_canonical_replay_alpha
-                        ),
-                        warmup_steps=int(
-                            args.online_canonical_replay_warmup_steps
-                        ),
-                        ema_decay=float(
-                            args.online_canonical_replay_ema_decay
-                        ),
-                    )
+                self._canonical_replay_controller = CanonicalReplayInverseController(
+                    base_alpha=float(args.online_canonical_replay_alpha),
+                    warmup_steps=int(args.online_canonical_replay_warmup_steps),
+                    ema_decay=float(args.online_canonical_replay_ema_decay),
                 )
                 if str(args.online_canonical_replay_objective) == (
                     "split_mass_balance_per_rollout"
                 ):
                     self._canonical_replay_mass_controller = (
                         CanonicalReplayLikelihoodController(
-                            base_alpha=float(
-                                args.online_canonical_replay_mass_alpha
-                            ),
+                            base_alpha=float(args.online_canonical_replay_mass_alpha),
                             warmup_steps=int(
                                 args.online_canonical_replay_mass_warmup_steps
                             ),
@@ -498,28 +477,20 @@ class ZeroMathInitMixin:
                     "projection=none gold_support_feedback=none",
                     float(args.online_canonical_replay_alpha),
                     int(args.online_canonical_replay_capacity),
-                    int(
-                        args.online_canonical_replay_global_groups_per_step
-                    ),
-                    int(
-                        args.online_canonical_replay_global_bootstrap_steps
-                    ),
+                    int(args.online_canonical_replay_global_groups_per_step),
+                    int(args.online_canonical_replay_global_bootstrap_steps),
                     int(args.online_canonical_replay_warmup_steps),
                     float(args.online_canonical_replay_ema_decay),
                     (
                         "KL_uniform_to_model_exemplar_scores_v1"
-                        if str(args.online_canonical_replay_objective)
-                        == "bank_balance"
+                        if str(args.online_canonical_replay_objective) == "bank_balance"
                         else (
                             "uniform_verified_exemplar_likelihood_v1"
                             if str(args.online_canonical_replay_objective)
                             == "verified_likelihood"
                             else (
-                                "split_verified_mass_and_bank_balance_"
-                                "per_rollout_v1"
-                                if str(
-                                    args.online_canonical_replay_objective
-                                )
+                                "split_verified_mass_and_bank_balance_per_rollout_v1"
+                                if str(args.online_canonical_replay_objective)
                                 == "split_mass_balance_per_rollout"
                                 else (
                                     "uniform_verified_exemplar_likelihood_"
@@ -540,20 +511,22 @@ class ZeroMathInitMixin:
                         "verified open-set proposals enabled: "
                         "proposal_groups_per_eligible_prompt=up_to_%d "
                         "proposal_width=num_samples "
-                        "original_prompt_temperature_sweep=%.6g,+0.2/attempt "
+                        "original_prompt_temperature=%.6g "
+                        "proposal_temperature_step=%s "
                         "admission=novel_validator_and_task_positive_only "
                         "proposal_rows_to_ppo=0 "
                         "objective_support_separated=%s "
                         "gold_support_feedback=none "
                         "desired_mode_count_feedback=none "
                         "evaluation_feedback=none",
-                        int(
-                            args
-                            .online_canonical_counterfactual_max_attempts
-                        ),
+                        int(args.online_canonical_counterfactual_max_attempts),
                         float(
-                            args
-                            .online_canonical_counterfactual_sampling_temperature
+                            args.online_canonical_counterfactual_sampling_temperature
+                        ),
+                        (
+                            "0"
+                            if str(args.online_canonical_key_mode) == "verified_route"
+                            else "0.2"
                         ),
                         bool(
                             getattr(
@@ -563,6 +536,32 @@ class ZeroMathInitMixin:
                             )
                         ),
                     )
+            if str(args.online_canonical_key_mode) == "verified_route":
+                self._verified_route_library = VerifiedRouteLibrary(
+                    replay_groups_per_step=(
+                        int(args.online_canonical_replay_global_groups_per_step)
+                        if online_canonical_replay
+                        else 0
+                    ),
+                    replay_capacity_per_route=int(
+                        args.verified_route_replay_capacity_per_route
+                    ),
+                    recurring_min_neutral_prompts=int(
+                        args.verified_route_recurring_min_neutral_prompts
+                    ),
+                    proposal_max_mean_logprob_drop=float(
+                        args.verified_route_proposal_max_mean_logprob_drop
+                    ),
+                )
+                logging.info(
+                    "verified route library enabled: replay_groups_per_step=%d "
+                    "capacity_per_route=%d recurring_min_neutral_prompts=%d "
+                    "proposal_max_mean_logprob_drop=%.6g",
+                    self._verified_route_library.replay_groups_per_step,
+                    self._verified_route_library.replay_capacity_per_route,
+                    (self._verified_route_library.recurring_min_neutral_prompts),
+                    (self._verified_route_library.proposal_max_mean_logprob_drop),
+                )
             if str(args.online_canonical_key_mode) == "math_strategy_qwen72":
                 self._math_strategy_canonicalizer = MathStrategyCanonicalizer(
                     endpoint=str(args.math_strategy_endpoint),
@@ -605,29 +604,16 @@ class ZeroMathInitMixin:
                     ),
                 )
             online_canonical_dual_target = float(
-                getattr(
-                    args, "online_canonical_dual_target_ratio", 0.0
-                )
-                or 0.0
+                getattr(args, "online_canonical_dual_target_ratio", 0.0) or 0.0
             )
             if online_canonical_dual_target > 0:
-                self._online_canonical_alpha_controller = (
-                    OnlineCanonicalDualController(
-                        base_alpha=online_canonical_bank_alpha,
-                        min_alpha=float(
-                            args.online_canonical_dual_min_alpha
-                        ),
-                        max_alpha=float(
-                            args.online_canonical_dual_max_alpha
-                        ),
-                        target_ratio=online_canonical_dual_target,
-                        alpha_lr=float(
-                            args.online_canonical_dual_alpha_lr
-                        ),
-                        ema_decay=float(
-                            args.online_canonical_dual_ema_decay
-                        ),
-                    )
+                self._online_canonical_alpha_controller = OnlineCanonicalDualController(
+                    base_alpha=online_canonical_bank_alpha,
+                    min_alpha=float(args.online_canonical_dual_min_alpha),
+                    max_alpha=float(args.online_canonical_dual_max_alpha),
+                    target_ratio=online_canonical_dual_target,
+                    alpha_lr=float(args.online_canonical_dual_alpha_lr),
+                    ema_decay=float(args.online_canonical_dual_ema_decay),
                 )
                 logging.info(
                     "online canonical Haarnoja control enabled: "
@@ -655,9 +641,7 @@ class ZeroMathInitMixin:
                         warmup_steps=int(
                             args.online_canonical_policy_entropy_warmup_steps
                         ),
-                        ema_decay=float(
-                            args.online_canonical_policy_entropy_ema_decay
-                        ),
+                        ema_decay=float(args.online_canonical_policy_entropy_ema_decay),
                     )
                 )
                 logging.info(
@@ -667,10 +651,6 @@ class ZeroMathInitMixin:
                     "sensor=masked_mean_policy_token_entropy_v1 "
                     "rule=unprojected_relative_to_own_warmup_v1",
                     online_canonical_bank_alpha,
-                    int(
-                        args.online_canonical_policy_entropy_warmup_steps
-                    ),
-                    float(
-                        args.online_canonical_policy_entropy_ema_decay
-                    ),
+                    int(args.online_canonical_policy_entropy_warmup_steps),
+                    float(args.online_canonical_policy_entropy_ema_decay),
                 )
