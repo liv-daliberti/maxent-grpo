@@ -1,0 +1,82 @@
+{
+  "artifacts": {
+    "manual_review_queue": "var/artifacts/e69_math_route_gate1_base_rpn_v2/manual_review_queue.jsonl",
+    "manual_review_queue_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sample_archive": "var/artifacts/e69_math_route_gate1_base_rpn_v2/sample_archive.jsonl",
+    "sample_archive_sha256": "130d7338f89369b5a6b675998ad8afc079e155f28ff9fc2a9cd30a9b11d28e13"
+  },
+  "automatic_gate": {
+    "counts": {
+      "cross_prompt_recurring_signatures": 0,
+      "formatting_unstable_accepted_rows": 0,
+      "multi_route_prompts": 0,
+      "prompts": 128,
+      "route_accepted_distinct_signatures": 0,
+      "route_accepted_samples": 0,
+      "samples": 1024,
+      "task_correct_samples": 104,
+      "trace_parse_execute_samples": 2
+    },
+    "prompt_route_support_histogram": {},
+    "rates": {
+      "route_accepted": 0.0,
+      "route_coverage_given_task_correct": 0.0,
+      "task_correct": 0.1015625,
+      "trace_parse_execute": 0.001953125
+    },
+    "recurring_signature_prompt_counts": [],
+    "status": "fail",
+    "thresholds": {
+      "formatting_stability_required": 1.0,
+      "manual_review_size": 50,
+      "minimum_cross_prompt_recurring_signatures": 3,
+      "minimum_multi_route_prompts": 8,
+      "minimum_route_coverage_given_task_correct": 0.8,
+      "minimum_task_correct_samples": 50
+    },
+    "violations": [
+      "route coverage 0.000000 < 0.800000",
+      "multi-route prompts 0 < 8",
+      "cross-prompt recurring signatures 0 < 3",
+      "accepted routes 0 < manual review size 50"
+    ]
+  },
+  "created_at": "2026-07-28",
+  "manual_gate": {
+    "false_admission_tolerance": 0,
+    "queue_rows": 0,
+    "required_reviews": 50,
+    "status": "pending"
+  },
+  "provenance": {
+    "git_commit": "36ae1202900cd63d7e481e3250d15a5d3603c51c",
+    "input_identity_sha256": "b6f57c0cfaca705edb80ecd3b09d9c327c3ca76da39b12fedd4cc31f93b5df60",
+    "input_sha256": {
+      "ops/route_successor/sample_e69_math_route_gate1.py": "c5108fa9445b8a528ed855330b230e134d8737f8ea9d6f9c480587c632172e6f",
+      "paper/preregistration/e69_math_route_gate1_rpn_v2_amendment_20260728.md": "a5674c1b584aa6384172e607eafc4ef10aa8451f14d4e441ba25737eed143f72",
+      "paper/preregistration/e69_verified_route_successor_protocol_20260728.md": "a085f77ad64e0c257f526e028f8b56a5848086b5a3c3b0344aed17f6ffb9897c",
+      "src/oat_drgrpo/math_grader.py": "80f38ffe2ef58a1f3994bf889704c70dc13f4dd3559d52b841d498767ff5b374",
+      "src/oat_drgrpo/math_route.py": "0c430a9e8f4c215665b673d4fbca8e5e4db3dd050814fe30a2a07ac7750317cc",
+      "src/oat_drgrpo/templates.py": "0b31dc15b9f724d63fe1ea2e8dd1055d57ead085cce40289f6d33ba9aad577a2",
+      "var/data/math12k_384_route_dev128_v1/MATERIALIZATION_MANIFEST.json": "05a0fa4d4558c36cf89714c0497822377a3641868fa0cce6321cb632a1c8286b",
+      "var/data/math12k_384_route_dev128_v1/RPN_V2_PROMPT_MANIFEST.json": "45ca4fa741aab1d8bad8b753cd744fcafad14f46d560205e690e1a37c3566ee1"
+    },
+    "slurm_job_id": "30159041"
+  },
+  "sampling_contract": {
+    "dataset": "var/data/math12k_384_route_dev128_v1",
+    "max_model_len": 2048,
+    "max_tokens": 1024,
+    "model": "var/cache/huggingface/transformers/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+    "model_revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "prompt_count": 128,
+    "prompt_template": "qwen_math_route_rpn_v2",
+    "route_language": "math-route-rpn-v2",
+    "samples_per_prompt": 8,
+    "seed": 690101,
+    "split": "math_dev",
+    "temperature": 1.0,
+    "top_p": 1.0
+  },
+  "schema": "e69_math_route_gate1_base_rpn_v2_archive_v1"
+}
