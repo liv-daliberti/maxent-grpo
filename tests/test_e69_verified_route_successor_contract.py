@@ -246,6 +246,7 @@ def test_e69_gate3_contract_freezes_reuse_compute_and_analysis_before_outcomes()
         'OAT_ZERO_DRGRPO_VARIANT=grpo_compute_matched',
         'OAT_ZERO_ONLY_ARMS="grpo,verified_route_successor"',
         'OAT_ZERO_ONLY_ARMS="grpo,verified_first_global_replay_canonical"',
+        "OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10",
         '"origin": "gate3_new"',
         'dict(row, origin="gate2_reuse")',
         '"reused_physical_jobs": 10',

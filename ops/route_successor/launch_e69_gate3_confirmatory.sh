@@ -477,7 +477,10 @@ submit_domain() {
       export OAT_ZERO_ONLY_ARMS="grpo,verified_first_global_replay_canonical"
       export OAT_ZERO_INCLUDE_VERIFIED_FIRST_GLOBAL_REPLAY_CANONICAL_ARM=1
       export OAT_ZERO_INCLUDE_VERIFIED_ROUTE_SUCCESSOR_ARM=0
-      export OAT_ZERO_SEMANTIC_SHANNON_COEF=0
+      # Inherit the recorded Gate 2 startup repair: the E66 endpoint variant
+      # enables separated semantic advantage and therefore requires its
+      # prospectively defined positive coefficient.
+      export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10
       export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0
       export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=math_verified_answer
       export OAT_ZERO_PROMPT_TEMPLATE=qwen_math

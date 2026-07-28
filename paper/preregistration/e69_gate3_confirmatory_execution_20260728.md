@@ -25,6 +25,11 @@ Gate 1 selected free-form-MATH route abstention, so the endpoint-only MATH arm
 is the E69 successor for this area. It uses no trace prompt, route novelty,
 proposal actuator, or cross-prompt route replay.
 
+The free-form-MATH endpoint jobs inherit the prospectively recorded Gate 2
+startup repair: `OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10`, the already-defined E66
+endpoint value required by that variant's separated semantic advantage. The
+invalid zero-coefficient combination is never submitted in Gate 3.
+
 The exact Gate 2 seed-43 control and successor jobs are reused. They are not
 rerun or averaged with duplicate attempts. Gate 3 therefore launches only
 seeds 44 and 45: 16 new executable-domain jobs and four new MATH jobs. The
