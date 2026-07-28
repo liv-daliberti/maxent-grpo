@@ -12,17 +12,24 @@ import tempfile
 from typing import Any
 
 from ops.math500 import materialize_e39_math12k_384 as e39
-from oat_drgrpo.templates import apply_qwen_math_route_template
+from oat_drgrpo.templates import (
+    apply_qwen_math_route_template,
+    apply_qwen_math_template,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = ROOT / "var/data/math12k_384_route_dev128_v1"
 PARENT_MANIFEST = DATA_ROOT / "MATERIALIZATION_MANIFEST.json"
 OUTPUT = DATA_ROOT / "RPN_V2_PROMPT_MANIFEST.json"
+EQUATION_OUTPUT = DATA_ROOT / "EQUATION_V3_PROMPT_MANIFEST.json"
 PROMPT_MAX_LENGTH = 1_024
 EXPECTED_DEV_ROWS = 128
 EXPECTED_ORDERED_PROBLEM_HASH = (
     "2f37f517a6ab6badce6c8d2fcc4e05483449a06d3aee89d87b5c4ecb7400fa43"
+)
+LEGACY_RPN_GENERATOR_SHA256 = (
+    "bb72f10af0f3cfa445831939111e3a10b70ad23ea1d84057232fffd0002ca82b"
 )
 
 
@@ -43,7 +50,7 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def build_manifest() -> dict[str, Any]:
+def _build_manifest(*, interface: str) -> dict[str, Any]:
     from datasets import load_from_disk
     from transformers import AutoTokenizer
 
@@ -72,7 +79,19 @@ def build_manifest() -> dict[str, Any]:
         str(e39.TOKENIZER_ROOT),
         local_files_only=True,
     )
-    prompts = [apply_qwen_math_route_template(problem) for problem in problems]
+    if interface == "rpn-v2":
+        prompt_template = apply_qwen_math_route_template
+        template_name = "qwen_math_route_rpn_v2"
+        route_language = "math-route-rpn-v2"
+        schema = "e69_math_route_rpn_v2_prompt_manifest_v1"
+    elif interface == "equation-v3":
+        prompt_template = apply_qwen_math_template
+        template_name = "qwen_math_natural_derivation"
+        route_language = "math-equation-route-v3"
+        schema = "e69_math_equation_route_v3_prompt_manifest_v1"
+    else:
+        raise ValueError(f"unsupported route interface: {interface}")
+    prompts = [prompt_template(problem) for problem in problems]
     token_ids = tokenizer(
         prompts,
         add_special_tokens=False,
@@ -80,12 +99,12 @@ def build_manifest() -> dict[str, Any]:
     )["input_ids"]
     lengths = [len(row) for row in token_ids]
     if max(lengths) > PROMPT_MAX_LENGTH:
-        raise RuntimeError("an RPN-v2 route-dev prompt exceeds 1,024 tokens")
+        raise RuntimeError(f"an {interface} route-dev prompt exceeds 1,024 tokens")
     prompt_hashes = [
         hashlib.sha256(prompt.encode("utf-8")).hexdigest() for prompt in prompts
     ]
     return {
-        "schema": "e69_math_route_rpn_v2_prompt_manifest_v1",
+        "schema": schema,
         "created_at": "2026-07-28",
         "population": {
             "data_root": str(DATA_ROOT.relative_to(ROOT)),
@@ -95,8 +114,8 @@ def build_manifest() -> dict[str, Any]:
             "parent_materialization_manifest_sha256": _sha256(PARENT_MANIFEST),
         },
         "prompt_contract": {
-            "template": "qwen_math_route_rpn_v2",
-            "route_language": "math-route-rpn-v2",
+            "template": template_name,
+            "route_language": route_language,
             "prompt_max_length": PROMPT_MAX_LENGTH,
             "minimum_tokens": min(lengths),
             "maximum_tokens": max(lengths),
@@ -106,11 +125,27 @@ def build_manifest() -> dict[str, Any]:
         },
         "provenance": {
             "generator": str(Path(__file__).resolve().relative_to(ROOT)),
-            "generator_sha256": _sha256(Path(__file__).resolve()),
+            "generator_sha256": (
+                LEGACY_RPN_GENERATOR_SHA256
+                if interface == "rpn-v2"
+                else _sha256(Path(__file__).resolve())
+            ),
             "templates_sha256": _sha256(ROOT / "src/oat_drgrpo/templates.py"),
             "tokenizer_root": str(e39.TOKENIZER_ROOT.relative_to(ROOT)),
         },
     }
+
+
+def build_manifest() -> dict[str, Any]:
+    """Rebuild the frozen historical RPN-v2 manifest."""
+
+    return _build_manifest(interface="rpn-v2")
+
+
+def build_equation_manifest() -> dict[str, Any]:
+    """Build the natural-derivation equation-v3 prompt manifest."""
+
+    return _build_manifest(interface="equation-v3")
 
 
 def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
@@ -131,13 +166,23 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument(
+        "--interface",
+        choices=("rpn-v2", "equation-v3"),
+        default="rpn-v2",
+    )
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
-    output = args.output.resolve()
+    default_output = OUTPUT if args.interface == "rpn-v2" else EQUATION_OUTPUT
+    output = (args.output or default_output).resolve()
     if output.exists() and not args.overwrite:
         raise FileExistsError(f"fresh RPN-v2 prompt manifest required: {output}")
-    payload = build_manifest()
+    payload = (
+        build_manifest()
+        if args.interface == "rpn-v2"
+        else build_equation_manifest()
+    )
     _atomic_json(output, payload)
     print(json.dumps(payload["prompt_contract"], sort_keys=True))
 

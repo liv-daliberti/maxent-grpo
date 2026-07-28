@@ -26,11 +26,19 @@ DATA_ROOT = ROOT / "var/data/math12k_384_route_dev128_v1"
 PROTOCOL = (
     ROOT / "paper/preregistration/e69_verified_route_successor_protocol_20260728.md"
 )
-AMENDMENT = (
+RPN_AMENDMENT = (
     ROOT
     / "paper/preregistration/e69_math_route_gate1_rpn_v2_amendment_20260728.md"
 )
-OUTPUT_ROOT = ROOT / "var/artifacts/e69_math_route_gate1_base_rpn_v2"
+EQUATION_AMENDMENT = (
+    ROOT
+    / "paper/preregistration/"
+    "e69_math_route_gate1_equation_v3_amendment_20260728.md"
+)
+RPN_OUTPUT_ROOT = ROOT / "var/artifacts/e69_math_route_gate1_base_rpn_v2"
+EQUATION_OUTPUT_ROOT = (
+    ROOT / "var/artifacts/e69_math_route_gate1_base_equation_v3"
+)
 SAMPLE_COUNT = 8
 PROMPT_COUNT = 128
 TEMPERATURE = 1.0
@@ -43,15 +51,13 @@ MIN_ROUTE_COVERAGE = 0.80
 MIN_MULTI_ROUTE_PROMPTS = 8
 MIN_RECURRING_SIGNATURES = 3
 MANUAL_REVIEW_SIZE = 50
-IDENTITY_FILES = (
+COMMON_IDENTITY_FILES = (
     Path("src/oat_drgrpo/math_route.py"),
     Path("src/oat_drgrpo/math_grader.py"),
     Path("src/oat_drgrpo/templates.py"),
     Path("ops/route_successor/sample_e69_math_route_gate1.py"),
     Path("paper/preregistration/e69_verified_route_successor_protocol_20260728.md"),
-    Path("paper/preregistration/e69_math_route_gate1_rpn_v2_amendment_20260728.md"),
     Path("var/data/math12k_384_route_dev128_v1/MATERIALIZATION_MANIFEST.json"),
-    Path("var/data/math12k_384_route_dev128_v1/RPN_V2_PROMPT_MANIFEST.json"),
 )
 
 
@@ -67,8 +73,40 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _input_identity() -> tuple[str, dict[str, str]]:
-    hashes = {str(relative): _sha256(ROOT / relative) for relative in IDENTITY_FILES}
+def _identity_files(interface: str) -> tuple[Path, ...]:
+    if interface == "rpn-v2":
+        specific = (
+            Path(
+                "paper/preregistration/"
+                "e69_math_route_gate1_rpn_v2_amendment_20260728.md"
+            ),
+            Path(
+                "var/data/math12k_384_route_dev128_v1/"
+                "RPN_V2_PROMPT_MANIFEST.json"
+            ),
+        )
+    elif interface == "equation-v3":
+        specific = (
+            Path("src/oat_drgrpo/math_equation_route.py"),
+            Path(
+                "paper/preregistration/"
+                "e69_math_route_gate1_equation_v3_amendment_20260728.md"
+            ),
+            Path(
+                "var/data/math12k_384_route_dev128_v1/"
+                "EQUATION_V3_PROMPT_MANIFEST.json"
+            ),
+        )
+    else:
+        raise ValueError(f"unsupported route interface: {interface}")
+    return COMMON_IDENTITY_FILES + specific
+
+
+def _input_identity(interface: str = "rpn-v2") -> tuple[str, dict[str, str]]:
+    hashes = {
+        str(relative): _sha256(ROOT / relative)
+        for relative in _identity_files(interface)
+    }
     payload = (
         "\n".join(f"{digest}  {path}" for path, digest in sorted(hashes.items())) + "\n"
     )
@@ -135,26 +173,63 @@ def _score_sample(
 ) -> dict[str, Any]:
     from oat_drgrpo.math_grader import (
         boxed_reward_fn,
+        extract_answer,
+        grade,
         validated_math_route_signature,
     )
     from oat_drgrpo.math_route import (
         extract_math_route_block,
         validate_math_route_response,
     )
+    from oat_drgrpo.math_equation_route import (
+        equation_formatting_variant,
+        validate_math_equation_route_response,
+    )
+    import sympy
 
     response = str(record["response"])
     problem = str(record["problem"])
     answer = record["answer"]
+    interface = str(record.get("route_interface", "rpn-v2"))
     _info, reward = boxed_reward_fn(response, answer, fast=False)
     task_correct = float(reward) > 0.0
-    validation = validate_math_route_response(response, problem)
-    route_signature = validated_math_route_signature(
-        response,
-        problem,
-        answer,
-        fast=False,
-        task_verified=task_correct,
-    )
+    block = extract_math_route_block(response)
+    if interface == "rpn-v2":
+        validation = (
+            validate_math_route_response(response, problem)
+            if block is not None
+            else None
+        )
+        route_signature = (
+            validated_math_route_signature(
+                response,
+                problem,
+                answer,
+                fast=False,
+                task_verified=task_correct,
+            )
+            if block is not None
+            else None
+        )
+    elif interface == "equation-v3":
+        validation = validate_math_equation_route_response(response, problem)
+        model_answer = extract_answer(response)
+        terminal_agrees = (
+            validation is not None
+            and model_answer is not None
+            and grade(
+                model_answer,
+                sympy.latex(validation.terminal_value),
+                fast=False,
+            )
+        )
+        route_signature = (
+            validation.route_signature
+            if task_correct and terminal_agrees and validation is not None
+            else None
+        )
+    else:
+        raise ValueError(f"unsupported route interface: {interface}")
     route_accepted = route_signature is not None
     if route_accepted != (task_correct and validation is not None):
         raise RuntimeError(
@@ -162,20 +237,30 @@ def _score_sample(
         )
     formatting_stable: bool | None = None
     if route_accepted:
-        block = extract_math_route_block(response)
-        if block is None:
-            raise RuntimeError("accepted route has no unique route block")
-        variant = _formatting_variant(response, block)
-        formatting_stable = (
-            validated_math_route_signature(
+        if interface == "rpn-v2":
+            if block is None:
+                raise RuntimeError("accepted RPN route has no unique route block")
+            variant = _formatting_variant(response, block)
+            formatting_stable = (
+                validated_math_route_signature(
+                    variant,
+                    problem,
+                    answer,
+                    fast=False,
+                    task_verified=True,
+                )
+                == route_signature
+            )
+        else:
+            variant = equation_formatting_variant(response)
+            changed_validation = validate_math_equation_route_response(
                 variant,
                 problem,
-                answer,
-                fast=False,
-                task_verified=True,
             )
-            == route_signature
-        )
+            formatting_stable = (
+                changed_validation is not None
+                and changed_validation.route_signature == route_signature
+            )
     return {
         **record,
         "task_correct": task_correct,
@@ -318,9 +403,10 @@ def _manual_review_queue(
         ranked[:MANUAL_REVIEW_SIZE],
         start=1,
     ):
+        interface = str(row.get("route_interface", "rpn-v2"))
         queue.append(
             {
-                "review_id": f"e69-g1-rpn-v2-{review_index:03d}",
+                "review_id": f"e69-g1-{interface}-{review_index:03d}",
                 "prompt_index": row["prompt_index"],
                 "sample_index": row["sample_index"],
                 "unique_id": row["unique_id"],
@@ -343,9 +429,13 @@ def _manual_review_queue(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--interface",
+        choices=("rpn-v2", "equation-v3"),
+        default="rpn-v2",
+    )
+    parser.add_argument(
         "--output-root",
         type=Path,
-        default=OUTPUT_ROOT,
     )
     parser.add_argument("--workers", type=int, default=16)
     parser.add_argument(
@@ -353,17 +443,29 @@ def main() -> None:
         default=os.environ.get("OAT_E69_GATE1_INPUT_IDENTITY", ""),
     )
     args = parser.parse_args()
-    output_root = args.output_root.resolve()
+    output_root = (
+        args.output_root
+        or (
+            RPN_OUTPUT_ROOT
+            if args.interface == "rpn-v2"
+            else EQUATION_OUTPUT_ROOT
+        )
+    ).resolve()
     if output_root.exists():
         raise RuntimeError(
             f"fresh fixed archive required; output already exists: {output_root}"
         )
     if args.workers <= 0:
         raise ValueError("workers must be positive")
-    for path in (MODEL, DATA_ROOT, PROTOCOL, AMENDMENT):
+    amendment = (
+        RPN_AMENDMENT
+        if args.interface == "rpn-v2"
+        else EQUATION_AMENDMENT
+    )
+    for path in (MODEL, DATA_ROOT, PROTOCOL, amendment):
         if not path.exists():
             raise FileNotFoundError(path)
-    identity, input_hashes = _input_identity()
+    identity, input_hashes = _input_identity(args.interface)
     if not args.expected_input_identity or args.expected_input_identity != identity:
         raise RuntimeError("E69 Gate 1 input identity is absent or does not match")
     git_commit = subprocess.check_output(
@@ -375,7 +477,10 @@ def main() -> None:
     from datasets import load_from_disk
     import vllm
 
-    from oat_drgrpo.templates import apply_qwen_math_route_template
+    from oat_drgrpo.templates import (
+        apply_qwen_math_route_template,
+        apply_qwen_math_template,
+    )
 
     datasets = load_from_disk(str(DATA_ROOT / "eval"))
     if set(datasets) != {"math_dev"}:
@@ -384,9 +489,12 @@ def main() -> None:
     if len(dataset) != PROMPT_COUNT:
         raise RuntimeError("sealed E69 route-dev split is not 128 rows")
     source_rows = [dict(dataset[index]) for index in range(len(dataset))]
-    prompts = [
-        apply_qwen_math_route_template(str(row["problem"])) for row in source_rows
-    ]
+    prompt_template = (
+        apply_qwen_math_route_template
+        if args.interface == "rpn-v2"
+        else apply_qwen_math_template
+    )
+    prompts = [prompt_template(str(row["problem"])) for row in source_rows]
     llm = vllm.LLM(
         model=str(MODEL),
         dtype="bfloat16",
@@ -419,6 +527,7 @@ def main() -> None:
             response = str(sample.text)
             raw_rows.append(
                 {
+                    "route_interface": args.interface,
                     "prompt_index": prompt_index,
                     "sample_index": sample_index,
                     "unique_id": str(source["unique_id"]),
@@ -446,7 +555,11 @@ def main() -> None:
     _atomic_jsonl(archive_path, scored_rows)
     _atomic_jsonl(queue_path, queue)
     summary = {
-        "schema": "e69_math_route_gate1_base_rpn_v2_archive_v1",
+        "schema": (
+            "e69_math_route_gate1_base_rpn_v2_archive_v1"
+            if args.interface == "rpn-v2"
+            else "e69_math_route_gate1_base_equation_v3_archive_v1"
+        ),
         "created_at": "2026-07-28",
         "automatic_gate": automatic,
         "manual_gate": {
@@ -460,8 +573,16 @@ def main() -> None:
             "model_revision": MODEL.name,
             "dataset": str(DATA_ROOT.relative_to(ROOT)),
             "split": "math_dev",
-            "prompt_template": "qwen_math_route_rpn_v2",
-            "route_language": "math-route-rpn-v2",
+            "prompt_template": (
+                "qwen_math_route_rpn_v2"
+                if args.interface == "rpn-v2"
+                else "qwen_math_natural_derivation"
+            ),
+            "route_language": (
+                "math-route-rpn-v2"
+                if args.interface == "rpn-v2"
+                else "math-equation-route-v3"
+            ),
             "prompt_count": PROMPT_COUNT,
             "samples_per_prompt": SAMPLE_COUNT,
             "temperature": TEMPERATURE,
