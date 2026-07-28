@@ -41,7 +41,9 @@ seed-43 runs and 20 newly submitted runs.
 The model revision, data roots, prompts, verifiers, response limits, optimizer,
 learning rate, rollout group size, six-pass stopping rule, pass-by-pass
 evaluation cadence, fixed evaluation seeds, checkpoint retention, compute
-controls, placement classes, and watchdog policy are identical to Gate 2.
+controls, and watchdog policy are identical to Gate 2. Placement inherits the
+prospectively recorded Gate 2 repair: Graph uses matched A40s on node101 and
+Countdown/Python use matched A5000s on node105.
 
 Every arm issues one neutral group and three discarded proposal-shaped control
 groups of 16 rows per training prompt. Every arm enables one capacity-16
