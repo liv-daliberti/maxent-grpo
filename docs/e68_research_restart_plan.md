@@ -369,6 +369,23 @@ The recovery and successor work has now established:
   full dependency-use checks, and independent agreement with the ordinary
   boxed-answer verifier.
 
+The paired MathIR recovery is now terminal. All six registered continuations
+completed with exit code `0:0` at step 4608 (12 passes), and each seed has all
+49 fixed primary evaluation points. At the terminal checkpoint, E68 minus E66
+in the three-seed mean is `+.0260` greedy, `+.0301` mean@8, `+.0267` pass@8,
+and `+.1367` distinct@8. Greedy, pass@8, and distinct@8 are positive in every
+paired seed; mean@8 is positive in two of three. Mean tracked outcomes rise by
+48 and mean support per prompt by `.1265`. The exact scheduler, audit, curve,
+figure, and hash evidence is sealed by
+`var/artifacts/e66_e68_mathir_terminal_recovery_summary.json`.
+
+The explicit compute-budget choice is **successor first**. The remaining
+non-Math E66/E68 cells stay labeled incomplete; they are not silently promoted
+to a cross-domain result. This choice closes the strongest causal result while
+avoiding a 54-run completion whose endpoint-only mechanism already failed the
+frozen MATH-500 directional-transfer clause. It does not retune E68 or alter
+any observed E66/E68 arm.
+
 The next hard gate is empirical trace coverage on fixed base-model samples from
 the sealed MATH12K route-development split. The 80% threshold remains binding:
 if the model cannot reliably emit the restricted trace, MATH route novelty does
