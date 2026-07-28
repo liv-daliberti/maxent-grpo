@@ -39,9 +39,22 @@ def test_e69_route_knobs_reach_the_typed_training_surface():
         "--verified-route-replay-capacity-per-route",
         "--verified-route-recurring-min-neutral-prompts",
         "--verified-route-proposal-max-mean-logprob-drop",
+        "--online-canonical-counterfactual-fixed-control-groups",
+        "--online-canonical-replay-compute-only",
     ):
         assert literal in train
     assert "COUNTERFACTUAL_TEMPERATURE_STEP=0" in train
+
+    submit = (ROOT / "ops/submit_countdown_comparative.sh").read_text(
+        encoding="utf-8"
+    )
+    for literal in (
+        "OAT_ZERO_INCLUDE_VERIFIED_ROUTE_SUCCESSOR_ARM",
+        "submit_arm verified_route_successor verified_route_successor",
+        "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS",
+        "OAT_ZERO_DRGRPO_VARIANT",
+    ):
+        assert literal in submit
 
 
 def test_e69_route_state_and_proposal_separation_are_checkpointed():
@@ -53,6 +66,8 @@ def test_e69_route_state_and_proposal_separation_are_checkpointed():
         "route_library.load_state_dict",
         "verified-route proposals changed the neutral objective ",
         "verified-route actuator may admit at most one proposal ",
+        "counterfactual_fixed_control_rows_sent_to_ppo",
+        "precomputed_proposal_groups",
     ):
         assert literal in run
     for literal in (
@@ -60,8 +75,27 @@ def test_e69_route_state_and_proposal_separation_are_checkpointed():
         '"verified_route_proposal_rows_to_ppo"',
         '"verified_route_gold_support_feedback"',
         '"verified_route_eval_feedback"',
+        '"canonical_replay_compute_only"',
+        '"canonical_replay_charged_response_token_budget"',
+        "torch.zeros_like(raw_score_gradients)",
     ):
         assert literal in grpo
+
+
+def test_e69_compute_matched_drgrpo_runs_replay_with_zero_influence():
+    source = (ROOT / "ops/run_experiment.sh").read_text(encoding="utf-8")
+    start = source.index("  grpo_compute_matched)")
+    stop = source.index("  grpo_entropy)", start)
+    branch = source[start:stop]
+    for literal in (
+        "OAT_ZERO_ONLINE_CANONICAL_REPLAY=1",
+        "OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout",
+        "OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1",
+        "OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=1",
+        "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=0",
+        'VARIANT_TAG="grpo_compute_matched"',
+    ):
+        assert literal in branch
 
 
 def test_e69_protocol_names_the_four_compute_matched_arms_and_five_areas():

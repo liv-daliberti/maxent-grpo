@@ -111,6 +111,7 @@ ONLINE_CANONICAL_REPLAY_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY:
 ONLINE_CANONICAL_REPLAY_MASS_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA:-0.1}"
 ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS:-64}"
 ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY:-0.9}"
+ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE:-0}"
@@ -139,6 +140,7 @@ export OAT_ZERO_ONLINE_CANONICAL_POLICY_ENTROPY_ADAPTATION=0
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY=0
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=0
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0
+export OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=0
 export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=0
 export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=0
 export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=0
@@ -178,6 +180,29 @@ case "$VARIANT" in
     export OAT_ZERO_XDR_TAU=inf
     export OAT_ZERO_SEED_ENTROPY_ALPHA=0.0
     VARIANT_TAG="grpo"
+    ;;
+  grpo_compute_matched)
+    # Negative replay control for E69. It performs the same verified-bank
+    # tracking, one-group replay scoring, and backward traversal as treatment
+    # arms, while the replay score derivative is identically zero. Fixed
+    # proposal-shaped requests are supplied independently by the launcher.
+    export OAT_ZERO_POLICY_ENTROPY_COEF=0.0
+    export OAT_ZERO_XDR_TAU=inf
+    export OAT_ZERO_SEED_ENTROPY_ALPHA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE="$ONLINE_CANONICAL_KEY_MODE"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA="$ONLINE_CANONICAL_REPLAY_ALPHA"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY="$ONLINE_CANONICAL_REPLAY_CAPACITY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS="$ONLINE_CANONICAL_REPLAY_WARMUP_STEPS"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY="$ONLINE_CANONICAL_REPLAY_EMA_DECAY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=1
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=0
+    VARIANT_TAG="grpo_compute_matched"
     ;;
   grpo_entropy)
     export OAT_ZERO_POLICY_ENTROPY_COEF="${OAT_ZERO_POLICY_ENTROPY_COEF:-0.01}"
@@ -703,7 +728,7 @@ case "$VARIANT" in
     ;;
   *)
     echo "Unknown OAT_ZERO_VARIANT=${VARIANT}" >&2
-    echo "Use grpo, xdr, xdr_adapt, xdr_tau_control, xdr_sac_dual, maxent, maxent_control, maxent_dual, maxent_inverse, maxent_inverse_canonical, maxent_inverse_canonical_replay, open_set_split_canonical, verified_first_split_canonical, verified_first_global_replay_canonical, verified_first_bootstrap_local_canonical, verified_counterfactual_canonical, verified_entropy_gated_singleton_escape_canonical, verified_route_successor, maxent_length_dual, grpo_entropy, seed, diayn, outcome_collision, outcome_collision_outside_centering, semantic_shannon, semantic_shannon_advantage, quality_gated_semantic_novelty, success_conditioned_signed_semantic_shannon, signal_first_semantic_balance, online_canonical_maxent, online_canonical_haarnoja, or online_canonical_policy_entropy." >&2
+    echo "Use grpo, grpo_compute_matched, xdr, xdr_adapt, xdr_tau_control, xdr_sac_dual, maxent, maxent_control, maxent_dual, maxent_inverse, maxent_inverse_canonical, maxent_inverse_canonical_replay, open_set_split_canonical, verified_first_split_canonical, verified_first_global_replay_canonical, verified_first_bootstrap_local_canonical, verified_counterfactual_canonical, verified_entropy_gated_singleton_escape_canonical, verified_route_successor, maxent_length_dual, grpo_entropy, seed, diayn, outcome_collision, outcome_collision_outside_centering, semantic_shannon, semantic_shannon_advantage, quality_gated_semantic_novelty, success_conditioned_signed_semantic_shannon, signal_first_semantic_balance, online_canonical_maxent, online_canonical_haarnoja, or online_canonical_policy_entropy." >&2
     exit 1
     ;;
 esac

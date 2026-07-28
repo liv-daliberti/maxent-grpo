@@ -218,6 +218,11 @@ class ZeroMathArgs(PPOArgs):
     online_canonical_replay_mass_alpha: float = 0.1
     online_canonical_replay_mass_warmup_steps: int = 64
     online_canonical_replay_mass_ema_decay: float = 0.9
+    # Compute-matched negative control: retain and teacher-force the same
+    # verified replay banks, including the backward traversal, but replace the
+    # replay score derivative by exact zeros before it reaches the optimizer.
+    # Ordinary task-reward gradients are unchanged.
+    online_canonical_replay_compute_only: bool = False
     # Optional model-self-proposal actuator. Once the current prompt has one
     # model-generated validator-positive outcome, sample a fixed-budget
     # temperature sweep from the untouched original task prompt and admit only
@@ -237,6 +242,11 @@ class ZeroMathArgs(PPOArgs):
     online_canonical_counterfactual_anchor_max_tokens: int = 256
     online_canonical_counterfactual_max_attempts: int = 3
     online_canonical_counterfactual_sampling_temperature: float = 1.0
+    # Optional compute-matching surface. Every prompt update issues exactly
+    # this many additional sampling requests with isolated proposal seeds.
+    # Proposal-enabled arms may inspect up to ``max_attempts`` groups; all
+    # remaining rows are discarded before banks, replay, and PPO.
+    online_canonical_counterfactual_fixed_control_groups: int = 0
     online_canonical_key_mode: Literal[
         "modebench_outcome",
         "math_verified_answer",
@@ -704,6 +714,13 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError(
             "online_canonical_replay_mass_ema_decay must be finite and in [0, 1)"
         )
+    if (
+        bool(getattr(args, "online_canonical_replay_compute_only", False))
+        and not online_canonical_replay
+    ):
+        raise ValueError(
+            "online_canonical_replay_compute_only requires canonical replay"
+        )
     if online_canonical_counterfactual_anchor_max_tokens <= 0:
         raise ValueError(
             "online_canonical_counterfactual_anchor_max_tokens must be positive"
@@ -726,6 +743,35 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             1.0,
         )
     )
+    online_canonical_counterfactual_fixed_control_groups = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_fixed_control_groups",
+            0,
+        )
+    )
+    if online_canonical_counterfactual_fixed_control_groups < 0:
+        raise ValueError(
+            "online_canonical_counterfactual_fixed_control_groups must be "
+            "non-negative"
+        )
+    if (
+        online_canonical_counterfactual_fixed_control_groups > 0
+        and not bool(getattr(args, "replicated_freeform_sampling", False))
+    ):
+        raise ValueError(
+            "fixed counterfactual control groups require replicated "
+            "free-form sampling"
+        )
+    if (
+        online_canonical_counterfactual_proposals
+        and 0 < online_canonical_counterfactual_fixed_control_groups
+        < online_canonical_counterfactual_max_attempts
+    ):
+        raise ValueError(
+            "fixed counterfactual control groups must cover every proposal "
+            "attempt"
+        )
     if (
         not math.isfinite(online_canonical_counterfactual_sampling_temperature)
         or online_canonical_counterfactual_sampling_temperature <= 0

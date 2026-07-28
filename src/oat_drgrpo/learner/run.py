@@ -398,6 +398,7 @@ class ZeroMathRunMixin:
         processed_prompts: list[str],
         refs: list[str],
         neutral_feedback: list[TrajectoryData],
+        precomputed_proposal_groups: list[list[TrajectoryData]] | None = None,
     ) -> tuple[dict[str, list[Any]], dict[str, float]]:
         """Search a fixed temperature sweep for novel valid modes.
 
@@ -935,18 +936,26 @@ class ZeroMathRunMixin:
                 stream=f"proposal:{attempt_index}",
             )
             proposal_request_seeds.append(proposal_request_seed)
-            started = time.time()
-            proposal_handle = actor.step(
-                raw_prompts,
-                processed_prompts,
-                refs,
-                sampling_temperature=sampling_temperature,
-                sampling_seed=proposal_request_seed,
-            )
-            proposal_feedback = self.collector.ipc_client.deserialize_ipc(
-                proposal_handle
-            )
-            generation_time += time.time() - started
+            if precomputed_proposal_groups is not None:
+                if attempt_index >= len(precomputed_proposal_groups):
+                    raise RuntimeError(
+                        "fixed counterfactual controls do not cover every "
+                        "proposal attempt"
+                    )
+                proposal_feedback = precomputed_proposal_groups[attempt_index]
+            else:
+                started = time.time()
+                proposal_handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    refs,
+                    sampling_temperature=sampling_temperature,
+                    sampling_seed=proposal_request_seed,
+                )
+                proposal_feedback = self.collector.ipc_client.deserialize_ipc(
+                    proposal_handle
+                )
+                generation_time += time.time() - started
             if len(proposal_feedback) != int(self.args.num_samples):
                 raise RuntimeError(
                     "counterfactual actor returned "
@@ -1128,6 +1137,137 @@ class ZeroMathRunMixin:
             )
         return payload, metrics
 
+    def _generate_counterfactual_fixed_control_groups(
+        self,
+        *,
+        actor: Any,
+        raw_prompts: list[str],
+        processed_prompts: list[str],
+        refs: list[str],
+    ) -> tuple[list[list[TrajectoryData]], dict[str, float]]:
+        """Issue a fixed proposal-shaped sampling budget for compute matching.
+
+        The rows remain ordinary model generations, but this helper never
+        validates, stores, replays, or returns them to PPO. A proposal-enabled
+        arm may inspect the frozen list downstream; control arms discard every
+        row. Thus request count and charged token budget are independent of
+        whether a treatment finds a usable alternate early.
+        """
+
+        group_count = int(
+            getattr(
+                self.args,
+                "online_canonical_counterfactual_fixed_control_groups",
+                0,
+            )
+        )
+        metrics = {
+            "actor/counterfactual_fixed_control_groups_generated": 0.0,
+            "actor/counterfactual_fixed_control_rows_generated": 0.0,
+            "actor/counterfactual_fixed_control_realized_prompt_tokens": 0.0,
+            "actor/counterfactual_fixed_control_realized_response_tokens": 0.0,
+            "actor/counterfactual_fixed_control_charged_response_token_budget": 0.0,
+            "actor/counterfactual_fixed_control_generate_time": 0.0,
+            "actor/counterfactual_fixed_control_rows_sent_to_ppo": 0.0,
+            "actor/counterfactual_fixed_control_groups_consumed_by_explorer": 0.0,
+            "actor/counterfactual_fixed_control_groups_discarded": float(group_count),
+        }
+        if group_count == 0:
+            return [], metrics
+        if len(raw_prompts) != 1 or len(processed_prompts) != 1 or len(refs) != 1:
+            raise RuntimeError(
+                "fixed counterfactual controls require one current prompt"
+            )
+        base_temperature = float(
+            self.args.online_canonical_counterfactual_sampling_temperature
+        )
+        verified_route_mode = (
+            str(self.args.online_canonical_key_mode) == "verified_route"
+        )
+        groups: list[list[TrajectoryData]] = []
+        request_seeds: list[int] = []
+        temperatures: list[float] = []
+        started = time.time()
+        for attempt_index in range(group_count):
+            temperature = (
+                base_temperature
+                if verified_route_mode
+                else base_temperature + 0.2 * attempt_index
+            )
+            request_seed = _derive_freeform_request_seed(
+                base_seed=int(self.args.seed),
+                prompt_batch_index=int(self._prompt_batches_consumed_total),
+                stream=f"proposal:{attempt_index}",
+            )
+            request_seeds.append(request_seed)
+            temperatures.append(temperature)
+            if self.args.online_evaluation:
+                handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    refs,
+                    sampling_temperature=temperature,
+                    sampling_seed=request_seed,
+                )
+            else:
+                handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    sampling_temperature=temperature,
+                    sampling_seed=request_seed,
+                )
+            feedback = self.collector.ipc_client.deserialize_ipc(handle)
+            if len(feedback) != int(self.args.num_samples):
+                raise RuntimeError(
+                    "fixed counterfactual control returned "
+                    f"{len(feedback)} rows, expected {self.args.num_samples}"
+                )
+            groups.append(feedback)
+        prompt_tokens = sum(
+            len(trajectory.prompt_ids)
+            for group in groups
+            for trajectory in group
+        )
+        response_tokens = sum(
+            len(trajectory.response_ids)
+            for group in groups
+            for trajectory in group
+        )
+        rows = group_count * int(self.args.num_samples)
+        metrics.update(
+            {
+                "actor/counterfactual_fixed_control_groups_generated": float(
+                    group_count
+                ),
+                "actor/counterfactual_fixed_control_rows_generated": float(rows),
+                "actor/counterfactual_fixed_control_realized_prompt_tokens": float(
+                    prompt_tokens
+                ),
+                "actor/counterfactual_fixed_control_realized_response_tokens": float(
+                    response_tokens
+                ),
+                "actor/counterfactual_fixed_control_charged_response_token_budget": (
+                    float(rows * int(self.args.generate_max_length))
+                ),
+                "actor/counterfactual_fixed_control_generate_time": (
+                    time.time() - started
+                ),
+                "actor/counterfactual_fixed_control_request_seed_min": float(
+                    min(request_seeds)
+                ),
+                "actor/counterfactual_fixed_control_request_seed_max": float(
+                    max(request_seeds)
+                ),
+                "actor/counterfactual_fixed_control_sampling_temperature_min": float(
+                    min(temperatures)
+                ),
+                "actor/counterfactual_fixed_control_sampling_temperature_max": float(
+                    max(temperatures)
+                ),
+            }
+        )
+        return groups, metrics
+
     def _sample_replicated_freeform_feedback(
         self,
         raw_prompts: list[str],
@@ -1212,6 +1352,17 @@ class ZeroMathRunMixin:
             actor_info = self.collector.get_metrics(
                 time.time() - started, feedback_data
             )
+            (
+                fixed_control_groups,
+                fixed_control_metrics,
+            ) = ZeroMathRunMixin._generate_counterfactual_fixed_control_groups(
+                self,
+                actor=actor,
+                raw_prompts=raw_prompts,
+                processed_prompts=processed_prompts,
+                refs=refs,
+            )
+            actor_info.update(fixed_control_metrics)
             proposal_admission: dict[str, list[Any]] | None = None
             if bool(
                 getattr(
@@ -1229,8 +1380,23 @@ class ZeroMathRunMixin:
                     processed_prompts=processed_prompts,
                     refs=refs,
                     neutral_feedback=feedback_data,
+                    precomputed_proposal_groups=(
+                        fixed_control_groups if fixed_control_groups else None
+                    ),
                 )
                 actor_info.update(proposal_metrics)
+                if fixed_control_groups:
+                    consumed_groups = int(
+                        proposal_metrics[
+                            "actor/counterfactual_proposal_groups_generated"
+                        ]
+                    )
+                    actor_info[
+                        "actor/counterfactual_fixed_control_groups_consumed_by_explorer"
+                    ] = float(consumed_groups)
+                    actor_info[
+                        "actor/counterfactual_fixed_control_groups_discarded"
+                    ] = float(max(len(fixed_control_groups) - consumed_groups, 0))
             payload = [feedback_data, actor_info, proposal_admission]
         dist.broadcast_object_list(payload, src=0)
         feedback_data, actor_info, proposal_admission = payload

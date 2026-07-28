@@ -968,7 +968,7 @@ class ZeroMathGrpoMixin:
                                 "unprojected canonical replay coefficient "
                                 "exceeded the live loss arithmetic range"
                             )
-                        score_gradients = (
+                        raw_score_gradients = (
                             (
                                 (
                                     split_result.mass_score_gradients
@@ -981,6 +981,23 @@ class ZeroMathGrpoMixin:
                             )
                             .to(input_ids.device)
                             .detach()
+                        )
+                        replay_compute_only = bool(
+                            getattr(
+                                args,
+                                "online_canonical_replay_compute_only",
+                                False,
+                            )
+                        )
+                        score_gradients = (
+                            torch.zeros_like(raw_score_gradients)
+                            if replay_compute_only
+                            else raw_score_gradients
+                        )
+                        replay_applied_weighted_loss = (
+                            replay_weighted_loss.new_zeros(())
+                            if replay_compute_only
+                            else replay_weighted_loss
                         )
                         replay_backward_scale = (
                             reward_estimator_scale
@@ -1031,7 +1048,15 @@ class ZeroMathGrpoMixin:
                             "canonical_replay_actuator_loss": (actuator_loss.detach()),
                             "canonical_replay_balance_loss": (balance_loss.detach()),
                             "canonical_replay_weighted_loss": (
+                                replay_applied_weighted_loss.detach()
+                            ),
+                            "canonical_replay_raw_weighted_loss": (
                                 replay_weighted_loss.detach()
+                            ),
+                            "canonical_replay_compute_only": torch.tensor(
+                                float(replay_compute_only),
+                                dtype=torch.float32,
+                                device=input_ids.device,
                             ),
                             "canonical_replay_backward_scale": torch.tensor(
                                 float(self.strategy.grad_acc_step),
@@ -1103,11 +1128,7 @@ class ZeroMathGrpoMixin:
                                 )
                             ),
                             "canonical_replay_score_gradient_sum": (
-                                score_gradients.sum()
-                                if split_result is not None
-                                else replay_result.score_gradients.sum().to(
-                                    input_ids.device
-                                )
+                                raw_score_gradients.sum()
                             ),
                             "canonical_replay_objective_scale": torch.tensor(
                                 replay_objective_scale,
@@ -1115,13 +1136,7 @@ class ZeroMathGrpoMixin:
                                 device=input_ids.device,
                             ),
                             "canonical_replay_applied_score_gradient_sum": (
-                                (
-                                    score_gradients.sum()
-                                    if split_result is not None
-                                    else replay_result.score_gradients.sum().to(
-                                        input_ids.device
-                                    )
-                                )
+                                score_gradients.sum()
                                 * replay_objective_scale
                             ),
                             "canonical_replay_verified_likelihood_active": (
@@ -1196,7 +1211,7 @@ class ZeroMathGrpoMixin:
                         ),
                         (
                             "canonical_replay_weighted_loss",
-                            replay_weighted_loss,
+                            replay_applied_weighted_loss,
                         ),
                         (
                             "canonical_replay_normalized_model_entropy",
@@ -2433,6 +2448,48 @@ class ZeroMathGrpoMixin:
                         ),
                         "canonical_replay_capacity": torch.tensor(
                             int(args.online_canonical_replay_capacity),
+                            dtype=torch.float32,
+                            device=final_rewards.device,
+                        ),
+                        "canonical_replay_compute_only_configured": torch.tensor(
+                            float(
+                                bool(
+                                    getattr(
+                                        args,
+                                        "online_canonical_replay_compute_only",
+                                        False,
+                                    )
+                                )
+                            ),
+                            device=final_rewards.device,
+                        ),
+                        "canonical_replay_realized_prompt_tokens": torch.tensor(
+                            sum(
+                                len(group.prompt_token_ids)
+                                * len(group.response_token_ids)
+                                for group in canonical_replay_groups
+                            ),
+                            dtype=torch.float32,
+                            device=final_rewards.device,
+                        ),
+                        "canonical_replay_realized_response_tokens": torch.tensor(
+                            sum(
+                                len(response)
+                                for group in canonical_replay_groups
+                                for response in group.response_token_ids
+                            ),
+                            dtype=torch.float32,
+                            device=final_rewards.device,
+                        ),
+                        "canonical_replay_charged_response_token_budget": torch.tensor(
+                            int(args.online_canonical_replay_capacity)
+                            * int(args.generate_max_length)
+                            * int(
+                                max(
+                                    1,
+                                    args.online_canonical_replay_global_groups_per_step,
+                                )
+                            ),
                             dtype=torch.float32,
                             device=final_rewards.device,
                         ),

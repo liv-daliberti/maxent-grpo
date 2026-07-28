@@ -105,12 +105,14 @@ ONLINE_CANONICAL_REPLAY_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY:
 ONLINE_CANONICAL_REPLAY_MASS_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA:-0.1}"
 ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS:-64}"
 ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY:-0.9}"
+ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS:-256}"
 ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS:-3}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE:-1.0}"
+ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS:-0}"
 ONLINE_CANONICAL_KEY_MODE="${OAT_ZERO_ONLINE_CANONICAL_KEY_MODE:-modebench_outcome}"
 VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE="${OAT_ZERO_VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE:-16}"
 VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS="${OAT_ZERO_VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS:-2}"
@@ -536,6 +538,16 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
       echo "Frozen source lacks split canonical replay mass control: $ARG_SOURCE_ROOT" >&2
       exit 1
     fi
+    if grep -q 'online_canonical_replay_compute_only:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+      if [[ "$ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY" == "1" ]]; then
+        cmd+=(--online-canonical-replay-compute-only)
+      else
+        cmd+=(--no-online-canonical-replay-compute-only)
+      fi
+    elif [[ "$ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY" == "1" ]]; then
+      echo "Frozen source lacks replay compute-only controls: $ARG_SOURCE_ROOT" >&2
+      exit 1
+    fi
     if grep -q 'online_canonical_counterfactual_proposals:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
       if [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS" == "1" ]]; then
         cmd+=(--online-canonical-counterfactual-proposals)
@@ -560,6 +572,15 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
         --online-canonical-counterfactual-sampling-temperature \
           "$ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE"
       )
+      if grep -q 'online_canonical_counterfactual_fixed_control_groups:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+        cmd+=(
+          --online-canonical-counterfactual-fixed-control-groups \
+            "$ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS"
+        )
+      elif [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS" != "0" ]]; then
+        echo "Frozen source lacks fixed counterfactual compute controls: $ARG_SOURCE_ROOT" >&2
+        exit 1
+      fi
       if grep -q 'online_canonical_counterfactual_singleton_entropy_gate:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
         if [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE" == "1" ]]; then
           cmd+=(--online-canonical-counterfactual-singleton-entropy-gate)
@@ -726,7 +747,7 @@ echo "[train] online_canonical_bank_alpha=$ONLINE_CANONICAL_BANK_ALPHA novelty_b
 echo "[train] verified_route_capacity_per_route=$VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE recurring_min_neutral_prompts=$VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS proposal_max_mean_logprob_drop=$VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP"
 echo "[train] verified_discovery_tracking=$VERIFIED_DISCOVERY_TRACKING objective_influence=zero_for_plain_drgrpo"
 echo "[train] online_canonical_dual_target_ratio=$ONLINE_CANONICAL_DUAL_TARGET_RATIO alpha_bounds=[$ONLINE_CANONICAL_DUAL_MIN_ALPHA,$ONLINE_CANONICAL_DUAL_MAX_ALPHA] alpha_lr=$ONLINE_CANONICAL_DUAL_ALPHA_LR ema_decay=$ONLINE_CANONICAL_DUAL_EMA_DECAY sensor=postupdate_H_over_log_support"
-echo "[train] online_canonical_replay=$ONLINE_CANONICAL_REPLAY replay_alpha=$ONLINE_CANONICAL_REPLAY_ALPHA replay_objective=$ONLINE_CANONICAL_REPLAY_OBJECTIVE replay_capacity=$ONLINE_CANONICAL_REPLAY_CAPACITY global_groups_per_step=$ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP global_bootstrap_steps=$ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS replay_warmup=$ONLINE_CANONICAL_REPLAY_WARMUP_STEPS replay_ema_decay=$ONLINE_CANONICAL_REPLAY_EMA_DECAY counterfactual_proposals=$ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS counterfactual_separate_objective_support=$ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT counterfactual_anchor_max_tokens=$ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS counterfactual_max_attempts=$ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS original_prompt_temperature=$ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE proposal_temperature_step=$COUNTERFACTUAL_TEMPERATURE_STEP proposal_rows_to_ppo=0 alpha_projection=none gold_support_feedback=none"
+echo "[train] online_canonical_replay=$ONLINE_CANONICAL_REPLAY replay_alpha=$ONLINE_CANONICAL_REPLAY_ALPHA replay_objective=$ONLINE_CANONICAL_REPLAY_OBJECTIVE replay_capacity=$ONLINE_CANONICAL_REPLAY_CAPACITY replay_compute_only=$ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY global_groups_per_step=$ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP global_bootstrap_steps=$ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS replay_warmup=$ONLINE_CANONICAL_REPLAY_WARMUP_STEPS replay_ema_decay=$ONLINE_CANONICAL_REPLAY_EMA_DECAY counterfactual_proposals=$ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS counterfactual_separate_objective_support=$ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT counterfactual_anchor_max_tokens=$ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS counterfactual_max_attempts=$ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS fixed_control_groups=$ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS original_prompt_temperature=$ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE proposal_temperature_step=$COUNTERFACTUAL_TEMPERATURE_STEP proposal_rows_to_ppo=0 control_rows_to_ppo=0 alpha_projection=none gold_support_feedback=none"
 echo "[train] tau_control_target_ratio=$XDR_TAU_CONTROL_TARGET_RATIO warmup=$XDR_TAU_CONTROL_WARMUP_STEPS min_tau=$XDR_TAU_CONTROL_MIN ema_decay=$XDR_TAU_CONTROL_EMA_DECAY gain=$XDR_TAU_CONTROL_GAIN"
 echo "[train] sac_dual_target_ratio=$XDR_SAC_DUAL_TARGET_RATIO warmup=$XDR_SAC_DUAL_WARMUP_STEPS tau_bounds=[$XDR_SAC_DUAL_MIN_TAU,$XDR_SAC_DUAL_MAX_TAU] alpha_lr=$XDR_SAC_DUAL_ALPHA_LR"
 echo "[train] maxent_alpha=$MAXENT_ALPHA control_ratio=$MAXENT_CONTROL_TARGET_RATIO control_target=$MAXENT_CONTROL_TARGET_ENTROPY control_max=$MAXENT_CONTROL_MAX_ALPHA dual_ratio=$MAXENT_DUAL_TARGET_RATIO dual_target=$MAXENT_DUAL_TARGET_ENTROPY dual_bounds=[$MAXENT_DUAL_MIN_ALPHA,$MAXENT_DUAL_MAX_ALPHA] dual_ema_decay=$MAXENT_DUAL_EMA_DECAY inverse=$MAXENT_INVERSE_ADAPTATION inverse_warmup=$MAXENT_INVERSE_WARMUP_STEPS inverse_ema_decay=$MAXENT_INVERSE_EMA_DECAY inverse_projection=none"

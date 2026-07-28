@@ -314,6 +314,90 @@ def test_route_proposal_payload_is_executable_trusted_and_support_only(
     assert actor.calls[0][1] >= 0
 
 
+def test_fixed_counterfactual_controls_charge_and_discard_every_group():
+    rows = [
+        _route_row("unused-a", 21, reward=0.0, mean_logprob=-1.0),
+        _route_row("unused-b", 22, reward=0.0, mean_logprob=-1.0),
+    ]
+    learner = SimpleNamespace(
+        args=SimpleNamespace(
+            seed=43,
+            num_samples=2,
+            online_evaluation=True,
+            online_canonical_key_mode="verified_route",
+            online_canonical_counterfactual_sampling_temperature=1.0,
+            online_canonical_counterfactual_fixed_control_groups=3,
+            generate_max_length=64,
+        ),
+        _prompt_batches_consumed_total=4,
+        collector=SimpleNamespace(ipc_client=_RouteIpc(rows)),
+    )
+    actor = _RouteActor()
+
+    groups, metrics = (
+        ZeroMathRunMixin._generate_counterfactual_fixed_control_groups(
+            learner,
+            actor=actor,
+            raw_prompts=["problem"],
+            processed_prompts=["formatted"],
+            refs=["reference"],
+        )
+    )
+
+    assert groups == [rows, rows, rows]
+    assert len(actor.calls) == 3
+    assert {temperature for temperature, _seed in actor.calls} == {1.0}
+    assert len({seed for _temperature, seed in actor.calls}) == 3
+    assert metrics["actor/counterfactual_fixed_control_groups_generated"] == 3
+    assert metrics["actor/counterfactual_fixed_control_rows_generated"] == 6
+    assert (
+        metrics[
+            "actor/counterfactual_fixed_control_charged_response_token_budget"
+        ]
+        == 384
+    )
+    assert metrics["actor/counterfactual_fixed_control_rows_sent_to_ppo"] == 0
+    assert metrics["actor/counterfactual_fixed_control_groups_discarded"] == 3
+
+
+def test_route_explorer_can_consume_precomputed_groups_without_resampling(
+    monkeypatch,
+):
+    identities = {
+        "anchor": VerifiedExplorationIdentity("v", "endpoint-a", "route-a"),
+        "novel": VerifiedExplorationIdentity("v", "endpoint-b", "route-b"),
+    }
+    monkeypatch.setattr(
+        run_module,
+        "validated_exploration_identity",
+        lambda response, problem, reference, **kwargs: identities.get(response),
+    )
+    proposals = [
+        _route_row("novel", 21, reward=1.0, mean_logprob=-1.0),
+        _route_row("invalid", 22, reward=0.0, mean_logprob=-2.0),
+    ]
+    learner = _route_proposal_learner(proposals)
+    actor = _RouteActor()
+    neutral = [
+        _route_row("anchor", 11, reward=1.0, mean_logprob=-0.5),
+        _route_row("invalid", 12, reward=0.0, mean_logprob=-0.8),
+    ]
+
+    payload, metrics = ZeroMathRunMixin._generate_verified_counterfactual_proposals(
+        learner,
+        actor=actor,
+        raw_prompts=["problem"],
+        processed_prompts=["formatted"],
+        refs=["reference"],
+        neutral_feedback=neutral,
+        precomputed_proposal_groups=[proposals],
+    )
+
+    assert payload["route_signatures"] == ["route-b"]
+    assert metrics["actor/counterfactual_proposal_groups_generated"] == 1
+    assert actor.calls == []
+
+
 def test_route_explorer_does_not_run_for_non_singleton_verified_support(
     monkeypatch,
 ):

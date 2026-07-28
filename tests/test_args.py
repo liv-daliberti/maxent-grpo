@@ -194,6 +194,11 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
     assert fields[
         "online_canonical_counterfactual_sampling_temperature"
     ].default == pytest.approx(1.0)
+    assert (
+        fields["online_canonical_counterfactual_fixed_control_groups"].default
+        == 0
+    )
+    assert fields["online_canonical_replay_compute_only"].default is False
     args = _args(
         xdr_tau=float("inf"),
         test_split="multi_answer",
@@ -219,6 +224,20 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
         validate_zero_math_args(
             _args(
                 online_canonical_counterfactual_sampling_temperature=float("inf"),
+            )
+        )
+
+    with pytest.raises(ValueError, match="fixed counterfactual control groups"):
+        validate_zero_math_args(
+            _args(
+                online_canonical_counterfactual_fixed_control_groups=3,
+            )
+        )
+
+    with pytest.raises(ValueError, match="compute_only requires canonical replay"):
+        validate_zero_math_args(
+            _args(
+                online_canonical_replay_compute_only=True,
             )
         )
 
