@@ -414,3 +414,36 @@ def test_e69_gate4_final_classification_distinguishes_mechanism_result():
     )
     assert result["status"] == "mechanism_result"
     assert not result["checks"]["four_executable_areas_task_quality_noninferior"]
+
+
+def test_e69_gate2_math_endpoint_repair_is_single_preoptimizer_correction():
+    amendment = (
+        ROOT
+        / "paper/preregistration/e69_gate2_math_endpoint_startup_repair_20260728.md"
+    ).read_text(encoding="utf-8")
+    amendment_flat = " ".join(amendment.split())
+    for literal in (
+        "job `30159730`",
+        "never entered optimization",
+        "no optimizer metric record",
+        "cancelled after five recorded retries",
+        "`OAT_ZERO_SEMANTIC_SHANNON_COEF` from `0` to `0.10`",
+        "does not enable route prompting",
+        "Exactly one replacement job",
+        "before any Gate 2 terminal outcome was available",
+    ):
+        assert literal in amendment_flat
+
+    launcher = (
+        ROOT / "ops/route_successor/repair_e69_gate2_math_endpoint.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "INVALID_JOB=30159730",
+        "OAT_ZERO_ONLY_ARMS=verified_first_global_replay_canonical",
+        "OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10",
+        "OAT_ZERO_TRAIN_SEEDS=43",
+        "E69 Gate 2 repair manifest must contain exactly one job",
+        '"optimizer_records": 0',
+        '"terminal_outcomes_observed_before_repair": False',
+    ):
+        assert literal in launcher
