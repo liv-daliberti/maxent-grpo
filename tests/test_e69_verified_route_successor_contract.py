@@ -464,3 +464,42 @@ def test_e69_gate2_math_endpoint_repair_is_single_preoptimizer_correction():
     ).read_text(encoding="utf-8")
     assert 'for row in gate2_audit["physical_runs"]' in gate3_launcher
     assert '"run_stamp": row["run_stamp"]' in gate3_launcher
+
+
+def test_e69_gate2_pending_placement_repair_is_matched_and_atomic():
+    amendment = (
+        ROOT
+        / "paper/preregistration/e69_gate2_pending_placement_repair_20260728.md"
+    ).read_text(encoding="utf-8")
+    amendment_flat = " ".join(amendment.split())
+    for literal in (
+        "All 12 Gate 2 jobs",
+        "zero runtime",
+        "no run directory",
+        "all four Graph arms run on `node101`, `gpu:a40:1`",
+        "all four Countdown arms and all four Python arms run on `node105`",
+        "submitted held and audited before the original 12 pending jobs are cancelled",
+        "No Graph, Countdown, Python",
+        "outcome informed it",
+    ):
+        assert literal in amendment_flat
+
+    launcher = (
+        ROOT / "ops/route_successor/repair_e69_gate2_pending_placements.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "30159713 30159714 30159715 30159716",
+        "OAT_ZERO_TRAIN_NODELIST=node101",
+        "OAT_ZERO_TRAIN_GRES=gpu:a40:1",
+        "OAT_ZERO_TRAIN_NODELIST=node105",
+        "OAT_ZERO_TRAIN_GRES=gpu:a5000:1",
+        "OAT_ZERO_SBATCH_HOLD=1",
+        'scancel "${ORIGINAL_JOBS[@]}"',
+        'scontrol release "${replacement_jobs[@]}"',
+        '"invalid_jobs_optimizer_records": 0',
+        '"outcomes_observed_before_repair": False',
+    ):
+        assert literal in launcher
+    assert launcher.index('scancel "${ORIGINAL_JOBS[@]}"') < launcher.index(
+        'scontrol release "${replacement_jobs[@]}"'
+    )

@@ -21,6 +21,9 @@ OUT_MD = ROOT / "paper/results/e69_gate2_compute_matched_screen_live.md"
 REPAIR_IDENTITY = (
     ROOT / "var/artifacts/e69_gate2_math_endpoint_repair_identity.json"
 )
+PLACEMENT_REPAIR_IDENTITY = (
+    ROOT / "var/artifacts/e69_gate2_pending_placement_repair_identity.json"
+)
 PASSES = (0, 1, 2, 3, 4, 5, 6)
 POOL_SIZE = {
     "graph_coloring": 192,
@@ -95,54 +98,124 @@ def _effective_jobs(
     repairs: list[dict[str, Any]] = []
     violations: list[str] = []
     if not REPAIR_IDENTITY.is_file():
+        pass
+    else:
+        repair = json.loads(REPAIR_IDENTITY.read_text(encoding="utf-8"))
+        if (
+            repair.get("schema")
+            != "e69_gate2_math_endpoint_startup_repair_v1"
+            or repair.get("original_identity_sha256") != _sha256(IDENTITY)
+            or repair.get("invalid_job", {}).get("job_id") != 30159730
+            or repair.get("invalid_job", {}).get("optimizer_records") != 0
+            or repair.get("terminal_outcomes_observed_before_repair") is not False
+        ):
+            violations.append("E69 Gate 2 MATH endpoint repair identity mismatch")
+            return jobs, repairs, violations
+        replacement = dict(repair["replacement"])
+        if (
+            replacement.get("arm") != ENDPOINT
+            or int(replacement.get("seed", -1)) != 43
+        ):
+            violations.append("E69 Gate 2 MATH endpoint replacement cell mismatch")
+            return jobs, repairs, violations
+        matches = [
+            index
+            for index, row in enumerate(jobs["math_dev"])
+            if int(row["job_id"]) == 30159730
+        ]
+        if len(matches) != 1:
+            violations.append("E69 Gate 2 invalid MATH endpoint cell is not unique")
+            return jobs, repairs, violations
+        original = jobs["math_dev"][matches[0]]
+        if _run_dir(str(original["run_stamp"]), int(original["job_id"])) is not None:
+            violations.append("excluded Gate 2 job unexpectedly has a run directory")
+            return jobs, repairs, violations
+        failure_log = ROOT / "var/artifacts/logs/xdr_train-30159730.err"
+        failure_text = (
+            failure_log.read_text(encoding="utf-8", errors="replace")
+            if failure_log.is_file()
+            else ""
+        )
+        if str(repair["invalid_job"]["failure"]) not in failure_text:
+            violations.append("excluded Gate 2 job failure signature is absent")
+            return jobs, repairs, violations
+        jobs["math_dev"][matches[0]] = replacement
+        repairs.append(
+            {
+                "kind": "preoptimizer_startup",
+                "invalid_job_id": 30159730,
+                "replacement_job_id": int(replacement["job_id"]),
+                "identity": str(REPAIR_IDENTITY.resolve()),
+                "identity_sha256": _sha256(REPAIR_IDENTITY),
+                "attempt_selection": repair["attempt_selection"],
+            }
+        )
+
+    if not PLACEMENT_REPAIR_IDENTITY.is_file():
         return jobs, repairs, violations
-    repair = json.loads(REPAIR_IDENTITY.read_text(encoding="utf-8"))
-    if (
-        repair.get("schema")
-        != "e69_gate2_math_endpoint_startup_repair_v1"
-        or repair.get("original_identity_sha256") != _sha256(IDENTITY)
-        or repair.get("invalid_job", {}).get("job_id") != 30159730
-        or repair.get("invalid_job", {}).get("optimizer_records") != 0
-        or repair.get("terminal_outcomes_observed_before_repair") is not False
-    ):
-        violations.append("E69 Gate 2 MATH endpoint repair identity mismatch")
-        return jobs, repairs, violations
-    replacement = dict(repair["replacement"])
-    if (
-        replacement.get("arm") != ENDPOINT
-        or int(replacement.get("seed", -1)) != 43
-    ):
-        violations.append("E69 Gate 2 MATH endpoint replacement cell mismatch")
-        return jobs, repairs, violations
-    matches = [
-        index
-        for index, row in enumerate(jobs["math_dev"])
-        if int(row["job_id"]) == 30159730
-    ]
-    if len(matches) != 1:
-        violations.append("E69 Gate 2 invalid MATH endpoint cell is not unique")
-        return jobs, repairs, violations
-    original = jobs["math_dev"][matches[0]]
-    if _run_dir(str(original["run_stamp"]), int(original["job_id"])) is not None:
-        violations.append("excluded Gate 2 job unexpectedly has a run directory")
-        return jobs, repairs, violations
-    failure_log = ROOT / "var/artifacts/logs/xdr_train-30159730.err"
-    failure_text = (
-        failure_log.read_text(encoding="utf-8", errors="replace")
-        if failure_log.is_file()
-        else ""
+    placement = json.loads(
+        PLACEMENT_REPAIR_IDENTITY.read_text(encoding="utf-8")
     )
-    if str(repair["invalid_job"]["failure"]) not in failure_text:
-        violations.append("excluded Gate 2 job failure signature is absent")
+    if (
+        placement.get("schema") != "e69_gate2_pending_placement_repair_v1"
+        or placement.get("original_identity_sha256") != _sha256(IDENTITY)
+        or placement.get("invalid_jobs_optimizer_records") != 0
+        or placement.get("outcomes_observed_before_repair") is not False
+    ):
+        violations.append("E69 Gate 2 placement repair identity mismatch")
         return jobs, repairs, violations
-    jobs["math_dev"][matches[0]] = replacement
+    substitutions: list[dict[str, int]] = []
+    for domain in ("graph_coloring", "countdown", "python_factor"):
+        mappings = placement.get("mappings", {}).get(domain, [])
+        if len(mappings) != 4:
+            violations.append(f"E69 Gate 2 {domain} placement mapping is incomplete")
+            return jobs, repairs, violations
+        for mapping in mappings:
+            invalid_job_id = int(mapping["invalid_job_id"])
+            matches = [
+                index
+                for index, row in enumerate(jobs[domain])
+                if int(row["job_id"]) == invalid_job_id
+            ]
+            if len(matches) != 1:
+                violations.append(
+                    f"E69 Gate 2 placement cell {invalid_job_id} is not unique"
+                )
+                return jobs, repairs, violations
+            original = jobs[domain][matches[0]]
+            if (
+                original["arm"] != mapping["arm"]
+                or int(mapping["seed"]) != int(original["seed"])
+                or _run_dir(
+                    str(original["run_stamp"]),
+                    invalid_job_id,
+                )
+                is not None
+            ):
+                violations.append(
+                    f"E69 Gate 2 excluded placement cell {invalid_job_id} mismatch"
+                )
+                return jobs, repairs, violations
+            replacement = {
+                "arm": mapping["arm"],
+                "seed": int(mapping["seed"]),
+                "job_id": int(mapping["replacement_job_id"]),
+                "run_stamp": mapping["run_stamp"],
+            }
+            jobs[domain][matches[0]] = replacement
+            substitutions.append(
+                {
+                    "invalid_job_id": invalid_job_id,
+                    "replacement_job_id": int(mapping["replacement_job_id"]),
+                }
+            )
     repairs.append(
         {
-            "invalid_job_id": 30159730,
-            "replacement_job_id": int(replacement["job_id"]),
-            "identity": str(REPAIR_IDENTITY.resolve()),
-            "identity_sha256": _sha256(REPAIR_IDENTITY),
-            "attempt_selection": repair["attempt_selection"],
+            "kind": "pending_placement",
+            "substitutions": substitutions,
+            "identity": str(PLACEMENT_REPAIR_IDENTITY.resolve()),
+            "identity_sha256": _sha256(PLACEMENT_REPAIR_IDENTITY),
+            "attempt_selection": placement["attempt_selection"],
         }
     )
     return jobs, repairs, violations
@@ -498,11 +571,18 @@ def _write_markdown(payload: dict[str, Any]) -> None:
     if payload.get("repairs"):
         lines.extend(["", "## Pre-optimizer infrastructure repair", ""])
         for repair in payload["repairs"]:
-            lines.append(
-                f"- Excluded job {repair['invalid_job_id']} and used exact "
-                f"replacement job {repair['replacement_job_id']} under the "
-                "prospectively recorded startup-repair identity."
-            )
+            if repair["kind"] == "preoptimizer_startup":
+                lines.append(
+                    f"- Excluded job {repair['invalid_job_id']} and used exact "
+                    f"replacement job {repair['replacement_job_id']} under the "
+                    "prospectively recorded startup-repair identity."
+                )
+            else:
+                lines.append(
+                    f"- Replaced {len(repair['substitutions'])} never-started "
+                    "pending executable-domain jobs under the prospectively "
+                    "recorded matched-placement identity."
+                )
     if payload.get("pending"):
         lines.extend(["", "## Pending", ""])
         lines.extend(f"- {value}" for value in payload["pending"])
