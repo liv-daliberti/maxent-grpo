@@ -23,7 +23,7 @@ INVALID_JOB=30159730
 PREFIX=mde69_gate2_math_endpoint_repair
 MANIFEST="$ROOT_DIR/var/artifacts/${PREFIX}_comparative_jobs.tsv"
 REPAIR_IDENTITY="$ROOT_DIR/var/artifacts/e69_gate2_math_endpoint_repair_identity.json"
-INVALID_LOG="$ROOT_DIR/var/artifacts/logs/xdr_train-${INVALID_JOB}.out"
+INVALID_LOG="$ROOT_DIR/var/artifacts/logs/xdr_train-${INVALID_JOB}.err"
 
 for required in \
   "$ORIGINAL_IDENTITY" "$AMENDMENT" \
