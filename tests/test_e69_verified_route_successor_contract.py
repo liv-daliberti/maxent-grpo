@@ -556,3 +556,29 @@ def test_e69_gate2_graph_preemption_repair_restarts_all_arms_atomically():
         '"kind": "graph_preemption"',
     ):
         assert literal in audit
+
+
+def test_e69_gate2_to_gate3_transition_fails_closed():
+    transition = (
+        ROOT / "ops/route_successor/advance_e69_gate2_to_gate3.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "audit_e69_gate2_screen.py",
+        'audit.get("status") != "pass"',
+        'summary.get("terminal_physical_runs") != 18',
+        'summary.get("integrity_violations") != 0',
+        'audit.get("math500_sealed") is not True',
+        "launch_e69_gate3_confirmatory.sh full",
+    ):
+        assert literal in transition
+
+    slurm = (
+        ROOT / "ops/slurm/e69_gate2_to_gate3.slurm"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "#SBATCH --job-name=e69g2_to_g3",
+        "#SBATCH --cpus-per-task=1",
+        "#SBATCH --mem=8G",
+        "advance_e69_gate2_to_gate3.sh",
+    ):
+        assert literal in slurm
