@@ -1,6 +1,9 @@
 from pathlib import Path
 
-from ops.route_successor.audit_e69_gate2_screen import evaluate_gate
+from ops.route_successor.audit_e69_gate2_screen import (
+    _training_audit,
+    evaluate_gate,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -193,3 +196,16 @@ def test_e69_gate2_gate_is_pure_strict_and_persistent():
     result = evaluate_gate(curves, route)
     assert result["status"] == "fail"
     assert not result["checks"]["mathir_pass_and_distinct_gain_pass_5"]
+
+
+def test_e69_gate2_training_audit_allows_not_yet_started_run(tmp_path):
+    training, violations = _training_audit(
+        tmp_path / "train_metrics.jsonl",
+        label="graph/e69/job0",
+        arm="verified_route_successor",
+        response_limit=192,
+    )
+    assert violations == []
+    assert training["records"] == 0
+    assert training["latest_step"] == -1
+    assert training["route_terminal"] == {}

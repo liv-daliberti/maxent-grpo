@@ -1,0 +1,185 @@
+{
+  "attempt_selection": "exact_manifest_job_ids",
+  "checkpoint_selection": "terminal_pass_6_only",
+  "data_tree_sha256": {
+    "countdown": "2383b62e2e343272c7195c1108b7058deea7c9fa192be8671fe338d7c2724127",
+    "graph_coloring": "e1779559d36350ae3c58ee025c49f895ca221b10e8640b3169e4f61f26dd1601",
+    "math_dev": "64e27d5377e71b6b7c30579e744866882563a8f5fa163498d60bc58e582c1688",
+    "mathir": "735337192351184ac03f70ff6a81cb8f0dd7b2534389c7a4623ec8d221119f4b",
+    "python_factor": "d3d662a5873508f9d79eca3d20e2244adc9751d2cf69dbf1d1811f9a37011b83"
+  },
+  "execution_protocol_sha256": "2e39c35408401056c5c55d6f90d95a167f8301560beb2fa410a997fc8892b947",
+  "execution_surface_hash": "c8aa9471d5af05264d2cc04338612f9f2e16a10af34c5ebaea67ac6aa6ddb41a",
+  "fixed_compute": {
+    "drgrpo_replay_gradient": 0,
+    "neutral_groups_per_prompt": 1,
+    "proposal_control_groups_per_prompt": 3,
+    "replay_capacity": 16,
+    "replay_groups_per_update": 1,
+    "replay_score_passes": 2,
+    "rows_per_group": 16,
+    "sampled_rows_per_prompt": 64
+  },
+  "jobs": {
+    "countdown": [
+      {
+        "arm": "grpo",
+        "job_id": 30159717,
+        "run_stamp": "cde69_gate2_compute_matched_05b_6pass_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "job_id": 30159718,
+        "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_entropy_gated_singleton_escape_canonical",
+        "job_id": 30159719,
+        "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_route_successor",
+        "job_id": 30159720,
+        "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+        "seed": 43
+      }
+    ],
+    "graph_coloring": [
+      {
+        "arm": "grpo",
+        "job_id": 30159713,
+        "run_stamp": "gce69_gate2_compute_matched_05b_6pass_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "job_id": 30159714,
+        "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_entropy_gated_singleton_escape_canonical",
+        "job_id": 30159715,
+        "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_route_successor",
+        "job_id": 30159716,
+        "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+        "seed": 43
+      }
+    ],
+    "math_dev": [
+      {
+        "arm": "grpo",
+        "job_id": 30159729,
+        "run_stamp": "mde69_gate2_compute_matched_05b_6pass_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "job_id": 30159730,
+        "run_stamp": "mde69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      }
+    ],
+    "mathir": [
+      {
+        "arm": "grpo",
+        "job_id": 30159725,
+        "run_stamp": "mie69_gate2_compute_matched_05b_6pass_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "job_id": 30159726,
+        "run_stamp": "mie69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_entropy_gated_singleton_escape_canonical",
+        "job_id": 30159727,
+        "run_stamp": "mie69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_route_successor",
+        "job_id": 30159728,
+        "run_stamp": "mie69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+        "seed": 43
+      }
+    ],
+    "python_factor": [
+      {
+        "arm": "grpo",
+        "job_id": 30159721,
+        "run_stamp": "pye69_gate2_compute_matched_05b_6pass_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "job_id": 30159722,
+        "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_entropy_gated_singleton_escape_canonical",
+        "job_id": 30159723,
+        "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_route_successor",
+        "job_id": 30159724,
+        "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+        "seed": 43
+      }
+    ]
+  },
+  "launcher_sha256": "23cc98ffe29a9b22a9918f27b883999294fadf2d5ce35ba69f9c4da4ff3c58a2",
+  "manifest_sha256": {
+    "countdown": "23a83ca250bcd0d3f6b5c1c1ce9518b562865e5044e244f62fd5a37bb4384b55",
+    "graph_coloring": "ce801e2e9fee5bd146a3eb99890512f5c60b95eac571aef5bbb01dd61b1869ec",
+    "math_dev": "aa7d1a5af7d0b100832a93feba6dbecbeb8826590a524c131de09a6b7f430016",
+    "mathir": "8589088a4edc761479166e0d19bed5ed00ea3e35bf697a54155d302bdaa166aa",
+    "python_factor": "2931eceda2ee6c6507fe1c220eeec30fd1ae76fa4390ee333750234ac2966451"
+  },
+  "math500_sealed": true,
+  "math_abstention_sha256": "9a1a5bb0908e48c49f36cc813a6806af29677b1293aec52caf7483d774ab2893",
+  "math_aliases": {
+    "E66": "verified_first_global_replay_canonical",
+    "E68": "verified_first_global_replay_canonical",
+    "E69": "verified_first_global_replay_canonical"
+  },
+  "math_physical_arms": [
+    "grpo",
+    "verified_first_global_replay_canonical"
+  ],
+  "modebench_arms": [
+    "grpo",
+    "verified_first_global_replay_canonical",
+    "verified_entropy_gated_singleton_escape_canonical",
+    "verified_route_successor"
+  ],
+  "model": "Qwen2.5-0.5B-Instruct@7ae557604adf67be50417f59c2c2f167def9a775",
+  "num_samples": 16,
+  "parent_protocol_sha256": "a085f77ad64e0c257f526e028f8b56a5848086b5a3c3b0344aed17f6ffb9897c",
+  "passes": 6,
+  "physical_job_count": 18,
+  "reporting_passes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "schema": "e69_gate2_compute_matched_screen_v1",
+  "seed": 43,
+  "source_hash": "b4075dbaababd0c972cc1ad4df8da34d4271274f21d7859ec9e477dc1c511976"
+}

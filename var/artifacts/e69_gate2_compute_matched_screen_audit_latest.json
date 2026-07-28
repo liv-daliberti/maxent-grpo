@@ -1,0 +1,349 @@
+{
+  "curves": {
+    "math_dev": {
+      "grpo": {}
+    },
+    "mathir": {
+      "grpo": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      },
+      "verified_entropy_gated_singleton_escape_canonical": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      },
+      "verified_first_global_replay_canonical": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      },
+      "verified_route_successor": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      }
+    }
+  },
+  "identity": "/n/fs/similarity/maxent-grpo/var/artifacts/e69_gate2_compute_matched_screen_identity.json",
+  "math500_sealed": true,
+  "outcome_gate": null,
+  "pending": [
+    "countdown/grpo/job30159717: run directory absent",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30159719: run directory absent",
+    "countdown/verified_first_global_replay_canonical/job30159718: run directory absent",
+    "countdown/verified_route_successor/job30159720: run directory absent",
+    "graph_coloring/grpo/job30159713: run directory absent",
+    "graph_coloring/verified_entropy_gated_singleton_escape_canonical/job30159715: run directory absent",
+    "graph_coloring/verified_first_global_replay_canonical/job30159714: run directory absent",
+    "graph_coloring/verified_route_successor/job30159716: run directory absent",
+    "math_dev/grpo/job30159729: latest step 1/2304",
+    "math_dev/grpo/job30159729: missing evaluation pass 0",
+    "math_dev/grpo/job30159729: missing evaluation pass 1",
+    "math_dev/grpo/job30159729: missing evaluation pass 2",
+    "math_dev/grpo/job30159729: missing evaluation pass 3",
+    "math_dev/grpo/job30159729: missing evaluation pass 4",
+    "math_dev/grpo/job30159729: missing evaluation pass 5",
+    "math_dev/grpo/job30159729: missing evaluation pass 6",
+    "math_dev/verified_first_global_replay_canonical/job30159730: run directory absent",
+    "mathir/grpo/job30159725: latest step 3/2304",
+    "mathir/grpo/job30159725: missing evaluation pass 1",
+    "mathir/grpo/job30159725: missing evaluation pass 2",
+    "mathir/grpo/job30159725: missing evaluation pass 3",
+    "mathir/grpo/job30159725: missing evaluation pass 4",
+    "mathir/grpo/job30159725: missing evaluation pass 5",
+    "mathir/grpo/job30159725: missing evaluation pass 6",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: latest step 4/2304",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 1",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 2",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 3",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 4",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 5",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 6",
+    "mathir/verified_first_global_replay_canonical/job30159726: latest step 3/2304",
+    "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 1",
+    "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 2",
+    "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 3",
+    "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 4",
+    "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 5",
+    "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 6",
+    "mathir/verified_route_successor/job30159728: latest step 4/2304",
+    "mathir/verified_route_successor/job30159728: missing evaluation pass 1",
+    "mathir/verified_route_successor/job30159728: missing evaluation pass 2",
+    "mathir/verified_route_successor/job30159728: missing evaluation pass 3",
+    "mathir/verified_route_successor/job30159728: missing evaluation pass 4",
+    "mathir/verified_route_successor/job30159728: missing evaluation pass 5",
+    "mathir/verified_route_successor/job30159728: missing evaluation pass 6",
+    "python_factor/grpo/job30159721: run directory absent",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30159723: run directory absent",
+    "python_factor/verified_first_global_replay_canonical/job30159722: run directory absent",
+    "python_factor/verified_route_successor/job30159724: run directory absent"
+  ],
+  "physical_runs": [
+    {
+      "arm": "grpo",
+      "domain": "countdown",
+      "job_id": 30159717,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "domain": "countdown",
+      "job_id": 30159718,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_entropy_gated_singleton_escape_canonical",
+      "domain": "countdown",
+      "job_id": 30159719,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_route_successor",
+      "domain": "countdown",
+      "job_id": 30159720,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "grpo",
+      "domain": "graph_coloring",
+      "job_id": 30159713,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "domain": "graph_coloring",
+      "job_id": 30159714,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_entropy_gated_singleton_escape_canonical",
+      "domain": "graph_coloring",
+      "job_id": 30159715,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_route_successor",
+      "domain": "graph_coloring",
+      "job_id": 30159716,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "grpo",
+      "domain": "math_dev",
+      "evaluations": {},
+      "job_id": 30159729,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_mde69_gate2_compute_matched_05b_6pass_grpo_s43/debug_job30159729",
+      "terminal": false,
+      "training": {
+        "fixed_control_charged_response_tokens": 49152,
+        "fixed_control_groups": 3,
+        "fixed_control_realized_prompt_tokens": 4224,
+        "fixed_control_realized_response_tokens": 42880,
+        "fixed_control_rows": 48,
+        "latest_step": 1,
+        "records": 1,
+        "replay_charged_response_tokens": 16384,
+        "replay_realized_prompt_tokens": 0,
+        "replay_realized_response_tokens": 0,
+        "replay_records": 0,
+        "route_terminal": {}
+      }
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "domain": "math_dev",
+      "job_id": 30159730,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "grpo",
+      "domain": "mathir",
+      "evaluations": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      },
+      "job_id": 30159725,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_mie69_gate2_compute_matched_05b_6pass_grpo_s43/debug_job30159725",
+      "terminal": false,
+      "training": {
+        "fixed_control_charged_response_tokens": 9216,
+        "fixed_control_groups": 9,
+        "fixed_control_realized_prompt_tokens": 27312,
+        "fixed_control_realized_response_tokens": 1982,
+        "fixed_control_rows": 144,
+        "latest_step": 3,
+        "records": 3,
+        "replay_charged_response_tokens": 3072,
+        "replay_realized_prompt_tokens": 0,
+        "replay_realized_response_tokens": 0,
+        "replay_records": 0,
+        "route_terminal": {}
+      }
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "domain": "mathir",
+      "evaluations": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      },
+      "job_id": 30159726,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_mie69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43/debug_job30159726",
+      "terminal": false,
+      "training": {
+        "fixed_control_charged_response_tokens": 9216,
+        "fixed_control_groups": 9,
+        "fixed_control_realized_prompt_tokens": 27312,
+        "fixed_control_realized_response_tokens": 1982,
+        "fixed_control_rows": 144,
+        "latest_step": 3,
+        "records": 3,
+        "replay_charged_response_tokens": 3072,
+        "replay_realized_prompt_tokens": 0,
+        "replay_realized_response_tokens": 0,
+        "replay_records": 0,
+        "route_terminal": {}
+      }
+    },
+    {
+      "arm": "verified_entropy_gated_singleton_escape_canonical",
+      "domain": "mathir",
+      "evaluations": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      },
+      "job_id": 30159727,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_entropy_gated_singleton_escape_canonical_mie69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43/debug_job30159727",
+      "terminal": false,
+      "training": {
+        "fixed_control_charged_response_tokens": 12288,
+        "fixed_control_groups": 12,
+        "fixed_control_realized_prompt_tokens": 36912,
+        "fixed_control_realized_response_tokens": 2561,
+        "fixed_control_rows": 192,
+        "latest_step": 4,
+        "records": 4,
+        "replay_charged_response_tokens": 4096,
+        "replay_realized_prompt_tokens": 0,
+        "replay_realized_response_tokens": 0,
+        "replay_records": 0,
+        "route_terminal": {}
+      }
+    },
+    {
+      "arm": "verified_route_successor",
+      "domain": "mathir",
+      "evaluations": {
+        "0": {
+          "distinct8": 0.296875,
+          "greedy": 0.0625,
+          "mean8": 0.0390625,
+          "pass8": 0.28125
+        }
+      },
+      "job_id": 30159728,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_route_successor_mie69_gate2_compute_matched_05b_6pass_verified_route_successor_s43/debug_job30159728",
+      "terminal": false,
+      "training": {
+        "fixed_control_charged_response_tokens": 12288,
+        "fixed_control_groups": 12,
+        "fixed_control_realized_prompt_tokens": 36912,
+        "fixed_control_realized_response_tokens": 1211,
+        "fixed_control_rows": 192,
+        "latest_step": 4,
+        "records": 4,
+        "replay_charged_response_tokens": 4096,
+        "replay_realized_prompt_tokens": 0,
+        "replay_realized_response_tokens": 0,
+        "replay_records": 0,
+        "route_terminal": {
+          "cross_prompt_replay_groups": 0.0,
+          "cross_prompt_replay_updates": 0.0,
+          "post_replay_cross_prompt_neutral_reproductions": 0.0,
+          "proposal_graduations": 0.0
+        }
+      }
+    },
+    {
+      "arm": "grpo",
+      "domain": "python_factor",
+      "job_id": 30159721,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "domain": "python_factor",
+      "job_id": 30159722,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_entropy_gated_singleton_escape_canonical",
+      "domain": "python_factor",
+      "job_id": 30159723,
+      "run_dir": null,
+      "terminal": false
+    },
+    {
+      "arm": "verified_route_successor",
+      "domain": "python_factor",
+      "job_id": 30159724,
+      "run_dir": null,
+      "terminal": false
+    }
+  ],
+  "route_terminal": {
+    "mathir": {
+      "cross_prompt_replay_groups": 0.0,
+      "cross_prompt_replay_updates": 0.0,
+      "post_replay_cross_prompt_neutral_reproductions": 0.0,
+      "proposal_graduations": 0.0
+    }
+  },
+  "schema": "e69_gate2_compute_matched_screen_audit_v1",
+  "status": "in_progress",
+  "summary": {
+    "expected_physical_runs": 18,
+    "integrity_violations": 0,
+    "observed_physical_runs": 18,
+    "pending_items": 49,
+    "terminal_physical_runs": 0
+  },
+  "violations": []
+}

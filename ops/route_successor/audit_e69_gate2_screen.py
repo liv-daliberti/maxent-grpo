@@ -102,7 +102,11 @@ def _training_audit(
 ) -> tuple[dict[str, Any], list[str]]:
     violations: list[str] = []
     if not path.is_file():
-        return {"records": 0, "latest_step": -1}, violations
+        return {
+            "records": 0,
+            "latest_step": -1,
+            "route_terminal": {},
+        }, violations
     records = 0
     latest_step = -1
     control_groups = 0
@@ -574,4 +578,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
