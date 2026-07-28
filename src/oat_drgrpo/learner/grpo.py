@@ -2400,6 +2400,7 @@ class ZeroMathGrpoMixin:
                             "recurring_routes",
                             "distinct_source_prompts",
                             "cross_prompt_neutral_reproductions",
+                            "post_replay_cross_prompt_neutral_reproductions",
                             "cross_prompt_replay_updates",
                             "cross_prompt_replay_groups",
                             "cross_prompt_replay_rows",

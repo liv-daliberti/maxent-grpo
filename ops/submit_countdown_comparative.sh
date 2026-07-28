@@ -370,7 +370,7 @@ submit_arm() {
   export_vars+=",OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT=${OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT:-3}"
   export_vars+=",OAT_ZERO_CANONICAL_GRAPH_LEARNER_SAMPLING=${OAT_ZERO_CANONICAL_GRAPH_LEARNER_SAMPLING:-0}"
   export_vars+=",OAT_ZERO_CANONICAL_GRAPH_FIXED_SHAPE_SAMPLING=${OAT_ZERO_CANONICAL_GRAPH_FIXED_SHAPE_SAMPLING:-0}"
-  if [[ "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" ]]; then
+  if [[ "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
     # Counterfactual support proposals execute inside the replicated free-form
     # path.  Pin both flags by arm so a domain-level default cannot silently
     # make a valid proposal arm fail only after Slurm releases it.
@@ -656,6 +656,19 @@ submit_arm() {
   export_vars+=",OAT_ZERO_VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE=${VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE}"
   export_vars+=",OAT_ZERO_VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS=${VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS}"
   export_vars+=",OAT_ZERO_VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP=${VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP}"
+  if [[ "$variant" == "grpo_compute_matched" ]]; then
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0"
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0"
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY=1"
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout"
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1"
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=1"
+  elif [[ "$variant" == "verified_route_successor" ]]; then
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=verified_route"
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=0"
+  else
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=0"
+  fi
   export_vars+=",OAT_ZERO_MATH_STRATEGY_ENDPOINT=${MATH_STRATEGY_ENDPOINT}"
   export_vars+=",OAT_ZERO_MATH_STRATEGY_MODEL=${MATH_STRATEGY_MODEL}"
   export_vars+=",OAT_ZERO_MATH_STRATEGY_TIMEOUT_SECONDS=${MATH_STRATEGY_TIMEOUT_SECONDS}"

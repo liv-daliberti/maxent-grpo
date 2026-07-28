@@ -81,6 +81,7 @@ class VerifiedRouteLibraryDiagnostics:
     recurring_routes: int
     distinct_source_prompts: int
     cross_prompt_neutral_reproductions: int
+    post_replay_cross_prompt_neutral_reproductions: int
     cross_prompt_replay_updates: int
     cross_prompt_replay_groups: int
     cross_prompt_replay_rows: int
@@ -147,6 +148,8 @@ class VerifiedRouteLibrary:
         self._proposal_rows_rejected_trust = 0
         self._proposal_graduations = 0
         self._cross_prompt_neutral_reproductions = 0
+        self._post_replay_cross_prompt_neutral_reproductions = 0
+        self._replayed_route_targets: set[tuple[str, str]] = set()
         self._cross_prompt_replay_updates = 0
         self._cross_prompt_replay_groups = 0
         self._cross_prompt_replay_rows = 0
@@ -188,6 +191,9 @@ class VerifiedRouteLibrary:
             distinct_source_prompts=self.distinct_source_prompt_count,
             cross_prompt_neutral_reproductions=(
                 self._cross_prompt_neutral_reproductions
+            ),
+            post_replay_cross_prompt_neutral_reproductions=(
+                self._post_replay_cross_prompt_neutral_reproductions
             ),
             cross_prompt_replay_updates=self._cross_prompt_replay_updates,
             cross_prompt_replay_groups=self._cross_prompt_replay_groups,
@@ -368,6 +374,8 @@ class VerifiedRouteLibrary:
                 records[prompt_key] = record
                 if prior_neutral_prompts:
                     self._cross_prompt_neutral_reproductions += 1
+                    if (route_key, prompt_key) in self._replayed_route_targets:
+                        self._post_replay_cross_prompt_neutral_reproductions += 1
             else:
                 if (
                     record["verifier"] != verifier
@@ -381,6 +389,10 @@ class VerifiedRouteLibrary:
                     self._proposal_graduations += 1
                     if prior_neutral_prompts - {prompt_key}:
                         self._cross_prompt_neutral_reproductions += 1
+                        if (route_key, prompt_key) in (
+                            self._replayed_route_targets
+                        ):
+                            self._post_replay_cross_prompt_neutral_reproductions += 1
                 record["neutral_count"] = int(record["neutral_count"]) + 1
                 record["neutral_mean_logprob"] = mean_logprob
                 if response_tokens < tuple(record["response_token_ids"]):
@@ -527,6 +539,11 @@ class VerifiedRouteLibrary:
                 )
             )
         if groups:
+            for route_key in selected_routes:
+                for target_prompt_key in current_prompt_keys:
+                    self._replayed_route_targets.add(
+                        (route_key, target_prompt_key)
+                    )
             self._cross_prompt_replay_updates += 1
             self._cross_prompt_replay_groups += len(groups)
             self._cross_prompt_replay_rows += sum(
@@ -556,6 +573,12 @@ class VerifiedRouteLibrary:
             },
             "replay_route_cursor": self._replay_route_cursor,
             "replay_prompt_cursors": dict(self._replay_prompt_cursors),
+            "replayed_route_targets": [
+                [route_key, prompt_key]
+                for route_key, prompt_key in sorted(
+                    self._replayed_route_targets
+                )
+            ],
             "counters": {
                 "neutral_rows_observed": self._neutral_rows_observed,
                 "neutral_routes_observed": self._neutral_routes_observed,
@@ -564,6 +587,9 @@ class VerifiedRouteLibrary:
                 "proposal_graduations": self._proposal_graduations,
                 "cross_prompt_neutral_reproductions": (
                     self._cross_prompt_neutral_reproductions
+                ),
+                "post_replay_cross_prompt_neutral_reproductions": (
+                    self._post_replay_cross_prompt_neutral_reproductions
                 ),
                 "cross_prompt_replay_updates": (self._cross_prompt_replay_updates),
                 "cross_prompt_replay_groups": (self._cross_prompt_replay_groups),
@@ -679,12 +705,14 @@ class VerifiedRouteLibrary:
                 restored_records[route_key][prompt_key] = normalized_record
         cursor = state.get("replay_route_cursor", 0)
         prompt_cursors = state.get("replay_prompt_cursors", {})
+        raw_replayed_route_targets = state.get("replayed_route_targets", [])
         counters = state.get("counters", {})
         if (
             isinstance(cursor, bool)
             or int(cursor) != cursor
             or int(cursor) < 0
             or not isinstance(prompt_cursors, dict)
+            or not isinstance(raw_replayed_route_targets, list)
             or not isinstance(counters, dict)
         ):
             raise ValueError("verified route library state has invalid scheduler state")
@@ -700,6 +728,25 @@ class VerifiedRouteLibrary:
                     "verified route library state has invalid prompt cursor"
                 )
             restored_prompt_cursors[route_key] = int(value)
+        restored_replayed_route_targets: set[tuple[str, str]] = set()
+        for raw_pair in raw_replayed_route_targets:
+            if (
+                not isinstance(raw_pair, list)
+                or len(raw_pair) != 2
+                or not all(isinstance(value, str) for value in raw_pair)
+            ):
+                raise ValueError(
+                    "verified route library state has invalid replay targets"
+                )
+            route_key, prompt_key = raw_pair
+            if (
+                route_key not in restored_records
+                or prompt_key not in restored_prompts
+            ):
+                raise ValueError(
+                    "verified route library state replay target is unknown"
+                )
+            restored_replayed_route_targets.add((route_key, prompt_key))
         counter_names = (
             "neutral_rows_observed",
             "neutral_routes_observed",
@@ -707,6 +754,7 @@ class VerifiedRouteLibrary:
             "proposal_rows_rejected_trust",
             "proposal_graduations",
             "cross_prompt_neutral_reproductions",
+            "post_replay_cross_prompt_neutral_reproductions",
             "cross_prompt_replay_updates",
             "cross_prompt_replay_groups",
             "cross_prompt_replay_rows",
@@ -721,5 +769,6 @@ class VerifiedRouteLibrary:
         self._records = restored_records
         self._replay_route_cursor = int(cursor)
         self._replay_prompt_cursors = restored_prompt_cursors
+        self._replayed_route_targets = restored_replayed_route_targets
         for name, value in restored_counters.items():
             setattr(self, f"_{name}", value)

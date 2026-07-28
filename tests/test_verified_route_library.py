@@ -398,6 +398,51 @@ def test_route_explorer_can_consume_precomputed_groups_without_resampling(
     assert actor.calls == []
 
 
+def test_cross_prompt_reproduction_after_replay_is_counted_separately():
+    library = VerifiedRouteLibrary(
+        replay_groups_per_step=1,
+        recurring_min_neutral_prompts=2,
+    )
+    prompts = ([1, 10], [1, 11], [1, 12])
+    for prompt, response in zip(prompts[:2], ([2, 20], [2, 21])):
+        library.observe_neutral(
+            prompt_token_ids=[prompt],
+            verifier_ids=["v"],
+            endpoint_keys=["endpoint"],
+            route_signatures=["shared-route"],
+            response_token_ids=[response],
+            model_mean_logprobs=[-1.0],
+            task_verified=[True],
+            active_mask=[True],
+        )
+
+    groups = library.scheduled_cross_prompt_replay_groups([prompts[2]])
+    assert len(groups) == 1
+    before = library.diagnostics()
+    assert before.post_replay_cross_prompt_neutral_reproductions == 0
+
+    library.observe_neutral(
+        prompt_token_ids=[prompts[2]],
+        verifier_ids=["v"],
+        endpoint_keys=["endpoint"],
+        route_signatures=["shared-route"],
+        response_token_ids=[[2, 22]],
+        model_mean_logprobs=[-1.0],
+        task_verified=[True],
+        active_mask=[True],
+    )
+    after = library.diagnostics()
+    assert after.cross_prompt_neutral_reproductions == 2
+    assert after.post_replay_cross_prompt_neutral_reproductions == 1
+
+    restored = VerifiedRouteLibrary(
+        replay_groups_per_step=1,
+        recurring_min_neutral_prompts=2,
+    )
+    restored.load_state_dict(library.state_dict())
+    assert restored.diagnostics() == after
+
+
 def test_route_explorer_does_not_run_for_non_singleton_verified_support(
     monkeypatch,
 ):

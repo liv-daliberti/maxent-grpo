@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from ops.route_successor.audit_e69_gate2_screen import evaluate_gate
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -113,3 +115,81 @@ def test_e69_protocol_names_the_four_compute_matched_arms_and_five_areas():
         "MATH-500 is the fifth panel area",
     ):
         assert literal in protocol_flat
+
+
+def test_e69_gate2_launcher_freezes_physical_arms_aliases_and_budget():
+    launcher = (
+        ROOT / "ops/route_successor/launch_e69_gate2_screen.sh"
+    ).read_text(encoding="utf-8")
+    protocol = (
+        ROOT
+        / "paper/preregistration/e69_gate2_compute_matched_screen_20260728.md"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "OAT_ZERO_DRGRPO_VARIANT=grpo_compute_matched",
+        "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS=3",
+        "OAT_ZERO_MAX_PROMPT_EPOCHS=6",
+        "OAT_ZERO_EVAL_MODE_COVERAGE_DRAWS=1",
+        "physical_job_count",
+        '"E68": "verified_first_global_replay_canonical"',
+        '"E69": "verified_first_global_replay_canonical"',
+        "MATH_DATA=\"$ROOT_DIR/var/data/math12k_384_route_dev128_v1\"",
+    ):
+        assert literal in launcher
+    for literal in (
+        "64 sampled rows per training prompt",
+        "terminal pass 6",
+        "post-replay reproduction counter",
+        "MATH-500 remains absent",
+    ):
+        assert literal in protocol
+
+
+def _passing_gate_curves():
+    domains = (
+        "graph_coloring",
+        "countdown",
+        "python_factor",
+        "mathir",
+        "math_dev",
+    )
+    curves = {}
+    for domain in domains:
+        treatment = (
+            "verified_first_global_replay_canonical"
+            if domain == "math_dev"
+            else "verified_route_successor"
+        )
+        curves[domain] = {"grpo": {}, treatment: {}}
+        for pass_index in range(7):
+            curves[domain]["grpo"][pass_index] = {
+                "greedy": 0.50,
+                "mean8": 0.50,
+                "pass8": 0.60,
+                "distinct8": 1.0,
+            }
+            curves[domain][treatment][pass_index] = {
+                "greedy": 0.51,
+                "mean8": 0.51,
+                "pass8": 0.61,
+                "distinct8": 1.1,
+            }
+    route = {
+        domain: {
+            "post_replay_cross_prompt_neutral_reproductions": 1.0,
+        }
+        for domain in domains[:4]
+    }
+    return curves, route
+
+
+def test_e69_gate2_gate_is_pure_strict_and_persistent():
+    curves, route = _passing_gate_curves()
+    result = evaluate_gate(curves, route)
+    assert result["status"] == "pass"
+    assert all(result["checks"].values())
+
+    curves["mathir"]["verified_route_successor"][5]["pass8"] = 0.60
+    result = evaluate_gate(curves, route)
+    assert result["status"] == "fail"
+    assert not result["checks"]["mathir_pass_and_distinct_gain_pass_5"]
