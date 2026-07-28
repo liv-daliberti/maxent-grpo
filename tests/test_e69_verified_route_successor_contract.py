@@ -4,6 +4,10 @@ from ops.route_successor.audit_e69_gate2_screen import (
     _training_audit,
     evaluate_gate,
 )
+from ops.route_successor.audit_e69_gate3_confirmatory import (
+    classify_internal_result,
+    crossed_bootstrap_interval,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -209,3 +213,101 @@ def test_e69_gate2_training_audit_allows_not_yet_started_run(tmp_path):
     assert training["records"] == 0
     assert training["latest_step"] == -1
     assert training["route_terminal"] == {}
+
+
+def test_e69_gate3_contract_freezes_reuse_compute_and_analysis_before_outcomes():
+    protocol = (
+        ROOT
+        / "paper/preregistration/e69_gate3_confirmatory_execution_20260728.md"
+    ).read_text(encoding="utf-8")
+    protocol_flat = " ".join(protocol.split())
+    for literal in (
+        "before any terminal Gate 2 outcome was available",
+        "unless the frozen Gate 2 audit returns `pass`",
+        "The exact Gate 2 seed-43 control and successor jobs are reused.",
+        "16 new executable-domain jobs and four new MATH jobs",
+        "30 unique physical runs",
+        "one neutral group and three discarded proposal-shaped control groups",
+        "Pass 6 is the sole terminal checkpoint.",
+        "10,000 deterministic crossed-bootstrap replicates with seed `690301`",
+        "All three raw paired seed deltas",
+        "MATH-500 once, regardless of the direction of the Gate 3 result",
+    ):
+        assert literal in protocol_flat
+
+    launcher = (
+        ROOT / "ops/route_successor/launch_e69_gate3_confirmatory.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        'if audit.get("status") != "pass":',
+        "OAT_ZERO_TRAIN_SEEDS=44,45",
+        'OAT_ZERO_DRGRPO_VARIANT=grpo_compute_matched',
+        'OAT_ZERO_ONLY_ARMS="grpo,verified_route_successor"',
+        'OAT_ZERO_ONLY_ARMS="grpo,verified_first_global_replay_canonical"',
+        '"origin": "gate3_new"',
+        'dict(row, origin="gate2_reuse")',
+        '"reused_physical_jobs": 10',
+        '"new_physical_jobs": 20',
+        '"confirmatory_physical_jobs": 30',
+        'scontrol release "${job_ids[@]}"',
+    ):
+        assert literal in launcher
+
+
+def test_e69_gate3_crossed_bootstrap_preserves_constant_paired_delta():
+    lower, upper = crossed_bootstrap_interval(
+        {
+            43: [0.125] * 8,
+            44: [0.125] * 8,
+            45: [0.125] * 8,
+        },
+        replicates=100,
+    )
+    assert lower == upper == 0.125
+
+
+def test_e69_gate3_classification_is_pure_and_requires_persistence():
+    aggregate = {}
+    seeds = {}
+    routes = {}
+    for domain in (
+        "graph_coloring",
+        "countdown",
+        "python_factor",
+        "mathir",
+        "math_dev",
+    ):
+        aggregate[domain] = {}
+        seeds[domain] = {}
+        for pass_index in range(7):
+            aggregate[domain][pass_index] = {
+                "greedy": 0.01,
+                "mean8": 0.01,
+                "pass8": 0.01,
+                "distinct8": 0.01,
+            }
+        for seed in (43, 44, 45):
+            seeds[domain][seed] = {}
+            for pass_index in range(7):
+                seeds[domain][seed][pass_index] = {
+                    "greedy": 0.01,
+                    "mean8": 0.01,
+                    "pass8": 0.01,
+                    "distinct8": 0.01,
+                }
+        if domain != "math_dev":
+            routes[domain] = {
+                seed: {
+                    "post_replay_cross_prompt_neutral_reproductions": 1.0,
+                }
+                for seed in (43, 44, 45)
+            }
+    result = classify_internal_result(aggregate, seeds, routes)
+    assert result["status"] == "success"
+    assert all(result["checks"].values())
+
+    aggregate["python_factor"][5]["distinct8"] = 0.0
+    aggregate["countdown"][5]["distinct8"] = 0.0
+    result = classify_internal_result(aggregate, seeds, routes)
+    assert result["status"] == "mechanism_or_null"
+    assert not result["checks"]["three_executable_domains_positive_support"]
