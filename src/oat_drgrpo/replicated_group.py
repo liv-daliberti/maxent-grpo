@@ -5,10 +5,34 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+NUMPY_RANDOMSTATE_SEED_MODULUS = 2**32
+
+
 @dataclass(frozen=True)
 class ReplicatedGroupLayout:
     local_candidate_count: int
     micro_batches_per_rank: int
+
+
+def replicated_group_permutation_seed(
+    *,
+    experiment_seed: int,
+    learner_step: int,
+    ppo_epoch: int,
+) -> int:
+    """Return the deterministic update seed accepted by NumPy RandomState.
+
+    The historical schedule is preserved exactly until it reaches NumPy's
+    unsigned 32-bit boundary. Thereafter it wraps deterministically instead of
+    crashing long resumed runs.
+    """
+
+    raw_seed = (
+        int(experiment_seed)
+        + 1_000_003 * int(learner_step)
+        + int(ppo_epoch)
+    )
+    return raw_seed % NUMPY_RANDOMSTATE_SEED_MODULUS
 
 
 def validate_replicated_group_layout(

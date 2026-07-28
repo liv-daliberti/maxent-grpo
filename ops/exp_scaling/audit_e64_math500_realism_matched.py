@@ -16,6 +16,14 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 IDENTITY = ROOT / "var/artifacts/e64_math500_realism_matched_identity.json"
+AUDIT_AMENDMENT = (
+    ROOT
+    / "paper/preregistration/"
+    "e64_math500_audit_classification_amendment_20260728.md"
+)
+AUDIT_AMENDMENT_RECORD = (
+    ROOT / "var/artifacts/e64_math500_audit_classification_amendment.json"
+)
 PROTOCOL = ROOT / "paper/preregistration/e64_math500_realism_transfer_05b.md"
 LAUNCHER = ROOT / "ops/exp_scaling/launch_e64_math500_realism_matched.sh"
 MANIFEST = (
@@ -36,13 +44,14 @@ OUT = ROOT / "var/artifacts/e64_math500_realism_matched_audit_latest.json"
 CONTROL = "grpo"
 TREATMENT = "verified_first_global_replay_canonical"
 EXPECTED_STEP = 384 * 12
-CRASH = re.compile(
-    r"Traceback \(most recent call last\)|CUDA out of memory|"
-    r"torch\.OutOfMemoryError|ChildFailedError|RayActorError|"
+HARD_CRASH = re.compile(
+    r"CUDA out of memory|torch\.OutOfMemoryError|ChildFailedError|RayActorError|"
     r"worker unexpectedly died|RuntimeError:[^\n]*non-finite|"
     r"segmentation fault",
     re.IGNORECASE,
 )
+TRACEBACK = re.compile(r"Traceback \(most recent call last\)", re.IGNORECASE)
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def _sha256(path: Path) -> str:
@@ -75,6 +84,34 @@ def _run_dir(run_stamp: str, job_id: int) -> Path | None:
         (ROOT / "var/data").glob(f"*_{run_stamp}/debug_job{job_id}")
     )
     return candidates[0] if len(candidates) == 1 else None
+
+
+def _scan_log(path: Path) -> tuple[str | None, int]:
+    """Return a fatal signature and count narrowly caught verifier traces."""
+
+    text = path.read_text(encoding="utf-8", errors="replace")
+    hard_crash = HARD_CRASH.search(text)
+    if hard_crash:
+        return hard_crash.group(0), 0
+
+    lines = [ANSI_ESCAPE.sub("", line) for line in text.splitlines()]
+    caught_verifier_tracebacks = 0
+    for index, line in enumerate(lines):
+        traceback = TRACEBACK.search(line)
+        if not traceback:
+            continue
+        preceding = "\n".join(lines[max(0, index - 2) : index])
+        stack = "\n".join(lines[index + 1 : index + 12])
+        caught_verifier = (
+            "Error during comparison" in preceding
+            and "math_verify/grader.py" in stack
+            and "compare_single_extraction_wrapper" in stack
+        )
+        if caught_verifier:
+            caught_verifier_tracebacks += 1
+            continue
+        return traceback.group(0), caught_verifier_tracebacks
+    return None, caught_verifier_tracebacks
 
 
 def _scan_metrics(
@@ -254,10 +291,26 @@ def main() -> None:
 
     if identity.get("schema") != "e64_math500_realism_matched_v1":
         violations.append("identity schema mismatch")
+    try:
+        amendment = _load(AUDIT_AMENDMENT_RECORD)
+    except Exception as error:
+        amendment = {}
+        violations.append(f"cannot load audit amendment record: {error}")
+    if (
+        amendment.get("schema")
+        != "e64_math500_audit_classification_amendment_v1"
+        or amendment.get("original_identity_sha256") != _sha256(IDENTITY)
+        or amendment.get("prior_auditor_sha256")
+        != identity.get("auditor_sha256")
+        or amendment.get("amendment_sha256") != _sha256(AUDIT_AMENDMENT)
+        or amendment.get("amended_auditor_sha256")
+        != _sha256(Path(__file__).resolve())
+        or amendment.get("scope") != "classification_only"
+    ):
+        violations.append("audit classification amendment mismatch")
     expected_hashes = {
         "protocol_sha256": PROTOCOL,
         "launcher_sha256": LAUNCHER,
-        "auditor_sha256": Path(__file__).resolve(),
         "manifest_sha256": MANIFEST,
         "data_manifest_sha256": DATA_IDENTITY,
         "smoke_identity_sha256": SMOKE_IDENTITY,
@@ -336,14 +389,14 @@ def main() -> None:
             terminal_runs += 1
 
         crash_signature = None
+        caught_verifier_tracebacks = 0
         for suffix in ("out", "err"):
             log = ROOT / f"var/artifacts/logs/xdr_train-{job_id}.{suffix}"
             if log.is_file():
-                match = CRASH.search(
-                    log.read_text(encoding="utf-8", errors="replace")
-                )
-                if match:
-                    crash_signature = match.group(0)
+                log_crash, log_caught = _scan_log(log)
+                caught_verifier_tracebacks += log_caught
+                if log_crash:
+                    crash_signature = log_crash
                     violations.append(
                         f"{label}: crash signature {crash_signature!r}"
                     )
@@ -359,6 +412,7 @@ def main() -> None:
                     else None
                 ),
                 "crash_signature": crash_signature,
+                "caught_verifier_tracebacks": caught_verifier_tracebacks,
                 **metrics_summary,
             }
         )
@@ -374,6 +428,9 @@ def main() -> None:
             "materialized_runs": materialized_runs,
             "metric_runs": metric_runs,
             "terminal_runs": terminal_runs,
+            "caught_verifier_tracebacks": sum(
+                run["caught_verifier_tracebacks"] for run in runs
+            ),
         },
         "runs": runs,
         "violations": sorted(set(violations)),

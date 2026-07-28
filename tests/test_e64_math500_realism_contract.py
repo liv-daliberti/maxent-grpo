@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 
@@ -24,6 +25,22 @@ CHECKPOINT_AUDITOR = (
 )
 PLOT = ROOT / "ops/exp_scaling/plot_e64_math500_realism.py"
 WATCHER = ROOT / "ops/exp_scaling/watch_e64_math500_realism.sh"
+AMENDMENT = (
+    ROOT
+    / "paper/preregistration/"
+    "e64_math500_audit_classification_amendment_20260728.md"
+)
+
+
+def _load_matched_auditor():
+    spec = importlib.util.spec_from_file_location(
+        "audit_e64_math500_realism_matched",
+        MATCHED_AUDITOR,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_protocol_is_a_held_out_realism_track_not_a_fake_mode_domain():
@@ -103,6 +120,40 @@ def test_matched_auditor_enforces_realism_and_singleton_contracts():
     assert "canonical_replay_mass_observations" in text
     assert "canonical_replay_mass_projection_active" in text
     assert "open_set_projection_active" in text
+
+
+def test_matched_auditor_only_downgrades_exact_caught_verifier_trace(
+    tmp_path,
+):
+    auditor = _load_matched_auditor()
+    log = tmp_path / "caught.log"
+    log.write_text(
+        "[actor_0_0/0] Error during comparison\n"
+        "[actor_0_0/0] Traceback (most recent call last):\n"
+        "[actor_0_0/0]   File \"/env/math_verify/grader.py\", line 809, "
+        "in compare_single_extraction_wrapper\n"
+        "[actor_0_0/0]     return compare_single_extraction(g, t)\n",
+        encoding="utf-8",
+    )
+
+    assert auditor._scan_log(log) == (None, 1)
+
+    log.write_text(
+        "[rank0]: Traceback (most recent call last):\n",
+        encoding="utf-8",
+    )
+    crash, caught = auditor._scan_log(log)
+    assert crash == "Traceback (most recent call last)"
+    assert caught == 0
+
+
+def test_e64_audit_amendment_freezes_a_classification_only_repair():
+    text = AMENDMENT.read_text(encoding="utf-8")
+    normalized = " ".join(text.split())
+    assert "post-run process-audit repair only" in text
+    assert "compare_single_extraction_wrapper" in text
+    assert "Every other traceback remains fatal" in normalized
+    assert "does not change training" in text
 
 
 def test_checkpoint_gate_scans_all_saved_model_tensors():

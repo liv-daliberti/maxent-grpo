@@ -47,7 +47,10 @@ from ..online_canonical_bank import (
     OnlineCanonicalBank,
     VerifiedCanonicalReplayGroup,
 )
-from ..replicated_group import validate_replicated_group_layout
+from ..replicated_group import (
+    replicated_group_permutation_seed,
+    validate_replicated_group_layout,
+)
 from ..outcome_collision import (
     add_outcome_collision_outside_centering_advantage,
     compute_outcome_collision_bonuses,
@@ -324,10 +327,10 @@ class ZeroMathGrpoMixin:
         local_grad_step = 0
         for ppo_epoch in range(args.num_ppo_epochs):
             if replicated_group:
-                permutation_seed = (
-                    int(args.seed)
-                    + 1_000_003 * int(getattr(self, "steps", 0))
-                    + int(ppo_epoch)
+                permutation_seed = replicated_group_permutation_seed(
+                    experiment_seed=int(args.seed),
+                    learner_step=int(getattr(self, "steps", 0)),
+                    ppo_epoch=int(ppo_epoch),
                 )
                 permutation = np.random.RandomState(permutation_seed).permutation(
                     len(input_ids)
