@@ -11,6 +11,10 @@ AUDIT="$ROOT_DIR/var/artifacts/e69_gate2_compute_matched_screen_audit_latest.jso
 cd "$ROOT_DIR"
 PYTHONPATH="$ROOT_DIR/src:$ROOT_DIR" \
   "$PYTHON_BIN" ops/route_successor/audit_e69_gate2_screen.py
+PYTHONPATH="$ROOT_DIR/src:$ROOT_DIR" \
+  "$PYTHON_BIN" ops/route_successor/snapshot_e69_gate2_route_replay.py
+PYTHONPATH="$ROOT_DIR/src:$ROOT_DIR" \
+  "$PYTHON_BIN" ops/route_successor/audit_e69_gate2_screen.py
 
 "$PYTHON_BIN" - "$AUDIT" <<'PY'
 import json

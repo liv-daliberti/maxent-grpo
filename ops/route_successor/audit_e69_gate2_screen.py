@@ -28,6 +28,14 @@ GRAPH_PREEMPTION_REPAIR_IDENTITY = (
     ROOT
     / "var/artifacts/e69_gate2_graph_a5000_preemption_repair_identity.json"
 )
+ROUTE_TEMPORAL_AMENDMENT = (
+    ROOT
+    / "paper/preregistration/"
+    "e69_gate2_route_temporal_observer_amendment_20260728.md"
+)
+ROUTE_TEMPORAL_SNAPSHOTS = (
+    ROOT / "var/artifacts/e69_gate2_route_temporal_snapshots.json"
+)
 PASSES = (0, 1, 2, 3, 4, 5, 6)
 POOL_SIZE = {
     "graph_coloring": 192,
@@ -554,6 +562,7 @@ def _evaluations(path: Path) -> tuple[dict[int, dict[str, float]], list[str]]:
 def evaluate_gate(
     curves: dict[str, dict[str, dict[int, dict[str, float]]]],
     route_terminal: dict[str, dict[str, float]],
+    route_temporal: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Evaluate only the prospectively frozen E69-minus-control thresholds."""
 
@@ -600,25 +609,85 @@ def evaluate_gate(
         and math_delta["mean8"] >= -0.01 - 1e-12
         and (math_delta["greedy"] > 0 or math_delta["mean8"] > 0)
     )
-    checks["post_replay_reuse_three_domains"] = (
-        sum(
-            route_terminal.get(domain, {}).get(
+    if route_temporal is None:
+        # Backward-compatible pure-function fallback. Production Gate 2 uses
+        # the prospective checkpoint observer validated in main().
+        route_reproductions = {
+            domain: route_terminal.get(domain, {}).get(
                 "post_replay_cross_prompt_neutral_reproductions",
                 0.0,
             )
-            > 0
             for domain in MODEBENCH
-        )
-        >= 3
+        }
+        mechanism_observer = "legacy_in_process_counter"
+    else:
+        route_reproductions = {
+            domain: route_temporal.get(domain, {}).get(
+                "post_replay_neutral_reproduction_pairs",
+                0,
+            )
+            for domain in MODEBENCH
+        }
+        mechanism_observer = "prospective_checkpoint_temporal_lower_bound"
+    checks["post_replay_reuse_three_domains"] = (
+        sum(value > 0 for value in route_reproductions.values()) >= 3
     )
     return {
         "status": "pass" if all(checks.values()) else "fail",
         "checks": checks,
+        "mechanism_observer": mechanism_observer,
+        "route_reproductions": route_reproductions,
         "deltas": {
             domain: {str(key): value for key, value in by_pass.items()}
             for domain, by_pass in deltas.items()
         },
     }
+
+
+def _load_route_temporal_snapshots() -> tuple[dict[str, Any], list[str]]:
+    violations: list[str] = []
+    if not ROUTE_TEMPORAL_AMENDMENT.is_file():
+        return {}, ["E69 route temporal amendment is absent"]
+    if not ROUTE_TEMPORAL_SNAPSHOTS.is_file():
+        return {}, ["E69 route temporal snapshot artifact is absent"]
+    try:
+        payload = json.loads(
+            ROUTE_TEMPORAL_SNAPSHOTS.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        return {}, [f"E69 route temporal snapshot artifact is invalid: {exc}"]
+    if payload.get("schema") != "e69_gate2_route_temporal_snapshots_v1":
+        violations.append("E69 route temporal snapshot schema drift")
+    amendment_hash = hashlib.sha256(
+        ROUTE_TEMPORAL_AMENDMENT.read_bytes()
+    ).hexdigest()
+    if payload.get("amendment_sha256") != amendment_hash:
+        violations.append("E69 route temporal amendment hash drift")
+    snapshots = payload.get("snapshots")
+    temporal = payload.get("temporal_reproductions")
+    if not isinstance(snapshots, dict) or set(snapshots) != set(MODEBENCH):
+        violations.append("E69 route temporal snapshot domain grid drift")
+        snapshots = {}
+    if not isinstance(temporal, dict) or set(temporal) != set(MODEBENCH):
+        violations.append("E69 route temporal summary domain grid drift")
+        temporal = {}
+    for domain in MODEBENCH:
+        expected_steps = {
+            str(POOL_SIZE[domain] * pass_index) for pass_index in range(1, 7)
+        }
+        observed = snapshots.get(domain, {})
+        if not isinstance(observed, dict) or set(observed) != expected_steps:
+            violations.append(
+                f"{domain}: route temporal observer lacks six exact checkpoints"
+            )
+        row = temporal.get(domain, {})
+        if (
+            not isinstance(row, dict)
+            or int(row.get("snapshot_count", -1)) != 6
+            or int(row.get("post_replay_neutral_reproduction_pairs", -1)) < 0
+        ):
+            violations.append(f"{domain}: route temporal summary is invalid")
+    return payload, violations
 
 
 def _write_markdown(payload: dict[str, Any]) -> None:
@@ -777,8 +846,16 @@ def main() -> None:
         and not pending
     )
     outcome_gate = None
+    route_temporal: dict[str, Any] = {}
     if complete and not violations:
-        outcome_gate = evaluate_gate(curves, route_terminal)
+        route_temporal, temporal_violations = _load_route_temporal_snapshots()
+        violations.extend(temporal_violations)
+        if not violations:
+            outcome_gate = evaluate_gate(
+                curves,
+                route_terminal,
+                route_temporal["temporal_reproductions"],
+            )
     status = (
         "fail"
         if violations
@@ -809,6 +886,7 @@ def main() -> None:
             for domain, arms in curves.items()
         },
         "route_terminal": route_terminal,
+        "route_temporal": route_temporal,
         "repairs": repairs,
         "outcome_gate": outcome_gate,
         "pending": sorted(set(pending)),

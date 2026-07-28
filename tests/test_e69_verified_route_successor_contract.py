@@ -204,6 +204,26 @@ def test_e69_gate2_gate_is_pure_strict_and_persistent():
     assert not result["checks"]["mathir_pass_and_distinct_gain_pass_5"]
 
 
+def test_e69_gate2_gate_uses_prospective_temporal_route_observer():
+    curves, route = _passing_gate_curves()
+    temporal = {
+        domain: {"post_replay_neutral_reproduction_pairs": 1}
+        for domain in ("graph_coloring", "countdown", "python_factor", "mathir")
+    }
+    result = evaluate_gate(curves, route, temporal)
+    assert result["status"] == "pass"
+    assert (
+        result["mechanism_observer"]
+        == "prospective_checkpoint_temporal_lower_bound"
+    )
+
+    temporal["python_factor"]["post_replay_neutral_reproduction_pairs"] = 0
+    temporal["graph_coloring"]["post_replay_neutral_reproduction_pairs"] = 0
+    result = evaluate_gate(curves, route, temporal)
+    assert result["status"] == "fail"
+    assert not result["checks"]["post_replay_reuse_three_domains"]
+
+
 def test_e69_gate2_training_audit_allows_not_yet_started_run(tmp_path):
     training, violations = _training_audit(
         tmp_path / "train_metrics.jsonl",
@@ -568,6 +588,7 @@ def test_e69_gate2_to_gate3_transition_fails_closed():
     ).read_text(encoding="utf-8")
     for literal in (
         "audit_e69_gate2_screen.py",
+        "snapshot_e69_gate2_route_replay.py",
         'audit.get("status") != "pass"',
         'summary.get("terminal_physical_runs") != 18',
         'summary.get("integrity_violations") != 0',
@@ -584,6 +605,61 @@ def test_e69_gate2_to_gate3_transition_fails_closed():
         "#SBATCH --cpus-per-task=1",
         "#SBATCH --mem=8G",
         "advance_e69_gate2_to_gate3.sh",
+    ):
+        assert literal in slurm
+
+
+def test_e69_gate2_route_temporal_observer_is_prospective_and_read_only():
+    amendment = (
+        ROOT
+        / "paper/preregistration/"
+        "e69_gate2_route_temporal_observer_amendment_20260728.md"
+    ).read_text(encoding="utf-8")
+    amendment_flat = " ".join(amendment.split())
+    for literal in (
+        "before any pass-5 or pass-6 Gate 2 evaluation existed",
+        "Training and its frozen source snapshot remain untouched",
+        "strictly increases between those checkpoints",
+        "conservative temporal lower bound",
+        "every three minutes",
+        "replaces only the structurally incapable in-process counter",
+    ):
+        assert literal in amendment_flat
+
+    observer = (
+        ROOT / "ops/route_successor/snapshot_e69_gate2_route_replay.py"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        'mmap=True',
+        '"verified_route_library_state"',
+        '"replayed_route_targets"',
+        '"replayed_target_neutral_counts"',
+        '"post_replay_neutral_reproduction_pairs"',
+        "neutral count decreased",
+        "replay-target set is not monotone",
+    ):
+        assert literal in observer
+
+    monitor = (
+        ROOT / "ops/route_successor/monitor_e69_gate2_route_snapshots.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "snapshot_e69_gate2_route_replay.py",
+        'sleep 180',
+        'observed_snapshots',
+        '== 24',
+    ):
+        assert literal in monitor
+
+    slurm = (
+        ROOT / "ops/slurm/e69_gate2_route_observer.slurm"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "#SBATCH --job-name=e69g2_route_obs",
+        "#SBATCH --mem=8G",
+        "#SBATCH --time=7-00:00:00",
+        "#SBATCH --requeue",
+        "monitor_e69_gate2_route_snapshots.sh",
     ):
         assert literal in slurm
 
