@@ -7,10 +7,27 @@ source "$ROOT_DIR/ops/repo_env.sh"
 
 PYTHON_BIN="${OAT_ZERO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/python}"
 AUDIT="$ROOT_DIR/var/artifacts/e69_gate3_confirmatory_audit_latest.json"
+IDENTITY="$ROOT_DIR/var/artifacts/e69_gate3_confirmatory_identity.json"
+AUDITOR="$ROOT_DIR/ops/route_successor/audit_e69_gate3_confirmatory.py"
 
 cd "$ROOT_DIR"
+"$PYTHON_BIN" - "$IDENTITY" "$AUDITOR" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+
+identity_path = pathlib.Path(sys.argv[1])
+auditor = pathlib.Path(sys.argv[2])
+identity = json.loads(identity_path.read_text(encoding="utf-8"))
+observed = hashlib.sha256(auditor.read_bytes()).hexdigest()
+if identity.get("schema") != "e69_gate3_confirmatory_v1":
+    raise SystemExit("E69 Gate 3 transition requires the exact identity schema")
+if identity.get("auditor_sha256") != observed:
+    raise SystemExit("E69 Gate 3 auditor changed after confirmatory launch")
+PY
 PYTHONPATH="$ROOT_DIR/src:$ROOT_DIR" \
-  "$PYTHON_BIN" ops/route_successor/audit_e69_gate3_confirmatory.py
+  "$PYTHON_BIN" "$AUDITOR"
 
 "$PYTHON_BIN" - "$AUDIT" <<'PY'
 import json

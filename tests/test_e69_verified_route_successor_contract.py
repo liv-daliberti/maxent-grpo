@@ -273,6 +273,7 @@ def test_e69_gate3_contract_freezes_reuse_compute_and_analysis_before_outcomes()
         "OAT_ZERO_E69_A5000_GRES:-gpu:a5000:1",
         '"origin": "gate3_new"',
         'dict(row, origin="gate2_reuse")',
+        '"auditor_sha256": digest(sys.argv[7])',
         '"reused_physical_jobs": 10',
         '"new_physical_jobs": 20',
         '"confirmatory_physical_jobs": 30',
@@ -685,6 +686,8 @@ def test_e69_gate3_to_gate4_transition_fails_closed():
     ).read_text(encoding="utf-8")
     for literal in (
         "audit_e69_gate3_confirmatory.py",
+        '"auditor_sha256"',
+        "E69 Gate 3 auditor changed after confirmatory launch",
         'audit.get("status") != "complete"',
         'summary.get("terminal_physical_runs") != 30',
         'summary.get("integrity_violations") != 0',
@@ -711,6 +714,11 @@ def test_e69_gate4_finalizer_requires_six_clean_results():
     ).read_text(encoding="utf-8")
     for literal in (
         "analyze_e69_gate4_math500.py",
+        '"analyzer_sha256"',
+        '"plotter_sha256"',
+        '"finalizer_sha256"',
+        '"finalizer_slurm_sha256"',
+        "E69 Gate 4 analysis surface drift",
         'analysis.get("status") != "complete"',
         'summary.get("observed_results") != 6',
         'summary.get("integrity_violations") != 0',

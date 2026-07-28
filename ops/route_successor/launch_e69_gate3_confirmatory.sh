@@ -17,6 +17,7 @@ esac
 PYTHON_BIN="${OAT_ZERO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/python}"
 PARENT_PROTOCOL="$ROOT_DIR/paper/preregistration/e69_verified_route_successor_protocol_20260728.md"
 EXEC_PROTOCOL="$ROOT_DIR/paper/preregistration/e69_gate3_confirmatory_execution_20260728.md"
+AUDITOR="$ROOT_DIR/ops/route_successor/audit_e69_gate3_confirmatory.py"
 GATE2_IDENTITY="$ROOT_DIR/var/artifacts/e69_gate2_compute_matched_screen_identity.json"
 GATE2_AUDIT="$ROOT_DIR/var/artifacts/e69_gate2_compute_matched_screen_audit_latest.json"
 MODEL_ROOT="$ROOT_DIR/var/cache/huggingface/transformers/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775"
@@ -41,7 +42,7 @@ TRANSITION_SLURM="$ROOT_DIR/ops/slurm/e69_gate3_to_gate4.slurm"
 TRANSITION_RECORD="$ROOT_DIR/var/artifacts/e69_gate3_to_gate4_transition_job.json"
 
 for required in \
-  "$PARENT_PROTOCOL" "$EXEC_PROTOCOL" "$GATE2_IDENTITY" \
+  "$PARENT_PROTOCOL" "$EXEC_PROTOCOL" "$AUDITOR" "$GATE2_IDENTITY" \
   "$TRANSITION_SLURM" \
   "$MODEL_ROOT/config.json" \
   "$GRAPH_DATA/train/dataset_dict.json" \
@@ -140,7 +141,7 @@ write_identity() {
   export SOURCE_HASH EXECUTION_HASH
   "$PYTHON_BIN" - \
     "$IDENTITY" "$PARENT_PROTOCOL" "$EXEC_PROTOCOL" "$GATE2_IDENTITY" \
-    "$GATE2_AUDIT" "$0" \
+    "$GATE2_AUDIT" "$0" "$AUDITOR" \
     "$GRAPH_DATA_HASH" "$COUNTDOWN_DATA_HASH" "$PYTHON_DATA_HASH" \
     "$MATHIR_DATA_HASH" "$MATH_DATA_HASH" \
     "$GRAPH_MANIFEST" "$COUNTDOWN_MANIFEST" "$PYTHON_MANIFEST" \
@@ -167,7 +168,7 @@ if (
 ):
     raise SystemExit("Gate 3 identity requires a clean passing Gate 2 audit")
 domains = ("graph_coloring", "countdown", "python_factor", "mathir", "math_dev")
-manifests = [pathlib.Path(raw) for raw in sys.argv[12:17]]
+manifests = [pathlib.Path(raw) for raw in sys.argv[13:18]]
 jobs = {}
 manifest_hashes = {}
 for domain, manifest in zip(domains, manifests):
@@ -226,9 +227,10 @@ payload = {
     "gate2_identity_sha256": digest(sys.argv[4]),
     "gate2_terminal_audit_sha256": digest(sys.argv[5]),
     "launcher_sha256": digest(sys.argv[6]),
+    "auditor_sha256": digest(sys.argv[7]),
     "source_hash": os.environ["SOURCE_HASH"],
     "execution_surface_hash": os.environ["EXECUTION_HASH"],
-    "data_tree_sha256": dict(zip(domains, sys.argv[7:12])),
+    "data_tree_sha256": dict(zip(domains, sys.argv[8:13])),
     "new_manifest_sha256": manifest_hashes,
     "jobs": jobs,
     "attempt_selection": "exact_manifest_job_ids_with_exact_gate2_seed43_reuse",
