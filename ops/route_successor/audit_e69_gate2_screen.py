@@ -24,6 +24,10 @@ REPAIR_IDENTITY = (
 PLACEMENT_REPAIR_IDENTITY = (
     ROOT / "var/artifacts/e69_gate2_pending_placement_repair_identity.json"
 )
+GRAPH_PREEMPTION_REPAIR_IDENTITY = (
+    ROOT
+    / "var/artifacts/e69_gate2_graph_a5000_preemption_repair_identity.json"
+)
 PASSES = (0, 1, 2, 3, 4, 5, 6)
 POOL_SIZE = {
     "graph_coloring": 192,
@@ -216,6 +220,82 @@ def _effective_jobs(
             "identity": str(PLACEMENT_REPAIR_IDENTITY.resolve()),
             "identity_sha256": _sha256(PLACEMENT_REPAIR_IDENTITY),
             "attempt_selection": placement["attempt_selection"],
+        }
+    )
+    if not GRAPH_PREEMPTION_REPAIR_IDENTITY.is_file():
+        return jobs, repairs, violations
+    graph_repair = json.loads(
+        GRAPH_PREEMPTION_REPAIR_IDENTITY.read_text(encoding="utf-8")
+    )
+    if (
+        graph_repair.get("schema")
+        != "e69_gate2_graph_a5000_preemption_repair_v1"
+        or graph_repair.get("original_identity_sha256") != _sha256(IDENTITY)
+        or graph_repair.get("parent_placement_repair_identity_sha256")
+        != _sha256(PLACEMENT_REPAIR_IDENTITY)
+        or graph_repair.get("terminal_outcomes_observed_before_repair")
+        is not False
+        or graph_repair.get("repair_decision_basis")
+        != "scheduler_preemption_and_node_inventory_only"
+    ):
+        violations.append("E69 Gate 2 Graph preemption repair identity mismatch")
+        return jobs, repairs, violations
+    mappings = graph_repair.get("mappings", [])
+    invalid_attempts = graph_repair.get("invalid_attempts", [])
+    if len(mappings) != 4 or len(invalid_attempts) != 4:
+        violations.append("E69 Gate 2 Graph preemption mapping is incomplete")
+        return jobs, repairs, violations
+    invalid_by_job = {
+        int(row["job_id"]): row for row in invalid_attempts
+    }
+    substitutions = []
+    for mapping in mappings:
+        invalid_job_id = int(mapping["invalid_job_id"])
+        matches = [
+            index
+            for index, row in enumerate(jobs["graph_coloring"])
+            if int(row["job_id"]) == invalid_job_id
+        ]
+        if len(matches) != 1:
+            violations.append(
+                f"E69 Gate 2 Graph preemption cell {invalid_job_id} is not unique"
+            )
+            return jobs, repairs, violations
+        original = jobs["graph_coloring"][matches[0]]
+        invalid = invalid_by_job.get(invalid_job_id)
+        run_dir = _run_dir(str(original["run_stamp"]), invalid_job_id)
+        if (
+            invalid is None
+            or invalid.get("terminal") is not False
+            or original["arm"] != mapping["arm"]
+            or int(mapping["seed"]) != int(original["seed"])
+            or run_dir is None
+            or (run_dir / "saved_models").exists()
+        ):
+            violations.append(
+                f"E69 Gate 2 excluded Graph attempt {invalid_job_id} mismatch"
+            )
+            return jobs, repairs, violations
+        replacement = {
+            "arm": mapping["arm"],
+            "seed": int(mapping["seed"]),
+            "job_id": int(mapping["replacement_job_id"]),
+            "run_stamp": mapping["run_stamp"],
+        }
+        jobs["graph_coloring"][matches[0]] = replacement
+        substitutions.append(
+            {
+                "invalid_job_id": invalid_job_id,
+                "replacement_job_id": int(mapping["replacement_job_id"]),
+            }
+        )
+    repairs.append(
+        {
+            "kind": "graph_preemption",
+            "substitutions": substitutions,
+            "identity": str(GRAPH_PREEMPTION_REPAIR_IDENTITY.resolve()),
+            "identity_sha256": _sha256(GRAPH_PREEMPTION_REPAIR_IDENTITY),
+            "attempt_selection": graph_repair["attempt_selection"],
         }
     )
     return jobs, repairs, violations

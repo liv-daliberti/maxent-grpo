@@ -7,12 +7,16 @@ source "$ROOT_DIR/ops/repo_env.sh"
 
 phase="${1:-}"
 case "$phase" in
-  config|full) ;;
+  config|full|graph-a5000-config|graph-a5000-full) ;;
   *)
-    echo "Usage: $0 {config|full}" >&2
+    echo "Usage: $0 {config|full|graph-a5000-config|graph-a5000-full}" >&2
     exit 1
     ;;
 esac
+GRAPH_A5000_REPAIR=0
+if [[ "$phase" == graph-a5000-* ]]; then
+  GRAPH_A5000_REPAIR=1
+fi
 
 PYTHON_BIN="${OAT_ZERO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/python}"
 ORIGINAL_IDENTITY="$ROOT_DIR/var/artifacts/e69_gate2_compute_matched_screen_identity.json"
@@ -23,6 +27,12 @@ COUNTDOWN_DATA="$ROOT_DIR/var/data/exact_countdown_easy3_probe"
 PYTHON_DATA="$ROOT_DIR/var/data/python_factor_modebench_v1"
 REPAIR_IDENTITY="$ROOT_DIR/var/artifacts/e69_gate2_pending_placement_repair_identity.json"
 GRAPH_PREFIX=gce69_gate2_placement_repair
+GRAPH_A5000_AMENDMENT="$ROOT_DIR/paper/preregistration/e69_gate2_graph_a5000_preemption_repair_20260728.md"
+GRAPH_A5000_REPAIR_IDENTITY="$ROOT_DIR/var/artifacts/e69_gate2_graph_a5000_preemption_repair_identity.json"
+GRAPH_A5000_ORIGINAL_JOBS=(30160181 30160182 30160183 30160184)
+if [[ "$GRAPH_A5000_REPAIR" == "1" ]]; then
+  GRAPH_PREFIX=gce69_gate2_graph_a5000_repair
+fi
 COUNTDOWN_PREFIX=cde69_gate2_placement_repair
 PYTHON_PREFIX=pye69_gate2_placement_repair
 GRAPH_MANIFEST="$ROOT_DIR/var/artifacts/${GRAPH_PREFIX}_comparative_jobs.tsv"
@@ -44,6 +54,14 @@ for required in \
     exit 1
   fi
 done
+if [[ "$GRAPH_A5000_REPAIR" == "1" ]]; then
+  for required in "$GRAPH_A5000_AMENDMENT" "$REPAIR_IDENTITY"; do
+    if [[ ! -e "$required" ]]; then
+      echo "Missing E69 Graph A5000 repair prerequisite: $required" >&2
+      exit 1
+    fi
+  done
+fi
 
 readarray -t frozen_hashes < <(
   "$PYTHON_BIN" - "$ORIGINAL_IDENTITY" <<'PY'
@@ -110,6 +128,30 @@ if [[ "$phase" == full ]]; then
     if find "$ROOT_DIR/var/data" -maxdepth 2 -type d \
         -path "*job${job_id}" -print -quit | grep -q .; then
       echo "Original pending job unexpectedly has a run directory: $job_id" >&2
+      exit 1
+    fi
+  done
+fi
+if [[ "$phase" == graph-a5000-full ]]; then
+  for fresh in "$GRAPH_A5000_REPAIR_IDENTITY" "$GRAPH_MANIFEST"; do
+    if [[ -e "$fresh" ]]; then
+      echo "Fresh E69 Graph A5000 repair artifact required: $fresh" >&2
+      exit 1
+    fi
+  done
+  for job_id in "${GRAPH_A5000_ORIGINAL_JOBS[@]}"; do
+    record="$(scontrol show job "$job_id" -o)"
+    if [[ "$record" != *'JobState=PENDING'* \
+        && "$record" != *'JobState=RUNNING'* ]]; then
+      echo "Graph repair source job is not pending/running: $job_id" >&2
+      exit 1
+    fi
+    run_dir="$(
+      find "$ROOT_DIR/var/data" -maxdepth 2 -type d \
+        -path "*job${job_id}" -print -quit
+    )"
+    if [[ -z "$run_dir" || -d "$run_dir/saved_models" ]]; then
+      echo "Graph repair source job is missing or terminal: $job_id" >&2
       exit 1
     fi
   done
@@ -252,8 +294,13 @@ submit_domain() {
       export OAT_ZERO_RESUME_STEPS=192
       export OAT_ZERO_RESUME_FROM=192
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=690201
-      export OAT_ZERO_TRAIN_NODELIST=node101
-      export OAT_ZERO_TRAIN_GRES=gpu:a40:1
+      if [[ "$GRAPH_A5000_REPAIR" == "1" ]]; then
+        export OAT_ZERO_TRAIN_NODELIST=node202
+        export OAT_ZERO_TRAIN_GRES=gpu:a5000:1
+      else
+        export OAT_ZERO_TRAIN_NODELIST=node101
+        export OAT_ZERO_TRAIN_GRES=gpu:a40:1
+      fi
       ;;
     countdown)
       export RUN_STAMP_PREFIX="$COUNTDOWN_PREFIX"
@@ -294,13 +341,183 @@ submit_domain() {
   "$OPS_ROOT/submit_countdown_comparative.sh"
 }
 
-if [[ "$phase" == config ]]; then
+if [[ "$phase" == config || "$phase" == graph-a5000-config ]]; then
   export OAT_ZERO_COMPARATIVE_CONFIG_ONLY=1
   export OAT_ZERO_SBATCH_HOLD=0
-  for domain in graph_coloring countdown python_factor; do
-    submit_domain "$domain"
+  if [[ "$GRAPH_A5000_REPAIR" == "1" ]]; then
+    submit_domain graph_coloring
+    echo "[e69-graph-a5000-repair] configuration passed"
+  else
+    for domain in graph_coloring countdown python_factor; do
+      submit_domain "$domain"
+    done
+    echo "[e69-placement-repair] all three configurations passed"
+  fi
+  exit 0
+fi
+
+if [[ "$phase" == graph-a5000-full ]]; then
+  export OAT_ZERO_PROTOCOL_IDENTITY="$ORIGINAL_IDENTITY"
+  export OAT_ZERO_SBATCH_HOLD=1
+  graph_replacements=()
+  graph_released=0
+  graph_originals_cancelled=0
+  cleanup_graph_held() {
+    local status="$?"
+    trap - EXIT
+    if [[ "$graph_released" != "1" && "$graph_originals_cancelled" != "1" \
+        && "${#graph_replacements[@]}" -gt 0 ]]; then
+      scancel "${graph_replacements[@]}" 2>/dev/null || true
+      echo "[e69-graph-a5000-repair] cancelled incomplete held replacements" >&2
+    elif [[ "$graph_released" != "1" \
+        && "$graph_originals_cancelled" == "1" ]]; then
+      echo "[e69-graph-a5000-repair] originals cancelled; replacements remain held" >&2
+    fi
+    exit "$status"
+  }
+  trap cleanup_graph_held EXIT
+
+  submit_domain graph_coloring
+  mapfile -t graph_replacements < <(
+    awk -F $'\t' 'NR > 1 && $3 ~ /^[0-9]+$/ {print $3}' "$GRAPH_MANIFEST"
+  )
+  if [[ "${#graph_replacements[@]}" -ne 4 ]]; then
+    echo "Graph A5000 repair manifest must contain four jobs" >&2
+    exit 1
+  fi
+  for job_id in "${graph_replacements[@]}"; do
+    record="$(scontrol show job "$job_id" -o)"
+    for required in \
+      'JobState=PENDING' 'Reason=JobHeldUser' \
+      'ReqNodeList=node202' 'gres/gpu:a5000=1' \
+      'OAT_ZERO_MAX_PROMPT_EPOCHS=6' \
+      'OAT_ZERO_NUM_SAMPLES=16' \
+      'OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS=3' \
+      'OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1' \
+      "OAT_ZERO_SOURCE_ROOT=${SOURCE_ROOT}" \
+      "OAT_ZERO_OPS_SNAPSHOT_ROOT=${OPS_ROOT}" \
+      "OAT_ZERO_PROTOCOL_IDENTITY=${ORIGINAL_IDENTITY}"; do
+      if [[ "$record" != *"$required"* ]]; then
+        echo "Graph A5000 held-job audit $job_id missing: $required" >&2
+        exit 1
+      fi
+    done
   done
-  echo "[e69-placement-repair] all three configurations passed"
+
+  export SOURCE_HASH EXECUTION_HASH
+  "$PYTHON_BIN" - \
+    "$GRAPH_A5000_REPAIR_IDENTITY" "$ORIGINAL_IDENTITY" "$REPAIR_IDENTITY" \
+    "$GRAPH_A5000_AMENDMENT" "$0" "$GRAPH_MANIFEST" <<'PY'
+import csv
+import hashlib
+import json
+import os
+import pathlib
+import sys
+import tempfile
+
+def digest(raw):
+    return hashlib.sha256(pathlib.Path(raw).read_bytes()).hexdigest()
+
+def max_step(path):
+    maximum = -1
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            row = json.loads(line)
+            value = row.get("trainer/global_step", row.get("misc/global_step", -1))
+            maximum = max(maximum, int(float(value)))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+    return maximum
+
+path = pathlib.Path(sys.argv[1])
+parent = json.loads(pathlib.Path(sys.argv[3]).read_text(encoding="utf-8"))
+replacements = list(csv.DictReader(pathlib.Path(sys.argv[6]).open(), delimiter="\t"))
+sources = parent["mappings"]["graph_coloring"]
+replacement_by_arm = {row["arm"]: row for row in replacements}
+if len(sources) != 4 or len(replacements) != 4:
+    raise SystemExit("Graph A5000 repair is not a four-cell mapping")
+if set(replacement_by_arm) != {row["arm"] for row in sources}:
+    raise SystemExit("Graph A5000 replacement arms differ")
+
+mappings = []
+invalid_attempts = []
+data_root = pathlib.Path(sys.argv[1]).resolve().parents[1] / "data"
+for source in sources:
+    invalid_job = int(source["replacement_job_id"])
+    matches = sorted(data_root.glob(f"*_{source['run_stamp']}/debug_job{invalid_job}"))
+    if len(matches) != 1:
+        raise SystemExit(f"missing unique Graph source attempt {invalid_job}")
+    run_dir = matches[0]
+    if (run_dir / "saved_models").exists():
+        raise SystemExit(f"Graph source attempt unexpectedly terminal: {invalid_job}")
+    metric_path = run_dir / "train_metrics.jsonl"
+    invalid_attempts.append(
+        {
+            "arm": source["arm"],
+            "job_id": invalid_job,
+            "latest_step": max_step(metric_path),
+            "run_dir": str(run_dir),
+            "terminal": False,
+        }
+    )
+    replacement = replacement_by_arm[source["arm"]]
+    mappings.append(
+        {
+            "arm": source["arm"],
+            "seed": int(source["seed"]),
+            "invalid_job_id": invalid_job,
+            "replacement_job_id": int(replacement["job_id"]),
+            "run_stamp": replacement["run_stamp"],
+        }
+    )
+
+payload = {
+    "schema": "e69_gate2_graph_a5000_preemption_repair_v1",
+    "original_identity_sha256": digest(sys.argv[2]),
+    "parent_placement_repair_identity_sha256": digest(sys.argv[3]),
+    "amendment_sha256": digest(sys.argv[4]),
+    "launcher_sha256": digest(sys.argv[5]),
+    "manifest_sha256": digest(sys.argv[6]),
+    "source_hash": os.environ["SOURCE_HASH"],
+    "execution_surface_hash": os.environ["EXECUTION_HASH"],
+    "mappings": mappings,
+    "invalid_attempts": invalid_attempts,
+    "placement": {
+        "node": "node202",
+        "gres": "gpu:a5000:1",
+        "partition": "lowprio",
+        "account": "mltheory",
+    },
+    "attempt_selection": "replace_all_four_partial_graph_cells_after_preemption",
+    "repair_decision_basis": "scheduler_preemption_and_node_inventory_only",
+    "nonterminal_outcomes_available_before_repair": True,
+    "terminal_outcomes_observed_before_repair": False,
+    "math500_sealed": True,
+}
+path.parent.mkdir(parents=True, exist_ok=True)
+fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+with os.fdopen(fd, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2, sort_keys=True)
+    handle.write("\n")
+os.replace(temporary, path)
+PY
+
+  scancel "${GRAPH_A5000_ORIGINAL_JOBS[@]}"
+  graph_originals_cancelled=1
+  for job_id in "${GRAPH_A5000_ORIGINAL_JOBS[@]}"; do
+    state="$(scontrol show job "$job_id" -o)"
+    if [[ "$state" != *'JobState=CANCELLED'* ]]; then
+      echo "Graph source job did not enter CANCELLED state: $job_id" >&2
+      exit 1
+    fi
+  done
+  scontrol release "${graph_replacements[@]}"
+  graph_released=1
+  trap - EXIT
+  echo "[e69-graph-a5000-repair] cancelled originals: ${GRAPH_A5000_ORIGINAL_JOBS[*]}"
+  echo "[e69-graph-a5000-repair] released replacements: ${graph_replacements[*]}"
+  echo "[e69-graph-a5000-repair] identity=$GRAPH_A5000_REPAIR_IDENTITY"
   exit 0
 fi
 

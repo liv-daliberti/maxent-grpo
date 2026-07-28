@@ -247,8 +247,8 @@ def test_e69_gate3_contract_freezes_reuse_compute_and_analysis_before_outcomes()
         'OAT_ZERO_ONLY_ARMS="grpo,verified_route_successor"',
         'OAT_ZERO_ONLY_ARMS="grpo,verified_first_global_replay_canonical"',
         "OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10",
-        "OAT_ZERO_E69_GRAPH_NODELIST:-node101",
-        "OAT_ZERO_E69_GRAPH_GRES:-gpu:a40:1",
+        "OAT_ZERO_E69_GRAPH_NODELIST:-node105,node202,node203,node204",
+        "OAT_ZERO_E69_GRAPH_GRES:-gpu:a5000:1",
         "OAT_ZERO_E69_A5000_NODELIST:-node105,node202,node203,node204",
         "OAT_ZERO_E69_A5000_GRES:-gpu:a5000:1",
         '"origin": "gate3_new"',
@@ -510,3 +510,49 @@ def test_e69_gate2_pending_placement_repair_is_matched_and_atomic():
     assert launcher.index('scancel "${ORIGINAL_JOBS[@]}"') < launcher.index(
         'scontrol release "${replacement_jobs[@]}"'
     )
+
+
+def test_e69_gate2_graph_preemption_repair_restarts_all_arms_atomically():
+    amendment = (
+        ROOT
+        / "paper/preregistration/e69_gate2_graph_a5000_preemption_repair_20260728.md"
+    ).read_text(encoding="utf-8")
+    amendment_flat = " ".join(amendment.split())
+    for literal in (
+        "preempted",
+        "optimizer step 106",
+        "no valid resume point",
+        "entire four-arm Graph cohort is therefore replaced together",
+        "All partial attempts `30160181--30160184` are excluded wholesale",
+        "No metric value, arm ranking, or outcome informed this repair",
+        "`node105,node202,node203,node204`",
+    ):
+        assert literal in amendment_flat
+
+    launcher = (
+        ROOT / "ops/route_successor/repair_e69_gate2_pending_placements.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "graph-a5000-config|graph-a5000-full",
+        "GRAPH_A5000_ORIGINAL_JOBS=(30160181 30160182 30160183 30160184)",
+        "OAT_ZERO_TRAIN_NODELIST=node202",
+        "OAT_ZERO_TRAIN_GRES=gpu:a5000:1",
+        'scancel "${GRAPH_A5000_ORIGINAL_JOBS[@]}"',
+        'scontrol release "${graph_replacements[@]}"',
+        '"nonterminal_outcomes_available_before_repair": True',
+        '"terminal_outcomes_observed_before_repair": False',
+    ):
+        assert literal in launcher
+    assert launcher.index(
+        'scancel "${GRAPH_A5000_ORIGINAL_JOBS[@]}"'
+    ) < launcher.index('scontrol release "${graph_replacements[@]}"')
+
+    audit = (
+        ROOT / "ops/route_successor/audit_e69_gate2_screen.py"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "e69_gate2_graph_a5000_preemption_repair_identity.json",
+        "E69 Gate 2 excluded Graph attempt",
+        '"kind": "graph_preemption"',
+    ):
+        assert literal in audit
