@@ -111,9 +111,16 @@ On MathIR train and eval:
 On the sealed MATH12K route-dev split, using a fixed pretraining-model sample
 archive:
 
+- draw exactly eight temperature-1, top-p-1 samples per prompt with seed
+  `690101`, a 1,024-token response limit, and the pinned Qwen2.5-0.5B-Instruct
+  revision;
 - report task-verifier acceptance and trace-verifier acceptance separately;
 - at least 80% of task-correct sampled responses must have a valid trace before
   route novelty is allowed in MATH training;
+- at least 50 task-correct samples must exist, at least eight prompts must
+  exhibit two accepted route signatures, and at least three signatures must
+  recur across disjoint prompts;
+- every accepted signature must survive a JSON formatting-only perturbation;
 - manually inspect a deterministic 50-item accepted-trace sample and report any
   false admission as a hard failure.
 
