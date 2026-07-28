@@ -28,6 +28,11 @@ GRAPH_PREEMPTION_REPAIR_IDENTITY = (
     ROOT
     / "var/artifacts/e69_gate2_graph_a5000_preemption_repair_identity.json"
 )
+PRECHECKPOINT_REQUEUE_REPAIR_IDENTITY = (
+    ROOT
+    / "var/artifacts/"
+    "e69_gate2_precheckpoint_requeue_attempt_repair_identity.json"
+)
 ROUTE_TEMPORAL_AMENDMENT = (
     ROOT
     / "paper/preregistration/"
@@ -316,6 +321,135 @@ def _run_dir(run_stamp: str, job_id: int) -> Path | None:
     return candidates[0] if len(candidates) == 1 else None
 
 
+def _load_precheckpoint_attempt_repairs() -> tuple[
+    dict[int, dict[str, Any]],
+    dict[str, Any] | None,
+    list[str],
+]:
+    violations: list[str] = []
+    if not PRECHECKPOINT_REQUEUE_REPAIR_IDENTITY.is_file():
+        return {}, None, [
+            "E69 Gate 2 pre-checkpoint requeue repair identity is absent"
+        ]
+    try:
+        identity = json.loads(
+            PRECHECKPOINT_REQUEUE_REPAIR_IDENTITY.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        return {}, None, [
+            f"E69 Gate 2 pre-checkpoint requeue identity is invalid: {exc}"
+        ]
+    if (
+        identity.get("schema")
+        != "e69_gate2_precheckpoint_requeue_attempt_repair_v1"
+    ):
+        violations.append("E69 pre-checkpoint requeue repair schema drift")
+    protocol = ROOT / str(identity.get("protocol", ""))
+    if (
+        not protocol.is_file()
+        or identity.get("protocol_sha256") != _sha256(protocol)
+    ):
+        violations.append("E69 pre-checkpoint requeue repair protocol drift")
+    raw_jobs = identity.get("jobs")
+    if not isinstance(raw_jobs, dict) or set(raw_jobs) != {
+        "30160592",
+        "30160205",
+    }:
+        violations.append("E69 pre-checkpoint requeue repair job grid drift")
+        raw_jobs = {}
+    jobs = {
+        int(job_id): dict(row)
+        for job_id, row in raw_jobs.items()
+        if isinstance(row, dict)
+    }
+    repair = {
+        "kind": "precheckpoint_requeue_attempt",
+        "identity": str(PRECHECKPOINT_REQUEUE_REPAIR_IDENTITY.resolve()),
+        "identity_sha256": _sha256(PRECHECKPOINT_REQUEUE_REPAIR_IDENTITY),
+        "selection_rule": identity.get("selection_rule"),
+        "jobs": sorted(jobs),
+    }
+    return jobs, repair, violations
+
+
+def _step_from_training_row(row: dict[str, Any]) -> int | None:
+    value = row.get("trainer/global_step", row.get("misc/global_step"))
+    return int(value) if _finite(value) else None
+
+
+def _validate_attempt_boundary(
+    run_dir: Path,
+    *,
+    job_id: int,
+    domain: str,
+    arm: str,
+    row: dict[str, Any] | None,
+    label: str,
+) -> tuple[int, list[str]]:
+    violations: list[str] = []
+    if row is None:
+        return 1, violations
+    if row.get("domain") != domain or row.get("arm") != arm:
+        violations.append(f"{label}: pre-checkpoint repair cell drift")
+    path = run_dir / "train_metrics.jsonl"
+    if not path.is_file():
+        return int(row.get("accepted_start_line", 1)), violations
+    raw_lines = path.read_bytes().splitlines(keepends=True)
+    start_line = int(row.get("accepted_start_line", 0))
+    prefix_last_line = int(row.get("abandoned_prefix_last_line", -1))
+    if start_line != prefix_last_line + 1 or start_line < 2:
+        violations.append(f"{label}: invalid accepted-attempt boundary")
+        return max(start_line, 1), violations
+    if len(raw_lines) < start_line:
+        violations.append(f"{label}: accepted-attempt start line is absent")
+        return start_line, violations
+    observed_prefix = hashlib.sha256(
+        b"".join(raw_lines[:prefix_last_line])
+    ).hexdigest()
+    if observed_prefix != row.get("abandoned_prefix_sha256"):
+        violations.append(f"{label}: abandoned attempt prefix hash drift")
+    try:
+        prefix_terminal = json.loads(
+            raw_lines[prefix_last_line - 1].decode("utf-8")
+        )
+        accepted_initial = json.loads(raw_lines[start_line - 1].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        violations.append(f"{label}: invalid reset-boundary JSON: {exc}")
+    else:
+        if _step_from_training_row(prefix_terminal) != int(
+            row.get("abandoned_prefix_last_step", -1)
+        ):
+            violations.append(f"{label}: abandoned prefix terminal step drift")
+        if _step_from_training_row(accepted_initial) != int(
+            row.get("accepted_start_step", -1)
+        ):
+            violations.append(f"{label}: accepted attempt did not restart at zero")
+
+    eval_path = run_dir / "eval_mode_coverage_draws.jsonl"
+    if not eval_path.is_file():
+        violations.append(f"{label}: repeated step-0 evaluation evidence is absent")
+    else:
+        eval_lines = eval_path.read_bytes().splitlines(keepends=True)
+        if len(eval_lines) < 4:
+            violations.append(
+                f"{label}: repeated step-0 evaluation evidence is incomplete"
+            )
+        else:
+            hashes = [
+                hashlib.sha256(b"".join(eval_lines[start:stop])).hexdigest()
+                for start, stop in ((0, 2), (2, 4))
+            ]
+            expected = [
+                row.get("abandoned_step0_evaluation_sha256"),
+                row.get("accepted_step0_evaluation_sha256"),
+            ]
+            if hashes != expected or hashes[0] != hashes[1]:
+                violations.append(
+                    f"{label}: repeated step-0 evaluation identity drift"
+                )
+    return start_line, violations
+
+
 def _scan_logs(job_id: int) -> list[str]:
     failures: list[str] = []
     for suffix in ("out", "err"):
@@ -333,6 +467,7 @@ def _training_audit(
     label: str,
     arm: str,
     response_limit: int,
+    accepted_start_line: int = 1,
 ) -> tuple[dict[str, Any], list[str]]:
     violations: list[str] = []
     if not path.is_file():
@@ -353,10 +488,13 @@ def _training_audit(
     replay_charged_response_tokens = 0
     replay_records = 0
     route_terminal: dict[str, float] = {}
+    previous_step: int | None = None
     for line_number, raw in enumerate(
         path.read_text(encoding="utf-8", errors="replace").splitlines(),
         start=1,
     ):
+        if line_number < accepted_start_line:
+            continue
         if not raw.strip():
             continue
         try:
@@ -367,9 +505,15 @@ def _training_audit(
         if not isinstance(row, dict):
             violations.append(f"{label}: non-object train line {line_number}")
             continue
-        step = row.get("trainer/global_step", row.get("misc/global_step", -1))
-        if _finite(step):
-            latest_step = max(latest_step, int(step))
+        step = _step_from_training_row(row)
+        if step is not None:
+            if previous_step is not None and step < previous_step:
+                violations.append(
+                    f"{label}: unregistered optimizer-step regression "
+                    f"{previous_step}->{step} at line {line_number}"
+                )
+            previous_step = step
+            latest_step = step
         if not any(key.startswith(("train/", "actor/")) for key in row):
             continue
         records += 1
@@ -496,6 +640,7 @@ def _training_audit(
         {
             "records": records,
             "latest_step": latest_step,
+            "accepted_start_line": accepted_start_line,
             "fixed_control_groups": control_groups,
             "fixed_control_rows": control_rows,
             "fixed_control_realized_prompt_tokens": control_prompt_tokens,
@@ -726,6 +871,13 @@ def _write_markdown(payload: dict[str, Any]) -> None:
                     f"replacement job {repair['replacement_job_id']} under the "
                     "prospectively recorded startup-repair identity."
                 )
+            elif repair["kind"] == "precheckpoint_requeue_attempt":
+                lines.append(
+                    "- Excluded the exact checkpoint-free attempt prefixes "
+                    f"for jobs {', '.join(map(str, repair['jobs']))}; the "
+                    "accepted attempts restart from initialization under the "
+                    "prospectively recorded attempt-repair identity."
+                )
             else:
                 lines.append(
                     f"- Replaced {len(repair['substitutions'])} never-started "
@@ -756,6 +908,12 @@ def main() -> None:
     route_terminal: dict[str, dict[str, float]] = {}
     effective_jobs, repairs, repair_violations = _effective_jobs(identity)
     violations.extend(repair_violations)
+    attempt_jobs, attempt_repair, attempt_violations = (
+        _load_precheckpoint_attempt_repairs()
+    )
+    violations.extend(attempt_violations)
+    if attempt_repair is not None:
+        repairs.append(attempt_repair)
     for domain, jobs in effective_jobs.items():
         expected_step = POOL_SIZE[domain] * 6
         response_limit = 1024 if domain == "math_dev" else (
@@ -783,11 +941,23 @@ def main() -> None:
                     f"{label}: {failure}" for failure in _scan_logs(job_id)
                 )
                 continue
+            accepted_start_line, boundary_violations = (
+                _validate_attempt_boundary(
+                    run_dir,
+                    job_id=job_id,
+                    domain=domain,
+                    arm=arm,
+                    row=attempt_jobs.get(job_id),
+                    label=label,
+                )
+            )
+            violations.extend(boundary_violations)
             training, run_violations = _training_audit(
                 run_dir / "train_metrics.jsonl",
                 label=label,
                 arm=arm,
                 response_limit=response_limit,
+                accepted_start_line=accepted_start_line,
             )
             violations.extend(run_violations)
             violations.extend(

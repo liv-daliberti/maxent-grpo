@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from ops.route_successor.audit_e69_gate2_screen import (
@@ -235,6 +236,85 @@ def test_e69_gate2_training_audit_allows_not_yet_started_run(tmp_path):
     assert training["records"] == 0
     assert training["latest_step"] == -1
     assert training["route_terminal"] == {}
+
+
+def test_e69_gate2_training_audit_selects_only_registered_latest_attempt(
+    tmp_path,
+):
+    path = tmp_path / "train_metrics.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                '{"trainer/global_step": 0}',
+                '{"trainer/global_step": 1}',
+                '{"trainer/global_step": 0}',
+                '{"trainer/global_step": 1}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    training, violations = _training_audit(
+        path,
+        label="python/e69/job0",
+        arm="verified_route_successor",
+        response_limit=192,
+        accepted_start_line=3,
+    )
+    assert violations == []
+    assert training["latest_step"] == 1
+    assert training["accepted_start_line"] == 3
+
+    _, violations = _training_audit(
+        path,
+        label="python/e69/job0",
+        arm="verified_route_successor",
+        response_limit=192,
+    )
+    assert any("unregistered optimizer-step regression 1->0" in row for row in violations)
+
+
+def test_e69_gate2_precheckpoint_requeue_repair_is_exact_and_outcome_blind():
+    protocol = (
+        ROOT
+        / "paper/preregistration/"
+        "e69_gate2_precheckpoint_requeue_attempt_repair_20260728.md"
+    ).read_text(encoding="utf-8")
+    protocol_flat = " ".join(protocol.split())
+    for literal in (
+        "while all Gate 2 runs were nonterminal",
+        "Graph compute-matched Dr.GRPO job `30160592`",
+        "Python verified-route successor job `30160205`",
+        "Neither abandoned prefix produced an optimizer checkpoint",
+        "byte-identical",
+        "reject any later step regression",
+        "Discarded pre-checkpoint attempts are not spliced",
+    ):
+        assert literal in protocol_flat
+
+    identity = json.loads(
+        (
+            ROOT
+            / "var/artifacts/"
+            "e69_gate2_precheckpoint_requeue_attempt_repair_identity.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert identity["schema"] == (
+        "e69_gate2_precheckpoint_requeue_attempt_repair_v1"
+    )
+    assert set(identity["jobs"]) == {"30160592", "30160205"}
+    assert identity["terminal_outcomes_available_before_repair"] is False
+    for row in identity["jobs"].values():
+        assert row["accepted_start_line"] == (
+            row["abandoned_prefix_last_line"] + 1
+        )
+        assert row["accepted_start_step"] == 0
+        assert row["abandoned_prefix_checkpoint_count"] == 0
+        assert row["abandoned_prefix_evaluation_steps"] == [0]
+        assert (
+            row["abandoned_step0_evaluation_sha256"]
+            == row["accepted_step0_evaluation_sha256"]
+        )
 
 
 def test_e69_gate3_contract_freezes_reuse_compute_and_analysis_before_outcomes():
