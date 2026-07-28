@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from fractions import Fraction
-from itertools import product
+from itertools import permutations
 import re
 from typing import Any, Iterable, Mapping
 
@@ -27,6 +27,7 @@ MATHIR_VERIFIER = "mathir_algebra"
 MATHIR_VERSION = "linear-v0"
 MATHIR_MENU_VERIFIER = "mathir_action_menu"
 MATHIR_MENU_VERSION = "linear-menu-v1"
+MATHIR_ROUTE_VERSION = "linear-route-v1"
 _MAX_REFERENCE_SYMBOLS = 6
 _MAX_PROGRAM_STEPS = 4
 _MAX_PROGRAM_CHARS = 160
@@ -71,6 +72,7 @@ class MathIRValidation:
     commands: tuple[Command, ...]
     states: tuple[EquationState, ...]
     action_ids: tuple[str, ...] = ()
+    route_signature: str = ""
 
 
 class MathIRError(ValueError):
@@ -355,6 +357,80 @@ def _canonical_state(state: EquationState) -> str:
     return f"eq({_canonical_expr(state.lhs)},{_canonical_expr(state.rhs)})"
 
 
+def _rename_expr_symbols(
+    expression: Expr,
+    symbol_map: Mapping[str, str],
+) -> Expr:
+    if expression.op == "symbol":
+        assert isinstance(expression.value, str)
+        return Expr(
+            "symbol",
+            value=symbol_map.get(expression.value, expression.value),
+        )
+    return Expr(
+        expression.op,
+        tuple(
+            _rename_expr_symbols(argument, symbol_map)
+            for argument in expression.args
+        ),
+        expression.value,
+    )
+
+
+def _alpha_canonical_route(
+    initial_state: EquationState,
+    commands: tuple[Command, ...],
+) -> str:
+    """Canonicalize a verified route independently of coefficient names.
+
+    At most six coefficient symbols are allowed by the reference schema, so a
+    small exhaustive alpha-renaming is simpler and safer than relying on
+    symbol-name or traversal-order heuristics. Numeric binding values never
+    enter this representation.
+    """
+
+    symbols = sorted(
+        (
+            _expr_symbols(initial_state.lhs)
+            | _expr_symbols(initial_state.rhs)
+            | set().union(
+                *(_expr_symbols(command.argument) for command in commands),
+                set(),
+            )
+        )
+        - {"x"}
+    )
+    roles = tuple(f"c{index}" for index in range(len(symbols)))
+    candidates: list[str] = []
+    for assigned_symbols in permutations(symbols):
+        symbol_map = {
+            symbol: role for symbol, role in zip(assigned_symbols, roles)
+        }
+        renamed_initial = EquationState(
+            _rename_expr_symbols(initial_state.lhs, symbol_map),
+            _rename_expr_symbols(initial_state.rhs, symbol_map),
+        )
+        command_parts = []
+        for command in commands:
+            renamed_argument = _rename_expr_symbols(
+                command.argument,
+                symbol_map,
+            )
+            command_parts.append(
+                f"{command.op}({_canonical_expr(renamed_argument)})"
+            )
+        candidates.append(
+            f"init={_canonical_state(renamed_initial)}"
+            f"|commands={'>'.join(command_parts)}"
+        )
+    if not candidates:
+        candidates.append(
+            f"init={_canonical_state(initial_state)}"
+            f"|commands={'>'.join(command.op for command in commands)}"
+        )
+    return f"mathir-route:{MATHIR_ROUTE_VERSION}:{min(candidates)}"
+
+
 def _validate_denominators(
     expression: Expr,
     *,
@@ -538,12 +614,14 @@ def _execute_mathir_commands(
         f"mathir:{key_version}:"
         + ">".join(_canonical_state(executed_state) for executed_state in states)
     )
+    route_signature = _alpha_canonical_route(initial_state, commands)
     return MathIRValidation(
         canonical_key=canonical_key,
         solution=solution,
         commands=commands,
         states=tuple(states),
         action_ids=action_ids,
+        route_signature=route_signature,
     )
 
 
@@ -676,15 +754,135 @@ def enumerate_mathir_action_menu_keys(
 ) -> set[str]:
     """Exhaustively enumerate the bounded menu's distinct verified state paths."""
 
-    _initial_state, _bindings, max_steps, actions = _validated_menu_reference(spec)
-    keys: set[str] = set()
-    action_ids = tuple(actions)
-    for length in range(1, max_steps + 1):
-        for selected in product(action_ids, repeat=length):
-            validation = validate_mathir_action_menu(";".join(selected), spec)
-            if validation is not None:
-                keys.add(validation.canonical_key)
-    return keys
+    return {
+        validation.canonical_key
+        for validation in enumerate_mathir_action_menu_validations(spec)
+    }
+
+
+def _terminal_solution(
+    state: EquationState,
+    *,
+    bindings: Mapping[str, Fraction],
+    target_solution: Fraction,
+) -> Fraction | None:
+    if state.lhs == Expr("symbol", value="x"):
+        final_expression = state.rhs
+    elif state.rhs == Expr("symbol", value="x"):
+        final_expression = state.lhs
+    else:
+        return None
+    if "x" in _expr_symbols(final_expression):
+        return None
+    solution = _eval_fraction(final_expression, bindings)
+    return solution if solution == target_solution else None
+
+
+def enumerate_mathir_action_menu_validations(
+    spec: Mapping[str, Any],
+) -> tuple[MathIRValidation, ...]:
+    """Enumerate exact support while caching deterministic state transitions."""
+
+    initial_state, bindings, max_steps, actions = _validated_menu_reference(spec)
+    target_solution = _initial_solution(initial_state, bindings=bindings)
+    transition_cache: dict[
+        tuple[str, str], tuple[EquationState, str] | None
+    ] = {}
+    admitted: dict[str, MathIRValidation] = {}
+
+    def transition(
+        state: EquationState,
+        action_id: str,
+    ) -> tuple[EquationState, str] | None:
+        state_key = _canonical_state(state)
+        cache_key = (state_key, action_id)
+        if cache_key not in transition_cache:
+            try:
+                next_state = _apply_command(
+                    state,
+                    actions[action_id],
+                    bindings=bindings,
+                )
+                transition_cache[cache_key] = (
+                    next_state,
+                    _canonical_state(next_state),
+                )
+            except Exception:
+                transition_cache[cache_key] = None
+        return transition_cache[cache_key]
+
+    def visit(
+        state: EquationState,
+        *,
+        seen: frozenset[str],
+        commands: tuple[Command, ...],
+        action_ids: tuple[str, ...],
+        states: tuple[EquationState, ...],
+    ) -> None:
+        if len(commands) >= max_steps:
+            return
+        for action_id in actions:
+            result = transition(state, action_id)
+            if result is None:
+                continue
+            next_state, next_state_key = result
+            if next_state_key in seen:
+                continue
+            next_commands = commands + (actions[action_id],)
+            next_action_ids = action_ids + (action_id,)
+            next_states = states + (next_state,)
+            solution = _terminal_solution(
+                next_state,
+                bindings=bindings,
+                target_solution=target_solution,
+            )
+            if solution is not None:
+                canonical_key = (
+                    f"mathir:{MATHIR_MENU_VERSION}:"
+                    + ">".join(
+                        _canonical_state(executed_state)
+                        for executed_state in next_states
+                    )
+                )
+                admitted[canonical_key] = MathIRValidation(
+                    canonical_key=canonical_key,
+                    solution=solution,
+                    commands=next_commands,
+                    states=next_states,
+                    action_ids=next_action_ids,
+                    route_signature=_alpha_canonical_route(
+                        initial_state,
+                        next_commands,
+                    ),
+                )
+            visit(
+                next_state,
+                seen=seen | {next_state_key},
+                commands=next_commands,
+                action_ids=next_action_ids,
+                states=next_states,
+            )
+
+    initial_key = _canonical_state(initial_state)
+    visit(
+        initial_state,
+        seen=frozenset({initial_key}),
+        commands=(),
+        action_ids=(),
+        states=(),
+    )
+    return tuple(admitted[key] for key in sorted(admitted))
+
+
+def enumerate_mathir_action_menu_route_signatures(
+    spec: Mapping[str, Any],
+) -> set[str]:
+    """Exhaustively enumerate the menu's verified cross-prompt route support."""
+
+    return {
+        validation.route_signature
+        for validation in enumerate_mathir_action_menu_validations(spec)
+    }
 
 
 def certified_mathir_strategy_keys(

@@ -8,6 +8,7 @@ import sys
 from oat_drgrpo.math_grader import (
     boxed_reward_fn,
     extract_normalized_final_answer,
+    validated_modebench_exploration_identity,
     validated_modebench_outcome_key,
 )
 from oat_drgrpo.python_modebench import (
@@ -65,6 +66,13 @@ def test_python_factor_grader_binds_reward_and_key_to_same_tool_calls():
     assert reward == 1.0
     assert key == "python_factor:2,2,3"
     assert extracted == key
+    identity = validated_modebench_exploration_identity(response, reference)
+    assert identity is not None
+    assert identity.endpoint_key == key
+    assert identity.route_signature is not None
+    assert "python-factor-route:v1:" in identity.route_signature
+    assert "2" not in identity.route_signature
+    assert "3" not in identity.route_signature
 
 
 def test_python_factor_grader_rejects_wrong_and_non_integer_outputs():

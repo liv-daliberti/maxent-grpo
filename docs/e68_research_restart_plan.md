@@ -344,3 +344,32 @@ E68 supplies evidence that the separated-support actuator can work. The next
 research step is to give that actuator a transferable verified route object
 and to prove that the added discoveries help prompts other than the ones that
 generated them.
+
+## Execution update: 2026-07-28
+
+The recovery and successor work has now established:
+
+- the replicated-group seed overflow is repaired with exact pre-boundary
+  schedule preservation and deterministic modulo wrapping;
+- all six paired E66/E68 MathIR continuations resumed from step 4224 and crossed
+  the original step-4295 failure boundary;
+- E64 is terminal and auditable, with its caught `math_verify` diagnostic
+  classified narrowly and all other tracebacks still fatal;
+- a frozen 128-row MATH12K route-development split now spans all 35
+  subject-by-level cells, has zero normalized overlap with train and MATH-500,
+  and contains no MATH-500 rows or scores;
+- MathIR has a separate alpha-normalized route signature derived from exact
+  executed operations, independent of action labels, coefficient names, and
+  numeric bindings;
+- the full MathIR offline gate passed on 512 prompts and 2,560 public-validator
+  replays, with exactly five recurring route signatures per family and zero
+  violations; and
+- free-form math has a first fail-closed executable numeric trace language with
+  problem-grounded leaves, computed rather than declared intermediate values,
+  full dependency-use checks, and independent agreement with the ordinary
+  boxed-answer verifier.
+
+The next hard gate is empirical trace coverage on fixed base-model samples from
+the sealed MATH12K route-development split. The 80% threshold remains binding:
+if the model cannot reliably emit the restricted trace, MATH route novelty does
+not launch, even though ordinary task reward remains available.

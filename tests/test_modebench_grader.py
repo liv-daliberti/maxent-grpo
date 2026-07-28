@@ -5,6 +5,7 @@ import json
 from oat_drgrpo.math_grader import (
     boxed_reward_fn,
     extract_normalized_final_answer,
+    validated_modebench_exploration_identity,
     validated_modebench_outcome_key,
 )
 
@@ -194,6 +195,33 @@ def test_countdown_mode_key_canonicalizes_expression_ast():
     assert left_key == "countdown:add(2,mul(3,4))"
     assert right_key == left_key
     assert wrong_numbers_key is None
+
+
+def test_countdown_hierarchical_identity_separates_endpoint_and_route():
+    first_spec = {
+        "verifier": "countdown",
+        "numbers": [2, 3, 4],
+        "target": 14,
+    }
+    second_spec = {
+        "verifier": "countdown",
+        "numbers": [5, 6, 7],
+        "target": 47,
+    }
+
+    first = validated_modebench_exploration_identity(
+        "\\boxed{2 + 3 * 4}",
+        json.dumps(first_spec),
+    )
+    second = validated_modebench_exploration_identity(
+        "\\boxed{5 + 6 * 7}",
+        json.dumps(second_spec),
+    )
+
+    assert first is not None and second is not None
+    assert first.endpoint_key != second.endpoint_key
+    assert first.route_signature == second.route_signature
+    assert first.route_signature == "countdown-route:v1:add(input,mul(input,input))"
 
 
 def test_validated_modebench_key_binds_execution_and_canonicalization():

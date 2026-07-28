@@ -17,6 +17,29 @@ def apply_qwen_math_template(question: str) -> str:
     )
 
 
+def apply_qwen_math_route_template(question: str) -> str:
+    """Request a boxed answer plus an optional executable numeric route."""
+
+    return (
+        "<|im_start|>system\n"
+        "Solve the problem step by step and put the final answer within "
+        "\\boxed{}. After the boxed answer, also emit exactly one compact "
+        "<route>JSON</route> block when the computation fits this schema: "
+        '{"version":"math-route-v1","steps":[...],"final":"sN"}. '
+        "Step IDs are contiguous s1,s2,... . A source step is "
+        '{"id":"s1","op":"source","value":"a number copied from the problem"}. '
+        "Other steps contain only id, op, and earlier args; never write a "
+        "result field. Allowed ops are neg, abs, square, cube, sqrt, factorial, "
+        "percent, add, mul, sub, div, pow, mod, choose, permute, gcd, lcm, min, "
+        "max, and average. Every step must contribute to final. If this exact "
+        "numeric trace language cannot express the solution, omit the route "
+        "block but still give the boxed answer."
+        "<|im_end|>\n<|im_start|>user\n"
+        + question
+        + "<|im_end|>\n<|im_start|>assistant\n"
+    )
+
+
 def apply_qwen_boxed_template(question: str) -> str:
     return (
         "<|im_start|>system\n"
@@ -143,6 +166,7 @@ TEMPLATE_FACTORY: dict[str, Callable[[str], str]] = {
     "qwen_countdown_digits": apply_qwen_countdown_digits_template,
     "qwen_graph_digits": apply_qwen_graph_digits_template,
     "qwen_math": apply_qwen_math_template,
+    "qwen_math_route": apply_qwen_math_route_template,
     "r1": apply_r1_template,
     "no": apply_no_template,
 }

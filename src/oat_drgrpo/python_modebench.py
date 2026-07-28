@@ -67,6 +67,64 @@ class PythonFactorValidation:
     outputs: tuple[int, ...]
 
 
+def _canonical_python_route_ast(node: ast.AST) -> str:
+    """Return a literal-abstracted strategy skeleton for restricted Python."""
+
+    if isinstance(node, ast.Expression):
+        return _canonical_python_route_ast(node.body)
+    if isinstance(node, ast.Lambda):
+        return f"lambda({_canonical_python_route_ast(node.body)})"
+    if isinstance(node, ast.Name):
+        return "input"
+    if isinstance(node, ast.Constant):
+        return "literal"
+    if isinstance(node, ast.UnaryOp):
+        return (
+            f"{type(node.op).__name__.lower()}"
+            f"({_canonical_python_route_ast(node.operand)})"
+        )
+    if isinstance(node, ast.BinOp):
+        op = type(node.op).__name__.lower()
+        children = [
+            _canonical_python_route_ast(node.left),
+            _canonical_python_route_ast(node.right),
+        ]
+        if isinstance(node.op, (ast.Add, ast.Mult)):
+            children.sort()
+        return f"{op}({','.join(children)})"
+    if isinstance(node, ast.Compare):
+        return "compare(" + ",".join(
+            [
+                _canonical_python_route_ast(node.left),
+                *(type(op).__name__.lower() for op in node.ops),
+                *(
+                    _canonical_python_route_ast(comparator)
+                    for comparator in node.comparators
+                ),
+            ]
+        ) + ")"
+    if isinstance(node, ast.BoolOp):
+        values = [_canonical_python_route_ast(value) for value in node.values]
+        values.sort()
+        return f"{type(node.op).__name__.lower()}({','.join(values)})"
+    if isinstance(node, ast.IfExp):
+        return (
+            f"if({_canonical_python_route_ast(node.test)},"
+            f"{_canonical_python_route_ast(node.body)},"
+            f"{_canonical_python_route_ast(node.orelse)})"
+        )
+    raise PythonModeBenchError(
+        f"cannot canonicalize Python route node {type(node).__name__}"
+    )
+
+
+def python_factor_route_signature(candidate: str) -> str:
+    """Return code-structure identity after the restricted parser accepts it."""
+
+    parsed = parse_python_factor_candidate(candidate)
+    return "python-factor-route:v1:" + _canonical_python_route_ast(parsed)
+
+
 def proper_divisors(value: int) -> tuple[int, ...]:
     """Return all positive proper divisors other than one."""
 

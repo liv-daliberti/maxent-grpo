@@ -18,6 +18,7 @@ class ZeroMathArgs(PPOArgs):
         "qwen_countdown_digits",
         "qwen_graph_digits",
         "qwen_math",
+        "qwen_math_route",
         "no",
         "r1",
     ] = field(default="qwen_math")

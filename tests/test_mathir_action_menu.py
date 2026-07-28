@@ -6,11 +6,13 @@ import pytest
 
 from oat_drgrpo.math_grader import (
     boxed_reward_fn,
+    validated_modebench_exploration_identity,
     validated_modebench_outcome_key,
 )
 from oat_drgrpo.mathir import (
     MathIRError,
     enumerate_mathir_action_menu_keys,
+    enumerate_mathir_action_menu_route_signatures,
     parse_mathir_action_program,
     validate_mathir_action_menu,
 )
@@ -80,6 +82,53 @@ def test_action_labels_do_not_define_identity():
     assert first is not None
     assert second is not None
     assert first.canonical_key == second.canonical_key
+    assert first.route_signature == second.route_signature
+
+
+def test_route_signature_is_cross_prompt_and_coefficient_name_invariant():
+    original = _menu_spec()
+    relabeled = _menu_spec(
+        bindings={"p": -7, "q": 11, "r": -3, "s": 2},
+        initial_lhs="add(mul(p,x),q)",
+        initial_rhs="add(mul(s,x),r)",
+        actions={
+            "A": "sub(q)",
+            "B": "sub(mul(s,x))",
+            "C": "div(sub(p,s))",
+            "D": "sub(add(mul(s,x),q))",
+            "E": "add(q)",
+            "F": "div(p)",
+        },
+    )
+
+    first = validate_mathir_action_menu("A;B;C", original)
+    second = validate_mathir_action_menu("A;B;C", relabeled)
+
+    assert first is not None
+    assert second is not None
+    assert first.canonical_key != second.canonical_key
+    assert first.route_signature == second.route_signature
+    assert first.route_signature.startswith("mathir-route:linear-route-v1:")
+    for forbidden in ("A", "B", "C", "-7", "11"):
+        assert forbidden not in first.route_signature
+
+
+def test_distinct_executed_routes_have_distinct_route_signatures():
+    spec = _menu_spec()
+    constant_first = validate_mathir_action_menu("A;B;C", spec)
+    variable_first = validate_mathir_action_menu("B;A;C", spec)
+    combined = validate_mathir_action_menu("D;C", spec)
+
+    assert constant_first is not None
+    assert variable_first is not None
+    assert combined is not None
+    assert len(
+        {
+            constant_first.route_signature,
+            variable_first.route_signature,
+            combined.route_signature,
+        }
+    ) == 3
 
 
 @pytest.mark.parametrize(
@@ -112,6 +161,7 @@ def test_action_program_surface_aliases_do_not_create_modes():
 
 def test_action_menu_has_exact_finite_support():
     assert len(enumerate_mathir_action_menu_keys(_menu_spec())) == 5
+    assert len(enumerate_mathir_action_menu_route_signatures(_menu_spec())) == 5
 
 
 def test_action_menu_is_the_single_reward_and_bank_admission_boundary():
@@ -123,6 +173,13 @@ def test_action_menu_is_the_single_reward_and_bank_admission_boundary():
     assert reward == 1.0
     assert key is not None
     assert validated_modebench_outcome_key(r"\boxed{A;C}", reference) is None
+    identity = validated_modebench_exploration_identity(
+        r"\boxed{A;B;C}",
+        reference,
+    )
+    assert identity is not None
+    assert identity.endpoint_key == "mathir-solution:2/1"
+    assert identity.route_signature is not None
 
 
 def test_action_menu_reference_schema_fails_closed():

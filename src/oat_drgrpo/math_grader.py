@@ -17,6 +17,7 @@ Based on HF math_verify, verl, open reasoner zero, etc.
 """
 
 import ast
+from dataclasses import dataclass
 import functools
 import json
 from multiprocessing import TimeoutError as MultiprocessingTimeoutError
@@ -49,7 +50,11 @@ from .mathir import (
     validate_mathir_action_menu,
     validate_mathir_algebra,
 )
-from .python_modebench import PYTHON_FACTOR_VERIFIER
+from .math_route import validate_math_route_response
+from .python_modebench import (
+    PYTHON_FACTOR_VERIFIER,
+    python_factor_route_signature,
+)
 from .python_modebench_process import validate_python_factor_function_external
 
 
@@ -1460,6 +1465,34 @@ def _canonical_countdown_ast(node: ast.AST) -> str:
     raise ValueError("Unsupported Countdown expression.")
 
 
+def _canonical_countdown_route_ast(node: ast.AST) -> str:
+    """Canonical operator/dependency skeleton with numeric leaves abstracted."""
+
+    if isinstance(node, ast.Expression):
+        return _canonical_countdown_route_ast(node.body)
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool) or not isinstance(node.value, int):
+            raise ValueError("Countdown constants must be integers.")
+        return "input"
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        inner = _canonical_countdown_route_ast(node.operand)
+        return f"neg({inner})" if isinstance(node.op, ast.USub) else inner
+    if isinstance(node, ast.BinOp):
+        left = _canonical_countdown_route_ast(node.left)
+        right = _canonical_countdown_route_ast(node.right)
+        if isinstance(node.op, ast.Add):
+            parts = sorted([left, right])
+            return f"add({parts[0]},{parts[1]})"
+        if isinstance(node.op, ast.Mult):
+            parts = sorted([left, right])
+            return f"mul({parts[0]},{parts[1]})"
+        if isinstance(node.op, ast.Sub):
+            return f"sub({left},{right})"
+        if isinstance(node.op, ast.Div):
+            return f"div({left},{right})"
+    raise ValueError("Unsupported Countdown route expression.")
+
+
 def _canonical_countdown_expression_key(
     candidate: str,
     spec: dict[str, Any],
@@ -1586,6 +1619,102 @@ def validated_modebench_outcome_key(
             # The key is derived from the exact AST object that passed
             # execution and operand validation above.
             return f"countdown:{_canonical_countdown_ast(parsed)}"
+        except Exception:
+            continue
+    return None
+
+
+@dataclass(frozen=True)
+class VerifiedExplorationIdentity:
+    """Separate prompt-local endpoint and cross-prompt route identities."""
+
+    verifier: str
+    endpoint_key: str
+    route_signature: str | None
+
+
+def validated_modebench_exploration_identity(
+    model_response: str,
+    gt_answer: Any,
+) -> VerifiedExplorationIdentity | None:
+    """Return hierarchical identity only after exact executable validation."""
+
+    spec = _parse_modebench_spec(gt_answer)
+    if spec is None:
+        return None
+    candidate = _extract_modebench_candidate(model_response, gt_answer)
+    if candidate is None:
+        return None
+    verifier = str(spec.get("verifier"))
+    if verifier == "graph_coloring":
+        colors = _graph_coloring_from_candidate(candidate, spec)
+        if not _verify_graph_coloring_colors(colors, spec):
+            return None
+        assert colors is not None
+        endpoint = "graph_coloring:" + "".join(str(int(color)) for color in colors)
+        return VerifiedExplorationIdentity(verifier, endpoint, None)
+    if verifier == MATHIR_VERIFIER:
+        validation = validate_mathir_algebra(candidate, spec)
+        if validation is None:
+            return None
+        solution = validation.solution
+        endpoint = (
+            f"mathir-solution:{solution.numerator}/{solution.denominator}"
+        )
+        return VerifiedExplorationIdentity(
+            verifier,
+            endpoint,
+            validation.route_signature,
+        )
+    if verifier == MATHIR_MENU_VERIFIER:
+        validation = validate_mathir_action_menu(candidate, spec)
+        if validation is None:
+            return None
+        solution = validation.solution
+        endpoint = (
+            f"mathir-solution:{solution.numerator}/{solution.denominator}"
+        )
+        return VerifiedExplorationIdentity(
+            verifier,
+            endpoint,
+            validation.route_signature,
+        )
+    if verifier == PYTHON_FACTOR_VERIFIER:
+        validation = validate_python_factor_function_external(candidate, spec)
+        if validation is None:
+            return None
+        try:
+            route = python_factor_route_signature(candidate)
+        except Exception:
+            return None
+        return VerifiedExplorationIdentity(
+            verifier,
+            validation.canonical_key,
+            route,
+        )
+    if verifier != "countdown":
+        return None
+    try:
+        target = Fraction(int(spec["target"]), 1)
+        expected_numbers = Counter(int(value) for value in spec["numbers"])
+    except Exception:
+        return None
+    text = _normalize_countdown_expression(candidate)
+    parts = [part.strip() for part in text.split("=") if part.strip()] or [text]
+    for part in parts:
+        if not re.fullmatch(r"[0-9+\-*/().\s*]+", part):
+            continue
+        try:
+            parsed = ast.parse(part, mode="eval")
+            value, used_numbers = _countdown_eval_and_numbers(parsed)
+            if value != target or Counter(used_numbers) != expected_numbers:
+                continue
+            endpoint = f"countdown-value:{value.numerator}/{value.denominator}"
+            route = (
+                "countdown-route:v1:"
+                + _canonical_countdown_route_ast(parsed)
+            )
+            return VerifiedExplorationIdentity(verifier, endpoint, route)
         except Exception:
             continue
     return None
@@ -1749,6 +1878,39 @@ def boxed_reward_fn(model_response, gt_answer, fast=False):
         return {
             "formatted": True
         }, 0.0  # Formatted but wrong answer; no format reward to avoid hacking.
+
+
+def validated_math_route_signature(
+    model_response: str,
+    problem: str,
+    gt_answer: Any,
+    *,
+    fast: bool = False,
+) -> str | None:
+    """Return an executable route identity only for a task-correct response.
+
+    Task correctness, route execution, and agreement between the trace terminal
+    value and the response's boxed answer are independent fail-closed checks.
+    A correct answer without a valid trace keeps its ordinary task reward but
+    has no route identity.
+    """
+
+    try:
+        _info, reward = boxed_reward_fn(model_response, gt_answer, fast=fast)
+        if float(reward) <= 0.0:
+            return None
+        validation = validate_math_route_response(model_response, problem)
+        if validation is None:
+            return None
+        model_answer = extract_answer(model_response)
+        if model_answer is None:
+            return None
+        terminal_answer = sympy.latex(validation.terminal_value)
+        if not grade(model_answer, terminal_answer, fast=fast):
+            return None
+        return validation.route_signature
+    except Exception:
+        return None
 
 
 def answer_tag_reward_fn(model_response, gt_answer, fast=False):

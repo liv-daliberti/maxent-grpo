@@ -477,6 +477,7 @@ class ZeroMathActor(PPOActor):
             "qwen_countdown_digits",
             "qwen_graph_digits",
             "qwen_math",
+            "qwen_math_route",
             "no",
         ]:
             self.sampling_params.stop = None
