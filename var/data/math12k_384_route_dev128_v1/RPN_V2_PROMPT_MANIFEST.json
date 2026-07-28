@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-07-28",
+  "population": {
+    "data_root": "var/data/math12k_384_route_dev128_v1",
+    "ordered_problem_sha256": "2f37f517a6ab6badce6c8d2fcc4e05483449a06d3aee89d87b5c4ecb7400fa43",
+    "parent_materialization_manifest_sha256": "05a0fa4d4558c36cf89714c0497822377a3641868fa0cce6321cb632a1c8286b",
+    "rows": 128,
+    "split": "math_dev"
+  },
+  "prompt_contract": {
+    "maximum_tokens": 676,
+    "mean_tokens": 271.7421875,
+    "minimum_tokens": 213,
+    "ordered_prompt_sha256": "1b2013667c614c384cb6ad31c54362cda1455010c79892402f39eb21edc64c8c",
+    "ordered_token_lengths_sha256": "fd5353fda792ba1d331ac528da769bc08a5cb4fd34de71dae27eccb10e227d94",
+    "prompt_max_length": 1024,
+    "route_language": "math-route-rpn-v2",
+    "template": "qwen_math_route_rpn_v2"
+  },
+  "provenance": {
+    "generator": "ops/route_successor/audit_e69_math_route_rpn_v2_prompts.py",
+    "generator_sha256": "bb72f10af0f3cfa445831939111e3a10b70ad23ea1d84057232fffd0002ca82b",
+    "templates_sha256": "0b31dc15b9f724d63fe1ea2e8dd1055d57ead085cce40289f6d33ba9aad577a2",
+    "tokenizer_root": "var/cache/huggingface/transformers/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775"
+  },
+  "schema": "e69_math_route_rpn_v2_prompt_manifest_v1"
+}

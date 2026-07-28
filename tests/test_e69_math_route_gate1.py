@@ -62,8 +62,30 @@ def test_gate1_launcher_binds_all_fixed_inputs_and_uses_one_job():
     )
 
     assert "MATERIALIZATION_MANIFEST.json" in launcher
+    assert "RPN_V2_PROMPT_MANIFEST.json" in launcher
+    assert "e69_math_route_gate1_rpn_v2_amendment_20260728.md" in launcher
+    assert "e69_math_route_gate1_base_rpn_v2" in launcher
     assert "sample_e69_math_route_gate1.py" in launcher
     assert "OAT_E69_GATE1_INPUT_IDENTITY" in launcher
     assert "sbatch" in launcher
     assert "--gres=gpu:a100:1" in slurm
     assert "VLLM_USE_V1=0" in slurm
+
+
+def test_gate1_rpn_formatting_perturbation_preserves_tokens():
+    response = r"\boxed{13}<route>v2 5 square 12 square add sqrt</route>"
+    variant = MODULE._formatting_variant(
+        response,
+        "v2 5 square 12 square add sqrt",
+    )
+
+    assert "<route>\n" in variant
+    assert variant.split("<route>", 1)[1].split("</route>", 1)[0].split() == [
+        "v2",
+        "5",
+        "square",
+        "12",
+        "square",
+        "add",
+        "sqrt",
+    ]

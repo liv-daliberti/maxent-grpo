@@ -25,6 +25,7 @@ import sympy
 
 
 MATH_ROUTE_VERSION = "math-route-v1"
+MATH_ROUTE_RPN_VERSION = "math-route-rpn-v2"
 _MAX_TRACE_CHARS = 4_096
 _MAX_STEPS = 20
 _MAX_ARGS = 6
@@ -52,6 +53,30 @@ _BINARY_OPS = frozenset(
 _NARY_OPS = frozenset({"add", "mul", "gcd", "lcm", "min", "max", "average"})
 _ALLOWED_TOP_LEVEL = frozenset({"version", "steps", "final"})
 _ALLOWED_STEP_KEYS = frozenset({"id", "op", "args", "value"})
+_RPN_UNARY_OPS = {
+    "neg": "neg",
+    "abs": "abs",
+    "square": "square",
+    "cube": "cube",
+    "sqrt": "sqrt",
+    "factorial": "factorial",
+    "percent": "percent",
+}
+_RPN_BINARY_OPS = {
+    "add": "add",
+    "mul": "mul",
+    "sub": "sub",
+    "div": "div",
+    "pow": "pow",
+    "mod": "mod",
+    "choose": "choose",
+    "permute": "permute",
+    "gcd": "gcd",
+    "lcm": "lcm",
+    "min": "min",
+    "max": "max",
+    "average": "average",
+}
 
 
 @dataclass(frozen=True)
@@ -328,6 +353,97 @@ def validate_math_route_trace(
         return None
 
 
+def validate_math_route_rpn(
+    trace: str,
+    problem: str,
+) -> MathRouteValidation | None:
+    """Execute the compact v2 reverse-Polish route language.
+
+    Numeric tokens are grounded problem leaves. Unary and binary operator
+    tokens consume the stack, so a successful one-item terminal stack also
+    proves that every emitted token contributes to the final value. The
+    language has no result literals, variable names, prose, or code execution.
+    """
+
+    try:
+        compact = str(trace).strip()
+        if not compact or len(compact) > 1_024:
+            raise MathRouteError("RPN route is empty or too long")
+        tokens = compact.split()
+        if not tokens or tokens[0] not in {
+            "v2",
+            MATH_ROUTE_RPN_VERSION,
+        }:
+            raise MathRouteError("unsupported RPN route version")
+        tokens = tokens[1:]
+        if not 2 <= len(tokens) <= 40:
+            raise MathRouteError("RPN route has an invalid token count")
+
+        inventory = problem_number_inventory(problem)
+        stack: list[tuple[sympy.Expr, str]] = []
+        operations: list[str] = []
+        source_count = 0
+        operation_count = 0
+        for token in tokens:
+            if token in _RPN_UNARY_OPS:
+                if len(stack) < 1:
+                    raise MathRouteError("RPN unary operation underflow")
+                argument_value, argument_signature = stack.pop()
+                op = _RPN_UNARY_OPS[token]
+                stack.append(
+                    (
+                        _execute_operation(op, (argument_value,)),
+                        _signature(op, (argument_signature,)),
+                    )
+                )
+                operations.append(op)
+                operation_count += 1
+                continue
+            if token in _RPN_BINARY_OPS:
+                if len(stack) < 2:
+                    raise MathRouteError("RPN binary operation underflow")
+                right_value, right_signature = stack.pop()
+                left_value, left_signature = stack.pop()
+                op = _RPN_BINARY_OPS[token]
+                stack.append(
+                    (
+                        _execute_operation(op, (left_value, right_value)),
+                        _signature(op, (left_signature, right_signature)),
+                    )
+                )
+                operations.append(op)
+                operation_count += 1
+                continue
+
+            value = _fraction(token)
+            if inventory[value] <= 0:
+                raise MathRouteError("RPN source value is not available in the problem")
+            inventory[value] -= 1
+            stack.append(
+                (
+                    sympy.Rational(value.numerator, value.denominator),
+                    "input",
+                )
+            )
+            operations.append("source")
+            source_count += 1
+
+        if len(stack) != 1 or source_count < 1 or operation_count < 1:
+            raise MathRouteError("RPN route lacks one computed terminal value")
+        terminal_value, terminal_signature = stack[0]
+        return MathRouteValidation(
+            route_signature=(
+                f"math-route:{MATH_ROUTE_RPN_VERSION}:{terminal_signature}"
+            ),
+            terminal_value=terminal_value,
+            operations=tuple(operations),
+            step_count=len(tokens),
+            source_count=source_count,
+        )
+    except Exception:
+        return None
+
+
 def validate_math_route_response(
     model_response: str,
     problem: str,
@@ -337,4 +453,6 @@ def validate_math_route_response(
     block = extract_math_route_block(model_response)
     if block is None:
         return None
-    return validate_math_route_trace(block, problem)
+    if block.lstrip().startswith("{"):
+        return validate_math_route_trace(block, problem)
+    return validate_math_route_rpn(block, problem)

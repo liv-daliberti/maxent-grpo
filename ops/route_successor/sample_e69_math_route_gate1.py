@@ -26,7 +26,11 @@ DATA_ROOT = ROOT / "var/data/math12k_384_route_dev128_v1"
 PROTOCOL = (
     ROOT / "paper/preregistration/e69_verified_route_successor_protocol_20260728.md"
 )
-OUTPUT_ROOT = ROOT / "var/artifacts/e69_math_route_gate1_base_v1"
+AMENDMENT = (
+    ROOT
+    / "paper/preregistration/e69_math_route_gate1_rpn_v2_amendment_20260728.md"
+)
+OUTPUT_ROOT = ROOT / "var/artifacts/e69_math_route_gate1_base_rpn_v2"
 SAMPLE_COUNT = 8
 PROMPT_COUNT = 128
 TEMPERATURE = 1.0
@@ -45,7 +49,9 @@ IDENTITY_FILES = (
     Path("src/oat_drgrpo/templates.py"),
     Path("ops/route_successor/sample_e69_math_route_gate1.py"),
     Path("paper/preregistration/e69_verified_route_successor_protocol_20260728.md"),
+    Path("paper/preregistration/e69_math_route_gate1_rpn_v2_amendment_20260728.md"),
     Path("var/data/math12k_384_route_dev128_v1/MATERIALIZATION_MANIFEST.json"),
+    Path("var/data/math12k_384_route_dev128_v1/RPN_V2_PROMPT_MANIFEST.json"),
 )
 
 
@@ -110,8 +116,11 @@ def _atomic_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _formatting_variant(response: str, block: str) -> str:
-    parsed = json.loads(block)
-    formatted = json.dumps(parsed, indent=2, sort_keys=True)
+    if block.lstrip().startswith("{"):
+        parsed = json.loads(block)
+        formatted = json.dumps(parsed, indent=2, sort_keys=True)
+    else:
+        formatted = "\n  " + "\n  ".join(block.split()) + "\n"
     return re.sub(
         r"<route>.*?</route>",
         f"<route>\n{formatted}\n</route>",
@@ -222,7 +231,7 @@ def automatic_gate_summary(
         violations.append(f"route coverage {coverage:.6f} < {MIN_ROUTE_COVERAGE:.6f}")
     if unstable_rows:
         violations.append(
-            f"{unstable_rows} accepted routes changed under JSON formatting"
+            f"{unstable_rows} accepted routes changed under formatting perturbation"
         )
     if multi_route_prompts < MIN_MULTI_ROUTE_PROMPTS:
         violations.append(
@@ -311,7 +320,7 @@ def _manual_review_queue(
     ):
         queue.append(
             {
-                "review_id": f"e69-g1-{review_index:03d}",
+                "review_id": f"e69-g1-rpn-v2-{review_index:03d}",
                 "prompt_index": row["prompt_index"],
                 "sample_index": row["sample_index"],
                 "unique_id": row["unique_id"],
@@ -351,7 +360,7 @@ def main() -> None:
         )
     if args.workers <= 0:
         raise ValueError("workers must be positive")
-    for path in (MODEL, DATA_ROOT, PROTOCOL):
+    for path in (MODEL, DATA_ROOT, PROTOCOL, AMENDMENT):
         if not path.exists():
             raise FileNotFoundError(path)
     identity, input_hashes = _input_identity()
@@ -437,7 +446,7 @@ def main() -> None:
     _atomic_jsonl(archive_path, scored_rows)
     _atomic_jsonl(queue_path, queue)
     summary = {
-        "schema": "e69_math_route_gate1_base_archive_v1",
+        "schema": "e69_math_route_gate1_base_rpn_v2_archive_v1",
         "created_at": "2026-07-28",
         "automatic_gate": automatic,
         "manual_gate": {
@@ -451,7 +460,8 @@ def main() -> None:
             "model_revision": MODEL.name,
             "dataset": str(DATA_ROOT.relative_to(ROOT)),
             "split": "math_dev",
-            "prompt_template": "qwen_math_route",
+            "prompt_template": "qwen_math_route_rpn_v2",
+            "route_language": "math-route-rpn-v2",
             "prompt_count": PROMPT_COUNT,
             "samples_per_prompt": SAMPLE_COUNT,
             "temperature": TEMPERATURE,

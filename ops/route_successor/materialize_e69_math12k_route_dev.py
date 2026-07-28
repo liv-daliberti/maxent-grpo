@@ -19,7 +19,7 @@ import tempfile
 from typing import Any, Mapping, Sequence
 
 from ops.math500 import materialize_e39_math12k_384 as e39
-from oat_drgrpo.templates import apply_qwen_math_route_template
+from oat_drgrpo.templates import apply_qwen_math_route_json_v1_template
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -132,7 +132,7 @@ def _prompt_lengths(problems: Sequence[str]) -> list[int]:
         local_files_only=True,
     )
     encoded = tokenizer(
-        [apply_qwen_math_route_template(problem) for problem in problems],
+        [apply_qwen_math_route_json_v1_template(problem) for problem in problems],
         add_special_tokens=False,
         truncation=False,
     )["input_ids"]

@@ -17,8 +17,8 @@ def apply_qwen_math_template(question: str) -> str:
     )
 
 
-def apply_qwen_math_route_template(question: str) -> str:
-    """Request a boxed answer plus an optional executable numeric route."""
+def apply_qwen_math_route_json_v1_template(question: str) -> str:
+    """Reproduce the frozen JSON-v1 Gate 1 prompt exactly."""
 
     return (
         "<|im_start|>system\n"
@@ -34,6 +34,30 @@ def apply_qwen_math_route_template(question: str) -> str:
         "max, and average. Every step must contribute to final. If this exact "
         "numeric trace language cannot express the solution, omit the route "
         "block but still give the boxed answer."
+        "<|im_end|>\n<|im_start|>user\n"
+        + question
+        + "<|im_end|>\n<|im_start|>assistant\n"
+    )
+
+
+def apply_qwen_math_route_template(question: str) -> str:
+    """Request a boxed answer plus a compact executable numeric route."""
+
+    return (
+        "<|im_start|>system\n"
+        "Solve the problem step by step and put the final answer within "
+        "\\boxed{}. When the answer is computed from numbers in the problem, "
+        "end with exactly one compact reverse-Polish program between "
+        "<route> and </route>. Start the program with v2. Write copied input "
+        "numbers and operation words separated only by spaces. For example, "
+        "'<route>v2 2 5 mul 1 sub square 1 add</route>' computes "
+        "(2*5-1)^2+1. Unary operations are neg abs square cube sqrt factorial "
+        "percent. Binary operations are add mul sub div pow mod choose permute "
+        "gcd lcm min max average. A binary operation consumes the previous two "
+        "values in left-to-right order. Copy every numeric input from the "
+        "problem; never put a computed result, JSON, equations, labels, or "
+        "prose inside <route>. If this numeric stack language cannot express "
+        "the solution, omit <route> but still give the boxed answer."
         "<|im_end|>\n<|im_start|>user\n"
         + question
         + "<|im_end|>\n<|im_start|>assistant\n"

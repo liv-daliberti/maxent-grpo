@@ -6,6 +6,7 @@ from fractions import Fraction
 from oat_drgrpo.math_route import (
     extract_math_route_block,
     problem_number_inventory,
+    validate_math_route_rpn,
     validate_math_route_response,
     validate_math_route_trace,
 )
@@ -151,6 +152,51 @@ def test_route_block_must_be_unique_and_valid_json():
         )
         is None
     )
+
+
+def test_compact_rpn_route_executes_and_is_value_invariant():
+    first = validate_math_route_rpn(
+        "v2 5 square 12 square add sqrt",
+        "A right triangle has legs 5 and 12.",
+    )
+    second = validate_math_route_rpn(
+        "math-route-rpn-v2 8 square 15 square add sqrt",
+        "A right triangle has legs 8 and 15.",
+    )
+
+    assert first is not None and second is not None
+    assert first.terminal_value == 13
+    assert second.terminal_value == 17
+    assert first.route_signature == second.route_signature
+    assert "5" not in first.route_signature
+    assert "12" not in first.route_signature
+
+
+def test_compact_rpn_route_fails_closed_on_injection_underflow_and_unused_input():
+    problem = "Add 5 and 7."
+
+    assert validate_math_route_rpn("v2 12 square", problem) is None
+    assert validate_math_route_rpn("v2 5 add", problem) is None
+    assert validate_math_route_rpn("v2 5 7 add 5", problem) is None
+    assert validate_math_route_rpn("v2 5 7 eval", problem) is None
+
+
+def test_compact_rpn_response_requires_terminal_answer_agreement():
+    problem = "A right triangle has legs 5 and 12. Find the hypotenuse."
+    accepted = (
+        r"The answer is \boxed{13}. "
+        r"<route>v2 5 square 12 square add sqrt</route>"
+    )
+    mismatched = (
+        r"The answer is \boxed{13}. "
+        r"<route>v2 5 12 add</route>"
+    )
+
+    validation = validate_math_route_response(accepted, problem)
+    assert validation is not None
+    assert validation.terminal_value == 13
+    assert validated_math_route_signature(accepted, problem, "13") is not None
+    assert validated_math_route_signature(mismatched, problem, "13") is None
 
 
 def test_route_admission_requires_task_reward_and_terminal_answer_agreement():

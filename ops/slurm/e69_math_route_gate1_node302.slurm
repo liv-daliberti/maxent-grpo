@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=e69-route-g1
+#SBATCH --job-name=e69r2-route-g1
 #SBATCH --partition=mltheory
 #SBATCH --account=mltheory
 #SBATCH --nodelist=node302
@@ -25,6 +25,6 @@ PYTHON_BIN="$ROOT_DIR/var/seed_paper_eval/paper310/bin/python"
 
 exec "$PYTHON_BIN" \
   "$ROOT_DIR/ops/route_successor/sample_e69_math_route_gate1.py" \
-  --output-root "$ROOT_DIR/var/artifacts/e69_math_route_gate1_base_v1" \
+  --output-root "$ROOT_DIR/var/artifacts/e69_math_route_gate1_base_rpn_v2" \
   --workers 16 \
   --expected-input-identity "$OAT_E69_GATE1_INPUT_IDENTITY"
