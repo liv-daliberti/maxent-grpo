@@ -368,8 +368,12 @@ def test_e69_gate4_contract_freezes_one_time_transfer_before_outcomes():
         "audit_e69_gate4_checkpoints.py",
         "analyze_e69_gate4_math500.py",
         "plot_e69_five_area_panel.py",
+        "finalize_e69_gate4.sh",
+        "e69_gate4_finalize.slurm",
         "sbatch --hold --parsable",
+        '--dependency="afterany:${dependency}"',
         'scontrol release "${job_ids[@]}"',
+        '"schema": "e69_gate4_finalizer_job_v1"',
         '"bootstrap": {"replicates": 10000, "seed": 690402}',
     ):
         assert literal in launcher
@@ -580,5 +584,72 @@ def test_e69_gate2_to_gate3_transition_fails_closed():
         "#SBATCH --cpus-per-task=1",
         "#SBATCH --mem=8G",
         "advance_e69_gate2_to_gate3.sh",
+    ):
+        assert literal in slurm
+
+
+def test_e69_gate3_to_gate4_transition_fails_closed():
+    launcher = (
+        ROOT / "ops/route_successor/launch_e69_gate3_confirmatory.sh"
+    ).read_text(encoding="utf-8")
+    assert launcher.index(
+        '--dependency="afterany:${dependency}"'
+    ) < launcher.index('scontrol release "${job_ids[@]}"')
+    for literal in (
+        "e69_gate3_to_gate4.slurm",
+        'transition_job_id="$(\n  sbatch',
+        "'Reason=Dependency'",
+        '"schema": "e69_gate3_to_gate4_transition_job_v1"',
+        'scontrol release "${job_ids[@]}"',
+    ):
+        assert literal in launcher
+
+    transition = (
+        ROOT / "ops/route_successor/advance_e69_gate3_to_gate4.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "audit_e69_gate3_confirmatory.py",
+        'audit.get("status") != "complete"',
+        'summary.get("terminal_physical_runs") != 30',
+        'summary.get("integrity_violations") != 0',
+        'audit.get("math500_sealed") is not True',
+        "launch_e69_gate4_math500.sh full",
+    ):
+        assert literal in transition
+
+    slurm = (
+        ROOT / "ops/slurm/e69_gate3_to_gate4.slurm"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "#SBATCH --job-name=e69g3_to_g4",
+        "#SBATCH --cpus-per-task=1",
+        "#SBATCH --mem=8G",
+        "advance_e69_gate3_to_gate4.sh",
+    ):
+        assert literal in slurm
+
+
+def test_e69_gate4_finalizer_requires_six_clean_results():
+    finalizer = (
+        ROOT / "ops/route_successor/finalize_e69_gate4.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "analyze_e69_gate4_math500.py",
+        'analysis.get("status") != "complete"',
+        'summary.get("observed_results") != 6',
+        'summary.get("integrity_violations") != 0',
+        'analysis.get("final_classification") is None',
+        "plot_e69_five_area_panel.py",
+    ):
+        assert literal in finalizer
+
+    slurm = (
+        ROOT / "ops/slurm/e69_gate4_finalize.slurm"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "#SBATCH --job-name=e69g4_final",
+        "#SBATCH --cpus-per-task=1",
+        "#SBATCH --mem=8G",
+        "finalize_e69_gate4.sh",
     ):
         assert literal in slurm

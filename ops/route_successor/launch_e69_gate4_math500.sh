@@ -24,15 +24,18 @@ CHECKPOINT_AUDIT="$ROOT_DIR/var/artifacts/e69_gate4_checkpoint_audit.json"
 EVALUATOR="$ROOT_DIR/ops/route_successor/eval_e69_math500_checkpoint.py"
 ANALYZER="$ROOT_DIR/ops/route_successor/analyze_e69_gate4_math500.py"
 PLOTTER="$ROOT_DIR/ops/route_successor/plot_e69_five_area_panel.py"
+FINALIZER="$ROOT_DIR/ops/route_successor/finalize_e69_gate4.sh"
+FINALIZER_SLURM="$ROOT_DIR/ops/slurm/e69_gate4_finalize.slurm"
 SLURM_WRAPPER="$ROOT_DIR/ops/slurm/e69_math500_eval_node302.slurm"
 DATA_ROOT="$ROOT_DIR/var/data/math12k_384_math500"
 IDENTITY="$ROOT_DIR/var/artifacts/e69_gate4_math500_identity.json"
 MANIFEST="$ROOT_DIR/var/artifacts/e69_gate4_math500_jobs.tsv"
 OUTPUT_ROOT="$ROOT_DIR/var/artifacts/e69_gate4_math500"
+FINALIZER_RECORD="$ROOT_DIR/var/artifacts/e69_gate4_finalizer_job.json"
 
 for required in \
   "$PROTOCOL" "$CHECKPOINT_AUDITOR" "$EVALUATOR" "$ANALYZER" "$PLOTTER" \
-  "$SLURM_WRAPPER" \
+  "$FINALIZER" "$FINALIZER_SLURM" "$SLURM_WRAPPER" \
   "$DATA_ROOT/MATERIALIZATION_MANIFEST.json" \
   "$DATA_ROOT/eval/math/data-00000-of-00001.arrow"; do
   if [[ ! -e "$required" ]]; then
@@ -53,7 +56,7 @@ for required in "$GATE2_AUDIT" "$GATE3_IDENTITY" "$GATE3_AUDIT"; do
   fi
 done
 
-for fresh in "$IDENTITY" "$MANIFEST"; do
+for fresh in "$IDENTITY" "$MANIFEST" "$FINALIZER_RECORD"; do
   if [[ -e "$fresh" ]]; then
     echo "Fresh E69 Gate 4 artifact required; already exists: $fresh" >&2
     exit 1
@@ -187,12 +190,19 @@ fi
 
 released=0
 job_ids=()
+finalizer_job_id=""
 cleanup_held() {
   local status="$?"
   trap - EXIT
-  if [[ "$released" != "1" && "${#job_ids[@]}" -gt 0 ]]; then
-    scancel "${job_ids[@]}" 2>/dev/null || true
-    echo "[e69-gate4] cancelled incomplete held cohort: ${job_ids[*]}" >&2
+  if [[ "$released" != "1" ]]; then
+    if [[ -n "$finalizer_job_id" ]]; then
+      scancel "$finalizer_job_id" 2>/dev/null || true
+      echo "[e69-gate4] cancelled incomplete finalizer: $finalizer_job_id" >&2
+    fi
+    if [[ "${#job_ids[@]}" -gt 0 ]]; then
+      scancel "${job_ids[@]}" 2>/dev/null || true
+      echo "[e69-gate4] cancelled incomplete held cohort: ${job_ids[*]}" >&2
+    fi
   fi
   exit "$status"
 }
@@ -238,7 +248,8 @@ export SOURCE_HASH EVAL_CODE_HASH
 "$PYTHON_BIN" - \
   "$IDENTITY" "$PROTOCOL" "$0" "$CHECKPOINT_AUDIT" "$GATE2_AUDIT" \
   "$GATE3_IDENTITY" "$GATE3_AUDIT" "$EVALUATOR" "$ANALYZER" "$PLOTTER" \
-  "$MANIFEST" "$DATA_ROOT/MATERIALIZATION_MANIFEST.json" <<'PY'
+  "$FINALIZER" "$FINALIZER_SLURM" "$MANIFEST" \
+  "$DATA_ROOT/MATERIALIZATION_MANIFEST.json" <<'PY'
 import csv
 import hashlib
 import json
@@ -251,7 +262,7 @@ def digest(raw):
     return hashlib.sha256(pathlib.Path(raw).read_bytes()).hexdigest()
 
 path = pathlib.Path(sys.argv[1])
-manifest = pathlib.Path(sys.argv[11])
+manifest = pathlib.Path(sys.argv[13])
 rows = list(csv.DictReader(manifest.open(), delimiter="\t"))
 if len(rows) != 6:
     raise SystemExit("Gate 4 manifest must contain six jobs")
@@ -266,8 +277,10 @@ payload = {
     "evaluator_sha256": digest(sys.argv[8]),
     "analyzer_sha256": digest(sys.argv[9]),
     "plotter_sha256": digest(sys.argv[10]),
-    "manifest_sha256": digest(sys.argv[11]),
-    "data_manifest_sha256": digest(sys.argv[12]),
+    "finalizer_sha256": digest(sys.argv[11]),
+    "finalizer_slurm_sha256": digest(sys.argv[12]),
+    "manifest_sha256": digest(sys.argv[13]),
+    "data_manifest_sha256": digest(sys.argv[14]),
     "source_hash": os.environ["SOURCE_HASH"],
     "evaluation_surface_hash": os.environ["EVAL_CODE_HASH"],
     "attempt_selection": "exact_six_held_manifest_job_ids",
@@ -327,8 +340,65 @@ for job_id in "${job_ids[@]}"; do
   done
 done
 
+original_ifs="$IFS"
+IFS=:
+dependency="${job_ids[*]}"
+IFS="$original_ifs"
+finalizer_job_id="$(
+  sbatch \
+    --parsable \
+    --dependency="afterany:${dependency}" \
+    --output="$ROOT_DIR/var/artifacts/logs/e69_gate4_finalize-%j.out" \
+    --error="$ROOT_DIR/var/artifacts/logs/e69_gate4_finalize-%j.err" \
+    "$FINALIZER_SLURM"
+)"
+finalizer_job_id="${finalizer_job_id%%;*}"
+if [[ ! "$finalizer_job_id" =~ ^[0-9]+$ ]]; then
+  echo "Invalid E69 Gate 4 finalizer job id: $finalizer_job_id" >&2
+  exit 1
+fi
+finalizer_record="$(scontrol show job "$finalizer_job_id" -o)"
+for required in 'JobState=PENDING' 'Reason=Dependency' 'Dependency=afterany:'; do
+  if [[ "$finalizer_record" != *"$required"* ]]; then
+    echo \
+      "E69 Gate 4 finalizer audit failed for $finalizer_job_id: missing $required" \
+      >&2
+    exit 1
+  fi
+done
+for job_id in "${job_ids[@]}"; do
+  if [[ "$finalizer_record" != *"$job_id"* ]]; then
+    echo \
+      "E69 Gate 4 finalizer $finalizer_job_id is missing dependency $job_id" \
+      >&2
+    exit 1
+  fi
+done
+"$PYTHON_BIN" - "$FINALIZER_RECORD" "$finalizer_job_id" "${job_ids[@]}" <<'PY'
+import json
+import os
+import pathlib
+import sys
+import tempfile
+
+path = pathlib.Path(sys.argv[1])
+payload = {
+    "schema": "e69_gate4_finalizer_job_v1",
+    "job_id": int(sys.argv[2]),
+    "dependency_kind": "afterany",
+    "gate4_evaluation_job_ids": [int(raw) for raw in sys.argv[3:]],
+    "fail_closed": True,
+}
+descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2, sort_keys=True)
+    handle.write("\n")
+os.replace(temporary, path)
+PY
+
 scontrol release "${job_ids[@]}"
 released=1
 trap - EXIT
 echo "[e69-gate4] unsealed and released six one-time evaluations: ${job_ids[*]}"
+echo "[e69-gate4] fail-closed finalizer job: $finalizer_job_id"
 echo "[e69-gate4] identity=$IDENTITY"

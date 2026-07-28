@@ -37,9 +37,12 @@ COUNTDOWN_MANIFEST="$ROOT_DIR/var/artifacts/${COUNTDOWN_PREFIX}_comparative_jobs
 PYTHON_MANIFEST="$ROOT_DIR/var/artifacts/${PYTHON_PREFIX}_comparative_jobs.tsv"
 MATHIR_MANIFEST="$ROOT_DIR/var/artifacts/${MATHIR_PREFIX}_comparative_jobs.tsv"
 MATH_MANIFEST="$ROOT_DIR/var/artifacts/${MATH_PREFIX}_comparative_jobs.tsv"
+TRANSITION_SLURM="$ROOT_DIR/ops/slurm/e69_gate3_to_gate4.slurm"
+TRANSITION_RECORD="$ROOT_DIR/var/artifacts/e69_gate3_to_gate4_transition_job.json"
 
 for required in \
   "$PARENT_PROTOCOL" "$EXEC_PROTOCOL" "$GATE2_IDENTITY" \
+  "$TRANSITION_SLURM" \
   "$MODEL_ROOT/config.json" \
   "$GRAPH_DATA/train/dataset_dict.json" \
   "$GRAPH_DATA/eval/dataset_dict.json" \
@@ -80,7 +83,8 @@ if audit.get("math500_sealed") is not True:
 PY
   for fresh in \
     "$IDENTITY" "$GRAPH_MANIFEST" "$COUNTDOWN_MANIFEST" \
-    "$PYTHON_MANIFEST" "$MATHIR_MANIFEST" "$MATH_MANIFEST"; do
+    "$PYTHON_MANIFEST" "$MATHIR_MANIFEST" "$MATH_MANIFEST" \
+    "$TRANSITION_RECORD"; do
     if [[ -e "$fresh" ]]; then
       echo "Fresh E69 Gate 3 artifact required; already exists: $fresh" >&2
       exit 1
@@ -525,12 +529,19 @@ export OAT_ZERO_PROTOCOL_IDENTITY="$IDENTITY"
 export OAT_ZERO_SBATCH_HOLD=1
 released=0
 job_ids=()
+transition_job_id=""
 cleanup_held() {
   local status="$?"
   trap - EXIT
-  if [[ "$released" != "1" && "${#job_ids[@]}" -gt 0 ]]; then
-    scancel "${job_ids[@]}" 2>/dev/null || true
-    echo "[e69-gate3] cancelled incomplete held cohort: ${job_ids[*]}" >&2
+  if [[ "$released" != "1" ]]; then
+    if [[ -n "$transition_job_id" ]]; then
+      scancel "$transition_job_id" 2>/dev/null || true
+      echo "[e69-gate3] cancelled incomplete transition: $transition_job_id" >&2
+    fi
+    if [[ "${#job_ids[@]}" -gt 0 ]]; then
+      scancel "${job_ids[@]}" 2>/dev/null || true
+      echo "[e69-gate3] cancelled incomplete held cohort: ${job_ids[*]}" >&2
+    fi
   fi
   exit "$status"
 }
@@ -601,8 +612,66 @@ for job_id in "${job_ids[@]}"; do
   fi
 done
 
+original_ifs="$IFS"
+IFS=:
+dependency="${job_ids[*]}"
+IFS="$original_ifs"
+mkdir -p "$ROOT_DIR/var/artifacts/logs"
+transition_job_id="$(
+  sbatch \
+    --parsable \
+    --dependency="afterany:${dependency}" \
+    --output="$ROOT_DIR/var/artifacts/logs/e69_gate3_to_gate4-%j.out" \
+    --error="$ROOT_DIR/var/artifacts/logs/e69_gate3_to_gate4-%j.err" \
+    "$TRANSITION_SLURM"
+)"
+transition_job_id="${transition_job_id%%;*}"
+if [[ ! "$transition_job_id" =~ ^[0-9]+$ ]]; then
+  echo "Invalid E69 Gate 3 transition job id: $transition_job_id" >&2
+  exit 1
+fi
+transition_record="$(scontrol show job "$transition_job_id" -o)"
+for required in 'JobState=PENDING' 'Reason=Dependency' 'Dependency=afterany:'; do
+  if [[ "$transition_record" != *"$required"* ]]; then
+    echo \
+      "E69 Gate 3 transition audit failed for $transition_job_id: missing $required" \
+      >&2
+    exit 1
+  fi
+done
+for job_id in "${job_ids[@]}"; do
+  if [[ "$transition_record" != *"$job_id"* ]]; then
+    echo \
+      "E69 Gate 3 transition $transition_job_id is missing dependency $job_id" \
+      >&2
+    exit 1
+  fi
+done
+"$PYTHON_BIN" - "$TRANSITION_RECORD" "$transition_job_id" "${job_ids[@]}" <<'PY'
+import json
+import os
+import pathlib
+import sys
+import tempfile
+
+path = pathlib.Path(sys.argv[1])
+payload = {
+    "schema": "e69_gate3_to_gate4_transition_job_v1",
+    "job_id": int(sys.argv[2]),
+    "dependency_kind": "afterany",
+    "gate3_new_job_ids": [int(raw) for raw in sys.argv[3:]],
+    "fail_closed": True,
+}
+descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2, sort_keys=True)
+    handle.write("\n")
+os.replace(temporary, path)
+PY
+
 scontrol release "${job_ids[@]}"
 released=1
 trap - EXIT
 echo "[e69-gate3] released 20 new seed-44/45 jobs: ${job_ids[*]}"
+echo "[e69-gate3] fail-closed Gate 3 -> Gate 4 transition: $transition_job_id"
 echo "[e69-gate3] identity=$IDENTITY"
