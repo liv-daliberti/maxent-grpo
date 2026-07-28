@@ -1,5 +1,11 @@
 {
   "curves": {
+    "countdown": {
+      "grpo": {},
+      "verified_entropy_gated_singleton_escape_canonical": {},
+      "verified_first_global_replay_canonical": {},
+      "verified_route_successor": {}
+    },
     "math_dev": {
       "grpo": {},
       "verified_entropy_gated_singleton_escape_canonical": {},
@@ -39,21 +45,54 @@
           "pass8": 0.28125
         }
       }
+    },
+    "python_factor": {
+      "grpo": {},
+      "verified_entropy_gated_singleton_escape_canonical": {},
+      "verified_first_global_replay_canonical": {}
     }
   },
   "identity": "/n/fs/similarity/maxent-grpo/var/artifacts/e69_gate2_compute_matched_screen_identity.json",
   "math500_sealed": true,
   "outcome_gate": null,
   "pending": [
-    "countdown/grpo/job30159717: run directory absent",
-    "countdown/verified_entropy_gated_singleton_escape_canonical/job30159719: run directory absent",
-    "countdown/verified_first_global_replay_canonical/job30159718: run directory absent",
-    "countdown/verified_route_successor/job30159720: run directory absent",
-    "graph_coloring/grpo/job30159713: run directory absent",
-    "graph_coloring/verified_entropy_gated_singleton_escape_canonical/job30159715: run directory absent",
-    "graph_coloring/verified_first_global_replay_canonical/job30159714: run directory absent",
-    "graph_coloring/verified_route_successor/job30159716: run directory absent",
-    "math_dev/grpo/job30159729: latest step 58/2304",
+    "countdown/grpo/job30160185: latest step -1/2304",
+    "countdown/grpo/job30160185: missing evaluation pass 0",
+    "countdown/grpo/job30160185: missing evaluation pass 1",
+    "countdown/grpo/job30160185: missing evaluation pass 2",
+    "countdown/grpo/job30160185: missing evaluation pass 3",
+    "countdown/grpo/job30160185: missing evaluation pass 4",
+    "countdown/grpo/job30160185: missing evaluation pass 5",
+    "countdown/grpo/job30160185: missing evaluation pass 6",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: latest step -1/2304",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: missing evaluation pass 0",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: missing evaluation pass 1",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: missing evaluation pass 2",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: missing evaluation pass 3",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: missing evaluation pass 4",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: missing evaluation pass 5",
+    "countdown/verified_entropy_gated_singleton_escape_canonical/job30160187: missing evaluation pass 6",
+    "countdown/verified_first_global_replay_canonical/job30160186: latest step -1/2304",
+    "countdown/verified_first_global_replay_canonical/job30160186: missing evaluation pass 0",
+    "countdown/verified_first_global_replay_canonical/job30160186: missing evaluation pass 1",
+    "countdown/verified_first_global_replay_canonical/job30160186: missing evaluation pass 2",
+    "countdown/verified_first_global_replay_canonical/job30160186: missing evaluation pass 3",
+    "countdown/verified_first_global_replay_canonical/job30160186: missing evaluation pass 4",
+    "countdown/verified_first_global_replay_canonical/job30160186: missing evaluation pass 5",
+    "countdown/verified_first_global_replay_canonical/job30160186: missing evaluation pass 6",
+    "countdown/verified_route_successor/job30160188: latest step -1/2304",
+    "countdown/verified_route_successor/job30160188: missing evaluation pass 0",
+    "countdown/verified_route_successor/job30160188: missing evaluation pass 1",
+    "countdown/verified_route_successor/job30160188: missing evaluation pass 2",
+    "countdown/verified_route_successor/job30160188: missing evaluation pass 3",
+    "countdown/verified_route_successor/job30160188: missing evaluation pass 4",
+    "countdown/verified_route_successor/job30160188: missing evaluation pass 5",
+    "countdown/verified_route_successor/job30160188: missing evaluation pass 6",
+    "graph_coloring/grpo/job30160181: run directory absent",
+    "graph_coloring/verified_entropy_gated_singleton_escape_canonical/job30160183: run directory absent",
+    "graph_coloring/verified_first_global_replay_canonical/job30160182: run directory absent",
+    "graph_coloring/verified_route_successor/job30160184: run directory absent",
+    "math_dev/grpo/job30159729: latest step 75/2304",
     "math_dev/grpo/job30159729: missing evaluation pass 0",
     "math_dev/grpo/job30159729: missing evaluation pass 1",
     "math_dev/grpo/job30159729: missing evaluation pass 2",
@@ -61,7 +100,7 @@
     "math_dev/grpo/job30159729: missing evaluation pass 4",
     "math_dev/grpo/job30159729: missing evaluation pass 5",
     "math_dev/grpo/job30159729: missing evaluation pass 6",
-    "math_dev/verified_first_global_replay_canonical/job30160101: latest step 1/2304",
+    "math_dev/verified_first_global_replay_canonical/job30160101: latest step 17/2304",
     "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 0",
     "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 1",
     "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 2",
@@ -69,109 +108,154 @@
     "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 4",
     "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 5",
     "math_dev/verified_first_global_replay_canonical/job30160101: missing evaluation pass 6",
-    "mathir/grpo/job30159725: latest step 215/2304",
+    "mathir/grpo/job30159725: latest step 273/2304",
     "mathir/grpo/job30159725: missing evaluation pass 1",
     "mathir/grpo/job30159725: missing evaluation pass 2",
     "mathir/grpo/job30159725: missing evaluation pass 3",
     "mathir/grpo/job30159725: missing evaluation pass 4",
     "mathir/grpo/job30159725: missing evaluation pass 5",
     "mathir/grpo/job30159725: missing evaluation pass 6",
-    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: latest step 213/2304",
+    "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: latest step 270/2304",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 1",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 2",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 3",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 4",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 5",
     "mathir/verified_entropy_gated_singleton_escape_canonical/job30159727: missing evaluation pass 6",
-    "mathir/verified_first_global_replay_canonical/job30159726: latest step 210/2304",
+    "mathir/verified_first_global_replay_canonical/job30159726: latest step 266/2304",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 1",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 2",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 3",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 4",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 5",
     "mathir/verified_first_global_replay_canonical/job30159726: missing evaluation pass 6",
-    "mathir/verified_route_successor/job30159728: latest step 216/2304",
+    "mathir/verified_route_successor/job30159728: latest step 273/2304",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 1",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 2",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 3",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 4",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 5",
     "mathir/verified_route_successor/job30159728: missing evaluation pass 6",
-    "python_factor/grpo/job30159721: run directory absent",
-    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30159723: run directory absent",
-    "python_factor/verified_first_global_replay_canonical/job30159722: run directory absent",
-    "python_factor/verified_route_successor/job30159724: run directory absent"
+    "python_factor/grpo/job30160202: latest step -1/2304",
+    "python_factor/grpo/job30160202: missing evaluation pass 0",
+    "python_factor/grpo/job30160202: missing evaluation pass 1",
+    "python_factor/grpo/job30160202: missing evaluation pass 2",
+    "python_factor/grpo/job30160202: missing evaluation pass 3",
+    "python_factor/grpo/job30160202: missing evaluation pass 4",
+    "python_factor/grpo/job30160202: missing evaluation pass 5",
+    "python_factor/grpo/job30160202: missing evaluation pass 6",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: latest step -1/2304",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: missing evaluation pass 0",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: missing evaluation pass 1",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: missing evaluation pass 2",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: missing evaluation pass 3",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: missing evaluation pass 4",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: missing evaluation pass 5",
+    "python_factor/verified_entropy_gated_singleton_escape_canonical/job30160204: missing evaluation pass 6",
+    "python_factor/verified_first_global_replay_canonical/job30160203: latest step -1/2304",
+    "python_factor/verified_first_global_replay_canonical/job30160203: missing evaluation pass 0",
+    "python_factor/verified_first_global_replay_canonical/job30160203: missing evaluation pass 1",
+    "python_factor/verified_first_global_replay_canonical/job30160203: missing evaluation pass 2",
+    "python_factor/verified_first_global_replay_canonical/job30160203: missing evaluation pass 3",
+    "python_factor/verified_first_global_replay_canonical/job30160203: missing evaluation pass 4",
+    "python_factor/verified_first_global_replay_canonical/job30160203: missing evaluation pass 5",
+    "python_factor/verified_first_global_replay_canonical/job30160203: missing evaluation pass 6",
+    "python_factor/verified_route_successor/job30160205: run directory absent"
   ],
   "physical_runs": [
     {
       "arm": "grpo",
       "domain": "countdown",
-      "job_id": 30159717,
-      "run_dir": null,
-      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "evaluations": {},
+      "job_id": 30160185,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_cde69_gate2_placement_repair_grpo_s43/debug_job30160185",
+      "run_stamp": "cde69_gate2_placement_repair_grpo_s43",
       "seed": 43,
-      "terminal": false
+      "terminal": false,
+      "training": {
+        "latest_step": -1,
+        "records": 0,
+        "route_terminal": {}
+      }
     },
     {
       "arm": "verified_first_global_replay_canonical",
       "domain": "countdown",
-      "job_id": 30159718,
-      "run_dir": null,
-      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+      "evaluations": {},
+      "job_id": 30160186,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_cde69_gate2_placement_repair_verified_first_global_replay_canonical_s43/debug_job30160186",
+      "run_stamp": "cde69_gate2_placement_repair_verified_first_global_replay_canonical_s43",
       "seed": 43,
-      "terminal": false
+      "terminal": false,
+      "training": {
+        "latest_step": -1,
+        "records": 0,
+        "route_terminal": {}
+      }
     },
     {
       "arm": "verified_entropy_gated_singleton_escape_canonical",
       "domain": "countdown",
-      "job_id": 30159719,
-      "run_dir": null,
-      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+      "evaluations": {},
+      "job_id": 30160187,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_entropy_gated_singleton_escape_canonical_cde69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43/debug_job30160187",
+      "run_stamp": "cde69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43",
       "seed": 43,
-      "terminal": false
+      "terminal": false,
+      "training": {
+        "latest_step": -1,
+        "records": 0,
+        "route_terminal": {}
+      }
     },
     {
       "arm": "verified_route_successor",
       "domain": "countdown",
-      "job_id": 30159720,
-      "run_dir": null,
-      "run_stamp": "cde69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+      "evaluations": {},
+      "job_id": 30160188,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_route_successor_cde69_gate2_placement_repair_verified_route_successor_s43/debug_job30160188",
+      "run_stamp": "cde69_gate2_placement_repair_verified_route_successor_s43",
       "seed": 43,
-      "terminal": false
+      "terminal": false,
+      "training": {
+        "latest_step": -1,
+        "records": 0,
+        "route_terminal": {}
+      }
     },
     {
       "arm": "grpo",
       "domain": "graph_coloring",
-      "job_id": 30159713,
+      "job_id": 30160181,
       "run_dir": null,
-      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "run_stamp": "gce69_gate2_placement_repair_grpo_s43",
       "seed": 43,
       "terminal": false
     },
     {
       "arm": "verified_first_global_replay_canonical",
       "domain": "graph_coloring",
-      "job_id": 30159714,
+      "job_id": 30160182,
       "run_dir": null,
-      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+      "run_stamp": "gce69_gate2_placement_repair_verified_first_global_replay_canonical_s43",
       "seed": 43,
       "terminal": false
     },
     {
       "arm": "verified_entropy_gated_singleton_escape_canonical",
       "domain": "graph_coloring",
-      "job_id": 30159715,
+      "job_id": 30160183,
       "run_dir": null,
-      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+      "run_stamp": "gce69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43",
       "seed": 43,
       "terminal": false
     },
     {
       "arm": "verified_route_successor",
       "domain": "graph_coloring",
-      "job_id": 30159716,
+      "job_id": 30160184,
       "run_dir": null,
-      "run_stamp": "gce69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+      "run_stamp": "gce69_gate2_placement_repair_verified_route_successor_s43",
       "seed": 43,
       "terminal": false
     },
@@ -185,17 +269,17 @@
       "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 2850816,
-        "fixed_control_groups": 174,
-        "fixed_control_realized_prompt_tokens": 267456,
-        "fixed_control_realized_response_tokens": 2093433,
-        "fixed_control_rows": 2784,
-        "latest_step": 58,
-        "records": 58,
-        "replay_charged_response_tokens": 950272,
-        "replay_realized_prompt_tokens": 4349,
-        "replay_realized_response_tokens": 22794,
-        "replay_records": 56,
+        "fixed_control_charged_response_tokens": 3686400,
+        "fixed_control_groups": 225,
+        "fixed_control_realized_prompt_tokens": 335712,
+        "fixed_control_realized_response_tokens": 2642670,
+        "fixed_control_rows": 3600,
+        "latest_step": 75,
+        "records": 75,
+        "replay_charged_response_tokens": 1228800,
+        "replay_realized_prompt_tokens": 5405,
+        "replay_realized_response_tokens": 30570,
+        "replay_records": 73,
         "route_terminal": {}
       }
     },
@@ -209,17 +293,17 @@
       "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 49152,
-        "fixed_control_groups": 3,
-        "fixed_control_realized_prompt_tokens": 4224,
-        "fixed_control_realized_response_tokens": 42880,
-        "fixed_control_rows": 48,
-        "latest_step": 1,
-        "records": 1,
-        "replay_charged_response_tokens": 16384,
-        "replay_realized_prompt_tokens": 0,
-        "replay_realized_response_tokens": 0,
-        "replay_records": 0,
+        "fixed_control_charged_response_tokens": 835584,
+        "fixed_control_groups": 51,
+        "fixed_control_realized_prompt_tokens": 71472,
+        "fixed_control_realized_response_tokens": 586189,
+        "fixed_control_rows": 816,
+        "latest_step": 17,
+        "records": 17,
+        "replay_charged_response_tokens": 278528,
+        "replay_realized_prompt_tokens": 1164,
+        "replay_realized_response_tokens": 4889,
+        "replay_records": 15,
         "route_terminal": {}
       }
     },
@@ -240,17 +324,17 @@
       "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 660480,
-        "fixed_control_groups": 645,
-        "fixed_control_realized_prompt_tokens": 1985232,
-        "fixed_control_realized_response_tokens": 112821,
-        "fixed_control_rows": 10320,
-        "latest_step": 215,
-        "records": 215,
-        "replay_charged_response_tokens": 220160,
-        "replay_realized_prompt_tokens": 44081,
-        "replay_realized_response_tokens": 956,
-        "replay_records": 211,
+        "fixed_control_charged_response_tokens": 838656,
+        "fixed_control_groups": 819,
+        "fixed_control_realized_prompt_tokens": 2518704,
+        "fixed_control_realized_response_tokens": 133402,
+        "fixed_control_rows": 13104,
+        "latest_step": 273,
+        "records": 273,
+        "replay_charged_response_tokens": 279552,
+        "replay_realized_prompt_tokens": 56511,
+        "replay_realized_response_tokens": 1218,
+        "replay_records": 269,
         "route_terminal": {}
       }
     },
@@ -271,17 +355,17 @@
       "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 645120,
-        "fixed_control_groups": 630,
-        "fixed_control_realized_prompt_tokens": 1938864,
-        "fixed_control_realized_response_tokens": 88105,
-        "fixed_control_rows": 10080,
-        "latest_step": 210,
-        "records": 210,
-        "replay_charged_response_tokens": 215040,
-        "replay_realized_prompt_tokens": 42087,
-        "replay_realized_response_tokens": 892,
-        "replay_records": 206,
+        "fixed_control_charged_response_tokens": 817152,
+        "fixed_control_groups": 798,
+        "fixed_control_realized_prompt_tokens": 2453712,
+        "fixed_control_realized_response_tokens": 102995,
+        "fixed_control_rows": 12768,
+        "latest_step": 266,
+        "records": 266,
+        "replay_charged_response_tokens": 272384,
+        "replay_realized_prompt_tokens": 53722,
+        "replay_realized_response_tokens": 1136,
+        "replay_records": 262,
         "route_terminal": {}
       }
     },
@@ -302,17 +386,17 @@
       "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 654336,
-        "fixed_control_groups": 639,
-        "fixed_control_realized_prompt_tokens": 1966848,
-        "fixed_control_realized_response_tokens": 88974,
-        "fixed_control_rows": 10224,
-        "latest_step": 213,
-        "records": 213,
-        "replay_charged_response_tokens": 218112,
-        "replay_realized_prompt_tokens": 42840,
-        "replay_realized_response_tokens": 908,
-        "replay_records": 209,
+        "fixed_control_charged_response_tokens": 829440,
+        "fixed_control_groups": 810,
+        "fixed_control_realized_prompt_tokens": 2490672,
+        "fixed_control_realized_response_tokens": 103906,
+        "fixed_control_rows": 12960,
+        "latest_step": 270,
+        "records": 270,
+        "replay_charged_response_tokens": 276480,
+        "replay_realized_prompt_tokens": 54490,
+        "replay_realized_response_tokens": 1152,
+        "replay_records": 266,
         "route_terminal": {}
       }
     },
@@ -333,20 +417,20 @@
       "seed": 43,
       "terminal": false,
       "training": {
-        "fixed_control_charged_response_tokens": 663552,
-        "fixed_control_groups": 648,
-        "fixed_control_realized_prompt_tokens": 1994064,
-        "fixed_control_realized_response_tokens": 46074,
-        "fixed_control_rows": 10368,
-        "latest_step": 216,
-        "records": 216,
-        "replay_charged_response_tokens": 221184,
-        "replay_realized_prompt_tokens": 40306,
-        "replay_realized_response_tokens": 852,
-        "replay_records": 212,
+        "fixed_control_charged_response_tokens": 838656,
+        "fixed_control_groups": 819,
+        "fixed_control_realized_prompt_tokens": 2518704,
+        "fixed_control_realized_response_tokens": 57090,
+        "fixed_control_rows": 13104,
+        "latest_step": 273,
+        "records": 273,
+        "replay_charged_response_tokens": 279552,
+        "replay_realized_prompt_tokens": 51121,
+        "replay_realized_response_tokens": 1080,
+        "replay_records": 269,
         "route_terminal": {
-          "cross_prompt_replay_groups": 200.0,
-          "cross_prompt_replay_updates": 200.0,
+          "cross_prompt_replay_groups": 257.0,
+          "cross_prompt_replay_updates": 257.0,
           "post_replay_cross_prompt_neutral_reproductions": 0.0,
           "proposal_graduations": 0.0
         }
@@ -355,36 +439,54 @@
     {
       "arm": "grpo",
       "domain": "python_factor",
-      "job_id": 30159721,
-      "run_dir": null,
-      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_grpo_s43",
+      "evaluations": {},
+      "job_id": 30160202,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_pye69_gate2_placement_repair_grpo_s43/debug_job30160202",
+      "run_stamp": "pye69_gate2_placement_repair_grpo_s43",
       "seed": 43,
-      "terminal": false
+      "terminal": false,
+      "training": {
+        "latest_step": -1,
+        "records": 0,
+        "route_terminal": {}
+      }
     },
     {
       "arm": "verified_first_global_replay_canonical",
       "domain": "python_factor",
-      "job_id": 30159722,
-      "run_dir": null,
-      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_first_global_replay_canonical_s43",
+      "evaluations": {},
+      "job_id": 30160203,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_pye69_gate2_placement_repair_verified_first_global_replay_canonical_s43/debug_job30160203",
+      "run_stamp": "pye69_gate2_placement_repair_verified_first_global_replay_canonical_s43",
       "seed": 43,
-      "terminal": false
+      "terminal": false,
+      "training": {
+        "latest_step": -1,
+        "records": 0,
+        "route_terminal": {}
+      }
     },
     {
       "arm": "verified_entropy_gated_singleton_escape_canonical",
       "domain": "python_factor",
-      "job_id": 30159723,
-      "run_dir": null,
-      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_entropy_gated_singleton_escape_canonical_s43",
+      "evaluations": {},
+      "job_id": 30160204,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_entropy_gated_singleton_escape_canonical_pye69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43/debug_job30160204",
+      "run_stamp": "pye69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43",
       "seed": 43,
-      "terminal": false
+      "terminal": false,
+      "training": {
+        "latest_step": -1,
+        "records": 0,
+        "route_terminal": {}
+      }
     },
     {
       "arm": "verified_route_successor",
       "domain": "python_factor",
-      "job_id": 30159724,
+      "job_id": 30160205,
       "run_dir": null,
-      "run_stamp": "pye69_gate2_compute_matched_05b_6pass_verified_route_successor_s43",
+      "run_stamp": "pye69_gate2_placement_repair_verified_route_successor_s43",
       "seed": 43,
       "terminal": false
     }
@@ -395,13 +497,71 @@
       "identity": "/n/fs/similarity/maxent-grpo/var/artifacts/e69_gate2_math_endpoint_repair_identity.json",
       "identity_sha256": "c3856ebd21194570f39b2c0717f2b7f779f329dc6ba2056de752398812502ecf",
       "invalid_job_id": 30159730,
+      "kind": "preoptimizer_startup",
       "replacement_job_id": 30160101
+    },
+    {
+      "attempt_selection": "replace_exact_never_started_pending_cells",
+      "identity": "/n/fs/similarity/maxent-grpo/var/artifacts/e69_gate2_pending_placement_repair_identity.json",
+      "identity_sha256": "04871ee58df12f0b01ba1ee55cd84d59df6d60ad50214279b7e5b4f6c2bc7b03",
+      "kind": "pending_placement",
+      "substitutions": [
+        {
+          "invalid_job_id": 30159713,
+          "replacement_job_id": 30160181
+        },
+        {
+          "invalid_job_id": 30159714,
+          "replacement_job_id": 30160182
+        },
+        {
+          "invalid_job_id": 30159715,
+          "replacement_job_id": 30160183
+        },
+        {
+          "invalid_job_id": 30159716,
+          "replacement_job_id": 30160184
+        },
+        {
+          "invalid_job_id": 30159717,
+          "replacement_job_id": 30160185
+        },
+        {
+          "invalid_job_id": 30159718,
+          "replacement_job_id": 30160186
+        },
+        {
+          "invalid_job_id": 30159719,
+          "replacement_job_id": 30160187
+        },
+        {
+          "invalid_job_id": 30159720,
+          "replacement_job_id": 30160188
+        },
+        {
+          "invalid_job_id": 30159721,
+          "replacement_job_id": 30160202
+        },
+        {
+          "invalid_job_id": 30159722,
+          "replacement_job_id": 30160203
+        },
+        {
+          "invalid_job_id": 30159723,
+          "replacement_job_id": 30160204
+        },
+        {
+          "invalid_job_id": 30159724,
+          "replacement_job_id": 30160205
+        }
+      ]
     }
   ],
   "route_terminal": {
+    "countdown": {},
     "mathir": {
-      "cross_prompt_replay_groups": 200.0,
-      "cross_prompt_replay_updates": 200.0,
+      "cross_prompt_replay_groups": 257.0,
+      "cross_prompt_replay_updates": 257.0,
       "post_replay_cross_prompt_neutral_reproductions": 0.0,
       "proposal_graduations": 0.0
     }
@@ -412,7 +572,7 @@
     "expected_physical_runs": 18,
     "integrity_violations": 0,
     "observed_physical_runs": 18,
-    "pending_items": 56,
+    "pending_items": 105,
     "terminal_physical_runs": 0
   },
   "violations": []
