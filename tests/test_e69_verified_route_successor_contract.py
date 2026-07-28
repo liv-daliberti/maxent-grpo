@@ -249,7 +249,7 @@ def test_e69_gate3_contract_freezes_reuse_compute_and_analysis_before_outcomes()
         "OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10",
         "OAT_ZERO_E69_GRAPH_NODELIST:-node101",
         "OAT_ZERO_E69_GRAPH_GRES:-gpu:a40:1",
-        "OAT_ZERO_E69_A5000_NODELIST:-node105",
+        "OAT_ZERO_E69_A5000_NODELIST:-node105,node202,node203,node204",
         "OAT_ZERO_E69_A5000_GRES:-gpu:a5000:1",
         '"origin": "gate3_new"',
         'dict(row, origin="gate2_reuse")',
