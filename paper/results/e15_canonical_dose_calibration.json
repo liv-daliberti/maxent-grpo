@@ -1,0 +1,127 @@
+{
+  "protocol": "E15",
+  "record_type": "retrospective_single_seed_engineering_outcome",
+  "recorded_after_outcomes": true,
+  "scope": {
+    "environment": "graph_coloring",
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "optimizer_updates": 128,
+    "seed": 9005
+  },
+  "decision": {
+    "status": "selected",
+    "selected_arm": "M10",
+    "summary": "Both fixed-alpha treatments were runtime-valid, behaviorally safe, and diversity-effective; M10 was selected by the frozen larger-support rule.",
+    "selection_rationale": "M10's exact mean valid-mode effective support was 34.034533211497205% larger than M075's, outside the frozen 5% tie band."
+  },
+  "frozen_thresholds": {
+    "behavioral_safety": {
+      "endpoint_p_valid_strict_min": 0.05,
+      "final_32_mean_rollout_reward_strict_min": 0,
+      "p_valid_retention_vs_c0_min": 0.8,
+      "p_valid_retention_absolute_floor_from_c0": 0.2512592133627642
+    },
+    "diversity_effectiveness": {
+      "exact_action_entropy_gain_min_nats": 0.22314355131420976,
+      "exact_action_entropy_absolute_floor_from_c0_nats": 1.5681645193856486,
+      "n_eff_valid_ratio_vs_c0_min": 1.25,
+      "n_eff_valid_absolute_floor_from_c0": 2.9079749730013633
+    },
+    "selection": {
+      "prefer_smaller_alpha_within_multiplicative_width": 0.05
+    }
+  },
+  "arms": {
+    "C0": {
+      "alpha": 0,
+      "audit_job_id": "30010861",
+      "exact_action_entropy_mean_nats": 1.345020968071439,
+      "final_32_mean_rollout_reward": 0.330078125,
+      "h_valid_mean_nats": 0.7472495016539485,
+      "n_eff_valid_mean": 2.3263799784010906,
+      "p_valid_mean": 0.31407401670345525,
+      "runtime_valid": true,
+      "training_job_id": "30010773"
+    },
+    "M075": {
+      "alpha": 0.075,
+      "audit_job_id": "30012432",
+      "behaviorally_safe": true,
+      "diversity_effective": true,
+      "exact_action_entropy_gain_vs_c0_nats": 0.906601040790509,
+      "exact_action_entropy_mean_nats": 2.251622008861948,
+      "failed_gates": [],
+      "final_32_mean_rollout_reward": 0.291015625,
+      "h_valid_mean_nats": 1.1148286955938018,
+      "n_eff_valid_mean": 3.310869216608205,
+      "n_eff_valid_ratio_vs_c0": 1.4231850546116498,
+      "p_valid_mean": 0.28169776775686256,
+      "p_valid_retention_vs_c0": 0.8969152262692207,
+      "runtime_valid": true,
+      "training_job_id": "30012428",
+      "viable": true
+    },
+    "M10": {
+      "alpha": 0.1,
+      "audit_job_id": "30012431",
+      "behaviorally_safe": true,
+      "diversity_effective": true,
+      "exact_action_entropy_gain_vs_c0_nats": 1.4524530372232047,
+      "exact_action_entropy_mean_nats": 2.7974740052946436,
+      "failed_gates": [],
+      "final_32_mean_rollout_reward": 0.271484375,
+      "h_valid_mean_nats": 1.4183603610091822,
+      "n_eff_valid_mean": 4.437708099723962,
+      "n_eff_valid_ratio_vs_c0": 1.9075594446845168,
+      "p_valid_mean": 0.261672194741692,
+      "p_valid_retention_vs_c0": 0.833154545824017,
+      "runtime_valid": true,
+      "training_job_id": "30012427",
+      "viable": true
+    }
+  },
+  "identity": {
+    "dataset_combined_content_sha256": "8e8bd8d4986920784cb067f99f4dc1b401f553b0d40a378dd4ada5dab29b48d6",
+    "logical_python_source_sha256": "8f0ee26fe1a4482efcf55a96e3f3de0a689aa2f94813f39df66887f9d6bf6329",
+    "model_revision": "7ae557604adf67be50417f59c2c2f167def9a775"
+  },
+  "evidence": {
+    "c0_approval": {
+      "path": "var/artifacts/e14_c0_20260718_1349_fixed_shape_e14_c0_approval.json",
+      "sha256": "4ab8b0173034931f287b489d042f9aad735fc7986e789de7e31c9363d1972d97"
+    },
+    "e14_outcome": {
+      "path": "var/artifacts/e14_canonical_smoke_decision_20260718_1425.json",
+      "sha256": "50456aee52b0ab9ad3fe32deaf8da33caabe7d3a99c90eafb44cf493faa794de"
+    },
+    "e15_final_comparison": {
+      "path": "var/artifacts/e15_canonical_dose_decision_20260718_2229.json",
+      "sha256": "680e739411a5ed9f14754a86c285945e8b20d11a4362c48235de26d9ba9d7de1"
+    },
+    "m075_endpoint_audit": {
+      "path": "var/artifacts/e15_m075_20260718_2214_fixed_shape_step00128_exact_audit.json",
+      "sha256": "d71781b7c1814ddb9e8d95a9425b6a159cc13e0a81312abf26e9a28ee0283fd9"
+    },
+    "m075_treatment_result": {
+      "path": "var/artifacts/e15_m075_20260718_2214_fixed_shape_treatment_result.json",
+      "sha256": "860cdffa3c64b6f77f9ad0393396470a2004b204cf75f2b9d3b483d12bafe044"
+    },
+    "m10_endpoint_audit": {
+      "path": "var/artifacts/e15_m10_20260718_2214_fixed_shape_step00128_exact_audit.json",
+      "sha256": "4bd2c72b47393e8abf3e8afe1d2f49bc6d16f69e245c7a57a717f2edd7a98fad"
+    },
+    "m10_treatment_result": {
+      "path": "var/artifacts/e15_m10_20260718_2214_fixed_shape_treatment_result.json",
+      "sha256": "6dee6e9a7326927db9df7ffcdaad75d8085ca4fd288038f6d7aff475c1c6089d"
+    }
+  },
+  "scope_firewall": {
+    "authorizes_additional_seeds_automatically": false,
+    "authorizes_analytical_grid_insertion": false,
+    "authorizes_countdown": false,
+    "authorizes_larger_models": false,
+    "authorizes_main_paper_claim": false,
+    "authorizes_replication_protocol_drafting_and_review": true,
+    "reason": "This was one seed of a 0.5B graph-coloring engineering calibration; a viable dose requires a separately frozen three-seed replication before broader inference."
+  }
+}

@@ -1,0 +1,525 @@
+{
+  "status": "FROZEN_INTERIM_PAIRED_COMMON_HORIZON",
+  "frozen_at": "2026-07-21T00:38:04-04:00",
+  "model": "Qwen2.5-3B-Instruct",
+  "seeds": [
+    43,
+    44,
+    45
+  ],
+  "analysis": "Latest training-pass checkpoint shared by every method and all three paired seeds within each domain. Later unequal-horizon observations are excluded from numerical comparisons.",
+  "source_arm_mapping": {
+    "reward_only": "grpo",
+    "fixed": "maxent",
+    "proportional": "maxent_control",
+    "dual": "maxent_dual"
+  },
+  "source_artifacts": {
+    "graph_coloring_maxent": {
+      "path": "var/artifacts/gce17_canonical_maxent_3b_v5_scaling_curve.json",
+      "sha256": "77cd03af2a52ccfb8984005bbee03ed32db103799c8eac474f7d6966567a69c6"
+    },
+    "graph_coloring_reward_only": {
+      "path": "var/artifacts/gce18_canonical_drgrpo_3b_v1_scaling_curve.json",
+      "sha256": "a5fa7cc49d95677b25bcc40835ba575a0be9ea58aa6aa61ad174577586520c72"
+    },
+    "countdown_maxent": {
+      "path": "var/artifacts/cde17_canonical_maxent_3b_v5_scaling_curve.json",
+      "sha256": "789614c2f59f2808cfc496daad7fa4367b9a65be1436b5df9b3e91eb5b0c0715"
+    },
+    "countdown_reward_only": {
+      "path": "var/artifacts/cde18_canonical_drgrpo_3b_v1_scaling_curve.json",
+      "sha256": "c5693a9a73d78a4f12a89ea176bf043fb876455f662c0cc3e58b7d1d76530ffc"
+    }
+  },
+  "domains": {
+    "graph_coloring": {
+      "common_horizon_passes": 5.0,
+      "methods": {
+        "reward_only": {
+          "mean": {
+            "pass8": 0.5,
+            "mean8": 0.3749999900658925,
+            "coverage8": 0.10236304129163425,
+            "distinct8": 0.6180555522441864,
+            "greedy": 0.3819444477558136
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.4583333432674408,
+              "mean8": 0.3268229067325592,
+              "coverage8": 0.10688657313585281,
+              "distinct8": 0.6458333134651184,
+              "greedy": 0.3333333432674408
+            },
+            "44": {
+              "pass8": 0.3645833432674408,
+              "mean8": 0.3619791567325592,
+              "coverage8": 0.05923032388091087,
+              "distinct8": 0.3645833432674408,
+              "greedy": 0.3645833432674408
+            },
+            "45": {
+              "pass8": 0.6770833134651184,
+              "mean8": 0.4361979067325592,
+              "coverage8": 0.14097222685813904,
+              "distinct8": 0.84375,
+              "greedy": 0.4479166567325592
+            }
+          }
+        },
+        "fixed": {
+          "mean": {
+            "pass8": 0.944444457689921,
+            "mean8": 0.4140625,
+            "coverage8": 0.3551408151785533,
+            "distinct8": 2.1076389153798423,
+            "greedy": 0.503472238779068
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.9479166865348816,
+              "mean8": 0.41796875,
+              "coverage8": 0.3418402671813965,
+              "distinct8": 2.0416667461395264,
+              "greedy": 0.5104166865348816
+            },
+            "44": {
+              "pass8": 0.9375,
+              "mean8": 0.4231770932674408,
+              "coverage8": 0.36710068583488464,
+              "distinct8": 2.1979167461395264,
+              "greedy": 0.4895833432674408
+            },
+            "45": {
+              "pass8": 0.9479166865348816,
+              "mean8": 0.4010416567325592,
+              "coverage8": 0.35648149251937866,
+              "distinct8": 2.0833332538604736,
+              "greedy": 0.5104166865348816
+            }
+          },
+          "paired_delta": {
+            "pass8": 0.4444444576899211,
+            "mean8": 0.03906250993410746,
+            "coverage8": 0.252777773886919,
+            "distinct8": 1.4895833631356556,
+            "greedy": 0.1215277910232544
+          },
+          "paired_delta_by_seed": {
+            "43": {
+              "pass8": 0.4895833432674408,
+              "mean8": 0.0911458432674408,
+              "coverage8": 0.23495369404554367,
+              "distinct8": 1.395833432674408,
+              "greedy": 0.1770833432674408
+            },
+            "44": {
+              "pass8": 0.5729166567325592,
+              "mean8": 0.06119793653488159,
+              "coverage8": 0.30787036195397377,
+              "distinct8": 1.8333334028720856,
+              "greedy": 0.125
+            },
+            "45": {
+              "pass8": 0.2708333730697632,
+              "mean8": -0.03515625,
+              "coverage8": 0.21550926566123962,
+              "distinct8": 1.2395832538604736,
+              "greedy": 0.06250002980232239
+            }
+          },
+          "positive_seed_count": {
+            "pass8": 3,
+            "mean8": 2,
+            "coverage8": 3,
+            "distinct8": 3,
+            "greedy": 3
+          }
+        },
+        "proportional": {
+          "mean": {
+            "pass8": 0.9513888955116272,
+            "mean8": 0.4153645833333333,
+            "coverage8": 0.34485918283462524,
+            "distinct8": 2.041666626930237,
+            "greedy": 0.4895833333333333
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.9166666865348816,
+              "mean8": 0.4270833432674408,
+              "coverage8": 0.31284722685813904,
+              "distinct8": 1.8854166269302368,
+              "greedy": 0.4791666567325592
+            },
+            "44": {
+              "pass8": 0.96875,
+              "mean8": 0.4205729067325592,
+              "coverage8": 0.3792245388031006,
+              "distinct8": 2.2395832538604736,
+              "greedy": 0.4895833432674408
+            },
+            "45": {
+              "pass8": 0.96875,
+              "mean8": 0.3984375,
+              "coverage8": 0.3425057828426361,
+              "distinct8": 2.0,
+              "greedy": 0.5
+            }
+          },
+          "paired_delta": {
+            "pass8": 0.4513888955116272,
+            "mean8": 0.040364593267440796,
+            "coverage8": 0.242496141542991,
+            "distinct8": 1.4236110746860504,
+            "greedy": 0.10763888557751973
+          },
+          "paired_delta_by_seed": {
+            "43": {
+              "pass8": 0.4583333432674408,
+              "mean8": 0.10026043653488159,
+              "coverage8": 0.20596065372228622,
+              "distinct8": 1.2395833134651184,
+              "greedy": 0.1458333134651184
+            },
+            "44": {
+              "pass8": 0.6041666567325592,
+              "mean8": 0.05859375,
+              "coverage8": 0.3199942149221897,
+              "distinct8": 1.8749999105930328,
+              "greedy": 0.125
+            },
+            "45": {
+              "pass8": 0.2916666865348816,
+              "mean8": -0.037760406732559204,
+              "coverage8": 0.20153355598449707,
+              "distinct8": 1.15625,
+              "greedy": 0.052083343267440796
+            }
+          },
+          "positive_seed_count": {
+            "pass8": 3,
+            "mean8": 2,
+            "coverage8": 3,
+            "distinct8": 3,
+            "greedy": 3
+          }
+        },
+        "dual": {
+          "mean": {
+            "pass8": 0.9236111044883728,
+            "mean8": 0.4210069477558136,
+            "coverage8": 0.34971065322558087,
+            "distinct8": 2.069444457689921,
+            "greedy": 0.4826388855775197
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.8958333134651184,
+              "mean8": 0.4153645932674408,
+              "coverage8": 0.33194443583488464,
+              "distinct8": 1.9791666269302368,
+              "greedy": 0.4791666567325592
+            },
+            "44": {
+              "pass8": 0.9270833134651184,
+              "mean8": 0.4283854067325592,
+              "coverage8": 0.35109955072402954,
+              "distinct8": 2.1354167461395264,
+              "greedy": 0.4791666567325592
+            },
+            "45": {
+              "pass8": 0.9479166865348816,
+              "mean8": 0.4192708432674408,
+              "coverage8": 0.36608797311782837,
+              "distinct8": 2.09375,
+              "greedy": 0.4895833432674408
+            }
+          },
+          "paired_delta": {
+            "pass8": 0.4236111044883728,
+            "mean8": 0.04600695768992106,
+            "coverage8": 0.2473476119339466,
+            "distinct8": 1.4513889054457347,
+            "greedy": 0.10069443782170613
+          },
+          "paired_delta_by_seed": {
+            "43": {
+              "pass8": 0.4374999701976776,
+              "mean8": 0.08854168653488159,
+              "coverage8": 0.22505786269903183,
+              "distinct8": 1.3333333134651184,
+              "greedy": 0.1458333134651184
+            },
+            "44": {
+              "pass8": 0.5624999701976776,
+              "mean8": 0.06640625,
+              "coverage8": 0.29186922684311867,
+              "distinct8": 1.7708334028720856,
+              "greedy": 0.11458331346511841
+            },
+            "45": {
+              "pass8": 0.2708333730697632,
+              "mean8": -0.016927063465118408,
+              "coverage8": 0.22511574625968933,
+              "distinct8": 1.25,
+              "greedy": 0.04166668653488159
+            }
+          },
+          "positive_seed_count": {
+            "pass8": 3,
+            "mean8": 2,
+            "coverage8": 3,
+            "distinct8": 3,
+            "greedy": 3
+          }
+        }
+      }
+    },
+    "countdown": {
+      "common_horizon_passes": 1.0,
+      "methods": {
+        "reward_only": {
+          "mean": {
+            "pass8": 0.15625,
+            "mean8": 0.15592447916666666,
+            "coverage8": 0.03072916716337204,
+            "distinct8": 0.15625,
+            "greedy": 0.15625
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.15625,
+              "mean8": 0.15625,
+              "coverage8": 0.03072916716337204,
+              "distinct8": 0.15625,
+              "greedy": 0.15625
+            },
+            "44": {
+              "pass8": 0.15625,
+              "mean8": 0.1552734375,
+              "coverage8": 0.03072916716337204,
+              "distinct8": 0.15625,
+              "greedy": 0.15625
+            },
+            "45": {
+              "pass8": 0.15625,
+              "mean8": 0.15625,
+              "coverage8": 0.03072916716337204,
+              "distinct8": 0.15625,
+              "greedy": 0.15625
+            }
+          }
+        },
+        "fixed": {
+          "mean": {
+            "pass8": 0.4010416666666667,
+            "mean8": 0.0947265625,
+            "coverage8": 0.11378658066193263,
+            "distinct8": 0.5026041666666666,
+            "greedy": 0.09114583333333333
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.59375,
+              "mean8": 0.103515625,
+              "coverage8": 0.16998697817325592,
+              "distinct8": 0.6953125,
+              "greedy": 0.171875
+            },
+            "44": {
+              "pass8": 0.3203125,
+              "mean8": 0.09765625,
+              "coverage8": 0.09135044366121292,
+              "distinct8": 0.4375,
+              "greedy": 0.046875
+            },
+            "45": {
+              "pass8": 0.2890625,
+              "mean8": 0.0830078125,
+              "coverage8": 0.08002232015132904,
+              "distinct8": 0.375,
+              "greedy": 0.0546875
+            }
+          },
+          "paired_delta": {
+            "pass8": 0.24479166666666666,
+            "mean8": -0.061197916666666664,
+            "coverage8": 0.08305741349856059,
+            "distinct8": 0.3463541666666667,
+            "greedy": -0.06510416666666667
+          },
+          "paired_delta_by_seed": {
+            "43": {
+              "pass8": 0.4375,
+              "mean8": -0.052734375,
+              "coverage8": 0.13925781100988388,
+              "distinct8": 0.5390625,
+              "greedy": 0.015625
+            },
+            "44": {
+              "pass8": 0.1640625,
+              "mean8": -0.0576171875,
+              "coverage8": 0.06062127649784088,
+              "distinct8": 0.28125,
+              "greedy": -0.109375
+            },
+            "45": {
+              "pass8": 0.1328125,
+              "mean8": -0.0732421875,
+              "coverage8": 0.049293152987957,
+              "distinct8": 0.21875,
+              "greedy": -0.1015625
+            }
+          },
+          "positive_seed_count": {
+            "pass8": 3,
+            "mean8": 0,
+            "coverage8": 3,
+            "distinct8": 3,
+            "greedy": 1
+          }
+        },
+        "proportional": {
+          "mean": {
+            "pass8": 0.4791666666666667,
+            "mean8": 0.11588541666666667,
+            "coverage8": 0.2062500019868215,
+            "distinct8": 0.8333333333333334,
+            "greedy": 0.16927083333333334
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.453125,
+              "mean8": 0.1015625,
+              "coverage8": 0.2037760466337204,
+              "distinct8": 0.8046875,
+              "greedy": 0.171875
+            },
+            "44": {
+              "pass8": 0.53125,
+              "mean8": 0.1005859375,
+              "coverage8": 0.1907552033662796,
+              "distinct8": 0.8046875,
+              "greedy": 0.1640625
+            },
+            "45": {
+              "pass8": 0.453125,
+              "mean8": 0.1455078125,
+              "coverage8": 0.22421875596046448,
+              "distinct8": 0.890625,
+              "greedy": 0.171875
+            }
+          },
+          "paired_delta": {
+            "pass8": 0.3229166666666667,
+            "mean8": -0.0400390625,
+            "coverage8": 0.17552083482344946,
+            "distinct8": 0.6770833333333334,
+            "greedy": 0.013020833333333334
+          },
+          "paired_delta_by_seed": {
+            "43": {
+              "pass8": 0.296875,
+              "mean8": -0.0546875,
+              "coverage8": 0.17304687947034836,
+              "distinct8": 0.6484375,
+              "greedy": 0.015625
+            },
+            "44": {
+              "pass8": 0.375,
+              "mean8": -0.0546875,
+              "coverage8": 0.16002603620290756,
+              "distinct8": 0.6484375,
+              "greedy": 0.0078125
+            },
+            "45": {
+              "pass8": 0.296875,
+              "mean8": -0.0107421875,
+              "coverage8": 0.19348958879709244,
+              "distinct8": 0.734375,
+              "greedy": 0.015625
+            }
+          },
+          "positive_seed_count": {
+            "pass8": 3,
+            "mean8": 0,
+            "coverage8": 3,
+            "distinct8": 3,
+            "greedy": 3
+          }
+        },
+        "dual": {
+          "mean": {
+            "pass8": 0.4609375,
+            "mean8": 0.1005859375,
+            "coverage8": 0.18639632562796274,
+            "distinct8": 0.7760416666666666,
+            "greedy": 0.140625
+          },
+          "by_seed": {
+            "43": {
+              "pass8": 0.4375,
+              "mean8": 0.0927734375,
+              "coverage8": 0.18502603471279144,
+              "distinct8": 0.7421875,
+              "greedy": 0.1640625
+            },
+            "44": {
+              "pass8": 0.4921875,
+              "mean8": 0.091796875,
+              "coverage8": 0.16609002649784088,
+              "distinct8": 0.734375,
+              "greedy": 0.0859375
+            },
+            "45": {
+              "pass8": 0.453125,
+              "mean8": 0.1171875,
+              "coverage8": 0.20807291567325592,
+              "distinct8": 0.8515625,
+              "greedy": 0.171875
+            }
+          },
+          "paired_delta": {
+            "pass8": 0.3046875,
+            "mean8": -0.055338541666666664,
+            "coverage8": 0.1556671584645907,
+            "distinct8": 0.6197916666666666,
+            "greedy": -0.015625
+          },
+          "paired_delta_by_seed": {
+            "43": {
+              "pass8": 0.28125,
+              "mean8": -0.0634765625,
+              "coverage8": 0.1542968675494194,
+              "distinct8": 0.5859375,
+              "greedy": 0.0078125
+            },
+            "44": {
+              "pass8": 0.3359375,
+              "mean8": -0.0634765625,
+              "coverage8": 0.13536085933446884,
+              "distinct8": 0.578125,
+              "greedy": -0.0703125
+            },
+            "45": {
+              "pass8": 0.296875,
+              "mean8": -0.0390625,
+              "coverage8": 0.17734374850988388,
+              "distinct8": 0.6953125,
+              "greedy": 0.015625
+            }
+          },
+          "positive_seed_count": {
+            "pass8": 3,
+            "mean8": 0,
+            "coverage8": 3,
+            "distinct8": 3,
+            "greedy": 2
+          }
+        }
+      }
+    }
+  }
+}

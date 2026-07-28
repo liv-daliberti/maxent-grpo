@@ -4,7 +4,8 @@ import json
 
 from oat_drgrpo.math_grader import (
     boxed_reward_fn,
-    extract_normalized_final_answer_for_clustering,
+    extract_normalized_final_answer,
+    validated_modebench_outcome_key,
 )
 
 
@@ -65,7 +66,28 @@ def test_graph_coloring_verifier_accepts_missing_digit_fill():
     assert wrong_fill_reward == 0.0
 
 
-def test_graph_coloring_clustering_key_canonicalizes_missing_digit_fill():
+def test_graph_coloring_verifier_accepts_canonical_three_digit_action():
+    spec = {
+        "verifier": "graph_coloring",
+        "n": 6,
+        "edges": [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]],
+        "partial_colors": [1, None, 1, None, 1, None],
+    }
+    reference = json.dumps(spec)
+
+    info, reward = boxed_reward_fn("222", reference)
+    _, invalid_reward = boxed_reward_fn("111", reference)
+    mode_key = extract_normalized_final_answer(
+        "222", template="qwen_graph_digits", gt_answer=reference
+    )
+
+    assert info == {"formatted": True}
+    assert reward == 1.0
+    assert invalid_reward == 0.0
+    assert mode_key == "graph_coloring:121212"
+
+
+def test_graph_coloring_mode_key_canonicalizes_missing_digit_fill():
     spec = {
         "verifier": "graph_coloring",
         "n": 4,
@@ -74,17 +96,17 @@ def test_graph_coloring_clustering_key_canonicalizes_missing_digit_fill():
     }
     gt_answer = json.dumps(spec)
 
-    fill_key = extract_normalized_final_answer_for_clustering(
+    fill_key = extract_normalized_final_answer(
         "work \\boxed{21}",
         template="qwen_boxed",
         gt_answer=gt_answer,
     )
-    full_key = extract_normalized_final_answer_for_clustering(
+    full_key = extract_normalized_final_answer(
         "\\boxed{1212}",
         template="qwen_boxed",
         gt_answer=gt_answer,
     )
-    other_key = extract_normalized_final_answer_for_clustering(
+    other_key = extract_normalized_final_answer(
         "\\boxed{31}",
         template="qwen_boxed",
         gt_answer=gt_answer,
@@ -145,7 +167,7 @@ def test_countdown_verifier_rejects_expression_that_reuses_number():
     assert reward == 0.0
 
 
-def test_countdown_clustering_key_canonicalizes_expression_ast():
+def test_countdown_mode_key_canonicalizes_expression_ast():
     spec = {
         "verifier": "countdown",
         "numbers": [2, 3, 4],
@@ -153,17 +175,17 @@ def test_countdown_clustering_key_canonicalizes_expression_ast():
     }
     gt_answer = json.dumps(spec)
 
-    left_key = extract_normalized_final_answer_for_clustering(
+    left_key = extract_normalized_final_answer(
         "\\boxed{2 + 3 * 4}",
         template="qwen_boxed",
         gt_answer=gt_answer,
     )
-    right_key = extract_normalized_final_answer_for_clustering(
+    right_key = extract_normalized_final_answer(
         "\\boxed{(4 * 3) + 2}",
         template="qwen_boxed",
         gt_answer=gt_answer,
     )
-    wrong_numbers_key = extract_normalized_final_answer_for_clustering(
+    wrong_numbers_key = extract_normalized_final_answer(
         "\\boxed{2 + 4 + 4}",
         template="qwen_boxed",
         gt_answer=gt_answer,
@@ -172,3 +194,34 @@ def test_countdown_clustering_key_canonicalizes_expression_ast():
     assert left_key == "countdown:add(2,mul(3,4))"
     assert right_key == left_key
     assert wrong_numbers_key is None
+
+
+def test_validated_modebench_key_binds_execution_and_canonicalization():
+    spec = {
+        "verifier": "countdown",
+        "numbers": [2, 3, 4],
+        "target": 14,
+    }
+    reference = json.dumps(spec)
+
+    assert validated_modebench_outcome_key(
+        "\\boxed{2 + 3 * 4}", reference
+    ) == "countdown:add(2,mul(3,4))"
+    assert validated_modebench_outcome_key(
+        "\\boxed{(4 * 3) + 2}", reference
+    ) == "countdown:add(2,mul(3,4))"
+    assert validated_modebench_outcome_key(
+        "\\boxed{2 + 4 + 4}", reference
+    ) is None
+    assert validated_modebench_outcome_key(
+        "\\boxed{2 + 3 + 4}", reference
+    ) is None
+    # The first equality side uses the right operands but misses the target.
+    # Admission must key the exact second AST that actually verified.
+    assert validated_modebench_outcome_key(
+        "\\boxed{2 + 3 + 4 = 2 + 3 * 4}", reference
+    ) == "countdown:add(2,mul(3,4))"
+
+
+def test_validated_modebench_key_rejects_ordinary_math_answer():
+    assert validated_modebench_outcome_key("\\boxed{3}", "3") is None

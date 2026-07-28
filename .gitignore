@@ -16,6 +16,7 @@ build/
 # Local environments and caches
 .venv/
 .local/
+data/
 var/*
 .cache/
 .tmp/
@@ -29,6 +30,8 @@ datasets/train/
 # Generated spill directories
 torchinductor_*/
 results/
+!paper/results/
+!paper/results/*.json
 details/
 outputs/
 logs/

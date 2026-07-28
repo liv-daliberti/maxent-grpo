@@ -1,8 +1,5 @@
-from ops.eval_exact_answer_mode_coverage import compute_coverage_metrics
-from ops.eval_exact_answer_mode_pareto import (
-    _matched_correctness_rows,
-    compute_prefix_coverage_metrics,
-)
+from ops.eval_exact_answer_mode_coverage import _pairwise_deltas, compute_coverage_metrics
+import math
 
 
 def test_coverage_counts_distinct_correct_exact_answer_modes():
@@ -30,48 +27,34 @@ def test_coverage_requires_correct_attempts_for_mode_credit():
     assert metrics["correct_answer_key_extracted_frac"] == 0.5
 
 
-def test_prefix_coverage_reuses_one_sample_order_for_multiple_ks():
-    metrics_by_k = compute_prefix_coverage_metrics(
-        rewards=[0.0, 1.0, 1.0, 1.0],
-        answer_keys=["bad", "a", "a", "b"],
-        answer_mode_count=4,
-        sample_counts=[1, 4, 2],
+def test_open_support_reports_nonseed_discoveries_without_fake_coverage():
+    metrics = compute_coverage_metrics(
+        rewards=[1.0, 1.0, 1.0, 0.0],
+        answer_keys=["seed", "new-a", "new-a", "new-b"],
+        answer_mode_count=0,
+        public_seed_key="seed",
     )
 
-    assert metrics_by_k[1]["any_correct_at_k"] == 0.0
-    assert metrics_by_k[2]["any_correct_at_k"] == 1.0
-    assert metrics_by_k[2]["distinct_correct_modes_at_k"] == 1.0
-    assert metrics_by_k[4]["distinct_correct_modes_at_k"] == 2.0
-    assert metrics_by_k[4]["mode_coverage_at_k"] == 0.5
+    assert metrics["distinct_correct_modes_at_k"] == 2.0
+    assert metrics["distinct_nonseed_correct_modes_at_k"] == 1.0
+    assert metrics["any_nonseed_correct_at_k"] == 1.0
+    assert math.isnan(metrics["mode_coverage_at_k"])
+    assert math.isnan(metrics["all_modes_covered_at_k"])
 
 
-def test_matched_correctness_uses_best_grpo_coverage_at_equal_or_better_mean():
-    rows = [
+def test_pairwise_deltas_compare_named_landed_arms():
+    summaries = [
         {
-            "variant": "grpo",
-            "split": "multi_answer",
-            "temperature": 0.6,
-            "sample_count": 8,
-            "metrics": {"mean_at_k": 0.50, "mode_coverage_at_k": 0.10},
+            "alias": "grpo_s43",
+            "splits": {"multi": {"metrics": {"mode_coverage_at_k": 0.25}}},
         },
         {
-            "variant": "grpo",
-            "split": "multi_answer",
-            "temperature": 1.2,
-            "sample_count": 32,
-            "metrics": {"mean_at_k": 0.30, "mode_coverage_at_k": 0.35},
-        },
-        {
-            "variant": "answer_maxent",
-            "split": "multi_answer",
-            "temperature": 0.8,
-            "sample_count": 16,
-            "metrics": {"mean_at_k": 0.40, "mode_coverage_at_k": 0.45},
+            "alias": "xdr_tau0p05_s43",
+            "splits": {"multi": {"metrics": {"mode_coverage_at_k": 0.40}}},
         },
     ]
 
-    matched = _matched_correctness_rows(rows)
+    rows = _pairwise_deltas(summaries)
 
-    assert len(matched) == 1
-    assert matched[0]["baseline_temperature"] == 0.6
-    assert matched[0]["coverage_advantage_at_matched_or_better_correctness"] == 0.35
+    assert len(rows) == 1
+    assert abs(rows[0]["mode_coverage_at_k_delta"] - 0.15) < 1e-12

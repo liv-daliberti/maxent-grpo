@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import torch
 
@@ -27,6 +27,101 @@ def apply_qwen_boxed_template(question: str) -> str:
     )
 
 
+def apply_qwen_graph_digits_template(question: str) -> str:
+    """Request the benchmark's canonical bare graph-color action vector."""
+
+    boxed_suffix = "inside \\boxed{}."
+    if question.count(boxed_suffix) != 1 or not question.endswith(boxed_suffix):
+        raise ValueError(
+            "qwen_graph_digits requires a graph prompt ending in a boxed answer"
+        )
+    canonical_question = (
+        question[: -len(boxed_suffix)]
+        + "as one bare digit string with no spaces, punctuation, or other text."
+    )
+    return (
+        "<|im_start|>system\n"
+        "Return only the requested bare sequence of digits. Do not explain, "
+        "add punctuation, or use LaTeX."
+        "<|im_end|>\n<|im_start|>user\n"
+        + canonical_question
+        + "<|im_end|>\n<|im_start|>assistant\n"
+    )
+
+
+def apply_qwen_countdown_digits_template(question: str) -> str:
+    """Request the audited three-digit Countdown expression code."""
+
+    boxed_suffix = "the expression inside \\boxed{}."
+    if question.count(boxed_suffix) != 1 or not question.endswith(boxed_suffix):
+        raise ValueError(
+            "qwen_countdown_digits requires an easy3 Countdown prompt ending "
+            "in the boxed-expression instruction"
+        )
+    canonical_question = (
+        question[: -len(boxed_suffix)]
+        + "a three-digit canonical action code using the scheme above."
+    )
+    return (
+        "<|im_start|>system\n"
+        "Return only three digits and no other text. The given numbers are "
+        "n1,n2,n3 in dataset order. Digit 2 selects singleton s: 1=n1, "
+        "2=n2, 3=n3; a,b are the other two numbers in their original order. "
+        "Digit 3 makes pair: 1=a+b, 2=a*b, 3=a-b, 4=b-a, 5=a/b, 6=b/a. "
+        "Digit 1 combines pair and s: 1=pair+s, 2=pair*s, 3=pair-s, "
+        "4=s-pair, 5=pair/s, 6=s/pair."
+        "<|im_end|>\n<|im_start|>user\n"
+        + canonical_question
+        + "<|im_end|>\n<|im_start|>assistant\n"
+    )
+
+
+def validate_qwen_graph_digits_materialization(
+    raw_questions: Sequence[str], formatted_prompts: Sequence[str]
+) -> None:
+    """Fail closed if dataset mapping did not render the canonical template.
+
+    The exact string comparison deliberately detects stale Hugging Face map
+    caches from older prompt templates as well as dropped or reordered rows.
+    """
+
+    if len(raw_questions) != len(formatted_prompts):
+        raise RuntimeError(
+            "canonical prompt materialization changed the row count: "
+            f"raw={len(raw_questions)} formatted={len(formatted_prompts)}"
+        )
+    for row_index, (question, observed) in enumerate(
+        zip(raw_questions, formatted_prompts)
+    ):
+        expected = apply_qwen_graph_digits_template(question)
+        if observed != expected:
+            raise RuntimeError(
+                "canonical prompt materialization mismatch at row "
+                f"{row_index}; stale or foreign template cache detected"
+            )
+
+
+def validate_qwen_countdown_digits_materialization(
+    raw_questions: Sequence[str], formatted_prompts: Sequence[str]
+) -> None:
+    """Fail closed on stale or foreign canonical Countdown prompt rows."""
+
+    if len(raw_questions) != len(formatted_prompts):
+        raise RuntimeError(
+            "canonical prompt materialization changed the row count: "
+            f"raw={len(raw_questions)} formatted={len(formatted_prompts)}"
+        )
+    for row_index, (question, observed) in enumerate(
+        zip(raw_questions, formatted_prompts)
+    ):
+        expected = apply_qwen_countdown_digits_template(question)
+        if observed != expected:
+            raise RuntimeError(
+                "canonical Countdown prompt materialization mismatch at row "
+                f"{row_index}; stale or foreign template cache detected"
+            )
+
+
 def apply_r1_template(question: str) -> str:
     return (
         "A conversation between User and Assistant. The User asks a question, "
@@ -45,6 +140,8 @@ def apply_no_template(question: str) -> str:
 
 TEMPLATE_FACTORY: dict[str, Callable[[str], str]] = {
     "qwen_boxed": apply_qwen_boxed_template,
+    "qwen_countdown_digits": apply_qwen_countdown_digits_template,
+    "qwen_graph_digits": apply_qwen_graph_digits_template,
     "qwen_math": apply_qwen_math_template,
     "r1": apply_r1_template,
     "no": apply_no_template,

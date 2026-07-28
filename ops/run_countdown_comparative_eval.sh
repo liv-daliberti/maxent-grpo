@@ -25,7 +25,7 @@ esac
 DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$DEFAULT_DATA_ROOT}"
 RUN_DATA_ROOT="${OAT_ZERO_RUN_DATA_ROOT:-$ROOT_DIR/var/data}"
 OUTPUT_ROOT="${OAT_ZERO_EVAL_OUTPUT_ROOT:-$ROOT_DIR/var/artifacts}"
-EVAL_SEEDS_CSV="${OAT_ZERO_EVAL_SEEDS:-1001,1002,1003}"
+EVAL_SEEDS_CSV="${OAT_ZERO_EVAL_SEEDS:-1001,1002,1003,1004}"
 SAMPLE_COUNT="${OAT_ZERO_EVAL_SAMPLE_COUNT:-8}"
 TEMPERATURE="${OAT_ZERO_EVAL_TEMPERATURE:-1.0}"
 PYTHON_BIN="${OAT_ZERO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/python}"
@@ -50,9 +50,11 @@ _run_dirs_for_stamp() {
     local stamp
     for stamp in "${run_stamps[@]}"; do
       compgen -G "$RUN_DATA_ROOT/oat_zero_tiny_*_${stamp}" || true
+      compgen -G "$RUN_DATA_ROOT/xdr_*_${stamp}" || true
     done
   else
     compgen -G "$RUN_DATA_ROOT/oat_zero_tiny_*_${STAMP_PREFIX}_*" || true
+    compgen -G "$RUN_DATA_ROOT/xdr_*_${STAMP_PREFIX}_*" || true
   fi
 }
 

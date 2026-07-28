@@ -1,8 +1,7 @@
 \documentclass{article}
 
 \PassOptionsToPackage{numbers,compress}{natbib}
-
-\usepackage{neurips_2025}
+\usepackage[preprint]{neurips_2025}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -10,1656 +9,1164 @@
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{amsfonts}
-\usepackage{nicefrac}
-\usepackage{microtype}
-\usepackage{xcolor}
-\usepackage{graphicx}
-\usepackage{subcaption}
-\usepackage{caption}
-\usepackage{tabularx}
-\usepackage{array}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{mathtools}
-\usepackage{amsthm}
-% mathabx is not installed in all TeX distributions (it is a font package);
-% no mathabx-specific symbols are used in this document, so load it only if present.
-\IfFileExists{mathabx.sty}{\usepackage{mathabx}}{}
-\usepackage{xspace}
-
-\usepackage[capitalize,noabbrev]{cleveref}
-\usepackage{wrapfig}
-\usepackage{xspace}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{rotating}
+\hypersetup{hypertexnames=false,hidelinks}
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
-
-\theoremstyle{plain}
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{corollary}[theorem]{Corollary}
-\theoremstyle{definition}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{assumption}[theorem]{Assumption}
-\theoremstyle{remark}
-\newtheorem{remark}[theorem]{Remark}
-
-\newcommand{\E}{\mathbb{E}}
-\newcommand{\KL}{\mathrm{KL}}
-\newcommand{\argmax}{\mathop{\mathrm{arg\,max}}}
 \newcommand{\1}{\mathbf{1}}
-\newcommand{\method}{xDr.GRPO\xspace}
-\newcommand{\methodmath}{\mathrm{xDr.GRPO}}
-\newcommand{\drgrpo}{Dr.GRPO\xspace}
-\newcommand{\seeddrgrpo}{SEED-Dr.GRPO\xspace}
-\newcommand{\tokmaxdrgrpo}{Token-MaxEnt Dr.GRPO\xspace}
+\newcommand{\Bpos}{\mathcal B_x^+}
+\newcommand{\sg}{\operatorname{sg}}
+\DeclareMathOperator{\clip}{clip}
 
-\newcommand{\Ubar}{\bar U}
-\DeclareMathOperator{\Var}{Var}
-\DeclareMathOperator{\LSE}{LSE}
+\title{ModeBench: Executable Outcome Discovery\\
+for Maximum-Entropy Reasoning}
 
-
-\title{Exploration Should Act at the Group Level in RL LLM Fine-Tuning}
-
-\author{%
-Anonymous Authors\\
-Paper under double-blind review
-}
-
+\author{Anonymous Authors}
 
 \begin{document}
 
 \maketitle
-\nolinenumbers
 
 \begin{abstract}
+Reinforcement learning with binary verifiers can make a reasoning policy more
+accurate while concentrating it on one successful output. Studying this
+failure requires more than \texttt{pass@1}: the task must admit multiple
+solutions, validate them without heuristic text matching, and decide when two
+successful responses are genuinely different. We introduce \textsc{ModeBench},
+a suite and execution contract for that setting. Its four synthetic domains
+cover constraint assignments, arithmetic expression trees, Python functions,
+and executable algebra action menus. In every domain, correctness and mode
+identity are derived from the same executed object. The Python domain runs a
+syntax-restricted function in an isolated external interpreter and contains
+16--3,600 exact behavior modes per instance.
 
- What role should exploration take in GRPO-style reasoning RL? Existing exploration mechanisms act either by (1) scaling entire prompts with uncertainty estimates or by (2) increasing token-level stochasticity. Yet, under GRPO, RL learns from groups: for each prompt, the policy samples several completions and the update is driven by comparisons inside that prompt-local set. To align exploration with model update, we introduce \emph{\method}, a maximum-entropy variant of \drgrpo that places exploration directly on the sampled candidate distribution. For each prompt, \method constructs a target distribution over completions by combining reward-induced group fit with candidate-level Shannon entropy. The resulting target has a closed form and gives a clean way to separate prompt-level, token-level, and candidate-level regularization. We evaluate this design with a matched multi-seed regression analysis on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- in which every prompt admits several verifiably distinct valid answers, using aggregate accuracy and answer-mode coverage as descriptive evidence and regression coefficients to estimate effect size and uncertainty across task domains, training seeds, and evaluation seeds. At the 0.5B scale, the pre-registered primary temperature is null, but exploratory aggressive temperatures show the pre-registered ordered signature of candidate-level exploration: $+4.8$ points of answer-mode coverage and $+7.9$ points \texttt{pass@8} (Holm-adjusted $p<10^{-4}$) at statistically flat per-sample accuracy, while prompt-level uncertainty scaling matches the baseline and token-level entropy regularization is harmful. A pre-registered 3B replication ($G=32$, scaled pools, primary temperature fixed from the 0.5B study before any 3B run) confirms the signature: pooled $+9.1$ points \texttt{pass@8}, $+5.4$ points coverage, and $+0.31$ distinct answer modes per prompt at flat per-sample accuracy (all $p<10^{-4}$), concentrated in the domain whose prompts retain rich multi-answer structure, while prompt-level scaling turns significantly harmful.
+We pair the benchmark with online verified MaxEnt. For each prompt, training
+maintains a bank containing only outcomes generated by the policy and accepted
+by the task validator. An open-set predictive distribution over that bank plus
+one structural unseen bucket supplies a centered surprisal advantage, a
+one-time bonus rewards new discoveries, and a global round-robin scheduler
+replays exactly one previously discovered verified bank per optimizer update
+under split verified-mass and known-mode-balance terms. All three coefficients
+are self-warmup and carry no projection, so a fixed-budget matched study is a
+direct stress test of both collapse and runaway pressure.
+
+The confirmatory campaign is 54 registered runs and is still executing, so we
+report an explicitly interim, fixed-checkpoint snapshot and no terminal claim.
+At the latest checkpoint that all three seeds of both arms have landed,
+verified MaxEnt raises \texttt{pass@8} over matched Dr.GRPO from .372 to .968
+on graph coloring (pass 10), .608 to .665 on Countdown (pass 5), .172 to .740
+on Python factors (pass 6), and .266 to .663 on MathIR action menus (pass 5),
+with distinct correct modes rising from .393 to 2.344, .650 to 1.674, .172 to
+.956, and .266 to .682. On held-out MATH-500 after training on frozen
+MATH12K-384, the two arms remain within .01 of each other on greedy
+\texttt{pass@1} at pass 2. All four prospectively frozen interpretation gates
+are \texttt{pending}; none may be read as a result. The main contribution is
+the validator-bound experimental object: it separates semantic discovery from
+surface variation and makes long-horizon mode collapse measurable.
 \end{abstract}
 
 \section{Introduction}
-\label{sec:intro}
+\label{sec:introduction}
 
-Reinforcement learning (RL) has become a central component in the post-training for large language models (LLMs), especially for reasoning tasks where the desired behavior cannot be fully specified by supervised imitation alone \citep{ouyang2022training,shao2024deepseekmath,guo2025deepseekr1}. Verifiable domains such as mathematics and code are particularly natural testbeds: candidate solutions can often be checked automatically, and recent work increasingly uses outcome or process feedback to improve reasoning \citep{hendrycks2021math,cobbe2021training,lewkowycz2022solving,lightman2023lets,le2022coderl}. In these settings, learning depends not only on rewarding successful answers but also on whether training produces useful comparisons among alternative reasoning paths. The central question is therefore: how should an RL fine-tuning algorithm encourage a model to generate a useful group of reasoning candidates at each training step?
+Verifier-based reinforcement learning is indifferent among correct responses
+when every one receives reward one. That symmetry does not imply that a learned
+policy remains broad. Group-relative updates can repeatedly reinforce the
+successful output that happened to be sampled, after which future groups see
+less of the alternatives. A policy may therefore improve per-sample
+correctness while becoming worse at test-time search, self-consistency, or
+future learning from rare solutions
+\citep{wang2023selfconsistency,song2025outcome,li2025divergence}.
 
-This question holds particular significance for Group Relative Policy Optimization (GRPO). GRPO-style methods sample multiple completions for the same prompt, compute rewards within that prompt-local group, and update the policy from the resulting relative signal \citep{shao2024deepseekmath,liu2025understanding}. The model does not learn from a single completion in isolation but rather from the structure of a sampled set. Exploration is therefore critical in  two respects: it determines which reasoning paths are available for comparison, and it affects how informative the resulting group-relative update can be. Prior work on self-consistency and related sampling methods shows that diverse reasoning paths can materially improve reasoning performance, suggesting that useful alternatives matter even when only one final answer is selected \citep{wang2023selfconsistency,lin2025cppo}.
+Maximum-entropy reinforcement learning is a natural response
+\citep{ziebart2008maximum,haarnoja18b,levine2018control}, but language-model
+entropy is not solution entropy. A free-form response can vary in wording,
+derivation length, formatting, and termination while expressing the same
+answer. Our preliminary program made this distinction concrete. Direct
+sequence entropy could be spent on longer responses and avoiding EOS;
+candidate-level projections introduced length-dependent biases or optimized a
+detached improvement target rather than policy entropy; and sampled
+surprisal lost its actuator as groups concentrated. Outcome-level shaping was
+denser, but current-group collision penalties could not distinguish tail
+singletons, empirical centering could erase a shared novelty signal, and
+unrestricted novelty could reward distinct errors. Latent option objectives
+faced the complementary problem: correct answer repetitions were too sparse
+to estimate binding cleanly.
 
-A mismatch arises because the supervision in GRPO is groupwise, while most exploration mechanisms are not. Some methods act at the prompt level, for example by using semantic uncertainty to scale the update for an entire question \citep{chen2025seedgrpo,farquhar2024detecting}. Others act at the token level, for example by adding a next-token entropy bonus to the loss \citep{williams1991entropy,mnih2016a3c} or by entropy-regularized token-level objectives for language agents \citep{wen2024etpo}. Both can be useful, but neither directly regularizes the prompt-local distribution over sampled completions, which is the object GRPO uses to assign credit. Raising sampling temperature can increase surface-level variation, but it does not ensure that the group contains meaningfully different or useful reasoning paths. This strategy can just as easily create redundant or incorrect strategies, noisy off-policy completions, or higher-variance updates.
+Those negative results point to a stricter experimental object. An outcome
+should enter the diversity objective only if:
 
-We propose \textbf{\method}, a candidate-level maximum-entropy formulation built on the \drgrpo backbone \citep{liu2025understanding}. The core idea is simple: if GRPO learns from a group, exploration should be expressed on that same group. For each prompt, \method constructs a distribution over the sampled completions. This distribution balances two forces: higher probability for higher-reward candidates and Shannon entropy over the candidate set (an optional reference tilt toward the base model is analyzed in Appendix~\ref{app:reference-tilt} but not used in our experiments). The resulting weights have a closed form, are computed once per rollout batch and frozen for the update exactly as advantages are, and preserve compatibility with the standard prompt-group rollout pipeline: only the aggregation weights of the \drgrpo surrogate change.
+\begin{enumerate}
+  \item the current policy actually generated it;
+  \item an executable task validator accepted that exact generation;
+  \item the canonical key is derived from the same execution that established
+  correctness; and
+  \item the diversity signal is applied outside the empirical centering that
+  can erase it.
+\end{enumerate}
 
-Our evaluation is designed to match this conceptual claim. Rather than relying solely on pooled accuracy tables or best-checkpoint summaries, we evaluate the method with a regression-based analysis over matched runs. Each observation corresponds to a method, training seed, evaluation seed, task domain, prompt, and sampled completion or prompt-level aggregate. The coefficient on the \method indicator estimates the accuracy and coverage lift relative to \drgrpo after controlling for task-domain and seed effects. This approach allows us to report not only whether \method improves aggregate performance, but also the size of the estimated effect and the remaining uncertainty.
+\textsc{ModeBench} implements that object. Graph coloring validates a complete
+assignment against every edge. Countdown parses an arithmetic AST, enforces
+exact operand use, and executes it against the target. Python factor functions
+are called by an isolated external interpreter on a frozen prompt-local test
+suite; the vector returned by those calls is the mode. MathIR action menus
+execute a bounded sequence of equation transformations under exact rational
+arithmetic; the normalized state trajectory is the mode. The domains
+deliberately span a direct combinatorial object, an expression, program
+behavior, and an algebraic procedure.
 
-Our contributions are as follows. \textbf{(i)} We identify a structural mismatch in GRPO-style exploration: the learning signal is formed over sampled completion groups, while common regularizers act at the prompt or token level. \textbf{(ii)} We propose a groupwise maximum-entropy objective that regularizes the prompt-local candidate distribution and derive its closed-form target. \textbf{(iii)} We instantiate the objective as \method, a \drgrpo-based policy optimization method that can be compared against scalar group-relative updates, semantic-entropy scaling, and token-level entropy regularization under a shared backbone. \textbf{(iv)} We give the objective a KL-proximal interpretation and provide robustness guarantees. \textbf{(v)} We evaluate the method with a matched multi-seed regression protocol on two synthetic exact multi-answer benchmarks --- Countdown arithmetic and graph-coloring completion --- whose prompts each admit several verifiably distinct valid answers, making effect size and statistical uncertainty explicit, at two model scales: a 0.5B study whose exploratory arms generate the hypothesis, and a 3B replication that confirms it at a pre-registered primary temperature.
+Our training method builds a prompt-local verified bank online. It neither
+starts from a gold answer catalogue nor divides training into discovery and
+exploitation phases. Every group can add validator-positive outcomes and learn
+from their frequencies. Because a discovered outcome must otherwise wait for
+its own prompt to reappear, a global round-robin scheduler replays exactly one
+previously discovered verified bank on every optimizer update. Because a fixed
+coefficient bound can become the active constraint precisely when collapse is
+strongest, every controller is projection-free and referenced only to its own
+warmup statistic.
+
+Our contributions are:
+
+\begin{itemize}
+  \item \textsc{ModeBench}, a four-domain benchmark in which correctness and
+  semantic identity share one executable validation path;
+  \item an online growing-support objective that rewards rare and newly
+  discovered verified modes without a gold support catalogue, and that makes
+  discoveries act promptly through a globally scheduled verified replay;
+  \item three projection-free, self-referenced coefficient controllers with
+  passive, method-neutral discovery telemetry in the matched control;
+  \item a separated-support entropy-gated singleton actuator whose proposals
+  may reach the replay layer but never the on-policy advantage; and
+  \item a prospectively frozen 54-run, 12-pass campaign with fixed reporting
+  checkpoints, four registered interpretation gates, and a fail-closed audit
+  chain, reported here as an explicitly interim snapshot.
+\end{itemize}
 
 \section{Related Work}
-\label{sec:related-work}
+\label{sec:related}
 
-\textbf{KL-regularized and maximum-entropy policy optimization.}
-A broad line of work views policy optimization through KL-regularized or mirror-descent updates. Classical examples include REPS, MPO/V-MPO, MDPO, TRPO, and PPO, which use relative-entropy or trust-region constraints to stabilize policy improvement \citep{reps,mpo,vmpo,mdpo,trpo,schulman2017ppo}. This perspective has been formalized in regularized RL and policy mirror-descent frameworks \citep{geist2019regmdp,zhan2023pmd,vieillard2020kl}. Maximum-entropy RL adds an explicit entropy term to the control objective, yielding softened or Boltzmann-style solutions and connecting RL to control-as-inference and KL-control \citep{haarnoja18b,levine2018control,ziebart2008maximum,todorov2006}. Two closer relatives deserve note. Exponential advantage weighting of the form $w\propto\exp(A/\tau)$ is the E-step of reward-weighted and advantage-weighted regression \citep{peters2007rwr,peng2019awr}, and the log-sum-exp aggregation our objective reduces to is the \emph{entropic risk measure} of risk-sensitive control \citep{howard1972risk,mihatsch2002risk}. Our formulation builds on this tradition, but applies the exponential weights and the entropy term directly to a \emph{finite set of sampled candidates} within a prompt group, rather than to the full token-level action distribution or to a replay buffer of trajectories.
+\paragraph{Verifier-based reasoning RL.}
+Group-relative optimization is widely used to train reasoning models from
+outcome rewards \citep{shao2024deepseekmath,guo2025deepseekr1,
+liu2025understanding}. Sampling several responses can improve aggregate
+success, but it also exposes a distinction between per-draw accuracy and
+support coverage. Countdown has served as a compact environment for learning
+search from verifiers \citep{gandhi2024stream,tinyzero2025}. We focus on tasks
+small enough to audit mode identity exactly.
 
-\textbf{Preference optimization and groupwise supervision for language models.}
-Recent post-training methods for language models often optimize KL-regularized objectives induced by preferences or rankings. DPO, SimPO, ORPO, and KTO recast alignment as preference optimization without relying on standard on-policy RL pipelines \citep{dpo,simpo,orpo,kto}. In parallel, group methods such as LiPO and PRO emphasize supervision over sets of candidate responses rather than isolated pairwise comparisons \citep{liu2024lipo,song2024pro}. \method is complementary to these approaches: it retains an on-policy GRPO-style training loop, but introduces a prompt-local target distribution over sampled completions and regularizes that distribution directly.
+\paragraph{Diversity-aware policy optimization.}
+Prior approaches reward rare historical answers, penalize repeated outcomes,
+encourage token-level differences among positive responses, change the
+group-level pass@\(\!k\) objective, or preserve mass relative to a reference
+policy \citep{song2025outcome,divpo2025,chen2025passktraining,
+li2025divergence}. These mechanisms act on complementary objects. Our
+distinction is the admission boundary: a novelty key exists only after the
+same generated object passes an executable validator.
 
-\textbf{GRPO and its variants.}
-GRPO is a critic-free, PPO-style post-training method that samples a group of completions, forms group-relative learning signals, and broadcasts them across tokens within each completion \citep{shao2024deepseekmath}. Dr.GRPO revisits this update and motivates a corrected backbone that reduces optimization pathologies in R1-Zero-style training \citep{liu2025understanding}. Several recent variants then modify where exploration or uncertainty enters the GRPO pipeline. SEED-GRPO uses semantic entropy to scale updates at the prompt level \citep{chen2025seedgrpo,farquhar2024detecting}, Info-GRPO introduces diversity through latent conditioning \citep{infogrpo,oord2018cpc}, and token-level entropy interventions range from the classic loss-side entropy bonus \citep{williams1991entropy,mnih2016a3c} to soft-Bellman objectives that carry a KL-to-reference regularizer inside the token-level backup \citep{wen2024etpo}. Our method differs in where it intervenes: it regularizes the \emph{distribution over sampled candidates} itself, yielding a closed-form prompt-local target and a direct candidate-level view of exploration in GRPO-style reasoning RL.
+\paragraph{Maximum-entropy control.}
+Entropy-regularized control augments expected reward with policy entropy and
+admits both regularized-MDP and probabilistic-inference views
+\citep{ziebart2008maximum,geist2019regmdp,levine2018control}. Soft Actor-Critic
+adapts the entropy coefficient with a dual update
+\citep{haarnoja18b,haarnoja2018algorithms}. We borrow the automatic
+coefficient principle, not SAC's critic, replay buffer, or off-policy
+objective. Our sensor is an empirical distribution over verified outcomes
+generated by an on-policy language model, and our controllers are referenced
+to their own warmup means rather than to an externally supplied target.
 
-\section{Where Exploration Enters the Objective}
-\label{sec:where-exploration}
+\paragraph{Executable and grammar-constrained outputs.}
+Formal grammars can prevent invalid generations
+\citep{geng2023grammar}. \textsc{ModeBench} uses a different boundary:
+generation may remain free-form for graph coloring and Countdown, but
+admission is fail-closed. The Python domain additionally restricts its
+one-line language before an external call, and MathIR restricts its command
+alphabet before execution. In all cases, execution determines both reward and
+identity.
 
-GRPO-style methods learn from a \emph{group}. For each prompt, the policy samples
-several completions, scores them, and forms a within-prompt comparison. Our claim is
-that this group is also the natural place for exploration to act. We first observe that Dr.GRPO already
-contains an aggregation step, and that this step is a hidden, unexamined design choice.
+\section{ModeBench}
+\label{sec:modebench}
 
-\paragraph{Common prompt-group setup.}
-For each prompt $x$, the rollout policy $\mu$ samples $G$ completions
-$\{y_{x,1},\dots,y_{x,G}\}$ with scalar rewards $r_{x,i}$, group mean
-$\bar r_x = \tfrac1G\sum_i r_{x,i}$, and centered advantages $A_{x,i} = r_{x,i}-\bar r_x$.
-Let $m_{x,i,t}$ be the completion-token mask, $c_{x,i,t}$ the tokenwise importance ratio
-between $\pi_\theta$ and $\mu$, and $\tilde c_{x,i,t}$ its clipped version
-(Appendix~\ref{app:common-rollout}). Define the \emph{per-candidate Dr.GRPO utility}
-\begin{equation}
-\label{eq:utility}
-\Ubar_{x,i}(\theta)
-\;:=\;
-\frac{1}{T_{\max}}
-\sum_{t}
-m_{x,i,t}\,
-\min\!\bigl(
-c_{x,i,t}A_{x,i},\;
-\tilde c_{x,i,t}A_{x,i}
-\bigr),
-\end{equation}
-where the constant $T_{\max}$ normalizer is exactly Dr.GRPO's length-bias correction
-\citep{liu2025understanding}. Since $|A_{x,i}|\le 1$ for binary verifiable rewards and the
-mask has at most $T_{\max}$ active positions, $|\Ubar_{x,i}|\le 1$ up to the clip range.
+\subsection{Benchmark contract}
 
-\paragraph{Dr.GRPO is a risk-neutral aggregator.}
-Written this way, the Dr.GRPO objective is, up to a constant,
-\begin{equation}
-\label{eq:drgrpo-as-uniform}
-\mathcal J_{\mathrm{Dr.GRPO}}(\theta)
-=
-\frac{1}{|\mathcal A|}\sum_{x\in\mathcal A}
-\;\Bigl\langle\, \mathbf{u},\; \Ubar_{x}(\theta) \,\Bigr\rangle,
+For prompt \(x\), response \(y\), and reference specification \(s_x\), a task
+provides one function
+\[
+V(y,s_x)\in\{\bot\}\cup\mathcal C_x .
+\]
+The value \(\bot\) means invalid or incorrect. Otherwise \(V\) returns a
+canonical key \(c\in\mathcal C_x\). Reward and identity are inseparable:
+\[
+r(x,y)=\1[V(y,s_x)\neq\bot],
 \qquad
-\mathbf{u} = \bigl(\tfrac1G,\dots,\tfrac1G\bigr)\in\Delta^G .
-\end{equation}
-That is: Dr.GRPO builds a group, computes a utility for each candidate, and then
-\emph{averages them uniformly}. The group-relative signal lives entirely inside
-$A_{x,i}$; the aggregation across candidates is a plain mean. Nothing in the derivation
-of Dr.GRPO requires this. The uniform weights are an implicit choice, and they are the
-choice that treats every sampled candidate as equally worth learning from.
-
-\paragraph{xDr.GRPO: optimistic aggregation over the candidate group.}
-xDr.GRPO replaces $\mathbf{u}$ by a prompt-local distribution $w_x\in\Delta^G$ chosen
-variationally. For $\tau>0$ and $\lambda\ge 0$,
-\begin{equation}
-\label{eq:xdr-objective}
-\mathcal G_x(\theta)
-\;:=\;
-\max_{w\in\Delta^G}
-\Bigl\{
-\underbrace{\langle w, \Ubar_x(\theta)\rangle}_{\text{same Dr.GRPO utilities}}
-\;+\;
-\underbrace{\tau H(w)}_{\text{candidate-level entropy}}
-\;-\;
-\underbrace{\lambda\,\KL\!\bigl(w\,\|\,\pi^{\mathrm{ref}}_x\bigr)}_{\text{reference tilt}}
-\Bigr\},
-\end{equation}
-where $\pi^{\mathrm{ref}}_x\in\Delta^G$ is a reference-induced distribution over the same
-sampled set (Appendix~\ref{app:reference-tilt}), and the training objective is
-$\mathcal J_{\mathrm{xDr.GRPO}}(\theta) = \tfrac{1}{|\mathcal A|}\sum_{x\in\mathcal A}\mathcal G_x(\theta)$.
-The maximizer is a tilted softmax over utilities,
-\begin{equation}
-\label{eq:xdr-closed-form}
-w^\star_{x,i}(\theta)
-=
-\frac{
-\exp\!\bigl(\Ubar_{x,i}(\theta)/(\tau+\lambda)\bigr)\,
-\bigl(\pi^{\mathrm{ref}}_{x,i}\bigr)^{\lambda/(\tau+\lambda)}
-}{
-\sum_{j=1}^G
-\exp\!\bigl(\Ubar_{x,j}(\theta)/(\tau+\lambda)\bigr)\,
-\bigl(\pi^{\mathrm{ref}}_{x,j}\bigr)^{\lambda/(\tau+\lambda)}
-},
-\end{equation}
-and eliminating $w$ leaves a log-partition (soft-max) objective
-\begin{equation}
-\label{eq:xdr-lse}
-\mathcal G_x(\theta)
-=
-(\tau+\lambda)\,
-\log\!\sum_{i=1}^G
-\exp\!\Bigl(\tfrac{\Ubar_{x,i}(\theta)}{\tau+\lambda}\Bigr)
-\bigl(\pi^{\mathrm{ref}}_{x,i}\bigr)^{\lambda/(\tau+\lambda)} .
-\end{equation}
-Proofs are in Appendix~\ref{app:theory}. Crucially, by the envelope theorem the gradient
-is the \emph{same per-candidate Dr.GRPO gradient, reweighted}:
-\begin{equation}
-\label{eq:xdr-gradient}
-\nabla_\theta \mathcal G_x(\theta)
-=
-\sum_{i=1}^G w^\star_{x,i}(\theta)\,\nabla_\theta \Ubar_{x,i}(\theta),
-\end{equation}
-with $w^\star$ entering as a constant: the implementation computes the weights once per
-rollout batch at the rollout policy --- where the clipped utility reduces to the closed form
-$A_{x,i}T_{x,i}/T_{\max}$ --- and freezes them for the update, exactly as the advantages are
-frozen (Remark~\ref{rem:frozen-weights}). The rollout
-pipeline, reward function, clipping, and tokenwise surrogate are untouched. \emph{Only the
-aggregation weights change.}
-
-\paragraph{Why this is exploration, and why Dr.GRPO has none.}
-Equation~\eqref{eq:xdr-lse} is a tempered log-sum-exp: the \emph{entropic risk measure} of
-the candidate utilities \citep{howard1972risk,mihatsch2002risk}, with $\tau+\lambda$ as
-inverse risk-sensitivity. Its second-order
-expansion (Proposition~\ref{prop:variance-expansion}) makes the mechanism explicit:
-\begin{equation}
-\label{eq:variance-expansion-main}
-\mathcal G_x(\theta)
-=
-\underbrace{\tau\log G}_{\text{constant}}
-\;+\;
-\underbrace{\frac{1}{G}\sum_{i=1}^G \Ubar_{x,i}(\theta)}_{\textbf{Dr.GRPO}}
-\;+\;
-\underbrace{\frac{1}{2\tau}\,\Var_{i}\!\bigl(\Ubar_{x,i}(\theta)\bigr)}_{\textbf{group-level exploration bonus}}
-\;+\;
-O(\tau^{-2})
-\qquad (\lambda=0).
-\end{equation}
-Three consequences follow, and they replace the informal ``entropy adds stochasticity''
-story used by prior work.
-
-\emph{(i) Dr.GRPO is the risk-neutral member of this family.} As $\tau\to\infty$,
-$w^\star\to\mathbf{u}$ and $\nabla_\theta\mathcal G_x\to\nabla_\theta\mathcal J_{\mathrm{Dr.GRPO},x}$
-(Proposition~\ref{prop:drgrpo-limit}). The baseline is not ``xDr.GRPO without
-exploration''; it is \emph{xDr.GRPO at zero risk-sensitivity}. Exploration is therefore not
-an additive gadget bolted onto Dr.GRPO --- it is a parameter Dr.GRPO silently pins at a
-corner.
-
-\emph{(ii) Finite $\tau$ is optimism over the group.} By Jensen,
-$\mathcal G_x - \tau\log G \ge \mathcal J_{\mathrm{Dr.GRPO},x}$, with the gap equal to the
-within-group \emph{dispersion} of candidate utilities. xDr.GRPO thus prefers parameters that
-keep the sampled group spread out in utility --- that is, prompts and policies where the
-group still disagrees. This is optimism in the face of uncertainty, expressed on the object
-GRPO uses for credit assignment, rather than on the prompt (SEED-Dr.GRPO) or the next-token
-distribution (Token-MaxEnt Dr.GRPO).
-
-\emph{(iii) The mechanism is asymmetric gradient attenuation.} Because
-$w^\star_{x,i}\propto \exp(\Ubar_{x,i}/\tau)$ and $\Ubar_{x,i}$ is increasing in $A_{x,i}$,
-negative-advantage candidates receive \emph{exponentially downweighted} gradients. How such
-attenuation interacts with policy-entropy dynamics under verifiable rewards is genuinely
-contested: entropy collapse has been traced to high-covariance updates on confident
-\emph{positive}-advantage tokens \citep{cui2025entropy}, and sequence-level negative
-reinforcement alone can even preserve entropy \citep{zhu2025negative}, while negative
-gradients applied to \emph{low-probability} tokens are a documented entropy-collapsing and
-likelihood-displacing force whose selective attenuation helps
-\citep{park2025cliplow,huang2025lowprob,deng2025negativegrad}. Our reweighting acts at the
-candidate level rather than the token level, so we treat its net effect as an empirical
-question: Section~\ref{sec:results} tests the outcomes, and the training-time diagnostics
-of the realized aggregation weights --- the effective number of active rollouts and the
-incorrect-mass share, logged identically for every arm --- are reported in
-Appendix~\ref{app:implementation} (Figure~\ref{fig:exploration-sidecar}).
-
-\paragraph{The family, end to end.}
-The temperature interpolates between two known regimes:
-\begin{center}
-\begin{tabular}{@{}lll@{}}
-\toprule
-$\tau \to 0$ & $w^\star \to$ uniform on $\argmax_i \Ubar_{x,i}$ & argmax-set aggregation (best-of-$G$, RAFT-style, \citealp{dong2023raft}) \\
-$0 < \tau < \infty$ & tilted softmax over utilities & \textbf{xDr.GRPO} \\
-$\tau \to \infty$ & $w^\star \to \mathbf{u}$ & \textbf{Dr.GRPO} \\
-\bottomrule
-\end{tabular}
-\end{center}
-Where in this family the optimum sits is an empirical question: aggressive concentration
-risks discarding the comparative signal that makes GRPO work, while uniform aggregation
-spends a fixed share of every update on negative candidates.
-Section~\ref{sec:results} sweeps $\tau$ end to end --- including the exact $\tau=0$
-boundary, computed in closed form over the argmax set --- with Dr.GRPO as the
-$\tau=\infty$ endpoint of the same family, run through the same launcher with the
-reweighting disabled (Remark~\ref{rem:frozen-weights}).
-
-\paragraph{Degenerate groups need no special handling.}
-If all sampled rewards are equal, then $A_{x,i}=0$ for all $i$, hence $\Ubar_{x,i}=0$,
-$w^\star_x$ is uniform (or reference-tilted), and $\nabla_\theta\mathcal G_x=0$. Uninformative
-prompts contribute no gradient automatically, matching Dr.GRPO's behavior; no
-prompt-skipping heuristic is required.
-
-\section{Experimental Design}
-\label{sec:experimental-design}
-
-\paragraph{Compared methods.}
-The comparison is organized around \emph{where} exploration enters an otherwise shared GRPO-style pipeline: the rollout interface, reward function, base model, and optimization budget are held fixed, and the methods differ only in how a prompt-local group of sampled completions becomes an update. \drgrpo is the scalar-weight baseline --- clipped surrogate, uniform aggregation, the $\tau=\infty$ member of the family \citep{shao2024deepseekmath,liu2025understanding}. \method is the candidate-level variant, reweighting each candidate's \drgrpo update by the tempered group-local distribution of Equation~\ref{eq:xdr-closed-form}. \seeddrgrpo rescales whole prompts by semantic uncertainty, following semantic-entropy approaches that estimate uncertainty over answer meaning \citep{chen2025seedgrpo,farquhar2024detecting} --- a prompt-level intervention. \tokmaxdrgrpo adds the classic next-token entropy bonus to the same backbone \citep{williams1991entropy,mnih2016a3c}, the token-level intervention pursued by entropy-regularized objectives for language agents \citep{wen2024etpo}. Together they span a clean axis: no exploration beyond rollout sampling, prompt-level, token-level, and candidate-level. The main paired regression focuses on \drgrpo versus \method; the same specification extends to the full quartet by replacing the binary method indicator with method fixed effects.
-
-\paragraph{Testbed.}
-We evaluate \method in verifiable reasoning tasks with \emph{multiple valid solutions per prompt}. The testbed consists of two synthetic exact multi-answer domains, generated by exhaustive enumeration so that the full set of valid answers for every prompt is known.
-
-\paragraph{Countdown arithmetic.}
-Each prompt presents three distinct integers drawn from $\{2,\dots,12\}$ and an integer target, and asks the model to return a single arithmetic expression, inside \texttt{\textbackslash boxed\{\}}, that reaches the target using each given number exactly once with $+$, $-$, $\times$, $/$, and parentheses \citep{gandhi2024stream,tinyzero2025}. All reachable expressions are enumerated exactly (every permutation of the numbers, every binary expression tree, rational arithmetic), and each expression is reduced to a canonical form in which commutative operands are sorted while operator identity is preserved. A prompt's \emph{answer modes} are its distinct canonical solution expressions: for example, the numbers $[2,3,4]$ reach the target $10$ through the two distinct modes $2\times 3+4$ and $3\times 4-2$.
-
-\paragraph{Graph-coloring completion.}
-Each prompt presents a small undirected graph (vertices $1$ through $n$), its edge list, and a partial coloring with hidden vertices, and asks the model to return colors from $\{1,2,3\}$ for the hidden vertices, boxed, such that no edge has equal colors at both endpoints. All valid colorings consistent with the partial assignment are enumerated exactly; a prompt's answer modes are its distinct valid completions.
-
-In both domains, prompts are filtered so that every training and evaluation item admits several modes (between $2$ and $8$ for Countdown), which makes the pair a direct probe of whether a training objective finds \emph{more of the valid answer set} rather than one answer more reliably. The problem scale is calibrated so that the base policy earns reward often enough to bootstrap: three-number Countdown gives an untrained small model a workable success rate, whereas four-number variants yield almost no rewarded rollouts and hence no learning signal. The released configurations use $384$ training prompts and $128$ held-out evaluation prompts for Countdown ($192$/$96$ for graph coloring), generated deterministically from fixed seeds, plus optional single-mode control splits in which each prompt has exactly one valid answer. Evaluation prompts are excluded from the training pool by problem identity (numbers and target for Countdown; graph, edge set, and partial coloring for graph coloring), so no evaluation item is ever trained on. In the released Countdown configuration the evaluation split's mode counts concentrate at five modes per prompt (median $5$, range $2$--$8$) with targets in $[1,36]$. The primary paired comparison is \drgrpo versus \method, fine-tuning Qwen2.5-0.5B-Instruct policies with $G=16$ rollouts per prompt during training. For each method, we train three independent seeds per domain and evaluate each trained checkpoint with three evaluation seeds; evaluation draws $K=8$ sampled completions per prompt at temperature $1.0$ (independent of the training group size) plus one greedy completion, always from the final saved checkpoint --- a rule fixed before any evaluation was run.
-
-All methods use the same base model, prompt format, reward extraction logic, rollout budget, and evaluation harness. Correctness is verifiable and binary: the boxed expression is normalized, parsed, and evaluated with exact rational arithmetic, and receives reward $1$ if and only if it equals the target and uses each given number exactly once. Mode identity is never part of the training reward --- the trainer sees correctness only --- so any difference in how many distinct modes a method discovers is attributable to the training objective rather than to mode-aware supervision.
-
-\subsection{Metrics}
-\label{sec:metrics}
-
-We compute five descriptive metrics. Greedy \texttt{pass@1} measures whether the deterministic completion is correct. Sampled \texttt{pass@8} measures whether at least one of eight sampled completions is correct for a prompt. Sampled \texttt{mean@8} measures the average correctness rate across the eight sampled completions. Because every prompt admits several distinct valid modes, we additionally track \texttt{distinct@8}, the number of distinct canonical answer modes among the correct sampled completions, and \texttt{coverage@8}, defined as \texttt{distinct@8} divided by the prompt's total number of valid modes. The coverage metrics measure exactly what candidate-level exploration is supposed to buy: discovering more of the valid answer set, not only finding one answer more often. These aggregate metrics are useful summaries, but they do not by themselves quantify uncertainty across difficulty strata, training seeds, and evaluation seeds. For that reason, our primary statistical comparison is regression-based.
-
-\subsection{Regression-Based Evaluation}
-\label{sec:regression-evaluation}
-
-For each method $m$, training seed $s$, evaluation seed $e$, task domain $b$ (Countdown or graph coloring), prompt $p$, and sampled completion $k$, let
-\[
-C_{m,s,e,b,p,k}\in\{0,1\}
+c(x,y)=V(y,s_x)\quad\text{when }r=1.
 \]
-indicate whether the normalized boxed answer is correct. We form prompt-level outcomes from these completion-level indicators:
-\[
-Y^{\texttt{pass@8}}_{m,s,e,b,p}
-=
-\1\!\left\{\max_{1\le k\le 8} C_{m,s,e,b,p,k}=1\right\},
-\qquad
-Y^{\texttt{mean@8}}_{m,s,e,b,p}
-=
-\frac{1}{8}\sum_{k=1}^8 C_{m,s,e,b,p,k}.
-\]
-For greedy \texttt{pass@1}, $Y^{\texttt{pass@1}}_{m,s,e,b,p}$ is the corresponding greedy correctness indicator. For coverage, let $d_{m,s,e,b,p}$ be the number of distinct canonical answer modes among the correct sampled completions and $M_{b,p}$ the prompt's known number of valid modes; then
-\[
-Y^{\texttt{coverage@8}}_{m,s,e,b,p} = \frac{d_{m,s,e,b,p}}{M_{b,p}} \in [0,1].
-\]
+A benchmark is mode-verifiable only if two properties hold. First, the
+validator checks the object actually generated, rather than a model-supplied
+claim about it. Second, formatting aliases do not create new keys, while
+different executed outcomes do.
 
-For each outcome $Y$, we estimate the paired linear probability model
-\begin{equation}
-\label{eq:regression-main}
-Y_{m,s,e,b,p}
-=
-\alpha
-+\gamma\,\1\{m=\methodmath\}
-+\delta_b
-+\eta_s
-+\zeta_e
-+\varepsilon_{m,s,e,b,p}.
-\end{equation}
-Here $\delta_b$ are task-domain fixed effects, $\eta_s$ are training-seed fixed effects, and $\zeta_e$ are evaluation-seed fixed effects. The coefficient $\gamma$ is the estimated effect of \method relative to \drgrpo in accuracy points, after controlling for the matched evaluation design. We report $\hat\gamma$, its standard error, a confidence interval, and a $p$-value. Standard errors are clustered by evaluation prompt when prompt identities are shared across methods. We additionally check robustness to clustering by training run when reporting pooled results across task domains. Table~\ref{tab:regression-protocol}
-summarizes the role of each regression component.
-
-This regression analysis is the paper's main answer to the question ``is the observed improvement statistically distinguishable from seed and dataset variation?'' The raw accuracy tables show the size and direction of the observed differences. Equation~\ref{eq:regression-main} tests whether those differences persist after accounting for the repeated-seed evaluation structure.
-
-\subsection{Power and Sample Size Planning}
-
-The study is powered around the regression coefficient $\gamma$ in
-Equation~3, which estimates the absolute accuracy lift from replacing
-Dr.GRPO with xDr.GRPO. Power is assessed at the prompt level rather than
-the completion level, since completions from the same prompt and repeated
-evaluations of the same evaluation item are not independent. In the main
-paired comparison, each method is trained with three independent fine-tuning
-seeds and each checkpoint is evaluated with three stochastic evaluation
-seeds, yielding up to $2 \times 3 \times 3$ method-run evaluations per
-prompt across the two task domains. Before interpreting null effects as evidence
-of no improvement, we will estimate the minimum detectable effect for each
-outcome using the prompt-clustered standard error from the planned regression
-or, equivalently, a cluster bootstrap that resamples prompts and training runs.
-
-For a two-sided test with $\alpha = 0.05$ and 80\% power, the approximate
-minimum detectable effect is
-\[
-\mathrm{MDE}
-\approx
-\left(z_{1-\alpha/2} + z_{0.80}\right)
-\widehat{\mathrm{SE}}(\hat{\gamma})
-=
-(1.96 + 0.84)\widehat{\mathrm{SE}}(\hat{\gamma})
-\approx
-2.8\,\widehat{\mathrm{SE}}(\hat{\gamma}).
-\]
-We treat an absolute change of $3$ points on \texttt{pass@8}, \texttt{mean@8},
-or \texttt{coverage@8} as the smallest practically meaningful effect. This
-margin does double duty. For detection, the realized prompt-clustered standard
-errors in the completed runs ($0.006$--$0.025$ across outcomes, scales, and
-pooling levels) put the realized MDE at roughly $2$--$7$ points, so effects at
-or above the margin are within the design's resolution. For \emph{null} results
-the margin becomes an equivalence bound: wherever the paper claims an outcome
-is ``flat,'' we support the claim with two one-sided tests (TOST) against
-$\pm 3$ points, reporting the TOST $p$-value rather than treating a large
-$p$-value from the difference test as evidence of no effect.
-
-
-\begin{table}[t]
+\begin{table}[H]
   \centering
   \small
-  \setlength{\tabcolsep}{6pt}
-  \begin{tabularx}{\linewidth}{@{}l X@{}}
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabularx}{\linewidth}{@{}lYYY@{}}
     \toprule
-    \textbf{Quantity} & \textbf{Role in the regression analysis} \\
+    \textbf{Domain} & \textbf{Generated object} &
+    \textbf{Executable check} & \textbf{Mode key} \\
     \midrule
-    Method indicator $\1\{m=\methodmath\}$ & Main treatment variable. Its coefficient estimates the accuracy and coverage lift of candidate-level exploration relative to \drgrpo. \\
-    Task-domain fixed effects $\delta_b$ & Control for baseline difficulty differences between Countdown arithmetic and graph-coloring completion. \\
-    Training-seed fixed effects $\eta_s$ & Control for variation induced by independent fine-tuning runs. \\
-    Evaluation-seed fixed effects $\zeta_e$ & Control for sampling variation during stochastic evaluation. \\
-    Prompt-clustered standard errors & Account for repeated observations of the same problem across methods and seeds. \\
+    Graph coloring &
+    Missing colors or a full assignment &
+    Materialize the assignment; check fixed colors and every edge &
+    Complete color vector \\
+    Countdown &
+    Arithmetic expression &
+    Parse AST; check exact multiset of operands; evaluate exactly &
+    Normalized executed AST \\
+    Python factors &
+    One-line \texttt{lambda n: EXPR} &
+    Call in an isolated Python worker on every frozen input; check proper
+    divisibility &
+    Returned integer vector \\
+    MathIR action menu &
+    Bounded sequence of menu actions &
+    Apply each command to both sides; normalize exactly after every step &
+    Normalized equation-state trajectory \\
     \bottomrule
   \end{tabularx}
-  \caption{\textbf{Regression-based evaluation protocol.} Aggregate \texttt{pass@1}, \texttt{pass@8}, \texttt{mean@8}, \texttt{distinct@8}, and \texttt{coverage@8} are reported descriptively, while the coefficient on the method indicator provides the primary effect-size and uncertainty estimate.}
-  \label{tab:regression-protocol}
+  \caption{\textbf{The four ModeBench environments.} Correctness and mode
+  identity come from the same executed object.}
+  \label{tab:tasks}
 \end{table}
 
-\subsection{Pre-Specified Predictions}
-\label{sec:interpreting-current-run}
+\subsection{Graph coloring}
 
-The benchmark makes the failure mode we target directly visible, so the design
-commits to an \emph{ordered} prediction rather than a single accuracy
-comparison. A policy can be perfectly accurate on these tasks while knowing only
-one way to be right: when $[2,3,4]$ reaches $10$ through both $2\times3+4$ and
-$3\times4-2$, outcome reward is indifferent between a policy that can produce
-either mode and one that has collapsed onto a single expression --- and the
-asymmetric negative-advantage gradients of uniform aggregation actively push
-toward the latter (Section~\ref{sec:where-exploration}). The prediction is
-therefore ordered: \drgrpo and \method should be statistically comparable on
-\texttt{pass@1} and \texttt{mean@8}, while \method should retain strictly more
-of the valid answer set as measured by \texttt{distinct@8} and
-\texttt{coverage@8}. Either half failing is disconfirming --- coverage gains
-bought with accuracy losses, or accuracy gains without coverage gains, both
-contradict the mechanism and are reported as such wherever they occur.
+Each instance describes a graph, a partial three-color assignment, and several
+hidden vertices. The response supplies the missing digits or the complete
+assignment. The validator fixes shown colors, reconstructs the full vector,
+and rejects any monochromatic edge. The canonical key is that full vector, so
+spacing and answer formatting are aliases but different valid completions are
+different modes. The current train/evaluation split contains 192/96 prompts.
 
-The mechanism carries a second, sharper implication: candidate-level exploration
-can only preserve diversity that exists in the sampled groups. Its effect should
-therefore \emph{scale with the reachable multi-answer structure of the task} ---
-large where prompts admit many valid modes the policy visits, small where the
-answer space is narrow, and absent where the policy is never rewarded at all
-(there is no group signal to reweight). Domain-concentrated effects are
-consequently part of the prediction, not a caveat to it; what the mechanism
-forbids is an accuracy price.
+\subsection{Countdown}
 
-The experiments test these predictions at two scales with distinct evidential
-roles: the 0.5B study (Section~\ref{sec:results-05b}) is hypothesis-generating ---
-its pre-registered primary temperature was chosen badly, and its exploratory
-arms located the effective range --- while the 3B study
-(Section~\ref{sec:results-3b}) is confirmatory, with the primary temperature
-pre-registered from the 0.5B evidence before any 3B run started. Model scales
-are deliberately small enough to afford matched multi-seed grids; the claim
-under test is about the objective, not about frontier scale. Threats to
-validity and expected failure modes are cataloged in
-Appendix~\ref{app:threats}.
+Each instance supplies three distinct integers and a target. A response uses
+each input exactly once with \(+,-,\times,\div\) and parentheses. The validator
+parses only this arithmetic subset, evaluates with exact rational arithmetic,
+and requires the target. Commutative children are sorted in the canonical AST,
+so \(2+3\times4\) and \(4\times3+2\) share a key, while genuinely different
+expression trees remain distinct. The split contains 384/128 prompts.
 
-\section{Results}
+\subsection{Python factor functions}
+\label{sec:python-task}
+
+The third environment tests program behavior rather than source appearance.
+Each prompt lists four composite integers and requests a pure function with
+the exact signature \texttt{lambda n: EXPR}. For every frozen tool call, the
+returned value \(d\) must satisfy
+\[
+1<d<n,\qquad n\bmod d=0.
+\]
+The accepted syntax contains integer literals, the variable \(n\), bounded
+arithmetic, comparisons, Boolean operators, and conditional expressions.
+Calls, imports, attributes, containers, comprehensions, subscripts, loops,
+and other names are rejected before execution.
+
+After syntax validation, a persistent isolated Python worker calls the
+function. The worker returns either failure or the complete output vector;
+the parent process never evaluates model code. If the inputs are
+\((n_1,\ldots,n_m)\) and \(D(n)\) is the set of nontrivial proper divisors,
+then the exact number of semantic modes is
+\[
+M(x)=\prod_{j=1}^{m}|D(n_j)|.
+\]
+The released deterministic materialization has 384 training and 128
+evaluation prompts, disjoint input tuples, and 16--3,600 modes per prompt.
+For every row, the generator constructs two different functions and requires
+the external worker to certify two different behavior keys.
+
+\subsection{MathIR action menus}
+\label{sec:mathir-task}
+
+The fourth environment keeps the executable contract while moving closer to
+ordinary algebra. Each prompt shows a linear equation and a finite lettered
+menu of at most eight equation transformations. A response emits a bounded
+sequence of menu actions rather than prose or a final numeric answer. The
+interpreter applies each selected command to both sides of the current
+equation and renormalizes with exact rational arithmetic after every step;
+there is no parser for LaTeX, natural-language derivations, or a
+model-declared answer. Programs are limited to four steps.
+
+The canonical key is the normalized state trajectory produced by that
+successful execution, so two different routes to the same solved equation are
+different modes and two spellings of the same route are the same mode. The
+deterministic materialization \texttt{mathir\_action\_menu\_v1} uses seed
+5900, contains 384 training and 128 evaluation prompts over four equation
+families, and has exactly five exhaustively enumerated modes per prompt. The
+enumerated support is used by evaluation only; the training bank starts
+empty and no gold catalogue is supplied to the policy.
+
+\section{Online Verified Maximum Entropy}
+\label{sec:method}
+
+\subsection{Growing verified support}
+
+For each prompt \(x\), the learner maintains a bank
+\(\Bpos\) of canonical keys that the current policy has generated and the
+validator has accepted. The bank starts empty. A reference specification may
+define the task constraints, but no gold answer catalogue initializes the
+bank.
+
+For each generated response, the learner decodes the exact training
+trajectory and independently calls \(V\). Admission is fail-closed at the
+intersection of executable canonical validation and positive rollout reward;
+a disagreement is excluded from both passive tracking and the active bank and
+is recorded in telemetry. All candidates in a group are scored against one
+immutable pre-group snapshot, and new keys are committed only after the whole
+group is scored, so novelty is invariant to row order. Counts, bank state,
+scheduler cursor, and all controller states are stored in optimizer-resumable
+checkpoints and must all be present on resume.
+
+\subsection{Open-set semantic advantage and discovery credit}
+
+Consider a group of \(G=16\) responses for prompt \(x\). Let \(c_x(a)\)
+collect the historical bank count of verified key \(a\) together with the
+leave-one-out multiplicity of \(a\) among the other verified responses in the
+current group, let \(K_x\) be the number of explicitly counted keys, and let
+\(\lambda=1\) be a pseudocount. The predictive distribution always carries one
+structural unseen bucket \(\varnothing\):
+\[
+q(a)=\frac{c_x(a)+\lambda}{\sum_b c_x(b)+\lambda(K_x+1)},
+\qquad
+q(\varnothing)=\frac{\lambda}{\sum_b c_x(b)+\lambda(K_x+1)} .
+\]
+With surprisal clip \(S=5\),
+\[
+h_i=\min\{-\log q(a_i),S\},
+\qquad
+\overline h=\sum_{a\in\mathcal K_x\cup\{\varnothing\}}
+q(a)\min\{-\log q(a),S\},
+\qquad
+A_i^{\mathrm{sem}}=\beta_t\,\frac{h_i-\overline h}{S}.
+\]
+The advantage is centered under the detached predictive distribution, not by
+the empirical mean of the sampled group, so it can remain nonzero when the
+current correct samples all share one mode but the bank records alternatives.
+The unseen bucket keeps the objective open: it never asserts that the
+discovered support is complete.
+
+Let \(\mathcal N_x\) be current verified keys absent from the pre-group bank.
+The discovery advantage is
+\[
+A_i^{\mathrm{new}}
+=\nu\,\frac{\1[a_i\in\mathcal N_x]}{m_x(a_i)},
+\qquad \nu=0.50,
+\]
+where \(m_x(a_i)\) is the multiplicity of \(a_i\) among current verified
+responses. All copies of one newly discovered key share a total credit of
+\(\nu\); duplicates and row order cannot multiply discovery reward.
+
+The final actor advantage is
+\[
+A_i =
+\underbrace{r_i-\frac1G\sum_jr_j}_{A_i^{\mathrm{task}}}
++\1[V(y_i,s_x)\neq\bot]
+\left(A_i^{\mathrm{sem}}+A_i^{\mathrm{new}}\right).
+\]
+Wrong, unparseable, and loss-inactive responses receive no canonical
+pressure. The task reward entering Dr.GRPO is unchanged, and there is no
+second empirical centering after the canonical terms are added. The historical
+prompt-local bank-entropy advantage is disabled in every registered arm
+(\texttt{bank\_alpha}\(=0\)); the open-set term above is the sole entropy
+channel in the actor advantage.
+
+\subsection{Global verified replay}
+\label{sec:replay}
+
+A prompt-local bank that is materialized only when its own prompt returns to
+the rollout is a slow actuator. With 384 unique training prompts, a singleton
+discovered late in one pass can act once and then wait nearly a full pass. The
+verified-mass controller then receives sparse observations, the balance
+controller stays ineligible until one prompt independently reveals two modes,
+and correct executable structure cannot propagate promptly.
+
+After the model creates its first validator-positive bank, every optimizer
+update therefore materializes exactly one previously discovered verified bank,
+traversed in deterministic round-robin order over prompt hashes with a
+checkpointed cursor. A bank contributes at most one stored model-generated
+exemplar per observed canonical outcome, up to a fixed replay capacity of 16
+outcomes. The scheduled bank receives two independent terms:
+
+\begin{itemize}
+  \item \textbf{verified mass}: uniform verified-exemplar likelihood over
+  every scheduled bank, including a singleton, with coefficient \(\mu_t\); and
+  \item \textbf{known-mode balance}: \(\mathrm{KL}(U_{\mathrm{bank}}\,\|\,
+  q_{\mathrm{model}})\) for banks with at least two observed modes, with
+  coefficient \(\alpha_t\).
+\end{itemize}
+
+With one scheduled bank per update, the replay contribution to the loss is
+\(\tfrac{15}{16}\cdot\tfrac1{16}\,(\mu_t L_{\mathrm{mass}}
++\alpha_t L_{\mathrm{balance}})\). Selection sees only the accumulated
+verified banks and the fixed one-bank compute budget. It never reads
+exhaustive support, a gold mode count, evaluation output, a desired entropy,
+or a desired success rate. Before the first verified discovery there is no
+eligible bank and therefore no replay gradient.
+
+\subsection{Projection-free self-referenced control}
+\label{sec:controllers}
+
+Three coefficients adapt, each from its own sensor and each referenced only to
+its own warmup mean over 64 eligible observations with EMA decay \(0.9\). Let
+\(\rho\) be the normalized open-set predictive entropy
+\(H(q)/\log(K_x+1)\), let \(s\) be the verified-exemplar surprisal, and let
+\(h\) be the scheduled bank's normalized entropy. After warmup,
+\[
+\beta_t=0.10\,\frac{\rho_{\mathrm{ref}}}{\rho_{\mathrm{ema}}},
+\qquad
+\mu_t=0.10\,\frac{s_{\mathrm{ema}}}{s_{\mathrm{ref}}},
+\qquad
+\alpha_t=0.10\,\frac{h_{\mathrm{ref}}}{h_{\mathrm{ema}}} .
+\]
+Falling semantic entropy raises exploration pressure, rising surprisal on
+known-correct exemplars raises mass pressure, and falling bank entropy raises
+balance pressure. During warmup each coefficient holds its registered
+reference dose of \(0.10\). No coefficient has a lower or upper projection, so
+sustained collapse can keep increasing pressure and saturation cannot be
+mistaken for stability. Singleton banks are skipped by the balance sensor
+rather than recorded as zero entropy, which would drive \(\alpha\) upward
+before a second outcome exists. Direct token entropy and its controller are
+absent from the objective.
+
+\subsection{Why the control also tracks discoveries}
+
+The matched Dr.GRPO arm runs the same validator and maintains the same
+prompt-local counts as a passive observer. Its semantic, novelty, mass, and
+balance coefficients are exactly zero, so its exploration advantage is
+identically zero and cannot enter the loss. This makes cumulative discoveries,
+tracked prompts, and mean support comparable without giving the treatment a
+private measurement instrument.
+
+\section{The Separated-Support Singleton Actuator}
+\label{sec:actuator}
+
+Every mechanism in Section~\ref{sec:method} needs at least one alternative to
+act on. When a prompt's bank holds exactly one outcome, the balance term is
+ineligible, the open-set advantage has a single explicit bucket, and the
+learner can only wait for the policy to rediscover breadth on its own. The
+registered treatment adds one support-only escape actuator for exactly that
+state.
+
+For the current prompt, a counterfactual proposal is eligible only when all of
+the following hold: the bank contains exactly one outcome; the open-set
+controller has completed its fixed 64-observation warmup; its current
+normalized predictive-entropy EMA is below the run's own warmup reference; and
+its unprojected multiplier is therefore greater than one. The proposal starts
+from the model's own reward-positive, executable response, applies
+domain-specific validator-preserving transformations, and independently
+revalidates before and after tokenization. At most one novel outcome may be
+admitted per group; a bank with zero or with two or more outcomes is
+ineligible.
+
+Two isolation properties make this an actuator rather than a second objective.
+First, proposal rows never enter PPO. Second, under the registered separation
+contract, proposal-derived outcomes may enter the replay-exemplar layer but
+may not enter the historical on-policy count table used by the open-set or
+novelty advantages. A proposed outcome therefore remains novel to the
+objective until the neutral policy itself produces and validates it, at which
+point it receives the ordinary discovery credit, graduates into the on-policy
+count table, and its neutral exemplar replaces the proposal-only exemplar.
+The singleton condition is an actuator-identifiability test; it is not a claim
+that a task has exactly two valid modes.
+
+Because enabling proposals also requires replicated free-form sampling and
+local actor weight synchronization, the actuator cannot be evaluated against
+the historical treatment alone. The campaign therefore registers a
+same-plumbing control that runs the identical objective and execution surface
+with proposals and the singleton gate switched off. That control, not the
+historical arm, is the causal comparator.
+
+\section{Experimental Design}
+\label{sec:experiments}
+
+All runs use Qwen2.5-0.5B-Instruct at a pinned revision, seeds 43, 44, and 45,
+group size 16, learning rate \(2\times10^{-7}\), one PPO epoch,
+\(\beta_{\mathrm{KL}}=0\), rollout temperature 1, top-\(p=1\), maximum
+response length 192, and exactly 12 complete passes through each domain's
+fixed training pool. Within a domain, arms share the dataset, source snapshot,
+model, optimizer, prompt formatting, rollout count, training budget,
+evaluation cadence, evaluation seed, checkpoint cadence, and recovery rules.
+
+\paragraph{Registered surface.}
+The confirmatory campaign contains 54 runs across five reporting domains and
+four arms, summarized in Table~\ref{tab:campaign}. Two earlier cohorts are
+excluded from that denominator by machine-readable invalidation audits rather
+than by inspection of their results: one because its runtime forced the
+novelty credit to zero before the actuator could fire, and one because its
+shared proposal/on-policy bank was rejected by a fail-closed argument
+validator before any optimizer step, leaving no training metrics at all.
+Their trajectories remain archived as engineering evidence.
+
+\begin{table}[H]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabularx}{\linewidth}{@{}lYcc@{}}
+    \toprule
+    \textbf{Arm} & \textbf{Role} & \textbf{Domains} & \textbf{Runs} \\
+    \midrule
+    Matched Dr.GRPO & Control with passive verified tracking &
+    4 ModeBench \(+\) MATH-500 & \(12+3\) \\
+    Verified MaxEnt (global replay) & Method under test &
+    4 ModeBench \(+\) MATH-500 & \(12+3\) \\
+    Same-plumbing actuator-off & Causal comparator for the actuator &
+    4 ModeBench & 12 \\
+    Separated-support actuator & Registered repair &
+    4 ModeBench & 12 \\
+    \bottomrule
+  \end{tabularx}
+  \caption{\textbf{The 54-run registered campaign.} Each cell is three seeds
+  per domain. MATH-500 carries only the two method arms because a
+  single-answer task cannot exercise a multi-mode actuator.}
+  \label{tab:campaign}
+\end{table}
+
+\paragraph{Held-out realism track.}
+The fifth reporting domain is an external-validity track, not a fifth
+multi-mode environment. Both method arms train on exactly 384 frozen MATH12K
+rows and evaluate on all 500 held-out MATH-500 problems, with hash-pinned
+train and evaluation materializations and exactly zero normalized problem
+overlap. Every verifier-positive completion for a prompt maps to one
+prompt-local key, so verified support is structurally at most one: verified
+mass may anchor a model-generated correct solution, known-mode balance is
+structurally ineligible and must emit zero loss and zero controller
+observations, and \texttt{distinct@8} is not reported as reasoning-mode
+coverage. Equivalent renderings of one answer cannot masquerade as modes.
+
+\paragraph{Fixed reporting checkpoints.}
+The paper surface uses at most ten checkpoints per environment: passes
+\(0,1,2,3,4,5,6,8,10,12\) for ModeBench and \(0,2,4,6,8,10,12\) for MATH-500.
+Every quarter pass, evaluation records greedy \texttt{pass@1} and four
+deterministic temperature-one draws of \(K=8\) responses; the intermediate
+records are retained for safety auditing and for the supplemental diagnostic
+in Appendix~\ref{app:diagnostic}, but the confirmatory plot, tables, and AUC
+use only the registered anchors. We report \texttt{pass@8}, \texttt{mean@8},
+\texttt{distinct@8}, greedy \texttt{pass@1}, and excess multiplicity
+\(\texttt{distinct@8}-\texttt{pass@8}\), together with cumulative verified
+discoveries and support per tracked prompt.
+
+\paragraph{Information firewall.}
+Training, gating, adaptation, checkpoint selection, and scheduling may not
+read gold or exhaustive support, a desired mode count, a desired entropy,
+evaluation distinctness, \texttt{pass@K}, correctness, MATH-500 output, a
+coefficient projection or clipping bound, reference solutions as replay
+exemplars, or an LLM-derived strategy label. The fixed one-bank replay
+schedule and capacity 16 are compute bounds, not semantic targets.
+
+\paragraph{Completeness, recovery, and audit.}
+No aggregate checkpoint is drawn unless all three seeds for that arm and
+domain have landed it; we do not carry a faster run forward, impute a missing
+seed, or describe an intermediate snapshot as terminal. A preemption may
+resume only from the same job's source-bound checkpoint with matching model,
+optimizer, progress counter, data cursor, canonical bank, controller states,
+and deterministic request-stream state. Placement amendments are hash-bound,
+change node or partition only, and are rejected if any trace regresses below
+its recorded pre-amendment step; the campaign has required several after GPU
+drains, preemptions, and one instance of foreign processes occupying an
+allocated device. A non-finite value, semantic-state mismatch, missing
+terminal checkpoint, or algorithm exception is a run failure and cannot be
+erased by an appended log. A fail-closed evaluation-cadence audit additionally
+requires every progressed run to evaluate at least once per prompt epoch.
+
+\paragraph{Frozen interpretation gates.}
+Four gates were registered before the confirmatory surface existed. Verified
+MaxEnt counts as a cross-domain positive only if its terminal and
+fixed-checkpoint AUC are directionally above matched Dr.GRPO for both
+\texttt{pass@8} and \texttt{distinct@8} in at least three of four ModeBench
+domains, with no domain losing more than \(.05\) terminal \texttt{pass@8}. The
+actuator counts as a successful repair only if, relative to the same-plumbing
+control, Python's terminal mean and worst-seed \texttt{pass@8} are both
+higher; Graph, Countdown, and MathIR each lose at most \(.05\) in terminal
+mean \texttt{pass@8} with no paired seed losing more than \(.15\); at least one
+fully audited intervention occurs; and every equivalence, separation, and
+integrity audit passes. Plumbing sensitivity uses the same descriptive
+margins. Transfer holds only if terminal held-out greedy \texttt{pass@1} and
+\texttt{mean@8} are each no more than \(.02\) below matched Dr.GRPO and at
+least one is directionally higher. Terminal pass-12 values and trapezoidal AUC
+over the fixed checkpoints are the primary summaries; peak performance and
+best-checkpoint selection are not evidence.
+
+\paragraph{Interim evidence rule.}
+The campaign is incomplete, so no gate can be evaluated. For each domain we
+report the largest registered checkpoint that all three seeds of both compared
+arms have landed, and label every such value interim. With three seeds,
+uncertainty is shown as all seed points, ranges, and paired differences;
+asymptotic \(p\)-values are not used to imply precision the cohort does not
+contain.
+
+\section{Interim Results}
 \label{sec:results}
 
-The two scales play the distinct evidential roles fixed in
-Section~\ref{sec:interpreting-current-run}: the 0.5B study generates the hypothesis ---
-its pre-registered primary temperature is null, and its exploratory arms locate the
-effective range --- and the 3B study confirms it under a primary fixed before any 3B run.
-We report them in that order, then characterize the effect's dose-response and its
-boundary.
+\begin{sidewaysfigure}
+  \centering
+  \includegraphics[width=\textheight]
+    {figures/e61r1_e58_vs_grpo_05b_12ep_live.pdf}
+  \caption{\textbf{The live five-domain confirmation surface.} Rows are the
+  four ModeBench domains and the held-out MATH-500 transfer track; columns are
+  the registered evaluation metrics followed by mechanism telemetry
+  (open-set predictive entropy, the three unprojected coefficients, replay
+  activity, verified support, and cumulative discoveries). Thick lines are
+  three-seed means and shaded bands are seed ranges; axes expand only as fixed
+  checkpoints land. MATH-500 mode-balance cells are structurally N/A rather
+  than inferred from prose. This figure is regenerated from the live campaign
+  artifacts and is interim.}
+  \label{fig:five-domain}
+\end{sidewaysfigure}
 
-\subsection{Hypothesis Generation at 0.5B}
-\label{sec:results-05b}
+Every value in this section is read from one live snapshot, generated
+\texttt{2026-07-27T22:48Z}, of a campaign that is still executing; the surface
+grows monotonically as checkpoints land, so a later regeneration will show
+more coverage rather than different history. At that snapshot the campaign
+audit is \texttt{in\_progress}: 7 of 54 registered runs are terminal, 79 of
+174 fixed arm/domain checkpoint cells and 936 of 2,046 required seed-metric
+values have landed, and the integrity, cadence, equivalence, and separation
+audits report zero violations. The evaluation-cadence audit passes over all 44
+progressed runs. Every interpretation gate is \texttt{pending}.
 
-Table~\ref{tab:main-results} reports the pooled two-domain regression of
-Equation~\ref{eq:regression-main}: $4{,}032$ prompt-level observations per arm pair,
-$224$ prompt clusters, with task-domain, training-seed, and evaluation-seed fixed
-effects. (Raw per-domain accuracy and diversity levels for every arm, averaged over the
-$3\times 3$ seed grid, are in Table~\ref{tab:descriptive},
-Appendix~\ref{app:supplementary-results}.) Descriptively, the \drgrpo baseline
-solves many prompts (\texttt{pass@8} $0.40$ on Countdown, $0.65$ on graph coloring)
-while retaining only a small fraction of each prompt's valid answer set
-(\texttt{coverage@8} $\approx 0.12$ on both).
+\subsection{Verified MaxEnt versus matched Dr.GRPO}
 
-\paragraph{The pre-registered primary is null.}
-At the primary temperature $\tau=0.5$, every outcome is statistically flat
-($|\hat\gamma| \le 1.6$ points, all $p \ge 0.14$). We report this first and without
-qualification: at the temperature we pre-specified, candidate-level tempering does not
-measurably change learning at this scale.
+Table~\ref{tab:interim} reports the latest registered checkpoint that all
+three seeds of both arms have landed in each domain. The direction is
+consistent across four structurally different validators, and the separation
+is concentrated in breadth rather than in per-draw accuracy. Graph coloring is
+the most advanced and the most separated: at pass 10 the reward-only policy
+has concentrated to the point where \texttt{pass@8} (.372) is essentially its
+greedy accuracy (.344) and excess multiplicity is .021, while the treatment
+reaches .968 \texttt{pass@8}, 2.344 distinct correct modes, and excess
+multiplicity 1.376. Countdown at pass 5 shows a small \texttt{pass@8} gain
+(+.057) alongside a large breadth gain (+1.024 distinct modes).
 
-\paragraph{The exploratory low-$\tau$ arms show the pre-registered ordered signature.}
-At $\tau=0.05$, \texttt{coverage@8} rises by $+4.8$ points
-[$3.6, 5.9$] and \texttt{pass@8} by $+7.9$ points [$4.6, 11.1$] (both Holm-adjusted
-$p<10^{-4}$), while \texttt{mean@8} ($-0.8$ points, $p=0.28$) and greedy
-\texttt{pass@1} ($+0.9$ points, $p=0.27$) are statistically unchanged --- and not
-merely undetected: both are \emph{equivalent} to the baseline within the
-pre-specified $\pm 3$-point margin (TOST $p=0.002$ and $p=0.005$) --- and
-\texttt{distinct@8} rises by $+0.24$ modes [$0.18, 0.29$]. This is precisely the
-ordered prediction of Section~\ref{sec:interpreting-current-run}: more of the valid
-answer set at no per-sample accuracy cost. The effect is monotone toward aggressive
-tempering ($\tau=0.25$: coverage $+2.2$ points, Holm $p<10^{-4}$; $\tau=0.1$: $+1.6$,
-Holm $p=0.007$; $\tau\ge 0.5$: null) and survives the run-clustered robustness pass at
-$\tau=0.05$ (coverage $p<10^{-4}$, \texttt{pass@8} $p=0.0006$). Because these
-temperatures were exploratory under our pre-registration, we treat them as
-hypothesis-generating and pre-registered $\tau=0.05$ as the primary for the 3B
-replication (Appendix~\ref{app:quartet-settings}); Section~\ref{sec:results-3b}
-reports that replication, which confirms the prediction.
+Python factors separate on both axes but with the widest seed dispersion in
+the campaign: at pass 6 the control is pinned at .172 on every metric and
+every seed, while treatment seeds 43 and 44 reach 1.000 \texttt{pass@8} and
+seed 45 reaches .219. The three-seed mean of .740 should not be read without
+that range. MathIR action menus at pass 5 show the treatment more than
+doubling both \texttt{pass@8} (.266 to .663) and greedy accuracy (.174 to
+.529), the one domain where the breadth gain is accompanied by a comparable
+gain in per-draw correctness.
 
-\paragraph{Not just more solutions --- more \emph{different} solutions.}
-The coverage gains decompose into solving more prompts and producing genuinely
-different solutions on the prompts that are solved. Conditioning on the latter
-(Table~\ref{tab:conditional-diversity}, Appendix~\ref{app:supplementary-results}):
-among prompts solved at \texttt{pass@8}, the \drgrpo baseline behaves close to
-one-way-per-prompt ($1.19$--$1.24$ distinct modes; $77$--$82\%$ of its solved prompts
-show exactly one mode across all eight samples), while \method at $\tau=0.05$ produces
-$1.43$--$1.46$ distinct modes and finds two or more on $35$--$37\%$ of solved prompts
---- \emph{while also solving $\sim$20\% more prompts}. The conditional comparison is
-descriptive (arms solve different prompt sets; the unconditional \texttt{distinct@8}
-and \texttt{coverage@8} in Table~\ref{tab:main-results} carry the statistics), but the
-selection runs \emph{against} the finding, since the \method solved sets include harder
-marginal prompts. The token-entropy control on graph coloring reaches similar
-conditional diversity ($1.42$) at a large accuracy cost --- diversity via degeneracy
-rather than via credit assignment.
-
-\paragraph{Where exploration enters determines whether it works.}
-The prompt-level arm (\seeddrgrpo) is indistinguishable from the baseline on every
-outcome ($|\hat\gamma| \le 1.9$ points, all adjusted $p = 1$) --- as the theory
-predicts, since its within-group weights are uniform and the group-relative comparison
-is unchanged. The token-level arm (\tokmaxdrgrpo) is significantly \emph{harmful}
-($-21.7$ points \texttt{pass@8}, $-19.0$ \texttt{mean@8}, $-5.9$ \texttt{coverage@8},
-all $p<10^{-4}$), driven by degenerate policies on Countdown. Among the three places an
-exploration regularizer can act, only the candidate level moved coverage, and only the
-candidate level did so without an accuracy cost.
-
-\begin{table}[t]
+\begin{table}[H]
   \centering
   \small
-  \setlength{\tabcolsep}{4.5pt}
-  \begin{tabular}{@{}l r@{ }l r@{ }l r@{ }l@{}}
+  \setlength{\tabcolsep}{4.2pt}
+  \begin{tabular}{@{}llcccccc@{}}
     \toprule
-    & \multicolumn{2}{c}{\texttt{pass@8}} & \multicolumn{2}{c}{\texttt{mean@8}} & \multicolumn{2}{c}{\texttt{coverage@8}} \\
-    \textbf{Arm} & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] \\
+    \textbf{Domain} & \textbf{Method} & \textbf{pass} & \texttt{pass@8} &
+    \texttt{mean@8} & \texttt{distinct@8} & \texttt{excess} &
+    \texttt{pass@1} \\
     \midrule
-    Dr.GRPO (baseline level) & \multicolumn{2}{c}{$.507$} & \multicolumn{2}{c}{$.316$} & \multicolumn{2}{c}{$.123$} \\
+    Graph coloring & Dr.GRPO & 10 &
+    .372 & .344 & .393 & .021 & .344 \\
+    & verified MaxEnt & 10 &
+    \textbf{.968} & \textbf{.400} & \textbf{2.344} & \textbf{1.376} &
+    \textbf{.490} \\
+    & paired mean change & &
+    \(+.595\) & \(+.056\) & \(+1.951\) & \(+1.355\) & \(+.146\) \\
     \midrule
-    xDr.GRPO $\tau{=}0.05$ & $+.079^{***}$ & $[.046,.111]$ & $-.008$ & $[-.023,.007]$ & $+.048^{***}$ & $[.036,.059]$ \\
-    xDr.GRPO $\tau{=}0.1$  & $+.009$ & $[-.020,.039]$ & $-.003$ & $[-.017,.011]$ & $+.016^{**}$ & $[.006,.026]$ \\
-    xDr.GRPO $\tau{=}0.25$ & $+.040$ & $[.004,.077]$ & $+.009$ & $[-.010,.029]$ & $+.022^{***}$ & $[.013,.031]$ \\
-    xDr.GRPO $\tau{=}0.5$ (primary) & $-.012$ & $[-.043,.019]$ & $+.001$ & $[-.015,.017]$ & $-.001$ & $[-.009,.008]$ \\
-    xDr.GRPO $\tau{=}1$    & $-.014$ & $[-.037,.008]$ & $+.006$ & $[-.008,.020]$ & $+.001$ & $[-.006,.008]$ \\
-    xDr.GRPO $\tau{=}2$    & $+.000$ & $[-.032,.033]$ & $-.000$ & $[-.011,.010]$ & $+.010$ & $[.001,.019]$ \\
-    SEED-Dr.GRPO           & $-.019$ & $[-.042,.003]$ & $-.001$ & $[-.011,.009]$ & $-.001$ & $[-.008,.006]$ \\
-    Token-MaxEnt Dr.GRPO   & $-.217^{***}$ & $[-.277,-.157]$ & $-.190^{***}$ & $[-.231,-.148]$ & $-.059^{***}$ & $[-.079,-.038]$ \\
+    Countdown & Dr.GRPO & 5 &
+    .608 & .566 & .650 & .042 & .565 \\
+    & verified MaxEnt & 5 &
+    \textbf{.665} & \textbf{.571} & \textbf{1.674} & \textbf{1.010} &
+    \textbf{.625} \\
+    & paired mean change & &
+    \(+.057\) & \(+.005\) & \(+1.024\) & \(+.967\) & \(+.060\) \\
+    \midrule
+    Python factors & Dr.GRPO & 6 &
+    .172 & .172 & .172 & .000 & .172 \\
+    & verified MaxEnt & 6 &
+    \textbf{.740} & \textbf{.725} & \textbf{.956} & \textbf{.216} &
+    \textbf{.734} \\
+    & paired mean change & &
+    \(+.568\) & \(+.553\) & \(+.784\) & \(+.216\) & \(+.563\) \\
+    \midrule
+    MathIR action menu & Dr.GRPO & 5 &
+    .266 & .179 & .266 & .000 & .174 \\
+    & verified MaxEnt & 5 &
+    \textbf{.663} & \textbf{.491} & \textbf{.682} & \textbf{.019} &
+    \textbf{.529} \\
+    & paired mean change & &
+    \(+.397\) & \(+.312\) & \(+.416\) & \(+.019\) & \(+.354\) \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Pooled two-domain treatment effects vs.\ \drgrpo} (Countdown +
-  graph coloring; $4{,}032$ observations and $224$ prompt clusters per pair;
-  task-domain, training-seed, and evaluation-seed fixed effects; prompt-clustered
-  standard errors). The first row gives the \drgrpo baseline's pooled absolute
-  levels; every $\hat\gamma$ below it is a difference from that arm, so the baseline's
-  own coefficient is zero by construction. The primary arm reports its raw $p$-value; all other arms are
-  exploratory with Holm adjustment within outcome:
-  $^{**} p<0.01$, $^{***} p<10^{-3}$ after adjustment. Full estimates including
-  \texttt{distinct@8}, greedy \texttt{pass@1}, and the run-clustered robustness pass
-  are in \texttt{paper/results/}.}
-  \label{tab:main-results}
+  \caption{\textbf{Interim three-seed means at the latest shared registered
+  checkpoint.} Excess multiplicity is
+  \(\texttt{distinct@8}-\texttt{pass@8}\). Domains stand at different passes
+  and are not pooled. Training continues toward the fixed 12-pass endpoint;
+  none of these values is terminal and none evaluates a gate. Per-seed values
+  are in Appendix~\ref{app:per-seed}.}
+  \label{tab:interim}
 \end{table}
 
+\subsection{The actuator against its same-plumbing control}
 
-\subsection{Dose-Response of Tempering}
-\label{sec:dose-response}
+Only MathIR has landed a shared three-seed checkpoint for both prospective
+arms. At pass 5 the separated-support actuator sits .021 below the
+actuator-off control on \texttt{pass@8} (.742 versus .762) and .006 above it
+on \texttt{distinct@8} (.791 versus .785). A post-specified crossed bootstrap
+over the three paired seeds and the shared evaluation prompts gives
+descriptive 95\% intervals of \([-.095,.052]\) for \texttt{pass@8} and
+\([-.074,.085]\) for \texttt{distinct@8}: the paired seed deltas disagree in
+sign in both cases. This analysis was frozen before integration, computes no
+\(p\)-values, and cannot change any gate; it also does not turn three training
+seeds into more than three independent runs. Python factors, where the repair
+hypothesis is actually directed, has no landed comparison yet.
 
-A follow-up round on 0.5B Countdown maps the full temperature axis: it adds
-$\tau\in\{0.0001, 0.001, 0.01, 0.02, 0.03, 0.04\}$, the family's boundary
-member $\tau=0$ (exact argmax-set aggregation, computed in closed form), and a
-\emph{mode-adaptive} arm ($\tau_x = \tau_0/\log(1+\kappa_x)$ with $\kappa_x$
-the distinct correct modes observed in the prompt's own rollout group,
-$\tau_0=0.05$), each with a fresh matched baseline, three training seeds, and
-three evaluation seeds (all exploratory, Holm-adjusted). The top row of
-Figure~\ref{fig:dose-response} shows the result: effects rise as $\tau$ falls,
-plateau at $\tau=0.01$--$0.001$ (\texttt{pass@8} $+15.2$ $[10.8, 19.6]$ and
-$+16.4$ $[11.5, 21.3]$; \texttt{coverage@8} $+6.6$; all Holm $p<10^{-4}$,
-run-robust) at flat \texttt{mean@8}, and hold through exact $\tau=0$
-(\texttt{pass@8} $+12.4$ $[7.3, 17.6]$, \texttt{mean@8} $+0.1$, $p=0.94$):
-at 0.5B there is no cliff anywhere on the axis, because exact utility ties
-(identical advantage and length) keep even argmax-set weighting spread over
-several candidates per group. Both the location of the rise and the saturation
-match the utility-spread argument of Appendix~\ref{app:tau-range}. Two honest
-wrinkles: $\tau=0.02$ shows a significant \texttt{mean@8} cost ($-3.7$
-$[-5.4, -1.9]$, Holm $p=2\times 10^{-4}$) though both neighbors are flat, and
-$\tau=0.04$ dips (n.s.); we report the envelope, not a smoothed trend. The
-no-tuning mode-adaptive arm recovers roughly half the tuned effect
-(\texttt{pass@8} $+5.7$ $[1.7, 9.7]$, Holm $p=0.01$; run-robustness borderline,
-$p_{\text{run}}=0.05$) --- a usable default, not a replacement. The 3B sweep
-(bottom row) is taken up in Section~\ref{sec:results-3b}.
+The mechanism telemetry is more informative than these early performance
+deltas, because it is what makes the repair falsifiable. The controller must
+first detect an entropy deficit, and the actuator must then intervene cleanly.
+Both halves are visible. In Python, the treatment's open-set entropy EMA has
+fallen well below each run's own warmup reference for two of three seeds
+(ratios .431 and .122 against .951 for the third), and the unprojected
+coefficient has risen correspondingly (.220 and .822 against .105) with no
+projection ever active; the collapsed seed sits at mean bank support exactly
+1.000, which is precisely the singleton state the actuator targets. The
+separated-support arm has recorded 286 audited entropy-gated interventions
+over 6,550 metric-bearing updates (4.37 per 100), all in MathIR, with a
+maximum of one alternate admitted in any proposal group, zero proposal rows
+sent to PPO, and zero objective-count overlaps across 118 audited
+proposal-only outcomes and 157 outcomes that later graduated to neutral
+on-policy discoveries. The domains with no interventions have no
+metric-bearing updates yet; zero interventions is the expected reading before
+a registered collapse condition occurs, and the terminal gate cannot pass
+without at least one clean intervention.
 
-\begin{figure}[t]
+\subsection{Held-out MATH-500 transfer}
+
+\begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/dose_response}
-  \caption{\textbf{Dose-response of candidate-level tempering at both scales}
-  (multi-answer splits): treatment effect vs.\ \drgrpo with 95\% prompt-clustered
-  CIs, for \texttt{pass@8} (left) and \texttt{coverage@8} (right).
-  \textbf{Top row:} 0.5B Countdown --- filled markers: same-round arms; open
-  markers: earlier-round arms; each round is estimated against its own matched
-  baseline; the open square is exact argmax-set aggregation ($\tau=0$) and the
-  diamond the mode-adaptive arm (no fixed abscissa). \textbf{Bottom row:} the 3B
-  graph-coloring sweep. Both scales show the same shape --- a rise to a plateau
-  below $\tau\approx 0.01$ --- with larger amplitudes at 3B. At 0.5B the plateau
-  extends through exact $\tau=0$ with no accuracy cost; at 3B the extreme end
-  trades \texttt{mean@8} for coverage (Section~\ref{sec:results-3b}), so the
-  accuracy-neutral optimum sits at $\tau\approx 0.01$--$0.05$. Dashed lines mark
-  zero.}
-  \label{fig:dose-response}
+  \includegraphics[width=\linewidth]
+    {figures/e64_math500_realism_05b_12ep_live.pdf}
+  \caption{\textbf{Held-out MATH-500 realism track.} Correctness transfer
+  after training on 384 frozen MATH12K rows, evaluated on all 500 held-out
+  problems. The bottom row confirms the structural contract: verified support
+  per prompt never exceeds one, the balance gradient is identically zero, and
+  the mass and open-set coefficients remain finite and unprojected. Interim;
+  the registered anchors run to pass 12.}
+  \label{fig:math500}
 \end{figure}
 
-\subsection{Pre-Registered Confirmation at 3B}
-\label{sec:results-3b}
+At pass 2 the two arms are close on every held-out metric: greedy
+\texttt{pass@1} .322 versus .313 for the control, \texttt{mean@8} .258 versus
+.265, and \texttt{pass@8} .566 versus .579. The treatment is directionally
+higher on greedy accuracy and slightly lower on the sampled metrics, and all
+three gaps are smaller than the seed-to-seed spread within either arm. The
+registered gate needs terminal values at pass 12 and a \(.02\) non-inferiority
+margin, so nothing here decides it. The structural contract does hold as
+registered: verified support per prompt stays at one, known-mode balance
+contributes exactly zero gradient, and both active coefficients remain finite
+and unprojected. A supplemental verifier-sensitivity audit is
+\texttt{in\_progress}, with 93 caught timeout diagnostics and zero
+identical-response reward conflicts.
 
-The 0.5B study left one committed prediction on the table: $\tau=0.05$, fixed as the
-primary temperature for a 3B replication before any 3B run was started
-(Appendix~\ref{app:quartet-settings}). The replication scales every axis of the design:
-Qwen2.5-3B-Instruct policies, $G=32$ rollouts per prompt, and larger regenerated pools
---- four-number Countdown ($1{,}024$ train / $256$ eval prompts) and graph-coloring
-completion ($1{,}024$ / $256$) --- with the same leak-free splits, matched recipe,
-three training seeds, three evaluation seeds, and final-checkpoint rule as before. The
-arm set is the confirmed range of the 0.5B study: \drgrpo, \method at $\tau=0.05$
-(primary) and $\tau=0.25$, and \seeddrgrpo; the token-level arm was dropped after its
-0.5B harm. Each domain contributes $4{,}608$ prompt-level observations per arm pair
-($256$ prompt clusters); the pooled regression uses $9{,}216$ observations and $512$
-clusters.
+\subsection{What is not yet a result}
 
-\begin{table}[t]
+No terminal comparison exists in any domain. Seven of 54 runs have reached
+pass 12, and Graph coloring's Dr.GRPO arm is the only complete registered
+trajectory. No AUC is emitted, because partial AUC over an incomplete
+checkpoint set cannot pass a gate. The actuator's target domain has no landed
+comparison, the plumbing-sensitivity contrast has only partial coverage, and
+the transfer gate is six checkpoints short. Every value in this section is a
+progress reading against a frozen surface, and a \texttt{pending} gate is
+evidence of neither success nor failure.
+
+\section{How the Development Evidence Determines the Final Design}
+\label{sec:design-history}
+
+The final method is easier to understand as a sequence of ruled-out
+alternatives. We report those decisions because they constrain what the
+current evidence means, not because every exploratory run is an independent
+experiment.
+
+Finite-action studies supplied the positive reference point. When every
+semantic answer was represented by a fixed short action and the full action
+distribution could be enumerated, direct complete-action MaxEnt preserved
+substantially more breadth than reward-only training. That result established
+that the entropy mechanism can work when representation and measurement are
+aligned. It did not solve the present problem: the codec changes the policy,
+requires a task-specific action set, and may expose a gold-derived support.
+The online bank retains the executable semantic object while learning support
+only from policy demonstrations.
+
+Reward-based candidate aggregation provided a second useful boundary. It can
+focus learning on the successful members of a mixed group, but it remains
+uniform in an all-equal or all-wrong group and cannot create a missing outcome.
+Conversely, a semantic term can preserve rare verified outcomes but becomes
+sparse when successes disappear. The final objective therefore keeps task
+advantage and canonical discovery on separate channels rather than asking
+either to substitute for the other.
+
+\begin{table}[H]
   \centering
   \small
-  \setlength{\tabcolsep}{4.5pt}
-  \begin{tabular}{@{}l cccc cccc@{}}
+  \begin{tabularx}{\linewidth}{@{}YYY@{}}
     \toprule
-    & \multicolumn{4}{c}{\textbf{Countdown-4}} & \multicolumn{4}{c}{\textbf{Graph coloring}} \\
-    \cmidrule(lr){2-5} \cmidrule(l){6-9}
-    \textbf{Arm} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} \\
+    \textbf{Observed failure} & \textbf{Why it matters} &
+    \textbf{Decision retained here} \\
     \midrule
-    Dr.GRPO                & .073 & .018 & .022 & .079 & .656 & \textbf{.456} & .155 & .863 \\
-    xDr.GRPO $\tau{=}0.05$ & .082 & .019 & .025 & .088 & \textbf{.829} & .453 & \textbf{.261} & \textbf{1.469} \\
-    xDr.GRPO $\tau{=}0.25$ & .082 & .029 & .024 & .086 & .694 & .438 & .186 & 1.030 \\
-    SEED-Dr.GRPO           & .082 & .029 & .025 & .089 & .579 & .421 & .134 & .757 \\
+    Sequence entropy increased length and EOS avoidance &
+    Token uncertainty can grow without solution breadth &
+    Measure and optimize validator-bound outcomes \\
+    Candidate-local normalization favored short samples &
+    A nominally uniform target can create a nonzero length gradient &
+    Keep canonical pressure as a separate detached advantage \\
+    Detached candidate fitting optimized the wrong population target &
+    Reweighting samples is not the same as policy MaxEnt &
+    State the empirical outcome objective precisely \\
+    Group-centered surprise vanished as samples concentrated &
+    A controller cannot amplify a carrier with zero dispersion &
+    Center under the predictive bank distribution, outside task centering \\
+    Novel wrong answers received diversity pressure &
+    Error variety is not useful solution diversity &
+    Admit and reward only validator-positive outcomes \\
+    Fixed pressure weakened after support growth and late collapse &
+    Raw entropy has a moving maximum &
+    Normalize the sensor and reference it to the run's own warmup \\
+    A bounded controller saturated below its target &
+    The ceiling, not the target, became the active intervention &
+    Remove every projection and report coefficient growth \\
+    Prompt-local replay left late singletons idle for nearly a pass &
+    A discovery that cannot act promptly is not an actuator &
+    Schedule one verified bank globally on every update \\
+    A singleton bank made every diversity term ineligible &
+    The mechanism is unidentifiable exactly where collapse is worst &
+    Add a support-only escape gated on the run's own entropy deficit \\
+    A shared proposal/on-policy bank leaked off-policy support &
+    Proposed outcomes would enter an on-policy advantage &
+    Separate proposal support from the objective count table \\
     \bottomrule
-  \end{tabular}
-  \caption{\textbf{Descriptive accuracy and diversity by domain at 3B} (same metrics
-  and $3\times 3$ seed grid as the 0.5B Table~\ref{tab:descriptive} of
-  Appendix~\ref{app:supplementary-results}; best graph-coloring value
-  per column in bold). The four-number Countdown pool sits near its one-epoch
-  learnability floor for every arm (\texttt{pass@8} $\le .082$), so no per-column best
-  is highlighted there; graph coloring is where the 3B policy has traction, and where
-  the arms separate.}
-  \label{tab:descriptive-3b}
+  \end{tabularx}
+  \caption{\textbf{Decision provenance.} Earlier work is used as design
+  evidence. The paper does not pool superseded objectives into the final
+  treatment estimate.}
+  \label{tab:decisions}
 \end{table}
 
-\begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{4.5pt}
-  \begin{tabular}{@{}l r@{ }l r@{ }l r@{ }l@{}}
-    \toprule
-    & \multicolumn{2}{c}{\texttt{pass@8}} & \multicolumn{2}{c}{\texttt{mean@8}} & \multicolumn{2}{c}{\texttt{coverage@8}} \\
-    \textbf{Arm} & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] & $\hat\gamma$ & [95\% CI] \\
-    \midrule
-    Dr.GRPO (baseline level) & \multicolumn{2}{c}{$.365$} & \multicolumn{2}{c}{$.237$} & \multicolumn{2}{c}{$.089$} \\
-    \midrule
-    xDr.GRPO $\tau{=}0.05$ (primary) & $+.091^{***}$ & $[.072,.111]$ & $-.001$ & $[-.016,.014]$ & $+.054^{***}$ & $[.046,.062]$ \\
-    xDr.GRPO $\tau{=}0.25$ & $+.023^{**}$ & $[.007,.040]$ & $-.003$ & $[-.016,.010]$ & $+.016^{***}$ & $[.010,.022]$ \\
-    SEED-Dr.GRPO           & $-.034^{**}$ & $[-.055,-.013]$ & $-.012$ & $[-.030,.006]$ & $-.009^{**}$ & $[-.015,-.004]$ \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Pooled two-domain treatment effects vs.\ \drgrpo at 3B}
-  (Countdown-4 + graph coloring; $9{,}216$ observations and $512$ prompt clusters per
-  arm pair; task-domain, training-seed, and evaluation-seed fixed effects;
-  prompt-clustered standard errors). The primary arm reports raw $p$-values; the other
-  arms are Holm-adjusted within outcome: $^{**} p<0.01$, $^{***} p<10^{-3}$ after
-  adjustment. \texttt{distinct@8} for the primary: $+0.31$ modes $[0.26, 0.35]$,
-  $p<10^{-4}$; greedy \texttt{pass@1}: $+0.3$ points, $p=0.78$. All primary-arm
-  effects survive the run-clustered robustness pass ($p_{\text{run}} \le 0.0009$).
-  Full estimates are in \texttt{paper/results/}.}
-  \label{tab:main-results-3b}
-\end{table}
-
-\paragraph{The pre-registered primary replicates.}
-At $\tau=0.05$ --- this time the \emph{primary}, not an exploratory arm --- the pooled
-regression (Table~\ref{tab:main-results-3b}) shows the same ordered signature as the
-0.5B study, larger: \texttt{pass@8} $+9.1$ points $[7.2, 11.1]$, \texttt{coverage@8}
-$+5.4$ points $[4.6, 6.2]$, \texttt{distinct@8} $+0.31$ modes $[0.26, 0.35]$ (all raw
-$p<10^{-4}$), while \texttt{mean@8} ($-0.1$ points, $p=0.89$) and greedy
-\texttt{pass@1} ($+0.3$ points, $p=0.78$) are statistically flat --- equivalent to
-the baseline within the pre-specified $\pm 3$-point margin (TOST $p<10^{-4}$ and
-$p=0.002$), not merely undetected. Every primary-arm
-effect survives clustering by training run. The 0.5B pattern --- more of the valid
-answer set at no per-sample accuracy cost --- was a hypothesis generated by
-exploratory arms; at 3B it is a confirmed pre-registered prediction.
-
-\paragraph{The effect concentrates where the answer space has room.}
-Our pre-commitment (Appendix~\ref{app:threats}) was to report domain-concentrated
-gains as such, and the 3B effect is strongly domain-dependent. On graph coloring,
-where the baseline has traction (\texttt{pass@8} $.656$) and prompts admit many valid
-completions, the primary arm gains $+17.4$ points \texttt{pass@8} $[13.8, 20.9]$,
-$+10.5$ points \texttt{coverage@8} $[9.1, 11.9]$, and $+0.61$ distinct modes
-$[0.53, 0.68]$ at flat \texttt{mean@8} ($p=0.81$). On the four-number Countdown pool,
-which sits near its one-epoch learnability floor (baseline \texttt{pass@8} $.073$;
-Table~\ref{tab:descriptive-3b}), the same coefficients are two orders of magnitude
-smaller --- $+0.9$ points \texttt{pass@8} $[0.2, 1.6]$, $+0.3$ points coverage ---
-though still positive, significant, and run-robust. We read this as consistent with
-the mechanism rather than incidental: candidate-level exploration can only preserve
-diversity that the reward landscape lets the policy reach, and on a pool where almost
-no rollout is rewarded, there is little group structure to reweight. The honest
-summary is that the pooled $+9.1$ is dominated by the domain with headroom, and the
-per-domain estimates in \texttt{paper/results/} are the primary reference.
-
-\paragraph{Conditional diversity: the baseline converges to one mode, \method diverges.}
-Among graph-coloring prompts solved at \texttt{pass@8}, \drgrpo produces $1.32$
-distinct modes per solved prompt (two or more on $28\%$), while \method at
-$\tau=0.05$ produces $1.77$ ($55\%$ with two or more) --- \emph{while solving $26\%$
-more prompts}, so the selection again runs against the finding. The same comparison at
-0.5B was $1.19$ vs.\ $1.46$ (Table~\ref{tab:conditional-diversity}): the
-conditional-diversity gap grows with scale rather than washing out. On the
-floor-constrained Countdown-4 pool all arms sit at $1.04$--$1.08$ distinct modes per
-solved prompt, consistent with the domain-dependence reading above.
-
-\paragraph{Prompt-level scaling is now harmful, and the dose-response is preserved.}
-\seeddrgrpo, null at 0.5B, is significantly harmful at 3B (pooled \texttt{pass@8}
-$-3.4$ points, Holm $p=0.003$; graph coloring alone $-7.7$ points): rescaling whole
-prompts by semantic uncertainty leaves the within-group comparison untouched but
-down-weights exactly the multi-modal prompts where the group carries the most
-information. The intermediate temperature $\tau=0.25$ shows intermediate effects
-($+2.3$ points \texttt{pass@8}, $+1.6$ coverage, both Holm-significant), preserving
-the monotone dose-response of the 0.5B grid (Section~\ref{sec:dose-response}).
-
-\paragraph{The full dose-response at 3B.}
-A follow-up sweep on graph coloring ($\tau \in \{0.001, 0.01, 1\}$, three seeds
-each, exploratory with Holm adjustment; Figure~\ref{fig:dose-response}, bottom
-row) fills in the curve, and the 0.5B shape replicates at roughly twice the
-amplitude: effects rise to a plateau at $\tau = 0.01$--$0.001$
-(\texttt{pass@8} $+22.9$ $[19.0, 26.8]$ and $+21.6$ $[17.6, 25.5]$;
-\texttt{coverage@8} $+14.0$ and $+14.7$; \texttt{distinct@8} $+0.83$ and
-$+0.89$; all Holm $p<10^{-4}$, run-robust), decline through $\tau=0.25$, and
-bounce mildly at $\tau=1$ ($+7.9$). One scale difference matters, and we flag
-it rather than average it away: \emph{at 3B the extreme end is no longer free}.
-$\tau=0.001$ pays a significant per-sample accuracy cost (\texttt{mean@8}
-$-12.2$ points $[-15.9, -8.5]$, Holm $p<10^{-4}$; greedy flat), and
-$\tau=0.01$ a marginal one ($-3.3$, raw $p=0.04$, Holm n.s.), so the
-accuracy-neutral optimum sits at $\tau \approx 0.01$--$0.05$ rather than
-extending to the boundary as at 0.5B. A plausible mechanism is the tie
-structure of Section~\ref{sec:dose-response}: 3B completions are longer, exact
-utility ties are rarer, and near-argmax weighting therefore concentrates
-harder than at 0.5B. By the ordered-prediction criterion of
-Section~\ref{sec:interpreting-current-run}, the $\tau=0.001$ point buys
-coverage \emph{with} accuracy and is reported as lying past the mechanism's
-accuracy-neutral range at this scale.
-
-\paragraph{The mechanism, unchanged across scales.}
-The training-time diagnostics --- computed from the realized aggregation weights,
-logged identically for every arm at both scales --- show the same picture at 0.5B
-($G=16$) and 3B ($G=32$): the $\tau=0.05$ weights concentrate only mildly, keeping
-roughly $15$ of $16$ and $30$ of $32$ rollouts effectively active --- a small
-asymmetric perturbation of uniform aggregation, not a drift toward best-of-$G$ ---
-while spending consistently less aggregation mass on incorrect candidates than every
-uniform-weight arm throughout training, the attenuation mechanism of
-Section~\ref{sec:where-exploration}(iii). The $\tau=0.25$ and SEED curves coincide
-with the baseline's, matching their null-to-harmful outcome estimates
-(Figure~\ref{fig:exploration-sidecar}, Appendix~\ref{app:implementation}).
-
-\paragraph{A single-answer guardrail.}
-On the graph-coloring \emph{single-mode} control split, where diversity has no
-denominator to move, the primary arm still gains $+15.7$ points \texttt{pass@8}
-$[11.9, 19.4]$ at flat \texttt{mean@8} ($p=0.66$): more diverse \emph{attempts} find
-the unique answer more often. Single-answer competence is not traded away for
-coverage.
-
-\paragraph{Mixed-difficulty competence probe: what collapse looks like without exploration.}
-Finally, a descriptive single-run probe makes the failure mode concrete at 3B. We
-trained one \drgrpo policy for two epochs on a mixed-difficulty Countdown pool
-($1{,}024$ prompts spanning easy single-path and hard multi-answer items;
-Appendix~\ref{app:implementation}) and evaluated both strata. On the easy stratum the
-policy legitimately learns the task: greedy \texttt{pass@1} $0.61$, \texttt{pass@8}
-$0.69$. On the hard multi-answer stratum it collapses completely --- and the decisive
-number is that \texttt{pass@8} $=$ greedy \texttt{pass@1} $= 0.023$ with
-\texttt{distinct@8} $= 0.02$: drawing eight samples recovers \emph{nothing} over one,
-because all eight land on the same answer. The baseline's failure on hard multi-answer
-prompts is not a capability gap that more sampling could paper over; it is precisely a
-collapse of the sampled candidate distribution, the object \method regularizes. This
-is a one-seed descriptive observation, and testing whether candidate-level exploration
-lifts this floor is the natural next experiment. We pre-registered exactly that
-test (\texttt{paper/preregistration/mix3b\_exploration\_floor.md}: \drgrpo vs.\
-\method $\tau=0.05$, three seeds per arm on the same mixed pool, primary outcome
-hard-stratum \texttt{pass@8}, easy-stratum accuracy as guardrail, interpretation
-rules fixed before launch), with the disclosed probe run reused as one baseline
-seed.
-
-\paragraph{The pre-registered floor test: a null primary, and the boundary it draws.}
-The registered primary is null: hard-stratum \texttt{pass@8} moves $+1.7$ points
-$[-0.2, +3.7]$ ($p=0.08$), and the registered sensitivity pass excluding the
-disclosed probe seed leaves $+0.3$ points ($p=0.86$). Candidate-level
-exploration did \emph{not} lift the collapse floor. We report this exactly as
-the registration commits us to: an honest boundary of the mechanism ---
-tempered aggregation reweights reward signal that the rollouts contain, and on
-prompts where essentially every group is all-zero-reward there is nothing to
-reweight. This is the zero-signal endpoint of the domain-scaling prediction of
-Section~\ref{sec:interpreting-current-run}, observed rather than assumed. The
-guardrail, meanwhile, passes with room to spare: on the \emph{same} runs'
-easy stratum, \method shows the usual signature --- \texttt{pass@8} $+5.1$
-points $[1.7, 8.6]$ ($p=0.004$, run-robust), \texttt{distinct@8} $+6.7$ points,
-\texttt{mean@8} and greedy flat --- so the null is specific to the absence of
-signal, not a failure of the method on this pool. Lifting the floor itself
-appears to require interventions that create signal --- curricula, denser
-rewards, or larger groups --- after which candidate-level exploration can
-preserve what they find.
-
+This history also explains why ordinary final-answer mathematics appears only
+as a transfer track. A correct boxed number does not prove that a claimed
+intermediate strategy was executed. Restricted algebra programs demonstrated
+that executable strategy keys are possible. Repeated calibration of heuristic
+strategy labelers, finite menus, and cross-checked natural-language routes
+exposed false merges, false distinctions, and plausible but invalid
+derivations; adding more judges did not turn labels into execution. The MathIR
+action menu is what survived that program: the menu is finite, the
+transformations execute under exact rational arithmetic, and the key comes
+from the resulting state trajectory. MATH-500 is retained only as a
+correctness-transfer test, with mode language explicitly forbidden.
 
 \section{Discussion}
 \label{sec:discussion}
 
-\paragraph{Where exploration enters determines whether it helps.}
-Read together, the experiments are a placement test. Three locations for an
-exploration regularizer share one backbone, one reward, and one budget: the
-prompt level is null at 0.5B and significantly harmful at 3B; the token level is
-catastrophically harmful where it binds at all; the candidate level produces
-dose-controlled coverage gains at both scales, confirmed at 3B under a
-pre-registered primary. The pattern tracks the structure of the update: GRPO
-assigns credit by comparing completions \emph{within} a prompt group, and only
-the candidate-level intervention changes that comparison. Regularizers that
-leave the within-group distribution untouched leave the collapse dynamics
-untouched.
+\paragraph{A benchmark about discovery, not catalogues.}
+Exact valid-mode counts make coverage interpretable at evaluation time, but
+training never receives a list of valid answers. The bank contains only what
+the current policy has demonstrated. This separates the scientific question
+``does the policy discover and retain alternatives?'' from the easier problem
+of regularizing toward a supplied menu.
 
-\paragraph{Collapse is the default, and accuracy metrics cannot see it.}
-The baseline is not failing by its own lights: its accuracy rises throughout
-training while its conditional diversity slides toward one mode per solved
-prompt, and on hard multi-answer prompts of the mixed pool it reaches
-\texttt{pass@8} $=$ \texttt{pass@1} --- eight samples containing one idea.
-Outcome reward is indifferent between knowing every way to be right and knowing
-one, and the asymmetric gradients of uniform aggregation quietly prefer one.
-Nothing in a standard accuracy dashboard flags this; it becomes measurable only
-because the benchmark enumerates the full answer set. We suspect the same
-dynamics operate unmeasured in natural reasoning corpora, where they would
-surface instead as saturating \texttt{pass@}$k$ curves and diminishing returns
-to self-consistency.
+\paragraph{Why an open-set predictor is necessary but imperfect.}
+The structural unseen bucket keeps the sensor honest about undiscovered
+support and makes a two-mode prompt and a ten-mode prompt comparable relative
+to what has been observed. It still does not estimate entropy over
+undiscovered modes, and cumulative counts make it a slow, history-dependent
+sensor. The discovery credit is therefore not redundant: it pays for expanding
+support, while the predictive term balances the support already observed.
 
-\paragraph{The effect is where the theory puts it, and costs what the theory
-says it costs.}
-The dose-response locates the useful temperatures at the within-group utility
-spread, saturates into winner-take-all weighting with no accuracy price ---
-equivalence-tested, not merely non-significant --- and scales with the reachable
-multi-answer structure of the domain, as the mechanism requires. The remaining
-hyperparameter can be set from observed group structure at roughly half
-strength, and removing that gap is a natural refinement.
+\paragraph{Why projection-free coefficients are a scientific stress test.}
+Removing every bound is not a claim that unbounded pressure is always safe. It
+makes saturation observable. If the sensor stays below its own reference, the
+coefficient can grow until the policy responds or quality fails, and the
+interim Python telemetry shows exactly that regime: a coefficient at .822
+while mean bank support sits at 1.000. The 12-pass design must report both
+outcomes, and a successful treatment needs breadth without runaway invalidity
+or loss of per-sample correctness.
 
-\paragraph{Limitations.}
-The answer sets here are enumerable by construction; natural corpora admit no
-exact \texttt{coverage@}$k$, and transferring the claim there (via
-\texttt{pass@}$k$ or majority-vote payoffs) is open. Scales stop at 3B. A
-raised-rollout-temperature control --- the simplest rival explanation, though it
-perturbs the sampling distribution rather than the credit assignment --- has not
-yet been run under the matched protocol. Finally, the pre-registered mixed-pool
-test returned a null primary (Section~\ref{sec:results-3b}): candidate-level
-exploration preserves and widens the reward signal that sampling finds, but it
-does not create signal on strata where rollouts are never rewarded. The method's
-scope is credit assignment, not discovery; pairing it with interventions that
-manufacture signal on hard strata is the natural next step.
+\paragraph{Why the actuator needed its own control.}
+Enabling counterfactual proposals also changed the sampling and weight-sync
+path. Comparing the actuator against the historical treatment would have
+confounded the mechanism with its plumbing, so the campaign spends twelve runs
+on an actuator-off arm that shares the new execution surface exactly. The
+same discipline forced the separation contract: an earlier design was rejected
+before optimization because one shared bank would have let proposed support
+change the next on-policy advantage.
+
+\paragraph{Executable domains strengthen the semantic claim.}
+Graph assignments and expression ASTs could be dismissed as bespoke
+canonicalizers. Python factors use the same abstract contract but a different
+implementation boundary: syntax is screened, a separate interpreter makes
+several calls, and the resulting behavior vector defines the mode. MathIR adds
+a fourth boundary in which the mode is a procedure rather than an answer. Two
+different source strings that behave identically collapse to one key; one
+source string that returns a different valid vector occupies another mode.
+
+\section{Limitations and Broader Impact}
+\label{sec:limitations}
+
+The main empirical limitation is incompleteness. Seven of 54 registered runs
+are terminal, no gate has been evaluated, and the actuator's target domain has
+no landed comparison. The reported snapshot is frozen, paired, and honest
+about which checkpoint each domain stands at, but it is a progress reading.
+Three seeds describe paired directions rather than a population distribution,
+and the method was selected after an extensive outcome-informed development
+program, so all claims are exploratory. The campaign has also required several
+placement amendments after preemptions, GPU drains, and one contaminated
+allocation; these are hash-bound and change placement only, but they are part
+of the provenance.
+
+All tasks are synthetic, the trained model has 0.5B parameters, and exact
+mode identity is unusually available. Mode coverage in open-ended reasoning
+may be unknowable. A canonicalizer can also merge solutions that matter or
+split aliases that do not. We mitigate that risk by deriving keys from
+execution, documenting equivalences, and refusing to label free-form proof
+strategies without an adequate validator.
+
+Executing generated code is hazardous. The Python environment admits only a
+small call-free AST, removes builtins, runs outside the trainer process, bounds
+the input domain, enforces a timeout, and fails closed. It is a program
+behavior benchmark, not a general sandbox for arbitrary model code.
+
+The work does not directly increase deployment capability. Its benefit is
+methodological: it makes diversity claims auditable and separates sampled
+breadth from average correctness. The same machinery could overvalue novelty
+when a task's valid modes are not equally useful. Applications should report
+quality, breadth, invalidity, and the mode mapping together.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Solution diversity is not token entropy and not the number of different
+strings a model can emit. \textsc{ModeBench} treats it as a validator-bound
+execution outcome. Online verified MaxEnt then learns only from correct modes
+the policy has demonstrated, rewards first discovery separately from
+frequency balancing, replays discovered banks promptly through a global
+schedule, and adapts every coefficient against the run's own history rather
+than an external target.
+
+The confirmatory campaign is unfinished, but its interim fixed-checkpoint
+surface already shows the intended separation on four structurally different
+executable validators: much higher sampled breadth, with per-draw accuracy
+that is preserved on graph coloring and Countdown and improved on Python
+factors and MathIR. Held-out MATH-500 transfer is currently within a point of
+the matched control in both directions. Terminal pass-12 values across all 54
+registered runs, and the four frozen gates they will decide, remain the next
+evidence required.
 
 \bibliographystyle{plainnat}
 \bibliography{example_paper}
 
-
 \appendix
 \onecolumn
 
-% =====================================================================
-\section{Code-Faithful Objective Definitions}
-\label{app:code-objectives}
+\section{External Python Verification Contract}
+\label{app:python}
 
-This appendix gives the exact training objectives used in the experimental quartet.
-$G$ is the number of sampled completions per prompt, $\mathcal A$ the set of prompts in
-the batch, $N = |\mathcal A|\,G$ the number of sampled completions in the batch, and
-$T_{\max}$ the configured maximum completion length. All four methods share
-Appendices~\ref{app:common-rollout} and \ref{app:drgrpo-backend} and differ only in
-Appendices~\ref{app:objective-drgrpo}--\ref{app:objective-xdrgrpo}.
+The Python response is parsed in expression mode and must have an AST rooted
+at a lambda with exactly one argument named \(n\). The accepted node set is:
+lambda arguments, integer constants, \(n\), arithmetic operators
+\(\{+,-,\times,//,\bmod\}\), comparisons, Boolean operators, unary
+\(+,-,\mathrm{not}\), and conditional expressions. The parser rejects calls,
+attributes, imports, comprehensions, collections, subscripts, assignment,
+loops, and every other identifier. Candidate length and AST node count are
+bounded.
 
-\subsection{Common rollout setup}
-\label{app:common-rollout}
+The parent process sends the restricted source and trusted JSON task
+specification to a persistent isolated interpreter over JSON lines. The worker
+re-parses the source, removes builtins, evaluates the lambda, and invokes it on
+the frozen inputs under a per-request timer. It returns only validity, the
+integer output vector, and the canonical key. A timeout, broken pipe, malformed
+response, non-integer value, or divisor failure yields no key. The parent can
+restart a failed worker.
 
-For each prompt $x$ the rollout policy $\mu$ samples completions
-$\{y_{x,1},\dots,y_{x,G}\}$ with scalar rewards $r_{x,i}\in\{0,1\}$ from final-answer
-verification. Define the group mean and the centered group-relative advantage
+For example, with inputs \([6,10,15]\),
 \[
-\bar r_x = \frac{1}{G}\sum_{i=1}^G r_{x,i},
-\qquad
-A_{x,i} = r_{x,i} - \bar r_x
-\;\in\;
-\Bigl[-\bigl(1-\tfrac1G\bigr),\; 1-\tfrac1G\Bigr].
+\texttt{lambda n: 2 if n \% 2 == 0 else 3}
 \]
-The implementation also supports standard-deviation scaling,
-$A_{x,i} = (r_{x,i}-\bar r_x)/(\operatorname{Std}(\{r_{x,j}\}_j)+10^{-8})$, but this is
-disabled in every released recipe (the \texttt{critic\_type}=\texttt{drgrpo} setting
-selects the unscaled advantage and the constant-normalizer aggregator below), consistent
-with the Dr.GRPO correction \citep{liu2025understanding}.
-
-Let $m_{x,i,t}\in\{0,1\}$ be the completion-token mask, $\log\mu_{x,i,t}$ the rollout
-log-probability, and $\log\pi_{\theta,x,i,t}$ the current-policy log-probability. The
-tokenwise importance ratio and its clipped version are
+returns \((2,2,3)\), while
 \[
-c_{x,i,t}
-=
-\exp\!\bigl(\log \pi_{\theta,x,i,t}-\log \mu_{x,i,t}\bigr),
-\qquad
-\tilde c_{x,i,t}
-=
-\operatorname{clip}\bigl(c_{x,i,t},\,1-\epsilon_{\mathrm{low}},\,1+\epsilon_{\mathrm{high}}\bigr).
+\texttt{lambda n: 3 if n \% 3 == 0 else 5}
 \]
-An optional tokenwise reverse-KL penalty to a frozen reference policy is available:
-\[
-D_{x,i,t}
-=
-\exp(\delta_{x,i,t})-\delta_{x,i,t}-1,
-\qquad
-\delta_{x,i,t}
-=
-\operatorname{clip}\bigl(
-\log \pi_{\mathrm{ref},x,i,t}-\log \pi_{\theta,x,i,t},\,-40,\,40
-\bigr),
-\]
-weighted by $\beta\ge 0$. This is the \emph{only} mechanism in the paper that constrains
-$\pi_\theta$ toward $\pi_{\mathrm{ref}}$; see the warning in Appendix~\ref{app:reference-tilt}.
-
-\subsection{Per-candidate utility and the shared backend}
-\label{app:drgrpo-backend}
-
-All four objectives are built from a single per-candidate quantity, the
-\emph{normalized Dr.GRPO utility}
-\begin{equation}
-\label{eq:utility-app}
-\Ubar_{x,i}(\theta)
-:=
-\frac{1}{T_{\max}}
-\sum_{t}
-m_{x,i,t}\,
-\min\!\bigl(c_{x,i,t}A_{x,i},\;\tilde c_{x,i,t}A_{x,i}\bigr),
-\end{equation}
-together with the tokenwise penalty term
-$P_{x,i}(\theta) := \tfrac{1}{T_{\max}}\sum_t m_{x,i,t}\,D_{x,i,t}$. The constant
-$T_{\max}$ normalizer --- rather than the per-completion length $|y_{x,i}|$ --- is exactly
-Dr.GRPO's length-bias correction.
-
-Every method in the quartet then has the form
-\begin{equation}
-\label{eq:general-form}
-\mathcal L(\theta)
-=
-\frac{1}{|\mathcal A|}
-\sum_{x\in\mathcal A}
-\sum_{i=1}^G
-\Bigl[
--\,\underbrace{a_{x,i}}_{\text{aggregation weight}}\; \Ubar_{x,i}(\theta)
-\;+\;
-\tfrac{\beta}{G}\,P_{x,i}(\theta)
-\Bigr]
-\;+\;
-\underbrace{R(\theta)}_{\text{optional extra regularizer}} ,
-\end{equation}
-and the four methods are distinguished entirely by $(a_{x,i}, R)$. This is the axis the
-paper studies. Table~\ref{tab:quartet-summary} is the whole quartet in one place.
-
-\begin{table}[h]
-  \centering
-  \small
-  \setlength{\tabcolsep}{6pt}
-  \begin{tabularx}{\linewidth}{@{}l l Y@{}}
-    \toprule
-    \textbf{Method} & \textbf{Aggregation weight $a_{x,i}$} & \textbf{Extra regularizer $R(\theta)$ / notes} \\
-    \midrule
-    Dr.GRPO
-      & $1/G$ (uniform)
-      & none. Risk-neutral aggregation. \\
-    SEED-Dr.GRPO
-      & $s_x/G$, $\;s_x = \bigl(1+\alpha_{\mathrm{eff}} H^{\mathrm{sem}}_x\bigr)^{-1}$
-      & none. Uniform within the group; the whole \emph{prompt} is rescaled. \\
-    Token-MaxEnt Dr.GRPO
-      & $1/G$ (uniform)
-      & $-\tfrac{\alpha}{|\mathcal A| \,G\, T_{\max}}\sum_{x,i,t} m_{x,i,t}\mathcal H_{x,i,t}(\pi_\theta)$ \\
-    \textbf{xDr.GRPO}
-      & $\displaystyle \mathrm{sg}\!\left[
-          \frac{\exp(\Ubar_{x,i}/\kappa)\,(\pi^{\mathrm{ref}}_{x,i})^{\lambda/\kappa}}
-               {\sum_j \exp(\Ubar_{x,j}/\kappa)\,(\pi^{\mathrm{ref}}_{x,j})^{\lambda/\kappa}}
-        \right]$
-      & none. $\kappa := \tau+\lambda$. Recovers Dr.GRPO exactly as $\tau\to\infty$. \\
-    \bottomrule
-  \end{tabularx}
-  \caption{\textbf{The quartet is one line of code.} All methods instantiate
-  \eqref{eq:general-form} with the same per-candidate utility \eqref{eq:utility-app};
-  they differ only in the aggregation weight $a_{x,i}$ and an optional extra regularizer.
-  $\mathrm{sg}[\cdot]$ denotes \texttt{stop\_gradient} (see Remark~\ref{rem:detach}).}
-  \label{tab:quartet-summary}
-\end{table}
-
-\subsection{Dr.GRPO}
-\label{app:objective-drgrpo}
-
-The baseline sets $a_{x,i} = 1/G$:
-\[
-\mathcal L_{\mathrm{Dr.GRPO}}(\theta)
-=
--\frac{1}{|\mathcal A|\,G}
-\sum_{x\in\mathcal A}\sum_{i=1}^G \Ubar_{x,i}(\theta)
-\;+\;
-\frac{\beta}{|\mathcal A|\,G}\sum_{x,i} P_{x,i}(\theta)
-\;=\;
-\frac{1}{N\,T_{\max}}\sum_{x,i,t} m_{x,i,t}
-\Bigl[-\min\bigl(c_{x,i,t}A_{x,i},\tilde c_{x,i,t}A_{x,i}\bigr) + \beta D_{x,i,t}\Bigr],
-\]
-which is the standard implementation-faithful form. The equality is immediate from
-$N = |\mathcal A| G$ and \eqref{eq:utility-app}. \emph{The group-relative signal lives
-entirely in $A_{x,i}$; the aggregation across the group is a plain mean.}
-
-\subsection{SEED-Dr.GRPO}
-\label{app:objective-seed}
-
-SEED preserves the clipped surrogate but rescales each prompt's advantages by semantic
-predictive entropy. Let $c(i)$ be the semantic answer cluster of completion $i$ and
-\[
-\ell_{x,i} = \frac{1}{|y_{x,i}|}\sum_t m_{x,i,t}\log\mu_{x,i,t},
-\qquad
-p_{x,c} = \frac{\sum_{i:\,c(i)=c}\exp(\ell_{x,i})}{\sum_{j=1}^G \exp(\ell_{x,j})},
-\qquad
-H^{\mathrm{sem}}_x = -\sum_c p_{x,c}\log p_{x,c}.
-\]
-We length-normalize $\ell_{x,i}$ (see Appendix~\ref{app:reference-tilt} for why), and
-evaluate it at the rollout policy $\mu$, matching the frozen-weight convention of
-Remark~\ref{rem:frozen-weights} (at the single update of the released one-epoch recipe,
-$\mu = \pi_\theta$). Semantic clusters are the canonical answer modes of the verifier ---
-countdown expressions reduce to canonical ASTs, colorings to completion strings --- and
-completions with no extractable answer form singleton clusters. The
-prompt-level scaling is $s_x = (1+\alpha_{\mathrm{eff}} H^{\mathrm{sem}}_x)^{-1}$ with
-$\alpha_{\mathrm{eff}} = \alpha/\log G$, giving $a_{x,i} = s_x/G$. Note that $s_x$ does not
-depend on $i$: SEED reweights \emph{prompts}, and remains uniform \emph{within} the group.
-
-\paragraph{Fidelity to, and one departure from, the released SEED-GRPO.} The functional
-form above matches the released SEED-GRPO implementation, which likewise scales advantages
-by $(1+\alpha' H^{\mathrm{sem}})^{-1}$ with length-normalized sequence likelihoods and the
-Shannon entropy of the likelihood-weighted cluster masses (rather than the Monte-Carlo
-estimator $-\tfrac1K\sum_k \log p_{c(k)}$ written in that paper), and which also assigns
-unparseable completions to singleton clusters \citep{chen2025seedgrpo}. The one deliberate
-departure is the sensitivity: the released SEED-GRPO default corresponds to
-$\alpha \approx 0.04$ in our parameterization, which caps the prompt rescaling at about
-$4\%$ even at maximal semantic entropy --- a perturbation of \drgrpo far below this study's
-minimum detectable effect. We instead run the arm at $\alpha = 1$, which reaches
-$s_x = \tfrac12$ at maximal entropy, so that the prompt-level mechanism is actually
-testable at our sample sizes; results for this arm should be read as testing the
-\emph{mechanism at a visible dose}, not the original tuning.
-
-\subsection{Token-MaxEnt Dr.GRPO}
-\label{app:objective-token-maxent}
-
-Token-MaxEnt keeps $a_{x,i}=1/G$ and adds an exact next-token entropy bonus with
-\[
-\mathcal H_{x,i,t}(\pi_\theta)
-=
--\sum_{v} \pi_\theta(v\mid x, y_{x,i,<t})\log \pi_\theta(v\mid x, y_{x,i,<t}),
-\qquad
-R(\theta) = -\frac{\alpha}{|\mathcal A|\,G\,T_{\max}}\sum_{x,i,t} m_{x,i,t}\,\mathcal H_{x,i,t}(\pi_\theta).
-\]
-This is the classic loss-side policy-entropy bonus \citep{williams1991entropy,mnih2016a3c}
-placed on the \drgrpo backbone, with the entropy computed exactly over the vocabulary (no
-sampling estimate) and aggregated with the same constant $T_{\max}$ normalizer as the
-surrogate. Entropy here acts on the next-token distribution, not on the sampled group.
-
-\subsection{xDr.GRPO}
-\label{app:objective-xdrgrpo}
-
-xDr.GRPO changes only $a_{x,i}$. Let $\pi^{\mathrm{ref}}_x\in\Delta^G$ be the reference
-distribution over the sampled candidates (Appendix~\ref{app:reference-tilt}), let $\tau>0$,
-$\lambda\ge 0$, and $\kappa := \tau+\lambda$. Then
-\begin{equation}
-\label{eq:xdr-weights-app}
-w^\star_{x,i}(\theta)
-=
-\frac{\exp\bigl(\Ubar_{x,i}(\theta)/\kappa\bigr)\,\bigl(\pi^{\mathrm{ref}}_{x,i}\bigr)^{\lambda/\kappa}}
-     {\sum_{j=1}^G \exp\bigl(\Ubar_{x,j}(\theta)/\kappa\bigr)\,\bigl(\pi^{\mathrm{ref}}_{x,j}\bigr)^{\lambda/\kappa}},
-\qquad
-a_{x,i} := \mathrm{sg}\bigl[w^\star_{x,i}(\theta)\bigr],
-\end{equation}
-so that
-\begin{equation}
-\label{eq:xdr-loss-app}
-\mathcal L_{\mathrm{xDr.GRPO}}(\theta)
-=
--\frac{1}{|\mathcal A|}\sum_{x\in\mathcal A}\sum_{i=1}^G
-\mathrm{sg}\bigl[w^\star_{x,i}\bigr]\;\Ubar_{x,i}(\theta)
-\;+\;
-\frac{\beta}{|\mathcal A|\,G}\sum_{x,i} P_{x,i}(\theta).
-\end{equation}
-Equation~\eqref{eq:xdr-loss-app} is the negative of the log-partition objective
-$\mathcal J_{\mathrm{xDr.GRPO}}$ of Section~\ref{sec:where-exploration}; the identification
-and the necessity of the $\mathrm{sg}$ are Proposition~\ref{prop:lse-gradient} and
-Remark~\ref{rem:detach}.
-
-\paragraph{Diff against the baseline.} The entire implementation delta is:
+returns \((3,5,3)\). Both verify and receive different keys. The repository
+audit command is:
 
 \begin{verbatim}
-    # Utilities at the rollout policy (importance ratio 1): the clipped
-    # surrogate reduces to U_i = A_i * T_i / T_max per candidate.
-    U = adv * response_token_counts / T_max          # [num_prompts, G]
-
-    # --- Dr.GRPO (tau = inf) ---
-    # the reweighting below is skipped entirely; the baseline loss
-    # aggregation runs unchanged.
-
-    # --- xDr.GRPO (finite tau) ---
-    w = G * torch.softmax(U / tau, dim=-1).detach()  # <-- detach is required
-    loss = -(w * U_theta * loss_masks).mean()        # per-row reweighting
+python ops/verify_python_factor_mode.py \
+  --candidate 'lambda n: 2 if n % 2 == 0 else 3' \
+  --reference \
+  '{"verifier":"python_factor_function",
+    "python_version":"factor-v1","cases":[6,10,15]}'
 \end{verbatim}
 
-\noindent Here $U_\theta$ denotes the tokenwise clipped surrogate recomputed at the
-current parameters inside the update loop; only its per-row aggregation weight changes.
-Rollouts, rewards, clipping, masking, optimizer, and the tokenwise KL term are untouched.
+\section{Dataset Audits}
+\label{app:python-data}
 
-\begin{remark}[Weights are frozen at the rollout policy]
-\label{rem:frozen-weights}
-The released implementation computes $w^\star_x$ once per rollout batch from the
-utilities evaluated at the rollout policy $\mu$ --- where the importance ratio is $1$ and
-$\Ubar_{x,i} = A_{x,i}\,T_{x,i}/T_{\max}$ exactly --- and holds them fixed for the update,
-exactly as the advantages themselves are. Under the released recipe (one optimization
-epoch, weights consumed at the first gradient step where $\pi_\theta=\mu$) this coincides
-with $w^\star(\theta)$; in multi-epoch configurations the two diverge and
-$w^\star(\theta)$ would need recomputing per step. Setting $\tau=\infty$ disables the
-reweighting entirely, leaving the baseline aggregation \emph{bit-for-bit} unchanged; the
-$\tau=\infty$ arm of the sweep in Appendix~\ref{app:tau-range} is run through the same
-launcher with the reweighting skipped. The reference tilt ($\lambda>0$,
-Appendix~\ref{app:reference-tilt}) is presented for generality; the released
-implementation fixes $\lambda=0$.
-\end{remark}
+The deterministic Python materialization uses seed 5100, four tool calls per
+prompt, and composite inputs at most 96. The MathIR action-menu
+materialization uses seed 5900, four equation families, at most eight menu
+actions, and at most four program steps, with the exhaustive mode set
+enumerated per family and withheld from training. Their identities are:
 
-\paragraph{Degenerate groups.} If all rewards in a group are equal then $A_{x,i}=0$ for all
-$i$, hence $\Ubar_{x,i}=0$, $w^\star_x$ is uniform (or purely reference-tilted), and the
-gradient of \eqref{eq:xdr-loss-app} vanishes. Uninformative prompts drop out automatically,
-matching Dr.GRPO. No prompt-skipping heuristic is used.
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+& \textbf{Python factors} & \textbf{MathIR action menu} \\
+\midrule
+Training rows & 384 & 384 \\
+Evaluation rows & 128 & 128 \\
+Exact modes per prompt & 16--3,600 & 5 \\
+Training-row SHA-256 &
+\texttt{bcfa9acc\ldots37cf7} & \texttt{bfc98362\ldots5d3835} \\
+Evaluation-row SHA-256 &
+\texttt{be0f621c\ldots94d183} & \texttt{df5783dd\ldots328b96} \\
+Gold catalogue supplied to policy & no & no \\
+Training bank initialization & empty & empty \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\subsection{Shared recipe simplifications}
-\label{app:quartet-settings}
+For every Python row, the generator selects the smallest and largest proper
+divisor for each input, writes two nested-conditional lambda programs, and
+sends both to the external worker. Materialization aborts unless both verify
+and return different keys. The exact mode count is computed independently as
+the product of divisor-set sizes. Train and evaluation input tuples are
+disjoint. For every MathIR family, the certified routes are executed and
+canonicalized through the same interpreter that scores model responses.
 
-All matched recipes use
-\[
-G=16,\qquad
-\texttt{critic\_type}=\texttt{drgrpo},\qquad
-\beta=0,\qquad
-\lambda=0 ,
-\]
-with a learning rate of $2\times 10^{-7}$, a training budget of $9{,}216$ prompt
-consumptions, one optimization epoch per rollout batch, and sampling temperature $1$.
-The group size and learning rate were calibrated on the \drgrpo baseline alone, before
-any cross-method comparison: at $G=8$ most groups contain no correct sample at this model
-scale (starving the group-relative signal entirely), and at learning rates
-$\ge 10^{-6}$ the policy's training success rate collapses toward zero within a run,
-independent of method. The remaining pre-specified constants are the Token-MaxEnt
-coefficient $\alpha=0.01$, the SEED sensitivity $\alpha=1$, and the primary
-xDr.GRPO temperature $\tau=0.5$ (the remaining grid points are reported as
-exploratory, with Holm-adjusted $p$-values). For the larger-scale replication
-(Qwen2.5-3B-Instruct on the scaled four-number Countdown and graph-coloring pools,
-$G=32$; Section~\ref{sec:results-3b}), the primary
-temperature is pre-registered as $\tau=0.05$, fixed on the basis of the
-0.5B exploratory results before any 3B run was started. The fine-temperature
-round of Figure~\ref{fig:dose-response} adds $\tau\in\{0,0.0001,0.001,0.01,0.02,0.03,0.04\}$ ($\tau=0$ = exact argmax-set aggregation)
-and the mode-adaptive arm ($\tau_x=\tau_0/\log(1+\kappa_x)$, $\tau_0=0.05$,
-$\kappa_x$ = observed distinct correct modes in the prompt's rollout group,
-computed per rollout batch alongside the frozen weights) at 0.5B on Countdown,
-all exploratory with a fresh matched baseline. With $\beta=0$ the tokenwise KL term
-vanishes; with $\lambda=0$ the reference tilt vanishes and $\kappa=\tau$. The comparison
-therefore isolates a single axis: the aggregation weight $a_{x,i}$ (uniform for Dr.GRPO,
-prompt-rescaled uniform for SEED, uniform-plus-token-entropy for Token-MaxEnt,
-tempered-softmax for xDr.GRPO).
+\section{Per-Seed Interim Endpoints}
+\label{app:per-seed}
 
-
-% =====================================================================
-\section{Theory}
-\label{app:theory}
-
-Throughout, fix a prompt $x$ and abbreviate $\Ubar_i := \Ubar_{x,i}(\theta)$ from
-\eqref{eq:utility-app}, $\pi_i := \pi^{\mathrm{ref}}_{x,i}$, $w_i := w_{x,i}$, and
-$\kappa := \tau+\lambda > 0$. We assume $\pi_i>0$ for all $i$ and that
-$\theta\mapsto \Ubar_i(\theta)$ is differentiable at $\theta$.
-
-\subsection{The reference tilt is an aggregation prior, not a policy trust region}
-\label{app:reference-tilt}
-
-The reference distribution over the sampled candidate set is
-\[
-\pi^{\mathrm{ref}}_{x,i}
-=
-\frac{\exp\bigl(\ell^{\mathrm{ref}}_{x,i}\bigr)}{\sum_{j}\exp\bigl(\ell^{\mathrm{ref}}_{x,j}\bigr)},
-\qquad
-\ell^{\mathrm{ref}}_{x,i}
-=
-\frac{1}{|y_{x,i}|}\sum_t m_{x,i,t}\log \pi_{\mathrm{ref}}(y_{x,i,t}\mid x, y_{x,i,<t}).
-\]
-
-\paragraph{Length normalization is not optional here.} An unnormalized sequence
-log-likelihood decreases monotonically in completion length, so a softmax over raw
-log-likelihood sums places mass on short completions for reasons that have nothing to do
-with quality. Since Dr.GRPO's central correction is the removal of exactly this length
-bias, a candidate distribution built from raw sums would reintroduce it at the aggregation
-step. We therefore length-normalize $\ell^{\mathrm{ref}}$, and likewise $\ell_{x,i}$ in
-SEED (Appendix~\ref{app:objective-seed}).
-
-\paragraph{$\lambda$ is not $\beta$.} The term $-\lambda\KL(w\|\pi^{\mathrm{ref}}_x)$ acts on
-the \emph{aggregation weights} $w\in\Delta^G$. It does \emph{not} bound
-$\KL(\pi_\theta\|\pi_{\mathrm{ref}})$ and is \emph{not} a trust region on the policy: one can
-drive $\pi_\theta$ arbitrarily far from $\pi_{\mathrm{ref}}$ while $w$ stays pinned to
-$\pi^{\mathrm{ref}}_x$. Trust-region control over the policy, where wanted, is supplied
-separately by the tokenwise penalty $\beta D_{x,i,t}$ of
-Appendix~\ref{app:common-rollout}. We therefore call $\lambda$ a \emph{reference tilt}: it
-biases aggregation toward candidates the base model already finds plausible, damping the
-influence of low-likelihood off-policy outliers on the update. It is a prior over
-\emph{whom to learn from}, not a leash on \emph{where to go}.
-
-\subsection{Closed-form aggregation weights}
-
-\begin{proposition}[Closed form]
-\label{prop:closed-form}
-The map $w\mapsto \langle w,\Ubar\rangle + \tau H(w) - \lambda\KL(w\|\pi^{\mathrm{ref}}_x)$
-is strictly concave on $\Delta^G$ and attains its unique maximum at
-\[
-w^\star_i
-=
-\frac{\exp(\Ubar_i/\kappa)\,\pi_i^{\lambda/\kappa}}
-{\sum_{j=1}^G \exp(\Ubar_j/\kappa)\,\pi_j^{\lambda/\kappa}} .
-\]
-\end{proposition}
-
-\begin{proof}
-Collecting the $w_i\log w_i$ terms,
-\[
-\langle w,\Ubar\rangle + \tau H(w) - \lambda\KL(w\|\pi^{\mathrm{ref}}_x)
-=
-\sum_i w_i \Ubar_i
-- \kappa\sum_i w_i\log w_i
-+ \lambda\sum_i w_i\log \pi_i .
-\]
-The map $w\mapsto -\sum_i w_i\log w_i$ is strictly concave on the simplex and $\kappa>0$;
-the remaining terms are linear in $w$. The objective is therefore strictly concave, so any
-stationary point is the unique maximizer. Introducing a multiplier $\eta$ for
-$\sum_i w_i = 1$, stationarity reads
-$\Ubar_i - \kappa(\log w_i + 1) + \lambda\log\pi_i + \eta = 0$, whence
-$w_i \propto \exp(\Ubar_i/\kappa)\,\pi_i^{\lambda/\kappa}$ (the factor
-$\exp((\eta-\kappa)/\kappa)$ is common to all coordinates). Normalizing gives the claim.
-\end{proof}
-
-\begin{proposition}[Log-partition form and gradient]
-\label{prop:lse-gradient}
-Let $Z := \sum_j \exp(\Ubar_j/\kappa)\,\pi_j^{\lambda/\kappa}$ and let
-$\mathcal G_x(\theta)$ denote the optimal value of the objective in
-Proposition~\ref{prop:closed-form}. Then
-\[
-\mathcal G_x(\theta) = \kappa\log Z,
-\qquad\text{and}\qquad
-\nabla_\theta \mathcal G_x(\theta)
-=
-\sum_{i=1}^G w^\star_i(\theta)\,\nabla_\theta \Ubar_i(\theta).
-\]
-\end{proposition}
-
-\begin{proof}
-Substituting $w^\star$ and using
-$\log w^\star_i = \Ubar_i/\kappa + (\lambda/\kappa)\log\pi_i - \log Z$ into the objective,
-the $\Ubar$, entropy, and $\log\pi$ terms cancel pairwise and leave
-$\mathcal G_x = \kappa\log Z$. For the gradient, $\pi^{\mathrm{ref}}$ does not depend on
-$\theta$, so
-\[
-\nabla_\theta \mathcal G_x
-= \kappa Z^{-1}\nabla_\theta Z
-= \kappa Z^{-1}\sum_i \exp(\Ubar_i/\kappa)\,\pi_i^{\lambda/\kappa}\cdot \kappa^{-1}\nabla_\theta \Ubar_i
-= \sum_i w^\star_i \,\nabla_\theta \Ubar_i . \qedhere
-\]
-\end{proof}
-
-\begin{remark}[Why the weights must be detached]
-\label{rem:detach}
-Proposition~\ref{prop:lse-gradient} is an envelope (Danskin) statement: although
-$w^\star$ depends on $\theta$, that dependence contributes nothing to
-$\nabla_\theta\mathcal G_x$, because $w^\star$ is a stationary point of the inner problem.
-Consequently the correct implementation of \eqref{eq:xdr-loss-app} treats $w^\star$ as a
-constant. Backpropagating through the softmax optimizes a different --- and
-uncharacterized --- objective, and is the single easiest way to get this method wrong.
-\end{remark}
-
-\subsection{Dr.GRPO is the risk-neutral limit of the family}
-
-\begin{proposition}[Variance expansion]
-\label{prop:variance-expansion}
-Let $\lambda=0$, and set $\mu_x := \tfrac1G\sum_i \Ubar_i$ and
-$\sigma_x^2 := \tfrac1G\sum_i (\Ubar_i - \mu_x)^2$. Then, as $\tau\to\infty$,
-\[
-\mathcal G_x(\theta)
-=
-\tau\log G
-\;+\;
-\underbrace{\mu_x(\theta)}_{\text{Dr.GRPO}}
-\;+\;
-\underbrace{\frac{\sigma_x^2(\theta)}{2\tau}}_{\text{exploration bonus}}
-\;+\;
-O(\tau^{-2}).
-\]
-\end{proposition}
-
-\begin{proof}
-Put $\epsilon := 1/\tau$. Then
-$\mathcal G_x = \epsilon^{-1}\log\sum_i e^{\epsilon \Ubar_i}
-= \epsilon^{-1}\log G + \epsilon^{-1}\log\bigl(\tfrac1G\sum_i e^{\epsilon\Ubar_i}\bigr)$.
-The second logarithm is the cumulant generating function of the empirical distribution of
-$\{\Ubar_i\}_{i=1}^G$ evaluated at $\epsilon$; since the $\Ubar_i$ are uniformly bounded
-(Appendix~\ref{app:tau-range}) it is analytic at $0$ with expansion
-$\epsilon\mu_x + \tfrac{\epsilon^2}{2}\sigma_x^2 + O(\epsilon^3)$. Multiplying by
-$\epsilon^{-1} = \tau$ gives the claim.
-\end{proof}
-
-\begin{proposition}[Gradient convergence to Dr.GRPO]
-\label{prop:drgrpo-limit}
-Let $\lambda=0$, $M_x := \max_i |\Ubar_i(\theta)|$, and
-$L_x := \max_i \|\nabla_\theta \Ubar_i(\theta)\|$. Then
-\[
-\Bigl\|\,
-\nabla_\theta \mathcal G_x(\theta)
--
-\nabla_\theta \mathcal J_{\mathrm{Dr.GRPO},x}(\theta)
-\,\Bigr\|
-\;\le\;
-\bigl(e^{2M_x/\tau} - 1\bigr)\, L_x
-\;=\;
-O(1/\tau),
-\]
-where $\mathcal J_{\mathrm{Dr.GRPO},x}(\theta) = \tfrac1G\sum_i \Ubar_i(\theta)$ is the
-prompt-$x$ contribution to the Dr.GRPO objective
-(Appendix~\ref{app:objective-drgrpo}).
-\end{proposition}
-
-\begin{proof}
-By Proposition~\ref{prop:lse-gradient},
-$\nabla\mathcal G_x - \nabla\mathcal J_{\mathrm{Dr.GRPO},x}
-= \sum_i \bigl(w^\star_i - \tfrac1G\bigr)\nabla\Ubar_i$, so by the triangle inequality the
-norm is at most $\|w^\star - \mathbf u\|_1 L_x$ with $\mathbf u$ uniform. Apply
-Proposition~\ref{prop:stability} to the pair $(\Ubar,\,0)$, noting that with $\lambda=0$ the
-weights induced by the all-zero utility vector are exactly $\mathbf u$, and that
-$\|\Ubar - 0\|_\infty = M_x$. This gives
-$\bigl|\log(w^\star_i/\tfrac1G)\bigr| \le 2M_x/\tau$ for every $i$, hence
-$\bigl|w^\star_i - \tfrac1G\bigr| \le \tfrac1G\bigl(e^{2M_x/\tau}-1\bigr)$ and, summing,
-$\|w^\star - \mathbf u\|_1 \le e^{2M_x/\tau}-1$. Finally $e^{2M_x/\tau}-1 = O(1/\tau)$ for
-bounded $M_x$.
-\end{proof}
-
-\begin{corollary}[Optimism]
-\label{cor:optimism}
-For every $\tau>0$ with $\lambda=0$,
-\[
-\mathcal G_x(\theta) - \tau\log G
-\;\ge\;
-\mathcal J_{\mathrm{Dr.GRPO},x}(\theta),
-\]
-with equality if and only if $\Ubar_1 = \dots = \Ubar_G$.
-\end{corollary}
-
-\begin{proof}
-$\tau\log\bigl(\tfrac1G\sum_i e^{\Ubar_i/\tau}\bigr) \ge \tfrac1G\sum_i \Ubar_i$ by Jensen's
-inequality applied to the strictly convex map $u\mapsto e^{u/\tau}$; equality holds iff
-$e^{\Ubar_i/\tau}$ is constant in $i$, i.e.\ iff the $\Ubar_i$ coincide.
-\end{proof}
-
-\begin{remark}[What the theory actually says]
-\label{rem:interpretation}
-Read together, Propositions~\ref{prop:variance-expansion}--\ref{prop:drgrpo-limit} and
-Corollary~\ref{cor:optimism} give the paper's claim its precise form.
-\emph{(i)} Dr.GRPO is not ``xDr.GRPO without exploration'': it is xDr.GRPO at
-$\tau=\infty$, the risk-neutral corner of a one-parameter family. The uniform aggregation
-in Dr.GRPO is an unexamined default, not a derived quantity.
-\emph{(ii)} Finite $\tau$ replaces the arithmetic mean of candidate utilities by their
-tempered log-sum-exp --- the \emph{entropic risk measure} --- which by
-Corollary~\ref{cor:optimism} upper-bounds the Dr.GRPO objective by exactly the within-group
-\emph{dispersion} of candidate utilities. Maximizing that bound rewards groups whose
-candidates still disagree. This is optimism in the face of uncertainty, applied to the
-object GRPO uses for credit assignment.
-\emph{(iii)} Mechanically, $w^\star_{x,i}\propto\exp(\Ubar_{x,i}/\tau)$ and $\Ubar_{x,i}$ is
-increasing in $A_{x,i}$, so negative-advantage candidates receive exponentially attenuated
-gradients. The theory establishes the attenuation, not its downstream effect on policy
-entropy: the token-level literature attributes entropy collapse variously to
-high-covariance positive-advantage updates \citep{cui2025entropy} --- with sequence-level
-negative reinforcement alone even \emph{preserving} entropy \citep{zhu2025negative} --- and
-to negative gradients on low-probability tokens
-\citep{park2025cliplow,huang2025lowprob,deng2025negativegrad}. Whether candidate-level
-attenuation sustains a higher effective rollout count and a lower incorrect-mass share is
-what Figure~\ref{fig:exploration-sidecar} is designed to measure.
-\end{remark}
-
-\subsection{Stability under utility perturbation}
-
-The utilities $\Ubar_i$ are computed from noisy verifier rewards (and, in multi-epoch
-configurations, drifting importance ratios), so the aggregation weights must not be brittle
-in them. They are not: the entropy
-weight controls the Lipschitz constant directly.
-
-\begin{proposition}[Coordinatewise stability]
-\label{prop:stability}
-Let $\Ubar,\widetilde\Ubar \in \mathbb R^G$ with
-$\|\widetilde\Ubar - \Ubar\|_\infty \le \varepsilon$, and let $w^\star,\widetilde w^\star$ be
-the corresponding weights from Proposition~\ref{prop:closed-form} under the same
-$\tau,\lambda,\pi^{\mathrm{ref}}_x$. Then for every $i$,
-\[
-\Bigl|\log \tfrac{\widetilde w^\star_i}{w^\star_i}\Bigr| \;\le\; \frac{2\varepsilon}{\kappa},
-\qquad\text{and}\qquad
-\bigl|\widetilde{\mathcal G}_x - \mathcal G_x\bigr| \;\le\; \varepsilon .
-\]
-\end{proposition}
-
-%% ====================================================================
-%% NOTE TO AUTHORS: the imported source was truncated in a small gap
-%% after the statement of Proposition~\ref{prop:stability}. Two pieces
-%% in that gap are reconstructions, not original text: (1) the proof of
-%% Proposition~\ref{prop:stability} immediately below, and (2) the
-%% boundedness / $\tau$-range subsection carrying the label
-%% app:tau-range (that label is referenced from the main text and from
-%% the proof of Proposition~\ref{prop:variance-expansion}, but no
-%% section carrying it appeared in the provided source).
-%% Figure~\ref{fig:exploration-sidecar} in Appendix C is likewise a
-%% reconstructed placeholder. Everything else from here on is the
-%% authors' original text.
-%% ====================================================================
-
-\begin{proof}
-Write $Z = \sum_j \exp(\Ubar_j/\kappa)\,\pi_j^{\lambda/\kappa}$ and
-$\widetilde Z$ for its counterpart under $\widetilde\Ubar$. Since
-$|\widetilde\Ubar_j - \Ubar_j|\le\varepsilon$ for every $j$, each summand of
-$\widetilde Z$ is within a factor $e^{\pm\varepsilon/\kappa}$ of the corresponding
-summand of $Z$, hence
-$e^{-\varepsilon/\kappa} \le \widetilde Z / Z \le e^{\varepsilon/\kappa}$, i.e.\
-$|\log(\widetilde Z/Z)|\le \varepsilon/\kappa$. For the weights,
-\[
-\log\frac{\widetilde w^\star_i}{w^\star_i}
-=
-\frac{\widetilde\Ubar_i - \Ubar_i}{\kappa} - \log\frac{\widetilde Z}{Z},
-\qquad\text{so}\qquad
-\Bigl|\log\frac{\widetilde w^\star_i}{w^\star_i}\Bigr|
-\le \frac{\varepsilon}{\kappa} + \frac{\varepsilon}{\kappa}
-= \frac{2\varepsilon}{\kappa}.
-\]
-For the objective values, Proposition~\ref{prop:lse-gradient} gives
-$\widetilde{\mathcal G}_x - \mathcal G_x = \kappa\log(\widetilde Z/Z)$, whose absolute
-value is at most $\kappa\cdot\varepsilon/\kappa = \varepsilon$.
-\end{proof}
-
-\subsection{Boundedness of the utilities and the practical range of $\tau$}
-\label{app:tau-range}
-
-\paragraph{Boundedness.}
-The utilities that enter the aggregation weights are evaluated at the rollout policy
-(Remark~\ref{rem:frozen-weights}), where the importance ratio is exactly $1$ and every
-summand of \eqref{eq:utility-app} equals $A_{x,i}$ on active positions. Since the mask has
-at most $T_{\max}$ active positions and $|A_{x,i}|\le 1-\tfrac1G$,
-\[
-M_x \;=\; \max_i\,\bigl|\Ubar_{x,i}\bigr| \;=\; \max_i\, |A_{x,i}|\,\frac{T_{x,i}}{T_{\max}}
-\;\le\; 1-\frac1G
-\]
-exactly, with no clipping argument required. (For the general current-$\theta$ surrogate
-the positive branch is still bounded by $(1+\epsilon_{\mathrm{high}})|A_{x,i}|$, but the
-unclipped negative branch is unbounded in principle; the released weights never evaluate
-it off-policy.) This uniform boundedness is what
-Proposition~\ref{prop:variance-expansion} uses, and it justifies treating $[-1,1]$ as the
-utility scale when choosing $\tau$.
-
-\paragraph{Practical range of $\tau$.}
-The weights depend on the utilities only through $\Ubar_{x,i}/\kappa$, so the meaningful
-scale for $\tau$ is the within-group utility spread, which for binary rewards and $G=16$ is
-of order $10^{-1}$ after the $T_{\max}$ normalization. The sweep uses the grid
-$\tau \in \{0.05, 0.1, 0.25, 0.5, 1, 2, \infty\}$ with $\lambda=0$
-(Table~\ref{tab:matched-run-design}), where the $\tau=\infty$ arm disables the reweighting
-entirely and runs the identical baseline code path
-(Remark~\ref{rem:frozen-weights}), reproducing Dr.GRPO bit-for-bit. Values of $\tau$ far below the utility spread approach the best-of-$G$ corner
-and inherit its instability (Proposition~\ref{prop:stability}); values far above it are
-indistinguishable from Dr.GRPO by Proposition~\ref{prop:drgrpo-limit}. Reported $\tau$
-values should be read relative to the utility scale $M_x\le 1$ above.
-
-% =====================================================================
-\section{Implementation and Evaluation Details}
-\label{app:implementation}
-
-The design principle is parity: all compared methods use the same data, model, prompt
-template, rollout budget, reward extraction, and evaluation harness. Only the aggregation
-weight $a_{x,i}$ of \eqref{eq:general-form} differs.
-
-\begin{table}[h]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.15}
-  \begin{tabularx}{\linewidth}{@{}l X@{}}
-    \toprule
-    \textbf{Component} & \textbf{Setting} \\
-    \midrule
-    Base model & Qwen2.5-0.5B-Instruct. \\
-    Training data & Synthetic exact multi-answer Countdown arithmetic (384 train / 128 eval prompts, 2--8 modes) and graph-coloring completion (192 / 96), regenerated deterministically from fixed seeds. \\
-    Prompting & Single-boxed-answer instruction prompt per domain, identical in training and evaluation. \\
-    Rollouts & $G=16$ completions per prompt for every arm; sampling temperature $1.0$, top-$p$ $1.0$; prompt length $\le 256$ tokens; completion budget $T_{\max}=192$ tokens; one prompt group per learner step. \\
-    Optimization & Constant learning rate $2\times 10^{-7}$ (Adam), one optimization epoch per rollout batch (\texttt{num\_ppo\_epochs}=1), PPO clip range $\epsilon=0.2$ (symmetric), gradient-norm clip $1.0$, bfloat16; training budget $9{,}216$ prompt consumptions per run; \texttt{critic\_type}=\texttt{drgrpo} (constant $T_{\max}$ normalizer, mean-only advantages); $\beta=0$, no KL pseudo-reward, so no reference model enters training. \\
-    Main paired methods & Dr.GRPO and xDr.GRPO. \\
-    Additional baselines & SEED-Dr.GRPO and Token-MaxEnt Dr.GRPO, same backbone (Appendix~\ref{app:drgrpo-backend}). \\
-    Arm-specific settings & xDr.GRPO: $\tau \in \{0.05, 0.1, 0.25, 0.5, 1, 2, \infty\}$ with $\tau=0.5$ pre-specified as primary (remaining grid points exploratory, Holm-adjusted); $\lambda=0$; $\tau=\infty$ \emph{is} the Dr.GRPO arm. SEED-Dr.GRPO: $\alpha=1$ (Appendix~\ref{app:objective-seed}). Token-MaxEnt: $\alpha=0.01$. \\
-    Training seeds & Three independent fine-tuning seeds (43, 44, 45) per method and per $\tau$. \\
-    Evaluation seeds & Three stochastic evaluation seeds per trained checkpoint; $K=8$ sampled completions per prompt at temperature $1.0$, plus one greedy pass. \\
-    Evaluation splits & Held-out multi-answer split per domain; optional single-mode control split. \\
-    Checkpoint selection & Final saved checkpoint of each run; rule fixed before any evaluation, not tuned on the evaluation splits. \\
-    Primary estimand & Coefficient on the method indicator in Equation~\ref{eq:regression-main}. \\
-    \bottomrule
-  \end{tabularx}
-  \caption{\textbf{Matched run design.} The repeated seed and task structure is part of
-  the experimental design, not an after-the-fact aggregation choice. Because Dr.GRPO is the
-  $\tau=\infty$ member of the xDr.GRPO family, the baseline and the treatment share one code
-  path, which removes the most common source of unequal-tuning confounds.}
-  \label{tab:matched-run-design}
-\end{table}
-
-\paragraph{Objective-specific difference.}
-Dr.GRPO aggregates per-candidate utilities uniformly within each prompt group. xDr.GRPO
-aggregates the \emph{same} utilities with the tempered softmax weights of
-\eqref{eq:xdr-weights-app}, computed at the rollout policy and frozen per rollout batch
-(Remark~\ref{rem:frozen-weights}). SEED-Dr.GRPO
-rescales whole prompts by semantic entropy; Token-MaxEnt Dr.GRPO adds a next-token entropy
-bonus. Nothing else changes.
-
-\paragraph{3B replication design.}
-The replication of Section~\ref{sec:results-3b} substitutes Qwen2.5-3B-Instruct,
-$G=32$ rollouts per prompt, and regenerated leak-free pools of $1{,}024$ training /
-$256$ evaluation prompts per domain (four-number Countdown; larger graph-coloring
-instances), with a one-epoch training budget of $32{,}768$ prompt consumptions per
-run. All other recipe constants are unchanged (learning rate $2\times 10^{-7}$,
-\texttt{critic\_type}=\texttt{drgrpo}, $\beta=\lambda=0$, clip $0.2$, $T_{\max}=192$,
-temperature $1.0$). Arms: \drgrpo, \method $\tau=0.05$ (pre-registered primary,
-Appendix~\ref{app:quartet-settings}) and $\tau=0.25$, and \seeddrgrpo; the token-level
-arm was dropped after its 0.5B harm. Three training seeds ($43$--$45$), three
-evaluation seeds, $K=8$ plus greedy, final-checkpoint rule --- identical to the 0.5B
-protocol. One implementation note for exact reproducibility: the 3B runs construct the
-AdamW update with PyTorch's fused AdamW rather than DeepSpeed's JIT-compiled kernel (a
-cluster-toolchain constraint); the two implement the same update rule, and every 3B
-arm shares the same optimizer implementation, so parity across arms is preserved.
-
-\paragraph{Mixed-difficulty competence probe.}
-The probe of Section~\ref{sec:results-3b} trains a single \drgrpo seed
-(Qwen2.5-3B-Instruct, $G=32$, same recipe) for two epochs ($65{,}536$ prompt
-consumptions) on a mixed pool of $1{,}024$ Countdown prompts spanning easy
-single-path and hard multi-answer items, then evaluates the final checkpoint on
-held-out hard multi-answer ($128$ prompts) and easy ($128$) strata with $K=8$ sampled
-completions plus one greedy pass.
-
-\paragraph{Diagnostics.}
-The candidate-level diagnostics are defined for every method through the realized
-aggregation weights $a_{x,i}$ of \eqref{eq:general-form}: the effective number of active
-rollouts $\exp\bigl(H(a_x)\bigr)$, with $a_x$ normalized within the prompt group over the
-rows that train, and the share of aggregation mass falling on incorrect rollouts
-$\sum_{i:\,r_{x,i}=0} a_{x,i}$. Because Dr.GRPO also has an explicit $a_{x,i}$ under
-\eqref{eq:general-form} (namely $1/G$), the training loop computes both quantities
-identically for every arm at every step --- uniform weights for Dr.GRPO and Token-MaxEnt,
-the prompt-rescaled uniform weights for SEED (whose within-group distribution is uniform,
-so its curves coincide with the baseline's by construction), and the tempered softmax
-weights for xDr.GRPO --- and logs them under a shared key, so the curves are directly
-comparable. Figure~\ref{fig:exploration-sidecar} plots exactly these quantities.
-
-\begin{figure}[h]
-  \centering
-  \IfFileExists{figures/exploration_sidecar.pdf}{%
-    \includegraphics[width=\linewidth]{figures/exploration_sidecar}%
-  }{%
-    \fbox{\parbox[c][0.32\linewidth][c]{0.9\linewidth}{\centering
-      \texttt{[pending: run ops/plot\_exploration\_sidecar.py]}
-    }}%
-  }
-  \caption{\textbf{Candidate-level exploration diagnostics at both scales.}
-  Effective number of active rollouts $\exp(H(a_x))$ (left; uniform
-  aggregation sits at the number of valid rollouts per group) and
-  incorrect-mass share (right) over training, on graph coloring at 0.5B
-  with $G=16$ (top row) and in the 3B replication with $G=32$ (bottom
-  row). Lines are means over the three training seeds, bands seed
-  min--max, computed from the realized aggregation weights logged
-  identically for every method. At both scales the $\tau=0.05$ weights
-  concentrate only mildly while spending consistently less aggregation
-  mass on incorrect candidates; the $\tau=0.25$ and SEED curves coincide
-  with the baseline's, matching their outcome estimates.}
-  \label{fig:exploration-sidecar}
-\end{figure}
-
-
-\paragraph{Regression-ready logging.}
-For each evaluation we log the method, $\tau$, training seed, evaluation seed, task
-domain, prompt identifier, sampled-completion index, the normalized predicted answer and
-its canonical mode key, the prompt's number of valid modes, and the correctness indicator.
-This yields the observation-level table
-required by Equation~\ref{eq:regression-main}. Aggregate accuracy and coverage tables are
-derived from
-the same records, so the descriptive and regression results are guaranteed to agree.
-
-% =====================================================================
-\section{Supplementary Results}
-\label{app:supplementary-results}
-
-The descriptive per-domain accuracy and diversity levels of every 0.5B arm,
-and the conditional per-solved-prompt diversity comparison, referenced from
-Section~\ref{sec:results-05b}.
-
-\begin{table}[t]
+\begin{table}[H]
   \centering
   \small
-  \setlength{\tabcolsep}{4.5pt}
-  \begin{tabular}{@{}l cccc cccc@{}}
+  \begin{tabular}{@{}llrcccc@{}}
     \toprule
-    & \multicolumn{4}{c}{\textbf{Countdown}} & \multicolumn{4}{c}{\textbf{Graph coloring}} \\
-    \cmidrule(lr){2-5} \cmidrule(l){6-9}
-    \textbf{Arm} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} & \texttt{pass} & \texttt{mean} & \texttt{cov} & \texttt{dist} \\
+    \textbf{Domain (pass)} & \textbf{Method} & \textbf{Seed} &
+    \texttt{pass@8} & \texttt{mean@8} & \texttt{distinct@8} &
+    \texttt{pass@1} \\
     \midrule
-    Dr.GRPO                & .401 & .297 & .124 & .496 & .649 & .341 & .123 & .770 \\
-    xDr.GRPO $\tau{=}0.05$ & \textbf{.491} & .302 & \textbf{.175} & \textbf{.703} & \textbf{.713} & .316 & \textbf{.166} & \textbf{1.043} \\
-    xDr.GRPO $\tau{=}0.1$  & .435 & .300 & .149 & .589 & .626 & .331 & .126 & .791 \\
-    xDr.GRPO $\tau{=}0.25$ & .486 & \textbf{.313} & .160 & .652 & .630 & .340 & .126 & .784 \\
-    xDr.GRPO $\tau{=}0.5$  & .424 & .304 & .129 & .516 & .591 & .334 & .115 & .719 \\
-    xDr.GRPO $\tau{=}1$    & .412 & .311 & .131 & .516 & .601 & .335 & .115 & .730 \\
-    xDr.GRPO $\tau{=}2$    & .470 & .295 & .150 & .614 & .559 & \textbf{.343} & .112 & .691 \\
-    SEED-Dr.GRPO           & .378 & .296 & .121 & .473 & .634 & .339 & .124 & .788 \\
-    Token-MaxEnt Dr.GRPO   & .000 & .000 & .000 & .000 & .678 & .294 & .151 & .962 \\
+    Graph (10) & Dr.GRPO & 43 & .344 & .344 & .344 & .344 \\
+    & & 44 & .388 & .327 & .409 & .323 \\
+    & & 45 & .385 & .361 & .427 & .365 \\
+    & verified MaxEnt & 43 & .971 & .396 & 2.336 & .500 \\
+    & & 44 & .964 & .397 & 2.302 & .458 \\
+    & & 45 & .969 & .406 & 2.393 & .510 \\
+    \midrule
+    Countdown (5) & Dr.GRPO & 43 & .648 & .594 & .750 & .594 \\
+    & & 44 & .572 & .537 & .588 & .531 \\
+    & & 45 & .604 & .565 & .613 & .570 \\
+    & verified MaxEnt & 43 & .664 & .559 & 1.846 & .609 \\
+    & & 44 & .672 & .576 & 1.521 & .625 \\
+    & & 45 & .658 & .577 & 1.656 & .641 \\
+    \midrule
+    Python (6) & Dr.GRPO & 43 & .172 & .172 & .172 & .172 \\
+    & & 44 & .172 & .172 & .172 & .172 \\
+    & & 45 & .172 & .172 & .172 & .172 \\
+    & verified MaxEnt & 43 & 1.000 & .995 & 1.000 & 1.000 \\
+    & & 44 & 1.000 & .993 & 1.648 & 1.000 \\
+    & & 45 & .219 & .188 & .219 & .203 \\
+    \midrule
+    MathIR (5) & Dr.GRPO & 43 & .318 & .221 & .318 & .227 \\
+    & & 44 & .244 & .167 & .244 & .164 \\
+    & & 45 & .236 & .148 & .236 & .133 \\
+    & verified MaxEnt & 43 & .727 & .553 & .752 & .586 \\
+    & & 44 & .590 & .430 & .607 & .477 \\
+    & & 45 & .674 & .489 & .688 & .523 \\
+    \midrule
+    MathIR (5) & actuator-off control & 43 & .811 & .613 & .828 & .656 \\
+    & & 44 & .676 & .436 & .709 & .469 \\
+    & & 45 & .801 & .646 & .818 & .680 \\
+    & separated-support actuator & 43 & .729 & .574 & .770 & .617 \\
+    & & 44 & .703 & .497 & .750 & .555 \\
+    & & 45 & .793 & .572 & .854 & .641 \\
+    \midrule
+    MATH-500 (2) & Dr.GRPO & 43 & .578 & .262 & --- & .316 \\
+    & & 44 & .590 & .266 & --- & .308 \\
+    & & 45 & .570 & .266 & --- & .316 \\
+    & verified MaxEnt & 43 & .572 & .265 & --- & .322 \\
+    & & 44 & .562 & .251 & --- & .314 \\
+    & & 45 & .564 & .259 & --- & .330 \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Descriptive accuracy and diversity by domain} (\texttt{pass@8},
-  \texttt{mean@8}, \texttt{coverage@8}, and \texttt{distinct@8}: distinct correct
-  modes per prompt; means over three training seeds $\times$ three evaluation seeds on
-  the held-out multi-answer splits; best per column in bold). These raw levels show
-  the size and direction of the observed differences; Table~\ref{tab:main-results}
-  tests which of them survive the matched-seed regression with clustered uncertainty.
-  Diversity appears in three views: unconditional \texttt{distinct@8} here and in the
-  regression ($+0.24$ modes at $\tau{=}0.05$, Holm $p<10^{-4}$), \texttt{coverage@8}
-  normalizing by each prompt's number of valid modes, and the conditional
-  per-solved-prompt view of Table~\ref{tab:conditional-diversity}.}
-  \label{tab:descriptive}
+  \caption{\textbf{Seed-level values underlying Table~\ref{tab:interim} and
+  Section~\ref{sec:results}.} Each block is at the latest registered
+  checkpoint landed by all three seeds of both compared arms.
+  \texttt{distinct@8} is omitted for MATH-500 because a single-answer task has
+  no reasoning-mode surface.}
+  \label{tab:per-seed}
 \end{table}
 
+\section{Supplemental All-Epoch Diagnostic}
+\label{app:diagnostic}
 
-\begin{table}[t]
+\begin{sidewaysfigure}
   \centering
-  \small
-  \setlength{\tabcolsep}{5pt}
-  \begin{tabular}{@{}l cc cc@{}}
-    \toprule
-    & \multicolumn{2}{c}{\textbf{Countdown}} & \multicolumn{2}{c}{\textbf{Graph coloring}} \\
-    \cmidrule(lr){2-3} \cmidrule(l){4-5}
-    \textbf{Arm} & distinct/solved & $\ge 2$ modes & distinct/solved & $\ge 2$ modes \\
-    \midrule
-    Dr.GRPO                & 1.24 & 23\% & 1.19 & 18\% \\
-    xDr.GRPO $\tau{=}0.05$ & \textbf{1.43} & \textbf{35\%} & \textbf{1.46} & \textbf{37\%} \\
-    xDr.GRPO $\tau{=}0.25$ & 1.34 & 31\% & 1.24 & 22\% \\
-    SEED-Dr.GRPO           & 1.25 & 23\% & 1.24 & 21\% \\
-    Token-MaxEnt Dr.GRPO   & --   & --   & 1.42 & 34\% \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Conditional solution diversity} (0.5B): among prompts solved at
-  \texttt{pass@8}, the mean number of distinct canonical solution modes across the
-  eight samples, and the share of solved prompts with at least two distinct modes
-  (pooled over the $3\times 3$ seed grid; Token-MaxEnt solves no Countdown prompts).
-  Descriptive companion to Table~\ref{tab:main-results}: uniform aggregation converges
-  toward a single mode per prompt; tempered candidate-level aggregation retains
-  several.}
-  \label{tab:conditional-diversity}
-\end{table}
+  \includegraphics[width=\textheight]
+    {figures/e61r1_e58_vs_grpo_05b_12ep_all_epoch_diagnostic_live.pdf}
+  \caption{\textbf{Every complete integer epoch.} This diagnostic overrides
+  only the MATH-500 display surface, expanding it from the seven registered
+  even-pass anchors to all thirteen integer epochs already present in the
+  retained quarter-epoch traces. It exists so that monitoring can stay
+  granular without silently changing the estimand: the primary figure, tables,
+  and realism gate remain frozen to the registered anchors.}
+  \label{fig:diagnostic}
+\end{sidewaysfigure}
 
+\section{Reproducibility and Evidence Boundaries}
+\label{app:reproducibility}
 
+The live confirmation surface is regenerated on a fixed interval by
+\path{ops/exp_scaling/watch_e65_entropy_gated_singleton_confirmation.sh},
+which runs the audit chain, reparses every curve, rewrites
+\path{paper/results/e65_five_domain_confirmation_live.md} and its seed-level
+CSV, and re-renders both figures in this paper. The machine-readable surface
+is \path{var/artifacts/e65_five_domain_confirmation_results_latest.json}, and
+the final claim gate is
+\path{ops/exp_scaling/audit_e65_legitimate_result_readiness.py}, which cannot
+report success while any registered run, checkpoint cell, cadence
+requirement, or interpretation gate is outstanding.
 
-% =====================================================================
-\section{Threats to Validity and Expected Failure Modes}
-\label{app:threats}
+The four ModeBench environments are implemented in
+\path{src/oat_drgrpo/canonical_actions.py},
+\path{src/oat_drgrpo/python_modebench.py}, and
+\path{src/oat_drgrpo/mathir.py}; the external Python process boundary and
+worker are in \path{src/oat_drgrpo/python_modebench_process.py} and
+\path{src/oat_drgrpo/python_modebench_worker.py}. The open-set predictive
+signal and its controller are in \path{src/oat_drgrpo/semantic_shannon.py},
+the split replay objective in \path{src/oat_drgrpo/canonical_replay.py}, the
+bank in \path{src/oat_drgrpo/online_canonical_bank.py}, and the singleton
+actuator in \path{src/oat_drgrpo/counterfactual_proposals.py}. Deterministic
+generators are \path{ops/make_python_factor_mode_data.py} and
+\path{ops/make_mathir_action_menu_data.py}. Every protocol and every
+placement amendment cited in Section~\ref{sec:experiments} is a frozen
+document under \path{paper/preregistration/}.
 
-Several threats could limit the interpretation of the proposed comparison. First, although the verifier is exact --- expressions are evaluated with rational arithmetic and colorings are checked against the enumerated valid set, so false positives are essentially ruled out --- the strict answer-extraction gate can produce false negatives on malformed but semantically correct outputs. We will therefore inspect a sample of rejected completions from each domain and report robustness to stricter and more permissive extraction rules. Relatedly, what counts as a \emph{distinct} mode is a canonicalization convention (commutative operands are merged; operator identity is preserved), and coverage results should be read relative to that convention. Second, the study could overstate the effect of xDr.GRPO if the two methods receive unequal hyperparameter tuning or if checkpoint selection is based on the same evaluation splits used for final reporting. To reduce this risk, all main runs will use a matched training budget, shared evaluation harness, and a pre-specified checkpoint-selection rule. Third, \texttt{pass@8} and \texttt{coverage@8} may reward diversity without necessarily reflecting better single-solution reasoning, while \texttt{mean@8} may penalize exploratory methods that produce one strong answer and several weak alternatives. We therefore interpret improvements jointly across \texttt{pass@1}, \texttt{pass@8}, \texttt{mean@8}, and \texttt{coverage@8}, and use the single-mode control split as a guardrail that single-answer performance is preserved. Finally, as the experiments use 0.5B and 3B models on synthetic tasks whose full answer sets are enumerable, a positive effect should be interpreted as evidence that candidate-level exploration changes the learning signal under this controlled setting, not as a claim that xDr.GRPO will dominate at larger scales, on natural reasoning corpora, or under different reward models. In cases where the method improves sampled metrics but not greedy accuracy, or where gains appear only in one task domain, we commit to reporting this as a
-limitation rather than as broad evidence of superior reasoning. The 3B replication indeed exhibits strong domain concentration --- large effects on graph coloring, small ones on the floor-constrained four-number Countdown pool --- and Section~\ref{sec:results-3b} reports the per-domain estimates as the primary reference for that reason.
+The manuscript deliberately separates four evidence classes:
+
+\begin{enumerate}
+  \item historical engineering and mechanism evidence, used to motivate the
+  final design but not pooled into its effect estimate;
+  \item the 54-run registered campaign, whose incomplete fixed-checkpoint
+  snapshot appears in Section~\ref{sec:results} and whose four gates remain
+  \texttt{pending};
+  \item benchmark audits, which establish executable multiple modes and exact
+  mode counts but are not RL results; and
+  \item invalidated cohorts, excluded from the campaign denominator by
+  machine-readable audits and retained only as engineering evidence.
+\end{enumerate}
 
 \end{document}
