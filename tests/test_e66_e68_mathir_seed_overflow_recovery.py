@@ -8,6 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (
     ROOT / "ops/exp_scaling/recover_e66_e68_mathir_seed_overflow.py"
 )
+CONTRACT = (
+    ROOT
+    / "ops/exp_scaling/e66_e68_mathir_seed_overflow_contract.py"
+)
+E66_AUDITOR = (
+    ROOT / "ops/exp_scaling/audit_e66_same_plumbing_actuator_ablation.py"
+)
+E68_AUDITOR = (
+    ROOT / "ops/exp_scaling/audit_e68_separated_support_actuator_ablation.py"
+)
 AMENDMENT = (
     ROOT
     / "paper/preregistration/"
@@ -17,6 +27,25 @@ AMENDMENT = (
 
 def _load():
     spec = importlib.util.spec_from_file_location("seedwrap_recovery", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_contract():
+    spec = importlib.util.spec_from_file_location(
+        "seedwrap_recovery_contract",
+        CONTRACT,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_path(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -106,3 +135,46 @@ def test_amendment_forbids_outcome_dependent_changes():
     assert "preserve the original run stamp" in normalized
     assert "Any uncaught traceback in a recovery attempt remains fatal" in normalized
     assert "No observed E66/E68 outcome is used" in normalized
+
+
+def test_registered_overflow_classifier_is_narrow():
+    contract = _load_contract()
+    traceback = "[rank0]: Traceback (most recent call last):"
+    registered = (
+        traceback
+        + "\nValueError: Seed must be between 0 and 2**32 - 1\n"
+    )
+    unrelated = traceback + "\nRuntimeError: unrelated\n"
+
+    assert contract.is_registered_seed_overflow(
+        registered,
+        registered.index(traceback) + len(traceback),
+    )
+    assert not contract.is_registered_seed_overflow(
+        unrelated,
+        unrelated.index(traceback) + len(traceback),
+    )
+
+
+def test_campaign_auditors_only_ignore_registered_original_overflow(tmp_path):
+    e66 = _load_path("e66_recovery_audit", E66_AUDITOR)
+    e68 = _load_path("e68_recovery_audit", E68_AUDITOR)
+    log = tmp_path / "original.out"
+    log.write_text(
+        "[rank0]: Traceback (most recent call last):\n"
+        "  File \"numpy/random/mtrand.pyx\", line 186, in "
+        "numpy.random.mtrand.RandomState.__init__\n"
+        "ValueError: Seed must be between 0 and 2**32 - 1\n",
+        encoding="utf-8",
+    )
+
+    assert e66._scan_log(
+        log,
+        allow_registered_seed_overflow=True,
+    ) == ([], 1)
+    assert e68._scan_log(
+        log,
+        allow_registered_seed_overflow=True,
+    ) == ([], 1)
+    assert e66._scan_log(log)[0]
+    assert e68._scan_log(log)[0]

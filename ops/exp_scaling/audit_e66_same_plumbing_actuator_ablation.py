@@ -10,8 +10,19 @@ import math
 import os
 from pathlib import Path
 import re
+import sys
 import tempfile
 from typing import Any
+
+
+EXP_SCALING_DIR = Path(__file__).resolve().parent
+if str(EXP_SCALING_DIR) not in sys.path:
+    sys.path.insert(0, str(EXP_SCALING_DIR))
+
+from e66_e68_mathir_seed_overflow_contract import (  # noqa: E402
+    is_registered_seed_overflow,
+    load_recovery_contract,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -120,7 +131,11 @@ def _run_dir(run_stamp: str, job_id: int) -> Path | None:
     return candidates[0] if len(candidates) == 1 else None
 
 
-def _scan_log(path: Path) -> tuple[list[str], int]:
+def _scan_log(
+    path: Path,
+    *,
+    allow_registered_seed_overflow: bool = False,
+) -> tuple[list[str], int]:
     if not path.is_file():
         return [], 0
     text = path.read_text(encoding="utf-8", errors="replace")
@@ -128,7 +143,13 @@ def _scan_log(path: Path) -> tuple[list[str], int]:
     interruptions = 0
     for match in UNCAUGHT.finditer(text):
         nearby = text[max(0, match.start() - 16000) : match.start()]
-        if "Traceback" in match.group(0) and SIGTERM.search(nearby):
+        if (
+            allow_registered_seed_overflow
+            and "Traceback" in match.group(0)
+            and is_registered_seed_overflow(text, match.end())
+        ):
+            interruptions += 1
+        elif "Traceback" in match.group(0) and SIGTERM.search(nearby):
             interruptions += 1
         else:
             failures.append(match.group(0))
@@ -252,6 +273,9 @@ def main() -> None:
         }
         if identity.get("execution_contract") != expected_contract:
             violations.append("same-plumbing execution contract mismatch")
+        recovery_mappings, recovery_violations = load_recovery_contract()
+        violations.extend(recovery_violations)
+        mathir_recoveries = recovery_mappings["e66"]
         pre_amendment_latest_steps: dict[str, int] = {}
         if not RESUME_RECORD.is_file():
             violations.append("same-family resume amendment record missing")
@@ -421,6 +445,7 @@ def main() -> None:
         materialized_runs = 0
         metric_runs = 0
         terminal_runs = 0
+        recovery_materialized_runs = 0
         for domain, expected_step in EXPECTED_STEPS.items():
             manifest = MANIFESTS[domain]
             if identity.get("manifest_sha256", {}).get(domain) != _digest(
@@ -464,6 +489,52 @@ def main() -> None:
                             label=label,
                         )
                         violations.extend(metric_violations)
+                recovery = (
+                    mathir_recoveries.get(normalized["job_id"])
+                    if domain == "mathir"
+                    else None
+                )
+                recovery_run_dir = None
+                recovery_metrics = {
+                    "latest_step": -1,
+                    "metric_records": 0,
+                    "proposal_activity_records": 0,
+                }
+                if recovery is not None:
+                    recovery_run_dir = _run_dir(
+                        normalized["run_stamp"],
+                        int(recovery["recovery_job_id"]),
+                    )
+                    if recovery_run_dir is not None:
+                        recovery_materialized_runs += 1
+                        recovery_metrics_path = (
+                            recovery_run_dir / "train_metrics.jsonl"
+                        )
+                        if recovery_metrics_path.is_file():
+                            recovery_metrics, recovery_metric_violations = (
+                                _scan_metrics(
+                                    recovery_metrics_path,
+                                    label=(
+                                        f"{label}/recovery"
+                                        f"j{recovery['recovery_job_id']}"
+                                    ),
+                                )
+                            )
+                            violations.extend(recovery_metric_violations)
+                    metrics = {
+                        "latest_step": max(
+                            metrics["latest_step"],
+                            recovery_metrics["latest_step"],
+                        ),
+                        "metric_records": (
+                            metrics["metric_records"]
+                            + recovery_metrics["metric_records"]
+                        ),
+                        "proposal_activity_records": (
+                            metrics["proposal_activity_records"]
+                            + recovery_metrics["proposal_activity_records"]
+                        ),
+                    }
                 pre_amendment_step = int(
                     pre_amendment_latest_steps.get(
                         str(normalized["job_id"]),
@@ -500,13 +571,32 @@ def main() -> None:
                         / (
                             "var/artifacts/logs/"
                             f"xdr_train-{normalized['job_id']}.{suffix}"
-                        )
+                        ),
+                        allow_registered_seed_overflow=(
+                            recovery is not None
+                        ),
                     )
                     interruptions += count
                     violations.extend(
                         f"{label}: uncaught {failure!r}"
                         for failure in failures
                     )
+                    if recovery is not None:
+                        recovery_failures, recovery_count = _scan_log(
+                            ROOT
+                            / (
+                                "var/artifacts/logs/"
+                                f"xdr_train-{recovery['recovery_job_id']}."
+                                f"{suffix}"
+                            )
+                        )
+                        interruptions += recovery_count
+                        violations.extend(
+                            f"{label}/recovery"
+                            f"j{recovery['recovery_job_id']}: "
+                            f"uncaught {failure!r}"
+                            for failure in recovery_failures
+                        )
                 terminal = metrics["latest_step"] >= expected_step
                 terminal_runs += int(terminal)
                 runs.append(
@@ -521,6 +611,21 @@ def main() -> None:
                         ),
                         "terminal": terminal,
                         "infrastructure_interruptions": interruptions,
+                        "recovery_job_id": (
+                            int(recovery["recovery_job_id"])
+                            if recovery is not None
+                            else None
+                        ),
+                        "recovery_run_dir": (
+                            str(recovery_run_dir.relative_to(ROOT))
+                            if recovery_run_dir is not None
+                            else None
+                        ),
+                        "recovery_latest_step": (
+                            recovery_metrics["latest_step"]
+                            if recovery is not None
+                            else None
+                        ),
                     }
                 )
             domains[domain] = {"runs": runs}
@@ -539,6 +644,7 @@ def main() -> None:
                 "materialized_runs": materialized_runs,
                 "metric_runs": metric_runs,
                 "terminal_runs": terminal_runs,
+                "recovery_materialized_runs": recovery_materialized_runs,
             },
             "domains": domains,
             "violations": sorted(set(violations)),

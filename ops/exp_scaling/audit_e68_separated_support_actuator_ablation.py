@@ -10,8 +10,19 @@ import math
 import os
 from pathlib import Path
 import re
+import sys
 import tempfile
 from typing import Any
+
+
+EXP_SCALING_DIR = Path(__file__).resolve().parent
+if str(EXP_SCALING_DIR) not in sys.path:
+    sys.path.insert(0, str(EXP_SCALING_DIR))
+
+from e66_e68_mathir_seed_overflow_contract import (  # noqa: E402
+    is_registered_seed_overflow,
+    load_recovery_contract,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -136,6 +147,7 @@ def _scan_log(
     path: Path,
     *,
     ignored_prefix_bytes: int = 0,
+    allow_registered_seed_overflow: bool = False,
 ) -> tuple[list[str], int]:
     if not path.is_file():
         return [], 0
@@ -150,11 +162,29 @@ def _scan_log(
             interruptions += 1
             continue
         nearby = text[max(0, match.start() - 16000) : match.start()]
-        if "Traceback" in match.group(0) and SIGTERM.search(nearby):
+        if (
+            allow_registered_seed_overflow
+            and "Traceback" in match.group(0)
+            and is_registered_seed_overflow(text, match.end())
+        ):
+            interruptions += 1
+        elif "Traceback" in match.group(0) and SIGTERM.search(nearby):
             interruptions += 1
         else:
             failures.append(match.group(0))
     return failures, interruptions
+
+
+def _runtime_contract_verified(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return (
+        "online_canonical_bank_alpha=0 novelty_beta=0.50" in text
+        and "online canonical bank enabled: alpha=0 beta=0.5" in text
+        and "counterfactual_separate_objective_support=1" in text
+        and "objective_support_separated=True" in text
+    )
 
 
 def _scan_metrics(
@@ -438,6 +468,9 @@ def main() -> None:
             ],
         }:
             violations.append("same-objective runtime contract mismatch")
+        recovery_mappings, recovery_violations = load_recovery_contract()
+        violations.extend(recovery_violations)
+        mathir_recoveries = recovery_mappings["e68"]
         capacity_probe = json.loads(
             CAPACITY_PROBE.read_text(encoding="utf-8")
         )
@@ -646,6 +679,7 @@ def main() -> None:
         materialized_runs = 0
         metric_runs = 0
         total_interventions = 0
+        recovery_materialized_runs = 0
         for domain, expected_step in EXPECTED_STEPS.items():
             expected_rows = identity["jobs"].get(domain, [])
             manifest_path = ROOT / (
@@ -698,6 +732,84 @@ def main() -> None:
                                 f"{label}: separated proposal/objective "
                                 "contract missing from one or more updates"
                             )
+                recovery = (
+                    mathir_recoveries.get(normalized["job_id"])
+                    if domain == "mathir"
+                    else None
+                )
+                recovery_run_dir = None
+                recovery_metrics = {
+                    "latest_step": -1,
+                    "metric_records": 0,
+                    "interventions": 0,
+                    "maximum_admitted_per_group": 0,
+                    "objective_contract_records": 0,
+                    "separation_contract_records": 0,
+                    "intervention_events": [],
+                }
+                if recovery is not None:
+                    recovery_run_dir = _run_dir(
+                        normalized["run_stamp"],
+                        int(recovery["recovery_job_id"]),
+                    )
+                    if recovery_run_dir is not None:
+                        recovery_materialized_runs += 1
+                        recovery_metrics_path = (
+                            recovery_run_dir / "train_metrics.jsonl"
+                        )
+                        if recovery_metrics_path.is_file():
+                            recovery_metrics, recovery_metric_violations = (
+                                _scan_metrics(
+                                    recovery_metrics_path,
+                                    label=(
+                                        f"{label}/recovery"
+                                        f"j{recovery['recovery_job_id']}"
+                                    ),
+                                )
+                            )
+                            violations.extend(recovery_metric_violations)
+                            if (
+                                recovery_metrics[
+                                    "separation_contract_records"
+                                ]
+                                != recovery_metrics["metric_records"]
+                            ):
+                                violations.append(
+                                    f"{label}/recovery"
+                                    f"j{recovery['recovery_job_id']}: "
+                                    "separated proposal/objective contract "
+                                    "missing from one or more updates"
+                                )
+                    metrics = {
+                        "latest_step": max(
+                            metrics["latest_step"],
+                            recovery_metrics["latest_step"],
+                        ),
+                        "metric_records": (
+                            metrics["metric_records"]
+                            + recovery_metrics["metric_records"]
+                        ),
+                        "interventions": (
+                            metrics["interventions"]
+                            + recovery_metrics["interventions"]
+                        ),
+                        "maximum_admitted_per_group": max(
+                            metrics["maximum_admitted_per_group"],
+                            recovery_metrics["maximum_admitted_per_group"],
+                        ),
+                        "objective_contract_records": (
+                            metrics["objective_contract_records"]
+                            + recovery_metrics["objective_contract_records"]
+                        ),
+                        "separation_contract_records": (
+                            metrics["separation_contract_records"]
+                            + recovery_metrics["separation_contract_records"]
+                        ),
+                        "intervention_events": (
+                            metrics["intervention_events"]
+                            + recovery_metrics["intervention_events"]
+                        ),
+                    }
                 total_interventions += metrics["interventions"]
                 interruptions = 0
                 for suffix in ("out", "err"):
@@ -713,33 +825,53 @@ def main() -> None:
                                 {},
                             ).get(suffix, 0)
                         ),
+                        allow_registered_seed_overflow=(
+                            recovery is not None
+                        ),
                     )
                     interruptions += count
                     violations.extend(
                         f"{label}: uncaught {failure!r}"
                         for failure in failures
                     )
-                runtime_contract_verified = False
+                    if recovery is not None:
+                        recovery_failures, recovery_count = _scan_log(
+                            ROOT
+                            / (
+                                "var/artifacts/logs/"
+                                f"xdr_train-{recovery['recovery_job_id']}."
+                                f"{suffix}"
+                            )
+                        )
+                        interruptions += recovery_count
+                        violations.extend(
+                            f"{label}/recovery"
+                            f"j{recovery['recovery_job_id']}: "
+                            f"uncaught {failure!r}"
+                            for failure in recovery_failures
+                        )
                 stdout_path = (
                     ROOT
                     / "var/artifacts/logs/"
                     f"xdr_train-{normalized['job_id']}.out"
                 )
-                if stdout_path.is_file():
-                    stdout_text = stdout_path.read_text(
-                        encoding="utf-8",
-                        errors="replace",
+                original_runtime_contract_verified = (
+                    _runtime_contract_verified(stdout_path)
+                )
+                recovery_runtime_contract_verified = True
+                if recovery is not None:
+                    recovery_runtime_contract_verified = (
+                        recovery_metrics["metric_records"] == 0
+                        or _runtime_contract_verified(
+                            ROOT
+                            / "var/artifacts/logs/"
+                            f"xdr_train-{recovery['recovery_job_id']}.out"
+                        )
                     )
-                    runtime_contract_verified = (
-                        "online_canonical_bank_alpha=0 "
-                        "novelty_beta=0.50" in stdout_text
-                        and "online canonical bank enabled: alpha=0 "
-                        "beta=0.5" in stdout_text
-                        and "counterfactual_separate_objective_support=1"
-                        in stdout_text
-                        and "objective_support_separated=True"
-                        in stdout_text
-                    )
+                runtime_contract_verified = (
+                    original_runtime_contract_verified
+                    and recovery_runtime_contract_verified
+                )
                 if (
                     metrics["metric_records"] > 0
                     and not runtime_contract_verified
@@ -785,6 +917,21 @@ def main() -> None:
                             runtime_contract_verified
                         ),
                         "infrastructure_interruptions": interruptions,
+                        "recovery_job_id": (
+                            int(recovery["recovery_job_id"])
+                            if recovery is not None
+                            else None
+                        ),
+                        "recovery_run_dir": (
+                            str(recovery_run_dir.relative_to(ROOT))
+                            if recovery_run_dir is not None
+                            else None
+                        ),
+                        "recovery_latest_step": (
+                            recovery_metrics["latest_step"]
+                            if recovery is not None
+                            else None
+                        ),
                     }
                 )
             domains[domain] = {"runs": runs}
@@ -804,6 +951,7 @@ def main() -> None:
                 "metric_runs": metric_runs,
                 "terminal_runs": terminal_runs,
                 "entropy_gated_interventions": total_interventions,
+                "recovery_materialized_runs": recovery_materialized_runs,
             },
             "domains": domains,
             "violations": sorted(set(violations)),
