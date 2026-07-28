@@ -307,7 +307,24 @@ def main() -> None:
     checkpoint = args.checkpoint.resolve()
     output = args.output.resolve()
     if output.exists():
-        raise SystemExit(f"immutable Gate 4 output already exists: {output}")
+        existing = json.loads(output.read_text(encoding="utf-8"))
+        if (
+            existing.get("schema")
+            != "e69_gate4_math500_checkpoint_result_v1"
+            or existing.get("identity_sha256")
+            != _sha256(args.identity.resolve())
+            or existing.get("alias") != args.alias
+            or existing.get("arm") != args.arm
+            or int(existing.get("seed", -1)) != args.seed
+        ):
+            raise SystemExit(
+                f"conflicting immutable Gate 4 output already exists: {output}"
+            )
+        print(
+            f"[e69-gate4-eval] immutable result already complete for "
+            f"{args.alias}; no regeneration"
+        )
+        return
     if checkpoint.name != "step_02305":
         raise SystemExit(f"expected terminal step_02305 checkpoint: {checkpoint}")
     identity, checkpoint_hash = _validate_identity(

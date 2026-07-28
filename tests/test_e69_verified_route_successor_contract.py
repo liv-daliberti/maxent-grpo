@@ -351,7 +351,9 @@ def test_e69_gate4_contract_freezes_one_time_transfer_before_outcomes():
         "SAMPLED_SEED = 690401",
         "MAX_TOKENS = 1024",
         "MAX_MODEL_LEN = 2048",
-        "immutable Gate 4 output already exists",
+        "conflicting immutable Gate 4 output already exists",
+        "immutable result already complete",
+        "no regeneration",
         'checkpoint.name != "step_02305"',
     ):
         assert literal in evaluator
