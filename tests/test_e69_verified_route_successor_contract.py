@@ -8,6 +8,8 @@ from ops.route_successor.audit_e69_gate3_confirmatory import (
     classify_internal_result,
     crossed_bootstrap_interval,
 )
+from ops.route_successor.analyze_e69_gate4_math500 import classify_final
+from ops.route_successor.eval_e69_math500_checkpoint import _metrics
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -311,3 +313,104 @@ def test_e69_gate3_classification_is_pure_and_requires_persistence():
     result = classify_internal_result(aggregate, seeds, routes)
     assert result["status"] == "mechanism_or_null"
     assert not result["checks"]["three_executable_domains_positive_support"]
+
+
+def test_e69_gate4_contract_freezes_one_time_transfer_before_outcomes():
+    protocol = (
+        ROOT
+        / "paper/preregistration/e69_gate4_math500_one_time_transfer_20260728.md"
+    ).read_text(encoding="utf-8")
+    protocol_flat = " ".join(protocol.split())
+    for literal in (
+        "before any terminal Gate 2 or Gate 3 outcome was available",
+        "regardless of whether Gate 3's internal efficacy classification is positive",
+        "`saved_models/step_02305`",
+        "exactly all 500 rows",
+        "seed `690401`",
+        "ordinary full `math_verify` verifier",
+        "Six evaluation jobs are submitted as one held cohort",
+        "10,000-replicate crossed paired seed-and-prompt bootstrap",
+        "seed `690402`",
+        "**held-out MATH-500 transfer**",
+        "Report every outcome without tuning",
+    ):
+        assert literal in protocol_flat
+
+    evaluator = (
+        ROOT / "ops/route_successor/eval_e69_math500_checkpoint.py"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "apply_qwen_math_template",
+        "FullMathVerifierProcess",
+        'reward_kind="boxed"',
+        "SAMPLED_SEED = 690401",
+        "MAX_TOKENS = 1024",
+        "MAX_MODEL_LEN = 2048",
+        "immutable Gate 4 output already exists",
+        'checkpoint.name != "step_02305"',
+    ):
+        assert literal in evaluator
+
+    launcher = (
+        ROOT / "ops/route_successor/launch_e69_gate4_math500.sh"
+    ).read_text(encoding="utf-8")
+    assert launcher.index("Gate 4 requires clean, complete, sealed Gate 3") < (
+        launcher.index('job_id="$(sbatch')
+    )
+    for literal in (
+        "audit_e69_gate4_checkpoints.py",
+        "analyze_e69_gate4_math500.py",
+        "plot_e69_five_area_panel.py",
+        "sbatch --hold --parsable",
+        'scontrol release "${job_ids[@]}"',
+        '"bootstrap": {"replicates": 10000, "seed": 690402}',
+    ):
+        assert literal in launcher
+
+
+def test_e69_gate4_metric_recomputation_is_prompt_paired():
+    rows = [
+        [
+            {
+                "reward": reward,
+                "response_token_count": 10,
+                "verifier_info": {},
+            }
+            for reward in rewards
+        ]
+        for rewards in ((1.0, 0.0), (0.0, 0.0))
+    ]
+    metrics = _metrics(rows)
+    assert metrics["mean_at_k"] == 0.25
+    assert metrics["any_correct_at_k"] == 0.5
+    assert metrics["mean_response_tokens"] == 10.0
+
+
+def test_e69_gate4_final_classification_distinguishes_mechanism_result():
+    executable = {
+        domain: {"greedy": 0.0, "pass8": 0.0}
+        for domain in ("graph_coloring", "countdown", "python_factor", "mathir")
+    }
+    support = {
+        domain: True
+        for domain in ("graph_coloring", "countdown", "python_factor", "mathir")
+    }
+    mechanism = dict(support)
+    result = classify_final(
+        executable,
+        {"greedy": 0.0, "mean8": 0.0, "pass8": 0.0},
+        support,
+        mechanism,
+    )
+    assert result["status"] == "successful_exploration"
+    assert all(result["checks"].values())
+
+    executable["graph_coloring"]["greedy"] = -0.03
+    result = classify_final(
+        executable,
+        {"greedy": 0.0, "mean8": 0.0, "pass8": 0.0},
+        support,
+        mechanism,
+    )
+    assert result["status"] == "mechanism_result"
+    assert not result["checks"]["four_executable_areas_task_quality_noninferior"]
