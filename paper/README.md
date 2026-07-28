@@ -30,7 +30,48 @@ replay is eligible but known-mode balance must remain structurally inactive.
 This supports an honest correctness-transfer test without calling answer
 formatting or free-form prose a reasoning mode.
 
-## Evidence boundary
+## Current successor campaign: E69
+
+E69 is the successor-first campaign built from the recovered E66/E68 record.
+It adds a checkpointed, cross-prompt library of independently verified route
+signatures while keeping the neutral policy task-reward-first. Proposal-only
+rows remain outside PPO and ordinary on-policy support counts.
+
+The execution ladder is fail-closed:
+
+1. Gate 2 compares compute-matched Dr.GRPO, E66 endpoint replay, E68
+   separated-support proposals, and E69 route replay at seed 43 for six passes.
+   MATH route-dev uses one endpoint-only treatment run for the E66/E68/E69
+   aliases because the executable free-form route-language gate abstained.
+2. Only a clean passing Gate 2 launches seeds 44 and 45. Together with the
+   exact seed-43 reuse, Gate 3 contains 30 physical cells: two arms, three
+   seeds, six passes, and five development areas.
+3. Only a clean complete Gate 3 unseals six one-time MATH-500 evaluations.
+4. Only six clean immutable held-out results render
+   [`figures/e69_five_area_confirmatory.pdf`](figures/e69_five_area_confirmatory.pdf):
+   four executable ModeBench panels plus held-out MATH-500 transfer.
+
+The currently viewable E68-provenance snapshot is
+[`figures/e68_e58_vs_grpo_05b_12ep_live.png`](figures/e68_e58_vs_grpo_05b_12ep_live.png).
+It is recovered historical evidence, not the unfinished E69 confirmatory
+panel.
+
+Gate 2 live state and the prospective temporal route-reuse observations are:
+
+- [`results/e69_gate2_compute_matched_screen_live.md`](results/e69_gate2_compute_matched_screen_live.md)
+- [`../var/artifacts/e69_gate2_compute_matched_screen_audit_latest.json`](../var/artifacts/e69_gate2_compute_matched_screen_audit_latest.json)
+- [`../var/artifacts/e69_gate2_route_temporal_snapshots.json`](../var/artifacts/e69_gate2_route_temporal_snapshots.json)
+- [`preregistration/e69_verified_route_successor_protocol_20260728.md`](preregistration/e69_verified_route_successor_protocol_20260728.md)
+- [`preregistration/e69_gate2_route_temporal_observer_amendment_20260728.md`](preregistration/e69_gate2_route_temporal_observer_amendment_20260728.md)
+
+Configuration-only validation, which submits no training or evaluation jobs:
+
+```bash
+bash ops/route_successor/launch_e69_gate3_confirmatory.sh config
+bash ops/route_successor/launch_e69_gate4_math500.sh config
+```
+
+## Historical E65/E68 evidence boundary
 
 The reported campaign is 54 registered runs — 24 method-versus-control
 ModeBench runs, 6 MATH-500 runs, 12 same-plumbing actuator-off controls, and
