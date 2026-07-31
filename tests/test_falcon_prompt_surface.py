@@ -146,6 +146,27 @@ def test_answer_option_latent_lands_inside_the_falcon_system_turn():
     assert latent_at < conditioned.find(user_marker)
 
 
+def test_run_experiment_dispatches_the_falcon_base_model():
+    """A Falcon cohort must be launchable without falling back to `custom`.
+
+    The experiment entrypoint validates OAT_ZERO_MODEL against a closed list and
+    exits when it does not match, so an unregistered family name fails every job
+    in a cohort within seconds of it starting.
+    """
+
+    entrypoint = (
+        pathlib.Path(__file__).resolve().parents[1] / "ops/run_experiment.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "falcon3-1b-instruct|falcon3-1b|falcon-1b)" in entrypoint
+    assert 'DEFAULT_PRETRAIN="tiiuae/Falcon3-1B-Instruct"' in entrypoint
+    # The default template for this family must be a Falcon surface, never the
+    # Qwen ChatML markers the base model was not tuned on.
+    assert 'DEFAULT_PROMPT_TEMPLATE="falcon_math"' in entrypoint
+    assert 'MODEL_TAG="falcon3_1b_instruct"' in entrypoint
+    assert "falcon3-1b-instruct," in entrypoint
+
+
 @pytest.mark.skipif(
     not (FALCON_SNAPSHOT / "tokenizer_config.json").exists(),
     reason="Falcon3-1B-Instruct snapshot is not present in the local cache",

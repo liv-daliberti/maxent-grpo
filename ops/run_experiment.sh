@@ -42,6 +42,13 @@ case "$MODEL" in
     DEFAULT_PROMPT_TEMPLATE="no"
     MODEL_TAG="smollm2_135m_instruct"
     ;;
+  falcon3-1b-instruct|falcon3-1b|falcon-1b)
+    # Second base-model family for the cross-family replication. Its default
+    # prompt template is the Falcon chat surface, not Qwen's ChatML.
+    DEFAULT_PRETRAIN="tiiuae/Falcon3-1B-Instruct"
+    DEFAULT_PROMPT_TEMPLATE="falcon_math"
+    MODEL_TAG="falcon3_1b_instruct"
+    ;;
   custom)
     if [[ -z "${OAT_ZERO_PRETRAIN:-}" ]]; then
       echo "OAT_ZERO_MODEL=custom requires OAT_ZERO_PRETRAIN" >&2
@@ -53,7 +60,8 @@ case "$MODEL" in
     ;;
   *)
     echo "Unknown OAT_ZERO_MODEL=${MODEL}" >&2
-    echo "Use qwen2.5-{0.5b,1.5b,3b,7b}-instruct, smollm2-135m, or custom." >&2
+    echo "Use qwen2.5-{0.5b,1.5b,3b,7b}-instruct, falcon3-1b-instruct," >&2
+    echo "smollm2-135m, or custom." >&2
     exit 1
     ;;
 esac
