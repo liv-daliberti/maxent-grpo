@@ -45,12 +45,22 @@ def test_latest_monitor_and_chart_route_to_e32_and_e33():
     refresher = (ROOT / "ops/exp_scaling/refresh_latest_freeform_05b.py").read_text(encoding="utf-8")
     assert "LATEST_05B_PREFIXES" in monitor
     assert "LATEST_3B_PREFIXES" in monitor
-    assert "latest_05b_only=not args.all_campaigns" in monitor
+    # The default view is the latest 0.5B campaigns; --all-campaigns and the
+    # explicit single-campaign aliases are the only ways out of it. The
+    # condition now spans several lines, so whitespace is collapsed first.
+    assert (
+        "latest_05b_only=( not args.all_campaigns and not args.e37_only "
+        "and not args.current_canonical_only )"
+        in " ".join(monitor.split())
+    )
     assert "cde32_freeform_05b_ema_10ep_v4_preemptsafe" in refresher
     assert "gce32_freeform_05b_ema_10ep_v5" in refresher
     assert "cde33_freeform_3b_ema_10ep_v3_a100" in refresher
     assert "gce33_freeform_3b_ema_10ep_v3_a100" in refresher
-    assert "render_all_divergence_figures()" in refresher
+    # The refresher now selects a cohort-specific renderer and calls it through
+    # a common alias rather than one all-figures entry point.
+    assert "render_online_canonical_maxent_05b as render_figures" in refresher
+    assert "render_figures()" in refresher
 
 
 def test_e32_snapshot_hashes_are_location_independent():

@@ -224,6 +224,27 @@ def test_e69_gate2_gate_uses_prospective_temporal_route_observer():
     assert result["status"] == "fail"
     assert not result["checks"]["post_replay_reuse_three_domains"]
 
+    temporal["graph_coloring"]["post_replay_neutral_reproduction_pairs"] = 1
+    result = evaluate_gate(
+        curves,
+        route,
+        temporal,
+        require_python_reproduction=True,
+    )
+    assert result["status"] == "fail"
+    assert result["checks"]["post_replay_reuse_three_domains"]
+    assert not result["checks"]["python_post_replay_neutral_reproduction"]
+
+    temporal["python_factor"]["post_replay_neutral_reproduction_pairs"] = 1
+    result = evaluate_gate(
+        curves,
+        route,
+        temporal,
+        require_python_reproduction=True,
+    )
+    assert result["status"] == "pass"
+    assert result["checks"]["python_post_replay_neutral_reproduction"]
+
 
 def test_e69_gate2_training_audit_allows_not_yet_started_run(tmp_path):
     training, violations = _training_audit(
@@ -663,6 +684,268 @@ def test_e69_gate2_graph_preemption_repair_restarts_all_arms_atomically():
         assert literal in audit
 
 
+def test_e69_gate2_r1_replaces_exact_graph_python_cells_without_tuning():
+    protocol = (
+        ROOT
+        / "paper/preregistration/"
+        "e69_gate2_r1_execution_repair_20260728.md"
+    ).read_text(encoding="utf-8")
+    protocol_flat = " ".join(protocol.split())
+    for literal in (
+        "17 scheduler restarts",
+        "replace the complete four-arm Graph cohort",
+        "single corrupted Python route-successor cell",
+        "`node105,node202,node203,node204`",
+        "Terminal Graph outcomes and partial Python telemetry were available",
+        "did not determine the replacement cells",
+        "Python must supply both a clean terminal R1 result and nonzero temporal route reproduction",
+        "MATH-500 remains sealed",
+    ):
+        assert literal in protocol_flat
+
+    launcher = (
+        ROOT
+        / "ops/route_successor/"
+        "launch_e69_gate2_r1_execution_repair.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "SOURCE_GRAPH_JOBS=(30160592 30160594 30160595 30160596)",
+        "SOURCE_PYTHON_JOB=30160205",
+        "OAT_ZERO_ONLY_ARMS=verified_route_successor",
+        "OAT_ZERO_TRAIN_NODELIST=\"$A5000_POOL\"",
+        "OAT_ZERO_TRAIN_PARTITION=all",
+        "OAT_ZERO_SBATCH_HOLD=1",
+        '"outcome_tuning": False',
+        '"algorithm_or_gate_change": False',
+        'scancel "$SOURCE_PYTHON_JOB" "$OLD_TRANSITION_JOB"',
+        'scontrol release "${replacement_jobs[@]}"',
+    ):
+        assert literal in launcher
+    assert launcher.index(
+        'scancel "$SOURCE_PYTHON_JOB" "$OLD_TRANSITION_JOB"'
+    ) < launcher.index('scontrol release "${replacement_jobs[@]}"')
+
+    identity = json.loads(
+        (
+            ROOT
+            / "var/artifacts/e69_gate2_r1_execution_repair_identity.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert identity["schema"] == "e69_gate2_r1_execution_repair_v1"
+    assert identity["outcome_tuning"] is False
+    assert identity["algorithm_or_gate_change"] is False
+    assert len(identity["mappings"]["graph_coloring"]) == 4
+    assert len(identity["mappings"]["python_factor"]) == 1
+    assert identity["math_jobs_untouched"] == [30159729, 30160101]
+    assert identity["math500_sealed"] is True
+
+    audit = (
+        ROOT / "ops/route_successor/audit_e69_gate2_screen.py"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "e69_gate2_r1_execution_repair_identity.json",
+        '"kind": "execution_r1"',
+        "frozen_scheduler_integrity_rule_not_metric_values",
+        "e69_gate2_r1_route_temporal_snapshots.json",
+    ):
+        assert literal in audit
+
+    snapshots = json.loads(
+        (
+            ROOT
+            / "var/artifacts/e69_gate2_r1_route_temporal_snapshots.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert snapshots["schema"] == (
+        "e69_gate2_r1_route_temporal_snapshots_v1"
+    )
+    assert snapshots["carried_parent_domains"] == ["countdown", "mathir"]
+    assert snapshots["fresh_r1_domains"] == [
+        "graph_coloring",
+        "python_factor",
+    ]
+    for domain, job_id, steps in (
+        ("graph_coloring", 30168830, {192, 384, 576, 768, 960, 1152}),
+        ("python_factor", 30168831, {384, 768, 1152, 1536, 1920, 2304}),
+    ):
+        observed = snapshots["snapshots"][domain]
+        assert {int(step) for step in observed}.issubset(steps)
+        for row in observed.values():
+            assert f"debug_job{job_id}" in row["checkpoint"]
+
+
+def test_e69_gate2_r2_is_a_prospective_minimal_python_contract_repair():
+    protocol = (
+        ROOT
+        / "paper/preregistration/"
+        "e69_gate2_r2_route_endpoint_bookkeeping_repair_20260728.md"
+    ).read_text(encoding="utf-8")
+    protocol_flat = " ".join(protocol.split())
+    for literal in (
+        "failed at training step 302",
+        "before its first step-384 checkpoint",
+        "R1 therefore cannot pass",
+        "one replay exemplar",
+        "lexicographically smallest response-token tuple",
+        "identical response-token tuple changes endpoint key, fail closed",
+        "replaces only the failed Python route-successor cell",
+        "MATH-500 remain sealed",
+    ):
+        assert literal in protocol_flat
+
+    launcher = (
+        ROOT
+        / "ops/route_successor/"
+        "launch_e69_gate2_r2_route_endpoint_repair.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "FAILED_R1_JOB=30168831",
+        "OAT_ZERO_ONLY_ARMS=verified_route_successor",
+        "OAT_ZERO_AUTO_RESUME=0",
+        "changed_source_files",
+        "oat_drgrpo/verified_route_library.py",
+        '"repaired_outcomes_observed_before_freeze": False',
+        '"implementation_contract_repair": True',
+        '"outcome_tuning": False',
+        'scancel "$OLD_TRANSITION_JOB"',
+        'scontrol release "$replacement_job"',
+    ):
+        assert literal in launcher
+    assert launcher.index('scancel "$OLD_TRANSITION_JOB"') < launcher.index(
+        'scontrol release "$replacement_job"'
+    )
+
+    library = (
+        ROOT / "src/oat_drgrpo/verified_route_library.py"
+    ).read_text(encoding="utf-8")
+    assert "stored_response_tokens == response_tokens" in library
+    assert 'record["endpoint_key"] = endpoint_key' in library
+    assert "verified route endpoint changed for one response" in library
+
+    audit = (
+        ROOT / "ops/route_successor/audit_e69_gate2_screen.py"
+    ).read_text(encoding="utf-8")
+    observer = (
+        ROOT / "ops/route_successor/snapshot_e69_gate2_route_replay.py"
+    ).read_text(encoding="utf-8")
+    monitor = (
+        ROOT / "ops/route_successor/monitor_e69_gate2_route_snapshots.sh"
+    ).read_text(encoding="utf-8")
+    for source in (audit, observer, monitor):
+        assert "e69_gate2_r2_route" in source
+
+    identity_path = (
+        ROOT
+        / "var/artifacts/"
+        "e69_gate2_r2_route_endpoint_bookkeeping_repair_identity.json"
+    )
+    if identity_path.is_file():
+        identity = json.loads(identity_path.read_text(encoding="utf-8"))
+        assert identity["schema"] == (
+            "e69_gate2_r2_route_endpoint_bookkeeping_repair_v1"
+        )
+        assert identity["mapping"]["invalid_job_id"] == 30168831
+        assert identity["mapping"]["arm"] == "verified_route_successor"
+        assert identity["outcome_tuning"] is False
+        assert identity["implementation_contract_repair"] is True
+        assert identity["math500_sealed"] is True
+
+
+def test_e69_gate2_r3_repairs_the_paired_math_dev_evaluation_contract():
+    protocol = (
+        ROOT
+        / "paper/preregistration/"
+        "e69_gate2_r3_math_dev_evaluation_split_repair_20260729.md"
+    ).read_text(encoding="utf-8")
+    protocol_flat = " ".join(protocol.split())
+    for literal in (
+        "sole split `math_dev`",
+        "`OAT_ZERO_TEST_SPLIT=math`",
+        "no MATH-dev Gate 2 evaluation outcome was available",
+        "complete two-arm MATH-dev cohort is replaced from initialization",
+        "`OAT_ZERO_TEST_SPLIT=math` -> `OAT_ZERO_TEST_SPLIT=math_dev`",
+        "online evaluation fails closed if split selection yields zero datasets",
+        "never averaged with the replacements",
+        "MATH-500 remains sealed",
+    ):
+        assert literal in protocol_flat
+
+    launcher = (
+        ROOT
+        / "ops/route_successor/"
+        "launch_e69_gate2_r3_math_dev_evaluation_split_repair.sh"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "OLD_MATH_JOBS=(30159729 30160101)",
+        "OAT_ZERO_TEST_SPLIT=math_dev",
+        "submit_arm grpo 0 0",
+        "submit_arm verified_first_global_replay_canonical 0.10 1",
+        "OAT_ZERO_AUTO_RESUME=0",
+        "TresPerNode=gres/gpu:a100:1",
+        "startup_rejected_manifest_sha256",
+        '"gate_outcomes_observed_before_freeze": False',
+        '"training_telemetry_observed_before_freeze": True',
+        '"outcome_tuning": False',
+        '"algorithm_or_gate_change": False',
+        'scancel "$OLD_TRANSITION_JOB"',
+        'scontrol release "${replacement_jobs[@]}"',
+    ):
+        assert literal in launcher
+    assert launcher.index('scancel "$OLD_TRANSITION_JOB"') < launcher.index(
+        'scontrol release "${replacement_jobs[@]}"'
+    )
+
+    args_source = (ROOT / "src/oat_drgrpo/args.py").read_text(
+        encoding="utf-8"
+    )
+    learner_init = (ROOT / "src/oat_drgrpo/learner/init.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'args.test_split not in {"math", "math_dev"}' in args_source
+    assert "online evaluation selected zero datasets" in learner_init
+
+    audit = (
+        ROOT / "ops/route_successor/audit_e69_gate2_screen.py"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "e69_gate2_r3_math_dev_evaluation_split_repair_identity.json",
+        '"kind": "implementation_r3_math_eval_split"',
+        '{"oat_drgrpo/args.py", "oat_drgrpo/learner/init.py"}',
+        '(run_dir / "eval_mode_coverage_draws.jsonl").exists()',
+        "restarted the paired cohort as jobs",
+        "both arms restart from initialization",
+    ):
+        assert literal in audit
+
+    plotter = (
+        ROOT / "ops/exp_scaling/plot_e68_e58_vs_grpo_12pass.py"
+    ).read_text(encoding="utf-8")
+    for literal in (
+        "e69_gate2_r3_math_dev_evaluation_split_repair_identity.json",
+        '"R3 MATH"',
+        "accepted repair chain ",
+    ):
+        assert literal in plotter
+
+    identity_path = (
+        ROOT
+        / "var/artifacts/"
+        "e69_gate2_r3_math_dev_evaluation_split_repair_identity.json"
+    )
+    if identity_path.is_file():
+        identity = json.loads(identity_path.read_text(encoding="utf-8"))
+        assert identity["schema"] == (
+            "e69_gate2_r3_math_dev_evaluation_split_repair_v1"
+        )
+        assert len(identity["mappings"]) == 2
+        assert {
+            row["invalid_job_id"] for row in identity["mappings"]
+        } == {30159729, 30160101}
+        assert identity["gate_outcomes_observed_before_freeze"] is False
+        assert identity["outcome_tuning"] is False
+        assert identity["math500_sealed"] is True
+
+
 def test_e69_gate2_to_gate3_transition_fails_closed():
     transition = (
         ROOT / "ops/route_successor/advance_e69_gate2_to_gate3.sh"
@@ -674,6 +957,9 @@ def test_e69_gate2_to_gate3_transition_fails_closed():
         'summary.get("terminal_physical_runs") != 18',
         'summary.get("integrity_violations") != 0',
         'audit.get("math500_sealed") is not True',
+        '"python_post_replay_neutral_reproduction"',
+        'route_reproductions", {}).get("python_factor", 0)',
+        "positive Python temporal route reproduction",
         "launch_e69_gate3_confirmatory.sh full",
     ):
         assert literal in transition

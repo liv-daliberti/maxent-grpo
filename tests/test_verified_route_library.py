@@ -55,6 +55,54 @@ def test_route_library_requires_cross_prompt_recurrence_and_excludes_current():
     assert group.prompt_token_ids != (1,)
 
 
+def test_route_library_allows_one_route_to_reach_multiple_prompt_local_endpoints():
+    route = "python-factor-route:v1:lambda(mod(input,literal))"
+    library = VerifiedRouteLibrary(replay_groups_per_step=1)
+    _observe(
+        library,
+        prompt=1,
+        route=route,
+        endpoint="python_factor:2,3",
+        response=22,
+    )
+    _observe(
+        library,
+        prompt=1,
+        route=route,
+        endpoint="python_factor:3,2",
+        response=11,
+    )
+
+    diagnostics = library.diagnostics()
+    assert diagnostics.neutral_routes_observed == 2
+    assert diagnostics.distinct_routes == 1
+    assert diagnostics.distinct_source_prompts == 1
+    assert diagnostics.cross_prompt_neutral_reproductions == 0
+    exemplar = library.prompt_exemplars([1])
+    assert len(exemplar) == 1
+    assert exemplar[0].response_token_ids == (11,)
+    assert exemplar[0].endpoint_key == "python_factor:3,2"
+
+
+def test_route_library_rejects_endpoint_change_for_identical_response():
+    library = VerifiedRouteLibrary(replay_groups_per_step=1)
+    _observe(
+        library,
+        prompt=1,
+        route="route-a",
+        endpoint="endpoint-a",
+        response=11,
+    )
+    with pytest.raises(ValueError, match="endpoint changed for one response"):
+        _observe(
+            library,
+            prompt=1,
+            route="route-a",
+            endpoint="endpoint-b",
+            response=11,
+        )
+
+
 def test_route_library_proposal_is_support_only_until_neutral_graduation():
     library = VerifiedRouteLibrary(
         replay_groups_per_step=1,

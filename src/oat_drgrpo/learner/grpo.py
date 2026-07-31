@@ -102,6 +102,27 @@ def apply_math_strategy_task_reward_gate(
     )
 
 
+def _task_bound_canonicalization_surfaces(
+    decoded_surfaces: list[str],
+    trajectory: dict[str, Any],
+    *,
+    canonical_task: str,
+    expected_count: int | None = None,
+) -> list[str]:
+    """Use verifier-ready witnesses while retaining canonical action token IDs."""
+
+    if canonical_task == "none":
+        return decoded_surfaces
+    surfaces = [str(value) for value in list(trajectory.get("responses") or [])]
+    required = len(decoded_surfaces) if expected_count is None else expected_count
+    if len(surfaces) != required:
+        raise RuntimeError(
+            "canonical ModeBench tracking requires the exact task-decoded "
+            "response for every sampled action sequence"
+        )
+    return surfaces
+
+
 @contextmanager
 def _temporary_eval_mode(model: torch.nn.Module, *, enabled: bool):
     """Temporarily disable training-only model behavior and restore it exactly."""
@@ -130,14 +151,22 @@ class ZeroMathGrpoMixin:
         response_masks: torch.Tensor,
         group_size: int,
         references_grouped: list[list[Any | None]] | None = None,
+        response_surfaces: list[str] | None = None,
     ) -> list[list[str | None]]:
         """Extract canonical final-answer keys for the SEED control."""
 
         label_ids = input_ids[:, 1:]
-        rows = []
-        for row_ids, row_mask in zip(label_ids, response_masks):
-            token_ids = row_ids[row_mask.to(torch.bool)].detach().cpu().tolist()
-            rows.append(self.tokenizer.decode(token_ids, skip_special_tokens=True))
+        if response_surfaces is None:
+            rows = []
+            for row_ids, row_mask in zip(label_ids, response_masks):
+                token_ids = row_ids[row_mask.to(torch.bool)].detach().cpu().tolist()
+                rows.append(self.tokenizer.decode(token_ids, skip_special_tokens=True))
+        else:
+            rows = [str(value) for value in response_surfaces]
+            if len(rows) != int(input_ids.size(0)):
+                raise RuntimeError(
+                    "task-bound semantic surfaces differ from sampled row count"
+                )
         grouped_rows = [
             rows[index : index + group_size]
             for index in range(0, len(rows), group_size)
@@ -1402,7 +1431,9 @@ class ZeroMathGrpoMixin:
         canonical_replay_groups: list[VerifiedCanonicalReplayGroup] = []
         canonical_behavior_infos: dict[str, torch.Tensor] = {}
         if canonical_actions:
-            expected_count = int(args.canonical_graph_action_count)
+            if self._canonical_action_space is None:
+                raise RuntimeError("canonical learner action space is missing")
+            expected_count = int(self._canonical_action_space.horizon)
             observed_counts = response_masks.sum(dim=1)
             if not bool(observed_counts.eq(expected_count).all()):
                 raise RuntimeError(
@@ -1516,11 +1547,22 @@ class ZeroMathGrpoMixin:
                 references[index : index + int(args.num_samples)]
                 for index in range(0, num_rows, int(args.num_samples))
             ]
+            semantic_key_kwargs: dict[str, Any] = {}
+            if canonical_actions:
+                semantic_key_kwargs["response_surfaces"] = (
+                    _task_bound_canonicalization_surfaces(
+                        [],
+                        trajectory,
+                        canonical_task=canonical_task,
+                        expected_count=num_rows,
+                    )
+                )
             answer_keys_grouped = self._seed_answer_keys_grouped(
                 input_ids,
                 response_masks,
                 int(args.num_samples),
                 references_grouped,
+                **semantic_key_kwargs,
             )
             answer_keys = [key for group in answer_keys_grouped for key in group]
             bonuses, diagnostics = compute_outcome_collision_bonuses(
@@ -2042,6 +2084,12 @@ class ZeroMathGrpoMixin:
                         "MATH strategy canonicalization requires the exact "
                         "validator-graded response for every row"
                     )
+            elif key_mode == "modebench_outcome" and canonical_actions:
+                response_texts = _task_bound_canonicalization_surfaces(
+                    response_texts,
+                    trajectory,
+                    canonical_task=canonical_task,
+                )
             prompt_token_ids = [
                 input_ids[row_index, : int(prompt_id_lens[row_index])]
                 .detach()
@@ -2757,8 +2805,16 @@ class ZeroMathGrpoMixin:
             positional_supports = tuple(
                 self._canonical_action_token_ids_by_position or ()
             )
-            if len(positional_supports) != 3:
-                raise RuntimeError("canonical learner did not retain three supports")
+            expected_horizon = (
+                int(self._canonical_action_space.horizon)
+                if self._canonical_action_space is not None
+                else 0
+            )
+            if len(positional_supports) != expected_horizon:
+                raise RuntimeError(
+                    "canonical learner did not retain every positional support: "
+                    f"expected={expected_horizon} observed={len(positional_supports)}"
+                )
             behavior_support_mask = None
             if canonical_task == "graph_coloring":
                 (

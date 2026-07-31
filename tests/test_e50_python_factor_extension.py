@@ -1,3 +1,5 @@
+import re
+
 from pathlib import Path
 
 
@@ -76,24 +78,37 @@ def test_python_factor_is_a_first_class_comparative_task():
     assert "python_factor)" in submitter
     assert "var/data/python_factor_modebench_v1" in submitter
     assert "make_python_factor_mode_data.py" in submitter
+    # Every executable ModeBench domain must be offered by the dispatcher.
     assert (
-        "use countdown, graph_coloring, python_factor, or math"
+        "use countdown, graph_coloring, python_factor, pantry_plan, or math"
         in submitter
     )
 
 
-def test_python_extension_is_superseded_by_e51_in_current_surfaces():
+def _joined_string_literals(text: str) -> str:
+    """Join implicitly concatenated adjacent string literals.
+
+    Long run-stamp prefixes are wrapped across lines in the plotting sources,
+    so a naive substring search would miss them.
+    """
+
+    return re.sub(r'"\s*\n\s*"', "", text)
+
+
+def test_python_extension_is_superseded_by_the_live_frontier_cohort():
     old_prefix = "pye50_uncapped_normalized_canonical_haarnoja_05b_50ep_v3_allcs"
-    prefix = "pye51_policy_entropy_adaptive_canonical_05b_50ep_v2_allcs"
+    # The live Python frontier; update alongside the surfaces when it advances.
+    prefix = "pye58_global_verified_replay_canonical_05b_50ep_sentinel_allcs"
     monitor = MONITOR.read_text(encoding="utf-8")
     refresh = REFRESH.read_text(encoding="utf-8")
-    plot = PLOT.read_text(encoding="utf-8")
+    plot = _joined_string_literals(PLOT.read_text(encoding="utf-8"))
 
     assert '"Python factors"' in monitor
     assert prefix in monitor
     assert prefix in refresh
     assert prefix in plot
+    # The superseded E50 cohort must not reappear in any live surface.
     assert old_prefix not in monitor
     assert old_prefix not in refresh
     assert old_prefix not in plot
-    assert "Python factors — E51 (live frontier)" in plot
+    assert 'f"Python factors — {campaign} (live frontier)"' in plot

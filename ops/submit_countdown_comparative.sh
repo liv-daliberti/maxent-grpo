@@ -226,13 +226,16 @@ case "$TASK" in
   python_factor)
     DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$ROOT_DIR/var/data/python_factor_modebench_v1}"
     ;;
+  pantry_plan)
+    DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$ROOT_DIR/var/data/pantry_plan_modebench_v2}"
+    ;;
   math)
     # MATH data are provenance-pinned external artifacts. Never synthesize or
     # rebuild them through the ModeBench generators below.
     DATA_ROOT="${OAT_ZERO_COMPARATIVE_DATA_ROOT:-$ROOT_DIR/var/data/oat_drgrpo_math_paper}"
     ;;
   *)
-    echo "Unknown OAT_ZERO_COMPARATIVE_TASK=${TASK}; use countdown, graph_coloring, python_factor, or math." >&2
+    echo "Unknown OAT_ZERO_COMPARATIVE_TASK=${TASK}; use countdown, graph_coloring, python_factor, pantry_plan, or math." >&2
     exit 1
     ;;
 esac

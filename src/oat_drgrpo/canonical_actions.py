@@ -11,6 +11,12 @@ from typing import Any
 
 import torch
 
+from .pantry_support_action import (
+    PANTRY_SUPPORT_MASK_TASK,
+    PANTRY_SUPPORT_MASK_WIDTH,
+    decode_pantry_support_mask,
+)
+
 
 GRAPH_COLOR_ACTIONS = ("1", "2", "3")
 COUNTDOWN_ACTIONS_BY_POSITION = (
@@ -60,6 +66,8 @@ def canonical_action_strings_by_position(
         return (GRAPH_COLOR_ACTIONS,) * 3
     if task == "countdown":
         return COUNTDOWN_ACTIONS_BY_POSITION
+    if task == PANTRY_SUPPORT_MASK_TASK:
+        return (("0", "1"),) * PANTRY_SUPPORT_MASK_WIDTH
     raise ValueError(f"unsupported canonical action task: {task!r}")
 
 
@@ -159,6 +167,14 @@ def decode_canonical_action_response(
         return text
     if task == "countdown":
         return decode_countdown_action_code(text, reference)
+    if task == PANTRY_SUPPORT_MASK_TASK:
+        try:
+            spec = json.loads(reference) if isinstance(reference, str) else reference
+        except json.JSONDecodeError:
+            spec = {}
+        if not isinstance(spec, dict):
+            spec = {}
+        return decode_pantry_support_mask(text, spec)
     raise ValueError(f"unsupported canonical action task: {task!r}")
 
 

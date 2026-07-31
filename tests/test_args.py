@@ -570,6 +570,29 @@ def test_online_canonical_bank_requires_executable_modebench_contract():
         )
 
 
+def test_online_canonical_bank_accepts_task_bound_pantry_contract():
+    args = _args(
+        xdr_tau=float("inf"),
+        canonical_action_task="pantry_support_mask",
+        canonical_graph_action_count=6,
+        canonical_graph_learner_sampling=True,
+        canonical_graph_fixed_shape_sampling=True,
+        prompt_template="qwen_pantry_support_mask",
+        verifier_version="fast",
+        test_split="multi_answer",
+        semantic_shannon_coef=0.1,
+        semantic_shannon_separate_advantage=True,
+        semantic_shannon_success_conditioned_signed_advantage=True,
+        semantic_shannon_open_set_inverse_adaptation=True,
+        online_canonical_novelty_beta=0.5,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="split_mass_balance_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+    )
+
+    assert validate_zero_math_args(args) is args
+
+
 def test_online_canonical_math_strategy_requires_validator_and_endpoint():
     args = _args(
         xdr_tau=float("inf"),
@@ -608,6 +631,16 @@ def test_online_canonical_verified_answer_math_contract_is_explicitly_single_mod
         test_split="math",
     )
     assert validate_zero_math_args(args) is args
+
+    route_dev = _args(
+        xdr_tau=float("inf"),
+        online_canonical_replay=True,
+        online_canonical_key_mode="math_verified_answer",
+        prompt_template="qwen_math",
+        verifier_version="math_verify",
+        test_split="math_dev",
+    )
+    assert validate_zero_math_args(route_dev) is route_dev
 
     with pytest.raises(ValueError, match="verified-answer MATH replay"):
         validate_zero_math_args(
@@ -1329,6 +1362,37 @@ def test_length_constrained_maxent_rejects_invalid_or_confounded_settings(
 ):
     with pytest.raises(ValueError, match=message):
         validate_zero_math_args(_args(**overrides))
+
+
+def test_canonical_pantry_policy_uses_exact_six_bit_entropy_bound():
+    accepted = _args(
+        canonical_action_task="pantry_support_mask",
+        canonical_graph_action_count=6,
+        canonical_graph_learner_sampling=True,
+        canonical_graph_fixed_shape_sampling=True,
+        prompt_template="qwen_pantry_support_mask",
+        test_split="multi_answer",
+        xdr_tau=float("inf"),
+        maxent_alpha=0.05,
+        maxent_control_target_ratio=1.0,
+        maxent_control_target_entropy=math.log(64),
+    )
+    assert validate_zero_math_args(accepted) is accepted
+
+    rejected = _args(
+        canonical_action_task="pantry_support_mask",
+        canonical_graph_action_count=6,
+        canonical_graph_learner_sampling=True,
+        canonical_graph_fixed_shape_sampling=True,
+        prompt_template="qwen_pantry_support_mask",
+        test_split="multi_answer",
+        xdr_tau=float("inf"),
+        maxent_alpha=0.05,
+        maxent_control_target_ratio=1.0,
+        maxent_control_target_entropy=math.log(64) + 1e-6,
+    )
+    with pytest.raises(ValueError, match="maximum log-support entropy"):
+        validate_zero_math_args(rejected)
 
 
 def test_canonical_graph_policy_accepts_the_preregistered_fixed_horizon():

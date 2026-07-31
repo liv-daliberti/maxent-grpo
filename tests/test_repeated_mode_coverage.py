@@ -70,13 +70,14 @@ def test_sampled_evaluation_retains_greedy_and_four_fixed_draw_traces():
     records = []
 
     def run_draw(
-        _dataset, *, k, temperature, seed, condition_on_answer_options=False
+        _dataset, *, k, temperature, seed, condition_on_answer_options=False, top_p=1.0
     ):
-        calls.append((k, temperature, seed, condition_on_answer_options))
+        calls.append((k, temperature, seed, condition_on_answer_options, top_p))
         value = 0.5 if k == 1 else seed / 10_000
         return _draw(value, value, value, value), [{"responses": ["answer"]}]
 
     harness = SimpleNamespace(
+        args=SimpleNamespace(eval_mode_coverage_top_p=0.9),
         strategy=SimpleNamespace(is_rank_0=lambda: True),
         eval_dataset_dict={"multi_answer": []},
         _run_sampled_mode_coverage_draw=run_draw,
@@ -94,13 +95,16 @@ def test_sampled_evaluation_retains_greedy_and_four_fixed_draw_traces():
         seed_base=1001,
     )
 
+    # Nucleus truncation reaches every sampled draw; the deterministic greedy
+    # trace keeps the untruncated surface so it stays comparable across a sweep.
     assert calls == [
-        (1, 0.0, 0, False),
-        (8, 1.0, 1001, False),
-        (8, 1.0, 1002, False),
-        (8, 1.0, 1003, False),
-        (8, 1.0, 1004, False),
+        (1, 0.0, 0, False, 1.0),
+        (8, 1.0, 1001, False, 0.9),
+        (8, 1.0, 1002, False, 0.9),
+        (8, 1.0, 1003, False, 0.9),
+        (8, 1.0, 1004, False, 0.9),
     ]
+    assert [record["top_p"] for record in records[1:]] == [0.9] * 4
     assert records[0]["evaluation_kind"] == "deterministic_greedy_trace_neutral"
     assert records[0]["sample_count"] == 1
     assert [record["evaluation_kind"] for record in records[1:]] == [
@@ -117,9 +121,9 @@ def test_diayn_evaluation_separates_neutral_quality_from_latent_binding():
     records = []
 
     def run_draw(
-        _dataset, *, k, temperature, seed, condition_on_answer_options=False
+        _dataset, *, k, temperature, seed, condition_on_answer_options=False, top_p=1.0
     ):
-        calls.append((k, temperature, seed, condition_on_answer_options))
+        calls.append((k, temperature, seed, condition_on_answer_options, top_p))
         option_ids = (
             [0, 0, 1, 1, 2, 2, 3, 3]
             if condition_on_answer_options

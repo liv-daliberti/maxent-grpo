@@ -70,4 +70,5 @@ def test_current_live_figure_shows_discovery_metrics_for_drgrpo():
     assert "passive_control_metrics" in plot
     assert '"online_canonical_mean_support_per_prompt"' in plot
     assert '"online_canonical_tracked_outcomes"' in plot
-    assert "e51_current_canonical_05b_live" in plot
+    # The live canonical figure tracks the current frontier cohort.
+    assert "e58_global_verified_replay_canonical_05b_live" in plot

@@ -380,10 +380,17 @@ class VerifiedRouteLibrary:
                 if (
                     record["verifier"] != verifier
                     or record["route_signature"] != route_signature
-                    or record["endpoint_key"] != endpoint_key
                 ):
                     raise ValueError(
                         "verified route identity changed for one source prompt"
+                    )
+                stored_response_tokens = tuple(record["response_token_ids"])
+                if (
+                    stored_response_tokens == response_tokens
+                    and record["endpoint_key"] != endpoint_key
+                ):
+                    raise ValueError(
+                        "verified route endpoint changed for one response"
                     )
                 if int(record["neutral_count"]) == 0:
                     self._proposal_graduations += 1
@@ -395,8 +402,9 @@ class VerifiedRouteLibrary:
                             self._post_replay_cross_prompt_neutral_reproductions += 1
                 record["neutral_count"] = int(record["neutral_count"]) + 1
                 record["neutral_mean_logprob"] = mean_logprob
-                if response_tokens < tuple(record["response_token_ids"]):
+                if response_tokens < stored_response_tokens:
                     record["response_token_ids"] = response_tokens
+                    record["endpoint_key"] = endpoint_key
             self._neutral_routes_observed += 1
 
     def admit_proposal(

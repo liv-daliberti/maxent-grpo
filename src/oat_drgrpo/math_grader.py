@@ -44,6 +44,11 @@ from sympy.parsing import sympy_parser
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.sympy_parser import parse_expr
 
+from .maze_modebench import (
+    ANT_MAZE_VERIFIER,
+    POINT_MAZE_VERIFIER,
+)
+from .maze_modebench_process import validate_maze_action_program_external
 from .mathir import (
     MATHIR_MENU_VERIFIER,
     MATHIR_VERIFIER,
@@ -51,6 +56,10 @@ from .mathir import (
     validate_mathir_algebra,
 )
 from .math_route import validate_math_route_response
+from .pantry_plan import (
+    PANTRY_PLAN_VERIFIER,
+    validate_pantry_plan,
+)
 from .python_modebench import (
     PYTHON_FACTOR_VERIFIER,
     python_factor_route_signature,
@@ -1200,7 +1209,10 @@ def _parse_modebench_spec(gt_answer: Any) -> dict[str, Any] | None:
         "countdown",
         MATHIR_VERIFIER,
         MATHIR_MENU_VERIFIER,
+        PANTRY_PLAN_VERIFIER,
         PYTHON_FACTOR_VERIFIER,
+        POINT_MAZE_VERIFIER,
+        ANT_MAZE_VERIFIER,
     }:
         return spec
     return None
@@ -1249,6 +1261,44 @@ def _extract_modebench_candidate(model_response: str, gt_answer: Any) -> str | N
             return None
         candidate = re.sub(
             r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|program|function)\s*"
+            r"(?:is|=|:)\s*",
+            "",
+            candidate,
+            flags=re.IGNORECASE,
+        ).strip()
+        return candidate or None
+    if str(spec.get("verifier")) in {
+        POINT_MAZE_VERIFIER,
+        ANT_MAZE_VERIFIER,
+    }:
+        fenced = re.fullmatch(
+            r"```(?:actions?|plan)?\s*(.*?)\s*```",
+            candidate,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if fenced is not None:
+            candidate = fenced.group(1).strip()
+        if len(candidate) > 4096 or "<" in candidate or ">" in candidate:
+            return None
+        candidate = re.sub(
+            r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|plan|program|actions?)\s*"
+            r"(?:is|=|:)\s*",
+            "",
+            candidate,
+            flags=re.IGNORECASE,
+        ).strip()
+        return candidate or None
+    if str(spec.get("verifier")) == PANTRY_PLAN_VERIFIER:
+        if (
+            len(candidate) > 512
+            or "\n" in candidate
+            or "\r" in candidate
+            or "<" in candidate
+            or ">" in candidate
+        ):
+            return None
+        candidate = re.sub(
+            r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|plan|recipe)\s*"
             r"(?:is|=|:)\s*",
             "",
             candidate,
@@ -1542,6 +1592,12 @@ def _modebench_answer_key(
     if verifier == PYTHON_FACTOR_VERIFIER:
         validation = validate_python_factor_function_external(candidate, spec)
         return validation.canonical_key if validation is not None else None
+    if verifier == PANTRY_PLAN_VERIFIER:
+        validation = validate_pantry_plan(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        validation = validate_maze_action_program_external(candidate, spec)
+        return validation.canonical_key if validation is not None else None
     return None
 
 
@@ -1594,6 +1650,12 @@ def validated_modebench_outcome_key(
         return validation.canonical_key if validation is not None else None
     if verifier == PYTHON_FACTOR_VERIFIER:
         validation = validate_python_factor_function_external(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier == PANTRY_PLAN_VERIFIER:
+        validation = validate_pantry_plan(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        validation = validate_maze_action_program_external(candidate, spec)
         return validation.canonical_key if validation is not None else None
     if verifier != "countdown":
         return None
@@ -1684,6 +1746,24 @@ def validated_modebench_exploration_identity(
             validation.canonical_key,
             route,
         )
+    if verifier == PANTRY_PLAN_VERIFIER:
+        validation = validate_pantry_plan(candidate, spec)
+        if validation is None:
+            return None
+        return VerifiedExplorationIdentity(
+            verifier,
+            validation.canonical_key,
+            None,
+        )
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        validation = validate_maze_action_program_external(candidate, spec)
+        if validation is None:
+            return None
+        return VerifiedExplorationIdentity(
+            verifier,
+            f"{verifier}:goal:{spec.get('map_id')}",
+            validation.canonical_key,
+        )
     if verifier != "countdown":
         return None
     try:
@@ -1724,6 +1804,10 @@ def _grade_modebench_answer(model_answer: str, gt_answer: Any) -> bool | None:
         return validate_mathir_action_menu(model_answer, spec) is not None
     if verifier == PYTHON_FACTOR_VERIFIER:
         return validate_python_factor_function_external(model_answer, spec) is not None
+    if verifier == PANTRY_PLAN_VERIFIER:
+        return validate_pantry_plan(model_answer, spec) is not None
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        return validate_maze_action_program_external(model_answer, spec) is not None
     return False
 
 

@@ -6,7 +6,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/ops/repo_env.sh"
 
 PYTHON_BIN="${OAT_ZERO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/python}"
-ARTIFACT="$ROOT_DIR/var/artifacts/e69_gate2_route_temporal_snapshots.json"
+if [[ -f "$ROOT_DIR/var/artifacts/e69_gate2_r2_route_endpoint_bookkeeping_repair_identity.json" ]]; then
+  ARTIFACT="$ROOT_DIR/var/artifacts/e69_gate2_r2_route_temporal_snapshots.json"
+elif [[ -f "$ROOT_DIR/var/artifacts/e69_gate2_r1_execution_repair_identity.json" ]]; then
+  ARTIFACT="$ROOT_DIR/var/artifacts/e69_gate2_r1_route_temporal_snapshots.json"
+else
+  ARTIFACT="$ROOT_DIR/var/artifacts/e69_gate2_route_temporal_snapshots.json"
+fi
 
 cd "$ROOT_DIR"
 while true; do

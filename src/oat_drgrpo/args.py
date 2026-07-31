@@ -8,6 +8,12 @@ from typing import Literal
 
 from oat.algorithms.ppo import PPOArgs
 
+from oat_drgrpo.templates import (
+    CANONICAL_DIGIT_TEMPLATE_ROLES,
+    CANONICAL_TASK_PROMPT_TEMPLATES,
+    prompt_template_role,
+)
+
 
 @dataclass
 class ZeroMathArgs(PPOArgs):
@@ -17,8 +23,17 @@ class ZeroMathArgs(PPOArgs):
         "qwen_boxed",
         "qwen_countdown_digits",
         "qwen_graph_digits",
+        "qwen_pantry_support_mask",
         "qwen_math",
         "qwen_math_route",
+        # Falcon-surface twins render the same contracts for the
+        # Falcon3-*-Instruct external-validity cohort.
+        "falcon_boxed",
+        "falcon_countdown_digits",
+        "falcon_graph_digits",
+        "falcon_pantry_support_mask",
+        "falcon_math",
+        "falcon_math_route",
         "no",
         "r1",
     ] = field(default="qwen_math")
@@ -290,7 +305,12 @@ class ZeroMathArgs(PPOArgs):
     canonical_graph_actions: bool = False
     # Generic task selector for new finite policies. ``canonical_graph_actions``
     # remains the exact backward-compatible E14 switch.
-    canonical_action_task: Literal["none", "graph_coloring", "countdown"] = "none"
+    canonical_action_task: Literal[
+        "none",
+        "graph_coloring",
+        "countdown",
+        "pantry_support_mask",
+    ] = "none"
     canonical_graph_action_count: int = 3
     canonical_graph_learner_sampling: bool = False
     canonical_graph_fixed_shape_sampling: bool = False
@@ -314,11 +334,21 @@ class ZeroMathArgs(PPOArgs):
 
     eval_mode_coverage_k: int = 0
     eval_mode_coverage_temperature: float = 1.0
+    # Nucleus truncation applied to the sampled mode-coverage draws only. The
+    # default 1.0 is the untruncated decoding surface every reported cell used;
+    # the E72 decoding frontier sweeps it to test whether wider or narrower
+    # decoding repairs a collapsed policy. Greedy draws ignore it.
+    eval_mode_coverage_top_p: float = 1.0
     # Repeated, fixed-seed K-draws expose Monte Carlo evaluation variance.
     # The established headline keys remain the mean across draws; every raw
     # draw and its spread are logged separately by the learner.
     eval_mode_coverage_draws: int = 4
     eval_mode_coverage_seed: int = 1001
+    # E72: evaluate the loaded policy exactly once through the ordinary
+    # training evaluation path, then exit before any rollout, optimizer step,
+    # export, or resume checkpoint. This is how a frozen checkpoint is measured
+    # on a new decoding setting without re-implementing the metric.
+    eval_only: bool = False
     baseline_zero_adv_response_tokens: int = 8
 
     # Storage lifecycle.  Evaluation is intentionally independent from both
@@ -341,9 +371,15 @@ def resolve_canonical_action_task(args: ZeroMathArgs) -> str:
     """Resolve the generic task selector and E14's legacy graph boolean."""
 
     requested = str(getattr(args, "canonical_action_task", "none"))
-    if requested not in {"none", "graph_coloring", "countdown"}:
+    if requested not in {
+        "none",
+        "graph_coloring",
+        "countdown",
+        "pantry_support_mask",
+    }:
         raise ValueError(
-            "canonical_action_task must be none, graph_coloring, or countdown"
+            "canonical_action_task must be none, graph_coloring, countdown, "
+            "or pantry_support_mask"
         )
     legacy_graph = bool(getattr(args, "canonical_graph_actions", False))
     if legacy_graph and requested not in {"none", "graph_coloring"}:
@@ -354,6 +390,7 @@ def resolve_canonical_action_task(args: ZeroMathArgs) -> str:
 def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     """Reject configurations outside the single supported training surface."""
 
+    canonical_task = resolve_canonical_action_task(args)
     if args.critic_type != "drgrpo":
         raise ValueError("This project supports critic_type=drgrpo only")
     if args.num_samples <= 1:
@@ -889,21 +926,22 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "non-negative"
         )
     if online_canonical_key_mode == "verified_route":
+        template_role = prompt_template_role(args.prompt_template)
         modebench_contract = (
-            args.prompt_template == "qwen_boxed"
+            template_role == "boxed"
             and args.verifier_version == "fast"
             and args.test_split == "multi_answer"
         )
         math_route_contract = (
-            args.prompt_template == "qwen_math_route"
+            template_role == "math_route"
             and args.verifier_version == "math_verify"
             and args.test_split == "math_dev"
         )
         if not (modebench_contract or math_route_contract):
             raise ValueError(
                 "verified-route mode requires either executable ModeBench "
-                "(qwen_boxed, fast, multi_answer) or sealed route-development "
-                "MATH (qwen_math_route, math_verify, math_dev)"
+                "(*_boxed, fast, multi_answer) or sealed route-development "
+                "MATH (*_math_route, math_verify, math_dev)"
             )
         if online_canonical_bank_alpha != 0.0 or online_canonical_novelty_beta != 0.0:
             raise ValueError(
@@ -963,27 +1001,35 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         if args.critic_type != "drgrpo":
             raise ValueError("online canonical bank requires critic_type=drgrpo")
         if online_canonical_key_mode == "modebench_outcome":
-            if (
-                args.prompt_template != "qwen_boxed"
-                or args.verifier_version != "fast"
-                or args.test_split != "multi_answer"
-            ):
+            template_role = prompt_template_role(args.prompt_template)
+            executable_modebench_contract = (
+                args.verifier_version == "fast"
+                and args.test_split == "multi_answer"
+                and (
+                    template_role == "boxed"
+                    or (
+                        canonical_task == "pantry_support_mask"
+                        and template_role == "pantry_support_mask"
+                    )
+                )
+            )
+            if not executable_modebench_contract:
                 raise ValueError(
                     "online canonical banks require executable ModeBench "
-                    "validation with "
-                    "prompt_template=qwen_boxed, verifier_version=fast, "
-                    "and test_split=multi_answer"
+                    "validation with the task-bound prompt template, "
+                    "verifier_version=fast, and test_split=multi_answer"
                 )
         elif online_canonical_key_mode == "math_verified_answer":
             if (
-                args.prompt_template != "qwen_math"
+                prompt_template_role(args.prompt_template) != "math"
                 or args.verifier_version != "math_verify"
-                or args.test_split != "math"
+                or args.test_split not in {"math", "math_dev"}
             ):
                 raise ValueError(
                     "verified-answer MATH replay requires "
-                    "prompt_template=qwen_math, "
-                    "verifier_version=math_verify, and test_split=math"
+                    "prompt_template=*_math, "
+                    "verifier_version=math_verify, and "
+                    "test_split=math or math_dev"
                 )
         elif online_canonical_key_mode == "math_strategy_qwen72" and (
             args.prompt_template != "qwen_math"
@@ -1244,9 +1290,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             raise ValueError("diayn_mi_smoothing must be positive")
         if float(args.diayn_mi_bonus_clip) <= 0:
             raise ValueError("diayn_mi_bonus_clip must be positive")
-    canonical_task = resolve_canonical_action_task(args)
     canonical_actions = canonical_task != "none"
-    canonical_graph_actions = canonical_task == "graph_coloring"
     canonical_action_count = int(args.canonical_graph_action_count)
     canonical_learner_sampling = bool(args.canonical_graph_learner_sampling)
     canonical_fixed_shape_sampling = bool(args.canonical_graph_fixed_shape_sampling)
@@ -1288,13 +1332,14 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         if int(args.sync_params_every) != 1:
             raise ValueError("vllm_sleep_level=2 requires sync_params_every=1")
     if canonical_actions:
-        if online_canonical_bank_active:
+        pantry_verified_maxent = canonical_task == "pantry_support_mask"
+        if online_canonical_bank_active and not pantry_verified_maxent:
             raise ValueError("online growing-support banks require free-form rollouts")
         if outcome_collision_coef > 0:
             raise ValueError(
                 "outcome-collision shaping currently requires free-form rollouts"
             )
-        if semantic_shannon_coef > 0:
+        if semantic_shannon_coef > 0 and not pantry_verified_maxent:
             raise ValueError(
                 "semantic Shannon shaping currently requires free-form rollouts"
             )
@@ -1306,17 +1351,21 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             raise ValueError(
                 "canonical finite policies require maxent_objective=sequence"
             )
-        required_template = (
-            "qwen_graph_digits" if canonical_graph_actions else "qwen_countdown_digits"
-        )
-        if args.prompt_template != required_template:
+        # The task pins the contract role; the chat surface is free so the same
+        # canonical policy can run on either base-model family.
+        allowed_templates = CANONICAL_TASK_PROMPT_TEMPLATES[canonical_task]
+        if args.prompt_template not in allowed_templates:
             raise ValueError(
                 f"canonical {canonical_task} actions require "
-                f"prompt_template={required_template}"
+                f"prompt_template in {sorted(allowed_templates)}; "
+                f"got {args.prompt_template}"
             )
-        if canonical_action_count != 3:
+        required_action_count = 6 if canonical_task == "pantry_support_mask" else 3
+        if canonical_action_count != required_action_count:
             raise ValueError(
-                "canonical finite policies require canonical_graph_action_count=3"
+                "canonical finite policy action count mismatch: "
+                f"task={canonical_task} canonical_graph_action_count="
+                f"{required_action_count} required; observed={canonical_action_count}"
             )
         if args.test_split != "multi_answer":
             raise ValueError(
@@ -1341,7 +1390,9 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "canonical learner-side sampling requires the frozen fixed-shape "
                 "causal-placeholder path"
             )
-    elif args.prompt_template in {"qwen_graph_digits", "qwen_countdown_digits"}:
+    elif prompt_template_role(args.prompt_template) in (
+        CANONICAL_DIGIT_TEMPLATE_ROLES
+    ):
         raise ValueError(
             "canonical digit prompt templates require canonical_action_task"
         )
@@ -1471,9 +1522,12 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "positive maxent_dual_target_entropy"
             )
     if canonical_task != "none":
-        canonical_max_entropy = math.log(
-            27 if canonical_task == "graph_coloring" else 108
-        )
+        canonical_sequence_count = {
+            "graph_coloring": 27,
+            "countdown": 108,
+            "pantry_support_mask": 64,
+        }[canonical_task]
+        canonical_max_entropy = math.log(canonical_sequence_count)
         for name, value in (
             ("maxent_control_target_entropy", maxent_control_target_entropy),
             ("maxent_dual_target_entropy", maxent_dual_target_entropy),
@@ -1568,6 +1622,14 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError("eval_mode_coverage_draws must be positive")
     if int(args.eval_mode_coverage_seed) < 0:
         raise ValueError("eval_mode_coverage_seed must be non-negative")
+    coverage_top_p = float(getattr(args, "eval_mode_coverage_top_p", 1.0))
+    if not math.isfinite(coverage_top_p) or not 0 < coverage_top_p <= 1:
+        raise ValueError("eval_mode_coverage_top_p must be finite and in (0, 1]")
+    if bool(getattr(args, "eval_only", False)) and int(args.eval_mode_coverage_k) <= 0:
+        # An eval-only run exists to measure sampled mode coverage. Without a
+        # positive K it would load a checkpoint, evaluate greedy accuracy only,
+        # and silently return no frontier point.
+        raise ValueError("eval_only requires a positive eval_mode_coverage_k")
     if int(args.baseline_zero_adv_response_tokens) < 0:
         raise ValueError("baseline_zero_adv_response_tokens must be non-negative")
     return args

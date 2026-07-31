@@ -53,6 +53,40 @@ var/seed_paper_eval/paper310/bin/python \
   '{"verifier":"python_factor_function","python_version":"factor-v1","cases":[6,10,15]}'
 ```
 
+## Base model families
+
+The training surface supports two instruction-tuned base-model families, so a
+ModeBench result can be shown not to be an artifact of one tokenizer or one
+instruction-tuning style:
+
+| Family | Model | Chat surface |
+|---|---|---|
+| Qwen | `Qwen/Qwen2.5-0.5B-Instruct` | `<\|im_start\|>role` / `<\|im_end\|>` |
+| Falcon | `tiiuae/Falcon3-1B-Instruct` | `<\|system\|>` / `<\|user\|>` / `<\|assistant\|>` |
+
+Every prompt contract exists once per family as a `qwen_*`/`falcon_*` twin pair
+(`*_boxed`, `*_graph_digits`, `*_countdown_digits`,
+`*_pantry_support_mask`, `*_math`, `*_math_route`). The two members of a pair
+share their system instruction and canonical answer rewrite verbatim and differ
+only in role markers, which is what makes a cross-family comparison a clean
+swap rather than a second prompt design. Selecting a family is a single
+`OAT_ZERO_PROMPT_TEMPLATE` change; the objective, validator, canonical action
+space, and reward path are surface-independent.
+
+Three invariants are enforced rather than assumed, in
+[`tests/test_falcon_prompt_surface.py`](tests/test_falcon_prompt_surface.py):
+
+1. each Falcon prompt is a pure role-marker swap of its Qwen twin;
+2. the Falcon surface reproduces `Falcon3-1B-Instruct`'s own published chat
+   template byte for byte; and
+3. the canonical action space resolves to the same horizon, sequence count,
+   and maximum entropy under either tokenizer.
+
+Argument validation keys off a template's *role* rather than its name, and a
+canonical run whose materialized rows were rendered on the other family's
+surface fails closed instead of training against role markers its base model
+never saw.
+
 ## Evidence status
 
 - **Original active cohort:** fresh matched Dr.GRPO and online verified MaxEnt
@@ -79,6 +113,11 @@ The leakage-free MATH transfer contract is frozen in
 
 - [`src/oat_drgrpo/math_grader.py`](src/oat_drgrpo/math_grader.py) — unified
   ModeBench reward and canonical-key admission boundary.
+- [`src/oat_drgrpo/templates.py`](src/oat_drgrpo/templates.py) — per-family
+  chat surfaces, the `qwen_*`/`falcon_*` twin registry, template roles, and the
+  fail-closed prompt materialization check.
+- [`src/oat_drgrpo/canonical_actions.py`](src/oat_drgrpo/canonical_actions.py)
+  — finite action grammars resolved into one-token, one-to-one tokenizer IDs.
 - [`src/oat_drgrpo/online_canonical_bank.py`](src/oat_drgrpo/online_canonical_bank.py)
   — verified growing-support state and canonical advantages.
 - [`src/oat_drgrpo/online_canonical_controller.py`](src/oat_drgrpo/online_canonical_controller.py)

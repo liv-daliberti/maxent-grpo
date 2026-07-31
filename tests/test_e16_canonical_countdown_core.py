@@ -290,7 +290,11 @@ class _RunHarness(ZeroMathRunMixin):
 
 @pytest.mark.parametrize(
     ("task", "leaf_count", "prefix_count"),
-    (("graph_coloring", 27, 13), ("countdown", 108, 25)),
+    (
+        ("graph_coloring", 27, 13),
+        ("countdown", 108, 25),
+        ("pantry_support_mask", 64, 63),
+    ),
 )
 def test_post_update_sensor_exactly_enumerates_the_finite_policy_tree(
     monkeypatch, task, leaf_count, prefix_count

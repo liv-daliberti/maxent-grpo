@@ -1,175 +1,172 @@
-# Paper
+# Mode Collapse under GRPO
 
-[`main.tex`](main.tex) is the NeurIPS-format source for **ModeBench:
-Executable Outcome Discovery for Maximum-Entropy Reasoning**.
-[`main.pdf`](main.pdf) is the built manuscript.
+[`main.tex`](main.tex) is the ICLR 2026-format source for **Mode Collapse under
+GRPO: ModeBench and Online Verified Maximum Entropy**. [`main.pdf`](main.pdf)
+is the built manuscript.
 
-The paper centers the final long-horizon design:
+## Paper in one paragraph
 
-- four ModeBench environments with execution-bound correctness and mode keys;
-- an online bank containing only policy-generated, validator-positive outcomes;
-- an open-set predictive advantage with a structural unseen bucket, plus a
-  one-time discovery credit of `0.50`;
-- one globally scheduled verified replay bank per optimizer update, under
-  split verified-mass and known-mode-balance terms;
-- three projection-free controllers referenced only to their own warmup means;
-- a support-only, entropy-gated singleton actuator whose proposals reach the
-  replay layer but never the on-policy advantage; and
-- identical passive discovery telemetry in the matched Dr.GRPO control.
+A binary verifier distinguishes correct from incorrect responses, but it does
+not distinguish redundant correct responses from genuinely different correct
+outcomes. Under Dr.GRPO, frequent correct outcomes therefore receive more
+on-policy updates while a correct outcome that disappears from the sampled
+group receives none. The paper calls the resulting loss of verified outcome
+support **mode collapse under GRPO**. ModeBench makes the failure measurable
+with validators that both execute a response and assign a canonical outcome
+key. **xGRPO** is the paper's online verified MaxEnt-GRPO intervention: it
+constructs support only from policy-generated, validator-positive executions,
+rewards rare and first-seen outcomes, globally replays verified exemplars, and
+uses adaptive mass and balance terms to protect task performance.
 
-Graph coloring, Countdown, executable Python factors, and executable MathIR
-action menus are the four ModeBench domains. MathIR keys the exact rational
-equation-state trajectory produced by a successful execution. **It is not
-MATH-500.**
+The paper's name `xGRPO` refers to this executable-outcome method. It does not
+refer to the detached Gibbs candidate-reweighting prototype called `xDr` in
+older repository experiments; those prototype runs are excluded.
 
-The held-out MATH-500 track is a realism/generalization test, not a fifth
-multi-mode ModeBench row. It trains on a frozen 384-row MATH12K subset and
-evaluates on all 500 disjoint MATH-500 problems. All verifier-positive
-completions for a prompt share one `correct` canonical key, so verified-mass
-replay is eligible but known-mode balance must remain structurally inactive.
-This supports an honest correctness-transfer test without calling answer
-formatting or free-form prose a reasoning mode.
+## What is measured
 
-## Current successor campaign: E69
+For prompt `x`, validator-positive response `y` receives an executable outcome
+key `kappa_x(y)`. The target distribution is the policy distribution over keys
+conditioned on verifier success, not token strings.
 
-E69 is the successor-first campaign built from the recovered E66/E68 record.
-It adds a checkpointed, cross-prompt library of independently verified route
-signatures while keeping the neutral policy task-reward-first. Proposal-only
-rows remain outside PPO and ordinary on-policy support counts.
+- `pass@1`: greedy success probability.
+- `pass@8`: probability that eight samples contain at least one correct answer.
+- `distinct@8`: expected number of distinct correct executable keys in eight
+  samples.
 
-The execution ladder is fail-closed:
+The primary collapse diagnosis compares `distinct@8` with `pass@8`: near
+equality means successful eight-sample sets almost never contain a second
+correct mode. A falling `distinct@8` alongside stable correctness shows support
+contraction. Token entropy alone is not evidence of outcome diversity because
+formatting aliases can map to the same executed key.
 
-1. Gate 2 compares compute-matched Dr.GRPO, E66 endpoint replay, E68
-   separated-support proposals, and E69 route replay at seed 43 for six passes.
-   MATH route-dev uses one endpoint-only treatment run for the E66/E68/E69
-   aliases because the executable free-form route-language gate abstained.
-2. Only a clean passing Gate 2 launches seeds 44 and 45. Together with the
-   exact seed-43 reuse, Gate 3 contains 30 physical cells: two arms, three
-   seeds, six passes, and five development areas.
-3. Only a clean complete Gate 3 unseals six one-time MATH-500 evaluations.
-4. Only six clean immutable held-out results render
-   [`figures/e69_five_area_confirmatory.pdf`](figures/e69_five_area_confirmatory.pdf):
-   four executable ModeBench panels plus held-out MATH-500 transfer.
+## Theory guarantee
 
-The currently viewable E68-provenance snapshot is
-[`figures/e68_e58_vs_grpo_05b_12ep_live.png`](figures/e68_e58_vs_grpo_05b_12ep_live.png).
-It is recovered historical evidence, not the unfinished E69 confirmatory
-panel.
+Appendix A proves that the expected binary-reward GRPO and Dr.GRPO flow is
+generically winner-take-all over equally rewarded correct modes. It then proves
+that xGRPO's verified balance flow converges to the uniform distribution over
+a recurrently replayed bank once balance dominates the vanishing GRPO pressure.
+Full-support no-collapse additionally requires every protected mode to be
+verified and retained; with a partial or capacity-limited bank, the guarantee
+applies exactly to the retained support.
 
-Gate 2 live state and the prospective temporal route-reuse observations are:
+## ModeBench
 
-- [`results/e69_gate2_compute_matched_screen_live.md`](results/e69_gate2_compute_matched_screen_live.md)
-- [`../var/artifacts/e69_gate2_compute_matched_screen_audit_latest.json`](../var/artifacts/e69_gate2_compute_matched_screen_audit_latest.json)
-- [`../var/artifacts/e69_gate2_route_temporal_snapshots.json`](../var/artifacts/e69_gate2_route_temporal_snapshots.json)
-- [`preregistration/e69_verified_route_successor_protocol_20260728.md`](preregistration/e69_verified_route_successor_protocol_20260728.md)
-- [`preregistration/e69_gate2_route_temporal_observer_amendment_20260728.md`](preregistration/e69_gate2_route_temporal_observer_amendment_20260728.md)
+The four benchmark domains are:
 
-Configuration-only validation, which submits no training or evaluation jobs:
+- Graph coloring: the canonical executed coloring assignment.
+- Countdown: the canonical arithmetic expression tree.
+- Executable Python factors: the function's behavior on hidden test cases.
+- MathIR: the exact rational equation-state trajectory generated by the
+  executed action menu.
 
-```bash
-bash ops/route_successor/launch_e69_gate3_confirmatory.sh config
-bash ops/route_successor/launch_e69_gate4_math500.sh config
-```
+Every admitted key is both correct and executable. There is no gold catalogue
+of modes and no semantic clustering of free-form text.
 
-## Historical E65/E68 evidence boundary
+## Evidence map
 
-The reported campaign is 54 registered runs — 24 method-versus-control
-ModeBench runs, 6 MATH-500 runs, 12 same-plumbing actuator-off controls, and
-12 separated-support actuator treatments — at exactly 12 training passes,
-seeds 43--45, on Qwen2.5-0.5B-Instruct. It is **still executing**.
+| Evidence block | Status | Claim licensed |
+|---|---|---|
+| Four-domain xGRPO vs. matched Dr.GRPO | Exploratory shared checkpoints, 3 seeds | Broad cross-domain outcome-diversity finding |
+| MathIR separated-support actuator vs. same-plumbing control | Terminal paired ablation, 3 seeds | Causal mechanism evidence |
+| Registered ModeBench campaign | Incomplete | Not described as a terminal campaign result |
 
-Every number in the manuscript is an **interim fixed-checkpoint** reading at
-the latest registered checkpoint that all three seeds of both compared arms
-have landed. Domains stand at different passes and are not pooled. No terminal
-value, no AUC, and no interpretation gate is reported as decided: all four
-frozen gates (cross-domain positive, actuator repair, plumbing sensitivity,
-held-out realism) are `pending`, and a pending gate is evidence of neither
-success nor failure.
+At the latest preregistered checkpoint shared by all three seeds of both broad
+comparison arms, `pass@8` changes from `.372` to `.968` on Graph, `.608` to
+`.665` on Countdown, `.172` to `.740` on Python, and `.364` to `.779` on
+MathIR. The corresponding `distinct@8` changes are `.393` to `2.344`, `.650`
+to `1.674`, `.172` to `.956`, and `.364` to `.805`.
 
-Two earlier cohorts are excluded from the 54-run denominator by
-machine-readable invalidation audits, not by inspecting their results: one
-whose runtime forced the novelty credit to `0.0`, and one whose shared
-proposal/on-policy bank was rejected before any optimizer step. Both remain
-archived as engineering evidence. Earlier experiments inform the method
-rationale and decision table but are not pooled into the treatment estimate.
+The terminal MathIR intervention adds `.0260` greedy accuracy, `.0301` mean@8,
+`.0267` pass@8, and `.1367` distinct@8 over the same-plumbing actuator-off
+control.
 
-## Reproduce
+## Reproduce the paper
 
-The live surface — audits, curves, the results markdown and CSV, and both
-paper figures — is regenerated on a fixed interval by the campaign monitor:
+From the repository root:
 
 ```bash
-ops/exp_scaling/watch_e65_entropy_gated_singleton_confirmation.sh
-```
-
-To refresh only the figures used by the manuscript:
-
-```bash
-python ops/exp_scaling/plot_e64_math500_realism.py
-python ops/exp_scaling/plot_e61r1_e58_vs_grpo_12pass.py
-python ops/exp_scaling/plot_e65_all_epoch_diagnostic.py
-```
-
-Build or audit the Python environment from the repository root:
-
-```bash
-var/seed_paper_eval/paper310/bin/python \
-  ops/make_python_factor_mode_data.py \
-  --output-root var/data/python_factor_modebench_v1
-
-var/seed_paper_eval/paper310/bin/python \
-  ops/verify_python_factor_mode.py \
-  --candidate 'lambda n: 2 if n % 2 == 0 else 3' \
-  --reference \
-  '{"verifier":"python_factor_function","python_version":"factor-v1","cases":[6,10,15]}'
-```
-
-Build the PDF:
-
-```bash
+python ops/plot_paper_modebench_examples.py
+python ops/plot_paper_xdr_mechanism.py
+python ops/plot_paper_modecollapse.py
+python ops/plot_paper_collapse_toy.py
 make -C paper
 ```
 
-## Primary artifacts
+The plot scripts read frozen machine-readable model evaluations and regenerate:
 
-- Live five-domain figure (paper Figure 1):
-  [`figures/e61r1_e58_vs_grpo_05b_12ep_live.pdf`](figures/e61r1_e58_vs_grpo_05b_12ep_live.pdf)
-- Held-out MATH-500 realism figure (paper Figure 2):
-  [`figures/e64_math500_realism_05b_12ep_live.pdf`](figures/e64_math500_realism_05b_12ep_live.pdf)
-- All-epoch diagnostic (appendix; MATH display surface only):
-  [`figures/e61r1_e58_vs_grpo_05b_12ep_all_epoch_diagnostic_live.pdf`](figures/e61r1_e58_vs_grpo_05b_12ep_all_epoch_diagnostic_live.pdf)
-- Live confirmation report:
-  [`results/e65_five_domain_confirmation_live.md`](results/e65_five_domain_confirmation_live.md)
-- Seed-level fixed-checkpoint surface:
-  [`results/e65_five_domain_confirmation_fixed_checkpoints_live.csv`](results/e65_five_domain_confirmation_fixed_checkpoints_live.csv)
-- Machine-readable results:
+- [`figures/xdr_mechanism.pdf`](figures/xdr_mechanism.pdf): a six-part map of
+  how verification, discovery bonuses, replay, mass/balance, adaptive control,
+  and singleton escape address different failure modes;
+- [`figures/modebench_examples.pdf`](figures/modebench_examples.pdf): one compact,
+  execution-checked pictorial example for each ModeBench domain;
+- [`figures/modecollapse_story.pdf`](figures/modecollapse_story.pdf): the
+  two-panel, model-backed Graph Coloring example with a clarified prompt and one
+  wide paired Dr.GRPO/xGRPO trajectory through step 768 (end of epoch 4);
+- [`figures/modecollapse_training_compact.pdf`](figures/modecollapse_training_compact.pdf):
+  the main-body 4-domain × 2-metric grid (neutral pass@8 and mean distinct
+  correct@8), sized to stay legible at `\linewidth`;
+- [`figures/modecollapse_training.pdf`](figures/modecollapse_training.pdf):
+  the appendix E68-style 4-domain × 4-metric training grid, adding neutral
+  pass@1 and cumulative verified discoveries;
+- [`figures/modecollapse_training_pass1.pdf`](figures/modecollapse_training_pass1.pdf):
+  standalone neutral pass@1 curves;
+- [`figures/modecollapse_training_pass8.pdf`](figures/modecollapse_training_pass8.pdf):
+  standalone neutral pass@8 curves;
+- [`figures/modecollapse_training_distinct8.pdf`](figures/modecollapse_training_distinct8.pdf):
+  standalone mean distinct correct@8 curves;
+- [`figures/modecollapse_training_discoveries.pdf`](figures/modecollapse_training_discoveries.pdf):
+  standalone cumulative verified-discovery curves.
+
+The manuscript also preserves the clean eight-row comparison surface in an
+appendix figure using the same four-column E68 format.
+
+## Source-of-truth artifacts
+
+- Opening model trajectory:
+  [`../var/artifacts/paper_graph_collapse_toy.json`](../var/artifacts/paper_graph_collapse_toy.json)
+  records the transparent prompt-selection rule, all displayed counts, and
+  SHA-256 hashes of the underlying Qwen2.5-0.5B-Instruct sample logs.
+- Broad comparison (current): the E70 five-domain surface on the fixed
+  reporting grid (passes 0, 3, 6, 9, 12; seeds 43–47), aggregated by
+  [`../ops/exp_scaling/aggregate_e70_paper_checkpoints.py`](../ops/exp_scaling/aggregate_e70_paper_checkpoints.py)
+  into [`results/e70_five_domain_fixed_checkpoints_live.csv`](results/e70_five_domain_fixed_checkpoints_live.csv)
+  and [`results/e70_five_domain_fixed_checkpoints_live.md`](results/e70_five_domain_fixed_checkpoints_live.md).
+  Every headline cell is the deepest grid checkpoint reached by all five seeds
+  of both arms; MathIR is provisional at pass 9 until its remaining runs
+  terminate.
+- Broad comparison (superseded E65 cohort, retained for the record):
   [`../var/artifacts/e65_five_domain_confirmation_results_latest.json`](../var/artifacts/e65_five_domain_confirmation_results_latest.json)
-- Final fail-closed claim gate:
-  [`../ops/exp_scaling/audit_e65_legitimate_result_readiness.py`](../ops/exp_scaling/audit_e65_legitimate_result_readiness.py)
-- Campaign protocol:
-  [`preregistration/e65_five_domain_terminal_confirmation_05b.md`](preregistration/e65_five_domain_terminal_confirmation_05b.md)
-- Method-versus-control protocol:
+- Terminal MathIR ablation:
+  [`../var/artifacts/e66_e68_mathir_terminal_recovery_summary.json`](../var/artifacts/e66_e68_mathir_terminal_recovery_summary.json)
+- Broad comparison protocol:
   [`preregistration/e61r1_e58_vs_grpo_05b_12pass.md`](preregistration/e61r1_e58_vs_grpo_05b_12pass.md)
-- Objective definition:
+- xGRPO objective:
   [`preregistration/e58_global_verified_replay_canonical_05b.md`](preregistration/e58_global_verified_replay_canonical_05b.md)
-- Same-plumbing actuator-off control:
+- Same-plumbing control:
   [`preregistration/e66_same_plumbing_actuator_ablation_05b.md`](preregistration/e66_same_plumbing_actuator_ablation_05b.md)
-- Separated-support actuator:
+- Separated-support treatment:
   [`preregistration/e68_separated_support_actuator_ablation_05b.md`](preregistration/e68_separated_support_actuator_ablation_05b.md)
-- MATH12K-to-MATH-500 realism protocol:
-  [`preregistration/e64_math500_realism_transfer_05b.md`](preregistration/e64_math500_realism_transfer_05b.md)
-- MathIR dataset identity:
-  [`../var/data/mathir_action_menu_v1/identity.json`](../var/data/mathir_action_menu_v1/identity.json)
-- MathIR executable task contract:
-  [`../src/oat_drgrpo/mathir.py`](../src/oat_drgrpo/mathir.py)
-- Python dataset identity:
-  [`results/python_factor_modebench_v1_identity.json`](results/python_factor_modebench_v1_identity.json)
-- Python task and syntax contract:
-  [`../src/oat_drgrpo/python_modebench.py`](../src/oat_drgrpo/python_modebench.py)
-- External process boundary:
+
+## Implementation map
+
+- Environments and execution keys:
+  [`../src/oat_drgrpo/canonical_actions.py`](../src/oat_drgrpo/canonical_actions.py),
+  [`../src/oat_drgrpo/python_modebench.py`](../src/oat_drgrpo/python_modebench.py),
+  and [`../src/oat_drgrpo/mathir.py`](../src/oat_drgrpo/mathir.py)
+- External Python execution boundary:
   [`../src/oat_drgrpo/python_modebench_process.py`](../src/oat_drgrpo/python_modebench_process.py)
-- Deterministic generators:
-  [`../ops/make_python_factor_mode_data.py`](../ops/make_python_factor_mode_data.py),
-  [`../ops/make_mathir_action_menu_data.py`](../ops/make_mathir_action_menu_data.py)
-- External audit CLI:
-  [`../ops/verify_python_factor_mode.py`](../ops/verify_python_factor_mode.py)
+- Open-set predictive signal:
+  [`../src/oat_drgrpo/semantic_shannon.py`](../src/oat_drgrpo/semantic_shannon.py)
+- Verified replay and online bank:
+  [`../src/oat_drgrpo/canonical_replay.py`](../src/oat_drgrpo/canonical_replay.py)
+  and [`../src/oat_drgrpo/online_canonical_bank.py`](../src/oat_drgrpo/online_canonical_bank.py)
+- Separated proposal actuator:
+  [`../src/oat_drgrpo/counterfactual_proposals.py`](../src/oat_drgrpo/counterfactual_proposals.py)
+
+## Claim boundary
+
+The broad four-domain values are intentionally labeled exploratory: the full
+ModeBench campaign did not reach terminal completion. The terminal MathIR
+result supports the isolated discovery mechanism. Failed, invalidated, or
+incomplete cohorts remain in the repository for auditability but are not pooled
+into the paper's treatment estimates.

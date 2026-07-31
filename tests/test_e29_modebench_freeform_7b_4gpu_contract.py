@@ -31,11 +31,30 @@ def test_e29_has_both_matched_arms_tasks_and_three_seeds():
 
 
 def test_e29_v5_pins_the_repaired_source_tree():
+    """The campaign must run against a frozen, hash-named source snapshot.
+
+    This deliberately does not compare the pin to the live ``src`` tree. E29 is
+    a completed campaign, so its pin records the tree it actually ran on;
+    requiring the working tree to keep matching it would make every later
+    source change look like an E29 provenance failure. What must stay true is
+    that the launcher pins a full-length hash and derives its snapshot root and
+    campaign source root from that same pin.
+    """
+
     text = LAUNCHER.read_text(encoding="utf-8")
-    expected = re.search(r"^SOURCE_HASH=([0-9a-f]{64})$", text, re.MULTILINE)
-    assert expected is not None
-    assert expected.group(1) == source_tree_hash(
-        ROOT / "src", logical_repo_root=ROOT
+    pinned = re.search(r"^SOURCE_HASH=([0-9a-f]{64})$", text, re.MULTILINE)
+    assert pinned is not None
+
+    assert (
+        'SNAPSHOT_PARENT="$ROOT_DIR/var/artifacts/source_snapshots/'
+        'e29_freeform_7b_4gpu_${SOURCE_HASH}"' in text
+    )
+    assert 'SOURCE_ROOT="$SNAPSHOT_PARENT/src"' in text
+    assert 'export OAT_ZERO_CAMPAIGN_SOURCE_ROOT="$SOURCE_ROOT"' in text
+    # The hashing helper the launcher's freeze is checked against must remain
+    # importable and agree with itself on the live tree.
+    assert re.fullmatch(
+        r"[0-9a-f]{64}", source_tree_hash(ROOT / "src", logical_repo_root=ROOT)
     )
 
 

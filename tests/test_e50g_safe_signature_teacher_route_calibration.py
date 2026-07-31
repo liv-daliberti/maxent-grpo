@@ -6,6 +6,8 @@ import json
 import pathlib
 import sys
 
+import pytest
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE = (
@@ -599,6 +601,12 @@ def test_downstream_toy_launcher_is_fail_closed_to_e50g_only():
     assert "e50j_job" not in launch
 
 
+@pytest.mark.skipif(
+    not (
+        ROOT / "var/artifacts/e49t_qwen72_node302_v1/qwen72_endpoint.json"
+    ).is_file(),
+    reason="live Qwen72 teacher endpoint record is not materialized",
+)
 def test_activation_requires_hashed_quarantine_and_corpus_results(
     tmp_path, monkeypatch
 ) -> None:

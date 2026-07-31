@@ -63,8 +63,11 @@ def test_e49b_runtime_preserves_exact_validator_graded_text_and_state():
     assert '"response": item.response' in dataset
     assert 'trajectory.get("prompts")' in learner
     assert 'trajectory.get("responses")' in learner
-    assert "invalid_admissions" in learner
+    # Both sides of bank admission stay observable: what was accepted and the
+    # specific reason each rejected row was refused.
+    assert "accepted_rows" in learner
     assert "rejected_integrity_rows" in learner
+    assert "rejected_disagreement_rows" in learner
     assert "math_strategy_canonicalizer_state" in run
     canonicalizer = (
         ROOT / "src/oat_drgrpo/math_strategy_canonicalizer.py"

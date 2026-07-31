@@ -14,7 +14,10 @@ from oat.utils.ops import masked_sum
 
 from ..args import ZeroMathArgs, resolve_canonical_action_task
 from ..answer_options import AnswerOptionMITracker
-from ..canonical_actions import resolve_canonical_action_space
+from ..canonical_actions import (
+    canonical_action_strings_by_position,
+    resolve_canonical_action_space,
+)
 from ..canonical_replay import (
     CanonicalReplayInverseController,
     CanonicalReplayLikelihoodController,
@@ -51,11 +54,14 @@ def build_maxent_controllers(
     """Construct the independent entropy-alpha and expected-length controls."""
 
     canonical_task = resolve_canonical_action_task(args)
-    canonical_max_entropy = (
-        math.log(27 if canonical_task == "graph_coloring" else 108)
-        if canonical_task != "none"
-        else None
-    )
+    canonical_max_entropy = None
+    if canonical_task != "none":
+        canonical_max_entropy = math.log(
+            math.prod(
+                len(support)
+                for support in canonical_action_strings_by_position(canonical_task)
+            )
+        )
     if canonical_task != "none":
         configured_target = (
             float(args.maxent_control_target_entropy)
@@ -164,6 +170,11 @@ class ZeroMathInitMixin:
                 for key, value in self.eval_dataset_dict.items()
                 if key in args.test_split
             }
+        if bool(args.online_evaluation) and not self.eval_dataset_dict:
+            raise ValueError(
+                "online evaluation selected zero datasets for "
+                f"test_split={args.test_split!r}"
+            )
         self.args = args
         self._requested_use_wb = requested_use_wb
         self._wandb = None

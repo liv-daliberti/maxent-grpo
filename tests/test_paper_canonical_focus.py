@@ -1,4 +1,11 @@
-"""Narrative and evidence contracts for the ModeBench-centered manuscript."""
+"""Narrative and evidence contracts for the ModeBench-centered manuscript.
+
+These tests track the manuscript's current terminal five-domain form. They
+guard properties the prose must keep rather than its exact wording: the paper
+is centred on ModeBench, it reports every domain it claims, its headline design
+is the preregistered one, its dataset identities match the audit files, and it
+narrates design decisions rather than cluster chronology.
+"""
 
 from __future__ import annotations
 
@@ -9,55 +16,66 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "paper/main.tex"
-RESULT = ROOT / "paper/results/modebench_long_horizon_interim.json"
 PYTHON_IDENTITY = (
     ROOT / "paper/results/python_factor_modebench_v1_identity.json"
 )
 
+# The five executable domains the manuscript reports on one common design.
+MODEBENCH_DOMAINS = (
+    "Graph coloring",
+    "Countdown",
+    "Python factors",
+    "MathIR action menu",
+    "PantryPlan",
+)
+
+
+def _main_body() -> str:
+    return MAIN.read_text(encoding="utf-8").split(
+        r"\bibliographystyle", maxsplit=1
+    )[0]
+
 
 def test_main_paper_centers_modebench_without_internal_experiment_ids():
     text = MAIN.read_text(encoding="utf-8")
-    main_text = text.split(r"\bibliographystyle", maxsplit=1)[0]
+    main_text = _main_body()
 
-    assert "ModeBench: Executable Outcome Discovery" in main_text
-    assert r"\section{ModeBench}" in main_text
-    assert r"\section{Online Verified Maximum Entropy}" in main_text
-    assert "exactly 50" in main_text
-    assert "no upper projection" in main_text
-    assert "passive observer" in main_text
+    assert r"\mb{} and Online Verified" in main_text
+    assert r"\section{\mb: Executable Mode Measurement}" in main_text
+    assert r"\section{\xdr: Online Verified MaxEnt-Dr.GRPO}" in main_text
+    # Internal experiment identifiers (E68, E70a, ...) are repository
+    # bookkeeping and must never reach the manuscript.
     assert re.search(r"\bE[0-9]+[A-Za-z-]*\b", text) is None
 
 
-def test_paper_has_exactly_three_executable_modebench_domains():
-    text = MAIN.read_text(encoding="utf-8")
-    prose = " ".join(text.split())
+def test_paper_reports_exactly_the_five_executable_modebench_domains():
+    prose = " ".join(MAIN.read_text(encoding="utf-8").split())
+
+    for domain in MODEBENCH_DOMAINS:
+        assert rf"\subsection{{{domain}}}" in prose, domain
+    assert "five domains" in prose
+    # A sixth domain subsection would mean the prompt appendix and the headline
+    # table have drifted apart.
+    appendix = prose.split(r"\section{Domain Prompts}", maxsplit=1)[1]
+    appendix = appendix.split(r"\section{Dataset and Identity Audits}")[0]
+    assert appendix.count(r"\subsection{") == len(MODEBENCH_DOMAINS)
+
+
+def test_headline_rows_run_the_preregistered_terminal_design():
+    prose = " ".join(MAIN.read_text(encoding="utf-8").split())
 
     for required in (
-        r"\subsection{Graph coloring}",
-        r"\subsection{Countdown}",
-        r"\subsection{Python factor functions}",
-        "The three ModeBench environments",
-        "Correctness and mode identity come from the same executed object",
+        "Qwen2.5-0.5B-Instruct",
+        "pinned revision",
+        "seeds 43--47",
+        "group size 16",
+        "384 prompts",
+        "128-prompt",
+        "greedy decoding",
     ):
-        assert required in prose
-    assert "16--3,600 modes per prompt" in prose
-    assert "isolated external interpreter" in prose
-    assert "separately frozen matched extension" in prose
-
-
-def test_paper_uses_the_frozen_interim_result_without_calling_it_terminal():
-    result = json.loads(RESULT.read_text(encoding="utf-8"))
-    text = MAIN.read_text(encoding="utf-8")
-    prose = " ".join(text.split())
-
-    assert result["status"] == "FROZEN_INTERIM_PAIRED_COMMON_HORIZON"
-    assert result["seeds"] == [43, 44, 45]
-    assert result["domains"]["Graph coloring"]["paired_common_horizon_passes"] == 8.25
-    assert result["domains"]["Countdown"]["paired_common_horizon_passes"] == 2.75
-    assert ".343 to .635" in prose
-    assert ".056 to .160" in prose
-    assert "not terminal comparisons" in prose
-    assert "study is still in progress" in prose
+        assert required in prose, required
+    # Twelve epochs is the common terminal endpoint every headline cell reports.
+    assert "12 epochs" in prose
 
 
 def test_python_dataset_identity_matches_the_manuscript_audit():
@@ -82,22 +100,38 @@ def test_python_dataset_identity_matches_the_manuscript_audit():
             "bcfa9accfa3b5c7dd312c85683157af070e7f2741385e9b5a882fd57da037cf7"
         ),
     }
-    assert "bcfa9accfa3b5c7d...a882fd57da037cf7" in text
-    assert "be0f621c5a0ae84c...4666918ab794d183" in text
+    # The audit table prints elided digests. The elision length is a typesetting
+    # choice, but both halves must be genuine prefix/suffix of the identity file
+    # rather than free-typed text.
+    for digest in (identity["train_rows_sha256"], identity["eval_rows_sha256"]):
+        printed = re.search(
+            rf"\\texttt{{{digest[:8]}\\ldots([0-9a-f]+)}}", text
+        )
+        assert printed is not None, digest
+        assert digest.endswith(printed.group(1)), digest
+    assert "16--3,600" in " ".join(text.split())
 
 
 def test_design_history_records_core_decisions_not_scheduler_chronology():
-    text = MAIN.read_text(encoding="utf-8")
-    main_text = text.split(r"\bibliographystyle", maxsplit=1)[0].lower()
+    # The component-necessity narrative lives in an appendix, so this contract
+    # is read over the whole manuscript rather than the pre-bibliography body.
+    text = MAIN.read_text(encoding="utf-8").lower()
 
+    # The manuscript explains why the mechanism has the shape it does.
     for required in (
-        "sequence entropy increased length and eos avoidance",
-        "candidate-local normalization favored short samples",
-        "novel wrong answers received diversity pressure",
-        "control \\(h/\\log k\\)",
-        "remove the upper projection",
+        "executable gate and canonical key",
+        "separated support",
+        "replay",
     ):
-        assert required in main_text
-    assert "job " not in main_text
-    assert "scheduler" not in main_text
-    assert "queued" not in main_text
+        assert required in text, required
+    # Cluster bookkeeping is repository history, not a scientific result.
+    for forbidden in (
+        "slurm",
+        "sbatch",
+        "requeue",
+        "preempt",
+        "node105",
+        "node302",
+        "job id",
+    ):
+        assert forbidden not in text, forbidden

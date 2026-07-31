@@ -302,6 +302,28 @@ elif [[ "$MAXENT_ALPHA" != "0" && "$MAXENT_ALPHA" != "0.0" ]]; then
 else
   echo "[train] compatibility: frozen source predates maxent_objective; omitting inert flag"
 fi
+# E72 decoding frontier. Both flags are inert at their defaults, so a frozen
+# source snapshot that predates them still runs every earlier protocol
+# unchanged; only a run that actually requests them fails closed.
+EVAL_ONLY="${OAT_ZERO_EVAL_ONLY:-0}"
+EVAL_MODE_COVERAGE_TOP_P="${OAT_ZERO_EVAL_MODE_COVERAGE_TOP_P:-1.0}"
+if grep -q 'eval_mode_coverage_top_p' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+  cmd+=(--eval-mode-coverage-top-p "$EVAL_MODE_COVERAGE_TOP_P")
+elif [[ "$EVAL_MODE_COVERAGE_TOP_P" != "1.0" && "$EVAL_MODE_COVERAGE_TOP_P" != "1" ]]; then
+  echo "Frozen source lacks eval_mode_coverage_top_p: $ARG_SOURCE_ROOT" >&2
+  exit 1
+fi
+if grep -q 'eval_only:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+  if [[ "$EVAL_ONLY" == "1" ]]; then
+    cmd+=(--eval-only)
+  else
+    cmd+=(--no-eval-only)
+  fi
+elif [[ "$EVAL_ONLY" == "1" ]]; then
+  echo "Frozen source lacks eval_only: $ARG_SOURCE_ROOT" >&2
+  exit 1
+fi
+
 if grep -q 'maxent_inverse_adaptation' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
   if [[ "$MAXENT_INVERSE_ADAPTATION" == "1" ]]; then
     cmd+=(--maxent-inverse-adaptation)

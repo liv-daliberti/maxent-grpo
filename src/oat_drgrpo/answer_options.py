@@ -9,10 +9,11 @@ from dataclasses import dataclass
 from typing import Any
 
 
-ASSISTANT_MARKERS = (
-    "<|im_start|>assistant\n",
-    "\nAssistant: <think>",
-)
+from oat_drgrpo.templates import CHAT_SURFACES
+
+ASSISTANT_MARKERS = tuple(
+    assistant_marker for _, _, assistant_marker in CHAT_SURFACES.values()
+) + ("\nAssistant: <think>",)
 
 
 def format_answer_option_prompt(prompt: str, z: int, num_options: int) -> str:
@@ -23,12 +24,15 @@ def format_answer_option_prompt(prompt: str, z: int, num_options: int) -> str:
         "Use this latent to choose which valid final answer mode to pursue. "
         "Do not mention the latent."
     )
-    # Put the intervention inside the system message when using a Qwen chat
-    # template.  Text between <|im_end|> and <|im_start|> is outside either
-    # chat role and is not a valid place to carry the latent condition.
-    qwen_system = "<|im_start|>system\n"
-    if prompt.startswith(qwen_system):
-        system_end = prompt.find("<|im_end|>", len(qwen_system))
+    # Put the intervention inside the system message when using a chat
+    # template.  Text between the system and user role markers is outside
+    # either chat role and is not a valid place to carry the latent condition.
+    # Both surfaces are handled so a Falcon-surface run receives the identical
+    # intervention a Qwen-surface run does.
+    for system_marker, user_marker, _ in CHAT_SURFACES.values():
+        if not prompt.startswith(system_marker):
+            continue
+        system_end = prompt.find(user_marker, len(system_marker))
         if system_end >= 0:
             return (
                 prompt[:system_end].rstrip() + "\n" + option_text + prompt[system_end:]

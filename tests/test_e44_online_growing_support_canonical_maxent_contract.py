@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -93,8 +94,12 @@ def test_e44_ogs_execution_stack_binds_validator_bank_and_resume():
     )
 
 
-def test_verified_bank_live_figure_and_tracker_follow_current_e51_cohort():
-    plot = PLOT.read_text(encoding="utf-8")
+def test_verified_bank_live_figure_and_tracker_follow_current_cohort():
+    # Long run-stamp prefixes wrap across lines in the plotting source, so
+    # adjacent string literals are joined before searching.
+    plot = re.sub(
+        r'"\s*\n\s*"', "", PLOT.read_text(encoding="utf-8")
+    )
     refresh = REFRESH.read_text(encoding="utf-8")
     monitor = MONITOR.read_text(encoding="utf-8")
     makefile = MAKEFILE.read_text(encoding="utf-8")
@@ -107,18 +112,21 @@ def test_verified_bank_live_figure_and_tracker_follow_current_e51_cohort():
     assert "cumulative verified discoveries" in plot
     assert "new verified outcomes / batch" not in plot
     assert "online_canonical_bank_size_after_mean" not in plot
+    # Curve paths are derived from the frontier prefixes rather than spelled
+    # out, so the contract is the construction plus the current cohort.
+    assert 'f"var/artifacts/{countdown_prefix}_scaling_curve.json"' in plot
     assert (
-        "cde51_policy_entropy_adaptive_canonical_05b_50ep_v2_allcs_scaling_curve.json"
+        "cde58_global_verified_replay_canonical_05b_50ep_sentinel_allcs"
         in plot
     )
     assert (
-        "gce51_policy_entropy_adaptive_canonical_05b_50ep_v2_scaling_curve.json"
-        in plot
+        "gce58_global_verified_replay_canonical_05b_50ep_sentinel" in plot
     )
-    assert "e51_current_canonical_05b_live" in plot
+    assert "e58_global_verified_replay_canonical_05b_live" in plot
     assert "--e44-ogs-only" in refresh
     assert "CURRENT_CANONICAL_CELLS" in refresh
-    assert "def e44_ogs_specs()" in monitor
+    # The alias now takes an artifact-root argument across several lines.
+    assert "def e44_ogs_specs(" in monitor
     assert "e44_ogs_only=True" not in monitor
     assert "--e44-ogs-only" in monitor
     assert (

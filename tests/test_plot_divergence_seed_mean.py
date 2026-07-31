@@ -5,6 +5,9 @@ from pathlib import Path
 
 import pytest
 
+# Plotting scripts run under PLOT_PYTHON, not the pinned paper310 training
+# environment, so skip rather than fail when the suite runs without it.
+pytest.importorskip("matplotlib")
 
 _SCRIPT = Path(__file__).parents[1] / "ops" / "exp_scaling" / "plot_divergence.py"
 _SPEC = importlib.util.spec_from_file_location("plot_divergence", _SCRIPT)

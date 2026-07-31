@@ -476,8 +476,15 @@ class ZeroMathActor(PPOActor):
             "qwen_boxed",
             "qwen_countdown_digits",
             "qwen_graph_digits",
+            "qwen_pantry_support_mask",
             "qwen_math",
             "qwen_math_route",
+            "falcon_boxed",
+            "falcon_countdown_digits",
+            "falcon_graph_digits",
+            "falcon_pantry_support_mask",
+            "falcon_math",
+            "falcon_math_route",
             "no",
         ]:
             self.sampling_params.stop = None
@@ -519,6 +526,7 @@ class ZeroMathActor(PPOActor):
         seed: int | None = None,
         condition_on_answer_options: bool = False,
         prompt_indices: list[int] | None = None,
+        top_p: float = 1.0,
     ) -> dict[str, list]:
         """Sample n completions per prompt and return per-prompt rewards and answer keys.
 
@@ -534,6 +542,8 @@ class ZeroMathActor(PPOActor):
             prompt_indices = list(range(len(formatted_prompts)))
         if len(prompt_indices) != len(formatted_prompts):
             raise ValueError("mode-coverage prompt indices must match the prompt batch")
+        if not 0 < float(top_p) <= 1:
+            raise ValueError("mode-coverage top_p must lie in (0, 1]")
         canonical_action_token_ids = getattr(self, "_canonical_action_token_ids", None)
         canonical_action_space = getattr(self, "_canonical_action_space", None)
         coverage_seed = int(seed) if seed is not None else None
@@ -564,6 +574,9 @@ class ZeroMathActor(PPOActor):
             return vllm.SamplingParams(
                 n=samples_per_request,
                 temperature=temperature,
+                # Untruncated (1.0) unless a decoding sweep asks otherwise, so
+                # every previously reported cell is reproduced exactly.
+                top_p=float(top_p),
                 max_tokens=self.eval_sampling_params.max_tokens,
                 min_tokens=getattr(self.eval_sampling_params, "min_tokens", 0),
                 ignore_eos=getattr(self.eval_sampling_params, "ignore_eos", False),
@@ -1033,6 +1046,9 @@ class ZeroMathActor(PPOActor):
             )
             info["actor/canonical_countdown_actions"] = float(
                 canonical_action_space.task == "countdown"
+            )
+            info["actor/canonical_pantry_support_mask_actions"] = float(
+                canonical_action_space.task == "pantry_support_mask"
             )
             info["actor/canonical_action_count"] = canonical_action_count
             info["actor/canonical_action_support_size"] = len(

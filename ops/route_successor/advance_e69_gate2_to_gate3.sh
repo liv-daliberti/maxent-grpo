@@ -34,6 +34,18 @@ if summary.get("integrity_violations") != 0:
     raise SystemExit("E69 automatic advance requires zero integrity violations")
 if audit.get("math500_sealed") is not True:
     raise SystemExit("E69 automatic advance requires the MATH-500 seal")
+outcome_gate = audit.get("outcome_gate") or {}
+if (
+    outcome_gate.get("checks", {}).get(
+        "python_post_replay_neutral_reproduction"
+    )
+    is not True
+    or outcome_gate.get("route_reproductions", {}).get("python_factor", 0)
+    <= 0
+):
+    raise SystemExit(
+        "E69 automatic advance requires positive Python temporal route reproduction"
+    )
 print("[e69-advance] Gate 2 passed cleanly; launching Gate 3")
 PY
 

@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Fail closed if any manuscript figure regresses from its accepted contract."""
+from __future__ import annotations
+import ast
+import json
+from pathlib import Path
+import subprocess
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "ops/plot_paper_collapse_toy.py"
+AUDIT = ROOT / "var/artifacts/paper_graph_collapse_toy.json"
+MANUSCRIPT = ROOT / "paper/main.tex"
+HEADLINE_SOURCE = ROOT / "ops/plot_paper_modecollapse.py"
+APPENDIX_SOURCE = ROOT / "ops/exp_scaling/plot_e70_clean_05b_wide_live.py"
+HEADLINE_PDF = ROOT / "paper/figures/modecollapse_training.pdf"
+APPENDIX_PDF = (
+    ROOT
+    / "paper/figures/e68_e58_vs_grpo_05b_12ep_terminal_provenance.pdf"
+)
+APPENDIX_PROVENANCE = (
+    ROOT / "var/artifacts/clean_05b_eight_environment_figure_provenance.json"
+)
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(f"Paper figure contract failed: {message}")
+
+
+def literal_assignment(path: Path, name: str):
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            if any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+                return ast.literal_eval(node.value)
+    raise SystemExit(f"Paper figure contract failed: missing assignment {name}")
+
+
+def pdf_text(path: Path) -> str:
+    result = subprocess.run(
+        ["pdftotext", str(path), "-"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout
+
+def main() -> None:
+    source = SOURCE.read_text()
+    manuscript = MANUSCRIPT.read_text()
+    audit = json.loads(AUDIT.read_text())
+    for token in (
+        "def render_method_trajectory(", 'letter="B"', 'title="Dr.GRPO"',
+        'letter=None', 'title="xDr.GRPO"',
+        "steps = [0, 48, 96, 192, 384, 576, 768]",
+        "width_ratios=[1.18, 1.00, 1.00]",
+    ):
+        require(token in source, f"missing source token {token!r}")
+    for forbidden in ("render_paired_trajectory", "Paired trajectories",
+                      'letter="C"', "Step 960", "epoch 5"):
+        require(forbidden not in source, f"forbidden source token {forbidden!r}")
+    require(audit["schema"] == "paper_graph_collapse_toy_v15", "wrong audit schema")
+    require(audit["layout_contract"] == {
+        "panels": ["A", "B"],
+        "panel_B_facets": ["Dr.GRPO", "xDr.GRPO"],
+        "steps": [0, 48, 96, 192, 384, 576, 768],
+        "end_epoch": 4, "paired_bars": False, "panel_C": False,
+    }, "wrong panel layout contract")
+    expected = {"0", "48", "96", "192", "384", "576", "768"}
+    require(set(audit["drgrpo_trajectory"]) == expected, "wrong Dr.GRPO checkpoints")
+    require(set(audit["xdrgrpo_trajectory"]) == expected, "wrong xDr.GRPO checkpoints")
+    require(audit["drgrpo_trajectory"]["768"]["distinct"] == 1, "Dr endpoint changed")
+    require(audit["xdrgrpo_trajectory"]["768"]["distinct"] == 6, "xDr endpoint changed")
+    for token in (r"(B) Separate Dr.GRPO and \xdr{} facets",
+                  "never paired bars on one axis", "step 768, the end of epoch 4",
+                  "no epoch-5 checkpoint is shown"):
+        require(token in manuscript, f"missing manuscript token {token!r}")
+    require("(B--C)" not in manuscript, "Panel C caption returned")
+
+    expected_metrics = {
+        "greedy": "neutral pass@1",
+        "pass8": "neutral pass@8",
+        "distinct8": "mean # distinct correct@8",
+        "online_canonical_tracked_outcomes": (
+            "cumulative verified discoveries"
+        ),
+    }
+    headline_metrics = literal_assignment(
+        HEADLINE_SOURCE,
+        "E68_TRAIN_METRICS",
+    )
+    require(
+        list(headline_metrics) == list(expected_metrics),
+        f"wrong headline metric keys: {list(headline_metrics)}",
+    )
+    require(
+        [row["title"] for row in headline_metrics.values()]
+        == list(expected_metrics.values()),
+        "wrong headline metric titles",
+    )
+
+    expected_panels = (
+        ("greedy", "neutral pass@1", False),
+        ("pass8", "neutral pass@8", False),
+        ("distinct8", "mean # distinct correct@8", True),
+        (
+            "online_canonical_tracked_outcomes",
+            "cumulative verified discoveries",
+            True,
+        ),
+    )
+    appendix_panels = literal_assignment(APPENDIX_SOURCE, "PANELS")
+    require(appendix_panels == expected_panels, "wrong appendix panels")
+    provenance = json.loads(APPENDIX_PROVENANCE.read_text(encoding="utf-8"))
+    require(
+        provenance["panels"] == [row[0] for row in expected_panels],
+        "wrong appendix provenance panels",
+    )
+
+    forbidden_metrics = (
+        "neutral mean@8",
+        "valid coverage@8",
+        "open-set predictive entropy EMA",
+        "verified replay KL",
+        "new verified outcome fraction",
+        "mean verified support per prompt",
+        "excess@8",
+    )
+    for path, expected_repetitions in (
+        (HEADLINE_PDF, len(DOMAINS := ("Graph", "Countdown", "Python", "MathIR"))),
+        (APPENDIX_PDF, 8),
+    ):
+        text = pdf_text(path)
+        for title in expected_metrics.values():
+            require(
+                text.count(title) == expected_repetitions,
+                f"{path.name}: expected {expected_repetitions} rendered "
+                f"instances of {title!r}, got {text.count(title)}",
+            )
+        for forbidden in forbidden_metrics:
+            require(
+                forbidden not in text,
+                f"{path.name}: forbidden rendered metric {forbidden!r}",
+            )
+    print("Paper figure contracts: PASS (Figure 1 A/B; metric grids E68-style 4-panel)")
+if __name__ == "__main__":
+    main()

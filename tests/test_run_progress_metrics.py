@@ -198,6 +198,10 @@ def test_maxent_dual_uses_the_same_sequence_entropy_as_the_actor_objective():
         alpha_lr=0.1,
         beta1=0.0,
         beta2=0.0,
+        # Disable EMA smoothing so one post-warmup observation determines the
+        # descent direction. At the default decay the EMA of (0.25, 0.10) is
+        # 0.205, still above the 0.20 target, and alpha would correctly fall.
+        ema_decay=0.0,
     )
 
     train_info = {"maxent_sequence_entropy": 0.10}
@@ -211,6 +215,10 @@ def test_maxent_dual_uses_the_same_sequence_entropy_as_the_actor_objective():
     train_info = {"maxent_sequence_entropy": 0.10}
     learner._update_maxent_alpha_controller(train_info)
 
+    # The distributed entropy (0.10) now sits below the warmup-frozen target
+    # (0.8 * 0.25), so dual descent raises alpha to buy entropy back.
+    assert train_info["maxent_dual_target_entropy"] == pytest.approx(0.20)
+    assert train_info["maxent_dual_entropy_error"] == pytest.approx(-0.10)
     assert train_info["maxent_dual_next_alpha"] > 0.05
 
 

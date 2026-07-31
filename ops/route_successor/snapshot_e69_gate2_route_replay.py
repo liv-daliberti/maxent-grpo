@@ -25,7 +25,35 @@ AMENDMENT = (
     / "paper/preregistration/"
     "e69_gate2_route_temporal_observer_amendment_20260728.md"
 )
-OUT = ROOT / "var/artifacts/e69_gate2_route_temporal_snapshots.json"
+PARENT_OUT = ROOT / "var/artifacts/e69_gate2_route_temporal_snapshots.json"
+R1_IDENTITY = ROOT / "var/artifacts/e69_gate2_r1_execution_repair_identity.json"
+R1_PROTOCOL = (
+    ROOT
+    / "paper/preregistration/"
+    "e69_gate2_r1_execution_repair_20260728.md"
+)
+R1_OUT = ROOT / "var/artifacts/e69_gate2_r1_route_temporal_snapshots.json"
+R2_IDENTITY = (
+    ROOT
+    / "var/artifacts/"
+    "e69_gate2_r2_route_endpoint_bookkeeping_repair_identity.json"
+)
+R2_PROTOCOL = (
+    ROOT
+    / "paper/preregistration/"
+    "e69_gate2_r2_route_endpoint_bookkeeping_repair_20260728.md"
+)
+R2_OUT = ROOT / "var/artifacts/e69_gate2_r2_route_temporal_snapshots.json"
+R1_ACTIVE = R1_IDENTITY.is_file()
+R2_ACTIVE = R2_IDENTITY.is_file()
+if R2_ACTIVE:
+    AMENDMENT = R2_PROTOCOL
+    OUT = R2_OUT
+elif R1_ACTIVE:
+    AMENDMENT = R1_PROTOCOL
+    OUT = R1_OUT
+else:
+    OUT = PARENT_OUT
 SUCCESSOR = "verified_route_successor"
 POOL_SIZE = {
     "graph_coloring": 192,
@@ -59,8 +87,16 @@ def _pair_key(route_key: str, prompt_key: str) -> str:
 
 
 def _empty_payload() -> dict[str, Any]:
-    return {
-        "schema": "e69_gate2_route_temporal_snapshots_v1",
+    payload = {
+        "schema": (
+            "e69_gate2_r2_route_temporal_snapshots_v1"
+            if R2_ACTIVE
+            else (
+                "e69_gate2_r1_route_temporal_snapshots_v1"
+                if R1_ACTIVE
+                else "e69_gate2_route_temporal_snapshots_v1"
+            )
+        ),
         "amendment": str(AMENDMENT.resolve()),
         "amendment_sha256": _sha256(AMENDMENT),
         "observation_rule": (
@@ -70,18 +106,92 @@ def _empty_payload() -> dict[str, Any]:
         "snapshots": {domain: {} for domain in POOL_SIZE},
         "temporal_reproductions": {},
     }
+    if R2_ACTIVE:
+        identity = json.loads(R2_IDENTITY.read_text(encoding="utf-8"))
+        parent_hash = _sha256(R1_OUT)
+        if identity.get("parent_route_temporal_snapshot_sha256") != parent_hash:
+            raise SystemExit("E69-R2 parent temporal snapshot hash drift")
+        parent = json.loads(R1_OUT.read_text(encoding="utf-8"))
+        if parent.get("schema") != "e69_gate2_r1_route_temporal_snapshots_v1":
+            raise SystemExit("E69-R2 parent temporal snapshot schema drift")
+        for domain in ("countdown", "graph_coloring", "mathir"):
+            payload["snapshots"][domain] = json.loads(
+                json.dumps(parent["snapshots"][domain])
+            )
+        payload.update(
+            {
+                "r2_identity": str(R2_IDENTITY.resolve()),
+                "r2_identity_sha256": _sha256(R2_IDENTITY),
+                "parent_snapshot": str(R1_OUT.resolve()),
+                "parent_snapshot_sha256": parent_hash,
+                "carried_parent_domains": [
+                    "countdown",
+                    "graph_coloring",
+                    "mathir",
+                ],
+                "fresh_r2_domains": ["python_factor"],
+            }
+        )
+    elif R1_ACTIVE:
+        identity = json.loads(R1_IDENTITY.read_text(encoding="utf-8"))
+        parent_hash = _sha256(PARENT_OUT)
+        if identity.get("parent_route_temporal_snapshot_sha256") != parent_hash:
+            raise SystemExit("E69-R1 parent temporal snapshot hash drift")
+        parent = json.loads(PARENT_OUT.read_text(encoding="utf-8"))
+        if parent.get("schema") != "e69_gate2_route_temporal_snapshots_v1":
+            raise SystemExit("E69-R1 parent temporal snapshot schema drift")
+        for domain in ("countdown", "mathir"):
+            payload["snapshots"][domain] = json.loads(
+                json.dumps(parent["snapshots"][domain])
+            )
+        payload.update(
+            {
+                "r1_identity": str(R1_IDENTITY.resolve()),
+                "r1_identity_sha256": _sha256(R1_IDENTITY),
+                "parent_snapshot": str(PARENT_OUT.resolve()),
+                "parent_snapshot_sha256": parent_hash,
+                "carried_parent_domains": ["countdown", "mathir"],
+                "fresh_r1_domains": ["graph_coloring", "python_factor"],
+            }
+        )
+    return payload
 
 
 def _load_payload() -> dict[str, Any]:
     if not OUT.is_file():
         return _empty_payload()
     payload = json.loads(OUT.read_text(encoding="utf-8"))
-    if payload.get("schema") != "e69_gate2_route_temporal_snapshots_v1":
+    expected_schema = (
+        "e69_gate2_r2_route_temporal_snapshots_v1"
+        if R2_ACTIVE
+        else (
+            "e69_gate2_r1_route_temporal_snapshots_v1"
+            if R1_ACTIVE
+            else "e69_gate2_route_temporal_snapshots_v1"
+        )
+    )
+    if payload.get("schema") != expected_schema:
         raise SystemExit("unexpected E69 route temporal snapshot schema")
     if payload.get("amendment_sha256") != _sha256(AMENDMENT):
         raise SystemExit("E69 route temporal amendment hash drift")
     if set(payload.get("snapshots", {})) != set(POOL_SIZE):
         raise SystemExit("E69 route temporal snapshot domain drift")
+    if R2_ACTIVE and (
+        payload.get("r2_identity_sha256") != _sha256(R2_IDENTITY)
+        or payload.get("parent_snapshot_sha256") != _sha256(R1_OUT)
+        or payload.get("carried_parent_domains")
+        != ["countdown", "graph_coloring", "mathir"]
+        or payload.get("fresh_r2_domains") != ["python_factor"]
+    ):
+        raise SystemExit("E69-R2 route temporal provenance drift")
+    if R1_ACTIVE and not R2_ACTIVE and (
+        payload.get("r1_identity_sha256") != _sha256(R1_IDENTITY)
+        or payload.get("parent_snapshot_sha256") != _sha256(PARENT_OUT)
+        or payload.get("carried_parent_domains") != ["countdown", "mathir"]
+        or payload.get("fresh_r1_domains")
+        != ["graph_coloring", "python_factor"]
+    ):
+        raise SystemExit("E69-R1 route temporal provenance drift")
     return payload
 
 

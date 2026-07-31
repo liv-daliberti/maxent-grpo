@@ -28,6 +28,84 @@ GRAPH_PREEMPTION_REPAIR_IDENTITY = (
     ROOT
     / "var/artifacts/e69_gate2_graph_a5000_preemption_repair_identity.json"
 )
+R1_EXECUTION_REPAIR_IDENTITY = (
+    ROOT / "var/artifacts/e69_gate2_r1_execution_repair_identity.json"
+)
+R1_EXECUTION_REPAIR_PROTOCOL = (
+    ROOT
+    / "paper/preregistration/"
+    "e69_gate2_r1_execution_repair_20260728.md"
+)
+R1_EXECUTION_REPAIR_LAUNCHER = (
+    ROOT
+    / "ops/route_successor/"
+    "launch_e69_gate2_r1_execution_repair.sh"
+)
+R1_GRAPH_MANIFEST = (
+    ROOT
+    / "var/artifacts/"
+    "gce69_gate2_r1_execution_repair_retry1_comparative_jobs.tsv"
+)
+R1_PYTHON_MANIFEST = (
+    ROOT
+    / "var/artifacts/"
+    "pye69_gate2_r1_execution_repair_retry1_comparative_jobs.tsv"
+)
+R1_SOURCE_ACCOUNTING = (
+    ROOT / "var/artifacts/e69_gate2_r1_excluded_source_accounting.txt"
+)
+R2_IMPLEMENTATION_REPAIR_IDENTITY = (
+    ROOT
+    / "var/artifacts/"
+    "e69_gate2_r2_route_endpoint_bookkeeping_repair_identity.json"
+)
+R2_IMPLEMENTATION_REPAIR_PROTOCOL = (
+    ROOT
+    / "paper/preregistration/"
+    "e69_gate2_r2_route_endpoint_bookkeeping_repair_20260728.md"
+)
+R2_IMPLEMENTATION_REPAIR_LAUNCHER = (
+    ROOT
+    / "ops/route_successor/"
+    "launch_e69_gate2_r2_route_endpoint_repair.sh"
+)
+R2_PYTHON_MANIFEST = (
+    ROOT
+    / "var/artifacts/"
+    "pye69_gate2_r2_route_endpoint_repair_comparative_jobs.tsv"
+)
+R2_FAILED_R1_ACCOUNTING = (
+    ROOT / "var/artifacts/e69_gate2_r2_failed_r1_python_accounting.txt"
+)
+R2_FAILED_R1_LOG = ROOT / "var/artifacts/logs/xdr_train-30168831.out"
+R3_MATH_EVAL_REPAIR_IDENTITY = (
+    ROOT
+    / "var/artifacts/"
+    "e69_gate2_r3_math_dev_evaluation_split_repair_identity.json"
+)
+R3_MATH_EVAL_REPAIR_PROTOCOL = (
+    ROOT
+    / "paper/preregistration/"
+    "e69_gate2_r3_math_dev_evaluation_split_repair_20260729.md"
+)
+R3_MATH_EVAL_REPAIR_LAUNCHER = (
+    ROOT
+    / "ops/route_successor/"
+    "launch_e69_gate2_r3_math_dev_evaluation_split_repair.sh"
+)
+R3_MATH_MANIFEST = (
+    ROOT
+    / "var/artifacts/"
+    "mde69_gate2_r3_eval_split_repair_comparative_jobs.tsv"
+)
+R3_STARTUP_REJECTED_MANIFEST = (
+    ROOT
+    / "var/artifacts/"
+    "mde69_gate2_r3_eval_split_repair_startup_rejected_jobs.tsv"
+)
+R3_STARTUP_REJECTED_ACCOUNTING = (
+    ROOT / "var/artifacts/e69_gate2_r3_startup_rejected_accounting.txt"
+)
 PRECHECKPOINT_REQUEUE_REPAIR_IDENTITY = (
     ROOT
     / "var/artifacts/"
@@ -40,6 +118,12 @@ ROUTE_TEMPORAL_AMENDMENT = (
 )
 ROUTE_TEMPORAL_SNAPSHOTS = (
     ROOT / "var/artifacts/e69_gate2_route_temporal_snapshots.json"
+)
+R1_ROUTE_TEMPORAL_SNAPSHOTS = (
+    ROOT / "var/artifacts/e69_gate2_r1_route_temporal_snapshots.json"
+)
+R2_ROUTE_TEMPORAL_SNAPSHOTS = (
+    ROOT / "var/artifacts/e69_gate2_r2_route_temporal_snapshots.json"
 )
 PASSES = (0, 1, 2, 3, 4, 5, 6)
 POOL_SIZE = {
@@ -101,6 +185,23 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _source_file_hashes(path: Path) -> dict[str, str]:
+    return {
+        str(candidate.relative_to(path)): _sha256(candidate)
+        for candidate in path.rglob("*")
+        if candidate.is_file()
+        and "__pycache__" not in candidate.parts
+        and candidate.suffix != ".pyc"
+    }
+
+
+def _source_tree_sha256(path: Path) -> str:
+    rows = []
+    for relative, digest in sorted(_source_file_hashes(path).items()):
+        rows.append(f"{digest}  ./{relative}\n".encode("utf-8"))
+    return hashlib.sha256(b"".join(rows)).hexdigest()
 
 
 def _effective_jobs(
@@ -309,6 +410,369 @@ def _effective_jobs(
             "identity": str(GRAPH_PREEMPTION_REPAIR_IDENTITY.resolve()),
             "identity_sha256": _sha256(GRAPH_PREEMPTION_REPAIR_IDENTITY),
             "attempt_selection": graph_repair["attempt_selection"],
+        }
+    )
+    if not R1_EXECUTION_REPAIR_IDENTITY.is_file():
+        return jobs, repairs, violations
+    r1 = json.loads(
+        R1_EXECUTION_REPAIR_IDENTITY.read_text(encoding="utf-8")
+    )
+    r1_protocol = Path(str(r1.get("protocol", "")))
+    if (
+        r1.get("schema") != "e69_gate2_r1_execution_repair_v1"
+        or r1.get("original_identity_sha256") != _sha256(IDENTITY)
+        or r1.get("parent_placement_repair_identity_sha256")
+        != _sha256(PLACEMENT_REPAIR_IDENTITY)
+        or r1.get("parent_graph_preemption_repair_identity_sha256")
+        != _sha256(GRAPH_PREEMPTION_REPAIR_IDENTITY)
+        or r1_protocol.resolve() != R1_EXECUTION_REPAIR_PROTOCOL.resolve()
+        or not r1_protocol.is_file()
+        or r1.get("protocol_sha256") != _sha256(r1_protocol)
+        or r1.get("launcher_sha256") != _sha256(R1_EXECUTION_REPAIR_LAUNCHER)
+        or r1.get("manifest_sha256", {}).get("graph_coloring")
+        != _sha256(R1_GRAPH_MANIFEST)
+        or r1.get("manifest_sha256", {}).get("python_factor")
+        != _sha256(R1_PYTHON_MANIFEST)
+        or r1.get("source_accounting_sha256")
+        != _sha256(R1_SOURCE_ACCOUNTING)
+        or r1.get("source_hash") != identity.get("source_hash")
+        or r1.get("execution_surface_hash")
+        != identity.get("execution_surface_hash")
+        or r1.get("terminal_outcomes_observed_before_repair") is not True
+        or r1.get("outcome_tuning") is not False
+        or r1.get("algorithm_or_gate_change") is not False
+        or r1.get("repair_decision_basis")
+        != "frozen_scheduler_integrity_rule_not_metric_values"
+        or r1.get("math500_sealed") is not True
+    ):
+        violations.append("E69 Gate 2 R1 execution repair identity mismatch")
+        return jobs, repairs, violations
+    placement = r1.get("placement", {})
+    if placement != {
+        "account": "mltheory",
+        "gres": "gpu:a5000:1",
+        "nodelist": "node105,node202,node203,node204",
+        "requested_partition": "all",
+        "resolved_partition": "mltheory",
+    }:
+        violations.append("E69 Gate 2 R1 placement identity mismatch")
+        return jobs, repairs, violations
+    substitutions = []
+    expected_sources = {
+        "graph_coloring": {30160592, 30160594, 30160595, 30160596},
+        "python_factor": {30160205},
+    }
+    for domain in ("graph_coloring", "python_factor"):
+        mappings = r1.get("mappings", {}).get(domain, [])
+        if (
+            len(mappings) != len(expected_sources[domain])
+            or {int(row["invalid_job_id"]) for row in mappings}
+            != expected_sources[domain]
+        ):
+            violations.append(f"E69 Gate 2 R1 {domain} mapping is incomplete")
+            return jobs, repairs, violations
+        for mapping in mappings:
+            invalid_job_id = int(mapping["invalid_job_id"])
+            matches = [
+                index
+                for index, row in enumerate(jobs[domain])
+                if int(row["job_id"]) == invalid_job_id
+            ]
+            if len(matches) != 1:
+                violations.append(
+                    f"E69 Gate 2 R1 source cell {invalid_job_id} is not unique"
+                )
+                return jobs, repairs, violations
+            original = jobs[domain][matches[0]]
+            if (
+                original["arm"] != mapping["arm"]
+                or int(original["seed"]) != int(mapping["seed"])
+            ):
+                violations.append(
+                    f"E69 Gate 2 R1 source cell {invalid_job_id} drift"
+                )
+                return jobs, repairs, violations
+            replacement = {
+                "arm": mapping["arm"],
+                "seed": int(mapping["seed"]),
+                "job_id": int(mapping["replacement_job_id"]),
+                "run_stamp": mapping["run_stamp"],
+            }
+            jobs[domain][matches[0]] = replacement
+            substitutions.append(
+                {
+                    "domain": domain,
+                    "invalid_job_id": invalid_job_id,
+                    "replacement_job_id": int(mapping["replacement_job_id"]),
+                }
+            )
+    repairs.append(
+        {
+            "kind": "execution_r1",
+            "substitutions": substitutions,
+            "identity": str(R1_EXECUTION_REPAIR_IDENTITY.resolve()),
+            "identity_sha256": _sha256(R1_EXECUTION_REPAIR_IDENTITY),
+            "attempt_selection": r1["attempt_selection"],
+            "outcome_tuning": False,
+        }
+    )
+    if not R2_IMPLEMENTATION_REPAIR_IDENTITY.is_file():
+        return jobs, repairs, violations
+    r2 = json.loads(
+        R2_IMPLEMENTATION_REPAIR_IDENTITY.read_text(encoding="utf-8")
+    )
+    r2_protocol = Path(str(r2.get("protocol", "")))
+    parent_source = (
+        ROOT
+        / "var/artifacts/source_snapshots"
+        / f"e69_gate2_{r2.get('parent_source_hash', '')}"
+        / "src"
+    )
+    repaired_source = (
+        ROOT
+        / "var/artifacts/source_snapshots"
+        / f"e69_gate2_r2_{r2.get('source_hash', '')}"
+        / "src"
+    )
+    changed_files = (
+        set(_source_file_hashes(parent_source))
+        | set(_source_file_hashes(repaired_source))
+        if parent_source.is_dir() and repaired_source.is_dir()
+        else set()
+    )
+    changed_files = {
+        name
+        for name in changed_files
+        if _source_file_hashes(parent_source).get(name)
+        != _source_file_hashes(repaired_source).get(name)
+    }
+    if (
+        r2.get("schema")
+        != "e69_gate2_r2_route_endpoint_bookkeeping_repair_v1"
+        or r2.get("original_identity_sha256") != _sha256(IDENTITY)
+        or r2.get("parent_r1_identity_sha256")
+        != _sha256(R1_EXECUTION_REPAIR_IDENTITY)
+        or r2_protocol.resolve()
+        != R2_IMPLEMENTATION_REPAIR_PROTOCOL.resolve()
+        or not r2_protocol.is_file()
+        or r2.get("protocol_sha256") != _sha256(r2_protocol)
+        or r2.get("launcher_sha256")
+        != _sha256(R2_IMPLEMENTATION_REPAIR_LAUNCHER)
+        or r2.get("manifest_sha256") != _sha256(R2_PYTHON_MANIFEST)
+        or r2.get("failed_r1_accounting_sha256")
+        != _sha256(R2_FAILED_R1_ACCOUNTING)
+        or r2.get("failed_r1_log_sha256") != _sha256(R2_FAILED_R1_LOG)
+        or r2.get("parent_route_temporal_snapshot_sha256")
+        != _sha256(R1_ROUTE_TEMPORAL_SNAPSHOTS)
+        or r2.get("parent_source_hash") != r1.get("source_hash")
+        or not repaired_source.is_dir()
+        or _source_tree_sha256(repaired_source) != r2.get("source_hash")
+        or changed_files != {"oat_drgrpo/verified_route_library.py"}
+        or r2.get("old_route_library_sha256")
+        != _sha256(parent_source / "oat_drgrpo/verified_route_library.py")
+        or r2.get("repaired_route_library_sha256")
+        != _sha256(repaired_source / "oat_drgrpo/verified_route_library.py")
+        or r2.get("execution_surface_hash")
+        != r1.get("execution_surface_hash")
+        or r2.get("r1_failure_observed_before_repair") is not True
+        or r2.get("repaired_outcomes_observed_before_freeze") is not False
+        or r2.get("outcome_tuning") is not False
+        or r2.get("algorithm_or_gate_change") is not False
+        or r2.get("implementation_contract_repair") is not True
+        or r2.get("repair_decision_basis")
+        != "hard_invariant_exception_and_frozen_identity_semantics_only"
+        or r2.get("math500_sealed") is not True
+    ):
+        violations.append("E69 Gate 2 R2 implementation repair identity mismatch")
+        return jobs, repairs, violations
+    if r2.get("placement") != {
+        "account": "mltheory",
+        "gres": "gpu:a5000:1",
+        "nodelist": "node105,node202,node203,node204",
+        "requested_partition": "all",
+        "resolved_partition": "mltheory",
+    }:
+        violations.append("E69 Gate 2 R2 placement identity mismatch")
+        return jobs, repairs, violations
+    mapping = r2.get("mapping", {})
+    matches = [
+        index
+        for index, row in enumerate(jobs["python_factor"])
+        if int(row["job_id"]) == 30168831
+    ]
+    if (
+        len(matches) != 1
+        or mapping.get("domain") != "python_factor"
+        or mapping.get("arm") != SUCCESSOR
+        or int(mapping.get("seed", -1)) != 43
+        or int(mapping.get("invalid_job_id", -1)) != 30168831
+        or jobs["python_factor"][matches[0]]["arm"] != SUCCESSOR
+        or int(jobs["python_factor"][matches[0]]["seed"]) != 43
+    ):
+        violations.append("E69 Gate 2 R2 Python mapping is invalid")
+        return jobs, repairs, violations
+    replacement = {
+        "arm": SUCCESSOR,
+        "seed": 43,
+        "job_id": int(mapping["replacement_job_id"]),
+        "run_stamp": str(mapping["run_stamp"]),
+    }
+    jobs["python_factor"][matches[0]] = replacement
+    repairs.append(
+        {
+            "kind": "implementation_r2",
+            "substitutions": [
+                {
+                    "domain": "python_factor",
+                    "invalid_job_id": 30168831,
+                    "replacement_job_id": int(mapping["replacement_job_id"]),
+                }
+            ],
+            "identity": str(R2_IMPLEMENTATION_REPAIR_IDENTITY.resolve()),
+            "identity_sha256": _sha256(R2_IMPLEMENTATION_REPAIR_IDENTITY),
+            "attempt_selection": r2["attempt_selection"],
+            "outcome_tuning": False,
+            "implementation_contract_repair": True,
+        }
+    )
+    if not R3_MATH_EVAL_REPAIR_IDENTITY.is_file():
+        return jobs, repairs, violations
+    r3 = json.loads(
+        R3_MATH_EVAL_REPAIR_IDENTITY.read_text(encoding="utf-8")
+    )
+    r3_protocol = Path(str(r3.get("protocol", "")))
+    r3_parent_source = repaired_source
+    r3_source = (
+        ROOT
+        / "var/artifacts/source_snapshots"
+        / f"e69_gate2_r3_{r3.get('source_hash', '')}"
+        / "src"
+    )
+    if r3_parent_source.is_dir() and r3_source.is_dir():
+        parent_hashes = _source_file_hashes(r3_parent_source)
+        r3_hashes = _source_file_hashes(r3_source)
+        r3_changed_files = {
+            name
+            for name in set(parent_hashes) | set(r3_hashes)
+            if parent_hashes.get(name) != r3_hashes.get(name)
+        }
+    else:
+        r3_changed_files = set()
+    if (
+        r3.get("schema")
+        != "e69_gate2_r3_math_dev_evaluation_split_repair_v1"
+        or r3.get("original_identity_sha256") != _sha256(IDENTITY)
+        or r3.get("parent_r2_identity_sha256")
+        != _sha256(R2_IMPLEMENTATION_REPAIR_IDENTITY)
+        or r3_protocol.resolve() != R3_MATH_EVAL_REPAIR_PROTOCOL.resolve()
+        or not r3_protocol.is_file()
+        or r3.get("protocol_sha256") != _sha256(r3_protocol)
+        or r3.get("launcher_sha256") != _sha256(R3_MATH_EVAL_REPAIR_LAUNCHER)
+        or r3.get("manifest_sha256") != _sha256(R3_MATH_MANIFEST)
+        or r3.get("startup_rejected_manifest_sha256")
+        != _sha256(R3_STARTUP_REJECTED_MANIFEST)
+        or r3.get("startup_rejected_accounting_sha256")
+        != _sha256(R3_STARTUP_REJECTED_ACCOUNTING)
+        or r3.get("startup_rejected_jobs") != [30172460, 30172461]
+        or r3.get("parent_source_hash") != r2.get("source_hash")
+        or not r3_source.is_dir()
+        or _source_tree_sha256(r3_source) != r3.get("source_hash")
+        or r3_changed_files
+        != {"oat_drgrpo/args.py", "oat_drgrpo/learner/init.py"}
+        or r3.get("execution_surface_hash")
+        != r2.get("execution_surface_hash")
+        or r3.get("gate_outcomes_observed_before_freeze") is not False
+        or r3.get("training_telemetry_observed_before_freeze") is not True
+        or r3.get("outcome_tuning") is not False
+        or r3.get("algorithm_or_gate_change") is not False
+        or r3.get("implementation_contract_repair") is not True
+        or r3.get("math500_sealed") is not True
+        or r3.get("only_configuration_change")
+        != {
+            "name": "OAT_ZERO_TEST_SPLIT",
+            "invalid": "math",
+            "replacement": "math_dev",
+        }
+    ):
+        violations.append(
+            "E69 Gate 2 R3 MATH evaluation-split repair identity mismatch"
+        )
+        return jobs, repairs, violations
+    mappings = r3.get("mappings", [])
+    excluded = {
+        int(row["job_id"]): row
+        for row in r3.get("excluded_attempts", [])
+        if isinstance(row, dict) and "job_id" in row
+    }
+    if (
+        len(mappings) != 2
+        or len(excluded) != 2
+        or {int(row.get("invalid_job_id", -1)) for row in mappings}
+        != {30159729, 30160101}
+        or {str(row.get("arm")) for row in mappings}
+        != {CONTROL, ENDPOINT}
+    ):
+        violations.append("E69 Gate 2 R3 MATH replacement grid mismatch")
+        return jobs, repairs, violations
+    substitutions = []
+    for mapping in mappings:
+        invalid_job_id = int(mapping["invalid_job_id"])
+        matches = [
+            index
+            for index, row in enumerate(jobs["math_dev"])
+            if int(row["job_id"]) == invalid_job_id
+        ]
+        if len(matches) != 1:
+            violations.append(
+                f"E69 Gate 2 R3 MATH cell {invalid_job_id} is not unique"
+            )
+            return jobs, repairs, violations
+        original = jobs["math_dev"][matches[0]]
+        evidence = excluded[invalid_job_id]
+        run_dir = _run_dir(str(original["run_stamp"]), invalid_job_id)
+        log_path = ROOT / f"var/artifacts/logs/xdr_train-{invalid_job_id}.out"
+        prefix_size = int(evidence.get("log_prefix_size_bytes", -1))
+        if (
+            run_dir is None
+            or original["arm"] != mapping.get("arm")
+            or int(original["seed"]) != int(mapping.get("seed", -1))
+            or (run_dir / "eval_mode_coverage_draws.jsonl").exists()
+            or not log_path.is_file()
+            or prefix_size < 1
+            or log_path.stat().st_size < prefix_size
+            or hashlib.sha256(
+                log_path.read_bytes()[:prefix_size]
+            ).hexdigest()
+            != evidence.get("log_prefix_sha256")
+            or evidence.get("evaluation_records_at_freeze") != 0
+        ):
+            violations.append(
+                f"E69 Gate 2 R3 excluded MATH attempt {invalid_job_id} mismatch"
+            )
+            return jobs, repairs, violations
+        replacement = {
+            "arm": str(mapping["arm"]),
+            "seed": int(mapping["seed"]),
+            "job_id": int(mapping["replacement_job_id"]),
+            "run_stamp": str(mapping["run_stamp"]),
+        }
+        jobs["math_dev"][matches[0]] = replacement
+        substitutions.append(
+            {
+                "domain": "math_dev",
+                "invalid_job_id": invalid_job_id,
+                "replacement_job_id": int(mapping["replacement_job_id"]),
+            }
+        )
+    repairs.append(
+        {
+            "kind": "implementation_r3_math_eval_split",
+            "substitutions": substitutions,
+            "identity": str(R3_MATH_EVAL_REPAIR_IDENTITY.resolve()),
+            "identity_sha256": _sha256(R3_MATH_EVAL_REPAIR_IDENTITY),
+            "attempt_selection": r3["attempt_selection"],
+            "outcome_tuning": False,
+            "implementation_contract_repair": True,
         }
     )
     return jobs, repairs, violations
@@ -708,6 +1172,8 @@ def evaluate_gate(
     curves: dict[str, dict[str, dict[int, dict[str, float]]]],
     route_terminal: dict[str, dict[str, float]],
     route_temporal: dict[str, dict[str, Any]] | None = None,
+    *,
+    require_python_reproduction: bool = False,
 ) -> dict[str, Any]:
     """Evaluate only the prospectively frozen E69-minus-control thresholds."""
 
@@ -777,6 +1243,10 @@ def evaluate_gate(
     checks["post_replay_reuse_three_domains"] = (
         sum(value > 0 for value in route_reproductions.values()) >= 3
     )
+    if require_python_reproduction:
+        checks["python_post_replay_neutral_reproduction"] = (
+            route_reproductions["python_factor"] > 0
+        )
     return {
         "status": "pass" if all(checks.values()) else "fail",
         "checks": checks,
@@ -791,23 +1261,77 @@ def evaluate_gate(
 
 def _load_route_temporal_snapshots() -> tuple[dict[str, Any], list[str]]:
     violations: list[str] = []
-    if not ROUTE_TEMPORAL_AMENDMENT.is_file():
+    r1_active = R1_EXECUTION_REPAIR_IDENTITY.is_file()
+    r2_active = R2_IMPLEMENTATION_REPAIR_IDENTITY.is_file()
+    amendment = (
+        R2_IMPLEMENTATION_REPAIR_PROTOCOL
+        if r2_active
+        else (
+            R1_EXECUTION_REPAIR_PROTOCOL
+            if r1_active
+            else ROUTE_TEMPORAL_AMENDMENT
+        )
+    )
+    snapshots_path = (
+        R2_ROUTE_TEMPORAL_SNAPSHOTS
+        if r2_active
+        else (
+            R1_ROUTE_TEMPORAL_SNAPSHOTS
+            if r1_active
+            else ROUTE_TEMPORAL_SNAPSHOTS
+        )
+    )
+    if not amendment.is_file():
         return {}, ["E69 route temporal amendment is absent"]
-    if not ROUTE_TEMPORAL_SNAPSHOTS.is_file():
+    if not snapshots_path.is_file():
         return {}, ["E69 route temporal snapshot artifact is absent"]
     try:
-        payload = json.loads(
-            ROUTE_TEMPORAL_SNAPSHOTS.read_text(encoding="utf-8")
-        )
+        payload = json.loads(snapshots_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return {}, [f"E69 route temporal snapshot artifact is invalid: {exc}"]
-    if payload.get("schema") != "e69_gate2_route_temporal_snapshots_v1":
+    expected_schema = (
+        "e69_gate2_r2_route_temporal_snapshots_v1"
+        if r2_active
+        else (
+            "e69_gate2_r1_route_temporal_snapshots_v1"
+            if r1_active
+            else "e69_gate2_route_temporal_snapshots_v1"
+        )
+    )
+    if payload.get("schema") != expected_schema:
         violations.append("E69 route temporal snapshot schema drift")
-    amendment_hash = hashlib.sha256(
-        ROUTE_TEMPORAL_AMENDMENT.read_bytes()
-    ).hexdigest()
+    amendment_hash = hashlib.sha256(amendment.read_bytes()).hexdigest()
     if payload.get("amendment_sha256") != amendment_hash:
         violations.append("E69 route temporal amendment hash drift")
+    if r2_active:
+        r2 = json.loads(
+            R2_IMPLEMENTATION_REPAIR_IDENTITY.read_text(encoding="utf-8")
+        )
+        if (
+            payload.get("r2_identity_sha256")
+            != _sha256(R2_IMPLEMENTATION_REPAIR_IDENTITY)
+            or payload.get("parent_snapshot_sha256")
+            != r2.get("parent_route_temporal_snapshot_sha256")
+            or payload.get("carried_parent_domains")
+            != ["countdown", "graph_coloring", "mathir"]
+            or payload.get("fresh_r2_domains") != ["python_factor"]
+        ):
+            violations.append("E69-R2 route temporal provenance drift")
+    elif r1_active:
+        r1 = json.loads(
+            R1_EXECUTION_REPAIR_IDENTITY.read_text(encoding="utf-8")
+        )
+        if (
+            payload.get("r1_identity_sha256")
+            != _sha256(R1_EXECUTION_REPAIR_IDENTITY)
+            or payload.get("parent_snapshot_sha256")
+            != r1.get("parent_route_temporal_snapshot_sha256")
+            or payload.get("carried_parent_domains")
+            != ["countdown", "mathir"]
+            or payload.get("fresh_r1_domains")
+            != ["graph_coloring", "python_factor"]
+        ):
+            violations.append("E69-R1 route temporal provenance drift")
     snapshots = payload.get("snapshots")
     temporal = payload.get("temporal_reproductions")
     if not isinstance(snapshots, dict) or set(snapshots) != set(MODEBENCH):
@@ -877,6 +1401,37 @@ def _write_markdown(payload: dict[str, Any]) -> None:
                     f"for jobs {', '.join(map(str, repair['jobs']))}; the "
                     "accepted attempts restart from initialization under the "
                     "prospectively recorded attempt-repair identity."
+                )
+            elif repair["kind"] == "execution_r1":
+                lines.append(
+                    f"- Replaced {len(repair['substitutions'])} Graph/Python "
+                    "cells under the frozen E69-R1 execution-only identity; "
+                    "terminal outcomes were disclosed, outcome tuning is "
+                    "forbidden, and excluded traces are not spliced."
+                )
+            elif repair["kind"] == "implementation_r2":
+                lines.append(
+                    "- Replaced the failed R1 Python successor from "
+                    "initialization under the prospective E69-R2 "
+                    "route/endpoint bookkeeping repair; the hard exception "
+                    "is preserved, no repaired outcome preceded the freeze, "
+                    "and no failed prefix is spliced."
+                )
+            elif repair["kind"] == "implementation_r3_math_eval_split":
+                substitutions = repair["substitutions"]
+                old_jobs = ", ".join(
+                    str(row["invalid_job_id"]) for row in substitutions
+                )
+                new_jobs = ", ".join(
+                    str(row["replacement_job_id"]) for row in substitutions
+                )
+                lines.append(
+                    "- Excluded MATH-dev jobs "
+                    f"{old_jobs} and restarted the paired cohort as jobs "
+                    f"{new_jobs} under the prospective E69-R3 evaluation-split "
+                    "contract repair; both arms restart from initialization, "
+                    "outcome tuning is forbidden, and the excluded prefixes "
+                    "remain archived."
                 )
             else:
                 lines.append(
@@ -1025,6 +1580,10 @@ def main() -> None:
                 curves,
                 route_terminal,
                 route_temporal["temporal_reproductions"],
+                require_python_reproduction=(
+                    R1_EXECUTION_REPAIR_IDENTITY.is_file()
+                    or R2_IMPLEMENTATION_REPAIR_IDENTITY.is_file()
+                ),
             )
     status = (
         "fail"

@@ -5,6 +5,8 @@ import json
 import pathlib
 import sys
 
+import pytest
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE = (
@@ -36,7 +38,20 @@ MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
+# The 72B teacher endpoint record describes a live vLLM server and is written
+# under the gitignored var/ tree, so it is absent in a clean checkout and after
+# the serving job ends. These two tests exercise the continuity certificate
+# against that record and are skipped when it is not present.
+QWEN72_ENDPOINT = (
+    ROOT / "var/artifacts/e49t_qwen72_node302_v1/qwen72_endpoint.json"
+)
+requires_qwen72_endpoint = pytest.mark.skipif(
+    not QWEN72_ENDPOINT.is_file(),
+    reason="live Qwen72 teacher endpoint record is not materialized",
+)
 
+
+@requires_qwen72_endpoint
 def test_existing_calibrated_endpoint_satisfies_continuity_contract(tmp_path):
     endpoint = (
         ROOT
@@ -69,6 +84,7 @@ def test_existing_calibrated_endpoint_satisfies_continuity_contract(tmp_path):
     assert json.loads(output.read_text(encoding="utf-8")) == payload
 
 
+@requires_qwen72_endpoint
 def test_continuity_certificate_rejects_endpoint_identity_tamper(tmp_path):
     endpoint = json.loads(
         (

@@ -20,7 +20,7 @@
   "provenance": {
     "generator": "ops/route_successor/audit_e69_math_route_rpn_v2_prompts.py",
     "generator_sha256": "1c4f97514a9b4195c9202af319e10f12b298d48f014404d565bf2cb046983d1c",
-    "templates_sha256": "0b31dc15b9f724d63fe1ea2e8dd1055d57ead085cce40289f6d33ba9aad577a2",
+    "templates_sha256": "c121edb4ca8e9a697730d1fbb8de8c5a9ae8d7f17579cec0ad550cb225379b7e",
     "tokenizer_root": "var/cache/huggingface/transformers/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775"
   },
   "schema": "e69_math_equation_route_v3_prompt_manifest_v1"

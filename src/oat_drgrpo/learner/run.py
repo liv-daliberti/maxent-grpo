@@ -50,10 +50,10 @@ from ..resume_state import (
     resolve_resume_progress_state,
 )
 from ..templates import (
+    CANONICAL_TASK_PROMPT_TEMPLATES,
     apply_prompt_template_to_example,
     collate_eval_prompt_items,
-    validate_qwen_countdown_digits_materialization,
-    validate_qwen_graph_digits_materialization,
+    validate_canonical_prompt_materialization,
 )
 from ..verified_transformations import (
     derive_validator_preserving_counterfactuals,
@@ -1689,8 +1689,11 @@ class ZeroMathRunMixin:
         union_support = tuple(int(value) for value in action_space.union_token_ids)
         horizon = action_space.horizon
         num_samples = int(self.args.num_samples)
-        if horizon != 3 or any(not support for support in supports):
-            raise RuntimeError("canonical learner sampler requires three supports")
+        if horizon <= 0 or any(not support for support in supports):
+            raise RuntimeError(
+                "canonical learner sampler requires a positive horizon and "
+                "nonempty positional supports"
+            )
         micro_batch_size = int(self.args.train_batch_size_per_device)
         if micro_batch_size <= 0:
             raise RuntimeError("canonical learner sampling needs a positive microbatch")
@@ -1885,6 +1888,9 @@ class ZeroMathRunMixin:
             "actor/no_eos_count": 0.0,
             "actor/canonical_graph_actions": float(canonical_task == "graph_coloring"),
             "actor/canonical_countdown_actions": float(canonical_task == "countdown"),
+            "actor/canonical_pantry_support_mask_actions": float(
+                canonical_task == "pantry_support_mask"
+            ),
             "actor/canonical_action_count": float(horizon),
             "actor/canonical_action_support_size": float(len(union_support)),
             "actor/canonical_sequence_support_size": float(action_space.sequence_count),
@@ -2301,7 +2307,7 @@ class ZeroMathRunMixin:
         The model is evaluated only after the optimizer step.  At each depth,
         prefix probability weights multiply the categorical entropy of the
         next positional support, yielding the exact chain-rule entropy of all
-        27 graph-coloring or 108 Countdown action sequences.
+        action sequences in the task's finite positional support tree.
         """
 
         action_space = getattr(self, "_canonical_action_space", None)
@@ -2314,8 +2320,11 @@ class ZeroMathRunMixin:
             raise RuntimeError("exact canonical entropy received an empty prompt")
         supports = action_space.token_ids_by_position
         horizon = action_space.horizon
-        if horizon != 3:
-            raise RuntimeError("exact canonical entropy requires horizon 3")
+        if horizon <= 0 or any(not support for support in supports):
+            raise RuntimeError(
+                "exact canonical entropy requires a positive horizon and "
+                "nonempty positional supports"
+            )
         temperature = float(self.args.temperature)
         if not np.isfinite(temperature) or temperature <= 0:
             raise RuntimeError(
@@ -2387,9 +2396,11 @@ class ZeroMathRunMixin:
                 self.model.train()
 
         leaf_mass = sum(mass for _, mass in prefixes)
-        expected_prefix_rows = (
-            1 + len(supports[0]) + (len(supports[0]) * len(supports[1]))
-        )
+        expected_prefix_rows = 0
+        prefix_count = 1
+        for support in supports:
+            expected_prefix_rows += prefix_count
+            prefix_count *= len(support)
         max_entropy = float(action_space.max_sequence_entropy)
         if prefix_row_count != expected_prefix_rows:
             raise RuntimeError(
@@ -2771,12 +2782,18 @@ class ZeroMathRunMixin:
         )
         canonical_task = resolve_canonical_action_task(self.args)
         if canonical_task != "none":
-            validator = (
-                validate_qwen_graph_digits_materialization
-                if canonical_task == "graph_coloring"
-                else validate_qwen_countdown_digits_materialization
+            allowed_templates = CANONICAL_TASK_PROMPT_TEMPLATES[canonical_task]
+            if self.args.prompt_template not in allowed_templates:
+                raise RuntimeError(
+                    f"canonical task {canonical_task} requires one of "
+                    f"{sorted(allowed_templates)}; got "
+                    f"{self.args.prompt_template}"
+                )
+            validate_canonical_prompt_materialization(
+                self.args.prompt_template,
+                raw_questions,
+                list(prompts_data[self.args.input_key]),
             )
-            validator(raw_questions, list(prompts_data[self.args.input_key]))
             logging.info(
                 "canonical %s prompt materialization verified: rows=%d "
                 "template=%s dataset_map_cache=disabled",
@@ -3146,6 +3163,24 @@ class ZeroMathRunMixin:
             self.sync_params_to_actors()
             logging.info("resume actor weight sync done checkpoint_step=%s", self.steps)
 
+        if bool(getattr(self.args, "eval_only", False)):
+            # Measure the loaded policy through the ordinary training
+            # evaluation path and stop. No rollout, optimizer step, export, or
+            # resume checkpoint occurs, so the reported cell is a pure function
+            # of the checkpoint and the decoding settings. Unlike the initial
+            # evaluation below, this runs even under ``debug``: an eval-only
+            # job that silently produced no evaluation would be indistinguishable
+            # from a completed one.
+            self.eval_and_log({}, eval=True, save=False, allow_scheduled_save=False)
+            self._write_eval_only_marker()
+            # Tear the program down exactly as the training path does. Without
+            # this the measurement finishes but the job holds its GPU until the
+            # scheduler's time limit.
+            if self.strategy.is_rank_0():
+                self._wandb.finish() if self._wandb else None
+                lp.stop()
+            return
+
         if not self.strategy.args.debug:
             # The checkpoint already exists at a resumed boundary. Rewriting
             # the same multi-gigabyte model/optimizer state before the initial
@@ -3373,6 +3408,45 @@ class ZeroMathRunMixin:
             for obsolete in checkpoints[keep:]:
                 shutil.rmtree(obsolete)
                 logging.info("Deleted superseded resume checkpoint %s", obsolete)
+        self._storage_barrier()
+
+    def _write_eval_only_marker(self) -> None:
+        """Record that an eval-only measurement completed, and under what settings.
+
+        The decoding-frontier aggregator refuses any cell without this marker,
+        so a job that died between loading the checkpoint and finishing its
+        draws cannot be mistaken for a measured point.
+        """
+        self._storage_barrier()
+        if self.strategy.is_rank_0():
+            attempt_root = Path(self.save_path).resolve()
+            payload = {
+                "schema": "oat_zero_eval_only_complete_v1",
+                "completed_at_unix": time.time(),
+                "attempt_root": str(attempt_root),
+                "pretrain": str(self.args.pretrain),
+                "eval_mode_coverage_k": int(self.args.eval_mode_coverage_k),
+                "eval_mode_coverage_temperature": float(
+                    self.args.eval_mode_coverage_temperature
+                ),
+                "eval_mode_coverage_top_p": float(
+                    getattr(self.args, "eval_mode_coverage_top_p", 1.0)
+                ),
+                "eval_mode_coverage_draws": int(self.args.eval_mode_coverage_draws),
+                "eval_mode_coverage_seed": int(self.args.eval_mode_coverage_seed),
+                "eval_temperature": float(self.args.eval_temperature),
+                "test_split": str(self.args.test_split),
+                "eval_data": str(self.args.eval_data),
+                "prompt_template": str(self.args.prompt_template),
+                "optimizer_steps": 0,
+            }
+            marker = attempt_root / "EVAL_ONLY_COMPLETE.json"
+            temporary = attempt_root / f".{marker.name}.{os.getpid()}.tmp"
+            temporary.write_text(
+                json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            os.replace(temporary, marker)
         self._storage_barrier()
 
     def _finalize_successful_storage(self) -> None:
@@ -3757,9 +3831,15 @@ class ZeroMathRunMixin:
         if not self.strategy.is_rank_0():
             return {}
 
+        # Nucleus truncation is a property of the sampled draws only; the
+        # greedy trace below is unaffected by it and keeps the untruncated
+        # surface so its value stays comparable across a decoding sweep.
+        coverage_top_p = float(
+            getattr(getattr(self, "args", None), "eval_mode_coverage_top_p", 1.0) or 1.0
+        )
         logging.info(
             "Starting sampled mode-coverage eval %s/%s: %s "
-            "(%s prompts, draws=%s, K=%s, T=%s, seeds=%s..%s) at step %s",
+            "(%s prompts, draws=%s, K=%s, T=%s, top_p=%s, seeds=%s..%s) at step %s",
             benchmark_name,
             len(self.eval_dataset_dict),
             benchmark_name,
@@ -3767,6 +3847,7 @@ class ZeroMathRunMixin:
             draw_count,
             k,
             temperature,
+            coverage_top_p,
             seed_base,
             seed_base + draw_count - 1,
             steps,
@@ -3803,6 +3884,7 @@ class ZeroMathRunMixin:
                 temperature=temperature,
                 seed=draw_seed,
                 condition_on_answer_options=False,
+                top_p=coverage_top_p,
             )
             if not mean:
                 continue
@@ -3818,6 +3900,7 @@ class ZeroMathRunMixin:
                     "seed": draw_seed,
                     "sample_count": int(k),
                     "temperature": float(temperature),
+                    "top_p": coverage_top_p,
                     "metrics": mean,
                     "prompts": prompt_outcomes,
                 }
@@ -3839,6 +3922,7 @@ class ZeroMathRunMixin:
                         temperature=temperature,
                         seed=draw_seed,
                         condition_on_answer_options=True,
+                        top_p=coverage_top_p,
                     )
                 )
                 if not latent_mean:
@@ -3977,6 +4061,7 @@ class ZeroMathRunMixin:
         temperature: float,
         seed: int,
         condition_on_answer_options: bool = False,
+        top_p: float = 1.0,
     ) -> tuple[dict[str, float], list[dict[str, Any]]]:
         """Evaluate one fixed-seed K draw and return every prompt outcome."""
 
@@ -4009,6 +4094,7 @@ class ZeroMathRunMixin:
                     seed,
                     condition_on_answer_options,
                     indices,
+                    float(top_p),
                 )
             )
             pending.append((refs_batch, indices, list(batch_raw)))

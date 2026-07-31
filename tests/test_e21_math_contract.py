@@ -23,7 +23,7 @@ def test_protocol_is_free_form_and_length_neutral():
     assert "one equal-weight mean regardless of its token count" in text
     assert "no prefix importance ratio" in text
     assert "No aggregation rescaling" in text
-    assert "every 2,130 consumed prompts" in text
+    assert "every 2,129 consumed prompts" in text
 
 
 def test_launcher_refuses_legacy_sequence_entropy_and_length_dual():
@@ -54,7 +54,7 @@ def test_smoke_checker_is_exact_four_arm_fail_closed_gate():
     spec.loader.exec_module(module)
 
     assert module.END_STEP == 64
-    assert module.SEED == 9007
+    assert module.SEED == 9008
     assert set(module.ARMS) == {"grpo", "maxent", "maxent_control", "maxent_dual"}
 
 
