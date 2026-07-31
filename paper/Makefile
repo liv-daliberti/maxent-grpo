@@ -5,7 +5,6 @@ LATEX = pdflatex -interaction=nonstopmode -halt-on-error
 DATA_PYTHON = ../var/seed_paper_eval/paper310/bin/python
 FIGURES = \
 	figures/modebench_examples.pdf \
-	figures/modebench_pantry_example.pdf \
 	figures/xdr_mechanism.pdf \
 	figures/modecollapse_story.pdf \
 	figures/modes_per_epoch.pdf \

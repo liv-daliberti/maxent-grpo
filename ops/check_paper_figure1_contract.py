@@ -12,7 +12,6 @@ AUDIT = ROOT / "var/artifacts/paper_graph_collapse_toy.json"
 MANUSCRIPT = ROOT / "paper/main.tex"
 EXAMPLES_SOURCE = ROOT / "ops/plot_paper_modebench_examples.py"
 EXAMPLES_PDF = ROOT / "paper/figures/modebench_examples.pdf"
-PANTRY_EXAMPLE_PDF = ROOT / "paper/figures/modebench_pantry_example.pdf"
 MECHANISM_SOURCE = ROOT / "ops/plot_paper_xdr_mechanism.py"
 MECHANISM_PDF = ROOT / "paper/figures/xdr_mechanism.pdf"
 MAIN_PDF = ROOT / "paper/main.pdf"
@@ -226,7 +225,7 @@ def main() -> None:
         '{"answer": "F;E"',
         "eval-94002-high_fiber_snack-19",
         "navel_orange=75;sunflower_seeds=50",
-        "grape_tomatoes=75;sunflower_seeds=50",
+        "grape_tomatoes=75;almonds=50",
     ):
         require(token in example_source, f"ModeBench example source missing {token!r}")
     for token in ("6.27", "4.52", "229.44", "5.00", "18.19", r"\renewcommand{\arraystretch}{0.92}"):
@@ -399,19 +398,21 @@ def main() -> None:
                 forbidden not in text,
                 f"{path.name}: forbidden rendered metric {forbidden!r}",
             )
-    example_text = pdf_text(EXAMPLES_PDF) + pdf_text(PANTRY_EXAMPLE_PDF)
+    example_text = pdf_text(EXAMPLES_PDF)
     for token in (
         "Graph coloring", "Countdown", "Python factors", "MathIR", "PantryPlan",
-        "113", "131", "(6 × 9) / 3", "6+3+9",
-        "navel_orange=75", "sunflower_seeds=50", "grape_tomatoes=75",
+        "113", "131", "(6 × 9) / 3", "6 + 3 + 9",
+        "response", "execute + verify", "canonical key",
+        "navel_orange=75", "sunflower_seeds=50", "grape_tomatoes=75", "almonds=50",
         "[2, 2, 7, 3]", "[3, 41, 13, 3]", "C;F", "F;E",
     ):
         require(token in example_text, f"ModeBench example missing {token!r}")
     require(example_text.count("ANSWER 1") == 5, "Figure 2 lacks five first answers")
     require(example_text.count("ANSWER 2") == 5, "Figure 2 lacks five second answers")
     require(
-        r"figures/modebench_pantry_example.pdf" in manuscript,
-        "Figure 2 is missing the PantryPlan panel asset",
+        manuscript.count(r"figures/modebench_examples.pdf") == 1
+        and "modebench_pantry_example" not in manuscript,
+        "Figure 2 must be one figure, not a split pair",
     )
     mechanism_source = MECHANISM_SOURCE.read_text(encoding="utf-8")
     mechanism_text = pdf_text(MECHANISM_PDF)

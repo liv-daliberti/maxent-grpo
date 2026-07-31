@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Render paired, validator-checked ModeBench examples for Section 3.1."""
+"""Render paired, validator-checked ModeBench examples for Section 3.1.
+
+One figure, one row per domain, one shared reading order: the response the
+policy emits, the execution that accepts it, and the canonical key that
+execution produces. The two answers of a row are the same two verified modes
+that Figure 1 tracks, so they carry Figure 1's plasma mode colours.
+"""
 
 from __future__ import annotations
 
@@ -9,14 +15,13 @@ import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyBboxPatch
+from matplotlib.patches import FancyBboxPatch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 from oat_drgrpo.pantry_plan import validate_pantry_plan  # noqa: E402
 OUT = ROOT / "paper/figures/modebench_examples"
-OUT_PANTRY = ROOT / "paper/figures/modebench_pantry_example"
 DATA_ROOTS = {
     "graph": ROOT / "var/data/exact_answer_mode_probe/eval",
     "countdown": ROOT / "var/data/exact_countdown_easy3_probe/eval",
@@ -25,21 +30,32 @@ DATA_ROOTS = {
     "pantry": ROOT / "var/data/pantry_plan_modebench_v2/eval",
 }
 
-INK = "#19324A"
-MUTED = "#607487"
-GRID = "#D8E2EA"
-PANEL = "#F6F9FB"
+# One type size for the whole figure, exactly as in the collapse story, so no
+# label reads as a second-class annotation once the page scales it down.
+FONT = 17.0
+MONO = "DejaVu Sans Mono"
+
+INK = "#1B2733"
+MUTED = "#5B6B7B"
+GRID = "#F0DEC6"
+FRAME = "#C7AE8E"
+PANEL = "#FEF4E7"
 WHITE = "#FFFFFF"
-PURPLE = "#6C5CE7"
-ORANGE = "#D95F45"
-BLUE = "#3A7CA5"
-GREEN = "#2A9D8F"
-NODE_COLORS = {1: "#F2C14E", 2: "#2A9D8F", 3: "#7B6FD0"}
+
+# The two mode colours are quoted verbatim from `plot_paper_collapse_toy.py`
+# (`plt.cm.plasma` at 0.10 and 0.45). There they separate two verified modes of
+# one Graph Coloring prompt; here they separate two verified modes of one prompt
+# in every domain, so the reader meets the same encoding twice.
+MODE_ONE = "#41049D"
+MODE_TWO = "#BF3984"
 
 mpl.rcParams.update(
     {
-        "font.family": "DejaVu Sans",
-        "font.size": 8.2,
+        "font.family": "sans-serif",
+        "font.sans-serif": ["DejaVu Sans", "Helvetica", "Arial", "Liberation Sans"],
+        "font.size": FONT,
+        "mathtext.fontset": "dejavusans",
+        "text.color": INK,
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
         "figure.facecolor": WHITE,
@@ -47,14 +63,34 @@ mpl.rcParams.update(
     }
 )
 
+# Every coordinate below is in inches on a figure whose single axes spans the
+# canvas one-to-one, so the layout can be read as the printed page geometry.
+WIDTH = 13.2
+MARGIN = 0.18
+X_BADGE = 0.40
+X_TITLE = 1.00
+X_PROMPT = 3.30
+X_SWATCH = 1.00
+X_LABEL = 1.30
+X_RESPONSE = 3.00
+X_CHECK = 7.10
+X_KEY_RIGHT = 12.55
+X_NEQ = 12.80
+LINE = 0.28
+ROW_PAD = 0.08
+HEADER_ZONE = 0.42
+BLOCK_PAD = 0.05
+BLOCK_GAP = 0.11
+HEADLINE = 0.36
+CAPTION = 0.30
 
-def box(ax, x, y, w, h, *, face=WHITE, edge=GRID, radius=0.012, lw=0.9):
+
+def box(ax, x, y, w, h, *, face=WHITE, edge=GRID, radius=0.06, lw=1.0):
     patch = FancyBboxPatch(
         (x, y),
         w,
         h,
-        boxstyle=f"round,pad=0.005,rounding_size={radius}",
-        transform=ax.transAxes,
+        boxstyle=f"round,pad=0.0,rounding_size={radius}",
         facecolor=face,
         edgecolor=edge,
         linewidth=lw,
@@ -66,10 +102,9 @@ def box(ax, x, y, w, h, *, face=WHITE, edge=GRID, radius=0.012, lw=0.9):
 
 def text(ax, x, y, value, **kwargs):
     defaults = {
-        "transform": ax.transAxes,
-        "fontsize": 7.5,
+        "fontsize": FONT,
         "color": INK,
-        "ha": "center",
+        "ha": "left",
         "va": "center",
     }
     defaults.update(kwargs)
@@ -191,9 +226,11 @@ def load_and_validate() -> dict[str, dict]:
         "forbidden_tags": [],
         "certified_mode_count": 14,
     }
+    # Disjoint supports, so the two rows share no ingredient at all and the
+    # key difference cannot be read as a quantity difference.
     pantry_answers = (
         "navel_orange=75;sunflower_seeds=50",
-        "grape_tomatoes=75;sunflower_seeds=50",
+        "grape_tomatoes=75;almonds=50",
     )
     pantry_validations = tuple(
         validate_pantry_plan(answer, pantry_spec) for answer in pantry_answers
@@ -206,8 +243,9 @@ def load_and_validate() -> dict[str, dict]:
     )
     assert pantry_keys == (
         "navel_orange+sunflower_seeds",
-        "grape_tomatoes+sunflower_seeds",
+        "almonds+grape_tomatoes",
     )
+    assert not set(pantry_keys[0].split("+")) & set(pantry_keys[1].split("+"))
     return {
         "graph": {"spec": graph, "modes": graph_modes, "answers": graph_answers},
         "countdown": {"spec": countdown, "answers": countdown_answers},
@@ -221,155 +259,243 @@ def load_and_validate() -> dict[str, dict]:
     }
 
 
-def card(ax, x, y, letter, title, accent, prompt):
-    box(ax, x, y, 0.476, 0.450, face=PANEL, edge=GRID, radius=0.018, lw=1.0)
-    text(ax, x + 0.020, y + 0.407, letter, fontsize=10.5, fontweight="bold", color=accent, ha="left")
-    text(ax, x + 0.054, y + 0.407, title, fontsize=9.4, fontweight="bold", ha="left")
-    box(ax, x + 0.020, y + 0.306, 0.436, 0.067, face=WHITE, edge=GRID, radius=0.009, lw=0.8)
-    text(ax, x + 0.036, y + 0.340, "PROMPT", fontsize=6.1, fontweight="bold", color=accent, ha="left")
-    text(ax, x + 0.103, y + 0.340, prompt, fontsize=6.8, color=MUTED, ha="left")
+def build_blocks(examples: dict[str, dict]) -> list[dict]:
+    """Turn the validated examples into one uniform row-per-domain layout.
+
+    Every row carries the same three fields the reader is asked to compare:
+    the emitted response, the check that accepted it, and the canonical key
+    that same check produced.
+    """
+
+    graph = examples["graph"]
+    countdown = examples["countdown"]
+    python = examples["python"]
+    mathir = examples["mathir"]
+    pantry = examples["pantry"]
+
+    blocks = [
+        {
+            "letter": "A",
+            "title": "Graph coloring",
+            "prompt": "partial colors 2??1?2 · fill vertices 2, 3, 5",
+            "rows": [
+                {
+                    "response": [answer],
+                    "check": "✓ valid coloring",
+                    "key": ["".join(str(value) for value in mode)],
+                }
+                for answer, mode in zip(graph["answers"], graph["modes"])
+            ],
+        },
+        {
+            "letter": "B",
+            "title": "Countdown",
+            "prompt": "tiles {3, 6, 9} · target 18 · use each tile once",
+            "rows": [
+                {
+                    "response": [answer["answer"]],
+                    "check": "✓ = 18",
+                    "key": [answer["key"]],
+                }
+                for answer in countdown["answers"]
+            ],
+        },
+        {
+            "letter": "C",
+            "title": "Python factors",
+            "prompt": "lambda n: EXPR · called once per n in 18, 82, 91, 93 · return a proper factor d",
+            "rows": [
+                {
+                    "response": list(answer["lines"]),
+                    "check": "✓ divides each n",
+                    "key": ["[" + ", ".join(str(v) for v in answer["outputs"]) + "]"],
+                }
+                for answer in python["answers"]
+            ],
+        },
+        {
+            "letter": "D",
+            "title": "MathIR",
+            "prompt": "x/2 − 9 = −1 · C: subtract −9 · F: ×2 · E: subtract −18",
+            "rows": [
+                {
+                    "response": [answer["answer"]],
+                    "check": "✓ x = 16",
+                    "key": [" → ".join(answer["trace"])],
+                }
+                for answer in mathir["answers"]
+            ],
+        },
+        {
+            "letter": "E",
+            "title": "PantryPlan",
+            "prompt": "2–4 ingredients · 125–200 g · four exact nutrition bounds",
+            "rows": [
+                {
+                    "response": [line + ";" for line in answer.split(";")[:-1]]
+                    + [answer.rsplit(";", 1)[-1]],
+                    "check": "✓ feasible",
+                    "key": [key.split("+")[0] + " +", key.split("+")[1]],
+                }
+                for answer, key in zip(pantry["answers"], pantry["keys"])
+            ],
+        },
+    ]
+    for block in blocks:
+        assert len(block["rows"]) == 2
+        for index, row in enumerate(block["rows"]):
+            row["accent"] = (MODE_ONE, MODE_TWO)[index]
+            row["label"] = f"ANSWER {index + 1}"
+            row["lines"] = max(len(row["response"]), len(row["key"]))
+        assert block["rows"][0]["key"] != block["rows"][1]["key"]
+    return blocks
 
 
-def answer_box(ax, x, y, *, number, accent, answer, detail, key, code=False):
-    box(ax, x, y, 0.207, 0.218, face=WHITE, edge=accent, radius=0.012, lw=1.0)
-    text(ax, x + 0.012, y + 0.190, f"ANSWER {number}", fontsize=5.9, fontweight="bold", color=accent, ha="left")
+def measure(fig, artist) -> tuple[float, float]:
+    """Width and height of a drawn artist in inches, i.e. in layout units."""
+
+    extent = artist.get_window_extent(renderer=fig.canvas.get_renderer())
+    return extent.width / fig.dpi, extent.height / fig.dpi
+
+
+def row_height(lines: int) -> float:
+    return 2 * ROW_PAD + lines * LINE
+
+
+def block_height(block: dict) -> float:
+    rows = sum(row_height(row["lines"]) for row in block["rows"])
+    return HEADER_ZONE + rows + BLOCK_PAD
+
+
+def draw_key(fig, ax, right: float, y: float, lines: list[str], accent: str) -> float:
+    """Right-aligned key chip that grows to fit its own text."""
+
+    artists = [
+        text(
+            ax,
+            right - 0.13,
+            y - (index - (len(lines) - 1) / 2) * LINE,
+            line,
+            ha="right",
+            fontfamily=MONO,
+            fontweight="bold",
+            zorder=3,
+        )
+        for index, line in enumerate(lines)
+    ]
+    width = max(measure(fig, artist)[0] for artist in artists) + 0.26
+    # Kept under the row pitch so consecutive chips never touch.
+    height = len(lines) * LINE + 0.08
+    box(
+        ax,
+        right - width,
+        y - height / 2,
+        width,
+        height,
+        face=WHITE,
+        edge=accent,
+        radius=0.05,
+        lw=1.4,
+    )
+    return right - width
+
+
+def draw_block(fig, ax, block: dict, top: float) -> None:
+    height = block_height(block)
+    bottom = top - height
+    box(
+        ax,
+        MARGIN,
+        bottom,
+        WIDTH - 2 * MARGIN,
+        height,
+        face=PANEL,
+        edge=GRID,
+        radius=0.09,
+        lw=1.1,
+    )
+
+    header = top - HEADER_ZONE / 2 - 0.02
+    box(ax, X_BADGE, header - 0.15, 0.32, 0.30, face=INK, edge=INK, radius=0.05)
+    text(ax, X_BADGE + 0.16, header, block["letter"], color=WHITE, fontweight="bold", ha="center")
+    text(ax, X_TITLE, header, block["title"], fontweight="bold")
+    prompt = text(ax, X_PROMPT, header, block["prompt"], color=MUTED)
+    assert X_PROMPT + measure(fig, prompt)[0] < WIDTH - MARGIN - 0.15, block["title"]
+
+    centers = []
+    cursor = top - HEADER_ZONE
+    for row in block["rows"]:
+        span = row_height(row["lines"])
+        center = cursor - span / 2
+        centers.append(center)
+        accent = row["accent"]
+
+        box(ax, X_SWATCH, center - 0.09, 0.18, 0.18, face=accent, edge=accent, radius=0.04)
+        text(ax, X_LABEL, center, row["label"], color=accent, fontweight="bold")
+        for index, line in enumerate(row["response"]):
+            response = text(
+                ax,
+                X_RESPONSE,
+                center - (index - (len(row["response"]) - 1) / 2) * LINE,
+                line,
+                fontfamily=MONO,
+                fontweight="bold",
+            )
+            assert X_RESPONSE + measure(fig, response)[0] < X_CHECK - 0.15, block["title"]
+        check = text(ax, X_CHECK, center, row["check"], color=MUTED)
+        assert X_CHECK + measure(fig, check)[0] < X_KEY_RIGHT, block["title"]
+        left = draw_key(fig, ax, X_KEY_RIGHT, center, row["key"], accent)
+        assert left > X_CHECK + measure(fig, check)[0] + 0.10, block["title"]
+        cursor -= span
+
+    # The whole figure exists to say that both keys are accepted and that they
+    # are not the same key, so the comparison itself gets a mark.
+    ax.plot(
+        [X_NEQ - 0.06, X_NEQ - 0.06],
+        [centers[0], centers[1]],
+        color=FRAME,
+        linewidth=1.0,
+        solid_capstyle="butt",
+        zorder=1,
+    )
     text(
         ax,
-        x + 0.1035,
-        y + 0.139,
-        answer,
-        fontsize=6.4 if code else 8.4,
+        X_NEQ - 0.06,
+        (centers[0] + centers[1]) / 2,
+        "≠",
+        ha="center",
         fontweight="bold",
-        fontfamily="DejaVu Sans Mono" if code else "DejaVu Sans",
+        zorder=3,
+        bbox={"facecolor": WHITE, "edgecolor": "none", "pad": 1.5},
     )
-    text(ax, x + 0.1035, y + 0.086, detail, fontsize=6.4, color=MUTED)
-    box(ax, x + 0.012, y + 0.015, 0.183, 0.039, face=PANEL, edge=GRID, radius=0.007, lw=0.6)
-    text(ax, x + 0.1035, y + 0.0345, key, fontsize=6.2, fontweight="bold", color=accent)
 
 
-def footer(ax, x, y, accent):
-    text(ax, x + 0.238, y + 0.025, "✓ both correct     key 1 ≠ key 2", fontsize=6.5, fontweight="bold", color=accent)
-
-
-def draw_graph(ax, x, y, example):
-    card(ax, x, y, "A", "Graph coloring", PURPLE, "partial colors 2??1?2 · fill vertices 2, 3, 5")
-    for idx, (answer, mode) in enumerate(zip(example["answers"], example["modes"]), start=1):
-        xx = x + (0.020 if idx == 1 else 0.249)
-        answer_box(
-            ax,
-            xx,
-            y + 0.066,
-            number=idx,
-            accent=PURPLE,
-            answer=answer,
-            detail="complete valid coloring",
-            key="key  " + "".join(str(value) for value in mode),
-        )
-    footer(ax, x, y, PURPLE)
-
-
-def draw_countdown(ax, x, y, example):
-    card(ax, x, y, "B", "Countdown", ORANGE, "tiles {3, 6, 9} · target 18 · use each tile once")
-    for idx, answer in enumerate(example["answers"], start=1):
-        xx = x + (0.020 if idx == 1 else 0.249)
-        answer_box(
-            ax,
-            xx,
-            y + 0.066,
-            number=idx,
-            accent=ORANGE,
-            answer=answer["answer"],
-            detail="executes to 18  ✓",
-            key="AST  " + answer["key"],
-        )
-    footer(ax, x, y, ORANGE)
-
-
-def draw_python(ax, x, y, example):
-    card(ax, x, y, "C", "Python factors", BLUE, "lambda n: EXPR · proper factor for 18, 82, 91, 93")
-    for idx, answer in enumerate(example["answers"], start=1):
-        xx = x + (0.020 if idx == 1 else 0.249)
-        answer_box(
-            ax,
-            xx,
-            y + 0.066,
-            number=idx,
-            accent=BLUE,
-            answer="\n".join(answer["lines"]),
-            detail="external worker accepts  ✓",
-            key="key  [" + ", ".join(str(value) for value in answer["outputs"]) + "]",
-            code=True,
-        )
-    footer(ax, x, y, BLUE)
-
-
-def draw_mathir(ax, x, y, example):
-    card(ax, x, y, "D", "MathIR", GREEN, "x/2 − 9 = −1 · C: subtract −9 · F: ×2 · E: subtract −18")
-    for idx, answer in enumerate(example["answers"], start=1):
-        xx = x + (0.020 if idx == 1 else 0.249)
-        answer_box(
-            ax,
-            xx,
-            y + 0.066,
-            number=idx,
-            accent=GREEN,
-            answer=answer["answer"],
-            detail="executes to x = 16  ✓",
-            key="key  " + "  →  ".join(answer["trace"]),
-        )
-    footer(ax, x, y, GREEN)
-
-
-
-def draw_pantry(ax, example):
-    box(ax, 0.012, 0.055, 0.976, 0.890, face=PANEL, edge=GRID, radius=0.025, lw=1.0)
-    text(ax, 0.032, 0.845, "E", fontsize=11.0, fontweight="bold", color=PURPLE, ha="left")
-    text(ax, 0.071, 0.845, "PantryPlan", fontsize=10.2, fontweight="bold", ha="left")
-    text(
-        ax, 0.195, 0.845, "14 exact feasible ingredient supports",
-        fontsize=7.0, color=MUTED, ha="left",
-    )
-    box(ax, 0.032, 0.650, 0.936, 0.125, face=WHITE, edge=GRID, radius=0.012, lw=0.8)
-    text(ax, 0.049, 0.712, "PROMPT", fontsize=6.2, fontweight="bold", color=PURPLE, ha="left")
-    text(
-        ax, 0.126, 0.712,
-        "choose 2–4 ingredients · 125–200 g · meet exact energy, protein, fiber, sodium bounds",
-        fontsize=7.0, color=MUTED, ha="left",
-    )
-    for index, (answer, key) in enumerate(
-        zip(example["answers"], example["keys"]), start=1
-    ):
-        x = 0.032 if index == 1 else 0.510
-        box(ax, x, 0.190, 0.458, 0.380, face=WHITE, edge=PURPLE, radius=0.014, lw=1.0)
-        text(
-            ax, x + 0.016, 0.518, f"ANSWER {index}", fontsize=6.2,
-            fontweight="bold", color=PURPLE, ha="left",
-        )
-        text(
-            ax, x + 0.229, 0.407, answer.replace(";", ";\n"),
-            fontsize=7.4, fontweight="bold", fontfamily="DejaVu Sans Mono",
-        )
-        box(ax, x + 0.016, 0.228, 0.426, 0.085, face=PANEL, edge=GRID, radius=0.008, lw=0.6)
-        text(
-            ax, x + 0.229, 0.270,
-            "key  support{" + key.replace("+", ", ") + "}",
-            fontsize=6.6, fontweight="bold", color=PURPLE,
-        )
-    text(
-        ax, 0.500, 0.108,
-        "✓ both allocations satisfy every bound     ingredient support 1 ≠ support 2",
-        fontsize=7.0, fontweight="bold", color=PURPLE,
-    )
 def render() -> None:
     examples = load_and_validate()
-    fig = plt.figure(figsize=(7.35, 3.35))
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.set_axis_off()
+    blocks = build_blocks(examples)
 
-    draw_graph(ax, 0.012, 0.522, examples["graph"])
-    draw_countdown(ax, 0.512, 0.522, examples["countdown"])
-    draw_python(ax, 0.012, 0.035, examples["python"])
-    draw_mathir(ax, 0.512, 0.035, examples["mathir"])
+    stack = sum(block_height(block) for block in blocks)
+    stack += BLOCK_GAP * (len(blocks) - 1)
+    height = 0.10 + HEADLINE + CAPTION + stack + 0.12
+
+    fig = plt.figure(figsize=(WIDTH, height))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, WIDTH)
+    ax.set_ylim(0, height)
+    ax.set_axis_off()
+    fig.canvas.draw()
+
+    top = height - 0.10
+    text(ax, MARGIN + 0.22, top - HEADLINE / 2, "One prompt, two verified answers, two different keys", fontweight="bold")
+    caption = top - HEADLINE - CAPTION / 2
+    text(ax, X_RESPONSE, caption, "response", color=MUTED)
+    text(ax, X_CHECK, caption, "execute + verify", color=MUTED)
+    text(ax, X_KEY_RIGHT - 0.13, caption, "canonical key", color=MUTED, ha="right")
+
+    cursor = top - HEADLINE - CAPTION
+    for block in blocks:
+        draw_block(fig, ax, block, cursor)
+        cursor -= block_height(block) + BLOCK_GAP
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)
@@ -378,21 +504,6 @@ def render() -> None:
     print(f"Wrote {OUT.with_suffix('.pdf')}")
     print(f"Wrote {OUT.with_suffix('.png')}")
 
-
-    pantry_fig = plt.figure(figsize=(7.35, 1.48))
-    pantry_ax = pantry_fig.add_axes([0, 0, 1, 1])
-    pantry_ax.set_axis_off()
-    draw_pantry(pantry_ax, examples["pantry"])
-    pantry_fig.savefig(
-        OUT_PANTRY.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035
-    )
-    pantry_fig.savefig(
-        OUT_PANTRY.with_suffix(".png"), dpi=240,
-        bbox_inches="tight", pad_inches=0.035,
-    )
-    plt.close(pantry_fig)
-    print(f"Wrote {OUT_PANTRY.with_suffix('.pdf')}")
-    print(f"Wrote {OUT_PANTRY.with_suffix('.png')}")
 
 if __name__ == "__main__":
     render()

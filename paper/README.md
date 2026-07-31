@@ -97,8 +97,9 @@ The plot scripts read frozen machine-readable model evaluations and regenerate:
 - [`figures/xdr_mechanism.pdf`](figures/xdr_mechanism.pdf): a six-part map of
   how verification, discovery bonuses, replay, mass/balance, adaptive control,
   and singleton escape address different failure modes;
-- [`figures/modebench_examples.pdf`](figures/modebench_examples.pdf): one compact,
-  execution-checked pictorial example for each ModeBench domain;
+- [`figures/modebench_examples.pdf`](figures/modebench_examples.pdf): one
+  single-panel, execution-checked response/verify/key row for each ModeBench
+  domain, in the verified-mode colours of `modecollapse_story.pdf`;
 - [`figures/modecollapse_story.pdf`](figures/modecollapse_story.pdf): the
   two-panel, model-backed Graph Coloring example with a clarified prompt and one
   wide paired Dr.GRPO/xGRPO trajectory through step 768 (end of epoch 4);

@@ -515,7 +515,7 @@ submit_domain() {
       export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=64
       export OAT_ZERO_MAX_MODEL_LEN=384
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=610400
-      export_cs_placement a6000
+      export_cs_placement a5000
       ;;
     pantry_plan)
       # PantryPlan's support-mask interface overrides the shared boxed-prompt

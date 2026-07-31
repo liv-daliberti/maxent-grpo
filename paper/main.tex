@@ -325,17 +325,17 @@ distinguished.
 \begin{figure}[tb]
   \centering
   \includegraphics[width=\linewidth]{figures/modebench_examples.pdf}
-  \vspace{2pt}
-  \includegraphics[width=\linewidth]{figures/modebench_pantry_example.pdf}
   \caption{\textbf{Two verified modes for one prompt in each \mb{} domain.}
-  Every answer appears inside its own box; the line beneath is the canonical
-  key produced by the same execution that accepted it. Graph answers complete
-  \texttt{2??1?2}; Countdown keys are normalized ASTs; Python keys are executed
-  return vectors; MathIR keys are state trajectories; and PantryPlan keys are
-  ingredient supports. In every panel both answers are correct, but their keys
-  differ. Every panel uses the first row of that domain's fixed evaluation
-  split. The full prompt behind every panel is in
-  Appendix~\ref{app:prompts}.}
+  Every row reads left to right in the order the pipeline runs: the response
+  the policy emits, the execution that accepts it, and the canonical key that
+  same execution produces. Graph answers complete \texttt{2??1?2}; Countdown
+  keys are normalized ASTs; the Python lambda is called once per input, so its
+  key is the four returned factors in input order; MathIR keys are state
+  trajectories; and PantryPlan keys are ingredient supports. In
+  every domain both answers are correct, but their keys differ. The two answer
+  colours are the two verified-mode colours of Figure~\ref{fig:story}. Every
+  domain uses the first row of its fixed evaluation split. The full prompt
+  behind every domain is in Appendix~\ref{app:prompts}.}
   \label{fig:modebench-examples}
 \end{figure}
 
