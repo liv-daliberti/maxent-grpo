@@ -73,7 +73,47 @@ multi-token strings rather than single special tokens, which adds a small fixed
 prompt overhead. Measured over the full train and evaluation pools, the longest
 rendered prompt per domain is 213 (Graph), 246 (Countdown), 169 (Python), 226
 (MathIR), and 609 (PantryPlan) tokens, all inside the manuscript's existing
-budgets, so no length limit is relaxed for this cohort.
+budgets, so no *prompt* limit is relaxed for this cohort.
+
+**Amendment 1 (2026-07-31, before any outcome was read): Python response
+budget.** The paragraph above verified prompt lengths. The binding constraint
+turned out to be the *response* budget, which is a property of how verbosely a
+model answers rather than of the data. Measured on the first ~30 optimizer steps
+of this cohort against the corresponding Qwen runs:
+
+| Domain | Falcon mean response | Falcon at 192-token cap | Qwen mean | Qwen at cap |
+|---|---|---|---|---|
+| Graph coloring | 20.9 | 6% | 4.3 | 0% |
+| Countdown | 24.0 | 2% | 8.8 | 0% |
+| Python factors | 136.4 | 44% | 9.8 | 0% |
+
+Falcon3-1B is uniformly more verbose than Qwen2.5-0.5B. On Python that makes the
+manuscript's 192-token response budget bind on 44% of rollouts, truncating them
+before any parseable answer is emitted, whereas the same budget never bound the
+Qwen cohort (20 of 4,609 responses). A cell measured through a budget that
+truncates almost half its rollouts reports the interaction of the model's
+verbosity with the instrument, not the behaviour of the objective, and the
+design's intent is that the response budget not be the binding constraint for
+either family.
+
+The Python domain's response budget is therefore raised to 512 generate and 512
+evaluate tokens with `max_model_len` 768, applied identically to both arms and
+to all five seeds, and its ten runs are relaunched from step zero on the same
+frozen source and execution snapshots. Graph coloring (6%) and Countdown (2%)
+are left at the manuscript values: they are close enough to the non-binding
+regime that changing them would add deviation without removing a confound.
+MathIR and PantryPlan are unaffected, the latter because its canonical
+fixed-shape sampler emits exactly six action tokens by construction.
+
+This amendment was written and applied before any evaluation checkpoint of this
+cohort was read; the Python arms were at optimizer step ~30 of 4,608 and their
+mean reward was 0.0000 in both arms, the same value the Qwen Python cohort
+showed at the same point (0.0016). No outcome ordering between the arms was
+known, and none of the compared quantities was used to choose the new budget:
+it was chosen to make truncation negligible, not to move a result. Because the
+change alters response length, Python's Falcon rows are not comparable to a
+192-token Falcon Python run, and the reported cohort uses the 512-token runs
+throughout.
 
 **Canonical action geometry is unchanged.** Every canonical action string
 resolves to exactly one round-tripping token under Falcon's tokenizer, and the

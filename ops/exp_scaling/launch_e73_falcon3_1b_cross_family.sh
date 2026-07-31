@@ -482,9 +482,13 @@ submit_domain() {
       export OAT_ZERO_SAVE_STEPS=384
       export OAT_ZERO_SAVE_FROM=384
       export OAT_ZERO_RESUME_STEPS=384
-      export OAT_ZERO_GENERATE_MAX_LENGTH=192
-      export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=192
-      export OAT_ZERO_MAX_MODEL_LEN=512
+      # Amendment 1: Falcon answers Python in ~136 tokens against Qwen's ~10, so
+      # the manuscript's 192-token budget truncated 44% of Falcon's rollouts
+      # while never binding the Qwen cohort. Raised so the instrument is
+      # non-binding for this family too; identical across both arms.
+      export OAT_ZERO_GENERATE_MAX_LENGTH=512
+      export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=512
+      export OAT_ZERO_MAX_MODEL_LEN=768
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=610300
       export_cs_placement
       ;;
