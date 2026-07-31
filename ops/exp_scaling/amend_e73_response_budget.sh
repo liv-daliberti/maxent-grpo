@@ -1,26 +1,39 @@
 #!/usr/bin/env bash
-# E73 Amendment 1: relaunch the Python domain with a non-binding response budget.
+# E73 response-budget amendments: relaunch one domain with a budget that is
+# non-binding for Falcon, as the manuscript's budget already was for Qwen.
 #
-# Falcon3-1B answers the Python task in ~136 tokens where Qwen2.5-0.5B used ~10,
-# so the manuscript's 192-token response budget truncated 44% of Falcon's
-# rollouts before any parseable answer was emitted while never binding the Qwen
-# cohort (20 of 4,609 responses). This replaces the ten Python runs with 512-token
-# generate and evaluate budgets, applied identically to both arms and all five
-# seeds.
+# Falcon3-1B is uniformly more verbose than Qwen2.5-0.5B, so response budgets
+# chosen against Qwen's terseness truncate Falcon rollouts before they emit a
+# parseable answer. Measured against the paired Qwen runs:
 #
-# The amendment deliberately reuses the cohort's existing frozen source and
-# execution snapshots: only a decoding budget changes, never the code. Every
-# other domain is left untouched.
+#   Amendment 1  python_factor  Falcon 136.4 tok, 44% at 192  (Qwen 9.8, 0%)
+#   Amendment 2  mathir         Falcon  15.9 tok, 14% at  64  (Qwen 4.0, 0%)
+#
+# Graph coloring (6%) and Countdown (2%) are deliberately not amended: they are
+# close enough to the non-binding regime that changing them would add deviation
+# without removing a confound. PantryPlan is unaffected because its canonical
+# fixed-shape sampler emits exactly six action tokens by construction.
+#
+# Each amendment reuses the cohort's existing frozen source and execution
+# snapshots: only a decoding budget changes, never the code.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/ops/repo_env.sh"
 
 phase="${1:-}"
+domain="${2:-}"
 case "$phase" in
   config|full) ;;
   *)
-    echo "Usage: $0 {config|full}" >&2
+    echo "Usage: $0 {config|full} {python_factor|mathir}" >&2
+    exit 1
+    ;;
+esac
+case "$domain" in
+  python_factor|mathir) ;;
+  *)
+    echo "Usage: $0 {config|full} {python_factor|mathir}" >&2
     exit 1
     ;;
 esac
@@ -28,19 +41,41 @@ esac
 PYTHON_BIN="${OAT_ZERO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/python}"
 PROTOCOL="$ROOT_DIR/paper/preregistration/e73_falcon3_1b_cross_family_replication_20260731.md"
 MODEL_ROOT="$ROOT_DIR/var/cache/huggingface/transformers/models--tiiuae--Falcon3-1B-Instruct/snapshots/28ba2251970a01dd1edc7ba7dad2eb71216ccfdf"
-PYTHON_DATA="$ROOT_DIR/var/data/python_factor_modebench_v1"
 IDENTITY="$ROOT_DIR/var/artifacts/e73_falcon3_1b_cross_family_identity.json"
-AMENDMENT="$ROOT_DIR/var/artifacts/e73_falcon3_1b_python_budget_amendment.json"
 
-PYTHON_PREFIX=pye73_falcon3_1b_12pass_r1
-PYTHON_MANIFEST="$ROOT_DIR/var/artifacts/${PYTHON_PREFIX}_comparative_jobs.tsv"
+case "$domain" in
+  python_factor)
+    AMENDMENT_LABEL="Amendment 1"
+    DOMAIN_DATA="$ROOT_DIR/var/data/python_factor_modebench_v1"
+    IDENTITY_DOMAIN_KEY=python_factor
+    COMPARATIVE_TASK=python_factor
+    DOMAIN_PREFIX=pye73_falcon3_1b_12pass_r1
+    AMENDMENT="$ROOT_DIR/var/artifacts/e73_falcon3_1b_python_budget_amendment.json"
+    NEW_GENERATE_MAX_LENGTH=512
+    NEW_MAX_MODEL_LEN=768
+    SUPERSEDED_GENERATE_MAX_LENGTH=192
+    COVERAGE_SEED=610300
+    ;;
+  mathir)
+    # 128 response tokens still fit the existing 384-token window alongside the
+    # longest 226-token MathIR prompt, so max_model_len is unchanged.
+    AMENDMENT_LABEL="Amendment 2"
+    DOMAIN_DATA="$ROOT_DIR/var/data/mathir_action_menu_v1"
+    IDENTITY_DOMAIN_KEY=mathir
+    COMPARATIVE_TASK=math
+    DOMAIN_PREFIX=mie73_falcon3_1b_12pass_r1
+    AMENDMENT="$ROOT_DIR/var/artifacts/e73_falcon3_1b_mathir_budget_amendment.json"
+    NEW_GENERATE_MAX_LENGTH=128
+    NEW_MAX_MODEL_LEN=384
+    SUPERSEDED_GENERATE_MAX_LENGTH=64
+    COVERAGE_SEED=610400
+    ;;
+esac
 
-NEW_GENERATE_MAX_LENGTH=512
-NEW_MAX_MODEL_LEN=768
-SUPERSEDED_GENERATE_MAX_LENGTH=192
+DOMAIN_MANIFEST="$ROOT_DIR/var/artifacts/${DOMAIN_PREFIX}_comparative_jobs.tsv"
 
 for required in "$PROTOCOL" "$IDENTITY" "$MODEL_ROOT/config.json" \
-  "$PYTHON_DATA/train/dataset_dict.json" "$PYTHON_DATA/eval/dataset_dict.json"; do
+  "$DOMAIN_DATA/train/dataset_dict.json" "$DOMAIN_DATA/eval/dataset_dict.json"; do
   if [[ ! -e "$required" ]]; then
     echo "Missing E73 amendment prerequisite: $required" >&2
     exit 1
@@ -48,13 +83,13 @@ for required in "$PROTOCOL" "$IDENTITY" "$MODEL_ROOT/config.json" \
 done
 
 # The amendment must be recorded in the protocol before it is executed.
-if ! grep -q "Amendment 1 (2026-07-31" "$PROTOCOL"; then
-  echo "E73 amendment requires the protocol to record Amendment 1" >&2
+if ! grep -q "${AMENDMENT_LABEL} (2026-07-31" "$PROTOCOL"; then
+  echo "E73 amendment requires the protocol to record ${AMENDMENT_LABEL}" >&2
   exit 1
 fi
 
-if [[ "$phase" == full && -e "$PYTHON_MANIFEST" ]]; then
-  echo "Fresh E73 amendment manifest required; already exists: $PYTHON_MANIFEST" >&2
+if [[ "$phase" == full && -e "$DOMAIN_MANIFEST" ]]; then
+  echo "Fresh E73 amendment manifest required; already exists: $DOMAIN_MANIFEST" >&2
   exit 1
 fi
 
@@ -62,7 +97,7 @@ fi
 # changes a decoding budget, so the executed code must be bit-identical to the
 # code the other four domains are running.
 read -r SOURCE_ROOT OPS_ROOT SOURCE_HASH EXECUTION_HASH SUPERSEDED_JOBS < <(
-  "$PYTHON_BIN" - "$IDENTITY" "$ROOT_DIR" <<'PY'
+  "$PYTHON_BIN" - "$IDENTITY" "$ROOT_DIR" "$IDENTITY_DOMAIN_KEY" <<'PY'
 import json
 import pathlib
 import sys
@@ -73,7 +108,7 @@ source_hash = identity["source_hash"]
 execution_hash = identity["execution_surface_hash"]
 source_root = root / "var/artifacts/source_snapshots" / f"e73_falcon3_1b_{source_hash}/src"
 ops_root = root / "var/artifacts/source_snapshots" / f"e73_falcon3_1b_ops_{execution_hash}/ops"
-jobs = ",".join(str(job["job_id"]) for job in identity["jobs"]["python_factor"])
+jobs = ",".join(str(job["job_id"]) for job in identity["jobs"][sys.argv[3]])
 print(source_root, ops_root, source_hash, execution_hash, jobs)
 PY
 )
@@ -88,7 +123,7 @@ done
 
 IFS=',' read -r -a superseded <<< "$SUPERSEDED_JOBS"
 if [[ "${#superseded[@]}" -ne 10 ]]; then
-  echo "E73 amendment expected 10 superseded Python jobs; got ${#superseded[@]}" >&2
+  echo "E73 amendment expected 10 superseded $domain jobs; got ${#superseded[@]}" >&2
   exit 1
 fi
 
@@ -198,9 +233,9 @@ export OAT_ZERO_TRAIN_CPUS_PER_TASK=8
 export OAT_ZERO_TRAIN_MEMORY=64G
 export OAT_ZERO_TRAIN_TIME_LIMIT=3-00:00:00
 
-export RUN_STAMP_PREFIX="$PYTHON_PREFIX"
-export OAT_ZERO_COMPARATIVE_TASK=python_factor
-export OAT_ZERO_COMPARATIVE_DATA_ROOT="$PYTHON_DATA"
+export RUN_STAMP_PREFIX="$DOMAIN_PREFIX"
+export OAT_ZERO_COMPARATIVE_TASK="$COMPARATIVE_TASK"
+export OAT_ZERO_COMPARATIVE_DATA_ROOT="$DOMAIN_DATA"
 export OAT_ZERO_MAX_TRAIN=384
 export OAT_ZERO_EVAL_PROMPT_INTERVAL=96
 export OAT_ZERO_SAVE_STEPS=384
@@ -209,7 +244,7 @@ export OAT_ZERO_RESUME_STEPS=384
 export OAT_ZERO_GENERATE_MAX_LENGTH="$NEW_GENERATE_MAX_LENGTH"
 export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH="$NEW_GENERATE_MAX_LENGTH"
 export OAT_ZERO_MAX_MODEL_LEN="$NEW_MAX_MODEL_LEN"
-export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=610300
+export OAT_ZERO_EVAL_MODE_COVERAGE_SEED="$COVERAGE_SEED"
 export OAT_ZERO_TRAIN_NODELIST=node202,node203,node204,node205,node206,node207
 export OAT_ZERO_TRAIN_GRES=gpu:a5000:1
 export OAT_ZERO_TRAIN_PARTITION=cs
@@ -219,13 +254,13 @@ if [[ "$phase" == config ]]; then
   export OAT_ZERO_COMPARATIVE_CONFIG_ONLY=1
   export OAT_ZERO_SBATCH_HOLD=0
   "$OPS_ROOT/submit_countdown_comparative.sh"
-  echo "[e73-amend] python_factor 512-token configuration passed"
+  echo "[e73-amend] $domain ${NEW_GENERATE_MAX_LENGTH}-token configuration passed"
   exit 0
 fi
 
 # Cancel the superseded runs before submitting, so the two budgets can never be
 # live in the same domain at once.
-echo "[e73-amend] cancelling superseded 192-token Python jobs: ${superseded[*]}"
+echo "[e73-amend] $domain: cancelling superseded ${SUPERSEDED_GENERATE_MAX_LENGTH}-token jobs: ${superseded[*]}"
 scancel "${superseded[@]}" 2>/dev/null || true
 
 export OAT_ZERO_PROTOCOL_IDENTITY="$IDENTITY"
@@ -246,7 +281,7 @@ trap cleanup_held EXIT
 "$OPS_ROOT/submit_countdown_comparative.sh"
 
 mapfile -t job_ids < <(
-  awk -F $'\t' 'NR > 1 && $3 ~ /^[0-9]+$/ {print $3}' "$PYTHON_MANIFEST"
+  awk -F $'\t' 'NR > 1 && $3 ~ /^[0-9]+$/ {print $3}' "$DOMAIN_MANIFEST"
 )
 if [[ "${#job_ids[@]}" -ne 10 ]]; then
   echo "E73 amendment produced ${#job_ids[@]} jobs; expected 10" >&2
@@ -281,7 +316,7 @@ for job_id in "${job_ids[@]}"; do
 done
 
 "$PYTHON_BIN" - \
-  "$AMENDMENT" "$PROTOCOL" "$IDENTITY" "$PYTHON_MANIFEST" \
+  "$AMENDMENT" "$PROTOCOL" "$IDENTITY" "$DOMAIN_MANIFEST" \
   "$SOURCE_HASH" "$EXECUTION_HASH" "$SUPERSEDED_JOBS" \
   "$NEW_GENERATE_MAX_LENGTH" "$NEW_MAX_MODEL_LEN" \
   "$SUPERSEDED_GENERATE_MAX_LENGTH" <<'PY'
@@ -359,5 +394,5 @@ PY
 scontrol release "${job_ids[@]}"
 released=1
 trap - EXIT
-echo "[e73-amend] released 10 Python jobs at ${NEW_GENERATE_MAX_LENGTH} tokens: ${job_ids[*]}"
+echo "[e73-amend] released 10 $domain jobs at ${NEW_GENERATE_MAX_LENGTH} tokens: ${job_ids[*]}"
 echo "[e73-amend] amendment=$AMENDMENT"

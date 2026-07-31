@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyBboxPatch
+from matplotlib.transforms import offset_copy
 
 ROOT = Path(__file__).resolve().parents[1]
 DR_DRAWS = (
@@ -37,32 +38,56 @@ XDR_DRAWS = (
 OUT = ROOT / "paper/figures/modecollapse_story"
 AUDIT = ROOT / "var/artifacts/paper_graph_collapse_toy.json"
 
-INK = "#19324A"
-MUTED = "#607487"
-GRID = "#D8E2EA"
-PANEL = "#F6F9FB"
-WHITE = "#FFFFFF"
-INVALID = "#D8DEE5"
-DR = "#C76A3A"
-XDR = "#087F8C"
+# One type size for every label in the figure, so nothing in the printed
+# panel reads as a second-class annotation.
+FONT = 17.0
 
+INK = "#1B2733"
+MUTED = "#5B6B7B"
+GRID = "#DEE4EA"
+FRAME = "#AEB9C4"
+PANEL = "#F2F5F8"
+WHITE = "#FFFFFF"
+
+# Both data scales are sampled from `plt.cm.plasma`, quoted here as fixed hex
+# so the printed figure never moves with a matplotlib release. Two scales share
+# the figure and are kept apart by role: the *series* scale identifies executed
+# answer modes and lives only in the bar panels and their legend; the *paint*
+# scale identifies the puzzle's three colours and lives only in panel A. Each is
+# spread across the ramp so its own marks separate; chrome stays neutral so the
+# ramp is the only thing carrying meaning.
 MODE_COLORS = {
-    "31223": "#D95F45",
-    "33221": "#6C5CE7",
-    "32213": "#2A9D8F",
+    "33221": "#41049D",  # Option A — plasma 0.10
+    "31223": "#BF3984",  # Option B — plasma 0.45
+    "32213": "#F2844B",  # Option C — plasma 0.70
 }
-OTHER = "#4C78A8"
-NODE_COLORS = {1: "#F2C14E", 2: "#2A9D8F", 3: "#7B6FD0"}
+OTHER = "#FCCE25"  # any further verified mode — plasma 0.90
+INVALID = "#E5E9ED"  # invalid response — off-ramp on purpose, so it recedes
+NODE_COLORS = {1: "#F7E425", 2: "#D6556D", 3: "#5601A4"}  # plasma 0.95/0.55/0.15
+NODE_TEXT = {1: INK, 2: WHITE, 3: WHITE}
 
 mpl.rcParams.update(
     {
-        "font.family": "DejaVu Sans",
-        "font.size": 8.4,
-        "axes.edgecolor": INK,
+        "font.family": "sans-serif",
+        "font.sans-serif": [
+            "DejaVu Sans",
+            "Helvetica",
+            "Arial",
+            "Liberation Sans",
+        ],
+        "font.size": FONT,
+        "axes.titlesize": FONT,
+        "axes.labelsize": FONT,
+        "xtick.labelsize": FONT,
+        "ytick.labelsize": FONT,
+        "legend.fontsize": FONT,
+        "mathtext.fontset": "dejavusans",
+        "axes.edgecolor": FRAME,
         "axes.labelcolor": INK,
+        "text.color": INK,
         "xtick.color": INK,
         "ytick.color": INK,
-        "axes.linewidth": 0.7,
+        "axes.linewidth": 0.8,
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
         "figure.facecolor": WHITE,
@@ -95,29 +120,30 @@ def rounded_box(ax, x, y, w, h, *, face=WHITE, edge=GRID, radius=0.018, lw=1.0):
     return patch
 
 
-def panel_label(ax, letter: str, title: str, color: str) -> None:
-    ax.text(
-        0.0,
-        1.04,
-        letter,
-        transform=ax.transAxes,
-        fontsize=11.5,
-        fontweight="bold",
-        color=color,
-        ha="left",
-        va="bottom",
-    )
-    ax.text(
-        0.105,
-        1.04,
-        title,
-        transform=ax.transAxes,
-        fontsize=10.2,
-        fontweight="bold",
-        color=INK,
-        ha="left",
-        va="bottom",
-    )
+def panel_label(ax, letter: str, title: str) -> None:
+    """Letter plus title on one baseline, offset in points so the gap between
+    them is the same in every panel regardless of how wide the panel is."""
+
+    for text, transform in (
+        (letter, ax.transAxes),
+        (
+            title,
+            offset_copy(
+                ax.transAxes, fig=ax.figure, x=1.4 * FONT, y=0, units="points"
+            ),
+        ),
+    ):
+        ax.text(
+            0.0,
+            1.045,
+            text,
+            transform=transform,
+            fontsize=FONT,
+            fontweight="bold",
+            color=INK,
+            ha="left",
+            va="bottom",
+        )
 
 
 def load_snapshots(path: Path) -> tuple[dict[int, dict[int, dict]], dict[int, dict]]:
@@ -210,18 +236,17 @@ def draw_partial_graph(ax, reference: dict) -> None:
     for left, right in reference["edges"]:
         x1, y1 = positions[left]
         x2, y2 = positions[right]
-        ax.plot([x1, x2], [y1, y2], color=MUTED, lw=1.45, zorder=1)
+        ax.plot([x1, x2], [y1, y2], color="#9AA8B5", lw=1.6, zorder=1)
     for vertex, color in enumerate(reference["partial_colors"], start=1):
         x, y = positions[vertex]
         face = NODE_COLORS[color] if color is not None else WHITE
-        edge = INK if color is not None else MUTED
         ax.scatter(
             [x],
             [y],
-            s=430,
+            s=1000,
             facecolor=face,
-            edgecolor=edge,
-            lw=1.35,
+            edgecolor=INK if color is not None else "#9AA8B5",
+            lw=1.2,
             clip_on=False,
             zorder=2,
         )
@@ -231,9 +256,9 @@ def draw_partial_graph(ax, reference: dict) -> None:
             str(vertex),
             ha="center",
             va="center",
-            fontsize=9.0,
+            fontsize=FONT,
             fontweight="bold",
-            color=WHITE if color is not None else MUTED,
+            color=NODE_TEXT[color] if color is not None else MUTED,
             zorder=3,
         )
     ax.set_xlim(-0.02, 1.0)
@@ -242,27 +267,30 @@ def draw_partial_graph(ax, reference: dict) -> None:
 
 
 def draw_option_row(ax, y: float, label: str, key: str) -> None:
+    # The option name, not a colour, carries identity here: panel A owns the
+    # paint scale, so the label stays in text ink and the legend joins the row
+    # to its bar segment by name.
     ax.text(
-        0.02,
+        0.0,
         y,
         label,
         transform=ax.transAxes,
-        fontsize=7.5,
+        fontsize=FONT,
         fontweight="bold",
-        color=MODE_COLORS[key],
+        color=INK,
         ha="left",
         va="center",
     )
     for index, digit in enumerate(key):
-        x = 0.35 + index * 0.11
+        x = 0.345 + index * 0.138
         ax.scatter(
             [x],
             [y],
             transform=ax.transAxes,
-            s=70,
+            s=690,
             facecolor=NODE_COLORS[int(digit)],
             edgecolor=WHITE,
-            lw=0.6,
+            lw=1.1,
             clip_on=False,
             zorder=3,
         )
@@ -271,51 +299,41 @@ def draw_option_row(ax, y: float, label: str, key: str) -> None:
             y,
             str(index + 1),
             transform=ax.transAxes,
-            fontsize=5.8,
+            fontsize=FONT,
             fontweight="bold",
-            color=INK if int(digit) == 1 else WHITE,
+            color=NODE_TEXT[int(digit)],
             ha="center",
             va="center",
             zorder=4,
         )
-    ax.text(
-        0.97,
-        y,
-        "✓",
-        transform=ax.transAxes,
-        fontsize=8.5,
-        fontweight="bold",
-        color=XDR,
-        ha="right",
-        va="center",
-    )
 
 
 def render_prompt_panel(ax, reference: dict) -> None:
     ax.set_axis_off()
-    panel_label(ax, "A", "One prompt, many answers", MODE_COLORS["33221"])
+    panel_label(ax, "A", "One prompt, many answers")
     # The prompt question is the figure title, so panel A spends its full
     # upper half on the graph instead of repeating the question.
-    graph_ax = ax.inset_axes([0.0, 0.38, 0.63, 0.58])
+    graph_ax = ax.inset_axes([0.0, 0.53, 0.58, 0.47])
     draw_partial_graph(graph_ax, reference)
-    rounded_box(ax, 0.69, 0.60, 0.28, 0.21, face="#F0F7F6", edge="#B9DCD7")
+    rounded_box(ax, 0.612, 0.680, 0.345, 0.235, face=PANEL, edge=GRID)
     ax.text(
-        0.83,
-        0.705,
+        0.7845,
+        0.7975,
         "12 valid\nsolutions",
         transform=ax.transAxes,
-        fontsize=7.8,
+        fontsize=FONT,
         fontweight="bold",
-        color=XDR,
+        color=INK,
         ha="center",
         va="center",
+        linespacing=1.25,
     )
     ax.text(
         0.0,
-        0.30,
-        "Three valid options (numbers identify vertices):",
+        0.440,
+        "Three valid colorings:",
         transform=ax.transAxes,
-        fontsize=6.7,
+        fontsize=FONT,
         color=MUTED,
         ha="left",
         va="center",
@@ -325,7 +343,7 @@ def render_prompt_panel(ax, reference: dict) -> None:
         ("Option B", "31223"),
         ("Option C", "32213"),
     ]
-    for y, (label, key) in zip((0.215, 0.105, -0.005), options):
+    for y, (label, key) in zip((0.310, 0.155, 0.000), options):
         draw_option_row(ax, y, label, key)
 
 
@@ -337,21 +355,16 @@ def render_method_trajectory(
     snapshots: dict[int, dict[int, dict]],
     prompt_index: int,
     *,
-    letter: str | None,
+    letter: str,
     title: str,
-    accent: str,
     show_ylabel: bool,
 ) -> dict:
-    if letter is not None:
-        panel_label(ax, letter, title, accent)
-    else:
-        ax.text(
-            0.0, 1.04, title, transform=ax.transAxes, fontsize=10.2,
-            fontweight="bold", color=INK, ha="left", va="bottom",
-        )
+    panel_label(ax, letter, title)
     steps = [0, 48, 96, 192, 384, 576, 768]
     centers = np.arange(len(steps), dtype=float)
-    keys = ["31223", "33221", "32213"]
+    # Stacked bottom-up in legend order so the reading order of the stack and
+    # the reading order of the legend agree.
+    keys = ["33221", "31223", "32213"]
     counts_by_step = [correct_counts(snapshots[step], prompt_index) for step in steps]
     audit = {
         str(step): {
@@ -365,36 +378,33 @@ def render_method_trajectory(
     bottoms = np.zeros(len(steps))
     for key in keys:
         values = np.array([counts.get(key, 0) for counts in counts_by_step])
-        ax.bar(centers, values, width=0.62, bottom=bottoms,
-               color=MODE_COLORS[key], edgecolor=WHITE, linewidth=0.45)
+        ax.bar(centers, values, width=0.60, bottom=bottoms,
+               color=MODE_COLORS[key], edgecolor=WHITE, linewidth=1.1)
         bottoms += values
     other = np.array([sum(value for mode, value in counts.items() if mode not in keys)
                       for counts in counts_by_step])
-    ax.bar(centers, other, width=0.62, bottom=bottoms,
-           color=OTHER, edgecolor=WHITE, linewidth=0.45)
+    ax.bar(centers, other, width=0.60, bottom=bottoms,
+           color=OTHER, edgecolor=WHITE, linewidth=1.1)
     bottoms += other
-    ax.bar(centers, 32 - bottoms, width=0.62, bottom=bottoms,
-           color=INVALID, edgecolor=WHITE, linewidth=0.45)
-    ax.bar(centers, np.full(len(steps), 32), width=0.62, bottom=0,
-           facecolor="none", edgecolor=accent, linewidth=1.05, zorder=4)
+    ax.bar(centers, 32 - bottoms, width=0.60, bottom=bottoms,
+           color=INVALID, edgecolor=WHITE, linewidth=1.1)
+    ax.bar(centers, np.full(len(steps), 32), width=0.60, bottom=0,
+           facecolor="none", edgecolor=FRAME, linewidth=0.9, zorder=4)
     for x, counts in zip(centers, counts_by_step):
-        ax.text(x, 32.7, str(len(counts)), fontsize=6.5, fontweight="bold",
-                color=accent, ha="center", va="bottom")
-    ax.set_ylim(0, 38.5)
-    ax.set_xlim(-0.50, 6.50)
-    ax.set_xticks(
-        centers,
-        ["Step 0", "48", "96", "192", "384", "576", "768\n(epoch 4)"],
-        fontsize=6.2,
-    )
-    ax.set_xlabel("optimizer step", fontsize=7.0, labelpad=1)
+        ax.text(x, 33.2, str(len(counts)), fontsize=FONT, fontweight="bold",
+                color=INK, ha="center", va="bottom")
+    ax.set_ylim(0, 37.6)
+    ax.set_xlim(-0.55, 6.55)
+    ax.set_xticks(centers, ["0", "48", "96", "192", "384", "576", "768"])
+    ax.set_xlabel("optimizer step (4 epochs)", labelpad=4)
     ax.set_yticks([0, 8, 16, 24, 32])
     if show_ylabel:
-        ax.set_ylabel("fixed-seed samples (of 32)", fontsize=7.0, labelpad=1)
+        ax.set_ylabel("fixed-seed samples (of 32)", labelpad=4)
     else:
         ax.set_yticklabels([])
-    ax.grid(axis="y", color=GRID, linewidth=0.55, alpha=0.8)
+    ax.grid(axis="y", color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
+    ax.tick_params(length=3.0, width=0.8, pad=3)
     ax.spines[["top", "right"]].set_visible(False)
     return audit
 
@@ -417,36 +427,36 @@ def main() -> None:
 
     # Drawn at the full text width, so the canvas is wide relative to its
     # height and every element keeps its printed font size while gaining room.
-    fig = plt.figure(figsize=(9.00, 2.72))
+    fig = plt.figure(figsize=(13.2, 5.60))
     fig.text(
-        0.51,
-        0.975,
+        0.034,
+        0.985,
         "How can we color the three uncolored nodes so that connected nodes "
         "get different colors?",
-        fontsize=11.0,
+        fontsize=FONT,
         fontweight="bold",
         color=INK,
-        ha="center",
+        ha="left",
         va="top",
     )
     grid = fig.add_gridspec(
-        1, 3, width_ratios=[1.18, 1.00, 1.00],
-        left=0.022, right=0.995, top=0.795, bottom=0.135, wspace=0.20,
+        1, 5, width_ratios=[4.35, 0.65, 3.74, 0.17, 3.74],
+        left=0.034, right=0.992, top=0.845, bottom=0.270, wspace=0.0,
     )
-    axes = [fig.add_subplot(grid[0, index]) for index in range(3)]
+    axes = [fig.add_subplot(grid[0, index]) for index in (0, 2, 4)]
     render_prompt_panel(axes[0], reference)
     dr_trajectory = render_method_trajectory(
-        axes[1], dr, prompt_index, letter="B", title="Dr.GRPO",
-        accent=DR, show_ylabel=True,
+        axes[1], dr, prompt_index, letter="B", title="GRPO",
+        show_ylabel=True,
     )
     xdr_trajectory = render_method_trajectory(
-        axes[2], xdr, prompt_index, letter=None, title="xGRPO",
-        accent=XDR, show_ylabel=False,
+        axes[2], xdr, prompt_index, letter="C", title="x-mode GRPO",
+        show_ylabel=False,
     )
 
     legend = [
         Line2D([0], [0], marker="s", color="none", markerfacecolor=color,
-               markeredgecolor="none", markersize=6, label=label)
+               markeredgecolor="none", markersize=11, label=label)
         for label, color in [
             ("Option A", MODE_COLORS["33221"]),
             ("Option B", MODE_COLORS["31223"]),
@@ -455,15 +465,17 @@ def main() -> None:
             ("invalid", INVALID),
         ]
     ]
+    # Sits in the bottom band the gridspec reserves for it, clear of the
+    # x-axis labels above.
     fig.legend(
         handles=legend,
         loc="lower center",
-        bbox_to_anchor=(0.51, -0.075),
+        bbox_to_anchor=(0.5, 0.004),
         ncol=5,
         frameon=False,
-        fontsize=7.0,
-        handletextpad=0.35,
-        columnspacing=1.0,
+        fontsize=FONT,
+        handletextpad=0.45,
+        columnspacing=2.0,
     )
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -477,16 +489,19 @@ def main() -> None:
     plt.close(fig)
 
     audit = {
-        "schema": "paper_graph_collapse_toy_v15",
+        "schema": "paper_graph_collapse_toy_v16",
         "model": "Qwen2.5-0.5B-Instruct",
         "seed": 43,
         "layout_contract": {
-            "panels": ["A", "B"],
-            "panel_B_facets": ["Dr.GRPO", "xGRPO"],
+            "panels": ["A", "B", "C"],
+            "panel_titles": [
+                "One prompt, many answers",
+                "GRPO",
+                "x-mode GRPO",
+            ],
             "steps": [0, 48, 96, 192, 384, 576, 768],
             "end_epoch": 4,
             "paired_bars": False,
-            "panel_C": False,
         },
         "sampling": {
             "temperature": 1.0,

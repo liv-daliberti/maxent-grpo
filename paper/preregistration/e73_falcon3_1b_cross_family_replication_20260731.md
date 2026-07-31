@@ -115,6 +115,36 @@ change alters response length, Python's Falcon rows are not comparable to a
 192-token Falcon Python run, and the reported cohort uses the 512-token runs
 throughout.
 
+**Amendment 2 (2026-07-31, before any outcome was read): MathIR response
+budget.** The same instrument mismatch appears more mildly on MathIR, whose
+64-token response budget bound 14% of Falcon's rollouts against 0.0% of Qwen's
+(0 of 4,609). Measured on the first 160 responses of the first MathIR run, the
+rate is persistent and rising rather than a warmup transient: 12% over the first
+sixty responses and 17% over the most recent sixty. Falcon's mean MathIR
+response is 15.9 tokens against Qwen's 4.0.
+
+MathIR's budget is therefore raised from 64 to 128 generate and evaluate tokens,
+applied identically to both arms and all five seeds. Its `max_model_len` is
+*unchanged* at 384: the longest rendered MathIR prompt is 226 tokens, so 128
+response tokens still fit inside the existing window, making this a strictly
+smaller deviation than Amendment 1. Its ten runs are relaunched from step zero
+on the same frozen source and execution snapshots.
+
+MathIR is amended where Graph coloring (6%) and Countdown (2%) are not, for two
+reasons. Its rate is roughly the Python case in kind if not degree, at more than
+twice the Graph rate and rising; and MathIR carries the terminal causal
+comparison of Appendix~\ref{app:terminal-mathir}, so a budget that silently
+truncates one rollout in seven would sit underneath a causal claim rather than a
+descriptive one.
+
+As with Amendment 1, this was recorded before any evaluation checkpoint was
+read. The single running MathIR arm was at optimizer step ~161 of 4,608 with
+mean reward 0.0437, statistically indistinguishable from the Qwen MathIR
+cohort's 0.0406 at the same stage, and its paired arm had not yet started, so no
+ordering between arms existed to be influenced by. The new budget was chosen as
+the smallest power of two that fits the existing context window, not by
+reference to any measured outcome.
+
 **Canonical action geometry is unchanged.** Every canonical action string
 resolves to exactly one round-tripping token under Falcon's tokenizer, and the
 three canonical tasks resolve to the same horizon, sequence count, and maximum

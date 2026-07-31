@@ -237,32 +237,38 @@ def main() -> None:
         "Figure 2 must appear after Table 1",
     )
     for token in (
-        "def render_method_trajectory(", 'letter="B"', 'title="Dr.GRPO"',
-        'letter=None', 'title="xGRPO"',
+        "def render_method_trajectory(", 'letter="B"', 'title="GRPO"',
+        'letter="C"', 'title="x-mode GRPO"',
         "steps = [0, 48, 96, 192, 384, 576, 768]",
-        "width_ratios=[1.18, 1.00, 1.00]",
+        "width_ratios=[4.35, 0.65, 3.74, 0.17, 3.74]",
+        "FONT = 17.0",
     ):
         require(token in source, f"missing source token {token!r}")
+    # Panel C is the xGRPO trajectory beside its control, never a return of the
+    # withdrawn paired-bar panel or of the fifth training epoch.
     for forbidden in ("render_paired_trajectory", "Paired trajectories",
-                      'letter="C"', "Step 960", "epoch 5"):
+                      "Step 960", "epoch 5"):
         require(forbidden not in source, f"forbidden source token {forbidden!r}")
-    require(audit["schema"] == "paper_graph_collapse_toy_v15", "wrong audit schema")
+    require(
+        re.search(r"fontsize=(?!FONT)", source) is None,
+        "figure 1 text must take its size from FONT, not a literal",
+    )
+    require(audit["schema"] == "paper_graph_collapse_toy_v16", "wrong audit schema")
     require(audit["layout_contract"] == {
-        "panels": ["A", "B"],
-        "panel_B_facets": ["Dr.GRPO", "xGRPO"],
+        "panels": ["A", "B", "C"],
+        "panel_titles": ["One prompt, many answers", "GRPO", "x-mode GRPO"],
         "steps": [0, 48, 96, 192, 384, 576, 768],
-        "end_epoch": 4, "paired_bars": False, "panel_C": False,
+        "end_epoch": 4, "paired_bars": False,
     }, "wrong panel layout contract")
     expected = {"0", "48", "96", "192", "384", "576", "768"}
     require(set(audit["drgrpo_trajectory"]) == expected, "wrong Dr.GRPO checkpoints")
     require(set(audit["xdrgrpo_trajectory"]) == expected, "wrong xDr.GRPO checkpoints")
     require(audit["drgrpo_trajectory"]["768"]["distinct"] == 1, "Dr endpoint changed")
     require(audit["xdrgrpo_trajectory"]["768"]["distinct"] == 6, "xDr endpoint changed")
-    for token in (r"(B) Four fixed-seed",
+    for token in (r"(B--C) Four fixed-seed",
                   "contracts to one mode", "retains six",
                   "marginal value of sampling"):
         require(token in manuscript, f"missing manuscript token {token!r}")
-    require("(B--C)" not in manuscript, "Panel C caption returned")
 
     expected_metrics = {
         "greedy": "neutral pass@1",
