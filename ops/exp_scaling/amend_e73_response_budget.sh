@@ -55,6 +55,7 @@ case "$domain" in
     NEW_MAX_MODEL_LEN=768
     SUPERSEDED_GENERATE_MAX_LENGTH=192
     COVERAGE_SEED=610300
+    GPU_MODEL=a6000
     ;;
   mathir)
     # 128 response tokens still fit the existing 384-token window alongside the
@@ -69,6 +70,7 @@ case "$domain" in
     NEW_MAX_MODEL_LEN=384
     SUPERSEDED_GENERATE_MAX_LENGTH=64
     COVERAGE_SEED=610400
+    GPU_MODEL=a6000
     ;;
 esac
 
@@ -245,8 +247,13 @@ export OAT_ZERO_GENERATE_MAX_LENGTH="$NEW_GENERATE_MAX_LENGTH"
 export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH="$NEW_GENERATE_MAX_LENGTH"
 export OAT_ZERO_MAX_MODEL_LEN="$NEW_MAX_MODEL_LEN"
 export OAT_ZERO_EVAL_MODE_COVERAGE_SEED="$COVERAGE_SEED"
-export OAT_ZERO_TRAIN_NODELIST=node202,node203,node204,node205,node206,node207
-export OAT_ZERO_TRAIN_GRES=gpu:a5000:1
+# cs holds two GPU models and GPU model changes sampling numerics, so a
+# domain is pinned to one model across both arms and all five seeds.
+case "$GPU_MODEL" in
+  a5000) export OAT_ZERO_TRAIN_NODELIST=node202,node203,node204 ;;
+  a6000) export OAT_ZERO_TRAIN_NODELIST=node205,node206,node207 ;;
+esac
+export OAT_ZERO_TRAIN_GRES="gpu:${GPU_MODEL}:1"
 export OAT_ZERO_TRAIN_PARTITION=cs
 export OAT_ZERO_TRAIN_ACCOUNT=allcs
 

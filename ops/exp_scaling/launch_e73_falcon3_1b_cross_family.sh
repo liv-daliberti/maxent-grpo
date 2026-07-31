@@ -430,11 +430,21 @@ export OAT_ZERO_TRAIN_MEMORY=64G
 # truncated terminal epoch. The epoch budget itself is unchanged.
 export OAT_ZERO_TRAIN_TIME_LIMIT=3-00:00:00
 
-# Every domain runs on cs/allcs A5000s so this cohort never competes with the
-# mltheory ablations.
+# Every domain runs on cs/allcs so this cohort never competes with the mltheory
+# ablations. The cs partition holds two GPU models -- node202-204 are A5000 and
+# node205-207 are A6000 -- and GPU model changes sampling numerics, so placement
+# is pinned per domain rather than per cohort. Both arms and all five seeds of a
+# domain always share one GPU model, which is what the paired arm contrast
+# requires; no comparison in this design crosses domains. Splitting the cohort
+# this way also uses both halves of the partition instead of queueing behind one.
 export_cs_placement() {
-  export OAT_ZERO_TRAIN_NODELIST=node202,node203,node204,node205,node206,node207
-  export OAT_ZERO_TRAIN_GRES=gpu:a5000:1
+  local gpu_model="$1"
+  case "$gpu_model" in
+    a5000) export OAT_ZERO_TRAIN_NODELIST=node202,node203,node204 ;;
+    a6000) export OAT_ZERO_TRAIN_NODELIST=node205,node206,node207 ;;
+    *) echo "Unknown cs GPU model: $gpu_model" >&2; exit 1 ;;
+  esac
+  export OAT_ZERO_TRAIN_GRES="gpu:${gpu_model}:1"
   export OAT_ZERO_TRAIN_PARTITION=cs
   export OAT_ZERO_TRAIN_ACCOUNT=allcs
 }
@@ -455,7 +465,7 @@ submit_domain() {
       export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=192
       export OAT_ZERO_MAX_MODEL_LEN=512
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=610100
-      export_cs_placement
+      export_cs_placement a5000
       ;;
     countdown)
       export RUN_STAMP_PREFIX="$COUNTDOWN_PREFIX"
@@ -471,7 +481,7 @@ submit_domain() {
       export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=192
       export OAT_ZERO_MAX_MODEL_LEN=512
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=610200
-      export_cs_placement
+      export_cs_placement a5000
       ;;
     python_factor)
       export RUN_STAMP_PREFIX="$PYTHON_PREFIX"
@@ -490,7 +500,7 @@ submit_domain() {
       export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=512
       export OAT_ZERO_MAX_MODEL_LEN=768
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=610300
-      export_cs_placement
+      export_cs_placement a6000
       ;;
     mathir)
       export RUN_STAMP_PREFIX="$MATHIR_PREFIX"
@@ -505,7 +515,7 @@ submit_domain() {
       export OAT_ZERO_EVAL_GENERATE_MAX_LENGTH=64
       export OAT_ZERO_MAX_MODEL_LEN=384
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=610400
-      export_cs_placement
+      export_cs_placement a6000
       ;;
     pantry_plan)
       # PantryPlan's support-mask interface overrides the shared boxed-prompt
@@ -530,7 +540,7 @@ submit_domain() {
       export OAT_ZERO_TRAIN_BATCH_SIZE_PER_DEVICE=4
       export OAT_ZERO_MAX_SAVE_MEM=2000
       export OAT_ZERO_EVAL_MODE_COVERAGE_SEED=76299
-      export_cs_placement
+      export_cs_placement a6000
       ;;
     *)
       echo "Unknown E73 domain: $domain" >&2

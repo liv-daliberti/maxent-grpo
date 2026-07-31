@@ -154,9 +154,32 @@ families.
 
 ## Placement
 
-All jobs run on the `cs` partition under account `allcs` on A5000 nodes. The
-`mltheory` partition is deliberately excluded so this cohort cannot contend with
-the concurrently running decoding-control and replay-ablation campaigns.
+All jobs run on the `cs` partition under account `allcs`. The `mltheory`
+partition is deliberately excluded so this cohort cannot contend with the
+concurrently running decoding-control and replay-ablation campaigns.
+
+**Amendment 3 (2026-07-31, before any outcome was read): per-domain GPU model.**
+The `cs` partition holds two GPU models, A5000 on node202--204 and A6000 on
+node205--207. GPU model changes sampling numerics, so the cohort was initially
+pinned entirely to A5000. That confined 50 jobs to three nodes whose host memory
+saturates at eight concurrent 64 GB runs, leaving 19 A6000s idle and roughly
+doubling the cohort's wall clock.
+
+Placement is therefore pinned **per domain** rather than per cohort: Graph
+coloring and Countdown on A5000, Python factors, MathIR, and PantryPlan on
+A6000. Every domain keeps both arms and all five seeds on a single GPU model,
+which is exactly what the design's comparisons require -- every reported
+contrast is within a domain, between arms, at a matched seed, and no claim in
+this experiment compares one domain's absolute values against another's. The
+existing per-domain jobs were moved in place with `scontrol update` rather than
+resubmitted, so job identities and the cohort manifests are unchanged.
+
+This is *more* controlled than the manuscript cohort it replicates, which
+requested a generic `gpu:1` across an A5000 node and an A100 node and so was
+itself GPU-heterogeneous within a domain. As with the other amendments, no
+evaluation checkpoint had been read: the moved domains were entirely pending
+except one PantryPlan job at a few minutes of runtime, which was requeued rather
+than cancelled.
 
 ## Prediction
 
