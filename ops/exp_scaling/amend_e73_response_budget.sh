@@ -326,7 +326,7 @@ done
   "$AMENDMENT" "$PROTOCOL" "$IDENTITY" "$DOMAIN_MANIFEST" \
   "$SOURCE_HASH" "$EXECUTION_HASH" "$SUPERSEDED_JOBS" \
   "$NEW_GENERATE_MAX_LENGTH" "$NEW_MAX_MODEL_LEN" \
-  "$SUPERSEDED_GENERATE_MAX_LENGTH" <<'PY'
+  "$SUPERSEDED_GENERATE_MAX_LENGTH" "$IDENTITY_DOMAIN_KEY" <<'PY'
 import csv
 import hashlib
 import json
@@ -344,21 +344,50 @@ rows = list(csv.DictReader(manifest.open(), delimiter="\t"))
 if len(rows) != 10:
     raise SystemExit(f"{manifest} has {len(rows)} jobs; expected 10")
 
-payload = {
-    "schema": "e73_falcon3_1b_python_budget_amendment_v1",
-    "amends": "e73_falcon3_1b_cross_family_v1",
-    "domain": "python_factor",
-    "reason": (
-        "Falcon3-1B answered Python in ~136 tokens against Qwen2.5-0.5B's ~10, "
-        "so the 192-token response budget truncated 44% of Falcon rollouts "
-        "while never binding the Qwen cohort (20 of 4609 responses)."
-    ),
-    "measured_before_amendment": {
+DOMAIN = sys.argv[11]
+
+# Per-domain measurements taken against the paired Qwen runs before amending.
+MEASURED = {
+    "python_factor": {
+        "reason": (
+            "Falcon3-1B answered Python in ~136 tokens against "
+            "Qwen2.5-0.5B's ~10, so the 192-token response budget truncated "
+            "44% of Falcon rollouts while never binding the Qwen cohort "
+            "(20 of 4609 responses)."
+        ),
         "falcon_mean_response_tokens": 136.4,
         "falcon_fraction_at_cap": 0.44,
         "qwen_mean_response_tokens": 9.8,
         "qwen_fraction_at_cap": 0.0,
         "optimizer_step_when_measured": 30,
+    },
+    "mathir": {
+        "reason": (
+            "Falcon3-1B answered MathIR in ~15.9 tokens against "
+            "Qwen2.5-0.5B's ~4.0, so the 64-token response budget bound 14% "
+            "of Falcon rollouts, persistent and rising (12% over the first "
+            "sixty responses, 17% over the most recent sixty), while never "
+            "binding the Qwen cohort (0 of 4609 responses)."
+        ),
+        "falcon_mean_response_tokens": 15.9,
+        "falcon_fraction_at_cap": 0.14,
+        "qwen_mean_response_tokens": 4.0,
+        "qwen_fraction_at_cap": 0.0,
+        "optimizer_step_when_measured": 161,
+    },
+}[DOMAIN]
+
+payload = {
+    "schema": f"e73_falcon3_1b_{DOMAIN}_budget_amendment_v1",
+    "amends": "e73_falcon3_1b_cross_family_v1",
+    "domain": DOMAIN,
+    "reason": MEASURED["reason"],
+    "measured_before_amendment": {
+        "falcon_mean_response_tokens": MEASURED["falcon_mean_response_tokens"],
+        "falcon_fraction_at_cap": MEASURED["falcon_fraction_at_cap"],
+        "qwen_mean_response_tokens": MEASURED["qwen_mean_response_tokens"],
+        "qwen_fraction_at_cap": MEASURED["qwen_fraction_at_cap"],
+        "optimizer_step_when_measured": MEASURED["optimizer_step_when_measured"],
         "optimizer_steps_per_run": 4608,
         "arm_ordering_known": False,
     },
@@ -368,10 +397,10 @@ payload = {
     "max_model_len": int(sys.argv[9]),
     "applies_to_both_arms": True,
     "domains_left_unchanged": [
-        "graph_coloring",
-        "countdown",
-        "mathir",
-        "pantry_plan",
+        d
+        for d in ("graph_coloring", "countdown", "mathir", "pantry_plan",
+                  "python_factor")
+        if d != DOMAIN
     ],
     "protocol_sha256": digest(sys.argv[2]),
     "cohort_identity_sha256": digest(sys.argv[3]),
