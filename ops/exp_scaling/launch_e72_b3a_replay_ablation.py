@@ -48,14 +48,19 @@ ARM_SPECS: dict[str, dict[str, Any]] = {
         "overrides": {},
     },
     "b1a": {
-        "variant": "verified_first_global_replay_canonical",
+        "variant": "verified_first_replay_only_ablation",
         "removes": "open-set discovery credit",
-        # Same variant as the treatment, with the discovery channels off. The
-        # replay mass and balance losses, their controllers, and the global
-        # scheduler are untouched.
+        # The variant, not these overrides, is what disables discovery: the
+        # treatment's own block hardcodes separate-advantage, success-
+        # conditioned, and open-set adaptation to on, and those switches are
+        # invalid at a zero coefficient. Zeroing the coefficient by environment
+        # alone produced a run that failed argument validation at startup.
         "overrides": {
             "OAT_ZERO_SEMANTIC_SHANNON_COEF": "0.0",
             "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA": "0.0",
+            "OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE": "0",
+            "OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE": "0",
+            "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION": "0",
         },
     },
 }

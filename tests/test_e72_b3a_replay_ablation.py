@@ -199,9 +199,9 @@ def test_b1a_removes_discovery_credit_and_keeps_replay(tmp_path):
     assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
     assert float(env["OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA"]) == 0.0
 
-    # Replay untouched, and the treatment's own variant, so its mass and
-    # balance losses and their controllers act exactly as in xGRPO.
-    assert env["OAT_ZERO_VARIANT"] == "verified_first_global_replay_canonical"
+    # Replay untouched: the mass and balance losses, their controllers, and the
+    # global scheduler carry the treatment's own doses.
+    assert env["OAT_ZERO_VARIANT"] == "verified_first_replay_only_ablation"
     assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA"]) == 0.10
     assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA"]) == 0.10
 
@@ -218,3 +218,18 @@ def test_arms_are_complementary_and_write_to_separate_run_directories(tmp_path):
 
     assert b3a.run_stamp(run, "b3a") != b3a.run_stamp(run, "b1a")
     assert b3a.save_path(tmp_path, run, "b3a") != b3a.save_path(tmp_path, run, "b1a")
+
+
+def test_b1a_disables_the_switches_that_require_a_positive_coefficient(tmp_path):
+    """A zero coefficient with these switches on fails argument validation.
+
+    The treatment's variant hardcodes all three to on, so B1a must use its own
+    variant and must not leave any of them enabled; the first B1a launch died
+    at startup on exactly this and was requeued by the watchdog.
+    """
+    env = b3a.build_export_vars(ROOT, _run(), tmp_path, "b1a")
+    assert env["OAT_ZERO_VARIANT"] == "verified_first_replay_only_ablation"
+    assert env["OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE"] == "0"
+    assert env["OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE"] == "0"
+    assert env["OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION"] == "0"
+    assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0

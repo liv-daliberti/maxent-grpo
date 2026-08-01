@@ -163,7 +163,8 @@ def main() -> None:
     appendix_labels = (
         "app:theory", "app:python", "app:prompts", "app:data", "app:algorithm",
         "app:per-seed", "app:terminal-mathir", "app:ablations",
-        "app:decoding", "app:telemetry", "app:reproducibility",
+        "app:decoding", "app:telemetry", "app:cross-family",
+        "app:reproducibility",
     )
     for label in appendix_labels:
         require(
@@ -227,8 +228,15 @@ def main() -> None:
         "navel_orange=75;sunflower_seeds=50",
         "grape_tomatoes=75;almonds=50",
         "def draw_mini_graph(",
-        "OPERATOR_TOKENS = {",
+        # One hue per operation, so the two Countdown keys are
+        # distinguishable by which operations they execute.
+        "OPERATOR_COLORS = {",
+        '"mul": "#C2410C"',
+        '"div": "#B45309"',
+        '"add": "#0F766E"',
         '"C: add 9 · F: ×2 · E: add 18"',
+        # MathIR names the actions its key ran, as PantryPlan does.
+        'mathir_menu = {"C": "add 9", "F": "×2", "E": "add 18"}',
         "NODE_PAINTS = {1: \"#C9D6E2\", 2: \"#6E8599\", 3: \"#263D51\"}",
         "INGREDIENT_COLORS = {",
     ):

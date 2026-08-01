@@ -724,8 +724,10 @@ keys. The next test is a coverage--budget curve on larger executable tasks.
 
 The common five-seed design and fixed reporting grid remove available-seed
 averaging, but each domain still stands on its own rather than in a pooled
-test. All domains are synthetic, the model is 0.5B, and exact identity is unusually
-available. PantryPlan tests substitution within a declared item set and Python
+test. All domains are synthetic and exact identity is unusually available;
+the benchmark and both arms run on two 0.5--1.7B instruction-tuned model
+families, but every reported number comes from one
+(Appendix~\ref{app:cross-family}). PantryPlan tests substitution within a declared item set and Python
 Factors a restricted grammar in isolation, so our claims stop at those
 interfaces. Baselines are limited to matched Dr.GRPO; beyond decoding
 (Appendix~\ref{app:decoding}), matched token entropy and distribution matching
@@ -1739,6 +1741,77 @@ in Section~\ref{sec:experiments}.
   \label{fig:clean-cohort}
 \end{figure}
 \clearpage
+
+\section{Cross-Family Replication on a Second Base Model}
+\label{app:cross-family}
+
+\noindent\emph{Main-body link.} This appendix records the registered design of
+the second-base-model replication referenced in
+Section~\ref{sec:experiments} and Section~\ref{sec:limitations}. \emph{It
+reports no outcome.} At submission the cohort is still training and no
+evaluation checkpoint of it has been read, so nothing in this paper's claims
+rests on it.
+
+\noindent\textbf{Why.} Every headline cell is produced by one base model. A
+reader may reasonably ask whether the collapse of matched Dr.GRPO's metric band,
+and its reopening under \xdr{}, is a property of the objective or of that one
+model family's tokenizer and instruction tuning. The registered replication
+answers that directly by re-running the whole five-domain design on
+Falcon3-1B-Instruct at a pinned revision: an independent line in tokenizer,
+pretraining corpus, and instruction tuning, and roughly three times the
+parameter count. The parameter count is deliberately not matched, because no
+comparison in the study is between the two base models; every comparison is
+within a domain, between the two arms, at a matched seed.
+
+\noindent\textbf{What is held fixed.} The five domains, both arms, seeds
+43--47, 12 epochs over 384 training prompts with a fixed 128-prompt evaluation
+split, group size 16, $\beta_{\mathrm{KL}}=0$, rollout temperature 1, the
+evaluation protocol, the reporting rule, and every \xdr{} coefficient at its
+value in this paper. No coefficient is retuned for the new model.
+
+\noindent\textbf{What necessarily changes.} Three things, each forced by the
+base model rather than chosen, and each applied identically to both arms.
+First, the \emph{chat surface}: Falcon3 was instruction-tuned on different role
+markers, so each domain uses a twin of its prompt contract that shares the
+system instruction and the canonical answer rewrite verbatim and differs only in
+those markers; the rendering reproduces the model's own published chat template
+byte for byte. Second, \emph{optimizer-state placement}: at 1.67B parameters the
+weights, master copy, and Adam moments do not fit a 24\,GB device alongside a
+collocated inference engine, so optimizer state is offloaded to host memory,
+which changes where state lives and not the update computed. Third, two
+\emph{response budgets}. Falcon3 is uniformly more verbose than
+Qwen2.5-0.5B, and budgets calibrated to the latter's terseness truncate it:
+measured against the paired runs before any outcome was read, the manuscript's
+budget bound 44\% of Falcon rollouts on Python factors and 14\% on MathIR while
+binding the Qwen cohort on 20 of 4,609 and 0 of 4,609 responses respectively.
+Those two budgets were raised until truncation was negligible. Graph coloring
+(6\%) and Countdown (2\%) were left at the manuscript values, and PantryPlan is
+unaffected because its canonical sampler emits a fixed six-token action.
+
+\noindent\textbf{What transfers without modification.} The canonical action
+spaces resolve to the same horizon, sequence count, and maximum sequence
+entropy under the new tokenizer as under the original: $3/27$ for Graph
+coloring, $3/108$ for Countdown, and $6/64$ for PantryPlan. The objective is
+therefore defined over the same action geometry in both families, and the
+reward and validator paths are surface-independent.
+
+\noindent\textbf{Registered prediction.} Stated before launch and deliberately
+qualitative: matched Dr.GRPO's four metrics will again coincide, with
+modes-per-success near one, in at least four of the five domains; \xdr{} will
+raise \texttt{distinct@8} in at least four of the five; and \xdr{} will not
+reduce \texttt{pass@8} below the matched baseline in any domain. Absolute values
+are \emph{not} predicted to reproduce this paper's numbers, and no threshold on
+their agreement is registered. A different base model has different task
+competence; what is under test is the direction and the presence of the band
+collapse, not the magnitude.
+
+\noindent\textbf{Claim boundary.} A negative or mixed result is reportable and
+will be reported. If the effect does not reproduce, the correct conclusion is
+that the result as stated is contingent on the base model, and this paper's
+claim will be narrowed accordingly rather than the cohort excluded. Because two
+response budgets differ from the manuscript's, the replication's Python factors
+and MathIR rows are not comparable to a run of the same model at the original
+budgets, and the reported cohort uses the raised-budget runs throughout.
 
 \section{Reproducibility and Claim Boundaries}
 \label{app:reproducibility}
