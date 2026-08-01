@@ -226,6 +226,11 @@ def main() -> None:
         "eval-94002-high_fiber_snack-19",
         "navel_orange=75;sunflower_seeds=50",
         "grape_tomatoes=75;almonds=50",
+        "def draw_mini_graph(",
+        "OPERATOR_TOKENS = {",
+        '"C: add 9 · F: ×2 · E: add 18"',
+        "NODE_PAINTS = {1: \"#C9D6E2\", 2: \"#6E8599\", 3: \"#263D51\"}",
+        "INGREDIENT_COLORS = {",
     ):
         require(token in example_source, f"ModeBench example source missing {token!r}")
     for token in ("6.27", "4.52", "229.44", "5.00", "18.19", r"\renewcommand{\arraystretch}{0.92}"):
@@ -401,31 +406,58 @@ def main() -> None:
     example_text = pdf_text(EXAMPLES_PDF)
     for token in (
         "Graph coloring", "Countdown", "Python factors", "MathIR", "PantryPlan",
-        "113", "131", "(6 × 9) / 3", "6 + 3 + 9",
-        "response", "execute + verify", "canonical key",
+        "(6 × 9) / 3", "6 + 3 + 9", "canonical keys",
         "navel_orange=75", "sunflower_seeds=50", "grape_tomatoes=75", "almonds=50",
-        "[2, 2, 7, 3]", "[3, 41, 13, 3]", "C;F", "F;E",
+        "C;F", "F;E",
     ):
         require(token in example_text, f"ModeBench example missing {token!r}")
-    require(example_text.count("ANSWER 1") == 5, "Figure 2 lacks five first answers")
-    require(example_text.count("ANSWER 2") == 5, "Figure 2 lacks five second answers")
+    # Both keys of every domain must render and differ. Graph and PantryPlan
+    # keys are drawn rather than set in type -- paint chips and pictograms --
+    # so those two are held by the renderer's own validated structures.
+    for first, second in (
+        ("div(mul(6,9),3)", "add(9,add(3,6))"),
+        ("[2, 2, 7, 3]", "[3, 41, 13, 3]"),
+        ("x/2 = 8 → x = 16", "x − 18 = −2 → x = 16"),
+    ):
+        require(first != second, "paired keys must differ")
+        require(first in example_text, f"Figure 2 missing key {first!r}")
+        require(second in example_text, f"Figure 2 missing key {second!r}")
+    for token in (
+        'graph_modes = ((2, 1, 1, 1, 3, 2), (2, 1, 3, 1, 1, 2))',
+        '"key_kind": "paints"',
+        '"key_kind": "icons"',
+        "def draw_paint_row(",
+        "def draw_icon_row(",
+    ):
+        require(token in example_source, f"Figure 2 source missing {token!r}")
+    require(
+        example_source.count('"span": 1') == 4 and example_source.count('"span": 2') == 1,
+        "Figure 2 must stay a two-column grid with one full-width row",
+    )
     require(
         manuscript.count(r"figures/modebench_examples.pdf") == 1
         and "modebench_pantry_example" not in manuscript,
         "Figure 2 must be one figure, not a split pair",
     )
     mechanism_source = MECHANISM_SOURCE.read_text(encoding="utf-8")
-    mechanism_text = pdf_text(MECHANISM_PDF)
-    for token in (
-        "Discover verified modes",
-        "Retain every discovery",
-        "Preserve mass + rebalance",
-        "SELF-REFERENCED CONTROL",
-        "SINGLETON ESCAPE",
-        "never enters PPO",
+    # The mechanism figure sets each column title on two lines, so the rendered
+    # text is compared with whitespace collapsed rather than line by line.
+    mechanism_text = re.sub(r"\s+", " ", pdf_text(MECHANISM_PDF))
+    for source_token, rendered in (
+        ('("Discover", "verified modes")', "Discover verified modes"),
+        ('("Retain every", "discovery")', "Retain every discovery"),
+        ('("Preserve mass", "+ rebalance")', "Preserve mass + rebalance"),
+        ('("Self-referenced", "control")', "Self-referenced control"),
+        ('("Singleton", "escape")', "Singleton escape"),
+        ("never enters PPO", "never enters PPO"),
     ):
-        require(token in mechanism_source, f"mechanism source missing {token!r}")
-        require(token in mechanism_text, f"mechanism PDF missing {token!r}")
+        require(source_token in mechanism_source, f"mechanism source missing {source_token!r}")
+        require(rendered in mechanism_text, f"mechanism PDF missing {rendered!r}")
+    require(
+        mechanism_source.count("COLUMN_SPECS") >= 1
+        and len(re.findall(r'\(\("[A-E]", "[A-Z 0-9]+"\)', mechanism_source)) == 5,
+        "mechanism figure must stay one row of five columns",
+    )
     if MAIN_PDF.is_file() and MAIN_PDF.stat().st_mtime >= MANUSCRIPT.stat().st_mtime:
         page_one = subprocess.run(
             ["pdftotext", "-f", "1", "-l", "1", str(MAIN_PDF), "-"],

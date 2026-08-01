@@ -24,7 +24,10 @@ B3A_RUNS = 25
 STEPS_PER_RUN = 4608
 B3A_TOTAL_STEPS = B3A_RUNS * STEPS_PER_RUN
 
-FRONTIER_STAGES = {"a": 360, "b": 150, "c": 120}
+# 50 trained checkpoints plus 10 base-model references (one per domain and GPU
+# model) = 60 measurable runs, times the temperatures each stage sweeps.
+FRONTIER_RUNS = 60
+FRONTIER_STAGES = {"a": FRONTIER_RUNS * 6, "b": FRONTIER_RUNS * 3, "c": FRONTIER_RUNS * 2}
 FRONTIER_TOTAL_CELLS = sum(FRONTIER_STAGES.values())
 
 # --- cost model, for the compute-share rows ----------------------------------

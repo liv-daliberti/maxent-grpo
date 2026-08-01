@@ -31,9 +31,35 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-VARIANT = "verified_first_replay_gradient_ablation"
 REFERENCE_ARM = "xgrpo"
 MODEL_TAG = "qwen25_0p5b_instruct"
+
+# Both arms are remove-one ablations of the same frozen treatment, and together
+# they decompose it: B3a keeps discovery credit and loses the ability to act on
+# a banked discovery; B1a keeps verified replay and loses discovery credit. B1a
+# is simultaneously the review's first-named baseline, Dr.GRPO plus ordinary
+# verified-response replay.
+ARM_SPECS: dict[str, dict[str, Any]] = {
+    "b3a": {
+        "variant": "verified_first_replay_gradient_ablation",
+        "removes": "the replay score gradient",
+        # Coefficients are inherited from the reference run unchanged; the
+        # variant itself zeroes the replay derivative.
+        "overrides": {},
+    },
+    "b1a": {
+        "variant": "verified_first_global_replay_canonical",
+        "removes": "open-set discovery credit",
+        # Same variant as the treatment, with the discovery channels off. The
+        # replay mass and balance losses, their controllers, and the global
+        # scheduler are untouched.
+        "overrides": {
+            "OAT_ZERO_SEMANTIC_SHANNON_COEF": "0.0",
+            "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA": "0.0",
+        },
+    },
+}
+VARIANT = ARM_SPECS["b3a"]["variant"]
 
 # The frozen E58/E71 treatment. The cohort must already match these; any
 # disagreement means the manifest describes a different experiment than the one
@@ -119,16 +145,20 @@ def check_inheritance(run: dict[str, Any]) -> list[str]:
     return problems
 
 
-def run_stamp(run: dict[str, Any]) -> str:
+def run_stamp(run: dict[str, Any], arm: str = "b3a") -> str:
     prefix = run["run_stamp"].split(f"_{run['curve_arm_label']}_s")[0]
-    return f"{prefix}_b3a_s{run['seed']}"
+    return f"{prefix}_{arm}_s{run['seed']}"
 
 
-def save_path(root: Path, run: dict[str, Any]) -> Path:
-    return root / "var" / "data" / f"xdr_{MODEL_TAG}_{VARIANT}_{run_stamp(run)}"
+def save_path(root: Path, run: dict[str, Any], arm: str = "b3a") -> Path:
+    variant = ARM_SPECS[arm]["variant"]
+    return root / "var" / "data" / f"xdr_{MODEL_TAG}_{variant}_{run_stamp(run, arm)}"
 
 
-def build_export_vars(root: Path, run: dict[str, Any], target: Path) -> dict[str, str]:
+def build_export_vars(
+    root: Path, run: dict[str, Any], target: Path, arm: str = "b3a"
+) -> dict[str, str]:
+    spec = ARM_SPECS[arm]
     evaluation = run["inherited_eval_config"]
     training = run["inherited_train_config"]
     objective = run["inherited_objective_config"]
@@ -138,13 +168,13 @@ def build_export_vars(root: Path, run: dict[str, Any], target: Path) -> dict[str
 
     env: dict[str, str] = {
         "OAT_ZERO_REPO_ROOT": str(root),
-        "OAT_ZERO_VARIANT": VARIANT,
+        "OAT_ZERO_VARIANT": spec["variant"],
         "OAT_ZERO_MODEL": "custom",
         # The base model, not the reference run's terminal checkpoint: B3a
         # trains from the same initialization as every reported arm.
         "OAT_ZERO_PRETRAIN": str(evaluation["pretrain"]),
         "SAVE_PATH": str(target),
-        "RUN_STAMP": run_stamp(run),
+        "RUN_STAMP": run_stamp(run, arm),
         # --- data and interface, inherited ----------------------------------
         "OAT_ZERO_PROMPT_DATA": str(evaluation["prompt_data"]),
         "OAT_ZERO_EVAL_DATA": str(evaluation["eval_data"]),
@@ -283,6 +313,9 @@ def build_export_vars(root: Path, run: dict[str, Any], target: Path) -> dict[str
         "canonical_graph_actions"
     ]:
         env["VLLM_USE_V1"] = "0"
+    # Applied last so an arm's removals cannot be silently overwritten by an
+    # inherited value.
+    env.update(spec["overrides"])
     return env
 
 
@@ -290,6 +323,7 @@ def submit(
     run: dict[str, Any],
     env: dict[str, str],
     *,
+    arm: str,
     root: Path,
     partition: str,
     account: str,
@@ -301,7 +335,7 @@ def submit(
     dry_run: bool,
 ) -> str | None:
     export_pairs = ",".join(f"{key}={value}" for key, value in env.items())
-    name = f"e72b3a-{run['domain'][:6]}-s{run['seed']}"
+    name = f"e72{arm}-{run['domain'][:6]}-s{run['seed']}"
     sbatch_args = [
         "sbatch",
         "--parsable",
@@ -336,6 +370,12 @@ def main() -> int:
         "--manifest",
         type=Path,
         default=root / "var" / "artifacts" / "e72_frontier_source_runs.json",
+    )
+    parser.add_argument(
+        "--arm",
+        choices=sorted(ARM_SPECS),
+        default="b3a",
+        help="which remove-one arm to submit",
     )
     parser.add_argument("--domains", default="")
     parser.add_argument("--seeds", default="")
@@ -374,7 +414,7 @@ def main() -> int:
 
     submitted: list[dict[str, Any]] = []
     for run in sorted(references, key=lambda item: (item["domain"], item["seed"])):
-        target = save_path(root, run)
+        target = save_path(root, run, args.arm)
         if args.skip_existing and (
             (target / "TRAINING_COMPLETE.json").is_file()
             or any(target.glob("debug_job*"))
@@ -386,10 +426,11 @@ def main() -> int:
         if args.limit and len(submitted) >= args.limit:
             break
         target.mkdir(parents=True, exist_ok=True)
-        env = build_export_vars(root, run, target)
+        env = build_export_vars(root, run, target, args.arm)
         job_id = submit(
             run,
             env,
+            arm=args.arm,
             root=root,
             partition=args.partition,
             account=args.account,
@@ -404,7 +445,7 @@ def main() -> int:
             {
                 "domain": run["domain"],
                 "seed": run["seed"],
-                "run_stamp": run_stamp(run),
+                "run_stamp": run_stamp(run, args.arm),
                 "save_path": str(target),
                 "node": run["source_node"],
                 "reference_run": run["run_dir"],
@@ -413,19 +454,23 @@ def main() -> int:
         )
 
     print(
-        f"[e72-b3a] variant={VARIANT} submitted={len(submitted)} "
+        f"[e72-{args.arm}] variant={ARM_SPECS[args.arm]['variant']} "
+        f"removes={ARM_SPECS[args.arm]['removes']} submitted={len(submitted)} "
         f"checked={len(references)} dry_run={args.dry_run}"
     )
     if args.dry_run or not submitted:
         return 0
 
-    ledger = root / "var" / "artifacts" / "e72_b3a_replay_ablation_jobs.json"
+    ledger = root / "var" / "artifacts" / f"e72_{args.arm}_ablation_jobs.json"
     existing = (
         json.loads(ledger.read_text()).get("runs", []) if ledger.is_file() else []
     )
     payload = {
         "schema": "e72_b3a_replay_ablation_jobs_v1",
-        "variant": VARIANT,
+        "arm": args.arm,
+        "variant": ARM_SPECS[args.arm]["variant"],
+        "removes": ARM_SPECS[args.arm]["removes"],
+        "overrides": ARM_SPECS[args.arm]["overrides"],
         "reference_arm": REFERENCE_ARM,
         "manifest": str(args.manifest),
         "expected_objective": {

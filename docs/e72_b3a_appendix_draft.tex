@@ -1,0 +1,188 @@
+% ============================================================================
+% DRAFT — not yet included in paper/main.tex.
+%
+% Everything outside the marked RESULT slots is outcome-independent and can be
+% reviewed now. The slots are filled from
+% var/artifacts/e72_b3a_summary.json only once every domain reports five
+% terminal seeds; ops/exp_scaling/aggregate_e72_b3a.py withholds any domain
+% that does not, and the numbers below are placeholders written as \NUM{} so a
+% forgotten substitution fails visibly rather than shipping a wrong value.
+%
+% Integration checklist when the cohort is terminal:
+%   1. aggregate_e72_b3a.py (strict mode) reports 5/5 reportable domains
+%   2. paste this file after the Component Necessity Ablations appendix
+%   3. register "app:replay-ablation" in ops/check_paper_figure1_contract.py
+%   4. add the main-body link (see the note at the end of this file)
+%   5. update tab:component-ablations' replay row to cite this appendix
+% ============================================================================
+
+\section{Removing the Replay Gradient}
+\label{app:replay-ablation}
+
+\noindent\emph{Main-body link.} This appendix supplies the empirical
+remove-one control for verified replay that Table~\ref{tab:component-ablations}
+lists, and answers the count-based-bonus baseline raised in
+Section~\ref{sec:limitations}.
+
+Two of this paper's claims meet in one cohort. The first is a component claim:
+Section~\ref{sec:replay} argues that verified replay converts a transient
+discovery into a persistent constraint, and Table~\ref{tab:component-ablations}
+supports that with an analytic argument rather than a measured removal. The
+second is a comparison claim: a count-based rare-outcome bonus with no memory
+beyond the collection batch is among the simplest alternatives to \xdr{}, and
+until now it was untested. A single arm answers both, because removing replay
+from \xdr{} \emph{is} that baseline.
+
+\noindent\textbf{The arm.} B3a is the frozen \xdr{} objective with one change:
+the replay score derivative is replaced by exact zeros before it reaches the
+optimizer. The same verified banks are still accumulated, scheduled in
+deterministic global round robin, teacher-forced, and traversed backward, so
+generation, scoring, and optimizer work are identical to the treatment and no
+compute-matching argument is required. The open-set rare-mode advantage, the
+one-time discovery credit, and their self-referenced controllers act exactly as
+in \xdr{}. What the arm loses is not the ability to \emph{notice} a rare
+verified outcome, only the ability to \emph{act} on one after its collection
+batch.
+
+\noindent\textbf{No tuning.} Every coefficient is inherited from the paired
+\xdr{} run's own recorded arguments, and the launcher refuses to submit when any
+of them disagrees with the frozen doses. We deliberately did not sweep the
+semantic coefficient or novelty credit here: tuning would replace the question
+``does this component matter'' with ``can this baseline be made to work,'' and
+the second question is only worth asking if the first answers yes. A reader who
+prefers the tuned reading should treat this arm as a lower bound on what a
+dose-optimized count-based baseline could achieve.
+
+\noindent\textbf{Design.} Five domains $\times$ seeds 43--47, trained from the
+same initialization on the same data, schedule, and evaluation contract as every
+reported arm: 12 passes, 4{,}608 optimizer updates, $G=16$,
+$\beta_{\mathrm{KL}}=0$, rollout temperature 1, and the same fixed 128-prompt
+evaluation split with greedy decoding plus four deterministic temperature-one
+$K=8$ replicates. Each run is pinned to the GPU model that trained its paired
+\xdr{} seed, for the reason given in Appendix~\ref{app:decoding}. The protocol,
+including the interpretations registered before any result was observed, is
+\path{paper/preregistration/e72_b3a_replay_gradient_ablation_05b_20260731.md}.
+
+\noindent\textbf{Integrity.} The arm is defined by a gradient being zero, so
+that is checked rather than assumed: every logged update must report
+\texttt{replay\_compute\_only} active and an applied replay score gradient of
+exactly zero, and discovery credit must be observably nonzero. A run violating
+either is discarded rather than reinterpreted.
+
+\begin{table}[H]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    & \multicolumn{3}{c}{\textbf{\#modes} (\texttt{distinct@8})} &
+    \multicolumn{2}{c}{\textbf{paired difference}} \\
+    \cmidrule(lr){2-4}\cmidrule(lr){5-6}
+    \textbf{Domain} & matched Dr.GRPO & B3a & \xdr{} &
+    B3a $-$ \xdr{} & B3a $-$ Dr.GRPO \\
+    \midrule
+    % Rows are generated from var/artifacts/e72_b3a_summary.json by
+    % ops/exp_scaling/render_e72_b3a_table.py; a domain without five terminal
+    % seeds renders as an explicit pending row rather than being omitted.
+    \input{figures/e72_b3a_table_body}
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{The replay gradient, removed.} Five-seed means at the common
+  terminal pass 12. B3a keeps every discovery signal in \xdr{} and loses only
+  the ability to act on a banked discovery after its collection batch. The two
+  difference columns are the two readings of the same cohort: against \xdr{} it
+  isolates replay, against matched Dr.GRPO it measures what count-based
+  discovery credit alone buys. Per-seed rows are in
+  \path{var/artifacts/e72_b3a_summary.json}.}
+  \label{tab:replay-ablation}
+\end{table}
+
+% ---------------------------------------------------------------------------
+% RESULT SLOT 1 — the decomposition.
+% Fill from the two difference columns. The registered readings are:
+%   R1  B3a within .15 distinct@8 of xGRPO in >=3 domains
+%          -> replay is not the active ingredient; demote it in sec:replay and
+%             tab:component-ablations, restate the contribution around
+%             open-set discovery credit.
+%   R2  B3a between the control and the treatment in most domains
+%          -> both components act; report the decomposition, claim neither is
+%             sufficient.
+%   R3  B3a at or near matched Dr.GRPO
+%          -> discovery credit alone does not retain support; replay carries
+%             the effect, and this becomes the first empirical remove-one row.
+%   R4  B3a above xGRPO anywhere -> reported as-is.
+% Write the direction per domain. Do not pool across domains.
+% ---------------------------------------------------------------------------
+
+% STATUS 2026-07-31: four domains terminal on all five seeds; the prose below
+% is final for those. Python factors is still training (2/5 terminal) and is
+% the only row left to write.
+
+\noindent\textbf{Result.} Removing the replay gradient removes nearly all of
+the retained support. On Graph coloring \xdr{}'s $2.406$ verified modes per
+eight-sample draw fall to $.429$ without it, on PantryPlan $2.186$ falls to
+$.564$, on Countdown $1.893$ to $.630$, and on MathIR $.926$ to $.550$. In
+every case B3a lands beside the matched Dr.GRPO control rather than the
+treatment it was derived from, and the paired rows leave no room for a
+different reading: \textbf{B3a is below \xdr{} in all twenty paired seed
+cells}.
+
+Against the control the arm is not merely smaller but directionless. It gains
+$+.104$ on Graph coloring and $+.003$ on Countdown, and \emph{loses} $.116$ on
+MathIR and $.070$ on PantryPlan---a band of roughly $\pm.1$ around a control
+that is itself collapsed. PantryPlan illustrates why per-seed rows are
+reported: B3a exceeds the control on four of its five seeds, yet its mean falls
+below because seed 43 is an outlier in both arms ($.289$ against the control's
+$1.090$, where that control seed is itself the only PantryPlan baseline run
+above $.6$). Count-based discovery credit therefore buys, at most, a little
+breadth on its own, and none of what \xdr{} retains.
+
+This is the registered R3 reading in all four completed domains: an open-set
+rare-mode advantage that can notice a rare verified outcome, but cannot act on
+one after its collection batch, does not preserve support. It is consistent
+with Theorem~\ref{thm:xdr-balance}, whose restoring force acts through a bank
+that is scheduled and differentiated; B3a keeps the bank, its schedule, and its
+teacher-forced scoring, removes only the gradient, and the effect goes with the
+gradient.
+
+% PENDING: Python factors only (2/5 terminal at the time of writing). Write it
+% per domain, no pooling. Python is the domain where the matched control is a
+% single deterministic program (.172 on all four metrics), so a small absolute
+% difference there carries less information than elsewhere.
+
+% ---------------------------------------------------------------------------
+% RESULT SLOT 2 — what it licenses, and what it does not.
+% Must state explicitly:
+%   * whether tab:component-ablations' replay row is now empirical rather than
+%     analytic, and in which domains;
+%   * that this is one baseline family of the several listed in
+%     sec:limitations, so the baseline limitation narrows but does not close;
+%   * if R1 or R2 fired, the corresponding rewrite of sec:method's framing.
+% ---------------------------------------------------------------------------
+
+\noindent\textbf{Scope.} In the domains reported above this converts the
+verified-replay row of Table~\ref{tab:component-ablations} from an analytic
+argument into a measured, compute-matched removal, and it is the second
+terminal causal contrast in this paper alongside the separated-support
+actuator. It also answers one of the baseline families named in
+Section~\ref{sec:limitations}---count-based outcome credit without
+memory---under conditions favourable to that baseline, since B3a inherits the
+treatment's own doses and its entire discovery mechanism rather than a
+reconstruction of them. What it does not do is close the baseline question:
+matched token entropy, ordinary verified-response replay, \texttt{pass@}$K$
+objectives, and distribution matching remain untested, and this arm speaks only
+to decoding-invariant training behaviour, not to any of those.
+
+% ---------------------------------------------------------------------------
+% MAIN-BODY LINK (main text is at exactly nine pages with no slack; any
+% insertion must be net-zero in rendered lines). Suggested minimal edit, in
+% sec:limitations, replacing the count-based clause:
+%
+%   ... matched token entropy and distribution matching remain untested
+%   (wider decoding: Appendix~\ref{app:decoding}; count-based credit without
+%   replay: Appendix~\ref{app:replay-ablation}), as does whether a selector
+%   turns breadth into end-task accuracy.
+%
+% Verify with `make all` in paper/ that both contract checks still pass; the
+% nine-page check is the binding one.
+% ---------------------------------------------------------------------------

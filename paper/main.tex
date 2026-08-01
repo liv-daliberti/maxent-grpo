@@ -326,16 +326,16 @@ distinguished.
   \centering
   \includegraphics[width=\linewidth]{figures/modebench_examples.pdf}
   \caption{\textbf{Two verified modes for one prompt in each \mb{} domain.}
-  Every row reads left to right in the order the pipeline runs: the response
-  the policy emits, the execution that accepts it, and the canonical key that
-  same execution produces. Graph answers complete \texttt{2??1?2}; Countdown
-  keys are normalized ASTs; the Python lambda is called once per input, so its
-  key is the four returned factors in input order; MathIR keys are state
-  trajectories; and PantryPlan keys are ingredient supports. In
-  every domain both answers are correct, but their keys differ. The two answer
-  colours are the two verified-mode colours of Figure~\ref{fig:story}. Every
-  domain uses the first row of its fixed evaluation split. The full prompt
-  behind every domain is in Appendix~\ref{app:prompts}.}
+  Each card names a domain, its prompt, and the check both answers pass, then
+  pairs each answer with the canonical key that same execution produced.
+  Graph answers complete \texttt{2??1?2} and are drawn as the paints they
+  assign; Countdown keys are normalized ASTs with executed operators picked out;
+  the Python lambda is called once per input, so its key is the four returned
+  factors in input order; MathIR keys are state trajectories; PantryPlan keys
+  are ingredient supports. Both answers are correct everywhere, but their keys
+  differ, in the two verified-mode colours of Figure~\ref{fig:story}. Every
+  domain uses the first row of its fixed evaluation split; full prompts are in
+  Appendix~\ref{app:prompts}.}
   \label{fig:modebench-examples}
 \end{figure}
 
@@ -398,13 +398,16 @@ Appendix~\ref{app:algorithm} fixes the exact update.
 \begin{figure}[tb]
   \centering
   \includegraphics[width=\linewidth]{figures/xdr_mechanism.pdf}
-  \caption{\textbf{\xdr{} as one discover--retain--rebalance loop.}
-  (A) The task validator rejects invalid novelty and rewards only rare or new
-  correct keys. (B) New keys enter a persistent bank whose global schedule
-  replays them after the collection batch. (C) Replay protects total verified
-  mass while balancing probability across known keys. The lower controller
-  raises the matching pressure when its sensor deteriorates; a singleton-only
-  escape may add a verified alternative to replay support, never to PPO.}
+  \caption{\textbf{\xdr{} as one row of components.} Three pipeline steps, then
+  the two modulators that act on them. (A) The task validator rejects invalid
+  novelty and rewards only rare or new correct keys. (B) New keys enter a
+  persistent bank whose global schedule replays them after the collection
+  batch. (C) Replay protects total verified mass while balancing probability
+  across known keys. (D) Each sensor---mode entropy, verified-exemplar
+  surprisal, bank entropy---raises one matching pressure and eases as it
+  recovers. (E) A singleton-only escape may add one verified alternative to
+  replay support, never to PPO. Colour is the paper's plasma ramp: a key the
+  bank holds, a key just discovered, a pressure the method applies.}
   \label{fig:xdr-mechanism}
 \end{figure}
 

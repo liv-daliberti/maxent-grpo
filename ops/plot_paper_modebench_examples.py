@@ -10,12 +10,13 @@ that Figure 1 tracks, so they carry Figure 1's plasma mode colours.
 from __future__ import annotations
 
 import itertools
+import re
 from pathlib import Path
 import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch
+from matplotlib.patches import Circle, Ellipse, FancyBboxPatch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
@@ -49,6 +50,47 @@ WHITE = "#FFFFFF"
 MODE_ONE = "#41049D"
 MODE_TWO = "#BF3984"
 
+# The puzzle's three paints, copied from the collapse story: a paint is part of
+# the question, never one of the measured modes, so it stays off the ramp.
+NODE_PAINTS = {1: "#C9D6E2", 2: "#6E8599", 3: "#263D51"}
+# Turned a quarter-turn from the obvious chain layout so the 3-5-6 triangle
+# opens to the right: no node then falls on an edge it is not part of.
+GRAPH_POSITIONS = {
+    1: (0.06, 0.86),
+    2: (0.06, 0.14),
+    3: (0.40, 0.86),
+    4: (0.96, 0.14),
+    5: (0.46, 0.14),
+    6: (0.78, 0.58),
+}
+# Naturalistic pictograms, kept desaturated so they read as illustration
+# rather than as another data colour.
+INGREDIENT_COLORS = {
+    "navel_orange": ("#E3893F", "#C06D28"),
+    "sunflower_seeds": ("#54483A", "#3A3128"),
+    "grape_tomatoes": ("#C4453A", "#9C3229"),
+    "almonds": ("#D6A97B", "#A97C51"),
+}
+LEAF = "#6F8F5A"
+# Executable operators are the one thing in a key that is not data, so they
+# take the ramp's warm end (plasma 0.70) against ink-coloured operands.
+OPERATOR = "#F2844B"
+# One hue per operation, so the reader can see at a glance that the two
+# Countdown keys differ in *which* operations they execute and not merely in
+# their operands. Symbol and executed-name forms of an operation share a hue.
+OPERATOR_COLORS = {
+    "mul": "#C2410C",
+    "×": "#C2410C",
+    "div": "#B45309",
+    "/": "#B45309",
+    "add": "#0F766E",
+    "+": "#0F766E",
+    "sub": "#7C2D91",
+    "−": "#7C2D91",
+}
+OPERATOR_TOKENS = frozenset(OPERATOR_COLORS)
+NODE_TEXT = {1: INK, 2: WHITE, 3: WHITE}
+
 mpl.rcParams.update(
     {
         "font.family": "sans-serif",
@@ -67,22 +109,20 @@ mpl.rcParams.update(
 # canvas one-to-one, so the layout can be read as the printed page geometry.
 WIDTH = 13.2
 MARGIN = 0.18
-X_BADGE = 0.40
-X_TITLE = 1.00
-X_PROMPT = 3.30
-X_SWATCH = 1.00
-X_LABEL = 1.30
-X_RESPONSE = 3.00
-X_CHECK = 7.10
-X_KEY_RIGHT = 12.55
-X_NEQ = 12.80
+COLUMNS = 3
+GUTTER = 0.22
+CARD_PAD = 0.16
 LINE = 0.28
-ROW_PAD = 0.08
-HEADER_ZONE = 0.42
-BLOCK_PAD = 0.05
-BLOCK_GAP = 0.11
-HEADLINE = 0.36
-CAPTION = 0.30
+KEY_GAP = 0.06
+ROW_GAP = 0.12
+HEADER = 0.34
+PROMPT = 0.28
+ROW_SPACING = 0.16
+HEADLINE = 0.42
+GRAPH_WIDTH = 1.46
+GRAPH_HEIGHT = 1.24
+PAINT_SIZE = 0.24
+PAINT_STEP = 0.28
 
 
 def box(ax, x, y, w, h, *, face=WHITE, edge=GRID, radius=0.06, lw=1.0):
@@ -157,17 +197,22 @@ def load_and_validate() -> dict[str, dict]:
         "cases": [18, 82, 91, 93],
         "num_modes": 32,
     }
+    # The prompt asks for `lambda n: EXPR`, so the panel shows the EXPR the
+    # policy fills in. Each displayed expression is executed here on the real
+    # cases, so the picture cannot drift from the vector it claims to return.
     python_answers = (
         {
-            "lines": ("lambda n: 2 if n%2==0 else", "(7 if n%7==0 else 3)"),
+            "lines": ("2 if n%2==0 else", "7 if n%7==0 else 3"),
             "outputs": (2, 2, 7, 3),
         },
         {
-            "lines": ("lambda n: 3 if n%3==0 else", "(13 if n%13==0 else 41)"),
+            "lines": ("3 if n%3==0 else", "13 if n%13==0 else 41"),
             "outputs": (3, 41, 13, 3),
         },
     )
     for answer in python_answers:
+        shown = eval("lambda n: " + " ".join(answer["lines"]))  # noqa: S307
+        assert tuple(shown(value) for value in python_spec["cases"]) == answer["outputs"]
         assert all(
             1 < divisor < value and value % divisor == 0
             for value, divisor in zip(python_spec["cases"], answer["outputs"])
@@ -179,12 +224,24 @@ def load_and_validate() -> dict[str, dict]:
         "bindings": {"a": 2, "b": -9, "c": -1},
         "valid_mode_count": 5,
     }
+    # The menu letters are opaque on their own, so each action carries the plain
+    # operation it performs and the panel prints that rather than the letter.
+    mathir_menu = {"C": "add 9", "F": "×2", "E": "add 18"}
     mathir_answers = (
         {"answer": "C;F", "trace": ("x/2 = 8", "x = 16")},
         {"answer": "F;E", "trace": ("x − 18 = −2", "x = 16")},
     )
+    for answer in mathir_answers:
+        answer["named"] = ", then ".join(
+            mathir_menu[step] for step in answer["answer"].split(";")
+        )
     assert mathir_answers[0]["trace"] != mathir_answers[1]["trace"]
+    assert mathir_answers[0]["named"] != mathir_answers[1]["named"]
     assert all(answer["trace"][-1] == "x = 16" for answer in mathir_answers)
+    # Execute the depicted menus so the picture cannot drift from the algebra:
+    # both orderings of the same two equation-preserving moves reach x = 16.
+    assert (-1 + 9) * 2 == 16, "C then F"
+    assert (-1 * 2) + 18 == 16, "F then E"
 
     def pantry_ingredient(ingredient_id, available_g, energy, protein, fiber, sodium, tags=()):
         return {
@@ -260,11 +317,11 @@ def load_and_validate() -> dict[str, dict]:
 
 
 def build_blocks(examples: dict[str, dict]) -> list[dict]:
-    """Turn the validated examples into one uniform row-per-domain layout.
+    """Turn the validated examples into a three-column grid of domain cards.
 
-    Every row carries the same three fields the reader is asked to compare:
-    the emitted response, the check that accepted it, and the canonical key
-    that same check produced.
+    A card is narrower than a key, so each answer sets its canonical key on the
+    line beneath the response rather than beside it. PantryPlan spans the two
+    free cells of the second row, so the grid closes with content.
     """
 
     graph = examples["graph"]
@@ -277,12 +334,23 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         {
             "letter": "A",
             "title": "Graph coloring",
-            "prompt": "partial colors 2??1?2 · fill vertices 2, 3, 5",
-            "rows": [
+            "prompt": [
+                {"label": "partial colors", "paints": tuple(graph["spec"]["partial_colors"])},
+                "fill vertices 2, 3, 5",
+            ],
+            "check": "✓ valid",
+            "span": 1,
+            "glyph": "graph",
+            "key_kind": "paints",
+            "answers": [
                 {
-                    "response": [answer],
-                    "check": "✓ valid coloring",
-                    "key": ["".join(str(value) for value in mode)],
+                    # The answer names colours, so the card shows colours: the
+                    # three vertices the policy fills, then the whole vector
+                    # the validator keyed on.
+                    "response": [[(digit, vertex) for digit, vertex in zip(answer, (2, 3, 5))]],
+                    "response_kind": "paints",
+                    "key": [mode],
+                    "mode": mode,
                 }
                 for answer, mode in zip(graph["answers"], graph["modes"])
             ],
@@ -290,12 +358,13 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         {
             "letter": "B",
             "title": "Countdown",
-            "prompt": "tiles {3, 6, 9} · target 18 · use each tile once",
-            "rows": [
+            "prompt": ["tiles {3, 6, 9} · target 18", "use each tile once"],
+            "check": "✓ = 18",
+            "span": 1,
+            "answers": [
                 {
-                    "response": [answer["answer"]],
-                    "check": "✓ = 18",
-                    "key": [answer["key"]],
+                    "response": [operators(answer["answer"])],
+                    "key": [operators(answer["key"])],
                 }
                 for answer in countdown["answers"]
             ],
@@ -303,11 +372,12 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         {
             "letter": "C",
             "title": "Python factors",
-            "prompt": "lambda n: EXPR · called once per n in 18, 82, 91, 93 · return a proper factor d",
-            "rows": [
+            "prompt": ["lambda n: EXPR", "one call per n in 18, 82, 91, 93"],
+            "check": "✓ divides",
+            "span": 1,
+            "answers": [
                 {
                     "response": list(answer["lines"]),
-                    "check": "✓ divides each n",
                     "key": ["[" + ", ".join(str(v) for v in answer["outputs"]) + "]"],
                 }
                 for answer in python["answers"]
@@ -316,12 +386,17 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         {
             "letter": "D",
             "title": "MathIR",
-            "prompt": "x/2 − 9 = −1 · C: subtract −9 · F: ×2 · E: subtract −18",
-            "rows": [
+            "prompt": ["solve  x/2 − 9 = −1", "C: add 9 · F: ×2 · E: add 18"],
+            "check": "✓ x = 16",
+            "span": 1,
+            "answers": [
                 {
                     "response": [answer["answer"]],
-                    "check": "✓ x = 16",
-                    "key": [" → ".join(answer["trace"])],
+                    # Read like PantryPlan's key: the named components the
+                    # execution ran, then the value the validator accepted. The
+                    # naming sits in the box for both answers rather than as a
+                    # side note on the first, so the two modes are comparable.
+                    "key": [answer["named"], " → ".join(answer["trace"])],
                 }
                 for answer in mathir["answers"]
             ],
@@ -329,154 +404,344 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         {
             "letter": "E",
             "title": "PantryPlan",
-            "prompt": "2–4 ingredients · 125–200 g · four exact nutrition bounds",
-            "rows": [
+            "prompt": [
+                "2–4 ingredients · 125–200 g · four exact nutrition bounds",
+            ],
+            "check": "✓ feasible",
+            "span": 2,
+            "glyph": "ingredient",
+            "key_kind": "icons",
+            "answers": [
                 {
                     "response": [line + ";" for line in answer.split(";")[:-1]]
                     + [answer.rsplit(";", 1)[-1]],
-                    "check": "✓ feasible",
-                    "key": [key.split("+")[0] + " +", key.split("+")[1]],
+                    "key": [tuple(key.split("+"))],
                 }
                 for answer, key in zip(pantry["answers"], pantry["keys"])
             ],
         },
     ]
     for block in blocks:
-        assert len(block["rows"]) == 2
-        for index, row in enumerate(block["rows"]):
-            row["accent"] = (MODE_ONE, MODE_TWO)[index]
-            row["label"] = f"ANSWER {index + 1}"
-            row["lines"] = max(len(row["response"]), len(row["key"]))
-        assert block["rows"][0]["key"] != block["rows"][1]["key"]
+        assert len(block["answers"]) == 2
+        for index, answer in enumerate(block["answers"]):
+            answer["accent"] = (MODE_ONE, MODE_TWO)[index]
+            answer["number"] = str(index + 1)
+        assert block["answers"][0]["key"] != block["answers"][1]["key"]
+        block["prompt_lines"] = len(block["prompt"])
+        for answer in block["answers"]:
+            key_rows = 1 if block.get("key_kind") in {"paints", "icons"} else len(answer["key"])
+            stack = len(answer["response"]) * LINE + KEY_GAP + key_rows * LINE + 0.08
+            # A card that draws thumbnails is as tall as the thumbnail.
+            answer["height"] = max(stack, GRAPH_HEIGHT + 0.22) if block.get("glyph") == "graph" else stack
+        block["answer_height"] = max(answer["height"] for answer in block["answers"])
     return blocks
 
 
-def measure(fig, artist) -> tuple[float, float]:
-    """Width and height of a drawn artist in inches, i.e. in layout units."""
+def operators(value: str) -> list[tuple[str, str]]:
+    """Split an executed expression into operator and operand segments."""
 
-    extent = artist.get_window_extent(renderer=fig.canvas.get_renderer())
-    return extent.width / fig.dpi, extent.height / fig.dpi
-
-
-def row_height(lines: int) -> float:
-    return 2 * ROW_PAD + lines * LINE
+    parts = [part for part in re.split(r"(div|mul|add|sub|×|/|\+|−)", value) if part]
+    return [(part, OPERATOR_COLORS.get(part, INK)) for part in parts]
 
 
-def block_height(block: dict) -> float:
-    rows = sum(row_height(row["lines"]) for row in block["rows"])
-    return HEADER_ZONE + rows + BLOCK_PAD
+def draw_line(fig, ax, x: float, y: float, line, *, mono: bool = True) -> float:
+    """Draw one line, which may be plain text or coloured segments."""
 
-
-def draw_key(fig, ax, right: float, y: float, lines: list[str], accent: str) -> float:
-    """Right-aligned key chip that grows to fit its own text."""
-
-    artists = [
-        text(
+    segments = [(line, INK)] if isinstance(line, str) else line
+    cursor = x
+    for value, color in segments:
+        artist = text(
             ax,
-            right - 0.13,
-            y - (index - (len(lines) - 1) / 2) * LINE,
-            line,
-            ha="right",
-            fontfamily=MONO,
+            cursor,
+            y,
+            value,
+            color=color,
+            fontfamily=MONO if mono else "sans-serif",
             fontweight="bold",
             zorder=3,
         )
-        for index, line in enumerate(lines)
-    ]
-    width = max(measure(fig, artist)[0] for artist in artists) + 0.26
-    # Kept under the row pitch so consecutive chips never touch.
-    height = len(lines) * LINE + 0.08
+        cursor += measure(fig, artist)
+    return cursor - x
+
+
+def measure(fig, artist) -> float:
+    """Width of a drawn artist in inches, i.e. in layout units."""
+
+    return artist.get_window_extent(renderer=fig.canvas.get_renderer()).width / fig.dpi
+
+
+def card_width(span: int) -> float:
+    unit = (WIDTH - 2 * MARGIN - (COLUMNS - 1) * GUTTER) / COLUMNS
+    return unit * span + GUTTER * (span - 1)
+
+
+def card_height(block: dict) -> float:
+    rows = 1 if block["span"] == 2 else 2
+    body = rows * block["answer_height"] + (rows - 1) * ROW_GAP
+    return CARD_PAD + HEADER + block["prompt_lines"] * PROMPT + body + CARD_PAD
+
+
+def draw_mini_graph(ax, left: float, center: float, width: float, height: float, mode) -> None:
+    """The whole coloring the answer commits to, at thumbnail size.
+
+    The three digits in the response fill only the hidden vertices; this shows
+    the completion the validator actually executed, numbered and in the
+    puzzle's paints.
+    """
+
+    def place(node):
+        x, y = GRAPH_POSITIONS[node]
+        return left + x * width, center - height / 2 + y * height
+
+    for first, second in ((1, 2), (1, 3), (3, 5), (3, 6), (4, 6), (5, 6)):
+        start, end = place(first), place(second)
+        ax.plot(
+            [start[0], end[0]],
+            [start[1], end[1]],
+            color="#A8B4BE",
+            linewidth=1.2,
+            zorder=2,
+            solid_capstyle="round",
+        )
+    for node, color in enumerate(mode, start=1):
+        x, y = place(node)
+        ax.add_patch(
+            Circle(
+                (x, y),
+                0.205,
+                facecolor=NODE_PAINTS[color],
+                edgecolor=WHITE,
+                linewidth=1.1,
+                zorder=3,
+                clip_on=False,
+            )
+        )
+        text(ax, x, y, str(node), color=NODE_TEXT[color], fontweight="bold", ha="center", zorder=4)
+
+
+def draw_ingredient(ax, name: str, x: float, y: float) -> None:
+    """A pictogram of the ingredient the allocation names."""
+
+    fill, edge = INGREDIENT_COLORS[name]
+    common = {"linewidth": 0.7, "zorder": 3, "clip_on": False}
+    if name == "navel_orange":
+        ax.add_patch(Ellipse((x, y - 0.062), 0.086, 0.052, angle=-25,
+                             facecolor=LEAF, edgecolor=LEAF, **common))
+        ax.add_patch(Circle((x, y), 0.086, facecolor=fill, edgecolor=edge, **common))
+        return
+    if name == "grape_tomatoes":
+        for offset in (-0.052, 0.052):
+            ax.add_patch(Circle((x + offset, y - 0.014), 0.060,
+                                facecolor=fill, edgecolor=edge, **common))
+        ax.add_patch(Ellipse((x, y + 0.060), 0.080, 0.034,
+                             facecolor=LEAF, edgecolor=LEAF, **common))
+        return
+    if name == "sunflower_seeds":
+        for offset, angle in ((-0.048, 28), (0.048, -28)):
+            ax.add_patch(Ellipse((x + offset, y), 0.066, 0.120, angle=angle,
+                                 facecolor=fill, edgecolor=edge, **common))
+        return
+    ax.add_patch(Ellipse((x - 0.034, y), 0.080, 0.132, angle=32,
+                         facecolor=fill, edgecolor=edge, **common))
+    ax.add_patch(Ellipse((x + 0.044, y - 0.012), 0.080, 0.132, angle=-20,
+                         facecolor=fill, edgecolor=edge, **common))
+
+
+def draw_paint_row(ax, left: float, y: float, paints, labels=None) -> float:
+    """A row of paint chips, one per vertex, in vertex order."""
+
+    step = PAINT_STEP
+    for index, paint in enumerate(paints):
+        centre = left + PAINT_SIZE / 2 + index * step
+        known = paint is not None
+        ax.add_patch(
+            Circle(
+                (centre, y),
+                PAINT_SIZE / 2,
+                facecolor=NODE_PAINTS[int(paint)] if known else WHITE,
+                edgecolor=WHITE if known else FRAME,
+                linewidth=1.0,
+                zorder=3,
+                clip_on=False,
+            )
+        )
+        label = labels[index] if labels is not None else (None if known else "?")
+        if label is not None:
+            text(
+                ax, centre, y, str(label),
+                color=NODE_TEXT[int(paint)] if known else MUTED,
+                fontweight="bold", ha="center", zorder=4,
+            )
+    return len(paints) * step - (step - PAINT_SIZE)
+
+
+def draw_icon_row(fig, ax, left: float, y: float, names) -> float:
+    """The support as pictograms alone, joined by the key's own plus sign."""
+
+    cursor = left
+    for index, name in enumerate(names):
+        if index:
+            plus = text(ax, cursor, y, "+", color=MUTED, fontweight="bold", zorder=3)
+            cursor += measure(fig, plus) + 0.10
+        draw_ingredient(ax, name, cursor + 0.11, y)
+        cursor += 0.32
+    return cursor - left
+
+
+def draw_key(
+    fig, ax, left: float, top: float, answer: dict, accent: str, limit: float,
+    *, kind: str = "text",
+) -> None:
+    """Key chip on its own line, sized to its content, under the response."""
+
+    lines = answer["key"]
+    baseline = top - 0.04 - 0.5 * LINE
+    if kind == "paints":
+        width = draw_paint_row(ax, left + 0.12, baseline, lines[0]) + 0.24
+    elif kind == "icons":
+        width = draw_icon_row(fig, ax, left + 0.12, baseline, lines[0]) + 0.20
+    else:
+        widths = [
+            draw_line(fig, ax, left + 0.12, top - 0.04 - (index + 0.5) * LINE, line)
+            for index, line in enumerate(lines)
+        ]
+        width = max(widths) + 0.24
+    assert width <= limit, f"key {lines} needs {width:.2f}in of {limit:.2f}in"
+    rows = 1 if kind in {"paints", "icons"} else len(lines)
     box(
         ax,
-        right - width,
-        y - height / 2,
+        left,
+        top - 0.08 - rows * LINE,
         width,
-        height,
+        rows * LINE + 0.08,
         face=WHITE,
         edge=accent,
         radius=0.05,
         lw=1.4,
     )
-    return right - width
 
 
-def draw_block(fig, ax, block: dict, top: float) -> None:
-    height = block_height(block)
-    bottom = top - height
-    box(
-        ax,
-        MARGIN,
-        bottom,
-        WIDTH - 2 * MARGIN,
-        height,
-        face=PANEL,
-        edge=GRID,
-        radius=0.09,
-        lw=1.1,
-    )
-
-    header = top - HEADER_ZONE / 2 - 0.02
-    box(ax, X_BADGE, header - 0.15, 0.32, 0.30, face=INK, edge=INK, radius=0.05)
-    text(ax, X_BADGE + 0.16, header, block["letter"], color=WHITE, fontweight="bold", ha="center")
-    text(ax, X_TITLE, header, block["title"], fontweight="bold")
-    prompt = text(ax, X_PROMPT, header, block["prompt"], color=MUTED)
-    assert X_PROMPT + measure(fig, prompt)[0] < WIDTH - MARGIN - 0.15, block["title"]
-
-    centers = []
-    cursor = top - HEADER_ZONE
-    for row in block["rows"]:
-        span = row_height(row["lines"])
-        center = cursor - span / 2
-        centers.append(center)
-        accent = row["accent"]
-
-        box(ax, X_SWATCH, center - 0.09, 0.18, 0.18, face=accent, edge=accent, radius=0.04)
-        text(ax, X_LABEL, center, row["label"], color=accent, fontweight="bold")
-        for index, line in enumerate(row["response"]):
-            response = text(
-                ax,
-                X_RESPONSE,
-                center - (index - (len(row["response"]) - 1) / 2) * LINE,
-                line,
-                fontfamily=MONO,
-                fontweight="bold",
+def draw_answer(
+    fig, ax, answer: dict, left: float, top: float, limit: float, where: str,
+    *, glyph: str | None = None, key_kind: str = "text",
+) -> None:
+    accent = answer["accent"]
+    # A thumbnail owns the right of the card, so the text and the key chip are
+    # held to what is left of it rather than to the full card width.
+    card_limit = limit
+    limit = limit - (GRAPH_WIDTH + 0.12) if glyph == "graph" else limit
+    row = top - LINE / 2
+    box(ax, left, row - 0.12, 0.24, 0.24, face=accent, edge=accent, radius=0.05)
+    text(ax, left + 0.12, row, answer["number"], color=WHITE, fontweight="bold", ha="center")
+    # Ingredient rows carry a pictogram of what they allocate, so the text
+    # shifts right to leave it room.
+    indent = 0.34 + (0.26 if glyph == "ingredient" else 0.0)
+    for index, line in enumerate(answer["response"]):
+        baseline = row - index * LINE
+        if answer.get("response_kind") == "paints":
+            # Each chip is one hidden vertex, labelled with the vertex it fills.
+            width = draw_paint_row(
+                ax, left + indent, baseline,
+                [paint for paint, _ in line], [vertex for _, vertex in line],
             )
-            assert X_RESPONSE + measure(fig, response)[0] < X_CHECK - 0.15, block["title"]
-        check = text(ax, X_CHECK, center, row["check"], color=MUTED)
-        assert X_CHECK + measure(fig, check)[0] < X_KEY_RIGHT, block["title"]
-        left = draw_key(fig, ax, X_KEY_RIGHT, center, row["key"], accent)
-        assert left > X_CHECK + measure(fig, check)[0] + 0.10, block["title"]
-        cursor -= span
-
-    # The whole figure exists to say that both keys are accepted and that they
-    # are not the same key, so the comparison itself gets a mark.
-    ax.plot(
-        [X_NEQ - 0.06, X_NEQ - 0.06],
-        [centers[0], centers[1]],
-        color=FRAME,
-        linewidth=1.0,
-        solid_capstyle="butt",
-        zorder=1,
-    )
-    text(
+        else:
+            if glyph == "ingredient":
+                draw_ingredient(ax, line.split("=", 1)[0], left + 0.45, baseline)
+            width = draw_line(fig, ax, left + indent, baseline, line)
+        assert width <= limit - indent, f"{where} answer {answer['number']}"
+        if index == 0 and answer.get("note"):
+            # A route through an action menu is opaque on its own, so the
+            # arithmetic it stands for is spelled out beside it.
+            note = text(ax, left + indent + width + 0.18, baseline, answer["note"], color=MUTED)
+            assert (
+                indent + width + 0.18 + measure(fig, note) <= limit
+            ), f"{where} note {answer['number']}"
+    draw_key(
+        fig,
         ax,
-        X_NEQ - 0.06,
-        (centers[0] + centers[1]) / 2,
-        "≠",
-        ha="center",
-        fontweight="bold",
-        zorder=3,
-        bbox={"facecolor": WHITE, "edgecolor": "none", "pad": 1.5},
+        left + indent,
+        top - len(answer["response"]) * LINE - KEY_GAP,
+        answer,
+        accent,
+        limit - indent,
+        kind=key_kind,
     )
+    if glyph == "graph":
+        draw_mini_graph(
+            ax,
+            left + card_limit - GRAPH_WIDTH,
+            top - answer["height"] / 2,
+            GRAPH_WIDTH,
+            GRAPH_HEIGHT,
+            answer["mode"],
+        )
+
+
+def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> None:
+    # Both cards in a row are drawn to the row's height, so the grid keeps a
+    # flat baseline even when one domain needs two-line answers.
+    width = card_width(block["span"])
+    box(ax, left, top - height, width, height, face=PANEL, edge=GRID, radius=0.09, lw=1.1)
+
+    inner_left = left + CARD_PAD
+    inner_right = left + width - CARD_PAD
+    header = top - CARD_PAD - HEADER / 2
+    box(ax, inner_left, header - 0.15, 0.32, 0.30, face=INK, edge=INK, radius=0.05)
+    text(ax, inner_left + 0.16, header, block["letter"], color=WHITE, fontweight="bold", ha="center")
+    title = text(ax, inner_left + 0.42, header, block["title"], fontweight="bold")
+    check = text(ax, inner_right, header, block["check"], color=MUTED, fontweight="bold", ha="right")
+    assert (
+        inner_left + 0.42 + measure(fig, title)
+        < inner_right - measure(fig, check) - 0.15
+    ), block["title"]
+
+    for index, line in enumerate(block["prompt"]):
+        baseline = top - CARD_PAD - HEADER - (index + 0.5) * PROMPT
+        if isinstance(line, dict):
+            # The prompt's partial coloring is set in the same chips the answer
+            # and the key use, so the reader compares like with like.
+            label = text(ax, inner_left, baseline, line["label"], color=MUTED)
+            chips_left = inner_left + measure(fig, label) + 0.14
+            width = draw_paint_row(ax, chips_left + 0.10, baseline, line["paints"]) + 0.20
+            box(ax, chips_left, baseline - PROMPT / 2 - 0.02, width, PROMPT + 0.04,
+                face=WHITE, edge=GRID, radius=0.05, lw=1.1)
+            assert chips_left + width <= inner_right, block["title"]
+            continue
+        prompt = text(ax, inner_left, baseline, line, color=MUTED)
+        assert inner_left + measure(fig, prompt) <= inner_right, block["title"]
+
+    rows = 1 if block["span"] == 2 else 2
+    body = rows * block["answer_height"] + (rows - 1) * ROW_GAP
+    # Headers and prompts align across a row; the answers are centred in what
+    # the tallest card of that row leaves, so no card looks bottom-heavy.
+    spare = (height - CARD_PAD - HEADER - block["prompt_lines"] * PROMPT - CARD_PAD) - body
+    body_top = top - CARD_PAD - HEADER - block["prompt_lines"] * PROMPT - spare / 2
+    if block["span"] == 2:
+        # The wide card has room to set both answers side by side.
+        cell = (inner_right - inner_left - GUTTER) / 2
+        for index, answer in enumerate(block["answers"]):
+            draw_answer(
+                fig, ax, answer, inner_left + index * (cell + GUTTER),
+                body_top, cell, block["title"], glyph=block.get("glyph"),
+                key_kind=block.get("key_kind", "text"),
+            )
+        return
+    for index, answer in enumerate(block["answers"]):
+        draw_answer(
+            fig, ax, answer, inner_left,
+            body_top - index * (block["answer_height"] + ROW_GAP),
+            inner_right - inner_left, block["title"], glyph=block.get("glyph"),
+            key_kind=block.get("key_kind", "text"),
+        )
 
 
 def render() -> None:
     examples = load_and_validate()
     blocks = build_blocks(examples)
+    grid = [blocks[0:3], blocks[3:5]]
+    row_heights = [max(card_height(block) for block in row) for row in grid]
 
-    stack = sum(block_height(block) for block in blocks)
-    stack += BLOCK_GAP * (len(blocks) - 1)
-    height = 0.10 + HEADLINE + CAPTION + stack + 0.12
+    height = 0.10 + HEADLINE + sum(row_heights) + ROW_SPACING * (len(grid) - 1) + 0.12
 
     fig = plt.figure(figsize=(WIDTH, height))
     ax = fig.add_axes([0, 0, 1, 1])
@@ -486,22 +751,27 @@ def render() -> None:
     fig.canvas.draw()
 
     top = height - 0.10
-    text(ax, MARGIN + 0.22, top - HEADLINE / 2, "One prompt, two verified answers, two different keys", fontweight="bold")
-    caption = top - HEADLINE - CAPTION / 2
-    text(ax, X_RESPONSE, caption, "response", color=MUTED)
-    text(ax, X_CHECK, caption, "execute + verify", color=MUTED)
-    text(ax, X_KEY_RIGHT - 0.13, caption, "canonical key", color=MUTED, ha="right")
+    text(
+        ax,
+        MARGIN + 0.20,
+        top - HEADLINE / 2,
+        "One prompt, two verified answers, two different canonical keys",
+        fontweight="bold",
+    )
 
-    cursor = top - HEADLINE - CAPTION
-    for block in blocks:
-        draw_block(fig, ax, block, cursor)
-        cursor -= block_height(block) + BLOCK_GAP
+    cursor = top - HEADLINE
+    for row, row_height in zip(grid, row_heights):
+        left = MARGIN
+        for block in row:
+            draw_card(fig, ax, block, left, cursor, row_height)
+            left += card_width(block["span"]) + GUTTER
+        cursor -= row_height + ROW_SPACING
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)
     fig.savefig(OUT.with_suffix(".png"), dpi=240, bbox_inches="tight", pad_inches=0.035)
     plt.close(fig)
-    print(f"Wrote {OUT.with_suffix('.pdf')}")
+    print(f"Wrote {OUT.with_suffix('.pdf')}  ({WIDTH:.2f} x {height:.2f} in)")
     print(f"Wrote {OUT.with_suffix('.png')}")
 
 

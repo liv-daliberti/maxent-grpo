@@ -44,18 +44,21 @@ FONT = 17.0
 
 INK = "#1B2733"
 MUTED = "#5B6B7B"
-GRID = "#DEE4EA"
-FRAME = "#AEB9C4"
-PANEL = "#F2F5F8"
+GRID = "#F0DEC6"
+FRAME = "#C7AE8E"
+# The pale orange every figure in the paper sits on; here it is the canvas
+# itself, so the three figures read as one surface.
+PANEL = "#FEF4E7"
 WHITE = "#FFFFFF"
 
-# Both data scales are sampled from `plt.cm.plasma`, quoted here as fixed hex
-# so the printed figure never moves with a matplotlib release. Two scales share
-# the figure and are kept apart by role: the *series* scale identifies executed
-# answer modes and lives only in the bar panels and their legend; the *paint*
-# scale identifies the puzzle's three colours and lives only in panel A. Each is
-# spread across the ramp so its own marks separate; chrome stays neutral so the
-# ramp is the only thing carrying meaning.
+# Two scales share this figure and must never be confused. The *series* scale
+# identifies executed answer modes; it is `plt.cm.plasma`, quoted here as fixed
+# hex so the printed figure never moves with a matplotlib release, and it is
+# the only saturated thing in the figure, in the bar panels and their legend.
+# The *paint* scale is the puzzle's own three colours in panel A. It is
+# deliberately a neutral slate ramp, off the plasma ramp entirely: a paint is
+# part of the question, not one of the measured modes, and a reader must never
+# read a node's fill as a bar's series colour.
 MODE_COLORS = {
     "33221": "#41049D",  # Option A — plasma 0.10
     "31223": "#BF3984",  # Option B — plasma 0.45
@@ -63,7 +66,19 @@ MODE_COLORS = {
 }
 OTHER = "#FCCE25"  # any further verified mode — plasma 0.90
 INVALID = "#E5E9ED"  # invalid response — off-ramp on purpose, so it recedes
-NODE_COLORS = {1: "#F7E425", 2: "#D6556D", 3: "#5601A4"}  # plasma 0.95/0.55/0.15
+# Legend labels carry their series colour. Two of the five fills are too light
+# to set type in at print size, so those labels use the legible sibling of the
+# same family: a deeper gold for the yellow swatch, muted ink for the grey one.
+LABEL_COLORS = {
+    "Option A": MODE_COLORS["33221"],
+    "Option B": MODE_COLORS["31223"],
+    "Option C": MODE_COLORS["32213"],
+    "other valid": "#A17605",
+    "invalid": MUTED,
+}
+NODE_COLORS = {1: "#C9D6E2", 2: "#6E8599", 3: "#263D51"}  # slate: light/mid/deep
+# Paint 1 stays clear of both the white "uncoloured" node and the near-white
+# invalid segment above, so no fill in the figure reads as two things.
 NODE_TEXT = {1: INK, 2: WHITE, 3: WHITE}
 
 mpl.rcParams.update(
@@ -90,6 +105,7 @@ mpl.rcParams.update(
         "axes.linewidth": 0.8,
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
+        "axes.facecolor": "none",
         "figure.facecolor": WHITE,
         "savefig.facecolor": WHITE,
     }
@@ -266,10 +282,37 @@ def draw_partial_graph(ax, reference: dict) -> None:
     ax.set_axis_off()
 
 
+def draw_canvas_card(fig) -> None:
+    """The whole figure is one rounded card, matching the paper's other two.
+
+    Drawn in an inch-scaled axes behind everything so the corner radius is the
+    same 0.09in in both directions instead of following the figure's aspect.
+    """
+
+    width, height = fig.get_size_inches()
+    card = fig.add_axes([0, 0, 1, 1], zorder=-1)
+    card.set_xlim(0, width)
+    card.set_ylim(0, height)
+    card.set_axis_off()
+    card.add_patch(
+        FancyBboxPatch(
+            (0.02, 0.02),
+            width - 0.04,
+            height - 0.04,
+            boxstyle="round,pad=0.0,rounding_size=0.09",
+            facecolor=PANEL,
+            edgecolor=GRID,
+            linewidth=1.1,
+            clip_on=False,
+        )
+    )
+
+
 def draw_option_row(ax, y: float, label: str, key: str) -> None:
-    # The option name, not a colour, carries identity here: panel A owns the
-    # paint scale, so the label stays in text ink and the legend joins the row
-    # to its bar segment by name.
+    # The option name carries its own series colour, so a row in panel A and
+    # its segment in panels B and C are joined by colour as well as by name.
+    # The circles beside it stay on the slate paint scale: they are the
+    # puzzle's colours, not modes.
     ax.text(
         0.0,
         y,
@@ -277,7 +320,7 @@ def draw_option_row(ax, y: float, label: str, key: str) -> None:
         transform=ax.transAxes,
         fontsize=FONT,
         fontweight="bold",
-        color=INK,
+        color=MODE_COLORS[key],
         ha="left",
         va="center",
     )
@@ -315,7 +358,7 @@ def render_prompt_panel(ax, reference: dict) -> None:
     # upper half on the graph instead of repeating the question.
     graph_ax = ax.inset_axes([0.0, 0.53, 0.58, 0.47])
     draw_partial_graph(graph_ax, reference)
-    rounded_box(ax, 0.612, 0.680, 0.345, 0.235, face=PANEL, edge=GRID)
+    rounded_box(ax, 0.612, 0.680, 0.345, 0.235, face=WHITE, edge=GRID)
     ax.text(
         0.7845,
         0.7975,
@@ -428,6 +471,7 @@ def main() -> None:
     # Drawn at the full text width, so the canvas is wide relative to its
     # height and every element keeps its printed font size while gaining room.
     fig = plt.figure(figsize=(13.2, 5.60))
+    draw_canvas_card(fig)
     fig.text(
         0.034,
         0.985,
@@ -477,6 +521,9 @@ def main() -> None:
         handletextpad=0.45,
         columnspacing=2.0,
     )
+    for entry in fig.legends[-1].get_texts():
+        entry.set_color(LABEL_COLORS[entry.get_text()])
+        entry.set_fontweight("bold")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)

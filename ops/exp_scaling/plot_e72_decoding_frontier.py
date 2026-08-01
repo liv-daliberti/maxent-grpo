@@ -153,22 +153,28 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
                 is_published = temperature == 1.0
                 if is_published:
                     # The temperature-one point is the operating point every
-                    # published number was measured at; ring it.
+                    # published number was measured at; ring it. Sized in area
+                    # units (s = 235 pt^2) so the ring reads as a deliberate
+                    # marker rather than a slightly fat data point.
                     axis.plot(
                         [point["mean_at_k"]],
                         [point["distinct_at_k"]],
                         marker=style["marker"],
-                        markersize=6.2,
+                        markersize=235 ** 0.5,
                         markerfacecolor="none",
                         markeredgecolor=style["color"],
-                        markeredgewidth=1.1,
+                        markeredgewidth=1.3,
                         zorder=4,
                     )
+                # The enlarged ring would swallow a label placed above-right, and
+                # at the top of a panel that label also collided with the axis;
+                # the temperature-one label therefore sits below its ring.
+                offset = (7.0, -8.5) if is_published else (3.2, 3.2)
                 axis.annotate(
                     f"{temperature:g}",
                     (point["mean_at_k"], point["distinct_at_k"]),
                     textcoords="offset points",
-                    xytext=(3.2, 3.2),
+                    xytext=offset,
                     fontsize=5.9,
                     color=MUTED,
                     zorder=5,

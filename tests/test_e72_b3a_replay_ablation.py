@@ -189,3 +189,32 @@ def test_canonical_action_domains_keep_the_audited_engine(tmp_path):
     )
     assert env["VLLM_USE_V1"] == "0"
     assert env["OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT"] == "6"
+
+
+def test_b1a_removes_discovery_credit_and_keeps_replay(tmp_path):
+    """B1a is the complement of B3a: replay acts, discovery credit does not."""
+    env = b3a.build_export_vars(ROOT, _run(), tmp_path, "b1a")
+
+    # Discovery channels off.
+    assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
+    assert float(env["OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA"]) == 0.0
+
+    # Replay untouched, and the treatment's own variant, so its mass and
+    # balance losses and their controllers act exactly as in xGRPO.
+    assert env["OAT_ZERO_VARIANT"] == "verified_first_global_replay_canonical"
+    assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA"]) == 0.10
+    assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA"]) == 0.10
+
+
+def test_arms_are_complementary_and_write_to_separate_run_directories(tmp_path):
+    run = _run()
+    b3a_env = b3a.build_export_vars(ROOT, run, tmp_path, "b3a")
+    b1a_env = b3a.build_export_vars(ROOT, run, tmp_path, "b1a")
+
+    # B3a keeps discovery credit; B1a keeps replay. Neither keeps both.
+    assert float(b3a_env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.10
+    assert float(b1a_env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
+    assert b3a_env["OAT_ZERO_VARIANT"] != b1a_env["OAT_ZERO_VARIANT"]
+
+    assert b3a.run_stamp(run, "b3a") != b3a.run_stamp(run, "b1a")
+    assert b3a.save_path(tmp_path, run, "b3a") != b3a.save_path(tmp_path, run, "b1a")
