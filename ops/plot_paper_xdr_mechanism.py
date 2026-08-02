@@ -3,54 +3,60 @@
 
 Five equal columns, read left to right: three pipeline steps (discover, retain,
 rebalance) followed by the two modulators that act on them (the self-referenced
-controller and the singleton escape). The palette is the paper's plasma ramp:
-a known key is `plt.cm.plasma` 0.10, a new key is 0.45, and a mechanism action
-is 0.70, exactly as in `plot_paper_collapse_toy.py` and the ModeBench examples,
-so a colour means the same thing in every figure of the paper.
+controller and the singleton escape). Colour names a verified execution mode,
+not an arm, so it comes from ``paper_style.MODE_RAMP``: a known key is slot 0,
+a new key is slot 1, and a mechanism action is slot 2, exactly as in
+`plot_paper_collapse_toy.py` and the ModeBench examples, so a colour means the
+same thing in every figure of the paper.
+
+The canvas stays 13.2in wide because the column layout below is hand-placed in
+inches on it. Type is sized through ``paper_style.font_for_canvas`` so that,
+after \\includegraphics scales this canvas to \\textwidth, the labels land the
+same size on paper as the text in every other figure.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "ops") not in sys.path:
+    sys.path.insert(0, str(ROOT / "ops"))
+import paper_style as style  # noqa: E402
+
 OUT = ROOT / "paper/figures/xdr_mechanism"
 
-FONT = 17.0
+# Inches on a canvas whose single axes spans it one-to-one.
+WIDTH = 13.2  # the collapse story's canvas, so both figures print at one scale
+
+FONT = style.font_for_canvas(WIDTH)
 MONO = "DejaVu Sans Mono"
 
-INK = "#1B2733"
-MUTED = "#5B6B7B"
-GRID = "#F0DEC6"
-FRAME = "#C7AE8E"
-PANEL = "#FEF4E7"
-WHITE = "#FFFFFF"
+INK = style.INK
+MUTED = style.MUTED
+GRID = style.GRID
+FRAME = style.MUTED
+PANEL = style.PANEL
+WHITE = style.WHITE
 
-KEY_SEEN = "#41049D"  # plasma 0.10 — a key the bank already holds
-KEY_NEW = "#BF3984"  # plasma 0.45 — a key this group discovered
-ACTION = "#F2844B"  # plasma 0.70 — a pressure the method applies
-INVALID = "#E5E9ED"  # off-ramp on purpose, as in the collapse story
+KEY_SEEN = style.MODE_RAMP[0]  # a key the bank already holds
+KEY_NEW = style.MODE_RAMP[1]  # a key this group discovered
+ACTION = style.MODE_RAMP[2]  # a pressure the method applies
+INVALID = style.INVALID  # off-ramp on purpose, as in the collapse story
 
+style.apply_rcparams(font_size=FONT)
 mpl.rcParams.update(
     {
         "font.family": "sans-serif",
         "font.sans-serif": ["DejaVu Sans", "Helvetica", "Arial", "Liberation Sans"],
-        "font.size": FONT,
         "mathtext.fontset": "dejavusans",
-        "text.color": INK,
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "figure.facecolor": WHITE,
-        "savefig.facecolor": WHITE,
     }
 )
-
-# Inches on a canvas whose single axes spans it one-to-one.
-WIDTH = 13.2  # the collapse story's canvas, so both figures print at one scale
 MARGIN = 0.14
 GAP = 0.14
 COLUMNS = 5
@@ -58,13 +64,19 @@ COL_W = (WIDTH - 2 * MARGIN - (COLUMNS - 1) * GAP) / COLUMNS
 PAD = 0.14
 INNER = COL_W - 2 * PAD
 
-LINE = 0.28
-SUB_LINE = 0.26
+# Inter-line gaps are typographic, not structural: they were set as ~1.2x the
+# original 17pt line height, so they scale with the type rather than staying
+# fixed in inches. Leaving them fixed while the type shrank pushed the two
+# lines of a card title far enough apart that pdftotext stopped reading them as
+# one line, which the paper's figure contract checks for.
+_TYPE_SCALE = FONT / 17.0
+LINE = 0.28 * _TYPE_SCALE
+SUB_LINE = 0.26 * _TYPE_SCALE
 CHIP_H = 0.36
 HEAD_TO_TITLE = 0.62
-BODY_TOP = 1.86
-FOOTER_ZONE = 0.74
-BODY_H = 1.95
+BODY_TOP = 1.74
+FOOTER_ZONE = 0.62
+BODY_H = 1.90
 CARD_H = BODY_TOP + BODY_H + FOOTER_ZONE
 HEIGHT = CARD_H + 0.20
 

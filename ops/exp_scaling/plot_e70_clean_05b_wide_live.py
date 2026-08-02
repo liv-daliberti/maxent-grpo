@@ -19,6 +19,7 @@ import math
 from pathlib import Path
 import re
 import statistics
+import sys
 from typing import Any, Iterable, Mapping
 
 import matplotlib
@@ -30,6 +31,12 @@ from matplotlib.ticker import MaxNLocator
 
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT / "ops") not in sys.path:
+    sys.path.insert(0, str(ROOT / "ops"))
+import paper_style as style  # noqa: E402
+
+style.apply_rcparams()
+
 DEFAULT_OUTPUT = (
     ROOT
     / "paper/figures/e68_e58_vs_grpo_05b_12ep_terminal_provenance.png"
@@ -50,8 +57,13 @@ PROTOCOL = (
 
 CONTROL = "grpo"
 TREATMENT = "verified_first_global_replay_canonical"
-BLUE = "#0057A8"
-ORANGE = "#D55E00"
+
+# These were "#0057A8"/"#D55E00", which painted matched Dr.GRPO blue and xGRPO
+# orange --- the opposite of the orange/teal the E72 figures give the same two
+# arms. The names are kept so callers importing them keep working, but they now
+# resolve to the shared arm palette so one colour means one arm paper-wide.
+BLUE = style.CONTROL
+ORANGE = style.METHOD
 SEEDS = (43, 44, 45, 46, 47)
 SEED_STYLES = {
     43: "-",
@@ -100,6 +112,17 @@ DOMAIN_SPECS = (
     ("PointMaze", "point_maze", None, None),
     ("AntMaze", "ant_maze", None, None),
 )
+# Environments the manuscript reports. PointMaze, its geometry-shift
+# replacement, and AntMaze are excluded: none reached an admitted cohort, and
+# their cards carried no reportable series.
+REPORTED_DOMAINS = (
+    "graph_coloring",
+    "countdown",
+    "python_factor",
+    "mathir",
+    "pantry_plan",
+)
+
 PANELS = (
     ("greedy", "neutral pass@1", False),
     ("pass8", "neutral pass@8", False),
@@ -332,10 +355,11 @@ def _plot_metric(
 ) -> tuple[list[float], int]:
     plotted: list[float] = []
     max_seed_count = 0
-    for arm, color, marker in (
-        (CONTROL, BLUE, "o"),
-        (TREATMENT, ORANGE, "D"),
-    ):
+    for arm, color in ((CONTROL, BLUE), (TREATMENT, ORANGE)):
+        dash = style.ARM_DASH[color]
+        # Markers on every checkpoint of every seed were most of this panel's
+        # ink. Seeds now read as thin low-alpha texture and the mean carries
+        # the arm's dash, so identity survives without them.
         for seed in SEEDS:
             rows = _series(points, arm, seed, metric)
             if not rows:
@@ -344,14 +368,8 @@ def _plot_metric(
                 [row[0] for row in rows],
                 [row[1] for row in rows],
                 color=color,
-                linestyle=SEED_STYLES[seed],
-                linewidth=1.15,
-                marker=marker,
-                markersize=2.8 if arm == CONTROL else 3.1,
-                markerfacecolor=color if arm == CONTROL else "none",
-                markeredgecolor=color,
-                markeredgewidth=1.05,
-                alpha=0.68,
+                linewidth=style.SEED_LW,
+                alpha=0.38,
                 zorder=2,
             )
         xs, means, lows, highs, counts = _mean_series(points, arm, metric)
@@ -365,7 +383,7 @@ def _plot_metric(
             lows,
             highs,
             color=color,
-            alpha=0.10,
+            alpha=style.BAND_ALPHA,
             linewidth=0,
             zorder=1,
         )
@@ -373,12 +391,8 @@ def _plot_metric(
             xs,
             means,
             color=color,
-            linewidth=2.8,
-            marker=marker,
-            markersize=4.2 if arm == CONTROL else 4.6,
-            markerfacecolor=color if arm == CONTROL else "none",
-            markeredgecolor=color,
-            markeredgewidth=1.35,
+            linewidth=style.MEAN_LW,
+            linestyle=dash,
             zorder=4,
         )
         last_x = xs[-1]
@@ -389,7 +403,7 @@ def _plot_metric(
             (last_x, last_y),
             xytext=(2, 2),
             textcoords="offset points",
-            fontsize=4.7,
+            fontsize=style.SMALL_FONT - 1.4,
             color=color,
             alpha=0.85,
             clip_on=True,
@@ -399,9 +413,7 @@ def _plot_metric(
 
 def _style_axis(axis: plt.Axes, metric: str, plotted: list[float], integer: bool) -> None:
     axis.set_xlim(0, 12)
-    axis.grid(axis="y", color="#dddddd", linewidth=0.55, zorder=0)
-    axis.spines[["top", "right"]].set_visible(False)
-    axis.tick_params(length=2.5, width=0.7, labelsize=7.5)
+    style.style_axis(axis, grid="y")
     axis.xaxis.set_major_locator(MaxNLocator(7))
     if not plotted:
         axis.set_ylim(0.0, 1.0)
@@ -1535,27 +1547,30 @@ def render(output: Path, sidecar: Path) -> None:
         )
         for _label, key, prefix, steps in DOMAIN_SPECS
     }
-    figure = plt.figure(figsize=(9.2, 12.0))
+    # Authored at the shared canvas width, holding the original aspect. On the
+    # 9.2in canvas this grid was scaled by .60 at \linewidth, which is why its
+    # labels printed so much smaller than the rest of the paper's figures.
+    specs = [spec for spec in DOMAIN_SPECS if spec[1] in REPORTED_DOMAINS]
+    figure = plt.figure(figsize=(style.WIDTH, 1.45 * len(specs) + 0.55))
     outer_grid = figure.add_gridspec(
-        4,
-        2,
+        len(specs),
+        1,
         left=0.075,
         right=0.985,
-        bottom=0.075,
-        top=0.805,
-        hspace=0.50,
-        wspace=0.18,
+        bottom=0.055,
+        top=0.875,
+        hspace=0.62,
     )
     domain_axes: dict[str, list[plt.Axes]] = {}
-    for domain_index, (label, domain, _prefix, _steps) in enumerate(DOMAIN_SPECS):
-        outer_cell = outer_grid[domain_index // 2, domain_index % 2]
-        inner_grid = outer_cell.subgridspec(2, 2, hspace=0.44, wspace=0.34)
+    for domain_index, (label, domain, _prefix, _steps) in enumerate(specs):
+        outer_cell = outer_grid[domain_index, 0]
+        inner_grid = outer_cell.subgridspec(1, len(PANELS), wspace=0.30)
         panel_axes = [
-            figure.add_subplot(inner_grid[panel_index // 2, panel_index % 2])
+            figure.add_subplot(inner_grid[0, panel_index])
             for panel_index in range(len(PANELS))
         ]
         for axis in panel_axes:
-            axis.set_box_aspect(0.80)
+            axis.set_box_aspect(0.62)
         domain_axes[domain] = panel_axes
         cell_box = outer_cell.get_position(figure)
         figure.text(
@@ -1570,7 +1585,7 @@ def render(output: Path, sidecar: Path) -> None:
             linespacing=0.95,
         )
 
-    for _domain_index, (label, domain, prefix, _steps) in enumerate(DOMAIN_SPECS):
+    for _domain_index, (label, domain, prefix, _steps) in enumerate(specs):
         points = domain_points[domain]
         panel_axes = domain_axes[domain]
         if prefix is None and not points:
@@ -1629,7 +1644,7 @@ def render(output: Path, sidecar: Path) -> None:
                     transform=axis.transAxes,
                     ha="center",
                     va="center",
-                    color="#777777",
+                    color=style.MUTED,
                     fontsize=5.8,
                 )
             axis.set_title(
@@ -1652,7 +1667,7 @@ def render(output: Path, sidecar: Path) -> None:
             if panel_index < 2:
                 axis.tick_params(labelbottom=False)
             else:
-                axis.set_xlabel("training passes", fontsize=6.3, labelpad=1.5)
+                axis.set_xlabel("training passes", fontsize=style.LABEL_FONT, labelpad=1.5)
             if max_seed_count:
                 axis.text(
                     0.015,
@@ -1661,39 +1676,45 @@ def render(output: Path, sidecar: Path) -> None:
                     transform=axis.transAxes,
                     ha="left",
                     va="top",
-                    fontsize=4.5,
-                    color="#777777",
+                    fontsize=style.SMALL_FONT - 1.4,
+                    color=style.MUTED,
                 )
 
     handles = [
         Line2D(
-            [], [], color=BLUE, lw=2.8, marker="o",
+            [], [], color=BLUE, lw=style.MEAN_LW,
+            linestyle=style.ARM_DASH[BLUE],
             label="compute-matched Dr.GRPO",
         ),
         Line2D(
-            [], [], color=ORANGE, lw=2.8, marker="D",
-            markerfacecolor="white", markeredgewidth=1.2,
+            [], [], color=ORANGE, lw=style.MEAN_LW,
+            linestyle=style.ARM_DASH[ORANGE],
             label="online verified MaxEnt (E58 recipe)",
         ),
         Line2D(
-            [], [], color="#333333", lw=2.4,
+            [], [], color=style.MUTED, lw=style.MEAN_LW,
             label="available-seed mean; band = available-seed range",
         ),
     ]
-    handles.extend(
+    # One entry for the seeds rather than five. The per-seed dash patterns this
+    # legend used to name are gone: at 0.5pt and 38% alpha, across 32 panels,
+    # they were indistinguishable, and a key that promises a distinction the
+    # panel cannot show is worse than no key at all.
+    handles.append(
         Line2D(
-            [], [], color="#666666", lw=1.0,
-            ls=SEED_STYLES[seed], label=f"seed {seed}",
+            [], [], color=style.MUTED, lw=style.SEED_LW, alpha=0.38,
+            label=f"individual seeds ({min(SEEDS)}–{max(SEEDS)})",
         )
-        for seed in SEEDS
     )
     figure.legend(
         handles=handles,
         loc="upper center",
+        # Four entries on one line in the band between the title and the first
+        # domain row; at two columns it landed inside the Graph coloring panels.
         ncol=4,
         frameon=False,
-        fontsize=7.5,
-        bbox_to_anchor=(0.5, 0.865),
+        fontsize=style.FONT,
+        bbox_to_anchor=(0.5, 0.945),
     )
     generated = datetime.now(timezone.utc)
     submitted = 40
@@ -1708,37 +1729,34 @@ def render(output: Path, sidecar: Path) -> None:
         if isinstance(jobs, Mapping):
             submitted += len(jobs)
     figure.suptitle(
-        "Clean eight-environment 0.5B replacement campaign — historical E68 format\n"
-        "Four frozen outcome/discovery panels; 5 seeds × 12 passes; "
-        "PointMaze geometry shift is a labeled replacement configuration\n"
+        "Reported five-domain 0.5B surface — four frozen outcome/discovery "
+        "panels, 5 seeds × 12 passes\n"
         f"Stage A: {summary.get('terminal_runs', 0)}/"
         f"{summary.get('expected_runs', 40)} terminal, "
         f"{summary.get('metric_runs', 0)} metric-bearing, "
-        f"{summary.get('materialized_runs', 0)} materialized; "
-        f"{total_terminal}/80 audited terminal overall\n"
-        f"{submitted}/80 paper jobs submitted; remaining rows stay fail-closed; "
-        "no historical values or carry-forward "
+        f"{summary.get('materialized_runs', 0)} materialized; no historical "
+        "values and no carry-forward "
         f"({generated.strftime('%Y-%m-%d %H:%M UTC')})",
-        fontsize=9.0,
-        y=0.985,
+        fontsize=style.FONT + 1.0,
+        y=0.995,
     )
     figure.text(
         0.5,
-        0.012,
-        "Thin lines are exact E70 seed trajectories. Thick lines average only "
-        "the seeds actually present at each x-coordinate, with n annotated;\n"
-        "this is a live progress view, not a terminal five-seed estimate. "
-        "Quality uses the frozen multi-answer evaluation split;\n"
-        "cumulative discoveries use the registered online verified-support "
-        "telemetry. PantryPlan, PointMaze, AntMaze, and PointMaze geometry "
-        "shift show\n"
-        "their newest identity-bound gate or Stage-B state; maze terminal "
-        "counts remain zero until executable replay audit passes.\n"
-        "ConstructiveCode remains a reported negative qualification (0/192 "
-        "accepted at both 0.5B post-SFT and 1.5B) and is not counted in this roster.",
+        # Below the axes rather than inside them: at 0.012 this block landed on
+        # the bottom row's tick labels. bbox_inches="tight" still captures it.
+        -0.018,
+        "Thin lines are exact E70 seed trajectories; thick lines average the "
+        "seeds present at each x-coordinate, with n annotated. Quality uses "
+        "the frozen\n"
+        "multi-answer evaluation split; cumulative discoveries use the "
+        "registered online verified-support telemetry. The maze environments "
+        "and\n"
+        "ConstructiveCode never reached an admitted cohort and are excluded "
+        "from this surface rather than shown as empty rows.",
         ha="center",
-        fontsize=6.2,
-        color="#444444",
+        va="top",
+        fontsize=style.SMALL_FONT,
+        color=style.MUTED,
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary_output = output.with_name(f".{output.name}.tmp")
@@ -1937,6 +1955,7 @@ def render(output: Path, sidecar: Path) -> None:
         **{
             f"curve_{key}": _curve_path(prefix)
             for _label, key, prefix, _steps in DOMAIN_SPECS
+            if key in REPORTED_DOMAINS
             if prefix is not None
         },
         "constructive_gate": (
@@ -2094,7 +2113,10 @@ def render(output: Path, sidecar: Path) -> None:
         "carry_forward": False,
         "arms": [CONTROL, TREATMENT],
         "seeds": list(SEEDS),
-        "rows": [key for _label, key, _prefix, _steps in DOMAIN_SPECS],
+        "rows": [
+            key for _label, key, _prefix, _steps in DOMAIN_SPECS
+            if key in REPORTED_DOMAINS
+        ],
         "panels": [metric for metric, _title, _integer in PANELS],
         "layout": {
             "domain_card_grid": [4, 2],

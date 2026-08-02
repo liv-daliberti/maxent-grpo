@@ -25,18 +25,30 @@ if str(EXP_SCALING) not in sys.path:
     sys.path.insert(0, str(EXP_SCALING))
 import plot_e61r1_e58_vs_grpo_12pass as e68_plot  # noqa: E402
 
+OPS = ROOT / "ops"
+if str(OPS) not in sys.path:
+    sys.path.insert(0, str(OPS))
+import paper_style as style  # noqa: E402
+
 OUT_STORY = ROOT / "paper/figures/modecollapse_story"
 OUT_TRAINING = ROOT / "paper/figures/modecollapse_training"
 
-INK = "#19324A"
-MUTED = "#607487"
-GRID = "#D8E2EA"
-PANEL = "#F6F9FB"
-WHITE = "#FFFFFF"
-CONTROL = "#C76A3A"
-METHOD = "#087F8C"
+INK = style.INK
+MUTED = style.MUTED
+GRID = style.GRID
+PANEL = style.PANEL
+WHITE = style.WHITE
+CONTROL = style.CONTROL
+METHOD = style.METHOD
 ACCENT = CONTROL
-MODE_COLORS = ["#6C5CE7", "#E76F51", "#3A7CA5", "#2A9D8F"]
+MODE_COLORS = list(style.MODE_RAMP)
+
+# The arm colours the trajectory panels draw with. These deliberately shadow
+# ``e68_plot.BLUE``/``ORANGE``: that module paints matched Dr.GRPO blue and
+# xGRPO orange, which is the opposite of the orange/teal the E72 figures use
+# for the same two arms. Colour follows the entity, so the shared definition
+# wins and the historical one is not imported for drawing.
+ARM_COLOR = {e68_plot.CONTROL: CONTROL, e68_plot.TREATMENT: METHOD}
 
 DOMAINS = [
     "Graph coloring",
@@ -47,21 +59,7 @@ DOMAINS = [
 ]
 PANTRY_DOMAIN = "PantryPlan"
 
-mpl.rcParams.update(
-    {
-        "font.family": "DejaVu Sans",
-        "font.size": 8.2,
-        "axes.edgecolor": INK,
-        "axes.labelcolor": INK,
-        "xtick.color": INK,
-        "ytick.color": INK,
-        "axes.linewidth": 0.7,
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "figure.facecolor": WHITE,
-        "savefig.facecolor": WHITE,
-    }
-)
+style.apply_rcparams()
 
 
 def rounded_box(ax, x, y, w, h, *, face=WHITE, edge=GRID, radius=0.018, lw=1.0):
@@ -399,10 +397,12 @@ def _plot_e68_training_axis(
     """Plot one panel with the historical E68 seed/mean/range grammar."""
 
     plotted_values: list[float] = []
-    for arm, color, marker, zorder in (
-        (e68_plot.CONTROL, e68_plot.BLUE, "o", 2),
-        (e68_plot.TREATMENT, e68_plot.ORANGE, "D", 3),
-    ):
+    for arm, zorder in ((e68_plot.CONTROL, 2), (e68_plot.TREATMENT, 3)):
+        color = ARM_COLOR[arm]
+        dash = style.ARM_DASH[color]
+        # Seeds stay in the panel --- the caption promises them --- but they
+        # carry no markers and sit at low alpha, so they read as the texture of
+        # the spread rather than competing with the mean.
         for seed in seeds:
             xs, ys = e68_plot._series(points, arm, seed, metric)
             plotted_values.extend(ys)
@@ -410,16 +410,8 @@ def _plot_e68_training_axis(
                 xs,
                 ys,
                 color=color,
-                ls=_seed_style(seed),
-                lw=1.15,
-                marker=marker,
-                ms=2.8 if arm == e68_plot.CONTROL else 3.1,
-                markerfacecolor=(
-                    color if arm == e68_plot.CONTROL else "none"
-                ),
-                markeredgecolor=color,
-                markeredgewidth=1.05,
-                alpha=0.68,
+                lw=style.SEED_LW,
+                alpha=0.38,
                 zorder=zorder,
             )
         xs, means, lows, highs = _complete_mean(points, arm, metric, seeds)
@@ -431,7 +423,7 @@ def _plot_e68_training_axis(
                 lows,
                 highs,
                 color=color,
-                alpha=0.10,
+                alpha=style.BAND_ALPHA,
                 linewidth=0,
                 zorder=1,
             )
@@ -439,21 +431,15 @@ def _plot_e68_training_axis(
                 xs,
                 means,
                 color=color,
-                lw=2.8,
-                marker=marker,
-                ms=4.2 if arm == e68_plot.CONTROL else 4.6,
-                markerfacecolor=(
-                    color if arm == e68_plot.CONTROL else "none"
-                ),
-                markeredgecolor=color,
-                markeredgewidth=1.35,
+                lw=style.MEAN_LW,
+                linestyle=dash,
                 zorder=5,
             )
 
     e68_plot._set_y_limits(axis, metric, plotted_values)
     axis.set_xlim(0, frozen_pass + max(0.08, frozen_pass * 0.06))
     axis.set_xticks(PLOT_PASSES)
-    e68_plot._style_axis(axis)
+    style.style_axis(axis)
     if E68_TRAIN_METRICS[metric]["integer"]:
         axis.yaxis.set_major_locator(MaxNLocator(5, integer=True))
 
@@ -461,20 +447,21 @@ def _plot_e68_training_axis(
 def _e68_training_legend() -> list[Line2D]:
     return [
         Line2D(
-            [], [], color=e68_plot.BLUE, lw=2.8, marker="o",
+            [], [], color=CONTROL, lw=style.MEAN_LW,
+            linestyle=style.ARM_DASH[CONTROL],
             label="matched Dr.GRPO",
         ),
         Line2D(
-            [], [], color=e68_plot.ORANGE, lw=2.8, marker="D",
-            markerfacecolor="none", markeredgewidth=1.35,
+            [], [], color=METHOD, lw=style.MEAN_LW,
+            linestyle=style.ARM_DASH[METHOD],
             label="xGRPO",
         ),
         Line2D(
-            [], [], color="#555555", lw=1.15,
+            [], [], color=MUTED, lw=style.SEED_LW, alpha=0.38,
             label="individual seeds",
         ),
         Line2D(
-            [], [], color="#555555", lw=2.8,
+            [], [], color=MUTED, lw=style.MEAN_LW,
             label="mean + seed range",
         ),
     ]
@@ -485,24 +472,35 @@ def render_e68_training() -> None:
 
     document: dict = {}
     metrics = tuple(E68_TRAIN_METRICS)
+    # Authored at the shared canvas width rather than 11.5in: at \linewidth the
+    # old canvas was scaled by .48, which put this grid's nominal 8.2pt type on
+    # the page at about 3.9pt.
     fig, axes = plt.subplots(
         len(DOMAINS),
         len(metrics),
-        figsize=(11.5, 8.4),
+        figsize=(style.WIDTH, style.panel_height(len(DOMAINS))),
         sharex="row",
         squeeze=False,
+        constrained_layout=True,
     )
     for row_index, domain in enumerate(DOMAINS):
         points, frozen_pass, seeds = _e68_training_points(document, domain)
         for column_index, metric in enumerate(metrics):
             axis = axes[row_index, column_index]
             _plot_e68_training_axis(axis, points, metric, frozen_pass, seeds)
+            # Every row carries its metric titles, not just the top one: the
+            # rows are domains on independent y scales, and the paper's figure
+            # contract requires all five to be labelled.
             axis.set_title(
                 E68_TRAIN_METRICS[metric]["title"],
-                fontsize=7.5,
+                fontsize=style.TITLE_FONT,
+                color=INK,
+                pad=3,
             )
             if column_index == 0:
-                axis.set_ylabel(domain, fontsize=8.2, fontweight="bold")
+                axis.set_ylabel(
+                    domain, fontsize=style.LABEL_FONT, fontweight="bold"
+                )
                 axis.text(
                     0.985,
                     0.05,
@@ -510,47 +508,28 @@ def render_e68_training() -> None:
                     transform=axis.transAxes,
                     ha="right",
                     va="bottom",
-                    fontsize=5.6,
-                    color="#666666",
+                    fontsize=style.SMALL_FONT - 0.8,
+                    color=MUTED,
                 )
             if row_index == len(DOMAINS) - 1:
-                axis.set_xlabel("training passes", fontsize=7)
+                axis.set_xlabel("training passes", fontsize=style.LABEL_FONT)
 
-    fig.legend(
-        handles=_e68_training_legend(),
-        loc="upper center",
-        ncol=4,
-        frameon=False,
-        fontsize=7.7,
-        bbox_to_anchor=(0.5, 0.955),
-    )
-    fig.suptitle(
-        "Frozen five-domain comparison — historical E68 trajectory format",
-        fontsize=10.5,
-        y=0.997,
+    style.bottom_legend(
+        fig,
+        _e68_training_legend(),
+        [handle.get_label() for handle in _e68_training_legend()],
+        y=-0.022,
     )
     fig.text(
         0.5,
-        0.008,
+        -0.045,
         "Thin lines are seeds 43–47; thick lines are five-seed means and bands "
         "are seed ranges. Each row shows checkpoints 0, 3, 6, 9, and 12; all endpoints are audited.",
         ha="center",
-        fontsize=7.0,
-        color="#444444",
+        fontsize=style.SMALL_FONT,
+        color=MUTED,
     )
-    fig.tight_layout(rect=(0.03, 0.045, 0.995, 0.87), h_pad=1.15)
-    OUT_TRAINING.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(
-        OUT_TRAINING.with_suffix(".pdf"),
-        bbox_inches="tight",
-        pad_inches=0.035,
-    )
-    fig.savefig(
-        OUT_TRAINING.with_suffix(".png"),
-        dpi=240,
-        bbox_inches="tight",
-        pad_inches=0.035,
-    )
+    style.save(fig, OUT_TRAINING)
     plt.close(fig)
 
 
@@ -581,9 +560,10 @@ def render_modes_by_epoch() -> Path:
     fig, axes = plt.subplots(
         1,
         len(DOMAINS),
-        figsize=(7.35, 2.68),
+        figsize=(style.WIDTH, 2.15),
         squeeze=False,
         sharey=True,
+        constrained_layout=True,
     )
     ceiling = 0.0
     for panel_index, (axis, domain) in enumerate(zip(axes.flat, DOMAINS)):
@@ -608,45 +588,37 @@ def render_modes_by_epoch() -> Path:
             ls=(0, (3, 2)),
             zorder=0,
         )
-        axis.set_title(domain, fontsize=7.6, fontweight="bold", pad=3.0)
-        axis.set_xlabel("training epoch", fontsize=6.6, labelpad=1.5)
+        axis.set_title(domain, fontsize=style.TITLE_FONT, color=INK, pad=3)
         # The reporting grid is 0, 3, 6, 9, 12; the shared styler relabels the
         # axis on an even locator, so restore the evaluated checkpoints.
         axis.set_xticks(PLOT_PASSES)
-        axis.tick_params(labelsize=6.4)
         if panel_index == 0:
             # Same name the results table uses for `distinct@8`. Rendered by
             # matplotlib's own text engine, so the `#` needs no LaTeX escape.
-            axis.set_ylabel("#modes", fontsize=9.0, labelpad=2.5)
+            axis.set_ylabel("#modes", fontsize=style.LABEL_FONT, labelpad=2)
 
     axes.flat[0].set_ylim(0.0, ceiling)
     axes.flat[0].text(
         6.0,
         1.06,
         "one mode",
-        fontsize=5.9,
+        fontsize=style.SMALL_FONT,
         color=MUTED,
         ha="center",
         va="bottom",
         bbox={"facecolor": WHITE, "edgecolor": "none", "pad": 0.6},
     )
 
-    fig.legend(
-        handles=_e68_training_legend(),
-        loc="upper center",
-        ncol=4,
-        frameon=False,
-        fontsize=7.6,
-        bbox_to_anchor=(0.5, 1.012),
+    fig.supxlabel("training epoch", fontsize=style.FONT)
+    # One row is only 2.15in tall, so the reference offset would drop the
+    # legend on top of the shared x label; clear it explicitly.
+    style.bottom_legend(
+        fig,
+        _e68_training_legend(),
+        [handle.get_label() for handle in _e68_training_legend()],
+        y=-0.14,
     )
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.935), w_pad=0.7)
-    fig.savefig(out.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.03)
-    fig.savefig(
-        out.with_suffix(".png"),
-        dpi=240,
-        bbox_inches="tight",
-        pad_inches=0.03,
-    )
+    style.save(fig, out)
     plt.close(fig)
     return out
 

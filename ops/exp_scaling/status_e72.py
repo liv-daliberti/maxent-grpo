@@ -46,9 +46,23 @@ WAVE_A_GPU_HOURS = WAVE_A_ARMS * B3A_GPU_HOURS + FRONTIER_GPU_HOURS
 COHORTS: tuple[tuple[str, str, int], ...] = (
     ("B3a  replay gradient removed", "verified_first_replay_gradient_ablation_*_b3a_s*", 25),
     ("B1a  discovery credit removed", "verified_first_replay_only_ablation_*_b1a_s*", 25),
+    ("B1b  rehearsal only, no balance", "verified_first_replay_rehearsal_only_*_b1b_s*", 25),
     # Both arms of the confirmation, matched pairwise on fresh seeds.
     ("B1a confirmation  seeds 48-52", "*conf_s*", 50),
 )
+# E73, the cross-family replication on Falcon3-1B: five domains x two arms x
+# five seeds. Python factors and MathIR were relaunched as "_r1_" cohorts after
+# the originals OOM-looped, so the replacement supersedes the original wherever
+# it exists --- the same supersede-don't-pool rule the manuscript applies.
+FALCON_DOMAINS: tuple[tuple[str, str], ...] = (
+    ("Graph coloring", "gc"),
+    ("Countdown", "cd"),
+    ("Python factors", "py"),
+    ("MathIR", "mi"),
+    ("PantryPlan", "pp"),
+)
+FALCON_RUNS_PER_DOMAIN = 10
+
 HISTORY = "var/artifacts/e72_status_history.jsonl"
 
 
@@ -56,8 +70,15 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def last_global_step(metrics_path: Path) -> int:
-    """Read the final logged optimizer step without parsing the whole file."""
+def max_global_step(metrics_path: Path) -> int:
+    """Deepest optimizer step this attempt reached, from a bounded tail read.
+
+    The *last* logged step is the wrong measure: when a job is requeued it
+    re-emits a step-0 evaluation before resuming from its checkpoint, so a run
+    that reached step 3,000 and restarted five minutes ago reads as zero
+    progress. Progress is monotone across attempts because training resumes
+    from checkpointed state, so the maximum observed step is the honest one.
+    """
     try:
         with metrics_path.open("rb") as handle:
             handle.seek(0, os.SEEK_END)
@@ -66,14 +87,16 @@ def last_global_step(metrics_path: Path) -> int:
             tail = handle.read().decode("utf-8", "replace").splitlines()
     except OSError:
         return 0
-    for line in reversed(tail):
+    best = 0
+    for line in tail:
         try:
             record = json.loads(line)
         except ValueError:
             continue
-        if "misc/global_step" in record:
-            return int(record["misc/global_step"])
-    return 0
+        step = record.get("misc/global_step")
+        if step is not None:
+            best = max(best, int(step))
+    return best
 
 
 def cohort_progress(root: Path, pattern: str, expected_runs: int) -> dict[str, Any]:
@@ -83,7 +106,7 @@ def cohort_progress(root: Path, pattern: str, expected_runs: int) -> dict[str, A
     for run_dir in sorted(root.glob(f"var/data/xdr_qwen25_0p5b_instruct_{pattern}")):
         best = max(
             (
-                last_global_step(Path(path))
+                max_global_step(Path(path))
                 for path in glob.glob(str(run_dir / "debug_job*" / "train_metrics.jsonl"))
             ),
             default=0,
@@ -98,6 +121,56 @@ def cohort_progress(root: Path, pattern: str, expected_runs: int) -> dict[str, A
         "runs_complete": complete,
         "runs_total": expected_runs,
     }
+
+
+def falcon_progress(root: Path) -> dict[str, Any]:
+    """Per-domain E73 progress, reported on the manuscript's own endpoint rule.
+
+    The headline quantity is the *common* endpoint: the deepest step every run
+    of a domain has reached, since a domain is reportable only when all ten
+    cells reach the terminal pass. A mean over runs would look healthier than
+    the domain actually is whenever one cell is stuck.
+    """
+    domains: list[dict[str, Any]] = []
+    for title, prefix in FALCON_DOMAINS:
+        replacement = sorted(
+            root.glob(f"var/data/xdr_falcon3_1b_instruct_*_{prefix}e73_falcon3_1b_12pass_r1_*_s4[3-7]")
+        )
+        original = [
+            path
+            for path in sorted(
+                root.glob(f"var/data/xdr_falcon3_1b_instruct_*_{prefix}e73_falcon3_1b_12pass_*_s4[3-7]")
+            )
+            if "_r1_" not in path.name
+        ]
+        live = replacement if len(replacement) >= len(original) else original
+        cohort = "r1" if live is replacement and replacement else "original"
+        steps = []
+        terminal = 0
+        for run_dir in live:
+            best = max(
+                (
+                    max_global_step(Path(path))
+                    for path in glob.glob(str(run_dir / "debug_job*" / "train_metrics.jsonl"))
+                ),
+                default=0,
+            )
+            steps.append(best)
+            terminal += best >= STEPS_PER_RUN
+        # Absent runs count as zero so a short cohort cannot inflate the floor.
+        while len(steps) < FALCON_RUNS_PER_DOMAIN:
+            steps.append(0)
+        domains.append(
+            {
+                "domain": title,
+                "cohort": cohort,
+                "runs_found": len(live),
+                "terminal": terminal,
+                "common_endpoint": min(steps) if steps else 0,
+                "deepest": max(steps) if steps else 0,
+            }
+        )
+    return {"domains": domains, "runs_per_domain": FALCON_RUNS_PER_DOMAIN}
 
 
 def frontier_progress(root: Path) -> dict[str, Any]:
@@ -130,12 +203,16 @@ def queue_counts(user: str) -> dict[str, int]:
         name, state = parts[0], parts[1]
         if name.startswith("e72b1aconf") or name.startswith("e72xgrpoconf"):
             key = "conf"
+        elif name.startswith("e72b1b"):
+            key = "b1b"
         elif name.startswith("e72b1a"):
             key = "b1a"
         elif name.startswith("e72b3a"):
             key = "b3a"
         elif name.startswith("e72f"):
             key = "cells"
+        elif name.startswith("xdr_train"):
+            key = "falcon"
         else:
             continue
         if state in ("RUNNING", "PENDING"):
@@ -205,6 +282,39 @@ def render(current: dict[str, Any], previous: dict[str, Any] | None) -> str:
             for stage, entry in frontier["per_stage"].items()
         )
     )
+    falcon = current.get("falcon")
+    if falcon and falcon["domains"]:
+        previous_falcon = {
+            entry["domain"]: entry
+            for entry in ((previous or {}).get("falcon") or {}).get("domains", [])
+        }
+        lines += [
+            "",
+            f"  {'E73 Falcon3-1B cross-family':<30} {'terminal':>9}   "
+            f"{'common endpoint':>18}   cohort",
+            f"  {'-' * 30} {'-' * 9}   {'-' * 18}   {'-' * 8}",
+        ]
+        for entry in falcon["domains"]:
+            endpoint = entry["common_endpoint"]
+            share = pct(endpoint, STEPS_PER_RUN)
+            before = previous_falcon.get(entry["domain"], {}).get("common_endpoint")
+            moved = "" if before is None else f"  ({endpoint - before:+,} since last)"
+            lines.append(
+                f"  {entry['domain']:<30} "
+                f"{entry['terminal']:>4}/{falcon['runs_per_domain']:<4}   "
+                f"{endpoint:>6,} / {STEPS_PER_RUN:,} ({share:3.0f}%)   "
+                f"{entry['cohort']}{moved}"
+            )
+        stalled = [
+            entry["domain"]
+            for entry in falcon["domains"]
+            if entry["common_endpoint"] == 0
+        ]
+        if stalled:
+            lines.append(
+                "  note: no common progress yet in " + ", ".join(stalled)
+            )
+
     lines += [
         "",
         f"  launched work: {pct(done_gpu_hours, planned_gpu_hours):.1f}% "
@@ -265,6 +375,7 @@ def main() -> int:
             for label, pattern, runs in COHORTS
         },
         "frontier": frontier_progress(root),
+        "falcon": falcon_progress(root),
         "queue": queue_counts(args.user) if args.user else {},
     }
 

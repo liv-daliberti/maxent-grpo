@@ -63,6 +63,24 @@ ARM_SPECS: dict[str, dict[str, Any]] = {
             "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION": "0",
         },
     },
+    "b1b": {
+        "variant": "verified_first_replay_rehearsal_only",
+        "removes": "rarity weighting and uniform mode balancing",
+        # Ordinary verified-response replay: rehearsal of the policy's own
+        # verified exemplars at the treatment's replay-token and gradient
+        # budget, with neither rarity weighting nor balance. Distinct from
+        # b1a, which retains the uniform-balance KL. Every switch is set by the
+        # variant; these overrides only make the removals explicit at the call
+        # site and fail loudly if the variant ever drifts.
+        "overrides": {
+            "OAT_ZERO_SEMANTIC_SHANNON_COEF": "0.0",
+            "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA": "0.0",
+            "OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE": "0",
+            "OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE": "0",
+            "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION": "0",
+            "OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE": "verified_likelihood_per_rollout",
+        },
+    },
     # The unmodified treatment, needed as the paired comparator when a cohort
     # runs on seeds the published cohort does not cover.
     "xgrpo": {

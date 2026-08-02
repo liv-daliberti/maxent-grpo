@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -19,9 +20,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyBboxPatch
+from matplotlib.transforms import Bbox
 from matplotlib.transforms import offset_copy
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "ops") not in sys.path:
+    sys.path.insert(0, str(ROOT / "ops"))
+import paper_style as style  # noqa: E402
+
+# Inches. The layout below is hand-placed on this canvas, so it stays put and
+# the type is scaled to it instead.
+CANVAS_WIDTH = 13.2
+CANVAS_HEIGHT = 5.32
+
 DR_DRAWS = (
     ROOT
     / "var/data/xdr_qwen25_0p5b_instruct_grpo_"
@@ -38,42 +49,45 @@ XDR_DRAWS = (
 OUT = ROOT / "paper/figures/modecollapse_story"
 AUDIT = ROOT / "var/artifacts/paper_graph_collapse_toy.json"
 
-# One type size for every label in the figure, so nothing in the printed
-# panel reads as a second-class annotation.
-FONT = 17.0
+# One type size for every label in the figure, so nothing in the printed panel
+# reads as a second-class annotation. Sized through the shared helper so that,
+# once this 13.2in canvas is scaled to \textwidth, the labels match the type in
+# every other figure.
+FONT = style.font_for_canvas(CANVAS_WIDTH)
 
-INK = "#1B2733"
-MUTED = "#5B6B7B"
-GRID = "#F0DEC6"
-FRAME = "#C7AE8E"
-# The pale orange every figure in the paper sits on; here it is the canvas
+INK = style.INK
+MUTED = style.MUTED
+GRID = style.GRID
+FRAME = style.MUTED
+# The pale wash every figure in the paper sits on; here it is the canvas
 # itself, so the three figures read as one surface.
-PANEL = "#FEF4E7"
-WHITE = "#FFFFFF"
+PANEL = style.PANEL
+WHITE = style.WHITE
 
 # Two scales share this figure and must never be confused. The *series* scale
-# identifies executed answer modes; it is `plt.cm.plasma`, quoted here as fixed
-# hex so the printed figure never moves with a matplotlib release, and it is
-# the only saturated thing in the figure, in the bar panels and their legend.
-# The *paint* scale is the puzzle's own three colours in panel A. It is
-# deliberately a neutral slate ramp, off the plasma ramp entirely: a paint is
+# identifies executed answer modes and is the shared ``MODE_RAMP``; it is the
+# only saturated thing in the figure, in the bar panels and their legend. The
+# *paint* scale is the puzzle's own three colours in panel A. It is
+# deliberately a neutral slate ramp, off the mode ramp entirely: a paint is
 # part of the question, not one of the measured modes, and a reader must never
 # read a node's fill as a bar's series colour.
 MODE_COLORS = {
-    "33221": "#41049D",  # Option A — plasma 0.10
-    "31223": "#BF3984",  # Option B — plasma 0.45
-    "32213": "#F2844B",  # Option C — plasma 0.70
+    "33221": style.MODE_RAMP[0],  # Option A
+    "31223": style.MODE_RAMP[1],  # Option B
+    "32213": style.MODE_RAMP[2],  # Option C
 }
-OTHER = "#FCCE25"  # any further verified mode — plasma 0.90
-INVALID = "#E5E9ED"  # invalid response — off-ramp on purpose, so it recedes
-# Legend labels carry their series colour. Two of the five fills are too light
-# to set type in at print size, so those labels use the legible sibling of the
-# same family: a deeper gold for the yellow swatch, muted ink for the grey one.
+OTHER = style.MODE_RAMP[3]  # any further verified mode
+INVALID = style.INVALID  # invalid response — off-ramp on purpose, so it recedes
+# Legend labels carry their series colour. Every mode fill clears 3:1 against
+# the surface under the validated ramp, so unlike the plasma ramp this replaced
+# --- whose yellow sat at 1.46:1 and needed a hand-picked darker gold --- each
+# label can simply wear its own series colour. Only the neutral invalid swatch
+# still borrows muted ink, because it is not a series.
 LABEL_COLORS = {
     "Option A": MODE_COLORS["33221"],
     "Option B": MODE_COLORS["31223"],
     "Option C": MODE_COLORS["32213"],
-    "other valid": "#A17605",
+    "other valid": OTHER,
     "invalid": MUTED,
 }
 NODE_COLORS = {1: "#C9D6E2", 2: "#6E8599", 3: "#263D51"}  # slate: light/mid/deep
@@ -282,7 +296,7 @@ def draw_partial_graph(ax, reference: dict) -> None:
     ax.set_axis_off()
 
 
-def draw_canvas_card(fig) -> None:
+def draw_canvas_card(fig):
     """The whole figure is one rounded card, matching the paper's other two.
 
     Drawn in an inch-scaled axes behind everything so the corner radius is the
@@ -294,18 +308,18 @@ def draw_canvas_card(fig) -> None:
     card.set_xlim(0, width)
     card.set_ylim(0, height)
     card.set_axis_off()
-    card.add_patch(
-        FancyBboxPatch(
-            (0.02, 0.02),
-            width - 0.04,
-            height - 0.04,
-            boxstyle="round,pad=0.0,rounding_size=0.09",
-            facecolor=PANEL,
-            edgecolor=GRID,
-            linewidth=1.1,
-            clip_on=False,
-        )
+    patch = FancyBboxPatch(
+        (0.02, 0.02),
+        width - 0.04,
+        height - 0.04,
+        boxstyle="round,pad=0.0,rounding_size=0.09",
+        facecolor=PANEL,
+        edgecolor=GRID,
+        linewidth=1.1,
+        clip_on=False,
     )
+    card.add_patch(patch)
+    return patch
 
 
 def draw_option_row(ax, y: float, label: str, key: str) -> None:
@@ -470,8 +484,8 @@ def main() -> None:
 
     # Drawn at the full text width, so the canvas is wide relative to its
     # height and every element keeps its printed font size while gaining room.
-    fig = plt.figure(figsize=(13.2, 5.60))
-    draw_canvas_card(fig)
+    fig = plt.figure(figsize=(CANVAS_WIDTH, CANVAS_HEIGHT))
+    card_patch = draw_canvas_card(fig)
     fig.text(
         0.034,
         0.985,
@@ -514,7 +528,9 @@ def main() -> None:
     fig.legend(
         handles=legend,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.004),
+        # Tucked up against the bar panels: at 0.004 it sat a visible band
+        # below them and read as a separate object rather than their key.
+        bbox_to_anchor=(0.5, 0.070),
         ncol=5,
         frameon=False,
         fontsize=FONT,
@@ -525,14 +541,28 @@ def main() -> None:
         entry.set_color(LABEL_COLORS[entry.get_text()])
         entry.set_fontweight("bold")
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)
-    fig.savefig(
-        OUT.with_suffix(".png"),
-        dpi=260,
-        bbox_inches="tight",
-        pad_inches=0.035,
+    # The legend's height is only known once it is laid out, so the wash and the
+    # saved crop are trimmed to its measured bottom rather than to a guessed
+    # fraction. This is what removes the band of orange under the key.
+    fig.canvas.draw()
+    # Trim to the legend's *text*, not its bounding box: the box carries the
+    # legend's internal padding, which put an extra 0.07in of wash under the
+    # visible labels on top of whatever margin was asked for.
+    label_bottom = min(
+        text.get_window_extent().transformed(fig.dpi_scale_trans.inverted()).y0
+        for text in fig.legends[-1].get_texts()
     )
+    width, _height = fig.get_size_inches()
+    card_bottom = max(0.02, label_bottom - 0.05)
+    card_patch.set_y(card_bottom)
+    card_patch.set_height(fig.get_size_inches()[1] - 0.02 - card_bottom)
+
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    crop = Bbox.from_extents(
+        0.0, card_bottom - 0.012, width, fig.get_size_inches()[1]
+    )
+    fig.savefig(OUT.with_suffix(".pdf"), bbox_inches=crop, pad_inches=0.035)
+    fig.savefig(OUT.with_suffix(".png"), dpi=260, bbox_inches=crop, pad_inches=0.035)
     plt.close(fig)
 
     audit = {

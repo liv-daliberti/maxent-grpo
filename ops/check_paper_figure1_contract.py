@@ -141,8 +141,8 @@ def main() -> None:
     ]
     five_point_tokens = (
         "breaks that trade",
-        "Breadth is what test-time scaling consumes",
-        "Useful breadth is difficult",
+        "Inference-time scaling requires genuine solution diversity",
+        "Useful prompt response breadth",
         "Prior work documents",
         r"We introduce \mb{}",
     )
@@ -161,8 +161,8 @@ def main() -> None:
     for forbidden in (r"V(y,s_x)", r"D_K(x)", r"P_K(x)="):
         require(forbidden not in introduction, f"Introduction contains formal token {forbidden!r}")
     for token in (
-        "breaks that trade", "Breadth is what test-time scaling consumes",
-        "Useful breadth is difficult", "Prior work documents",
+        "breaks that trade", "Inference-time scaling requires genuine solution diversity",
+        "Useful prompt response breadth", "Prior work documents",
         r"We introduce \mb{}", "Summary of contributions",
     ):
         require(token in introduction, f"Introduction structure missing {token!r}")
@@ -198,11 +198,11 @@ def main() -> None:
         r"\section{Experimental Design and Evidence Policy}", 1
     )[0]
     require(
-        related.count(r"\noindent\textbf{") == 4,
-        "Related Work must contain exactly four bold areas",
+        related.count(r"\noindent\textbf{") == 3,
+        "Related Work must contain exactly three bold areas",
     )
     for token in (
-        "Mode-covering objectives and archives",
+        "Mode-covering objectives, archives, and semantic identity",
         "bengio2023gflownet", "hu2024amortizing",
         "lehman2011novelty", "mouret2015illuminating",
         "yue2025rlvrlimit", "kirk2024understanding",
@@ -281,17 +281,17 @@ def main() -> None:
         # One hue per operation, so the two Countdown keys are
         # distinguishable by which operations they execute.
         "OPERATOR_COLORS = {",
-        '"mul": "#C2410C"',
-        '"div": "#B45309"',
-        '"add": "#0F766E"',
+        '"mul": "#20068f"',
+        '"div": "#7a02a8"',
+        '"add": "#bc3587"',
         '"C: add 9 · F: ×2 · E: add 18"',
         # MathIR names the actions its key ran, as PantryPlan does.
         'mathir_menu = {"C": "add 9", "F": "×2", "E": "add 18"}',
-        "NODE_PAINTS = {1: \"#C9D6E2\", 2: \"#6E8599\", 3: \"#263D51\"}",
+        "NODE_PAINTS = {1: \"#e16462\", 2: \"#9e199d\", 3: \"#2f0596\"}",
         "INGREDIENT_COLORS = {",
     ):
         require(token in example_source, f"ModeBench example source missing {token!r}")
-    for token in ("6.27", "4.52", "229.44", "5.00", "18.19", r"\renewcommand{\arraystretch}{0.92}"):
+    for token in ("6.27", "4.52", "229.44", "5.00", "18.19", r"\renewcommand{\arraystretch}{1.08}"):
         require(token in manuscript, f"Table 1 contract missing {token!r}")
     require(
         manuscript.index(r"\label{tab:tasks}")
@@ -303,7 +303,10 @@ def main() -> None:
         'letter="C"', 'title="x-mode GRPO"',
         "steps = [0, 48, 96, 192, 384, 576, 768]",
         "width_ratios=[4.35, 0.65, 3.74, 0.17, 3.74]",
-        "FONT = 17.0",
+        # The story figure is drawn on an oversized canvas and scaled to
+        # \linewidth, so its type size is derived rather than literal;
+        # pin the derivation, which is what keeps it legible in print.
+        "FONT = style.font_for_canvas(CANVAS_WIDTH)",
     ):
         require(token in source, f"missing source token {token!r}")
     # Panel C is the xGRPO trajectory beside its control, never a return of the
@@ -370,33 +373,39 @@ def main() -> None:
         and pantry_terminal.get("decision") == "pantry_terminal_eligible",
         "PantryPlan Stage B is not terminal-eligible",
     )
+    # Line weights, seed styling, and alphas moved into ops/paper_style.py so
+    # every figure shares one specification. The guard follows them there: both
+    # figure sources must draw from that module, and the module must still
+    # define the constants, rather than each figure pinning its own literals.
+    style_source = (ROOT / "ops/paper_style.py").read_text()
+    for token in (
+        "MEAN_LW = 1.35",
+        "SEED_LW = 0.5",
+        "BAND_ALPHA = 0.13",
+        "CONTROL = ",
+        "METHOD = ",
+        "def style_axis(",
+    ):
+        require(token in style_source, f"shared paper style lost {token!r}")
     for token in (
         "e68_plot._series",
         "def _complete_mean(",
         "e68_plot._set_y_limits",
-        "e68_plot._style_axis",
-        "ls=_seed_style(seed)",
-        "lw=1.15",
-        "lw=2.8",
-        "alpha=0.68",
-        "alpha=0.10",
+        "import paper_style as style",
+        "style.style_axis(",
         "PAPER_SEEDS = (43, 44, 45, 46, 47)",
         "ppe71_scale384_05b_12pass_scaling_curve.json",
     ):
         require(token in headline_source, f"headline lost E68 style token {token!r}")
     for token in (
-        "linestyle=SEED_STYLES[seed]",
-        "linewidth=1.15",
-        "linewidth=2.8",
-        "alpha=0.68",
-        "alpha=0.10",
-        'markerfacecolor=color if arm == CONTROL else "none"',
-        "axis.tick_params(length=2.5, width=0.7, labelsize=7.5)",
+        "import paper_style as style",
         "axis.set_ylim(0.0, high * 1.08 if high > 0 else 1.0)",
-        "figure = plt.figure(figsize=(9.2, 12.0))",
+        # Canvas geometry is now derived from the shared column width rather
+        # than a literal, so pin the derivation and the grid, not the inches.
+        "figsize=(style.WIDTH,",
         "figure.add_gridspec(",
-        "outer_cell.subgridspec(2, 2",
-        "axis.set_box_aspect(0.80)",
+        "outer_cell.subgridspec(1, len(PANELS)",
+        "axis.set_box_aspect(0.62)",
     ):
         require(token in appendix_source, f"appendix lost E68 style token {token!r}")
 
@@ -432,7 +441,9 @@ def main() -> None:
     for token in (
         r"\begin{figure}[p]",
         r"height=.84\textheight",
-        r"Each domain is a $2\times2$ card",
+        # Layout description; the surface moved from 2x2 domain cards to one
+        # row per domain with four panels across.
+        r"four panels across",
         r"\label{fig:clean-cohort}",
     ):
         require(token in manuscript, f"manuscript lost full-page Figure 5 token {token!r}")
@@ -447,7 +458,10 @@ def main() -> None:
     )
     for path, expected_repetitions in (
         (HEADLINE_PDF, 5),
-        (APPENDIX_PDF, 8),
+        # The appendix surface renders one row per reported domain. The maze
+        # environments and ConstructiveCode never reached an admitted cohort
+        # and are excluded rather than drawn as empty cards, so this is five.
+        (APPENDIX_PDF, 5),
     ):
         text = pdf_text(path)
         for title in expected_metrics.values():
@@ -489,8 +503,9 @@ def main() -> None:
     ):
         require(token in example_source, f"Figure 2 source missing {token!r}")
     require(
-        example_source.count('"span": 1') == 4 and example_source.count('"span": 2') == 1,
-        "Figure 2 must stay a two-column grid with one full-width row",
+        example_source.count('"span": 1') == 5
+        and example_source.count('"span": 2') == 0,
+        "Figure 2 must stay five equal-width domain cards on a three-column grid",
     )
     require(
         manuscript.count(r"figures/modebench_examples.pdf") == 1

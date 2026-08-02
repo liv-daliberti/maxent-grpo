@@ -468,6 +468,51 @@ case "$VARIANT" in
     export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=0
     VARIANT_TAG="verified_first_replay_gradient_ablation"
     ;;
+  verified_first_replay_rehearsal_only)
+    # E72 B1b: ordinary verified-response replay and nothing else. Dr.GRPO plus
+    # rehearsal of the policy's own previously verified exemplars, at the
+    # treatment's replay-token and gradient budget --- same bank capacity, same
+    # one scheduled bank per optimizer update, same w_rep weighting, same mass
+    # coefficient --- with no rarity weighting and no uniform mode balancing.
+    # It is the arm that asks whether rehearsal alone preserves useful
+    # responses, and it is distinct from the discovery-credit ablation, which
+    # retains the balance KL.
+    export OAT_ZERO_POLICY_ENTROPY_COEF=0.0
+    export OAT_ZERO_XDR_TAU=inf
+    export OAT_ZERO_SEED_ENTROPY_ALPHA=0.0
+    export OAT_ZERO_MAXENT_ALPHA=0.0
+    export OAT_ZERO_MAXENT_INVERSE_ADAPTATION=0
+    export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.0
+    export OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE=0
+    export OAT_ZERO_SEMANTIC_SHANNON_QUALITY_GATED_ADVANTAGE=0
+    export OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE=0
+    export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=0
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT="$ONLINE_CANONICAL_BANK_PSEUDOCOUNT"
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP="$ONLINE_CANONICAL_BANK_SURPRISAL_CLIP"
+    export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE="$ONLINE_CANONICAL_KEY_MODE"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY=1
+    # Mass only. Under this objective the learner computes the verified-
+    # likelihood term alone and never forms the balance loss, so uniform mode
+    # balancing is absent by construction rather than down-weighted; the alpha
+    # below is that single term's coefficient, held at the treatment's value so
+    # the replay gradient budget matches. This arm is therefore exactly the
+    # published compute-matched control with its replay gradient switched on.
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA="$ONLINE_CANONICAL_REPLAY_ALPHA"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY="$ONLINE_CANONICAL_REPLAY_CAPACITY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS="$ONLINE_CANONICAL_REPLAY_WARMUP_STEPS"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY="$ONLINE_CANONICAL_REPLAY_EMA_DECAY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA="$ONLINE_CANONICAL_REPLAY_MASS_ALPHA"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS="$ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY="$ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=0
+    export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=0
+    VARIANT_TAG="verified_first_replay_rehearsal_only"
+    ;;
   verified_first_replay_only_ablation)
     # E72 B1a: the complement of B3a. Verified replay acts exactly as in the
     # treatment---mass and balance losses, their self-referenced controllers,

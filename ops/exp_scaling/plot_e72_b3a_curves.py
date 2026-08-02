@@ -38,13 +38,22 @@ import matplotlib as mpl
 mpl.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-INK = "#19324A"
-MUTED = "#607487"
-GRID = "#D8E2EA"
-WHITE = "#FFFFFF"
-CONTROL = "#C76A3A"
-METHOD = "#087F8C"
-ABLATION = "#6C5CE7"
+import sys  # noqa: E402
+
+_OPS = Path(__file__).resolve().parents[1]
+if str(_OPS) not in sys.path:
+    sys.path.insert(0, str(_OPS))
+import paper_style as style  # noqa: E402
+
+# This figure is the manuscript's reference for the shared visual language, so
+# it reads the definitions rather than restating them.
+INK = style.INK
+MUTED = style.MUTED
+GRID = style.GRID
+WHITE = style.WHITE
+CONTROL = style.CONTROL
+METHOD = style.METHOD
+ABLATION = style.ABLATION
 
 STEPS_PER_PASS = 384
 TERMINAL_STEP = 4608
@@ -58,9 +67,9 @@ DOMAINS = (
 )
 
 ARMS = (
-    ("drgrpo", "matched Dr.GRPO", CONTROL, (0, (5, 1.6))),
-    ("b3a", "B3a (replay gradient removed)", ABLATION, (0, (1.6, 1.4))),
-    ("xgrpo", "xGRPO", METHOD, "solid"),
+    ("drgrpo", "matched Dr.GRPO", CONTROL, style.ARM_DASH[CONTROL]),
+    ("b3a", "B3a (replay gradient removed)", ABLATION, style.ARM_DASH[ABLATION]),
+    ("xgrpo", "xGRPO", METHOD, style.ARM_DASH[METHOD]),
 )
 
 METRICS = (
@@ -71,21 +80,7 @@ METRICS = (
 B3A_GLOB = "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_gradient_ablation_*"
 B3A_NAME = re.compile(r"_(gc|cd|py|mi|pp)e7[01]_.*_b3a_s(?P<seed>\d+)$")
 
-mpl.rcParams.update(
-    {
-        "font.family": "DejaVu Sans",
-        "font.size": 7.2,
-        "axes.edgecolor": MUTED,
-        "axes.labelcolor": INK,
-        "text.color": INK,
-        "xtick.color": MUTED,
-        "ytick.color": MUTED,
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "figure.facecolor": WHITE,
-        "axes.facecolor": WHITE,
-    }
-)
+style.apply_rcparams()
 
 
 def repo_root() -> Path:
@@ -136,7 +131,10 @@ def b3a_series(root: Path, prefix: str) -> dict[tuple[str, str], dict[int, list[
 
 def render(root: Path, output: Path) -> dict[str, Any]:
     figure, axes = plt.subplots(
-        len(METRICS), len(DOMAINS), figsize=(7.35, 3.5), constrained_layout=True
+        len(METRICS),
+        len(DOMAINS),
+        figsize=(style.WIDTH, style.panel_height(len(METRICS))),
+        constrained_layout=True,
     )
     drawn: list[dict[str, Any]] = []
 

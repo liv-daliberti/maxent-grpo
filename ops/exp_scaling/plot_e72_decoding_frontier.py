@@ -35,25 +35,32 @@ import matplotlib as mpl
 mpl.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-INK = "#19324A"
-MUTED = "#607487"
-GRID = "#D8E2EA"
-WHITE = "#FFFFFF"
-CONTROL = "#C76A3A"
-METHOD = "#087F8C"
+import sys  # noqa: E402
+
+_OPS = Path(__file__).resolve().parents[1]
+if str(_OPS) not in sys.path:
+    sys.path.insert(0, str(_OPS))
+import paper_style as style  # noqa: E402
+
+INK = style.INK
+MUTED = style.MUTED
+GRID = style.GRID
+WHITE = style.WHITE
+CONTROL = style.CONTROL
+METHOD = style.METHOD
 
 ARM_STYLE: dict[str, dict[str, Any]] = {
     "drgrpo": {
         "label": "matched Dr.GRPO",
         "color": CONTROL,
         "marker": "o",
-        "linestyle": (0, (5, 1.6)),
+        "linestyle": style.ARM_DASH[CONTROL],
     },
     "xgrpo": {
         "label": "xGRPO",
         "color": METHOD,
         "marker": "s",
-        "linestyle": "solid",
+        "linestyle": style.ARM_DASH[METHOD],
     },
 }
 
@@ -71,21 +78,7 @@ DOMAIN_ORDER = tuple(DOMAIN_TITLES)
 # what a reader needs to orient the curve.
 LABELLED = (0.5, 1.0, 2.0)
 
-mpl.rcParams.update(
-    {
-        "font.family": "DejaVu Sans",
-        "font.size": 7.4,
-        "axes.edgecolor": MUTED,
-        "axes.labelcolor": INK,
-        "text.color": INK,
-        "xtick.color": MUTED,
-        "ytick.color": MUTED,
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "figure.facecolor": WHITE,
-        "axes.facecolor": WHITE,
-    }
-)
+style.apply_rcparams()
 
 
 def repo_root() -> Path:
@@ -114,20 +107,16 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
         raise SystemExit("no frontier points to render")
 
     fig, axes = plt.subplots(
-        1, len(domains), figsize=(7.35, 2.15), constrained_layout=True
+        1, len(domains), figsize=(style.WIDTH, 2.15), constrained_layout=True
     )
     if len(domains) == 1:
         axes = [axes]
 
     drawn: list[dict[str, Any]] = []
     for axis, domain in zip(axes, domains):
-        axis.grid(True, color=GRID, linewidth=0.6, zorder=0)
-        axis.set_axisbelow(True)
-        for spine in ("top", "right"):
-            axis.spines[spine].set_visible(False)
-        axis.set_title(DOMAIN_TITLES[domain], fontsize=7.8, color=INK, pad=3)
+        style.style_axis(axis, title=DOMAIN_TITLES[domain])
 
-        for arm, style in ARM_STYLE.items():
+        for arm, arm_style in ARM_STYLE.items():
             series = grouped.get((domain, arm))
             if not series:
                 continue
@@ -136,15 +125,15 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
             axis.plot(
                 xs,
                 ys,
-                color=style["color"],
-                linewidth=1.5,
-                linestyle=style["linestyle"],
-                marker=style["marker"],
+                color=arm_style["color"],
+                linewidth=style.MEAN_LW,
+                linestyle=arm_style["linestyle"],
+                marker=arm_style["marker"],
                 markersize=3.4,
                 markeredgecolor=WHITE,
                 markeredgewidth=0.7,
                 zorder=3,
-                label=style["label"],
+                label=arm_style["label"],
             )
             for point in series:
                 temperature = point["temperature"]
@@ -159,10 +148,10 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
                     axis.plot(
                         [point["mean_at_k"]],
                         [point["distinct_at_k"]],
-                        marker=style["marker"],
+                        marker=arm_style["marker"],
                         markersize=235 ** 0.5,
                         markerfacecolor="none",
-                        markeredgecolor=style["color"],
+                        markeredgecolor=arm_style["color"],
                         markeredgewidth=1.3,
                         zorder=4,
                     )
@@ -175,7 +164,7 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
                     (point["mean_at_k"], point["distinct_at_k"]),
                     textcoords="offset points",
                     xytext=offset,
-                    fontsize=5.9,
+                    fontsize=style.SMALL_FONT - 0.5,
                     color=MUTED,
                     zorder=5,
                 )
@@ -190,26 +179,18 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
             )
 
     for axis in axes:
-        axis.tick_params(length=2.2, width=0.6, pad=1.6)
         # Room for the temperature annotations, which otherwise clip against
         # the panel edge at the extreme points of each curve.
         axis.margins(x=0.14, y=0.16)
-    axes[0].set_ylabel("breadth  (# distinct@8)", fontsize=7.0, labelpad=2)
+    axes[0].set_ylabel(
+        "breadth  (# distinct@8)", fontsize=style.LABEL_FONT, labelpad=2
+    )
     # One shared x label rather than five copies of the same string. Let the
     # layout engine place it: a hand-set y lands inside the panel row.
-    fig.supxlabel("accuracy  (mean@8)", fontsize=7.2)
+    fig.supxlabel("accuracy  (mean@8)", fontsize=style.FONT)
 
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(
-        handles,
-        labels,
-        loc="lower center",
-        ncol=len(labels),
-        frameon=False,
-        fontsize=7.2,
-        bbox_to_anchor=(0.5, -0.11),
-        handlelength=2.4,
-    )
+    style.bottom_legend(fig, handles, labels, y=-0.14)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, bbox_inches="tight", pad_inches=0.02)

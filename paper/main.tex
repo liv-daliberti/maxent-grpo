@@ -37,7 +37,7 @@
 \newcommand{\E}{\mathbb E}
 \newcommand{\Bpos}{\mathcal B_x^+}
 \newcommand{\mb}{\textsc{ModeBench}}
-\newcommand{\xdr}{\mbox{xGRPO}}
+\newcommand{\xdr}{\mbox{x-Mode GRPO}}
 \DeclareMathOperator{\clip}{clip}
 \newtheorem{lemma}{Lemma}[section]
 \newtheorem{theorem}[lemma]{Theorem}
@@ -45,9 +45,26 @@
 \theoremstyle{remark}
 \newtheorem{remark}[lemma]{Remark}
 
+
+\theoremstyle{definition}
+\newtheorem{definition}[lemma]{Definition}
+\theoremstyle{plain}
+
+
+% \micon fallback: only used if your preamble doesn't already define it.
+% Degrades to nothing when the asset is absent so the manuscript still builds.
+\providecommand{\micon}[1]{%
+  \IfFileExists{#1}{\raisebox{-0.15em}{\includegraphics[height=0.95em]{#1}}}{}}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+
+% Model-family mark: the icon precedes the name wherever a base model is
+% named, and degrades to the bare name if the asset is absent.
+\newcommand{\qwenmark}{\micon{iclr/icons/qwen.pdf}Qwen}
+
+
+
 \title{Mode Collapse under GRPO:\\
-\mb{} and Online Verified\\
-Maximum Entropy}
+\mb{} and x-Mode GRPO}
 
 \author{Anonymous Authors}
 
@@ -56,64 +73,50 @@ Maximum Entropy}
 \maketitle
 
 \begin{abstract}
-Repeated sampling helps only when a policy proposes distinct viable solutions.
-Binary-reward RL can raise accuracy while concentrating on one correct
-execution, so eight attempts buy one answer. We introduce \mb{}, five
-executable domains whose validators jointly determine correctness and outcome
-identity, and \xdr{}, which rewards and replays rare verified outcomes. On a
-preregistered five-seed, 12-epoch surface covering all five domains on one
-common design, \xdr{} raises \texttt{pass@8} and \texttt{distinct@8}
-everywhere. PantryPlan exposes the trajectory:
-Dr.GRPO raises \texttt{pass@1} $.388\to.525$ while \texttt{pass@8} falls
-$.902\to.556$ and \texttt{distinct@8} $2.426\to.634$; \xdr{} ends at $.869$
-and $2.186$ with a \emph{higher} \texttt{pass@1} of $.605$. Analysis explains
-balanced replay, and a six-run MathIR ablation isolates $+.137$
-\texttt{distinct@8} from separated support discovery.
+Repeated sampling yields diversity only when a policy proposes distinct viable solutions. 
+We show that binary-reward reinforcement learning (RL) language model (LM) post-training can raise accuracy while \textit{erasing} breadth: equally rewarded correct answers compete only through sampling frequency, so eight attempts become eight copies of one solution.
+We introduce \mb{}, five executable domains where validator
+execution determines both correctness and a canonical outcome identity. We then present \xdr{}, a Group Relative Policy Optimization (GRPO) extension that credits rare and newly discovered verified outcomes and replays them under mass and balance control. 
+In a 5-seed, 12-epoch comparison, \xdr{} raises \texttt{pass@8} in all 25 paired seed cells and expands \texttt{distinct@8} in every domain; two domains replicate on a second family. 
+Accuracy alone conceals a collapsed answer space. \mb{} makes monotony countable. \xdr{} shows it is preventable.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Test-time scaling promises to trade inference compute for better reasoning by
-drawing multiple candidates and selecting among them. We study a failure that
-breaks that trade: binary-verifier RL can raise accuracy while concentrating a
-policy on one successful execution. Under group-relative binary-reward RL,
-eight nominal attempts can become eight copies of the same answer---the system
-looks better by correctness while its useful proposal support quietly
-collapses.
+Inference-time scaling promises to trade inference compute for better reasoning by drawing multiple candidates and selecting among them.
+We study a failure that breaks that trade: binary-verifier Reinforcement Learning (RL) Language Model (LM) post-training can raise accuracy while concentrating a policy on one successful execution.
+Under group-relative binary-reward RL, eight nominal attempts can become eight copies of the same answer. As we show in Figure \ref{fig:story}, standard Group Relative Policy Optimization (GRPO)~\citep{shao2024deepseekmath, liu2025understanding} looks better by correctness after training while its useful proposal support quietly collapses.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{figures/modecollapse_story.pdf}
+  \vspace{-5mm}
   \caption{\textbf{Mode-collapse example.}
   (A) One prompt has 12 valid colorings; three are shown. (B--C) Four fixed-seed
-  $K=8$ draws from matched Qwen2.5-0.5B-Instruct trajectories; color denotes an
+  $K=8$ draws from matched \qwenmark{}2.5-0.5B-Instruct trajectories; color denotes an
   executed correct mode and gray an invalid response. Dr.GRPO reaches 32/32
   correct but contracts to one mode; \xdr{} retains six. Accuracy rises while
   the marginal value of sampling collapses.
   \label{fig:story}}
+  \vspace{-5mm}
 \end{figure}
 
-Breadth is what test-time scaling consumes. Self-consistency
+Inference-time scaling requires genuine solution diversity. Self-consistency
 \citep{wang2023selfconsistency}, best-of-$N$ \citep{brown2024monkeys},
 verifier-guided search \citep{snell2024testtime}, and self-improvement
-\citep{dong2023raft} all spend candidates, and a selector returns only a route
-the policy proposes. Breadth
-therefore decides whether more inference buys another chance or another copy:
-RLVR can win at small $k$ yet lose at large $k$ \citep{yue2025rlvrlimit}, while
-RLHF and fine-tuning can trade generalization or \texttt{pass@}$K$ for narrower
-outputs \citep{kirk2024understanding,dang2025diversity}. Beyond exact tasks, a
-one-bit reward flattens what it means to be right because a distribution over
-acceptable answers and a point mass earn the same score.
+\citep{dong2023raft} all generate candidates, and a selector returns only a route the policy proposes. 
+Breadth therefore decides whether more inference buys another chance or another copy: RLVR can win at small $k$ yet lose at large $k$ \citep{yue2025rlvrlimit}, while RLHF and fine-tuning can trade generalization or \texttt{pass@}$K$ for narrower outputs \citep{kirk2024understanding,dang2025diversity}. 
+Beyond exact tasks, a one-bit reward flattens what it means to be right because a distribution over acceptable answers and a point mass earn the same score.
 Exact domains make this loss countable; plurality matters everywhere.
 Standard alignment can reduce distributional pluralism
 \citep{sorensen2024pluralistic}; related studies report a
 ``correct-answer effect'' on nuanced questions and flattened portrayals
 of demographic groups \citep{park2024diversitythought,wang2025flatten}.
 
-Useful breadth is difficult to define and preserve. String diversity overcounts
+Useful prompt response breadth/diversity is difficult to define and preserve. Raw string diversity overcounts
 aliases, so answers need meaning-level clustering \citep{farquhar2024detecting},
-and final answers undercount the programs that reach them
+and final answers undercount the programs/approaches that reach them
 \citep{wang2023selfconsistency}. Valid modes are unknown, credit must reach
 verified novelty alone where novelty search and count-based bonuses pay for any
 unvisited behavior \citep{lehman2011novelty,bellemare2016pseudocount}, and rare
@@ -127,26 +130,12 @@ executed mode identity.
 Prior work documents collapse and promotes outcome bonuses, batch penalties,
 pass@$K$ objectives, and set-level or distributional optimization
 \citep{cui2025entropy,dang2025diversity,song2025outcome,divpo2025,
-chen2025passktraining,li2025divergence}. But an open-set executable task needs
-three properties jointly: semantic identity bound to correctness, credit only
-for a genuinely new verified outcome, and memory that preserves a transient
-discovery beyond its collection batch. Each supplies one or two; closing the gap
-takes all three.
+chen2025passktraining,li2025divergence}. But, existing work lacks an open-set executable task set to demonstrate this problem at scale. Moreover, each promotes only one or two of the three factors we find to be important in order to prevent mode collapse: (1) semantic identity bound to correctness, (2) credit only for a genuinely new verified outcome, and (3) memory that preserves a transient discovery beyond its collection batch. 
 
 We introduce \mb{}, whose five domains derive correctness and canonical mode
-identity from the same execution, and \xdr{}, a Dr.GRPO extension over the
-policy's own verified outcomes. \xdr{} rewards rare and newly discovered
-verified outcomes, retains them in a prompt-local bank, and schedules global
-verified replay with mass and balance control. On the common five-seed
-surface, matched Dr.GRPO makes neutral \texttt{pass@1}, neutral
-\texttt{pass@8}, and mean \# distinct correct@8 nearly coincide; \xdr{} opens
-that band in every domain. PantryPlan makes the loss temporal: Dr.GRPO raises
-\texttt{pass@1} $.388\to.525$ while \texttt{pass@8} falls $.902\to.556$ and
-\texttt{distinct@8} $2.426\to.634$; \xdr{} retains far more sampled support
-at strictly higher accuracy. A completed MathIR ablation isolates $+.137$
-\texttt{distinct@8} from separated support discovery. The exact 0.5B
-environments are synthetic, and the MathIR actuator comparison supplies the
-component-level causal claim.
+identity from the same execution, and \xdr{}, a GRPO extension over the
+policy's own verified outcomes. 
+On the common five-seed surface, our \xdr{} approach improves upon matched Dr.GRPO in  \texttt{pass@1}, \texttt{pass@8}, and mean \# distinct correct@8 in all five domains. 
 
 \noindent\textbf{Summary of contributions.}
 \begin{list}{\textbullet}{%
@@ -159,185 +148,261 @@ component-level causal claim.
 }
   \item \emph{Problem and measurement} (Sections~\ref{sec:collapse}--\ref{sec:modebench}):
   we separate correctness from executed correct-mode support and release \mb{},
-  five domains whose validators bind reward and canonical identity.
+  5 domains whose validators bind reward and canonical identity.
   \item \emph{Mechanism and analysis} (Section~\ref{sec:method} and
   Appendix~\ref{app:theory}): \xdr{} combines open-set discovery credit,
   rare-mode reward, and global verified replay; a categorical analysis shows
   when retained-support balance rules out winner-take-all collapse.
   \item \emph{Audited evidence} (Sections~\ref{sec:experiments}--\ref{sec:results}):
-  preregistered five-seed trajectories on a fixed checkpoint grid establish one
-  consistent direction across all five completed domains; PantryPlan records accuracy rising as sampled
-  support collapses, while a six-run MathIR ablation causally isolates the
-  separated support actuator. Limitations are explicit in
-  Section~\ref{sec:limitations}.
+  preregistered five-seed trajectories on a fixed checkpoint grid establishes experimental evidence of mode collapse under Dr.GRPO.
 \end{list}
+
 \section{Mode Collapse under GRPO}
 \label{sec:collapse}
-
+ 
 The unit of diversity must be semantic. Surface strings overcount formatting
-changes, while final answers can erase different programs or procedures. We
-therefore identify a mode with a validator-positive executed outcome: the same
+changes, while final answers can erase different programs or procedures. We,
+therefore, identify a mode with a validator-positive executed outcome: the same
 execution determines whether a response is correct and which canonical outcome
-it realizes. Section~\ref{sec:modebench} gives the exact benchmark contract;
-this section formalizes the failure it exposes.
-
-\subsection{Correct mass and correct-mode distribution}
-
-For prompt $x$, response $y$, and reference specification $s_x$, let
+it realizes. This section fixes notation and formalizes the failure the contract exposes.
+ 
+\subsection{Prompts, validators, and policy-induced quantities}
+\label{sec:collapse-setup}
+ 
+Let $\mathcal X$ denote prompts and $\mathcal Y$ responses. Every prompt
+$x\in\mathcal X$ carries a reference specification $s_x$ and a finite nonempty
+set $\mathcal C_x$ of \emph{correct execution modes} (canonical keys). A
+\emph{validator} is a map
 \[
-  V(y,s_x)\in\{\bot\}\cup\mathcal C_x,
-  \qquad r(x,y)=\1[V(y,s_x)\neq\bot].
+  V(\cdot\,,s_x):\mathcal Y\to\mathcal C_x\cup\{\bot\}
 \]
-The policy's total correct mass is
-$P_\theta^+(x)=\Pr_{Y\sim\pi_\theta}[V(Y,s_x)\neq\bot]$.
-Conditional on correctness, its mode distribution is
+that executes a response and returns either the canonical key of its verified
+outcome or the failure symbol $\bot$; the binary task reward is
+$r(x,y)=\1[V(y,s_x)\neq\bot]$. The learner observes only $V$'s output on the
+responses it produces: neither $\mathcal C_x$ nor $|\mathcal C_x|$ is
+available to it.
+ 
+A policy $\pi_\theta(\cdot\mid x)$ over $\mathcal Y$ induces two objects. The
+\emph{correct mass}
+\(
+  P_\theta^+(x)
+  =\Pr_{Y\sim\pi_\theta(\cdot\mid x)}\bigl[V(Y,s_x)\neq\bot\bigr]
+\)
+is the probability that a sample verifies. Whenever $P_\theta^+(x)>0$, the
+\emph{conditional correct-mode distribution} on $\mathcal C_x$ is
 \[
   p_\theta^+(c\mid x)
-  =\Pr[V(Y,s_x)=c\mid V(Y,s_x)\neq\bot].
+  =\Pr_{Y\sim\pi_\theta(\cdot\mid x)}
+   \bigl[V(Y,s_x)=c\;\big|\;V(Y,s_x)\neq\bot\bigr].
 \]
-We say training exhibits \emph{mode collapse} on $x$ when probability within
-$p_\theta^+$ concentrates on a strict subset of $\mathcal C_x$ while
-$P_\theta^+$ remains comparable or increases. Mode collapse is therefore a
-statement about where correct mass sits: a high-accuracy policy on one correct
-mode exhibits it.
-
-Two population quantities describe the failure: conditional verified-mode
+Two population summaries of $p_\theta^+$ measure breadth: the verified-mode
 entropy
-$H_\theta^+(x)=-\sum_c p_\theta^+(c\mid x)\log p_\theta^+(c\mid x)$
-and concentration $\max_c p_\theta^+(c\mid x)$. They are unavailable when the
-support is unknown. Given $K$ independent samples $Y_{1:K}$, define
+$H_\theta^+(x)=-\sum_{c\in\mathcal C_x}
+ p_\theta^+(c\mid x)\log p_\theta^+(c\mid x)$
+and the concentration $\max_{c\in\mathcal C_x}p_\theta^+(c\mid x)$.
+ 
+\begin{definition}[Mode collapse]
+\label{def:collapse}
+\textit{A training trajectory $(\theta_t)_{t\ge0}$ exhibits \emph{mode collapse} on
+$x$ when $p_{\theta_t}^+(\cdot\mid x)$ concentrates on a strict subset of
+$\mathcal C_x$ as $t$ grows while $P_{\theta_t}^+(x)$ remains comparable or
+increases.}
+\end{definition}
+ 
+Mode collapse is therefore a statement about where correct mass sits rather than accuracy: a high-accuracy policy concentrated on one correct mode exhibits mode collapse.
+ 
+\subsection{Sample diagnostics}
+\label{sec:collapse-metrics}
+ 
+$H_\theta^+$ and the concentration are unavailable when the support is
+unknown, so evaluation estimates breadth from samples. Fix $K\in\mathbb N$
+and draw $Y_1,\ldots,Y_K\stackrel{\mathrm{iid}}{\sim}
+\pi_\theta(\cdot\mid x)$ at temperature one. Define
 \[
-  D_K(x)=\left|\{V(Y_i,s_x):V(Y_i,s_x)\neq\bot\}\right|,
-  \qquad P_K(x)=\1[D_K(x)>0].
+  D_K(x)=\bigl|\{V(Y_i,s_x):i\le K\}\setminus\{\bot\}\bigr|,
+  \qquad
+  S_K(x)=\1[D_K(x)>0],
+  \qquad
+  F_K(x)=\frac1K\sum_{i=1}^K r(x,Y_i),
 \]
-Evaluation reports $\texttt{distinct@}K=\E_x\E[D_K(x)]$ and
-$\texttt{pass@}K=\E_x\E[P_K(x)]$. The first counts correct execution modes;
-the second asks whether search finds any. We also report \texttt{mean@}$K$,
-the fraction of draws that are correct, and greedy \texttt{pass@1}. Each
-carries information the others leave out.
-
-Two structural properties make this quartet a single diagnostic. Because $D_K\1[D_K>0]=D_K$, their ratio is an exact conditional
-expectation,
-$\texttt{modes-per-success}=\texttt{distinct@}K/\texttt{pass@}K
-=\E[D_K\mid D_K>0]$,
-the number of \emph{different} correct executions a successful $K$-sample set
-contains; a value of $1$ means every success is the same success. And
-$\texttt{mean@}K\le\texttt{pass@}K\le\texttt{distinct@}K$ always, with the
-first inequality strict unless temperature-one sampling is degenerate. A tight
-band across all four numbers is therefore a signature of a point-mass policy.
-
+the number of distinct verified modes among the $K$ draws, the indicator that
+at least one draw verifies, and the fraction of draws that verify. With $K$ draws jointly, evaluation reports
+\[
+  \texttt{distinct@}K=\E[D_K],
+  \qquad
+  \texttt{pass@}K=\E[S_K],
+  \qquad
+  \texttt{mean@}K=\E[F_K],
+\]
+together with greedy $\texttt{pass@1}=\E_x\bigl[r(x,y^{\mathrm{gr}}(x))\bigr]$
+for $y^{\mathrm{gr}}(x)$ the deterministic greedy decode.
+$\texttt{distinct@}K$ counts correct execution modes; $\texttt{pass@}K$ asks
+whether search finds any. Each carries information the others leave out, and
+two structural facts bind the quartet into a single diagnostic.
+ 
+\begin{lemma}[The quartet is one diagnostic]
+\label{lem:quartet}
+(i) $F_K\le S_K\le D_K$ pointwise, hence
+$\texttt{mean@}K\le\texttt{pass@}K\le\texttt{distinct@}K$, and the first
+inequality is strict in expectation unless, almost surely, either no draw or
+every draw verifies. (ii) Because $D_K\1[D_K>0]=D_K$,
+\[
+  \frac{\texttt{distinct@}K}{\texttt{pass@}K}
+  =\E\bigl[D_K\;\big|\;D_K>0\bigr]
+  \eqqcolon\texttt{modes-per-success},
+\]
+the mean number of \emph{different} correct executions a successful
+$K$-sample set contains; a value of $1$ means every success is the same
+success.
+\end{lemma}
+ 
+\begin{proof}
+(i) $F_K\in[0,1]$ with $F_K>0\Rightarrow S_K=1$, and
+$S_K=1\Rightarrow D_K\ge1$; moreover $F_K=S_K$ exactly when the number of
+verifying draws is $0$ or $K$. (ii)
+$\E[D_K]/\Pr[D_K>0]=\E[D_K\1[D_K>0]]/\Pr[D_K>0]=\E[D_K\mid D_K>0]$.
+\end{proof}
+ 
+A tight band across all four numbers is therefore the signature of a
+point-mass policy: every successful sample set contains one and the same
+execution.
+ 
 \subsection{Why equal reward concentrates correct modes}
-
-For a group of $G$ responses, both variants center the binary reward on its
-group mean, $A_i^{\mathrm{task}}=r_i-G^{-1}\sum_{j=1}^G r_j$; Dr.GRPO applies
-one shared maximum-length normalization where GRPO divides by the group reward
-standard deviation. Each rescaling is blind to \emph{which} correct mode a
-response realizes, so correct responses in the same group receive the same task
+\label{sec:collapse-mechanism}
+ 
+\noindent\textbf{Group-relative task advantages.}
+Fix a prompt $x$ and draw a group
+$Y_1,\ldots,Y_G\stackrel{\mathrm{iid}}{\sim}\pi_\theta(\cdot\mid x)$ with
+$G\ge2$ and rewards $r_i=r(x,Y_i)$. Both variants center the binary reward on
+its group mean,
+$A_i^{\mathrm{task}}=r_i-G^{-1}\sum_{j=1}^G r_j$; Dr.GRPO then applies one
+shared maximum-length normalization where GRPO divides by the group reward
+standard deviation. Every quantity in these rescalings is a function of
+$(r_1,\ldots,r_G)$ alone, and $r_i$ is blind to \emph{which} key $V$
+returned, so correct responses in the same group receive the same task
 advantage. That symmetry equalizes credit across identities and leaves mode
 ratios free to follow sampling frequency; Lemma~\ref{lem:grpo-mean} shows the
 two normalizations share a direction and differ only in speed.
-
-A categorical toy model makes the feedback explicit. Let $z_c$ be a logit for
-correct mode $c$, $p_c=\operatorname{softmax}(z)_c$, and
-$P^+=\sum_{c\in\mathcal C}p_c$. Gradient ascent on expected binary reward gives
+ 
+\noindent\textbf{A categorical toy model.}
+Fix $x$ and suppress it from the notation. Partition the response categories
+as $\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, with
+$m=|\mathcal C|\ge2$ correct modes and $n=|\mathcal N|\ge1$ incorrect
+categories; give each category $a\in\mathcal A$ a logit $z_a$ and set
+$p_a=\operatorname{softmax}(z)_a$, correct mass
+$P=\sum_{c\in\mathcal C}p_c$, and conditional mode distribution
+$q_c=p_c/P$---the categorical projections of $P_\theta^+(x)$ and
+$p_\theta^+(\cdot\mid x)$, in the notation of Appendix~\ref{app:theory}.
+Gradient ascent on the expected binary reward
+$\E_{A\sim p}\1[A\in\mathcal C]=P$ gives, for $c,d\in\mathcal C$,
 \begingroup
 \setlength{\abovedisplayskip}{4pt}
 \setlength{\belowdisplayskip}{4pt}
 \setlength{\abovedisplayshortskip}{3pt}
 \setlength{\belowdisplayshortskip}{3pt}
 \[
-  \dot z_c=\frac{\partial P^+}{\partial z_c}=p_c(1-P^+),
+  \dot z_c=\frac{\partial P}{\partial z_c}=p_c(1-P),
   \qquad
-  \frac{d}{dt}\log\frac{p_c}{p_d}
-  =(p_c-p_d)(1-P^+).
+  \frac{d}{dt}\log\frac{q_c}{q_d}
+  =\frac{d}{dt}\log\frac{p_c}{p_d}
+  =(p_c-p_d)(1-P).
 \]
 \endgroup
-
-While incorrect mass remains, the more common of two equally rewarded correct
-modes receives the larger logit update. Finite on-policy groups sharpen the
-asymmetry: an absent rare mode receives no update, and an all-correct group has
-zero centered task advantage. Thus the first successful mode can become a
+ 
+While incorrect mass remains ($P<1$), the more common of two equally rewarded
+correct modes receives the larger logit update---and the conditional ratios
+$q_c/q_d$ inherit the same dynamics. Finite on-policy groups sharpen the
+asymmetry: an absent rare mode receives no update, and an all-correct group
+has zero centered task advantage. Thus the first successful mode can become a
 self-reinforcing and eventually locally frozen solution. This idealized
-calculation isolates the mechanism: under binary reward the only force acting on
-mode ratios is sampling frequency. Recent
-analyses reach related conclusions through outcome-frequency amplification,
-divergence choice, or set-level policy geometry
+calculation isolates the mechanism: under binary reward the only force acting
+on mode ratios is sampling frequency. Recent analyses reach related
+conclusions through outcome-frequency amplification, divergence choice, or
+set-level policy geometry
 \citep{sinha2026expected,li2026distribution,li2026setpo}.
-
+ 
 Appendix~\ref{app:theory} makes this precise. Under the infinitesimal
 on-policy mean dynamics, Theorem~\ref{thm:grpo-collapse} shows that generic
 binary-reward GRPO and Dr.GRPO trajectories select one correct mode, and
 Theorem~\ref{thm:xdr-balance} with Corollary~\ref{cor:xdr-no-collapse} shows
-that once the verified bank covers the support, xGRPO reverses the unstable
-mode-ratio dynamics. The coverage assumption is stated explicitly: the theorems
-act once the bank covers the support.
+that once the verified bank covers the support, \xdr{} reverses the unstable
+mode-ratio dynamics. The coverage assumption is stated explicitly: the
+theorems act once the bank covers the support.
+ 
 
 \section{\mb: Executable Mode Measurement}
 \label{sec:modebench}
 
-\subsection{Benchmark contract}
+\subsection{Benchmark}
 
-A benchmark instance is mode-verifiable only when $V$ satisfies two
-requirements. First, it executes the object the model actually generated and
-judges that execution. Second, the canonical key is derived from the same
-execution that established correctness. Cosmetic aliases merge; different
-executed outcomes stay distinct. This contract confines diversity credit to
-verified responses and confines breadth to solutions the validator has
-distinguished.
+A benchmark domain is mode-verifiable only when $V$ satisfies two
+requirements: (1) it executes the object the model actually generated and
+judges that execution, (2) the canonical key is derived from the same
+execution that established correctness. Additionally, cosmetic aliases merge; different executed outcomes stay distinct. 
+This diversity credit to verified responses and confines breadth to solutions the validator has distinguished.
 
 
 \begingroup
 \setlength{\intextsep}{5pt}
 \setlength{\abovecaptionskip}{3pt}
 \setlength{\belowcaptionskip}{0pt}
-\begin{table}[tb]
+\begin{table}[!b]
   \centering
   \footnotesize
-  \setlength{\tabcolsep}{2.7pt}
-  \renewcommand{\arraystretch}{0.92}
-  \begin{tabularx}{\linewidth}{@{}lYYYrl@{}}
+  \setlength{\tabcolsep}{5pt}
+  \renewcommand{\arraystretch}{1.08}
+  \begin{tabularx}{\linewidth}{@{}l
+      >{\hsize=1.25\hsize}Y
+      >{\hsize=.8\hsize}Y
+      >{\hsize=.95\hsize}Y
+      r@{}}
     \toprule
     \textbf{Domain} & \textbf{Generated answer / check} &
     \textbf{Executed key} & \textbf{Aliases that merge} &
-    \textbf{\shortstack{mean valid modes\\per eval prompt}} &
-    \textbf{train/eval} \\
+    \textbf{valid modes} \\
     \midrule
     Graph coloring & Complete assignment; check fixed colors and edges &
-    Color vector & Spacing only & 6.27 & 384/128 \\
+    Color vector & Spacing only & 6.27 \\
+    \addlinespace[2pt]
     Countdown & Parse operands; execute exactly &
-    Normalized AST & Commutative order & 4.52 & 384/128 \\
+    Normalized AST & Commutative order & 4.52 \\
+    \addlinespace[2pt]
     Python factors & Execute restricted lambda externally &
-    Return vector & Source programs with same behavior & 229.44 & 384/128 \\
+    Return vector & Source programs with same behavior & 229.44 \\
+    \addlinespace[2pt]
     MathIR & Execute bounded action program &
-    State trajectory & Programs with the same states & 5.00 & 384/128 \\
+    State trajectory & Programs with the same states & 5.00 \\
+    \addlinespace[2pt]
     PantryPlan & Exact ingredient allocation; check all bounds &
-    Ingredient support & Quantity and ordering aliases & 18.19 & 384/128 \\
+    Ingredient support & Quantity and ordering aliases & 18.19 \\
     \bottomrule
   \end{tabularx}
-  \caption{\textbf{The \mb{} contract.} Mean valid modes are exact over the
-  released multi-answer evaluation split. Correctness and identity come from
-  one executable path; training starts without the mode catalogue. The exact
-  prompt each policy receives, per domain, is reproduced verbatim in
+  \caption{\textbf{\mb{}.} Correctness and identity come from
+  one executable path; training starts without the mode catalogue.
+  \emph{Valid modes} is the mean number of correct execution modes per
+  evaluation prompt, exact over the released multi-answer split. Every
+  domain trains on 384 prompts and evaluates on a fixed 128-prompt split;
+  the exact prompt each policy receives is reproduced verbatim in
   Appendix~\ref{app:prompts}.}
   \label{tab:tasks}
 \end{table}
 \endgroup
+
 \begin{figure}[tb]
   \centering
   \includegraphics[width=\linewidth]{figures/modebench_examples.pdf}
   \caption{\textbf{Two verified modes for one prompt in each \mb{} domain.}
-  Each card names a domain, its prompt, and the check both answers pass, then
-  pairs each answer with the canonical key that same execution produced.
-  Graph answers complete \texttt{2??1?2} and are drawn as the paints they
-  assign; Countdown keys are normalized ASTs with executed operators picked out;
-  the Python lambda is called once per input, so its key is the four returned
-  factors in input order; MathIR keys are state trajectories; PantryPlan keys
-  are ingredient supports. Both answers are correct everywhere, but their keys
-  differ, in the two verified-mode colours of Figure~\ref{fig:story}. Every
-  domain uses the first row of its fixed evaluation split; full prompts are in
+  Every answer appears inside its own box; the line beneath is the canonical
+  key produced by the same execution that accepted it. Graph answers complete
+  \texttt{2??1?2}; Countdown keys are normalized ASTs; Python keys are executed
+  return vectors; MathIR keys are state trajectories; and PantryPlan keys are
+  ingredient supports. In every panel both answers are correct, but their keys
+  differ. Every panel uses the first row of that domain's fixed evaluation
+  split. The full prompt behind every panel is in
   Appendix~\ref{app:prompts}.}
   \label{fig:modebench-examples}
 \end{figure}
+
 
 {\setlength{\parskip}{2pt}
 \noindent\textbf{Graph coloring.} Each prompt gives a graph, a partial
@@ -372,23 +437,19 @@ used: quantity and ordering aliases merge, while different feasible
 formulations remain distinct. The registered evaluation split averages $18.19$
 exact supports per prompt, all withheld from the policy and bank.
 
-\noindent\textbf{Prompts.} Every domain is a single-turn prompt with a fixed
+Every domain is a single-turn prompt with a fixed
 chat template and no few-shot examples; the exact rendered string the policy
 receives in each domain, taken from the first row of that cohort's frozen
 evaluation split, is reproduced verbatim in Appendix~\ref{app:prompts}.
 \par}
 
+
 \section{\xdr: Online Verified MaxEnt-Dr.GRPO}
 \label{sec:method}
 
-\xdr{}---short for \emph{executable-mode GRPO}---is an outcome-level
-maximum-entropy surrogate layered on Dr.GRPO: it spreads mass over executed
-verified outcomes and learns their support online, coupling rare/new-mode
-advantages, verified replay, and self-referenced adaptive coefficients while
-leaving the task advantage unchanged. One design rule governs
-every component: \emph{a signal may act on an outcome only after that outcome
-has been executed and accepted}, so discovery credit, replay, and balance all
-read the same validator output.
+\xdr{} (short for \emph{executable-mode GRPO}) is an outcome-level
+maximum-entropy surrogate layered on Dr.GRPO: it spreads mass over executed verified outcomes and learns their support online, coupling rare/new-mode advantages, verified replay, and self-referenced adaptive coefficients while leaving the task advantage unchanged. 
+One design rule governs every component: \emph{a signal may act on an outcome only after that outcome has been executed and accepted}, so discovery credit, replay, and balance all read the same validator output.
 
 Each component below was added in response to a prospectively recorded failure
 of the preceding version; Appendix~\ref{app:ablations} gives that record and
@@ -398,21 +459,17 @@ Appendix~\ref{app:algorithm} fixes the exact update.
 \begin{figure}[tb]
   \centering
   \includegraphics[width=\linewidth]{figures/xdr_mechanism.pdf}
-  \caption{\textbf{\xdr{} as one row of components.} Three pipeline steps, then
-  the two modulators that act on them. (A) The task validator rejects invalid
-  novelty and rewards only rare or new correct keys. (B) New keys enter a
-  persistent bank whose global schedule replays them after the collection
-  batch. (C) Replay protects total verified mass while balancing probability
-  across known keys. (D) Each sensor---mode entropy, verified-exemplar
-  surprisal, bank entropy---raises one matching pressure and eases as it
-  recovers. (E) A singleton-only escape may add one verified alternative to
-  replay support, never to PPO. Colour is the paper's plasma ramp: a key the
-  bank holds, a key just discovered, a pressure the method applies.}
+  \caption{\textbf{\xdr{} as one discover--retain--rebalance loop.}
+  (A) The task validator rejects invalid novelty and rewards only rare or new
+  correct keys. (B) New keys enter a persistent bank whose global schedule
+  replays them after the collection batch. (C) Replay protects total verified
+  mass while balancing probability across known keys. The lower controller
+  raises the matching pressure when its sensor deteriorates; a singleton-only
+  escape may add a verified alternative to replay support, never to PPO.}
   \label{fig:xdr-mechanism}
 \end{figure}
 
-\subsection{Online verified support}
-
+\noindent\textbf{Online verified support.} 
 For each prompt $x$ the learner maintains a bank $\Bpos$, initially empty, of
 keys the current policy generated and $V$ accepted. Every group is scored
 against one immutable pre-group snapshot and new keys are committed only after
@@ -423,8 +480,7 @@ Dr.GRPO control runs the same validator and the same passive counts with all
 auxiliary coefficients set to zero, so discovery telemetry is comparable across
 arms without altering the control's objective.
 
-\subsection{Open-set rare-mode and discovery advantages}
-
+\noindent\textbf{Open-set rare-mode and discovery advantages.} 
 For a verified mode $a$, let $c_x(a)$ combine its historical count with its
 leave-one-out multiplicity among the other verified responses in the group.
 With pseudocount $\lambda=1$, the detached predictive distribution
@@ -459,9 +515,7 @@ all duplicates of one new key share total credit $\nu$. The actor advantage is
 The mode terms enter uncentered, and novelty and entropy pressure reach
 validator-positive responses alone.
 
-\subsection{Global verified replay}
-\label{sec:replay}
-
+\noindent\textbf{Global verified replay.}\label{sec:replay} 
 With hundreds of training prompts, a prompt-local discovery would otherwise
 wait nearly a pass before acting again. After the first verified bank exists,
 every optimizer update therefore schedules exactly one bank in deterministic
@@ -477,8 +531,7 @@ accumulated verified banks and a one-bank compute budget---never exhaustive
 support, evaluation outcomes, a desired mode count, or reference solutions.
 Before the first discovery, replay is inactive.
 
-\subsection{Projection-free self-reference}
-
+\noindent\textbf{Projection-free self-reference.} 
 The rare-mode, verified-mass, and balance coefficients each warm up for 64
 eligible observations and reference only their own warmup mean. Let $\rho$ be
 normalized open-set entropy, $s$ verified-exemplar surprisal, and $h$ scheduled
@@ -494,9 +547,7 @@ balance pressure. No coefficient is projected. This is a stress-test design:
 continued collapse remains visible as continued coefficient growth rather than
 as silent saturation. Singleton banks are omitted from the balance sensor.
 
-\subsection{Separated-support escape actuator}
-\label{sec:actuator}
-
+\noindent\textbf{Separated-support escape actuator.}\label{sec:actuator} 
 All balance mechanisms need an alternative to preserve, and a singleton bank
 offers none. A registered extension therefore tests one support-only escape,
 eligible only after controller warmup and only when the run's own entropy EMA
@@ -509,80 +560,69 @@ and validates it. A same-plumbing actuator-off arm is the causal comparator.
 
 \section{Related Work}
 \label{sec:related}
-
 \noindent\textbf{Inference-time compute and verifier-based reasoning RL.}
-Self-consistency, repeated sampling, and verifier-guided search generate a
-candidate set and then aggregate or select from it
+Self-consistency, repeated sampling, and verifier-guided search draw a
+candidate set and select from it
 \citep{wang2023selfconsistency,brown2024monkeys,snell2024testtime,
-lightman2023lets}. GRPO and Dr.GRPO instead train proposal policies from
+lightman2023lets}; GRPO and Dr.GRPO train the proposal policy itself from
 group-relative outcome rewards
 \citep{shao2024deepseekmath,guo2025deepseekr1,liu2025understanding}. Dr.GRPO
-fixes response-length normalization; our upstream question is orthogonal:
-whether RL preserves enough probability \emph{within} equally rewarded correct
-outcomes for additional inference to remain useful.
+fixes length normalization; our question is orthogonal and upstream: whether
+RL leaves enough probability \emph{within} equally rewarded correct outcomes
+for additional inference to remain useful.
 
 \noindent\textbf{Collapse and diversity-aware optimization.}
-RLHF trades generalization against diversity \citep{kirk2024understanding},
-RLVR can lose token entropy \citep{cui2025entropy} and can narrow the large-$k$
-sampling boundary relative to the base model \citep{yue2025rlvrlimit}, and
-fine-tuning can raise \texttt{pass@1} while \texttt{pass@}K falls
-\citep{dang2025diversity}. Outcome bonuses, batch penalties, pass@$K$
-objectives, semantic similarity, mass-covering divergences, set objectives, and
-distribution matching target related failures
-\citep{song2025outcome,divpo2025,chen2025passktraining,
-li2025divergence,li2026setpo,li2026distribution,sinha2026expected}; clipping
-asymmetries such as \citet{yu2025dapo} counteract entropy collapse at the token
-level. Closest is \citet{song2025outcome}: their UCB counts final answers,
-including incorrect ones, their batch method penalizes repeats, and bonuses are
-disabled on all-correct batches; their 7B competition-math study is stronger
-external evidence for the general problem. \xdr{} addresses a narrower
-distinction: only validator-positive \emph{executed} keys receive novelty, and
-replay lets a verified discovery act beyond its collection batch.
+RLHF and fine-tuning can trade generalization or \texttt{pass@}$K$ for
+narrower outputs \citep{kirk2024understanding,dang2025diversity}, and RLVR
+can lose token entropy and narrow the large-$k$ sampling boundary relative to
+the base model \citep{cui2025entropy,yue2025rlvrlimit}. Proposed repairs
+include outcome bonuses, batch penalties, pass@$K$ objectives, mass-covering
+divergences, set-level and distribution-matching objectives, and token-level
+clipping asymmetries
+\citep{song2025outcome,divpo2025,chen2025passktraining,li2025divergence,
+li2026setpo,li2026distribution,sinha2026expected,yu2025dapo}. Closest is
+\citet{song2025outcome}, whose 7B competition-math study is stronger external
+evidence for the general problem; their UCB counts final answers---including
+incorrect ones---and their bonuses are disabled on all-correct batches,
+whereas \xdr{} credits only validator-positive \emph{executed} keys and
+replays a verified discovery beyond its collection batch.
 
-\noindent\textbf{Mode-covering objectives and archives.}
-GFlowNets sample
-in proportion to reward rather than maximizing it, and have been used to
-fine-tune language models toward diverse high-reward reasoning chains
-\citep{bengio2023gflownet,hu2024amortizing,zhu2025flowrl}. Quality-diversity
-search maintains an explicit archive indexed by a behavior descriptor and
-selects for novelty as well as fitness
-\citep{lehman2011novelty,mouret2015illuminating}. \xdr{}'s bank is a
-quality-diversity archive whose behavior descriptor is the validator's own
-canonical key, and its balance loss targets the uniform-over-verified-support
-distribution rather than the reward-proportional one. Execution supplies
-identity, so the validator's key replaces the hand-designed descriptor space or
-tractable target density both literatures require.
+\noindent\textbf{Mode-covering objectives, archives, and semantic identity.}
+GFlowNets sample in proportion to reward and have fine-tuned LMs toward
+diverse reasoning chains \citep{bengio2023gflownet,hu2024amortizing,
+zhu2025flowrl}; quality-diversity search maintains an archive indexed by a
+hand-designed behavior descriptor \citep{lehman2011novelty,
+mouret2015illuminating}; maximum-entropy RL adds adaptive entropy pressure
+over tokens or a known action set \citep{ziebart2008maximum,
+levine2018control,haarnoja18b,haarnoja2018algorithms}; and semantic entropy
+clusters generations by estimated entailment \citep{farquhar2024detecting}.
+\xdr{} replaces the hand-designed or estimated ingredient in each with
+execution: its bank is a quality-diversity archive whose descriptor is the
+validator's own canonical key, its balance loss targets the uniform rather
+than reward-proportional distribution over verified support, and its entropy
+pressure acts on open-set verified executions. Restricted grammars and finite
+command languages \citep{geng2023grammar} make the key unassertable by the
+model, so the equivalence relation is exact without claiming every reasoning
+strategy is executable.
 
-\noindent\textbf{Semantic maximum-entropy control.}
-Maximum-entropy RL augments reward with policy entropy and can adapt its
-coefficient \citep{ziebart2008maximum,levine2018control,haarnoja18b,
-haarnoja2018algorithms}; grammar constraints can prevent invalid generations
-\citep{geng2023grammar}. \xdr{} changes the random variable from tokens or a
-known action set to open-set verified executions, combining empirical rare-mode
-advantages with mass/balance replay into an outcome-level surrogate estimated
-from the bank. Where semantic entropy clusters
-generations by bidirectional entailment to estimate uncertainty
-\citep{farquhar2024detecting}, \mb{} makes the equivalence relation exact and
-adversarially safe by construction: Python uses a restricted grammar before
-isolated execution and MathIR a finite command language, so the key cannot be
-asserted by the model. The contract removes many false distinctions without
-claiming every reasoning strategy is executable.
 
 \section{Experimental Design and Evidence Policy}
 \label{sec:experiments}
 
 \subsection{Matched training and evaluation}
 
-All five domains run one preregistered design: Qwen2.5-0.5B-Instruct at a pinned
+All five domains run one preregistered design: \qwenmark{}2.5-0.5B-Instruct at a pinned
 revision, seeds 43--47, group size 16, $\beta_{\mathrm{KL}}=0$, rollout
 temperature 1, and exactly 12 epochs through each fixed pool. Every domain
 trains on 384 prompts and evaluates on a fixed 128-prompt split, giving 4,608
 optimizer updates per run; earlier smaller-pool cohorts are superseded by that
 common size and are not reported. PantryPlan's task-bound interface selects a
-six-ingredient binary support mask and materializes one feasible allocation, so
-it tests support retention rather than free-form recipe generation. Within every domain, arms share
+six-ingredient support mask, so it tests support retention rather than
+free-form generation. Within every domain, arms share
 data, model, optimizer, rollout count, training budget, evaluation seed,
 checkpoint cadence, and recovery rules; only the \xdr{} mechanism differs.
+The same design also runs on a second instruction-tuned family,
+Falcon3-1B-Instruct (Appendix~\ref{app:cross-family}).
 
 Evaluation uses greedy decoding and four deterministic replicates of $K=8$
 temperature-one samples, run four times per training pass. We report the five
@@ -725,9 +765,7 @@ keys. The next test is a coverage--budget curve on larger executable tasks.
 The common five-seed design and fixed reporting grid remove available-seed
 averaging, but each domain still stands on its own rather than in a pooled
 test. All domains are synthetic and exact identity is unusually available;
-the benchmark and both arms run on two 0.5--1.7B instruction-tuned model
-families, but every reported number comes from one
-(Appendix~\ref{app:cross-family}). PantryPlan tests substitution within a declared item set and Python
+every headline number comes from one 0.5B model family. PantryPlan tests substitution within a declared item set and Python
 Factors a restricted grammar in isolation, so our claims stop at those
 interfaces. Beyond decoding (Appendix~\ref{app:decoding}) and count-based
 credit (Appendix~\ref{app:replay-ablation}), matched token entropy and
@@ -1268,7 +1306,7 @@ Choose the ingredient support as a six-bit mask in the exact Pantry row order. B
 \noindent\emph{Main-body link.} This appendix audits the materialization and
 identity claims in Section~\ref{sec:modebench} and Table~\ref{tab:tasks}.
 
-\begin{table}[H]
+\begin{table}[!htb]
 \centering
 \small
 \begin{tabular}{@{}lrr@{}}
@@ -1395,7 +1433,7 @@ not steps of the algorithm.
 \noindent\emph{Main-body link.} This appendix expands the terminal five-seed
 means in Section~\ref{sec:results} and Table~\ref{tab:main-results}.
 
-\begin{table}[H]
+\begin{table}[!htb]
   \centering
   \small
   \setlength{\tabcolsep}{4.2pt}
@@ -1456,7 +1494,7 @@ means in Section~\ref{sec:results} and Table~\ref{tab:main-results}.
   \label{tab:per-seed}
 \end{table}
 
-\begin{table}[H]
+\begin{table}[!htb]
   \centering
   \small
   \setlength{\tabcolsep}{4.2pt}
@@ -1491,7 +1529,7 @@ means in Section~\ref{sec:results} and Table~\ref{tab:main-results}.
 \noindent\emph{Main-body link.} This appendix gives the six seed rows behind
 the causal result in Section~\ref{sec:results} and Table~\ref{tab:actuator}.
 
-\begin{table}[H]
+\begin{table}[!htb]
 \centering
 \small
 \begin{tabular}{@{}llrrrrr@{}}
@@ -1523,7 +1561,7 @@ A ``remove-one'' claim below means exactly what its evidence column permits: a
 mathematical necessity, a prospectively frozen developmental repair, an
 engineering isolation check, or a terminal causal comparison.
 
-\begin{table}[H]
+\begin{table}[!htb]
   \centering
   \small
   \begin{tabularx}{\linewidth}{@{}P{.23\linewidth}YP{.31\linewidth}@{}}
@@ -1598,13 +1636,13 @@ replacements, and exclusions are retained rather than rewritten, and no
 checkpoint or outcome is pooled across them into
 Table~\ref{tab:main-results}.
 
-\section{Removing the Replay Gradient}
+\section{Removing Each Component in Turn}
 \label{app:replay-ablation}
 
 \noindent\emph{Main-body link.} This appendix supplies the empirical
-remove-one control for verified replay that Table~\ref{tab:component-ablations}
-lists, and answers the count-based-bonus baseline raised in
-Section~\ref{sec:limitations}.
+remove-one controls for the two halves of \xdr{}'s mechanism that
+Table~\ref{tab:component-ablations} lists, and answers the count-based-bonus
+baseline raised in Section~\ref{sec:limitations}.
 
 Two of this paper's claims meet in one cohort. The first is a component claim:
 Section~\ref{sec:replay} argues that verified replay converts a transient
@@ -1771,6 +1809,65 @@ matched token entropy, ordinary verified-response replay, \texttt{pass@}$K$
 objectives, and distribution matching remain untested, and this arm speaks only
 to decoding-invariant training behaviour, not to any of those.
 
+\subsection{Removing discovery credit instead}
+\label{app:discovery-ablation}
+
+B3a removes the replay gradient and keeps discovery credit. The complementary
+arm, B1a, does the opposite: verified replay acts exactly as in the treatment,
+with the same bank, schedule, mass and balance losses, and controllers, while
+the open-set rare-mode advantage and the one-time discovery credit are switched
+off. Together the two arms decompose the mechanism.
+
+\noindent\textbf{Status.} These five seeds are an \emph{exploratory} sample and
+are reported as such. Unlike B3a, this arm was launched before its protocol was
+frozen, and its early results were seen before the analysis was fixed, so they
+cannot serve as a confirmatory test of the hypothesis they suggested. A
+registered confirmation on disjoint seeds 48--52, running both this arm and the
+treatment, is specified in
+\path{paper/preregistration/e72_b1a_confirmation_05b_20260801.md} and is
+in progress at submission. Nothing in the paper's claims rests on the table
+below.
+
+\begin{table}[H]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  % Bound to var/artifacts/e72_b1a_summary.json.
+  \begin{tabular}{@{}lrrrrr@{}}
+  \toprule
+  & \multicolumn{3}{c}{\textbf{\#modes} (\texttt{distinct@8})} &
+  \multicolumn{2}{c}{\textbf{B1a $-$ \xdr{}}} \\
+  \cmidrule(lr){2-4}\cmidrule(lr){5-6}
+  \textbf{Domain} & matched Dr.GRPO & B1a & \xdr{} &
+  difference & seeds above \\
+  \midrule
+  Graph coloring     &   .325 & 2.505 & 2.406 &  $+$.099 & 5/5 \\
+  Countdown          &   .627 & 1.846 & 1.893 &  $-$.047 & 1/5 \\
+  Python factors     &   .172 & \phantom{0}.694 & 1.594 &  $-$.900 & 2/5 \\
+  MathIR action menu &   .666 & \phantom{0}.963 & \phantom{0}.926 &  $+$.037 & 4/5 \\
+  PantryPlan         &   .634 & 2.356 & 2.186 &  $+$.170 & 3/5 \\
+  \bottomrule
+  \end{tabular}
+  \caption{\textbf{Discovery credit removed, replay retained} (exploratory;
+  five seeds, terminal pass 12). Against the $\delta=.15$ equivalence margin
+  registered for the confirmation, B1a is indistinguishable from the treatment
+  on Graph coloring, Countdown, and MathIR, slightly above it on PantryPlan,
+  and clearly below it on Python factors.}
+  \label{tab:discovery-ablation}
+\end{table}
+
+\noindent\textbf{Reading.} The two arms are not symmetric. Removing replay costs
+nearly all the retained support in every domain; removing discovery credit costs
+nothing measurable in three domains, gains slightly in a fourth, and costs
+$.900$---more than half the treatment's breadth---in Python factors. Python is
+the domain with by far the largest mode space, $229$ valid programs per prompt
+against $4$--$18$ elsewhere (Table~\ref{tab:tasks}), and the one where the
+matched control never leaves a single deterministic program. Where a policy must
+\emph{find} alternatives before anything can retain them, discovery credit is
+load-bearing; where the policy already samples several verified modes, replay
+alone preserves them. That reading is a hypothesis this sample generated, not a
+result it establishes, which is what the confirmation cohort exists to test.
+
 \section{Decoding Control: Does a Wider Sampler Repair the Collapse?}
 \label{app:decoding}
 
@@ -1887,7 +1984,7 @@ alternative training objectives listed in Section~\ref{sec:limitations}.
 provenance behind Figure~\ref{fig:training-dynamics-full} and the evidence policy
 in Section~\ref{sec:experiments}.
 
-\begin{figure}[H]
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=\linewidth]{figures/modecollapse_training.pdf}
   \caption{\textbf{Full five-domain, four-metric training grid.} Every row shows
@@ -1902,28 +1999,26 @@ in Section~\ref{sec:experiments}.
   \centering
   \includegraphics[width=\linewidth,height=.84\textheight,keepaspectratio]
     {figures/e68_e58_vs_grpo_05b_12ep_terminal_provenance.pdf}
-  \caption{\textbf{Registered MATH-free eight-environment 0.5B comparison
-  surface.} Each domain is a $2\times2$ card containing only neutral
-  \texttt{pass@1}, neutral \texttt{pass@8}, mean \# distinct correct@8,
-  and cumulative verified discoveries. The five reported domains show
-  identity-bound seed trajectories and means for the two frozen arms; the
-  remaining cards show environments still in prospective
-  replacement or admission states and are not reported in the paper's surface.
-  Incomplete means are labeled by contributing seed count; no missing seed is
-  carried forward and no superseded result is copied into this surface.}
+  \caption{\textbf{Registered five-domain 0.5B comparison surface.} One row per
+  \mb{} domain, four panels across: neutral \texttt{pass@1}, neutral
+  \texttt{pass@8}, mean \# distinct correct@8, and cumulative verified
+  discoveries, with identity-bound seed trajectories and means for the two
+  frozen arms. The maze environments and ConstructiveCode never reached an
+  admitted cohort and are excluded rather than shown as empty cards. Means are
+  labeled by contributing seed count; no missing seed is carried forward and no
+  superseded result is copied into this surface.}
   \label{fig:clean-cohort}
 \end{figure}
-\clearpage
 
 \section{Cross-Family Replication on a Second Base Model}
 \label{app:cross-family}
 
-\noindent\emph{Main-body link.} This appendix records the registered design of
-the second-base-model replication referenced in
-Section~\ref{sec:experiments} and Section~\ref{sec:limitations}. \emph{It
-reports no outcome.} At submission the cohort is still training and no
-evaluation checkpoint of it has been read, so nothing in this paper's claims
-rests on it.
+\noindent\emph{Main-body link.} This appendix records the registered design and
+the current state of the second-base-model replication referenced in
+Section~\ref{sec:experiments} and Section~\ref{sec:limitations}. \emph{Two of
+its five domains have reached the terminal endpoint and are reported below; the
+other three have not, and no headline claim in this paper rests on any of
+them.}
 
 \noindent\textbf{Why.} Every headline cell is produced by one base model. A
 reader may reasonably ask whether the collapse of matched Dr.GRPO's metric band,
@@ -1953,10 +2048,10 @@ weights, master copy, and Adam moments do not fit a 24\,GB device alongside a
 collocated inference engine, so optimizer state is offloaded to host memory,
 which changes where state lives and not the update computed. Third, two
 \emph{response budgets}. Falcon3 is uniformly more verbose than
-Qwen2.5-0.5B, and budgets calibrated to the latter's terseness truncate it:
+\qwenmark{}2.5-0.5B, and budgets calibrated to the latter's terseness truncate it:
 measured against the paired runs before any outcome was read, the manuscript's
 budget bound 44\% of Falcon rollouts on Python factors and 14\% on MathIR while
-binding the Qwen cohort on 20 of 4,609 and 0 of 4,609 responses respectively.
+binding the \qwenmark{} cohort on 20 of 4,609 and 0 of 4,609 responses respectively.
 Those two budgets were raised until truncation was negligible. Graph coloring
 (6\%) and Countdown (2\%) were left at the manuscript values, and PantryPlan is
 unaffected because its canonical sampler emits a fixed six-token action.
@@ -1986,6 +2081,57 @@ response budgets differ from the manuscript's, the replication's Python factors
 and MathIR rows are not comparable to a run of the same model at the original
 budgets, and the reported cohort uses the raised-budget runs throughout.
 
+\begin{table}[H]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}lcrrrcrrr@{}}
+    \toprule
+    & & \multicolumn{3}{c}{\textbf{matched Dr.GRPO}} & &
+    \multicolumn{3}{c}{\textbf{\xdr{}}} \\
+    \cmidrule(lr){3-5}\cmidrule(lr){7-9}
+    \textbf{Domain} & \textbf{epoch} &
+    \texttt{p@1} & \texttt{pass@8} & \textbf{\#modes} & &
+    \texttt{p@1} & \texttt{pass@8} & \textbf{\#modes} \\
+    \midrule
+    Graph coloring & 12 & .277 & .546 & .126 & &
+      \textbf{.377} & \textbf{.822} & \textbf{.284} \\
+    Countdown & 12 & .314 & .368 & .098 & &
+      \textbf{.417} & \textbf{.668} & \textbf{.213} \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Cross-family replication, the two completed domains.}
+  Falcon3-1B-Instruct, five-seed (43--47) means of both arms at the terminal
+  epoch 12, on the same reporting rule as Table~\ref{tab:main-results}: the
+  deepest checkpoint reached by all five seeds of both arms. \xdr{} leads on
+  \texttt{distinct@8} and on \texttt{pass@8} in all ten paired seed cells of
+  these two domains. MathIR, PantryPlan, and Python factors have not reached a
+  common terminal endpoint and are not shown.}
+  \label{tab:cross-family}
+\end{table}
+
+\noindent\textbf{Result so far.} In both completed domains the direction
+registered before launch reproduces on the second family. \xdr{} raises
+\texttt{distinct@8} from $.126$ to $.284$ on Graph coloring and from $.098$ to
+$.213$ on Countdown, and raises \texttt{pass@8} from $.546$ to $.822$ and from
+$.368$ to $.668$; it wins on both metrics in all ten paired seed cells. The
+matched baseline again shows the band collapse the manuscript describes: fewer
+than $.15$ distinct verified modes per eight-sample draw, so a successful draw
+almost never holds a second execution.
+
+Three qualifications belong with those numbers. First, the absolute values do
+not match this paper's Qwen cells and were not predicted to: a different base
+model has different task competence, and only the direction was registered.
+Second, two domains cannot settle a prediction stated over at least four of
+five, so the registered prediction remains open rather than confirmed; the
+outstanding domains are the ones where the Qwen cohort's Python factors and
+PantryPlan results were most distinctive, so the untested part of the
+replication is not a random subset. Third, MathIR, PantryPlan, and Python
+factors are incomplete for scheduling reasons on a shared cluster rather than
+for any reason connected to their outcomes, and they will be reported on the
+same rule whatever they show. Per-seed rows and the paired win counts are bound
+in \path{var/artifacts/e73_falcon_cross_family_summary.json}.
+
 \section{Reproducibility and Claim Boundaries}
 \label{app:reproducibility}
 
@@ -2001,7 +2147,7 @@ $M=16$. PantryPlan keeps those doses, optimizer settings, and five-seed design,
 but uses an eight-token response and a six-decision support mask.
 
 \noindent\textbf{Evidence and audit ledger.}
-\begin{table}[H]
+\begin{table}[!htb]
   \centering
   \small
   \begin{tabularx}{\linewidth}{@{}P{.22\linewidth}YP{.11\linewidth}P{.22\linewidth}@{}}
@@ -2019,6 +2165,13 @@ but uses an eight-token response and a six-decision support mask.
     Does isolated support discovery act causally? &
     MathIR, same-plumbing actuator off/on, 3 seeds, pass 12 &
     terminal & domain-specific mechanism result \\
+    Which half of the mechanism retains support? &
+    B3a (replay gradient off) and B1a (discovery credit off), 5 domains,
+    seeds 43--47, terminal pass 12 &
+    terminal (B3a); exploratory (B1a) &
+    B3a is a registered remove-one; B1a's seeds preceded its protocol and are
+    reported as the sample that generated a hypothesis, with a registered
+    confirmation on seeds 48--52 in progress \\
     Does wider decoding repair the baseline's collapse? &
     All 50 terminal checkpoints re-measured at six temperatures,
     $K=8$, 4 fixed draws, 300 cells &
@@ -2039,7 +2192,7 @@ Placement-only recovery amendments are hash-bound. Two superseded cohorts are
 excluded by machine-readable objective audits rather than by their outcomes.
 Figure~\ref{fig:story} is generated by
 \path{ops/plot_paper_collapse_toy.py} directly from the retained seed-43
-Qwen2.5-0.5B-Instruct sample logs. Its prompt-selection rule, displayed counts,
+\qwenmark{}2.5-0.5B-Instruct sample logs. Its prompt-selection rule, displayed counts,
 source paths, and source hashes are frozen in
 \path{var/artifacts/paper_graph_collapse_toy.json}.
 Figure~\ref{fig:modebench-examples} is generated by

@@ -36,11 +36,22 @@ def _main_body() -> str:
     )[0]
 
 
+def _expand_vendor_macros(text: str) -> str:
+    """Resolve the vendor-logo macros so assertions read the rendered name.
+
+    Model names are typeset through icon macros, so searching the raw source
+    for a plain vendor name would fail for a formatting reason rather than a
+    content one.
+    """
+
+    return text.replace(r"\qwenmark{}", "Qwen").replace(r"\qwenmark", "Qwen")
+
+
 def test_main_paper_centers_modebench_without_internal_experiment_ids():
     text = MAIN.read_text(encoding="utf-8")
     main_text = _main_body()
 
-    assert r"\mb{} and Online Verified" in main_text
+    assert r"\mb{} and x-Mode GRPO" in main_text
     assert r"\section{\mb: Executable Mode Measurement}" in main_text
     assert r"\section{\xdr: Online Verified MaxEnt-Dr.GRPO}" in main_text
     # Internal experiment identifiers (E68, E70a, ...) are repository
@@ -62,10 +73,12 @@ def test_paper_reports_exactly_the_five_executable_modebench_domains():
 
 
 def test_headline_rows_run_the_preregistered_terminal_design():
-    prose = " ".join(MAIN.read_text(encoding="utf-8").split())
+    prose = " ".join(_expand_vendor_macros(MAIN.read_text(encoding="utf-8")).split())
 
     for required in (
         "Qwen2.5-0.5B-Instruct",
+        # Both base-model families must be named in the body.
+        "Falcon3-1B-Instruct",
         "pinned revision",
         "seeds 43--47",
         "group size 16",

@@ -22,6 +22,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 from oat_drgrpo.pantry_plan import validate_pantry_plan  # noqa: E402
+
+if str(ROOT / "ops") not in sys.path:
+    sys.path.insert(0, str(ROOT / "ops"))
+import paper_style as style  # noqa: E402
+
 OUT = ROOT / "paper/figures/modebench_examples"
 DATA_ROOTS = {
     "graph": ROOT / "var/data/exact_answer_mode_probe/eval",
@@ -31,28 +36,39 @@ DATA_ROOTS = {
     "pantry": ROOT / "var/data/pantry_plan_modebench_v2/eval",
 }
 
+# Inches on a figure whose single axes spans the canvas one-to-one, so the
+# layout below can be read as the printed page geometry.
+CANVAS_WIDTH = 13.2
+
 # One type size for the whole figure, exactly as in the collapse story, so no
-# label reads as a second-class annotation once the page scales it down.
-FONT = 17.0
+# label reads as a second-class annotation once the page scales it down. The
+# shared helper picks the size that matches every other figure on paper.
+FONT = style.font_for_canvas(CANVAS_WIDTH)
 MONO = "DejaVu Sans Mono"
 
-INK = "#1B2733"
-MUTED = "#5B6B7B"
-GRID = "#F0DEC6"
-FRAME = "#C7AE8E"
-PANEL = "#FEF4E7"
-WHITE = "#FFFFFF"
+INK = style.INK
+MUTED = style.MUTED
+GRID = style.GRID
+FRAME = style.MUTED
+PANEL = style.PANEL  # pale orange; caps the plasma range short of its yellow end
+WHITE = style.WHITE
 
-# The two mode colours are quoted verbatim from `plot_paper_collapse_toy.py`
-# (`plt.cm.plasma` at 0.10 and 0.45). There they separate two verified modes of
+# The two mode colours are the first two slots of the shared ``MODE_RAMP``, as
+# in `plot_paper_collapse_toy.py`. There they separate two verified modes of
 # one Graph Coloring prompt; here they separate two verified modes of one prompt
 # in every domain, so the reader meets the same encoding twice.
-MODE_ONE = "#41049D"
-MODE_TWO = "#BF3984"
+# Sampled from plt.cm.plasma. Plasma is lightness-monotonic, so any two stops
+# differ in luminance as well as hue: the encoding survives colour-vision
+# deficiency, grayscale printing, and photocopying. Stops stop at 0.60 because
+# beyond it plasma turns yellow and falls under 3:1 on the panel wash.
+MODE_ONE = "#41049d"  # plasma 0.10
+MODE_TWO = "#dd5e66"  # plasma 0.58
 
 # The puzzle's three paints, copied from the collapse story: a paint is part of
 # the question, never one of the measured modes, so it stays off the ramp.
-NODE_PAINTS = {1: "#C9D6E2", 2: "#6E8599", 3: "#263D51"}
+# The puzzle's three paints: a small ordered set, which is what a sequential
+# ramp is for, so they take plasma light-to-dark.
+NODE_PAINTS = {1: "#e16462", 2: "#9e199d", 3: "#2f0596"}  # plasma .60/.34/.06
 # Turned a quarter-turn from the obvious chain layout so the 3-5-6 triangle
 # opens to the right: no node then falls on an edge it is not part of.
 GRAPH_POSITIONS = {
@@ -73,41 +89,37 @@ INGREDIENT_COLORS = {
 }
 LEAF = "#6F8F5A"
 # Executable operators are the one thing in a key that is not data, so they
-# take the ramp's warm end (plasma 0.70) against ink-coloured operands.
-OPERATOR = "#F2844B"
+# take the ramp's warm slot against ink-coloured operands.
+OPERATOR = "#bc3587"  # plasma 0.44
 # One hue per operation, so the reader can see at a glance that the two
 # Countdown keys differ in *which* operations they execute and not merely in
 # their operands. Symbol and executed-name forms of an operation share a hue.
+# Four operations, four plasma stops. Adjacent pairs separate by 1.55:1 in
+# luminance, thin for colour alone --- but every operation also prints its own
+# name or symbol, so colour reinforces here and never carries the distinction.
 OPERATOR_COLORS = {
-    "mul": "#C2410C",
-    "×": "#C2410C",
-    "div": "#B45309",
-    "/": "#B45309",
-    "add": "#0F766E",
-    "+": "#0F766E",
-    "sub": "#7C2D91",
-    "−": "#7C2D91",
+    "mul": "#20068f",
+    "×": "#20068f",
+    "div": "#7a02a8",
+    "/": "#7a02a8",
+    "add": "#bc3587",
+    "+": "#bc3587",
+    "sub": "#e16462",
+    "−": "#e16462",
 }
 OPERATOR_TOKENS = frozenset(OPERATOR_COLORS)
 NODE_TEXT = {1: INK, 2: WHITE, 3: WHITE}
 
+style.apply_rcparams(font_size=FONT)
 mpl.rcParams.update(
     {
         "font.family": "sans-serif",
         "font.sans-serif": ["DejaVu Sans", "Helvetica", "Arial", "Liberation Sans"],
-        "font.size": FONT,
         "mathtext.fontset": "dejavusans",
-        "text.color": INK,
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "figure.facecolor": WHITE,
-        "savefig.facecolor": WHITE,
     }
 )
 
-# Every coordinate below is in inches on a figure whose single axes spans the
-# canvas one-to-one, so the layout can be read as the printed page geometry.
-WIDTH = 13.2
+WIDTH = CANVAS_WIDTH
 MARGIN = 0.18
 COLUMNS = 3
 GUTTER = 0.22
@@ -405,10 +417,14 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
             "letter": "E",
             "title": "PantryPlan",
             "prompt": [
-                "2–4 ingredients · 125–200 g · four exact nutrition bounds",
+                # Split for the single-column card; both facts are kept.
+                "2–4 ingredients · 125–200 g",
+                "four exact nutrition bounds",
             ],
             "check": "✓ feasible",
-            "span": 2,
+            # One unit like the others, which stacks its two answers and lets
+            # the cards pack by height instead of by row.
+            "span": 1,
             "glyph": "ingredient",
             "key_kind": "icons",
             "answers": [
@@ -738,10 +754,19 @@ def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> N
 def render() -> None:
     examples = load_and_validate()
     blocks = build_blocks(examples)
-    grid = [blocks[0:3], blocks[3:5]]
-    row_heights = [max(card_height(block) for block in row) for row in grid]
+    # Column packing: each card goes to whichever column currently has the most
+    # room left. Row-based placement padded every card to its row's tallest and
+    # left a band of empty wash under the short ones.
+    heights = [card_height(block) for block in blocks]
+    order = list(range(len(blocks)))
+    packed: list[list[int]] = [[] for _ in range(COLUMNS)]
+    used = [0.0] * COLUMNS
+    for index in order:
+        column = min(range(COLUMNS), key=lambda c: used[c])
+        packed[column].append(index)
+        used[column] += heights[index] + ROW_SPACING
 
-    height = 0.10 + HEADLINE + sum(row_heights) + ROW_SPACING * (len(grid) - 1) + 0.12
+    height = 0.10 + HEADLINE + max(used) - ROW_SPACING + 0.12
 
     fig = plt.figure(figsize=(WIDTH, height))
     ax = fig.add_axes([0, 0, 1, 1])
@@ -759,13 +784,14 @@ def render() -> None:
         fontweight="bold",
     )
 
-    cursor = top - HEADLINE
-    for row, row_height in zip(grid, row_heights):
-        left = MARGIN
-        for block in row:
-            draw_card(fig, ax, block, left, cursor, row_height)
-            left += card_width(block["span"]) + GUTTER
-        cursor -= row_height + ROW_SPACING
+    unit = card_width(1)
+    for column, indices in enumerate(packed):
+        left = MARGIN + column * (unit + GUTTER)
+        cursor = top - HEADLINE
+        for index in indices:
+            block = blocks[index]
+            draw_card(fig, ax, block, left, cursor, heights[index])
+            cursor -= heights[index] + ROW_SPACING
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)

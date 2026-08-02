@@ -233,3 +233,25 @@ def test_b1a_disables_the_switches_that_require_a_positive_coefficient(tmp_path)
     assert env["OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE"] == "0"
     assert env["OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION"] == "0"
     assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
+
+
+def test_b1b_is_rehearsal_only_and_distinct_from_b1a(tmp_path):
+    """B1b removes balancing; B1a keeps it. Confusing them would answer the
+    reviewer's question with an arm that still balances."""
+    b1b = b3a.build_export_vars(ROOT, _run(), tmp_path, "b1b")
+    b1a = b3a.build_export_vars(ROOT, _run(), tmp_path, "b1a")
+
+    # Mass-only objective: the learner never forms the balance loss under it.
+    assert b1b["OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE"] == "verified_likelihood_per_rollout"
+    assert b1b["OAT_ZERO_VARIANT"] == "verified_first_replay_rehearsal_only"
+
+    # No rarity weighting either.
+    assert float(b1b["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
+    assert float(b1b["OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA"]) == 0.0
+
+    # The two arms must not collapse onto one another.
+    assert b1b["OAT_ZERO_VARIANT"] != b1a["OAT_ZERO_VARIANT"]
+    assert b3a.run_stamp(_run(), "b1b") != b3a.run_stamp(_run(), "b1a")
+
+    # Same replay budget as the treatment: coefficient unchanged at .10.
+    assert float(b1b["OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA"]) == 0.10
