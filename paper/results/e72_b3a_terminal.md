@@ -7,7 +7,7 @@ are the frozen published values, not recomputed here.
 | --- | --- | --- | --- | --- | --- | --- |
 | Graph coloring | 5/5 | 0.325 | 0.429 | 2.406 | -1.977 | 0.104 |
 | Countdown | 5/5 | 0.627 | 0.630 | 1.893 | -1.263 | 0.003 |
-| Python factors | 2/5 | _withheld: fewer than five terminal seeds_ | | | | |
+| Python factors | 5/5 | 0.172 | 0.156 | 1.594 | -1.438 | -0.016 |
 | MathIR action menu | 5/5 | 0.666 | 0.550 | 0.926 | -0.375 | -0.116 |
 | PantryPlan | 5/5 | 0.634 | 0.564 | 2.186 | -1.622 | -0.070 |
 

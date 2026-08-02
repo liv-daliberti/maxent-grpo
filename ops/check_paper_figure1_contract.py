@@ -51,6 +51,55 @@ def pdf_text(path: Path) -> str:
     )
     return result.stdout
 
+
+B3A_SUMMARY = ROOT / "var/artifacts/e72_b3a_summary.json"
+B3A_TABLE_ROWS = {
+    "Graph coloring": "graph_coloring",
+    "Countdown": "countdown",
+    "Python factors": "python_factors",
+    "MathIR action menu": "mathir",
+    "PantryPlan": "pantry_plan",
+}
+
+
+def check_replay_ablation_table(manuscript: str) -> None:
+    """The B3a table is inlined, so verify it against its frozen artifact.
+
+    Inlining removes a file dependency at submission time but reintroduces the
+    risk the \input existed to prevent: a number in the manuscript drifting
+    from the cohort it claims to summarize. This restores that guarantee.
+    """
+    if not B3A_SUMMARY.is_file():
+        return
+    summary = json.loads(B3A_SUMMARY.read_text())
+    by_domain = {entry["domain"]: entry for entry in summary["domains"]}
+    section = manuscript.split(r"\label{tab:replay-ablation}", 1)[0]
+    section = section.rsplit(r"\begin{tabular}", 1)[-1]
+    for title, domain in B3A_TABLE_ROWS.items():
+        entry = by_domain.get(domain)
+        require(
+            entry is not None and entry.get("reportable"),
+            f"replay-ablation table shows {title} but the cohort does not report it",
+        )
+        row = [line for line in section.splitlines() if line.strip().startswith(title)]
+        require(len(row) == 1, f"replay-ablation table is missing a row for {title}")
+        cells = [cell.strip() for cell in row[0].split("&")]
+        printed = {
+            "drgrpo": cells[1],
+            "b3a": cells[2],
+            "xgrpo": cells[3],
+        }
+        for arm, text in printed.items():
+            expected = entry["means"][arm]["distinct8"]
+            rendered = f"{expected:.3f}"
+            rendered = rendered[1:] if rendered.startswith("0.") else rendered
+            require(
+                text == rendered,
+                f"replay-ablation table {title}/{arm} shows {text!r}, "
+                f"artifact says {rendered!r}",
+            )
+
+
 def main() -> None:
     source = SOURCE.read_text()
     manuscript = MANUSCRIPT.read_text()
@@ -163,7 +212,7 @@ def main() -> None:
     appendix_labels = (
         "app:theory", "app:python", "app:prompts", "app:data", "app:algorithm",
         "app:per-seed", "app:terminal-mathir", "app:ablations",
-        "app:decoding", "app:telemetry", "app:cross-family",
+        "app:replay-ablation", "app:decoding", "app:telemetry", "app:cross-family",
         "app:reproducibility",
     )
     for label in appendix_labels:
@@ -176,6 +225,7 @@ def main() -> None:
         == len(appendix_labels),
         "every appendix must begin with one explicit main-body link",
     )
+    check_replay_ablation_table(manuscript)
     algorithm_appendix = manuscript.split(r"\section{Algorithmic Details}", 1)[1].split(
         r"\section{Per-Seed Pass-12 Results}", 1
     )[0]

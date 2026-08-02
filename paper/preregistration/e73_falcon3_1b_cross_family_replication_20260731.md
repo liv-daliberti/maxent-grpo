@@ -181,6 +181,34 @@ evaluation checkpoint had been read: the moved domains were entirely pending
 except one PantryPlan job at a few minutes of runtime, which was requeued rather
 than cancelled.
 
+**Amendment 4 (2026-08-01): placement pinned per seed pair, not per domain.**
+Another user's jobs concentrated on the A6000 nodes and filled them: a failing
+run reported 47.36 GiB of a 47.40 GiB device already held by co-located
+processes. Five runs in the two A6000-pinned domains could not obtain memory to
+start at all. Each attempt hung, tripped the staleness watchdog about an hour
+later, requeued onto another full device, and repeated, so those runs spent
+three to four of their six restarts while recording zero optimizer steps. One
+PantryPlan run and four Python runs were affected; no A5000-hosted run recorded
+a single out-of-memory event over the same period.
+
+Those runs are therefore moved to the A5000 nodes. Amendment 3 pinned one GPU
+model per *domain*; that guarantee is relaxed to one GPU model per *seed pair*,
+which is the level this design's comparisons actually require, since every
+reported contrast is between the two arms at a matched seed and both arms of
+every seed still run on a single GPU model. Whole pairs were moved for that
+reason. The four Python runs were already two complete pairs (seeds 46 and 47);
+the PantryPlan run was one arm of seed 43, so its partner was moved with it
+rather than leaving that pair split across two GPU models.
+
+The cost is stated plainly: PantryPlan and Python factors now each have seeds on
+two GPU models, so a comparison *between seeds* inside those domains carries a
+hardware difference the other three domains do not, and per-seed rows from them
+should be read with that in mind. No claim in this design is a between-seed
+comparison. What it buys is that five runs which were making no progress, and
+were three to four restarts from being lost outright, can proceed. No evaluation
+checkpoint of the moved runs had been read: four stood at step zero or one and
+the fifth at step 25 of 4,608.
+
 ## Prediction
 
 The registered prediction is qualitative and directional, stated before launch:

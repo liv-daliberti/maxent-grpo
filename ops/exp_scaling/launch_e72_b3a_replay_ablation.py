@@ -63,6 +63,13 @@ ARM_SPECS: dict[str, dict[str, Any]] = {
             "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION": "0",
         },
     },
+    # The unmodified treatment, needed as the paired comparator when a cohort
+    # runs on seeds the published cohort does not cover.
+    "xgrpo": {
+        "variant": "verified_first_global_replay_canonical",
+        "removes": "nothing (reference treatment)",
+        "overrides": {},
+    },
 }
 VARIANT = ARM_SPECS["b3a"]["variant"]
 
@@ -150,18 +157,35 @@ def check_inheritance(run: dict[str, Any]) -> list[str]:
     return problems
 
 
-def run_stamp(run: dict[str, Any], arm: str = "b3a") -> str:
+def run_stamp(run: dict[str, Any], arm: str = "b3a", suffix: str = "") -> str:
     prefix = run["run_stamp"].split(f"_{run['curve_arm_label']}_s")[0]
-    return f"{prefix}_{arm}_s{run['seed']}"
+    return f"{prefix}_{arm}{suffix}_s{run['seed']}"
 
 
-def save_path(root: Path, run: dict[str, Any], arm: str = "b3a") -> Path:
+def save_path(root: Path, run: dict[str, Any], arm: str = "b3a", suffix: str = "") -> Path:
     variant = ARM_SPECS[arm]["variant"]
-    return root / "var" / "data" / f"xdr_{MODEL_TAG}_{variant}_{run_stamp(run, arm)}"
+    return (
+        root / "var" / "data" / f"xdr_{MODEL_TAG}_{variant}_{run_stamp(run, arm, suffix)}"
+    )
+
+
+def reseed(run: dict[str, Any], seed: int) -> dict[str, Any]:
+    """Clone a reference run's configuration onto a seed it does not cover.
+
+    A confirmation cohort on fresh seeds has no published run to inherit from,
+    so the configuration is taken from a template seed and only the seed itself
+    changes. Evaluation draw seeds are per domain and stay fixed, so the two
+    cohorts are measured identically.
+    """
+    clone = json.loads(json.dumps(run))
+    clone["seed"] = int(seed)
+    clone["inherited_train_config"]["seed"] = int(seed)
+    clone["published_terminal"] = None
+    return clone
 
 
 def build_export_vars(
-    root: Path, run: dict[str, Any], target: Path, arm: str = "b3a"
+    root: Path, run: dict[str, Any], target: Path, arm: str = "b3a", suffix: str = ""
 ) -> dict[str, str]:
     spec = ARM_SPECS[arm]
     evaluation = run["inherited_eval_config"]
@@ -179,7 +203,7 @@ def build_export_vars(
         # trains from the same initialization as every reported arm.
         "OAT_ZERO_PRETRAIN": str(evaluation["pretrain"]),
         "SAVE_PATH": str(target),
-        "RUN_STAMP": run_stamp(run, arm),
+        "RUN_STAMP": run_stamp(run, arm, suffix),
         # --- data and interface, inherited ----------------------------------
         "OAT_ZERO_PROMPT_DATA": str(evaluation["prompt_data"]),
         "OAT_ZERO_EVAL_DATA": str(evaluation["eval_data"]),
@@ -329,6 +353,7 @@ def submit(
     env: dict[str, str],
     *,
     arm: str,
+    nodelist: str = "",
     root: Path,
     partition: str,
     account: str,
@@ -340,13 +365,13 @@ def submit(
     dry_run: bool,
 ) -> str | None:
     export_pairs = ",".join(f"{key}={value}" for key, value in env.items())
-    name = f"e72{arm}-{run['domain'][:6]}-s{run['seed']}"
+    name = f"e72{arm}{'conf' if 'conf' in str(env.get('RUN_STAMP','')) else ''}-{run['domain'][:6]}-s{run['seed']}"
     sbatch_args = [
         "sbatch",
         "--parsable",
         f"--job-name={name}",
         f"--export=ALL,{export_pairs}",
-        f"--nodelist={run['source_node']}",
+        f"--nodelist={nodelist or run['source_node']}",
         f"--gres={gres}",
         f"--cpus-per-task={cpus}",
         f"--mem={memory}",
@@ -384,6 +409,19 @@ def main() -> int:
     )
     parser.add_argument("--domains", default="")
     parser.add_argument("--seeds", default="")
+    parser.add_argument(
+        "--confirmation-seeds",
+        default="",
+        help="fresh seeds to clone the reference configuration onto; the run "
+        "identity gains a 'conf' suffix and no published comparator exists",
+    )
+    parser.add_argument(
+        "--template-seed",
+        type=int,
+        default=43,
+        help="which reference seed supplies the configuration when reseeding",
+    )
+    parser.add_argument("--nodelist", default="")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--partition", default="mltheory")
     parser.add_argument("--account", default="mltheory")
@@ -400,6 +438,8 @@ def main() -> int:
     domains = {part for part in args.domains.split(",") if part}
     seeds = {int(part) for part in args.seeds.split(",") if part}
 
+    confirmation = [int(part) for part in args.confirmation_seeds.split(",") if part]
+    suffix = "conf" if confirmation else ""
     references = [
         run
         for run in manifest["runs"]
@@ -407,9 +447,23 @@ def main() -> int:
         and (not domains or run["domain"] in domains)
         and (not seeds or int(run["seed"]) in seeds)
     ]
+    if confirmation:
+        # Validate the templates before cloning: the checks apply to the
+        # configuration being copied, not to the fresh seeds.
+        templates = [r for r in references if int(r["seed"]) == args.template_seed]
+        problems = [p for r in templates for p in check_inheritance(r)]
+        if problems:
+            for problem in problems[:20]:
+                print(f"[e72-{args.arm}] {problem}")
+            raise SystemExit("refusing to launch: template inheritance failed")
+        references = [reseed(r, s) for r in templates for s in confirmation]
     problems: list[str] = []
     for run in references:
-        problems.extend(check_inheritance(run))
+        problems.extend(
+            [p for p in check_inheritance(run) if "training seed" not in p]
+            if confirmation
+            else check_inheritance(run)
+        )
     if problems:
         for problem in problems[:20]:
             print(f"[e72-b3a] {problem}")
@@ -419,7 +473,7 @@ def main() -> int:
 
     submitted: list[dict[str, Any]] = []
     for run in sorted(references, key=lambda item: (item["domain"], item["seed"])):
-        target = save_path(root, run, args.arm)
+        target = save_path(root, run, args.arm, suffix)
         if args.skip_existing and (
             (target / "TRAINING_COMPLETE.json").is_file()
             or any(target.glob("debug_job*"))
@@ -431,11 +485,12 @@ def main() -> int:
         if args.limit and len(submitted) >= args.limit:
             break
         target.mkdir(parents=True, exist_ok=True)
-        env = build_export_vars(root, run, target, args.arm)
+        env = build_export_vars(root, run, target, args.arm, suffix)
         job_id = submit(
             run,
             env,
             arm=args.arm,
+            nodelist=args.nodelist,
             root=root,
             partition=args.partition,
             account=args.account,
@@ -450,7 +505,7 @@ def main() -> int:
             {
                 "domain": run["domain"],
                 "seed": run["seed"],
-                "run_stamp": run_stamp(run, args.arm),
+                "run_stamp": run_stamp(run, args.arm, suffix),
                 "save_path": str(target),
                 "node": run["source_node"],
                 "reference_run": run["run_dir"],
@@ -466,7 +521,9 @@ def main() -> int:
     if args.dry_run or not submitted:
         return 0
 
-    ledger = root / "var" / "artifacts" / f"e72_{args.arm}_ablation_jobs.json"
+    ledger = (
+        root / "var" / "artifacts" / f"e72_{args.arm}{suffix}_ablation_jobs.json"
+    )
     existing = (
         json.loads(ledger.read_text()).get("runs", []) if ledger.is_file() else []
     )
