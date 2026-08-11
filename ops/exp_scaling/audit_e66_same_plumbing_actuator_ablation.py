@@ -269,7 +269,7 @@ def main() -> None:
             "replicated_freeform_sampling": True,
             "local_actor_weight_sync": True,
             "counterfactual_proposals": False,
-            "singleton_entropy_gate": False,
+            "singleton_only": False,
         }
         if identity.get("execution_contract") != expected_contract:
             violations.append("same-plumbing execution contract mismatch")

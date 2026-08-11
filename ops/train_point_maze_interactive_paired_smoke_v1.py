@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -147,11 +146,32 @@ def _restricted_sample(
     action_token_ids: Sequence[int],
     request_seeds: Sequence[int],
     max_length: int,
+    allowed_token_ids_by_prompt: Sequence[Sequence[int]] | None = None,
 ) -> tuple[list[list[int]], list[int], list[tuple[float, ...]]]:
     import torch
 
     if len(prompts) != len(request_seeds):
         raise ValueError("one request seed is required per policy slot")
+    global_support = tuple(int(token) for token in action_token_ids)
+    global_support_set = set(global_support)
+    supports = (
+        tuple(global_support for _ in prompts)
+        if allowed_token_ids_by_prompt is None
+        else tuple(
+            tuple(int(token) for token in support)
+            for support in allowed_token_ids_by_prompt
+        )
+    )
+    if (
+        len(supports) != len(prompts)
+        or any(not support or len(support) != len(set(support)) for support in supports)
+        or any(
+            token not in global_support_set
+            for support in supports
+            for token in support
+        )
+    ):
+        raise ValueError("every policy slot requires a unique action-support subset")
     encoded = [tokenizer.encode(text, add_special_tokens=False) for text in prompts]
     if any(not row or len(row) > max_length for row in encoded):
         raise ValueError("PointMaze policy prompt length left the frozen bound")
@@ -172,14 +192,26 @@ def _restricted_sample(
             attention_mask=attention,
             logits_to_keep=1,
         ).logits[:, -1, :].float()
-        restricted = decision.index_select(
-            1,
-            torch.tensor(action_token_ids, dtype=torch.long, device="cuda"),
+        maximum_support = max(len(support) for support in supports)
+        support_ids = torch.empty(
+            (len(supports), maximum_support),
+            dtype=torch.long,
+            device="cuda",
         )
+        support_mask = torch.zeros_like(support_ids, dtype=torch.bool)
+        for index, support in enumerate(supports):
+            support_ids[index] = int(support[0])
+            support_ids[index, : len(support)] = torch.tensor(
+                support, dtype=torch.long, device="cuda"
+            )
+            support_mask[index, : len(support)] = True
+        restricted = decision.gather(1, support_ids)
+        restricted = restricted.masked_fill(~support_mask, -torch.inf)
         logprobs = torch.log_softmax(restricted, dim=-1).cpu()
     selected = []
     rows = []
-    for row, seed in zip(logprobs.tolist(), request_seeds):
+    for row, support, seed in zip(logprobs.tolist(), supports, request_seeds):
+        row = row[: len(support)]
         probabilities = [math.exp(value) for value in row]
         draw = random.Random(int(seed)).random()
         cumulative = 0.0
@@ -189,7 +221,7 @@ def _restricted_sample(
             if draw <= cumulative:
                 index = candidate
                 break
-        selected.append(int(action_token_ids[index]))
+        selected.append(int(support[index]))
         rows.append(tuple(float(value) for value in row))
     return encoded, selected, rows
 
@@ -220,11 +252,44 @@ def _collate_selected_logprobs(
         attention_mask=attention,
         logits_to_keep=1,
     ).logits[:, -1, :].float()
-    support = torch.tensor(action_token_ids, dtype=torch.long, device="cuda")
-    restricted = torch.log_softmax(decision.index_select(1, support), dim=-1)
-    support_index = {int(token): index for index, token in enumerate(action_token_ids)}
+    fallback_support = tuple(int(token) for token in action_token_ids)
+    fallback_set = set(fallback_support)
+    supports = tuple(
+        tuple(int(token) for token in slot.get("allowed_token_ids", fallback_support))
+        for slot in slots
+    )
+    if (
+        any(not support or len(support) != len(set(support)) for support in supports)
+        or any(
+            token not in fallback_set
+            for support in supports
+            for token in support
+        )
+    ):
+        raise ValueError("every loss slot requires a unique action-support subset")
+    maximum_support = max(len(support) for support in supports)
+    support_ids = torch.empty(
+        (len(supports), maximum_support),
+        dtype=torch.long,
+        device="cuda",
+    )
+    support_mask = torch.zeros_like(support_ids, dtype=torch.bool)
+    selected_positions: list[int] = []
+    for row_index, (slot, support) in enumerate(zip(slots, supports)):
+        support_ids[row_index] = int(support[0])
+        support_ids[row_index, : len(support)] = torch.tensor(
+            support, dtype=torch.long, device="cuda"
+        )
+        support_mask[row_index, : len(support)] = True
+        selected = int(slot["selected_token_id"])
+        if selected not in support:
+            raise ValueError("selected action lies outside its recorded support")
+        selected_positions.append(support.index(selected))
+    restricted = decision.gather(1, support_ids)
+    restricted = restricted.masked_fill(~support_mask, -torch.inf)
+    restricted = torch.log_softmax(restricted, dim=-1)
     selected_indices = torch.tensor(
-        [support_index[int(slot["selected_token_id"])] for slot in slots],
+        selected_positions,
         dtype=torch.long,
         device="cuda",
     )
@@ -378,6 +443,7 @@ def _rollout_group(
                 {
                     "kind": "on_policy",
                     "prompt_token_ids": tuple(prompt_ids[episode]),
+                    "allowed_token_ids": tuple(action_token_ids),
                     "selected_token_id": int(selected_ids[episode]),
                     "behavior_logprob": float(
                         behavior_rows[episode][
@@ -403,7 +469,6 @@ def _rollout_group(
                 action=action,
                 after=transition,
             )
-            position = list(action_token_ids).index(selected_ids[episode])
             decisions[episode].append(
                 InteractiveDecisionRecord(
                     prompt_token_ids=tuple(prompt_ids[episode]),
@@ -454,12 +519,15 @@ def _replay_slots(
     padding_token_ids: Sequence[int],
     action_token_ids: Sequence[int],
     compute_only: bool,
+    allow_singleton_mass: bool = True,
     horizon: int = HORIZON,
     replay_capacity: int = REPLAY_CAPACITY,
     samples: int = SAMPLES,
 ) -> tuple[list[dict[str, Any]], dict[str, float]]:
     import torch
 
+    if not isinstance(allow_singleton_mass, bool):
+        raise TypeError("allow_singleton_mass must be boolean")
     padded, active = fixed_replay_slots(group, slot_count=replay_capacity)
     active_episodes = [episode for episode in padded if episode is not None]
     if active_episodes:
@@ -479,7 +547,12 @@ def _replay_slots(
             behavior_scores,
             [len(active_episodes)],
         )
-        raw = 0.10 * split.mass_score_gradients + 0.10 * split.balance_score_gradients
+        mass_gradients = (
+            split.mass_score_gradients
+            if allow_singleton_mass or len(active_episodes) >= 2
+            else torch.zeros_like(split.mass_score_gradients)
+        )
+        raw = 0.10 * mass_gradients + 0.10 * split.balance_score_gradients
         raw_l2 = float(torch.linalg.vector_norm(raw).item())
         applied = torch.zeros_like(raw) if compute_only else raw
         applied_l2 = float(torch.linalg.vector_norm(applied).item())
@@ -502,6 +575,7 @@ def _replay_slots(
                     {
                         "kind": "replay",
                         "prompt_token_ids": decision.prompt_token_ids,
+                        "allowed_token_ids": decision.allowed_token_ids,
                         "selected_token_id": decision.selected_token_id,
                         "behavior_logprob": decision.selected_behavior_logprob,
                         "active": True,
@@ -513,6 +587,7 @@ def _replay_slots(
                     {
                         "kind": "replay",
                         "prompt_token_ids": tuple(padding_token_ids),
+                        "allowed_token_ids": tuple(action_token_ids),
                         "selected_token_id": int(action_token_ids[0]),
                         "behavior_logprob": 0.0,
                         "active": False,
@@ -526,6 +601,7 @@ def _replay_slots(
                     {
                         "kind": "replay",
                         "prompt_token_ids": tuple(padding_token_ids),
+                        "allowed_token_ids": tuple(action_token_ids),
                         "selected_token_id": int(action_token_ids[0]),
                         "behavior_logprob": 0.0,
                         "active": False,
@@ -541,6 +617,7 @@ def _replay_slots(
         "replay_raw_score_gradient_l2": raw_l2,
         "replay_applied_score_gradient_l2": applied_l2,
         "replay_compute_only": float(compute_only),
+        "replay_singleton_mass_enabled": float(allow_singleton_mass),
         "replay_decision_forward_slots": float(len(slots)),
     }
 
@@ -682,13 +759,9 @@ def main() -> None:
         pseudocount=1.0,
         success_conditioned_signed_advantage=True,
         success_conditioned_signed_cap=0.05,
-        open_set_inverse_adaptation=True,
-        open_set_warmup_steps=64,
-        open_set_ema_decay=0.90,
     )
     canonical = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.50,
         pseudocount=1.0,
         surprisal_clip=5.0,
         retain_exemplars=False,
@@ -811,7 +884,6 @@ def main() -> None:
                 "raw_exploration_advantage_rms": float(torch.sqrt(torch.mean(raw_exploration.square())).item()),
                 "applied_exploration_advantage_rms": float(torch.sqrt(torch.mean(applied_exploration.square())).item()),
                 "semantic_effective_advantage_rms": float(semantic_diag.effective_advantage_rms),
-                "canonical_novelty_advantage_rms": float(canonical_diag.novelty_advantage_rms),
                 "canonical_tracked_prompts": float(canonical.tracked_prompt_count),
                 "canonical_tracked_outcomes": float(canonical.tracked_outcome_count),
                 "canonical_support_at_least_two_prompt_fraction": float(canonical.support_at_least_two_prompt_fraction),
@@ -899,15 +971,12 @@ def main() -> None:
         "mechanism": {
             "compute_only_control": args.arm == CONTROL,
             "semantic_coefficient": 0.10,
-            "novelty_beta": 0.50,
             "replay_mass_alpha": 0.10,
             "replay_balance_alpha": 0.10,
-            "warmup_steps": 64,
-            "ema_decay": 0.90,
+            "coefficient_control": "fixed",
             "reward_estimator_factor": 15.0 / 16.0,
             "per_rollout_replay_factor": 1.0 / 16.0,
             "gold_support_feedback": False,
-            "coefficient_projection": False,
         },
         "information_boundary": {
             "evaluation_rows_loaded": False,

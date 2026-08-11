@@ -69,10 +69,6 @@ def test_e56_design_smoke_and_sentinel_are_target_free_and_unprojected():
     sentinel_auditor = (
         ROOT / "ops/exp_scaling/audit_e56_sentinel.py"
     ).read_text(encoding="utf-8")
-    parser = (
-        ROOT / "ops/exp_scaling/parse_scaling_curve.py"
-    ).read_text(encoding="utf-8")
-
     assert "FROZEN FOR ONE THREE-DOMAIN SENTINEL" in protocol
     assert "No pair uses evaluation behavior" in protocol
     assert "desired mode count" in protocol
@@ -91,28 +87,16 @@ def test_e56_design_smoke_and_sentinel_are_target_free_and_unprojected():
     assert '"attempt_selection": "exact_manifest_job_id"' in launcher
     assert 'write_sentinel_identity "${job_ids[@]}"' in launcher
     assert "canonical_replay_mass_score_gradient_sum" in auditor
-    assert "open_set_projection_active" in auditor
     assert 'frozenset({"graph_coloring"})' in auditor
-    assert (
-        "semantic_shannon_success_conditioned_signed_open_set_entropy_ema"
-        in parser
-    )
-    assert "canonical_replay_mass_next_alpha" in parser
     assert "mass_raw_score_gradient_sum" in launcher
     assert "balance_raw_score_gradient_sum" in launcher
-    assert "expected_multiplier = reference / ema if inverse else ema / reference" in (
-        sentinel_auditor
-    )
     assert "terminal run never rewarded a new valid mode" in sentinel_auditor
-    assert "terminal run never penalized a common valid mode" in (
-        sentinel_auditor
-    )
-    assert "canonical_replay_mass_controller_state" in sentinel_auditor
+    assert "terminal run never penalized a common valid mode" in sentinel_auditor
     assert "unexpected debug attempts" in sentinel_auditor
     assert "job_manifest_sha256" in sentinel_auditor
 
 
-def test_e56_open_set_telemetry_is_emitted_by_the_active_signed_branch():
+def test_e56_fixed_open_set_telemetry_is_emitted_by_the_active_signed_branch():
     learner = (
         ROOT / "src/oat_drgrpo/learner/grpo.py"
     ).read_text(encoding="utf-8")
@@ -127,8 +111,9 @@ def test_e56_open_set_telemetry_is_emitted_by_the_active_signed_branch():
 
     assert '"open_set_coefficient_used"' not in quality_block
     assert '"open_set_coefficient_used"' in signed_block
-    assert '"open_set_observations"' in signed_block
-    assert '"open_set_projection_active"' in signed_block
+    assert '"open_set_normalized_entropy_mean"' in signed_block
+    assert '"open_set_observations"' not in signed_block
+    assert '"open_set_projection_active"' not in signed_block
 
 
 def test_e56_safety_gate_is_pending_before_first_treatment_evaluation():

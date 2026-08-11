@@ -50,7 +50,6 @@ def test_e58_variant_disables_direct_entropy_and_enables_one_global_group():
 def test_e58_global_schedule_is_checkpointed_and_default_off():
     bank = OnlineCanonicalBank(
         entropy_alpha=0,
-        novelty_beta=0,
         retain_exemplars=True,
     )
     state = bank.state_dict()

@@ -263,10 +263,8 @@ def main() -> None:
     semantic = SemanticShannonTracker(
         coefficient=0.10, surprisal_clip=5.0, pseudocount=1.0,
         success_conditioned_signed_advantage=True, success_conditioned_signed_cap=0.05,
-        open_set_inverse_adaptation=True, open_set_warmup_steps=64, open_set_ema_decay=0.90,
     )
     canonical = OnlineCanonicalBank(
-        entropy_alpha=0.0, novelty_beta=0.50, pseudocount=1.0, surprisal_clip=5.0,
         retain_exemplars=False, replay_capacity=REPLAY_CAPACITY, global_replay_groups_per_step=0,
     )
     replay_bank = VerifiedInteractiveReplayBank(capacity=REPLAY_CAPACITY)
@@ -329,7 +327,6 @@ def main() -> None:
                 "raw_exploration_advantage_rms": float(torch.sqrt(torch.mean(raw_exploration.square()))),
                 "applied_exploration_advantage_rms": float(torch.sqrt(torch.mean(applied_exploration.square()))),
                 "semantic_effective_advantage_rms": float(semantic_diag.effective_advantage_rms),
-                "canonical_novelty_advantage_rms": float(canonical_diag.novelty_advantage_rms),
                 "canonical_tracked_prompts": float(canonical.tracked_prompt_count),
                 "canonical_tracked_outcomes": float(canonical.tracked_outcome_count),
                 "replay_bank_tracked_prompts": float(replay_bank.tracked_prompt_count),
@@ -377,8 +374,7 @@ def main() -> None:
         },
         "mechanism": {
             "compute_only_control": args.arm == CONTROL, "semantic_coefficient": 0.10,
-            "novelty_beta": 0.50, "replay_mass_alpha": 0.10,
-            "replay_balance_alpha": 0.10, "warmup_steps": 64,
+            "replay_mass_alpha": 0.10, "replay_balance_alpha": 0.10,
         },
         "information_boundary": {
             "development_rows_loaded": False, "evaluation_rows_loaded": False,

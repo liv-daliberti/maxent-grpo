@@ -16,4 +16,4 @@ set -euo pipefail
 ROOT_DIR="${OAT_ZERO_REPO_ROOT:-${SLURM_SUBMIT_DIR:-$PWD}}"
 export OAT_ZERO_REPO_ROOT="$ROOT_DIR"
 exec /usr/bin/bash \
-  "$ROOT_DIR/ops/exp_scaling/watch_e65_entropy_gated_singleton_confirmation.sh"
+  "$ROOT_DIR/ops/exp_scaling/watch_e65_singleton_confirmation.sh"

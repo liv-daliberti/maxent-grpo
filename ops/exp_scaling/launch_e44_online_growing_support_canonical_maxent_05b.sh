@@ -169,7 +169,6 @@ export OAT_ZERO_INCLUDE_SIGNAL_FIRST_SEMANTIC_BALANCE_ARM=0
 export OAT_ZERO_INCLUDE_ONLINE_CANONICAL_MAXENT_ARM=1
 
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
@@ -282,7 +281,6 @@ payload = {
     "arms": ["grpo", "online_canonical_maxent"],
     "online_canonical_maxent": {
         "entropy_alpha": 0.10,
-        "novelty_beta": 0.50,
         "pseudocount": 1.0,
         "surprisal_clip": 5.0,
         "key_mode": "modebench_outcome",
@@ -445,7 +443,6 @@ for spec in "$GRAPH_PREFIX|192|48" "$COUNTDOWN_PREFIX|384|96"; do
       arm_requirements=(
         'OAT_ZERO_VARIANT=online_canonical_maxent'
         'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10'
-        'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50'
         'OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0'
         'OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0'
         'OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome'
@@ -454,7 +451,6 @@ for spec in "$GRAPH_PREFIX|192|48" "$COUNTDOWN_PREFIX|384|96"; do
       arm_requirements=(
         'OAT_ZERO_VARIANT=grpo'
         'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0'
-        'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0'
         'OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome'
       )
     else

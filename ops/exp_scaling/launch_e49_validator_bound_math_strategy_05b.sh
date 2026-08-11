@@ -241,7 +241,6 @@ export OAT_ZERO_INCLUDE_ONLINE_CANONICAL_HAARNOJA_ARM=1
 
 export OAT_ZERO_VERIFIED_DISCOVERY_TRACKING=1
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=math_strategy_qwen72
@@ -383,7 +382,6 @@ payload = {
         "alpha": [0.10, 0.50],
         "alpha_lr": 0.003,
         "ema_decay": 0.90,
-        "novelty_beta": 0.50,
     },
 }
 path.parent.mkdir(parents=True, exist_ok=True)

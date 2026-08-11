@@ -54,8 +54,7 @@ for job_id in "${GRAPH_IDS[@]}"; do
   record="$(scontrol show job "$job_id" -o)"
   for required in \
     'JobState=PENDING' 'Reason=JobHeldUser' 'Account=mltheory' \
-    'OAT_ZERO_VARIANT=verified_first_global_replay_canonical' \
-    'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50'; do
+    'OAT_ZERO_VARIANT=verified_first_global_replay_canonical'; do
     [[ "$record" == *"$required"* ]] || {
       echo "E61-R1 Graph hold audit failed for $job_id: $required" >&2
       exit 1
@@ -66,8 +65,7 @@ for job_id in "${COUNTDOWN_IDS[@]}"; do
   record="$(scontrol show job "$job_id" -o)"
   for required in \
     'JobState=PENDING' 'Reason=JobHeldUser' 'Account=allcs' \
-    'OAT_ZERO_VARIANT=verified_first_global_replay_canonical' \
-    'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50'; do
+    'OAT_ZERO_VARIANT=verified_first_global_replay_canonical'; do
     [[ "$record" == *"$required"* ]] || {
       echo "E61-R1 Countdown hold audit failed for $job_id: $required" >&2
       exit 1

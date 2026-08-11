@@ -15,7 +15,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "var/artifacts/e68_preintervention_equivalence_audit_latest.json"
 ARM_CONTROL = "verified_first_global_replay_canonical"
-ARM_REPAIR = "verified_entropy_gated_singleton_escape_canonical"
+ARM_REPAIR = "verified_singleton_escape_canonical"
 SEEDS = (43, 44, 45)
 MANIFESTS = {
     "graph_coloring": (
@@ -68,8 +68,6 @@ FLOAT_KEYS = (
     "train/adv_max",
     "train/entropy",
     "train/policy_grad_norm",
-    "train/online_canonical_novelty_advantage_mean",
-    "train/online_canonical_novelty_advantage_rms",
     "train/online_canonical_combined_advantage_mean",
     "train/online_canonical_combined_advantage_rms",
     "train/online_canonical_entropy_estimate_mean",
@@ -96,8 +94,6 @@ REQUIRED_KEYS = {
     "train/adv_max",
     "train/online_canonical_new_outcome_count",
     "train/online_canonical_tracked_outcomes",
-    "train/online_canonical_novelty_advantage_mean",
-    "train/online_canonical_novelty_advantage_rms",
     "train/online_canonical_combined_advantage_mean",
     "train/online_canonical_combined_advantage_rms",
     "train/online_canonical_advantage_applied_after_task_centering",

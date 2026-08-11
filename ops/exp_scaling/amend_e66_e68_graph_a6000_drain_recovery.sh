@@ -49,7 +49,6 @@ for job_id in "${CONTROL_IDS[@]}"; do
     'JobState=PENDING' 'Reason=JobHeldUser' 'Account=mltheory' \
     'Partition=pvl-lowprio' \
     'OAT_ZERO_VARIANT=verified_first_global_replay_canonical' \
-    'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50' \
     'TresPerNode=gres/gpu:a6000:1'; do
     [[ "$record" == *"$required"* ]] || {
       echo "E66 Graph hold audit failed for $job_id: $required" >&2
@@ -63,8 +62,7 @@ for job_id in "${REPAIR_IDS[@]}"; do
   for required in \
     'JobState=PENDING' 'Reason=JobHeldUser' 'Account=mltheory' \
     'Partition=pvl-lowprio' \
-    'OAT_ZERO_VARIANT=verified_entropy_gated_singleton_escape_canonical' \
-    'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50' \
+    'OAT_ZERO_VARIANT=verified_singleton_escape_canonical' \
     'OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1' \
     'TresPerNode=gres/gpu:a6000:1'; do
     [[ "$record" == *"$required"* ]] || {

@@ -166,7 +166,6 @@ def atomic(path: Path, payload) -> None:
             calibration_rows_excluded=True,
             replay_alpha=0.20,
             replay_mass_alpha=0.20,
-            novelty_beta=0.50,
             secondary_post_outcome_repair=True,
         )
     elif path == base.SUBMISSION:

@@ -66,7 +66,9 @@ _REFERENCE_HEIGHT = 3.5
 INK = "#19324A"  # titles, labels, any text
 MUTED = "#607487"  # spines and tick marks; recedes behind the data
 GRID = "#D8E2EA"  # grid lines, lighter still
-PANEL = "#FDF3E7"  # pale orange panel wash; every mark clears 3:1 on it
+PANEL = "#E8F1FA"  # pale blue panel wash; every mark clears 3:1 on it
+# Worst mark-on-wash contrast is the control orange at 3.31:1; ink text sits at
+# 11.5:1. Re-check with the dataviz validator before darkening this.
 WHITE = "#FFFFFF"
 
 # --- arms -------------------------------------------------------------------
@@ -74,10 +76,40 @@ WHITE = "#FFFFFF"
 CONTROL = "#C76A3A"  # matched Dr.GRPO
 METHOD = "#087F8C"  # xGRPO
 ABLATION = "#6C5CE7"  # B3a and other remove-one arms
+# A fourth arm slot, for add-one arms that must coexist with the three above in
+# one panel (E83's semantic-MaxEnt-without-replay against E81's with it).
+# Chosen by the dataviz validator under `--pairs all`, not by eye: every pair
+# in {CONTROL, ABLATION, METHOD, ADD_ON} clears CVD dE 8.9 (worst, deutan) and
+# the normal-vision floor at 15.0, in both light and dark. An olive candidate
+# looked fine on the adjacent-pair test and failed all-pairs against CONTROL at
+# dE 4.3 protan, which is why the all-pairs run is the one that counts here.
+ADD_ON = "#C2255C"
+# A fifth arm slot, for the adaptive-coefficient variant of an add-one arm.
+# Deliberately a sibling of ABLATION rather than a new hue: both are semantic
+# MaxEnt, fixed and adapted, so a related colour with its own dash reads as a
+# variant rather than an unrelated treatment. It is the only purple far enough
+# from ABLATION to clear the checks (dE 12.7 deutan, 15.4 normal); every lighter
+# variant collided with it.
+#
+# LIGHT MODE ONLY. Under `--pairs all` it clears CVD separation and the
+# normal-vision floor in light, and does not become the binding pair on either.
+# Against a dark surface it fails the lightness band and lands at 2.12:1
+# contrast. The manuscript figures are print artifacts on white, so this is
+# accepted knowingly; do not reuse ADAPTIVE in a dark-mode context.
+ADAPTIVE = "#7B1FA2"
+
+# A dose variant of an arm is the *same* entity at a different setting, so it
+# keeps its mechanism's hue and separates on dash alone. This is the one case
+# where sharing a colour is correct rather than a collision: E90 is verified
+# replay, dosed by bank occupancy instead of by a fixed coefficient. Giving it
+# a sixth hue would say "unrelated treatment", which is the opposite of true.
+METHOD_DOSE_DASH = (0, (7, 1.5, 2, 1.5))
 
 ARM_DASH: dict[str, Any] = {
     CONTROL: (0, (5, 1.6)),
     ABLATION: (0, (1.6, 1.4)),
+    ADD_ON: (0, (4, 1.2, 1, 1.2)),
+    ADAPTIVE: (0, (6, 1.2, 1, 1.2, 1, 1.2)),
     METHOD: "solid",
 }
 
@@ -85,7 +117,11 @@ ARM_DASH: dict[str, Any] = {
 # For the explanatory figures, where colour names a verified execution mode
 # rather than an arm. Order is the legend order.
 MODE_RAMP = ("#7048E8", "#C2255C", "#C76A3A", "#0E8F86")
-INVALID = "#E5E9ED"  # not a mode; a neutral off-ramp that must recede
+# Not a mode; a neutral off-ramp that must recede. Stepped down from #E5E9ED
+# when the wash went pale blue: against that wash the old grey sat at 1.07:1
+# and the legend swatch and the top bar segment both vanished. This still
+# recedes far behind every mode colour, which clear 3.3:1 or better.
+INVALID = "#CBD6E0"
 
 # --- line weights -----------------------------------------------------------
 MEAN_LW = 1.35  # a five-seed mean

@@ -3,13 +3,13 @@
 The bank is prompt-local and contains only canonical keys produced by
 validator-positive, loss-active rollouts. A group is scored against an immutable
 pre-group snapshot and committed only after every row has been scored.  This
-keeps novelty independent of row order.
+keeps bank admission independent of row order.
 
 The entropy term is a bounded, leave-one-out score-function estimator over the
 empirical distribution on the verified bank.  It is returned as a detached
-policy advantage and must be added *after* Dr.GRPO task-reward centering.  With
-both coefficients at zero the same bank is a passive tracker: it records
-verified discoveries without changing ordinary Dr.GRPO.
+policy advantage and must be added *after* Dr.GRPO task-reward centering. With
+its coefficient at zero the same bank is a passive tracker: it records verified
+outcomes without changing ordinary Dr.GRPO.
 """
 
 from __future__ import annotations
@@ -50,8 +50,6 @@ class OnlineCanonicalBankDiagnostics:
     entropy_alpha_used: float
     entropy_advantage_mean: float
     entropy_advantage_rms: float
-    novelty_advantage_mean: float
-    novelty_advantage_rms: float
     combined_advantage_mean: float
     combined_advantage_rms: float
     eligible_fraction: float
@@ -115,7 +113,6 @@ class OnlineCanonicalBank:
         self,
         *,
         entropy_alpha: float,
-        novelty_beta: float,
         pseudocount: float = 1.0,
         surprisal_clip: float = 5.0,
         retain_exemplars: bool = False,
@@ -126,7 +123,6 @@ class OnlineCanonicalBank:
     ) -> None:
         for name, value in (
             ("entropy_alpha", entropy_alpha),
-            ("novelty_beta", novelty_beta),
             ("pseudocount", pseudocount),
             ("surprisal_clip", surprisal_clip),
         ):
@@ -135,10 +131,9 @@ class OnlineCanonicalBank:
                 raise ValueError(f"{name} must be finite")
             if name in {"pseudocount", "surprisal_clip"} and value <= 0:
                 raise ValueError(f"{name} must be positive")
-            if name in {"entropy_alpha", "novelty_beta"} and value < 0:
+            if name == "entropy_alpha" and value < 0:
                 raise ValueError(f"{name} must be non-negative")
         self.entropy_alpha = float(entropy_alpha)
-        self.novelty_beta = float(novelty_beta)
         self.pseudocount = float(pseudocount)
         self.surprisal_clip = float(surprisal_clip)
         self.retain_exemplars = bool(retain_exemplars)
@@ -218,11 +213,11 @@ class OnlineCanonicalBank:
     def objective_active(self) -> bool:
         """Whether this bank contributes a nonzero exploration objective."""
 
-        return self.entropy_alpha > 0.0 or self.novelty_beta > 0.0
+        return self.entropy_alpha > 0.0
 
     @property
     def mean_support_per_prompt(self) -> float:
-        """Mean on-policy support used by entropy/novelty advantages."""
+        """Mean on-policy support used by the entropy advantage."""
 
         if self.tracked_prompt_count == 0:
             return 0.0
@@ -283,9 +278,8 @@ class OnlineCanonicalBank:
 
     def state_dict(self) -> dict[str, Any]:
         state = {
-            "schema": "online_growing_support_canonical_maxent_v1",
+            "schema": "online_growing_support_canonical_maxent_v2",
             "entropy_alpha": self.entropy_alpha,
-            "novelty_beta": self.novelty_beta,
             "pseudocount": self.pseudocount,
             "surprisal_clip": self.surprisal_clip,
             "groups_scored": self._groups_scored,
@@ -300,9 +294,9 @@ class OnlineCanonicalBank:
                 {
                     "schema": (
                         "online_growing_support_canonical_maxent_"
-                        "replay_separated_proposal_v3"
+                        "replay_separated_proposal_fixed_v6"
                         if self.separate_proposal_objective_support
-                        else "online_growing_support_canonical_maxent_replay_v2"
+                        else "online_growing_support_canonical_maxent_replay_fixed_v5"
                     ),
                     "retain_exemplars": True,
                     "separate_proposal_objective_support": (
@@ -352,12 +346,12 @@ class OnlineCanonicalBank:
         expected_schema = (
             (
                 "online_growing_support_canonical_maxent_"
-                "replay_separated_proposal_v3"
+                "replay_separated_proposal_fixed_v6"
                 if self.separate_proposal_objective_support
-                else "online_growing_support_canonical_maxent_replay_v2"
+                else "online_growing_support_canonical_maxent_replay_fixed_v5"
             )
             if self.retain_exemplars
-            else "online_growing_support_canonical_maxent_v1"
+            else "online_growing_support_canonical_maxent_v2"
         )
         if state.get("schema") != expected_schema:
             raise ValueError(
@@ -365,7 +359,6 @@ class OnlineCanonicalBank:
             )
         for name in (
             "entropy_alpha",
-            "novelty_beta",
             "pseudocount",
             "surprisal_clip",
         ):
@@ -905,7 +898,6 @@ class OnlineCanonicalBank:
         combined = [0.0] * row_count
         entropy_values: list[float] = []
         entropy_advantages = [0.0] * row_count
-        novelty_advantages = [0.0] * row_count
         eligible_rows = 0
         positive_rows = 0
         canonicalizable_positive_rows = 0
@@ -984,15 +976,9 @@ class OnlineCanonicalBank:
                 entropy_advantage = entropy_alpha * (
                     clipped_surprisal - clipped_entropy
                 )
-                novelty_advantage = (
-                    self.novelty_beta / current[key]
-                    if key in new_keys
-                    else 0.0
-                )
                 row_index = start + offset
                 entropy_advantages[row_index] = entropy_advantage
-                novelty_advantages[row_index] = novelty_advantage
-                combined[row_index] = entropy_advantage + novelty_advantage
+                combined[row_index] = entropy_advantage
 
             updated = historical.copy()
             updated.update(current)
@@ -1093,8 +1079,6 @@ class OnlineCanonicalBank:
             entropy_alpha_used=entropy_alpha,
             entropy_advantage_mean=mean(entropy_advantages),
             entropy_advantage_rms=rms(entropy_advantages),
-            novelty_advantage_mean=mean(novelty_advantages),
-            novelty_advantage_rms=rms(novelty_advantages),
             combined_advantage_mean=mean(combined),
             combined_advantage_rms=rms(combined),
             eligible_fraction=eligible_rows / row_count,

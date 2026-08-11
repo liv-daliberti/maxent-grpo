@@ -125,3 +125,34 @@ def test_v4_is_frozen_geometry_shift_replacement():
     assert 'point_maze_geometry_shift_v1' in audit_batch
     assert "fresh seed 75304" in protocol
     assert "evaluation rows are not loaded" in protocol
+
+
+def test_singleton_mass_can_be_delayed_until_two_modes_are_known():
+    bank = VerifiedInteractiveReplayBank(capacity=REPLAY_CAPACITY)
+    bank.observe_group([_episode("route-a", 10)])
+    group = bank.schedule_one_global_round_robin()
+    action_ids = tuple(range(10, 19))
+
+    enabled, enabled_diag = _replay_slots(
+        group=group,
+        padding_token_ids=(1, 2),
+        action_token_ids=action_ids,
+        compute_only=False,
+        allow_singleton_mass=True,
+        horizon=1,
+    )
+    delayed, delayed_diag = _replay_slots(
+        group=group,
+        padding_token_ids=(1, 2),
+        action_token_ids=action_ids,
+        compute_only=False,
+        allow_singleton_mass=False,
+        horizon=1,
+    )
+
+    assert enabled_diag["replay_raw_score_gradient_l2"] > 0
+    assert delayed_diag["replay_raw_score_gradient_l2"] == 0
+    assert enabled_diag["replay_singleton_mass_enabled"] == 1
+    assert delayed_diag["replay_singleton_mass_enabled"] == 0
+    assert any(slot["weight"] != 0 for slot in enabled if slot["active"])
+    assert all(slot["weight"] == 0 for slot in delayed if slot["active"])

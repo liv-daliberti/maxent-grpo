@@ -48,8 +48,6 @@ for job_id in "${ALL_IDS[@]}"; do
   record="$(scontrol show job "$job_id" -o)"
   [[ "$record" == *'JobState=PENDING'* ]] || exit 1
   [[ "$record" == *'Reason=JobHeldUser'* ]] || exit 1
-  [[ "$record" == *'OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA=0.50'* ]] \
-    || exit 1
   if find "$ROOT_DIR/var/data" -path "*/debug_job${job_id}/train_metrics.jsonl" \
     -print -quit | grep -q .; then
     echo "E67 job $job_id has optimizer metrics; refusing partition change" >&2

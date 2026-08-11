@@ -22,7 +22,7 @@ PYTHON_DATA="$ROOT_DIR/var/data/python_factor_modebench_v1"
 MATHIR_DATA="$ROOT_DIR/var/data/mathir_action_menu_v1"
 IDENTITY="$ROOT_DIR/var/artifacts/e68_separated_support_actuator_ablation_identity.json"
 CAPACITY_PROBE="$ROOT_DIR/var/artifacts/e68_prelaunch_capacity_probe.json"
-VARIANT=verified_entropy_gated_singleton_escape_canonical
+VARIANT=verified_singleton_escape_canonical
 
 GRAPH_PREFIX=gce68_separated_support_actuator_05b_12ep
 COUNTDOWN_PREFIX=cde68_separated_support_actuator_05b_12ep
@@ -148,28 +148,20 @@ for flag in \
   VERIFIED_FIRST_BOOTSTRAP_LOCAL_CANONICAL VERIFIED_COUNTERFACTUAL_CANONICAL; do
   export "OAT_ZERO_INCLUDE_${flag}_ARM=0"
 done
-export OAT_ZERO_INCLUDE_VERIFIED_ENTROPY_GATED_SINGLETON_ESCAPE_CANONICAL_ARM=1
+export OAT_ZERO_INCLUDE_VERIFIED_SINGLETON_ESCAPE_CANONICAL_ARM=1
 
 export OAT_ZERO_VERIFIED_DISCOVERY_TRACKING=1
 export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10
 export OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP=5.0
 export OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT=1.0
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS=64
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
-export OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.10
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=16
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1
 export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS=3
 export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE=1.0
@@ -397,18 +389,17 @@ payload = {
     "execution_surface_hash": os.environ["EXECUTION_SURFACE_HASH"],
     "manifest_sha256": manifest_hashes,
     "jobs": jobs,
-    "arm": "verified_entropy_gated_singleton_escape_canonical",
+    "arm": "verified_singleton_escape_canonical",
     "seeds": [43, 44, 45],
     "passes": 12,
     "paper_checkpoints": [0, 1, 2, 3, 4, 5, 6, 8, 10, 12],
     "objective_contract": {
         "online_canonical_bank_alpha": 0.0,
-        "online_canonical_novelty_beta": 0.5,
         "counterfactual_separate_objective_support": True,
         "runtime_assertion": True,
         "only_algorithmic_delta_from_e66": [
             "counterfactual_proposals",
-            "singleton_entropy_gate",
+            "singleton_only",
             "separated_proposal_replay_support",
         ],
     },
@@ -440,13 +431,10 @@ for job_id in "${job_ids[@]}"; do
     'OAT_ZERO_MAX_PROMPT_EPOCHS=12' \
     'OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=1' \
     'OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1' \
-    'OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=1' \
+    'OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY=1' \
     'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0' \
-    'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50' \
-    'OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA=0.50' \
     'OAT_ZERO_REPLICATED_FREEFORM_SAMPLING=1' \
     'OAT_ZERO_LOCAL_ACTOR_WEIGHT_SYNC=1' \
-    'OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=1' \
     'OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0' \
     "OAT_ZERO_SOURCE_ROOT=${SOURCE_ROOT}" \
     "OAT_ZERO_PROTOCOL_IDENTITY=${IDENTITY}"; do

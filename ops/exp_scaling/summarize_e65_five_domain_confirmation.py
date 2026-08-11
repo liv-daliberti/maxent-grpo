@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 CONTROL = "grpo"
 TREATMENT = "verified_first_global_replay_canonical"
-REPAIR = "verified_entropy_gated_singleton_escape_canonical"
+REPAIR = "verified_singleton_escape_canonical"
 PLUMBING_CONTROL = "same_plumbing_actuator_off_control"
 SEEDS = (43, 44, 45)
 MODEBENCH_PASSES = (0, 1, 2, 3, 4, 5, 6, 8, 10, 12)
@@ -97,9 +97,6 @@ E68_PAIRED_PROMPT_UNCERTAINTY = (
     / "var/artifacts/"
     "e68_paired_prompt_uncertainty_secondary_v2_latest.json"
 )
-E65_INVALIDATION = (
-    ROOT / "var/artifacts/e65r1_objective_mismatch_invalidation.json"
-)
 E67_INVALIDATION = (
     ROOT / "var/artifacts/e67_preoptimizer_invalidation.json"
 )
@@ -157,7 +154,7 @@ def _job_number(path: Path) -> int:
     return int(match.group(1)) if match else -1
 
 
-def _e58_python_controller_diagnosis() -> list[dict[str, Any]]:
+def _e58_python_fixed_coefficient_diagnosis() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for seed in SEEDS:
         pattern = (
@@ -171,13 +168,9 @@ def _e58_python_controller_diagnosis() -> list[dict[str, Any]]:
         if not paths:
             continue
         record = _latest_jsonl_record(paths[-1])
-        entropy = _raw_metric(
+        normalized_entropy = _raw_metric(
             record,
-            "semantic_shannon_success_conditioned_signed_open_set_entropy_ema",
-        )
-        reference = _raw_metric(
-            record,
-            "semantic_shannon_success_conditioned_signed_open_set_reference_entropy",
+            "semantic_shannon_success_conditioned_signed_open_set_normalized_entropy_mean",
         )
         coefficient = _raw_metric(
             record,
@@ -188,45 +181,22 @@ def _e58_python_controller_diagnosis() -> list[dict[str, Any]]:
             "verified_discovery_mean_support_per_prompt",
         )
         outcomes = _raw_metric(record, "verified_discovery_cumulative_outcomes")
-        projection = _raw_metric(
-            record,
-            "canonical_replay_mass_projection_active",
-        )
-        observations = _raw_metric(
-            record,
-            "semantic_shannon_success_conditioned_signed_open_set_observations",
-        )
-        if observations is None:
-            observations = _raw_metric(
-                record,
-                "canonical_replay_mass_observations",
-            )
         step = (
             record.get("trainer/global_step")
             or record.get("misc/global_step")
             or record.get("trainer/step")
         )
-        ratio = (
-            float(entropy) / float(reference)
-            if _finite(entropy)
-            and _finite(reference)
-            and float(reference) > 0
-            else None
-        )
         rows.append(
             {
                 "seed": seed,
                 "step": int(step) if _finite(step) else None,
-                "entropy_ema": float(entropy) if _finite(entropy) else None,
-                "entropy_reference": (
-                    float(reference) if _finite(reference) else None
+                "normalized_entropy": (
+                    float(normalized_entropy)
+                    if _finite(normalized_entropy)
+                    else None
                 ),
-                "entropy_ratio": ratio,
                 "coefficient": (
                     float(coefficient) if _finite(coefficient) else None
-                ),
-                "projection_active": (
-                    int(projection) if _finite(projection) else None
                 ),
                 "mean_discovered_support": (
                     float(support) if _finite(support) else None
@@ -234,14 +204,12 @@ def _e58_python_controller_diagnosis() -> list[dict[str, Any]]:
                 "cumulative_discovered_outcomes": (
                     int(outcomes) if _finite(outcomes) else None
                 ),
-                "controller_detects_entropy_deficit": (
-                    ratio is not None and ratio < 1.0
+                "coefficient_is_fixed": (
+                    _finite(coefficient)
+                    and math.isclose(float(coefficient), 0.10)
                 ),
                 "bank_still_singleton": (
                     _finite(support) and float(support) <= 1.000001
-                ),
-                "controller_observations": (
-                    int(observations) if _finite(observations) else None
                 ),
             }
         )
@@ -324,7 +292,7 @@ def _mechanism_evidence(repair_audit: dict[str, Any]) -> dict[str, Any]:
         )
         by_domain[domain_name] = {
             "metric_records": metric_records,
-            "entropy_gated_interventions": interventions,
+            "singleton_only_interventions": interventions,
             "interventions_per_100_updates": (
                 100.0 * interventions / metric_records
                 if metric_records > 0
@@ -336,18 +304,18 @@ def _mechanism_evidence(repair_audit: dict[str, Any]) -> dict[str, Any]:
     )
     total_interventions = int(
         repair_audit.get("summary", {}).get(
-            "entropy_gated_interventions",
+            "singleton_only_interventions",
             0,
         )
     )
     return {
-        "e58_python_live_controller_diagnosis": (
-            _e58_python_controller_diagnosis()
+        "e58_python_fixed_coefficient_diagnosis": (
+            _e58_python_fixed_coefficient_diagnosis()
         ),
         "prior_support_only_actuator_pilot": _e62r10_engineering_evidence(),
         "corrected_repair_live": {
             "audit_status": repair_audit.get("status", "not_available"),
-            "entropy_gated_interventions": total_interventions,
+            "singleton_only_interventions": total_interventions,
             "metric_records": total_metric_records,
             "interventions_per_100_updates": (
                 100.0 * total_interventions / total_metric_records
@@ -368,14 +336,13 @@ def _mechanism_evidence(repair_audit: dict[str, Any]) -> dict[str, Any]:
             ),
         },
         "interpretation": (
-            "E58 can detect an entropy deficit and increase its unprojected "
-            "coefficient while a singleton canonical bank still lacks a "
-            "second valid target. E62R10 establishes actuator feasibility "
+            "E58 uses fixed semantic, verified-mass, and balance coefficients; "
+            "a singleton canonical bank still lacks a second valid target. "
+            "E62R10 establishes actuator feasibility "
             "but is a one-seed, overactive engineering pilot. E68 is the "
             "corrected confirmatory repair: it retains literal E58's novelty "
             "objective, and the same support-only class of actuator is "
-            "eligible only after entropy warmup, measured entropy deficit, "
-            "inverse-controller activation, and singleton support, and can "
+            "eligible exactly at singleton support and can "
             "admit at most one alternate to each singleton prompt bank before "
             "that prompt bank switches off."
         ),
@@ -744,7 +711,7 @@ def _corrected_repair_gate(
         "status": "pass" if ready and passed else "fail" if ready else "pending",
         "ready": ready,
         "causal_comparator": PLUMBING_CONTROL,
-        "entropy_gated_interventions": interventions,
+        "singleton_only_interventions": interventions,
         "repair_audit_status": repair_audit_status,
         "comparator_audit_status": comparator_audit_status,
         "preintervention_equivalence_audit_status": (
@@ -907,19 +874,15 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         ),
         "",
         (
-            "**Objective-correction disclosure:** E65R1 is excluded from all "
-            "confirmatory gates because its runtime forced E58's novelty beta "
-            "from `0.50` to `0.0` before the singleton actuator could fire. "
-            "Those trajectories remain archived as engineering evidence. "
-            "E67 is also excluded: its shared proposal/on-policy bank was "
-            "rejected before optimization, with "
+            "**Objective-contract disclosure:** legacy E65R1 trajectories are "
+            "outside the current objective contract and remain archived only "
+            "as engineering evidence. E67 is also excluded: its shared "
+            "proposal/on-policy bank was rejected before optimization, with "
             f"`{payload['invalidated_e67']['optimizer_metric_files']}` "
             "optimizer metric files. E68 is the prospectively frozen "
-            "separated-support treatment and must "
-            "pass an explicit runtime same-objective audit against E66. "
-            "Machine-readable invalidation audits: E65R1 "
-            f"`{payload['invalidated_e65r1']['status']}`, E67 "
-            f"`{payload['invalidated_e67']['status']}`."
+            "separated-support treatment and must pass an explicit runtime "
+            "same-objective audit against E66. Machine-readable E67 "
+            f"invalidation status: `{payload['invalidated_e67']['status']}`."
         ),
         "",
         (
@@ -1182,34 +1145,24 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             "## Mechanism diagnosis and repair",
             "",
             "These are live mechanism diagnostics, not selected performance "
-            "endpoints. They make the repair hypothesis falsifiable: the "
-            "controller must first detect an entropy deficit, and E68 must "
-            "then demonstrate a clean, support-only intervention before its "
+            "endpoints. They make the repair hypothesis falsifiable: E58 must "
+            "hold its registered coefficients fixed, and E68 must demonstrate "
+            "a clean, singleton-only support intervention before its "
             "terminal gate can pass.",
             "",
-            "| Python E58 seed | step | entropy EMA / own reference | ratio | unprojected coefficient | projection active | mean bank support | outcomes |",
-            "|---:|---:|---:|---:|---:|---:|---:|---:|",
+            "| Python E58 seed | step | normalized open-set entropy | fixed semantic coefficient | mean bank support | outcomes |",
+            "|---:|---:|---:|---:|---:|---:|",
         ]
     )
-    for row in mechanism["e58_python_live_controller_diagnosis"]:
-        entropy_pair = (
-            f"{_fmt(row['entropy_ema'])} / "
-            f"{_fmt(row['entropy_reference'])}"
-        )
+    for row in mechanism["e58_python_fixed_coefficient_diagnosis"]:
         lines.append(
             "| "
             + " | ".join(
                 (
                     str(row["seed"]),
                     str(row["step"]) if row["step"] is not None else "—",
-                    entropy_pair,
-                    _fmt(row["entropy_ratio"]),
+                    _fmt(row["normalized_entropy"]),
                     _fmt(row["coefficient"]),
-                    (
-                        str(row["projection_active"])
-                        if row["projection_active"] is not None
-                        else "—"
-                    ),
                     _fmt(row["mean_discovered_support"]),
                     (
                         str(row["cumulative_discovered_outcomes"])
@@ -1245,8 +1198,8 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             "",
             (
                 "Separated-support E68 currently has "
-                f"`{repair_live['entropy_gated_interventions']}` audited "
-                f"entropy-gated interventions over "
+                f"`{repair_live['singleton_only_interventions']}` audited "
+                f"singleton-only interventions over "
                 f"`{repair_live['metric_records']}` metric-bearing updates "
                 f"({_fmt(repair_live['interventions_per_100_updates'])} per 100 "
                 "updates); "
@@ -1269,7 +1222,7 @@ def _render_markdown(payload: dict[str, Any]) -> str:
                 (
                     MECHANISM_DOMAIN_LABELS.get(domain, domain),
                     str(row["metric_records"]),
-                    str(row["entropy_gated_interventions"]),
+                    str(row["singleton_only_interventions"]),
                     _fmt(row["interventions_per_100_updates"]),
                 )
             )
@@ -1557,7 +1510,6 @@ def main() -> None:
         E68_PAIRED_PROMPT_UNCERTAINTY,
         {},
     )
-    invalidation = _load_json(E65_INVALIDATION, {})
     e67_invalidation = _load_json(E67_INVALIDATION, {})
     e66 = _load_json(E66_AUDIT, {})
     eval_cadence = _load_json(EVAL_CADENCE_AUDIT, {})
@@ -1684,13 +1636,6 @@ def main() -> None:
             ),
         },
         "paired_prompt_uncertainty": paired_prompt_uncertainty,
-        "invalidated_e65r1": {
-            "status": invalidation.get("status", "not_available"),
-            "jobs_checked": int(invalidation.get("e65_jobs_checked", 0)),
-            "expected_literal_e58_novelty_beta": invalidation.get(
-                "expected_literal_e58_novelty_beta"
-            ),
-        },
         "invalidated_e67": {
             "status": e67_invalidation.get("status", "not_available"),
             "jobs_checked": int(
@@ -1766,7 +1711,7 @@ def main() -> None:
                 ),
                 interventions=int(
                     repair.get("summary", {}).get(
-                        "entropy_gated_interventions",
+                        "singleton_only_interventions",
                         0,
                     )
                 ),

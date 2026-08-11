@@ -5,7 +5,7 @@ B3a removes only the replay gradient from the treatment, so it is read twice
 against the same cohort:
 
     B3a vs xGRPO           isolates verified replay
-    B3a vs matched Dr.GRPO measures what count-based discovery credit alone buys
+    B3a vs matched Dr.GRPO measures what semantic MaxEnt rarity alone buys
 
 The reference arms are not recomputed here. They are read from the frozen
 scaling-curve values already bound in the frontier manifest, which are the exact
@@ -57,7 +57,7 @@ METRIC_KEYS = {
 }
 
 # Integrity conditions specific to this arm, from the protocol: the replay
-# gradient must be identically zero on every logged update, and discovery credit
+# gradient must be identically zero on every logged update, and semantic MaxEnt
 # must actually have acted.
 ZERO_GRADIENT_KEYS = (
     "train/canonical_replay_applied_score_gradient_l2",
@@ -77,7 +77,7 @@ def read_terminal_row(attempt: Path) -> dict[str, Any] | None:
     terminal: dict[str, Any] | None = None
     compute_only_seen = False
     nonzero_replay_gradient = 0
-    novelty_active = False
+    semantic_maxent_active = False
     for line in metrics_path.open("r", encoding="utf-8"):
         try:
             record = json.loads(line)
@@ -91,8 +91,11 @@ def read_terminal_row(attempt: Path) -> dict[str, Any] | None:
             value = record.get(key)
             if value is not None and abs(float(value)) > 0.0:
                 nonzero_replay_gradient += 1
-        if float(record.get("train/online_canonical_novelty_advantage_rms", 0.0) or 0.0) > 0:
-            novelty_active = True
+        semantic_rms = record.get(
+            "train/semantic_shannon_separate_semantic_advantage_rms"
+        )
+        if semantic_rms is not None and abs(float(semantic_rms)) > 0.0:
+            semantic_maxent_active = True
     if terminal is None:
         return None
     return {
@@ -101,7 +104,7 @@ def read_terminal_row(attempt: Path) -> dict[str, Any] | None:
         "integrity": {
             "replay_compute_only_observed": compute_only_seen,
             "nonzero_replay_gradient_updates": nonzero_replay_gradient,
-            "novelty_credit_active": novelty_active,
+            "semantic_maxent_active": semantic_maxent_active,
         },
     }
 
@@ -215,7 +218,7 @@ def summarize(
             for entry in per_seed
             if entry["integrity"]["nonzero_replay_gradient_updates"]
             or not entry["integrity"]["replay_compute_only_observed"]
-            or not entry["integrity"]["novelty_credit_active"]
+            or not entry["integrity"]["semantic_maxent_active"]
         ]
         domains.append(
             {
@@ -300,7 +303,7 @@ def write_report(summary: dict[str, Any], path: Path) -> None:
     else:
         lines.append(
             "All summarized runs observed `replay_compute_only=1`, zero applied replay "
-            "gradient on every logged update, and active novelty credit."
+            "gradient on every logged update, and active semantic MaxEnt."
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

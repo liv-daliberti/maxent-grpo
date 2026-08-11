@@ -2,8 +2,7 @@
 """Submit E72 B3a: the xGRPO objective with the replay gradient removed.
 
 B3a answers two questions with one cohort. As a *baseline* it is a count-based
-rare-outcome method with no acting memory---open-set rare-mode and
-first-discovery advantages, no replay pressure---which is the third family the
+rare-outcome method with no acting memory---open-set semantic MaxEnt rarity, no replay pressure---which is the third family the
 review asks for. As an *ablation* it is the compute-matched remove-one control
 for verified replay, the component `tab:component-ablations` currently supports
 by analytic argument alone.
@@ -35,8 +34,8 @@ REFERENCE_ARM = "xgrpo"
 MODEL_TAG = "qwen25_0p5b_instruct"
 
 # Both arms are remove-one ablations of the same frozen treatment, and together
-# they decompose it: B3a keeps discovery credit and loses the ability to act on
-# a banked discovery; B1a keeps verified replay and loses discovery credit. B1a
+# they decompose it: B3a keeps semantic MaxEnt rarity and loses the ability to act on
+# a banked outcome; B1a keeps verified replay and loses semantic MaxEnt rarity. B1a
 # is simultaneously the review's first-named baseline, Dr.GRPO plus ordinary
 # verified-response replay.
 ARM_SPECS: dict[str, dict[str, Any]] = {
@@ -49,18 +48,16 @@ ARM_SPECS: dict[str, dict[str, Any]] = {
     },
     "b1a": {
         "variant": "verified_first_replay_only_ablation",
-        "removes": "open-set discovery credit",
-        # The variant, not these overrides, is what disables discovery: the
+        "removes": "semantic MaxEnt rarity",
+        # The variant, not these overrides, is what disables semantic MaxEnt: the
         # treatment's own block hardcodes separate-advantage, success-
-        # conditioned, and open-set adaptation to on, and those switches are
+        # conditioned fixed open-set scoring to on, and those switches are
         # invalid at a zero coefficient. Zeroing the coefficient by environment
         # alone produced a run that failed argument validation at startup.
         "overrides": {
             "OAT_ZERO_SEMANTIC_SHANNON_COEF": "0.0",
-            "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA": "0.0",
             "OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE": "0",
             "OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE": "0",
-            "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION": "0",
         },
     },
     "b1b": {
@@ -74,12 +71,36 @@ ARM_SPECS: dict[str, dict[str, Any]] = {
         # site and fail loudly if the variant ever drifts.
         "overrides": {
             "OAT_ZERO_SEMANTIC_SHANNON_COEF": "0.0",
-            "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA": "0.0",
             "OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE": "0",
             "OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE": "0",
-            "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION": "0",
             "OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE": "verified_likelihood_per_rollout",
         },
+    },
+    "b2b": {
+        "variant": "matched_token_entropy_ablation",
+        "removes": "outcome-directed credit at the treatment's own token entropy",
+        # Not a remove-one ablation of the treatment but a baseline family the
+        # review names separately: keep the policy exactly as stochastic as
+        # xGRPO makes it, and spend that stochasticity on tokens rather than on
+        # distinct executed outcomes. Every semantic and replay channel is
+        # off, including the compute-matched control's zero-derivative replay
+        # traversal, which the argument validator will not admit alongside a
+        # token-policy entropy term.
+        "overrides": {
+            "OAT_ZERO_SEMANTIC_SHANNON_COEF": "0.0",
+            "OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA": "0.0",
+            "OAT_ZERO_ONLINE_CANONICAL_REPLAY": "0",
+            "OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE": "0",
+            "OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE": "0",
+        },
+        # The entropy target is per domain and comes from the treatment's own
+        # telemetry, so it cannot live in a static override table. The
+        # objective travels with it: a canonical action task pins the
+        # controller to canonical units and the validator then requires the
+        # sequence objective, while every other domain regulates the per-token
+        # mean.
+        "entropy_target_env": "OAT_ZERO_MAXENT_DUAL_TARGET_ENTROPY",
+        "objective_env": "OAT_ZERO_MAXENT_OBJECTIVE",
     },
     # The unmodified treatment, needed as the paired comparator when a cohort
     # runs on seeds the published cohort does not cover.
@@ -100,11 +121,7 @@ EXPECTED_OBJECTIVE: dict[str, Any] = {
     "semantic_shannon_pseudocount": 1.0,
     "semantic_shannon_separate_advantage": True,
     "semantic_shannon_success_conditioned_signed_advantage": True,
-    "semantic_shannon_open_set_inverse_adaptation": True,
-    "semantic_shannon_open_set_warmup_steps": 64,
-    "semantic_shannon_open_set_ema_decay": 0.9,
     "online_canonical_bank_alpha": 0.0,
-    "online_canonical_novelty_beta": 0.50,
     "online_canonical_bank_pseudocount": 1.0,
     "online_canonical_bank_surprisal_clip": 5.0,
     "online_canonical_key_mode": "modebench_outcome",
@@ -113,11 +130,7 @@ EXPECTED_OBJECTIVE: dict[str, Any] = {
     "online_canonical_replay_objective": "split_mass_balance_per_rollout",
     "online_canonical_replay_capacity": 16,
     "online_canonical_replay_global_groups_per_step": 1,
-    "online_canonical_replay_warmup_steps": 64,
-    "online_canonical_replay_ema_decay": 0.9,
     "online_canonical_replay_mass_alpha": 0.10,
-    "online_canonical_replay_mass_warmup_steps": 64,
-    "online_canonical_replay_mass_ema_decay": 0.9,
     # The treatment trains with a live replay gradient; this ablation is the
     # arm that turns it off, so the reference must have it on.
     "online_canonical_replay_compute_only": False,
@@ -299,17 +312,8 @@ def build_export_vars(
         "OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT": repr(
             float(objective["semantic_shannon_pseudocount"])
         ),
-        "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS": str(
-            objective["semantic_shannon_open_set_warmup_steps"]
-        ),
-        "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY": repr(
-            float(objective["semantic_shannon_open_set_ema_decay"])
-        ),
         "OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA": repr(
             float(objective["online_canonical_bank_alpha"])
-        ),
-        "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA": repr(
-            float(objective["online_canonical_novelty_beta"])
         ),
         "OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT": repr(
             float(objective["online_canonical_bank_pseudocount"])
@@ -326,20 +330,8 @@ def build_export_vars(
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY": str(
             objective["online_canonical_replay_capacity"]
         ),
-        "OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS": str(
-            objective["online_canonical_replay_warmup_steps"]
-        ),
-        "OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY": repr(
-            float(objective["online_canonical_replay_ema_decay"])
-        ),
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA": repr(
             float(objective["online_canonical_replay_mass_alpha"])
-        ),
-        "OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS": str(
-            objective["online_canonical_replay_mass_warmup_steps"]
-        ),
-        "OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY": repr(
-            float(objective["online_canonical_replay_mass_ema_decay"])
         ),
         "OAT_ZERO_VERIFIED_DISCOVERY_TRACKING": "1",
         # --- storage and recovery -------------------------------------------
@@ -363,7 +355,44 @@ def build_export_vars(
     # Applied last so an arm's removals cannot be silently overwritten by an
     # inherited value.
     env.update(spec["overrides"])
+    if "entropy_target_env" in spec:
+        target, _units = entropy_target(root, str(run["domain"]))
+        env[spec["entropy_target_env"]] = repr(target)
+        # The objective follows the domain's action space, not the target's
+        # units: the argument validator requires the sequence objective wherever
+        # a canonical action task is set. What the controller *observes* is
+        # pinned separately to `train/entropy`, so the target is in one unit
+        # everywhere regardless of which objective the domain must use.
+        env[spec["objective_env"]] = (
+            "sequence"
+            if str(evaluation["canonical_action_task"]) != "none"
+            else "conditional_token_mean"
+        )
     return env
+
+
+def entropy_target(root: Path, domain: str) -> float:
+    """The treatment's measured entropy and the units it is stated in.
+
+    Read at submission time rather than baked into the arm table, so the target
+    and the runs it was derived from cannot drift apart silently. A missing or
+    non-positive entry is fatal: an arm that claims matched entropy must not
+    fall back to a ratio-derived target that matches nothing in particular.
+    """
+    path = root / "var" / "artifacts" / "e72_token_entropy_targets.json"
+    payload = json.loads(path.read_text())
+    entry = payload.get("domains", {}).get(domain)
+    if entry is None:
+        raise SystemExit(f"{path} has no entropy target for domain {domain!r}")
+    target = entry.get("controller_target")
+    units = entry.get("controller_units")
+    if target is None or not float(target) > 0:
+        raise SystemExit(
+            f"{path} has a non-positive entropy target for domain {domain!r}"
+        )
+    if not units:
+        raise SystemExit(f"{path} has no controller units for domain {domain!r}")
+    return float(target), str(units)
 
 
 def submit(

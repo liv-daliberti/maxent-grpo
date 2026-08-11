@@ -53,11 +53,9 @@ def test_e51_control_and_treatment_are_held_audited_separately():
     launcher = LAUNCHER.read_text(encoding="utf-8")
     for required in (
         "'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0'",
-        "'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0'",
         "'OAT_ZERO_ONLINE_CANONICAL_POLICY_ENTROPY_ADAPTATION=0'",
         "'OAT_ZERO_VARIANT=online_canonical_policy_entropy'",
         "'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10'",
-        "'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50'",
         "'OAT_ZERO_ONLINE_CANONICAL_POLICY_ENTROPY_ADAPTATION=1'",
         '"reference_alpha": 0.10',
         '"alpha_projection": None',

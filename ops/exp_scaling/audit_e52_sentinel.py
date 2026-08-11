@@ -245,7 +245,6 @@ def audit_run(
             "train/online_canonical_canonicalizable_correct_fraction",
             "train/online_canonical_support_at_least_two_prompt_fraction",
             "train/online_canonical_entropy_advantage_rms",
-            "train/online_canonical_novelty_advantage_rms",
         )
     }
 

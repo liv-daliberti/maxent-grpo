@@ -8,7 +8,7 @@ from oat_drgrpo.online_canonical_bank import (
 
 
 def test_zero_coefficient_bank_passively_tracks_verified_discoveries():
-    bank = OnlineCanonicalBank(entropy_alpha=0.0, novelty_beta=0.0)
+    bank = OnlineCanonicalBank(entropy_alpha=0.0)
 
     advantages, diagnostics = bank.score_and_update(
         prompt_token_ids=[[1, 2]] * 4 + [[3, 4]] * 4,
@@ -28,17 +28,16 @@ def test_zero_coefficient_bank_passively_tracks_verified_discoveries():
         diagnostics.support_at_least_two_prompt_fraction
         == pytest.approx(0.5)
     )
-    restored = OnlineCanonicalBank(entropy_alpha=0.0, novelty_beta=0.0)
+    restored = OnlineCanonicalBank(entropy_alpha=0.0)
     restored.load_state_dict(bank.state_dict())
     assert restored.tracked_outcome_count == 3
     assert restored.mean_support_per_prompt == pytest.approx(1.5)
     assert restored.support_at_least_two_prompt_fraction == pytest.approx(0.5)
 
 
-def test_online_bank_scores_snapshot_novelty_once_per_unique_class():
+def test_online_bank_scores_snapshot_entropy_and_tracks_new_classes():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.1,
-        novelty_beta=0.6,
         pseudocount=1.0,
         surprisal_clip=5.0,
     )
@@ -49,8 +48,7 @@ def test_online_bank_scores_snapshot_novelty_once_per_unique_class():
         active_mask=[1, 1, 1, 1],
         num_samples=4,
     )
-    # One set-level beta is split across duplicate rows for a; b gets one beta.
-    assert diagnostics.novelty_advantage_mean == pytest.approx(0.3)
+    # The rarer singleton receives more centered-surprisal pressure.
     assert advantages[2] > advantages[0]
     assert advantages[3] == 0.0
     assert diagnostics.new_outcome_count == 2.0
@@ -79,7 +77,6 @@ def test_online_bank_scores_snapshot_novelty_once_per_unique_class():
         num_samples=4,
     )
     assert second_diagnostics.new_outcome_count == 0.0
-    assert second_diagnostics.novelty_advantage_mean == 0.0
     # Historical counts favor a, so the rarer b rows receive positive entropy
     # pressure even though no class is newly discovered.
     assert second[2] == pytest.approx(second[3])
@@ -87,7 +84,7 @@ def test_online_bank_scores_snapshot_novelty_once_per_unique_class():
 
 
 def test_wrong_inactive_and_unparseable_rows_never_enter_bank():
-    bank = OnlineCanonicalBank(entropy_alpha=0.1, novelty_beta=0.5)
+    bank = OnlineCanonicalBank(entropy_alpha=0.1)
     advantages, diagnostics = bank.score_and_update(
         prompt_token_ids=[[7]] * 4,
         outcome_keys=["wrong", "inactive", None, "valid"],
@@ -96,15 +93,15 @@ def test_wrong_inactive_and_unparseable_rows_never_enter_bank():
         num_samples=4,
     )
     assert advantages[:3] == [0.0, 0.0, 0.0]
-    assert advantages[3] == pytest.approx(0.5)
+    assert advantages[3] == pytest.approx(0.0)
     assert diagnostics.tracked_outcomes == 1.0
     assert diagnostics.normalized_entropy_ratio_mean == 0.0
     assert diagnostics.normalized_entropy_ratio_eligible_fraction == 0.0
 
 
 def test_online_bank_uses_override_without_mutating_frozen_configuration():
-    fixed_bank = OnlineCanonicalBank(entropy_alpha=0.1, novelty_beta=0.0)
-    adaptive_bank = OnlineCanonicalBank(entropy_alpha=0.1, novelty_beta=0.0)
+    fixed_bank = OnlineCanonicalBank(entropy_alpha=0.1)
+    adaptive_bank = OnlineCanonicalBank(entropy_alpha=0.1)
     inputs = dict(
         prompt_token_ids=[[5]] * 4,
         outcome_keys=["a", "a", "a", "b"],
@@ -124,7 +121,7 @@ def test_online_bank_uses_override_without_mutating_frozen_configuration():
 
 
 def test_bank_resume_is_exact_and_configuration_checked():
-    bank = OnlineCanonicalBank(entropy_alpha=0.1, novelty_beta=0.5)
+    bank = OnlineCanonicalBank(entropy_alpha=0.1)
     bank.score_and_update(
         prompt_token_ids=[[11]] * 2,
         outcome_keys=["a", "b"],
@@ -133,11 +130,10 @@ def test_bank_resume_is_exact_and_configuration_checked():
         num_samples=2,
     )
     state = bank.state_dict()
-    restored = OnlineCanonicalBank(entropy_alpha=0.1, novelty_beta=0.5)
+    restored = OnlineCanonicalBank(entropy_alpha=0.1)
     restored.load_state_dict(state)
     assert restored.state_dict() == state
-
-    mismatch = OnlineCanonicalBank(entropy_alpha=0.2, novelty_beta=0.5)
+    mismatch = OnlineCanonicalBank(entropy_alpha=0.2)
     with pytest.raises(ValueError, match="resume mismatch for entropy_alpha"):
         mismatch.load_state_dict(state)
 
@@ -145,7 +141,6 @@ def test_bank_resume_is_exact_and_configuration_checked():
 def test_replay_bank_retains_one_deterministic_verified_exemplar_per_mode():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.1,
-        novelty_beta=0.5,
         retain_exemplars=True,
     )
     bank.score_and_update(
@@ -183,7 +178,6 @@ def test_replay_bank_retains_one_deterministic_verified_exemplar_per_mode():
 def test_replay_bank_resume_is_exact_and_replay_configuration_bound():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.1,
-        novelty_beta=0.5,
         retain_exemplars=True,
     )
     bank.score_and_update(
@@ -195,21 +189,26 @@ def test_replay_bank_resume_is_exact_and_replay_configuration_bound():
         num_samples=2,
     )
     state = bank.state_dict()
+    restored = OnlineCanonicalBank(entropy_alpha=0.1)
     assert state["schema"] == (
-        "online_growing_support_canonical_maxent_replay_v2"
+        "online_growing_support_canonical_maxent_replay_fixed_v5"
     )
 
     restored = OnlineCanonicalBank(
         entropy_alpha=0.1,
-        novelty_beta=0.5,
         retain_exemplars=True,
     )
     restored.load_state_dict(state)
     assert restored.state_dict() == state
+    mismatch = OnlineCanonicalBank(
+        entropy_alpha=0.2,
+        retain_exemplars=True,
+    )
+    with pytest.raises(ValueError, match="resume mismatch for entropy_alpha"):
+        mismatch.load_state_dict(state)
 
     non_replay = OnlineCanonicalBank(
         entropy_alpha=0.1,
-        novelty_beta=0.5,
     )
     with pytest.raises(ValueError, match="replay configuration mismatch"):
         non_replay.load_state_dict(state)
@@ -218,7 +217,6 @@ def test_replay_bank_resume_is_exact_and_replay_configuration_bound():
 def test_replay_bank_requires_tokens_and_exposes_singleton_only_on_request():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
     )
     inputs = dict(
@@ -247,7 +245,6 @@ def test_replay_bank_requires_tokens_and_exposes_singleton_only_on_request():
 def test_replay_capacity_is_compute_bound_while_full_discovery_counts_continue():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         replay_capacity=2,
     )
@@ -268,7 +265,6 @@ def test_replay_capacity_is_compute_bound_while_full_discovery_counts_continue()
 
     mismatched = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         replay_capacity=3,
     )
@@ -279,7 +275,6 @@ def test_replay_capacity_is_compute_bound_while_full_discovery_counts_continue()
 def test_global_replay_round_robins_model_discovered_prompt_banks_and_resumes():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
     )
@@ -294,6 +289,7 @@ def test_global_replay_round_robins_model_discovered_prompt_banks_and_resumes():
 
     first = bank.scheduled_global_replay_groups()
     state = bank.state_dict()
+    restored = OnlineCanonicalBank(entropy_alpha=0.1)
     second = bank.scheduled_global_replay_groups()
     third = bank.scheduled_global_replay_groups()
     fourth = bank.scheduled_global_replay_groups()
@@ -310,7 +306,6 @@ def test_global_replay_round_robins_model_discovered_prompt_banks_and_resumes():
 
     restored = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
     )
@@ -324,7 +319,6 @@ def test_global_replay_round_robins_model_discovered_prompt_banks_and_resumes():
 def test_global_replay_is_default_off_and_configuration_bound():
     local = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
     )
     local.score_and_update(
@@ -339,7 +333,6 @@ def test_global_replay_is_default_off_and_configuration_bound():
 
     global_bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
     )
@@ -355,7 +348,6 @@ def test_global_replay_is_default_off_and_configuration_bound():
     ):
         OnlineCanonicalBank(
             entropy_alpha=0.0,
-            novelty_beta=0.0,
             retain_exemplars=True,
             global_replay_groups_per_step=-1,
         )
@@ -364,7 +356,6 @@ def test_global_replay_is_default_off_and_configuration_bound():
 def test_global_replay_round_robins_over_verified_banks_and_resumes_exactly():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.5,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
     )
@@ -401,9 +392,9 @@ def test_global_replay_round_robins_over_verified_banks_and_resumes_exactly():
     )
 
     state = bank.state_dict()
+    restored = OnlineCanonicalBank(entropy_alpha=0.1)
     restored = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.5,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
     )
@@ -417,7 +408,6 @@ def test_global_replay_round_robins_over_verified_banks_and_resumes_exactly():
 def test_global_replay_budget_and_mode_eligibility_are_target_free():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.5,
         retain_exemplars=True,
         global_replay_groups_per_step=2,
     )
@@ -443,7 +433,6 @@ def test_global_replay_budget_and_mode_eligibility_are_target_free():
 
     disabled = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.5,
         retain_exemplars=True,
     )
     assert disabled.scheduled_global_replay_groups() == []
@@ -454,7 +443,6 @@ def test_global_replay_budget_and_mode_eligibility_are_target_free():
 def test_finite_global_bootstrap_retires_exactly_and_resumes_checkpoint_exactly():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
         global_replay_bootstrap_steps=2,
@@ -473,12 +461,12 @@ def test_finite_global_bootstrap_retires_exactly_and_resumes_checkpoint_exactly(
     assert bank.global_replay_updates == 1
     assert bank.global_replay_bootstrap_active
     state = bank.state_dict()
+    restored = OnlineCanonicalBank(entropy_alpha=0.1)
     assert state["global_replay_bootstrap_steps"] == 2
     assert state["global_replay_updates"] == 1
 
     restored = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
         global_replay_bootstrap_steps=2,
@@ -502,7 +490,6 @@ def test_finite_global_bootstrap_configuration_is_strict_and_target_free():
     with pytest.raises(ValueError, match="non-negative integer"):
         OnlineCanonicalBank(
             entropy_alpha=0.0,
-            novelty_beta=0.0,
             retain_exemplars=True,
             global_replay_groups_per_step=1,
             global_replay_bootstrap_steps=-1,
@@ -510,14 +497,12 @@ def test_finite_global_bootstrap_configuration_is_strict_and_target_free():
     with pytest.raises(ValueError, match="requires positive"):
         OnlineCanonicalBank(
             entropy_alpha=0.0,
-            novelty_beta=0.0,
             retain_exemplars=True,
             global_replay_bootstrap_steps=1,
         )
 
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
         global_replay_bootstrap_steps=1,
@@ -527,7 +512,6 @@ def test_finite_global_bootstrap_configuration_is_strict_and_target_free():
     assert "desired" not in state_text
     mismatched = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         global_replay_groups_per_step=1,
         global_replay_bootstrap_steps=2,
@@ -539,7 +523,6 @@ def test_finite_global_bootstrap_configuration_is_strict_and_target_free():
 def test_verified_proposal_admission_is_atomic_support_only_and_resumable():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         replay_capacity=3,
     )
@@ -581,7 +564,6 @@ def test_verified_proposal_admission_is_atomic_support_only_and_resumable():
 
     restored = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         replay_capacity=3,
     )
@@ -589,10 +571,9 @@ def test_verified_proposal_admission_is_atomic_support_only_and_resumable():
     assert restored.state_dict() == bank.state_dict()
 
 
-def test_separated_proposals_change_replay_support_not_novelty_counts():
+def test_separated_proposals_change_replay_support_not_on_policy_counts():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.5,
         retain_exemplars=True,
         replay_capacity=3,
         separate_proposal_objective_support=True,
@@ -605,7 +586,7 @@ def test_separated_proposals_change_replay_support_not_novelty_counts():
         response_token_ids=[[11], [99]],
         num_samples=2,
     )
-    assert first_advantages == pytest.approx([0.5, 0.0])
+    assert first_advantages == pytest.approx([0.0, 0.0])
 
     before = bank.tracked_outcome_count
     admission = bank.admit_verified_proposals(
@@ -624,14 +605,13 @@ def test_separated_proposals_change_replay_support_not_novelty_counts():
     separated_state = bank.state_dict()
     assert (
         separated_state["schema"]
-        == "online_growing_support_canonical_maxent_replay_separated_proposal_v3"
+        == "online_growing_support_canonical_maxent_replay_separated_proposal_fixed_v6"
     )
     assert list(separated_state["counts"].values()) == [{"a": 1}]
     assert list(separated_state["proposal_only_outcomes"].values()) == [["b"]]
 
     restored = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.5,
         retain_exemplars=True,
         replay_capacity=3,
         separate_proposal_objective_support=True,
@@ -647,7 +627,7 @@ def test_separated_proposals_change_replay_support_not_novelty_counts():
         response_token_ids=[[10], [98]],
         num_samples=2,
     )
-    assert second_advantages == pytest.approx([0.5, 0.0])
+    assert second_advantages == pytest.approx([0.0, 0.0])
     assert restored.tracked_outcome_count == 2
     assert restored.state_dict()["proposal_only_outcomes"] == {}
     graduated = restored.replay_groups([[7, 8]], min_modes=2)[0]
@@ -657,7 +637,6 @@ def test_separated_proposals_change_replay_support_not_novelty_counts():
 def test_separated_proposal_admission_is_atomic_at_replay_capacity():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.5,
         retain_exemplars=True,
         replay_capacity=2,
         separate_proposal_objective_support=True,
@@ -683,7 +662,6 @@ def test_separated_proposal_admission_is_atomic_at_replay_capacity():
 def test_replay_resume_handles_more_discoveries_than_exemplar_capacity():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         replay_capacity=2,
     )
@@ -700,7 +678,6 @@ def test_replay_resume_handles_more_discoveries_than_exemplar_capacity():
 
     restored = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         replay_capacity=2,
     )

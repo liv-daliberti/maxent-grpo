@@ -856,15 +856,6 @@ class ZeroMathGrpoMixin:
                     canonical_replay_groups
                     and local_grad_step % self.strategy.grad_acc_step == 0
                 ):
-                    replay_controller = getattr(
-                        self,
-                        "_canonical_replay_controller",
-                        None,
-                    )
-                    if replay_controller is None:
-                        raise RuntimeError(
-                            "canonical replay groups lack their inverse controller"
-                        )
                     replay = self._materialize_canonical_replay(
                         canonical_replay_groups,
                         device=input_ids.device,
@@ -897,7 +888,28 @@ class ZeroMathGrpoMixin:
                                 ]
                             )
                         replay_objective = str(args.online_canonical_replay_objective)
-                        replay_alpha = float(replay_controller.current_alpha)
+                        replay_alpha = float(args.online_canonical_replay_alpha)
+                        # Uniform replay splits the dose across banked modes, so
+                        # each mode receives alpha/n and a prompt that has found
+                        # more modes protects each one less. Scaling the dose by
+                        # n holds per-mode pressure at the registered constant.
+                        # n is already bounded by the replay capacity, so this
+                        # introduces no ceiling that is not already registered.
+                        replay_banked_modes = int(sum(replay.group_sizes))
+                        replay_bank_normalized = bool(
+                            getattr(
+                                args,
+                                "online_canonical_replay_bank_normalized",
+                                False,
+                            )
+                        )
+                        if replay_bank_normalized:
+                            replay_alpha = (
+                                float(
+                                    args.online_canonical_replay_per_mode_coefficient
+                                )
+                                * replay_banked_modes
+                            )
                         replay_mass_alpha = 0.0
                         split_result = None
                         if replay_objective == "bank_balance":
@@ -924,17 +936,9 @@ class ZeroMathGrpoMixin:
                                 detached_scores,
                                 replay.group_sizes,
                             )
-                            mass_controller = getattr(
-                                self,
-                                "_canonical_replay_mass_controller",
-                                None,
+                            replay_mass_alpha = float(
+                                args.online_canonical_replay_mass_alpha
                             )
-                            if mass_controller is None:
-                                raise RuntimeError(
-                                    "split canonical replay lacks its "
-                                    "verified-mass controller"
-                                )
-                            replay_mass_alpha = float(mass_controller.current_alpha)
                             replay_result = None
                         else:
                             raise RuntimeError(
@@ -994,8 +998,8 @@ class ZeroMathGrpoMixin:
                         )
                         if not bool(torch.isfinite(replay_weighted_loss)):
                             raise RuntimeError(
-                                "unprojected canonical replay coefficient "
-                                "exceeded the live loss arithmetic range"
+                                "fixed canonical replay coefficient produced "
+                                "a non-finite weighted loss"
                             )
                         raw_score_gradients = (
                             (
@@ -1111,6 +1115,24 @@ class ZeroMathGrpoMixin:
                             "canonical_replay_alpha_used": torch.tensor(
                                 replay_alpha,
                                 dtype=torch.float64,
+                                device=input_ids.device,
+                            ),
+                            # The quantity the bank-normalized arm holds fixed.
+                            # Logged for both arms so the fixed arm's 16x spread
+                            # and the adaptive arm's constant are read off the
+                            # same field rather than reconstructed.
+                            "canonical_replay_per_mode_pressure": torch.tensor(
+                                (
+                                    replay_alpha / replay_banked_modes
+                                    if replay_banked_modes > 0
+                                    else 0.0
+                                ),
+                                dtype=torch.float64,
+                                device=input_ids.device,
+                            ),
+                            "canonical_replay_bank_normalized": torch.tensor(
+                                1.0 if replay_bank_normalized else 0.0,
+                                dtype=torch.float32,
                                 device=input_ids.device,
                             ),
                             "canonical_replay_eligible_groups": torch.tensor(
@@ -1254,6 +1276,14 @@ class ZeroMathGrpoMixin:
                         stats[key].append(float(value.detach().cpu().item()))
                     stats["canonical_replay_alpha_used"].append(replay_alpha)
                     stats["canonical_replay_mass_alpha_used"].append(replay_mass_alpha)
+                    stats["canonical_replay_banked_modes"].append(
+                        float(replay_banked_modes)
+                    )
+                    stats["canonical_replay_per_mode_pressure"].append(
+                        replay_alpha / replay_banked_modes
+                        if replay_banked_modes > 0
+                        else 0.0
+                    )
                     stats["canonical_replay_eligible_groups"].append(
                         float(
                             split_result.balance_eligible_groups
@@ -1372,6 +1402,8 @@ class ZeroMathGrpoMixin:
             "canonical_replay_normalized_model_entropy",
             "canonical_replay_cross_entropy_excess",
             "canonical_replay_alpha_used",
+            "canonical_replay_banked_modes",
+            "canonical_replay_per_mode_pressure",
             "canonical_replay_eligible_groups",
             "canonical_replay_retained_modes",
         ):
@@ -1682,11 +1714,31 @@ class ZeroMathGrpoMixin:
                 references[index : index + int(args.num_samples)]
                 for index in range(0, num_rows, int(args.num_samples))
             ]
+            # A canonical-action task emits a short action sequence, not a
+            # free-form response with a boxed answer, so decoding its tokens and
+            # running the text extractor over them yields None for every row.
+            # The bank and the outcome-collision path already bind the
+            # task's own canonicalization surfaces here; the semantic term must
+            # do the same or it scores every row unparseable and contributes
+            # exact zero for the whole run. That is precisely what happened to
+            # PantryPlan in E81, E82, and E83: reward-positive fraction .544,
+            # parseable fraction .000.
+            semantic_key_kwargs: dict[str, Any] = {}
+            if canonical_actions:
+                semantic_key_kwargs["response_surfaces"] = (
+                    _task_bound_canonicalization_surfaces(
+                        [],
+                        trajectory,
+                        canonical_task=canonical_task,
+                        expected_count=num_rows,
+                    )
+                )
             answer_keys_grouped = self._seed_answer_keys_grouped(
                 input_ids,
                 response_masks,
                 int(args.num_samples),
                 references_grouped,
+                **semantic_key_kwargs,
             )
             answer_keys = [key for group in answer_keys_grouped for key in group]
             semantic_task_rewards = task_final_rewards.detach().view(-1).cpu().tolist()
@@ -1984,17 +2036,8 @@ class ZeroMathGrpoMixin:
                         "history_groups_skipped",
                         "tracked_prompts",
                         "tracked_outcomes",
-                        "open_set_inverse_adaptation_active",
                         "open_set_coefficient_used",
-                        "open_set_observed_normalized_entropy",
-                        "open_set_entropy_ema",
-                        "open_set_reference_entropy",
-                        "open_set_inverse_multiplier",
-                        "open_set_next_coefficient",
-                        "open_set_observations",
-                        "open_set_warmup_complete",
-                        "open_set_observation_skipped",
-                        "open_set_projection_active",
+                        "open_set_normalized_entropy_mean",
                     )
                 }
                 semantic_shannon_infos.update(
@@ -2402,8 +2445,6 @@ class ZeroMathGrpoMixin:
                     "entropy_alpha_used",
                     "entropy_advantage_mean",
                     "entropy_advantage_rms",
-                    "novelty_advantage_mean",
-                    "novelty_advantage_rms",
                     "combined_advantage_mean",
                     "combined_advantage_rms",
                     "eligible_fraction",
@@ -2543,10 +2584,6 @@ class ZeroMathGrpoMixin:
                             device=final_rewards.device,
                         ),
                         "canonical_replay_gold_support_feedback": torch.tensor(
-                            0.0,
-                            device=final_rewards.device,
-                        ),
-                        "canonical_replay_alpha_projection_active": torch.tensor(
                             0.0,
                             device=final_rewards.device,
                         ),
@@ -3059,6 +3096,35 @@ class ZeroMathGrpoMixin:
                 semantic_advantages,
             )
             combined_advantages = advantages.detach()
+
+            # Adaptive semantic MaxEnt observes the dose it just applied and
+            # sets the coefficient for the next update. It reads only the two
+            # advantage magnitudes and the eligible fraction, never evaluation
+            # behavior, and refuses a degenerate observation instead of
+            # extrapolating from it.
+            rms_controller = getattr(self, "_semantic_rms_controller", None)
+            if rms_controller is not None:
+                task_rms = float(torch.sqrt(base_advantages.square().mean()).item())
+                sem_rms = float(
+                    torch.sqrt(semantic_advantages.square().mean()).item()
+                )
+                eligible = (
+                    float(success_conditioned_signed_diagnostics.eligible_fraction)
+                    if success_conditioned_signed_diagnostics is not None
+                    else 0.0
+                )
+                coefficient = rms_controller.observe(
+                    semantic_rms=sem_rms,
+                    task_rms=task_rms,
+                    eligible_fraction=eligible,
+                )
+                semantic_shannon_tracker.coefficient = float(coefficient)
+                semantic_shannon_infos.update(
+                    {
+                        key: torch.tensor(value, device=final_rewards.device)
+                        for key, value in rms_controller.diagnostics().items()
+                    }
+                )
             semantic_shannon_infos.update(
                 {
                     "semantic_shannon_separate_base_advantage_mean": (

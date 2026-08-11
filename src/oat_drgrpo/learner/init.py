@@ -18,10 +18,6 @@ from ..canonical_actions import (
     canonical_action_strings_by_position,
     resolve_canonical_action_space,
 )
-from ..canonical_replay import (
-    CanonicalReplayInverseController,
-    CanonicalReplayLikelihoodController,
-)
 from ..maxent_controllers import (
     MaxEntDualController,
     MaxEntInverseController,
@@ -84,7 +80,13 @@ def build_maxent_controllers(
                 "canonical configured entropy target exceeds exact log-support "
                 f"maximum {canonical_max_entropy:.12g}"
             )
-    if canonical_task != "none":
+    if bool(getattr(args, "maxent_observe_masked_mean_entropy", False)):
+        # Explicitly requested: the target was measured from `train/entropy`,
+        # so the controller must read that same estimator. This overrides the
+        # objective-derived choice below, including the canonical one.
+        controller_units = "masked_mean_token_nats_v1"
+        controller_metric = "entropy"
+    elif canonical_task != "none":
         controller_units = "canonical_action_nats_exact_v1"
         controller_metric = "canonical_exact_sequence_entropy"
     elif str(getattr(args, "maxent_objective", "sequence")) == (
@@ -303,56 +305,18 @@ class ZeroMathInitMixin:
                         0.05,
                     )
                 ),
-                open_set_inverse_adaptation=bool(
-                    getattr(
-                        args,
-                        "semantic_shannon_open_set_inverse_adaptation",
-                        False,
-                    )
-                ),
-                open_set_warmup_steps=int(
-                    getattr(
-                        args,
-                        "semantic_shannon_open_set_warmup_steps",
-                        64,
-                    )
-                ),
-                open_set_ema_decay=float(
-                    getattr(
-                        args,
-                        "semantic_shannon_open_set_ema_decay",
-                        0.9,
-                    )
-                ),
             )
             logging.info(
                 "semantic Shannon shaping enabled: coefficient=%.6g "
                 "surprisal_clip=%.6g pseudocount=%.6g "
                 "separate_advantage=%s quality_gated_advantage=%s "
-                "quality_gated_cap=%.6g "
                 "success_conditioned_signed_advantage=%s "
-                "success_conditioned_signed_cap=%.6g "
-                "open_set_inverse_adaptation=%s "
-                "open_set_warmup_steps=%s open_set_ema_decay=%.6g "
-                "estimator=predictive_prompt_counts_loo_unseen_v1",
+                "semantic_estimator=open_set_fixed coefficient_control=fixed",
                 semantic_shannon_coef,
                 float(args.semantic_shannon_surprisal_clip),
                 float(args.semantic_shannon_pseudocount),
-                bool(
-                    getattr(
-                        args,
-                        "semantic_shannon_separate_advantage",
-                        False,
-                    )
-                ),
-                bool(
-                    getattr(
-                        args,
-                        "semantic_shannon_quality_gated_advantage",
-                        False,
-                    )
-                ),
-                float(getattr(args, "semantic_shannon_quality_gated_cap", 0.05)),
+                bool(getattr(args, "semantic_shannon_separate_advantage", False)),
+                bool(getattr(args, "semantic_shannon_quality_gated_advantage", False)),
                 bool(
                     getattr(
                         args,
@@ -360,35 +324,39 @@ class ZeroMathInitMixin:
                         False,
                     )
                 ),
-                float(
-                    getattr(
-                        args,
-                        "semantic_shannon_success_conditioned_signed_cap",
-                        0.05,
-                    )
-                ),
-                bool(
-                    getattr(
-                        args,
-                        "semantic_shannon_open_set_inverse_adaptation",
-                        False,
-                    )
-                ),
-                int(
-                    getattr(
-                        args,
-                        "semantic_shannon_open_set_warmup_steps",
-                        64,
-                    )
-                ),
-                float(
-                    getattr(
-                        args,
-                        "semantic_shannon_open_set_ema_decay",
-                        0.9,
-                    )
+            )
+        self._semantic_rms_controller = None
+        if semantic_shannon_coef > 0 and bool(
+            getattr(args, "semantic_rms_control", False)
+        ):
+            from ..semantic_rms_controller import SemanticRmsController
+
+            self._semantic_rms_controller = SemanticRmsController(
+                base_coefficient=semantic_shannon_coef,
+                target_ratio=float(args.semantic_rms_target_ratio),
+                min_coefficient=float(args.semantic_rms_min_coefficient),
+                max_coefficient=float(args.semantic_rms_max_coefficient),
+                ema_decay=float(args.semantic_rms_ema_decay),
+                gain=float(args.semantic_rms_gain),
+                max_step_ratio=float(args.semantic_rms_max_step_ratio),
+                warmup_steps=int(args.semantic_rms_warmup_steps),
+                min_eligible_fraction=float(
+                    args.semantic_rms_min_eligible_fraction
                 ),
             )
+            logging.info(
+                "adaptive semantic MaxEnt enabled: target_ratio=%.6g "
+                "bounds=[%.6g, %.6g] gain=%.6g ema=%.6g warmup=%d "
+                "start_coefficient=%.6g",
+                float(args.semantic_rms_target_ratio),
+                float(args.semantic_rms_min_coefficient),
+                float(args.semantic_rms_max_coefficient),
+                float(args.semantic_rms_gain),
+                float(args.semantic_rms_ema_decay),
+                int(args.semantic_rms_warmup_steps),
+                semantic_shannon_coef,
+            )
+
         self._online_canonical_bank: OnlineCanonicalBank | None = None
         self._verified_route_library: VerifiedRouteLibrary | None = None
         self._math_strategy_canonicalizer: MathStrategyCanonicalizer | None = None
@@ -397,23 +365,12 @@ class ZeroMathInitMixin:
             | OnlineCanonicalPolicyEntropyController
             | None
         ) = None
-        self._canonical_replay_controller: CanonicalReplayInverseController | None = (
-            None
-        )
-        self._canonical_replay_mass_controller: (
-            CanonicalReplayLikelihoodController | None
-        ) = None
         online_canonical_bank_alpha = float(
             getattr(args, "online_canonical_bank_alpha", 0.0) or 0.0
         )
-        online_canonical_novelty_beta = float(
-            getattr(args, "online_canonical_novelty_beta", 0.0) or 0.0
-        )
         online_canonical_replay = bool(getattr(args, "online_canonical_replay", False))
         online_canonical_objective_active = (
-            online_canonical_bank_alpha > 0.0
-            or online_canonical_novelty_beta > 0.0
-            or online_canonical_replay
+            online_canonical_bank_alpha > 0.0 or online_canonical_replay
         )
         verified_discovery_tracking = bool(
             getattr(args, "verified_discovery_tracking", True)
@@ -421,7 +378,6 @@ class ZeroMathInitMixin:
         if online_canonical_objective_active or verified_discovery_tracking:
             self._online_canonical_bank = OnlineCanonicalBank(
                 entropy_alpha=online_canonical_bank_alpha,
-                novelty_beta=online_canonical_novelty_beta,
                 pseudocount=float(args.online_canonical_bank_pseudocount),
                 surprisal_clip=float(args.online_canonical_bank_surprisal_clip),
                 retain_exemplars=online_canonical_replay,
@@ -442,11 +398,10 @@ class ZeroMathInitMixin:
             )
             if online_canonical_objective_active:
                 logging.info(
-                    "online canonical bank enabled: alpha=%.6g beta=%.6g "
+                    "online canonical bank enabled: alpha=%.6g "
                     "pseudocount=%.6g surprisal_clip=%.6g key_mode=%s "
                     "estimator=verified_prompt_bank_loo_v1",
                     online_canonical_bank_alpha,
-                    online_canonical_novelty_beta,
                     float(args.online_canonical_bank_pseudocount),
                     float(args.online_canonical_bank_surprisal_clip),
                     str(args.online_canonical_key_mode),
@@ -458,58 +413,18 @@ class ZeroMathInitMixin:
                     str(args.online_canonical_key_mode),
                 )
             if online_canonical_replay:
-                self._canonical_replay_controller = CanonicalReplayInverseController(
-                    base_alpha=float(args.online_canonical_replay_alpha),
-                    warmup_steps=int(args.online_canonical_replay_warmup_steps),
-                    ema_decay=float(args.online_canonical_replay_ema_decay),
-                )
-                if str(args.online_canonical_replay_objective) == (
-                    "split_mass_balance_per_rollout"
-                ):
-                    self._canonical_replay_mass_controller = (
-                        CanonicalReplayLikelihoodController(
-                            base_alpha=float(args.online_canonical_replay_mass_alpha),
-                            warmup_steps=int(
-                                args.online_canonical_replay_mass_warmup_steps
-                            ),
-                            ema_decay=float(
-                                args.online_canonical_replay_mass_ema_decay
-                            ),
-                        )
-                    )
                 logging.info(
                     "verified canonical replay enabled: "
-                    "reference_alpha=%.6g capacity=%d "
-                    "global_groups_per_step=%d "
-                    "global_bootstrap_steps=%d "
-                    "warmup_steps=%d ema_decay=%.6g "
-                    "sensor=normalized_model_entropy_over_observed_bank_v1 "
-                    "actuator=%s "
-                    "projection=none gold_support_feedback=none",
+                    "balance_alpha=%.6g mass_alpha=%.6g capacity=%d "
+                    "global_groups_per_step=%d global_bootstrap_steps=%d "
+                    "objective=%s coefficient_control=fixed "
+                    "gold_support_feedback=none",
                     float(args.online_canonical_replay_alpha),
+                    float(args.online_canonical_replay_mass_alpha),
                     int(args.online_canonical_replay_capacity),
                     int(args.online_canonical_replay_global_groups_per_step),
                     int(args.online_canonical_replay_global_bootstrap_steps),
-                    int(args.online_canonical_replay_warmup_steps),
-                    float(args.online_canonical_replay_ema_decay),
-                    (
-                        "KL_uniform_to_model_exemplar_scores_v1"
-                        if str(args.online_canonical_replay_objective) == "bank_balance"
-                        else (
-                            "uniform_verified_exemplar_likelihood_v1"
-                            if str(args.online_canonical_replay_objective)
-                            == "verified_likelihood"
-                            else (
-                                "split_verified_mass_and_bank_balance_per_rollout_v1"
-                                if str(args.online_canonical_replay_objective)
-                                == "split_mass_balance_per_rollout"
-                                else (
-                                    "uniform_verified_exemplar_likelihood_"
-                                    "per_rollout_with_singleton_anchor_v1"
-                                )
-                            )
-                        )
-                    ),
+                    str(args.online_canonical_replay_objective),
                 )
                 if bool(
                     getattr(
@@ -594,7 +509,7 @@ class ZeroMathInitMixin:
                     "runtime_partition_passes=0 "
                     "runtime_pairwise_veto_passes=0 "
                     "seeds=470721,470722 "
-                    "novelty_rule=exact_precalibrated_menu_combo_v18 "
+                    "support_rule=exact_precalibrated_menu_combo_v18 "
                     "fail_closed task_reward_gate=%s "
                     "unstructured_menu_inference=%s",
                     str(args.math_strategy_model),

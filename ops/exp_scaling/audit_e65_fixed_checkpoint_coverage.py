@@ -51,7 +51,7 @@ COHORTS = {
         / "var/artifacts/"
         "e68_separated_support_actuator_ablation_audit_latest.json",
         "terminal_runs": 12,
-        "arms": ("verified_entropy_gated_singleton_escape_canonical",),
+        "arms": ("verified_singleton_escape_canonical",),
         "domains": MODEBENCH_DOMAINS,
         "passes": MODEBENCH_PASSES,
         "metrics": MODEBENCH_METRICS,

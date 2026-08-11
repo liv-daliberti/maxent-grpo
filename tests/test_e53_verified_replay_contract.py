@@ -87,7 +87,6 @@ def test_e53_contract_is_target_free_unbounded_and_cross_domain():
         "OAT_ZERO_TRAIN_SEEDS=9010",
         "OAT_ZERO_ONLY_ARMS=grpo,maxent_inverse,maxent_inverse_canonical_replay",
         "OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0",
-        "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50",
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.10",
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=16",
         "auditor_sha256",

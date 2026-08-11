@@ -5,7 +5,8 @@ LATEX = pdflatex -interaction=nonstopmode -halt-on-error
 DATA_PYTHON = ../var/seed_paper_eval/paper310/bin/python
 FIGURES = \
 	figures/modebench_examples.pdf \
-	figures/xdr_mechanism.pdf \
+	figures/verified_replay_mechanism.pdf \
+	figures/figure4_interim_20260806.pdf \
 	figures/modecollapse_story.pdf \
 	figures/modes_per_epoch.pdf \
 	figures/modecollapse_training.pdf \
@@ -15,7 +16,7 @@ FIGURES = \
 
 all: $(PAPER).pdf
 
-$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2026_conference.sty iclr2026_conference.bst $(FIGURES)
+$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2026_conference.sty iclr2026_conference.bst $(FIGURES) results/figure4_interim_20260806_table.json
 	python ../ops/check_paper_figure1_contract.py
 	$(DATA_PYTHON) ../ops/check_paper_domain_prompts.py
 	$(LATEX) $(PAPER)
@@ -26,7 +27,7 @@ $(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2026_conference.sty iclr2026_co
 
 figures:
 	python ../ops/plot_paper_modebench_examples.py
-	python ../ops/plot_paper_xdr_mechanism.py
+	python ../ops/plot_paper_verified_replay_mechanism.py
 	python ../ops/plot_paper_modecollapse.py
 	python ../ops/plot_paper_collapse_toy.py
 	python ../ops/exp_scaling/plot_e70_clean_05b_wide_live.py

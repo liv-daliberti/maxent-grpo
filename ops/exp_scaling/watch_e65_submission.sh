@@ -3,8 +3,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-IDENTITY="$ROOT_DIR/var/artifacts/e65_entropy_gated_singleton_confirmation_identity.json"
-LAUNCHER="$ROOT_DIR/ops/exp_scaling/launch_e65_entropy_gated_singleton_confirmation.sh"
+IDENTITY="$ROOT_DIR/var/artifacts/e65_singleton_confirmation_identity.json"
+LAUNCHER="$ROOT_DIR/ops/exp_scaling/launch_e65_singleton_confirmation.sh"
 LOG="$ROOT_DIR/var/artifacts/e65_submission_watch.log"
 
 exec 9>"$ROOT_DIR/var/artifacts/e65_submission_watch.lock"

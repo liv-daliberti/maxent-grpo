@@ -3,7 +3,7 @@
 
 The endpoint table says where the arms land; it cannot say when they part. That
 matters here, because the claim is that removing the replay gradient removes the
-mechanism rather than merely slowing it: if B3a tracked xGRPO for several passes
+mechanism rather than merely slowing it: if the arm tracked the treatment for several passes
 before falling away, "slower" would be the better description. The trajectory is
 what distinguishes the two readings, so it is plotted.
 
@@ -13,7 +13,8 @@ one comparison, so panels share a metric row and each row keeps its own y scale
 across domains only where the scales are commensurate --- they are not, so each
 panel is scaled to its own domain and the shared quantity is the shape.
 
-Color. The manuscript's established pair carries Dr.GRPO and xGRPO; B3a takes a
+Color. The manuscript's established pair carries Dr.GRPO and x-Mode GRPO; the
+ablation takes a
 third hue. The method teal sits under the chroma floor and its tritan separation
 from the control orange is weak (validator: chroma FAIL, CVD PASS on protan and
 deutan), so identity is never colour alone: each arm also has its own dash
@@ -68,8 +69,8 @@ DOMAINS = (
 
 ARMS = (
     ("drgrpo", "matched Dr.GRPO", CONTROL, style.ARM_DASH[CONTROL]),
-    ("b3a", "B3a (replay gradient removed)", ABLATION, style.ARM_DASH[ABLATION]),
-    ("xgrpo", "xGRPO", METHOD, style.ARM_DASH[METHOD]),
+    ("b3a", "replay gradient removed", ABLATION, style.ARM_DASH[ABLATION]),
+    ("xgrpo", "x-Mode GRPO", METHOD, style.ARM_DASH[METHOD]),
 )
 
 METRICS = (

@@ -141,16 +141,16 @@ payload = {
     "seed": 9010,
     "max_updates": 384,
     "num_samples": 16,
-    "direct_token_entropy": {"coefficient": 0.0, "controller": None},
+    "direct_token_entropy": {"coefficient": 0.0},
     "global_replay": {
         "groups_per_step": 1,
         "selection": "persistent_prompt_hash_round_robin",
         "capacity": 16,
     },
-    "controllers": {
-        "open_set_semantic": "unprojected_self_warmup_inverse",
-        "verified_mass": "unprojected_self_warmup_surprisal_ratio",
-        "known_mode_balance": "unprojected_self_warmup_inverse",
+    "fixed_coefficients": {
+        "open_set_semantic": 0.10,
+        "verified_mass": 0.10,
+        "known_mode_balance": 0.10,
     },
     "information_firewall": {
         "gold_support_feedback": False,
@@ -215,21 +215,14 @@ export OAT_ZERO_MAXENT_INVERSE_BASE_ALPHA=0
 export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10
 export OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP=5.0
 export OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT=1.0
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS=64
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.10
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=16
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY=0.90
 
 export OAT_ZERO_NUM_SAMPLES=16
 export OAT_ZERO_LEARNING_RATE=0.0000002

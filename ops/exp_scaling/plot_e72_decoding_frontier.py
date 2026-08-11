@@ -57,7 +57,7 @@ ARM_STYLE: dict[str, dict[str, Any]] = {
         "linestyle": style.ARM_DASH[CONTROL],
     },
     "xgrpo": {
-        "label": "xGRPO",
+        "label": "historical treatment",
         "color": METHOD,
         "marker": "s",
         "linestyle": style.ARM_DASH[METHOD],

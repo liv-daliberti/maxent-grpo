@@ -74,7 +74,7 @@ Use the frozen E58 `verified_first_global_replay_canonical` treatment:
 - replay alpha 0.10;
 - one persistent-hash round-robin replay group per optimizer update;
 - replay capacity 16;
-- open-set, verified-mass, and known-mode-balance warmup 64;
+- open-set semantic, verified-mass, and known-mode-balance coefficients fixed at 0.10 with no warmup or feedback rule;
 - no coefficient projection;
 - no direct token-entropy objective;
 - no gold support, target entropy, target mode count, evaluation feedback, or

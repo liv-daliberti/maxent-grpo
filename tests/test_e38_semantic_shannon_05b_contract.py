@@ -96,7 +96,7 @@ def test_shared_shell_stack_pins_shannon_treatment_and_other_arms():
         assert literal in submitter
 
     for literal in (
-        'SEMANTIC_SHANNON_COEF="${OAT_ZERO_SEMANTIC_SHANNON_COEF:-0.0}"',
+        'SEMANTIC_SHANNON_COEF="${OAT_ZERO_SEMANTIC_SHANNON_COEF:-0.1}"',
         "export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.0",
         "semantic_shannon)",
         'export OAT_ZERO_SEMANTIC_SHANNON_COEF="$SEMANTIC_SHANNON_COEF"',

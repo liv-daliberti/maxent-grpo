@@ -2329,7 +2329,6 @@ Decision 2026-07-16: leave agora untouched; 3B E1 starts as agora clears (no dea
 
 - A paired pre-intervention telemetry check found that E65R1 was not literal
   E58 plus the singleton actuator as documented. All 12 E65R1 runtime logs
-  reported `online_canonical_novelty_beta=0.0`, while every materialized E66
   control reported `0.50`. Countdown seed 43 already differed in novelty
   advantage and policy-gradient norm at optimizer update 1, before the
   64-update singleton gate warmup could complete.
@@ -2350,7 +2349,6 @@ Decision 2026-07-16: leave agora untouched; 3B E1 starts as agora clears (no dea
   `30128500--30128502`, Countdown `30128503--30128505`, Python
   `30128506--30128508`, and MathIR `30128509--30128511`. The held-job audit
   bound source, execution, protocol, launcher, manifests, seeds, controllers,
-  `novelty_beta=0.50`, and the independent runtime expectation.
 - A zero-step placement amendment moved only nine unmaterialized pending jobs
   to broader same-family A6000/RTX 3090 capacity under MLTheory; the artifact
   hashes the amendment and mutation script and records that no scientific
@@ -2597,3 +2595,443 @@ Decision 2026-07-16: leave agora untouched; 3B E1 starts as agora clears (no dea
 - The combined reporting tests now contain 17 checks and pass. Readiness is
   not allowed to report success merely because the figures exist or an
   interim effect looks promising.
+
+## E80 Qwen2.5-3B verified-replay scale replication — 2026-08-05
+
+- Froze a fresh five-domain, two-arm, five-seed Qwen2.5-3B-Instruct protocol:
+  50 paired cells, seeds 65--69, exactly eight 384-prompt passes, registered
+  half-pass endpoints, and no checkpoint selection.
+- The common scale-aware optimizer is AdamW at peak learning rate 1e-7, 10%
+  warmup, cosine decay to 1e-8, betas (0.9, 0.999), no weight decay or
+  reference KL, one PPO epoch, group size 16, temperature/top-p 1, and gradient
+  clipping at 1. It was chosen from pre-E80 Qwen3B control evidence and public
+  Qwen/GRPO conventions without consulting any E80 replay outcome.
+- The only applied auxiliary derivative is fixed-weight verified replay:
+  exact zero in the compute-matched control and weight 0.10 in treatment.
+  Semantic MaxEnt, adaptive coefficients, balance losses, support escape, and
+  counterfactual proposals are hard-disabled.
+- Submitted jobs `30276720`--`30276769` held, audited every scheduler
+  environment, then released all 50 from runtime snapshot
+  `e76_tuned_scale_c464da12102076f1`. The first cell started on node302; the
+  remaining cells queue behind available A100/host-memory capacity.
+- The shared wrapper retains resumable checkpoints every 192 updates as
+  requested and additionally evaluates every 96 updates under its mandatory
+  quarter-pass safety policy. The pre-outcome clarification freezes the
+  half-pass reporting grid and forbids using extra evaluations for selection.
+
+## E80-R1 corrected Qwen2.5-3B cohort — 2026-08-05
+
+- Canceled all original E80 jobs `30276720`--`30276769`. Only Graph control
+  seed 65 had begun (154 prompt updates); no replay cell started. The retained
+  E80 artifacts are audit-only and are excluded from every E80-R1 result.
+- Root cause: OAT computed a 192-step cosine horizon from batch-level policy
+  updates while this path advanced the scheduler once per prompt update. Thus
+  E80 reached the minimum rate after 192 of the intended 3,072 updates.
+- Added explicit `max_step_adjustment` plumbing to the shared training wrapper.
+  E80-R1 fixes it at 16.0, producing a 3,072-update horizon and 308-update
+  warmup. No scientific coefficient or treatment definition changed.
+- Froze fresh paired seeds 70--74 in a separate protocol, run namespace, and
+  ledger. Submitted jobs `30277372`--`30277421` held, audited all 50 scheduler
+  environments, and released them from snapshot
+  `e76_tuned_scale_9eb43ef4fa7b0318`.
+- Audited Falcon E79 independently: all 21 runs with optimizer metrics report
+  the exact constant learning rate `2.0000000233721948e-07` at every nonzero
+  step. Falcon uses a constant scheduler with zero warmup and is not affected
+  by E80's cosine-horizon error.
+
+## E81 fixed semantic MaxEnt on verified replay, Qwen2.5-0.5B — 2026-08-06
+
+- Added one arm to the completed E78 design rather than a new cohort. The E78
+  `control` and `replay` runs are inherited unchanged and are never re-run;
+  E81 trains only `semantic` = the E78 replay arm plus fixed open-set semantic
+  MaxEnt. 5 domains x 5 seeds = 25 cells, seeds 43--47, exactly eight
+  384-prompt passes, registered half-pass endpoints, no checkpoint selection.
+- The treatment adds one detached advantage, `A_sem = 0.10 * z` with
+  `z` in [-1, 1] the predictor-centered clipped surprisal of a row's canonical
+  outcome under a prompt-local open-set predictor (pseudocount 1, one
+  structural unseen bucket, surprisal clip 5). Only active, parseable,
+  validator-positive rows are eligible; every other row receives exact zero and
+  never enters the predictor's support. It is added after Dr.GRPO's own task
+  centering, with no second centering and no outer clamp.
+- `eta = 0.10` is the fixed reference dose inherited from E43/E56/E72, frozen
+  before execution and never adapted. E81 does not search the coefficient.
+  There is no first-discovery bonus, no balance loss, no novelty term, and no
+  controller of any kind. Every other actuator is hard-disabled.
+- Two source changes, both strictly additive: `args.py` widens one validation
+  predicate so open-set semantic MaxEnt may compose with the uniform
+  verified-likelihood replay objective as well as the split mass/balance
+  objective it already allowed, and `run_experiment.sh` adds the
+  `verified_replay_semantic_maxent` variant branch. Neither is reachable from
+  any E78 arm's configuration.
+- E81 runs from the E78 runtime snapshot `e76_tuned_scale_96f68ebb47757af8`
+  with exactly those two files replaced, materialized as
+  `e81_semantic_maxent_8a8dc15b3e560ed0`. The launcher walks both trees and
+  fails closed unless the divergence is exactly that patch set, so E81 inherits
+  E78's training code byte-for-byte on every path either E78 arm executes.
+- Each cell is pinned to the same physical node as its E78 pair, so every
+  paired difference is taken within one GPU model. The launcher also asserts
+  both E78 arms exist for each (domain, seed) and that the pair did not
+  straddle nodes.
+- Submitted jobs `30344136`--`30344160` held, audited every scheduler
+  environment against the frozen objective, then released all 25.
+- Primary estimand is the paired seed difference `semantic - replay` at pass 8
+  for `distinct@8` and `pass@8`; `semantic - control` reports the combined
+  package. Reported per domain, all five seeds shown, no pooling.
+- PointMaze is excluded. Its interactive trainer is a separate driver with no
+  semantic-advantage path, and distributing an episode-level semantic advantage
+  across decisions without creating a length incentive is a design question
+  rather than a configuration change.
+
+## E82 fixed semantic MaxEnt on verified replay, Falcon3-1B — 2026-08-07
+
+- The Falcon replication of E81, registered before E81 has a reportable
+  endpoint so it is a replication by construction rather than a follow-up
+  conditioned on E81's outcome. Adds one arm to the E79 design; the E79
+  `control` and `replay` runs are inherited unchanged and never re-run.
+  5 domains x 5 seeds = 25 cells, seeds 55--59, exactly eight 384-prompt
+  passes, registered half-pass endpoints, no checkpoint selection.
+- The treatment is E81's objective verbatim: `A_sem = 0.10 * z` with `z` in
+  [-1, 1] the predictor-centered clipped surprisal of a row's canonical outcome
+  under a prompt-local open-set predictor (pseudocount 1, one structural unseen
+  bucket, surprisal clip 5), applied only to active, parseable,
+  validator-positive rows and added after Dr.GRPO's own task centering. A test
+  asserts the two launchers emit an identical objective dictionary, so the two
+  families test one intervention rather than two.
+- Every cell definition comes from the E79 launcher and every objective setting
+  from the E81 launcher; the E82 launcher only combines them. E79's placement
+  is a deterministic function of domain and seed, so each cell lands on the
+  same node and GPU model as its E79 pair and every paired difference is taken
+  within one GPU model. The launcher additionally asserts both E79 arms exist
+  per (domain, seed) and that the pair did not straddle placements.
+- Runs from the E79 runtime snapshot `e76_tuned_scale_594ecd3c19c600d9` with
+  exactly the same two additive files E81 patches, materialized as
+  `e82_falcon_semantic_maxent_c3df77b26fe9de68`. E81's snapshot builder was
+  generalized with a `prefix` argument so both semantic arms are built and
+  audited by one implementation; E81's own snapshot identity is unchanged.
+- Submitted jobs `30374908`--`30374932` held, audited every scheduler
+  environment against the frozen objective and the pinned Falcon revision
+  `28ba2251970a01dd1edc7ba7dad2eb71216ccfdf`, then released all 25.
+- The cross-family reading is registered in advance: agreement in both families
+  is reported as a family-general extension, disagreement is reported as
+  family-dependent naming exactly where it held, and a Qwen-only effect is
+  reported as a Qwen-only effect. Domains are not pooled and the two families
+  are not pooled.
+- Figure 4 now attaches a semantic arm per family, so the Falcon row carries
+  its own MaxEnt curve with its own coverage count.
+- PointMaze is excluded for the same reason as E81.
+
+## E83 fixed semantic MaxEnt without verified replay, Qwen2.5-0.5B — 2026-08-07
+
+- Closes a 2x2 over the two applied derivatives. With E78's two arms and E81,
+  the four cells are: control (neither), replay (replay only), E83 (semantic
+  only), E81 (both). E78 and E81 are inherited unchanged and never re-run.
+  5 domains x 5 seeds = 25 cells, seeds 43--47, eight 384-prompt passes.
+- "Without replay" means what the published control means by it: the verified
+  bank, the one-group replay scoring, and the backward traversal are all still
+  performed, and the replay score derivative is identically zero. All four
+  cells therefore carry one compute envelope and differ only in which
+  derivative is applied.
+- The semantic term is E81's verbatim: eta = 0.10, clip 5, pseudocount 1,
+  validator-positive rows only, added after Dr.GRPO's own task centering.
+  A test asserts that E83's objective differs from E81's in exactly two keys,
+  the variant label and the compute-only switch, and from E78 control's in
+  exactly the semantic keys.
+- New `compute_matched_semantic_maxent` variant in run_experiment.sh, copied
+  line for line from `grpo_compute_matched` plus four semantic exports; a test
+  asserts the two branches are identical once the semantic lines are removed,
+  and that the published control branch remains free of semantic exports.
+- Runs from the E78 runtime snapshot with the same two additive patched files,
+  materialized as `e83_semantic_maxent_no_replay_0e7d31dcd35b535e`. Each cell
+  is pinned to its E78 pair's node.
+- Submitted jobs `30382176`--`30382203` held, audited every scheduler
+  environment (including that the replay derivative is compute-only), then
+  released all 25.
+- Primary estimand is `semantic_only - control` at pass 8: the main effect of
+  semantic MaxEnt with no replay present. The interaction contrast
+  `(E81 - replay) - (E83 - control)` is registered as secondary and is
+  reported descriptively per domain, never tested for significance. The four
+  possible readings, including "helps only with replay present" and "helps in
+  neither", are fixed in the protocol before any cell reports.
+- Note for provenance: adding this variant changed run_experiment.sh, so the
+  content-addressed snapshot tag for any future E81/E82 re-derivation differs
+  from the tags those cohorts recorded. Running jobs are unaffected --- each
+  reads its own frozen snapshot copy --- and each ledger records the snapshot
+  it actually ran from.
+
+## E85 PantryPlan semantic-MaxEnt repair — 2026-08-09
+
+- Defect: PantryPlan is a canonical-action task, so its rollouts are eight-token
+  action sequences. The semantic term derived its outcome key with the free-form
+  text extractor, which returns None for such a row, so every PantryPlan row was
+  scored unparseable and received exact zero semantic advantage for the whole of
+  training. Confirmed in 15 of 15 cells: reward-positive fraction .544,
+  parseable fraction .000, eligible fraction .000, mean |A_sem| RMS .0000. The
+  verifier and the replay bank were unaffected (bank size 7.1 modes/prompt),
+  which is why it was silent.
+- Root cause: the sibling outcome-collision path already bound the task's own
+  canonicalization surfaces at the same call site; the semantic path omitted the
+  branch. Fixed in `learner/grpo.py` inside the
+  `semantic_shannon_tracker is not None` guard, so it is unreachable for every
+  arm that does not enable semantic MaxEnt.
+- Invalidates the PantryPlan column of E81, E82, and E83. Those arms' applied
+  objectives were identical to their comparators, so E81's PantryPlan
+  `distinct@8` of +0.076 is run-to-run variance, not a semantic effect, and
+  E83's +0.000 is an arm compared against itself. The original 15 cells are
+  retained as audit-only evidence and excluded from every result.
+- Re-ran exactly those 15 cells as E85, each recording the run it supersedes by
+  stamp, directory, and job id. Acceptance gate is mechanism-only: parseable
+  fraction above 0.5 and eligible fraction above 0.1 per cell, or the cell fails
+  closed as unrepaired.
+- Figure 4 now reads the E85 ledger and, for any domain E85 supersedes, drops
+  the parent's cells entirely and redraws from the repair. The superseded curves
+  were not a weak version of the treatment; they were the comparator's curves
+  under the treatment's colour.
+- Scope audit: the defect needs canonical actions and semantic MaxEnt together.
+  Three canonical-action tasks exist (graph_coloring, countdown,
+  pantry_support_mask) but only PantryPlan is ever run in canonical mode, and
+  only E81/E82/E83 combine it with a positive semantic coefficient. Within this
+  campaign the 15 cells are the complete set.
+
+## Open question: historical cohorts are unaudited for the same defect — 2026-08-09
+
+**Not investigated. Deliberately deferred, recorded so it is not forgotten.**
+
+Three further answer-key derivation sites in `learner/grpo.py` carry the same
+latent gap and were left unrepaired because no arm in the current campaign
+enables them: DIAYN (`mi_tracker`), mode-adaptive xDr (`xdr_mode_adaptive`), and
+SEED (`seed_alpha`). A test asserts there are exactly five sites so a sixth
+cannot appear unnoticed.
+
+The unresolved risk is historical. Any earlier cohort that ran semantic MaxEnt,
+DIAYN, or SEED over PantryPlan would have had that arm silently inert on that
+domain, exactly as E81--E83 did. The E72 component study is the case that
+matters, because `check_paper_figure1_contract.py` binds the manuscript's
+rehearsal table to `var/artifacts/e72_b1b_summary.json`, and that table reports
+a PantryPlan row with the effect label "balance better". If E72's semantic or
+balance arms were inert on PantryPlan for this reason, that row is not
+measuring what it says.
+
+A disk-wide sweep for runs whose semantic parseable fraction is ~0 was started
+and timed out against ~1,600 run directories. The bounded version worth running
+later is: for each E72-era ledger, read the semantic telemetry of its PantryPlan
+cells and check `parseable_fraction`. Until that is done, the PantryPlan row of
+the rehearsal table should be treated as unverified rather than wrong.
+
+## E87 Qwen2.5-3B verified replay plus semantic MaxEnt, seed 70 — 2026-08-09
+
+- One paired seed, five domains, five cells. Seed 70 is the only seed for which
+  E80-R1 has both arms terminal in all five domains, so every E87 cell is
+  immediately pairable rather than waiting on its own comparator; the launcher
+  fails closed if any of those ten comparator runs is not terminal.
+- Cell definitions inherited from the E80-R1 launcher, objective from E81
+  verbatim (eta = 0.10, replay 0.10). Runs from the E80-R1 snapshot with three
+  files replaced, including the `learner/grpo.py` canonical-action key repair,
+  so PantryPlan's semantic term is live here from the first update rather than
+  needing a later repair cohort.
+- Submitted jobs `30446413`--`30446417` held, audited, released at `nice=50`.
+- Prioritisation required a second step. `nice=50` alone left E87 at priority
+  8477 against E80-R1's 8824, because those cells had accrued four days of age
+  priority. Raised `Nice=500` on E80-R1's 34 **pending** cells, dropping them to
+  8430; running cells were untouched. E87 now leads. Reversible with
+  `scontrol update JobId=<ids> Nice=100`. The cost is that E80-R1 seeds 71--74
+  finish later; E87 is unaffected because its comparators are already terminal.
+- Registered as a directional probe, not an estimate. One seed per domain
+  supports a sign, not an uncertainty statement, and the protocol forbids
+  reporting it as one.
+
+## E86 Falcon3-1B semantic MaxEnt without replay — 2026-08-09
+
+- Closes the Falcon 2x2. E79 supplied `control` and `replay`, E82 added
+  replay plus semantic MaxEnt, and E86 is the fourth cell: semantic MaxEnt with
+  the replay derivative off. It is the Falcon replication of E83, cell for cell,
+  so the cross-family question is whether the interaction contrast
+  `(E82 - replay) - (E86 - control)` keeps the sign it carries on Qwen.
+- The cohort had been declared in `campaign_stats.py` for some time with no
+  preregistration, launcher, or ledger behind it. Because `cohort_row` returns
+  `None` for a missing ledger, it dropped silently out of the status table and
+  out of the completion denominator; the campaign was reported at 78.6% of 260
+  cells when it was 71% of 285. Registering it was the fix.
+- Cell definitions come from the E79 launcher and the objective from the E83
+  launcher, taken whole: `fixed_objective()` is asserted equal to E83's, so the
+  arm is a replication rather than a second specification. Against E82 exactly
+  two keys move, the variant label and
+  `OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY`. The declared replay dose
+  stays 0.10 and is never applied.
+- Placement is E79's deterministic function of domain and seed, so each E86
+  cell lands on the same node and GPU model as its E79 pair and its E82 cell.
+  Verified against the E82 ledger for all 25 cells before submission.
+- E86 is born repaired. Its patch set is E85's, one file wider than E82's, so
+  `learner/grpo.py` binds the canonical-action semantic key from the first
+  update and PantryPlan needs no repair sibling. The branch sits inside
+  `if canonical_actions:`, and only PantryPlan resolves to a canonical action
+  task -- graph_coloring, countdown, python_factors, and mathir all run
+  `canonical_action_task=none` -- so those four domains run E82's runtime byte
+  for byte. Confirmed by diffing the derived snapshot against the E79 base:
+  exactly the three declared files differ, and the working-tree `grpo.py`
+  differs from the E79 runtime's by a single hunk.
+- PantryPlan's `semantic` comparator is therefore the E85 repair of E82, not
+  E82's superseded column. The launcher fails closed if the E85 record for a
+  PantryPlan seed is absent, so the defective comparator cannot be picked up by
+  accident.
+- Submitted jobs `30447343`--`30447367` held, audited, released at `nice=100`.
+  All 25 queue on the `cs` a5000/a6000 nodes behind E79, E82, and E85, which is
+  the correct order: those cohorts free the exact slots E86 needs.
+
+### Snapshot identity has a read-then-copy race
+
+`ensure_paired_snapshot` hashes the patched files to name the snapshot, then
+copies them. A file edited between those two steps yields a directory whose
+name does not describe its contents. It happened here: a dry run during
+concurrent E88 edits produced
+`e86_falcon_semantic_maxent_no_replay_010a28c328e98cfb`, whose content is
+identical to the correctly-named `..._8545357686c9c8ee` the submission used.
+The submitted cohort is bound to the correct snapshot -- recomputing the tag
+from the current files reproduces `8545357686c9c8ee` -- and the orphan is
+unreferenced. The race is harmless when the tree is quiet and silently
+mislabels when it is not. Worth closing by hashing the copied files rather than
+the source files, which is not done here because it would change the identity
+every already-submitted cohort recorded.
+
+## E88 adaptive semantic MaxEnt closed on its own gate; E89 re-derives the target — 2026-08-10
+
+- E88 targeted a realized semantic/task advantage RMS ratio of .05, adapting eta
+  per run. Three of five domains reached it cleanly: PantryPlan (.047/.050, 3-5%
+  of updates at a bound), Countdown (.049/.048, 7-10%), Graph coloring (.049,
+  14%). Two did not: MathIR and Python factors sat at the .40 ceiling for 97-98%
+  of applied updates while realizing only .017-.036.
+- The failure is arithmetic, not instability. Those domains produce very little
+  semantic pressure per unit coefficient, so .05 would need eta far above the
+  ceiling. The ceiling is not the adjustable parameter: |A_sem| <= eta against a
+  unit reward gap makes .40 the largest value that still leaves a verified
+  response a .60 advantage margin, and so the largest that preserves the
+  correctness ordering. The registered response was to re-derive the target.
+- The safety criterion also tripped once: python_factors seed 44, pinned at the
+  ceiling, ran +364% longer than its fixed-coefficient pair with no-EOS .054,
+  above the .05 threshold. Read with care --- that domain's lengths were already
+  bimodal across seeds at fixed eta --- but it is the historical failure shape.
+- Closed early: 22 cells cancelled, 3 terminal, 9 carry controller telemetry and
+  are retained as the evidence for the re-derivation. Nothing deleted; partial
+  logs kept. Recorded in `var/artifacts/e88_closure_record.json`.
+- A launch bug preceded all of this and is worth remembering. The controller's
+  shell defaults were defined in `ops/train.sh` while the variant branch lives in
+  `ops/run_experiment.sh`, which runs under `set -euo pipefail`. Three cells died
+  at one second each on an unbound variable and all 25 would have. Fixed by
+  binding the defaults in `run_experiment.sh` alongside the other
+  `SEMANTIC_SHANNON_*` locals, verified by resolving the frozen snapshot's
+  variant under `set -u` and by parsing every emitted flag through the real
+  tyro parser from the frozen source.
+- E89 re-derives the target from what the saturated cells actually sustained at
+  the ceiling: the binding cell was python_factors seed 44 at .0170, so
+  rho = .015, 88% of it. Every other controller setting is inherited; the
+  launcher asserts the two objectives differ in exactly one environment
+  variable. 25 cells submitted and released.
+- Registered cost, stated before the runs: a single reachable target is set by
+  the weakest domain, so at rho = .015 Countdown is dosed *below* the fixed
+  eta = .10 that produced its +.115 gain. E89 tests uniformity, not strength,
+  and may legitimately come out weaker than the fixed arm.
+
+## PantryPlan repair lands and changes the semantic result — 2026-08-10
+
+- The E85 re-runs confirm the fix by data, not just by code review: parseable
+  fraction .000 -> .53 and eligible fraction .000 -> .53 across all seven cells
+  with telemetry, every one passing the registered acceptance gate.
+- The repaired PantryPlan cells carry the largest semantic effect in the
+  campaign, an order of magnitude above any other domain: replay + MaxEnt minus
+  replay is +.922 distinct@8 at pass 8 on four seeds, and MaxEnt alone minus
+  matched Dr.GRPO is +1.186 on two. The inert runs had reported +.076, which was
+  variance between two runs with identical applied objectives.
+- Figure 4 draws PantryPlan's semantic curve from the repair cohort and records
+  `superseded_domains` in its provenance, so the substitution is documented
+  rather than inferred. The manuscript table and results prose now carry
+  PantryPlan and read "six of nine" evaluable cells.
+
+## PointMaze Tour admission ladder opens; v1 retired as a boundary result — 2026-08-10
+
+- E78-PM/E79-PM is inert, and the numbers say so plainly: over 3,072 updates the
+  Qwen control moves `distinct@8` by +.016 and `pass@8` by +.006, while the mean
+  within-run SD of `distinct@8` across its 17 registered checkpoints is .048.
+  The reported +.025 paired difference is half that noise, two of five seeds are
+  exactly .000, and the Falcon panel's -.016 is the same noise with a sign. The
+  cohort cost about 23.5 GPU-hours per Qwen cell to produce a flat line.
+- The cause is structural, not statistical. Mode identity rides on one decision
+  in ~33: the generator builds a single barrier with three to five holes, and
+  the runner divides the episode advantage across every decision, so the one
+  mode-bearing choice receives about 1/30 of the pressure. GRPO has no lever, so
+  there is no collapse for verified replay to prevent. This is a null result
+  about the environment, not about x-Mode, and the paper will report it as one.
+- PointMaze Tour replaces it. The policy names one unvisited landmark per
+  decision, so an episode is exactly K scored decisions and every one emits an
+  element of the canonical key; identity is the order in which the MuJoCo
+  trajectory first crosses each landmark's doorway gate. Because the menu is
+  over landmarks not yet *named*, decision count is constant inside every prompt
+  group — which is precisely the property whose absence excluded PointMaze from
+  E81/E82/E83, so the redesign makes the domain eligible for the semantic arms.
+- Stage 0 is measured, not declared: all 24 orders of every candidate map were
+  executed in the pinned runtime, and a map is admitted only if a step budget
+  exists that admits a target count. `var/data/point_maze_tour_v1r1` holds
+  384/64/128 maps at 8.33 certified tours each, fingerprints deduplicated across
+  splits so evaluation maps are disjoint by construction.
+- Stage 1, untouched Qwen2.5-0.5B with **no warm start**: `pass@8` 1.000,
+  `distinct@8` 3.531, every dev map exposing two or more modes. v1 needed a
+  72-update SFT warm start to reach `distinct@8` 1.37; v2 reaches 3.53 with no
+  demonstrations, so the domain-specific warm start is dropped.
+- Registered exception, stated before the gate ran: `mean@8` is .652 against a
+  prospective ceiling of .65. The ceiling exists to keep the advantage
+  non-degenerate, and at .652 over 99.8% of 16-sample groups contain both a
+  success and a failure. Recorded as a .002 overshoot rather than relabelled;
+  K=5 is the fix if the collapse gate later shows the domain lacks headroom.
+- Stage 2 is the gate v1 never had: the matched control must *lose* at least .50
+  `distinct@8` on development maps before any scientific cell is scheduled. v1
+  would have failed it at +.016. Amended to four passes with an evaluation each
+  pass, registered before running, because a one-pass probe showed breadth
+  rising while the policy was still learning to succeed at all — two passes
+  risked rejecting the domain for being early rather than inert.
+- Gating domains on "the control collapses" biases ModeBench toward domains
+  where collapse happens. Both mitigations are required and in place: every
+  threshold registered before measurement, and v1 reported as the domain that
+  failed the gate.
+- Three cells submitted to `cs` on a6000: control seeds 43/44 (collapse gate)
+  and replay seed 43 (matched smoke, folded in to save a queue round trip).
+  Registered as `point_maze_tour_gate_jobs.json`, cohort tag `tourgate`,
+  `plotted=False` — an admission check must not be drawn beside measured
+  treatment effects.
+- Two measurement notes for anyone scheduling these. Throughput is 4.08
+  s/update on an A6000 but 18.64 on an RTX 2080, because Turing reports
+  `is_bf16_supported()` true and emulates it; a paired cohort must not straddle
+  architectures, and the runner now records `device_name` in its receipt.
+  Separately, this cluster routes by requested walltime, not by `--partition`:
+  `--time` of one hour or less lands in `all` and starts immediately, anything
+  longer is rerouted into the contested `cs`/`mltheory` queues.
+
+## Tour stage-2 collapse gate returns: phenomenon present, threshold not met — 2026-08-10
+
+- Recorded before any follow-up is decided, so the registered number is fixed.
+  Four passes, two control seeds, 64 development maps, untouched Qwen2.5-0.5B:
+
+  | seed | distinct@8 by pass (0..4) | drop | mean@8 by pass |
+  |---|---|---|---|
+  | 43 | 3.53 3.41 3.27 3.05 3.19 | +.344 | .65 .81 .86 .83 .88 |
+  | 44 | 3.56 3.25 3.22 3.17 3.03 | +.531 | .65 .80 .85 .85 .86 |
+
+  Mean drop +.438 against a registered threshold of +.50. **The gate as
+  specified is not met**: one seed clears it, one does not.
+- What *is* established is the phenomenon the paper is about. Accuracy rises
+  while breadth falls, in both seeds, monotonically apart from one uptick:
+  `mean@8` .65 -> .87 while `distinct@8` 3.53 -> 3.19, and modes-per-success
+  falls .69 -> .46. Redundancy among correct samples is increasing. Against v1,
+  whose control moved +.016 over eight passes against a checkpoint SD of .048,
+  this is a different regime entirely: the control here has something to lose
+  and is losing it.
+- Specification error worth naming: the gate window (4 passes) is shorter than
+  the protocol it gates (8 passes), so it asks a question the cohort does not.
+  Neither seed has plateaued at pass 4. Extending the window would be an
+  outcome-dependent change and is not taken unilaterally; the pass-4 result
+  above stands as the registered outcome regardless of what is measured later.
+- Stage 3 matched smoke passes: 2,577 banked outcomes, 7.0 active replay modes,
+  applied replay gradient L2 .0378 against the control's exact zero. The replay
+  path runs, the bank fills, and the derivative is live.
+- Execution note: the chunked path works. Twelve one-hour chunks, three cells x
+  four passes, each ~29 minutes, all COMPLETED, first chunk starting within a
+  minute of submission. The same work as a single long job sat 5+ hours in `cs`
+  without starting. Resume was verified end-to-end before use: 384 training rows
+  spanning 1..384 across three process restarts, no duplicates and no gaps.

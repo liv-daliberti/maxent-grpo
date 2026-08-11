@@ -307,7 +307,6 @@ def prepare(output: Path) -> None:
             "sensor": "verified_bank_entropy_over_log_support_v1",
             "group_size": 16,
             "pseudocount": 1.0,
-            "novelty_beta": 0.5,
             "surprisal_clip": 5.0,
             "alpha_initial": 0.1,
             "alpha_min": 0.1,

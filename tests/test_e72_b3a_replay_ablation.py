@@ -11,6 +11,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -117,8 +119,6 @@ def test_a_drifted_dose_blocks_the_launch():
     problems = b3a.check_inheritance(_run(objective={"semantic_shannon_coef": 0.2}))
     assert any("semantic_shannon_coef" in problem for problem in problems)
 
-    problems = b3a.check_inheritance(_run(objective={"online_canonical_novelty_beta": 0.0}))
-    assert any("online_canonical_novelty_beta" in problem for problem in problems)
 
     problems = b3a.check_inheritance(_run(training={"learning_rate": 1e-06}))
     assert any("learning_rate" in problem for problem in problems)
@@ -161,9 +161,8 @@ def test_environment_trains_from_initialization_with_the_inherited_objective(tmp
     assert env["OAT_ZERO_VARIANT"] == b3a.VARIANT
     assert "OAT_ZERO_EVAL_ONLY" not in env
 
-    # Discovery credit is inherited unchanged from the reference arm.
+    # Semantic MaxEnt is inherited unchanged from the reference arm.
     assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.10
-    assert float(env["OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA"]) == 0.50
     assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA"]) == 0.10
     assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA"]) == 0.10
 
@@ -191,16 +190,15 @@ def test_canonical_action_domains_keep_the_audited_engine(tmp_path):
     assert env["OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT"] == "6"
 
 
-def test_b1a_removes_discovery_credit_and_keeps_replay(tmp_path):
-    """B1a is the complement of B3a: replay acts, discovery credit does not."""
+def test_b1a_removes_semantic_maxent_and_keeps_replay(tmp_path):
+    """B1a is the complement of B3a: replay acts, semantic MaxEnt does not."""
     env = b3a.build_export_vars(ROOT, _run(), tmp_path, "b1a")
 
-    # Discovery channels off.
+    # Semantic MaxEnt is off.
     assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
-    assert float(env["OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA"]) == 0.0
 
-    # Replay untouched: the mass and balance losses, their controllers, and the
-    # global scheduler carry the treatment's own doses.
+    # Replay untouched: the mass and balance losses, their fixed coefficients,
+    # and the global scheduler carry the treatment's own doses.
     assert env["OAT_ZERO_VARIANT"] == "verified_first_replay_only_ablation"
     assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA"]) == 0.10
     assert float(env["OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA"]) == 0.10
@@ -211,7 +209,7 @@ def test_arms_are_complementary_and_write_to_separate_run_directories(tmp_path):
     b3a_env = b3a.build_export_vars(ROOT, run, tmp_path, "b3a")
     b1a_env = b3a.build_export_vars(ROOT, run, tmp_path, "b1a")
 
-    # B3a keeps discovery credit; B1a keeps replay. Neither keeps both.
+    # B3a keeps semantic MaxEnt; B1a keeps replay. Neither keeps both.
     assert float(b3a_env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.10
     assert float(b1a_env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
     assert b3a_env["OAT_ZERO_VARIANT"] != b1a_env["OAT_ZERO_VARIANT"]
@@ -231,7 +229,6 @@ def test_b1a_disables_the_switches_that_require_a_positive_coefficient(tmp_path)
     assert env["OAT_ZERO_VARIANT"] == "verified_first_replay_only_ablation"
     assert env["OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE"] == "0"
     assert env["OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE"] == "0"
-    assert env["OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION"] == "0"
     assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
 
 
@@ -247,7 +244,6 @@ def test_b1b_is_rehearsal_only_and_distinct_from_b1a(tmp_path):
 
     # No rarity weighting either.
     assert float(b1b["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
-    assert float(b1b["OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA"]) == 0.0
 
     # The two arms must not collapse onto one another.
     assert b1b["OAT_ZERO_VARIANT"] != b1a["OAT_ZERO_VARIANT"]
@@ -255,3 +251,52 @@ def test_b1b_is_rehearsal_only_and_distinct_from_b1a(tmp_path):
 
     # Same replay budget as the treatment: coefficient unchanged at .10.
     assert float(b1b["OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA"]) == 0.10
+
+
+def test_b2b_carries_the_treatments_measured_entropy_target(tmp_path):
+    """B2b's whole claim is that the entropy is *matched*, so the target must
+    come from the treatment's telemetry artifact rather than from a default.
+
+    The launcher reads it at submission time; a run that fell back to the
+    ratio-derived target would regulate to nothing in particular while still
+    being reported as matched.
+    """
+    import json
+
+    targets = json.loads(
+        (ROOT / "var" / "artifacts" / "e72_token_entropy_targets.json").read_text()
+    )
+    run = _run()
+    env = b3a.build_export_vars(ROOT, run, tmp_path, "b2b")
+
+    entry = targets["domains"][run["domain"]]
+    assert float(env["OAT_ZERO_MAXENT_DUAL_TARGET_ENTROPY"]) == pytest.approx(
+        entry["controller_target"]
+    )
+    assert float(env["OAT_ZERO_MAXENT_DUAL_TARGET_ENTROPY"]) > 0
+
+    # The objective must travel with the units. A per-token target regulated
+    # under the sequence objective is what made the first cohort diverge: the
+    # controller then observes a sum over generated tokens, saturates at its
+    # floor, and the residual bonus rewards length to the cap.
+    expected_objective = (
+        "sequence"
+        if entry["controller_units"] == "canonical_action_nats_exact_v1"
+        else "conditional_token_mean"
+    )
+    assert env["OAT_ZERO_MAXENT_OBJECTIVE"] == expected_objective
+
+    # Entropy without direction: no rarity, no discovery, no replay.
+    assert env["OAT_ZERO_VARIANT"] == "matched_token_entropy_ablation"
+    assert float(env["OAT_ZERO_SEMANTIC_SHANNON_COEF"]) == 0.0
+    assert float(env["OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA"]) == 0.0
+    assert env["OAT_ZERO_ONLINE_CANONICAL_REPLAY"] == "0"
+
+
+def test_b2b_refuses_a_domain_without_a_measured_target(tmp_path):
+    """Fail closed: an unknown domain must stop the launch rather than take a
+    neighbouring domain's target."""
+    run = _run()
+    run["domain"] = "not_a_domain"
+    with pytest.raises(SystemExit):
+        b3a.build_export_vars(ROOT, run, tmp_path, "b2b")

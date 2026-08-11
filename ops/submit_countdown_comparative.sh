@@ -47,7 +47,7 @@ INCLUDE_VERIFIED_FIRST_SPLIT_CANONICAL_ARM="${OAT_ZERO_INCLUDE_VERIFIED_FIRST_SP
 INCLUDE_VERIFIED_FIRST_GLOBAL_REPLAY_CANONICAL_ARM="${OAT_ZERO_INCLUDE_VERIFIED_FIRST_GLOBAL_REPLAY_CANONICAL_ARM:-0}"
 INCLUDE_VERIFIED_FIRST_BOOTSTRAP_LOCAL_CANONICAL_ARM="${OAT_ZERO_INCLUDE_VERIFIED_FIRST_BOOTSTRAP_LOCAL_CANONICAL_ARM:-0}"
 INCLUDE_VERIFIED_COUNTERFACTUAL_CANONICAL_ARM="${OAT_ZERO_INCLUDE_VERIFIED_COUNTERFACTUAL_CANONICAL_ARM:-0}"
-INCLUDE_VERIFIED_ENTROPY_GATED_SINGLETON_ESCAPE_CANONICAL_ARM="${OAT_ZERO_INCLUDE_VERIFIED_ENTROPY_GATED_SINGLETON_ESCAPE_CANONICAL_ARM:-0}"
+INCLUDE_VERIFIED_SINGLETON_ESCAPE_CANONICAL_ARM="${OAT_ZERO_INCLUDE_VERIFIED_SINGLETON_ESCAPE_CANONICAL_ARM:-0}"
 INCLUDE_VERIFIED_ROUTE_SUCCESSOR_ARM="${OAT_ZERO_INCLUDE_VERIFIED_ROUTE_SUCCESSOR_ARM:-0}"
 INCLUDE_MAXENT_LENGTH_DUAL_ARM="${OAT_ZERO_INCLUDE_MAXENT_LENGTH_DUAL_ARM:-0}"
 INCLUDE_DIAYN_ARM="${OAT_ZERO_INCLUDE_DIAYN_ARM:-0}"
@@ -112,10 +112,7 @@ SEMANTIC_SHANNON_SURPRISAL_CLIP="${OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP:-5.0
 SEMANTIC_SHANNON_PSEUDOCOUNT="${OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT:-1.0}"
 SEMANTIC_SHANNON_QUALITY_GATED_CAP="${OAT_ZERO_SEMANTIC_SHANNON_QUALITY_GATED_CAP:-0.05}"
 SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP="${OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP:-0.05}"
-SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS="${OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS:-64}"
-SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY="${OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY:-0.9}"
 ONLINE_CANONICAL_BANK_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA:-0.10}"
-ONLINE_CANONICAL_NOVELTY_BETA="${OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA:-0.50}"
 ONLINE_CANONICAL_BANK_PSEUDOCOUNT="${OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT:-1.0}"
 ONLINE_CANONICAL_BANK_SURPRISAL_CLIP="${OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP:-5.0}"
 ONLINE_CANONICAL_DUAL_TARGET_RATIO="${OAT_ZERO_ONLINE_CANONICAL_DUAL_TARGET_RATIO:-0.8}"
@@ -129,11 +126,7 @@ ONLINE_CANONICAL_REPLAY_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA:-0.1}"
 ONLINE_CANONICAL_REPLAY_OBJECTIVE="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE:-bank_balance}"
 ONLINE_CANONICAL_REPLAY_CAPACITY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY:-16}"
 ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS:-0}"
-ONLINE_CANONICAL_REPLAY_WARMUP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS:-64}"
-ONLINE_CANONICAL_REPLAY_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY:-0.9}"
 ONLINE_CANONICAL_REPLAY_MASS_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA:-0.1}"
-ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS:-64}"
-ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY:-0.9}"
 DRGRPO_VARIANT="${OAT_ZERO_DRGRPO_VARIANT:-grpo}"
 ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS:-256}"
 ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS:-3}"
@@ -373,7 +366,7 @@ submit_arm() {
   export_vars+=",OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT=${OAT_ZERO_CANONICAL_GRAPH_ACTION_COUNT:-3}"
   export_vars+=",OAT_ZERO_CANONICAL_GRAPH_LEARNER_SAMPLING=${OAT_ZERO_CANONICAL_GRAPH_LEARNER_SAMPLING:-0}"
   export_vars+=",OAT_ZERO_CANONICAL_GRAPH_FIXED_SHAPE_SAMPLING=${OAT_ZERO_CANONICAL_GRAPH_FIXED_SHAPE_SAMPLING:-0}"
-  if [[ "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
+  if [[ "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
     # Counterfactual support proposals execute inside the replicated free-form
     # path.  Pin both flags by arm so a domain-level default cannot silently
     # make a valid proposal arm fail only after Slurm releases it.
@@ -513,7 +506,7 @@ submit_arm() {
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_COEF=${SEMANTIC_SHANNON_COEF}"
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP=${SEMANTIC_SHANNON_SURPRISAL_CLIP}"
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT=${SEMANTIC_SHANNON_PSEUDOCOUNT}"
-  elif [[ "$variant" == "signal_first_semantic_balance" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" ]]; then
+  elif [[ "$variant" == "signal_first_semantic_balance" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" ]]; then
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_COEF=${SEMANTIC_SHANNON_COEF}"
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP=${SEMANTIC_SHANNON_SURPRISAL_CLIP}"
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT=${SEMANTIC_SHANNON_PSEUDOCOUNT}"
@@ -528,7 +521,7 @@ submit_arm() {
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE=1"
   elif [[ "$variant" == "success_conditioned_signed_semantic_shannon" ]]; then
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE=1"
-  elif [[ "$variant" == "signal_first_semantic_balance" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" ]]; then
+  elif [[ "$variant" == "signal_first_semantic_balance" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" ]]; then
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE=1"
   else
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE=0"
@@ -543,28 +536,15 @@ submit_arm() {
   if [[ "$variant" == "success_conditioned_signed_semantic_shannon" ]]; then
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE=1"
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP=${SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP}"
-  elif [[ "$variant" == "signal_first_semantic_balance" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" ]]; then
+  elif [[ "$variant" == "signal_first_semantic_balance" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" ]]; then
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE=1"
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP=${SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP}"
   else
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE=0"
     export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP=0.05"
   fi
-  if [[ "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" ]]; then
-    export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=1"
-    export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS=${SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS}"
-    export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY=${SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY}"
-  else
-    export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=0"
-    export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS=64"
-    export_vars+=",OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY=0.9"
-  fi
-  if [[ "$variant" == "online_canonical_maxent" || "$variant" == "online_canonical_haarnoja" || "$variant" == "online_canonical_policy_entropy" || "$variant" == "maxent_inverse_canonical" || "$variant" == "maxent_inverse_canonical_replay" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
+  if [[ "$variant" == "online_canonical_maxent" || "$variant" == "online_canonical_haarnoja" || "$variant" == "online_canonical_policy_entropy" || "$variant" == "maxent_inverse_canonical" || "$variant" == "maxent_inverse_canonical_replay" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
   export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=${ONLINE_CANONICAL_BANK_ALPHA}"
-  export_vars+=",OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=${ONLINE_CANONICAL_NOVELTY_BETA}"
-  if [[ -n "${OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA:-}" ]]; then
-    export_vars+=",OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA=${OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA}"
-  fi
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=${ONLINE_CANONICAL_BANK_PSEUDOCOUNT}"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=${ONLINE_CANONICAL_BANK_SURPRISAL_CLIP}"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=${ONLINE_CANONICAL_KEY_MODE}"
@@ -586,36 +566,31 @@ submit_arm() {
     fi
   else
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=${ONLINE_CANONICAL_KEY_MODE}"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_DUAL_TARGET_RATIO=0.0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_POLICY_ENTROPY_ADAPTATION=0"
   fi
-  if [[ "$variant" == "maxent_inverse_canonical_replay" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
+  if [[ "$variant" == "maxent_inverse_canonical_replay" || "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY=1"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=${ONLINE_CANONICAL_REPLAY_ALPHA}"
     if [[ "$variant" == "verified_route_successor" ]]; then
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout"
-    elif [[ "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" ]]; then
+    elif [[ "$variant" == "open_set_split_canonical" || "$variant" == "verified_first_split_canonical" || "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" ]]; then
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=split_mass_balance_per_rollout"
     else
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=${ONLINE_CANONICAL_REPLAY_OBJECTIVE}"
     fi
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=${ONLINE_CANONICAL_REPLAY_CAPACITY}"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=${ONLINE_CANONICAL_REPLAY_WARMUP_STEPS}"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY=${ONLINE_CANONICAL_REPLAY_EMA_DECAY}"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=${ONLINE_CANONICAL_REPLAY_MASS_ALPHA}"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=${ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS}"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY=${ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY}"
-    if [[ "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
+    if [[ "$variant" == "verified_first_global_replay_canonical" || "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1"
     else
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=0"
     fi
     if [[ "$variant" == "verified_first_bootstrap_local_canonical" || "$variant" == "verified_counterfactual_canonical" ]]; then
-      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=${ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS}"
+      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=64"
     else
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0"
     fi
@@ -624,33 +599,29 @@ submit_arm() {
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.1"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=bank_balance"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=16"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=64"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY=0.9"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=0.1"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=64"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY=0.9"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0"
   fi
-  if [[ "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_entropy_gated_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
+  if [[ "$variant" == "verified_counterfactual_canonical" || "$variant" == "verified_singleton_escape_canonical" || "$variant" == "verified_route_successor" ]]; then
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=1"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS=${ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS}"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS=${ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS}"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE=${ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE}"
-    if [[ "$variant" == "verified_entropy_gated_singleton_escape_canonical" ]]; then
+    if [[ "$variant" == "verified_singleton_escape_canonical" ]]; then
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1"
-      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=1"
+      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY=1"
     elif [[ "$variant" == "verified_route_successor" ]]; then
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1"
-      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=0"
+      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY=0"
     else
       export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=0"
-      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=0"
+      export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY=0"
     fi
   else
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=0"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=0"
+    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY=0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS=256"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS=3"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE=1.0"
@@ -661,7 +632,6 @@ submit_arm() {
   export_vars+=",OAT_ZERO_VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP=${VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP}"
   if [[ "$variant" == "grpo_compute_matched" ]]; then
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0"
-    export_vars+=",OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY=1"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout"
     export_vars+=",OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1"
@@ -792,14 +762,13 @@ echo "[comparative] include_maxent_arm=${INCLUDE_MAXENT_ARM}"
 echo "[comparative] include_maxent_control_arm=${INCLUDE_MAXENT_CONTROL_ARM}"
 echo "[comparative] include_maxent_dual_arm=${INCLUDE_MAXENT_DUAL_ARM}"
 echo "[comparative] include_maxent_inverse_arm=${INCLUDE_MAXENT_INVERSE_ARM} reference_alpha=${MAXENT_INVERSE_BASE_ALPHA} projection=none warmup_steps=${MAXENT_INVERSE_WARMUP_STEPS} ema_decay=${MAXENT_INVERSE_EMA_DECAY}"
-echo "[comparative] include_maxent_inverse_canonical_arm=${INCLUDE_MAXENT_INVERSE_CANONICAL_ARM} reference_alpha=${MAXENT_INVERSE_BASE_ALPHA} projection=none bank_alpha=${ONLINE_CANONICAL_BANK_ALPHA} novelty_beta=${ONLINE_CANONICAL_NOVELTY_BETA}"
 echo "[comparative] include_maxent_inverse_canonical_replay_arm=${INCLUDE_MAXENT_INVERSE_CANONICAL_REPLAY_ARM} direct_reference_alpha=${MAXENT_INVERSE_BASE_ALPHA} replay_reference_alpha=${ONLINE_CANONICAL_REPLAY_ALPHA} replay_objective=${ONLINE_CANONICAL_REPLAY_OBJECTIVE} replay_capacity=${ONLINE_CANONICAL_REPLAY_CAPACITY} replay_projection=none"
-echo "[comparative] include_open_set_split_canonical_arm=${INCLUDE_OPEN_SET_SPLIT_CANONICAL_ARM} semantic_reference_coefficient=${SEMANTIC_SHANNON_COEF} replay_balance_reference_alpha=${ONLINE_CANONICAL_REPLAY_ALPHA} projection=none gold_support_feedback=none"
-echo "[comparative] include_verified_first_split_canonical_arm=${INCLUDE_VERIFIED_FIRST_SPLIT_CANONICAL_ARM} direct_token_entropy=off semantic_reference_coefficient=${SEMANTIC_SHANNON_COEF} replay_balance_reference_alpha=${ONLINE_CANONICAL_REPLAY_ALPHA} projection=none gold_support_feedback=none"
-echo "[comparative] include_verified_first_global_replay_canonical_arm=${INCLUDE_VERIFIED_FIRST_GLOBAL_REPLAY_CANONICAL_ARM} direct_token_entropy=off global_verified_groups_per_step=1 projection=none gold_support_feedback=none"
-echo "[comparative] include_verified_first_bootstrap_local_canonical_arm=${INCLUDE_VERIFIED_FIRST_BOOTSTRAP_LOCAL_CANONICAL_ARM} direct_token_entropy=off global_verified_groups_per_step=1 global_bootstrap_steps=${ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS} then=prompt_local projection=none gold_support_feedback=none"
+echo "[comparative] include_open_set_split_canonical_arm=${INCLUDE_OPEN_SET_SPLIT_CANONICAL_ARM} semantic_fixed_coefficient=${SEMANTIC_SHANNON_COEF} replay_balance_fixed_alpha=${ONLINE_CANONICAL_REPLAY_ALPHA} gold_support_feedback=none"
+echo "[comparative] include_verified_first_split_canonical_arm=${INCLUDE_VERIFIED_FIRST_SPLIT_CANONICAL_ARM} direct_token_entropy=off semantic_fixed_coefficient=${SEMANTIC_SHANNON_COEF} replay_balance_fixed_alpha=${ONLINE_CANONICAL_REPLAY_ALPHA} gold_support_feedback=none"
+echo "[comparative] include_verified_first_global_replay_canonical_arm=${INCLUDE_VERIFIED_FIRST_GLOBAL_REPLAY_CANONICAL_ARM} direct_token_entropy=off global_verified_groups_per_step=1 gold_support_feedback=none"
+echo "[comparative] include_verified_first_bootstrap_local_canonical_arm=${INCLUDE_VERIFIED_FIRST_BOOTSTRAP_LOCAL_CANONICAL_ARM} direct_token_entropy=off global_verified_groups_per_step=1 global_bootstrap_steps=64 then=prompt_local gold_support_feedback=none"
 echo "[comparative] include_verified_counterfactual_canonical_arm=${INCLUDE_VERIFIED_COUNTERFACTUAL_CANONICAL_ARM} primary_actuator=validator_preserving_transform_of_model_verified_response fallback_groups_per_eligible_prompt=up_to_${ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS} fallback_width=num_samples original_prompt_temperature_sweep=${ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE},+0.2/attempt transform_and_fallback_rows_to_ppo=0 desired_mode_count=none evaluation_feedback=none"
-echo "[comparative] include_verified_entropy_gated_singleton_escape_canonical_arm=${INCLUDE_VERIFIED_ENTROPY_GATED_SINGLETON_ESCAPE_CANONICAL_ARM} trigger=model_entropy_below_self_warmup_reference bank_support_exactly_one=1 max_admitted_alternates=1 projection=none gold_support_feedback=none evaluation_feedback=none"
+echo "[comparative] include_verified_singleton_escape_canonical_arm=${INCLUDE_VERIFIED_SINGLETON_ESCAPE_CANONICAL_ARM} trigger=bank_support_exactly_one max_admitted_alternates=1 gold_support_feedback=none evaluation_feedback=none"
 echo "[comparative] include_verified_route_successor_arm=${INCLUDE_VERIFIED_ROUTE_SUCCESSOR_ARM} route_recurrence_min_prompts=${VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS} fixed_control_groups=${ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS} control_rows_to_ppo=0"
 echo "[comparative] drgrpo_variant=${DRGRPO_VARIANT}"
 echo "[comparative] maxent_arm_alphas=fixed:${MAXENT_FIXED_ALPHA},control:${MAXENT_CONTROL_BASE_ALPHA},dual:${MAXENT_DUAL_BASE_ALPHA}"
@@ -813,7 +782,6 @@ echo "[comparative] include_semantic_shannon_advantage_arm=${INCLUDE_SEMANTIC_SH
 echo "[comparative] include_quality_gated_semantic_novelty_arm=${INCLUDE_QUALITY_GATED_SEMANTIC_NOVELTY_ARM} coefficient=${SEMANTIC_SHANNON_COEF} surprisal_clip=${SEMANTIC_SHANNON_SURPRISAL_CLIP} pseudocount=${SEMANTIC_SHANNON_PSEUDOCOUNT} cap=${SEMANTIC_SHANNON_QUALITY_GATED_CAP}"
 echo "[comparative] include_success_conditioned_signed_semantic_shannon_arm=${INCLUDE_SUCCESS_CONDITIONED_SIGNED_SEMANTIC_SHANNON_ARM} coefficient=${SEMANTIC_SHANNON_COEF} surprisal_clip=${SEMANTIC_SHANNON_SURPRISAL_CLIP} pseudocount=${SEMANTIC_SHANNON_PSEUDOCOUNT} symmetric_cap=${SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP}"
 echo "[comparative] include_signal_first_semantic_balance_arm=${INCLUDE_SIGNAL_FIRST_SEMANTIC_BALANCE_ARM} xdr_tau=${SIGNAL_FIRST_XDR_TAU} task_only_xdr_weights=1"
-echo "[comparative] include_online_canonical_maxent_arm=${INCLUDE_ONLINE_CANONICAL_MAXENT_ARM} alpha=${ONLINE_CANONICAL_BANK_ALPHA} novelty_beta=${ONLINE_CANONICAL_NOVELTY_BETA} pseudocount=${ONLINE_CANONICAL_BANK_PSEUDOCOUNT} surprisal_clip=${ONLINE_CANONICAL_BANK_SURPRISAL_CLIP} key_mode=${ONLINE_CANONICAL_KEY_MODE}"
 echo "[comparative] include_online_canonical_haarnoja_arm=${INCLUDE_ONLINE_CANONICAL_HAARNOJA_ARM} normalized_target=${ONLINE_CANONICAL_DUAL_TARGET_RATIO} alpha_bounds=[${ONLINE_CANONICAL_DUAL_MIN_ALPHA},${ONLINE_CANONICAL_DUAL_MAX_ALPHA}] alpha_lr=${ONLINE_CANONICAL_DUAL_ALPHA_LR} ema_decay=${ONLINE_CANONICAL_DUAL_EMA_DECAY}"
 echo "[comparative] include_online_canonical_policy_entropy_arm=${INCLUDE_ONLINE_CANONICAL_POLICY_ENTROPY_ARM} reference_alpha=${ONLINE_CANONICAL_BANK_ALPHA} projection=none warmup_steps=${ONLINE_CANONICAL_POLICY_ENTROPY_WARMUP_STEPS} ema_decay=${ONLINE_CANONICAL_POLICY_ENTROPY_EMA_DECAY}"
 echo "[comparative] only_arms=${ONLY_ARMS_CSV:-all-configured-arms}"
@@ -948,10 +916,10 @@ for seed in "${train_seeds[@]}"; do
     echo "[comparative] verified_counterfactual_canonical seed=${seed} job=${job_id}"
   fi
 
-  if [[ "$INCLUDE_VERIFIED_ENTROPY_GATED_SINGLETON_ESCAPE_CANONICAL_ARM" == "1" ]] && arm_enabled verified_entropy_gated_singleton_escape_canonical; then
-    job_id="$(submit_arm verified_entropy_gated_singleton_escape_canonical verified_entropy_gated_singleton_escape_canonical "$seed")"
-    printf "verified_entropy_gated_singleton_escape_canonical\t%s\t%s\t%s\n" "$seed" "$job_id" "${STAMP_PREFIX}_verified_entropy_gated_singleton_escape_canonical_s${seed}" >> "$manifest"
-    echo "[comparative] verified_entropy_gated_singleton_escape_canonical seed=${seed} job=${job_id}"
+  if [[ "$INCLUDE_VERIFIED_SINGLETON_ESCAPE_CANONICAL_ARM" == "1" ]] && arm_enabled verified_singleton_escape_canonical; then
+    job_id="$(submit_arm verified_singleton_escape_canonical verified_singleton_escape_canonical "$seed")"
+    printf "verified_singleton_escape_canonical\t%s\t%s\t%s\n" "$seed" "$job_id" "${STAMP_PREFIX}_verified_singleton_escape_canonical_s${seed}" >> "$manifest"
+    echo "[comparative] verified_singleton_escape_canonical seed=${seed} job=${job_id}"
   fi
 
   if [[ "$INCLUDE_VERIFIED_ROUTE_SUCCESSOR_ARM" == "1" ]] && arm_enabled verified_route_successor; then

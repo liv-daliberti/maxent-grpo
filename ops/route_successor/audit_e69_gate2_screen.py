@@ -1561,7 +1561,7 @@ def main() -> None:
 
     if "math_dev" in curves and ENDPOINT in curves["math_dev"]:
         curves["math_dev"][SUCCESSOR] = curves["math_dev"][ENDPOINT]
-        curves["math_dev"]["verified_entropy_gated_singleton_escape_canonical"] = (
+        curves["math_dev"]["verified_singleton_escape_canonical"] = (
             curves["math_dev"][ENDPOINT]
         )
 

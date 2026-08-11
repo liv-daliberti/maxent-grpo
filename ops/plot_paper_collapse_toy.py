@@ -10,6 +10,8 @@ record for each (step, draw_index), exactly as a checkpoint snapshot.
 from __future__ import annotations
 
 import hashlib
+import itertools
+import os
 import json
 import sys
 from collections import Counter
@@ -90,6 +92,16 @@ LABEL_COLORS = {
     "other valid": OTHER,
     "invalid": MUTED,
 }
+# The checkpoints the bar panels show, named once so the figure and the audit
+# record cannot drift apart. Through six epochs rather than four: Dr.GRPO holds
+# 32/32 on exactly one mode from step 288 to 2064 without a break, so the longer
+# window shows the collapse as a plateau rather than a moment, and the historical treatment is at
+# its widest at the end of it --- 29/32 across seven modes at 1152, against
+# 27/32 across six at 768. Five epochs was measured and is worse than four
+# (26/32, six modes), so the window skips it.
+DISPLAY_STEPS = [0, 48, 96, 192, 384, 768, 1152]
+END_EPOCH = DISPLAY_STEPS[-1] // 192
+
 NODE_COLORS = {1: "#C9D6E2", 2: "#6E8599", 3: "#263D51"}  # slate: light/mid/deep
 # Paint 1 stays clear of both the white "uncoloured" node and the near-white
 # invalid segment above, so no fill in the figure reads as two things.
@@ -154,25 +166,30 @@ def panel_label(ax, letter: str, title: str) -> None:
     """Letter plus title on one baseline, offset in points so the gap between
     them is the same in every panel regardless of how wide the panel is."""
 
-    for text, transform in (
-        (letter, ax.transAxes),
-        (
-            title,
-            offset_copy(
-                ax.transAxes, fig=ax.figure, x=1.4 * FONT, y=0, units="points"
-            ),
-        ),
+    # Both anchor their *bottom* at the same height, so a title wrapped onto
+    # two lines grows upward and stays clear of the panel contents instead of
+    # dropping its second line onto them. The letter is then lifted by however
+    # many extra lines the title has, in points, so it sits level with the
+    # title's first line rather than its last.
+    lines = title.count("\n") + 1
+    lift = (lines - 1) * 1.25 * FONT
+    for text, x_offset, y_offset in (
+        (letter, 0.0, lift),
+        (title, 1.4 * FONT, 0.0),
     ):
         ax.text(
             0.0,
             1.045,
             text,
-            transform=transform,
+            transform=offset_copy(
+                ax.transAxes, fig=ax.figure, x=x_offset, y=y_offset, units="points"
+            ),
             fontsize=FONT,
             fontweight="bold",
             color=INK,
             ha="left",
             va="bottom",
+            linespacing=1.25,
         )
 
 
@@ -255,6 +272,48 @@ def assert_valid_coloring(key: str, reference: dict) -> None:
         assert colors[left - 1] != colors[right - 1]
 
 
+def enumerate_valid_colorings(reference: dict) -> list[str]:
+    """Every completion the verifier accepts, in lexicographic order.
+
+    Panel A names three of these Option A/B/C and then jumps to Option L. That
+    lettering is only honest if there really are twelve, so they are counted
+    here from the instance rather than asserted from the prompt text, and the
+    count is checked against the verifier's own ``num_completions``.
+    """
+
+    fixed = reference["partial_colors"]
+    keys: list[str] = []
+    for assignment in itertools.product("123", repeat=len(fixed)):
+        colors = [int(color) for color in assignment]
+        if any(
+            value is not None and colors[vertex] != value
+            for vertex, value in enumerate(fixed)
+        ):
+            continue
+        if any(colors[a - 1] == colors[b - 1] for a, b in reference["edges"]):
+            continue
+        keys.append("".join(assignment))
+    assert len(keys) == reference["num_completions"], (
+        f"enumerated {len(keys)} colorings but the verifier reports "
+        f"{reference['num_completions']}"
+    )
+    return keys
+
+
+def twelfth_option(reference: dict, shown: tuple[str, ...]) -> str:
+    """The coloring panel A labels Option L.
+
+    Options A/B/C are the three modes the bar panels track, so they take the
+    first three letters; the nine the figure does not draw take D through L in
+    lexicographic order. Option L is therefore the last of those nine --- a
+    real accepted coloring, not a placeholder for one.
+    """
+
+    rest = [key for key in enumerate_valid_colorings(reference) if key not in shown]
+    assert len(rest) == reference["num_completions"] - len(shown)
+    return rest[-1]
+
+
 def draw_partial_graph(ax, reference: dict) -> None:
     positions = {
         1: (0.12, 0.80),
@@ -296,10 +355,10 @@ def draw_partial_graph(ax, reference: dict) -> None:
     ax.set_axis_off()
 
 
-def draw_canvas_card(fig):
-    """The whole figure is one rounded card, matching the paper's other two.
+def make_card_axes(fig):
+    """An inch-scaled axes behind everything, for drawing the group cards.
 
-    Drawn in an inch-scaled axes behind everything so the corner radius is the
+    Inch coordinates rather than figure fractions so a corner radius is the
     same 0.09in in both directions instead of following the figure's aspect.
     """
 
@@ -308,21 +367,49 @@ def draw_canvas_card(fig):
     card.set_xlim(0, width)
     card.set_ylim(0, height)
     card.set_axis_off()
+    return card
+
+
+def group_extent(fig, artists) -> Bbox:
+    """Tight bounds of a group of artists, in inches on the canvas."""
+    boxes = []
+    for artist in artists:
+        try:
+            box = artist.get_tightbbox(fig.canvas.get_renderer())
+        except TypeError:  # legends take no renderer argument on some versions
+            box = artist.get_window_extent()
+        if box is not None:
+            boxes.append(box.transformed(fig.dpi_scale_trans.inverted()))
+    return Bbox.union(boxes)
+
+
+def draw_group_card(card, extent: Bbox, *, top: float, bottom: float, pad: float = 0.17):
+    """One rounded pale-blue card behind a group of panels.
+
+    The figure carries two of these --- the prompt panel is one object and the
+    two trajectory panels with their shared key are another --- rather than a
+    single wash behind everything, so the grouping is visible before any label
+    is read. ``top`` and ``bottom`` are supplied by the caller and shared by
+    both cards, so the two are exactly the same height however deep their
+    contents happen to run; only their widths follow their contents.
+    """
+
     patch = FancyBboxPatch(
-        (0.02, 0.02),
-        width - 0.04,
-        height - 0.04,
+        (extent.x0 - pad, bottom),
+        extent.width + 2 * pad,
+        top - bottom,
         boxstyle="round,pad=0.0,rounding_size=0.09",
         facecolor=PANEL,
         edgecolor=GRID,
         linewidth=1.1,
         clip_on=False,
+        zorder=-1,
     )
     card.add_patch(patch)
     return patch
 
 
-def draw_option_row(ax, y: float, label: str, key: str) -> None:
+def draw_option_row(ax, y: float, label: str, key: str, color: str | None = None) -> None:
     # The option name carries its own series colour, so a row in panel A and
     # its segment in panels B and C are joined by colour as well as by name.
     # The circles beside it stay on the slate paint scale: they are the
@@ -334,7 +421,7 @@ def draw_option_row(ax, y: float, label: str, key: str) -> None:
         transform=ax.transAxes,
         fontsize=FONT,
         fontweight="bold",
-        color=MODE_COLORS[key],
+        color=color if color is not None else MODE_COLORS[key],
         ha="left",
         va="center",
     )
@@ -365,30 +452,30 @@ def draw_option_row(ax, y: float, label: str, key: str) -> None:
         )
 
 
+# Wrapped to three short lines rather than two long ones: panel A is about
+# 3.8in wide on the canvas, and the two-line form ran past its own card and
+# over the neighbouring one.
+PROMPT_QUESTION = (
+    "How can we color the three\n"
+    "uncolored nodes so that connected\n"
+    "nodes get different colors?"
+)
+
+
 def render_prompt_panel(ax, reference: dict) -> None:
     ax.set_axis_off()
-    panel_label(ax, "A", "One prompt, many answers")
-    # The prompt question is the figure title, so panel A spends its full
-    # upper half on the graph instead of repeating the question.
-    graph_ax = ax.inset_axes([0.0, 0.53, 0.58, 0.47])
+    # The question is panel A's own title now rather than a banner over all
+    # three panels: it describes the prompt, which is what A shows, and B and C
+    # are trajectories of two methods answering it.
+    panel_label(ax, "A", PROMPT_QUESTION)
+    # The graph starts below 1.0 rather than at it, so the three-line question
+    # above has clear air under it instead of sitting on the top node.
+    graph_ax = ax.inset_axes([0.159, 0.515, 0.58, 0.365])
     draw_partial_graph(graph_ax, reference)
-    rounded_box(ax, 0.612, 0.680, 0.345, 0.235, face=WHITE, edge=GRID)
-    ax.text(
-        0.7845,
-        0.7975,
-        "12 valid\nsolutions",
-        transform=ax.transAxes,
-        fontsize=FONT,
-        fontweight="bold",
-        color=INK,
-        ha="center",
-        va="center",
-        linespacing=1.25,
-    )
     ax.text(
         0.0,
-        0.440,
-        "Three valid colorings:",
+        0.330,
+        "Twelve valid colorings",
         transform=ax.transAxes,
         fontsize=FONT,
         color=MUTED,
@@ -396,12 +483,30 @@ def render_prompt_panel(ax, reference: dict) -> None:
         va="center",
     )
     options = [
-        ("Option A", "33221"),
-        ("Option B", "31223"),
-        ("Option C", "32213"),
+        ("Option A", "33221", None),
+        ("Option B", "31223", None),
+        ("Option C", "32213", None),
     ]
-    for y, (label, key) in zip((0.310, 0.155, 0.000), options):
-        draw_option_row(ax, y, label, key)
+    # The count is carried by the rows themselves --- three named, an ellipsis,
+    # then the twelfth --- instead of by a "12 valid solutions" callout. Option
+    # L is one of the nine the figure does not draw, so it wears the same
+    # colour those nine wear in the bar panels: "other valid".
+    last_key = twelfth_option(reference, tuple(key for _, key, _ in options))
+    assert_valid_coloring(last_key, reference)
+    for y, (label, key, color) in zip((0.200, 0.065, -0.070), options):
+        draw_option_row(ax, y, label, key, color)
+    ax.text(
+        0.055,
+        -0.190,
+        "⋮",
+        transform=ax.transAxes,
+        fontsize=FONT * 1.15,
+        fontweight="bold",
+        color=MUTED,
+        ha="center",
+        va="center",
+    )
+    draw_option_row(ax, -0.320, "Option L", last_key, OTHER)
 
 
 
@@ -417,7 +522,7 @@ def render_method_trajectory(
     show_ylabel: bool,
 ) -> dict:
     panel_label(ax, letter, title)
-    steps = [0, 48, 96, 192, 384, 576, 768]
+    steps = DISPLAY_STEPS
     centers = np.arange(len(steps), dtype=float)
     # Stacked bottom-up in legend order so the reading order of the stack and
     # the reading order of the legend agree.
@@ -452,8 +557,11 @@ def render_method_trajectory(
                 color=INK, ha="center", va="bottom")
     ax.set_ylim(0, 37.6)
     ax.set_xlim(-0.55, 6.55)
-    ax.set_xticks(centers, ["0", "48", "96", "192", "384", "576", "768"])
-    ax.set_xlabel("optimizer step (4 epochs)", labelpad=4)
+    # Labelled from the same list the bars are built from. These were a
+    # hardcoded copy and silently kept naming the old checkpoints when the
+    # window moved.
+    ax.set_xticks(centers, [str(step) for step in steps])
+    ax.set_xlabel(f"optimizer step ({END_EPOCH} epochs)", labelpad=4)
     ax.set_yticks([0, 8, 16, 24, 32])
     if show_ylabel:
         ax.set_ylabel("fixed-seed samples (of 32)", labelpad=4)
@@ -485,30 +593,30 @@ def main() -> None:
     # Drawn at the full text width, so the canvas is wide relative to its
     # height and every element keeps its printed font size while gaining room.
     fig = plt.figure(figsize=(CANVAS_WIDTH, CANVAS_HEIGHT))
-    card_patch = draw_canvas_card(fig)
-    fig.text(
-        0.034,
-        0.985,
-        "How can we color the three uncolored nodes so that connected nodes "
-        "get different colors?",
-        fontsize=FONT,
-        fontweight="bold",
-        color=INK,
-        ha="left",
-        va="top",
-    )
+    card_axes = make_card_axes(fig)
+    # The question moved into panel A's title, so there is no figure-wide
+    # banner and the panels start higher.
+    ratios = [4.05, 1.32, 4.02, 0.17, 4.02]
+    # The right edge leaves room for the B/C card's 0.17in pad, which at 0.992
+    # pushed the card past the canvas and clipped it.
+    grid_left, grid_right = 0.014, 0.987
     grid = fig.add_gridspec(
-        1, 5, width_ratios=[4.35, 0.65, 3.74, 0.17, 3.74],
-        left=0.034, right=0.992, top=0.845, bottom=0.270, wspace=0.0,
+        1, 5, width_ratios=ratios,
+        left=grid_left, right=grid_right, top=0.815, bottom=0.330, wspace=0.0,
     )
     axes = [fig.add_subplot(grid[0, index]) for index in (0, 2, 4)]
+    # Figure-fraction edges of the B/C block, derived from the gridspec rather
+    # than restated, so the key stays centred on it if the ratios ever change.
+    unit = (grid_right - grid_left) / sum(ratios)
+    BC_LEFT = grid_left + sum(ratios[:2]) * unit
+    BC_RIGHT = grid_right
     render_prompt_panel(axes[0], reference)
     dr_trajectory = render_method_trajectory(
         axes[1], dr, prompt_index, letter="B", title="GRPO",
         show_ylabel=True,
     )
     xdr_trajectory = render_method_trajectory(
-        axes[2], xdr, prompt_index, letter="C", title="x-mode GRPO",
+        axes[2], xdr, prompt_index, letter="C", title="historical treatment",
         show_ylabel=False,
     )
 
@@ -523,43 +631,114 @@ def main() -> None:
             ("invalid", INVALID),
         ]
     ]
-    # Sits in the bottom band the gridspec reserves for it, clear of the
-    # x-axis labels above.
+    # The key describes the bar segments in B and C only --- panel A has no
+    # stacked bars --- so it is centred on the B/C block rather than on the
+    # whole figure, and lives inside their card.
+    bc_centre = (BC_LEFT + BC_RIGHT) / 2
     fig.legend(
         handles=legend,
         loc="lower center",
         # Tucked up against the bar panels: at 0.004 it sat a visible band
         # below them and read as a separate object rather than their key.
-        bbox_to_anchor=(0.5, 0.070),
+        bbox_to_anchor=(bc_centre, 0.070),
         ncol=5,
         frameon=False,
         fontsize=FONT,
         handletextpad=0.45,
-        columnspacing=2.0,
+        columnspacing=1.4,
     )
     for entry in fig.legends[-1].get_texts():
         entry.set_color(LABEL_COLORS[entry.get_text()])
         entry.set_fontweight("bold")
 
-    # The legend's height is only known once it is laid out, so the wash and the
-    # saved crop are trimmed to its measured bottom rather than to a guessed
-    # fraction. This is what removes the band of orange under the key.
+    # Every extent below is measured after a draw rather than guessed: the
+    # legend's height in particular is only known once it is laid out, and it
+    # sets how far the B/C card has to reach.
     fig.canvas.draw()
+    keys = fig.legends[-1]
+    width, height = fig.get_size_inches()
+    # Centring the key on the B/C block can push it off the canvas, because its
+    # width is set by its five labels and not by the block. Measure it and pull
+    # it back inside if it overhangs; anything drawn past the canvas edge is
+    # simply not rendered.
+    key_box = keys.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    overhang = max(0.0, key_box.x1 - (width - 0.10)) - max(0.0, 0.10 - key_box.x0)
+    if abs(overhang) > 1e-3:
+        keys.set_bbox_to_anchor((bc_centre - overhang / width, 0.070))
+        fig.canvas.draw()
     # Trim to the legend's *text*, not its bounding box: the box carries the
     # legend's internal padding, which put an extra 0.07in of wash under the
     # visible labels on top of whatever margin was asked for.
     label_bottom = min(
         text.get_window_extent().transformed(fig.dpi_scale_trans.inverted()).y0
-        for text in fig.legends[-1].get_texts()
+        for text in keys.get_texts()
     )
-    width, _height = fig.get_size_inches()
-    card_bottom = max(0.02, label_bottom - 0.05)
-    card_patch.set_y(card_bottom)
-    card_patch.set_height(fig.get_size_inches()[1] - 0.02 - card_bottom)
+    # Panel A's contents sit higher than the bar panels' --- its three-line
+    # question reaches further above the axes than their one-line titles, and
+    # its last option row stops above their key. Centre the prompt axes on the
+    # bar block before the cards are drawn, so one rectangle can hug both
+    # tightly instead of the pair being level in height but offset on the page.
+    prompt_extent = group_extent(fig, [axes[0]])
+    bars_probe = group_extent(fig, [axes[1], axes[2], *keys.get_texts()])
+    drop = ((prompt_extent.y0 + prompt_extent.y1) - (bars_probe.y0 + bars_probe.y1)) / 2
+    if abs(drop) > 0.01:
+        box = axes[0].get_position()
+        axes[0].set_position(
+            [box.x0, box.y0 - drop / height, box.width, box.height]
+        )
+        fig.canvas.draw()
+    prompt_extent = group_extent(fig, [axes[0]])
+    # The key belongs to the bar panels, so their card has to hold it: it sets
+    # the card's width whenever the five labels run wider than the two panels,
+    # and its measured text bottom sets how far the card reaches down.
+    bars_extent = group_extent(fig, [axes[1], axes[2], *keys.get_texts()])
+    bars_extent = Bbox.from_extents(
+        bars_extent.x0,
+        min(bars_extent.y0, label_bottom),
+        bars_extent.x1,
+        bars_extent.y1,
+    )
+    # Each card hugs its own contents, then the shorter of the two is grown
+    # upward until the heights match. Forcing a single top *and* bottom across
+    # both instead left the bar card with a band of empty wash above it (the
+    # prompt's three-line question sets the top) and the prompt card with the
+    # same band below it (the key sets the bottom). Equal height was the
+    # requirement; a shared baseline was not.
+    # With the two blocks centred on each other, one shared rectangle hugs both
+    # without leaving a band above the bars or below the prompt.
+    pad = 0.17
+    card_top = max(prompt_extent.y1, bars_extent.y1) + pad
+    card_bottom = max(0.0, min(prompt_extent.y0, bars_extent.y0) - pad)
+    a_top = b_top = card_top
+    a_bottom = b_bottom = card_bottom
+    draw_group_card(card_axes, prompt_extent, top=card_top, bottom=card_bottom)
+    draw_group_card(card_axes, bars_extent, top=card_top, bottom=card_bottom)
+
+    if os.environ.get("STORY_LAYOUT_DEBUG"):
+        gap = (bars_extent.x0 - 0.17) - (prompt_extent.x1 + 0.17)
+        print(
+            f"[layout] canvas={width:.2f}x{height:.2f}in\n"
+            f"[layout] A card   x {prompt_extent.x0 - 0.17:6.2f} .."
+            f" {prompt_extent.x1 + 0.17:6.2f}\n"
+            f"[layout] BC card  x {bars_extent.x0 - 0.17:6.2f} .."
+            f" {bars_extent.x1 + 0.17:6.2f}\n"
+            f"[layout] gap between cards = {gap:.3f}in\n"
+            f"[layout] A content y {prompt_extent.y0:.2f} .. {prompt_extent.y1:.2f}"
+            f"  (h {prompt_extent.height:.2f})\n"
+            f"[layout] BC content y {bars_extent.y0:.2f} .. {bars_extent.y1:.2f}"
+            f"  (h {bars_extent.height:.2f})\n"
+            f"[layout] A card   y {a_bottom:.2f} .. {a_top:.2f}"
+            f"  (h {a_top - a_bottom:.2f})\n"
+            f"[layout] BC card  y {b_bottom:.2f} .. {b_top:.2f}"
+            f"  (h {b_top - b_bottom:.2f})",
+            file=sys.stderr,
+        )
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    # Crop to the cards themselves rather than the whole canvas, so removing the
+    # figure-wide banner does not leave a band of white above them.
     crop = Bbox.from_extents(
-        0.0, card_bottom - 0.012, width, fig.get_size_inches()[1]
+        0.0, card_bottom - 0.012, width, min(height, card_top + 0.05)
     )
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches=crop, pad_inches=0.035)
     fig.savefig(OUT.with_suffix(".png"), dpi=260, bbox_inches=crop, pad_inches=0.035)
@@ -572,12 +751,12 @@ def main() -> None:
         "layout_contract": {
             "panels": ["A", "B", "C"],
             "panel_titles": [
-                "One prompt, many answers",
+                PROMPT_QUESTION.replace("\n", " "),
                 "GRPO",
-                "x-mode GRPO",
+                "historical treatment",
             ],
-            "steps": [0, 48, 96, 192, 384, 576, 768],
-            "end_epoch": 4,
+            "steps": DISPLAY_STEPS,
+            "end_epoch": END_EPOCH,
             "paired_bars": False,
         },
         "sampling": {
@@ -591,8 +770,8 @@ def main() -> None:
             "rule": (
                 "Among prompts with >=3 observed valid modes at step 0, "
                 "a singleton Dr.GRPO distribution at epoch 2, and >=2 "
-                "xGRPO modes there, maximize xGRPO epoch-2 observed "
-                "modes, then xGRPO epoch-2 correct samples, then initial "
+                "historical-treatment modes there, maximize historical-treatment epoch-2 observed "
+                "modes, then historical-treatment epoch-2 correct samples, then initial "
                 "correct samples, then choose the lowest prompt index."
             ),
             "selection_step": 384,

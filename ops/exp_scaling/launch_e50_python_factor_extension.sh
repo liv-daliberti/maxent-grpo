@@ -202,7 +202,6 @@ export OAT_ZERO_INCLUDE_ONLINE_CANONICAL_HAARNOJA_ARM=1
 
 export OAT_ZERO_VERIFIED_DISCOVERY_TRACKING=1
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
@@ -346,7 +345,6 @@ payload = {
         "normalized_entropy_target": 0.80,
         "alpha_lr": 0.003,
         "ema_decay": 0.90,
-        "novelty_beta": 0.50,
         "pseudocount": 1.0,
         "surprisal_clip": 5.0,
     },
@@ -467,7 +465,6 @@ for job_id in "${job_ids[@]}"; do
   if [[ "$job_record" == *'OAT_ZERO_VARIANT=grpo'* ]]; then
     for required in \
       'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0' \
-      'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0' \
       'OAT_ZERO_ONLINE_CANONICAL_DUAL_TARGET_RATIO=0.0'; do
       if [[ "$job_record" != *"$required"* ]]; then
         echo "E50 Python Dr.GRPO audit failed for $job_id: missing $required" >&2
@@ -478,7 +475,6 @@ for job_id in "${job_ids[@]}"; do
     for required in \
       'OAT_ZERO_VARIANT=online_canonical_haarnoja' \
       'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10' \
-      'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50' \
       'OAT_ZERO_ONLINE_CANONICAL_DUAL_TARGET_RATIO=0.80' \
       'OAT_ZERO_ONLINE_CANONICAL_DUAL_MIN_ALPHA=0.10' \
       'OAT_ZERO_ONLINE_CANONICAL_DUAL_MAX_ALPHA=inf' \

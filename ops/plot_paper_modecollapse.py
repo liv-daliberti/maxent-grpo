@@ -8,6 +8,7 @@ pass-12 checkpoint; incomplete cohorts fail closed instead of being averaged.
 
 from __future__ import annotations
 
+import glob
 import json
 from pathlib import Path
 import sys
@@ -45,7 +46,7 @@ MODE_COLORS = list(style.MODE_RAMP)
 
 # The arm colours the trajectory panels draw with. These deliberately shadow
 # ``e68_plot.BLUE``/``ORANGE``: that module paints matched Dr.GRPO blue and
-# xGRPO orange, which is the opposite of the orange/teal the E72 figures use
+# the historical-treatment orange, which is the opposite of the orange/teal the E72 figures use
 # for the same two arms. Colour follows the entity, so the shared definition
 # wins and the historical one is not imported for drawing.
 ARM_COLOR = {e68_plot.CONTROL: CONTROL, e68_plot.TREATMENT: METHOD}
@@ -202,7 +203,7 @@ def render_story() -> None:
     text(ax, 0.482, 0.072, "no force restores a missed mode", size=6.8, color=MUTED, ha="center")
 
     text(ax, 0.668, 0.842, "C", size=11.5, weight="bold", color=METHOD, va="center")
-    text(ax, 0.701, 0.842, "xGRPO", size=10.5, weight="bold", va="center")
+    text(ax, 0.701, 0.842, "historical treatment", size=10.5, weight="bold", va="center")
     text(ax, 0.701, 0.755, "online verified MaxEnt", size=7.0, color=MUTED, va="center")
     rounded_box(ax, 0.676, 0.630, 0.083, 0.086, face=WHITE, edge=METHOD, radius=0.012)
     rounded_box(ax, 0.780, 0.630, 0.083, 0.086, face=WHITE, edge=METHOD, radius=0.012)
@@ -318,26 +319,33 @@ def _require_terminal_audits() -> None:
 def _e68_training_points(
     _document: dict,
     domain: str,
+    passes: tuple[float, ...] | None = None,
 ) -> tuple[list[dict], int, tuple[int, ...]]:
-    """Load five seeds at five displayed checkpoints through audited pass 12."""
+    """Load five seeds at the displayed checkpoints, through audited pass 12.
+
+    ``passes`` selects which evaluated checkpoints are returned for drawing.
+    The pass-12 endpoint audit below always runs regardless, so narrowing the
+    drawn window can never quietly skip the check that every seed reached the
+    audited terminal checkpoint.
+    """
 
     _require_terminal_audits()
     prefix, steps_per_pass = E70_TRAIN_DOMAIN_SPECS[domain]
     points = _load_training_points(prefix, steps_per_pass)
     frozen_pass = 12
     seeds = PAPER_SEEDS
-    points = [
+    paired = [
         point
         for point in points
         if point["arm"] in {e68_plot.CONTROL, e68_plot.TREATMENT}
-        and float(point["passes"]) in PLOT_PASSES
     ]
+    # Audited on the full series, before any window is applied.
     for metric in E68_TRAIN_METRICS:
         for arm in (e68_plot.CONTROL, e68_plot.TREATMENT):
             for seed in seeds:
                 endpoint = [
                     point
-                    for point in points
+                    for point in paired
                     if point["arm"] == arm
                     and point["seed"] == seed
                     and float(point["passes"]) == frozen_pass
@@ -348,7 +356,9 @@ def _e68_training_points(
                         f"{domain}: expected one {metric} endpoint for "
                         f"{arm}/seed {seed} at pass 12, got {len(endpoint)}"
                     )
-    return points, frozen_pass, seeds
+    window = passes if passes is not None else PLOT_PASSES
+    drawn = [point for point in paired if float(point["passes"]) in window]
+    return drawn, frozen_pass, seeds
 
 
 def _complete_mean(points, arm, metric, seeds):
@@ -454,7 +464,7 @@ def _e68_training_legend() -> list[Line2D]:
         Line2D(
             [], [], color=METHOD, lw=style.MEAN_LW,
             linestyle=style.ARM_DASH[METHOD],
-            label="xGRPO",
+            label="historical treatment",
         ),
         Line2D(
             [], [], color=MUTED, lw=style.SEED_LW, alpha=0.38,
@@ -533,9 +543,15 @@ def render_e68_training() -> None:
     plt.close(fig)
 
 
+# Figure 4 is drawn through four epochs rather than twelve. Completed rows fill
+# that window; live rows stop at the deepest checkpoint shared by both arms and
+# shade the unmeasured remainder. The pass-12 endpoints the manuscript reports
+# are unaffected and still audited against Table 1 before anything is drawn.
+MODES_WINDOW = (0, 1, 2, 3, 4)
+
 MODES_METRIC = "distinct8"
 # Frozen pass-12 five-seed means transcribed into `tab:main-results`, keyed by
-# domain as (matched Dr.GRPO, xGRPO). Rendering aborts rather than publish a
+# domain as (matched Dr.GRPO, historical treatment). Rendering aborts rather than publish a
 # curve whose endpoint no longer reproduces the manuscript table.
 FROZEN_MODE_ENDPOINTS = {
     "Graph coloring": (0.325, 2.406),
@@ -544,6 +560,217 @@ FROZEN_MODE_ENDPOINTS = {
     "MathIR action menu": (0.666, 0.926),
     "PantryPlan": (0.634, 2.186),
 }
+
+
+
+# --- second model family -----------------------------------------------------
+# The cross-family cohort trains the same two arms on Falcon3-1B-Instruct. It is
+# read here directly from run telemetry rather than through a frozen curve. The
+# Falcon cohort is terminal; the shared endpoint rule remains active so a
+# missing or regressed cell cannot silently be carried forward.
+FAMILY_FALCON = "falcon3_1b_instruct"
+FAMILY_QWEN3B = "qwen25_3b_instruct"
+# Graph coloring and PantryPlan were launched on the full twelve-pass budget;
+# the other three were launched capped at four, which is the window this figure
+# draws, and their stamps say so. Each domain lists the shorter cohort first so
+# a capped run supersedes a full-length one of the same domain if both exist.
+QWEN3B_PREFIXES = {
+    "Graph coloring": ("gce74_qwen3b_4pass", "gce74_qwen3b_12pass"),
+    "Countdown": ("cde74_qwen3b_4pass", "cde74_qwen3b_12pass"),
+    "Python factors": ("pye74_qwen3b_4pass", "pye74_qwen3b_12pass"),
+    "MathIR action menu": ("mie74_qwen3b_4pass", "mie74_qwen3b_12pass"),
+    "PantryPlan": ("ppe74_qwen3b_4pass", "ppe74_qwen3b_12pass"),
+}
+QWEN3B_VARIANT = {
+    e68_plot.CONTROL: ("grpo_compute_matched", "grpo"),
+    e68_plot.TREATMENT: (
+        "verified_first_global_replay_canonical",
+        "xgrpo",
+    ),
+}
+# A second-model row must reach this depth in this many domains before it is
+# worth a row of its own.
+#
+# Set to one deliberately so an explicitly interim scale row can appear as soon
+# as one domain has a substantive paired trajectory. Domains without paired
+# evidence remain shaded end to end; this gate is presentation-only and does
+# not promote an in-flight row into a reported endpoint.
+MIN_ROW_STEPS = 384 * 3
+MIN_ROW_DOMAINS = 1
+FALCON_TAG = "falcon3_1b_instruct"
+FALCON_PREFIXES = {
+    "Graph coloring": ("gce73_falcon3_1b_12pass",),
+    "Countdown": ("cde73_falcon3_1b_12pass",),
+    "Python factors": ("pye73_falcon3_1b_12pass_r1", "pye73_falcon3_1b_12pass"),
+    "MathIR action menu": ("mie73_falcon3_1b_12pass_r1", "mie73_falcon3_1b_12pass"),
+    "PantryPlan": ("ppe73_falcon3_1b_12pass",),
+}
+FALCON_VARIANT = {
+    e68_plot.CONTROL: ("grpo_compute_matched", "grpo"),
+    e68_plot.TREATMENT: (
+        "verified_first_global_replay_canonical",
+        "verified_first_global_replay_canonical",
+    ),
+}
+FALCON_KEY = "eval/multi_answer/sampled_distinct_correct_at_8"
+FALCON_STEPS_PER_PASS = 384
+
+
+def _family_points(domain: str, arm: str, tag: str, prefixes: dict, variants: dict) -> dict:
+    """Per-step #modes for one family, domain, and arm, pooled across seeds."""
+
+    variant, stamp_arm = variants[arm]
+    for prefix in prefixes[domain]:
+        pattern = f"var/data/xdr_{tag}_{variant}_{prefix}_{stamp_arm}_s4[3-7]"
+        directories = sorted(ROOT.glob(pattern))
+        if not directories:
+            continue
+        out: dict = {}
+        for run_dir in directories:
+            # Retries can leave multiple debug_job directories for one seed.
+            # Collapse them to one observation per seed/checkpoint before
+            # pooling seeds, or retries would receive extra statistical weight.
+            run_points: dict[int, float] = {}
+            paths = sorted(
+                glob.glob(str(run_dir / "debug_job*" / "train_metrics.jsonl"))
+            )
+            for path in paths:
+                with open(path, encoding="utf-8") as handle:
+                    for line in handle:
+                        try:
+                            record = json.loads(line)
+                        except ValueError:
+                            continue
+                        if FALCON_KEY in record:
+                            step = int(record.get("misc/global_step", -1))
+                            run_points[step] = float(record[FALCON_KEY])
+            for step, value in run_points.items():
+                out.setdefault(step, []).append(value)
+        # A relaunched cohort supersedes the original; the two are never pooled.
+        return out
+    return {}
+
+
+def _family_common_endpoint(domain: str, tag: str, prefixes: dict, variants: dict) -> int:
+    """Deepest step every one of a domain's cells has evaluated."""
+
+    depths: list[int] = []
+    for arm in (e68_plot.CONTROL, e68_plot.TREATMENT):
+        variant, stamp_arm = variants[arm]
+        found = False
+        for prefix in prefixes[domain]:
+            pattern = f"var/data/xdr_{tag}_{variant}_{prefix}_{stamp_arm}_s4[3-7]"
+            directories = sorted(ROOT.glob(pattern))
+            if not directories:
+                continue
+            found = True
+            for run_dir in directories:
+                steps = [-1]
+                for path in glob.glob(
+                    str(run_dir / "debug_job*" / "train_metrics.jsonl")
+                ):
+                    with open(path, encoding="utf-8") as handle:
+                        for line in handle:
+                            try:
+                                record = json.loads(line)
+                            except ValueError:
+                                continue
+                            if FALCON_KEY in record:
+                                steps.append(int(record.get("misc/global_step", -1)))
+                depths.append(max(steps))
+            break
+        if not found:
+            # An arm with no run directory at all is depth zero, not absent.
+            # Skipping it let a domain whose treatment arm had never started
+            # report its control arm's depth as the *common* endpoint, which is
+            # exactly the case this gate exists to keep out of the figure.
+            return 0
+    return min(depths) if depths else 0
+
+
+def _plot_family_axis(
+    axis, domain: str, tag: str, prefixes: dict, variants: dict,
+    max_pass: int = 12,
+) -> list[float]:
+    """One second-model panel: mean and seed range, drawn only as far as measured.
+
+    ``max_pass`` clips both the drawn series and the not-measured shading to the
+    figure's window. Without it a row kept plotting past the window --- harmless
+    only because the axis limit hid it --- and shaded toward a hardcoded pass 12
+    that this figure no longer reaches.
+    """
+
+    plotted: list[float] = []
+    window_step = max_pass * FALCON_STEPS_PER_PASS
+    endpoint = min(
+        _family_common_endpoint(domain, tag, prefixes, variants), window_step
+    )
+    for arm, zorder in ((e68_plot.CONTROL, 2), (e68_plot.TREATMENT, 3)):
+        points = _family_points(domain, arm, tag, prefixes, variants)
+        steps = sorted(step for step in points if 0 <= step <= endpoint)
+        if not steps:
+            continue
+        color = ARM_COLOR[arm]
+        passes = [step / FALCON_STEPS_PER_PASS for step in steps]
+        means = [sum(points[s]) / len(points[s]) for s in steps]
+        lows = [min(points[s]) for s in steps]
+        highs = [max(points[s]) for s in steps]
+        plotted.extend(highs)
+        plotted.extend(lows)
+        axis.fill_between(
+            passes, lows, highs, color=color, alpha=style.BAND_ALPHA,
+            linewidth=0, zorder=1,
+        )
+        axis.plot(
+            passes, means, color=color, lw=style.MEAN_LW,
+            linestyle=style.ARM_DASH[color], zorder=zorder + 2,
+        )
+    if endpoint < window_step:
+        # Say where the evidence stops, on the axis rather than in a caption.
+        axis.axvspan(
+            endpoint / FALCON_STEPS_PER_PASS, max_pass,
+            color=GRID, alpha=0.45, linewidth=0, zorder=0,
+        )
+    return plotted
+
+
+def _family_panel_status(
+    domain: str,
+    tag: str,
+    prefixes: dict,
+    variants: dict,
+    *,
+    max_pass: int,
+) -> str:
+    """Reader-facing boundary for an interim single-seed family panel."""
+
+    window_step = max_pass * FALCON_STEPS_PER_PASS
+    endpoint = min(
+        _family_common_endpoint(domain, tag, prefixes, variants), window_step
+    )
+    if endpoint >= window_step:
+        return f"paired through epoch {max_pass:g}"
+    if endpoint > 0:
+        return f"paired to epoch {endpoint / FALCON_STEPS_PER_PASS:g}"
+    has_initial_pair = all(
+        0 in _family_points(domain, arm, tag, prefixes, variants)
+        for arm in (e68_plot.CONTROL, e68_plot.TREATMENT)
+    )
+    return "initial eval only" if has_initial_pair else "awaiting paired eval"
+
+
+TERMINAL_FALCON_STEP = 4608
+
+
+SECOND_MODEL_ROWS = (
+    ("Falcon3-1B", FALCON_TAG, FALCON_PREFIXES, FALCON_VARIANT),
+    (
+        "Qwen2.5-3B\ninterim, seed 43",
+        FAMILY_QWEN3B,
+        QWEN3B_PREFIXES,
+        QWEN3B_VARIANT,
+    ),
+)
 
 
 def render_modes_by_epoch() -> Path:
@@ -557,21 +784,46 @@ def render_modes_by_epoch() -> Path:
 
     document: dict = {}
     out = OUT_TRAINING.with_name("modes_per_epoch")
+    # One row per model checkpoint, sharing the domain columns and the vertical
+    # scale: the claim is that the same collapse appears on each, and a shared
+    # scale is what lets a reader see that without arithmetic.
+    #
+    # A second-model row joins the figure only once it can carry a reading. A
+    # cohort a few hundred steps into a 4,608-step budget draws a stub against a
+    # full-width axis and three empty panels beside it, which looks like a
+    # broken figure rather than an early one --- and it costs the main body a
+    # page it does not have. The threshold is on measured depth, so the row
+    # appears by itself when the runs get there.
+    extra_rows = [
+        row
+        for row in SECOND_MODEL_ROWS
+        if sum(
+            _family_common_endpoint(domain, row[1], row[2], row[3]) >= MIN_ROW_STEPS
+            for domain in DOMAINS
+        )
+        >= MIN_ROW_DOMAINS
+    ]
+    rows = 1 + len(extra_rows)
     fig, axes = plt.subplots(
-        1,
+        rows,
         len(DOMAINS),
-        figsize=(style.WIDTH, 2.15),
+        figsize=(style.WIDTH, 1.08 + 0.94 * rows),
         squeeze=False,
         sharey=True,
+        sharex=True,
         constrained_layout=True,
     )
     ceiling = 0.0
-    for panel_index, (axis, domain) in enumerate(zip(axes.flat, DOMAINS)):
-        points, frozen_pass, seeds = _e68_training_points(document, domain)
+    for panel_index, (axis, domain) in enumerate(zip(axes[0], DOMAINS)):
+        # Two reads of the same cohort: the full series still has to reproduce
+        # the manuscript's pass-12 endpoint, and only then is the drawn window
+        # narrowed. Checking the narrowed series instead would compare an
+        # epoch-4 mean against a pass-12 number and always fail.
+        full_points, frozen_pass, seeds = _e68_training_points(document, domain)
         for arm_index, arm in enumerate(
             (e68_plot.CONTROL, e68_plot.TREATMENT)
         ):
-            _, means, _, _ = _complete_mean(points, arm, MODES_METRIC, seeds)
+            _, means, _, _ = _complete_mean(full_points, arm, MODES_METRIC, seeds)
             frozen = FROZEN_MODE_ENDPOINTS[domain][arm_index]
             if not means or abs(means[-1] - frozen) > 5e-4:
                 raise ValueError(
@@ -579,7 +831,8 @@ def render_modes_by_epoch() -> Path:
                     f"correct@8 is {means[-1] if means else None}, but the "
                     f"manuscript reports {frozen}"
                 )
-        _plot_e68_training_axis(axis, points, MODES_METRIC, frozen_pass, seeds)
+        points, _, _ = _e68_training_points(document, domain, passes=MODES_WINDOW)
+        _plot_e68_training_axis(axis, points, MODES_METRIC, MODES_WINDOW[-1], seeds)
         ceiling = max(ceiling, axis.get_ylim()[1])
         axis.axhline(
             1.0,
@@ -589,17 +842,58 @@ def render_modes_by_epoch() -> Path:
             zorder=0,
         )
         axis.set_title(domain, fontsize=style.TITLE_FONT, color=INK, pad=3)
-        # The reporting grid is 0, 3, 6, 9, 12; the shared styler relabels the
-        # axis on an even locator, so restore the evaluated checkpoints.
-        axis.set_xticks(PLOT_PASSES)
+        # The shared styler relabels on an even locator, so restore the
+        # evaluated checkpoints of the drawn window.
+        axis.set_xticks(MODES_WINDOW)
         if panel_index == 0:
             # Same name the results table uses for `distinct@8`. Rendered by
             # matplotlib's own text engine, so the `#` needs no LaTeX escape.
-            axis.set_ylabel("#modes", fontsize=style.LABEL_FONT, labelpad=2)
+            axis.set_ylabel("#modes\nQwen2.5-0.5B", fontsize=style.LABEL_FONT, labelpad=2)
+
+    for row_index, (row_label, tag, prefixes, variants) in enumerate(
+        extra_rows, start=1
+    ):
+        for panel_index, (axis, domain) in enumerate(zip(axes[row_index], DOMAINS)):
+            values = _plot_family_axis(
+                axis, domain, tag, prefixes, variants, max_pass=MODES_WINDOW[-1]
+            )
+            ceiling = max(ceiling, max(values) * 1.08 if values else 0.0)
+            axis.axhline(1.0, color=MUTED, lw=0.75, ls=(0, (3, 2)), zorder=0)
+            axis.set_xlim(0, MODES_WINDOW[-1])
+            axis.set_xticks(MODES_WINDOW)
+            style.style_axis(axis)
+            if tag == FAMILY_QWEN3B:
+                axis.text(
+                    0.97,
+                    0.94,
+                    _family_panel_status(
+                        domain,
+                        tag,
+                        prefixes,
+                        variants,
+                        max_pass=MODES_WINDOW[-1],
+                    ),
+                    transform=axis.transAxes,
+                    ha="right",
+                    va="top",
+                    fontsize=style.SMALL_FONT - 0.9,
+                    color=MUTED,
+                    bbox={
+                        "facecolor": WHITE,
+                        "edgecolor": "none",
+                        "alpha": 0.88,
+                        "pad": 1.0,
+                    },
+                    zorder=8,
+                )
+            if panel_index == 0:
+                axis.set_ylabel(
+                    f"#modes\n{row_label}", fontsize=style.LABEL_FONT, labelpad=2
+                )
 
     axes.flat[0].set_ylim(0.0, ceiling)
     axes.flat[0].text(
-        6.0,
+        MODES_WINDOW[-1] / 2,
         1.06,
         "one mode",
         fontsize=style.SMALL_FONT,

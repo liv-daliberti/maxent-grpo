@@ -1,10 +1,6 @@
 from types import SimpleNamespace
 
 from oat_drgrpo.learner.run import ZeroMathRunMixin
-from oat_drgrpo.canonical_replay import (
-    CanonicalReplayInverseController,
-    CanonicalReplayLikelihoodController,
-)
 from oat_drgrpo.maxent_controllers import MaxEntDualController
 from oat_drgrpo.maxent_length_controller import MaxEntLengthController
 from oat_drgrpo.xdr_tau_controller import XdrTauController
@@ -255,75 +251,6 @@ def test_maxent_length_controller_fails_without_expected_length_metric():
 
     with pytest.raises(RuntimeError, match="expected-length"):
         learner._update_maxent_length_controller({})
-
-
-def test_canonical_replay_controller_uses_only_observed_model_score_entropy():
-    learner = _ProgressMetricHarness()
-    learner.strategy = _IdentityReduceStrategy()
-    learner._canonical_replay_controller = CanonicalReplayInverseController(
-        base_alpha=0.1,
-        warmup_steps=1,
-        ema_decay=0.0,
-    )
-
-    first = {
-        "canonical_replay_normalized_model_entropy": 0.8,
-        "canonical_replay_eligible_groups": 1.0,
-    }
-    learner._update_canonical_replay_controller(first)
-    assert first["canonical_replay_next_alpha"] == pytest.approx(0.1)
-
-    collapsed = {
-        "canonical_replay_normalized_model_entropy": 0.08,
-        "canonical_replay_eligible_groups": 1.0,
-    }
-    learner._update_canonical_replay_controller(collapsed)
-    assert collapsed["canonical_replay_next_alpha"] == pytest.approx(1.0)
-    assert collapsed["canonical_replay_projection_active"] == 0.0
-    assert learner.strategy.calls[-1] == {
-        "canonical_replay_entropy_weighted": 0.08,
-        "canonical_replay_eligibility_weight": 1.0,
-    }
-
-    idle = {}
-    observations = learner._canonical_replay_controller.observation_count
-    learner._update_canonical_replay_controller(idle)
-    assert idle["canonical_replay_observation_skipped"] == 1.0
-    assert (
-        learner._canonical_replay_controller.observation_count
-        == observations
-    )
-
-
-def test_canonical_replay_mass_controller_uses_its_own_verified_surprisal():
-    learner = _ProgressMetricHarness()
-    learner.strategy = _IdentityReduceStrategy()
-    learner._canonical_replay_mass_controller = (
-        CanonicalReplayLikelihoodController(
-            base_alpha=0.1,
-            warmup_steps=1,
-            ema_decay=0.0,
-        )
-    )
-
-    first = {
-        "canonical_replay_actuator_loss": 2.0,
-        "canonical_replay_actuator_groups": 1.0,
-    }
-    learner._update_canonical_replay_mass_controller(first)
-    assert first["canonical_replay_mass_next_alpha"] == pytest.approx(0.1)
-
-    degraded = {
-        "canonical_replay_actuator_loss": 8.0,
-        "canonical_replay_actuator_groups": 1.0,
-    }
-    learner._update_canonical_replay_mass_controller(degraded)
-    assert degraded["canonical_replay_mass_next_alpha"] == pytest.approx(0.4)
-    assert degraded["canonical_replay_mass_projection_active"] == 0.0
-    assert learner.strategy.calls[-1] == {
-        "canonical_replay_mass_surprisal_weighted": 8.0,
-        "canonical_replay_mass_eligibility_weight": 1.0,
-    }
 
 
 def test_length_controller_resume_presence_must_match_checkpoint():

@@ -48,7 +48,7 @@ class ZeroMathArgs(PPOArgs):
     # semantic policy-gradient advantage. When enabled, xDr's detached row
     # weights are computed from the ordinary task advantage captured before
     # semantic augmentation; the actor still optimizes the combined advantage.
-    # This prevents semantic novelty from being counted once in the advantage
+    # This prevents semantic MaxEnt from being counted once in the advantage
     # and again through the aggregation weights.
     xdr_task_advantage_weights: bool = False
     xdr_mode_adaptive: bool = False
@@ -87,6 +87,10 @@ class ZeroMathArgs(PPOArgs):
     maxent_control_max_alpha: float = 0.5
     maxent_control_ema_decay: float = 0.9
     maxent_control_gain: float = 1.0
+    # Regulate the dual controller on the masked-mean token entropy the run
+    # already reports as `train/entropy`, rather than on the objective's own
+    # estimator. Required whenever the target was measured from that telemetry.
+    maxent_observe_masked_mean_entropy: bool = False
     maxent_dual_target_ratio: float = 0.0
     maxent_dual_target_entropy: float = 0.0
     maxent_dual_warmup_steps: int = 64
@@ -158,30 +162,37 @@ class ZeroMathArgs(PPOArgs):
     # False preserves both E38 and E41 exactly.
     semantic_shannon_quality_gated_advantage: bool = False
     semantic_shannon_quality_gated_cap: float = 0.05
-    # E43 keeps the E42 success-conditioned support/history contract but
-    # retains both signs of the predictor-centered advantage. Only active,
-    # parseable, reward-positive rows receive pressure; their signed
-    # advantages are clamped symmetrically. False preserves E38/E41/E42.
+    # Success-conditioned semantic MaxEnt uses the catalogue-free open-set
+    # predictor with one structural unseen bucket and this fixed coefficient.
+    # Only active, parseable, reward-positive rows receive its signed pressure.
     semantic_shannon_success_conditioned_signed_advantage: bool = False
     semantic_shannon_success_conditioned_signed_cap: float = 0.05
-    # E56 optionally replaces E43's fixed, projected semantic coefficient with
-    # a projection-free inverse controller driven only by the model's own
-    # normalized open-set predictive entropy. No catalogue size, gold support,
-    # or desired entropy is supplied.
-    semantic_shannon_open_set_inverse_adaptation: bool = False
-    semantic_shannon_open_set_warmup_steps: int = 64
-    semantic_shannon_open_set_ema_decay: float = 0.9
+
+    # E88 adaptive semantic MaxEnt. The coefficient is moved so that the
+    # realized ratio of semantic-advantage RMS to task-advantage RMS tracks
+    # `semantic_rms_target_ratio`. The controller observes only those two
+    # quantities and the eligible fraction; it never sees evaluation behavior.
+    # It refuses an observation rather than extrapolating when the semantic
+    # signal is degenerate, which is what keeps the singleton case safe.
+    semantic_rms_control: bool = False
+    semantic_rms_target_ratio: float = 0.05
+    semantic_rms_min_coefficient: float = 0.02
+    semantic_rms_max_coefficient: float = 0.40
+    semantic_rms_ema_decay: float = 0.98
+    semantic_rms_gain: float = 0.5
+    semantic_rms_max_step_ratio: float = 1.1
+    semantic_rms_warmup_steps: int = 64
+    semantic_rms_min_eligible_fraction: float = 0.05
 
     # Online growing-support canonical MaxEnt. A prompt-local bank contains
     # only validator-positive canonical strategies produced on-policy. The
-    # learner adds a bounded bank-entropy score plus a one-time per-class
-    # discovery bonus after ordinary Dr.GRPO task centering.
+    # learner adds a bounded bank-entropy score after ordinary Dr.GRPO task
+    # centering.
     # The bank also runs passively by default for ordinary Dr.GRPO so normal
     # runs report cumulative verified discoveries and mean verified support
     # per prompt without altering rewards, advantages, or gradients.
     verified_discovery_tracking: bool = True
     online_canonical_bank_alpha: float = 0.0
-    online_canonical_novelty_beta: float = 0.0
     online_canonical_bank_pseudocount: float = 1.0
     online_canonical_bank_surprisal_clip: float = 5.0
     # Haarnoja-style log-alpha control against the exact post-update ratio
@@ -202,10 +213,23 @@ class ZeroMathArgs(PPOArgs):
     # Default-off verified exemplar replay. Once a prompt has at least two
     # observed validator-positive modes, teacher-forced model scores over one
     # stored exemplar per mode are balanced with KL(U_bank || q_model).
-    # Its separate inverse coefficient is calibrated only from the model's
-    # normalized entropy over the observed bank and has no alpha projection.
+    # Replay and optional balance use the fixed coefficients below.
     online_canonical_replay: bool = False
     online_canonical_replay_alpha: float = 0.1
+    # Default-off bank normalization of the replay dose. Uniform replay splits
+    # `alpha` across the banked modes, so each mode receives `alpha / n` and a
+    # prompt that has discovered *more* modes protects each one *less* -- the
+    # opposite of the per-mode recurrent dose the retention argument relies on.
+    # When enabled the dose becomes `per_mode_coefficient * n`, holding per-mode
+    # pressure at a constant. No new ceiling is introduced: `n` is already
+    # bounded by `online_canonical_replay_capacity`, so the dose is bounded by
+    # `per_mode_coefficient * capacity`.
+    online_canonical_replay_bank_normalized: bool = False
+    # Registered as .10 / E[n], where E[n] = 3.08 is the mean bank occupancy
+    # measured over the 25 fixed-dose replay cells of E78. That choice holds
+    # total replay mass equal to the fixed arm in expectation, so the arm
+    # redistributes a matched dose across bank sizes rather than adding one.
+    online_canonical_replay_per_mode_coefficient: float = 0.0325
     # "bank_balance" is E53's conditioned-bank reverse KL. The successor
     # "verified_likelihood" keeps the same target-free sensor but gives the
     # actuator a non-zero common verified-mode score gradient.
@@ -228,11 +252,7 @@ class ZeroMathArgs(PPOArgs):
     # replay (global_groups_per_step=0) or unlimited global replay. The phase is
     # checkpointed and never observes evaluation or exhaustive support.
     online_canonical_replay_global_bootstrap_steps: int = 0
-    online_canonical_replay_warmup_steps: int = 64
-    online_canonical_replay_ema_decay: float = 0.9
     online_canonical_replay_mass_alpha: float = 0.1
-    online_canonical_replay_mass_warmup_steps: int = 64
-    online_canonical_replay_mass_ema_decay: float = 0.9
     # Compute-matched negative control: retain and teacher-force the same
     # verified replay banks, including the backward traversal, but replace the
     # replay score derivative by exact zeros before it reaches the optimizer.
@@ -246,14 +266,13 @@ class ZeroMathArgs(PPOArgs):
     # parameters, not support or entropy targets.
     online_canonical_counterfactual_proposals: bool = False
     # Keep proposal-derived replay exemplars out of the on-policy count table
-    # used by the canonical entropy/novelty advantage. This permits a literal
+    # used by the canonical entropy advantage. This permits a literal
     # E58 objective plus a replay-support actuator without off-policy proposal
     # outcomes changing any neutral-rollout advantage.
     online_canonical_counterfactual_separate_objective_support: bool = False
-    # E65: allow support-only proposals only for a singleton verified bank
-    # while the unprojected open-set controller reports entropy below the
-    # model's own warmup reference. At most one novel outcome is admitted.
-    online_canonical_counterfactual_singleton_entropy_gate: bool = False
+    # Restrict support-only proposals to a singleton verified bank. At most
+    # one new verified outcome is admitted; no adaptive sensor is consulted.
+    online_canonical_counterfactual_singleton_only: bool = False
     online_canonical_counterfactual_anchor_max_tokens: int = 256
     online_canonical_counterfactual_max_attempts: int = 3
     online_canonical_counterfactual_sampling_temperature: float = 1.0
@@ -484,24 +503,8 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             0.05,
         )
     )
-    semantic_shannon_open_set_inverse_adaptation = bool(
-        getattr(
-            args,
-            "semantic_shannon_open_set_inverse_adaptation",
-            False,
-        )
-    )
-    semantic_shannon_open_set_warmup_steps = int(
-        getattr(args, "semantic_shannon_open_set_warmup_steps", 64)
-    )
-    semantic_shannon_open_set_ema_decay = float(
-        getattr(args, "semantic_shannon_open_set_ema_decay", 0.9)
-    )
     online_canonical_bank_alpha = float(
         getattr(args, "online_canonical_bank_alpha", 0.0) or 0.0
-    )
-    online_canonical_novelty_beta = float(
-        getattr(args, "online_canonical_novelty_beta", 0.0) or 0.0
     )
     online_canonical_bank_pseudocount = float(
         getattr(args, "online_canonical_bank_pseudocount", 1.0)
@@ -573,20 +576,8 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             0,
         )
     )
-    online_canonical_replay_warmup_steps = int(
-        getattr(args, "online_canonical_replay_warmup_steps", 64)
-    )
-    online_canonical_replay_ema_decay = float(
-        getattr(args, "online_canonical_replay_ema_decay", 0.9)
-    )
     online_canonical_replay_mass_alpha = float(
         getattr(args, "online_canonical_replay_mass_alpha", 0.1)
-    )
-    online_canonical_replay_mass_warmup_steps = int(
-        getattr(args, "online_canonical_replay_mass_warmup_steps", 64)
-    )
-    online_canonical_replay_mass_ema_decay = float(
-        getattr(args, "online_canonical_replay_mass_ema_decay", 0.9)
     )
     online_canonical_counterfactual_proposals = bool(
         getattr(
@@ -602,10 +593,10 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             False,
         )
     )
-    online_canonical_counterfactual_singleton_entropy_gate = bool(
+    online_canonical_counterfactual_singleton_only = bool(
         getattr(
             args,
-            "online_canonical_counterfactual_singleton_entropy_gate",
+            "online_canonical_counterfactual_singleton_only",
             False,
         )
     )
@@ -634,18 +625,16 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     math_strategy_allow_unstructured_inference = bool(
         getattr(args, "math_strategy_allow_unstructured_inference", False)
     )
-    online_canonical_bank_active = (
-        online_canonical_bank_alpha > 0.0 or online_canonical_novelty_beta > 0.0
-    )
+    online_canonical_bank_active = online_canonical_bank_alpha > 0.0
     online_canonical_objective_active = (
         online_canonical_bank_active or online_canonical_replay
     )
-    for name, value in (
-        ("online_canonical_bank_alpha", online_canonical_bank_alpha),
-        ("online_canonical_novelty_beta", online_canonical_novelty_beta),
+    if not math.isfinite(online_canonical_bank_alpha) or (
+        online_canonical_bank_alpha < 0
     ):
-        if not math.isfinite(value) or value < 0:
-            raise ValueError(f"{name} must be finite and non-negative")
+        raise ValueError(
+            "online_canonical_bank_alpha must be finite and non-negative"
+        )
     for name, value in (
         ("online_canonical_bank_pseudocount", online_canonical_bank_pseudocount),
         (
@@ -685,11 +674,18 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError(
             "online_canonical_policy_entropy_ema_decay must be finite and in [0, 1)"
         )
-    if (
-        not math.isfinite(online_canonical_replay_alpha)
-        or online_canonical_replay_alpha <= 0
+    if not math.isfinite(online_canonical_replay_alpha) or (
+        online_canonical_replay_alpha < 0
+        or (
+            online_canonical_replay_alpha == 0
+            and online_canonical_replay_objective
+            != "split_mass_balance_per_rollout"
+        )
     ):
-        raise ValueError("online_canonical_replay_alpha must be finite and positive")
+        raise ValueError(
+            "online_canonical_replay_alpha must be finite and positive, or "
+            "exactly zero for a split mass/balance ablation"
+        )
     if online_canonical_replay_objective not in {
         "bank_balance",
         "verified_likelihood",
@@ -701,10 +697,35 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "verified_likelihood or verified_likelihood_per_rollout or "
             "split_mass_balance_per_rollout"
         )
-    if online_canonical_replay_warmup_steps <= 0:
-        raise ValueError("online_canonical_replay_warmup_steps must be positive")
     if online_canonical_replay_capacity < 2:
         raise ValueError("online_canonical_replay_capacity must be at least two")
+    online_canonical_replay_bank_normalized = bool(
+        getattr(args, "online_canonical_replay_bank_normalized", False)
+    )
+    online_canonical_replay_per_mode_coefficient = float(
+        getattr(args, "online_canonical_replay_per_mode_coefficient", 0.0325)
+    )
+    if online_canonical_replay_bank_normalized and not online_canonical_replay:
+        raise ValueError(
+            "online_canonical_replay_bank_normalized requires "
+            "online_canonical_replay"
+        )
+    if not math.isfinite(online_canonical_replay_per_mode_coefficient) or (
+        online_canonical_replay_per_mode_coefficient <= 0.0
+    ):
+        raise ValueError(
+            "online_canonical_replay_per_mode_coefficient must be finite "
+            "and positive"
+        )
+    if online_canonical_replay_bank_normalized and bool(
+        getattr(args, "online_canonical_replay_compute_only", False)
+    ):
+        # The compute-matched control zeroes the replay derivative, so a dose
+        # rule would be measured on a term that never reaches the optimizer.
+        raise ValueError(
+            "online_canonical_replay_bank_normalized conflicts with "
+            "online_canonical_replay_compute_only"
+        )
     if online_canonical_replay_global_groups_per_step < 0:
         raise ValueError(
             "online_canonical_replay_global_groups_per_step must be non-negative"
@@ -728,28 +749,17 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "online_canonical_replay_global_bootstrap_steps requires "
             "positive global groups per step"
         )
-    if (
-        not math.isfinite(online_canonical_replay_ema_decay)
-        or not 0 <= online_canonical_replay_ema_decay < 1
-    ):
-        raise ValueError(
-            "online_canonical_replay_ema_decay must be finite and in [0, 1)"
+    if not math.isfinite(online_canonical_replay_mass_alpha) or (
+        online_canonical_replay_mass_alpha < 0
+        or (
+            online_canonical_replay_mass_alpha == 0
+            and online_canonical_replay_objective
+            != "split_mass_balance_per_rollout"
         )
-    if (
-        not math.isfinite(online_canonical_replay_mass_alpha)
-        or online_canonical_replay_mass_alpha <= 0
     ):
         raise ValueError(
-            "online_canonical_replay_mass_alpha must be finite and positive"
-        )
-    if online_canonical_replay_mass_warmup_steps <= 0:
-        raise ValueError("online_canonical_replay_mass_warmup_steps must be positive")
-    if (
-        not math.isfinite(online_canonical_replay_mass_ema_decay)
-        or not 0 <= online_canonical_replay_mass_ema_decay < 1
-    ):
-        raise ValueError(
-            "online_canonical_replay_mass_ema_decay must be finite and in [0, 1)"
+            "online_canonical_replay_mass_alpha must be finite and positive, "
+            "or exactly zero for a split mass/balance ablation"
         )
     if (
         bool(getattr(args, "online_canonical_replay_compute_only", False))
@@ -845,9 +855,9 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "counterfactual canonical proposals require executable "
                 "ModeBench outcome keys or verified route identities"
             )
-        if (
-            online_canonical_bank_alpha != 0.0 or online_canonical_novelty_beta != 0.0
-        ) and not (online_canonical_counterfactual_separate_objective_support):
+        if online_canonical_bank_alpha != 0.0 and not (
+            online_canonical_counterfactual_separate_objective_support
+        ):
             raise ValueError(
                 "proposal support cannot feed an on-policy canonical-bank advantage"
             )
@@ -860,14 +870,13 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "separate counterfactual objective support requires "
             "counterfactual proposals"
         )
-    if online_canonical_counterfactual_singleton_entropy_gate:
-        if not online_canonical_counterfactual_proposals:
-            raise ValueError("singleton entropy gate requires counterfactual proposals")
-        if not semantic_shannon_open_set_inverse_adaptation:
-            raise ValueError(
-                "singleton entropy gate requires model-derived open-set "
-                "inverse entropy adaptation"
-            )
+    if (
+        online_canonical_counterfactual_singleton_only
+        and not online_canonical_counterfactual_proposals
+    ):
+        raise ValueError(
+            "singleton-only support expansion requires counterfactual proposals"
+        )
     if (
         online_canonical_policy_entropy_adaptation
         and online_canonical_dual_target_ratio > 0
@@ -943,7 +952,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "(*_boxed, fast, multi_answer) or sealed route-development "
                 "MATH (*_math_route, math_verify, math_dev)"
             )
-        if online_canonical_bank_alpha != 0.0 or online_canonical_novelty_beta != 0.0:
+        if online_canonical_bank_alpha != 0.0:
             raise ValueError(
                 "verified-route neutral learning keeps canonical advantages "
                 "at zero and uses conservative replay only"
@@ -1106,6 +1115,40 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "semantic_shannon_success_conditioned_signed_advantage requires "
             "semantic_shannon_separate_advantage"
         )
+    if bool(getattr(args, "semantic_rms_control", False)):
+        if not semantic_shannon_success_conditioned_signed_advantage:
+            raise ValueError(
+                "semantic_rms_control requires the success-conditioned signed "
+                "semantic advantage"
+            )
+        if semantic_shannon_coef <= 0:
+            raise ValueError(
+                "semantic_rms_control requires a positive starting "
+                "semantic_shannon_coef"
+            )
+        ratio = float(getattr(args, "semantic_rms_target_ratio", 0.0))
+        if not math.isfinite(ratio) or ratio <= 0:
+            raise ValueError("semantic_rms_target_ratio must be finite and positive")
+        low = float(getattr(args, "semantic_rms_min_coefficient", 0.0))
+        high = float(getattr(args, "semantic_rms_max_coefficient", 0.0))
+        if not 0 < low <= high:
+            raise ValueError(
+                "semantic_rms coefficient bounds must satisfy 0 < min <= max"
+            )
+        if not low <= semantic_shannon_coef <= high:
+            raise ValueError(
+                "semantic_shannon_coef must start inside the registered "
+                "semantic_rms coefficient bounds"
+            )
+        decay = float(getattr(args, "semantic_rms_ema_decay", 0.0))
+        if not 0 <= decay < 1:
+            raise ValueError("semantic_rms_ema_decay must be in [0, 1)")
+        if float(getattr(args, "semantic_rms_gain", 0.0)) <= 0:
+            raise ValueError("semantic_rms_gain must be positive")
+        if float(getattr(args, "semantic_rms_max_step_ratio", 0.0)) <= 1:
+            raise ValueError("semantic_rms_max_step_ratio must exceed 1")
+        if int(getattr(args, "semantic_rms_warmup_steps", -1)) < 0:
+            raise ValueError("semantic_rms_warmup_steps must be non-negative")
     if (
         semantic_shannon_success_conditioned_signed_advantage
         and semantic_shannon_quality_gated_advantage
@@ -1113,23 +1156,6 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError(
             "semantic Shannon quality-gated and success-conditioned signed "
             "advantages are separate treatments"
-        )
-    if (
-        semantic_shannon_open_set_inverse_adaptation
-        and not semantic_shannon_success_conditioned_signed_advantage
-    ):
-        raise ValueError(
-            "semantic_shannon_open_set_inverse_adaptation requires the "
-            "success-conditioned signed semantic advantage"
-        )
-    if semantic_shannon_open_set_warmup_steps <= 0:
-        raise ValueError("semantic_shannon_open_set_warmup_steps must be positive")
-    if (
-        not math.isfinite(semantic_shannon_open_set_ema_decay)
-        or not 0 <= semantic_shannon_open_set_ema_decay < 1
-    ):
-        raise ValueError(
-            "semantic_shannon_open_set_ema_decay must be finite and in [0, 1)"
         )
     xdr_task_advantage_weights = bool(
         getattr(args, "xdr_task_advantage_weights", False)
@@ -1182,17 +1208,17 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "semantic Shannon shaping and DIAYN answer options are "
                 "separate treatments"
             )
-        open_set_inverse_maxent_composition = (
-            semantic_shannon_open_set_inverse_adaptation
+        open_set_maxent_composition = (
+            semantic_shannon_success_conditioned_signed_advantage
             and bool(getattr(args, "maxent_inverse_adaptation", False))
             and str(getattr(args, "maxent_objective", "sequence"))
             == "conditional_token_mean"
         )
-        if maxent_alpha > 0 and not open_set_inverse_maxent_composition:
+        if maxent_alpha > 0 and not open_set_maxent_composition:
             raise ValueError(
                 "semantic Shannon shaping and direct MaxEnt are separate "
-                "treatments except for open-set semantic inverse adaptation "
-                "with inverse conditional-token MaxEnt"
+                "treatments except for open-set semantic MaxEnt "
+                "with fixed conditional-token MaxEnt"
             )
         if float(args.seed_entropy_alpha) > 0:
             raise ValueError(
@@ -1208,16 +1234,25 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "separate treatments"
             )
     if online_canonical_objective_active:
-        open_set_split_replay_composition = (
-            semantic_shannon_open_set_inverse_adaptation
+        # Open-set semantic MaxEnt composes with either replay objective. The
+        # split objective is the historical E43/E56 pairing; the uniform
+        # verified-likelihood objective is the E78 replay arm, and admitting it
+        # is what lets semantic MaxEnt be measured against verified replay
+        # without also inheriting the balance loss.
+        open_set_replay_composition = (
+            semantic_shannon_success_conditioned_signed_advantage
             and online_canonical_replay
-            and online_canonical_replay_objective == "split_mass_balance_per_rollout"
+            and online_canonical_replay_objective
+            in {
+                "split_mass_balance_per_rollout",
+                "verified_likelihood_per_rollout",
+            }
         )
-        if semantic_shannon_coef > 0 and not open_set_split_replay_composition:
+        if semantic_shannon_coef > 0 and not open_set_replay_composition:
             raise ValueError(
                 "online canonical bank and semantic Shannon are separate "
-                "treatments except for open-set semantic inverse adaptation "
-                "with split mass/balance replay"
+                "treatments except for open-set semantic MaxEnt "
+                "with split mass/balance or uniform verified-likelihood replay"
             )
         if outcome_collision_coef > 0:
             raise ValueError(
@@ -1235,7 +1270,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         if maxent_alpha > 0 and not inverse_fixed_canonical_hybrid:
             raise ValueError(
                 "online canonical bank and token-policy MaxEnt are separate "
-                "treatments except for inverse conditional-token MaxEnt with "
+                "treatments except for fixed conditional-token MaxEnt with "
                 "a fixed canonical coefficient"
             )
         if float(args.seed_entropy_alpha) > 0:

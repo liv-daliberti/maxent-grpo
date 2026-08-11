@@ -70,7 +70,6 @@ def test_e52_held_audit_separates_control_direct_and_hybrid_actuators():
         "'OAT_ZERO_MAXENT_INVERSE_EMA_DECAY=0.90'",
         'OAT_ZERO_VARIANT=maxent_inverse_canonical',
         "'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10'",
-        "'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50'",
     ):
         assert required in launcher
 

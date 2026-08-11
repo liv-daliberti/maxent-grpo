@@ -127,7 +127,7 @@ def test_ineligible_rows_neither_change_support_nor_history():
     assert counts == {"common": 4, "rare": 1}
 
 
-def test_symmetric_cap_clamps_both_common_and_rare_successes():
+def test_fixed_coefficient_does_not_apply_the_legacy_symmetric_cap():
     tracker = _tracker(cap=0.001)
     _score(
         tracker,
@@ -141,12 +141,13 @@ def test_symmetric_cap_clamps_both_common_and_rare_successes():
         task_rewards=[1.0] * 4,
     )
 
-    assert advantages[:3] == pytest.approx([-0.001] * 3)
-    assert advantages[3] == pytest.approx(0.001)
-    assert diagnostics.effective_advantage_min == pytest.approx(-0.001)
-    assert diagnostics.effective_advantage_max == pytest.approx(0.001)
-    assert diagnostics.negative_cap_fraction == pytest.approx(0.75)
-    assert diagnostics.positive_cap_fraction == pytest.approx(0.25)
+    assert all(value < -0.001 for value in advantages[:3])
+    assert advantages[3] > 0.001
+    assert diagnostics.effective_advantage_min < -0.001
+    assert diagnostics.effective_advantage_max > 0.001
+    assert diagnostics.negative_cap_fraction == 0.0
+    assert diagnostics.positive_cap_fraction == 0.0
+    assert diagnostics.advantage_cap == 0.0
 
 
 def test_signed_history_round_trip_and_disabled_schema_compatibility():
@@ -159,7 +160,7 @@ def test_signed_history_round_trip_and_disabled_schema_compatibility():
     state = copy.deepcopy(tracker.state_dict())
     assert (
         state["schema"]
-        == "semantic_shannon_tracker_v3_success_conditioned_signed"
+        == "semantic_shannon_tracker_v5_fixed_open_set"
     )
     assert state["success_conditioned_signed_cap"] == pytest.approx(0.05)
     assert state["rows_scored"] == 2

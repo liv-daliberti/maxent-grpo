@@ -135,7 +135,6 @@ def main() -> None:
             reward = float(item.get("actor/rewards", 0.0)); positive += reward > 0
             multimode += float(item.get("train/online_canonical_support_at_least_two_prompt_fraction", 0.0)) > 0
             semantic_nonzero += float(item.get("train/semantic_shannon_separate_semantic_advantage_rms", 0.0)) > 0
-            novelty_nonzero += float(item.get("train/online_canonical_novelty_advantage_rms", 0.0)) > 0
             eligible = float(item.get("train/canonical_replay_eligible_groups", 0.0)); replay_eligible += eligible > 0
             applied = float(item.get("train/canonical_replay_applied_score_gradient_l2", 0.0)); applied_replay_nonzero += applied > 0
             raw = max(

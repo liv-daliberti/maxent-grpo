@@ -55,7 +55,6 @@ for job_id in "${ALL_IDS[@]}"; do
   for required in \
     'JobState=PENDING' 'Reason=JobHeldUser' 'Account=allcs' \
     'OAT_ZERO_VARIANT=verified_first_global_replay_canonical' \
-    'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50' \
     'OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=0'; do
     [[ "$record" == *"$required"* ]] || {
       echo "E66 resume hold audit failed for $job_id: $required" >&2

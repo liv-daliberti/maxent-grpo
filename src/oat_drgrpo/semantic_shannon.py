@@ -142,17 +142,8 @@ class SemanticShannonSuccessConditionedSignedDiagnostics:
     history_groups_skipped: float
     tracked_prompts: float
     tracked_outcomes: float
-    open_set_inverse_adaptation_active: float
     open_set_coefficient_used: float
-    open_set_observed_normalized_entropy: float
-    open_set_entropy_ema: float
-    open_set_reference_entropy: float
-    open_set_inverse_multiplier: float
-    open_set_next_coefficient: float
-    open_set_observations: float
-    open_set_warmup_complete: float
-    open_set_observation_skipped: float
-    open_set_projection_active: float
+    open_set_normalized_entropy_mean: float
 
 
 @dataclass(frozen=True)
@@ -177,8 +168,8 @@ def open_set_success_semantic_signal(
 
     ``explicit_counts`` contains only prior and leave-one-out peer successful
     outcomes. One structural unseen bucket is always added. The returned
-    centered pressure is coefficient-free, so a projection-free controller
-    can scale it without changing this predictive distribution.
+    centered pressure is coefficient-free and is scaled by the fixed semantic
+    MaxEnt coefficient without changing this predictive distribution.
     """
 
     pseudocount = float(pseudocount)
@@ -238,206 +229,6 @@ def open_set_success_semantic_signal(
     )
 
 
-@dataclass
-class OpenSetSemanticInverseController:
-    """Projection-free inverse control from open-set predictive entropy."""
-
-    base_coefficient: float
-    warmup_steps: int
-    ema_decay: float
-    current_coefficient: float | None = None
-    entropy_ema: float | None = None
-    reference_entropy: float | None = None
-    observation_count: int = 0
-    _warmup_entropy_sum: float = 0.0
-
-    def __post_init__(self) -> None:
-        self.base_coefficient = self._positive(
-            self.base_coefficient,
-            "base_coefficient",
-        )
-        if int(self.warmup_steps) <= 0:
-            raise ValueError("warmup_steps must be positive")
-        self.warmup_steps = int(self.warmup_steps)
-        self.ema_decay = float(self.ema_decay)
-        if not math.isfinite(self.ema_decay) or not 0 <= self.ema_decay < 1:
-            raise ValueError("ema_decay must be finite and in [0, 1)")
-        if self.current_coefficient is None:
-            self.current_coefficient = self.base_coefficient
-        self.current_coefficient = self._positive(
-            self.current_coefficient,
-            "current_coefficient",
-        )
-        if self.entropy_ema is not None:
-            self.entropy_ema = self._entropy(
-                self.entropy_ema,
-                "entropy_ema",
-            )
-        if self.reference_entropy is not None:
-            self.reference_entropy = self._entropy(
-                self.reference_entropy,
-                "reference_entropy",
-            )
-
-    @staticmethod
-    def _positive(value: float, name: str) -> float:
-        result = float(value)
-        if not math.isfinite(result) or result <= 0:
-            raise ValueError(f"{name} must be finite and positive")
-        return result
-
-    @staticmethod
-    def _entropy(value: float, name: str) -> float:
-        result = float(value)
-        if not math.isfinite(result) or not 0 < result <= 1 + 1e-6:
-            raise ValueError(f"{name} must be finite and in (0, 1]")
-        return min(result, 1.0)
-
-    def observe(self, normalized_predictive_entropy: float) -> dict[str, float]:
-        value = self._entropy(
-            normalized_predictive_entropy,
-            "normalized_predictive_entropy",
-        )
-        coefficient_before = float(self.current_coefficient)
-        self.observation_count += 1
-        if self.entropy_ema is None:
-            self.entropy_ema = value
-        else:
-            self.entropy_ema = (
-                self.ema_decay * self.entropy_ema
-                + (1.0 - self.ema_decay) * value
-            )
-
-        if self.observation_count <= self.warmup_steps:
-            self._warmup_entropy_sum += value
-            self.current_coefficient = self.base_coefficient
-            if self.observation_count == self.warmup_steps:
-                self.reference_entropy = self._positive(
-                    self._warmup_entropy_sum / self.warmup_steps,
-                    "warmup entropy reference",
-                )
-            multiplier = 1.0
-        else:
-            if self.reference_entropy is None:
-                raise RuntimeError(
-                    "open-set semantic control lacks its warmup reference"
-                )
-            if self.entropy_ema is None or self.entropy_ema <= 0:
-                raise ValueError(
-                    "open-set predictive entropy EMA must remain positive"
-                )
-            multiplier = self.reference_entropy / self.entropy_ema
-            self.current_coefficient = self._positive(
-                self.base_coefficient * multiplier,
-                "current_coefficient",
-            )
-        diagnostics = {
-            "semantic_open_set_observed_normalized_entropy": value,
-            "semantic_open_set_entropy_ema": float(self.entropy_ema),
-            "semantic_open_set_inverse_multiplier": float(multiplier),
-            "semantic_open_set_coefficient_before": coefficient_before,
-            "semantic_open_set_next_coefficient": float(
-                self.current_coefficient
-            ),
-            "semantic_open_set_observations": float(self.observation_count),
-            "semantic_open_set_warmup_complete": float(
-                self.observation_count >= self.warmup_steps
-            ),
-            "semantic_open_set_projection_active": 0.0,
-        }
-        if self.reference_entropy is not None:
-            diagnostics["semantic_open_set_reference_entropy"] = float(
-                self.reference_entropy
-            )
-        return diagnostics
-
-    def idle_diagnostics(self) -> dict[str, float]:
-        diagnostics = {
-            "semantic_open_set_inverse_multiplier": (
-                float(self.current_coefficient) / self.base_coefficient
-            ),
-            "semantic_open_set_next_coefficient": float(
-                self.current_coefficient
-            ),
-            "semantic_open_set_observations": float(self.observation_count),
-            "semantic_open_set_warmup_complete": float(
-                self.observation_count >= self.warmup_steps
-            ),
-            "semantic_open_set_projection_active": 0.0,
-            "semantic_open_set_observation_skipped": 1.0,
-        }
-        if self.entropy_ema is not None:
-            diagnostics["semantic_open_set_entropy_ema"] = float(
-                self.entropy_ema
-            )
-        if self.reference_entropy is not None:
-            diagnostics["semantic_open_set_reference_entropy"] = float(
-                self.reference_entropy
-            )
-        return diagnostics
-
-    def state_dict(self) -> dict[str, Any]:
-        return {
-            "controller_kind": "semantic_open_set_inverse",
-            "controller_rule": (
-                "unprojected_warmup_inverse_open_set_entropy_v1"
-            ),
-            "base_coefficient": self.base_coefficient,
-            "warmup_steps": self.warmup_steps,
-            "ema_decay": self.ema_decay,
-            "current_coefficient": float(self.current_coefficient),
-            "entropy_ema": self.entropy_ema,
-            "reference_entropy": self.reference_entropy,
-            "observation_count": self.observation_count,
-            "warmup_entropy_sum": self._warmup_entropy_sum,
-        }
-
-    def load_state_dict(self, state: dict[str, Any]) -> None:
-        if not isinstance(state, dict):
-            raise ValueError("open-set controller state must be a dict")
-        if state.get("controller_kind") != "semantic_open_set_inverse":
-            raise ValueError("checkpoint contains a different controller")
-        if state.get("controller_rule") != (
-            "unprojected_warmup_inverse_open_set_entropy_v1"
-        ):
-            raise ValueError("checkpoint uses an incompatible controller rule")
-        for name in ("base_coefficient", "ema_decay"):
-            if not math.isclose(
-                float(state.get(name, math.nan)),
-                float(getattr(self, name)),
-                rel_tol=0.0,
-                abs_tol=1e-12,
-            ):
-                raise ValueError(f"resume mismatch for {name}")
-        if int(state.get("warmup_steps", -1)) != self.warmup_steps:
-            raise ValueError("resume mismatch for warmup_steps")
-        self.current_coefficient = self._positive(
-            state.get("current_coefficient"),
-            "current_coefficient",
-        )
-        raw_ema = state.get("entropy_ema")
-        self.entropy_ema = (
-            None if raw_ema is None else self._entropy(raw_ema, "entropy_ema")
-        )
-        raw_reference = state.get("reference_entropy")
-        self.reference_entropy = (
-            None
-            if raw_reference is None
-            else self._entropy(raw_reference, "reference_entropy")
-        )
-        self.observation_count = int(state.get("observation_count", -1))
-        self._warmup_entropy_sum = float(
-            state.get("warmup_entropy_sum", math.nan)
-        )
-        if (
-            self.observation_count < 0
-            or not math.isfinite(self._warmup_entropy_sum)
-            or self._warmup_entropy_sum < 0
-        ):
-            raise ValueError(
-                "checkpoint contains invalid open-set controller state"
-            )
-
 
 def _prompt_key(prompt_token_ids: Sequence[int]) -> str:
     """Return a stable identity for one unpadded tokenized prompt."""
@@ -471,9 +262,11 @@ class SemanticShannonTracker:
     ``p_i = (n_x(a_i) + m_{-i}(a_i) + alpha) /
             (N_x + G - 1 + alpha * (K_i + 1))``
 
-    when ``a_i`` is in the explicit support.  Otherwise the answer is scored
-    through the unseen bucket with numerator ``alpha``.  The intrinsic reward
-    is ``c * (min(-log(p_i), S) / S - 1)``, hence it is always in ``[-c, 0]``.
+    when ``a_i`` is in the explicit support. Otherwise the answer is scored
+    through the unseen bucket with numerator ``alpha``. The legacy shaping
+    path emits a bounded intrinsic reward; separate-advantage paths instead
+    center surprisal under the detached predictor. In fixed open-set mode that
+    centered signal is multiplied directly by the configured coefficient.
     """
 
     def __init__(
@@ -486,9 +279,6 @@ class SemanticShannonTracker:
         quality_gated_cap: float = 0.05,
         success_conditioned_signed_advantage: bool = False,
         success_conditioned_signed_cap: float = 0.05,
-        open_set_inverse_adaptation: bool = False,
-        open_set_warmup_steps: int = 64,
-        open_set_ema_decay: float = 0.9,
     ) -> None:
         coefficient = float(coefficient)
         surprisal_clip = float(surprisal_clip)
@@ -501,7 +291,6 @@ class SemanticShannonTracker:
         success_conditioned_signed_cap = float(
             success_conditioned_signed_cap
         )
-        open_set_inverse_adaptation = bool(open_set_inverse_adaptation)
         if not math.isfinite(coefficient) or coefficient < 0.0:
             raise ValueError("coefficient must be finite and non-negative")
         if not math.isfinite(surprisal_clip) or surprisal_clip <= 0.0:
@@ -522,14 +311,6 @@ class SemanticShannonTracker:
                 "quality-gated and success-conditioned signed modes are "
                 "mutually exclusive"
             )
-        if (
-            open_set_inverse_adaptation
-            and not success_conditioned_signed_advantage
-        ):
-            raise ValueError(
-                "open-set inverse adaptation requires the "
-                "success-conditioned signed mode"
-            )
         self.coefficient = coefficient
         self.surprisal_clip = surprisal_clip
         self.pseudocount = pseudocount
@@ -540,16 +321,6 @@ class SemanticShannonTracker:
         )
         self.success_conditioned_signed_cap = (
             success_conditioned_signed_cap
-        )
-        self.open_set_inverse_adaptation = open_set_inverse_adaptation
-        self._open_set_controller = (
-            OpenSetSemanticInverseController(
-                base_coefficient=coefficient,
-                warmup_steps=open_set_warmup_steps,
-                ema_decay=open_set_ema_decay,
-            )
-            if open_set_inverse_adaptation
-            else None
         )
         self._counts: dict[str, dict[str, int]] = {}
         self._groups_scored = 0
@@ -562,62 +333,6 @@ class SemanticShannonTracker:
     @property
     def tracked_outcome_count(self) -> int:
         return sum(len(counts) for counts in self._counts.values())
-
-    def singleton_escape_gate_diagnostics(self) -> dict[str, float]:
-        """Expose a target-free collapse gate for support-only proposals.
-
-        The gate uses the same model-derived entropy controller that scales
-        the open-set semantic coefficient. It activates only after fixed
-        warmup and only when the entropy EMA is below the model's own warmup
-        reference. It reads no task support, desired entropy, or evaluation
-        signal.
-        """
-
-        controller = self._open_set_controller
-        if controller is None:
-            return {
-                "available": 0.0,
-                "warmup_complete": 0.0,
-                "entropy_below_self_reference": 0.0,
-                "active": 0.0,
-                "inverse_multiplier": 1.0,
-            }
-        warmup_complete = (
-            controller.observation_count >= controller.warmup_steps
-            and controller.reference_entropy is not None
-            and controller.entropy_ema is not None
-        )
-        inverse_multiplier = (
-            float(controller.current_coefficient)
-            / float(controller.base_coefficient)
-        )
-        entropy_below_self_reference = bool(
-            warmup_complete
-            and float(controller.entropy_ema)
-            < float(controller.reference_entropy)
-        )
-        return {
-            "available": 1.0,
-            "warmup_complete": float(warmup_complete),
-            "entropy_below_self_reference": float(
-                entropy_below_self_reference
-            ),
-            "active": float(
-                entropy_below_self_reference and inverse_multiplier > 1.0
-            ),
-            "inverse_multiplier": inverse_multiplier,
-            "entropy_ema": (
-                0.0
-                if controller.entropy_ema is None
-                else float(controller.entropy_ema)
-            ),
-            "reference_entropy": (
-                0.0
-                if controller.reference_entropy is None
-                else float(controller.reference_entropy)
-            ),
-            "observations": float(controller.observation_count),
-        }
 
     def state_dict(self) -> dict[str, Any]:
         """Return all estimator state required for exact training resume."""
@@ -637,31 +352,14 @@ class SemanticShannonTracker:
         if self.success_conditioned_signed_advantage:
             state.update(
                 {
-                    "schema": (
-                        "semantic_shannon_tracker_v3_"
-                        "success_conditioned_signed"
-                    ),
+                    "schema": "semantic_shannon_tracker_v5_fixed_open_set",
+                    "fixed_open_set": True,
                     "success_conditioned_signed_advantage": True,
                     "success_conditioned_signed_cap": (
                         self.success_conditioned_signed_cap
                     ),
                 }
             )
-            if self.open_set_inverse_adaptation:
-                if self._open_set_controller is None:
-                    raise RuntimeError("open-set controller is missing")
-                state.update(
-                    {
-                        "schema": (
-                            "semantic_shannon_tracker_v4_"
-                            "open_set_inverse"
-                        ),
-                        "open_set_inverse_adaptation": True,
-                        "open_set_controller": (
-                            self._open_set_controller.state_dict()
-                        ),
-                    }
-                )
         elif self.quality_gated_advantage:
             state.update(
                 {
@@ -675,14 +373,8 @@ class SemanticShannonTracker:
     def load_state_dict(self, state: dict[str, Any]) -> None:
         """Restore counts while rejecting any estimator-contract mismatch."""
 
-        if self.open_set_inverse_adaptation:
-            expected_schema = (
-                "semantic_shannon_tracker_v4_open_set_inverse"
-            )
-        elif self.success_conditioned_signed_advantage:
-            expected_schema = (
-                "semantic_shannon_tracker_v3_success_conditioned_signed"
-            )
+        if self.success_conditioned_signed_advantage:
+            expected_schema = "semantic_shannon_tracker_v5_fixed_open_set"
         elif self.quality_gated_advantage:
             expected_schema = "semantic_shannon_tracker_v2_quality_gated"
         else:
@@ -694,6 +386,10 @@ class SemanticShannonTracker:
                 raise ValueError(
                     "semantic Shannon tracker success-conditioned signed "
                     "mode is invalid"
+                )
+            if state.get("fixed_open_set") is not True:
+                raise ValueError(
+                    "semantic Shannon tracker fixed open-set mode is invalid"
                 )
             try:
                 saved_cap = float(state["success_conditioned_signed_cap"])
@@ -713,16 +409,6 @@ class SemanticShannonTracker:
                     "success_conditioned_signed_cap: "
                     f"saved={saved_cap!r} "
                     f"configured={self.success_conditioned_signed_cap!r}"
-                )
-            if self.open_set_inverse_adaptation:
-                if state.get("open_set_inverse_adaptation") is not True:
-                    raise ValueError(
-                        "semantic Shannon open-set inverse mode is invalid"
-                    )
-                if self._open_set_controller is None:
-                    raise RuntimeError("open-set controller is missing")
-                self._open_set_controller.load_state_dict(
-                    state.get("open_set_controller")
                 )
         elif self.quality_gated_advantage:
             if state.get("quality_gated_advantage") is not True:
@@ -1479,12 +1165,10 @@ class SemanticShannonTracker:
         ``clamp(A_raw_i, -success_conditioned_signed_cap,
                 success_conditioned_signed_cap)``.
 
-        In E56's open-set mode the same validator-only history is augmented by
-        one structural unseen bucket. Its coefficient is controlled by that
-        predictor's own normalized entropy with no coefficient projection and
-        no gold support target. Every ineligible row receives exact zero and
-        has no effect on scoring or history. Therefore an all-wrong group is
-        an exact no-op.
+        The validator-only history is augmented by one structural unseen
+        bucket and scaled by the fixed semantic MaxEnt coefficient. Every
+        ineligible row receives exact zero and has no effect on scoring or
+        history. Therefore an all-wrong group is an exact no-op.
         """
 
         if not self.success_conditioned_signed_advantage:
@@ -1569,13 +1253,7 @@ class SemanticShannonTracker:
         history_rows_added = 0
         history_groups_updated = 0
         history_groups_skipped = 0
-        open_set_controller = self._open_set_controller
-        coefficient_used = (
-            float(open_set_controller.current_coefficient)
-            if open_set_controller is not None
-            else self.coefficient
-        )
-        advantage_scale = coefficient_used / self.surprisal_clip
+        coefficient_used = self.coefficient
         normalized_predictive_entropies: list[float] = []
 
         for start in range(0, row_count, group_size):
@@ -1604,128 +1282,47 @@ class SemanticShannonTracker:
                 peer_counts[answer_key] -= 1
                 if peer_counts[answer_key] == 0:
                     del peer_counts[answer_key]
-                if open_set_controller is not None:
-                    explicit_counts = dict(history)
-                    for key, count in peer_counts.items():
-                        explicit_counts[key] = (
-                            explicit_counts.get(key, 0) + int(count)
-                        )
-                    if not explicit_counts:
-                        raw_eligible_advantages.append(0.0)
-                        effective_advantages.append(0.0)
-                        history_totals.append(history_total)
-                        continue
-                    signal = open_set_success_semantic_signal(
-                        explicit_counts=explicit_counts,
-                        sampled_key=answer_key,
-                        pseudocount=self.pseudocount,
-                        surprisal_clip=self.surprisal_clip,
+                explicit_counts = dict(history)
+                for key, count in peer_counts.items():
+                    explicit_counts[key] = (
+                        explicit_counts.get(key, 0) + int(count)
                     )
-                    raw_advantage = (
-                        coefficient_used
-                        * signal.centered_clipped_surprisal
-                    )
-                    effective_advantage = raw_advantage
-                    clipped_surprisal = min(
-                        -math.log(signal.realized_probability),
-                        self.surprisal_clip,
-                    )
-                    predictive_baseline = (
-                        clipped_surprisal
-                        - signal.centered_clipped_surprisal
-                        * self.surprisal_clip
-                    )
-                    raw_eligible_advantages.append(raw_advantage)
-                    effective_advantages.append(effective_advantage)
-                    predictive_baselines.append(predictive_baseline)
-                    predictive_centering_errors.append(0.0)
-                    probabilities.append(signal.realized_probability)
-                    normalization_errors.append(0.0)
+                if not explicit_counts:
+                    raw_eligible_advantages.append(0.0)
+                    effective_advantages.append(0.0)
                     history_totals.append(history_total)
-                    normalized_predictive_entropies.append(
-                        signal.normalized_predictive_entropy
-                    )
                     continue
-                explicit_support = sorted(set(history) | set(peer_counts))
-                support_size = len(explicit_support)
-                peer_total = sum(peer_counts.values())
-                denominator = (
-                    history_total
-                    + peer_total
-                    + self.pseudocount * (support_size + 1)
+                signal = open_set_success_semantic_signal(
+                    explicit_counts=explicit_counts,
+                    sampled_key=answer_key,
+                    pseudocount=self.pseudocount,
+                    surprisal_clip=self.surprisal_clip,
                 )
-                if answer_key in explicit_support:
-                    numerator = (
-                        history.get(answer_key, 0)
-                        + peer_counts.get(answer_key, 0)
-                        + self.pseudocount
-                    )
-                else:
-                    numerator = self.pseudocount
-                probability = numerator / denominator
+                raw_advantage = (
+                    coefficient_used * signal.centered_clipped_surprisal
+                )
+                effective_advantage = raw_advantage
                 clipped_surprisal = min(
-                    -math.log(probability), self.surprisal_clip
+                    -math.log(signal.realized_probability),
+                    self.surprisal_clip,
                 )
-
-                predictive_masses = [
-                    (
-                        history.get(key, 0)
-                        + peer_counts.get(key, 0)
-                        + self.pseudocount
-                    )
-                    / denominator
-                    for key in explicit_support
-                ]
-                predictive_masses.append(self.pseudocount / denominator)
-                normalization_error = abs(sum(predictive_masses) - 1.0)
-                if (
-                    not math.isfinite(normalization_error)
-                    or normalization_error > 1e-9
-                ):
-                    raise RuntimeError(
-                        "semantic Shannon predictive distribution did not normalize"
-                    )
-                predictive_baseline = sum(
-                    mass
-                    * min(-math.log(mass), self.surprisal_clip)
-                    for mass in predictive_masses
+                predictive_baseline = (
+                    clipped_surprisal
+                    - signal.centered_clipped_surprisal
+                    * self.surprisal_clip
                 )
-                raw_advantage = advantage_scale * (
-                    clipped_surprisal - predictive_baseline
-                )
-                predictive_centering_error = abs(
-                    sum(
-                        mass
-                        * advantage_scale
-                        * (
-                            min(-math.log(mass), self.surprisal_clip)
-                            - predictive_baseline
-                        )
-                        for mass in predictive_masses
-                    )
-                )
-                if raw_advantage > self.success_conditioned_signed_cap:
-                    effective_advantage = (
-                        self.success_conditioned_signed_cap
-                    )
-                    positive_capped += 1
-                elif raw_advantage < -self.success_conditioned_signed_cap:
-                    effective_advantage = (
-                        -self.success_conditioned_signed_cap
-                    )
-                    negative_capped += 1
-                else:
-                    effective_advantage = raw_advantage
-
                 raw_eligible_advantages.append(raw_advantage)
                 effective_advantages.append(effective_advantage)
                 predictive_baselines.append(predictive_baseline)
-                predictive_centering_errors.append(
-                    predictive_centering_error
-                )
-                probabilities.append(probability)
-                normalization_errors.append(normalization_error)
+                predictive_centering_errors.append(0.0)
+                probabilities.append(signal.realized_probability)
+                normalization_errors.append(0.0)
                 history_totals.append(history_total)
+                normalized_predictive_entropies.append(
+                    signal.normalized_predictive_entropy
+                )
+                continue
+
 
             if eligible_counts:
                 updated_history = dict(history)
@@ -1741,29 +1338,6 @@ class SemanticShannonTracker:
                 history_groups_updated += 1
             else:
                 history_groups_skipped += 1
-
-        if open_set_controller is not None:
-            if normalized_predictive_entropies:
-                open_set_diagnostics = open_set_controller.observe(
-                    sum(normalized_predictive_entropies)
-                    / len(normalized_predictive_entropies)
-                )
-            else:
-                open_set_diagnostics = (
-                    open_set_controller.idle_diagnostics()
-                )
-        else:
-            open_set_diagnostics = {
-                "semantic_open_set_observed_normalized_entropy": 0.0,
-                "semantic_open_set_entropy_ema": 0.0,
-                "semantic_open_set_reference_entropy": 0.0,
-                "semantic_open_set_inverse_multiplier": 1.0,
-                "semantic_open_set_next_coefficient": self.coefficient,
-                "semantic_open_set_observations": 0.0,
-                "semantic_open_set_warmup_complete": 0.0,
-                "semantic_open_set_projection_active": 0.0,
-                "semantic_open_set_observation_skipped": 1.0,
-            }
 
         def _mean(values: Sequence[float]) -> float:
             return sum(values) / len(values) if values else 0.0
@@ -1831,11 +1405,7 @@ class SemanticShannonTracker:
             negative_cap_fraction=(
                 negative_capped / row_count if row_count else 0.0
             ),
-            advantage_cap=(
-                0.0
-                if open_set_controller is not None
-                else self.success_conditioned_signed_cap
-            ),
+            advantage_cap=0.0,
             predictive_baseline_mean=_mean(predictive_baselines),
             predictive_centering_error_max=max(
                 predictive_centering_errors, default=0.0
@@ -1850,57 +1420,9 @@ class SemanticShannonTracker:
             history_groups_skipped=float(history_groups_skipped),
             tracked_prompts=float(self.tracked_prompt_count),
             tracked_outcomes=float(self.tracked_outcome_count),
-            open_set_inverse_adaptation_active=float(
-                open_set_controller is not None
-            ),
             open_set_coefficient_used=coefficient_used,
-            open_set_observed_normalized_entropy=float(
-                open_set_diagnostics.get(
-                    "semantic_open_set_observed_normalized_entropy",
-                    0.0,
-                )
-            ),
-            open_set_entropy_ema=float(
-                open_set_diagnostics.get(
-                    "semantic_open_set_entropy_ema",
-                    0.0,
-                )
-            ),
-            open_set_reference_entropy=float(
-                open_set_diagnostics.get(
-                    "semantic_open_set_reference_entropy",
-                    0.0,
-                )
-            ),
-            open_set_inverse_multiplier=float(
-                open_set_diagnostics.get(
-                    "semantic_open_set_inverse_multiplier",
-                    1.0,
-                )
-            ),
-            open_set_next_coefficient=float(
-                open_set_diagnostics[
-                    "semantic_open_set_next_coefficient"
-                ]
-            ),
-            open_set_observations=float(
-                open_set_diagnostics["semantic_open_set_observations"]
-            ),
-            open_set_warmup_complete=float(
-                open_set_diagnostics[
-                    "semantic_open_set_warmup_complete"
-                ]
-            ),
-            open_set_observation_skipped=float(
-                open_set_diagnostics.get(
-                    "semantic_open_set_observation_skipped",
-                    0.0,
-                )
-            ),
-            open_set_projection_active=float(
-                open_set_diagnostics[
-                    "semantic_open_set_projection_active"
-                ]
+            open_set_normalized_entropy_mean=_mean(
+                normalized_predictive_entropies
             ),
         )
         if history_groups_updated + history_groups_skipped != group_count:

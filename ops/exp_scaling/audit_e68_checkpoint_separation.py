@@ -111,7 +111,6 @@ def _audit_checkpoint(
         violations.append("separated proposal/objective state is disabled")
     if not _close(bank.get("entropy_alpha"), 0.0):
         violations.append("checkpoint canonical entropy alpha is not zero")
-    if not _close(bank.get("novelty_beta"), 0.5):
         violations.append("checkpoint novelty beta is not 0.5")
 
     counts = bank.get("counts")

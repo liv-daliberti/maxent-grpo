@@ -79,7 +79,7 @@ def test_e49b_runtime_preserves_exact_validator_graded_text_and_state():
     assert '"maxItems": len(expected_ids)' in canonicalizer
     assert '"brief_check"' in canonicalizer
     assert '"math_strategy_canonicalizer_menu_bound_v18_trace"' in canonicalizer
-    assert "novelty_rule=exact_precalibrated_menu_combo_v18" in learner_init
+    assert "support_rule=exact_precalibrated_menu_combo_v18" in learner_init
     assert "runtime_partition_passes=0" in learner_init
     assert "runtime_pairwise_veto_passes=0" in learner_init
 

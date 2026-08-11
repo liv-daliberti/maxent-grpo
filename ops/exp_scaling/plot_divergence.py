@@ -531,7 +531,6 @@ ONLINE_CANONICAL_ADVANTAGE_COMPONENTS = (
         (0, (4, 2)),
     ),
     (
-        "online_canonical_novelty_advantage_rms",
         r"$A_{\rm new}$",
         "#009E73",
         (0, (1, 1)),
@@ -2758,7 +2757,7 @@ def render_online_canonical_maxent_05b() -> None:
                     and arm == "verified_first_global_replay_canonical"
                 )
                 else
-                r"E57 verified-first discovery + split mass/balance replay"
+                r"E57 verified-first support + split mass/balance replay"
                 if (
                     e57_active
                     and arm == "verified_first_split_canonical"

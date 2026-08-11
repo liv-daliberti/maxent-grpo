@@ -52,7 +52,6 @@ def test_e44_ogs_launcher_is_fresh_twelve_job_matched_cohort():
         "export OAT_ZERO_ONLY_ARMS=grpo,online_canonical_maxent",
         "export OAT_ZERO_INCLUDE_ONLINE_CANONICAL_MAXENT_ARM=1",
         "export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10",
-        "export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50",
         "export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome",
         "submit_task graph_coloring",
         "submit_task countdown",

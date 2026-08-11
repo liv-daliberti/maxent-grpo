@@ -1,6 +1,6 @@
 """Narrative and evidence contracts for the ModeBench-centered manuscript.
 
-These tests track the manuscript's current terminal five-domain form. They
+These tests track the manuscript's current interim multi-scale form. They
 guard properties the prose must keep rather than its exact wording: the paper
 is centred on ModeBench, it reports every domain it claims, its headline design
 is the preregistered one, its dataset identities match the audit files, and it
@@ -52,8 +52,17 @@ def test_main_paper_centers_modebench_without_internal_experiment_ids():
     main_text = _main_body()
 
     assert r"\mb{} and x-Mode GRPO" in main_text
+    assert r"\newcommand{\xmode}{\mbox{x-Mode GRPO}}" in main_text
     assert r"\section{\mb: Executable Mode Measurement}" in main_text
-    assert r"\section{\xdr: Online Verified MaxEnt-Dr.GRPO}" in main_text
+    assert r"\section{x-Mode GRPO: Verified Replay for Dr.GRPO}" in main_text
+    assert "historical multi-component treatment" in main_text
+    assert "Open-set semantic MaxEnt" not in main_text
+    assert "separated support" not in main_text.lower()
+    for obsolete_name in ("prior stack", "full stack", "replay-only"):
+        assert obsolete_name not in main_text.lower(), obsolete_name
+    assert "verified replay as its sole auxiliary derivative" in " ".join(
+        main_text.split()
+    )
     # Internal experiment identifiers (E68, E70a, ...) are repository
     # bookkeeping and must never reach the manuscript.
     assert re.search(r"\bE[0-9]+[A-Za-z-]*\b", text) is None
@@ -73,12 +82,10 @@ def test_paper_reports_exactly_the_five_executable_modebench_domains():
 
 
 def test_headline_rows_run_the_preregistered_terminal_design():
-    prose = " ".join(_expand_vendor_macros(MAIN.read_text(encoding="utf-8")).split())
+    prose = " ".join(_expand_vendor_macros(_main_body()).split())
 
     for required in (
         "Qwen2.5-0.5B-Instruct",
-        # Both base-model families must be named in the body.
-        "Falcon3-1B-Instruct",
         "pinned revision",
         "seeds 43--47",
         "group size 16",
@@ -87,8 +94,36 @@ def test_headline_rows_run_the_preregistered_terminal_design():
         "greedy decoding",
     ):
         assert required in prose, required
-    # Twelve epochs is the common terminal endpoint every headline cell reports.
-    assert "12 epochs" in prose
+    assert "exactly eight passes" in prose
+    assert "fixed half-pass grid" in prose
+    for required in (
+        "Falcon3-1B-Instruct",
+        "Qwen2.5-3B-Instruct",
+        "seeds 55--59",
+        "seeds 70--74",
+        "Snapshot boundary",
+        "Runs continue after this cutoff",
+        "deepest checkpoint shared by both arms",
+    ):
+        assert required in prose, required
+
+    assert "Interim-draft amendment" not in prose
+    assert "Draft status" not in prose
+
+def test_paper_includes_pointmaze_as_a_separate_interactive_stratum():
+    prose = " ".join(MAIN.read_text(encoding="utf-8").split())
+
+    for required in (
+        r"\noindent\textbf{PointMaze stratum.}",
+        r"PointMaze\_UMaze-v3",
+        "384 training and 128 evaluation maps",
+        "separate estimator from the static domains",
+        "selects a legal adjacent waypoint",
+        "Wall masking exposes no route or verifier signal",
+        "common-random-number interactive protocol",
+    ):
+        assert required in prose, required
+    assert r"\subsection{PointMaze cells}" not in prose
 
 
 def test_python_dataset_identity_matches_the_manuscript_audit():
@@ -133,8 +168,8 @@ def test_design_history_records_core_decisions_not_scheduler_chronology():
     # The manuscript explains why the mechanism has the shape it does.
     for required in (
         "executable gate and canonical key",
-        "separated support",
-        "replay",
+        "uniform verified replay",
+        "exact-zero replay control",
     ):
         assert required in text, required
     # Cluster bookkeeping is repository history, not a scientific result.

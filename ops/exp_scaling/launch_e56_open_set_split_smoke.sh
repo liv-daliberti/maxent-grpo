@@ -164,11 +164,11 @@ payload = {
         "desired_entropy": None,
         "desired_mode_count": None,
     },
-    "controllers": {
-        "token_entropy": "unprojected_self_warmup_inverse",
-        "open_set_semantic": "unprojected_self_warmup_inverse",
-        "verified_mass": "unprojected_self_warmup_surprisal_ratio",
-        "known_mode_balance": "unprojected_self_warmup_inverse",
+    "conditional_token_entropy": "legacy_inverse_entropy_arm",
+    "fixed_coefficients": {
+        "open_set_semantic": 0.10,
+        "verified_mass": 0.10,
+        "known_mode_balance": 0.10,
     },
     "replay_objective": "split_mass_balance_per_rollout",
     "replay_measure": (15 / 16) * (1 / 16),
@@ -256,36 +256,20 @@ payload = {
         "desired_entropy": None,
         "desired_mode_count": None,
     },
-    "controllers": {
-        "conditional_token_entropy": {
+    "conditional_token_entropy": {
             "rule": "alpha=alpha0*reference_entropy/entropy_ema",
             "base": 0.000075,
             "warmup_eligible_steps": 64,
             "ema_decay": 0.90,
             "projection": None,
-        },
+    },
+    "fixed_coefficients": {
         "open_set_semantic_entropy": {
-            "rule": "beta=beta0*reference_entropy/entropy_ema",
-            "base": 0.10,
-            "warmup_eligible_steps": 64,
-            "ema_decay": 0.90,
+            "coefficient": 0.10,
             "support": "verified_model_modes_plus_one_unseen_bucket",
-            "projection": None,
         },
-        "verified_mass": {
-            "rule": "mu=mu0*surprisal_ema/reference_surprisal",
-            "base": 0.10,
-            "warmup_eligible_steps": 64,
-            "ema_decay": 0.90,
-            "projection": None,
-        },
-        "known_mode_balance": {
-            "rule": "alpha=alpha0*reference_entropy/entropy_ema",
-            "base": 0.10,
-            "warmup_eligible_steps": 64,
-            "ema_decay": 0.90,
-            "projection": None,
-        },
+        "verified_mass": 0.10,
+        "known_mode_balance": 0.10,
     },
     "replay": {
         "loss": "split_mass_balance_per_rollout",
@@ -355,20 +339,13 @@ export OAT_ZERO_MAXENT_INVERSE_EMA_DECAY=0.90
 export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10
 export OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP=5.0
 export OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT=1.0
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS=64
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.10
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=16
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY=0.90
 
 export OAT_ZERO_NUM_SAMPLES=16
 export OAT_ZERO_LEARNING_RATE=0.0000002
@@ -604,7 +581,6 @@ if [[ "$phase" == sentinel || "$phase" == sentinel_config ]]; then
       'OAT_ZERO_VARIANT=open_set_split_canonical' \
       'OAT_ZERO_NUM_SAMPLES=16' \
       'OAT_ZERO_MAXENT_INVERSE_ADAPTATION=1' \
-      'OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=1' \
       'OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=split_mass_balance_per_rollout' \
       'OAT_ZERO_EVAL_MODE_COVERAGE_K=8' \
       'OAT_ZERO_EVAL_MODE_COVERAGE_DRAWS=4' \

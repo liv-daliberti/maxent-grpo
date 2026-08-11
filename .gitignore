@@ -42,3 +42,11 @@ controller_state.json
 condaenv.*.requirements.txt
 *.bak
 *.log
+
+# Generated per-episode mujoco models; the ant maze writers emit these to
+# the working directory, 1264 of them accumulated at the repo root.
+ant_maze*.xml
+tmp*/_remote_module_non_scriptable.py
+
+# patch/merge backups; 21 of these were swept into a commit once
+*.orig

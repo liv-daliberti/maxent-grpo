@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -26,8 +25,6 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from oat_drgrpo.canonical_replay import (  # noqa: E402
-    CanonicalReplayInverseController,
-    CanonicalReplayLikelihoodController,
     canonical_replay_split_mass_balance_loss,
 )
 from oat_drgrpo.interactive_episode_objective import (  # noqa: E402
@@ -740,8 +737,8 @@ def replay_backward(
     padding_prompt_ids: Sequence[int],
     padding_response_ids: Sequence[int],
     compute_only: bool,
-    balance_controller: CanonicalReplayInverseController,
-    mass_controller: CanonicalReplayLikelihoodController,
+    balance_alpha: float,
+    mass_alpha: float,
 ) -> dict[str, float]:
     import torch
 
@@ -767,8 +764,8 @@ def replay_backward(
         response_rows=response_rows,
     )
     active_count = len(active_responses)
-    balance_alpha = float(balance_controller.current_alpha)
-    mass_alpha = float(mass_controller.current_alpha)
+    balance_alpha = float(balance_alpha)
+    mass_alpha = float(mass_alpha)
     if active_count:
         token_counts = masks[:active_count].sum(dim=1).to(detached.dtype)
         mode_scores = (
@@ -839,22 +836,6 @@ def replay_backward(
             raise RuntimeError("nonfinite ConstructiveCode replay loss")
         loss.backward()
         live_score_sum += float(live_score.detach().item())
-    if balance_eligible:
-        balance_diagnostics = balance_controller.observe(normalized_entropy)
-        balance_diagnostics["canonical_replay_observation_skipped"] = 0.0
-        balance_diagnostics["canonical_replay_global_eligibility_weight"] = float(
-            balance_eligible
-        )
-    else:
-        balance_diagnostics = balance_controller.idle_diagnostics()
-    if actuator_groups:
-        mass_diagnostics = mass_controller.observe(actuator_loss)
-        mass_diagnostics["canonical_replay_mass_observation_skipped"] = 0.0
-        mass_diagnostics[
-            "canonical_replay_mass_global_eligibility_weight"
-        ] = float(actuator_groups)
-    else:
-        mass_diagnostics = mass_controller.idle_diagnostics()
     return {
         "canonical_replay_available_groups": float(bool(active_count)),
         "canonical_replay_available_modes": float(active_count),
@@ -894,8 +875,6 @@ def replay_backward(
         "canonical_replay_applied_score_gradient_sum": float(
             applied_gradient.sum().item() / SAMPLES
         ),
-        **balance_diagnostics,
-        **mass_diagnostics,
     }
 
 
@@ -1233,25 +1212,15 @@ def main() -> None:
         pseudocount=1.0,
         success_conditioned_signed_advantage=True,
         success_conditioned_signed_cap=0.05,
-        open_set_inverse_adaptation=True,
-        open_set_warmup_steps=64,
-        open_set_ema_decay=0.90,
     )
     canonical = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.50,
         pseudocount=1.0,
         surprisal_clip=5.0,
         retain_exemplars=True,
         replay_capacity=REPLAY_CAPACITY,
         global_replay_groups_per_step=1,
         global_replay_bootstrap_steps=0,
-    )
-    balance_controller = CanonicalReplayInverseController(
-        base_alpha=0.10, warmup_steps=64, ema_decay=0.90
-    )
-    mass_controller = CanonicalReplayLikelihoodController(
-        base_alpha=0.10, warmup_steps=64, ema_decay=0.90
     )
     padding_prompt_ids = tuple(
         tokenizer.encode(prompt(PADDING_STATEMENT), add_special_tokens=False)
@@ -1404,8 +1373,8 @@ def main() -> None:
             padding_prompt_ids=padding_prompt_ids,
             padding_response_ids=padding_response_ids,
             compute_only=args.arm == CONTROL,
-            balance_controller=balance_controller,
-            mass_controller=mass_controller,
+            balance_alpha=0.10,
+            mass_alpha=0.10,
         )
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         if not math.isfinite(float(grad_norm.detach().item())):
@@ -1445,9 +1414,6 @@ def main() -> None:
             "online_canonical_new_outcome_row_fraction": float(
                 canonical_diag.new_outcome_row_fraction
             ),
-            "online_canonical_novelty_advantage_rms": float(
-                canonical_diag.novelty_advantage_rms
-            ),
             "online_canonical_tracked_prompts": float(
                 canonical.tracked_prompt_count
             ),
@@ -1474,16 +1440,12 @@ def main() -> None:
             **policy_diag,
             **replay_diag,
         }
-        semantic_controller = semantic.state_dict().get("open_set_controller", {})
-        for source, target in (
-            ("entropy_ema", "semantic_shannon_success_conditioned_signed_open_set_entropy_ema"),
-            ("reference_entropy", "semantic_shannon_success_conditioned_signed_open_set_reference_entropy"),
-            ("current_coefficient", "semantic_shannon_success_conditioned_signed_open_set_next_coefficient"),
-            ("observation_count", "semantic_shannon_success_conditioned_signed_open_set_observations"),
-        ):
-            value = semantic_controller.get(source)
-            if value is not None:
-                metric[target] = float(value)
+        metric["semantic_shannon_success_conditioned_signed_open_set_coefficient_used"] = float(
+            semantic_diag.open_set_coefficient_used
+        )
+        metric["semantic_shannon_success_conditioned_signed_open_set_normalized_entropy_mean"] = float(
+            semantic_diag.open_set_normalized_entropy_mean
+        )
         if any(
             isinstance(value, float) and not math.isfinite(value)
             for value in metric.values()
@@ -1567,16 +1529,13 @@ def main() -> None:
         "mechanism": {
             "compute_only_control": args.arm == CONTROL,
             "semantic_coefficient": 0.10,
-            "novelty_beta": 0.50,
             "replay_mass_alpha": 0.10,
             "replay_balance_alpha": 0.10,
             "replay_capacity": REPLAY_CAPACITY,
-            "warmup_steps": 64,
-            "ema_decay": 0.90,
+            "coefficient_control": "fixed",
             "reward_estimator_factor": 15.0 / 16.0,
             "per_rollout_replay_factor": 1.0 / 16.0,
             "gold_support_feedback": False,
-            "coefficient_projection": False,
         },
         "counts": {
             "updates": optimizer_steps,
@@ -1610,11 +1569,9 @@ def main() -> None:
             "verifier_feedback_before_terminal": False,
             "evaluation_feedback_to_training": False,
         },
-        "controller_states": {
+        "method_states": {
             "semantic": semantic.state_dict(),
             "canonical_bank": canonical.state_dict(),
-            "replay_balance": balance_controller.state_dict(),
-            "replay_mass": mass_controller.state_dict(),
         },
     }
     atomic_json(args.output_receipt, payload)

@@ -54,6 +54,14 @@ class MaxEntInverseController:
         if not 0 <= self.ema_decay < 1:
             raise ValueError("ema_decay must be in [0, 1)")
         expected_metric = {
+            # The masked-mean token entropy the manuscript reports as
+            # `train/entropy`. A dual controller whose target was measured from
+            # that telemetry has to observe the same estimator: the
+            # conditional-content-token mean below is a different one and runs
+            # an order of magnitude higher, so regulating on it against such a
+            # target pins the coefficient at a bound and the policy never
+            # reaches the entropy it is supposed to hold.
+            "masked_mean_token_nats_v1": "entropy",
             "sequence_nats_v1": "maxent_sequence_entropy",
             "conditional_content_token_nats_mean_v1": (
                 "maxent_conditional_token_entropy"
@@ -273,6 +281,14 @@ class MaxEntProportionalController:
         if self.configured_target_entropy < 0:
             raise ValueError("configured_target_entropy must be non-negative")
         expected_metric = {
+            # The masked-mean token entropy the manuscript reports as
+            # `train/entropy`. A dual controller whose target was measured from
+            # that telemetry has to observe the same estimator: the
+            # conditional-content-token mean below is a different one and runs
+            # an order of magnitude higher, so regulating on it against such a
+            # target pins the coefficient at a bound and the policy never
+            # reaches the entropy it is supposed to hold.
+            "masked_mean_token_nats_v1": "entropy",
             "sequence_nats_v1": "maxent_sequence_entropy",
             "conditional_content_token_nats_mean_v1": (
                 "maxent_conditional_token_entropy"
@@ -451,6 +467,14 @@ class MaxEntDualController:
         if self.configured_target_entropy < 0:
             raise ValueError("configured_target_entropy must be non-negative")
         expected_metric = {
+            # The masked-mean token entropy the manuscript reports as
+            # `train/entropy`. A dual controller whose target was measured from
+            # that telemetry has to observe the same estimator: the
+            # conditional-content-token mean below is a different one and runs
+            # an order of magnitude higher, so regulating on it against such a
+            # target pins the coefficient at a bound and the policy never
+            # reaches the entropy it is supposed to hold.
+            "masked_mean_token_nats_v1": "entropy",
             "sequence_nats_v1": "maxent_sequence_entropy",
             "conditional_content_token_nats_mean_v1": (
                 "maxent_conditional_token_entropy"

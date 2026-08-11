@@ -293,8 +293,6 @@ def main() -> int:
                 for token in (
                     "OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.20",
                     "OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=0.20",
-                    "OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=64",
-                    "OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=64",
                     (
                         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE="
                         "split_mass_balance_per_rollout"

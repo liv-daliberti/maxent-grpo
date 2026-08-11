@@ -40,6 +40,7 @@ XDR_SAC_DUAL_MAX_TAU="${OAT_ZERO_XDR_SAC_DUAL_MAX_TAU:-0.5}"
 XDR_SAC_DUAL_ALPHA_LR="${OAT_ZERO_XDR_SAC_DUAL_ALPHA_LR:-0.003}"
 MAXENT_ALPHA="${OAT_ZERO_MAXENT_ALPHA:-0.0}"
 MAXENT_OBJECTIVE="${OAT_ZERO_MAXENT_OBJECTIVE:-sequence}"
+MAXENT_OBSERVE_MASKED_MEAN="${OAT_ZERO_MAXENT_OBSERVE_MASKED_MEAN_ENTROPY:-0}"
 MAXENT_CONTROL_TARGET_RATIO="${OAT_ZERO_MAXENT_CONTROL_TARGET_RATIO:-0.0}"
 MAXENT_CONTROL_TARGET_ENTROPY="${OAT_ZERO_MAXENT_CONTROL_TARGET_ENTROPY:-0.0}"
 MAXENT_CONTROL_WARMUP_STEPS="${OAT_ZERO_MAXENT_CONTROL_WARMUP_STEPS:-64}"
@@ -78,12 +79,17 @@ SEMANTIC_SHANNON_QUALITY_GATED_ADVANTAGE="${OAT_ZERO_SEMANTIC_SHANNON_QUALITY_GA
 SEMANTIC_SHANNON_QUALITY_GATED_CAP="${OAT_ZERO_SEMANTIC_SHANNON_QUALITY_GATED_CAP:-0.05}"
 SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE="${OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE:-0}"
 SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP="${OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP:-0.05}"
-SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION="${OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION:-0}"
-SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS="${OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS:-64}"
-SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY="${OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY:-0.9}"
+SEMANTIC_RMS_CONTROL="${OAT_ZERO_SEMANTIC_RMS_CONTROL:-0}"
+SEMANTIC_RMS_TARGET_RATIO="${OAT_ZERO_SEMANTIC_RMS_TARGET_RATIO:-0.05}"
+SEMANTIC_RMS_MIN_COEFFICIENT="${OAT_ZERO_SEMANTIC_RMS_MIN_COEFFICIENT:-0.02}"
+SEMANTIC_RMS_MAX_COEFFICIENT="${OAT_ZERO_SEMANTIC_RMS_MAX_COEFFICIENT:-0.40}"
+SEMANTIC_RMS_EMA_DECAY="${OAT_ZERO_SEMANTIC_RMS_EMA_DECAY:-0.98}"
+SEMANTIC_RMS_GAIN="${OAT_ZERO_SEMANTIC_RMS_GAIN:-0.5}"
+SEMANTIC_RMS_MAX_STEP_RATIO="${OAT_ZERO_SEMANTIC_RMS_MAX_STEP_RATIO:-1.1}"
+SEMANTIC_RMS_WARMUP_STEPS="${OAT_ZERO_SEMANTIC_RMS_WARMUP_STEPS:-64}"
+SEMANTIC_RMS_MIN_ELIGIBLE_FRACTION="${OAT_ZERO_SEMANTIC_RMS_MIN_ELIGIBLE_FRACTION:-0.05}"
 VERIFIED_DISCOVERY_TRACKING="${OAT_ZERO_VERIFIED_DISCOVERY_TRACKING:-1}"
 ONLINE_CANONICAL_BANK_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA:-0.0}"
-ONLINE_CANONICAL_NOVELTY_BETA="${OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA:-0.0}"
 ONLINE_CANONICAL_BANK_PSEUDOCOUNT="${OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT:-1.0}"
 ONLINE_CANONICAL_BANK_SURPRISAL_CLIP="${OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP:-5.0}"
 ONLINE_CANONICAL_DUAL_TARGET_RATIO="${OAT_ZERO_ONLINE_CANONICAL_DUAL_TARGET_RATIO:-0.0}"
@@ -96,19 +102,17 @@ ONLINE_CANONICAL_POLICY_ENTROPY_WARMUP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_POLICY
 ONLINE_CANONICAL_POLICY_ENTROPY_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_POLICY_ENTROPY_EMA_DECAY:-0.9}"
 ONLINE_CANONICAL_REPLAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY:-0}"
 ONLINE_CANONICAL_REPLAY_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA:-0.1}"
+ONLINE_CANONICAL_REPLAY_BANK_NORMALIZED="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_BANK_NORMALIZED:-0}"
+ONLINE_CANONICAL_REPLAY_PER_MODE_COEFFICIENT="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_PER_MODE_COEFFICIENT:-0.0325}"
 ONLINE_CANONICAL_REPLAY_OBJECTIVE="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE:-bank_balance}"
 ONLINE_CANONICAL_REPLAY_CAPACITY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY:-16}"
 ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP:-0}"
 ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS:-0}"
-ONLINE_CANONICAL_REPLAY_WARMUP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS:-64}"
-ONLINE_CANONICAL_REPLAY_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY:-0.9}"
 ONLINE_CANONICAL_REPLAY_MASS_ALPHA="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA:-0.1}"
-ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS:-64}"
-ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY:-0.9}"
 ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY="${OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT:-0}"
-ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE:-0}"
+ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY:-0}"
 ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS:-256}"
 ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS:-3}"
 ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE="${OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE:-1.0}"
@@ -212,7 +216,12 @@ cmd=(
   --bf16
   --no-rnd-seed --seed "$SEED"
   --learning_rate "${OAT_ZERO_LEARNING_RATE:-0.0000002}"
-  --lr_scheduler constant
+  --lr_scheduler "${OAT_ZERO_LR_SCHEDULER:-constant}"
+  --lr_warmup_ratio "${OAT_ZERO_LR_WARMUP_RATIO:-0.0}"
+  --max_step_adjustment "${OAT_ZERO_MAX_STEP_ADJUSTMENT:-1.0}"
+  --adam_beta_1 "${OAT_ZERO_ADAM_BETA_1:-0.9}"
+  --adam_beta_2 "${OAT_ZERO_ADAM_BETA_2:-0.95}"
+  --l2 "${OAT_ZERO_L2:-0.0}"
   --num_ppo_epochs "${OAT_ZERO_NUM_PPO_EPOCHS:-1}"
   --sync_params_every "${OAT_ZERO_SYNC_PARAMS_EVERY:-1}"
   --max_norm "${OAT_ZERO_MAX_NORM:-1.0}"
@@ -296,6 +305,11 @@ cmd=(
 ARG_SOURCE_ROOT="${OAT_ZERO_SOURCE_ROOT:-$ROOT_DIR/src}"
 if grep -q 'maxent_objective' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
   cmd+=(--maxent-objective "$MAXENT_OBJECTIVE")
+  if [[ "$MAXENT_OBSERVE_MASKED_MEAN" == "1" ]]; then
+    cmd+=(--maxent-observe-masked-mean-entropy)
+  else
+    cmd+=(--no-maxent-observe-masked-mean-entropy)
+  fi
 elif [[ "$MAXENT_ALPHA" != "0" && "$MAXENT_ALPHA" != "0.0" ]]; then
   echo "Frozen source lacks maxent_objective for an active MaxEnt run: $ARG_SOURCE_ROOT" >&2
   exit 1
@@ -426,6 +440,27 @@ else
   echo "[train] compatibility: frozen source predates quality-gated semantic-Shannon advantage; omitting inert flags"
 fi
 
+if grep -q 'semantic_rms_control' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+  cmd+=(
+    --semantic-rms-target-ratio "$SEMANTIC_RMS_TARGET_RATIO"
+    --semantic-rms-min-coefficient "$SEMANTIC_RMS_MIN_COEFFICIENT"
+    --semantic-rms-max-coefficient "$SEMANTIC_RMS_MAX_COEFFICIENT"
+    --semantic-rms-ema-decay "$SEMANTIC_RMS_EMA_DECAY"
+    --semantic-rms-gain "$SEMANTIC_RMS_GAIN"
+    --semantic-rms-max-step-ratio "$SEMANTIC_RMS_MAX_STEP_RATIO"
+    --semantic-rms-warmup-steps "$SEMANTIC_RMS_WARMUP_STEPS"
+    --semantic-rms-min-eligible-fraction "$SEMANTIC_RMS_MIN_ELIGIBLE_FRACTION"
+  )
+  if [[ "$SEMANTIC_RMS_CONTROL" == "1" ]]; then
+    cmd+=(--semantic-rms-control)
+  else
+    cmd+=(--no-semantic-rms-control)
+  fi
+elif [[ "$SEMANTIC_RMS_CONTROL" == "1" ]]; then
+  echo "Frozen source lacks adaptive semantic MaxEnt support: $ARG_SOURCE_ROOT" >&2
+  exit 1
+fi
+
 if grep -q 'semantic_shannon_success_conditioned_signed_advantage' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
   cmd+=(--semantic-shannon-success-conditioned-signed-cap "$SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP")
   if [[ "$SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE" == "1" ]]; then
@@ -438,23 +473,6 @@ elif [[ "$SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE" == "1" ]]; then
   exit 1
 else
   echo "[train] compatibility: frozen source predates success-conditioned signed semantic-Shannon advantage; omitting inert flags"
-fi
-
-if grep -q 'semantic_shannon_open_set_inverse_adaptation' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
-  cmd+=(
-    --semantic-shannon-open-set-warmup-steps "$SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS"
-    --semantic-shannon-open-set-ema-decay "$SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY"
-  )
-  if [[ "$SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION" == "1" ]]; then
-    cmd+=(--semantic-shannon-open-set-inverse-adaptation)
-  else
-    cmd+=(--no-semantic-shannon-open-set-inverse-adaptation)
-  fi
-elif [[ "$SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION" == "1" ]]; then
-  echo "Frozen source lacks open-set semantic inverse adaptation: $ARG_SOURCE_ROOT" >&2
-  exit 1
-else
-  echo "[train] compatibility: frozen source predates open-set semantic inverse adaptation; omitting inert flags"
 fi
 
 if grep -q 'verified_discovery_tracking' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
@@ -470,7 +488,6 @@ fi
 if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
   cmd+=(
     --online-canonical-bank-alpha "$ONLINE_CANONICAL_BANK_ALPHA"
-    --online-canonical-novelty-beta "$ONLINE_CANONICAL_NOVELTY_BETA"
     --online-canonical-bank-pseudocount "$ONLINE_CANONICAL_BANK_PSEUDOCOUNT"
     --online-canonical-bank-surprisal-clip "$ONLINE_CANONICAL_BANK_SURPRISAL_CLIP"
     --online-canonical-key-mode "$ONLINE_CANONICAL_KEY_MODE"
@@ -521,6 +538,22 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
       cmd+=(--no-online-canonical-replay)
     fi
     cmd+=(--online-canonical-replay-alpha "$ONLINE_CANONICAL_REPLAY_ALPHA")
+    # Guarded the same way as the compute-only control: a content-addressed
+    # source snapshot taken before this arm existed has no such field, and
+    # passing the flag to it would fail the run rather than fall back.
+    if grep -q 'online_canonical_replay_bank_normalized:' \
+      "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+      cmd+=(--online-canonical-replay-per-mode-coefficient \
+        "$ONLINE_CANONICAL_REPLAY_PER_MODE_COEFFICIENT")
+      if [[ "$ONLINE_CANONICAL_REPLAY_BANK_NORMALIZED" == "1" ]]; then
+        cmd+=(--online-canonical-replay-bank-normalized)
+      else
+        cmd+=(--no-online-canonical-replay-bank-normalized)
+      fi
+    elif [[ "$ONLINE_CANONICAL_REPLAY_BANK_NORMALIZED" == "1" ]]; then
+      echo "Frozen source lacks bank-normalized replay: $ARG_SOURCE_ROOT" >&2
+      exit 1
+    fi
     if grep -q 'online_canonical_replay_objective:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
       cmd+=(--online-canonical-replay-objective "$ONLINE_CANONICAL_REPLAY_OBJECTIVE")
     elif [[ "$ONLINE_CANONICAL_REPLAY_OBJECTIVE" != "bank_balance" ]]; then
@@ -529,8 +562,6 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
     fi
     cmd+=(
       --online-canonical-replay-capacity "$ONLINE_CANONICAL_REPLAY_CAPACITY"
-      --online-canonical-replay-warmup-steps "$ONLINE_CANONICAL_REPLAY_WARMUP_STEPS"
-      --online-canonical-replay-ema-decay "$ONLINE_CANONICAL_REPLAY_EMA_DECAY"
     )
     if grep -q 'online_canonical_replay_global_groups_per_step:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
       cmd+=(
@@ -553,8 +584,6 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
     if grep -q 'online_canonical_replay_mass_alpha:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
       cmd+=(
         --online-canonical-replay-mass-alpha "$ONLINE_CANONICAL_REPLAY_MASS_ALPHA"
-        --online-canonical-replay-mass-warmup-steps "$ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS"
-        --online-canonical-replay-mass-ema-decay "$ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY"
       )
     elif [[ "$ONLINE_CANONICAL_REPLAY_OBJECTIVE" == "split_mass_balance_per_rollout" ]]; then
       echo "Frozen source lacks split canonical replay mass control: $ARG_SOURCE_ROOT" >&2
@@ -603,14 +632,14 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
         echo "Frozen source lacks fixed counterfactual compute controls: $ARG_SOURCE_ROOT" >&2
         exit 1
       fi
-      if grep -q 'online_canonical_counterfactual_singleton_entropy_gate:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
-        if [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE" == "1" ]]; then
-          cmd+=(--online-canonical-counterfactual-singleton-entropy-gate)
+      if grep -q 'online_canonical_counterfactual_singleton_only:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+        if [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY" == "1" ]]; then
+          cmd+=(--online-canonical-counterfactual-singleton-only)
         else
-          cmd+=(--no-online-canonical-counterfactual-singleton-entropy-gate)
+          cmd+=(--no-online-canonical-counterfactual-singleton-only)
         fi
-      elif [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE" == "1" ]]; then
-        echo "Frozen source lacks singleton entropy-gated proposals: $ARG_SOURCE_ROOT" >&2
+      elif [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY" == "1" ]]; then
+        echo "Frozen source lacks singleton-only proposals: $ARG_SOURCE_ROOT" >&2
         exit 1
       fi
     elif [[ "$ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS" == "1" ]]; then
@@ -653,8 +682,7 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
     echo "Frozen source lacks MATH strategy canonicalization: $ARG_SOURCE_ROOT" >&2
     exit 1
   fi
-elif [[ "$ONLINE_CANONICAL_BANK_ALPHA" != "0" && "$ONLINE_CANONICAL_BANK_ALPHA" != "0.0" ]] || \
-     [[ "$ONLINE_CANONICAL_NOVELTY_BETA" != "0" && "$ONLINE_CANONICAL_NOVELTY_BETA" != "0.0" ]]; then
+elif [[ "$ONLINE_CANONICAL_BANK_ALPHA" != "0" && "$ONLINE_CANONICAL_BANK_ALPHA" != "0.0" ]]; then
   echo "Frozen source lacks online canonical bank support: $ARG_SOURCE_ROOT" >&2
   exit 1
 else
@@ -764,12 +792,12 @@ fi
 
 echo "[train] model=$PRETRAIN tau=$XDR_TAU seed_alpha=$SEED_ALPHA entropy_coef=$ENTROPY_COEF"
 echo "[train] outcome_collision_coef=$OUTCOME_COLLISION_COEF outside_centering=$OUTCOME_COLLISION_OUTSIDE_CENTERING"
-echo "[train] semantic_shannon_coef=$SEMANTIC_SHANNON_COEF surprisal_clip=$SEMANTIC_SHANNON_SURPRISAL_CLIP pseudocount=$SEMANTIC_SHANNON_PSEUDOCOUNT separate_advantage=$SEMANTIC_SHANNON_SEPARATE_ADVANTAGE quality_gated_advantage=$SEMANTIC_SHANNON_QUALITY_GATED_ADVANTAGE quality_gated_cap=$SEMANTIC_SHANNON_QUALITY_GATED_CAP success_conditioned_signed_advantage=$SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE success_conditioned_signed_cap=$SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_CAP open_set_inverse=$SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION open_set_warmup=$SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS open_set_ema_decay=$SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY open_set_projection=none"
-echo "[train] online_canonical_bank_alpha=$ONLINE_CANONICAL_BANK_ALPHA novelty_beta=$ONLINE_CANONICAL_NOVELTY_BETA pseudocount=$ONLINE_CANONICAL_BANK_PSEUDOCOUNT surprisal_clip=$ONLINE_CANONICAL_BANK_SURPRISAL_CLIP key_mode=$ONLINE_CANONICAL_KEY_MODE"
+echo "[train] semantic_shannon_coef=$SEMANTIC_SHANNON_COEF surprisal_clip=$SEMANTIC_SHANNON_SURPRISAL_CLIP pseudocount=$SEMANTIC_SHANNON_PSEUDOCOUNT separate_advantage=$SEMANTIC_SHANNON_SEPARATE_ADVANTAGE success_conditioned_signed_advantage=$SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE semantic_estimator=open_set_fixed coefficient_control=fixed"
+echo "[train] online_canonical_replay=$ONLINE_CANONICAL_REPLAY balance_alpha=$ONLINE_CANONICAL_REPLAY_ALPHA mass_alpha=$ONLINE_CANONICAL_REPLAY_MASS_ALPHA replay_objective=$ONLINE_CANONICAL_REPLAY_OBJECTIVE replay_capacity=$ONLINE_CANONICAL_REPLAY_CAPACITY replay_bank_normalized=$ONLINE_CANONICAL_REPLAY_BANK_NORMALIZED replay_per_mode_coefficient=$ONLINE_CANONICAL_REPLAY_PER_MODE_COEFFICIENT replay_compute_only=$ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY global_groups_per_step=$ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP global_bootstrap_steps=$ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS coefficient_control=fixed counterfactual_proposals=$ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS counterfactual_singleton_only=$ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY gold_support_feedback=none proposal_rows_to_ppo=0 control_rows_to_ppo=0"
+echo "[train] online_canonical_bank_alpha=$ONLINE_CANONICAL_BANK_ALPHA pseudocount=$ONLINE_CANONICAL_BANK_PSEUDOCOUNT surprisal_clip=$ONLINE_CANONICAL_BANK_SURPRISAL_CLIP key_mode=$ONLINE_CANONICAL_KEY_MODE"
 echo "[train] verified_route_capacity_per_route=$VERIFIED_ROUTE_REPLAY_CAPACITY_PER_ROUTE recurring_min_neutral_prompts=$VERIFIED_ROUTE_RECURRING_MIN_NEUTRAL_PROMPTS proposal_max_mean_logprob_drop=$VERIFIED_ROUTE_PROPOSAL_MAX_MEAN_LOGPROB_DROP"
 echo "[train] verified_discovery_tracking=$VERIFIED_DISCOVERY_TRACKING objective_influence=zero_for_plain_drgrpo"
 echo "[train] online_canonical_dual_target_ratio=$ONLINE_CANONICAL_DUAL_TARGET_RATIO alpha_bounds=[$ONLINE_CANONICAL_DUAL_MIN_ALPHA,$ONLINE_CANONICAL_DUAL_MAX_ALPHA] alpha_lr=$ONLINE_CANONICAL_DUAL_ALPHA_LR ema_decay=$ONLINE_CANONICAL_DUAL_EMA_DECAY sensor=postupdate_H_over_log_support"
-echo "[train] online_canonical_replay=$ONLINE_CANONICAL_REPLAY replay_alpha=$ONLINE_CANONICAL_REPLAY_ALPHA replay_objective=$ONLINE_CANONICAL_REPLAY_OBJECTIVE replay_capacity=$ONLINE_CANONICAL_REPLAY_CAPACITY replay_compute_only=$ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY global_groups_per_step=$ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP global_bootstrap_steps=$ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS replay_warmup=$ONLINE_CANONICAL_REPLAY_WARMUP_STEPS replay_ema_decay=$ONLINE_CANONICAL_REPLAY_EMA_DECAY counterfactual_proposals=$ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS counterfactual_separate_objective_support=$ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT counterfactual_anchor_max_tokens=$ONLINE_CANONICAL_COUNTERFACTUAL_ANCHOR_MAX_TOKENS counterfactual_max_attempts=$ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS fixed_control_groups=$ONLINE_CANONICAL_COUNTERFACTUAL_FIXED_CONTROL_GROUPS original_prompt_temperature=$ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE proposal_temperature_step=$COUNTERFACTUAL_TEMPERATURE_STEP proposal_rows_to_ppo=0 control_rows_to_ppo=0 alpha_projection=none gold_support_feedback=none"
 echo "[train] tau_control_target_ratio=$XDR_TAU_CONTROL_TARGET_RATIO warmup=$XDR_TAU_CONTROL_WARMUP_STEPS min_tau=$XDR_TAU_CONTROL_MIN ema_decay=$XDR_TAU_CONTROL_EMA_DECAY gain=$XDR_TAU_CONTROL_GAIN"
 echo "[train] sac_dual_target_ratio=$XDR_SAC_DUAL_TARGET_RATIO warmup=$XDR_SAC_DUAL_WARMUP_STEPS tau_bounds=[$XDR_SAC_DUAL_MIN_TAU,$XDR_SAC_DUAL_MAX_TAU] alpha_lr=$XDR_SAC_DUAL_ALPHA_LR"
 echo "[train] maxent_alpha=$MAXENT_ALPHA control_ratio=$MAXENT_CONTROL_TARGET_RATIO control_target=$MAXENT_CONTROL_TARGET_ENTROPY control_max=$MAXENT_CONTROL_MAX_ALPHA dual_ratio=$MAXENT_DUAL_TARGET_RATIO dual_target=$MAXENT_DUAL_TARGET_ENTROPY dual_bounds=[$MAXENT_DUAL_MIN_ALPHA,$MAXENT_DUAL_MAX_ALPHA] dual_ema_decay=$MAXENT_DUAL_EMA_DECAY inverse=$MAXENT_INVERSE_ADAPTATION inverse_warmup=$MAXENT_INVERSE_WARMUP_STEPS inverse_ema_decay=$MAXENT_INVERSE_EMA_DECAY inverse_projection=none"
@@ -802,6 +830,18 @@ if [[ "${OAT_ZERO_DRY_RUN:-0}" == "1" ]]; then
 fi
 
 watchdog_stale_seconds="${OAT_ZERO_WATCHDOG_STALE_SECONDS:-0}"
+# A completed cell must never train again. The watchdog requeues on staleness
+# and Slurm requeues on node failure, but a run that already wrote its
+# completion receipt has had its resume checkpoints pruned, so a restart would
+# begin from step 0 and retrain the whole cell -- overwriting the terminal
+# export and appending a second pass of evaluation rows to an artifact that is
+# already reported. Observed once: a finished cell was requeued and spent 13.4
+# GPU-hours reproducing itself.
+if [[ -f "$SAVE_PATH/TRAINING_COMPLETE.json" ]]; then
+  echo "[train] $SAVE_PATH already holds TRAINING_COMPLETE.json; refusing to retrain a finished cell"
+  exit 0
+fi
+
 if (( watchdog_stale_seconds <= 0 )); then
   exec "${cmd[@]}" "$@"
 fi

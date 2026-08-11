@@ -410,10 +410,8 @@ def main() -> None:
     semantic = SemanticShannonTracker(
         coefficient=0.10, surprisal_clip=5.0, pseudocount=1.0,
         success_conditioned_signed_advantage=True, success_conditioned_signed_cap=0.05,
-        open_set_inverse_adaptation=True, open_set_warmup_steps=64, open_set_ema_decay=0.90,
     )
     canonical = OnlineCanonicalBank(
-        entropy_alpha=0.0, novelty_beta=0.50, pseudocount=1.0, surprisal_clip=5.0,
         retain_exemplars=False, replay_capacity=16, global_replay_groups_per_step=0,
     )
     replay_bank = VerifiedInteractiveReplayBank(capacity=ant_base.REPLAY_CAPACITY)
@@ -491,7 +489,6 @@ def main() -> None:
                 "raw_exploration_advantage_rms": float(torch.sqrt(torch.mean(raw_exploration.square())).item()),
                 "applied_exploration_advantage_rms": float(torch.sqrt(torch.mean(applied_exploration.square())).item()),
                 "semantic_effective_advantage_rms": float(semantic_diag.effective_advantage_rms),
-                "canonical_novelty_advantage_rms": float(canonical_diag.novelty_advantage_rms),
                 "canonical_tracked_prompts": float(canonical.tracked_prompt_count),
                 "canonical_tracked_outcomes": float(canonical.tracked_outcome_count),
                 "canonical_support_at_least_two_prompt_fraction": float(canonical.support_at_least_two_prompt_fraction),
@@ -551,9 +548,8 @@ def main() -> None:
         },
         "mechanism": {
             "compute_only_control": args.arm == CONTROL, "semantic_coefficient": 0.10,
-            "novelty_beta": 0.50, "replay_mass_alpha": 0.10,
-            "replay_balance_alpha": 0.10, "warmup_steps": 64,
-            "gold_support_feedback": False, "coefficient_projection": False,
+            "replay_mass_alpha": 0.10, "replay_balance_alpha": 0.10,
+            "gold_support_feedback": False,
         },
         "information_boundary": {
             "certified_routes_in_context": False, "canonical_keys_in_context": False,

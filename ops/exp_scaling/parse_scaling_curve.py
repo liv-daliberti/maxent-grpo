@@ -296,17 +296,8 @@ SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_METRICS = {
         "semantic_shannon_success_conditioned_signed_history_groups_skipped",
         "semantic_shannon_success_conditioned_signed_tracked_prompts",
         "semantic_shannon_success_conditioned_signed_tracked_outcomes",
-        "semantic_shannon_success_conditioned_signed_open_set_inverse_adaptation_active",
         "semantic_shannon_success_conditioned_signed_open_set_coefficient_used",
-        "semantic_shannon_success_conditioned_signed_open_set_observed_normalized_entropy",
-        "semantic_shannon_success_conditioned_signed_open_set_entropy_ema",
-        "semantic_shannon_success_conditioned_signed_open_set_reference_entropy",
-        "semantic_shannon_success_conditioned_signed_open_set_inverse_multiplier",
-        "semantic_shannon_success_conditioned_signed_open_set_next_coefficient",
-        "semantic_shannon_success_conditioned_signed_open_set_observations",
-        "semantic_shannon_success_conditioned_signed_open_set_warmup_complete",
-        "semantic_shannon_success_conditioned_signed_open_set_observation_skipped",
-        "semantic_shannon_success_conditioned_signed_open_set_projection_active",
+        "semantic_shannon_success_conditioned_signed_open_set_normalized_entropy_mean",
     )
 }
 ONLINE_CANONICAL_METRICS = {
@@ -324,8 +315,6 @@ ONLINE_CANONICAL_METRICS = {
         "online_canonical_entropy_alpha_used",
         "online_canonical_entropy_advantage_mean",
         "online_canonical_entropy_advantage_rms",
-        "online_canonical_novelty_advantage_mean",
-        "online_canonical_novelty_advantage_rms",
         "online_canonical_combined_advantage_mean",
         "online_canonical_combined_advantage_rms",
         "online_canonical_eligible_fraction",

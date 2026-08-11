@@ -263,9 +263,9 @@ def main() -> None:
                 "campaign_status": audits[cohort]["status"],
                 "campaign_violations": audits[cohort]["violations"],
                 "mathir_terminal_runs": len(audited_runs[cohort]),
-                "entropy_gated_interventions": (
+                "singleton_only_interventions": (
                     audits[cohort]["summary"].get(
-                        "entropy_gated_interventions", 0
+                        "singleton_only_interventions", 0
                     )
                 ),
             }

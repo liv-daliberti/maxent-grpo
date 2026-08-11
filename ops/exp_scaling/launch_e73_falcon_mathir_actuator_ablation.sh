@@ -3,7 +3,7 @@
 # Falcon3-1B-Instruct.
 #
 # This is the cross-family replication of the manuscript's terminal causal row.
-# It submits only the treatment arm, the entropy-gated singleton-escape
+# It submits only the treatment arm, the singleton-only support-escape
 # actuator, at seeds 43-45 on MathIR. The paired "actuator off" reference is the
 # E73 cohort's own MathIR xGRPO arm at the same three seeds, which runs the
 # identical configuration minus the actuator. The contrast therefore changes
@@ -29,7 +29,7 @@ case "$phase" in
     ;;
 esac
 
-VARIANT=verified_entropy_gated_singleton_escape_canonical
+VARIANT=verified_singleton_escape_canonical
 PYTHON_BIN="${OAT_ZERO_PYTHON:-$ROOT_DIR/var/seed_paper_eval/paper310/bin/python}"
 PROTOCOL="$ROOT_DIR/paper/preregistration/e73_falcon3_1b_cross_family_replication_20260731.md"
 MODEL_ROOT="$ROOT_DIR/var/cache/huggingface/transformers/models--tiiuae--Falcon3-1B-Instruct/snapshots/28ba2251970a01dd1edc7ba7dad2eb71216ccfdf"
@@ -143,7 +143,7 @@ for flag in \
   VERIFIED_FIRST_BOOTSTRAP_LOCAL_CANONICAL VERIFIED_COUNTERFACTUAL_CANONICAL; do
   export "OAT_ZERO_INCLUDE_${flag}_ARM=0"
 done
-export OAT_ZERO_INCLUDE_VERIFIED_ENTROPY_GATED_SINGLETON_ESCAPE_CANONICAL_ARM=1
+export OAT_ZERO_INCLUDE_VERIFIED_SINGLETON_ESCAPE_CANONICAL_ARM=1
 
 export OAT_ZERO_VERIFIED_DISCOVERY_TRACKING=1
 export OAT_ZERO_MAXENT_ALPHA=0
@@ -151,22 +151,14 @@ export OAT_ZERO_MAXENT_INVERSE_BASE_ALPHA=0
 export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10
 export OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP=5.0
 export OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT=1.0
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS=64
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
-export OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.10
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=16
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY=0.90
 # The actuator itself: a separate support store for counterfactual admissions,
 # so proposed off-policy support never enters PPO's on-policy advantage.
 export OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1

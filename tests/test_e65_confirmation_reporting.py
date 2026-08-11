@@ -18,7 +18,7 @@ def _load(name, relative):
 
 audit = _load(
     "audit_e65_confirmation",
-    "ops/exp_scaling/audit_e65_entropy_gated_singleton_confirmation.py",
+    "ops/exp_scaling/audit_e65_singleton_confirmation.py",
 )
 summary = _load(
     "summarize_e65_confirmation",
@@ -145,26 +145,21 @@ def test_e65_auditor_narrowly_classifies_registered_rtx2080_interrupt(
     assert interruptions == 0
 
 
-def _audited_intervention_row(*, inverse_multiplier=1.1):
+def _audited_intervention_row():
     return {
         "trainer/global_step": 100,
         "train/dummy": 0.0,
-        "actor/counterfactual_proposal_singleton_entropy_gate_enabled": 1.0,
-        "actor/counterfactual_proposal_singleton_entropy_gate_available": 1.0,
-        "actor/counterfactual_proposal_singleton_entropy_gate_known_support": 1.0,
-        "actor/counterfactual_proposal_singleton_entropy_gate_active": 1.0,
-        "actor/counterfactual_proposal_singleton_entropy_gate_warmup_complete": 1.0,
-        "actor/counterfactual_proposal_singleton_entropy_gate_below_reference": 1.0,
-        "actor/counterfactual_proposal_singleton_entropy_gate_inverse_multiplier": inverse_multiplier,
+        "actor/counterfactual_proposal_singleton_only_enabled": 1.0,
+        "actor/counterfactual_proposal_singleton_only_known_support": 1.0,
+        "actor/counterfactual_proposal_singleton_only_active": 1.0,
         "actor/counterfactual_proposal_anchor_available": 1.0,
         "actor/counterfactual_proposal_admitted_new_outcomes": 1.0,
         "actor/counterfactual_proposal_conditioned_rows_sent_to_ppo": 0.0,
         "actor/counterfactual_proposal_transform_rows_sent_to_ppo": 0.0,
-        "train/semantic_shannon_success_conditioned_signed_open_set_projection_active": 0.0,
     }
 
 
-def test_e65_auditor_records_the_full_registered_gate_conjunction(tmp_path):
+def test_e65_auditor_records_the_singleton_only_contract(tmp_path):
     metrics = tmp_path / "train_metrics.jsonl"
     metrics.write_text(
         json.dumps(_audited_intervention_row()) + "\n",
@@ -181,26 +176,11 @@ def test_e65_auditor_records_the_full_registered_gate_conjunction(tmp_path):
             "admitted_new_outcomes": 1,
             "known_support_before_admission": 1,
             "gate_enabled": 1.0,
-            "gate_available": 1.0,
-            "warmup_complete": 1.0,
-            "entropy_below_reference": 1.0,
-            "inverse_multiplier": 1.1,
             "gate_active": 1.0,
             "conditioned_rows_sent_to_ppo": 0.0,
             "transform_rows_sent_to_ppo": 0.0,
-            "coefficient_projection_active": 0.0,
         }
     ]
-
-
-def test_e65_auditor_rejects_admission_without_inverse_activation(tmp_path):
-    metrics = tmp_path / "train_metrics.jsonl"
-    metrics.write_text(
-        json.dumps(_audited_intervention_row(inverse_multiplier=1.0)) + "\n",
-        encoding="utf-8",
-    )
-    _, violations = audit._scan_metrics(metrics, label="invalid")
-    assert any("inverse multiplier > 1" in violation for violation in violations)
 
 
 def test_frozen_auc_is_withheld_until_every_checkpoint_lands():
@@ -331,7 +311,7 @@ def test_same_plumbing_control_audit_rejects_any_proposal_activity(tmp_path):
             {
                 "trainer/global_step": 1,
                 "train/loss": 0.0,
-                "train/canonical_replay_mass_projection_active": 0.0,
+                "train/canonical_replay_mass_alpha_used": 0.10,
             }
         )
         + "\n",
@@ -448,14 +428,11 @@ def test_preintervention_equivalence_detects_objective_mismatch():
         label="same",
     ) == []
     mismatched = dict(row)
-    mismatched["train/online_canonical_novelty_advantage_mean"] = 0.0
-    assert any(
-        "online_canonical_novelty_advantage_mean" in violation
-        for violation in equivalence_audit._compare_rows(
-            row,
-            mismatched,
-            label="different",
-        )
+    mismatched[next(iter(equivalence_audit.REQUIRED_KEYS))] = 0.0
+    assert equivalence_audit._compare_rows(
+        row,
+        mismatched,
+        label="different",
     )
 
 

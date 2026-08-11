@@ -133,6 +133,7 @@ def render_point_policy_prompt_v3(
         + f"position_xy={position}\n"
         + f"velocity_xy={velocity}\n"
         + f"goal_xy={goal}\n"
+        + f"remaining_actions={int(observation['remaining_actions'])}\n"
         + "Coordinates use +x east/right and +y north/up.\n"
         + "OPTIONS\n"
         + options

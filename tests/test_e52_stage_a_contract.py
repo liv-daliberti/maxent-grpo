@@ -76,7 +76,6 @@ def test_stage_a_preserves_unbounded_target_free_treatment_and_held_audit():
         "OAT_ZERO_MAXENT_INVERSE_WARMUP_STEPS=64",
         "OAT_ZERO_MAXENT_INVERSE_EMA_DECAY=0.90",
         "OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10",
-        "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50",
         "OAT_ZERO_ONLINE_CANONICAL_POLICY_ENTROPY_ADAPTATION=0",
         "OAT_ZERO_SBATCH_HOLD=1",
         "Reason=JobHeldUser",

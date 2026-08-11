@@ -185,7 +185,6 @@ export OAT_ZERO_MAXENT_INVERSE_EMA_DECAY=0.90
 export OAT_ZERO_MAXENT_CONTROL_TARGET_RATIO=0.0
 export OAT_ZERO_MAXENT_DUAL_TARGET_RATIO=0.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
@@ -303,7 +302,6 @@ payload = {
     },
     "canonical_objective": {
         "entropy_alpha": 0.10,
-        "novelty_beta": 0.50,
         "pseudocount": 1.0,
         "surprisal_clip": 5.0,
         "adaptive": False,
@@ -466,8 +464,7 @@ for job_id in "${job_ids[@]}"; do
     for required in \
       'OAT_ZERO_MAXENT_ALPHA=0.0' \
       'OAT_ZERO_MAXENT_INVERSE_ADAPTATION=0' \
-      'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0' \
-      'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0'; do
+      'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0'; do
       if [[ "$job_record" != *"$required"* ]]; then
         echo "E52 Dr.GRPO audit failed for $job_id: missing $required" >&2
         exit 1
@@ -486,8 +483,7 @@ for job_id in "${job_ids[@]}"; do
     done
     if [[ "$job_record" == *"OAT_ZERO_VARIANT=maxent_inverse_canonical"* ]]; then
       for required in \
-        'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10' \
-        'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50'; do
+        'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10'; do
         if [[ "$job_record" != *"$required"* ]]; then
           echo "E52 hybrid audit failed for $job_id: missing $required" >&2
           exit 1
@@ -496,8 +492,7 @@ for job_id in "${job_ids[@]}"; do
     else
       for required in \
         'OAT_ZERO_VARIANT=maxent_inverse' \
-        'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0' \
-        'OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0'; do
+        'OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0'; do
         if [[ "$job_record" != *"$required"* ]]; then
           echo "E52 direct-only audit failed for $job_id: missing $required" >&2
           exit 1

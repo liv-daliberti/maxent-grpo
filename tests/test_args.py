@@ -63,11 +63,7 @@ def _args(**overrides):
         "semantic_shannon_quality_gated_cap": 0.05,
         "semantic_shannon_success_conditioned_signed_advantage": False,
         "semantic_shannon_success_conditioned_signed_cap": 0.05,
-        "semantic_shannon_open_set_inverse_adaptation": False,
-        "semantic_shannon_open_set_warmup_steps": 64,
-        "semantic_shannon_open_set_ema_decay": 0.9,
         "online_canonical_bank_alpha": 0.0,
-        "online_canonical_novelty_beta": 0.0,
         "online_canonical_bank_pseudocount": 1.0,
         "online_canonical_bank_surprisal_clip": 5.0,
         "online_canonical_dual_target_ratio": 0.0,
@@ -84,11 +80,7 @@ def _args(**overrides):
         "online_canonical_replay_capacity": 16,
         "online_canonical_replay_global_groups_per_step": 0,
         "online_canonical_replay_global_bootstrap_steps": 0,
-        "online_canonical_replay_warmup_steps": 64,
-        "online_canonical_replay_ema_decay": 0.9,
         "online_canonical_replay_mass_alpha": 0.1,
-        "online_canonical_replay_mass_warmup_steps": 64,
-        "online_canonical_replay_mass_ema_decay": 0.9,
         "online_canonical_key_mode": "modebench_outcome",
         "verified_route_replay_capacity_per_route": 16,
         "verified_route_recurring_min_neutral_prompts": 2,
@@ -176,9 +168,6 @@ def test_haarnoja_dual_rejects_invalid_entropy_ema_decay():
 def test_inverse_maxent_accepts_label_free_conditional_entropy_control():
     args = _args(
         xdr_tau=float("inf"),
-        maxent_alpha=0.000075,
-        maxent_objective="conditional_token_mean",
-        maxent_inverse_adaptation=True,
     )
 
     assert validate_zero_math_args(args) is args
@@ -260,8 +249,8 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
                 test_split="multi_answer",
                 online_evaluation=True,
                 online_canonical_replay=True,
-                online_canonical_counterfactual_proposals=True,
                 online_canonical_bank_alpha=0.1,
+                online_canonical_counterfactual_proposals=True,
                 replicated_freeform_sampling=True,
                 local_actor_weight_sync=True,
             )
@@ -275,7 +264,6 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
         online_canonical_replay_objective="split_mass_balance_per_rollout",
         online_canonical_counterfactual_proposals=True,
         online_canonical_counterfactual_separate_objective_support=True,
-        online_canonical_novelty_beta=0.5,
         replicated_freeform_sampling=True,
         local_actor_weight_sync=True,
     )
@@ -299,7 +287,6 @@ def test_inverse_conditional_maxent_accepts_fixed_canonical_hybrid():
         maxent_objective="conditional_token_mean",
         maxent_inverse_adaptation=True,
         online_canonical_bank_alpha=0.1,
-        online_canonical_novelty_beta=0.5,
         test_split="multi_answer",
     )
 
@@ -321,7 +308,6 @@ def test_canonical_direct_maxent_composition_requires_e52_contract(overrides):
         "maxent_objective": "conditional_token_mean",
         "maxent_inverse_adaptation": True,
         "online_canonical_bank_alpha": 0.1,
-        "online_canonical_novelty_beta": 0.5,
         "test_split": "multi_answer",
     }
     settings.update(overrides)
@@ -552,7 +538,6 @@ def test_online_canonical_bank_requires_executable_modebench_contract():
     args = _args(
         xdr_tau=float("inf"),
         online_canonical_bank_alpha=0.1,
-        online_canonical_novelty_beta=0.5,
         test_split="multi_answer",
     )
     assert validate_zero_math_args(args) is args
@@ -562,7 +547,6 @@ def test_online_canonical_bank_requires_executable_modebench_contract():
             _args(
                 xdr_tau=float("inf"),
                 online_canonical_bank_alpha=0.1,
-                online_canonical_novelty_beta=0.5,
                 prompt_template="qwen_math",
                 verifier_version="math_verify",
                 test_split="math",
@@ -583,8 +567,6 @@ def test_online_canonical_bank_accepts_task_bound_pantry_contract():
         semantic_shannon_coef=0.1,
         semantic_shannon_separate_advantage=True,
         semantic_shannon_success_conditioned_signed_advantage=True,
-        semantic_shannon_open_set_inverse_adaptation=True,
-        online_canonical_novelty_beta=0.5,
         online_canonical_replay=True,
         online_canonical_replay_objective="split_mass_balance_per_rollout",
         online_canonical_replay_global_groups_per_step=1,
@@ -597,7 +579,6 @@ def test_online_canonical_math_strategy_requires_validator_and_endpoint():
     args = _args(
         xdr_tau=float("inf"),
         online_canonical_bank_alpha=0.1,
-        online_canonical_novelty_beta=0.5,
         online_canonical_key_mode="math_strategy_qwen72",
         math_strategy_endpoint="http://node105:8766/v1",
         prompt_template="qwen_math",
@@ -610,8 +591,6 @@ def test_online_canonical_math_strategy_requires_validator_and_endpoint():
         validate_zero_math_args(
             _args(
                 xdr_tau=float("inf"),
-                online_canonical_bank_alpha=0.1,
-                online_canonical_novelty_beta=0.5,
                 online_canonical_key_mode="math_strategy_qwen72",
                 math_strategy_endpoint="",
                 prompt_template="qwen_math",
@@ -709,7 +688,7 @@ def test_verified_route_mode_accepts_only_frozen_modebench_or_math_dev_contract(
                 online_canonical_replay_objective=("verified_likelihood_per_rollout"),
                 online_canonical_replay_global_groups_per_step=1,
                 online_canonical_key_mode="verified_route",
-                online_canonical_novelty_beta=0.1,
+                online_canonical_bank_alpha=0.1,
                 test_split="multi_answer",
             )
         )
@@ -786,7 +765,6 @@ def test_online_canonical_dual_requires_valid_bank_alpha_and_bounds():
     args = _args(
         xdr_tau=float("inf"),
         online_canonical_bank_alpha=0.1,
-        online_canonical_novelty_beta=0.5,
         online_canonical_dual_target_ratio=0.8,
         online_canonical_dual_min_alpha=0.1,
         online_canonical_dual_max_alpha=0.5,
@@ -797,7 +775,6 @@ def test_online_canonical_dual_requires_valid_bank_alpha_and_bounds():
         _args(
             xdr_tau=float("inf"),
             online_canonical_bank_alpha=0.1,
-            online_canonical_novelty_beta=0.5,
             online_canonical_dual_target_ratio=0.8,
             online_canonical_dual_min_alpha=0.1,
             online_canonical_dual_max_alpha=float("inf"),
@@ -809,7 +786,6 @@ def test_online_canonical_dual_requires_valid_bank_alpha_and_bounds():
         validate_zero_math_args(
             _args(
                 xdr_tau=float("inf"),
-                online_canonical_novelty_beta=0.5,
                 online_canonical_dual_target_ratio=0.8,
                 test_split="multi_answer",
             )
@@ -841,7 +817,6 @@ def test_online_canonical_policy_entropy_adaptation_is_exclusive():
     args = _args(
         xdr_tau=float("inf"),
         online_canonical_bank_alpha=0.1,
-        online_canonical_novelty_beta=0.5,
         online_canonical_policy_entropy_adaptation=True,
         online_canonical_policy_entropy_warmup_steps=64,
         online_canonical_policy_entropy_ema_decay=0.9,
@@ -853,7 +828,6 @@ def test_online_canonical_policy_entropy_adaptation_is_exclusive():
         validate_zero_math_args(
             _args(
                 xdr_tau=float("inf"),
-                online_canonical_novelty_beta=0.5,
                 online_canonical_policy_entropy_adaptation=True,
                 test_split="multi_answer",
             )
@@ -862,7 +836,6 @@ def test_online_canonical_policy_entropy_adaptation_is_exclusive():
         validate_zero_math_args(
             _args(
                 xdr_tau=float("inf"),
-                online_canonical_bank_alpha=0.1,
                 online_canonical_policy_entropy_adaptation=True,
                 online_canonical_dual_target_ratio=0.8,
                 online_canonical_dual_min_alpha=0.1,
@@ -877,7 +850,6 @@ def test_canonical_replay_accepts_target_free_inverse_direct_entropy_hybrid():
         maxent_alpha=0.000075,
         maxent_objective="conditional_token_mean",
         maxent_inverse_adaptation=True,
-        online_canonical_novelty_beta=0.5,
         online_canonical_replay=True,
         online_canonical_replay_alpha=0.1,
         online_canonical_replay_capacity=16,
@@ -910,7 +882,6 @@ def test_canonical_replay_accepts_target_free_inverse_direct_entropy_hybrid():
         maxent_alpha=0.000075,
         maxent_objective="conditional_token_mean",
         maxent_inverse_adaptation=True,
-        online_canonical_novelty_beta=0.5,
         online_canonical_replay=True,
         online_canonical_replay_objective=("split_mass_balance_per_rollout"),
         test_split="multi_answer",
@@ -931,7 +902,6 @@ def test_canonical_replay_accepts_target_free_inverse_direct_entropy_hybrid():
 def test_global_verified_replay_requires_replay_and_accepts_fixed_compute_budget():
     args = _args(
         xdr_tau=float("inf"),
-        online_canonical_novelty_beta=0.5,
         online_canonical_replay=True,
         online_canonical_replay_objective=("split_mass_balance_per_rollout"),
         online_canonical_replay_global_groups_per_step=1,
@@ -1023,22 +993,21 @@ def test_semantic_shannon_success_conditioned_signed_accepts_extension():
     assert validate_zero_math_args(args) is args
 
 
-def test_semantic_shannon_open_set_inverse_accepts_target_free_unprojected_arm():
+def test_semantic_shannon_open_set_uses_the_fixed_signed_advantage_path():
+    fields = ZeroMathArgs.__dataclass_fields__
+    assert fields["semantic_shannon_success_conditioned_signed_advantage"].default is False
     args = _args(
         xdr_tau=float("inf"),
         semantic_shannon_coef=0.1,
         semantic_shannon_separate_advantage=True,
         semantic_shannon_success_conditioned_signed_advantage=True,
-        semantic_shannon_open_set_inverse_adaptation=True,
-        semantic_shannon_open_set_warmup_steps=64,
-        semantic_shannon_open_set_ema_decay=0.9,
         num_samples=16,
     )
 
     assert validate_zero_math_args(args) is args
 
 
-def test_open_set_split_canonical_composition_accepts_all_three_actuators():
+def test_open_set_split_canonical_composition_accepts_fixed_coefficients():
     args = _args(
         xdr_tau=float("inf"),
         maxent_alpha=0.000075,
@@ -1047,8 +1016,6 @@ def test_open_set_split_canonical_composition_accepts_all_three_actuators():
         semantic_shannon_coef=0.1,
         semantic_shannon_separate_advantage=True,
         semantic_shannon_success_conditioned_signed_advantage=True,
-        semantic_shannon_open_set_inverse_adaptation=True,
-        online_canonical_novelty_beta=0.5,
         online_canonical_replay=True,
         online_canonical_replay_objective="split_mass_balance_per_rollout",
         test_split="multi_answer",
@@ -1171,24 +1138,6 @@ def test_open_set_split_canonical_composition_accepts_all_three_actuators():
                 "semantic_shannon_success_conditioned_signed_advantage": True,
             },
             "separate treatments",
-        ),
-        (
-            {
-                "semantic_shannon_open_set_inverse_adaptation": True,
-            },
-            "requires the success-conditioned signed",
-        ),
-        (
-            {
-                "semantic_shannon_open_set_warmup_steps": 0,
-            },
-            "warmup_steps must be positive",
-        ),
-        (
-            {
-                "semantic_shannon_open_set_ema_decay": 1.0,
-            },
-            "ema_decay must be finite and in",
         ),
     ],
 )

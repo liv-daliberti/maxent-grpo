@@ -8,7 +8,6 @@ import pytest
 from oat_drgrpo.learner.run import ZeroMathRunMixin
 from oat_drgrpo.outcome_collision import INVALID_OUTCOME_KEY
 from oat_drgrpo.semantic_shannon import (
-    OpenSetSemanticInverseController,
     SemanticShannonTracker,
     open_set_success_semantic_signal,
 )
@@ -342,58 +341,10 @@ def test_open_set_signal_pushes_down_common_mode_and_up_unseen_success():
     assert common.explicit_support_size == 1
 
 
-def test_open_set_inverse_keeps_singleton_pressure_alive_without_projection():
-    ratios = []
-    for count in (1, 10, 100, 1_000, 10_000):
-        signal = open_set_success_semantic_signal(
-            explicit_counts={"known": count},
-            sampled_key="known",
-        )
-        # With beta proportional to 1 / normalized entropy, this ratio is the
-        # coefficient-free effective pressure. It remains finite and nonzero
-        # even though the singleton entropy itself tends toward zero.
-        ratios.append(
-            abs(signal.centered_clipped_surprisal)
-            / signal.normalized_predictive_entropy
-        )
-
-    assert min(ratios) > 0.04
-    assert max(ratios) < 0.12
-
-
-def test_open_set_controller_is_unprojected_and_checkpoint_exact():
-    controller = OpenSetSemanticInverseController(
-        base_coefficient=0.1,
-        warmup_steps=2,
-        ema_decay=0.0,
-    )
-
-    assert controller.observe(0.8)[
-        "semantic_open_set_next_coefficient"
-    ] == pytest.approx(0.1)
-    warmup = controller.observe(0.6)
-    assert warmup["semantic_open_set_reference_entropy"] == pytest.approx(0.7)
-    collapsed = controller.observe(0.07)
-    assert collapsed["semantic_open_set_next_coefficient"] == pytest.approx(1.0)
-    assert collapsed["semantic_open_set_projection_active"] == 0.0
-
-    state = controller.state_dict()
-    restored = OpenSetSemanticInverseController(
-        base_coefficient=0.1,
-        warmup_steps=2,
-        ema_decay=0.0,
-    )
-    restored.load_state_dict(state)
-    assert restored.state_dict() == state
-
-
-def _open_set_tracker(*, coefficient=0.1, warmup_steps=1, ema_decay=0.0):
+def _open_set_tracker(*, coefficient=0.1):
     return SemanticShannonTracker(
         coefficient=coefficient,
         success_conditioned_signed_advantage=True,
-        open_set_inverse_adaptation=True,
-        open_set_warmup_steps=warmup_steps,
-        open_set_ema_decay=ema_decay,
     )
 
 
@@ -410,8 +361,8 @@ def test_open_set_tracker_bootstraps_without_gold_support_and_then_separates_mod
         )
     )
     assert first == [0.0] * 4
-    assert first_diagnostics.open_set_observation_skipped == 1.0
-    assert first_diagnostics.open_set_observations == 0.0
+    assert first_diagnostics.open_set_normalized_entropy_mean == 0.0
+    assert first_diagnostics.open_set_coefficient_used == pytest.approx(0.1)
 
     second, diagnostics = (
         tracker.score_success_conditioned_signed_advantages_and_update(
@@ -425,10 +376,8 @@ def test_open_set_tracker_bootstraps_without_gold_support_and_then_separates_mod
     assert second[0] < 0.0
     assert second[1] > 0.0
     assert second[2:] == [0.0, 0.0]
-    assert diagnostics.open_set_inverse_adaptation_active == 1.0
-    assert diagnostics.open_set_observations == 1.0
-    assert diagnostics.open_set_warmup_complete == 1.0
-    assert diagnostics.open_set_projection_active == 0.0
+    assert diagnostics.open_set_coefficient_used == pytest.approx(0.1)
+    assert 0.0 < diagnostics.open_set_normalized_entropy_mean <= 1.0
     assert diagnostics.advantage_cap == 0.0
 
 
@@ -459,8 +408,8 @@ def test_open_set_tracker_does_not_cap_effective_semantic_advantage():
     assert diagnostics.advantage_cap == 0.0
 
 
-def test_open_set_tracker_checkpoint_preserves_controller_and_next_scores():
-    tracker = _open_set_tracker(warmup_steps=2, ema_decay=0.5)
+def test_open_set_tracker_checkpoint_preserves_counts_and_next_scores():
+    tracker = _open_set_tracker()
     for answer_keys in (["a", "a"], ["a", "b"]):
         tracker.score_success_conditioned_signed_advantages_and_update(
             prompt_token_ids=_prompts(PROMPT_A, 2),
@@ -470,9 +419,9 @@ def test_open_set_tracker_checkpoint_preserves_controller_and_next_scores():
             num_samples=2,
         )
     state = tracker.state_dict()
-    assert state["schema"] == "semantic_shannon_tracker_v4_open_set_inverse"
+    assert state["schema"] == "semantic_shannon_tracker_v5_fixed_open_set"
 
-    restored = _open_set_tracker(warmup_steps=2, ema_decay=0.5)
+    restored = _open_set_tracker()
     restored.load_state_dict(copy.deepcopy(state))
     kwargs = {
         "prompt_token_ids": _prompts(PROMPT_A, 2),

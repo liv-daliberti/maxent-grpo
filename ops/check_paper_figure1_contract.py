@@ -12,9 +12,11 @@ AUDIT = ROOT / "var/artifacts/paper_graph_collapse_toy.json"
 MANUSCRIPT = ROOT / "paper/main.tex"
 EXAMPLES_SOURCE = ROOT / "ops/plot_paper_modebench_examples.py"
 EXAMPLES_PDF = ROOT / "paper/figures/modebench_examples.pdf"
-MECHANISM_SOURCE = ROOT / "ops/plot_paper_xdr_mechanism.py"
-MECHANISM_PDF = ROOT / "paper/figures/xdr_mechanism.pdf"
+MECHANISM_SOURCE = ROOT / "ops/plot_paper_verified_replay_mechanism.py"
+MECHANISM_PDF = ROOT / "paper/figures/verified_replay_mechanism.pdf"
 MAIN_PDF = ROOT / "paper/main.pdf"
+INTERIM_FIGURE4 = ROOT / "paper/figures/figure4_interim_20260806.json"
+INTERIM_TABLE = ROOT / "paper/results/figure4_interim_20260806_table.json"
 HEADLINE_SOURCE = ROOT / "ops/plot_paper_modecollapse.py"
 APPENDIX_SOURCE = ROOT / "ops/exp_scaling/plot_e70_clean_05b_wide_live.py"
 HEADLINE_PDF = ROOT / "paper/figures/modecollapse_training.pdf"
@@ -52,58 +54,271 @@ def pdf_text(path: Path) -> str:
     return result.stdout
 
 
-B3A_SUMMARY = ROOT / "var/artifacts/e72_b3a_summary.json"
-B3A_TABLE_ROWS = {
-    "Graph coloring": "graph_coloring",
-    "Countdown": "countdown",
-    "Python factors": "python_factors",
-    "MathIR action menu": "mathir",
-    "PantryPlan": "pantry_plan",
+B1B_SUMMARY = ROOT / "var/artifacts/e72_b1b_summary.json"
+E73_SUMMARY = ROOT / "var/artifacts/e73_falcon_cross_family_summary_v2.json"
+REHEARSAL_TABLE_ROWS = {
+    "Graph coloring": ("graph_coloring", "E"),
+    "Countdown": ("countdown", "E"),
+    "Python factors": ("python_factors", "rehearsal better"),
+    "MathIR action menu": ("mathir", "E"),
+    "PantryPlan": ("pantry_plan", "balance better"),
 }
 
 
-def check_replay_ablation_table(manuscript: str) -> None:
-    """The B3a table is inlined, so verify it against its frozen artifact.
-
-    Inlining removes a file dependency at submission time but reintroduces the
-    risk the \input existed to prevent: a number in the manuscript drifting
-    from the cohort it claims to summarize. This restores that guarantee.
-    """
-    if not B3A_SUMMARY.is_file():
+def check_rehearsal_table(manuscript: str) -> None:
+    """Bind the clean rehearsal/replay-plus-balance table to its artifact."""
+    if not B1B_SUMMARY.is_file():
         return
-    summary = json.loads(B3A_SUMMARY.read_text())
+    summary = json.loads(B1B_SUMMARY.read_text())
+    require(
+        summary.get("all_25_cells_terminal_and_valid") is True,
+        "rehearsal table is present without 25 valid terminal cells",
+    )
     by_domain = {entry["domain"]: entry for entry in summary["domains"]}
-    section = manuscript.split(r"\label{tab:replay-ablation}", 1)[0]
+    section = manuscript.split(r"\label{tab:rehearsal-ablation}", 1)[0]
     section = section.rsplit(r"\begin{tabular}", 1)[-1]
-    for title, domain in B3A_TABLE_ROWS.items():
+
+    def decimal(value: float) -> str:
+        rendered = f"{value:.3f}"
+        return rendered[1:] if rendered.startswith("0.") else rendered
+
+    for title, (domain, effect) in REHEARSAL_TABLE_ROWS.items():
         entry = by_domain.get(domain)
         require(
             entry is not None and entry.get("reportable"),
-            f"replay-ablation table shows {title} but the cohort does not report it",
+            f"rehearsal table shows {title} but its domain is withheld",
         )
-        row = [line for line in section.splitlines() if line.strip().startswith(title)]
-        require(len(row) == 1, f"replay-ablation table is missing a row for {title}")
-        cells = [cell.strip() for cell in row[0].split("&")]
-        printed = {
-            "drgrpo": cells[1],
-            "b3a": cells[2],
-            "xgrpo": cells[3],
-        }
-        for arm, text in printed.items():
-            expected = entry["means"][arm]["distinct8"]
-            rendered = f"{expected:.3f}"
-            rendered = rendered[1:] if rendered.startswith("0.") else rendered
-            require(
-                text == rendered,
-                f"replay-ablation table {title}/{arm} shows {text!r}, "
-                f"artifact says {rendered!r}",
-            )
+        rows = re.findall(
+            rf"^\s*{re.escape(title)}\s*&.*?\\\\",
+            section,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        require(len(rows) == 1, f"rehearsal table is missing {title}")
+        cells = [cell.strip() for cell in rows[0].split("&")]
+        expected = (
+            decimal(entry["means"]["drgrpo"]["distinct8"]),
+            decimal(entry["means"]["b1b"]["distinct8"]),
+            decimal(entry["means"]["b1a"]["distinct8"]),
+            effect,
+        )
+        printed = (
+            cells[1],
+            cells[2],
+            cells[3],
+            cells[4].split(r"\\", 1)[0].strip(),
+        )
+        require(
+            printed == expected,
+            f"rehearsal table {title} shows {printed!r}, artifact says {expected!r}",
+        )
 
+
+def check_cross_family_table(manuscript: str) -> None:
+    'Bind the terminal Falcon table to all fifty audited cells.'
+    if not E73_SUMMARY.is_file():
+        return
+    summary = json.loads(E73_SUMMARY.read_text())
+    require(
+        summary.get("all_50_cells_terminal_and_valid") is True,
+        "cross-family table is present without 50 valid terminal cells",
+    )
+    outcomes = summary.get("registered_directional_outcomes", {})
+    require(
+        outcomes.get("distinct_positive_domains") == 5
+        and outcomes.get("pass8_nonnegative_domains") == 5
+        and outcomes.get("distinct_paired_wins") == 25
+        and outcomes.get("pass8_paired_wins") == 25,
+        "cross-family directional claim does not match the terminal artifact",
+    )
+    section = manuscript.split(r"\label{tab:cross-family}", 1)[0]
+    section = section.rsplit(r"\begin{tabular}", 1)[-1]
+    titles = {
+        "Graph coloring": "graph_coloring",
+        "Countdown": "countdown",
+        "Python factors": "python_factors",
+        "MathIR": "mathir",
+        "PantryPlan": "pantry_plan",
+    }
+
+    def clean(cell: str) -> str:
+        cell = re.sub(r"\\textbf\{([^{}]*)\}", r"\1", cell)
+        return " ".join(cell.split())
+
+    def decimal3(value: float) -> str:
+        rendered = f"{value:.3f}"
+        return rendered[1:] if rendered.startswith("0.") else rendered
+
+    for title, domain in titles.items():
+        entry = summary["domains"].get(domain)
+        require(
+            entry is not None and entry.get("complete")
+            and entry.get("common_endpoint") == 4608,
+            f"cross-family table shows {title} without a terminal domain",
+        )
+        match = re.search(
+            rf"^\s*{re.escape(title)}\s*&\s*matched Dr\.GRPO\s*&"
+            rf"(.*?)\\\\\s*&\s*\\historicalt\{{\}}\s*&(.*?)\\\\",
+            section,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        require(match is not None, f"cross-family table is missing {title}")
+        printed = tuple(
+            clean(cell)
+            for group in match.groups()
+            for cell in group.split("&")
+        )
+        expected_cells: list[str] = []
+        for arm in ("drgrpo", "xgrpo"):
+            means = entry["means"][arm]
+            passed = means["pass_at_8"]
+            expected_cells.extend(
+                (
+                    decimal3(means["pass_at_1"]),
+                    decimal3(means["mean_at_8"]),
+                    decimal3(passed),
+                    f"{means['distinct_at_8']:.2f}",
+                    f"{means['distinct_at_8'] / passed:.2f}" if passed else "--",
+                )
+            )
+        expected = tuple(expected_cells)
+        require(
+            printed == expected,
+            f"cross-family table {title} shows {printed!r}, "
+            f"artifact says {expected!r}",
+        )
+
+
+INTERIM_DOMAIN_TITLES = {
+    "graph_coloring": "Graph coloring",
+    "countdown": "Countdown",
+    "python_factors": "Python factors",
+    "mathir": "MathIR",
+    "pantry_plan": "PantryPlan",
+    "point_maze": "PointMaze",
+}
+
+
+def check_interim_replay_table(manuscript: str) -> None:
+    """Bind the explicitly interim main-text table to its dated snapshot."""
+
+    require(INTERIM_FIGURE4.is_file(), "dated interim Figure 4 JSON is missing")
+    figure_payload = json.loads(INTERIM_FIGURE4.read_text())
+    require(
+        figure_payload.get("schema") == "figure4_multimodel_interim_v2",
+        "dated interim Figure 4 has the wrong schema",
+    )
+    require(
+        figure_payload.get("generated_at") == "2026-08-11T17:59:49.434939+00:00",
+        "dated interim Figure 4 timestamp drifted",
+    )
+    require(
+        r"\label{fig:interim-replay}" in manuscript
+        and r"\label{tab:interim-replay}" in manuscript,
+        "interim figure or table is absent from the manuscript",
+    )
+    require(INTERIM_TABLE.is_file(), "dated interim four-metric table JSON is missing")
+    payload = json.loads(INTERIM_TABLE.read_text())
+    require(
+        payload.get("schema") == "figure4_interim_four_metric_table_v1",
+        "dated interim table has the wrong schema",
+    )
+    require(
+        payload.get("figure_snapshot_generated_at") == figure_payload.get("generated_at"),
+        "dated interim table is not bound to the frozen Figure 4 snapshot",
+    )
+    table = manuscript.split(r"\label{tab:interim-replay}", 1)[0]
+    table = table.rsplit(r"\begin{tabular}", 1)[-1]
+    blocks = {
+        "Qwen2.5-0.5B": table.split(r"\qwenmark{}2.5-0.5B", 1)[1].split(
+            "Falcon3-1B", 1
+        )[0],
+        "Falcon3-1B": table.split("Falcon3-1B", 1)[1].split(
+            r"\qwenmark{}2.5-3B", 1
+        )[0],
+        "Qwen2.5-3B": table.split(r"\qwenmark{}2.5-3B", 1)[1],
+    }
+
+    def decimal3(value: float) -> str:
+        rendered = f"{value:.3f}"
+        if rendered.startswith("0."):
+            return rendered[1:]
+        if rendered.startswith("-0."):
+            return "-" + rendered[2:]
+        return rendered
+
+    expected_rows = 0
+    for family, family_record in payload["families"].items():
+        for domain, domain_record in family_record["domains"].items():
+            expected_rows += 1
+            title = INTERIM_DOMAIN_TITLES[domain]
+            match = re.search(
+                rf"&\s*{re.escape(title)}\s*&(.*?)\\\\",
+                blocks[family],
+            )
+            require(match is not None, f"interim table is missing {family}/{title}")
+            raw_cells = tuple(
+                " ".join(cell.split()) for cell in match.group(1).split("&")
+            )
+            highlighted = tuple(r"\bettercell{" in cell for cell in raw_cells)
+            printed = tuple(
+                re.sub(r"\\bettercell\{([^{}]+)\}", r"\1", cell)
+                for cell in raw_cells
+            )
+            expected_cells = [
+                f"{len(domain_record['paired_seeds'])}@{float(domain_record['pass']):.1f}"
+            ]
+            for arm in ("control", "replay"):
+                means = domain_record["arms"][arm]["means"]
+                for metric in ("pass1", "pass8", "mean8", "distinct8"):
+                    value = means.get(metric)
+                    expected_cells.append("--" if value is None else decimal3(float(value)))
+            expected = tuple(expected_cells)
+            require(
+                not any(highlighted[:5]),
+                f"interim table shades a non-treatment cell in {family}/{title}",
+            )
+            control_means = domain_record["arms"]["control"]["means"]
+            replay_means = domain_record["arms"]["replay"]["means"]
+            for metric_index, metric in enumerate(
+                ("pass1", "pass8", "mean8", "distinct8")
+            ):
+                control_value = control_means.get(metric)
+                replay_value = replay_means.get(metric)
+                should_highlight = (
+                    control_value is not None
+                    and replay_value is not None
+                    and float(replay_value) > float(control_value)
+                )
+                require(
+                    highlighted[5 + metric_index] == should_highlight,
+                    f"interim table highlight is wrong for {family}/{title}/{metric}",
+                )
+            require(
+                printed == expected,
+                f"interim table {family}/{title} shows {printed!r}, "
+                f"snapshot says {expected!r}",
+            )
+    # The loop above proves every snapshot panel appears in the table. Count
+    # the printed rows to prove the converse, so a panel that leaves the
+    # snapshot cannot survive as a stale row. Binding this to the snapshot
+    # rather than to a fixed count lets newly evaluable panels through, which
+    # is the whole point of an interim table.
+    printed_rows = sum(len(re.findall(r"\\\\", block)) for block in blocks.values())
+    require(
+        printed_rows == expected_rows,
+        f"interim table prints {printed_rows} rows, snapshot has {expected_rows}",
+    )
 
 def main() -> None:
     source = SOURCE.read_text()
     manuscript = MANUSCRIPT.read_text()
     audit = json.loads(AUDIT.read_text())
+    dated_snapshot = (
+        r"\label{fig:interim-replay}" in manuscript
+        and r"\textbf{Snapshot boundary.}" in manuscript
+    )
+    main_page_limit = 10 if dated_snapshot else 9
+    page_contract = "snapshot limit 10" if dated_snapshot else "final limit 9"
     example_source = EXAMPLES_SOURCE.read_text()
     require("excess@" not in manuscript, "excess@K remains in manuscript")
     require(r"\paragraph{" not in manuscript, "compact bold headings regressed")
@@ -142,7 +357,7 @@ def main() -> None:
     five_point_tokens = (
         "breaks that trade",
         "Inference-time scaling requires genuine solution diversity",
-        "Useful prompt response breadth",
+        "Useful response breadth",
         "Prior work documents",
         r"We introduce \mb{}",
     )
@@ -162,7 +377,7 @@ def main() -> None:
         require(forbidden not in introduction, f"Introduction contains formal token {forbidden!r}")
     for token in (
         "breaks that trade", "Inference-time scaling requires genuine solution diversity",
-        "Useful prompt response breadth", "Prior work documents",
+        "Useful response breadth", "Prior work documents",
         r"We introduce \mb{}", "Summary of contributions",
     ):
         require(token in introduction, f"Introduction structure missing {token!r}")
@@ -173,27 +388,42 @@ def main() -> None:
     ):
         require(token in introduction, f"Contribution list alignment missing {token!r}")
     for token in (
-        "flattens what it means to be right",
-        "Exact domains make this loss countable",
-        "correct-answer effect",
-        "sorensen2024pluralistic",
-        "park2024diversitythought",
-        "wang2025flatten",
+        "validator-produced canonical execution",
+        "same validator determines correctness",
+        r"\xmode{} adds one intervention",
     ):
-        require(token in introduction, f"Introduction stakes missing {token!r}")
-    conclusion = manuscript.split("Conclusion.", 1)[1].split(
+        require(token in introduction, f"Introduction contract missing {token!r}")
+    for forbidden in (
+        "flattens what it means to be right",
+        "plurality matters everywhere",
+        "correct-answer effect",
+        "open-set executable task set",
+        "semantic identity binds correctness",
+        "common retention mechanism",
+    ):
+        require(
+            forbidden not in introduction,
+            f"Introduction retains superseded wording {forbidden!r}",
+        )
+    # Anchored on the section, not on a "Conclusion." run-in: discussion,
+    # limitations, and the closing argument are now bolded paragraphs of one
+    # Conclusion section, which spends two section rules on text instead.
+    require(
+        r"\section{Conclusion}" in manuscript,
+        "manuscript lost its Conclusion section",
+    )
+    conclusion = manuscript.split(r"\section{Conclusion}", 1)[1].split(
         "bibliographystyle", 1
     )[0]
+    conclusion_flat = " ".join(conclusion.split())
     for token in (
-        "The verified world is a microscope",
-        "Preserving the diversity",
-        "is therefore option value",
-        "doshi2024creative",
-        "anderson2024homogenization",
-        "These studies show that quality and a narrower",
-        "transfers to open-ended tasks",
+        "Capacity-16 banks can omit later discoveries",
+        "fixed $.10$ replay dose is neither ablated nor claimed optimal",
+        "conditional post-discovery retention guarantee",
+        "no neural performance claim",
+        "More verified modes are not inherently better",
     ):
-        require(token in conclusion, f"Conclusion stakes missing {token!r}")
+        require(token in conclusion_flat, f"Conclusion scope missing {token!r}")
     related = manuscript.split(r"\section{Related Work}", 1)[1].split(
         r"\section{Experimental Design and Evidence Policy}", 1
     )[0]
@@ -202,7 +432,7 @@ def main() -> None:
         "Related Work must contain exactly three bold areas",
     )
     for token in (
-        "Mode-covering objectives, archives, and semantic identity",
+        "Experience replay, archives, and mode-covering objectives",
         "bengio2023gflownet", "hu2024amortizing",
         "lehman2011novelty", "mouret2015illuminating",
         "yue2025rlvrlimit", "kirk2024understanding",
@@ -211,8 +441,6 @@ def main() -> None:
     main_body = manuscript.split(r"\appendix", 1)[0]
     appendix_labels = (
         "app:theory", "app:python", "app:prompts", "app:data", "app:algorithm",
-        "app:per-seed", "app:terminal-mathir", "app:ablations",
-        "app:replay-ablation", "app:decoding", "app:telemetry", "app:cross-family",
         "app:reproducibility",
     )
     for label in appendix_labels:
@@ -225,14 +453,16 @@ def main() -> None:
         == len(appendix_labels),
         "every appendix must begin with one explicit main-body link",
     )
-    check_replay_ablation_table(manuscript)
+    check_rehearsal_table(manuscript)
+    check_interim_replay_table(manuscript)
+    check_cross_family_table(manuscript)
     algorithm_appendix = manuscript.split(r"\section{Algorithmic Details}", 1)[1].split(
-        r"\section{Per-Seed Pass-12 Results}", 1
+        r"\section{Why x-Mode GRPO Is Minimal}", 1
     )[0]
     for token in (
         r"\usepackage{algorithm}", r"\usepackage{algorithmic}",
         r"\begin{algorithm}[H]", r"\begin{algorithmic}[1]",
-        r"\label{alg:xdr-update}", r"\mathcal T_x", r"\mathcal R_x",
+        r"\label{alg:verified-replay-update}", r"\mathcal B_x", r"\tau",
         r"\textsc{NextBank}", r"w_{\mathrm{rep}}\gets(G-1)/G^2",
         "atomic state",
     ):
@@ -244,14 +474,31 @@ def main() -> None:
     # The manuscript reports one completed five-domain surface, so it names
     # components and frozen revisions rather than internal cohort codes. Guard
     # the evidence-typing language, and forbid the codes from returning.
+    # These tokens span line breaks, so they are matched against a
+    # whitespace-normalized copy: rewrapping a paragraph is not a regression,
+    # and pinning the exact wrap made it look like one twice.
+    collapsed = " ".join(manuscript.split())
     for token in (
-        "Component Necessity Ablations",
-        "Only the separated-support actuator row is a completed causal",
-        "sole terminal causal performance",
-        "randomized factorial study",
-        "immutable frozen record",
+        "Why x-Mode GRPO Is Minimal",
+        "Uniform verified replay",
+        "Deterministic recurrent schedule",
+        "Exact-zero replay control",
+        "No effect is pooled across domains",
+        "historical provenance",
+        r"not components of \xmode{}",
     ):
-        require(token in manuscript, f"ablation contract missing {token!r}")
+        require(
+            " ".join(token.split()) in collapsed,
+            f"ablation contract missing {token!r}",
+        )
+    for forbidden in (
+        "sole terminal causal performance",
+        "Only the separated-support actuator row is a completed causal",
+    ):
+        require(
+            " ".join(forbidden.split()) not in collapsed,
+            f"ablation contract regressed to single-contrast language {forbidden!r}",
+        )
     for forbidden in ("Stage-A", "Stage A", "Stage-B", "Stage B", "E-Series"):
         require(
             forbidden not in manuscript,
@@ -284,32 +531,48 @@ def main() -> None:
         '"mul": "#20068f"',
         '"div": "#7a02a8"',
         '"add": "#bc3587"',
-        '"C: add 9 · F: ×2 · E: add 18"',
-        # MathIR names the actions its key ran, as PantryPlan does.
-        'mathir_menu = {"C": "add 9", "F": "×2", "E": "add 18"}',
+        # MathIR names the actions its key ran, as PantryPlan does, and prints
+        # them from the released menu so the panel shows a legal action neither
+        # answer selects rather than only the ones they took.
+        'mathir_elided = ("A", "B")',
+        '"D": {"action": "sub(c)", "name": "add 1"}',
+        'assert sorted(set(mathir_menu) - selected) == ["D"]',
         "NODE_PAINTS = {1: \"#e16462\", 2: \"#9e199d\", 3: \"#2f0596\"}",
         "INGREDIENT_COLORS = {",
     ):
         require(token in example_source, f"ModeBench example source missing {token!r}")
     for token in ("6.27", "4.52", "229.44", "5.00", "18.19", r"\renewcommand{\arraystretch}{1.08}"):
         require(token in manuscript, f"Table 1 contract missing {token!r}")
+    # The domain specification table now sits beside the audits that verify it,
+    # so the main body must still carry the two numbers a reader needs to size
+    # the claim, and the table must be in the appendix rather than before the
+    # examples figure.
+    require(
+        "trains on 384 prompts and evaluates on a fixed 128-prompt split"
+        in " ".join(manuscript.split()),
+        "main body lost the training/evaluation split sizes",
+    )
     require(
         manuscript.index(r"\label{tab:tasks}")
-        < manuscript.index(r"\label{fig:modebench-examples}"),
-        "Figure 2 must appear after Table 1",
+        > manuscript.index(r"\label{fig:modebench-examples}"),
+        "the domain specification table should follow the examples figure",
     )
     for token in (
         "def render_method_trajectory(", 'letter="B"', 'title="GRPO"',
-        'letter="C"', 'title="x-mode GRPO"',
-        "steps = [0, 48, 96, 192, 384, 576, 768]",
-        "width_ratios=[4.35, 0.65, 3.74, 0.17, 3.74]",
+        'letter="C"', 'title="historical treatment"',
+        "DISPLAY_STEPS = [0, 48, 96, 192, 384, 768, 1152]",
+        # The five column proportions, still pinned to these exact numbers.
+        # They moved from the add_gridspec call into a named list because the
+        # B/C card and its key are now centred on the block those ratios
+        # define, and deriving that from the same list keeps the two in step.
+        "ratios = [4.05, 1.32, 4.02, 0.17, 4.02]",
         # The story figure is drawn on an oversized canvas and scaled to
         # \linewidth, so its type size is derived rather than literal;
         # pin the derivation, which is what keeps it legible in print.
         "FONT = style.font_for_canvas(CANVAS_WIDTH)",
     ):
         require(token in source, f"missing source token {token!r}")
-    # Panel C is the xGRPO trajectory beside its control, never a return of the
+    # Panel C is the historical-treatment trajectory beside its control, never a return of the
     # withdrawn paired-bar panel or of the fifth training epoch.
     for forbidden in ("render_paired_trajectory", "Paired trajectories",
                       "Step 960", "epoch 5"):
@@ -321,17 +584,28 @@ def main() -> None:
     require(audit["schema"] == "paper_graph_collapse_toy_v16", "wrong audit schema")
     require(audit["layout_contract"] == {
         "panels": ["A", "B", "C"],
-        "panel_titles": ["One prompt, many answers", "GRPO", "x-mode GRPO"],
-        "steps": [0, 48, 96, 192, 384, 576, 768],
-        "end_epoch": 4, "paired_bars": False,
+        # Panel A is titled with the prompt question itself, so the figure no
+        # longer carries a separate banner repeating it.
+        "panel_titles": [
+            "How can we color the three uncolored nodes so that connected "
+            "nodes get different colors?",
+            "GRPO",
+            "historical treatment",
+        ],
+        "steps": [0, 48, 96, 192, 384, 768, 1152],
+        "end_epoch": 6, "paired_bars": False,
     }, "wrong panel layout contract")
-    expected = {"0", "48", "96", "192", "384", "576", "768"}
+    expected = {"0", "48", "96", "192", "384", "768", "1152"}
     require(set(audit["drgrpo_trajectory"]) == expected, "wrong Dr.GRPO checkpoints")
     require(set(audit["xdrgrpo_trajectory"]) == expected, "wrong xDr.GRPO checkpoints")
-    require(audit["drgrpo_trajectory"]["768"]["distinct"] == 1, "Dr endpoint changed")
-    require(audit["xdrgrpo_trajectory"]["768"]["distinct"] == 6, "xDr endpoint changed")
+    # Pinned at the window's own last checkpoint rather than a hardcoded 768,
+    # which stopped being the endpoint when the window moved to six epochs and
+    # would have kept passing while checking an interior point.
+    endpoint = max(expected, key=int)
+    require(audit["drgrpo_trajectory"][endpoint]["distinct"] == 1, "Dr endpoint changed")
+    require(audit["xdrgrpo_trajectory"][endpoint]["distinct"] == 7, "xDr endpoint changed")
     for token in (r"(B--C) Four fixed-seed",
-                  "contracts to one mode", "retains six",
+                  "contracts to one mode", "retains seven",
                   "marginal value of sampling"):
         require(token in manuscript, f"missing manuscript token {token!r}")
 
@@ -438,15 +712,23 @@ def main() -> None:
             },
             "wrong appendix card layout",
         )
-    for token in (
-        r"\begin{figure}[p]",
-        r"height=.84\textheight",
-        # Layout description; the surface moved from 2x2 domain cards to one
-        # row per domain with four panels across.
-        r"four panels across",
+    # The full-page cohort surface was removed from the manuscript: it was
+    # visually redundant with the training-dynamics grid and read as an
+    # internal monitoring panel --- timestamped, captioned in "available-seed
+    # mean" and "latest mean" language --- rather than as a result. The
+    # generator and its provenance are retained and still checked above, so the
+    # surface can be regenerated for audit, but it must not return to the paper
+    # in live-dashboard form.
+    for forbidden in (
         r"\label{fig:clean-cohort}",
+        r"height=.84\textheight",
+        "available-seed mean",
+        "latest mean",
     ):
-        require(token in manuscript, f"manuscript lost full-page Figure 5 token {token!r}")
+        require(
+            forbidden not in manuscript,
+            f"manuscript reintroduced the removed cohort dashboard {forbidden!r}",
+        )
     forbidden_metrics = (
         "neutral mean@8",
         "valid coverage@8",
@@ -456,13 +738,10 @@ def main() -> None:
         "mean verified support per prompt",
         "excess@8",
     )
-    for path, expected_repetitions in (
-        (HEADLINE_PDF, 5),
-        # The appendix surface renders one row per reported domain. The maze
-        # environments and ConstructiveCode never reached an admitted cohort
-        # and are excluded rather than drawn as empty cards, so this is five.
-        (APPENDIX_PDF, 5),
-    ):
+    # Only the headline surface is rendered into the manuscript now; the
+    # appendix cohort dashboard was removed, so its PDF is no longer a paper
+    # artifact to hold to the manuscript's metric vocabulary.
+    for path, expected_repetitions in ((HEADLINE_PDF, 5),):
         text = pdf_text(path)
         for title in expected_metrics.values():
             require(
@@ -478,6 +757,7 @@ def main() -> None:
     example_text = pdf_text(EXAMPLES_PDF)
     for token in (
         "Graph coloring", "Countdown", "Python factors", "MathIR", "PantryPlan",
+        "PointMaze", "corridor_0+", "corridor_1+",
         "(6 × 9) / 3", "6 + 3 + 9", "canonical keys",
         "navel_orange=75", "sunflower_seeds=50", "grape_tomatoes=75", "almonds=50",
         "C;F", "F;E",
@@ -498,14 +778,16 @@ def main() -> None:
         'graph_modes = ((2, 1, 1, 1, 3, 2), (2, 1, 3, 1, 1, 2))',
         '"key_kind": "paints"',
         '"key_kind": "icons"',
+        '"glyph": "maze"',
         "def draw_paint_row(",
         "def draw_icon_row(",
+        "def draw_mini_maze(",
     ):
         require(token in example_source, f"Figure 2 source missing {token!r}")
     require(
-        example_source.count('"span": 1') == 5
+        example_source.count('"span": 1') == 6
         and example_source.count('"span": 2') == 0,
-        "Figure 2 must stay five equal-width domain cards on a three-column grid",
+        "Figure 2 must stay six equal-width environment cards on a three-column grid",
     )
     require(
         manuscript.count(r"figures/modebench_examples.pdf") == 1
@@ -517,19 +799,18 @@ def main() -> None:
     # text is compared with whitespace collapsed rather than line by line.
     mechanism_text = re.sub(r"\s+", " ", pdf_text(MECHANISM_PDF))
     for source_token, rendered in (
-        ('("Discover", "verified modes")', "Discover verified modes"),
-        ('("Retain every", "discovery")', "Retain every discovery"),
-        ('("Preserve mass", "+ rebalance")', "Preserve mass + rebalance"),
-        ('("Self-referenced", "control")', "Self-referenced control"),
-        ('("Singleton", "escape")', "Singleton escape"),
-        ("never enters PPO", "never enters PPO"),
+        ('("Verify", "outputs")', "Verify outputs"),
+        ('("Store", "exemplars")', "Store exemplars"),
+        ('("Revisit", "recurrently")', "Revisit recurrently"),
+        ('("Replay", "uniformly")', "Replay uniformly"),
+        ("every banked mode", "every banked mode"),
     ):
         require(source_token in mechanism_source, f"mechanism source missing {source_token!r}")
         require(rendered in mechanism_text, f"mechanism PDF missing {rendered!r}")
     require(
         mechanism_source.count("COLUMN_SPECS") >= 1
-        and len(re.findall(r'\(\("[A-E]", "[A-Z 0-9]+"\)', mechanism_source)) == 5,
-        "mechanism figure must stay one row of five columns",
+        and len(re.findall(r'\(\("[A-D]", "[A-Z 0-9]+"\)', mechanism_source)) == 4,
+        "mechanism figure must stay one row of four columns",
     )
     if MAIN_PDF.is_file() and MAIN_PDF.stat().st_mtime >= MANUSCRIPT.stat().st_mtime:
         page_one = subprocess.run(
@@ -539,71 +820,80 @@ def main() -> None:
             text=True,
         ).stdout
         require("Figure 1:" in page_one, "Figure 1 is not on page 1")
-        first_nine = subprocess.run(
-            ["pdftotext", "-f", "1", "-l", "9", str(MAIN_PDF), "-"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-        # ICLR counts main text through the Conclusion against the nine-page
-        # limit.  The Ethics and Reproducibility statements sit after it, do
-        # not count, and must precede the references.
-        page_ten = subprocess.run(
-            ["pdftotext", "-f", "10", "-l", "10", str(MAIN_PDF), "-"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-        page_eleven = subprocess.run(
-            ["pdftotext", "-f", "11", "-l", "11", str(MAIN_PDF), "-"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-        require("Conclusion." in first_nine, "main content exceeds nine pages")
-        require(
-            re.search(r"(?mi)^R\s*EFERENCES\s*$", first_nine) is None,
-            "References must start on a fresh page after the main body",
+        # ICLR counts main text through the Conclusion against nine pages.  A
+        # source-labeled interim snapshot may temporarily use page 10; deleting
+        # either the snapshot or its over-length disclosure restores the strict
+        # final limit automatically.
+        page_text = {
+            page: subprocess.run(
+                [
+                    "pdftotext", "-f", str(page), "-l", str(page),
+                    str(MAIN_PDF), "-",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            for page in range(1, 13)
+        }
+
+        def heading_page(pattern: str) -> int | None:
+            return next(
+                (
+                    page
+                    for page, text in page_text.items()
+                    if re.search(pattern, text) is not None
+                ),
+                None,
+            )
+
+        conclusion_page = heading_page(r"(?mi)^\s*(?:\d+\s+)?C\s*ONCLUSION\s*$")
+        ethics_page = heading_page(r"(?mi)^\s*E\s*THICS\s+S\s*TATEMENT\s*$")
+        reproducibility_page = heading_page(
+            r"(?mi)^\s*R\s*EPRODUCIBILITY\s+S\s*TATEMENT\s*$"
         )
-        # "Conclusion. in first_nine" alone passes even when the paragraph
-        # spills; require page 10 to *open* with the Ethics heading so no main
-        # text can leak past the nine-page limit unnoticed.
-        # The template prints margin line numbers, which pdftotext emits as
-        # bare-integer lines; skip them to reach the first real content line.
-        page_ten_first = next(
-            (
-                line.strip()
-                for line in page_ten.splitlines()
-                if line.strip() and not line.strip().isdigit()
-            ),
-            "",
+        references_page = heading_page(r"(?mi)^\s*R\s*EFERENCES\s*$")
+        require(
+            conclusion_page is not None and conclusion_page <= main_page_limit,
+            f"main content exceeds the {page_contract}",
         )
         require(
-            re.fullmatch(r"E\s*THICS\s+S\s*TATEMENT", page_ten_first, re.I)
-            is not None,
-            "main text spills past page 9: page 10 opens with "
-            f"{page_ten_first!r}, not the Ethics Statement",
+            ethics_page is not None and ethics_page <= main_page_limit + 1,
+            "Ethics Statement begins after the allowed main-body boundary",
         )
-        for heading, label in (
-            (r"(?mi)^E\s*THICS\s+S\s*TATEMENT\s*$", "Ethics Statement"),
-            (
-                r"(?mi)^R\s*EPRODUCIBILITY\s+S\s*TATEMENT\s*$",
-                "Reproducibility Statement",
-            ),
-        ):
+        if ethics_page == main_page_limit + 1:
+            page_after_main_first = next(
+                (
+                    line.strip()
+                    for line in page_text[main_page_limit + 1].splitlines()
+                    if line.strip() and not line.strip().isdigit()
+                ),
+                "",
+            )
             require(
-                re.search(heading, page_ten) is not None,
-                f"{label} must sit on page 10, after the nine-page main body",
+                re.fullmatch(
+                    r"E\s*THICS\s+S\s*TATEMENT", page_after_main_first, re.I
+                ) is not None,
+                f"main text spills past page {main_page_limit}: the next page "
+                f"opens with {page_after_main_first!r}, not the Ethics Statement",
             )
         require(
-            re.search(r"(?mi)^R\s*EFERENCES\s*$", page_eleven) is not None,
-            "References do not begin on page 11",
+            reproducibility_page is not None
+            and ethics_page is not None
+            and reproducibility_page >= ethics_page,
+            "Reproducibility Statement must follow the Ethics Statement",
+        )
+        require(
+            references_page is not None
+            and reproducibility_page is not None
+            and references_page > reproducibility_page,
+            "References must start on a fresh page after the statements",
         )
     print(
         "Paper figure contracts: PASS "
         f"({len(abstract_words)}-word abstract, max 130; Figure 1 page 1; "
-        "nine-page main body; statements page 10; References page 11; "
-        "paired examples A-E; three-stage mechanism A-C; E68 metric grids)"
+        f"main body satisfies {page_contract}; statements precede References; "
+        "paired examples A-F; four-stage verified replay A-D; audit metric grids)"
     )
 if __name__ == "__main__":
     main()

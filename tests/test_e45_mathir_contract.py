@@ -46,7 +46,6 @@ def test_e45_launcher_is_six_job_one_a100_matched_cohort():
         "export OAT_ZERO_ONLY_ARMS=grpo,online_canonical_maxent",
         "export OAT_ZERO_INCLUDE_ONLINE_CANONICAL_MAXENT_ARM=1",
         "export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.10",
-        "export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50",
         "export OAT_ZERO_TEMPERATURE=0.5",
         "export OAT_ZERO_TOP_P=0.9",
         "export OAT_ZERO_EVAL_MODE_COVERAGE_K=16",

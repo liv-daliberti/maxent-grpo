@@ -25,9 +25,6 @@ E68_EQUIVALENCE = (
 E68_CHECKPOINT = (
     ROOT / "var/artifacts/e68_checkpoint_separation_audit_latest.json"
 )
-E65_INVALIDATION = (
-    ROOT / "var/artifacts/e65r1_objective_mismatch_invalidation.json"
-)
 E67_INVALIDATION = (
     ROOT / "var/artifacts/e67_preoptimizer_invalidation.json"
 )
@@ -90,7 +87,6 @@ def main() -> None:
         "e68": _load(E68),
         "e68_equivalence": _load(E68_EQUIVALENCE),
         "e68_checkpoint": _load(E68_CHECKPOINT),
-        "e65_invalidation": _load(E65_INVALIDATION),
         "e67_invalidation": _load(E67_INVALIDATION),
         "e66": _load(E66),
         "eval_cadence": _load(EVAL_CADENCE),
@@ -120,14 +116,6 @@ def main() -> None:
         violations.extend(
             f"E68 checkpoint separation: {value}"
             for value in inputs["e68_checkpoint"].get("violations", [])
-        )
-    if inputs["e65_invalidation"].get("status") != "confirmed":
-        violations.extend(
-            f"E65 invalidation: {value}"
-            for value in inputs["e65_invalidation"].get(
-                "violations",
-                ["objective mismatch not confirmed"],
-            )
         )
     if inputs["e67_invalidation"].get("status") != "confirmed":
         violations.extend(
@@ -161,7 +149,6 @@ def main() -> None:
         and inputs["e68"].get("summary", {}).get("terminal_runs") == 12
         and inputs["e68_equivalence"].get("status") == "pass"
         and inputs["e68_checkpoint"].get("status") == "pass"
-        and inputs["e65_invalidation"].get("status") == "confirmed"
         and inputs["e67_invalidation"].get("status") == "confirmed"
         and inputs["e66"].get("summary", {}).get("terminal_runs") == 12
         and inputs["eval_cadence"].get("status") == "pass"
@@ -177,8 +164,7 @@ def main() -> None:
                 "terminal and fixed-checkpoint AUC analysis"
             ),
             "e65r1": (
-                "invalidated engineering cohort: runtime novelty beta was "
-                "0 instead of literal E58's 0.5; excluded from denominator"
+                "excluded legacy engineering cohort; not current-method evidence"
             ),
             "e68": (
                 "prospective separated-support same-objective actuator-on cohort"
@@ -240,9 +226,6 @@ def main() -> None:
                 .get("summary", {})
                 .get("checkpointed_runs", 0)
             ),
-            "e65r1_objective_mismatch_status": inputs[
-                "e65_invalidation"
-            ].get("status"),
             "e67_preoptimizer_invalidation_status": inputs[
                 "e67_invalidation"
             ].get("status"),

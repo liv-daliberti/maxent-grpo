@@ -140,19 +140,35 @@ def _validated(path: Path, data_root: Path, active_roots: set[Path]) -> Path:
     return resolved
 
 
-def discover(data_root: Path, stamps: set[str]) -> tuple[list[dict[str, Any]], list[str]]:
+def discover(
+    data_root: Path,
+    stamps: set[str],
+    *,
+    checkpoints_only: bool = False,
+    run_name_contains: str | None = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
     data_root = data_root.resolve()
-    run_roots = [path.resolve() for path in data_root.iterdir() if path.is_dir()]
-    active_roots = {path for path in run_roots if _is_active_root(path, stamps)}
+    all_run_roots = [path.resolve() for path in data_root.iterdir() if path.is_dir()]
+    active_roots = {
+        path for path in all_run_roots if _is_active_root(path, stamps)
+    }
+    run_roots = [
+        path
+        for path in all_run_roots
+        if run_name_contains is None or run_name_contains in path.name
+    ]
     reasons: dict[Path, str] = {}
 
     # Raw optimizer state is useful only for resuming a live job.  Exported
     # weights and all result files remain available for inactive runs.
     for path in data_root.glob("*/debug_*/checkpoints"):
-        if path.parents[1].resolve() not in active_roots:
+        run_root = path.parents[1].resolve()
+        if run_name_contains is not None and run_name_contains not in run_root.name:
+            continue
+        if run_root not in active_roots:
             reasons[path.resolve()] = "inactive_raw_optimizer_checkpoint"
 
-    for run_root in run_roots:
+    for run_root in (() if checkpoints_only else run_roots):
         if run_root in active_roots:
             continue
         exports = sorted(run_root.glob("debug_*/saved_models"))
@@ -230,14 +246,25 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--checkpoints-only", action="store_true")
+    parser.add_argument("--run-name-contains")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
     data_root = args.data_root.resolve()
     if data_root != DEFAULT_DATA_ROOT.resolve():
         raise RuntimeError("refusing a non-default cleanup root")
+    if args.run_name_contains is not None and (
+        not args.run_name_contains or "/" in args.run_name_contains
+    ):
+        raise RuntimeError("run-name filter must be a nonempty path-free string")
 
     stamps = active_run_stamps()
-    records, active_roots = discover(data_root, stamps)
+    records, active_roots = discover(
+        data_root,
+        stamps,
+        checkpoints_only=args.checkpoints_only,
+        run_name_contains=args.run_name_contains,
+    )
     totals = {
         "targets": len(records),
         "logical_bytes": sum(row["logical_bytes"] for row in records),
@@ -249,6 +276,10 @@ def main() -> None:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "data_root": str(data_root),
         "executed": bool(args.execute),
+        "selection": {
+            "checkpoints_only": bool(args.checkpoints_only),
+            "run_name_contains": args.run_name_contains,
+        },
         "active_run_stamps": sorted(stamps),
         "protected_active_roots": active_roots,
         "policy": {

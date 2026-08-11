@@ -345,7 +345,115 @@ def frontier_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
                 ),
             }
         )
-    return {"points": points, "temperature_repair": repair}
+    return {
+        "points": points,
+        "temperature_repair": repair,
+        "budget": budget_summary(points),
+        "nucleus": nucleus_summary(cells),
+    }
+
+
+def nucleus_summary(cells: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Truncated sampling against untruncated, at matched temperature.
+
+    The third decoding knob. Temperature reshapes the whole distribution and a
+    larger budget draws from it more often; nucleus truncation instead deletes
+    the tail outright, which is the setting a reader most expects to *reduce*
+    breadth. Reporting it closes the decoding control rather than leaving one
+    obvious knob untested.
+
+    Computed from cells rather than from `points`, because points deliberately
+    carry only the untruncated sweep so that E1, E2, and the frontier figure
+    stay exactly what they were.
+    """
+    grouped: dict[tuple[str, str, float, float], list[dict[str, Any]]] = defaultdict(
+        list
+    )
+    for cell in cells:
+        if cell["k"] != 8:
+            continue
+        grouped[
+            (cell["domain"], cell["arm"], cell["temperature"], cell["top_p"])
+        ].append(cell)
+
+    means = {
+        key: {
+            "mean_at_8": seed_mean([row["mean"] for row in rows]),
+            "pass_at_8": seed_mean([row["pass"] for row in rows]),
+            "distinct_at_8": seed_mean([row["distinct"] for row in rows]),
+            "n_seeds": len(rows),
+        }
+        for key, rows in grouped.items()
+    }
+
+    rows_out: list[dict[str, Any]] = []
+    for (domain, arm, temperature, top_p), stats in sorted(means.items()):
+        if math.isclose(top_p, 1.0):
+            continue
+        full = means.get((domain, arm, temperature, 1.0))
+        if full is None or stats["distinct_at_8"] is None:
+            continue
+        rows_out.append(
+            {
+                "domain": domain,
+                "arm": arm,
+                "temperature": temperature,
+                "top_p": top_p,
+                "distinct_at_8_untruncated": full["distinct_at_8"],
+                "distinct_at_8_truncated": stats["distinct_at_8"],
+                "distinct_delta": stats["distinct_at_8"] - full["distinct_at_8"],
+                "pass_at_8_untruncated": full["pass_at_8"],
+                "pass_at_8_truncated": stats["pass_at_8"],
+                "mean_at_8_untruncated": full["mean_at_8"],
+                "mean_at_8_truncated": stats["mean_at_8"],
+                "n_seeds": min(full["n_seeds"], stats["n_seeds"]),
+            }
+        )
+    return rows_out
+
+
+def budget_summary(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """E3: what a larger sample budget buys each arm at the reported setting.
+
+    "Sample more" is the budget-shaped version of "sample hotter", and it needs
+    the same kind of answer: a measurement rather than an argument. Holding
+    temperature at the reported operating point and moving only $K$ isolates
+    the budget, so a policy that has kept its support converts the extra draws
+    into modes while one that has lost it cannot.
+    """
+    at_one: dict[tuple[str, str, int], dict[str, Any]] = {
+        (point["domain"], point["arm"], point["k"]): point
+        for point in points
+        if math.isclose(point["temperature"], 1.0)
+    }
+    budgets = sorted({key[2] for key in at_one})
+    if len(budgets) < 2:
+        return []
+    small, large = budgets[0], budgets[-1]
+
+    rows: list[dict[str, Any]] = []
+    for domain, arm, k in sorted(at_one):
+        if k != small or (domain, arm, large) not in at_one:
+            continue
+        low, high = at_one[(domain, arm, small)], at_one[(domain, arm, large)]
+        if low["distinct_at_k"] is None or high["distinct_at_k"] is None:
+            continue
+        rows.append(
+            {
+                "domain": domain,
+                "arm": arm,
+                "k_small": small,
+                "k_large": large,
+                "distinct_at_k_small": low["distinct_at_k"],
+                "distinct_at_k_large": high["distinct_at_k"],
+                "distinct_gain": high["distinct_at_k"] - low["distinct_at_k"],
+                "pass_at_k_small": low["pass_at_k"],
+                "pass_at_k_large": high["pass_at_k"],
+                "pass_gain": high["pass_at_k"] - low["pass_at_k"],
+                "n_seeds": min(low["n_seeds"], high["n_seeds"]),
+            }
+        )
+    return rows
 
 
 def write_report(payload: dict[str, Any], path: Path) -> None:
@@ -425,7 +533,10 @@ def main() -> int:
     cells = collect(root, stages)
     base_reference = base_pass0_reference(manifest, root)
     gate = reproduction_gate(cells, manifest, base_reference)
-    summary = frontier_summary([cell for cell in cells if cell["k"] == 8])
+    # Every untruncated cell, not just the K=8 sweep. The filter here predated
+    # the budget stage and silently discarded it: E1 and E2 select K=8 for
+    # themselves, so restricting the input only hid E3.
+    summary = frontier_summary(cells)
 
     expected_stage_a = len(manifest["runs"]) * 6
     payload = {

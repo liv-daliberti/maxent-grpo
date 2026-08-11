@@ -17,12 +17,8 @@ def test_e60_variant_uses_finite_global_bootstrap_then_local_replay():
     branch = runner[start:end]
 
     assert "OAT_ZERO_POLICY_ENTROPY_COEF=0.0" in branch
-    assert "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=1" in branch
-    assert "OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1" in branch
-    assert (
-        'OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS='
-        '"$ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS"'
-    ) in branch
+    assert "OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE=1" in branch
+    assert "OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=64" in branch
     assert "split_mass_balance_per_rollout" in branch
     assert "VARIANT_TAG=\"verified_first_bootstrap_local_canonical\"" in branch
 
@@ -50,13 +46,14 @@ def test_e60_phase_is_checkpointed_and_does_not_use_gold_or_eval_feedback():
     assert "target" not in phase_logic
 
 
-def test_e60_alpha_controllers_remain_unprojected():
+def test_e60_semantic_and_replay_coefficients_are_fixed():
     replay = (ROOT / "src/oat_drgrpo/canonical_replay.py").read_text()
     semantic = (ROOT / "src/oat_drgrpo/semantic_shannon.py").read_text()
     runner = (ROOT / "ops/run_experiment.sh").read_text()
 
-    assert '"canonical_replay_projection_active": 0.0' in replay
-    assert '"semantic_open_set_projection_active": 0.0' in semantic
+    assert "canonical_replay_split_mass_balance_loss" in replay
+    assert "fixed_open_set" in semantic
+    assert "coefficient_control=fixed" in (ROOT / "src/oat_drgrpo/learner/init.py").read_text()
     assert "verified_first_bootstrap_local_canonical" in runner
 
 

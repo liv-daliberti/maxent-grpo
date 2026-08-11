@@ -213,12 +213,10 @@ def main() -> None:
         if arm == CONTROL:
             required.extend([
                 "OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=1",
-                "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0",
             ])
         else:
             required.extend([
                 "OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=0",
-                "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.5",
                 "OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=split_mass_balance_per_rollout",
             ])
         for text in required:

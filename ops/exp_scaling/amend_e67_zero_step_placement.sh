@@ -52,8 +52,7 @@ for job_id in "${ALL_IDS[@]}"; do
   record="$(scontrol show job "$job_id" -o)"
   for required in \
     'JobState=PENDING' 'Reason=JobHeldUser' \
-    'OAT_ZERO_VARIANT=verified_entropy_gated_singleton_escape_canonical' \
-    'OAT_ZERO_EXPECT_ONLINE_CANONICAL_NOVELTY_BETA=0.50'; do
+    'OAT_ZERO_VARIANT=verified_singleton_escape_canonical'; do
     [[ "$record" == *"$required"* ]] || {
       echo "E67 zero-step hold audit failed for $job_id: $required" >&2
       exit 1

@@ -63,7 +63,7 @@ ARMS = {
         "jobs": {43: 30128403, 44: 30128404, 45: 30128405},
     },
     "e68": {
-        "variant": "verified_entropy_gated_singleton_escape_canonical",
+        "variant": "verified_singleton_escape_canonical",
         "identity": ROOT
         / "var/artifacts/e68_separated_support_actuator_ablation_identity.json",
         "original_source": SNAPSHOT_ROOT

@@ -1,36 +1,36 @@
-# ModeBench and Online Verified MaxEnt
+# ModeBench and Verified Replay
 
-This repository studies solution-mode discovery in reinforcement learning with
-verifiable rewards. The paper is **ModeBench: Executable Outcome Discovery for
-Maximum-Entropy Reasoning**:
+This repository studies correct-mode collapse in reinforcement learning with
+verifiable rewards. The paper is **Mode Collapse under GRPO: ModeBench and
+Verified Replay**:
 
 - source: [`paper/main.tex`](paper/main.tex)
 - built PDF: [`paper/main.pdf`](paper/main.pdf)
 - evidence and build notes: [`paper/README.md`](paper/README.md)
 
-The final method maintains a prompt-local bank containing only outcomes that
-the current policy generated and the task validator accepted. It adds:
+The maintained method is verified replay: a prompt-local bank stores one
+policy-generated exemplar for each observed validator-positive execution mode,
+and a deterministic recurrent schedule rehearses those exemplars with uniform
+teacher-forced likelihood. This replay likelihood is the only auxiliary
+derivative. Passive bank bookkeeping and replay traversal remain enabled in the
+compute-matched control,
+whose applied replay derivative is exactly zero.
 
-1. a leave-one-out entropy advantage over verified canonical outcomes;
-2. one total bonus for each newly discovered mode;
-3. a controller over entropy normalized by discovered support size; and
-4. identical passive discovery telemetry in the reward-only control.
-
-The long-horizon comparison uses a lower-bounded but upper-unprojected
-coefficient. Earlier sequence-entropy, candidate-projection, semantic-shaping,
-latent-option, finite-action, and strategy-canonicalization experiments remain
-in the repository as the design evidence behind this choice; they are not
-pooled into the final treatment estimate.
+Published prior-stack endpoints are historical evidence only. They must not be
+attributed to verified replay. The clean replay-only comparison is currently
+running on the frozen eight-pass, half-pass-checkpoint protocol.
 
 ## ModeBench
 
-ModeBench currently has three execution-bound domains:
+ModeBench currently has five execution-bound domains:
 
 | Domain | Validator | Canonical mode |
 |---|---|---|
 | Graph coloring | Checks fixed colors and every graph edge | Complete color vector |
 | Countdown | Parses and exactly executes an operand-valid arithmetic AST | Normalized executed AST |
 | Python factors | Calls a restricted lambda in an isolated interpreter | Returned integer vector |
+| MathIR | Executes a finite equation-action menu | Exact state trajectory |
+| PantryPlan | Solves the declared feasibility constraints | Ingredient support |
 
 Correctness and identity always come from the same execution. Training support
 is never initialized from a valid-answer catalogue.
@@ -89,25 +89,19 @@ never saw.
 
 ## Evidence status
 
-- **Original active cohort:** fresh matched Dr.GRPO and online verified MaxEnt
-  on graph coloring and Countdown, paired at seeds 43--45 with a fixed 50-pass
-  budget.
-- **Frozen interim snapshot:** graph coloring at 8.25 common passes and
-  Countdown at 2.75 common passes. This is explicitly not the terminal result.
-- **Python extension:** materialized, externally audited, and separately
-  frozen for matched Dr.GRPO/online verified MaxEnt runs at seeds 43--45. Its
-  later launch provenance is retained explicitly.
-- **MATH realism track:** a separate external-validity experiment trains only
-  on a frozen MATH12K subset and evaluates on disjoint MATH-500. It is not
-  counted as another multi-mode ModeBench domain because final-answer grading
-  does not certify distinct reasoning strategies.
-- **Historical program:** retained as mechanism and provenance evidence, not
-  independent replications of the final method.
+- **Running clean comparison:** Qwen2.5-0.5B-Instruct, all five domains,
+  control versus verified replay, seeds 43--47, exactly eight passes.
+- **Registered measurements:** pass 0 through pass 8 on the half-pass grid;
+  pass 8 is the only primary endpoint.
+- **Scientific difference:** the control performs the same bank, schedule,
+  scoring, and backward traversal but applies an exact-zero replay derivative.
+- **Historical program:** prior-stack results remain available as provenance
+  but are not estimates of the replay-only method.
 
-Machine-readable interim results live in
-[`paper/results/modebench_long_horizon_interim.json`](paper/results/modebench_long_horizon_interim.json).
-The leakage-free MATH transfer contract is frozen in
-[`paper/preregistration/e64_math500_realism_transfer_05b.md`](paper/preregistration/e64_math500_realism_transfer_05b.md).
+The frozen protocol is
+[`paper/preregistration/e78_verified_replay_only_05b_20260804.md`](paper/preregistration/e78_verified_replay_only_05b_20260804.md),
+and submitted jobs are bound in
+[`var/artifacts/e78_verified_replay_only_05b_jobs.json`](var/artifacts/e78_verified_replay_only_05b_jobs.json).
 
 ## Main implementation surfaces
 
@@ -119,9 +113,9 @@ The leakage-free MATH transfer contract is frozen in
 - [`src/oat_drgrpo/canonical_actions.py`](src/oat_drgrpo/canonical_actions.py)
   — finite action grammars resolved into one-token, one-to-one tokenizer IDs.
 - [`src/oat_drgrpo/online_canonical_bank.py`](src/oat_drgrpo/online_canonical_bank.py)
-  — verified growing-support state and canonical advantages.
-- [`src/oat_drgrpo/online_canonical_controller.py`](src/oat_drgrpo/online_canonical_controller.py)
-  — support-normalized Haarnoja-style control.
+  — verified exemplar storage and deterministic replay scheduling state.
+- [`src/oat_drgrpo/canonical_replay.py`](src/oat_drgrpo/canonical_replay.py)
+  — uniform teacher-forced verified-replay objective.
 - [`src/oat_drgrpo/python_modebench.py`](src/oat_drgrpo/python_modebench.py)
   — bounded Python syntax and factor-task contract.
 - [`src/oat_drgrpo/python_modebench_process.py`](src/oat_drgrpo/python_modebench_process.py)

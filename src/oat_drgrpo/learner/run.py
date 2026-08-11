@@ -454,15 +454,9 @@ class ZeroMathRunMixin:
             "actor/counterfactual_proposal_transform_gold_support_feedback": 0.0,
             "actor/counterfactual_proposal_transform_desired_mode_count_feedback": 0.0,
             "actor/counterfactual_proposal_transform_eval_feedback": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_enabled": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_available": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_warmup_complete": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_below_reference": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_active": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_inverse_multiplier": 1.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_known_support": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_gold_feedback": 0.0,
-            "actor/counterfactual_proposal_singleton_entropy_gate_eval_feedback": 0.0,
+            "actor/counterfactual_proposal_singleton_only_enabled": 0.0,
+            "actor/counterfactual_proposal_singleton_only_known_support": 0.0,
+            "actor/counterfactual_proposal_singleton_only_active": 0.0,
             "actor/counterfactual_proposal_verified_route_mode": float(
                 verified_route_mode
             ),
@@ -713,54 +707,33 @@ class ZeroMathRunMixin:
             VerifiedExplorationIdentity,
         ] = {}
         novel_candidate_mean_logprobs: dict[str, float] = {}
-        singleton_entropy_gate = bool(
+        singleton_only = bool(
             getattr(
                 self.args,
-                "online_canonical_counterfactual_singleton_entropy_gate",
+                "online_canonical_counterfactual_singleton_only",
                 False,
             )
         )
-        metrics["actor/counterfactual_proposal_singleton_entropy_gate_enabled"] = float(
-            singleton_entropy_gate
-        )
         metrics[
-            "actor/counterfactual_proposal_singleton_entropy_gate_known_support"
+            "actor/counterfactual_proposal_singleton_only_enabled"
+        ] = float(singleton_only)
+        metrics[
+            "actor/counterfactual_proposal_singleton_only_known_support"
         ] = float(len(known_keys))
+        metrics[
+            "actor/counterfactual_proposal_singleton_only_active"
+        ] = float(singleton_only and len(known_keys) == 1)
         if verified_route_mode and len(known_keys) != 1:
             # E69 keeps E68's actuator-identifiability rule but does not make
-            # route admission depend on a task-reward novelty coefficient:
+            # route admission depend on auxiliary task-reward shaping:
             # the explorer only searches from an exactly singleton verified
             # support set, while the neutral learner remains task-first.
             return empty_payload, metrics
-        if singleton_entropy_gate:
-            tracker = getattr(self, "_semantic_shannon_tracker", None)
-            diagnostics_method = getattr(
-                tracker,
-                "singleton_escape_gate_diagnostics",
-                None,
-            )
-            if not callable(diagnostics_method):
-                raise RuntimeError(
-                    "singleton entropy-gated proposals require the open-set "
-                    "semantic entropy controller"
-                )
-            gate = diagnostics_method()
-            metric_map = {
-                "available": "available",
-                "warmup_complete": "warmup_complete",
-                "entropy_below_self_reference": "below_reference",
-                "active": "active",
-                "inverse_multiplier": "inverse_multiplier",
-            }
-            for source, suffix in metric_map.items():
-                metrics[
-                    f"actor/counterfactual_proposal_singleton_entropy_gate_{suffix}"
-                ] = float(gate[source])
+        if singleton_only and len(known_keys) != 1:
             # Exactly one discovered valid mode is an actuator-identifiability
-            # condition, not a desired task support. As soon as a second
-            # independently verified mode exists, synthetic expansion stops.
-            if len(known_keys) != 1 or not bool(gate["active"]):
-                return empty_payload, metrics
+            # condition, not a desired task-support target. Expansion stops
+            # as soon as a second independently verified mode exists.
+            return empty_payload, metrics
 
         # A sampled policy can collapse to singleton valid support, at which
         # point repeated sampling has no usable actuator.  First derive
@@ -800,7 +773,7 @@ class ZeroMathRunMixin:
                 0,
             )
         )
-        if singleton_entropy_gate or verified_route_mode:
+        if singleton_only or verified_route_mode:
             transform_replay_capacity_slots = min(
                 transform_replay_capacity_slots,
                 1,
@@ -2042,6 +2015,21 @@ class ZeroMathRunMixin:
                     "semantic Shannon run cannot resume without estimator state"
                 )
             semantic_shannon_tracker.load_state_dict(saved_semantic_shannon)
+            rms_controller = getattr(self, "_semantic_rms_controller", None)
+            saved_rms = resume_states.get("semantic_rms_controller_state")
+            if rms_controller is not None:
+                if not isinstance(saved_rms, dict):
+                    raise ValueError(
+                        "adaptive semantic run cannot resume without controller state"
+                    )
+                rms_controller.load_state_dict(saved_rms)
+                semantic_shannon_tracker.coefficient = float(
+                    rms_controller.current_coefficient
+                )
+            elif saved_rms is not None:
+                raise ValueError(
+                    "fixed-coefficient run cannot resume an adaptive checkpoint"
+                )
         elif saved_semantic_shannon is not None:
             raise ValueError(
                 "non-semantic-Shannon run cannot resume a semantic Shannon checkpoint"
@@ -2128,40 +2116,6 @@ class ZeroMathRunMixin:
                 "fixed-alpha online canonical run cannot resume an adaptive "
                 "online canonical checkpoint"
             )
-        replay_controller = getattr(
-            self,
-            "_canonical_replay_controller",
-            None,
-        )
-        replay_controller_state_key = "canonical_replay_controller_state"
-        saved_replay_controller = resume_states.get(replay_controller_state_key)
-        if replay_controller is not None:
-            if not isinstance(saved_replay_controller, dict):
-                raise ValueError(
-                    "canonical replay checkpoint is missing its inverse "
-                    "controller state"
-                )
-            replay_controller.load_state_dict(saved_replay_controller)
-        elif saved_replay_controller is not None:
-            raise ValueError(
-                "non-replay run cannot resume a canonical replay checkpoint"
-            )
-        replay_mass_controller = getattr(
-            self,
-            "_canonical_replay_mass_controller",
-            None,
-        )
-        replay_mass_state_key = "canonical_replay_mass_controller_state"
-        saved_replay_mass = resume_states.get(replay_mass_state_key)
-        if replay_mass_controller is not None:
-            if not isinstance(saved_replay_mass, dict):
-                raise ValueError(
-                    "split canonical replay checkpoint is missing its "
-                    "mass-controller state"
-                )
-            replay_mass_controller.load_state_dict(saved_replay_mass)
-        elif saved_replay_mass is not None:
-            raise ValueError("non-split replay run cannot resume a mass controller")
 
     def _record_progress_metric(
         self,
@@ -2544,114 +2498,6 @@ class ZeroMathRunMixin:
         diagnostics["online_canonical_dual_global_eligibility_weight"] = global_weight
         train_info.update(diagnostics)
 
-    def _update_canonical_replay_controller(
-        self,
-        train_info: dict[str, Any],
-    ) -> None:
-        """Advance replay alpha from model scores on observed modes only."""
-
-        controller = getattr(
-            self,
-            "_canonical_replay_controller",
-            None,
-        )
-        if controller is None:
-            return
-        entropy_key = controller.observation_metric_key
-        eligibility_key = "canonical_replay_eligible_groups"
-        local_weight = self._coerce_log_float(train_info.get(eligibility_key))
-        if local_weight is None:
-            local_weight = 0.0
-        if local_weight < 0:
-            raise RuntimeError(
-                "canonical replay eligibility weight must be non-negative"
-            )
-        local_entropy = self._coerce_log_float(train_info.get(entropy_key))
-        if local_weight > 0 and local_entropy is None:
-            raise RuntimeError(
-                "eligible canonical replay update lacks its model-entropy sensor"
-            )
-        reduced = self.strategy.all_reduce(
-            {
-                "canonical_replay_entropy_weighted": (
-                    float(local_entropy or 0.0) * local_weight
-                ),
-                "canonical_replay_eligibility_weight": local_weight,
-            }
-        )
-        global_weight = self._coerce_log_float(
-            reduced.get("canonical_replay_eligibility_weight")
-        )
-        global_weighted_entropy = self._coerce_log_float(
-            reduced.get("canonical_replay_entropy_weighted")
-        )
-        if global_weight is None or global_weighted_entropy is None:
-            raise RuntimeError(
-                "canonical replay controller received invalid distributed diagnostics"
-            )
-        if global_weight <= 0:
-            train_info.update(controller.idle_diagnostics())
-            return
-        global_entropy = global_weighted_entropy / global_weight
-        diagnostics = controller.observe(global_entropy)
-        diagnostics["canonical_replay_observation_skipped"] = 0.0
-        diagnostics["canonical_replay_global_eligibility_weight"] = global_weight
-        train_info.update(diagnostics)
-
-    def _update_canonical_replay_mass_controller(
-        self,
-        train_info: dict[str, Any],
-    ) -> None:
-        """Advance verified-mass alpha from its own likelihood loss."""
-
-        controller = getattr(
-            self,
-            "_canonical_replay_mass_controller",
-            None,
-        )
-        if controller is None:
-            return
-        local_weight = self._coerce_log_float(
-            train_info.get("canonical_replay_actuator_groups")
-        )
-        local_surprisal = self._coerce_log_float(
-            train_info.get(controller.observation_metric_key)
-        )
-        if local_weight is None:
-            local_weight = 0.0
-        if local_weight < 0:
-            raise RuntimeError("canonical replay mass eligibility must be non-negative")
-        if local_weight > 0 and local_surprisal is None:
-            raise RuntimeError(
-                "active canonical replay mass update lacks verified surprisal"
-            )
-        reduced = self.strategy.all_reduce(
-            {
-                "canonical_replay_mass_surprisal_weighted": (
-                    float(local_surprisal or 0.0) * local_weight
-                ),
-                "canonical_replay_mass_eligibility_weight": local_weight,
-            }
-        )
-        global_weight = self._coerce_log_float(
-            reduced.get("canonical_replay_mass_eligibility_weight")
-        )
-        global_weighted = self._coerce_log_float(
-            reduced.get("canonical_replay_mass_surprisal_weighted")
-        )
-        if global_weight is None or global_weighted is None:
-            raise RuntimeError(
-                "canonical replay mass controller received invalid "
-                "distributed diagnostics"
-            )
-        if global_weight <= 0:
-            train_info.update(controller.idle_diagnostics())
-            return
-        diagnostics = controller.observe(global_weighted / global_weight)
-        diagnostics["canonical_replay_mass_observation_skipped"] = 0.0
-        diagnostics["canonical_replay_mass_global_eligibility_weight"] = global_weight
-        train_info.update(diagnostics)
-
     def learn(self, learning_round: int):
         torch.cuda.synchronize()
         torch.cuda.empty_cache()
@@ -2742,8 +2588,6 @@ class ZeroMathRunMixin:
         self._update_maxent_alpha_controller(train_info)
         self._update_maxent_length_controller(train_info)
         self._update_online_canonical_alpha_controller(train_info)
-        self._update_canonical_replay_controller(train_info)
-        self._update_canonical_replay_mass_controller(train_info)
         # Keep distributed logging reductions aligned even when optional metrics
         # are populated by different local minibatch conditions.
         train_info = {key: train_info[key] for key in sorted(train_info)}
@@ -2970,6 +2814,14 @@ class ZeroMathRunMixin:
             client_state["semantic_shannon_tracker_state"] = (
                 semantic_shannon_tracker.state_dict()
             )
+        semantic_rms_controller = getattr(self, "_semantic_rms_controller", None)
+        if semantic_rms_controller is not None:
+            # The adapted coefficient is run state, not a hyperparameter: a
+            # resume that restarted it at the base dose would silently rerun
+            # the controller's warmup partway through training.
+            client_state["semantic_rms_controller_state"] = (
+                semantic_rms_controller.state_dict()
+            )
         online_canonical_bank = getattr(self, "_online_canonical_bank", None)
         if online_canonical_bank is not None:
             client_state["online_canonical_bank_state"] = (
@@ -2999,24 +2851,6 @@ class ZeroMathRunMixin:
         if online_canonical_controller is not None:
             client_state["online_canonical_alpha_controller_state"] = (
                 online_canonical_controller.state_dict()
-            )
-        replay_controller = getattr(
-            self,
-            "_canonical_replay_controller",
-            None,
-        )
-        if replay_controller is not None:
-            client_state["canonical_replay_controller_state"] = (
-                replay_controller.state_dict()
-            )
-        replay_mass_controller = getattr(
-            self,
-            "_canonical_replay_mass_controller",
-            None,
-        )
-        if replay_mass_controller is not None:
-            client_state["canonical_replay_mass_controller_state"] = (
-                replay_mass_controller.state_dict()
             )
         if hasattr(self, "last_eval_query_step"):
             client_state["last_eval_query_step"] = int(self.last_eval_query_step)

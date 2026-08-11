@@ -22,7 +22,8 @@ def test_verified_first_variant_has_no_direct_maxent_cold_start():
 
     assert "OAT_ZERO_MAXENT_ALPHA=0.0" in branch
     assert "OAT_ZERO_MAXENT_INVERSE_ADAPTATION=0" in branch
-    assert "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=1" in branch
+    assert "OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET" not in branch
+    assert "OAT_ZERO_SEMANTIC_SHANNON_SUCCESS_CONDITIONED_SIGNED_ADVANTAGE=1" in branch
     assert "OAT_ZERO_ONLINE_CANONICAL_REPLAY=1" in branch
     assert (
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE="

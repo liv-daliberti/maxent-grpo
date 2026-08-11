@@ -160,7 +160,6 @@ def _scan_metrics(
             "desired_mode_count_feedback",
             "eval_feedback",
             "rows_sent_to_ppo",
-            "projection_active",
         )
         for key, value in row.items():
             if any(key.endswith(suffix) for suffix in required_zero_suffixes):
@@ -170,25 +169,25 @@ def _scan_metrics(
                     )
         enabled = _metric(
             row,
-            "counterfactual_proposal_singleton_entropy_gate_enabled",
+            "counterfactual_proposal_singleton_only_enabled",
         )
-        available = _metric(
+        singleton_active = _metric(
             row,
-            "counterfactual_proposal_singleton_entropy_gate_available",
+            "counterfactual_proposal_singleton_only_active",
         )
         anchor_available = _metric(
             row,
             "counterfactual_proposal_anchor_available",
         )
         proposal_path_reached = (
-            (_finite(available) and float(available) > 0)
+            (_finite(singleton_active) and float(singleton_active) > 0)
             or (_finite(anchor_available) and float(anchor_available) > 0)
         )
         if proposal_path_reached and not (
             _finite(enabled) and math.isclose(float(enabled), 1.0)
         ):
             violations.append(
-                f"{label}: proposal path reached with singleton entropy gate "
+                f"{label}: proposal path reached with singleton-only rule "
                 f"disabled at line {line_number}"
             )
         admitted = _metric(
@@ -207,32 +206,12 @@ def _scan_metrics(
                 support = _metric(
                     row,
                     "counterfactual_proposal_"
-                    "singleton_entropy_gate_known_support",
+                    "singleton_only_known_support",
                 )
                 active = _metric(
                     row,
                     "counterfactual_proposal_"
-                    "singleton_entropy_gate_active",
-                )
-                warmup = _metric(
-                    row,
-                    "counterfactual_proposal_"
-                    "singleton_entropy_gate_warmup_complete",
-                )
-                below_reference = _metric(
-                    row,
-                    "counterfactual_proposal_"
-                    "singleton_entropy_gate_below_reference",
-                )
-                inverse_multiplier = _metric(
-                    row,
-                    "counterfactual_proposal_"
-                    "singleton_entropy_gate_inverse_multiplier",
-                )
-                event_available = _metric(
-                    row,
-                    "counterfactual_proposal_"
-                    "singleton_entropy_gate_available",
+                    "singleton_only_active",
                 )
                 if not (_finite(support) and int(support) == 1):
                     violations.append(
@@ -240,13 +219,10 @@ def _scan_metrics(
                     )
                 if not (_finite(active) and math.isclose(float(active), 1.0)):
                     violations.append(
-                        f"{label}: admission without entropy-collapse gate"
+                        f"{label}: admission while singleton-only rule inactive"
                     )
                 for gate_name, value in (
                     ("gate enabled", enabled),
-                    ("gate available", event_available),
-                    ("entropy warmup", warmup),
-                    ("entropy below reference", below_reference),
                 ):
                     if not (
                         _finite(value)
@@ -255,13 +231,6 @@ def _scan_metrics(
                         violations.append(
                             f"{label}: admission without {gate_name}"
                         )
-                if not (
-                    _finite(inverse_multiplier)
-                    and float(inverse_multiplier) > 1.0
-                ):
-                    violations.append(
-                        f"{label}: admission without inverse multiplier > 1"
-                    )
                 intervention_events.append(
                     {
                         "step": int(step) if _finite(step) else None,
@@ -272,24 +241,6 @@ def _scan_metrics(
                         ),
                         "gate_enabled": (
                             float(enabled) if _finite(enabled) else None
-                        ),
-                        "gate_available": (
-                            float(event_available)
-                            if _finite(event_available)
-                            else None
-                        ),
-                        "warmup_complete": (
-                            float(warmup) if _finite(warmup) else None
-                        ),
-                        "entropy_below_reference": (
-                            float(below_reference)
-                            if _finite(below_reference)
-                            else None
-                        ),
-                        "inverse_multiplier": (
-                            float(inverse_multiplier)
-                            if _finite(inverse_multiplier)
-                            else None
                         ),
                         "gate_active": (
                             float(active) if _finite(active) else None
@@ -303,11 +254,6 @@ def _scan_metrics(
                             row,
                             "counterfactual_proposal_"
                             "transform_rows_sent_to_ppo",
-                        ),
-                        "coefficient_projection_active": _metric(
-                            row,
-                            "semantic_shannon_success_conditioned_signed_"
-                            "open_set_projection_active",
                         ),
                     }
                 )
@@ -345,11 +291,10 @@ def main() -> None:
             violations.append("frozen source hash mismatch")
         if identity.get("objective_contract") != {
             "online_canonical_bank_alpha": 0.0,
-            "online_canonical_novelty_beta": 0.5,
             "runtime_assertion": True,
             "only_algorithmic_delta_from_e66": [
                 "counterfactual_proposals",
-                "singleton_entropy_gate",
+                "singleton_only",
             ],
         }:
             violations.append("same-objective runtime contract mismatch")
@@ -458,7 +403,6 @@ def main() -> None:
                     )
                     runtime_contract_verified = (
                         "online_canonical_bank_alpha=0 "
-                        "novelty_beta=0.50" in stdout_text
                         and "online canonical bank enabled: alpha=0 "
                         "beta=0.5" in stdout_text
                     )
@@ -504,7 +448,7 @@ def main() -> None:
                 "materialized_runs": materialized_runs,
                 "metric_runs": metric_runs,
                 "terminal_runs": terminal_runs,
-                "entropy_gated_interventions": total_interventions,
+                "singleton_only_interventions": total_interventions,
             },
             "domains": domains,
             "violations": sorted(set(violations)),

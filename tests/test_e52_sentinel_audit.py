@@ -36,7 +36,6 @@ def _inverse_record(step: int, entropy: float, *, hybrid: bool):
         "train/online_canonical_canonicalizable_correct_fraction": 0.5,
         "train/online_canonical_support_at_least_two_prompt_fraction": 0.2,
         "train/online_canonical_entropy_advantage_rms": 0.01,
-        "train/online_canonical_novelty_advantage_rms": 0.02,
         "train/online_canonical_tracked_outcomes": 10.0,
     }
     if step >= 64:

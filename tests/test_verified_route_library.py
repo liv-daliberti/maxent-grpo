@@ -295,7 +295,6 @@ def _route_proposal_learner(proposal_rows):
         ),
         _online_canonical_bank=OnlineCanonicalBank(
             entropy_alpha=0.0,
-            novelty_beta=0.0,
             retain_exemplars=True,
             separate_proposal_objective_support=True,
         ),
@@ -570,7 +569,6 @@ def test_replicated_route_admission_never_changes_neutral_objective_support(
 
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
         separate_proposal_objective_support=True,
     )

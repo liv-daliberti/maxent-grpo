@@ -209,23 +209,11 @@ payload = {
         "selection": "persistent_prompt_hash_round_robin",
         "capacity": 16,
     },
-    "direct_token_entropy": {"coefficient": 0.0, "controller": None},
-    "controllers": {
-        "open_set_semantic": {
-            "base": 0.10,
-            "rule": "inverse_self_warmup",
-            "projection": None,
-        },
-        "verified_mass": {
-            "base": 0.10,
-            "rule": "surprisal_ratio_self_warmup",
-            "projection": None,
-        },
-        "known_mode_balance": {
-            "base": 0.10,
-            "rule": "inverse_self_warmup",
-            "projection": None,
-        },
+    "direct_token_entropy": {"coefficient": 0.0},
+    "fixed_coefficients": {
+        "open_set_semantic": 0.10,
+        "verified_mass": 0.10,
+        "known_mode_balance": 0.10,
     },
     "cold_start": "zero_policy_gradient_until_model_verified_discovery",
     "information_firewall": {
@@ -278,21 +266,14 @@ export OAT_ZERO_MAXENT_INVERSE_BASE_ALPHA=0
 export OAT_ZERO_SEMANTIC_SHANNON_COEF=0.10
 export OAT_ZERO_SEMANTIC_SHANNON_SURPRISAL_CLIP=5.0
 export OAT_ZERO_SEMANTIC_SHANNON_PSEUDOCOUNT=1.0
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_WARMUP_STEPS=64
-export OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0
-export OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.50
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
 export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=modebench_outcome
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA=0.10
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY=16
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_EMA_DECAY=0.90
 export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_ALPHA=0.10
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_WARMUP_STEPS=64
-export OAT_ZERO_ONLINE_CANONICAL_REPLAY_MASS_EMA_DECAY=0.90
 
 export OAT_ZERO_NUM_SAMPLES=16
 export OAT_ZERO_LEARNING_RATE=0.0000002
@@ -464,7 +445,6 @@ for job_id in "${job_ids[@]}"; do
     'OAT_ZERO_NUM_SAMPLES=16' \
     'OAT_ZERO_MAXENT_ALPHA=0' \
     'OAT_ZERO_MAXENT_INVERSE_ADAPTATION=0' \
-    'OAT_ZERO_SEMANTIC_SHANNON_OPEN_SET_INVERSE_ADAPTATION=1' \
     'OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=split_mass_balance_per_rollout' \
     'OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1' \
     'OAT_ZERO_EVAL_MODE_COVERAGE_K=8' \

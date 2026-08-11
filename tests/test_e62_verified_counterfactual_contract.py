@@ -117,7 +117,6 @@ def _row(response, response_ids, reward=1.0, loss_mask=True):
 def test_proposal_helper_returns_only_minimal_novel_admission_payload(monkeypatch):
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
     )
     bank.score_and_update(
@@ -229,7 +228,6 @@ def test_proposal_bootstraps_from_current_neutral_group_without_prior_bank(
 ):
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
     )
     actor = _Actor()
@@ -307,7 +305,6 @@ def test_proposal_bootstraps_from_current_neutral_group_without_prior_bank(
 def test_validator_preserving_transform_bootstraps_without_resampling():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
     )
     actor = _Actor()
@@ -391,7 +388,6 @@ def test_counterfactual_retry_exhausts_fixed_budget_on_same_outcome(
 ):
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
     )
     actor = _Actor()
@@ -541,7 +537,6 @@ def test_e62_variant_is_no_gold_projection_free_and_discards_proposal_ppo_rows()
 
     assert "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=1" in branch
     assert "OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0" in branch
-    assert "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0" in branch
     assert "split_mass_balance_per_rollout" in branch
     assert "MAX_ALPHA" not in branch
     assert "TARGET_ENTROPY" not in branch
@@ -556,7 +551,6 @@ def test_e62_variant_is_no_gold_projection_free_and_discards_proposal_ppo_rows()
 def test_counterfactual_bank_rejects_non_novel_or_duplicate_admissions():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
-        novelty_beta=0.0,
         retain_exemplars=True,
     )
     bank.score_and_update(
@@ -597,7 +591,6 @@ def test_e62_python_pilot_is_same_seed_one_pass_and_snapshot_bound():
     assert "OAT_ZERO_EVAL_MODE_COVERAGE_DRAWS=4" in launcher
     assert "OAT_ZERO_INCLUDE_VERIFIED_COUNTERFACTUAL_CANONICAL_ARM=1" in launcher
     assert "OAT_ZERO_INCLUDE_VERIFIED_FIRST_BOOTSTRAP_LOCAL_CANONICAL_ARM=1" in launcher
-    assert "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0" in launcher
     assert "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_MAX_ATTEMPTS=3" in launcher
     assert (
         "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SAMPLING_TEMPERATURE=1.0"

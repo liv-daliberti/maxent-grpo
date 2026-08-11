@@ -220,7 +220,6 @@ def test_parse_run_binds_e44_online_canonical_optimizer_telemetry(tmp_path):
         "train/maxent_inverse_projection_active": 0.0,
         "train/maxent_inverse_reference_entropy": 1.54,
         "train/online_canonical_entropy_advantage_rms": 0.08,
-        "train/online_canonical_novelty_advantage_rms": 0.20,
         "train/online_canonical_combined_advantage_rms": 0.22,
         "train/online_canonical_eligible_fraction": 0.75,
         "train/online_canonical_new_outcome_count": 3.0,
@@ -262,7 +261,6 @@ def test_parse_run_binds_e44_online_canonical_optimizer_telemetry(tmp_path):
     assert row["maxent_inverse_projection_active"] == 0.0
     assert row["maxent_inverse_reference_entropy"] == 1.54
     assert row["online_canonical_entropy_advantage_rms"] == 0.08
-    assert row["online_canonical_novelty_advantage_rms"] == 0.20
     assert row["online_canonical_combined_advantage_rms"] == 0.22
     assert row["online_canonical_eligible_fraction"] == 0.75
     assert row["online_canonical_new_outcome_count"] == 3.0

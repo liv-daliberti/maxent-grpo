@@ -30,7 +30,6 @@ def test_e69_variant_is_task_first_support_separated_and_fixed_budget():
         "OAT_ZERO_SEMANTIC_SHANNON_COEF=0.0",
         "OAT_ZERO_SEMANTIC_SHANNON_SEPARATE_ADVANTAGE=0",
         "OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0",
-        "OAT_ZERO_ONLINE_CANONICAL_NOVELTY_BETA=0.0",
         "OAT_ZERO_ONLINE_CANONICAL_KEY_MODE=verified_route",
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY=1",
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout",
@@ -38,7 +37,7 @@ def test_e69_variant_is_task_first_support_separated_and_fixed_budget():
         "OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0",
         "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_PROPOSALS=1",
         "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SEPARATE_OBJECTIVE_SUPPORT=1",
-        "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ENTROPY_GATE=0",
+        "OAT_ZERO_ONLINE_CANONICAL_COUNTERFACTUAL_SINGLETON_ONLY=0",
         'VARIANT_TAG="verified_route_successor"',
     )
     for literal in required:

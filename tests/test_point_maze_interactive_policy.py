@@ -97,5 +97,6 @@ def test_velocity_v3_prompt_exposes_public_markov_state():
     assert "position_xy=(1.000,-2.000)" in prompt
     assert "velocity_xy=(0.125,-0.750)" in prompt
     assert "goal_xy=(3.000,4.000)" in prompt
+    assert "remaining_actions=17" in prompt
     assert "recent_actions" not in prompt
     assert "Output only a whitespace-separated" not in prompt
