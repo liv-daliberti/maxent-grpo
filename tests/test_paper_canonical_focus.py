@@ -51,7 +51,10 @@ def test_main_paper_centers_modebench_without_internal_experiment_ids():
     text = MAIN.read_text(encoding="utf-8")
     main_text = _main_body()
 
-    assert r"\mb{} and x-Mode GRPO" in main_text
+    assert (
+        r"\title{There's More Than One Way: Mode Collapse in RLVR, "
+        "ModeBench, and Maintaining Diversity}"
+    ) in " ".join(main_text.replace(r"\\", " ").split())
     assert r"\section{\mb: Executable Mode Measurement}" in main_text
     assert r"\section{\xdr: Online Verified MaxEnt-Dr.GRPO}" in main_text
     # Internal experiment identifiers (E68, E70a, ...) are repository

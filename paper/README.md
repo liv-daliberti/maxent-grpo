@@ -1,7 +1,7 @@
-# Mode Collapse under GRPO
+# There's More Than One Way: Mode Collapse in RLVR, ModeBench, and Maintaining Diversity
 
-[`main.tex`](main.tex) is the ICLR 2026-format source for **Mode Collapse under
-GRPO: ModeBench and Online Verified Maximum Entropy**. [`main.pdf`](main.pdf)
+[`main.tex`](main.tex) is the ICLR 2026-format source for **There's More Than One Way:
+Mode Collapse in RLVR, ModeBench, and Maintaining Diversity**. [`main.pdf`](main.pdf)
 is the built manuscript.
 
 ## Paper in one paragraph
