@@ -742,6 +742,20 @@ $.605$, $.566$, $.869$, and $2.186$, ahead on all four metrics: accuracy
 improves for the baseline while ``right'' is flattened from several feasible
 plans to exactly one.
 
+Figure~\ref{fig:training-dynamics-full} shows the corresponding accuracy,
+sampled breadth, and verified-discovery trajectories across all five domains.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/modecollapse_training.pdf}
+  \caption{\textbf{Full five-domain, four-metric training grid.} Every row shows
+  seeds 43--47 in both arms through the common audited pass-12 endpoint, on the
+  one design of Section~\ref{sec:experiments}. The discovery column checks
+  whether \xdr{} continues accumulating verified keys after the matched
+  baseline stalls.}
+  \label{fig:training-dynamics-full}
+\end{figure}
+
 \subsection{Terminal causal result: separated support discovery}
 
 The completed MathIR same-plumbing ablation changes only separated replay
@@ -1983,17 +1997,6 @@ alternative training objectives listed in Section~\ref{sec:limitations}.
 \noindent\emph{Main-body link.} This appendix provides the frozen terminal-cohort
 provenance behind Figure~\ref{fig:training-dynamics-full} and the evidence policy
 in Section~\ref{sec:experiments}.
-
-\begin{figure}[!htb]
-  \centering
-  \includegraphics[width=\linewidth]{figures/modecollapse_training.pdf}
-  \caption{\textbf{Full five-domain, four-metric training grid.} Every row shows
-  seeds 43--47 in both arms through the common audited pass-12 endpoint, on the
-  one design of Section~\ref{sec:experiments}. The discovery column checks
-  whether \xdr{} continues accumulating verified keys after the matched
-  baseline stalls.}
-  \label{fig:training-dynamics-full}
-\end{figure}
 
 \begin{figure}[p]
   \centering
