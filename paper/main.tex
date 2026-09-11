@@ -115,12 +115,11 @@ and final answers undercount the programs/approaches that reach them
 \citep{wang2023selfconsistency}. Valid modes are unknown, credit must reach
 verified novelty alone where novelty search and count-based bonuses pay for any
 unvisited behavior \citep{lehman2011novelty,bellemare2016pseudocount}, and rare
-modes can vanish before a prompt returns \citep{rolnick2019replay}. Binary
-reward equates all correct responses
-\citep{shao2024deepseekmath,liu2025understanding}, while finite on-policy
-sampling reinforces common modes and leaves absent modes untouched
-\citep{cui2025entropy}. Repairing the failure therefore takes a signal bound to
-executed mode identity.
+modes may become difficult to sample before a prompt returns
+\citep{rolnick2019replay}. Binary reward equates all correct responses
+\citep{shao2024deepseekmath,liu2025understanding}, while rare modes may receive
+little direct sampled credit \citep{cui2025entropy}. We therefore investigate
+signals bound to executed mode identity.
 
 Prior work documents collapse and promotes outcome bonuses, batch penalties,
 pass@$K$ objectives, and set-level or distributional optimization
@@ -458,8 +457,8 @@ Appendix~\ref{app:algorithm} fixes the exact update.
   \caption{\textbf{\xdr{} as one discover--retain--rebalance loop.}
   (A) The task validator rejects invalid novelty and rewards only rare or new
   correct keys. (B) New keys enter a persistent bank whose global schedule
-  replays them after the collection batch. (C) Replay protects total verified
-  mass while balancing probability across known keys. The lower controller
+  replays retained exemplars after the collection batch. (C) Replay reinforces
+  verified exemplars while balancing their normalized scores. The lower controller
   raises the matching pressure when its sensor deteriorates; a singleton-only
   escape may add a verified alternative to replay support, never to PPO.}
   \label{fig:xdr-mechanism}
@@ -543,8 +542,8 @@ bank entropy normalized by the log bank size. With EMA decay $.9$,
 Falling mode entropy increases exploration pressure; rising surprisal on known
 correct exemplars increases mass pressure; falling bank entropy increases
 balance pressure. No coefficient is projected. This is a stress-test design:
-continued collapse remains visible as continued coefficient growth rather than
-as silent saturation. Singleton banks are omitted from the balance sensor.
+continued deterioration of a controller's sensor remains visible as
+coefficient growth rather than saturation at a fixed bound. Singleton banks are omitted from the balance sensor.
 
 \noindent\textbf{Separated-support escape actuator.}\label{sec:actuator} 
 All balance mechanisms need an alternative to preserve, and a singleton bank
@@ -1031,7 +1030,8 @@ Theorem~\ref{thm:grpo-collapse}.
 Equal binary reward leaves conditional breadth unconstrained; the winner
 selection proved here additionally depends on Euclidean updates in independent
 mode logits. For example, categorical natural-gradient reward flow can be
-represented by $\dot z_a=R_a-P$, giving all correct logits equal velocities
+represented by $\dot z_a=R_a-P$ with $R_a=\1[a\in\mathcal C]$,
+giving all correct logits equal velocities
 and preserving their ratios. The theorem supplies a mechanism to examine
 experimentally, not a universal consequence of binary reward or an explanation
 established for hosted models. Finite groups add sampling variability, but
@@ -1654,8 +1654,8 @@ that every component is necessary.
     Python cold-start failure; developmental evidence, not a factorial
     comparison. \\
     Verified-mass replay &
-    Balance over retained keys is invariant to a common score shift and cannot
-    by itself restore total probability on verified responses. &
+    Balance over retained keys is invariant to a common score shift and does
+    not by itself guarantee total probability on verified responses. &
     The score-gradient identity motivates this term. B3a removes the mass and
     balance gradients jointly (Appendix~\ref{app:replay-ablation});
     their separate performance contributions remain unisolated. \\
@@ -1671,8 +1671,8 @@ that every component is necessary.
     Theorem~\ref{thm:xdr-balance} supplies a sufficient condition under its
     dynamical assumptions, not necessity of the separate balance term. \\
     Projection-free self-reference &
-    Fixed or clipped pressure makes the bound, rather than the run's own sensor,
-    determine behavior and can silently saturate during collapse. &
+    Fixed or clipped pressure can limit the response to a deteriorating
+    sensor. &
     A prospectively frozen sequence of controller and carrier repairs;
     developmental evidence retained to explain the final controller, not pooled
     into Table~\ref{tab:main-results}. \\
@@ -1718,9 +1718,9 @@ updates on retained exemplars. Historical counts and banks remain available.
 \noindent\textbf{The arm.} B3a is the frozen \xdr{} objective with one change:
 the replay score derivative is replaced by exact zeros before it reaches the
 optimizer. The same verified banks are still accumulated, scheduled in
-deterministic global round robin, teacher-forced, and traversed backward, so
-generation, scoring, and optimizer work are identical to the treatment and no
-compute-matching argument is required. The open-set rare-mode advantage, the
+deterministic global round robin, teacher-forced, and traversed backward.
+The comparison retains the replay computation and matches rollout counts
+and optimizer updates; it does not assert identical token counts or runtime. The open-set rare-mode advantage, the
 one-time discovery credit, and their self-referenced controllers act exactly as
 in \xdr{}. The arm retains on-policy credit for rare and newly observed
 verified outcomes, but receives no replay gradient from banked exemplars.
@@ -1906,8 +1906,8 @@ below.
 
 \noindent\textbf{Reading.} In this exploratory sample, removing discovery
 credit has smaller absolute mean effects than removing the joint replay
-gradient on four domains; on Python factors it reduces \texttt{distinct@8}
-by $.900$. Python has the largest catalogue, with $229$ valid modes per
+gradient across all five domains, with its largest reduction in
+\texttt{distinct@8} on Python factors ($.900$). Python has the largest catalogue, with $229$ valid modes per
 prompt on average, but catalogue size alone does not establish why discovery
 credit helps. These observations motivate the hypothesis that its value depends
 on the policy's initial access to verified alternatives. They do not establish
@@ -2168,7 +2168,7 @@ but uses an eight-token response and a six-decision support mask.
     Does isolated support discovery act causally? &
     MathIR, same-plumbing actuator off/on, 3 seeds, pass 12 &
     terminal & domain-specific mechanism result \\
-    Which half of the mechanism retains support? &
+    How do replay and discovery-credit removal affect sampled breadth? &
     B3a (replay gradient off) and B1a (discovery credit off), 5 domains,
     seeds 43--47, terminal pass 12 &
     terminal (B3a); exploratory (B1a) &
