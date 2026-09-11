@@ -1,22 +1,20 @@
 # Mode Collapse under GRPO
 
 [`main.tex`](main.tex) is the ICLR 2026-format source for **Mode Collapse under
-GRPO: ModeBench and Online Verified Maximum Entropy**. [`main.pdf`](main.pdf)
+GRPO: ModeBench and x-Mode GRPO**. [`main.pdf`](main.pdf)
 is the built manuscript.
 
 ## Paper in one paragraph
 
-A binary verifier distinguishes correct from incorrect responses, but it does
-not distinguish redundant correct responses from genuinely different correct
-outcomes. Under Dr.GRPO, frequent correct outcomes therefore receive more
-on-policy updates while a correct outcome that disappears from the sampled
-group receives none. The paper calls the resulting loss of verified outcome
-support **mode collapse under GRPO**. ModeBench makes the failure measurable
-with validators that both execute a response and assign a canonical outcome
-key. **xGRPO** is the paper's online verified MaxEnt-GRPO intervention: it
-constructs support only from policy-generated, validator-positive executions,
-rewards rare and first-seen outcomes, globally replays verified exemplars, and
-uses adaptive mass and balance terms to protect task performance.
+A binary verifier distinguishes correct from incorrect responses but does not
+rank equally valid outcome keys. ModeBench measures sampled correctness and
+verified outcome breadth separately. The categorical analysis identifies a
+frequency-amplification mechanism under explicit optimization assumptions;
+controlled neural training tests whether analogous concentration occurs.
+**xGRPO** combines verified outcome credit with replay of retained exemplars.
+Its empirical improvements concern the tested tasks and sampling budgets,
+while its mathematical preservation result is conditional on the stated
+categorical dynamics and retained support.
 
 The paper's name `xGRPO` refers to this executable-outcome method. It does not
 refer to the detached Gibbs candidate-reweighting prototype called `xDr` in
@@ -35,50 +33,74 @@ conditioned on verifier success, not token strings.
 
 The primary collapse diagnosis compares `distinct@8` with `pass@8`: near
 equality means successful eight-sample sets almost never contain a second
-correct mode. A falling `distinct@8` alongside stable correctness shows support
-contraction. Token entropy alone is not evidence of outcome diversity because
+correct mode. A falling `distinct@8` alongside stable correctness indicates contraction
+of sampled breadth, not literal disappearance of probability support. Token entropy alone is not evidence of outcome diversity because
 formatting aliases can map to the same executed key.
 
-## Theory guarantee
+## Mathematical scope
 
-Appendix A proves that the expected binary-reward GRPO and Dr.GRPO flow is
-generically winner-take-all over equally rewarded correct modes. It then proves
-that xGRPO's verified balance flow converges to the uniform distribution over
-a recurrently replayed bank once balance dominates the vanishing GRPO pressure.
-Full-support no-collapse additionally requires every protected mode to be
-verified and retained; with a partial or capacity-limited bank, the guarantee
-applies exactly to the retained support.
+The measurement identities distinguish correct mass from its allocation among
+verified outcome keys. At fixed correct mass, pass@K is independent of that
+allocation, while distinct@K also depends on it. A breadth gain therefore does
+not by itself establish improved correctness or downstream selector performance.
+
+Appendix A proves winner selection for an idealized categorical policy with
+one independent logit per canonical outcome, Euclidean infinitesimal on-policy
+updates, zero reference KL, and common response-length normalization. Standard
+variable-length GRPO and shared-parameter neural dynamics are outside that
+equivalence.
+
+The preservation theorem gives sufficient conditions for conditional balance
+on a fixed retained bank under categorical task-plus-replay dynamics. Uniform
+likelihood replay already contains a balancing term; the separate balance loss
+is not proved necessary. Full-support preservation additionally assumes
+complete retained coverage, recurrent replay with sufficient cumulative weight,
+and correct mass approaching one.
+
+The implementation balances length-normalized scores of one retained exemplar
+per key. Those scores are a surrogate for total execution-mode probabilities;
+aliases, sequence lengths, shared parameters, and the approximate rarity actor
+prevent the theorem from being a convergence guarantee for the full neural
+method. Capacity 16 precludes full coverage when a prompt has more valid modes.
 
 ## ModeBench
 
-The four benchmark domains are:
+The five benchmark domains are:
 
 - Graph coloring: the canonical executed coloring assignment.
 - Countdown: the canonical arithmetic expression tree.
-- Executable Python factors: the function's behavior on hidden test cases.
+- Executable Python factors: the function's behavior on the frozen task inputs.
 - MathIR: the exact rational equation-state trajectory generated by the
   executed action menu.
+- PantryPlan: the ingredient support selected by a six-bit mask; the trusted
+  environment determines feasible quantities on that support.
 
-Every admitted key is both correct and executable. There is no gold catalogue
-of modes and no semantic clustering of free-form text.
+Every admitted key is both correct and executable. The learner receives no gold
+mode catalogue, and outcome identity uses no semantic clustering of free-form text.
 
 ## Evidence map
 
 | Evidence block | Status | Claim licensed |
 |---|---|---|
-| Four-domain xGRPO vs. matched Dr.GRPO | Exploratory shared checkpoints, 3 seeds | Broad cross-domain outcome-diversity finding |
-| MathIR separated-support actuator vs. same-plumbing control | Terminal paired ablation, 3 seeds | Causal mechanism evidence |
-| Registered ModeBench campaign | Incomplete | Not described as a terminal campaign result |
+| Five-domain xGRPO vs. matched Dr.GRPO | Terminal pass 12, five paired seeds | Per-domain effects on correctness and sampled verified breadth |
+| Joint replay-gradient removal (B3a) | Terminal, five domains and five seeds | Contribution of mass and balance replay gradients jointly within xGRPO |
+| MathIR separated-support actuator | Terminal paired comparison, three seeds | Domain-specific intervention effect |
+| Discovery-credit removal (B1a) | Exploratory | Hypothesis generation; mean proximity is not equivalence |
+| Six-temperature decoding sweep | Complete, fixed K=8 | Breadth gap persists under the tested decoding settings and budget |
+| Cross-family replication | Metric units require reconciliation | Protocol retained; numerical replication claims withheld |
 
-At the latest preregistered checkpoint shared by all three seeds of both broad
-comparison arms, `pass@8` changes from `.372` to `.968` on Graph, `.608` to
-`.665` on Countdown, `.172` to `.740` on Python, and `.364` to `.779` on
-MathIR. The corresponding `distinct@8` changes are `.393` to `2.344`, `.650`
-to `1.674`, `.172` to `.956`, and `.364` to `.805`.
+At the common terminal endpoint, pass@8 changes from .325 to .961 on Graph,
+.594 to .693 on Countdown, .172 to .688 on Python, .666 to .867 on MathIR,
+and .556 to .869 on PantryPlan. Corresponding distinct@8 values change from
+.325 to 2.406, .627 to 1.893, .172 to 1.594, .666 to .926, and .634 to 2.186.
+These are five-seed means, reported separately by domain.
 
-The terminal MathIR intervention adds `.0260` greedy accuracy, `.0301` mean@8,
-`.0267` pass@8, and `.1367` distinct@8 over the same-plumbing actuator-off
-control.
+Removing the joint replay gradient reduces distinct@8 toward the matched
+control. That ablation alone does not separate correctness effects from
+conditional diversity, or isolate the two replay losses.
+
+The terminal MathIR actuator adds .0260 greedy accuracy, .0301 mean@8,
+.0267 pass@8, and .1367 distinct@8 over its paired actuator-off control.
 
 ## Reproduce the paper
 
@@ -101,13 +123,13 @@ The plot scripts read frozen machine-readable model evaluations and regenerate:
   single-panel, execution-checked response/verify/key row for each ModeBench
   domain, in the verified-mode colours of `modecollapse_story.pdf`;
 - [`figures/modecollapse_story.pdf`](figures/modecollapse_story.pdf): the
-  two-panel, model-backed Graph Coloring example with a clarified prompt and one
+  three-panel, model-backed Graph Coloring example with a clarified prompt and one
   wide paired Dr.GRPO/xGRPO trajectory through step 768 (end of epoch 4);
 - [`figures/modecollapse_training_compact.pdf`](figures/modecollapse_training_compact.pdf):
   the main-body 4-domain × 2-metric grid (neutral pass@8 and mean distinct
   correct@8), sized to stay legible at `\linewidth`;
 - [`figures/modecollapse_training.pdf`](figures/modecollapse_training.pdf):
-  the appendix E68-style 4-domain × 4-metric training grid, adding neutral
+  the appendix 5-domain × 4-metric training grid, adding neutral
   pass@1 and cumulative verified discoveries;
 - [`figures/modecollapse_training_pass1.pdf`](figures/modecollapse_training_pass1.pdf):
   standalone neutral pass@1 curves;
@@ -133,8 +155,7 @@ appendix figure using the same four-column E68 format.
   into [`results/e70_five_domain_fixed_checkpoints_live.csv`](results/e70_five_domain_fixed_checkpoints_live.csv)
   and [`results/e70_five_domain_fixed_checkpoints_live.md`](results/e70_five_domain_fixed_checkpoints_live.md).
   Every headline cell is the deepest grid checkpoint reached by all five seeds
-  of both arms; MathIR is provisional at pass 9 until its remaining runs
-  terminate.
+  of both arms; all five domains reach terminal pass 12.
 - Broad comparison (superseded E65 cohort, retained for the record):
   [`../var/artifacts/e65_five_domain_confirmation_results_latest.json`](../var/artifacts/e65_five_domain_confirmation_results_latest.json)
 - Terminal MathIR ablation:
@@ -166,8 +187,15 @@ appendix figure using the same four-column E68 format.
 
 ## Claim boundary
 
-The broad four-domain values are intentionally labeled exploratory: the full
-ModeBench campaign did not reach terminal completion. The terminal MathIR
-result supports the isolated discovery mechanism. Failed, invalidated, or
-incomplete cohorts remain in the repository for auditability but are not pooled
-into the paper's treatment estimates.
+The mathematical guarantees are conditional results for the stated categorical
+models. The neural experiments establish measured effects within the tested
+tasks, interfaces, and budgets; finite non-observation is not proof that a mode
+has zero probability. Raw distinct@K depends on correctness as well as the
+conditional distribution of valid outcomes.
+
+The broad comparison and joint replay-gradient removal are terminal. Discovery
+credit removal is exploratory. The cross-family summary violates the declared
+distinct@K >= pass@K relationship and must be reconciled against its source
+metrics before numerical replication claims are used. Historical candidate
+reweighting prototypes, invalidated cohorts, and incomplete comparisons are not
+pooled into the current treatment estimates.

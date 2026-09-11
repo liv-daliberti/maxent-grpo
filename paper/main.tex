@@ -73,20 +73,15 @@
 \maketitle
 
 \begin{abstract}
-Repeated sampling yields diversity only when a policy proposes distinct viable solutions. 
-We show that binary-reward reinforcement learning (RL) language model (LM) post-training can raise accuracy while \textit{erasing} breadth: equally rewarded correct answers compete only through sampling frequency, so eight attempts become eight copies of one solution.
-We introduce \mb{}, five executable domains where validator
-execution determines both correctness and a canonical outcome identity. We then present \xdr{}, a Group Relative Policy Optimization (GRPO) extension that credits rare and newly discovered verified outcomes and replays them under mass and balance control. 
-In a 5-seed, 12-epoch comparison, \xdr{} raises \texttt{pass@8} in all 25 paired seed cells and expands \texttt{distinct@8} in every domain; two domains replicate on a second family. 
-Accuracy alone conceals a collapsed answer space. \mb{} makes monotony countable. \xdr{} shows it is preventable.
+Correctness alone does not describe the valid alternatives a language model offers. We study binary-reward reinforcement learning (RL) post-training that can improve greedy accuracy while reducing sampled outcome breadth. We introduce \mb{}, five executable domains where validation determines correctness and a canonical outcome identity, and \xdr{}, a Group Relative Policy Optimization extension using verified outcome credit and replay. A categorical analysis identifies a frequency-amplification mechanism and sufficient conditions for balance on retained support; its assumptions distinguish these guarantees from neural training. In a five-seed, 12-epoch comparison, \xdr{} raises \texttt{pass@8} in all 25 paired seed cells and \texttt{distinct@8} in every domain. These results support improved sampled access to verified alternatives within the tested tasks and budgets.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Inference-time scaling promises to trade inference compute for better reasoning by drawing multiple candidates and selecting among them.
-We study a failure that breaks that trade: binary-verifier Reinforcement Learning (RL) Language Model (LM) post-training can raise accuracy while concentrating a policy on one successful execution.
-Under group-relative binary-reward RL, eight nominal attempts can become eight copies of the same answer. As we show in Figure \ref{fig:story}, standard Group Relative Policy Optimization (GRPO)~\citep{shao2024deepseekmath, liu2025understanding} looks better by correctness after training while its useful proposal support quietly collapses.
+Repeated sampling can expose alternative valid solutions as well as find a first correct answer.
+We study a failure that narrows those alternatives: binary-verifier language-model post-training can raise greedy accuracy while concentrating successful samples on one execution.
+Figure~\ref{fig:story} illustrates this behavior in matched Dr.GRPO training~\citep{shao2024deepseekmath,liu2025understanding}. Our categorical analysis explains one mechanism under explicit optimization assumptions; the experiments measure whether analogous concentration occurs in the trained models.
 
 \begin{figure}[H]
   \centering
@@ -96,17 +91,17 @@ Under group-relative binary-reward RL, eight nominal attempts can become eight c
   (A) One prompt has 12 valid colorings; three are shown. (B--C) Four fixed-seed
   $K=8$ draws from matched \qwenmark{}2.5-0.5B-Instruct trajectories; color denotes an
   executed correct mode and gray an invalid response. Dr.GRPO reaches 32/32
-  correct but contracts to one mode; \xdr{} retains six. Accuracy rises while
-  the marginal value of sampling collapses.
+  correct but contracts to one mode in the displayed samples; \xdr{} retains six.
+  Accuracy rises while sampled breadth contracts.
   \label{fig:story}}
   \vspace{-5mm}
 \end{figure}
 
-Inference-time scaling requires genuine solution diversity. Self-consistency
+Access to alternative valid solutions requires proposal breadth. Self-consistency
 \citep{wang2023selfconsistency}, best-of-$N$ \citep{brown2024monkeys},
 verifier-guided search \citep{snell2024testtime}, and self-improvement
 \citep{dong2023raft} all generate candidates, and a selector returns only a route the policy proposes. 
-Breadth therefore decides whether more inference buys another chance or another copy: RLVR can win at small $k$ yet lose at large $k$ \citep{yue2025rlvrlimit}, while RLHF and fine-tuning can trade generalization or \texttt{pass@}$K$ for narrower outputs \citep{kirk2024understanding,dang2025diversity}. 
+Breadth measures whether successful samples offer different executions; a gain in breadth alone does not establish improved correctness or selector performance. Separately, RLVR can win at small $k$ yet lose at large $k$ \citep{yue2025rlvrlimit}, while RLHF and fine-tuning can trade generalization or \texttt{pass@}$K$ for narrower outputs \citep{kirk2024understanding,dang2025diversity}.
 Beyond exact tasks, a one-bit reward flattens what it means to be right because a distribution over acceptable answers and a point mass earn the same score.
 Exact domains make this loss countable; plurality matters everywhere.
 Standard alignment can reduce distributional pluralism
@@ -130,7 +125,7 @@ executed mode identity.
 Prior work documents collapse and promotes outcome bonuses, batch penalties,
 pass@$K$ objectives, and set-level or distributional optimization
 \citep{cui2025entropy,dang2025diversity,song2025outcome,divpo2025,
-chen2025passktraining,li2025divergence}. But, existing work lacks an open-set executable task set to demonstrate this problem at scale. Moreover, each promotes only one or two of the three factors we find to be important in order to prevent mode collapse: (1) semantic identity bound to correctness, (2) credit only for a genuinely new verified outcome, and (3) memory that preserves a transient discovery beyond its collection batch. 
+chen2025passktraining,li2025divergence}. We study these questions in an open-set executable task set. Our design combines (1) identity bound to correctness, (2) credit for rare or new verified outcomes, and (3) replay of observed exemplars. The experiments distinguish the effect of the combined replay gradient from exploratory evidence about discovery credit; they do not establish that every component is necessary.
 
 We introduce \mb{}, whose five domains derive correctness and canonical mode
 identity from the same execution, and \xdr{}, a GRPO extension over the
@@ -151,10 +146,10 @@ On the common five-seed surface, our \xdr{} approach improves upon matched Dr.GR
   5 domains whose validators bind reward and canonical identity.
   \item \emph{Mechanism and analysis} (Section~\ref{sec:method} and
   Appendix~\ref{app:theory}): \xdr{} combines open-set discovery credit,
-  rare-mode reward, and global verified replay; a categorical analysis shows
-  when retained-support balance rules out winner-take-all collapse.
+   rare-mode reward, and global verified replay; an idealized categorical analysis
+   gives sufficient conditions for balance on retained support.
   \item \emph{Audited evidence} (Sections~\ref{sec:experiments}--\ref{sec:results}):
-  preregistered five-seed trajectories on a fixed checkpoint grid establishes experimental evidence of mode collapse under Dr.GRPO.
+   five-seed trajectories on a fixed checkpoint grid measure sampled concentration under Dr.GRPO and the effects of the intervention.
 \end{list}
 
 \section{Mode Collapse under GRPO}
@@ -240,20 +235,21 @@ $\texttt{distinct@}K$ counts correct execution modes; $\texttt{pass@}K$ asks
 whether search finds any. Each carries information the others leave out, and
 two structural facts bind the quartet into a single diagnostic.
  
-\begin{lemma}[The quartet is one diagnostic]
+\begin{lemma}[Relations among sampled diagnostics]
 \label{lem:quartet}
 (i) $F_K\le S_K\le D_K$ pointwise, hence
 $\texttt{mean@}K\le\texttt{pass@}K\le\texttt{distinct@}K$, and the first
 inequality is strict in expectation unless, almost surely, either no draw or
-every draw verifies. (ii) Because $D_K\1[D_K>0]=D_K$,
+every draw verifies. (ii) When $\texttt{pass@}K>0$, because
+$D_K\1[D_K>0]=D_K$,
 \[
   \frac{\texttt{distinct@}K}{\texttt{pass@}K}
   =\E\bigl[D_K\;\big|\;D_K>0\bigr]
   \eqqcolon\texttt{modes-per-success},
 \]
 the mean number of \emph{different} correct executions a successful
-$K$-sample set contains; a value of $1$ means every success is the same
-success.
+$K$-sample set contains; a value of $1$ means each successful set contains
+exactly one correct mode, almost surely.
 \end{lemma}
  
 \begin{proof}
@@ -263,36 +259,40 @@ verifying draws is $0$ or $K$. (ii)
 $\E[D_K]/\Pr[D_K>0]=\E[D_K\1[D_K>0]]/\Pr[D_K>0]=\E[D_K\mid D_K>0]$.
 \end{proof}
  
-A tight band across all four numbers is therefore the signature of a
-point-mass policy: every successful sample set contains one and the same
-execution.
+A value of \texttt{modes-per-success} near one indicates few additional
+verified modes within successful sampled sets; it neither characterizes invalid
+responses nor removes dependence on correctness. For a fixed prompt with positive correct mass, writing
+$P=P_\theta^+(x)$ and $q_c=p_\theta^+(c\mid x)$, independent sampling gives
+\[
+ \E[S_K\mid x]=1-(1-P)^K,\qquad
+ \E[D_K\mid x]=\sum_c[1-(1-Pq_c)^K].
+\]
+Thus breadth depends on both correct mass and its allocation among modes.
+Appendix~\ref{app:theory} derives these identities and their fixed-mass bounds.
+Finite-sample concentration does not establish zero probability for unobserved
+modes, and no ordering involving greedy accuracy follows from the lemma.
  
-\subsection{Why equal reward concentrates correct modes}
+\subsection{A categorical mechanism for concentration}
 \label{sec:collapse-mechanism}
  
 \noindent\textbf{Group-relative task advantages.}
-Fix a prompt $x$ and draw a group
-$Y_1,\ldots,Y_G\stackrel{\mathrm{iid}}{\sim}\pi_\theta(\cdot\mid x)$ with
-$G\ge2$ and rewards $r_i=r(x,Y_i)$. Both variants center the binary reward on
-its group mean,
-$A_i^{\mathrm{task}}=r_i-G^{-1}\sum_{j=1}^G r_j$; Dr.GRPO then applies one
-shared maximum-length normalization where GRPO divides by the group reward
-standard deviation. Every quantity in these rescalings is a function of
-$(r_1,\ldots,r_G)$ alone, and $r_i$ is blind to \emph{which} key $V$
-returned, so correct responses in the same group receive the same task
-advantage. That symmetry equalizes credit across identities and leaves mode
-ratios free to follow sampling frequency; Lemma~\ref{lem:grpo-mean} shows the
-two normalizations share a direction and differ only in speed.
+Fix a prompt $x$ and draw an independent group of size $G\ge2$ with
+binary rewards $r_i$. Dr.GRPO uses centered advantages
+$A_i^{\mathrm{task}}=r_i-G^{-1}\sum_jr_j$ and a common length normalization.
+The reward distinguishes validity but gives no preference among correct keys.
+Lemma~\ref{lem:grpo-mean} derives its expected categorical update. The same
+direction holds with group reward standardization when response normalization
+is common; ordinary variable-length GRPO has an additional per-response length
+factor and is outside that equivalence~\citep{liu2025understanding}.
  
 \noindent\textbf{A categorical toy model.}
-Fix $x$ and suppress it from the notation. Partition the response categories
-as $\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, with
-$m=|\mathcal C|\ge2$ correct modes and $n=|\mathcal N|\ge1$ incorrect
-categories; give each category $a\in\mathcal A$ a logit $z_a$ and set
-$p_a=\operatorname{softmax}(z)_a$, correct mass
-$P=\sum_{c\in\mathcal C}p_c$, and conditional mode distribution
-$q_c=p_c/P$---the categorical projections of $P_\theta^+(x)$ and
-$p_\theta^+(\cdot\mid x)$, in the notation of Appendix~\ref{app:theory}.
+Fix $x$ and suppress it from the notation. Partition the categories as
+$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, with $m\ge2$ correct
+modes and $n\ge1$ incorrect categories. Assume one independently optimized
+logit per canonical outcome, Euclidean gradient flow, and no reference KL.
+Set $p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$,
+and $q_c=p_c/P$. These represent correct mass and its conditional allocation
+in the categorical abstraction.
 Gradient ascent on the expected binary reward
 $\E_{A\sim p}\1[A\in\mathcal C]=P$ gives, for $c,d\in\mathcal C$,
 \begingroup
@@ -309,25 +309,21 @@ $\E_{A\sim p}\1[A\in\mathcal C]=P$ gives, for $c,d\in\mathcal C$,
 \]
 \endgroup
  
-While incorrect mass remains ($P<1$), the more common of two equally rewarded
-correct modes receives the larger logit update---and the conditional ratios
-$q_c/q_d$ inherit the same dynamics. Finite on-policy groups sharpen the
-asymmetry: an absent rare mode receives no update, and an all-correct group
-has zero centered task advantage. Thus the first successful mode can become a
-self-reinforcing and eventually locally frozen solution. This idealized
-calculation isolates the mechanism: under binary reward the only force acting
-on mode ratios is sampling frequency. Recent analyses reach related
-conclusions through outcome-frequency amplification, divergence choice, or
-set-level policy geometry
+While incorrect mass remains ($P<1$), the more common correct category
+receives the larger logit update in this model. An all-correct group has zero
+centered task advantage, and absent modes have no direct sampled score term.
+These statements identify an idealized amplification mechanism; they do not
+derive the dynamics of shared neural parameters or aggregated response aliases.
+Recent analyses examine related effects through outcome-frequency amplification,
+divergence choice, or set-level policy geometry
 \citep{sinha2026expected,li2026distribution,li2026setpo}.
  
-Appendix~\ref{app:theory} makes this precise. Under the infinitesimal
-on-policy mean dynamics, Theorem~\ref{thm:grpo-collapse} shows that generic
-binary-reward GRPO and Dr.GRPO trajectories select one correct mode, and
-Theorem~\ref{thm:xdr-balance} with Corollary~\ref{cor:xdr-no-collapse} shows
-that once the verified bank covers the support, \xdr{} reverses the unstable
-mode-ratio dynamics. The coverage assumption is stated explicitly: the
-theorems act once the bank covers the support.
+Appendix~\ref{app:theory} proves winner selection for this categorical
+flow (Theorem~\ref{thm:grpo-collapse}) and sufficient conditions for uniformity
+under an idealized task-plus-replay flow (Theorem~\ref{thm:xdr-balance}).
+Corollary~\ref{cor:xdr-no-collapse} additionally assumes complete retained
+coverage. These are conditional mechanism results; the implemented exemplar
+surrogate and neural experiments have the narrower scope stated there.
  
 
 \section{\mb: Executable Mode Measurement}
@@ -525,8 +521,11 @@ persistent training constraint, paralleling rehearsal's role in resisting
 forgetting \citep{rolnick2019replay}. Two losses apply: \emph{verified mass},
 uniform exemplar likelihood for every scheduled bank including a singleton,
 with coefficient $\mu_t$; and \emph{known-mode balance},
-$\mathrm{KL}(U_{\mathrm{bank}}\|q_{\mathrm{model}})$ for banks with at least
-two observed modes, with coefficient $\alpha_t$. Selection reads only
+$\mathrm{KL}(U_{\mathrm{bank}}\|\widetilde q_{\mathrm{model}})$ for banks
+with at least two observed modes, with coefficient $\alpha_t$. Here
+$\widetilde q_{\mathrm{model}}$ is the softmax of length-normalized retained
+exemplar scores, not total probability over all responses with a given key
+(Algorithm~\ref{alg:xdr-update}). Selection reads only
 accumulated verified banks and a one-bank compute budget---never exhaustive
 support, evaluation outcomes, a desired mode count, or reference solutions.
 Before the first discovery, replay is inactive.
@@ -535,7 +534,7 @@ Before the first discovery, replay is inactive.
 The rare-mode, verified-mass, and balance coefficients each warm up for 64
 eligible observations and reference only their own warmup mean. Let $\rho$ be
 normalized open-set entropy, $s$ verified-exemplar surprisal, and $h$ scheduled
-bank entropy. With EMA decay $.9$,
+bank entropy normalized by the log bank size. With EMA decay $.9$,
 \[
   \beta_t=.10\frac{\rho_{\mathrm{ref}}}{\rho_{\mathrm{ema}}},\qquad
   \mu_t=.10\frac{s_{\mathrm{ema}}}{s_{\mathrm{ref}}},\qquad
@@ -567,9 +566,9 @@ candidate set and select from it
 lightman2023lets}; GRPO and Dr.GRPO train the proposal policy itself from
 group-relative outcome rewards
 \citep{shao2024deepseekmath,guo2025deepseekr1,liu2025understanding}. Dr.GRPO
-fixes length normalization; our question is orthogonal and upstream: whether
-RL leaves enough probability \emph{within} equally rewarded correct outcomes
-for additional inference to remain useful.
+fixes length normalization; our question concerns the distribution
+\emph{within} equally rewarded correct outcomes and whether additional
+samples expose different valid executions.
 
 \noindent\textbf{Collapse and diversity-aware optimization.}
 RLHF and fine-tuning can trade generalization or \texttt{pass@}$K$ for
@@ -630,13 +629,12 @@ fixed checkpoints $0,3,6,9,12$; every headline row is the deepest checkpoint
 reached by all five seeds of both arms, which is the terminal pass 12 in every
 domain.
 
-\noindent\textbf{Is the gain bought with extra compute?} The arms take the same
-optimizer steps over the same rollouts, so both perform identical
-\emph{generation}---the dominant cost in verifier RL. The extra work is scoring
-at most 16 already-generated exemplars per update at weight
-$w_{\mathrm{rep}}=(G-1)/G^2\approx.06$ against a 16-rollout group, every one of
-them produced and verified by the policy itself earlier in the same run: a
-bounded reuse term over the same sample budget.
+\noindent\textbf{Compute accounting.} The arms use the same optimizer-step
+and rollout-count budgets. Replay additionally scores at most 16 retained
+exemplars per update, previously generated and verified in the same run.
+The weight $w_{\mathrm{rep}}=(G-1)/G^2\approx.06$ scales the loss, not its
+compute cost. The comparison therefore matches rollout counts and updates,
+not total FLOPs, generated-token counts, or wall-clock time.
 
 \subsection{Evidence policy}
 
@@ -657,9 +655,9 @@ Appendices~\ref{app:reproducibility},~\ref{app:data},~\ref{app:per-seed},
   \includegraphics[width=\linewidth]{figures/modes_per_epoch.pdf}
   \caption{\textbf{Average number of verified modes (\#modes) across training},
   one panel per \mb{} domain on a shared scale; thin lines are seeds 43--47,
-  thick lines five-seed means, bands seed ranges. Below the dashed rule a second
-  sample cannot return a second execution. Endpoints reproduce
-  Table~\ref{tab:main-results}.}
+  thick lines five-seed means, bands seed ranges. The dashed rule marks one
+  mode on average, not a threshold ruling out multiple modes in successful
+  draws. Endpoints reproduce Table~\ref{tab:main-results}.}
   \label{fig:modes-per-epoch}
 \end{figure}
 
@@ -670,16 +668,17 @@ At the reported endpoints, matched Dr.GRPO's four metrics coincide: the spread
 $\texttt{distinct@8}-\texttt{mean@8}$ never exceeds $.109$ and modes-per-success
 never exceeds $1.14$ (Table~\ref{tab:main-results}), so a successful
 eight-sample set rarely holds a second execution.
-Temperature-one \texttt{mean@8} tracks greedy \texttt{pass@1} to within $.002$:
-the band measures a point-mass policy, and no temperature reopens it
-(Appendix~\ref{app:decoding}).
+Temperature-one \texttt{mean@8} tracks greedy \texttt{pass@1} to within $.002$.
+These are sampled concentration diagnostics, not proof that the entire policy
+is a point mass. None of the six tested temperatures recovers the treatment's
+temperature-one breadth at $K=8$ (Appendix~\ref{app:decoding}).
 
 The failure sits in support while accuracy holds. Graph holds greedy accuracy at
 $.323$ and Countdown rises to $.588$ while modes-per-success stays pinned at
 $1.00$ and $1.06$, against $6.27$ and $4.52$ valid modes per
 evaluation prompt (Table~\ref{tab:tasks}). On Python, where the mean prompt
-admits $229$ valid programs, all five baseline seeds land on $.172$ for all four
-metrics: one deterministic program.
+admits $229$ valid behavior keys, all five baseline seeds land on $.172$ for all
+four metrics: the measured successful sets contain one verified behavior key.
 
 \subsection{\xdr{} reopens the band; PantryPlan exposes the collapse}
 
@@ -730,17 +729,17 @@ $1.06\to2.73$), while Python and MathIR mainly gain a first route: MathIR moves
 $1.00\to1.07$ but its \texttt{pass@8} rises $.666\to.867$. Python remains
 seed-unstable: three \xdr{} seeds reach \texttt{pass@8} $1.000$, two land at
 $.211$ and $.227$. Figure~\ref{fig:modes-per-epoch} shows the same comparison
-as a trajectory: the baseline holds below one mode throughout, \xdr{} separates
-by epoch 3.
+as a trajectory: the baseline averages below one verified mode per draw,
+while treatment gains emerge at different rates across domains.
 
 PantryPlan makes the failure temporal. Dr.GRPO raises \texttt{pass@1}
 $.388\to.525$ and \texttt{mean@8} $.344\to.524$, yet collapses \texttt{pass@8}
 $.902\to.556$ and \texttt{distinct@8} $2.426\to.634$, almost all of it inside
 the first three passes, after which its four metrics are numerically identical
 at $.522$ through pass 9. \xdr{} instead \emph{raises} support early and ends at
-$.605$, $.566$, $.869$, and $2.186$, ahead on all four metrics: accuracy
-improves for the baseline while ``right'' is flattened from several feasible
-plans to exactly one.
+$.605$, $.566$, $.869$, and $2.186$, ahead on all four metrics. The baseline
+improves greedy accuracy while its successful sample sets offer fewer distinct
+verified ingredient supports.
 
 \subsection{Terminal causal result: separated support discovery}
 
@@ -773,14 +772,14 @@ distribution matching remain untested, as does whether a selector turns breadth
 into end-task accuracy.
 
 \noindent\textbf{Conclusion.}
-Group-relative binary reward can improve accuracy while flattening ``right'' to
-one answer. \mb{} makes that lost option value measurable across five
-executable domains, categorical analysis explains it, and \xdr{} implements a
-discover--retain--rebalance response. The completed five-seed surface shows the
-same support-opening direction in every domain, and the MathIR ablation
-isolates separated discovery. Exact verification is our microscope: elsewhere
-many answers satisfy the same goal, and preserving one narrows what selection
-recovers.
+Correctness alone does not describe access to alternative valid outcomes.
+\mb{} measures both, and controlled training shows that greedy accuracy can
+improve while sampled breadth contracts. The categorical analysis identifies
+one amplification mechanism and sufficient conditions for retained-support
+balance under explicit assumptions. The neural \xdr{} comparison improves
+sampled breadth across the five tested domains; the MathIR actuator and joint
+replay-gradient ablations provide separate controlled contrasts. These results
+do not establish universal support coverage or downstream selector gains.
 
 \subsubsection*{Ethics Statement}
 
@@ -837,48 +836,83 @@ were known.
 \appendix
 \onecolumn
 
-\section{Why GRPO Collapses and xGRPO Does Not after Coverage}
+\section{Categorical Mode Dynamics and Conditions for Preservation}
 \label{app:theory}
 
-\noindent\emph{Main-body link.} This appendix supplies the formal claims
-invoked in Sections~\ref{sec:method} and~\ref{sec:results}.
+\noindent\emph{Main-body link.} This appendix supplies the measurement
+identities and conditional mechanism results invoked in
+Sections~\ref{sec:collapse},~\ref{sec:method}, and~\ref{sec:results}.
 
-This appendix separates two questions that are easy to conflate: whether a
-binary-reward group update preserves ratios among already correct modes, and
-whether xGRPO preserves every correct mode that exists. The first admits an
-unconditional answer in a finite categorical model. The second necessarily
-requires a coverage assumption: no method whose bank contains only executed,
-validator-positive objects can protect a mode that is never sampled or
-constructed. We therefore prove support preservation first and state full
-no-collapse as a coverage corollary.
+\subsection{Correct mass and finite-sample breadth}
 
-\subsection{Categorical reduction and the GRPO mean update}
+\begin{lemma}[Correctness and breadth at a fixed sampling budget]
+\label{lem:mass-breadth}
+Fix a prompt with correct mass $P>0$ and conditional distribution $q$ over
+$m$ correct keys. Under $K$ independent samples,
+\[
+ \E[S_K]=1-(1-P)^K,\qquad
+ \E[D_K]=\sum_{c=1}^m[1-(1-Pq_c)^K].
+\]
+For $K\ge2$,
+\[
+ 1-(1-P)^K\le\E[D_K]\le m[1-(1-P/m)^K].
+\]
+At fixed $P$, the lower bound is attained by a point mass on one correct key
+and the upper bound by the uniform distribution over the $m$ keys.
+\end{lemma}
 
-Fix one prompt. Let the finite response categories be
-$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, where the $m\ge2$
-categories in $\mathcal C$ are correct execution modes and the $n\ge1$
-categories in $\mathcal N$ are incorrect. Let
-$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
-$q_c=p_c/P$. Thus $q$ is exactly the conditional correct-mode distribution
-$p_\theta^+(\cdot\mid x)$ of Section~\ref{sec:collapse}, and $P$ is the correct
-mass $P_\theta^+(x)$; it is not the detached count predictor $\hat q_x$ of
-Section~\ref{sec:method}, which the policy never differentiates through.
+\begin{proof}
+No sample verifies with probability $(1-P)^K$. A given correct key $c$
+is absent with probability $(1-Pq_c)^K$; summing its presence indicator
+gives the second identity. The lower bound follows from $D_K\ge S_K$
+and is attained when only one correct key has positive probability.
+The function $v\mapsto1-(1-Pv)^K$ is concave on $[0,1]$, so Jensen's
+inequality gives the upper bound, attained at $q_c=1/m$.
+\end{proof}
 
-Draw a group $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
-write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. Both GRPO variants
-can be written, at the on-policy point where the PPO ratio equals one, as
+These identities are per prompt; dataset metrics average over prompts.
+They separate correct mass from its allocation among verified keys without
+assuming any training algorithm. Both affect sampled breadth, whereas
+$\operatorname{pass@}K$ at fixed $P$ is independent of the allocation $q$.
+The statements concern the task's chosen canonical equivalence relation and
+do not imply downstream selector gains or exhaustive discovery.
+
+\subsection{Categorical abstraction and the mean group update}
+
+The following dynamics assume a finite categorical policy with one
+independently optimized logit per canonical correct mode, Euclidean
+infinitesimal on-policy expected updates, and zero reference KL.
+These assumptions isolate a mechanism; they do not derive the dynamics of a
+shared-parameter language model.
+
+Fix one prompt. Let $\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$
+contain $m\ge2$ correct categories and $n\ge1$ incorrect categories.
+Give each category an independent logit $z_a$, and set
+$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$,
+and $q_c=p_c/P$. These represent correct mass and its conditional allocation
+in this abstraction; $q$ is not the detached count predictor $\hat q_x$.
+Aggregating response aliases defines mode probabilities but does not generally
+transform response-level gradient flow into this mode-logit flow.
+Shared parameters and optimizer preconditioning can also change the dynamics.
+
+Draw $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$.
+At the on-policy point where the PPO ratio equals one, consider
 \begin{equation}
   \widehat g_G
   =\frac1G\sum_{i=1}^G
    w(M)\left(R_i-\frac{M}{G}\right)\nabla_z\log p_{A_i}.
   \label{eq:group-estimator}
 \end{equation}
-For Dr.GRPO, $w(M)=1$ after absorbing the shared positive length scale. For
-binary-reward GRPO, $w(M)$ is the reciprocal group reward standard deviation
-on mixed groups. In either case $w(\ell)>0$ for
-$\ell\in\{1,\ldots,G-1\}$; its value on all-equal groups is irrelevant because
-the centered advantage is zero. We take explicit reference KL to be zero, as
-in the experiments.
+For categorical Dr.GRPO, $w(M)=1$ after absorbing its common positive
+length scale. Reward standardization sets $w(M)$ to the reciprocal group
+reward standard deviation on mixed groups. Assume finite
+$w(\ell)>0$ for $1\le\ell\le G-1$, and define the update as zero on
+all-equal groups. This standardized estimator represents GRPO only with
+equal response lengths or common length normalization. Standard variable-length
+GRPO has an additional inverse-response-length factor
+\citep{shao2024deepseekmath,liu2025understanding}; that factor cannot generally
+be absorbed into $w(M)$.
 
 \begin{lemma}[A group baseline does not remove frequency amplification]
 \label{lem:grpo-mean}
@@ -891,9 +925,9 @@ For $0<P<1$, the expected group update is
   \frac{\E\!\big[w(M)M(G-M)\big]}{G^2P(1-P)}>0.
   \label{eq:expected-group-gradient}
 \end{equation}
-For Dr.GRPO, $c_G(P)=(G-1)/G$. Hence reward centering and binary reward
-standardization change the speed, but not the expected direction, of the
-binary-reward policy gradient.
+For $w\equiv1$, $c_G(P)=(G-1)/G$. Thus group centering and binary reward
+standardization change the speed, but not the expected direction, of this
+common-length categorical policy gradient.
 \end{lemma}
 
 \begin{proof}
@@ -919,28 +953,26 @@ For $w\equiv1$,
 $\E[M(G-M)]=G(G-1)P(1-P)$, proving the Dr.GRPO value.
 \end{proof}
 
-\subsection{Winner-take-all collapse under GRPO and Dr.GRPO}
+\subsection{Winner-take-all concentration in the categorical mean flow}
 
-Consider the infinitesimal expected-update flow
-$\dot z=\E[\widehat g_G]=c_G(P)\nabla_zP$. This is the clean mean-field limit
-of fresh on-policy groups and the first-order PPO update. It deliberately
-removes sampling noise; the result below therefore identifies a structural
-instability rather than blaming finite batches.
+Consider the Euclidean infinitesimal flow
+$\dot z=\E[\widehat g_G]=c_G(P)\nabla_zP$.
+It models fresh on-policy groups and first-order updates in independent
+categorical logits. Removing sampling noise isolates an instability already
+present in this mean flow.
 
-\begin{theorem}[Generic binary-reward GRPO mode collapse]
+\begin{theorem}[Generic collapse in the categorical group-update flow]
 \label{thm:grpo-collapse}
-Start from finite logits with $0<P(0)<1$. If the conditional correct-mode
-distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+Under the categorical assumptions above, start from finite logits with
+$0<P(0)<1$. If $q(0)$ has a unique largest coordinate $c^\star$, then
 \[
-  P(t)\longrightarrow1,
-  \qquad
-  q_{c^\star}(t)\longrightarrow1,
-  \qquad
-  q_c(t)\longrightarrow0\quad(c\ne c^\star).
+ P(t)\longrightarrow1,\qquad q_{c^\star}(t)\longrightarrow1,\qquad
+ q_c(t)\longrightarrow0\quad(c\ne c^\star).
 \]
-Thus both GRPO and Dr.GRPO converge to a single correct execution mode for
-generic initial conditions, even though every mode in $\mathcal C$ has exactly
-the same reward.
+Thus categorical Dr.GRPO and its common-length, reward-standardized
+counterpart select a single correct mode for generic initial conditions.
+All category probabilities remain positive at finite time; the conclusion
+is asymptotic concentration.
 \end{theorem}
 
 \begin{proof}
@@ -975,33 +1007,40 @@ On the correct simplex, changing from $t$ to $\tau$ gives the replicator flow
   \frac{d}{d\tau}\log\frac{q_c}{q_d}=q_c-q_d.
   \label{eq:grpo-replicator}
 \end{equation}
-The initially unique maximum remains the unique maximum, and every one of its
-log-ratios increases. The Lyapunov quantity $\sum_cq_c^2$ is nondecreasing,
-since its derivative is twice the variance of the coordinate values under
-$q$. Every limit point of~\eqref{eq:grpo-replicator} is therefore uniform on
-its positive support. Because $q_{c^\star}\ge1/m$ and its ratio to every other
-coordinate stays strictly greater than one, no multi-coordinate uniform limit
-is possible. The only limit point is the vertex $q_{c^\star}=1$.
+The initially unique maximum remains the unique maximum, and each of its
+log-ratios to another coordinate increases. The Lyapunov quantity
+$\sum_cq_c^2$ is nondecreasing: its derivative is twice the variance of the
+coordinate values under $q$, and vanishes exactly at distributions uniform
+on their positive support. By the invariance principle on the compact
+simplex, every limit point lies in this zero-derivative set. Because
+$q_{c^\star}\ge1/m$ and its ratio to each other coordinate remains bounded
+below by its initial value, strictly greater than one, no multi-coordinate
+uniform limit is possible. The only limit point is $q_{c^\star}=1$.
 \end{proof}
 
-\begin{corollary}[Ties are nongeneric]
+\begin{corollary}[Ties are nongeneric within this flow]
 \label{cor:grpo-ties}
-If exactly $k<m$ correct modes tie for the largest initial probability, symmetry
-preserves the tie and the flow converges to the uniform distribution on those
-$k$ modes while eliminating the rest. Only the exactly uniform initialization
-over all $m$ correct modes avoids collapse. Any arbitrarily small perturbation
-that creates a unique maximum reduces to Theorem~\ref{thm:grpo-collapse}.
+If exactly $k<m$ correct modes tie for the largest initial probability,
+symmetry preserves the tie and the flow converges to the uniform distribution
+on those $k$ modes while the other probabilities tend to zero. The exactly
+uniform initialization over all $m$ modes is stationary in $q$.
+Any perturbation creating a unique maximum reduces to
+Theorem~\ref{thm:grpo-collapse}.
 \end{corollary}
 
-Finite groups make this instability operationally harsher: a mode absent from
-a group has no score carrier, all-correct groups have zero task advantage, and
-sampling noise almost surely breaks exact ties. These facts are not needed for
-the theorem.
+Equal binary reward leaves conditional breadth unconstrained; the winner
+selection proved here additionally depends on Euclidean updates in independent
+mode logits. For example, categorical natural-gradient reward flow can be
+represented by $\dot z_a=R_a-P$, giving all correct logits equal velocities
+and preserving their ratios. The theorem supplies a mechanism to examine
+experimentally, not a universal consequence of binary reward or an explanation
+established for hosted models. Finite groups add sampling variability, but
+non-observation of a mode does not establish literal loss of support.
 
-\subsection{Why the xGRPO terms reverse the instability}
+\subsection{Categorical conditions for verified-support preservation}
 
-The open-set actor signal has a direct maximum-entropy interpretation before
-clipping and count approximation.
+The rare-mode actor has an exact entropy interpretation before count
+approximation and clipping.
 
 \begin{lemma}[Centered surprisal is the execution-mode entropy gradient]
 \label{lem:surprisal-entropy}
@@ -1013,8 +1052,8 @@ $\mathcal H(q)=-\sum_cq_c\log q_c$. Then
   \nabla_z\log q_C\right]
   =\nabla_z\mathcal H(q).
 \]
-Thus, when the detached predictor equals the current correct-mode distribution,
-the centered rare-mode advantage is an unbiased entropy-gradient estimator.
+Thus, when the detached predictor equals the current correct-mode
+distribution, centered surprisal is an unbiased entropy-gradient estimator.
 \end{lemma}
 
 \begin{proof}
@@ -1024,108 +1063,134 @@ The baseline vanishes by the score identity. For the remaining term,
   =-\sum_c(\log q_c)\nabla_zq_c
   =\nabla_z\mathcal H(q),
 \]
-because $\sum_c\nabla_zq_c=0$ supplies the missing constant in the derivative
-of $-q_c\log q_c$.
+because $\sum_c\nabla_zq_c=0$ supplies the missing constant in the
+derivative of $-q_c\log q_c$.
 \end{proof}
 
-The implemented pseudocount, unseen bucket, and surprisal clip make this a
-robust surrogate rather than an exact identity. The one-time new-mode term
-adds total credit $\nu$ independent of the number of duplicates once a new key
-appears. Neither signal can assign gradient to a never-observed zero-carrier
-mode; that is why verified replay and the coverage condition below matter.
-The next result needs only the balance term; it does not count any additional
-restoring pressure from rare-mode or verified-mass replay. We index time by mean
-updates acting on this prompt, absorbing fixed round-robin frequency and replay
-scaling into the effective coefficient $a(t)$; the categorical abstraction
-excludes cross-prompt parameter interference.
+The historical predictor, pseudocount, unseen bucket, and surprisal clip
+make the implemented actor a surrogate for this identity. First-discovery
+credit assigns total raw advantage $\nu$ to a newly observed key regardless
+of multiplicity. Neither construction guarantees discovery of every valid
+mode. The result below analyzes categorical task-plus-replay dynamics;
+it does not assume that the approximate actor is an exact entropy gradient.
 
-Let a verified bank contain $m\ge2$ modes, let $u_c=1/m$, and let $q$ be the
-model distribution normalized over those bank modes. In the categorical
-projection, descending the implemented balance loss
-$L(q)=\mathrm{KL}(u\|q)$ contributes $a(t)(u-q)$ to the mode logits. Binary
-GRPO contributes the amplifying term $b(t)q$, where
-$b(t)=c_G(P)P(1-P)$ in the mean flow. Terms shared by every correct-mode logit
-are denoted $d(t)\mathbf1$ and do not change $q$.
-
-\begin{theorem}[Verified balance makes the uniform bank the unique attractor]
-\label{thm:xdr-balance}
-Suppose that after some time $T$ the bank is fixed and scheduled infinitely
-often, and its mean conditional logit dynamics are
-\begin{equation}
-  \dot z=b(t)q+a(t)(u-q)+d(t)\mathbf1.
-  \label{eq:xdr-mode-flow}
-\end{equation}
-If $a(t)>b(t)$ eventually and
-$\int_T^\infty(a(t)-b(t))\,dt=\infty$, then
+Fix a verified bank $\mathcal B\subseteq\mathcal C$ with $m\ge2$ modes.
+Write $P_{\mathcal C}=\sum_{c\in\mathcal C}p_c$ for total correct mass,
+$P_{\mathcal B}=\sum_{c\in\mathcal B}p_c$ for bank mass, and
+$q_c=p_c/P_{\mathcal B}$ for the conditional distribution on the bank;
+let $u_c=1/m$. In the direct categorical model,
 \[
-  \mathrm{KL}(u\|q(t))\longrightarrow0,
-  \qquad q(t)\longrightarrow u.
+ L_{\mathrm{mass}}=-\frac1m\sum_{c\in\mathcal B}\log p_c,\qquad
+ L_{\mathrm{balance}}=\mathrm{KL}(u\|q),
 \]
-Consequently every bank mode retains asymptotic probability $1/m$ and
-conditional mode collapse is impossible on that bank.
+with the exact decomposition
+\[
+ L_{\mathrm{mass}}=-\log P_{\mathcal B}+\log m+\mathrm{KL}(u\|q).
+\]
+Uniform likelihood therefore already supplies balancing pressure in this
+model; a separate balance term adds pressure but is not analytically necessary.
+
+With nonnegative effective coefficients $\mu(t)$ and $a(t)$, descending these
+losses contributes $\mu(t)(u-P_{\mathcal B}q)$ and $a(t)(u-q)$ to bank logits.
+The task update contributes $b(t)q$, with
+$b(t)=c_G(P_{\mathcal C})P_{\mathcal B}(1-P_{\mathcal C})$.
+Replay frequency and fixed loss scaling are absorbed into the coefficients.
+The abstraction excludes cross-prompt parameter interference.
+
+\begin{theorem}[Conditional balance on a fixed verified bank]
+\label{thm:xdr-balance}
+Suppose the bank is fixed after time $T$, initial logits are finite, and
+the well-defined categorical mean flow on its logits is
+\begin{equation}
+ \dot z=b(t)q+\mu(t)(u-P_{\mathcal B}q)
+             +a(t)(u-q)+d(t)\mathbf1.
+ \label{eq:xdr-mode-flow}
+\end{equation}
+The common-logit term does not change $q$. If
+$\lambda(t)=a(t)+\mu(t)P_{\mathcal B}(t)-b(t)$ is eventually positive and
+$\int_T^\infty\lambda(t)\,dt=\infty$, then
+\[
+ \mathrm{KL}(u\|q(t))\longrightarrow0,\qquad q(t)\longrightarrow u.
+\]
+This guarantees conditional balance on the bank, without by itself asserting
+that its total mass $P_{\mathcal B}$ stays bounded away from zero.
 \end{theorem}
 
 \begin{proof}
-Let $\lambda(t)=a(t)-b(t)$. Since $u=(1/m)\mathbf1$,
-Equation~\eqref{eq:xdr-mode-flow} is, up to a common-logit shift,
-\[
-  \dot z=-\lambda(t)(q-u)+\widetilde d(t)\mathbf1.
-\]
+Since $u=(1/m)\mathbf1$, Equation~\eqref{eq:xdr-mode-flow} becomes
+$\dot z=-\lambda(t)(q-u)+\widetilde d(t)\mathbf1$.
 For $L(z)=\mathrm{KL}(u\|\operatorname{softmax}(z))$,
-$\nabla_zL=q-u$ and $(q-u)^\top\mathbf1=0$. Hence
+$\nabla_zL=q-u$ and $(q-u)^\top\mathbf1=0$. Once $\lambda>0$,
 \begin{equation}
-  \dot L=-\lambda(t)\lVert q-u\rVert_2^2\le0.
-  \label{eq:kl-decay}
+ \dot L=-\lambda(t)\lVert q-u\rVert_2^2.
+ \label{eq:kl-decay}
 \end{equation}
-Use replay time $s=\int_T^t\lambda(r)dr$, which diverges by assumption.
-Equation~\eqref{eq:kl-decay} is ordinary gradient flow for $L$ modulo the
-irrelevant common-logit direction. Its sublevel sets are compact in the open
-simplex because $\mathrm{KL}(u\|q)\to\infty$ at the boundary, and its only
-stationary distribution is $q=u$. Therefore $q(t)\to u$ and $L(t)\to0$.
+Choose $T_0\ge T$ after eventual positivity and use time
+$s=\int_{T_0}^t\lambda(r)\,dr$, which diverges.
+Modulo the common-logit direction, the dynamics are gradient flow for $L$.
+Its sublevel sets are compact because $\mathrm{KL}(u\|q)\to\infty$
+at the simplex boundary, and its unique stationary distribution is $q=u$.
+Thus $q(t)\to u$ and $L(t)\to0$.
 \end{proof}
 
-\begin{corollary}[xGRPO no-collapse guarantee after verified coverage]
+\begin{corollary}[Categorical no-collapse after verified coverage]
 \label{cor:xdr-no-collapse}
-Assume the categorical mean-flow model above and:
+Assume the task-plus-replay model of Theorem~\ref{thm:xdr-balance} and:
 \begin{enumerate}
-  \item every correct execution mode enters and remains in the verified bank by
-  a finite time---so the protected support fits within replay capacity;
-  \item deterministic global replay visits that bank infinitely often;
-  \item the balance controller is active with reference entropy
-  $h_{\mathrm{ref}}>0$ and tracks bank entropy through
-  $a(t)=a_0h_{\mathrm{ref}}/h_{\mathrm{ema}}(t)$; and
-  \item correct mass approaches one, so the GRPO amplification
-  $b(t)=c_G(P)P(1-P)$ approaches zero.
+ \item every correct mode enters and remains in the bank by a finite time,
+ so the full support fits within replay capacity;
+ \item the fixed bank receives replay at a fixed positive frequency;
+ \item after warmup the balance controller uses normalized bank entropy,
+ with $a(t)=a_0h_{\mathrm{ref}}/h_{\mathrm{ema}}(t)$,
+ $a_0>0$, $h_{\mathrm{ref}}>0$, and $0<h_{\mathrm{ema}}(t)\le1$,
+ absorbing replay frequency into $a_0$; and
+ \item correct mass $P_{\mathcal C}(t)$ approaches one.
 \end{enumerate}
-Then $q(t)\to u$ on the full correct support. In particular,
+Then $q(t)\to u$ on the full correct support, so
 \[
-  \min_{c\in\mathcal C}q_c(t)\longrightarrow\frac1m,
-  \qquad
-  \mathcal H(q(t))\longrightarrow\log m,
+ \min_{c\in\mathcal C}q_c(t)\longrightarrow\frac1m,\qquad
+ \mathcal H(q(t))\longrightarrow\log m.
 \]
-so mode collapse cannot emerge asymptotically.
+Since $P_{\mathcal C}\to1$, each correct mode's unconditional probability
+also approaches $1/m$.
 \end{corollary}
 
 \begin{proof}
-Because $0<h_{\mathrm{ema}}(t)\le\log m$ on eligible replay observations,
-$a(t)\ge a_0h_{\mathrm{ref}}/\log m=:a_{\min}>0$. Since $b(t)\to0$,
-eventually $a(t)-b(t)\ge a_{\min}/2$, whose integral over infinitely many
-replay visits diverges. Theorem~\ref{thm:xdr-balance} applies. Moreover, if
-entropy attempted to approach zero before that regime,
-$h_{\mathrm{ema}}\to0$ would make $a(t)\to\infty$ while $b(t)$ remains
-bounded, so the boundary cannot be an attracting limit.
+The normalized sensor gives
+$a(t)\ge a_0h_{\mathrm{ref}}=:a_{\min}>0$.
+The finite-group factor $c_G$ is bounded, so coverage and
+$P_{\mathcal C}\to1$ imply
+$b(t)=c_G(P_{\mathcal C})P_{\mathcal C}(1-P_{\mathcal C})\to0$.
+Since $\mu\ge0$, eventually $\lambda(t)\ge a_{\min}/2$.
+Its integral diverges, and Theorem~\ref{thm:xdr-balance} applies.
 \end{proof}
 
-\begin{remark}[Exact scope of the guarantee]
-If the verified bank covers only $\mathcal B\subsetneq\mathcal C$---including
-when the true support exceeds the implementation's capacity 16---the theorem
-guarantees non-collapse and asymptotic balance on $\mathcal B$, not discovery
-of $\mathcal C\setminus\mathcal B$. The open-set unseen bucket, first-discovery
-credit, and separated-support actuator are mechanisms for satisfying coverage;
-they are not a catalogue oracle. Likewise, the proof concerns realizable
-categorical mean dynamics with recurrent replay. It does not claim global
-convergence for an arbitrary nonconvex language model. This distinction is
-what makes the guarantee falsifiable rather than rhetorical.
+\begin{remark}[Scope and relation to the implementation]
+The algorithm balances
+$\widetilde q_c\propto
+\exp\{|e_c|^{-1}\log\pi_\theta(e_c\mid x)\}$
+for one exemplar $e_c$ per key, rather than summing probability over every
+response with that key. Length normalization and unrepresented aliases can
+make $\widetilde q$ differ from execution-mode probability $q$.
+The categorical result gives sufficient conditions for the intended mechanism;
+it does not prove convergence of the implemented neural objective.
+
+Additional actor terms require an additional argument. If their categorical
+contribution is $r(t)$, then
+$\dot L=-\lambda\|q-u\|_2^2+(q-u)^\top r$.
+For example, convergence still follows if eventually
+$(q-u)^\top r\le\kappa\lambda\|q-u\|_2^2$ for a fixed $\kappa<1$:
+$L$ is decreasing, and any positive limiting value would bound $\|q-u\|$
+away from zero on its compact sublevel set, contradicting
+$\int\lambda\,dt=\infty$.
+We do not establish this residual bound for the historical, clipped rarity
+surrogate.
+
+When $|\mathcal C|>16$, full coverage cannot fit in the implemented bank.
+The theorem then concerns balance conditional on the retained subset,
+not discovery or preservation of every correct mode. Open-set credit and the
+separated-support actuator are discovery mechanisms, not guarantees that
+coverage is attained.
 \end{remark}
 
 \section{External Python Verification Contract}
@@ -1550,24 +1615,25 @@ corresponding to 12 passes.}
 \label{tab:actuator}
 \end{table}
 
-\section{Component Necessity Ablations}
+\section{Component Rationale and Ablation Evidence}
 \label{app:ablations}
 \label{app:history}
 
 \noindent\emph{Main-body link.} This appendix explains why each component of
 Figure~\ref{fig:xdr-mechanism} appears in Section~\ref{sec:method}, and how
 the terminal ablation in Section~\ref{sec:results} fits the development record.
-A ``remove-one'' claim below means exactly what its evidence column permits: a
-mathematical necessity, a prospectively frozen developmental repair, an
-engineering isolation check, or a terminal causal comparison.
+The evidence column distinguishes analytic properties under stated assumptions,
+prospectively frozen developmental revisions, engineering isolation checks,
+and controlled performance comparisons. These types do not establish
+that every component is necessary.
 
 \begin{table}[!htb]
   \centering
   \small
   \begin{tabularx}{\linewidth}{@{}P{.23\linewidth}YP{.31\linewidth}@{}}
     \toprule
-    \textbf{Fix removed} & \textbf{What breaks without it} &
-    \textbf{Remove-one evidence and allowed conclusion} \\
+    \textbf{Component} & \textbf{Mechanism and scope} &
+    \textbf{Evidence and allowed conclusion} \\
     \midrule
     Executable gate and canonical key &
     Strings overcount formatting aliases, final answers erase distinct
@@ -1578,9 +1644,9 @@ engineering isolation check, or a terminal causal comparison.
     Predictive-bank centering &
     Empirical group-centered surprise is identically zero when every successful
     row has the same key, exactly where a diversity carrier is needed. &
-    Lemma~\ref{lem:surprisal-entropy} plus the zero-dispersion identity;
-    analytic necessity. The one-time discovery term is not independently
-    performance-isolated. \\
+    Lemma~\ref{lem:surprisal-entropy} and the zero-dispersion identity motivate
+    this choice, not its necessity for every diversity-preserving objective.
+    The one-time discovery term is not independently isolated. \\
     Verified-first cold start &
     A pre-verification token-entropy objective can increase uncertainty, length,
     or malformed outputs before any semantic object exists. &
@@ -1590,8 +1656,9 @@ engineering isolation check, or a terminal causal comparison.
     Verified-mass replay &
     Balance over retained keys is invariant to a common score shift and cannot
     by itself restore total probability on verified responses. &
-    The score-gradient identity and the frozen replay-scaling repair sequence;
-    analytic plus prospective developmental evidence. \\
+    The score-gradient identity motivates this term. B3a removes the mass and
+    balance gradients jointly (Appendix~\ref{app:replay-ablation});
+    their separate performance contributions remain unisolated. \\
     Global replay scheduling &
     Prompt-local replay can leave a late verified discovery idle for nearly a
     full data pass. &
@@ -1599,10 +1666,10 @@ engineering isolation check, or a terminal causal comparison.
     protocol; prospective developmental evidence for the retained global
     scheduler, not a pooled historical effect. \\
     Known-key balance replay &
-    Uniform mass likelihood raises retained scores together but does not undo a
-    monopoly among already covered correct modes. &
-    Theorem~\ref{thm:xdr-balance}; analytic necessity conditional on coverage,
-    not an isolated neural ablation. \\
+    Adds explicit uniformizing pressure over retained exemplar scores;
+    uniform likelihood can itself balance modes in the categorical model. &
+    Theorem~\ref{thm:xdr-balance} supplies a sufficient condition under its
+    dynamical assumptions, not necessity of the separate balance term. \\
     Projection-free self-reference &
     Fixed or clipped pressure makes the bound, rather than the run's own sensor,
     determine behavior and can silently saturate during collapse. &
@@ -1614,20 +1681,20 @@ engineering isolation check, or a terminal causal comparison.
     carrier to rebalance. &
     Actuator off versus separated-support on: completed same-plumbing MathIR
     ablation, $+0.1367$ \texttt{distinct@8} and $+0.0267$ \texttt{pass@8}
-    (Table~\ref{tab:actuator}). This is the sole terminal causal performance
-    removal. \\
+    (Table~\ref{tab:actuator}). This is a domain-specific controlled
+    performance contrast. \\
     Separation of proposal support from on-policy counts &
     A proposal inserted into the count state changes the next on-policy novelty
     advantage, so the intervention is no longer support-only. &
     An earlier revision failed closed before optimization; the retained design
-    splits $\mathcal R_x$ from $\mathcal T_x$. This proves isolation necessity,
+    splits $\mathcal R_x$ from $\mathcal T_x$. This establishes state isolation,
     not performance gain. \\
     \bottomrule
   \end{tabularx}
-  \caption{\textbf{Component-necessity ablations.} The evidence type is part
-  of the result. Only the separated-support actuator row is a completed causal
-  performance contrast; developmental rows explain why a fix exists
-  without pretending that the sequence is a randomized factorial study.}
+  \caption{\textbf{Component rationale and ablation evidence.}
+  The separated-support actuator and joint replay-gradient removal provide
+  completed controlled performance contrasts. Developmental rows explain
+  design choices without treating the sequence as a randomized factorial study.}
   \label{tab:component-ablations}
 \end{table}
 
@@ -1639,19 +1706,14 @@ Table~\ref{tab:main-results}.
 \section{Removing Each Component in Turn}
 \label{app:replay-ablation}
 
-\noindent\emph{Main-body link.} This appendix supplies the empirical
-remove-one controls for the two halves of \xdr{}'s mechanism that
-Table~\ref{tab:component-ablations} lists, and answers the count-based-bonus
-baseline raised in Section~\ref{sec:limitations}.
+\noindent\emph{Main-body link.} This appendix supplies controlled and exploratory
+component comparisons for Section~\ref{sec:method}, Table~\ref{tab:component-ablations},
+and the baseline limitations in Section~\ref{sec:limitations}.
 
-Two of this paper's claims meet in one cohort. The first is a component claim:
-Section~\ref{sec:replay} argues that verified replay converts a transient
-discovery into a persistent constraint, and Table~\ref{tab:component-ablations}
-supports that with an analytic argument rather than a measured removal. The
-second is a comparison claim: a count-based rare-outcome bonus with no memory
-beyond the collection batch is among the simplest alternatives to \xdr{}, and
-until now it was untested. A single arm answers both, because removing replay
-from \xdr{} \emph{is} that baseline.
+This cohort tests the contribution of the joint verified-replay gradient
+within \xdr{}. Removing that gradient supplies a baseline with the same
+historical count-based rare-mode and discovery credit, but without gradient
+updates on retained exemplars. Historical counts and banks remain available.
 
 \noindent\textbf{The arm.} B3a is the frozen \xdr{} objective with one change:
 the replay score derivative is replaced by exact zeros before it reaches the
@@ -1660,18 +1722,14 @@ deterministic global round robin, teacher-forced, and traversed backward, so
 generation, scoring, and optimizer work are identical to the treatment and no
 compute-matching argument is required. The open-set rare-mode advantage, the
 one-time discovery credit, and their self-referenced controllers act exactly as
-in \xdr{}. What the arm loses is not the ability to \emph{notice} a rare
-verified outcome, only the ability to \emph{act} on one after its collection
-batch.
+in \xdr{}. The arm retains on-policy credit for rare and newly observed
+verified outcomes, but receives no replay gradient from banked exemplars.
 
 \noindent\textbf{No tuning.} Every coefficient is inherited from the paired
-\xdr{} run's own recorded arguments, and the launcher refuses to submit when any
-of them disagrees with the frozen doses. We deliberately did not sweep the
-semantic coefficient or novelty credit here: tuning would replace the question
-``does this component matter'' with ``can this baseline be made to work,'' and
-the second question is only worth asking if the first answers yes. A reader who
-prefers the tuned reading should treat this arm as a lower bound on what a
-dose-optimized count-based baseline could achieve.
+\xdr{} run's recorded arguments, and the launcher refuses to submit when
+these disagree with the frozen doses. This comparison tests component removal
+from the reported method; it does not measure the best performance attainable
+by a separately tuned count-based baseline.
 
 \noindent\textbf{Design.} Five domains $\times$ seeds 43--47, trained from the
 same initialization on the same data, schedule, and evaluation contract as every
@@ -1712,11 +1770,10 @@ either is discarded rather than reinterpreted.
   \bottomrule
   \end{tabular}
   \caption{\textbf{The replay gradient, removed.} Five-seed means at the common
-  terminal pass 12. B3a keeps every discovery signal in \xdr{} and loses only
-  the ability to act on a banked discovery after its collection batch. The two
-  difference columns are the two readings of the same cohort: against \xdr{} it
-  isolates replay, against matched Dr.GRPO it measures what count-based
-  discovery credit alone buys. Per-seed rows are in
+  terminal pass 12. B3a retains the treatment's historical counts and discovery
+  signals while removing the mass and balance replay gradients jointly.
+  The two difference columns compare this removal with \xdr{} and matched
+  Dr.GRPO. Per-seed rows are in
   \protect\path{var/artifacts/e72_b3a_summary.json}.}
   \label{tab:replay-ablation}
 \end{table}
@@ -1738,32 +1795,30 @@ either is discarded rather than reinterpreted.
 % Write the direction per domain. Do not pool across domains.
 % ---------------------------------------------------------------------------
 
-\noindent\textbf{Result.} Removing the replay gradient removes nearly all of
-the retained support. On Graph coloring \xdr{}'s $2.406$ verified modes per
+\noindent\textbf{Result.} Removing the replay gradient removes most of
+the improvement in sampled breadth over matched Dr.GRPO. On Graph coloring \xdr{}'s $2.406$ verified modes per
 eight-sample draw fall to $.429$ without it, on PantryPlan $2.186$ falls to
 $.564$, on Countdown $1.893$ to $.630$, on Python factors $1.594$ to $.156$,
-and on MathIR $.926$ to $.550$. In every domain B3a lands beside the matched
-Dr.GRPO control rather than the treatment it was derived from, and the paired
-rows leave no room for a different reading: \textbf{B3a is below \xdr{} in all
-twenty-five paired seed cells}.
+and on MathIR $.926$ to $.550$. In every domain B3a is closer to matched
+Dr.GRPO than to \xdr{} in mean \texttt{distinct@8}, and \textbf{B3a is below
+\xdr{} in all twenty-five paired seed cells}.
 
-Against the control the arm is not merely smaller but directionless. It gains
+Its mean difference from the control varies in sign across domains. It gains
 $+.104$ on Graph coloring and $+.003$ on Countdown, and \emph{loses} $.016$ on
 Python factors, $.070$ on PantryPlan, and $.116$ on MathIR---a band of roughly
 $\pm.1$ around a control that is itself collapsed. PantryPlan illustrates why per-seed rows are
 reported: B3a exceeds the control on four of its five seeds, yet its mean falls
 below because seed 43 is an outlier in both arms ($.289$ against the control's
 $1.090$, where that control seed is itself the only PantryPlan baseline run
-above $.6$). Count-based discovery credit therefore buys, at most, a little
-breadth on its own, and none of what \xdr{} retains.
+above $.6$). At these fixed doses, count-based credit without replay gradients
+does not reproduce the treatment's \texttt{distinct@8} gains.
 
-This is the registered R3 reading in all five domains: an open-set
-rare-mode advantage that can notice a rare verified outcome, but cannot act on
-one after its collection batch, does not preserve support. It is consistent
-with Theorem~\ref{thm:xdr-balance}, whose restoring force acts through a bank
-that is scheduled and differentiated; B3a keeps the bank, its schedule, and its
-teacher-forced scoring, removes only the gradient, and the effect goes with the
-gradient.
+This matches the protocol's R3 description of endpoints near the control.
+The comparison supports a contribution from the joint replay gradient within
+\xdr{}. Because \texttt{distinct@8} depends on both correctness and the
+distribution of correct modes, this table alone does not isolate conditional
+mode retention or separate the mass and balance losses. The categorical
+analysis supplies a possible mechanism under its stated assumptions.
 
 % ---------------------------------------------------------------------------
 % RESULT SLOT 2 — what it licenses, and what it does not.
@@ -1778,36 +1833,29 @@ gradient.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{figures/e72_b3a_curves.pdf}
-  \caption{\textbf{Discovery without retention.} Five-seed means with seed
-  ranges, on the common evaluation grid. B3a does not simply track lower than
-  \xdr{}: in Graph coloring, PantryPlan, and Countdown its breadth \emph{rises
-  over the first passes and then collapses}, ending at the matched Dr.GRPO
-  control. The rare-mode and first-discovery advantages are finding verified
-  modes; without a replay gradient nothing holds them, and they are lost again
-  within a pass or two of being found.}
+  \caption{\textbf{Sampled breadth after removing replay gradients.}
+  Five-seed means with seed ranges on the common evaluation grid.
+  In Graph coloring, PantryPlan, and Countdown, B3a's breadth rises early
+  and subsequently falls toward the matched Dr.GRPO endpoint. Early sampled
+  breadth need not persist under count-based credit without replay gradients.}
   \label{fig:replay-ablation-curves}
 \end{figure}
 
-\noindent\textbf{Trajectory.} Figure~\ref{fig:replay-ablation-curves} separates
-two readings the endpoint table cannot. If removing replay merely slowed the
-mechanism, B3a would trail \xdr{} and still climb. It does not: on Graph
-coloring B3a peaks near $.95$ by pass two and falls to $.4$ by pass four, and on
-PantryPlan it holds the base model's breadth for two passes before dropping to
-the control. Discovery credit is doing its job---modes are found---and the loss
-is one of retention.
+\noindent\textbf{Trajectory.} Figure~\ref{fig:replay-ablation-curves}
+shows an early increase in B3a's sampled breadth followed by a decline.
+On Graph coloring it peaks near $.95$ by pass two and falls to $.4$ by pass
+four; on PantryPlan it holds the base model's breadth for two passes before
+dropping toward the control. This is consistent with replay sustaining sampled
+breadth, but does not assign the earlier discoveries to discovery credit or
+separate correctness from conditional breadth.
 
-\noindent\textbf{Scope.} In the domains reported above this converts the
-verified-replay row of Table~\ref{tab:component-ablations} from an analytic
-argument into a measured, compute-matched removal, and it is the second
-terminal causal contrast in this paper alongside the separated-support
-actuator. It also answers one of the baseline families named in
-Section~\ref{sec:limitations}---count-based outcome credit without
-memory---under conditions favourable to that baseline, since B3a inherits the
-treatment's own doses and its entire discovery mechanism rather than a
-reconstruction of them. What it does not do is close the baseline question:
-matched token entropy, ordinary verified-response replay, \texttt{pass@}$K$
-objectives, and distribution matching remain untested, and this arm speaks only
-to decoding-invariant training behaviour, not to any of those.
+\noindent\textbf{Scope.} B3a supplies a measured, compute-matched removal
+of the joint replay gradient across all five domains, alongside the
+domain-specific separated-support actuator contrast. It also evaluates
+historical count-based outcome credit without exemplar replay gradients
+at the treatment's fixed doses. Matched token entropy, ordinary
+verified-response replay, \texttt{pass@}$K$ objectives, separately tuned
+count-based credit, and distribution matching remain untested.
 
 \subsection{Removing discovery credit instead}
 \label{app:discovery-ablation}
@@ -1848,25 +1896,23 @@ below.
   PantryPlan         &   .634 & 2.356 & 2.186 &  $+$.170 & 3/5 \\
   \bottomrule
   \end{tabular}
-  \caption{\textbf{Discovery credit removed, replay retained} (exploratory;
-  five seeds, terminal pass 12). Against the $\delta=.15$ equivalence margin
-  registered for the confirmation, B1a is indistinguishable from the treatment
-  on Graph coloring, Countdown, and MathIR, slightly above it on PantryPlan,
-  and clearly below it on Python factors.}
+  \caption{\textbf{Discovery credit removed, replay retained}
+  (exploratory; five seeds, terminal pass 12). The observed mean differences
+  lie within $\pm.15$ on Graph coloring, Countdown, and MathIR, are positive
+  on PantryPlan, and are negative on Python factors. Mean proximity alone
+  does not establish equivalence.}
   \label{tab:discovery-ablation}
 \end{table}
 
-\noindent\textbf{Reading.} The two arms are not symmetric. Removing replay costs
-nearly all the retained support in every domain; removing discovery credit costs
-nothing measurable in three domains, gains slightly in a fourth, and costs
-$.900$---more than half the treatment's breadth---in Python factors. Python is
-the domain with by far the largest mode space, $229$ valid programs per prompt
-against $4$--$18$ elsewhere (Table~\ref{tab:tasks}), and the one where the
-matched control never leaves a single deterministic program. Where a policy must
-\emph{find} alternatives before anything can retain them, discovery credit is
-load-bearing; where the policy already samples several verified modes, replay
-alone preserves them. That reading is a hypothesis this sample generated, not a
-result it establishes, which is what the confirmation cohort exists to test.
+\noindent\textbf{Reading.} In this exploratory sample, removing discovery
+credit has smaller absolute mean effects than removing the joint replay
+gradient on four domains; on Python factors it reduces \texttt{distinct@8}
+by $.900$. Python has the largest catalogue, with $229$ valid modes per
+prompt on average, but catalogue size alone does not establish why discovery
+credit helps. These observations motivate the hypothesis that its value depends
+on the policy's initial access to verified alternatives. They do not establish
+equivalence elsewhere or necessity in Python; the registered confirmation is
+intended to test the pattern.
 
 \section{Decoding Control: Does a Wider Sampler Repair the Collapse?}
 \label{app:decoding}
@@ -1875,11 +1921,10 @@ result it establishes, which is what the confirmation cohort exists to test.
 Section~\ref{sec:results} and narrows the baseline limitation in
 Section~\ref{sec:limitations}.
 
-Every headline cell samples at temperature one. A reader may reasonably ask
-whether matched Dr.GRPO's missing modes are merely improbable rather than
-absent: if a modestly hotter sampler recovered them, the finding would concern
-sharpening at a fixed decoding setting, not loss of support. That is a different
-scientific claim, so we test it directly.
+Every headline cell samples at temperature one. A hotter sampler might
+recover additional verified modes whose probabilities are small at that
+setting. We therefore test whether varying temperature recovers the
+treatment's sampled breadth at the same evaluation budget.
 
 \noindent\textbf{Protocol.} We re-measure all $50$ frozen terminal checkpoints
 (five domains $\times$ two arms $\times$ seeds 43--47) at six sampling
@@ -1909,8 +1954,8 @@ below pins placement where the headline design does not.
 \]
 The numerator maximizes over the whole sweep \emph{with no accuracy
 constraint}, so the baseline may spend arbitrary correctness to buy breadth.
-A value below one means that no decoding setting recovers the treatment's
-temperature-one breadth.
+A value below one means that none of the six tested temperatures reaches
+the treatment's temperature-one \texttt{distinct@8} at this evaluation budget.
 
 \begin{table}[H]
   \centering
@@ -1931,7 +1976,7 @@ temperature-one breadth.
     PantryPlan & .719 & 2.0 & .522 & 2.186 & .33 \\
     \bottomrule
   \end{tabular}
-  \caption{\textbf{Temperature does not repair the baseline.} Each row reports
+  \caption{\textbf{Temperature does not close the observed breadth gap.} Each row reports
   the largest \texttt{distinct@8} matched Dr.GRPO reaches at \emph{any} of the
   six temperatures, the temperature that achieves it, and the accuracy it costs,
   against \xdr{} at the reported temperature-one operating point. Every entry is
@@ -1956,26 +2001,27 @@ temperature-one breadth.
 nearly invariant to temperature. Graph coloring moves $.323\to.327$ across the
 entire range, and Python factors is constant at $.172$ through $T=1.3$, while
 accuracy degrades sharply---Python \texttt{mean@8} falls $.172\to.029$ at
-$T=2$. Heating the sampler produces invalid text, not a second verified
-execution. PantryPlan is the one domain where temperature does buy the baseline
+$T=2$. On Python, increasing temperature primarily increases invalidity rather
+than sampled verified breadth. PantryPlan is the one domain where temperature does buy the baseline
 breadth at no accuracy cost ($.597\to.719$ as $T$ rises to $2$ with
 \texttt{mean@8} steady near $.52$), which its eight-token support-mask interface
-makes possible because it has no malformed-output failure mode; even there the
-gain closes about a third of the gap. Across all five domains
+makes possible because its canonical sampler emits a well-formed support mask;
+even there, the best baseline reaches only about one-third of the treatment's
+temperature-one breadth. Across all five domains
 $\rho\le.73$, and in four of five \xdr{}'s breadth at \emph{every} temperature
 exceeds the baseline's breadth at its \emph{own best} temperature; on Python
-that holds at every $T<2$, where both arms stop returning valid output.
+that holds at every $T<2$, while high-temperature invalidity limits breadth at $T=2$.
 
-The same sweep shows the reported operating point is not tuned in the
-treatment's favor: \xdr{}'s breadth peaks at $T=1.0$--$1.3$ in four domains, so
-temperature one is at or near its own optimum. PantryPlan is again the
-exception, with \xdr{} continuing to $2.896$ at $T=2$; reporting temperature one
-understates the treatment there.
+Within this sweep, \xdr{}'s breadth peaks at $T=1.0$--$1.3$ in four
+domains. PantryPlan continues to $2.896$ at $T=2$, above its reported
+temperature-one value. The complete frontier shows how both arms respond
+to the common decoding choices.
 
-We therefore read the failure as loss of support rather than sharpening: the
-absent modes are not waiting at low probability for a hotter sampler. This
-control covers decoding of the trained policies only. It says nothing about the
-alternative training objectives listed in Section~\ref{sec:limitations}.
+These measurements show that the breadth gap persists across the tested
+temperatures at the fixed sampling budget. They do not establish that
+unobserved modes have zero probability, or rule out recovery with larger
+budgets or other decoding methods. The control concerns frozen trained
+policies and does not compare alternative training objectives.
 
 \section{Clean Cohort Progress and Causal Provenance}
 \label{app:telemetry}
@@ -2013,12 +2059,10 @@ in Section~\ref{sec:experiments}.
 \section{Cross-Family Replication on a Second Base Model}
 \label{app:cross-family}
 
-\noindent\emph{Main-body link.} This appendix records the registered design and
-the current state of the second-base-model replication referenced in
-Section~\ref{sec:experiments} and Section~\ref{sec:limitations}. \emph{Two of
-its five domains have reached the terminal endpoint and are reported below; the
-other three have not, and no headline claim in this paper rests on any of
-them.}
+\noindent\emph{Main-body link.} This appendix records the second-base-model
+replication design referenced in Section~\ref{sec:experiments}. Its quantitative
+outcome summary requires reconciliation with the metric definitions before a
+replication claim can be made; no headline conclusion relies on that summary.
 
 \noindent\textbf{Why.} Every headline cell is produced by one base model. A
 reader may reasonably ask whether the collapse of matched Dr.GRPO's metric band,
@@ -2081,56 +2125,15 @@ response budgets differ from the manuscript's, the replication's Python factors
 and MathIR rows are not comparable to a run of the same model at the original
 budgets, and the reported cohort uses the raised-budget runs throughout.
 
-\begin{table}[H]
-  \centering
-  \small
-  \setlength{\tabcolsep}{5pt}
-  \begin{tabular}{@{}lcrrrcrrr@{}}
-    \toprule
-    & & \multicolumn{3}{c}{\textbf{matched Dr.GRPO}} & &
-    \multicolumn{3}{c}{\textbf{\xdr{}}} \\
-    \cmidrule(lr){3-5}\cmidrule(lr){7-9}
-    \textbf{Domain} & \textbf{epoch} &
-    \texttt{p@1} & \texttt{pass@8} & \textbf{\#modes} & &
-    \texttt{p@1} & \texttt{pass@8} & \textbf{\#modes} \\
-    \midrule
-    Graph coloring & 12 & .277 & .546 & .126 & &
-      \textbf{.377} & \textbf{.822} & \textbf{.284} \\
-    Countdown & 12 & .314 & .368 & .098 & &
-      \textbf{.417} & \textbf{.668} & \textbf{.213} \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Cross-family replication, the two completed domains.}
-  Falcon3-1B-Instruct, five-seed (43--47) means of both arms at the terminal
-  epoch 12, on the same reporting rule as Table~\ref{tab:main-results}: the
-  deepest checkpoint reached by all five seeds of both arms. \xdr{} leads on
-  \texttt{distinct@8} and on \texttt{pass@8} in all ten paired seed cells of
-  these two domains. MathIR, PantryPlan, and Python factors have not reached a
-  common terminal endpoint and are not shown.}
-  \label{tab:cross-family}
-\end{table}
-
-\noindent\textbf{Result so far.} In both completed domains the direction
-registered before launch reproduces on the second family. \xdr{} raises
-\texttt{distinct@8} from $.126$ to $.284$ on Graph coloring and from $.098$ to
-$.213$ on Countdown, and raises \texttt{pass@8} from $.546$ to $.822$ and from
-$.368$ to $.668$; it wins on both metrics in all ten paired seed cells. The
-matched baseline again shows the band collapse the manuscript describes: fewer
-than $.15$ distinct verified modes per eight-sample draw, so a successful draw
-almost never holds a second execution.
-
-Three qualifications belong with those numbers. First, the absolute values do
-not match this paper's Qwen cells and were not predicted to: a different base
-model has different task competence, and only the direction was registered.
-Second, two domains cannot settle a prediction stated over at least four of
-five, so the registered prediction remains open rather than confirmed; the
-outstanding domains are the ones where the Qwen cohort's Python factors and
-PantryPlan results were most distinctive, so the untested part of the
-replication is not a random subset. Third, MathIR, PantryPlan, and Python
-factors are incomplete for scheduling reasons on a shared cluster rather than
-for any reason connected to their outcomes, and they will be reported on the
-same rule whatever they show. Per-seed rows and the paired win counts are bound
-in \path{var/artifacts/e73_falcon_cross_family_summary.json}.
+\noindent\textbf{Reporting status.} The available cross-family summary
+assigns values to \texttt{distinct@8} below its corresponding
+\texttt{pass@8}, which violates Lemma~\ref{lem:quartet}. Its metric units
+therefore require reconciliation against the underlying evaluations.
+We retain the replication protocol here but omit the inconsistent numerical
+table and its directional claims. The source record is
+\path{var/artifacts/e73_falcon_cross_family_summary.json}; quantitative
+replication conclusions require validated mode counts and matched per-seed
+measurements.
 
 \section{Reproducibility and Claim Boundaries}
 \label{app:reproducibility}
@@ -2256,7 +2259,8 @@ The manuscript separates four evidence classes:
   pooled into the final method comparison;
   \item the completed five-seed, five-domain surface at pass 12, reported one
   domain at a time rather than as a single pooled effect;
-  \item the terminal six-run MathIR causal ablation; and
+  \item the terminal MathIR actuator contrast and five-domain joint
+  replay-gradient removal; and
   \item superseded, repaired, or failed cohorts, retained in the repository but
   excluded from every headline estimate.
 \end{enumerate}

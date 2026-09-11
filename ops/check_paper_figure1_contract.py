@@ -140,8 +140,8 @@ def main() -> None:
         if block.strip() and not block.strip().startswith(r"\label{")
     ]
     five_point_tokens = (
-        "breaks that trade",
-        "Inference-time scaling requires genuine solution diversity",
+        "narrows those alternatives",
+        "Access to alternative valid solutions requires proposal breadth",
         "Useful prompt response breadth",
         "Prior work documents",
         r"We introduce \mb{}",
@@ -161,7 +161,7 @@ def main() -> None:
     for forbidden in (r"V(y,s_x)", r"D_K(x)", r"P_K(x)="):
         require(forbidden not in introduction, f"Introduction contains formal token {forbidden!r}")
     for token in (
-        "breaks that trade", "Inference-time scaling requires genuine solution diversity",
+        "narrows those alternatives", "Access to alternative valid solutions requires proposal breadth",
         "Useful prompt response breadth", "Prior work documents",
         r"We introduce \mb{}", "Summary of contributions",
     ):
@@ -245,9 +245,9 @@ def main() -> None:
     # components and frozen revisions rather than internal cohort codes. Guard
     # the evidence-typing language, and forbid the codes from returning.
     for token in (
-        "Component Necessity Ablations",
-        "Only the separated-support actuator row is a completed causal",
-        "sole terminal causal performance",
+        "Component Rationale and Ablation Evidence",
+        "The separated-support actuator and joint replay-gradient removal provide",
+        "completed controlled performance contrasts",
         "randomized factorial study",
         "immutable frozen record",
     ):
@@ -332,7 +332,7 @@ def main() -> None:
     require(audit["xdrgrpo_trajectory"]["768"]["distinct"] == 6, "xDr endpoint changed")
     for token in (r"(B--C) Four fixed-seed",
                   "contracts to one mode", "retains six",
-                  "marginal value of sampling"):
+                  "sampled breadth contracts"):
         require(token in manuscript, f"missing manuscript token {token!r}")
 
     expected_metrics = {
