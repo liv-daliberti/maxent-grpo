@@ -1,4 +1,4 @@
-"""Argument schema and validation for zero-math Dr.GRPO/Dr.X runs."""
+"""Arguments for the Dr.GRPO/xDr.GRPO training surface."""
 
 from __future__ import annotations
 
@@ -8,710 +8,1628 @@ from typing import Literal
 
 from oat.algorithms.ppo import PPOArgs
 
-from .listwise import (
-    normalize_maxent_clip_mode,
-    normalize_tiebreak_anchor,
-    normalize_oat_objective,
-    normalize_semantic_cluster_method,
-    normalize_semantic_remix_mode,
+from oat_drgrpo.templates import (
+    CANONICAL_DIGIT_TEMPLATE_ROLES,
+    CANONICAL_TASK_PROMPT_TEMPLATES,
+    prompt_template_role,
 )
 
 
 @dataclass
 class ZeroMathArgs(PPOArgs):
-    # Template.
-    prompt_template: Literal["qwen_boxed", "qwen_math", "no", "r1"] = field(
-        default="qwen_math"
-    )
-    # Evaluation benchmarks used.
+    """OAT PPO arguments plus the small set of knobs used in this project."""
+
+    prompt_template: Literal[
+        "qwen_boxed",
+        "qwen_countdown_digits",
+        "qwen_graph_digits",
+        "qwen_pantry_support_mask",
+        "qwen_math",
+        "qwen_math_route",
+        # Falcon-surface twins render the same contracts for the
+        # Falcon3-*-Instruct external-validity cohort.
+        "falcon_boxed",
+        "falcon_countdown_digits",
+        "falcon_graph_digits",
+        "falcon_pantry_support_mask",
+        "falcon_math",
+        "falcon_math_route",
+        "no",
+        "r1",
+    ] = field(default="qwen_math")
     test_split: str = "all"
-    # Verifier.
     verifier_version: Literal["fast", "math_verify"] = field(default="fast")
-    # Objective routing. The default keeps upstream OAT DR.GRPO unchanged.
-    objective: Literal[
-        "grpo",
-        "maxent_listwise",
-    ] = field(default="grpo")
-    semantic_entropy_lambda: float = 0.05
-    policy_entropy_coef: float = 0.0
-    # xDr.GRPO candidate-level tempered aggregation on the grpo objective.
-    # inf disables the reweighting and reproduces Dr.GRPO bit-for-bit.
+
+    # Dr.GRPO is recovered exactly when xdr_tau is infinite. Finite values
+    # apply detached candidate weights softmax(U/tau); zero is the exact
+    # argmax-set limit.
     xdr_tau: float = math.inf
-    # Mode-adaptive tempering: per-prompt tau_x = xdr_tau / log(1 + kappa_x),
-    # kappa_x = distinct correct answer modes observed in the group.
+    # E44 composes reward-directed xDr aggregation with a separately added
+    # semantic policy-gradient advantage. When enabled, xDr's detached row
+    # weights are computed from the ordinary task advantage captured before
+    # semantic augmentation; the actor still optimizes the combined advantage.
+    # This prevents semantic novelty from being counted once in the advantage
+    # and again through the aggregation weights.
+    xdr_task_advantage_weights: bool = False
     xdr_mode_adaptive: bool = False
-    # SEED-Dr.GRPO per-prompt semantic-entropy scaling on the grpo objective.
-    # 0 disables the scaling and reproduces Dr.GRPO exactly.
+    # Optional label-free feedback controller over xDr's aggregation
+    # temperature. A positive target ratio enables the controller; zero keeps
+    # the fixed-tau treatment exactly unchanged.
+    xdr_tau_control_target_ratio: float = 0.0
+    xdr_tau_control_warmup_steps: int = 64
+    xdr_tau_control_min: float = 0.005
+    xdr_tau_control_ema_decay: float = 0.9
+    xdr_tau_control_gain: float = 20.0
+    # Distinct Haarnoja-style dual controller.  It learns a positive inverse-
+    # tau strength with Adam from the signed entropy-target error, rather than
+    # applying the one-sided proportional rule above.
+    xdr_sac_dual_target_ratio: float = 0.0
+    xdr_sac_dual_warmup_steps: int = 64
+    xdr_sac_dual_min_tau: float = 0.005
+    xdr_sac_dual_max_tau: float = 0.5
+    xdr_sac_dual_alpha_lr: float = 0.003
+
+    # Direct on-policy maximum-entropy Dr.GRPO.  The coefficient multiplies
+    # raw completion-policy sequence entropy H(pi(.|x)).  Entropy is
+    # differentiated at sampled prefixes rather than injected into the
+    # group-relative reward advantage.  The two optional controllers observe
+    # the same raw sequence-entropy quantity used by the actor objective.
+    maxent_alpha: float = 0.0
+    # ``sequence`` is the literal trajectory-entropy formulation retained for
+    # E11--E20. ``conditional_token_mean`` is E21's free-form, length-neutral
+    # formulation: at each sampled response state it maximizes entropy over
+    # non-EOS content tokens, does not importance-differentiate state
+    # visitation, and averages within each response before averaging rows.
+    maxent_objective: Literal["sequence", "conditional_token_mean"] = "sequence"
+    maxent_control_target_ratio: float = 0.0
+    maxent_control_target_entropy: float = 0.0
+    maxent_control_warmup_steps: int = 64
+    maxent_control_max_alpha: float = 0.5
+    maxent_control_ema_decay: float = 0.9
+    maxent_control_gain: float = 1.0
+    maxent_dual_target_ratio: float = 0.0
+    maxent_dual_target_entropy: float = 0.0
+    maxent_dual_warmup_steps: int = 64
+    maxent_dual_min_alpha: float = 0.005
+    maxent_dual_max_alpha: float = 0.5
+    maxent_dual_alpha_lr: float = 0.003
+    # Smooth the per-prompt-group entropy sensor before dual Adam. A zero
+    # decay explicitly recovers the historical instantaneous-feedback rule.
+    maxent_dual_ema_decay: float = 0.7
+    # Projection-free, memoryless inverse control of the coefficient on the
+    # direct MaxEnt objective. It calibrates exclusively from the same entropy
+    # quantity differentiated by that objective, never from evaluation labels
+    # or the canonical bank. The reference dose is maxent_alpha.
+    maxent_inverse_adaptation: bool = False
+    maxent_inverse_warmup_steps: int = 64
+    maxent_inverse_ema_decay: float = 0.9
+    # Optional constrained-MaxEnt length dual. The actor optimizes
+    # E[R] + alpha H - lambda(E[L] - target), with raw generated response
+    # length L and a separate projected dual controller over lambda. It may
+    # accompany fixed, proportional, or Haarnoja-controlled entropy alpha; a
+    # zero target leaves those established MaxEnt paths unchanged.
+    maxent_length_target: float = 0.0
+    maxent_length_lambda_init: float = 0.0
+    maxent_length_lambda_max: float = 0.02
+    maxent_length_ema_decay: float = 0.9
+    maxent_length_dual_lr: float = 0.0002
+
+    # DIAYN-style answer-option binding.  When enabled, each rollout group is
+    # split across K latent answer options by augmenting the prompt with z.
+    # The learner adds beta * (log q(z | answer_repr) - log 1/K) to terminal
+    # reward, where q is an EMA discriminator over extracted final answers.
+    diayn_num_options: int = 0
+    diayn_mi_beta: float = 0.0
+    diayn_mi_ema_decay: float = 0.9
+    diayn_mi_smoothing: float = 1.0
+    diayn_mi_bonus_clip: float = 5.0
+    diayn_mi_correct_only: bool = True
+    diayn_mi_leave_one_out: bool = False
+
+    # Group-local outcome-collision shaping for free-form Dr.GRPO. Every
+    # observed canonical answer, including one shared INVALID key for parse
+    # failures, receives -(coefficient / G) for each same-key peer in its
+    # candidate group. Zero recovers the unmodified reward exactly.
+    outcome_collision_coef: float = 0.0
+    # Opt-in free-form semantic policy-gradient variant. When true, the
+    # outcome-collision penalty is not added to terminal reward before
+    # Dr.GRPO's group baseline. Instead, the learner adds that detached
+    # leave-one-out penalty once to the already group-centered sequence
+    # advantage. False preserves E37's reward-shaping behavior exactly.
+    outcome_collision_outside_centering: bool = False
+
+    # Prompt-specific predictive Shannon-surprisal shaping over observed
+    # canonical answers. Counts from prior groups and current leave-one-out
+    # peers define a smoothed answer probability with one unseen bucket. The
+    # bounded non-positive bonus preserves task-reward ordering. Zero disables
+    # the tracker and recovers the unmodified reward exactly.
+    semantic_shannon_coef: float = 0.0
+    semantic_shannon_surprisal_clip: float = 5.0
+    semantic_shannon_pseudocount: float = 1.0
+    # E41 keeps ordinary task reward as the only input to Dr.GRPO's group
+    # baseline. It adds a detached semantic advantage afterward, centered
+    # under the prompt-local predictive distribution rather than the current
+    # candidate group's empirical mean. False preserves E38 exactly.
+    semantic_shannon_separate_advantage: bool = False
+    # Optional safety gate for a future separate-advantage treatment. Only
+    # reward-positive rows with parseable answer keys can receive semantic
+    # pressure or enter the predictive history. Negative raw semantic
+    # advantages are zeroed, and positive ones are capped explicitly.
+    # False preserves both E38 and E41 exactly.
+    semantic_shannon_quality_gated_advantage: bool = False
+    semantic_shannon_quality_gated_cap: float = 0.05
+    # E43 keeps the E42 success-conditioned support/history contract but
+    # retains both signs of the predictor-centered advantage. Only active,
+    # parseable, reward-positive rows receive pressure; their signed
+    # advantages are clamped symmetrically. False preserves E38/E41/E42.
+    semantic_shannon_success_conditioned_signed_advantage: bool = False
+    semantic_shannon_success_conditioned_signed_cap: float = 0.05
+    # E56 optionally replaces E43's fixed, projected semantic coefficient with
+    # a projection-free inverse controller driven only by the model's own
+    # normalized open-set predictive entropy. No catalogue size, gold support,
+    # or desired entropy is supplied.
+    semantic_shannon_open_set_inverse_adaptation: bool = False
+    semantic_shannon_open_set_warmup_steps: int = 64
+    semantic_shannon_open_set_ema_decay: float = 0.9
+
+    # Online growing-support canonical MaxEnt. A prompt-local bank contains
+    # only validator-positive canonical strategies produced on-policy. The
+    # learner adds a bounded bank-entropy score plus a one-time per-class
+    # discovery bonus after ordinary Dr.GRPO task centering.
+    # The bank also runs passively by default for ordinary Dr.GRPO so normal
+    # runs report cumulative verified discoveries and mean verified support
+    # per prompt without altering rewards, advantages, or gradients.
+    verified_discovery_tracking: bool = True
+    online_canonical_bank_alpha: float = 0.0
+    online_canonical_novelty_beta: float = 0.0
+    online_canonical_bank_pseudocount: float = 1.0
+    online_canonical_bank_surprisal_clip: float = 5.0
+    # Haarnoja-style log-alpha control against the exact post-update ratio
+    # H(q_x) / log |B_x^+|. A zero target preserves fixed-alpha E44 exactly.
+    online_canonical_dual_target_ratio: float = 0.0
+    online_canonical_dual_min_alpha: float = 0.005
+    # Positive infinity disables only the controller's upper projection.
+    online_canonical_dual_max_alpha: float = 0.5
+    online_canonical_dual_alpha_lr: float = 0.003
+    online_canonical_dual_ema_decay: float = 0.9
+    # E51's projection-free alternative to the canonical-bank Haarnoja dual. The
+    # model's masked-mean token entropy is calibrated separately in every run.
+    # After warmup, alpha is the base dose times the warmup-mean/entropy-EMA
+    # ratio with no upper or lower projection, so falling entropy raises alpha.
+    online_canonical_policy_entropy_adaptation: bool = False
+    online_canonical_policy_entropy_warmup_steps: int = 64
+    online_canonical_policy_entropy_ema_decay: float = 0.9
+    # Default-off verified exemplar replay. Once a prompt has at least two
+    # observed validator-positive modes, teacher-forced model scores over one
+    # stored exemplar per mode are balanced with KL(U_bank || q_model).
+    # Its separate inverse coefficient is calibrated only from the model's
+    # normalized entropy over the observed bank and has no alpha projection.
+    online_canonical_replay: bool = False
+    online_canonical_replay_alpha: float = 0.1
+    # "bank_balance" is E53's conditioned-bank reverse KL. The successor
+    # "verified_likelihood" keeps the same target-free sensor but gives the
+    # actuator a non-zero common verified-mode score gradient.
+    online_canonical_replay_objective: Literal[
+        "bank_balance",
+        "verified_likelihood",
+        "verified_likelihood_per_rollout",
+        "split_mass_balance_per_rollout",
+    ] = "bank_balance"
+    # A compute budget, not a semantic-support target. The default equals the
+    # standard rollout width and never changes in response to evaluation data.
+    online_canonical_replay_capacity: int = 16
+    # Default-off cross-prompt scheduling. A positive value replays this many
+    # model-discovered verified prompt banks per optimizer update in persistent
+    # round-robin order. It is a fixed compute budget, not a support target.
+    online_canonical_replay_global_groups_per_step: int = 0
+    # Optional finite global cold-start phase. When positive, cross-prompt
+    # replay is used for exactly this many non-empty optimizer updates and then
+    # replay returns to the current prompt. Zero preserves either prompt-local
+    # replay (global_groups_per_step=0) or unlimited global replay. The phase is
+    # checkpointed and never observes evaluation or exhaustive support.
+    online_canonical_replay_global_bootstrap_steps: int = 0
+    online_canonical_replay_warmup_steps: int = 64
+    online_canonical_replay_ema_decay: float = 0.9
+    online_canonical_replay_mass_alpha: float = 0.1
+    online_canonical_replay_mass_warmup_steps: int = 64
+    online_canonical_replay_mass_ema_decay: float = 0.9
+    # Compute-matched negative control: retain and teacher-force the same
+    # verified replay banks, including the backward traversal, but replace the
+    # replay score derivative by exact zeros before it reaches the optimizer.
+    # Ordinary task-reward gradients are unchanged.
+    online_canonical_replay_compute_only: bool = False
+    # Optional model-self-proposal actuator. Once the current prompt has one
+    # model-generated validator-positive outcome, sample a fixed-budget
+    # temperature sweep from the untouched original task prompt and admit only
+    # genuinely new executable outcomes. Proposal rows are discarded before
+    # PPO. The retry budget and proposal temperatures are search-compute
+    # parameters, not support or entropy targets.
+    online_canonical_counterfactual_proposals: bool = False
+    # Keep proposal-derived replay exemplars out of the on-policy count table
+    # used by the canonical entropy/novelty advantage. This permits a literal
+    # E58 objective plus a replay-support actuator without off-policy proposal
+    # outcomes changing any neutral-rollout advantage.
+    online_canonical_counterfactual_separate_objective_support: bool = False
+    # E65: allow support-only proposals only for a singleton verified bank
+    # while the unprojected open-set controller reports entropy below the
+    # model's own warmup reference. At most one novel outcome is admitted.
+    online_canonical_counterfactual_singleton_entropy_gate: bool = False
+    online_canonical_counterfactual_anchor_max_tokens: int = 256
+    online_canonical_counterfactual_max_attempts: int = 3
+    online_canonical_counterfactual_sampling_temperature: float = 1.0
+    # Optional compute-matching surface. Every prompt update issues exactly
+    # this many additional sampling requests with isolated proposal seeds.
+    # Proposal-enabled arms may inspect up to ``max_attempts`` groups; all
+    # remaining rows are discarded before banks, replay, and PPO.
+    online_canonical_counterfactual_fixed_control_groups: int = 0
+    online_canonical_key_mode: Literal[
+        "modebench_outcome",
+        "math_verified_answer",
+        "math_strategy_qwen72",
+        "verified_route",
+    ] = "modebench_outcome"
+    # E69 maintains a prompt-local endpoint bank plus a separate global route
+    # library. Routes replay only after independent neutral reproduction on at
+    # least this many prompts. Proposal admission is support-only and must pass
+    # an anchor-relative mean-token-log-probability trust check.
+    verified_route_replay_capacity_per_route: int = 16
+    verified_route_recurring_min_neutral_prompts: int = 2
+    verified_route_proposal_max_mean_logprob_drop: float = 2.0
+    # ``math_verified_answer`` is an external-validity track, not a
+    # multi-mode strategy claim. The ordinary MATH verifier maps every
+    # reward-positive solution for a prompt to one shared ``correct`` outcome.
+    # Consequently verified-mass replay may anchor a discovered solution, but
+    # known-mode balance remains structurally ineligible unless a future
+    # executable proof/strategy verifier supplies distinct outcome keys.
+    # E47-calibrated semantic strategy IDs for validator-positive MATH only.
+    # The endpoint is an OpenAI-compatible /v1 service for the frozen 72B
+    # judge. Two independent temperature-zero permutations are mandatory.
+    math_strategy_endpoint: str = ""
+    math_strategy_model: str = "qwen2.5-72b"
+    math_strategy_timeout_seconds: int = 600
+    math_strategy_workers: int = 4
+    math_strategy_max_item_chars: int = 4000
+    # E49T bootstrap successor: answer-positive natural derivations may be
+    # mapped to one exact frozen menu route by two unanimous semantic audits.
+    # This never creates an open-set strategy and is off by default.
+    math_strategy_allow_unstructured_inference: bool = False
+    # For finite-menu MATH prompts, only an answer-positive response that
+    # passes the exact declaration parser and both semantic execution audits
+    # retains its task reward. This matched contract can be enabled for both
+    # Dr.GRPO and canonical-MaxEnt arms.
+    math_strategy_gate_task_reward: bool = False
+
+    # E14's finite canonical graph policy. Rollouts contain exactly
+    # canonical_graph_action_count stochastic actions, each chosen from the
+    # one-token support {"1", "2", "3"}; termination is deterministic.
+    canonical_graph_actions: bool = False
+    # Generic task selector for new finite policies. ``canonical_graph_actions``
+    # remains the exact backward-compatible E14 switch.
+    canonical_action_task: Literal[
+        "none",
+        "graph_coloring",
+        "countdown",
+        "pantry_support_mask",
+    ] = "none"
+    canonical_graph_action_count: int = 3
+    canonical_graph_learner_sampling: bool = False
+    canonical_graph_fixed_shape_sampling: bool = False
+    # Four-rank free-form execution that preserves one prompt and one complete
+    # num_samples candidate group per optimizer update. The rollout is
+    # generated once, replicated for group-relative statistics, and sharded
+    # only for the backward pass.
+    replicated_freeform_sampling: bool = False
+    # Pair each learner rank with one collocated one-GPU actor for concurrent
+    # model-weight broadcasts. This avoids serializing the full 7B model from
+    # rank zero into four tensor-parallel actor workers.
+    local_actor_weight_sync: bool = False
+    # vLLM sleep level 2 discards actor weights instead of copying four full
+    # models into host RAM. The learner remaps empty weight storage, broadcasts
+    # the updated policy, and restores only the KV cache after each update.
+    vllm_sleep_level: int = 1
+
+    # Controls retained because they are reported in the paper.
+    policy_entropy_coef: float = 0.0
     seed_entropy_alpha: float = 0.0
-    maxent_tau: float = 0.3
-    maxent_q_temperature: float = 2.0
-    maxent_q_epsilon: float = 1e-6
-    maxent_candidate_kl_coef: float = 0.0
-    maxent_exact_drx_weight_source: Literal[
-        "sequence_clipped", "clipped", "unclipped", "local_linear"
-    ] = field(default="sequence_clipped")
-    maxent_length_normalize_ref: bool = True
-    maxent_length_normalize_policy: bool = True
-    maxent_listwise_skip_zero_variance_groups: bool = True
-    maxent_use_clip_objective: bool = True
-    maxent_clip_objective_coef: float = 1.0
-    maxent_clip_range: float | None = None
-    maxent_clip_adv_baseline: float | None = None
-    maxent_clip_preserve_reward_mass: bool = False
-    maxent_clip_mode: Literal["sequence", "token", "none"] = field(default="sequence")
-    maxent_token_clip_primary: bool = False
-    maxent_drgrpo_token_primary: bool = False
-    maxent_drgrpo_token_advantage_source: Literal[
-        "weighted", "utility_centered", "maxent_centered"
-    ] = field(default="weighted")
-    maxent_drgrpo_token_length_normalizer: Literal["max_length", "response_length"] = (
-        field(default="max_length")
-    )
-    maxent_sequence_aux_coef: float = 1.0
-    maxent_sequence_aux_group_filter: Literal["all", "mixed", "has_correct"] = field(
-        default="all"
-    )
-    maxent_sequence_aux_max_expected_len_drop: float = math.inf
-    maxent_sequence_aux_max_expected_len_gain: float = math.inf
-    maxent_sequence_aux_max_expected_format_drop: float = 1.0
-    maxent_sequence_aux_min_expected_correctness_delta: float = -1.0
-    maxent_neutral_projection_coef: float = 0.0
-    maxent_semantic_cluster_method: Literal[
-        "default", "answer_family", "greedy", "connected_components", "spectral"
-    ] = field(default="default")
-    maxent_semantic_similarity_threshold: float = 0.75
-    maxent_semantic_embedding_similarity_threshold: float = 0.9
-    maxent_semantic_embedding_max_tokens: int = 256
-    maxent_semantic_cluster_max_tokens: int = 0
-    maxent_semantic_spectral_max_clusters: int = 0
-    maxent_semantic_spectral_eigengap_min: float = 0.05
-    maxent_semantic_correctness_target_frac: float = 0.5
-    maxent_semantic_correctness_sharpness: float = 4.0
-    maxent_semantic_correctness_answer_level: bool = False
-    maxent_semantic_correctness_min_answer_count: int = 1
-    maxent_semantic_remix_mode: Literal[
-        "competitive", "correctness_conditioned", "anchor_rare"
-    ] = field(default="competitive")
-    maxent_reward_shaping_alpha: float = 0.0
-    maxent_tiebreak_anchor: Literal["hybrid", "behavior", "reference"] = field(
-        default="hybrid"
-    )
-    maxent_tiebreak_clip_max: float = 1.0
-    maxent_competitive_mode_tau: float = 0.05
-    maxent_competitive_mode_gap: float = 0.10
-    maxent_competitive_mode_top_k: int = 3
-    maxent_competitive_mode_budget_max: float = 0.10
-    maxent_competitive_mode_budget_scale: float = 0.05
-    maxent_competitive_mode_intra_tau: float = 0.01
-    maxent_prompt_select_min_alpha_frac: float = 0.5
-    maxent_competitive_mode_positive_only: bool = True
-    maxent_correctness_schedule_enabled: bool = True
-    maxent_correctness_schedule_ema_decay: float = 0.997
-    maxent_correctness_schedule_low: float = 0.45
-    maxent_correctness_schedule_high: float = 0.90
-    maxent_correctness_schedule_budget_max_early: float = 0.18
-    maxent_correctness_schedule_budget_max_late: float = 0.06
-    maxent_correctness_schedule_prompt_select_min_alpha_frac_early: float = 0.20
-    maxent_correctness_schedule_prompt_select_min_alpha_frac_late: float = 0.50
-    maxent_correctness_schedule_mode_tau_early: float = 0.08
-    maxent_correctness_schedule_mode_tau_late: float = 0.03
-    maxent_correctness_schedule_intra_tau_early: float = 0.03
-    maxent_correctness_schedule_intra_tau_late: float = 0.005
-    maxent_semantic_guard_max_expected_len_delta: float = 24.0
-    maxent_semantic_guard_max_expected_format_drop: float = 0.0
-    maxent_branch_grad_diagnostics: bool = False
-    maxent_branch_grad_diagnostics_interval: int = 1
-    maxent_branch_grad_diagnostics_max_steps: int = 0
-    maxent_logprob_chunk_size: int = 2
-    maxent_backward_chunk_size: int = 4
-    maxent_backward_token_budget: int = 4096
+
     eval_mode_coverage_k: int = 0
     eval_mode_coverage_temperature: float = 1.0
+    # Nucleus truncation applied to the sampled mode-coverage draws only. The
+    # default 1.0 is the untruncated decoding surface every reported cell used;
+    # the E72 decoding frontier sweeps it to test whether wider or narrower
+    # decoding repairs a collapsed policy. Greedy draws ignore it.
+    eval_mode_coverage_top_p: float = 1.0
+    # Repeated, fixed-seed K-draws expose Monte Carlo evaluation variance.
+    # The established headline keys remain the mean across draws; every raw
+    # draw and its spread are logged separately by the learner.
+    eval_mode_coverage_draws: int = 4
+    eval_mode_coverage_seed: int = 1001
+    # E72: evaluate the loaded policy exactly once through the ordinary
+    # training evaluation path, then exit before any rollout, optimizer step,
+    # export, or resume checkpoint. This is how a frozen checkpoint is measured
+    # on a new decoding setting without re-implementing the metric.
+    eval_only: bool = False
     baseline_zero_adv_response_tokens: int = 8
-    maxent_reference_logprobs_source: Literal["model", "behavior"] = field(
-        default="model"
-    )
-    maxent_tau_adaptation_metric: Literal[
-        "semantic_entropy_mu",
-        "exploration_gain_any_correct",
-        "exploration_gain_drgrpo",
-    ] = field(default="semantic_entropy_mu")
-    maxent_tau_target_metric: float | None = None
-    maxent_tau_target_metric_start: float | None = None
-    maxent_tau_target_metric_peak: float | None = None
-    maxent_tau_target_metric_peak_step: int = 0
-    maxent_tau_target_metric_final: float | None = None
-    maxent_tau_target_metric_horizon: int = 0
-    # Deprecated legacy tau-controller target fields. Keep them here only so
-    # older launchers fail loudly instead of silently driving tau from H(w*).
-    maxent_target_weight_entropy: float | None = None
-    maxent_target_weight_entropy_start: float | None = None
-    maxent_target_weight_entropy_peak: float | None = None
-    maxent_target_weight_entropy_peak_step: int = 0
-    maxent_target_weight_entropy_final: float | None = None
-    maxent_target_weight_entropy_horizon: int = 0
-    maxent_tau_learnable: bool = False
-    maxent_tau_controller_enabled: bool = False
-    maxent_tau_lr: float = 0.0
-    maxent_tau_min: float = 0.0
-    maxent_tau_max: float = 0.0
-    maxent_tau_warmup_steps: int = -1
-    maxent_beta_controller_enabled: bool = False
-    kl_target: float = 0.0
-    kl_horizon: int = 0
-    kl_ctl_step_size: float = 0.0
+
+    # Storage lifecycle.  Evaluation is intentionally independent from both
+    # model export and resumable DeepSpeed state.  ``export_steps=0`` means
+    # terminal-only; a negative value disables exports entirely.  Resume
+    # checkpoints are opt-in at the Python surface and resolved to one prompt
+    # epoch by the shared experiment launcher.
+    export_steps: int = 0
+    export_from: int = 0
+    resume_steps: int = -1
+    resume_from: int = 0
+    max_export_num: int = 1
+    max_resume_num: int = 1
+    max_export_mem: int = 64
+    max_resume_mem: int = 256
+    prune_resume_on_success: bool = True
 
 
-def build_fixed_listwise_config(args: ZeroMathArgs) -> dict[str, object]:
-    """Snapshot immutable listwise settings for a learner run."""
+def resolve_canonical_action_task(args: ZeroMathArgs) -> str:
+    """Resolve the generic task selector and E14's legacy graph boolean."""
 
-    return {
-        "maxent_q_temperature": float(args.maxent_q_temperature),
-        "maxent_q_epsilon": float(args.maxent_q_epsilon),
-        "maxent_candidate_kl_coef": float(args.maxent_candidate_kl_coef),
-        "maxent_exact_drx_weight_source": str(args.maxent_exact_drx_weight_source),
-        "maxent_length_normalize_ref": bool(args.maxent_length_normalize_ref),
-        "maxent_length_normalize_policy": bool(args.maxent_length_normalize_policy),
-        "maxent_listwise_skip_zero_variance_groups": bool(
-            args.maxent_listwise_skip_zero_variance_groups
-        ),
-        "maxent_use_clip_objective": bool(args.maxent_use_clip_objective),
-        "maxent_clip_objective_coef": float(args.maxent_clip_objective_coef),
-        "maxent_clip_range": (
-            None if args.maxent_clip_range is None else float(args.maxent_clip_range)
-        ),
-        "maxent_clip_adv_baseline": (
-            None
-            if args.maxent_clip_adv_baseline is None
-            else float(args.maxent_clip_adv_baseline)
-        ),
-        "maxent_clip_preserve_reward_mass": bool(args.maxent_clip_preserve_reward_mass),
-        "maxent_clip_mode": str(args.maxent_clip_mode),
-        "maxent_token_clip_primary": bool(args.maxent_token_clip_primary),
-        "maxent_drgrpo_token_primary": bool(args.maxent_drgrpo_token_primary),
-        "maxent_drgrpo_token_advantage_source": str(
-            args.maxent_drgrpo_token_advantage_source
-        ),
-        "maxent_drgrpo_token_length_normalizer": str(
-            args.maxent_drgrpo_token_length_normalizer
-        ),
-        "maxent_sequence_aux_coef": float(args.maxent_sequence_aux_coef),
-        "maxent_sequence_aux_group_filter": str(
-            args.maxent_sequence_aux_group_filter
-        ),
-        "maxent_sequence_aux_max_expected_len_drop": float(
-            args.maxent_sequence_aux_max_expected_len_drop
-        ),
-        "maxent_sequence_aux_max_expected_len_gain": float(
-            args.maxent_sequence_aux_max_expected_len_gain
-        ),
-        "maxent_sequence_aux_max_expected_format_drop": float(
-            args.maxent_sequence_aux_max_expected_format_drop
-        ),
-        "maxent_sequence_aux_min_expected_correctness_delta": float(
-            args.maxent_sequence_aux_min_expected_correctness_delta
-        ),
-        "maxent_neutral_projection_coef": float(args.maxent_neutral_projection_coef),
-        "maxent_semantic_cluster_method": str(args.maxent_semantic_cluster_method),
-        "maxent_semantic_similarity_threshold": float(
-            args.maxent_semantic_similarity_threshold
-        ),
-        "maxent_semantic_embedding_similarity_threshold": float(
-            args.maxent_semantic_embedding_similarity_threshold
-        ),
-        "maxent_semantic_embedding_max_tokens": int(
-            args.maxent_semantic_embedding_max_tokens
-        ),
-        "maxent_semantic_cluster_max_tokens": int(
-            args.maxent_semantic_cluster_max_tokens
-        ),
-        "maxent_semantic_spectral_max_clusters": int(
-            args.maxent_semantic_spectral_max_clusters
-        ),
-        "maxent_semantic_spectral_eigengap_min": float(
-            args.maxent_semantic_spectral_eigengap_min
-        ),
-        "maxent_semantic_correctness_target_frac": float(
-            args.maxent_semantic_correctness_target_frac
-        ),
-        "maxent_semantic_correctness_sharpness": float(
-            args.maxent_semantic_correctness_sharpness
-        ),
-        "maxent_semantic_correctness_answer_level": bool(
-            args.maxent_semantic_correctness_answer_level
-        ),
-        "maxent_semantic_correctness_min_answer_count": int(
-            args.maxent_semantic_correctness_min_answer_count
-        ),
-        "maxent_semantic_remix_mode": str(args.maxent_semantic_remix_mode),
-        "maxent_reward_shaping_alpha": float(args.maxent_reward_shaping_alpha),
-        "maxent_tiebreak_anchor": str(args.maxent_tiebreak_anchor),
-        "maxent_tiebreak_clip_max": float(args.maxent_tiebreak_clip_max),
-        "maxent_correctness_schedule_enabled": bool(
-            args.maxent_correctness_schedule_enabled
-        ),
-        "maxent_correctness_schedule_ema_decay": float(
-            args.maxent_correctness_schedule_ema_decay
-        ),
-        "maxent_correctness_schedule_low": float(args.maxent_correctness_schedule_low),
-        "maxent_correctness_schedule_high": float(
-            args.maxent_correctness_schedule_high
-        ),
-        "maxent_correctness_schedule_budget_max_early": float(
-            args.maxent_correctness_schedule_budget_max_early
-        ),
-        "maxent_correctness_schedule_budget_max_late": float(
-            args.maxent_correctness_schedule_budget_max_late
-        ),
-        "maxent_correctness_schedule_prompt_select_min_alpha_frac_early": float(
-            args.maxent_correctness_schedule_prompt_select_min_alpha_frac_early
-        ),
-        "maxent_correctness_schedule_prompt_select_min_alpha_frac_late": float(
-            args.maxent_correctness_schedule_prompt_select_min_alpha_frac_late
-        ),
-        "maxent_correctness_schedule_mode_tau_early": float(
-            args.maxent_correctness_schedule_mode_tau_early
-        ),
-        "maxent_correctness_schedule_mode_tau_late": float(
-            args.maxent_correctness_schedule_mode_tau_late
-        ),
-        "maxent_correctness_schedule_intra_tau_early": float(
-            args.maxent_correctness_schedule_intra_tau_early
-        ),
-        "maxent_correctness_schedule_intra_tau_late": float(
-            args.maxent_correctness_schedule_intra_tau_late
-        ),
-        "maxent_branch_grad_diagnostics": bool(args.maxent_branch_grad_diagnostics),
-        "maxent_branch_grad_diagnostics_interval": int(
-            args.maxent_branch_grad_diagnostics_interval
-        ),
-        "maxent_branch_grad_diagnostics_max_steps": int(
-            args.maxent_branch_grad_diagnostics_max_steps
-        ),
-        "maxent_logprob_chunk_size": int(args.maxent_logprob_chunk_size),
-        "maxent_backward_chunk_size": int(args.maxent_backward_chunk_size),
-        "maxent_backward_token_budget": int(args.maxent_backward_token_budget),
-        "maxent_reference_logprobs_source": str(args.maxent_reference_logprobs_source),
-        "maxent_tau_adaptation_metric": str(args.maxent_tau_adaptation_metric),
-        "maxent_tau_target_metric": (
-            None
-            if args.maxent_tau_target_metric is None
-            else float(args.maxent_tau_target_metric)
-        ),
-        "maxent_tau_target_metric_start": (
-            None
-            if args.maxent_tau_target_metric_start is None
-            else float(args.maxent_tau_target_metric_start)
-        ),
-        "maxent_tau_target_metric_peak": (
-            None
-            if args.maxent_tau_target_metric_peak is None
-            else float(args.maxent_tau_target_metric_peak)
-        ),
-        "maxent_tau_target_metric_peak_step": int(
-            args.maxent_tau_target_metric_peak_step
-        ),
-        "maxent_tau_target_metric_final": (
-            None
-            if args.maxent_tau_target_metric_final is None
-            else float(args.maxent_tau_target_metric_final)
-        ),
-        "maxent_tau_target_metric_horizon": int(args.maxent_tau_target_metric_horizon),
-    }
+    requested = str(getattr(args, "canonical_action_task", "none"))
+    if requested not in {
+        "none",
+        "graph_coloring",
+        "countdown",
+        "pantry_support_mask",
+    }:
+        raise ValueError(
+            "canonical_action_task must be none, graph_coloring, countdown, "
+            "or pantry_support_mask"
+        )
+    legacy_graph = bool(getattr(args, "canonical_graph_actions", False))
+    if legacy_graph and requested not in {"none", "graph_coloring"}:
+        raise ValueError("canonical_graph_actions conflicts with canonical_action_task")
+    return "graph_coloring" if legacy_graph else requested
 
 
 def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
-    args.objective = normalize_oat_objective(getattr(args, "objective", "grpo"))
-    if args.beta < 0:
-        raise ValueError("beta must be non-negative")
-    if args.kl_target < 0:
-        raise ValueError("kl_target must be non-negative")
-    if args.kl_horizon < 0:
-        raise ValueError("kl_horizon must be non-negative")
-    if args.kl_ctl_step_size < 0:
-        raise ValueError("kl_ctl_step_size must be non-negative")
-    args.maxent_clip_mode = normalize_maxent_clip_mode(
-        getattr(args, "maxent_clip_mode", "sequence")
-    )
-    args.maxent_tiebreak_anchor = normalize_tiebreak_anchor(
-        getattr(args, "maxent_tiebreak_anchor", "hybrid")
-    )
-    args.maxent_semantic_cluster_method = normalize_semantic_cluster_method(
-        getattr(args, "maxent_semantic_cluster_method", "default")
-    )
-    args.maxent_semantic_remix_mode = normalize_semantic_remix_mode(
-        getattr(args, "maxent_semantic_remix_mode", "competitive")
-    )
-    if args.maxent_reference_logprobs_source not in {"model", "behavior"}:
-        raise ValueError(
-            "maxent_reference_logprobs_source must be one of: model, behavior"
-        )
-    if not math.isfinite(float(args.maxent_semantic_similarity_threshold)):
-        raise ValueError("maxent_semantic_similarity_threshold must be finite")
-    if not math.isfinite(float(args.maxent_semantic_embedding_similarity_threshold)):
-        raise ValueError(
-            "maxent_semantic_embedding_similarity_threshold must be finite"
-        )
-    if int(args.maxent_semantic_embedding_max_tokens) <= 0:
-        raise ValueError("maxent_semantic_embedding_max_tokens must be positive")
-    if int(args.maxent_semantic_cluster_max_tokens) < 0:
-        raise ValueError("maxent_semantic_cluster_max_tokens must be non-negative")
-    if int(args.maxent_semantic_spectral_max_clusters) < 0:
-        raise ValueError("maxent_semantic_spectral_max_clusters must be non-negative")
-    if args.maxent_semantic_spectral_eigengap_min < 0:
-        raise ValueError("maxent_semantic_spectral_eigengap_min must be non-negative")
-    if not math.isfinite(
-        float(args.maxent_semantic_correctness_target_frac)
-    ) or not 0.0 <= float(args.maxent_semantic_correctness_target_frac) <= 1.0:
-        raise ValueError(
-            "maxent_semantic_correctness_target_frac must be between 0 and 1"
-        )
-    if not math.isfinite(
-        float(args.maxent_semantic_correctness_sharpness)
-    ) or args.maxent_semantic_correctness_sharpness < 0:
-        raise ValueError(
-            "maxent_semantic_correctness_sharpness must be finite and non-negative"
-        )
-    if int(args.maxent_semantic_correctness_min_answer_count) < 1:
-        raise ValueError(
-            "maxent_semantic_correctness_min_answer_count must be positive"
-        )
-    if args.maxent_reward_shaping_alpha < 0:
-        raise ValueError("maxent_reward_shaping_alpha must be non-negative")
-    if args.semantic_entropy_lambda < 0:
-        raise ValueError("semantic_entropy_lambda must be non-negative")
-    if args.policy_entropy_coef < 0:
-        raise ValueError("policy_entropy_coef must be non-negative")
-    if math.isnan(args.xdr_tau) or args.xdr_tau < 0:
-        raise ValueError(
-            "xdr_tau must be non-negative (0 = exact argmax limit; inf disables)"
-        )
-    if math.isfinite(args.xdr_tau):
-        if args.objective != "grpo":
-            raise ValueError("finite xdr_tau requires objective=grpo")
-        if args.critic_type != "drgrpo":
-            raise ValueError("finite xdr_tau requires critic_type=drgrpo")
-        if getattr(args, "reinforce_update", False):
-            raise ValueError(
-                "finite xdr_tau is incompatible with reinforce_update: the "
-                "xdr utilities assume the clipped Dr.GRPO surrogate"
-            )
-    if getattr(args, "xdr_mode_adaptive", False) and (
-        not math.isfinite(args.xdr_tau) or args.xdr_tau <= 0
-    ):
-        raise ValueError(
-            "xdr_mode_adaptive requires a finite positive xdr_tau (tau0)"
-        )
-    if math.isnan(args.seed_entropy_alpha) or args.seed_entropy_alpha < 0:
-        raise ValueError("seed_entropy_alpha must be non-negative")
-    if args.seed_entropy_alpha > 0:
-        if args.objective != "grpo":
-            raise ValueError("seed_entropy_alpha requires objective=grpo")
-        if args.critic_type != "drgrpo":
-            raise ValueError("seed_entropy_alpha requires critic_type=drgrpo")
-        if math.isfinite(args.xdr_tau):
-            raise ValueError(
-                "seed_entropy_alpha and finite xdr_tau are separate "
-                "comparative arms; enable at most one"
-            )
-    if args.maxent_tiebreak_clip_max < 0:
-        raise ValueError("maxent_tiebreak_clip_max must be non-negative")
-    if args.baseline_zero_adv_response_tokens < 0:
-        raise ValueError("baseline_zero_adv_response_tokens must be non-negative")
-    if args.maxent_reward_shaping_alpha > 0 and args.objective != "maxent_listwise":
-        raise ValueError(
-            "maxent_reward_shaping_alpha currently requires objective=maxent_listwise"
-        )
-    if args.maxent_reward_shaping_alpha > 0 and not args.maxent_drgrpo_token_primary:
-        raise ValueError(
-            "maxent_reward_shaping_alpha currently requires maxent_drgrpo_token_primary=1"
-        )
-    if args.maxent_clip_objective_coef < 0:
-        raise ValueError("maxent_clip_objective_coef must be non-negative")
-    if args.maxent_tau_adaptation_metric not in {
-        "semantic_entropy_mu",
-        "exploration_gain_any_correct",
-        "exploration_gain_drgrpo",
-    }:
-        raise ValueError(
-            "maxent_tau_adaptation_metric must be one of: "
-            "semantic_entropy_mu, exploration_gain_any_correct, exploration_gain_drgrpo"
-        )
-    if args.maxent_tau_target_metric is not None and not math.isfinite(
-        float(args.maxent_tau_target_metric)
-    ):
-        raise ValueError("maxent_tau_target_metric must be finite when set")
-    if args.maxent_tau_target_metric_start is not None and not math.isfinite(
-        float(args.maxent_tau_target_metric_start)
-    ):
-        raise ValueError("maxent_tau_target_metric_start must be finite when set")
-    if args.maxent_tau_target_metric_peak is not None and not math.isfinite(
-        float(args.maxent_tau_target_metric_peak)
-    ):
-        raise ValueError("maxent_tau_target_metric_peak must be finite when set")
-    if args.maxent_tau_target_metric_peak_step < 0:
-        raise ValueError("maxent_tau_target_metric_peak_step must be non-negative")
-    if args.maxent_tau_target_metric_final is not None and not math.isfinite(
-        float(args.maxent_tau_target_metric_final)
-    ):
-        raise ValueError("maxent_tau_target_metric_final must be finite when set")
-    if args.maxent_tau_target_metric_horizon < 0:
-        raise ValueError("maxent_tau_target_metric_horizon must be non-negative")
-    if (
-        args.maxent_tau_target_metric_peak is not None
-        and args.maxent_tau_target_metric_horizon > 0
-        and args.maxent_tau_target_metric_peak_step
-        > args.maxent_tau_target_metric_horizon
-    ):
-        raise ValueError(
-            "maxent_tau_target_metric_peak_step must be <= "
-            "maxent_tau_target_metric_horizon"
-        )
-    if args.maxent_tau_lr < 0:
-        raise ValueError("maxent_tau_lr must be non-negative")
-    if args.maxent_tau_min < 0:
-        raise ValueError("maxent_tau_min must be non-negative")
-    if args.maxent_tau_max < 0:
-        raise ValueError("maxent_tau_max must be non-negative")
-    if args.objective != "maxent_listwise":
-        if bool(args.maxent_token_clip_primary):
-            raise ValueError(
-                "maxent_token_clip_primary requires objective=maxent_listwise"
-            )
-        if bool(args.maxent_drgrpo_token_primary):
-            raise ValueError(
-                "maxent_drgrpo_token_primary requires objective=maxent_listwise"
-            )
-        if bool(args.maxent_clip_preserve_reward_mass):
-            raise ValueError(
-                "maxent_clip_preserve_reward_mass requires objective=maxent_listwise"
-            )
-        return args
+    """Reject configurations outside the single supported training surface."""
+
+    canonical_task = resolve_canonical_action_task(args)
     if args.critic_type != "drgrpo":
-        raise ValueError("Listwise MaxEnt currently requires critic_type=drgrpo")
+        raise ValueError("This project supports critic_type=drgrpo only")
     if args.num_samples <= 1:
-        raise ValueError("Listwise MaxEnt requires num_samples > 1")
-    if args.train_batch_size_per_device <= 0:
-        raise ValueError("train_batch_size_per_device must be positive")
-    row_sharded_exact_drx = bool(args.maxent_drgrpo_token_primary) and 0 < int(
-        args.train_batch_size_per_device
-    ) < int(args.num_samples)
-    if (
-        args.train_batch_size_per_device % args.num_samples != 0
-        and not row_sharded_exact_drx
+        raise ValueError("Dr.GRPO requires num_samples > 1")
+    for name in ("export_from", "resume_from"):
+        if int(getattr(args, name)) < 0:
+            raise ValueError(f"{name} must be non-negative")
+    if int(args.export_steps) < -1:
+        raise ValueError("export_steps must be -1, 0, or a positive interval")
+    if int(args.resume_steps) == 0 or int(args.resume_steps) < -1:
+        raise ValueError("resume_steps must be -1 or a positive interval")
+    for name in (
+        "max_export_num",
+        "max_resume_num",
+        "max_export_mem",
+        "max_resume_mem",
     ):
+        if int(getattr(args, name)) <= 0:
+            raise ValueError(f"{name} must be positive")
+    if math.isnan(float(args.xdr_tau)) or float(args.xdr_tau) < 0:
         raise ValueError(
-            "Listwise MaxEnt requires train_batch_size_per_device to be divisible "
-            "by num_samples so each microbatch preserves whole prompt groups, "
-            "unless the narrow row-sharded exact DrX path is enabled with "
-            "train_batch_size_per_device < num_samples."
+            "xdr_tau must be non-negative (0 = argmax-set limit; inf = Dr.GRPO)"
         )
-    if args.maxent_tau <= 0:
-        raise ValueError("Listwise MaxEnt requires maxent_tau > 0")
-    if args.maxent_logprob_chunk_size < 0:
-        raise ValueError("maxent_logprob_chunk_size must be non-negative")
-    if args.maxent_backward_chunk_size < 0:
-        raise ValueError("maxent_backward_chunk_size must be non-negative")
-    if args.maxent_backward_token_budget < 0:
-        raise ValueError("maxent_backward_token_budget must be non-negative")
-    if args.maxent_sequence_aux_coef < 0:
-        raise ValueError("maxent_sequence_aux_coef must be non-negative")
-    if args.maxent_sequence_aux_group_filter not in {
-        "all",
-        "mixed",
-        "has_correct",
-    }:
-        raise ValueError(
-            "maxent_sequence_aux_group_filter must be one of: "
-            "all, mixed, has_correct"
-        )
-    if args.maxent_sequence_aux_max_expected_len_drop < 0:
-        raise ValueError(
-            "maxent_sequence_aux_max_expected_len_drop must be non-negative"
-        )
-    if args.maxent_sequence_aux_max_expected_len_gain < 0:
-        raise ValueError(
-            "maxent_sequence_aux_max_expected_len_gain must be non-negative"
-        )
-    if args.maxent_sequence_aux_max_expected_format_drop < 0:
-        raise ValueError(
-            "maxent_sequence_aux_max_expected_format_drop must be non-negative"
-        )
-    if (
-        not -1.0
-        <= float(args.maxent_sequence_aux_min_expected_correctness_delta)
-        <= 1.0
-    ):
-        raise ValueError(
-            "maxent_sequence_aux_min_expected_correctness_delta must be in [-1, 1]"
-        )
-    if args.maxent_drgrpo_token_advantage_source not in {
-        "weighted",
-        "utility_centered",
-        "maxent_centered",
-    }:
-        raise ValueError(
-            "maxent_drgrpo_token_advantage_source must be one of: "
-            "weighted, utility_centered, maxent_centered"
-        )
-    if args.maxent_drgrpo_token_length_normalizer not in {
-        "max_length",
-        "response_length",
-    }:
-        raise ValueError(
-            "maxent_drgrpo_token_length_normalizer must be one of: "
-            "max_length, response_length"
-        )
-    if args.maxent_candidate_kl_coef < 0:
-        raise ValueError("maxent_candidate_kl_coef must be non-negative")
-    if args.maxent_neutral_projection_coef < 0:
-        raise ValueError("maxent_neutral_projection_coef must be non-negative")
-    if args.maxent_competitive_mode_tau <= 0:
-        raise ValueError("maxent_competitive_mode_tau must be positive")
-    if args.maxent_competitive_mode_gap < 0:
-        raise ValueError("maxent_competitive_mode_gap must be non-negative")
-    if args.maxent_competitive_mode_top_k <= 0:
-        raise ValueError("maxent_competitive_mode_top_k must be positive")
-    if args.maxent_competitive_mode_budget_max < 0:
-        raise ValueError("maxent_competitive_mode_budget_max must be non-negative")
-    if args.maxent_competitive_mode_budget_scale <= 0:
-        raise ValueError("maxent_competitive_mode_budget_scale must be positive")
-    if args.maxent_competitive_mode_intra_tau <= 0:
-        raise ValueError("maxent_competitive_mode_intra_tau must be positive")
-    if not 0.0 <= float(args.maxent_prompt_select_min_alpha_frac) <= 1.0:
-        raise ValueError("maxent_prompt_select_min_alpha_frac must be in [0, 1]")
-    if not 0.0 <= float(args.maxent_correctness_schedule_ema_decay) <= 1.0:
-        raise ValueError("maxent_correctness_schedule_ema_decay must be in [0, 1]")
-    if not 0.0 <= float(args.maxent_correctness_schedule_low) <= 1.0:
-        raise ValueError("maxent_correctness_schedule_low must be in [0, 1]")
-    if not 0.0 <= float(args.maxent_correctness_schedule_high) <= 1.0:
-        raise ValueError("maxent_correctness_schedule_high must be in [0, 1]")
-    if float(args.maxent_correctness_schedule_high) <= float(
-        args.maxent_correctness_schedule_low
-    ):
-        raise ValueError(
-            "maxent_correctness_schedule_high must be greater than "
-            "maxent_correctness_schedule_low"
-        )
-    if args.maxent_correctness_schedule_budget_max_early < 0:
-        raise ValueError(
-            "maxent_correctness_schedule_budget_max_early must be non-negative"
-        )
-    if args.maxent_correctness_schedule_budget_max_late < 0:
-        raise ValueError(
-            "maxent_correctness_schedule_budget_max_late must be non-negative"
-        )
-    if (
-        not 0.0
-        <= float(args.maxent_correctness_schedule_prompt_select_min_alpha_frac_early)
-        <= 1.0
-    ):
-        raise ValueError(
-            "maxent_correctness_schedule_prompt_select_min_alpha_frac_early must be in [0, 1]"
-        )
-    if (
-        not 0.0
-        <= float(args.maxent_correctness_schedule_prompt_select_min_alpha_frac_late)
-        <= 1.0
-    ):
-        raise ValueError(
-            "maxent_correctness_schedule_prompt_select_min_alpha_frac_late must be in [0, 1]"
-        )
-    if args.maxent_correctness_schedule_mode_tau_early <= 0:
-        raise ValueError("maxent_correctness_schedule_mode_tau_early must be positive")
-    if args.maxent_correctness_schedule_mode_tau_late <= 0:
-        raise ValueError("maxent_correctness_schedule_mode_tau_late must be positive")
-    if args.maxent_correctness_schedule_intra_tau_early <= 0:
-        raise ValueError("maxent_correctness_schedule_intra_tau_early must be positive")
-    if args.maxent_correctness_schedule_intra_tau_late <= 0:
-        raise ValueError("maxent_correctness_schedule_intra_tau_late must be positive")
-    if args.maxent_semantic_guard_max_expected_len_delta < 0:
-        raise ValueError(
-            "maxent_semantic_guard_max_expected_len_delta must be non-negative"
-        )
-    if args.maxent_semantic_guard_max_expected_format_drop < 0:
-        raise ValueError(
-            "maxent_semantic_guard_max_expected_format_drop must be non-negative"
-        )
-    if args.maxent_exact_drx_weight_source not in {
-        "sequence_clipped",
-        "clipped",
-        "unclipped",
-        "local_linear",
-    }:
-        raise ValueError(
-            "maxent_exact_drx_weight_source must be one of: "
-            "sequence_clipped, clipped, unclipped, local_linear"
-        )
-    if args.maxent_branch_grad_diagnostics_interval <= 0:
-        raise ValueError("maxent_branch_grad_diagnostics_interval must be positive")
-    if args.maxent_branch_grad_diagnostics_max_steps < 0:
-        raise ValueError(
-            "maxent_branch_grad_diagnostics_max_steps must be non-negative"
-        )
-    if bool(args.maxent_token_clip_primary):
-        if not bool(args.maxent_use_clip_objective):
+    maxent_alpha = float(args.maxent_alpha)
+    if not math.isfinite(maxent_alpha) or maxent_alpha < 0:
+        raise ValueError("maxent_alpha must be finite and non-negative")
+    if maxent_alpha > 0:
+        if math.isfinite(float(args.xdr_tau)):
             raise ValueError(
-                "maxent_token_clip_primary requires maxent_use_clip_objective"
+                "direct MaxEnt and signed-surrogate xDr are separate treatments"
             )
-        if args.maxent_clip_mode != "token":
+        if args.xdr_mode_adaptive:
             raise ValueError(
-                "maxent_token_clip_primary requires maxent_clip_mode=token"
+                "direct MaxEnt and mode-adaptive xDr are separate treatments"
             )
-        if args.maxent_clip_objective_coef <= 0:
+        if float(args.seed_entropy_alpha) > 0:
+            raise ValueError("direct MaxEnt and SEED are separate treatments")
+        if float(args.policy_entropy_coef) > 0:
             raise ValueError(
-                "maxent_token_clip_primary requires maxent_clip_objective_coef > 0"
+                "direct MaxEnt and the legacy token-entropy control are separate treatments"
             )
-    if bool(args.maxent_drgrpo_token_primary):
-        if bool(args.maxent_token_clip_primary):
-            raise ValueError(
-                "maxent_drgrpo_token_primary cannot be combined with "
-                "maxent_token_clip_primary"
-            )
-        if args.beta > 0:
-            raise ValueError(
-                "maxent_drgrpo_token_primary currently requires beta=0; use "
-                "maxent_candidate_kl_coef for the candidate-level trust region."
-            )
-    if (
-        args.maxent_tau_max > 0
-        and args.maxent_tau_min > 0
-        and args.maxent_tau_max < args.maxent_tau_min
-    ):
-        raise ValueError(
-            "maxent_tau_max must be >= maxent_tau_min when both are positive"
-        )
-    legacy_tau_target_fields = (
-        args.maxent_target_weight_entropy,
-        args.maxent_target_weight_entropy_start,
-        args.maxent_target_weight_entropy_peak,
-        args.maxent_target_weight_entropy_final,
-        args.maxent_target_weight_entropy_peak_step
-        if int(args.maxent_target_weight_entropy_peak_step) != 0
-        else None,
-        args.maxent_target_weight_entropy_horizon
-        if int(args.maxent_target_weight_entropy_horizon) != 0
-        else None,
+    maxent_objective = str(getattr(args, "maxent_objective", "sequence"))
+    if maxent_objective not in {"sequence", "conditional_token_mean"}:
+        raise ValueError("maxent_objective must be sequence or conditional_token_mean")
+    diayn_num_options = int(getattr(args, "diayn_num_options", 0) or 0)
+    diayn_beta = float(getattr(args, "diayn_mi_beta", 0.0) or 0.0)
+    if diayn_num_options < 0:
+        raise ValueError("diayn_num_options must be non-negative")
+    if not math.isfinite(diayn_beta) or diayn_beta < 0:
+        raise ValueError("diayn_mi_beta must be finite and non-negative")
+    if diayn_num_options <= 1 and diayn_beta > 0:
+        raise ValueError("diayn_mi_beta requires diayn_num_options > 1")
+    outcome_collision_coef = float(getattr(args, "outcome_collision_coef", 0.0) or 0.0)
+    outcome_collision_outside_centering = bool(
+        getattr(args, "outcome_collision_outside_centering", False)
     )
-    using_legacy_tau_target = any(
-        value is not None for value in legacy_tau_target_fields
+    if not math.isfinite(outcome_collision_coef) or outcome_collision_coef < 0:
+        raise ValueError("outcome_collision_coef must be finite and non-negative")
+    if outcome_collision_outside_centering and outcome_collision_coef <= 0:
+        raise ValueError(
+            "outcome_collision_outside_centering requires a positive "
+            "outcome_collision_coef"
+        )
+    semantic_shannon_coef = float(getattr(args, "semantic_shannon_coef", 0.0) or 0.0)
+    semantic_shannon_surprisal_clip = float(
+        getattr(args, "semantic_shannon_surprisal_clip", 5.0)
     )
-    if bool(args.maxent_tau_learnable) or bool(args.maxent_tau_controller_enabled):
-        if using_legacy_tau_target:
+    semantic_shannon_pseudocount = float(
+        getattr(args, "semantic_shannon_pseudocount", 1.0)
+    )
+    semantic_shannon_separate_advantage = bool(
+        getattr(args, "semantic_shannon_separate_advantage", False)
+    )
+    semantic_shannon_quality_gated_advantage = bool(
+        getattr(args, "semantic_shannon_quality_gated_advantage", False)
+    )
+    semantic_shannon_quality_gated_cap = float(
+        getattr(args, "semantic_shannon_quality_gated_cap", 0.05)
+    )
+    semantic_shannon_success_conditioned_signed_advantage = bool(
+        getattr(
+            args,
+            "semantic_shannon_success_conditioned_signed_advantage",
+            False,
+        )
+    )
+    semantic_shannon_success_conditioned_signed_cap = float(
+        getattr(
+            args,
+            "semantic_shannon_success_conditioned_signed_cap",
+            0.05,
+        )
+    )
+    semantic_shannon_open_set_inverse_adaptation = bool(
+        getattr(
+            args,
+            "semantic_shannon_open_set_inverse_adaptation",
+            False,
+        )
+    )
+    semantic_shannon_open_set_warmup_steps = int(
+        getattr(args, "semantic_shannon_open_set_warmup_steps", 64)
+    )
+    semantic_shannon_open_set_ema_decay = float(
+        getattr(args, "semantic_shannon_open_set_ema_decay", 0.9)
+    )
+    online_canonical_bank_alpha = float(
+        getattr(args, "online_canonical_bank_alpha", 0.0) or 0.0
+    )
+    online_canonical_novelty_beta = float(
+        getattr(args, "online_canonical_novelty_beta", 0.0) or 0.0
+    )
+    online_canonical_bank_pseudocount = float(
+        getattr(args, "online_canonical_bank_pseudocount", 1.0)
+    )
+    online_canonical_bank_surprisal_clip = float(
+        getattr(args, "online_canonical_bank_surprisal_clip", 5.0)
+    )
+    online_canonical_dual_target_ratio = float(
+        getattr(args, "online_canonical_dual_target_ratio", 0.0) or 0.0
+    )
+    online_canonical_dual_min_alpha = float(
+        getattr(args, "online_canonical_dual_min_alpha", 0.005)
+    )
+    online_canonical_dual_max_alpha = float(
+        getattr(args, "online_canonical_dual_max_alpha", 0.5)
+    )
+    online_canonical_dual_alpha_lr = float(
+        getattr(args, "online_canonical_dual_alpha_lr", 0.003)
+    )
+    online_canonical_dual_ema_decay = float(
+        getattr(args, "online_canonical_dual_ema_decay", 0.9)
+    )
+    online_canonical_policy_entropy_adaptation = bool(
+        getattr(
+            args,
+            "online_canonical_policy_entropy_adaptation",
+            False,
+        )
+    )
+    online_canonical_policy_entropy_warmup_steps = int(
+        getattr(
+            args,
+            "online_canonical_policy_entropy_warmup_steps",
+            64,
+        )
+    )
+    online_canonical_policy_entropy_ema_decay = float(
+        getattr(
+            args,
+            "online_canonical_policy_entropy_ema_decay",
+            0.9,
+        )
+    )
+    online_canonical_replay = bool(getattr(args, "online_canonical_replay", False))
+    online_canonical_replay_alpha = float(
+        getattr(args, "online_canonical_replay_alpha", 0.1)
+    )
+    online_canonical_replay_objective = str(
+        getattr(
+            args,
+            "online_canonical_replay_objective",
+            "bank_balance",
+        )
+    )
+    online_canonical_replay_capacity = int(
+        getattr(args, "online_canonical_replay_capacity", 16)
+    )
+    online_canonical_replay_global_groups_per_step = int(
+        getattr(
+            args,
+            "online_canonical_replay_global_groups_per_step",
+            0,
+        )
+    )
+    online_canonical_replay_global_bootstrap_steps = int(
+        getattr(
+            args,
+            "online_canonical_replay_global_bootstrap_steps",
+            0,
+        )
+    )
+    online_canonical_replay_warmup_steps = int(
+        getattr(args, "online_canonical_replay_warmup_steps", 64)
+    )
+    online_canonical_replay_ema_decay = float(
+        getattr(args, "online_canonical_replay_ema_decay", 0.9)
+    )
+    online_canonical_replay_mass_alpha = float(
+        getattr(args, "online_canonical_replay_mass_alpha", 0.1)
+    )
+    online_canonical_replay_mass_warmup_steps = int(
+        getattr(args, "online_canonical_replay_mass_warmup_steps", 64)
+    )
+    online_canonical_replay_mass_ema_decay = float(
+        getattr(args, "online_canonical_replay_mass_ema_decay", 0.9)
+    )
+    online_canonical_counterfactual_proposals = bool(
+        getattr(
+            args,
+            "online_canonical_counterfactual_proposals",
+            False,
+        )
+    )
+    online_canonical_counterfactual_separate_objective_support = bool(
+        getattr(
+            args,
+            "online_canonical_counterfactual_separate_objective_support",
+            False,
+        )
+    )
+    online_canonical_counterfactual_singleton_entropy_gate = bool(
+        getattr(
+            args,
+            "online_canonical_counterfactual_singleton_entropy_gate",
+            False,
+        )
+    )
+    online_canonical_counterfactual_anchor_max_tokens = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_anchor_max_tokens",
+            256,
+        )
+    )
+    online_canonical_key_mode = str(
+        getattr(args, "online_canonical_key_mode", "modebench_outcome")
+    )
+    verified_route_replay_capacity_per_route = int(
+        getattr(args, "verified_route_replay_capacity_per_route", 16)
+    )
+    verified_route_recurring_min_neutral_prompts = int(
+        getattr(args, "verified_route_recurring_min_neutral_prompts", 2)
+    )
+    verified_route_proposal_max_mean_logprob_drop = float(
+        getattr(args, "verified_route_proposal_max_mean_logprob_drop", 2.0)
+    )
+    math_strategy_gate_task_reward = bool(
+        getattr(args, "math_strategy_gate_task_reward", False)
+    )
+    math_strategy_allow_unstructured_inference = bool(
+        getattr(args, "math_strategy_allow_unstructured_inference", False)
+    )
+    online_canonical_bank_active = (
+        online_canonical_bank_alpha > 0.0 or online_canonical_novelty_beta > 0.0
+    )
+    online_canonical_objective_active = (
+        online_canonical_bank_active or online_canonical_replay
+    )
+    for name, value in (
+        ("online_canonical_bank_alpha", online_canonical_bank_alpha),
+        ("online_canonical_novelty_beta", online_canonical_novelty_beta),
+    ):
+        if not math.isfinite(value) or value < 0:
+            raise ValueError(f"{name} must be finite and non-negative")
+    for name, value in (
+        ("online_canonical_bank_pseudocount", online_canonical_bank_pseudocount),
+        (
+            "online_canonical_bank_surprisal_clip",
+            online_canonical_bank_surprisal_clip,
+        ),
+        ("online_canonical_dual_min_alpha", online_canonical_dual_min_alpha),
+        ("online_canonical_dual_alpha_lr", online_canonical_dual_alpha_lr),
+    ):
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} must be finite and positive")
+    if (
+        math.isnan(online_canonical_dual_max_alpha)
+        or online_canonical_dual_max_alpha <= 0
+    ):
+        raise ValueError("online_canonical_dual_max_alpha must be positive or +inf")
+    if (
+        not math.isfinite(online_canonical_dual_target_ratio)
+        or not 0 <= online_canonical_dual_target_ratio <= 1
+    ):
+        raise ValueError(
+            "online_canonical_dual_target_ratio must be finite and in [0, 1]"
+        )
+    if (
+        not math.isfinite(online_canonical_dual_ema_decay)
+        or not 0 <= online_canonical_dual_ema_decay < 1
+    ):
+        raise ValueError("online_canonical_dual_ema_decay must be finite and in [0, 1)")
+    if online_canonical_policy_entropy_warmup_steps <= 0:
+        raise ValueError(
+            "online_canonical_policy_entropy_warmup_steps must be positive"
+        )
+    if (
+        not math.isfinite(online_canonical_policy_entropy_ema_decay)
+        or not 0 <= online_canonical_policy_entropy_ema_decay < 1
+    ):
+        raise ValueError(
+            "online_canonical_policy_entropy_ema_decay must be finite and in [0, 1)"
+        )
+    if (
+        not math.isfinite(online_canonical_replay_alpha)
+        or online_canonical_replay_alpha <= 0
+    ):
+        raise ValueError("online_canonical_replay_alpha must be finite and positive")
+    if online_canonical_replay_objective not in {
+        "bank_balance",
+        "verified_likelihood",
+        "verified_likelihood_per_rollout",
+        "split_mass_balance_per_rollout",
+    }:
+        raise ValueError(
+            "online_canonical_replay_objective must be bank_balance or "
+            "verified_likelihood or verified_likelihood_per_rollout or "
+            "split_mass_balance_per_rollout"
+        )
+    if online_canonical_replay_warmup_steps <= 0:
+        raise ValueError("online_canonical_replay_warmup_steps must be positive")
+    if online_canonical_replay_capacity < 2:
+        raise ValueError("online_canonical_replay_capacity must be at least two")
+    if online_canonical_replay_global_groups_per_step < 0:
+        raise ValueError(
+            "online_canonical_replay_global_groups_per_step must be non-negative"
+        )
+    if online_canonical_replay_global_bootstrap_steps < 0:
+        raise ValueError(
+            "online_canonical_replay_global_bootstrap_steps must be non-negative"
+        )
+    if (
+        online_canonical_replay_global_groups_per_step > 0
+        and not online_canonical_replay
+    ):
+        raise ValueError(
+            "online_canonical_replay_global_groups_per_step requires replay"
+        )
+    if (
+        online_canonical_replay_global_bootstrap_steps > 0
+        and online_canonical_replay_global_groups_per_step <= 0
+    ):
+        raise ValueError(
+            "online_canonical_replay_global_bootstrap_steps requires "
+            "positive global groups per step"
+        )
+    if (
+        not math.isfinite(online_canonical_replay_ema_decay)
+        or not 0 <= online_canonical_replay_ema_decay < 1
+    ):
+        raise ValueError(
+            "online_canonical_replay_ema_decay must be finite and in [0, 1)"
+        )
+    if (
+        not math.isfinite(online_canonical_replay_mass_alpha)
+        or online_canonical_replay_mass_alpha <= 0
+    ):
+        raise ValueError(
+            "online_canonical_replay_mass_alpha must be finite and positive"
+        )
+    if online_canonical_replay_mass_warmup_steps <= 0:
+        raise ValueError("online_canonical_replay_mass_warmup_steps must be positive")
+    if (
+        not math.isfinite(online_canonical_replay_mass_ema_decay)
+        or not 0 <= online_canonical_replay_mass_ema_decay < 1
+    ):
+        raise ValueError(
+            "online_canonical_replay_mass_ema_decay must be finite and in [0, 1)"
+        )
+    if (
+        bool(getattr(args, "online_canonical_replay_compute_only", False))
+        and not online_canonical_replay
+    ):
+        raise ValueError(
+            "online_canonical_replay_compute_only requires canonical replay"
+        )
+    if online_canonical_counterfactual_anchor_max_tokens <= 0:
+        raise ValueError(
+            "online_canonical_counterfactual_anchor_max_tokens must be positive"
+        )
+    online_canonical_counterfactual_max_attempts = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_max_attempts",
+            3,
+        )
+    )
+    if online_canonical_counterfactual_max_attempts <= 0:
+        raise ValueError(
+            "online_canonical_counterfactual_max_attempts must be positive"
+        )
+    online_canonical_counterfactual_sampling_temperature = float(
+        getattr(
+            args,
+            "online_canonical_counterfactual_sampling_temperature",
+            1.0,
+        )
+    )
+    online_canonical_counterfactual_fixed_control_groups = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_fixed_control_groups",
+            0,
+        )
+    )
+    if online_canonical_counterfactual_fixed_control_groups < 0:
+        raise ValueError(
+            "online_canonical_counterfactual_fixed_control_groups must be "
+            "non-negative"
+        )
+    if (
+        online_canonical_counterfactual_fixed_control_groups > 0
+        and not bool(getattr(args, "replicated_freeform_sampling", False))
+    ):
+        raise ValueError(
+            "fixed counterfactual control groups require replicated "
+            "free-form sampling"
+        )
+    if (
+        online_canonical_counterfactual_proposals
+        and 0 < online_canonical_counterfactual_fixed_control_groups
+        < online_canonical_counterfactual_max_attempts
+    ):
+        raise ValueError(
+            "fixed counterfactual control groups must cover every proposal "
+            "attempt"
+        )
+    if (
+        not math.isfinite(online_canonical_counterfactual_sampling_temperature)
+        or online_canonical_counterfactual_sampling_temperature <= 0
+    ):
+        raise ValueError(
+            "online_canonical_counterfactual_sampling_temperature must be "
+            "finite and positive"
+        )
+    if online_canonical_replay:
+        if not bool(getattr(args, "verified_discovery_tracking", True)):
             raise ValueError(
-                "Adaptive listwise tau no longer accepts "
-                "maxent_target_weight_entropy*; use maxent_tau_target_metric* "
-                "with maxent_tau_adaptation_metric set to a rollout-side signal."
+                "online canonical replay requires verified discovery tracking"
+            )
+        if online_canonical_key_mode not in {
+            "modebench_outcome",
+            "math_verified_answer",
+            "verified_route",
+        }:
+            raise ValueError(
+                "online canonical replay currently requires "
+                "online_canonical_key_mode=modebench_outcome or "
+                "math_verified_answer or verified_route"
+            )
+    if online_canonical_counterfactual_proposals:
+        if not online_canonical_replay:
+            raise ValueError(
+                "counterfactual canonical proposals require canonical replay"
+            )
+        if online_canonical_key_mode not in {
+            "modebench_outcome",
+            "verified_route",
+        }:
+            raise ValueError(
+                "counterfactual canonical proposals require executable "
+                "ModeBench outcome keys or verified route identities"
             )
         if (
-            args.maxent_tau_target_metric is None
-            and args.maxent_tau_target_metric_start is None
-            and args.maxent_tau_target_metric_peak is None
-            and args.maxent_tau_target_metric_final is None
+            online_canonical_bank_alpha != 0.0 or online_canonical_novelty_beta != 0.0
+        ) and not (online_canonical_counterfactual_separate_objective_support):
+            raise ValueError(
+                "proposal support cannot feed an on-policy canonical-bank advantage"
+            )
+        if not bool(getattr(args, "online_evaluation", False)):
+            raise ValueError(
+                "counterfactual canonical proposals require online validation"
+            )
+    elif online_canonical_counterfactual_separate_objective_support:
+        raise ValueError(
+            "separate counterfactual objective support requires "
+            "counterfactual proposals"
+        )
+    if online_canonical_counterfactual_singleton_entropy_gate:
+        if not online_canonical_counterfactual_proposals:
+            raise ValueError("singleton entropy gate requires counterfactual proposals")
+        if not semantic_shannon_open_set_inverse_adaptation:
+            raise ValueError(
+                "singleton entropy gate requires model-derived open-set "
+                "inverse entropy adaptation"
+            )
+    if (
+        online_canonical_policy_entropy_adaptation
+        and online_canonical_dual_target_ratio > 0
+    ):
+        raise ValueError(
+            "canonical policy-entropy adaptation and Haarnoja dual control "
+            "are separate treatments"
+        )
+    if online_canonical_policy_entropy_adaptation and bool(
+        getattr(args, "maxent_inverse_adaptation", False)
+    ):
+        raise ValueError(
+            "direct inverse MaxEnt and canonical policy-entropy adaptation "
+            "are separate treatments"
+        )
+    if online_canonical_policy_entropy_adaptation:
+        if not online_canonical_bank_active or online_canonical_bank_alpha <= 0:
+            raise ValueError(
+                "canonical policy-entropy adaptation requires a positive bank alpha"
+            )
+    if online_canonical_dual_target_ratio > 0:
+        if not online_canonical_bank_active or online_canonical_bank_alpha <= 0:
+            raise ValueError(
+                "online canonical dual control requires a positive bank alpha"
+            )
+        if online_canonical_dual_min_alpha > online_canonical_bank_alpha:
+            raise ValueError(
+                "online_canonical_dual_min_alpha must not exceed bank alpha"
+            )
+        if online_canonical_dual_max_alpha < online_canonical_bank_alpha:
+            raise ValueError(
+                "online_canonical_dual_max_alpha must be at least bank alpha"
+            )
+    if online_canonical_key_mode not in {
+        "modebench_outcome",
+        "math_verified_answer",
+        "math_strategy_qwen72",
+        "verified_route",
+    }:
+        raise ValueError(
+            "online_canonical_key_mode must be modebench_outcome, "
+            "math_verified_answer, math_strategy_qwen72, or verified_route"
+        )
+    if verified_route_replay_capacity_per_route <= 0:
+        raise ValueError("verified_route_replay_capacity_per_route must be positive")
+    if verified_route_recurring_min_neutral_prompts < 2:
+        raise ValueError(
+            "verified_route_recurring_min_neutral_prompts must be at least two"
+        )
+    if (
+        not math.isfinite(verified_route_proposal_max_mean_logprob_drop)
+        or verified_route_proposal_max_mean_logprob_drop < 0
+    ):
+        raise ValueError(
+            "verified_route_proposal_max_mean_logprob_drop must be finite and "
+            "non-negative"
+        )
+    if online_canonical_key_mode == "verified_route":
+        template_role = prompt_template_role(args.prompt_template)
+        modebench_contract = (
+            template_role == "boxed"
+            and args.verifier_version == "fast"
+            and args.test_split == "multi_answer"
+        )
+        math_route_contract = (
+            template_role == "math_route"
+            and args.verifier_version == "math_verify"
+            and args.test_split == "math_dev"
+        )
+        if not (modebench_contract or math_route_contract):
+            raise ValueError(
+                "verified-route mode requires either executable ModeBench "
+                "(*_boxed, fast, multi_answer) or sealed route-development "
+                "MATH (*_math_route, math_verify, math_dev)"
+            )
+        if online_canonical_bank_alpha != 0.0 or online_canonical_novelty_beta != 0.0:
+            raise ValueError(
+                "verified-route neutral learning keeps canonical advantages "
+                "at zero and uses conservative replay only"
+            )
+        if online_canonical_counterfactual_proposals and not (
+            online_canonical_counterfactual_separate_objective_support
         ):
             raise ValueError(
-                "Adaptive listwise tau requires maxent_tau_target_metric* to be set."
+                "verified-route proposals require a separate support store"
             )
-        if args.maxent_tau_lr <= 0:
-            raise ValueError("Adaptive listwise tau requires maxent_tau_lr > 0")
+        if online_canonical_counterfactual_proposals and not math.isclose(
+            online_canonical_counterfactual_sampling_temperature,
+            float(args.temperature),
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "verified-route proposal and neutral temperatures must match "
+                "for the anchor-relative likelihood trust check"
+            )
+        if online_canonical_replay:
+            if online_canonical_replay_objective != ("verified_likelihood_per_rollout"):
+                raise ValueError(
+                    "verified-route replay requires verified_likelihood_per_rollout"
+                )
+            if online_canonical_replay_global_groups_per_step != 1:
+                raise ValueError(
+                    "verified-route replay requires exactly one fixed-budget "
+                    "global replay group per optimizer update"
+                )
+            if online_canonical_replay_global_bootstrap_steps != 0:
+                raise ValueError(
+                    "verified-route replay does not use a finite endpoint "
+                    "bootstrap phase"
+                )
+    if math_strategy_gate_task_reward:
+        if online_canonical_key_mode != "math_strategy_qwen72":
+            raise ValueError(
+                "math strategy task-reward gating requires "
+                "online_canonical_key_mode=math_strategy_qwen72"
+            )
+        if not bool(getattr(args, "verified_discovery_tracking", True)):
+            raise ValueError(
+                "math strategy task-reward gating requires canonical "
+                "tracking so every positive response is audited"
+            )
+    if math_strategy_allow_unstructured_inference and (
+        online_canonical_key_mode != "math_strategy_qwen72"
+    ):
+        raise ValueError(
+            "unstructured MATH strategy inference requires "
+            "online_canonical_key_mode=math_strategy_qwen72"
+        )
+    if online_canonical_objective_active:
+        if args.critic_type != "drgrpo":
+            raise ValueError("online canonical bank requires critic_type=drgrpo")
+        if online_canonical_key_mode == "modebench_outcome":
+            template_role = prompt_template_role(args.prompt_template)
+            executable_modebench_contract = (
+                args.verifier_version == "fast"
+                and args.test_split == "multi_answer"
+                and (
+                    template_role == "boxed"
+                    or (
+                        canonical_task == "pantry_support_mask"
+                        and template_role == "pantry_support_mask"
+                    )
+                )
+            )
+            if not executable_modebench_contract:
+                raise ValueError(
+                    "online canonical banks require executable ModeBench "
+                    "validation with the task-bound prompt template, "
+                    "verifier_version=fast, and test_split=multi_answer"
+                )
+        elif online_canonical_key_mode == "math_verified_answer":
+            if (
+                prompt_template_role(args.prompt_template) != "math"
+                or args.verifier_version != "math_verify"
+                or args.test_split not in {"math", "math_dev"}
+            ):
+                raise ValueError(
+                    "verified-answer MATH replay requires "
+                    "prompt_template=*_math, "
+                    "verifier_version=math_verify, and "
+                    "test_split=math or math_dev"
+                )
+        elif online_canonical_key_mode == "math_strategy_qwen72" and (
+            args.prompt_template != "qwen_math"
+            or args.verifier_version != "math_verify"
+            or args.test_split != "math"
+        ):
+            raise ValueError(
+                "MATH strategy banks require validator-bound "
+                "prompt_template=qwen_math, verifier_version=math_verify, "
+                "and test_split=math"
+            )
+    if online_canonical_key_mode == "math_strategy_qwen72" and (
+        online_canonical_bank_active
+        or bool(getattr(args, "verified_discovery_tracking", True))
+        or math_strategy_gate_task_reward
+    ):
+        if not str(getattr(args, "math_strategy_endpoint", "")).strip():
+            raise ValueError("math_strategy_qwen72 requires math_strategy_endpoint")
+        if int(getattr(args, "math_strategy_timeout_seconds", 600)) <= 0:
+            raise ValueError("math_strategy_timeout_seconds must be positive")
+        if int(getattr(args, "math_strategy_workers", 4)) <= 0:
+            raise ValueError("math_strategy_workers must be positive")
+        if int(getattr(args, "math_strategy_max_item_chars", 4000)) < 600:
+            raise ValueError("math_strategy_max_item_chars must be at least 600")
+    if not math.isfinite(semantic_shannon_coef) or semantic_shannon_coef < 0:
+        raise ValueError("semantic_shannon_coef must be finite and non-negative")
+    if (
+        not math.isfinite(semantic_shannon_surprisal_clip)
+        or semantic_shannon_surprisal_clip <= 0
+    ):
+        raise ValueError("semantic_shannon_surprisal_clip must be finite and positive")
+    if (
+        not math.isfinite(semantic_shannon_pseudocount)
+        or semantic_shannon_pseudocount <= 0
+    ):
+        raise ValueError("semantic_shannon_pseudocount must be finite and positive")
+    if semantic_shannon_separate_advantage and semantic_shannon_coef <= 0:
+        raise ValueError(
+            "semantic_shannon_separate_advantage requires a positive "
+            "semantic_shannon_coef"
+        )
+    if semantic_shannon_separate_advantage and args.critic_type != "drgrpo":
+        raise ValueError(
+            "semantic_shannon_separate_advantage requires critic_type=drgrpo"
+        )
+    if (
+        not math.isfinite(semantic_shannon_quality_gated_cap)
+        or semantic_shannon_quality_gated_cap <= 0
+    ):
+        raise ValueError(
+            "semantic_shannon_quality_gated_cap must be finite and positive"
+        )
+    if (
+        semantic_shannon_quality_gated_advantage
+        and not semantic_shannon_separate_advantage
+    ):
+        raise ValueError(
+            "semantic_shannon_quality_gated_advantage requires "
+            "semantic_shannon_separate_advantage"
+        )
+    if (
+        not math.isfinite(semantic_shannon_success_conditioned_signed_cap)
+        or semantic_shannon_success_conditioned_signed_cap <= 0
+    ):
+        raise ValueError(
+            "semantic_shannon_success_conditioned_signed_cap must be finite "
+            "and positive"
+        )
+    if (
+        semantic_shannon_success_conditioned_signed_advantage
+        and not semantic_shannon_separate_advantage
+    ):
+        raise ValueError(
+            "semantic_shannon_success_conditioned_signed_advantage requires "
+            "semantic_shannon_separate_advantage"
+        )
+    if (
+        semantic_shannon_success_conditioned_signed_advantage
+        and semantic_shannon_quality_gated_advantage
+    ):
+        raise ValueError(
+            "semantic Shannon quality-gated and success-conditioned signed "
+            "advantages are separate treatments"
+        )
+    if (
+        semantic_shannon_open_set_inverse_adaptation
+        and not semantic_shannon_success_conditioned_signed_advantage
+    ):
+        raise ValueError(
+            "semantic_shannon_open_set_inverse_adaptation requires the "
+            "success-conditioned signed semantic advantage"
+        )
+    if semantic_shannon_open_set_warmup_steps <= 0:
+        raise ValueError("semantic_shannon_open_set_warmup_steps must be positive")
+    if (
+        not math.isfinite(semantic_shannon_open_set_ema_decay)
+        or not 0 <= semantic_shannon_open_set_ema_decay < 1
+    ):
+        raise ValueError(
+            "semantic_shannon_open_set_ema_decay must be finite and in [0, 1)"
+        )
+    xdr_task_advantage_weights = bool(
+        getattr(args, "xdr_task_advantage_weights", False)
+    )
+    if xdr_task_advantage_weights:
+        if not math.isfinite(float(args.xdr_tau)) or float(args.xdr_tau) <= 0:
+            raise ValueError(
+                "xdr_task_advantage_weights requires a finite positive xdr_tau"
+            )
+        if not semantic_shannon_success_conditioned_signed_advantage:
+            raise ValueError(
+                "xdr_task_advantage_weights requires the success-conditioned "
+                "signed semantic advantage"
+            )
+        if bool(getattr(args, "xdr_mode_adaptive", False)):
+            raise ValueError(
+                "xdr_task_advantage_weights and mode-adaptive xDr are "
+                "separate treatments"
+            )
+    if outcome_collision_coef > 0:
+        if semantic_shannon_coef > 0:
+            raise ValueError(
+                "outcome-collision and semantic Shannon shaping are separate treatments"
+            )
+        if diayn_num_options > 1:
+            raise ValueError(
+                "outcome-collision shaping and DIAYN answer options are "
+                "separate treatments"
+            )
+        if maxent_alpha > 0:
+            raise ValueError(
+                "outcome-collision shaping and direct MaxEnt are separate treatments"
+            )
+        if float(args.seed_entropy_alpha) > 0:
+            raise ValueError(
+                "outcome-collision shaping and SEED are separate treatments"
+            )
+        if float(args.policy_entropy_coef) > 0:
+            raise ValueError(
+                "outcome-collision shaping and token entropy are separate treatments"
+            )
+        if math.isfinite(float(args.xdr_tau)):
+            raise ValueError(
+                "outcome-collision shaping and signed-surrogate xDr are "
+                "separate treatments"
+            )
+    if semantic_shannon_coef > 0:
+        if diayn_num_options > 1:
+            raise ValueError(
+                "semantic Shannon shaping and DIAYN answer options are "
+                "separate treatments"
+            )
+        open_set_inverse_maxent_composition = (
+            semantic_shannon_open_set_inverse_adaptation
+            and bool(getattr(args, "maxent_inverse_adaptation", False))
+            and str(getattr(args, "maxent_objective", "sequence"))
+            == "conditional_token_mean"
+        )
+        if maxent_alpha > 0 and not open_set_inverse_maxent_composition:
+            raise ValueError(
+                "semantic Shannon shaping and direct MaxEnt are separate "
+                "treatments except for open-set semantic inverse adaptation "
+                "with inverse conditional-token MaxEnt"
+            )
+        if float(args.seed_entropy_alpha) > 0:
+            raise ValueError(
+                "semantic Shannon shaping and SEED are separate treatments"
+            )
+        if float(args.policy_entropy_coef) > 0:
+            raise ValueError(
+                "semantic Shannon shaping and token entropy are separate treatments"
+            )
+        if math.isfinite(float(args.xdr_tau)) and not xdr_task_advantage_weights:
+            raise ValueError(
+                "semantic Shannon shaping and signed-surrogate xDr are "
+                "separate treatments"
+            )
+    if online_canonical_objective_active:
+        open_set_split_replay_composition = (
+            semantic_shannon_open_set_inverse_adaptation
+            and online_canonical_replay
+            and online_canonical_replay_objective == "split_mass_balance_per_rollout"
+        )
+        if semantic_shannon_coef > 0 and not open_set_split_replay_composition:
+            raise ValueError(
+                "online canonical bank and semantic Shannon are separate "
+                "treatments except for open-set semantic inverse adaptation "
+                "with split mass/balance replay"
+            )
+        if outcome_collision_coef > 0:
+            raise ValueError(
+                "online canonical bank and outcome collision are separate treatments"
+            )
+        if diayn_num_options > 1:
+            raise ValueError("online canonical bank and DIAYN are separate treatments")
+        inverse_fixed_canonical_hybrid = (
+            bool(getattr(args, "maxent_inverse_adaptation", False))
+            and str(getattr(args, "maxent_objective", "sequence"))
+            == "conditional_token_mean"
+            and online_canonical_dual_target_ratio == 0
+            and not online_canonical_policy_entropy_adaptation
+        )
+        if maxent_alpha > 0 and not inverse_fixed_canonical_hybrid:
+            raise ValueError(
+                "online canonical bank and token-policy MaxEnt are separate "
+                "treatments except for inverse conditional-token MaxEnt with "
+                "a fixed canonical coefficient"
+            )
+        if float(args.seed_entropy_alpha) > 0:
+            raise ValueError("online canonical bank and SEED are separate treatments")
+        if float(args.policy_entropy_coef) > 0:
+            raise ValueError(
+                "online canonical bank and token entropy are separate treatments"
+            )
+        if math.isfinite(float(args.xdr_tau)):
+            raise ValueError(
+                "online canonical bank and signed-surrogate xDr are separate treatments"
+            )
+    if diayn_num_options > 1:
+        if int(args.num_samples) % diayn_num_options != 0:
+            raise ValueError("num_samples must divide evenly across DIAYN options")
+        if maxent_alpha > 0:
+            raise ValueError(
+                "DIAYN answer-option MI and direct MaxEnt are separate treatments"
+            )
+        if float(args.seed_entropy_alpha) > 0:
+            raise ValueError("DIAYN answer-option MI and SEED are separate treatments")
+        if float(args.policy_entropy_coef) > 0:
+            raise ValueError(
+                "DIAYN answer-option MI and token-entropy control are separate treatments"
+            )
+        if math.isfinite(float(args.xdr_tau)):
+            raise ValueError(
+                "DIAYN answer-option MI and signed-surrogate xDr are separate treatments"
+            )
+        if float(args.seed_entropy_alpha) > 0:
+            raise ValueError("DIAYN answer-option MI and SEED are separate treatments")
+        if float(args.policy_entropy_coef) > 0:
+            raise ValueError(
+                "DIAYN answer-option MI and token entropy are separate treatments"
+            )
+        coverage_k = int(getattr(args, "eval_mode_coverage_k", 0) or 0)
+        if coverage_k > 0 and coverage_k % diayn_num_options != 0:
+            raise ValueError(
+                "eval_mode_coverage_k must divide evenly across DIAYN options"
+            )
+        for name in (
+            "diayn_mi_ema_decay",
+            "diayn_mi_smoothing",
+            "diayn_mi_bonus_clip",
+        ):
+            value = float(getattr(args, name))
+            if not math.isfinite(value):
+                raise ValueError(f"{name} must be finite")
+        if not 0 <= float(args.diayn_mi_ema_decay) < 1:
+            raise ValueError("diayn_mi_ema_decay must be in [0, 1)")
+        if float(args.diayn_mi_smoothing) <= 0:
+            raise ValueError("diayn_mi_smoothing must be positive")
+        if float(args.diayn_mi_bonus_clip) <= 0:
+            raise ValueError("diayn_mi_bonus_clip must be positive")
+    canonical_actions = canonical_task != "none"
+    canonical_action_count = int(args.canonical_graph_action_count)
+    canonical_learner_sampling = bool(args.canonical_graph_learner_sampling)
+    canonical_fixed_shape_sampling = bool(args.canonical_graph_fixed_shape_sampling)
+    replicated_freeform_sampling = bool(args.replicated_freeform_sampling)
+    if replicated_freeform_sampling:
+        if canonical_actions:
+            raise ValueError(
+                "replicated_freeform_sampling cannot use canonical actions"
+            )
+        if int(args.rollout_batch_size_per_device) != 1:
+            raise ValueError(
+                "replicated free-form sampling requires rollout_batch_size_per_device=1"
+            )
+        if int(args.num_gpus_per_actor) <= 1 and not bool(args.local_actor_weight_sync):
+            raise ValueError(
+                "replicated free-form sampling requires a multi-GPU actor or "
+                "local_actor_weight_sync"
+            )
+    if online_canonical_counterfactual_proposals:
+        if not replicated_freeform_sampling:
+            raise ValueError(
+                "counterfactual canonical proposals require replicated "
+                "free-form sampling"
+            )
+    if bool(args.local_actor_weight_sync):
+        if not replicated_freeform_sampling:
+            raise ValueError(
+                "local_actor_weight_sync requires replicated_freeform_sampling"
+            )
+        if int(args.num_gpus_per_actor) != 1:
+            raise ValueError("local_actor_weight_sync requires num_gpus_per_actor=1")
+    if int(args.vllm_sleep_level) not in {1, 2}:
+        raise ValueError("vllm_sleep_level must be 1 or 2")
+    if int(args.vllm_sleep_level) == 2:
+        if not bool(args.vllm_sleep):
+            raise ValueError("vllm_sleep_level=2 requires vllm_sleep")
+        if not bool(args.local_actor_weight_sync):
+            raise ValueError("vllm_sleep_level=2 requires local_actor_weight_sync")
+        if int(args.sync_params_every) != 1:
+            raise ValueError("vllm_sleep_level=2 requires sync_params_every=1")
+    if canonical_actions:
+        pantry_verified_maxent = canonical_task == "pantry_support_mask"
+        if online_canonical_bank_active and not pantry_verified_maxent:
+            raise ValueError("online growing-support banks require free-form rollouts")
+        if outcome_collision_coef > 0:
+            raise ValueError(
+                "outcome-collision shaping currently requires free-form rollouts"
+            )
+        if semantic_shannon_coef > 0 and not pantry_verified_maxent:
+            raise ValueError(
+                "semantic Shannon shaping currently requires free-form rollouts"
+            )
+        if diayn_num_options > 1:
+            raise ValueError(
+                "DIAYN answer options currently require free-form rollouts"
+            )
+        if maxent_objective != "sequence":
+            raise ValueError(
+                "canonical finite policies require maxent_objective=sequence"
+            )
+        # The task pins the contract role; the chat surface is free so the same
+        # canonical policy can run on either base-model family.
+        allowed_templates = CANONICAL_TASK_PROMPT_TEMPLATES[canonical_task]
+        if args.prompt_template not in allowed_templates:
+            raise ValueError(
+                f"canonical {canonical_task} actions require "
+                f"prompt_template in {sorted(allowed_templates)}; "
+                f"got {args.prompt_template}"
+            )
+        required_action_count = 6 if canonical_task == "pantry_support_mask" else 3
+        if canonical_action_count != required_action_count:
+            raise ValueError(
+                "canonical finite policy action count mismatch: "
+                f"task={canonical_task} canonical_graph_action_count="
+                f"{required_action_count} required; observed={canonical_action_count}"
+            )
+        if args.test_split != "multi_answer":
+            raise ValueError(
+                "canonical finite policies require test_split=multi_answer"
+            )
+        if float(args.maxent_length_target) > 0:
+            raise ValueError(
+                "canonical fixed-horizon actions cannot use the response-length controller"
+            )
+        if float(args.top_p) != 1.0:
+            raise ValueError("canonical actions require top_p=1")
+        if int(args.top_k) != -1:
+            raise ValueError("canonical actions require top_k=-1")
+        if not math.isfinite(float(args.temperature)) or float(args.temperature) <= 0:
+            raise ValueError("canonical actions require finite positive temperature")
+        if canonical_learner_sampling and int(args.rollout_batch_size) != 1:
+            raise ValueError(
+                "canonical learner-side sampling requires rollout_batch_size=1"
+            )
+        if canonical_learner_sampling and not canonical_fixed_shape_sampling:
+            raise ValueError(
+                "canonical learner-side sampling requires the frozen fixed-shape "
+                "causal-placeholder path"
+            )
+    elif prompt_template_role(args.prompt_template) in (
+        CANONICAL_DIGIT_TEMPLATE_ROLES
+    ):
+        raise ValueError(
+            "canonical digit prompt templates require canonical_action_task"
+        )
+    elif canonical_learner_sampling:
+        raise ValueError(
+            "canonical_graph_learner_sampling requires canonical_graph_actions "
+            "or canonical_action_task"
+        )
+    elif canonical_fixed_shape_sampling:
+        raise ValueError(
+            "canonical_graph_fixed_shape_sampling requires canonical graph actions "
+            "or canonical_action_task"
+        )
+    if canonical_fixed_shape_sampling and not canonical_learner_sampling:
+        raise ValueError(
+            "canonical_graph_fixed_shape_sampling requires learner-side sampling"
+        )
+    if math.isfinite(float(args.xdr_tau)) and getattr(args, "reinforce_update", False):
+        raise ValueError(
+            "xDr treatments require the maintained non-REINFORCE learner path"
+        )
+    if args.xdr_mode_adaptive and (
+        not math.isfinite(float(args.xdr_tau)) or float(args.xdr_tau) <= 0
+    ):
+        raise ValueError("xdr_mode_adaptive requires a finite positive xdr_tau")
+    target_ratio = float(args.xdr_tau_control_target_ratio)
+    if not math.isfinite(target_ratio) or not 0 <= target_ratio <= 1:
+        raise ValueError("xdr_tau_control_target_ratio must be in [0, 1]")
+    controller_base_tau = float(args.xdr_tau)
+    if target_ratio > 0:
+        if not math.isfinite(controller_base_tau) or controller_base_tau <= 0:
+            raise ValueError(
+                "xDr tau control requires a finite positive base temperature"
+            )
+        if args.xdr_mode_adaptive:
+            raise ValueError(
+                "xdr_mode_adaptive and xDr tau control are separate treatments"
+            )
+        tau_min = float(args.xdr_tau_control_min)
+        if not math.isfinite(tau_min) or tau_min <= 0 or tau_min > controller_base_tau:
+            raise ValueError("xdr_tau_control_min must be in (0, xdr_tau]")
+        if int(args.xdr_tau_control_warmup_steps) <= 0:
+            raise ValueError("xdr_tau_control_warmup_steps must be positive")
+        ema_decay = float(args.xdr_tau_control_ema_decay)
+        if not math.isfinite(ema_decay) or not 0 <= ema_decay < 1:
+            raise ValueError("xdr_tau_control_ema_decay must be in [0, 1)")
+        gain = float(args.xdr_tau_control_gain)
+        if not math.isfinite(gain) or gain <= 0:
+            raise ValueError("xdr_tau_control_gain must be finite and positive")
+    sac_target_ratio = float(args.xdr_sac_dual_target_ratio)
+    if not math.isfinite(sac_target_ratio) or not 0 <= sac_target_ratio <= 1:
+        raise ValueError("xdr_sac_dual_target_ratio must be in [0, 1]")
+    if target_ratio > 0 and sac_target_ratio > 0:
+        raise ValueError(
+            "proportional and SAC-dual xDr controllers are separate treatments"
+        )
+    if sac_target_ratio > 0:
+        if not math.isfinite(controller_base_tau) or controller_base_tau <= 0:
+            raise ValueError(
+                "xDr SAC-dual control requires a finite positive base temperature"
+            )
+        if args.xdr_mode_adaptive:
+            raise ValueError(
+                "xdr_mode_adaptive and xDr SAC-dual control are separate treatments"
+            )
+        min_tau = float(args.xdr_sac_dual_min_tau)
+        max_tau = float(args.xdr_sac_dual_max_tau)
+        if not math.isfinite(min_tau) or min_tau <= 0 or min_tau > controller_base_tau:
+            raise ValueError("xdr_sac_dual_min_tau must be in (0, xdr_tau]")
+        if not math.isfinite(max_tau) or max_tau < controller_base_tau:
+            raise ValueError(
+                "xdr_sac_dual_max_tau must be at least the base temperature"
+            )
+        if int(args.xdr_sac_dual_warmup_steps) <= 0:
+            raise ValueError("xdr_sac_dual_warmup_steps must be positive")
+        alpha_lr = float(args.xdr_sac_dual_alpha_lr)
+        if not math.isfinite(alpha_lr) or alpha_lr <= 0:
+            raise ValueError("xdr_sac_dual_alpha_lr must be finite and positive")
+
+    maxent_control_ratio = float(args.maxent_control_target_ratio)
+    maxent_dual_ratio = float(args.maxent_dual_target_ratio)
+    maxent_inverse_adaptation = bool(args.maxent_inverse_adaptation)
+    maxent_control_target_entropy = float(args.maxent_control_target_entropy)
+    maxent_dual_target_entropy = float(args.maxent_dual_target_entropy)
+    for name, value in (
+        ("maxent_control_target_ratio", maxent_control_ratio),
+        ("maxent_dual_target_ratio", maxent_dual_ratio),
+    ):
+        if not math.isfinite(value) or not 0 <= value <= 1:
+            raise ValueError(f"{name} must be in [0, 1]")
+    for name, value in (
+        ("maxent_control_target_entropy", maxent_control_target_entropy),
+        ("maxent_dual_target_entropy", maxent_dual_target_entropy),
+    ):
+        if not math.isfinite(value) or value < 0:
+            raise ValueError(f"{name} must be finite and non-negative")
+    active_maxent_controllers = sum(
+        (
+            maxent_control_ratio > 0,
+            maxent_dual_ratio > 0,
+            maxent_inverse_adaptation,
+        )
+    )
+    if active_maxent_controllers > 1:
+        raise ValueError(
+            "proportional, Haarnoja-dual, and inverse MaxEnt controllers are "
+            "separate treatments"
+        )
+    if maxent_control_target_entropy > 0 and maxent_control_ratio == 0:
+        raise ValueError(
+            "maxent_control_target_entropy requires proportional MaxEnt control"
+        )
+    if maxent_dual_target_entropy > 0 and maxent_dual_ratio == 0:
+        raise ValueError(
+            "maxent_dual_target_entropy requires Haarnoja-dual MaxEnt control"
+        )
+    if canonical_task != "none" and maxent_control_ratio > 0:
+        if maxent_control_target_entropy <= 0:
+            raise ValueError(
+                "canonical proportional MaxEnt control requires an explicit "
+                "positive maxent_control_target_entropy"
+            )
+    if canonical_task != "none" and maxent_dual_ratio > 0:
+        if maxent_dual_target_entropy <= 0:
+            raise ValueError(
+                "canonical Haarnoja-dual MaxEnt control requires an explicit "
+                "positive maxent_dual_target_entropy"
+            )
+    if canonical_task != "none":
+        canonical_sequence_count = {
+            "graph_coloring": 27,
+            "countdown": 108,
+            "pantry_support_mask": 64,
+        }[canonical_task]
+        canonical_max_entropy = math.log(canonical_sequence_count)
+        for name, value in (
+            ("maxent_control_target_entropy", maxent_control_target_entropy),
+            ("maxent_dual_target_entropy", maxent_dual_target_entropy),
+        ):
+            if value > canonical_max_entropy + 1e-9:
+                raise ValueError(
+                    f"{name} cannot exceed the canonical {canonical_task} "
+                    f"maximum log-support entropy {canonical_max_entropy:.12g}"
+                )
+    if active_maxent_controllers and maxent_alpha <= 0:
+        raise ValueError("MaxEnt control requires a finite positive maxent_alpha")
+    if maxent_inverse_adaptation:
+        if int(args.maxent_inverse_warmup_steps) <= 0:
+            raise ValueError("maxent_inverse_warmup_steps must be positive")
+        inverse_ema_decay = float(args.maxent_inverse_ema_decay)
+        if not math.isfinite(inverse_ema_decay) or not 0 <= inverse_ema_decay < 1:
+            raise ValueError("maxent_inverse_ema_decay must be finite and in [0, 1)")
+        if bool(args.online_canonical_policy_entropy_adaptation):
+            raise ValueError(
+                "direct inverse MaxEnt and canonical policy-entropy "
+                "adaptation are separate treatments"
+            )
+    if maxent_control_ratio > 0:
+        if int(args.maxent_control_warmup_steps) <= 0:
+            raise ValueError("maxent_control_warmup_steps must be positive")
+        max_alpha = float(args.maxent_control_max_alpha)
+        if not math.isfinite(max_alpha) or max_alpha < maxent_alpha:
+            raise ValueError("maxent_control_max_alpha must be at least maxent_alpha")
+        ema_decay = float(args.maxent_control_ema_decay)
+        if not math.isfinite(ema_decay) or not 0 <= ema_decay < 1:
+            raise ValueError("maxent_control_ema_decay must be in [0, 1)")
+        gain = float(args.maxent_control_gain)
+        if not math.isfinite(gain) or gain <= 0:
+            raise ValueError("maxent_control_gain must be finite and positive")
+    if maxent_dual_ratio > 0:
+        if int(args.maxent_dual_warmup_steps) <= 0:
+            raise ValueError("maxent_dual_warmup_steps must be positive")
+        min_alpha = float(args.maxent_dual_min_alpha)
+        max_alpha = float(args.maxent_dual_max_alpha)
+        if not math.isfinite(min_alpha) or min_alpha <= 0 or min_alpha > maxent_alpha:
+            raise ValueError("maxent_dual_min_alpha must be in (0, maxent_alpha]")
+        if not math.isfinite(max_alpha) or max_alpha < maxent_alpha:
+            raise ValueError("maxent_dual_max_alpha must be at least maxent_alpha")
+        alpha_lr = float(args.maxent_dual_alpha_lr)
+        if not math.isfinite(alpha_lr) or alpha_lr <= 0:
+            raise ValueError("maxent_dual_alpha_lr must be finite and positive")
+        ema_decay = float(args.maxent_dual_ema_decay)
+        if not math.isfinite(ema_decay) or not 0 <= ema_decay < 1:
+            raise ValueError("maxent_dual_ema_decay must be in [0, 1)")
+    maxent_length_target = float(args.maxent_length_target)
+    if not math.isfinite(maxent_length_target) or maxent_length_target < 0:
+        raise ValueError("maxent_length_target must be finite and non-negative")
+    if maxent_length_target > 0:
+        if maxent_alpha <= 0:
+            raise ValueError("MaxEnt length control requires positive maxent_alpha")
+        horizon = float(args.generate_max_length)
+        if maxent_length_target < 1 or maxent_length_target > horizon:
+            raise ValueError("maxent_length_target must be in [1, generate_max_length]")
+        initial_lambda = float(args.maxent_length_lambda_init)
+        max_lambda = float(args.maxent_length_lambda_max)
+        if (
+            not math.isfinite(initial_lambda)
+            or initial_lambda < 0
+            or not math.isfinite(max_lambda)
+            or max_lambda <= 0
+            or initial_lambda > max_lambda
+        ):
+            raise ValueError(
+                "maxent_length_lambda_init must be in [0, maxent_length_lambda_max]"
+            )
+        length_ema_decay = float(args.maxent_length_ema_decay)
+        if not math.isfinite(length_ema_decay) or not 0 <= length_ema_decay < 1:
+            raise ValueError("maxent_length_ema_decay must be in [0, 1)")
+        length_dual_lr = float(args.maxent_length_dual_lr)
+        if not math.isfinite(length_dual_lr) or length_dual_lr <= 0:
+            raise ValueError("maxent_length_dual_lr must be finite and positive")
+        if bool(args.ignore_no_eos):
+            raise ValueError(
+                "MaxEnt length control must retain horizon-truncated no-EOS rows"
+            )
+    if float(args.policy_entropy_coef) < 0:
+        raise ValueError("policy_entropy_coef must be non-negative")
+    if float(args.seed_entropy_alpha) < 0:
+        raise ValueError("seed_entropy_alpha must be non-negative")
+    if math.isfinite(float(args.xdr_tau)) and float(args.seed_entropy_alpha) > 0:
+        raise ValueError("xDr and SEED are separate arms; enable at most one")
+    if int(args.eval_mode_coverage_k) < 0:
+        raise ValueError("eval_mode_coverage_k must be non-negative")
+    if float(args.eval_mode_coverage_temperature) < 0:
+        raise ValueError("eval_mode_coverage_temperature must be non-negative")
+    if int(args.eval_mode_coverage_draws) < 1:
+        raise ValueError("eval_mode_coverage_draws must be positive")
+    if int(args.eval_mode_coverage_seed) < 0:
+        raise ValueError("eval_mode_coverage_seed must be non-negative")
+    coverage_top_p = float(getattr(args, "eval_mode_coverage_top_p", 1.0))
+    if not math.isfinite(coverage_top_p) or not 0 < coverage_top_p <= 1:
+        raise ValueError("eval_mode_coverage_top_p must be finite and in (0, 1]")
+    if bool(getattr(args, "eval_only", False)) and int(args.eval_mode_coverage_k) <= 0:
+        # An eval-only run exists to measure sampled mode coverage. Without a
+        # positive K it would load a checkpoint, evaluate greedy accuracy only,
+        # and silently return no frontier point.
+        raise ValueError("eval_only requires a positive eval_mode_coverage_k")
+    if int(args.baseline_zero_adv_response_tokens) < 0:
+        raise ValueError("baseline_zero_adv_response_tokens must be non-negative")
     return args

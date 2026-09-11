@@ -1,0 +1,15 @@
+--- ops/audit_point_maze_stage_b_05b_12pass.py
++++ ops/audit_point_maze_stage_b_05b_12pass.py
+@@ -45,6 +45,12 @@
+ GEOMETRY_SHIFT_FAMILIES = (
+     "wide_block9_shift",
+     "cross9_shift",
+     "upper_offset9_shift",
+     "lower_offset9_shift",
+ )
++BALANCED_V5_EVALUATION_FAMILIES = (
++    "medium_wide_block9_v3",
++    "medium_lower_offset9_v3",
++    "hard_wide_block11_v3",
++    "hard_diamond11_v3",
++)

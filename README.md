@@ -1,179 +1,164 @@
-# Group-Level Exploration in GRPO (xDr.GRPO)
+# ModeBench and Online Verified MaxEnt
 
-This repository holds the matched comparative for the paper under `paper/`
-(*Exploration Should Act at the Group Level in RL LLM Fine-Tuning*): Dr.GRPO,
-xDr.GRPO (candidate-level tempered aggregation), SEED-Dr.GRPO, and
-Token-MaxEnt Dr.GRPO, trained and evaluated on the exact multi-answer
-ModeBench pair (Countdown arithmetic and graph-coloring completion).
+This repository studies solution-mode discovery in reinforcement learning with
+verifiable rewards. The paper is **ModeBench: Executable Outcome Discovery for
+Maximum-Entropy Reasoning**:
 
-The live code is under `src/oat_drgrpo/`:
+- source: [`paper/main.tex`](paper/main.tex)
+- built PDF: [`paper/main.pdf`](paper/main.pdf)
+- evidence and build notes: [`paper/README.md`](paper/README.md)
 
-- `train_zero_math.py`: the patched OAT learner
-- `learner/`: Dr.GRPO and Dr.X learner mixins split out from the
-  original monolithic trainer
-- `listwise.py`: prompt-group compatibility facade for listwise helpers
-- `drx_targets.py`, `semantic_remix.py`, `semantic_utility.py`: Dr.X target
-  construction and semantic utility/remix helpers
-- `stats_utils.py`, `logging_utils.py`, `runtime.py`, `templates.py`: shared
-  runtime, metrics, and prompt-format support
-- `math_grader.py`: the verifiable-math reward/grader
+The final method maintains a prompt-local bank containing only outcomes that
+the current policy generated and the task validator accepted. It adds:
 
-The active launch surface is:
+1. a leave-one-out entropy advantage over verified canonical outcomes;
+2. one total bonus for each newly discovered mode;
+3. a controller over entropy normalized by discovered support size; and
+4. identical passive discovery telemetry in the reward-only control.
 
-- `ops/submit_countdown_comparative.sh`: the paper's matched comparative
-  (Dr.GRPO vs xDr.GRPO tau sweep plus the Token-MaxEnt control) on the
-  ModeBench data, with `ops/run_countdown_comparative_eval.sh` and
-  `ops/analyze_countdown_comparative.py` for the seed-matched evaluation and
-  prompt-clustered regression analysis
-- `ops/run_oat_zero_exact_1p5b_upstream.sh`
-- `ops/run_oat_zero_exact_drx_1p5b_upstream.sh`
-- `ops/run_oat_zero_tiny_probe.sh`
-- `ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm`
-- `ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_exact_drx_node302.slurm`
-- `ops/slurm/train_tiny_probe_node302.slurm`
+The long-horizon comparison uses a lower-bounded but upper-unprojected
+coefficient. Earlier sequence-entropy, candidate-projection, semantic-shaping,
+latent-option, finite-action, and strategy-canonicalization experiments remain
+in the repository as the design evidence behind this choice; they are not
+pooled into the final treatment estimate.
 
-See:
+## ModeBench
 
-- `docs/drgrpo_vs_drx.md` for the comparison contract.
-- `ops/README.md` for the active launcher/evaluation scripts.
+ModeBench currently has three execution-bound domains:
 
-Training and evaluation use the exact multi-answer ModeBench pair — Countdown
-arithmetic and graph-coloring completion — generated deterministically on
-first use into:
+| Domain | Validator | Canonical mode |
+|---|---|---|
+| Graph coloring | Checks fixed colors and every graph edge | Complete color vector |
+| Countdown | Parses and exactly executes an operand-valid arithmetic AST | Normalized executed AST |
+| Python factors | Calls a restricted lambda in an isolated interpreter | Returned integer vector |
 
-- `var/data/exact_countdown_easy3_probe` (via `ops/make_exact_countdown_mode_data.py`)
-- `var/data/exact_answer_mode_probe` (via `ops/make_exact_answer_mode_data.py`)
+Correctness and identity always come from the same execution. Training support
+is never initialized from a valid-answer catalogue.
 
-Select the domain with `OAT_ZERO_TASK=countdown|graph_coloring` (default
-`countdown`).
-
-## Paper
-
-The NeurIPS-format draft of the xDr.GRPO paper (*Exploration Should Act at
-the Group Level in RL LLM Fine-Tuning*) lives under `paper/`:
-
-- `paper/main.tex` — the paper source
-- `paper/example_paper.bib` — bibliography
-- `paper/Makefile` — build (`make` in `paper/` produces `main.pdf`)
-
-See `paper/README.md` for build requirements and provenance notes.
-
-## Environment Setup
-
-There are two supported ways to use this repo.
-
-### 1. Canonical training runtime
-
-The launchers are written around the canonical `paper310` environment:
-
-- Python: `var/seed_paper_eval/paper310/bin/python`
-- Source root: `src/`
-- Trainer module: `oat_drgrpo.train_zero_math`
-
-The exact launcher validates the key runtime versions before starting training:
-
-- Python `3.10.x`
-- `torch==2.6.0`
-- `transformers==4.51.3`
-- `vllm==0.8.4`
-- `oat-llm==0.1.3.post1`
-- `deepspeed==0.16.8`
-- `math-verify==0.7.0`
-- `fire==0.7.0`
-
-The Slurm scripts default to that environment automatically. If you want to use a different interpreter, override:
+The Python task is the third benchmark environment. Each prompt requests
+`lambda n: EXPR` over four frozen inputs. The generated function must return a
+nontrivial proper divisor on every external tool call. The deterministic
+384/128 train/evaluation materialization has 16--3,600 exact modes per prompt
+and two externally certified distinct programs per row.
 
 ```bash
-export OAT_ZERO_PYTHON=/path/to/python
-export OAT_ZERO_PYTHON_LIB_DIR=/path/to/python/lib
+var/seed_paper_eval/paper310/bin/python \
+  ops/make_python_factor_mode_data.py \
+  --output-root var/data/python_factor_modebench_v1
+
+var/seed_paper_eval/paper310/bin/python \
+  ops/verify_python_factor_mode.py \
+  --candidate 'lambda n: 2 if n % 2 == 0 else 3' \
+  --reference \
+  '{"verifier":"python_factor_function","python_version":"factor-v1","cases":[6,10,15]}'
 ```
 
-### 2. Local development environment
+## Base model families
 
-If you just want to edit code, import modules, and run smoke checks locally:
+The training surface supports two instruction-tuned base-model families, so a
+ModeBench result can be shown not to be an artifact of one tokenizer or one
+instruction-tuning style:
 
-```bash
-python3.10 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip wheel setuptools
-python -m pip install -e .
-```
+| Family | Model | Chat surface |
+|---|---|---|
+| Qwen | `Qwen/Qwen2.5-0.5B-Instruct` | `<\|im_start\|>role` / `<\|im_end\|>` |
+| Falcon | `tiiuae/Falcon3-1B-Instruct` | `<\|system\|>` / `<\|user\|>` / `<\|assistant\|>` |
 
-This gives you the repo package from `src/oat_drgrpo/`. For real training, you will still want the canonical runtime above unless you intentionally reproduce all training dependencies yourself.
+Every prompt contract exists once per family as a `qwen_*`/`falcon_*` twin pair
+(`*_boxed`, `*_graph_digits`, `*_countdown_digits`,
+`*_pantry_support_mask`, `*_math`, `*_math_route`). The two members of a pair
+share their system instruction and canonical answer rewrite verbatim and differ
+only in role markers, which is what makes a cross-family comparison a clean
+swap rather than a second prompt design. Selecting a family is a single
+`OAT_ZERO_PROMPT_TEMPLATE` change; the objective, validator, canonical action
+space, and reward path are surface-independent.
 
-### Repo environment variables
+Three invariants are enforced rather than assumed, in
+[`tests/test_falcon_prompt_surface.py`](tests/test_falcon_prompt_surface.py):
 
-Before running ad hoc commands, source the repo environment helper:
+1. each Falcon prompt is a pure role-marker swap of its Qwen twin;
+2. the Falcon surface reproduces `Falcon3-1B-Instruct`'s own published chat
+   template byte for byte; and
+3. the canonical action space resolves to the same horizon, sequence count,
+   and maximum entropy under either tokenizer.
 
-```bash
-source ops/repo_env.sh
-```
+Argument validation keys off a template's *role* rather than its name, and a
+canonical run whose materialized rows were rendered on the other family's
+surface fails closed instead of training against role markers its base model
+never saw.
 
-This keeps caches and runtime state under `var/` instead of spilling into home-directory defaults:
+## Evidence status
 
-- Hugging Face caches under `var/cache/huggingface`
-- pip cache under `var/cache/pip`
-- W&B state under `var/wandb`
-- temporary files under `var/tmp`
+- **Original active cohort:** fresh matched Dr.GRPO and online verified MaxEnt
+  on graph coloring and Countdown, paired at seeds 43--45 with a fixed 50-pass
+  budget.
+- **Frozen interim snapshot:** graph coloring at 8.25 common passes and
+  Countdown at 2.75 common passes. This is explicitly not the terminal result.
+- **Python extension:** materialized, externally audited, and separately
+  frozen for matched Dr.GRPO/online verified MaxEnt runs at seeds 43--45. Its
+  later launch provenance is retained explicitly.
+- **MATH realism track:** a separate external-validity experiment trains only
+  on a frozen MATH12K subset and evaluates on disjoint MATH-500. It is not
+  counted as another multi-mode ModeBench domain because final-answer grading
+  does not certify distinct reasoning strategies.
+- **Historical program:** retained as mechanism and provenance evidence, not
+  independent replications of the final method.
 
-## Data Layout
+Machine-readable interim results live in
+[`paper/results/modebench_long_horizon_interim.json`](paper/results/modebench_long_horizon_interim.json).
+The leakage-free MATH transfer contract is frozen in
+[`paper/preregistration/e64_math500_realism_transfer_05b.md`](paper/preregistration/e64_math500_realism_transfer_05b.md).
 
-The kept launchers generate and consume the ModeBench datasets under:
+## Main implementation surfaces
 
-```text
-var/data/
-  exact_countdown_easy3_probe/
-    train/
-    eval/
-  exact_answer_mode_probe/
-    train/
-    eval/
-```
+- [`src/oat_drgrpo/math_grader.py`](src/oat_drgrpo/math_grader.py) — unified
+  ModeBench reward and canonical-key admission boundary.
+- [`src/oat_drgrpo/templates.py`](src/oat_drgrpo/templates.py) — per-family
+  chat surfaces, the `qwen_*`/`falcon_*` twin registry, template roles, and the
+  fail-closed prompt materialization check.
+- [`src/oat_drgrpo/canonical_actions.py`](src/oat_drgrpo/canonical_actions.py)
+  — finite action grammars resolved into one-token, one-to-one tokenizer IDs.
+- [`src/oat_drgrpo/online_canonical_bank.py`](src/oat_drgrpo/online_canonical_bank.py)
+  — verified growing-support state and canonical advantages.
+- [`src/oat_drgrpo/online_canonical_controller.py`](src/oat_drgrpo/online_canonical_controller.py)
+  — support-normalized Haarnoja-style control.
+- [`src/oat_drgrpo/python_modebench.py`](src/oat_drgrpo/python_modebench.py)
+  — bounded Python syntax and factor-task contract.
+- [`src/oat_drgrpo/python_modebench_process.py`](src/oat_drgrpo/python_modebench_process.py)
+  and
+  [`src/oat_drgrpo/python_modebench_worker.py`](src/oat_drgrpo/python_modebench_worker.py)
+  — killable external execution boundary.
+- [`ops/make_python_factor_mode_data.py`](ops/make_python_factor_mode_data.py)
+  — deterministic third-domain materializer.
+- [`ops/plot_modebench_paper.py`](ops/plot_modebench_paper.py) — frozen
+  paired-common-horizon result builder.
 
-Each root is a HuggingFace `DatasetDict` written by the corresponding
-`ops/make_exact_*_data.py` generator (regenerated automatically by the
-launchers when missing; generation is deterministic given the seed). The
-training prompt column is `problem`; the `answer` column holds the JSON
-verifier spec (task, numbers/graph, target, and the prompt's number of valid
-answer modes), which the grader in `src/oat_drgrpo/math_grader.py` consumes
-directly.
+## Build and validate
 
-## Running Jobs
-
-Baseline Dr.GRPO:
-
-```bash
-sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_node302.slurm
-```
-
-Dr.X-GRPO:
-
-```bash
-sbatch ops/slurm/train_understand_r1_zero_qwen2p5_math_1p5b_r1_readme_flash_exact_drx_node302.slurm
-```
-
-The launcher logs the resolved config at startup, including:
-
-- Python path
-- source root
-- prompt/eval datasets
-- batch geometry
-- Dr.X-GRPO knobs such as semantic token advantage source, token length normalizer, and semantic clustering method
-
-Logs are written to:
-
-- `var/artifacts/logs/*.out`
-- `var/artifacts/logs/*.err`
-
-## Quick Checks
-
-Minimal syntax/import checks:
+Cluster runs use the pinned environment at `var/seed_paper_eval/paper310`.
+For repository-local commands:
 
 ```bash
 source ops/repo_env.sh
-python -m py_compile src/oat_drgrpo/train_zero_math.py src/oat_drgrpo/listwise.py src/oat_drgrpo/math_grader.py
-python -m ruff check src tests
-bash -n ops/run_oat_zero_exact_1p5b_upstream.sh ops/run_oat_zero_exact_drx_1p5b_upstream.sh
+export LD_LIBRARY_PATH="$PWD/var/seed_paper_eval/paper310/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 ```
 
-If you want to sanity-check the exact launcher without submitting a long job, inspect the startup banner in the Slurm log. The exact launcher also bootstraps `flash-attn==2.7.4.post1` on-node when needed.
+The expected stack is Python 3.10, PyTorch 2.6.0, Transformers 4.51.3,
+vLLM 0.8.4, OAT 0.1.3.post1, and DeepSpeed 0.16.8.
+
+Run the maintained validation surface:
+
+```bash
+make check
+```
+
+Build the paper:
+
+```bash
+make paper
+```
+
+The deterministic benchmark generators and operational workflow are
+documented in [`ops/README.md`](ops/README.md). The broader objective and
+historical evidence boundary are documented in
+[`docs/maxent_program.md`](docs/maxent_program.md).

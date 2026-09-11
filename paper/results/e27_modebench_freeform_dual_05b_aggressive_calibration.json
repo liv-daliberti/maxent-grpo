@@ -1,0 +1,21 @@
+{
+  "alpha": {
+    "base": 0.000075,
+    "max": 0.0006,
+    "min": 0.000075
+  },
+  "alpha_lr": 0.01,
+  "calibration": {
+    "countdown": {
+      "pooled_warmup_mean_entropy": 1.0776875459899504,
+      "target_entropy": 1.347109432487438
+    },
+    "graph_coloring": {
+      "pooled_warmup_mean_entropy": 1.2981748407085736,
+      "target_entropy": 1.622718550885717
+    }
+  },
+  "method": "Use 125% of each task's pooled E22 conditional-token warmup entropy; preserve the base alpha, raise the ceiling to 0.00060, and use log-alpha Adam LR 0.010.",
+  "schema": "e27_modebench_freeform_dual_05b_aggressive_calibration_v1",
+  "source_calibration": "paper/results/e22_freeform_dual_v1_calibration.json"
+}

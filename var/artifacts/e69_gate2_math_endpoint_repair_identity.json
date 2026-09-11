@@ -1,0 +1,30 @@
+{
+  "amendment_sha256": "b494deb14fa4708350fd5bfe7993b33bf44908c58f623e1798f33cab50d2417a",
+  "attempt_selection": "exclude_invalid_preoptimizer_job_use_exact_replacement",
+  "execution_surface_hash": "c8aa9471d5af05264d2cc04338612f9f2e16a10af34c5ebaea67ac6aa6ddb41a",
+  "invalid_job": {
+    "failure": "semantic_shannon_separate_advantage requires a positive semantic_shannon_coef",
+    "job_id": 30159730,
+    "optimizer_records": 0
+  },
+  "invalid_log_sha256": "e882621f5b668958078d569a3971b77bc7e0a90c2f321f2943046001b35264ab",
+  "launcher_sha256": "cf112604e9494fe38e13adcba0c621485116b32a947e5d7eb13dd8e591a07992",
+  "manifest_sha256": "7356b522cd04696c66ab8178725e6846465bb986abbdbc6ff25c16870d4fa830",
+  "math500_sealed": true,
+  "only_change": {
+    "invalid": "0",
+    "meaning": "restore the prospectively named E66 endpoint-only arm",
+    "name": "OAT_ZERO_SEMANTIC_SHANNON_COEF",
+    "replacement": "0.10"
+  },
+  "original_identity_sha256": "733c5d6c348d9ca69a0161ade6a49cea5a1259513d3461a5fb8380588769a904",
+  "replacement": {
+    "arm": "verified_first_global_replay_canonical",
+    "job_id": 30160101,
+    "run_stamp": "mde69_gate2_math_endpoint_repair_verified_first_global_replay_canonical_s43",
+    "seed": 43
+  },
+  "schema": "e69_gate2_math_endpoint_startup_repair_v1",
+  "source_hash": "b4075dbaababd0c972cc1ad4df8da34d4271274f21d7859ec9e477dc1c511976",
+  "terminal_outcomes_observed_before_repair": false
+}

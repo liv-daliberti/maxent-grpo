@@ -1,0 +1,332 @@
+{
+  "eval:0008:5cf14126c9f9a3de9acd": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:POLYNOMIAL_LONG_DIVISION] Divide the dividend by x-1 one degree at a time, subtracting each product before continuing."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:READ_QUOTIENT] Collect the quotient from one degree below the dividend through its constant coefficient and separately verify the leftover constant remainder."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FACTOR_IDENTITY] Start from the finite geometric identity for x^9-1 as (x-1) times all consecutive powers below the dividend's degree."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:ALGEBRA_REARRANGE] Rewrite the given dividend as (x^9-1)+2 and read the quotient from the factored first term."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:polynomial_long_division] Compute the quotient by the standard repeated leading-term division algorithm.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:geometric_factor_identity] Obtain the quotient from a finite geometric-series factorization without long division.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0016:c6c3132442a0a4abc33b": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:COMBINATION_PRODUCT] Compute the unordered choices of three from the seven boys and two from the four girls with binomial coefficients."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:INDEPENDENT_CHOICE_PRODUCT] Multiply the two independent selection counts."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:EXHAUST_CASES] Generate every increasing three-index subset of the boys and every increasing two-index subset of the girls."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:ORDERED_ENUMERATION] Form every pair consisting of one generated boy subset and one generated girl subset, then count the resulting groups."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:binomial_product] Use a closed-form product of binomial coefficients.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:finite_subset_enumeration] Exhaust the two finite subset lists and count their Cartesian pairs.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0019:0481c3dd39ffb2de03b4": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:SIGN_INVARIANT_BOUND] Convert the absolute-value inequality into its equivalent closed real interval."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:INTEGER_PARITY_BOUND] Apply ceiling and floor to the two interval endpoints and count the integers inclusively."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] List every integer between conservative integer bounds just outside the two real endpoints."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:VERIFY_RESULT] Substitute each listed integer into the original absolute-value inequality and count exactly the passing cases."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:interval_endpoint_count] Solve symbolically for the interval, then count its integer lattice points.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:literal_integer_enumeration] Test each candidate integer directly in the original inequality.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0020:772d34a0867554010dee": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PRIME_FACTORIZE] Factor both given integers independently into prime powers."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:INTERSECT_FACTORS] Take the minimum exponent of each common prime and generate the common two-digit divisors from that exponent lattice."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:EUCLIDEAN_ALGORITHM] Compute the greatest common divisor by repeated quotient-remainder steps."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DIVISOR_ENUMERATION] Test the two-digit positive integers against that gcd and count those dividing it exactly."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:prime_exponent_intersection] Construct the common-divisor set from independent prime factorizations.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:euclidean_gcd_divisor_scan] Obtain the gcd by Euclid, then scan its two-digit divisors.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0027:cf127e68fa63742a3582": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:COMBINATION_PRODUCT] Choose which four of the seven islands contain treasure and multiply by the corresponding success and failure powers."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ARITHMETIC] Reduce the resulting exact rational probability."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:DIRECT_INTERVAL_DYNAMIC_PROGRAMMING] Initialize the probability vector for zero searched islands and update the treasure-count states once per island."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:EXTRACT_COMPONENT] After seven updates, extract the state for exactly four treasures and reduce it."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:binomial_probability] Evaluate the closed-form binomial probability.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:bernoulli_count_dp] Propagate the complete finite treasure-count distribution by dynamic programming.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0031:77943c11f8ca982d042c": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:ARITHMETIC_MEAN] Use symmetry of an odd-length consecutive-integer list to identify its median with its arithmetic mean."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ARITHMETIC] Divide the given total by the number of terms."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ARITHMETIC_SEQUENCE_SUM] Let the first term be an integer and write the full consecutive-series sum using the endpoint formula."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:SOLVE_EQUATION] Solve for the first term, then advance to the unique central term."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:median_equals_mean] Read the median directly from the mean of the symmetric list.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:sequence_endpoint_solve] Solve the arithmetic-series equation for its first term and then index the median.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0037:b9853311ef804f647bff": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PRIME_EXPONENT_ACCUMULATION] Prove from the divisor-count product that an integer has exactly three positive divisors exactly when it is the square of a prime."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ORDERED_ENUMERATION] Generate primes in ascending order through the ordinal requested in the problem and square the final generated prime."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Traverse positive integers in ascending order and generate each integer's factor pairs."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DIVISOR_GCD_ENUMERATION] Count distinct positive divisors for each traversed integer and stop when the requested ordinal of qualifying integers is reached."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:prime_square_characterization] Use the divisor-count theorem and ordered prime generation.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:literal_divisor_count_scan] Enumerate integers and their divisors directly until the requested ordinal qualifies.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0038:08a98d7d42f9f5d8949c": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PRIME_FACTORIZE] Factor the fixed final term into prime powers."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:PRIME_EXPONENT_ACCUMULATION] Use the integer-ratio geometric-progression relation to require the ratio squared to divide the final term, then maximize the allowed ratio."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Enumerate every possible integer ratio greater than one and no larger than the square root of the final term."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:VERIFY_RESULT] For each ratio, test whether dividing the final term by its square gives a positive integer first term, then select the value satisfying the ordering constraints."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:factor_exponent_constraint] Solve the geometric progression through prime exponents.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:integer_ratio_scan] Exhaust the finite range of possible integer ratios and test each one.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0041:9a01eabaf416b53ac8ba": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:CONSTRUCT_OBJECT] Contract the three named people into one super-person while retaining every internal ordering."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:COMBINATION_PRODUCT] Count circular arrangements of the contracted objects, multiply by the internal permutations, and quotient rotations only once."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Fix one labeled person at a reference seat, generate every permutation of all remaining labeled people, and place them around the table."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:VERIFY_RESULT] Retain exactly those generated circular seatings in which the three named people occupy one consecutive cyclic run, then count them."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:circular_block_contraction] Use the standard super-person block formula.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:fixed_anchor_permutation_scan] Exhaust anchored circular permutations and filter by cyclic adjacency.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0048:bb835aabaedccfa0c71d": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:INDEPENDENT_CHOICE_PRODUCT] Condition on the color Alice transfers and determine that color's multiplicity in Bob's enlarged bag."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:DIRECT_RATE_DEFINITION] Identify the necessary and sufficient return-color event and form its favorable-over-total probability."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ORDERED_ENUMERATION] Enumerate every equally likely first-color choice and, for each, every labeled ball Bob could return."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Mark the ordered outcomes that restore both bags to equal color contents and divide their count by the full outcome count."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:conditional_multiplicity] Condition on the transferred color and compute the return probability from its multiplicity.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:labeled_transition_enumeration] Exhaust all labeled two-step transitions and count successes.",
+        "strategy_id": "S2"
+      }
+    ]
+  }
+}

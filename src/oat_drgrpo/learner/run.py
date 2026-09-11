@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import math
 import os
+import shutil
+import socket
 import time
 from pathlib import Path
 from typing import Any
@@ -15,34 +19,126 @@ import torch
 import torch.distributed as dist
 import tree
 from oat.interface import lp
+from oat.types import TrajectoryData
 from oat.utils.data import PromptDataset, load_data_from_disk_or_hf
+from oat.utils.distributed import (
+    init_process_group,
+    node_ip_address_from_perspective,
+    torch_type_codec,
+)
 from torch.utils.data import DataLoader, DistributedSampler
 from tqdm import tqdm
 
-from ..logging_utils import (
-    add_public_drx_training_metrics,
-    filter_wandb_logs_for_public_comparison,
+from ..answer_options import conditional_answer_repr, crossfit_option_answer_mi
+from ..args import resolve_canonical_action_task
+from ..canonical_actions import (
+    CanonicalActionSpace,
+    _sample_canonical_actions_from_logits,
+    decode_canonical_action_response,
 )
+from ..logging_utils import filter_wandb_logs
+from ..math_grader import (
+    VerifiedExplorationIdentity,
+    boxed_reward_fn,
+    validated_exploration_identity,
+    validated_modebench_outcome_key,
+)
+from ..online_canonical_bank import OnlineCanonicalBank
+from ..replicated_group import validate_replicated_group_layout
 from ..resume_state import (
     discover_local_wandb_resume_run,
     resolve_resume_progress_state,
 )
-from ..templates import apply_prompt_template_to_example, collate_eval_prompt_items
+from ..templates import (
+    CANONICAL_TASK_PROMPT_TEMPLATES,
+    apply_prompt_template_to_example,
+    collate_eval_prompt_items,
+    validate_canonical_prompt_materialization,
+)
+from ..verified_transformations import (
+    derive_validator_preserving_counterfactuals,
+)
+from ..verified_route_library import VerifiedRouteLibrary
+
+
+def _derive_freeform_request_seed(
+    *,
+    base_seed: int,
+    prompt_batch_index: int,
+    stream: str,
+) -> int:
+    """Derive an isolated deterministic vLLM request stream.
+
+    Extra proposal requests must not advance or otherwise perturb subsequent
+    neutral rollouts. Every replicated free-form neutral and proposal request
+    therefore has an explicit seed derived from disjoint named streams.
+    """
+
+    if isinstance(base_seed, bool) or int(base_seed) != base_seed:
+        raise ValueError("free-form request base seed must be an integer")
+    if (
+        isinstance(prompt_batch_index, bool)
+        or int(prompt_batch_index) != prompt_batch_index
+        or int(prompt_batch_index) < 0
+    ):
+        raise ValueError(
+            "free-form request prompt-batch index must be a non-negative integer"
+        )
+    if not isinstance(stream, str) or not stream:
+        raise ValueError("free-form request stream must be a non-empty string")
+    payload = (
+        f"replicated-freeform-v1|{int(base_seed)}|{int(prompt_batch_index)}|{stream}"
+    ).encode("utf-8")
+    # Keep the value exactly representable in IEEE-754 telemetry while leaving
+    # a collision-resistant namespace for long multi-domain campaigns.
+    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") & ((1 << 52) - 1)
 
 
 def _parse_answer_mode_count(ref: str) -> int:
     """Extract the number of valid answer modes from a modebench reference JSON."""
     try:
         spec = json.loads(ref) if isinstance(ref, str) else ref
+        if bool(spec.get("support_is_open", False)):
+            return 0
         return max(int(spec.get("num_completions", 1)), 1)
     except Exception:
         return 1
+
+
+def _parse_public_seed_key(ref: str) -> str | None:
+    """Return a public MathIR seed strategy key when the prompt declares one."""
+
+    try:
+        spec = json.loads(ref) if isinstance(ref, str) else ref
+        key = spec.get("public_seed_key")
+        return str(key) if key else None
+    except Exception:
+        return None
+
+
+def _trajectory_mean_logprob(trajectory: TrajectoryData) -> float:
+    values = [float(value) for value in trajectory.response_logprobs]
+    if not values or any(not math.isfinite(value) or value > 1e-8 for value in values):
+        raise RuntimeError(
+            "proposal trust checking requires finite non-positive response "
+            "log probabilities"
+        )
+    return float(sum(values) / len(values))
+
+
+def _exploration_support_key(
+    identity: VerifiedExplorationIdentity,
+) -> str:
+    """Prefer transferable route identity, with endpoint fallback for Graph."""
+
+    return str(identity.route_signature or identity.endpoint_key)
 
 
 def _compute_mode_coverage_metrics(
     rewards: list[float],
     answer_keys: list,
     answer_mode_count: int,
+    public_seed_key: str | None = None,
 ) -> dict[str, float]:
     k = len(rewards)
     correct_keys = {
@@ -51,13 +147,102 @@ def _compute_mode_coverage_metrics(
         if float(reward) > 0.0 and key is not None
     }
     distinct = len(correct_keys)
-    total = max(int(answer_mode_count), 1)
+    nonseed_keys = (
+        correct_keys - {str(public_seed_key)} if public_seed_key is not None else set()
+    )
+    total = int(answer_mode_count)
     return {
         "any_correct_at_k": float(any(float(r) > 0.0 for r in rewards)),
         "mean_at_k": float(sum(float(r) for r in rewards) / k),
         "distinct_correct_modes_at_k": float(distinct),
-        "mode_coverage_at_k": float(distinct) / float(total),
+        "distinct_nonseed_correct_modes_at_k": float(len(nonseed_keys)),
+        "any_nonseed_correct_at_k": float(bool(nonseed_keys)),
+        # A growing-support task has no known exhaustive denominator.  Preserve
+        # distinct validated outcomes while refusing to report fake coverage.
+        "mode_coverage_at_k": (
+            float(distinct) / float(total) if total > 0 else float("nan")
+        ),
     }
+
+
+MODE_COVERAGE_METRICS = (
+    "mode_coverage_at_k",
+    "any_correct_at_k",
+    "mean_at_k",
+    "distinct_correct_modes_at_k",
+    "distinct_nonseed_correct_modes_at_k",
+    "any_nonseed_correct_at_k",
+)
+
+OPTION_BINDING_METRICS = (
+    "option_answer_mi_lower_bound_nats",
+    "option_classifier_accuracy",
+    "option_eligible_fraction",
+    "option_correct_rate_range",
+)
+
+
+def _mode_coverage_log_key(
+    benchmark_name: str,
+    metric: str,
+    k: int,
+    *,
+    metric_namespace: str = "neutral",
+) -> str:
+    names = {
+        "mode_coverage_at_k": "sampled_mode_coverage",
+        "any_correct_at_k": "sampled_any_correct",
+        "mean_at_k": "sampled_mean",
+        "distinct_correct_modes_at_k": "sampled_distinct_correct",
+        "distinct_nonseed_correct_modes_at_k": "sampled_distinct_nonseed_correct",
+        "any_nonseed_correct_at_k": "sampled_any_nonseed_correct",
+        "option_answer_mi_lower_bound_nats": (
+            "sampled_option_answer_mi_lower_bound_nats"
+        ),
+        "option_classifier_accuracy": "sampled_option_classifier_accuracy",
+        "option_eligible_fraction": "sampled_option_eligible_fraction",
+        "option_correct_rate_range": "sampled_option_correct_rate_range",
+    }
+    name = names[metric]
+    if metric_namespace == "latent":
+        if metric not in MODE_COVERAGE_METRICS:
+            raise ValueError("only quality metrics support the latent namespace")
+        name = name.replace("sampled_", "sampled_latent_", 1)
+    elif metric_namespace != "neutral":
+        raise ValueError(f"unknown mode-coverage metric namespace: {metric_namespace}")
+    return f"eval/{benchmark_name}/{name}_at_{k}"
+
+
+def _summarize_mode_coverage_draws(
+    draw_means: list[dict[str, float]],
+    benchmark_name: str,
+    k: int,
+    *,
+    metric_namespace: str = "neutral",
+) -> dict[str, float]:
+    """Flatten raw draw means and their Monte Carlo spread into log metrics."""
+
+    if not draw_means:
+        return {}
+    summary: dict[str, float] = {}
+    for metric in draw_means[0]:
+        key = _mode_coverage_log_key(
+            benchmark_name,
+            metric,
+            k,
+            metric_namespace=metric_namespace,
+        )
+        values = np.asarray([draw[metric] for draw in draw_means], dtype=float)
+        standard_deviation = float(np.std(values, ddof=1)) if len(values) > 1 else 0.0
+        summary[key] = float(np.mean(values))
+        summary[f"{key}_draw_count"] = float(len(values))
+        summary[f"{key}_draw_std"] = standard_deviation
+        summary[f"{key}_draw_se"] = standard_deviation / math.sqrt(len(values))
+        summary[f"{key}_draw_min"] = float(np.min(values))
+        summary[f"{key}_draw_max"] = float(np.max(values))
+        for draw_index, value in enumerate(values):
+            summary[f"{key}_draw_{draw_index}"] = float(value)
+    return summary
 
 
 class ZeroMathRunMixin:
@@ -72,6 +257,1703 @@ class ZeroMathRunMixin:
         self._progress_metric_best_steps: dict[str, int] = {}
         self._actor_reward_ema: float | None = None
         self._actor_reward_ema_start: float | None = None
+
+    def _init_local_actor_weight_sync(self) -> None:
+        """Replace rank-zero fanout with four concurrent learner/actor pairs."""
+
+        if not bool(getattr(self.args, "local_actor_weight_sync", False)):
+            return
+        world_size = dist.get_world_size()
+        rank = dist.get_rank()
+        if int(self.args.num_gpus_per_actor) != 1:
+            raise RuntimeError("local actor sync requires one GPU per actor")
+        if len(self.actors) != world_size:
+            raise RuntimeError(
+                "local actor sync requires exactly one actor per learner rank"
+            )
+        master_addr = node_ip_address_from_perspective()
+        with socket.socket() as sock:
+            sock.bind(("", 0))
+            master_port = sock.getsockname()[1]
+        group_name = f"oat_local_actor_sync_{rank}"
+        actor = self.actors[rank]
+        actor_future = actor.futures.init_process_group(
+            master_addr,
+            master_port,
+            1,
+            2,
+            group_name,
+            "gloo",
+        )
+        local_group = init_process_group(
+            backend="gloo",
+            init_method=f"tcp://{master_addr}:{master_port}",
+            world_size=2,
+            rank=0,
+            group_name=group_name,
+        )
+        actor_future.result()
+        self._local_sync_actor = actor
+        self._local_model_update_group = local_group
+        dist.barrier()
+        logging.info(
+            "local actor weight-sync group initialized learner_rank=%s actor=%s",
+            rank,
+            rank,
+        )
+
+    def sync_params_to_actors(self):
+        if not bool(getattr(self.args, "local_actor_weight_sync", False)):
+            return super().sync_params_to_actors()
+
+        started = time.time()
+        dist.barrier()
+        actor = self._local_sync_actor
+        reset_future = (
+            actor.futures.reset_prefix_cache()
+            if self.args.enable_prefix_caching
+            else None
+        )
+        model = self.model.model.module
+        parameters = list(model.named_parameters())
+        torch.cuda.empty_cache()
+        for index, (name, param) in enumerate(parameters, start=1):
+            actor_future = actor.futures.update_weight(
+                name,
+                dtype=torch_type_codec(param.dtype),
+                shape=param.shape,
+                empty_cache=index == len(parameters),
+            )
+            dist.broadcast(
+                param.data,
+                0,
+                group=self._local_model_update_group,
+            )
+            actor_future.result()
+        if reset_future is not None:
+            reset_future.result()
+        if int(getattr(self.args, "vllm_sleep_level", 1)) == 2:
+            actor.wake_up(["kv_cache"])
+        torch.cuda.empty_cache()
+        dist.barrier()
+        self.pi_beta_version += 1
+        self.pi_beta_lags_behind = False
+        self.weight_sync_elapse = time.time() - started
+        logging.info(
+            "weights @version=%s broadcasted through local actor pair in %.3fs",
+            self.pi_beta_version,
+            self.weight_sync_elapse,
+        )
+
+    def _pre_learning(self):
+        if int(getattr(self.args, "vllm_sleep_level", 1)) != 2:
+            return super()._pre_learning()
+        started = time.time()
+        torch.cuda.synchronize()
+        dist.barrier()
+        if self.strategy.is_group_rank_0():
+            backup_futures = [
+                actor.futures.backup_model_buffers() for actor in self.actors
+            ]
+            backup_reports = [future.result() for future in backup_futures]
+            logging.info("backed up vLLM model buffers: %s", backup_reports)
+            futures = [actor.futures.sleep(2) for actor in self.actors]
+            _ = [future.result() for future in futures]
+        torch.cuda.synchronize()
+        dist.barrier()
+        self.vllm_go_sleep_time = time.time() - started
+        logging.info(
+            "vLLM actors entered discard-mode sleep in %.3fs",
+            self.vllm_go_sleep_time,
+        )
+
+    def _post_learning(self):
+        if int(getattr(self.args, "vllm_sleep_level", 1)) != 2:
+            return super()._post_learning()
+        started = time.time()
+        torch.cuda.synchronize()
+        dist.barrier()
+        if self.strategy.is_group_rank_0():
+            futures = [actor.futures.wake_up(["weights"]) for actor in self.actors]
+            _ = [future.result() for future in futures]
+            restore_futures = [
+                actor.futures.restore_model_buffers() for actor in self.actors
+            ]
+            restore_reports = [future.result() for future in restore_futures]
+            logging.info("restored vLLM model buffers: %s", restore_reports)
+        torch.cuda.synchronize()
+        dist.barrier()
+        self.vllm_wake_up_time = time.time() - started
+        self.pi_beta_lags_behind = True
+        logging.info(
+            "vLLM actor weight storage remapped in %.3fs",
+            self.vllm_wake_up_time,
+        )
+
+    def _generate_verified_counterfactual_proposals(
+        self,
+        *,
+        actor: Any,
+        raw_prompts: list[str],
+        processed_prompts: list[str],
+        refs: list[str],
+        neutral_feedback: list[TrajectoryData],
+        precomputed_proposal_groups: list[list[TrajectoryData]] | None = None,
+    ) -> tuple[dict[str, list[Any]], dict[str, float]]:
+        """Search a fixed temperature sweep for novel valid modes.
+
+        The returned admission payload contains no proposal trajectory object,
+        log probability, reward advantage, or loss mask. This makes it
+        impossible for the caller to accidentally append proposal samples to
+        the neutral PPO batch.
+        """
+
+        key_mode = str(
+            getattr(
+                self.args,
+                "online_canonical_key_mode",
+                "modebench_outcome",
+            )
+        )
+        verified_route_mode = key_mode == "verified_route"
+        metrics = {
+            "actor/counterfactual_proposal_enabled": 1.0,
+            "actor/counterfactual_proposal_anchor_available": 0.0,
+            "actor/counterfactual_proposal_anchor_from_current_neutral": 0.0,
+            "actor/counterfactual_proposal_anchor_from_prior_bank": 0.0,
+            "actor/counterfactual_proposal_neutral_task_reward_positive_rows": 0.0,
+            "actor/counterfactual_proposal_neutral_validator_positive_rows": 0.0,
+            "actor/counterfactual_proposal_neutral_validator_task_disagreement_rows": 0.0,
+            "actor/counterfactual_proposal_neutral_unique_outcomes": 0.0,
+            "actor/counterfactual_proposal_groups_generated": 0.0,
+            "actor/counterfactual_proposal_rows_generated": 0.0,
+            "actor/counterfactual_proposal_task_reward_positive_rows": 0.0,
+            "actor/counterfactual_proposal_validator_positive_rows": 0.0,
+            "actor/counterfactual_proposal_validator_task_disagreement_rows": 0.0,
+            "actor/counterfactual_proposal_same_anchor_rows": 0.0,
+            "actor/counterfactual_proposal_known_alternate_rows": 0.0,
+            "actor/counterfactual_proposal_novel_candidate_rows": 0.0,
+            "actor/counterfactual_proposal_novel_unique_outcomes": 0.0,
+            "actor/counterfactual_proposal_generate_time": 0.0,
+            "actor/counterfactual_proposal_success_attempt": 0.0,
+            "actor/counterfactual_proposal_attempts_exhausted": 0.0,
+            "actor/counterfactual_proposal_original_prompt_groups": 0.0,
+            "actor/counterfactual_proposal_conditioned_prompt_groups": 0.0,
+            "actor/counterfactual_proposal_gold_support_feedback": 0.0,
+            "actor/counterfactual_proposal_desired_mode_count_feedback": 0.0,
+            "actor/counterfactual_proposal_eval_feedback": 0.0,
+            "actor/counterfactual_proposal_transform_candidate_surfaces": 0.0,
+            "actor/counterfactual_proposal_transform_validator_positive": 0.0,
+            "actor/counterfactual_proposal_transform_tokenization_rejections": 0.0,
+            "actor/counterfactual_proposal_transform_known_outcomes": 0.0,
+            "actor/counterfactual_proposal_transform_replay_capacity_slots": 0.0,
+            "actor/counterfactual_proposal_transform_replay_capacity_exhausted": 0.0,
+            "actor/counterfactual_proposal_transform_novel_unique_outcomes": 0.0,
+            "actor/counterfactual_proposal_transform_success": 0.0,
+            "actor/counterfactual_proposal_transform_rows_sent_to_ppo": 0.0,
+            "actor/counterfactual_proposal_transform_gold_support_feedback": 0.0,
+            "actor/counterfactual_proposal_transform_desired_mode_count_feedback": 0.0,
+            "actor/counterfactual_proposal_transform_eval_feedback": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_enabled": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_available": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_warmup_complete": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_below_reference": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_active": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_inverse_multiplier": 1.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_known_support": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_gold_feedback": 0.0,
+            "actor/counterfactual_proposal_singleton_entropy_gate_eval_feedback": 0.0,
+            "actor/counterfactual_proposal_verified_route_mode": float(
+                verified_route_mode
+            ),
+            "actor/counterfactual_proposal_trust_checked_rows": 0.0,
+            "actor/counterfactual_proposal_trust_rejected_rows": 0.0,
+            "actor/counterfactual_proposal_max_admissions_per_update": (
+                1.0 if verified_route_mode else 0.0
+            ),
+        }
+        empty_payload: dict[str, list[Any]] = {
+            "prompt_token_ids": [],
+            "outcome_keys": [],
+            "response_token_ids": [],
+        }
+        if verified_route_mode:
+            empty_payload.update(
+                {
+                    "endpoint_keys": [],
+                    "route_signatures": [],
+                    "verifier_ids": [],
+                    "proposal_mean_logprobs": [],
+                    "anchor_mean_logprobs": [],
+                }
+            )
+        if len(raw_prompts) != 1 or len(processed_prompts) != 1 or len(refs) != 1:
+            raise RuntimeError("counterfactual proposals require one current prompt")
+        if len(neutral_feedback) != int(self.args.num_samples):
+            raise RuntimeError(
+                "counterfactual proposal source group is not one neutral "
+                "rollout-width group"
+            )
+        if not bool(getattr(self.args, "online_evaluation", False)):
+            raise RuntimeError("counterfactual proposals require validator references")
+        bank = getattr(self, "_online_canonical_bank", None)
+        if not isinstance(bank, OnlineCanonicalBank):
+            raise RuntimeError(
+                "counterfactual proposals require an online canonical bank"
+            )
+        metrics["actor/counterfactual_proposal_max_admissions_per_update"] = (
+            1.0 if verified_route_mode else float(bank.replay_capacity)
+        )
+        route_library = getattr(self, "_verified_route_library", None)
+        if verified_route_mode and not isinstance(
+            route_library,
+            VerifiedRouteLibrary,
+        ):
+            raise RuntimeError(
+                "verified-route proposals require a verified route library"
+            )
+
+        neutral_prompt_rows = [
+            tuple(int(token_id) for token_id in trajectory.prompt_ids)
+            for trajectory in neutral_feedback
+        ]
+        if not neutral_prompt_rows[0] or (len(set(neutral_prompt_rows)) != 1):
+            raise RuntimeError(
+                "neutral proposal source rows do not share one non-empty prompt"
+            )
+        neutral_prompt_token_ids = neutral_prompt_rows[0]
+        groups = bank.replay_groups(
+            [neutral_prompt_token_ids],
+            min_modes=1,
+        )
+        if len(groups) > 1:
+            raise RuntimeError(
+                "counterfactual proposal lookup returned multiple prompt banks"
+            )
+        prior_candidates: dict[str, tuple[int, ...]] = {}
+        prior_candidate_identities: dict[
+            str,
+            VerifiedExplorationIdentity,
+        ] = {}
+        prior_candidate_mean_logprobs: dict[str, float] = {}
+        if groups:
+            group = groups[0]
+            if len(group.outcome_keys) != len(group.response_token_ids):
+                raise RuntimeError(
+                    "counterfactual proposal bank keys/exemplars are misaligned"
+                )
+            prior_candidates = {
+                str(key): tuple(int(token_id) for token_id in response_ids)
+                for key, response_ids in zip(
+                    group.outcome_keys,
+                    group.response_token_ids,
+                )
+            }
+        if verified_route_mode:
+            assert isinstance(route_library, VerifiedRouteLibrary)
+            route_exemplars = route_library.prompt_exemplars(neutral_prompt_token_ids)
+            if route_exemplars:
+                # Once a prompt has executable route support, singleton and
+                # novelty decisions are made in route space rather than
+                # double-counting its prompt-local endpoint.
+                prior_candidates = {}
+            for exemplar in route_exemplars:
+                support_key = exemplar.route_signature
+                prior_candidates[support_key] = exemplar.response_token_ids
+                prior_candidate_identities[support_key] = VerifiedExplorationIdentity(
+                    verifier=exemplar.verifier,
+                    endpoint_key=exemplar.endpoint_key,
+                    route_signature=exemplar.route_signature,
+                )
+                prior_candidate_mean_logprobs[support_key] = exemplar.model_mean_logprob
+
+        # Bootstrap on the current neutral group. A one-pass training set does
+        # not revisit a prompt, so requiring a bank entry from an earlier
+        # update would make the actuator structurally inert for the entire
+        # first pass. These rows were generated by the same unconditioned
+        # policy that PPO will train on; they are independently validated and
+        # only supply an exemplar to the separate proposal query.
+        current_candidates: dict[str, tuple[int, ...]] = {}
+        current_candidate_surfaces: dict[str, str] = {}
+        current_candidate_identities: dict[
+            str,
+            VerifiedExplorationIdentity,
+        ] = {}
+        current_candidate_mean_logprobs: dict[str, float] = {}
+        neutral_task_positive_rows = 0
+        neutral_validator_positive_rows = 0
+        neutral_disagreement_rows = 0
+        for trajectory in neutral_feedback:
+            rewards = list(trajectory.rewards)
+            task_positive = bool(trajectory.loss_mask) and bool(
+                rewards and float(rewards[-1]) > 0.0
+            )
+            neutral_task_positive_rows += int(task_positive)
+            identity = (
+                validated_exploration_identity(
+                    str(trajectory.response),
+                    raw_prompts[0],
+                    refs[0],
+                    fast=(str(self.args.verifier_version) != "math_verify"),
+                    task_verified=task_positive,
+                )
+                if verified_route_mode
+                else None
+            )
+            outcome_key = (
+                _exploration_support_key(identity)
+                if identity is not None
+                else validated_modebench_outcome_key(
+                    str(trajectory.response),
+                    refs[0],
+                )
+                if not verified_route_mode
+                else None
+            )
+            validator_positive = outcome_key is not None
+            neutral_validator_positive_rows += int(validator_positive)
+            neutral_disagreement_rows += int(validator_positive != task_positive)
+            if not (validator_positive and task_positive):
+                continue
+            assert outcome_key is not None
+            response_ids = tuple(int(token_id) for token_id in trajectory.response_ids)
+            if not response_ids:
+                raise RuntimeError(
+                    "validator-positive neutral anchor has an empty token response"
+                )
+            previous = current_candidates.get(outcome_key)
+            if previous is None or response_ids < previous:
+                current_candidates[outcome_key] = response_ids
+                current_candidate_surfaces[outcome_key] = str(trajectory.response)
+                if identity is not None:
+                    current_candidate_identities[outcome_key] = identity
+                    current_candidate_mean_logprobs[outcome_key] = (
+                        _trajectory_mean_logprob(trajectory)
+                    )
+        if verified_route_mode and any(
+            identity.route_signature is not None
+            for identity in current_candidate_identities.values()
+        ):
+            route_keys = {
+                key
+                for key, identity in current_candidate_identities.items()
+                if identity.route_signature is not None
+            }
+            current_candidates = {
+                key: value
+                for key, value in current_candidates.items()
+                if key in route_keys
+            }
+            current_candidate_surfaces = {
+                key: value
+                for key, value in current_candidate_surfaces.items()
+                if key in route_keys
+            }
+            current_candidate_identities = {
+                key: value
+                for key, value in current_candidate_identities.items()
+                if key in route_keys
+            }
+            current_candidate_mean_logprobs = {
+                key: value
+                for key, value in current_candidate_mean_logprobs.items()
+                if key in route_keys
+            }
+        metrics.update(
+            {
+                "actor/counterfactual_proposal_neutral_task_reward_positive_rows": (
+                    float(neutral_task_positive_rows)
+                ),
+                "actor/counterfactual_proposal_neutral_validator_positive_rows": (
+                    float(neutral_validator_positive_rows)
+                ),
+                "actor/counterfactual_proposal_neutral_validator_task_disagreement_rows": (
+                    float(neutral_disagreement_rows)
+                ),
+                "actor/counterfactual_proposal_neutral_unique_outcomes": float(
+                    len(current_candidates)
+                ),
+            }
+        )
+        if neutral_disagreement_rows:
+            logging.warning(
+                "counterfactual neutral-anchor validator/task-reward "
+                "disagreement on %d rows; fail-closed intersection excludes them",
+                neutral_disagreement_rows,
+            )
+
+        if current_candidates:
+            anchor_candidates = current_candidates
+            metrics["actor/counterfactual_proposal_anchor_from_current_neutral"] = 1.0
+        elif prior_candidates and not verified_route_mode:
+            anchor_candidates = prior_candidates
+            metrics["actor/counterfactual_proposal_anchor_from_prior_bank"] = 1.0
+        else:
+            return empty_payload, metrics
+        anchor_keys = sorted(anchor_candidates)
+        anchor_index = max(int(self._prompt_batches_consumed_total) - 1, 0) % len(
+            anchor_keys
+        )
+        anchor_key = anchor_keys[anchor_index]
+        anchor_mean_logprob = (
+            current_candidate_mean_logprobs.get(anchor_key)
+            if verified_route_mode
+            else None
+        )
+        if verified_route_mode and anchor_mean_logprob is None:
+            raise RuntimeError(
+                "verified-route proposals require a current neutral anchor likelihood"
+            )
+
+        metrics["actor/counterfactual_proposal_anchor_available"] = 1.0
+        known_keys = set(prior_candidates) | set(current_candidates)
+        novel_candidates: dict[str, tuple[int, ...]] = {}
+        novel_candidate_identities: dict[
+            str,
+            VerifiedExplorationIdentity,
+        ] = {}
+        novel_candidate_mean_logprobs: dict[str, float] = {}
+        singleton_entropy_gate = bool(
+            getattr(
+                self.args,
+                "online_canonical_counterfactual_singleton_entropy_gate",
+                False,
+            )
+        )
+        metrics["actor/counterfactual_proposal_singleton_entropy_gate_enabled"] = float(
+            singleton_entropy_gate
+        )
+        metrics[
+            "actor/counterfactual_proposal_singleton_entropy_gate_known_support"
+        ] = float(len(known_keys))
+        if verified_route_mode and len(known_keys) != 1:
+            # E69 keeps E68's actuator-identifiability rule but does not make
+            # route admission depend on a task-reward novelty coefficient:
+            # the explorer only searches from an exactly singleton verified
+            # support set, while the neutral learner remains task-first.
+            return empty_payload, metrics
+        if singleton_entropy_gate:
+            tracker = getattr(self, "_semantic_shannon_tracker", None)
+            diagnostics_method = getattr(
+                tracker,
+                "singleton_escape_gate_diagnostics",
+                None,
+            )
+            if not callable(diagnostics_method):
+                raise RuntimeError(
+                    "singleton entropy-gated proposals require the open-set "
+                    "semantic entropy controller"
+                )
+            gate = diagnostics_method()
+            metric_map = {
+                "available": "available",
+                "warmup_complete": "warmup_complete",
+                "entropy_below_self_reference": "below_reference",
+                "active": "active",
+                "inverse_multiplier": "inverse_multiplier",
+            }
+            for source, suffix in metric_map.items():
+                metrics[
+                    f"actor/counterfactual_proposal_singleton_entropy_gate_{suffix}"
+                ] = float(gate[source])
+            # Exactly one discovered valid mode is an actuator-identifiability
+            # condition, not a desired task support. As soon as a second
+            # independently verified mode exists, synthetic expansion stops.
+            if len(known_keys) != 1 or not bool(gate["active"]):
+                return empty_payload, metrics
+
+        # A sampled policy can collapse to singleton valid support, at which
+        # point repeated sampling has no usable actuator.  First derive
+        # validator-preserving alternatives from the model's own verified
+        # response and public instance constraints.  The derivation never
+        # reads exhaustive support, a desired count, evaluation metrics, or a
+        # target entropy.  Each surface is independently validated before and
+        # after tokenization, and only its token ids and canonical key can
+        # enter support-only replay.
+        if anchor_key in current_candidate_surfaces:
+            anchor_surface = current_candidate_surfaces[anchor_key]
+        else:
+            anchor_surface = self.tokenizer.decode(
+                anchor_candidates[anchor_key],
+                skip_special_tokens=True,
+            )
+        transformed_surfaces = (
+            []
+            if verified_route_mode
+            else derive_validator_preserving_counterfactuals(
+                anchor_surface,
+                refs[0],
+            )
+        )
+        metrics["actor/counterfactual_proposal_transform_candidate_surfaces"] = float(
+            len(transformed_surfaces)
+        )
+        transformed_known = 0
+        transformed_validator_positive = 0
+        transformed_tokenization_rejections = 0
+        future_known_keys = set(prior_candidates) | set(current_candidates)
+        transform_replay_capacity_slots = (
+            1
+            if verified_route_mode
+            else max(
+                int(bank.replay_capacity) - len(future_known_keys),
+                0,
+            )
+        )
+        if singleton_entropy_gate or verified_route_mode:
+            transform_replay_capacity_slots = min(
+                transform_replay_capacity_slots,
+                1,
+            )
+        metrics["actor/counterfactual_proposal_transform_replay_capacity_slots"] = (
+            float(transform_replay_capacity_slots)
+        )
+        max_response_tokens = int(getattr(self.args, "generate_max_length", 0))
+        for surface in transformed_surfaces:
+            outcome_key = validated_modebench_outcome_key(
+                surface,
+                refs[0],
+            )
+            if outcome_key is None:
+                continue
+            transformed_validator_positive += 1
+            if outcome_key in known_keys:
+                transformed_known += 1
+                continue
+            response_ids = tuple(
+                int(token_id)
+                for token_id in self.tokenizer.encode(
+                    surface,
+                    add_special_tokens=False,
+                )
+            )
+            if not response_ids or (
+                max_response_tokens > 0 and len(response_ids) > max_response_tokens
+            ):
+                transformed_tokenization_rejections += 1
+                continue
+            roundtrip_surface = self.tokenizer.decode(
+                response_ids,
+                skip_special_tokens=True,
+            )
+            if (
+                validated_modebench_outcome_key(
+                    roundtrip_surface,
+                    refs[0],
+                )
+                != outcome_key
+            ):
+                transformed_tokenization_rejections += 1
+                continue
+            previous = novel_candidates.get(outcome_key)
+            if previous is None or response_ids < previous:
+                novel_candidates[outcome_key] = response_ids
+        if len(novel_candidates) > transform_replay_capacity_slots:
+            novel_candidates = {
+                key: novel_candidates[key]
+                for key in sorted(novel_candidates)[:transform_replay_capacity_slots]
+            }
+        metrics.update(
+            {
+                "actor/counterfactual_proposal_transform_validator_positive": (
+                    float(transformed_validator_positive)
+                ),
+                "actor/counterfactual_proposal_transform_tokenization_rejections": (
+                    float(transformed_tokenization_rejections)
+                ),
+                "actor/counterfactual_proposal_transform_known_outcomes": float(
+                    transformed_known
+                ),
+                "actor/counterfactual_proposal_transform_novel_unique_outcomes": (
+                    float(len(novel_candidates))
+                ),
+                "actor/counterfactual_proposal_transform_success": float(
+                    bool(novel_candidates)
+                ),
+            }
+        )
+        if novel_candidates:
+            outcome_keys = sorted(novel_candidates)
+            return (
+                {
+                    "prompt_token_ids": [
+                        list(neutral_prompt_token_ids) for _ in outcome_keys
+                    ],
+                    "outcome_keys": outcome_keys,
+                    "response_token_ids": [
+                        list(novel_candidates[key]) for key in outcome_keys
+                    ],
+                },
+                metrics,
+            )
+        if transform_replay_capacity_slots == 0:
+            metrics[
+                "actor/counterfactual_proposal_transform_replay_capacity_exhausted"
+            ] = 1.0
+            return empty_payload, metrics
+
+        task_positive_rows = 0
+        validator_positive_rows = 0
+        disagreement_rows = 0
+        same_anchor_rows = 0
+        known_alternate_rows = 0
+        novel_candidate_rows = 0
+        generation_time = 0.0
+        max_attempts = int(self.args.online_canonical_counterfactual_max_attempts)
+        base_sampling_temperature = float(
+            self.args.online_canonical_counterfactual_sampling_temperature
+        )
+        metrics["actor/counterfactual_proposal_max_attempts"] = float(max_attempts)
+        metrics["actor/counterfactual_proposal_sampling_temperature"] = (
+            base_sampling_temperature
+        )
+        metrics["actor/counterfactual_proposal_temperature_step"] = (
+            0.0 if verified_route_mode else 0.2
+        )
+        metrics["actor/counterfactual_proposal_last_temperature"] = (
+            base_sampling_temperature
+        )
+        proposal_request_seeds: list[int] = []
+        for attempt_index in range(max_attempts):
+            # Preserve the original task grammar. R4's answer-conditioned
+            # query copied the anchor; R5's stronger conditioned query made
+            # most samples invalid. Repeated untouched-model requests search
+            # outside the collision without exposing a target mode, support
+            # size, or gold answer. Legacy endpoint proposals retain their
+            # registered temperature sweep. Verified-route proposals remain
+            # at the neutral temperature so likelihoods are comparable.
+            sampling_temperature = (
+                base_sampling_temperature
+                if verified_route_mode
+                else base_sampling_temperature + 0.2 * attempt_index
+            )
+            metrics["actor/counterfactual_proposal_last_temperature"] = (
+                sampling_temperature
+            )
+            proposal_request_seed = _derive_freeform_request_seed(
+                base_seed=int(self.args.seed),
+                prompt_batch_index=int(self._prompt_batches_consumed_total),
+                stream=f"proposal:{attempt_index}",
+            )
+            proposal_request_seeds.append(proposal_request_seed)
+            if precomputed_proposal_groups is not None:
+                if attempt_index >= len(precomputed_proposal_groups):
+                    raise RuntimeError(
+                        "fixed counterfactual controls do not cover every "
+                        "proposal attempt"
+                    )
+                proposal_feedback = precomputed_proposal_groups[attempt_index]
+            else:
+                started = time.time()
+                proposal_handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    refs,
+                    sampling_temperature=sampling_temperature,
+                    sampling_seed=proposal_request_seed,
+                )
+                proposal_feedback = self.collector.ipc_client.deserialize_ipc(
+                    proposal_handle
+                )
+                generation_time += time.time() - started
+            if len(proposal_feedback) != int(self.args.num_samples):
+                raise RuntimeError(
+                    "counterfactual actor returned "
+                    f"{len(proposal_feedback)} rows, expected "
+                    f"{self.args.num_samples}"
+                )
+            metrics["actor/counterfactual_proposal_groups_generated"] += 1.0
+            metrics["actor/counterfactual_proposal_original_prompt_groups"] += 1.0
+            metrics["actor/counterfactual_proposal_rows_generated"] += float(
+                len(proposal_feedback)
+            )
+            for trajectory in proposal_feedback:
+                rewards = list(trajectory.rewards)
+                task_positive = bool(trajectory.loss_mask) and bool(
+                    rewards and float(rewards[-1]) > 0.0
+                )
+                if task_positive:
+                    task_positive_rows += 1
+                identity = (
+                    validated_exploration_identity(
+                        str(trajectory.response),
+                        raw_prompts[0],
+                        refs[0],
+                        fast=(str(self.args.verifier_version) != "math_verify"),
+                        task_verified=task_positive,
+                    )
+                    if verified_route_mode
+                    else None
+                )
+                outcome_key = (
+                    _exploration_support_key(identity)
+                    if identity is not None
+                    else validated_modebench_outcome_key(
+                        str(trajectory.response),
+                        refs[0],
+                    )
+                    if not verified_route_mode
+                    else None
+                )
+                validator_positive = outcome_key is not None
+                if validator_positive:
+                    validator_positive_rows += 1
+                if validator_positive != task_positive:
+                    disagreement_rows += 1
+                if not (validator_positive and task_positive):
+                    continue
+                assert outcome_key is not None
+                if outcome_key == anchor_key:
+                    same_anchor_rows += 1
+                    continue
+                if outcome_key in known_keys:
+                    known_alternate_rows += 1
+                    continue
+                response_ids = tuple(
+                    int(token_id) for token_id in trajectory.response_ids
+                )
+                if not response_ids:
+                    raise RuntimeError(
+                        "validator-positive proposal has an empty token response"
+                    )
+                proposal_mean_logprob = (
+                    _trajectory_mean_logprob(trajectory)
+                    if verified_route_mode
+                    else None
+                )
+                if verified_route_mode:
+                    assert proposal_mean_logprob is not None
+                    assert anchor_mean_logprob is not None
+                    metrics["actor/counterfactual_proposal_trust_checked_rows"] += 1.0
+                    max_drop = float(
+                        self.args.verified_route_proposal_max_mean_logprob_drop
+                    )
+                    if proposal_mean_logprob < anchor_mean_logprob - max_drop:
+                        metrics[
+                            "actor/counterfactual_proposal_trust_rejected_rows"
+                        ] += 1.0
+                        continue
+                novel_candidate_rows += 1
+                previous = novel_candidates.get(outcome_key)
+                if previous is None or response_ids < previous:
+                    novel_candidates[outcome_key] = response_ids
+                    if identity is not None:
+                        novel_candidate_identities[outcome_key] = identity
+                    if proposal_mean_logprob is not None:
+                        novel_candidate_mean_logprobs[outcome_key] = (
+                            proposal_mean_logprob
+                        )
+            if novel_candidates:
+                metrics["actor/counterfactual_proposal_success_attempt"] = float(
+                    attempt_index + 1
+                )
+                break
+
+        metrics["actor/counterfactual_proposal_generate_time"] = generation_time
+        metrics["actor/counterfactual_proposal_request_seed_min"] = float(
+            min(proposal_request_seeds)
+        )
+        metrics["actor/counterfactual_proposal_request_seed_max"] = float(
+            max(proposal_request_seeds)
+        )
+        metrics["actor/counterfactual_proposal_seed_isolation_active"] = 1.0
+        if not novel_candidates:
+            metrics["actor/counterfactual_proposal_attempts_exhausted"] = 1.0
+
+        if disagreement_rows:
+            logging.warning(
+                "counterfactual proposal validator/task-reward disagreement "
+                "on %d rows; fail-closed intersection excludes them",
+                disagreement_rows,
+            )
+        if len(novel_candidates) > transform_replay_capacity_slots:
+            retained_keys = sorted(novel_candidates)[:transform_replay_capacity_slots]
+            novel_candidates = {key: novel_candidates[key] for key in retained_keys}
+            novel_candidate_identities = {
+                key: novel_candidate_identities[key]
+                for key in retained_keys
+                if key in novel_candidate_identities
+            }
+            novel_candidate_mean_logprobs = {
+                key: novel_candidate_mean_logprobs[key]
+                for key in retained_keys
+                if key in novel_candidate_mean_logprobs
+            }
+        metrics.update(
+            {
+                "actor/counterfactual_proposal_task_reward_positive_rows": float(
+                    task_positive_rows
+                ),
+                "actor/counterfactual_proposal_validator_positive_rows": float(
+                    validator_positive_rows
+                ),
+                "actor/counterfactual_proposal_validator_task_disagreement_rows": (
+                    float(disagreement_rows)
+                ),
+                "actor/counterfactual_proposal_same_anchor_rows": float(
+                    same_anchor_rows
+                ),
+                "actor/counterfactual_proposal_known_alternate_rows": float(
+                    known_alternate_rows
+                ),
+                "actor/counterfactual_proposal_novel_candidate_rows": float(
+                    novel_candidate_rows
+                ),
+                "actor/counterfactual_proposal_novel_unique_outcomes": float(
+                    len(novel_candidates)
+                ),
+            }
+        )
+        outcome_keys = sorted(novel_candidates)
+        if verified_route_mode and (
+            set(outcome_keys) != set(novel_candidate_identities)
+            or set(outcome_keys) != set(novel_candidate_mean_logprobs)
+        ):
+            raise RuntimeError("verified-route proposal metadata is incomplete")
+        payload: dict[str, list[Any]] = {
+            "prompt_token_ids": [list(neutral_prompt_token_ids) for _ in outcome_keys],
+            "outcome_keys": outcome_keys,
+            "response_token_ids": [list(novel_candidates[key]) for key in outcome_keys],
+        }
+        if verified_route_mode:
+            payload.update(
+                {
+                    "endpoint_keys": [
+                        novel_candidate_identities[key].endpoint_key
+                        for key in outcome_keys
+                    ],
+                    "route_signatures": [
+                        novel_candidate_identities[key].route_signature
+                        for key in outcome_keys
+                    ],
+                    "verifier_ids": [
+                        novel_candidate_identities[key].verifier for key in outcome_keys
+                    ],
+                    "proposal_mean_logprobs": [
+                        novel_candidate_mean_logprobs[key] for key in outcome_keys
+                    ],
+                    "anchor_mean_logprobs": [anchor_mean_logprob for _ in outcome_keys],
+                }
+            )
+        return payload, metrics
+
+    def _generate_counterfactual_fixed_control_groups(
+        self,
+        *,
+        actor: Any,
+        raw_prompts: list[str],
+        processed_prompts: list[str],
+        refs: list[str],
+    ) -> tuple[list[list[TrajectoryData]], dict[str, float]]:
+        """Issue a fixed proposal-shaped sampling budget for compute matching.
+
+        The rows remain ordinary model generations, but this helper never
+        validates, stores, replays, or returns them to PPO. A proposal-enabled
+        arm may inspect the frozen list downstream; control arms discard every
+        row. Thus request count and charged token budget are independent of
+        whether a treatment finds a usable alternate early.
+        """
+
+        group_count = int(
+            getattr(
+                self.args,
+                "online_canonical_counterfactual_fixed_control_groups",
+                0,
+            )
+        )
+        metrics = {
+            "actor/counterfactual_fixed_control_groups_generated": 0.0,
+            "actor/counterfactual_fixed_control_rows_generated": 0.0,
+            "actor/counterfactual_fixed_control_realized_prompt_tokens": 0.0,
+            "actor/counterfactual_fixed_control_realized_response_tokens": 0.0,
+            "actor/counterfactual_fixed_control_charged_response_token_budget": 0.0,
+            "actor/counterfactual_fixed_control_generate_time": 0.0,
+            "actor/counterfactual_fixed_control_rows_sent_to_ppo": 0.0,
+            "actor/counterfactual_fixed_control_groups_consumed_by_explorer": 0.0,
+            "actor/counterfactual_fixed_control_groups_discarded": float(group_count),
+        }
+        if group_count == 0:
+            return [], metrics
+        if len(raw_prompts) != 1 or len(processed_prompts) != 1 or len(refs) != 1:
+            raise RuntimeError(
+                "fixed counterfactual controls require one current prompt"
+            )
+        base_temperature = float(
+            self.args.online_canonical_counterfactual_sampling_temperature
+        )
+        verified_route_mode = (
+            str(self.args.online_canonical_key_mode) == "verified_route"
+        )
+        groups: list[list[TrajectoryData]] = []
+        request_seeds: list[int] = []
+        temperatures: list[float] = []
+        started = time.time()
+        for attempt_index in range(group_count):
+            temperature = (
+                base_temperature
+                if verified_route_mode
+                else base_temperature + 0.2 * attempt_index
+            )
+            request_seed = _derive_freeform_request_seed(
+                base_seed=int(self.args.seed),
+                prompt_batch_index=int(self._prompt_batches_consumed_total),
+                stream=f"proposal:{attempt_index}",
+            )
+            request_seeds.append(request_seed)
+            temperatures.append(temperature)
+            if self.args.online_evaluation:
+                handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    refs,
+                    sampling_temperature=temperature,
+                    sampling_seed=request_seed,
+                )
+            else:
+                handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    sampling_temperature=temperature,
+                    sampling_seed=request_seed,
+                )
+            feedback = self.collector.ipc_client.deserialize_ipc(handle)
+            if len(feedback) != int(self.args.num_samples):
+                raise RuntimeError(
+                    "fixed counterfactual control returned "
+                    f"{len(feedback)} rows, expected {self.args.num_samples}"
+                )
+            groups.append(feedback)
+        prompt_tokens = sum(
+            len(trajectory.prompt_ids)
+            for group in groups
+            for trajectory in group
+        )
+        response_tokens = sum(
+            len(trajectory.response_ids)
+            for group in groups
+            for trajectory in group
+        )
+        rows = group_count * int(self.args.num_samples)
+        metrics.update(
+            {
+                "actor/counterfactual_fixed_control_groups_generated": float(
+                    group_count
+                ),
+                "actor/counterfactual_fixed_control_rows_generated": float(rows),
+                "actor/counterfactual_fixed_control_realized_prompt_tokens": float(
+                    prompt_tokens
+                ),
+                "actor/counterfactual_fixed_control_realized_response_tokens": float(
+                    response_tokens
+                ),
+                "actor/counterfactual_fixed_control_charged_response_token_budget": (
+                    float(rows * int(self.args.generate_max_length))
+                ),
+                "actor/counterfactual_fixed_control_generate_time": (
+                    time.time() - started
+                ),
+                "actor/counterfactual_fixed_control_request_seed_min": float(
+                    min(request_seeds)
+                ),
+                "actor/counterfactual_fixed_control_request_seed_max": float(
+                    max(request_seeds)
+                ),
+                "actor/counterfactual_fixed_control_sampling_temperature_min": float(
+                    min(temperatures)
+                ),
+                "actor/counterfactual_fixed_control_sampling_temperature_max": float(
+                    max(temperatures)
+                ),
+            }
+        )
+        return groups, metrics
+
+    def _sample_replicated_freeform_feedback(
+        self,
+        raw_prompts: list[str],
+        processed_prompts: list[str],
+        refs: list[str],
+    ) -> tuple[list[TrajectoryData], dict[str, float]]:
+        """Generate one free-form group and replicate it across learner ranks."""
+
+        if not bool(getattr(self.args, "replicated_freeform_sampling", False)):
+            raise RuntimeError("replicated free-form sampling was not enabled")
+        if resolve_canonical_action_task(self.args) != "none":
+            raise RuntimeError("replicated free-form sampling received canonical mode")
+        if len(raw_prompts) != 1 or len(processed_prompts) != 1 or len(refs) != 1:
+            raise RuntimeError(
+                "replicated free-form sampling requires one prompt per learner rank"
+            )
+        world_size = dist.get_world_size()
+        if int(self.args.rollout_batch_size) != world_size:
+            raise RuntimeError(
+                "replicated free-form sampling requires one replicated rollout "
+                "slot per learner rank"
+            )
+        if int(self.update_interval) != 1:
+            raise RuntimeError(
+                "replicated free-form sampling requires update_interval=1"
+            )
+        try:
+            replicated_layout = validate_replicated_group_layout(
+                num_samples=int(self.args.num_samples),
+                learner_world_size=world_size,
+                train_batch_size=int(self.args.train_batch_size),
+                train_batch_size_per_device=int(self.args.train_batch_size_per_device),
+            )
+        except ValueError as error:
+            raise RuntimeError(
+                f"invalid replicated free-form group layout: {error}"
+            ) from error
+        if int(self.strategy.grad_acc_step) != int(
+            replicated_layout.micro_batches_per_rank
+        ):
+            raise RuntimeError(
+                "replicated free-form DeepSpeed accumulation width does not "
+                "match the exact logical candidate group"
+            )
+
+        local_contract = (raw_prompts[0], processed_prompts[0], refs[0])
+        gathered_contracts: list[tuple[str, str, str] | None] = [None] * world_size
+        dist.all_gather_object(gathered_contracts, local_contract)
+        if any(contract != local_contract for contract in gathered_contracts):
+            raise RuntimeError(
+                "replicated free-form learner ranks received different prompts"
+            )
+
+        payload: list[Any] = [None, None, None]
+        if dist.get_rank() == 0:
+            actor = self.actors[0]
+            started = time.time()
+            neutral_request_seed = _derive_freeform_request_seed(
+                base_seed=int(self.args.seed),
+                prompt_batch_index=int(self._prompt_batches_consumed_total),
+                stream="neutral",
+            )
+            if self.args.online_evaluation:
+                handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    refs,
+                    sampling_seed=neutral_request_seed,
+                )
+            else:
+                handle = actor.step(
+                    raw_prompts,
+                    processed_prompts,
+                    sampling_seed=neutral_request_seed,
+                )
+            feedback_data = self.collector.ipc_client.deserialize_ipc(handle)
+            if len(feedback_data) != int(self.args.num_samples):
+                raise RuntimeError(
+                    "replicated free-form actor returned "
+                    f"{len(feedback_data)} rows, expected {self.args.num_samples}"
+                )
+            actor_info = self.collector.get_metrics(
+                time.time() - started, feedback_data
+            )
+            (
+                fixed_control_groups,
+                fixed_control_metrics,
+            ) = ZeroMathRunMixin._generate_counterfactual_fixed_control_groups(
+                self,
+                actor=actor,
+                raw_prompts=raw_prompts,
+                processed_prompts=processed_prompts,
+                refs=refs,
+            )
+            actor_info.update(fixed_control_metrics)
+            proposal_admission: dict[str, list[Any]] | None = None
+            if bool(
+                getattr(
+                    self.args,
+                    "online_canonical_counterfactual_proposals",
+                    False,
+                )
+            ):
+                (
+                    proposal_admission,
+                    proposal_metrics,
+                ) = self._generate_verified_counterfactual_proposals(
+                    actor=actor,
+                    raw_prompts=raw_prompts,
+                    processed_prompts=processed_prompts,
+                    refs=refs,
+                    neutral_feedback=feedback_data,
+                    precomputed_proposal_groups=(
+                        fixed_control_groups if fixed_control_groups else None
+                    ),
+                )
+                actor_info.update(proposal_metrics)
+                if fixed_control_groups:
+                    consumed_groups = int(
+                        proposal_metrics[
+                            "actor/counterfactual_proposal_groups_generated"
+                        ]
+                    )
+                    actor_info[
+                        "actor/counterfactual_fixed_control_groups_consumed_by_explorer"
+                    ] = float(consumed_groups)
+                    actor_info[
+                        "actor/counterfactual_fixed_control_groups_discarded"
+                    ] = float(max(len(fixed_control_groups) - consumed_groups, 0))
+            payload = [feedback_data, actor_info, proposal_admission]
+        dist.broadcast_object_list(payload, src=0)
+        feedback_data, actor_info, proposal_admission = payload
+        if not isinstance(feedback_data, list) or len(feedback_data) != int(
+            self.args.num_samples
+        ):
+            raise RuntimeError("replicated free-form feedback broadcast failed")
+        if not isinstance(actor_info, dict):
+            raise RuntimeError("replicated free-form metric broadcast failed")
+        if bool(
+            getattr(
+                self.args,
+                "online_canonical_counterfactual_proposals",
+                False,
+            )
+        ):
+            if not isinstance(proposal_admission, dict):
+                raise RuntimeError("counterfactual proposal admission broadcast failed")
+            bank = getattr(self, "_online_canonical_bank", None)
+            if not isinstance(bank, OnlineCanonicalBank):
+                raise RuntimeError(
+                    "counterfactual proposals require an online canonical bank"
+                )
+            key_mode = str(
+                getattr(
+                    self.args,
+                    "online_canonical_key_mode",
+                    "modebench_outcome",
+                )
+            )
+            verified_route_mode = key_mode == "verified_route"
+            base_payload_fields = (
+                "prompt_token_ids",
+                "outcome_keys",
+                "response_token_ids",
+            )
+            route_payload_fields = (
+                "endpoint_keys",
+                "route_signatures",
+                "verifier_ids",
+                "proposal_mean_logprobs",
+                "anchor_mean_logprobs",
+            )
+            payload_fields = base_payload_fields + (
+                route_payload_fields if verified_route_mode else ()
+            )
+            if any(
+                field not in proposal_admission
+                or not isinstance(proposal_admission[field], list)
+                for field in payload_fields
+            ):
+                raise RuntimeError(
+                    "counterfactual proposal admission payload is incomplete"
+                )
+            proposal_count = len(proposal_admission["outcome_keys"])
+            if any(
+                len(proposal_admission[field]) != proposal_count
+                for field in payload_fields
+            ):
+                raise RuntimeError(
+                    "counterfactual proposal admission fields are misaligned"
+                )
+            if verified_route_mode and proposal_count > 1:
+                raise RuntimeError(
+                    "verified-route actuator may admit at most one proposal per update"
+                )
+            objective_outcomes_before = bank.tracked_outcome_count
+            admitted_new_outcomes = 0
+            stored_exemplars = 0
+            route_admitted = 0
+            route_rejected_trust = 0
+            route_already_known = 0
+            endpoint_fallback_admitted = 0
+            route_library: VerifiedRouteLibrary | None = None
+            if verified_route_mode:
+                route_library = getattr(
+                    self,
+                    "_verified_route_library",
+                    None,
+                )
+                if not isinstance(route_library, VerifiedRouteLibrary):
+                    raise RuntimeError(
+                        "verified-route proposal admission lacks its route library"
+                    )
+                for row_index in range(proposal_count):
+                    route_signature = proposal_admission["route_signatures"][row_index]
+                    if route_signature is None:
+                        endpoint_admission = bank.admit_verified_proposals(
+                            prompt_token_ids=[
+                                proposal_admission["prompt_token_ids"][row_index]
+                            ],
+                            outcome_keys=[
+                                proposal_admission["endpoint_keys"][row_index]
+                            ],
+                            response_token_ids=[
+                                proposal_admission["response_token_ids"][row_index]
+                            ],
+                        )
+                        admitted_new_outcomes += endpoint_admission.new_outcomes
+                        stored_exemplars += endpoint_admission.stored_exemplars
+                        endpoint_fallback_admitted += endpoint_admission.new_outcomes
+                        continue
+                    verifier = proposal_admission["verifier_ids"][row_index]
+                    endpoint_key = proposal_admission["endpoint_keys"][row_index]
+                    proposal_mean_logprob = proposal_admission[
+                        "proposal_mean_logprobs"
+                    ][row_index]
+                    anchor_mean_logprob = proposal_admission["anchor_mean_logprobs"][
+                        row_index
+                    ]
+                    if not all(
+                        isinstance(value, str) and value
+                        for value in (
+                            verifier,
+                            endpoint_key,
+                            route_signature,
+                        )
+                    ) or not all(
+                        isinstance(value, (int, float)) and not isinstance(value, bool)
+                        for value in (
+                            proposal_mean_logprob,
+                            anchor_mean_logprob,
+                        )
+                    ):
+                        raise RuntimeError(
+                            "verified-route proposal admission metadata is invalid"
+                        )
+                    route_admission = route_library.admit_proposal(
+                        prompt_token_ids=proposal_admission["prompt_token_ids"][
+                            row_index
+                        ],
+                        verifier=verifier,
+                        endpoint_key=endpoint_key,
+                        route_signature=route_signature,
+                        response_token_ids=proposal_admission["response_token_ids"][
+                            row_index
+                        ],
+                        proposal_mean_logprob=float(proposal_mean_logprob),
+                        anchor_mean_logprob=float(anchor_mean_logprob),
+                    )
+                    route_admitted += int(route_admission.admitted)
+                    route_rejected_trust += int(route_admission.rejected_trust)
+                    route_already_known += int(route_admission.already_known)
+                    admitted_new_outcomes += int(route_admission.admitted)
+                    stored_exemplars += int(route_admission.admitted)
+            else:
+                admission = bank.admit_verified_proposals(
+                    prompt_token_ids=proposal_admission["prompt_token_ids"],
+                    outcome_keys=proposal_admission["outcome_keys"],
+                    response_token_ids=proposal_admission["response_token_ids"],
+                )
+                admitted_new_outcomes = admission.new_outcomes
+                stored_exemplars = admission.stored_exemplars
+            objective_outcome_delta = (
+                bank.tracked_outcome_count - objective_outcomes_before
+            )
+            if verified_route_mode and objective_outcome_delta != 0:
+                raise RuntimeError(
+                    "verified-route proposals changed the neutral objective support"
+                )
+            route_diagnostics = (
+                route_library.diagnostics() if route_library is not None else None
+            )
+            actor_info.update(
+                {
+                    "actor/counterfactual_proposal_admitted_new_outcomes": (
+                        float(admitted_new_outcomes)
+                    ),
+                    "actor/counterfactual_proposal_stored_exemplars": float(
+                        stored_exemplars
+                    ),
+                    "actor/counterfactual_proposal_cumulative_new_outcomes": (
+                        float(
+                            bank.proposal_new_outcomes
+                            + (
+                                route_diagnostics.proposal_rows_admitted
+                                if route_diagnostics is not None
+                                else 0
+                            )
+                        )
+                    ),
+                    "actor/counterfactual_proposal_bank_mean_support": float(
+                        bank.replay_mean_support_per_prompt
+                    ),
+                    "actor/counterfactual_proposal_objective_bank_mean_support": float(
+                        bank.mean_support_per_prompt
+                    ),
+                    "actor/counterfactual_proposal_objective_outcome_delta": float(
+                        objective_outcome_delta
+                    ),
+                    "actor/counterfactual_proposal_objective_support_separated": float(
+                        bank.separate_proposal_objective_support
+                    ),
+                    "actor/counterfactual_proposal_conditioned_rows_sent_to_ppo": (0.0),
+                    "actor/counterfactual_proposal_neutral_ppo_rows": float(
+                        len(feedback_data)
+                    ),
+                    "actor/counterfactual_proposal_route_admitted": float(
+                        route_admitted
+                    ),
+                    "actor/counterfactual_proposal_route_rejected_trust": float(
+                        route_rejected_trust
+                    ),
+                    "actor/counterfactual_proposal_route_already_known": float(
+                        route_already_known
+                    ),
+                    "actor/counterfactual_proposal_endpoint_fallback_admitted": (
+                        float(endpoint_fallback_admitted)
+                    ),
+                }
+            )
+        return feedback_data, actor_info
+
+    def _sample_canonical_feedback_with_learner(
+        self,
+        raw_prompts: list[str],
+        processed_prompts: list[str],
+        refs: list[str],
+    ) -> tuple[list[TrajectoryData], dict[str, float]]:
+        """Sample a three-position canonical policy with the HF learner.
+
+        This deliberately bypasses vLLM for training rollouts.  Each action is
+        sampled after a fresh autoregressive learner forward, and the complete
+        three-way behavior distribution is transported into the PPO dataset.
+
+        Every forward has exactly the same ``[microbatch, prompt + horizon]``
+        shape and all-ones attention mask as subsequent teacher-forced
+        old-policy scoring.  Unsampled suffix positions contain a canonical
+        support token and are causally invisible to the prefix logit being
+        read.  Keeping sequence width, microbatch layout, and model mode fixed
+        avoids BF16 kernel drift from otherwise equivalent variable-width
+        prefix forwards.
+        """
+
+        canonical_task = resolve_canonical_action_task(self.args)
+        if canonical_task == "none":
+            raise RuntimeError(
+                "learner-side canonical sampling requires canonical mode"
+            )
+        if not bool(getattr(self.args, "canonical_graph_learner_sampling", False)):
+            raise RuntimeError("learner-side canonical sampling was not enabled")
+        if not bool(getattr(self.args, "canonical_graph_fixed_shape_sampling", False)):
+            raise RuntimeError(
+                "learner-side canonical sampling requires the frozen fixed-shape "
+                "causal-placeholder path"
+            )
+        if len(raw_prompts) != len(processed_prompts) or len(raw_prompts) != len(refs):
+            raise RuntimeError("canonical prompt/reference batch lengths do not match")
+        if not raw_prompts:
+            return [], {}
+        if len(raw_prompts) != 1:
+            raise RuntimeError(
+                "canonical learner-side sampling requires exactly one prompt per "
+                "rollout so sampler and old-policy microbatches have identical "
+                "row order"
+            )
+        if dist.get_world_size() != 1:
+            raise RuntimeError(
+                "canonical learner-side sampling is frozen to one learner rank"
+            )
+        if int(self.update_interval) != 1:
+            raise RuntimeError(
+                "canonical learner-side sampling requires update_interval=1 so the "
+                "sampled behavior policy is the immediately updated policy"
+            )
+
+        action_space = getattr(self, "_canonical_action_space", None)
+        if action_space is None and canonical_task == "graph_coloring":
+            # Backward-compatible construction for retained E14 harnesses and
+            # old callers that initialized only the legacy union support.
+            legacy_support = tuple(
+                int(value) for value in self._canonical_action_token_ids or ()
+            )
+            if len(legacy_support) == 3:
+                action_space = CanonicalActionSpace(
+                    task="graph_coloring",
+                    action_strings_by_position=(("1", "2", "3"),) * 3,
+                    token_ids_by_position=(legacy_support,) * 3,
+                )
+                self._canonical_action_space = action_space
+                self._canonical_action_token_ids_by_position = (
+                    action_space.token_ids_by_position
+                )
+        if action_space is None:
+            raise RuntimeError("canonical learner action space was not initialized")
+        supports = tuple(
+            tuple(int(value) for value in support)
+            for support in action_space.token_ids_by_position
+        )
+        union_support = tuple(int(value) for value in action_space.union_token_ids)
+        horizon = action_space.horizon
+        num_samples = int(self.args.num_samples)
+        if horizon <= 0 or any(not support for support in supports):
+            raise RuntimeError(
+                "canonical learner sampler requires a positive horizon and "
+                "nonempty positional supports"
+            )
+        micro_batch_size = int(self.args.train_batch_size_per_device)
+        if micro_batch_size <= 0:
+            raise RuntimeError("canonical learner sampling needs a positive microbatch")
+
+        try:
+            device = next(self.model.parameters()).device
+        except StopIteration:
+            device = torch.device("cuda", torch.cuda.current_device())
+        request_seed = (
+            int(self.args.seed)
+            + 1_000_003 * int(self.steps)
+            + int(self._prompt_batches_consumed_total)
+        )
+        cpu_generator = torch.Generator(device="cpu")
+        cpu_generator.manual_seed(request_seed)
+        uniforms = torch.rand(
+            (len(raw_prompts), num_samples, horizon),
+            generator=cpu_generator,
+            dtype=torch.float32,
+        )
+
+        records: list[dict[str, Any]] = []
+        normalization_error_max = 0.0
+        generate_start = time.time()
+        model_was_training = bool(self.model.training)
+        self.model.eval()
+        try:
+            with torch.no_grad():
+                for prompt_index, (raw_prompt, processed_prompt, ref) in enumerate(
+                    zip(raw_prompts, processed_prompts, refs)
+                ):
+                    prompt_ids = list(self.tokenizer.encode(processed_prompt))
+                    if not prompt_ids:
+                        raise RuntimeError("canonical learner received an empty prompt")
+                    if len(prompt_ids) > int(self.args.prompt_max_length):
+                        raise RuntimeError(
+                            "canonical learner prompt exceeds prompt_max_length: "
+                            f"{len(prompt_ids)} > {self.args.prompt_max_length}"
+                        )
+                    # A support-token suffix is semantically inert at the prefix
+                    # position under causal attention.  Unlike a zero attention
+                    # mask, an all-ones mask also preserves the exact attention
+                    # kernel selected by full teacher forcing.
+                    sequences = [
+                        list(prompt_ids) + [support[0] for support in supports]
+                        for _ in range(num_samples)
+                    ]
+                    responses: list[list[int]] = [[] for _ in range(num_samples)]
+                    selected_traces: list[list[float]] = [
+                        [] for _ in range(num_samples)
+                    ]
+                    full_traces: list[list[list[float]]] = [
+                        [] for _ in range(num_samples)
+                    ]
+
+                    for action_position in range(horizon):
+                        position_support = supports[action_position]
+                        for batch_start in range(0, num_samples, micro_batch_size):
+                            batch_end = min(batch_start + micro_batch_size, num_samples)
+                            batch_sequences = sequences[batch_start:batch_end]
+                            input_ids = torch.tensor(
+                                batch_sequences, dtype=torch.long, device=device
+                            )
+                            attention_mask = torch.ones_like(input_ids)
+                            prefix_last_position = len(prompt_ids) + action_position - 1
+                            next_logits = self.model(
+                                input_ids, attention_mask=attention_mask
+                            )["logits"][:, prefix_last_position, :]
+                            temperature = float(self.args.temperature)
+                            if not np.isfinite(temperature) or temperature <= 0:
+                                raise RuntimeError(
+                                    "canonical learner sampling requires a finite "
+                                    "positive temperature"
+                                )
+                            if temperature != 1.0:
+                                next_logits = next_logits / temperature
+                            (
+                                sampled_token_ids,
+                                selected_log_probs,
+                                full_log_probs,
+                            ) = _sample_canonical_actions_from_logits(
+                                next_logits,
+                                allowed_token_ids=position_support,
+                                uniforms=uniforms[
+                                    prompt_index,
+                                    batch_start:batch_end,
+                                    action_position,
+                                ],
+                            )
+                            normalization_error_max = max(
+                                normalization_error_max,
+                                float(
+                                    torch.abs(
+                                        torch.logsumexp(full_log_probs.double(), dim=-1)
+                                    )
+                                    .max()
+                                    .detach()
+                                    .cpu()
+                                    .item()
+                                ),
+                            )
+                            for local_index, sample_index in enumerate(
+                                range(batch_start, batch_end)
+                            ):
+                                token_id = int(sampled_token_ids[local_index].item())
+                                responses[sample_index].append(token_id)
+                                sequences[sample_index][
+                                    len(prompt_ids) + action_position
+                                ] = token_id
+                                selected_traces[sample_index].append(
+                                    float(selected_log_probs[local_index].item())
+                                )
+                                full_traces[sample_index].append(
+                                    [
+                                        float(value)
+                                        for value in full_log_probs[local_index]
+                                        .detach()
+                                        .cpu()
+                                        .tolist()
+                                    ]
+                                )
+
+                    for sample_index in range(num_samples):
+                        records.append(
+                            {
+                                "prompt": raw_prompt,
+                                "prompt_ids": prompt_ids,
+                                "reference": ref,
+                                "response_ids": responses[sample_index],
+                                "selected_log_probs": selected_traces[sample_index],
+                                "full_log_probs": full_traces[sample_index],
+                            }
+                        )
+        finally:
+            if model_was_training:
+                self.model.train()
+
+        generate_time = time.time() - generate_start
+        verify_start = time.time()
+        formatted_values: list[float] = []
+        rewards: list[float] = []
+        for record in records:
+            response_code = self.tokenizer.decode(
+                record["response_ids"],
+                skip_special_tokens=False,
+                clean_up_tokenization_spaces=False,
+            )
+            expected_strings = action_space.action_strings_by_position
+            if len(response_code) != horizon or any(
+                action not in expected_strings[position]
+                for position, action in enumerate(response_code)
+            ):
+                raise RuntimeError(
+                    "canonical learner serialization escaped the frozen action "
+                    f"space: {response_code!r}"
+                )
+            response = decode_canonical_action_response(
+                canonical_task, response_code, record["reference"]
+            )
+            record["response"] = response
+            record["response_code"] = response_code
+            oracle_info, reward = boxed_reward_fn(
+                response,
+                record["reference"],
+                fast=self.args.verifier_version == "fast",
+            )
+            formatted = bool(oracle_info.get("formatted", False))
+            numeric_reward = float(reward)
+            if not formatted:
+                raise RuntimeError(
+                    "canonical learner verifier rejected a valid action serialization"
+                )
+            if not np.isfinite(numeric_reward) or numeric_reward not in {0.0, 1.0}:
+                raise RuntimeError(
+                    "canonical learner verifier must return a finite binary reward; "
+                    f"got {reward!r}"
+                )
+            rewards.append(numeric_reward)
+            formatted_values.append(1.0)
+        verify_time = time.time() - verify_start
+
+        info: dict[str, float] = {
+            "actor/generate_time": generate_time,
+            "actor/verify_time": verify_time,
+            "actor/rewards": float(np.mean(rewards)),
+            "actor/num_data": float(len(records)),
+            "actor/formatted": float(np.mean(formatted_values)),
+            "actor/response_tok_len": float(horizon),
+            "actor/generate_avg_str_len": float(horizon),
+            "actor/sampling_max_tokens": float(horizon),
+            "actor/sampling_temperature": float(self.args.temperature),
+            "actor/no_eos_count": 0.0,
+            "actor/canonical_graph_actions": float(canonical_task == "graph_coloring"),
+            "actor/canonical_countdown_actions": float(canonical_task == "countdown"),
+            "actor/canonical_pantry_support_mask_actions": float(
+                canonical_task == "pantry_support_mask"
+            ),
+            "actor/canonical_action_count": float(horizon),
+            "actor/canonical_action_support_size": float(len(union_support)),
+            "actor/canonical_sequence_support_size": float(action_space.sequence_count),
+            "actor/canonical_max_sequence_entropy": float(
+                action_space.max_sequence_entropy
+            ),
+            "actor/canonical_invalid_count": 0.0,
+            "actor/canonical_finish_length_count": float(len(records)),
+            "actor/canonical_finish_unexpected_count": 0.0,
+            "actor/canonical_behavior_q_row_count": float(len(records) * horizon),
+            "actor/canonical_behavior_q_support_min": float(
+                min(len(support) for support in supports)
+            ),
+            "actor/canonical_behavior_q_support_max": float(
+                max(len(support) for support in supports)
+            ),
+            "actor/canonical_behavior_q_norm_error_max": normalization_error_max,
+            "actor/canonical_request_seed": float(request_seed),
+            "actor/canonical_sampler_learner": 1.0,
+            "actor/canonical_sampler_fixed_shape": 1.0,
+        }
+        info["actor/total_time"] = generate_time + verify_time
+
+        trajectories: list[TrajectoryData] = []
+        for record, reward in zip(records, rewards):
+            dense_rewards = [0.0] * horizon
+            dense_rewards[-1] = reward
+            trajectory = TrajectoryData(
+                prompt=record["prompt"],
+                prompt_ids=record["prompt_ids"],
+                response=record["response"],
+                response_ids=record["response_ids"],
+                response_logprobs=record["selected_log_probs"],
+                rewards=dense_rewards,
+                loss_mask=True,
+                info=info,
+            )
+            setattr(trajectory, "reference", record["reference"])
+            setattr(
+                trajectory,
+                "canonical_behavior_action_logprobs",
+                record["full_log_probs"],
+            )
+            setattr(
+                trajectory,
+                "canonical_behavior_action_token_ids",
+                list(union_support),
+            )
+            setattr(
+                trajectory,
+                "canonical_behavior_action_token_ids_by_position",
+                [list(support) for support in supports],
+            )
+            trajectories.append(trajectory)
+        self._canonical_entropy_prompt_pending = processed_prompts[0]
+        logging.info(
+            "canonical learner sampler finished data_len=%s seed=%s "
+            "normalization_error_max=%.3g fixed_shape=1",
+            len(trajectories),
+            request_seed,
+            normalization_error_max,
+        )
+        return trajectories, info
 
     @staticmethod
     def _coerce_log_float(value: Any) -> float | None:
@@ -122,6 +2004,164 @@ class ZeroMathRunMixin:
         self._actor_reward_ema_start = self._coerce_log_float(
             resume_states.get("actor_reward_ema_start")
         )
+        tau_controller = getattr(self, "_xdr_tau_controller", None)
+        saved_controller = resume_states.get("xdr_tau_controller_state")
+        if tau_controller is not None and isinstance(saved_controller, dict):
+            tau_controller.load_state_dict(saved_controller)
+        maxent_controller = getattr(self, "_maxent_alpha_controller", None)
+        saved_maxent_controller = resume_states.get("maxent_alpha_controller_state")
+        if maxent_controller is not None:
+            if not isinstance(saved_maxent_controller, dict):
+                raise ValueError(
+                    "adaptive MaxEnt checkpoint is missing alpha-controller state"
+                )
+            maxent_controller.load_state_dict(saved_maxent_controller)
+        elif saved_maxent_controller is not None:
+            raise ValueError(
+                "fixed-alpha run cannot resume an entropy-adaptive checkpoint"
+            )
+        length_controller = getattr(self, "_maxent_length_controller", None)
+        length_state_key = "maxent_length_controller_state"
+        saved_length_controller = resume_states.get(length_state_key)
+        if length_controller is not None:
+            if not isinstance(saved_length_controller, dict):
+                raise ValueError(
+                    "constrained MaxEnt checkpoint is missing length-controller state"
+                )
+            length_controller.load_state_dict(saved_length_controller)
+        elif saved_length_controller is not None:
+            raise ValueError(
+                "unconstrained run cannot resume a length-constrained checkpoint"
+            )
+        semantic_shannon_tracker = getattr(self, "_semantic_shannon_tracker", None)
+        semantic_shannon_state_key = "semantic_shannon_tracker_state"
+        saved_semantic_shannon = resume_states.get(semantic_shannon_state_key)
+        if semantic_shannon_tracker is not None:
+            if not isinstance(saved_semantic_shannon, dict):
+                raise ValueError(
+                    "semantic Shannon run cannot resume without estimator state"
+                )
+            semantic_shannon_tracker.load_state_dict(saved_semantic_shannon)
+        elif saved_semantic_shannon is not None:
+            raise ValueError(
+                "non-semantic-Shannon run cannot resume a semantic Shannon checkpoint"
+            )
+        online_canonical_bank = getattr(self, "_online_canonical_bank", None)
+        online_canonical_state_key = "online_canonical_bank_state"
+        saved_online_canonical = resume_states.get(online_canonical_state_key)
+        if online_canonical_bank is not None:
+            if isinstance(saved_online_canonical, dict):
+                online_canonical_bank.load_state_dict(saved_online_canonical)
+            elif online_canonical_bank.objective_active or bool(
+                getattr(
+                    online_canonical_bank,
+                    "retain_exemplars",
+                    False,
+                )
+            ):
+                raise ValueError(
+                    "online canonical run cannot resume without bank state"
+                )
+            else:
+                logging.warning(
+                    "legacy Dr.GRPO checkpoint has no passive verified-discovery "
+                    "state; cumulative tracking restarts from zero"
+                )
+        elif saved_online_canonical is not None:
+            raise ValueError(
+                "regular run cannot resume an online canonical bank checkpoint"
+            )
+        verified_route_library = getattr(
+            self,
+            "_verified_route_library",
+            None,
+        )
+        verified_route_state_key = "verified_route_library_state"
+        saved_verified_routes = resume_states.get(verified_route_state_key)
+        if verified_route_library is not None:
+            if not isinstance(verified_route_library, VerifiedRouteLibrary):
+                raise RuntimeError("invalid verified route library")
+            if not isinstance(saved_verified_routes, dict):
+                raise ValueError(
+                    "verified-route run cannot resume without route-library state"
+                )
+            verified_route_library.load_state_dict(saved_verified_routes)
+        elif saved_verified_routes is not None:
+            raise ValueError(
+                "non-route run cannot resume a verified route library checkpoint"
+            )
+        math_strategy_canonicalizer = getattr(
+            self, "_math_strategy_canonicalizer", None
+        )
+        math_strategy_state_key = "math_strategy_canonicalizer_state"
+        saved_math_strategy = resume_states.get(math_strategy_state_key)
+        if math_strategy_canonicalizer is not None:
+            if not isinstance(saved_math_strategy, dict):
+                raise ValueError(
+                    "MATH strategy run cannot resume without canonicalizer state"
+                )
+            math_strategy_canonicalizer.load_state_dict(saved_math_strategy)
+        elif saved_math_strategy is not None:
+            raise ValueError(
+                "non-MATH-strategy run cannot resume a strategy checkpoint"
+            )
+        online_canonical_controller = getattr(
+            self, "_online_canonical_alpha_controller", None
+        )
+        online_canonical_controller_state_key = (
+            "online_canonical_alpha_controller_state"
+        )
+        saved_online_canonical_controller = resume_states.get(
+            online_canonical_controller_state_key
+        )
+        if online_canonical_controller is not None:
+            if not isinstance(saved_online_canonical_controller, dict):
+                raise ValueError(
+                    "adaptive online canonical checkpoint is missing "
+                    "alpha-controller state"
+                )
+            online_canonical_controller.load_state_dict(
+                saved_online_canonical_controller
+            )
+        elif saved_online_canonical_controller is not None:
+            raise ValueError(
+                "fixed-alpha online canonical run cannot resume an adaptive "
+                "online canonical checkpoint"
+            )
+        replay_controller = getattr(
+            self,
+            "_canonical_replay_controller",
+            None,
+        )
+        replay_controller_state_key = "canonical_replay_controller_state"
+        saved_replay_controller = resume_states.get(replay_controller_state_key)
+        if replay_controller is not None:
+            if not isinstance(saved_replay_controller, dict):
+                raise ValueError(
+                    "canonical replay checkpoint is missing its inverse "
+                    "controller state"
+                )
+            replay_controller.load_state_dict(saved_replay_controller)
+        elif saved_replay_controller is not None:
+            raise ValueError(
+                "non-replay run cannot resume a canonical replay checkpoint"
+            )
+        replay_mass_controller = getattr(
+            self,
+            "_canonical_replay_mass_controller",
+            None,
+        )
+        replay_mass_state_key = "canonical_replay_mass_controller_state"
+        saved_replay_mass = resume_states.get(replay_mass_state_key)
+        if replay_mass_controller is not None:
+            if not isinstance(saved_replay_mass, dict):
+                raise ValueError(
+                    "split canonical replay checkpoint is missing its "
+                    "mass-controller state"
+                )
+            replay_mass_controller.load_state_dict(saved_replay_mass)
+        elif saved_replay_mass is not None:
+            raise ValueError("non-split replay run cannot resume a mass controller")
 
     def _record_progress_metric(
         self,
@@ -165,17 +2205,17 @@ class ZeroMathRunMixin:
         self._record_progress_metric(
             logs_dict,
             source_key="eval/average/accuracy",
-            output_prefix="drx/progress/eval_accuracy",
+            output_prefix="xdr/progress/eval_accuracy",
         )
         self._record_progress_metric(
             logs_dict,
             source_key="eval/average/score",
-            output_prefix="drx/progress/eval_score",
+            output_prefix="xdr/progress/eval_score",
         )
         self._record_progress_metric(
             logs_dict,
             source_key="actor/rewards",
-            output_prefix="drx/progress/rollout_reward",
+            output_prefix="xdr/progress/rollout_reward",
         )
 
         actor_reward = self._coerce_log_float(logs_dict.get("actor/rewards"))
@@ -187,9 +2227,9 @@ class ZeroMathRunMixin:
             self._actor_reward_ema_start = actor_reward
         else:
             self._actor_reward_ema = 0.9 * self._actor_reward_ema + 0.1 * actor_reward
-        logs_dict["drx/progress/rollout_reward_ema"] = self._actor_reward_ema
+        logs_dict["xdr/progress/rollout_reward_ema"] = self._actor_reward_ema
         if self._actor_reward_ema_start is not None:
-            logs_dict["drx/progress/rollout_reward_ema_gain_from_start"] = (
+            logs_dict["xdr/progress/rollout_reward_ema_gain_from_start"] = (
                 self._actor_reward_ema - self._actor_reward_ema_start
             )
 
@@ -231,6 +2271,386 @@ class ZeroMathRunMixin:
                 except (TypeError, ValueError):
                     pass
         return "Training sample summary: " + " ".join(pieces)
+
+    def _update_xdr_tau_controller(self, train_info: dict[str, Any]) -> None:
+        """Advance the optional controller from a global entropy observation."""
+
+        tau_controller = getattr(self, "_xdr_tau_controller", None)
+        if tau_controller is None:
+            return
+        local_entropy = self._coerce_log_float(train_info.get("entropy"))
+        if local_entropy is None:
+            raise RuntimeError(
+                "xDr tau control requires a finite train/entropy observation"
+            )
+        # All ranks must use the same tau on the next update. Reduce the
+        # observation now rather than relying on the less-frequent logging
+        # reduction in eval_and_log().
+        observation_key = getattr(
+            tau_controller,
+            "observation_metric_key",
+            "xdr_tau_control_observed_entropy",
+        )
+        reduced = self.strategy.all_reduce({observation_key: local_entropy})
+        global_entropy = self._coerce_log_float(reduced.get(observation_key))
+        if global_entropy is None:
+            raise RuntimeError(
+                "xDr entropy controller received an invalid distributed entropy"
+            )
+        train_info.update(tau_controller.observe(global_entropy))
+
+    def _compute_exact_canonical_sequence_entropy(
+        self, processed_prompt: str
+    ) -> dict[str, float]:
+        """Enumerate the updated canonical policy tree for one current prompt.
+
+        The model is evaluated only after the optimizer step.  At each depth,
+        prefix probability weights multiply the categorical entropy of the
+        next positional support, yielding the exact chain-rule entropy of all
+        action sequences in the task's finite positional support tree.
+        """
+
+        action_space = getattr(self, "_canonical_action_space", None)
+        if action_space is None:
+            raise RuntimeError("exact canonical entropy requires an action space")
+        if dist.get_world_size() != 1:
+            raise RuntimeError("exact canonical entropy is frozen to one learner rank")
+        prompt_ids = list(self.tokenizer.encode(processed_prompt))
+        if not prompt_ids:
+            raise RuntimeError("exact canonical entropy received an empty prompt")
+        supports = action_space.token_ids_by_position
+        horizon = action_space.horizon
+        if horizon <= 0 or any(not support for support in supports):
+            raise RuntimeError(
+                "exact canonical entropy requires a positive horizon and "
+                "nonempty positional supports"
+            )
+        temperature = float(self.args.temperature)
+        if not np.isfinite(temperature) or temperature <= 0:
+            raise RuntimeError(
+                "exact canonical entropy requires a finite positive temperature"
+            )
+        micro_batch_size = int(self.args.train_batch_size_per_device)
+        if micro_batch_size <= 0:
+            raise RuntimeError("exact canonical entropy needs a positive microbatch")
+
+        try:
+            device = next(self.model.parameters()).device
+        except StopIteration:
+            device = torch.device("cuda", torch.cuda.current_device())
+        prefixes: list[tuple[tuple[int, ...], float]] = [((), 1.0)]
+        exact_entropy = 0.0
+        prefix_row_count = 0
+        model_was_training = bool(self.model.training)
+        self.model.eval()
+        try:
+            with torch.no_grad():
+                for depth, support in enumerate(supports):
+                    next_prefixes: list[tuple[tuple[int, ...], float]] = []
+                    placeholder_suffix = [
+                        position_support[0] for position_support in supports[depth:]
+                    ]
+                    for batch_start in range(0, len(prefixes), micro_batch_size):
+                        batch_rows = prefixes[
+                            batch_start : batch_start + micro_batch_size
+                        ]
+                        sequences = [
+                            prompt_ids + list(prefix) + placeholder_suffix
+                            for prefix, _ in batch_rows
+                        ]
+                        input_ids = torch.tensor(
+                            sequences, dtype=torch.long, device=device
+                        )
+                        attention_mask = torch.ones_like(input_ids)
+                        logits = self.model(input_ids, attention_mask=attention_mask)[
+                            "logits"
+                        ][:, len(prompt_ids) + depth - 1, :]
+                        if temperature != 1.0:
+                            logits = logits / temperature
+                        allowed = torch.tensor(support, dtype=torch.long, device=device)
+                        support_logits = logits.index_select(-1, allowed).double()
+                        if not bool(torch.isfinite(support_logits).all()):
+                            raise FloatingPointError(
+                                "exact canonical entropy found nonfinite logits"
+                            )
+                        log_probs = torch.log_softmax(support_logits, dim=-1)
+                        probabilities = torch.exp(log_probs)
+                        row_entropies = -(probabilities * log_probs).sum(dim=-1)
+                        probabilities_cpu = probabilities.cpu().tolist()
+                        row_entropies_cpu = row_entropies.cpu().tolist()
+                        for row_index, (prefix, mass) in enumerate(batch_rows):
+                            prefix_row_count += 1
+                            exact_entropy += mass * float(row_entropies_cpu[row_index])
+                            for token_id, probability in zip(
+                                support, probabilities_cpu[row_index]
+                            ):
+                                next_prefixes.append(
+                                    (
+                                        prefix + (int(token_id),),
+                                        mass * float(probability),
+                                    )
+                                )
+                    prefixes = next_prefixes
+        finally:
+            if model_was_training:
+                self.model.train()
+
+        leaf_mass = sum(mass for _, mass in prefixes)
+        expected_prefix_rows = 0
+        prefix_count = 1
+        for support in supports:
+            expected_prefix_rows += prefix_count
+            prefix_count *= len(support)
+        max_entropy = float(action_space.max_sequence_entropy)
+        if prefix_row_count != expected_prefix_rows:
+            raise RuntimeError(
+                "canonical entropy prefix count mismatch: "
+                f"{prefix_row_count} != {expected_prefix_rows}"
+            )
+        if not math.isclose(leaf_mass, 1.0, rel_tol=0.0, abs_tol=1e-10):
+            raise RuntimeError(
+                f"canonical entropy leaf probabilities sum to {leaf_mass}"
+            )
+        if (
+            not math.isfinite(exact_entropy)
+            or exact_entropy < -1e-10
+            or exact_entropy > max_entropy + 1e-8
+        ):
+            raise RuntimeError(
+                "exact canonical entropy left its support bound: "
+                f"entropy={exact_entropy} maximum={max_entropy}"
+            )
+        exact_entropy = min(max(exact_entropy, 0.0), max_entropy)
+        return {
+            "canonical_exact_sequence_entropy": exact_entropy,
+            "canonical_exact_sequence_entropy_ratio": exact_entropy / max_entropy,
+            "canonical_exact_prefix_row_count": float(prefix_row_count),
+            "canonical_exact_leaf_count": float(len(prefixes)),
+            "canonical_exact_leaf_mass": leaf_mass,
+            "canonical_max_sequence_entropy": max_entropy,
+            "canonical_exact_post_update": 1.0,
+        }
+
+    def _update_maxent_alpha_controller(self, train_info: dict[str, Any]) -> None:
+        """Advance direct MaxEnt control from its own entropy estimator."""
+
+        controller = getattr(self, "_maxent_alpha_controller", None)
+        if controller is None:
+            return
+        metric_key = getattr(
+            controller, "observation_metric_key", "maxent_sequence_entropy"
+        )
+        local_entropy = self._coerce_log_float(train_info.get(metric_key))
+        if local_entropy is None:
+            raise RuntimeError(
+                "direct MaxEnt control requires a finite sequence-entropy observation"
+            )
+        reduced = self.strategy.all_reduce({metric_key: local_entropy})
+        global_entropy = self._coerce_log_float(reduced.get(metric_key))
+        if global_entropy is None:
+            raise RuntimeError(
+                "direct MaxEnt controller received invalid distributed entropy"
+            )
+        train_info.update(controller.observe(global_entropy))
+
+    def _update_maxent_length_controller(self, train_info: dict[str, Any]) -> None:
+        """Advance the expected-length multiplier from its own IS estimate."""
+
+        controller = getattr(self, "_maxent_length_controller", None)
+        if controller is None:
+            return
+        metric_key = getattr(
+            controller, "observation_metric_key", "maxent_expected_length"
+        )
+        local_length = self._coerce_log_float(train_info.get(metric_key))
+        if local_length is None:
+            raise RuntimeError(
+                "MaxEnt length control requires a finite expected-length observation"
+            )
+        reduced = self.strategy.all_reduce({metric_key: local_length})
+        global_length = self._coerce_log_float(reduced.get(metric_key))
+        if global_length is None:
+            raise RuntimeError(
+                "MaxEnt length controller received invalid distributed length"
+            )
+        train_info.update(controller.observe(global_length))
+
+    def _update_online_canonical_alpha_controller(
+        self, train_info: dict[str, Any]
+    ) -> None:
+        """Advance canonical alpha from the configured detached sensor."""
+
+        controller = getattr(self, "_online_canonical_alpha_controller", None)
+        if controller is None:
+            return
+        if getattr(controller, "observation_metric_key", None) == "entropy":
+            local_entropy = self._coerce_log_float(train_info.get("entropy"))
+            if local_entropy is None:
+                raise RuntimeError(
+                    "online canonical policy-entropy adaptation requires a "
+                    "finite train/entropy observation"
+                )
+            reduced = self.strategy.all_reduce(
+                {"online_canonical_policy_entropy_observed": (local_entropy)}
+            )
+            global_entropy = self._coerce_log_float(
+                reduced.get("online_canonical_policy_entropy_observed")
+            )
+            if global_entropy is None:
+                raise RuntimeError(
+                    "online canonical policy-entropy controller received an "
+                    "invalid distributed observation"
+                )
+            train_info.update(controller.observe(global_entropy))
+            return
+        ratio_key = controller.observation_metric_key
+        eligibility_key = controller.eligibility_metric_key
+        local_ratio = self._coerce_log_float(train_info.get(ratio_key))
+        local_eligibility = self._coerce_log_float(train_info.get(eligibility_key))
+        if local_ratio is None or local_eligibility is None:
+            raise RuntimeError(
+                "online canonical dual control requires normalized bank "
+                "entropy and eligibility diagnostics"
+            )
+        if local_eligibility < 0 or local_eligibility > 1:
+            raise RuntimeError(
+                "online canonical normalized-entropy eligibility left [0, 1]"
+            )
+        reduced = self.strategy.all_reduce(
+            {
+                "online_canonical_dual_ratio_weighted": (
+                    local_ratio * local_eligibility
+                ),
+                "online_canonical_dual_eligibility_weight": local_eligibility,
+            }
+        )
+        global_weight = self._coerce_log_float(
+            reduced.get("online_canonical_dual_eligibility_weight")
+        )
+        global_weighted_ratio = self._coerce_log_float(
+            reduced.get("online_canonical_dual_ratio_weighted")
+        )
+        if global_weight is None or global_weighted_ratio is None:
+            raise RuntimeError(
+                "online canonical dual controller received invalid "
+                "distributed diagnostics"
+            )
+        if global_weight <= 0:
+            train_info.update(controller.idle_diagnostics())
+            return
+        global_ratio = global_weighted_ratio / global_weight
+        diagnostics = controller.observe(global_ratio)
+        diagnostics["online_canonical_dual_observation_skipped"] = 0.0
+        diagnostics["online_canonical_dual_global_eligibility_weight"] = global_weight
+        train_info.update(diagnostics)
+
+    def _update_canonical_replay_controller(
+        self,
+        train_info: dict[str, Any],
+    ) -> None:
+        """Advance replay alpha from model scores on observed modes only."""
+
+        controller = getattr(
+            self,
+            "_canonical_replay_controller",
+            None,
+        )
+        if controller is None:
+            return
+        entropy_key = controller.observation_metric_key
+        eligibility_key = "canonical_replay_eligible_groups"
+        local_weight = self._coerce_log_float(train_info.get(eligibility_key))
+        if local_weight is None:
+            local_weight = 0.0
+        if local_weight < 0:
+            raise RuntimeError(
+                "canonical replay eligibility weight must be non-negative"
+            )
+        local_entropy = self._coerce_log_float(train_info.get(entropy_key))
+        if local_weight > 0 and local_entropy is None:
+            raise RuntimeError(
+                "eligible canonical replay update lacks its model-entropy sensor"
+            )
+        reduced = self.strategy.all_reduce(
+            {
+                "canonical_replay_entropy_weighted": (
+                    float(local_entropy or 0.0) * local_weight
+                ),
+                "canonical_replay_eligibility_weight": local_weight,
+            }
+        )
+        global_weight = self._coerce_log_float(
+            reduced.get("canonical_replay_eligibility_weight")
+        )
+        global_weighted_entropy = self._coerce_log_float(
+            reduced.get("canonical_replay_entropy_weighted")
+        )
+        if global_weight is None or global_weighted_entropy is None:
+            raise RuntimeError(
+                "canonical replay controller received invalid distributed diagnostics"
+            )
+        if global_weight <= 0:
+            train_info.update(controller.idle_diagnostics())
+            return
+        global_entropy = global_weighted_entropy / global_weight
+        diagnostics = controller.observe(global_entropy)
+        diagnostics["canonical_replay_observation_skipped"] = 0.0
+        diagnostics["canonical_replay_global_eligibility_weight"] = global_weight
+        train_info.update(diagnostics)
+
+    def _update_canonical_replay_mass_controller(
+        self,
+        train_info: dict[str, Any],
+    ) -> None:
+        """Advance verified-mass alpha from its own likelihood loss."""
+
+        controller = getattr(
+            self,
+            "_canonical_replay_mass_controller",
+            None,
+        )
+        if controller is None:
+            return
+        local_weight = self._coerce_log_float(
+            train_info.get("canonical_replay_actuator_groups")
+        )
+        local_surprisal = self._coerce_log_float(
+            train_info.get(controller.observation_metric_key)
+        )
+        if local_weight is None:
+            local_weight = 0.0
+        if local_weight < 0:
+            raise RuntimeError("canonical replay mass eligibility must be non-negative")
+        if local_weight > 0 and local_surprisal is None:
+            raise RuntimeError(
+                "active canonical replay mass update lacks verified surprisal"
+            )
+        reduced = self.strategy.all_reduce(
+            {
+                "canonical_replay_mass_surprisal_weighted": (
+                    float(local_surprisal or 0.0) * local_weight
+                ),
+                "canonical_replay_mass_eligibility_weight": local_weight,
+            }
+        )
+        global_weight = self._coerce_log_float(
+            reduced.get("canonical_replay_mass_eligibility_weight")
+        )
+        global_weighted = self._coerce_log_float(
+            reduced.get("canonical_replay_mass_surprisal_weighted")
+        )
+        if global_weight is None or global_weighted is None:
+            raise RuntimeError(
+                "canonical replay mass controller received invalid "
+                "distributed diagnostics"
+            )
+        if global_weight <= 0:
+            train_info.update(controller.idle_diagnostics())
+            return
+        diagnostics = controller.observe(global_weighted / global_weight)
+        diagnostics["canonical_replay_mass_observation_skipped"] = 0.0
+        diagnostics["canonical_replay_mass_global_eligibility_weight"] = global_weight
+        train_info.update(diagnostics)
 
     def learn(self, learning_round: int):
         torch.cuda.synchronize()
@@ -275,11 +2695,20 @@ class ZeroMathRunMixin:
             if local_sgd_steps > self.args.max_sgd_steps:
                 break
             infos = self.learning_step(data)
+            replication_factor = (
+                self.strategy.world_size
+                if bool(
+                    getattr(self.args, "canonical_graph_learner_sampling", False)
+                    or getattr(self.args, "replicated_freeform_sampling", False)
+                )
+                else 1
+            )
             self.policy_sgd_step += (
                 len(dataset)
                 * self.args.num_ppo_epochs
                 / self.args.train_batch_size_per_device
                 / self.strategy.grad_acc_step
+                / replication_factor
             )
             learn_batch_time.append(time.time() - st)
             step_bar.update()
@@ -301,6 +2730,20 @@ class ZeroMathRunMixin:
             "total_time": time.time() - st,
             **tree.map_structure(lambda x: x.cpu().float().mean().item(), infos),
         }
+        pending_canonical_prompt = getattr(
+            self, "_canonical_entropy_prompt_pending", None
+        )
+        if pending_canonical_prompt is not None:
+            train_info.update(
+                self._compute_exact_canonical_sequence_entropy(pending_canonical_prompt)
+            )
+            self._canonical_entropy_prompt_pending = None
+        self._update_xdr_tau_controller(train_info)
+        self._update_maxent_alpha_controller(train_info)
+        self._update_maxent_length_controller(train_info)
+        self._update_online_canonical_alpha_controller(train_info)
+        self._update_canonical_replay_controller(train_info)
+        self._update_canonical_replay_mass_controller(train_info)
         # Keep distributed logging reductions aligned even when optional metrics
         # are populated by different local minibatch conditions.
         train_info = {key: train_info[key] for key in sorted(train_info)}
@@ -314,26 +2757,50 @@ class ZeroMathRunMixin:
         return train_info
 
     def learning_step(self, trajectory):
-        if self.objective == "maxent_listwise":
-            return self._listwise_learning_step(trajectory)
-        if self.objective == "grpo" or self._use_instrumented_grpo_learning_step():
-            return self._grpo_learning_step_with_progress(trajectory)
-        return super().learning_step(trajectory)
+        return self._grpo_learning_step_with_progress(trajectory)
 
     def prepare_data(self, strategy, tokenizer):
         prompt_dataset = load_data_from_disk_or_hf(self.args.prompt_data)
         prompts_data = prompt_dataset[self.args.train_split].select(
             range(min(self.args.max_train, len(prompt_dataset[self.args.train_split])))
         )
+        raw_questions = list(prompts_data[self.args.input_key])
 
         # Prepare the data: templated questions & gt final answers.
+        # Do not persist or consume Dataset.map caches here. This repository
+        # intentionally runs several prompt contracts over the same frozen raw
+        # rows; a stale cached transform would silently change the policy's
+        # conditioning context while leaving the data path unchanged.
         prompts_data = prompts_data.map(
-            lambda x: apply_prompt_template_to_example(
-                x,
-                input_key=self.args.input_key,
-                prompt_template=self.args.prompt_template,
-            )
+            apply_prompt_template_to_example,
+            fn_kwargs={
+                "input_key": self.args.input_key,
+                "prompt_template": self.args.prompt_template,
+            },
+            load_from_cache_file=False,
+            keep_in_memory=True,
         )
+        canonical_task = resolve_canonical_action_task(self.args)
+        if canonical_task != "none":
+            allowed_templates = CANONICAL_TASK_PROMPT_TEMPLATES[canonical_task]
+            if self.args.prompt_template not in allowed_templates:
+                raise RuntimeError(
+                    f"canonical task {canonical_task} requires one of "
+                    f"{sorted(allowed_templates)}; got "
+                    f"{self.args.prompt_template}"
+                )
+            validate_canonical_prompt_materialization(
+                self.args.prompt_template,
+                raw_questions,
+                list(prompts_data[self.args.input_key]),
+            )
+            logging.info(
+                "canonical %s prompt materialization verified: rows=%d "
+                "template=%s dataset_map_cache=disabled",
+                canonical_task,
+                len(prompts_data),
+                self.args.prompt_template,
+            )
 
         self.prompts_dataset = PromptDataset(
             prompts_data,
@@ -344,11 +2811,33 @@ class ZeroMathRunMixin:
             apply_chat_template=False,  # Because we have applied already.
             get_reference=True,
         )
+        if canonical_task != "none" and len(self.prompts_dataset) != len(prompts_data):
+            raise RuntimeError(
+                "canonical prompt tokenization dropped rows under "
+                f"prompt_max_length={self.args.prompt_max_length}: "
+                f"rendered={len(prompts_data)} retained={len(self.prompts_dataset)}"
+            )
+        prompt_sampler = None
+        if bool(
+            getattr(self.args, "canonical_graph_learner_sampling", False)
+            or getattr(self.args, "replicated_freeform_sampling", False)
+        ):
+            # Every learner rank follows the same audited prompt order. The
+            # complete candidate group is partitioned only for backpropagation.
+            prompt_sampler = DistributedSampler(
+                self.prompts_dataset,
+                num_replicas=1,
+                rank=0,
+                shuffle=True,
+                seed=int(self.args.seed),
+                drop_last=True,
+            )
         self.prompts_dataloader = strategy.setup_dataloader(
             self.prompts_dataset,
             self.args.rollout_batch_size_per_device,
             pin_memory=True,
             shuffle=True,
+            sampler=prompt_sampler,
         )
         self.eval_prompts_dataset = self.eval_prompts_dataloader = (
             None  # We use our own `self.eval_dataset_dict`.
@@ -460,6 +2949,75 @@ class ZeroMathRunMixin:
             client_state["actor_reward_ema"] = float(self._actor_reward_ema)
         if self._actor_reward_ema_start is not None:
             client_state["actor_reward_ema_start"] = float(self._actor_reward_ema_start)
+        tau_controller = getattr(self, "_xdr_tau_controller", None)
+        if tau_controller is not None:
+            client_state["xdr_tau_controller_state"] = tau_controller.state_dict()
+        maxent_controller = getattr(self, "_maxent_alpha_controller", None)
+        if maxent_controller is not None:
+            client_state["maxent_alpha_controller_state"] = (
+                maxent_controller.state_dict()
+            )
+        length_controller = getattr(self, "_maxent_length_controller", None)
+        if length_controller is not None:
+            client_state["maxent_length_controller_state"] = (
+                length_controller.state_dict()
+            )
+        diayn_tracker = getattr(self, "_diayn_mi_tracker", None)
+        if diayn_tracker is not None:
+            client_state["diayn_mi_tracker_state"] = diayn_tracker.state_dict()
+        semantic_shannon_tracker = getattr(self, "_semantic_shannon_tracker", None)
+        if semantic_shannon_tracker is not None:
+            client_state["semantic_shannon_tracker_state"] = (
+                semantic_shannon_tracker.state_dict()
+            )
+        online_canonical_bank = getattr(self, "_online_canonical_bank", None)
+        if online_canonical_bank is not None:
+            client_state["online_canonical_bank_state"] = (
+                online_canonical_bank.state_dict()
+            )
+        verified_route_library = getattr(
+            self,
+            "_verified_route_library",
+            None,
+        )
+        if verified_route_library is not None:
+            if not isinstance(verified_route_library, VerifiedRouteLibrary):
+                raise RuntimeError("invalid verified route library")
+            client_state["verified_route_library_state"] = (
+                verified_route_library.state_dict()
+            )
+        math_strategy_canonicalizer = getattr(
+            self, "_math_strategy_canonicalizer", None
+        )
+        if math_strategy_canonicalizer is not None:
+            client_state["math_strategy_canonicalizer_state"] = (
+                math_strategy_canonicalizer.state_dict()
+            )
+        online_canonical_controller = getattr(
+            self, "_online_canonical_alpha_controller", None
+        )
+        if online_canonical_controller is not None:
+            client_state["online_canonical_alpha_controller_state"] = (
+                online_canonical_controller.state_dict()
+            )
+        replay_controller = getattr(
+            self,
+            "_canonical_replay_controller",
+            None,
+        )
+        if replay_controller is not None:
+            client_state["canonical_replay_controller_state"] = (
+                replay_controller.state_dict()
+            )
+        replay_mass_controller = getattr(
+            self,
+            "_canonical_replay_mass_controller",
+            None,
+        )
+        if replay_mass_controller is not None:
+            client_state["canonical_replay_mass_controller_state"] = (
+                replay_mass_controller.state_dict()
+            )
         if hasattr(self, "last_eval_query_step"):
             client_state["last_eval_query_step"] = int(self.last_eval_query_step)
         if hasattr(self, "_pending_eval"):
@@ -514,6 +3072,22 @@ class ZeroMathRunMixin:
             self.last_eval_query_step = last_eval_query_step
         if isinstance(resume_states, dict) and "_pending_eval" in resume_states:
             self._pending_eval = bool(resume_states["_pending_eval"])
+        diayn_tracker = getattr(self, "_diayn_mi_tracker", None)
+        saved_diayn_state = (
+            resume_states.get("diayn_mi_tracker_state")
+            if isinstance(resume_states, dict)
+            else None
+        )
+        if diayn_tracker is not None:
+            if saved_diayn_state is None:
+                raise RuntimeError(
+                    "DIAYN run cannot resume without discriminator state"
+                )
+            diayn_tracker.load_state_dict(saved_diayn_state)
+        elif saved_diayn_state is not None:
+            raise RuntimeError(
+                "non-DIAYN run cannot resume a DIAYN discriminator checkpoint"
+            )
         self._restore_training_progress_state(resume_states)
 
         if self.steps % max(1, int(self.update_interval)) != 0:
@@ -550,6 +3124,7 @@ class ZeroMathRunMixin:
 
     def run(self):
         self._init(self.args, self.actors)
+        self._init_local_actor_weight_sync()
 
         resume_step = 0
         next_step = 1
@@ -577,8 +3152,46 @@ class ZeroMathRunMixin:
         train_info: dict[str, Any] = {}
         self._init_wandb(resume_states)
 
+        if self.args.resume_dir:
+            # The learner now holds the restored checkpoint, but actors were
+            # initialized from ``args.pretrain``.  Synchronize before either
+            # the initial evaluation or the first resumed rollout; otherwise
+            # both would use stale base-model weights until the next update.
+            logging.info(
+                "resume actor weight sync start checkpoint_step=%s", self.steps
+            )
+            self.sync_params_to_actors()
+            logging.info("resume actor weight sync done checkpoint_step=%s", self.steps)
+
+        if bool(getattr(self.args, "eval_only", False)):
+            # Measure the loaded policy through the ordinary training
+            # evaluation path and stop. No rollout, optimizer step, export, or
+            # resume checkpoint occurs, so the reported cell is a pure function
+            # of the checkpoint and the decoding settings. Unlike the initial
+            # evaluation below, this runs even under ``debug``: an eval-only
+            # job that silently produced no evaluation would be indistinguishable
+            # from a completed one.
+            self.eval_and_log({}, eval=True, save=False, allow_scheduled_save=False)
+            self._write_eval_only_marker()
+            # Tear the program down exactly as the training path does. Without
+            # this the measurement finishes but the job holds its GPU until the
+            # scheduler's time limit.
+            if self.strategy.is_rank_0():
+                self._wandb.finish() if self._wandb else None
+                lp.stop()
+            return
+
         if not self.strategy.args.debug:
-            self.eval_and_log({}, eval=True, save=False)
+            # The checkpoint already exists at a resumed boundary. Rewriting
+            # the same multi-gigabyte model/optimizer state before the initial
+            # evaluation creates avoidable I/O contention across a recovery
+            # cohort and cannot improve recoverability.
+            self.eval_and_log(
+                {},
+                eval=True,
+                save=False,
+                allow_scheduled_save=not bool(self.args.resume_dir),
+            )
 
         self.steps = next_step
         self.gradient_update_st = time.time()
@@ -607,20 +3220,76 @@ class ZeroMathRunMixin:
                 if early_stop:
                     break
                 self._prompt_batches_consumed_total += 1
+                if resolve_canonical_action_task(self.args) != "none":
+                    if len(processed_prompts) != 1:
+                        raise RuntimeError(
+                            "exact canonical entropy requires one current prompt"
+                        )
+                    self._canonical_entropy_prompt_pending = processed_prompts[0]
 
-                feedback_data, self.actor_info = self.collector.collect_feedback(
-                    raw_prompts,
-                    processed_prompts,
-                    refs,
-                    self._same_actor_group,
+                learner_sampling = bool(
+                    getattr(self.args, "canonical_graph_learner_sampling", False)
                 )
+                replicated_freeform_sampling = bool(
+                    getattr(self.args, "replicated_freeform_sampling", False)
+                )
+                pre_learning_done = False
+                if learner_sampling:
+                    if self.steps % self.update_interval != 0:
+                        raise RuntimeError(
+                            "canonical learner sampling reached a rollout without an "
+                            "immediate optimizer update"
+                        )
+                    logging.info(
+                        "pre-learning start before canonical learner sampling step=%s",
+                        self.steps,
+                    )
+                    self._pre_learning()
+                    pre_learning_done = True
+                    feedback_data, self.actor_info = (
+                        self._sample_canonical_feedback_with_learner(
+                            raw_prompts,
+                            processed_prompts,
+                            refs,
+                        )
+                    )
+                elif replicated_freeform_sampling:
+                    feedback_data, self.actor_info = (
+                        self._sample_replicated_freeform_feedback(
+                            raw_prompts,
+                            processed_prompts,
+                            refs,
+                        )
+                    )
+                else:
+                    feedback_data, self.actor_info = self.collector.collect_feedback(
+                        raw_prompts,
+                        processed_prompts,
+                        refs,
+                        self._same_actor_group,
+                    )
                 dist.barrier()
 
                 if feedback_data is None:
+                    if pre_learning_done:
+                        self._post_learning()
                     continue
-                self.prompt_consumed += len(feedback_data)
+                replication_factor = (
+                    dist.get_world_size()
+                    if (learner_sampling or replicated_freeform_sampling)
+                    and dist.get_world_size() > 1
+                    else 1
+                )
+                if len(feedback_data) % replication_factor != 0:
+                    raise RuntimeError(
+                        "replicated feedback does not divide across learner ranks"
+                    )
+                unique_local_count = len(feedback_data) // replication_factor
+                self.prompt_consumed += unique_local_count
 
                 self.process_feedback_data(feedback_data)
+                if replication_factor > 1:
+                    self.query_step -= len(feedback_data) - unique_local_count
 
                 if (
                     self.args.dump_replay_every > 0
@@ -640,8 +3309,9 @@ class ZeroMathRunMixin:
                         )
 
                 if self.steps % self.update_interval == 0:
-                    logging.info("pre-learning start step=%s", self.steps)
-                    self._pre_learning()
+                    if not pre_learning_done:
+                        logging.info("pre-learning start step=%s", self.steps)
+                        self._pre_learning()
                     logging.info("learn start step=%s", self.steps)
                     train_info = self.learn(self.steps // self.update_interval)
                     logging.info("post-learning start step=%s", self.steps)
@@ -687,48 +3357,238 @@ class ZeroMathRunMixin:
                     os.path.join(self.save_path, "all_buffer.pkl"),
                 )
 
+        self._finalize_successful_storage()
+
         if self.strategy.is_rank_0():
             self._wandb.finish() if self._wandb else None
             lp.stop()
 
-    def eval_and_log(self, train_info, eval=False, save=False):
-        eval_info = {}
-        should_eval = (self.args.eval_steps > 0 and eval) or self._should_do(
-            self.args.eval_steps
+    @staticmethod
+    def _checkpoint_step(path: Path) -> int:
+        try:
+            return int(path.name.removeprefix("step_"))
+        except ValueError:
+            return -1
+
+    @staticmethod
+    def _storage_barrier() -> None:
+        if dist.is_available() and dist.is_initialized():
+            dist.barrier()
+
+    def _save_resume_checkpoint(self) -> None:
+        """Atomically replace rolling recovery state without a zero-copy gap."""
+        checkpoint_root = Path(self.save_path) / "checkpoints"
+        tag = "step_{:05d}".format(self.steps)
+        keep = int(self.args.max_resume_num)
+
+        # OAT rotates before writing.  Giving it one temporary extra slot keeps
+        # the previous valid checkpoint alive until the new distributed write
+        # has returned on every rank; only then do we enforce the real limit.
+        self.strategy.save_ckpt(
+            self.model.model,
+            str(checkpoint_root),
+            tag=tag,
+            max_num=keep + 1,
+            max_mem=int(self.args.max_resume_mem),
+            client_state=self._checkpoint_client_state(),
         )
-        should_save = (self.args.save_steps > 0 and save) or (
-            self.steps > 0
-            and self._should_do(self.args.save_steps)
-            and self.steps >= self.args.save_from
+        self._storage_barrier()
+        if self.strategy.is_rank_0() and checkpoint_root.is_dir():
+            checkpoints = sorted(
+                (
+                    path
+                    for path in checkpoint_root.iterdir()
+                    if path.is_dir()
+                    and not path.is_symlink()
+                    and self._checkpoint_step(path) >= 0
+                ),
+                key=lambda path: (self._checkpoint_step(path), path.stat().st_mtime_ns),
+                reverse=True,
+            )
+            for obsolete in checkpoints[keep:]:
+                shutil.rmtree(obsolete)
+                logging.info("Deleted superseded resume checkpoint %s", obsolete)
+        self._storage_barrier()
+
+    def _write_eval_only_marker(self) -> None:
+        """Record that an eval-only measurement completed, and under what settings.
+
+        The decoding-frontier aggregator refuses any cell without this marker,
+        so a job that died between loading the checkpoint and finishing its
+        draws cannot be mistaken for a measured point.
+        """
+        self._storage_barrier()
+        if self.strategy.is_rank_0():
+            attempt_root = Path(self.save_path).resolve()
+            payload = {
+                "schema": "oat_zero_eval_only_complete_v1",
+                "completed_at_unix": time.time(),
+                "attempt_root": str(attempt_root),
+                "pretrain": str(self.args.pretrain),
+                "eval_mode_coverage_k": int(self.args.eval_mode_coverage_k),
+                "eval_mode_coverage_temperature": float(
+                    self.args.eval_mode_coverage_temperature
+                ),
+                "eval_mode_coverage_top_p": float(
+                    getattr(self.args, "eval_mode_coverage_top_p", 1.0)
+                ),
+                "eval_mode_coverage_draws": int(self.args.eval_mode_coverage_draws),
+                "eval_mode_coverage_seed": int(self.args.eval_mode_coverage_seed),
+                "eval_temperature": float(self.args.eval_temperature),
+                "test_split": str(self.args.test_split),
+                "eval_data": str(self.args.eval_data),
+                "prompt_template": str(self.args.prompt_template),
+                "optimizer_steps": 0,
+            }
+            marker = attempt_root / "EVAL_ONLY_COMPLETE.json"
+            temporary = attempt_root / f".{marker.name}.{os.getpid()}.tmp"
+            temporary.write_text(
+                json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            os.replace(temporary, marker)
+        self._storage_barrier()
+
+    def _finalize_successful_storage(self) -> None:
+        """Mark a completed run and retire optimizer state from all attempts."""
+        self._storage_barrier()
+        if self.strategy.is_rank_0():
+            run_root = Path(self.args.save_path).resolve()
+            attempt_root = Path(self.save_path).resolve()
+            if attempt_root.parent != run_root:
+                raise RuntimeError(
+                    f"attempt path {attempt_root} is not directly beneath {run_root}"
+                )
+
+            removed: list[str] = []
+            cleanup_errors: list[str] = []
+            terminal_export = attempt_root / "saved_models" / f"step_{self.steps:05d}"
+            export_required = int(self.args.export_steps) >= 0
+            export_ready = not export_required or terminal_export.is_dir()
+            if not export_ready:
+                cleanup_errors.append(
+                    f"terminal export missing; preserved resume state: {terminal_export}"
+                )
+            if bool(self.args.prune_resume_on_success) and export_ready:
+                for checkpoint_root in sorted(run_root.glob("*/checkpoints")):
+                    resolved = checkpoint_root.resolve()
+                    if (
+                        checkpoint_root.is_symlink()
+                        or resolved.parent.parent != run_root
+                        or resolved.name != "checkpoints"
+                    ):
+                        cleanup_errors.append(f"refused unsafe path: {checkpoint_root}")
+                        continue
+                    try:
+                        shutil.rmtree(resolved)
+                        removed.append(str(resolved))
+                    except OSError as exc:
+                        cleanup_errors.append(f"{resolved}: {exc}")
+                        logging.exception(
+                            "Could not retire completed-run checkpoint %s", resolved
+                        )
+
+            completion = {
+                "schema": "oat_zero_training_complete_v1",
+                "completed_at_unix": time.time(),
+                "terminal_step": int(self.steps),
+                "terminal_attempt": str(attempt_root),
+                "terminal_export": (str(terminal_export) if export_required else None),
+                "resume_checkpoints_pruned": bool(
+                    self.args.prune_resume_on_success and export_ready
+                ),
+                "removed_checkpoint_roots": removed,
+                "cleanup_errors": cleanup_errors,
+            }
+            marker = run_root / "TRAINING_COMPLETE.json"
+            temporary = run_root / f".{marker.name}.{os.getpid()}.tmp"
+            temporary.write_text(
+                json.dumps(completion, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            os.replace(temporary, marker)
+        self._storage_barrier()
+
+    def _storage_actions(
+        self, *, terminal: bool, allow_scheduled_save: bool
+    ) -> tuple[bool, bool]:
+        """Return ``(export_model, save_resume_state)`` for this boundary."""
+        export_steps = int(self.args.export_steps)
+        resume_steps = int(self.args.resume_steps)
+        should_export = (terminal and export_steps >= 0) or (
+            allow_scheduled_save
+            and export_steps > 0
+            and self.steps > 0
+            and self._should_do(export_steps)
+            and self.steps >= int(self.args.export_from)
+        )
+        should_resume = (
+            bool(self.args.save_ckpt)
+            and not terminal
+            and allow_scheduled_save
+            and resume_steps > 0
+            and self.steps > 0
+            and self._should_do(resume_steps)
+            and self.steps >= int(self.args.resume_from)
+        )
+        return should_export, should_resume
+
+    def eval_and_log(
+        self,
+        train_info,
+        eval=False,
+        save=False,
+        allow_scheduled_save=True,
+    ):
+        eval_info = {}
+        forced_eval = self.args.eval_steps > 0 and eval
+        should_eval = forced_eval or self._should_do(self.args.eval_steps)
+        duplicate_terminal_eval = (
+            bool(save)
+            and forced_eval
+            and getattr(self, "_last_evaluated_global_step", None)
+            == int(self.global_step)
+        )
+        if duplicate_terminal_eval:
+            # The run loop increments ``steps`` after every consumed prompt,
+            # including the final one.  If that final update already landed
+            # on a scheduled evaluation boundary, the terminal call below
+            # therefore has a new bookkeeping step but the exact same policy.
+            # Keep terminal export/storage semantics while avoiding a second
+            # full deterministic evaluation of unchanged weights.
+            should_eval = False
+            logging.info(
+                "Skipping duplicate terminal evaluation at step %s; "
+                "policy global_step %s was already evaluated.",
+                self.steps,
+                self.global_step,
+            )
+        should_export, should_resume = self._storage_actions(
+            terminal=bool(save), allow_scheduled_save=allow_scheduled_save
         )
 
-        if should_save and should_eval and self.strategy.is_rank_0():
+        if should_resume and should_eval and self.strategy.is_rank_0():
             logging.info(
-                "Checkpoint boundary at step %s: saving checkpoint before evaluation.",
+                "Recovery boundary at step %s: saving checkpoint before evaluation.",
                 self.steps,
             )
 
-        if should_save:
+        if should_resume:
+            self._save_resume_checkpoint()
+
+        if should_export:
             self.strategy.save_model(
                 self.model,
                 self.tokenizer,
                 os.path.join(self.save_path, "saved_models"),
                 tag="step_{:05d}".format(self.steps),
-                max_num=self.args.max_save_num,
-                max_mem=self.args.max_save_mem,
+                max_num=int(self.args.max_export_num),
+                max_mem=int(self.args.max_export_mem),
             )
-            if self.args.save_ckpt:
-                self.strategy.save_ckpt(
-                    self.model.model,
-                    os.path.join(self.save_path, "checkpoints"),
-                    tag="step_{:05d}".format(self.steps),
-                    max_num=self.args.max_save_num,
-                    max_mem=self.args.max_save_mem,
-                    client_state=self._checkpoint_client_state(),
-                )
 
         if should_eval:
             eval_info = self.evaluate(self.eval_prompts_dataloader, self.steps)
+            self._last_evaluated_global_step = int(self.global_step)
 
         if eval_info or self.steps % self.args.logging_steps == 0:
             misc_info = self.get_misc_info()
@@ -754,7 +3614,6 @@ class ZeroMathRunMixin:
             logs_dict["trainer/step"] = int(self.steps)
             logs_dict["trainer/global_step"] = int(self.global_step)
             logs_dict["trainer/policy_sgd_step"] = float(self.policy_sgd_step)
-            logs_dict = add_public_drx_training_metrics(logs_dict)
             self._add_learning_progress_metrics(logs_dict)
 
             if self.strategy.is_rank_0():
@@ -765,7 +3624,7 @@ class ZeroMathRunMixin:
                 self._append_train_metrics_jsonl(logs_dict)
                 if self._wandb is not None:
                     self._wandb.log(
-                        filter_wandb_logs_for_public_comparison(logs_dict),
+                        filter_wandb_logs(logs_dict),
                         step=int(self.steps),
                     )
 
@@ -797,6 +3656,13 @@ class ZeroMathRunMixin:
                     "the per-step metrics sink."
                 )
                 self._train_metrics_jsonl_failed_warned = True
+
+    def _append_mode_coverage_draw_jsonl(self, record: dict[str, Any]) -> None:
+        """Durably retain every sampled evaluation outcome on rank zero."""
+
+        path = os.path.join(self.save_path, "eval_mode_coverage_draws.jsonl")
+        with open(path, "a", encoding="utf-8") as sink:
+            sink.write(json.dumps(record, sort_keys=True) + "\n")
 
     def eval_dataloader_collate_fn(self, item_list):
         return collate_eval_prompt_items(
@@ -878,9 +3744,9 @@ class ZeroMathRunMixin:
                 if cov_key in mc:
                     mc_coverages.append(mc[cov_key])
             if mc_coverages:
-                all_metrics[f"eval/average/sampled_mode_coverage_at_{self.args.eval_mode_coverage_k}"] = float(
-                    np.mean(mc_coverages)
-                )
+                all_metrics[
+                    f"eval/average/sampled_mode_coverage_at_{self.args.eval_mode_coverage_k}"
+                ] = float(np.mean(mc_coverages))
 
         return all_metrics
 
@@ -901,21 +3767,51 @@ class ZeroMathRunMixin:
         eval_and_log produces correct per-run values.
         """
         self._pre_evaluate()
+        draw_count = int(getattr(self.args, "eval_mode_coverage_draws", 4))
+        seed_base = int(getattr(self.args, "eval_mode_coverage_seed", 1001))
         try:
             metrics = self._run_sampled_mode_coverage(
-                dataset, benchmark_name, steps, k=k, temperature=temperature
+                dataset,
+                benchmark_name,
+                steps,
+                k=k,
+                temperature=temperature,
+                draw_count=draw_count,
+                seed_base=seed_base,
             )
         finally:
             self._post_evaluate()
         # All ranks must call broadcast the same number of times (once per key).
         # Non-rank-0 processes return {} from _run_sampled_mode_coverage, so
         # pre-populate the canonical keys with 0.0 on every rank before broadcast.
-        canonical_keys = [
-            f"eval/{benchmark_name}/sampled_mode_coverage_at_{k}",
-            f"eval/{benchmark_name}/sampled_any_correct_at_{k}",
-            f"eval/{benchmark_name}/sampled_mean_at_{k}",
-            f"eval/{benchmark_name}/sampled_distinct_correct_at_{k}",
-        ]
+        canonical_keys = []
+        metrics_to_broadcast = [(metric, "neutral") for metric in MODE_COVERAGE_METRICS]
+        run_args = getattr(self, "args", None)
+        if int(getattr(run_args, "diayn_num_options", 0) or 0) > 1:
+            metrics_to_broadcast.extend(
+                (metric, "latent") for metric in MODE_COVERAGE_METRICS
+            )
+            metrics_to_broadcast.extend(
+                (metric, "neutral") for metric in OPTION_BINDING_METRICS
+            )
+        for metric, metric_namespace in metrics_to_broadcast:
+            key = _mode_coverage_log_key(
+                benchmark_name,
+                metric,
+                k,
+                metric_namespace=metric_namespace,
+            )
+            canonical_keys.extend(
+                [
+                    key,
+                    f"{key}_draw_count",
+                    f"{key}_draw_std",
+                    f"{key}_draw_se",
+                    f"{key}_draw_min",
+                    f"{key}_draw_max",
+                    *(f"{key}_draw_{index}" for index in range(draw_count)),
+                ]
+            )
         for key in canonical_keys:
             metrics.setdefault(key, 0.0)
         metrics = self.strategy.broadcast(metrics)
@@ -929,9 +3825,245 @@ class ZeroMathRunMixin:
         *,
         k: int,
         temperature: float,
+        draw_count: int,
+        seed_base: int,
     ) -> dict[str, float]:
         if not self.strategy.is_rank_0():
             return {}
+
+        # Nucleus truncation is a property of the sampled draws only; the
+        # greedy trace below is unaffected by it and keeps the untruncated
+        # surface so its value stays comparable across a decoding sweep.
+        coverage_top_p = float(
+            getattr(getattr(self, "args", None), "eval_mode_coverage_top_p", 1.0) or 1.0
+        )
+        logging.info(
+            "Starting sampled mode-coverage eval %s/%s: %s "
+            "(%s prompts, draws=%s, K=%s, T=%s, top_p=%s, seeds=%s..%s) at step %s",
+            benchmark_name,
+            len(self.eval_dataset_dict),
+            benchmark_name,
+            len(dataset),
+            draw_count,
+            k,
+            temperature,
+            coverage_top_p,
+            seed_base,
+            seed_base + draw_count - 1,
+            steps,
+        )
+        greedy_mean, greedy_prompt_outcomes = self._run_sampled_mode_coverage_draw(
+            dataset,
+            k=1,
+            temperature=0.0,
+            seed=0,
+            condition_on_answer_options=False,
+        )
+        if greedy_mean:
+            self._append_mode_coverage_draw_jsonl(
+                {
+                    "schema_version": 1,
+                    "evaluation_kind": "deterministic_greedy_trace_neutral",
+                    "benchmark": benchmark_name,
+                    "step": int(steps),
+                    "draw_index": None,
+                    "seed": 0,
+                    "sample_count": 1,
+                    "temperature": 0.0,
+                    "metrics": greedy_mean,
+                    "prompts": greedy_prompt_outcomes,
+                }
+            )
+        draw_means: list[dict[str, float]] = []
+        draw_prompt_outcomes: list[list[dict[str, Any]]] = []
+        for draw_index in range(draw_count):
+            draw_seed = seed_base + draw_index
+            mean, prompt_outcomes = self._run_sampled_mode_coverage_draw(
+                dataset,
+                k=k,
+                temperature=temperature,
+                seed=draw_seed,
+                condition_on_answer_options=False,
+                top_p=coverage_top_p,
+            )
+            if not mean:
+                continue
+            draw_means.append(mean)
+            draw_prompt_outcomes.append(prompt_outcomes)
+            self._append_mode_coverage_draw_jsonl(
+                {
+                    "schema_version": 1,
+                    "evaluation_kind": "fixed_seed_sampled_k_neutral",
+                    "benchmark": benchmark_name,
+                    "step": int(steps),
+                    "draw_index": draw_index,
+                    "seed": draw_seed,
+                    "sample_count": int(k),
+                    "temperature": float(temperature),
+                    "top_p": coverage_top_p,
+                    "metrics": mean,
+                    "prompts": prompt_outcomes,
+                }
+            )
+
+        if not draw_means:
+            return {}
+        metrics = _summarize_mode_coverage_draws(draw_means, benchmark_name, k)
+        run_args = getattr(self, "args", None)
+        if int(getattr(run_args, "diayn_num_options", 0) or 0) > 1:
+            latent_draw_means: list[dict[str, float]] = []
+            latent_draw_prompt_outcomes: list[list[dict[str, Any]]] = []
+            for draw_index in range(draw_count):
+                draw_seed = seed_base + draw_index
+                latent_mean, latent_prompt_outcomes = (
+                    self._run_sampled_mode_coverage_draw(
+                        dataset,
+                        k=k,
+                        temperature=temperature,
+                        seed=draw_seed,
+                        condition_on_answer_options=True,
+                        top_p=coverage_top_p,
+                    )
+                )
+                if not latent_mean:
+                    continue
+                latent_draw_means.append(latent_mean)
+                latent_draw_prompt_outcomes.append(latent_prompt_outcomes)
+                self._append_mode_coverage_draw_jsonl(
+                    {
+                        "schema_version": 2,
+                        "evaluation_kind": ("fixed_seed_sampled_k_latent_binding"),
+                        "benchmark": benchmark_name,
+                        "step": int(steps),
+                        "draw_index": draw_index,
+                        "seed": draw_seed,
+                        "seed_derivation": (
+                            "draw_seed*1000000 + prompt_index*num_options + z"
+                        ),
+                        "sample_count": int(k),
+                        "temperature": float(temperature),
+                        "num_options": int(run_args.diayn_num_options),
+                        "metrics": latent_mean,
+                        "prompts": latent_prompt_outcomes,
+                    }
+                )
+            if not latent_draw_means:
+                raise RuntimeError(
+                    "DIAYN latent-conditioned evaluation produced no draws"
+                )
+            metrics.update(
+                _summarize_mode_coverage_draws(
+                    latent_draw_means,
+                    benchmark_name,
+                    k,
+                    metric_namespace="latent",
+                )
+            )
+            answer_reprs_by_draw: list[list[str | None]] = []
+            option_ids_by_draw: list[list[int | None]] = []
+            correct_by_draw: list[list[bool]] = []
+            for outcomes in latent_draw_prompt_outcomes:
+                answer_rows: list[str | None] = []
+                option_rows: list[int | None] = []
+                correct_rows: list[bool] = []
+                for outcome in outcomes:
+                    prompt_index = int(outcome["prompt_index"])
+                    answer_rows.extend(
+                        conditional_answer_repr(prompt_index, key)
+                        for key in outcome["answer_keys"]
+                    )
+                    option_rows.extend(outcome["option_ids"])
+                    correct_rows.extend(
+                        float(value) > 0.0 for value in outcome["rewards"]
+                    )
+                answer_reprs_by_draw.append(answer_rows)
+                option_ids_by_draw.append(option_rows)
+                correct_by_draw.append(correct_rows)
+            crossfit_metrics = crossfit_option_answer_mi(
+                answer_reprs_by_draw=answer_reprs_by_draw,
+                option_ids_by_draw=option_ids_by_draw,
+                correct_by_draw=correct_by_draw,
+                num_options=int(run_args.diayn_num_options),
+                smoothing=float(run_args.diayn_mi_smoothing),
+            )
+            metrics.update(
+                _summarize_mode_coverage_draws(
+                    crossfit_metrics,
+                    benchmark_name,
+                    k,
+                )
+            )
+            self._append_mode_coverage_draw_jsonl(
+                {
+                    "schema_version": 2,
+                    "evaluation_kind": "crossfit_option_binding",
+                    "benchmark": benchmark_name,
+                    "step": int(steps),
+                    "draw_count": len(latent_draw_means),
+                    "num_options": int(run_args.diayn_num_options),
+                    "metrics_by_held_out_draw": crossfit_metrics,
+                }
+            )
+        coverage_key = _mode_coverage_log_key(benchmark_name, "mode_coverage_at_k", k)
+        pass_key = _mode_coverage_log_key(benchmark_name, "any_correct_at_k", k)
+        mean_key = _mode_coverage_log_key(benchmark_name, "mean_at_k", k)
+        distinct_key = _mode_coverage_log_key(
+            benchmark_name, "distinct_correct_modes_at_k", k
+        )
+
+        logging.info(
+            "Finished sampled mode-coverage eval %s: "
+            "mode_cov@%s=%.4f±%.4f any_correct@%s=%.4f "
+            "mean@%s=%.4f distinct@%s=%.4f across %s fixed draws at step %s",
+            benchmark_name,
+            k,
+            metrics[coverage_key],
+            metrics[f"{coverage_key}_draw_se"],
+            k,
+            metrics[pass_key],
+            k,
+            metrics[mean_key],
+            k,
+            metrics[distinct_key],
+            len(draw_means),
+            steps,
+        )
+        if int(getattr(run_args, "diayn_num_options", 0) or 0) > 1:
+            latent_coverage_key = _mode_coverage_log_key(
+                benchmark_name,
+                "mode_coverage_at_k",
+                k,
+                metric_namespace="latent",
+            )
+            binding_key = _mode_coverage_log_key(
+                benchmark_name,
+                "option_answer_mi_lower_bound_nats",
+                k,
+            )
+            logging.info(
+                "Finished latent-conditioned binding eval %s: "
+                "latent_mode_cov@%s=%.4f MI_lb@%s=%.4f with independent "
+                "(draw,prompt,z) seeds at step %s",
+                benchmark_name,
+                k,
+                metrics[latent_coverage_key],
+                k,
+                metrics[binding_key],
+                steps,
+            )
+        return metrics
+
+    def _run_sampled_mode_coverage_draw(
+        self,
+        dataset,
+        *,
+        k: int,
+        temperature: float,
+        seed: int,
+        condition_on_answer_options: bool = False,
+        top_p: float = 1.0,
+    ) -> tuple[dict[str, float], list[dict[str, Any]]]:
+        """Evaluate one fixed-seed K draw and return every prompt outcome."""
 
         dataloader = DataLoader(
             dataset,
@@ -940,70 +4072,105 @@ class ZeroMathRunMixin:
             drop_last=False,
             collate_fn=self.eval_dataloader_collate_fn,
         )
-
-        logging.info(
-            "Starting sampled mode-coverage eval %s/%s: %s (%s prompts, K=%s, T=%s) at step %s",
-            benchmark_name,
-            len(self.eval_dataset_dict),
-            benchmark_name,
-            len(dataset),
-            k,
-            temperature,
-            steps,
-        )
-
         per_prompt_metrics: list[dict[str, float]] = []
+        prompt_outcomes: list[dict[str, Any]] = []
         futs: list = []
-        pending_refs: list[list[str]] = []
+        pending: list[tuple[list[str], list[int], list[str]]] = []
+        prompt_offset = 0
 
-        for i, (batch_formatted, _batch_raw, batch_refs) in enumerate(dataloader):
-            actor = self.actors[i % len(self.actors)]
-            fut = actor.futures.generate_for_mode_coverage(
-                list(batch_formatted), list(batch_refs), k, temperature
+        for batch_index, (batch_formatted, batch_raw, batch_refs) in enumerate(
+            dataloader
+        ):
+            actor = self.actors[batch_index % len(self.actors)]
+            refs_batch = list(batch_refs)
+            indices = list(range(prompt_offset, prompt_offset + len(refs_batch)))
+            prompt_offset += len(refs_batch)
+            futs.append(
+                actor.futures.generate_for_mode_coverage(
+                    list(batch_formatted),
+                    refs_batch,
+                    k,
+                    temperature,
+                    seed,
+                    condition_on_answer_options,
+                    indices,
+                    float(top_p),
+                )
             )
-            futs.append(fut)
-            pending_refs.append(list(batch_refs))
-            if len(futs) == len(self.actors) or i == len(dataloader) - 1:
-                for fut, refs_batch in zip(futs, pending_refs):
+            pending.append((refs_batch, indices, list(batch_raw)))
+            if len(futs) == len(self.actors) or batch_index == len(dataloader) - 1:
+                for fut, (queued_refs, queued_indices, queued_prompts) in zip(
+                    futs, pending
+                ):
                     result = fut.result()
-                    for rewards, answer_keys, ref in zip(
-                        result["rewards"], result["answer_keys"], refs_batch
+                    option_rows = result.get("option_ids")
+                    if option_rows is None:
+                        option_rows = [
+                            [None] * len(reward_rows)
+                            for reward_rows in result["rewards"]
+                        ]
+                    request_seed_rows = result.get("request_seeds_by_prompt")
+                    if request_seed_rows is None:
+                        request_seed_rows = [[] for _ in result["rewards"]]
+                    for (
+                        rewards,
+                        answer_keys,
+                        responses,
+                        option_ids,
+                        request_seeds,
+                        ref,
+                        prompt_index,
+                        prompt,
+                    ) in zip(
+                        result["rewards"],
+                        result["answer_keys"],
+                        result["responses"],
+                        option_rows,
+                        request_seed_rows,
+                        queued_refs,
+                        queued_indices,
+                        queued_prompts,
                     ):
                         mode_count = _parse_answer_mode_count(ref)
-                        per_prompt_metrics.append(
-                            _compute_mode_coverage_metrics(rewards, answer_keys, mode_count)
+                        prompt_metrics = _compute_mode_coverage_metrics(
+                            rewards,
+                            answer_keys,
+                            mode_count,
+                            _parse_public_seed_key(ref),
+                        )
+                        per_prompt_metrics.append(prompt_metrics)
+                        prompt_outcomes.append(
+                            {
+                                "prompt_index": prompt_index,
+                                "prompt": prompt,
+                                "reference": ref,
+                                "answer_mode_count": mode_count,
+                                "responses": [str(response) for response in responses],
+                                "rewards": [float(value) for value in rewards],
+                                "answer_keys": [
+                                    None if key is None else str(key)
+                                    for key in answer_keys
+                                ],
+                                "option_ids": [
+                                    None if value is None else int(value)
+                                    for value in option_ids
+                                ],
+                                "request_seeds_by_option": [
+                                    int(value) for value in request_seeds
+                                ],
+                                "metrics": prompt_metrics,
+                            }
                         )
                 futs.clear()
-                pending_refs.clear()
+                pending.clear()
 
         if not per_prompt_metrics:
-            return {}
-
-        mean: dict[str, float] = {
-            key: float(sum(m[key] for m in per_prompt_metrics) / len(per_prompt_metrics))
+            return {}, []
+        mean = {
+            key: float(
+                sum(metrics[key] for metrics in per_prompt_metrics)
+                / len(per_prompt_metrics)
+            )
             for key in per_prompt_metrics[0]
         }
-
-        logging.info(
-            "Finished sampled mode-coverage eval %s: "
-            "mode_cov@%s=%.4f any_correct@%s=%.4f mean@%s=%.4f distinct@%s=%.4f at step %s",
-            benchmark_name,
-            k,
-            mean["mode_coverage_at_k"],
-            k,
-            mean["any_correct_at_k"],
-            k,
-            mean["mean_at_k"],
-            k,
-            mean["distinct_correct_modes_at_k"],
-            steps,
-        )
-
-        return {
-            f"eval/{benchmark_name}/sampled_mode_coverage_at_{k}": mean["mode_coverage_at_k"],
-            f"eval/{benchmark_name}/sampled_any_correct_at_{k}": mean["any_correct_at_k"],
-            f"eval/{benchmark_name}/sampled_mean_at_{k}": mean["mean_at_k"],
-            f"eval/{benchmark_name}/sampled_distinct_correct_at_{k}": mean[
-                "distinct_correct_modes_at_k"
-            ],
-        }
+        return mean, prompt_outcomes

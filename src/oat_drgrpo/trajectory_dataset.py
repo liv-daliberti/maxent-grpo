@@ -1,4 +1,4 @@
-"""Trajectory dataset wrapper that preserves verifier references for Dr.X."""
+"""Trajectory dataset wrapper that preserves exact-verifier references."""
 
 from __future__ import annotations
 
@@ -55,6 +55,8 @@ class ZeroMathTrajectoryDataset(Dataset):
             trajectory_ids = list(item.prompt_ids) + list(item.response_ids)
             self.trajectories.append(
                 {
+                    "prompt": item.prompt,
+                    "response": item.response,
                     "input_ids": torch.tensor(trajectory_ids),
                     "attention_mask": torch.ones(len(trajectory_ids)),
                     "action_ids": item.response_ids,
@@ -62,7 +64,19 @@ class ZeroMathTrajectoryDataset(Dataset):
                     "loss_mask": item.loss_mask,
                     "prompt_ids_lens": len(item.prompt_ids),
                     "action_logprobs": item.response_logprobs,
+                    "canonical_behavior_action_logprobs": getattr(
+                        item, "canonical_behavior_action_logprobs", None
+                    ),
+                    "canonical_behavior_action_token_ids": getattr(
+                        item, "canonical_behavior_action_token_ids", None
+                    ),
+                    "canonical_behavior_action_token_ids_by_position": getattr(
+                        item,
+                        "canonical_behavior_action_token_ids_by_position",
+                        None,
+                    ),
                     "reference": getattr(item, "reference", None),
+                    "diayn_option_id": getattr(item, "diayn_option_id", None),
                 }
             )
 
@@ -74,6 +88,8 @@ class ZeroMathTrajectoryDataset(Dataset):
 
     def collate_fn(self, item_list: list[dict[str, Any]]) -> dict[str, Any]:
         batch_trajectories: dict[str, Any] = {
+            "prompts": [],
+            "responses": [],
             "input_ids": [],
             "action_ids": [],
             "attention_mask": [],
@@ -81,17 +97,33 @@ class ZeroMathTrajectoryDataset(Dataset):
             "loss_masks": [],
             "prompt_ids_lens": [],
             "action_logprobs": [],
+            "canonical_behavior_action_logprobs": [],
+            "canonical_behavior_action_token_ids": [],
+            "canonical_behavior_action_token_ids_by_position": [],
             "references": [],
+            "diayn_option_ids": [],
         }
         for item in item_list:
+            batch_trajectories["prompts"].append(item["prompt"])
+            batch_trajectories["responses"].append(item["response"])
             batch_trajectories["input_ids"].append(item["input_ids"])
             batch_trajectories["attention_mask"].append(item["attention_mask"])
             batch_trajectories["rewards"].append(item["rewards"])
             batch_trajectories["loss_masks"].append(item["loss_mask"])
             batch_trajectories["prompt_ids_lens"].append(item["prompt_ids_lens"])
             batch_trajectories["action_logprobs"].append(item["action_logprobs"])
+            batch_trajectories["canonical_behavior_action_logprobs"].append(
+                item["canonical_behavior_action_logprobs"]
+            )
+            batch_trajectories["canonical_behavior_action_token_ids"].append(
+                item["canonical_behavior_action_token_ids"]
+            )
+            batch_trajectories[
+                "canonical_behavior_action_token_ids_by_position"
+            ].append(item["canonical_behavior_action_token_ids_by_position"])
             batch_trajectories["action_ids"].append(item["action_ids"])
             batch_trajectories["references"].append(item.get("reference"))
+            batch_trajectories["diayn_option_ids"].append(item.get("diayn_option_id"))
 
         padding_side = "right"
         batch_trajectories["input_ids"] = _zero_pad_sequences(

@@ -1,0 +1,46 @@
+{
+  "controls": [
+    {
+      "candidate_menu_sha256": "9c23ac31e8d55c29469bd2ded34b2e3cd27ed481d5b3dae2d23e71d60454cc54",
+      "control_id": "non_arithmetic_sequence_middle_term",
+      "failure_class": "invalid_theorem_precondition",
+      "reason": "The listed sequence is not arithmetic or symmetric, so its middle term is not its mean.",
+      "row_id": "train:0024:train/prealgebra/300.json",
+      "strategy_id": "S2"
+    },
+    {
+      "candidate_menu_sha256": "80ef64b34d812a24b8da83b8f7692c565ee6d32e185ac06b9063aa48ee30fa52",
+      "control_id": "underspecified_generating_function",
+      "failure_class": "undeclared_decisive_operation",
+      "reason": "The route never states the required generating function and leaves the decisive construction to the auditor.",
+      "row_id": "eval:0001:36611d0560b627daf41a",
+      "strategy_id": "S1"
+    },
+    {
+      "candidate_menu_sha256": "83e20d325f0e152c6b030c6364db3f58e47c85ff06e6c37ddf2ef41bf933df2c",
+      "control_id": "sphere_diameter_as_cube_space_diagonal",
+      "failure_class": "false_geometric_relation",
+      "reason": "For a sphere inscribed in a cube, its diameter equals the cube side, not the cube space diagonal.",
+      "row_id": "eval:0006:90cb2730a3aed671cfaf",
+      "strategy_id": "S2"
+    },
+    {
+      "candidate_menu_sha256": "44f4b474e6fe95dc371b6b2892414bd33f1077ae0c794616371328bac8b7c589",
+      "control_id": "fixed_k_determinant_as_cross_product_magnitude",
+      "failure_class": "component_magnitude_confusion",
+      "reason": "The determinant with a fixed unit vector k gives one cross-product component, not its full magnitude in general.",
+      "row_id": "eval:0021:38692edc70e4eaa22536",
+      "strategy_id": "S2"
+    },
+    {
+      "candidate_menu_sha256": "25b41a9d74708bf59fa35c049c733518807730038b7de2e20c535262561fdc62",
+      "control_id": "binet_irrational_modulo_four",
+      "failure_class": "invalid_modular_domain",
+      "reason": "Binet's irrational expression cannot be manipulated modulo 4 with Euler's theorem as declared.",
+      "row_id": "eval:0033:01cf1270fb4c7a7ab44c",
+      "strategy_id": "S2"
+    }
+  ],
+  "schema": "e49e_known_invalid_controls_v1",
+  "stage": "toy"
+}

@@ -8,7 +8,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   exit 1
 fi
 
-_maxent_repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+_maxent_repo_root="${OAT_ZERO_REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 export MAXENT_GRPO_ROOT="${MAXENT_GRPO_ROOT:-$_maxent_repo_root}"
 export MAXENT_GRPO_VAR_ROOT="${MAXENT_GRPO_VAR_ROOT:-$MAXENT_GRPO_ROOT/var}"
 

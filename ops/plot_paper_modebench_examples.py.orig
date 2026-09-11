@@ -1,0 +1,417 @@
+#!/usr/bin/env python3
+"""Render four validator-checked ModeBench examples for Section 3.1."""
+
+from __future__ import annotations
+
+import itertools
+import json
+import sys
+from pathlib import Path
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from datasets import load_from_disk
+from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from oat_drgrpo.math_grader import _canonical_countdown_expression_key  # noqa: E402
+from oat_drgrpo.mathir import validate_mathir_action_menu  # noqa: E402
+from oat_drgrpo.python_modebench_process import (  # noqa: E402
+    validate_python_factor_function_external,
+)
+
+OUT = ROOT / "paper/figures/modebench_examples"
+DATA_ROOTS = {
+    "graph": ROOT / "var/data/exact_answer_mode_probe/eval",
+    "countdown": ROOT / "var/data/exact_countdown_easy3_probe/eval",
+    "python": ROOT / "var/data/python_factor_modebench_v1/eval",
+    "mathir": ROOT / "var/data/mathir_action_menu_v1/eval",
+}
+
+INK = "#19324A"
+MUTED = "#607487"
+GRID = "#D8E2EA"
+PANEL = "#F6F9FB"
+WHITE = "#FFFFFF"
+TEAL = "#087F8C"
+PURPLE = "#6C5CE7"
+ORANGE = "#D95F45"
+BLUE = "#3A7CA5"
+GREEN = "#2A9D8F"
+NODE_COLORS = {1: "#F2C14E", 2: "#2A9D8F", 3: "#7B6FD0"}
+
+mpl.rcParams.update(
+    {
+        "font.family": "DejaVu Sans",
+        "font.size": 8.2,
+        "axes.edgecolor": INK,
+        "axes.labelcolor": INK,
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+        "figure.facecolor": WHITE,
+        "savefig.facecolor": WHITE,
+    }
+)
+
+
+def rounded_box(
+    ax,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    *,
+    face: str = WHITE,
+    edge: str = GRID,
+    radius: float = 0.018,
+    lw: float = 1.0,
+):
+    patch = FancyBboxPatch(
+        (x, y),
+        w,
+        h,
+        boxstyle=f"round,pad=0.006,rounding_size={radius}",
+        transform=ax.transAxes,
+        facecolor=face,
+        edgecolor=edge,
+        linewidth=lw,
+        clip_on=False,
+    )
+    ax.add_patch(patch)
+    return patch
+
+
+def text(ax, x: float, y: float, value: str, **kwargs):
+    defaults = {
+        "fontsize": 8.0,
+        "color": INK,
+        "ha": "center",
+        "va": "center",
+        "transform": ax.transAxes,
+    }
+    defaults.update(kwargs)
+    return ax.text(x, y, value, **defaults)
+
+
+def arrow(ax, start, end, *, color=MUTED, lw=1.05, scale=8):
+    patch = FancyArrowPatch(
+        start,
+        end,
+        transform=ax.transAxes,
+        arrowstyle="-|>",
+        mutation_scale=scale,
+        linewidth=lw,
+        color=color,
+        shrinkA=1,
+        shrinkB=1,
+        clip_on=False,
+    )
+    ax.add_patch(patch)
+    return patch
+
+
+def load_example(name: str) -> tuple[dict, dict]:
+    dataset = load_from_disk(str(DATA_ROOTS[name]))
+    split = dataset["multi_answer"]
+    row = split[0]
+    return row, json.loads(row["answer"])
+
+
+def load_and_validate() -> dict[str, dict]:
+    graph_row, graph = load_example("graph")
+    assert graph["instance_id"] == "eval_multi_answer-10000-0"
+    assert graph["partial_colors"] == [2, None, None, 1, None, 2]
+    graph_mode = (2, 1, 1, 1, 3, 2)
+    assert all(
+        fixed is None or graph_mode[index] == fixed
+        for index, fixed in enumerate(graph["partial_colors"])
+    )
+    assert all(graph_mode[u - 1] != graph_mode[v - 1] for u, v in graph["edges"])
+    valid_graph_modes = [
+        colors
+        for colors in itertools.product((1, 2, 3), repeat=graph["n"])
+        if all(
+            fixed is None or colors[index] == fixed
+            for index, fixed in enumerate(graph["partial_colors"])
+        )
+        and all(colors[u - 1] != colors[v - 1] for u, v in graph["edges"])
+    ]
+    assert len(valid_graph_modes) == graph["num_completions"] == 4
+
+    countdown_row, countdown = load_example("countdown")
+    assert countdown["numbers"] == [3, 6, 9] and countdown["target"] == 18
+    countdown_expression = "3 + 6 + 9"
+    countdown_key = _canonical_countdown_expression_key(
+        countdown_expression, countdown
+    )
+    assert countdown_key is not None
+
+    python_row, python_spec = load_example("python")
+    assert python_spec["cases"] == [18, 82, 91, 93]
+    python_program = (
+        "lambda n: 2 if n == 18 else 2 if n == 82 "
+        "else 7 if n == 91 else 3"
+    )
+    python_validation = validate_python_factor_function_external(
+        python_program, python_spec
+    )
+    assert python_validation is not None
+    assert python_validation.outputs == (2, 2, 7, 3)
+
+    mathir_row, mathir_spec = load_example("mathir")
+    assert mathir_spec["bindings"] == {"a": 2, "b": -9, "c": -1}
+    assert mathir_spec["actions"]["C"] == "sub(b)"
+    assert mathir_spec["actions"]["F"] == "mul(a)"
+    mathir_validation = validate_mathir_action_menu("C;F", mathir_spec)
+    assert mathir_validation is not None
+
+    return {
+        "graph": {
+            "row": graph_row,
+            "spec": graph,
+            "mode": graph_mode,
+            "key": "".join(str(value) for value in graph_mode),
+        },
+        "countdown": {
+            "row": countdown_row,
+            "spec": countdown,
+            "expression": countdown_expression,
+            "key": countdown_key,
+        },
+        "python": {
+            "row": python_row,
+            "spec": python_spec,
+            "outputs": python_validation.outputs,
+            "key": python_validation.canonical_key,
+        },
+        "mathir": {
+            "row": mathir_row,
+            "spec": mathir_spec,
+            "key": mathir_validation.canonical_key,
+        },
+    }
+
+
+def card(ax, x: float, letter: str, title: str, accent: str) -> None:
+    rounded_box(ax, x, 0.055, 0.232, 0.89, face=PANEL, radius=0.022, lw=1.05)
+    text(
+        ax,
+        x + 0.022,
+        0.872,
+        letter,
+        fontsize=11.2,
+        fontweight="bold",
+        color=accent,
+        ha="left",
+    )
+    text(
+        ax,
+        x + 0.057,
+        0.872,
+        title,
+        fontsize=9.5,
+        fontweight="bold",
+        ha="left",
+    )
+
+
+def key_pill(ax, x: float, label: str, accent: str) -> None:
+    rounded_box(
+        ax,
+        x + 0.018,
+        0.092,
+        0.196,
+        0.105,
+        face=WHITE,
+        edge=accent,
+        radius=0.015,
+        lw=1.0,
+    )
+    text(
+        ax,
+        x + 0.116,
+        0.145,
+        label,
+        fontsize=7.0,
+        fontweight="bold",
+        color=accent,
+    )
+
+
+def draw_graph(ax, x: float, example: dict) -> None:
+    spec = example["spec"]
+    mode = example["mode"]
+    positions = {
+        1: (x + 0.047, 0.665),
+        2: (x + 0.056, 0.365),
+        3: (x + 0.118, 0.700),
+        4: (x + 0.183, 0.340),
+        5: (x + 0.157, 0.570),
+        6: (x + 0.132, 0.350),
+    }
+    text(ax, x + 0.116, 0.780, "complete  2??1?2", fontsize=7.0, color=MUTED)
+    for left, right in spec["edges"]:
+        x1, y1 = positions[left]
+        x2, y2 = positions[right]
+        ax.plot(
+            [x1, x2],
+            [y1, y2],
+            transform=ax.transAxes,
+            color=MUTED,
+            lw=1.15,
+            zorder=1,
+        )
+    for vertex, color_id in enumerate(mode, start=1):
+        px, py = positions[vertex]
+        fixed = spec["partial_colors"][vertex - 1] is not None
+        circle = Circle(
+            (px, py),
+            0.022,
+            transform=ax.transAxes,
+            facecolor=NODE_COLORS[color_id],
+            edgecolor=INK,
+            linewidth=1.45 if fixed else 0.8,
+            zorder=2,
+        )
+        ax.add_patch(circle)
+        text(
+            ax,
+            px,
+            py,
+            str(vertex),
+            fontsize=6.5,
+            fontweight="bold",
+            color=WHITE,
+            zorder=3,
+        )
+    key_pill(ax, x, f"color-vector key  {example['key']}  ✓", PURPLE)
+
+
+def draw_countdown(ax, x: float, example: dict) -> None:
+    text(ax, x + 0.116, 0.780, "use every tile once", fontsize=7.0, color=MUTED)
+    for index, value in enumerate(example["spec"]["numbers"]):
+        xx = x + 0.046 + index * 0.070
+        rounded_box(
+            ax,
+            xx - 0.024,
+            0.655,
+            0.048,
+            0.100,
+            face=WHITE,
+            edge=ORANGE,
+            radius=0.010,
+            lw=1.0,
+        )
+        text(ax, xx, 0.705, str(value), fontsize=10.0, fontweight="bold")
+    arrow(ax, (x + 0.116, 0.640), (x + 0.116, 0.565), color=ORANGE)
+    rounded_box(
+        ax,
+        x + 0.031,
+        0.425,
+        0.170,
+        0.125,
+        face=WHITE,
+        edge=GRID,
+        radius=0.012,
+    )
+    text(ax, x + 0.116, 0.488, "3 + 6 + 9 = 18  ✓", fontsize=8.3, fontweight="bold")
+    text(ax, x + 0.116, 0.330, "parse  →  execute  →  normalize", fontsize=6.8, color=MUTED)
+    key_pill(ax, x, "key  normalized AST", ORANGE)
+
+
+def draw_python(ax, x: float, example: dict) -> None:
+    text(ax, x + 0.116, 0.780, "external restricted worker", fontsize=7.0, color=MUTED)
+    inputs = example["spec"]["cases"]
+    outputs = example["outputs"]
+    for index, (value, output) in enumerate(zip(inputs, outputs)):
+        yy = 0.690 - index * 0.105
+        rounded_box(
+            ax,
+            x + 0.025,
+            yy - 0.035,
+            0.058,
+            0.070,
+            face=WHITE,
+            edge=GRID,
+            radius=0.009,
+        )
+        text(ax, x + 0.054, yy, str(value), fontsize=7.4, fontweight="bold")
+        arrow(ax, (x + 0.087, yy), (x + 0.139, yy), color=BLUE, scale=7)
+        rounded_box(
+            ax,
+            x + 0.144,
+            yy - 0.035,
+            0.058,
+            0.070,
+            face="#EDF5FA",
+            edge=BLUE,
+            radius=0.009,
+        )
+        text(
+            ax,
+            x + 0.173,
+            yy,
+            str(output),
+            fontsize=7.4,
+            fontweight="bold",
+            color=BLUE,
+        )
+    text(ax, x + 0.054, 0.275, "n", fontsize=6.5, fontweight="bold", color=MUTED)
+    text(ax, x + 0.173, 0.275, "proper factor", fontsize=6.5, fontweight="bold", color=MUTED)
+    key_pill(ax, x, "behavior key  [2, 2, 7, 3]", BLUE)
+
+
+def draw_mathir(ax, x: float, example: dict) -> None:
+    text(ax, x + 0.116, 0.780, "execute actions on both sides", fontsize=7.0, color=MUTED)
+    equations = ("x/2 − 9 = −1", "x/2 = 8", "x = 16  ✓")
+    ys = (0.690, 0.500, 0.310)
+    for equation, yy in zip(equations, ys):
+        rounded_box(
+            ax,
+            x + 0.035,
+            yy - 0.052,
+            0.162,
+            0.104,
+            face=WHITE,
+            edge=GRID,
+            radius=0.011,
+        )
+        text(ax, x + 0.116, yy, equation, fontsize=8.2, fontweight="bold")
+    arrow(ax, (x + 0.116, 0.632), (x + 0.116, 0.558), color=GREEN)
+    arrow(ax, (x + 0.116, 0.442), (x + 0.116, 0.368), color=GREEN)
+    text(ax, x + 0.168, 0.595, "C: −(−9)", fontsize=6.1, color=GREEN)
+    text(ax, x + 0.158, 0.405, "F: ×2", fontsize=6.1, color=GREEN)
+    key_pill(ax, x, "key  equation-state trajectory", GREEN)
+
+
+def render() -> None:
+    examples = load_and_validate()
+    fig = plt.figure(figsize=(7.35, 2.30))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_axis_off()
+
+    starts = (0.008, 0.258, 0.508, 0.758)
+    cards = (
+        ("A", "Graph coloring", PURPLE, draw_graph, examples["graph"]),
+        ("B", "Countdown", ORANGE, draw_countdown, examples["countdown"]),
+        ("C", "Python factors", BLUE, draw_python, examples["python"]),
+        ("D", "MathIR", GREEN, draw_mathir, examples["mathir"]),
+    )
+    for start, (letter, title, accent, drawer, example) in zip(starts, cards):
+        card(ax, start, letter, title, accent)
+        drawer(ax, start, example)
+
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)
+    fig.savefig(OUT.with_suffix(".png"), dpi=240, bbox_inches="tight", pad_inches=0.035)
+    plt.close(fig)
+    print(f"Wrote {OUT.with_suffix('.pdf')}")
+    print(f"Wrote {OUT.with_suffix('.png')}")
+
+
+if __name__ == "__main__":
+    render()

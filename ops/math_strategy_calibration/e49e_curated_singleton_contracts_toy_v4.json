@@ -1,0 +1,50 @@
+{
+  "eval:0000:633e012b858efb060033": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Expand $(z+i)^4$ and rewrite the given equation exactly as $(z+i)^4=1+i$."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Write $1+i$ in polar form; its fourth roots give a translated square with circumradius $R=|1+i|^{1/4}$."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Use the square formula $A=2R^2=2|1+i|^{1/2}$, combine the prime powers, reduce the exponent, and evaluate the requested $a+b+p$."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Apply the exact fourth-power translation, preserve the fourth-root modulus as the circumradius, and use $A=2R^2$ before extracting the prime-power parameters.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "eval:0046:7d6034fbace18cb8a496": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Translate the geometric and arithmetic triples into $a_{2k}^2=a_{2k-1}a_{2k+1}$ and $2a_{2k+1}=a_{2k}+a_{2k+2}$, then derive $r_{k+1}=2-1/r_k$ for $r_k=a_{2k}/a_{2k-1}$."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Set $s_k=(r_k-1)^{-1}$, prove $s_{k+1}=s_k+1$, and parameterize the terms as $a_{2k-1}=C(m+k-1)^2$ and $a_{2k}=C(m+k-1)(m+k)$."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Use integer consecutive differences to prove $C$ and $Cm$ are positive integers; specialize at $a_{13}=2016$, use its prime factorization to select the unique admissible parameters, and evaluate $a_1=Cm^2$."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Linearize the ratio recurrence with $s_k$, derive the quadratic integer parameterization, and impose $a_{13}=2016$ plus strict increase to recover $a_1$.",
+        "strategy_id": "S1"
+      }
+    ]
+  }
+}

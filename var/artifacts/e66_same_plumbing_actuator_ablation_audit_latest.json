@@ -1,0 +1,222 @@
+{
+  "domains": {
+    "countdown": {
+      "runs": [
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 1,
+          "job_id": 30128397,
+          "latest_step": 432,
+          "metric_records": 432,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "cde66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s43",
+          "seed": 43,
+          "terminal": false,
+          "training_passes": 1.125
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 0,
+          "job_id": 30128398,
+          "latest_step": 463,
+          "metric_records": 463,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "cde66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s44",
+          "seed": 44,
+          "terminal": false,
+          "training_passes": 1.2057291666666667
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 1,
+          "job_id": 30128399,
+          "latest_step": 481,
+          "metric_records": 481,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "cde66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s45",
+          "seed": 45,
+          "terminal": false,
+          "training_passes": 1.2526041666666667
+        }
+      ]
+    },
+    "graph_coloring": {
+      "runs": [
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 2304,
+          "infrastructure_interruptions": 0,
+          "job_id": 30128394,
+          "latest_step": 492,
+          "metric_records": 492,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "gce66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s43",
+          "seed": 43,
+          "terminal": false,
+          "training_passes": 2.5625
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 2304,
+          "infrastructure_interruptions": 0,
+          "job_id": 30128395,
+          "latest_step": 356,
+          "metric_records": 356,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "gce66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s44",
+          "seed": 44,
+          "terminal": false,
+          "training_passes": 1.8541666666666667
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 2304,
+          "infrastructure_interruptions": 0,
+          "job_id": 30128396,
+          "latest_step": 383,
+          "metric_records": 383,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "gce66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s45",
+          "seed": 45,
+          "terminal": false,
+          "training_passes": 1.9947916666666667
+        }
+      ]
+    },
+    "mathir": {
+      "runs": [
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 1,
+          "job_id": 30128403,
+          "latest_step": 4608,
+          "metric_records": 5099,
+          "proposal_activity_records": 0,
+          "recovery_job_id": 30156845,
+          "recovery_latest_step": 4608,
+          "recovery_run_dir": "var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_mie66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s43/debug_job30156845",
+          "run_stamp": "mie66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s43",
+          "seed": 43,
+          "terminal": true,
+          "training_passes": 12.0
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 1,
+          "job_id": 30128404,
+          "latest_step": 4608,
+          "metric_records": 5099,
+          "proposal_activity_records": 0,
+          "recovery_job_id": 30156846,
+          "recovery_latest_step": 4608,
+          "recovery_run_dir": "var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_mie66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s44/debug_job30156846",
+          "run_stamp": "mie66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s44",
+          "seed": 44,
+          "terminal": true,
+          "training_passes": 12.0
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 1,
+          "job_id": 30128405,
+          "latest_step": 4608,
+          "metric_records": 5099,
+          "proposal_activity_records": 0,
+          "recovery_job_id": 30156847,
+          "recovery_latest_step": 4608,
+          "recovery_run_dir": "var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_mie66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s45/debug_job30156847",
+          "run_stamp": "mie66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s45",
+          "seed": 45,
+          "terminal": true,
+          "training_passes": 12.0
+        }
+      ]
+    },
+    "python_factor": {
+      "runs": [
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 0,
+          "job_id": 30128400,
+          "latest_step": 492,
+          "metric_records": 492,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "pye66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s43",
+          "seed": 43,
+          "terminal": false,
+          "training_passes": 1.28125
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 1,
+          "job_id": 30128401,
+          "latest_step": 238,
+          "metric_records": 238,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "pye66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s44",
+          "seed": 44,
+          "terminal": false,
+          "training_passes": 0.6197916666666666
+        },
+        {
+          "arm": "verified_first_global_replay_canonical",
+          "expected_step": 4608,
+          "infrastructure_interruptions": 0,
+          "job_id": 30128402,
+          "latest_step": -1,
+          "metric_records": 0,
+          "proposal_activity_records": 0,
+          "recovery_job_id": null,
+          "recovery_latest_step": null,
+          "recovery_run_dir": null,
+          "run_stamp": "pye66_same_plumbing_control_05b_12ep_verified_first_global_replay_canonical_s45",
+          "seed": 45,
+          "terminal": false,
+          "training_passes": null
+        }
+      ]
+    }
+  },
+  "schema": "e66_same_plumbing_actuator_ablation_audit_v1",
+  "status": "in_progress",
+  "summary": {
+    "expected_runs": 12,
+    "materialized_runs": 11,
+    "metric_runs": 11,
+    "recovery_materialized_runs": 3,
+    "terminal_runs": 3
+  },
+  "violations": []
+}

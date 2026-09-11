@@ -2,28 +2,306 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import torch
 
+# Chat surfaces keep one benchmark contract portable across model families.
+# A surface supplies only the role markers; the system instruction and the user
+# body below are shared verbatim, so a Qwen prompt and its Falcon counterpart
+# differ in nothing but the tokens the base model was instruction-tuned on.
+# The Falcon markers reproduce tiiuae/Falcon3-*-Instruct's published chat
+# template byte for byte (``<|system|>\n...\n<|user|>\n...\n<|assistant|>\n``);
+# unlike Qwen's single-token ``<|im_start|>`` they encode as ordinary tokens,
+# which costs a few prompt tokens but leaves the response surface untouched.
+CHAT_SURFACES: dict[str, tuple[str, str, str]] = {
+    "qwen": (
+        "<|im_start|>system\n",
+        "<|im_end|>\n<|im_start|>user\n",
+        "<|im_end|>\n<|im_start|>assistant\n",
+    ),
+    "falcon": ("<|system|>\n", "\n<|user|>\n", "\n<|assistant|>\n"),
+}
+
+
+def render_chat_prompt(surface: str, system: str, user: str) -> str:
+    """Render one system/user turn onto a named chat surface."""
+
+    system_marker, user_marker, assistant_marker = CHAT_SURFACES[surface]
+    return system_marker + system + user_marker + user + assistant_marker
+
+
+_MATH_SYSTEM = (
+    "Please reason step by step, and put your final answer within \\boxed{}."
+)
+
 
 def apply_qwen_math_template(question: str) -> str:
+    return render_chat_prompt("qwen", _MATH_SYSTEM, question)
+
+
+def apply_falcon_math_template(question: str) -> str:
+    return render_chat_prompt("falcon", _MATH_SYSTEM, question)
+
+
+def apply_qwen_math_route_json_v1_template(question: str) -> str:
+    """Reproduce the frozen JSON-v1 Gate 1 prompt exactly."""
+
     return (
         "<|im_start|>system\n"
-        "Please reason step by step, and put your final answer within \\boxed{}."
+        "Solve the problem step by step and put the final answer within "
+        "\\boxed{}. After the boxed answer, also emit exactly one compact "
+        "<route>JSON</route> block when the computation fits this schema: "
+        '{"version":"math-route-v1","steps":[...],"final":"sN"}. '
+        "Step IDs are contiguous s1,s2,... . A source step is "
+        '{"id":"s1","op":"source","value":"a number copied from the problem"}. '
+        "Other steps contain only id, op, and earlier args; never write a "
+        "result field. Allowed ops are neg, abs, square, cube, sqrt, factorial, "
+        "percent, add, mul, sub, div, pow, mod, choose, permute, gcd, lcm, min, "
+        "max, and average. Every step must contribute to final. If this exact "
+        "numeric trace language cannot express the solution, omit the route "
+        "block but still give the boxed answer."
         "<|im_end|>\n<|im_start|>user\n"
         + question
         + "<|im_end|>\n<|im_start|>assistant\n"
     )
 
 
+_MATH_ROUTE_SYSTEM = (
+        "Solve the problem step by step and put the final answer within "
+        "\\boxed{}. When the answer is computed from numbers in the problem, "
+        "end with exactly one compact reverse-Polish program between "
+        "<route> and </route>. Start the program with v2. Write copied input "
+        "numbers and operation words separated only by spaces. For example, "
+        "'<route>v2 2 5 mul 1 sub square 1 add</route>' computes "
+        "(2*5-1)^2+1. Unary operations are neg abs square cube sqrt factorial "
+        "percent. Binary operations are add mul sub div pow mod choose permute "
+        "gcd lcm min max average. A binary operation consumes the previous two "
+        "values in left-to-right order. Copy every numeric input from the "
+        "problem; never put a computed result, JSON, equations, labels, or "
+        "prose inside <route>. If this numeric stack language cannot express "
+        "the solution, omit <route> but still give the boxed answer."
+)
+
+
+def apply_qwen_math_route_template(question: str) -> str:
+    """Request a boxed answer plus a compact executable numeric route."""
+
+    return render_chat_prompt("qwen", _MATH_ROUTE_SYSTEM, question)
+
+
+def apply_falcon_math_route_template(question: str) -> str:
+    """Falcon-surface twin of :func:`apply_qwen_math_route_template`."""
+
+    return render_chat_prompt("falcon", _MATH_ROUTE_SYSTEM, question)
+
+
+_BOXED_SYSTEM = "Return only the final answer inside \\boxed{}. Do not explain."
+
+
 def apply_qwen_boxed_template(question: str) -> str:
+    return render_chat_prompt("qwen", _BOXED_SYSTEM, question)
+
+
+def apply_falcon_boxed_template(question: str) -> str:
+    return render_chat_prompt("falcon", _BOXED_SYSTEM, question)
+
+
+_GRAPH_DIGITS_SYSTEM = (
+    "Return only the requested bare sequence of digits. Do not explain, "
+    "add punctuation, or use LaTeX."
+)
+
+
+def _graph_digits_user(question: str, template_name: str) -> str:
+    boxed_suffix = "inside \\boxed{}."
+    if question.count(boxed_suffix) != 1 or not question.endswith(boxed_suffix):
+        raise ValueError(
+            f"{template_name} requires a graph prompt ending in a boxed answer"
+        )
     return (
-        "<|im_start|>system\n"
-        "Return only the final answer inside \\boxed{}. Do not explain."
-        "<|im_end|>\n<|im_start|>user\n"
-        + question
-        + "<|im_end|>\n<|im_start|>assistant\n"
+        question[: -len(boxed_suffix)]
+        + "as one bare digit string with no spaces, punctuation, or other text."
+    )
+
+
+def apply_qwen_graph_digits_template(question: str) -> str:
+    """Request the benchmark's canonical bare graph-color action vector."""
+
+    return render_chat_prompt(
+        "qwen",
+        _GRAPH_DIGITS_SYSTEM,
+        _graph_digits_user(question, "qwen_graph_digits"),
+    )
+
+
+def apply_falcon_graph_digits_template(question: str) -> str:
+    """Falcon-surface twin of :func:`apply_qwen_graph_digits_template`."""
+
+    return render_chat_prompt(
+        "falcon",
+        _GRAPH_DIGITS_SYSTEM,
+        _graph_digits_user(question, "falcon_graph_digits"),
+    )
+
+
+_COUNTDOWN_DIGITS_SYSTEM = (
+    "Return only three digits and no other text. The given numbers are "
+    "n1,n2,n3 in dataset order. Digit 2 selects singleton s: 1=n1, "
+    "2=n2, 3=n3; a,b are the other two numbers in their original order. "
+    "Digit 3 makes pair: 1=a+b, 2=a*b, 3=a-b, 4=b-a, 5=a/b, 6=b/a. "
+    "Digit 1 combines pair and s: 1=pair+s, 2=pair*s, 3=pair-s, "
+    "4=s-pair, 5=pair/s, 6=s/pair."
+)
+
+
+def _countdown_digits_user(question: str, template_name: str) -> str:
+    boxed_suffix = "the expression inside \\boxed{}."
+    if question.count(boxed_suffix) != 1 or not question.endswith(boxed_suffix):
+        raise ValueError(
+            f"{template_name} requires an easy3 Countdown prompt ending "
+            "in the boxed-expression instruction"
+        )
+    return (
+        question[: -len(boxed_suffix)]
+        + "a three-digit canonical action code using the scheme above."
+    )
+
+
+def apply_qwen_countdown_digits_template(question: str) -> str:
+    """Request the audited three-digit Countdown expression code."""
+
+    return render_chat_prompt(
+        "qwen",
+        _COUNTDOWN_DIGITS_SYSTEM,
+        _countdown_digits_user(question, "qwen_countdown_digits"),
+    )
+
+
+def apply_falcon_countdown_digits_template(question: str) -> str:
+    """Falcon-surface twin of :func:`apply_qwen_countdown_digits_template`."""
+
+    return render_chat_prompt(
+        "falcon",
+        _COUNTDOWN_DIGITS_SYSTEM,
+        _countdown_digits_user(question, "falcon_countdown_digits"),
+    )
+
+
+_PANTRY_SUPPORT_MASK_SYSTEM = (
+    "Return only six binary digits and no other text. Each digit maps to "
+    "the corresponding Pantry row in printed order. A trusted environment "
+    "will choose exact quantities on precisely the selected rows."
+)
+
+
+def _pantry_support_mask_user(question: str, template_name: str) -> str:
+    suffix = (
+        "Return only ingredient_id=grams pairs separated by semicolons inside "
+        "\\boxed{}. Do not add a recipe name or preparation prose."
+    )
+    if question.count(suffix) != 1 or not question.endswith(suffix):
+        raise ValueError(
+            f"{template_name} requires the frozen PantryPlan answer suffix"
+        )
+    return (
+        question[: -len(suffix)]
+        + "Choose the ingredient support as a six-bit mask in the exact Pantry "
+        "row order. Bit 1 includes that row and bit 0 excludes it."
+    )
+
+
+def apply_qwen_pantry_support_mask_template(question: str) -> str:
+    """Request a six-bit ingredient-support action in printed pantry order."""
+
+    return render_chat_prompt(
+        "qwen",
+        _PANTRY_SUPPORT_MASK_SYSTEM,
+        _pantry_support_mask_user(question, "qwen_pantry_support_mask"),
+    )
+
+
+def apply_falcon_pantry_support_mask_template(question: str) -> str:
+    """Falcon-surface twin of :func:`apply_qwen_pantry_support_mask_template`."""
+
+    return render_chat_prompt(
+        "falcon",
+        _PANTRY_SUPPORT_MASK_SYSTEM,
+        _pantry_support_mask_user(question, "falcon_pantry_support_mask"),
+    )
+
+
+# Every canonical-action task admits exactly one prompt template per chat
+# surface.  Binding the task to that closed set keeps a Falcon run from
+# silently training against Qwen role markers the base model never saw.
+CANONICAL_TASK_PROMPT_TEMPLATES: dict[str, frozenset[str]] = {
+    "graph_coloring": frozenset({"qwen_graph_digits", "falcon_graph_digits"}),
+    "countdown": frozenset(
+        {"qwen_countdown_digits", "falcon_countdown_digits"}
+    ),
+    "pantry_support_mask": frozenset(
+        {"qwen_pantry_support_mask", "falcon_pantry_support_mask"}
+    ),
+}
+
+
+def validate_canonical_prompt_materialization(
+    prompt_template: str,
+    raw_questions: Sequence[str],
+    formatted_prompts: Sequence[str],
+) -> None:
+    """Fail closed if dataset mapping did not render the canonical template.
+
+    The exact string comparison deliberately detects stale Hugging Face map
+    caches from older prompt templates as well as dropped or reordered rows.
+    Re-applying ``TEMPLATE_FACTORY[prompt_template]`` rather than a hardcoded
+    function makes the check family-agnostic: a Falcon-surface run is held to
+    its own template and cannot pass on Qwen-rendered rows.
+    """
+
+    if len(raw_questions) != len(formatted_prompts):
+        raise RuntimeError(
+            "canonical prompt materialization changed the row count: "
+            f"raw={len(raw_questions)} formatted={len(formatted_prompts)}"
+        )
+    apply_template = TEMPLATE_FACTORY[prompt_template]
+    for row_index, (question, observed) in enumerate(
+        zip(raw_questions, formatted_prompts)
+    ):
+        if observed != apply_template(question):
+            raise RuntimeError(
+                f"canonical {prompt_template} prompt materialization mismatch "
+                f"at row {row_index}; stale or foreign template cache detected"
+            )
+
+
+def validate_qwen_graph_digits_materialization(
+    raw_questions: Sequence[str], formatted_prompts: Sequence[str]
+) -> None:
+    """Fail closed on stale or foreign canonical graph prompt rows."""
+
+    validate_canonical_prompt_materialization(
+        "qwen_graph_digits", raw_questions, formatted_prompts
+    )
+
+
+def validate_qwen_countdown_digits_materialization(
+    raw_questions: Sequence[str], formatted_prompts: Sequence[str]
+) -> None:
+    """Fail closed on stale or foreign canonical Countdown prompt rows."""
+
+    validate_canonical_prompt_materialization(
+        "qwen_countdown_digits", raw_questions, formatted_prompts
+    )
+
+
+def validate_qwen_pantry_support_mask_materialization(
+    raw_questions: Sequence[str], formatted_prompts: Sequence[str]
+) -> None:
+    """Fail closed on stale or foreign Pantry support-mask prompt rows."""
+
+    validate_canonical_prompt_materialization(
+        "qwen_pantry_support_mask", raw_questions, formatted_prompts
     )
 
 
@@ -45,10 +323,69 @@ def apply_no_template(question: str) -> str:
 
 TEMPLATE_FACTORY: dict[str, Callable[[str], str]] = {
     "qwen_boxed": apply_qwen_boxed_template,
+    "qwen_countdown_digits": apply_qwen_countdown_digits_template,
+    "qwen_graph_digits": apply_qwen_graph_digits_template,
+    "qwen_pantry_support_mask": apply_qwen_pantry_support_mask_template,
     "qwen_math": apply_qwen_math_template,
+    "qwen_math_route": apply_qwen_math_route_template,
+    "falcon_boxed": apply_falcon_boxed_template,
+    "falcon_countdown_digits": apply_falcon_countdown_digits_template,
+    "falcon_graph_digits": apply_falcon_graph_digits_template,
+    "falcon_pantry_support_mask": apply_falcon_pantry_support_mask_template,
+    "falcon_math": apply_falcon_math_template,
+    "falcon_math_route": apply_falcon_math_route_template,
     "r1": apply_r1_template,
     "no": apply_no_template,
 }
+
+# The Qwen and Falcon families must stay a pure surface swap of one contract.
+PROMPT_TEMPLATE_FAMILY_TWINS: dict[str, str] = {
+    "qwen_boxed": "falcon_boxed",
+    "qwen_countdown_digits": "falcon_countdown_digits",
+    "qwen_graph_digits": "falcon_graph_digits",
+    "qwen_pantry_support_mask": "falcon_pantry_support_mask",
+    "qwen_math": "falcon_math",
+    "qwen_math_route": "falcon_math_route",
+}
+
+# A template's *role* is the training contract it encodes; the chat surface is
+# an implementation detail of the base model. Argument validation keys off the
+# role so a Falcon run is held to exactly the Qwen run's contract.
+PROMPT_TEMPLATE_ROLES: dict[str, str] = {
+    "qwen_boxed": "boxed",
+    "falcon_boxed": "boxed",
+    "qwen_countdown_digits": "countdown_digits",
+    "falcon_countdown_digits": "countdown_digits",
+    "qwen_graph_digits": "graph_digits",
+    "falcon_graph_digits": "graph_digits",
+    "qwen_pantry_support_mask": "pantry_support_mask",
+    "falcon_pantry_support_mask": "pantry_support_mask",
+    "qwen_math": "math",
+    "falcon_math": "math",
+    "qwen_math_route": "math_route",
+    "falcon_math_route": "math_route",
+    "r1": "r1",
+    "no": "no",
+}
+
+CANONICAL_DIGIT_TEMPLATE_ROLES: frozenset[str] = frozenset(
+    {"graph_digits", "countdown_digits", "pantry_support_mask"}
+)
+
+
+def prompt_template_role(prompt_template: str) -> str:
+    """Return the surface-independent training contract a template encodes."""
+
+    return PROMPT_TEMPLATE_ROLES[prompt_template]
+
+
+def prompt_template_surface(prompt_template: str) -> str:
+    """Return the chat surface family a template renders onto."""
+
+    for surface in CHAT_SURFACES:
+        if prompt_template.startswith(f"{surface}_"):
+            return surface
+    return "none"
 
 
 def apply_prompt_template_to_example(

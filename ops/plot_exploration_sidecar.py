@@ -18,6 +18,9 @@ Usage (system python3 with matplotlib; the oat env does not ship it):
       [--arms grpo,xdr_tau0p5,seed,grpo_entropy] \
       [--output paper/figures/exploration_sidecar.pdf]
 
+Use ``--placeholder-row '7B (G=32)'`` to reserve an explicitly empty staged
+row without fabricating a manifest or metric series.
+
 Run dirs are discovered from the submit manifest
 var/artifacts/<stamp>_comparative_jobs.tsv (glob fallback otherwise), matching
 run_countdown_comparative_eval.sh. Lines are seed means; bands are seed
@@ -57,12 +60,15 @@ def arm_label(arm: str) -> str:
     if arm == "grpo":
         return "Dr.GRPO"
     if arm == "grpo_entropy":
-        return "Token-MaxEnt Dr.GRPO"
+        return "Token-entropy Dr.GRPO"
     if arm == "seed":
         return "SEED-Dr.GRPO"
     match = re.fullmatch(r"xdr_tau(?P<tau>.+)", arm)
     if match:
-        return f"xDr.GRPO ($\\tau={match.group('tau').replace('p', '.')}$)"
+        return (
+            f"xDr.GRPO ($\\tau_{{\\rm agg}}="
+            f"{match.group('tau').replace('p', '.')}$)"
+        )
     return arm
 
 
@@ -171,6 +177,12 @@ def main() -> None:
     parser.add_argument(
         "--output", type=Path, default=Path("paper/figures/exploration_sidecar.pdf")
     )
+    parser.add_argument(
+        "--placeholder-row",
+        action="append",
+        default=[],
+        help="append a labeled empty row, for example '7B (G=32)'",
+    )
     args = parser.parse_args()
 
     wanted = [arm.strip() for arm in args.arms.split(",") if arm.strip()]
@@ -198,6 +210,7 @@ def main() -> None:
             )
         if runs:
             rows.append((label, runs))
+    rows.extend((label, {}) for label in args.placeholder_row)
     if not rows:
         raise SystemExit("no plottable data found; nothing written")
 
@@ -227,12 +240,38 @@ def main() -> None:
         }
     )
     n_rows = len(rows)
+    data_row_indices = [index for index, (_label, runs) in enumerate(rows) if runs]
+    last_data_row = max(data_row_indices, default=-1)
     fig, axes = plt.subplots(
-        n_rows, 2, figsize=(6.75, 2.3 * n_rows), constrained_layout=True,
+        n_rows, 2, figsize=(6.75, 2.1 * n_rows), constrained_layout=True,
         squeeze=False,
     )
     for row_idx, (row_label, runs) in enumerate(rows):
         for axis, (primary, _legacy, title) in zip(axes[row_idx], METRICS):
+            panel_title = f"{title} --- {row_label}" if row_label else title
+            axis.set_title(panel_title.replace("---", "—"), loc="left")
+            if not runs:
+                axis.text(
+                    0.5,
+                    0.5,
+                    "STAGED — NO 7B RESULTS YET",
+                    transform=axis.transAxes,
+                    ha="center",
+                    va="center",
+                    color="#777777",
+                    fontsize=8,
+                )
+                axis.tick_params(
+                    axis="both",
+                    which="both",
+                    bottom=False,
+                    left=False,
+                    labelbottom=False,
+                    labelleft=False,
+                )
+                for spine in axis.spines.values():
+                    spine.set_color("#cccccc")
+                continue
             for arm in wanted:
                 if not runs.get(arm):
                     continue
@@ -256,14 +295,13 @@ def main() -> None:
                     label=arm_label(arm),
                     solid_capstyle="round",
                 )
-            panel_title = f"{title} --- {row_label}" if row_label else title
-            axis.set_title(panel_title.replace("---", "—"), loc="left")
-            if row_idx == n_rows - 1:
+            if row_idx == last_data_row:
                 axis.set_xlabel("Learner step")
             axis.grid(True, linewidth=0.4, alpha=0.25)
             axis.spines[["top", "right"]].set_visible(False)
             axis.margins(x=0.01)
-        axes[row_idx][1].set_ylim(bottom=0)
+        if runs:
+            axes[row_idx][1].set_ylim(bottom=0)
     axes[0][0].legend(frameon=False, handlelength=1.6, borderaxespad=0.0)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

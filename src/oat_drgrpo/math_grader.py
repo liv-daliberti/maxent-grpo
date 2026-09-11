@@ -17,9 +17,14 @@ Based on HF math_verify, verl, open reasoner zero, etc.
 """
 
 import ast
+from dataclasses import dataclass
+import functools
 import json
+from multiprocessing import TimeoutError as MultiprocessingTimeoutError
+import queue
 import re
 import signal
+import threading
 from collections import Counter
 from fractions import Fraction
 from itertools import islice, zip_longest
@@ -29,11 +34,196 @@ from typing import Any, Optional
 import sympy
 from latex2sympy2_extended import latex2sympy
 from math_verify import ExprExtractionConfig, LatexExtractionConfig, parse, verify
+from math_verify import grader as math_verify_grader
+from math_verify import parser as math_verify_parser
+from math_verify.errors import TimeoutException as MathVerifyTimeout
+from math_verify.utils import timeout as math_verify_signal_timeout
 from pylatexenc import latex2text
 from sympy import N, simplify
 from sympy.parsing import sympy_parser
 from sympy.parsing.latex import parse_latex
 from sympy.parsing.sympy_parser import parse_expr
+
+from .maze_modebench import (
+    ANT_MAZE_VERIFIER,
+    POINT_MAZE_VERIFIER,
+)
+from .maze_modebench_process import validate_maze_action_program_external
+from .mathir import (
+    MATHIR_MENU_VERIFIER,
+    MATHIR_VERIFIER,
+    validate_mathir_action_menu,
+    validate_mathir_algebra,
+)
+from .math_route import validate_math_route_response
+from .pantry_plan import (
+    PANTRY_PLAN_VERIFIER,
+    validate_pantry_plan,
+)
+from .python_modebench import (
+    PYTHON_FACTOR_VERIFIER,
+    python_factor_route_signature,
+)
+from .python_modebench_process import validate_python_factor_function_external
+
+
+def _thread_compatible_math_verify_timeout(timeout_seconds: int = 10):
+    """Keep math_verify bounded when grading runs in an actor worker thread.
+
+    math_verify's POSIX timeout installs SIGALRM. Python only permits signal
+    handler installation on the interpreter's main thread, while OAT grades
+    actor responses in a ThreadPool to avoid forking a CUDA/vLLM process. On
+    the main thread retain math_verify's native alarm. Else run the protected
+    operation in a daemon helper thread and bound the caller's wait.
+    """
+
+    seconds = int(timeout_seconds)
+    if seconds <= 0:
+        raise ValueError("timeout_seconds must be positive")
+
+    def decorator(func):
+        signal_wrapped = math_verify_signal_timeout(timeout_seconds=seconds)(func)
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if threading.current_thread() is threading.main_thread():
+                return signal_wrapped(*args, **kwargs)
+            result_queue: queue.Queue[tuple[bool, Any]] = queue.Queue(maxsize=1)
+
+            def run() -> None:
+                try:
+                    result_queue.put((True, func(*args, **kwargs)))
+                except BaseException as error:
+                    result_queue.put((False, error))
+
+            worker = threading.Thread(
+                target=run,
+                name="math-verify-timeout",
+                daemon=True,
+            )
+            worker.start()
+            worker.join(seconds)
+            if worker.is_alive():
+                raise MathVerifyTimeout("Operation timed out!")
+            succeeded, value = result_queue.get_nowait()
+            if succeeded:
+                return value
+            raise value
+
+        return wrapper
+
+    return decorator
+
+
+# parse() and verify() resolve `timeout` from their defining module globals at
+# call time. Install the actor-thread-safe policy without altering the external
+# math_verify package or its grading semantics.
+math_verify_parser.timeout = _thread_compatible_math_verify_timeout
+math_verify_grader.timeout = _thread_compatible_math_verify_timeout
+
+
+_math_verify_sympy_solve_and_compare = math_verify_grader.sympy_solve_and_compare
+
+
+def _robust_math_verify_sympy_solve_and_compare(
+    gold,
+    pred,
+    float_rounding: int,
+    numeric_precision: int,
+):
+    """Repair math_verify's scalar ``solve(Eq)`` compatibility edge case.
+
+    Some SymPy versions return a list of scalar roots for ``solve(Eq, symbols)``
+    while math_verify assumes a list of dictionaries and calls ``.items()``.
+    Retry only that failing equality path with ``dict=True`` and preserve the
+    package's exact symbol-key and expression-comparison semantics.
+    """
+
+    try:
+        return _math_verify_sympy_solve_and_compare(
+            gold,
+            pred,
+            float_rounding,
+            numeric_precision,
+        )
+    except AttributeError as error:
+        if (
+            "items" not in str(error)
+            or not isinstance(gold, sympy.Eq)
+            or not isinstance(pred, sympy.Eq)
+        ):
+            raise
+
+    solved_gold = sympy.solve(
+        gold,
+        gold.free_symbols,
+        dict=True,
+    )
+    solved_pred = sympy.solve(
+        pred,
+        pred.free_symbols,
+        dict=True,
+    )
+    if not isinstance(solved_gold, list) or not isinstance(solved_pred, list):
+        return False
+    if len(solved_gold) != len(solved_pred):
+        return False
+
+    unmatched = list(solved_pred)
+    for gold_solution in solved_gold:
+        if not isinstance(gold_solution, dict):
+            return False
+        match_index = None
+        for index, pred_solution in enumerate(unmatched):
+            if (
+                isinstance(pred_solution, dict)
+                and set(gold_solution) == set(pred_solution)
+                and all(
+                    math_verify_grader.sympy_expr_eq(
+                        gold_solution[key],
+                        pred_solution[key],
+                        float_rounding,
+                        numeric_precision,
+                    )
+                    for key in gold_solution
+                )
+            ):
+                match_index = index
+                break
+        if match_index is None:
+            return False
+        unmatched.pop(match_index)
+    return not unmatched
+
+
+math_verify_grader.sympy_solve_and_compare = _robust_math_verify_sympy_solve_and_compare
+
+
+def collect_threaded_math_rewards(
+    pool,
+    reward_fn,
+    responses,
+    references,
+    *,
+    timeout_seconds: float,
+):
+    """Grade a response batch concurrently with one bounded wait per result."""
+
+    pending = [
+        pool.apply_async(reward_fn, (response, reference))
+        for response, reference in zip(responses, references)
+    ]
+    rewards = []
+    infos = []
+    for result in pending:
+        try:
+            info, reward = result.get(timeout=timeout_seconds)
+            rewards.append(reward)
+            infos.append(info)
+        except MultiprocessingTimeoutError:
+            rewards.append(0.0)
+            infos.append({"formatted": False})
+    return rewards, infos
 
 
 # Dan Hendrycks' code
@@ -497,16 +687,26 @@ class timeout:
     def __init__(self, seconds=1, error_message="Timeout"):
         self.seconds = seconds
         self.error_message = error_message
+        self._armed = False
+        self._old_handler = None
 
     def handle_timeout(self, signum, frame):
         raise TimeoutError(self.error_message)
 
     def __enter__(self):
+        if threading.current_thread() is not threading.main_thread():
+            return self
+        self._old_handler = signal.getsignal(signal.SIGALRM)
         signal.signal(signal.SIGALRM, self.handle_timeout)
         signal.alarm(self.seconds)
+        self._armed = True
+        return self
 
     def __exit__(self, type, value, traceback):
-        signal.alarm(0)
+        if self._armed:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, self._old_handler)
+            self._armed = False
 
 
 def latex_eval(latex):
@@ -1004,25 +1204,113 @@ def _parse_modebench_spec(gt_answer: Any) -> dict[str, Any] | None:
     else:
         return None
     verifier = spec.get("verifier")
-    if verifier in {"graph_coloring", "countdown"}:
+    if verifier in {
+        "graph_coloring",
+        "countdown",
+        MATHIR_VERIFIER,
+        MATHIR_MENU_VERIFIER,
+        PANTRY_PLAN_VERIFIER,
+        PYTHON_FACTOR_VERIFIER,
+        POINT_MAZE_VERIFIER,
+        ANT_MAZE_VERIFIER,
+    }:
         return spec
     return None
 
 
 def _extract_modebench_candidate(model_response: str, gt_answer: Any) -> str | None:
-    if _parse_modebench_spec(gt_answer) is None:
+    spec = _parse_modebench_spec(gt_answer)
+    if spec is None:
         return None
     if "\\boxed" in str(model_response):
         return extract_answer(str(model_response))
     candidate = str(model_response).strip()
     if not candidate:
         return None
+    if str(spec.get("verifier")) in {
+        MATHIR_VERIFIER,
+        MATHIR_MENU_VERIFIER,
+    }:
+        fenced = re.fullmatch(
+            r"```(?:mathir)?\s*(.*?)\s*```",
+            candidate,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if fenced is not None:
+            candidate = fenced.group(1).strip()
+        if len(candidate) > 200 or "<" in candidate or ">" in candidate:
+            return None
+        # Whitespace, a terminal semicolon, and an all-program code fence are
+        # formatting aliases.  The restricted parser remains the authority.
+        return candidate or None
+    if str(spec.get("verifier")) == PYTHON_FACTOR_VERIFIER:
+        fenced = re.fullmatch(
+            r"```(?:python)?\s*(.*?)\s*```",
+            candidate,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if fenced is not None:
+            candidate = fenced.group(1).strip()
+        if (
+            len(candidate) > 240
+            or "\n" in candidate
+            or "\r" in candidate
+            or "<" in candidate
+            or ">" in candidate
+        ):
+            return None
+        candidate = re.sub(
+            r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|program|function)\s*"
+            r"(?:is|=|:)\s*",
+            "",
+            candidate,
+            flags=re.IGNORECASE,
+        ).strip()
+        return candidate or None
+    if str(spec.get("verifier")) in {
+        POINT_MAZE_VERIFIER,
+        ANT_MAZE_VERIFIER,
+    }:
+        fenced = re.fullmatch(
+            r"```(?:actions?|plan)?\s*(.*?)\s*```",
+            candidate,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if fenced is not None:
+            candidate = fenced.group(1).strip()
+        if len(candidate) > 4096 or "<" in candidate or ">" in candidate:
+            return None
+        candidate = re.sub(
+            r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|plan|program|actions?)\s*"
+            r"(?:is|=|:)\s*",
+            "",
+            candidate,
+            flags=re.IGNORECASE,
+        ).strip()
+        return candidate or None
+    if str(spec.get("verifier")) == PANTRY_PLAN_VERIFIER:
+        if (
+            len(candidate) > 512
+            or "\n" in candidate
+            or "\r" in candidate
+            or "<" in candidate
+            or ">" in candidate
+        ):
+            return None
+        candidate = re.sub(
+            r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|plan|recipe)\s*"
+            r"(?:is|=|:)\s*",
+            "",
+            candidate,
+            flags=re.IGNORECASE,
+        ).strip()
+        return candidate or None
     if "\n" in candidate or "\r" in candidate or "<" in candidate or ">" in candidate:
         return None
     if len(candidate) > 160:
         return None
     candidate = re.sub(
-        r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|expression|coloring)\s*"
+        r"^\s*(?:the\s+)?(?:final\s+)?(?:answer|expression|coloring|program)\s*"
         r"(?:is|=|:)\s*",
         "",
         candidate,
@@ -1059,30 +1347,20 @@ def _parse_graph_digit_sequence(candidate: str, expected_len: int) -> list[int] 
     return None
 
 
-def _verify_graph_coloring_answer(candidate: str, spec: dict[str, Any]) -> bool:
+def _verify_graph_coloring_colors(
+    colors: list[int] | None,
+    spec: dict[str, Any],
+) -> bool:
+    """Validate one already-parsed coloring object against its problem."""
+
     try:
         n = int(spec["n"])
         edges = spec["edges"]
     except Exception:
         return False
-    partial_colors = spec.get("partial_colors")
-    colors = _parse_graph_coloring_answer(candidate, n)
-    if colors is None and partial_colors is not None:
-        try:
-            hidden_positions = [
-                index for index, color in enumerate(partial_colors) if color is None
-            ]
-            fill = _parse_graph_digit_sequence(candidate, len(hidden_positions))
-            if fill is not None:
-                colors = [
-                    int(color) if color is not None else 0 for color in partial_colors
-                ]
-                for index, color in zip(hidden_positions, fill):
-                    colors[index] = color
-        except Exception:
-            colors = None
-    if colors is None:
+    if colors is None or len(colors) != n:
         return False
+    partial_colors = spec.get("partial_colors")
     if partial_colors is not None:
         try:
             if len(partial_colors) != n:
@@ -1104,6 +1382,11 @@ def _verify_graph_coloring_answer(candidate: str, spec: dict[str, Any]) -> bool:
         if colors[u - 1] == colors[v - 1]:
             return False
     return True
+
+
+def _verify_graph_coloring_answer(candidate: str, spec: dict[str, Any]) -> bool:
+    colors = _graph_coloring_from_candidate(candidate, spec)
+    return _verify_graph_coloring_colors(colors, spec)
 
 
 def _normalize_countdown_expression(candidate: str) -> str:
@@ -1228,6 +1511,34 @@ def _canonical_countdown_ast(node: ast.AST) -> str:
     raise ValueError("Unsupported Countdown expression.")
 
 
+def _canonical_countdown_route_ast(node: ast.AST) -> str:
+    """Canonical operator/dependency skeleton with numeric leaves abstracted."""
+
+    if isinstance(node, ast.Expression):
+        return _canonical_countdown_route_ast(node.body)
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool) or not isinstance(node.value, int):
+            raise ValueError("Countdown constants must be integers.")
+        return "input"
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        inner = _canonical_countdown_route_ast(node.operand)
+        return f"neg({inner})" if isinstance(node.op, ast.USub) else inner
+    if isinstance(node, ast.BinOp):
+        left = _canonical_countdown_route_ast(node.left)
+        right = _canonical_countdown_route_ast(node.right)
+        if isinstance(node.op, ast.Add):
+            parts = sorted([left, right])
+            return f"add({parts[0]},{parts[1]})"
+        if isinstance(node.op, ast.Mult):
+            parts = sorted([left, right])
+            return f"mul({parts[0]},{parts[1]})"
+        if isinstance(node.op, ast.Sub):
+            return f"sub({left},{right})"
+        if isinstance(node.op, ast.Div):
+            return f"div({left},{right})"
+    raise ValueError("Unsupported Countdown route expression.")
+
+
 def _canonical_countdown_expression_key(
     candidate: str,
     spec: dict[str, Any],
@@ -1254,7 +1565,7 @@ def _canonical_countdown_expression_key(
     return None
 
 
-def _modebench_answer_key_for_clustering(
+def _modebench_answer_key(
     model_response: str,
     gt_answer: Any,
 ) -> str | None:
@@ -1272,6 +1583,209 @@ def _modebench_answer_key_for_clustering(
         return "graph_coloring:" + "".join(str(int(color)) for color in colors)
     if verifier == "countdown":
         return _canonical_countdown_expression_key(candidate, spec)
+    if verifier == MATHIR_VERIFIER:
+        validation = validate_mathir_algebra(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier == MATHIR_MENU_VERIFIER:
+        validation = validate_mathir_action_menu(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier == PYTHON_FACTOR_VERIFIER:
+        validation = validate_python_factor_function_external(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier == PANTRY_PLAN_VERIFIER:
+        validation = validate_pantry_plan(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        validation = validate_maze_action_program_external(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    return None
+
+
+def validated_modebench_outcome_key(
+    model_response: str,
+    gt_answer: Any,
+) -> str | None:
+    """Return a canonical outcome only when that same response verifies.
+
+    This is the admission boundary for online canonical banks.  It deliberately
+    supports only ModeBench tasks with executable validators:
+
+    - graph colorings are parsed and checked against every graph edge;
+    - Countdown expressions are parsed, checked for exact operand use, and
+      executed against the requested target.
+
+    - MathIR algebra programs are parsed by a restricted grammar, executed as
+      state transformations, exact-normalized, and accepted only when execution
+      isolates the right solution.  Their key comes from those executed states.
+
+    - Python factor functions are syntax-restricted and called in an isolated
+      Python worker.  Their key is the vector returned by those exact tool calls.
+
+    Ordinary MATH final-answer grading is not a proof/strategy verifier and is
+    therefore rejected here rather than being mislabeled as canonical search.
+    """
+
+    spec = _parse_modebench_spec(gt_answer)
+    if spec is None:
+        return None
+    candidate = _extract_modebench_candidate(model_response, gt_answer)
+    if candidate is None:
+        return None
+    verifier = str(spec.get("verifier"))
+    if verifier == "graph_coloring":
+        colors = _graph_coloring_from_candidate(candidate, spec)
+        if not _verify_graph_coloring_colors(colors, spec):
+            return None
+        assert colors is not None
+        return "graph_coloring:" + "".join(str(int(color)) for color in colors)
+    if verifier == MATHIR_VERIFIER:
+        validation = validate_mathir_algebra(candidate, spec)
+        # The key is constructed from the exact normalized equation states
+        # produced by the same interpreter execution that validated the answer.
+        return validation.canonical_key if validation is not None else None
+    if verifier == MATHIR_MENU_VERIFIER:
+        validation = validate_mathir_action_menu(candidate, spec)
+        # Menu labels are expanded first. Identity comes only from the exact
+        # normalized states produced by executing those concrete operations.
+        return validation.canonical_key if validation is not None else None
+    if verifier == PYTHON_FACTOR_VERIFIER:
+        validation = validate_python_factor_function_external(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier == PANTRY_PLAN_VERIFIER:
+        validation = validate_pantry_plan(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        validation = validate_maze_action_program_external(candidate, spec)
+        return validation.canonical_key if validation is not None else None
+    if verifier != "countdown":
+        return None
+    try:
+        target = Fraction(int(spec["target"]), 1)
+        expected_numbers = Counter(int(value) for value in spec["numbers"])
+    except Exception:
+        return None
+    text = _normalize_countdown_expression(candidate)
+    parts = [part.strip() for part in text.split("=") if part.strip()] or [text]
+    for part in parts:
+        if not re.fullmatch(r"[0-9+\-*/().\s*]+", part):
+            continue
+        try:
+            parsed = ast.parse(part, mode="eval")
+            value, used_numbers = _countdown_eval_and_numbers(parsed)
+            if value != target or Counter(used_numbers) != expected_numbers:
+                continue
+            # The key is derived from the exact AST object that passed
+            # execution and operand validation above.
+            return f"countdown:{_canonical_countdown_ast(parsed)}"
+        except Exception:
+            continue
+    return None
+
+
+@dataclass(frozen=True)
+class VerifiedExplorationIdentity:
+    """Separate prompt-local endpoint and cross-prompt route identities."""
+
+    verifier: str
+    endpoint_key: str
+    route_signature: str | None
+
+
+def validated_modebench_exploration_identity(
+    model_response: str,
+    gt_answer: Any,
+) -> VerifiedExplorationIdentity | None:
+    """Return hierarchical identity only after exact executable validation."""
+
+    spec = _parse_modebench_spec(gt_answer)
+    if spec is None:
+        return None
+    candidate = _extract_modebench_candidate(model_response, gt_answer)
+    if candidate is None:
+        return None
+    verifier = str(spec.get("verifier"))
+    if verifier == "graph_coloring":
+        colors = _graph_coloring_from_candidate(candidate, spec)
+        if not _verify_graph_coloring_colors(colors, spec):
+            return None
+        assert colors is not None
+        endpoint = "graph_coloring:" + "".join(str(int(color)) for color in colors)
+        return VerifiedExplorationIdentity(verifier, endpoint, None)
+    if verifier == MATHIR_VERIFIER:
+        validation = validate_mathir_algebra(candidate, spec)
+        if validation is None:
+            return None
+        solution = validation.solution
+        endpoint = f"mathir-solution:{solution.numerator}/{solution.denominator}"
+        return VerifiedExplorationIdentity(
+            verifier,
+            endpoint,
+            validation.route_signature,
+        )
+    if verifier == MATHIR_MENU_VERIFIER:
+        validation = validate_mathir_action_menu(candidate, spec)
+        if validation is None:
+            return None
+        solution = validation.solution
+        endpoint = f"mathir-solution:{solution.numerator}/{solution.denominator}"
+        return VerifiedExplorationIdentity(
+            verifier,
+            endpoint,
+            validation.route_signature,
+        )
+    if verifier == PYTHON_FACTOR_VERIFIER:
+        validation = validate_python_factor_function_external(candidate, spec)
+        if validation is None:
+            return None
+        try:
+            route = python_factor_route_signature(candidate)
+        except Exception:
+            return None
+        return VerifiedExplorationIdentity(
+            verifier,
+            validation.canonical_key,
+            route,
+        )
+    if verifier == PANTRY_PLAN_VERIFIER:
+        validation = validate_pantry_plan(candidate, spec)
+        if validation is None:
+            return None
+        return VerifiedExplorationIdentity(
+            verifier,
+            validation.canonical_key,
+            None,
+        )
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        validation = validate_maze_action_program_external(candidate, spec)
+        if validation is None:
+            return None
+        return VerifiedExplorationIdentity(
+            verifier,
+            f"{verifier}:goal:{spec.get('map_id')}",
+            validation.canonical_key,
+        )
+    if verifier != "countdown":
+        return None
+    try:
+        target = Fraction(int(spec["target"]), 1)
+        expected_numbers = Counter(int(value) for value in spec["numbers"])
+    except Exception:
+        return None
+    text = _normalize_countdown_expression(candidate)
+    parts = [part.strip() for part in text.split("=") if part.strip()] or [text]
+    for part in parts:
+        if not re.fullmatch(r"[0-9+\-*/().\s*]+", part):
+            continue
+        try:
+            parsed = ast.parse(part, mode="eval")
+            value, used_numbers = _countdown_eval_and_numbers(parsed)
+            if value != target or Counter(used_numbers) != expected_numbers:
+                continue
+            endpoint = f"countdown-value:{value.numerator}/{value.denominator}"
+            route = "countdown-route:v1:" + _canonical_countdown_route_ast(parsed)
+            return VerifiedExplorationIdentity(verifier, endpoint, route)
+        except Exception:
+            continue
     return None
 
 
@@ -1284,19 +1798,29 @@ def _grade_modebench_answer(model_answer: str, gt_answer: Any) -> bool | None:
         return _verify_graph_coloring_answer(model_answer, spec)
     if verifier == "countdown":
         return _verify_countdown_expression(model_answer, spec)
+    if verifier == MATHIR_VERIFIER:
+        return validate_mathir_algebra(model_answer, spec) is not None
+    if verifier == MATHIR_MENU_VERIFIER:
+        return validate_mathir_action_menu(model_answer, spec) is not None
+    if verifier == PYTHON_FACTOR_VERIFIER:
+        return validate_python_factor_function_external(model_answer, spec) is not None
+    if verifier == PANTRY_PLAN_VERIFIER:
+        return validate_pantry_plan(model_answer, spec) is not None
+    if verifier in {POINT_MAZE_VERIFIER, ANT_MAZE_VERIFIER}:
+        return validate_maze_action_program_external(model_answer, spec) is not None
     return False
 
 
-def _clean_symbolic_cluster_candidate(candidate: str | None) -> str | None:
-    """Return a compact final-answer candidate, or ``None`` for non-answer text."""
+def _clean_final_answer_candidate(candidate: str | None) -> str | None:
+    """Return a compact final-answer candidate, or ``None`` for malformed text."""
 
     if candidate is None:
         return None
     candidate = str(candidate).strip()
     if not candidate:
         return None
-    # The semantic cluster path should not reward free-form malformed generations.
-    # Keep only compact answer strings, not multi-line traces or stray tags.
+    # Answer identity is deliberately stricter than correctness grading: mode
+    # metrics need one stable, compact key per formatted final answer.
     if "\n" in candidate or "\r" in candidate or "<" in candidate or ">" in candidate:
         return None
     if len(candidate) > 160:
@@ -1341,300 +1865,19 @@ def _extract_r1_reasoning_and_answer_sections(
     return reasoning or None, answer or None
 
 
-def extract_reasoning_trace_for_clustering(
-    model_response: str,
-    *,
-    template: str = "r1",
-) -> str | None:
-    """Return a conservative reasoning-trace string for semantic clustering.
-
-    The semantic-cluster path should only compare traces that match the expected
-    output format. Malformed or answer-only generations return ``None`` so they
-    do not receive semantic diversity credit. Response-only R1 continuations
-    that close an already-open prompt-level ``<think>`` tag are accepted.
-    """
-
-    try:
-        if template == "r1":
-            reasoning, _ = _extract_r1_reasoning_and_answer_sections(model_response)
-            return reasoning
-        response = str(model_response).strip()
-        if not response:
-            return None
-        if extract_reasoning_signature_from_trace(response) is None:
-            return None
-        return response
-    except Exception:
-        return None
-
-
-_REASONING_SIGNATURE_MAX_UNIQUE_STATES = 4
-_REASONING_SIGNATURE_MAX_STATE_CHARS = 96
-_REASONING_SIGNATURE_MATH_MARKER_PATTERN = re.compile(
-    r"(?:=|\\approx|\\neq|\\leq?|\\geq?|<|>|\\to|->|=>|\\Rightarrow|\\implies|\\frac|\\sqrt|\\cdot|\\times|\\div|[+\-*/^])",
-    flags=re.IGNORECASE,
-)
-_REASONING_SIGNATURE_RELATION_PATTERN = re.compile(
-    r"(?:\\approx|\\neq|\\leq?|\\geq?|\\to|->|=>|\\Rightarrow|\\implies|=|<|>)",
-    flags=re.IGNORECASE,
-)
-_REASONING_SIGNATURE_RELATION_SPLIT_PATTERN = re.compile(
-    r"(\\approx|\\neq|\\leq?|\\geq?|\\to|->|=>|\\Rightarrow|\\implies|=|<|>)",
-    flags=re.IGNORECASE,
-)
-_REASONING_SIGNATURE_ATOM_PATTERN = re.compile(r"\\[A-Za-z]+|[A-Za-z]+|\d+")
-_REASONING_SIGNATURE_SYMMETRIC_RELATIONS = {"=", "\\approx", "\\neq"}
-
-
-class _ReasoningSignature(str):
-    """String signature with state-aware containment for transient chunks."""
-
-    def __contains__(self, item: object) -> bool:
-        if isinstance(item, str):
-            normalized = _normalize_reasoning_signature_state(item)
-            if (
-                normalized is not None
-                and _REASONING_SIGNATURE_RELATION_PATTERN.search(normalized) is None
-            ):
-                return normalized in self.split(" || ")
-            raw_item = item.strip()
-            if (
-                normalized is None
-                and raw_item
-                and _REASONING_SIGNATURE_MATH_MARKER_PATTERN.search(raw_item)
-                is not None
-                and _REASONING_SIGNATURE_RELATION_PATTERN.search(raw_item) is None
-            ):
-                return raw_item in self.split(" || ")
-        return super().__contains__(item)
-
-
-_REASONING_SIGNATURE_LEADING_TEXT_PATTERN = re.compile(
-    r"^(?:step\s*\d+\s*[:.)-]?\s*|"
-    r"let\s+me\s+\w+(?:\s+\w+){0,4}\s*[:.)-]?\s*|"
-    r"(?:so|thus|therefore|hence|then|now|next|finally|since|because)\s+|"
-    r"(?:and\s+)?after\s+some\s+thought\s+we\s+get\s+|"
-    r"the\s+(?:answer|result)\s*(?:is|=|:)\s*|"
-    r"we\s+(?:start\s+with|have|get|know|obtain|find|see|rewrite|compute|deduce)\s+|"
-    r"this\s+(?:gives|means|implies|yields)\s+)+",
-    flags=re.IGNORECASE,
-)
-
-
-def _looks_symbolic_reasoning_chunk(candidate: str | None) -> bool:
-    if candidate is None:
-        return False
-    candidate = str(candidate).strip()
-    if not candidate:
-        return False
-    if _REASONING_SIGNATURE_MATH_MARKER_PATTERN.search(candidate) is None:
-        return False
-    return re.search(r"[0-9a-zA-Z\\]", candidate) is not None
-
-
-def _strip_outer_grouping(candidate: str) -> str:
-    stripped = str(candidate).strip()
-    previous = None
-    while previous != stripped:
-        previous = stripped
-        if stripped.startswith("(") and stripped.endswith(")"):
-            inner = stripped[1:-1].strip()
-            if inner:
-                stripped = inner
-    return stripped
-
-
-def _canonicalize_reasoning_relation_state(candidate: str) -> str:
-    parts = _REASONING_SIGNATURE_RELATION_SPLIT_PATTERN.split(candidate)
-    if len(parts) <= 1:
-        return candidate
-    sides = [re.sub(r"\s+", "", _strip_outer_grouping(part)) for part in parts[0::2]]
-    tokens = [str(token).strip() for token in parts[1::2]]
-    if not sides or any(not side for side in sides):
-        return candidate
-    if (
-        len(sides) == 2
-        and len(tokens) == 1
-        and tokens[0] == "="
-        and re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", sides[0])
-        and re.fullmatch(r"-?\d+(?:\.\d+)?", sides[1])
-    ):
-        return tokens[0].join(sorted(sides))
-    if (
-        len(sides) == 2
-        and len(tokens) == 1
-        and tokens[0] == "="
-        and _REASONING_SIGNATURE_MATH_MARKER_PATTERN.search(sides[0]) is not None
-        and re.fullmatch(r"-?\d+(?:\.\d+)?", sides[1])
-    ):
-        return candidate
-    if tokens and all(
-        token in _REASONING_SIGNATURE_SYMMETRIC_RELATIONS for token in tokens
-    ):
-        return tokens[0].join(sorted(sides))
-    rebuilt = [sides[0]]
-    for token, side in zip(tokens, sides[1:]):
-        rebuilt.extend([token, side])
-    return "".join(rebuilt)
-
-
-def _reasoning_signature_atom_count(candidate: str) -> int:
-    return len(
-        {token for token in _REASONING_SIGNATURE_ATOM_PATTERN.findall(candidate)}
-    )
-
-
-def _is_low_information_reasoning_state(candidate: str) -> bool:
-    relation_like = _REASONING_SIGNATURE_RELATION_PATTERN.search(candidate) is not None
-    atom_count = _reasoning_signature_atom_count(candidate)
-    operator_count = len(_REASONING_SIGNATURE_MATH_MARKER_PATTERN.findall(candidate))
-    if relation_like:
-        return atom_count < 2 and operator_count < 2
-    return atom_count < 3 or operator_count < 2
-
-
-def _reasoning_signature_state_rank(candidate: str) -> tuple[int, int, int, int, str]:
-    relation_like = int(
-        _REASONING_SIGNATURE_RELATION_PATTERN.search(candidate) is not None
-    )
-    atom_count = _reasoning_signature_atom_count(candidate)
-    operator_count = len(_REASONING_SIGNATURE_MATH_MARKER_PATTERN.findall(candidate))
-    special_construct_count = int("\\frac" in candidate) + int("\\sqrt" in candidate)
-    return (
-        -relation_like,
-        -min(atom_count, 8),
-        -min(operator_count + special_construct_count, 8),
-        len(candidate),
-        candidate,
-    )
-
-
-def _normalize_reasoning_signature_state(candidate: str | None) -> str | None:
-    if candidate is None:
-        return None
-    candidate = str(candidate).strip()
-    if not candidate:
-        return None
-    candidate = candidate.replace("\r", " ").replace("\n", " ")
-    candidate = candidate.replace("\\left", "").replace("\\right", "")
-    candidate = candidate.replace("\\!", "").replace("\\,", " ")
-    candidate = candidate.replace("−", "-").replace("–", "-").replace("—", "-")
-    candidate = candidate.replace("×", "\\times").replace("÷", "\\div")
-    candidate = candidate.replace("∴", " therefore ").replace("⇒", " => ")
-    candidate = candidate.replace("→", " -> ")
-    candidate = re.sub(r"\s+", " ", candidate).strip()
-    if ":" in candidate:
-        prefix, suffix = candidate.split(":", 1)
-        if _looks_symbolic_reasoning_chunk(
-            suffix
-        ) and not _looks_symbolic_reasoning_chunk(prefix):
-            candidate = suffix.strip()
-    previous = None
-    while previous != candidate:
-        previous = candidate
-        candidate = _REASONING_SIGNATURE_LEADING_TEXT_PATTERN.sub("", candidate).strip()
-    candidate = _strip_outer_grouping(candidate)
-    candidate = re.sub(r"\s*([=<>+\-*/^])\s*", r"\1", candidate)
-    candidate = re.sub(
-        r"\s*(\\(?:times|cdot|div|to|approx|neq|leq?|geq?))\s*", r"\1", candidate
-    )
-    candidate = re.sub(r"\s*,\s*", ",", candidate)
-    candidate = candidate.strip(" .;,:")
-    candidate = _canonicalize_reasoning_relation_state(candidate)
-    if not _looks_symbolic_reasoning_chunk(candidate):
-        return None
-    if _is_low_information_reasoning_state(candidate):
-        return None
-    if len(candidate) > _REASONING_SIGNATURE_MAX_STATE_CHARS:
-        return None
-    return candidate or None
-
-
-def _candidate_reasoning_signature_chunks(reasoning_trace: str) -> list[str]:
-    chunks: list[str] = []
-    normalized_trace = str(reasoning_trace).replace("\r", "\n")
-    for line in normalized_trace.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-        sentence_pieces = re.split(r"(?<=[.;])\s+", line)
-        for piece in sentence_pieces:
-            piece = piece.strip()
-            if not piece:
-                continue
-            if piece.count("=") > 1 or (
-                "," in piece and _looks_symbolic_reasoning_chunk(piece)
-            ):
-                subpieces = [subpiece.strip() for subpiece in piece.split(",")]
-            else:
-                subpieces = [piece]
-            for subpiece in subpieces:
-                if subpiece:
-                    chunks.append(subpiece)
-    return chunks
-
-
-def extract_reasoning_signature_for_clustering(
-    model_response: str,
-    *,
-    template: str = "r1",
-) -> str | None:
-    """Return a short structural reasoning sketch for semantic clustering.
-
-    The sketch keeps a few distinct normalized symbolic states from the trace,
-    removes duplicates, and sorts them so narration order alone does not create
-    a new semantic category.
-    """
-
-    reasoning_trace = extract_reasoning_trace_for_clustering(
-        model_response,
-        template=template,
-    )
-    return extract_reasoning_signature_from_trace(reasoning_trace)
-
-
-def extract_reasoning_signature_from_trace(reasoning_trace: str | None) -> str | None:
-    """Return a structural signature directly from a reasoning-trace string."""
-
-    if reasoning_trace is None:
-        return None
-    seen_states: set[str] = set()
-    collected_states: list[str] = []
-    for candidate in _candidate_reasoning_signature_chunks(reasoning_trace):
-        normalized_state = _normalize_reasoning_signature_state(candidate)
-        if normalized_state is None or normalized_state in seen_states:
-            continue
-        seen_states.add(normalized_state)
-        collected_states.append(normalized_state)
-    if not collected_states:
-        return None
-    selected_states = sorted(
-        collected_states,
-        key=_reasoning_signature_state_rank,
-    )
-    if len(selected_states) > _REASONING_SIGNATURE_MAX_UNIQUE_STATES:
-        selected_states = selected_states[:_REASONING_SIGNATURE_MAX_UNIQUE_STATES]
-    selected_states = sorted(selected_states)
-    return _ReasoningSignature(" || ".join(selected_states)) or None
-
-
-def extract_normalized_final_answer_for_clustering(
+def extract_normalized_final_answer(
     model_response: str, *, template: str = "r1", gt_answer: Any = None
 ) -> str | None:
-    """Best-effort normalized final answer string for same-answer semantic gating.
-
-    This helper is intentionally conservative: if we can extract and normalize a final
-    answer, we use it as the first-pass semantic gate before any embedding-based split.
-    """
+    """Return a conservative canonical key for an answer or exact benchmark mode."""
 
     try:
         if gt_answer is not None:
             if _parse_modebench_spec(gt_answer) is not None:
-                return _modebench_answer_key_for_clustering(
+                return _modebench_answer_key(
                     model_response,
                     gt_answer,
                 )
-            modebench_key = _modebench_answer_key_for_clustering(
+            modebench_key = _modebench_answer_key(
                 model_response,
                 gt_answer,
             )
@@ -1642,9 +1885,7 @@ def extract_normalized_final_answer_for_clustering(
                 return modebench_key
         candidate = None
         if template == "r1":
-            # Match the training reward's strict formatting gate. Without this,
-            # unformatted traces become unique raw-text clusters and receive
-            # semantic entropy credit.
+            # Match the training reward's strict R1 formatting gate.
             _, candidate = _extract_r1_reasoning_and_answer_sections(model_response)
             if candidate is None:
                 return None
@@ -1653,7 +1894,7 @@ def extract_normalized_final_answer_for_clustering(
         if candidate is None:
             return None
         extracted = extract_answer(candidate) if "\\boxed" in candidate else candidate
-        extracted = _clean_symbolic_cluster_candidate(extracted)
+        extracted = _clean_final_answer_candidate(extracted)
         if extracted is None:
             return None
         normalized = normalize_final_answer(extracted)
@@ -1666,25 +1907,6 @@ def extract_normalized_final_answer_for_clustering(
         return normalized or None
     except Exception:
         return None
-
-
-def is_response_formatted_for_reward(
-    model_response: str,
-    *,
-    template: str = "r1",
-) -> bool:
-    """Return whether ``model_response`` satisfies the reward-format gate.
-
-    This mirrors the format-only branch of the training reward functions without
-    requiring ground-truth answers. It is used for learner-side safety guards
-    that compare the expected formatted mass under baseline and semantic explore
-    targets.
-    """
-
-    if template == "r1":
-        reasoning, answer = _extract_r1_reasoning_and_answer_sections(model_response)
-        return reasoning is not None and answer is not None
-    return extract_answer(model_response) is not None
 
 
 def grade(model_answer: str, gt_answer: str, fast: bool = True):
@@ -1729,6 +1951,102 @@ def boxed_reward_fn(model_response, gt_answer, fast=False):
         return {
             "formatted": True
         }, 0.0  # Formatted but wrong answer; no format reward to avoid hacking.
+
+
+def validated_math_route_signature(
+    model_response: str,
+    problem: str,
+    gt_answer: Any,
+    *,
+    fast: bool = False,
+    task_verified: bool | None = None,
+) -> str | None:
+    """Return an executable route identity only for a task-correct response.
+
+    Task correctness, route execution, and agreement between the trace terminal
+    value and the response's boxed answer are independent fail-closed checks.
+    A correct answer without a valid trace keeps its ordinary task reward but
+    has no route identity.
+    """
+
+    try:
+        if task_verified is None:
+            _info, reward = boxed_reward_fn(
+                model_response,
+                gt_answer,
+                fast=fast,
+            )
+            task_verified = float(reward) > 0.0
+        if not bool(task_verified):
+            return None
+        validation = validate_math_route_response(model_response, problem)
+        if validation is None:
+            return None
+        model_answer = extract_answer(model_response)
+        if model_answer is None:
+            return None
+        terminal_answer = sympy.latex(validation.terminal_value)
+        if not grade(model_answer, terminal_answer, fast=fast):
+            return None
+        return validation.route_signature
+    except Exception:
+        return None
+
+
+def validated_exploration_identity(
+    model_response: str,
+    problem: str,
+    gt_answer: Any,
+    *,
+    fast: bool = False,
+    task_verified: bool | None = None,
+) -> VerifiedExplorationIdentity | None:
+    """Return the endpoint/route pair for ModeBench or free-form MATH.
+
+    ModeBench references always remain on their exact executable validator
+    path. Free-form MATH may reuse the actor's already-computed task verdict,
+    but route admission still independently executes the restricted trace and
+    checks its terminal value against the boxed response. Thus a task-correct
+    response without a valid route retains an endpoint identity and ordinary
+    reward while contributing no route identity.
+    """
+
+    if _parse_modebench_spec(gt_answer) is not None:
+        return validated_modebench_exploration_identity(
+            model_response,
+            gt_answer,
+        )
+    try:
+        if task_verified is None:
+            _info, reward = boxed_reward_fn(
+                model_response,
+                gt_answer,
+                fast=fast,
+            )
+            task_verified = float(reward) > 0.0
+        if not bool(task_verified):
+            return None
+        endpoint = extract_normalized_final_answer(
+            model_response,
+            template="qwen_math_route",
+            gt_answer=gt_answer,
+        )
+        if endpoint is None:
+            return None
+        route = validated_math_route_signature(
+            model_response,
+            problem,
+            gt_answer,
+            fast=fast,
+            task_verified=True,
+        )
+        return VerifiedExplorationIdentity(
+            verifier="math_verify",
+            endpoint_key=f"math-answer:{endpoint}",
+            route_signature=route,
+        )
+    except Exception:
+        return None
 
 
 def answer_tag_reward_fn(model_response, gt_answer, fast=False):

@@ -1,0 +1,61 @@
+{
+  "schema": "freeform_conditional_token_05b_endpoint_v1",
+  "status": "FROZEN_POST_HOC_PAIRED_EXPLORATORY_RESULT",
+  "model": "Qwen2.5-0.5B-Instruct",
+  "seeds": [43, 44, 45],
+  "endpoint_training_passes": 5.0,
+  "source_artifacts": {
+    "graph_reference_and_conservative": {
+      "path": "var/artifacts/gce22_freeform_conditional_dual_05b_v2_scaling_curve.json",
+      "sha256": "77e0d802f3909c258b6f32b5c8443ab0d0437806a66d944d5f17b22cf2fc5445"
+    },
+    "countdown_reference_and_conservative": {
+      "path": "var/artifacts/cde22_freeform_conditional_dual_05b_v2_scaling_curve.json",
+      "sha256": "f79c9e204aaa3a033dc6d4e70c23f9e312a160805a4a02bda77dbcfdbae14e6a"
+    },
+    "graph_higher_target": {
+      "path": "var/artifacts/gce27_freeform_conditional_dual_05b_v1_scaling_curve.json",
+      "sha256": "aa0e268aac75b0886453c86424ff124d4803e704a6b53e2304e80b1875478efe"
+    },
+    "countdown_higher_target": {
+      "path": "var/artifacts/cde27_freeform_conditional_dual_05b_v1_scaling_curve.json",
+      "sha256": "11b4e51446111d6a8ba9ff3b7097749fbe3c89ce7c37059ff03b317ee67eb7f4"
+    }
+  },
+  "methods": {
+    "reference": "E22-v2 unrestricted free-form Dr.GRPO",
+    "conservative_dual": "E22-v2 base-preserving conditional-token dual",
+    "higher_target_dual": "E27 125%-target base-preserving conditional-token dual"
+  },
+  "domains": {
+    "graph_coloring": {
+      "endpoint_mean": {
+        "reference": {"pass8": 0.34375, "mean8": 0.3433159689108531, "coverage8": 0.055758100003004074, "distinct8": 0.34375, "greedy": 0.34375},
+        "conservative_dual": {"pass8": 0.4618055522441864, "mean8": 0.3463541666666667, "coverage8": 0.0863329457739989, "distinct8": 0.53125, "greedy": 0.3368055621782939},
+        "higher_target_dual": {"pass8": 0.5486111243565878, "mean8": 0.3572048644224803, "coverage8": 0.11222993830839793, "distinct8": 0.6979166865348816, "greedy": 0.3402777810891469}
+      },
+      "paired_delta_vs_reference_mean": {
+        "conservative_dual": {"pass8": 0.1180555522441864, "mean8": 0.0030381977558135986, "coverage8": 0.030574845770994823, "distinct8": 0.1875, "greedy": -0.006944437821706136},
+        "higher_target_dual": {"pass8": 0.20486112435658774, "mean8": 0.013888895511627197, "coverage8": 0.05647183830539385, "distinct8": 0.3541666865348816, "greedy": -0.003472218910853068}
+      },
+      "higher_target_positive_seed_count": {"pass8": 3, "mean8": 3, "coverage8": 3, "distinct8": 3, "greedy": 1}
+    },
+    "countdown": {
+      "endpoint_mean": {
+        "reference": {"pass8": 0.4947916666666667, "mean8": 0.470703125, "coverage8": 0.12044890721638997, "distinct8": 0.5104166666666666, "greedy": 0.4739583333333333},
+        "conservative_dual": {"pass8": 0.5625, "mean8": 0.5322265625, "coverage8": 0.13422929247220358, "distinct8": 0.5885416666666666, "greedy": 0.5338541666666666},
+        "higher_target_dual": {"pass8": 0.5755208333333334, "mean8": 0.517578125, "coverage8": 0.15280878047148386, "distinct8": 0.6588541666666666, "greedy": 0.515625}
+      },
+      "paired_delta_vs_reference_mean": {
+        "conservative_dual": {"pass8": 0.06770833333333333, "mean8": 0.0615234375, "coverage8": 0.013780385255813599, "distinct8": 0.078125, "greedy": 0.059895833333333336},
+        "higher_target_dual": {"pass8": 0.08072916666666667, "mean8": 0.046875, "coverage8": 0.032359873255093895, "distinct8": 0.1484375, "greedy": 0.041666666666666664}
+      },
+      "higher_target_positive_seed_count": {"pass8": 2, "mean8": 1, "coverage8": 2, "distinct8": 2, "greedy": 1}
+    }
+  },
+  "limitations": [
+    "The higher-target treatment was selected after earlier outcomes were visible.",
+    "The retained Dr.GRPO reference and higher-target treatment were run as separate cohorts.",
+    "The comparison is paired, post-hoc, and exploratory."
+  ]
+}

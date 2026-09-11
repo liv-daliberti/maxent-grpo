@@ -1,0 +1,81 @@
+{
+  "amendment_sha256": "32f34a22de77a0d0695910af31604ce287951ba056889c9d7b382c4021d67f36",
+  "attempt_selection": "replace_all_four_partial_graph_cells_after_preemption",
+  "execution_surface_hash": "c8aa9471d5af05264d2cc04338612f9f2e16a10af34c5ebaea67ac6aa6ddb41a",
+  "invalid_attempts": [
+    {
+      "arm": "grpo",
+      "job_id": 30160181,
+      "latest_step": 106,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_gce69_gate2_placement_repair_grpo_s43/debug_job30160181",
+      "terminal": false
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "job_id": 30160182,
+      "latest_step": 219,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_gce69_gate2_placement_repair_verified_first_global_replay_canonical_s43/debug_job30160182",
+      "terminal": false
+    },
+    {
+      "arm": "verified_entropy_gated_singleton_escape_canonical",
+      "job_id": 30160183,
+      "latest_step": 216,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_entropy_gated_singleton_escape_canonical_gce69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43/debug_job30160183",
+      "terminal": false
+    },
+    {
+      "arm": "verified_route_successor",
+      "job_id": 30160184,
+      "latest_step": 232,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_route_successor_gce69_gate2_placement_repair_verified_route_successor_s43/debug_job30160184",
+      "terminal": false
+    }
+  ],
+  "launcher_sha256": "de5d071971dd520e65613e02e4daaf745f0c0338f2fc06eb487b4d90f3f2eaf4",
+  "manifest_sha256": "5e0eb175d1bbb3f0360e39d987fbc430a4e6f0b0f18ff8924fcf640c5e163d9f",
+  "mappings": [
+    {
+      "arm": "grpo",
+      "invalid_job_id": 30160181,
+      "replacement_job_id": 30160592,
+      "run_stamp": "gce69_gate2_graph_a5000_repair_grpo_s43",
+      "seed": 43
+    },
+    {
+      "arm": "verified_first_global_replay_canonical",
+      "invalid_job_id": 30160182,
+      "replacement_job_id": 30160594,
+      "run_stamp": "gce69_gate2_graph_a5000_repair_verified_first_global_replay_canonical_s43",
+      "seed": 43
+    },
+    {
+      "arm": "verified_entropy_gated_singleton_escape_canonical",
+      "invalid_job_id": 30160183,
+      "replacement_job_id": 30160595,
+      "run_stamp": "gce69_gate2_graph_a5000_repair_verified_entropy_gated_singleton_escape_canonical_s43",
+      "seed": 43
+    },
+    {
+      "arm": "verified_route_successor",
+      "invalid_job_id": 30160184,
+      "replacement_job_id": 30160596,
+      "run_stamp": "gce69_gate2_graph_a5000_repair_verified_route_successor_s43",
+      "seed": 43
+    }
+  ],
+  "math500_sealed": true,
+  "nonterminal_outcomes_available_before_repair": true,
+  "original_identity_sha256": "733c5d6c348d9ca69a0161ade6a49cea5a1259513d3461a5fb8380588769a904",
+  "parent_placement_repair_identity_sha256": "04871ee58df12f0b01ba1ee55cd84d59df6d60ad50214279b7e5b4f6c2bc7b03",
+  "placement": {
+    "account": "mltheory",
+    "gres": "gpu:a5000:1",
+    "node": "node202",
+    "partition": "lowprio"
+  },
+  "repair_decision_basis": "scheduler_preemption_and_node_inventory_only",
+  "schema": "e69_gate2_graph_a5000_preemption_repair_v1",
+  "source_hash": "b4075dbaababd0c972cc1ad4df8da34d4271274f21d7859ec9e477dc1c511976",
+  "terminal_outcomes_observed_before_repair": false
+}
