@@ -60,10 +60,6 @@
 \definecolor{domPython}{HTML}{EFFBE7}
 \definecolor{domMathIR}{HTML}{E7FBEE}
 \definecolor{domPantry}{HTML}{E7ECFB}
-\newcommand{\domlabel}[2]{\colorbox{#1}{\textbf{#2}}}
-\newcommand{\xmode}{\mbox{legacy adaptive MaxEnt+ReplayDr.GRPO}}
-\newcommand{\historicalt}{\mbox{historical multi-component treatment}}
-\newcommand{\Historicalt}{\mbox{Historical multi-component treatment}}
 \DeclareMathOperator{\clip}{clip}
 \newtheorem{lemma}{Lemma}[section]
 \newtheorem{theorem}[lemma]{Theorem}
@@ -404,7 +400,7 @@ control's training groups contain both correct and incorrect responses,
 compared with $18.5\%$ under replay. Thus most control updates carry no fresh
 task gradient, while verified memory supplies a separate learning signal
 (Appendix~\ref{app:degenerate-groups}). This is observed output collapse
-under the tested sparse-reward recipe, including incorrect repeated answers.
+under the tested recipe, including incorrect repeated answers.
 
 \textbf{Concentration among correct outputs is separately measurable.} On
 Graph and PantryPlan, all twelve Dr.GRPO/GRPO before--after comparisons
@@ -659,7 +655,7 @@ Controlled comparisons show that memory complements stronger fresh
 optimization; key weighting, prompt interventions, larger sampling budgets,
 and hosted mixtures reveal what determines the alternatives observed.
 
-Replay depends on discovery and bank capacity. A fixed-bank audit finds
+Replay depends on discovery and bank capacity. A fixed-bank study finds
 improving central exemplar scores alongside a declining tail
 (Appendix~\ref{app:fixed-bank-survival}); it does not establish retention of
 every key. Matched retention tests and portfolios with equal numbers of
@@ -678,9 +674,9 @@ add value, connecting the idealized mechanism to neural behavior and adaptation.
   \centering
   \caption{\textbf{Matched results after eight training passes.} Columns compare Dr.GRPO with ReplayDr.GRPO after exactly eight training passes. Entries are means over the displayed paired-seed intersection;
   $n$@pass gives its size and training pass. P, M, and D denote
-  \texttt{pass@8}, \texttt{mean@8}, and \texttt{distinct@8}. All source-admissible
-  terminal pairs are included: Falcon Countdown has $n=4$, other blocks $n=5$
-  (Appendix~\ref{app:source-integrity}). No missing endpoint is imputed. Pale green marks a ReplayDr.GRPO mean that is
+  \texttt{pass@8}, \texttt{mean@8}, and \texttt{distinct@8}. Falcon Countdown
+  has $n=4$ and other blocks $n=5$ (Appendix~\ref{app:source-integrity}).
+  Pale green marks a ReplayDr.GRPO mean that is
   strictly higher than its matched Dr.GRPO mean.}
   \label{tab:core-terminal-endpoints}
   \scriptsize
@@ -703,16 +699,22 @@ add value, connecting the idealized mechanism to neural behavior and adaptation.
 
 \section*{Appendix Organization}
 \label{app:organization}
-The supplement opens with the claim--evidence map
-(Appendix~\ref{app:claim-basis}), then gives measurement identities and the
-complete conditional theory (Appendices~\ref{app:metric-details} and~\ref{app:theory}).
-Benchmark construction, full prompts, and the implemented algorithm follow.
-Controlled results (Appendix~\ref{app:supporting}) precede longitudinal
-diagnostics (Appendix~\ref{app:ablations}) and the separate hosted observations.
-Prompt interventions and reproducibility close the scientific record.
-All original proof statements and proofs are retained. The main keeps its
-original figure sequence; additional concentration, factorial, weighting, and
-within-level effect plots support the corresponding appendix analyses.
+The supplement is organized in six parts. \textbf{Scope} opens with the
+claim--evidence map (Appendix~\ref{app:claim-basis}), the notation, and the
+measurement identities (Appendix~\ref{app:metric-details}).
+\textbf{Benchmark and method} gives the evaluation protocol
+(Appendix~\ref{app:data}), the verbatim prompts (Appendix~\ref{app:prompts}),
+and the implemented algorithm (Appendix~\ref{app:algorithm}).
+\textbf{Training results} (Appendix~\ref{app:supporting}) reports the
+comparisons behind Sections~\ref{sec:results-retention}--\ref{sec:results-levels},
+followed by the mechanism checks behind Section~\ref{sec:results-collapse}
+(Appendix~\ref{app:ablations}). \textbf{What breadth represents}
+(Appendices~\ref{app:prompt-hint-ablation} and~\ref{app:sampling-budget-ablation})
+and \textbf{fixed deployments} (Appendix~\ref{app:hosted-concentration} onward)
+follow Sections~\ref{sec:results-meaning} and~\ref{sec:hosted-concentration}
+one-to-one. \textbf{Idealized analysis} (Appendix~\ref{app:theory}) states the
+categorical model and its proofs, with its scope limits collected at the end.
+\textbf{Records} close with source integrity and reproducibility.
 
 \appendix
 \onecolumn
@@ -1665,9 +1667,8 @@ one and a canonical execution key. Neither the complete valid-key catalogue
 nor its size is supplied to training, replay, scheduling, or stopping.
 Table~\ref{tab:tasks} specifies the five domains and which surface forms merge.
 The \href{https://huggingface.co/datasets/od2961/ModeBench}{public dataset}
-preserves each domain's split roles and construction identity. This paper's
-training comparisons use Levels 1 and 2; the separate Level-3 release does
-not imply completed Level-3 training results.
+preserves each domain's split roles and construction identity. The training
+comparisons reported here use Levels 1 and 2.
 
 \begin{table}[H]
   \centering
@@ -1833,30 +1834,21 @@ seeds, disjointness checks, and these admission receipts.
 
 
 
-\paragraph{Scale-calibrated Levels 3--5.}
-These levels use frozen Qwen2.5-3B, 7B, and 14B, respectively, against the
-same fixed Qwen2.5-0.5B Level-1 reference. Recipes are selected on development
-problems before fresh held-out confirmation. Admission requires absolute
-pass@1 and pass@8 differences of at most $.04$ and $.08$, respectively,
-in every domain, with four independent groups of eight samples per prompt.
-Distinct@8 is reported but is not a fitting objective. The interface uses
-native chat, temperature 1, top-$p$ 1, and 192 generated tokens: boxed-direct
-answers for Graph and the established hybrid solver with legal-syntax
-guidance for the other domains. This is an empirical match to fixed measured
-targets, not a two-sided equivalence test. The admitted Level-3 V3 release
-uses its original prompts; Levels 4 and 5 remain under calibration.
-Their development tiers are candidate recipes, not additional benchmark levels.
+\paragraph{Scale-calibrated Level 3.}
+Level 3 uses frozen Qwen2.5-3B against the same fixed Qwen2.5-0.5B Level-1
+reference. Recipes are selected on development problems before fresh held-out
+confirmation, requiring absolute pass@1 and pass@8 differences of at most
+$.04$ and $.08$ in every domain, with four independent groups of eight samples
+per prompt. Distinct@8 is reported but is not a fitting objective. The
+interface uses native chat, temperature 1, top-$p$ 1, and 192 generated
+tokens: boxed-direct answers for Graph and the hybrid solver with
+legal-syntax guidance for the other domains. This matches fixed measured
+targets empirically; it is not a two-sided equivalence test.
 
-A subsequent Python Level-3 interface removes the strategy hints
-(Appendix~\ref{app:prompt-hint-ablation}); its difficulty is not certified by
-that admission. A separate dataset revision is being calibrated under this
-neutral interface, varying numeric cases while preserving the exact Level-2
-valid-mode-count histogram in each split. Development fitting precedes fresh
-held-out confirmation against the original fixed Level-1 success rates,
-with the same $.04$ and $.08$ tolerances. The historical reference retains
-its original wording, so this is a numerical match across specified
-interfaces. Existing results remain attached to the original datasets and
-prompts; the revised neutral dataset has no admitted result yet.
+The Python Level-3 interface used in the hint ablation removes the strategy
+hints (Appendix~\ref{app:prompt-hint-ablation}), so its difficulty is not
+covered by that match. All reported results use the original datasets and
+prompts.
 
 \subsection{Frozen base models across Levels 1--3}
 \label{app:base-levels-all-scales}
@@ -2258,7 +2250,6 @@ individual-mode preservation guarantee.
 
 \section{Empirical Results and Comparisons}
 \label{app:supporting}
-\label{app:aligned-xmode}
 
 \begin{figure}[!htbp]
 \centering
@@ -2281,9 +2272,8 @@ The primary comparisons cross fresh objective (Dr.GRPO or MaxRL) with
 verified replay, first across three model scales on Level 1 and then at
 Qwen2.5-0.5B on Level 2. Table~\ref{tab:experiment-map} separates these
 comparisons from the supporting controls and replay-weighting ablation.
-Terminal populations use the September 12 frozen census. The registered
-Qwen2.5-0.5B weighting aggregate retains its original frozen population;
-its endpoint values are unchanged in that census.
+Terminal results are fixed to a single analysis snapshot; the Qwen2.5-0.5B
+weighting aggregate uses the same seed population throughout.
 
 \begin{table}[H]
   \centering
@@ -2709,9 +2699,8 @@ domains or adjusting across comparisons.
   \caption{\textbf{Uniform versus fresh-frequency replay at pass 8.}
   Effects are uniform minus frequency weighting. Brackets give the paired
   percentile bootstrap interval for $\Delta B$ over all $5^5$ ordered
-  resamples in complete blocks. Every observed treatment endpoint in this
-  snapshot passes the persisted replay-weight telemetry audit. All nine
-  registered blocks contain five seed pairs
+  resamples in complete blocks. All nine
+  blocks contain five seed pairs
   (\href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E120-R1/README.md\#comparators}{paired model exports}).}
   \label{tab:current-e120}
   \scriptsize
@@ -2742,18 +2731,18 @@ inconclusive: $\Delta B=-.146$ ($[-.564,+.414]$) and $\Delta P=-.021$
 ($[-.063,+.026]$). Qwen2.5-3B Graph is complete at five pairs, with an extra-mode effect of
 $+.079$ ($[+.011,+.135]$); its correctness interval includes zero.
 Pantry also has five pairs, with $\Delta B=+.207$
-($[+.038,+.377]$) and inconclusive correctness ($+.011$, $[-.020,+.043]$). All observed treatment
-endpoints pass the persisted replay-weight telemetry audit. The evidence
-supports a contribution from key balancing in the stated domains, not a
+($[+.038,+.377]$) and inconclusive correctness ($+.011$, $[-.020,+.043]$).
+The evidence supports a contribution from key balancing in the stated domains, not a
 uniform accuracy or breadth advantage across every model--domain block.
 
 \paragraph{Evidence boundary.}
 \label{app:scale-boundary}
 The primary effects are within-domain, within-scale paired comparisons.
 They do not establish a scaling law, a positive factorial interaction, or
-preservation of every previously discovered mode. All registered E118,
-E119, and E120 blocks are complete; the separate Falcon Countdown
-Dr.GRPO comparison retains its four admissible seeds without an interval.
+preservation of every previously discovered mode. Every block in the scale
+factorial, the Level-2 factorial, and the weighting ablation is complete at
+five paired seeds; the separate Falcon Countdown Dr.GRPO comparison has four
+seeds and receives no interval.
 
 \section{Collapse and Replay Mechanism Checks}
 \label{app:ablations}
@@ -2790,10 +2779,10 @@ comparisons, while macro raw \texttt{distinct@8} ends above its initial
 value at Qwen2.5-3B. This distinguishes loss of multiple correct outcomes
 from the broader question of whether any correct outcome is sampled.
 
-Initial evaluations are measured within each method. Qwen2.5-3B MathIR
-and Pantry E80-R1 seeds 71--74 carry slightly different initial requests
-from plain GRPO ($.154$ versus $.162$, and $.832$ versus $.828$ on $P$).
-Those cells therefore have separate initial references.
+Initial evaluations are measured within each method. Qwen2.5-3B MathIR and
+Pantry seeds 71--74 carry slightly different initial requests from plain GRPO
+($.154$ versus $.162$, and $.832$ versus $.828$ on $P$), so those cells have
+separate initial references.
 
 \begin{figure}[t]
   \centering
@@ -3181,7 +3170,7 @@ it is not evidence from newly trained Level-3 checkpoints.
 
 Falcon3-1B Countdown ReplayDr.GRPO seed 59 contains two complete four-draw
 terminal evaluation sequences with identical request identities but
-conflicting metrics. The integrity amendment excludes that source at every
+conflicting metrics. That source is excluded at every
 checkpoint and from every efficacy endpoint, paired contrast, and aggregate
 that reuses it; neither sequence is selected or averaged. The independently
 valid Dr.GRPO and GRPO seed-59 sources remain admissible. The core replay
@@ -3267,9 +3256,10 @@ application-specific costs alongside mode counts.
 
 \subsubsection*{Reproducibility Statement}
 
-Claims are computed from versioned result files; missing final results and aggregate drift cause the build to
-fail. Appendix~\ref{app:reproducibility} records protocols, hashes, validations,
-and regeneration commands; Appendix~\ref{app:data} records split identities.
+Every reported number is computed from a versioned result file.
+Appendix~\ref{app:reproducibility} records protocols, hashes, validations,
+and regeneration commands, and links the public dataset and model archive;
+Appendix~\ref{app:data} records split identities.
 The AI Use Statement above discloses generative-AI assistance.
 
 
