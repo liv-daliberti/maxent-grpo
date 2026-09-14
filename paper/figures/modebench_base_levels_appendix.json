@@ -576,10 +576,10 @@
     "marker_area": 22,
     "marker_fill": "filled by model scale",
     "model_colors": {
-      "05b": "#1A9850",
-      "14b": "#7A0018",
-      "3b": "#FDAE61",
-      "7b": "#D73027"
+      "05b": "#1a9850",
+      "14b": "#7a0018",
+      "3b": "#fa9957",
+      "7b": "#e14531"
     },
     "model_labels": [
       "05b",
@@ -603,7 +603,7 @@
   },
   "domain_palette_source": {
     "path": "ops/plot_paper_modebench_examples.py",
-    "sha256": "74d697f3f5ccbfd2557bd18d6f6a0529c02be5378b9f95b40ccf1072dc17fd29"
+    "sha256": "e140d7299edf515f25452d43ab943a5a30959327844377e631d6df9f143cea66"
   },
   "metrics": {
     "distinct8": "Mean number of unique verified canonical keys within each eight-draw group, averaged across four independent groups and 128 prompts.",
@@ -813,7 +813,7 @@
   },
   "native_reconstruction": {
     "path": "ops/plot_paper_modebench_base_grid.py",
-    "sha256": "4830da0480b49f84871f05a6c247ddabc83951a374c1dd7d8a42f258126e1f62"
+    "sha256": "a89c618a460bdf464276ccbcc87a86e110b2a6ac61040f9bc9632b391750a0cb"
   },
   "omitted_cells": [
     {
@@ -1058,8 +1058,8 @@
     }
   ],
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.pdf": "94f1e4adf9bb18a12190dc64dfaae06c0aa0d460874849e081a03d771a1920f8",
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.png": "c3cfd231eeeccd607a152530d8e058f6e216bb4b683a3d6ad460b65f7352bc9c"
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.pdf": "d85d977798cacc4e7a47c790bfed23493b4b6d236ce870fe2ac1094f513c4049",
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.png": "415e5c9289250390ab06f604ea618b0ecb0ad5d16aed6090fdc1a5344b4a9f94"
   },
   "points": [
     {
@@ -195591,9 +195591,9 @@
   "registry_extensions": [],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_modebench_base_levels_appendix.py",
-    "sha256": "e917faf7cf76504458b078029a28c88962b3a7baa7c336cb125d1b3c129cdb07",
+    "sha256": "6aec0f2185322114970e0001951502f540c4399688c2f7ca85974b5a75b27de4",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
-    "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+    "style_sha256": "14311c5d925d9741ad5010e6dd82e9c7664f5edf32bf90f8e807c58254c0ace3"
   },
   "required_cells": 60,
   "sampling": {

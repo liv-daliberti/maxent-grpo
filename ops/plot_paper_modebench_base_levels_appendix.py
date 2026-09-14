@@ -41,6 +41,10 @@ TITLES = dict(zip(DOMAINS, ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry'))
 # keeps it legible to a red-green colourblind reader.
 SCALE_RAMP = ('#1A9850', '#66BD63', '#FDAE61', '#F46D43',
               '#D73027', '#A50026', '#7A0018')
+# Stop positions, not the even spacing from_list would assume. Most scales sit
+# in the green-to-orange span, so give that span most of the ramp and compress
+# the deep reds into the top, where only the largest few models land.
+SCALE_RAMP_POSITIONS = (0.00, 0.22, 0.46, 0.70, 0.86, 0.95, 1.00)
 SCALE_AREAS = (14, 20, 27, 35, 44, 54, 66)
 
 
@@ -66,7 +70,8 @@ def scale_colors(models=MODELS):
     params = {m: grid.MODEL_PARAMS[m] for m in models if m in grid.MODEL_PARAMS}
     if len(params) < len(models):          # unregistered scale: fall back to order
         return _spread(SCALE_RAMP, tuple(models))
-    ramp = LinearSegmentedColormap.from_list('scale', SCALE_RAMP)
+    ramp = LinearSegmentedColormap.from_list(
+        'scale', list(zip(SCALE_RAMP_POSITIONS, SCALE_RAMP)))
     lo, hi = math.log(min(params.values())), math.log(max(params.values()))
     if hi <= lo:
         return {m: SCALE_RAMP[-1] for m in models}
