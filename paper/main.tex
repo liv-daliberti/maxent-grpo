@@ -50,6 +50,12 @@
 \newcommand{\E}{\mathbb E}
 \newcommand{\Bpos}{\mathcal B_x^+}
 \newcommand{\mb}{\textsc{ModeBench}}
+% Success-conditional breadth. \pmd is the headline breadth statistic; \neff is
+% its count-valued reading, and \distk stays available for the registered
+% endpoint that is retained in the appendix.
+\newcommand{\pmd}{\texttt{PMD}}
+\newcommand{\neff}{\ensuremath{N^{(2)}_{\mathrm{eff}}}}
+\newcommand{\distk}{\texttt{distinct@8}}
 \definecolor{bettergreen}{RGB}{224,242,226}
 \newcommand{\bettercell}[1]{\cellcolor{bettergreen}#1}
 % Same five tints as each domain's card in Figure~\ref{fig:modebench-examples}
@@ -95,15 +101,21 @@ successful outputs. Binary rewards in reinforcement learning with verifiable
 rewards (RLVR) treat a repeated success and a different one alike. We introduce
 \mb{}, five executable domains whose canonical keys identify verified
 alternatives, and use it to show that verifier-only training concentrates those
-alternatives: correct-key collision rises in Graph and PantryPlan at every
-tested scale, and one Python control collapses to a single byte-identical
-response per prompt. ReplayMaxRL addresses this with the same keys. Fresh MaxRL
+alternatives. We measure this with pairwise modal diversity (\pmd{}), the
+probability that two verified responses to the same prompt occupy different
+modes, which is estimated from the verified draws alone and so does not move
+with correctness. \pmd{} falls in PantryPlan at every tested scale and
+objective, reaching zero at 0.5B and 1B, and falls in Graph under Dr.GRPO at
+every scale; one Python control collapses to a single byte-identical response
+per prompt. ReplayMaxRL addresses this with the same keys. Fresh MaxRL
 updates learn from current samples, while replay revisits one exemplar per
 retained key with equal weight, independent of how often that key is
 rediscovered. Across three model scales, matched comparisons show that replay
-improves held-out correctness and sampled breadth under Dr.GRPO and complements
-MaxRL: at 3B, adding replay to MaxRL raises domain-averaged \texttt{pass@8}
-from $.547$ to $.701$ and \texttt{distinct@8} from $.744$ to $1.107$. The
+improves held-out correctness and verified-mode diversity under Dr.GRPO and
+complements MaxRL: at 3B, adding replay to MaxRL raises domain-averaged
+\texttt{pass@8} from $.547$ to $.701$, and on the two domains where successes
+are frequent enough to estimate breadth independently of them, raises \pmd{}
+from $.245$ to $.396$. The
 benefit persists on a harder task construction. Removing prompt hints,
 coarsening the key, and enlarging the sampling budget then test what the
 breadth measure represents, and saved alternatives improve adaptation when
@@ -192,12 +204,14 @@ outputs, not latent reasoning strategies or the usefulness of a solution in
 a later task. Appendix~\ref{app:domain-overview} gives the exact key and alias
 rules, with verbatim prompts in Appendix~\ref{app:prompts}.
 
-\subsection{Success and sampled breadth}
+\subsection{Success and verified-mode diversity}
 \label{sec:collapse-metrics}
 
 Let $P=\Pr[V(Y,s_x)\ne\bot]$ and, when $P>0$, let
-$q_c=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\ne\bot]$. For $K$ independent samples,
-$D_K$ counts their distinct correct keys. The promptwise identities are
+$q_c=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\ne\bot]$. Correctness is carried by $P$ and
+the allocation of successes across modes by $q$; a breadth measure should
+report the second without restating the first. For $K$ independent samples,
+$D_K$ counts their distinct correct keys, and
 \begin{equation}
  \underbrace{\Pr[D_K>0]}_{\texttt{pass@}K}=1-(1-P)^K,
  \qquad
@@ -205,21 +219,51 @@ $D_K$ counts their distinct correct keys. The promptwise identities are
  =\sum_c[1-(1-Pq_c)^K].
  \label{eq:main-occupancy}
 \end{equation}
-The first is a probability, the second a count, and their difference ---
-\emph{extra modes} --- is what a policy offers beyond its first success. We use
-$K=8$ throughout. Both can rise simply because correctness rose, so neither
-alone shows a better-balanced $q$. Conditional collision measures the
-allocation directly:
+The expected distinct count mixes the two: it grows with $P$ at fixed $q$, so
+it rises whenever the model merely succeeds more often. The effect is not
+small. Across the 60 frozen base-model cells of
+Figure~\ref{fig:base-levels-all-scales}, $\texttt{distinct@8}$ correlates $.967$
+with \texttt{pass@8}; read as a breadth axis it is close to a restatement of
+correctness.
+
+We therefore report breadth as a functional of $q$ alone. \emph{Pairwise modal
+diversity} is
 \begin{equation}
- C(q)=\sum_c q_c^2,
- \qquad B_2=2P-P^2C(q),
- \label{eq:main-collision}
+ \pmd = 1-\sum_c q_c^2
+ = \Pr[Z_1\ne Z_2\mid \text{both responses verified}],
+ \label{eq:main-pmd}
 \end{equation}
-$C$ is the probability that two independent correct outputs are the same
-answer, so a rise in $C$ means the policy has picked a favorite. That rise is
-what we call \emph{mode collapse}. It is a statement about where correct
-probability sits, not a claim that any mode reached zero: finite samples cannot
-establish extinction (Appendix~\ref{app:metric-details}).
+the probability that two independent verified responses to the same prompt
+occupy different modes. For a prompt whose eight draws return $K\ge2$ verified
+responses allocated $n_1,\dots,n_M$ across modes, the unbiased estimator is the
+fraction of verified pairs that differ:
+\begin{equation}
+ \widehat{\pmd}
+ =1-\frac{\sum_m \binom{n_m}{2}}{\binom{K}{2}}
+ =1-\frac{\sum_m n_m(n_m-1)}{K(K-1)}.
+ \label{eq:main-pmd-estimator}
+\end{equation}
+Here $P$ has cancelled: \eqref{eq:main-pmd-estimator} conditions on the
+verified draws and is unbiased for \eqref{eq:main-pmd} at every $K\ge2$, so a
+policy that succeeds twice as often but allocates successes the same way scores
+the same. Two equivalent readings are useful. Fixing the sampling depth rather
+than the success count gives
+$\mathrm{RarefiedDistinct@}2=1+\pmd$, the expected number of distinct modes in
+exactly two verified draws, which answers the objection that different policies
+reach different $K$; and $\neff=1/(1-\pmd)$ is the effective number of verified
+modes. Both are monotone transforms of \eqref{eq:main-pmd}, so they order
+policies identically.
+
+A fall in \pmd{} is what we call \emph{mode collapse}. It is a statement about
+where correct probability sits, not a claim that any mode reached zero: finite
+samples cannot establish extinction (Appendix~\ref{app:metric-details}).
+\pmd{} is undefined for a prompt with fewer than two verified draws, and a
+policy that rarely succeeds therefore supports no statement about how its
+successes are distributed. We report every \pmd{} with the fraction of prompts
+that define it and leave cells below a stated support bar explicitly blank
+rather than filling them with noise (Appendix~\ref{app:metric-details}).
+\texttt{pass@8} and $\distk$ are both reported throughout
+(Appendix~\ref{app:registered-endpoints}).
 
 \subsection{Harder tasks with the same notion of a mode}
 \label{sec:levels-design}
@@ -230,25 +274,35 @@ only problem structure --- more hidden graph vertices, more Countdown operands
 --- while preserving the distribution of how many valid modes a prompt has.
 Frozen
 Qwen2.5-0.5B success is lower at Level 2 in every domain.
-Figure~\ref{fig:level-construction} measures frozen Qwen2.5-7B success and
-breadth on held-out Levels 1--3;
-Appendix Figure~\ref{fig:base-levels-all-scales} includes all four model scales.
+Figure~\ref{fig:base-levels-all-scales} measures every untrained model on every
+level. Two things are visible at once: each level does move success downward
+within a scale, and breadth tracks correctness closely before any training, so
+the two axes start out coupled and are pulled apart only later.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/modebench_level_construction.pdf}
-  \caption{\textbf{Frozen Qwen2.5-7B across Levels 1--3.}
-  Five domains show pass@8 versus mean distinct verified modes per eight draws;
-  colors identify levels. Each point averages four independent eight-draw
-  groups on 128 held-out prompts at $T=1$.
-  Appendix Figure~\ref{fig:base-levels-all-scales} compares four model scales
-  under the same evaluation protocol across all five domains and three levels.}
-  \label{fig:level-construction}
+  \includegraphics[width=\linewidth]{figures/mode_diversity_levels_appendix.pdf}
+  \caption{\textbf{Frozen Qwen2.5-Instruct at four scales across Levels 1--3.}
+  All 60 model--level--domain cells, plotting \texttt{pass@8} against pairwise
+  modal diversity. Colour runs light to dark with model scale; marker shape
+  identifies the level. Each point pools four independent eight-draw groups on
+  the same 128 held-out prompts at $T=1$, 4,096 responses per point. Larger
+  models move right but not up: mean \pmd{} falls from $.269$ at 0.5B to $.186$
+  at 14B while mean \texttt{pass@8} rises from $.441$ to $.580$, and \pmd{}
+  declines with scale in 10 of the 13 domain--level blocks that support the
+  comparison. Scale buys correctness rather than variety in how that
+  correctness is reached. Ticks in the strip below each axis mark the 13 cells
+  with fewer than 30 prompts returning two verified responses; those cells have
+  no measurable breadth and are given no height.
+  Appendix Figure~\ref{fig:level-construction} shows the 7B scale alone.}
+  \label{fig:base-levels-all-scales}
 \end{figure}
 
 Level 3 targets the same fixed Qwen2.5-0.5B Level-1 success rates with larger
-frozen models, fitting only pass@1 and pass@8 so that distinct@8 remains an
-independent measurement. Levels differ in test population as well as structure,
+frozen models, fitting only pass@1 and pass@8 so that breadth remains an
+independent measurement. \pmd{} is independent of those fitted quantities by
+construction, since it conditions on the verified draws; the fitting protocol
+additionally keeps the registered \distk{} from being targeted. Levels differ in test population as well as structure,
 so cross-level differences do not isolate difficulty
 (Appendix~\ref{app:data-levels}).
 
@@ -358,9 +412,10 @@ draws on 128 held-out prompts that never enter training or the bank
 
 We separately evaluate five hosted models --- GPT-5.6 Sol, GPT-5.4, Grok 4.3,
 Kimi K3, and Claude Opus 4.8 --- on 480 fixed prompts spanning all five domains
-and Levels 1--3, eight stateless responses each
-(Appendix~\ref{app:hosted-comparison}). These are inference-only: no replay is
-applied and no training effect is identified.
+and Levels 1--3, eight stateless responses each, graded through a fixed
+formatting normalizer so that presentation differences are not counted as
+verified alternatives (Appendix~\ref{app:hosted-comparison}). These are
+inference-only: no replay is applied and no training effect is identified.
 
 \section{Results}
 \label{sec:results}
@@ -400,15 +455,24 @@ selected population rather than the whole test set
 can move in opposite directions on that population, the experiments below
 always report both.
 
-\subsection{Replay improves success and sampled breadth}
+\subsection{Replay improves success and verified-mode diversity}
 \label{sec:results-retention}
 
 \textbf{Verified memory improves both outcomes across scales.}
-ReplayDr.GRPO raises mean \texttt{pass@8} and \texttt{distinct@8} in every tested
-model--domain comparison (Figure~\ref{fig:cross-scale-terminal-effects}A).
-Raw verified mode count also increases in every paired training seed.
-The effect spans valid configurations, computation routes, and tested
-program behaviors.
+ReplayDr.GRPO raises mean \texttt{pass@8} and \distk{} in every tested
+model--domain comparison (Figure~\ref{fig:cross-scale-terminal-effects}A), and
+raw verified mode count increases in every paired training seed. Because both
+of those endpoints move with correctness, we check the breadth claim on the
+success-conditional axis as well. Of the 14 model--domain comparisons whose
+terminal success is frequent enough to define \pmd{} on at least 30 prompts,
+ReplayDr.GRPO ends above Dr.GRPO in 13 and ties at zero in the remaining one;
+ReplayMaxRL ends above MaxRL in 16 of 17. The gaps are not marginal. Dr.GRPO
+ends at \pmd{} $.000$ in PantryPlan at 0.5B and 1B and at $.001$ in Graph at
+0.5B --- its successes are effectively a single mode per prompt --- while
+ReplayDr.GRPO ends at $.334$, $.364$, and $.560$ on those same blocks. Averaged
+over measurable domains, terminal \pmd{} rises from $.017$ to $.233$ at 0.5B,
+from $.103$ to $.201$ at 1B, and from $.086$ to $.194$ at 3B. The effect spans
+valid configurations, computation routes, and tested program behaviors.
 
 \begin{figure}[!htbp]
   \centering
@@ -644,9 +708,13 @@ and hosted mixtures reveal what determines the alternatives observed.
 Three limits bound this. Replay retains only what sampling first finds, and a
 16-key bank against a mean of 229 valid Python modes protects a subset by
 construction (Appendix~\ref{app:fixed-bank-survival}).
-\texttt{distinct@}$K$ counts alternatives, not their worth. And the hosted
-models we did not train, so they motivate the measurement rather than implicate
-RLVR. Appendix~\ref{app:claim-basis} scopes every claim.
+Neither \pmd{} nor \texttt{distinct@}$K$ measures the worth of an alternative:
+both count distinguishable verified behaviors, and a second mode may be
+redundant, riskier, or costlier than the first. \pmd{} adds one limit of its
+own, that it is estimable only where successes are frequent enough to pair, so
+the policies whose breadth matters most to establish are the ones it can say
+least about. And the hosted models we did not train, so they motivate the
+measurement rather than implicate RLVR. Appendix~\ref{app:claim-basis} scopes every claim.
 \label{sec:main-end}
 
 \clearpage
@@ -925,19 +993,81 @@ have distinct keys, as in our reported finite-action references.
 Open-ended program and derivation spaces have no canonical nominal
 ``uniform'' generator.
 
-The registered terminal co-primary endpoints are \texttt{pass@}$K$, the
-probability of finding any correct output, and raw \texttt{distinct@}$K$, the
-number of verified keys found. We report both separately for each
-model--domain--level block. The derived contrast
-$\texttt{distinct@}K-\texttt{pass@}K
-=\E[D_K-\1[D_K>0]]$ is an interpretive decomposition: it estimates the
-number of verified modes beyond the first. It is computable without knowing the
-full valid set $\mathcal C_x$ and remains coupled to the number of successful
-draws. We use it as an interpretive decomposition rather than a fully
-success-matched diversity measure or a third primary endpoint. Because every
+\subsection{Endpoints and the reported breadth axis}
+\label{app:registered-endpoints}
+
+The terminal co-primary endpoints are \texttt{pass@}$K$, the probability of
+finding any correct output, and raw \texttt{distinct@}$K$, the number of
+verified keys found. Both are reported for every model--domain--level block,
+here and in the result tables of Appendix~\ref{app:supporting}.
+
+A separate question is which statistic should carry the breadth axis in the
+figures and the prose. Raw \texttt{distinct@}$K$ is coupled to the number of successful
+draws: by \eqref{eq:main-occupancy} it grows with $P$ at fixed $q$, and
+empirically it correlates $.967$ with \texttt{pass@8} across the 60 frozen
+base-model cells ($.955$ Spearman across the 47 cells with sufficient support).
+Reported as breadth it therefore largely restates correctness, and the
+comparison it invites between a high-\texttt{distinct@8} domain and a
+low-\texttt{distinct@8} one is mostly a comparison of accuracy. We consequently
+report \pmd{} \eqref{eq:main-pmd} as the breadth axis, which is a functional of
+$q$ alone.
+
+\pmd{} is not a new measurement of the saved responses. It is exactly one minus
+the conditional-collision U-statistic
+$\widehat C=\sum_m n_m(n_m-1)/(K(K-1))$ used in the conditional-concentration
+analysis; we report the diversity orientation because a metric that increases
+with breadth reads more directly alongside \texttt{pass@8}. Every \pmd{} value
+is recomputed from canonical keys already stored with the saved responses,
+without resampling or regrading.
+
+The derived contrast $\texttt{distinct@}K-\texttt{pass@}K=\E[D_K-\1[D_K>0]]$
+estimates the number of verified modes beyond the first. It is computable
+without knowing the full valid set $\mathcal C_x$ but remains coupled to the
+number of successful draws, so we keep it as an interpretive decomposition
+rather than as a diversity measure. Because every
 headline evaluation fixes $K=8$, reporting $\texttt{distinct@8}/8$ would add no
 information beyond a linear rescaling; we retain the raw count and label its
 units explicitly.
+
+\paragraph{Support and explicit gaps.}
+\pmd{} is undefined for a prompt returning fewer than two verified responses,
+and definedness is itself accuracy-dependent: the fraction of prompts defining
+\pmd{} correlates $.99$ with \texttt{pass@8}. This is an information limit
+rather than an artifact, since a policy that almost never succeeds exhibits no
+distribution of successes to measure. We handle it explicitly rather than
+silently. Every reported \pmd{} carries the number of prompts that define it;
+cells with fewer than 30 defined prompts are left blank in figures and tables
+instead of being filled with a noise-dominated estimate. Of the 60 frozen
+base-model cells, 47 clear this bar and 13 do not, 9 of the 13 being Countdown
+cells whose frozen success rate is too low to support any breadth statement.
+A blank cell means breadth was not measurable there; it does not mean breadth
+was low.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Registered success endpoint and the reported breadth axis,
+  for all 60 frozen base-model cells.} Each model group reports
+  \texttt{pass@8} and \pmd{} on the same 128 held-out prompts. The two do not
+  track each other: Python reaches the highest \texttt{pass@8} in the table and
+  the lowest \pmd{}, and \pmd{} falls with model scale in 10 of the 13
+  domain--level blocks that support the comparison while \texttt{pass@8} rises.
+  An em dash marks a cell with fewer than 30 prompts returning two verified
+  responses, where \pmd{} is not estimable; \texttt{pass@8} is still reported
+  there. Raw \distk{} for the same cells is given in
+  Appendix~\ref{app:supporting}.}
+  \label{tab:registered-endpoints-appendix}
+  \small
+  \begin{tabular}{llcccccccc}
+    \toprule
+    & & \multicolumn{2}{c}{0.5B} & \multicolumn{2}{c}{3B}
+      & \multicolumn{2}{c}{7B} & \multicolumn{2}{c}{14B} \\
+    \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(lr){9-10}
+    Domain & L & \texttt{pass@8} & \pmd{} & \texttt{pass@8} & \pmd{}
+           & \texttt{pass@8} & \pmd{} & \texttt{pass@8} & \pmd{} \\
+    \midrule
+    \input{results/mode_diversity_base_grid_table_body.tex}
+  \end{tabular}
+\end{table}
 
 
 \subsection{Why balance within the replay bank}
@@ -1193,14 +1323,16 @@ Levels 4--5 await dataset admission and have no plotted measurements here.
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/modebench_base_levels_appendix.pdf}
-  \caption{\textbf{Frozen base-model success and breadth at all four scales.}
-  All 60 cells for Qwen2.5-Instruct 0.5B, 3B, 7B, and 14B at Levels 1--3.
-  Colors identify levels and marker shapes identify model sizes; each domain
-  contains 12 points. Coordinates are empirical pass@8 and mean distinct
-  verified modes per eight draws, averaged over four independent groups on
-  128 held-out prompts. Main Figure~\ref{fig:level-construction} shows these same estimates for the 7B model.}
-  \label{fig:base-levels-all-scales}
+  \includegraphics[width=\linewidth]{figures/mode_diversity_level_construction.pdf}
+  \caption{\textbf{Frozen Qwen2.5-7B across Levels 1--3.}
+  The 7B row of Figure~\ref{fig:base-levels-all-scales} on its own, with levels
+  distinguished by marker shape. Five domains show \texttt{pass@8} against
+  pairwise modal diversity; each point pools four independent eight-draw groups
+  on 128 held-out prompts at $T=1$. The two axes separate cleanly: Python
+  answers almost every prompt correctly and almost always with the same mode
+  (\texttt{pass@8} $\ge.99$, \pmd{} $\le.03$), while Graph reaches
+  \texttt{pass@8} $.34$--$.68$ with \pmd{} near $.37$.}
+  \label{fig:level-construction}
 \end{figure}
 
 \subsection{Training and evaluation settings}
@@ -1669,7 +1801,10 @@ from $.172$ to $.528$, with an extra-mode effect of $+.043$
 ($[-.077,+.164]$); MathIR rises from $.512$ to $.796$, with extra modes
 $+.030$ ($[+.001,+.060]$). These intervals are nominal, unadjusted
 Student-$t$ estimates over five paired training seeds. Extra modes remain
-coupled to correctness. Countdown keys identify computation routes, but
+coupled to correctness, so the same Countdown comparison is also read on the
+success-conditional axis, where Dr.GRPO ends at \pmd{} $.007$ and
+ReplayDr.GRPO at $.487$: the replayed policy is not merely succeeding more
+often, its successes are spread across modes where the control's are not. Countdown keys identify computation routes, but
 these held-out endpoints do not identify which previously discovered
 routes survived training.
 
@@ -1899,15 +2034,20 @@ identical seeds and checkpoints, without smoothing or outcome-based selection.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/factorial_training_curves_distinct8.pdf}
-  \caption{\textbf{Verified modes throughout training at all three model scales.}
-  The same model rows, methods, seeds, and checkpoints as
-  Figure~\ref{fig:factorial-training-accuracy}, now measuring
-  \texttt{distinct@8}. Lines are descriptive fixed-cohort means and bands
-  show seed ranges. A count of one has no band. Domain-specific vertical
-  scales are shared across model rows; absolute heights across different
-  domains should be read against their labeled axes. Missing evaluations
-  are never carried forward or joined across a gap.}
+  \includegraphics[width=\linewidth]{figures/factorial_training_curves_pmd.pdf}
+  \caption{\textbf{Verified-mode diversity throughout training at all three
+  model scales.} The same model rows, methods, seeds, and checkpoints as
+  Figure~\ref{fig:factorial-training-accuracy}, now measuring \pmd{}. Because
+  the metric conditions on the verified draws, a falling line reports that
+  successes concentrated, not that they became rarer --- the distinction the
+  accuracy curves cannot draw. The two fresh objectives fall in Graph,
+  Countdown, and Pantry at every scale, reaching \pmd{} $.000$ in Pantry at
+  0.5B and 1B, while the replay arms rise or hold. Lines are descriptive
+  fixed-cohort means and bands show seed ranges. A count of one has no band.
+  Domain-specific vertical scales are shared across model rows; absolute
+  heights across different domains should be read against their labeled axes.
+  A step is plotted only where at least 30 prompts return two verified
+  responses, and segments are never joined across a suppressed step.}
   \label{fig:factorial-training-modes}
 \end{figure}
 
@@ -2157,8 +2297,12 @@ A retained-breadth percentage is therefore reported only when the initial
 extra-mode count exceeds $.05$. Raw $\texttt{distinct@8}$ ends below its
 initial value in six of the 15 Dr.GRPO domains. ReplayDr.GRPO does so in
 two available domain summaries, both PantryPlan; Falcon Countdown uses
-four admissible seeds. These observations concern sampled held-out support,
-not the survival histories of particular stored modes.
+four admissible seeds. On the success-conditional axis the contrast is
+sharper: averaged over the domains that remain measurable at the terminal
+step, Dr.GRPO ends at \pmd{} $.017$, $.103$, and $.086$ at 0.5B, 1B, and 3B
+against ReplayDr.GRPO's $.233$, $.201$, and $.194$. These observations concern
+sampled held-out support, not the survival histories of particular stored
+modes.
 
 Uniform-action references are meaningful for the enumerable Graph and
 Pantry representations. They are not defined for open-ended programs or
@@ -2300,7 +2444,10 @@ along with divisor-testing and dispatch guidance; it also shortens the prompt.
 Its paired effect concerns this combined removal and does not isolate a
 preference cue from example or length effects. A reduction in
 \texttt{distinct@8} accompanied by lower \texttt{pass@8} is not by itself
-evidence of greater concentration among correct outputs.
+evidence of greater concentration among correct outputs: both endpoints fall
+when the model simply succeeds less often. This is precisely the ambiguity
+\pmd{} removes, since it is estimated from the verified draws alone, and it is
+the reading to consult when the two registered endpoints move together.
 Here the initial model is the single fixed Qwen2.5-0.5B-Instruct checkpoint
 before the reported RL training; it is already instruction-tuned and has no
 fine-tuning-seed replication in this ablation.

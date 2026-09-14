@@ -23,13 +23,13 @@ ABSOLUTE_REFERENCES = ROOT / "paper/results/absolute_support_references.json"
 CORE = ROOT / "paper/results/core_terminal_endpoints.json"
 
 MAIN_FIGURES = (
-    "modecollapse_story", "modebench_examples", "modebench_level_construction",
+    "modecollapse_story", "modebench_examples", "mode_diversity_levels_appendix",
     "verified_support_story",
     "experiment1_retention_comparator_matrix", "e118_all_scale_factorial_progress",
     "modebench_level_admission", "gpt56_all_levels32_sampling_budget",
 )
 MAIN_LABELS = (
-    "fig:story", "fig:modebench-examples", "fig:level-construction",
+    "fig:story", "fig:modebench-examples", "fig:base-levels-all-scales",
     "fig:verified-support-story",
     "fig:cross-scale-terminal-effects", "fig:maxrl-factorial", "fig:level2-admission",
     "fig:gpt56-sampling-budget",
@@ -45,7 +45,7 @@ MOVED_APPENDIX_FIGURES = {
     "replay_level2_effects": "fig:replay-level2-effects",
 }
 APPENDIX_FIGURES = (
-    "modebench_base_levels_appendix",
+    "mode_diversity_level_construction",
     *MOVED_APPENDIX_FIGURES,
     "baseline_collapse_precheck",
     "e118_scale_extensions_appendix",
@@ -134,7 +134,7 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
     roles = (
         ("sec:introduction", "sec:modebench", "fig:story", None),
         ("sec:modebench", "sec:method", "fig:modebench-examples", "modebench_examples"),
-        ("sec:levels-design", "sec:method", "fig:level-construction", "modebench_level_construction"),
+        ("sec:levels-design", "sec:method", "fig:base-levels-all-scales", "mode_diversity_levels_appendix"),
         ("sec:method", "sec:experiments", "fig:verified-support-story", "verified_support_story"),
         ("sec:results-retention", "sec:results-maxrl", "fig:cross-scale-terminal-effects",
          "experiment1_retention_comparator_matrix"),

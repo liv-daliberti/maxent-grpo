@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN_FIGURE_LABELS = (
     "fig:story",
     "fig:modebench-examples",
-    "fig:level-construction",
+    "fig:base-levels-all-scales",
     "fig:verified-support-story",
     "fig:cross-scale-terminal-effects",
     "fig:maxrl-factorial",

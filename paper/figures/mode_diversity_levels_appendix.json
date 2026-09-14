@@ -1,0 +1,672 @@
+{
+  "display": {
+    "level_markers": {
+      "level1": "o",
+      "level2": "s",
+      "level3": "^"
+    },
+    "min_defined_prompts": 30,
+    "model_colors": {
+      "05b": "#7AB8DC",
+      "14b": "#04203A",
+      "3b": "#1C6098",
+      "7b": "#17528A"
+    },
+    "unmeasurable_cells_have_no_height": true,
+    "unmeasurable_strip": [
+      -0.1,
+      -0.035
+    ],
+    "x": "pass@8",
+    "x_limits": [
+      0.0,
+      1.0
+    ],
+    "y": "pairwise modal diversity",
+    "y_limits": [
+      0.0,
+      0.62
+    ]
+  },
+  "output": "paper/figures/mode_diversity_levels_appendix",
+  "outputs": {
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "f44b95d808674f55710f3940bb14cae5658ad2a5d3d45a3e9dfd2f355e96de39"
+  },
+  "points": [
+    {
+      "defined_prompts": 18,
+      "domain": "countdown",
+      "level": "level1",
+      "model_label": "05b",
+      "pass8": 0.134765625,
+      "pmd": 0.2592592592592593,
+      "reportable": false,
+      "support": 0.140625
+    },
+    {
+      "defined_prompts": 78,
+      "domain": "graph_coloring",
+      "level": "level1",
+      "model_label": "05b",
+      "pass8": 0.5390625,
+      "pmd": 0.40691619182331257,
+      "reportable": true,
+      "support": 0.609375
+    },
+    {
+      "defined_prompts": 51,
+      "domain": "mathir",
+      "level": "level1",
+      "model_label": "05b",
+      "pass8": 0.296875,
+      "pmd": 0.13738222561751973,
+      "reportable": true,
+      "support": 0.3984375
+    },
+    {
+      "defined_prompts": 35,
+      "domain": "pantry",
+      "level": "level1",
+      "model_label": "05b",
+      "pass8": 0.228515625,
+      "pmd": 0.38919450641255154,
+      "reportable": true,
+      "support": 0.2734375
+    },
+    {
+      "defined_prompts": 111,
+      "domain": "python_factors",
+      "level": "level1",
+      "model_label": "05b",
+      "pass8": 0.734375,
+      "pmd": 0.1323055323055323,
+      "reportable": true,
+      "support": 0.8671875
+    },
+    {
+      "defined_prompts": 8,
+      "domain": "countdown",
+      "level": "level2",
+      "model_label": "05b",
+      "pass8": 0.07421875,
+      "pmd": 0.27083333333333337,
+      "reportable": false,
+      "support": 0.0625
+    },
+    {
+      "defined_prompts": 27,
+      "domain": "graph_coloring",
+      "level": "level2",
+      "model_label": "05b",
+      "pass8": 0.189453125,
+      "pmd": 0.37680776014109346,
+      "reportable": false,
+      "support": 0.2109375
+    },
+    {
+      "defined_prompts": 29,
+      "domain": "mathir",
+      "level": "level2",
+      "model_label": "05b",
+      "pass8": 0.173828125,
+      "pmd": 0.05747126436781609,
+      "reportable": false,
+      "support": 0.2265625
+    },
+    {
+      "defined_prompts": 43,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "05b",
+      "pass8": 0.2734375,
+      "pmd": 0.3060151089220857,
+      "reportable": true,
+      "support": 0.3359375
+    },
+    {
+      "defined_prompts": 103,
+      "domain": "python_factors",
+      "level": "level2",
+      "model_label": "05b",
+      "pass8": 0.66796875,
+      "pmd": 0.14955201217337138,
+      "reportable": true,
+      "support": 0.8046875
+    },
+    {
+      "defined_prompts": 5,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "05b",
+      "pass8": 0.048828125,
+      "pmd": 0.5666666666666667,
+      "reportable": false,
+      "support": 0.0390625
+    },
+    {
+      "defined_prompts": 52,
+      "domain": "graph_coloring",
+      "level": "level3",
+      "model_label": "05b",
+      "pass8": 0.361328125,
+      "pmd": 0.3849587890825064,
+      "reportable": true,
+      "support": 0.40625
+    },
+    {
+      "defined_prompts": 40,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "05b",
+      "pass8": 0.248046875,
+      "pmd": 0.22857142857142856,
+      "reportable": true,
+      "support": 0.3125
+    },
+    {
+      "defined_prompts": 40,
+      "domain": "pantry",
+      "level": "level3",
+      "model_label": "05b",
+      "pass8": 0.2734375,
+      "pmd": 0.44766925210339537,
+      "reportable": true,
+      "support": 0.3125
+    },
+    {
+      "defined_prompts": 127,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "05b",
+      "pass8": 0.7890625,
+      "pmd": 0.10611483879200415,
+      "reportable": true,
+      "support": 0.9921875
+    },
+    {
+      "defined_prompts": 21,
+      "domain": "countdown",
+      "level": "level1",
+      "model_label": "14b",
+      "pass8": 0.14453125,
+      "pmd": 0.11655328798185942,
+      "reportable": false,
+      "support": 0.1640625
+    },
+    {
+      "defined_prompts": 89,
+      "domain": "graph_coloring",
+      "level": "level1",
+      "model_label": "14b",
+      "pass8": 0.642578125,
+      "pmd": 0.23157932098448333,
+      "reportable": true,
+      "support": 0.6953125
+    },
+    {
+      "defined_prompts": 53,
+      "domain": "mathir",
+      "level": "level1",
+      "model_label": "14b",
+      "pass8": 0.392578125,
+      "pmd": 0.10755286204425828,
+      "reportable": true,
+      "support": 0.4140625
+    },
+    {
+      "defined_prompts": 60,
+      "domain": "pantry",
+      "level": "level1",
+      "model_label": "14b",
+      "pass8": 0.412109375,
+      "pmd": 0.46526197393296737,
+      "reportable": true,
+      "support": 0.46875
+    },
+    {
+      "defined_prompts": 127,
+      "domain": "python_factors",
+      "level": "level1",
+      "model_label": "14b",
+      "pass8": 0.986328125,
+      "pmd": 0.050785864895970756,
+      "reportable": true,
+      "support": 0.9921875
+    },
+    {
+      "defined_prompts": 21,
+      "domain": "countdown",
+      "level": "level2",
+      "model_label": "14b",
+      "pass8": 0.14453125,
+      "pmd": 0.013605442176870748,
+      "reportable": false,
+      "support": 0.1640625
+    },
+    {
+      "defined_prompts": 37,
+      "domain": "graph_coloring",
+      "level": "level2",
+      "model_label": "14b",
+      "pass8": 0.267578125,
+      "pmd": 0.172526545944863,
+      "reportable": true,
+      "support": 0.2890625
+    },
+    {
+      "defined_prompts": 74,
+      "domain": "mathir",
+      "level": "level2",
+      "model_label": "14b",
+      "pass8": 0.55859375,
+      "pmd": 0.05142116094254944,
+      "reportable": true,
+      "support": 0.578125
+    },
+    {
+      "defined_prompts": 74,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "14b",
+      "pass8": 0.505859375,
+      "pmd": 0.43010885841011026,
+      "reportable": true,
+      "support": 0.578125
+    },
+    {
+      "defined_prompts": 128,
+      "domain": "python_factors",
+      "level": "level2",
+      "model_label": "14b",
+      "pass8": 0.978515625,
+      "pmd": 0.035995837039480304,
+      "reportable": true,
+      "support": 1.0
+    },
+    {
+      "defined_prompts": 19,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "14b",
+      "pass8": 0.1328125,
+      "pmd": 0.11027568922305765,
+      "reportable": false,
+      "support": 0.1484375
+    },
+    {
+      "defined_prompts": 69,
+      "domain": "graph_coloring",
+      "level": "level3",
+      "model_label": "14b",
+      "pass8": 0.48828125,
+      "pmd": 0.19625171248374926,
+      "reportable": true,
+      "support": 0.5390625
+    },
+    {
+      "defined_prompts": 61,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "14b",
+      "pass8": 0.4453125,
+      "pmd": 0.10356268216492548,
+      "reportable": true,
+      "support": 0.4765625
+    },
+    {
+      "defined_prompts": 38,
+      "domain": "pantry",
+      "level": "level3",
+      "model_label": "14b",
+      "pass8": 0.294921875,
+      "pmd": 0.3465194992919038,
+      "reportable": true,
+      "support": 0.296875
+    },
+    {
+      "defined_prompts": 128,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "14b",
+      "pass8": 0.982421875,
+      "pmd": 0.044196489596568134,
+      "reportable": true,
+      "support": 1.0
+    },
+    {
+      "defined_prompts": 49,
+      "domain": "countdown",
+      "level": "level1",
+      "model_label": "3b",
+      "pass8": 0.31640625,
+      "pmd": 0.1728526733804352,
+      "reportable": true,
+      "support": 0.3828125
+    },
+    {
+      "defined_prompts": 83,
+      "domain": "graph_coloring",
+      "level": "level1",
+      "model_label": "3b",
+      "pass8": 0.564453125,
+      "pmd": 0.5023491970844575,
+      "reportable": true,
+      "support": 0.6484375
+    },
+    {
+      "defined_prompts": 32,
+      "domain": "mathir",
+      "level": "level1",
+      "model_label": "3b",
+      "pass8": 0.212890625,
+      "pmd": 0.08571428571428572,
+      "reportable": true,
+      "support": 0.25
+    },
+    {
+      "defined_prompts": 40,
+      "domain": "pantry",
+      "level": "level1",
+      "model_label": "3b",
+      "pass8": 0.263671875,
+      "pmd": 0.482065597800892,
+      "reportable": true,
+      "support": 0.3125
+    },
+    {
+      "defined_prompts": 109,
+      "domain": "python_factors",
+      "level": "level1",
+      "model_label": "3b",
+      "pass8": 0.818359375,
+      "pmd": 0.06335296816952303,
+      "reportable": true,
+      "support": 0.8515625
+    },
+    {
+      "defined_prompts": 14,
+      "domain": "countdown",
+      "level": "level2",
+      "model_label": "3b",
+      "pass8": 0.111328125,
+      "pmd": 0.03809523809523809,
+      "reportable": false,
+      "support": 0.109375
+    },
+    {
+      "defined_prompts": 62,
+      "domain": "graph_coloring",
+      "level": "level2",
+      "model_label": "3b",
+      "pass8": 0.404296875,
+      "pmd": 0.39007156028192475,
+      "reportable": true,
+      "support": 0.484375
+    },
+    {
+      "defined_prompts": 41,
+      "domain": "mathir",
+      "level": "level2",
+      "model_label": "3b",
+      "pass8": 0.267578125,
+      "pmd": 0.12886178861788616,
+      "reportable": true,
+      "support": 0.3203125
+    },
+    {
+      "defined_prompts": 40,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "3b",
+      "pass8": 0.25390625,
+      "pmd": 0.5336388611388612,
+      "reportable": true,
+      "support": 0.3125
+    },
+    {
+      "defined_prompts": 111,
+      "domain": "python_factors",
+      "level": "level2",
+      "model_label": "3b",
+      "pass8": 0.787109375,
+      "pmd": 0.1484600339360316,
+      "reportable": true,
+      "support": 0.8671875
+    },
+    {
+      "defined_prompts": 16,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "3b",
+      "pass8": 0.109375,
+      "pmd": 0.2958017676767677,
+      "reportable": false,
+      "support": 0.125
+    },
+    {
+      "defined_prompts": 79,
+      "domain": "graph_coloring",
+      "level": "level3",
+      "model_label": "3b",
+      "pass8": 0.544921875,
+      "pmd": 0.44095056712557235,
+      "reportable": true,
+      "support": 0.6171875
+    },
+    {
+      "defined_prompts": 34,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "3b",
+      "pass8": 0.208984375,
+      "pmd": 0.046218487394957986,
+      "reportable": true,
+      "support": 0.265625
+    },
+    {
+      "defined_prompts": 26,
+      "domain": "pantry",
+      "level": "level3",
+      "model_label": "3b",
+      "pass8": 0.1796875,
+      "pmd": 0.5114292570174923,
+      "reportable": false,
+      "support": 0.203125
+    },
+    {
+      "defined_prompts": 116,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "3b",
+      "pass8": 0.748046875,
+      "pmd": 0.20122211424389283,
+      "reportable": true,
+      "support": 0.90625
+    },
+    {
+      "defined_prompts": 67,
+      "domain": "countdown",
+      "level": "level1",
+      "model_label": "7b",
+      "pass8": 0.427734375,
+      "pmd": 0.25904882967835136,
+      "reportable": true,
+      "support": 0.5234375
+    },
+    {
+      "defined_prompts": 98,
+      "domain": "graph_coloring",
+      "level": "level1",
+      "model_label": "7b",
+      "pass8": 0.6796875,
+      "pmd": 0.34430166050197425,
+      "reportable": true,
+      "support": 0.765625
+    },
+    {
+      "defined_prompts": 46,
+      "domain": "mathir",
+      "level": "level1",
+      "model_label": "7b",
+      "pass8": 0.330078125,
+      "pmd": 0.019668737060041408,
+      "reportable": true,
+      "support": 0.359375
+    },
+    {
+      "defined_prompts": 30,
+      "domain": "pantry",
+      "level": "level1",
+      "model_label": "7b",
+      "pass8": 0.224609375,
+      "pmd": 0.3294932004719557,
+      "reportable": true,
+      "support": 0.234375
+    },
+    {
+      "defined_prompts": 128,
+      "domain": "python_factors",
+      "level": "level1",
+      "model_label": "7b",
+      "pass8": 0.986328125,
+      "pmd": 0.030107236504953134,
+      "reportable": true,
+      "support": 1.0
+    },
+    {
+      "defined_prompts": 14,
+      "domain": "countdown",
+      "level": "level2",
+      "model_label": "7b",
+      "pass8": 0.1171875,
+      "pmd": 0.04761904761904762,
+      "reportable": false,
+      "support": 0.109375
+    },
+    {
+      "defined_prompts": 50,
+      "domain": "graph_coloring",
+      "level": "level2",
+      "model_label": "7b",
+      "pass8": 0.34375,
+      "pmd": 0.4041734931734932,
+      "reportable": true,
+      "support": 0.390625
+    },
+    {
+      "defined_prompts": 61,
+      "domain": "mathir",
+      "level": "level2",
+      "model_label": "7b",
+      "pass8": 0.4140625,
+      "pmd": 0.04256945240551798,
+      "reportable": true,
+      "support": 0.4765625
+    },
+    {
+      "defined_prompts": 36,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "7b",
+      "pass8": 0.271484375,
+      "pmd": 0.2603637493275762,
+      "reportable": true,
+      "support": 0.28125
+    },
+    {
+      "defined_prompts": 127,
+      "domain": "python_factors",
+      "level": "level2",
+      "model_label": "7b",
+      "pass8": 0.98828125,
+      "pmd": 0.007511986762964258,
+      "reportable": true,
+      "support": 0.9921875
+    },
+    {
+      "defined_prompts": 32,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "7b",
+      "pass8": 0.224609375,
+      "pmd": 0.23215601141802514,
+      "reportable": true,
+      "support": 0.25
+    },
+    {
+      "defined_prompts": 73,
+      "domain": "graph_coloring",
+      "level": "level3",
+      "model_label": "7b",
+      "pass8": 0.521484375,
+      "pmd": 0.37509857116368317,
+      "reportable": true,
+      "support": 0.5703125
+    },
+    {
+      "defined_prompts": 54,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "7b",
+      "pass8": 0.400390625,
+      "pmd": 0.02826278659611993,
+      "reportable": true,
+      "support": 0.421875
+    },
+    {
+      "defined_prompts": 27,
+      "domain": "pantry",
+      "level": "level3",
+      "model_label": "7b",
+      "pass8": 0.19140625,
+      "pmd": 0.29394977392873606,
+      "reportable": false,
+      "support": 0.2109375
+    },
+    {
+      "defined_prompts": 128,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "7b",
+      "pass8": 0.994140625,
+      "pmd": 0.010440046819122906,
+      "reportable": true,
+      "support": 1.0
+    }
+  ],
+  "renderer": {
+    "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
+    "sha256": "7983a7104ce91ec40033a92358fa98f82f857da7d5114258e37660c684e02a96",
+    "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
+    "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+  },
+  "schema": "paper-mode-diversity-levels-v1",
+  "scope": {
+    "cells": 60,
+    "domains": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry"
+    ],
+    "gap_cells": 13,
+    "levels": [
+      "level1",
+      "level2",
+      "level3"
+    ],
+    "models": [
+      "05b",
+      "3b",
+      "7b",
+      "14b"
+    ],
+    "reportable_cells": 47
+  },
+  "source": {
+    "path": "paper/results/mode_diversity_base_grid.json",
+    "sha256": "0bcc6868d7903532bad2015988575386490f322ee92e4f929e2769bbaf1a46c6"
+  },
+  "status": "complete"
+}
