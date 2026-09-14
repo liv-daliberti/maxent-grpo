@@ -57,8 +57,8 @@ APPENDIX_FIGURES = (
     "direct_baseline_learning_curves_pass8",
     "e121_fixed_bank_survival",
 )
-PROOF_REFERENCE = ROOT / "paper/audits/narrative_reorganization_20260911/before/paper/main.tex"
-PROOF_REFERENCE_SHA256 = "05c1146a68ef0ba72e71497125437e39cf29598f01daaa3d12ff76339c1d5b06"
+PROOF_REFERENCE = ROOT / "paper/audits/proof_cleanup_20260914/main.tex"
+PROOF_REFERENCE_SHA256 = "c6c19d0467b2064958726980dc3b9b9c3132a7a0e81439cd0ade933536b8b6be"
 RETIRED = (
     "sustained_auc_effects_qwen05b",
     "verified_support_discovery_two_scale_effects",
@@ -182,7 +182,7 @@ def formal_blocks(text: str) -> Counter:
 
 def check_formal_preservation(manuscript: str, reference: str) -> None:
     expected = formal_blocks(reference)
-    require(sum(expected.values()) == 18, "pre-reorganization reference lost a formal block")
+    require(sum(expected.values()) == 20, "proof-cleanup reference lost a formal block")
     require(formal_blocks(manuscript) == expected,
             "formal statements/proofs changed from the preserved 18-block mathematical chain")
 
