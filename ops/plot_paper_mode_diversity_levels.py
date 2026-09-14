@@ -9,8 +9,9 @@ prompts are not given a height: they appear as ticks in a separate strip below
 the axis, because a missing measurement and a measured zero are different
 claims and must not share a coordinate.
 
-Two figures come from one payload: the four-scale appendix grid and the
-single-scale main-text panel.
+Two figures come from one payload: the all-scale appendix grid, which overlays
+every scale in five domain panels, and the per-scale appendix grid, which gives
+each scale its own row so one scale can be read without the others on top of it.
 """
 from __future__ import annotations
 
@@ -51,10 +52,20 @@ def models_in(payload: dict) -> tuple[str, ...]:
     present = {c['model_label'] for c in payload['cells']}
     known = [m for m in grid.MODEL_PARAMS if m in present]
     return tuple(sorted(known, key=lambda m: grid.MODEL_PARAMS[m]))
-LEVELS = ('level1', 'level2', 'level3')
+LEVELS = ('level1', 'level2', 'level3', 'level4', 'level5')
 TITLES = dict(zip(DOMAINS, ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry')))
 COLORS = scale_colors()
-LEVEL_MARKERS = dict(zip(LEVELS, ('o', 's', '^')))
+LEVEL_MARKERS = dict(zip(LEVELS, ('o', 's', '^', 'D', 'v')))
+
+
+def levels_in(cells):
+    """Every construction level the payload actually contains, easiest first.
+
+    The grid grows a level at a time, so a hard-coded triple would silently
+    drop Level 4 cells instead of plotting them.
+    """
+    present = {c['level'] for c in cells}
+    return tuple(level for level in LEVELS if level in present)
 MARKER_AREA = 22
 DOMAIN_BACKGROUNDS = {domain: domain_examples.DOMAIN_PANEL[letter]
                       for domain, letter in zip(DOMAINS, 'ABCDE', strict=True)}
@@ -99,7 +110,7 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None):
     axis.axhspan(STRIP_BOTTOM, STRIP_TOP, color=style.GRID, alpha=.45, zorder=0, lw=0)
     axis.axhline(0.0, color=style.MUTED, lw=.5, zorder=1)
     for order, model in enumerate(reversed(models)):
-        for level in LEVELS:
+        for level in levels_in(cells):
             cell = next((c for c in cells if c['domain'] == domain
                          and c['model_label'] == model and c['level'] == level), None)
             if cell is None:
@@ -153,8 +164,8 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
     if legends:
         levels = [Line2D([], [], marker=LEVEL_MARKERS[level], linestyle='none', markersize=4.7,
                          markerfacecolor=style.MUTED, markeredgecolor=style.INK,
-                         markeredgewidth=.35, label=f'Level {number}')
-                  for number, level in enumerate(LEVELS, 1)]
+                         markeredgewidth=.35, label='Level ' + level[len('level'):])
+                  for level in levels_in(cells)]
         levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
                              color=style.MUTED, markeredgewidth=.9,
                              label='not measurable'))
@@ -176,12 +187,70 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
     return figure
 
 
+def _row_panel(axis, cells, model, domain, frontier, colors, *, top, left):
+    """One scale, one domain. Same encoding as _panel, but labelled for a grid."""
+    _panel(axis, cells, (model,), domain, frontier, colors)
+    axis.set_title(TITLES[domain] if top else '', fontsize=8.0, pad=3)
+    if left:
+        axis.set_ylabel(base_grid.MODEL_NAMES[model], fontsize=7.6, labelpad=3)
+    axis.tick_params(labelbottom=False, labelleft=left, labelsize=6.6)
+
+
+def build_scale_grid(payload: dict, models, *, frontier=None, figsize=None):
+    """Every scale on its own row, so no scale is hidden behind another.
+
+    The overlay in the all-scale appendix figure answers how the scales compare;
+    it cannot show where a single scale sits when its points fall under a darker
+    one. One row per scale answers that, at the cost of a taller figure.
+    """
+    cells = payload['cells']
+    # The hosted frontier deployments carry no parameter count, so they belong to no
+    # row. Drawing them in all eleven would repeat the same points eleven times and
+    # stop any row from being that scale alone, which is the whole point here.
+    frontier = () if frontier is None else frontier
+    colors = scale_colors(tuple(models))
+    style.apply_rcparams()
+    rows = len(models)
+    figsize = (6.4, 0.60 * rows + 1.00) if figsize is None else figsize
+    figure, axes = plt.subplots(rows, len(DOMAINS), figsize=figsize,
+                                sharex=True, sharey=True, squeeze=False)
+    bottom = 0.95 / figsize[1]
+    top = 1 - 0.34 / figsize[1]
+    figure.subplots_adjust(left=.093, right=.995, bottom=bottom, top=top,
+                           wspace=.14, hspace=.22)
+    for row, model in enumerate(models):
+        for column, domain in enumerate(DOMAINS):
+            _row_panel(axes[row][column], cells, model, domain, frontier, colors,
+                       top=row == 0, left=column == 0)
+    for column in range(len(DOMAINS)):
+        axes[-1][column].tick_params(labelbottom=True, labelsize=6.6)
+    figure.text(.012, (bottom + top) / 2, 'Pairwise modal diversity', rotation=90,
+                va='center', ha='center', fontsize=8.5)
+    figure.text(.54, bottom - 0.62 / figsize[1], 'pass@8',
+                va='center', ha='center', fontsize=8.5)
+    levels = [Line2D([], [], marker=LEVEL_MARKERS[level], linestyle='none', markersize=4.7,
+                     markerfacecolor=style.MUTED, markeredgecolor=style.INK,
+                     markeredgewidth=.35, label='Level ' + level[len('level'):])
+              for level in levels_in(cells)]
+    levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
+                         color=style.MUTED, markeredgewidth=.9, label='not measurable'))
+    if frontier:
+        levels.append(Line2D([], [], marker='o', linestyle='none', markersize=5.0,
+                             markerfacecolor=FRONTIER_FACE, markeredgecolor='white',
+                             markeredgewidth=.55, label='frontier'))
+    figure.legend(handles=levels, loc='lower center',
+                  bbox_to_anchor=(.54, 0.10 / figsize[1]),
+                  ncol=len(levels), frameon=False, fontsize=7.2, handletextpad=.3,
+                  handlelength=.8, columnspacing=1.3, borderaxespad=0)
+    return figure
+
+
 def record_for(payload: dict, models, output: Path) -> dict:
     cells = [c for c in payload['cells'] if c['model_label'] in models]
     return {
         'schema': SCHEMA, 'status': 'complete',
         'source': {'path': str(PAYLOAD.relative_to(ROOT)), 'sha256': digest(PAYLOAD)},
-        'scope': {'models': list(models), 'levels': list(LEVELS), 'domains': list(DOMAINS),
+        'scope': {'models': list(models), 'levels': list(levels_in(cells)), 'domains': list(DOMAINS),
                   'cells': len(cells),
                   'reportable_cells': sum(1 for c in cells if c['reportable']),
                   'gap_cells': sum(1 for c in cells if not c['reportable'])},
@@ -204,12 +273,17 @@ def record_for(payload: dict, models, output: Path) -> dict:
     }
 
 
-def publish(payload: dict, models, output: Path, *, figsize, legends) -> dict:
-    figure = build_figure(payload, models, figsize=figsize, legends=legends)
+def publish(payload: dict, models, output: Path, *, figsize, legends,
+            builder=None) -> dict:
+    figure = (build_scale_grid(payload, models, figsize=figsize) if builder == 'scale_grid'
+              else build_figure(payload, models, figsize=figsize, legends=legends))
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output.with_suffix('.pdf'))
     plt.close(figure)
     record = record_for(payload, models, output)
+    record['display']['layout'] = ('one row per scale, five domain columns'
+                                   if builder == 'scale_grid'
+                                   else 'five domain panels, scales overlaid')
     record['outputs'] = {str(output.with_suffix('.pdf')): digest(output.with_suffix('.pdf'))}
     output.with_suffix('.json').write_text(
         json.dumps(record, indent=2, sort_keys=True, allow_nan=False) + '\n')
@@ -223,9 +297,13 @@ def main() -> None:
     payload = load(args.payload)
     present = models_in(payload)
     appendix = publish(payload, present, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True)
-    main_panel = publish(payload, ('7b',), OUT_MAIN, figsize=(6.4, 2.10), legends=True)
+    # The construction figure used to carry 7B alone. Every scale now gets its own
+    # row, so a reader can look up any single scale rather than only that one.
+    construction = publish(payload, present, OUT_MAIN, figsize=None, legends=True,
+                           builder='scale_grid')
     print(json.dumps({'event': 'published',
-                      'appendix': appendix['scope'], 'main': main_panel['scope']}))
+                      'appendix': appendix['scope'],
+                      'construction': construction['scope']}))
 
 
 if __name__ == '__main__':
