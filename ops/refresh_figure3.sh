@@ -14,4 +14,7 @@ $PY ops/build_mode_diversity_payload.py --source "$BASE" --source "$MF/figure_so
 $PY ops/plot_paper_mode_diversity_levels.py > /dev/null
 cd "$ROOT/paper"
 for _ in 1 2; do pdflatex -interaction=nonstopmode -halt-on-error main > /dev/null 2>&1; done
-echo "receipts: $(ls "$MF"/receipts/*.json 2>/dev/null | wc -l)/180   main.pdf rebuilt"
+cd "$ROOT"
+$PY ops/report_grid_trends.py
+echo
+echo "receipts: $(ls "$MF"/receipts/*.json 2>/dev/null | wc -l)/260   main.pdf rebuilt"
