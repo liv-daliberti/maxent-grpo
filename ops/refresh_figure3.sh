@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT=/n/fs/similarity/maxent-grpo
 PY=$ROOT/var/seed_paper_eval/paper310/bin/python
 MF=$ROOT/artifacts/modebench_base_level_grid_multifamily_20260914
+# Re-pinned after the PythonFactors size-cap re-grade; see regrade_python_factors.py.
 BASE=$ROOT/artifacts/modebench_base_level_grid_20260911/status_updates/20260912T152423Z/figure_source.json
 
 cd "$ROOT"

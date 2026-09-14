@@ -98,50 +98,35 @@ Mode Collapse in RLVR \& ModeBench}
 
 \begin{abstract}
 
-A language model can usually satisfy a request in more than one valid way,
-and
-those alternatives are worth something: a choice for the user, and
-somewhere to
-go when the first answer stops working. Training on verifiable
-rewards spends
-them, because a binary reward cannot tell a familiar success
-from a new one,
-and the cheapest way to earn it is to repeat what worked last
-time. Seeing this requires deciding when two successes are the same success.
-\mb{}
-takes it from the validator: five executable domains in which every
-accepted
-output carries a canonical key, so cosmetic variants merge and
-different
-computations stay apart. Breadth is then the probability that two
-verified
-responses differ, which, unlike a count of distinct outputs, does not
-rise
-merely with accuracy.
-On this measure verifier-only training
-concentrates: policies hold their
-accuracy while their successes converge on
-one way of being right, and at the
-extreme a model returns one byte-identical
-program to every prompt. Re:MaxRL keeps those alternatives in play. The
-keys that measure breadth
-also index a memory, which stores one verified
-exemplar per key and rehearses
-each equally, so a solution found once is
-practiced as often as one found
-constantly. Across three model scales, two
-fresh objectives, and a harder
-second construction, this improves both how
-often a policy succeeds and how
-many ways it can. Deployed
-frontier models
-show the same concentration and sampling harder does not undo
-it. An idealized
-analysis explains why: binary rewards amplify whichever
-success is already
-common, while memory supplies a signal for the ones that
-have gone quiet.
+Most questions we ask a language model have more than one right answer, and
+having several is worth something: the user gets a choice, and there is
+somewhere to go when the first answer turns out to be unusable. Training
+against a verifier quietly spends that. A correct response earns one point
+whether it is the thousandth copy of a familiar solution or one the model has
+never produced before, so the cheapest way to keep earning the point is to
+repeat whatever worked last time.
 
+Checking whether this happens means first deciding when two right answers are
+the same right answer. \mb{} takes that decision from the verifier that already
+decides correctness: across five executable domains, every accepted output is
+run and reduced to a canonical key, so rewordings of one solution merge and
+genuinely different solutions stay apart. We then ask how often two correct
+responses to the same prompt differ. Unlike counting distinct answers, that
+question has an answer a model cannot improve simply by getting more questions
+right.
+
+Measured this way, training on verifiable rewards narrows what a model produces
+while its accuracy holds or climbs; in the worst case a policy ends up giving
+each test prompt one byte-identical answer, sample after sample. Every deployed
+frontier model we measured is narrow in the same way, and asking for hundreds
+of samples instead of eight does not recover what is missing. Re:MaxRL keeps
+the alternatives. The keys that measure breadth also index a memory: one stored
+example per key, every key rehearsed equally, so a solution found once is
+practiced as often as one found constantly. Across three model scales, two RL
+objectives and a harder second construction of every task, this improves both
+how often a policy succeeds and how many ways it can. An idealized analysis
+says why binary rewards do this --- they amplify whichever success is already
+the most common --- and why a memory is what pushes back.
 \end{abstract}
 
 \begin{figure}[H]
@@ -160,42 +145,86 @@ have gone quiet.
 \section{Introduction}
 \label{sec:introduction}
 
-A language model can satisfy the same request in many ways --- different
-explanations, different plans, different programs that all meet the
-requirements. Those alternatives give users a choice, and they stay useful when
-preferences or constraints change. As a model becomes more successful, what
-happens to them?
+A language model can usually satisfy the same request in more than one way:
+different explanations, different plans, different programs that all meet the
+requirements. Those alternatives are worth keeping. They give the user a choice,
+they are what test-time search and reranking consume, and they are what is left
+to fall back on when the first answer turns out to be unusable. So it is worth
+asking what happens to them as a model is trained to succeed more often.
 
-Reinforcement learning with verifiable rewards (RLVR) trains on executable
-correctness feedback \citep{guo2025deepseekr1}, and its reward cannot tell the
-difference: a familiar correct solution and a novel one are both worth one
-point. Figure~\ref{fig:story} shows what that costs. Two policies reach the
-same graph problem with very different repertoires, and the more accurate one
-is the narrower.
+Reinforcement learning with verifiable rewards (RLVR) trains against an
+executable check \citep{guo2025deepseekr1}, and that check cannot tell one
+success from another: a solution the model has produced a thousand times and a
+solution it has never produced before are both worth exactly one point. Nothing
+in the objective asks it to keep the second. Fig.~\ref{fig:story} shows the cost
+on a graph-colouring problem with six valid answers: two policies trained under
+matched conditions end up with very different repertoires, and the more accurate
+one is the narrower.
 
-Noticing this requires a way to say when two successes are the same success.
-\mb{} takes that from the validator itself: every accepted output carries a
-canonical execution key, so cosmetic variants merge and different computations
-stay apart. One definition then serves both measurement and memory.
-Re:MaxRL stores one verified exemplar per key and rehearses every key
-equally, so a success that fresh sampling has stopped producing still receives
-a training signal, and frequent rediscovery earns a key no extra weight.
+This has been hard to establish because measuring it means saying when two
+correct answers are the same correct answer, and the usual proxies answer a
+different question. Token-level diversity counts two spellings of one solution
+as variety. A judge that groups answers by meaning puts a second model between
+the data and the claim. \mb{} instead takes the decision from the verifier that
+already decides correctness: every accepted output is executed and reduced to a
+canonical key, so presentation differences merge and genuinely different
+solutions stay apart. One definition then does double duty --- it tells us what
+to count, and it tells a training run what to remember.
 
-We find that verifier-only training does concentrate verified outputs, that
-replay counteracts it at three model scales and under two fresh objectives,
-and that the gain survives a harder task construction. We then ask what the
-measure is really counting, and show the same concentration in five deployed
-models that we did not train.
+What we find is not a small-model curiosity. Verifier-only training pushes
+policies onto a single way of being right while their accuracy holds or rises,
+and every deployed frontier model we measured is concentrated in the same way
+even where it answers essentially every prompt correctly. Drawing hundreds of
+samples instead of eight does not bring the missing answers back, because they
+are missing from the distribution rather than from the sample. The fix we
+propose costs no extra rollouts: reuse the keys that measure breadth as the
+index of a memory, store one verified example per key, and rehearse every key
+equally, so a solution found once is practiced as often as one found constantly.
+
+\paragraph{Contributions.}
+\begin{itemize}
+\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}
+\item \mb{}, a benchmark of five executable domains in which the verifier that
+grades an answer also says which answer it is, so correctness and variety can be
+read off the same run (Section~\ref{sec:modebench}).
+\item A breadth measure, \pmd{}, that reports how a model spreads its successes
+and not how many it has --- the distinction that a raw count of distinct answers
+cannot draw (Section~\ref{sec:collapse-metrics}).
+\item Evidence that verifier-only training concentrates correct outputs at every
+scale and in every domain we can measure it, down to runs that return one
+byte-identical answer per prompt (Section~\ref{sec:results-collapse}).
+\item Re:MaxRL, which replays one verified example per key with equal weight,
+and raises both accuracy and breadth across three scales, two fresh objectives
+and a harder construction of the tasks
+(Sections~\ref{sec:method} and~\ref{sec:results-retention}--\ref{sec:results-levels}).
+\item The same concentration in deployed frontier models, which sampling harder
+does not undo (Section~\ref{sec:hosted-concentration}), and an idealized
+analysis of why binary rewards produce it and memory resists it
+(Section~\ref{sec:collapse-mechanism}).
+\end{itemize}
 
 \section{\mb: Measuring Successful Alternatives}
 \label{sec:modebench}
 \label{sec:collapse}
 
-For a prompt $x$ with specification $s_x$, a validator maps an output $y$ to
-failure $\bot$ or a canonical key $V(y,s_x)\in\mathcal C_x$. Two accepted
-outputs count as the same mode exactly when their keys agree. Training sees
-only keys generated by the current policy; neither the full valid-key set
-$\mathcal C_x$ nor its size is supplied to the learner or replay bank.
+Before we can say that a model has stopped producing alternatives, we need a
+rule for when two of its answers count as the same answer. The rule has to be
+strict enough that reprinting one solution with different whitespace is not
+recorded as a new idea, and generous enough that two genuinely different
+solutions are not merged into one. It also has to be cheap, because we want to
+apply it to every sample of every training run rather than only to a final
+evaluation --- and the same rule will later decide what a training run keeps in
+memory, so it has to be something a learner can consult online.
+
+\mb{} takes that rule from the verifier. Every domain already has to run a
+candidate answer to decide whether it is correct; we ask the same execution to
+also hand back a short canonical description of what the answer did. For a
+prompt $x$ with specification $s_x$, the validator maps an output $y$ either to
+failure $\bot$ or to a key $V(y,s_x)\in\mathcal C_x$, and two accepted outputs
+are the same mode exactly when their keys agree. The full set of valid keys
+$\mathcal C_x$ is never revealed --- not its members and not its size. A policy,
+and the memory that stores its successes, only ever sees keys for answers the
+policy actually produced.
 
 \begin{figure}[!htbp]
   \centering
@@ -209,112 +238,152 @@ $\mathcal C_x$ nor its size is supplied to the learner or replay bank.
   \label{fig:modebench-examples}
 \end{figure}
 
-Figure~\ref{fig:modebench-examples} shows the five domains. Countdown and MathIR
-capture different routes to an answer, Python captures different tested
-behaviors, and Graph and PantryPlan capture different valid configurations.
-This distinction matters when interpreting breadth: an additional valid
-configuration and an additional computation route are both verified modes,
-but they are not the same kind of alternative. The keys measure executed
-outputs, not latent reasoning strategies or the usefulness of a solution in
-a later task. Appendix~\ref{app:domain-overview} gives the exact key and alias
-rules, with verbatim prompts in Appendix~\ref{app:prompts}.
+Fig.~\ref{fig:modebench-examples} shows the five domains, chosen so that ``a
+different mode'' means something different in each. In Countdown and MathIR it
+means the model reached the same answer by a different route. In Python it means
+the program it wrote behaves differently on the test inputs. In Graph and
+PantryPlan it means a different valid answer altogether: another coloring,
+another set of ingredients. A second route and a second valid answer are both
+modes, but they are not worth the same thing to a user, so every average we
+report keeps its per-domain results visible beside it. And a key
+records what an answer did when it was run --- not how the model got there, and
+not whether the answer is any use for whatever comes next.
+App.~\ref{app:domain-overview} gives each domain's exact key and alias rules,
+and App.~\ref{app:prompts} reproduces the prompts verbatim.
 
 \subsection{Success and verified-mode diversity}
 \label{sec:collapse-metrics}
 
-Let $P=\Pr[V(Y,s_x)\ne\bot]$ and, when $P>0$, let
-$q_c=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\ne\bot]$. Correctness is carried by $P$ and
-the allocation of successes across modes by $q$; a breadth measure should
-report the second without restating the first. For $K$ independent samples,
-$D_K$ counts their distinct correct keys, and
+Two properties of a policy matter here, and they are easy to confuse. The first
+is how often it is right. The second is, given that it is right, which of the
+available right answers it tends to give. A benchmark that reports only the
+first cannot see the failure we are after --- and the obvious way to report the
+second turns out to mostly report the first again.
+
+That obvious way is to count: draw $K$ samples and count how many distinct
+correct answers come back. Write $P$ for the chance that a sample is correct and
+$q_c$ for how that correct probability is divided among the valid answers. Then
 \begin{equation}
  \underbrace{\Pr[D_K>0]}_{\texttt{pass@}K}=1-(1-P)^K,
  \qquad
  \underbrace{\E[D_K]}_{\texttt{distinct@}K}
- =\sum_c[1-(1-Pq_c)^K].
+ =\sum_c[1-(1-Pq_c)^K],
  \label{eq:main-occupancy}
 \end{equation}
-The expected distinct count mixes the two: it grows with $P$ at fixed $q$, so
-it rises whenever the model merely succeeds more often. Across the \MDcells{} frozen
-base-model cells of Figure~\ref{fig:base-levels-all-scales} it correlates
-$\MDdistinctcorr$ with \texttt{pass@8}, which as a breadth axis is close to a
-restatement of correctness.
+where $D_K$ is the number of distinct correct keys in the draw. Both sides of
+\eqref{eq:main-occupancy} climb with $P$: a policy that is simply right more
+often returns more distinct answers without having broadened at all. That
+coupling is not a technicality. Across the \MDcells{} frozen base-model cells of
+Fig.~\ref{fig:base-levels-all-scales}, \distk{} correlates $\MDdistinctcorr$
+with \texttt{pass@8}. Plotted as a diversity axis it is very nearly a second
+copy of the accuracy axis, and a method that improves it has not been shown to
+have changed anything about variety.
 
-We therefore report breadth as a functional of $q$ alone. \emph{Pairwise modal
-diversity} is
+We want a question whose answer cannot move just because the model got more
+questions right. Take two independent correct responses to the same prompt: how
+often are they different answers? That is \emph{pairwise modal diversity},
 \begin{equation}
  \pmd = 1-\sum_c q_c^2
- = \Pr[Z_1\ne Z_2\mid \text{both responses verified}],
+ = \Pr[Z_1\ne Z_2\mid \text{both responses verified}].
  \label{eq:main-pmd}
 \end{equation}
-the probability that two independent verified responses to the same prompt
-occupy different modes. It is estimated by the fraction of verified pairs in a
-draw that differ, which is unbiased at every $K\ge2$
-(Appendix~\ref{app:metric-details}). Here $P$ has cancelled: the estimator
-conditions on the verified draws, so a policy that succeeds twice as often but
-allocates its successes the same way scores the same. Appendix~\ref{app:metric-details} gives two equivalent
-readings of \eqref{eq:main-pmd} as mode counts.
+Correctness has cancelled out of \eqref{eq:main-pmd}: it depends on $q$ alone,
+so a policy that doubles its success rate while allocating those successes the
+same way scores exactly what it scored before. It costs nothing extra to
+measure, being the fraction of correct pairs in a draw that disagree, and that
+fraction is unbiased at every $K\ge2$ (App.~\ref{app:metric-details}). It is
+also easy to read: $0$ means every correct answer is the same correct answer,
+an even spread over $m$ modes gives $1-1/m$, and $1/(1-\pmd{})$ converts the
+score back into an effective number of distinct answers.
 
-A fall in \pmd{} is what we call \emph{mode collapse}: a statement about where
-correct probability sits, not a claim that any mode reached zero, since finite
-samples cannot establish extinction. \pmd{} is undefined below two verified
-draws, so a policy that rarely succeeds supports no statement about how its
-successes are distributed; we report the fraction of prompts defining each
-\pmd{} and leave cells below the support bar blank rather than filled with
-noise. \texttt{pass@8} and $\distk$ are reported throughout
-(Appendices~\ref{app:metric-details} and~\ref{app:registered-endpoints}).
+A fall in \pmd{} is what we call \emph{mode collapse}. It says where correct
+probability now sits; it does not say that any answer has reached probability
+zero, which finite samples cannot establish. The measure also has a floor it
+cannot see past: it needs two correct draws to exist at all, so a policy that
+almost never succeeds supports no statement about how its successes are spread.
+We handle that in the open rather than silently --- every \pmd{} we quote
+carries the number of prompts that define it, and a cell with too few is left
+blank instead of filled with noise. \texttt{pass@8} and \distk{} are reported
+alongside it throughout (Apps.~\ref{app:metric-details}
+and~\ref{app:registered-endpoints}).
 
 \subsection{Harder tasks with the same notion of a mode}
 \label{sec:levels-design}
 
-A benchmark that only gets easier to saturate would not test much, so each
-domain comes in graded levels that keep the validator and keys fixed and change
-only problem structure --- more hidden graph vertices, more Countdown operands
---- while preserving the distribution of how many valid modes a prompt has.
-Frozen
-Qwen2.5-0.5B success is lower at Level 2 in every domain.
-Figure~\ref{fig:base-levels-all-scales} measures one family, Qwen2.5-Instruct,
-at every scale and level, so that what changes across the panel is size rather
-than training recipe. Each level moves success downward within a scale, and the
-two axes are separate before any training: \pmd{} correlates $\MDpmdcorr$ with
-\texttt{pass@8} across the frozen cells. Breadth is not a property of size
-alone --- Appendix~\ref{sec:families-appendix} measures three further families
-at matched scale --- but within a fixed recipe the scale axis is the cleanest
-place to see the two quantities come apart.
+A benchmark is useful only for as long as models cannot saturate it, so every
+domain is built at four levels of difficulty.
+Fig.~\ref{fig:base-levels-all-scales} measures the Qwen2.5-Instruct family
+across those levels at every scale we could run, which holds the training recipe
+fixed and lets size be the only thing that varies. Two things show up at once.
+Harder levels push success down within a scale, and accuracy and breadth move
+independently even before any training: across the frozen cells \pmd{}
+correlates $\MDpmdcorr$ with \texttt{pass@8}. And as the models get bigger they
+get more accurate and answer in fewer ways --- \pmd{} falls with scale in ten of
+the thirteen domain--level blocks that support the comparison, while
+\texttt{pass@8} rises.
+
+That second pattern is what the rest of the paper has to explain. If breadth
+simply disappeared with capability there would be little to be done about it,
+but size is not what settles it: at matched parameter count, different recipes
+land at visibly different \pmd{}, and a change of recipe moves the measure
+further at fixed scale than scale moves it at fixed recipe
+(App.~\ref{sec:families-appendix}). The open question is therefore whether
+narrowing is something a model grows into or something a particular kind of
+training does to it. Section~\ref{sec:collapse-mechanism} gives a reason to
+expect the latter, and the matched comparisons in Section~\ref{sec:results} test
+it directly.
 
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=.92\linewidth]{figures/mode_diversity_levels_appendix.pdf}
   \caption{\textbf{Breadth narrows as problems get harder and as models get
   larger.} Frozen Qwen2.5-Instruct scales: colour is parameter count, marker
-  shape is the level, and a line follows one scale across the levels of a
-  domain. Raising the level holds the notion of mode fixed and makes the
-  problem harder. \pmd{} falls along that line, falls again with scale, and
+  shape is the level. Raising the level holds the notion of mode fixed and makes
+  the problem harder. \pmd{} falls along that line, falls again with scale, and
   falls for the hosted deployments of
-  Section~\ref{sec:hosted-concentration} (grey, off the size ramp) from
+  Section~\ref{sec:hosted-concentration} (black, off the size ramp) from
   $\MDfrontierpmdhigh$ to $\MDfrontierpmdlow$ --- while those deployments
   answer $\MDfrontierpass$ of prompts correctly at every level, so their
-  narrowing is not a side effect of failing more. Ticks mark cells solved too
-  rarely to estimate \pmd{}.
-  \emph{Collection in progress.}}
+  narrowing is not a side effect of failing more. Hollow markers carry \pmd{}
+  estimated below the support bar, with its standard error; ticks mark the
+  cells solved too rarely to place at all.}
   \label{fig:base-levels-all-scales}
 \end{figure}
 
-Level 3 targets the same fixed Qwen2.5-0.5B Level-1 success rates with larger
-frozen models, fitting only pass@1 and pass@8 so that the registered \distk{}
-is never targeted; \pmd{} is independent of the fitted quantities by
-construction. Levels differ in test population as well as structure,
-so cross-level differences do not isolate difficulty
-(Appendix~\ref{app:data-levels}).
+Each level is a fresh construction of the same task, not a re-scored copy of
+the one before it. The validator, the answer keys and the distribution of how
+many modes a prompt admits are held fixed; what changes is the structure that
+has to be searched --- more hidden graph vertices, more Countdown operands,
+longer factor case vectors. Each level is then fitted against a reference
+model, targeting only pass@1 and pass@8, so a larger frozen model meets the
+success rate a smaller one had on the level below. Crucially the fit never
+targets the registered \distk{}, and \pmd{} is a functional of the
+success-conditional mode distribution alone, so the breadth axis is not a
+fitted quantity at any level. Appendix~\ref{app:data-levels} gives the
+generating procedure, the fitted targets and the admission record for each
+level in turn. Because each level draws a fresh test population as well as a
+harder structure, a level index orders the constructions rather than the
+difficulty any one model experiences: Level 2 is harder than Level 1 for most
+frozen cells, but Level 3 is not uniformly harder than Level 2, and we
+therefore read levels as repeated independent constructions rather than as a
+monotone ladder.
+
+The hosted deployments make the separation of the two axes starkest. They
+answer $\MDfrontierpass$ of prompts correctly, far above every open checkpoint
+measured here, yet their mean \pmd{} is $\MDfrontierpmdmean{}$ --- below the
+$\MDsmallbestpmd{}$ of a 1.7B model that answers only $\MDsmallbestpass$ of the
+same prompts. Accuracy at the frontier is bought without breadth, and in many
+cells it is bought against it.
 
 \section{Re:MaxRL: Learn from New Samples and Remember Successes}
 \label{sec:method}
 
-The execution keys used to measure alternatives also determine what the policy
-remembers. Figure~\ref{fig:verified-support-story} shows the two learning paths:
-binary rewards train on fresh samples, while replay revisits previously
-verified keys. Both use policy-generated responses; neither requires gold
-solutions or a precomputed catalogue of valid modes.
+The keys that let us measure alternatives can also decide what a policy keeps.
+Fig.~\ref{fig:verified-support-story} shows the two learning paths we combine:
+binary rewards learn from fresh samples, while replay returns to successes the
+policy has already found and filed by key. Both run on the policy's own outputs;
+neither needs gold solutions or a catalogue of the valid modes. We begin with
+why a second path is needed at all.
 
 \begin{figure}[!htbp]
   \centering
@@ -327,72 +396,87 @@ solutions or a precomputed catalogue of valid modes.
   \label{fig:verified-support-story}
 \end{figure}
 
-\subsection{Learning from fresh rollouts}
-\label{sec:maxrl-method}
-
-MaxRL combines success objectives across sampling budgets
-\citep{tajwar2026maxrl}. Its binary-reward group estimator weights a correct
-response more strongly when successes are scarce. Comparing replay under
-both MaxRL and Dr.GRPO \citep{liu2025understanding} therefore tests whether
-memory complements a stronger fresh-learning objective.
-
-Both objectives still learn from what the policy currently samples. A rare
-mode must be revisited to contribute its own score term; all-correct and
-all-incorrect groups have zero centered task advantage. Thus even highly
-successful groups can stop supplying comparative signal. Replay can revisit
-a banked success without waiting for rediscovery.
-Appendix~\ref{app:binary-maxrl} specifies the exact advantages and finite-group
-interpretation.
-
-\subsection{Replaying distinct verified successes}
-\label{sec:replay}
-
-Each training prompt owns an initially empty, bounded bank $\mathcal B_x$.
-When a new key is admitted, the bank retains one verified exemplar $e_c$.
-Repeated discoveries of that key do not add further entries. A deterministic
-schedule revisits nonempty prompt banks throughout training. For an exemplar
-of token length $|e_c|$, the replay loss is
-\begin{equation}
- L_{\mathrm{replay}}(x)=-\frac{1}{|\mathcal B_x|}
- \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
- \label{eq:lm-verified-replay}
-\end{equation}
-The uniform weight is the whole point: a mode found once is rehearsed exactly
-as much as a mode found a hundred times, so popularity cannot compound.
-
-This loss is added to the fresh update, giving Re:MaxRL or, with Dr.GRPO,
-Re:Dr.GRPO. Exemplars stay outside the fresh reward group, so the two can be
-varied independently, and controls run the same bank and scoring code with the
-replay gradient set to zero. Banks hold only training-prompt responses, so
-held-out evaluation measures what training changed in the policy rather than
-what the bank can recite (Appendix~\ref{app:algorithm}).
-
 \subsection{Why memory addresses a different pressure}
 \label{sec:collapse-mechanism}
 
-Why should memory help where a better fresh objective does not? In an
-idealized categorical model --- one prompt, one logit per outcome, Euclidean
-mean updates, no competing regularizer --- GRPO, Dr.GRPO and binary MaxRL all
-induce the same conditional flow, after a positive time change:
+Section~\ref{sec:levels-design} left a question open: is narrowing something a
+model grows into, or something the training does to it? An idealized categorical
+model --- one prompt, one logit per outcome, Euclidean mean updates, no
+competing regularizer --- points at the training. Under it, GRPO, Dr.GRPO and
+binary MaxRL all induce the same conditional flow, after a positive time change:
 \begin{equation}
  \frac{dq_c}{d\tau}=q_c(q_c-C),\qquad
  \frac{dC}{d\tau}=2\operatorname{Var}_{c\sim q}(q_c)\ge0.
  \label{eq:main-collapse-flow}
 \end{equation}
-Conditional concentration therefore rises under all three objectives, and a
-unique initial winner attracts the conditional mass
-(Theorem~\ref{thm:grpo-collapse}). Under the same geometry, bounded fresh-sample
-scores exert vanishing expected force on a mode as it becomes rare, whereas
-replay retains a signal for a banked target without rediscovery
-(Appendix~\ref{app:theory-gradient-availability}). A fixed bank with constant
-positive replay dose gives banked modes a probability floor in this flow, while
-unbanked modes may vanish (Theorem~\ref{thm:replay-retention}).
+Concentration among correct answers therefore rises under all three objectives,
+and whichever mode starts ahead pulls the rest of the correct mass towards it
+(Theorem~\ref{thm:grpo-collapse}). Reshaping the advantage does not escape this,
+because all of these objectives can only act on what the policy is sampling now,
+and under the same geometry a bounded fresh-sample score exerts vanishing
+expected force on a mode exactly as that mode becomes rare
+(App.~\ref{app:theory-gradient-availability}). The pressure is in the reward,
+not in the size of the model.
 
-These are statements about an idealized gradient geometry: they do not certify
-AdamW/PPO or variable-length neural updates, the implemented exemplar loss is
-not an exact key-probability objective, and no floor guarantees visibility in
-eight draws or held-out transfer. Appendix~\ref{app:claim-basis} maps each
-claim to its basis and scope.
+A memory is not subject to that limit, and this is the property we build on. A
+stored target keeps supplying a gradient whether or not the policy rediscovers
+it, and in this flow a fixed bank with a constant positive replay dose holds
+every banked mode above a probability floor --- though modes that never entered
+the bank may still vanish (Theorem~\ref{thm:replay-retention}). That is the
+argument for adding a second path rather than sharpening the first. These are
+statements about an idealized gradient geometry: they do not certify AdamW/PPO
+or variable-length neural updates, the implemented exemplar loss is not an exact
+key-probability objective, and no floor guarantees visibility in eight draws or
+held-out transfer. App.~\ref{app:claim-basis} maps each claim to its basis and
+scope.
+
+\subsection{Replaying distinct verified successes}
+\label{sec:replay}
+
+The analysis asks for one specific thing: a target that survives its own rarity.
+Each training prompt therefore owns an initially empty, bounded bank
+$\mathcal B_x$. The first time a key appears, the bank keeps one verified
+exemplar $e_c$ that realizes it; later rediscoveries of the same key add
+nothing. A deterministic schedule revisits nonempty banks throughout training.
+For an exemplar of token length $|e_c|$, the replay loss is
+\begin{equation}
+ L_{\mathrm{replay}}(x)=-\frac{1}{|\mathcal B_x|}
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+ \label{eq:lm-verified-replay}
+\end{equation}
+The uniform weight is the whole point: a mode found once is rehearsed exactly as
+much as a mode found a hundred times, so popularity cannot compound. It is also
+what makes the bank a counterweight to \eqref{eq:main-collapse-flow} rather than
+another copy of it --- App.~\ref{app:replay-metric-alignment} decomposes this
+loss into a term that rewards more banked probability and a term minimized by an
+even spread across the banked keys, which are the two things the fresh flow
+works against.
+
+Adding this loss to the fresh update gives Re:MaxRL or, with Dr.GRPO,
+Re:Dr.GRPO. Exemplars stay outside the fresh reward group, so the two can be
+varied independently, and controls run the same bank and scoring code with the
+replay gradient set to zero. Banks hold only training-prompt responses, so
+held-out evaluation measures what training changed in the policy rather than
+what the bank can recite (App.~\ref{app:algorithm}).
+
+\subsection{Learning from fresh rollouts}
+\label{sec:maxrl-method}
+
+Replay is added to a fresh objective, not substituted for one, so we vary that
+objective to check that memory is not merely covering for a weak choice. MaxRL
+combines success objectives across sampling budgets \citep{tajwar2026maxrl}; its
+binary-reward group estimator weights a correct response more strongly when
+successes are scarce. Running replay under both MaxRL and Dr.GRPO
+\citep{liu2025understanding} therefore asks whether memory still contributes
+once fresh learning is already doing better.
+
+Neither objective avoids the starvation above. A rare mode has to be sampled
+before it can contribute a score term, and a group whose responses are all
+correct or all incorrect carries zero centered task advantage, so even a policy
+that is succeeding often can stop receiving any comparative signal.
+App.~\ref{app:binary-maxrl} gives the exact advantages and the finite-group
+interpretation, and App.~\ref{app:degenerate-groups} measures how often this
+actually happens during our runs.
 
 \section{Experimental Design}
 \label{sec:experiments}
@@ -1353,23 +1437,23 @@ and has no plotted measurements here.
   \centering
   \includegraphics[width=\linewidth]{figures/mode_diversity_level_construction.pdf}
   \caption{\textbf{Every frozen scale on its own.}
-  Each row is one scale from Figure~\ref{fig:base-levels-all-scales} drawn
-  without the others over it; columns are the five domains and marker shape
-  identifies the level. Each point pools four independent eight-draw groups on
+  Each row is one scale drawn without the others over it, across every family
+  and every hosted deployment of Figure~\ref{fig:families-appendix}; columns
+  are the five domains and marker shape identifies the level. Each point pools four independent eight-draw groups on
   128 held-out prompts at $T=1$. Reading across a row gives one model over all
   five domains; reading down a column gives one domain over every scale.
   The two axes separate cleanly at 7B: Python answers almost every prompt
   correctly and almost always with the same mode (\texttt{pass@8}
-  $.986$--$.994$, \pmd{} $.008$--$.030$), while Graph reaches \texttt{pass@8}
-  $.34$--$.68$ with \pmd{} $.34$--$.40$. Ticks below an axis mark cells whose
+  $\MDsevenbPypasslo$--$\MDsevenbPypasshi$, \pmd{}
+  $\MDsevenbPypmdlo$--$\MDsevenbPypmdhi$), while Graph reaches \texttt{pass@8}
+  $\MDsevenbGraphpasslo$--$\MDsevenbGraphpasshi$ with \pmd{}
+  $\MDsevenbGraphpmdlo$--$\MDsevenbGraphpmdhi$. Ticks below an axis mark cells whose
   success is too rare for \pmd{} to be estimated on enough prompts; those cells
   are given no height. The smallest scales are mostly such cells --- 135M has no
   measurable cell in any domain and 360M has three --- so their rows are largely
   empty by measurement rather than by omission. The hosted frontier deployments
   carry no parameter count and so belong to no row; they appear in
-  Figures~\ref{fig:base-levels-all-scales} and~\ref{fig:families-appendix}.
-  \emph{Collection in progress: the Falcon and OLMo rows carry fewer cells than
-  the Qwen rows and are not yet the full grid.}}
+  Figures~\ref{fig:base-levels-all-scales} and~\ref{fig:families-appendix}.}
   \label{fig:level-construction}
 \end{figure}
 
@@ -1400,14 +1484,17 @@ separate.
   Figure~\ref{fig:base-levels-all-scales}.} Frozen instruction-tuned models
   from SmolLM2, Qwen2.5, Falcon3 and OLMo-2, plotted as \texttt{pass@8} against
   \pmd{}; colour runs green to red with parameter count on a log scale, and
-  marker shape identifies the level. Grey markers are the hosted deployments of
-  Section~\ref{sec:hosted-concentration}, which have no parameter count and so
-  sit off that ramp. Ticks below each axis mark cells whose success is too rare
+  marker shape identifies the level. This figure carries every model family and
+  every level collected, where Figure~\ref{fig:base-levels-all-scales} shows
+  Qwen2.5 alone. Grey markers are all
+  \MDfrontierdeployments{} hosted deployments of
+  Section~\ref{sec:hosted-concentration}, of which the main-body figure draws
+  only GPT-5.6 Sol; they have no parameter count and so sit off that ramp.
+  Figure~\ref{fig:level-construction} separates the same data one scale per
+  row. Ticks below each axis mark cells whose success is too rare
   for \pmd{} to be estimated on enough prompts; those cells are given no
   height. Because colour encodes size rather than family, models of different
-  families at the same scale share a colour and can be compared directly.
-  \emph{Collection in progress: this rendering carries the completed cells and
-  is not yet the full grid.}}
+  families at the same scale share a colour and can be compared directly.}
   \label{fig:families-appendix}
 \end{figure}
 
@@ -2763,6 +2850,20 @@ and 3 is left blank because the model clears two verified draws on only 14 and
     \input{results/mode_diversity_hosted_table_body.tex}
   \end{tabular}
 \end{table}
+
+\paragraph{The Level-4 probe.}
+Figure~\ref{fig:base-levels-all-scales} carries one Level-4 point per domain for
+GPT-5.6 Sol, at \pmd{} $\MDfrontierLpmdFour$ over $\MDfrontierLdomainsFour$
+domains. Three things separate it from every other hosted cell and it is read
+on its own account for all of them. Level 4 has not completed composite
+admission, so no difficulty equivalence with Levels 1--3 is claimed. It was
+served direct through OpenAI rather than the Azure deployment that served the
+other levels, which may be a different build; the served model string is
+recorded per response rather than assumed. And Python is absent from it because
+strict grading rejects the LaTeX-escaped Python this deployment emits: two of
+its 1,024 draws verify strictly, while the frozen formatting normalizer
+recovers 675. That is a presentation artifact rather than a capability
+measurement, and it affects the Levels 1--3 Python cells in the same direction.
 
 Table~\ref{tab:hosted-cohort-mode-diversity} extends the measurement to the
 whole completed cohort. Every one of the seven deployments is concentrated on

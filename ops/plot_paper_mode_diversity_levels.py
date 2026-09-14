@@ -44,6 +44,9 @@ PAYLOAD = ROOT / 'paper/results/mode_diversity_base_grid.json'
 OUT_APPENDIX = ROOT / 'paper/figures/mode_diversity_levels_appendix'
 OUT_FAMILIES = ROOT / 'paper/figures/mode_diversity_families_appendix'
 OUT_MAIN = ROOT / 'paper/figures/mode_diversity_level_construction'
+# The main body carries one hosted deployment so the scale story stays readable;
+# the full seven-deployment cohort is the appendix figure's job.
+MAIN_FRONTIER = 'GPT-5.6 Sol'
 MAIN_FAMILY = 'Qwen2.5'
 SCRIPT = Path(__file__).resolve()
 SCHEMA = 'paper-mode-diversity-levels-v1'
@@ -78,6 +81,12 @@ def levels_in(cells, *extra):
         present |= {c['level'] for c in group or ()}
     return tuple(level for level in LEVELS if level in present)
 MARKER_AREA = 22
+# Below the paper's support bar PMD is still estimated, just less precisely: at
+# 10-29 defined prompts its standard error runs about 1.5x that of a cell above
+# the bar, not off the scale. Draw those hollow with their error bar rather than
+# discarding a measurement the grid actually made. Under 10 the estimate is too
+# noisy to place (median standard error .28 at 1-4 prompts), so it stays a tick.
+PROVISIONAL_MIN_DEFINED = 10
 DOMAIN_BACKGROUNDS = {domain: domain_examples.DOMAIN_PANEL[letter]
                       for domain, letter in zip(DOMAINS, 'ABCDE', strict=True)}
 
@@ -103,7 +112,9 @@ def load(payload_path: Path = PAYLOAD) -> dict:
 FRONTIER = ROOT / 'paper/results/mode_diversity_frontier_points.json'
 # Hosted deployments have no parameter count, so they sit off the scale ramp:
 # one neutral ink-grey fill, with the level shapes they share with the grid.
-FRONTIER_FACE = '#6B7280'
+# Black, not grey: the hosted deployments are a small set of points that carry
+# their own claim, and a grey fill lost them against the domain panel tints.
+FRONTIER_FACE = '#000000'
 
 
 def load_frontier(path: Path = FRONTIER):
@@ -158,6 +169,17 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False)
                              marker=LEVEL_MARKERS[level], facecolors=colors[model],
                              edgecolors=style.INK, alpha=.85, linewidths=.35,
                              zorder=3 + order, clip_on=False)
+            elif cell['defined_prompts'] >= PROVISIONAL_MIN_DEFINED:
+                error = cell.get('pmd_standard_error')
+                if error:
+                    axis.errorbar(cell['pass8'], cell['pmd'], yerr=error, fmt='none',
+                                  ecolor=colors[model], elinewidth=.55, capsize=1.1,
+                                  capthick=.55, alpha=.75, zorder=2 + order,
+                                  clip_on=False)
+                axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA,
+                             marker=LEVEL_MARKERS[level], facecolors='none',
+                             edgecolors=colors[model], alpha=.95, linewidths=.7,
+                             zorder=3 + order, clip_on=False)
             else:
                 # No height is claimed; the tick records only that the cell exists.
                 axis.scatter(cell['pass8'], (STRIP_TOP + STRIP_BOTTOM) / 2,
@@ -167,14 +189,14 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False)
         for name in sorted({c['model'] for c in frontier if c['domain'] == domain}):
             _trail(axis, {c['level']: c for c in frontier
                           if c['domain'] == domain and c['model'] == name},
-                   FRONTIER_FACE, ladder, width=.6, alpha=.5, zorder=8)
+                   FRONTIER_FACE, ladder, width=.6, alpha=.55, zorder=11)
     for cell in frontier:
         if cell['domain'] != domain or not cell.get('reportable'):
             continue
         axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA * 1.15,
                      marker=LEVEL_MARKERS[cell['level']], facecolors=FRONTIER_FACE,
-                     edgecolors='white', alpha=.95, linewidths=.55,
-                     zorder=9, clip_on=False)
+                     edgecolors='white', alpha=1.0, linewidths=.6,
+                     zorder=12, clip_on=False)
     axis.set_title(TITLES[domain], fontsize=8.5, pad=4)
     axis.set_xlim(*X_LIMITS)
     axis.set_ylim(STRIP_BOTTOM, Y_LIMITS[1])
@@ -189,9 +211,11 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False)
 
 
 def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
-                 legends=True, frontier=None, connect=False):
+                 legends=True, frontier=None, connect=False, frontier_models=None):
     cells = payload['cells']
     frontier = load_frontier() if frontier is None else frontier
+    if frontier_models is not None:
+        frontier = [c for c in frontier if c['model'] in frontier_models]
     colors = scale_colors(tuple(models))
     style.apply_rcparams()
     figure, axes = plt.subplots(1, 5, figsize=figsize, sharex=True, sharey=True)
@@ -209,9 +233,12 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
                          markerfacecolor=style.MUTED, markeredgecolor=style.INK,
                          markeredgewidth=.35, label='Level ' + level[len('level'):])
                   for level in levels_in(cells, frontier)]
+        levels.append(Line2D([], [], marker='o', linestyle='none', markersize=4.7,
+                             markerfacecolor='none', markeredgecolor=style.MUTED,
+                             markeredgewidth=.7, label='provisional'))
         levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
                              color=style.MUTED, markeredgewidth=.9,
-                             label='not measurable'))
+                             label='too rare to estimate'))
         scales = [Line2D([], [], marker='o', linestyle='none', markersize=4.7,
                          markerfacecolor=colors[model], markeredgecolor=style.INK,
                          markeredgewidth=.35, label=base_grid.MODEL_NAMES[model])
@@ -275,8 +302,11 @@ def build_scale_grid(payload: dict, models, *, frontier=None, figsize=None):
                      markerfacecolor=style.MUTED, markeredgecolor=style.INK,
                      markeredgewidth=.35, label='Level ' + level[len('level'):])
               for level in levels_in(cells)]
+    levels.append(Line2D([], [], marker='o', linestyle='none', markersize=4.7,
+                         markerfacecolor='none', markeredgecolor=style.MUTED,
+                         markeredgewidth=.7, label='provisional'))
     levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
-                         color=style.MUTED, markeredgewidth=.9, label='not measurable'))
+                         color=style.MUTED, markeredgewidth=.9, label='too rare to estimate'))
     if frontier:
         levels.append(Line2D([], [], marker='o', linestyle='none', markersize=5.0,
                              markerfacecolor=FRONTIER_FACE, markeredgecolor='white',
@@ -288,12 +318,18 @@ def build_scale_grid(payload: dict, models, *, frontier=None, figsize=None):
     return figure
 
 
-def record_for(payload: dict, models, output: Path) -> dict:
+def record_for(payload: dict, models, output: Path, frontier_models=None) -> dict:
     cells = [c for c in payload['cells'] if c['model_label'] in models]
+    # Which hosted deployments this figure actually draws. The main body carries
+    # one and the appendix carries the cohort, so a record that omitted this
+    # would not distinguish them.
+    drawn = sorted({c['model'] for c in load_frontier()
+                    if frontier_models is None or c['model'] in frontier_models})
     return {
         'schema': SCHEMA, 'status': 'complete',
         'source': {'path': str(PAYLOAD.relative_to(ROOT)), 'sha256': digest(PAYLOAD)},
         'scope': {'models': list(models), 'levels': list(levels_in(cells)), 'domains': list(DOMAINS),
+                  'frontier_models': drawn,
                   'cells': len(cells),
                   'reportable_cells': sum(1 for c in cells if c['reportable']),
                   'gap_cells': sum(1 for c in cells if not c['reportable'])},
@@ -301,6 +337,11 @@ def record_for(payload: dict, models, output: Path) -> dict:
                     'x_limits': list(X_LIMITS), 'y_limits': list(Y_LIMITS),
                     'unmeasurable_strip': [STRIP_BOTTOM, STRIP_TOP],
                     'unmeasurable_cells_have_no_height': True,
+                    'provisional_min_defined_prompts': PROVISIONAL_MIN_DEFINED,
+                    'provisional_cells': sum(
+                        1 for c in cells if not c['reportable']
+                        and c['defined_prompts'] >= PROVISIONAL_MIN_DEFINED),
+                    'provisional_encoding': 'hollow marker with PMD standard error',
                     'min_defined_prompts': payload['definition']['min_defined_prompts'],
                     'model_colors': deepcopy({m: scale_colors(tuple(models))[m] for m in models}),
                     'marker_area': MARKER_AREA,
@@ -317,14 +358,14 @@ def record_for(payload: dict, models, output: Path) -> dict:
 
 
 def publish(payload: dict, models, output: Path, *, figsize, legends,
-            builder=None, connect=False) -> dict:
+            builder=None, connect=False, frontier_models=None) -> dict:
     figure = (build_scale_grid(payload, models, figsize=figsize) if builder == 'scale_grid'
               else build_figure(payload, models, figsize=figsize, legends=legends,
-                                connect=connect))
+                                connect=connect, frontier_models=frontier_models))
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output.with_suffix('.pdf'))
     plt.close(figure)
-    record = record_for(payload, models, output)
+    record = record_for(payload, models, output, frontier_models)
     record['display']['layout'] = ('one row per scale, five domain columns'
                                    if builder == 'scale_grid'
                                    else 'five domain panels, scales overlaid')
@@ -347,7 +388,7 @@ def main() -> None:
     # The main body reads the scale axis within one family, where the training
     # recipe is held fixed; the cross-family comparison moves to the appendix.
     main_body = publish(payload, family, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True,
-                        connect=True)
+                        frontier_models={MAIN_FRONTIER})
     families = publish(payload, present, OUT_FAMILIES, figsize=(6.4, 2.10), legends=True)
     # The construction figure used to carry 7B alone. Every scale now gets its own
     # row, so a reader can look up any single scale rather than only that one.

@@ -90,7 +90,7 @@
   },
   "domain_palette_source": {
     "path": "ops/plot_paper_modebench_examples.py",
-    "sha256": "74d697f3f5ccbfd2557bd18d6f6a0529c02be5378b9f95b40ccf1072dc17fd29"
+    "sha256": "e140d7299edf515f25452d43ab943a5a30959327844377e631d6df9f143cea66"
   },
   "excluded_levels": [
     "level4",
@@ -158,11 +158,11 @@
   "model_label": "7b",
   "native_reconstruction": {
     "path": "ops/plot_paper_modebench_base_grid.py",
-    "sha256": "4830da0480b49f84871f05a6c247ddabc83951a374c1dd7d8a42f258126e1f62"
+    "sha256": "77fa6bf29ff7bbcae8cc8ac04289a6fd91c7620322ac5bfc3e27d7e267697fda"
   },
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_level_construction.pdf": "af21e69dcb1a014a85c18670a24c6314d668a1b802abc27176f709f9f164bc2f",
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_level_construction.png": "46f6a412116493cd72668301784d76c309290102d1f84ed8adfa16efc63026f6"
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_level_construction.pdf": "75e4d4f797975a7dc160d09e0b972c2b18af5e5d0e631822214fc64b301d1c89",
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_level_construction.png": "6a4503eca2822a8b6a86a4c1b870be11609898b4a5d341f4a6dac03502cce3f4"
   },
   "points": [
     {
@@ -13277,8 +13277,8 @@
       },
       "level": "level1",
       "metrics": {
-        "distinct8": 1.037109375,
-        "pass8": 0.986328125
+        "distinct8": 1.0625,
+        "pass8": 1.0
       },
       "model_label": "7b",
       "prompt_metrics": [
@@ -13475,13 +13475,9 @@
           "row_sha256": "e623a02a81d3114d274ce1350221b189b51e6a48547e777149cf441e04d5dd9e"
         },
         {
-          "distinct8": 0.5,
+          "distinct8": 1,
           "groups": [
             {
-              "distinct8": 0,
-              "pass8": 0.0
-            },
-            {
               "distinct8": 1,
               "pass8": 1.0
             },
@@ -13490,11 +13486,15 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
+            },
+            {
+              "distinct8": 1,
+              "pass8": 1.0
             }
           ],
-          "pass8": 0.5,
+          "pass8": 1.0,
           "row_index": 8,
           "row_sha256": "844587cec470291faac33eee84ab053235372bfb7fce451e14e208635db7bad3"
         },
@@ -13619,14 +13619,14 @@
           "row_sha256": "05f63bf98b61398dcc8da4cb5f69314a31ab540aee46ee562e9def3c600bc7a7"
         },
         {
-          "distinct8": 1.25,
+          "distinct8": 1.5,
           "groups": [
             {
               "distinct8": 1,
               "pass8": 1.0
             },
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             },
             {
@@ -14267,7 +14267,7 @@
           "row_sha256": "01b6e10ea1f9541b6c34db7fe95000871e8aee1b8629628990751470ca281783"
         },
         {
-          "distinct8": 1,
+          "distinct8": 1.25,
           "groups": [
             {
               "distinct8": 1,
@@ -14282,11 +14282,11 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 41,
           "row_sha256": "77953b9ef606953607117ba115abc61c7551ec1554643837afae2fcdc39faedc"
         },
@@ -14363,14 +14363,14 @@
           "row_sha256": "b00efd38c826eba0401fee45d90477863a8cd7296568c5228135544b882b7625"
         },
         {
-          "distinct8": 1.75,
+          "distinct8": 2,
           "groups": [
             {
               "distinct8": 2,
               "pass8": 1.0
             },
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             },
             {
@@ -14699,7 +14699,7 @@
           "row_sha256": "306f9177a6217121039d8f0917d5a2ead1dac9bf83c357b00677d8a5ef9418cd"
         },
         {
-          "distinct8": 1.25,
+          "distinct8": 1.5,
           "groups": [
             {
               "distinct8": 1,
@@ -14710,7 +14710,7 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             },
             {
@@ -15083,10 +15083,10 @@
           "row_sha256": "7b9ebe1c7a994c1e702372ef939eb419968092e5fd1f46b867a693d26a981cc5"
         },
         {
-          "distinct8": 1.25,
+          "distinct8": 1.75,
           "groups": [
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             },
             {
@@ -15098,7 +15098,7 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             }
           ],
@@ -15155,15 +15155,15 @@
           "row_sha256": "33d164e4e378a2005cf439b277aa78b4c53f99e6c734d0412bd6e23bddcf5be7"
         },
         {
-          "distinct8": 0.75,
+          "distinct8": 1,
           "groups": [
             {
               "distinct8": 1,
               "pass8": 1.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             },
             {
               "distinct8": 1,
@@ -15174,7 +15174,7 @@
               "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 78,
           "row_sha256": "3e083eb8e0cc57d914e6fdea2b025a4126df8dbd63712e4d44e626b6a215b4a1"
         },
@@ -15779,7 +15779,7 @@
           "row_sha256": "30b29232b8d0b64d272af063980b01bffc51e209acf7648c7d4584bb7febad2c"
         },
         {
-          "distinct8": 1,
+          "distinct8": 1.25,
           "groups": [
             {
               "distinct8": 1,
@@ -15794,7 +15794,7 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             }
           ],
@@ -16139,7 +16139,7 @@
           "row_sha256": "411fe8a2cad7da97e4f58eb855b2327eadd5bbc25250eedcd3f86719a0045432"
         },
         {
-          "distinct8": 0.75,
+          "distinct8": 1,
           "groups": [
             {
               "distinct8": 1,
@@ -16150,15 +16150,15 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             },
             {
               "distinct8": 1,
               "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 119,
           "row_sha256": "db2973851a6a2588904a09f320189eee1a434fe8c969446d348d32005c97c893"
         },
@@ -16331,13 +16331,9 @@
           "row_sha256": "d2d8f1770d3d35ddc10e5acd385609014a97b97a52f73990581eebb30f3aa780"
         },
         {
-          "distinct8": 0.5,
+          "distinct8": 1,
           "groups": [
             {
-              "distinct8": 0,
-              "pass8": 0.0
-            },
-            {
               "distinct8": 1,
               "pass8": 1.0
             },
@@ -16346,19 +16342,23 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
+            },
+            {
+              "distinct8": 1,
+              "pass8": 1.0
             }
           ],
-          "pass8": 0.5,
+          "pass8": 1.0,
           "row_index": 127,
           "row_sha256": "f865c164202f08035ebd31c777e5f51f6f466e24b528a60759cce81380ab3ab7"
         }
       ],
-      "prompt_metrics_sha256": "50df39a6065fd6ee1e495b9a46c346b49875e908179c379a00516c012022ad08",
+      "prompt_metrics_sha256": "dac2b11664adae2761e473ae724bfdb438e9fe737b149a829eb7bb094b3bfc78",
       "receipt": {
         "path": "artifacts/modebench_base_level_grid_20260911/collection_v3/receipts/7b_level1_python_factors.json",
-        "sha256": "ba9cb86318a2cf625f6c65b3a16b66e9c9b3de2774b71c274bd4860b046ea041"
+        "sha256": "e7c607694fc3e1193be1bd77dece886a5a44e85831141f4e6048c9a4435e4fa0"
       },
       "receipt_identity_sha256": "0138a9f18383e252ad11988c290e303676694c88be9f912d8c33b82b4bdff37b",
       "runtime": {
@@ -29487,8 +29487,8 @@
       },
       "level": "level2",
       "metrics": {
-        "distinct8": 1.005859375,
-        "pass8": 0.98828125
+        "distinct8": 1.01953125,
+        "pass8": 0.99609375
       },
       "model_label": "7b",
       "prompt_metrics": [
@@ -30429,7 +30429,7 @@
           "row_sha256": "278bfd120b2a65dbe46a7700a91e1ade6545459b9817806b1d3932cac9ae7823"
         },
         {
-          "distinct8": 1.75,
+          "distinct8": 2,
           "groups": [
             {
               "distinct8": 2,
@@ -30444,7 +30444,7 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             }
           ],
@@ -30693,11 +30693,11 @@
           "row_sha256": "d2b16a44e3153b0955d265cc5173786ba926f93c51ccd0356bc4e76ba6bab93c"
         },
         {
-          "distinct8": 0,
+          "distinct8": 0.75,
           "groups": [
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 2,
+              "pass8": 1.0
             },
             {
               "distinct8": 0,
@@ -30708,11 +30708,11 @@
               "pass8": 0.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             }
           ],
-          "pass8": 0.0,
+          "pass8": 0.5,
           "row_index": 50,
           "row_sha256": "93f0c2f83fa3ebcbcb7548f68dd880d3b4cd502e972188721d329497efd00224"
         },
@@ -30837,10 +30837,10 @@
           "row_sha256": "09f8a5b3740b8b3aec25df85a557e80f4ae970130d344dd7a19071b177637f6c"
         },
         {
-          "distinct8": 1.5,
+          "distinct8": 1.75,
           "groups": [
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             },
             {
@@ -30957,11 +30957,11 @@
           "row_sha256": "253e6829d8e8cd8e1c027f8ab90a5d5d083370d1edfc664b6720323c104dea59"
         },
         {
-          "distinct8": 0.75,
+          "distinct8": 1,
           "groups": [
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             },
             {
               "distinct8": 1,
@@ -30976,7 +30976,7 @@
               "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 61,
           "row_sha256": "681184cfaa5599ef84f6527f30ec87f3921fe16685f1d2a7afa929d8d3ac27f9"
         },
@@ -32493,15 +32493,15 @@
           "row_sha256": "81809eb50d6d99ec79cfcf9f08ebf139b121cf1930e064ae2eac7d89923740ca"
         },
         {
-          "distinct8": 0.75,
+          "distinct8": 1,
           "groups": [
             {
               "distinct8": 1,
               "pass8": 1.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             },
             {
               "distinct8": 1,
@@ -32512,7 +32512,7 @@
               "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 125,
           "row_sha256": "6d158412d01e50bc458b4f0de15435f3c6c831e6911aae59bcccd6ebb4f67c31"
         },
@@ -32565,10 +32565,10 @@
           "row_sha256": "1b12b6e5e90d27ead00903bbfc44e1923241d6cfff6d75a30b9ca5688163faa9"
         }
       ],
-      "prompt_metrics_sha256": "4f7d0700efb3813a6e33a404c5b01a2b70866730740436c7488aa3426e56d78a",
+      "prompt_metrics_sha256": "4b566fb6a0f67e5d0a770e508dc3c217b1a42fdf67828056c51975f50c1d9232",
       "receipt": {
         "path": "artifacts/modebench_base_level_grid_20260911/collection_v3/receipts/7b_level2_python_factors.json",
-        "sha256": "076e04fd01a3c47e04272e3134e54bc47dad2bcaa972d937eaf583eee9b5904a"
+        "sha256": "9e78261a50c3a98d3a0aa4a73c0738795e5b4d534eef33d54944f72e19778795"
       },
       "receipt_identity_sha256": "d2247db9a60a163951fc5d578838707a4a46fbb1a85cd18e0fd579239ea42b76",
       "runtime": {
@@ -45697,13 +45697,13 @@
       },
       "level": "level3",
       "metrics": {
-        "distinct8": 1.017578125,
-        "pass8": 0.994140625
+        "distinct8": 1.02734375,
+        "pass8": 1.0
       },
       "model_label": "7b",
       "prompt_metrics": [
         {
-          "distinct8": 0.75,
+          "distinct8": 1,
           "groups": [
             {
               "distinct8": 1,
@@ -45718,11 +45718,11 @@
               "pass8": 1.0
             },
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 0,
           "row_sha256": "9093074f100be6933674a59d37e528f978b1714d9525f2952dafa4903f4bcbd5"
         },
@@ -45799,11 +45799,11 @@
           "row_sha256": "33beeb22395bb20147985d649201510c1cbd9255225bca286983a7484d9c8f45"
         },
         {
-          "distinct8": 0.75,
+          "distinct8": 1,
           "groups": [
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             },
             {
               "distinct8": 1,
@@ -45818,7 +45818,7 @@
               "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 4,
           "row_sha256": "e131d4c594e8387b92f214eca7a06f3488a988b5c5ee660d337c9bcb3009bb81"
         },
@@ -46375,14 +46375,14 @@
           "row_sha256": "a1a3b5912c373db140458bad8327a765a2ba212e259b60fb44efa4be9793b545"
         },
         {
-          "distinct8": 1,
+          "distinct8": 1.5,
           "groups": [
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             },
             {
-              "distinct8": 1,
+              "distinct8": 2,
               "pass8": 1.0
             },
             {
@@ -48703,11 +48703,11 @@
           "row_sha256": "213fd835859271a5ce1c5e6c84aa83e86f5d971a37684fde4119af59d99eb9b6"
         },
         {
-          "distinct8": 0.75,
+          "distinct8": 1,
           "groups": [
             {
-              "distinct8": 0,
-              "pass8": 0.0
+              "distinct8": 1,
+              "pass8": 1.0
             },
             {
               "distinct8": 1,
@@ -48722,7 +48722,7 @@
               "pass8": 1.0
             }
           ],
-          "pass8": 0.75,
+          "pass8": 1.0,
           "row_index": 125,
           "row_sha256": "4dc87c025aa9b9388e81f768bed531528d489674e9b24f468db663292179cdfd"
         },
@@ -48775,10 +48775,10 @@
           "row_sha256": "da391635ae6d7c2ec9348d33353d747e7ed728194aa9207f49e4cfdf8ae3da6c"
         }
       ],
-      "prompt_metrics_sha256": "72888e91e3cd19a061f94c27c1d57b748e61f395d76bad3525b423de2f76f20a",
+      "prompt_metrics_sha256": "b2ad973163d4a0fdcf60ca5dcdcf9c4d551d94a49892c6b7d82db4bf43ab5d52",
       "receipt": {
         "path": "artifacts/modebench_base_level_grid_20260911/collection_v3/receipts/7b_level3_python_factors.json",
-        "sha256": "5398c74a1e5bf71f22161886881e35f68b56afac90ef7daffeba717f23c53cf4"
+        "sha256": "7f0c12a0ba746016f7aa2af019658fe2a913d7d2b33359ce7fab14b072db8086"
       },
       "receipt_identity_sha256": "3321ee5750ea4382d7a8b5a8e608ca0923d4e573c86653d227eb12ff012b1456",
       "runtime": {
@@ -48806,7 +48806,7 @@
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_modebench_level_construction.py",
     "sha256": "eafd6bd9ce044f88a30884391af1171711643cddddf2cbde431997cbe397ea6c",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
-    "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+    "style_sha256": "14311c5d925d9741ad5010e6dd82e9c7664f5edf32bf90f8e807c58254c0ace3"
   },
   "required_cells": 15,
   "sampling": {
@@ -48824,7 +48824,7 @@
   "schema": "modebench-qwen7b-levels123-construction-v1",
   "source": {
     "path": "artifacts/modebench_base_level_grid_20260911/qwen7b_levels123_20260912/figure_source_v1.json",
-    "sha256": "c3e95b3debc8e24d0888c52acb4734cf9bccc405d2978c3b09da45af1046bccc"
+    "sha256": "681bc920082b10a7d6162a8dc24b1bf961897cfde07bf859fa837c75f1d6b63d"
   },
   "status": "complete",
   "validation": {
