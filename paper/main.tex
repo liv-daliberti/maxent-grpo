@@ -236,8 +236,8 @@ in total support (Appendix~\ref{app:metric-details}).
 Levels retain each domain's validator and canonical keys while changing
 problem structure. Level 1 is the original construction. Level 2 increases
 structural demands, such as hidden graph vertices and required Countdown
-operands, while preserving designated valid-mode-count histograms. Development
-checks confirm lower frozen Qwen2.5-0.5B success in every domain.
+operands, while preserving designated valid-mode-count histograms. Frozen
+Qwen2.5-0.5B success is lower at Level 2 in every domain.
 Figure~\ref{fig:level-construction} measures frozen Qwen2.5-7B success and
 breadth on held-out Levels 1--3;
 Appendix Figure~\ref{fig:base-levels-all-scales} includes all four model scales.
@@ -254,12 +254,11 @@ Appendix Figure~\ref{fig:base-levels-all-scales} includes all four model scales.
   \label{fig:level-construction}
 \end{figure}
 
-A scale-calibrated extension targets the same fixed Qwen2.5-0.5B Level-1
-success rates with larger frozen models. Only pass@1 and pass@8 are fitted;
-distinct@8 remains an independent measurement. These construction checks
-precede the replay comparison in Experiment 3. Native training evaluations
-use separate populations and parts of the protocol, so cross-level differences
-do not isolate difficulty (Appendix~\ref{app:data-levels}).
+Level 3 targets the same fixed Qwen2.5-0.5B Level-1 success rates with larger
+frozen models, fitting only pass@1 and pass@8 so that distinct@8 remains an
+independent measurement. Levels differ in test population as well as structure,
+so cross-level differences do not isolate difficulty
+(Appendix~\ref{app:data-levels}).
 
 \section{ReplayMaxRL: Learn from New Samples and Remember Successes}
 \label{sec:method}
@@ -341,27 +340,20 @@ after a positive time change,
  \frac{dC}{d\tau}=2\operatorname{Var}_{c\sim q}(q_c)\ge0.
  \label{eq:main-collapse-flow}
 \end{equation}
-A unique initial winner attracts the conditional mass
+Conditional concentration therefore rises under all three objectives, and a
+unique initial winner attracts the conditional mass
 (Theorem~\ref{thm:grpo-collapse}). Under the same geometry, bounded fresh-sample
-scores exert vanishing expected force on a mode as it becomes rare; replay
-can retain a signal for a banked target without rediscovery
-(Appendix~\ref{app:theory-gradient-availability}). The pressure depends on gradient
-geometry; it does not certify AdamW/PPO or variable-length neural updates.
+scores exert vanishing expected force on a mode as it becomes rare, whereas
+replay retains a signal for a banked target without rediscovery
+(Appendix~\ref{app:theory-gradient-availability}). A fixed bank with constant
+positive replay dose gives banked modes a probability floor in this flow, while
+unbanked modes may vanish (Theorem~\ref{thm:replay-retention}).
 
-For the categorical replay surrogate, bank mass $P_{\mathcal B}$ and its
-conditional allocation $q_{\mathcal B}$ give
-\begin{equation}
- -\frac1{|\mathcal B|}\sum_{c\in\mathcal B}\log p_c
- =-\log P_{\mathcal B}+\log|\mathcal B|
- +\mathrm{KL}(U_{\mathcal B}\|q_{\mathcal B}).
- \label{eq:main-bank-decomposition}
-\end{equation}
-Replay rewards banked mass and penalizes imbalance. A fixed bank with constant
-positive replay dose gives banked modes a probability floor in this flow;
-unbanked modes may vanish (Theorem~\ref{thm:replay-retention}). The implemented
-exemplar loss is not an exact key-probability objective, and neither the floor
-nor its exemplar counterpart guarantees visibility in eight draws or held-out
-transfer. Appendix~\ref{app:claim-basis} maps each claim to its basis and scope.
+These are statements about an idealized gradient geometry: they do not certify
+AdamW/PPO or variable-length neural updates, the implemented exemplar loss is
+not an exact key-probability objective, and no floor guarantees visibility in
+eight draws or held-out transfer. Appendix~\ref{app:claim-basis} maps each
+claim to its basis and scope.
 
 \section{Experimental Design}
 \label{sec:experiments}
@@ -373,37 +365,37 @@ the behavior of fixed deployments.
 
 \paragraph{Local training experiments.}
 We compare Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B across all five Level-1
-domains, with eight training passes and five paired seeds per comparison
-except where marked in the figures.
+domains, with eight training passes and five paired seeds per comparison.
 \phantomsection\label{sec:retention-design}
 Matched experiments add replay to Dr.GRPO and
 \phantomsection\label{sec:factorial-design}
-cross Dr.GRPO/MaxRL with replay off/on at all three scales. We repeat the
-factorial on all five Level-2 domains with Qwen2.5-0.5B.
-Evaluation averages four eight-sample draws on 128 held-out prompts; intervals
-are nominal pointwise 95\% intervals over paired seeds. Controls include
-frequency-weighted replay, UCPO, RLEP, and fixed Semantic-MaxEnt. Appendix
-Table~\ref{tab:experiment-map} gives their comparison scope, and
-Appendix~\ref{app:repro-run-contract} specifies training and evaluation budgets.
+cross Dr.GRPO/MaxRL with replay off/on at all three scales; we repeat the
+factorial on all five Level-2 domains with Qwen2.5-0.5B. Evaluation averages
+four eight-sample draws on 128 held-out prompts, with pointwise 95\% intervals
+over paired seeds. Controls include frequency-weighted replay, UCPO, RLEP, and
+fixed Semantic-MaxEnt (Appendix~\ref{app:repro-run-contract}).
 
 \paragraph{Frontier model experiments.}
 We evaluate GPT-5.6 Sol, GPT-5.4, Grok 4.3, Kimi K3, and Claude Opus 4.8
 with explicit reasoning disabled across all five domains and Levels 1--3.
 Each produces eight stateless responses per prompt on 32 fixed prompts per
 domain and level, totaling 480 prompts per model. Matched medium-reasoning
-responses preserve prompt wording and 8,192-token output limits
-(Appendix~\ref{app:hosted-reasoning-control}). Main scores use a frozen
-formatting normalizer, equal domain weights, and all prompts, including
-unsolved ones. Appendix~\ref{app:hosted-comparison} retains the earlier
-seven-model medium cohort (128 prompts per domain and level), temperature
-controls, and cross-model mixtures. These exploratory inference-only
-comparisons characterize deployment behavior; they do not apply replay
-or identify training or model-size effects.
+responses preserve prompt wording and 8,192-token output limits. Scores use a
+fixed formatting normalizer, equal domain weights, and all prompts, including
+unsolved ones. Appendix~\ref{app:hosted-comparison} adds a seven-model medium
+cohort, temperature controls, and cross-model mixtures. These comparisons are
+inference-only: they apply no replay and identify no training effect.
 
 \section{Results}
 \label{sec:results}
 
-\paragraph{Training can replace varied attempts with one repeated answer.}
+We first establish the phenomenon the benchmark is built to measure, then
+test whether verified memory addresses it.
+
+\subsection{Verifier-only training concentrates verified outputs}
+\label{sec:results-collapse}
+
+\textbf{Training can replace varied attempts with one repeated answer.}
 On Python, all five Qwen2.5-0.5B Dr.GRPO seeds begin with almost eight
 unique raw responses per eight-sample draw. By steps 288--480, every saved
 draw repeats one byte-identical response per prompt, matching greedy on all
@@ -414,7 +406,7 @@ task gradient, while verified memory supplies a separate learning signal
 (Appendix~\ref{app:degenerate-groups}). This is observed output collapse
 under the tested sparse-reward recipe, including incorrect repeated answers.
 
-Concentration among \emph{correct} outputs is separately measurable. On
+\textbf{Concentration among correct outputs is separately measurable.} On
 Graph and PantryPlan, all twelve Dr.GRPO/GRPO before--after comparisons
 increase correct-key collision; ReplayDr.GRPO lowers it in all six matched
 comparisons (Appendix Figure~\ref{fig:concentration-story}). These
@@ -426,7 +418,7 @@ correctness on that selected population while improving full-test
 \texttt{pass@8}. The following experiments therefore report success and
 verified breadth jointly.
 
-\subsection{Experiment 1: replay improves success and sampled support}
+\subsection{Replay improves success and sampled breadth}
 \label{sec:results-retention}
 
 \textbf{Verified memory improves both outcomes across scales.}
@@ -472,7 +464,7 @@ contributor to breadth within the tested tasks
 (Appendix~\ref{app:frequency-replay-progress},
 Figure~\ref{fig:replay-key-weighting}).
 
-\subsection{Experiment 2: replay complements a stronger fresh objective}
+\subsection{Replay complements a stronger fresh objective}
 \label{sec:results-maxrl}
 
 \textbf{Memory adds value when fresh learning already uses MaxRL.}
@@ -510,7 +502,7 @@ Appendices~\ref{app:factorial-numerical-detail}
 and~\ref{app:factorial-training-curves} give aggregate estimates and
 trajectories throughout training.
 
-\subsection{Experiment 3: replay within a second task construction}
+\subsection{Replay transfers to a harder construction}
 \label{sec:results-levels}
 
 \textbf{The benefit extends to harder task constructions.}
@@ -543,6 +535,12 @@ intervals include zero (Appendix~\ref{app:level2-interim}). Pantry's
 collision nevertheless increases on sparse jointly correct subsets:
 improved sampled breadth does not guarantee lower conditional concentration.
 
+\subsection{What the breadth measure represents}
+\label{sec:results-meaning}
+
+Three interventions test what a verified mode counts as, and a fourth asks
+whether retained alternatives are worth having.
+
 \textbf{Guidance, mode definitions, and sample budget test what breadth means.}
 Removing strategy hints lowers Python correctness, although replay retains
 success where Dr.GRPO fails on the neutral-wording probes
@@ -568,11 +566,11 @@ also appear with tuned-temperature and diversity-prompt controls
 so this establishes better adaptation under the tested intervention without
 isolating diversity as its cause.
 
-\subsection{Hosted models: correctness does not determine breadth}
+\subsection{Concentration in fixed deployments}
 \label{sec:hosted-concentration}
 
-Verified concentration also appears in hosted deployments. In a selected
-illustration from the medium-reasoning cohort, GPT-5.6 Sol answers all 1,024
+Verified concentration also appears in hosted deployments. Under medium
+reasoning, GPT-5.6 Sol answers all 1,024
 Level-3 Graph draws correctly, yet eight draws contain only $1.16$ distinct verified
 colorings on average. Correct-pair collision is $95.1\%$, compared with a
 $19.0\%$ uniform-key reference. Thus narrow breadth can persist even when
@@ -604,12 +602,9 @@ Table~\ref{tab:hosted-level-averages} summarizes the separate
 reasoning-disabled evaluation across all domains and levels.
 On the same 480 prompts, disabling reasoning lowers overall \texttt{pass@8}
 and \texttt{distinct@8} for all five models versus medium reasoning.
-Falling correctness prevents this comparison from isolating conditional
-concentration (Appendix~\ref{app:hosted-reasoning-control}).
-Appendix~\ref{app:hosted-comparison} and Figure~\ref{fig:hosted-verified-breadth}
-give the seven-model medium results. These deployment observations identify
-no training cause: hosted collision pools correct pairs; training collision
-weights eligible prompts equally.
+Because correctness also falls, this comparison does not isolate conditional
+concentration (Appendix~\ref{app:hosted-reasoning-control}); the seven-model
+medium results are in Figure~\ref{fig:hosted-verified-breadth}.
 
 \input{results/hosted_reasoning_off_20260912_main.tex}
 
