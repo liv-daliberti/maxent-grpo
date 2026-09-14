@@ -100,27 +100,22 @@ A model can answer more reliably while producing a narrower range of
 successful outputs. Binary rewards in reinforcement learning with verifiable
 rewards (RLVR) treat a repeated success and a different one alike. We introduce
 \mb{}, five executable domains whose canonical keys identify verified
-alternatives, and use it to show that verifier-only training concentrates those
-alternatives. We measure this with pairwise modal diversity (\pmd{}), the
-probability that two verified responses to the same prompt occupy different
-modes, which is estimated from the verified draws alone and so does not move
-with correctness. \pmd{} falls in PantryPlan at every tested scale and
-objective, reaching zero at 0.5B and 1B, and falls in Graph under Dr.GRPO at
-every scale; one Python control collapses to a single byte-identical response
-per prompt. ReplayMaxRL addresses this with the same keys. Fresh MaxRL
-updates learn from current samples, while replay revisits one exemplar per
-retained key with equal weight, independent of how often that key is
-rediscovered. Across three model scales, matched comparisons show that replay
-improves held-out correctness and verified-mode diversity under Dr.GRPO and
-complements MaxRL: at 3B, adding replay to MaxRL raises domain-averaged
-\texttt{pass@8} from $.547$ to $.701$, and on the two domains where successes
-are frequent enough to estimate breadth independently of them, raises \pmd{}
-from $.245$ to $.396$. The
-benefit persists on a harder task construction. Removing prompt hints,
-coarsening the key, and enlarging the sampling budget then test what the
-breadth measure represents, and saved alternatives improve adaptation when
-requirements change. Hosted models show the same concentration without a
-training account: sampling GPT-5.6 Sol 512 times recovers at most $2.63$ of
+alternatives, and measure breadth as pairwise modal diversity (\pmd{}), the
+probability that two verified responses to a prompt occupy different modes.
+Because \pmd{} is estimated from the verified draws alone, it does not rise
+merely because the model succeeds more often. Verifier-only training
+concentrates these alternatives: \pmd{} falls in PantryPlan at every tested
+scale and objective, reaching zero at 0.5B and 1B, and one Python control
+collapses to a single byte-identical response per prompt. ReplayMaxRL
+addresses this with the same keys: fresh MaxRL updates learn from current
+samples, while replay revisits one exemplar per retained key with equal weight,
+independent of how often it is rediscovered. Across three scales, matched
+comparisons show that replay improves held-out correctness and diversity under
+Dr.GRPO and complements MaxRL; at 3B it raises domain-averaged
+\texttt{pass@8} from $.547$ to $.701$ and \pmd{} from $.245$ to $.396$. The
+benefit persists on a harder construction, and prompt, key and sampling-budget
+interventions test what the measure represents. Hosted models show the same
+concentration: sampling GPT-5.6 Sol 512 times recovers at most $2.63$ of
 roughly six available Graph colorings. An idealized analysis explains how
 binary-reward updates amplify common successes and how memory supplies signal
 after fresh samples stop revisiting them.
@@ -184,7 +179,7 @@ $\mathcal C_x$ nor its size is supplied to the learner or replay bank.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/modebench_examples.pdf}
+  \includegraphics[width=.92\linewidth]{figures/modebench_examples.pdf}
   \caption{\textbf{One prompt can have different verified outputs.}
   Keys identify a color vector in Graph, a normalized computation tree in
   Countdown, an executed return vector in Python, an algebraic state trajectory
@@ -234,19 +229,11 @@ diversity} is
  \label{eq:main-pmd}
 \end{equation}
 the probability that two independent verified responses to the same prompt
-occupy different modes. For a prompt whose eight draws return $K\ge2$ verified
-responses allocated $n_1,\dots,n_M$ across modes, the unbiased estimator is the
-fraction of verified pairs that differ:
-\begin{equation}
- \widehat{\pmd}
- =1-\frac{\sum_m \binom{n_m}{2}}{\binom{K}{2}}
- =1-\frac{\sum_m n_m(n_m-1)}{K(K-1)}.
- \label{eq:main-pmd-estimator}
-\end{equation}
-Here $P$ has cancelled: \eqref{eq:main-pmd-estimator} conditions on the
-verified draws and is unbiased for \eqref{eq:main-pmd} at every $K\ge2$, so a
-policy that succeeds twice as often but allocates successes the same way scores
-the same. Two equivalent readings --- the expected distinct modes in exactly two verified
+occupy different modes. It is estimated by the fraction of verified pairs in a
+draw that differ, which is unbiased at every $K\ge2$
+(Appendix~\ref{app:metric-details}). Here $P$ has cancelled: the estimator
+conditions on the verified draws, so a policy that succeeds twice as often but
+allocates its successes the same way scores the same. Two equivalent readings --- the expected distinct modes in exactly two verified
 draws, and an effective number of verified modes --- are monotone transforms of
 \eqref{eq:main-pmd} and order policies identically
 (Appendix~\ref{app:metric-details}).
@@ -277,7 +264,7 @@ the two axes start out coupled and are pulled apart only later.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/mode_diversity_levels_appendix.pdf}
+  \includegraphics[width=.92\linewidth]{figures/mode_diversity_levels_appendix.pdf}
   \caption{\textbf{Frozen Qwen2.5-Instruct at four scales across Levels 1--3.}
   All 60 model--level--domain cells. Colour runs light to dark with model scale;
   marker shape identifies the level. Larger models move right but not up: mean
@@ -309,7 +296,7 @@ solutions or a precomputed catalogue of valid modes.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/verified_support_story.pdf}
+  \includegraphics[width=.92\linewidth]{figures/verified_support_story.pdf}
   \caption{\textbf{Fresh learning and memory use the same verified samples.}
   MaxRL learns from their binary rewards. Replay stores exemplars by canonical
   key and revisits retained keys with equal weight. In the schematic, fresh
@@ -449,7 +436,7 @@ always report both.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\linewidth]{figures/concentration_story.pdf}
+\includegraphics[width=.92\linewidth]{figures/concentration_story.pdf}
 \caption{\textbf{Training concentrates verified outputs; replay reverses it.}
 Left: the change in correct-key collision from start to end of training, under
 Dr.GRPO and GRPO. Every comparison moves toward concentration. Right: replay
@@ -469,23 +456,20 @@ have separate eligibility and are not one trajectory
 
 \textbf{Verified memory improves both outcomes across scales.}
 ReplayDr.GRPO raises mean \texttt{pass@8} and \distk{} in every tested
-model--domain comparison (Figure~\ref{fig:cross-scale-terminal-effects}A), and
-raw verified mode count increases in every paired training seed. Because both
-of those endpoints move with correctness, we check the breadth claim on the
-success-conditional axis as well. Of the 14 model--domain comparisons whose
-terminal success is frequent enough to define \pmd{} on at least 30 prompts,
-ReplayDr.GRPO ends above Dr.GRPO in 13 and ties at zero in the remaining one;
-ReplayMaxRL ends above MaxRL in 16 of 17. The gaps are not marginal. Dr.GRPO
-ends at \pmd{} $.000$ in PantryPlan at 0.5B and 1B and at $.001$ in Graph at
-0.5B --- its successes are effectively a single mode per prompt --- while
-ReplayDr.GRPO ends at $.334$, $.364$, and $.560$ on those same blocks. Averaged
-over measurable domains, terminal \pmd{} rises from $.017$ to $.233$ at 0.5B,
-from $.103$ to $.201$ at 1B, and from $.086$ to $.194$ at 3B. The effect spans
-valid configurations, computation routes, and tested program behaviors.
+model--domain comparison (Figure~\ref{fig:cross-scale-terminal-effects}A).
+Both endpoints move with correctness, so the breadth claim is checked on the
+success-conditional axis too, and it survives: replay ends above its control in
+29 of the 31 comparisons where success is frequent enough to measure \pmd{},
+tying at zero in one. The gaps are not marginal. Where Dr.GRPO ends at \pmd{}
+$.000$ --- its successes are effectively one mode per prompt --- replay ends
+above $.3$ on the same block, and averaged over measurable domains terminal
+\pmd{} roughly doubles at every scale, from $.017$ to $.233$ at 0.5B. The
+effect spans valid configurations, computation routes, and tested program
+behaviors (Appendix~\ref{app:retention-numerical-detail}).
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
+  \includegraphics[width=.92\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
   \caption{\textbf{Canonical replay improves correctness and verified breadth.}
   (A) ReplayDr.GRPO minus Dr.GRPO at all three scales.
   (B) Qwen2.5-0.5B alternatives minus Dr.GRPO. Columns measure probability
@@ -529,7 +513,7 @@ parts of the training process.
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/e118_all_scale_factorial_progress.pdf}
+  \includegraphics[width=.92\linewidth]{figures/e118_all_scale_factorial_progress.pdf}
   \caption{\textbf{Replay complements both fresh objectives at multiple scales.}
   Each row shows Dr.GRPO/ReplayDr.GRPO and MaxRL/ReplayMaxRL on both endpoints.
   Diamonds are initial models; open/filled markers are training without/with
@@ -567,7 +551,7 @@ of difficulty.
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=.98\linewidth]{figures/modebench_level_admission.pdf}
+  \includegraphics[width=.92\linewidth]{figures/modebench_level_admission.pdf}
   \caption{\textbf{Replay across difficulty levels at Qwen2.5-0.5B.}
   Open/filled markers denote Level 1/2. Terminal means average all five
   domains equally within each of five paired seeds.
@@ -640,7 +624,7 @@ distribution, not merely from the sample
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
+  \includegraphics[width=.92\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
   \caption{\textbf{More samples need not recover the available modes.}
   GPT-5.6 Sol, medium reasoning, original wording; thirty-two problems per
   cell, Levels~1--3, and 512 responses per problem. Curves average distinct
@@ -939,6 +923,22 @@ $P_\theta^+$ remains stable or increases.
 
 \subsection{Measuring success and support}
 \label{app:metric-sampling}
+
+For a prompt whose $K\ge2$ verified draws are allocated $n_1,\dots,n_M$ across
+modes, the estimator of \eqref{eq:main-pmd} is the fraction of verified pairs
+that differ:
+\begin{equation}
+ \widehat{\pmd}
+ =1-\frac{\sum_m \binom{n_m}{2}}{\binom{K}{2}}
+ =1-\frac{\sum_m n_m(n_m-1)}{K(K-1)},
+ \label{eq:main-pmd-estimator}
+\end{equation}
+which is unbiased for \eqref{eq:main-pmd} at every $K\ge2$. Two equivalent
+readings are sometimes useful: $\mathrm{RarefiedDistinct@}2=1+\pmd$ is the
+expected number of distinct modes in exactly two verified draws, which fixes
+sampling depth rather than success count; and $\neff=1/(1-\pmd)$ is an
+effective number of verified modes. Both are monotone transforms of \pmd{} and
+order policies identically.
 
 For $K$ independent samples $Y_{1:K}$, let
 \[
@@ -1325,7 +1325,10 @@ Every model uses the same 128 held-out prompts within a domain and level,
 with four independent groups of eight draws per prompt: 4,096 responses
 per point and 245,760 responses overall. Each group contributes an indicator
 of any verified output to pass@8 and the number of distinct verified canonical
-keys to distinct@8; we average groups within prompts and then average prompts.
+keys to the registered \distk{}; we average groups within prompts and then
+average prompts. \pmd{} instead pools a prompt's four groups before scoring it,
+because the conditional mode distribution it estimates is a property of the
+policy and prompt rather than of the eight-draw group.
 The four groups remain separate $K=8$ observations throughout this calculation.
 
 These measurements use native chat, $T=1$, top-$p=1$, and a 192-token output
@@ -1891,6 +1894,10 @@ $+.163$, $+.152$, $+.115$, $+.0059$, and $+.609$ for Graph, Countdown,
 Python, MathIR, and PantryPlan; every nominal interval excludes zero,
 although MathIR's breadth gain is small. Correctness intervals exclude zero
 for Countdown, MathIR, and PantryPlan; Graph and Python remain inconclusive.
+Extra modes are a function of correctness as well as of allocation, so the
+direction of these effects is confirmed separately on \pmd{}, where
+ReplayDr.GRPO ends above Dr.GRPO in 13 of the 14 comparisons that clear the
+support bar (Appendix~\ref{app:registered-endpoints}).
 
 \paragraph{Cross-domain factorial summaries.}
 \label{app:factorial-numerical-detail}
@@ -2016,6 +2023,11 @@ $+.305$ (unadjusted 95\% Student-$t$ intervals $[+.445,+.677]$ and
 $[+.250,+.360]$, five seeds each). The weakest replay run ($.711$) exceeds
 the strongest non-replay run ($.477$). Replay adds $1.019/.668$ raw
 \texttt{distinct@8}, yielding $1.243/1.214$ under the two fresh objectives.
+Correctness rises steeply here, so that raw gain is partly a correctness gain;
+\pmd{} separates the two. On the same block Dr.GRPO ends at $.111$ and MaxRL at
+$.112$, against $.346$ and $.325$ for their replay variants --- roughly a
+threefold difference in the chance that two verified colorings differ, at
+matched conditioning on being correct.
 These observations show improved correctness and sampled support on harder
 Graph; they do not establish that broader support causes the correctness
 gain. Cross-level prompts are distinct, and the four-domain Level-2
@@ -2068,15 +2080,31 @@ identical seeds and checkpoints, without smoothing or outcome-based selection.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{figures/level2_factorial_training_curves.pdf}
-  \caption{\textbf{Accuracy and verified modes during Level-2 training.}
-  Qwen2.5-0.5B is the model tested at this level. Rows show \texttt{pass@8}
-  and \texttt{distinct@8} for all four primary methods. Graph, Countdown,
+  \caption{\textbf{Accuracy and registered verified-mode counts during Level-2
+  training.} Qwen2.5-0.5B is the model tested at this level. Rows show
+  \texttt{pass@8} and the registered \distk{} for all four primary methods;
+  Figure~\ref{fig:level2-training-pmd} gives the success-conditional reading. Graph, Countdown,
   Python, and MathIR contain five terminal paired seeds per objective.
   PantryPlan uses two terminal Dr.GRPO/replay pairs and one MaxRL/replay
   pair. Additional unpaired histories are marked separately; they do not
   contribute to paired means. One-seed curves have no band. Both metrics follow the same evaluation
   rules, with gaps at missing checkpoints and no extrapolation.}
   \label{fig:level2-training-curves}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/level2_training_curves_pmd.pdf}
+  \caption{\textbf{Verified-mode diversity during Level-2 training.}
+  The same model, methods, seeds, and checkpoints as
+  Figure~\ref{fig:level2-training-curves}, measuring \pmd{}. Graph separates
+  the arms most clearly: both replay arms rise to roughly $.34$ while Dr.GRPO
+  and MaxRL fall to near $.11$, so the replayed policies end with about three
+  times the chance that two verified colorings differ. MathIR collapses to
+  \pmd{} $.000$ under every arm at this level. Level-2 support is thin in
+  Countdown and Python, where only the steps clearing 30 defined prompts are
+  drawn and segments are not joined across the rest.}
+  \label{fig:level2-training-pmd}
 \end{figure}
 
 
@@ -2124,7 +2152,9 @@ An offline pool versus an online bank remains an algorithmic difference.
   UCPO and sparse RLEP-Dr are compared with Dr.GRPO and ReplayDr.GRPO
   at these two smaller scales.
   Labels give exact method-specific seed counts. Lines are descriptive
-  \texttt{distinct@8} means and bands are seed ranges. The corresponding
+  registered \distk{} means and bands are seed ranges;
+  Figure~\ref{fig:factorial-training-modes} gives the \pmd{} reading for the
+  primary methods. The corresponding
   accuracy curves use identical populations in
   Figure~\ref{fig:direct-baseline-accuracy-curves}.}
   \label{fig:direct-baseline-curves}
@@ -2246,6 +2276,17 @@ comparisons, while macro raw \texttt{distinct@8} ends above its initial
 value at Qwen2.5-3B. This distinguishes loss of multiple correct outcomes
 from the broader question of whether any correct outcome is sampled.
 
+The same decomposition on the success-conditional axis gives close to the same
+numbers, which is the check that matters here: extra verified modes could in
+principle have fallen only because correctness fell. Macro \pmd{} declines by
+$98.5\%$ and $99.8\%$ at Qwen2.5-0.5B under GRPO and Dr.GRPO, and by
+$50.8\%$--$65.1\%$ at the larger scales, against the $98.2\%$--$99.4\%$ and
+$41.5\%$--$71.6\%$ measured on extra modes. Terminal macro \pmd{} reaches
+$.000$ for Dr.GRPO at Qwen2.5-0.5B. The collapse is therefore a property of how
+verified probability is allocated, not an artifact of how much of it there is.
+Falcon3-1B Countdown is the one arm where \pmd{} rises under Dr.GRPO, from a
+near-degenerate $.033$; it does not lift the macro average above zero decline.
+
 Initial evaluations are measured within each method. Qwen2.5-3B MathIR and
 Pantry seeds 71--74 carry slightly different initial requests from plain GRPO
 ($.154$ versus $.162$, and $.832$ versus $.828$ on $P$), so those cells have
@@ -2255,8 +2296,9 @@ separate initial references.
   \centering
   \includegraphics[width=\linewidth]{figures/baseline_collapse_precheck.pdf}
   \caption{\textbf{Verifier-only training reduces average extra verified modes
-  at each tested scale.} Bars split \texttt{distinct@8} into the first correct
-  mode and every verified mode beyond it, at training pass 0 and pass 8, for
+  at each tested scale.} Bars split the registered \distk{} into the first
+  correct mode and every verified mode beyond it, at training pass 0 and pass
+  8, for
   unmodified Dr.GRPO then GRPO in each panel. All 150 evaluations are complete at five
   seeds and four fixed \(K=8\) draws; whiskers are the seed range and pass 0 is
   measured per method. Badges give the change in extra verified modes, printed only
@@ -2270,10 +2312,12 @@ separate initial references.
   \caption{\textbf{Problem precheck, five-domain macro-averages.} Both
   verifier-only objectives at pass 0 and pass 8, all three scales, five seeds
   and four fixed $K=8$ draws per model--domain--method comparison. ``Extra modes'' is
-  \texttt{distinct@8}$-$\texttt{pass@8}; ``removed'' is the fraction of that
+  \distk{}$-$\texttt{pass@8}; ``removed'' is the fraction of that
   quantity lost between pass 0 and pass 8. Breadth loss is present at every
   scale and is far from uniform across scales, and at Falcon3-1B Dr.GRPO
-  macro \texttt{pass@8} falls as well.}
+  macro \texttt{pass@8} falls as well. Because extra modes move with
+  correctness, the same declines are reported on \pmd{} in the text above,
+  which reproduces them to within a few points.}
   \label{tab:baseline-collapse-precheck}
   \small
   \setlength{\tabcolsep}{4.5pt}
@@ -2310,7 +2354,7 @@ of complete support coverage.
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Absolute references for raw \texttt{distinct@8}.}
+  \caption{\textbf{Absolute references for the registered raw \distk{}.}
   \emph{Uniform} samples the exposed action representation uniformly and is
   defined only for Graph (27 color strings) and PantryPlan (64 bit masks).
   Frozen is the matched pass-0 model; the final two columns are pass-8 means.
@@ -2652,7 +2696,8 @@ and 3 is left blank because the model clears two verified draws on only 14 and
   GPT-5.6 Sol, with 480 fixed prompts and eight draws each at $T\in\{0,0.5,1,1.5,2\}$.
   Left: all domains and levels; right: separate levels, averaging five domains
   equally. Empirical \texttt{pass@8} is the fraction with at least one correct
-  draw; \texttt{distinct@8} averages unique correct modes, including zeroes.
+  draw; the registered \distk{} averages unique correct modes, including
+  zeroes, and so tracks \texttt{pass@8} across temperatures by construction.
   Connected points use reasoning \texttt{none} and the frozen formatting
   normalizer.
   Appendix~\ref{app:gpt56-temperature} gives pointwise uncertainty intervals
