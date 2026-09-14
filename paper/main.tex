@@ -721,6 +721,11 @@ categorical model and its proofs, with its scope limits collected at the end.
 \onecolumn
 \raggedbottom
 
+\clearpage
+\phantomsection
+\begin{center}\large\textbf{Part I. Scope and measurement}\end{center}
+\addcontentsline{toc}{part}{Part I. Scope and measurement}
+
 \section{Claims and Their Evidential Basis}
 \label{app:claim-basis}
 
@@ -980,6 +985,1537 @@ training.
 
 
 % Shared long-paper and workshop benchmark/protocol appendix.
+
+\clearpage
+\phantomsection
+\begin{center}\large\textbf{Part II. Benchmark and method}\end{center}
+\addcontentsline{toc}{part}{Part II. Benchmark and method}
+
+\section{Benchmark and Evaluation Protocol}
+\label{app:data}
+\label{app:experimental-design}
+\label{app:domain-overview}
+\label{app:data-inventory}
+
+\mb{} defines correctness and identity through the same executable validator:
+invalid outputs receive reward zero and no key; valid outputs receive reward
+one and a canonical execution key. Neither the complete valid-key catalogue
+nor its size is supplied to training, replay, scheduling, or stopping.
+Table~\ref{tab:tasks} specifies the five domains and which surface forms merge.
+The \href{https://huggingface.co/datasets/od2961/ModeBench}{public dataset}
+preserves each domain's split roles and construction identity. The training
+comparisons reported here use Levels 1 and 2.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{\mb{}.} Correctness and identity come from
+  one executable path; training starts without the mode catalogue.
+  \emph{Valid modes} is the mean number of correct execution modes per
+  evaluation prompt, exact over the released multi-answer split. Every domain
+  trains on 384 prompts and evaluates on a fixed 128-prompt split;
+  the exact prompt each policy receives is reproduced verbatim in
+  Appendix~\ref{app:prompts} for a direct, byte-level audit of the evaluation
+  interface.}
+  \label{tab:tasks}
+  \footnotesize
+  \setlength{\tabcolsep}{5pt}
+  \renewcommand{\arraystretch}{1.08}
+  \begin{tabularx}{\linewidth}{@{}l
+      >{\hsize=1.25\hsize}Y
+      >{\hsize=.8\hsize}Y
+      >{\hsize=.95\hsize}Y
+      r@{}}
+    \toprule
+    \textbf{Domain} & \textbf{Generated answer / check} &
+    \textbf{Executed key} & \textbf{Aliases that merge} &
+    \textbf{valid modes} \\
+    \midrule
+    Graph coloring & Complete assignment; check fixed colors and edges &
+    Color vector & Spacing only & 6.27 \\
+    \addlinespace[2pt]
+    Countdown & Parse operands; execute exactly &
+    Normalized AST & Commutative order & 4.52 \\
+    \addlinespace[2pt]
+    Python factors & Execute restricted lambda externally &
+    Return vector & Source programs with same behavior & 229.44 \\
+    \addlinespace[2pt]
+    MathIR & Execute bounded action program &
+    State trajectory & Programs with the same states & 5.00 \\
+    \addlinespace[2pt]
+    PantryPlan & Exact ingredient allocation; check all bounds &
+    Ingredient support & Quantity and ordering aliases & 18.19 \\
+    \bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+\subsection{Split identities and executable validation}
+\label{app:data-materialization}
+
+Every domain uses 384 training and 128 disjoint evaluation prompts.
+Python materialization independently executes at least two functions with
+different valid keys for every row; MathIR executes every certified route
+through the same interpreter used for model outputs.
+
+\begin{table}[H]
+\centering
+\caption{Deterministic materialization identities. Hashes bind the released rows to their executable checks; the full hashes and construction records accompany the data.}
+\label{tab:materialization-identities}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+& \textbf{Python factors} & \textbf{MathIR action menu} \\
+\midrule
+Training rows & 384 & 384 \\
+Evaluation rows & 128 & 128 \\
+Exact modes per prompt & 16--3,600 & 5 \\
+Training-row SHA-256 & \texttt{bcfa9acc\ldots37cf7} & \texttt{bfc98362\ldots5d3835} \\
+Evaluation-row SHA-256 & \texttt{be0f621c\ldots94d183} & \texttt{df5783dd\ldots328b96} \\
+Gold catalogue supplied to policy & no & no \\
+Training-bank initialization & empty & empty \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{PantryPlan.}
+\label{app:data-pantry}
+The deterministic v2 release has 384/64/128 training/development/evaluation
+prompts across four formulation families. Exact support ranges from 8 to 45;
+the 128 evaluation prompts contain 2,328 feasible supports, averaging
+$18.1875$. Training and evaluation row hashes are
+\texttt{a4883c5e\ldots a757f} and \texttt{5d81ba8d\ldots5923}.
+The validator checks exact inventory, serving steps, mass, nutrient bounds,
+and dietary tags; identity is ingredient support. A verified allocation is
+not a claim of palatability, cookability, or safety.
+
+\subsection{Python execution contract}
+\label{app:python}
+\label{app:python-language}
+
+Candidates are stripped, limited to 240 characters and 64 AST nodes, and
+parsed in expression mode. The only accepted form is \texttt{lambda n: EXPR}
+with exactly one ordinary argument named \texttt{n}: no defaults,
+positional-only, keyword, or variadic arguments. Integer literals have
+absolute value at most 10,000. The expression grammar permits \texttt{n},
+\texttt{+}, \texttt{-}, \texttt{*}, floor division, remainder, integer
+comparisons, Boolean \texttt{and}/\texttt{or}, unary plus/minus/\texttt{not},
+and conditionals. Boolean and non-integer literals, calls, imports,
+attributes, comprehensions, containers, subscripts, assignment, loops, and
+other identifiers are rejected. Task specifications contain two to eight
+distinct integers in $[4,1000]$ and at least two valid behavior vectors.
+
+\paragraph{External execution.}
+\label{app:python-process}
+The trainer never executes candidate code. A locked parent client launches
+an isolated Python \texttt{-I} process in a fresh session, with a persistent
+JSON-lines worker accepting only restricted source and trusted task JSON.
+The worker repeats the AST checks, compiles the expression with empty
+\texttt{\_\_builtins\_\_}, and executes the frozen inputs under a
+0.25-second real-time alarm; the parent enforces a separate one-second
+response deadline. A valid response contains the integer vector and key.
+Timeouts, empty or malformed responses, broken pipes, non-integer outputs,
+and failed divisor checks yield $\bot$ and zero reward. Broken pipes,
+operating-system errors, and malformed responses permit one clean worker
+restart; a timed-out request remains failed. Worker stdout is never parsed
+as a candidate answer, and exceptions never produce a key.
+
+\paragraph{Behavioral identity.}
+\label{app:python-identity}
+For every frozen input $n_j$, the returned $d_j$ must be an integer but not a
+Boolean, satisfy $1<d_j<n_j$, and divide $n_j$ exactly. All checks must pass.
+The key is the ordered vector
+$\texttt{python\_factor:}d_1\texttt{,}\cdots\texttt{,}d_m$;
+programs merge exactly when their vectors agree. The exact support count
+$\prod_j|\{d:1<d<n_j,\ d\mid n_j\}|$ is used only for dataset validation.
+
+\subsection{Matched Level-2 construction}
+\label{app:data-levels}
+
+Level 2 changes problem structure while preserving the verifier and
+canonicalizer. Its 384/128/128 training/development/evaluation rows have
+disjoint identities across the Level-1 and Level-2 splits. Training histograms
+match the native Level-1 training sets. Development and evaluation histograms
+match designated Level-1 development and confirmation reserves in Graph,
+Countdown, Python, and MathIR; Pantry uses native references, with its
+64-row development histogram doubled to 128 rows.
+
+These construction reserves are not the native Level-1 terminal test sets.
+The displayed terminal evaluations have different valid-key histograms
+between levels in Graph, Countdown, and Python. Cross-level changes therefore
+combine task structure and test population; they do not isolate difficulty
+at fixed test-set support. Replay comparisons remain paired within each
+level on the same prompts, seeds, fresh objective, and training budget.
+
+\begin{center}
+\small
+\begin{tabularx}{.96\linewidth}{@{}lYY@{}}
+\toprule
+\textbf{Domain} & \textbf{Level 1} & \textbf{Level 2 structural change} \\
+\midrule
+Graph coloring & Three hidden vertices & Four hidden vertices \\
+Countdown & Three operands & Four operands, with values up to 14 \\
+Python factors & Four executed cases, all at most 96 & Four cases, including a value above 96 \\
+MathIR & One-sided linear families & Variable-on-both-sides families \\
+PantryPlan & Base dietary/composition constraints & More active dietary exclusions and tighter composition \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Before treatment training, frozen Qwen2.5-0.5B development evaluation admitted
+a Level-2 domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
+its construction-reference Level-1 value under identical decoding. The matched-level
+identity manifest records support histograms, row hashes, construction
+seeds, disjointness checks, and these admission receipts.
+
+
+
+\paragraph{Scale-calibrated Level 3.}
+Level 3 uses frozen Qwen2.5-3B against the same fixed Qwen2.5-0.5B Level-1
+reference. Recipes are selected on development problems before fresh held-out
+confirmation, requiring absolute pass@1 and pass@8 differences of at most
+$.04$ and $.08$ in every domain, with four independent groups of eight samples
+per prompt. Distinct@8 is reported but is not a fitting objective. The
+interface uses native chat, temperature 1, top-$p$ 1, and 192 generated
+tokens: boxed-direct answers for Graph and the hybrid solver with
+legal-syntax guidance for the other domains. This matches fixed measured
+targets empirically; it is not a two-sided equivalence test.
+
+The Python Level-3 interface used in the hint ablation removes the strategy
+hints (Appendix~\ref{app:prompt-hint-ablation}), so its difficulty is not
+covered by that match. All reported results use the original datasets and
+prompts.
+
+\subsection{Frozen base models across Levels 1--3}
+\label{app:base-levels-all-scales}
+
+Figure~\ref{fig:base-levels-all-scales} reports all 60 completed combinations
+of four frozen Qwen2.5-Instruct scales, three admitted levels, and five domains.
+Every model uses the same 128 held-out prompts within a domain and level,
+with four independent groups of eight draws per prompt: 4,096 responses
+per point and 245,760 responses overall. Each group contributes an indicator
+of any verified output to pass@8 and the number of distinct verified canonical
+keys to distinct@8; we average groups within prompts and then average prompts.
+The four groups remain separate $K=8$ observations throughout this calculation.
+
+These measurements use native chat, $T=1$, top-$p=1$, and a 192-token output
+limit, with boxed-direct Graph answers and the registered hybrid interface
+elsewhere. Level 3 retains its original admitted prompts. These held-out
+measurements are separate from development fitting and do not imply that
+success decreases monotonically with level for every model and domain.
+Levels 4--5 await dataset admission and have no plotted measurements here.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/modebench_base_levels_appendix.pdf}
+  \caption{\textbf{Frozen base-model success and breadth at all four scales.}
+  All 60 cells for Qwen2.5-Instruct 0.5B, 3B, 7B, and 14B at Levels 1--3.
+  Colors identify levels and marker shapes identify model sizes; each domain
+  contains 12 points. Coordinates are empirical pass@8 and mean distinct
+  verified modes per eight draws, averaged over four independent groups on
+  128 held-out prompts. Main Figure~\ref{fig:level-construction} shows these same estimates for the 7B model.}
+  \label{fig:base-levels-all-scales}
+\end{figure}
+
+\subsection{Training and evaluation settings}
+\label{app:repro-run-contract}
+\label{app:comparison-design}
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Matched run contract.} Settings and systems changes are
+  shared by methods within each model--domain--seed comparison, including
+  the zero-weight replay control.}
+  \label{tab:run-contract}
+  \small
+  \begin{tabularx}{\linewidth}{@{}P{.23\linewidth}Y@{}}
+    \toprule
+    \textbf{Component} & \textbf{Setting} \\
+    \midrule
+    Data & 384 training and 128 disjoint evaluation prompts per domain and
+      level; no evaluation row enters training or replay. \\
+    Fresh rollouts & $G=16$, temperature 1, top-$p=1$; one prompt group per update. \\
+    Optimization & Eight passes (3,072 updates), one PPO epoch,
+      $\beta_{\mathrm{KL}}=0$; paired initialization, prompt stream,
+      optimizer, hardware class, and checkpoint cadence. \\
+    Evaluation & Passes $0,.5,\ldots,8$; four fixed temperature-1,
+      top-$p=1$, $K=8$ draws per prompt, plus a separate temperature-0
+      greedy trace. No best-checkpoint selection. \\
+    Replay & Capacity $M=16$ per prompt; one round-robin bank per update;
+      $\lambda_{\mathrm{replay}}=.10$. Controls execute the same code with
+      an exact-zero replay derivative; realized banks and workloads can differ. \\
+    Training seeds & Qwen2.5-0.5B: 43--47; Falcon3-1B: 55--59;
+      Qwen2.5-3B: 70--74. \\
+    Learning rate & Qwen-0.5B and Falcon-1B: constant $2\times10^{-7}$,
+      with optimizer-state offload for Falcon. Qwen-3B: cosine decay with
+      $10^{-7}$ peak, $10^{-8}$ floor, and 10\% warmup. \\
+    Response tokens & Graph and Countdown: 192; Python: 192/512/192
+      at 0.5B/1B/3B; MathIR: 64/128/64; PantryPlan: 8. \\
+    Evaluation seeds & Base 610100/610200/610300/610400/76299 for
+      Graph/Countdown/Python/MathIR/PantryPlan; draw $d$ uses base plus $d$. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Base model} & \textbf{Pinned revision} \\
+\midrule
+Qwen2.5-0.5B-Instruct & {\scriptsize\texttt{7ae557604adf67be50417f59c2c2f167def9a775}} \\
+Falcon3-1B-Instruct & {\scriptsize\texttt{28ba2251970a01dd1edc7ba7dad2eb71216ccfdf}} \\
+Qwen2.5-3B-Instruct & {\scriptsize\texttt{aa8e72537993ba99e69dfaafa59ed015b17504d1}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Responses are independent within each evaluation draw. For each training
+seed, metrics average over all 128 prompts and four draws; raw responses
+and draw-level records are retained. The co-primary terminal outcomes are
+\texttt{pass@8} and raw \texttt{distinct@8}; \texttt{mean@8} is diagnostic.
+Evaluation never supplies training data, bank entries, checkpoint selection,
+or a stopping rule. Complete paired five-seed blocks receive nominal
+pointwise 95\% Student-$t$ intervals; partial primary intersections report
+exact counts and descriptive means without intervals. Intervals condition
+on the frozen prompts and evaluation requests. Domain averages are
+explicitly labeled, and no missing terminal result is replaced by a
+shallower checkpoint. Source admission and curve gaps follow
+Appendix~\ref{app:source-integrity}; comparison-specific intersections and
+the replay-weighting bootstrap are specified with their results.
+
+\section{Exact Domain Prompts}
+\label{app:prompts}
+
+Each domain uses one system message and one user message, with no few-shot
+examples. The same template renders training and evaluation for every
+method. These are the first rows of the frozen evaluation splits, including
+the exported chat-template wrapper. The checked generator
+\path{ops/check_paper_domain_prompts.py} reproduces them from the datasets.
+A two-space continuation indent marks display wrapping: joining it to the
+previous line with one space recovers the original string. The PantryPlan
+listing retains its real newlines.
+
+% BEGIN generated by ops/check_paper_domain_prompts.py
+
+\subsection{Graph coloring}
+\label{app:prompt-graph}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/graph_coloring_modebench_v2}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+Color this graph with vertices 1 through 6. The undirected edges are: (1,2), (1,3), (3,5),
+  (3,6), (4,6), (5,6). Assign each vertex one color from {1, 2, 3} so that no edge has the
+  same color on both endpoints. A partial coloring is 2??1?2, where ? means uncolored.
+  Keep every shown digit fixed. There are exactly 3 question marks. Return exactly one
+  final answer and no explanation: exactly 3 digits, each one 1, 2, or 3, for the missing
+  positions from left to right, inside \boxed{}.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{Countdown}
+\label{app:prompt-countdown}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/exact_countdown_easy3_probe}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+Using the numbers [3, 6, 9], create an arithmetic expression that equals 18. Use each
+  given number exactly once. You may use +, -, *, /, and parentheses. Return exactly one
+  final answer and no explanation: the expression inside \boxed{}.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{Python factors}
+\label{app:prompt-python}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/python_factor_modebench_v1}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+Write one pure Python function with the exact form lambda n: EXPR. An external Python tool
+  will call it once for each n in [18, 82, 91, 93]. For every call, return an integer d
+  satisfying 1 < d < n and n % d == 0. Different valid return vectors are different
+  solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean
+  operators, and conditional expressions; calls, imports, attributes, containers, and
+  other names are forbidden. Return exactly the one-line lambda inside \boxed{} and no
+  explanation.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{MathIR action menu}
+\label{app:prompt-mathir}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/mathir_action_menu_v1}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+MathIR linear-menu-v1. Solve for x by choosing an executable action sequence. Every
+  selected action is applied exactly to BOTH sides of the current equation, followed by
+  exact simplification. Bindings: a=2, b=-9, c=-1. Initial equation: x/a + b = c. Action
+  menu: A means div(a); B means add(b); C means sub(b); D means sub(c); E means
+  sub(mul(a,b)); F means mul(a). Choose 1-4 action IDs. Illegal operations, repeated
+  states, and paths that do not finish with x isolated are rejected. Return only the IDs
+  separated by semicolons inside the answer box; for example formatting only: \boxed{A;C}.
+  Do not return x's numeric value.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{PantryPlan}
+\label{app:prompt-pantry}
+
+\noindent Template \texttt{qwen\_pantry\_support\_mask}; 384 training and 128 evaluation\linebreak rows in \path{var/data/pantry_plan_modebench_v2}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only six binary digits and no other text. Each digit maps to the corresponding
+  Pantry row in printed order. A trusted environment will choose exact quantities on
+  precisely the selected rows.<|im_end|>
+<|im_start|>user
+Create one feasible high fiber snack from this frozen pantry.
+Nutrition values are per 100 g. Quantities are exact integer grams.
+
+Pantry:
+- almonds: available=100g, step=25g, minimum-if-used=50g; energy=584kcal, protein=21.5g,
+  fiber=10.8g, sodium=0.0mg; tags=tree_nut
+- banana: available=125g, step=25g, minimum-if-used=50g; energy=97.0kcal, protein=0.74g,
+  fiber=4.62g, sodium=0.0mg; tags=none
+- carrots: available=150g, step=25g, minimum-if-used=50g; energy=45.0kcal, protein=0.941g,
+  fiber=3.1g, sodium=86.6mg; tags=none
+- grape_tomatoes: available=100g, step=25g, minimum-if-used=50g; energy=27.0kcal,
+  protein=0.83g, fiber=2.1g, sodium=6.0mg; tags=none
+- navel_orange: available=150g, step=25g, minimum-if-used=50g; energy=47.0kcal,
+  protein=0.91g, fiber=2.0g, sodium=9.0mg; tags=none
+- sunflower_seeds: available=125g, step=25g, minimum-if-used=50g; energy=571kcal,
+  protein=18.9g, fiber=7.22g, sodium=0.0mg; tags=none
+
+Use 2 to 4 ingredients.
+Forbidden tags: none
+Targets:
+- mass_g: minimum 125, maximum 200
+- energy_kcal: minimum 239.4, maximum 432.25
+- protein_g: minimum 6.423
+- fiber_g: minimum 3.478
+- sodium_mg: maximum 37.6
+
+Choose the ingredient support as a six-bit mask in the exact Pantry row order. Bit 1
+  includes that row and bit 0 excludes it.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+% END generated by ops/check_paper_domain_prompts.py
+
+% Shared exact replay update; empirical comparisons are in results.tex.
+
+\section{Replay Algorithm}
+\label{app:algorithm}
+\label{app:replay-objective}
+
+For each prompt $x$, $\mathcal B_x$ stores at most $M$ verified policy
+exemplars, one per canonical key; the serialized cursor $\tau$ selects
+banks for replay. The same update supports either fresh objective.
+
+
+
+\subsection{Fresh task advantages}
+\label{app:binary-maxrl}
+
+For a group of $G$ fresh responses with verified binary rewards $r_i$ and
+$m=\sum_i r_i$, Dr.GRPO uses $A_i=r_i-m/G$, while MaxRL uses
+\[
+ A_i^{\mathrm{MaxRL}}=
+ \begin{cases}
+ G r_i/m-1, & m>0,\\
+ 0, & m=0.
+ \end{cases}
+\]
+The centered MaxRL estimator \citep{tajwar2026maxrl} gives failures advantage
+$-1$ in mixed groups and weights each success more strongly when successes
+are scarce. All-correct and all-failure groups have zero task advantage.
+Lemma~\ref{lem:maxrl-mean} gives its harmonic pass@\(k\) mean objective.
+These advantages apply only to fresh responses; bank exemplars enter the
+separate verified-likelihood loss.
+
+\subsection{State and optimizer update}
+\label{app:algorithm-update}
+
+\begin{algorithm}[H]
+  \caption{One ReplayMaxRL optimizer update}
+  \label{alg:verified-replay-update}
+  \small
+  \begin{algorithmic}[1]
+    \REQUIRE Policy $\pi_\theta$; prompt $x$ and verifier specification
+      $s_x$; group size $G$; fresh objective $o\in\{\mathrm{MaxRL},\mathrm{Dr.GRPO}\}$; replay weight $\lambda_{\mathrm{replay}}$;
+      states $(\mathcal B,\tau)$
+    \ENSURE Atomically updated $(\theta',\mathcal B',\tau')$
+    \STATE Draw the on-policy group
+      $\mathcal G=\{y_i\sim\pi_\theta(\cdot\mid x)\}_{i=1}^G$
+    \FOR{$i=1,\ldots,G$}
+      \STATE Execute $\widetilde c_i\gets V(y_i,s_x)$ and observe task
+        reward $r_i$
+      \STATE Set $c_i\gets\widetilde c_i$ iff
+        $r_i>0\wedge\widetilde c_i\ne\bot$; otherwise set $c_i\gets\bot$
+    \ENDFOR
+    \STATE Compute fresh task advantages $A_i^{o}$ from $\{r_j\}_{j=1}^G$; for ReplayMaxRL use the formula in Appendix~\ref{app:binary-maxrl}
+    \STATE After the full group is validated, deterministically retain one
+      policy exemplar for each new $c_i\ne\bot$ in $\mathcal B_x$, up to
+      capacity $M$
+    \STATE $(z,\tau')\gets\textsc{NextBank}
+      (\{\mathcal B_u\}_u,\tau)$ by a fixed round-robin cursor
+    \IF{a replay bank $\mathcal B_z$ exists}
+      \STATE For each retained exemplar $e_c$, compute
+        $s_c=|e_c|^{-1}\log\pi_\theta(e_c\mid z)$
+      \STATE $L_{\mathrm{replay}}\gets-|\mathcal B_z|^{-1}
+        \sum_{c\in\mathcal B_z}s_c$
+    \ELSE
+      \STATE $L_{\mathrm{replay}}\gets0$
+    \ENDIF
+    \STATE $w_{\mathrm{rep}}\gets(G-1)/G^2$ for one replay
+      pseudo-group per $G$ on-policy rows
+    \STATE $\theta'\gets\textsc{Update}
+      (\theta,L_{\mathrm{PPO}}(A^{o})
+      +w_{\mathrm{rep}}\lambda_{\mathrm{replay}}L_{\mathrm{replay}})$
+    \STATE Checkpoint $(\theta',\mathcal B',\tau')$ as one atomic state
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Admission, capacity, and deterministic scheduling}
+\label{app:algorithm-bank}
+
+A bank is keyed by the SHA-256 digest of the exact prompt-token sequence.
+Only loss-active rows with positive reward and a nonempty validator key
+qualify. The full group is validated against the pre-group bank before
+any new key is committed. For each new key, the lexicographically smallest
+normalized response-token tuple is retained; new keys are admitted in
+sorted-key order. Admission is therefore invariant to rollout-row order.
+The bank keeps one exemplar per key, up to $M=16$, with no eviction or
+replacement. Later keys may enter diagnostics but not replay support when
+capacity is full. Prompt-hash collisions or changed tokens under an
+existing hash are hard errors.
+
+\label{app:algorithm-schedule}
+At each update, the scheduler sorts nonempty prompt-bank hashes and selects
+one by a fixed round-robin cursor; singleton banks are eligible. The cursor
+is independent of reward, evaluation, desired support, or entropy, and is
+serialized with the bank. Stored prompt and response tokens are
+materialized unchanged into a right-padded teacher-forcing batch. Prompt
+and padding positions are masked. Each exemplar contributes its mean
+response-token log probability, averaged uniformly across keys in the
+selected bank before applying $\lambda_{\mathrm{replay}}$ and the exact
+$(G-1)/G^2$ rollout scaling in
+Algorithm~\ref{alg:verified-replay-update}. Neither exhaustive support nor
+evaluation outputs enter this loss.
+
+\subsection{Matched controls and recoverable state}
+\label{app:algorithm-control}
+
+Controls share validation, bank updates, scheduling, materialization, and
+the score pass, with the replay score-gradient vector replaced by exact
+zeros. Treatment activates only that derivative. Policies can subsequently
+differ in samples, bank contents, selected banks, exemplar lengths, and
+realized computation. Logs retain bank/key counts, replayed token counts,
+raw and applied losses, score-gradient summaries, cursor phase, and the
+exact-zero switch. Model and optimizer state, bank counts and exemplar
+tokens, replay and data cursors, and request-stream state are checkpointed
+atomically; the loader validates schema, capacity, scheduler and estimator
+constants, token types, prompt hashes, key/exemplar consistency, and cursor
+bounds before accepting a resume.
+
+\subsection{Fixed Semantic MaxEnt comparator}
+\label{app:semantic-maxent}
+\label{app:semantic-score}
+
+Fixed Semantic MaxEnt is an entropy-inspired fresh-rollout comparator.
+For validator-positive canonical outcomes, an empirical predictor combines
+successful policy history and successful leave-one-out peers. If $K$ keys
+have total count $N$, unit pseudocounts and one reserved unseen bucket give
+\begin{equation}
+  \hat p(a)=\frac{n(a)+1}{N+K+1},\qquad
+  \hat p(\textsc{unseen})=\frac{1}{N+K+1}.
+  \label{eq:open-set-predictor}
+\end{equation}
+The added detached advantage on an eligible successful row is
+\begin{equation}
+  A^{\rm sem}_{i,t}=\eta\,
+  \frac{\min\{-\log\hat p(a_i),\kappa\}
+    -\E_{\hat p}[\min\{-\log\hat p(a),\kappa\}]}{\kappa},
+  \qquad \eta=.10,\ \kappa=5.
+  \label{eq:legacy-semantic-advantage}
+\end{equation}
+\label{app:legacy-semantic-estimator}
+\label{app:semantic-estimator}
+Invalid and unsuccessful rows receive zero. The centered score is bounded
+by $\eta$ in magnitude. It can favor an underrepresented verified outcome
+present in a fresh rollout, but supplies no direct reinforcement to an
+absent remembered exemplar. Its heterogeneous empirical effects therefore
+remain a comparison with exploration rather than a retention guarantee.
+
+For the true conditional distribution $q_\theta=p_\theta(\cdot\mid\mathcal C)$,
+\begin{equation}
+ \nabla_\theta H(q_\theta)
+ =\E_{a\sim q_\theta}[(-\log q_\theta(a))\nabla_\theta\log q_\theta(a)].
+ \label{eq:entropy-score-function}
+\end{equation}
+This motivates the direction of redistribution, not an unbiased-gradient
+claim for the empirical estimator. Hold a detached predictor score vector
+$s$ and baseline $b$ fixed independently of the scored action, for example
+conditional on its leave-one-out peers. Averaging successful rows under the
+unconditional policy then gives
+\[
+ \E_{A\sim p}[\1\{A\in\mathcal C\}(s_A-b)\nabla_z\log p_A]
+ =P\E_{c\sim q}[s_c\nabla_z\log q_c]
+   +(\E_q[s]-b)\nabla_zP.
+\]
+A historical baseline need not equal the current conditional mean, so this
+bonus can change correctness as well as diversity. Even with the exact
+unclipped score $s_c=-\log q_c$ and baseline $b=H(q)$, averaging over
+unconditional rollout rows gives $P\nabla H(q)$.
+For a single correct key, conditional entropy is zero, yet the implemented
+unseen bucket can give that key negative semantic advantage. The comparator
+thus carries neither an exact entropy-gradient interpretation nor an
+individual-mode preservation guarantee.
+
+\clearpage
+\phantomsection
+\begin{center}\large\textbf{Part III. Training results}\end{center}
+\addcontentsline{toc}{part}{Part III. Training results}
+
+\section{Empirical Results and Comparisons}
+\label{app:supporting}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/replay_factorial_effects.pdf}
+\caption{\textbf{Canonical replay complements both fresh objectives.}
+Each point compares replay with its matched no-replay control at pass eight,
+within domain and scale. The two endpoints have different units: success
+probability points and expected verified-key counts. All 75 MaxRL pairs are
+complete; Falcon Countdown uses four Dr.GRPO pairs and all other Dr.GRPO
+blocks use five. Nominal intervals accompany complete blocks only. Domain
+variation is retained; these comparisons identify the implemented replay
+addition rather than a universal benefit or factorial interaction.}
+\label{fig:replay-factorial-effects}
+\end{figure}
+
+\subsection{Comparison registry}
+\label{app:program-registry}
+
+The primary comparisons cross fresh objective (Dr.GRPO or MaxRL) with
+verified replay, first across three model scales on Level 1 and then at
+Qwen2.5-0.5B on Level 2. Table~\ref{tab:experiment-map} separates these
+comparisons from the supporting controls and replay-weighting ablation.
+Terminal results are fixed to a single analysis snapshot; the Qwen2.5-0.5B
+weighting aggregate uses the same seed population throughout.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Comparison scope and available terminal evidence.}
+  A complete block has five registered paired seeds. Primary partial
+  intersections retain their exact counts and receive no interval.
+  UCPO and sparse RLEP-Dr are reported only at the two smaller model scales;
+  their denominators cover all five benchmark domains and five registered
+  seeds at each selected scale.}
+  \label{tab:experiment-map}
+  \label{tab:direct-comparators}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabularx}{\linewidth}{@{}P{.24\linewidth}P{.20\linewidth}P{.22\linewidth}Y@{}}
+    \toprule
+    \textbf{Comparison} & \textbf{Scope} & \textbf{Terminal coverage}
+      & \textbf{Question} \\
+    \midrule
+    Dr.GRPO / ReplayDr.GRPO & Level 1, all three scales &
+      74/75 pairs; 14/15 complete blocks & Verified memory beyond fresh reward \\
+    MaxRL / ReplayMaxRL & Level 1, all three scales &
+      75/75 pairs; 15/15 complete blocks & Memory beyond a stronger fresh objective \\
+    Four-method factorial & Level 2, Qwen-0.5B &
+      5/5 complete domains; 100/100 endpoints & Within-level replay replication \\
+    GRPO & Level 1, all three scales &
+      75/75 runs & Reward-standardization control \\
+    UCPO & Level 1, 0.5B and 1B &
+      50/50 runs & On-policy advantage redistribution \\
+    Sparse RLEP-Dr & Level 1, 0.5B and 1B &
+      47/50 runs & Success memory without uniform key balancing \\
+    Fixed Semantic MaxEnt & Level 1, registered scale/domain blocks &
+      10/15 complete blocks & Fresh-rollout semantic exploration \\
+    Uniform / frequency replay & Level 1, nine registered blocks &
+      45/45 treatment cells; 9/9 complete blocks & Contribution of replay-key balancing \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+
+
+
+
+\subsection{Terminal comparisons across scales}
+\label{app:scale-matrix}
+\label{app:scale-snapshot}
+\label{app:maxrl-scale-extensions}
+\label{app:current-campaign-results}
+
+Within each model--domain--seed comparison, methods share initialization,
+data identities, the eight-pass horizon, evaluation requests, verifier, and
+replay scheduling code. The replay control runs the same bank and scoring
+path with zero replay derivative. Resulting policies can build different
+banks. The admissible intersections are defined in
+Appendix~\ref{app:source-integrity}.
+
+\crossscaletablematerial
+
+\paragraph{Dr.GRPO retention contrasts.}
+\label{app:retention-numerical-detail}
+Both co-primary block means are positive in all 14 complete five-seed
+comparisons, and raw \texttt{distinct@8} increases in all 74 admissible pairs.
+At Qwen2.5-0.5B, Countdown \texttt{pass@8} rises from $.480$ to $.672$ and
+raw \texttt{distinct@8} from $.487$ to $1.637$; the extra-mode effect is
+$+.959$ (paired 95\% interval $[+.863,+1.054]$). Python correctness rises
+from $.172$ to $.528$, with an extra-mode effect of $+.043$
+($[-.077,+.164]$); MathIR rises from $.512$ to $.796$, with extra modes
+$+.030$ ($[+.001,+.060]$). These intervals are nominal, unadjusted
+Student-$t$ estimates over five paired training seeds. Extra modes remain
+coupled to correctness. Countdown keys identify computation routes, but
+these held-out endpoints do not identify which previously discovered
+routes survived training.
+
+
+
+Figure~\ref{fig:maxrl-factorial-scale-extensions} resolves the domain-specific
+results behind the main cross-domain display. All five 3B MaxRL domain comparisons are complete:
+both arms have seeds 70--74 at the registered terminal endpoint (50/50 runs).
+The Dr.GRPO pair uses five seeds except Falcon Countdown, which uses four. These populations
+remain separate: a factorial interaction requires the common four-arm
+intersection, not differences of aggregates with different seeds.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=.98\linewidth]
+    {figures/e118_scale_extensions_appendix.pdf}
+  \caption{\textbf{Per-domain results behind the cross-domain averages in
+  Figure~\ref{fig:maxrl-factorial}.} Rows show Qwen2.5-0.5B,
+  Falcon3-1B, and Qwen2.5-3B; columns show correctness and raw support.
+  MaxRL--ReplayMaxRL pairs retain five terminal seeds throughout the two
+  smaller models and Qwen2.5-3B: every MaxRL domain uses $n=5$.
+  Solid connectors identify these complete comparisons. Dr.GRPO--ReplayDr.GRPO uses four
+  admissible seeds for Falcon Countdown and five elsewhere. Domain tints match
+  Figure~\ref{fig:modebench-examples}.
+  Replay arrows, trained-arm markers, and untrained references use the same
+  encoding as Figure~\ref{fig:maxrl-factorial}. The
+  \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E118/README.md\#models}{E118 model index}
+  groups the archived exports by model and domain.}
+  \label{fig:maxrl-factorial-scale-extensions}
+\end{figure}
+
+
+Write $P=\texttt{pass@8}$, $D=\texttt{distinct@8}$, and $B=D-P$.
+The derived $B$ counts verified modes beyond the first correct outcome in
+each sampled set and remains coupled to correctness. The endpoint tables
+report exact paired terminal effects. A dash denotes no observed pair;
+partial means retain $n/5$ without an interval. Complete-block intervals
+are nominal 95\% estimates, without multiple-comparison or repeated-look
+adjustment. All underlying arm means and seed effects remain in the
+adjacent machine-readable records.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{ReplayMaxRL effects across model scales at pass 8.}
+  All effects are ReplayMaxRL minus MaxRL on the displayed paired seeds.
+  Brackets give paired Student-$t$ intervals for $\Delta B$ in complete blocks.
+  The machine-readable report also retains both arm means, all per-seed
+  effects, and intervals for $P$ and $D$.}
+  \label{tab:current-e118}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lllcrrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Domain} & \textbf{Replay arm} & $n/5$ &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+    \midrule
+    \input{results/current_campaign_results_20260912_e118_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+
+At Qwen2.5-0.5B, ReplayMaxRL adds $1.221$, $.990$, and $.751$ extra modes
+on Graph, Countdown, and PantryPlan, respectively; each five-seed interval
+excludes zero. Falcon Graph instead has a negative mean raw-support effect
+($-.093$, interval $[-.229,+.043]$), and its correctness effect is inconclusive
+($+.014$, $[-.016,+.044]$). Positive cross-domain effects therefore do not
+imply a breadth gain in every domain. All five Qwen2.5-3B blocks are complete. Their extra-mode effects are
+$+.163$, $+.152$, $+.115$, $+.0059$, and $+.609$ for Graph, Countdown,
+Python, MathIR, and PantryPlan; every nominal interval excludes zero,
+although MathIR's breadth gain is small. Correctness intervals exclude zero
+for Countdown, MathIR, and PantryPlan; Graph and Python remain inconclusive.
+
+\paragraph{Cross-domain factorial summaries.}
+\label{app:factorial-numerical-detail}
+Averaging five domains equally within each paired seed, ReplayMaxRL minus
+MaxRL gives $+.307$ on \texttt{pass@8} and $+.991$ on raw
+\texttt{distinct@8} at Qwen2.5-0.5B (unadjusted 95\% intervals
+$[+.208,+.406]$ and $[+.815,+1.167]$), and $+.133/+.228$ at Falcon3-1B
+($[+.043,+.223]$ and $[+.094,+.361]$). Both use five paired seeds.
+The Dr.GRPO replay effects on these two endpoints are $+.337/+.999$ at
+Qwen2.5-0.5B, $+.442/+.774$ at Falcon3-1B, and $+.279/+.559$ at
+Qwen2.5-3B. The Falcon Dr.GRPO average uses four common admissible seeds
+without an interval; the other two use five. These are post-hoc descriptive
+cross-domain summaries. At Qwen2.5-3B, MaxRL/ReplayMaxRL arm means are
+$.547/.701$ on correctness and $.744/1.107$ on raw support. Equal domain
+averages within each of seeds 70--74 give replay effects of $+.154$
+($[+.086,+.222]$) and $+.363$ ($[+.285,+.441]$), respectively.
+The common four-arm intersection contains fourteen complete five-seed
+blocks and Falcon Countdown
+at four seeds. Factorial interactions require that intersection rather than
+differences between aggregates using different seeds.
+
+
+\subsection{Terminal comparison on the harder level}
+\label{app:level2-interim}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/replay_level2_effects.pdf}
+\caption{\textbf{Replay effects within Level 2.}
+Replay and control are compared on the same prompts and training seeds, with
+separate Dr.GRPO and MaxRL effects. All five domains have complete
+five-seed factorials, including the twenty PantryPlan endpoints. Construction
+and admission are described in Section~\ref{sec:levels-design}; terminal
+absolute values appear in Figure~\ref{fig:level2-admission}. Differences
+between levels combine task, population, and protocol changes, so they do
+not identify a causal effect of difficulty alone.}
+\label{fig:replay-level2-effects}
+\end{figure}
+
+Figure~\ref{fig:level2-admission} uses all five domains, including PantryPlan.
+Each has all five seeds at step 3,072 for both levels and all four methods.
+Means average domains equally within each seed, then the five seed means.
+All 100 Level-2 endpoints are admitted; each within-domain contrast uses
+seeds 43--47, including all four arms. The levels have separate held-out
+prompts, with population differences in Appendix~\ref{app:data-levels};
+their comparison does not isolate the effect of task difficulty.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Replay effects on the harder Level-2 tasks at pass 8.}
+  MaxRL and Dr.GRPO identify the fresh objective; each effect is its replay
+  variant minus the corresponding objective without replay. Each row uses
+  its own pairwise intersection, which can exceed the four-method
+  intersection. Brackets give paired Student-$t$ intervals for $\Delta B$
+  only when all five registered pairs are available.}
+  \label{tab:current-e119}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lllcrrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Domain} & \textbf{Objective} & $n/5$ &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+    \midrule
+    \input{results/current_campaign_results_20260912_e119_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+
+Level-2 Graph provides the clearest replay effects on correctness and extra
+modes under both objectives. Countdown's ReplayMaxRL extra-mode effect is
+small ($+.017$, interval $[+.001,+.032]$), while its correctness and raw-support
+intervals include zero. Python and MathIR have positive mean correctness
+and raw-support effects with intervals including zero; MathIR's extra-mode
+effects are near zero. Pantry's complete five-seed Dr.GRPO replay contrast
+is $+.305$ on $P$, $+.491$ on $D$, and $+.186$ on $B$; its MaxRL replay
+contrast is $+.237$, $+.412$, and $+.175$, respectively. All six nominal
+intervals exclude zero. The $B$ intervals are $[+.103,+.270]$ and
+$[+.028,+.321]$; correctness also improves, so these are unconditional
+breadth effects rather than effects at fixed correctness.
+
+For each common seed and endpoint $Y$, the replay interaction is
+\[
+ I=(Y^{\rm ReplayMaxRL}-Y^{\rm MaxRL})
+    -(Y^{\rm ReplayDr.GRPO}-Y^{\rm Dr.GRPO}).
+\]
+Replay can add value under both fresh objectives without a positive
+interaction. On Level-2 Graph, MaxRL alone raises $P$ relative to Dr.GRPO
+by $+.233$ ($[+.140,+.325]$), while the replay interaction on $P$ is
+$-.256$ ($[-.329,-.183]$). This is an additional replay benefit after
+stronger fresh optimization, without a superadditive interaction.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Fresh-objective effects and replay interactions on Level 2.}
+  All three contrasts within a domain use the same four-arm seed
+  intersection. The interaction is
+  $(\mathrm{ReplayMaxRL}-\mathrm{MaxRL})-
+  (\mathrm{ReplayDr.GRPO}-\mathrm{Dr.GRPO})$.
+  Each entry gives its mean and, only for a complete five-seed block, a
+  paired unadjusted 95\% Student-$t$ interval. Archived four-arm exports:
+  \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E119/README.md\#models}{E119 model index}.}
+  \label{tab:level2-factorial-contrasts}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lclrrr@{}}
+    \toprule
+    \textbf{Domain} & $n$ & \textbf{Contrast} &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ \\
+    \midrule
+    \input{results/level2_factorial_contrasts_20260912_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+
+\paragraph{Level-2 Graph endpoint detail.}
+\label{app:levels-numerical-detail}
+The development admission comparison lowers frozen-model \texttt{pass@8} from $.438$
+to $.148$. At pass 8, Dr.GRPO/MaxRL reach $.202/.434$, versus $.763/.739$
+with their replay variants. The paired correctness gains are $+.561$ and
+$+.305$ (unadjusted 95\% Student-$t$ intervals $[+.445,+.677]$ and
+$[+.250,+.360]$, five seeds each). The weakest replay run ($.711$) exceeds
+the strongest non-replay run ($.477$). Replay adds $1.019/.668$ raw
+\texttt{distinct@8}, yielding $1.243/1.214$ under the two fresh objectives.
+These observations show improved correctness and sampled support on harder
+Graph; they do not establish that broader support causes the correctness
+gain. Cross-level prompts are distinct, and the four-domain Level-2
+aggregate excludes the incomplete Pantry factorial.
+
+\subsection{Accuracy and verified modes throughout training}
+\label{app:factorial-training-curves}
+
+The following curves include every primary method and model scale used
+in the main paper. Each objective pair uses its domain-specific terminal
+seed intersection as one fixed cohort throughout training. A checkpoint
+is plotted only when all members have complete, valid evaluations for both
+methods. Missing or conflicting checkpoints leave gaps; seed counts never
+shrink to extend a mean. Four fixed-seed draws of eight samples on the same
+128 held-out prompts define each evaluation. Accuracy and mode curves use
+identical seeds and checkpoints, without smoothing or outcome-based selection.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/factorial_training_curves_pass8.pdf}
+  \caption{\textbf{Accuracy throughout training at all three model scales.}
+  Rows are Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B; columns are the five
+  domains. Dr.GRPO, ReplayDr.GRPO, MaxRL, and ReplayMaxRL use the same method
+  colors as Figure~\ref{fig:maxrl-factorial}. Lines are fixed-cohort means of
+  \texttt{pass@8}; bands are seed ranges, not confidence intervals. Counts
+  identify each objective's terminal paired seeds. Qwen2.5-3B MaxRL uses
+  all five seeds in every domain; Falcon Countdown Dr.GRPO/replay uses four. Gaps indicate missing or conflicting checkpoints.}
+  \label{fig:factorial-training-accuracy}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/factorial_training_curves_distinct8.pdf}
+  \caption{\textbf{Verified modes throughout training at all three model scales.}
+  The same model rows, methods, seeds, and checkpoints as
+  Figure~\ref{fig:factorial-training-accuracy}, now measuring
+  \texttt{distinct@8}. Lines are descriptive fixed-cohort means and bands
+  show seed ranges. A count of one has no band. Domain-specific vertical
+  scales are shared across model rows; absolute heights across different
+  domains should be read against their labeled axes. Missing evaluations
+  are never carried forward or joined across a gap.}
+  \label{fig:factorial-training-modes}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/level2_factorial_training_curves.pdf}
+  \caption{\textbf{Accuracy and verified modes during Level-2 training.}
+  Qwen2.5-0.5B is the model tested at this level. Rows show \texttt{pass@8}
+  and \texttt{distinct@8} for all four primary methods. Graph, Countdown,
+  Python, and MathIR contain five terminal paired seeds per objective.
+  PantryPlan uses two terminal Dr.GRPO/replay pairs and one MaxRL/replay
+  pair. Additional unpaired histories are marked separately; they do not
+  contribute to paired means. One-seed curves have no band. Both metrics follow the same evaluation
+  rules, with gaps at missing checkpoints and no extrapolation.}
+  \label{fig:level2-training-curves}
+\end{figure}
+
+
+\subsection{Supporting comparators}
+\label{app:ucpo-progress}
+
+GRPO changes group-reward normalization; UCPO redistributes fresh on-policy
+advantage; sparse RLEP-Dr replays verified successes without uniform
+canonical-key weighting. Fixed Semantic MaxEnt supplies a fresh-rollout
+exploration incentive (Appendix~\ref{app:semantic-maxent}). These are
+controls for alternative explanations of the retention results.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=.98\linewidth]
+    {figures/direct_comparator_endpoint_effects.pdf}
+  \caption{\textbf{Direct alternatives produce local rather than uniform
+  final gains.} Each effect subtracts the same-seed Dr.GRPO control
+  from the comparator after eight passes. Effects are shown for \texttt{pass@8} and
+  extra verified modes beyond the first success. Circles are paired seeds; diamonds and 95\%
+  Student-\(t\) intervals appear only for complete five-seed blocks. Exact
+  \(n\) is printed, and unsupported comparisons remain blank rather than
+  being extrapolated or imputed at any seed.}
+  \label{fig:direct-comparator-effects}
+\end{figure}
+
+
+The alternatives give local rather than uniform benefits. Qwen-0.5B
+Countdown UCPO raises $P$ by $+.133$ ($[+.005,+.262]$) and $B$ by $+.051$
+($[+.031,+.071]$), whereas its MathIR effects are inconclusive. MathIR
+RLEP-Dr raises $P$ by $+.126$ ($[+.030,+.222]$) with neutral extra modes
+($-.002$, $[-.006,+.003]$); its Countdown effects and Falcon Pantry effects
+are inconclusive. The full five-seed 3B plain-GRPO blocks likewise have
+intervals including zero on both correctness and extra modes.
+RLEP's frozen offline pool was collected at temperature $.7$, top-$p=.95$;
+all reported evaluations use the common temperature-1, top-$p=1$ contract.
+An offline pool versus an online bank remains an algorithmic difference.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]
+    {figures/direct_baseline_learning_curves_static_strip.pdf}
+  \caption{\textbf{Verified-mode trajectories for the supporting comparators.}
+  Rows show Qwen2.5-0.5B and Falcon3-1B; columns are the five domains.
+  UCPO and sparse RLEP-Dr are compared with Dr.GRPO and ReplayDr.GRPO
+  at these two smaller scales.
+  Labels give exact method-specific seed counts. Lines are descriptive
+  \texttt{distinct@8} means and bands are seed ranges. The corresponding
+  accuracy curves use identical populations in
+  Figure~\ref{fig:direct-baseline-accuracy-curves}.}
+  \label{fig:direct-baseline-curves}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/direct_baseline_learning_curves_pass8.pdf}
+  \caption{\textbf{Accuracy trajectories for the supporting comparators.}
+  The same model rows, domains, methods, terminal seeds, and registered
+  checkpoints as Figure~\ref{fig:direct-baseline-curves}, now measuring
+  \texttt{pass@8}. Bands show the seed range and the vertical axes span
+  $[0,1]$ throughout. MaxRL and ReplayMaxRL at all three scales are compared
+  on both metrics in Figures~\ref{fig:factorial-training-accuracy} and~\ref{fig:factorial-training-modes}.}
+  \label{fig:direct-baseline-accuracy-curves}
+\end{figure}
+
+
+\subsection{Uniform versus fresh-frequency replay}
+\label{app:frequency-replay-progress}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/replay_key_weighting.pdf}
+\caption{\textbf{Equal key weights can improve breadth beyond the first success.}
+Uniform minus fresh-frequency weighting of verified replay. Success and extra
+modes are separate endpoints; a positive extra-mode effect does not hold
+correctness fixed. The displayed model, domains, seeds, and uncertainty use
+the frozen weighting comparison. The domain variation and inconclusive
+success contrast limit the claim to the demonstrated breadth contribution.}
+\label{fig:replay-key-weighting}
+\end{figure}
+
+The weighting ablation retains the same bank construction and update code,
+changing only the within-bank target: uniform weights over retained keys
+versus weights proportional to validator-positive fresh-rollout counts.
+Policy-dependent bank contents can subsequently differ. Positive contrasts
+below favor uniform weighting. The registered co-primary contrasts are
+$\Delta B$ and $\Delta P$; the five-domain Qwen2.5-0.5B aggregate first
+averages domain effects within each matched seed, giving equal domain weight.
+
+Complete-block intervals enumerate all $5^5=3{,}125$ ordered bootstrap
+resamples of the five paired training seeds and use linearly interpolated
+2.5th and 97.5th percentiles. A resampled seed carries its complete domain
+vector when estimating the five-domain aggregate. The endpoints and
+aggregate were preregistered; the exact seed-resampling and percentile
+conventions are analysis choices. These nominal intervals quantify seed
+variability within the fixed benchmark, without resampling prompts or
+domains or adjusting across comparisons.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Uniform versus fresh-frequency replay at pass 8.}
+  Effects are uniform minus frequency weighting. Brackets give the paired
+  percentile bootstrap interval for $\Delta B$ over all $5^5$ ordered
+  resamples in complete blocks. All nine
+  blocks contain five seed pairs
+  (\href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E120-R1/README.md\#comparators}{paired model exports}).}
+  \label{tab:current-e120}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lllcrrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Domain} & \textbf{Weighting} & $n/5$ &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+    \midrule
+    \input{results/current_campaign_results_20260912_e120_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+
+The registered Qwen2.5-0.5B five-domain effect is $+.318$ extra modes per
+prompt ($[+.272,+.358]$), with positive within-seed domain averages in all
+five seeds. Graph, Countdown, and PantryPlan drive this result; Python and
+MathIR remain inconclusive. The correctness effect is $+.010$
+($[-.119,+.139]$), establishing neither a gain nor equivalence. Python's
+correctness effects range from $-.781$ to $+.828$ across seeds despite
+small extra-mode effects in four seeds.
+
+Falcon Graph also favors uniform weighting on extra modes ($+.233$,
+$[+.182,+.320]$), but its mean sampled correctness decreases by $-.0152$
+($[-.0214,-.0090]$); its $P$ interval includes zero. Falcon Pantry is
+inconclusive: $\Delta B=-.146$ ($[-.564,+.414]$) and $\Delta P=-.021$
+($[-.063,+.026]$). Qwen2.5-3B Graph is complete at five pairs, with an extra-mode effect of
+$+.079$ ($[+.011,+.135]$); its correctness interval includes zero.
+Pantry also has five pairs, with $\Delta B=+.207$
+($[+.038,+.377]$) and inconclusive correctness ($+.011$, $[-.020,+.043]$).
+The evidence supports a contribution from key balancing in the stated domains, not a
+uniform accuracy or breadth advantage across every model--domain block.
+
+\paragraph{Evidence boundary.}
+\label{app:scale-boundary}
+The primary effects are within-domain, within-scale paired comparisons.
+They do not establish a scaling law, a positive factorial interaction, or
+preservation of every previously discovered mode. Every block in the scale
+factorial, the Level-2 factorial, and the weighting ablation is complete at
+five paired seeds; the separate Falcon Countdown Dr.GRPO comparison has four
+seeds and receives no interval.
+
+\input{results/semantic_current_summary_20260912.tex}
+
+\section{Collapse and Replay Mechanism Checks}
+\label{app:ablations}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/concentration_story.pdf}
+\caption{\textbf{Training concentrates verified outputs; canonical replay can mitigate it.}
+Left: final minus initial correct-key collision for Dr.GRPO and GRPO.
+Right: replay minus its matched terminal control, separately for Dr.GRPO and
+MaxRL. Graph and PantryPlan have substantial initial breadth. Dots and nominal
+95\% intervals average five seed contrasts; each contrast weights jointly
+eligible prompts equally. Smaller markers show the two disjoint-stream
+orientations; gutters give defined seed $n$ and the eligible-prompt count
+range out of 128. The two panels have
+separate eligibility and are not one trajectory. Appendix~\ref{app:conditional-concentration}
+reports all five domains, undefined cells, source assumptions, and correctness changes on the same eligible prompts.}
+\label{fig:concentration-story}
+\end{figure}
+
+\input{results/conditional_concentration_20260912_appendix.tex}
+
+
+
+\subsection{Breadth before and after verifier-only training}
+\label{app:pre-rl-regression}
+
+The problem precheck evaluates unmodified Dr.GRPO and GRPO at passes 0 and 8
+on all three models and five domains: 150 complete runs, each with four
+fixed $K=8$ draws. The five-domain macro-average of extra verified modes
+falls by $98.2\%$--$99.4\%$ at Qwen2.5-0.5B and $41.5\%$--$71.6\%$ at
+larger scales. Correctness falls in 10 of the 30 domain--method--scale
+comparisons, while macro raw \texttt{distinct@8} ends above its initial
+value at Qwen2.5-3B. This distinguishes loss of multiple correct outcomes
+from the broader question of whether any correct outcome is sampled.
+
+Initial evaluations are measured within each method. Qwen2.5-3B MathIR and
+Pantry seeds 71--74 carry slightly different initial requests from plain GRPO
+($.154$ versus $.162$, and $.832$ versus $.828$ on $P$), so those cells have
+separate initial references.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/baseline_collapse_precheck.pdf}
+  \caption{\textbf{Verifier-only training reduces average extra verified modes
+  at each tested scale.} Bars split \texttt{distinct@8} into the first correct
+  mode and every verified mode beyond it, at training pass 0 and pass 8, for
+  unmodified Dr.GRPO then GRPO in each panel. All 150 evaluations are complete at five
+  seeds and four fixed \(K=8\) draws; whiskers are the seed range and pass 0 is
+  measured per method. Badges give the change in extra verified modes, printed only
+  where pass-0 breadth exceeds \(.05\) of them; the other three domains start at
+  \(.011\) or less.
+  \label{fig:baseline-precheck}}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+  \caption{\textbf{Problem precheck, five-domain macro-averages.} Both
+  verifier-only objectives at pass 0 and pass 8, all three scales, five seeds
+  and four fixed $K=8$ draws per model--domain--method comparison. ``Extra modes'' is
+  \texttt{distinct@8}$-$\texttt{pass@8}; ``removed'' is the fraction of that
+  quantity lost between pass 0 and pass 8. Breadth loss is present at every
+  scale and is far from uniform across scales, and at Falcon3-1B Dr.GRPO
+  macro \texttt{pass@8} falls as well.}
+  \label{tab:baseline-collapse-precheck}
+  \small
+  \setlength{\tabcolsep}{4.5pt}
+  \begin{tabular}{@{}l*{6}{c}@{}}
+    \toprule
+    & \multicolumn{3}{c}{\textbf{Dr.GRPO}} & \multicolumn{3}{c}{\textbf{GRPO}} \\
+    \cmidrule(lr){2-4}\cmidrule(l){5-7}
+    \textbf{Model} & \texttt{pass@8} & extra modes & removed
+                   & \texttt{pass@8} & extra modes & removed \\
+    \midrule
+    \input{results/baseline_collapse_precheck_table_body.tex}
+  \end{tabular}
+\end{table}
+
+
+Graph and PantryPlan contain substantial initial breadth at every scale;
+the other three domains begin with at most $.011$ extra modes per prompt.
+A retained-breadth percentage is therefore reported only when the initial
+extra-mode count exceeds $.05$. Raw $\texttt{distinct@8}$ ends below its
+initial value in six of the 15 Dr.GRPO domains. ReplayDr.GRPO does so in
+two available domain summaries, both PantryPlan; Falcon Countdown uses
+four admissible seeds. These observations concern sampled held-out support,
+not the survival histories of particular stored modes.
+
+Uniform-action references are meaningful for the enumerable Graph and
+Pantry representations. They are not defined for open-ended programs or
+derivations. Pantry's bit-uniform reference exceeds every final model, so
+this domain is a support-concentration stress test rather than evidence
+of complete support coverage.
+
+\begin{table}[t]
+  \centering
+  \caption{\textbf{Absolute references for raw \texttt{distinct@8}.}
+  \emph{Uniform} samples the exposed action representation uniformly and is
+  defined only for Graph (27 color strings) and PantryPlan (64 bit masks).
+  Frozen is the matched pass-0 model; the final two columns are pass-8 means.
+  Dashes avoid pretending that an open-ended program or derivation space has a
+  canonical uniform distribution.}
+  \label{tab:absolute-support-references}
+  \scriptsize
+  \setlength{\tabcolsep}{4.2pt}
+  \begin{tabular}{@{}llrrrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Domain} & \textbf{Uniform} & \textbf{Frozen}
+      & \textbf{Dr.GRPO} & \textbf{ReplayDr.GRPO} \\
+    \midrule
+    \input{results/absolute_support_references_table_body.tex}
+  \end{tabular}
+\end{table}
+
+
+\subsection{Fresh-gradient degeneracy and observed output collapse}
+\label{app:degenerate-groups}
+
+A Dr.GRPO group with identical rewards has exactly zero fresh task gradient.
+Only mixed groups containing both correct and incorrect responses can
+supply fresh reward information; optimizer momentum can still move a
+policy when that task gradient is zero. The fractions of mixed groups
+over all 3,072 Qwen2.5-0.5B updates, averaged over five seeds, are:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Domain} & \textbf{Dr.GRPO} & \textbf{ReplayDr.GRPO} \\
+\midrule
+Graph coloring & .144 & .954 \\
+Countdown & .140 & .456 \\
+Python factors & .015 & .185 \\
+MathIR & .364 & .453 \\
+PantryPlan & .123 & .789 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Thus 98.5\% of Python control updates carry zero fresh task gradient.
+Replay supplies a verified-likelihood gradient directly and can also
+change the policy so that later fresh groups become mixed.
+
+A raw-response audit of all five Qwen2.5-0.5B Python control seeds establishes
+observed output collapse directly. At pass 0, a draw has 7.99 unique raw
+completions per prompt on average. By steps 288--480, every seed produces
+32 byte-identical temperature-1 samples per prompt, also identical to the
+logged greedy completion, on all 128 prompts. This persists through step
+3,072. Terminal draws contain 1.00 unique completion per prompt in the
+control and 1.97 under replay. A collapsed completion can be incorrect:
+this is one observed completion per prompt, not one correct key everywhere.
+Aggregate endpoint equality or zero draw spread alone would not establish
+that conclusion, nor does this finite audit rule out low-probability tails.
+
+These checks explain a vulnerability of the registered sparse binary-reward
+recipe. They do not establish dominance over methods that keep fresh
+on-policy signal active. Dynamic mixed-group sampling, larger groups,
+reference KL, token-entropy regularization, and wider-decoding evaluations
+remain relevant controls beyond the registered factorial.
+
+\subsection{Fixed-bank exemplar score trajectories}
+\label{app:fixed-bank-survival}
+
+The fixed-bank study tracks Qwen2.5-0.5B ReplayDr.GRPO on Graph for seeds
+43--47. Before step 384's fresh group, bank membership and fresh counts
+are frozen; admission then stops while uniform replay continues through
+3,072 updates under the same training recipe. Every frozen exemplar is
+identified by prompt and canonical-key fingerprints, without selection by
+its score trajectory. Each scheduled replay visit records mean token log
+probability $s$ and sequence log probability $\ell$. Changes compare an
+identity's first and final post-freeze visits; observation steps can differ
+across identities.
+
+All 3,406 frozen identities across 1,575 seed--prompt pairs have finite,
+aligned scores at every scheduled visit: 8--9 visits per identity and
+29,041 observations in total. The pooled median change is $+.038$
+nat/token (95\% interval $[+.025,+.048]$), but the 10th percentile is
+$-.256$ and $2.61\%$ of identities lose more than $.5$ nat/token
+($[1.54,3.77]\%$). The worst intermediate change is $-1.328$ nat/token.
+On the sequence scale, the median is $+.154$ nat/sequence
+($[+.104,+.198]$), while $21.99\%$ lose more than $.5$ nat/sequence.
+Lengths range from 4 to 100 tokens, so the two threshold percentages have
+different meanings.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=.95\linewidth]{figures/e121_fixed_bank_survival.pdf}
+  \caption{\textbf{Fixed-exemplar scores improve centrally but retain a declining tail.}
+  Empirical cumulative distributions show first-to-final post-freeze score
+  changes for every frozen identity, with one curve per seed and the pooled
+  identity distribution. Mean token and sequence scores are separate panels;
+  positive values indicate increased teacher-forced likelihood. Neither panel
+  measures the exact probability of generating a canonical mode during policy sampling.}
+  \label{fig:e121-fixed-bank-survival}
+\end{figure}
+
+
+Pooled summaries weight identities equally. Descriptive 95\% intervals
+use 10,000 hierarchical bootstrap draws (random seed 121), resampling prompts within each
+original seed and then five seeds with replacement; repeated seeds reuse
+their within-draw prompt sample. Linear empirical quantiles and percentile
+intervals are analysis choices. The artifact
+\path{paper/results/e121_fixed_bank_survival.json} retains all seed summaries,
+identity trajectories, source hashes, and audit diagnostics.
+
+These are teacher-forced score surrogates, not exact probabilities of
+sampling canonical modes. Visits do not cover every intervening update,
+and the declining tails exclude a claim that every exemplar improves.
+Without a matched no-replay fixed-bank arm, this study does not identify
+a causal replay effect. It neither numerically validates
+Theorem~\ref{thm:replay-retention}'s probability floor nor certifies a finite-network
+guarantee. It adds longitudinal measurements of fixed exemplars to the
+held-out support evidence.
+
+\clearpage
+\phantomsection
+\begin{center}\large\textbf{Part IV. What breadth represents}\end{center}
+\addcontentsline{toc}{part}{Part IV. What breadth represents}
+
+\section{Matched Prompt-Hint Ablation}
+\label{app:prompt-hint-ablation}
+
+\input{results/modebench_prompt_ablation_20260911.tex}
+
+\paragraph{Interpreting the intervention.}
+The Python intervention removes an executable nested-conditional example
+along with divisor-testing and dispatch guidance; it also shortens the prompt.
+Its paired effect concerns this combined removal and does not isolate a
+preference cue from example or length effects. A reduction in
+\texttt{distinct@8} accompanied by lower \texttt{pass@8} is not by itself
+evidence of greater concentration among correct outputs.
+Here the initial model is the single fixed Qwen2.5-0.5B-Instruct checkpoint
+before the reported RL training; it is already instruction-tuned and has no
+fine-tuning-seed replication in this ablation.
+
+
+\paragraph{Observed prompt dependence.}
+Python shows a large loss of correctness after guidance removal. Across the
+five DrGRPO seeds, mean $P_8$ falls from $.8125$ to zero at Level~2 and from
+$1.0$ to zero at Level~3; $D_8$ falls identically and $B_8=0$ in both arms.
+With no correct neutral DrGRPO outputs, its conditional-correct concentration
+is undefined. Replay DrGRPO retains neutral $P_8=.55625$ and $.49375$ and
+$D_8=.675$ and $.65625$ at Levels~2 and~3, respectively, while losing
+additional breadth: $\Delta B_8=-.2375$ and $-.25625$. The initial checkpoint
+also loses Python correctness (Table~\ref{tab:prompt-hints-local-strict}).
+These observations identify substantial dependence on the combined Python
+wording intervention; a raw mode-count decline cannot be interpreted solely
+as a redistribution among correct answers.
+
+
+\paragraph{Post-hoc Python failure audit.}
+A descriptive audit of all 5,120 saved DrGRPO Python draws (five seeds,
+two levels, both wordings) finds that all 2,560 original outputs extract
+the same lambda, whose body matches the conditional example in the prompt:
+\begin{quote}\footnotesize\ttfamily
+lambda n: 2 if n \% 2 == 0 else 3 if n \% 3 == 0 else 5
+\end{quote}
+Of the 2,560 neutral draws, 1,816 (70.94\%) are invalid Python expressions,
+59 violate other restricted-language rules, 376 return non-integers,
+276 fail the proper-divisor condition, and 33 lack an extracted candidate
+after reaching the token limit. Thus most neutral failures involve syntax;
+truncation accounts for only 1.29\%. The unchanged extractor, parser, and
+executor reproduce every stored grade and successful canonical key.
+This taxonomy was developed after the paired results were known and does
+not identify an internal training mechanism. Counts, deterministic paired
+examples, and source hashes are retained in
+\path{results/modebench_prompt_ablation_python_failure_diagnostic_20260911.json}.
+
+\paragraph{Concentration after hint removal.}
+Every trained MathIR checkpoint has $B_8=0$ under both wordings at both levels.
+Within each problem's eight-draw group, every observed pair of correct
+outputs shares a canonical key, in every trained checkpoint--level cell:
+correct-pair collision is $1.0$, versus the
+certified-support uniform reference of $.2$. For example, at Level~2, Replay
+DrGRPO retains mean $P_8=.975$ without the order hint, compared with $.99375$
+originally. Across its five checkpoints, the neutral arm has 4,179 colliding
+pairs out of 4,179 correct pairs, from 154 eligible checkpoint--problem
+groups; the original arm has 4,382 out of 4,382 pairs from 157 such groups.
+Both arms evaluate the same 32 problems at each checkpoint. This preserves
+the observed concentration despite removing the specified order hint; it does
+not measure all unseen modes or remove the other interface constraints.
+Pantry effects are mixed. Replay DrGRPO at Level~3 gains $.109375$ in $D_8$,
+comprising $.046875$ in $P_8$ and $.0625$ in $B_8$, but this comparison has only
+two training seeds. The separate completed 64-draw hosted follow-up
+tests both wordings on sixteen problems per cell in
+Appendix~\ref{app:sampling-budget-ablation}; its population and draw budget
+remain distinct from this local eight-draw experiment.
+
+
+\clearpage
+\section{Sampling-Budget Ablation}
+\label{app:sampling-budget-ablation}
+
+\input{results/modebench_discovery_curves_20260911.tex}
+
+\input{results/discovery_hosted_interpretation_20260912.tex}
+
+\input{results/gpt56_all_levels32_sampling_20260913.tex}
+
+\subsection{Observed sampling-budget effects}
+
+The full experiment is complete: 36,864 hosted and 110,592 local responses,
+147,456 in total. Each of the six hosted model--wording cohorts has all
+6,144 planned draws; strict and normalized analyses retain every response.
+
+The completed local panel contains 110,592 fresh responses from all 25
+registered checkpoints. Each trained checkpoint is evaluated in its own domain
+at both levels; the initial checkpoint covers all six cells. Serial regrading
+corrects one original Python grade from failure to success, confirmed once
+in an independent warmed worker using the unchanged verifier and timeouts.
+The saved receipt does not identify the cause of the original discrepancy.
+No response is rescued by formatting normalization, so strict and normalized
+analyses coincide throughout this panel. The original responses and grades
+remain available alongside the correction audit and source identities.
+
+\paragraph{MathIR: concentration largely persists through 64 draws.}
+At Level~2, both trained methods have $B_k=0$ at every measured budget under
+both wordings. Replay DrGRPO has original $P_8=.9774$ and $P_{64}=.9875$;
+neutral wording gives $.9767$ and $.9875$. Its $D_k$ equals $P_k$ throughout,
+so the small late gain consists entirely of first successes. At exactly eight
+correct draws, both wordings have $R_8=1$ on the same 76 eligible
+checkpoint--problem groups, versus the certified-support uniform lower
+reference $5[1-(4/5)^8]=4.1611$. These groups reuse the same 16 problems
+across five checkpoints. At Level~3, all neutral trained groups and all
+original Replay DrGRPO groups also contain at most one observed correct key.
+There is one exception in original DrGRPO: a single problem at seed~46
+contains two keys with counts 28 and 9, giving mean $B_{64}=.0125$ and
+$B_{64}-B_8=.0035$. Its equal-seed correct-pair collision is $.9803$;
+the other trained MathIR cells have collision $1.0$, against the uniform
+upper reference $.2$. Thus the larger budget reveals a rare additional mode
+without supporting an exact single-mode claim for every trained condition.
+
+\paragraph{Python: prompt dependence and late discovery coexist.}
+Original DrGRPO has unchanged $P_k=D_k=.8125$ at Level~2 and $1.0$ at
+Level~3 from eight through 64 draws. Neutral DrGRPO has zero correct responses
+out of 5,120 at Level~2 and three out of 5,120 at Level~3. Each of those
+three successes occurs alone in its checkpoint--problem group, so Level~3
+mean $P_{64}=D_{64}=.0375$ while correct-pair collision remains undefined.
+Replay DrGRPO behaves differently. Under original wording its pass probability
+is already unchanged from eight to 64, but $D_k$ gains $.0582$ at Level~2
+and $.1529$ at Level~3. Under neutral wording, $P_k$ rises from $.5186$ to
+$.7500$ and from $.5109$ to $.7500$, respectively; $D_k$ rises from $.6618$
+to $1.1250$ and from $.6561$ to $1.1875$. These final mode counts remain
+below the original $1.2750$ and $1.5750$. The corresponding additional-mode
+gains are $.2318$ [$.0574,.4565$] and $.2923$ [$.0659,.5445$], with the
+registered seed-and-prompt intervals. Larger budgets therefore recover both
+first successes and additional verified alternatives in the neutral replay
+condition. These unconditional gains do not identify a change in the
+conditional distribution of correct solutions by themselves.
+
+\paragraph{Pantry: eight draws understate observed discovery.}
+Across the trained Pantry cells and both wordings, $D_{64}-D_8$ ranges
+from $.4151$ to $1.0247$, with additional-mode gains ranging from $.2739$
+to $.7664$. The initial checkpoint also gains $.8565$--$1.0778$ modes.
+In the two observed training seeds, Level~3 point estimates even change
+method ordering: original DrGRPO/Replay DrGRPO have $D_8=.2075/.3381$
+but $D_{64}=1.1563/.9063$; neutral wording gives $.2253/.3515$ at eight
+and $1.2500/.8125$ at 64. This is a descriptive ranking of these checkpoints,
+not evidence of a population-level method advantage. Pantry has only two
+training seeds, and fixed-correctness comparisons at larger $m$ often have
+few or no jointly eligible problems. The eligibility table and undefined
+means remain essential to interpreting the conditional curves.
+
+These observations support persistent concentration in several trained
+conditions and substantial late discovery in others. A flat finite-sample
+curve cannot exclude rarer unseen modes, and the result does not license a
+single saturation claim across domains. The new $k=8$ points rarefy the fresh
+64-draw pools on 16 problems per cell; they are not differences against the
+previous experiment's 32-problem scores. The completed hosted panel below
+adds a separate comparison of fixed deployments on these historical tasks;
+it is not evidence from newly trained Level-3 checkpoints.
+
+
+% Concise theory for both papers; full derivations are preserved in
+% paper/audits/streamlining_20260911/full_theory.tex.
+
+\input{results/inference_followups_20260912.tex}
+
+\clearpage
+
+\clearpage
+\phantomsection
+\begin{center}\large\textbf{Part V. Fixed deployments}\end{center}
+\addcontentsline{toc}{part}{Part V. Fixed deployments}
+
+\input{results/frontier_hosted_20260911_appendix.tex}
+
+
+
+% Render this retained display inside its generated numerical appendix.
+\AddToHookNext{file/after/gpt56_temperature_curve_20260911_appendix.tex}{%
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=.98\linewidth]{figures/gpt56_temperature_curve.pdf}
+  \caption{\textbf{Temperature traces pass@8 and verified breadth.}
+  GPT-5.6 Sol, with 480 fixed prompts and eight draws each at $T\in\{0,0.5,1,1.5,2\}$.
+  Left: all domains and levels; right: separate levels, averaging five domains
+  equally. Empirical \texttt{pass@8} is the fraction with at least one correct
+  draw; \texttt{distinct@8} averages unique correct modes, including zeroes.
+  Connected points use reasoning \texttt{none} and the frozen formatting
+  normalizer.
+  Appendix~\ref{app:gpt56-temperature} gives pointwise uncertainty intervals
+  for every benchmark level and all five measured temperatures.}
+  \label{fig:gpt56-temperature-curve}
+\end{figure}
+}
+
+\input{results/frontier_comparison_20260911_appendix.tex}
+
+\input{results/hosted_level_averages_20260911.tex}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/hosted_verified_breadth.pdf}
+  \caption{\textbf{Accurate hosted outputs can still cover few verified modes.}
+  Columns show domains; markers distinguish Levels 1--3. Each point uses all
+  eight responses to each of 128 prompts. Top: per-response accuracy.
+  Bottom: \texttt{distinct@8}. A fixed formatting normalizer applies to every
+  deployment; Opus 5 Python uses revised task wording without a system message.
+  Table~\ref{tab:hosted-level-averages-medium} reports the corresponding
+  per-level averages of \texttt{pass@8} and \texttt{distinct@8} across all five domains.}
+  \label{fig:hosted-verified-breadth}
+\end{figure}
+
+\input{results/hosted_reasoning_off_20260912_appendix.tex}
+
+\clearpage
+\phantomsection
+\begin{center}\large\textbf{Part VI. Idealized analysis}\end{center}
+\addcontentsline{toc}{part}{Part VI. Idealized analysis}
 
 \section{Mode Collapse and Verified Replay}
 \label{app:theory}
@@ -1713,1512 +3249,10 @@ and longitudinal exemplar scores remain separate measurements.
 
 % Shared scientific provenance; operational inventories remain in the repository.
 
-\section{Benchmark and Evaluation Protocol}
-\label{app:data}
-\label{app:experimental-design}
-\label{app:domain-overview}
-\label{app:data-inventory}
-
-\mb{} defines correctness and identity through the same executable validator:
-invalid outputs receive reward zero and no key; valid outputs receive reward
-one and a canonical execution key. Neither the complete valid-key catalogue
-nor its size is supplied to training, replay, scheduling, or stopping.
-Table~\ref{tab:tasks} specifies the five domains and which surface forms merge.
-The \href{https://huggingface.co/datasets/od2961/ModeBench}{public dataset}
-preserves each domain's split roles and construction identity. The training
-comparisons reported here use Levels 1 and 2.
-
-\begin{table}[H]
-  \centering
-  \caption{\textbf{\mb{}.} Correctness and identity come from
-  one executable path; training starts without the mode catalogue.
-  \emph{Valid modes} is the mean number of correct execution modes per
-  evaluation prompt, exact over the released multi-answer split. Every domain
-  trains on 384 prompts and evaluates on a fixed 128-prompt split;
-  the exact prompt each policy receives is reproduced verbatim in
-  Appendix~\ref{app:prompts} for a direct, byte-level audit of the evaluation
-  interface.}
-  \label{tab:tasks}
-  \footnotesize
-  \setlength{\tabcolsep}{5pt}
-  \renewcommand{\arraystretch}{1.08}
-  \begin{tabularx}{\linewidth}{@{}l
-      >{\hsize=1.25\hsize}Y
-      >{\hsize=.8\hsize}Y
-      >{\hsize=.95\hsize}Y
-      r@{}}
-    \toprule
-    \textbf{Domain} & \textbf{Generated answer / check} &
-    \textbf{Executed key} & \textbf{Aliases that merge} &
-    \textbf{valid modes} \\
-    \midrule
-    Graph coloring & Complete assignment; check fixed colors and edges &
-    Color vector & Spacing only & 6.27 \\
-    \addlinespace[2pt]
-    Countdown & Parse operands; execute exactly &
-    Normalized AST & Commutative order & 4.52 \\
-    \addlinespace[2pt]
-    Python factors & Execute restricted lambda externally &
-    Return vector & Source programs with same behavior & 229.44 \\
-    \addlinespace[2pt]
-    MathIR & Execute bounded action program &
-    State trajectory & Programs with the same states & 5.00 \\
-    \addlinespace[2pt]
-    PantryPlan & Exact ingredient allocation; check all bounds &
-    Ingredient support & Quantity and ordering aliases & 18.19 \\
-    \bottomrule
-\end{tabularx}
-\end{table}
-
-
-
-\subsection{Split identities and executable validation}
-\label{app:data-materialization}
-
-Every domain uses 384 training and 128 disjoint evaluation prompts.
-Python materialization independently executes at least two functions with
-different valid keys for every row; MathIR executes every certified route
-through the same interpreter used for model outputs.
-
-\begin{table}[H]
-\centering
-\caption{Deterministic materialization identities. Hashes bind the released rows to their executable checks; the full hashes and construction records accompany the data.}
-\label{tab:materialization-identities}
-\small
-\begin{tabular}{@{}lrr@{}}
-\toprule
-& \textbf{Python factors} & \textbf{MathIR action menu} \\
-\midrule
-Training rows & 384 & 384 \\
-Evaluation rows & 128 & 128 \\
-Exact modes per prompt & 16--3,600 & 5 \\
-Training-row SHA-256 & \texttt{bcfa9acc\ldots37cf7} & \texttt{bfc98362\ldots5d3835} \\
-Evaluation-row SHA-256 & \texttt{be0f621c\ldots94d183} & \texttt{df5783dd\ldots328b96} \\
-Gold catalogue supplied to policy & no & no \\
-Training-bank initialization & empty & empty \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{PantryPlan.}
-\label{app:data-pantry}
-The deterministic v2 release has 384/64/128 training/development/evaluation
-prompts across four formulation families. Exact support ranges from 8 to 45;
-the 128 evaluation prompts contain 2,328 feasible supports, averaging
-$18.1875$. Training and evaluation row hashes are
-\texttt{a4883c5e\ldots a757f} and \texttt{5d81ba8d\ldots5923}.
-The validator checks exact inventory, serving steps, mass, nutrient bounds,
-and dietary tags; identity is ingredient support. A verified allocation is
-not a claim of palatability, cookability, or safety.
-
-\subsection{Python execution contract}
-\label{app:python}
-\label{app:python-language}
-
-Candidates are stripped, limited to 240 characters and 64 AST nodes, and
-parsed in expression mode. The only accepted form is \texttt{lambda n: EXPR}
-with exactly one ordinary argument named \texttt{n}: no defaults,
-positional-only, keyword, or variadic arguments. Integer literals have
-absolute value at most 10,000. The expression grammar permits \texttt{n},
-\texttt{+}, \texttt{-}, \texttt{*}, floor division, remainder, integer
-comparisons, Boolean \texttt{and}/\texttt{or}, unary plus/minus/\texttt{not},
-and conditionals. Boolean and non-integer literals, calls, imports,
-attributes, comprehensions, containers, subscripts, assignment, loops, and
-other identifiers are rejected. Task specifications contain two to eight
-distinct integers in $[4,1000]$ and at least two valid behavior vectors.
-
-\paragraph{External execution.}
-\label{app:python-process}
-The trainer never executes candidate code. A locked parent client launches
-an isolated Python \texttt{-I} process in a fresh session, with a persistent
-JSON-lines worker accepting only restricted source and trusted task JSON.
-The worker repeats the AST checks, compiles the expression with empty
-\texttt{\_\_builtins\_\_}, and executes the frozen inputs under a
-0.25-second real-time alarm; the parent enforces a separate one-second
-response deadline. A valid response contains the integer vector and key.
-Timeouts, empty or malformed responses, broken pipes, non-integer outputs,
-and failed divisor checks yield $\bot$ and zero reward. Broken pipes,
-operating-system errors, and malformed responses permit one clean worker
-restart; a timed-out request remains failed. Worker stdout is never parsed
-as a candidate answer, and exceptions never produce a key.
-
-\paragraph{Behavioral identity.}
-\label{app:python-identity}
-For every frozen input $n_j$, the returned $d_j$ must be an integer but not a
-Boolean, satisfy $1<d_j<n_j$, and divide $n_j$ exactly. All checks must pass.
-The key is the ordered vector
-$\texttt{python\_factor:}d_1\texttt{,}\cdots\texttt{,}d_m$;
-programs merge exactly when their vectors agree. The exact support count
-$\prod_j|\{d:1<d<n_j,\ d\mid n_j\}|$ is used only for dataset validation.
-
-\subsection{Matched Level-2 construction}
-\label{app:data-levels}
-
-Level 2 changes problem structure while preserving the verifier and
-canonicalizer. Its 384/128/128 training/development/evaluation rows have
-disjoint identities across the Level-1 and Level-2 splits. Training histograms
-match the native Level-1 training sets. Development and evaluation histograms
-match designated Level-1 development and confirmation reserves in Graph,
-Countdown, Python, and MathIR; Pantry uses native references, with its
-64-row development histogram doubled to 128 rows.
-
-These construction reserves are not the native Level-1 terminal test sets.
-The displayed terminal evaluations have different valid-key histograms
-between levels in Graph, Countdown, and Python. Cross-level changes therefore
-combine task structure and test population; they do not isolate difficulty
-at fixed test-set support. Replay comparisons remain paired within each
-level on the same prompts, seeds, fresh objective, and training budget.
-
-\begin{center}
-\small
-\begin{tabularx}{.96\linewidth}{@{}lYY@{}}
-\toprule
-\textbf{Domain} & \textbf{Level 1} & \textbf{Level 2 structural change} \\
-\midrule
-Graph coloring & Three hidden vertices & Four hidden vertices \\
-Countdown & Three operands & Four operands, with values up to 14 \\
-Python factors & Four executed cases, all at most 96 & Four cases, including a value above 96 \\
-MathIR & One-sided linear families & Variable-on-both-sides families \\
-PantryPlan & Base dietary/composition constraints & More active dietary exclusions and tighter composition \\
-\bottomrule
-\end{tabularx}
-\end{center}
-
-Before treatment training, frozen Qwen2.5-0.5B development evaluation admitted
-a Level-2 domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
-its construction-reference Level-1 value under identical decoding. The matched-level
-identity manifest records support histograms, row hashes, construction
-seeds, disjointness checks, and these admission receipts.
-
-
-
-\paragraph{Scale-calibrated Level 3.}
-Level 3 uses frozen Qwen2.5-3B against the same fixed Qwen2.5-0.5B Level-1
-reference. Recipes are selected on development problems before fresh held-out
-confirmation, requiring absolute pass@1 and pass@8 differences of at most
-$.04$ and $.08$ in every domain, with four independent groups of eight samples
-per prompt. Distinct@8 is reported but is not a fitting objective. The
-interface uses native chat, temperature 1, top-$p$ 1, and 192 generated
-tokens: boxed-direct answers for Graph and the hybrid solver with
-legal-syntax guidance for the other domains. This matches fixed measured
-targets empirically; it is not a two-sided equivalence test.
-
-The Python Level-3 interface used in the hint ablation removes the strategy
-hints (Appendix~\ref{app:prompt-hint-ablation}), so its difficulty is not
-covered by that match. All reported results use the original datasets and
-prompts.
-
-\subsection{Frozen base models across Levels 1--3}
-\label{app:base-levels-all-scales}
-
-Figure~\ref{fig:base-levels-all-scales} reports all 60 completed combinations
-of four frozen Qwen2.5-Instruct scales, three admitted levels, and five domains.
-Every model uses the same 128 held-out prompts within a domain and level,
-with four independent groups of eight draws per prompt: 4,096 responses
-per point and 245,760 responses overall. Each group contributes an indicator
-of any verified output to pass@8 and the number of distinct verified canonical
-keys to distinct@8; we average groups within prompts and then average prompts.
-The four groups remain separate $K=8$ observations throughout this calculation.
-
-These measurements use native chat, $T=1$, top-$p=1$, and a 192-token output
-limit, with boxed-direct Graph answers and the registered hybrid interface
-elsewhere. Level 3 retains its original admitted prompts. These held-out
-measurements are separate from development fitting and do not imply that
-success decreases monotonically with level for every model and domain.
-Levels 4--5 await dataset admission and have no plotted measurements here.
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=\linewidth]{figures/modebench_base_levels_appendix.pdf}
-  \caption{\textbf{Frozen base-model success and breadth at all four scales.}
-  All 60 cells for Qwen2.5-Instruct 0.5B, 3B, 7B, and 14B at Levels 1--3.
-  Colors identify levels and marker shapes identify model sizes; each domain
-  contains 12 points. Coordinates are empirical pass@8 and mean distinct
-  verified modes per eight draws, averaged over four independent groups on
-  128 held-out prompts. Main Figure~\ref{fig:level-construction} shows these same estimates for the 7B model.}
-  \label{fig:base-levels-all-scales}
-\end{figure}
-
-\subsection{Training and evaluation settings}
-\label{app:repro-run-contract}
-\label{app:comparison-design}
-
-\begin{table}[H]
-  \centering
-  \caption{\textbf{Matched run contract.} Settings and systems changes are
-  shared by methods within each model--domain--seed comparison, including
-  the zero-weight replay control.}
-  \label{tab:run-contract}
-  \small
-  \begin{tabularx}{\linewidth}{@{}P{.23\linewidth}Y@{}}
-    \toprule
-    \textbf{Component} & \textbf{Setting} \\
-    \midrule
-    Data & 384 training and 128 disjoint evaluation prompts per domain and
-      level; no evaluation row enters training or replay. \\
-    Fresh rollouts & $G=16$, temperature 1, top-$p=1$; one prompt group per update. \\
-    Optimization & Eight passes (3,072 updates), one PPO epoch,
-      $\beta_{\mathrm{KL}}=0$; paired initialization, prompt stream,
-      optimizer, hardware class, and checkpoint cadence. \\
-    Evaluation & Passes $0,.5,\ldots,8$; four fixed temperature-1,
-      top-$p=1$, $K=8$ draws per prompt, plus a separate temperature-0
-      greedy trace. No best-checkpoint selection. \\
-    Replay & Capacity $M=16$ per prompt; one round-robin bank per update;
-      $\lambda_{\mathrm{replay}}=.10$. Controls execute the same code with
-      an exact-zero replay derivative; realized banks and workloads can differ. \\
-    Training seeds & Qwen2.5-0.5B: 43--47; Falcon3-1B: 55--59;
-      Qwen2.5-3B: 70--74. \\
-    Learning rate & Qwen-0.5B and Falcon-1B: constant $2\times10^{-7}$,
-      with optimizer-state offload for Falcon. Qwen-3B: cosine decay with
-      $10^{-7}$ peak, $10^{-8}$ floor, and 10\% warmup. \\
-    Response tokens & Graph and Countdown: 192; Python: 192/512/192
-      at 0.5B/1B/3B; MathIR: 64/128/64; PantryPlan: 8. \\
-    Evaluation seeds & Base 610100/610200/610300/610400/76299 for
-      Graph/Countdown/Python/MathIR/PantryPlan; draw $d$ uses base plus $d$. \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-\begin{center}
-\small
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Base model} & \textbf{Pinned revision} \\
-\midrule
-Qwen2.5-0.5B-Instruct & {\scriptsize\texttt{7ae557604adf67be50417f59c2c2f167def9a775}} \\
-Falcon3-1B-Instruct & {\scriptsize\texttt{28ba2251970a01dd1edc7ba7dad2eb71216ccfdf}} \\
-Qwen2.5-3B-Instruct & {\scriptsize\texttt{aa8e72537993ba99e69dfaafa59ed015b17504d1}} \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-Responses are independent within each evaluation draw. For each training
-seed, metrics average over all 128 prompts and four draws; raw responses
-and draw-level records are retained. The co-primary terminal outcomes are
-\texttt{pass@8} and raw \texttt{distinct@8}; \texttt{mean@8} is diagnostic.
-Evaluation never supplies training data, bank entries, checkpoint selection,
-or a stopping rule. Complete paired five-seed blocks receive nominal
-pointwise 95\% Student-$t$ intervals; partial primary intersections report
-exact counts and descriptive means without intervals. Intervals condition
-on the frozen prompts and evaluation requests. Domain averages are
-explicitly labeled, and no missing terminal result is replaced by a
-shallower checkpoint. Source admission and curve gaps follow
-Appendix~\ref{app:source-integrity}; comparison-specific intersections and
-the replay-weighting bootstrap are specified with their results.
-
-\section{Exact Domain Prompts}
-\label{app:prompts}
-
-Each domain uses one system message and one user message, with no few-shot
-examples. The same template renders training and evaluation for every
-method. These are the first rows of the frozen evaluation splits, including
-the exported chat-template wrapper. The checked generator
-\path{ops/check_paper_domain_prompts.py} reproduces them from the datasets.
-A two-space continuation indent marks display wrapping: joining it to the
-previous line with one space recovers the original string. The PantryPlan
-listing retains its real newlines.
-
-% BEGIN generated by ops/check_paper_domain_prompts.py
-
-\subsection{Graph coloring}
-\label{app:prompt-graph}
-
-\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/graph_coloring_modebench_v2}.
-
-\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
-<|im_start|>system
-Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
-<|im_start|>user
-Color this graph with vertices 1 through 6. The undirected edges are: (1,2), (1,3), (3,5),
-  (3,6), (4,6), (5,6). Assign each vertex one color from {1, 2, 3} so that no edge has the
-  same color on both endpoints. A partial coloring is 2??1?2, where ? means uncolored.
-  Keep every shown digit fixed. There are exactly 3 question marks. Return exactly one
-  final answer and no explanation: exactly 3 digits, each one 1, 2, or 3, for the missing
-  positions from left to right, inside \boxed{}.<|im_end|>
-<|im_start|>assistant
-\end{Verbatim}
-
-\subsection{Countdown}
-\label{app:prompt-countdown}
-
-\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/exact_countdown_easy3_probe}.
-
-\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
-<|im_start|>system
-Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
-<|im_start|>user
-Using the numbers [3, 6, 9], create an arithmetic expression that equals 18. Use each
-  given number exactly once. You may use +, -, *, /, and parentheses. Return exactly one
-  final answer and no explanation: the expression inside \boxed{}.<|im_end|>
-<|im_start|>assistant
-\end{Verbatim}
-
-\subsection{Python factors}
-\label{app:prompt-python}
-
-\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/python_factor_modebench_v1}.
-
-\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
-<|im_start|>system
-Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
-<|im_start|>user
-Write one pure Python function with the exact form lambda n: EXPR. An external Python tool
-  will call it once for each n in [18, 82, 91, 93]. For every call, return an integer d
-  satisfying 1 < d < n and n % d == 0. Different valid return vectors are different
-  solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean
-  operators, and conditional expressions; calls, imports, attributes, containers, and
-  other names are forbidden. Return exactly the one-line lambda inside \boxed{} and no
-  explanation.<|im_end|>
-<|im_start|>assistant
-\end{Verbatim}
-
-\subsection{MathIR action menu}
-\label{app:prompt-mathir}
-
-\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/mathir_action_menu_v1}.
-
-\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
-<|im_start|>system
-Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
-<|im_start|>user
-MathIR linear-menu-v1. Solve for x by choosing an executable action sequence. Every
-  selected action is applied exactly to BOTH sides of the current equation, followed by
-  exact simplification. Bindings: a=2, b=-9, c=-1. Initial equation: x/a + b = c. Action
-  menu: A means div(a); B means add(b); C means sub(b); D means sub(c); E means
-  sub(mul(a,b)); F means mul(a). Choose 1-4 action IDs. Illegal operations, repeated
-  states, and paths that do not finish with x isolated are rejected. Return only the IDs
-  separated by semicolons inside the answer box; for example formatting only: \boxed{A;C}.
-  Do not return x's numeric value.<|im_end|>
-<|im_start|>assistant
-\end{Verbatim}
-
-\subsection{PantryPlan}
-\label{app:prompt-pantry}
-
-\noindent Template \texttt{qwen\_pantry\_support\_mask}; 384 training and 128 evaluation\linebreak rows in \path{var/data/pantry_plan_modebench_v2}.
-
-\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
-<|im_start|>system
-Return only six binary digits and no other text. Each digit maps to the corresponding
-  Pantry row in printed order. A trusted environment will choose exact quantities on
-  precisely the selected rows.<|im_end|>
-<|im_start|>user
-Create one feasible high fiber snack from this frozen pantry.
-Nutrition values are per 100 g. Quantities are exact integer grams.
-
-Pantry:
-- almonds: available=100g, step=25g, minimum-if-used=50g; energy=584kcal, protein=21.5g,
-  fiber=10.8g, sodium=0.0mg; tags=tree_nut
-- banana: available=125g, step=25g, minimum-if-used=50g; energy=97.0kcal, protein=0.74g,
-  fiber=4.62g, sodium=0.0mg; tags=none
-- carrots: available=150g, step=25g, minimum-if-used=50g; energy=45.0kcal, protein=0.941g,
-  fiber=3.1g, sodium=86.6mg; tags=none
-- grape_tomatoes: available=100g, step=25g, minimum-if-used=50g; energy=27.0kcal,
-  protein=0.83g, fiber=2.1g, sodium=6.0mg; tags=none
-- navel_orange: available=150g, step=25g, minimum-if-used=50g; energy=47.0kcal,
-  protein=0.91g, fiber=2.0g, sodium=9.0mg; tags=none
-- sunflower_seeds: available=125g, step=25g, minimum-if-used=50g; energy=571kcal,
-  protein=18.9g, fiber=7.22g, sodium=0.0mg; tags=none
-
-Use 2 to 4 ingredients.
-Forbidden tags: none
-Targets:
-- mass_g: minimum 125, maximum 200
-- energy_kcal: minimum 239.4, maximum 432.25
-- protein_g: minimum 6.423
-- fiber_g: minimum 3.478
-- sodium_mg: maximum 37.6
-
-Choose the ingredient support as a six-bit mask in the exact Pantry row order. Bit 1
-  includes that row and bit 0 excludes it.<|im_end|>
-<|im_start|>assistant
-\end{Verbatim}
-
-% END generated by ops/check_paper_domain_prompts.py
-
-% Shared exact replay update; empirical comparisons are in results.tex.
-
-\section{Replay Algorithm}
-\label{app:algorithm}
-\label{app:replay-objective}
-
-For each prompt $x$, $\mathcal B_x$ stores at most $M$ verified policy
-exemplars, one per canonical key; the serialized cursor $\tau$ selects
-banks for replay. The same update supports either fresh objective.
-
-
-
-\subsection{Fresh task advantages}
-\label{app:binary-maxrl}
-
-For a group of $G$ fresh responses with verified binary rewards $r_i$ and
-$m=\sum_i r_i$, Dr.GRPO uses $A_i=r_i-m/G$, while MaxRL uses
-\[
- A_i^{\mathrm{MaxRL}}=
- \begin{cases}
- G r_i/m-1, & m>0,\\
- 0, & m=0.
- \end{cases}
-\]
-The centered MaxRL estimator \citep{tajwar2026maxrl} gives failures advantage
-$-1$ in mixed groups and weights each success more strongly when successes
-are scarce. All-correct and all-failure groups have zero task advantage.
-Lemma~\ref{lem:maxrl-mean} gives its harmonic pass@\(k\) mean objective.
-These advantages apply only to fresh responses; bank exemplars enter the
-separate verified-likelihood loss.
-
-\subsection{State and optimizer update}
-\label{app:algorithm-update}
-
-\begin{algorithm}[H]
-  \caption{One ReplayMaxRL optimizer update}
-  \label{alg:verified-replay-update}
-  \small
-  \begin{algorithmic}[1]
-    \REQUIRE Policy $\pi_\theta$; prompt $x$ and verifier specification
-      $s_x$; group size $G$; fresh objective $o\in\{\mathrm{MaxRL},\mathrm{Dr.GRPO}\}$; replay weight $\lambda_{\mathrm{replay}}$;
-      states $(\mathcal B,\tau)$
-    \ENSURE Atomically updated $(\theta',\mathcal B',\tau')$
-    \STATE Draw the on-policy group
-      $\mathcal G=\{y_i\sim\pi_\theta(\cdot\mid x)\}_{i=1}^G$
-    \FOR{$i=1,\ldots,G$}
-      \STATE Execute $\widetilde c_i\gets V(y_i,s_x)$ and observe task
-        reward $r_i$
-      \STATE Set $c_i\gets\widetilde c_i$ iff
-        $r_i>0\wedge\widetilde c_i\ne\bot$; otherwise set $c_i\gets\bot$
-    \ENDFOR
-    \STATE Compute fresh task advantages $A_i^{o}$ from $\{r_j\}_{j=1}^G$; for ReplayMaxRL use the formula in Appendix~\ref{app:binary-maxrl}
-    \STATE After the full group is validated, deterministically retain one
-      policy exemplar for each new $c_i\ne\bot$ in $\mathcal B_x$, up to
-      capacity $M$
-    \STATE $(z,\tau')\gets\textsc{NextBank}
-      (\{\mathcal B_u\}_u,\tau)$ by a fixed round-robin cursor
-    \IF{a replay bank $\mathcal B_z$ exists}
-      \STATE For each retained exemplar $e_c$, compute
-        $s_c=|e_c|^{-1}\log\pi_\theta(e_c\mid z)$
-      \STATE $L_{\mathrm{replay}}\gets-|\mathcal B_z|^{-1}
-        \sum_{c\in\mathcal B_z}s_c$
-    \ELSE
-      \STATE $L_{\mathrm{replay}}\gets0$
-    \ENDIF
-    \STATE $w_{\mathrm{rep}}\gets(G-1)/G^2$ for one replay
-      pseudo-group per $G$ on-policy rows
-    \STATE $\theta'\gets\textsc{Update}
-      (\theta,L_{\mathrm{PPO}}(A^{o})
-      +w_{\mathrm{rep}}\lambda_{\mathrm{replay}}L_{\mathrm{replay}})$
-    \STATE Checkpoint $(\theta',\mathcal B',\tau')$ as one atomic state
-\end{algorithmic}
-\end{algorithm}
-
-\subsection{Admission, capacity, and deterministic scheduling}
-\label{app:algorithm-bank}
-
-A bank is keyed by the SHA-256 digest of the exact prompt-token sequence.
-Only loss-active rows with positive reward and a nonempty validator key
-qualify. The full group is validated against the pre-group bank before
-any new key is committed. For each new key, the lexicographically smallest
-normalized response-token tuple is retained; new keys are admitted in
-sorted-key order. Admission is therefore invariant to rollout-row order.
-The bank keeps one exemplar per key, up to $M=16$, with no eviction or
-replacement. Later keys may enter diagnostics but not replay support when
-capacity is full. Prompt-hash collisions or changed tokens under an
-existing hash are hard errors.
-
-\label{app:algorithm-schedule}
-At each update, the scheduler sorts nonempty prompt-bank hashes and selects
-one by a fixed round-robin cursor; singleton banks are eligible. The cursor
-is independent of reward, evaluation, desired support, or entropy, and is
-serialized with the bank. Stored prompt and response tokens are
-materialized unchanged into a right-padded teacher-forcing batch. Prompt
-and padding positions are masked. Each exemplar contributes its mean
-response-token log probability, averaged uniformly across keys in the
-selected bank before applying $\lambda_{\mathrm{replay}}$ and the exact
-$(G-1)/G^2$ rollout scaling in
-Algorithm~\ref{alg:verified-replay-update}. Neither exhaustive support nor
-evaluation outputs enter this loss.
-
-\subsection{Matched controls and recoverable state}
-\label{app:algorithm-control}
-
-Controls share validation, bank updates, scheduling, materialization, and
-the score pass, with the replay score-gradient vector replaced by exact
-zeros. Treatment activates only that derivative. Policies can subsequently
-differ in samples, bank contents, selected banks, exemplar lengths, and
-realized computation. Logs retain bank/key counts, replayed token counts,
-raw and applied losses, score-gradient summaries, cursor phase, and the
-exact-zero switch. Model and optimizer state, bank counts and exemplar
-tokens, replay and data cursors, and request-stream state are checkpointed
-atomically; the loader validates schema, capacity, scheduler and estimator
-constants, token types, prompt hashes, key/exemplar consistency, and cursor
-bounds before accepting a resume.
-
-\subsection{Fixed Semantic MaxEnt comparator}
-\label{app:semantic-maxent}
-\label{app:semantic-score}
-
-Fixed Semantic MaxEnt is an entropy-inspired fresh-rollout comparator.
-For validator-positive canonical outcomes, an empirical predictor combines
-successful policy history and successful leave-one-out peers. If $K$ keys
-have total count $N$, unit pseudocounts and one reserved unseen bucket give
-\begin{equation}
-  \hat p(a)=\frac{n(a)+1}{N+K+1},\qquad
-  \hat p(\textsc{unseen})=\frac{1}{N+K+1}.
-  \label{eq:open-set-predictor}
-\end{equation}
-The added detached advantage on an eligible successful row is
-\begin{equation}
-  A^{\rm sem}_{i,t}=\eta\,
-  \frac{\min\{-\log\hat p(a_i),\kappa\}
-    -\E_{\hat p}[\min\{-\log\hat p(a),\kappa\}]}{\kappa},
-  \qquad \eta=.10,\ \kappa=5.
-  \label{eq:legacy-semantic-advantage}
-\end{equation}
-\label{app:legacy-semantic-estimator}
-\label{app:semantic-estimator}
-Invalid and unsuccessful rows receive zero. The centered score is bounded
-by $\eta$ in magnitude. It can favor an underrepresented verified outcome
-present in a fresh rollout, but supplies no direct reinforcement to an
-absent remembered exemplar. Its heterogeneous empirical effects therefore
-remain a comparison with exploration rather than a retention guarantee.
-
-For the true conditional distribution $q_\theta=p_\theta(\cdot\mid\mathcal C)$,
-\begin{equation}
- \nabla_\theta H(q_\theta)
- =\E_{a\sim q_\theta}[(-\log q_\theta(a))\nabla_\theta\log q_\theta(a)].
- \label{eq:entropy-score-function}
-\end{equation}
-This motivates the direction of redistribution, not an unbiased-gradient
-claim for the empirical estimator. Hold a detached predictor score vector
-$s$ and baseline $b$ fixed independently of the scored action, for example
-conditional on its leave-one-out peers. Averaging successful rows under the
-unconditional policy then gives
-\[
- \E_{A\sim p}[\1\{A\in\mathcal C\}(s_A-b)\nabla_z\log p_A]
- =P\E_{c\sim q}[s_c\nabla_z\log q_c]
-   +(\E_q[s]-b)\nabla_zP.
-\]
-A historical baseline need not equal the current conditional mean, so this
-bonus can change correctness as well as diversity. Even with the exact
-unclipped score $s_c=-\log q_c$ and baseline $b=H(q)$, averaging over
-unconditional rollout rows gives $P\nabla H(q)$.
-For a single correct key, conditional entropy is zero, yet the implemented
-unseen bucket can give that key negative semantic advantage. The comparator
-thus carries neither an exact entropy-gradient interpretation nor an
-individual-mode preservation guarantee.
-
-\section{Empirical Results and Comparisons}
-\label{app:supporting}
-
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\linewidth]{figures/replay_factorial_effects.pdf}
-\caption{\textbf{Canonical replay complements both fresh objectives.}
-Each point compares replay with its matched no-replay control at pass eight,
-within domain and scale. The two endpoints have different units: success
-probability points and expected verified-key counts. All 75 MaxRL pairs are
-complete; Falcon Countdown uses four Dr.GRPO pairs and all other Dr.GRPO
-blocks use five. Nominal intervals accompany complete blocks only. Domain
-variation is retained; these comparisons identify the implemented replay
-addition rather than a universal benefit or factorial interaction.}
-\label{fig:replay-factorial-effects}
-\end{figure}
-
-\subsection{Comparison registry}
-\label{app:program-registry}
-
-The primary comparisons cross fresh objective (Dr.GRPO or MaxRL) with
-verified replay, first across three model scales on Level 1 and then at
-Qwen2.5-0.5B on Level 2. Table~\ref{tab:experiment-map} separates these
-comparisons from the supporting controls and replay-weighting ablation.
-Terminal results are fixed to a single analysis snapshot; the Qwen2.5-0.5B
-weighting aggregate uses the same seed population throughout.
-
-\begin{table}[H]
-  \centering
-  \caption{\textbf{Comparison scope and available terminal evidence.}
-  A complete block has five registered paired seeds. Primary partial
-  intersections retain their exact counts and receive no interval.
-  UCPO and sparse RLEP-Dr are reported only at the two smaller model scales;
-  their denominators cover all five benchmark domains and five registered
-  seeds at each selected scale.}
-  \label{tab:experiment-map}
-  \label{tab:direct-comparators}
-  \scriptsize
-  \setlength{\tabcolsep}{3pt}
-  \begin{tabularx}{\linewidth}{@{}P{.24\linewidth}P{.20\linewidth}P{.22\linewidth}Y@{}}
-    \toprule
-    \textbf{Comparison} & \textbf{Scope} & \textbf{Terminal coverage}
-      & \textbf{Question} \\
-    \midrule
-    Dr.GRPO / ReplayDr.GRPO & Level 1, all three scales &
-      74/75 pairs; 14/15 complete blocks & Verified memory beyond fresh reward \\
-    MaxRL / ReplayMaxRL & Level 1, all three scales &
-      75/75 pairs; 15/15 complete blocks & Memory beyond a stronger fresh objective \\
-    Four-method factorial & Level 2, Qwen-0.5B &
-      5/5 complete domains; 100/100 endpoints & Within-level replay replication \\
-    GRPO & Level 1, all three scales &
-      75/75 runs & Reward-standardization control \\
-    UCPO & Level 1, 0.5B and 1B &
-      50/50 runs & On-policy advantage redistribution \\
-    Sparse RLEP-Dr & Level 1, 0.5B and 1B &
-      47/50 runs & Success memory without uniform key balancing \\
-    Fixed Semantic MaxEnt & Level 1, registered scale/domain blocks &
-      10/15 complete blocks & Fresh-rollout semantic exploration \\
-    Uniform / frequency replay & Level 1, nine registered blocks &
-      45/45 treatment cells; 9/9 complete blocks & Contribution of replay-key balancing \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-
-
-
-
-\subsection{Terminal comparisons across scales}
-\label{app:scale-matrix}
-\label{app:scale-snapshot}
-\label{app:maxrl-scale-extensions}
-\label{app:current-campaign-results}
-
-Within each model--domain--seed comparison, methods share initialization,
-data identities, the eight-pass horizon, evaluation requests, verifier, and
-replay scheduling code. The replay control runs the same bank and scoring
-path with zero replay derivative. Resulting policies can build different
-banks. The admissible intersections are defined in
-Appendix~\ref{app:source-integrity}.
-
-\crossscaletablematerial
-
-\paragraph{Dr.GRPO retention contrasts.}
-\label{app:retention-numerical-detail}
-Both co-primary block means are positive in all 14 complete five-seed
-comparisons, and raw \texttt{distinct@8} increases in all 74 admissible pairs.
-At Qwen2.5-0.5B, Countdown \texttt{pass@8} rises from $.480$ to $.672$ and
-raw \texttt{distinct@8} from $.487$ to $1.637$; the extra-mode effect is
-$+.959$ (paired 95\% interval $[+.863,+1.054]$). Python correctness rises
-from $.172$ to $.528$, with an extra-mode effect of $+.043$
-($[-.077,+.164]$); MathIR rises from $.512$ to $.796$, with extra modes
-$+.030$ ($[+.001,+.060]$). These intervals are nominal, unadjusted
-Student-$t$ estimates over five paired training seeds. Extra modes remain
-coupled to correctness. Countdown keys identify computation routes, but
-these held-out endpoints do not identify which previously discovered
-routes survived training.
-
-
-
-Figure~\ref{fig:maxrl-factorial-scale-extensions} resolves the domain-specific
-results behind the main cross-domain display. All five 3B MaxRL domain comparisons are complete:
-both arms have seeds 70--74 at the registered terminal endpoint (50/50 runs).
-The Dr.GRPO pair uses five seeds except Falcon Countdown, which uses four. These populations
-remain separate: a factorial interaction requires the common four-arm
-intersection, not differences of aggregates with different seeds.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.98\linewidth]
-    {figures/e118_scale_extensions_appendix.pdf}
-  \caption{\textbf{Per-domain results behind the cross-domain averages in
-  Figure~\ref{fig:maxrl-factorial}.} Rows show Qwen2.5-0.5B,
-  Falcon3-1B, and Qwen2.5-3B; columns show correctness and raw support.
-  MaxRL--ReplayMaxRL pairs retain five terminal seeds throughout the two
-  smaller models and Qwen2.5-3B: every MaxRL domain uses $n=5$.
-  Solid connectors identify these complete comparisons. Dr.GRPO--ReplayDr.GRPO uses four
-  admissible seeds for Falcon Countdown and five elsewhere. Domain tints match
-  Figure~\ref{fig:modebench-examples}.
-  Replay arrows, trained-arm markers, and untrained references use the same
-  encoding as Figure~\ref{fig:maxrl-factorial}. The
-  \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E118/README.md\#models}{E118 model index}
-  groups the archived exports by model and domain.}
-  \label{fig:maxrl-factorial-scale-extensions}
-\end{figure}
-
-
-Write $P=\texttt{pass@8}$, $D=\texttt{distinct@8}$, and $B=D-P$.
-The derived $B$ counts verified modes beyond the first correct outcome in
-each sampled set and remains coupled to correctness. The endpoint tables
-report exact paired terminal effects. A dash denotes no observed pair;
-partial means retain $n/5$ without an interval. Complete-block intervals
-are nominal 95\% estimates, without multiple-comparison or repeated-look
-adjustment. All underlying arm means and seed effects remain in the
-adjacent machine-readable records.
-
-\begin{table}[H]
-  \centering
-  \caption{\textbf{ReplayMaxRL effects across model scales at pass 8.}
-  All effects are ReplayMaxRL minus MaxRL on the displayed paired seeds.
-  Brackets give paired Student-$t$ intervals for $\Delta B$ in complete blocks.
-  The machine-readable report also retains both arm means, all per-seed
-  effects, and intervals for $P$ and $D$.}
-  \label{tab:current-e118}
-  \scriptsize
-  \setlength{\tabcolsep}{3pt}
-  \resizebox{\linewidth}{!}{%
-  \begin{tabular}{@{}lllcrrr@{}}
-    \toprule
-    \textbf{Model} & \textbf{Domain} & \textbf{Replay arm} & $n/5$ &
-    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
-    \midrule
-    \input{results/current_campaign_results_20260912_e118_table_body.tex}
-  \end{tabular}}
-\end{table}
-
-
-At Qwen2.5-0.5B, ReplayMaxRL adds $1.221$, $.990$, and $.751$ extra modes
-on Graph, Countdown, and PantryPlan, respectively; each five-seed interval
-excludes zero. Falcon Graph instead has a negative mean raw-support effect
-($-.093$, interval $[-.229,+.043]$), and its correctness effect is inconclusive
-($+.014$, $[-.016,+.044]$). Positive cross-domain effects therefore do not
-imply a breadth gain in every domain. All five Qwen2.5-3B blocks are complete. Their extra-mode effects are
-$+.163$, $+.152$, $+.115$, $+.0059$, and $+.609$ for Graph, Countdown,
-Python, MathIR, and PantryPlan; every nominal interval excludes zero,
-although MathIR's breadth gain is small. Correctness intervals exclude zero
-for Countdown, MathIR, and PantryPlan; Graph and Python remain inconclusive.
-
-\paragraph{Cross-domain factorial summaries.}
-\label{app:factorial-numerical-detail}
-Averaging five domains equally within each paired seed, ReplayMaxRL minus
-MaxRL gives $+.307$ on \texttt{pass@8} and $+.991$ on raw
-\texttt{distinct@8} at Qwen2.5-0.5B (unadjusted 95\% intervals
-$[+.208,+.406]$ and $[+.815,+1.167]$), and $+.133/+.228$ at Falcon3-1B
-($[+.043,+.223]$ and $[+.094,+.361]$). Both use five paired seeds.
-The Dr.GRPO replay effects on these two endpoints are $+.337/+.999$ at
-Qwen2.5-0.5B, $+.442/+.774$ at Falcon3-1B, and $+.279/+.559$ at
-Qwen2.5-3B. The Falcon Dr.GRPO average uses four common admissible seeds
-without an interval; the other two use five. These are post-hoc descriptive
-cross-domain summaries. At Qwen2.5-3B, MaxRL/ReplayMaxRL arm means are
-$.547/.701$ on correctness and $.744/1.107$ on raw support. Equal domain
-averages within each of seeds 70--74 give replay effects of $+.154$
-($[+.086,+.222]$) and $+.363$ ($[+.285,+.441]$), respectively.
-The common four-arm intersection contains fourteen complete five-seed
-blocks and Falcon Countdown
-at four seeds. Factorial interactions require that intersection rather than
-differences between aggregates using different seeds.
-
-
-\subsection{Terminal comparison on the harder level}
-\label{app:level2-interim}
-
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\linewidth]{figures/replay_level2_effects.pdf}
-\caption{\textbf{Replay effects within Level 2.}
-Replay and control are compared on the same prompts and training seeds, with
-separate Dr.GRPO and MaxRL effects. All five domains have complete
-five-seed factorials, including the twenty PantryPlan endpoints. Construction
-and admission are described in Section~\ref{sec:levels-design}; terminal
-absolute values appear in Figure~\ref{fig:level2-admission}. Differences
-between levels combine task, population, and protocol changes, so they do
-not identify a causal effect of difficulty alone.}
-\label{fig:replay-level2-effects}
-\end{figure}
-
-Figure~\ref{fig:level2-admission} uses all five domains, including PantryPlan.
-Each has all five seeds at step 3,072 for both levels and all four methods.
-Means average domains equally within each seed, then the five seed means.
-All 100 Level-2 endpoints are admitted; each within-domain contrast uses
-seeds 43--47, including all four arms. The levels have separate held-out
-prompts, with population differences in Appendix~\ref{app:data-levels};
-their comparison does not isolate the effect of task difficulty.
-
-\begin{table}[H]
-  \centering
-  \caption{\textbf{Replay effects on the harder Level-2 tasks at pass 8.}
-  MaxRL and Dr.GRPO identify the fresh objective; each effect is its replay
-  variant minus the corresponding objective without replay. Each row uses
-  its own pairwise intersection, which can exceed the four-method
-  intersection. Brackets give paired Student-$t$ intervals for $\Delta B$
-  only when all five registered pairs are available.}
-  \label{tab:current-e119}
-  \scriptsize
-  \setlength{\tabcolsep}{3pt}
-  \resizebox{\linewidth}{!}{%
-  \begin{tabular}{@{}lllcrrr@{}}
-    \toprule
-    \textbf{Model} & \textbf{Domain} & \textbf{Objective} & $n/5$ &
-    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
-    \midrule
-    \input{results/current_campaign_results_20260912_e119_table_body.tex}
-  \end{tabular}}
-\end{table}
-
-
-Level-2 Graph provides the clearest replay effects on correctness and extra
-modes under both objectives. Countdown's ReplayMaxRL extra-mode effect is
-small ($+.017$, interval $[+.001,+.032]$), while its correctness and raw-support
-intervals include zero. Python and MathIR have positive mean correctness
-and raw-support effects with intervals including zero; MathIR's extra-mode
-effects are near zero. Pantry's complete five-seed Dr.GRPO replay contrast
-is $+.305$ on $P$, $+.491$ on $D$, and $+.186$ on $B$; its MaxRL replay
-contrast is $+.237$, $+.412$, and $+.175$, respectively. All six nominal
-intervals exclude zero. The $B$ intervals are $[+.103,+.270]$ and
-$[+.028,+.321]$; correctness also improves, so these are unconditional
-breadth effects rather than effects at fixed correctness.
-
-For each common seed and endpoint $Y$, the replay interaction is
-\[
- I=(Y^{\rm ReplayMaxRL}-Y^{\rm MaxRL})
-    -(Y^{\rm ReplayDr.GRPO}-Y^{\rm Dr.GRPO}).
-\]
-Replay can add value under both fresh objectives without a positive
-interaction. On Level-2 Graph, MaxRL alone raises $P$ relative to Dr.GRPO
-by $+.233$ ($[+.140,+.325]$), while the replay interaction on $P$ is
-$-.256$ ($[-.329,-.183]$). This is an additional replay benefit after
-stronger fresh optimization, without a superadditive interaction.
-
-\begin{table}[H]
-  \centering
-  \caption{\textbf{Fresh-objective effects and replay interactions on Level 2.}
-  All three contrasts within a domain use the same four-arm seed
-  intersection. The interaction is
-  $(\mathrm{ReplayMaxRL}-\mathrm{MaxRL})-
-  (\mathrm{ReplayDr.GRPO}-\mathrm{Dr.GRPO})$.
-  Each entry gives its mean and, only for a complete five-seed block, a
-  paired unadjusted 95\% Student-$t$ interval. Archived four-arm exports:
-  \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E119/README.md\#models}{E119 model index}.}
-  \label{tab:level2-factorial-contrasts}
-  \scriptsize
-  \setlength{\tabcolsep}{3pt}
-  \resizebox{\linewidth}{!}{%
-  \begin{tabular}{@{}lclrrr@{}}
-    \toprule
-    \textbf{Domain} & $n$ & \textbf{Contrast} &
-    $\Delta P$ & $\Delta D$ & $\Delta B$ \\
-    \midrule
-    \input{results/level2_factorial_contrasts_20260912_table_body.tex}
-  \end{tabular}}
-\end{table}
-
-
-\paragraph{Level-2 Graph endpoint detail.}
-\label{app:levels-numerical-detail}
-The development admission comparison lowers frozen-model \texttt{pass@8} from $.438$
-to $.148$. At pass 8, Dr.GRPO/MaxRL reach $.202/.434$, versus $.763/.739$
-with their replay variants. The paired correctness gains are $+.561$ and
-$+.305$ (unadjusted 95\% Student-$t$ intervals $[+.445,+.677]$ and
-$[+.250,+.360]$, five seeds each). The weakest replay run ($.711$) exceeds
-the strongest non-replay run ($.477$). Replay adds $1.019/.668$ raw
-\texttt{distinct@8}, yielding $1.243/1.214$ under the two fresh objectives.
-These observations show improved correctness and sampled support on harder
-Graph; they do not establish that broader support causes the correctness
-gain. Cross-level prompts are distinct, and the four-domain Level-2
-aggregate excludes the incomplete Pantry factorial.
-
-\subsection{Accuracy and verified modes throughout training}
-\label{app:factorial-training-curves}
-
-The following curves include every primary method and model scale used
-in the main paper. Each objective pair uses its domain-specific terminal
-seed intersection as one fixed cohort throughout training. A checkpoint
-is plotted only when all members have complete, valid evaluations for both
-methods. Missing or conflicting checkpoints leave gaps; seed counts never
-shrink to extend a mean. Four fixed-seed draws of eight samples on the same
-128 held-out prompts define each evaluation. Accuracy and mode curves use
-identical seeds and checkpoints, without smoothing or outcome-based selection.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{figures/factorial_training_curves_pass8.pdf}
-  \caption{\textbf{Accuracy throughout training at all three model scales.}
-  Rows are Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B; columns are the five
-  domains. Dr.GRPO, ReplayDr.GRPO, MaxRL, and ReplayMaxRL use the same method
-  colors as Figure~\ref{fig:maxrl-factorial}. Lines are fixed-cohort means of
-  \texttt{pass@8}; bands are seed ranges, not confidence intervals. Counts
-  identify each objective's terminal paired seeds. Qwen2.5-3B MaxRL uses
-  all five seeds in every domain; Falcon Countdown Dr.GRPO/replay uses four. Gaps indicate missing or conflicting checkpoints.}
-  \label{fig:factorial-training-accuracy}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{figures/factorial_training_curves_distinct8.pdf}
-  \caption{\textbf{Verified modes throughout training at all three model scales.}
-  The same model rows, methods, seeds, and checkpoints as
-  Figure~\ref{fig:factorial-training-accuracy}, now measuring
-  \texttt{distinct@8}. Lines are descriptive fixed-cohort means and bands
-  show seed ranges. A count of one has no band. Domain-specific vertical
-  scales are shared across model rows; absolute heights across different
-  domains should be read against their labeled axes. Missing evaluations
-  are never carried forward or joined across a gap.}
-  \label{fig:factorial-training-modes}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{figures/level2_factorial_training_curves.pdf}
-  \caption{\textbf{Accuracy and verified modes during Level-2 training.}
-  Qwen2.5-0.5B is the model tested at this level. Rows show \texttt{pass@8}
-  and \texttt{distinct@8} for all four primary methods. Graph, Countdown,
-  Python, and MathIR contain five terminal paired seeds per objective.
-  PantryPlan uses two terminal Dr.GRPO/replay pairs and one MaxRL/replay
-  pair. Additional unpaired histories are marked separately; they do not
-  contribute to paired means. One-seed curves have no band. Both metrics follow the same evaluation
-  rules, with gaps at missing checkpoints and no extrapolation.}
-  \label{fig:level2-training-curves}
-\end{figure}
-
-
-\subsection{Supporting comparators}
-\label{app:ucpo-progress}
-
-GRPO changes group-reward normalization; UCPO redistributes fresh on-policy
-advantage; sparse RLEP-Dr replays verified successes without uniform
-canonical-key weighting. Fixed Semantic MaxEnt supplies a fresh-rollout
-exploration incentive (Appendix~\ref{app:semantic-maxent}). These are
-controls for alternative explanations of the retention results.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.98\linewidth]
-    {figures/direct_comparator_endpoint_effects.pdf}
-  \caption{\textbf{Direct alternatives produce local rather than uniform
-  final gains.} Each effect subtracts the same-seed Dr.GRPO control
-  from the comparator after eight passes. Effects are shown for \texttt{pass@8} and
-  extra verified modes beyond the first success. Circles are paired seeds; diamonds and 95\%
-  Student-\(t\) intervals appear only for complete five-seed blocks. Exact
-  \(n\) is printed, and unsupported comparisons remain blank rather than
-  being extrapolated or imputed at any seed.}
-  \label{fig:direct-comparator-effects}
-\end{figure}
-
-
-The alternatives give local rather than uniform benefits. Qwen-0.5B
-Countdown UCPO raises $P$ by $+.133$ ($[+.005,+.262]$) and $B$ by $+.051$
-($[+.031,+.071]$), whereas its MathIR effects are inconclusive. MathIR
-RLEP-Dr raises $P$ by $+.126$ ($[+.030,+.222]$) with neutral extra modes
-($-.002$, $[-.006,+.003]$); its Countdown effects and Falcon Pantry effects
-are inconclusive. The full five-seed 3B plain-GRPO blocks likewise have
-intervals including zero on both correctness and extra modes.
-RLEP's frozen offline pool was collected at temperature $.7$, top-$p=.95$;
-all reported evaluations use the common temperature-1, top-$p=1$ contract.
-An offline pool versus an online bank remains an algorithmic difference.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]
-    {figures/direct_baseline_learning_curves_static_strip.pdf}
-  \caption{\textbf{Verified-mode trajectories for the supporting comparators.}
-  Rows show Qwen2.5-0.5B and Falcon3-1B; columns are the five domains.
-  UCPO and sparse RLEP-Dr are compared with Dr.GRPO and ReplayDr.GRPO
-  at these two smaller scales.
-  Labels give exact method-specific seed counts. Lines are descriptive
-  \texttt{distinct@8} means and bands are seed ranges. The corresponding
-  accuracy curves use identical populations in
-  Figure~\ref{fig:direct-baseline-accuracy-curves}.}
-  \label{fig:direct-baseline-curves}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{figures/direct_baseline_learning_curves_pass8.pdf}
-  \caption{\textbf{Accuracy trajectories for the supporting comparators.}
-  The same model rows, domains, methods, terminal seeds, and registered
-  checkpoints as Figure~\ref{fig:direct-baseline-curves}, now measuring
-  \texttt{pass@8}. Bands show the seed range and the vertical axes span
-  $[0,1]$ throughout. MaxRL and ReplayMaxRL at all three scales are compared
-  on both metrics in Figures~\ref{fig:factorial-training-accuracy} and~\ref{fig:factorial-training-modes}.}
-  \label{fig:direct-baseline-accuracy-curves}
-\end{figure}
-
-
-\subsection{Uniform versus fresh-frequency replay}
-\label{app:frequency-replay-progress}
-
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\linewidth]{figures/replay_key_weighting.pdf}
-\caption{\textbf{Equal key weights can improve breadth beyond the first success.}
-Uniform minus fresh-frequency weighting of verified replay. Success and extra
-modes are separate endpoints; a positive extra-mode effect does not hold
-correctness fixed. The displayed model, domains, seeds, and uncertainty use
-the frozen weighting comparison. The domain variation and inconclusive
-success contrast limit the claim to the demonstrated breadth contribution.}
-\label{fig:replay-key-weighting}
-\end{figure}
-
-The weighting ablation retains the same bank construction and update code,
-changing only the within-bank target: uniform weights over retained keys
-versus weights proportional to validator-positive fresh-rollout counts.
-Policy-dependent bank contents can subsequently differ. Positive contrasts
-below favor uniform weighting. The registered co-primary contrasts are
-$\Delta B$ and $\Delta P$; the five-domain Qwen2.5-0.5B aggregate first
-averages domain effects within each matched seed, giving equal domain weight.
-
-Complete-block intervals enumerate all $5^5=3{,}125$ ordered bootstrap
-resamples of the five paired training seeds and use linearly interpolated
-2.5th and 97.5th percentiles. A resampled seed carries its complete domain
-vector when estimating the five-domain aggregate. The endpoints and
-aggregate were preregistered; the exact seed-resampling and percentile
-conventions are analysis choices. These nominal intervals quantify seed
-variability within the fixed benchmark, without resampling prompts or
-domains or adjusting across comparisons.
-
-\begin{table}[H]
-  \centering
-  \caption{\textbf{Uniform versus fresh-frequency replay at pass 8.}
-  Effects are uniform minus frequency weighting. Brackets give the paired
-  percentile bootstrap interval for $\Delta B$ over all $5^5$ ordered
-  resamples in complete blocks. All nine
-  blocks contain five seed pairs
-  (\href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E120-R1/README.md\#comparators}{paired model exports}).}
-  \label{tab:current-e120}
-  \scriptsize
-  \setlength{\tabcolsep}{3pt}
-  \resizebox{\linewidth}{!}{%
-  \begin{tabular}{@{}lllcrrr@{}}
-    \toprule
-    \textbf{Model} & \textbf{Domain} & \textbf{Weighting} & $n/5$ &
-    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
-    \midrule
-    \input{results/current_campaign_results_20260912_e120_table_body.tex}
-  \end{tabular}}
-\end{table}
-
-
-The registered Qwen2.5-0.5B five-domain effect is $+.318$ extra modes per
-prompt ($[+.272,+.358]$), with positive within-seed domain averages in all
-five seeds. Graph, Countdown, and PantryPlan drive this result; Python and
-MathIR remain inconclusive. The correctness effect is $+.010$
-($[-.119,+.139]$), establishing neither a gain nor equivalence. Python's
-correctness effects range from $-.781$ to $+.828$ across seeds despite
-small extra-mode effects in four seeds.
-
-Falcon Graph also favors uniform weighting on extra modes ($+.233$,
-$[+.182,+.320]$), but its mean sampled correctness decreases by $-.0152$
-($[-.0214,-.0090]$); its $P$ interval includes zero. Falcon Pantry is
-inconclusive: $\Delta B=-.146$ ($[-.564,+.414]$) and $\Delta P=-.021$
-($[-.063,+.026]$). Qwen2.5-3B Graph is complete at five pairs, with an extra-mode effect of
-$+.079$ ($[+.011,+.135]$); its correctness interval includes zero.
-Pantry also has five pairs, with $\Delta B=+.207$
-($[+.038,+.377]$) and inconclusive correctness ($+.011$, $[-.020,+.043]$).
-The evidence supports a contribution from key balancing in the stated domains, not a
-uniform accuracy or breadth advantage across every model--domain block.
-
-\paragraph{Evidence boundary.}
-\label{app:scale-boundary}
-The primary effects are within-domain, within-scale paired comparisons.
-They do not establish a scaling law, a positive factorial interaction, or
-preservation of every previously discovered mode. Every block in the scale
-factorial, the Level-2 factorial, and the weighting ablation is complete at
-five paired seeds; the separate Falcon Countdown Dr.GRPO comparison has four
-seeds and receives no interval.
-
-\section{Collapse and Replay Mechanism Checks}
-\label{app:ablations}
-
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\linewidth]{figures/concentration_story.pdf}
-\caption{\textbf{Training concentrates verified outputs; canonical replay can mitigate it.}
-Left: final minus initial correct-key collision for Dr.GRPO and GRPO.
-Right: replay minus its matched terminal control, separately for Dr.GRPO and
-MaxRL. Graph and PantryPlan have substantial initial breadth. Dots and nominal
-95\% intervals average five seed contrasts; each contrast weights jointly
-eligible prompts equally. Smaller markers show the two disjoint-stream
-orientations; gutters give defined seed $n$ and the eligible-prompt count
-range out of 128. The two panels have
-separate eligibility and are not one trajectory. Appendix~\ref{app:conditional-concentration}
-reports all five domains, undefined cells, source assumptions, and correctness changes on the same eligible prompts.}
-\label{fig:concentration-story}
-\end{figure}
-
-\input{results/conditional_concentration_20260912_appendix.tex}
-
-
-
-\subsection{Breadth before and after verifier-only training}
-\label{app:pre-rl-regression}
-
-The problem precheck evaluates unmodified Dr.GRPO and GRPO at passes 0 and 8
-on all three models and five domains: 150 complete runs, each with four
-fixed $K=8$ draws. The five-domain macro-average of extra verified modes
-falls by $98.2\%$--$99.4\%$ at Qwen2.5-0.5B and $41.5\%$--$71.6\%$ at
-larger scales. Correctness falls in 10 of the 30 domain--method--scale
-comparisons, while macro raw \texttt{distinct@8} ends above its initial
-value at Qwen2.5-3B. This distinguishes loss of multiple correct outcomes
-from the broader question of whether any correct outcome is sampled.
-
-Initial evaluations are measured within each method. Qwen2.5-3B MathIR and
-Pantry seeds 71--74 carry slightly different initial requests from plain GRPO
-($.154$ versus $.162$, and $.832$ versus $.828$ on $P$), so those cells have
-separate initial references.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/baseline_collapse_precheck.pdf}
-  \caption{\textbf{Verifier-only training reduces average extra verified modes
-  at each tested scale.} Bars split \texttt{distinct@8} into the first correct
-  mode and every verified mode beyond it, at training pass 0 and pass 8, for
-  unmodified Dr.GRPO then GRPO in each panel. All 150 evaluations are complete at five
-  seeds and four fixed \(K=8\) draws; whiskers are the seed range and pass 0 is
-  measured per method. Badges give the change in extra verified modes, printed only
-  where pass-0 breadth exceeds \(.05\) of them; the other three domains start at
-  \(.011\) or less.
-  \label{fig:baseline-precheck}}
-\end{figure}
-
-\begin{table}[h]
-  \centering
-  \caption{\textbf{Problem precheck, five-domain macro-averages.} Both
-  verifier-only objectives at pass 0 and pass 8, all three scales, five seeds
-  and four fixed $K=8$ draws per model--domain--method comparison. ``Extra modes'' is
-  \texttt{distinct@8}$-$\texttt{pass@8}; ``removed'' is the fraction of that
-  quantity lost between pass 0 and pass 8. Breadth loss is present at every
-  scale and is far from uniform across scales, and at Falcon3-1B Dr.GRPO
-  macro \texttt{pass@8} falls as well.}
-  \label{tab:baseline-collapse-precheck}
-  \small
-  \setlength{\tabcolsep}{4.5pt}
-  \begin{tabular}{@{}l*{6}{c}@{}}
-    \toprule
-    & \multicolumn{3}{c}{\textbf{Dr.GRPO}} & \multicolumn{3}{c}{\textbf{GRPO}} \\
-    \cmidrule(lr){2-4}\cmidrule(l){5-7}
-    \textbf{Model} & \texttt{pass@8} & extra modes & removed
-                   & \texttt{pass@8} & extra modes & removed \\
-    \midrule
-    \input{results/baseline_collapse_precheck_table_body.tex}
-  \end{tabular}
-\end{table}
-
-
-Graph and PantryPlan contain substantial initial breadth at every scale;
-the other three domains begin with at most $.011$ extra modes per prompt.
-A retained-breadth percentage is therefore reported only when the initial
-extra-mode count exceeds $.05$. Raw $\texttt{distinct@8}$ ends below its
-initial value in six of the 15 Dr.GRPO domains. ReplayDr.GRPO does so in
-two available domain summaries, both PantryPlan; Falcon Countdown uses
-four admissible seeds. These observations concern sampled held-out support,
-not the survival histories of particular stored modes.
-
-Uniform-action references are meaningful for the enumerable Graph and
-Pantry representations. They are not defined for open-ended programs or
-derivations. Pantry's bit-uniform reference exceeds every final model, so
-this domain is a support-concentration stress test rather than evidence
-of complete support coverage.
-
-\begin{table}[t]
-  \centering
-  \caption{\textbf{Absolute references for raw \texttt{distinct@8}.}
-  \emph{Uniform} samples the exposed action representation uniformly and is
-  defined only for Graph (27 color strings) and PantryPlan (64 bit masks).
-  Frozen is the matched pass-0 model; the final two columns are pass-8 means.
-  Dashes avoid pretending that an open-ended program or derivation space has a
-  canonical uniform distribution.}
-  \label{tab:absolute-support-references}
-  \scriptsize
-  \setlength{\tabcolsep}{4.2pt}
-  \begin{tabular}{@{}llrrrr@{}}
-    \toprule
-    \textbf{Model} & \textbf{Domain} & \textbf{Uniform} & \textbf{Frozen}
-      & \textbf{Dr.GRPO} & \textbf{ReplayDr.GRPO} \\
-    \midrule
-    \input{results/absolute_support_references_table_body.tex}
-  \end{tabular}
-\end{table}
-
-
-\subsection{Fresh-gradient degeneracy and observed output collapse}
-\label{app:degenerate-groups}
-
-A Dr.GRPO group with identical rewards has exactly zero fresh task gradient.
-Only mixed groups containing both correct and incorrect responses can
-supply fresh reward information; optimizer momentum can still move a
-policy when that task gradient is zero. The fractions of mixed groups
-over all 3,072 Qwen2.5-0.5B updates, averaged over five seeds, are:
-
-\begin{center}
-\small
-\begin{tabular}{@{}lrr@{}}
-\toprule
-\textbf{Domain} & \textbf{Dr.GRPO} & \textbf{ReplayDr.GRPO} \\
-\midrule
-Graph coloring & .144 & .954 \\
-Countdown & .140 & .456 \\
-Python factors & .015 & .185 \\
-MathIR & .364 & .453 \\
-PantryPlan & .123 & .789 \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-Thus 98.5\% of Python control updates carry zero fresh task gradient.
-Replay supplies a verified-likelihood gradient directly and can also
-change the policy so that later fresh groups become mixed.
-
-A raw-response audit of all five Qwen2.5-0.5B Python control seeds establishes
-observed output collapse directly. At pass 0, a draw has 7.99 unique raw
-completions per prompt on average. By steps 288--480, every seed produces
-32 byte-identical temperature-1 samples per prompt, also identical to the
-logged greedy completion, on all 128 prompts. This persists through step
-3,072. Terminal draws contain 1.00 unique completion per prompt in the
-control and 1.97 under replay. A collapsed completion can be incorrect:
-this is one observed completion per prompt, not one correct key everywhere.
-Aggregate endpoint equality or zero draw spread alone would not establish
-that conclusion, nor does this finite audit rule out low-probability tails.
-
-These checks explain a vulnerability of the registered sparse binary-reward
-recipe. They do not establish dominance over methods that keep fresh
-on-policy signal active. Dynamic mixed-group sampling, larger groups,
-reference KL, token-entropy regularization, and wider-decoding evaluations
-remain relevant controls beyond the registered factorial.
-
-\subsection{Fixed-bank exemplar score trajectories}
-\label{app:fixed-bank-survival}
-
-The fixed-bank study tracks Qwen2.5-0.5B ReplayDr.GRPO on Graph for seeds
-43--47. Before step 384's fresh group, bank membership and fresh counts
-are frozen; admission then stops while uniform replay continues through
-3,072 updates under the same training recipe. Every frozen exemplar is
-identified by prompt and canonical-key fingerprints, without selection by
-its score trajectory. Each scheduled replay visit records mean token log
-probability $s$ and sequence log probability $\ell$. Changes compare an
-identity's first and final post-freeze visits; observation steps can differ
-across identities.
-
-All 3,406 frozen identities across 1,575 seed--prompt pairs have finite,
-aligned scores at every scheduled visit: 8--9 visits per identity and
-29,041 observations in total. The pooled median change is $+.038$
-nat/token (95\% interval $[+.025,+.048]$), but the 10th percentile is
-$-.256$ and $2.61\%$ of identities lose more than $.5$ nat/token
-($[1.54,3.77]\%$). The worst intermediate change is $-1.328$ nat/token.
-On the sequence scale, the median is $+.154$ nat/sequence
-($[+.104,+.198]$), while $21.99\%$ lose more than $.5$ nat/sequence.
-Lengths range from 4 to 100 tokens, so the two threshold percentages have
-different meanings.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.95\linewidth]{figures/e121_fixed_bank_survival.pdf}
-  \caption{\textbf{Fixed-exemplar scores improve centrally but retain a declining tail.}
-  Empirical cumulative distributions show first-to-final post-freeze score
-  changes for every frozen identity, with one curve per seed and the pooled
-  identity distribution. Mean token and sequence scores are separate panels;
-  positive values indicate increased teacher-forced likelihood. Neither panel
-  measures the exact probability of generating a canonical mode during policy sampling.}
-  \label{fig:e121-fixed-bank-survival}
-\end{figure}
-
-
-Pooled summaries weight identities equally. Descriptive 95\% intervals
-use 10,000 hierarchical bootstrap draws (random seed 121), resampling prompts within each
-original seed and then five seeds with replacement; repeated seeds reuse
-their within-draw prompt sample. Linear empirical quantiles and percentile
-intervals are analysis choices. The artifact
-\path{paper/results/e121_fixed_bank_survival.json} retains all seed summaries,
-identity trajectories, source hashes, and audit diagnostics.
-
-These are teacher-forced score surrogates, not exact probabilities of
-sampling canonical modes. Visits do not cover every intervening update,
-and the declining tails exclude a claim that every exemplar improves.
-Without a matched no-replay fixed-bank arm, this study does not identify
-a causal replay effect. It neither numerically validates
-Theorem~\ref{thm:replay-retention}'s probability floor nor certifies a finite-network
-guarantee. It adds longitudinal measurements of fixed exemplars to the
-held-out support evidence.
-
-\input{results/frontier_hosted_20260911_appendix.tex}
-
-
-
-% Render this retained display inside its generated numerical appendix.
-\AddToHookNext{file/after/gpt56_temperature_curve_20260911_appendix.tex}{%
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.98\linewidth]{figures/gpt56_temperature_curve.pdf}
-  \caption{\textbf{Temperature traces pass@8 and verified breadth.}
-  GPT-5.6 Sol, with 480 fixed prompts and eight draws each at $T\in\{0,0.5,1,1.5,2\}$.
-  Left: all domains and levels; right: separate levels, averaging five domains
-  equally. Empirical \texttt{pass@8} is the fraction with at least one correct
-  draw; \texttt{distinct@8} averages unique correct modes, including zeroes.
-  Connected points use reasoning \texttt{none} and the frozen formatting
-  normalizer.
-  Appendix~\ref{app:gpt56-temperature} gives pointwise uncertainty intervals
-  for every benchmark level and all five measured temperatures.}
-  \label{fig:gpt56-temperature-curve}
-\end{figure}
-}
-
-\input{results/frontier_comparison_20260911_appendix.tex}
-
-\input{results/hosted_level_averages_20260911.tex}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{figures/hosted_verified_breadth.pdf}
-  \caption{\textbf{Accurate hosted outputs can still cover few verified modes.}
-  Columns show domains; markers distinguish Levels 1--3. Each point uses all
-  eight responses to each of 128 prompts. Top: per-response accuracy.
-  Bottom: \texttt{distinct@8}. A fixed formatting normalizer applies to every
-  deployment; Opus 5 Python uses revised task wording without a system message.
-  Table~\ref{tab:hosted-level-averages-medium} reports the corresponding
-  per-level averages of \texttt{pass@8} and \texttt{distinct@8} across all five domains.}
-  \label{fig:hosted-verified-breadth}
-\end{figure}
-
-\input{results/hosted_reasoning_off_20260912_appendix.tex}
-
 \clearpage
-
-\input{results/semantic_current_summary_20260912.tex}
-
-\input{results/inference_followups_20260912.tex}
-
-\clearpage
-\section{Matched Prompt-Hint Ablation}
-\label{app:prompt-hint-ablation}
-
-\input{results/modebench_prompt_ablation_20260911.tex}
-
-\paragraph{Interpreting the intervention.}
-The Python intervention removes an executable nested-conditional example
-along with divisor-testing and dispatch guidance; it also shortens the prompt.
-Its paired effect concerns this combined removal and does not isolate a
-preference cue from example or length effects. A reduction in
-\texttt{distinct@8} accompanied by lower \texttt{pass@8} is not by itself
-evidence of greater concentration among correct outputs.
-Here the initial model is the single fixed Qwen2.5-0.5B-Instruct checkpoint
-before the reported RL training; it is already instruction-tuned and has no
-fine-tuning-seed replication in this ablation.
-
-
-\paragraph{Observed prompt dependence.}
-Python shows a large loss of correctness after guidance removal. Across the
-five DrGRPO seeds, mean $P_8$ falls from $.8125$ to zero at Level~2 and from
-$1.0$ to zero at Level~3; $D_8$ falls identically and $B_8=0$ in both arms.
-With no correct neutral DrGRPO outputs, its conditional-correct concentration
-is undefined. Replay DrGRPO retains neutral $P_8=.55625$ and $.49375$ and
-$D_8=.675$ and $.65625$ at Levels~2 and~3, respectively, while losing
-additional breadth: $\Delta B_8=-.2375$ and $-.25625$. The initial checkpoint
-also loses Python correctness (Table~\ref{tab:prompt-hints-local-strict}).
-These observations identify substantial dependence on the combined Python
-wording intervention; a raw mode-count decline cannot be interpreted solely
-as a redistribution among correct answers.
-
-
-\paragraph{Post-hoc Python failure audit.}
-A descriptive audit of all 5,120 saved DrGRPO Python draws (five seeds,
-two levels, both wordings) finds that all 2,560 original outputs extract
-the same lambda, whose body matches the conditional example in the prompt:
-\begin{quote}\footnotesize\ttfamily
-lambda n: 2 if n \% 2 == 0 else 3 if n \% 3 == 0 else 5
-\end{quote}
-Of the 2,560 neutral draws, 1,816 (70.94\%) are invalid Python expressions,
-59 violate other restricted-language rules, 376 return non-integers,
-276 fail the proper-divisor condition, and 33 lack an extracted candidate
-after reaching the token limit. Thus most neutral failures involve syntax;
-truncation accounts for only 1.29\%. The unchanged extractor, parser, and
-executor reproduce every stored grade and successful canonical key.
-This taxonomy was developed after the paired results were known and does
-not identify an internal training mechanism. Counts, deterministic paired
-examples, and source hashes are retained in
-\path{results/modebench_prompt_ablation_python_failure_diagnostic_20260911.json}.
-
-\paragraph{Concentration after hint removal.}
-Every trained MathIR checkpoint has $B_8=0$ under both wordings at both levels.
-Within each problem's eight-draw group, every observed pair of correct
-outputs shares a canonical key, in every trained checkpoint--level cell:
-correct-pair collision is $1.0$, versus the
-certified-support uniform reference of $.2$. For example, at Level~2, Replay
-DrGRPO retains mean $P_8=.975$ without the order hint, compared with $.99375$
-originally. Across its five checkpoints, the neutral arm has 4,179 colliding
-pairs out of 4,179 correct pairs, from 154 eligible checkpoint--problem
-groups; the original arm has 4,382 out of 4,382 pairs from 157 such groups.
-Both arms evaluate the same 32 problems at each checkpoint. This preserves
-the observed concentration despite removing the specified order hint; it does
-not measure all unseen modes or remove the other interface constraints.
-Pantry effects are mixed. Replay DrGRPO at Level~3 gains $.109375$ in $D_8$,
-comprising $.046875$ in $P_8$ and $.0625$ in $B_8$, but this comparison has only
-two training seeds. The separate completed 64-draw hosted follow-up
-tests both wordings on sixteen problems per cell in
-Appendix~\ref{app:sampling-budget-ablation}; its population and draw budget
-remain distinct from this local eight-draw experiment.
-
-
-\clearpage
-\section{Sampling-Budget Ablation}
-\label{app:sampling-budget-ablation}
-
-\input{results/modebench_discovery_curves_20260911.tex}
-
-\input{results/discovery_hosted_interpretation_20260912.tex}
-
-\input{results/gpt56_all_levels32_sampling_20260913.tex}
-
-\subsection{Observed sampling-budget effects}
-
-The full experiment is complete: 36,864 hosted and 110,592 local responses,
-147,456 in total. Each of the six hosted model--wording cohorts has all
-6,144 planned draws; strict and normalized analyses retain every response.
-
-The completed local panel contains 110,592 fresh responses from all 25
-registered checkpoints. Each trained checkpoint is evaluated in its own domain
-at both levels; the initial checkpoint covers all six cells. Serial regrading
-corrects one original Python grade from failure to success, confirmed once
-in an independent warmed worker using the unchanged verifier and timeouts.
-The saved receipt does not identify the cause of the original discrepancy.
-No response is rescued by formatting normalization, so strict and normalized
-analyses coincide throughout this panel. The original responses and grades
-remain available alongside the correction audit and source identities.
-
-\paragraph{MathIR: concentration largely persists through 64 draws.}
-At Level~2, both trained methods have $B_k=0$ at every measured budget under
-both wordings. Replay DrGRPO has original $P_8=.9774$ and $P_{64}=.9875$;
-neutral wording gives $.9767$ and $.9875$. Its $D_k$ equals $P_k$ throughout,
-so the small late gain consists entirely of first successes. At exactly eight
-correct draws, both wordings have $R_8=1$ on the same 76 eligible
-checkpoint--problem groups, versus the certified-support uniform lower
-reference $5[1-(4/5)^8]=4.1611$. These groups reuse the same 16 problems
-across five checkpoints. At Level~3, all neutral trained groups and all
-original Replay DrGRPO groups also contain at most one observed correct key.
-There is one exception in original DrGRPO: a single problem at seed~46
-contains two keys with counts 28 and 9, giving mean $B_{64}=.0125$ and
-$B_{64}-B_8=.0035$. Its equal-seed correct-pair collision is $.9803$;
-the other trained MathIR cells have collision $1.0$, against the uniform
-upper reference $.2$. Thus the larger budget reveals a rare additional mode
-without supporting an exact single-mode claim for every trained condition.
-
-\paragraph{Python: prompt dependence and late discovery coexist.}
-Original DrGRPO has unchanged $P_k=D_k=.8125$ at Level~2 and $1.0$ at
-Level~3 from eight through 64 draws. Neutral DrGRPO has zero correct responses
-out of 5,120 at Level~2 and three out of 5,120 at Level~3. Each of those
-three successes occurs alone in its checkpoint--problem group, so Level~3
-mean $P_{64}=D_{64}=.0375$ while correct-pair collision remains undefined.
-Replay DrGRPO behaves differently. Under original wording its pass probability
-is already unchanged from eight to 64, but $D_k$ gains $.0582$ at Level~2
-and $.1529$ at Level~3. Under neutral wording, $P_k$ rises from $.5186$ to
-$.7500$ and from $.5109$ to $.7500$, respectively; $D_k$ rises from $.6618$
-to $1.1250$ and from $.6561$ to $1.1875$. These final mode counts remain
-below the original $1.2750$ and $1.5750$. The corresponding additional-mode
-gains are $.2318$ [$.0574,.4565$] and $.2923$ [$.0659,.5445$], with the
-registered seed-and-prompt intervals. Larger budgets therefore recover both
-first successes and additional verified alternatives in the neutral replay
-condition. These unconditional gains do not identify a change in the
-conditional distribution of correct solutions by themselves.
-
-\paragraph{Pantry: eight draws understate observed discovery.}
-Across the trained Pantry cells and both wordings, $D_{64}-D_8$ ranges
-from $.4151$ to $1.0247$, with additional-mode gains ranging from $.2739$
-to $.7664$. The initial checkpoint also gains $.8565$--$1.0778$ modes.
-In the two observed training seeds, Level~3 point estimates even change
-method ordering: original DrGRPO/Replay DrGRPO have $D_8=.2075/.3381$
-but $D_{64}=1.1563/.9063$; neutral wording gives $.2253/.3515$ at eight
-and $1.2500/.8125$ at 64. This is a descriptive ranking of these checkpoints,
-not evidence of a population-level method advantage. Pantry has only two
-training seeds, and fixed-correctness comparisons at larger $m$ often have
-few or no jointly eligible problems. The eligibility table and undefined
-means remain essential to interpreting the conditional curves.
-
-These observations support persistent concentration in several trained
-conditions and substantial late discovery in others. A flat finite-sample
-curve cannot exclude rarer unseen modes, and the result does not license a
-single saturation claim across domains. The new $k=8$ points rarefy the fresh
-64-draw pools on 16 problems per cell; they are not differences against the
-previous experiment's 32-problem scores. The completed hosted panel below
-adds a separate comparison of fixed deployments on these historical tasks;
-it is not evidence from newly trained Level-3 checkpoints.
-
-
-% Concise theory for both papers; full derivations are preserved in
-% paper/audits/streamlining_20260911/full_theory.tex.
+\phantomsection
+\begin{center}\large\textbf{Part VII. Records}\end{center}
+\addcontentsline{toc}{part}{Part VII. Records}
 
 \section{Source Integrity and Reproducibility}
 \label{app:reproducibility}
