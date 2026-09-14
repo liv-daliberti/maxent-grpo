@@ -45,10 +45,21 @@ def _pooled_counts(prompt_result):
     return pooled
 
 
-def build(source: Path = SOURCE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPTS) -> dict:
-    manifest = json.loads(source.read_text())
+def build(source: Path | list[Path] = SOURCE,
+          min_defined: int = DEFAULT_MIN_DEFINED_PROMPTS) -> dict:
+    # One manifest per collection: the original four-scale Qwen grid, and any
+    # later multi-family extension. Receipts carry their own model label, so
+    # the cells merge without the caller tracking which grid produced them.
+    sources = [source] if isinstance(source, (str, Path)) else list(source)
+    manifest = json.loads(Path(sources[0]).read_text())
+    entries = []
+    for item in sources:
+        entries.extend(json.loads(Path(item).read_text())['receipts'])
+    seen = {(e['model_label'], e['level'], e['domain']) for e in entries}
+    if len(seen) != len(entries):
+        raise ValueError('duplicate model/level/domain cell across the given manifests')
     cells = []
-    for meta in manifest['receipts']:
+    for meta in entries:
         path = ROOT / meta['path']
         receipt = json.loads(path.read_text())
         if file_sha(path) != meta['sha256']:
@@ -83,7 +94,8 @@ def build(source: Path = SOURCE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPTS)
     reportable = [c for c in cells if c['reportable']]
     return {
         'schema': SCHEMA,
-        'source': {'path': str(source.relative_to(ROOT)), 'sha256': file_sha(source)},
+        'sources': [{'path': str(Path(s).relative_to(ROOT)), 'sha256': file_sha(Path(s))}
+                    for s in sources],
         'builder': {'path': 'ops/build_mode_diversity_payload.py',
                     'sha256': file_sha(Path(__file__).resolve())},
         'definition': {
@@ -108,11 +120,12 @@ def build(source: Path = SOURCE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPTS)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source', type=Path, default=SOURCE)
+    parser.add_argument('--source', type=Path, action='append',
+                        help='figure-source manifest; repeat to merge collections')
     parser.add_argument('--output', type=Path, default=OUT)
     parser.add_argument('--min-defined', type=int, default=DEFAULT_MIN_DEFINED_PROMPTS)
     args = parser.parse_args()
-    payload = build(args.source, args.min_defined)
+    payload = build(args.source or [SOURCE], args.min_defined)
     atomic_new(args.output, payload)
     coverage = payload['coverage']
     print(json.dumps({'event': 'built', 'output': str(args.output), **coverage}))
