@@ -194,9 +194,11 @@ def validate_main_length(
                 if page > min(max_pages, main_end_page) or page >= references_page:
                     issues.append(f"{kind} {number} caption on page {page} is outside the scientific main")
 
+    # The section may carry a subtitle ("Conclusion and Limitations"); what this
+    # check exists for is that the concluding section really is on that page.
     conclusion_page = label_pages["sec:conclusion"]
     if conclusion_page <= len(pages) and not any(
-        _heading(line) == "CONCLUSION" for line in pages[conclusion_page - 1].splitlines()
+        _heading(line).startswith("CONCLUSION") for line in pages[conclusion_page - 1].splitlines()
     ):
         issues.append(f"no Conclusion heading on aux conclusion page {conclusion_page}")
     if issues:

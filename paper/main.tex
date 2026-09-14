@@ -90,24 +90,28 @@ Mode Collapse in RLVR \& ModeBench}
 
 \begin{abstract}
 
-A model can answer more reliably while producing a narrower range of successful outputs.
-Binary rewards in reinforcement learning with verifiable rewards (RLVR)
-treat repeated and different successes alike. We introduce \mb{}, five
-executable domains whose canonical keys identify verified alternatives, and
-ReplayMaxRL, which uses those same keys to organize memory. Fresh MaxRL updates
-learn from current samples; replay revisits one exemplar per retained key with
-equal weight, independent of rediscovery frequency. Longitudinal RLVR
-comparisons find increasing correct-key concentration in Graph and PantryPlan.
-Across three model scales,
-matched comparisons show that replay improves held-out correctness and sampled
-breadth under Dr.GRPO and complements MaxRL. At 3B, adding replay to MaxRL raises
-domain-averaged \texttt{pass@8} from $.547$ to $.701$ and \texttt{distinct@8}
-from $.744$ to $1.107$. Harder constructions test replay beyond the original tasks; prompt and
-sampling interventions probe which alternatives remain accessible. Hosted
-evaluations find accurate outputs concentrated on few verified modes. An idealized analysis explains
-how gradient updates can amplify common successes and how memory can supply
-signal after fresh samples stop revisiting them. Together, these studies connect the measurement of verified alternatives
-to their continued use in learning, even after fresh sampling concentrates.
+A model can answer more reliably while producing a narrower range of
+successful outputs. Binary rewards in reinforcement learning with verifiable
+rewards (RLVR) treat a repeated success and a different one alike. We introduce
+\mb{}, five executable domains whose canonical keys identify verified
+alternatives, and use it to show that verifier-only training concentrates those
+alternatives: correct-key collision rises in Graph and PantryPlan at every
+tested scale, and one Python control collapses to a single byte-identical
+response per prompt. ReplayMaxRL addresses this with the same keys. Fresh MaxRL
+updates learn from current samples, while replay revisits one exemplar per
+retained key with equal weight, independent of how often that key is
+rediscovered. Across three model scales, matched comparisons show that replay
+improves held-out correctness and sampled breadth under Dr.GRPO and complements
+MaxRL: at 3B, adding replay to MaxRL raises domain-averaged \texttt{pass@8}
+from $.547$ to $.701$ and \texttt{distinct@8} from $.744$ to $1.107$. The
+benefit persists on a harder task construction. Removing prompt hints,
+coarsening the key, and enlarging the sampling budget then test what the
+breadth measure represents, and saved alternatives improve adaptation when
+requirements change. Hosted models show the same concentration without a
+training account: sampling GPT-5.6 Sol 512 times recovers at most $2.63$ of
+roughly six available Graph colorings. An idealized analysis explains how
+binary-reward updates amplify common successes and how memory supplies signal
+after fresh samples stop revisiting them.
 
 \end{abstract}
 
@@ -134,33 +138,27 @@ may remain useful as preferences or constraints change. As a model becomes
 more successful, what happens to the diversity of successful outputs it can
 produce?
 
-We study this question in reinforcement learning with verifiable rewards
-(RLVR), which trains a model using executable correctness feedback
-\citep{guo2025deepseekr1}. Binary rewards treat a familiar correct solution
-and a different correct solution alike. Figure~\ref{fig:story} illustrates
-why correctness and verified alternatives must be measured separately.
-Longitudinal saved-output comparisons find increasing correct-key concentration
-in Graph and PantryPlan under Dr.GRPO and GRPO at all three scales
-(Appendix~\ref{app:conditional-concentration}). The matched factorial separates
-replay from the different fresh objectives shown in the illustration.
+Reinforcement learning with verifiable rewards (RLVR) trains on executable
+correctness feedback \citep{guo2025deepseekr1}, and its reward cannot tell the
+difference: a familiar correct solution and a novel one are both worth one
+point. Figure~\ref{fig:story} shows what that costs. Two policies reach the
+same graph problem with very different repertoires, and the more accurate one
+is the narrower.
 
-\mb{} turns verified alternatives into a shared unit of measurement and
-memory. Each validator returns correctness and a canonical execution key:
-cosmetic variants can share a key, while different accepted computations can
-reach the same answer. ReplayMaxRL uses these same keys to retain one verified
-exemplar per admitted mode. Fresh MaxRL updates learn from current samples;
-equal-weight replay keeps stored successes involved even when they become
-rare in those samples. Repeated discovery does not earn a key more memory weight.
+Noticing this at all requires a way to say when two successes are the same
+success. \mb{} takes that from the validator itself: every accepted output
+carries a canonical execution key, so cosmetic variants merge and genuinely
+different computations stay apart. One definition then serves both measurement
+and memory. ReplayMaxRL stores one verified exemplar per key and rehearses
+every stored key equally, so a success that fresh sampling has stopped
+producing keeps receiving a training signal --- and being rediscovered often
+earns a key no extra weight.
 
-Our experiments ask whether this memory adds value beyond fresh learning,
-whether balancing keys matters, and how the results extend across models and
-task constructions. Prompt interventions, larger sampling budgets, and coarser
-keys test what the observed breadth represents. Matched comparisons find improved held-out success and
-sampled breadth, with reduced conditional concentration in the Graph/Pantry
-Dr.GRPO comparisons. Hosted evaluations test the measurement's broader
-relevance without identifying a training cause. A Pantry outage study tests
-adaptation; improved correctness also contributes to its gains
-(Appendix~\ref{app:pantry-adaptation}).
+We find that verifier-only training does concentrate verified outputs, that
+replay counteracts it at three model scales and under two fresh objectives,
+and that the gain survives a harder task construction. We then ask what the
+measure is really counting, and show the same concentration in five deployed
+models that we did not train.
 
 \section{\mb: Measuring Successful Alternatives}
 \label{sec:modebench}
@@ -207,33 +205,30 @@ $D_K$ counts their distinct correct keys. The promptwise identities are
  =\sum_c[1-(1-Pq_c)^K].
  \label{eq:main-occupancy}
 \end{equation}
-The first endpoint measures success probability; the second measures an
-expected number of verified keys. We use $K=8$ for the training endpoints.
-Their difference, \emph{extra modes}, counts verified keys beyond the first
-success. Both raw breadth and extra modes can increase because correctness
-increases; neither by itself establishes a more balanced $q$.
-
-Conditional collision measures that allocation directly:
+The first is a probability, the second a count, and their difference ---
+\emph{extra modes} --- is what a policy offers beyond its first success. We use
+$K=8$ throughout. Both can rise simply because correctness rose, so neither
+alone shows a better-balanced $q$. Conditional collision measures the
+allocation directly:
 \begin{equation}
  C(q)=\sum_c q_c^2,
  \qquad B_2=2P-P^2C(q),
  \label{eq:main-collision}
 \end{equation}
-where $B_2=\E[D_2]$. Thus $C$ is the probability that two independent correct
-outputs share a key. Greater $C$ means greater concentration. We call an
-observed increase in this conditional concentration \emph{mode collapse};
-finite samples do not establish literal extinction of unobserved modes.
-At fixed $P$, majorization toward a more concentrated $q$ lowers expected
-breadth, but a change in $C$ alone does not imply majorization or a change
-in total support (Appendix~\ref{app:metric-details}).
+$C$ is the probability that two independent correct outputs are the same
+answer, so a rise in $C$ means the policy has picked a favorite. That rise is
+what we call \emph{mode collapse}. It is a statement about where correct
+probability sits, not a claim that any mode reached zero: finite samples cannot
+establish extinction (Appendix~\ref{app:metric-details}).
 
 \subsection{Harder tasks with the same notion of a mode}
 \label{sec:levels-design}
 
-Levels retain each domain's validator and canonical keys while changing
-problem structure. Level 1 is the original construction. Level 2 increases
-structural demands, such as hidden graph vertices and required Countdown
-operands, while preserving designated valid-mode-count histograms. Frozen
+A benchmark that only gets easier to saturate would not test much, so each
+domain comes in graded levels that keep the validator and keys fixed and change
+only problem structure --- more hidden graph vertices, more Countdown operands
+--- while preserving the distribution of how many valid modes a prompt has.
+Frozen
 Qwen2.5-0.5B success is lower at Level 2 in every domain.
 Figure~\ref{fig:level-construction} measures frozen Qwen2.5-7B success and
 breadth on held-out Levels 1--3;
@@ -307,31 +302,23 @@ of token length $|e_c|$, the replay loss is
  \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
  \label{eq:lm-verified-replay}
 \end{equation}
-Each retained key receives the same share of replay, independent of how often
-it appeared in fresh rollouts. A mode discovered once therefore continues to
-receive a signal alongside a mode discovered repeatedly. Token normalization
-sets the loss scale for each exemplar; it does not make exemplar likelihood
-equal to the total probability of generating its canonical key.
+The uniform weight is the whole point: a mode found once is rehearsed exactly
+as much as a mode found a hundred times, so popularity cannot compound.
 
-We add this loss to the fresh MaxRL update. Replacing MaxRL with Dr.GRPO yields
-ReplayDr.GRPO. Replay exemplars stay outside the fresh reward group, so the
-fresh objective and replay can be varied separately. The controls execute
-the same bank and scoring code with zero replay gradient; their learned banks
-and workloads can differ as policies diverge. Banks contain only responses to
-training prompts. Held-out evaluation therefore tests what training changes
-in the policy, rather than retrieving answers from the bank.
-Appendix~\ref{app:algorithm} gives admission, scheduling, masking, and loss scaling.
+This loss is added to the fresh update, giving ReplayMaxRL or, with Dr.GRPO,
+ReplayDr.GRPO. Exemplars stay outside the fresh reward group, so the two can be
+varied independently, and controls run the same bank and scoring code with the
+replay gradient set to zero. Banks hold only training-prompt responses, so
+held-out evaluation measures what training changed in the policy rather than
+what the bank can recite (Appendix~\ref{app:algorithm}).
 
 \subsection{Why memory addresses a different pressure}
 \label{sec:collapse-mechanism}
 
-The idealized analysis separates frequency amplification from memory's
-persistent signal. Consider an isolated prompt with finitely many categories,
-at least two correct and one incorrect outcome, finite initial logits, and
-$G\ge2$. With independent canonical-outcome logits, common length
-normalization, and Euclidean infinitesimal on-policy updates without a
-competing regularizer, the GRPO, Dr.GRPO, and binary MaxRL mean flows satisfy,
-after a positive time change,
+Why should memory help where a better fresh objective does not? In an
+idealized categorical model --- one prompt, one logit per outcome, Euclidean
+mean updates, no competing regularizer --- GRPO, Dr.GRPO and binary MaxRL all
+induce the same conditional flow, after a positive time change:
 \begin{equation}
  \frac{dq_c}{d\tau}=q_c(q_c-C),\qquad
  \frac{dC}{d\tau}=2\operatorname{Var}_{c\sim q}(q_c)\ge0.
@@ -356,32 +343,24 @@ claim to its basis and scope.
 \label{sec:experiments}
 \label{sec:shared-protocol}
 
-We study \texttt{pass@8} and \texttt{distinct@8} through matched local
-training and frontier model evaluation, separating learning effects from
-the behavior of fixed deployments.
+Every comparison below is paired: the two arms share initialization, prompt
+stream, seed, budget, and evaluation requests, and differ only in the
+intervention named.
+\phantomsection\label{sec:retention-design}%
+\phantomsection\label{sec:factorial-design}%
+We train Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B on all five Level-1 domains
+for eight passes with five seeds each, adding replay to Dr.GRPO and crossing
+Dr.GRPO/MaxRL with replay off and on, then repeat the factorial on Level 2 at
+0.5B. Frequency-weighted replay, UCPO, RLEP, and fixed Semantic-MaxEnt are
+controls for alternative explanations. Evaluation averages four eight-sample
+draws on 128 held-out prompts that never enter training or the bank
+(Appendix~\ref{app:repro-run-contract}).
 
-\paragraph{Local training experiments.}
-We compare Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B across all five Level-1
-domains, with eight training passes and five paired seeds per comparison.
-\phantomsection\label{sec:retention-design}
-Matched experiments add replay to Dr.GRPO and
-\phantomsection\label{sec:factorial-design}
-cross Dr.GRPO/MaxRL with replay off/on at all three scales; we repeat the
-factorial on all five Level-2 domains with Qwen2.5-0.5B. Evaluation averages
-four eight-sample draws on 128 held-out prompts, with pointwise 95\% intervals
-over paired seeds. Controls include frequency-weighted replay, UCPO, RLEP, and
-fixed Semantic-MaxEnt (Appendix~\ref{app:repro-run-contract}).
-
-\paragraph{Frontier model experiments.}
-We evaluate GPT-5.6 Sol, GPT-5.4, Grok 4.3, Kimi K3, and Claude Opus 4.8
-with explicit reasoning disabled across all five domains and Levels 1--3.
-Each produces eight stateless responses per prompt on 32 fixed prompts per
-domain and level, totaling 480 prompts per model. Matched medium-reasoning
-responses preserve prompt wording and 8,192-token output limits. Scores use a
-fixed formatting normalizer, equal domain weights, and all prompts, including
-unsolved ones. Appendix~\ref{app:hosted-comparison} adds a seven-model medium
-cohort, temperature controls, and cross-model mixtures. These comparisons are
-inference-only: they apply no replay and identify no training effect.
+We separately evaluate five hosted models --- GPT-5.6 Sol, GPT-5.4, Grok 4.3,
+Kimi K3, and Claude Opus 4.8 --- on 480 fixed prompts spanning all five domains
+and Levels 1--3, eight stateless responses each
+(Appendix~\ref{app:hosted-comparison}). These are inference-only: no replay is
+applied and no training effect is identified.
 
 \section{Results}
 \label{sec:results}
@@ -393,27 +372,33 @@ test whether verified memory addresses it.
 \label{sec:results-collapse}
 
 \textbf{Training can replace varied attempts with one repeated answer.}
-On Python, all five Qwen2.5-0.5B Dr.GRPO seeds begin with almost eight
-unique raw responses per eight-sample draw. By steps 288--480, every saved
-draw repeats one byte-identical response per prompt, matching greedy on all
-128 test prompts; this persists through training. Only $1.5\%$ of the
-control's training groups contain both correct and incorrect responses,
-compared with $18.5\%$ under replay. Thus most control updates carry no fresh
-task gradient, while verified memory supplies a separate learning signal
-(Appendix~\ref{app:degenerate-groups}). This is observed output collapse
-under the tested recipe, including incorrect repeated answers.
+The starkest case is Python. Every Dr.GRPO seed starts out writing a different
+program almost every time --- close to eight distinct responses per eight
+draws. Within a few hundred steps all of that is gone: each prompt receives one
+byte-identical answer, on all 128 test prompts, and it never recovers. The
+policy has stopped exploring in any observable sense, and the repeated answer is
+not always a correct one.
 
-\textbf{Concentration among correct outputs is separately measurable.} On
-Graph and PantryPlan, all twelve Dr.GRPO/GRPO before--after comparisons
-increase correct-key collision; ReplayDr.GRPO lowers it in all six matched
-comparisons (Appendix Figure~\ref{fig:concentration-story}). These
-retrospective contrasts describe prompts with enough correct samples in
-both conditions, with sampling sensitivity reported in
-Appendix~\ref{app:conditional-concentration}; the raw-breadth precheck is in
-Appendix~\ref{app:pre-rl-regression}. Replay can lower per-sample
-correctness on that selected population while improving full-test
-\texttt{pass@8}. The following experiments therefore report success and
-verified breadth jointly.
+This is also where the fresh objective runs out of signal. A binary-reward group
+teaches nothing unless it contains both a success and a failure, and by then
+almost none of them do: under the control, one update in seventy carries any
+task gradient at all. Replay keeps roughly one in five informative, because a
+banked exemplar does not have to be rediscovered to be trained on
+(Appendix~\ref{app:degenerate-groups}).
+
+\textbf{Concentration among correct outputs is separately measurable.}
+Collapsing onto one answer is the extreme; the subtler and more general effect
+is a policy that still succeeds in several ways but increasingly prefers one of
+them. Graph and PantryPlan start with enough breadth to see this directly, and
+there every before--after comparison under Dr.GRPO and GRPO, at all three
+scales, moves the same way: two correct samples become more likely to be the
+same correct sample. Adding replay reverses it in every matched pair
+(Appendix Figure~\ref{fig:concentration-story}). These contrasts are measured
+on prompts with enough correct samples in both conditions, so they describe a
+selected population rather than the whole test set
+(Appendix~\ref{app:conditional-concentration}). Because correctness and breadth
+can move in opposite directions on that population, the experiments below
+always report both.
 
 \subsection{Replay improves success and sampled breadth}
 \label{sec:results-retention}
@@ -439,27 +424,24 @@ program behaviors.
   \label{fig:cross-scale-terminal-effects}
 \end{figure}
 
-At Qwen2.5-0.5B, Countdown \texttt{pass@8} rises from $.480$ to $.672$,
-while sampled verified computation routes more than triple, from $.487$ to
-$1.637$. The gain beyond the first correct outcome is $+.959$ modes
-($95\%$ interval $[+.863,+1.054]$). Python illustrates a different outcome:
-correctness rises from $.172$ to $.528$, but its extra-mode gain remains
-uncertain. More successful samples need not mean a more balanced
-distribution over correct outputs
-(Appendix~\ref{app:retention-numerical-detail}).
+Countdown at 0.5B shows the effect at its clearest: correctness rises by
+nineteen points while the number of distinct computation routes the model
+actually produces more than triples. Python shows the other possibility.
+Correctness triples there too, but the extra modes do not follow --- the policy
+gets much better at the task while remaining nearly as narrow. Succeeding more
+often is not the same as succeeding in more ways, and the benchmark is built to
+tell them apart (Appendix~\ref{app:retention-numerical-detail}).
 
-\textbf{Balancing keys contributes beyond reusing successes.}
-ReplayDr.GRPO has the largest mean correctness gain among the direct
-Qwen2.5-0.5B alternatives in every domain
-(Figure~\ref{fig:cross-scale-terminal-effects}B). A closer ablation changes
-only the replay target from equal key weights to fresh discovery-frequency
-weights. Uniform weighting adds $.318$ extra modes per prompt on the
-five-domain average ($[+.272,+.358]$), driven by Graph, Countdown, and
-PantryPlan. Its aggregate correctness effect is inconclusive, as are the
-Python and MathIR breadth contrasts. This supports key balancing as a
-contributor to breadth within the tested tasks
+\textbf{It is the balancing, not merely the reuse.}
+Replay could help simply by training on known-good outputs again. To separate
+that from the equal weighting, we change one thing: instead of giving every
+retained key the same share, we weight keys by how often fresh rollouts
+rediscovered them. Reuse is identical; only the balance differs. Equal
+weighting wins on breadth --- clearly in Graph, Countdown and PantryPlan, with
+no aggregate difference in correctness
 (Appendix~\ref{app:frequency-replay-progress},
-Figure~\ref{fig:replay-key-weighting}).
+Figure~\ref{fig:replay-key-weighting}). Refusing to let popularity decide how
+much a mode is rehearsed is doing real work.
 
 \subsection{Replay complements a stronger fresh objective}
 \label{sec:results-maxrl}
@@ -535,51 +517,57 @@ improved sampled breadth does not guarantee lower conditional concentration.
 \subsection{What the breadth measure represents}
 \label{sec:results-meaning}
 
-Three interventions test what a verified mode counts as, and a fourth asks
-whether retained alternatives are worth having.
+A skeptic has three ways to dismiss the gain: the extra modes are an artifact
+of how we worded the prompt, or of where we drew the line between two answers,
+or of stopping at eight draws. We tested all three, and a fourth question ---
+whether the alternatives are good for anything.
 
-\textbf{Guidance, mode definitions, and sample budget test what breadth means.}
-Removing strategy hints lowers Python correctness, although replay retains
-success where Dr.GRPO fails on the neutral-wording probes
-(Appendix~\ref{app:prompt-hint-ablation}). Merging opposite factor-pair
-members removes the original-wording Level-3 replay breadth gain
-($.419\to0$), while neutral wording retains a $.500$ gain; neither key
-identifies algorithms (Appendix~\ref{app:coarser-keys}). Larger sampling
-budgets distinguish concentration from alternatives missed at eight draws.
-Most trained MathIR conditions remain concentrated at 64 draws. Removing
-MathIR guidance broadens some hosted GPT outputs even at a fixed number of
-correct draws (Appendix~\ref{app:hosted-discovery-complete}), while
-Grok's neutral Level-3 Pantry breadth rises from $3.97$ to $8.44$ modes with
-\texttt{pass@}$K$ fixed at $1.0$. These exploratory budget probes use sixteen
-problems per cell and measure sampled alternatives, not exhaustive coverage
-(Appendix~\ref{app:sampling-budget-ablation}).
+\textbf{Is it the prompt?} Partly. Stripping the strategy hints out of Python
+hurts correctness badly, and the trained control fails outright on the neutral
+wording while the replay-trained policy still solves it
+(Appendix~\ref{app:prompt-hint-ablation}). The hints matter, but they are not
+what separates the two methods.
 
-\textbf{Saved alternatives can support adaptation to changed requirements.}
-On 32 held-out Pantry problems and two fixed seed pairs, replay improves
-survival of eight saved plans under independently chosen feasible outages
-by $23.83$ percentage points and reduces recovery by $2.08$ calls. Gains
-also appear with tuned-temperature and diversity-prompt controls
-(Appendix~\ref{app:pantry-adaptation}). Original correctness improves too,
-so this establishes better adaptation under the tested intervention without
-isolating diversity as its cause.
+\textbf{Is it the key?} Sometimes. Deliberately coarsening the Python key so
+that opposite members of a factor pair count as the same answer erases the
+breadth gain under the original wording, though not under neutral wording
+(Appendix~\ref{app:coarser-keys}). A verified mode is only ever as meaningful
+as the equivalence the validator draws, and we make that equivalence explicit
+rather than claiming it captures distinct algorithms.
+
+\textbf{Is it the budget?} Mostly not. Extending trained MathIR to 64 draws
+leaves it as concentrated as it was at eight, so those missing modes are
+genuinely improbable rather than merely unsampled. Pantry behaves the opposite
+way and keeps discovering (Appendix~\ref{app:sampling-budget-ablation}).
+
+\textbf{Are the alternatives worth having?} Remove an ingredient from a Pantry
+problem after the fact, and replay-trained policies keep more of their eight
+saved plans feasible and recover in fewer attempts, against both
+tuned-temperature and diversity-prompt controls
+(Appendix~\ref{app:pantry-adaptation}). Correctness improves too, so this shows
+better adaptation without isolating diversity as the cause --- but it is the
+one place we test utility rather than count modes.
 
 \subsection{Concentration in fixed deployments}
 \label{sec:hosted-concentration}
 
-Verified concentration also appears in hosted deployments. Under medium
-reasoning, GPT-5.6 Sol answers all 1,024
-Level-3 Graph draws correctly, yet eight draws contain only $1.16$ distinct verified
-colorings on average. Correct-pair collision is $95.1\%$, compared with a
-$19.0\%$ uniform-key reference. Thus narrow breadth can persist even when
-every response succeeds (Appendix~\ref{app:hosted-concentration}).
+The models we train are small, and a reader may reasonably suspect that
+concentration is an artifact of that. It is not. Asked a Level-3 Graph problem
+with six valid colorings, GPT-5.6 Sol is right every time --- all 1,024 draws ---
+and almost always right the same way, returning barely more than one distinct
+coloring per eight draws. Perfect accuracy and near-total collapse of the
+alternatives coexist in the same deployment
+(Appendix~\ref{app:hosted-concentration}).
 
-\textbf{More samples need not recover the available modes.}
-At 512 draws across all five domains and Levels~1--3
-(Figure~\ref{fig:gpt56-sampling-budget}), Graph averages $1.72$--$2.63$
-modes against $6.03$--$6.97$ available. Doubling from 256 to 512 draws adds
-at most $0.074$ mean modes in Python Levels~2--3; MathIR Levels~2--3
-recover at most one mode per problem. Other cells, especially Pantry and
-Level-1 Python, continue to gain modes with additional sampling.
+\textbf{Sampling harder does not recover what was lost.}
+The obvious remedy is to draw more. Figure~\ref{fig:gpt56-sampling-budget}
+follows five domains and three levels out to 512 draws per problem. In Graph
+the curves flatten well below the known support, so a model that has settled on
+two colorings does not find the other four by being asked five hundred times.
+Python and MathIR saturate similarly; Pantry and Level-1 Python are the
+exceptions that keep gaining. Where breadth is missing, it is missing from the
+distribution, not merely from the sample
+(Appendix~\ref{app:gpt56-all-levels-discovery}).
 
 \begin{figure}[H]
   \centering
@@ -595,56 +583,62 @@ Level-1 Python, continue to gain modes with additional sampling.
   \label{fig:gpt56-sampling-budget}
 \end{figure}
 
-Table~\ref{tab:hosted-level-averages} summarizes the separate
-reasoning-disabled evaluation across all domains and levels.
-On the same 480 prompts, disabling reasoning lowers overall \texttt{pass@8}
-and \texttt{distinct@8} for all five models versus medium reasoning.
-Because correctness also falls, this comparison does not isolate conditional
-concentration (Appendix~\ref{app:hosted-reasoning-control}); the seven-model
-medium results are in Figure~\ref{fig:hosted-verified-breadth}.
+The pattern is not one model's quirk. Table~\ref{tab:hosted-level-averages}
+reports five deployments with reasoning disabled: every one of them loses both
+correctness and breadth relative to medium reasoning. Because correctness moves
+too, this does not isolate conditional concentration
+(Appendix~\ref{app:hosted-reasoning-control}); the seven-model medium cohort is
+in Figure~\ref{fig:hosted-verified-breadth}.
 
 \input{results/hosted_reasoning_off_20260912_main.tex}
 
-Different models also expose complementary alternatives. Nine of the 21
-four-plus-four response mixtures have positive pointwise 95\% intervals in
-verified breadth against both eight-response constituents. Gains over the
-average constituent persist at matched successful-response counts
-(Appendix~\ref{app:cross-model-overlap}). This comparison fixes response
-counts; token costs can differ between models.
-
-Temperature provides another way to vary the sampled alternatives
-(Figure~\ref{fig:gpt56-temperature-curve}). On 480 matched prompts with
-GPT-5.6 Sol and reasoning \texttt{none}, raising $T$ from $0$ to $1.5$
-increases normalized empirical \texttt{pass@8} from $65.6\%$ to $79.8\%$
-and mean \texttt{distinct@8} from $.673$ to $1.125$.
-At $T=2$, these are $79.4\%$ and $1.146$; paired 95\% intervals for
-$T=2$ minus $T=1.5$ include zero on both axes. Grok shows no clear breadth
-gain at the tested higher temperature; Kimi suffers severe truncation
-(Appendix~\ref{app:hosted-temperature}).
+Two things do help, and both are revealing. Different models collapse onto
+different answers, so mixing responses from two of them covers more verified
+modes than either alone (Appendix~\ref{app:cross-model-overlap}). Raising
+temperature widens breadth too, but stops paying above $T=1.5$
+(Figure~\ref{fig:gpt56-temperature-curve}). Neither substitutes for a policy
+that kept its alternatives: one needs a second model, the other trades away the
+sharpness the deployment was tuned for.
 
 \section{Related Work}
 \label{sec:related}
 
-RLHF and reasoning RL can reduce output diversity, entropy and high-budget
-coverage \citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.
-\mb{} measures verified output identities; semantic clustering instead infers
-equivalence from language \citep{farquhar2024detecting}. Sampling-based selection
-motivates preserving proposal alternatives
+\textbf{Alignment narrows what a model produces.} RLHF and reasoning RL reduce
+output diversity, entropy and high-budget coverage
+\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.
+That literature establishes the cost; our question is what survives it and
+whether anything can be done during training rather than at decoding time.
+
+\textbf{What counts as a different answer.} Diversity can only be measured once
+sameness is defined. Semantic clustering infers equivalence from language
+\citep{farquhar2024detecting}, which is general but depends on a judge. \mb{}
+takes identity from the same executable check that assigns reward, so two
+outputs differ exactly when they execute differently --- narrower, cheaper, and
+one shared unit for training and evaluation. Alternatives are worth keeping
+because sampling-based selection consumes proposals
 \citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets};
-our Pantry follow-up measures adaptation to changed constraints, while
-general search utility remains untested.
+our Pantry follow-up measures adaptation to changed constraints, while general
+search utility remains untested.
 
-Outcome bonuses, set prediction, distribution matching and uniform-correct
-objectives also encourage broader support
-\citep{song2025outcome,chen2025passktraining,li2025divergence,li2026setpo,li2026distribution,lochab2026ucpo}.
-MaxRL combines objectives across sampling budgets \citep{tajwar2026maxrl}; we
-ask whether memory adds value. Replay can mitigate forgetting
-\citep{lin1992selfimproving,rolnick2019replay}, and RLEP reuses successful reasoning
-trajectories \citep{zhang2025rlep}. Our memory balances execution keys
-independently of discovery frequency, connecting replay to behavioral archives
-in quality-diversity methods \citep{mouret2015illuminating,ecoffet2021return}.
+\textbf{Broadening support through the objective.} Outcome bonuses, set
+prediction, distribution matching and uniform-correct objectives all reshape
+the fresh update
+\citep{song2025outcome,chen2025passktraining,li2025divergence,li2026setpo,li2026distribution,lochab2026ucpo},
+and MaxRL combines objectives across sampling budgets \citep{tajwar2026maxrl}.
+All of them act on what the policy samples now, which is the pressure our
+analysis identifies: a mode that has become rare contributes little however the
+advantage is shaped.
 
-\section{Conclusion}
+\textbf{Broadening support through memory.} Replay mitigates forgetting
+\citep{lin1992selfimproving,rolnick2019replay} and RLEP reuses successful
+reasoning trajectories \citep{zhang2025rlep}, but both revisit successes in
+proportion to how they were collected. Balancing execution keys independently
+of discovery frequency is what separates our memory from those, and connects it
+to behavioral archives in quality-diversity methods
+\citep{mouret2015illuminating,ecoffet2021return}, which retain one elite per
+behavior cell for the same reason.
+
+\section{Conclusion and Limitations}
 \label{sec:conclusion}
 \label{sec:discussion}
 \label{sec:limitations}
@@ -656,12 +650,12 @@ Controlled comparisons show that memory complements stronger fresh
 optimization; key weighting, prompt interventions, larger sampling budgets,
 and hosted mixtures reveal what determines the alternatives observed.
 
-Replay depends on discovery and bank capacity. A fixed-bank study finds
-improving central exemplar scores alongside a declining tail
-(Appendix~\ref{app:fixed-bank-survival}); it does not establish retention of
-every key. Matched retention tests and portfolios with equal numbers of
-correct candidates would clarify what memory preserves and when alternatives
-add value, connecting the idealized mechanism to neural behavior and adaptation.
+Three limits bound this. Replay retains only what sampling first finds, and a
+16-key bank against a mean of 229 valid Python modes protects a subset by
+construction (Appendix~\ref{app:fixed-bank-survival}).
+\texttt{distinct@}$K$ counts alternatives, not their worth. And the hosted
+models we did not train, so they motivate the measurement rather than implicate
+RLVR. Appendix~\ref{app:claim-basis} scopes every claim.
 \label{sec:main-end}
 
 \clearpage
@@ -700,22 +694,22 @@ add value, connecting the idealized mechanism to neural behavior and adaptation.
 
 \section*{Appendix Organization}
 \label{app:organization}
-The supplement is organized in six parts. \textbf{Scope} opens with the
+The supplement is organized in seven parts. \textbf{Part~I} opens with the
 claim--evidence map (Appendix~\ref{app:claim-basis}), the notation, and the
 measurement identities (Appendix~\ref{app:metric-details}).
-\textbf{Benchmark and method} gives the evaluation protocol
+\textbf{Part~II} gives the evaluation protocol
 (Appendix~\ref{app:data}), the verbatim prompts (Appendix~\ref{app:prompts}),
 and the implemented algorithm (Appendix~\ref{app:algorithm}).
-\textbf{Training results} (Appendix~\ref{app:supporting}) reports the
+\textbf{Part~III} (Appendix~\ref{app:supporting}) reports the
 comparisons behind Sections~\ref{sec:results-retention}--\ref{sec:results-levels},
 followed by the mechanism checks behind Section~\ref{sec:results-collapse}
-(Appendix~\ref{app:ablations}). \textbf{What breadth represents}
+(Appendix~\ref{app:ablations}). \textbf{Parts~IV}
 (Appendices~\ref{app:prompt-hint-ablation} and~\ref{app:sampling-budget-ablation})
-and \textbf{fixed deployments} (Appendix~\ref{app:hosted-concentration} onward)
+and~\textbf{V} (Appendix~\ref{app:hosted-concentration} onward)
 follow Sections~\ref{sec:results-meaning} and~\ref{sec:hosted-concentration}
-one-to-one. \textbf{Idealized analysis} (Appendix~\ref{app:theory}) states the
+one-to-one. \textbf{Part~VI} (Appendix~\ref{app:theory}) states the
 categorical model and its proofs, with its scope limits collected at the end.
-\textbf{Records} close with source integrity and reproducibility.
+\textbf{Part~VII} closes with source integrity, reproducibility, and disclosures.
 
 \appendix
 \onecolumn
