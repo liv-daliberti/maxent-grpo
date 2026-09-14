@@ -129,6 +129,36 @@ again at Stage-R authorization; a hand-written pass status is insufficient.
 entropy/controller diagnostics, and checkpoint structure. It deliberately
 does not inspect evaluation outcomes or compare smoke arms.
 
+## Campaign status
+
+Run these commands from the repository root:
+
+```bash
+python ops/exp_scaling/campaign_live_stats.py
+python ops/exp_scaling/campaign_live_stats.py --include-history
+python ops/exp_scaling/campaign_live_stats.py --json
+```
+
+The default live view hides the stopped E112-R1 scale detail while preserving
+cohort counts and progress. `--include-history` shows stopped/completed scale
+details, completed recovery lineages, and retired cohorts. `--json` returns the
+original structured rows unchanged. The underlying `campaign_stats.py` command
+remains available; the quieter E112-R1 display applies to `campaign_live_stats.py`.
+
+The Qwen2.5-7B sweep is **E124**: one paired seed, MaxRL and ReplayMaxRL, across
+three levels and five domains (30 training runs). It is **not yet included in
+the campaign stats registry**, so neither command above prints an E124 row.
+Its setup and monitoring files are documented in the
+[E124 run guide](../var/artifacts/e124_qwen7b_three_level/README.md).
+Read its latest controller-reported state, including the report timestamp,
+qualification state, held-run count, and storage gate, with:
+
+```bash
+python -m json.tool var/artifacts/e124_qwen7b_three_level/status.json
+```
+
+## Earlier E51 dashboard
+
 Watch the current E51 cohort with:
 
 ```bash

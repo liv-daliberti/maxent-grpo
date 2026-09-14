@@ -35,6 +35,57 @@ for required_script in run_experiment.sh train.sh resolve_eval_cadence.py; do
   fi
 done
 
+# BEGIN E111_QWEN3_RESTART_DURABILITY_AMENDMENT
+# The exact E111 Qwen-3B jobs run on a preemptible partition. Keep the
+# submitted treatment environment immutable, but shorten storage boundaries on
+# future scheduler restarts so a short allocation can preserve optimizer/RNG
+# state. Fail closed if any identifying input differs.
+case "${SLURM_JOB_ID:-}" in
+  30674758|30674759|30674760|30674761|30674762)
+    if [[ "${OAT_ZERO_SOURCE_ROOT:-}" != \
+          "${ROOT_DIR}/var/artifacts/source_snapshots/e76_tuned_scale_2febfdc12e36650d/src" ]] ||
+       [[ "${OAT_ZERO_OPS_SNAPSHOT_ROOT:-}" != \
+          "${ROOT_DIR}/var/artifacts/source_snapshots/e76_tuned_scale_2febfdc12e36650d/ops" ]] ||
+       [[ "${OAT_ZERO_VARIANT:-}" != \
+          "verified_replay_semantic_maxent_verified_support_discovery" ]] ||
+       [[ "${OAT_ZERO_SAVE_STEPS:-}" != "32" ]] ||
+       [[ "${OAT_ZERO_SAVE_FROM:-}" != "32" ]] ||
+       [[ "${OAT_ZERO_RESUME_STEPS:-}" != "32" ]]; then
+      echo "Refusing mismatched E111 Qwen-3B durability amendment for job ${SLURM_JOB_ID}" >&2
+      exit 1
+    fi
+    export OAT_ZERO_SAVE_STEPS=8
+    export OAT_ZERO_SAVE_FROM=8
+    export OAT_ZERO_RESUME_STEPS=8
+    echo "[slurm] e111_qwen3_restart_durability=active checkpoint_interval=8 submitted_interval=32"
+    ;;
+esac
+# END E111_QWEN3_RESTART_DURABILITY_AMENDMENT
+
+# BEGIN E113R3_TERMINAL_FAILURE_CLEANUP_AMENDMENT
+E113R3_TERMINAL_FAILURE_CLEANUP=0
+if [[ "${SLURM_JOB_ID:-}" =~ ^[0-9]+$ ]] &&
+   (( SLURM_JOB_ID >= 30790925 && SLURM_JOB_ID <= 30790974 )); then
+  if [[ "${OAT_ZERO_SOURCE_ROOT:-}" != \
+        "${ROOT_DIR}/var/artifacts/source_snapshots/e76_tuned_scale_f941cd52a8a9927c/src" ]] ||
+     [[ "${OAT_ZERO_OPS_SNAPSHOT_ROOT:-}" != \
+        "${ROOT_DIR}/var/artifacts/source_snapshots/e76_tuned_scale_f941cd52a8a9927c/ops" ]] ||
+     [[ "${OAT_ZERO_VARIANT:-}" != "dapo" ]] ||
+     [[ "${RUN_STAMP:-}" != e113r3_* ]] ||
+     [[ "${OAT_ZERO_WATCHDOG_REQUEUE:-}" != "0" ]] ||
+     [[ "${OAT_ZERO_WATCHDOG_MAX_RESTARTS:-}" != "0" ]]; then
+    echo "Refusing mismatched E113-R3 terminal cleanup for job ${SLURM_JOB_ID}" >&2
+    exit 1
+  fi
+  export OAT_ZERO_WATCHDOG_STALE_SECONDS=300
+  export OAT_ZERO_WATCHDOG_POLL_SECONDS=15
+  export OAT_ZERO_WATCHDOG_STARTUP_GRACE_SECONDS=900
+  export OAT_ZERO_WATCHDOG_FATAL_PATTERN='Fatal Python error:|ChildProcessError: worker died|Worker VllmWorkerProcess .* died|DAPO dynamic sampling could not produce a non-constant reward group'
+  E113R3_TERMINAL_FAILURE_CLEANUP=1
+  echo "[slurm] e113r3_terminal_failure_cleanup=active requeue=0"
+fi
+# END E113R3_TERMINAL_FAILURE_CLEANUP_AMENDMENT
+
 export OAT_ZERO_PYTHON="${OAT_ZERO_PYTHON:-${README_PYTHON}}"
 # Requeues must execute the same Python objective that was first allocated.
 # Prefer the submission-time campaign snapshot. For ad hoc submissions, make
@@ -86,7 +137,11 @@ chmod 755 "$RUNTIME_SCRIPT_DIR/run_experiment.sh" "$RUNTIME_SCRIPT_DIR/train.sh"
 export OAT_ZERO_OPS_SNAPSHOT_ROOT="$RUNTIME_OPS_ROOT"
 export OAT_ZERO_TRAIN_SCRIPT="$RUNTIME_SCRIPT_DIR/train.sh"
 if [[ -n "${SLURM_JOB_ID:-}" ]]; then
-  export OAT_ZERO_WATCHDOG_LOG_PATH="$ROOT_DIR/var/artifacts/logs/xdr_train-${SLURM_JOB_ID}.out"
+  if (( E113R3_TERMINAL_FAILURE_CLEANUP == 1 )); then
+    export OAT_ZERO_WATCHDOG_LOG_PATH="$ROOT_DIR/var/artifacts/logs/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out"
+  else
+    export OAT_ZERO_WATCHDOG_LOG_PATH="$ROOT_DIR/var/artifacts/logs/xdr_train-${SLURM_JOB_ID}.out"
+  fi
 fi
 
 echo "[slurm] host=$(hostname)"

@@ -1,0 +1,3623 @@
+{
+  "analysis_date": "2026-09-11",
+  "collection_finished_at_utc": "2026-09-11T20:08:24.398072+00:00",
+  "collection_started_at_utc": "2026-09-11T20:03:22.002896+00:00",
+  "contrast_direction": "left_arm minus right_arm; absolute means use exactly the same paired seeds",
+  "coverage": [
+    {
+      "admitted_terminal_endpoints": 150,
+      "campaign": "e118",
+      "complete_five_seed_blocks": 15,
+      "complete_pairwise_contrasts": 15,
+      "completion_receipts": 150,
+      "endpoint_status_counts": {
+        "admitted": 150
+      },
+      "label": "E118: MaxRL factorial",
+      "paired_contrasts": 75,
+      "planned_paired_contrasts": 75,
+      "registered_blocks": 15,
+      "registered_cells": 150
+    },
+    {
+      "admitted_terminal_endpoints": 90,
+      "campaign": "e119",
+      "complete_five_seed_blocks": 4,
+      "complete_pairwise_contrasts": 8,
+      "completion_receipts": 90,
+      "endpoint_status_counts": {
+        "admitted": 90,
+        "incomplete": 10
+      },
+      "label": "E119: Level-2 factorial",
+      "paired_contrasts": 43,
+      "planned_paired_contrasts": 50,
+      "registered_blocks": 5,
+      "registered_cells": 100
+    },
+    {
+      "admitted_terminal_endpoints": 44,
+      "campaign": "e120",
+      "complete_five_seed_blocks": 8,
+      "complete_pairwise_contrasts": 8,
+      "completion_receipts": 44,
+      "endpoint_status_counts": {
+        "admitted": 44,
+        "incomplete": 1
+      },
+      "label": "E120-R1: fresh-frequency replay ablation",
+      "mechanism_validated_complete_blocks": 8,
+      "paired_contrasts": 44,
+      "planned_paired_contrasts": 45,
+      "registered_blocks": 9,
+      "registered_cells": 45
+    }
+  ],
+  "e119_common_four_arm_rows": [
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_drgrpo_minus_drgrpo",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.48046875,
+          "mean": 0.4578125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.451171875,
+            "44": 0.390625,
+            "45": 0.484375,
+            "46": 0.435546875,
+            "47": 0.52734375
+          },
+          "right_mean": 0.02265625,
+          "student_t_95": [
+            0.3939114917457538,
+            0.5217135082542462
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.24296875,
+          "mean": 1.01875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.8515625,
+            "44": 1.01953125,
+            "45": 1.09375,
+            "46": 0.9921875,
+            "47": 1.13671875
+          },
+          "right_mean": 0.22421875,
+          "student_t_95": [
+            0.8824502081142229,
+            1.1550497918857772
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.7625,
+          "mean": 0.5609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.400390625,
+            "44": 0.62890625,
+            "45": 0.609375,
+            "46": 0.556640625,
+            "47": 0.609375
+          },
+          "right_mean": 0.2015625,
+          "student_t_95": [
+            0.44461489371182067,
+            0.6772601062881793
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_maxrl_minus_maxrl",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.474609375,
+          "mean": 0.362890625,
+          "n": 5,
+          "per_seed": {
+            "43": 0.271484375,
+            "44": 0.365234375,
+            "45": 0.326171875,
+            "46": 0.416015625,
+            "47": 0.435546875
+          },
+          "right_mean": 0.11171875,
+          "student_t_95": [
+            0.2800379055915434,
+            0.44574334440845664
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.2140625,
+          "mean": 0.66796875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.505859375,
+            "44": 0.693359375,
+            "45": 0.62109375,
+            "46": 0.732421875,
+            "47": 0.787109375
+          },
+          "right_mean": 0.54609375,
+          "student_t_95": [
+            0.5327041559096666,
+            0.8032333440903334
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.739453125,
+          "mean": 0.305078125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.234375,
+            "44": 0.328125,
+            "45": 0.294921875,
+            "46": 0.31640625,
+            "47": 0.3515625
+          },
+          "right_mean": 0.434375,
+          "student_t_95": [
+            0.2498193224045962,
+            0.36033692759540376
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_drgrpo_minus_drgrpo",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.0203125,
+          "mean": 0.0203125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0625,
+            "44": 0.03515625,
+            "45": 0.0,
+            "46": 0.00390625,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.014223187299052111,
+            0.05484818729905211
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.176171875,
+          "mean": 0.044921875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.07421875,
+            "44": 0.126953125,
+            "45": -0.07421875,
+            "46": 0.060546875,
+            "47": 0.037109375
+          },
+          "right_mean": 0.13125,
+          "student_t_95": [
+            -0.047344490661391236,
+            0.13718824066139124
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.155859375,
+          "mean": 0.024609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.01171875,
+            "44": 0.091796875,
+            "45": -0.07421875,
+            "46": 0.056640625,
+            "47": 0.037109375
+          },
+          "right_mean": 0.13125,
+          "student_t_95": [
+            -0.05300599182867781,
+            0.10222474182867781
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_maxrl_minus_maxrl",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.016796875,
+          "mean": 0.016796875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.01953125,
+            "44": 0.0078125,
+            "45": 0.0,
+            "46": 0.02734375,
+            "47": 0.029296875
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.0011177338822009435,
+            0.03247601611779906
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.174609375,
+          "mean": 0.05703125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.01953125,
+            "44": 0.11328125,
+            "45": -0.013671875,
+            "46": 0.03125,
+            "47": 0.134765625
+          },
+          "right_mean": 0.117578125,
+          "student_t_95": [
+            -0.02217423827506363,
+            0.13623673827506363
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.1578125,
+          "mean": 0.040234375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.10546875,
+            "45": -0.013671875,
+            "46": 0.00390625,
+            "47": 0.10546875
+          },
+          "right_mean": 0.117578125,
+          "student_t_95": [
+            -0.03415018225949684,
+            0.11461893225949685
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_drgrpo_minus_drgrpo",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.325,
+          "mean": 0.325,
+          "n": 5,
+          "per_seed": {
+            "43": 0.8125,
+            "44": 0.0,
+            "45": 0.8125,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.22757099678483378,
+            0.8775709967848337
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.2125,
+          "mean": 0.4,
+          "n": 5,
+          "per_seed": {
+            "43": 0.8125,
+            "44": 0.1875,
+            "45": 0.8125,
+            "46": 0.1875,
+            "47": 0.0
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.0771226196546953,
+            0.8771226196546953
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.8875,
+          "mean": 0.075,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.1875,
+            "45": 0.0,
+            "46": 0.1875,
+            "47": 0.0
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.05251638387342321,
+            0.2025163838734232
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_maxrl_minus_maxrl",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.174609375,
+          "mean": 0.174609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.021484375,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.8515625
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.2954133844239449,
+            0.644632134423945
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.024609375,
+          "mean": 0.212109375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.1875,
+            "44": 0.021484375,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.8515625
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.24233989640430603,
+            0.6665586464043061
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.85,
+          "mean": 0.0375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.1875,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.06661669144491744,
+            0.14161669144491745
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_drgrpo_minus_drgrpo",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.0,
+          "mean": 0.0,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.0,
+            0.0
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.994140625,
+          "mean": 0.492578125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.890625,
+            "44": 0.046875,
+            "45": 0.640625,
+            "46": 0.796875,
+            "47": 0.087890625
+          },
+          "right_mean": 0.5015625,
+          "student_t_95": [
+            -0.0022911965772516307,
+            0.9874474465772516
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.994140625,
+          "mean": 0.492578125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.890625,
+            "44": 0.046875,
+            "45": 0.640625,
+            "46": 0.796875,
+            "47": 0.087890625
+          },
+          "right_mean": 0.5015625,
+          "student_t_95": [
+            -0.0022911965772516307,
+            0.9874474465772516
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "four_arm_replay_maxrl_minus_maxrl",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.0015625,
+          "mean": 0.0015625,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0078125,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.002775695476871561,
+            0.0059006954768715605
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.959375,
+          "mean": 0.174609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.162109375,
+            "44": 0.12890625,
+            "45": -0.2109375,
+            "46": 0.767578125,
+            "47": 0.025390625
+          },
+          "right_mean": 0.784765625,
+          "student_t_95": [
+            -0.2751274238504915,
+            0.6243461738504915
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.9578125,
+          "mean": 0.173046875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.154296875,
+            "44": 0.12890625,
+            "45": -0.2109375,
+            "46": 0.767578125,
+            "47": 0.025390625
+          },
+          "right_mean": 0.784765625,
+          "student_t_95": [
+            -0.2767945280969861,
+            0.6228882780969861
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43
+      ],
+      "complete_five_seed_block": false,
+      "contrast": "four_arm_replay_drgrpo_minus_drgrpo",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 1,
+      "paired_seeds": [
+        43
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.19140625,
+          "mean": 0.189453125,
+          "n": 1,
+          "per_seed": {
+            "43": 0.189453125
+          },
+          "right_mean": 0.001953125
+        },
+        "distinct8": {
+          "left_mean": 0.611328125,
+          "mean": 0.501953125,
+          "n": 1,
+          "per_seed": {
+            "43": 0.501953125
+          },
+          "right_mean": 0.109375
+        },
+        "pass8": {
+          "left_mean": 0.419921875,
+          "mean": 0.3125,
+          "n": 1,
+          "per_seed": {
+            "43": 0.3125
+          },
+          "right_mean": 0.107421875
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43
+      ],
+      "complete_five_seed_block": false,
+      "contrast": "four_arm_replay_maxrl_minus_maxrl",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 1,
+      "paired_seeds": [
+        43
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.17578125,
+          "mean": 0.154296875,
+          "n": 1,
+          "per_seed": {
+            "43": 0.154296875
+          },
+          "right_mean": 0.021484375
+        },
+        "distinct8": {
+          "left_mean": 0.57421875,
+          "mean": 0.404296875,
+          "n": 1,
+          "per_seed": {
+            "43": 0.404296875
+          },
+          "right_mean": 0.169921875
+        },
+        "pass8": {
+          "left_mean": 0.3984375,
+          "mean": 0.25,
+          "n": 1,
+          "per_seed": {
+            "43": 0.25
+          },
+          "right_mean": 0.1484375
+        }
+      }
+    }
+  ],
+  "findings": [
+    "E118 has 15 complete five-seed model/domain comparisons. ReplayMaxRL has positive point estimates in 15/15 for pass@8, 14/15 for distinct@8, and 14/15 for B8. These are directional counts, not a pooled effect or a significance test.",
+    "E118 Qwen-0.5B Graph (5/5 pairs): \u0394P8 +0.408 [+0.200, +0.617]; \u0394B8 +1.221 [+0.926, +1.517].",
+    "E118 Qwen-0.5B Countdown (5/5 pairs): \u0394P8 +0.084 [-0.074, +0.242]; \u0394B8 +0.990 [+0.859, +1.121].",
+    "E118 Qwen-3B Python (5/5 pairs): \u0394P8 +0.277 [-0.037, +0.590]; \u0394B8 +0.115 [+0.080, +0.149].",
+    "E118 Qwen-3B Graph (5/5 pairs): \u0394P8 +0.023 [-0.048, +0.095]; \u0394B8 +0.163 [+0.021, +0.305].",
+    "E118 Qwen-3B PantryPlan (5/5 pairs): \u0394P8 +0.070 [+0.042, +0.098]; \u0394B8 +0.609 [+0.467, +0.751].",
+    "E118 Falcon-1B Graph (5/5 pairs): \u0394P8 +0.014 [-0.016, +0.044]; \u0394B8 -0.107 [-0.220, +0.005].",
+    "E119 Level-2 Graph, ReplayDr.GRPO minus Dr.GRPO (5/5 pairs): \u0394P8 +0.561 [+0.445, +0.677]; \u0394B8 +0.458 [+0.394, +0.522].",
+    "E119 Level-2 Graph, ReplayMaxRL minus MaxRL (5/5 pairs): \u0394P8 +0.305 [+0.250, +0.360]; \u0394B8 +0.363 [+0.280, +0.446].",
+    "E119 Level-2 Countdown, ReplayDr.GRPO minus Dr.GRPO (5/5 pairs): \u0394P8 +0.025 [-0.053, +0.102]; \u0394B8 +0.020 [-0.014, +0.055].",
+    "E119 Level-2 Countdown, ReplayMaxRL minus MaxRL (5/5 pairs): \u0394P8 +0.040 [-0.034, +0.115]; \u0394B8 +0.017 [+0.001, +0.032].",
+    "E119 Level-2 Python, ReplayDr.GRPO minus Dr.GRPO (5/5 pairs): \u0394P8 +0.075 [-0.053, +0.203]; \u0394B8 +0.325 [-0.228, +0.878].",
+    "E119 Level-2 Python, ReplayMaxRL minus MaxRL (5/5 pairs): \u0394P8 +0.037 [-0.067, +0.142]; \u0394B8 +0.175 [-0.295, +0.645].",
+    "E119 Level-2 MathIR, ReplayDr.GRPO minus Dr.GRPO (5/5 pairs): \u0394P8 +0.493 [-0.002, +0.987]; \u0394B8 +0.000 [+0.000, +0.000].",
+    "E119 Level-2 MathIR, ReplayMaxRL minus MaxRL (5/5 pairs): \u0394P8 +0.173 [-0.277, +0.623]; \u0394B8 +0.002 [-0.003, +0.006].",
+    "E120 uniform minus frequency, Qwen-0.5B Graph (5/5 pairs; mechanism eligibility 5/5 available pairs): \u0394P8 +0.066 [+0.061, +0.072]; \u0394B8 +0.596 [+0.513, +0.687].",
+    "E120 uniform minus frequency, Qwen-0.5B Countdown (5/5 pairs; mechanism eligibility 5/5 available pairs): \u0394P8 +0.022 [+0.004, +0.040]; \u0394B8 +0.639 [+0.544, +0.733].",
+    "E120 uniform minus frequency, Qwen-0.5B PantryPlan (5/5 pairs; mechanism eligibility 5/5 available pairs): \u0394P8 +0.043 [+0.006, +0.091]; \u0394B8 +0.298 [+0.174, +0.400].",
+    "E120 uniform minus frequency, Falcon-1B Graph (5/5 pairs; mechanism eligibility 5/5 available pairs): \u0394P8 +0.045 [-0.000, +0.091]; \u0394B8 +0.233 [+0.182, +0.320].",
+    "E120 uniform minus frequency, Falcon-1B PantryPlan (5/5 pairs; mechanism eligibility 5/5 available pairs): \u0394P8 -0.021 [-0.063, +0.026]; \u0394B8 -0.146 [-0.564, +0.414].",
+    "E120 uniform minus frequency, Qwen-3B Graph (4/5 pairs; mechanism eligibility 4/4 available pairs): \u0394P8 -0.006; \u0394B8 +0.070."
+  ],
+  "metric_definitions": {
+    "breadth8": "B8 = D8 - P8: expected number of distinct correct modes beyond the first",
+    "distinct8": "D8 = distinct@8: expected number of distinct correct semantic modes among eight samples",
+    "pass8": "P8 = pass@8: probability of at least one correct answer among eight samples"
+  },
+  "rows": [
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 1.36328125,
+          "mean": 1.221484375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.900390625,
+            "44": 1.353515625,
+            "45": 1.1484375,
+            "46": 1.169921875,
+            "47": 1.53515625
+          },
+          "right_mean": 0.141796875,
+          "student_t_95": [
+            0.9257453781337779,
+            1.517223371866222
+          ]
+        },
+        "distinct8": {
+          "left_mean": 2.308203125,
+          "mean": 1.6296875,
+          "n": 5,
+          "per_seed": {
+            "43": 1.220703125,
+            "44": 1.83203125,
+            "45": 1.552734375,
+            "46": 1.365234375,
+            "47": 2.177734375
+          },
+          "right_mean": 0.678515625,
+          "student_t_95": [
+            1.1550762255798441,
+            2.1042987744201556
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.944921875,
+          "mean": 0.408203125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.3203125,
+            "44": 0.478515625,
+            "45": 0.404296875,
+            "46": 0.1953125,
+            "47": 0.642578125
+          },
+          "right_mean": 0.53671875,
+          "student_t_95": [
+            0.19956484211169676,
+            0.6168414078883032
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 1.02890625,
+          "mean": 0.98984375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.98046875,
+            "44": 0.833984375,
+            "45": 0.96484375,
+            "46": 1.109375,
+            "47": 1.060546875
+          },
+          "right_mean": 0.0390625,
+          "student_t_95": [
+            0.8591859911590594,
+            1.1205015088409407
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.69453125,
+          "mean": 1.073828125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.97265625,
+            "44": 0.849609375,
+            "45": 0.99609375,
+            "46": 1.185546875,
+            "47": 1.365234375
+          },
+          "right_mean": 0.620703125,
+          "student_t_95": [
+            0.8224478047739938,
+            1.325208445226006
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.665625,
+          "mean": 0.083984375,
+          "n": 5,
+          "per_seed": {
+            "43": -0.0078125,
+            "44": 0.015625,
+            "45": 0.03125,
+            "46": 0.076171875,
+            "47": 0.3046875
+          },
+          "right_mean": 0.581640625,
+          "student_t_95": [
+            -0.0738724487370701,
+            0.2418411987370701
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.44609375,
+          "mean": 0.44609375,
+          "n": 5,
+          "per_seed": {
+            "43": 1.0,
+            "44": 0.939453125,
+            "45": 0.07421875,
+            "46": 0.216796875,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.15585187907701864,
+            1.0480393790770186
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.12734375,
+          "mean": 0.95546875,
+          "n": 5,
+          "per_seed": {
+            "43": 1.828125,
+            "44": 1.767578125,
+            "45": 0.90234375,
+            "46": 0.279296875,
+            "47": 0.0
+          },
+          "right_mean": 0.171875,
+          "student_t_95": [
+            -0.0822685612213544,
+            1.9932060612213545
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.68125,
+          "mean": 0.509375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.828125,
+            "44": 0.828125,
+            "45": 0.828125,
+            "46": 0.0625,
+            "47": 0.0
+          },
+          "right_mean": 0.171875,
+          "student_t_95": [
+            -0.03326372066998451,
+            1.0520137206699847
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.01328125,
+          "mean": 0.0125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.015625,
+            "44": 0.0078125,
+            "45": 0.015625,
+            "46": 0.01171875,
+            "47": 0.01171875
+          },
+          "right_mean": 0.00078125,
+          "student_t_95": [
+            0.008441989712173557,
+            0.016558010287826445
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.801953125,
+          "mean": 0.355859375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.359375,
+            "44": 0.3046875,
+            "45": 0.373046875,
+            "46": 0.287109375,
+            "47": 0.455078125
+          },
+          "right_mean": 0.44609375,
+          "student_t_95": [
+            0.27373746639590113,
+            0.4379812836040988
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.788671875,
+          "mean": 0.343359375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.34375,
+            "44": 0.296875,
+            "45": 0.357421875,
+            "46": 0.275390625,
+            "47": 0.443359375
+          },
+          "right_mean": 0.4453125,
+          "student_t_95": [
+            0.26246409695284045,
+            0.4242546530471596
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.751171875,
+          "mean": 0.751171875,
+          "n": 5,
+          "per_seed": {
+            "43": 1.04296875,
+            "44": 0.765625,
+            "45": 0.63671875,
+            "46": 0.759765625,
+            "47": 0.55078125
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.5199721030010691,
+            0.982371646998931
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.471875,
+          "mean": 0.940625,
+          "n": 5,
+          "per_seed": {
+            "43": 1.322265625,
+            "44": 0.927734375,
+            "45": 0.7578125,
+            "46": 0.99609375,
+            "47": 0.69921875
+          },
+          "right_mean": 0.53125,
+          "student_t_95": [
+            0.6361071229119825,
+            1.2451428770880177
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.720703125,
+          "mean": 0.189453125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.279296875,
+            "44": 0.162109375,
+            "45": 0.12109375,
+            "46": 0.236328125,
+            "47": 0.1484375
+          },
+          "right_mean": 0.53125,
+          "student_t_95": [
+            0.10762536823897563,
+            0.2712808817610244
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "ReplayMaxRL",
+      "model": "Falcon-1B",
+      "model_key": "falcon1b",
+      "n": 5,
+      "paired_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 1.066015625,
+          "mean": -0.10703125,
+          "n": 5,
+          "per_seed": {
+            "55": -0.25,
+            "56": -0.001953125,
+            "57": -0.1171875,
+            "58": -0.076171875,
+            "59": -0.08984375
+          },
+          "right_mean": 1.173046875,
+          "student_t_95": [
+            -0.21952411767449762,
+            0.005461617674497626
+          ]
+        },
+        "distinct8": {
+          "left_mean": 2.001953125,
+          "mean": -0.09296875,
+          "n": 5,
+          "per_seed": {
+            "55": -0.2734375,
+            "56": 0.021484375,
+            "57": -0.083984375,
+            "58": -0.04296875,
+            "59": -0.0859375
+          },
+          "right_mean": 2.094921875,
+          "student_t_95": [
+            -0.2294087048197746,
+            0.04347120481977461
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.9359375,
+          "mean": 0.0140625,
+          "n": 5,
+          "per_seed": {
+            "55": -0.0234375,
+            "56": 0.0234375,
+            "57": 0.033203125,
+            "58": 0.033203125,
+            "59": 0.00390625
+          },
+          "right_mean": 0.921875,
+          "student_t_95": [
+            -0.015905216156934576,
+            0.04403021615693457
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "ReplayMaxRL",
+      "model": "Falcon-1B",
+      "model_key": "falcon1b",
+      "n": 5,
+      "paired_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.1078125,
+          "mean": 0.1078125,
+          "n": 5,
+          "per_seed": {
+            "55": 0.119140625,
+            "56": 0.078125,
+            "57": 0.10546875,
+            "58": 0.134765625,
+            "59": 0.1015625
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.08161441444565706,
+            0.13401058555434295
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.787109375,
+          "mean": 0.133203125,
+          "n": 5,
+          "per_seed": {
+            "55": 0.134765625,
+            "56": 0.10546875,
+            "57": 0.14453125,
+            "58": 0.169921875,
+            "59": 0.111328125
+          },
+          "right_mean": 0.65390625,
+          "student_t_95": [
+            0.10078436462693158,
+            0.16562188537306843
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.679296875,
+          "mean": 0.025390625,
+          "n": 5,
+          "per_seed": {
+            "55": 0.015625,
+            "56": 0.02734375,
+            "57": 0.0390625,
+            "58": 0.03515625,
+            "59": 0.009765625
+          },
+          "right_mean": 0.65390625,
+          "student_t_95": [
+            0.009862248356159543,
+            0.04091900164384046
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "ReplayMaxRL",
+      "model": "Falcon-1B",
+      "model_key": "falcon1b",
+      "n": 5,
+      "paired_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.153125,
+          "mean": 0.153125,
+          "n": 5,
+          "per_seed": {
+            "55": 0.0,
+            "56": 0.765625,
+            "57": 0.0,
+            "58": 0.0,
+            "59": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.27201815673341295,
+            0.5782681567334129
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.1140625,
+          "mean": 0.2796875,
+          "n": 5,
+          "per_seed": {
+            "55": 0.0,
+            "56": 0.5703125,
+            "57": 0.0,
+            "58": 0.0,
+            "59": 0.828125
+          },
+          "right_mean": 0.834375,
+          "student_t_95": [
+            -0.2091253048481222,
+            0.7685003048481222
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.9609375,
+          "mean": 0.1265625,
+          "n": 5,
+          "per_seed": {
+            "55": 0.0,
+            "56": -0.1953125,
+            "57": 0.0,
+            "58": 0.0,
+            "59": 0.828125
+          },
+          "right_mean": 0.834375,
+          "student_t_95": [
+            -0.3715938296609884,
+            0.6247188296609885
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "ReplayMaxRL",
+      "model": "Falcon-1B",
+      "model_key": "falcon1b",
+      "n": 5,
+      "paired_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.019921875,
+          "mean": 0.01875,
+          "n": 5,
+          "per_seed": {
+            "55": 0.017578125,
+            "56": 0.0234375,
+            "57": 0.025390625,
+            "58": 0.025390625,
+            "59": 0.001953125
+          },
+          "right_mean": 0.001171875,
+          "student_t_95": [
+            0.006431892750340548,
+            0.03106810724965945
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.898828125,
+          "mean": 0.44296875,
+          "n": 5,
+          "per_seed": {
+            "55": 0.376953125,
+            "56": 0.47265625,
+            "57": 0.515625,
+            "58": 0.546875,
+            "59": 0.302734375
+          },
+          "right_mean": 0.455859375,
+          "student_t_95": [
+            0.31728970335980133,
+            0.5686477966401987
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.87890625,
+          "mean": 0.42421875,
+          "n": 5,
+          "per_seed": {
+            "55": 0.359375,
+            "56": 0.44921875,
+            "57": 0.490234375,
+            "58": 0.521484375,
+            "59": 0.30078125
+          },
+          "right_mean": 0.4546875,
+          "student_t_95": [
+            0.3099364231345303,
+            0.5385010768654697
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "ReplayMaxRL",
+      "model": "Falcon-1B",
+      "model_key": "falcon1b",
+      "n": 5,
+      "paired_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.3015625,
+          "mean": 0.3015625,
+          "n": 5,
+          "per_seed": {
+            "55": 0.10546875,
+            "56": 0.125,
+            "57": 0.2109375,
+            "58": 0.51171875,
+            "59": 0.5546875
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.033755780833849724,
+            0.5693692191661504
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.0078125,
+          "mean": 0.375,
+          "n": 5,
+          "per_seed": {
+            "55": 0.1484375,
+            "56": 0.15234375,
+            "57": 0.29296875,
+            "58": 0.62109375,
+            "59": 0.66015625
+          },
+          "right_mean": 0.6328125,
+          "student_t_95": [
+            0.06488728923622833,
+            0.6851127107637717
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.70625,
+          "mean": 0.0734375,
+          "n": 5,
+          "per_seed": {
+            "55": 0.04296875,
+            "56": 0.02734375,
+            "57": 0.08203125,
+            "58": 0.109375,
+            "59": 0.10546875
+          },
+          "right_mean": 0.6328125,
+          "student_t_95": [
+            0.027628949384381325,
+            0.11924605061561869
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-3B",
+      "model_key": "qwen3b",
+      "n": 5,
+      "paired_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.85234375,
+          "mean": 0.162890625,
+          "n": 5,
+          "per_seed": {
+            "70": 0.177734375,
+            "71": 0.1640625,
+            "72": 0.34375,
+            "73": 0.0703125,
+            "74": 0.05859375
+          },
+          "right_mean": 0.689453125,
+          "student_t_95": [
+            0.020802305176641417,
+            0.30497894482335863
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.7,
+          "mean": 0.186328125,
+          "n": 5,
+          "per_seed": {
+            "70": 0.232421875,
+            "71": 0.212890625,
+            "72": 0.4296875,
+            "73": 0.05078125,
+            "74": 0.005859375
+          },
+          "right_mean": 1.513671875,
+          "student_t_95": [
+            -0.022363709448126823,
+            0.39501995944812685
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.84765625,
+          "mean": 0.0234375,
+          "n": 5,
+          "per_seed": {
+            "70": 0.0546875,
+            "71": 0.048828125,
+            "72": 0.0859375,
+            "73": -0.01953125,
+            "74": -0.052734375
+          },
+          "right_mean": 0.82421875,
+          "student_t_95": [
+            -0.04782569655456026,
+            0.09470069655456026
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-3B",
+      "model_key": "qwen3b",
+      "n": 5,
+      "paired_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.1734375,
+          "mean": 0.151953125,
+          "n": 5,
+          "per_seed": {
+            "70": 0.134765625,
+            "71": 0.173828125,
+            "72": 0.173828125,
+            "73": 0.11328125,
+            "74": 0.1640625
+          },
+          "right_mean": 0.021484375,
+          "student_t_95": [
+            0.11855148480283106,
+            0.18535476519716892
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.92734375,
+          "mean": 0.3015625,
+          "n": 5,
+          "per_seed": {
+            "70": 0.37109375,
+            "71": 0.3203125,
+            "72": 0.306640625,
+            "73": 0.23046875,
+            "74": 0.279296875
+          },
+          "right_mean": 0.62578125,
+          "student_t_95": [
+            0.23715727971744882,
+            0.3659677202825512
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.75390625,
+          "mean": 0.149609375,
+          "n": 5,
+          "per_seed": {
+            "70": 0.236328125,
+            "71": 0.146484375,
+            "72": 0.1328125,
+            "73": 0.1171875,
+            "74": 0.115234375
+          },
+          "right_mean": 0.604296875,
+          "student_t_95": [
+            0.08738707569372782,
+            0.21183167430627214
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-3B",
+      "model_key": "qwen3b",
+      "n": 5,
+      "paired_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.11484375,
+          "mean": 0.11484375,
+          "n": 5,
+          "per_seed": {
+            "70": 0.1484375,
+            "71": 0.140625,
+            "72": 0.09765625,
+            "73": 0.0859375,
+            "74": 0.1015625
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.08027402061550303,
+            0.14941347938449695
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.74765625,
+          "mean": 0.39140625,
+          "n": 5,
+          "per_seed": {
+            "70": 0.1484375,
+            "71": 0.6015625,
+            "72": 0.55859375,
+            "73": 0.0859375,
+            "74": 0.5625
+          },
+          "right_mean": 0.35625,
+          "student_t_95": [
+            0.07867982293175613,
+            0.7041326770682439
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.6328125,
+          "mean": 0.2765625,
+          "n": 5,
+          "per_seed": {
+            "70": 0.0,
+            "71": 0.4609375,
+            "72": 0.4609375,
+            "73": 0.0,
+            "74": 0.4609375
+          },
+          "right_mean": 0.35625,
+          "student_t_95": [
+            -0.036915277022165294,
+            0.5900402770221653
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-3B",
+      "model_key": "qwen3b",
+      "n": 5,
+      "paired_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.005859375,
+          "mean": 0.005859375,
+          "n": 5,
+          "per_seed": {
+            "70": 0.009765625,
+            "71": 0.00390625,
+            "72": 0.0,
+            "73": 0.0078125,
+            "74": 0.0078125
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.0010091250070165371,
+            0.010709624992983464
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.51875,
+          "mean": 0.255078125,
+          "n": 5,
+          "per_seed": {
+            "70": 0.1796875,
+            "71": 0.26171875,
+            "72": 0.349609375,
+            "73": 0.2421875,
+            "74": 0.2421875
+          },
+          "right_mean": 0.263671875,
+          "student_t_95": [
+            0.17905132662513124,
+            0.33110492337486874
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.512890625,
+          "mean": 0.24921875,
+          "n": 5,
+          "per_seed": {
+            "70": 0.169921875,
+            "71": 0.2578125,
+            "72": 0.349609375,
+            "73": 0.234375,
+            "74": 0.234375
+          },
+          "right_mean": 0.263671875,
+          "student_t_95": [
+            0.16855645316724077,
+            0.3298810468327592
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e118",
+      "common_factorial_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-3B",
+      "model_key": "qwen3b",
+      "n": 5,
+      "paired_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.883984375,
+          "mean": 0.608984375,
+          "n": 5,
+          "per_seed": {
+            "70": 0.58984375,
+            "71": 0.5703125,
+            "72": 0.57421875,
+            "73": 0.8046875,
+            "74": 0.505859375
+          },
+          "right_mean": 0.275,
+          "student_t_95": [
+            0.4674060844978568,
+            0.7505626655021432
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.641796875,
+          "mean": 0.679296875,
+          "n": 5,
+          "per_seed": {
+            "70": 0.677734375,
+            "71": 0.625,
+            "72": 0.61328125,
+            "73": 0.896484375,
+            "74": 0.583984375
+          },
+          "right_mean": 0.9625,
+          "student_t_95": [
+            0.522773889428134,
+            0.8358198605718661
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.7578125,
+          "mean": 0.0703125,
+          "n": 5,
+          "per_seed": {
+            "70": 0.087890625,
+            "71": 0.0546875,
+            "72": 0.0390625,
+            "73": 0.091796875,
+            "74": 0.078125
+          },
+          "right_mean": 0.6875,
+          "student_t_95": [
+            0.042187322614996484,
+            0.09843767738500352
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.48046875,
+          "mean": 0.4578125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.451171875,
+            "44": 0.390625,
+            "45": 0.484375,
+            "46": 0.435546875,
+            "47": 0.52734375
+          },
+          "right_mean": 0.02265625,
+          "student_t_95": [
+            0.3939114917457538,
+            0.5217135082542462
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.24296875,
+          "mean": 1.01875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.8515625,
+            "44": 1.01953125,
+            "45": 1.09375,
+            "46": 0.9921875,
+            "47": 1.13671875
+          },
+          "right_mean": 0.22421875,
+          "student_t_95": [
+            0.8824502081142229,
+            1.1550497918857772
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.7625,
+          "mean": 0.5609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.400390625,
+            "44": 0.62890625,
+            "45": 0.609375,
+            "46": 0.556640625,
+            "47": 0.609375
+          },
+          "right_mean": 0.2015625,
+          "student_t_95": [
+            0.44461489371182067,
+            0.6772601062881793
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.474609375,
+          "mean": 0.362890625,
+          "n": 5,
+          "per_seed": {
+            "43": 0.271484375,
+            "44": 0.365234375,
+            "45": 0.326171875,
+            "46": 0.416015625,
+            "47": 0.435546875
+          },
+          "right_mean": 0.11171875,
+          "student_t_95": [
+            0.2800379055915434,
+            0.44574334440845664
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.2140625,
+          "mean": 0.66796875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.505859375,
+            "44": 0.693359375,
+            "45": 0.62109375,
+            "46": 0.732421875,
+            "47": 0.787109375
+          },
+          "right_mean": 0.54609375,
+          "student_t_95": [
+            0.5327041559096666,
+            0.8032333440903334
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.739453125,
+          "mean": 0.305078125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.234375,
+            "44": 0.328125,
+            "45": 0.294921875,
+            "46": 0.31640625,
+            "47": 0.3515625
+          },
+          "right_mean": 0.434375,
+          "student_t_95": [
+            0.2498193224045962,
+            0.36033692759540376
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.0203125,
+          "mean": 0.0203125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0625,
+            "44": 0.03515625,
+            "45": 0.0,
+            "46": 0.00390625,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.014223187299052111,
+            0.05484818729905211
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.176171875,
+          "mean": 0.044921875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.07421875,
+            "44": 0.126953125,
+            "45": -0.07421875,
+            "46": 0.060546875,
+            "47": 0.037109375
+          },
+          "right_mean": 0.13125,
+          "student_t_95": [
+            -0.047344490661391236,
+            0.13718824066139124
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.155859375,
+          "mean": 0.024609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.01171875,
+            "44": 0.091796875,
+            "45": -0.07421875,
+            "46": 0.056640625,
+            "47": 0.037109375
+          },
+          "right_mean": 0.13125,
+          "student_t_95": [
+            -0.05300599182867781,
+            0.10222474182867781
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.016796875,
+          "mean": 0.016796875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.01953125,
+            "44": 0.0078125,
+            "45": 0.0,
+            "46": 0.02734375,
+            "47": 0.029296875
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.0011177338822009435,
+            0.03247601611779906
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.174609375,
+          "mean": 0.05703125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.01953125,
+            "44": 0.11328125,
+            "45": -0.013671875,
+            "46": 0.03125,
+            "47": 0.134765625
+          },
+          "right_mean": 0.117578125,
+          "student_t_95": [
+            -0.02217423827506363,
+            0.13623673827506363
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.1578125,
+          "mean": 0.040234375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.10546875,
+            "45": -0.013671875,
+            "46": 0.00390625,
+            "47": 0.10546875
+          },
+          "right_mean": 0.117578125,
+          "student_t_95": [
+            -0.03415018225949684,
+            0.11461893225949685
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.325,
+          "mean": 0.325,
+          "n": 5,
+          "per_seed": {
+            "43": 0.8125,
+            "44": 0.0,
+            "45": 0.8125,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.22757099678483378,
+            0.8775709967848337
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.2125,
+          "mean": 0.4,
+          "n": 5,
+          "per_seed": {
+            "43": 0.8125,
+            "44": 0.1875,
+            "45": 0.8125,
+            "46": 0.1875,
+            "47": 0.0
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.0771226196546953,
+            0.8771226196546953
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.8875,
+          "mean": 0.075,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.1875,
+            "45": 0.0,
+            "46": 0.1875,
+            "47": 0.0
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.05251638387342321,
+            0.2025163838734232
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.174609375,
+          "mean": 0.174609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.021484375,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.8515625
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.2954133844239449,
+            0.644632134423945
+          ]
+        },
+        "distinct8": {
+          "left_mean": 1.024609375,
+          "mean": 0.212109375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.1875,
+            "44": 0.021484375,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.8515625
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.24233989640430603,
+            0.6665586464043061
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.85,
+          "mean": 0.0375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.1875,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.8125,
+          "student_t_95": [
+            -0.06661669144491744,
+            0.14161669144491745
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.0,
+          "mean": 0.0,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            0.0,
+            0.0
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.994140625,
+          "mean": 0.492578125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.890625,
+            "44": 0.046875,
+            "45": 0.640625,
+            "46": 0.796875,
+            "47": 0.087890625
+          },
+          "right_mean": 0.5015625,
+          "student_t_95": [
+            -0.0022911965772516307,
+            0.9874474465772516
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.994140625,
+          "mean": 0.492578125,
+          "n": 5,
+          "per_seed": {
+            "43": 0.890625,
+            "44": 0.046875,
+            "45": 0.640625,
+            "46": 0.796875,
+            "47": 0.087890625
+          },
+          "right_mean": 0.5015625,
+          "student_t_95": [
+            -0.0022911965772516307,
+            0.9874474465772516
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.0015625,
+          "mean": 0.0015625,
+          "n": 5,
+          "per_seed": {
+            "43": 0.0078125,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "right_mean": 0.0,
+          "student_t_95": [
+            -0.002775695476871561,
+            0.0059006954768715605
+          ]
+        },
+        "distinct8": {
+          "left_mean": 0.959375,
+          "mean": 0.174609375,
+          "n": 5,
+          "per_seed": {
+            "43": 0.162109375,
+            "44": 0.12890625,
+            "45": -0.2109375,
+            "46": 0.767578125,
+            "47": 0.025390625
+          },
+          "right_mean": 0.784765625,
+          "student_t_95": [
+            -0.2751274238504915,
+            0.6243461738504915
+          ]
+        },
+        "pass8": {
+          "left_mean": 0.9578125,
+          "mean": 0.173046875,
+          "n": 5,
+          "per_seed": {
+            "43": 0.154296875,
+            "44": 0.12890625,
+            "45": -0.2109375,
+            "46": 0.767578125,
+            "47": 0.025390625
+          },
+          "right_mean": 0.784765625,
+          "student_t_95": [
+            -0.2767945280969861,
+            0.6228882780969861
+          ]
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43
+      ],
+      "complete_five_seed_block": false,
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "ReplayDr.GRPO",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 2,
+      "paired_seeds": [
+        43,
+        46
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Dr.GRPO",
+      "short_contrast": "Dr.GRPO",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.1923828125,
+          "mean": 0.1328125,
+          "n": 2,
+          "per_seed": {
+            "43": 0.189453125,
+            "46": 0.076171875
+          },
+          "right_mean": 0.0595703125
+        },
+        "distinct8": {
+          "left_mean": 0.6376953125,
+          "mean": 0.3671875,
+          "n": 2,
+          "per_seed": {
+            "43": 0.501953125,
+            "46": 0.232421875
+          },
+          "right_mean": 0.2705078125
+        },
+        "pass8": {
+          "left_mean": 0.4453125,
+          "mean": 0.234375,
+          "n": 2,
+          "per_seed": {
+            "43": 0.3125,
+            "46": 0.15625
+          },
+          "right_mean": 0.2109375
+        }
+      }
+    },
+    {
+      "campaign": "e119",
+      "common_factorial_seeds": [
+        43
+      ],
+      "complete_five_seed_block": false,
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "ReplayMaxRL",
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 1,
+      "paired_seeds": [
+        43
+      ],
+      "planned_pairs": 5,
+      "right_arm": "MaxRL",
+      "short_contrast": "MaxRL",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.17578125,
+          "mean": 0.154296875,
+          "n": 1,
+          "per_seed": {
+            "43": 0.154296875
+          },
+          "right_mean": 0.021484375
+        },
+        "distinct8": {
+          "left_mean": 0.57421875,
+          "mean": 0.404296875,
+          "n": 1,
+          "per_seed": {
+            "43": 0.404296875
+          },
+          "right_mean": 0.169921875
+        },
+        "pass8": {
+          "left_mean": 0.3984375,
+          "mean": 0.25,
+          "n": 1,
+          "per_seed": {
+            "43": 0.25
+          },
+          "right_mean": 0.1484375
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 1.468359375,
+          "mean": 0.596484375,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.512890625,
+            0.687109375
+          ],
+          "per_seed": {
+            "43": 0.533203125,
+            "44": 0.67578125,
+            "45": 0.466796875,
+            "46": 0.564453125,
+            "47": 0.7421875
+          },
+          "right_mean": 0.871875
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 2.4375,
+          "mean": 0.6625,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.575,
+            0.759765625
+          ],
+          "per_seed": {
+            "43": 0.59765625,
+            "44": 0.74609375,
+            "45": 0.529296875,
+            "46": 0.62109375,
+            "47": 0.818359375
+          },
+          "right_mean": 1.775
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.969140625,
+          "mean": 0.066015625,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.060546875,
+            0.072265625
+          ],
+          "per_seed": {
+            "43": 0.064453125,
+            "44": 0.0703125,
+            "45": 0.0625,
+            "46": 0.056640625,
+            "47": 0.076171875
+          },
+          "right_mean": 0.903125
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "Countdown",
+      "domain_key": "countdown",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.96484375,
+          "mean": 0.638671875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.544140625,
+            0.733203125
+          ],
+          "per_seed": {
+            "43": 0.505859375,
+            "44": 0.5390625,
+            "45": 0.630859375,
+            "46": 0.7265625,
+            "47": 0.791015625
+          },
+          "right_mean": 0.326171875
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 1.63671875,
+          "mean": 0.660546875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.550390625,
+            0.770703125
+          ],
+          "per_seed": {
+            "43": 0.505859375,
+            "44": 0.5390625,
+            "45": 0.662109375,
+            "46": 0.748046875,
+            "47": 0.84765625
+          },
+          "right_mean": 0.976171875
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.671875,
+          "mean": 0.021875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.004296875,
+            0.040234375
+          ],
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.0,
+            "45": 0.03125,
+            "46": 0.021484375,
+            "47": 0.056640625
+          },
+          "right_mean": 0.65
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "Python",
+      "domain_key": "python_factors",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.043359375,
+          "mean": 0.037109375,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.01171875,
+            0.123046875
+          ],
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.0,
+            "45": -0.01953125,
+            "46": 0.205078125,
+            "47": 0.0
+          },
+          "right_mean": 0.00625
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.57109375,
+          "mean": -0.03984375,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.63203125,
+            0.55234375
+          ],
+          "per_seed": {
+            "43": 0.828125,
+            "44": 0.771484375,
+            "45": -0.80078125,
+            "46": -0.560546875,
+            "47": -0.4375
+          },
+          "right_mean": 0.6109375
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.527734375,
+          "mean": -0.076953125,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.70625,
+            0.55234375
+          ],
+          "per_seed": {
+            "43": 0.828125,
+            "44": 0.771484375,
+            "45": -0.78125,
+            "46": -0.765625,
+            "47": -0.4375
+          },
+          "right_mean": 0.6046875
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "MathIR",
+      "domain_key": "mathir",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.03203125,
+          "mean": 0.019140625,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.00078125,
+            0.037890625
+          ],
+          "per_seed": {
+            "43": 0.013671875,
+            "44": 0.015625,
+            "45": 0.03515625,
+            "46": 0.048828125,
+            "47": -0.017578125
+          },
+          "right_mean": 0.012890625
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.828515625,
+          "mean": 0.014453125,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.076171875,
+            0.105078125
+          ],
+          "per_seed": {
+            "43": -0.115234375,
+            "44": 0.150390625,
+            "45": 0.0859375,
+            "46": 0.052734375,
+            "47": -0.1015625
+          },
+          "right_mean": 0.8140625
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.796484375,
+          "mean": -0.0046875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.084375,
+            0.075
+          ],
+          "per_seed": {
+            "43": -0.12890625,
+            "44": 0.134765625,
+            "45": 0.05078125,
+            "46": 0.00390625,
+            "47": -0.083984375
+          },
+          "right_mean": 0.801171875
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "model": "Qwen-0.5B",
+      "model_key": "qwen05b",
+      "n": 5,
+      "paired_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.8109375,
+          "mean": 0.29765625,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.173828125,
+            0.400390625
+          ],
+          "per_seed": {
+            "43": 0.36328125,
+            "44": 0.46484375,
+            "45": 0.095703125,
+            "46": 0.21875,
+            "47": 0.345703125
+          },
+          "right_mean": 0.51328125
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 1.539453125,
+          "mean": 0.340625,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.198046875,
+            0.47734375
+          ],
+          "per_seed": {
+            "43": 0.498046875,
+            "44": 0.498046875,
+            "45": 0.08984375,
+            "46": 0.22265625,
+            "47": 0.39453125
+          },
+          "right_mean": 1.198828125
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.728515625,
+          "mean": 0.04296875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.005859375,
+            0.09140625
+          ],
+          "per_seed": {
+            "43": 0.134765625,
+            "44": 0.033203125,
+            "45": -0.005859375,
+            "46": 0.00390625,
+            "47": 0.048828125
+          },
+          "right_mean": 0.685546875
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "model": "Falcon-1B",
+      "model_key": "falcon1b",
+      "n": 5,
+      "paired_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.908203125,
+          "mean": 0.2328125,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.181640625,
+            0.319921875
+          ],
+          "per_seed": {
+            "55": 0.18359375,
+            "56": 0.173828125,
+            "57": 0.404296875,
+            "58": 0.203125,
+            "59": 0.19921875
+          },
+          "right_mean": 0.675390625
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 1.716796875,
+          "mean": 0.278125,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.184375,
+            0.403515625
+          ],
+          "per_seed": {
+            "55": 0.265625,
+            "56": 0.1484375,
+            "57": 0.51953125,
+            "58": 0.263671875,
+            "59": 0.193359375
+          },
+          "right_mean": 1.438671875
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.80859375,
+          "mean": 0.0453125,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.000390625,
+            0.091015625
+          ],
+          "per_seed": {
+            "55": 0.08203125,
+            "56": -0.025390625,
+            "57": 0.115234375,
+            "58": 0.060546875,
+            "59": -0.005859375
+          },
+          "right_mean": 0.76328125
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "model": "Falcon-1B",
+      "model_key": "falcon1b",
+      "n": 5,
+      "paired_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.825,
+          "mean": -0.145703125,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.5640625,
+            0.4140625
+          ],
+          "per_seed": {
+            "55": 0.0,
+            "56": 0.890625,
+            "57": -0.599609375,
+            "58": -0.6015625,
+            "59": -0.41796875
+          },
+          "right_mean": 0.970703125
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 1.57578125,
+          "mean": -0.1671875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.626953125,
+            0.43984375
+          ],
+          "per_seed": {
+            "55": 0.0,
+            "56": 0.95703125,
+            "57": -0.669921875,
+            "58": -0.671875,
+            "59": -0.451171875
+          },
+          "right_mean": 1.74296875
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.75078125,
+          "mean": -0.021484375,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.062890625,
+            0.02578125
+          ],
+          "per_seed": {
+            "55": 0.0,
+            "56": 0.06640625,
+            "57": -0.0703125,
+            "58": -0.0703125,
+            "59": -0.033203125
+          },
+          "right_mean": 0.772265625
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        70,
+        71,
+        72,
+        73
+      ],
+      "complete_five_seed_block": false,
+      "contrast": "uniform_minus_frequency",
+      "domain": "Graph",
+      "domain_key": "graph_coloring",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": false,
+      "mechanism_validated_seeds": [
+        70,
+        71,
+        72,
+        73
+      ],
+      "model": "Qwen-3B",
+      "model_key": "qwen3b",
+      "n": 4,
+      "paired_seeds": [
+        70,
+        71,
+        72,
+        73
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "left_mean": 0.79345703125,
+          "mean": 0.06982421875,
+          "n": 4,
+          "per_seed": {
+            "70": 0.103515625,
+            "71": 0.171875,
+            "72": -0.04296875,
+            "73": 0.046875
+          },
+          "right_mean": 0.7236328125
+        },
+        "distinct8": {
+          "left_mean": 1.6259765625,
+          "mean": 0.0634765625,
+          "n": 4,
+          "per_seed": {
+            "70": 0.111328125,
+            "71": 0.171875,
+            "72": -0.068359375,
+            "73": 0.0390625
+          },
+          "right_mean": 1.5625
+        },
+        "pass8": {
+          "left_mean": 0.83251953125,
+          "mean": -0.00634765625,
+          "n": 4,
+          "per_seed": {
+            "70": 0.0078125,
+            "71": 0.0,
+            "72": -0.025390625,
+            "73": -0.0078125
+          },
+          "right_mean": 0.8388671875
+        }
+      }
+    },
+    {
+      "campaign": "e120",
+      "common_factorial_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "complete_five_seed_block": true,
+      "contrast": "uniform_minus_frequency",
+      "domain": "PantryPlan",
+      "domain_key": "pantry_plan",
+      "left_arm": "Uniform",
+      "mechanism_status": "pass",
+      "mechanism_validated_complete_block": true,
+      "mechanism_validated_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "model": "Qwen-3B",
+      "model_key": "qwen3b",
+      "n": 5,
+      "paired_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "planned_pairs": 5,
+      "right_arm": "Frequency",
+      "short_contrast": "Uniform",
+      "summaries": {
+        "breadth8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.769921875,
+          "mean": 0.207421875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.037890625,
+            0.376953125
+          ],
+          "per_seed": {
+            "70": 0.150390625,
+            "71": 0.05078125,
+            "72": 0.423828125,
+            "73": 0.443359375,
+            "74": -0.03125
+          },
+          "right_mean": 0.5625
+        },
+        "distinct8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 1.5140625,
+          "mean": 0.21875,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            0.01796875,
+            0.41953125
+          ],
+          "per_seed": {
+            "70": 0.1640625,
+            "71": 0.03125,
+            "72": 0.47265625,
+            "73": 0.494140625,
+            "74": -0.068359375
+          },
+          "right_mean": 1.2953125
+        },
+        "pass8": {
+          "bootstrap_ordered_resamples": 3125,
+          "left_mean": 0.744140625,
+          "mean": 0.011328125,
+          "n": 5,
+          "paired_bootstrap_percentile_95": [
+            -0.019921875,
+            0.042578125
+          ],
+          "per_seed": {
+            "70": 0.013671875,
+            "71": -0.01953125,
+            "72": 0.048828125,
+            "73": 0.05078125,
+            "74": -0.037109375
+          },
+          "right_mean": 0.7328125
+        }
+      }
+    }
+  ],
+  "schema": "paper-current-campaign-paired-results-v1",
+  "scope": "Dated source-admissible exact step-3072 four-draw endpoints. No completion or endpoint is imputed; partial blocks have exact seed sets and no five-seed interval. E118/E119 intervals are unadjusted descriptive paired Student-t estimates. E120 contrasts are uniform minus frequency replay and use exhaustive 5^5 paired percentile bootstrap intervals; mechanism eligibility is reported separately. No cross-domain or cross-model pooled effect.",
+  "source_snapshot": {
+    "path": "paper/results/latest_results_20260911.json",
+    "sha256": "a7dc2ea998888cb4586b236d9df4e6d039f75688a515b4e18728895c8d146f81"
+  },
+  "target_step": 3072,
+  "uncertainty": "Stored paired 95% intervals only for complete n=5 blocks: unadjusted Student-t for E118/E119; exhaustive 5^5 percentile bootstrap for E120. No intervals for incomplete blocks."
+}

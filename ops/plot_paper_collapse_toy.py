@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Render the paper's model-backed Graph Coloring collapse example.
+"""Render the paper's model-backed Qwen2.5-3B Graph Coloring example.
 
-The figure is not a simulation. It reads fixed-seed samples emitted during the
-matched Qwen2.5-0.5B-Instruct Graph Coloring runs used by the paper. Duplicate
-evaluation records caused by resumptions are resolved by retaining the last
-record for each (step, draw_index), exactly as a checkpoint snapshot.
+The figure is not a simulation. It mechanically selects one prompt from the
+four available Qwen2.5-3B-Instruct Dr.GRPO/Re:MaxRL pairs (seeds 70--73)
+using their fixed-seed evaluation samples. Duplicate records caused by resumes
+are resolved by retaining the last (step, draw_index) record, exactly as a
+checkpoint snapshot.
 """
 
 from __future__ import annotations
 
 import hashlib
 import itertools
+import math
 import os
 import json
 import sys
@@ -35,19 +37,40 @@ import paper_style as style  # noqa: E402
 CANVAS_WIDTH = 13.2
 CANVAS_HEIGHT = 5.32
 
-DR_DRAWS = (
-    ROOT
-    / "var/data/xdr_qwen25_0p5b_instruct_grpo_"
-    "gce61r1_e58_vs_grpo_05b_12ep_grpo_s43/"
-    "debug_job30126333/eval_mode_coverage_draws.jsonl"
-)
-XDR_DRAWS = (
-    ROOT
-    / "var/data/xdr_qwen25_0p5b_instruct_verified_first_global_replay_canonical_"
-    "gce61r1_e58_vs_grpo_05b_12ep_"
-    "verified_first_global_replay_canonical_s43/"
-    "debug_job30126334/eval_mode_coverage_draws.jsonl"
-)
+PAIR_DRAWS = {
+    70: {
+        "drgrpo": ROOT / "var/data/xdr_qwen25_3b_instruct_grpo_compute_matched_"
+        "e80r1_qwen3b_aligned_graph_control_s70/debug_job30277372/"
+        "eval_mode_coverage_draws.jsonl",
+        "replay_maxrl": ROOT / "var/data/xdr_qwen25_3b_instruct_maxrl_verified_"
+        "replay_e118q3_graph_replay_maxrl_s70/debug_job31010883/"
+        "eval_mode_coverage_draws.jsonl",
+    },
+    71: {
+        "drgrpo": ROOT / "var/data/xdr_qwen25_3b_instruct_grpo_compute_matched_"
+        "e80r1_qwen3b_aligned_graph_control_s71/debug_job30277374/"
+        "eval_mode_coverage_draws.jsonl",
+        "replay_maxrl": ROOT / "var/data/xdr_qwen25_3b_instruct_maxrl_verified_"
+        "replay_e118q3_graph_replay_maxrl_s71/debug_job31010885/"
+        "eval_mode_coverage_draws.jsonl",
+    },
+    72: {
+        "drgrpo": ROOT / "var/data/xdr_qwen25_3b_instruct_grpo_compute_matched_"
+        "e80r1_qwen3b_aligned_graph_control_s72/debug_job30277376/"
+        "eval_mode_coverage_draws.jsonl",
+        "replay_maxrl": ROOT / "var/data/xdr_qwen25_3b_instruct_maxrl_verified_"
+        "replay_e118q3_graph_replay_maxrl_s72/debug_job31010887/"
+        "eval_mode_coverage_draws.jsonl",
+    },
+    73: {
+        "drgrpo": ROOT / "var/data/xdr_qwen25_3b_instruct_grpo_compute_matched_"
+        "e80r1_qwen3b_aligned_graph_control_s73/debug_job30277378/"
+        "eval_mode_coverage_draws.jsonl",
+        "replay_maxrl": ROOT / "var/data/xdr_qwen25_3b_instruct_maxrl_verified_"
+        "replay_e118q3_graph_replay_maxrl_s73/debug_job31010889/"
+        "eval_mode_coverage_draws.jsonl",
+    },
+}
 OUT = ROOT / "paper/figures/modecollapse_story"
 AUDIT = ROOT / "var/artifacts/paper_graph_collapse_toy.json"
 
@@ -61,22 +84,36 @@ INK = style.INK
 MUTED = style.MUTED
 GRID = style.GRID
 FRAME = style.MUTED
-# The pale wash every figure in the paper sits on; here it is the canvas
-# itself, so the three figures read as one surface.
 PANEL = style.PANEL
 WHITE = style.WHITE
+
+# One tint per card -- A, B, C -- instead of A's own warm cream sitting next
+# to one flat blue wash shared by B and C: that pairing read as two unrelated
+# figures glued together. B and C fill one shared card split down the seam
+# between their panels rather than two separate boxes, so the two stay
+# visually "touching" exactly as before. B and C's hues sit in the one wide
+# gap the paper's palette otherwise leaves open (MODE_RAMP claims
+# violet/rose/orange/teal, roughly 40-156 degrees is free of all four).
+# Panel A instead takes the same blue family as PantryPlan's card in
+# Figure 2: pulling it out of the green family it first shared with C reads
+# as clearly distinct at a glance, and blue is safe for panel A specifically
+# because it is the one card that also holds the vertex-colour ramp below
+# (see ``NODE_COLORS``), which is warm sepia and so sits nowhere near blue.
+CARD_A = "#E8EDFA"  # blue, matching Figure 2's PantryPlan card
+CARD_B = "#FAF9E8"  # gold
+CARD_C = "#EFFAE8"  # yellow-green
 
 # Two scales share this figure and must never be confused. The *series* scale
 # identifies executed answer modes and is the shared ``MODE_RAMP``; it is the
 # only saturated thing in the figure, in the bar panels and their legend. The
-# *paint* scale is the puzzle's own three colours in panel A. It is
-# deliberately a neutral slate ramp, off the mode ramp entirely: a paint is
-# part of the question, not one of the measured modes, and a reader must never
-# read a node's fill as a bar's series colour.
+# *vertex* scale is the puzzle's own three colours in panel A. It is a
+# high-contrast achromatic ramp, while the solution-mode scale is saturated
+# and multi-hued. Explicit labels in the two cards make these independent
+# encodings readable without requiring the reader to infer the distinction.
 MODE_COLORS = {
-    "33221": style.MODE_RAMP[0],  # Option A
-    "31223": style.MODE_RAMP[1],  # Option B
-    "32213": style.MODE_RAMP[2],  # Option C
+    "31212": style.MODE_RAMP[0],  # shared initial mode
+    "33112": style.MODE_RAMP[1],  # most frequent shared initial mode
+    "31312": style.MODE_RAMP[2],  # shared initial and terminal mode
 }
 OTHER = style.MODE_RAMP[3]  # any further verified mode
 INVALID = style.INVALID  # invalid response — off-ramp on purpose, so it recedes
@@ -86,25 +123,33 @@ INVALID = style.INVALID  # invalid response — off-ramp on purpose, so it reced
 # label can simply wear its own series colour. Only the neutral invalid swatch
 # still borrows muted ink, because it is not a series.
 LABEL_COLORS = {
-    "Option A": MODE_COLORS["33221"],
-    "Option B": MODE_COLORS["31223"],
-    "Option C": MODE_COLORS["32213"],
+    "mode A": MODE_COLORS["31212"],
+    "mode B": MODE_COLORS["33112"],
+    "mode C": MODE_COLORS["31312"],
     "other valid": OTHER,
     "invalid": MUTED,
 }
 # The checkpoints the bar panels show, named once so the figure and the audit
-# record cannot drift apart. Through six epochs rather than four: Dr.GRPO holds
-# 32/32 on exactly one mode from step 288 to 2064 without a break, so the longer
-# window shows the collapse as a plateau rather than a moment, and the historical treatment is at
-# its widest at the end of it --- 29/32 across seven modes at 1152, against
-# 27/32 across six at 768. Five epochs was measured and is worse than four
-# (26/32, six modes), so the window skips it.
-DISPLAY_STEPS = [0, 48, 96, 192, 384, 768, 1152]
-END_EPOCH = DISPLAY_STEPS[-1] // 192
+# record cannot drift apart. The 3B cohorts evaluate on a half-pass grid; this
+# subset keeps the requested early checkpoints and the first 32/32 endpoint.
+STEPS_PER_PASS = 192
+DISPLAY_STEPS = [0, 96, 288, 384, 768, 864, 1152, 1248]
+END_PASS = DISPLAY_STEPS[-1] / STEPS_PER_PASS
 
-NODE_COLORS = {1: "#C9D6E2", 2: "#6E8599", 3: "#263D51"}  # slate: light/mid/deep
-# Paint 1 stays clear of both the white "uncoloured" node and the near-white
-# invalid segment above, so no fill in the figure reads as two things.
+# A warm neutral ramp, not the previous cool blue-gray one: the old
+# 1/2/3 steps (#E8EDF2/#77838F/#17212B) all sat at the same ~210 degree hue as
+# PANEL, INVALID, and the sequential magnitude ramp, so this figure's one
+# achromatic scale was quietly the same colour as three other things it has
+# nothing to do with. Warm sepia keeps the same lightness steps -- so the
+# ramp still orders the same way in grayscale and reads the same size of
+# jump between paints -- while stopping the vertex scale from reading as
+# "more blue" anywhere in the figure. Paint 1 still stays clear of both the
+# white "uncoloured" node and the near-white invalid segment above: distinct
+# by hue (warm vs. INVALID's cool gray-blue), the same way the original ramp
+# relied on hue rather than on a passing contrast ratio between two very
+# pale fills.
+NODE_COLORS = {1: "#EDE8DE", 2: "#836D54", 3: "#2C231C"}
+VERTEX_EDGE = "#4A3F33"
 NODE_TEXT = {1: INK, 2: WHITE, 3: WHITE}
 
 mpl.rcParams.update(
@@ -225,40 +270,80 @@ def correct_counts(draws: dict[int, dict], prompt_index: int) -> Counter[str]:
     return counts
 
 
+def pass_at_8(draws: dict[int, dict], prompt_index: int) -> float:
+    successes = 0
+    for draw_index in range(4):
+        prompt = draws[draw_index]["prompts"][prompt_index]
+        successes += int(any(float(reward) > 0 for reward in prompt["rewards"]))
+    return successes / 4
+
+
 def select_prompt(
-    dr: dict[int, dict[int, dict]],
-    xdr: dict[int, dict[int, dict]],
-) -> int:
-    start, displayed_endpoint = 0, 384
-    assert start in dr and start in xdr
-    assert displayed_endpoint in dr and displayed_endpoint in xdr
+    pairs: dict[int, dict[str, dict[int, dict[int, dict]]]],
+) -> tuple[int, int]:
+    start, displayed_endpoint = 0, 1248
     candidates = []
-    prompt_count = len(dr[start][0]["prompts"])
-    for prompt_index in range(prompt_count):
-        initial = correct_counts(dr[start], prompt_index)
-        dr_final = correct_counts(dr[displayed_endpoint], prompt_index)
-        xdr_final = correct_counts(xdr[displayed_endpoint], prompt_index)
-        if len(initial) >= 3 and len(dr_final) == 1 and len(xdr_final) >= 2:
-            candidates.append(
-                (
-                    len(xdr_final),
-                    sum(xdr_final.values()),
-                    sum(initial.values()),
-                    -prompt_index,
-                    prompt_index,
-                )
+    for seed, snapshots in sorted(pairs.items()):
+        control = snapshots["drgrpo"]
+        replay_maxrl = snapshots["replay_maxrl"]
+        if not (
+            start in control
+            and start in replay_maxrl
+            and displayed_endpoint in control
+            and displayed_endpoint in replay_maxrl
+        ):
+            continue
+        prompt_count = len(control[start][0]["prompts"])
+        for prompt_index in range(prompt_count):
+            initial_control = correct_counts(control[start], prompt_index)
+            initial_replay = correct_counts(replay_maxrl[start], prompt_index)
+            control_final = correct_counts(control[displayed_endpoint], prompt_index)
+            replay_final = correct_counts(
+                replay_maxrl[displayed_endpoint], prompt_index
             )
+            reference = json.loads(
+                control[start][0]["prompts"][prompt_index]["reference"]
+            )
+            if (
+                initial_control == initial_replay
+                and len(initial_control) == 3
+                and sum(initial_control.values()) < 20
+                and pass_at_8(control[displayed_endpoint], prompt_index) == 1
+                and pass_at_8(replay_maxrl[displayed_endpoint], prompt_index) == 1
+                and len(control_final) == 1
+                and sum(replay_final.values()) == 32
+                and min(
+                    len(correct_counts(replay_maxrl[step], prompt_index))
+                    for step in DISPLAY_STEPS
+                ) >= 3
+                and len(replay_final) > len(control_final)
+            ):
+                candidates.append(
+                    (
+                        min(initial_control.values()),
+                        min(
+                            sum(control_final.values()),
+                            sum(replay_final.values()),
+                        ),
+                        len(replay_final),
+                        sum(initial_control.values()),
+                        -seed,
+                        -prompt_index,
+                        seed,
+                        prompt_index,
+                    )
+                )
     assert candidates
-    prompt_index = max(candidates)[-1]
+    seed, prompt_index = max(candidates)[-2:]
     # Freeze the mechanically selected illustration so source changes fail loudly.
-    assert prompt_index == 94, prompt_index
-    return prompt_index
+    assert (seed, prompt_index) == (70, 84), (seed, prompt_index)
+    return seed, prompt_index
 
 
 def parse_reference(prompt: dict) -> dict:
     reference = json.loads(prompt["reference"])
     assert reference["verifier"] == "graph_coloring"
-    assert reference["num_completions"] == 12
+    assert reference["num_completions"] == 6
     return reference
 
 
@@ -275,10 +360,9 @@ def assert_valid_coloring(key: str, reference: dict) -> None:
 def enumerate_valid_colorings(reference: dict) -> list[str]:
     """Every completion the verifier accepts, in lexicographic order.
 
-    Panel A names three of these Option A/B/C and then jumps to Option L. That
-    lettering is only honest if there really are twelve, so they are counted
-    here from the instance rather than asserted from the prompt text, and the
-    count is checked against the verifier's own ``num_completions``.
+    Panel A names three of these Option A/B/C and then jumps to the final
+    letter. They are counted from the instance rather than asserted from the
+    prompt text, and checked against the verifier's own ``num_completions``.
     """
 
     fixed = reference["partial_colors"]
@@ -300,13 +384,12 @@ def enumerate_valid_colorings(reference: dict) -> list[str]:
     return keys
 
 
-def twelfth_option(reference: dict, shown: tuple[str, ...]) -> str:
-    """The coloring panel A labels Option L.
+def last_option(reference: dict, shown: tuple[str, ...]) -> str:
+    """The last valid coloring displayed at the bottom of panel A.
 
     Options A/B/C are the three modes the bar panels track, so they take the
-    first three letters; the nine the figure does not draw take D through L in
-    lexicographic order. Option L is therefore the last of those nine --- a
-    real accepted coloring, not a placeholder for one.
+    first three letters. The omitted modes take the intervening letters; the
+    final row is a real accepted coloring, not a placeholder.
     """
 
     rest = [key for key in enumerate_valid_colorings(reference) if key not in shown]
@@ -314,28 +397,88 @@ def twelfth_option(reference: dict, shown: tuple[str, ...]) -> str:
     return rest[-1]
 
 
+# Vertex geometry for panel A, in the graph inset's own axes fraction. The
+# prompt graph is two components -- the 4--1--5 path and the isolated 2--3
+# edge -- and the layout now says so: one component per row, the lower row
+# offset to sit under the upper row's edge midpoints. The earlier hand-placed
+# scatter met node 1 with three edges at nearly the same angle and pushed
+# node 5 off on its own, which read as an accident rather than as structure.
+GRAPH_POSITIONS = {
+    4: (0.12, 0.775),
+    1: (0.50, 0.775),
+    5: (0.88, 0.775),
+    2: (0.31, 0.225),
+    3: (0.69, 0.225),
+}
+# Points^2, as ``scatter`` reads it: a 30pt disc, slightly smaller than the
+# old 1000 so the two rows keep air between them.
+GRAPH_NODE_AREA = 900.0
+GRAPH_EDGE_INK = "#8C9AA8"
+# A blank vertex is the thing the prompt asks the model to fill in, so it wears
+# a dashed ring; the two pre-painted vertices wear the solid vertex-scale
+# outline. The distinction is now visible in the drawing instead of resting on
+# "white means unassigned" alone.
+GRAPH_BLANK_EDGE = "#8FA0B4"
+# Printed air between an edge end and the ring it runs into. Edges are trimmed
+# to this instead of being drawn under the discs, so every edge ends on a
+# visible gap at the same distance from every node.
+GRAPH_EDGE_GAP_PT = 4.0
+
+
+def _edge_endpoints(ax, start, end, radius_pt: float, gap_pt: float):
+    """The edge shortened at both ends to clear the two node discs.
+
+    Worked in display pixels and converted back, so the trim is the same
+    printed length on both axes even though the inset is far wider than it
+    is tall, and is independent of the DPI each output format is saved at.
+    """
+
+    to_display = ax.transData.transform
+    to_data = ax.transData.inverted().transform
+    first = np.asarray(to_display(start), dtype=float)
+    last = np.asarray(to_display(end), dtype=float)
+    span = last - first
+    length = float(np.hypot(*span))
+    inset = (radius_pt + gap_pt) * ax.figure.dpi / 72.0
+    if length <= 2.0 * inset:
+        return None
+    unit = span / length
+    return np.array([to_data(first + unit * inset), to_data(last - unit * inset)])
+
+
 def draw_partial_graph(ax, reference: dict) -> None:
-    positions = {
-        1: (0.12, 0.80),
-        2: (0.14, 0.13),
-        3: (0.49, 0.86),
-        4: (0.90, 0.12),
-        5: (0.83, 0.55),
-    }
+    positions = GRAPH_POSITIONS
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.0)
+    ax.set_axis_off()
+    radius_pt = math.sqrt(GRAPH_NODE_AREA) / 2.0
     for left, right in reference["edges"]:
-        x1, y1 = positions[left]
-        x2, y2 = positions[right]
-        ax.plot([x1, x2], [y1, y2], color="#9AA8B5", lw=1.6, zorder=1)
+        segment = _edge_endpoints(
+            ax, positions[left], positions[right], radius_pt, GRAPH_EDGE_GAP_PT
+        )
+        if segment is None:  # pragma: no cover - layout guard
+            raise AssertionError(f"edge {left}-{right} is shorter than its nodes")
+        ax.plot(
+            segment[:, 0],
+            segment[:, 1],
+            color=GRAPH_EDGE_INK,
+            lw=2.0,
+            solid_capstyle="round",
+            clip_on=False,
+            zorder=1,
+        )
     for vertex, color in enumerate(reference["partial_colors"], start=1):
         x, y = positions[vertex]
-        face = NODE_COLORS[color] if color is not None else WHITE
+        blank = color is None
+        face = WHITE if blank else NODE_COLORS[color]
         ax.scatter(
             [x],
             [y],
-            s=1000,
+            s=GRAPH_NODE_AREA,
             facecolor=face,
-            edgecolor=INK if color is not None else "#9AA8B5",
-            lw=1.2,
+            edgecolor=GRAPH_BLANK_EDGE if blank else VERTEX_EDGE,
+            lw=1.4,
+            linestyle=(0, (2.4, 1.9)) if blank else "solid",
             clip_on=False,
             zorder=2,
         )
@@ -347,12 +490,9 @@ def draw_partial_graph(ax, reference: dict) -> None:
             va="center",
             fontsize=FONT,
             fontweight="bold",
-            color=NODE_TEXT[color] if color is not None else MUTED,
+            color=MUTED if blank else NODE_TEXT[color],
             zorder=3,
         )
-    ax.set_xlim(-0.02, 1.0)
-    ax.set_ylim(-0.02, 0.98)
-    ax.set_axis_off()
 
 
 def make_card_axes(fig):
@@ -383,7 +523,15 @@ def group_extent(fig, artists) -> Bbox:
     return Bbox.union(boxes)
 
 
-def draw_group_card(card, extent: Bbox, *, top: float, bottom: float, pad: float = 0.17):
+def draw_group_card(
+    card,
+    extent: Bbox,
+    *,
+    top: float,
+    bottom: float,
+    pad: float = 0.17,
+    face: str = PANEL,
+):
     """One rounded pale-blue card behind a group of panels.
 
     The figure carries two of these --- the prompt panel is one object and the
@@ -399,7 +547,7 @@ def draw_group_card(card, extent: Bbox, *, top: float, bottom: float, pad: float
         extent.width + 2 * pad,
         top - bottom,
         boxstyle="round,pad=0.0,rounding_size=0.09",
-        facecolor=PANEL,
+        facecolor=face,
         edgecolor=GRID,
         linewidth=1.1,
         clip_on=False,
@@ -409,11 +557,57 @@ def draw_group_card(card, extent: Bbox, *, top: float, bottom: float, pad: float
     return patch
 
 
+def draw_split_card(
+    card,
+    extent: Bbox,
+    seam_x: float,
+    *,
+    top: float,
+    bottom: float,
+    pad: float = 0.17,
+    face_left: str = PANEL,
+    face_right: str = PANEL,
+):
+    """One card, one outline, two fills either side of ``seam_x``.
+
+    Panels B and C are still one grouped object -- same outline, same
+    "touching" adjacency as the single-colour card this replaces -- so
+    nothing about their spacing changes; only the fill now marks which half
+    is which. The outline is a third, unfilled patch drawn last so the seam
+    between the two fills can never nick it: an outline that is itself half
+    of the coloured fill (rather than repeated whole around each colour)
+    always risks the second fill's edge sitting fractionally over the first
+    fill's own stroke.
+    """
+
+    box = (extent.x0 - pad, bottom, extent.width + 2 * pad, top - bottom)
+    base = FancyBboxPatch(
+        box[:2], box[2], box[3],
+        boxstyle="round,pad=0.0,rounding_size=0.09",
+        facecolor=face_right, edgecolor="none", clip_on=False, zorder=-2,
+    )
+    card.add_patch(base)
+    left = FancyBboxPatch(
+        (box[0], box[1]), seam_x - box[0], box[3],
+        boxstyle="square,pad=0.0",
+        facecolor=face_left, edgecolor="none", clip_on=False, zorder=-2,
+    )
+    left.set_clip_path(base)
+    card.add_patch(left)
+    outline = FancyBboxPatch(
+        box[:2], box[2], box[3],
+        boxstyle="round,pad=0.0,rounding_size=0.09",
+        facecolor="none", edgecolor=GRID, linewidth=1.1, clip_on=False, zorder=-1,
+    )
+    card.add_patch(outline)
+    return outline
+
+
 def draw_option_row(ax, y: float, label: str, key: str, color: str | None = None) -> None:
     # The option name carries its own series colour, so a row in panel A and
     # its segment in panels B and C are joined by colour as well as by name.
-    # The circles beside it stay on the slate paint scale: they are the
-    # puzzle's colours, not modes.
+    # The circles beside it stay on the achromatic vertex-colour scale: they
+    # are assignments within a mode, not mode identities.
     ax.text(
         0.0,
         y,
@@ -426,15 +620,16 @@ def draw_option_row(ax, y: float, label: str, key: str, color: str | None = None
         va="center",
     )
     for index, digit in enumerate(key):
-        x = 0.345 + index * 0.138
+        # A wider pitch plus smaller markers keeps the printed bubbles apart.
+        x = 0.350 + index * 0.145
         ax.scatter(
             [x],
             [y],
             transform=ax.transAxes,
-            s=690,
+            s=420,
             facecolor=NODE_COLORS[int(digit)],
-            edgecolor=WHITE,
-            lw=1.1,
+            edgecolor=VERTEX_EDGE,
+            lw=1.0,
             clip_on=False,
             zorder=3,
         )
@@ -456,9 +651,8 @@ def draw_option_row(ax, y: float, label: str, key: str, color: str | None = None
 # 3.8in wide on the canvas, and the two-line form ran past its own card and
 # over the neighbouring one.
 PROMPT_QUESTION = (
-    "How can we color the three\n"
-    "uncolored nodes so that connected\n"
-    "nodes get different colors?"
+    "Color the three blank nodes;\n"
+    "connected nodes must differ."
 )
 
 
@@ -470,34 +664,47 @@ def render_prompt_panel(ax, reference: dict) -> None:
     panel_label(ax, "A", PROMPT_QUESTION)
     # The graph starts below 1.0 rather than at it, so the three-line question
     # above has clear air under it instead of sitting on the top node.
-    graph_ax = ax.inset_axes([0.159, 0.515, 0.58, 0.365])
+    graph_ax = ax.inset_axes([-0.008, 0.487, 0.70, 0.415])
     draw_partial_graph(graph_ax, reference)
     ax.text(
         0.0,
-        0.330,
-        "Twelve valid colorings",
+        0.390,
+        "CIRCLE FILL = VERTEX COLOR",
         transform=ax.transAxes,
         fontsize=FONT,
+        fontweight="bold",
+        color=INK,
+        ha="left",
+        va="center",
+    )
+    ax.text(
+        0.0,
+        0.305,
+        f"OPTION LABEL = SOLUTION MODE ({reference['num_completions']} VALID)",
+        transform=ax.transAxes,
+        fontsize=FONT * 0.78,
+        fontweight="normal",
         color=MUTED,
         ha="left",
         va="center",
     )
     options = [
-        ("Option A", "33221", None),
-        ("Option B", "31223", None),
-        ("Option C", "32213", None),
+        ("Option A", "31212", None),
+        ("Option B", "33112", None),
+        ("Option C", "31312", None),
     ]
     # The count is carried by the rows themselves --- three named, an ellipsis,
     # then the twelfth --- instead of by a "12 valid solutions" callout. Option
     # L is one of the nine the figure does not draw, so it wears the same
     # colour those nine wear in the bar panels: "other valid".
-    last_key = twelfth_option(reference, tuple(key for _, key, _ in options))
+    last_key = last_option(reference, tuple(key for _, key, _ in options))
+    last_label = f"Option {chr(ord('A') + reference['num_completions'] - 1)}"
     assert_valid_coloring(last_key, reference)
-    for y, (label, key, color) in zip((0.200, 0.065, -0.070), options):
+    for y, (label, key, color) in zip((0.170, 0.010, -0.150), options):
         draw_option_row(ax, y, label, key, color)
     ax.text(
         0.055,
-        -0.190,
+        -0.275,
         "⋮",
         transform=ax.transAxes,
         fontsize=FONT * 1.15,
@@ -506,7 +713,7 @@ def render_prompt_panel(ax, reference: dict) -> None:
         ha="center",
         va="center",
     )
-    draw_option_row(ax, -0.320, "Option L", last_key, OTHER)
+    draw_option_row(ax, -0.405, last_label, last_key, OTHER)
 
 
 
@@ -526,11 +733,11 @@ def render_method_trajectory(
     centers = np.arange(len(steps), dtype=float)
     # Stacked bottom-up in legend order so the reading order of the stack and
     # the reading order of the legend agree.
-    keys = ["33221", "31223", "32213"]
+    keys = list(MODE_COLORS)
     counts_by_step = [correct_counts(snapshots[step], prompt_index) for step in steps]
     audit = {
         str(step): {
-            "epoch": step / 192,
+            "training_pass": step / STEPS_PER_PASS,
             "correct": sum(counts.values()),
             "distinct": len(counts),
             "counts": dict(sorted(counts.items())),
@@ -556,39 +763,48 @@ def render_method_trajectory(
         ax.text(x, 33.2, str(len(counts)), fontsize=FONT, fontweight="bold",
                 color=INK, ha="center", va="bottom")
     ax.set_ylim(0, 37.6)
-    ax.set_xlim(-0.55, 6.55)
+    ax.set_xlim(-0.55, len(steps) - 0.45)
     # Labelled from the same list the bars are built from. These were a
     # hardcoded copy and silently kept naming the old checkpoints when the
     # window moved.
-    ax.set_xticks(centers, [str(step) for step in steps])
-    ax.set_xlabel(f"optimizer step ({END_EPOCH} epochs)", labelpad=4)
+    ax.set_xticks(centers, [f"{step / STEPS_PER_PASS:g}" for step in steps])
+    ax.set_xlabel(f"training pass (of {END_PASS:g})", labelpad=4)
     ax.set_yticks([0, 8, 16, 24, 32])
     if show_ylabel:
         ax.set_ylabel("fixed-seed samples (of 32)", labelpad=4)
     else:
         ax.set_yticklabels([])
-    ax.grid(axis="y", color=GRID, linewidth=0.8)
+    ax.grid(axis="both", color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
     ax.tick_params(length=3.0, width=0.8, pad=3)
     ax.spines[["top", "right"]].set_visible(False)
     return audit
 
 def main() -> None:
-    dr, dr_meta = load_snapshots(DR_DRAWS)
-    xdr, _ = load_snapshots(XDR_DRAWS)
-    prompt_index = select_prompt(dr, xdr)
-    reference = parse_reference(dr_meta[prompt_index])
+    pairs = {}
+    metadata = {}
+    for seed, paths in sorted(PAIR_DRAWS.items()):
+        control, control_meta = load_snapshots(paths["drgrpo"])
+        replay, replay_meta = load_snapshots(paths["replay_maxrl"])
+        assert control_meta.keys() == replay_meta.keys()
+        pairs[seed] = {"drgrpo": control, "replay_maxrl": replay}
+        metadata[seed] = control_meta
+    seed, prompt_index = select_prompt(pairs)
+    control = pairs[seed]["drgrpo"]
+    replay = pairs[seed]["replay_maxrl"]
+    control_meta = metadata[seed]
+    reference = parse_reference(control_meta[prompt_index])
     displayed_keys = set()
-    for snapshots in (dr, xdr):
+    for snapshots in (control, replay):
         for records in snapshots.values():
             displayed_keys.update(correct_counts(records, prompt_index))
     for key in displayed_keys:
         assert_valid_coloring(key, reference)
 
-    initial_dr = correct_counts(dr[0], prompt_index)
-    initial_xdr = correct_counts(xdr[0], prompt_index)
-    assert initial_dr == initial_xdr
-    assert initial_dr == Counter({"31223": 10, "32213": 5, "33221": 4})
+    initial_control = correct_counts(control[0], prompt_index)
+    initial_replay = correct_counts(replay[0], prompt_index)
+    assert initial_control == initial_replay
+    assert initial_control == Counter({"31212": 6, "33112": 8, "31312": 2})
 
     # Drawn at the full text width, so the canvas is wide relative to its
     # height and every element keeps its printed font size while gaining room.
@@ -596,7 +812,9 @@ def main() -> None:
     card_axes = make_card_axes(fig)
     # The question moved into panel A's title, so there is no figure-wide
     # banner and the panels start higher.
-    ratios = [4.05, 1.32, 4.02, 0.17, 4.02]
+    # A compact gutter separates the task/example card from the paired
+    # training-trajectory card without making the two stories feel detached.
+    ratios = [4.05, 1.65, 4.02, 0.17, 4.02]
     # The right edge leaves room for the B/C card's 0.17in pad, which at 0.992
     # pushed the card past the canvas and clipped it.
     grid_left, grid_right = 0.014, 0.987
@@ -611,12 +829,14 @@ def main() -> None:
     BC_LEFT = grid_left + sum(ratios[:2]) * unit
     BC_RIGHT = grid_right
     render_prompt_panel(axes[0], reference)
-    dr_trajectory = render_method_trajectory(
-        axes[1], dr, prompt_index, letter="B", title="GRPO",
+    control_trajectory = render_method_trajectory(
+        axes[1], control, prompt_index, letter="B",
+        title="Qwen2.5-3B\nDr.GRPO",
         show_ylabel=True,
     )
-    xdr_trajectory = render_method_trajectory(
-        axes[2], xdr, prompt_index, letter="C", title="historical treatment",
+    replay_trajectory = render_method_trajectory(
+        axes[2], replay, prompt_index, letter="C",
+        title="Qwen2.5-3B\nRe:MaxRL (ours)",
         show_ylabel=False,
     )
 
@@ -624,9 +844,9 @@ def main() -> None:
         Line2D([0], [0], marker="s", color="none", markerfacecolor=color,
                markeredgecolor="none", markersize=11, label=label)
         for label, color in [
-            ("Option A", MODE_COLORS["33221"]),
-            ("Option B", MODE_COLORS["31223"]),
-            ("Option C", MODE_COLORS["32213"]),
+            ("mode A", MODE_COLORS["31212"]),
+            ("mode B", MODE_COLORS["33112"]),
+            ("mode C", MODE_COLORS["31312"]),
             ("other valid", OTHER),
             ("invalid", INVALID),
         ]
@@ -711,8 +931,37 @@ def main() -> None:
     card_bottom = max(0.0, min(prompt_extent.y0, bars_extent.y0) - pad)
     a_top = b_top = card_top
     a_bottom = b_bottom = card_bottom
-    draw_group_card(card_axes, prompt_extent, top=card_top, bottom=card_bottom)
-    draw_group_card(card_axes, bars_extent, top=card_top, bottom=card_bottom)
+    a_card = draw_group_card(
+        card_axes,
+        prompt_extent,
+        top=card_top,
+        bottom=card_bottom,
+        face=CARD_A,
+    )
+    # The seam sits in the middle of B and C's own gutter (not the legend's,
+    # which spans both): B and C keep exactly the gap the gridspec already
+    # gives them, only the fill either side of its midpoint now differs.
+    b_extent = group_extent(fig, [axes[1]])
+    c_extent = group_extent(fig, [axes[2]])
+    seam_x = (b_extent.x1 + c_extent.x0) / 2
+    draw_split_card(
+        card_axes, bars_extent, seam_x,
+        top=card_top, bottom=card_bottom, face_left=CARD_B, face_right=CARD_C,
+    )
+    # The arrow occupies only the white gutter: it both reinforces the split
+    # and reads as "task/solution modes -> observed training trajectories."
+    gutter_left = a_card.get_x() + a_card.get_width()
+    gutter_right = bars_extent.x0 - pad
+    card_axes.text(
+        (gutter_left + gutter_right) / 2,
+        (card_top + card_bottom) / 2,
+        "→",
+        fontsize=FONT * 1.55,
+        fontweight="bold",
+        color=MUTED,
+        ha="center",
+        va="center",
+    )
 
     if os.environ.get("STORY_LAYOUT_DEBUG"):
         gap = (bars_extent.x0 - 0.17) - (prompt_extent.x1 + 0.17)
@@ -745,19 +994,24 @@ def main() -> None:
     plt.close(fig)
 
     audit = {
-        "schema": "paper_graph_collapse_toy_v16",
-        "model": "Qwen2.5-0.5B-Instruct",
-        "seed": 43,
+        "schema": "paper_graph_collapse_toy_v26",
+        "model": "Qwen2.5-3B-Instruct",
+        "seed": seed,
         "layout_contract": {
             "panels": ["A", "B", "C"],
             "panel_titles": [
                 PROMPT_QUESTION.replace("\n", " "),
-                "GRPO",
-                "historical treatment",
+                "Qwen2.5-3B Dr.GRPO",
+                "Qwen2.5-3B Re:MaxRL",
             ],
             "steps": DISPLAY_STEPS,
-            "end_epoch": END_EPOCH,
+            "end_pass": END_PASS,
             "paired_bars": False,
+            "grouping": "warm task card -> blue trajectory card",
+            "color_encodings": {
+                "panel_a_circle_fill": "vertex_color",
+                "panels_bc_bar_fill": "solution_mode",
+            },
         },
         "sampling": {
             "temperature": 1.0,
@@ -768,14 +1022,19 @@ def main() -> None:
         "selection": {
             "status": "post_hoc_illustration",
             "rule": (
-                "Among prompts with >=3 observed valid modes at step 0, "
-                "a singleton Dr.GRPO distribution at epoch 2, and >=2 "
-                "historical-treatment modes there, maximize historical-treatment epoch-2 observed "
-                "modes, then historical-treatment epoch-2 correct samples, then initial "
-                "correct samples, then choose the lowest prompt index."
+                "Across available Qwen2.5-3B seeds 70--73, among Graph "
+                "Coloring prompts whose paired step-0 correct samples match "
+                "with exactly three modes and fewer than 20/32 correct, "
+                "require all four terminal K=8 draws to succeed in both arms, "
+                "a singleton terminal Dr.GRPO endpoint, a 32/32 Re:MaxRL "
+                "endpoint, and no fewer than three Re:MaxRL "
+                "modes at any displayed checkpoint; maximize "
+                "the least frequent initial mode, then the smaller terminal "
+                "correct-sample count, Re:MaxRL terminal modes, and initial "
+                "correct samples, then choose the lowest seed and prompt index."
             ),
-            "selection_step": 384,
-            "selection_epoch": 2.0,
+            "selection_step": 3072,
+            "selection_pass": 8.0,
             "prompt_index": prompt_index,
         },
         "prompt": {
@@ -786,21 +1045,37 @@ def main() -> None:
         },
         "initial": {
             "step": 0,
-            "correct": sum(initial_dr.values()),
-            "distinct": len(initial_dr),
-            "counts": dict(sorted(initial_dr.items())),
+            "correct": sum(initial_control.values()),
+            "distinct": len(initial_control),
+            "counts": dict(sorted(initial_control.items())),
         },
-        "drgrpo_trajectory": dr_trajectory,
-        "xdrgrpo_trajectory": xdr_trajectory,
+        "terminal_pass8": {
+            "drgrpo": pass_at_8(control[DISPLAY_STEPS[-1]], prompt_index),
+            "replay_maxrl": pass_at_8(
+                replay[DISPLAY_STEPS[-1]], prompt_index
+            ),
+        },
+        "drgrpo_trajectory": control_trajectory,
+        "replay_maxrl_trajectory": replay_trajectory,
         "sources": {
             "drgrpo": {
-                "path": str(DR_DRAWS.relative_to(ROOT)),
-                "sha256": sha256(DR_DRAWS),
+                "path": str(PAIR_DRAWS[seed]["drgrpo"].relative_to(ROOT)),
+                "sha256": sha256(PAIR_DRAWS[seed]["drgrpo"]),
             },
-            "xdrgrpo": {
-                "path": str(XDR_DRAWS.relative_to(ROOT)),
-                "sha256": sha256(XDR_DRAWS),
+            "replay_maxrl": {
+                "path": str(PAIR_DRAWS[seed]["replay_maxrl"].relative_to(ROOT)),
+                "sha256": sha256(PAIR_DRAWS[seed]["replay_maxrl"]),
             },
+        },
+        "selection_pool_sources": {
+            str(pool_seed): {
+                arm: {
+                    "path": str(path.relative_to(ROOT)),
+                    "sha256": sha256(path),
+                }
+                for arm, path in paths.items()
+            }
+            for pool_seed, paths in sorted(PAIR_DRAWS.items())
         },
     }
     AUDIT.parent.mkdir(parents=True, exist_ok=True)

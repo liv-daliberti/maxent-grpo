@@ -3035,3 +3035,913 @@ every already-submitted cohort recorded.
   minute of submission. The same work as a single long job sat 5+ hours in `cs`
   without starting. Resume was verified end-to-end before use: 384 training rows
   spanning 1..384 across three process restarts, no duplicates and no gaps.
+
+## Tour stage-2 gate completes at eight passes; K=4 admitted, K=5 rejected — 2026-08-11
+
+- Both releases reached pass 8 on two control seeds, 64 development maps.
+
+  | release | seed | distinct@8 pass 0 -> 8 | drop | mean@8 pass 0 -> 8 |
+  |---|---|---|---|---|
+  | K=4 | 43 | 3.53 -> 3.20 | +.328 | .65 -> .85 |
+  | K=4 | 44 | 3.56 -> 2.92 | +.641 | .64 -> .87 |
+  | K=5 | 43 | 2.64 -> 3.72 | -1.078 | .38 -> .73 |
+  | K=5 | 44 | 2.69 -> 3.84 | -1.156 | .37 -> .75 |
+
+- K=4 mean drop **+.484 against the registered +.50**, missing by .016; one seed
+  clears it, one does not. Extending the window from four passes to eight
+  narrowed the miss from .062 to .016 but did not close it, so the window was
+  part of the story and not all of it. The four-pass figure of +.438 stands as
+  first registered.
+- The admission reasoning is not contradicted by the endpoint, which is the
+  check that mattered. Both K=4 seeds still show accuracy rising while breadth
+  falls: `mean@8` .65 -> .85 and .64 -> .87 against `distinct@8` 3.53 -> 3.20
+  and 3.56 -> 2.92. Had breadth recovered, E93-PT would have been stopped.
+- K=5 is rejected as a benchmark instrument and the reason is worth keeping.
+  Its control *gains* breadth, by more than a mode, while its accuracy climbs
+  from .38 to .74: eight passes are spent learning to succeed at all, and
+  collapse has not begun by the end of the protocol. Tightening a domain to
+  clear the stage-1 saturation ceiling pushes it out of the regime the stage-2
+  gate measures. The two gates cannot both be satisfied by construction, and
+  K=4 sits on the correct side of that trade.
+- Endpoint trajectories are visibly noisy at this scale: K=4 seed 43 reads
+  3.19, 3.20, 3.23, 2.97, 3.20 across passes 4 through 8. A .50 threshold on a
+  single endpoint difference is a sharper instrument than the measurement
+  supports, which is a further argument for reading the trend rather than the
+  endpoint alone.
+- Stage 3 passes on both releases: 5,502 banked outcomes, 14 active replay
+  modes, applied replay gradient L2 .0267 against the control's exact zero.
+- E93-PT (10 cells, K=4, sealed 128-map evaluation split) is running and was
+  registered before these endpoints were read.
+
+## External comparative baselines E97 UCPO and E98 RLEP-Dr launch — 2026-08-12
+
+- Prospective three-domain panel: Graph Coloring, Python Factors, PantryPlan;
+  Qwen2.5-0.5B seeds 43--47; 384 prompts x 8 passes. Each scientific cell is
+  paired to the already-completed E78 Dr.GRPO control on the same domain, seed,
+  data, prompt surface, placement, and schedule. The preregistrations are
+  `paper/preregistration/e97_ucpo_05b_20260812.md` and
+  `paper/preregistration/e98_rlep_dr_05b_20260812.md`.
+- E97 freezes UCPO tau=.2 and keeps E78 control's passive compute-only replay
+  traversal. One non-scientific 32-query Graph/s43 learner smoke, job 30508620,
+  gates all 15 scientific jobs (30508621--30508624 and 30508628--30508638).
+  At launch the smoke allocated on node105 and passed immutable-runtime and
+  argument parsing; scientific cells remain dependency-blocked until it exits
+  successfully. Ledger: `var/artifacts/e97_ucpo_05b_jobs.json`; runtime:
+  `var/artifacts/source_snapshots/e97_ucpo_9e2919a7410cc9dc`.
+- E98 follows the two-stage RLEP protocol rather than using the base model as a
+  collector. Each of 15 completed terminal E78 control checkpoints generates
+  4x16 candidates for all 384 corresponding *training* prompts at T=.7,
+  top-p=.95. A CPU audit requires exactly four draws, identical prompt coverage,
+  and at least two verified trajectories for every prompt. No prompt can be
+  dropped and frequency is preserved rather than mode-balanced.
+- E98 collection jobs are 30508679, 30508681, 30508683, 30508685, 30508687,
+  30508689, 30508691, 30508693, 30508696, 30508698, 30508700, 30508702,
+  30508704, 30508706, 30508708; their audits are 30508680, 30508682, 30508684,
+  30508686, 30508688, 30508690, 30508692, 30508695, 30508697, 30508699,
+  30508701, 30508703, 30508705, 30508707, 30508709. Smoke 30508710 depends on
+  the Graph/s43 audit. Scientific jobs 30508711--30508725 depend on their own
+  pool audit and the shared smoke. Ledger: `var/artifacts/e98_rlep_dr_05b_jobs.json`;
+  runtime: `var/artifacts/source_snapshots/e98_rlep_dr_48516561a1be84bc`.
+- E98 is explicitly RLEP-Dr: 16 fresh rollouts plus two offline verified
+  successes share one mean-only Dr.GRPO baseline. Canonical replay and mode
+  discovery tracking are disabled, and the two extra replay rows are not
+  claimed to be compute-matched to E78.
+
+## E97 UCPO smoke clears; E98 collection begins — 2026-08-12
+
+- E97 smoke job 30508620 completed successfully (`ExitCode=0:0`) on node105.
+  The UCPO learner path ran at tau=.2, exercised an eligible group with a
+  correct row, and reported maximum advantage-mass error exactly 0.0. Its
+  completion receipt records terminal step 4. The configured
+  `OAT_ZERO_MAX_QUERIES=32` gate was crossed at logged query step 48 because
+  the training loop checks its strict stopping condition after a full
+  16-sample update; this is a non-scientific smoke-only bookkeeping note and
+  does not alter the sealed scientific protocol.
+- The successful smoke released all 15 E97 scientific cells. At the first
+  post-gate status check, three were running and twelve were queued for
+  resources.
+- E98 Graph/s43 pool collector 30508679 completed successfully (`ExitCode=0:0`)
+  with the sealed 4x16, T=.7, top-p=.95 coverage settings and optimizer_steps=0.
+  Its fail-closed CPU pool audit 30508680 is now scheduler-eligible; RLEP smoke
+  30508710 and all scientific cells remain dependency-gated until the required
+  pool audits succeed.
+
+## E98 fails feasibility; preregistered E98-R1 sparse repair launches — 2026-08-13
+
+- E98 is a failed feasibility gate, not a queueing result.  All 15 immutable
+  collections completed, but the pools have binary prompt support: Graph has
+  131--150/384 eligible prompts, PantryPlan 206--221/384, and Python Factors
+  81/384.  The remaining prompts have zero verified successes, so neither
+  scheduler priority nor more identical draws can satisfy the registered
+  requirement of two verified trajectories for every prompt.  The original
+  E98 outcome remains failed and is not relabeled.
+- Before any repaired training, E98-R1 froze a separate estimand in
+  `paper/preregistration/e98r1_sparse_rlep_dr_05b_20260813.md`: reuse the
+  immutable E98 pools; apply 16 fresh + 2 prompt-matched replay rows only when
+  a prompt has at least two verified successes; otherwise apply the unchanged
+  16-row E78 Dr.GRPO update.  All 384 prompts remain, without dropping,
+  reweighting, borrowing, or canonicalization.
+- The 32-update Graph/s43 mechanism smoke 30538119 started immediately on
+  node105 and completed `ExitCode=0:0`.  Independent audit 30538120 also
+  completed `0:0`, observing both registered dose pairs `(0,0)` and `(1,2)`
+  and finite replay loss, replay advantage, and mixed-reward telemetry.  Its
+  receipt is
+  `var/data/e98r1_sparse_rlep_smoke_graph_s43/E98R1_SMOKE_COMPLETE.json`.
+- The passed gate released scientific jobs 30538121--30538135 at `nice=0`.
+  At the first post-gate check, all five node105 cells were running.  The ten
+  node302 cells were dependency-free but waiting because five current jobs
+  reserve 480/515 GB, leaving less than the requested 64 GB per RLEP cell.
+  Owner-side `scontrol top` is disabled on this cluster; no unrelated campaign
+  was held or cancelled to work around that policy.
+- The 26 permanently blocked original E98 pending jobs (audits pinned to the
+  unavailable placement plus smoke/science descendants with failed
+  dependencies) were cancelled after E98-R1 passed release validation.  Their
+  completed collections, failed audit evidence, ledger, and source snapshot
+  remain intact.  E98-R1 ledger:
+  `var/artifacts/e98r1_sparse_rlep_dr_05b_jobs.json`; runtime:
+  `var/artifacts/source_snapshots/e98r1_sparse_rlep_dr_5b527387f5a2c267`.
+
+## E108 admission-to-retention mechanism gate completes — 2026-08-18
+
+- All ten Qwen2.5-0.5B seed-43 arm-domain cells completed 64/64 optimizer
+  updates; terminal audit job 30644701 passed with zero violations. The
+  scheduler-only `mltheory` constraint was repaired to `Partition=all` before
+  any model update; the requested account, node pool, and scientific commands
+  were unchanged.
+- Passive/adaptive tracking observed 68/64 admissions, 65/61 later rollout-
+  eligible admissions, and 46/43 on-policy conversions. These admitted sets
+  are affected by treatment, so the aggregate .708/.705 fractions are
+  descriptive and are not a causal effect estimate.
+- All 67 passive and 62 adaptive admissions with score follow-up remained
+  inside the 0.5-nat mean-token drop threshold. The adaptive arm therefore
+  emitted zero score-drop requests; 89 rollout-absence requests added 220
+  bounded mass-replay priority visits.
+- Terminal adaptive-minus-passive `pass@8` deltas (Graph, Countdown, Python,
+  MathIR, PantryPlan) are +.125, -.016, 0, +.016, 0; `distinct@8` deltas are
+  +.234, -.023, 0, +.016, 0. This one-seed mechanism gate validates the
+  tracker/controller but does not justify promoting the current trigger rule.
+- Next design: log passive shadow triggers plus trigger-to-rescue survival at
+  fixed post-admission horizons, then test a multi-seed controller only if
+  actual rescue separates from natural reappearance. More proposal sampling
+  remains unsupported by E103/E108.
+- Audit: `var/artifacts/e108_admission_retention_mechanism_gate_audit_latest.json`.
+  Ledger: `var/artifacts/e108_admission_retention_mechanism_gate_jobs.json`.
+
+## E113 DAPO gate fails; E113-R1 operational recovery is frozen — 2026-08-19
+
+- Both original Countdown smokes failed at the unchanged ten-generation-batch
+  dynamic-sampling limit: Qwen before its first accepted update and Falcon
+  after five. The 50 scientific cells (25 per family) therefore remain at zero
+  updates with `DependencyNeverSatisfied`. This is a failed launch gate, not
+  DAPO efficacy evidence, and the original jobs, ledger, and logs remain
+  immutable.
+- The learner implementation matches the intended fail-closed DAPO behavior:
+  constant-reward groups are rejected and collection raises after ten failed
+  generation batches. The recoverable operational errors were the smoke
+  surface and budget. Countdown's completed-control step-zero correctness was
+  only .011 for Qwen and .037 for Falcon, versus .199 and .178 on Graph;
+  Python had zero support in both families. In addition, the original smoke
+  allowed only 640 sampled rows although 32 accepted updates can require up to
+  `32 * 16 * 10 = 5,120` rows under the frozen retry rule.
+- Before any replacement job, E113-R1 froze two non-scientific Graph smokes in
+  `paper/preregistration/e113r1_dapo_recovery_smokes_20260819.md`. They retain
+  the original snapshot, DAPO objective, clips, ten-batch limit, and seeds;
+  they change only the diagnostic domain, fresh output paths, and the query
+  ceiling to 5,120. The pass rule requires exactly 32 accepted updates with
+  finite loss/gradient/token telemetry.
+- `ops/exp_scaling/launch_e113r1_dapo_recovery_smokes.py` and
+  `ops/exp_scaling/audit_e113r1_dapo_recovery_smokes.py` are dry-run/audit
+  ready. The launcher contains zero scientific jobs and cannot rewire or
+  release the original 50 cells. As of this entry no E113-R1 ledger exists and
+  no recovery job has been submitted; a later scientific design would require
+  a separate prospective amendment after the two smoke outcomes are audited.
+
+## E113-R1 released; full E113-R2 comparative frozen behind it — 2026-08-19
+
+- With explicit authorization for exactly the two recovery smokes, E113-R1
+  jobs 30790111 (Qwen) and 30790112 (Falcon) were submitted held, their
+  scheduler-expanded environments passed audit, one atomic two-smoke/zero-
+  science ledger was written, and both were released. At 15:46 EDT both were
+  still pending at zero updates: Qwen for requested-node availability on
+  node105 and Falcon for priority on node202.
+- The now-materialized zero-science ledger exposed and received a monitor fix:
+  `campaign_stats.py` retains a zero-cell row and reports its two gate jobs
+  separately, rather than asking the generic science reader for an absent
+  `train_rows` field. The regression is covered in
+  `tests/test_cohort_registry.py`.
+- Before either recovery-smoke outcome, the complete successor was frozen as
+  `paper/preregistration/e113r2_dapo_full_relaunch_20260819.md`. E113-R2 is all
+  50 original model/domain/seed cells with fresh paths, the exact E113 DAPO
+  objective and runtime snapshot, the correct 491,520-response per-cell
+  ceiling, and matched E78/E79 controls. It submits nothing unless both R1
+  audits pass and has no force or partial-family path.
+- E113-R2 treats ten-batch dynamic-sampling exhaustion as one terminal cell
+  failure by disabling wrapper-triggered requeue after learner failure. This
+  changes no successful optimizer trajectory and prevents an unsupported
+  domain from receiving six unregistered restarts. The full denominator and
+  every failed/incomplete cell remain reportable.
+
+## E114--E116 direct-comparator matrix completed and released — 2026-08-19
+
+- The paper scope requested here is five methods (plain GRPO, Dr.GRPO, UCPO,
+  sparse RLEP-Dr, and ReplayDr.GRPO), five static ModeBench environments,
+  three model scales, and five seeds: 375 scientific cells. Adaptive and
+  semantic variants are explicitly outside this scope.
+- Before submission, E114 froze the 20 missing Qwen2.5-3B plain-GRPO seeds;
+  E115 froze the 10 missing Qwen2.5-0.5B and all 25 Qwen2.5-3B UCPO cells;
+  E116 froze the analogous 35 sparse-RLEP cells. The launchers reuse immutable
+  E95, E97, and final repaired E98-R1 runtime surfaces, respectively, and
+  preserve cell-matched controls, datasets, endpoints, and compute.
+- E114 released 20 scientific jobs. E115 released two fixed 32-update smokes
+  and 35 scientific jobs. E116 released 35 collection jobs, 35 independent
+  pool audits, two fixed smokes, two smoke audits, and 35 scientific jobs.
+  Every job was submitted held, scheduler-audited, ledgered atomically, and
+  then released. The live queue contained all 166 E114--E116 DAG nodes with no
+  residual user holds at the first post-release audit.
+- E100-R2 separately closed the pre-existing Falcon sparse-RLEP execution
+  loose ends. Pantry seeds 56, 57, and 59 had passed 384-prompt pool audits
+  with 228 eligible prompts each; original science jobs 30572828, 30572829,
+  and 30572831 were released. Empty transient-OOM collection failures for
+  Pantry seeds 55 and 58 received exact-command replacements 30790678 and
+  30790680, fresh audits 30790679 and 30790681, smoke re-audit 30790682, and
+  replacement science jobs 30790683 and 30790684. Python seed 58 was corrected
+  to the same frozen zero-eligibility block as seeds 56 and 59. E100 therefore
+  has 22 executable cells and three explicit gate-blocked cells, with no
+  unclassified failures.
+- Canonical audit after release: direct comparators are 225/225 registered
+  with zero missing batches. Adding the already registered 75 Dr.GRPO and 75
+  ReplayDr.GRPO cells gives 375/375 for the requested scope. The full legacy
+  ten-method matrix still reports 190 absent adaptive/semantic cells; those
+  are intentionally excluded rather than silently treated as required work.
+- Focused regression suite: 52 passed. Ledgers:
+  `var/artifacts/e114_plain_grpo_qwen3b_extension_jobs.json`,
+  `var/artifacts/e115_ucpo_qwen05b_domain_extension_jobs.json`,
+  `var/artifacts/e115_ucpo_qwen3b_jobs.json`,
+  `var/artifacts/e116_sparse_rlep_qwen05b_domain_extension_jobs.json`,
+  `var/artifacts/e116_sparse_rlep_qwen3b_jobs.json`, and
+  `var/artifacts/e100_pantry_infrastructure_recovery_jobs.json`.
+
+## E113 effective DAPO recovery gate passes; E113-R3 releases 50 cells — 2026-08-19
+
+- The original R1 Qwen Graph smoke failed from placement-related memory
+  pressure. Falcon job 30790112 reached 32 unique accepted updates and wrote
+  its step-33 completion receipt before allocator teardown failed with
+  `137:0`; that trajectory is classified as training-complete/shutdown-failed,
+  not as an efficacy result. The prospectively frozen Qwen A6000 memory repair,
+  job 30790590, completed 32 unique updates and exited `COMPLETED/0:0`.
+  `ops/exp_scaling/audit_e113r1m1_dapo_effective_gate.py` therefore passes the
+  two-family operational gate without treating either smoke as science.
+- E113-R2 remained closed because its literal two-original-smoke condition did
+  not pass. E113-R3 was frozen separately, retaining the exact DAPO objective,
+  snapshot, five domains, five seeds per family, completed paired controls, and
+  491,520-row worst-case query ceiling. Its Qwen placement change is capacity
+  only: A6000 nodes, no optimizer or activation offload. The held-stage
+  partition normalization is recorded prospectively in E113-R3-S2.
+- All 50 science jobs, IDs 30790925--30790974, passed held-record audit and were
+  released atomically. The ledger is
+  `var/artifacts/e113r3_dapo_full_relaunch_jobs.json`. The retired original
+  E113 dependency-blocked placeholders remain historical and are excluded from
+  active totals only after that exact released successor validates.
+
+## E113-R3 feasibility failures and external allocation reaper — 2026-08-19
+
+- By the 17:01 EDT operational cutoff, all five Qwen Countdown cells had
+  reached the registered ten-generation-batch all-zero exhaustion boundary.
+  Seeds 43--47 stopped after `(3, 0, 1, 0, 8)` accepted policy updates,
+  respectively. None wrote `TRAINING_COMPLETE.json`; these are scientific
+  feasibility failures in the 50-cell denominator, not efficacy endpoints.
+- Launchpad actors survived the dead learner, so Slurm continued to show the
+  affected allocations as `RUNNING`. Exact-evidence cleanup records preserve
+  each fatal signature, metrics hash, accepted-update count, missing receipt,
+  and scheduler transition before releasing the stranded GPU. No cell was
+  retried, resumed, or resampled.
+- The S3 wrapper amendment could not affect this already submitted cohort:
+  Slurm had spooled all 50 batch scripts at submission. E113-R3-S4 therefore
+  froze an external CPU-only reaper. Job 30791185 requests one CPU and 1 GB,
+  no GPU, has `Requeue=0`, validates its own frozen hashes and the exact 50 job
+  IDs, and cancels only a still-running cell with the registered fatal
+  signature, no receipt, and a log stale for at least 300 seconds. Its ledger
+  is `var/artifacts/e113r3_failure_reaper_job.json`.
+- `campaign_stats.py` now reports scientific failures explicitly, counts
+  `CONFIGURING`/`COMPLETING` as active, and retires the original E113 row only
+  after exact R3 release. At 17:01 EDT E113-R3 was 0 endpoint-terminal, 7
+  active, 38 pending, 5 failed, with 695/153,600 accepted updates observed.
+  These live counts do not license a DAPO efficacy estimate or a figure point.
+
+## Overnight completion and paper-evidence refresh — 2026-08-20
+
+- E111 closed at 15/15 terminal. Its frozen mechanism audit passes with no
+  violations and without using task endpoints for the gate. The paper now
+  includes a 3x5 v7 mechanism diagnostic: all 15 cells pass implementation
+  invariants and replay actuation, 11 complete the full cell-local
+  discovery-to-pressure chain, and four boundary cells remain explicit.
+- E80-R1 added Qwen2.5-3B Python control seed 73 and replay seed 72. The exact
+  endpoint record is now Dr.GRPO `n=4`, ReplayDr.GRPO `n=3`, paired `n=3` on
+  Python; the 3B core contains 15 paired endpoints in total and all 15 have a
+  positive raw `distinct@8` difference.
+- The direct-comparator matrix is fully registered. At the 11:35 EDT canonical
+  paper snapshot it is: GRPO 55/75 terminal, Dr.GRPO 66/75, UCPO 43/75,
+  sparse RLEP-Dr 32/75, and ReplayDr.GRPO 65/75. The new terminal comparator
+  evidence is the exact Qwen2.5-0.5B Countdown UCPO `n=3` prefix; it receives
+  seed points but no mean or interval.
+- E109 is 9/15 terminal with six pending. E114 is 0/20 terminal with three
+  running; E115 Qwen2.5-0.5B is 3/10 terminal with one running and six pending;
+  the Qwen2.5-3B E115 and both E116 extensions remain nonterminal.
+- E113-R3 remains an immutable but excluded custom-adapter diagnostic. The
+  frozen E113-R4 official-verl DAPO cohort remains held with no job ledger and
+  no outcome.
+
+## E112-R1 private exploratory interim deviation — 2026-08-20
+
+- At explicit author request, the private interim membership was frozen before
+  opening any E112-R1 endpoint file. The immutable selection contains exactly
+  the 14 cells with valid terminal markers at
+  `2026-08-20T14:54:08.318729+00:00`; PointMaze is excluded.
+- The freeze is
+  `var/artifacts/e112r1_private_interim_unblinding_freeze.json` and the protocol
+  deviation is
+  `paper/preregistration/e112r1_user_requested_private_interim_unblinding_20260820.md`.
+  The exact paired-seed plot and JSON live only under
+  `var/artifacts/private_interim/e112r1_subset_endpoint_effects.*`.
+- The plot contains no mean, interval, test, stopping rule, or pooled estimate.
+  It is forbidden from paper efficacy output and from cancellation,
+  prioritization, relaunch, retuning, or any other campaign selection. The
+  eventual E112-R1 record must disclose that continuous confirmatory outcome
+  blindness was interrupted.
+- The later 11:26 EDT operational snapshot was 15 terminal, 12 running, 48
+  pending, zero failed, and 66,480/230,400 optimizer steps. The private plot
+  remains the exact earlier 14-cell freeze and is not silently refreshed.
+
+## E113-R4 official-verl DAPO launch — 2026-08-20
+
+- At author request, all exact E113-R3 jobs 30790925--30790974 were canceled
+  and excluded from named-DAPO efficacy. The immutable retirement record is
+  `var/artifacts/e113r3_retirement_for_official_dapo.json`; R3's one-prompt
+  retry sampler is not the published multi-prompt filter-and-buffer algorithm.
+- E113-R4 pins unmodified upstream `verl-project/verl` commit
+  `4f80e465c2ec79ab9c3c30ec74b9745de61d0490` and the official image
+  `hiyouga/verl:ngc-th2.6.0-cu126-vllm0.8.3-flashinfer0.2.2-cxx11abi0`.
+  The 13,399,597,056-byte SIF SHA-256 is
+  `1e978dd8f5b100d7d0214e56d694de23412f167fa417b503cc2c62d2a968969f`.
+- CPU-only preflights 30800569, 30800578, 30800589, and 30800607 passed
+  upstream imports, both frozen model/tokenizer loads, all ten data splits,
+  all-domain correct/wrong reward separation, and exact Hydra composition.
+  The immutable runtime snapshot is
+  `var/artifacts/source_snapshots/e113r4_official_verl_dapo_6eef4abdfa8a6d88`.
+- The initial 2+50 submission used account `mltheory`, which the site forced
+  into its A5000-only partition and left both A6000 smokes at
+  `BadConstraints`. All 52 jobs were held before allocation or output.
+  Prospective R4-P1 changed placement only to the established `allcs` A6000
+  pool. Original administratively held smokes 30800705--30800706 were
+  canceled without running and replaced by held-audited smokes
+  30800804--30800805.
+- All 50 science jobs retain IDs 30800707--30800760 with four unrelated
+  interleaved IDs. Their dependencies were rewritten and audited against both
+  replacement smokes before atomic release. The authoritative amended ledger
+  is `var/artifacts/e113r4_official_verl_dapo_jobs.json`.
+- Current evidence state: both smokes are schedulable in the A6000 `cs` pool;
+  all 50 science cells are released behind their joint `afterok` gate; zero
+  R4 endpoint is terminal. This is a method-recipe comparative against the
+  exact paired E78/E79 controls, not a component ablation or efficacy result.
+
+## E113-R4 R4-P2 scheduler backfill amendment — 2026-08-20
+
+- At 14:06:40 EDT all 52 authoritative jobs remained pending, every run
+  directory was absent, and no allocation or scientific outcome had been
+  observed. The two smokes were pending for priority and all 50 science jobs
+  remained pending on their joint smoke dependency.
+- R4-P2 returns all 52 jobs from user-requested `Nice=100` to default
+  `Nice=0`. The 50 science jobs retain their seven-day limit; only the two
+  one-step operational smokes change to a one-day limit to improve backfill.
+  No workload, image, source, model, data, seed, dependency, DAPO setting, or
+  scientific parameter changed.
+- A post-amendment audit passed all exact 52 scheduler records. Smokes
+  30800804--30800805 remain schedulable in `cs` pending `Priority`; all 50
+  science jobs remain released and dependency-gated. R4 still has zero
+  terminal scientific endpoints.
+- The earlier original-E113 ledger still had 50 unrun
+  `DependencyNeverSatisfied` placeholders in the queue. All exact registered
+  IDs 30736383--30736432 were canceled after verifying absent run directories;
+  Slurm accounting records 50/50 canceled and the immutable record is
+  `var/artifacts/e113_original_dependency_placeholders_retirement.json`.
+
+## E109 stalled-comparator placement amendment — 2026-08-21
+
+- The six nonterminal E109 Python ReplayDr.GRPO comparators were stalled by
+  placement, not by science. Falcon-1B seeds 55, 56, 58, and 59 (jobs
+  30659546, 30659547, 30659549, 30659550) sat at `Priority=0`,
+  `Reason=JobHeldUser`, `Restarts=0`, `RunTime=00:00:00`, with absent run
+  directories and an unchanged `SubmitTime=2026-08-18T10:19:35`; the launcher
+  had released all fifteen at submission, so the campaign did not apply that
+  hold. Each was pinned to exactly one node, `node205` or `node207`, and every
+  other single-node-pinned Falcon `cs` job was in the same state, while the
+  `node206`-pinned seed-57 cell allocated and completed and the two-node
+  `node[205,207]` E100 replacements stayed eligible. All A6000 nodes restarted
+  `slurmd` between 16:48 and 17:09 EDT on 2026-08-20 and the stalled jobs were
+  last evaluated at 19:50 EDT the same day.
+- Qwen2.5-3B seeds 73 and 74 were eligible but on `lowprio`
+  (`PriorityTier=1`, `PreemptMode=REQUEUE`) and had been requeued 11 and 9
+  times. Seed 73 holds a `step_00192` checkpoint and resumes; seed 74 has
+  never reached its first checkpoint, so all nine of its allocations were
+  discarded.
+- `paper/preregistration/e109_stalled_comparator_placement_amendment_20260821.md`
+  authorizes a scheduler-only change: `cs` to `all` plus the registered A6000
+  pool `node[103-104,205-208,805]` and release for the four Falcon cells, and
+  `lowprio` to `all` for the two Qwen-3B cells. Both moves reuse pools already
+  registered in the E106 amendments. `all` is `PreemptMode=OFF`, which also
+  ends seed 74's requeue loop. Accounts, GPU type, CPU and memory requests,
+  three-day limit, snapshots, seeds, data, objective, and output paths are
+  unchanged; a live probe job confirmed that `scontrol update Partition=all`
+  is honored for a three-day job even though submit-side routing sends one to
+  `cs`.
+- `ops/exp_scaling/apply_e109_stalled_comparator_placement_amendment.py`
+  applied it transactionally after verifying, for all six cells, that the full
+  103/106-key `--export` environment is byte-identical to the frozen E109
+  ledger. Post-amendment all six are `Partition=all`,
+  `ReqNodeList=node[103-104,205-208,805]`, `Reason=None`, with priorities 3610
+  (Falcon) and 7976 (Qwen-3B). No run directory was touched and no E105, E109,
+  E111, or E112-R1 outcome was inspected. Artifact:
+  `var/artifacts/e109_stalled_comparator_placement_amendment.json`.
+- E109 remains 9/15 terminal. The same single-node auto-hold currently parks
+  nine E112-R1 Falcon cells --- including the four Python cells that pair with
+  these very comparators --- and three E100 Falcon Pantry cells; those are not
+  covered by this amendment.
+
+## E115 Qwen-0.5B routed-away cells and E100 PantryPlan widening — 2026-08-21
+
+- E115's four nonterminal Qwen2.5-0.5B UCPO cells --- Countdown and MathIR
+  seeds 46 and 47, jobs 30790285, 30790286, 30790290, 30790291 --- had been
+  `Priority=0`, `Reason=BadConstraints`, `Restarts=0` since
+  `SubmitTime=2026-08-19T15:53:47`. `direct_comparator_completion` clones the
+  paired parent `SubmitLine` verbatim, so they inherited E78's
+  `--partition=all --nodelist=node105 --time=1-12:00:00`; submit-side routing
+  sends anything longer than one hour to `cs`, and `cs` contains only
+  `node[202-207]`, so the required node was not in the job's partition. The
+  same trap is already registered in
+  `e111_scheduler_partition_amendment_20260818.md`, and their own E78 parents
+  hit it: 30263965--30263968 and 30263985--30263988 were also recorded at
+  submission as `Partition=cs` and ultimately ran on `node105` in `mltheory`.
+- `paper/preregistration/e115_qwen05b_badconstraints_partition_repair_20260821.md`
+  authorizes partition `cs` to `mltheory` and account `allcs` to `mltheory`
+  for those four jobs, retaining `node105`, one A5000, 8 CPUs, 64 GiB, the
+  36-hour limit, and the frozen environment. That restores the placement of
+  the paired E78 control for the same domain and seed, so the hardware class
+  still matches cell by cell, and it matches the three completed E115
+  Qwen-0.5B siblings, which ran in `mltheory`.
+  `ops/exp_scaling/apply_e115_qwen05b_badconstraints_partition_repair.py`
+  applied it after verifying all four 97-key `--export` environments against
+  the ledger and that no run directory exists. All four are now `Priority=8426`
+  and schedulable. Artifact:
+  `var/artifacts/e115_qwen05b_badconstraints_partition_repair.json`.
+- E100's five nonterminal cells are all PantryPlan. Science jobs 30572828,
+  30572829, and 30572831 were caught by the same single-node auto-hold as
+  E109, with requeue counters 2, 6, and 2 and no checkpoint in any run
+  directory, so each of those allocations was discarded. Seed 55's replacement
+  30790683 and seed 58's replacement pool collection 30790680 were eligible but
+  restricted to `node[205,207]`, and one two-node pool job gated two of the
+  five cells through audit 30790681 and science 30790684.
+- `paper/preregistration/e100_pantry_pool_widening_amendment_20260821.md`
+  authorizes `cs` to `all` plus the registered A6000 pool
+  `node[103-104,205-208,805]` for all six of those jobs and release of the
+  three held ones.
+  `ops/exp_scaling/apply_e100_pantry_pool_widening_amendment.py` applied it
+  transactionally after verifying every `--export` environment against the
+  primary and recovery ledgers. All six are now `Partition=all` on the full
+  pool with `Priority=3710`; 30790684 keeps its `afterok:30790681`
+  dependency and the CPU-only audit was not modified. Artifact:
+  `var/artifacts/e100_pantry_pool_widening_amendment.json`.
+- No run directory was touched and no E100, E109, or E115 outcome endpoint was
+  inspected in either amendment. E100 stays 17/22 terminal and E115
+  Qwen-0.5B stays 6/10 terminal until the cells produce their own receipts.
+
+## Paper terminal-result refresh — 2026-08-21 16:55 EDT
+
+- The regenerated canonical paper matrix is 453/750 terminal with 560/750
+  registered cells. Plain GRPO advances from 55/75 to 59/75 and UCPO from
+  43/75 to 46/75; all other canonical-method denominators are unchanged.
+- E114 contributes Qwen2.5-3B Graph GRPO seeds 71--74 (jobs
+  30790253--30790256), which join seed 70 to form a balanced terminal n=5
+  block. Against matched Dr.GRPO, its mean pass@8 effect is +0.022656
+  (paired 95% Student-t interval [-0.002347, +0.047660]) and its
+  correctness-adjusted breadth effect is -0.015234
+  ([-0.083772, +0.053303]). No domain pooling or scale trend is licensed.
+- E115 contributes Qwen2.5-0.5B UCPO seeds 43--45 on Countdown (jobs
+  30790282--30790284) and MathIR (30790287--30790289). Both are exact terminal
+  n=3 prefixes: the endpoint forest shows their raw paired seed effects but
+  no mean or interval. Countdown adjusted-breadth effects are
+  (+0.050781, +0.042969, +0.074219); MathIR's are all exactly zero.
+- paper/results/paper_program_status.json,
+  paper/figures/direct_comparator_endpoint_effects.{json,pdf,png}, and
+  paper/figures/direct_baseline_learning_curves_static_strip.{json,pdf,png}
+  were regenerated from the ledgers and source logs after freezing this
+  cutoff. The manuscript, README, readiness audit, figure manifest, and figure
+  data audit use the same exact evidence classes and denominators.
+- E112-R1 is operationally 28/75 terminal, zero running, 47 pending, and zero
+  failed at this cutoff. Its frozen private interim values remain excluded;
+  this refresh uses no E112 efficacy endpoint.
+- Official E113-R4 remains operational-only. Replacement smokes 30800804 and
+  30800805 are both PENDING (JobHeldUser) and 0/2 terminal; all 50 science
+  jobs are dependency-pending with zero terminal endpoints. Earlier log
+  entries describe their state when released; the paper now reports the live
+  hold explicitly and includes no DAPO efficacy marker.
+
+## E113-R4 author-approved smoke release — 2026-08-21 17:26 EDT
+
+- The author explicitly approved release of official-R4 smoke jobs 30800804
+  and 30800805. Immediately before release, both exact jobs were
+  PENDING (JobHeldUser), dependency-free, at zero runtime and zero restarts;
+  their names, models, seeds, official-verl snapshot, image, data hashes, and
+  one-step smoke budgets matched the frozen R4 ledger.
+- scontrol release was applied only to those two IDs. Both acquired
+  EligibleTime 2026-08-21T17:26:39, Priority 4160, Nice 0, and Reason=None.
+  Neither had allocated at the post-release audit.
+- The first and last science jobs, 30800707 and 30800760, remained PENDING
+  (Dependency) on afterok:30800804 and afterok:30800805. The live monitor
+  reported the R4 gate as 0/2 terminal, 0 running, 2 pending, 0 failed and the
+  50-cell science cohort as 0 terminal, 0 running, 50 pending, 0 failed.
+- This release is operational progress only. Science remains blocked until
+  both smokes succeed, and no DAPO efficacy result or paper endpoint exists.
+
+## Paper terminal-result refresh and queue audit — 2026-08-21 20:30 EDT
+
+- The fixed paper cutoff advances the regenerated canonical matrix to 457/750
+  terminal with 560/750 registered cells: plain GRPO is 60/75, UCPO is 48/75,
+  and sparse RLEP-Dr is 33/75. The refreshed endpoint forest and trajectory
+  grid were rebuilt from the source ledgers and logs.
+- E114 job 30790257 completes Qwen2.5-3B Countdown GRPO seed 71. Together with
+  seed 70 this is an exact n=2 prefix; seeds 72--74 remained running at the
+  cutoff and receive no summary interval.
+- E115 jobs 30790285 and 30790286 complete Qwen2.5-0.5B Countdown UCPO seeds
+  46 and 47, balancing the block at n=5. Against matched Dr.GRPO, the mean
+  pass@8 effect is +0.133203 (paired 95% Student-t interval
+  [+0.004736,+0.261671]); the correctness-adjusted breadth effect is +0.051172
+  ([+0.031292,+0.071052]). This is the first complete direct UCPO or RLEP-Dr
+  block whose adjusted-breadth interval is strictly positive. The two MathIR
+  UCPO jobs remained running, leaving that block at the frozen n=3 prefix.
+- E116 job 30790405 completes Qwen2.5-0.5B Countdown sparse RLEP-Dr seed 43.
+  Its exact n=1 pass@8 effect is -0.027344 and adjusted-breadth effect is zero;
+  it receives no interval. Seed 44 remained running at the cutoff.
+- Official E113-R4 smokes 30800804 and 30800805 were released but remained
+  PENDING (Priority), at zero runtime with no logs or allocation. The scheduler
+  estimated starts on August 23 near 00:00 and 00:40 EDT. All 50 science jobs
+  remain dependency-pending on both smokes, so there is still no DAPO endpoint.
+- The live scientific queue was 648 terminal, eight running, 195 pending, and
+  zero failed across 851 active cells (1,889,895/2,338,672 recorded steps).
+  Adding a new method family would increase backlog rather than unlock the
+  current evidence plan. Three outcome-blind scheduler repairs are actionable
+  but were not applied: widen the two R4 smokes from `cs` to `all` over the
+  registered A6000 pool `node[103-104,205-208]`; reroute four E116 node105 pool
+  jobs 30790388, 30790390, 30790399, and 30790401 from `cs/allcs` to
+  `mltheory`; and widen/release nine zero-runtime E112-R1 Falcon jobs
+  30791519--30791520, 30791522--30791523, and 30791529--30791533. Each requires
+  an explicit scheduler-only amendment and author authorization before action.
+
+## E113-R4 / E116 / E112-R1 scheduler acceleration — 2026-08-21 21:06 EDT
+
+- The author explicitly approved the scheduler-only acceleration package for
+  all three diagnosed groups. The prospective boundary is frozen in
+  `paper/preregistration/e113r4_e116_e112r1_scheduler_acceleration_package_20260821.md`.
+  The application script verified all 15 live `--export` environments against
+  their frozen launch records, exact zero-runtime pending states, resource
+  requests, and replacement partition inventory before mutation.
+- Official DAPO smoke jobs 30800804 and 30800805 changed from partition `cs`
+  with no node requirement to partition `all` on the live A6000 pool
+  `node[103-104,205-208]`. Their authoritative R4-P2 one-day limit, `Nice=0`,
+  account `allcs`, one-A6000 request, and one-step official-verl workloads were
+  retained. Both remain released and eligible with nonzero priority; neither
+  has allocated yet. All 50 science jobs retain their exact two-smoke `afterok`
+  dependency and remain non-scientific until that gate passes.
+  Immediately after the amendment, `squeue --start` estimated August 26 13:00
+  EDT for 30800804 and August 28 15:40 EDT for 30800805. These forecasts are
+  advisory; the wider pool clears placement but partition `all` has a lower
+  priority factor than `cs`, so fair-share/priority is now the limiting state.
+  No additional priority, QoS, or recipe change is authorized by this package.
+- E116 pool jobs 30790388, 30790390, 30790399, and 30790401 changed from the
+  impossible `cs/allcs` plus `node105` placement to `mltheory/mltheory`, retaining
+  node105, one A5000, every collection input and seed, and all downstream audit
+  dependencies. `BadConstraints` cleared: one is waiting on resources and three
+  on ordinary node availability.
+- E112-R1 Falcon Python jobs 30791519, 30791520, 30791522, and 30791523 and
+  Pantry jobs 30791529--30791533 changed from their single-node `cs` pins to
+  partition `all` on `node[103-104,205-208]` and were released. All nine moved
+  from `JobHeldUser`/priority zero to eligible, nonzero-priority pending state.
+- Durable before/after evidence is
+  `var/artifacts/scheduler_acceleration_package_20260821.json`. It records 15
+  jobs, no scientific-environment, GPU-type, stopping-rule, or dependency
+  change, no target-outcome inspection, and no run-directory mutation. The
+  default campaign monitor continues to omit historical gates and retired
+  cohorts unless `--include-history` is requested.
+
+## E80-R1 completion scheduler repair — 2026-08-21 21:38 EDT
+
+- E80-R1 was 31/50 terminal with 19 pending jobs and 99,694/153,600 recorded
+  updates. The three unfinished Python jobs had never started on their
+  registered node302 A100 placement. The 16 matched MathIR/Pantry jobs were in
+  preemptible `lowprio` on `node[103-104,205-208,805]`; 15 reported the down
+  node805 as unavailable and all had one or two requeues. Seven retain durable
+  step-384 or step-768 checkpoints, and all retain their frozen auto-resume
+  policy.
+- All 19 still carried `Nice=500`, the temporary 2026-08-09 demotion used to
+  run E87 first. The authoritative monitor now shows E87 5/5 terminal, so the
+  application restored E80-R1's registered `Nice=100` setting on every
+  unfinished cell.
+- Both arms of each unfinished MathIR/Pantry seed changed together from
+  `lowprio` to non-preempting `all` and from the seven-node A6000 list to the
+  six live nodes `node[103-104,205-208]`. The three Python jobs stayed on
+  `mltheory`/node302/A100, preserving the hardware class of the already
+  terminal Python seed-73 control and both seed-74 arms.
+- Immediate postflight state is 19 pending and zero failed. All 16 A6000 jobs
+  now report ordinary `Priority`, never node805, at priority 7976. Their age
+  component reset when the partition changed, so no start estimate is yet
+  available; they remain above most of the current A6000 queue but behind one
+  two-GPU job from the same account. The Python jobs are priority 8926; the
+  scheduler estimated 2026-08-24 17:40 EDT for replay seed 73,
+  2026-08-27 18:00 for control seed 74, and no estimate yet for replay seed 74.
+  These forecasts are advisory and can change with backfill.
+- The frozen boundary is
+  `paper/preregistration/e80r1_completion_scheduler_repair_20260821.md`; the
+  transactional application and full before/after record are
+  `ops/exp_scaling/apply_e80r1_completion_scheduler_repair_20260821.py` and
+  `var/artifacts/e80r1_completion_scheduler_repair_20260821.json`. No
+  scientific environment, GPU type within a cell, stopping rule, dependency,
+  run directory, or evaluation outcome changed or was inspected.
+## E113-R4-R1 Ray socket-path recovery and relaunch — 2026-08-23 20:18 EDT
+
+- Replacement smokes 30800804 and 30800805 allocated on node208 and failed
+  before training with the identical Ray exception
+  `AF_UNIX path length cannot exceed 107 bytes`. The runner had placed
+  `RAY_TMPDIR` under the long scientific output directory. Neither smoke wrote
+  a completion receipt or checkpoint. Slurm consequently canceled all exact 50
+  dependency-gated science jobs 30800707--30800760 (excluding the four
+  unrelated interleaved IDs) at zero runtime; no science output directory
+  exists.
+- The prospective infrastructure-only repair is frozen in
+  `paper/preregistration/e113r4r1_ray_socket_recovery_20260823.md`. The runner
+  now uses a unique short node-local `/tmp/e113r4-...` directory for
+  `TMPDIR` and `RAY_TMPDIR`, binds it into the pinned image, and cleans it on
+  exit. The recovery snapshot
+  `var/artifacts/source_snapshots/e113r4_official_verl_dapo_raytmp_9419ba707c93b23d`
+  differs from the original snapshot only in the runner and snapshot identity
+  metadata. Upstream verl, image, verifier, models, data, reward adapter,
+  prompts, seeds, DAPO settings, 24-step stopping rule, and paired controls are
+  unchanged.
+- Held-state audits rejected and canceled jobs 30855187 and 30855219 at zero
+  runtime while normalizing the fresh one-node pool request and Slurm's
+  equivalent `NumNodes=1-1` representation. No rejected job was released or
+  allocated. The final command explicitly requests one node, 16 CPUs, 128 GiB,
+  and one A6000.
+- Repaired one-step smokes 30855240 (Qwen-0.5B) and 30855241 (Falcon-1B) and
+  replacement science jobs 30855242--30855291 were held-audited and released.
+  Both smokes are currently `PENDING (Priority)` in partition `all`, account
+  `allcs`, on the approved A6000 pool with a one-day limit and no scheduler
+  start estimate. All 50 science jobs are `PENDING (Dependency)` at zero
+  runtime on the exact joint `afterok` gate, with their original seven-day
+  limits. The live monitor now reports 0 terminal, 0 running, 50 pending,
+  0 failed, and 0/1,200 steps.
+- The authoritative ledger
+  `var/artifacts/e113r4_official_verl_dapo_jobs.json` preserves the two failed
+  smokes, all 50 canceled science records, both held-audit rejections, and the
+  full active replacement graph. All seven focused tests pass inside the exact
+  pinned verl container. This licenses real execution only; no R4 efficacy
+  endpoint exists until replacement science cells terminate.
+
+## August 23 paper evidence refresh and second private E112-R1 look — 2026-08-23 21:33 EDT
+
+- The manuscript evidence set is frozen at 2026-08-23 20:30 EDT. The canonical
+  ten-method matrix contains 560 registered and 487 terminal cells of the
+  750-cell organizing target, 30 more terminal cells than the prior paper
+  cutoff: 19 core E80-R1 cells, four plain-GRPO cells, two UCPO cells, and five
+  sparse RLEP-Dr cells. All terminal paper artifacts were regenerated from the
+  immutable ledgers; no missing endpoint was imputed.
+- E80-R1 is complete at 50/50 cells and 153,600/153,600 updates. Together with
+  E78 and E79, Dr.GRPO and ReplayDr.GRPO are now 75/75 terminal each, giving
+  five paired seeds in all 15 model--domain blocks. On Qwen2.5-3B,
+  ReplayDr.GRPO minus Dr.GRPO mean pass@8 effects are +.154, +.137, +.590,
+  +.409, and +.106 on Graph, Countdown, Python, MathIR, and Pantry; every
+  paired 95% Student-t interval excludes zero. Correctness-adjusted breadth is
+  +.423 [.331, .515], +.197 [.150, .244], +.194 [-.106, .494], +.019
+  [-.002, .041], and +.567 [.366, .768]. Thus Graph, Countdown, and Pantry
+  show breadth beyond accuracy at 3B; Python and MathIR are chiefly accuracy
+  rescues. Raw distinct@8 is higher in all 25 Qwen2.5-3B pairs. No domain or
+  model is pooled and no model-size trend is claimed.
+- Plain GRPO is 64/75 terminal: Qwen2.5-3B Graph and Countdown are complete at
+  n=5, Python is n=2, and MathIR/Pantry are n=1. The new complete Qwen3B
+  Countdown block is neutral relative to matched Dr.GRPO. UCPO is 50/75 with
+  all ten smaller-model blocks complete; the newly completed Qwen-0.5B MathIR
+  block is neutral (+.031 [-.071, .133] pass@8 and -.002 [-.006, .003]
+  adjusted breadth). Sparse RLEP-Dr is 38/75: six blocks are complete, Falcon
+  Python is n=2, and Qwen Countdown/MathIR are n=3 prefixes. Exact prefixes
+  receive no interval or completed-block claim.
+- Before reading newly available E112-R1 endpoint files, the author-requested
+  second private exploratory subset was frozen at exactly 33 terminal cells in
+  `var/artifacts/e112r1_private_interim_unblinding_freeze_20260823.json`, bound
+  to
+  `paper/preregistration/e112r1_user_requested_private_interim_unblinding_20260823.md`.
+  Qwen-0.5B Countdown is the strongest coherent early pattern: adjusted
+  breadth is positive in all five frozen seeds while pass@8 is near-zero and
+  mixed. Qwen Pantry is positive on both metrics in its two available seeds;
+  Falcon MathIR has four positive and one zero adjusted-breadth effects but
+  mixed pass@8. Graph and Falcon Countdown are mixed; Qwen Python's two seeds
+  sharply disagree; Falcon Python has one seed; Falcon Pantry and every
+  Qwen2.5-3B domain have no frozen terminal cell. This heterogeneity is not a
+  reportable efficacy result. The official analysis still requires all 75
+  treatment cells and matched controls, and neither the paper nor campaign
+  selection uses either private look.
+- The post-cutoff live monitor at 21:32:55 EDT reports 686 terminal, 14
+  running, 149 pending, and zero failed across 851 active scientific cells.
+  E112-R1 remains 33/75 terminal with ten running and 32 pending. E109 advanced
+  after the paper cutoff to 12/15 terminal with one running. The R4-R1 DAPO
+  smokes remain priority-pending; current advisory starts are August 25 14:20
+  EDT for Qwen and August 26 00:40 EDT for Falcon. All 50 DAPO science cells
+  remain at zero updates behind the joint gate, so there is still no DAPO
+  efficacy evidence.
+- The default monitor was corrected after this audit so an active scientific
+  row always prints its launch-smoke summary. At 21:57 EDT it reports the
+  E113-R4/R4-R1 gate as 0/2 terminal, zero running, two pending, and zero
+  failed, directly below the 0/50 science row. Retired and zero-science-only
+  historical rows remain absent from the default view and are available only
+  through `campaign_stats.py --include-history`.
+
+## August 24 overnight evidence refresh and DAPO R4-R1 diagnosis — 2026-08-24 08:48 EDT
+
+- The new paper evidence cutoff is 2026-08-24 08:24 EDT. The canonical
+  ten-method matrix is 488/750 terminal with 560/750 registered, one terminal
+  cell above the August 23 cutoff. Plain GRPO is now 65/75 terminal. The new
+  reportable cell is Qwen2.5-3B Python seed 72, which moves that domain from an
+  exact `n=2` to exact `n=3` prefix. Its matched effects are exactly 0 on both
+  pass@8 and correctness-adjusted breadth. Across seeds 70--72, pass@8 effects
+  are (0, +0.171875, 0) and adjusted-breadth effects are (0, 0, 0). Because
+  the block remains incomplete, the endpoint forest shows paired seed points
+  only and reports no mean or interval.
+- `paper/results/paper_program_status.{json,tex}` and the Qwen-3B progress,
+  direct-comparator endpoint, and aligned direct-baseline assets were
+  regenerated from the exact ledgers and source logs. The manuscript, README,
+  readiness audit, figure data audit, manifest, and contracts now use the same
+  65/75 GRPO denominator and Qwen-3B Python `n=3` evidence class.
+- E109 advanced to 13/15 terminal by the cutoff. The newly terminal repaired
+  Falcon Python cells after the prior paper freeze are seeds 55, 58, and 59;
+  the last completed at 23:20 EDT. These are comparator-coverage progress, not
+  a separately selected efficacy result, and the two remaining E109 cells are
+  still incomplete.
+- E112-R1 advanced from the frozen 33-cell private look to 38/75 terminal by
+  the paper cutoff: Qwen-0.5B MathIR seeds 44--45 and Falcon Python seeds 55,
+  56, and 58 completed. Their endpoint values were not read. Falcon Python
+  seed 59 completed at 08:29 EDT after the cutoff, moving the live cohort to
+  39/75; its value is likewise unread. The only private efficacy looks remain
+  the prospectively frozen 14- and 33-cell subsets, and neither later endpoint
+  set enters the manuscript or campaign selection.
+- DAPO R4-R1 smokes 30855240 and 30855241 allocated on node208 at 23:24 and
+  23:29 EDT and failed 1:0 after 4:21 and 3:57. The short Ray path succeeded:
+  both started Ray, passed Hydra validation, loaded their models under FSDP,
+  and reached vLLM rollout construction. Both then failed before rollout or
+  training because `max_num_batched_tokens=448` was below the pinned
+  `max_num_seqs=1024`. Neither wrote a checkpoint, completion receipt, sampled
+  response, or accepted update. All 50 joint-dependency science jobs were
+  canceled at zero runtime; the monitor's 50 failures are therefore
+  dependency-never-satisfied placeholders, not scientific endpoints.
+- R4-R2 is prospectively frozen in
+  `paper/preregistration/e113r4r2_vllm_scheduler_recovery_20260824.md`. It
+  preserves `max_num_seqs=1024`, raises only the aggregate scheduler-token cap
+  to `max(context_tokens, 1024)`, validates the invariant inside the pinned
+  container, and uses a two-stage gate: submit only two one-step smokes first,
+  then create the 50 science jobs only after both pass. At 08:40:31 EDT, only
+  the two R4-R2 smokes, 30865563--30865564, were released. At 08:50 EDT both
+  were pending for priority, no R4-R2 science jobs had been submitted, and
+  there remained no named-DAPO efficacy evidence.
+- At 08:50:46 EDT the live 851-cell operational monitor reported 694 terminal,
+  12 running, 143 pending, and zero failed, with 2,041,231/2,338,672 recorded
+  steps. The 50 planned DAPO science cells are virtual gated-pending rows, not
+  submitted jobs; the smoke gate is 0/2 terminal, zero running, two pending,
+  and zero failed. E114 was 10/20 terminal with three running; E100 was 17/22
+  terminal with three running and two pending. These live prefixes remain
+  separate from the frozen paper cutoff.
+
+## E113-R4-R2 DAPO smoke pass and science release — 2026-08-24 15:32 EDT
+
+- R4-R2 smoke 30865563 (Qwen-0.5B Graph seed 43) completed on node208 with
+  exit 0:0 after 12:53; smoke 30865564 (Falcon-1B Graph seed 55) completed on
+  node208 with exit 0:0 after 9:18. Each wrote its exact one-step completion
+  receipt, global-step-1 actor checkpoint, latest-checkpoint pointer, and the
+  required upstream trainer markers. The outcome-blind release audit passed
+  both smokes without violations.
+- The first authorized science-release attempt assigned no job ID because the
+  cluster's 300-second `MinJobAge` had expired both completed smoke records
+  from the active controller, so Slurm rejected their now-unresolvable
+  `afterok` expression. Accounting and immutable smoke outputs remained valid.
+- Before any science job existed, the scheduler-only correction was frozen in
+  `paper/preregistration/e113r4r2s1_completed_smoke_dependency_expiry_20260824.md`.
+  It retains the full pre-submission smoke audit, held audit of every science
+  job, smoke IDs as ledger provenance, and the exact 50-cell scientific
+  matrix, but omits the redundant expired Slurm dependency. No scientific
+  parameter or endpoint was changed or inspected.
+- The corrected transaction submitted all 50 science jobs held, audited their
+  resources, environment, runtime snapshot, and unique cell identities,
+  atomically recorded jobs 30869111--30869160, and released them together at
+  15:31 EDT. At 15:32 EDT the cohort was 0/50 terminal, zero running, 50
+  pending, zero failed, and 0/1,200 accepted updates; both smokes remained 2/2
+  terminal and excluded from scientific totals.
+
+## 2026-09-03 16:07 EDT — E121 fixed-bank survival telemetry registered and dependency-released
+
+- Registered the prospective five-seed Qwen2.5-0.5B Graph cohort in
+  `paper/preregistration/e121_fixed_bank_survival_telemetry_20260903.md` before
+  any E121 science outcome existed. Bank membership and fresh counts freeze at
+  learner step 384; per-prompt/per-key mean and sequence log probabilities are
+  retained on every subsequent replay visit.
+- Added E121 to the single cohort registry and created
+  `var/artifacts/e121_fixed_bank_survival_telemetry_jobs.json`, so
+  `campaign_stats.py` reports the five scientific cells while excluding the
+  operational barriers from the scientific denominator.
+- Source compilation, shell syntax, and the focused 201-test gate passed. The
+  immutable runtime snapshot is
+  `var/artifacts/source_snapshots/e76_tuned_scale_970e16dc21f47834`.
+- A direct 45-ID Slurm dependency was rejected before creating a job. A first
+  held CPU barrier (`31040752`) was immediately canceled when the scheduler
+  normalized requested partition `cs` to effective `all`; it allocated no
+  resources. The final audit accepts this label rewrite only with account
+  `allcs`, explicit `node202`, and no `pvl` substring.
+- Four E120-R1 IDs were already verified `COMPLETED`; the remaining 41 were
+  split across five non-GPU `afterok` barriers (`31040757`--`31040761`), each
+  with at most ten inputs. E121 science jobs `31040762`--`31040766` depend on
+  all five barriers and are pinned to `node202`/`node203`/`node204`.
+- Final campaign state: E120-R1 `6 terminal / 13 running / 26 pending / 0
+  failed`; E121 `0 terminal / 0 running / 5 pending / 0 failed`. Every E121
+  scheduler record passed the case-insensitive PVL audit.
+
+
+## 2026-09-08 — E121 scheduling dependencies removed at user request
+
+- The user explicitly requested taking the five E121 Graph survival-telemetry runs off hold and getting them running.
+- Science jobs `31040762`–`31040766` were pending behind barriers `31040759`–`31040761`; two barriers had `DependencyNeverSatisfied` after original E120 jobs failed. E121 consumes no E120 outputs, so these dependencies enforce scheduling order only.
+- Cleared the five science jobs' dependencies in place. This amends the original all-E120-success scheduling prerequisite; it does not assert E120 is complete. The frozen E121 source, base model, datasets, seeds 43–47, bank freeze at step 384, 3,072-step horizon, and non-PVL resource placements remain as submitted.
+- Verified all five have `Dependency=(null)` and are eligible in the normal priority queue. Starting remains subject to scheduler resource availability.
+- Full before/after scheduler records and authorization: `var/artifacts/e121_dependency_release_20260908T180159.json`. The original launch ledger and preregistration are preserved.
+
+- Follow-up placement adjustment: all five E121 cells now request approved `node204`. This node freed enough capacity for all five; four pending cells were moved from node202/node203. Each retains 1 A5000, 8 CPUs, 64 GiB, 36 hours, account allcs, and the frozen runtime fence. Details: `var/artifacts/e121_placement_update_20260908T180828.json`.
+
+- Startup verified: all five E121 jobs are `RUNNING` on node204, with no dependencies. Startup logs passed the PVL/error check; seeds43/44/46/47 had already begun learner updates, and seed45 had reached DeepSpeed initialization at18:15:27UTC. Verification artifact: `var/artifacts/e121_startup_verified_20260908T181711.json`.
+
+
+## 2026-09-08 15:09 EDT — E118 Qwen-3B Countdown MaxRL seed 73 timeout recovery
+
+- At the user's request, repaired the one unrecovered E118 failure: job `31048123`, Qwen2.5-3B Countdown MaxRL seed 73, ended `TIMEOUT` at its 12-hour limit on node205. The last learner metric was step 1927; the latest structurally valid model/optimizer checkpoint is step 1920. No terminal completion receipt exists.
+- Submitted replacement `31146150` held, audited it, promoted the same source and aggregate cell under the ledger lock, then released it. It resumes the existing run directory automatically on node205/A6000 with 16 CPUs, 128 GiB and a 72-hour allocation (`allcs/lowprio`, requeue enabled). Frozen launcher, source, seed, all scientific/runtime exports, and the 3072-step target are unchanged.
+- Independent verification found exactly one changed row per ledger, preserved predecessor history, and 150 unique aggregate cells. At 19:09 UTC the replacement was `PENDING (Priority)`; checkpoint restoration and fresh optimizer updates cannot yet be verified. E118 status was 124 terminal / 11 running / 15 pending / 0 failed, 405070/460800 recorded steps.
+- Amendment: `paper/preregistration/e118_countdown_s73_timeout_recovery_20260908.md`. Transaction, before/after ledger images and post-release verification: `var/artifacts/e118_countdown_s73_timeout_20260908/`.
+
+
+## 2026-09-08 evening — E118/E119/E120 recovery and completion acceleration
+
+- User requested requeuing failures and accelerating completion. Recovered E11831048124→31151244 (step1728) and E11931048160→31151272 (step2496), with72-hour new allocations.
+- Three E119 Countdown jobs31048154/61/57 were memory-throttled at96GiB; checkpoint-requeued to128GiB under the same IDs and original36-hour limits. Pending Pantry31048191 increased64→96GiB. No training settings changed.
+- Removed15 resource-only afterany gates; expanded21 compatible node pools. Six lowprio jobs replaced oncs with exact recipes and validated histories:31151400/404/409/411/412/416. All six predecessor holds were retired after ledger promotion.
+- Site job_submit.lua prohibits post-submission account,partition,andwalltime changes. Queue amendments use permitted fields; priority changes use audited new submissions. CPU-only job31151368 provides bounded48-hour timeout recovery for four existing Pantry jobs.
+- All three cohorts show zero failed cells after recovery. Startup evaluation is still in progress; fresh optimizer verification is recorded separately. Complete audit and live counts: `var/artifacts/campaign_completion_push_20260908/report.md`.
+- Durable CPU startup-audit job31151461 checks all four recovered E119 allocations through22:50EDT, requiring fresh steps and memory health; its reports are linked from the completion-push audit. Timeout guard31151368 independently monitors four Pantry allocations for48hours.
+- Startup confirmation:31151272 reached fresh step2498 from2496 at2026-09-09T02:36:41.510917+00:00 with zero memory.high/OOM events; checkpoint recovery is operationally verified.
+
+
+## 2026-09-10 evening — E122 expansion and E118–E120 completion queues
+
+- E122 increased from one to three RUNNING allocations on node208: new MaxRL 31158680 and ReplayMaxRL 31158681; ReplayDr.GRPO 31158679 also gained node208 eligibility. Original four-slot controller and frozen scientific plan remain unchanged.
+- E119 nine pending Pantry routes gained node208 through CPU guard handoff 31170078 → 31194078, preserving all ten monitored cells and the original deadline. All nine were released after the two E122 starts; fresh guard heartbeat verified.
+- E118 Pantry ReplayMaxRL seed 73 job 31124284 was qualified and resized pending-only to 116 GiB to fit the next node302 slot. MathIR ReplayMaxRL seed 72 continuation 31158504 → 31193187 uses protected mltheory/node105 after paired running job 31158503; checkpoint 2304 and exact scientific lineage preserved.
+- E120 Graph seed 74 job 31158507 moved to node105-only eligibility and resumed fresh updates beyond checkpoint 960. All four remaining E120 cells are RUNNING.
+- Counts: E118 137/150 complete, E119 86/100 complete, E120-R1 41/45 complete, E122 3 running. Completion still needs further allocation waves. Consolidated action and verification evidence: `var/artifacts/factorial_push_20260910_evening/README.md`.
+
+
+## 2026-09-10 22:37 EDT — E122 additional Graph pair released; storage restoration verified
+
+- At the user's request for another couple of E122 jobs, released the existing Graph seed 43 Dr.GRPO **31158698** and ReplayDr.GRPO **31158699** at 22:00 EDT. Both remain **PENDING (Priority)** at final readback. E122 has **3 running, 3 released pending and 94 held**; the extra pair has not started training.
+- Qualified both jobs for 40 GiB using the completed E119 Qwen-0.5B Graph runtime, and expanded eligibility to node105/202/203/204/205/206/207/208/302. Preserved 8 CPUs, one GPU, 36 hours, original IDs, scientific inputs and the 3,072-step target. Running Countdown allocations retain 128 GiB. The original controller counts all six release journals without issues and keeps its persistent cap of four.
+- Full shared checkpoint admission required temporarily holding six already pending E118 continuations and pausing the E124 CPU launcher. Observer 31220594 has restored 31151400; five E118 IDs remain under automatic storage-gated restoration: 31124282, 31124283, 31124285, 31193187 and 31048143. E124 CPU 31164037 is restored last after the E118 holds and an additional 220 GiB allowance. Preserved all checkpoints, dependencies and the original seven-day restoration deadline.
+- Repaired a proven observer stall caused by unbounded ZIP footer reads while another job's optimizer checkpoint grew. Archived the original operational source/plan, installed process-local bounded metadata reads and increased only the same CPU observer to 8 GiB. Two healthy passes at 22:34 and 22:36 EDT verified recovery; process RSS was about 30 MiB with zero memory-pressure/OOM events. No running GPU allocation was interrupted by the handoff or repair.
+- Node203 later had enough raw capacity for both jobs, but Slurm priority still blocked allocation. Test-only partition and shorter backfill-window comparisons found no immediate start; no account/partition migration or training resubmission was performed.
+- Latest counts: E118 137/150 complete, 7 running; E119 86/100 complete, 5 running; E120-R1 43/45 complete, both remaining running; E122 3 running. All four cohorts have zero failed cells. Release-helper tests, storage-handoff checks, bounded-reader regressions and independent runtime checks passed. Final audit: `var/artifacts/e122_two_cell_push_20260910/README.md`; final readback: `var/artifacts/e122_two_cell_push_20260910/handoff_verification.json`.
+
+
+## 2026-09-12 — Completed paper census, neutral Python CLI repair, and finite E122 expansion
+
+- Both papers now contain the completed GPT/Grok discovery analysis and E118 150/150, E119 100/100, E120-R1 45/45 endpoints. The original frozen E120 primary estimate and Falcon Countdown exclusion are retained. All five Level-2 factorials and the full 135-contrast concentration report are included. Both PDF builds and the workshop source bundle pass their publication checks; Table 1 icons were visually verified.
+- Neutral Python V5 remains admitted at pass@1 22.34% / pass@8 70.51%, with 4,096 exact external regrades. Four first-release jobs exposed a separate missing CLI registration before any training output. They were held; all 22 Python jobs were replaced with CLI-tested immutable successors. Only native argument admission changed. Current E122 IDs: 31259067–31259086; E124 IDs: 31259087–31259088, still blocked by its prior systems qualification. The first four E122 treatments are running with zero restarts and verified initial evaluations.
+- The earlier finite expansions admitted nine additional E122 cells; a fresh post-repair capacity census admitted seven more non-Python cells, 31158704–31158710. All seven obtained RUNNING allocations. At 17:06 UTC the merged campaign has 18 running, 11 completed endpoints, 71 held, and no issues. All inference tasks, including the new two-task array31258973, retain their storage reservations; the final seven-job plan had over3TiB remaining margin.
+- CPU controller31259141 restores the migrated queue continuation at the original persistent cap4; finite expansions do not replenish automatically. Node302 is in use; node105 remains DOWN after an unexpected reboot; draining node206 contributes no new capacity.
+- User-authorized home cleanup removed only a VS Code download cache and an explicitly obsolete, unused extension. This restored about500MiB quota headroom and approval-session access. Scientific files, active editor installations and Codex sessions were preserved.
+- Consolidated evidence: `paper/audits/paper_refresh_20260912/README.md`; migration: `var/artifacts/python_level3_cli_recovery_20260912/committed.json`; final finite expansion: `var/artifacts/e122_after_cli_capacity_20260912/plan.json`.
+
+- End-to-end Python repair verified at 2026-09-12T17:11:15.214677+00:00: drgrpo 32, replay_drgrpo 28, maxrl 11, replay_maxrl 32. All four have finite policy loss/gradient metrics and zero restarts. Immutable metric prefixes and scheduler readbacks are retained in `var/artifacts/python_level3_cli_recovery_20260912/FINAL_STATUS.json`.
+
+
+## 2026-09-12 — E122 false-failure correction and three more starts
+
+- The 20 reported failures were cancelled Python predecessors. Updated campaign_stats.py to follow both committed migrations to current jobs31259067–31259086, preserving the original 100 cells and job history. Current Python seed43 treatments have optimizer progress and zero restarts.
+- Released existing Graph seed46 jobs31158711–31158713 after a fresh capacity and aggregate storage census. All three are running: one on node207 and two on node302. Finite active bound21; persistent cap4 unchanged. Both inference31259131 task reservations are retained; storage margin2910GiB.
+- Final readback: 11 complete,21 running,68 held,0 failed. Tracker58 and capacity6 targeted tests passed, and the actual campaign_stats.py CLI was verified. Evidence: var/artifacts/e122_failure_review_20260912/README.md and final_verification.json; release receipts: var/artifacts/e122_more_capacity_20260912/.
+
+
+## 2026-09-13 — All 68 remaining E122 cells released
+
+- At the user's explicit request, released all 68 remaining held jobs through the migrated E122 release journal, with an aggregate 68-writer reservation. The prior CPU controller 31259141 had failed on shared admission-lock contention; finite expansions left no working replenishment.
+- Final verified census at 2026-09-13T15:10:30.879853+00:00: 32 complete, 6 running, 62 released pending, zero held, zero reconciliation issues. Initial jobs 31158689–31158694 obtained allocations on node208/node302; startup readback has zero restarts and no fatal log errors.
+- Added already-qualified node208 eligibility after held-job audits. All 68 submitted commands, scientific parameters, and resource requests remain unchanged. Peak/terminal/headroom reserve 1,277 GiB; admission margin 1,882 GiB. All 28 targeted regression tests passed. Published a fresh controller status to replace the stale held annotation.
+- Evidence: `var/artifacts/e122_all_remaining_20260913/README.md`, `verification.json`, and `final_status.json`. The remaining queue progresses directly through Slurm without a replenishment controller.

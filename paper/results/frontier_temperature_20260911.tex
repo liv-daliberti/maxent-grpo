@@ -1,0 +1,135 @@
+\subsection{A matched requested-temperature sensitivity test}
+\label{app:hosted-temperature}
+A separate fixed subset contains eight prompts from each of the five domains
+at each of three levels: 120 prompts, with eight independent draws per prompt
+and temperature. Grok 4.3 and Kimi K3 each receive requested temperatures
+$T=1.0$ and $T=1.5$, giving 960 draws per condition and 3,840 in total.
+The two conditions share task rows and all non-temperature request settings;
+both temperatures are collected concurrently within each deployment.
+Every response is retained. This subset is a separate experiment and does not
+replace any full-cohort result in the main hosted display.
+
+Provider API contracts support the requested controls and the deployments accept
+the requests, but native responses do not report effective sampling temperature.
+DeepSeek is excluded from this contrast because its documented thinking-mode
+interface ignores the temperature setting. These contrasts therefore concern
+the tested requested settings, not arbitrary temperatures or all deployments.
+
+Tables average all five domains equally within each level; All equally averages
+all 15 domain--level cells. Confidence intervals use 20,000 paired whole-prompt
+bootstrap resamples stratified by domain and level, retaining each eight-draw
+group. They are pointwise and have no multiplicity adjustment. Correct-pair
+collision remains conditional on correct draws and can change its eligible
+prompt population; an undefined cell makes the corresponding macro undefined.
+
+\paragraph{Observed sensitivity.}
+For Grok, the observed breadth change is +0.050 [-0.058, +0.158] modes, and the collision change is -0.78 [-3.86, +2.12] percentage points. These intervals do not show a clear broadening at the tested setting.
+The per-response accuracy change is -2.29 [-3.85, -0.94] percentage points. This does not establish invariance to temperature in general.
+
+Kimi returns 696/960 token-limited outputs at $T=1.5$,
+compared with 0 at $T=1.0$. Strict accuracy falls from 96.56\% to 21.25\%, while raw breadth falls from 1.933 to 0.983 modes.
+This is a severe token-limit and accuracy failure, not a clean increase in
+correct-output concentration. The five-domain collision mean is undefined at
+$T=1.5$ because some cells have no eligible correct pairs. Neither model
+has provider-declared refusals in this experiment.
+
+$\dagger$ marks an omitted interval when fewer than all 20,000 bootstrap
+replicates define the contrast. For Kimi collision, only 11,815 and 11,616
+replicates are defined at Levels 1 and 2; the raw conditional percentile
+summaries remain in the source record. We do not present them as ordinary
+95\% intervals. Undefined cells are never replaced by zero or silently omitted.
+
+\begin{table}[!htbp]
+  \centering
+  \setlength{\parfillskip}{0pt plus .20\linewidth}
+  \caption{\textbf{Requested-temperature sensitivity: Strict executable grades.}
+  A is per-response accuracy (\%), D is \texttt{distinct@8},
+  and C is correct-pair collision (\%). D differences are mode counts;
+  A/C differences are percentage points. Brackets give paired pointwise
+  95\% intervals for the paired change in requested temperature.
+  Every fixed draw remains in its original denominator.}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}llrrrr@{}}
+    \toprule
+    Deployment & Level & Metric & $T=1.0$ & $T=1.5$ & Difference [95\% interval] \\
+    \midrule
+    Grok 4.3 & 1 & A & 98.12 & 95.62 & -2.50 [-4.06, -0.94] \\
+     &  & D & 1.900 & 2.000 & +0.100 [-0.100, +0.300] \\
+     &  & C & 72.89 & 73.16 & +0.27 [-6.31, +6.37] \\
+     & 2 & A & 99.06 & 99.38 & +0.31 [-0.94, +1.56] \\
+     &  & D & 1.425 & 1.425 & +0.000 [-0.175, +0.200] \\
+     &  & C & 86.61 & 85.20 & -1.41 [-6.26, +3.30] \\
+     & 3 & A & 98.75 & 94.06 & -4.69 [-9.06, -0.94] \\
+     &  & D & 1.500 & 1.550 & +0.050 [-0.125, +0.225] \\
+     &  & C & 84.04 & 82.85 & -1.20 [-5.48, +2.79] \\
+     & All & A & 98.65 & 96.35 & -2.29 [-3.85, -0.94] \\
+     &  & D & 1.608 & 1.658 & +0.050 [-0.058, +0.158] \\
+     &  & C & 81.18 & 80.40 & -0.78 [-3.86, +2.12] \\
+    \midrule
+    Kimi K3 & 1 & A & 92.50 & 22.50 & -70.00 [-75.62, -63.75] \\
+     &  & D & 2.200 & 1.075 & -1.125 [-1.475, -0.775] \\
+     &  & C & 66.23 & 53.12 & -13.11 [--]$^\dagger$ \\
+     & 2 & A & 98.12 & 20.31 & -77.81 [-82.50, -72.81] \\
+     &  & D & 1.850 & 0.900 & -0.950 [-1.300, -0.625] \\
+     &  & C & 72.18 & 66.55 & -5.63 [--]$^\dagger$ \\
+     & 3 & A & 99.06 & 20.94 & -78.12 [-83.75, -72.81] \\
+     &  & D & 1.750 & 0.975 & -0.775 [-1.025, -0.525] \\
+     &  & C & 78.33 & -- & -- \\
+     & All & A & 96.56 & 21.25 & -75.31 [-78.44, -72.19] \\
+     &  & D & 1.933 & 0.983 & -0.950 [-1.133, -0.767] \\
+     &  & C & 72.25 & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \centering
+  \setlength{\parfillskip}{0pt plus .20\linewidth}
+  \caption{\textbf{Requested-temperature sensitivity: Frozen formatting-normalized grades.}
+  A is per-response accuracy (\%), D is \texttt{distinct@8},
+  and C is correct-pair collision (\%). D differences are mode counts;
+  A/C differences are percentage points. Brackets give paired pointwise
+  95\% intervals for the paired change in requested temperature.
+  Every fixed draw remains in its original denominator.}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}llrrrr@{}}
+    \toprule
+    Deployment & Level & Metric & $T=1.0$ & $T=1.5$ & Difference [95\% interval] \\
+    \midrule
+    Grok 4.3 & 1 & A & 98.12 & 95.62 & -2.50 [-4.06, -0.94] \\
+     &  & D & 1.900 & 2.000 & +0.100 [-0.100, +0.300] \\
+     &  & C & 72.89 & 73.16 & +0.27 [-6.31, +6.37] \\
+     & 2 & A & 99.06 & 99.38 & +0.31 [-0.94, +1.56] \\
+     &  & D & 1.425 & 1.425 & +0.000 [-0.175, +0.200] \\
+     &  & C & 86.61 & 85.20 & -1.41 [-6.26, +3.30] \\
+     & 3 & A & 98.75 & 94.06 & -4.69 [-9.06, -0.94] \\
+     &  & D & 1.500 & 1.550 & +0.050 [-0.125, +0.225] \\
+     &  & C & 84.04 & 82.85 & -1.20 [-5.48, +2.79] \\
+     & All & A & 98.65 & 96.35 & -2.29 [-3.85, -0.94] \\
+     &  & D & 1.608 & 1.658 & +0.050 [-0.058, +0.158] \\
+     &  & C & 81.18 & 80.40 & -0.78 [-3.86, +2.12] \\
+    \midrule
+    Kimi K3 & 1 & A & 92.50 & 22.81 & -69.69 [-75.31, -63.44] \\
+     &  & D & 2.200 & 1.075 & -1.125 [-1.475, -0.775] \\
+     &  & C & 66.23 & 53.61 & -12.62 [--]$^\dagger$ \\
+     & 2 & A & 98.12 & 20.31 & -77.81 [-82.50, -72.81] \\
+     &  & D & 1.850 & 0.900 & -0.950 [-1.300, -0.625] \\
+     &  & C & 72.18 & 66.55 & -5.63 [--]$^\dagger$ \\
+     & 3 & A & 99.38 & 20.94 & -78.44 [-84.06, -73.12] \\
+     &  & D & 1.750 & 0.975 & -0.775 [-1.025, -0.525] \\
+     &  & C & 78.18 & -- & -- \\
+     & All & A & 96.67 & 21.35 & -75.31 [-78.44, -72.19] \\
+     &  & D & 1.933 & 0.983 & -0.950 [-1.133, -0.767] \\
+     &  & C & 72.20 & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Full domain--level estimates, counts, native outcomes and collision eligibility
+remain in the source-bound temperature analysis. Countdown has no finite-total-support
+uniform reference; finite-support sensitivity summaries use the other four domains.
+The paper record authenticates every included condition summary, native completion
+audit, frozen normalizer, paired analysis source and sampling-control review,
+with the complete fixed response cohort retained throughout.

@@ -28,9 +28,9 @@ LEVEL2_COLOR = "#0F766E"
 PARTIAL_ARM_POLICY = "Partial-domain markers use each arm's available terminal seeds; differences between these arm means are not paired effects."
 METHODS = {
     "drgrpo": "Dr.GRPO",
-    "replay_drgrpo": "ReplayDr.GRPO",
+    "replay_drgrpo": "Re:Dr.GRPO",
     "maxrl": "MaxRL",
-    "replay_maxrl": "ReplayMaxRL",
+    "replay_maxrl": "Re:MaxRL",
 }
 
 

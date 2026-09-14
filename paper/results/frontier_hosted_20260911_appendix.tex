@@ -1,0 +1,169 @@
+\section{Inference-Only Concentration in a Hosted Model}
+\label{app:hosted-concentration}
+
+This exploratory evaluation measures the current output distribution of
+GPT-5.6 Sol under the inherited \mb{} interface. It is separate from the matched
+training interventions: it adds no frontier-model training, replay comparison,
+or controlled model-size contrast. Only the completed, audited deployment
+enters these tables.
+
+\paragraph{Protocol and provenance.}
+The September 11, 2026 run uses the Azure deployment \texttt{gpt-5.6-sol}; saved
+provider headers identify snapshot \texttt{gpt-5.6-sol-2026-07-09}. Each of the
+five domains contributes 128 held-out prompts at each of three levels. Eight
+stateless requests per prompt yield 15,360 responses. Requests use medium
+reasoning, an 8,192-token output limit, no tools and no conversation state.
+The service returns temperature $1.0$ and top-$p$ $.98$; neither setting was
+overridden. These settings and the hosted natural-language interface differ
+from the local training evaluation's token-level grammar constraints.
+
+Level 1 uses the native E118 evaluation splits retained in E124. Level 2 uses
+the frozen matched r5 construction; Level 3 uses the matched v3 construction
+admitted by the completed canonical v3 confirmation. Level 3 is an exploratory
+test extension here, not a third level of the paper's training intervention.
+All cells use the multi-answer split. The Level-2/Level-3 support histograms
+match a separate fixed-reference Level-1 confirmation reserve, which differs
+from the native Level-1 split in Graph, Countdown and Python. Prompts differ
+across levels and are not paired by row index. Calibration against small-model
+references does not guarantee increasing difficulty for this hosted model.
+
+Exact prompts, dataset identities and hashes, requests, provider-exposed
+responses, grades, retry receipts, usage and verifier snapshots are retained
+in the experiment's evidence directory. All 15,360 intended samples completed,
+with distinct response identifiers; 107 failed API attempts were retained and
+recovered by retries. Provider random-number independence and hidden reasoning
+contents cannot be audited from the exposed responses.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Hosted correctness and concentration under strict grading.}
+  GPT-5.6 Sol, with medium reasoning. Each level weights five domains equally.
+  M and P are \texttt{mean@8} and \texttt{pass@8} (\%); D is raw
+  \texttt{distinct@8}. C is the percentage of within-prompt correct pairs
+  sharing a mode, pair weighted within each domain. Brackets give pointwise
+  95\% intervals from whole-prompt resampling.}
+  \label{tab:hosted-levels}
+  \small
+  \begin{tabular}{@{}rrrrl@{}}
+    \toprule
+    Level & M & P & D & C (95\% interval) \\
+    \midrule
+    \input{results/frontier_hosted_20260911_macro_rows.tex}
+  \end{tabular}
+\end{table}
+
+\paragraph{Metrics and uncertainty.}
+Per-response correctness is \texttt{mean@8} in this paper (called
+\texttt{pass@1} in the hosted report). Raw \texttt{distinct@8} counts verified
+keys across eight draws, including zero for unsolved prompts. For prompt $x$,
+let $c_x$ be its number of correct draws and $n_{xc}$ its count for correct
+key $c$. The within-cell correct-pair collision estimate is
+\[
+  \widehat C=
+  \frac{\sum_x\sum_c\binom{n_{xc}}{2}}
+       {\sum_x\binom{c_x}{2}}.
+\]
+It describes concentration conditional on successful draws, with prompts
+weighted by their number of correct pairs. Level summaries average the five
+domain estimates equally. When the certified correct-key count $m_x$ is
+available, a uniform-correct-key reference replaces the numerator by
+$\sum_x\binom{c_x}{2}/m_x$. This differs from a uniform-action baseline and
+is a descriptive reference, not a normative sampling requirement. Countdown's
+verifier accepts modes beyond its enumerated binary-expression library,
+including unary negation, so its total support is unknown and this reference
+is omitted. Intervals use 2,000 whole-prompt bootstrap replicates, seed
+20260911, resampling within each domain and level and keeping all eight draws
+together. They are pointwise descriptive intervals.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{GPT-5.6 Sol under strict executable grading.}
+  Every cell contains 128 prompts and 1,024 responses. M and P are
+  \texttt{mean@8} and \texttt{pass@8} (\%); D is \texttt{distinct@8}.
+  C is correct-pair collision (\%, with 95\% prompt-bootstrap interval);
+  U is the uniform-correct-key collision reference (\%).}
+  \label{tab:hosted-strict}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}rlrrrrr@{}}
+    \toprule
+    Level & Domain & M & P & D & C (95\% interval) & U \\
+    \midrule
+    \input{results/frontier_hosted_20260911_strict_rows.tex}
+  \end{tabular}
+\end{table}
+
+\paragraph{Formatting sensitivity.}
+Strict grades remain primary. A secondary typography normalizer was introduced
+after inspecting the first 15 responses. It fixes a frozen set of presentation
+conventions, including escaped Python/LaTeX syntax, and reuses the original
+executable validators without repairing calculations or program logic.
+It recovers 2,580 additional verified outputs; strict successes and their keys
+are retained. This is a post hoc diagnostic, not a replacement benchmark.
+All 3,072 primary Python responses passed an independent serial recheck with
+no grade changes. One cold-start timeout in the secondary grading cache was
+reconciled with repeated serial verification; the original cache and correction
+audit remain preserved.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Post hoc formatting-normalized diagnostic.}
+  Same samples and metric definitions as Table~\ref{tab:hosted-strict}, with
+  fixed presentation normalization before executable verification. The strict
+  table remains primary; normalization was designed after the first 15
+  responses.}
+  \label{tab:hosted-normalized}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}rlrrrrr@{}}
+    \toprule
+    Level & Domain & M & P & D & C (95\% interval) & U \\
+    \midrule
+    \input{results/frontier_hosted_20260911_normalized_rows.tex}
+  \end{tabular}
+\end{table}
+
+\paragraph{Concentration and level.}
+The strict five-domain collision average is $74.0\%$, $82.3\%$ and $84.5\%$
+at Levels 1--3; the normalized diagnostic gives $74.1\%$, $81.2\%$ and
+$83.6\%$. This aggregate pattern is not a monotonic law within domains.
+Graph collision is $89.7\%$, $83.3\%$, then $95.1\%$; normalized PantryPlan
+collision is $46.9\%$, $64.0\%$, then $53.0\%$. Normalized overall correctness
+also rebounds from $83.2\%$ at Level 2 to $85.7\%$ at Level 3. Thus a higher
+level label is not equivalent to a measured increase in difficulty for this
+model, and raw distinct-mode counts also change with correctness and support.
+
+Level-3 Graph separates concentration from failed responses particularly
+clearly: all 1,024 outputs verify, eight draws produce $1.16$ distinct keys
+on average, and 3,407 of 3,584 correct pairs share a key ($95.1\%$). The
+uniform-correct-key reference is $19.0\%$; the excess is $76.1$ percentage
+points (95\% interval $[73.5,78.3]$). Graph was selected after the GPT run for
+this illustration because its correctness is high, support is certified and
+formatting normalization changes no scores; both tables report all domains.
+
+\paragraph{Interface and claim limits.}
+Level-2/Level-3 MathIR instructions prescribe moving the right-side variable
+term left, removing the constant and then dividing. Python instructions
+suggest a nested small-divisor conditional chain, and PantryPlan instructions
+prefer particular ingredient families. These preferences can concentrate the
+very keys being measured. In addition, Level-1 PantryPlan requests a support
+mask whose quantities are supplied by a trusted projection; Levels 2--3 ask
+the model to provide quantities. MathIR verifies symbolic action compliance,
+which can reject a numerically valid shortcut that omits a required symbolic
+step. Neither these failures nor the cross-level differences isolate numerical
+reasoning ability. Canonical keys describe executed outputs, not hidden
+reasoning strategies. Eight draws cannot establish that an unseen mode has
+zero probability. The evidence supports concentration under the specified
+prompts and deployment configuration; it identifies neither a training cause
+nor a causal difficulty or model-size effect.
+
+\paragraph{Reproduction record.}
+The source record is
+\path{artifacts/frontier_modebench_gpt56sol_20260911/summary.json}.
+Its hash, complete cell statistics and run settings are copied into
+\path{results/frontier_hosted_20260911.json}; adjacent generated table bodies
+supply the displayed values. The evidence directory also retains
+\path{completion_audit.json}, \path{prompt_contract_audit.json}, the original
+requests and responses, and \path{interpretation_notes.md}. Hosted-model
+results are separate from the training-checkpoint archive and its matched-seed
+comparisons.

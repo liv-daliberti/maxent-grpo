@@ -261,7 +261,7 @@ def _plot(
         axis.set_ylim(0, high * 1.08 if high > 0 else 1)
     else:
         axis.set_ylim(0, 1)
-    axis.grid(axis="y", color="#E2E8F0", linewidth=0.7, zorder=0)
+    axis.grid(axis="both", color="#E2E8F0", linewidth=0.7, zorder=0)
     axis.spines[["top", "right"]].set_visible(False)
     axis.tick_params(labelsize=7.5, length=2.5, width=0.7)
     axis.xaxis.set_major_locator(MaxNLocator(7))

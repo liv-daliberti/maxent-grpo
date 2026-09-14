@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Render paired, validator-checked ModeBench examples for Section 3.1.
 
-One figure, one card per domain on a two-by-three grid, one shared reading
-order: the response the policy emits, the execution that accepts it, and the
-canonical key that execution produces. The two answers of a card are the same
-two verified modes that Figure 1 tracks, so they carry Figure 1's plasma mode
-colours. Cards that draw a picture set their two answers side by side with each
-picture under its own key, which keeps the grid compact enough for the page.
+One figure, one card per domain on a compact grid, one shared reading order: the
+response the policy emits, the execution that accepts it, and the canonical key
+that execution produces. The two answers of a card are the same two verified
+modes that Figure 1 tracks, so they carry Figure 1's plasma mode colours. A card
+sets its two answers side by side whenever it has the width for them, which
+keeps each card filled and the grid compact enough for the page.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import sys
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Ellipse, FancyBboxPatch, Rectangle
+from matplotlib.patches import Circle, Ellipse, FancyBboxPatch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
@@ -37,9 +37,6 @@ DATA_ROOTS = {
     "python": ROOT / "var/data/python_factor_modebench_v1/eval",
     "mathir": ROOT / "var/data/mathir_action_menu_v1/eval",
     "pantry": ROOT / "var/data/pantry_plan_modebench_v2/eval",
-    # The panel is an interface illustration from the completed development
-    # ladder, not a row from the still-running prospective comparison.
-    "pointmaze": ROOT / "var/data/point_maze_waypoint_pilot_e75r3/eval",
 }
 
 # Inches on a figure whose single axes spans the canvas one-to-one, so the
@@ -56,7 +53,7 @@ INK = style.INK
 MUTED = style.MUTED
 GRID = style.GRID
 FRAME = style.MUTED
-PANEL = style.PANEL  # pale orange; caps the plasma range short of its yellow end
+PANEL = style.PANEL  # the shared pale-blue wash; kept as Graph Coloring's tint below
 WHITE = style.WHITE
 
 # The two mode colours are the first two slots of the shared ``MODE_RAMP``, as
@@ -69,6 +66,27 @@ WHITE = style.WHITE
 # beyond it plasma turns yellow and falls under 3:1 on the panel wash.
 MODE_ONE = "#41049d"  # plasma 0.10
 MODE_TWO = "#dd5e66"  # plasma 0.58
+
+# One tint per card, so the five domains separate at a glance instead of
+# sitting in five identical pale-blue boxes. Every hue is drawn from the
+# green-to-blue arc (95 deg-225 deg) and stays well clear of the violet (about
+# 264 deg) and coral-red (about 356 deg) hues that MODE_ONE, MODE_TWO,
+# OPERATOR_COLORS, NODE_PAINTS, and the ingredient pictograms already own: a
+# wash the same family as a foreground identity colour would make that colour
+# look like it belongs to the card rather than to the answer. Lightness and
+# saturation are shared across all five (HLS 0.945 / 0.70) so the set reads as
+# one wash tinted five ways, not five unrelated backgrounds; Graph Coloring
+# keeps the paper's own PANEL blue exactly, so this figure still reads as part
+# of the same visual family as every other figure's panel wash. Each tint
+# clears >= 3:1 against MODE_TWO, the hardest mark it has to hold (the shipped
+# PANEL blue itself clears MODE_TWO at 3.13:1; these hold 3.03-3.34:1).
+DOMAIN_PANEL = {
+    "A": PANEL,
+    "B": "#E7FBF6",
+    "C": "#EFFBE7",
+    "D": "#E7FBEE",
+    "E": "#E7ECFB",
+}
 
 # The puzzle's three paints, copied from the collapse story: a paint is part of
 # the question, never one of the measured modes, so it stays off the ramp.
@@ -94,9 +112,6 @@ INGREDIENT_COLORS = {
     "almonds": ("#D6A97B", "#A97C51"),
 }
 LEAF = "#6F8F5A"
-# The goal marker: a warm yellow that no mode, paint, or operator uses, so the
-# one fixed point of every PointMaze episode cannot be read as a mode colour.
-GOAL = "#f9c22e"
 # Executable operators are the one thing in a key that is not data, so they
 # take the ramp's warm slot against ink-coloured operands.
 OPERATOR = "#bc3587"  # plasma 0.44
@@ -149,8 +164,6 @@ THUMB_GAP = 0.10
 # keep visibly separate rather than reading as one twelve-vertex graph.
 GRAPH_WIDTH = 1.40
 GRAPH_HEIGHT = 1.24
-MAZE_WIDTH = 1.60
-MAZE_HEIGHT = 1.40
 PAINT_SIZE = 0.24
 # Chips sit close enough that a six-vertex key fits one half-card.
 PAINT_STEP = 0.26
@@ -365,72 +378,6 @@ def load_and_validate() -> dict[str, dict]:
     )
     assert not set(pantry_keys[0].split("+")) & set(pantry_keys[1].split("+"))
 
-    point_spec = {
-        "map_id": "barrier_4mode_eval_000_r0",
-        "instance_fingerprint": (
-            "69a5cc7ea67e078705c10bebf2164224e1c2a686a89f795718771f87958fc48b"
-        ),
-        "spec_sha256": (
-            "de9657a438474d3387807d6da0d2618c6b05608be22cc6de6f227afefd030ce5"
-        ),
-        "maze_map": (
-            (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-            (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-            (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
-            (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-        ),
-        "reset_cell": (4, 1),
-        "goal_cell": (6, 9),
-        "mode_count": 4,
-    }
-    point_routes = (
-        {
-            "program": "N N N E E E E E E E E S S S S S",
-            "display": "N×3·E×8·S×5",
-            "route_key": "corridor_0+",
-            "simulator_steps": 796,
-        },
-        {
-            "program": "E E E S E E E E E S",
-            "display": "E×3·S·E×5·S",
-            "route_key": "corridor_1+",
-            "simulator_steps": 492,
-        },
-    )
-    identity = json.loads(
-        (DATA_ROOTS["pointmaze"].parent / "identity.json").read_text(encoding="utf-8")
-    )
-    certificate = next(
-        row
-        for row in identity["certification"]
-        if row["split"] == "eval" and row["row_index"] == 0
-    )
-    assert certificate["map_id"] == point_spec["map_id"]
-    assert certificate["instance_fingerprint"] == point_spec["instance_fingerprint"]
-    assert certificate["spec_sha256"] == point_spec["spec_sha256"]
-    certified = {route["route_key"]: route for route in certificate["routes"]}
-    deltas = {"N": (-1, 0), "E": (0, 1), "S": (1, 0), "W": (0, -1)}
-    for route in point_routes:
-        witness = certified[route["route_key"]]
-        assert witness["program"] == route["program"]
-        assert witness["simulator_steps"] == route["simulator_steps"]
-        current = point_spec["reset_cell"]
-        cells = [current]
-        for action in route["program"].split():
-            dr, dc = deltas[action]
-            current = (current[0] + dr, current[1] + dc)
-            assert point_spec["maze_map"][current[0]][current[1]] == 0
-            cells.append(current)
-        assert current == point_spec["goal_cell"]
-        route["cells"] = tuple(cells)
-    assert point_routes[0]["route_key"] != point_routes[1]["route_key"]
     return {
         "graph": {"spec": graph, "modes": graph_modes, "answers": graph_answers},
         "countdown": {"spec": countdown, "answers": countdown_answers},
@@ -441,16 +388,16 @@ def load_and_validate() -> dict[str, dict]:
             "answers": pantry_answers,
             "keys": pantry_keys,
         },
-        "pointmaze": {"spec": point_spec, "answers": point_routes},
     }
 
 
 def build_blocks(examples: dict[str, dict]) -> list[dict]:
-    """Turn the validated examples into a three-column grid of domain cards.
+    """Turn the validated examples into a two-row grid of domain cards.
 
-    Each answer sets its canonical key on the line beneath the response. Six
-    equal-width cards make the five static tasks and PointMaze visibly one
-    evaluation surface while preserving the interface distinction in panel F.
+    Each answer sets its canonical key on the line beneath the response. The
+    three cards of the first row take one column each; the two that finish the
+    grid take a column and a half, so the second row spans the canvas instead
+    of centring two cards over an empty third column.
     """
 
     graph = examples["graph"]
@@ -458,7 +405,6 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
     python = examples["python"]
     mathir = examples["mathir"]
     pantry = examples["pantry"]
-    pointmaze = examples["pointmaze"]
 
     blocks = [
         {
@@ -519,7 +465,11 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
             "title": "MathIR",
             "prompt": ["solve  x/2 − 9 = −1", mathir["spec"]["menu"]],
             "check": "✓ x = 16",
-            "span": 1,
+            # A column and a half, with both answers on one row. Three equal
+            # columns leave the last row two-thirds full and every card in it
+            # half empty; two wide cards fill the row and halve its height.
+            "span": 1.5,
+            "pair": True,
             "answers": [
                 {
                     "response": [answer["answer"]],
@@ -536,14 +486,15 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
             "letter": "E",
             "title": "PantryPlan",
             "prompt": [
-                # Split for the single-column card; both facts are kept.
+                # Two lines, as in MathIR beside it, so both cards of the
+                # row start their answers on the same baseline.
                 "2–4 ingredients · 125–200 g",
                 "four exact nutrition bounds",
             ],
             "check": "✓ feasible",
-            # One unit like the others, which stacks its two answers and lets
-            # the cards pack by height instead of by row.
-            "span": 1,
+            # Paired at a column and a half, like MathIR beside it.
+            "span": 1.5,
+            "pair": True,
             "glyph": "ingredient",
             "key_kind": "icons",
             "answers": [
@@ -553,26 +504,6 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
                     "key": [tuple(key.split("+"))],
                 }
                 for answer, key in zip(pantry["answers"], pantry["keys"])
-            ],
-        },
-        {
-            "letter": "F",
-            "title": "PointMaze",
-            # The legend names the two marks the thumbnails actually draw, so
-            # the goal reads as the star it is set as rather than a lost "G".
-            "prompt": ["S → ★ · adjacent free cells", "4 verified corridors"],
-            "check": "✓ success",
-            "span": 1,
-            "glyph": "maze",
-            "pair": True,
-            "answers": [
-                {
-                    "response": [route["display"]],
-                    "key": [route["route_key"]],
-                    "route_cells": route["cells"],
-                    "maze_spec": pointmaze["spec"],
-                }
-                for route in pointmaze["answers"]
             ],
         },
     ]
@@ -588,7 +519,6 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
             stack = len(answer["response"]) * LINE + KEY_GAP + key_rows * LINE + 0.08
             thumbnail_height = {
                 "graph": GRAPH_HEIGHT,
-                "maze": MAZE_HEIGHT,
             }.get(block.get("glyph"))
             # The text stack always keeps its own height; a picture is added
             # underneath it rather than set alongside, so nothing is padded up
@@ -636,9 +566,29 @@ def measure(fig, artist) -> float:
     return artist.get_window_extent(renderer=fig.canvas.get_renderer()).width / fig.dpi
 
 
-def card_width(span: int) -> float:
+def card_width(span: float) -> float:
+    """Width of a card spanning ``span`` columns, gutters included.
+
+    ``span`` is fractional: any row whose spans sum to ``COLUMNS`` fills the
+    canvas between the margins exactly, whatever mix of widths it uses.
+    """
+
     unit = (WIDTH - 2 * MARGIN - (COLUMNS - 1) * GUTTER) / COLUMNS
     return unit * span + GUTTER * (span - 1)
+
+
+def pack_rows(blocks: list[dict]) -> list[list[int]]:
+    """Fill each row in reading order until its spans reach ``COLUMNS``."""
+
+    rows: list[list[int]] = []
+    used = COLUMNS
+    for index, block in enumerate(blocks):
+        if used + block["span"] > COLUMNS + 1e-9:
+            rows.append([])
+            used = 0.0
+        rows[-1].append(index)
+        used += block["span"]
+    return rows
 
 
 def answer_rows(block: dict) -> int:
@@ -689,101 +639,6 @@ def draw_mini_graph(ax, left: float, center: float, width: float, height: float,
             )
         )
         text(ax, x, y, str(node), color=NODE_TEXT[color], fontweight="bold", ha="center", zorder=4)
-
-
-def draw_mini_maze(
-    ax,
-    left: float,
-    center: float,
-    width: float,
-    height: float,
-    spec: dict,
-    route_cells,
-    accent: str,
-) -> None:
-    """Draw the executed waypoint episode and the walls it navigates."""
-
-    maze = spec["maze_map"]
-    rows, columns = len(maze), len(maze[0])
-    cell = min(width / columns, height / rows)
-    x0 = left + (width - columns * cell) / 2
-    y0 = center - rows * cell / 2
-
-    def centre(row_column):
-        row, column = row_column
-        return (
-            x0 + (column + 0.5) * cell,
-            y0 + (rows - row - 0.5) * cell,
-        )
-
-    for row in range(rows):
-        for column in range(columns):
-            ax.add_patch(
-                Rectangle(
-                    (x0 + column * cell, y0 + (rows - row - 1) * cell),
-                    cell,
-                    cell,
-                    facecolor=INK if maze[row][column] else WHITE,
-                    edgecolor=GRID,
-                    linewidth=0.22,
-                    zorder=1,
-                    clip_on=False,
-                )
-            )
-    route_xy = [centre(cell_rc) for cell_rc in route_cells]
-    ax.plot(
-        [value[0] for value in route_xy],
-        [value[1] for value in route_xy],
-        color=accent,
-        linewidth=2.0,
-        solid_capstyle="round",
-        solid_joinstyle="round",
-        zorder=3,
-    )
-    x, y = centre(spec["reset_cell"])
-    ax.add_patch(
-        Circle(
-            (x, y),
-            cell * 0.43,
-            facecolor=INK,
-            edgecolor=WHITE,
-            linewidth=0.7,
-            zorder=4,
-            clip_on=False,
-        )
-    )
-    text(
-        ax,
-        x,
-        y,
-        "S",
-        color=WHITE,
-        fontsize=max(5.0, FONT * 0.68),
-        fontweight="bold",
-        ha="center",
-        zorder=5,
-    )
-    # Where the episode has to end is a property of the map, not something the
-    # policy chose, so the goal takes a shape of its own rather than a second
-    # lettered disc. Its yellow is off the mode ramp for the same reason the
-    # ramp stops short of yellow, and it carries an ink outline: the fill alone
-    # would fall under 3:1 against the maze's free cells and in grayscale.
-    x, y = centre(spec["goal_cell"])
-    ax.plot(
-        [x],
-        [y],
-        marker="*",
-        # Sized against the page, not the canvas: the figure is set at about
-        # four tenths of its drawn width, where a star held to one cell is two
-        # millimetres of pale fill and simply disappears.
-        markersize=cell * 72 * 2.1,
-        markerfacecolor=GOAL,
-        markeredgecolor=INK,
-        markeredgewidth=0.9,
-        linestyle="none",
-        zorder=4,
-        clip_on=False,
-    )
 
 
 def draw_ingredient(ax, name: str, x: float, y: float) -> None:
@@ -875,15 +730,20 @@ def draw_key(
         width = max(widths) + 0.24
     assert width <= limit, f"key {lines} needs {width:.2f}in of {limit:.2f}in"
     rows = 1 if kind in {"paints", "icons"} else len(lines)
+    key_height = rows * LINE + 0.08
+    # A one-line key rounds all the way to a pill, so it reads as a tag the
+    # execution produced rather than another form field on the card. A
+    # two-line key keeps a gentler curve: full-pill at that height reads as
+    # a lozenge and the two lines start to look cropped by their own edge.
     box(
         ax,
         left,
         top - 0.08 - rows * LINE,
         width,
-        rows * LINE + 0.08,
+        key_height,
         face=WHITE,
         edge=accent,
-        radius=0.05,
+        radius=key_height / 2 if rows == 1 else 0.14,
         lw=1.4,
     )
 
@@ -894,8 +754,12 @@ def draw_answer(
 ) -> None:
     accent = answer["accent"]
     row = top - LINE / 2
-    box(ax, left, row - 0.12, 0.24, 0.24, face=accent, edge=accent, radius=0.05)
-    text(ax, left + 0.12, row, answer["number"], color=WHITE, fontweight="bold", ha="center")
+    # A circle, not a rounded square: it reads as a numbered marker rather
+    # than a third size of box competing with the card and the key chip.
+    ax.add_patch(
+        Circle((left + 0.12, row), 0.12, facecolor=accent, edgecolor=accent, zorder=3, clip_on=False)
+    )
+    text(ax, left + 0.12, row, answer["number"], color=WHITE, fontweight="bold", ha="center", zorder=4)
     # Ingredient rows carry a pictogram of what they allocate, so the text
     # shifts right to leave it room.
     indent = 0.34 + (0.26 if glyph == "ingredient" else 0.0)
@@ -922,7 +786,7 @@ def draw_answer(
     # The badge hangs to the left of the response, and the key chip returns to
     # the badge's own margin: in a half-card there is no room to indent it and
     # still fit a six-vertex key.
-    key_left = left if glyph in {"graph", "maze"} else left + indent
+    key_left = left if glyph == "graph" else left + indent
     draw_key(
         fig,
         ax,
@@ -945,30 +809,29 @@ def draw_answer(
             GRAPH_HEIGHT,
             answer["mode"],
         )
-    if glyph == "maze":
-        draw_mini_maze(
-            ax,
-            left + (limit - MAZE_WIDTH) / 2,
-            thumbnail_top - MAZE_HEIGHT / 2,
-            MAZE_WIDTH,
-            MAZE_HEIGHT,
-            answer["maze_spec"],
-            answer["route_cells"],
-            accent,
-        )
 
 
 def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> None:
     # Both cards in a row are drawn to the row's height, so the grid keeps a
     # flat baseline even when one domain needs two-line answers.
     width = card_width(block["span"])
-    box(ax, left, top - height, width, height, face=PANEL, edge=GRID, radius=0.09, lw=1.1)
+    # Softer than a form field, short of a pill: a card is the biggest box on
+    # the page, so it is the one place a hard corner reads as "boxy" rather
+    # than "framed".
+    box(
+        ax, left, top - height, width, height,
+        face=DOMAIN_PANEL[block["letter"]], edge=GRID, radius=0.16, lw=1.1,
+    )
 
     inner_left = left + CARD_PAD
     inner_right = left + width - CARD_PAD
     header = top - CARD_PAD - HEADER / 2
-    box(ax, inner_left, header - 0.15, 0.32, 0.30, face=INK, edge=INK, radius=0.05)
-    text(ax, inner_left + 0.16, header, block["letter"], color=WHITE, fontweight="bold", ha="center")
+    # A circular letter marker, matching the numbered badges below it, rather
+    # than a third rounded-rectangle shape in the same card.
+    ax.add_patch(
+        Circle((inner_left + 0.16, header), 0.16, facecolor=INK, edgecolor=INK, zorder=3, clip_on=False)
+    )
+    text(ax, inner_left + 0.16, header, block["letter"], color=WHITE, fontweight="bold", ha="center", zorder=4)
     title = text(ax, inner_left + 0.42, header, block["title"], fontweight="bold")
     check = text(ax, inner_right, header, block["check"], color=MUTED, fontweight="bold", ha="right")
     assert (
@@ -980,12 +843,12 @@ def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> N
         baseline = top - CARD_PAD - HEADER - (index + 0.5) * PROMPT
         if isinstance(line, dict):
             # The prompt's partial coloring is set in the same chips the answer
-            # and the key use, so the reader compares like with like.
+            # and the key use, so the reader compares like with like. The chips
+            # sit straight on the card wash, with no chip-around-a-box-around-a-
+            # card nesting: the card edge is already the only frame this needs.
             label = text(ax, inner_left, baseline, line["label"], color=MUTED)
             chips_left = inner_left + measure(fig, label) + 0.14
-            width = draw_paint_row(ax, chips_left + 0.10, baseline, line["paints"]) + 0.20
-            box(ax, chips_left, baseline - PROMPT / 2 - 0.02, width, PROMPT + 0.04,
-                face=WHITE, edge=GRID, radius=0.05, lw=1.1)
+            width = draw_paint_row(ax, chips_left, baseline, line["paints"])
             assert chips_left + width <= inner_right, block["title"]
             continue
         prompt = text(ax, inner_left, baseline, line, color=MUTED)
@@ -1000,7 +863,7 @@ def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> N
     if block["span"] == 2 or block.get("pair"):
         # Both answers on one row: the wide card has the room outright, and a
         # picture card buys it by putting each thumbnail under its own text.
-        gap = GUTTER if block["span"] == 2 else PAIR_GAP
+        gap = GUTTER if block["span"] >= 1.5 else PAIR_GAP
         cell = (inner_right - inner_left - gap) / 2
         for index, answer in enumerate(block["answers"]):
             draw_answer(
@@ -1021,15 +884,11 @@ def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> N
 def render() -> None:
     examples = load_and_validate()
     blocks = build_blocks(examples)
-    # Two rows of three, read in letter order. Once no card stacks two
-    # thumbnails the six heights sit within about half an inch of each other,
-    # so a plain grid costs almost nothing in wash and keeps the flat baselines
-    # that height-packed columns gave up.
+    # Two rows, read in letter order, each one filled to the margins: three
+    # single columns, then two cards of a column and a half. Cards in a row are
+    # drawn to a common height, so the row keeps its flat baseline.
     card_heights = [card_height(block) for block in blocks]
-    grid = [
-        list(range(row * COLUMNS, min((row + 1) * COLUMNS, len(blocks))))
-        for row in range((len(blocks) + COLUMNS - 1) // COLUMNS)
-    ]
+    grid = pack_rows(blocks)
     row_heights = [max(card_heights[index] for index in row) for row in grid]
 
     height = (
@@ -1052,18 +911,16 @@ def render() -> None:
         fontweight="bold",
     )
 
-    unit = card_width(1)
     cursor = top - HEADLINE
     for row, indices in enumerate(grid):
-        for column, index in enumerate(indices):
-            draw_card(
-                fig,
-                ax,
-                blocks[index],
-                MARGIN + column * (unit + GUTTER),
-                cursor,
-                row_heights[row],
-            )
+        widths = [card_width(blocks[index]["span"]) for index in indices]
+        spread = sum(widths) + GUTTER * (len(indices) - 1)
+        # A row that does not fill its span budget is centred rather than
+        # flushed left, so a short row reads as deliberate.
+        left = MARGIN + (WIDTH - 2 * MARGIN - spread) / 2
+        for index, width in zip(indices, widths):
+            draw_card(fig, ax, blocks[index], left, cursor, row_heights[row])
+            left += width + GUTTER
         cursor -= row_heights[row] + ROW_SPACING
 
     OUT.parent.mkdir(parents=True, exist_ok=True)

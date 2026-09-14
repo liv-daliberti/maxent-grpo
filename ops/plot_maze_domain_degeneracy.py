@@ -132,7 +132,7 @@ def main() -> None:
         ax2.set_xlabel("training passes", color=INK, fontsize=9)
 
         for a in (ax, ax2):
-            a.grid(axis="y", color=GRID, linewidth=0.7, zorder=0)
+            a.grid(axis="both", color=GRID, linewidth=0.7, zorder=0)
             a.set_axisbelow(True)
             for side in ("top", "right"):
                 a.spines[side].set_visible(False)

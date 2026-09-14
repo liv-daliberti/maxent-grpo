@@ -15,6 +15,7 @@ import argparse
 from collections import defaultdict
 from datetime import datetime, timezone
 import json
+import re
 import math
 from pathlib import Path
 import sys
@@ -37,24 +38,17 @@ POINT_LEDGER = (
     ROOT / "var/artifacts/e78pm_point_maze_verified_replay_only_05b_jobs.json"
 )
 DEFAULT_OUTPUT = ROOT / "var/artifacts/e78_figure4_interim"
-DOMAIN_TITLES = {
-    "graph_coloring": "Graph coloring",
-    "countdown": "Countdown",
-    "python_factors": "Python factors",
-    "mathir": "MathIR",
-    "pantry_plan": "PantryPlan",
-    "point_maze": "PointMaze",
-}
+from status_e78 import DOMAIN_TITLES  # noqa: E402,F401
 ARM_STYLE = {
     "control": (style.CONTROL, style.ARM_DASH[style.CONTROL], "matched Dr.GRPO"),
-    "replay": (style.METHOD, style.ARM_DASH[style.METHOD], "ReplayGRPO"),
+    "replay": (style.METHOD, style.ARM_DASH[style.METHOD], "Re:Dr.GRPO"),
     # E81/E82 add one arm on top of `replay`; E83 adds the same term on top of
     # `control` instead. Both are add-one arms, so each carries its own colour
     # and dash rather than a shade of the arm it extends.
     "semantic": (
         style.ABLATION,
         style.ARM_DASH[style.ABLATION],
-        "ReplayGRPO + Semantic MaxEnt",
+        "Re:Dr.GRPO + Semantic MaxEnt",
     ),
     # E90 is verified replay with the dose set by bank occupancy rather than by
     # a fixed coefficient. It is the same mechanism at a different dose, so it
@@ -63,7 +57,7 @@ ARM_STYLE = {
     "bank_normalized_replay": (
         style.METHOD,
         style.METHOD_DOSE_DASH,
-        "Adaptive ReplayGRPO",
+        "Adaptive Re:Dr.GRPO",
     ),
     "semantic_only": (
         style.ADD_ON,
@@ -75,7 +69,7 @@ ARM_STYLE = {
     "adaptive_semantic": (
         style.ADAPTIVE,
         style.ARM_DASH[style.ADAPTIVE],
-        "Adaptive Semantic MaxEnt + ReplayGRPO",
+        "Adaptive Semantic MaxEnt + Re:Dr.GRPO",
     ),
 }
 EXPECTED_DRAWS = 4
@@ -122,6 +116,9 @@ def _run_curve(run_dir: Path, *, interval: int, target: int) -> dict[int, float]
     }
 
 
+from status_e78 import POINT_EVAL_SCHEMA  # noqa: E402
+
+
 def _point_curve(
     metrics_path: Path,
     *,
@@ -143,7 +140,7 @@ def _point_curve(
                 row = json.loads(raw)
             except json.JSONDecodeError:
                 continue
-            if row.get("schema") != "point-maze-waypoint-pilot-evaluation-v1":
+            if POINT_EVAL_SCHEMA.match(str(row.get("schema", ""))) is None:
                 continue
             update = row.get("learning_round")
             value = row.get("distinct8")
@@ -275,7 +272,7 @@ def render(snapshot: dict[str, Any], output: Path) -> dict[str, Any]:
 
     for index, (axis, domain) in enumerate(zip(axes, snapshot["domains"])):
         title = DOMAIN_TITLES.get(domain, domain)
-        style.style_axis(axis, grid="y", title=title)
+        style.style_axis(axis, title=title)
         axis.set_xlim(0, snapshot["passes"])
         axis.set_ylim(0, y_high)
         axis.set_xticks([0, 2, 4, 6, 8])

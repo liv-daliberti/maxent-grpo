@@ -939,7 +939,7 @@ def draw_curve(
             )
     ax.set_xlim(0, x_max)
     ax.xaxis.set_major_locator(MaxNLocator(6, integer=True))
-    ax.grid(axis="y", color="#dddddd", lw=0.5, zorder=0)
+    ax.grid(axis="both", color="#dddddd", lw=0.5, zorder=0)
     ax.spines[["top", "right"]].set_visible(False)
     ax.tick_params(length=2.5, width=0.7)
 
@@ -1686,7 +1686,7 @@ def render_outcome_collision_05b() -> None:
             else:
                 ax.set_ylim(0.0, 1.0)
             ax.xaxis.set_major_locator(MaxNLocator(6, integer=True))
-            ax.grid(axis="y", color="#dddddd", lw=0.5, zorder=0)
+            ax.grid(axis="both", color="#dddddd", lw=0.5, zorder=0)
             ax.spines[["top", "right"]].set_visible(False)
             ax.tick_params(length=2.5, width=0.7)
             ax.set_title(label, fontsize=7.8)
@@ -2721,7 +2721,7 @@ def render_online_canonical_maxent_05b() -> None:
             else:
                 ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
             ax.xaxis.set_major_locator(MaxNLocator(6, integer=True))
-            ax.grid(axis="y", color="#dddddd", lw=0.5, zorder=0)
+            ax.grid(axis="both", color="#dddddd", lw=0.5, zorder=0)
             ax.spines[["top", "right"]].set_visible(False)
             ax.spines["bottom"].set_zorder(1)
             ax.tick_params(length=2.5, width=0.7)

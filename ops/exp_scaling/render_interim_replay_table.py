@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 import re
 from typing import Any
 
@@ -29,14 +30,8 @@ FAMILY_TEX = {
     "Falcon3-1B": "Falcon3-1B",
     "Qwen2.5-3B": r"\qwenmark{}2.5-3B",
 }
-DOMAIN_TITLES = {
-    "graph_coloring": "Graph coloring",
-    "countdown": "Countdown",
-    "python_factors": "Python factors",
-    "mathir": "MathIR",
-    "pantry_plan": "PantryPlan",
-    "point_maze": "PointMaze",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from status_e78 import DOMAIN_TITLES  # noqa: E402
 METRICS = ("pass1", "pass8", "mean8", "distinct8")
 
 
@@ -96,8 +91,8 @@ def splice(manuscript: str, rendered: str) -> str:
     anchor = manuscript.find(label)
     if anchor < 0:
         raise SystemExit("manuscript has no tab:interim-replay")
-    start = manuscript.rfind(r"\midrule", 0, anchor)
-    stop = manuscript.find(r"\bottomrule", start, anchor)
+    start = manuscript.find(r"\midrule", anchor)
+    stop = manuscript.find(r"\bottomrule", start)
     if start < 0 or stop < 0:
         raise SystemExit("could not locate the interim table body")
     head = manuscript[: start + len(r"\midrule")]

@@ -208,7 +208,7 @@ def draw_observed_panel(
         [r"$10^{-4}$", r"$10^{-3}$", r"$10^{-2}$", r"$10^{-1}$", "1"]
     )
     ax.set_xlim(1.5e-5, 5.6)
-    ax.grid(axis="y", color="#dddddd", lw=0.5, zorder=0)
+    ax.grid(axis="both", color="#dddddd", lw=0.5, zorder=0)
     ax.spines[["top", "right"]].set_visible(False)
     ax.tick_params(length=2.5, width=0.7)
 

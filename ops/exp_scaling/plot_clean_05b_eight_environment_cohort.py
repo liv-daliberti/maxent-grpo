@@ -282,7 +282,7 @@ def render(
         for column, (metric, _) in enumerate(METRICS, start=1):
             ax = fig.add_subplot(grid[row_index, column])
             ax.set_facecolor("#FFFFFF")
-            ax.grid(axis="y", color="#E2E8F0", linewidth=0.7)
+            ax.grid(axis="both", color="#E2E8F0", linewidth=0.7)
             curves = _metric_curves(payload, row.key, metric)
             if curves is None:
                 progress_status, progress_note = _progress_state(payload, row.key)

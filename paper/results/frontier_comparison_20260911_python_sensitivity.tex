@@ -1,0 +1,57 @@
+\subsection{A separate Python prompt sensitivity test}
+\label{app:hosted-python-prompt}
+After the original Opus 5 Python refusals, synthetic tasks were used to select
+a direct arithmetic-expression formulation with no system message. We then
+collected eight independent draws for every original Python test task: all
+384 prompts across three levels, with unchanged adaptive thinking, medium
+effort, 8,192 output tokens, allowed operators, public inputs and frozen graders.
+The revised user instruction asks for a one-line boxed Python lambda returning
+any proper divisor for each listed input. It does not prescribe a preferred divisor.
+Both task wording and system-message presence change; collection time also differs.
+This exploratory follow-up therefore supports a practical prompt repair without
+isolating its cause. Original refusals and all three residual refusals are retained.
+The original-protocol appendix tables retain all original Python responses;
+the main display uses this complete revised condition with an explicit caption note.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Opus 5 Python: original versus plain task wording.}
+  Each row has 1,024 responses. R counts native refusals; A is per-response accuracy (\%),
+  D is \texttt{distinct@8}, and C is correct-pair collision (\%).
+  Strict and normalized results use the same frozen grader and typography rule.
+  Original Level-2/3 collision is undefined because no prompt has two correct draws.}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}llrrrrrrr@{}}
+    \toprule
+    & & & \multicolumn{3}{c}{Strict} & \multicolumn{3}{c}{Normalized} \\
+    Condition & L & R & A & D & C & A & D & C \\
+    \midrule
+    Original & 1 & 409 & 38.1 & 0.91 & 93.0 & 60.0 & 1.12 & 90.4 \\
+     & 2 & 1021 & 0.3 & 0.02 & -- & 0.3 & 0.02 & -- \\
+     & 3 & 1024 & 0.0 & 0.00 & -- & 0.0 & 0.00 & -- \\
+    \midrule
+    Plain user, no system & 1 & 0 & 74.9 & 1.42 & 80.2 & 100.0 & 1.49 & 79.9 \\
+     & 2 & 0 & 71.8 & 1.31 & 84.7 & 100.0 & 1.38 & 85.7 \\
+     & 3 & 3 & 76.2 & 1.38 & 82.7 & 99.7 & 1.41 & 84.1 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The new condition has no API failures or token-limit truncations. Strict grading
+accepts 2,282 responses; the frozen rule rescues 787 more
+by converting escaped percent signs (\verb|\%|) to Python modulo (\verb|%|).
+Thus every non-refused answer passes after this formatting-only correction.
+Normalized collision is 79.9/85.7/84.1\%, versus conditional uniform references
+of 1.43/1.15/1.15\%. The residual three refusals occur on two prompts whose
+other identical requests are accepted. No retry-until-accepted selection is used.
+
+The paired analysis resamples whole eight-draw prompt groups across conditions
+(20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are
+40.0 [34.7, 45.5], 99.7 [99.3, 100.0], and 99.7 [99.2, 100.0] percentage points
+(pointwise 95\% intervals). Output draws themselves are independent, and the
+different correct-pair populations preclude interpreting a raw collision
+difference as a matched-population prompt effect.
+
+The saved sensitivity record binds the original and revised native receipts,
+request payloads, strict regrade audit and frozen normalization outputs.

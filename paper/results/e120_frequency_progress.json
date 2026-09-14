@@ -1,0 +1,539 @@
+{
+  "cells": {
+    "falcon1b": {
+      "graph_coloring": {
+        "complete_block": false,
+        "fresh_frequency": {},
+        "fresh_frequency_minus_uniform": {},
+        "n": 0,
+        "registered_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "terminal_seeds": [],
+        "uniform_key_replay": {}
+      },
+      "pantry_plan": {
+        "complete_block": false,
+        "fresh_frequency": {},
+        "fresh_frequency_minus_uniform": {},
+        "n": 0,
+        "registered_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "terminal_seeds": [],
+        "uniform_key_replay": {}
+      }
+    },
+    "qwen05b": {
+      "countdown": {
+        "complete_block": true,
+        "fresh_frequency": {
+          "43": {
+            "distinct8": 1.052734375,
+            "pass8": 0.65625
+          },
+          "44": {
+            "distinct8": 1.0078125,
+            "pass8": 0.65625
+          },
+          "45": {
+            "distinct8": 1.076171875,
+            "pass8": 0.6484375
+          },
+          "46": {
+            "distinct8": 0.888671875,
+            "pass8": 0.642578125
+          },
+          "47": {
+            "distinct8": 0.85546875,
+            "pass8": 0.646484375
+          }
+        },
+        "fresh_frequency_minus_uniform": {
+          "distinct8": {
+            "mean": -0.660546875,
+            "per_seed": {
+              "43": -0.505859375,
+              "44": -0.5390625,
+              "45": -0.662109375,
+              "46": -0.748046875,
+              "47": -0.84765625
+            },
+            "student_t_95": [
+              -0.8376258422539934,
+              -0.48346790774600656
+            ]
+          },
+          "pass8": {
+            "mean": -0.021875,
+            "per_seed": {
+              "43": 0.0,
+              "44": 0.0,
+              "45": -0.03125,
+              "46": -0.021484375,
+              "47": -0.056640625
+            },
+            "student_t_95": [
+              -0.051348002142567406,
+              0.007598002142567409
+            ]
+          }
+        },
+        "n": 5,
+        "registered_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "terminal_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "uniform_key_replay": {
+          "43": {
+            "distinct8": 1.55859375,
+            "pass8": 0.65625
+          },
+          "44": {
+            "distinct8": 1.546875,
+            "pass8": 0.65625
+          },
+          "45": {
+            "distinct8": 1.73828125,
+            "pass8": 0.6796875
+          },
+          "46": {
+            "distinct8": 1.63671875,
+            "pass8": 0.6640625
+          },
+          "47": {
+            "distinct8": 1.703125,
+            "pass8": 0.703125
+          }
+        }
+      },
+      "graph_coloring": {
+        "complete_block": true,
+        "fresh_frequency": {
+          "43": {
+            "distinct8": 1.837890625,
+            "pass8": 0.916015625
+          },
+          "44": {
+            "distinct8": 1.673828125,
+            "pass8": 0.896484375
+          },
+          "45": {
+            "distinct8": 1.9375,
+            "pass8": 0.91015625
+          },
+          "46": {
+            "distinct8": 1.685546875,
+            "pass8": 0.8984375
+          },
+          "47": {
+            "distinct8": 1.740234375,
+            "pass8": 0.89453125
+          }
+        },
+        "fresh_frequency_minus_uniform": {
+          "distinct8": {
+            "mean": -0.6625,
+            "per_seed": {
+              "43": -0.59765625,
+              "44": -0.74609375,
+              "45": -0.529296875,
+              "46": -0.62109375,
+              "47": -0.818359375
+            },
+            "student_t_95": [
+              -0.8080216456540029,
+              -0.516978354345997
+            ]
+          },
+          "pass8": {
+            "mean": -0.066015625,
+            "per_seed": {
+              "43": -0.064453125,
+              "44": -0.0703125,
+              "45": -0.0625,
+              "46": -0.056640625,
+              "47": -0.076171875
+            },
+            "student_t_95": [
+              -0.07531369465677469,
+              -0.0567175553432253
+            ]
+          }
+        },
+        "n": 5,
+        "registered_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "terminal_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "uniform_key_replay": {
+          "43": {
+            "distinct8": 2.435546875,
+            "pass8": 0.98046875
+          },
+          "44": {
+            "distinct8": 2.419921875,
+            "pass8": 0.966796875
+          },
+          "45": {
+            "distinct8": 2.466796875,
+            "pass8": 0.97265625
+          },
+          "46": {
+            "distinct8": 2.306640625,
+            "pass8": 0.955078125
+          },
+          "47": {
+            "distinct8": 2.55859375,
+            "pass8": 0.970703125
+          }
+        }
+      },
+      "mathir": {
+        "complete_block": true,
+        "fresh_frequency": {
+          "43": {
+            "distinct8": 0.935546875,
+            "pass8": 0.919921875
+          },
+          "44": {
+            "distinct8": 0.705078125,
+            "pass8": 0.697265625
+          },
+          "45": {
+            "distinct8": 0.7578125,
+            "pass8": 0.748046875
+          },
+          "46": {
+            "distinct8": 0.85546875,
+            "pass8": 0.845703125
+          },
+          "47": {
+            "distinct8": 0.81640625,
+            "pass8": 0.794921875
+          }
+        },
+        "fresh_frequency_minus_uniform": {
+          "distinct8": {
+            "mean": -0.014453125,
+            "per_seed": {
+              "43": 0.115234375,
+              "44": -0.150390625,
+              "45": -0.0859375,
+              "46": -0.052734375,
+              "47": 0.1015625
+            },
+            "student_t_95": [
+              -0.1604911641329332,
+              0.1315849141329332
+            ]
+          },
+          "pass8": {
+            "mean": 0.0046875,
+            "per_seed": {
+              "43": 0.12890625,
+              "44": -0.134765625,
+              "45": -0.05078125,
+              "46": -0.00390625,
+              "47": 0.083984375
+            },
+            "student_t_95": [
+              -0.1260062638638563,
+              0.13538126386385632
+            ]
+          }
+        },
+        "n": 5,
+        "registered_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "terminal_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "uniform_key_replay": {
+          "43": {
+            "distinct8": 0.8203125,
+            "pass8": 0.791015625
+          },
+          "44": {
+            "distinct8": 0.85546875,
+            "pass8": 0.83203125
+          },
+          "45": {
+            "distinct8": 0.84375,
+            "pass8": 0.798828125
+          },
+          "46": {
+            "distinct8": 0.908203125,
+            "pass8": 0.849609375
+          },
+          "47": {
+            "distinct8": 0.71484375,
+            "pass8": 0.7109375
+          }
+        }
+      },
+      "pantry_plan": {
+        "complete_block": true,
+        "fresh_frequency": {
+          "43": {
+            "distinct8": 1.130859375,
+            "pass8": 0.669921875
+          },
+          "44": {
+            "distinct8": 1.28125,
+            "pass8": 0.703125
+          },
+          "45": {
+            "distinct8": 1.18359375,
+            "pass8": 0.6796875
+          },
+          "46": {
+            "distinct8": 1.328125,
+            "pass8": 0.6953125
+          },
+          "47": {
+            "distinct8": 1.0703125,
+            "pass8": 0.6796875
+          }
+        },
+        "fresh_frequency_minus_uniform": {
+          "distinct8": {
+            "mean": -0.340625,
+            "per_seed": {
+              "43": -0.498046875,
+              "44": -0.498046875,
+              "45": -0.08984375,
+              "46": -0.22265625,
+              "47": -0.39453125
+            },
+            "student_t_95": [
+              -0.5638458670812175,
+              -0.11740413291878246
+            ]
+          },
+          "pass8": {
+            "mean": -0.04296875,
+            "per_seed": {
+              "43": -0.134765625,
+              "44": -0.033203125,
+              "45": 0.005859375,
+              "46": -0.00390625,
+              "47": -0.048828125
+            },
+            "student_t_95": [
+              -0.11228661154685488,
+              0.026349111546854875
+            ]
+          }
+        },
+        "n": 5,
+        "registered_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "terminal_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "uniform_key_replay": {
+          "43": {
+            "distinct8": 1.62890625,
+            "pass8": 0.8046875
+          },
+          "44": {
+            "distinct8": 1.779296875,
+            "pass8": 0.736328125
+          },
+          "45": {
+            "distinct8": 1.2734375,
+            "pass8": 0.673828125
+          },
+          "46": {
+            "distinct8": 1.55078125,
+            "pass8": 0.69921875
+          },
+          "47": {
+            "distinct8": 1.46484375,
+            "pass8": 0.728515625
+          }
+        }
+      },
+      "python_factors": {
+        "complete_block": true,
+        "fresh_frequency": {
+          "43": {
+            "distinct8": 0.171875,
+            "pass8": 0.171875
+          },
+          "44": {
+            "distinct8": 0.2265625,
+            "pass8": 0.2265625
+          },
+          "45": {
+            "distinct8": 1.01953125,
+            "pass8": 1.0
+          },
+          "46": {
+            "distinct8": 1.00390625,
+            "pass8": 0.9921875
+          },
+          "47": {
+            "distinct8": 0.6328125,
+            "pass8": 0.6328125
+          }
+        },
+        "fresh_frequency_minus_uniform": {
+          "distinct8": {
+            "mean": 0.03984375,
+            "per_seed": {
+              "43": -0.828125,
+              "44": -0.771484375,
+              "45": 0.80078125,
+              "46": 0.560546875,
+              "47": 0.4375
+            },
+            "student_t_95": [
+              -0.9259264655195261,
+              1.005613965519526
+            ]
+          },
+          "pass8": {
+            "mean": 0.076953125,
+            "per_seed": {
+              "43": -0.828125,
+              "44": -0.771484375,
+              "45": 0.78125,
+              "46": 0.765625,
+              "47": 0.4375
+            },
+            "student_t_95": [
+              -0.9316475852321056,
+              1.0855538352321055
+            ]
+          }
+        },
+        "n": 5,
+        "registered_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "terminal_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "uniform_key_replay": {
+          "43": {
+            "distinct8": 1.0,
+            "pass8": 1.0
+          },
+          "44": {
+            "distinct8": 0.998046875,
+            "pass8": 0.998046875
+          },
+          "45": {
+            "distinct8": 0.21875,
+            "pass8": 0.21875
+          },
+          "46": {
+            "distinct8": 0.443359375,
+            "pass8": 0.2265625
+          },
+          "47": {
+            "distinct8": 0.1953125,
+            "pass8": 0.1953125
+          }
+        }
+      }
+    },
+    "qwen3b": {
+      "graph_coloring": {
+        "complete_block": false,
+        "fresh_frequency": {},
+        "fresh_frequency_minus_uniform": {},
+        "n": 0,
+        "registered_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "terminal_seeds": [],
+        "uniform_key_replay": {}
+      },
+      "pantry_plan": {
+        "complete_block": false,
+        "fresh_frequency": {},
+        "fresh_frequency_minus_uniform": {},
+        "n": 0,
+        "registered_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "terminal_seeds": [],
+        "uniform_key_replay": {}
+      }
+    }
+  },
+  "complete_blocks": 5,
+  "contrast": "fresh-frequency replay minus uniform key-balanced replay",
+  "generated_at": "2026-09-04T15:40:26.896956+00:00",
+  "registered_cells": 45,
+  "schema": "e120-frequency-progress-v1",
+  "selection_rule": "exact step-3072 four-draw endpoints only; complete five-seed blocks receive unadjusted descriptive Student-t intervals, while partial seed prefixes receive no interval or confirmatory interpretation",
+  "source": "var/artifacts/e120r1_frequency_weighted_replay_jobs.json",
+  "source_sha256": "5302ba26da3f67d0b57e9eef1e8f528c6a56aef5faeb543a3adbfe32e721d8e7",
+  "terminal_cells": 25
+}

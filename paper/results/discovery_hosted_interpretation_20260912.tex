@@ -1,0 +1,46 @@
+\subsection{Hosted discovery: guidance, formatting, and late modes}
+\label{app:hosted-discovery-complete}
+
+The completed hosted panel contains 36,864 fresh responses from GPT-5.4,
+GPT-5.6 Sol, and Grok 4.3: sixteen fixed problems in each of six
+Python/MathIR/Pantry level cells, two wordings, and 64 draws per condition.
+The full report retains both grading conventions, all observed failures,
+ordered-prefix sensitivities, and every conditional-eligibility denominator.
+These fixed deployment configurations form a separate experiment from the
+reasoning-disabled main table. The historical Level-3 problems also precede
+the newly admitted neutral-Python dataset; this follow-up evaluates no
+checkpoint trained on that successor dataset.
+
+\paragraph{MathIR guidance changes GPT's correct-solution breadth.}
+At Level~2, both GPT deployments produce at most one verified mode per
+problem under original wording even with 64 draws. At matched budgets of
+eight correct draws, neutral wording increases mean breadth by $.794$
+($[.623,.990]$) for GPT-5.4 and $.872$ ($[.606,1.123]$) for GPT-5.6 Sol.
+The Level-3 effects are $.204$ ($[.106,.320]$) and $.860$
+($[.563,1.141]$). Grok's corresponding intervals include zero at both levels.
+The GPT results therefore survive conditioning on observed correctness;
+Grok's intervals leave its corresponding effect unresolved. These
+pointwise exploratory intervals resample the sixteen paired problems,
+without replication across hosted model training seeds.
+
+\paragraph{Pantry continues discovering modes after first success.}
+Under neutral wording, GPT-5.4 gains $2.583$ and $3.219$ verified modes
+between eight and 64 draws at Levels~2 and~3; Grok gains $3.377$ and
+$4.466$. Grok's empirical pass probability is already $1.0$ at eight draws
+in both cells, so these gains consist entirely of additional modes.
+At Level~3 its distinct count rises from $3.972$ to $8.438$.
+At eight correct draws, neutral minus original breadth is $1.781$
+($[1.226,2.338]$) for Grok and $.934$ ($[.670,1.184]$) for GPT-5.4;
+GPT-5.6 Sol's Level-3 contrast is inconclusive. These observed counts
+measure finite-sample discovery rather than exhaustive solution coverage.
+
+\paragraph{Python requires the formatting sensitivity.}
+GPT-5.6 Sol's original-wording strict pass probability remains $.1875$
+at Level~2 and $.0625$ at Level~3 from eight through 64 draws. The frozen
+formatting normalizer instead gives $P_{64}=1.0$ under both wordings at
+both levels, with all four $P_8$ values above $.989$. Thus its low strict
+scores cannot be interpreted as an absence of valid mathematical solutions.
+The normalized neutral-minus-original increase in late mode discovery is
+$.681$ ($[.351,1.066]$) at Level~2 and $.370$ ($[.112,.674]$) at Level~3.
+Both the strict failure pattern and the normalized sensitivity remain
+visible; formatting rescue is not a change to the verifier or mode key.

@@ -1,0 +1,159 @@
+{
+  "display": {
+    "bands": "seed range, not a confidence interval",
+    "gaps_are_not_joined": true,
+    "min_defined_prompts": 30,
+    "x": "training step",
+    "y": "pairwise modal diversity"
+  },
+  "level": "level2",
+  "outputs": {
+    "paper/figures/level2_training_curves_pmd.pdf": "62983807a2ae52ad60ad4dd2494dd2941caf1c23f37a68d7eb8fb8daead7a6c9"
+  },
+  "renderer": {
+    "path": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_paper_mode_diversity_curves.py",
+    "sha256": "7d13f4b5e70143155edcda53a2a7775ae0e865b2f797dc58dd77653873f2f4d0",
+    "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
+    "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+  },
+  "schema": "paper-mode-diversity-curves-figure-v1",
+  "scope": {
+    "domains": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry_plan"
+    ],
+    "methods": [
+      "drgrpo",
+      "replay_drgrpo",
+      "maxrl",
+      "replay_maxrl"
+    ],
+    "scales": [
+      "qwen05b"
+    ],
+    "series": {
+      "qwen05b|countdown|drgrpo": {
+        "seeds": 1,
+        "steps": 5
+      },
+      "qwen05b|countdown|maxrl": {
+        "seeds": 2,
+        "steps": 4
+      },
+      "qwen05b|countdown|replay_drgrpo": {
+        "seeds": 3,
+        "steps": 5
+      },
+      "qwen05b|countdown|replay_maxrl": {
+        "seeds": 1,
+        "steps": 21
+      },
+      "qwen05b|graph_coloring|drgrpo": {
+        "seeds": 5,
+        "steps": 32
+      },
+      "qwen05b|graph_coloring|maxrl": {
+        "seeds": 5,
+        "steps": 32
+      },
+      "qwen05b|graph_coloring|replay_drgrpo": {
+        "seeds": 5,
+        "steps": 32
+      },
+      "qwen05b|graph_coloring|replay_maxrl": {
+        "seeds": 5,
+        "steps": 32
+      },
+      "qwen05b|mathir|drgrpo": {
+        "seeds": 4,
+        "steps": 31
+      },
+      "qwen05b|mathir|maxrl": {
+        "seeds": 5,
+        "steps": 31
+      },
+      "qwen05b|mathir|replay_drgrpo": {
+        "seeds": 5,
+        "steps": 32
+      },
+      "qwen05b|mathir|replay_maxrl": {
+        "seeds": 5,
+        "steps": 32
+      },
+      "qwen05b|pantry_plan|drgrpo": {
+        "seeds": 5,
+        "steps": 29
+      },
+      "qwen05b|pantry_plan|maxrl": {
+        "seeds": 5,
+        "steps": 21
+      },
+      "qwen05b|pantry_plan|replay_drgrpo": {
+        "seeds": 5,
+        "steps": 33
+      },
+      "qwen05b|pantry_plan|replay_maxrl": {
+        "seeds": 5,
+        "steps": 33
+      },
+      "qwen05b|python_factors|drgrpo": {
+        "seeds": 5,
+        "steps": 33
+      },
+      "qwen05b|python_factors|maxrl": {
+        "seeds": 5,
+        "steps": 33
+      },
+      "qwen05b|python_factors|replay_drgrpo": {
+        "seeds": 5,
+        "steps": 33
+      },
+      "qwen05b|python_factors|replay_maxrl": {
+        "seeds": 5,
+        "steps": 33
+      }
+    },
+    "steps": [
+      0,
+      96,
+      192,
+      288,
+      384,
+      480,
+      576,
+      672,
+      768,
+      864,
+      960,
+      1056,
+      1152,
+      1248,
+      1344,
+      1440,
+      1536,
+      1632,
+      1728,
+      1824,
+      1920,
+      2016,
+      2112,
+      2208,
+      2304,
+      2400,
+      2496,
+      2592,
+      2688,
+      2784,
+      2880,
+      2976,
+      3072
+    ]
+  },
+  "source": {
+    "path": "paper/results/mode_diversity_curves.json",
+    "sha256": "fe166e87c13a62284ce1aae805b077efa8bfbf62feeb9bbb712f1f2a850ed67b"
+  }
+}

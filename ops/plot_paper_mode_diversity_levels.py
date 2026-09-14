@@ -33,7 +33,7 @@ if str(ROOT / 'ops') not in sys.path:
 import paper_style as style
 import plot_paper_modebench_base_grid as base_grid
 import plot_paper_modebench_examples as domain_examples
-from plot_paper_modebench_base_levels_appendix import SCALE_RAMP, scale_colors, scale_areas
+from plot_paper_modebench_base_levels_appendix import SCALE_RAMP, scale_areas, scale_colors, scale_areas
 
 PAYLOAD = ROOT / 'paper/results/mode_diversity_base_grid.json'
 OUT_APPENDIX = ROOT / 'paper/figures/mode_diversity_levels_appendix'
@@ -46,7 +46,6 @@ MODELS = base_grid.MODELS
 LEVELS = ('level1', 'level2', 'level3')
 TITLES = dict(zip(DOMAINS, ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry')))
 COLORS = scale_colors()
-AREAS = scale_areas()
 LEVEL_MARKERS = dict(zip(LEVELS, ('o', 's', '^')))
 MARKER_AREA = 22
 DOMAIN_BACKGROUNDS = {domain: domain_examples.DOMAIN_PANEL[letter]
@@ -82,7 +81,7 @@ def _panel(axis, cells, models, domain):
             if cell is None:
                 continue
             if cell['reportable']:
-                axis.scatter(cell['pass8'], cell['pmd'], s=AREAS[model],
+                axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA,
                              marker=LEVEL_MARKERS[level], facecolors=COLORS[model],
                              edgecolors=style.INK, alpha=.85, linewidths=.35,
                              zorder=3 + order, clip_on=False)
@@ -125,8 +124,7 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(7.35, 2.35), legends=
         levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
                              color=style.MUTED, markeredgewidth=.9,
                              label='not measurable'))
-        scales = [Line2D([], [], marker='o', linestyle='none',
-                         markersize=(AREAS[model] ** .5) * 1.05,
+        scales = [Line2D([], [], marker='o', linestyle='none', markersize=4.7,
                          markerfacecolor=COLORS[model], markeredgecolor=style.INK,
                          markeredgewidth=.35, label=base_grid.MODEL_NAMES[model])
                   for model in models]
@@ -154,6 +152,8 @@ def record_for(payload: dict, models, output: Path) -> dict:
                     'unmeasurable_cells_have_no_height': True,
                     'min_defined_prompts': payload['definition']['min_defined_prompts'],
                     'model_colors': deepcopy({m: COLORS[m] for m in models}),
+                    'marker_area': MARKER_AREA,
+                    'encoding': 'scale -> colour ramp; level -> marker shape',
                     'level_markers': deepcopy(LEVEL_MARKERS)},
         'points': [{k: c[k] for k in ('model_label', 'level', 'domain', 'pass8', 'pmd',
                                       'defined_prompts', 'support', 'reportable')}

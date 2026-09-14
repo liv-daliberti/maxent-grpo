@@ -1,10 +1,12 @@
 {
   "display": {
+    "encoding": "scale -> colour ramp; level -> marker shape",
     "level_markers": {
       "level1": "o",
       "level2": "s",
       "level3": "^"
     },
+    "marker_area": 22,
     "min_defined_prompts": 30,
     "model_colors": {
       "05b": "#1A9850",
@@ -30,7 +32,7 @@
   },
   "output": "paper/figures/mode_diversity_levels_appendix",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "8a93d25d0d82caf8adbbb82cbf52aacd4ae564fae8e2ef8719bc06d5779c961a"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "36faa25e8a9b7d2dcda9a5ae674004b06a238be812deb301e07aec1fcb7a2b5c"
   },
   "points": [
     {
@@ -636,7 +638,7 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "65fdfe95df080d0d7c4c1999b9c367c18b080557df9665e84c3dcd8aa54274ec",
+    "sha256": "7dd0ac5f34c37d3219f0c42c9204aab85c0799d30b6cffb9ba86561a51e70005",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
   },

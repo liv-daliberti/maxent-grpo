@@ -77,10 +77,20 @@ def build_figure(payload: dict, level: str = 'level1'):
     table = series(payload, level)
     all_steps = sorted({s for v in table.values() for s in v})
     style.apply_rcparams()
-    rows, cols = len(SCALES), len(DOMAINS)
-    figure, axes = plt.subplots(rows, cols, figsize=(style.WIDTH, style.panel_height(rows)),
-                                sharex=True)
-    figure.subplots_adjust(left=.085, right=.99, bottom=.145, top=.94, wspace=.34, hspace=.26)
+    # Only Qwen2.5-0.5B is trained at Level 2, so the row set follows the data
+    # rather than assuming the three-scale Level-1 layout.
+    scales = [scale for scale in SCALES if any(k[0] == scale for k in table)]
+    rows, cols = len(scales), len(DOMAINS)
+    # The legend and axis labels need a fixed strip of inches, not a fixed
+    # fraction: at one row a fraction tuned for three rows puts the legend on
+    # top of the tick labels.
+    chrome = .78
+    height = style.panel_height(rows) + chrome
+    figure, axes = plt.subplots(rows, cols, figsize=(style.WIDTH, height),
+                                sharex=True, squeeze=False)
+    bottom = chrome / height
+    figure.subplots_adjust(left=.085, right=.99, bottom=bottom, top=1 - .06 / height * 3,
+                           wspace=.34, hspace=.26)
     # One vertical scale per domain, shared down the model rows, so a reader
     # compares scales within a domain without rescaling between panels.
     column_max = {}
@@ -88,7 +98,7 @@ def build_figure(payload: dict, level: str = 'level1'):
         values = [v for (sc, dm, me), by_step in table.items() if dm == domain
                   for vals in by_step.values() for v in vals]
         column_max[domain] = max(values) if values else 1.0
-    for row, scale in enumerate(SCALES):
+    for row, scale in enumerate(scales):
         for col, (domain, label) in enumerate(zip(DOMAINS, DOMAIN_LABELS)):
             axis = axes[row][col]
             for method, spec in METHODS.items():
@@ -112,13 +122,13 @@ def build_figure(payload: dict, level: str = 'level1'):
                 axis.set_ylabel(SCALE_LABELS[scale], fontsize=style.LABEL_FONT)
             if row == rows - 1:
                 axis.set_xlabel('Training step', fontsize=style.LABEL_FONT)
-    figure.text(.012, .55, 'Pairwise modal diversity', rotation=90, va='center',
-                ha='center', fontsize=style.TITLE_FONT)
+    figure.text(.012, (bottom + 1) / 2, 'Pairwise modal diversity', rotation=90,
+                va='center', ha='center', fontsize=style.TITLE_FONT)
     handles = [Line2D([], [], color=spec['color'], linestyle=spec['dash'],
                       linewidth=style.MEAN_LW, label=spec['label'])
                for spec in METHODS.values()]
     figure.legend(handles=handles, loc='lower center', ncol=4, frameon=False,
-                  fontsize=style.SMALL_FONT, bbox_to_anchor=(.54, .005),
+                  fontsize=style.SMALL_FONT, bbox_to_anchor=(.54, .004),
                   handletextpad=.45, handlelength=1.8, columnspacing=2.0)
     return figure, table, all_steps
 
@@ -143,7 +153,7 @@ def main() -> None:
                     'min_defined_prompts': payload['definition']['min_defined_prompts'],
                     'gaps_are_not_joined': True,
                     'bands': 'seed range, not a confidence interval'},
-        'scope': {'scales': list(SCALES), 'domains': list(DOMAINS),
+        'scope': {'scales': sorted({k[0] for k in table}), 'domains': list(DOMAINS),
                   'methods': list(METHODS), 'steps': steps,
                   'series': {'|'.join(k): {'steps': len(v),
                                            'seeds': max((len(x) for x in v.values()), default=0)}

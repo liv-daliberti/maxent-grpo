@@ -1,0 +1,194 @@
+{
+  "schema": "paper-aligned-domain-strip-v2",
+  "generated_at": "2026-08-15T00:35:33.010918+00:00",
+  "figure_key": "replay_dose_qwen05b_progress_20260813_static_strip",
+  "comparison": "replay_dose",
+  "layout": "three physical model rows by five static-domain columns",
+  "environment_columns": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "model_rows": [
+    "qwen05b",
+    "falcon1b",
+    "qwen3b"
+  ],
+  "model_encoding": "row 1 Qwen2.5-0.5B; row 2 Falcon3-1B; row 3 Qwen2.5-3B; insufficient cells are blank",
+  "evidence": "frozen progress snapshot; not a five-seed estimand",
+  "metric": "mean distinct correct@8 with paired-seed range",
+  "methods": [
+    "drgrpo",
+    "replay_grpo",
+    "adaptive_replay_grpo"
+  ],
+  "sources": [
+    {
+      "path": "paper/figures/comparisons/replay_dose_qwen05b_progress_20260813_part1.json",
+      "sha256": "1949866fcae79605bf9f568129431c834ad475773380d891ea870b9ba7a652e6"
+    },
+    {
+      "path": "paper/figures/comparisons/replay_dose_qwen05b_progress_20260813_part2.json",
+      "sha256": "be6a5b292b224bafe1fef2da4f16f37c4a13480108a263c4691fb5b55508a930"
+    }
+  ],
+  "panels": {
+    "graph_coloring": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 1,
+            "replay_grpo": 1,
+            "adaptive_replay_grpo": 1
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_replay_grpo"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        }
+      }
+    },
+    "countdown": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 2,
+            "replay_grpo": 2,
+            "adaptive_replay_grpo": 2
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_replay_grpo"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        }
+      }
+    },
+    "python_factors": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 2,
+            "replay_grpo": 2,
+            "adaptive_replay_grpo": 2
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_replay_grpo"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        }
+      }
+    },
+    "mathir": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 2,
+            "replay_grpo": 2,
+            "adaptive_replay_grpo": 2
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_replay_grpo"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        }
+      }
+    },
+    "pantry_plan": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 2,
+            "replay_grpo": 2,
+            "adaptive_replay_grpo": 2
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_replay_grpo"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "replay-dose comparison not registered at this scale"
+        }
+      }
+    }
+  }
+}

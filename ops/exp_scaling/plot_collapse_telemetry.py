@@ -380,7 +380,7 @@ def plot_telemetry(
     ax.legend(frameon=False, fontsize=6.5, loc="lower left")
 
     for ax in axes:
-        ax.grid(axis="y", color="#dddddd", lw=0.5, zorder=0)
+        ax.grid(axis="both", color="#dddddd", lw=0.5, zorder=0)
         ax.spines[["top", "right"]].set_visible(False)
         ax.tick_params(length=2.5, width=0.7)
 

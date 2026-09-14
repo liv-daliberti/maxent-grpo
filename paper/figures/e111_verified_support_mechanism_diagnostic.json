@@ -1,0 +1,417 @@
+{
+  "schema": "paper-e111-verified-support-mechanism-diagnostic-v1",
+  "generated_at": "2026-09-04T15:38:10.617407+00:00",
+  "pointmaze": "excluded",
+  "outcome_metrics_used_for_gate": false,
+  "status": "complete 15-cell mechanism validation; no efficacy result",
+  "input": "/n/fs/similarity/maxent-grpo/var/artifacts/e111_verified_support_discovery_mechanism_gate_audit.json",
+  "input_sha256": "609d52d26b99d53d7c41f965e503f1f33ec9e6d138714c84b922705d5ad4a47e",
+  "plotter": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_e111_verified_support_mechanism_diagnostic.py",
+  "plotter_sha256": "1fc5b5e0c7121ac386ee7ff6c0baa0099d4ace79271c646558ed8083d8f9514c",
+  "scale_order": [
+    "qwen05b",
+    "falcon1b",
+    "qwen3b"
+  ],
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "metric_order": [
+    "semantic_eligible_fraction_max",
+    "support_at_least_two_eligible_fraction_max",
+    "semantic_rms_max",
+    "proposal_cumulative_admissions",
+    "replay_gradient_l2_max"
+  ],
+  "cells": [
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "graph_coloring",
+      "seed": 43,
+      "job_id": 30674729,
+      "effective_job_id": 30674729,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.8125,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.02598772570490837,
+        "proposal_cumulative_admissions": 11.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "countdown",
+      "seed": 43,
+      "job_id": 30674728,
+      "effective_job_id": 30674728,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.125,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.004119796212762594,
+        "proposal_cumulative_admissions": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": false,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "python_factors",
+      "seed": 43,
+      "job_id": 30674732,
+      "effective_job_id": 30674732,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.25,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.002432387787848711,
+        "proposal_cumulative_admissions": 1.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "mathir",
+      "seed": 43,
+      "job_id": 30674730,
+      "effective_job_id": 30674730,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.25,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.0055451774969697,
+        "proposal_cumulative_admissions": 2.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "pantry_plan",
+      "seed": 43,
+      "job_id": 30674731,
+      "effective_job_id": 30674731,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.8125,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.012882508337497711,
+        "proposal_cumulative_admissions": 56.0,
+        "replay_gradient_l2_max": 0.05000000074505806
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "graph_coloring",
+      "seed": 55,
+      "job_id": 30674733,
+      "effective_job_id": 30674733,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.8125,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.01702137105166912,
+        "proposal_cumulative_admissions": 8.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "countdown",
+      "seed": 55,
+      "job_id": 30674754,
+      "effective_job_id": 30674754,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.375,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.007678969297558069,
+        "proposal_cumulative_admissions": 2.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "python_factors",
+      "seed": 55,
+      "job_id": 30674755,
+      "effective_job_id": 30674755,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.0625,
+        "support_at_least_two_eligible_fraction_max": 0.0,
+        "semantic_rms_max": 0.0,
+        "proposal_cumulative_admissions": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": false,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "mathir",
+      "seed": 55,
+      "job_id": 30674756,
+      "effective_job_id": 30674756,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.4375,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.012104145251214504,
+        "proposal_cumulative_admissions": 2.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "pantry_plan",
+      "seed": 55,
+      "job_id": 30674757,
+      "effective_job_id": 30674757,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.625,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.012898387387394905,
+        "proposal_cumulative_admissions": 39.0,
+        "replay_gradient_l2_max": 0.05000000074505806
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "graph_coloring",
+      "seed": 70,
+      "job_id": 30674758,
+      "effective_job_id": 30674758,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.8125,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.025107145309448242,
+        "proposal_cumulative_admissions": 12.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "countdown",
+      "seed": 70,
+      "job_id": 30674759,
+      "effective_job_id": 30674759,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.5625,
+        "support_at_least_two_eligible_fraction_max": 0.0,
+        "semantic_rms_max": 0.0,
+        "proposal_cumulative_admissions": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": false,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "python_factors",
+      "seed": 70,
+      "job_id": 30750655,
+      "effective_job_id": 30750655,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.5625,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.01320499274879694,
+        "proposal_cumulative_admissions": 1.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "mathir",
+      "seed": 70,
+      "job_id": 30739798,
+      "effective_job_id": 30739798,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.25,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.0032675270922482014,
+        "proposal_cumulative_admissions": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": false,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "pantry_plan",
+      "seed": 70,
+      "job_id": 30788541,
+      "effective_job_id": 30788541,
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.875,
+        "support_at_least_two_eligible_fraction_max": 1.0,
+        "semantic_rms_max": 0.015518796630203724,
+        "proposal_cumulative_admissions": 35.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "completed_causal_chain": true,
+      "invariants": {
+        "v7_active": true,
+        "v5_inactive": true,
+        "v6_inactive": true,
+        "controller_inactive": true,
+        "proposal_not_in_ppo": true,
+        "proposal_outcome_neutral": true,
+        "replay_actuated": true
+      }
+    }
+  ],
+  "completed_causal_chain_cells": 11,
+  "invariant_counts": {
+    "v7_active": 15,
+    "v5_inactive": 15,
+    "v6_inactive": 15,
+    "controller_inactive": 15,
+    "proposal_not_in_ppo": 15,
+    "proposal_outcome_neutral": 15,
+    "replay_actuated": 15
+  }
+}

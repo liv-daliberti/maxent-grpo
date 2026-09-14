@@ -291,7 +291,7 @@ def _render_compute_companion(
                 linestyle=":",
                 zorder=0,
             )
-        axis.grid(axis="y", color="#dddddd", linewidth=0.5, zorder=0)
+        axis.grid(axis="both", color="#dddddd", linewidth=0.5, zorder=0)
         axis.spines[["top", "right"]].set_visible(False)
         axis.tick_params(length=2.5, width=0.7)
         if kind == "eval" and latest_metric_pass <= 1e-9 and metric == "pass8":
@@ -485,7 +485,7 @@ def build(
         axis.xaxis.set_major_locator(MultipleLocator(0.25))
         for boundary in (0.25, 0.5, 0.75, 1.0):
             axis.axvline(boundary, color="#B8B8B8", linewidth=0.45, linestyle=":", zorder=0)
-        axis.grid(axis="y", color="#D8D8D8", linewidth=0.45, alpha=0.65)
+        axis.grid(axis="both", color="#D8D8D8", linewidth=0.45, alpha=0.65)
         axis.spines["top"].set_visible(False)
         axis.spines["right"].set_visible(False)
         if metric in {"pass1", "pass8", "mean8", "reward", "no_eos"}:

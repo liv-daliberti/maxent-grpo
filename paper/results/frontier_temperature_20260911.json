@@ -1,0 +1,4292 @@
+{
+  "schema": "frontier-temperature-paper-v1",
+  "builder_sha256": "37d3c6654657e5cc1781fd69dbdd4944e0be48d1668199ab03e6686d4a6ccb49",
+  "source": {
+    "path": "artifacts/frontier_temperature_20260911/TEMPERATURE_ABLATION.json",
+    "sha256": "e5c7f6c4a520a54ca067cf285d78947f78352b129a99e75ffb74d5b666048621"
+  },
+  "authenticated_file_bindings": 58,
+  "bootstrap": {
+    "individual_draw_pairing": false,
+    "interval": "Pointwise 95% percentile; no multiplicity adjustment.",
+    "replicates": 20000,
+    "seed": 20260915,
+    "shared_indices_across_models": true,
+    "unit": "Paired whole eight-draw prompt groups, independently stratified by domain and level."
+  },
+  "selected_rows_sha256": "365f54cb43d205919b3516ec1cf048050c320192815a3faa0029855160372ce7",
+  "collection_gate": {
+    "details": {
+      "admitted_slugs": [
+        "grok43",
+        "kimi_k3"
+      ],
+      "api_contract_sources": {
+        "grok43": "https://github.com/xai-org/xai-proto/blob/main/proto/xai/api/v1/chat.proto",
+        "kimi_k3": "https://docs.fireworks.ai/api-reference/post-chatcompletions"
+      },
+      "authorization": "User approved small three-model ablation where supported; two supported API-contract candidates admitted, DeepSeek excluded because temperature ignored with thinking.",
+      "created_at_utc": "2026-09-11T16:52:43.078710+00:00",
+      "effective_sampler_note": "Provider contracts support requested controls and Azure accepted all four preflights. Responses do not expose effective temperature; deployment internals cannot be independently audited.",
+      "paired_collection": "Both temperatures run concurrently within each model, with identical request order and same non-temperature settings.",
+      "planned_terminal_responses": 3840,
+      "preflight_evidence": {
+        "grok43_t1p0": {
+          "manifest_sha256": "6c57475d4fe626f70cf1077cea755e6610146269df335de51d54e2a1b73f6136",
+          "raw_receipt_sha256": "3196932f3d75d42ffb074fb0acf7209a0a000bbc9db55827482c319e6764548f",
+          "result_sha256": "60e87a552aa4f43c9609e96633a0048508b7c09ed61229e8b31c7b03066260cb",
+          "sample_receipt_sha256": "316470373d41361aadc792f46e9a4f733612f749f5328df99eb21d09c580f947"
+        },
+        "grok43_t1p5": {
+          "manifest_sha256": "812f5a419d5a93417e55d29da132f8af07a4d3f2a0c5e5d82a89d875495234f8",
+          "raw_receipt_sha256": "b7dc5982c0d6aab8821b7b36a27dbd0e84820b4924033e3ddfe04fa050db58e9",
+          "result_sha256": "583b1828d94c30a75b471f0cbfcb338012ffe10ce7326cc539172d44ff131437",
+          "sample_receipt_sha256": "6a7f247f4a4d14dc449ac1c8a78fcf1af64d73428d5d681d5749fffe76d6cbfd"
+        },
+        "kimi_k3_t1p0": {
+          "manifest_sha256": "75dd302e389c07861d8ac695545ddf66d21e64fa02fc6e9ed88a60098b02c6cb",
+          "raw_receipt_sha256": "e19f8f77a926a97e39e70f386d1510827ac1e33bab3df7e4184a2c6d50b3e5f4",
+          "result_sha256": "faae4f3a6ed9adf1ebc6e1dadf4d7f2a08c5aebb4e5fdb4029decb1ef4cc509c",
+          "sample_receipt_sha256": "9918500b1eaaf75363effbfcd2ee5381c8f3bc7582a92faa7643c691c7ac3f1c"
+        },
+        "kimi_k3_t1p5": {
+          "manifest_sha256": "bc69213559006daf75a45176c542ca7e850a95dd7e94b86c12db3ebfce636e82",
+          "raw_receipt_sha256": "2ac802210496086df66b5609b037c74da8e6fec92b2487ca727d6666fa1c0b49",
+          "result_sha256": "a2417a3c0d770778be77d28de3c61b8dd51e17c0fe6c86d87e7d33751684b0e9",
+          "sample_receipt_sha256": "31f74bfa3f1776f62c8a84e4d96ac21be7bde18b6c1e91a2e82b0c2bd01986e6"
+        }
+      },
+      "preflight_responses_included_in_total": 4,
+      "prompt_count_per_condition": 120,
+      "responses_per_condition": 960,
+      "source_sha256": {
+        "prepare_frontier_temperature_ablation.py": "67374115691229a467fa03aecbd17176b25f7b185cf8c731008d9977d9c72000",
+        "run_frontier_temperature_ablation.py": "e8970c7f71a9f69207a65f1259de108f14a28a84fe91e6ade2e930e6d5b2424e"
+      },
+      "status": "authorized_supported_controls",
+      "support_review": "artifacts/frontier_models_comparison_20260911/TEMPERATURE_SUPPORT_REVIEW.json",
+      "support_review_sha256": "f7cc999ef75b41aef425e54b230281b3d448e81c09440c987746fa107b0bbf2f",
+      "temperatures": [
+        1.0,
+        1.5
+      ]
+    },
+    "first_registered_samples_bound": true,
+    "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/collection_gate.json",
+    "sha256": "229eec53735723c878d217f36ed43cd54eee5068e5d6135ec758653ea206995e",
+    "support_review": {
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_models_comparison_20260911/TEMPERATURE_SUPPORT_REVIEW.json",
+      "sha256": "f7cc999ef75b41aef425e54b230281b3d448e81c09440c987746fa107b0bbf2f"
+    }
+  },
+  "definitions": {
+    "accuracy": "Correct answers / all retained sampled answers.",
+    "collision": "Colliding correct pairs / correct pairs, pooled within each domain-level cell.",
+    "distinct8": "Mean number of distinct correct canonical keys per eight draws; zero-correct prompts contribute zero.",
+    "macro": "Equal mean of every included cell; any undefined member makes that macro metric undefined.",
+    "normalized_secondary": "Previously frozen formatting-only normalizer applied to source-bound audited strict receipts.",
+    "uniform_collision": "Correct-pair-weighted uniform collision over certified finite canonical modes; undefined for Countdown."
+  },
+  "limitations": [
+    "Small exploratory follow-up: eight prompts per cell.",
+    "API acceptance is not independent observation of the internal sampling actuator.",
+    "Eligibility can differ across temperatures; collision conditions on correct answers.",
+    "Original full model cohorts and their provider defaults are not replaced.",
+    "Level populations differ and do not establish monotonically greater model difficulty.",
+    "Static inference concentration does not identify a training or parameter-scale cause."
+  ],
+  "models": {
+    "FW-Kimi-K3": {
+      "label": "Kimi K3",
+      "conditions": {
+        "t1p0": {
+          "api_error_attempts": 0,
+          "directory": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0",
+          "requested_temperature": 1.0,
+          "returned_sampling": {
+            "reasoning": {
+              "null": 960
+            },
+            "service_tier": {
+              "null": 960
+            },
+            "temperature": {
+              "null": 960
+            },
+            "top_p": {
+              "null": 960
+            }
+          },
+          "source_sha256": {
+            "audited_primary": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/audited_primary_samples.jsonl",
+              "sha256": "c403cd0870eeb7bcc03c3f82eedab8662f2086e5d9b80b6377c494601274d571"
+            },
+            "completion_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/completion_audit.json",
+              "sha256": "31e37158a36e132c4a55994ab479fb3d3464b416af1dc4364dc1baa64babbc23"
+            },
+            "evidence_file_sha256.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/evidence_file_sha256.json",
+              "sha256": "8d063f6da16a047ecdf064239b84b4c8ac1b12691011c9186e39f4ea9cda230f"
+            },
+            "manifest.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/manifest.json",
+              "sha256": "75dd302e389c07861d8ac695545ddf66d21e64fa02fc6e9ed88a60098b02c6cb"
+            },
+            "normalized_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/normalized_samples.jsonl",
+              "sha256": "9bfeb1cb4f811f96a8ad6269e3dd38505f9f73453698f78f3d52966a9bb9ab61"
+            },
+            "primary_python_regrade_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/primary_python_regrade_audit.json",
+              "sha256": "1011fd0d796bd240aed00996983b412edd028eee496a09bd312df4c7440d6bb1"
+            },
+            "provider_outcome_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/provider_outcome_samples.jsonl",
+              "sha256": "690440ecf8aaa0665bc2489391d97f7cc9071fada26d1d900852286312ab9c51"
+            },
+            "provider_outcomes.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/provider_outcomes.json",
+              "sha256": "dcbf689273fcf6e6c8e4fb60152c1e906b5281b3a9407ec33d7ef98104e93181"
+            },
+            "requests.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/requests.jsonl",
+              "sha256": "640cbaf5de9ed1f5c7508d89c0094d3856bc5756b22eff3aa3d9c4ce21a63f4c"
+            },
+            "rows.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/rows.jsonl",
+              "sha256": "96cefda64c8513a5d267c970141082b9c5b68a8bb357628abff5789a5bc17588"
+            },
+            "samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/samples.jsonl",
+              "sha256": "8771d978ca9ef8887a2310a5f23b53ac60f7bcd7e83e855780e810466d49c437"
+            },
+            "summary.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/summary.json",
+              "sha256": "d8a6e5defe24297be3dbd75b9506e504b1cce48e0e08524f94f9292220142375"
+            },
+            "temperature_condition.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p0/temperature_condition.json",
+              "sha256": "d04bcd7033225f5e24f73e2eb88bce3b1c19b467aaf62d81f15c88879c38617f"
+            }
+          }
+        },
+        "t1p5": {
+          "api_error_attempts": 0,
+          "directory": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5",
+          "requested_temperature": 1.5,
+          "returned_sampling": {
+            "reasoning": {
+              "null": 960
+            },
+            "service_tier": {
+              "null": 960
+            },
+            "temperature": {
+              "null": 960
+            },
+            "top_p": {
+              "null": 960
+            }
+          },
+          "source_sha256": {
+            "audited_primary": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/audited_primary_samples.jsonl",
+              "sha256": "89a0d422a7f20c2f233f96541bfe1c70942683c8f2d99207074a6b88d7ad0985"
+            },
+            "completion_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/completion_audit.json",
+              "sha256": "15a12219c566e12118d390fddf0a79eacb6fee36b68ce4415cf134d0e4b1f870"
+            },
+            "evidence_file_sha256.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/evidence_file_sha256.json",
+              "sha256": "454e1ea9e464f41179d42a8eb28ef2e4bb2fedf78b9a81f28007dd02c0bff954"
+            },
+            "manifest.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/manifest.json",
+              "sha256": "bc69213559006daf75a45176c542ca7e850a95dd7e94b86c12db3ebfce636e82"
+            },
+            "normalized_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/normalized_samples.jsonl",
+              "sha256": "7cf8c781b4861acd4130488928c2b34d1d5e969944b614e17cbf06370a6f25f1"
+            },
+            "primary_python_regrade_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/primary_python_regrade_audit.json",
+              "sha256": "d1415a93ca81d038d1655e5defa46a2f89451a1295b7e721932a30c2692d780c"
+            },
+            "provider_outcome_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/provider_outcome_samples.jsonl",
+              "sha256": "64b6041632a7a8a10a3afa227b916b0523d21a610c162368c34aa08628d1e31b"
+            },
+            "provider_outcomes.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/provider_outcomes.json",
+              "sha256": "3791427b52e60d4b44f4bfb57e466250efd7df730abcdcb9df71aa909843dbf2"
+            },
+            "requests.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/requests.jsonl",
+              "sha256": "7958ecfbda9fe525288d4f8940f6962a9012ff1e8d30db402bf32c858cf2693e"
+            },
+            "rows.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/rows.jsonl",
+              "sha256": "96cefda64c8513a5d267c970141082b9c5b68a8bb357628abff5789a5bc17588"
+            },
+            "samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/samples.jsonl",
+              "sha256": "0869014a3eed025aec22ca980df12513b1bfe943cede57f764a09604a8ab07b6"
+            },
+            "summary.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/summary.json",
+              "sha256": "cc64aa27a3d4aa7c99ad08f5363e284893ef2c4fce73351110fa22b846b698ff"
+            },
+            "temperature_condition.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/kimi_k3_t1p5/temperature_condition.json",
+              "sha256": "0d5aa1854dab58296c71f6481e182fee46c9f144869192b7c1170ccb675728c1"
+            }
+          }
+        }
+      },
+      "validation": {
+        "all_1920_native_receipts_authenticated": true,
+        "normalizer_and_audited_primary_source_bound": true,
+        "reconstructed_cells_match_summaries": true,
+        "same_120_rows_and_all_eight_draw_slots": true,
+        "temperature_only_payload_change": true
+      },
+      "analyses": {
+        "normalized_secondary": {
+          "groups": {
+            "five_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.859375,
+                        0.98125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.925
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.5733874062915063,
+                        0.7478968633080826
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6623054060333812
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.875,
+                        2.55
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.2
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.1875,
+                        0.26875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.228125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.4267124183006536,
+                        0.6325448343079921
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.5361111111111111
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.85,
+                        1.3
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.075
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.753125,
+                        -0.634375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.696875
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.23450063732426357,
+                        -0.031215545230631477
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.12619429492227
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.475,
+                        -0.775
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -1.125
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.965625,
+                        0.99375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6549206509216591,
+                        0.7874012508229098
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7218145161290321
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.6,
+                        2.175
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.85
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.159375,
+                        0.246875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.203125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.4875,
+                        0.7166666666666667
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.665546218487395
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.75,
+                        1.075
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.825,
+                        -0.728125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.778125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.2463186195640659,
+                        0.01980368663810847
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.0562682976416373
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.3,
+                        -0.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.95
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.984375,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.99375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7158114919354839,
+                        0.8481285522273425
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7818260368663595
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.525,
+                        1.975
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.75
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.15625,
+                        0.2625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.209375
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.75,
+                        1.2
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.975
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.840625,
+                        -0.73125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.784375
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.025,
+                        -0.525
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.775
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.94375,
+                      0.9864583333333333
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9666666666666667
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.678342453847251,
+                      0.7645466916681579
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7219819863429243
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.7666666666666666,
+                      2.1083333333333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.9333333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.1875,
+                      0.240625
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.21354166666666666
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      0.8666666666666667,
+                      1.1
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9833333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.784375,
+                      -0.721875
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.753125
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -1.1333333333333333,
+                      -0.7666666666666667
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.95
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                }
+              }
+            },
+            "four_finite_support_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.828125,
+                        0.98046875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.91015625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.5364870601899813,
+                        0.7345192016970349
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.635485444177671
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.9375,
+                        2.75
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.34375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.4294197556035268,
+                        0.6194046210734165
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.5246448104831771
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10135531321179002,
+                        0.121259221819285
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.110840633694494
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.1328125,
+                        0.2265625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1796875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.403125,
+                        0.625
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.53125
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.6875,
+                        1.1875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.29377544981060605,
+                        0.5193193610802574
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.424313446969697
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.09750574945887445,
+                        0.12016538149350649
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.10693655303030304
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.796875,
+                        -0.65625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.73046875
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.23380907742242574,
+                        -0.004867412204036237
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.10423544417767105
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.84375,
+                        -0.96875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -1.40625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.2313360372957526,
+                        -0.001981375944711947
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.10033136351348013
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.011163984375343756,
+                        0.004504865313647118
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.0039040806641909586
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9609375,
+                        0.99609375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98046875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6863839285714286,
+                        0.8254482886904759
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7582589285714285
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.5617187500000007,
+                        2.21875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.84375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.5742688714263027,
+                        0.7106258532880603
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.64472505865084
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10165975732255159,
+                        0.12578254919582033
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11353386992058867
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.1328125,
+                        0.23046875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1796875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.5,
+                        0.75
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.7142857142857143
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.53125,
+                        0.90625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.71875
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.4012553418803419,
+                        0.6575921474358974
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.615193833943834
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.09070646367521368,
+                        0.10768563034188033
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.09909188034188035
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.85546875,
+                        -0.7421875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.80078125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.2751164177955665,
+                        0.043498883928571444
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.043973214285714296
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.5625,
+                        -0.71875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -1.125
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.2599398306677907,
+                        0.05654110771917645
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.02953122470700592
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.02799276795614687,
+                        -0.001370713723387485
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.014441989578708311
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.98828125,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.99609375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.746182855702765,
+                        0.8828125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8148401497695853
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.4375,
+                        1.9375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.6875
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.6244465874274451,
+                        0.7630968536605907
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6943363766091306
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.1095586920317347,
+                        0.13137320903038782
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1205037731604546
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.13671875,
+                        0.234375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.18359375
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.71875,
+                        1.15625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9375
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.86328125,
+                        -0.76171875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.8125
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.03125,
+                        -0.46875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.75
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.93359375,
+                      0.9856770833333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9622395833333334
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.6888762034720568,
+                      0.7820286853547173
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7361948408395614
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.7708333333333333,
+                      2.15625
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.9583333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      0.5748958724044176,
+                      0.6661610863746038
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.6212354152477159
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      0.10865398611833656,
+                      0.12141037885438018
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.11495942559184574
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.15364583333333334,
+                      0.20963541666666666
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.18098958333333334
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      0.7395833333333334,
+                      0.9895833333333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8645833333333334
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.8138020833333334,
+                      -0.74609375
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.78125
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -1.3125,
+                      -0.875
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -1.09375
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                }
+              }
+            }
+          },
+          "totals": {
+            "t1p0": {
+              "colliding_correct_pairs": 2310,
+              "collision_eligible_prompts": 118,
+              "correct_pairs": 3194,
+              "correct_responses": 928,
+              "distinct8": 232,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 118,
+              "responses": 960,
+              "truncated_responses": 0
+            },
+            "t1p5": {
+              "colliding_correct_pairs": 141,
+              "collision_eligible_prompts": 60,
+              "correct_pairs": 207,
+              "correct_responses": 205,
+              "distinct8": 118,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 85,
+              "responses": 960,
+              "truncated_responses": 696
+            }
+          }
+        },
+        "strict": {
+          "groups": {
+            "five_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.859375,
+                        0.98125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.925
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.5733874062915063,
+                        0.7478968633080826
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6623054060333812
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.875,
+                        2.55
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.2
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.184375,
+                        0.265625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.225
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.42164074960127595,
+                        0.6317929292929293
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.53125
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.85,
+                        1.3
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.075
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.75625,
+                        -0.6375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.7
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.23781432615616438,
+                        -0.034340799207874945
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.13105540603338112
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.475,
+                        -0.775
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -1.125
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.965625,
+                        0.99375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6549206509216591,
+                        0.7874012508229098
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7218145161290321
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.6,
+                        2.175
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.85
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.159375,
+                        0.246875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.203125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.4875,
+                        0.7166666666666667
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.665546218487395
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.75,
+                        1.075
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.825,
+                        -0.728125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.778125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.2463186195640659,
+                        0.01980368663810847
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.0562682976416373
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.3,
+                        -0.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.95
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.98125,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.990625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7166561804783093,
+                        0.8494251301048783
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7833006912442395
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.525,
+                        1.975
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.75
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.15625,
+                        0.2625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.209375
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.75,
+                        1.2
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.975
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.8375,
+                        -0.728125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.78125
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.025,
+                        -0.525
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.775
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9427083333333334,
+                      0.9854166666666667
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.965625
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.6787391126448241,
+                      0.7650255973165149
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7224735378022176
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.7666666666666666,
+                      2.1083333333333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.9333333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.18645833333333334,
+                      0.23958333333333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.2125
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      0.8666666666666667,
+                      1.1
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9833333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.784375,
+                      -0.721875
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.753125
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -1.1333333333333333,
+                      -0.7666666666666667
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.95
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                }
+              }
+            },
+            "four_finite_support_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.828125,
+                        0.98046875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.91015625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.5364870601899813,
+                        0.7345192016970349
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.635485444177671
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.9375,
+                        2.75
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.34375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.4294197556035268,
+                        0.6194046210734165
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.5246448104831771
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10135531321179002,
+                        0.121259221819285
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.110840633694494
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.1328125,
+                        0.2265625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1796875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.403125,
+                        0.625
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.53125
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.6875,
+                        1.1875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.29377544981060605,
+                        0.5193193610802574
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.424313446969697
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.09750574945887445,
+                        0.12016538149350649
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": 0.10693655303030304
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.796875,
+                        -0.65625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.73046875
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.23380907742242574,
+                        -0.004867412204036237
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.10423544417767105
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.84375,
+                        -0.96875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -1.40625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.2313360372957526,
+                        -0.001981375944711947
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.10033136351348013
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.011163984375343756,
+                        0.004504865313647118
+                      ],
+                      "defined_replicates": 11815,
+                      "estimate": -0.0039040806641909586
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9609375,
+                        0.99609375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98046875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6863839285714286,
+                        0.8254482886904759
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7582589285714285
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.5617187500000007,
+                        2.21875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.84375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.5742688714263027,
+                        0.7106258532880603
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.64472505865084
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10165975732255159,
+                        0.12578254919582033
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11353386992058867
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.1328125,
+                        0.23046875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1796875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.5,
+                        0.75
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.7142857142857143
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.53125,
+                        0.90625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.71875
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.4012553418803419,
+                        0.6575921474358974
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.615193833943834
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.09070646367521368,
+                        0.10768563034188033
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": 0.09909188034188035
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.85546875,
+                        -0.7421875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.80078125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.2751164177955665,
+                        0.043498883928571444
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.043973214285714296
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.5625,
+                        -0.71875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -1.125
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.2599398306677907,
+                        0.05654110771917645
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.02953122470700592
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.02799276795614687,
+                        -0.001370713723387485
+                      ],
+                      "defined_replicates": 11616,
+                      "estimate": -0.014441989578708311
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.98828125,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.99609375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.746182855702765,
+                        0.8828125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8148401497695853
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.4375,
+                        1.9375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.6875
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.6244465874274451,
+                        0.7630968536605907
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6943363766091306
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.1095586920317347,
+                        0.13137320903038782
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1205037731604546
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.13671875,
+                        0.234375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.18359375
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        0.71875,
+                        1.15625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9375
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.86328125,
+                        -0.76171875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.8125
+                    },
+                    "collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -1.03125,
+                        -0.46875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.75
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.93359375,
+                      0.9856770833333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9622395833333334
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.6888762034720568,
+                      0.7820286853547173
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7361948408395614
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.7708333333333333,
+                      2.15625
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.9583333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      0.5748958724044176,
+                      0.6661610863746038
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.6212354152477159
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      0.10865398611833656,
+                      0.12141037885438018
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.11495942559184574
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.15364583333333334,
+                      0.20963541666666666
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.18098958333333334
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      0.7395833333333334,
+                      0.9895833333333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8645833333333334
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.8138020833333334,
+                      -0.74609375
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.78125
+                  },
+                  "collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -1.3125,
+                      -0.875
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -1.09375
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                }
+              }
+            }
+          },
+          "totals": {
+            "t1p0": {
+              "colliding_correct_pairs": 2307,
+              "collision_eligible_prompts": 118,
+              "correct_pairs": 3187,
+              "correct_responses": 927,
+              "distinct8": 232,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 118,
+              "responses": 960,
+              "truncated_responses": 0
+            },
+            "t1p5": {
+              "colliding_correct_pairs": 138,
+              "collision_eligible_prompts": 60,
+              "correct_pairs": 203,
+              "correct_responses": 204,
+              "distinct8": 118,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 85,
+              "responses": 960,
+              "truncated_responses": 696
+            }
+          }
+        }
+      }
+    },
+    "grok-4.3": {
+      "label": "Grok 4.3",
+      "conditions": {
+        "t1p0": {
+          "api_error_attempts": 0,
+          "directory": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0",
+          "requested_temperature": 1.0,
+          "returned_sampling": {
+            "reasoning": {
+              "null": 960
+            },
+            "service_tier": {
+              "null": 960
+            },
+            "temperature": {
+              "null": 960
+            },
+            "top_p": {
+              "null": 960
+            }
+          },
+          "source_sha256": {
+            "audited_primary": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/audited_primary_samples.jsonl",
+              "sha256": "c86a0ccbb12b46d6d6a67e703406a411e777b0724760868da6c361846b9bdaef"
+            },
+            "completion_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/completion_audit.json",
+              "sha256": "d60fd45e69750d830406c1e1757919618e62ca09a3233510888da90a0ea24712"
+            },
+            "evidence_file_sha256.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/evidence_file_sha256.json",
+              "sha256": "f2b0681e738a6a00e98ccd05c1e6b1a8de0dab4c9330b367cd5c0add3d56b7e6"
+            },
+            "manifest.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/manifest.json",
+              "sha256": "6c57475d4fe626f70cf1077cea755e6610146269df335de51d54e2a1b73f6136"
+            },
+            "normalized_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/normalized_samples.jsonl",
+              "sha256": "f3d44566a5c728eac0d06911e9fcc842188758cbbfac633cde3572a24c0cd353"
+            },
+            "primary_python_regrade_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/primary_python_regrade_audit.json",
+              "sha256": "ca78d9848e5714341d678e9a152d6ba0d499a7b21bedaf7347275626152f1a49"
+            },
+            "provider_outcome_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/provider_outcome_samples.jsonl",
+              "sha256": "b3c302b528f1ad8a98d9f613a7a0339ccb2aa6923230dbf12cb88e02e4978d71"
+            },
+            "provider_outcomes.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/provider_outcomes.json",
+              "sha256": "292e1743fdc319f20f32ad45a4bd1f7e652efeca379f7135278f121a50055b8e"
+            },
+            "requests.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/requests.jsonl",
+              "sha256": "7fcb87ff79ec9c8673c1518a4c8e2ae6b08c3fcffc0b2560497ff4de3948d912"
+            },
+            "rows.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/rows.jsonl",
+              "sha256": "96cefda64c8513a5d267c970141082b9c5b68a8bb357628abff5789a5bc17588"
+            },
+            "samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/samples.jsonl",
+              "sha256": "00c90fe2bdedb04b603e4f889d117816ae96a0922a68f018d6c2548eb7ab75f7"
+            },
+            "summary.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/summary.json",
+              "sha256": "04752a806092c0fa14fcaa849b959f74307ccda4d49dd64ab5f3306070eb6ba5"
+            },
+            "temperature_condition.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p0/temperature_condition.json",
+              "sha256": "a3f752a4b1e3848aecd8ff1f2bf742ed042967f92dc09eae15c35582f5712438"
+            }
+          }
+        },
+        "t1p5": {
+          "api_error_attempts": 0,
+          "directory": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5",
+          "requested_temperature": 1.5,
+          "returned_sampling": {
+            "reasoning": {
+              "null": 960
+            },
+            "service_tier": {
+              "null": 960
+            },
+            "temperature": {
+              "null": 960
+            },
+            "top_p": {
+              "null": 960
+            }
+          },
+          "source_sha256": {
+            "audited_primary": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/audited_primary_samples.jsonl",
+              "sha256": "ae77e3da4b1cfa90e3495d05f71c25838a247a7fc209cc56d3125660c46adfdf"
+            },
+            "completion_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/completion_audit.json",
+              "sha256": "8f33d920220d321a2e43468fdb61398829aa51340f1b645102f13501872a2cdc"
+            },
+            "evidence_file_sha256.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/evidence_file_sha256.json",
+              "sha256": "6df08d3755098ac981c8a7ee482ba61c8a8f94d09a50732f634b9a104203aa9d"
+            },
+            "manifest.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/manifest.json",
+              "sha256": "812f5a419d5a93417e55d29da132f8af07a4d3f2a0c5e5d82a89d875495234f8"
+            },
+            "normalized_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/normalized_samples.jsonl",
+              "sha256": "9d3607101c1aaa239c669263ca7fc9308674634ece72fc5f5b12b6ce71e4b44d"
+            },
+            "primary_python_regrade_audit.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/primary_python_regrade_audit.json",
+              "sha256": "a24f4bfa24426d91d2bbeb53e110d48b0ac7868427f04ef371bf5acf66a85530"
+            },
+            "provider_outcome_samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/provider_outcome_samples.jsonl",
+              "sha256": "fd4d0bdd91cdd18fa018a340fa54596c02919e36af3710577f377f74adc580ed"
+            },
+            "provider_outcomes.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/provider_outcomes.json",
+              "sha256": "d3659a4e11c88b52fbd09105863835a642331a346580ccaaf0ecc34ba8c8b460"
+            },
+            "requests.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/requests.jsonl",
+              "sha256": "63413bc1341dbce6eec99b3ef427fa21d666e1610daf12493292247bebd3814c"
+            },
+            "rows.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/rows.jsonl",
+              "sha256": "96cefda64c8513a5d267c970141082b9c5b68a8bb357628abff5789a5bc17588"
+            },
+            "samples.jsonl": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/samples.jsonl",
+              "sha256": "c058cad7049ef13532bfb7c32a2ef5b19ff5d702b42ca155974ab275a8129dc8"
+            },
+            "summary.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/summary.json",
+              "sha256": "9e5a7b1cef6c37220e82dbcf39f764ae7f72db077f0060db631d9baf54625c0e"
+            },
+            "temperature_condition.json": {
+              "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/grok43_t1p5/temperature_condition.json",
+              "sha256": "61c103567a7f425529ff3dad6f2133b232aba62239670481fe4e794851f3a04a"
+            }
+          }
+        }
+      },
+      "validation": {
+        "all_1920_native_receipts_authenticated": true,
+        "normalizer_and_audited_primary_source_bound": true,
+        "reconstructed_cells_match_summaries": true,
+        "same_120_rows_and_all_eight_draw_slots": true,
+        "temperature_only_payload_change": true
+      },
+      "analyses": {
+        "normalized_secondary": {
+          "groups": {
+            "five_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.95,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6660706433955491,
+                        0.7905996621621622
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7288690476190476
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.675,
+                        2.125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.9
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9125,
+                        0.9875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.95625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6746821335754313,
+                        0.7866071428571428
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7315675019769312
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.775,
+                        2.225
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.0
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.040625,
+                        -0.009375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.025
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.06314772367458162,
+                        0.06371075961533222
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0026984543578836505
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.1,
+                        0.3
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.98125,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.990625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8023209965437788,
+                        0.9270474551750622
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8661175115207375
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.225,
+                        1.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.425
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.984375,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.99375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7898041474654378,
+                        0.9122079698815011
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8520449308755762
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.25,
+                        1.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.425
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.009375,
+                        0.015625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.003125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.06257757296466977,
+                        0.03303600230414745
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.014072580645161282
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.175,
+                        0.2
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.971875,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7916636904761906,
+                        0.8866071428571427
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.840437788018433
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.35,
+                        1.675
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.5
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.89375,
+                        0.98125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.940625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7743930826118326,
+                        0.8780310204704457
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8284849721879274
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.375,
+                        1.75
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.55
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.090625,
+                        -0.009375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.046875
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.05483939901063622,
+                        0.02790953893776472
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.01195281583050587
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.125,
+                        0.225
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.05
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9739583333333334,
+                      0.9958333333333333
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9864583333333333
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.7784278191989222,
+                      0.845140175433338
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8118081157194061
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.4916666666666667,
+                      1.725
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.6083333333333334
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9416666666666667,
+                      0.9822916666666667
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9635416666666666
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.7703805496612199,
+                      0.8361927341239076
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8040324683468115
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.55,
+                      1.775
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.6583333333333334
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.03854166666666667,
+                      -0.009375
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.022916666666666665
+                  },
+                  "collision": {
+                    "ci95": [
+                      -0.03857613357041715,
+                      0.021225424185833782
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.0077756473725945
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -0.058333333333333334,
+                      0.15833333333333333
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.05
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                }
+              }
+            },
+            "four_finite_support_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9375,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9765625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6650740095641983,
+                        0.7955797954043649
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7302827380952381
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.6875,
+                        2.1875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.9375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.5567717575027618,
+                        0.6818830468186466
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6191626724439225
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10145684081426272,
+                        0.12161091614314269
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11112006565131566
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.89453125,
+                        0.98828125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.94921875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6929357020410105,
+                        0.8072288573531795
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7520169811578
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.75,
+                        2.25
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.0
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.585069466009149,
+                        0.6929517731670815
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6408666735710005
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10126285779279733,
+                        0.12181886636964763
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11115030758679953
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.046875,
+                        -0.01171875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.02734375
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.0516031264589291,
+                        0.08748638740814912
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.021734243062561942
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.15625,
+                        0.28125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.05175037146785545,
+                        0.08748982222350607
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.02170400112707805
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.00035881076388890443,
+                        0.00048642123095876373
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 3.0241935483875555e-05
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9765625,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98828125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8617664441854327,
+                        0.9616071428571429
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.914120103686636
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.125,
+                        1.4375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.28125
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7470326540059403,
+                        0.850268795107732
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8006451115668606
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.101664475223384,
+                        0.12566179210119796
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1134749921197754
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.98046875,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9921875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.833110119047619,
+                        0.9531105990783411
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8954133064516129
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.15625,
+                        1.5625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.34375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7164691519453049,
+                        0.8439765704183388
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7826416684374093
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10136556157717638,
+                        0.12502510554614887
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11277163801420355
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.01171875,
+                        0.01953125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.00390625
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.07537939600548227,
+                        0.03675836701824777
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.018706797235023026
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.125,
+                        0.28125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.0750751659888244,
+                        0.037719286761625455
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.018003443129451208
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.0018982607831198378,
+                        0.0003226494607543033
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.0007033541055718497
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.96484375,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.984375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8519858374384236,
+                        0.9631696428571428
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9099222350230415
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.125,
+                        1.53125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.3125
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7319406307000836,
+                        0.8401168755840395
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7894184618625868
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.1095586920317347,
+                        0.13137320903038782
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1205037731604546
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.875,
+                        0.984375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.93359375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8309059873949579,
+                        0.9475446428571428
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8934261204481793
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.21875,
+                        1.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.40625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7091068896377724,
+                        0.8271780685330808
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7723272451075636
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.11015677577134525,
+                        0.131841553210436
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.12109887534061578
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.1015625,
+                        -0.0078125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.05078125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.06360264211174486,
+                        0.025718805200714387
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.016496114574862192
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.09375,
+                        0.3125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.09375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.0642790761115105,
+                        0.02529868479372462
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.017091216755023342
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -1.3877787807814457e-17,
+                        0.001574220156421227
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0005951021801611708
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9674479166666666,
+                      0.9947916666666666
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9830729166666666
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.8177823034728277,
+                      0.8842239460468327
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8514416922683052
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.3958333333333333,
+                      1.6354166666666667
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.5104166666666667
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      0.7031859194820265,
+                      0.768534511366891
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7364087486244566
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      0.10873632028915345,
+                      0.12147225286586234
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.11503294364384854
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9322916666666666,
+                      0.9817708333333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9583333333333334
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.8118077876415142,
+                      0.8797898251490354
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8469521360191975
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.4583333333333333,
+                      1.7083333333333333
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.5833333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      0.6966584813344686,
+                      0.76497766097887
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7319451957053245
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      0.10870826098407937,
+                      0.12145745801802633
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.11500694031387292
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.044270833333333336,
+                      -0.0078125
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.024739583333333332
+                  },
+                  "collision": {
+                    "ci95": [
+                      -0.039236836663862545,
+                      0.027367697692283602
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.004489556249107758
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -0.041666666666666664,
+                      0.19791666666666666
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.07291666666666667
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      -0.03924898735522569,
+                      0.02749433286001878
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.004463552919132166
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      -0.0005367926961842167,
+                      0.000489464239822572
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -2.6003329975601088e-05
+                  }
+                }
+              }
+            }
+          },
+          "totals": {
+            "t1p0": {
+              "colliding_correct_pairs": 2657,
+              "collision_eligible_prompts": 120,
+              "correct_pairs": 3280,
+              "correct_responses": 947,
+              "distinct8": 193,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 120,
+              "responses": 960,
+              "truncated_responses": 0
+            },
+            "t1p5": {
+              "colliding_correct_pairs": 2530,
+              "collision_eligible_prompts": 119,
+              "correct_pairs": 3167,
+              "correct_responses": 925,
+              "distinct8": 199,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 120,
+              "responses": 960,
+              "truncated_responses": 0
+            }
+          }
+        },
+        "strict": {
+          "groups": {
+            "five_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.95,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6660706433955491,
+                        0.7905996621621622
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7288690476190476
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.675,
+                        2.125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.9
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9125,
+                        0.9875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.95625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6746821335754313,
+                        0.7866071428571428
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7315675019769312
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.775,
+                        2.225
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.0
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.040625,
+                        -0.009375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.025
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.06314772367458162,
+                        0.06371075961533222
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0026984543578836505
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.1,
+                        0.3
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.98125,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.990625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8023209965437788,
+                        0.9270474551750622
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8661175115207375
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.225,
+                        1.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.425
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.984375,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.99375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7898041474654378,
+                        0.9122079698815011
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8520449308755762
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.25,
+                        1.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.425
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.009375,
+                        0.015625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.003125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.06257757296466977,
+                        0.03303600230414745
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.014072580645161282
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.175,
+                        0.2
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.971875,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7916636904761906,
+                        0.8866071428571427
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.840437788018433
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.35,
+                        1.675
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.5
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.89375,
+                        0.98125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.940625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.7743930826118326,
+                        0.8780310204704457
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8284849721879274
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.375,
+                        1.75
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.55
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.090625,
+                        -0.009375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.046875
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.05483939901063622,
+                        0.02790953893776472
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.01195281583050587
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.125,
+                        0.225
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.05
+                    },
+                    "excess_uniform": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    },
+                    "uniform_collision": {
+                      "ci95": null,
+                      "defined_replicates": 0,
+                      "estimate": null
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9739583333333334,
+                      0.9958333333333333
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9864583333333333
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.7784278191989222,
+                      0.845140175433338
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8118081157194061
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.4916666666666667,
+                      1.725
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.6083333333333334
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9416666666666667,
+                      0.9822916666666667
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9635416666666666
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.7703805496612199,
+                      0.8361927341239076
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8040324683468115
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.55,
+                      1.775
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.6583333333333334
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.03854166666666667,
+                      -0.009375
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.022916666666666665
+                  },
+                  "collision": {
+                    "ci95": [
+                      -0.03857613357041715,
+                      0.021225424185833782
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.0077756473725945
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -0.058333333333333334,
+                      0.15833333333333333
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.05
+                  },
+                  "excess_uniform": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  },
+                  "uniform_collision": {
+                    "ci95": null,
+                    "defined_replicates": 0,
+                    "estimate": null
+                  }
+                }
+              }
+            },
+            "four_finite_support_domain_macro": {
+              "levels": {
+                "1": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9375,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9765625
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6650740095641983,
+                        0.7955797954043649
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7302827380952381
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.6875,
+                        2.1875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.9375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.5567717575027618,
+                        0.6818830468186466
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6191626724439225
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10145684081426272,
+                        0.12161091614314269
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11112006565131566
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.89453125,
+                        0.98828125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.94921875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.6929357020410105,
+                        0.8072288573531795
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7520169811578
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.75,
+                        2.25
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 2.0
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.585069466009149,
+                        0.6929517731670815
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.6408666735710005
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10126285779279733,
+                        0.12181886636964763
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11115030758679953
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.046875,
+                        -0.01171875
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.02734375
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.0516031264589291,
+                        0.08748638740814912
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.021734243062561942
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.15625,
+                        0.28125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.05175037146785545,
+                        0.08748982222350607
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.02170400112707805
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.00035881076388890443,
+                        0.00048642123095876373
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 3.0241935483875555e-05
+                    }
+                  }
+                },
+                "2": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.9765625,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.98828125
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8617664441854327,
+                        0.9616071428571429
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.914120103686636
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.125,
+                        1.4375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.28125
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7470326540059403,
+                        0.850268795107732
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8006451115668606
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.101664475223384,
+                        0.12566179210119796
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1134749921197754
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.98046875,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9921875
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.833110119047619,
+                        0.9531105990783411
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8954133064516129
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.15625,
+                        1.5625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.34375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7164691519453049,
+                        0.8439765704183388
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7826416684374093
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.10136556157717638,
+                        0.12502510554614887
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.11277163801420355
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.01171875,
+                        0.01953125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.00390625
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.07537939600548227,
+                        0.03675836701824777
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.018706797235023026
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.125,
+                        0.28125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.0750751659888244,
+                        0.037719286761625455
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.018003443129451208
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -0.0018982607831198378,
+                        0.0003226494607543033
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.0007033541055718497
+                    }
+                  }
+                },
+                "3": {
+                  "t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        0.96484375,
+                        1.0
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.984375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8519858374384236,
+                        0.9631696428571428
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.9099222350230415
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.125,
+                        1.53125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.3125
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7319406307000836,
+                        0.8401168755840395
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7894184618625868
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.1095586920317347,
+                        0.13137320903038782
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.1205037731604546
+                    }
+                  },
+                  "t1p5": {
+                    "accuracy": {
+                      "ci95": [
+                        0.875,
+                        0.984375
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.93359375
+                    },
+                    "collision": {
+                      "ci95": [
+                        0.8309059873949579,
+                        0.9475446428571428
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.8934261204481793
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        1.21875,
+                        1.625
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 1.40625
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        0.7091068896377724,
+                        0.8271780685330808
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.7723272451075636
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        0.11015677577134525,
+                        0.131841553210436
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.12109887534061578
+                    }
+                  },
+                  "t1p5_minus_t1p0": {
+                    "accuracy": {
+                      "ci95": [
+                        -0.1015625,
+                        -0.0078125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.05078125
+                    },
+                    "collision": {
+                      "ci95": [
+                        -0.06360264211174486,
+                        0.025718805200714387
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.016496114574862192
+                    },
+                    "distinct8": {
+                      "ci95": [
+                        -0.09375,
+                        0.3125
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.09375
+                    },
+                    "excess_uniform": {
+                      "ci95": [
+                        -0.0642790761115105,
+                        0.02529868479372462
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": -0.017091216755023342
+                    },
+                    "uniform_collision": {
+                      "ci95": [
+                        -1.3877787807814457e-17,
+                        0.001574220156421227
+                      ],
+                      "defined_replicates": 20000,
+                      "estimate": 0.0005951021801611708
+                    }
+                  }
+                }
+              },
+              "overall": {
+                "t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9674479166666666,
+                      0.9947916666666666
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9830729166666666
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.8177823034728277,
+                      0.8842239460468327
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8514416922683052
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.3958333333333333,
+                      1.6354166666666667
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.5104166666666667
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      0.7031859194820265,
+                      0.768534511366891
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7364087486244566
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      0.10873632028915345,
+                      0.12147225286586234
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.11503294364384854
+                  }
+                },
+                "t1p5": {
+                  "accuracy": {
+                    "ci95": [
+                      0.9322916666666666,
+                      0.9817708333333334
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.9583333333333334
+                  },
+                  "collision": {
+                    "ci95": [
+                      0.8118077876415142,
+                      0.8797898251490354
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.8469521360191975
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      1.4583333333333333,
+                      1.7083333333333333
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 1.5833333333333333
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      0.6966584813344686,
+                      0.76497766097887
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.7319451957053245
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      0.10870826098407937,
+                      0.12145745801802633
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.11500694031387292
+                  }
+                },
+                "t1p5_minus_t1p0": {
+                  "accuracy": {
+                    "ci95": [
+                      -0.044270833333333336,
+                      -0.0078125
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.024739583333333332
+                  },
+                  "collision": {
+                    "ci95": [
+                      -0.039236836663862545,
+                      0.027367697692283602
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.004489556249107758
+                  },
+                  "distinct8": {
+                    "ci95": [
+                      -0.041666666666666664,
+                      0.19791666666666666
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": 0.07291666666666667
+                  },
+                  "excess_uniform": {
+                    "ci95": [
+                      -0.03924898735522569,
+                      0.02749433286001878
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -0.004463552919132166
+                  },
+                  "uniform_collision": {
+                    "ci95": [
+                      -0.0005367926961842167,
+                      0.000489464239822572
+                    ],
+                    "defined_replicates": 20000,
+                    "estimate": -2.6003329975601088e-05
+                  }
+                }
+              }
+            }
+          },
+          "totals": {
+            "t1p0": {
+              "colliding_correct_pairs": 2657,
+              "collision_eligible_prompts": 120,
+              "correct_pairs": 3280,
+              "correct_responses": 947,
+              "distinct8": 193,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 120,
+              "responses": 960,
+              "truncated_responses": 0
+            },
+            "t1p5": {
+              "colliding_correct_pairs": 2530,
+              "collision_eligible_prompts": 119,
+              "correct_pairs": 3167,
+              "correct_responses": 925,
+              "distinct8": 199,
+              "native_content_filtered": 0,
+              "native_refusals": 0,
+              "prompts": 120,
+              "prompts_with_correct_answer": 120,
+              "responses": 960,
+              "truncated_responses": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

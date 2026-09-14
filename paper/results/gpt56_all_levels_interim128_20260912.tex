@@ -1,0 +1,27 @@
+% Interim source: artifacts/modebench_discovery_all_levels_sol512_20260912/interim128/analysis.json
+\subsection{Interim view of all three levels}
+\label{app:gpt56-all-levels-interim}
+
+Figure~\ref{fig:gpt56-sampling-budget} contains all five domains at
+Levels~1, 2, and~3: sixteen fixed problems per cell, 240 problems in total.
+The common 128-response budget includes 30,720 authenticated responses.
+The fixed follow-up to 512 responses per problem is still being collected;
+this explicitly labeled interim figure does not display unfinished budgets.
+
+Within each problem, the interim sample follows the frozen HTTP-request
+manifest order across collection stages. Selection uses the first 128
+planned requests, independently of their answers or completion order.
+Native global draw indices and their interim ordering remain in bound
+selection files. Every selected request has a completed native receipt,
+matching prompt bytes, generation controls, and the provider-reported
+\texttt{gpt-5.6-sol-2026-07-09} snapshot. Original wording, medium reasoning,
+an 8,192-token output limit, and omitted temperature and top-$p$ are fixed.
+
+Curves use exact rarefaction within each complete 128-response pool and
+weight all sixteen problems equally. Pointwise 95\% intervals use 20,000
+whole-problem bootstrap replicates within domain and level. The frozen
+formatting normalizer supplies the main display; strict grades and every
+failure remain in the accompanying JSON. Graph references are exact;
+other references are certified lower bounds and may be exceeded. The
+finite-budget curves cannot establish asymptotic saturation or exclude
+additional rare modes beyond the completed sampling budget.

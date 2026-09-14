@@ -98,6 +98,56 @@ ADD_ON = "#C2255C"
 # accepted knowingly; do not reuse ADAPTIVE in a dark-mode context.
 ADAPTIVE = "#7B1FA2"
 
+# An *external* estimator we compare against, rather than one of our own arms.
+# Ordinary GRPO used to be drawn at #2E6FBB, which the all-pairs validator puts
+# at dE 10.0 (normal vision) from the method teal --- so the single pair the
+# paper's claim rests on, GRPO against Re:Dr.GRPO, was the hardest pair in
+# the figure to tell apart. This deeper blue clears every check in the frontier
+# five below. It is a comparator hue, not an arm slot: do not use it for an
+# ablation or a dose variant of one of ours.
+COMPARATOR = "#00509E"
+
+# The five identities that meet in one panel in the pass-8 frontier and the
+# direct-comparator figures: matched Dr.GRPO (CONTROL), GRPO (COMPARATOR),
+# Re:Dr.GRPO (METHOD), UCPO (ABLATION), RLEP-Dr (ADD_ON). Validated together
+# under `--pairs all`, which is the right test because all five are scattered
+# into the same axes:
+#
+#     node validate_palette.js "#C76A3A,#6C5CE7,#087F8C,#C2255C,#00509E" \
+#         --mode light --pairs all
+#
+# Worst CVD dE 8.9 (deutan, ADD_ON vs METHOD), normal-vision floor exactly 15.0
+# (ADD_ON vs CONTROL), every slot inside the lightness band and over 3:1 on the
+# surface. The one standing FAIL is the METHOD teal's chroma, the documented
+# trade recorded above; it is why every one of these five also carries its own
+# marker shape. UCPO and RLEP-Dr borrow the ABLATION and ADD_ON hues because
+# they never share a panel with the semantic arms that own those slots --- if
+# that ever changes, re-run the validator on the combined set rather than
+# cycling a sixth hue.
+FRONTIER_FIVE = (CONTROL, COMPARATOR, METHOD, ABLATION, ADD_ON)
+
+# A few figures colour by *metric* rather than by arm: the sustained-AUC panels
+# plot one arm's effect on correctness, on distinct modes, and on the adjusted
+# difference, and only the first panel labels the rows, so colour is what
+# carries the metric across the other four. Those figures had the correctness
+# series at #2E6FBB, which the validator puts at dE 10.0 (normal) from the
+# METHOD teal used for the distinct-mode series --- two of the three metrics in
+# the same panel, hard to tell apart. This olive clears the in-panel trio
+# {METRIC, METHOD, ADD_ON} outright --- worst normal-vision dE 15.1, worst CVD
+# dE 8.2 deutan:
+#
+#     node validate_palette.js "#4E6910,#087F8C,#C2255C" --mode light --pairs all
+#
+# Across the whole vocabulary it is not fully independent: against CONTROL it
+# sits at dE 7.5 protan, inside the 6--8 band that is legal only with a second
+# channel. That is acceptable here and nowhere else, because METRIC is never
+# drawn in a panel that also draws an arm, and every series in these figures
+# carries its own marker shape. It is a metric slot, never an arm. METHOD and
+# ADD_ON are reused for the other two metric series on the same grounds; if an
+# arm is ever added to one of those figures, re-run the validator on the
+# combined set rather than reaching for a seventh hue.
+METRIC = "#4E6910"
+
 # A dose variant of an arm is the *same* entity at a different setting, so it
 # keeps its mechanism's hue and separates on dash alone. This is the one case
 # where sharing a colour is correct rather than a collision: E90 is verified
@@ -110,6 +160,7 @@ ARM_DASH: dict[str, Any] = {
     ABLATION: (0, (1.6, 1.4)),
     ADD_ON: (0, (4, 1.2, 1, 1.2)),
     ADAPTIVE: (0, (6, 1.2, 1, 1.2, 1, 1.2)),
+    COMPARATOR: (0, (1.2, 1.3)),
     METHOD: "solid",
 }
 
@@ -123,11 +174,72 @@ MODE_RAMP = ("#7048E8", "#C2255C", "#C76A3A", "#0E8F86")
 # recedes far behind every mode colour, which clear 3.3:1 or better.
 INVALID = "#CBD6E0"
 
+# --- magnitude --------------------------------------------------------------
+# One hue, light to dark, in the manuscript's own blue. This exists because its
+# absence was being filled by ``cmap="viridis"`` in the mechanism diagnostics:
+# a rainbow ramp is the wrong encoding for magnitude, it shares no hue with
+# anything else in the paper, and its bright yellow top end took white cell
+# labels down to about 1.1:1 --- the largest values in those grids were the
+# ones a reader could not read. Lightness here is strictly monotonic, so the
+# ramp still orders correctly in greyscale and under every CVD simulation.
+SEQUENTIAL_STOPS = (
+    "#F1F6FA",
+    "#C3DAEA",
+    "#8DB8D6",
+    "#4E8CB8",
+    "#256A94",
+    "#19324A",
+)
+
+
+def sequential_cmap(name: str = "paper_blues"):
+    """The manuscript's magnitude ramp as a matplotlib colormap."""
+    from matplotlib.colors import LinearSegmentedColormap
+
+    return LinearSegmentedColormap.from_list(name, list(SEQUENTIAL_STOPS))
+
+
+def _relative_luminance(hex_color: str) -> float:
+    raw = hex_color.lstrip("#")
+    channels = []
+    for offset in (0, 2, 4):
+        value = int(raw[offset : offset + 2], 16) / 255
+        channels.append(
+            value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+        )
+    red, green, blue = channels
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+
+def contrast_ratio(one: str, other: str) -> float:
+    """WCAG contrast between two opaque hex colours."""
+    high, low = sorted(
+        (_relative_luminance(one), _relative_luminance(other)), reverse=True
+    )
+    return (high + 0.05) / (low + 0.05)
+
+
+def cell_ink(cell_color: Any) -> str:
+    """Ink for a label drawn *on* a filled cell: whichever reads better.
+
+    Picking one fixed label colour for a whole heatmap guarantees that one end
+    of the ramp is unreadable. Choosing per cell keeps every number above 3.5:1
+    on ``SEQUENTIAL_STOPS``, where the crossover falls at the ramp's midpoint.
+    Accepts anything matplotlib can resolve to a colour, including an RGBA
+    tuple straight from a colormap call.
+    """
+    from matplotlib.colors import to_hex
+
+    resolved = to_hex(cell_color)
+    return WHITE if contrast_ratio(resolved, WHITE) >= contrast_ratio(resolved, INK) else INK
+
+
 # --- line weights -----------------------------------------------------------
 MEAN_LW = 1.35  # a five-seed mean
 SEED_LW = 0.5  # an individual seed, when shown at all
 BAND_ALPHA = 0.13  # seed-range fill
 GRID_LW = 0.55
+PAPER_GRID_AXIS = "both"
 SPINE_LW = 0.55
 
 # --- type -------------------------------------------------------------------
@@ -179,11 +291,15 @@ def panel_height(rows: int, *, per_row: float | None = None) -> float:
 
 
 def style_axis(axis, *, grid: str = "both", title: str | None = None) -> None:
-    """Recessive grid, no top/right spines, small ticks. The house treatment."""
+    """Recessive two-axis grid, no top/right spines, and small ticks.
+
+    ``grid`` remains for backwards compatibility, but any enabled paper grid
+    draws both vertical and horizontal guides. This is a visual invariant.
+    """
     if grid in {"both", "x", "y"}:
         axis.grid(
             True,
-            axis=grid if grid in {"x", "y"} else "both",
+            axis=PAPER_GRID_AXIS,
             color=GRID,
             linewidth=GRID_LW,
             zorder=0,
@@ -196,6 +312,31 @@ def style_axis(axis, *, grid: str = "both", title: str | None = None) -> None:
     axis.tick_params(length=2.0, width=SPINE_LW, pad=1.5, labelsize=FONT)
     if title is not None:
         axis.set_title(title, fontsize=TITLE_FONT, color=INK, pad=3)
+
+
+def dominant_note(notes: Iterable[str]) -> str | None:
+    """The provenance note shared by most panels, or ``None`` if none is.
+
+    A grid of fifteen small multiples that stamps ``n=5 - 8p - terminal`` into
+    every panel has spent fifteen slots of the reader's attention to say one
+    thing, and the one panel where it reads ``n=1`` --- the only panel where the
+    note carries information --- looks exactly like the fourteen that do not.
+    Hoist the common case into the subtitle and draw the badge only where a
+    panel departs from it, so the annotation marks an exception rather than
+    decorating the rule.
+
+    Returns ``None`` when no note covers more than half the panels; in that case
+    the notes genuinely differ and each panel should keep its own.
+    """
+    counts: dict[str, int] = {}
+    total = 0
+    for note in notes:
+        counts[note] = counts.get(note, 0) + 1
+        total += 1
+    if not counts:
+        return None
+    note, hits = max(counts.items(), key=lambda item: item[1])
+    return note if hits * 2 > total else None
 
 
 def bottom_legend(

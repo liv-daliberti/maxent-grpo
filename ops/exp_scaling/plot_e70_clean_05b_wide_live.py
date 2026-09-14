@@ -413,7 +413,7 @@ def _plot_metric(
 
 def _style_axis(axis: plt.Axes, metric: str, plotted: list[float], integer: bool) -> None:
     axis.set_xlim(0, 12)
-    style.style_axis(axis, grid="y")
+    style.style_axis(axis)
     axis.xaxis.set_major_locator(MaxNLocator(7))
     if not plotted:
         axis.set_ylim(0.0, 1.0)

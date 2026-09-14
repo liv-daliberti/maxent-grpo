@@ -51,6 +51,7 @@ from oat_drgrpo.interactive_episode_replay import (  # noqa: E402
     fixed_replay_slots,
 )
 from oat_drgrpo.point_maze_tour import parse_point_tour_spec  # noqa: E402
+from oat_drgrpo.semantic_shannon import SemanticShannonTracker  # noqa: E402
 from oat_drgrpo.point_maze_tour_policy import (  # noqa: E402
     POINT_TOUR_LABELS,
     POINT_TOUR_PROMPT_FORMATS,
@@ -63,7 +64,15 @@ from oat_drgrpo.point_maze_tour_policy import (  # noqa: E402
 from oat_drgrpo.point_maze_tour_process import PointMazeTourProcess  # noqa: E402
 
 
-ARMS = ("control", "replay")
+# "semantic" is E81's objective on this domain: verified replay *plus* the
+# fixed open-set semantic MaxEnt term. PointMaze was excluded from E81/E82/E83
+# because distributing an episode-level semantic advantage across a variable
+# number of decisions creates a length incentive. Here K is constant inside a
+# prompt group, so the term divides evenly and the exclusion no longer applies.
+ARMS = ("control", "replay", "semantic")
+SEMANTIC_COEFFICIENT = 0.10
+SEMANTIC_SURPRISAL_CLIP = 5.0
+SEMANTIC_PSEUDOCOUNT = 1.0
 SAMPLES = 16
 # The decision horizon is read from the dataset, not hardcoded: it is the map's
 # landmark count. Pinning it to a constant meant the runner could only ever
@@ -476,6 +485,7 @@ def _save_checkpoint(
     tokenizer: Any,
     optimizer: Any,
     replay_bank: VerifiedInteractiveReplayBank,
+    semantic: SemanticShannonTracker,
     update: int,
     args: argparse.Namespace,
 ) -> None:
@@ -503,6 +513,7 @@ def _save_checkpoint(
                 "torch_random_state": torch.get_rng_state(),
                 "cuda_random_states": torch.cuda.get_rng_state_all(),
                 "replay_bank": replay_bank.state_dict(),
+                "semantic": semantic.state_dict(),
             },
             staging / "training_state.pt",
         )
@@ -697,6 +708,13 @@ def main() -> None:
         weight_decay=0.0,
     )
     replay_bank = VerifiedInteractiveReplayBank(capacity=REPLAY_CAPACITY)
+    # Built for every arm so the predictor's compute is identical; only the
+    # "semantic" arm adds its advantage to the objective.
+    semantic = SemanticShannonTracker(
+        coefficient=SEMANTIC_COEFFICIENT,
+        surprisal_clip=SEMANTIC_SURPRISAL_CLIP,
+        pseudocount=SEMANTIC_PSEUDOCOUNT,
+    )
     if checkpoint is not None:
         state = torch.load(
             args.checkpoint_dir / "training_state.pt",
@@ -705,6 +723,8 @@ def main() -> None:
         )
         optimizer.load_state_dict(state["optimizer"])
         replay_bank.load_state_dict(state["replay_bank"])
+        if "semantic" in state:
+            semantic.load_state_dict(state["semantic"])
         random.setstate(state["python_random_state"])
         torch.set_rng_state(state["torch_random_state"].cpu())
         torch.cuda.set_rng_state_all(state["cuda_random_states"])
@@ -772,6 +792,15 @@ def main() -> None:
                 [[episode.task_reward for episode in episodes]], dtype=torch.float32
             )
             task_advantages = drgrpo_task_advantages(rewards).flatten()
+            semantic_values, _sem_diag, sem_adv = semantic.score_separate_advantages_and_update(
+                prompt_token_ids=[episode.group_prompt_token_ids for episode in episodes],
+                answer_keys=[episode.outcome_key for episode in episodes],
+                num_samples=SAMPLES,
+            )
+            if args.arm == "semantic":
+                task_advantages = task_advantages + torch.tensor(
+                    semantic_values, dtype=task_advantages.dtype
+                )
             # Constant by construction; asserted in run_episodes.
             for slot in policy_slots:
                 episode = int(slot["episode"])
@@ -785,7 +814,7 @@ def main() -> None:
                 group=replay_group,
                 padding_token_ids=padding_token_ids,
                 action_token_ids=global_action_ids,
-                compute_only=args.arm == "control",
+                compute_only=args.arm == "control",  # replay applies for "replay" and "semantic"
                 replay_weight=args.replay_weight,
                 horizon=horizon,
             )
@@ -819,6 +848,11 @@ def main() -> None:
                         "map_id": rollout["map_id"],
                         "verified_episodes": rollout["verified_episodes"],
                         "distinct_verified_keys": rollout["distinct_verified_keys"],
+                        "semantic_advantage_rms": float(
+                            (sum(v * v for v in semantic_values) / len(semantic_values))
+                            ** 0.5
+                        ),
+                        "semantic_applied": float(args.arm == "semantic"),
                         "task_advantage_rms": float(
                             torch.sqrt(torch.mean(task_advantages.square())).item()
                         ),
@@ -848,6 +882,11 @@ def main() -> None:
                 )
                 measured.update(
                     {
+                        "semantic_advantage_rms": float(
+                            (sum(v * v for v in semantic_values) / len(semantic_values))
+                            ** 0.5
+                        ),
+                        "semantic_applied": float(args.arm == "semantic"),
                         "task_advantage_rms": float(
                             torch.sqrt(torch.mean(task_advantages.square())).item()
                         ),
@@ -885,6 +924,7 @@ def main() -> None:
                     tokenizer=tokenizer,
                     optimizer=optimizer,
                     replay_bank=replay_bank,
+                    semantic=semantic,
                     update=update,
                     args=args,
                 )

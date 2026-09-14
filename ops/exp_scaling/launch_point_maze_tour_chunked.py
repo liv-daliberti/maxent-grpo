@@ -36,6 +36,9 @@ def submit(
     passes: int,
     chunk_updates: int,
     eval_prompts: int,
+    eval_interval: int,
+    eval_split: str,
+    prompt_format: str,
     data_root: Path,
     model: Path,
     depends_on: str | None,
@@ -51,8 +54,10 @@ def submit(
             f"OAT_ZERO_TOUR_MODEL={model}",
             f"OAT_ZERO_TOUR_CHUNK_UPDATES={chunk_updates}",
             f"OAT_ZERO_TOUR_EVAL_PROMPTS={eval_prompts}",
-            f"OAT_ZERO_TOUR_EVAL_INTERVAL={chunk_updates}",
+            f"OAT_ZERO_TOUR_EVAL_INTERVAL={eval_interval}",
+            f"OAT_ZERO_TOUR_EVAL_SPLIT={eval_split}",
             f"OAT_ZERO_TOUR_DATA={data_root}",
+            f"OAT_ZERO_TOUR_PROMPT_FORMAT={prompt_format}",
         ]
     )
     command = [
@@ -83,11 +88,22 @@ def submit(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stage", required=True)
-    parser.add_argument("--arm", required=True, choices=("control", "replay"))
+    # "semantic" is verified replay plus the fixed open-set semantic MaxEnt
+    # term, the arm this domain was previously excluded from.
+    parser.add_argument(
+        "--arm", required=True, choices=("control", "replay", "semantic")
+    )
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--passes", type=int, default=4)
     parser.add_argument("--chunk-updates", type=int, default=TRAIN_ROWS)
     parser.add_argument("--eval-prompts", type=int, default=64)
+    parser.add_argument("--eval-interval", type=int, default=384)
+    parser.add_argument("--eval-split", default="dev", choices=("dev", "eval"))
+    parser.add_argument(
+        "--prompt-format", default="qwen_chatml",
+        choices=("qwen_chatml", "falcon3"),
+        help="must match the model; a Falcon surface on Qwen weights runs silently wrong",
+    )
     parser.add_argument("--model", type=Path, default=BASE_MODEL)
     parser.add_argument(
         "--data-root", type=Path, default=ROOT / "var/data/point_maze_tour_v1r1"
@@ -130,6 +146,9 @@ def main() -> None:
             passes=args.passes,
             chunk_updates=args.chunk_updates,
             eval_prompts=args.eval_prompts,
+            eval_interval=args.eval_interval,
+            eval_split=args.eval_split,
+            prompt_format=args.prompt_format,
             data_root=args.data_root,
             model=args.model,
             depends_on=previous,

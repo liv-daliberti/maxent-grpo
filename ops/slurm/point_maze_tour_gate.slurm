@@ -51,5 +51,6 @@ exec "$ROOT_DIR/var/seed_paper_eval/paper310/bin/python" \
   --output-metrics "${STEM}.metrics.jsonl" \
   --learning-rate 0.0000002 --replay-weight 0.10 \
   --microbatch-size 16 --max-length 1536 \
+  --prompt-format "${OAT_ZERO_TOUR_PROMPT_FORMAT:-qwen_chatml}" \
   --experiment-id "tour-${STAGE}" \
   "${EXTRA[@]}"

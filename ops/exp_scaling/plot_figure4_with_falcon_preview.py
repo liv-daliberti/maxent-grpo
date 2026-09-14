@@ -42,48 +42,25 @@ E83_LEDGER = (
 # E85 re-runs the PantryPlan cells whose semantic term never fired. Any domain
 # it supersedes is drawn from the repair, never from the parent cohort.
 REPAIR_LEDGER = ROOT / "var/artifacts/e85_pantry_semantic_repair_jobs.json"
-QWEN_POINT_LEDGER = live.POINT_LEDGER
-FALCON_POINT_LEDGER = (
-    ROOT / "var/artifacts/e79pm_falcon_point_maze_verified_replay_jobs.json"
-)
 DEFAULT_OUTPUT = ROOT / "paper/figures/figure4_with_falcon_interim"
 ROW_LABELS = ("Qwen2.5-0.5B", "Falcon3-1B", "Qwen2.5-3B")
+STATIC_DOMAINS = (
+    "graph_coloring", "countdown", "python_factors", "mathir", "pantry_plan",
+)
 
 
-def _family_snapshot(
-    ledger: Path,
-    *,
-    point_ledger: Path | None,
-) -> dict[str, Any]:
+def _family_snapshot(ledger: Path) -> dict[str, Any]:
+    """Read one model scale and retain only domains registered in its ledger."""
+
     snapshot = live._snapshot(ledger.resolve())
-    # live._snapshot attaches Qwen's global PointMaze ledger by default.  Strip
-    # it first, then attach the explicitly model-matched extension.
-    snapshot["domains"] = [
-        domain for domain in snapshot["domains"] if domain != "point_maze"
-    ]
-    snapshot["curves"].pop("point_maze", None)
     payload = json.loads(ledger.read_text(encoding="utf-8"))
+    registered = {str(run["domain"]) for run in payload["runs"]}
+    domains = [domain for domain in STATIC_DOMAINS if domain in registered]
+    snapshot["domains"] = domains
+    snapshot["curves"] = {
+        domain: snapshot["curves"].get(domain, {}) for domain in domains
+    }
     snapshot["total_runs"] = len(payload["runs"])
-    snapshot["point_extension_included"] = False
-    snapshot["point_eval_rows"] = None
-    if point_ledger is not None and point_ledger.is_file():
-        point = json.loads(point_ledger.read_text(encoding="utf-8"))
-        for run in point["runs"]:
-            curve = live._point_curve(
-                Path(run["metrics_path"]),
-                interval=int(point["checkpoint_interval_steps"]),
-                target=int(point["target_steps"]),
-                point_steps_per_pass=int(point["train_rows"]),
-                common_steps_per_pass=int(payload["train_rows"]),
-            )
-            if curve:
-                snapshot["curves"]["point_maze"][str(run["arm"])][
-                    int(run["seed"])
-                ] = curve
-        snapshot["domains"].append("point_maze")
-        snapshot["total_runs"] += len(point["runs"])
-        snapshot["point_extension_included"] = True
-        snapshot["point_eval_rows"] = int(point["eval_rows"])
     return snapshot
 
 
@@ -252,7 +229,10 @@ def _panel(
     domain: str,
     row: int,
     total_rows: int,
+    arm_styles: dict[str, tuple[Any, Any, str]] | None = None,
+    mean_marker: str | None = None,
 ) -> dict[str, Any]:
+    arm_styles = live.ARM_STYLE if arm_styles is None else arm_styles
     if row == 0:
         style.style_axis(
             axis,
@@ -271,7 +251,7 @@ def _panel(
         summaries = frozen["paired_summary_by_pass"]
         pass_values = sorted(float(value) for value in summaries)
         for arm in ("control", "replay"):
-            color, dash, _label = live.ARM_STYLE[arm]
+            color, dash, _label = arm_styles[arm]
             means = [summaries[str(value)][f"{arm}_mean"] for value in pass_values]
             ranges = [summaries[str(value)][f"{arm}_range"] for value in pass_values]
             axis.fill_between(
@@ -289,6 +269,9 @@ def _panel(
                 color=color,
                 linestyle=dash,
                 linewidth=style.MEAN_LW,
+                marker=mean_marker,
+                markevery=2 if mean_marker else None,
+                markersize=2.4 if mean_marker else None,
                 zorder=3,
             )
         by_arm = dict(frozen.get("semantic_summary_by_arm") or {})
@@ -298,7 +281,7 @@ def _panel(
         for arm_name, semantic in by_arm.items():
             if not semantic:
                 continue
-            color, dash, _label = live.ARM_STYLE[arm_name]
+            color, dash, _label = arm_styles[arm_name]
             semantic_passes = sorted(float(value) for value in semantic)
             axis.fill_between(
                 semantic_passes,
@@ -315,6 +298,9 @@ def _panel(
                 color=color,
                 linestyle=dash,
                 linewidth=style.MEAN_LW,
+                marker=mean_marker,
+                markevery=2 if mean_marker else None,
+                markersize=2.4 if mean_marker else None,
                 zorder=3,
             )
         if pass_values:
@@ -375,7 +361,7 @@ def _panel(
     }
 
     for arm in ("control", "replay"):
-        color, dash, _label = live.ARM_STYLE[arm]
+        color, dash, _label = arm_styles[arm]
         arm_curves = domain_curves.get(arm, {})
         record["arms"][arm] = sorted(arm_curves)
         for _seed, curve in sorted(arm_curves.items()):
@@ -399,7 +385,7 @@ def _panel(
         0, snapshot["target"] + 1, snapshot["interval"]
     )
     for arm in ("control", "replay"):
-        color, dash, _label = live.ARM_STYLE[arm]
+        color, dash, _label = arm_styles[arm]
         xs: list[float] = []
         means: list[float] = []
         lows: list[float] = []
@@ -442,6 +428,9 @@ def _panel(
                 color=color,
                 linestyle=dash,
                 linewidth=style.MEAN_LW,
+                marker=mean_marker,
+                markevery=2 if mean_marker else None,
+                markersize=2.4 if mean_marker else None,
                 zorder=3,
             )
 
@@ -456,7 +445,7 @@ def _panel(
         semantic_curves = spec["curves"].get(domain, {})
         if not semantic_curves:
             continue
-        color, dash, _label = live.ARM_STYLE[arm_name]
+        color, dash, _label = arm_styles[arm_name]
         record["semantic_seeds_by_arm"][arm_name] = sorted(semantic_curves)
         record["semantic_summary_by_arm"].setdefault(arm_name, {})
         for _seed, curve in sorted(semantic_curves.items()):
@@ -526,6 +515,9 @@ def _panel(
                 color=color,
                 linestyle=dash,
                 linewidth=style.MEAN_LW,
+                marker=mean_marker,
+                markevery=2 if mean_marker else None,
+                markersize=2.4 if mean_marker else None,
                 zorder=3,
             )
 
@@ -552,7 +544,7 @@ def _panel(
             if control_seeds and not replay_seeds:
                 note = "control only " + _compact_seeds(control_seeds)
             elif replay_seeds and not control_seeds:
-                note = "x-Mode GRPO only " + _compact_seeds(replay_seeds)
+                note = "x-Mode Dr.GRPO only " + _compact_seeds(replay_seeds)
             else:
                 note = "arms not paired yet"
         # With five arms the per-arm seed lists ran two lines each and collided
@@ -753,7 +745,7 @@ def render(
     falcon_seen = _observed_runs(falcon)
     qwen3b_seen = _observed_runs(qwen3b)
     figure.suptitle(
-        "INTERIM RESULTS — x-Mode GRPO across model scales",
+        "INTERIM RESULTS — x-Mode Dr.GRPO across model scales",
         fontsize=style.TITLE_FONT,
         color=style.INK,
         y=0.995,
@@ -762,7 +754,7 @@ def render(
         0.5,
         0.963,
         (
-            f"Qwen-0.5B/PointMaze {qwen_seen}/{qwen['total_runs']}; "
+            f"Qwen-0.5B {qwen_seen}/{qwen['total_runs']}; "
             f"Falcon-1B {falcon_seen}/{falcon['total_runs']}; "
             f"Qwen-3B {qwen3b_seen}/{qwen3b['total_runs']} cells have "
             "registered evaluations; descriptive snapshot, final estimates pending"
@@ -816,9 +808,9 @@ def main() -> None:
             frozen_provenance=provenance,
         )
     else:
-        qwen = _family_snapshot(E78_LEDGER, point_ledger=QWEN_POINT_LEDGER)
-        falcon = _family_snapshot(E79_LEDGER, point_ledger=FALCON_POINT_LEDGER)
-        qwen3b = _family_snapshot(E80R1_LEDGER, point_ledger=None)
+        qwen = _family_snapshot(E78_LEDGER)
+        falcon = _family_snapshot(E79_LEDGER)
+        qwen3b = _family_snapshot(E80R1_LEDGER)
         # Every plotted semantic arm comes from the registry, so a launched arm
         # cannot be missing here without failing the registry test.
         for snapshot, family in (

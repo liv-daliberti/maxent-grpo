@@ -80,6 +80,25 @@ def run_step(run_dir: Path) -> int:
         default=0,
     )
 
+VERL_CONSOLE_STEP = re.compile(rb"(?:^|\n)step:(\d+)\s+-")
+
+
+def verl_console_step(log_path: Path) -> int:
+    """Return the deepest upstream verl LocalLogger step in a bounded tail."""
+
+    try:
+        with log_path.open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            size = handle.tell()
+            handle.seek(max(0, size - 2_000_000))
+            payload = handle.read()
+    except OSError:
+        return 0
+    return max(
+        (int(match.group(1)) for match in VERL_CONSOLE_STEP.finditer(payload)),
+        default=0,
+    )
+
 
 # Each PointMaze cohort stamps its own experiment id into the schema, exactly as
 # the rolling-checkpoint schema does; matching one literal reported every other
@@ -112,6 +131,27 @@ def point_run_step(metrics_path: Path) -> int:
 POINT_CHECKPOINT_SCHEMA = re.compile(
     r"^e\d+pm-point-maze-rolling-checkpoint-v1$"
 )
+
+# Every PointMaze-family domain stamps its own evaluation schema
+# (point-maze-waypoint-pilot-..., point-maze-tour-...). Four separate readers
+# hardcoded one literal and silently read zero rows from every other domain:
+# the panel drew empty and the table raised "missing evaluation at step N".
+# Consumers import this rather than spelling the schema out again.
+POINT_EVAL_SCHEMA = re.compile(r"^point-maze-[a-z0-9-]+-evaluation-v1$")
+
+# Full-length panel titles, shared by the figure and the manuscript table. Two
+# copies of this map drifted apart and the renderer raised KeyError on a domain
+# the figure had already drawn; consumers import this rather than restate it.
+DOMAIN_TITLES = {
+    "graph_coloring": "Graph coloring",
+    "countdown": "Countdown",
+    "python_factors": "Python factors",
+    "mathir": "MathIR",
+    "pantry_plan": "PantryPlan",
+    "point_maze": "PointMaze",
+    # A separate domain from PointMaze, not a newer version of it.
+    "point_maze_tour": "PointMaze Tour",
+}
 
 
 def point_checkpoint_step(path: Path) -> int:
@@ -164,6 +204,11 @@ def receipt_step(run_dir: Path) -> int:
         if row.get("schema") == "oat_zero_training_complete_v1":
             try:
                 best = max(best, int(row.get("terminal_step", 0)))
+            except (TypeError, ValueError):
+                continue
+        elif row.get("schema") == "e113r4_official_verl_dapo_training_complete_v1":
+            try:
+                best = max(best, int(row.get("total_training_steps", 0)))
             except (TypeError, ValueError):
                 continue
     return best
@@ -241,7 +286,12 @@ def load_snapshot(ledger_path: Path) -> dict[str, object]:
     rows: list[dict[str, object]] = []
     for run in runs:
         run_dir = Path(run["run_dir"])
-        step = min(run_step(run_dir), target)
+        log_step = (
+            verl_console_step(Path(str(run["log_path"])))
+            if run.get("log_path")
+            else 0
+        )
+        step = min(max(run_step(run_dir), receipt_step(run_dir), log_step), target)
         checkpoint = min(checkpoint_step(run_dir), target)
         complete = is_complete(run_dir, step, target)
         state = states.get(int(run["job_id"]), "NOT_IN_QUEUE")
@@ -259,9 +309,11 @@ def load_snapshot(ledger_path: Path) -> dict[str, object]:
             }
         )
     return {
-        "arms": ledger["arms"],
+        "arms": ledger.get("arms")
+        or sorted({str(run["arm"]) for run in runs}),
         "checkpoint_interval": interval,
-        "domains": ledger["domains"],
+        "domains": ledger.get("domains")
+        or sorted({str(run["domain"]) for run in runs}),
         "passes": int(ledger["passes"]),
         "rows": rows,
         "steps_per_pass": steps_per_pass,

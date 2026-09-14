@@ -73,10 +73,9 @@ DOMAIN_TITLES = {
 }
 DOMAIN_ORDER = tuple(DOMAIN_TITLES)
 
-# Temperatures that carry a printed label. Labelling every point turns the
-# panel into a wall of numbers; the ends and the published operating point are
-# what a reader needs to orient the curve.
-LABELLED = (0.5, 1.0, 2.0)
+# Labelling every point turns the panel into a wall of numbers. The two ends
+# orient the sweep; the reported T=1 operating point is identified by its ring.
+LABELLED = (0.5, 2.0)
 
 style.apply_rcparams()
 
@@ -107,7 +106,7 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
         raise SystemExit("no frontier points to render")
 
     fig, axes = plt.subplots(
-        1, len(domains), figsize=(style.WIDTH, 2.15), constrained_layout=True
+        1, len(domains), figsize=(style.WIDTH, 2.25), constrained_layout=True
     )
     if len(domains) == 1:
         axes = [axes]
@@ -115,6 +114,26 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
     drawn: list[dict[str, Any]] = []
     for axis, domain in zip(axes, domains):
         style.style_axis(axis, title=DOMAIN_TITLES[domain])
+
+        # The panel's own data extent, used below to decide whether an arm's
+        # sweep is long enough for its endpoint labels to sit apart.
+        panel_points = [
+            point
+            for arm in ARM_STYLE
+            for point in (grouped.get((domain, arm)) or ())
+        ]
+        domain_x_span = (
+            max(point["mean_at_k"] for point in panel_points)
+            - min(point["mean_at_k"] for point in panel_points)
+            if panel_points
+            else 0.0
+        )
+        domain_y_span = (
+            max(point["distinct_at_k"] for point in panel_points)
+            - min(point["distinct_at_k"] for point in panel_points)
+            if panel_points
+            else 0.0
+        )
 
         for arm, arm_style in ARM_STYLE.items():
             series = grouped.get((domain, arm))
@@ -135,10 +154,28 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
                 zorder=3,
                 label=arm_style["label"],
             )
+            # Where an arm barely moves across the whole sweep --- the
+            # PantryPlan control collapses to almost a single point --- its
+            # "T=2" and "T=0.5" labels land on top of each other and say
+            # nothing the collapsed curve has not already said. Drop them and
+            # let the ringed T=1 marker stand for the arm.
+            labelled_points = [
+                point for point in series if point["temperature"] in LABELLED
+            ]
+            sweep_span = 0.0
+            if len(labelled_points) > 1:
+                spread_x = max(p["mean_at_k"] for p in labelled_points) - min(
+                    p["mean_at_k"] for p in labelled_points
+                )
+                spread_y = max(p["distinct_at_k"] for p in labelled_points) - min(
+                    p["distinct_at_k"] for p in labelled_points
+                )
+                width = max(domain_x_span, 1e-9)
+                height = max(domain_y_span, 1e-9)
+                sweep_span = max(spread_x / width, spread_y / height)
+            label_endpoints = sweep_span >= 0.12
             for point in series:
                 temperature = point["temperature"]
-                if temperature not in LABELLED:
-                    continue
                 is_published = temperature == 1.0
                 if is_published:
                     # The temperature-one point is the operating point every
@@ -149,21 +186,36 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
                         [point["mean_at_k"]],
                         [point["distinct_at_k"]],
                         marker=arm_style["marker"],
-                        markersize=235 ** 0.5,
+                        markersize=9.2,
                         markerfacecolor="none",
                         markeredgecolor=arm_style["color"],
-                        markeredgewidth=1.3,
+                        markeredgewidth=1.1,
                         zorder=4,
                     )
-                # The enlarged ring would swallow a label placed above-right, and
-                # at the top of a panel that label also collided with the axis;
-                # the temperature-one label therefore sits below its ring.
-                offset = (7.0, -8.5) if is_published else (3.2, 3.2)
+                if temperature not in LABELLED or not label_endpoints:
+                    continue
+                # Endpoint labels are enough to orient the sweep. Offsets keep
+                # the two arm labels apart where a nearly vertical baseline
+                # collapses several temperatures onto the same point.
+                # Both arms put T=2 at the left end of their sweep, so a
+                # leftward label runs into the y tick labels (it overprinted
+                # "0.7" in the MathIR panel) and the two arms' labels landed on
+                # each other wherever their left endpoints were close in y.
+                # Label the left end vertically instead --- treatment above,
+                # control below --- and only the right end horizontally, where
+                # there is open panel to grow into.
+                if temperature == 0.5:
+                    offset = (4.0, -4.0) if arm == "drgrpo" else (4.0, -7.0)
+                    horizontal_alignment = "left"
+                else:
+                    offset = (0.0, -9.5) if arm == "drgrpo" else (0.0, 5.0)
+                    horizontal_alignment = "center"
                 axis.annotate(
-                    f"{temperature:g}",
+                    f"T={temperature:g}",
                     (point["mean_at_k"], point["distinct_at_k"]),
                     textcoords="offset points",
                     xytext=offset,
+                    ha=horizontal_alignment,
                     fontsize=style.SMALL_FONT - 0.5,
                     color=MUTED,
                     zorder=5,
@@ -172,16 +224,26 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
                 {
                     "domain": domain,
                     "arm": arm,
-                    "temperatures": [point["temperature"] for point in series],
-                    "mean_at_8": xs,
-                    "distinct_at_8": ys,
+                    "points": [
+                        {
+                            "temperature": point["temperature"],
+                            "n": point["n_seeds"],
+                            "seeds": point["seeds"],
+                            "mean_at_8": point["mean_at_k"],
+                            "distinct_at_8": point["distinct_at_k"],
+                            "per_seed": point["per_seed"],
+                        }
+                        for point in series
+                    ],
                 }
             )
 
     for axis in axes:
         # Room for the temperature annotations, which otherwise clip against
-        # the panel edge at the extreme points of each curve.
-        axis.margins(x=0.14, y=0.16)
+        # the panel edge at the extreme points of each curve. The x margin also
+        # keeps the left-hand "T=2" label off the y tick labels, which it used
+        # to overprint in the MathIR panel.
+        axis.margins(x=0.20, y=0.16)
     axes[0].set_ylabel(
         "breadth  (# distinct@8)", fontsize=style.LABEL_FONT, labelpad=2
     )
@@ -190,12 +252,28 @@ def render(summary: dict[str, Any], output: Path) -> dict[str, Any]:
     fig.supxlabel("accuracy  (mean@8)", fontsize=style.FONT)
 
     handles, labels = axes[0].get_legend_handles_labels()
-    style.bottom_legend(fig, handles, labels, y=-0.14)
+    style.bottom_legend(fig, handles, labels, y=-0.13)
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output, bbox_inches="tight", pad_inches=0.02)
+    style.save(fig, output)
     plt.close(fig)
     return {"series": drawn, "domains": domains}
+
+
+def file_record(path: Path, root: Path) -> dict[str, Any]:
+    return {
+        "path": str(path.relative_to(root)),
+        "byte_length": path.stat().st_size,
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    with os.fdopen(handle, "w", encoding="utf-8") as sink:
+        json.dump(payload, sink, indent=2, sort_keys=True)
+        sink.write("\n")
+    os.replace(temporary, path)
 
 
 def main() -> int:
@@ -218,6 +296,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if args.output.suffix.lower() != ".pdf":
+        raise SystemExit("--output must name the PDF artifact")
+
     summary = json.loads(args.summary.read_text())
     gate = summary["reproduction_gate"]
     if not gate["passed"] and not args.allow_ungated:
@@ -227,23 +308,73 @@ def main() -> int:
         )
 
     drawn = render(summary, args.output)
+    source_paths = [
+        root / "docs" / "e72_baseline_and_decoding_control_suite.md",
+        root / "var" / "artifacts" / "e72_frontier_source_runs.json",
+        root / "var" / "artifacts" / "e72_frontier_stage_a_jobs.json",
+        root / "var" / "artifacts" / "e72_frontier_stage_b_jobs.json",
+        root / "var" / "artifacts" / "e72_frontier_stage_c_jobs.json",
+        root / "var" / "artifacts" / "e72_decoding_frontier_cells.jsonl",
+        args.summary,
+    ]
+    missing = [path for path in source_paths if not path.is_file()]
+    if missing:
+        raise SystemExit(f"missing frozen decoding source: {missing[0]}")
+
     provenance = {
-        "schema": "e72_decoding_frontier_figure_v1",
-        "figure": str(args.output),
-        "summary": str(args.summary),
-        "summary_sha256": hashlib.sha256(args.summary.read_bytes()).hexdigest(),
+        "schema": "paper-historical-decoding-frontier-v2",
+        "status": "complete five-seed historical control; not x-Mode evidence",
+        "scope": (
+            "terminal checkpoints from a superseded 12-pass multi-component "
+            "treatment; the sweep tests decoding of frozen policies only"
+        ),
+        "figure": {
+            "pdf": str(args.output.relative_to(root)),
+            "png": str(args.output.with_suffix(".png").relative_to(root)),
+        },
+        "summary": str(args.summary.relative_to(root)),
+        "input_sha256": {
+            str(path.relative_to(root)): file_record(path, root)
+            for path in source_paths
+        },
         "reproduction_gate_passed": bool(gate["passed"]),
         "reproduction_gate_checked": int(gate["checked"]),
+        "reproduction_gate_failed": int(gate["failed"]),
         "cells_measured": int(summary["cells_measured"]),
+        "model": "Qwen2.5-0.5B-Instruct",
+        "checkpoint": "terminal pass 12",
+        "paired_seeds": [43, 44, 45, 46, 47],
+        "metrics": {"x": "mean@8", "y": "distinct@8"},
+        "temperature_sweep": [0.5, 0.7, 1.0, 1.3, 1.6, 2.0],
+        "arms": {
+            "drgrpo": "matched Dr.GRPO",
+            "xgrpo": "historical multi-component treatment",
+        },
+        "temperature_repair": [
+            row
+            for row in summary["frontier"]["temperature_repair"]
+            if row["arm"] == "drgrpo"
+        ],
+        "sample_budget": [
+            row
+            for row in summary["frontier"]["budget"]
+            if row["arm"] in {"drgrpo", "xgrpo"}
+        ],
+        "nucleus": [
+            row
+            for row in summary["frontier"]["nucleus"]
+            if row["arm"] in {"drgrpo", "xgrpo"}
+        ],
         "displayed": drawn,
     }
-    path = root / "var" / "artifacts" / "e72_decoding_frontier_figure_provenance.json"
-    handle, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    with os.fdopen(handle, "w", encoding="utf-8") as sink:
-        json.dump(provenance, sink, indent=2, sort_keys=True)
-        sink.write("\n")
-    os.replace(temporary, path)
-    print(f"[e72-frontier] wrote {args.output} and {path}")
+    adjacent = args.output.with_suffix(".json")
+    legacy = root / "var" / "artifacts" / "e72_decoding_frontier_figure_provenance.json"
+    write_json(adjacent, provenance)
+    write_json(legacy, provenance)
+    print(
+        f"[e72-frontier] wrote {args.output}, {args.output.with_suffix('.png')}, "
+        f"{adjacent}, and {legacy}"
+    )
     return 0
 
 

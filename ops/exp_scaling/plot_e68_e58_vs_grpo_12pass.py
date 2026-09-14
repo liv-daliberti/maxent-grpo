@@ -279,7 +279,7 @@ def _historical_points(
 
 def _style_axis(axis: plt.Axes) -> None:
     axis.set_xlim(0, 12)
-    axis.grid(axis="y", color="#dddddd", linewidth=0.6, zorder=0)
+    axis.grid(axis="both", color="#dddddd", linewidth=0.6, zorder=0)
     axis.spines[["top", "right"]].set_visible(False)
     axis.tick_params(labelsize=7.5)
     axis.xaxis.set_major_locator(MaxNLocator(7, integer=True))

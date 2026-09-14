@@ -1,0 +1,986 @@
+{
+  "schema": "paper-comparison-family-figure-v2",
+  "generated_at": "2026-09-04T15:23:54.036874+00:00",
+  "comparison": "core_retention",
+  "question": "Does ReplayDr.GRPO retain more verified modes than matched Dr.GRPO?",
+  "scale": "qwen05b",
+  "domains": [
+    "mathir",
+    "pantry_plan"
+  ],
+  "methods": [
+    "drgrpo",
+    "replay_grpo"
+  ],
+  "status": "all available manuscript evidence; exact n recorded",
+  "evidence": "terminal",
+  "metric": "mean distinct correct@8; thick curves use paired seeds only",
+  "records": {
+    "mathir": {
+      "arms": {
+        "control": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "paired_seeds_by_pass": {
+        "0.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "0.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "1.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "1.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "2.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "2.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "3.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "3.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "4.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "4.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "5.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "5.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "6.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "6.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "7.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "7.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "8.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "paired_summary_by_pass": {
+        "0.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.22265625,
+          "replay_mean": 0.22265625,
+          "replay_minus_control": 0.0,
+          "control_range": [
+            0.21484375,
+            0.234375
+          ],
+          "replay_range": [
+            0.21484375,
+            0.234375
+          ]
+        },
+        "0.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.3046875,
+          "replay_mean": 0.301171875,
+          "replay_minus_control": -0.003515625000000022,
+          "control_range": [
+            0.255859375,
+            0.34765625
+          ],
+          "replay_range": [
+            0.21875,
+            0.34765625
+          ]
+        },
+        "1.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.30390625,
+          "replay_mean": 0.301171875,
+          "replay_minus_control": -0.002734375000000011,
+          "control_range": [
+            0.255859375,
+            0.3671875
+          ],
+          "replay_range": [
+            0.224609375,
+            0.373046875
+          ]
+        },
+        "1.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.324609375,
+          "replay_mean": 0.334375,
+          "replay_minus_control": 0.009765625,
+          "control_range": [
+            0.26953125,
+            0.375
+          ],
+          "replay_range": [
+            0.20703125,
+            0.39453125
+          ]
+        },
+        "2.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.283203125,
+          "replay_mean": 0.415234375,
+          "replay_minus_control": 0.13203125,
+          "control_range": [
+            0.220703125,
+            0.322265625
+          ],
+          "replay_range": [
+            0.369140625,
+            0.47265625
+          ]
+        },
+        "2.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.3109375,
+          "replay_mean": 0.425390625,
+          "replay_minus_control": 0.11445312500000004,
+          "control_range": [
+            0.232421875,
+            0.39453125
+          ],
+          "replay_range": [
+            0.296875,
+            0.48828125
+          ]
+        },
+        "3.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.3421875,
+          "replay_mean": 0.517578125,
+          "replay_minus_control": 0.17539062500000002,
+          "control_range": [
+            0.267578125,
+            0.439453125
+          ],
+          "replay_range": [
+            0.39453125,
+            0.61328125
+          ]
+        },
+        "3.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.3453125,
+          "replay_mean": 0.554296875,
+          "replay_minus_control": 0.208984375,
+          "control_range": [
+            0.2578125,
+            0.439453125
+          ],
+          "replay_range": [
+            0.458984375,
+            0.59765625
+          ]
+        },
+        "4.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.313671875,
+          "replay_mean": 0.58515625,
+          "replay_minus_control": 0.27148437500000006,
+          "control_range": [
+            0.189453125,
+            0.40625
+          ],
+          "replay_range": [
+            0.439453125,
+            0.677734375
+          ]
+        },
+        "4.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.376953125,
+          "replay_mean": 0.659375,
+          "replay_minus_control": 0.28242187500000004,
+          "control_range": [
+            0.240234375,
+            0.525390625
+          ],
+          "replay_range": [
+            0.546875,
+            0.7265625
+          ]
+        },
+        "5.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.362109375,
+          "replay_mean": 0.710546875,
+          "replay_minus_control": 0.3484375,
+          "control_range": [
+            0.240234375,
+            0.51171875
+          ],
+          "replay_range": [
+            0.564453125,
+            0.787109375
+          ]
+        },
+        "5.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.426953125,
+          "replay_mean": 0.744140625,
+          "replay_minus_control": 0.3171875,
+          "control_range": [
+            0.328125,
+            0.48828125
+          ],
+          "replay_range": [
+            0.58203125,
+            0.8359375
+          ]
+        },
+        "6.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.433203125,
+          "replay_mean": 0.762109375,
+          "replay_minus_control": 0.32890624999999996,
+          "control_range": [
+            0.32421875,
+            0.546875
+          ],
+          "replay_range": [
+            0.599609375,
+            0.8515625
+          ]
+        },
+        "6.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.46875,
+          "replay_mean": 0.78828125,
+          "replay_minus_control": 0.31953125000000004,
+          "control_range": [
+            0.3828125,
+            0.548828125
+          ],
+          "replay_range": [
+            0.685546875,
+            0.84375
+          ]
+        },
+        "7.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.491015625,
+          "replay_mean": 0.8078125,
+          "replay_minus_control": 0.31679687500000003,
+          "control_range": [
+            0.3828125,
+            0.578125
+          ],
+          "replay_range": [
+            0.61328125,
+            0.875
+          ]
+        },
+        "7.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.502734375,
+          "replay_mean": 0.80234375,
+          "replay_minus_control": 0.29960937500000007,
+          "control_range": [
+            0.427734375,
+            0.56640625
+          ],
+          "replay_range": [
+            0.650390625,
+            0.88671875
+          ]
+        },
+        "8.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.51328125,
+          "replay_mean": 0.828515625,
+          "replay_minus_control": 0.31523437499999996,
+          "control_range": [
+            0.451171875,
+            0.576171875
+          ],
+          "replay_range": [
+            0.71484375,
+            0.908203125
+          ]
+        }
+      },
+      "semantic_seeds_by_arm": {},
+      "semantic_summary_by_arm": {}
+    },
+    "pantry_plan": {
+      "arms": {
+        "control": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "paired_seeds_by_pass": {
+        "0.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "0.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "1.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "1.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "2.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "2.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "3.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "3.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "4.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "4.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "5.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "5.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "6.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "6.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "7.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "7.5": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "8.0": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "paired_summary_by_pass": {
+        "0.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 2.426171875,
+          "replay_mean": 2.426171875,
+          "replay_minus_control": 0.0,
+          "control_range": [
+            2.419921875,
+            2.435546875
+          ],
+          "replay_range": [
+            2.419921875,
+            2.435546875
+          ]
+        },
+        "0.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 1.845703125,
+          "replay_mean": 1.805078125,
+          "replay_minus_control": -0.04062499999999991,
+          "control_range": [
+            1.236328125,
+            2.36328125
+          ],
+          "replay_range": [
+            1.34375,
+            2.072265625
+          ]
+        },
+        "1.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.886328125,
+          "replay_mean": 1.640234375,
+          "replay_minus_control": 0.7539062499999999,
+          "control_range": [
+            0.53125,
+            1.87109375
+          ],
+          "replay_range": [
+            1.515625,
+            1.875
+          ]
+        },
+        "1.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.71875,
+          "replay_mean": 1.7515625,
+          "replay_minus_control": 1.0328125,
+          "control_range": [
+            0.53125,
+            1.0859375
+          ],
+          "replay_range": [
+            1.515625,
+            2.0390625
+          ]
+        },
+        "2.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.628125,
+          "replay_mean": 1.810546875,
+          "replay_minus_control": 1.182421875,
+          "control_range": [
+            0.53125,
+            1.015625
+          ],
+          "replay_range": [
+            1.515625,
+            2.224609375
+          ]
+        },
+        "2.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.74375,
+          "replay_minus_control": 1.2218749999999998,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.482421875,
+            2.322265625
+          ]
+        },
+        "3.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.80859375,
+          "replay_minus_control": 1.28671875,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.515625,
+            2.0703125
+          ]
+        },
+        "3.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.839453125,
+          "replay_minus_control": 1.3175781249999998,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.59375,
+            2.34375
+          ]
+        },
+        "4.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.84375,
+          "replay_minus_control": 1.321875,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.5546875,
+            2.263671875
+          ]
+        },
+        "4.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.590234375,
+          "replay_minus_control": 1.068359375,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.357421875,
+            1.916015625
+          ]
+        },
+        "5.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.885546875,
+          "replay_minus_control": 1.363671875,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.521484375,
+            2.400390625
+          ]
+        },
+        "5.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.48046875,
+          "replay_minus_control": 0.95859375,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.15625,
+            1.853515625
+          ]
+        },
+        "6.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.617578125,
+          "replay_minus_control": 1.095703125,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.36328125,
+            1.97265625
+          ]
+        },
+        "6.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.727734375,
+          "replay_minus_control": 1.2058593750000002,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.16796875,
+            2.673828125
+          ]
+        },
+        "7.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.59609375,
+          "replay_minus_control": 1.07421875,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.427734375,
+            1.69921875
+          ]
+        },
+        "7.5": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.6890625,
+          "replay_minus_control": 1.1671874999999998,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.25390625,
+            2.521484375
+          ]
+        },
+        "8.0": {
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "control_mean": 0.521875,
+          "replay_mean": 1.539453125,
+          "replay_minus_control": 1.017578125,
+          "control_range": [
+            0.484375,
+            0.53125
+          ],
+          "replay_range": [
+            1.2734375,
+            1.779296875
+          ]
+        }
+      },
+      "semantic_seeds_by_arm": {},
+      "semantic_summary_by_arm": {}
+    }
+  }
+}

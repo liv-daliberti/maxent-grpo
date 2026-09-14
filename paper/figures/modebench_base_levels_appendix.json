@@ -576,10 +576,10 @@
     "marker_area": 22,
     "marker_fill": "filled by model scale",
     "model_colors": {
-      "05b": "#7AB8DC",
-      "14b": "#04203A",
-      "3b": "#1C6098",
-      "7b": "#17528A"
+      "05b": "#1A9850",
+      "14b": "#7A0018",
+      "3b": "#FDAE61",
+      "7b": "#D73027"
     },
     "model_labels": [
       "05b",
@@ -1058,8 +1058,8 @@
     }
   ],
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.pdf": "d0c884b0e73f46fbc7e9023d93c13e1602563f8f5e803d4e541d80204975e73e",
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.png": "b208af8a99b2dd81cdd45710eca7a314e4f571e0446560cf760c35b593fbe1c5"
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.pdf": "94f1e4adf9bb18a12190dc64dfaae06c0aa0d460874849e081a03d771a1920f8",
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.png": "c3cfd231eeeccd607a152530d8e058f6e216bb4b683a3d6ad460b65f7352bc9c"
   },
   "points": [
     {
@@ -195591,7 +195591,7 @@
   "registry_extensions": [],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_modebench_base_levels_appendix.py",
-    "sha256": "426512220caa406c4dc87b65b7730544a68a0fe506bcef00baadeab4b4b5d7b6",
+    "sha256": "e917faf7cf76504458b078029a28c88962b3a7baa7c336cb125d1b3c129cdb07",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
   },

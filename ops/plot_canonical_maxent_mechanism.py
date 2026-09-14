@@ -211,7 +211,7 @@ def dose_points() -> list[dict[str, float | str]]:
 
 
 def style_axis(ax: plt.Axes) -> None:
-    ax.grid(axis="y", color=GRID, lw=0.45, zorder=0)
+    ax.grid(axis="both", color=GRID, lw=0.45, zorder=0)
     ax.spines[["top", "right"]].set_visible(False)
     ax.tick_params(length=2.3, width=0.65, pad=2)
 

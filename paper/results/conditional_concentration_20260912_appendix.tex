@@ -1,0 +1,162 @@
+\subsection{Conditional concentration from saved training outputs}
+\label{app:conditional-concentration}
+
+This retrospective analysis distinguishes the distribution of correct keys
+from the probability of producing a correct output. If $P=0$, $C$ is undefined
+and $B_2=0$. For a fixed prompt with
+correct mass $P>0$, write $q_c=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\ne\bot]$ and define
+\begin{equation}
+ C(q)=\sum_c q_c^2,\qquad B_2=2P-P^2C(q).
+ \label{eq:collision-breadth-bridge}
+\end{equation}
+The first quantity is the probability that two independent correct outputs
+share a key. The second identity follows by expanding
+$B_2=\sum_c[1-(1-Pq_c)^2]$. It makes explicit why sampled breadth can
+change through correctness or conditional concentration. A decrease in $C$
+alone does not imply majorization, larger total support, or recovery of any
+particular mode. In particular, observed collisions cannot establish that
+an unobserved key has exactly zero probability under the policy.
+
+\paragraph{Connection to the conditional theory.}
+Under the assumptions of Theorem~\ref{thm:grpo-collapse}, the time change in
+its proof gives $dq_c/d\tau=q_c(q_c-C)$. Consequently,
+\begin{equation}
+ \frac{dC}{d\tau}
+ =2\left(\sum_c q_c^3-C^2\right)
+ =2\operatorname{Var}_{c\sim q}(q_c)\ge0.
+ \label{eq:collision-flow}
+\end{equation}
+The variance vanishes exactly when $q$ is uniform on its positive support.
+Thus concentration is monotone along this ideal categorical flow, with
+strict increase whenever the positive coordinates are unequal. The identity
+provides a theoretical basis for the diagnostic; it does not establish
+monotonicity for the implemented neural optimizer or a corresponding
+monotonic decrease under finite-bank replay.
+
+\paragraph{Estimator and identifiable population.}
+For $R\ge2$ correct samples with per-key counts $n_c$, use the pair statistic
+\begin{equation}
+ \widehat C=\frac{\sum_c n_c(n_c-1)}{R(R-1)}.
+ \label{eq:training-collision-estimator}
+\end{equation}
+For independent samples from one fixed prompt and policy, conditioning on
+$R=r$ leaves $r$ independent correct labels with distribution $q$. Every
+ordered pair therefore agrees with probability $C(q)$, proving
+$\E[\widehat C\mid R=r]=C(q)$ for $r\ge2$. This is a promptwise identity;
+it does not prove unbiasedness after joint selection using other conditions
+or dependent prompts. We leave $R<2$ undefined, rather than assigning a
+concentration value to insufficient correct observations.
+
+For each paired training seed $s$, let $E_s$ contain exactly the prompts with
+a defined estimate in both conditions. The reported seed contrast is
+$|E_s|^{-1}\sum_{x\in E_s}(\widehat C_{B,x}-\widehat C_{A,x})$ when
+$E_s$ is nonempty. We then weight defined training seeds equally, preserving
+all registered blocks and their missingness. Before/after contrasts use each
+method's own initial checkpoint and step 3,072; replay contrasts compare
+matched terminal conditions. No other method substitutes for a missing
+initial evaluation. Five defined seeds receive nominal Student-$t$ intervals;
+partial blocks are descriptive. These intervals describe the measured seed
+means and are not simultaneous guarantees or uncertainty over unseen prompts.
+
+The hosted analysis uses the same promptwise collision concept but pools
+correct pairs. At a common sampling budget, the ratio of expected colliding
+and correct pair counts is
+$\sum_x P_x^2 C(q_x)/\sum_x P_x^2$. Its finite-sample ratio is not generally
+unbiased for that target. The training contrast here weights eligible prompts
+equally. Changing correctness can change either eligibility or hosted pair
+weights, so the two aggregate values are not directly interchangeable.
+
+\paragraph{Retrospective protocol and source coverage.}
+The estimator and comparisons were recorded before the initial concentration
+contrasts, with the sampling-stream amendment also preceding those effects.
+Two retrospective extensions then followed the paper's completed source
+census. The first included thirteen newly available terminal checkpoints
+and withdrew one conflicted initial checkpoint. The September~12 extension
+adds all ten remaining Level-2 Pantry terminal checkpoints, reusing 752
+unchanged checkpoint identities and changing no estimator or eligibility
+rule. All prior results, caches, and source snapshots remain preserved.
+The final collection contains 475 registered runs and 902 available
+checkpoint evaluations, with 74 Dr.GRPO and 75 MaxRL Level-1 replay pairs
+and 25 pairs per objective at Level~2 before conditional eligibility.
+Complete terminal coverage neither supplies missing initial outputs nor
+makes every conditional contrast identifiable. Exact source hashes and
+both retrospective extensions' timing remain bound to the result artifact.
+
+\paragraph{Sampling-stream audit.}
+Four saved eight-output groups do not provide 32 independently seeded
+responses. The recorded parent seeds increment by one; the audited vLLM V0
+sampler increments each child's seed by its output index. The resulting
+nominal stream ranges overlap, giving eleven distinct identifiers. For each
+prompt and checkpoint we retain the earliest draw/output position for every
+identifier, independently of correctness or key identity. Repeated positions
+sometimes disagree, so identical seed integers are not treated as a proof of
+identical outputs. Archived actor source is available for 150 of the 400
+factorial cells and none of the 75 additional GRPO cells; historical dependency
+identity is not cryptographically established for every run. The stream
+mapping rests on the audited implementation and recorded neutral request
+contract, with the historical-runtime assumption stated explicitly.
+
+The primary eleven-stream comparisons reuse nominal streams across conditions
+and remain descriptive after common eligibility. Two additional orientations
+compare the lower five identifiers in condition A with the upper six in B,
+then reverse the assignment. Each orientation retains its own eligible prompts
+and seed counts. Shared identifiers also recur across prompts; neither their
+separation across conditions nor these selected-population means establishes
+independent prompt observations. Independent fixed-law sampling is an explicit
+assumption of the estimator identity, not a conclusion of the source audit.
+
+Original \texttt{mean@8}, \texttt{pass@8}, and \texttt{distinct@8} remain averages
+over the four intact groups, reconstructed from all saved verified keys.
+Cross-group overlap affects dependence, not linearity of those marginal
+averages. The complete result artifact also retains each intact-group
+collision comparison, a fixed-first-group check, fixed-across-seed prompt
+intersections, and four-condition change differences. A naive concatenated
+32-position collision is retained solely as a reuse diagnostic. These views
+are not treated as independent replications or substituted for missing cells.
+
+\paragraph{Findings and their limits.}
+In Graph and PantryPlan, all twelve Dr.GRPO/GRPO before/after comparisons
+across the three scales show increased conditional concentration, with
+nominal intervals above zero. Correctness also increases on those same
+eligible prompts. Graph's increases range from $.098$ to $.274$; PantryPlan's
+range from $.447$ to $.887$. The two disjoint orientations agree in direction
+in eleven of these twelve blocks; Falcon Graph with GRPO is the exception.
+The evidence therefore supports observed training-induced concentration in
+these tasks, with a visible sampling sensitivity, rather than a universal
+claim about every RLVR run or exact disappearance of modes.
+
+Re:Dr.GRPO lowers concentration relative to Dr.GRPO in all six Graph and
+PantryPlan comparisons: changes range from $-.756$ to $-.273$ in Graph and
+$-.433$ to $-.300$ in PantryPlan. Both disjoint orientations agree in direction
+in all six, and their primary nominal intervals lie below zero. These
+comparisons also have lower per-sample correctness on their jointly eligible
+prompts. They establish a change in the conditional correct-key distribution
+on that observable population; they do not hold correctness fixed or imply
+that every accuracy measure improves on the same prompts. Full-test
+\texttt{pass@8} and sampled breadth remain the separately reported primary
+outcomes of the replay experiment.
+
+The other domains constrain the interpretation. Dr.GRPO/GRPO Python initial
+outputs provide no jointly eligible prompts at this budget, so their
+longitudinal collision contrast is unidentified. Some Countdown initial
+comparisons use only one or two eligible prompts per seed. Several MathIR
+conditions already have observed collision one, leaving little detectable
+change. MaxRL comparisons, incomplete saved-output cohorts, and the two
+sampling orientations are reported explicitly in the following tables;
+we do not infer a universal concentration benefit from raw breadth gains.
+
+In the completed 3B MaxRL replay cohort, Countdown, Python, and PantryPlan
+show lower concentration with nominal intervals below zero; MathIR's measured
+contrast is zero. Graph's primary contrast is negative, but its two disjoint
+orientations disagree in direction, as they do for Falcon Graph with MaxRL.
+At Level 2, both Graph replay contrasts are negative with agreement across
+orientations. Complete PantryPlan training still leaves sparse conditional
+populations: Re:Dr.GRPO has a defined collision contrast for three seeds
+(2--16 eligible prompts), with mean $+.495$; Re:MaxRL has four defined
+seeds (1--19 eligible prompts), with mean $+.439$. Their disjoint-orientation
+means are also positive but retain fewer defined seeds. Neither contrast
+receives a five-seed interval. Thus the full endpoint breadth gains coexist
+with increased concentration on these small jointly correct subsets; they
+do not establish uniformly reduced conditional concentration.
+
+\input{results/conditional_concentration_20260912_tables.tex}

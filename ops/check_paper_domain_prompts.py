@@ -125,7 +125,7 @@ def render() -> str:
         lines.append("")
         lines.append(
             f"\\noindent Template \\texttt{{{template.replace('_', chr(92) + '_')}}}; "
-            f"{train_rows} training and {eval_rows} evaluation rows in "
+            f"{train_rows} training and {eval_rows} evaluation\\linebreak rows in "
             f"\\path{{{root}}}."
         )
         lines.append("")

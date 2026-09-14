@@ -1,0 +1,920 @@
+{
+  "collected_at_utc": "2026-09-06T16:58:51.030997+00:00",
+  "contrast": "uniform minus fresh-frequency replay",
+  "contrasts": {
+    "breadth8": {
+      "bootstrap_ordered_resamples": 3125,
+      "mean": 0.2328125,
+      "paired_bootstrap_percentile_95": [
+        0.181640625,
+        0.319921875
+      ],
+      "per_seed": {
+        "55": 0.18359375,
+        "56": 0.173828125,
+        "57": 0.404296875,
+        "58": 0.203125,
+        "59": 0.19921875
+      }
+    },
+    "distinct8": {
+      "bootstrap_ordered_resamples": 3125,
+      "mean": 0.278125,
+      "paired_bootstrap_percentile_95": [
+        0.184375,
+        0.403515625
+      ],
+      "per_seed": {
+        "55": 0.265625,
+        "56": 0.1484375,
+        "57": 0.51953125,
+        "58": 0.263671875,
+        "59": 0.193359375
+      }
+    },
+    "mean8": {
+      "bootstrap_ordered_resamples": 3125,
+      "mean": -0.015185546875,
+      "paired_bootstrap_percentile_95": [
+        -0.02138671875,
+        -0.008984375
+      ],
+      "per_seed": {
+        "55": -0.005615234375,
+        "56": -0.02001953125,
+        "57": -0.01611328125,
+        "58": -0.025390625,
+        "59": -0.0087890625
+      }
+    },
+    "pass8": {
+      "bootstrap_ordered_resamples": 3125,
+      "mean": 0.0453125,
+      "paired_bootstrap_percentile_95": [
+        -0.000390625,
+        0.091015625
+      ],
+      "per_seed": {
+        "55": 0.08203125,
+        "56": -0.025390625,
+        "57": 0.115234375,
+        "58": 0.060546875,
+        "59": -0.005859375
+      }
+    }
+  },
+  "domain": "graph_coloring",
+  "endpoint_integrity_audit": [
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55/TRAINING_COMPLETE.json",
+        "sha256": "53e3bd934eba3e91df41fa4eb238a0699ff691ff7588ff53b5a28562a8962482"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55/debug_job31033695/eval_mode_coverage_draws.jsonl",
+          "sha256": "4f7677b1377fe164574ae71ec5d8d5ec5d3b919360c9426c0bc6b58d8a904882"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 172,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55/debug_job31033695/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 173,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55/debug_job31033695/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 174,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55/debug_job31033695/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 175,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55/debug_job31033695/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s55/TRAINING_COMPLETE.json",
+        "sha256": "48ab4944f641935ee3281cf537baad206c9bca85d17c56c46c45ed291006ef42"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s55",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s55/debug_job30269033/eval_mode_coverage_draws.jsonl",
+          "sha256": "b9433b7822f564c1e7d409d02a7703360cba1eff04590f963fc24471760ede0d"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 172,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s55/debug_job30269033/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 173,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s55/debug_job30269033/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 174,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s55/debug_job30269033/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 175,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s55/debug_job30269033/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/TRAINING_COMPLETE.json",
+        "sha256": "901fcbec78e2a38f12744662066baab0badad4a184ed6fa05fe10644d7a7b6fa"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31033696/eval_mode_coverage_draws.jsonl",
+          "sha256": "233b35365f5ebebd36d4d7e51279d38974b18f0047ea11b8c7035ebf8c8027c6"
+        },
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31046971/eval_mode_coverage_draws.jsonl",
+          "sha256": "c0caf049d7534fcb22e62ef73841c2b590d96a1147f007db14f4b12469d47fc2"
+        },
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31075739/eval_mode_coverage_draws.jsonl",
+          "sha256": "34f49b381b44ec596e2d4432846fa4d3f5d5d0dbaceecd80166dfcbdd4263a55"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 32,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31075739/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 33,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31075739/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 34,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31075739/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 35,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31075739/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s56/TRAINING_COMPLETE.json",
+        "sha256": "ffc8e4d73b53e6b7e2a6680aa02d2b6a84e8b9a455b2a2a2f86dbec3e1a2cd85"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s56",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s56/debug_job30269035/eval_mode_coverage_draws.jsonl",
+          "sha256": "17c210c1224154776971ca557894f8f75e300eda996d9d3f39b9c118ccadaea2"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 172,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s56/debug_job30269035/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 173,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s56/debug_job30269035/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 174,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s56/debug_job30269035/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 175,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s56/debug_job30269035/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/TRAINING_COMPLETE.json",
+        "sha256": "57266556c74f79946de2382b3a5ca2b23825831ae68f6771e6349866bbf3b3c2"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31033697/eval_mode_coverage_draws.jsonl",
+          "sha256": "ab8e25022b15f37c722bd1d70f9e0d4219ad9810adb892197b01266c0390928b"
+        },
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31075738/eval_mode_coverage_draws.jsonl",
+          "sha256": "e165c6ff329f52afe895ddc66da9a489990b16d913129d944f2afb08bb6a9c83"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 32,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31075738/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 33,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31075738/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 34,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31075738/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 35,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31075738/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s57/TRAINING_COMPLETE.json",
+        "sha256": "55540103f7de6d71b2086dbb4641596b1c1af380136612193537bc77db6dfe9b"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s57",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s57/debug_job30269037/eval_mode_coverage_draws.jsonl",
+          "sha256": "cf801e72e6926066898c247e950a6402976636880a74a617966c76c7d45746f6"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 172,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s57/debug_job30269037/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 173,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s57/debug_job30269037/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 174,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s57/debug_job30269037/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 175,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s57/debug_job30269037/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58/TRAINING_COMPLETE.json",
+        "sha256": "38a5f336cc7cfc63a8f9869ccf78801fe3fa88f2059856c30b6d2075ffd786e6"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58/debug_job31033698/eval_mode_coverage_draws.jsonl",
+          "sha256": "19eda9beea3beea3c32d8ecff1ef8e6b74ebe234d4cc6d9fc92e5f0549e27e13"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 172,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58/debug_job31033698/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 173,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58/debug_job31033698/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 174,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58/debug_job31033698/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 175,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58/debug_job31033698/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s58/TRAINING_COMPLETE.json",
+        "sha256": "9910a0335e3382baa8104374c2865e416d37849df37cc4e26b7b1c6e4ffbaa03"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s58",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s58/debug_job30269039/eval_mode_coverage_draws.jsonl",
+          "sha256": "f52065031e424a08cfb2eec24e355e628d0441e3d37b82336e9082aec298cdf9"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 172,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s58/debug_job30269039/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 173,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s58/debug_job30269039/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 174,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s58/debug_job30269039/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 175,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s58/debug_job30269039/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/TRAINING_COMPLETE.json",
+        "sha256": "64df67c16e1614c0d05eb243b2164f9f68c02c3b7a52fa935b072d6e9ef8c880"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31033699/eval_mode_coverage_draws.jsonl",
+          "sha256": "c4ac6fe98ea7c834dda68b1450c738d460e18ba30e1d21cf6dac4219558b1144"
+        },
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31086136/eval_mode_coverage_draws.jsonl",
+          "sha256": "3438a77ce6c56d72ccdb35bb700b5f579f729e09bb523909e1a808ea0a1d2284"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 32,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31086136/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 33,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31086136/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 34,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31086136/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 35,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31086136/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    },
+    {
+      "completion_receipt": {
+        "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s59/TRAINING_COMPLETE.json",
+        "sha256": "cfd1ba6ec836b83d4ccca18d87be056ddc0a7ab74d8d50d0a52196e94bbb5f40"
+      },
+      "conflicting_retry_selected": false,
+      "expected_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "identical_metric_repeats": [],
+      "observed_draws": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "reason": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s59",
+      "sources": [
+        {
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s59/debug_job30269041/eval_mode_coverage_draws.jsonl",
+          "sha256": "1b4be59198dbf9cd44578dee669ba46540db612343b36318f643a816b8d0ff1b"
+        }
+      ],
+      "status": "admitted",
+      "step": 3072,
+      "unique_draw_records": [
+        {
+          "draw_index": 0,
+          "line": 172,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s59/debug_job30269041/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 1,
+          "line": 173,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s59/debug_job30269041/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 2,
+          "line": 174,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s59/debug_job30269041/eval_mode_coverage_draws.jsonl"
+        },
+        {
+          "draw_index": 3,
+          "line": 175,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_verified_first_replay_rehearsal_only_e79_falcon_aligned_graph_replay_s59/debug_job30269041/eval_mode_coverage_draws.jsonl"
+        }
+      ]
+    }
+  ],
+  "finished_at_utc": "2026-09-06T17:00:01.297805+00:00",
+  "inference": "Exhaustive paired percentile bootstrap over all 5^5=3125 ordered seed resamples, using linearly interpolated 2.5th and 97.5th percentiles. Unadjusted marginal intervals; percentile implementation is an analysis choice, not specified by the registration.",
+  "ledger": "var/artifacts/e120r1_frequency_weighted_replay_jobs.json",
+  "ledger_sha256": "5302ba26da3f67d0b57e9eef1e8f528c6a56aef5faeb543a3adbfe32e721d8e7",
+  "model": "Falcon3-1B-Instruct",
+  "model_key": "falcon1b",
+  "n": 5,
+  "per_seed": {
+    "55": {
+      "frequency": {
+        "breadth8": 0.65234375,
+        "distinct8": 1.373046875,
+        "mean8": 0.342041015625,
+        "pass8": 0.720703125
+      },
+      "uniform": {
+        "breadth8": 0.8359375,
+        "distinct8": 1.638671875,
+        "mean8": 0.33642578125,
+        "pass8": 0.802734375
+      },
+      "uniform_minus_frequency": {
+        "breadth8": 0.18359375,
+        "distinct8": 0.265625,
+        "mean8": -0.005615234375,
+        "pass8": 0.08203125
+      }
+    },
+    "56": {
+      "frequency": {
+        "breadth8": 0.783203125,
+        "distinct8": 1.591796875,
+        "mean8": 0.359130859375,
+        "pass8": 0.80859375
+      },
+      "uniform": {
+        "breadth8": 0.95703125,
+        "distinct8": 1.740234375,
+        "mean8": 0.339111328125,
+        "pass8": 0.783203125
+      },
+      "uniform_minus_frequency": {
+        "breadth8": 0.173828125,
+        "distinct8": 0.1484375,
+        "mean8": -0.02001953125,
+        "pass8": -0.025390625
+      }
+    },
+    "57": {
+      "frequency": {
+        "breadth8": 0.572265625,
+        "distinct8": 1.294921875,
+        "mean8": 0.34619140625,
+        "pass8": 0.72265625
+      },
+      "uniform": {
+        "breadth8": 0.9765625,
+        "distinct8": 1.814453125,
+        "mean8": 0.330078125,
+        "pass8": 0.837890625
+      },
+      "uniform_minus_frequency": {
+        "breadth8": 0.404296875,
+        "distinct8": 0.51953125,
+        "mean8": -0.01611328125,
+        "pass8": 0.115234375
+      }
+    },
+    "58": {
+      "frequency": {
+        "breadth8": 0.654296875,
+        "distinct8": 1.423828125,
+        "mean8": 0.353271484375,
+        "pass8": 0.76953125
+      },
+      "uniform": {
+        "breadth8": 0.857421875,
+        "distinct8": 1.6875,
+        "mean8": 0.327880859375,
+        "pass8": 0.830078125
+      },
+      "uniform_minus_frequency": {
+        "breadth8": 0.203125,
+        "distinct8": 0.263671875,
+        "mean8": -0.025390625,
+        "pass8": 0.060546875
+      }
+    },
+    "59": {
+      "frequency": {
+        "breadth8": 0.71484375,
+        "distinct8": 1.509765625,
+        "mean8": 0.34716796875,
+        "pass8": 0.794921875
+      },
+      "uniform": {
+        "breadth8": 0.9140625,
+        "distinct8": 1.703125,
+        "mean8": 0.33837890625,
+        "pass8": 0.7890625
+      },
+      "uniform_minus_frequency": {
+        "breadth8": 0.19921875,
+        "distinct8": 0.193359375,
+        "mean8": -0.0087890625,
+        "pass8": -0.005859375
+      }
+    }
+  },
+  "protocol": {
+    "path": "paper/preregistration/e120_frequency_weighted_replay_ablation_20260902.md",
+    "sha256": "6fb351518ede4991b744365543c832226719cc19b353624bc15c6ecb3e5ce7b3"
+  },
+  "registered_seeds": [
+    55,
+    56,
+    57,
+    58,
+    59
+  ],
+  "schema": "e120-falcon-graph-terminal-audit-v1",
+  "scope": "Additive registered Falcon3-1B Graph coloring scale block at exact step3072; all seeds 55\u201359. Uniform minus fresh-frequency replay. Breadth is distinct@8 minus pass@8; pass@8 is the co-primary safety endpoint. The complete larger-model confirmatory grid remains unfinished. No cross-model pooled effect or universal mechanism claim.",
+  "source_audit": {
+    "path": "paper/audits/submission_repair_20260906/results/e120_falcon_graph_audit.json",
+    "sha256": "4435fc13c087a72c1f55be65fea55308f3b2f0935ab69e8dc39af647696f0080"
+  },
+  "source_gate": {
+    "compile": "passed",
+    "outcomes_inspected": false,
+    "pytest": "passed",
+    "pytest_tail": "185 passed, 7 warnings in 19.32s"
+  },
+  "target_step": 3072,
+  "telemetry": [
+    {
+      "applied_replay_rows": 3259,
+      "empty_replay_rows": 0,
+      "required_constants": {
+        "canonical_replay_actuator_groups": 1.0,
+        "canonical_replay_alpha_used": 0.1,
+        "canonical_replay_capacity": 16.0,
+        "canonical_replay_compute_only": 0.0,
+        "canonical_replay_frequency_count_fresh_only": 1.0,
+        "canonical_replay_frequency_count_from_proposals": 0.0,
+        "canonical_replay_frequency_count_from_replay": 0.0,
+        "canonical_replay_global_groups_per_step": 1.0,
+        "canonical_replay_global_scheduler_active": 1.0,
+        "canonical_replay_key_weighting_frequency": 1.0,
+        "canonical_replay_objective_scale": 0.0625,
+        "canonical_replay_reward_estimator_scale": 0.9375,
+        "canonical_replay_score_passes": 2.0,
+        "canonical_replay_verified_likelihood_active": 1.0
+      },
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55",
+      "scope": "All persisted applied replay rows, including recovered attempts. Alignment and numerical invariants are checked; source-level fresh-only provenance also relies on the prerelease implementation gate.",
+      "seed": 55,
+      "sources": [
+        {
+          "applied_replay_rows": 3259,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s55/debug_job31033695/train_metrics.jsonl",
+          "sha256": "2f2afac1d269247377f6042470d9c710d9429b39c7f89d8a7a4064d73aee977d"
+        }
+      ],
+      "status": "pass",
+      "violations": []
+    },
+    {
+      "applied_replay_rows": 3323,
+      "empty_replay_rows": 0,
+      "required_constants": {
+        "canonical_replay_actuator_groups": 1.0,
+        "canonical_replay_alpha_used": 0.1,
+        "canonical_replay_capacity": 16.0,
+        "canonical_replay_compute_only": 0.0,
+        "canonical_replay_frequency_count_fresh_only": 1.0,
+        "canonical_replay_frequency_count_from_proposals": 0.0,
+        "canonical_replay_frequency_count_from_replay": 0.0,
+        "canonical_replay_global_groups_per_step": 1.0,
+        "canonical_replay_global_scheduler_active": 1.0,
+        "canonical_replay_key_weighting_frequency": 1.0,
+        "canonical_replay_objective_scale": 0.0625,
+        "canonical_replay_reward_estimator_scale": 0.9375,
+        "canonical_replay_score_passes": 2.0,
+        "canonical_replay_verified_likelihood_active": 1.0
+      },
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56",
+      "scope": "All persisted applied replay rows, including recovered attempts. Alignment and numerical invariants are checked; source-level fresh-only provenance also relies on the prerelease implementation gate.",
+      "seed": 56,
+      "sources": [
+        {
+          "applied_replay_rows": 2651,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31033696/train_metrics.jsonl",
+          "sha256": "db0e672e7f3db3d0ce577f8fed9b97a581ea4f5d339555572d77c4e3df7b40c9"
+        },
+        {
+          "applied_replay_rows": 95,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31046971/train_metrics.jsonl",
+          "sha256": "cf87012584978e54b80d7ff95bca021f3d2fdf1489b0a87aa3c1cb52e964dbd0"
+        },
+        {
+          "applied_replay_rows": 577,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s56/debug_job31075739/train_metrics.jsonl",
+          "sha256": "1ee7d8fc3959b5dbcbd5662491e0651d12a6b0f7bfe260ff233669c101273b8f"
+        }
+      ],
+      "status": "pass",
+      "violations": []
+    },
+    {
+      "applied_replay_rows": 3259,
+      "empty_replay_rows": 0,
+      "required_constants": {
+        "canonical_replay_actuator_groups": 1.0,
+        "canonical_replay_alpha_used": 0.1,
+        "canonical_replay_capacity": 16.0,
+        "canonical_replay_compute_only": 0.0,
+        "canonical_replay_frequency_count_fresh_only": 1.0,
+        "canonical_replay_frequency_count_from_proposals": 0.0,
+        "canonical_replay_frequency_count_from_replay": 0.0,
+        "canonical_replay_global_groups_per_step": 1.0,
+        "canonical_replay_global_scheduler_active": 1.0,
+        "canonical_replay_key_weighting_frequency": 1.0,
+        "canonical_replay_objective_scale": 0.0625,
+        "canonical_replay_reward_estimator_scale": 0.9375,
+        "canonical_replay_score_passes": 2.0,
+        "canonical_replay_verified_likelihood_active": 1.0
+      },
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57",
+      "scope": "All persisted applied replay rows, including recovered attempts. Alignment and numerical invariants are checked; source-level fresh-only provenance also relies on the prerelease implementation gate.",
+      "seed": 57,
+      "sources": [
+        {
+          "applied_replay_rows": 2682,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31033697/train_metrics.jsonl",
+          "sha256": "32be9f9055e99f578ebae96c030d8bd238e1f77cd72f87d4e0d27332c9f5af76"
+        },
+        {
+          "applied_replay_rows": 577,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s57/debug_job31075738/train_metrics.jsonl",
+          "sha256": "e58536a9d725bc4daf0da92b7640f56b932f893214b2711a8e7b1414e922b199"
+        }
+      ],
+      "status": "pass",
+      "violations": []
+    },
+    {
+      "applied_replay_rows": 3205,
+      "empty_replay_rows": 0,
+      "required_constants": {
+        "canonical_replay_actuator_groups": 1.0,
+        "canonical_replay_alpha_used": 0.1,
+        "canonical_replay_capacity": 16.0,
+        "canonical_replay_compute_only": 0.0,
+        "canonical_replay_frequency_count_fresh_only": 1.0,
+        "canonical_replay_frequency_count_from_proposals": 0.0,
+        "canonical_replay_frequency_count_from_replay": 0.0,
+        "canonical_replay_global_groups_per_step": 1.0,
+        "canonical_replay_global_scheduler_active": 1.0,
+        "canonical_replay_key_weighting_frequency": 1.0,
+        "canonical_replay_objective_scale": 0.0625,
+        "canonical_replay_reward_estimator_scale": 0.9375,
+        "canonical_replay_score_passes": 2.0,
+        "canonical_replay_verified_likelihood_active": 1.0
+      },
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58",
+      "scope": "All persisted applied replay rows, including recovered attempts. Alignment and numerical invariants are checked; source-level fresh-only provenance also relies on the prerelease implementation gate.",
+      "seed": 58,
+      "sources": [
+        {
+          "applied_replay_rows": 3205,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s58/debug_job31033698/train_metrics.jsonl",
+          "sha256": "650d5a0ee41df1e9fef35d98a1c9934f23e5b4f693f349f0afa60c8855735bdf"
+        }
+      ],
+      "status": "pass",
+      "violations": []
+    },
+    {
+      "applied_replay_rows": 3207,
+      "empty_replay_rows": 0,
+      "required_constants": {
+        "canonical_replay_actuator_groups": 1.0,
+        "canonical_replay_alpha_used": 0.1,
+        "canonical_replay_capacity": 16.0,
+        "canonical_replay_compute_only": 0.0,
+        "canonical_replay_frequency_count_fresh_only": 1.0,
+        "canonical_replay_frequency_count_from_proposals": 0.0,
+        "canonical_replay_frequency_count_from_replay": 0.0,
+        "canonical_replay_global_groups_per_step": 1.0,
+        "canonical_replay_global_scheduler_active": 1.0,
+        "canonical_replay_key_weighting_frequency": 1.0,
+        "canonical_replay_objective_scale": 0.0625,
+        "canonical_replay_reward_estimator_scale": 0.9375,
+        "canonical_replay_score_passes": 2.0,
+        "canonical_replay_verified_likelihood_active": 1.0
+      },
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59",
+      "scope": "All persisted applied replay rows, including recovered attempts. Alignment and numerical invariants are checked; source-level fresh-only provenance also relies on the prerelease implementation gate.",
+      "seed": 59,
+      "sources": [
+        {
+          "applied_replay_rows": 2630,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31033699/train_metrics.jsonl",
+          "sha256": "b31d8a5ded9b7dc7bd31aa60062cb355bb45263fb976f7aea2271accc44c6912"
+        },
+        {
+          "applied_replay_rows": 577,
+          "path": "/n/fs/similarity/maxent-grpo/var/data/e120r1_falcon1b_graph_fresh_frequency_s59/debug_job31086136/train_metrics.jsonl",
+          "sha256": "078b44aa4ae9c5127922e7ab109ba3cbf9957553ad50fe61c351f320ec71582b"
+        }
+      ],
+      "status": "pass",
+      "violations": []
+    }
+  ]
+}

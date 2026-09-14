@@ -103,7 +103,11 @@ def report_smoke(prefix: str) -> None:
         print("  (no replay metrics yet)\n")
         return
     for path in paths:
-        rows = [r for r in load_any(path) if "replay_active_modes" in r]
+        # Replay diagnostics are merged into evaluation rows only. Reading the
+        # last row carrying "replay_active_modes" picks a training row, whose
+        # missing applied-gradient key then reads as an exact zero and looks
+        # like the replay derivative was never applied.
+        rows = [r for r in load(path) if "replay_applied_score_gradient_l2" in r]
         if not rows:
             print(f"  {path.name}: started, no training evaluation yet")
             continue

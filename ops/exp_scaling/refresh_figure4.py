@@ -47,20 +47,8 @@ def run(command: list[str], *, cwd: Path = ROOT) -> str:
     return result.stdout.strip()
 
 
-def repin_timestamp() -> str:
-    generated = json.loads(DATED_JSON.read_text(encoding="utf-8"))["generated_at"]
-    text = CONTRACT.read_text(encoding="utf-8")
-    match = re.search(
-        r'"(2026-\d\d-\d\dT[\d:.+-]+)",\s*\n\s*"dated interim Figure 4 timestamp drifted"',
-        text,
-    )
-    if match is None:
-        raise SystemExit("could not find the pinned Figure 4 timestamp in the contract")
-    if match.group(1) != generated:
-        CONTRACT.write_text(
-            text.replace(f'"{match.group(1)}"', f'"{generated}"', 1), encoding="utf-8"
-        )
-    return generated
+def snapshot_timestamp() -> str:
+    return json.loads(DATED_JSON.read_text(encoding="utf-8"))["generated_at"]
 
 
 def directional_claims() -> dict[str, object]:
@@ -118,8 +106,8 @@ def main() -> int:
     run([args.python, str(PREVIEW), "--output", str(DATED_STEM)])
     print("[3/6] four-metric table")
     run([args.python, str(TABLE_BUILDER)])
-    print("[4/6] re-pin snapshot timestamp")
-    print("      ", repin_timestamp())
+    print("[4/6] verify snapshot identity")
+    print("      ", snapshot_timestamp())
     print("[5/6] sync manuscript table rows")
     print("      ", run([args.python, str(ROW_RENDERER), "--write"]))
     print("[6/6] contract")

@@ -15,24 +15,18 @@ FIGURE_SNAPSHOT = ROOT / "paper/figures/figure4_interim_20260806.json"
 OUTPUT = ROOT / "paper/results/figure4_interim_20260806_table.json"
 EXPECTED_DRAWS = 4
 
-FAMILY_SOURCES = {
-    "Qwen2.5-0.5B": {
-        "static": ROOT / "var/artifacts/e78_verified_replay_only_05b_jobs.json",
-        "point": ROOT
-        / "var/artifacts/e78pm_point_maze_verified_replay_only_05b_jobs.json",
-    },
-    "Falcon3-1B": {
-        "static": ROOT
-        / "var/artifacts/e79_falcon1b_aligned_verified_replay_jobs.json",
-        "point": ROOT
-        / "var/artifacts/e79pm_falcon_point_maze_verified_replay_jobs.json",
-    },
-    "Qwen2.5-3B": {
-        "static": ROOT
-        / "var/artifacts/e80r1_qwen3b_aligned_verified_replay_jobs.json",
-        "point": None,
-    },
+STATIC_SOURCES = {
+    "Qwen2.5-0.5B": ROOT / "var/artifacts/e78_verified_replay_only_05b_jobs.json",
+    "Falcon3-1B": ROOT / "var/artifacts/e79_falcon1b_aligned_verified_replay_jobs.json",
+    "Qwen2.5-3B": ROOT / "var/artifacts/e80r1_qwen3b_aligned_verified_replay_jobs.json",
 }
+STATIC_DOMAINS = (
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan",
+)
 
 
 def _json(path: Path) -> Any:
@@ -124,32 +118,9 @@ def _static_pass1(run_dir: Path, *, step: int) -> float:
     return sum(scores) / len(scores)
 
 
-def _point_metrics(path: Path, *, step: int) -> dict[str, float]:
-    selected = None
-    with path.open(encoding="utf-8", errors="replace") as handle:
-        for raw in handle:
-            try:
-                row = json.loads(raw)
-            except json.JSONDecodeError:
-                continue
-            if (
-                row.get("schema") == "point-maze-waypoint-pilot-evaluation-v1"
-                and row.get("learning_round") == step
-            ):
-                selected = row
-    if selected is None:
-        raise RuntimeError(f"{path}: missing PointMaze evaluation at step {step}")
-    return {
-        "pass1": None,
-        "pass8": _finite(selected.get("pass8"), name=f"{path}:pass8"),
-        "mean8": _finite(selected.get("mean8"), name=f"{path}:mean8"),
-        "distinct8": _finite(selected.get("distinct8"), name=f"{path}:distinct8"),
-    }
-
-
 def _run_index(ledger: dict[str, Any]) -> dict[tuple[str, str, int], dict[str, Any]]:
     return {
-        (str(run.get("domain", "point_maze")), str(run["arm"]), int(run["seed"])): run
+        (str(run["domain"]), str(run["arm"]), int(run["seed"])): run
         for run in ledger["runs"]
     }
 
@@ -173,22 +144,18 @@ def main() -> None:
         "families": {},
     }
     for family, family_snapshot in snapshot["families"].items():
-        sources = FAMILY_SOURCES[family]
-        static_ledger = _json(sources["static"])
+        static_ledger = _json(STATIC_SOURCES[family])
         static_index = _run_index(static_ledger)
-        point_ledger = _json(sources["point"]) if sources["point"] else None
-        point_index = _run_index(point_ledger) if point_ledger else {}
         family_out: dict[str, Any] = {"domains": {}}
         for domain, domain_record in family_snapshot["domains"].items():
+            if domain not in STATIC_DOMAINS:
+                continue
             latest = _latest_summary(domain_record)
             if latest is None:
                 continue
             pass_key, figure_summary = latest
             paired_seeds = [int(seed) for seed in figure_summary["paired_seeds"]]
-            source_ledger = point_ledger if domain == "point_maze" else static_ledger
-            if source_ledger is None:
-                raise RuntimeError(f"{family}/{domain}: missing source ledger")
-            step = round(float(pass_key) * int(source_ledger["train_rows"]))
+            step = round(float(pass_key) * int(static_ledger["train_rows"]))
             domain_out: dict[str, Any] = {
                 "pass": float(pass_key),
                 "step": step,
@@ -198,14 +165,10 @@ def main() -> None:
             for arm in ("control", "replay"):
                 per_seed: dict[str, Any] = {}
                 for seed in paired_seeds:
-                    index = point_index if domain == "point_maze" else static_index
-                    run = index[(domain, arm, seed)]
-                    if domain == "point_maze":
-                        metrics = _point_metrics(Path(run["metrics_path"]), step=step)
-                    else:
-                        run_dir = Path(run["run_dir"])
-                        metrics = _static_sampled(run_dir, step=step)
-                        metrics["pass1"] = _static_pass1(run_dir, step=step)
+                    run = static_index[(domain, arm, seed)]
+                    run_dir = Path(run["run_dir"])
+                    metrics = _static_sampled(run_dir, step=step)
+                    metrics["pass1"] = _static_pass1(run_dir, step=step)
                     per_seed[str(seed)] = metrics
                 means = {
                     metric: _mean(

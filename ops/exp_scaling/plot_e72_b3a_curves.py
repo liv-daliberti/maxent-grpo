@@ -13,7 +13,7 @@ one comparison, so panels share a metric row and each row keeps its own y scale
 across domains only where the scales are commensurate --- they are not, so each
 panel is scaled to its own domain and the shared quantity is the shape.
 
-Color. The manuscript's established pair carries Dr.GRPO and x-Mode GRPO; the
+Color. The manuscript's established pair carries Dr.GRPO and x-Mode Dr.GRPO; the
 ablation takes a
 third hue. The method teal sits under the chroma floor and its tritan separation
 from the control orange is weak (validator: chroma FAIL, CVD PASS on protan and
@@ -70,7 +70,7 @@ DOMAINS = (
 ARMS = (
     ("drgrpo", "matched Dr.GRPO", CONTROL, style.ARM_DASH[CONTROL]),
     ("b3a", "replay gradient removed", ABLATION, style.ARM_DASH[ABLATION]),
-    ("xgrpo", "x-Mode GRPO", METHOD, style.ARM_DASH[METHOD]),
+    ("xgrpo", "x-Mode Dr.GRPO", METHOD, style.ARM_DASH[METHOD]),
 )
 
 METRICS = (

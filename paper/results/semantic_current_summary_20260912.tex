@@ -1,0 +1,102 @@
+\clearpage
+\section{Fixed Semantic-Entropy Factorials}
+\label{app:semantic-current-factorial}
+A fixed semantic-entropy bonus can be applied with or without verified replay.
+Pantry semantic arms use the registered E85 repairs: original E81/E82/E83
+Pantry runs received zero semantic advantage because of an outcome-key defect
+and remain excluded. The historical Falcon factorial display had not applied
+that repair; no value from its superseded Pantry column is reused here.
+The matched four-arm studies compare its effect on Dr.GRPO, its effect on
+Re:Dr.GRPO, and the difference of these effects. This restores the full
+factorial detail beyond the main semantic-only comparator. We reconstruct
+exact terminal four-draw endpoints under the current source-admission policy:
+identical repeated metrics are deduplicated, unapproved conflicting retries
+abort, and the previously excluded Falcon Countdown replay seed 59 remains
+excluded. All three contrasts in that cell therefore use the common four
+seeds 55--58; other 0.5B/1B cells use five. No old five-seed Falcon Countdown
+interval is reused. Tables report paired seed means and pointwise Student-$t$
+95\% intervals, without pooling models or domains.
+
+The Qwen2.5-3B extension has only fixed seed 70 and no semantic-only arm.
+Its on-replay comparison is descriptive, has no interval and cannot identify
+a factorial interaction. These are fixed-coefficient experiments, not a
+sweep over entropy strengths. Their endpoints do not establish that semantic
+entropy reproduces the mechanism of a bank that revisits verified keys.
+\begin{table}[H]
+\centering
+\caption{Qwen2.5-0.5B: fixed semantic-entropy effects. Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr.GRPO; interaction subtracts the first effect from the second. Extra modes equal distinct@8 minus pass@8.}
+\label{tab:semantic-current-qwen2505b}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lr l rrr}
+\toprule
+Domain & $n$ & Contrast & $\Delta$ pass@8 & $\Delta$ distinct@8 & $\Delta$ extra modes \\
+\midrule
+Graph & 5 & Without replay & $0.002$ $[-0.028, 0.031]$ & $0.004$ $[-0.034, 0.041]$ & $0.002$ $[-0.010, 0.014]$ \\
+Graph & 5 & On replay & $-0.002$ $[-0.027, 0.023]$ & $-0.022$ $[-0.179, 0.135]$ & $-0.020$ $[-0.161, 0.120]$ \\
+Graph & 5 & Interaction & $-0.004$ $[-0.035, 0.028]$ & $-0.026$ $[-0.193, 0.141]$ & $-0.022$ $[-0.161, 0.116]$ \\
+Countdown & 5 & Without replay & $0.141$ $[-0.047, 0.330]$ & $0.184$ $[0.011, 0.358]$ & $0.043$ $[0.001, 0.085]$ \\
+Countdown & 5 & On replay & $-0.003$ $[-0.033, 0.028]$ & $0.115$ $[0.022, 0.209]$ & $0.118$ $[0.004, 0.232]$ \\
+Countdown & 5 & Interaction & $-0.144$ $[-0.326, 0.037]$ & $-0.069$ $[-0.233, 0.095]$ & $0.075$ $[-0.051, 0.201]$ \\
+Python & 5 & Without replay & $0.000$ $[0.000, 0.000]$ & $0.000$ $[0.000, 0.000]$ & $0.000$ $[0.000, 0.000]$ \\
+Python & 5 & On replay & $-0.002$ $[-0.717, 0.714]$ & $0.016$ $[-0.747, 0.780]$ & $0.018$ $[-0.164, 0.200]$ \\
+Python & 5 & Interaction & $-0.002$ $[-0.717, 0.714]$ & $0.016$ $[-0.747, 0.780]$ & $0.018$ $[-0.164, 0.200]$ \\
+MathIR & 5 & Without replay & $-0.121$ $[-0.349, 0.106]$ & $-0.121$ $[-0.347, 0.105]$ & $0.001$ $[-0.006, 0.008]$ \\
+MathIR & 5 & On replay & $0.031$ $[-0.035, 0.097]$ & $0.035$ $[-0.044, 0.114]$ & $0.004$ $[-0.047, 0.055]$ \\
+MathIR & 5 & Interaction & $0.153$ $[-0.018, 0.324]$ & $0.156$ $[-0.050, 0.362]$ & $0.003$ $[-0.052, 0.058]$ \\
+Pantry & 5 & Without replay & $0.201$ $[0.119, 0.283]$ & $1.120$ $[0.888, 1.352]$ & $0.919$ $[0.713, 1.124]$ \\
+Pantry & 5 & On replay & $0.141$ $[0.044, 0.238]$ & $1.095$ $[0.368, 1.823]$ & $0.955$ $[0.321, 1.589]$ \\
+Pantry & 5 & Interaction & $-0.061$ $[-0.161, 0.040]$ & $-0.025$ $[-0.826, 0.777]$ & $0.036$ $[-0.682, 0.754]$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Falcon3-1B: fixed semantic-entropy effects. Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr.GRPO; interaction subtracts the first effect from the second. Extra modes equal distinct@8 minus pass@8.}
+\label{tab:semantic-current-falcon31b}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lr l rrr}
+\toprule
+Domain & $n$ & Contrast & $\Delta$ pass@8 & $\Delta$ distinct@8 & $\Delta$ extra modes \\
+\midrule
+Graph & 5 & Without replay & $0.036$ $[-0.192, 0.264]$ & $0.205$ $[-0.483, 0.893]$ & $0.169$ $[-0.292, 0.630]$ \\
+Graph & 5 & On replay & $0.001$ $[-0.040, 0.043]$ & $-0.006$ $[-0.113, 0.101]$ & $-0.007$ $[-0.091, 0.077]$ \\
+Graph & 5 & Interaction & $-0.035$ $[-0.237, 0.168]$ & $-0.211$ $[-0.886, 0.464]$ & $-0.176$ $[-0.649, 0.297]$ \\
+Countdown & 4 & Without replay & $0.004$ $[-0.092, 0.100]$ & $-0.042$ $[-0.258, 0.173]$ & $-0.047$ $[-0.168, 0.074]$ \\
+Countdown & 4 & On replay & $0.036$ $[-0.028, 0.101]$ & $0.047$ $[-0.082, 0.177]$ & $0.011$ $[-0.064, 0.087]$ \\
+Countdown & 4 & Interaction & $0.032$ $[-0.098, 0.161]$ & $0.090$ $[-0.188, 0.367]$ & $0.058$ $[-0.099, 0.216]$ \\
+Python & 5 & Without replay & $0.002$ $[-0.003, 0.008]$ & $0.002$ $[-0.003, 0.008]$ & $0.000$ $[0.000, 0.000]$ \\
+Python & 5 & On replay & $-0.133$ $[-0.308, 0.043]$ & $-0.091$ $[-0.503, 0.321]$ & $0.042$ $[-0.296, 0.380]$ \\
+Python & 5 & Interaction & $-0.135$ $[-0.310, 0.040]$ & $-0.093$ $[-0.507, 0.321]$ & $0.042$ $[-0.296, 0.380]$ \\
+MathIR & 5 & Without replay & $-0.002$ $[-0.063, 0.060]$ & $-0.002$ $[-0.063, 0.060]$ & $0.000$ $[0.000, 0.000]$ \\
+MathIR & 5 & On replay & $0.086$ $[0.004, 0.168]$ & $0.108$ $[0.003, 0.214]$ & $0.022$ $[-0.009, 0.054]$ \\
+MathIR & 5 & Interaction & $0.087$ $[0.029, 0.146]$ & $0.110$ $[0.043, 0.176]$ & $0.022$ $[-0.009, 0.054]$ \\
+Pantry & 5 & Without replay & $0.011$ $[-0.019, 0.041]$ & $0.091$ $[-0.161, 0.342]$ & $0.080$ $[-0.142, 0.301]$ \\
+Pantry & 5 & On replay & $0.025$ $[-0.044, 0.094]$ & $0.382$ $[-0.702, 1.465]$ & $0.356$ $[-0.670, 1.382]$ \\
+Pantry & 5 & Interaction & $0.014$ $[-0.052, 0.081]$ & $0.291$ $[-0.646, 1.228]$ & $0.277$ $[-0.615, 1.168]$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Qwen2.5-3B: fixed semantic-entropy effects. Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr.GRPO; interaction subtracts the first effect from the second. Extra modes equal distinct@8 minus pass@8.}
+\label{tab:semantic-current-qwen253b}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lr l rrr}
+\toprule
+Domain & $n$ & Contrast & $\Delta$ pass@8 & $\Delta$ distinct@8 & $\Delta$ extra modes \\
+\midrule
+Graph & 1 & On replay & $-0.016$ & $-0.010$ & $0.006$ \\
+Countdown & 1 & On replay & $0.039$ & $0.146$ & $0.107$ \\
+Python & 1 & On replay & $-0.590$ & $-1.215$ & $-0.625$ \\
+MathIR & 1 & On replay & $0.033$ & $0.010$ & $-0.023$ \\
+Pantry & 1 & On replay & $0.035$ & $0.393$ & $0.357$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+\path{results/semantic_current_summary_20260912.json} retains per-seed
+endpoints, source hashes, exclusion evidence and all three metrics.
+\path{ops/build_paper_semantic_current_summary.py} reconstructs these contrasts
+with the same strict endpoint reader used by the current core comparison, including all documented exclusions.

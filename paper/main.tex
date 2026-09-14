@@ -96,31 +96,48 @@ Mode Collapse in RLVR \& ModeBench}
 
 \begin{abstract}
 
-A language model can usually satisfy a request in more than one valid way, and
-those alternatives are worth something: a choice for the user, and somewhere to
-go when the first answer stops working. Training on verifiable rewards spends
-them, because a binary reward cannot tell a familiar success from a new one,
-and the cheapest way to earn it is to repeat what worked last time.
-
-Seeing this requires deciding when two successes are the same success. \mb{}
-takes it from the validator: five executable domains in which every accepted
-output carries a canonical key, so cosmetic variants merge and different
-computations stay apart. Breadth is then the probability that two verified
-responses differ, which, unlike a count of distinct outputs, does not rise
-merely because the model succeeds more often.
-On this measure verifier-only training concentrates: policies hold their
-accuracy while their successes converge on one way of being right, and at the
-extreme a model returns one byte-identical program to every prompt.
-
-ReplayMaxRL keeps the discarded alternatives in play. The keys that measure
-breadth also index a memory, which stores one verified exemplar per key and
-rehearses each equally, so a solution found once is practiced as often as one
-found constantly. Across three model scales, two fresh objectives, and a harder
-second construction, this memory improves both how often a policy succeeds and
-how many ways it can. Deployed
-frontier models show the same concentration and sampling harder does not undo
-it. An idealized analysis explains why: binary rewards amplify whichever
-success is already common, while memory supplies a signal for the ones that
+A language model can usually satisfy a request in more than one valid way,
+and
+those alternatives are worth something: a choice for the user, and
+somewhere to
+go when the first answer stops working. Training on verifiable
+rewards spends
+them, because a binary reward cannot tell a familiar success
+from a new one,
+and the cheapest way to earn it is to repeat what worked last
+time. Seeing this requires deciding when two successes are the same success.
+\mb{}
+takes it from the validator: five executable domains in which every
+accepted
+output carries a canonical key, so cosmetic variants merge and
+different
+computations stay apart. Breadth is then the probability that two
+verified
+responses differ, which, unlike a count of distinct outputs, does not
+rise
+merely with accuracy.
+On this measure verifier-only training
+concentrates: policies hold their
+accuracy while their successes converge on
+one way of being right, and at the
+extreme a model returns one byte-identical
+program to every prompt. Re:MaxRL keeps those alternatives in play. The
+keys that measure breadth
+also index a memory, which stores one verified
+exemplar per key and rehearses
+each equally, so a solution found once is
+practiced as often as one found
+constantly. Across three model scales, two
+fresh objectives, and a harder
+second construction, this improves both how
+often a policy succeeds and how
+many ways it can. Deployed
+frontier models
+show the same concentration and sampling harder does not undo
+it. An idealized
+analysis explains why: binary rewards amplify whichever
+success is already
+common, while memory supplies a signal for the ones that
 have gone quiet.
 
 \end{abstract}
@@ -131,7 +148,7 @@ have gone quiet.
   \caption{\textbf{Correctness can rise while sampled alternatives narrow.}
   One graph admits six valid colorings. Bars pool four eight-sample draws from
   matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces 22/32 correct outputs
-  from one mode; ReplayMaxRL produces 32/32 across four. Circle fills mark
+  from one mode; Re:MaxRL produces 32/32 across four. Circle fills mark
   vertex colors; dashed rings mark vertices left uncolored in the prompt. This illustrates the
   distinction; Figure~\ref{fig:maxrl-factorial} separates the effects of the
   fresh objective and replay.}
@@ -141,12 +158,11 @@ have gone quiet.
 \section{Introduction}
 \label{sec:introduction}
 
-A language model can satisfy the same request in many ways: it can offer
-different explanations, generate different plans, or write different programs
-that meet the same requirements. These alternatives give users choices and
-may remain useful as preferences or constraints change. As a model becomes
-more successful, what happens to the diversity of successful outputs it can
-produce?
+A language model can satisfy the same request in many ways --- different
+explanations, different plans, different programs that all meet the
+requirements. Those alternatives give users a choice, and they stay useful when
+preferences or constraints change. As a model becomes more successful, what
+happens to them?
 
 Reinforcement learning with verifiable rewards (RLVR) trains on executable
 correctness feedback \citep{guo2025deepseekr1}, and its reward cannot tell the
@@ -155,14 +171,13 @@ point. Figure~\ref{fig:story} shows what that costs. Two policies reach the
 same graph problem with very different repertoires, and the more accurate one
 is the narrower.
 
-Noticing this at all requires a way to say when two successes are the same
-success. \mb{} takes that from the validator itself: every accepted output
-carries a canonical execution key, so cosmetic variants merge and genuinely
-different computations stay apart. One definition then serves both measurement
-and memory. ReplayMaxRL stores one verified exemplar per key and rehearses
-every stored key equally, so a success that fresh sampling has stopped
-producing keeps receiving a training signal --- and being rediscovered often
-earns a key no extra weight.
+Noticing this requires a way to say when two successes are the same success.
+\mb{} takes that from the validator itself: every accepted output carries a
+canonical execution key, so cosmetic variants merge and different computations
+stay apart. One definition then serves both measurement and memory.
+Re:MaxRL stores one verified exemplar per key and rehearses every key
+equally, so a success that fresh sampling has stopped producing still receives
+a training signal, and frequent rediscovery earns a key no extra weight.
 
 We find that verifier-only training does concentrate verified outputs, that
 replay counteracts it at three model scales and under two fresh objectives,
@@ -182,7 +197,7 @@ $\mathcal C_x$ nor its size is supplied to the learner or replay bank.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=.92\linewidth]{figures/modebench_examples.pdf}
+  \includegraphics[width=.80\linewidth]{figures/modebench_examples.pdf}
   \caption{\textbf{One prompt can have different verified outputs.}
   Keys identify a color vector in Graph, a normalized computation tree in
   Countdown, an executed return vector in Python, an algebraic state trajectory
@@ -283,7 +298,7 @@ construction. Levels differ in test population as well as structure,
 so cross-level differences do not isolate difficulty
 (Appendix~\ref{app:data-levels}).
 
-\section{ReplayMaxRL: Learn from New Samples and Remember Successes}
+\section{Re:MaxRL: Learn from New Samples and Remember Successes}
 \label{sec:method}
 
 The execution keys used to measure alternatives also determine what the policy
@@ -336,8 +351,8 @@ of token length $|e_c|$, the replay loss is
 The uniform weight is the whole point: a mode found once is rehearsed exactly
 as much as a mode found a hundred times, so popularity cannot compound.
 
-This loss is added to the fresh update, giving ReplayMaxRL or, with Dr.GRPO,
-ReplayDr.GRPO. Exemplars stay outside the fresh reward group, so the two can be
+This loss is added to the fresh update, giving Re:MaxRL or, with Dr.GRPO,
+Re:Dr.GRPO. Exemplars stay outside the fresh reward group, so the two can be
 varied independently, and controls run the same bank and scoring code with the
 replay gradient set to zero. Banks hold only training-prompt responses, so
 held-out evaluation measures what training changed in the policy rather than
@@ -404,12 +419,11 @@ test whether verified memory addresses it.
 \label{sec:results-collapse}
 
 \textbf{Training can replace varied attempts with one repeated answer.}
-The starkest case is Python. Every Dr.GRPO seed starts out writing a different
-program almost every time --- close to eight distinct responses per eight
-draws. Within a few hundred steps all of that is gone: each prompt receives one
-byte-identical answer, on all 128 test prompts, and it never recovers. The
-policy has stopped exploring in any observable sense, and the repeated answer is
-not always a correct one.
+The starkest case is Python, where every Dr.GRPO seed starts out writing a
+different program almost every time. Within a few hundred steps all of that is
+gone: each prompt receives one byte-identical answer, on every test prompt, and
+it never recovers. The policy has stopped exploring in any observable sense,
+and the answer it settles on is not always a correct one.
 
 This is also where the fresh objective runs out of signal. A binary-reward group
 teaches nothing unless it contains both a success and a failure, and by then
@@ -421,13 +435,13 @@ banked exemplar does not have to be rediscovered to be trained on
 \textbf{Concentration among correct outputs is separately measurable.}
 Collapsing onto one answer is the extreme; the subtler and more general effect
 is a policy that still succeeds in several ways but increasingly prefers one of
-them. Graph and PantryPlan start with enough breadth to see this directly, and
-there every before--after comparison under Dr.GRPO and GRPO, at all three
-scales, moves the same way: two correct samples become more likely to be the
-same correct sample. Adding replay reverses it in every matched pair
-(Figure~\ref{fig:concentration-story}). These contrasts are measured
-on prompts with enough correct samples in both conditions, so they describe a
-selected population rather than the whole test set
+them. Graph and PantryPlan begin with enough breadth to see this directly, and
+there every before--after comparison under Dr.GRPO and GRPO, at every scale,
+moves the same way: two correct samples become more likely to be the same
+correct sample. Replay reverses it in every matched pair
+(Figure~\ref{fig:concentration-story}). These contrasts need prompts with
+enough correct samples in both arms, so they describe a selected population
+rather than the whole test set
 (Appendix~\ref{app:conditional-concentration}). Because correctness and breadth
 can move in opposite directions on that population, the experiments below
 always report both. A precheck of the unmodified objectives over all three
@@ -439,16 +453,18 @@ tracking the decline measured on extra modes
 \centering
 \includegraphics[width=.92\linewidth]{figures/concentration_story.pdf}
 \caption{\textbf{Training concentrates verified outputs; replay reverses it.}
-Left: the change in correct-key collision from start to end of training, under
-Dr.GRPO and GRPO. Every comparison moves toward concentration. Right: replay
-minus its matched control at the same step, under each fresh objective; every
-comparison moves back. Graph and PantryPlan are shown because they begin with
-enough breadth for the conditional measure to be defined. Dots and 95\%
-intervals average five seed contrasts, each weighting jointly eligible prompts
-equally; smaller markers show the two disjoint-stream orientations, and gutters
-give the defined seed $n$ and the eligible-prompt range out of 128. The panels
-have separate eligibility and are not one trajectory
-(Appendix~\ref{app:conditional-concentration}).}
+Both panels put narrower to the left and broader to the right, so the two
+halves of the claim are the two directions. (a) Change in \pmd{} from start to
+end of training under Dr.GRPO and GRPO: all twelve comparisons move left, by
+$9.8$ to $88.6$ points. (b) Replay minus its matched terminal control under
+each fresh objective: all twelve move right, by $2.1$ to $75.6$ points. Graph
+and PantryPlan are shown because they begin with enough breadth for the
+conditional measure to be defined. Dots and 95\% intervals average five seed
+contrasts, each weighting jointly eligible prompts equally; gutters give the
+defined seed $n$ and the eligible-prompt range out of 128. The panels have
+separate eligibility and are not one trajectory; the disjoint-stream
+orientation checks are reported in
+Appendix~\ref{app:conditional-concentration}.}
 \label{fig:concentration-story}
 \end{figure}
 
@@ -456,28 +472,29 @@ have separate eligibility and are not one trajectory
 \label{sec:results-retention}
 
 \textbf{Verified memory improves both outcomes across scales.}
-ReplayDr.GRPO raises mean \texttt{pass@8} and \distk{} in every tested
+Re:Dr.GRPO raises mean \texttt{pass@8} and \distk{} in every tested
 model--domain comparison (Figure~\ref{fig:cross-scale-terminal-effects}A).
-Both endpoints move with correctness, so the breadth claim is checked on the
-success-conditional axis too, and it survives: replay ends above its control in
-29 of the 31 comparisons where success is frequent enough to measure \pmd{},
-tying at zero in one. The gaps are not marginal. Where Dr.GRPO ends at \pmd{}
-$.000$ --- its successes are effectively one mode per prompt --- replay ends
-above $.3$ on the same block, and averaged over measurable domains terminal
-\pmd{} roughly doubles at every scale, from $.017$ to $.233$ at 0.5B. The
-effect spans valid configurations, computation routes, and tested program
-behaviors (Appendix~\ref{app:retention-numerical-detail}).
+Both of those endpoints move with correctness, so the breadth claim has to be
+checked on the success-conditional axis as well, and it survives there: replay
+ends above its control in all but two of the comparisons where success is
+frequent enough to measure \pmd{} at all. The gaps are not marginal ones.
+There are blocks where the control finishes at \pmd{} of zero --- every one of
+its successes is the same success --- and replay finishes with a third of its
+verified pairs differing. Averaged over the domains where breadth is
+measurable, replay roughly doubles it at every scale. The effect spans valid
+configurations, computation routes, and tested program behaviours
+(Appendix~\ref{app:retention-numerical-detail}).
 
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=.92\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
   \caption{\textbf{Canonical replay improves correctness and verified breadth.}
-  (A) ReplayDr.GRPO minus Dr.GRPO at all three scales.
+  (A) Re:Dr.GRPO minus Dr.GRPO at all three scales.
   (B) Qwen2.5-0.5B alternatives minus Dr.GRPO. Columns measure probability
   points and expected verified-key counts, respectively. The green Average
   weights domains equally within seed. A dagger marks four paired seeds in
   Falcon Countdown and its Average; other cells use five. Intervals are
-  nominal 95\% intervals for five-seed comparisons. Purple denotes ReplayDr.GRPO;
+  nominal 95\% intervals for five-seed comparisons. Purple denotes Re:Dr.GRPO;
   bold entries mark column maxima in Panel B.}
   \label{fig:cross-scale-terminal-effects}
 \end{figure}
@@ -516,7 +533,7 @@ parts of the training process.
   \centering
   \includegraphics[width=.92\linewidth]{figures/e118_all_scale_factorial_progress.pdf}
   \caption{\textbf{Replay complements both fresh objectives at multiple scales.}
-  Each row shows Dr.GRPO/ReplayDr.GRPO and MaxRL/ReplayMaxRL on both endpoints.
+  Each row shows Dr.GRPO/Re:Dr.GRPO and MaxRL/Re:MaxRL on both endpoints.
   Diamonds are initial models; open/filled markers are training without/with
   replay. Tracks average domains within seed; faint paths show seeds.
   All MaxRL tracks use five paired seeds in all five domains, including 3B.
@@ -526,18 +543,16 @@ parts of the training process.
   \label{fig:maxrl-factorial}
 \end{figure}
 
-ReplayMaxRL's domain-averaged \texttt{pass@8} gains are $30.7$, $13.3$, and $15.4$
-percentage points at 0.5B, 1B, and 3B, respectively. At 3B, correctness
-rises from $.547$ to $.701$ and verified modes from $.744$ to $1.107$.
-These averages retain domain differences: Falcon Graph has a negative,
-inconclusive raw-support effect, and the 3B Graph and Python correctness
-intervals include zero. The comparison identifies the benefit of the
-replay update, not which stored exemplars cause held-out gains or a
-superadditive interaction with MaxRL. Appendix
-Figure~\ref{fig:replay-factorial-effects} reports domain effects;
+The gain is largest where the policy has least to lose --- tens of points of
+correctness at the smallest scale --- and stays in double digits at every
+scale we tested. Averages hide domain differences, and we keep them visible:
+Falcon Graph moves the wrong way on raw support, and two of the 3B correctness
+intervals include zero. What the comparison establishes is that adding the
+replay update helps, not which stored exemplar produced a held-out gain, and
+not that replay and MaxRL interact superadditively
+(Figure~\ref{fig:replay-factorial-effects},
 Appendices~\ref{app:factorial-numerical-detail}
-and~\ref{app:factorial-training-curves} give aggregate estimates and
-trajectories throughout training.
+and~\ref{app:factorial-training-curves}).
 
 \subsection{Replay transfers to a harder construction}
 \label{sec:results-levels}
@@ -598,11 +613,10 @@ there are.
 The models we train are small, and a reader may reasonably suspect that
 concentration is an artifact of that. It is not. Asked a Level-3 Graph problem
 with six valid colorings, GPT-5.6 Sol is right every time --- all 1,024 draws
---- and almost always right the same way: two verified answers differ in under
-$5\%$ of pairs, an effective $1.05$ modes out of six. Because correctness is
-saturated, \pmd{} isolates that collapse exactly, and it reaches $.000$ on
-MathIR, where every verified answer is the same canonical key
-(Appendix~\ref{app:hosted-concentration}).
+--- and almost always right the same way, offering barely one of the six.
+Because correctness is saturated there, \pmd{} isolates the collapse exactly;
+on MathIR it reaches zero, meaning every verified answer the model gave was the
+same canonical key (Appendix~\ref{app:hosted-concentration}).
 
 \textbf{Sampling harder does not recover what was lost.}
 The obvious remedy is to draw more. Figure~\ref{fig:gpt56-sampling-budget}
@@ -625,22 +639,21 @@ breadth is missing it is missing from the distribution, not from the sample
   \label{fig:gpt56-sampling-budget}
 \end{figure}
 
-The pattern is not one model's quirk. All seven completed deployments have macro
-\pmd{} between $.142$ and $.311$, so none reaches $1.5$ effective verified
-modes (Appendix~\ref{app:hosted-mode-diversity}). Disabling reasoning does not help:
-across five deployments every one loses both correctness and breadth relative
-to medium reasoning. Because correctness moves too, that comparison does not
-isolate conditional concentration
-(Table~\ref{tab:hosted-level-averages}, Appendix~\ref{app:hosted-reasoning-control});
-the seven-model medium cohort is in Figure~\ref{fig:hosted-verified-breadth}.
+The pattern is not one model's quirk: no deployment we measured reaches even
+one and a half effective verified modes
+(Appendix~\ref{app:hosted-mode-diversity}). Disabling reasoning does not help
+--- every model loses both correctness and breadth --- though because
+correctness moves too, that comparison cannot isolate concentration
+(Table~\ref{tab:hosted-level-averages}, Appendix~\ref{app:hosted-reasoning-control},
+Figure~\ref{fig:hosted-verified-breadth}).
 
 Two things do help, and both are revealing. Different models collapse onto
 different answers, so mixing responses from two of them covers more verified
-modes than either alone (Appendix~\ref{app:cross-model-overlap}). Raising
-temperature widens breadth too, but stops paying above $T=1.5$
+modes than either alone (Appendix~\ref{app:cross-model-overlap}); raising
+temperature widens breadth too, but stops paying early
 (Figure~\ref{fig:gpt56-temperature-curve}). Neither substitutes for a policy
-that kept its alternatives: one needs a second model, the other trades away the
-sharpness the deployment was tuned for.
+that kept its alternatives, since one needs a second model and the other trades
+away the sharpness the deployment was tuned for.
 
 \section{Related Work}
 \label{sec:related}
@@ -685,18 +698,13 @@ behavior cell for the same reason.
 \label{sec:discussion}
 \label{sec:limitations}
 
-Reliable answering and access to verified alternatives are different
-properties. \mb{} makes both observable, and ReplayMaxRL uses the same
-execution identities to keep discovered successes in play once fresh sampling
-has stopped producing them.
+\mb{} makes reliable answering and verified breadth separately observable, and
+Re:MaxRL keeps discovered successes in play after fresh sampling stops
+producing them. Three limits remain: replay retains only what sampling first
+finds, mode counts say nothing about a mode's worth, and \pmd{} says least
+about the policies whose breadth most needs establishing
+(Appendix~\ref{app:claim-basis}).
 
-Three limits bound this. Replay retains only what sampling first finds, and a
-16-key bank against a mean of 229 valid Python modes protects a subset by
-construction (Appendix~\ref{app:fixed-bank-survival}). Counting distinguishable
-behaviors says nothing about their worth. And \pmd{} is estimable only where
-successes are frequent enough to pair, so the policies whose breadth most needs
-establishing are the ones it says least about.
-Appendix~\ref{app:claim-basis} scopes every claim.
 \label{sec:main-end}
 
 \clearpage
@@ -708,11 +716,11 @@ Appendix~\ref{app:claim-basis} scopes every claim.
 
 \begin{table}[H]
   \centering
-  \caption{\textbf{Matched results after eight training passes.} Columns compare Dr.GRPO with ReplayDr.GRPO after exactly eight training passes. Entries are means over the displayed paired-seed intersection;
+  \caption{\textbf{Matched results after eight training passes.} Columns compare Dr.GRPO with Re:Dr.GRPO after exactly eight training passes. Entries are means over the displayed paired-seed intersection;
   $n$@pass gives its size and training pass. P, M, and D denote
   \texttt{pass@8}, \texttt{mean@8}, and \texttt{distinct@8}. Falcon Countdown
   has $n=4$ and other blocks $n=5$ (Appendix~\ref{app:source-integrity}).
-  Pale green marks a ReplayDr.GRPO mean that is
+  Pale green marks a Re:Dr.GRPO mean that is
   strictly higher than its matched Dr.GRPO mean.}
   \label{tab:core-terminal-endpoints}
   \scriptsize
@@ -722,7 +730,7 @@ Appendix~\ref{app:claim-basis} scopes every claim.
     \toprule
     \textbf{Model} & \textbf{Domain} & \textbf{$n$@pass} &
       \multicolumn{3}{c}{\textbf{Dr.GRPO}} &
-      \multicolumn{3}{c}{\textbf{ReplayDr.GRPO}} \\
+      \multicolumn{3}{c}{\textbf{Re:Dr.GRPO}} \\
     \cmidrule(lr){4-6}\cmidrule(l){7-9}
       & & & \textbf{P} & \textbf{M} & \textbf{D}
       & \textbf{P} & \textbf{M} & \textbf{D} \\
@@ -809,7 +817,7 @@ Eligibility and stream sensitivities limit the observed population; exact
 support extinction is not identified. \\
 Replay can reduce conditional concentration & Retrospective matched replay comparison:
 Appendix~\ref{app:conditional-concentration} &
-ReplayDr.GRPO reduces collision in Graph/Pantry at each scale. Correctness
+Re:Dr.GRPO reduces collision in Graph/Pantry at each scale. Correctness
 can also change on those eligible prompts; this is not an all-prompt effect. \\
 Replay improves measured endpoints & Controlled comparisons:
 Figure~\ref{fig:replay-factorial-effects} &
@@ -1568,7 +1576,7 @@ separate verified-likelihood loss.
 \label{app:algorithm-update}
 
 \begin{algorithm}[H]
-  \caption{One ReplayMaxRL optimizer update}
+  \caption{One Re:MaxRL optimizer update}
   \label{alg:verified-replay-update}
   \small
   \begin{algorithmic}[1]
@@ -1584,7 +1592,7 @@ separate verified-likelihood loss.
       \STATE Set $c_i\gets\widetilde c_i$ iff
         $r_i>0\wedge\widetilde c_i\ne\bot$; otherwise set $c_i\gets\bot$
     \ENDFOR
-    \STATE Compute fresh task advantages $A_i^{o}$ from $\{r_j\}_{j=1}^G$; for ReplayMaxRL use the formula in Appendix~\ref{app:binary-maxrl}
+    \STATE Compute fresh task advantages $A_i^{o}$ from $\{r_j\}_{j=1}^G$; for Re:MaxRL use the formula in Appendix~\ref{app:binary-maxrl}
     \STATE After the full group is validated, deterministically retain one
       policy exemplar for each new $c_i\ne\bot$ in $\mathcal B_x$, up to
       capacity $M$
@@ -1752,9 +1760,9 @@ weighting aggregate uses the same seed population throughout.
     \textbf{Comparison} & \textbf{Scope} & \textbf{Terminal coverage}
       & \textbf{Question} \\
     \midrule
-    Dr.GRPO / ReplayDr.GRPO & Level 1, all three scales &
+    Dr.GRPO / Re:Dr.GRPO & Level 1, all three scales &
       74/75 pairs; 14/15 complete blocks & Verified memory beyond fresh reward \\
-    MaxRL / ReplayMaxRL & Level 1, all three scales &
+    MaxRL / Re:MaxRL & Level 1, all three scales &
       75/75 pairs; 15/15 complete blocks & Memory beyond a stronger fresh objective \\
     Four-method factorial & Level 2, Qwen-0.5B &
       5/5 complete domains; 100/100 endpoints & Within-level replay replication \\
@@ -1804,7 +1812,7 @@ $+.030$ ($[+.001,+.060]$). These intervals are nominal, unadjusted
 Student-$t$ estimates over five paired training seeds. Extra modes remain
 coupled to correctness, so the same Countdown comparison is also read on the
 success-conditional axis, where Dr.GRPO ends at \pmd{} $.007$ and
-ReplayDr.GRPO at $.487$: the replayed policy is not merely succeeding more
+Re:Dr.GRPO at $.487$: the replayed policy is not merely succeeding more
 often, its successes are spread across modes where the control's are not. Countdown keys identify computation routes, but
 these held-out endpoints do not identify which previously discovered
 routes survived training.
@@ -1825,9 +1833,9 @@ intersection, not differences of aggregates with different seeds.
   \caption{\textbf{Per-domain results behind the cross-domain averages in
   Figure~\ref{fig:maxrl-factorial}.} Rows show Qwen2.5-0.5B,
   Falcon3-1B, and Qwen2.5-3B; columns show correctness and raw support.
-  MaxRL--ReplayMaxRL pairs retain five terminal seeds throughout the two
+  MaxRL--Re:MaxRL pairs retain five terminal seeds throughout the two
   smaller models and Qwen2.5-3B: every MaxRL domain uses $n=5$.
-  Solid connectors identify these complete comparisons. Dr.GRPO--ReplayDr.GRPO uses four
+  Solid connectors identify these complete comparisons. Dr.GRPO--Re:Dr.GRPO uses four
   admissible seeds for Falcon Countdown and five elsewhere. Domain tints match
   Figure~\ref{fig:modebench-examples}.
   Replay arrows, trained-arm markers, and untrained references use the same
@@ -1849,8 +1857,8 @@ adjacent machine-readable records.
 
 \begin{table}[H]
   \centering
-  \caption{\textbf{ReplayMaxRL effects across model scales at pass 8.}
-  All effects are ReplayMaxRL minus MaxRL on the displayed paired seeds.
+  \caption{\textbf{Re:MaxRL effects across model scales at pass 8.}
+  All effects are Re:MaxRL minus MaxRL on the displayed paired seeds.
   Brackets give paired Student-$t$ intervals for $\Delta B$ in complete blocks.
   The machine-readable report also retains both arm means, all per-seed
   effects, and intervals for $P$ and $D$.}
@@ -1868,7 +1876,7 @@ adjacent machine-readable records.
 \end{table}
 
 
-At Qwen2.5-0.5B, ReplayMaxRL adds $1.221$, $.990$, and $.751$ extra modes
+At Qwen2.5-0.5B, Re:MaxRL adds $1.221$, $.990$, and $.751$ extra modes
 on Graph, Countdown, and PantryPlan, respectively; each five-seed interval
 excludes zero. Falcon Graph instead has a negative mean raw-support effect
 ($-.093$, interval $[-.229,+.043]$), and its correctness effect is inconclusive
@@ -1880,12 +1888,12 @@ although MathIR's breadth gain is small. Correctness intervals exclude zero
 for Countdown, MathIR, and PantryPlan; Graph and Python remain inconclusive.
 Extra modes are a function of correctness as well as of allocation, so the
 direction of these effects is confirmed separately on \pmd{}, where
-ReplayDr.GRPO ends above Dr.GRPO in 13 of the 14 comparisons that clear the
+Re:Dr.GRPO ends above Dr.GRPO in 13 of the 14 comparisons that clear the
 support bar (Appendix~\ref{app:registered-endpoints}).
 
 \paragraph{Cross-domain factorial summaries.}
 \label{app:factorial-numerical-detail}
-Averaging five domains equally within each paired seed, ReplayMaxRL minus
+Averaging five domains equally within each paired seed, Re:MaxRL minus
 MaxRL gives $+.307$ on \texttt{pass@8} and $+.991$ on raw
 \texttt{distinct@8} at Qwen2.5-0.5B (unadjusted 95\% intervals
 $[+.208,+.406]$ and $[+.815,+1.167]$), and $+.133/+.228$ at Falcon3-1B
@@ -1894,7 +1902,7 @@ The Dr.GRPO replay effects on these two endpoints are $+.337/+.999$ at
 Qwen2.5-0.5B, $+.442/+.774$ at Falcon3-1B, and $+.279/+.559$ at
 Qwen2.5-3B. The Falcon Dr.GRPO average uses four common admissible seeds
 without an interval; the other two use five. These are post-hoc descriptive
-cross-domain summaries. At Qwen2.5-3B, MaxRL/ReplayMaxRL arm means are
+cross-domain summaries. At Qwen2.5-3B, MaxRL/Re:MaxRL arm means are
 $.547/.701$ on correctness and $.744/1.107$ on raw support. Equal domain
 averages within each of seeds 70--74 give replay effects of $+.154$
 ($[+.086,+.222]$) and $+.363$ ($[+.285,+.441]$), respectively.
@@ -1952,7 +1960,7 @@ their comparison does not isolate the effect of task difficulty.
 
 
 Level-2 Graph provides the clearest replay effects on correctness and extra
-modes under both objectives. Countdown's ReplayMaxRL extra-mode effect is
+modes under both objectives. Countdown's Re:MaxRL extra-mode effect is
 small ($+.017$, interval $[+.001,+.032]$), while its correctness and raw-support
 intervals include zero. Python and MathIR have positive mean correctness
 and raw-support effects with intervals including zero; MathIR's extra-mode
@@ -1965,8 +1973,8 @@ breadth effects rather than effects at fixed correctness.
 
 For each common seed and endpoint $Y$, the replay interaction is
 \[
- I=(Y^{\rm ReplayMaxRL}-Y^{\rm MaxRL})
-    -(Y^{\rm ReplayDr.GRPO}-Y^{\rm Dr.GRPO}).
+ I=(Y^{\rm Re:MaxRL}-Y^{\rm MaxRL})
+    -(Y^{\rm Re:Dr.GRPO}-Y^{\rm Dr.GRPO}).
 \]
 Replay can add value under both fresh objectives without a positive
 interaction. On Level-2 Graph, MaxRL alone raises $P$ relative to Dr.GRPO
@@ -1979,8 +1987,8 @@ stronger fresh optimization, without a superadditive interaction.
   \caption{\textbf{Fresh-objective effects and replay interactions on Level 2.}
   All three contrasts within a domain use the same four-arm seed
   intersection. The interaction is
-  $(\mathrm{ReplayMaxRL}-\mathrm{MaxRL})-
-  (\mathrm{ReplayDr.GRPO}-\mathrm{Dr.GRPO})$.
+  $(\mathrm{Re:MaxRL}-\mathrm{MaxRL})-
+  (\mathrm{Re:Dr.GRPO}-\mathrm{Dr.GRPO})$.
   Each entry gives its mean and, only for a complete five-seed block, a
   paired unadjusted 95\% Student-$t$ interval. Archived four-arm exports:
   \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E119/README.md\#models}{E119 model index}.}
@@ -2034,7 +2042,7 @@ identical seeds and checkpoints, without smoothing or outcome-based selection.
   \includegraphics[width=\linewidth]{figures/factorial_training_curves_pass8.pdf}
   \caption{\textbf{Accuracy throughout training at all three model scales.}
   Rows are Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B; columns are the five
-  domains. Dr.GRPO, ReplayDr.GRPO, MaxRL, and ReplayMaxRL use the same method
+  domains. Dr.GRPO, Re:Dr.GRPO, MaxRL, and Re:MaxRL use the same method
   colors as Figure~\ref{fig:maxrl-factorial}. Lines are fixed-cohort means of
   \texttt{pass@8}; bands are seed ranges, not confidence intervals. Counts
   identify each objective's terminal paired seeds. Qwen2.5-3B MaxRL uses
@@ -2149,7 +2157,7 @@ An offline pool versus an online bank remains an algorithmic difference.
     {figures/direct_baseline_learning_curves_static_strip.pdf}
   \caption{\textbf{Verified-mode trajectories for the supporting comparators.}
   Rows show Qwen2.5-0.5B and Falcon3-1B; columns are the five domains.
-  UCPO and sparse RLEP-Dr are compared with Dr.GRPO and ReplayDr.GRPO
+  UCPO and sparse RLEP-Dr are compared with Dr.GRPO and Re:Dr.GRPO
   at these two smaller scales.
   Labels give exact method-specific seed counts. Lines are descriptive
   registered \distk{} means and bands are seed ranges;
@@ -2167,7 +2175,7 @@ An offline pool versus an online bank remains an algorithmic difference.
   The same model rows, domains, methods, terminal seeds, and registered
   checkpoints as Figure~\ref{fig:direct-baseline-curves}, now measuring
   \texttt{pass@8}. Bands show the seed range and the vertical axes span
-  $[0,1]$ throughout. MaxRL and ReplayMaxRL at all three scales are compared
+  $[0,1]$ throughout. MaxRL and Re:MaxRL at all three scales are compared
   on both metrics in Figures~\ref{fig:factorial-training-accuracy} and~\ref{fig:factorial-training-modes}.}
   \label{fig:direct-baseline-accuracy-curves}
 \end{figure}
@@ -2337,12 +2345,12 @@ Graph and PantryPlan contain substantial initial breadth at every scale;
 the other three domains begin with at most $.011$ extra modes per prompt.
 A retained-breadth percentage is therefore reported only when the initial
 extra-mode count exceeds $.05$. Raw $\texttt{distinct@8}$ ends below its
-initial value in six of the 15 Dr.GRPO domains. ReplayDr.GRPO does so in
+initial value in six of the 15 Dr.GRPO domains. Re:Dr.GRPO does so in
 two available domain summaries, both PantryPlan; Falcon Countdown uses
 four admissible seeds. On the success-conditional axis the contrast is
 sharper: averaged over the domains that remain measurable at the terminal
 step, Dr.GRPO ends at \pmd{} $.017$, $.103$, and $.086$ at 0.5B, 1B, and 3B
-against ReplayDr.GRPO's $.233$, $.201$, and $.194$. These observations concern
+against Re:Dr.GRPO's $.233$, $.201$, and $.194$. These observations concern
 sampled held-out support, not the survival histories of particular stored
 modes.
 
@@ -2366,7 +2374,7 @@ of complete support coverage.
   \begin{tabular}{@{}llrrrr@{}}
     \toprule
     \textbf{Model} & \textbf{Domain} & \textbf{Uniform} & \textbf{Frozen}
-      & \textbf{Dr.GRPO} & \textbf{ReplayDr.GRPO} \\
+      & \textbf{Dr.GRPO} & \textbf{Re:Dr.GRPO} \\
     \midrule
     \input{results/absolute_support_references_table_body.tex}
   \end{tabular}
@@ -2386,7 +2394,7 @@ over all 3,072 Qwen2.5-0.5B updates, averaged over five seeds, are:
 \small
 \begin{tabular}{@{}lrr@{}}
 \toprule
-\textbf{Domain} & \textbf{Dr.GRPO} & \textbf{ReplayDr.GRPO} \\
+\textbf{Domain} & \textbf{Dr.GRPO} & \textbf{Re:Dr.GRPO} \\
 \midrule
 Graph coloring & .144 & .954 \\
 Countdown & .140 & .456 \\
@@ -2421,7 +2429,7 @@ remain relevant controls beyond the registered factorial.
 \subsection{Fixed-bank exemplar score trajectories}
 \label{app:fixed-bank-survival}
 
-The fixed-bank study tracks Qwen2.5-0.5B ReplayDr.GRPO on Graph for seeds
+The fixed-bank study tracks Qwen2.5-0.5B Re:Dr.GRPO on Graph for seeds
 43--47. Before step 384's fresh group, bank membership and fresh counts
 are frozen; admission then stops while uniform replay continues through
 3,072 updates under the same training recipe. Every frozen exemplar is
@@ -2501,7 +2509,7 @@ Python shows a large loss of correctness after guidance removal. Across the
 five DrGRPO seeds, mean $P_8$ falls from $.8125$ to zero at Level~2 and from
 $1.0$ to zero at Level~3; $D_8$ falls identically and $B_8=0$ in both arms.
 With no correct neutral DrGRPO outputs, its conditional-correct concentration
-is undefined. Replay DrGRPO retains neutral $P_8=.55625$ and $.49375$ and
+is undefined. Re:Dr.GRPO retains neutral $P_8=.55625$ and $.49375$ and
 $D_8=.675$ and $.65625$ at Levels~2 and~3, respectively, while losing
 additional breadth: $\Delta B_8=-.2375$ and $-.25625$. The initial checkpoint
 also loses Python correctness (Table~\ref{tab:prompt-hints-local-strict}).
@@ -2541,7 +2549,7 @@ groups; the original arm has 4,382 out of 4,382 pairs from 157 such groups.
 Both arms evaluate the same 32 problems at each checkpoint. This preserves
 the observed concentration despite removing the specified order hint; it does
 not measure all unseen modes or remove the other interface constraints.
-Pantry effects are mixed. Replay DrGRPO at Level~3 gains $.109375$ in $D_8$,
+Pantry effects are mixed. Re:Dr.GRPO at Level~3 gains $.109375$ in $D_8$,
 comprising $.046875$ in $P_8$ and $.0625$ in $B_8$, but this comparison has only
 two training seeds. The separate completed 64-draw hosted follow-up
 tests both wordings on sixteen problems per cell in
@@ -2577,14 +2585,14 @@ remain available alongside the correction audit and source identities.
 
 \paragraph{MathIR: concentration largely persists through 64 draws.}
 At Level~2, both trained methods have $B_k=0$ at every measured budget under
-both wordings. Replay DrGRPO has original $P_8=.9774$ and $P_{64}=.9875$;
+both wordings. Re:Dr.GRPO has original $P_8=.9774$ and $P_{64}=.9875$;
 neutral wording gives $.9767$ and $.9875$. Its $D_k$ equals $P_k$ throughout,
 so the small late gain consists entirely of first successes. At exactly eight
 correct draws, both wordings have $R_8=1$ on the same 76 eligible
 checkpoint--problem groups, versus the certified-support uniform lower
 reference $5[1-(4/5)^8]=4.1611$. These groups reuse the same 16 problems
 across five checkpoints. At Level~3, all neutral trained groups and all
-original Replay DrGRPO groups also contain at most one observed correct key.
+original Re:Dr.GRPO groups also contain at most one observed correct key.
 There is one exception in original DrGRPO: a single problem at seed~46
 contains two keys with counts 28 and 9, giving mean $B_{64}=.0125$ and
 $B_{64}-B_8=.0035$. Its equal-seed correct-pair collision is $.9803$;
@@ -2598,7 +2606,7 @@ Level~3 from eight through 64 draws. Neutral DrGRPO has zero correct responses
 out of 5,120 at Level~2 and three out of 5,120 at Level~3. Each of those
 three successes occurs alone in its checkpoint--problem group, so Level~3
 mean $P_{64}=D_{64}=.0375$ while correct-pair collision remains undefined.
-Replay DrGRPO behaves differently. Under original wording its pass probability
+Re:Dr.GRPO behaves differently. Under original wording its pass probability
 is already unchanged from eight to 64, but $D_k$ gains $.0582$ at Level~2
 and $.1529$ at Level~3. Under neutral wording, $P_k$ rises from $.5186$ to
 $.7500$ and from $.5109$ to $.7500$, respectively; $D_k$ rises from $.6618$
@@ -2615,7 +2623,7 @@ Across the trained Pantry cells and both wordings, $D_{64}-D_8$ ranges
 from $.4151$ to $1.0247$, with additional-mode gains ranging from $.2739$
 to $.7664$. The initial checkpoint also gains $.8565$--$1.0778$ modes.
 In the two observed training seeds, Level~3 point estimates even change
-method ordering: original DrGRPO/Replay DrGRPO have $D_8=.2075/.3381$
+method ordering: original DrGRPO/Re:Dr.GRPO have $D_8=.2075/.3381$
 but $D_{64}=1.1563/.9063$; neutral wording gives $.2253/.3515$ at eight
 and $1.2500/.8125$ at 64. This is a descriptive ranking of these checkpoints,
 not evidence of a population-level method advantage. Pantry has only two
@@ -3509,7 +3517,7 @@ and longitudinal exemplar scores remain separate measurements.
 \subsection{Admissible sources and missing checkpoints}
 \label{app:source-integrity}
 
-Falcon3-1B Countdown ReplayDr.GRPO seed 59 contains two complete four-draw
+Falcon3-1B Countdown Re:Dr.GRPO seed 59 contains two complete four-draw
 terminal evaluation sequences with identical request identities but
 conflicting metrics. That source is excluded at every
 checkpoint and from every efficacy endpoint, paired contrast, and aggregate

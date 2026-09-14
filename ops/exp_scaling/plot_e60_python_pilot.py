@@ -129,7 +129,7 @@ def _xy(rows: list[dict[str, float]], key: str) -> tuple[list[float], list[float
 
 
 def _style_axis(ax: plt.Axes) -> None:
-    ax.grid(axis="y", color="#dddddd", lw=0.55, zorder=0)
+    ax.grid(axis="both", color="#dddddd", lw=0.55, zorder=0)
     ax.spines[["top", "right"]].set_visible(False)
     ax.tick_params(length=2.5, width=0.7, labelsize=7.5)
     ax.xaxis.set_major_locator(MaxNLocator(6))

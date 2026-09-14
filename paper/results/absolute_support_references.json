@@ -1,0 +1,161 @@
+{
+  "schema": "paper-absolute-support-references-v1",
+  "generated_at": "2026-09-04T20:53:08.842558+00:00",
+  "metric": "distinct@8",
+  "reference_scope": "Analytic action-uniform references are reported only for finite fixed-width action spaces; null means no comparable uninformed generator is specified.",
+  "support_means": {
+    "graph_coloring": 6.265625,
+    "pantry_plan": 18.1875
+  },
+  "uninformed_policies": {
+    "graph_coloring": {
+      "primary": 1.632851484925304,
+      "policy": "uniform over all 27 three-color assignments",
+      "candidate_count": 27
+    },
+    "pantry_plan": {
+      "primary": 2.152919212894907,
+      "policy": "uniform over all 64 six-bit masks",
+      "candidate_count": 64,
+      "instruction_following": 2.7142475267937765,
+      "instruction_following_policy": "uniform over the 50 masks selecting two to four ingredients"
+    }
+  },
+  "rows": [
+    {
+      "model": "Qwen2.5-0.5B",
+      "scale": "qwen05b",
+      "domain": "graph_coloring",
+      "frozen_distinct8": 0.561328125,
+      "drgrpo_distinct8": 0.325,
+      "replay_drgrpo_distinct8": 2.4375,
+      "uninformed_distinct8": 1.632851484925304
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "scale": "qwen05b",
+      "domain": "countdown",
+      "frozen_distinct8": 0.108203125,
+      "drgrpo_distinct8": 0.48671875,
+      "replay_drgrpo_distinct8": 1.63671875,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "scale": "qwen05b",
+      "domain": "python_factors",
+      "frozen_distinct8": 0.0,
+      "drgrpo_distinct8": 0.171875,
+      "replay_drgrpo_distinct8": 0.57109375,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "scale": "qwen05b",
+      "domain": "mathir",
+      "frozen_distinct8": 0.22265625,
+      "drgrpo_distinct8": 0.51328125,
+      "replay_drgrpo_distinct8": 0.828515625,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "scale": "qwen05b",
+      "domain": "pantry_plan",
+      "frozen_distinct8": 2.426171875,
+      "drgrpo_distinct8": 0.521875,
+      "replay_drgrpo_distinct8": 1.539453125,
+      "uninformed_distinct8": 2.152919212894907
+    },
+    {
+      "model": "Falcon3-1B",
+      "scale": "falcon1b",
+      "domain": "graph_coloring",
+      "frozen_distinct8": 1.0703125,
+      "drgrpo_distinct8": 1.033984375,
+      "replay_drgrpo_distinct8": 1.716796875,
+      "uninformed_distinct8": 1.632851484925304
+    },
+    {
+      "model": "Falcon3-1B",
+      "scale": "falcon1b",
+      "domain": "countdown",
+      "frozen_distinct8": 0.23046875,
+      "drgrpo_distinct8": 0.41953125,
+      "replay_drgrpo_distinct8": 0.83837890625,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Falcon3-1B",
+      "scale": "falcon1b",
+      "domain": "python_factors",
+      "frozen_distinct8": 0.0,
+      "drgrpo_distinct8": 0.000390625,
+      "replay_drgrpo_distinct8": 1.10703125,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Falcon3-1B",
+      "scale": "falcon1b",
+      "domain": "mathir",
+      "frozen_distinct8": 0.154296875,
+      "drgrpo_distinct8": 0.096875,
+      "replay_drgrpo_distinct8": 0.75625,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Falcon3-1B",
+      "scale": "falcon1b",
+      "domain": "pantry_plan",
+      "frozen_distinct8": 2.162109375,
+      "drgrpo_distinct8": 0.6328125,
+      "replay_drgrpo_distinct8": 1.57578125,
+      "uninformed_distinct8": 2.152919212894907
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "scale": "qwen3b",
+      "domain": "graph_coloring",
+      "frozen_distinct8": 1.01171875,
+      "drgrpo_distinct8": 1.06015625,
+      "replay_drgrpo_distinct8": 1.637109375,
+      "uninformed_distinct8": 1.632851484925304
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "scale": "qwen3b",
+      "domain": "countdown",
+      "frozen_distinct8": 0.19140625,
+      "drgrpo_distinct8": 0.628125,
+      "replay_drgrpo_distinct8": 0.962109375,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "scale": "qwen3b",
+      "domain": "python_factors",
+      "frozen_distinct8": 0.0,
+      "drgrpo_distinct8": 0.06875,
+      "replay_drgrpo_distinct8": 0.85234375,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "scale": "qwen3b",
+      "domain": "mathir",
+      "frozen_distinct8": 0.155859375,
+      "drgrpo_distinct8": 0.278515625,
+      "replay_drgrpo_distinct8": 0.70625,
+      "uninformed_distinct8": null
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "scale": "qwen3b",
+      "domain": "pantry_plan",
+      "frozen_distinct8": 1.444921875,
+      "drgrpo_distinct8": 0.840625,
+      "replay_drgrpo_distinct8": 1.5140625,
+      "uninformed_distinct8": 2.152919212894907
+    }
+  ]
+}

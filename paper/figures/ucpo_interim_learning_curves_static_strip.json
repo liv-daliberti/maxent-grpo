@@ -1,0 +1,1858 @@
+{
+  "schema": "paper-aligned-domain-strip-v2",
+  "generated_at": "2026-08-15T00:35:42.508500+00:00",
+  "figure_key": "ucpo_interim_learning_curves_static_strip",
+  "comparison": "direct_baselines",
+  "layout": "three physical model rows by five static-domain columns",
+  "environment_columns": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "model_rows": [
+    "qwen05b",
+    "falcon1b",
+    "qwen3b"
+  ],
+  "model_encoding": "row 1 Qwen2.5-0.5B; row 2 Falcon3-1B; row 3 Qwen2.5-3B; registered cells without a sampled checkpoint are blank",
+  "evidence": "balanced two-seed UCPO snapshot plus truncated sparse RLEP-Dr progress on Qwen; Falcon cohorts registered and awaiting a scientific checkpoint; no RLEP endpoint effect",
+  "metric": "mean distinct correct@8 with seed range",
+  "methods": [
+    "drgrpo",
+    "replay_grpo",
+    "ucpo",
+    "rlep_dr"
+  ],
+  "sources": [
+    {
+      "path": "paper/figures/ucpo_interim_learning_curves.json",
+      "sha256": "6d6c4cc5c72077f4de273b1de9912410b06e5e27fbc2ec31e209e72331229abd"
+    },
+    {
+      "path": "var/artifacts/e98r1_sparse_rlep_dr_05b_jobs.json",
+      "sha256": "04903cc80cfddc49911017b7b494c984dfae479aafe28a09dec85ec413ff608e"
+    },
+    {
+      "path": "var/artifacts/e99_ucpo_falcon1b_jobs.json",
+      "sha256": "b940c80902dc10d898daeb8df7049569585fda74f808a4b5c9bcf4866d4cec4e"
+    },
+    {
+      "path": "var/artifacts/e100_sparse_rlep_dr_falcon1b_jobs.json",
+      "sha256": "a01476a84a8a224b76d1fb4e599d828734f29041879cc81b0ba50227fb2eb5eb"
+    }
+  ],
+  "panels": {
+    "graph_coloring": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 2,
+            "replay_grpo": 2,
+            "ucpo": 2,
+            "rlep_dr": 1
+          }
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        }
+      }
+    },
+    "countdown": {
+      "available": [],
+      "cells": {
+        "qwen05b": {
+          "status": "blank",
+          "reason": "UCPO and sparse RLEP-Dr cells not registered"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        }
+      }
+    },
+    "python_factors": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 2,
+            "replay_grpo": 2,
+            "ucpo": 2,
+            "rlep_dr": 2
+          }
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        }
+      }
+    },
+    "mathir": {
+      "available": [],
+      "cells": {
+        "qwen05b": {
+          "status": "blank",
+          "reason": "UCPO and sparse RLEP-Dr cells not registered"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        }
+      }
+    },
+    "pantry_plan": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 2,
+            "replay_grpo": 2,
+            "ucpo": 2,
+            "rlep_dr": 2
+          }
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        },
+        "qwen3b": {
+          "status": "blank",
+          "reason": "Falcon UCPO and sparse RLEP-Dr registered; no scientific checkpoint at frozen render"
+        }
+      }
+    }
+  },
+  "rlep_progress": {
+    "status": "nonterminal progress; no endpoint effect",
+    "evaluation_kind": "fixed_seed_sampled_k_neutral",
+    "draws_per_checkpoint": 4,
+    "domains": {
+      "graph_coloring": {
+        "seeds": [
+          43
+        ],
+        "available_seed_count": 1,
+        "complete_shared_checkpoint_count": 33,
+        "deepest_step": 3072,
+        "deepest_training_pass": 8.0
+      },
+      "pantry_plan": {
+        "seeds": [
+          43,
+          44
+        ],
+        "available_seed_count": 2,
+        "complete_shared_checkpoint_count": 1,
+        "deepest_step": 0,
+        "deepest_training_pass": 0.0
+      },
+      "python_factors": {
+        "seeds": [
+          43,
+          44
+        ],
+        "available_seed_count": 2,
+        "complete_shared_checkpoint_count": 33,
+        "deepest_step": 3072,
+        "deepest_training_pass": 8.0
+      }
+    },
+    "summaries": {
+      "graph_coloring": {
+        "0": {
+          "training_pass": 0.0,
+          "pass8": {
+            "mean": 0.537109375,
+            "range": [
+              0.537109375,
+              0.537109375
+            ],
+            "per_seed": {
+              "43": 0.537109375
+            }
+          },
+          "distinct8": {
+            "mean": 0.712890625,
+            "range": [
+              0.712890625,
+              0.712890625
+            ],
+            "per_seed": {
+              "43": 0.712890625
+            }
+          }
+        },
+        "96": {
+          "training_pass": 0.25,
+          "pass8": {
+            "mean": 0.642578125,
+            "range": [
+              0.642578125,
+              0.642578125
+            ],
+            "per_seed": {
+              "43": 0.642578125
+            }
+          },
+          "distinct8": {
+            "mean": 0.84375,
+            "range": [
+              0.84375,
+              0.84375
+            ],
+            "per_seed": {
+              "43": 0.84375
+            }
+          }
+        },
+        "192": {
+          "training_pass": 0.5,
+          "pass8": {
+            "mean": 0.609375,
+            "range": [
+              0.609375,
+              0.609375
+            ],
+            "per_seed": {
+              "43": 0.609375
+            }
+          },
+          "distinct8": {
+            "mean": 0.751953125,
+            "range": [
+              0.751953125,
+              0.751953125
+            ],
+            "per_seed": {
+              "43": 0.751953125
+            }
+          }
+        },
+        "288": {
+          "training_pass": 0.75,
+          "pass8": {
+            "mean": 0.65625,
+            "range": [
+              0.65625,
+              0.65625
+            ],
+            "per_seed": {
+              "43": 0.65625
+            }
+          },
+          "distinct8": {
+            "mean": 0.830078125,
+            "range": [
+              0.830078125,
+              0.830078125
+            ],
+            "per_seed": {
+              "43": 0.830078125
+            }
+          }
+        },
+        "384": {
+          "training_pass": 1.0,
+          "pass8": {
+            "mean": 0.609375,
+            "range": [
+              0.609375,
+              0.609375
+            ],
+            "per_seed": {
+              "43": 0.609375
+            }
+          },
+          "distinct8": {
+            "mean": 0.7578125,
+            "range": [
+              0.7578125,
+              0.7578125
+            ],
+            "per_seed": {
+              "43": 0.7578125
+            }
+          }
+        },
+        "480": {
+          "training_pass": 1.25,
+          "pass8": {
+            "mean": 0.603515625,
+            "range": [
+              0.603515625,
+              0.603515625
+            ],
+            "per_seed": {
+              "43": 0.603515625
+            }
+          },
+          "distinct8": {
+            "mean": 0.74609375,
+            "range": [
+              0.74609375,
+              0.74609375
+            ],
+            "per_seed": {
+              "43": 0.74609375
+            }
+          }
+        },
+        "576": {
+          "training_pass": 1.5,
+          "pass8": {
+            "mean": 0.6953125,
+            "range": [
+              0.6953125,
+              0.6953125
+            ],
+            "per_seed": {
+              "43": 0.6953125
+            }
+          },
+          "distinct8": {
+            "mean": 0.99609375,
+            "range": [
+              0.99609375,
+              0.99609375
+            ],
+            "per_seed": {
+              "43": 0.99609375
+            }
+          }
+        },
+        "672": {
+          "training_pass": 1.75,
+          "pass8": {
+            "mean": 0.65234375,
+            "range": [
+              0.65234375,
+              0.65234375
+            ],
+            "per_seed": {
+              "43": 0.65234375
+            }
+          },
+          "distinct8": {
+            "mean": 0.890625,
+            "range": [
+              0.890625,
+              0.890625
+            ],
+            "per_seed": {
+              "43": 0.890625
+            }
+          }
+        },
+        "768": {
+          "training_pass": 2.0,
+          "pass8": {
+            "mean": 0.73828125,
+            "range": [
+              0.73828125,
+              0.73828125
+            ],
+            "per_seed": {
+              "43": 0.73828125
+            }
+          },
+          "distinct8": {
+            "mean": 1.181640625,
+            "range": [
+              1.181640625,
+              1.181640625
+            ],
+            "per_seed": {
+              "43": 1.181640625
+            }
+          }
+        },
+        "864": {
+          "training_pass": 2.25,
+          "pass8": {
+            "mean": 0.689453125,
+            "range": [
+              0.689453125,
+              0.689453125
+            ],
+            "per_seed": {
+              "43": 0.689453125
+            }
+          },
+          "distinct8": {
+            "mean": 0.978515625,
+            "range": [
+              0.978515625,
+              0.978515625
+            ],
+            "per_seed": {
+              "43": 0.978515625
+            }
+          }
+        },
+        "960": {
+          "training_pass": 2.5,
+          "pass8": {
+            "mean": 0.59375,
+            "range": [
+              0.59375,
+              0.59375
+            ],
+            "per_seed": {
+              "43": 0.59375
+            }
+          },
+          "distinct8": {
+            "mean": 0.716796875,
+            "range": [
+              0.716796875,
+              0.716796875
+            ],
+            "per_seed": {
+              "43": 0.716796875
+            }
+          }
+        },
+        "1056": {
+          "training_pass": 2.75,
+          "pass8": {
+            "mean": 0.6875,
+            "range": [
+              0.6875,
+              0.6875
+            ],
+            "per_seed": {
+              "43": 0.6875
+            }
+          },
+          "distinct8": {
+            "mean": 0.953125,
+            "range": [
+              0.953125,
+              0.953125
+            ],
+            "per_seed": {
+              "43": 0.953125
+            }
+          }
+        },
+        "1152": {
+          "training_pass": 3.0,
+          "pass8": {
+            "mean": 0.6796875,
+            "range": [
+              0.6796875,
+              0.6796875
+            ],
+            "per_seed": {
+              "43": 0.6796875
+            }
+          },
+          "distinct8": {
+            "mean": 0.97265625,
+            "range": [
+              0.97265625,
+              0.97265625
+            ],
+            "per_seed": {
+              "43": 0.97265625
+            }
+          }
+        },
+        "1248": {
+          "training_pass": 3.25,
+          "pass8": {
+            "mean": 0.58203125,
+            "range": [
+              0.58203125,
+              0.58203125
+            ],
+            "per_seed": {
+              "43": 0.58203125
+            }
+          },
+          "distinct8": {
+            "mean": 0.810546875,
+            "range": [
+              0.810546875,
+              0.810546875
+            ],
+            "per_seed": {
+              "43": 0.810546875
+            }
+          }
+        },
+        "1344": {
+          "training_pass": 3.5,
+          "pass8": {
+            "mean": 0.6875,
+            "range": [
+              0.6875,
+              0.6875
+            ],
+            "per_seed": {
+              "43": 0.6875
+            }
+          },
+          "distinct8": {
+            "mean": 0.9609375,
+            "range": [
+              0.9609375,
+              0.9609375
+            ],
+            "per_seed": {
+              "43": 0.9609375
+            }
+          }
+        },
+        "1440": {
+          "training_pass": 3.75,
+          "pass8": {
+            "mean": 0.46875,
+            "range": [
+              0.46875,
+              0.46875
+            ],
+            "per_seed": {
+              "43": 0.46875
+            }
+          },
+          "distinct8": {
+            "mean": 0.55078125,
+            "range": [
+              0.55078125,
+              0.55078125
+            ],
+            "per_seed": {
+              "43": 0.55078125
+            }
+          }
+        },
+        "1536": {
+          "training_pass": 4.0,
+          "pass8": {
+            "mean": 0.5390625,
+            "range": [
+              0.5390625,
+              0.5390625
+            ],
+            "per_seed": {
+              "43": 0.5390625
+            }
+          },
+          "distinct8": {
+            "mean": 0.6640625,
+            "range": [
+              0.6640625,
+              0.6640625
+            ],
+            "per_seed": {
+              "43": 0.6640625
+            }
+          }
+        },
+        "1632": {
+          "training_pass": 4.25,
+          "pass8": {
+            "mean": 0.54296875,
+            "range": [
+              0.54296875,
+              0.54296875
+            ],
+            "per_seed": {
+              "43": 0.54296875
+            }
+          },
+          "distinct8": {
+            "mean": 0.69140625,
+            "range": [
+              0.69140625,
+              0.69140625
+            ],
+            "per_seed": {
+              "43": 0.69140625
+            }
+          }
+        },
+        "1728": {
+          "training_pass": 4.5,
+          "pass8": {
+            "mean": 0.51171875,
+            "range": [
+              0.51171875,
+              0.51171875
+            ],
+            "per_seed": {
+              "43": 0.51171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.60546875,
+            "range": [
+              0.60546875,
+              0.60546875
+            ],
+            "per_seed": {
+              "43": 0.60546875
+            }
+          }
+        },
+        "1824": {
+          "training_pass": 4.75,
+          "pass8": {
+            "mean": 0.6015625,
+            "range": [
+              0.6015625,
+              0.6015625
+            ],
+            "per_seed": {
+              "43": 0.6015625
+            }
+          },
+          "distinct8": {
+            "mean": 0.796875,
+            "range": [
+              0.796875,
+              0.796875
+            ],
+            "per_seed": {
+              "43": 0.796875
+            }
+          }
+        },
+        "1920": {
+          "training_pass": 5.0,
+          "pass8": {
+            "mean": 0.5546875,
+            "range": [
+              0.5546875,
+              0.5546875
+            ],
+            "per_seed": {
+              "43": 0.5546875
+            }
+          },
+          "distinct8": {
+            "mean": 0.740234375,
+            "range": [
+              0.740234375,
+              0.740234375
+            ],
+            "per_seed": {
+              "43": 0.740234375
+            }
+          }
+        },
+        "2016": {
+          "training_pass": 5.25,
+          "pass8": {
+            "mean": 0.515625,
+            "range": [
+              0.515625,
+              0.515625
+            ],
+            "per_seed": {
+              "43": 0.515625
+            }
+          },
+          "distinct8": {
+            "mean": 0.609375,
+            "range": [
+              0.609375,
+              0.609375
+            ],
+            "per_seed": {
+              "43": 0.609375
+            }
+          }
+        },
+        "2112": {
+          "training_pass": 5.5,
+          "pass8": {
+            "mean": 0.4453125,
+            "range": [
+              0.4453125,
+              0.4453125
+            ],
+            "per_seed": {
+              "43": 0.4453125
+            }
+          },
+          "distinct8": {
+            "mean": 0.515625,
+            "range": [
+              0.515625,
+              0.515625
+            ],
+            "per_seed": {
+              "43": 0.515625
+            }
+          }
+        },
+        "2208": {
+          "training_pass": 5.75,
+          "pass8": {
+            "mean": 0.5703125,
+            "range": [
+              0.5703125,
+              0.5703125
+            ],
+            "per_seed": {
+              "43": 0.5703125
+            }
+          },
+          "distinct8": {
+            "mean": 0.8046875,
+            "range": [
+              0.8046875,
+              0.8046875
+            ],
+            "per_seed": {
+              "43": 0.8046875
+            }
+          }
+        },
+        "2304": {
+          "training_pass": 6.0,
+          "pass8": {
+            "mean": 0.47265625,
+            "range": [
+              0.47265625,
+              0.47265625
+            ],
+            "per_seed": {
+              "43": 0.47265625
+            }
+          },
+          "distinct8": {
+            "mean": 0.57421875,
+            "range": [
+              0.57421875,
+              0.57421875
+            ],
+            "per_seed": {
+              "43": 0.57421875
+            }
+          }
+        },
+        "2400": {
+          "training_pass": 6.25,
+          "pass8": {
+            "mean": 0.515625,
+            "range": [
+              0.515625,
+              0.515625
+            ],
+            "per_seed": {
+              "43": 0.515625
+            }
+          },
+          "distinct8": {
+            "mean": 0.6328125,
+            "range": [
+              0.6328125,
+              0.6328125
+            ],
+            "per_seed": {
+              "43": 0.6328125
+            }
+          }
+        },
+        "2496": {
+          "training_pass": 6.5,
+          "pass8": {
+            "mean": 0.5,
+            "range": [
+              0.5,
+              0.5
+            ],
+            "per_seed": {
+              "43": 0.5
+            }
+          },
+          "distinct8": {
+            "mean": 0.609375,
+            "range": [
+              0.609375,
+              0.609375
+            ],
+            "per_seed": {
+              "43": 0.609375
+            }
+          }
+        },
+        "2592": {
+          "training_pass": 6.75,
+          "pass8": {
+            "mean": 0.390625,
+            "range": [
+              0.390625,
+              0.390625
+            ],
+            "per_seed": {
+              "43": 0.390625
+            }
+          },
+          "distinct8": {
+            "mean": 0.4453125,
+            "range": [
+              0.4453125,
+              0.4453125
+            ],
+            "per_seed": {
+              "43": 0.4453125
+            }
+          }
+        },
+        "2688": {
+          "training_pass": 7.0,
+          "pass8": {
+            "mean": 0.515625,
+            "range": [
+              0.515625,
+              0.515625
+            ],
+            "per_seed": {
+              "43": 0.515625
+            }
+          },
+          "distinct8": {
+            "mean": 0.6484375,
+            "range": [
+              0.6484375,
+              0.6484375
+            ],
+            "per_seed": {
+              "43": 0.6484375
+            }
+          }
+        },
+        "2784": {
+          "training_pass": 7.25,
+          "pass8": {
+            "mean": 0.478515625,
+            "range": [
+              0.478515625,
+              0.478515625
+            ],
+            "per_seed": {
+              "43": 0.478515625
+            }
+          },
+          "distinct8": {
+            "mean": 0.572265625,
+            "range": [
+              0.572265625,
+              0.572265625
+            ],
+            "per_seed": {
+              "43": 0.572265625
+            }
+          }
+        },
+        "2880": {
+          "training_pass": 7.5,
+          "pass8": {
+            "mean": 0.453125,
+            "range": [
+              0.453125,
+              0.453125
+            ],
+            "per_seed": {
+              "43": 0.453125
+            }
+          },
+          "distinct8": {
+            "mean": 0.5390625,
+            "range": [
+              0.5390625,
+              0.5390625
+            ],
+            "per_seed": {
+              "43": 0.5390625
+            }
+          }
+        },
+        "2976": {
+          "training_pass": 7.75,
+          "pass8": {
+            "mean": 0.4609375,
+            "range": [
+              0.4609375,
+              0.4609375
+            ],
+            "per_seed": {
+              "43": 0.4609375
+            }
+          },
+          "distinct8": {
+            "mean": 0.5390625,
+            "range": [
+              0.5390625,
+              0.5390625
+            ],
+            "per_seed": {
+              "43": 0.5390625
+            }
+          }
+        },
+        "3072": {
+          "training_pass": 8.0,
+          "pass8": {
+            "mean": 0.5,
+            "range": [
+              0.5,
+              0.5
+            ],
+            "per_seed": {
+              "43": 0.5
+            }
+          },
+          "distinct8": {
+            "mean": 0.59375,
+            "range": [
+              0.59375,
+              0.59375
+            ],
+            "per_seed": {
+              "43": 0.59375
+            }
+          }
+        }
+      },
+      "pantry_plan": {
+        "0": {
+          "training_pass": 0.0,
+          "pass8": {
+            "mean": 0.900390625,
+            "range": [
+              0.900390625,
+              0.900390625
+            ],
+            "per_seed": {
+              "43": 0.900390625,
+              "44": 0.900390625
+            }
+          },
+          "distinct8": {
+            "mean": 2.435546875,
+            "range": [
+              2.435546875,
+              2.435546875
+            ],
+            "per_seed": {
+              "43": 2.435546875,
+              "44": 2.435546875
+            }
+          }
+        }
+      },
+      "python_factors": {
+        "0": {
+          "training_pass": 0.0,
+          "pass8": {
+            "mean": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "per_seed": {
+              "43": 0.0,
+              "44": 0.0
+            }
+          },
+          "distinct8": {
+            "mean": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "per_seed": {
+              "43": 0.0,
+              "44": 0.0
+            }
+          }
+        },
+        "96": {
+          "training_pass": 0.25,
+          "pass8": {
+            "mean": 0.18359375,
+            "range": [
+              0.1796875,
+              0.1875
+            ],
+            "per_seed": {
+              "43": 0.1875,
+              "44": 0.1796875
+            }
+          },
+          "distinct8": {
+            "mean": 0.1962890625,
+            "range": [
+              0.1875,
+              0.205078125
+            ],
+            "per_seed": {
+              "43": 0.205078125,
+              "44": 0.1875
+            }
+          }
+        },
+        "192": {
+          "training_pass": 0.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "288": {
+          "training_pass": 0.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "384": {
+          "training_pass": 1.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "480": {
+          "training_pass": 1.25,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "576": {
+          "training_pass": 1.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "672": {
+          "training_pass": 1.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "768": {
+          "training_pass": 2.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "864": {
+          "training_pass": 2.25,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "960": {
+          "training_pass": 2.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1056": {
+          "training_pass": 2.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1152": {
+          "training_pass": 3.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1248": {
+          "training_pass": 3.25,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1344": {
+          "training_pass": 3.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1440": {
+          "training_pass": 3.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1536": {
+          "training_pass": 4.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1632": {
+          "training_pass": 4.25,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1728": {
+          "training_pass": 4.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1824": {
+          "training_pass": 4.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "1920": {
+          "training_pass": 5.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2016": {
+          "training_pass": 5.25,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2112": {
+          "training_pass": 5.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2208": {
+          "training_pass": 5.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2304": {
+          "training_pass": 6.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2400": {
+          "training_pass": 6.25,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2496": {
+          "training_pass": 6.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2592": {
+          "training_pass": 6.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2688": {
+          "training_pass": 7.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2784": {
+          "training_pass": 7.25,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2880": {
+          "training_pass": 7.5,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "2976": {
+          "training_pass": 7.75,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        },
+        "3072": {
+          "training_pass": 8.0,
+          "pass8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "per_seed": {
+              "43": 0.171875,
+              "44": 0.171875
+            }
+          }
+        }
+      }
+    },
+    "prefix_sources": [
+      {
+        "path": "var/data/xdr_qwen25_0p5b_instruct_rlep_e98r1_sparse_rlep_graph_s43/debug_job30538121/eval_mode_coverage_draws.jsonl",
+        "byte_length": 29881120,
+        "sha256": "17451a07d529bb1710af2d6a564fcd4ca08423576d3206911e5fec0bce90063b",
+        "domain": "graph_coloring",
+        "seed": 43,
+        "job_id": 30538121
+      },
+      {
+        "path": "var/data/xdr_qwen25_0p5b_instruct_rlep_e98r1_sparse_rlep_pantry_s43/debug_job30538126/eval_mode_coverage_draws.jsonl",
+        "byte_length": 18449431,
+        "sha256": "e50acdd7492c57bcbed70d0a9124a060b2e755bf79a7e359e03c7834057d9497",
+        "domain": "pantry_plan",
+        "seed": 43,
+        "job_id": 30579531
+      },
+      {
+        "path": "var/data/xdr_qwen25_0p5b_instruct_rlep_e98r1_sparse_rlep_pantry_s44/debug_job30538127/eval_mode_coverage_draws.jsonl",
+        "byte_length": 18449431,
+        "sha256": "e50acdd7492c57bcbed70d0a9124a060b2e755bf79a7e359e03c7834057d9497",
+        "domain": "pantry_plan",
+        "seed": 44,
+        "job_id": 30579532
+      },
+      {
+        "path": "var/data/xdr_qwen25_0p5b_instruct_rlep_e98r1_sparse_rlep_python_s43/debug_job30538131/eval_mode_coverage_draws.jsonl",
+        "byte_length": 32715221,
+        "sha256": "da2eb6380027283a408c208b388c1346629286155a32ed973fc233da18b31f12",
+        "domain": "python_factors",
+        "seed": 43,
+        "job_id": 30538131
+      },
+      {
+        "path": "var/data/xdr_qwen25_0p5b_instruct_rlep_e98r1_sparse_rlep_python_s44/debug_job30538132/eval_mode_coverage_draws.jsonl",
+        "byte_length": 32691399,
+        "sha256": "52af11274f62a7c8ae9c0feeda16c7b60fe4df97a8204fac287009a05de58d86",
+        "domain": "python_factors",
+        "seed": 44,
+        "job_id": 30538132
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed contract for the current ModeBench/ReplayMaxRL paper story."""
+"""Fail-closed contract for the current ModeBench/Re:MaxRL paper story."""
 from __future__ import annotations
 
 from collections import Counter
@@ -604,7 +604,7 @@ def main() -> None:
         r"e^{-2560}",
         "full-coverage corollary therefore cannot supply a domain-wide guarantee there",
         r"\label{app:fixed-bank-survival}",
-        "The fixed-bank study tracks Qwen2.5-0.5B ReplayDr.GRPO",
+        "The fixed-bank study tracks Qwen2.5-0.5B Re:Dr.GRPO",
         "score surrogates, not exact probabilities of sampling canonical modes",
         "Without a matched no-replay fixed-bank arm",
         "supplies no probability floor for an unbanked key",
@@ -796,8 +796,8 @@ def main() -> None:
     display = e118.get("display_contract", {})
     require(
         display.get("tracks") == {
-            "upper": "Untrained to MaxRL to ReplayMaxRL",
-            "lower": "Untrained to Dr.GRPO to ReplayDr.GRPO",
+            "upper": "Untrained to MaxRL to Re:MaxRL",
+            "lower": "Untrained to Dr.GRPO to Re:Dr.GRPO",
         }
         and "restricted to each track's paired seeds"
         in display.get("untrained_reference", ""),

@@ -67,7 +67,7 @@ def _points(
 
 
 def _style(axis: plt.Axes) -> None:
-    axis.grid(axis="y", color="#dddddd", lw=0.55)
+    axis.grid(axis="both", color="#dddddd", lw=0.55)
     axis.spines[["top", "right"]].set_visible(False)
     axis.tick_params(length=2.5, width=0.7, labelsize=7.5)
     axis.xaxis.set_major_locator(MaxNLocator(6))

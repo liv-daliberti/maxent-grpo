@@ -1,0 +1,58 @@
+\clearpage
+\section{Comparison across Hosted Deployments}
+\label{app:hosted-comparison}
+
+Figure~\ref{fig:hosted-verified-breadth} compares verified output breadth across
+hosted deployments. Its main display applies the frozen formatting normalizer
+to every deployment and uses the complete revised-wording Opus 5 Python cohort
+at all three levels. Every response enters its accuracy and mode-count metrics;
+outputs are not selected by correctness or provider outcome. The other cells
+use their original prompts. This is a descriptive comparison across the stated
+task formulations, rather than a common-prompt model ranking.
+
+The tables and Graph figure below preserve every original-protocol result,
+including failed draws and native refusals. The separate Python comparison
+reports the original and revised conditions under both grading rules. These
+records expose the effect of the prompt change without replacing the original
+evidence. Level 3 remains an exploratory test extension; no hosted-model
+training or replay intervention is performed. Original deployments enter the
+comparison only with a passing integrity audit and all 15,360 responses.
+
+\input{results/frontier_comparison_20260911_protocol.tex}
+\input{results/frontier_comparison_20260911_graph_figure.tex}
+\input{results/frontier_comparison_20260911_python_sensitivity.tex}
+\input{results/frontier_python_retry_20260911.tex}
+
+\input{results/frontier_temperature_20260911.tex}
+
+\input{results/gpt56_temperature_curve_20260911_appendix.tex}
+\input{results/frontier_comparison_20260911_provider_outcomes.tex}
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Strict level summaries for completed hosted deployments.}
+  Each level weights the five domains equally. M and P are \texttt{mean@8}
+  and \texttt{pass@8} (\%); D is raw \texttt{distinct@8}. C is correct-pair
+  collision (\%, with pointwise 95\% whole-prompt intervals), pair weighted
+  within each domain. Provider settings differ; these are descriptive outputs.}
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    Deployment & Level & M & P & D & C (95\% interval) \\
+    \midrule
+    \input{results/frontier_comparison_20260911_strict_overview_rows.tex}
+  \end{tabular}
+\end{table}
+
+\input{results/frontier_comparison_20260911_strict_cells.tex}
+\input{results/frontier_comparison_20260911_normalized_cells.tex}
+
+The result record \path{results/frontier_comparison_20260911.json} binds every source summary,
+completion audit, frozen prompt digest, raw-sample digest and primary graded
+sample digest. Pending deployments are omitted from both the figure and
+numerical comparisons. The figure was selected after the reference GPT run
+for its high strict correctness, certified support and lack of formatting
+corrections, and before collecting the prospective comparison runs. All five
+domains are retained in the tables, including disagreement across models.
+\clearpage

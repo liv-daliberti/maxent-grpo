@@ -314,7 +314,7 @@ def plot(summary: dict) -> None:
                 axis.set_ylim(0, 1)
             else:
                 axis.set_ylim(bottom=0)
-            axis.grid(axis="y", color="#dddddd", lw=0.6)
+            axis.grid(axis="both", color="#dddddd", lw=0.6)
             axis.spines[["top", "right"]].set_visible(False)
     handles = [
         plt.Line2D(

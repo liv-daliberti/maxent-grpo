@@ -99,7 +99,7 @@ def main() -> None:
         axis.set_title(title)
         axis.set_xticks((0, 2, 4, 6))
         axis.set_xlabel("Prompt passes")
-        axis.grid(axis="y", color="#dddddd", linewidth=0.5)
+        axis.grid(axis="both", color="#dddddd", linewidth=0.5)
     axes[0].set_ylabel("E69 − compute-matched Dr.GRPO")
 
     math_axis = axes[4]
@@ -140,7 +140,7 @@ def main() -> None:
     math_axis.set_xticks(x_positions, ("Greedy", "Mean@8", "Pass@8"), rotation=30)
     math_axis.set_title("Held-out MATH-500")
     math_axis.set_xlabel("Terminal metric")
-    math_axis.grid(axis="y", color="#dddddd", linewidth=0.5)
+    math_axis.grid(axis="both", color="#dddddd", linewidth=0.5)
 
     handles, labels = axes[0].get_legend_handles_labels()
     figure.legend(
