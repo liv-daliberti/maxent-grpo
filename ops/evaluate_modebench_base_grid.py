@@ -32,7 +32,9 @@ PURPOSE = 'frozen_base_model_benchmarking'
 EVAL_ROWS = 128
 INTERFACE = 'modebench_qwen_base_grid_independent_v1'
 LEVELS = ('level1', 'level2', 'level3', 'level4', 'level5')
-MODEL_LABELS = ('05b', '3b', '7b', '14b')
+MODEL_LABELS = ('smol135', 'smol360', 'olmo1b', 'qwen15b', 'smol17b', '05b',
+                'falcon1b', 'falcon3b', '3b', 'falcon7b', 'falcon10b', 'olmo7b',
+                '7b', 'olmo13b', '14b', 'qwen32b')
 DRAW_COUNT = 4
 ENGINE_CONTRACT = dict(frozen.ENGINE_CONTRACT)
 sha = frozen.sha
@@ -52,16 +54,55 @@ def code_identity() -> dict[str, str]:
 
 # These are the existing upstream snapshots, before any ModeBench treatment.
 # Architecture checks prevent assigning another local scale the same label.
+# (repository, revision, architecture dimensions, model_type, architectures).
+# The four Qwen2.5 entries keep the revisions and dimensions the original
+# 60-cell grid was collected against; their receipts authenticate against the
+# frozen code snapshot under artifacts/, not this file.
 MODEL_SPECS = {
-    '05b': ('0.5B', '7ae557604adf67be50417f59c2c2f167def9a775',
-            (896, 24, 14, 2, 4864, 151936)),
-    '3b': ('3B', 'aa8e72537993ba99e69dfaafa59ed015b17504d1',
-           (2048, 36, 16, 2, 11008, 151936)),
-    '7b': ('7B', 'a09a35458c702b33eeacc393d103063234e8bc28',
-           (3584, 28, 28, 4, 18944, 152064)),
-    '14b': ('14B', 'cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8',
-            (5120, 48, 40, 8, 13824, 152064)),
+    '05b': ('Qwen/Qwen2.5-0.5B-Instruct', '7ae557604adf67be50417f59c2c2f167def9a775',
+            (896, 24, 14, 2, 4864, 151936), 'qwen2', ['Qwen2ForCausalLM']),
+    '3b': ('Qwen/Qwen2.5-3B-Instruct', 'aa8e72537993ba99e69dfaafa59ed015b17504d1',
+           (2048, 36, 16, 2, 11008, 151936), 'qwen2', ['Qwen2ForCausalLM']),
+    '7b': ('Qwen/Qwen2.5-7B-Instruct', 'a09a35458c702b33eeacc393d103063234e8bc28',
+           (3584, 28, 28, 4, 18944, 152064), 'qwen2', ['Qwen2ForCausalLM']),
+    '14b': ('Qwen/Qwen2.5-14B-Instruct', 'cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8',
+            (5120, 48, 40, 8, 13824, 152064), 'qwen2', ['Qwen2ForCausalLM']),
+    'qwen15b': ('Qwen/Qwen2.5-1.5B-Instruct', '989aa7980e4cf806f80c7fef2b1adb7bc71aa306',
+                (1536, 28, 12, 2, 8960, 151936), 'qwen2', ['Qwen2ForCausalLM']),
+    'qwen32b': ('Qwen/Qwen2.5-32B-Instruct', '5ede1c97bbab6ce5cda5812749b4c0bdf79b18dd',
+                (5120, 64, 40, 8, 27648, 152064), 'qwen2', ['Qwen2ForCausalLM']),
+    'smol135': ('HuggingFaceTB/SmolLM2-135M-Instruct', '12fd25f77366fa6b3b4b768ec3050bf629380bac',
+                (576, 30, 9, 3, 1536, 49152), 'llama', ['LlamaForCausalLM']),
+    'smol360': ('HuggingFaceTB/SmolLM2-360M-Instruct', 'a10cc1512eabd3dde888204e902eca88bddb4951',
+                (960, 32, 15, 5, 2560, 49152), 'llama', ['LlamaForCausalLM']),
+    'smol17b': ('HuggingFaceTB/SmolLM2-1.7B-Instruct', '31b70e2e869a7173562077fd711b654946d38674',
+                (2048, 24, 32, 32, 8192, 49152), 'llama', ['LlamaForCausalLM']),
+    'falcon1b': ('tiiuae/Falcon3-1B-Instruct', '28ba2251970a01dd1edc7ba7dad2eb71216ccfdf',
+                 (2048, 18, 8, 4, 8192, 131072), 'llama', ['LlamaForCausalLM']),
+    'falcon3b': ('tiiuae/Falcon3-3B-Instruct', '411bb94318f94f7a5735b77109f456b1e74b42a1',
+                 (3072, 22, 12, 4, 9216, 131072), 'llama', ['LlamaForCausalLM']),
+    'falcon7b': ('tiiuae/Falcon3-7B-Instruct', '1e57a0ecd176c7c139f289c60a74e57f887c3dfb',
+                 (3072, 28, 12, 4, 23040, 131072), 'llama', ['LlamaForCausalLM']),
+    'falcon10b': ('tiiuae/Falcon3-10B-Instruct', '8799bc6aec0152757221dc6b272d824642db6202',
+                  (3072, 40, 12, 4, 23040, 131072), 'llama', ['LlamaForCausalLM']),
+    'olmo1b': ('allenai/OLMo-2-0425-1B-Instruct', '48d788eca847d4d7548f375ad03d3c9312f6139e',
+               (2048, 16, 16, 16, 8192, 100352), 'olmo2', ['Olmo2ForCausalLM']),
+    'olmo7b': ('allenai/OLMo-2-1124-7B-Instruct', '470b1fba1ae01581f270116362ee4aa1b97f4c84',
+               (4096, 32, 32, 32, 11008, 100352), 'olmo2', ['Olmo2ForCausalLM']),
+    'olmo13b': ('allenai/OLMo-2-1124-13B-Instruct', '3a5c85baefbb1896a54d56fe2e76c0395627ddf4',
+                (5120, 40, 40, 40, 13824, 100352), 'olmo2', ['Olmo2ForCausalLM']),
 }
+# Parameter counts for ordering the scale axis; not used for authentication.
+MODEL_PARAMS = {'smol135': .135, 'smol360': .36, 'olmo1b': 1.5, 'qwen15b': 1.5,
+                'smol17b': 1.7, '05b': .5, 'falcon1b': 1.7, 'falcon3b': 3.2,
+                '3b': 3.1, 'falcon7b': 7.5, 'falcon10b': 10.3, 'olmo7b': 7.3,
+                '7b': 7.6, 'olmo13b': 13.7, '14b': 14.8, 'qwen32b': 32.8}
+MODEL_FAMILY = {'05b': 'Qwen2.5', '3b': 'Qwen2.5', '7b': 'Qwen2.5', '14b': 'Qwen2.5',
+                'qwen15b': 'Qwen2.5', 'qwen32b': 'Qwen2.5',
+                'smol135': 'SmolLM2', 'smol360': 'SmolLM2', 'smol17b': 'SmolLM2',
+                'falcon1b': 'Falcon3', 'falcon3b': 'Falcon3', 'falcon7b': 'Falcon3',
+                'falcon10b': 'Falcon3',
+                'olmo1b': 'OLMo-2', 'olmo7b': 'OLMo-2', 'olmo13b': 'OLMo-2'}
 ARCHITECTURE_FIELDS = ('hidden_size', 'num_hidden_layers', 'num_attention_heads',
                        'num_key_value_heads', 'intermediate_size', 'vocab_size')
 
@@ -69,8 +110,7 @@ ARCHITECTURE_FIELDS = ('hidden_size', 'num_hidden_layers', 'num_attention_heads'
 def model_identity(model: Path, label: str) -> dict[str, Any]:
     require(label in MODEL_SPECS, 'unregistered base-model scale')
     model = model.resolve()
-    size, revision, dimensions = MODEL_SPECS[label]
-    repository = f'Qwen/Qwen2.5-{size}-Instruct'
+    repository, revision, dimensions, model_type, architectures = MODEL_SPECS[label]
     require(model.name == revision and model.parent.name == 'snapshots'
             and model.parent.parent.name == 'models--' + repository.replace('/', '--'),
             'base models must use the pinned upstream Hugging Face snapshot')
@@ -78,10 +118,10 @@ def model_identity(model: Path, label: str) -> dict[str, Any]:
     metadata = frozen.model_identity(model, label)
     config = json.loads((model / 'config.json').read_text())
     architecture = {key: config.get(key) for key in ARCHITECTURE_FIELDS}
-    require(config.get('model_type') == 'qwen2'
-            and config.get('architectures') == ['Qwen2ForCausalLM']
+    require(config.get('model_type') == model_type
+            and config.get('architectures') == architectures
             and tuple(architecture.values()) == dimensions,
-            'model architecture does not match its registered Qwen scale')
+            'model architecture does not match its registered scale')
     for name in ('tokenizer.json', 'tokenizer_config.json'):
         require((model / name).is_file(), 'complete native tokenizer required: ' + name)
     tokenizer = json.loads((model / 'tokenizer_config.json').read_text())
