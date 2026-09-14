@@ -1,7 +1,7 @@
 {
   "display": {
     "encoding": "scale -> colour ramp; level -> marker shape",
-    "layout": "one row per scale, five domain columns",
+    "layout": "five domain panels, scales overlaid",
     "level_markers": {
       "level1": "o",
       "level2": "s",
@@ -44,9 +44,9 @@
       0.8
     ]
   },
-  "output": "paper/figures/mode_diversity_level_construction",
+  "output": "paper/figures/mode_diversity_families_appendix",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "838efeda0cb175d4d14eb29c1a45000452139731801adc3de8b964bb8c05c74f"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_families_appendix.pdf": "ec3ccf5de481568f4736e3f43870cc1e0adeda01d6dc85ce7ffb197b751004d6"
   },
   "points": [
     {

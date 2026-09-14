@@ -34,7 +34,7 @@ INTERFACE = 'modebench_qwen_base_grid_independent_v1'
 LEVELS = ('level1', 'level2', 'level3', 'level4', 'level5')
 MODEL_LABELS = ('smol135', 'smol360', 'olmo1b', 'qwen15b', 'smol17b', '05b',
                 'falcon1b', 'falcon3b', '3b', 'falcon7b', 'falcon10b', 'olmo7b',
-                '7b', 'olmo13b', '14b', 'qwen32b')
+                '7b', 'olmo13b', '14b', 'qwen32b', 'qwen72b')
 DRAW_COUNT = 4
 ENGINE_CONTRACT = dict(frozen.ENGINE_CONTRACT)
 sha = frozen.sha
@@ -71,6 +71,8 @@ MODEL_SPECS = {
                 (1536, 28, 12, 2, 8960, 151936), 'qwen2', ['Qwen2ForCausalLM']),
     'qwen32b': ('Qwen/Qwen2.5-32B-Instruct', '5ede1c97bbab6ce5cda5812749b4c0bdf79b18dd',
                 (5120, 64, 40, 8, 27648, 152064), 'qwen2', ['Qwen2ForCausalLM']),
+    'qwen72b': ('Qwen/Qwen2.5-72B-Instruct', '495f39366efef23836d0cfae4fbe635880d2be31',
+                (8192, 80, 64, 8, 29568, 152064), 'qwen2', ['Qwen2ForCausalLM']),
     'smol135': ('HuggingFaceTB/SmolLM2-135M-Instruct', '12fd25f77366fa6b3b4b768ec3050bf629380bac',
                 (576, 30, 9, 3, 1536, 49152), 'llama', ['LlamaForCausalLM']),
     'smol360': ('HuggingFaceTB/SmolLM2-360M-Instruct', 'a10cc1512eabd3dde888204e902eca88bddb4951',
@@ -96,9 +98,10 @@ MODEL_SPECS = {
 MODEL_PARAMS = {'smol135': .135, 'smol360': .36, 'olmo1b': 1.5, 'qwen15b': 1.5,
                 'smol17b': 1.7, '05b': .5, 'falcon1b': 1.7, 'falcon3b': 3.2,
                 '3b': 3.1, 'falcon7b': 7.5, 'falcon10b': 10.3, 'olmo7b': 7.3,
-                '7b': 7.6, 'olmo13b': 13.7, '14b': 14.8, 'qwen32b': 32.8}
+                '7b': 7.6, 'olmo13b': 13.7, '14b': 14.8, 'qwen32b': 32.8,
+                'qwen72b': 72.7}
 MODEL_FAMILY = {'05b': 'Qwen2.5', '3b': 'Qwen2.5', '7b': 'Qwen2.5', '14b': 'Qwen2.5',
-                'qwen15b': 'Qwen2.5', 'qwen32b': 'Qwen2.5',
+                'qwen15b': 'Qwen2.5', 'qwen32b': 'Qwen2.5', 'qwen72b': 'Qwen2.5',
                 'smol135': 'SmolLM2', 'smol360': 'SmolLM2', 'smol17b': 'SmolLM2',
                 'falcon1b': 'Falcon3', 'falcon3b': 'Falcon3', 'falcon7b': 'Falcon3',
                 'falcon10b': 'Falcon3',

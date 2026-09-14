@@ -37,8 +37,14 @@ import plot_paper_modebench_examples as domain_examples
 from plot_paper_modebench_base_levels_appendix import SCALE_RAMP, scale_areas, scale_colors, scale_areas
 
 PAYLOAD = ROOT / 'paper/results/mode_diversity_base_grid.json'
+# Stem names predate their current placement and are pinned by the paper
+# contract, so they are kept: OUT_APPENDIX is the main-body scatter (Qwen2.5
+# scales alone), OUT_FAMILIES is its cross-family counterpart in the appendix,
+# and OUT_MAIN is the appendix grid of one row per scale.
 OUT_APPENDIX = ROOT / 'paper/figures/mode_diversity_levels_appendix'
+OUT_FAMILIES = ROOT / 'paper/figures/mode_diversity_families_appendix'
 OUT_MAIN = ROOT / 'paper/figures/mode_diversity_level_construction'
+MAIN_FAMILY = 'Qwen2.5'
 SCRIPT = Path(__file__).resolve()
 SCHEMA = 'paper-mode-diversity-levels-v1'
 
@@ -58,13 +64,18 @@ COLORS = scale_colors()
 LEVEL_MARKERS = dict(zip(LEVELS, ('o', 's', '^', 'D', 'v')))
 
 
-def levels_in(cells):
-    """Every construction level the payload actually contains, easiest first.
+def levels_in(cells, *extra):
+    """Every construction level the plotted data actually contains, easiest first.
 
     The grid grows a level at a time, so a hard-coded triple would silently
-    drop Level 4 cells instead of plotting them.
+    drop Level 4 cells instead of plotting them. Frontier points are passed in
+    as well, because a level can arrive in the hosted overlay before the local
+    grid finishes it, and a marker drawn with no legend entry is worse than one
+    that is simply absent.
     """
     present = {c['level'] for c in cells}
+    for group in extra:
+        present |= {c['level'] for c in group or ()}
     return tuple(level for level in LEVELS if level in present)
 MARKER_AREA = 22
 DOMAIN_BACKGROUNDS = {domain: domain_examples.DOMAIN_PANEL[letter]
@@ -165,7 +176,7 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
         levels = [Line2D([], [], marker=LEVEL_MARKERS[level], linestyle='none', markersize=4.7,
                          markerfacecolor=style.MUTED, markeredgecolor=style.INK,
                          markeredgewidth=.35, label='Level ' + level[len('level'):])
-                  for level in levels_in(cells)]
+                  for level in levels_in(cells, frontier)]
         levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
                              color=style.MUTED, markeredgewidth=.9,
                              label='not measurable'))
@@ -296,13 +307,21 @@ def main() -> None:
     args = parser.parse_args()
     payload = load(args.payload)
     present = models_in(payload)
-    appendix = publish(payload, present, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True)
+    import evaluate_modebench_base_grid as grid
+    family = tuple(m for m in present if grid.MODEL_FAMILY.get(m) == MAIN_FAMILY)
+    if not family:
+        raise ValueError(f'payload carries no {MAIN_FAMILY} scale to plot in the main body')
+    # The main body reads the scale axis within one family, where the training
+    # recipe is held fixed; the cross-family comparison moves to the appendix.
+    main_body = publish(payload, family, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True)
+    families = publish(payload, present, OUT_FAMILIES, figsize=(6.4, 2.10), legends=True)
     # The construction figure used to carry 7B alone. Every scale now gets its own
     # row, so a reader can look up any single scale rather than only that one.
     construction = publish(payload, present, OUT_MAIN, figsize=None, legends=True,
                            builder='scale_grid')
     print(json.dumps({'event': 'published',
-                      'appendix': appendix['scope'],
+                      'main_body': main_body['scope'],
+                      'families': families['scope'],
                       'construction': construction['scope']}))
 
 
