@@ -432,7 +432,12 @@ on prompts with enough correct samples in both conditions, so they describe a
 selected population rather than the whole test set
 (Appendix~\ref{app:conditional-concentration}). Because correctness and breadth
 can move in opposite directions on that population, the experiments below
-always report both.
+always report both. An independent precheck over all three scales and five
+domains reaches the same conclusion from the opposite direction, measuring the
+unmodified objectives alone: macro \pmd{} falls by $98.5\%$ and $99.8\%$ at
+Qwen2.5-0.5B and by $50.8\%$--$65.1\%$ at the larger scales, closely tracking
+the decline measured on extra modes and so ruling out a purely arithmetic
+explanation (Appendix~\ref{app:pre-rl-regression}).
 
 \begin{figure}[!htbp]
 \centering
@@ -543,11 +548,9 @@ trajectories throughout training.
 
 \textbf{The benefit extends to harder task constructions.}
 At Qwen2.5-0.5B, replay improves average correctness and sampled support
-under both fresh objectives within both levels
-(Figure~\ref{fig:level2-admission}). Each comparison holds the level's
-prompts and fresh objective fixed. Separate test populations and protocol
-differences prevent interpreting cross-level changes as the isolated effect
-of difficulty.
+under both fresh objectives within both levels, each comparison holding the
+level's prompts and fresh objective fixed
+(Figure~\ref{fig:level2-admission}).
 
 \begin{figure}[!htbp]
   \centering
@@ -636,14 +639,16 @@ distribution, not merely from the sample
   \label{fig:gpt56-sampling-budget}
 \end{figure}
 
-The pattern is not one model's quirk. Table~\ref{tab:hosted-level-averages}
-reports five deployments with reasoning disabled: every one of them loses both
-correctness and breadth relative to medium reasoning. Because correctness moves
-too, this does not isolate conditional concentration
-(Appendix~\ref{app:hosted-reasoning-control}); the seven-model medium cohort is
-in Figure~\ref{fig:hosted-verified-breadth}.
-
-\input{results/hosted_reasoning_off_20260912_main.tex}
+The pattern is not one model's quirk. Measured on \pmd{}, all seven completed
+deployments are concentrated and none reaches $1.5$ effective verified modes:
+macro \pmd{} runs from $.142$ to $.311$, so even the most varied of them
+repeats its own verified mode on about seven of every ten pairs of correct
+answers (Appendix~\ref{app:hosted-mode-diversity}). Disabling reasoning does not help:
+across five deployments every one loses both correctness and breadth relative
+to medium reasoning. Because correctness moves too, that comparison does not
+isolate conditional concentration
+(Table~\ref{tab:hosted-level-averages}, Appendix~\ref{app:hosted-reasoning-control});
+the seven-model medium cohort is in Figure~\ref{fig:hosted-verified-breadth}.
 
 Two things do help, and both are revealing. Different models collapse onto
 different answers, so mixing responses from two of them covers more verified
@@ -698,21 +703,17 @@ behavior cell for the same reason.
 
 Reliable answering and access to verified alternatives are different
 properties. \mb{} makes both observable, and ReplayMaxRL uses the same
-execution identities to keep discovered successes involved in learning.
-Controlled comparisons show that memory complements stronger fresh
-optimization; key weighting, prompt interventions, larger sampling budgets,
-and hosted mixtures reveal what determines the alternatives observed.
+execution identities to keep discovered successes in play once fresh sampling
+has stopped producing them.
 
 Three limits bound this. Replay retains only what sampling first finds, and a
 16-key bank against a mean of 229 valid Python modes protects a subset by
-construction (Appendix~\ref{app:fixed-bank-survival}).
-Neither \pmd{} nor \texttt{distinct@}$K$ measures the worth of an alternative:
-both count distinguishable verified behaviors, and a second mode may be
-redundant, riskier, or costlier than the first. \pmd{} adds one limit of its
-own, that it is estimable only where successes are frequent enough to pair, so
-the policies whose breadth matters most to establish are the ones it can say
-least about. And the hosted models we did not train, so they motivate the
-measurement rather than implicate RLVR. Appendix~\ref{app:claim-basis} scopes every claim.
+construction (Appendix~\ref{app:fixed-bank-survival}). Counting distinguishable
+behaviors says nothing about their worth: a second mode may be redundant,
+riskier, or costlier than the first. And \pmd{} is estimable only where
+successes are frequent enough to pair, so the policies whose breadth most needs
+establishing are the ones it says least about.
+Appendix~\ref{app:claim-basis} scopes every claim.
 \label{sec:main-end}
 
 \clearpage
@@ -2079,6 +2080,22 @@ identical seeds and checkpoints, without smoothing or outcome-based selection.
 
 \begin{figure}[H]
   \centering
+  \includegraphics[width=\linewidth]{figures/factorial_training_curves_distinct8.pdf}
+  \caption{\textbf{Registered verified-mode counts throughout training.}
+  The same rows, methods, seeds, and checkpoints as
+  Figure~\ref{fig:factorial-training-modes}, measuring the registered \distk{}
+  rather than \pmd{}. It is retained because \distk{} is a registered
+  co-primary endpoint. Read against the panel above, it also shows why the
+  success-conditional axis is reported alongside it: curves that rise here can
+  do so because correctness rose, and the two figures separate in exactly the
+  cells where they do. Lines are descriptive fixed-cohort means and bands show
+  seed ranges. A count of one has no band. Missing evaluations are never
+  carried forward or joined across a gap.}
+  \label{fig:factorial-training-distinct8}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
   \includegraphics[width=\linewidth]{figures/level2_factorial_training_curves.pdf}
   \caption{\textbf{Accuracy and registered verified-mode counts during Level-2
   training.} Qwen2.5-0.5B is the model tested at this level. Rows show
@@ -2288,9 +2305,9 @@ Falcon3-1B Countdown is the one arm where \pmd{} rises under Dr.GRPO, from a
 near-degenerate $.033$; it does not lift the macro average above zero decline.
 
 Initial evaluations are measured within each method. Qwen2.5-3B MathIR and
-Pantry seeds 71--74 carry slightly different initial requests from plain GRPO
-($.154$ versus $.162$, and $.832$ versus $.828$ on $P$), so those cells have
-separate initial references.
+Pantry E80-R1 seeds 71--74 carry slightly different initial requests from plain
+GRPO ($.154$ versus $.162$, and $.832$ versus $.828$ on $P$), so those cells
+have separate initial references.
 
 \begin{figure}[t]
   \centering
@@ -2463,12 +2480,13 @@ intervals are analysis choices. The artifact
 \path{paper/results/e121_fixed_bank_survival.json} retains all seed summaries,
 identity trajectories, source hashes, and audit diagnostics.
 
-These are teacher-forced score surrogates, not sampling probabilities, and
-visits do not cover every intervening update. With a declining tail and no
-matched no-replay fixed-bank arm, the study neither shows that every exemplar
-improves nor identifies a causal replay effect, and it does not numerically
-validate Theorem~\ref{thm:replay-retention}'s floor. Its contribution is
-longitudinal measurement of fixed exemplars alongside the held-out evidence.
+These are teacher-forced score surrogates, not exact probabilities of sampling
+canonical modes, and visits do not cover every intervening update; the
+declining tail excludes a claim that every exemplar improves. Without a matched
+no-replay fixed-bank arm, the study does not identify a causal replay effect,
+and it does not numerically validate
+Theorem~\ref{thm:replay-retention}'s floor. Its contribution is longitudinal
+measurement of fixed exemplars alongside the held-out evidence.
 
 \clearpage
 \phantomsection
@@ -2685,6 +2703,39 @@ and 3 is left blank because the model clears two verified draws on only 14 and
   \end{tabular}
 \end{table}
 
+Table~\ref{tab:hosted-cohort-mode-diversity} extends the measurement to the
+whole completed cohort. Every one of the seven deployments is concentrated on
+this axis, and none reaches $1.5$ effective verified modes: macro \pmd{} runs
+from $.142$ for Claude Opus 5 to $.311$ for Kimi K3, or $\neff$ between $1.17$
+and $1.45$. The ordering does not follow correctness, and it is not stable
+across domains --- GPT-5.4 and Kimi K3 lead on Python while DeepSeek V4 Pro
+leads on Graph --- so this is a property of individual deployments rather than
+a single frontier-wide constant. What is common to all of them is the level:
+the most varied deployment measured still repeats its own verified mode on
+roughly seven of every ten pairs of correct answers. Every model also declines
+from Level 1 to Level 3.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Verified-mode diversity across seven hosted deployments.}
+  Macro \pmd{} averages the cells that clear the support bar, weighting the
+  five domains and three levels equally, with $\neff=1/(1-\pmd{})$ beside it
+  and the per-level macro to its right. Each deployment contributes 128
+  held-out prompts per cell and eight stateless requests per prompt under its
+  own default sampling. GPT-5.6 Sol and Claude Opus 5 clear the bar on 13 of
+  15 cells; the other five clear all 15.}
+  \label{tab:hosted-cohort-mode-diversity}
+  \small
+  \begin{tabular}{lcccccc}
+    \toprule
+    & & & \multicolumn{3}{c}{Macro \pmd{} by level} \\
+    \cmidrule(lr){4-6}
+    Deployment & Macro \pmd{} & $\neff$ & L1 & L2 & L3 \\
+    \midrule
+    \input{results/mode_diversity_hosted_cohort_table_body.tex}
+  \end{tabular}
+\end{table}
+
 
 
 % Render this retained display inside its generated numerical appendix.
@@ -2722,6 +2773,8 @@ and 3 is left blank because the model clears two verified draws on only 14 and
   per-level averages of \texttt{pass@8} and \texttt{distinct@8} across all five domains.}
   \label{fig:hosted-verified-breadth}
 \end{figure}
+
+\input{results/hosted_reasoning_off_20260912_main.tex}
 
 \input{results/hosted_reasoning_off_20260912_appendix.tex}
 

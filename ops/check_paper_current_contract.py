@@ -51,8 +51,10 @@ APPENDIX_FIGURES = (
     "direct_comparator_endpoint_effects",
     "direct_baseline_learning_curves_static_strip",
     "factorial_training_curves_pass8",
+    "factorial_training_curves_pmd",
     "factorial_training_curves_distinct8",
     "level2_factorial_training_curves",
+    "level2_training_curves_pmd",
     "direct_baseline_learning_curves_pass8",
     "e121_fixed_bank_survival",
 )
@@ -141,7 +143,6 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
         ("sec:results-maxrl", "sec:results-levels", "fig:maxrl-factorial",
          "e118_all_scale_factorial_progress"),
         ("sec:results-levels", "sec:hosted-concentration", "fig:level2-admission", "modebench_level_admission"),
-        ("sec:hosted-concentration", "sec:related", "tab:hosted-level-averages", None),
         ("sec:hosted-concentration", "sec:related", "fig:gpt56-sampling-budget", "gpt56_all_levels32_sampling_budget"),
         ("sec:hosted-concentration", "sec:related", "fig:gpt56-temperature-curve", None),
     )
@@ -156,13 +157,15 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
             require(f"figures/{stem}.pdf" in role,
                     f"original figure {stem} must remain in scientific role {start}")
 
+    # The reasoning-off table now sits with the matched control it belongs to;
+    # the main keeps the claim in prose and cites the table across the divide.
     hosted_include = r"\input{results/hosted_reasoning_off_20260912_main.tex}"
     hosted_role = main_body.split(r"\label{sec:hosted-concentration}", 1)[1].split(
         r"\label{sec:related}", 1)[0]
-    require(main_body.count(hosted_include) == 1 and hosted_include not in appendix,
-            "hosted level-average table must be compiled once in the main")
-    require(hosted_include in hosted_role,
-            "hosted level-average table must remain in its scientific role")
+    require(appendix.count(hosted_include) == 1 and hosted_include not in main_body,
+            "hosted level-average table must be compiled once in the appendix")
+    require(r"\ref{tab:hosted-level-averages}" in hosted_role,
+            "hosted role must still cite the reasoning-off table it summarizes")
     require(r"\ref{app:gpt56-all-levels-discovery}" in hosted_role,
             "hosted sampling figure must retain its numerical-appendix reference")
     for stem, description in (

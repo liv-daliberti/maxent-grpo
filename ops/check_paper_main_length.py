@@ -27,7 +27,7 @@ MAIN_FIGURE_LABELS = (
     "fig:level2-admission",
     "fig:gpt56-sampling-budget",
 )
-MAIN_TABLE_LABELS = ("tab:hosted-level-averages",)
+MAIN_TABLE_LABELS: tuple[str, ...] = ()
 MAIN_SECTION_LABELS = (
     "sec:introduction", "sec:related", "sec:collapse", "sec:modebench",
     "sec:method", "sec:experiments", "sec:results", "sec:conclusion",
@@ -245,7 +245,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         raise SystemExit(f"main-length contract failed: {error}") from error
     print(
         f"Main-length contract passed: {result['main_pages']}/{args.max_pages} main pages, "
-        f"all {len(MAIN_FIGURE_LABELS)} figures and {len(MAIN_TABLE_LABELS)} table included; "
+        f"all {len(MAIN_FIGURE_LABELS)} figures included; "
         f"References starts on page {result['references_page']} "
         f"({result['pdf_pages']} total PDF pages)."
     )
