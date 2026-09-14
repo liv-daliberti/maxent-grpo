@@ -354,7 +354,7 @@ Dr.GRPO/MaxRL with replay off and on, then repeat the factorial on Level 2 at
 0.5B. Frequency-weighted replay, UCPO, RLEP, and fixed Semantic-MaxEnt are
 controls for alternative explanations. Evaluation averages four eight-sample
 draws on 128 held-out prompts that never enter training or the bank
-(Appendix~\ref{app:repro-run-contract}).
+(Table~\ref{tab:run-contract} gives every shared setting).
 
 We separately evaluate five hosted models --- GPT-5.6 Sol, GPT-5.4, Grok 4.3,
 Kimi K3, and Claude Opus 4.8 --- on 480 fixed prompts spanning all five domains
@@ -686,8 +686,9 @@ RLVR. Appendix~\ref{app:claim-basis} scopes every claim.
 \section*{Appendix Organization}
 \label{app:organization}
 The supplement is organized in seven parts. \textbf{Part~I} opens with the
-claim--evidence map (Appendix~\ref{app:claim-basis}), the notation, and the
-measurement identities (Appendix~\ref{app:metric-details}).
+claim--evidence map (Table~\ref{tab:claim-basis}), the notation
+(Table~\ref{tab:notation}), and the measurement identities
+(Appendix~\ref{app:metric-details}).
 \textbf{Part~II} gives the evaluation protocol
 (Appendix~\ref{app:data}), the verbatim prompts (Appendix~\ref{app:prompts}),
 and the implemented algorithm (Appendix~\ref{app:algorithm}).
@@ -2276,14 +2277,12 @@ intervals are analysis choices. The artifact
 \path{paper/results/e121_fixed_bank_survival.json} retains all seed summaries,
 identity trajectories, source hashes, and audit diagnostics.
 
-These are teacher-forced score surrogates, not exact probabilities of
-sampling canonical modes. Visits do not cover every intervening update,
-and the declining tails exclude a claim that every exemplar improves.
-Without a matched no-replay fixed-bank arm, this study does not identify
-a causal replay effect. It neither numerically validates
-Theorem~\ref{thm:replay-retention}'s probability floor nor certifies a finite-network
-guarantee. It adds longitudinal measurements of fixed exemplars to the
-held-out support evidence.
+These are teacher-forced score surrogates, not sampling probabilities, and
+visits do not cover every intervening update. With a declining tail and no
+matched no-replay fixed-bank arm, the study neither shows that every exemplar
+improves nor identifies a causal replay effect, and it does not numerically
+validate Theorem~\ref{thm:replay-retention}'s floor. Its contribution is
+longitudinal measurement of fixed exemplars alongside the held-out evidence.
 
 \clearpage
 \phantomsection
@@ -2435,11 +2434,11 @@ few or no jointly eligible problems. The eligibility table and undefined
 means remain essential to interpreting the conditional curves.
 
 These observations support persistent concentration in several trained
-conditions and substantial late discovery in others. A flat finite-sample
-curve cannot exclude rarer unseen modes, and the result does not license a
-single saturation claim across domains. The new $k=8$ points rarefy the fresh
-64-draw pools on 16 problems per cell; they are not differences against the
-previous experiment's 32-problem scores. The completed hosted panel below
+conditions and substantial late discovery in others, which is why no single
+saturation claim covers all domains: a flat finite-sample curve still cannot
+exclude rarer unseen modes. The $k=8$ points rarefy the fresh 64-draw pools on
+16 problems per cell rather than restating the previous experiment's
+32-problem scores. The completed hosted panel below
 adds a separate comparison of fixed deployments on these historical tasks;
 it is not evidence from newly trained Level-3 checkpoints.
 
