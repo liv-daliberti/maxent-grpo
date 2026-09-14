@@ -86,7 +86,7 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
     ordered = (
         "sec:introduction", "sec:modebench", "sec:method", "sec:experiments",
         "sec:results", "sec:results-collapse", "sec:results-retention",
-        "sec:results-maxrl", "sec:results-levels", "sec:results-meaning",
+        "sec:results-maxrl", "sec:results-levels",
         "sec:hosted-concentration", "sec:related",
         "sec:conclusion", "sec:main-end",
     )
@@ -140,7 +140,7 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
          "experiment1_retention_comparator_matrix"),
         ("sec:results-maxrl", "sec:results-levels", "fig:maxrl-factorial",
          "e118_all_scale_factorial_progress"),
-        ("sec:results-levels", "sec:results-meaning", "fig:level2-admission", "modebench_level_admission"),
+        ("sec:results-levels", "sec:hosted-concentration", "fig:level2-admission", "modebench_level_admission"),
         ("sec:hosted-concentration", "sec:related", "tab:hosted-level-averages", None),
         ("sec:hosted-concentration", "sec:related", "fig:gpt56-sampling-budget", "gpt56_all_levels32_sampling_budget"),
         ("sec:hosted-concentration", "sec:related", "fig:gpt56-temperature-curve", None),

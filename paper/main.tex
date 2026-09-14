@@ -514,39 +514,30 @@ intervals include zero (Appendix~\ref{app:level2-interim}). Pantry's
 collision nevertheless increases on sparse jointly correct subsets:
 improved sampled breadth does not guarantee lower conditional concentration.
 
-\subsection{What the breadth measure represents}
-\label{sec:results-meaning}
+\textbf{The keys are an equivalence we chose, and it can be probed.}
+A verified mode means only as much as the equivalence the validator draws, so
+we vary that equivalence and the conditions around it. Coarsening the Python
+key until opposite members of a factor pair count as one answer removes the
+breadth gain under the original wording but not under neutral wording, and
+neither key claims to identify algorithms
+(Appendix~\ref{app:coarser-keys}). Removing the strategy hints costs Python
+correctness heavily, yet the trained control then fails outright where the
+replay-trained policy still succeeds, so the hints are not what separates the
+methods (Appendix~\ref{app:prompt-hint-ablation}). Extending trained MathIR
+from eight draws to 64 leaves it as concentrated as before, which places its
+missing modes below the sampling budget rather than merely outside it; Pantry
+keeps discovering (Appendix~\ref{app:sampling-budget-ablation}).
 
-A skeptic has three ways to dismiss the gain: the extra modes are an artifact
-of how we worded the prompt, or of where we drew the line between two answers,
-or of stopping at eight draws. We tested all three, and a fourth question ---
-whether the alternatives are good for anything.
-
-\textbf{Is it the prompt?} Partly. Stripping the strategy hints out of Python
-hurts correctness badly, and the trained control fails outright on the neutral
-wording while the replay-trained policy still solves it
-(Appendix~\ref{app:prompt-hint-ablation}). The hints matter, but they are not
-what separates the two methods.
-
-\textbf{Is it the key?} Sometimes. Deliberately coarsening the Python key so
-that opposite members of a factor pair count as the same answer erases the
-breadth gain under the original wording, though not under neutral wording
-(Appendix~\ref{app:coarser-keys}). A verified mode is only ever as meaningful
-as the equivalence the validator draws, and we make that equivalence explicit
-rather than claiming it captures distinct algorithms.
-
-\textbf{Is it the budget?} Mostly not. Extending trained MathIR to 64 draws
-leaves it as concentrated as it was at eight, so those missing modes are
-genuinely improbable rather than merely unsampled. Pantry behaves the opposite
-way and keeps discovering (Appendix~\ref{app:sampling-budget-ablation}).
-
-\textbf{Are the alternatives worth having?} Remove an ingredient from a Pantry
-problem after the fact, and replay-trained policies keep more of their eight
-saved plans feasible and recover in fewer attempts, against both
+\textbf{Retained alternatives survive a changed requirement.}
+Counting modes is worth doing only if the modes are worth having. We withdraw
+an ingredient from a held-out Pantry problem after the policy has produced its
+eight plans, and ask how many remain feasible. Replay-trained policies keep
+more of them and need fewer further attempts to recover, against both
 tuned-temperature and diversity-prompt controls
-(Appendix~\ref{app:pantry-adaptation}). Correctness improves too, so this shows
-better adaptation without isolating diversity as the cause --- but it is the
-one place we test utility rather than count modes.
+(Appendix~\ref{app:pantry-adaptation}). Their correctness is also higher, so
+this demonstrates better adaptation without isolating breadth as its cause. It
+is the only place we test what alternatives are good for rather than how many
+there are.
 
 \subsection{Concentration in fixed deployments}
 \label{sec:hosted-concentration}
@@ -706,8 +697,8 @@ followed by the mechanism checks behind Section~\ref{sec:results-collapse}
 (Appendix~\ref{app:ablations}). \textbf{Parts~IV}
 (Appendices~\ref{app:prompt-hint-ablation} and~\ref{app:sampling-budget-ablation})
 and~\textbf{V} (Appendix~\ref{app:hosted-concentration} onward)
-follow Sections~\ref{sec:results-meaning} and~\ref{sec:hosted-concentration}
-one-to-one. \textbf{Part~VI} (Appendix~\ref{app:theory}) states the
+expand Section~\ref{sec:results-levels}'s probes and
+Section~\ref{sec:hosted-concentration}. \textbf{Part~VI} (Appendix~\ref{app:theory}) states the
 categorical model and its proofs, with its scope limits collected at the end.
 \textbf{Part~VII} closes with source integrity, reproducibility, and disclosures.
 
