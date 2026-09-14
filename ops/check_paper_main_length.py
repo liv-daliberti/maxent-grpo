@@ -21,6 +21,7 @@ MAIN_FIGURE_LABELS = (
     "fig:modebench-examples",
     "fig:base-levels-all-scales",
     "fig:verified-support-story",
+    "fig:concentration-story",
     "fig:cross-scale-terminal-effects",
     "fig:maxrl-factorial",
     "fig:level2-admission",

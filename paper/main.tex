@@ -24,9 +24,9 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \hypersetup{hypertexnames=false,hidelinks,pdftitle={There’s More Than One Way: Mode Collapse in RLVR \& ModeBench},pdfauthor={Anonymous Authors}}
-\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
-\setlength{\intextsep}{7pt plus 2pt minus 2pt}
-\setlength{\abovecaptionskip}{4pt}
+\setlength{\textfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{5pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{1.5pt}
 \setlength{\belowcaptionskip}{0pt}
 
 % Typography contract: natural-prose paragraphs may not end with a line that
@@ -246,22 +246,18 @@ fraction of verified pairs that differ:
 Here $P$ has cancelled: \eqref{eq:main-pmd-estimator} conditions on the
 verified draws and is unbiased for \eqref{eq:main-pmd} at every $K\ge2$, so a
 policy that succeeds twice as often but allocates successes the same way scores
-the same. Two equivalent readings are useful. Fixing the sampling depth rather
-than the success count gives
-$\mathrm{RarefiedDistinct@}2=1+\pmd$, the expected number of distinct modes in
-exactly two verified draws, which answers the objection that different policies
-reach different $K$; and $\neff=1/(1-\pmd)$ is the effective number of verified
-modes. Both are monotone transforms of \eqref{eq:main-pmd}, so they order
-policies identically.
+the same. Two equivalent readings --- the expected distinct modes in exactly two verified
+draws, and an effective number of verified modes --- are monotone transforms of
+\eqref{eq:main-pmd} and order policies identically
+(Appendix~\ref{app:metric-details}).
 
 A fall in \pmd{} is what we call \emph{mode collapse}. It is a statement about
 where correct probability sits, not a claim that any mode reached zero: finite
 samples cannot establish extinction (Appendix~\ref{app:metric-details}).
-\pmd{} is undefined for a prompt with fewer than two verified draws, and a
-policy that rarely succeeds therefore supports no statement about how its
-successes are distributed. We report every \pmd{} with the fraction of prompts
-that define it and leave cells below a stated support bar explicitly blank
-rather than filling them with noise (Appendix~\ref{app:metric-details}).
+\pmd{} is undefined for a prompt with fewer than two verified draws, so a
+policy that rarely succeeds supports no statement about how its successes are
+distributed. Every \pmd{} is reported with the fraction of prompts defining it,
+and cells below the support bar are left blank rather than filled with noise.
 \texttt{pass@8} and $\distk$ are both reported throughout
 (Appendix~\ref{app:registered-endpoints}).
 
@@ -283,17 +279,13 @@ the two axes start out coupled and are pulled apart only later.
   \centering
   \includegraphics[width=\linewidth]{figures/mode_diversity_levels_appendix.pdf}
   \caption{\textbf{Frozen Qwen2.5-Instruct at four scales across Levels 1--3.}
-  All 60 model--level--domain cells, plotting \texttt{pass@8} against pairwise
-  modal diversity. Colour runs light to dark with model scale; marker shape
-  identifies the level. Each point pools four independent eight-draw groups on
-  the same 128 held-out prompts at $T=1$, 4,096 responses per point. Larger
-  models move right but not up: mean \pmd{} falls from $.269$ at 0.5B to $.186$
-  at 14B while mean \texttt{pass@8} rises from $.441$ to $.580$, and \pmd{}
-  declines with scale in 10 of the 13 domain--level blocks that support the
-  comparison. Scale buys correctness rather than variety in how that
-  correctness is reached. Ticks in the strip below each axis mark the 13 cells
-  with fewer than 30 prompts returning two verified responses; those cells have
-  no measurable breadth and are given no height.
+  All 60 model--level--domain cells. Colour runs light to dark with model scale;
+  marker shape identifies the level. Larger models move right but not up: mean
+  \pmd{} falls from $.269$ at 0.5B to $.186$ at 14B while \texttt{pass@8} rises
+  from $.441$ to $.580$, declining with scale in 10 of the 13 blocks that
+  support the comparison. Scale buys correctness rather than variety in how it
+  is reached. Ticks below each axis mark the 13 cells with too few verified
+  pairs to measure breadth, which are given no height.
   Appendix Figure~\ref{fig:level-construction} shows the 7B scale alone.}
   \label{fig:base-levels-all-scales}
 \end{figure}
@@ -448,12 +440,29 @@ them. Graph and PantryPlan start with enough breadth to see this directly, and
 there every before--after comparison under Dr.GRPO and GRPO, at all three
 scales, moves the same way: two correct samples become more likely to be the
 same correct sample. Adding replay reverses it in every matched pair
-(Appendix Figure~\ref{fig:concentration-story}). These contrasts are measured
+(Figure~\ref{fig:concentration-story}). These contrasts are measured
 on prompts with enough correct samples in both conditions, so they describe a
 selected population rather than the whole test set
 (Appendix~\ref{app:conditional-concentration}). Because correctness and breadth
 can move in opposite directions on that population, the experiments below
 always report both.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/concentration_story.pdf}
+\caption{\textbf{Training concentrates verified outputs; replay reverses it.}
+Left: the change in correct-key collision from start to end of training, under
+Dr.GRPO and GRPO. Every comparison moves toward concentration. Right: replay
+minus its matched control at the same step, under each fresh objective; every
+comparison moves back. Graph and PantryPlan are shown because they begin with
+enough breadth for the conditional measure to be defined. Dots and 95\%
+intervals average five seed contrasts, each weighting jointly eligible prompts
+equally; smaller markers show the two disjoint-stream orientations, and gutters
+give the defined seed $n$ and the eligible-prompt range out of 128. The panels
+have separate eligibility and are not one trajectory
+(Appendix~\ref{app:conditional-concentration}).}
+\label{fig:concentration-story}
+\end{figure}
 
 \subsection{Replay improves success and verified-mode diversity}
 \label{sec:results-retention}
@@ -609,9 +618,14 @@ there are.
 The models we train are small, and a reader may reasonably suspect that
 concentration is an artifact of that. It is not. Asked a Level-3 Graph problem
 with six valid colorings, GPT-5.6 Sol is right every time --- all 1,024 draws ---
-and almost always right the same way, returning barely more than one distinct
-coloring per eight draws. Perfect accuracy and near-total collapse of the
-alternatives coexist in the same deployment
+and almost always right the same way. Because correctness is saturated here,
+\pmd{} isolates the second half of that sentence exactly: two verified Level-3
+Graph answers differ in only $4.9\%$ of pairs, an effective $1.05$ verified
+modes out of six available. The same deployment reaches \pmd{} $.000$ on MathIR
+at Levels 2 and 3 --- every verified answer is the identical canonical key ---
+while PantryPlan stays at $.455$ and $.386$. Perfect accuracy and near-total
+collapse of the alternatives coexist in the same deployment, and \pmd{} reports
+the collapse without the accuracy term that would otherwise conceal it
 (Appendix~\ref{app:hosted-concentration}).
 
 \textbf{Sampling harder does not recover what was lost.}
@@ -2216,22 +2230,6 @@ seeds and receives no interval.
 \section{Collapse and Replay Mechanism Checks}
 \label{app:ablations}
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\linewidth]{figures/concentration_story.pdf}
-\caption{\textbf{Training concentrates verified outputs; canonical replay can mitigate it.}
-Left: final minus initial correct-key collision for Dr.GRPO and GRPO.
-Right: replay minus its matched terminal control, separately for Dr.GRPO and
-MaxRL. Graph and PantryPlan have substantial initial breadth. Dots and nominal
-95\% intervals average five seed contrasts; each contrast weights jointly
-eligible prompts equally. Smaller markers show the two disjoint-stream
-orientations; gutters give defined seed $n$ and the eligible-prompt count
-range out of 128. The two panels have
-separate eligibility and are not one trajectory. Appendix~\ref{app:conditional-concentration}
-reports all five domains, undefined cells, source assumptions, and correctness changes on the same eligible prompts.}
-\label{fig:concentration-story}
-\end{figure}
-
 \input{results/conditional_concentration_20260912_appendix.tex}
 
 
@@ -2603,6 +2601,45 @@ it is not evidence from newly trained Level-3 checkpoints.
 \addcontentsline{toc}{part}{Part V. Fixed deployments}
 
 \input{results/frontier_hosted_20260911_appendix.tex}
+
+\subsection{Hosted concentration on the success-conditional axis}
+\label{app:hosted-mode-diversity}
+
+Table~\ref{tab:hosted-mode-diversity} reports \pmd{} for the same audited
+responses. The hosted tables above report \texttt{correct\_pair\_collision},
+which is one minus \pmd{} pooled over pairs; the values here instead average
+over prompts without weighting by how many verified pairs each contributed,
+matching the aggregation used everywhere else in this paper. Pooling by pairs
+lets the prompts a model solves most often dominate the estimate, which is the
+accuracy coupling \pmd{} exists to avoid. The two readings agree closely,
+and the pooled reading recomputed from the per-sample records reproduces the
+published collision estimate exactly, which checks the two pipelines against
+each other.
+
+This deployment is highly accurate and, on three of five domains, close to
+deterministic in which verified answer it gives. MathIR reaches \pmd{} $.000$
+at Levels 2 and 3: across every prompt with two or more verified draws, no two
+verified answers ever differed. Level-3 Graph sits at $.049$ against six
+available colorings. PantryPlan is the consistent exception. Python at Levels 2
+and 3 is left blank because the model clears two verified draws on only 14 and
+15 of 128 prompts there, which is too few to estimate breadth.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Hosted verified-mode diversity, GPT-5.6 Sol at medium
+  reasoning.} Each entry is \pmd{} with the effective number of verified modes
+  $\neff=1/(1-\pmd{})$ in parentheses, over 128 held-out prompts per cell and
+  eight stateless requests per prompt. An em dash marks a cell with fewer than
+  30 prompts returning two verified responses.}
+  \label{tab:hosted-mode-diversity}
+  \small
+  \begin{tabular}{lccccc}
+    \toprule
+    Level & Graph & Countdown & Python & MathIR & Pantry \\
+    \midrule
+    \input{results/mode_diversity_hosted_table_body.tex}
+  \end{tabular}
+\end{table}
 
 
 

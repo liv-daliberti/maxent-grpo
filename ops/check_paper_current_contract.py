@@ -24,13 +24,13 @@ CORE = ROOT / "paper/results/core_terminal_endpoints.json"
 
 MAIN_FIGURES = (
     "modecollapse_story", "modebench_examples", "mode_diversity_levels_appendix",
-    "verified_support_story",
+    "verified_support_story", "concentration_story",
     "experiment1_retention_comparator_matrix", "e118_all_scale_factorial_progress",
     "modebench_level_admission", "gpt56_all_levels32_sampling_budget",
 )
 MAIN_LABELS = (
     "fig:story", "fig:modebench-examples", "fig:base-levels-all-scales",
-    "fig:verified-support-story",
+    "fig:verified-support-story", "fig:concentration-story",
     "fig:cross-scale-terminal-effects", "fig:maxrl-factorial", "fig:level2-admission",
     "fig:gpt56-sampling-budget",
 )
@@ -39,7 +39,6 @@ MAIN_LABELS = (
 MOVED_APPENDIX_FIGURES = {
     "gpt56_temperature_curve": "fig:gpt56-temperature-curve",
     "hosted_verified_breadth": "fig:hosted-verified-breadth",
-    "concentration_story": "fig:concentration-story",
     "replay_factorial_effects": "fig:replay-factorial-effects",
     "replay_key_weighting": "fig:replay-key-weighting",
     "replay_level2_effects": "fig:replay-level2-effects",
@@ -136,6 +135,7 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
         ("sec:modebench", "sec:method", "fig:modebench-examples", "modebench_examples"),
         ("sec:levels-design", "sec:method", "fig:base-levels-all-scales", "mode_diversity_levels_appendix"),
         ("sec:method", "sec:experiments", "fig:verified-support-story", "verified_support_story"),
+        ("sec:results-collapse", "sec:results-retention", "fig:concentration-story", "concentration_story"),
         ("sec:results-retention", "sec:results-maxrl", "fig:cross-scale-terminal-effects",
          "experiment1_retention_comparator_matrix"),
         ("sec:results-maxrl", "sec:results-levels", "fig:maxrl-factorial",
