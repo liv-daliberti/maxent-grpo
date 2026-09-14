@@ -1,6 +1,7 @@
 {
   "display": {
     "encoding": "scale -> colour ramp; level -> marker shape",
+    "layout": "five domain panels, scales overlaid",
     "level_markers": {
       "level1": "o",
       "level2": "s",
@@ -9,17 +10,18 @@
     "marker_area": 22,
     "min_defined_prompts": 30,
     "model_colors": {
-      "05b": "#cbb362",
-      "14b": "#7a0018",
-      "3b": "#d73027",
-      "7b": "#9e0024",
-      "falcon10b": "#8d001e",
-      "falcon3b": "#d52e27",
-      "falcon7b": "#9f0024",
-      "olmo1b": "#f26841",
-      "olmo7b": "#a00025",
+      "05b": "#a8b662",
+      "14b": "#9f0024",
+      "3b": "#e75237",
+      "7b": "#c31d27",
+      "falcon10b": "#b10c26",
+      "falcon3b": "#e75136",
+      "falcon7b": "#c31d27",
+      "olmo1b": "#f7854e",
+      "olmo7b": "#c51f27",
+      "qwen32b": "#7a0018",
       "smol135": "#1a9850",
-      "smol360": "#8bb963"
+      "smol360": "#6fbc63"
     },
     "unmeasurable_cells_have_no_height": true,
     "unmeasurable_strip": [
@@ -39,7 +41,7 @@
   },
   "output": "paper/figures/mode_diversity_levels_appendix",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "98fceab8fddbe1d9046cef848fb71ef58c457d8a241e998c1420a38cf199ae75"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "6190a5354b02f59476c5e03ed5f8ccfabe7b66b151b36656a7fb3b33a951ef47"
   },
   "points": [
     {
@@ -713,6 +715,16 @@
       "support": 0.8828125
     },
     {
+      "defined_prompts": 14,
+      "domain": "countdown",
+      "level": "level2",
+      "model_label": "falcon3b",
+      "pass8": 0.134765625,
+      "pmd": 0.1596938775510204,
+      "reportable": false,
+      "support": 0.109375
+    },
+    {
       "defined_prompts": 66,
       "domain": "graph_coloring",
       "level": "level2",
@@ -723,6 +735,46 @@
       "support": 0.515625
     },
     {
+      "defined_prompts": 63,
+      "domain": "mathir",
+      "level": "level2",
+      "model_label": "falcon3b",
+      "pass8": 0.388671875,
+      "pmd": 0.047619047619047616,
+      "reportable": true,
+      "support": 0.4921875
+    },
+    {
+      "defined_prompts": 74,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "falcon3b",
+      "pass8": 0.470703125,
+      "pmd": 0.5609393763805529,
+      "reportable": true,
+      "support": 0.578125
+    },
+    {
+      "defined_prompts": 106,
+      "domain": "python_factors",
+      "level": "level2",
+      "model_label": "falcon3b",
+      "pass8": 0.833984375,
+      "pmd": 0.5736421558119799,
+      "reportable": true,
+      "support": 0.828125
+    },
+    {
+      "defined_prompts": 26,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "falcon3b",
+      "pass8": 0.16796875,
+      "pmd": 0.330081243542782,
+      "reportable": false,
+      "support": 0.203125
+    },
+    {
       "defined_prompts": 74,
       "domain": "graph_coloring",
       "level": "level3",
@@ -731,6 +783,36 @@
       "pmd": 0.31506165701035643,
       "reportable": true,
       "support": 0.578125
+    },
+    {
+      "defined_prompts": 60,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "falcon3b",
+      "pass8": 0.3515625,
+      "pmd": 0.10777777777777778,
+      "reportable": true,
+      "support": 0.46875
+    },
+    {
+      "defined_prompts": 51,
+      "domain": "pantry",
+      "level": "level3",
+      "model_label": "falcon3b",
+      "pass8": 0.322265625,
+      "pmd": 0.6399957991087348,
+      "reportable": true,
+      "support": 0.3984375
+    },
+    {
+      "defined_prompts": 128,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "falcon3b",
+      "pass8": 0.953125,
+      "pmd": 0.5490421929989945,
+      "reportable": true,
+      "support": 1.0
     },
     {
       "defined_prompts": 74,
@@ -761,6 +843,56 @@
       "pmd": 0.35295206585529165,
       "reportable": true,
       "support": 0.484375
+    },
+    {
+      "defined_prompts": 57,
+      "domain": "pantry",
+      "level": "level1",
+      "model_label": "falcon7b",
+      "pass8": 0.373046875,
+      "pmd": 0.7514730054621732,
+      "reportable": true,
+      "support": 0.4453125
+    },
+    {
+      "defined_prompts": 123,
+      "domain": "python_factors",
+      "level": "level1",
+      "model_label": "falcon7b",
+      "pass8": 0.943359375,
+      "pmd": 0.029027904946686712,
+      "reportable": true,
+      "support": 0.9609375
+    },
+    {
+      "defined_prompts": 74,
+      "domain": "graph_coloring",
+      "level": "level2",
+      "model_label": "falcon7b",
+      "pass8": 0.46875,
+      "pmd": 0.49609440926576476,
+      "reportable": true,
+      "support": 0.578125
+    },
+    {
+      "defined_prompts": 80,
+      "domain": "mathir",
+      "level": "level2",
+      "model_label": "falcon7b",
+      "pass8": 0.505859375,
+      "pmd": 0.242192722736201,
+      "reportable": true,
+      "support": 0.625
+    },
+    {
+      "defined_prompts": 91,
+      "domain": "graph_coloring",
+      "level": "level3",
+      "model_label": "falcon7b",
+      "pass8": 0.654296875,
+      "pmd": 0.40287805450594427,
+      "reportable": true,
+      "support": 0.7109375
     },
     {
       "defined_prompts": 17,
@@ -863,6 +995,16 @@
       "support": 0.15625
     },
     {
+      "defined_prompts": 6,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "olmo1b",
+      "pass8": 0.033203125,
+      "pmd": 0.5944444444444444,
+      "reportable": false,
+      "support": 0.046875
+    },
+    {
       "defined_prompts": 28,
       "domain": "graph_coloring",
       "level": "level3",
@@ -871,6 +1013,26 @@
       "pmd": 0.489625850340136,
       "reportable": false,
       "support": 0.21875
+    },
+    {
+      "defined_prompts": 28,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "olmo1b",
+      "pass8": 0.1875,
+      "pmd": 0.12627551020408165,
+      "reportable": false,
+      "support": 0.21875
+    },
+    {
+      "defined_prompts": 14,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "olmo1b",
+      "pass8": 0.109375,
+      "pmd": 0.33333333333333337,
+      "reportable": false,
+      "support": 0.109375
     },
     {
       "defined_prompts": 50,
@@ -931,6 +1093,26 @@
       "pmd": 0.5011583011583012,
       "reportable": true,
       "support": 0.2890625
+    },
+    {
+      "defined_prompts": 7,
+      "domain": "countdown",
+      "level": "level1",
+      "model_label": "qwen32b",
+      "pass8": 0.05078125,
+      "pmd": 0.03571428571428571,
+      "reportable": false,
+      "support": 0.0546875
+    },
+    {
+      "defined_prompts": 90,
+      "domain": "graph_coloring",
+      "level": "level1",
+      "model_label": "qwen32b",
+      "pass8": 0.673828125,
+      "pmd": 0.2858509168250247,
+      "reportable": true,
+      "support": 0.703125
     },
     {
       "defined_prompts": 2,
@@ -1115,13 +1297,13 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "8fd251549ff8439313c0acc6da36516d0a8dc43a1057606780335de2efa05ceb",
+    "sha256": "38c2e8b5804cfc70c2e76b7614fe3c87b81ca1264ba32f8d4d4aa69ea239f6de",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "14311c5d925d9741ad5010e6dd82e9c7664f5edf32bf90f8e807c58254c0ace3"
   },
   "schema": "paper-mode-diversity-levels-v1",
   "scope": {
-    "cells": 107,
+    "cells": 125,
     "domains": [
       "graph_coloring",
       "countdown",
@@ -1129,7 +1311,7 @@
       "mathir",
       "pantry"
     ],
-    "gap_cells": 38,
+    "gap_cells": 44,
     "levels": [
       "level1",
       "level2",
@@ -1146,13 +1328,14 @@
       "falcon7b",
       "7b",
       "falcon10b",
-      "14b"
+      "14b",
+      "qwen32b"
     ],
-    "reportable_cells": 69
+    "reportable_cells": 81
   },
   "source": {
     "path": "paper/results/mode_diversity_base_grid.json",
-    "sha256": "6050423cde0f7aec2c606cf6c744e5b31fbf555346de05e5119859b97729a4b1"
+    "sha256": "bf116be4d6201a7e6a0f48558577dd2664bc0e2cc00f803e9730c088991ae861"
   },
   "status": "complete"
 }
