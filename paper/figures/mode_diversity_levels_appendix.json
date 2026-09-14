@@ -7,10 +7,10 @@
     },
     "min_defined_prompts": 30,
     "model_colors": {
-      "05b": "#7AB8DC",
-      "14b": "#04203A",
-      "3b": "#1C6098",
-      "7b": "#17528A"
+      "05b": "#1A9850",
+      "14b": "#7A0018",
+      "3b": "#FDAE61",
+      "7b": "#D73027"
     },
     "unmeasurable_cells_have_no_height": true,
     "unmeasurable_strip": [
@@ -30,7 +30,7 @@
   },
   "output": "paper/figures/mode_diversity_levels_appendix",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "f44b95d808674f55710f3940bb14cae5658ad2a5d3d45a3e9dfd2f355e96de39"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "8a93d25d0d82caf8adbbb82cbf52aacd4ae564fae8e2ef8719bc06d5779c961a"
   },
   "points": [
     {
@@ -636,7 +636,7 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "7983a7104ce91ec40033a92358fa98f82f857da7d5114258e37660c684e02a96",
+    "sha256": "65fdfe95df080d0d7c4c1999b9c367c18b080557df9665e84c3dcd8aa54274ec",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
   },

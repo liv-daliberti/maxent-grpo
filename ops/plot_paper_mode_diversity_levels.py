@@ -33,7 +33,7 @@ if str(ROOT / 'ops') not in sys.path:
 import paper_style as style
 import plot_paper_modebench_base_grid as base_grid
 import plot_paper_modebench_examples as domain_examples
-from plot_paper_modebench_base_levels_appendix import SCALE_RAMP, scale_colors
+from plot_paper_modebench_base_levels_appendix import SCALE_RAMP, scale_colors, scale_areas
 
 PAYLOAD = ROOT / 'paper/results/mode_diversity_base_grid.json'
 OUT_APPENDIX = ROOT / 'paper/figures/mode_diversity_levels_appendix'
@@ -46,6 +46,7 @@ MODELS = base_grid.MODELS
 LEVELS = ('level1', 'level2', 'level3')
 TITLES = dict(zip(DOMAINS, ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry')))
 COLORS = scale_colors()
+AREAS = scale_areas()
 LEVEL_MARKERS = dict(zip(LEVELS, ('o', 's', '^')))
 MARKER_AREA = 22
 DOMAIN_BACKGROUNDS = {domain: domain_examples.DOMAIN_PANEL[letter]
@@ -81,7 +82,7 @@ def _panel(axis, cells, models, domain):
             if cell is None:
                 continue
             if cell['reportable']:
-                axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA,
+                axis.scatter(cell['pass8'], cell['pmd'], s=AREAS[model],
                              marker=LEVEL_MARKERS[level], facecolors=COLORS[model],
                              edgecolors=style.INK, alpha=.85, linewidths=.35,
                              zorder=3 + order, clip_on=False)
@@ -124,7 +125,8 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(7.35, 2.35), legends=
         levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
                              color=style.MUTED, markeredgewidth=.9,
                              label='not measurable'))
-        scales = [Line2D([], [], marker='o', linestyle='none', markersize=4.7,
+        scales = [Line2D([], [], marker='o', linestyle='none',
+                         markersize=(AREAS[model] ** .5) * 1.05,
                          markerfacecolor=COLORS[model], markeredgecolor=style.INK,
                          markeredgewidth=.35, label=base_grid.MODEL_NAMES[model])
                   for model in models]

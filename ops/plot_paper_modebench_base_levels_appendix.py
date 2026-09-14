@@ -36,18 +36,31 @@ TITLES = dict(zip(DOMAINS, ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry'))
 # ramp sampled over however many scales are present, dark enough to stay legible
 # on the tinted domain panels. Levels are unordered for the reader's purposes
 # and take marker shape. Adding a scale needs no new colour constant.
-SCALE_RAMP = ('#7AB8DC', '#3C8DC4', '#1C6098', '#0B3A63',
-              '#17528A', '#082F4F', '#04203A')
+# Green -> amber -> red with model scale, so the largest models read hottest.
+# Marker area rises with scale as well: the ordering is encoded twice, which
+# keeps it legible to a red-green colourblind reader.
+SCALE_RAMP = ('#1A9850', '#66BD63', '#FDAE61', '#F46D43',
+              '#D73027', '#A50026', '#7A0018')
+SCALE_AREAS = (14, 20, 27, 35, 44, 54, 66)
+
+
+def _spread(values, models):
+    if len(models) > len(values):
+        raise ValueError('extend the scale ramp before adding more model scales')
+    if len(models) == 1:
+        return {models[0]: values[-1]}
+    step = (len(values) - 1) / (len(models) - 1)
+    return {model: values[round(index * step)] for index, model in enumerate(models)}
 
 
 def scale_colors(models=MODELS):
     """Assign the sequential ramp across the measured scales, smallest first."""
-    if len(models) > len(SCALE_RAMP):
-        raise ValueError('extend SCALE_RAMP before adding more model scales')
-    if len(models) == 1:
-        return {models[0]: SCALE_RAMP[-1]}
-    step = (len(SCALE_RAMP) - 1) / (len(models) - 1)
-    return {model: SCALE_RAMP[round(index * step)] for index, model in enumerate(models)}
+    return _spread(SCALE_RAMP, models)
+
+
+def scale_areas(models=MODELS):
+    """Marker areas rising with scale, so colour is not the only ordering cue."""
+    return _spread(SCALE_AREAS, models)
 
 
 COLORS = scale_colors()

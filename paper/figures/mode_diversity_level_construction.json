@@ -7,7 +7,7 @@
     },
     "min_defined_prompts": 30,
     "model_colors": {
-      "7b": "#17528A"
+      "7b": "#D73027"
     },
     "unmeasurable_cells_have_no_height": true,
     "unmeasurable_strip": [
@@ -27,7 +27,7 @@
   },
   "output": "paper/figures/mode_diversity_level_construction",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "de78913e15cfec94905b771cf5b36f0fb37994888d0f9613dbdc019c6c37f3d2"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "391d237bacc3f7de554ed406c4ccbb5e03d36d256a7f5ba9744f224414fb9861"
   },
   "points": [
     {
@@ -183,7 +183,7 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "7983a7104ce91ec40033a92358fa98f82f857da7d5114258e37660c684e02a96",
+    "sha256": "65fdfe95df080d0d7c4c1999b9c367c18b080557df9665e84c3dcd8aa54274ec",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
   },
